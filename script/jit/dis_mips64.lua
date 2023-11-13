@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
 -- LuaJIT MIPS64 disassembler wrapper module.
 --
--- Copyright (C) 2005-2017 Mike Pall. All rights reserved.
+-- Copyright (C) 2005-2023 Mike Pall. All rights reserved.
 -- Released under the MIT license. See Copyright Notice in luajit.h
 ----------------------------------------------------------------------------
 -- This module just exports the big-endian functions from the
@@ -10,7 +10,7 @@
 
 local dis_mips = require((string.match(..., ".*%.") or "") .. "dis_mips")
 return {
-  create = dis_mips.create,
-  disass = dis_mips.disass,
-  regname = dis_mips.regname
+    create = dis_mips.create,
+    disass = dis_mips.disass,
+    regname = dis_mips.regname
 }

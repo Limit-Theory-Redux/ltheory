@@ -20,11 +20,11 @@ local Computer    = subclass(Entity, function(self)
     self.name         = Config.gen.compComputerStats.name
     self.healthCurr   = Config.gen.compComputerStats.healthCurr
     self.healthMax    = Config.gen.compComputerStats.healthMax
-    self.mappingRange = Config.gen.compComputerStats.mappingRange
-    self.scanSpeed    = Config.gen.compComputerStats.scanSpeed
-    self.scanDetail   = Config.gen.compComputerStats.scanDetail
-    self.lockBreaking = Config.gen.compComputerStats.lockBreaking
-    --printf("Register: Computer name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateComputer)
+    self.rating       = Config.gen.compComputerStats.rating
+    self.mappingSpeed = Config.gen.compComputerStats.mappingSpeed
+    self.lockCount    = Config.gen.compComputerStats.lockCount
+    self.lockStrength = Config.gen.compComputerStats.lockStrength
+    --Log.Debug("Register: Computer name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateComputer)
     self:register(Event.Update, self.updateComputer)
 end)
 
@@ -38,7 +38,7 @@ function Computer:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s computer takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s computer takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 end
 
 function Computer:getHealth()
@@ -54,8 +54,24 @@ function Computer:getHealthPercent()
     return 100.0 * self.healthCurr / self.healthMax
 end
 
+function Computer:getLockCount()
+    return self.lockCount
+end
+
+function Computer:getLockStrength()
+    return self.lockStrength
+end
+
+function Computer:getMappingSpeed()
+    return self.mappingSpeed
+end
+
 function Computer:getName()
     return self.name
+end
+
+function Computer:getRating()
+    return self.rating
 end
 
 function Computer:setHealth(value, max)
@@ -69,7 +85,7 @@ end
 
 function Computer:updateComputer(state)
     if not self:getParent():isDestroyed() then
-        --printf("COMPUTER: %s", self:getName())
+        --Log.Debug("COMPUTER: %s", self:getName())
     end
 end
 

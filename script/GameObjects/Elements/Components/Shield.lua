@@ -38,7 +38,7 @@ local Shield      = subclass(Entity, function(self)
     self.colorR       = Config.gen.compShieldStats.colorR
     self.colorG       = Config.gen.compShieldStats.colorG
     self.colorB       = Config.gen.compShieldStats.colorB
-    --printf("Register: Shield type = %s, handler = %s", Event.Update, self.updateShield)
+    --Log.Debug("Register: Shield type = %s, handler = %s", Event.Update, self.updateShield)
     self:register(Event.Update, self.updateShield)
 end)
 
@@ -60,7 +60,7 @@ function Shield:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s shield takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s shield takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 
     -- Reduce maximum possible shield strength due to damage
     local maxStrength = self.strengthMax * (self.healthCurr / self.healthMax)
@@ -86,24 +86,24 @@ function Shield:setHealth(value, max)
     self.healthMax = floor(max)
 end
 
-function Shield:getShield()
-    return self.strengthCurr or 0.0
-end
-
-function Shield:getShieldMax()
-    return self.strengthMax or 0.0
-end
-
 function Shield:getReviveRate()
     return self.reviveRate or 0
 end
 
-function Shield:getShieldPercent()
+function Shield:getStrength()
+    return self.strengthCurr or 0.0
+end
+
+function Shield:getStrengthMax()
+    return self.strengthMax or 0.0
+end
+
+function Shield:getStrengthPercent()
     if self.strengthMax < 1e-6 then return 0.0 end
     return 100.0 * self.strengthCurr / self.strengthMax
 end
 
-function Shield:reduceShield(value)
+function Shield:reduceStrength(value)
     -- TODO: Modify shield reduction by its resistance versus incoming damage type
     local reducedValue = value
 
@@ -112,13 +112,13 @@ function Shield:reduceShield(value)
     else
         self.strengthCurr = self.strengthCurr - reducedValue
     end
-    --printf("Vessel %s shield reduced by %s, %s remaining", self:getName(), reducedValue, self.strengthCurr)
+    --Log.Debug("Vessel %s shield reduced by %s, %s remaining", self:getName(), reducedValue, self.strengthCurr)
 
     -- TODO: Visual effect for shield activation
     UI.DrawEx.Ring(200, 200, 50, Config.ui.color.shieldStrength, true)
 end
 
-function Shield:setShield(value, max, rate)
+function Shield:setStrength(value, max, rate)
     self.strengthCurr = value
     self.strengthMax = floor(max)
     self.reviveRate = rate
@@ -132,7 +132,7 @@ function Shield:updateShield(state)
             if GameState.paused then
                 timeScale = 0.0
             end
-            if Input.GetDown(Bindings.TimeAccel) then
+            if InputInstance:isDown(Bindings.TimeAccel) then
                 timeScale = GameState.debug.timeAccelFactor
             end
 
@@ -143,7 +143,7 @@ function Shield:updateShield(state)
             local undischarged = self:getParent():mgrCapacitorDischarge(diffStrength)
 
             self.strengthCurr = newStrength - undischarged
-            --printf("SHIELD: %s - curr = %s, max = %s, rate = %s, diff = %s, undischarged = %s",
+            --Log.Debug("SHIELD: %s - curr = %s, max = %s, rate = %s, diff = %s, undischarged = %s",
             --self:getName(), self.strengthCurr, self.strengthMax, self.reviveRate, diffStrength, undischarged)
         end
     end

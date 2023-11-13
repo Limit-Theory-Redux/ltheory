@@ -21,7 +21,7 @@ function GenMesh:column(rng, h, pieces, r)
     local dh = h / pieces
     for i = 0, pieces - 1 do
         local y = i / pieces
-        y = 2.0 * y - 1.5
+        y = -1 * (2.0 * y - 1.5)
         local radius = 0.1 + 0.4 * r * rng:getExp() ^ 0.5 * ClampExp(-0.5, 1.0 - y)
         self:add(Vec3f(0, h * y, 0), Vec3f(radius, 1.5 * dh, radius), Vec3f(0, 0, 0), 0.25)
     end

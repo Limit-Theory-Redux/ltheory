@@ -11,7 +11,7 @@ function StationTest:spawnStation()
     do -- Player Ship
         local currentStation = self.currentStation or self.player:getControlling()
         if currentStation then currentStation:delete() end
-        station = self.system:spawnStation(self.player)
+        station = self.system:spawnStation(Enums.StationHulls.Small, self.player)
         station:setPos(Config.gen.origin)
         station:setFriction(0)
         station:setSleepThreshold(0, 0)
@@ -24,7 +24,7 @@ end
 
 function StationTest:newSystem()
     self.seed = rng:get64()
-    printf('Seed: %s', self.seed)
+    Log.Debug('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = System(self.seed)
@@ -42,10 +42,6 @@ function StationTest:onInit()
     self.player = Player()
     GameState.player.humanPlayer = self.player
 
-    --* Audio initializations *--
-    Audio.Init()
-    Audio.Set3DSettings(0.0, 10, 2);
-
     self:generate()
 
     DebugControl.ltheory = self
@@ -59,9 +55,9 @@ end
 function StationTest:onInput()
     self.canvas:input()
 
-    if Input.GetKeyboardShift() and Input.GetPressed(Button.Keyboard.B) then
+    if InputInstance:isKeyboardShiftPressed() and InputInstance:isPressed(Button.KeyboardB) then
         self:newSystem()
-    elseif Input.GetPressed(Button.Keyboard.B) then
+    elseif InputInstance:isPressed(Button.KeyboardB) then
         self:spawnStation()
     end
 end
@@ -69,8 +65,8 @@ end
 function StationTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
-    HmGui.Begin(self.resX, self.resY)
-    HmGui.End()
+    HmGui.Begin(self.resX, self.resY, InputInstance)
+    HmGui.End(InputInstance)
 end
 
 function StationTest:onDraw()

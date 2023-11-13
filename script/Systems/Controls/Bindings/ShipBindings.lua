@@ -3,75 +3,75 @@ local Control = require('Systems.Controls.Control')
 local self = {
     ThrustX           = Control.Or(
         Control.Pair(
-            Control.Key(Button.Keyboard.D),
-            Control.Key(Button.Keyboard.A)),
-        Control.GamepadAxis(Button.Gamepad.LStickX)),
+            Control.Key(Button.KeyboardD),
+            Control.Key(Button.KeyboardA)),
+        Control.GamepadAxis(Button.GamepadLeftStickX)),
 
     ThrustZ           = Control.Or(
         Control.Pair(
-            Control.Key(Button.Keyboard.W),
-            Control.Key(Button.Keyboard.S)),
-        Control.GamepadAxis(Button.Gamepad.LStickY)),
+            Control.Key(Button.KeyboardW),
+            Control.Key(Button.KeyboardS)),
+        Control.GamepadAxis(Button.GamepadLeftStickY)),
 
     ThrustY           = Control.Or(
         Control.Pair(
-            Control.Key(Button.Keyboard.Space),
+            Control.Key(Button.KeyboardSpace),
             Control.Ctrl()),
         Control.Pair(
-            Control.GamepadAxis(Button.Gamepad.Up),
-            Control.GamepadAxis(Button.Gamepad.Down))),
+            Control.GamepadAxis(Button.GamepadDPadUp),
+            Control.GamepadAxis(Button.GamepadDPadDown))),
 
     Roll              = Control.Or(
         Control.Pair(
-            Control.Key(Button.Keyboard.E),
-            Control.Key(Button.Keyboard.Q)),
+            Control.Key(Button.KeyboardE),
+            Control.Key(Button.KeyboardQ)),
         Control.Pair(
-            Control.GamepadButton(Button.Gamepad.RBumper),
-            Control.GamepadButton(Button.Gamepad.LBumper))),
+            Control.GamepadButton(Button.GamepadRightTrigger2),
+            Control.GamepadButton(Button.GamepadLeftTrigger2))),
 
     Yaw               = Control.Or(
         Control.MouseX(),
-        Control.GamepadAxis(Button.Gamepad.RStickX)),
+        Control.GamepadAxis(Button.GamepadRightStickX)),
 
     Pitch             = Control.Or(
         Control.MouseY():invert(),
-        Control.GamepadAxis(Button.Gamepad.RStickY):invert()),
+        Control.GamepadAxis(Button.GamepadRightStickY):invert()),
 
     Boost             = Control.Or(
         Control.Shift(),
-        Control.GamepadAxis(Button.Gamepad.LTrigger)),
+        Control.GamepadAxis(Button.GamepadLeftTrigger)),
 
     Fire              = Control.Or(
-        Control.MouseButton(Button.Mouse.Left),
-        Control.GamepadAxis(Button.Gamepad.RTrigger)),
+        Control.MouseButton(Button.MouseLeft),
+        Control.GamepadAxis(Button.GamepadRightTrigger)),
 
     LockTarget        = Control.Or(
-            Control.Key(Button.Keyboard.T),
-            Control.GamepadButton(Button.Gamepad.X))
+            Control.Key(Button.KeyboardT),
+            Control.GamepadButton(Button.GamepadWest))
         :delta(),
 
     ClearTarget       = Control.Or(
-            Control.Key(Button.Keyboard.G),
-            Control.GamepadButton(Button.Gamepad.B))
+            Control.Key(Button.KeyboardG),
+            Control.GamepadButton(Button.GamepadEast))
         :delta(),
 
     NearestTarget     = Control.Or(
-            Control.Key(Button.Keyboard.N),
-            Control.GamepadButton(Button.Gamepad.X))
+            Control.Key(Button.KeyboardN),
+            Control.GamepadButton(Button.GamepadWest))
         :delta(),
 
     Dock              = Control.Or(
-            Control.Key(Button.Keyboard.F),
-            Control.GamepadButton(Button.Gamepad.Y))
+            Control.Key(Button.KeyboardF),
+            Control.GamepadButton(Button.GamepadNorth))
         :delta(),
 
     Undock            = Control.Or(
-            Control.Key(Button.Keyboard.J),
-            Control.GamepadButton(Button.Gamepad.A))
+            Control.Key(Button.KeyboardJ),
+            Control.GamepadButton(Button.GamepadSouth))
         :delta(),
 
-    SquadAttackTarget = Control.GamepadButton(Button.Gamepad.Back):delta(),
-    SquadScramble     = Control.GamepadButton(Button.Gamepad.Guide):delta(),
+    SquadAttackTarget = Control.GamepadButton(Button.GamepadSelect):delta(),
+    SquadScramble     = Control.GamepadButton(Button.GamepadMode):delta(),
 }
 
 if GameState.input.invertPitch then

@@ -10,19 +10,21 @@ GameState.input = {
 }
 
 GameState.debug = {
-    metricsEnabled  = Config.debug.metricsEnabled,
-    instantJobs     = Config.debug.instantJobs,
-    jobSpeed        = Config.debug.jobSpeed,
-    timeAccelFactor = Config.debug.timeAccelFactor,
-    printConfig     = Config.debug.printConfig
+    metricsEnabled     = Config.debug.metricsEnabled,
+    instantJobs        = Config.debug.instantJobs,
+    jobSpeed           = Config.debug.jobSpeed,
+    timeAccelFactor    = Config.debug.timeAccelFactor,
+    printConfig        = Config.debug.printConfig,
+    showMapActionLines = Config.debug.showMapActionLines
 }
 
 GameState.render = {
     fullscreen      = Config.render.fullscreen,
     gameWindow      = nil,
+    gameView        = nil,
     resX            = Config.render.defaultResX,
     resY            = Config.render.defaultResY,
-    vsync           = Config.render.vsync,
+    presentMode     = Config.render.presentMode,
     zNear           = Config.render.zNear,
     zFar            = Config.render.zFar,
     thrusterLights  = Config.render.thrusterLights,
@@ -37,6 +39,7 @@ GameState.audio = {
     soundEnabled = Config.audio.soundEnabled,
     fxVolume     = Config.audio.fxVolume,
     musicVolume  = Config.audio.musicVolume,
+    menuTheme    = Config.audio.mainMenu
 }
 
 GameState.ui = {
@@ -57,30 +60,34 @@ GameState.ui = {
         Station  = Config.ui.trackerBracketingRenderDistances.Station,
         Ship     = Config.ui.trackerBracketingRenderDistances.Ship,
         Colony   = Config.ui.trackerBracketingRenderDistances.Colony,
-    }
+    },
+    trackerObjectOcclusion           = Config.ui.trackerObjectOcclusion,
+
+    mapSystemPanSpeed                = 0.5,
+    mapSystemZoomSpeed               = 0.1,
 }
 
 GameState.player = {
-    humanPlayer         = nil,
-    humanPlayerName     = "[Human Player Name]",
-    humanPlayerShipName = "[Human Player Ship Name]",
+    humanPlayer          = nil,
+    humanPlayerName      = "[Human Player Name]",
+    humanPlayerShipName  = "[Human Player Ship Name]",
 
-    currentControl      = Config.ui.defaultControl,
-    playerMoving        = false,
+    currentControl       = Config.ui.defaultControl,
+    playerMoving         = false,
 
-    currentShip         = nil,
-    shipHull            = Enums.ShipHulls.Solo,
-    weaponGroup         = 1,
+    currentShip          = nil,
+    shipHull             = Enums.ShipHulls.Solo,
+    weaponGroup          = 1,
 
-    currentCamera       = Enums.CameraMode.FirstPerson,
-    lastCamera          = nil,
-    startupCamera       = Enums.CameraMode.FirstPerson,
+    currentCamera        = Enums.CameraMode.FirstPerson,
+    lastCamera           = nil,
+    startupCamera        = Enums.CameraMode.FirstPerson,
 
-    mapSystemPos        = Vec3f(0, 0, 0),
-    mapSystemZoom       = 0.001,
-    mapSystemPan        = 40.0,
+    currentMapSystemPos  = Vec3f(0, 0, 0),
+    currentMapSystemZoom = 0.001,
+    currentMapSystemPan  = 40.0,
 
-    autonavTimestamp    = nil,
+    autonavTimestamp     = nil,
 }
 
 GameState.world = {
@@ -89,7 +96,7 @@ GameState.world = {
 }
 
 GameState.gen = {
-    nFields               = Config.gen.nStations,
+    nFields               = Config.gen.nFields,
     nAsteroids            = Config.gen.nAsteroids,
     nPlanets              = Config.gen.nPlanets,
     nStations             = Config.gen.nStations,
@@ -99,6 +106,8 @@ GameState.gen = {
     randomizeEconNPCs     = Config.gen.randomizeEconNPCs,
     nEscortNPCs           = Config.gen.nEscortNPCs,
     randomizeEscortNPCs   = Config.gen.randomizeEscortNPCs,
+    nPirateNPCs           = Config.gen.nPirateNPCs,
+    randomizePirateNPCs   = Config.gen.randomizePirateNPCs,
     uniqueShips           = Config.gen.uniqueShips,
     nebulaBrightnessScale = Config.gen.nebulaBrightnessScale
 }

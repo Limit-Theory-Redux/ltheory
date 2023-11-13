@@ -73,6 +73,10 @@ function Action:flyToward(e, targetPos, targetForward, targetUp)
         c.boost = newBoost
         --    end
     end
+
+    if e.travelDriveActive then
+        c.boost = 2
+    end
 end
 
 --------------------------------------------------------------------------------

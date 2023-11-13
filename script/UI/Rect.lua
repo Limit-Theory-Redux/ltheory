@@ -79,15 +79,15 @@ function self.tostringSize(sx, sy)
 end
 
 function self.print(x, y, sx, sy)
-    print(self.tostring(x, y, sx, sy))
+    Log.Info(self.tostring(x, y, sx, sy))
 end
 
 function self.printPos(x, y)
-    print(self.tostringPos(x, y))
+    Log.Info(self.tostringPos(x, y))
 end
 
 function self.printSize(sx, sy)
-    print(self.tostringSize(sx, sy))
+    Log.Info(self.tostringSize(sx, sy))
 end
 
 return self

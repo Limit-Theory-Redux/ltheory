@@ -59,7 +59,7 @@ function LTheory:generate()
         rng = RNG.Create(Config.gen.seedGlobal)
     end
     self.seed = rng:get64()
-    printf('Seed: %s', self.seed)
+    Log.Debug('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = Entities.Test.System(self.seed)
@@ -132,10 +132,6 @@ function LTheory:onInit()
     self.player = Entities.Player()
     GameState.player.humanPlayer = self.player
 
-    --* Audio initializations *--
-    Audio.Init()
-    Audio.Set3DSettings(0.0, 10, 2);
-
     self:generate()
 
     DebugControl.ltheory = self
@@ -151,15 +147,15 @@ function LTheory:onInput()
 
     if compoundTest then
         local asteroids = List()
-        if Input.GetDown(Button.Keyboard.LCtrl) then asteroids:append(self.asteroid1) end
-        if Input.GetDown(Button.Keyboard.LShift) then asteroids:append(self.asteroid2) end
+        if InputInstance:isDown(Button.KeyboardControlLeft) then asteroids:append(self.asteroid1) end
+        if InputInstance:isDown(Button.KeyboardShiftLeft) then asteroids:append(self.asteroid2) end
 
         local ship = self.player:getControlling()
         for i = 1, #asteroids do
             local asteroid = asteroids[i]
 
             -- Attach/detach
-            if Input.GetPressed(Button.Keyboard.Return) then
+            if InputInstance:isPressed(Button.KeyboardReturn) then
                 local parent = asteroid:getParentBody()
                 if parent == nil then
                     self.system:removeChild(asteroid)
@@ -171,23 +167,23 @@ function LTheory:onInput()
             end
 
             -- Scale
-            if Input.GetPressed(Button.Keyboard.Minus) then
+            if InputInstance:isPressed(Button.KeyboardMinus) then
                 local scale = asteroid:getScale()
                 if scale > 1 then asteroid:setScale(scale - 1) end
             end
-            if Input.GetPressed(Button.Keyboard.Equals) then
+            if InputInstance:isPressed(Button.KeyboardEquals) then
                 local scale = asteroid:getScale()
                 asteroid:setScale(scale + 1)
             end
 
             -- Position
             local pos = Vec3f(0, 0, 0)
-            if Input.GetPressed(Button.Keyboard.I) then pos.z = pos.z - 1 end
-            if Input.GetPressed(Button.Keyboard.K) then pos.z = pos.z + 1 end
-            if Input.GetPressed(Button.Keyboard.L) then pos.x = pos.x + 1 end
-            if Input.GetPressed(Button.Keyboard.J) then pos.x = pos.x - 1 end
-            if Input.GetPressed(Button.Keyboard.O) then pos.y = pos.y + 1 end
-            if Input.GetPressed(Button.Keyboard.U) then pos.y = pos.y - 1 end
+            if InputInstance:isPressed(Button.KeyboardI) then pos.z = pos.z - 1 end
+            if InputInstance:isPressed(Button.KeyboardK) then pos.z = pos.z + 1 end
+            if InputInstance:isPressed(Button.KeyboardL) then pos.x = pos.x + 1 end
+            if InputInstance:isPressed(Button.KeyboardJ) then pos.x = pos.x - 1 end
+            if InputInstance:isPressed(Button.KeyboardO) then pos.y = pos.y + 1 end
+            if InputInstance:isPressed(Button.KeyboardU) then pos.y = pos.y - 1 end
             local parent = asteroid:getParentBody()
             if parent == nil then
                 asteroid:setPos(pos + asteroid:getPos());
@@ -196,12 +192,12 @@ function LTheory:onInput()
             end
 
             local ypr = Vec3f(0, 0, 0)
-            if Input.GetPressed(Button.Keyboard.T) then ypr.y = ypr.y - math.pi / 10 end
-            if Input.GetPressed(Button.Keyboard.G) then ypr.y = ypr.y + math.pi / 10 end
-            if Input.GetPressed(Button.Keyboard.H) then ypr.z = ypr.z - math.pi / 10 end
-            if Input.GetPressed(Button.Keyboard.F) then ypr.z = ypr.z + math.pi / 10 end
-            if Input.GetPressed(Button.Keyboard.Y) then ypr.x = ypr.x - math.pi / 10 end
-            if Input.GetPressed(Button.Keyboard.R) then ypr.x = ypr.x + math.pi / 10 end
+            if InputInstance:isPressed(Button.KeyboardT) then ypr.y = ypr.y - math.pi / 10 end
+            if InputInstance:isPressed(Button.KeyboardG) then ypr.y = ypr.y + math.pi / 10 end
+            if InputInstance:isPressed(Button.KeyboardH) then ypr.z = ypr.z - math.pi / 10 end
+            if InputInstance:isPressed(Button.KeyboardF) then ypr.z = ypr.z + math.pi / 10 end
+            if InputInstance:isPressed(Button.KeyboardY) then ypr.x = ypr.x - math.pi / 10 end
+            if InputInstance:isPressed(Button.KeyboardR) then ypr.x = ypr.x + math.pi / 10 end
             local mat = Matrix.YawPitchRoll(ypr.y, ypr.x, ypr.z)
             local rot = mat:toQuat()
             mat:free()
@@ -221,13 +217,13 @@ function LTheory:onUpdate(dt)
 
     local collision = Collision()
     while (self.system.physics:getNextCollision(collision)) do
-        --print('', collision.index, collision.body0, collision.body1)
+        --Log.Debug('', collision.index, collision.body0, collision.body1)
     end
-    print('Collision Count:', collision.count)
+    Log.Debug('Collision Count:', collision.count)
 
     if worldTriggerTest then
         local triggerCount = self.trigger1:getContentsCount()
-        print('World Trigger Count:', triggerCount)
+        Log.Debug('World Trigger Count:', triggerCount)
         for i = 1, triggerCount do
             self.trigger1:getContents(i - 1)
         end
@@ -235,14 +231,14 @@ function LTheory:onUpdate(dt)
 
     if attachedTriggerTest then
         local triggerCount = self.trigger2:getContentsCount()
-        print('Attached Trigger Count:', triggerCount)
+        Log.Debug('Attached Trigger Count:', triggerCount)
         for i = 1, triggerCount do
             self.trigger2:getContents(i - 1)
         end
     end
 
-    HmGui.Begin(self.resX, self.resY)
-    HmGui.End()
+    HmGui.Begin(self.resX, self.resY, InputInstance)
+    HmGui.End(InputInstance)
 end
 
 function LTheory:onDraw()

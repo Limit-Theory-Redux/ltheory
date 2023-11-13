@@ -32,19 +32,19 @@ function GameView:draw(focus, active)
     end
 
     do -- Lighting
-        Profiler.Begin('Render.Lighting')
         -- Gather light sources
         -- Note: Scan only objects with lights attached
         local lights = {}
         if #system.lightList > 0 then
-            --print("---------")
+            --Log.Debug("---------")
             for _, v in ipairs(system.lightList) do
                 insert(lights, { pos = v:getPos(), color = v:getLight() })
-                --printf("light @ %s, %s", v:getPos(), v:getLight())
+                --Log.Debug("light '%s' @ %s, %s", v:getName(), v:getPos(), v:getLight())
             end
         end
 
         do -- Global lighting (environment)
+            Profiler.Begin('Render.Lighting.Global')
             self.renderer.buffer2:push()
             Draw.Clear(0, 0, 0, 0)
             local shader = Cache.Shader('worldray', 'light/global')
@@ -54,9 +54,11 @@ function GameView:draw(focus, active)
             Draw.Rect(-1, -1, 2, 2)
             shader:stop()
             self.renderer.buffer2:pop()
+            Profiler.End()
         end
 
         do -- Local lighting (TODO: performance issues?)
+            Profiler.Begin('Render.Lighting.Local')
             self.renderer.buffer2:push()
             BlendMode.PushAdditive()
             local shader = Cache.Shader('worldray', 'light/point')
@@ -72,9 +74,11 @@ function GameView:draw(focus, active)
             shader:stop()
             BlendMode.Pop()
             self.renderer.buffer2:pop()
+            Profiler.End()
         end
 
         do -- Composite albedo & accumulated light buffer
+            Profiler.Begin('Render.Lighting.Albedo')
             self.renderer.buffer1:push()
             local shader = Cache.Shader('worldray', 'light/composite')
             shader:start()
@@ -84,8 +88,10 @@ function GameView:draw(focus, active)
             Draw.Rect(-1, -1, 2, 2)
             shader:stop()
             self.renderer.buffer1:pop()
+            Profiler.End()
         end
 
+        Profiler.Begin('Render.Lighting.BufferExchange')
         self.renderer.buffer0, self.renderer.buffer1 = self.renderer.buffer1, self.renderer.buffer0
         Profiler.End()
     end
@@ -142,18 +148,24 @@ function GameView:draw(focus, active)
         Profiler.End()
     end
 
+    Profiler.Begin('Render.endDraw')
     system:endRender()
-    self.camera:endDraw()
+    self.camera:endDraw() -- now go perform all the deferred rendering operations
+    Profiler.End()
 
-    if true then -- Composited UI Pass
-        Profiler.Begin('Render.CompositedUI')
+    if true then -- Composited UI Pass (becomes slow with many asteroids)
+        Profiler.Begin('Render.CompositedUI.start')
         self.renderer:startUI()
         Viewport.Push(0, 0, ss * self.sx, ss * self.sy, true)
         ClipRect.PushTransform(0, 0, ss, ss)
         GLMatrix.ModeWV()
         GLMatrix.Push()
         GLMatrix.Scale(ss, ss, 1.0)
+        Profiler.End()
+        Profiler.Begin('Render.CompositedUI.draw')
         for i = 1, #self.children do self.children[i]:draw(focus, active) end
+        Profiler.End()
+        Profiler.Begin('Render.CompositedUI.stop')
         GLMatrix.ModeWV()
         GLMatrix.Pop()
         ClipRect.PopTransform()
@@ -220,12 +232,14 @@ function GameView:onUpdate(state)
         self.eyeLast:setv(eye)
     end
 
-    Audio.SetListenerPos(
-        self.camera.pos,
-        self.eyeVel,
-        self.camera.rot:getForward(),
-        self.camera.rot:getUp())
-    Audio.Update()
+    if LTheoryRedux.audio then
+        LTheoryRedux.audio:setListenerPos(
+            self.camera.pos,
+            self.camera.rot)
+    else
+        LTheoryRedux.audio = Audio.Create()
+        Log.Warning("[GameView.lua Update] Audio not initialized at this point. This should not happen.")
+    end
 
     self.camera:pop()
 end

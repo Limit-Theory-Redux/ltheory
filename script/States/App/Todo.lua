@@ -54,19 +54,19 @@ function Test:onInit()
 end
 
 function Test:showTodo()
-    HmGui.BeginWindow("HmGui Todo List")
+    HmGui.BeginWindow("HmGui Todo List", InputInstance)
     HmGui.BeginScroll(512)
     todo:show()
-    HmGui.EndScroll()
+    HmGui.EndScroll(InputInstance)
     HmGui.EndWindow()
     HmGui.SetAlign(0.5, 0.5)
 end
 
 function Test:onUpdate(dt)
-    HmGui.Begin(self.resX, self.resY)
+    HmGui.Begin(self.resX, self.resY, InputInstance)
     HmGui.Image(self.bg)
     self:showTodo()
-    HmGui.End()
+    HmGui.End(InputInstance)
 end
 
 function Test:onDraw()

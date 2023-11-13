@@ -10,7 +10,7 @@ if __embedded__ == nil then __embedded__ = false end
 ]]
 ffi = require('ffi')
 jit = require('jit')
-lfs = require('ffi.lfs_ffi')
+lfs = require('lfs_ffi')
 
 --[[
     Importing all math functions (presumably from ffi and jit? Need Confirmation)
@@ -30,6 +30,10 @@ Enums = {}
 GameState = {}
 
 -- Application
+AppInit = {}
+AppFrame = {}
+AppClose = {}
+
 LTheoryRedux = {}
 
 ---- Aliases Required for ToString. (Should I require them inside ToString?)
@@ -56,13 +60,53 @@ Namespace.Inline(Core.Events, 'Systems.Events')
 ---- Load in FFI
 -- Please note. All of this will need double checking. This is near 1-1 to Josh's.
 -- His Reasoning for using requireAll, Inline, Inject. Is unclear.
-Core.FFI = {}
-Core.FFI.Ext = requireAll('ffiext')
-Core.FFI.Lib = require('ffi.libphx')
+do -- Basic Typedefs
+    ffi.cdef [[
+        typedef unsigned long  ulong;
+        typedef unsigned int   uint;
+        typedef unsigned short ushort;
+        typedef unsigned char  uchar;
+        typedef char const*    cstr;
+        typedef int8_t         int8;
+        typedef int16_t        int16;
+        typedef int32_t        int32;
+        typedef int64_t        int64;
+        typedef uint8_t        uint8;
+        typedef uint16_t       uint16;
+        typedef uint32_t       uint32;
+        typedef uint64_t       uint64;
+    ]]
+end
 
-Core.FFI.Base = requireAll('ffi')
+
+local genObjects, genFiles, genOpaques, genStructs = requireAllGenerated('ffi_gen')
+
+Core.FFI = {}
+Core.FFI.Ext = requireAll('ffi_ext')
+Core.FFI.Lib = require('libphx')
+
+Core.FFI.Base = requireAll('ffi_common')
 Namespace.Inline(Core.FFI.Base, 'Core.FFI.Base')
 Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Base, 'Core.FFI.Base')
+
+-- Load type definitions
+for k, v in pairs(genFiles) do
+    local obj = v.defineType()
+
+    genObjects[k] = obj
+end
+
+Core.FFI.Gen = genObjects
+Namespace.Inline(Core.FFI.Gen, 'Core.FFI.Gen')
+Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Gen, 'Core.FFI.Gen')
+
+for _, v in ipairs(genOpaques) do
+    table.insert(Core.FFI.Lib.Opaques, v)
+end
+
+for _, v in ipairs(genStructs) do
+    table.insert(Core.FFI.Lib.Structs, v)
+end
 
 Core.FFI.CFFI = requireAll('Core.CFFI')
 Namespace.Inline(Core.FFI.CFFI, 'Core.FFI.CFFI')
@@ -131,7 +175,11 @@ Render = requireAll('Render')
 Namespace.Inline(Render, 'Render')
 
 -- Call Function for Running main with errorHandler
-function Core.Call(fn)
-    local _, err = xpcall(fn, ErrorHandler)
-    if err then print(err) end
+function Core.Call(fn, ...)
+    local status, ret = xpcall(fn, ErrorHandler, ...)
+    if not status then
+        Log.Error('Error calling: %s(%s). Ret: %s', fn, ..., ret)
+        os.exit()
+    end
+    return ret
 end

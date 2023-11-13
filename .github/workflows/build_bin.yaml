@@ -34,7 +34,7 @@ jobs:
             ${{github.workspace}}/bin/*
             !${{github.workspace}}/bin/*.pdb
             ${{github.workspace}}/docs/*
-            ${{github.workspace}}/libphx/script/*
+            ${{github.workspace}}/engine/lib/phx/script/*
             ${{github.workspace}}/res/*
             ${{github.workspace}}/script/*
             ${{github.workspace}}/LICENSE
@@ -61,7 +61,7 @@ jobs:
       - name: Update packages
         run: sudo apt-get update
       - name: Install packages
-        run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev
+        run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libudev-dev
       - name: Build
         run: ./build.sh
       - name: Upload binary

@@ -10,7 +10,7 @@ local SystemMap = require('Systems.CommandView.SystemMap')
 local rng = RNG.FromTime()
 --local rng = RNG.Create(10) -- for when the same seed is needed
 
--- Manage system and NPC numbers locally, rather than through App.lua or Local.lua
+-- Manage system and NPC numbers locally, rather than through App.lua or GameState.lua
 local kFields = 10
 local kFieldCount = 200
 local kStations = 30
@@ -33,6 +33,7 @@ end
 
 function TestEcon:onUpdate(dt)
     self.system:update(dt)
+    self.system:updateEconomy(dt)
     self.canvas:update(dt)
 end
 
@@ -77,11 +78,11 @@ function TestEcon:onInit()
     -- Add Station objects
     -- Every system gets one "free" solar plant
     local newStation = self.system:spawnStation(Enums.StationHulls.Small, self.tradeAI, Production.EnergySolar)
-    self.system:place(newStation)
+    newStation.zone = self.system:place(newStation)
 
     -- Every system gets one "free" waste recycler
     newStation = self.system:spawnStation(Enums.StationHulls.Small, self.tradeAI, Production.Recycler)
-    self.system:place(newStation)
+    newStation.zone = self.system:place(newStation)
 
     -- Now maybe add some additional stations
     for i = 3, kStations do
@@ -93,9 +94,9 @@ function TestEcon:onInit()
         local ownerNum = rng:getInt(1, kPlayers)
         for i, v in ipairs(self.system.players) do
             if i == ownerNum then
-                --        printf("New station %s should have owner %s", newStation:getName(), v:getName())
-                --        newStation:setOwner(v) -- causes an infinite loop somewhere
-                --        printf("New station %s actually has owner %s", newStation:getName(), newStation:getOwner():getName())
+                -- Log.Debug("New station %s should have owner %s", newStation:getName(), v:getName())
+                -- newStation:setOwner(v) -- causes an infinite loop somewhere
+                -- Log.Debug("New station %s actually has owner %s", newStation:getName(), newStation:getOwner():getName())
                 break
             end
         end
@@ -111,7 +112,7 @@ function TestEcon:onInit()
 
         -- Create assets (ships)
         self.system:spawnAI(kAssets, Actions.Wait(1), tradePlayer)
-        printf("%d assets added to %s", kAssets, tradePlayer:getName())
+        Log.Debug("%d assets added to %s", kAssets, tradePlayer:getName())
 
         -- Configure assets
         for asset in tradePlayer:iterAssets() do

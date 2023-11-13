@@ -41,7 +41,7 @@ local Bay = subclass(Entity, function(self)
     self:addVisibleMesh(shared.mesh, material)
 
     -- TODO : Tracking Component
-
+    -- TODO: Extend to effects other than Pulse Bay
     self.name       = Config.gen.compBayPulseStats.name
     self.healthCurr = Config.gen.compBayPulseStats.healthCurr
     self.healthMax  = Config.gen.compBayPulseStats.healthMax
@@ -57,7 +57,7 @@ local Bay = subclass(Entity, function(self)
     self.cooldown   = 0
     self.heat       = 0
 
-    --printf("Register: Bay name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateBay)
+    --Log.Debug("Register: Bay name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateBay)
     self:register(Event.Update, self.updateBay)
 end)
 
@@ -99,13 +99,13 @@ function Bay:aimAtTarget(target, fallback)
 end
 
 function Bay:canFire()
-    return not Config.game.gamePaused and self.cooldown <= 0 and
+    return not GameState.paused and self.cooldown <= 0 and
         self:getParent():mgrCapacitorGetCharge() >= Config.gen.compBayPulseStats.charge
 end
 
 function Bay:fire()
     if not self:canFire() then return end
-    --printf("%s firing!", self:getParent():getName())
+    --Log.Debug("%s firing!", self:getParent():getName())
 
     self:getParent().projColorR = Config.gen.compBayPulseStats.colorBodyR
     self:getParent().projColorG = Config.gen.compBayPulseStats.colorBodyG
@@ -115,7 +115,8 @@ function Bay:fire()
     Config.game.pulseColorBodyG = Config.gen.compBayPulseStats.colorBodyG
     Config.game.pulseColorBodyB = Config.gen.compBayPulseStats.colorBodyB
 
-    local projectile, effect = self:getRoot():addProjectile(self:getParent())
+    local projectile = self:getRoot():addProjectile(self:getParent())
+    local effect = projectile:getEffect()
     local dir = (self:getForward() + rng:getDir3():scale(self.projSpread * rng:getExp())):normalize()
     effect.pos = self:toWorld(Vec3f(0, 0, 0))
     effect.vel = dir:scale(self.projSpeed) + self:getParent():getVelocity()
@@ -125,23 +126,16 @@ function Bay:fire()
     effect.life = effect.lifeMax
 
     -- Discharge capacitor if bay holds an energy weapon
-    -- TODO: extend to different weapon types
     self:getParent():mgrCapacitorDischarge(Config.gen.compBayPulseStats.charge)
-
-    if projectile then
-        projectile.pos  = effect.pos
-        projectile.vel  = effect.vel
-        projectile.dir  = effect.dir
-        projectile.dist = 0
-        --printf("BAY: %s pos %s", projectile:getName(), projectile.pos)
-    end
 
     -- NOTE : In the future, it may be beneficial to store the actual bay
     --        rather than the parent. It would allow, for example, data-driven
     --        AI threat analysis by keeping track of which weapons have caused
     --        the most real damage to it, allowing for optimal sub-system
     --        targetting.
-    self.cooldown = 1.0
+    local rpmDeviation = Config.gen.compBayPulseStats.weaponRPM - Config.gen.compBayPulseStats.weaponRPM *
+        rng:getUniformRange(Config.gen.compTurretPulseStats.weaponRPMDeviation, 0)
+    self.cooldown = 60 / rpmDeviation -- 60 seconds / fire rate per minute
     self.heat = self.heat + 1
 end
 
@@ -163,14 +157,14 @@ function Bay:render(state)
 end
 
 function Bay:updateBay(state)
-    --printf("name = %s", self.name)
+    --Log.Debug("name = %s", self.name)
     local decay = exp(-16.0 * state.dt)
     self:setRotLocal(self:getParent():getRot():inverse() * self.aim)
     if self.firing > 0 then
         self.firing = 0
         if self.cooldown <= 0 then self:fire() end
     end
-    self.cooldown = max(0, self.cooldown - state.dt * Config.gen.compBayPulseStats.rateOfFire)
+    self.cooldown = max(0, self.cooldown - state.dt)
     self.heat = self.heat * decay
 end
 

@@ -20,6 +20,7 @@ Production.P0      = {} -- Powerplant
 Production.P1      = {} -- Refinery
 Production.P2      = {} -- Factory
 Production.P3      = {} -- Drydock
+Production.P4      = {} -- Misc
 
 --                         NAME                         UNIT MASS   ENERGY-DENSITY DISTRIBUTION %
 Item.Energy        = Item("Energy Cell", 1, 1.00, 1.00)
@@ -403,5 +404,12 @@ Production.Station = Production("Space Station Fabricator")
     :addOutput(Item.Waste, 9750)
     :setDuration(14400.0)
 insert(Production.P3, Production.Station)
+
+
+Production.Piracy = Production("Piracy")
+    :addInput(Item.Energy, 1)
+    :addOutput(Item.Credit, 10)
+    :setDuration(1.0)
+insert(Production.P4, Production.Piracy)
 
 --------------------------------------------------------------------------------

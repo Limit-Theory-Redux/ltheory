@@ -41,7 +41,7 @@ local Turret = subclass(Entity, function(self)
     self:addVisibleMesh(shared.mesh, material)
 
     -- TODO : Tracking Component
-
+    -- TODO: Extend to effects other than Pulse Turret
     self.name       = Config.gen.compTurretPulseStats.name
     self.healthCurr = Config.gen.compTurretPulseStats.healthCurr
     self.healthMax  = Config.gen.compTurretPulseStats.healthMax
@@ -57,7 +57,7 @@ local Turret = subclass(Entity, function(self)
     self.heat       = 0
     self.cooldown   = 0
 
-    --printf("Register: Turret name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateTurret)
+    --Log.Debug("Register: Turret name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateTurret)
     self:register(Event.Update, self.updateTurret)
 end)
 
@@ -99,13 +99,13 @@ function Turret:aimAtTarget(target, fallback)
 end
 
 function Turret:canFire()
-    return not Config.game.gamePaused and self.cooldown <= 0 and
+    return not GameState.paused and self.cooldown <= 0 and
         self:getParent():mgrCapacitorGetCharge() >= Config.gen.compTurretPulseStats.charge
 end
 
 function Turret:fire()
     if not self:canFire() then return end
-    --printf("%s firing!", self:getParent():getName())
+    --Log.Debug("%s firing!", self:getParent():getName())
 
     self:getParent().projColorR = Config.gen.compTurretPulseStats.colorBodyR
     self:getParent().projColorG = Config.gen.compTurretPulseStats.colorBodyG
@@ -115,7 +115,8 @@ function Turret:fire()
     Config.game.pulseColorBodyG = Config.gen.compTurretPulseStats.colorBodyG
     Config.game.pulseColorBodyB = Config.gen.compTurretPulseStats.colorBodyB
 
-    local projectile, effect = self:getRoot():addProjectile(self:getParent())
+    local projectile = self:getRoot():addProjectile(self:getParent())
+    local effect = projectile:getEffect()
     local dir = (self:getForward() + rng:getDir3():scale(self.projSpread * rng:getExp())):normalize()
     effect.pos = self:toWorld(Vec3f(0, 0, 0))
     effect.vel = dir:scale(self.projSpeed) + self:getParent():getVelocity()
@@ -128,21 +129,20 @@ function Turret:fire()
     -- TODO: extend to different weapon types
     self:getParent():mgrCapacitorDischarge(Config.gen.compTurretPulseStats.charge)
 
-    if projectile then
-        projectile.pos  = effect.pos
-        projectile.vel  = effect.vel
-        projectile.dir  = effect.dir
-        projectile.dist = 0
-        --printf("TURRET: %s pos %s", projectile:getName(), projectile.pos)
-    end
-
     -- NOTE : In the future, it may be beneficial to store the actual turret
     --        rather than the parent. It would allow, for example, data-driven
     --        AI threat analysis by keeping track of which weapons have caused
     --        the most real damage to it, allowing for optimal sub-system
     --        targetting.
-    self.cooldown = 1.0
+    --print(self:getParent().name)
+
+    local rpmDeviation = Config.gen.compTurretPulseStats.weaponRPM - Config.gen.compTurretPulseStats.weaponRPM *
+        rng:getUniformRange(Config.gen.compTurretPulseStats.weaponRPMDeviation, 0)
+    self.cooldown = 60 / rpmDeviation -- 60 seconds / fire rate per minute
     self.heat = self.heat + 1
+
+    -- Event to parent
+    self:getParent():send(Event.FiredTurret(self, projectile, effect))
 end
 
 function Turret:render(state)
@@ -163,14 +163,14 @@ function Turret:render(state)
 end
 
 function Turret:updateTurret(state)
-    --printf("name = %s", self.name)
+    --Log.Debug("name = %s", self.name)
     local decay = exp(-16.0 * state.dt)
     self:setRotLocal(self:getParent():getRot():inverse() * self.aim)
     if self.firing > 0 then
         self.firing = 0
         if self.cooldown <= 0 then self:fire() end
     end
-    self.cooldown = max(0, self.cooldown - state.dt * Config.gen.compTurretPulseStats.rateOfFire)
+    self.cooldown = max(0, self.cooldown - state.dt)
     self.heat = self.heat * decay
 end
 

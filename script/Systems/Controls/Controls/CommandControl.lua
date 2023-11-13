@@ -144,11 +144,11 @@ function CommandControl:focusGroupPanel(state, get)
 end
 
 function CommandControl:setActionMenu(state, enabled)
-    if enabled then
-        -- NOTE : Close the current menu even in case we don't end up showing a new one
-        self.actionMenu:disable()
-        self.actionTarget = nil
+    -- NOTE : Close the current menu even in case we don't end up showing a new one
+    self.actionMenu:disable()
+    self.actionTarget = nil
 
+    if enabled then
         if #self.selection > 0 then
             local mx, my = state.mousePosX, state.mousePosY
             self.actionTarget = self:findSelection(mx, my, 0, 0)[1]
@@ -158,7 +158,7 @@ function CommandControl:setActionMenu(state, enabled)
                 for i = 1, #ContextEntries do
                     local entry = ContextEntries[i]
 
-                    local button = entry.GetContextEntry(self, contextGrid)
+                    local button = entry.GetContextEntry()
                     if button then
                         button:setOnClick(function(button)
                             self.actionMenu:disable()
@@ -176,9 +176,6 @@ function CommandControl:setActionMenu(state, enabled)
                 end
             end
         end
-    else
-        self.actionMenu:disable()
-        self.actionTarget = nil
     end
 end
 
@@ -444,7 +441,7 @@ function CommandControl:onDraw(focus, active)
             local ndc = self.unitNDCs[i]
             local rel = unit:getOwnerDisposition(player)
             local color = Disposition.GetColor(rel)
-            self:drawUnitRect(rect, ndc, color, 4, self.camera)
+            self:drawUnitRect(rect, ndc, color, 4)
         end
     end
 
@@ -456,7 +453,7 @@ function CommandControl:onDraw(focus, active)
         local rect     = self.unitRects[selected]
         local ndc      = self.unitNDCs[selected]
         local color    = Config.ui.color.selection:clone()
-        self:drawUnitRect(rect, ndc, color, 8, self.camera)
+        self:drawUnitRect(rect, ndc, color, 8)
     end
 
     -- Selection Box

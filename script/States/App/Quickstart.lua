@@ -6,20 +6,23 @@ local MainMenu = require('Systems.Menus.MainMenu')
 
 local LTheoryRedux = require('States.App.LTheoryRedux')
 
+-- Loads the user directly into spaceflight, skipping the main menu.
 function LTheoryRedux:onInit()
     --* Value initializations *--
     self.logo = Tex2D.Load("./res/images/LTR_logo2.png") -- load the LTR logo
 
     DebugControl.ltheory = self
 
-    -- Read user-defined values and update game variables
-    InitFiles:readUserInits()
+    --[[
+    User-defined values are ignored to enable quicker debug changes,
+    without impacting user settings for the main game.
+    -- InitFiles:readUserInits()
+    ]]
 
-    --* Audio initializations *--
-    Audio.Init()
-    Audio.Set3DSettings(0.0, 10, 2);
-
-    if Config.audio.pulseFire then Sound.SetVolume(Config.audio.pulseFire, Config.audio.soundMax) end
+    GameState.ui.hudStyle = Enums.HudStyles.Wide
+    GameState.ui.sensorsDisplayed = true
+    GameState.ui.showTrackers = true
+    GameState.audio.musicVolume = 0
 
     -- Initialize Universe
     Universe:Init()
@@ -28,12 +31,14 @@ function LTheoryRedux:onInit()
     MusicPlayer:Init()
 
     --* Game initializations *--
-    self.window:setSize(GameState.render.resX, GameState.render.resY)
-    Window.SetPosition(self.window, WindowPos.Centered, WindowPos.Centered)
+    WindowInstance:setSize(GameState.render.resX, GameState.render.resY)
+    WindowInstance:setCenteredPosition()
     self:SetFullscreen(GameState.render.fullscreen)
-
     -- Set the default game control cursor
-    self:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
+    self:setCursor(
+        Enums.CursorFilenames[GameState.ui.cursorStyle],
+        GameState.ui.cursorX,
+        GameState.ui.cursorY)
 
     self.player = Entities.Player(GameState.player.humanPlayerName)
     GameState.player.humanPlayer = self.player
@@ -42,7 +47,7 @@ function LTheoryRedux:onInit()
     MainMenu:SetMenuMode(Enums.MenuMode.Dialog)
     GameState:Unpause()
     GameState.player.currentControl = Enums.ControlModes.Ship
-    Input.SetMouseVisible(false)
+    InputInstance:setCursorVisible(false)
     GameState:SetState(Enums.GameStates.InGame)
     self:seedStarsystem(Enums.MenuMode.Dialog)
 end

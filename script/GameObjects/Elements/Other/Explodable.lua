@@ -16,14 +16,14 @@ local function explode(self, source)
 
     self:clearActions()
     self.explodable = false
-    --printf("%s exploded! self.explodable = %s, hasExplo = %s, isExplo = %s",
+    --Log.Debug("%s exploded! self.explodable = %s, hasExplo = %s, isExplo = %s",
     --self:getName(), self.explodable, self:hasExplodable(), self:isExplodable())
 end
 
 function Entity:addExplodable()
     assert(not self.explodable)
     self.explodable = true
-    --printf("Explodable: %s: self.explodable = %s, self:hasExplodable() = %s",
+    --Log.Debug("Explodable: %s: self.explodable = %s, self:hasExplodable() = %s",
     --self:getName(), self.explodable, self:hasExplodable())
 
     self.explosionSize = 64

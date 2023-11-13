@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
 -- LuaJIT profiler zones.
 --
--- Copyright (C) 2005-2017 Mike Pall. All rights reserved.
+-- Copyright (C) 2005-2023 Mike Pall. All rights reserved.
 -- Released under the MIT license. See Copyright Notice in luajit.h
 ----------------------------------------------------------------------------
 --
@@ -27,7 +27,6 @@
 local remove = table.remove
 
 return setmetatable({
-    '',
     flush = function(t)
         for i = #t, 1, -1 do t[i] = nil end
     end,
@@ -39,7 +38,7 @@ return setmetatable({
         if zone then
             t[#t + 1] = zone
         else
-            return remove(t)
+            return (assert(remove(t), "empty zone stack"))
         end
     end
 })

@@ -218,7 +218,7 @@ function Shape:getFaceNormal(poly)
         n:inormalize()
         return n
     else
-        --    print("Bad normal at poly:") -- TEMP: disabled to keep it from interrupting other testing
+        --    Log.Debug("Bad normal at poly:") -- TEMP: disabled to keep it from interrupting other testing
         --    self:printPoly(poly)         -- TEMP: disabled to keep it from interrupting other testing
         --assert(n:length() > 1e-6)
     end
@@ -266,7 +266,7 @@ end
 function Shape:getRandomPolyWithNormal(n, rng, margin)
     margin = margin or 0.001
     local polys = self:getPolysWithNormal(n, margin)
-    if #polys == 0 then print("No polys found with normal ", n) end
+    if #polys == 0 then Log.Debug("No polys found with normal ", n) end
     local poly = rng:choose(polys)
     return poly
 end
@@ -281,9 +281,9 @@ function Shape:getRandomPolyWithNormalList(nl, rng, margin)
             polys[#polys + 1] = newPolys[j]
         end
     end
-    --print("poly list size:", #polys)
+    --Log.Debug("poly list size:", #polys)
 
-    if #polys == 0 then print("No polys found with normal from list ", nl) end
+    if #polys == 0 then Log.Debug("No polys found with normal from list ", nl) end
     local poly = rng:choose(polys)
     return poly
 end
@@ -635,7 +635,7 @@ end
 -- WARNING: fan triangulates the mesh
 -- TODO : Don't triangulate
 function Shape:intersectRay(rayOrigin, rayDir)
-    -- local tBegin = TimeStamp.Get()
+    -- local tBegin = TimeStamp.Now()
     -- triangulate
     self:triangulateFan()
 
@@ -653,7 +653,7 @@ function Shape:intersectRay(rayOrigin, rayDir)
         end
     end
 
-    -- printf('Raycast took %.2f ms', TimeStamp.GetElapsedMs(tBegin))
+    -- Log.Debug('Raycast took %.2f ms', tBegin:getElapsedMs())
     return intersection
 end
 
@@ -804,7 +804,7 @@ end
 -- PrintPoly ()
 function Shape:printPoly(poly)
     for i = 1, #poly do
-        print(i, " = ", poly[i], " = ", self.verts[poly[i]])
+        Log.Info(i, " = ", poly[i], " = ", self.verts[poly[i]])
     end
 end
 

@@ -17,7 +17,7 @@ function Hull:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s hull takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s hull takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 end
 
 function Hull:getHealth()

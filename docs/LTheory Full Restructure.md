@@ -5,12 +5,12 @@
 - BSPTest.lua
 - - *Functional*
 - - Test 3 and Test 5
-- - - Hotfixed by changing calls to "rand()" to "math.random()". I cannot find any place where "rand()" is defined. 
+- - - Hotfixed by changing calls to "rand()" to "math.random()". I cannot find any place where "rand()" is defined.
 - - Test 6
 - - - Pressing right does not display anything. Cannot be sure if this is a bug or intentional.
 - CoordTest
 - - *Complete* Passes Every Test.
-- FMODTest
+- AudioTest
 - - *Does Not Work* Uses deprecated Key Input functions
 - GenTex2D
 - - *Complete* Fully Functional
@@ -37,7 +37,7 @@
 
 ## Config
 - All Configuration Files needed for game/engine initialization.
-  - Aliases.lua 
+  - Aliases.lua
     - Function Aliases for ease of use.
   - App.lua
     - Set all app initial state variables
@@ -46,7 +46,7 @@
   - Local.lua
     - Extra App and JIT variable setting. Could be integrated into other config
 
-## Core 
+## Core
 - Files inside of Core are Global functions, classes, and class extensions which add additional functionality and convenience to lua
   - These files do not directly relate to Gameplay functionality
 ### CFFI
@@ -57,7 +57,7 @@
 ### Structures
 - Custom General Purpose Structures and Data Structures.
 - Settings.lua
-  - Stores global settings during game runtime. These settings are primarily set and read by Renderer.lua. 
+  - Stores global settings during game runtime. These settings are primarily set and read by Renderer.lua.
 ### Util
 - All other General Purpose Utility Functions that are in the Global Namespace.
   - Each file is either:
@@ -133,7 +133,7 @@
 ### Test
 - Empty folder which would contain all States for Testing purposes
 ## Systems
-- All Systems that are used throughout the game. 
+- All Systems that are used throughout the game.
   - Example: Economy contains all scripts which actively track the activity happening in the Economy.
 ### Camera
 - Camera Scripts which define different Functionality for the Gamespace Camera.
@@ -151,7 +151,7 @@
 #### Bindings
 - Specific Key Bindings to different Controls Contexts
 #### Controls
-- General Definitions for different Controls Contexts. 
+- General Definitions for different Controls Contexts.
 - Example: MasterControl can be added to any app to give specific Controller/Keyboard actions
 ### Economy
 - Controls the Economy and Defines base Economic items/systems
@@ -172,7 +172,7 @@
 
 # How Does Init.lua work?
 1. Set Flags if not defined in Main.cpp
-2. Import ffi and jit 
+2. Import ffi and jit
 3. Import all functions in "math" into Global Table
   - Unclear exactly why this definition happens. Legacy from Josh.
 4. Initialize Core, Render, Config for their addition to Global Table Later.
@@ -186,11 +186,11 @@
    1. Require Core.Structures and Core.Util
    2. Add Core.Util and Core.Struct into Core Namespace
    3. Require Systems.Events and Add it into Core Namespace
-      -   Note: Events is within Systems. While this is technically a Core System, it is also a General Game System which requires Global Accessibility. 
+      -   Note: Events is within Systems. While this is technically a Core System, it is also a General Game System which requires Global Accessibility.
 8. Load FFI into Core. I do not fully understand this, but it is used for Global FFI usage.
 9. Additional Lua Configuration
    1.  A bunch of Typedef stuff I do not understand. Has to do with FFI
-10. Require Renderer into the Global Space.    
+10. Require Renderer into the Global Space.
     1.  RequireAll(Render) and then add it into the "Render" Object
 11. Core.Call(fn) - Used for running Main.lua with ErrorHandling.
 

@@ -3,6 +3,7 @@ local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('GameObjects.Actions')
 local Bindings = require('States.ApplicationBindings')
+local MainMenu = require('Systems.Menus.MainMenu')
 
 local LTheory = require('States.Application')
 local rng = RNG.FromTime()
@@ -12,19 +13,12 @@ local escortShips = 20
 
 function LTheory:generate()
     self.seed = rng:get64()
-    if true then
-        -- self.seed = 7035008865122330386ULL
-        -- self.seed = 15054808765102574876ULL
-        -- self.seed = 1777258448479734603ULL
-        -- self.seed = 5023726954312599969ULL
-    end
-    printf('Seed: %s', self.seed)
+    Log.Info('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = System(self.seed)
 
     GameState.world.currentSystem = self.system
-    GameState.ui.hudStyle = Enums.HudStyles.Wide
     GameState:SetState(Enums.GameStates.InGame)
 
     -- Generate planets (no more than 1 for now)
@@ -80,19 +74,27 @@ function LTheory:generate()
 end
 
 function LTheory:onInit()
-    --* Audio initializations *--
-    Audio.Init()
-    Audio.Set3DSettings(0.0, 10, 2);
+    DebugControl.ltheory = self
 
     self.player = Player("LTheory Player")
+
     self:generate()
 
-    DebugControl.ltheory = self
+    GameState.ui.hudStyle = Enums.HudStyles.Wide
+    GameState.ui.sensorsDisplayed = true
+    GameState.ui.showTrackers = true
+    GameState.player.humanPlayer = self.player
+
     self.gameView = Systems.Overlay.GameView(self.player)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
             :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player)))
+
+    -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
+    WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+
+    MainMenu:SetMenuMode(Enums.MenuMode.Dialog)
 end
 
 function LTheory:onInput()
@@ -102,15 +104,15 @@ end
 function LTheory:onUpdate(dt)
     -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
     -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
-    if Input.GetPressed(Bindings.ToggleLights) then
+    if InputInstance:isPressed(Bindings.ToggleLights) then
         GameState.render.pulseLights = not GameState.render.pulseLights
     end
 
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
 
-    HmGui.Begin(self.resX, self.resY) -- required for HmGui.Draw() to work without crashing
-    HmGui.End()
+    HmGui.Begin(self.resX, self.resY, InputInstance) -- required for HmGui.Draw() to work without crashing
+    HmGui.End(InputInstance)
 end
 
 function LTheory:onDraw()

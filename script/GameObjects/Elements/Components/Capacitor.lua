@@ -34,7 +34,7 @@ local Capacitor   = subclass(Entity, function(self)
     self.chargeCurr = Config.gen.compCapacitorStats.chargeCurr
     self.chargeMax  = Config.gen.compCapacitorStats.chargeMax
     self.chargeRate = Config.gen.compCapacitorStats.chargeRate
-    --printf("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCapacitor)
+    --Log.Debug("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCapacitor)
     self:register(Event.Update, self.updateCapacitor)
 end)
 
@@ -46,23 +46,37 @@ function Capacitor:getName()
     return self.name
 end
 
-function Capacitor:setName(newName)
-    self.name = newName
-end
-
 function Capacitor:damageHealth(amount)
     if self.healthCurr - amount < 1e-6 then
         self.healthCurr = 0.0
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s capacitor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s capacitor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 
     -- Reduce maximum possible charge due to damage
     -- We could also reduce the charge rate, but let's be nice for now
     local maxCharge = self.chargeMax * (self.health / self.healthMax)
     if self.chargeCurr > maxCharge then self.chargeCurr = maxCharge end
     Capacitor:setCharge(self.chargeCurr, maxCharge, self.chargeRate)
+end
+
+function Capacitor:discharge(value)
+    local undischargedAmount = 0
+    local chargeRemaining = self.chargeCurr
+    local newCharge = chargeRemaining - value
+
+    if newCharge < 0 then
+        undischargedAmount = 0 - newCharge
+        newCharge = 0.0
+    else
+        undischargedAmount = 0
+    end
+
+    self.chargeCurr = newCharge
+    --Log.Debug("Entity %s discharges %s, %s charge remaining, %s undischarged",
+    --self:getName(), value, self.chargeCurr, undischargedAmount)
+    return undischargedAmount
 end
 
 function Capacitor:getHealth()
@@ -81,24 +95,6 @@ end
 function Capacitor:setHealth(value, max)
     self.healthCurr = value
     self.healthMax = floor(max)
-end
-
-function Capacitor:discharge(value)
-    local undischargedAmount = 0
-    local chargeRemaining = self.chargeCurr
-    local newCharge = chargeRemaining - value
-
-    if newCharge < 0 then
-        undischargedAmount = 0 - newCharge
-        newCharge = 0.0
-    else
-        undischargedAmount = 0
-    end
-
-    self.chargeCurr = newCharge
-    --printf("Entity %s discharges %s, %s charge remaining, %s undischarged",
-    --self:getName(), value, self.chargeCurr, undischargedAmount)
-    return undischargedAmount
 end
 
 function Capacitor:getCharge()
@@ -123,6 +119,10 @@ function Capacitor:setCharge(value, max, rate)
     self.chargeRate = rate
 end
 
+function Capacitor:setName(newName)
+    self.name = newName
+end
+
 function Capacitor:updateCapacitor(state)
     if not self:getParent():isDestroyed() then
         if self.chargeCurr < self.chargeMax then
@@ -130,12 +130,12 @@ function Capacitor:updateCapacitor(state)
             if GameState.paused then
                 timeScale = 0.0
             end
-            if Input.GetDown(Bindings.TimeAccel) then
+            if InputInstance:isDown(Bindings.TimeAccel) then
                 timeScale = GameState.debug.timeAccelFactor
             end
 
             self.chargeCurr = min(self.chargeMax, self.chargeCurr + (timeScale * state.dt) * self.chargeRate)
-            --printf("CAPACITOR: %s - curr = %s, max = %s, rate = %s", self:getName(), self.chargeCurr, self.chargeMax, self.chargeRate)
+            --Log.Debug("CAPACITOR: %s - curr = %s, max = %s, rate = %s", self:getName(), self.chargeCurr, self.chargeMax, self.chargeRate)
         end
     end
 end

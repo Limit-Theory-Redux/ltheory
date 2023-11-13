@@ -1,53 +1,96 @@
-package.path = package.path .. ';./libphx/script/?.lua'
+package.path = package.path .. ';./engine/lib/phx/script/?.lua'
 package.path = package.path .. ';./script/?.lua'
 package.path = package.path .. ';./script/?.ext.lua'
 package.path = package.path .. ';./script/?.ffi.lua'
 
+EngineInstance = {}
+InputInstance = {}
+WindowInstance = {}
+
 require('Init')
 
-Core.Call(function()
-    local app = __app__ or 'LTheoryRedux'
-    GlobalRestrict.On()
+function SetEngine(engine)
+    Log.Debug("SetEngine")
 
-    dofile('./script/Config/App.lua')
+    EngineInstance = ffi.cast('Engine*', engine)
 
-    -- Load Enums
-    for _, fname in ipairs(io.listdirex(Config.paths.enums)) do
-        dofile(Config.paths.enums .. fname)
-    end
+    InputInstance = EngineInstance:input()
+    WindowInstance = EngineInstance:window()
+end
 
-    -- Load Types
-    for _, fname in ipairs(io.listdirex(Config.paths.types)) do
-        dofile(Config.paths.types .. fname)
-    end
+function InitSystem()
+    Log.Debug("InitSystem")
 
-    Namespace.Load('UI')
-    Namespace.LoadInline('Systems')
-    Namespace.LoadInline('GameObjects')
+    Core.Call(function()
+        local app = __app__ or 'LTheoryRedux'
 
-    jit.opt.start(
-        format('maxtrace=%d', Config.jit.tune.maxTrace),
-        format('maxrecord=%d', Config.jit.tune.maxRecord),
-        format('maxirconst=%d', Config.jit.tune.maxConst),
-        format('maxside=%d', Config.jit.tune.maxSide),
-        format('maxsnap=%d', Config.jit.tune.maxSnap),
-        format('hotloop=%d', Config.jit.tune.hotLoop),
-        format('hotexit=%d', Config.jit.tune.hotExit),
-        format('tryside=%d', Config.jit.tune.trySide),
-        format('instunroll=%d', Config.jit.tune.instUnroll),
-        format('loopunroll=%d', Config.jit.tune.loopUnroll),
-        format('callunroll=%d', Config.jit.tune.callUnroll),
-        format('recunroll=%d', Config.jit.tune.recUnroll),
-        format('sizemcode=%d', Config.jit.tune.sizeMCode),
-        format('maxmcode=%d', Config.jit.tune.maxMCode)
-    )
+        Log.Debug("Application name: %s", app)
 
-    --local logG = io.open("_g.log", "w+")
-    --io.output(logG)
-    --io.write(Inspect(_G))
-    --io.close(logG)
-    local foundState, state = pcall(require, 'States.App.' .. app)
-    local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
-    if foundState then state:run() elseif foundTest then test:run() end
-    GlobalRestrict.Off()
-end)
+        GlobalRestrict.On()
+
+        dofile('./script/Config/App.lua')
+
+        -- Load Enums
+        for _, fname in ipairs(io.listdirex(Config.paths.enums)) do
+            dofile(Config.paths.enums .. fname)
+        end
+
+        -- Load Types
+        for _, fname in ipairs(io.listdirex(Config.paths.types)) do
+            dofile(Config.paths.types .. fname)
+        end
+
+        Namespace.Load('UI')
+        Namespace.LoadInline('Systems')
+        Namespace.LoadInline('GameObjects')
+
+        jit.opt.start(
+            format('maxtrace=%d', Config.jit.tune.maxTrace),
+            format('maxrecord=%d', Config.jit.tune.maxRecord),
+            format('maxirconst=%d', Config.jit.tune.maxConst),
+            format('maxside=%d', Config.jit.tune.maxSide),
+            format('maxsnap=%d', Config.jit.tune.maxSnap),
+            format('hotloop=%d', Config.jit.tune.hotLoop),
+            format('hotexit=%d', Config.jit.tune.hotExit),
+            format('tryside=%d', Config.jit.tune.trySide),
+            format('instunroll=%d', Config.jit.tune.instUnroll),
+            format('loopunroll=%d', Config.jit.tune.loopUnroll),
+            format('callunroll=%d', Config.jit.tune.callUnroll),
+            format('recunroll=%d', Config.jit.tune.recUnroll),
+            format('sizemcode=%d', Config.jit.tune.sizeMCode),
+            format('maxmcode=%d', Config.jit.tune.maxMCode)
+        )
+
+        --local logG = io.open("_g.log", "w+")
+        --io.output(logG)
+        --io.write(Inspect(_G))
+        --io.close(logG)
+        local foundState, state = pcall(require, 'States.App.' .. app)
+        local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
+
+        local appState = nil
+
+        if foundState then
+            appState = state
+        elseif foundTest then
+            appState = test
+        end
+
+        if appState == nil then
+            Log.Error("Application was not specified")
+        end
+
+        AppInit = function()
+            Core.Call(appState.appInit, appState)
+        end
+
+        AppFrame = function()
+            Core.Call(appState.onFrame, appState)
+        end
+
+        AppClose = function()
+            Core.Call(appState.doExit, appState)
+            GlobalRestrict.Off()
+        end
+    end)
+end

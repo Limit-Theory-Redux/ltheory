@@ -516,11 +516,11 @@ function ShipFighter.WingsSurreal(rng, bodyAABB, ship)
         local posShip = ship.verts[ship:getRandomPoly(rng)[1]]
         local posWing = wing1.verts[wing1:getRandomPoly(rng)[1]]
         if posWing == nil then
-            print("ShipFighter.WingsSurreal: bad poly on wing")
+            Log.Debug("ShipFighter.WingsSurreal: bad poly on wing")
             posWing = Vec3d(0, 0, 0)
         end
         if posShip == nil then
-            print("ShipFighter.WingsSurreal: bad poly on ship")
+            Log.Debug("ShipFighter.WingsSurreal: bad poly on ship")
             posShip = Vec3d(0, 0, 0)
         end
         local x = posShip.x - posWing.x
@@ -669,7 +669,7 @@ function ShipFighter.WingsTie(rng)
     end
 
     -- make wide, flat shape
-    local r, split, dist
+    local r, dist, split
     if Settings.get('genship.override') then
         r = Settings.get('genship.standard.wingLength')
         dist = Settings.get('genship.standard.wingDist')
@@ -796,7 +796,7 @@ function ShipFighter.Standard(rng, hull)
     if wingType == 2 then
         shape:add(ShipFighter.WingsStandard(rng, bodyAABB))
     elseif wingType == 3 then
-        shape:add(ShipFighter.WingsTie(rng, bodyAABB))
+        shape:add(ShipFighter.WingsTie(rng))
     end
 
     -- other parts

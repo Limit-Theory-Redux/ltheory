@@ -78,23 +78,23 @@ local ControlSets = {
 function MasterControl:onInput(state)
     if GameState:GetCurrentState() == Enums.GameStates.InGame and Bindings.TogglePanel:get() > 0 then
         if not GameState.paused then
-            --print("----------------------")
+            --Log.Debug("----------------------")
             self.panel:toggleEnabled()
             if self.panel:isEnabled() then
-                --printf("Panel enabled")
+                -- Log.Debug("Panel enabled")
                 GameState.panelActive = true -- TODO: find where MasterControl handle is exposed and use mc:isEnabled()
-                Input.SetMouseVisible(true)
+                InputInstance:setCursorVisible(true)
             else
-                --printf("Panel disabled")
+                -- Log.Debug("Panel disabled")
                 GameState.panelActive = false
-                -- Switch back to active Flight Mode with HUD control
-                if self.activeControlSet.predicate(self) then
+                -- Switch back to active Flight Mode with HUD control if was enabled prior to panel enable.
+                if self.activateControlSet and self.activeControlSet.predicate(self) then
                     GameState.player.currentControl = Enums.ControlModes.Ship -- enable flight mode
                     for i = 1, #self.activeControlSet.controls do
                         local control = self.activeControlSet.controls[i]
                         if control.name == GameState.player.currentControl then
                             self:activateControl(control)
-                            Input.SetMouseVisible(false)
+                            InputInstance:setCursorVisible(false)
                             break
                         end
                     end
@@ -125,7 +125,7 @@ function MasterControl:onUpdate(state)
         if newSet then
             newSet.container:enable()
             if oldSet then newSet.container:completeFade() end
-            --printf("MasterControl:onUpdate(): newSet.controls[1] = %s, activating control %s", newSet.controls[1], newSet.controls[1].name)
+            --Log.Debug("MasterControl:onUpdate(): newSet.controls[1] = %s, activating control %s", newSet.controls[1], newSet.controls[1].name)
             self:activateControl(newSet.controls[1])
         end
     end
@@ -136,7 +136,7 @@ function MasterControl:activateControl(controlDef)
         if controlDef.name == Enums.ControlModes.Ship then
             self.panel:disable()
             GameState.panelActive = false
-            Input.SetMouseVisible(false)
+            InputInstance:setCursorVisible(false)
         end
         return
     end
@@ -149,24 +149,24 @@ function MasterControl:activateControl(controlDef)
     self.activeControlDef = controlDef
 
     if self.activeControlDef then
-        --printf("MasterControl:activateControl(): self.activeControlDef = %s", self.activeControlDef.name)
+        --Log.Debug("MasterControl:activateControl(): self.activeControlDef = %s", self.activeControlDef.name)
         GameState.player.currentControl = self.activeControlDef.name
         if self.activeControlDef.name == Enums.ControlModes.Ship then
             self.panel:disable()
             GameState.panelActive = false
-            Input.SetMouseVisible(false)
-            printf("*** Switching to Flight mode")
+            InputInstance:setCursorVisible(false)
+            Log.Debug("*** Switching to Flight mode")
         elseif self.activeControlDef.name == Enums.ControlModes.Background then
-            printf("*** Switching to Background mode")
+            Log.Debug("*** Switching to Background mode")
         elseif self.activeControlDef.name == Enums.ControlModes.Debug then
-            printf("*** Switching to Debug mode")
+            Log.Debug("*** Switching to Debug mode")
         elseif self.activeControlDef.name == Enums.ControlModes.Command then
-            printf("*** Switching to Fleet Command mode")
+            Log.Debug("*** Switching to Fleet Command mode")
         elseif self.activeControlDef.name == Enums.ControlModes.Undock then
             self.panel:enable()
             GameState.panelActive = true
-            Input.SetMouseVisible(true)
-            printf("*** Docking (manual)!")
+            InputInstance:setCursorVisible(true)
+            Log.Debug("*** Docking (manual)!")
         end
 
         -- Enable new active control
@@ -224,10 +224,10 @@ function MasterControl.Create(gameView, player)
                 if not GameState.paused then
                     self:activateControl(controlDef)
                     if controlDef.name == Enums.ControlModes.Undock then
-                        printf("*** Undocking (icon)!")
+                        Log.Debug("*** Undocking (icon)!")
                         GameState.player.currentShip:getParent():removeDocked(GameState.player.currentShip)
                         self.gameView:setCameraMode(GameState.player.lastCamera)
-                        Input.SetMouseVisible(false)
+                        InputInstance:setCursorVisible(false)
                     end
                 end
             end):setSize(barHeight, barHeight):setAlignX(0.5)

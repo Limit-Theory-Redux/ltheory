@@ -44,7 +44,7 @@ static void MemPool_Grow (MemPool* self) {
 ]]
 
 function Test:showMenuDrop()
-    HmGui.BeginWindow("Screen Title")
+    HmGui.BeginWindow("Screen Title", InputInstance)
     if station_options == 1 then
         HmGui.TextEx(Cache.Font('Iceland', 64), 'MARKETPLACE', 1.0, 1.0, 1.0, 1.0)
     elseif station_options == 2 then
@@ -392,7 +392,7 @@ function Test:showMenuDropInner()
         HmGui.TextEx(Cache.Font('Exo2', 14), 'Textiles', 1.0, 1.0, 1.0, 1.0)
         HmGui.TextEx(Cache.Font('Exo2', 14), 'Unit Prefabs', 1.0, 1.0, 1.0, 1.0)
         HmGui.TextEx(Cache.Font('Exo2', 14), 'Utility', 1.0, 1.0, 1.0, 1.0)
-        HmGui.EndScroll()
+        HmGui.EndScroll(InputInstance)
         HmGui.EndGroup()
         HmGui.EndGroup()
         HmGui.EndGroup() -- end Commodity Window Panel
@@ -553,7 +553,7 @@ function Test:showMenuDropInner()
         HmGui.EndGroup()
         HmGui.SetStretch(1.0, 0.0)
         HmGui.SetAlign(0.0, 0.0)
-        HmGui.EndScroll()
+        HmGui.EndScroll(InputInstance)
         HmGui.EndGroup()
         --                    HmGui.SetStretch(0.95, 0.95)
         --                    HmGui.SetAlign(1.0, 0.05)
@@ -683,7 +683,7 @@ function Test:showMenuDropInner()
         HmGui.TextEx(Cache.Font('Exo2', 14), 'Textiles', 1.0, 1.0, 1.0, 1.0)
         HmGui.TextEx(Cache.Font('Exo2', 14), 'Unit Prefabs', 1.0, 1.0, 1.0, 1.0)
         HmGui.TextEx(Cache.Font('Exo2', 14), 'Utility', 1.0, 1.0, 1.0, 1.0)
-        HmGui.EndScroll()
+        HmGui.EndScroll(InputInstance)
         HmGui.EndGroup()
         HmGui.EndGroup()
         HmGui.EndGroup() -- end Commodity Window Panel
@@ -808,7 +808,7 @@ function Test:showMenuDropInner()
         HmGui.TextEx(Cache.Font('Exo2', 14), 'Textiles', 1.0, 1.0, 1.0, 1.0)
         HmGui.TextEx(Cache.Font('Exo2', 14), 'Unit Prefabs', 1.0, 1.0, 1.0, 1.0)
         HmGui.TextEx(Cache.Font('Exo2', 14), 'Utility', 1.0, 1.0, 1.0, 1.0)
-        HmGui.EndScroll()
+        HmGui.EndScroll(InputInstance)
         HmGui.EndGroup()
         HmGui.EndGroup()
         HmGui.EndGroup() -- end Commodity Window Panel
@@ -822,17 +822,17 @@ function Test:showMenuDropInner()
         HmGui.BeginScroll(200)
         HmGui.Checkbox("Thing1", true)
         HmGui.Checkbox("Thing2", false)
-        HmGui.EndScroll()                   -- end Data/Intel Screen
+        HmGui.EndScroll(InputInstance)                   -- end Data/Intel Screen
     elseif station_options_market == 3 then -- Exchange Orders Screen
         HmGui.BeginScroll(200)
         HmGui.Button("Parnellite")
         HmGui.Button("Glorboscite")
         HmGui.Button("Lonsdaleite")
         HmGui.Button("Ketracel White")
-        HmGui.EndScroll()                   -- end Exchange Orders Screen
+        HmGui.EndScroll(InputInstance)                   -- end Exchange Orders Screen
     elseif station_options_market == 4 then -- Blank Screen
         HmGui.BeginScroll(200)
-        HmGui.EndScroll()                   -- end Blank Screen
+        HmGui.EndScroll(InputInstance)                   -- end Blank Screen
     end
     HmGui.EndGroup()
     HmGui.SetStretch(1.0, 1.0)
@@ -859,7 +859,7 @@ function Test:showGameCtrlInner()
 end
 
 function Test:showCtrlMenu()
-    HmGui.BeginWindow("Game Control")
+    HmGui.BeginWindow("Game Control", InputInstance)
     HmGui.TextEx(Cache.Font('Iceland', 20), 'Game Control', 0.3, 0.4, 0.5, 1.0)
     HmGui.SetAlign(0.5, 0.5)
     HmGui.SetSpacing(16)
@@ -869,17 +869,17 @@ function Test:showCtrlMenu()
 end
 
 function Test:showMetrics()
-    HmGui.BeginWindow("Metrics")
+    HmGui.BeginWindow("Metrics", InputInstance)
     HmGui.Text(format("fps: %.2f", 1.0 / self.dt))
     HmGui.EndWindow()
 end
 
 function Test:onUpdate(dt)
     Profiler.Begin('HmGui.Update')
-    if Input.GetPressed(Button.Keyboard.Escape) then
+    if InputInstance:isPressed(Button.KeyboardEscape) then
         drawExitMenu = not drawExitMenu
     end
-    HmGui.Begin(self.resX, self.resY)
+    HmGui.Begin(self.resX, self.resY, InputInstance)
     if drawExitMenu then
         HmGui.BeginGroupStack()
         self:showCtrlMenu()
@@ -888,7 +888,7 @@ function Test:onUpdate(dt)
         --      self:showMetrics()
         self:showMenuDrop()
     end
-    HmGui.End()
+    HmGui.End(InputInstance)
     Profiler.End()
 end
 

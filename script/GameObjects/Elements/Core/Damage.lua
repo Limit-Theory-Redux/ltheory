@@ -2,8 +2,8 @@ local Entity = require('GameObjects.Entity')
 
 function Entity:applyDamage(amount, source)
     local damageRemaining   = amount
-    local shieldRemaining   = self:mgrShieldGetShield()
-    local armorRemaining    = self:mgrArmorGetArmor()
+    local shieldRemaining   = self:mgrShieldGetStrength()
+    local armorRemaining    = self:mgrArmorGetHealth()
 
     -- TEMP: Modify the names of NPC ships to indicate their higher threat level
     -- TODO: Assign and display "Ace" status in a more formally managed way
@@ -16,28 +16,28 @@ function Entity:applyDamage(amount, source)
         attackingShipName = attackingShipName .. " [Ace]"
     end
 
-    --printf("hit on '%s' from '%s' for %s damage", thisShipName, attackingShipName, amount)
+    --Log.Debug("hit on '%s' from '%s' for %s damage", thisShipName, attackingShipName, amount)
 
     self:send(Event.Damaged(amount, source))
 
     -- Apply damage first to shields (if any), then armor (if any), then hull
     if shieldRemaining > 0 then
         -- Reduce this ship's shield protection (doesn't actually damage the shield generator)
-        self:mgrShieldReduceShield(amount)
+        self:mgrShieldReduceStrength(amount)
         damageRemaining = amount - shieldRemaining
     end
     if damageRemaining > 0 then
         if armorRemaining > 0 then
             -- Some damage made it through the shields, so damage any armor plating installed
-            self:mgrArmorReduceArmor(damageRemaining)
+            self:mgrArmorDamageHealth(damageRemaining)
             damageRemaining = damageRemaining - armorRemaining
         end
     end
     if damageRemaining > 0 then
         -- Some damage made it through the armor, so damage the hull
-        self:mgrHullReduceHull(damageRemaining)
+        self:mgrHullDamageHealth(damageRemaining)
 
-        if self:mgrHullGetHull() > 0 then
+        if self:mgrHullGetHealth() > 0 then
             -- Randomly damage some internal components, too
         end
     end
@@ -47,13 +47,14 @@ function Entity:applyDamage(amount, source)
         -- Vessel has been damaged to the point of destruction (0 hull integrity)
         self:clearActions()
 
-        printf("%s destroyed by %s!", thisShipName, attackingShipName)
+        Log.Debug("%s destroyed by %s!", thisShipName, attackingShipName)
 
-        -- Also need to process the formerly "isAlive()" entity's assets, including credits and cargo
+        -- Unregister debug events for the destroyed entity
         self:unregister(Event.Debug, Entity.mgrInventoryDebug)
 
-        -- Also ALSO need to notify nearby ships
-        --    resulting Actions may include Evade, Attack, and/or alert faction members
+        -- TODO: process the formerly "isAlive()" entity's assets, including credits and cargo
+        -- TODO: notify nearby ships that entity has been destroyed
+        --       resulting Actions may include Evade, Attack, and/or alert faction members
 
         -- If this object was attackable, make it unattackable
         if self:hasAttackable() then
@@ -104,7 +105,7 @@ function Entity:applyDamage(amount, source)
         if self == GameState.player.currentShip then
             -- TODO: Do any unloading/savegame/etc actions required upon player ship destruction
             -- NOTE: The "Game Over" message is displayed in Application.lua
-            printf("Player ship %s has been destroyed, game over!", self:getName())
+            Log.Debug("Player ship %s has been destroyed, game over!", self:getName())
         end
     end
 end

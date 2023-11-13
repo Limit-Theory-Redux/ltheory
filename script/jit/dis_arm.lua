@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
 -- LuaJIT ARM disassembler module.
 --
--- Copyright (C) 2005-2017 Mike Pall. All rights reserved.
+-- Copyright (C) 2005-2023 Mike Pall. All rights reserved.
 -- Released under the MIT license. See Copyright Notice in luajit.h
 ----------------------------------------------------------------------------
 -- This is a helper module used by the LuaJIT machine code dumper module.
@@ -189,8 +189,7 @@ local map_media = {
     shift = 20,
     mask = 31,
     [0] = false,
-    {
-    --01
+    { --01
         shift = 5,
         mask = 7,
         [0] = "sadd16DNM",
@@ -202,8 +201,7 @@ local map_media = {
         false,
         "ssub8DNM",
     },
-    {
-    --02
+    { --02
         shift = 5,
         mask = 7,
         [0] = "qadd16DNM",
@@ -215,8 +213,7 @@ local map_media = {
         false,
         "qsub8DNM",
     },
-    {
-    --03
+    { --03
         shift = 5,
         mask = 7,
         [0] = "shadd16DNM",
@@ -229,8 +226,7 @@ local map_media = {
         "shsub8DNM",
     },
     false,
-    {
-    --05
+    { --05
         shift = 5,
         mask = 7,
         [0] = "uadd16DNM",
@@ -242,8 +238,7 @@ local map_media = {
         false,
         "usub8DNM",
     },
-    {
-    --06
+    { --06
         shift = 5,
         mask = 7,
         [0] = "uqadd16DNM",
@@ -255,8 +250,7 @@ local map_media = {
         false,
         "uqsub8DNM",
     },
-    {
-    --07
+    { --07
         shift = 5,
         mask = 7,
         [0] = "uhadd16DNM",
@@ -268,8 +262,7 @@ local map_media = {
         false,
         "uhsub8DNM",
     },
-    {
-    --08
+    { --08
         shift = 5,
         mask = 7,
         [0] = "pkhbtDNMU",
@@ -281,8 +274,7 @@ local map_media = {
         "pkhtbDNMU",
     },
     false,
-    {
-    --0a
+    { --0a
         shift = 5,
         mask = 7,
         [0] = "ssatDxMu",
@@ -293,8 +285,7 @@ local map_media = {
         false,
         "ssatDxMu",
     },
-    {
-    --0b
+    { --0b
         shift = 5,
         mask = 7,
         [0] = "ssatDxMu",
@@ -305,15 +296,13 @@ local map_media = {
         "rev16DM",
         "ssatDxMu",
     },
-    {
-    --0c
+    { --0c
         shift = 5,
         mask = 7,
         [3] = { shift = 16, mask = 15, [15] = "uxtb16DMU", _ = "uxtab16DNMU", },
     },
     false,
-    {
-    --0e
+    { --0e
         shift = 5,
         mask = 7,
         [0] = "usatDwMu",
@@ -324,8 +313,7 @@ local map_media = {
         false,
         "usatDwMu",
     },
-    {
-    --0f
+    { --0f
         shift = 5,
         mask = 7,
         [0] = "usatDwMu",
@@ -336,8 +324,7 @@ local map_media = {
         "revshDM",
         "usatDwMu",
     },
-    {
-    --10
+    { --10
         shift = 12,
         mask = 15,
         [15] = {
@@ -356,8 +343,7 @@ local map_media = {
     false,
     false,
     false,
-    {
-    --14
+    { --14
         shift = 5,
         mask = 7,
         [0] = "smlaldDNMS",
@@ -365,8 +351,7 @@ local map_media = {
         "smlsldDNMS",
         "smlsldxDNMS",
     },
-    {
-    --15
+    { --15
         shift = 5,
         mask = 7,
         [0] = { shift = 12, mask = 15, [15] = "smmulNMS", _ = "smmlaNMSD", },
@@ -380,8 +365,7 @@ local map_media = {
     },
     false,
     false,
-    {
-    --18
+    { --18
         shift = 5,
         mask = 7,
         [0] = { shift = 12, mask = 15, [15] = "usad8NMS", _ = "usada8NMSD", },
@@ -393,14 +377,12 @@ local map_media = {
     { --1b
         shift = 5, mask = 3, [2] = "sbfxDMvw",
     },
-    {
-    --1c
+    { --1c
         shift = 5,
         mask = 3,
         [0] = { shift = 0, mask = 15, [15] = "bfcDvX", _ = "bfiDMvX", },
     },
-    {
-    --1d
+    { --1d
         shift = 5,
         mask = 3,
         [0] = { shift = 0, mask = 15, [15] = "bfcDvX", _ = "bfiDMvX", },

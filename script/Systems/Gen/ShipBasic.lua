@@ -20,7 +20,7 @@ function ShipBasic.EngineSingle(rng, hull)
 
     local r = 0.5 * hull
     --  local r = rng:getUniformRange(0.1, 0.3)
-    printf("@@@ ShipBasic.EngineSingle - hull = %s, r = %s", hull, r)
+    Log.Debug("@@@ ShipBasic.EngineSingle - hull = %s, r = %s", hull, r)
 
     engine:scale(r, r, r)
     engine:rotate(0, math.pi / 2, 0)
@@ -97,7 +97,7 @@ function ShipBasic.Tube(rng, hull)
     local maxS = 1.5
 
     -- base segments
-    printf("@@@ ShipBasic.Tube - hull = %s", hull)
+    Log.Debug("@@@ ShipBasic.Tube - hull = %s", hull)
     shape:add(ShipHull.Hull(rng, hull))
     --  for i = 1, hull do
     --    local seg = ShipHull.Hull(rng, hull)
@@ -126,7 +126,7 @@ function ShipBasic.Tube(rng, hull)
     -- NOTE: This is needed because applyForce() and applyTorque() apparently use radius rather than mass
     local r = shape:getRadius()
     local lrc = Config.gen.shipHullRadius[hull] / r
-    printf("@@@ ShipBasic.Tube - hull = %d, radius = %s, lrc = %s", hull, r, lrc)
+    Log.Debug("@@@ ShipBasic.Tube - hull = %d, radius = %s, lrc = %s", hull, r, lrc)
     shape:scale(lrc, lrc, lrc)
     --  shape:scale(1, 1, lrc)
 
@@ -135,7 +135,7 @@ function ShipBasic.Tube(rng, hull)
 
     local newshape = shape:finalize()
 
-    printf("@@@ ShipBasic.Tube - new radius = %s", newshape:getRadius())
+    Log.Debug("@@@ ShipBasic.Tube - new radius = %s", newshape:getRadius())
 
     return newshape
 end

@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
 -- LuaJIT ARM64 disassembler module.
 --
--- Copyright (C) 2005-2017 Mike Pall. All rights reserved.
+-- Copyright (C) 2005-2023 Mike Pall. All rights reserved.
 -- Released under the MIT license. See Copyright Notice in luajit.h
 --
 -- Contributed by Djordje Kovacevic and Stefan Pejic from RT-RK.com.
@@ -26,16 +26,14 @@ local ror = bit.ror
 -- Opcode maps
 ------------------------------------------------------------------------------
 
-local map_adr = {
-                  -- PC-relative addressing.
+local map_adr = { -- PC-relative addressing.
     shift = 31,
     mask = 1,
     [0] = "adrDBx",
     "adrpDBx"
 }
 
-local map_addsubi = {
-                      -- Add/subtract immediate.
+local map_addsubi = { -- Add/subtract immediate.
     shift = 29,
     mask = 3,
     [0] = "add|movDNIg",
@@ -44,8 +42,7 @@ local map_addsubi = {
     "subs|cmpD0NIg",
 }
 
-local map_logi = {
-                   -- Logical immediate.
+local map_logi = { -- Logical immediate.
     shift = 31,
     mask = 1,
     [0] = {
@@ -66,8 +63,7 @@ local map_logi = {
     }
 }
 
-local map_movwi = {
-                    -- Move wide immediate.
+local map_movwi = { -- Move wide immediate.
     shift = 31,
     mask = 1,
     [0] = {
@@ -87,8 +83,7 @@ local map_movwi = {
     },
 }
 
-local map_bitf = {
-                   -- Bitfield.
+local map_bitf = { -- Bitfield.
     shift = 31,
     mask = 1,
     [0] = {
@@ -113,8 +108,7 @@ local map_bitf = {
     }
 }
 
-local map_datai = {
-                    -- Data processing - immediate.
+local map_datai = { -- Data processing - immediate.
     shift = 23,
     mask = 7,
     [0] = map_adr,
@@ -133,8 +127,7 @@ local map_datai = {
     }
 }
 
-local map_logsr = {
-                    -- Logical, shifted register.
+local map_logsr = { -- Logical, shifted register.
     shift = 31,
     mask = 1,
     [0] = {
@@ -142,45 +135,26 @@ local map_logsr = {
         [0] = {
             shift = 29, mask = 3,
             [0] = {
-                shift = 21, mask = 7,
-                [0] = "andDNMSg", "bicDNMSg", "andDNMSg", "bicDNMSg",
-                "andDNMSg", "bicDNMSg", "andDNMg", "bicDNMg"
+                shift = 21, mask = 1,
+                [0] = "andDNMSg", "bicDNMSg"
             },
             {
                 shift = 21,
-                mask = 7,
+                mask = 1,
                 [0] = "orr|movDN0MSg",
-                "orn|mvnDN0MSg",
-                "orr|movDN0MSg",
-                "orn|mvnDN0MSg",
-                "orr|movDN0MSg",
-                "orn|mvnDN0MSg",
-                "orr|movDN0Mg",
-                "orn|mvnDN0Mg"
+                "orn|mvnDN0MSg"
             },
             {
                 shift = 21,
-                mask = 7,
+                mask = 1,
                 [0] = "eorDNMSg",
-                "eonDNMSg",
-                "eorDNMSg",
-                "eonDNMSg",
-                "eorDNMSg",
-                "eonDNMSg",
-                "eorDNMg",
-                "eonDNMg"
+                "eonDNMSg"
             },
             {
                 shift = 21,
-                mask = 7,
+                mask = 1,
                 [0] = "ands|tstD0NMSg",
-                "bicsDNMSg",
-                "ands|tstD0NMSg",
-                "bicsDNMSg",
-                "ands|tstD0NMSg",
-                "bicsDNMSg",
-                "ands|tstD0NMg",
-                "bicsDNMg"
+                "bicsDNMSg"
             }
         },
         false -- unallocated
@@ -189,45 +163,26 @@ local map_logsr = {
         shift = 29,
         mask = 3,
         [0] = {
-            shift = 21, mask = 7,
-            [0] = "andDNMSg", "bicDNMSg", "andDNMSg", "bicDNMSg",
-            "andDNMSg", "bicDNMSg", "andDNMg", "bicDNMg"
+            shift = 21, mask = 1,
+            [0] = "andDNMSg", "bicDNMSg"
         },
         {
             shift = 21,
-            mask = 7,
+            mask = 1,
             [0] = "orr|movDN0MSg",
-            "orn|mvnDN0MSg",
-            "orr|movDN0MSg",
-            "orn|mvnDN0MSg",
-            "orr|movDN0MSg",
-            "orn|mvnDN0MSg",
-            "orr|movDN0Mg",
-            "orn|mvnDN0Mg"
+            "orn|mvnDN0MSg"
         },
         {
             shift = 21,
-            mask = 7,
+            mask = 1,
             [0] = "eorDNMSg",
-            "eonDNMSg",
-            "eorDNMSg",
-            "eonDNMSg",
-            "eorDNMSg",
-            "eonDNMSg",
-            "eorDNMg",
-            "eonDNMg"
+            "eonDNMSg"
         },
         {
             shift = 21,
-            mask = 7,
+            mask = 1,
             [0] = "ands|tstD0NMSg",
-            "bicsDNMSg",
-            "ands|tstD0NMSg",
-            "bicsDNMSg",
-            "ands|tstD0NMSg",
-            "bicsDNMSg",
-            "ands|tstD0NMg",
-            "bicsDNMg"
+            "bicsDNMSg"
         }
     }
 }
@@ -304,8 +259,7 @@ local map_assh = {
     }
 }
 
-local map_addsubsh = {
-                       -- Add/subtract, shifted register.
+local map_addsubsh = { -- Add/subtract, shifted register.
     shift = 22,
     mask = 3,
     [0] = map_assh,
@@ -313,8 +267,7 @@ local map_addsubsh = {
     map_assh
 }
 
-local map_addsubex = {
-                       -- Add/subtract, extended register.
+local map_addsubex = { -- Add/subtract, extended register.
     shift = 22,
     mask = 3,
     [0] = {
@@ -323,8 +276,7 @@ local map_addsubex = {
     }
 }
 
-local map_addsubc = {
-                      -- Add/subtract, with carry.
+local map_addsubc = { -- Add/subtract, with carry.
     shift = 10,
     mask = 63,
     [0] = {
@@ -349,8 +301,7 @@ local map_ccomp = {
     }
 }
 
-local map_csel = {
-                   -- Conditional select.
+local map_csel = { -- Conditional select.
     shift = 11,
     mask = 1,
     [0] = {
@@ -370,8 +321,7 @@ local map_csel = {
     }
 }
 
-local map_data1s = {
-                     -- Data processing, 1 source.
+local map_data1s = { -- Data processing, 1 source.
     shift = 29,
     mask = 1,
     [0] = {
@@ -393,8 +343,7 @@ local map_data1s = {
     }
 }
 
-local map_data2s = {
-                     -- Data processing, 2 sources.
+local map_data2s = { -- Data processing, 2 sources.
     shift = 29,
     mask = 1,
     [0] = {
@@ -404,8 +353,7 @@ local map_data2s = {
     }
 }
 
-local map_data3s = {
-                     -- Data processing, 3 sources.
+local map_data3s = { -- Data processing, 3 sources.
     shift = 29,
     mask = 7,
     [0] = {
@@ -439,8 +387,7 @@ local map_data3s = {
     }
 }
 
-local map_datar = {
-                    -- Data processing, register.
+local map_datar = { -- Data processing, register.
     shift = 28,
     mask = 1,
     [0] = {
@@ -480,8 +427,7 @@ local map_datar = {
     }
 }
 
-local map_lrl = {
-                  -- Load register, literal.
+local map_lrl = { -- Load register, literal.
     shift = 26,
     mask = 1,
     [0] = {
@@ -496,8 +442,7 @@ local map_lrl = {
     }
 }
 
-local map_lsriind = {
-                      -- Load/store register, immediate pre/post-indexed.
+local map_lsriind = { -- Load/store register, immediate pre/post-indexed.
     shift = 30,
     mask = 3,
     [0] = {
@@ -579,8 +524,7 @@ local map_lsriro = {
             }
         }, map_lsriind, false, map_lsriind
     },
-    {
-    -- Load/store register, register offset.
+    { -- Load/store register, register offset.
         shift = 10,
         mask = 3,
         [2] = {
@@ -629,8 +573,7 @@ local map_lsriro = {
     }
 }
 
-local map_lsp = {
-                  -- Load/store register pair, offset.
+local map_lsp = { -- Load/store register pair, offset.
     shift = 22,
     mask = 1,
     [0] = {
@@ -671,8 +614,7 @@ local map_lsp = {
     }
 }
 
-local map_ls = {
-                 -- Loads and stores.
+local map_ls = { -- Loads and stores.
     shift = 24,
     mask = 0x31,
     [0x10] = map_lrl,
@@ -727,12 +669,10 @@ local map_ls = {
     },
 }
 
-local map_datafp = {
-                     -- Data processing, SIMD and FP.
+local map_datafp = { -- Data processing, SIMD and FP.
     shift = 28,
     mask = 7,
-    {
-                     -- 001
+    {                -- 001
         shift = 24,
         mask = 1,
         [0] = {
@@ -798,8 +738,7 @@ local map_datafp = {
                                     }
                                 }
                             },
-                            {
-                            -- FP data-processing, 1 source.
+                            { -- FP data-processing, 1 source.
                                 shift = 31,
                                 mask = 1,
                                 [0] = {
@@ -834,8 +773,7 @@ local map_datafp = {
                                 }
                             }
                         },
-                        {
-                        -- FP compare.
+                        { -- FP compare.
                             shift = 31,
                             mask = 1,
                             [0] = {
@@ -851,8 +789,7 @@ local map_datafp = {
                             }
                         }
                     },
-                    {
-                    -- FP immediate.
+                    { -- FP immediate.
                         shift = 31,
                         mask = 1,
                         [0] = {
@@ -864,8 +801,7 @@ local map_datafp = {
                         }
                     }
                 },
-                {
-                -- FP conditional compare.
+                { -- FP conditional compare.
                     shift = 31,
                     mask = 1,
                     [0] = {
@@ -876,8 +812,7 @@ local map_datafp = {
                         }
                     }
                 },
-                {
-                -- FP data-processing, 2 sources.
+                { -- FP data-processing, 2 sources.
                     shift = 31,
                     mask = 1,
                     [0] = {
@@ -890,8 +825,7 @@ local map_datafp = {
                         }
                     }
                 },
-                {
-                -- FP conditional select.
+                { -- FP conditional select.
                     shift = 31,
                     mask = 1,
                     [0] = {
@@ -901,8 +835,7 @@ local map_datafp = {
                 }
             }
         },
-        {
-        -- FP data-processing, 3 sources.
+        { -- FP data-processing, 3 sources.
             shift = 31,
             mask = 1,
             [0] = {
@@ -922,13 +855,11 @@ local map_datafp = {
     }
 }
 
-local map_br = {
-                 -- Branches, exception generating and system instructions.
+local map_br = { -- Branches, exception generating and system instructions.
     shift = 29,
     mask = 7,
     [0] = "bB",
-    {
-    -- Compare & branch, immediate.
+    { -- Compare & branch, immediate.
         shift = 24,
         mask = 3,
         [0] = "cbzDBg",
@@ -936,8 +867,7 @@ local map_br = {
         "tbzDTBw",
         "tbnzDTBw"
     },
-    {
-    -- Conditional branch, immediate.
+    { -- Conditional branch, immediate.
         shift = 24,
         mask = 3,
         [0] = {
@@ -951,8 +881,7 @@ local map_br = {
     },
     false,
     "blB",
-    {
-    -- Compare & branch, immediate.
+    { -- Compare & branch, immediate.
         shift = 24,
         mask = 3,
         [0] = "cbzDBg",
@@ -967,14 +896,12 @@ local map_br = {
             shift = 0, mask = 0xe0001f,
             [0x200000] = "brkW"
         },
-        {
-        -- System instructions.
+        { -- System instructions.
             shift = 0,
             mask = 0x3fffff,
             [0x03201f] = "nop"
         },
-        {
-        -- Unconditional branch, register.
+        { -- Unconditional branch, register.
             shift = 0,
             mask = 0xfffc1f,
             [0x1f0000] = "brNx",
@@ -1038,7 +965,7 @@ local map_cond = {
     "al",
 }
 
-local map_shift = { [0] = "lsl", "lsr", "asr", }
+local map_shift = { [0] = "lsl", "lsr", "asr", "ror" }
 
 local map_extend = {
     [0] = "uxtb", "uxth", "uxtw", "uxtx", "sxtb", "sxth", "sxtw", "sxtx",
@@ -1402,7 +1329,7 @@ local function disass_ins(ctx)
                     last = "#" .. (sf + 32 - immr)
                     operands[#operands] = last
                     x = x + 1
-                elseif x >= immr then
+                else
                     name = a2
                     x = x - immr + 1
                 end

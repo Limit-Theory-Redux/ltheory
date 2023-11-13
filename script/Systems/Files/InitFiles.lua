@@ -71,7 +71,7 @@ function InitFiles:readUserInits()
                     }
                     table.insert(categories, categoryTable)
                 else
-                    Log.Warning("Could not find game state for config category: " .. categoryName)
+                    Log.Warn("Could not find game state for config category: " .. categoryName)
                 end
             end
             ::skip::
@@ -105,6 +105,16 @@ function InitFiles:readUserInits()
                 return nil
             end
 
+            local function checkIfSoundtrack(val)
+                for soundtrackId = 1, Enums.SoundtrackCount do
+                    local soundtrackName = string.lower(string.gsub(Enums.SoundtrackNames[soundtrackId], "(%..-)$", ""))
+                    if string.match(string.lower(val), soundtrackName) then
+                        return Enums.SoundtrackNames[soundtrackId]
+                    end
+                end
+                return nil
+            end
+
             local function firstToLower(string)
                 return (string:gsub("^%L", string.lower))
             end
@@ -122,7 +132,7 @@ function InitFiles:readUserInits()
                 elseif categoryTable.gameState[upper] ~= nil then
                     categoryTable.gameState[upper] = val
                 else
-                    Log.Warning("Can't find key in gamestate cat %s for var: %s with value %s", categoryTable.name, var,
+                    Log.Warn("Can't find key in gamestate cat %s for var: %s with value %s", categoryTable.name, var,
                         val)
                 end
             end
@@ -141,8 +151,8 @@ function InitFiles:readUserInits()
 
                 -- parse vars
                 local eIndex = string.find(currentLine, "=")
-                --printf("Line %s: %s", iterator, currentLine)
-                --printf("Current eIndex: %s", eIndex)
+                --Log.Debug("Line %s: %s", iterator, currentLine)
+                --Log.Debug("Current eIndex: %s", eIndex)
                 local var = string.sub(currentLine, 1, eIndex - 1)
                 local val = string.sub(currentLine, eIndex + 1)
                 val = string.gsub(val, "^%s*(.-)%s*$", "%1")
@@ -164,13 +174,17 @@ function InitFiles:readUserInits()
                     local mode = checkIfCameraMode(val)
                     setValue(var, mode)
                     val = tostring(mode)
+                elseif checkIfSoundtrack(val) then
+                    local soundtrack = checkIfSoundtrack(val)
+                    setValue(var, soundtrack)
+                    val = tostring(soundtrack)
                 else
                     setValue(var, val)
                 end
 
                 iterator = iterator + 1
                 currentLine = lines[iterator]
-                --printf("Setting var to gamestate: %s with value: %s", var, val)
+                --Log.Debug("Setting var to gamestate: %s with value: %s", var, val)
                 ::skipLine::
             end
             return vars
@@ -180,13 +194,16 @@ function InitFiles:readUserInits()
             categoryTable.vars = findValuesForCategory(categoryTable)
             -- do whatever with vars if needed
         end
-        printf("Loaded configuration from %s", configPath)
+
+        Log.Info("Loaded configuration from: %s", configPath)
 
         if GameState.debug.printConfig then
-            print("---------- Configuration File ----------")
-            for _, line in pairs(lines) do if not string.match(line, "#") then print(line) end end
-            print("----------------------------------------")
+            Log.Info("---------- Configuration File ----------")
+            for _, line in pairs(lines) do if not string.match(line, "#") then Log.Info(line) end end
+            Log.Info("----------------------------------------")
         end
+    else
+        Log.Warn("Cannot open config file: %s", configPath)
     end
 end
 
@@ -195,11 +212,19 @@ function InitFiles:writeUserInits()
     -- TODO: Encase io.xxx functions in local wrappers for security/safety
     local filename = Config.userInitFilename
     local filepath = Config.paths.files
-    local openedFile = io.open(filepath .. filename, "w")
+    local configPath = filepath .. filename
+    local openedFile = io.open(configPath, "w")
+
+    if openedFile == nil then
+        Log.Warn("Cannot open configuration file for writing: %s", configPath)
+    else
+        Log.Debug("Saving configuration to: %s", configPath)
+    end
 
     local cursorType = string.lower(Enums.CursorStyleNames[GameState.ui.cursorStyle])
     local hudType = string.lower(Enums.HudStyleNames[GameState.ui.hudStyle])
     local startupCameraMode = string.lower(Enums.CameraModeNames[GameState.player.currentCamera])
+    local menuTheme = string.lower(GameState.audio.menuTheme):gsub("(%..-)$", "")
 
     -- Sets the input file for writing
     io.output(openedFile)
@@ -249,7 +274,8 @@ function InitFiles:writeUserInits()
         "Hello World! This is the Limit Theory Redux Configuration File",
         "Support the LTR project by discussing, contributing or silent participation:",
         "GitHub: " .. Config.orgInfo.repository,
-        "Discord: " .. Config.orgInfo.discord
+        "Discord: " .. Config.orgInfo.discord,
+        "Wiki: " .. Config.orgInfo.wiki
     }
 
     for l_Category, l_CategoryTable in pairsByKeys(noFunctions) do
@@ -289,8 +315,17 @@ function InitFiles:writeUserInits()
                     elseif l_Variable == "startupCamera" then
                         l_Value = startupCameraMode
                         writeOptions("startupCamera", Enums.CameraModeNames, "The camera mode the game starts up with.")
+                    elseif l_Variable == "menuTheme" then
+                        l_Value = menuTheme
+                        local cleanSoundtrackNames = {}
+
+                        for _, name in ipairs(Enums.SoundtrackNames) do
+                            local cleanName = name:gsub("(%..-)$", "")
+                            table.insert(cleanSoundtrackNames, cleanName)
+                        end
+                        writeOptions("mainMenuTheme", cleanSoundtrackNames, "The soundtrack used in the main menu.")
                     end
-                    --printf("writing %s: %s", l_Variable, l_Value)
+                    --Log.Debug("writing %s: %s", l_Variable, l_Value)
                     io.write(format("%s=%s", tostring(l_Variable), tostring(l_Value)), "\n")
                 end
             elseif pass and type(l_Value) == "table" and not string.match(l_Variable, "humanPlayer") then
@@ -304,8 +339,11 @@ function InitFiles:writeUserInits()
             writeSubCat(cacheSubCat, cacheSubCatVar, cacheSubCatVal)
         end
     end
-    -- Closes the open file
-    io.close(openedFile)
+
+    if openedFile ~= nil then
+        -- Closes the open file
+        io.close(openedFile)
+    end
 end
 
 return InitFiles

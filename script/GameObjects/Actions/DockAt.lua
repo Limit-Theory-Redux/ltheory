@@ -26,6 +26,8 @@ local function getTargetPos(e, target)
     return tp - tu:muls(1.25 * tr + er)
 end
 
+-- TODO CHANGE TO USE MOVETO OR IMPLEMENT TRAVEL DRIVE
+
 function DockAt:onUpdateActive(e, dt)
     -- Move to within docking range of the dockable target object
     local tp = getTargetPos(e, self.target)

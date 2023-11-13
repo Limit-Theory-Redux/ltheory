@@ -68,7 +68,7 @@ function MainMenu:OnInit()
     else
         GameState:SetState(Enums.GameStates.MainMenu)
     end
-    printf("Initialize MainMenu")
+    Log.Info("Initialize MainMenu")
 end
 
 function MainMenu:ActionRegistered()
@@ -91,10 +91,10 @@ function MainMenu:OnUpdate(dt)
             self.returnToSplashDelta = 0
         end
 
-        --printf("dt:".. self.dt)
-        --printf("lastAction: " .. self.lastActionDelta)
-        --printf("returnToSplashDelta: " .. self.returnToSplashDelta)
-        --printf(Config.timeToResetToSplashscreen)
+        --Log.Debug("dt:".. self.dt)
+        --Log.Debug("lastAction: " .. self.lastActionDelta)
+        --Log.Debug("returnToSplashDelta: " .. self.returnToSplashDelta)
+        --Log.Debug(Config.timeToResetToSplashscreen)
     else
         self.lastActionDelta = 0
         self.returnToSplashDelta = 0
@@ -106,10 +106,10 @@ function MainMenu:Open()
         self:OnInit()
     end
 
-    printf("MainMenu:Open: QueueTrack(true)")
-    mainMenuMusic = MusicPlayer:QueueTrack(Config.audio.mainMenu, true)
+    Log.Debug("MainMenu:Open: QueueTrack(true)")
+    mainMenuMusic = MusicPlayer:QueueTrack(GameState.audio.menuTheme, true)
 
-    printf("Opening Main Menu.")
+    Log.Debug("Opening Main Menu.")
 end
 
 function MainMenu:Close(keepState)
@@ -118,16 +118,16 @@ function MainMenu:Close(keepState)
 
     MusicPlayer:StopTrack(mainMenuMusic)
 
-    printf("Closing Main Menu.")
+    Log.Debug("Closing Main Menu.")
 end
 
 function MainMenu:SetBackgroundMode(enabled)
-    printf("Set Background Mode to: " .. tostring(enabled))
+    Log.Debug("Set Background Mode to: " .. tostring(enabled))
     self.inBackgroundMode = enabled
 end
 
 function MainMenu:SetMenuMode(mode)
-    printf("Set Menu Mode to: " .. mode)
+    Log.Debug("Set Menu Mode to: " .. mode)
     self.currentMode = mode
 
     -- TODO: this can be improved
@@ -214,7 +214,7 @@ function MainMenu:ShowSeedDialog()
     self.dialogDisplayed = false
     self.seedDialogDisplayed = true
 
-    HmGui.BeginWindow(guiElements.name)
+    HmGui.BeginWindow(guiElements.name, InputInstance)
     HmGui.TextEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.6, 1.0, 1.0)
     HmGui.SetAlign(0.5, 0.5)
     HmGui.SetSpacing(16)
@@ -273,7 +273,7 @@ function MainMenu:ShowSeedDialogInner()
 
         self:SetMenuMode(Enums.MenuMode.Dialog)
         GameState:Unpause()
-        Input.SetMouseVisible(false)
+        InputInstance:setCursorVisible(false)
         LTheoryRedux:createStarSystem()
     end
 
@@ -289,7 +289,7 @@ function MainMenu:ShowSeedDialogInner()
         self:SetMenuMode(Enums.MenuMode.Dialog)
         GameState:Unpause()
         GameState.player.currentControl = Enums.ControlModes.Ship
-        Input.SetMouseVisible(false)
+        InputInstance:setCursorVisible(false)
         LTheoryRedux:createStarSystem()
     end
 
@@ -307,7 +307,7 @@ function MainMenu:ShowSettingsScreen()
     end
     self.settingsScreenDisplayed = true
 
-    HmGui.BeginWindow(guiElements.name)
+    HmGui.BeginWindow(guiElements.name, InputInstance)
     HmGui.TextEx(Cache.Font('Iceland', 42), 'Settings', 0.3, 0.6, 1.0, 1.0)
     HmGui.SetAlign(0.5, 0.5)
     HmGui.Rect(1.0, 1.0, 0.3, 0.6, 1.0, 1.0)
@@ -704,7 +704,7 @@ function MainMenu:ShowSettingsScreenInner()
 
         if MainMenu.currentMode == Enums.MenuMode.Dialog then
             LTheoryRedux:freezeTurrets()
-            Input.SetMouseVisible(true)
+            InputInstance:setCursorVisible(true)
         end
     end
 
@@ -739,7 +739,7 @@ function MainMenu:ShowSettingsScreenInner()
 
         if MainMenu.currentMode == Enums.MenuMode.Dialog then
             LTheoryRedux:freezeTurrets()
-            Input.SetMouseVisible(true)
+            InputInstance:setCursorVisible(true)
         end
 
         -- Write player-specific game variables to preserve them across gameplay sessions
@@ -756,7 +756,7 @@ end
 
 function MainMenu:ShowFlightDialog()
     -- Add Flight Mode dialog menu
-    HmGui.BeginWindow("Flight Mode")
+    HmGui.BeginWindow("Flight Mode", InputInstance)
     HmGui.TextEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.6, 1.0, 1.0)
     HmGui.SetAlign(0.5, 0.5)
     HmGui.SetSpacing(16)
@@ -780,7 +780,7 @@ function MainMenu:ShowFlightDialogInner()
             self.dialogDisplayed = false
 
             if GameState.player.currentControl == Enums.ControlModes.Ship then
-                Input.SetMouseVisible(false)
+                InputInstance:setCursorVisible(false)
             end
         end
     end
@@ -793,7 +793,7 @@ function MainMenu:ShowFlightDialogInner()
             LTheoryRedux:freezeTurrets()
             GameState:Unpause()
             GameState.panelActive = false
-            Input.SetMouseVisible(false)
+            InputInstance:setCursorVisible(false)
         end
     end
     HmGui.SetSpacing(8)
@@ -809,7 +809,7 @@ function MainMenu:ShowFlightDialogInner()
         -- Show Game Settings menu
         self:ShowSettingsScreen()
         GameState:Pause()
-        Input.SetMouseVisible(true)
+        InputInstance:setCursorVisible(true)
     end
     HmGui.SetSpacing(8)
 

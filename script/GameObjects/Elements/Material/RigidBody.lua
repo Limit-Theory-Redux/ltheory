@@ -341,3 +341,15 @@ function Entity:toWorldScaled(pos)
         eRot:getForward():scale(eScl * pos.z) +
         ePos
 end
+
+function Entity:getZone()
+    assert(self.body)
+    local system = self:getRoot()
+    for index, zone in ipairs(system.zones) do
+        for index, object in ipairs(zone:getObjectsInTrigger()) do
+            if object == self then
+                return zone
+            end
+        end
+    end
+end

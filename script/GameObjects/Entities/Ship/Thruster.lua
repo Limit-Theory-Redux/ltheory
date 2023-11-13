@@ -40,9 +40,9 @@ local Thruster = subclass(Entity, function(self, parentShip)
     self.boostT = 0
     self.time = rng:getUniformRange(0, 1000)
 
-    --printf("Register: Thruster type = %s, handler = %s", Event.Render, self.render)
+    --Log.Debug("Register: Thruster type = %s, handler = %s", Event.Render, self.render)
     self:register(Event.Render, self.render)
-    --printf("Register: Thruster type = %s, handler = %s", Event.Update, self.update)
+    --Log.Debug("Register: Thruster type = %s, handler = %s", Event.Update, self.update)
     self:register(Event.Update, self.update)
 end)
 
@@ -52,6 +52,10 @@ end
 
 function Thruster:render(state)
     if state.mode == BlendMode.Additive then
+        if self.parent:getOwner():getControlling() == GameState.player.currentShip and GameState.player.currentCamera == Enums.CameraMode.FirstPerson then
+            return
+        end
+
         local a = math.abs(self.activation)
         if a < 1e-3 then return end
         local shader = Cache.Shader('billboard/axis', 'effect/thruster')

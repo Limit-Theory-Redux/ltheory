@@ -1,6 +1,8 @@
 local MusicPlayer = class(function(self) end)
 
 local MusicObject = require("Types.MusicObject")
+local SFXObject = require("Types.SFXObject")
+local rng = RNG.FromTime()
 
 function MusicPlayer:Init()
     self.trackList = {}
@@ -13,25 +15,49 @@ function MusicPlayer:Init()
         self.volume = 0
     end
     self:LoadMusic()
+
+    MusicPlayer:LoadEffects()
 end
 
--- add block queing
+-- add block queueing
+
+function MusicPlayer:LoadEffects()
+    -- *** TEMP: Audio FX test START ***
+    Config.audio.pulseFire = SFXObject:Create {
+        name = Config.audio.pulseFireName,
+        path = Config.paths.soundEffects .. Config.audio.pulseFireName,
+        volume = 0.0,
+        isLooping = false
+    }
+
+    Config.audio.fxSensors = SFXObject:Create {
+        name = Config.audio.fxSensorsName,
+        path = Config.paths.soundEffects .. Config.audio.fxSensorsName,
+        volume = 0.0,
+        isLooping = true
+    }
+
+    -- *** TEMP: Audio FX test END ***
+end
 
 function MusicPlayer:SetVolume(volume)
     if volume == self.volume then
         return
     end
 
-    self.volume = volume
+    GameState.audio.musicVolume = volume
 
     for _, soundObject in ipairs(self.trackList) do
-        printf("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
-        Sound.SetVolume(soundObject.sound, volume)
+        Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
+        soundObject.sound:setVolume(volume)
     end
 end
 
 function MusicPlayer:OnUpdate(dt)
-    local rng = RNG.FromTime()
+    if GameState.audio.musicVolume ~= self.volume then
+        self.volume = GameState.audio.musicVolume
+    end
+
     if self.currentlyPlaying then
         if not self.currentlyPlaying:IsPlaying() then
             self.currentlyPlaying = nil
@@ -40,7 +66,7 @@ function MusicPlayer:OnUpdate(dt)
         local trackNum = rng:getInt(1, #self.queue)
         local track = self.queue[trackNum]
         self.currentlyPlaying = track -- randomly pick one of the queued tracks
-        printf("*** MusicPlayer:OnUpdate: playing tracknum %d '%s' with volume %s", trackNum, track.name, self.volume)
+        Log.Debug("*** MusicPlayer:OnUpdate: playing tracknum %d '%s' with volume %s", trackNum, track.name, self.volume)
         self.currentlyPlaying:Play()
         track:SetVolume(self.volume)
     end
@@ -54,7 +80,7 @@ function MusicPlayer:PlayAmbient()
         if not string.match(soundObject.name, Config.audio.mainMenu) then
             -- ignore main menu
             -- replace this with music types later
-            printf("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)
+            Log.Debug("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)
             MusicPlayer:QueueTrack(soundObject, false)
         end
     end
@@ -70,7 +96,7 @@ function MusicPlayer:QueueTrack(query, clearQueue)
     local track = self:FindTrack(query)
 
     if not track then
-        printf("No track found for query")
+        Log.Debug("No track found for query")
         return
     end
 
@@ -80,13 +106,13 @@ function MusicPlayer:QueueTrack(query, clearQueue)
 
     table.insert(self.queue, track)
 
-    --  printf("Queuing Track: " .. track.name)
+    --  Log.Debug("Queuing Track: " .. track.name)
     return track
 end
 
 function MusicPlayer:ClearQueue()
     if #self.queue > 0 then
-        --printf("MusicPlayer:ClearQueue: clearing entire queue")
+        --Log.Debug("MusicPlayer:ClearQueue: clearing entire queue")
         self.queue = {}
         if self.currentlyPlaying then
             self.currentlyPlaying:Pause()
@@ -105,7 +131,7 @@ function MusicPlayer:ClearQueueTrack(query)
         end
         for i, track in ipairs(self.queue) do
             if track == query then
-                printf("MusicPlayer:ClearQueueTrack: clearing queued track '%s'", query.name)
+                Log.Debug("MusicPlayer:ClearQueueTrack: clearing queued track '%s'", query.name)
                 table.remove(self.queue, i)
                 break
             end
@@ -116,7 +142,7 @@ end
 function MusicPlayer:StartTrack(query)
     local track = self:FindTrack(query)
     if self.currentlyPlaying ~= track then
-        printf("MusicPlayer:StartTrack: playing track '%s' with volume %s", track.name, self.volume)
+        Log.Debug("MusicPlayer:StartTrack: playing track '%s' with volume %s", track.name, self.volume)
         track:Rewind()
         track:Play()
         track:SetVolume(self.volume)
@@ -127,7 +153,7 @@ end
 function MusicPlayer:StopTrack(query)
     local track = self:FindTrack(query)
     if track and self.currentlyPlaying == track then
-        printf("MusicPlayer:StopTrack: stopping track '%s'", track.name)
+        Log.Debug("MusicPlayer:StopTrack: stopping track '%s'", track.name)
         track:Pause()
         track:Rewind()
         self.currentlyPlaying = nil
@@ -144,7 +170,7 @@ function MusicPlayer:FindTrack(query)
             return soundObject
         end
     end
-    printf("Couldn't find track")
+    Log.Warn("Couldn't find track")
     return nil
 end
 
@@ -164,24 +190,31 @@ function MusicPlayer:LoadMusic()
         end
 
         if not fileUnsupported then
-            local newSoundObject = MusicObject:Create {
+            local newMusicObject = MusicObject:Create {
                 name = fname,
                 path = path,
                 volume = self.volume,
                 isLooping = true -- temporary
             }
 
-            --printf("VOLUME: " .. self.volume)
-            if newSoundObject then
-                table.insert(self.trackList, newSoundObject)
+            --Log.Debug("VOLUME: " .. self.volume)
+            if newMusicObject then
+                table.insert(self.trackList, newMusicObject)
+
+                -- Generate Enums
+                if not Enums.SoundtrackNames then Enums.SoundtrackNames = {} end
+                table.insert(Enums.SoundtrackNames, newMusicObject.name)
+
+                if not Enums.SoundtrackCount then Enums.SoundtrackCount = 0 end
+                Enums.SoundtrackCount = Enums.SoundtrackCount + 1
             end
         end
     end
 
-    printf("Load Music: ")
+    Log.Info("Load Music: ")
     for index, soundObject in ipairs(self.trackList) do
-        printf("[" .. index .. "] " .. soundObject.name .. " (path: " ..
-            tostring(Sound.GetPath(soundObject.sound)) .. ")")
+        Log.Info("[" .. index .. "] " .. soundObject.name .. " (path: " ..
+            tostring(soundObject.sound:getPath()) .. ")")
     end
 end
 

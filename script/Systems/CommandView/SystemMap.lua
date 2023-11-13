@@ -1,16 +1,14 @@
 local DebugContext = require('Systems.CommandView.DebugContext')
-local Bindings     = require('States.ApplicationBindings')
-local Player       = require('GameObjects.Entities.Player')
+local Bindings = require('States.ApplicationBindings')
+local Player = require('GameObjects.Entities.Player')
+local Disposition = require('GameObjects.Elements.NPC.Dispositions')
 
-local SystemMap    = {}
-SystemMap.__index  = SystemMap
+local SystemMap = {}
+SystemMap.__index = SystemMap
 setmetatable(SystemMap, UI.Container)
 
-local kPanSpeed      = 20 -- NOTE: may be dependent on player's CPU, needs testing
-local kZoomSpeed     = 0.1
-
 SystemMap.scrollable = true
-SystemMap.focusable  = true
+SystemMap.focusable = true
 SystemMap:setPadUniform(0)
 
 function SystemMap:onDraw(state)
@@ -20,7 +18,7 @@ function SystemMap:onDraw(state)
 
     Draw.Color(0, 1, 0, 1)
     local hx, hy = sx / 2, sy / 2
-    local dx, dy = GameState.player.mapSystemPos.x + hx, GameState.player.mapSystemPos.y + hy
+    local dx, dy = GameState.player.currentMapSystemPos.x + hx, GameState.player.currentMapSystemPos.y + hy
 
     local c = {
         r = 0.1,
@@ -31,7 +29,7 @@ function SystemMap:onDraw(state)
 
     local best = nil
     local bestDist = math.huge
-    local mp = Input.GetMousePosition()
+    local mp = InputInstance:mouse():position()
 
     -- If an object is target locked in flight view (via HUD), give it focus in the System Map
     local playerShip = GameState.player.currentShip
@@ -43,26 +41,26 @@ function SystemMap:onDraw(state)
         playerTarget = playerShip:getTarget()
     end
     if playerTarget ~= nil then
-        --printf("Targeting a %s", Config:getObjectInfo("object_types", playerTarget:getType()))
+        --Log.Debug("Targeting a %s", Config:getObjectInfo("object_types", playerTarget:getType()))
         self.focus = playerTarget
     end
 
     BlendMode.PushAlpha()
     Draw.SmoothPoints(true)
-    --printf("------------------------------")
+    --Log.Debug("------------------------------")
     for _, e in self.system:iterChildren() do
         -- Check to make sure this is an actual object with a body
         if e.body ~= nil then
-            --printf("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+            --Log.Debug("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
             local p = e:getPos()
             local x = p.x - dx
             local y = p.z - dy
-            x = self.x + x * GameState.player.mapSystemZoom + hx
-            y = self.y + y * GameState.player.mapSystemZoom + hy
+            x = self.x + x * GameState.player.currentMapSystemZoom + hx
+            y = self.y + y * GameState.player.currentMapSystemZoom + hy
             Draw.PointSize(3.0)
 
             if e:hasActions() then
-                --printf("Action: %s", e:getName())
+                --Log.Debug("Action: %s", e:getName())
                 if GameState.player.currentShip == e then
                     Draw.PointSize(5.0)
                     Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
@@ -70,35 +68,41 @@ function SystemMap:onDraw(state)
                         local tp = playerTarget:getPos()
                         local tx = tp.x - dx
                         local ty = tp.z - dy
-                        tx = self.x + tx * GameState.player.mapSystemZoom + hx
-                        ty = self.y + ty * GameState.player.mapSystemZoom + hy
+                        tx = self.x + tx * GameState.player.currentMapSystemZoom + hx
+                        ty = self.y + ty * GameState.player.currentMapSystemZoom + hy
                         UI.DrawEx.Line(x, y, tx, ty, { r = 0.9, g = 0.8, b = 1.0, a = 1.0 }, true)
                     end
                 else
                     local entAction = e:getCurrentAction()
                     if entAction ~= nil then
-                        --printf("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
+                        --Log.Debug("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
                         if string.match(Config:getObjectInfo("object_types", e:getType()), "Ship") and e.usesBoost then
                             -- Draw the dot for ships that are aces larger than regular ships
                             Draw.PointSize(5.0)
                         end
-                        if string.find(entAction:getName(), "Attack") and entAction.target == GameState.player.currentShip then
-                            -- TODO: draw in color based on Disposition toward player
-                            Draw.Color(1.0, 0.3, 0.3, 1.0) -- other object, hostile (has a current action of "Attack player's ship")
-                        else
-                            Draw.Color(0.2, 0.6, 1.0, 1.0) -- other object, non-hostile
-                        end
+
+                        -- from HUD.lua
+                        -- set color by dispo
+                        local disp = Config.game.dispoNeutral -- disposition to neutral by default
+                        if e:hasAttackable() and e:isAttackable() then disp = e:getDisposition(playerShip) end
+                        -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+                        local c = Disposition.GetColor(disp)
+                        Draw.Color(c.r, c.g, c.b, c.a) -- some other object that suddenly has no actions
+
                         local focusedTarget = e:getTarget()
                         if focusedTarget then
                             local ftp = focusedTarget:getPos()
                             local ftx = ftp.x - dx
                             local fty = ftp.z - dy
-                            ftx = self.x + ftx * GameState.player.mapSystemZoom + hx
-                            fty = self.y + fty * GameState.player.mapSystemZoom + hy
-                            if string.find(entAction:getName(), "Attack") then
-                                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 }, true)
-                            else
-                                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 1.0 }, true)
+                            ftx = self.x + ftx * GameState.player.currentMapSystemZoom + hx
+                            fty = self.y + fty * GameState.player.currentMapSystemZoom + hy
+
+                            if e == playerTarget or GameState.debug.showMapActionLines then
+                                if string.find(entAction:getName(), "Attack") then
+                                    UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 }, false)
+                                else
+                                    UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 0.5 }, false)
+                                end
                             end
                         end
                     else
@@ -111,19 +115,26 @@ function SystemMap:onDraw(state)
             Draw.Point(x, y)
 
             if e:hasFlows() and not e:isDestroyed() then
+                -- from HUD.lua
+                -- set color by dispo
+                local disp = Config.game.dispoNeutral -- disposition to neutral by default
+                if e:hasAttackable() and e:isAttackable() then disp = e:getDisposition(playerShip) end
+                -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+                local c = Disposition.GetColor(disp)
+
                 --printf("Flow: %s", e:getName())
-                UI.DrawEx.Ring(x, y, GameState.player.mapSystemZoom * e:getScale() * 10,
-                    { r = 0.1, g = 0.5, b = 1.0, a = 1.0 }, true)
+                UI.DrawEx.Ring(x, y, GameState.player.currentMapSystemZoom * e:getScale() * 10,
+                    { r = c.r, g = c.g, b = c.b, a = c.a }, true)
             end
 
             if e:hasYield() then
                 --printf("Yield: %s", e:getName())
-                UI.DrawEx.Ring(x, y, GameState.player.mapSystemZoom * e:getScale(),
+                UI.DrawEx.Ring(x, y, GameState.player.currentMapSystemZoom * e:getScale(),
                     { r = 1.0, g = 0.5, b = 0.1, a = 0.5 }, true)
             end
 
             if self.focus == e then
-                --printf("Focus: %s", e:getName())
+                --Log.Debug("Focus: %s", e:getName())
                 UI.DrawEx.Ring(x, y, 8, { r = 1.0, g = 0.0, b = 0.3, a = 1.0 }, true)
             end
 
@@ -135,7 +146,7 @@ function SystemMap:onDraw(state)
             end
             --    else
             --      -- Non-object entities (e.g., zones)
-            --printf("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+            --Log.Debug("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
             --      local p = e:getPos()
             --      local x = p.x - dx
             --      local y = p.z - dy
@@ -151,7 +162,7 @@ function SystemMap:onDraw(state)
     Draw.SmoothPoints(false)
     BlendMode.Pop()
 
-    if Input.GetDown(Button.Mouse.Left) then
+    if InputInstance:isDown(Button.MouseLeft) then
         self.focus = best
         -- Set focused-on object in the System Map as the player ship's current target
         if GameState.player.currentShip ~= nil and GameState.player.currentShip ~= self.focus then
@@ -199,7 +210,12 @@ function SystemMap:onDraw(state)
             end
             if not self.focus:isDestroyed() then
                 if self.focus:isAlive() then
-                    dbg:text("Hull Integrity: %d%%", self.focus:mgrHullGetHullPercent())
+                    dbg:text("Hull Integrity: %d%%", self.focus:mgrHullGetHealthPercent())
+
+                    if string.match(objtype, "Ship") then
+                        dbg:text("Travel Drive Activated: %s", self.focus.travelDriveActive)
+                        dbg:text("Speed: %s m/s", floor(self.focus:getSpeed()))
+                    end
                 end
                 if string.match(objtype, "Station") and self.focus:hasDockable() then
                     local docked = self.focus:getDocked()
@@ -275,32 +291,32 @@ function SystemMap:onInput(state)
     -- NOTE: Keyboard pan and zoom previously used (e.g.) "kPanSpeed * state.dt"
     --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
     --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
-    --       Meanwhile, the Minus and Equals keys will slow down and speed up zooming, respectively
-    if Input.GetValue(Button.Keyboard.Minus) == 1 then
-        GameState.player.mapSystemPan = GameState.player.mapSystemPan / 1.2
-        if GameState.player.mapSystemPan < 1 then
-            GameState.player.mapSystemPan = 1
-        end
-        --printf("mapSystemPan - = %s", GameState.player.mapSystemPan)
-    end
-    if Input.GetValue(Button.Keyboard.Equals) == 1 then
-        GameState.player.mapSystemPan = GameState.player.mapSystemPan * 1.2
-        if GameState.player.mapSystemPan > 150 then
-            GameState.player.mapSystemPan = 150
-        end
-        --printf("mapSystemPan + = %s", GameState.player.mapSystemPan)
+    if state.dt and state.dt ~= 0 then
+        self.lastDt = state.dt
     end
 
-    GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
-    GameState.player.mapSystemZoom = GameState.player.mapSystemZoom *
-        exp(kZoomSpeed * (Input.GetValue(Button.Keyboard.RBracket) - Input.GetValue(Button.Keyboard.LBracket)))
+    if state.dt > 0 then
+        GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * state.dt
+    else
+        GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed *
+            self.lastDt -- temp fix for -> see NOTE above
+    end
 
-    GameState.player.mapSystemPos.x = GameState.player.mapSystemPos.x +
-        (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-            Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
-    GameState.player.mapSystemPos.y = GameState.player.mapSystemPos.y +
-        (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-            Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
+    if InputInstance:getValue(Button.KeyboardShiftLeft) == 1 then
+        GameState.player.currentMapSystemPan = GameState.player.currentMapSystemPan * 2
+    end
+
+    GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
+        exp(GameState.ui.mapSystemZoomSpeed * InputInstance:mouse():scroll().y)
+    GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
+        exp(GameState.ui.mapSystemZoomSpeed * (InputInstance:getValue(Button.KeyboardP) - InputInstance:getValue(Button.KeyboardO)))
+
+    GameState.player.currentMapSystemPos.x = GameState.player.currentMapSystemPos.x +
+        GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
+            InputInstance:getValue(Button.KeyboardD) - InputInstance:getValue(Button.KeyboardA))
+    GameState.player.currentMapSystemPos.y = GameState.player.currentMapSystemPos.y +
+        GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
+            InputInstance:getValue(Button.KeyboardS) - InputInstance:getValue(Button.KeyboardW))
 end
 
 function SystemMap.Create(system)
@@ -315,16 +331,6 @@ function SystemMap.Create(system)
         end
     else
         GameState.player.mapSystemPos = Vec3f(0, 0, 0)
-    end
-
-    -- Initialize system map zoom and pan levels only if not already initialized
-    kPanSpeed = max(10, Config.gen.scaleSystem / 2e4)
-    --printf("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
-    if GameState.player.mapSystemZoom == nil then
-        GameState.player.mapSystemZoom = 0.0001
-    end
-    if GameState.player.mapSystemPan == nil then
-        GameState.player.mapSystemPan = kPanSpeed
     end
 
     return self

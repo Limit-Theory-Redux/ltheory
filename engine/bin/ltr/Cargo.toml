@@ -1,0 +1,18 @@
+[package]
+name = "ltr"
+
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+# workspace crates
+phx.workspace = true
+
+# external crates
+clap = { version = "4.4", features = ["derive"] }
+libc = "0.2"
+
+[build-dependencies]
+winres = "0.1"
