@@ -23,7 +23,7 @@ Discussions regarding game systems / programming are held in the programming-dis
 </a>
 
 ## Documentation
-It´s highly recommended you document what you are doing in code. For more generalized documentation & design we use a seperately hosted [Wiki.js Instance](https://wiki.ltredux.org). For wiki editoral access contact @IllustrisJack . A backup repository of the wiki exists [here](https://github.com/Limit-Theory-Redux/wiki).
+It´s highly recommended you document what you are doing in code. For more generalized documentation & design we use a seperately hosted [Wiki.js Instance](https://wiki.ltredux.org). For wiki editoral access contact [@IllustrisJack](https://github.com/IllustrisJack) directly or a maintainer. A backup repository of the wiki exists [here](https://github.com/Limit-Theory-Redux/wiki).
 
 # Getting Started
 In this file we´ll go over the whole process of getting started & the the workflow of Limit Theory Redux development.
