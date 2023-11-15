@@ -93,11 +93,10 @@ impl HmGuiContainer {
             for widget_rf in &self.children {
                 let mut widget = widget_rf.as_mut();
 
-                // Horizontal. Docking stretch has priority over fixed/percentage size
-                if extra.x > 0.0
-                    && !widget.docking.has_horizontal_stretch()
-                    && !self.children_docking.has_horizontal_stretch()
-                {
+                // Horizontal.
+                // Child docking stretch has priority over fixed/percentage size
+                // that in turn has higher priority than children stretch.
+                if extra.x > 0.0 && !widget.docking.has_horizontal_stretch() {
                     if let Some(Length::Percent(percent_width)) = widget.default_width {
                         let widget_width = extra.x * percent_width / 100.0;
 
@@ -113,11 +112,10 @@ impl HmGuiContainer {
                     }
                 }
 
-                // Vertical. Docking stretch has priority over fixed/percentage size
-                if extra.y > 0.0
-                    && !widget.docking.has_vertical_stretch()
-                    && !self.children_docking.has_vertical_stretch()
-                {
+                // Vertical.
+                // Docking stretch has priority over fixed/percentage size
+                // that in turn has higher priority than children stretch.
+                if extra.y > 0.0 && !widget.docking.has_vertical_stretch() {
                     if let Some(Length::Percent(percent_height)) = widget.default_height {
                         let widget_height = extra.y * percent_height / 100.0;
 
@@ -147,8 +145,9 @@ impl HmGuiContainer {
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let widget = widget_rf.as_ref();
 
-                    if widget.docking.has_horizontal_stretch()
-                        || self.children_docking.has_horizontal_stretch()
+                    if widget.docking.has_horizontal_stretch() // child stretching has always priority
+                        || widget.default_width.is_none() // fixed/percent size has priority over children docking
+                            && self.children_docking.has_horizontal_stretch()
                     {
                         let weight = 100.0; // weight per expandable widget
 
@@ -184,8 +183,9 @@ impl HmGuiContainer {
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let widget = widget_rf.as_ref();
 
-                    if widget.docking.has_vertical_stretch()
-                        || self.children_docking.has_vertical_stretch()
+                    if widget.docking.has_vertical_stretch() // child stretching has always priority
+                        || widget.default_height.is_none() // fixed/percent size has priority over children stretching
+                            && self.children_docking.has_vertical_stretch()
                     {
                         let weight = 100.0; // weight per expandable widget
 
