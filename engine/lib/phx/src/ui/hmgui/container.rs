@@ -87,46 +87,54 @@ impl HmGuiContainer {
         let size = size - self.padding_lower - self.padding_upper;
 
         // 1. Calculate percentage size of the children
-        for widget_rf in &self.children {
-            let mut widget = widget_rf.as_mut();
+        if extra.x > 0.0 || extra.y > 0.0 {
+            let mut percent_extra = Vec2::ZERO;
 
-            // Horizontal. Docking stretch has priority over fixed/percentage size
-            if !widget.docking.has_horizontal_stretch()
-                && !self.children_docking.has_horizontal_stretch()
-            {
-                if let Some(Length::Percent(percent_width)) = widget.default_width {
-                    let widget_width = size.x * percent_width / 100.0;
+            for widget_rf in &self.children {
+                let mut widget = widget_rf.as_mut();
 
-                    widget.inner_min_size.x = widget_width;
-                    widget.min_size.x = widget_width
-                        + widget.border_width * 2.0
-                        + widget.margin_upper.x
-                        + widget.margin_lower.x;
+                // Horizontal. Docking stretch has priority over fixed/percentage size
+                if extra.x > 0.0
+                    && !widget.docking.has_horizontal_stretch()
+                    && !self.children_docking.has_horizontal_stretch()
+                {
+                    if let Some(Length::Percent(percent_width)) = widget.default_width {
+                        let widget_width = extra.x * percent_width / 100.0;
 
-                    if self.layout == LayoutType::Horizontal {
-                        extra.x -= widget_width;
+                        widget.inner_min_size.x = widget_width;
+                        widget.min_size.x = widget_width
+                            + widget.border_width * 2.0
+                            + widget.margin_upper.x
+                            + widget.margin_lower.x;
+
+                        if self.layout == LayoutType::Horizontal {
+                            percent_extra.x += widget_width;
+                        }
+                    }
+                }
+
+                // Vertical. Docking stretch has priority over fixed/percentage size
+                if extra.y > 0.0
+                    && !widget.docking.has_vertical_stretch()
+                    && !self.children_docking.has_vertical_stretch()
+                {
+                    if let Some(Length::Percent(percent_height)) = widget.default_height {
+                        let widget_height = extra.y * percent_height / 100.0;
+
+                        widget.inner_min_size.y = widget_height;
+                        widget.min_size.y = widget_height
+                            + widget.border_width * 2.0
+                            + widget.margin_upper.y
+                            + widget.margin_lower.y;
+
+                        if self.layout == LayoutType::Vertical {
+                            percent_extra.y += widget_height;
+                        }
                     }
                 }
             }
 
-            // Vertical. Docking stretch has priority over fixed/percentage size
-            if !widget.docking.has_vertical_stretch()
-                && !self.children_docking.has_vertical_stretch()
-            {
-                if let Some(Length::Percent(percent_height)) = widget.default_height {
-                    let widget_height = size.y * percent_height / 100.0;
-
-                    widget.inner_min_size.y = widget_height;
-                    widget.min_size.y = widget_height
-                        + widget.border_width * 2.0
-                        + widget.margin_upper.y
-                        + widget.margin_lower.y;
-
-                    if self.layout == LayoutType::Vertical {
-                        extra.y -= widget_height;
-                    }
-                }
-            }
+            extra -= percent_extra;
         }
 
         // 2. Calculate per child extra space distribution

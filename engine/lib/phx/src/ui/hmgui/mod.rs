@@ -941,10 +941,10 @@ mod tests {
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
                     (300.0, 200.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (45.0, 90.0), (210.0, 20.0), (210.0, 20.0), None),
-                        WidgetCheck("Rect2", (135.0, 40.0), (30.0, 120.0), (30.0, 120.0), None),
-                        WidgetCheck("Rect3", (-30.0, 90.0), (360.0, 20.0), (360.0, 20.0), None),
-                        WidgetCheck("Rect4", (135.0, -30.0), (30.0, 260.0), (30.0, 260.0), None),
+                        WidgetCheck("Rect1", (55.5, 90.0), (189.0, 20.0), (189.0, 20.0), None),
+                        WidgetCheck("Rect2", (135.0, 46.0), (30.0, 108.0), (30.0, 108.0), None),
+                        WidgetCheck("Rect3", (-12.0, 90.0), (324.0, 20.0), (324.0, 20.0), None),
+                        WidgetCheck("Rect4", (135.0, -17.0), (30.0, 234.0), (30.0, 234.0), None),
                     ]),
                 )]),
             ),
@@ -957,7 +957,7 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
 
-        // Horizontal: first widget - fixed size - 20, second - 50% = 150, last - expands to non remaining width - 130
+        // Horizontal: first widget - fixed size - 20, second - 50% = 140, last - expands to non remaining width - 140
         gui.begin_horizontal_container();
         gui.set_spacing(0.0);
 
@@ -975,7 +975,7 @@ mod tests {
         gui.end_container();
         gui.set_docking(DOCKING_STRETCH_ALL);
 
-        // Horizontal: first widget - fixed size - 20, second - 120% = 360, last widget shrinks to 0 width
+        // Horizontal: first widget - fixed size - 20, second - 150% = 420, last widget shrinks to 0 width
         gui.begin_horizontal_container();
         gui.set_spacing(0.0);
 
@@ -983,7 +983,7 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
-        gui.set_percent_width(120.0);
+        gui.set_percent_width(150.0);
         gui.set_fixed_height(30.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
@@ -1013,8 +1013,8 @@ mod tests {
                         (300.0, 200.0),
                         Some(vec![
                             WidgetCheck("Rect1", (0.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
-                            WidgetCheck("Rect2", (20.0, 85.0), (150.0, 30.0), (150.0, 30.0), None),
-                            WidgetCheck("Rect3", (170.0, 80.0), (130.0, 40.0), (130.0, 40.0), None),
+                            WidgetCheck("Rect2", (20.0, 85.0), (140.0, 30.0), (140.0, 30.0), None),
+                            WidgetCheck("Rect3", (160.0, 80.0), (140.0, 40.0), (140.0, 40.0), None),
                         ]),
                     ),
                     WidgetCheck(
@@ -1023,9 +1023,9 @@ mod tests {
                         (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
-                            WidgetCheck("Rect1", (-40.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
-                            WidgetCheck("Rect2", (-20.0, 85.0), (360.0, 30.0), (360.0, 30.0), None),
-                            WidgetCheck("Rect3", (340.0, 80.0), (0.0, 40.0), (0.0, 40.0), None),
+                            WidgetCheck("Rect1", (-70.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect2", (-50.0, 85.0), (420.0, 30.0), (420.0, 30.0), None),
+                            WidgetCheck("Rect3", (370.0, 80.0), (0.0, 40.0), (0.0, 40.0), None),
                         ]),
                     ),
                 ]),
@@ -1039,7 +1039,7 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
 
-        // Vertical: first widget - fixed size - 30, second - 50% = 100, last - expands to non remaining width - 70
+        // Vertical: first widget - fixed size - 30, second - 50% = 85, last - expands to non remaining width - 115
         gui.begin_vertical_container();
         gui.set_spacing(0.0);
 
@@ -1057,7 +1057,7 @@ mod tests {
         gui.end_container();
         gui.set_docking(DOCKING_STRETCH_ALL);
 
-        // Vertical: first widget - fixed size - 30, second - 120% = 240, last widget shrinks to 0 width
+        // Vertical: first widget - fixed size - 30, second - 120% = 204, last widget shrinks to 0 width
         gui.begin_vertical_container();
         gui.set_spacing(0.0);
 
@@ -1095,8 +1095,8 @@ mod tests {
                         (300.0, 200.0),
                         Some(vec![
                             WidgetCheck("Rect1", (140.0, 0.0), (20.0, 30.0), (20.0, 30.0), None),
-                            WidgetCheck("Rect2", (135.0, 30.0), (30.0, 100.0), (30.0, 100.0), None),
-                            WidgetCheck("Rect3", (130.0, 130.0), (40.0, 70.0), (40.0, 70.0), None),
+                            WidgetCheck("Rect2", (135.0, 30.0), (30.0, 85.0), (30.0, 85.0), None),
+                            WidgetCheck("Rect3", (130.0, 115.0), (40.0, 85.0), (40.0, 85.0), None),
                         ]),
                     ),
                     WidgetCheck(
@@ -1105,9 +1105,9 @@ mod tests {
                         (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
-                            WidgetCheck("Rect1", (140.0, -35.0), (20.0, 30.0), (20.0, 30.0), None),
-                            WidgetCheck("Rect2", (135.0, -5.0), (30.0, 240.0), (30.0, 240.0), None),
-                            WidgetCheck("Rect3", (130.0, 235.0), (40.0, 0.0), (40.0, 0.0), None),
+                            WidgetCheck("Rect1", (140.0, -17.0), (20.0, 30.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect2", (135.0, 13.0), (30.0, 204.0), (30.0, 204.0), None),
+                            WidgetCheck("Rect3", (130.0, 217.0), (40.0, 0.0), (40.0, 0.0), None),
                         ]),
                     ),
                 ]),
