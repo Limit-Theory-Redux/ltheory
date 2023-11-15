@@ -1,6 +1,5 @@
 mod composite_alpha_mode;
 mod cursor;
-mod glutin_render;
 mod monitor_selection;
 mod present_mode;
 mod window_level;
@@ -14,7 +13,6 @@ mod winit_windows;
 
 pub use composite_alpha_mode::*;
 pub use cursor::*;
-pub use glutin_render::*;
 pub use monitor_selection::*;
 pub use present_mode::*;
 pub use window_level::*;

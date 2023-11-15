@@ -60,26 +60,26 @@ const K_FACE_EXT: [&str; 6] = ["px", "py", "pz", "nx", "ny", "nz"];
 
 #[inline]
 extern "C" fn TexCube_InitParameters() {
-    gl_tex_parameteri(
-        gl::TEXTURE_CUBE_MAP,
-        gl::TEXTURE_MAG_FILTER,
-        gl::NEAREST as i32,
-    );
-    gl_tex_parameteri(
-        gl::TEXTURE_CUBE_MAP,
-        gl::TEXTURE_MIN_FILTER,
-        gl::NEAREST as i32,
-    );
-    gl_tex_parameteri(
-        gl::TEXTURE_CUBE_MAP,
-        gl::TEXTURE_WRAP_S,
-        gl::CLAMP_TO_EDGE as i32,
-    );
-    gl_tex_parameteri(
-        gl::TEXTURE_CUBE_MAP,
-        gl::TEXTURE_WRAP_T,
-        gl::CLAMP_TO_EDGE as i32,
-    );
+    // gl_tex_parameteri(
+    //     gl::TEXTURE_CUBE_MAP,
+    //     gl::TEXTURE_MAG_FILTER,
+    //     gl::NEAREST as i32,
+    // );
+    // gl_tex_parameteri(
+    //     gl::TEXTURE_CUBE_MAP,
+    //     gl::TEXTURE_MIN_FILTER,
+    //     gl::NEAREST as i32,
+    // );
+    // gl_tex_parameteri(
+    //     gl::TEXTURE_CUBE_MAP,
+    //     gl::TEXTURE_WRAP_S,
+    //     gl::CLAMP_TO_EDGE as i32,
+    // );
+    // gl_tex_parameteri(
+    //     gl::TEXTURE_CUBE_MAP,
+    //     gl::TEXTURE_WRAP_T,
+    //     gl::CLAMP_TO_EDGE as i32,
+    // );
 }
 
 #[no_mangle]
@@ -94,80 +94,80 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
     let this = MemNew!(TexCube);
     (*this)._refCount = 1;
 
-    gl_gen_textures(1, &mut (*this).handle);
+    // gl_gen_textures(1, &mut (*this).handle);
 
     (*this).size = size;
     (*this).format = format;
 
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, (*this).handle);
-    gl_tex_image2d(
-        gl::TEXTURE_CUBE_MAP_POSITIVE_X,
-        0,
-        format,
-        size,
-        size,
-        0,
-        gl::RED,
-        gl::BYTE,
-        std::ptr::null(),
-    );
-    gl_tex_image2d(
-        gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
-        0,
-        format,
-        size,
-        size,
-        0,
-        gl::RED,
-        gl::BYTE,
-        std::ptr::null(),
-    );
-    gl_tex_image2d(
-        gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
-        0,
-        format,
-        size,
-        size,
-        0,
-        gl::RED,
-        gl::BYTE,
-        std::ptr::null(),
-    );
-    gl_tex_image2d(
-        gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
-        0,
-        format,
-        size,
-        size,
-        0,
-        gl::RED,
-        gl::BYTE,
-        std::ptr::null(),
-    );
-    gl_tex_image2d(
-        gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
-        0,
-        format,
-        size,
-        size,
-        0,
-        gl::RED,
-        gl::BYTE,
-        std::ptr::null(),
-    );
-    gl_tex_image2d(
-        gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
-        0,
-        format,
-        size,
-        size,
-        0,
-        gl::RED,
-        gl::BYTE,
-        std::ptr::null(),
-    );
-    TexCube_InitParameters();
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, (*this).handle);
+    // gl_tex_image2d(
+    //     gl::TEXTURE_CUBE_MAP_POSITIVE_X,
+    //     0,
+    //     format,
+    //     size,
+    //     size,
+    //     0,
+    //     gl::RED,
+    //     gl::BYTE,
+    //     std::ptr::null(),
+    // );
+    // gl_tex_image2d(
+    //     gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
+    //     0,
+    //     format,
+    //     size,
+    //     size,
+    //     0,
+    //     gl::RED,
+    //     gl::BYTE,
+    //     std::ptr::null(),
+    // );
+    // gl_tex_image2d(
+    //     gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
+    //     0,
+    //     format,
+    //     size,
+    //     size,
+    //     0,
+    //     gl::RED,
+    //     gl::BYTE,
+    //     std::ptr::null(),
+    // );
+    // gl_tex_image2d(
+    //     gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
+    //     0,
+    //     format,
+    //     size,
+    //     size,
+    //     0,
+    //     gl::RED,
+    //     gl::BYTE,
+    //     std::ptr::null(),
+    // );
+    // gl_tex_image2d(
+    //     gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    //     0,
+    //     format,
+    //     size,
+    //     size,
+    //     0,
+    //     gl::RED,
+    //     gl::BYTE,
+    //     std::ptr::null(),
+    // );
+    // gl_tex_image2d(
+    //     gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
+    //     0,
+    //     format,
+    //     size,
+    //     size,
+    //     0,
+    //     gl::RED,
+    //     gl::BYTE,
+    //     std::ptr::null(),
+    // );
+    // TexCube_InitParameters();
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
 
     this
 }
@@ -195,7 +195,7 @@ pub unsafe extern "C" fn TexCube_Free(this: *mut TexCube) {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
     } {
-        gl_delete_textures(1, &mut (*this).handle);
+        // gl_delete_textures(1, &mut (*this).handle);
         MemFree(this as *const _);
     }
 }
@@ -203,78 +203,78 @@ pub unsafe extern "C" fn TexCube_Free(this: *mut TexCube) {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube {
     let this = MemNew!(TexCube);
-    gl_gen_textures(1, &mut (*this).handle);
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, (*this).handle);
+    // gl_gen_textures(1, &mut (*this).handle);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, (*this).handle);
 
-    let mut components: i32 = 0;
-    let mut dataLayout: i32 = 0;
+    // let mut components: i32 = 0;
+    // let mut dataLayout: i32 = 0;
 
-    for i in 0..6 {
-        let face_path = format!("{}{}.jpg", path.as_str(), K_FACE_EXT[i as usize]);
-        let mut sx: i32 = 0;
-        let mut sy: i32 = 0;
-        let mut lcomponents: i32 = 0;
-        let data: *mut libc::c_uchar =
-            tex2d_load_raw(&face_path, &mut sx, &mut sy, &mut lcomponents);
+    // for i in 0..6 {
+    //     let face_path = format!("{}{}.jpg", path.as_str(), K_FACE_EXT[i as usize]);
+    //     let mut sx: i32 = 0;
+    //     let mut sy: i32 = 0;
+    //     let mut lcomponents: i32 = 0;
+    //     let data: *mut libc::c_uchar =
+    //         tex2d_load_raw(&face_path, &mut sx, &mut sy, &mut lcomponents);
 
-        if data.is_null() {
-            panic!("TexCube_Load failed to load cubemap face from '{face_path}'",);
-        }
+    //     if data.is_null() {
+    //         panic!("TexCube_Load failed to load cubemap face from '{face_path}'",);
+    //     }
 
-        if sx != sy {
-            panic!("TexCube_Load loaded cubemap face is not square");
-        }
+    //     if sx != sy {
+    //         panic!("TexCube_Load loaded cubemap face is not square");
+    //     }
 
-        if i != 0 {
-            if sx != (*this).size || sy != (*this).size {
-                panic!("TexCube_Load loaded cubemap faces have different resolutions");
-            }
+    //     if i != 0 {
+    //         if sx != (*this).size || sy != (*this).size {
+    //             panic!("TexCube_Load loaded cubemap faces have different resolutions");
+    //         }
 
-            if lcomponents != components {
-                panic!("TexCube_Load loaded cubemap faces have different number of components");
-            }
-        } else {
-            components = lcomponents;
-            (*this).size = sx;
-            (*this).format = if components == 4 {
-                TexFormat_RGBA8
-            } else if components == 3 {
-                TexFormat_RGB8
-            } else if components == 2 {
-                TexFormat_RG8
-            } else {
-                TexFormat_R8
-            };
+    //         if lcomponents != components {
+    //             panic!("TexCube_Load loaded cubemap faces have different number of components");
+    //         }
+    //     } else {
+    //         components = lcomponents;
+    //         (*this).size = sx;
+    //         (*this).format = if components == 4 {
+    //             TexFormat_RGBA8
+    //         } else if components == 3 {
+    //             TexFormat_RGB8
+    //         } else if components == 2 {
+    //             TexFormat_RG8
+    //         } else {
+    //             TexFormat_R8
+    //         };
 
-            dataLayout = if components == 4 {
-                gl::RGBA
-            } else if components == 3 {
-                gl::RGB
-            } else if components == 2 {
-                gl::RG
-            } else {
-                gl::RED
-            } as i32;
-        }
+    //         dataLayout = if components == 4 {
+    //             gl::RGBA
+    //         } else if components == 3 {
+    //             gl::RGB
+    //         } else if components == 2 {
+    //             gl::RG
+    //         } else {
+    //             gl::RED
+    //         } as i32;
+    //     }
 
-        gl_tex_image2d(
-            kFaces[i as usize].face as gl::types::GLenum,
-            0,
-            (*this).format,
-            (*this).size,
-            (*this).size,
-            0,
-            dataLayout as gl::types::GLenum,
-            gl::UNSIGNED_BYTE,
-            data as *const _,
-        );
+    //     gl_tex_image2d(
+    //         kFaces[i as usize].face as gl::types::GLenum,
+    //         0,
+    //         (*this).format,
+    //         (*this).size,
+    //         (*this).size,
+    //         0,
+    //         dataLayout as gl::types::GLenum,
+    //         gl::UNSIGNED_BYTE,
+    //         data as *const _,
+    //     );
 
-        MemFree(data as *const _);
-    }
+    //     MemFree(data as *const _);
+    // }
 
-    TexCube_InitParameters();
+    // TexCube_InitParameters();
 
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
 
     this
 }
@@ -288,15 +288,15 @@ pub extern "C" fn TexCube_GetData(
     pf: PixelFormat,
     df: DataFormat,
 ) {
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
-    gl_get_tex_image(
-        face as gl::types::GLenum,
-        level,
-        pf as gl::types::GLenum,
-        df as gl::types::GLenum,
-        data,
-    );
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
+    // gl_get_tex_image(
+    //     face as gl::types::GLenum,
+    //     level,
+    //     pf as gl::types::GLenum,
+    //     df as gl::types::GLenum,
+    //     data,
+    // );
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
@@ -388,9 +388,9 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
 
 #[no_mangle]
 pub extern "C" fn TexCube_GenMipmap(this: &mut TexCube) {
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
-    gl_generate_mipmap(gl::TEXTURE_CUBE_MAP);
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
+    // gl_generate_mipmap(gl::TEXTURE_CUBE_MAP);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
@@ -402,19 +402,19 @@ pub extern "C" fn TexCube_SetData(
     pf: PixelFormat,
     df: DataFormat,
 ) {
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
-    gl_tex_image2d(
-        face as gl::types::GLenum,
-        level,
-        this.format,
-        this.size,
-        this.size,
-        0,
-        pf as gl::types::GLenum,
-        df as gl::types::GLenum,
-        data,
-    );
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
+    // gl_tex_image2d(
+    //     face as gl::types::GLenum,
+    //     level,
+    //     this.format,
+    //     this.size,
+    //     this.size,
+    //     0,
+    //     pf as gl::types::GLenum,
+    //     df as gl::types::GLenum,
+    //     data,
+    // );
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
@@ -431,16 +431,16 @@ pub unsafe extern "C" fn TexCube_SetDataBytes(
 
 #[no_mangle]
 pub extern "C" fn TexCube_SetMagFilter(this: &mut TexCube, filter: TexFilter) {
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
-    gl_tex_parameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, filter);
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
+    // gl_tex_parameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, filter);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
 pub extern "C" fn TexCube_SetMinFilter(this: &mut TexCube, filter: TexFilter) {
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
-    gl_tex_parameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, filter);
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
+//     gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
+//     gl_tex_parameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, filter);
+//     gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
@@ -456,28 +456,28 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
 ) {
     let size: i32 = this.size >> level;
 
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
 
-    let buffer: *mut libc::c_uchar =
-        MemAlloc((std::mem::size_of::<libc::c_uchar>()).wrapping_mul((4 * size * size) as usize))
-            as *mut libc::c_uchar;
+    // let buffer: *mut libc::c_uchar =
+    //     MemAlloc((std::mem::size_of::<libc::c_uchar>()).wrapping_mul((4 * size * size) as usize))
+    //         as *mut libc::c_uchar;
 
-    for i in 0..6 {
-        let face: CubeFace = kFaces[i as usize].face;
-        let face_path = format!("{}{}.png", path.as_str(), K_FACE_EXT[i as usize]);
+    // for i in 0..6 {
+    //     let face: CubeFace = kFaces[i as usize].face;
+    //     let face_path = format!("{}{}.png", path.as_str(), K_FACE_EXT[i as usize]);
 
-        gl_get_tex_image(
-            face as gl::types::GLenum,
-            level,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            buffer as *mut _,
-        );
+    //     gl_get_tex_image(
+    //         face as gl::types::GLenum,
+    //         level,
+    //         gl::RGBA,
+    //         gl::UNSIGNED_BYTE,
+    //         buffer as *mut _,
+    //     );
 
-        tex2d_save_png(&face_path, size, size, 4, buffer);
-    }
+    //     tex2d_save_png(&face_path, size, size, 4, buffer);
+    // }
 
-    MemFree(buffer as *const _);
+    // MemFree(buffer as *const _);
 
-    gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
+    // gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
 }

@@ -21,8 +21,6 @@ flate2 = "1.0"
 freetype-sys = "0.18"
 gilrs = "0.10"
 glam = { version = "0.24", features = ["scalar-math"] }
-glutin = "0.30"
-glutin-winit = "0.3"
 hashbrown = { version = "0.14", features = ["serde"] }
 image = "0.24"
 indexmap = "2.0"
@@ -42,8 +40,8 @@ tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 winit = "0.28"
+wgpu = "0.18"
 
 [build-dependencies]
 cmake = "0.1"
 cc = { version = "1.0", features = ["parallel"] }
-gl_generator = "0.14"

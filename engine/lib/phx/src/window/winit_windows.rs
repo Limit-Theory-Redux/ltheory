@@ -1,10 +1,5 @@
 use std::sync::atomic::Ordering;
 
-use glutin::config::ConfigTemplateBuilder;
-use glutin::context::{ContextApi, ContextAttributesBuilder, GlProfile, Version};
-use glutin::display::GetGlDisplay;
-use glutin::prelude::{GlConfig, GlDisplay};
-use glutin_winit::DisplayBuilder;
 use hashbrown::HashMap;
 use raw_window_handle::HasRawWindowHandle;
 use tracing::{debug, error, info, warn};
@@ -49,154 +44,156 @@ impl WinitWindows {
     ) -> winit::window::WindowId {
         info!("Create new window: {}", window.title);
 
-        let mut winit_window_builder = winit::window::WindowBuilder::new();
+        unsafe { winit::window::WindowId::dummy() }
 
-        // Hide window until it is properly initialized
-        winit_window_builder = winit_window_builder.with_visible(false);
+        // let mut winit_window_builder = winit::window::WindowBuilder::new();
 
-        winit_window_builder = match window.mode {
-            WindowMode::BorderlessFullscreen => winit_window_builder.with_fullscreen(Some(
-                winit::window::Fullscreen::Borderless(event_loop.primary_monitor()),
-            )),
-            WindowMode::Fullscreen => {
-                winit_window_builder.with_fullscreen(Some(winit::window::Fullscreen::Exclusive(
-                    get_best_videomode(&event_loop.primary_monitor().unwrap()),
-                )))
-            }
-            WindowMode::SizedFullscreen => winit_window_builder.with_fullscreen(Some(
-                winit::window::Fullscreen::Exclusive(get_fitting_videomode(
-                    &event_loop.primary_monitor().unwrap(),
-                    window.width() as u32,
-                    window.height() as u32,
-                )),
-            )),
-            WindowMode::Windowed => {
-                if let Some(position) = winit_window_position(
-                    &window.position,
-                    &window.resolution,
-                    event_loop.available_monitors(),
-                    event_loop.primary_monitor(),
-                    None,
-                ) {
-                    winit_window_builder = winit_window_builder.with_position(position);
-                }
+        // // Hide window until it is properly initialized
+        // winit_window_builder = winit_window_builder.with_visible(false);
 
-                let logical_size = LogicalSize::new(window.width(), window.height());
-                if let Some(sf) = window.resolution.scale_factor_override() {
-                    winit_window_builder.with_inner_size(logical_size.to_physical::<f64>(sf))
-                } else {
-                    winit_window_builder.with_inner_size(logical_size)
-                }
-            }
-        };
+        // winit_window_builder = match window.mode {
+        //     WindowMode::BorderlessFullscreen => winit_window_builder.with_fullscreen(Some(
+        //         winit::window::Fullscreen::Borderless(event_loop.primary_monitor()),
+        //     )),
+        //     WindowMode::Fullscreen => {
+        //         winit_window_builder.with_fullscreen(Some(winit::window::Fullscreen::Exclusive(
+        //             get_best_videomode(&event_loop.primary_monitor().unwrap()),
+        //         )))
+        //     }
+        //     WindowMode::SizedFullscreen => winit_window_builder.with_fullscreen(Some(
+        //         winit::window::Fullscreen::Exclusive(get_fitting_videomode(
+        //             &event_loop.primary_monitor().unwrap(),
+        //             window.width() as u32,
+        //             window.height() as u32,
+        //         )),
+        //     )),
+        //     WindowMode::Windowed => {
+        //         if let Some(position) = winit_window_position(
+        //             &window.position,
+        //             &window.resolution,
+        //             event_loop.available_monitors(),
+        //             event_loop.primary_monitor(),
+        //             None,
+        //         ) {
+        //             winit_window_builder = winit_window_builder.with_position(position);
+        //         }
 
-        winit_window_builder = winit_window_builder
-            .with_window_level(window.window_level.into())
-            .with_theme(window.window_theme.map(winit::window::Theme::from))
-            .with_resizable(window.resizable)
-            .with_decorations(window.decorations)
-            .with_transparent(window.transparent);
+        //         let logical_size = LogicalSize::new(window.width(), window.height());
+        //         if let Some(sf) = window.resolution.scale_factor_override() {
+        //             winit_window_builder.with_inner_size(logical_size.to_physical::<f64>(sf))
+        //         } else {
+        //             winit_window_builder.with_inner_size(logical_size)
+        //         }
+        //     }
+        // };
 
-        let constraints = window.resize_constraints.check_constraints();
-        let min_inner_size = LogicalSize {
-            width: constraints.min_width,
-            height: constraints.min_height,
-        };
-        let max_inner_size = LogicalSize {
-            width: constraints.max_width,
-            height: constraints.max_height,
-        };
+        // winit_window_builder = winit_window_builder
+        //     .with_window_level(window.window_level.into())
+        //     .with_theme(window.window_theme.map(winit::window::Theme::from))
+        //     .with_resizable(window.resizable)
+        //     .with_decorations(window.decorations)
+        //     .with_transparent(window.transparent);
 
-        let winit_window_builder =
-            if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
-                winit_window_builder
-                    .with_min_inner_size(min_inner_size)
-                    .with_max_inner_size(max_inner_size)
-            } else {
-                winit_window_builder.with_min_inner_size(min_inner_size)
-            };
+        // let constraints = window.resize_constraints.check_constraints();
+        // let min_inner_size = LogicalSize {
+        //     width: constraints.min_width,
+        //     height: constraints.min_height,
+        // };
+        // let max_inner_size = LogicalSize {
+        //     width: constraints.max_width,
+        //     height: constraints.max_height,
+        // };
 
-        #[allow(unused_mut)]
-        let mut winit_window_builder = winit_window_builder.with_title(window.title.as_str());
+        // let winit_window_builder =
+        //     if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
+        //         winit_window_builder
+        //             .with_min_inner_size(min_inner_size)
+        //             .with_max_inner_size(max_inner_size)
+        //     } else {
+        //         winit_window_builder.with_min_inner_size(min_inner_size)
+        //     };
 
-        let template = ConfigTemplateBuilder::new()
-            .with_alpha_size(8)
-            .with_transparency(cfg!(cgl_backend));
-        let display_builder = DisplayBuilder::new().with_window_builder(Some(winit_window_builder));
-        let (winit_window, gl_config) = display_builder
-            .build(&event_loop, template, |configs| {
-                // Find the config with the maximum number of samples, so our triangle will
-                // be smooth.
-                configs
-                    .reduce(|accum, config| {
-                        let transparency_check = config.supports_transparency().unwrap_or(false)
-                            & !accum.supports_transparency().unwrap_or(false);
+        // #[allow(unused_mut)]
+        // let mut winit_window_builder = winit_window_builder.with_title(window.title.as_str());
 
-                        if transparency_check || config.num_samples() > accum.num_samples() {
-                            config
-                        } else {
-                            accum
-                        }
-                    })
-                    .unwrap()
-            })
-            .unwrap();
+        // let template = ConfigTemplateBuilder::new()
+        //     .with_alpha_size(8)
+        //     .with_transparency(cfg!(cgl_backend));
+        // let display_builder = DisplayBuilder::new().with_window_builder(Some(winit_window_builder));
+        // let (winit_window, gl_config) = display_builder
+        //     .build(&event_loop, template, |configs| {
+        //         // Find the config with the maximum number of samples, so our triangle will
+        //         // be smooth.
+        //         configs
+        //             .reduce(|accum, config| {
+        //                 let transparency_check = config.supports_transparency().unwrap_or(false)
+        //                     & !accum.supports_transparency().unwrap_or(false);
 
-        debug!("Picked a config with {} samples", gl_config.num_samples());
+        //                 if transparency_check || config.num_samples() > accum.num_samples() {
+        //                     config
+        //                 } else {
+        //                     accum
+        //                 }
+        //             })
+        //             .unwrap()
+        //     })
+        //     .unwrap();
 
-        let raw_window_handle = winit_window
-            .as_ref()
-            .map(|window| window.raw_window_handle());
+        // debug!("Picked a config with {} samples", gl_config.num_samples());
 
-        // XXX The display could be obtained from the any object created by it, so we
-        // can query it from the config.
-        let gl_display = gl_config.display();
+        // let raw_window_handle = winit_window
+        //     .as_ref()
+        //     .map(|window| window.raw_window_handle());
 
-        let context_attributes = ContextAttributesBuilder::new()
-            .with_context_api(ContextApi::OpenGl(Some(Version::new(
-                self.gl_version_major,
-                self.gl_version_minor,
-            ))))
-            .with_profile(GlProfile::Compatibility)
-            .build(raw_window_handle);
+        // // XXX The display could be obtained from the any object created by it, so we
+        // // can query it from the config.
+        // let gl_display = gl_config.display();
 
-        let gl_context = unsafe {
-            gl_display
-                .create_context(&gl_config, &context_attributes)
-                .expect("failed to create context")
-        };
+        // let context_attributes = ContextAttributesBuilder::new()
+        //     .with_context_api(ContextApi::OpenGl(Some(Version::new(
+        //         self.gl_version_major,
+        //         self.gl_version_minor,
+        //     ))))
+        //     .with_profile(GlProfile::Compatibility)
+        //     .build(raw_window_handle);
 
-        let winit_window = winit_window.unwrap();
+        // let gl_context = unsafe {
+        //     gl_display
+        //         .create_context(&gl_config, &context_attributes)
+        //         .expect("failed to create context")
+        // };
 
-        winit_window.set_visible(true);
+        // let winit_window = winit_window.unwrap();
 
-        // Do not set the grab mode on window creation if it's none, this can fail on mobile
-        if window.cursor.grab_mode != CursorGrabMode::None {
-            attempt_grab(&winit_window, window.cursor.grab_mode);
-        }
+        // winit_window.set_visible(true);
 
-        winit_window.set_cursor_visible(window.cursor.visible);
+        // // Do not set the grab mode on window creation if it's none, this can fail on mobile
+        // if window.cursor.grab_mode != CursorGrabMode::None {
+        //     attempt_grab(&winit_window, window.cursor.grab_mode);
+        // }
 
-        // Do not set the cursor hittest on window creation if it's false, as it will always fail on some
-        // platforms and log an unfixable warning.
-        if !window.cursor.hit_test {
-            if let Err(err) = winit_window.set_cursor_hittest(window.cursor.hit_test) {
-                warn!(
-                    "Could not set cursor hit test for window {:?}: {:?}",
-                    window.title, err
-                );
-            }
-        }
+        // winit_window.set_cursor_visible(window.cursor.visible);
 
-        let id = winit_window.id();
+        // // Do not set the cursor hittest on window creation if it's false, as it will always fail on some
+        // // platforms and log an unfixable warning.
+        // if !window.cursor.hit_test {
+        //     if let Err(err) = winit_window.set_cursor_hittest(window.cursor.hit_test) {
+        //         warn!(
+        //             "Could not set cursor hit test for window {:?}: {:?}",
+        //             window.title, err
+        //         );
+        //     }
+        // }
 
-        let mut winit_window_wrapper = WinitWindow::new(winit_window, gl_config, gl_context);
+        // let id = winit_window.id();
 
-        winit_window_wrapper.resume();
+        // let mut winit_window_wrapper = WinitWindow::new(winit_window, gl_config, gl_context);
 
-        self.windows.insert(id, winit_window_wrapper);
+        // winit_window_wrapper.resume();
 
-        id
+        // self.windows.insert(id, winit_window_wrapper);
+
+        // id
     }
 
     /// Get the winit window by id.

@@ -106,8 +106,8 @@ pub extern "C" fn Mesh_Free(mut this: Box<Mesh>) {
     this._refCount = (this._refCount).wrapping_sub(1);
 
     if this._refCount <= 0 && this.vbo != 0 {
-        gl_delete_buffers(1, &mut this.vbo);
-        gl_delete_buffers(1, &mut this.ibo);
+        // gl_delete_buffers(1, &mut this.vbo);
+        // gl_delete_buffers(1, &mut this.ibo);
     }
 }
 
@@ -226,74 +226,74 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(this: &mut Mesh, vertex: *const Verte
 
 #[no_mangle]
 pub extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
-    /* Release cached GL buffers if the mesh has changed since we built them. */
-    if this.vbo != 0 && this.version != this.versionBuffers {
-        gl_delete_buffers(1, &mut this.vbo);
-        gl_delete_buffers(1, &mut this.ibo);
-        this.vbo = 0;
-        this.ibo = 0;
-    }
+    // /* Release cached GL buffers if the mesh has changed since we built them. */
+    // if this.vbo != 0 && this.version != this.versionBuffers {
+    //     gl_delete_buffers(1, &mut this.vbo);
+    //     gl_delete_buffers(1, &mut this.ibo);
+    //     this.vbo = 0;
+    //     this.ibo = 0;
+    // }
 
-    /* Generate cached GL buffers for fast drawing. */
-    if this.vbo == 0 {
-        gl_gen_buffers(1, &mut this.vbo);
-        gl_gen_buffers(1, &mut this.ibo);
-        gl_bind_buffer(gl::ARRAY_BUFFER, this.vbo);
-        gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
-        gl_buffer_data(
-            gl::ARRAY_BUFFER,
-            (this.vertex.len() as i32 as usize).wrapping_mul(std::mem::size_of::<Vertex>())
-                as gl::types::GLsizeiptr,
-            this.vertex.as_ptr() as *const _,
-            gl::STATIC_DRAW,
-        );
+    // /* Generate cached GL buffers for fast drawing. */
+    // if this.vbo == 0 {
+    //     gl_gen_buffers(1, &mut this.vbo);
+    //     gl_gen_buffers(1, &mut this.ibo);
+    //     gl_bind_buffer(gl::ARRAY_BUFFER, this.vbo);
+    //     gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
+    //     gl_buffer_data(
+    //         gl::ARRAY_BUFFER,
+    //         (this.vertex.len() as i32 as usize).wrapping_mul(std::mem::size_of::<Vertex>())
+    //             as gl::types::GLsizeiptr,
+    //         this.vertex.as_ptr() as *const _,
+    //         gl::STATIC_DRAW,
+    //     );
 
-        /* TODO : 16-bit index optimization */
-        /* TODO : Check if 8-bit indices are supported by hardware. IIRC they
-         *        weren't last time I checked. */
+    //     /* TODO : 16-bit index optimization */
+    //     /* TODO : Check if 8-bit indices are supported by hardware. IIRC they
+    //      *        weren't last time I checked. */
 
-        gl_buffer_data(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (this.index.len() as i32 as usize).wrapping_mul(std::mem::size_of::<i32>())
-                as gl::types::GLsizeiptr,
-            this.index.as_ptr() as *const _,
-            gl::STATIC_DRAW,
-        );
+    //     gl_buffer_data(
+    //         gl::ELEMENT_ARRAY_BUFFER,
+    //         (this.index.len() as i32 as usize).wrapping_mul(std::mem::size_of::<i32>())
+    //             as gl::types::GLsizeiptr,
+    //         this.index.as_ptr() as *const _,
+    //         gl::STATIC_DRAW,
+    //     );
 
-        this.versionBuffers = this.version;
-    }
+    //     this.versionBuffers = this.version;
+    // }
 
-    gl_bind_buffer(gl::ARRAY_BUFFER, this.vbo);
-    gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
+    // gl_bind_buffer(gl::ARRAY_BUFFER, this.vbo);
+    // gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
 
-    gl_enable_vertex_attrib_array(0);
-    gl_enable_vertex_attrib_array(1);
-    gl_enable_vertex_attrib_array(2);
+    // gl_enable_vertex_attrib_array(0);
+    // gl_enable_vertex_attrib_array(1);
+    // gl_enable_vertex_attrib_array(2);
 
-    gl_vertex_attrib_pointer(
-        0,
-        3,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, p) as *const _,
-    );
-    gl_vertex_attrib_pointer(
-        1,
-        3,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, n) as *const _,
-    );
-    gl_vertex_attrib_pointer(
-        2,
-        2,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, uv) as *const _,
-    );
+    // gl_vertex_attrib_pointer(
+    //     0,
+    //     3,
+    //     gl::FLOAT,
+    //     gl::FALSE,
+    //     std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+    //     offset_of!(Vertex, p) as *const _,
+    // );
+    // gl_vertex_attrib_pointer(
+    //     1,
+    //     3,
+    //     gl::FLOAT,
+    //     gl::FALSE,
+    //     std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+    //     offset_of!(Vertex, n) as *const _,
+    // );
+    // gl_vertex_attrib_pointer(
+    //     2,
+    //     2,
+    //     gl::FLOAT,
+    //     gl::FALSE,
+    //     std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+    //     offset_of!(Vertex, uv) as *const _,
+    // );
 }
 
 #[no_mangle]
@@ -306,21 +306,21 @@ pub extern "C" fn Mesh_DrawBound(this: &mut Mesh) {
         )
     };
 
-    gl_draw_elements(
-        gl::TRIANGLES,
-        this.index.len() as i32,
-        gl::UNSIGNED_INT,
-        std::ptr::null(),
-    );
+    // gl_draw_elements(
+    //     gl::TRIANGLES,
+    //     this.index.len() as i32,
+    //     gl::UNSIGNED_INT,
+    //     std::ptr::null(),
+    // );
 }
 
 #[no_mangle]
 pub extern "C" fn Mesh_DrawUnbind(_this: &mut Mesh) {
-    gl_disable_vertex_attrib_array(0);
-    gl_disable_vertex_attrib_array(1);
-    gl_disable_vertex_attrib_array(2);
-    gl_bind_buffer(gl::ARRAY_BUFFER, 0);
-    gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, 0);
+    // gl_disable_vertex_attrib_array(0);
+    // gl_disable_vertex_attrib_array(1);
+    // gl_disable_vertex_attrib_array(2);
+    // gl_bind_buffer(gl::ARRAY_BUFFER, 0);
+    // gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, 0);
 }
 
 #[no_mangle]
@@ -332,16 +332,16 @@ pub extern "C" fn Mesh_Draw(this: &mut Mesh) {
 
 #[no_mangle]
 pub extern "C" fn Mesh_DrawNormals(this: &mut Mesh, scale: f32) {
-    gl_begin(gl::LINES);
-    for v in this.vertex.iter() {
-        gl_vertex3f((*v).p.x, (*v).p.y, (*v).p.z);
-        gl_vertex3f(
-            (*v).p.x + scale * (*v).n.x,
-            (*v).p.y + scale * (*v).n.y,
-            (*v).p.z + scale * (*v).n.z,
-        );
-    }
-    gl_end();
+    // gl_begin(gl::LINES);
+    // for v in this.vertex.iter() {
+    //     gl_vertex3f((*v).p.x, (*v).p.y, (*v).p.z);
+    //     gl_vertex3f(
+    //         (*v).p.x + scale * (*v).n.x,
+    //         (*v).p.y + scale * (*v).n.y,
+    //         (*v).p.z + scale * (*v).n.z,
+    //     );
+    // }
+    // gl_end();
 }
 
 #[no_mangle]

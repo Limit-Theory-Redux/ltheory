@@ -280,56 +280,56 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Start(this: &mut ShaderState) {
-    Shader_Start(&mut *this.shader);
+    // Shader_Start(&mut *this.shader);
 
-    for e in this.elems.iter() {
-        match (*e).type_0 {
-            1 => {
-                gl_uniform1f((*e).index, (*e).data.asFloat);
-            }
-            2 => {
-                gl_uniform2f((*e).index, (*e).data.asFloat2.x, (*e).data.asFloat2.y);
-            }
-            3 => {
-                gl_uniform3f(
-                    (*e).index,
-                    (*e).data.asFloat3.x,
-                    (*e).data.asFloat3.y,
-                    (*e).data.asFloat3.z,
-                );
-            }
-            4 => {
-                gl_uniform4f(
-                    (*e).index,
-                    (*e).data.asFloat4.x,
-                    (*e).data.asFloat4.y,
-                    (*e).data.asFloat4.z,
-                    (*e).data.asFloat4.w,
-                );
-            }
-            5 => {
-                gl_uniform1i((*e).index, (*e).data.asInt);
-            }
-            6 => {
-                Shader_ISetMatrix((*e).index, &mut *(*e).data.asMatrix);
-            }
-            7 => {
-                Shader_ISetTex1D((*e).index, &mut *(*e).data.asTex1D);
-            }
-            8 => {
-                Shader_ISetTex2D((*e).index, &mut *(*e).data.asTex2D);
-            }
-            9 => {
-                Shader_ISetTex3D((*e).index, &mut *(*e).data.asTex3D);
-            }
-            10 => {
-                Shader_ISetTexCube((*e).index, &mut *(*e).data.asTexCube);
-            }
-            _ => {
-                panic!("ShaderState_Start: Encountered invalid opcode");
-            }
-        }
-    }
+    // for e in this.elems.iter() {
+    //     match (*e).type_0 {
+    //         1 => {
+    //             gl_uniform1f((*e).index, (*e).data.asFloat);
+    //         }
+    //         2 => {
+    //             gl_uniform2f((*e).index, (*e).data.asFloat2.x, (*e).data.asFloat2.y);
+    //         }
+    //         3 => {
+    //             gl_uniform3f(
+    //                 (*e).index,
+    //                 (*e).data.asFloat3.x,
+    //                 (*e).data.asFloat3.y,
+    //                 (*e).data.asFloat3.z,
+    //             );
+    //         }
+    //         4 => {
+    //             gl_uniform4f(
+    //                 (*e).index,
+    //                 (*e).data.asFloat4.x,
+    //                 (*e).data.asFloat4.y,
+    //                 (*e).data.asFloat4.z,
+    //                 (*e).data.asFloat4.w,
+    //             );
+    //         }
+    //         5 => {
+    //             gl_uniform1i((*e).index, (*e).data.asInt);
+    //         }
+    //         6 => {
+    //             Shader_ISetMatrix((*e).index, &mut *(*e).data.asMatrix);
+    //         }
+    //         7 => {
+    //             Shader_ISetTex1D((*e).index, &mut *(*e).data.asTex1D);
+    //         }
+    //         8 => {
+    //             Shader_ISetTex2D((*e).index, &mut *(*e).data.asTex2D);
+    //         }
+    //         9 => {
+    //             Shader_ISetTex3D((*e).index, &mut *(*e).data.asTex3D);
+    //         }
+    //         10 => {
+    //             Shader_ISetTexCube((*e).index, &mut *(*e).data.asTexCube);
+    //         }
+    //         _ => {
+    //             panic!("ShaderState_Start: Encountered invalid opcode");
+    //         }
+    //     }
+    // }
 }
 
 #[no_mangle]
