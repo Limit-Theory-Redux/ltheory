@@ -88,7 +88,7 @@ impl HmGuiWidget {
             border_color: Default::default(),
 
             min_size: Default::default(),
-            inner_min_size: Default::default(),
+            inner_min_size: Vec2::new(20.0, 20.0),
         }
     }
 

@@ -36,6 +36,9 @@ function Loader.defineType()
             void  HmGui_Text                     (HmGui*, cstr text);
             void  HmGui_TextColored              (HmGui*, cstr text, float r, float g, float b, float a);
             void  HmGui_TextEx                   (HmGui*, Font const* font, cstr text, float r, float g, float b, float a);
+            void  HmGui_SetMinWidth              (HmGui const*, float width);
+            void  HmGui_SetMinHeight             (HmGui const*, float height);
+            void  HmGui_SetMinSize               (HmGui const*, float width, float height);
             void  HmGui_SetFixedWidth            (HmGui const*, float width);
             void  HmGui_SetFixedHeight           (HmGui const*, float height);
             void  HmGui_SetFixedSize             (HmGui const*, float width, float height);
@@ -89,6 +92,9 @@ function Loader.defineType()
             Text                     = libphx.HmGui_Text,
             TextColored              = libphx.HmGui_TextColored,
             TextEx                   = libphx.HmGui_TextEx,
+            SetMinWidth              = libphx.HmGui_SetMinWidth,
+            SetMinHeight             = libphx.HmGui_SetMinHeight,
+            SetMinSize               = libphx.HmGui_SetMinSize,
             SetFixedWidth            = libphx.HmGui_SetFixedWidth,
             SetFixedHeight           = libphx.HmGui_SetFixedHeight,
             SetFixedSize             = libphx.HmGui_SetFixedSize,
@@ -147,6 +153,9 @@ function Loader.defineType()
                 text                     = libphx.HmGui_Text,
                 textColored              = libphx.HmGui_TextColored,
                 textEx                   = libphx.HmGui_TextEx,
+                setMinWidth              = libphx.HmGui_SetMinWidth,
+                setMinHeight             = libphx.HmGui_SetMinHeight,
+                setMinSize               = libphx.HmGui_SetMinSize,
                 setFixedWidth            = libphx.HmGui_SetFixedWidth,
                 setFixedHeight           = libphx.HmGui_SetFixedHeight,
                 setFixedSize             = libphx.HmGui_SetFixedSize,

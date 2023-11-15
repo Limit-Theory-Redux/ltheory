@@ -966,10 +966,12 @@ mod tests {
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_percent_width(50.0);
+        gui.set_min_width(0.0);
         gui.set_fixed_height(30.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_height(40.0);
+        gui.set_min_width(0.0);
         gui.set_docking(DOCKING_STRETCH_HORIZONTAL);
 
         gui.end_container();
@@ -984,10 +986,12 @@ mod tests {
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_percent_width(150.0);
+        gui.set_min_width(0.0);
         gui.set_fixed_height(30.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_height(40.0);
+        gui.set_min_width(0.0);
         gui.set_docking(DOCKING_STRETCH_HORIZONTAL);
 
         gui.end_container();
@@ -1048,10 +1052,12 @@ mod tests {
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_width(30.0);
+        gui.set_min_height(0.0);
         gui.set_percent_height(50.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_width(40.0);
+        gui.set_min_height(0.0);
         gui.set_docking(DOCKING_STRETCH_VERTICAL);
 
         gui.end_container();
@@ -1066,10 +1072,12 @@ mod tests {
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_width(30.0);
+        gui.set_min_height(0.0);
         gui.set_percent_height(120.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_width(40.0);
+        gui.set_min_height(0.0);
         gui.set_docking(DOCKING_STRETCH_VERTICAL);
 
         gui.end_container();

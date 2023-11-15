@@ -557,6 +557,25 @@ impl HmGui {
         widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
     }
 
+    pub fn set_min_width(&self, width: f32) {
+        let mut widget = self.last.as_mut();
+
+        widget.inner_min_size.x = width;
+    }
+
+    pub fn set_min_height(&self, height: f32) {
+        let mut widget = self.last.as_mut();
+
+        widget.inner_min_size.y = height;
+    }
+
+    pub fn set_min_size(&self, width: f32, height: f32) {
+        let mut widget = self.last.as_mut();
+
+        widget.inner_min_size.x = width;
+        widget.inner_min_size.y = height;
+    }
+
     pub fn set_fixed_width(&self, width: f32) {
         let mut widget = self.last.as_mut();
 
