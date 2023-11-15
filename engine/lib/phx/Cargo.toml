@@ -41,6 +41,8 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 winit = "0.28"
 wgpu = "0.18"
+env_logger = "0.10"
+log = "0.4"
 
 [build-dependencies]
 cmake = "0.1"

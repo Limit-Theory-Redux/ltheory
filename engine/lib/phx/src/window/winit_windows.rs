@@ -44,77 +44,79 @@ impl WinitWindows {
     ) -> winit::window::WindowId {
         info!("Create new window: {}", window.title);
 
-        unsafe { winit::window::WindowId::dummy() }
+        let mut winit_window_builder = winit::window::WindowBuilder::new();
 
-        // let mut winit_window_builder = winit::window::WindowBuilder::new();
+        // Hide window until it is properly initialized
+        winit_window_builder = winit_window_builder.with_visible(false);
 
-        // // Hide window until it is properly initialized
-        // winit_window_builder = winit_window_builder.with_visible(false);
+        winit_window_builder = match window.mode {
+            WindowMode::BorderlessFullscreen => winit_window_builder.with_fullscreen(Some(
+                winit::window::Fullscreen::Borderless(event_loop.primary_monitor()),
+            )),
+            WindowMode::Fullscreen => {
+                winit_window_builder.with_fullscreen(Some(winit::window::Fullscreen::Exclusive(
+                    get_best_videomode(&event_loop.primary_monitor().unwrap()),
+                )))
+            }
+            WindowMode::SizedFullscreen => winit_window_builder.with_fullscreen(Some(
+                winit::window::Fullscreen::Exclusive(get_fitting_videomode(
+                    &event_loop.primary_monitor().unwrap(),
+                    window.width() as u32,
+                    window.height() as u32,
+                )),
+            )),
+            WindowMode::Windowed => {
+                if let Some(position) = winit_window_position(
+                    &window.position,
+                    &window.resolution,
+                    event_loop.available_monitors(),
+                    event_loop.primary_monitor(),
+                    None,
+                ) {
+                    winit_window_builder = winit_window_builder.with_position(position);
+                }
 
-        // winit_window_builder = match window.mode {
-        //     WindowMode::BorderlessFullscreen => winit_window_builder.with_fullscreen(Some(
-        //         winit::window::Fullscreen::Borderless(event_loop.primary_monitor()),
-        //     )),
-        //     WindowMode::Fullscreen => {
-        //         winit_window_builder.with_fullscreen(Some(winit::window::Fullscreen::Exclusive(
-        //             get_best_videomode(&event_loop.primary_monitor().unwrap()),
-        //         )))
-        //     }
-        //     WindowMode::SizedFullscreen => winit_window_builder.with_fullscreen(Some(
-        //         winit::window::Fullscreen::Exclusive(get_fitting_videomode(
-        //             &event_loop.primary_monitor().unwrap(),
-        //             window.width() as u32,
-        //             window.height() as u32,
-        //         )),
-        //     )),
-        //     WindowMode::Windowed => {
-        //         if let Some(position) = winit_window_position(
-        //             &window.position,
-        //             &window.resolution,
-        //             event_loop.available_monitors(),
-        //             event_loop.primary_monitor(),
-        //             None,
-        //         ) {
-        //             winit_window_builder = winit_window_builder.with_position(position);
-        //         }
+                let logical_size = LogicalSize::new(window.width(), window.height());
+                if let Some(sf) = window.resolution.scale_factor_override() {
+                    winit_window_builder.with_inner_size(logical_size.to_physical::<f64>(sf))
+                } else {
+                    winit_window_builder.with_inner_size(logical_size)
+                }
+            }
+        };
 
-        //         let logical_size = LogicalSize::new(window.width(), window.height());
-        //         if let Some(sf) = window.resolution.scale_factor_override() {
-        //             winit_window_builder.with_inner_size(logical_size.to_physical::<f64>(sf))
-        //         } else {
-        //             winit_window_builder.with_inner_size(logical_size)
-        //         }
-        //     }
-        // };
+        winit_window_builder = winit_window_builder
+            .with_window_level(window.window_level.into())
+            .with_theme(window.window_theme.map(winit::window::Theme::from))
+            .with_resizable(window.resizable)
+            .with_decorations(window.decorations)
+            .with_transparent(window.transparent);
 
-        // winit_window_builder = winit_window_builder
-        //     .with_window_level(window.window_level.into())
-        //     .with_theme(window.window_theme.map(winit::window::Theme::from))
-        //     .with_resizable(window.resizable)
-        //     .with_decorations(window.decorations)
-        //     .with_transparent(window.transparent);
+        // Set up window size constraints.
+        let constraints = window.resize_constraints.check_constraints();
+        let min_inner_size = LogicalSize {
+            width: constraints.min_width,
+            height: constraints.min_height,
+        };
+        let max_inner_size = LogicalSize {
+            width: constraints.max_width,
+            height: constraints.max_height,
+        };
 
-        // let constraints = window.resize_constraints.check_constraints();
-        // let min_inner_size = LogicalSize {
-        //     width: constraints.min_width,
-        //     height: constraints.min_height,
-        // };
-        // let max_inner_size = LogicalSize {
-        //     width: constraints.max_width,
-        //     height: constraints.max_height,
-        // };
+        winit_window_builder =
+            if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
+                winit_window_builder
+                    .with_min_inner_size(min_inner_size)
+                    .with_max_inner_size(max_inner_size)
+            } else {
+                winit_window_builder.with_min_inner_size(min_inner_size)
+            };
+    
+        // Set the title.
+        winit_window_builder = winit_window_builder.with_title(window.title.as_str());
 
-        // let winit_window_builder =
-        //     if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
-        //         winit_window_builder
-        //             .with_min_inner_size(min_inner_size)
-        //             .with_max_inner_size(max_inner_size)
-        //     } else {
-        //         winit_window_builder.with_min_inner_size(min_inner_size)
-        //     };
-
-        // #[allow(unused_mut)]
-        // let mut winit_window_builder = winit_window_builder.with_title(window.title.as_str());
+        // Create the window.
+        let winit_window = winit_window_builder.build(&event_loop).unwrap();
 
         // let template = ConfigTemplateBuilder::new()
         //     .with_alpha_size(8)
@@ -165,35 +167,33 @@ impl WinitWindows {
 
         // let winit_window = winit_window.unwrap();
 
-        // winit_window.set_visible(true);
+        winit_window.set_visible(true);
 
-        // // Do not set the grab mode on window creation if it's none, this can fail on mobile
-        // if window.cursor.grab_mode != CursorGrabMode::None {
-        //     attempt_grab(&winit_window, window.cursor.grab_mode);
-        // }
+        // Do not set the grab mode on window creation if it's none, this can fail on mobile
+        if window.cursor.grab_mode != CursorGrabMode::None {
+            attempt_grab(&winit_window, window.cursor.grab_mode);
+        }
+        winit_window.set_cursor_visible(window.cursor.visible);
 
-        // winit_window.set_cursor_visible(window.cursor.visible);
+        // Do not set the cursor hittest on window creation if it's false, as it will always fail on some
+        // platforms and log an unfixable warning.
+        if !window.cursor.hit_test {
+            if let Err(err) = winit_window.set_cursor_hittest(window.cursor.hit_test) {
+                warn!(
+                    "Could not set cursor hit test for window {:?}: {:?}",
+                    window.title, err
+                );
+            }
+        }
 
-        // // Do not set the cursor hittest on window creation if it's false, as it will always fail on some
-        // // platforms and log an unfixable warning.
-        // if !window.cursor.hit_test {
-        //     if let Err(err) = winit_window.set_cursor_hittest(window.cursor.hit_test) {
-        //         warn!(
-        //             "Could not set cursor hit test for window {:?}: {:?}",
-        //             window.title, err
-        //         );
-        //     }
-        // }
+        let id = winit_window.id();
+        
+        let mut winit_window_wrapper = WinitWindow::new(winit_window);
+        winit_window_wrapper.resume();
 
-        // let id = winit_window.id();
-
-        // let mut winit_window_wrapper = WinitWindow::new(winit_window, gl_config, gl_context);
-
-        // winit_window_wrapper.resume();
-
-        // self.windows.insert(id, winit_window_wrapper);
-
-        // id
+        // Track the window and return its ID.
+        self.windows.insert(id, winit_window_wrapper);
+        id
     }
 
     /// Get the winit window by id.
