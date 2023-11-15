@@ -1,10 +1,13 @@
 name: Build Binaries
 
 on:
-  pull_request:
   push:
     branches:
       - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   BUILD_TYPE: RelWithDebInfo
@@ -13,11 +16,42 @@ permissions:
   contents: write
 
 jobs:
+  gen-build-version:
+    name: Generate Build Version
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.build_name.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get the cargo package version
+        run: |
+          VERSION=$(awk -F '"' '/^version =/ { print $2 }' Cargo.toml)
+          echo "The package version is $VERSION"
+          echo "CARGO_PKG_VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Set short git commit SHA
+        shell: bash
+        run: |
+          CALCULATED_SHA=$(git rev-parse --short ${{ github.sha }})
+          echo "SHA_SHORT=$CALCULATED_SHA" >> $GITHUB_ENV
+      - name: Confirm git commit SHA output
+        run: echo $SHA_SHORT
+      - name: Confirm nightly build name
+        id: build_name
+        run: |
+          echo $CARGO_PKG_VERSION-$SHA_SHORT
+          echo build=$CARGO_PKG_VERSION-$SHA_SHORT >> $GITHUB_OUTPUT
+
   build-windows:
+    needs: gen-build-version
     name: Build Windows
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
+      - name: Update build number
+        run: |
+          sed -i 's/Config.gameVersion = \".*\"/Config.gameVersion = \"${{ needs.gen-build-version.outputs.build }}\"/' "${env:GITHUB_WORKSPACE}/script/Config/App.lua"
       - name: Build
         shell: bash
         run: ./build.sh
@@ -41,6 +75,7 @@ jobs:
             ${{github.workspace}}/README.md
 
   build-macos:
+    needs: gen-build-version
     name: Build macOS
     runs-on: macos-11
     steps:
@@ -54,6 +89,7 @@ jobs:
           path: ${{github.workspace}}/bin/*
 
   build-ubuntu:
+    needs: gen-build-version
     name: Build Ubuntu 20.04
     runs-on: ubuntu-20.04
     steps:
@@ -70,13 +106,52 @@ jobs:
           name: ltheory-bin-ubuntu2004
           path: ${{github.workspace}}/bin/*
 
-  release:
-    name: Update 'latest' release
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  tag:
+    name: New tag
     needs:
+      - gen-build-version
       - build-windows
       - build-macos
       - build-ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get latest release ID
+        uses: octokit/request-action@v2.x
+        id: get_latest_release
+        with:
+          route: GET /repos/${{github.repository}}/releases/tags/latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Delete 'latest' tag ref
+        uses: octokit/request-action@v2.x
+        with:
+          route: DELETE /repos/${{github.repository}}/git/refs/tags/latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Delete latest release
+        uses: octokit/request-action@v2.x
+        with:
+          route: DELETE /repos/${{github.repository}}/releases/{release_id}
+          release_id: ${{ fromJson(steps.get_latest_release.outputs.data).id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create tag
+        uses: rickstaa/action-create-tag@v1
+        id: "tag_create"
+        with:
+          tag: "latest"
+          force_push_tag: true
+          tag_exists_error: false
+          message: "Build ${{ needs.gen-build-version.outputs.build }}"
+
+  release:
+    name: New release
+    needs:
+      - gen-build-version
+      - tag
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -85,41 +160,15 @@ jobs:
         run: ls -alFR
       - name: Zip artifacts
         run: for dir in $(ls); do cd $dir && zip ../$dir.zip ./* -r && cd ..; done
-      - name: Get latest release ID
-        uses: octokit/request-action@v2.x
-        id: get_latest_release
-        with:
-          route: GET /repos/Limit-Theory-Redux/ltheory/releases/tags/latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Delete latest release
-        uses: octokit/request-action@v2.x
-        with:
-          route: DELETE /repos/Limit-Theory-Redux/ltheory/releases/{release_id}
-          release_id: ${{ fromJson(steps.get_latest_release.outputs.data).id }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Delete 'latest' tag
-        uses: octokit/request-action@v2.x
-        with:
-          route: DELETE /repos/Limit-Theory-Redux/ltheory/git/refs/tags/latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Re-create 'latest' tag with the current SHA
-        uses: octokit/request-action@v2.x
-        with:
-          route: POST /repos/Limit-Theory-Redux/ltheory/git/refs
-          ref: refs/tags/latest
-          sha: ${{ github.sha }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: echo repo
+        run: echo ${{github.repository}}
       - name: Create release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: "Latest build"
+          name: "Nightly ${{ needs.gen-build-version.outputs.build }}"
           body: "Build log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          tag_name: latest
+          tag_name: "latest"
           prerelease: true
           files: ./*.zip
