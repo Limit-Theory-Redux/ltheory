@@ -31,6 +31,8 @@ const COPY_TYPES: &[&str] = &[
     "CursorIcon",
     "CursorGrabMode",
     "FocusType",
+    "AlignHorizontal",
+    "AlignVertical",
 ];
 
 #[derive(Debug)]

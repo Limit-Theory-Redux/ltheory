@@ -374,6 +374,7 @@ function LTheoryRedux:showGameLogo()
 
     Gui:image(self.logo)                                                                  -- draw the LTR logo on top of the canvas
     Gui:setPercentSize(76.0 * scaleFactor / scaleFactorX, 24.3 * scaleFactor / scaleFactorY)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
 function LTheoryRedux:exitGame()

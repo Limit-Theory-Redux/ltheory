@@ -265,10 +265,13 @@ impl HmGui {
         let container = widget.get_container_item_mut();
 
         self.begin_horizontal_container();
-        container.clip = true;
+        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         self.set_spacing(2.0);
 
+        container.clip = true;
+
         self.begin_vertical_container();
+        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         self.set_padding(6.0, 6.0);
 
         container.store_size = true;
@@ -302,9 +305,9 @@ impl HmGui {
         data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
 
         self.end_container();
-        self.set_docking(DOCKING_STRETCH_ALL);
 
         self.begin_vertical_container();
+        self.set_vertical_alignment(AlignVertical::Stretch);
         self.set_spacing(0.0);
 
         if max_scroll_x > 0.0 {
@@ -358,16 +361,15 @@ impl HmGui {
         }
 
         self.end_container();
-        self.set_docking(DOCKING_STRETCH_VERTICAL);
 
         self.end_container();
-        self.set_docking(DOCKING_STRETCH_ALL);
     }
 
     /// Begins window element.
     // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
         self.begin_stack_container();
+        self.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
         {
@@ -393,13 +395,13 @@ impl HmGui {
         }
 
         self.begin_vertical_container();
+        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         self.set_padding(8.0, 8.0);
     }
 
     /// Ends window element.
     pub fn end_window(&mut self) {
         self.end_container(); // Vertical container
-        self.set_docking(DOCKING_STRETCH_ALL);
         self.end_container(); // Stack container
     }
 
@@ -407,7 +409,7 @@ impl HmGui {
     /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
     pub fn spacer(&mut self) {
         self.rect(0.0, 0.0, 0.0, 0.0);
-        self.set_docking(DOCKING_STRETCH_ALL);
+        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
     }
 
     pub fn button(&mut self, label: &str) -> bool {
@@ -427,6 +429,7 @@ impl HmGui {
         };
 
         self.text(label);
+        self.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         let pressed = focus && self.activate;
 
@@ -439,6 +442,7 @@ impl HmGui {
         self.begin_horizontal_container();
         self.set_padding(4.0, 4.0);
         self.set_spacing(8.0);
+        self.set_children_vertical_alignment(AlignVertical::Center);
 
         // A separate scope to prevent runtime borrow conflict with self.text() below
         {
@@ -462,6 +466,7 @@ impl HmGui {
 
         // TODO: replace with rect with border
         self.begin_stack_container();
+        self.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         let (color_frame, color_primary) = {
             let style = self.styles.last().expect("Style was not set");
@@ -489,11 +494,12 @@ impl HmGui {
 
     pub fn slider(&mut self, _lower: f32, _upper: f32, _value: f32) -> f32 {
         self.begin_stack_container();
+        self.set_horizontal_alignment(AlignHorizontal::Stretch);
+
         self.rect(0.5, 0.5, 0.5, 1.0);
         self.set_fixed_size(0.0, 2.0);
-        // self.set_align(0.5, 0.5);
+
         self.end_container();
-        self.set_docking(DOCKING_STRETCH_HORIZONTAL);
 
         0.0
     }
@@ -658,10 +664,23 @@ impl HmGui {
         widget.border_width = width;
     }
 
-    pub fn set_docking(&self, docking: u8) {
+    pub fn set_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
         let mut widget = self.last.as_mut();
 
-        widget.docking = docking.into();
+        widget.horizontal_alignment = h;
+        widget.vertical_alignment = v;
+    }
+
+    pub fn set_horizontal_alignment(&self, align: AlignHorizontal) {
+        let mut widget = self.last.as_mut();
+
+        widget.horizontal_alignment = align;
+    }
+
+    pub fn set_vertical_alignment(&self, align: AlignVertical) {
+        let mut widget = self.last.as_mut();
+
+        widget.vertical_alignment = align;
     }
 
     pub fn set_padding(&self, px: f32, py: f32) {
@@ -724,11 +743,26 @@ impl HmGui {
         self.container_has_focus_intern(container, ty, hash)
     }
 
-    pub fn set_children_docking(&self, docking: u8) {
+    pub fn set_children_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
         let mut widget = self.container.as_mut();
         let container = widget.get_container_item_mut();
 
-        container.children_docking = docking.into();
+        container.children_horizontal_alignment = h;
+        container.children_vertical_alignment = v;
+    }
+
+    pub fn set_children_horizontal_alignment(&self, align: AlignHorizontal) {
+        let mut widget = self.container.as_mut();
+        let container = widget.get_container_item_mut();
+
+        container.children_horizontal_alignment = align;
+    }
+
+    pub fn set_children_vertical_alignment(&self, align: AlignVertical) {
+        let mut widget = self.container.as_mut();
+        let container = widget.get_container_item_mut();
+
+        container.children_vertical_alignment = align;
     }
 
     pub fn push_style(&mut self) {

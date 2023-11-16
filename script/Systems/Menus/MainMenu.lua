@@ -155,21 +155,25 @@ function MainMenu:ShowGui()
     local scalefactorMenuY = 549 / LTheoryRedux.resY
 
     Gui:beginStackContainer()
+    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
     Gui:setPadding(10.0, 10.0)
 
     Gui:beginVerticalContainer()
-    Gui:setChildrenDocking(Docking.StretchHorizontal)
+    Gui:setVerticalAlignment(AlignVertical.Stretch)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     -- Header
     Gui:beginVerticalContainer()
+
     self:ShadowText('LIMIT THEORY', 'RajdhaniSemiBold', 72 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
-    Gui:setDocking(Docking.Right)
+    Gui:setHorizontalAlignment(AlignHorizontal.Right)
     Gui:setMargin(20.0, 20.0)
+
     self:ShadowText('REDUX', 'RajdhaniSemiBold', 58 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
-    Gui:setDocking(Docking.Right)
+    Gui:setHorizontalAlignment(AlignHorizontal.Right)
     Gui:setMargin(20.0, 20.0)
+
     Gui:endContainer()
-    Gui:setDocking(Docking.Top)
 
     Gui:spacer()
 
@@ -177,25 +181,22 @@ function MainMenu:ShowGui()
 
     -- Footer
     Gui:beginHorizontalContainer()
+    Gui:setMarginEx(5.0, 10.0, 5.0, 10.0)
 
     self:ShadowText(Config.gameVersion, 'RajdhaniSemiBold', 12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
-    Gui:setDocking(Docking.Left)
 
     Gui:spacer()
 
     self:ShadowText('Resolution = ' .. LTheoryRedux.resX .. ' x ' .. LTheoryRedux.resY, 'RajdhaniSemiBold', 12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
-    Gui:setDocking(Docking.Right)
+    Gui:setHorizontalAlignment(AlignHorizontal.Right)
 
     Gui:endContainer()
-    Gui:setMarginEx(5.0, 10.0, 5.0, 10.0)
 
     Gui:spacer()
 
     Gui:endContainer()
-    Gui:setDocking(bit.bor(Docking.Left, Docking.StretchVertical))
 
     Gui:endContainer()
-    Gui:setDocking(Docking.StretchAll)
 end
 
 function MainMenu:ShowMainMenuInner()
@@ -203,7 +204,7 @@ function MainMenu:ShowMainMenuInner()
     local scalefactor = (LTheoryRedux.resX / 24) / 72
 
     Gui:beginVerticalContainer()
-    Gui:setChildrenDocking(Docking.StretchHorizontal)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     Gui:pushTextColor(0.9, 0.9, 0.9, 1.0)
     Gui:pushFont(Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
@@ -245,7 +246,6 @@ function MainMenu:ShowSeedDialog()
 
     -- TODO: this should be window title parameter
     Gui:textEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.6, 1.0, 1.0)
-    Gui:setDocking(Docking.Top)
 
     self:ShowSeedDialogInner()
 
@@ -255,7 +255,8 @@ end
 function MainMenu:ShowSeedDialogInner()
     -- Add new star system seed selection dialog menu items
     Gui:beginVerticalContainer()
-    Gui:setChildrenDocking(Docking.StretchHorizontal)
+    Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
 
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
@@ -282,10 +283,10 @@ function MainMenu:ShowSeedDialogInner()
 
     Gui:popStyle(2)
     Gui:endContainer()
-    Gui:setDocking(Docking.StretchHorizontal)
 
     -- Buttons: Cancel, Random Seed, Use Seed
     Gui:beginHorizontalContainer()
+    Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(16)
 
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
@@ -328,7 +329,6 @@ function MainMenu:ShowSeedDialogInner()
 
     Gui:popStyle(2)
     Gui:endContainer()
-    Gui:setDocking(Docking.StretchHorizontal)
 end
 
 function MainMenu:ShowSettingsScreen()
@@ -343,11 +343,10 @@ function MainMenu:ShowSettingsScreen()
 
     -- TODO: this should be window title parameter
     Gui:textEx(Cache.Font('Iceland', 42), 'Settings', 0.3, 0.6, 1.0, 1.0)
-    Gui:setDocking(Docking.Top)
 
     -- Separator
     Gui:rect(0.3, 0.6, 1.0, 1.0)
-    Gui:setDocking(Docking.StretchHorizontal)
+    Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setFixedHeight(1.0)
 
     self:ShowSettingsScreenInner()
@@ -358,14 +357,14 @@ end
 function MainMenu:ShowSettingsScreenInner()
     -- Add new star system seed selection dialog menu items
     Gui:beginVerticalContainer()
-    Gui:setChildrenDocking(Docking.StretchHorizontal)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
     Gui:pushFont(Cache.Font('Exo2', 24))
 
     -- Show Settings options
     Gui:beginVerticalContainer()
-    Gui:setChildrenDocking(Docking.StretchHorizontal)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
 
     self:ShowAudioSettingsBlock()
@@ -502,8 +501,8 @@ function MainMenu:ShowAudioSettingsBlock()
     end
 end
 
--- TODO: should this be reimplemented in HmGui?
--- TODO: disable (make grey) -/+ button if operation is not possible
+-- TODO: reimplement in HmGui after styling refactoring
+-- TODO: (idea) disable (make grey) -/+ button if operation is not possible
 function MainMenu:GuiSpinner(title, valueText)
     Gui:beginHorizontalContainer()
 
@@ -733,7 +732,6 @@ function MainMenu:ShowFlightDialog()
 
     -- TODO: this should be window title parameter
     Gui:textEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.6, 1.0, 1.0)
-    Gui:setDocking(Docking.Top)
 
     self:ShowFlightDialogInner()
 
@@ -743,7 +741,8 @@ end
 function MainMenu:ShowFlightDialogInner()
     -- Add Flight Mode dialog menu items
     Gui:beginVerticalContainer()
-    Gui:setChildrenDocking(Docking.StretchHorizontal)
+    Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
 
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
@@ -798,7 +797,6 @@ function MainMenu:ShowFlightDialogInner()
 
     Gui:popStyle(2)
     Gui:endContainer()
-    Gui:setDocking(Docking.StretchHorizontal)
 end
 
 function MainMenu:utf8(decimal)

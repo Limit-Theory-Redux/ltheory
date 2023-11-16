@@ -2,7 +2,10 @@ use std::{fs::File, io::Write};
 
 use glam::{Vec2, Vec4};
 
-use super::{DockingType, HmGui, HmGuiContainer, HmGuiImage, HmGuiRect, HmGuiText, Rf, IDENT};
+use super::{
+    AlignHorizontal, AlignVertical, HmGui, HmGuiContainer, HmGuiImage, HmGuiRect, HmGuiText, Rf,
+    IDENT,
+};
 
 #[derive(Clone, PartialEq)]
 pub enum WidgetItem {
@@ -52,7 +55,8 @@ pub struct HmGuiWidget {
     // Layout
     pub default_width: Option<Length>,
     pub default_height: Option<Length>,
-    pub docking: DockingType,
+    pub horizontal_alignment: AlignHorizontal,
+    pub vertical_alignment: AlignVertical,
     pub margin_upper: Vec2,
     pub margin_lower: Vec2,
     pub bg_color: Vec4,
@@ -80,7 +84,8 @@ impl HmGuiWidget {
 
             default_width: Default::default(),
             default_height: Default::default(),
-            docking: Default::default(),
+            horizontal_alignment: Default::default(),
+            vertical_alignment: Default::default(),
             margin_upper: Default::default(),
             margin_lower: Default::default(),
             bg_color: Default::default(),
@@ -237,7 +242,8 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}- inner_size:     {:?}", self.inner_size);
         println!("{ident_str}{IDENT}- default_width:  {:?}", self.default_width);
         println!("{ident_str}{IDENT}- default_height: {:?}", self.default_height);
-        println!("{ident_str}{IDENT}- docking:        {:?}", self.docking);
+        println!("{ident_str}{IDENT}- horiz_align:    {:?}", self.vertical_alignment);
+        println!("{ident_str}{IDENT}- vert_align:     {:?}", self.horizontal_alignment);
         println!("{ident_str}{IDENT}- margin_upper:   {:?}", self.margin_upper);
         println!("{ident_str}{IDENT}- margin_lower:   {:?}", self.margin_lower);
         println!("{ident_str}{IDENT}- bg_color:       {:?}", self.bg_color);

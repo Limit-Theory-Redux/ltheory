@@ -1,6 +1,6 @@
+mod alignment;
 mod container;
 mod data;
-mod docking;
 mod focus;
 mod gui;
 mod image;
@@ -12,9 +12,9 @@ mod widget;
 
 use internal::*;
 
+pub use alignment::*;
 pub use container::*;
 pub(self) use data::*;
-pub use docking::*;
 pub use focus::*;
 pub use gui::*;
 pub use image::*;
@@ -34,10 +34,7 @@ mod tests {
     use tracing::Level;
     use tracing_subscriber::FmtSubscriber;
 
-    use crate::{
-        input::Input,
-        ui::hmgui::{Docking, DOCKING_STRETCH_ALL},
-    };
+    use crate::input::Input;
 
     use super::*;
 
@@ -95,6 +92,8 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -135,6 +134,8 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -143,7 +144,6 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -177,6 +177,9 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_fixed_size(50.0, 50.0);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -185,8 +188,6 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
-        gui.set_fixed_size(50.0, 50.0);
-        gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -220,17 +221,18 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_width(30.0);
-        gui.set_docking(DOCKING_STRETCH_VERTICAL);
+        gui.set_vertical_alignment(AlignVertical::Stretch);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_height(30.0);
-        gui.set_docking(DOCKING_STRETCH_HORIZONTAL);
+        gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -264,25 +266,26 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
-        gui.set_docking(DOCKING_LEFT);
+        gui.set_horizontal_alignment(AlignHorizontal::Left);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(20.0, 30.0);
-        gui.set_docking(DOCKING_RIGHT);
+        gui.set_horizontal_alignment(AlignHorizontal::Right);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
-        gui.set_docking(DOCKING_TOP);
+        gui.set_vertical_alignment(AlignVertical::Top);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(20.0, 30.0);
-        gui.set_docking(DOCKING_BOTTOM);
+        gui.set_vertical_alignment(AlignVertical::Bottom);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -318,6 +321,8 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(500.0, 20.0);
@@ -326,7 +331,6 @@ mod tests {
         gui.set_fixed_size(20.0, 400.0);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -360,27 +364,28 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_height(20.0);
-        gui.set_docking(DOCKING_STRETCH_HORIZONTAL);
+        gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_width(20.0);
-        gui.set_docking(DOCKING_STRETCH_VERTICAL);
+        gui.set_vertical_alignment(AlignVertical::Stretch);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(20.0, 30.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
-        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -416,8 +421,9 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
-        gui.set_children_docking(DOCKING_STRETCH_HORIZONTAL);
+        gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -426,10 +432,9 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
-        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -465,8 +470,9 @@ mod tests {
 
         // Vertical 1: dock top
         gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
-        gui.set_children_docking(DOCKING_TOP);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Top);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -475,12 +481,12 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         // Vertical 2: dock bottom
         gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
-        gui.set_children_docking(DOCKING_BOTTOM);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Bottom);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -489,7 +495,6 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         gui.end_gui(&input);
 
@@ -536,27 +541,28 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_horizontal_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
+        gui.set_children_vertical_alignment(AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_width(20.0);
-        gui.set_docking(DOCKING_STRETCH_VERTICAL);
+        gui.set_vertical_alignment(AlignVertical::Stretch);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_height(20.0);
-        gui.set_docking(DOCKING_STRETCH_HORIZONTAL);
+        gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(20.0, 30.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
-        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -592,8 +598,9 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_horizontal_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
-        gui.set_children_docking(DOCKING_STRETCH_VERTICAL);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Stretch);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -602,10 +609,9 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
-        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -641,8 +647,9 @@ mod tests {
 
         // Horizontal 1: dock left
         gui.begin_horizontal_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
-        gui.set_children_docking(DOCKING_LEFT);
+        gui.set_children_alignment(AlignHorizontal::Left, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -651,12 +658,12 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         // Horizontal 2: dock right
         gui.begin_horizontal_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
-        gui.set_children_docking(DOCKING_RIGHT);
+        gui.set_children_alignment(AlignHorizontal::Right, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -665,7 +672,6 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         gui.end_gui(&input);
 
@@ -713,8 +719,9 @@ mod tests {
 
         // Horizontal
         gui.begin_horizontal_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
-        gui.set_children_docking(DOCKING_STRETCH_HORIZONTAL);
+        gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_height(20.0);
@@ -726,12 +733,12 @@ mod tests {
         gui.set_fixed_height(40.0);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         // Vertical
         gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
-        gui.set_children_docking(DOCKING_STRETCH_VERTICAL);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Stretch);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_width(20.0);
@@ -746,7 +753,6 @@ mod tests {
         gui.set_fixed_width(50.0);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         gui.end_gui(&input);
 
@@ -795,9 +801,14 @@ mod tests {
         let (mut gui, input) = init_test();
 
         gui.begin_gui(300.0, 200.0, &input);
+
         gui.begin_vertical_container();
+        gui.set_margin(5.0, 5.0);
+        gui.set_border_width(5.0);
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_padding(20.0, 20.0);
         gui.set_spacing(10.0);
+        gui.set_children_horizontal_alignment(AlignHorizontal::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -808,12 +819,10 @@ mod tests {
         gui.set_border_width(2.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
-        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
-        gui.set_margin(5.0, 5.0);
-        gui.set_border_width(5.0);
-        gui.set_docking(DOCKING_STRETCH_ALL);
+
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -847,9 +856,14 @@ mod tests {
         let (mut gui, input) = init_test();
 
         gui.begin_gui(300.0, 200.0, &input);
+
         gui.begin_horizontal_container();
+        gui.set_margin(5.0, 5.0);
+        gui.set_border_width(5.0);
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_padding(20.0, 20.0);
         gui.set_spacing(10.0);
+        gui.set_children_vertical_alignment(AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(30.0, 20.0);
@@ -860,12 +874,10 @@ mod tests {
         gui.set_border_width(2.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
-        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
-        gui.set_margin(5.0, 5.0);
-        gui.set_border_width(5.0);
-        gui.set_docking(DOCKING_STRETCH_ALL);
+
         gui.end_gui(&input);
 
         let root_widget_rf = gui.root();
@@ -901,6 +913,8 @@ mod tests {
 
         // Stack
         gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         // Inside container
         gui.rect(0.0, 1.0, 0.0, 1.0);
@@ -921,7 +935,6 @@ mod tests {
         gui.set_percent_height(130.0);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         gui.end_gui(&input);
 
@@ -959,7 +972,9 @@ mod tests {
 
         // Horizontal: first widget - fixed size - 20, second - 50% = 140, last - expands to non remaining width - 140
         gui.begin_horizontal_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(20.0, 30.0);
@@ -972,14 +987,15 @@ mod tests {
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_height(40.0);
         gui.set_min_width(0.0);
-        gui.set_docking(DOCKING_STRETCH_HORIZONTAL);
+        gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         // Horizontal: first widget - fixed size - 20, second - 150% = 420, last widget shrinks to 0 width
         gui.begin_horizontal_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(20.0, 30.0);
@@ -992,10 +1008,9 @@ mod tests {
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_height(40.0);
         gui.set_min_width(0.0);
-        gui.set_docking(DOCKING_STRETCH_HORIZONTAL);
+        gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         gui.end_gui(&input);
 
@@ -1045,7 +1060,9 @@ mod tests {
 
         // Vertical: first widget - fixed size - 30, second - 50% = 85, last - expands to non remaining width - 115
         gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(20.0, 30.0);
@@ -1058,14 +1075,15 @@ mod tests {
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_width(40.0);
         gui.set_min_height(0.0);
-        gui.set_docking(DOCKING_STRETCH_VERTICAL);
+        gui.set_vertical_alignment(AlignVertical::Stretch);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         // Vertical: first widget - fixed size - 30, second - 120% = 204, last widget shrinks to 0 width
         gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(20.0, 30.0);
@@ -1078,10 +1096,9 @@ mod tests {
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_width(40.0);
         gui.set_min_height(0.0);
-        gui.set_docking(DOCKING_STRETCH_VERTICAL);
+        gui.set_vertical_alignment(AlignVertical::Stretch);
 
         gui.end_container();
-        gui.set_docking(DOCKING_STRETCH_ALL);
 
         gui.end_gui(&input);
 
