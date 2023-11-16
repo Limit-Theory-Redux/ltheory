@@ -238,10 +238,18 @@ function Application:onFrame()
     else
         UI.DrawEx.TextAdditive(
             'NovaRound',
-            "EXPERIMENTAL BUILD - NOT FINAL!",
+            "WORK IN PROGRESS",
             20,
-            self.resX / 2 - 24, 62, 40, 20,
-            1, 1, 1, 1,
+            self.resX / 2 - 24, 50, 40, 20,
+            0.65, 0.65, 0.65, 0.65,
+            0.5, 0.5
+        )
+        UI.DrawEx.TextAdditive(
+            'NovaRound',
+            "Build " .. Config.gameVersion,
+            16,
+            self.resX / 2 - 24, 70, 40, 20,
+            0.65, 0.65, 0.65, 0.65,
             0.5, 0.5
         )
     end
