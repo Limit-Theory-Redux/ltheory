@@ -98,6 +98,18 @@ impl HmGuiContainer {
         if extra.x > 0.0 || extra.y > 0.0 {
             let mut percent_extra = Vec2::ZERO;
 
+            let stretch_x = if self.layout == LayoutType::Horizontal {
+                1.0
+            } else {
+                0.0
+            };
+
+            let stretch_y = if self.layout == LayoutType::Vertical {
+                1.0
+            } else {
+                0.0
+            };
+
             for widget_rf in &self.children {
                 let mut widget = widget_rf.as_mut();
 
@@ -114,9 +126,7 @@ impl HmGuiContainer {
                             + widget.margin_upper.x
                             + widget.margin_lower.x;
 
-                        if self.layout == LayoutType::Horizontal {
-                            percent_extra.x += widget_width;
-                        }
+                        percent_extra.x += stretch_x * widget_width;
                     }
                 }
 
@@ -133,9 +143,7 @@ impl HmGuiContainer {
                             + widget.margin_upper.y
                             + widget.margin_lower.y;
 
-                        if self.layout == LayoutType::Vertical {
-                            percent_extra.y += widget_height;
-                        }
+                        percent_extra.y += stretch_y * widget_height;
                     }
                 }
             }
