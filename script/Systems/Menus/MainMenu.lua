@@ -250,6 +250,7 @@ function MainMenu:ShowSeedDialog()
     self:ShowSeedDialogInner()
 
     Gui:endWindow()
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
 function MainMenu:ShowSeedDialogInner()
@@ -352,6 +353,7 @@ function MainMenu:ShowSettingsScreen()
     self:ShowSettingsScreenInner()
 
     Gui:endWindow()
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
 function MainMenu:ShowSettingsScreenInner()
@@ -736,6 +738,7 @@ function MainMenu:ShowFlightDialog()
     self:ShowFlightDialogInner()
 
     Gui:endWindow()
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
 function MainMenu:ShowFlightDialogInner()

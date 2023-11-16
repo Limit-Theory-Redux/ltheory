@@ -369,7 +369,6 @@ impl HmGui {
     // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
         self.begin_stack_container();
-        self.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
         {
