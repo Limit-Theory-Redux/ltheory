@@ -25,6 +25,7 @@ GameState.render = {
     resX            = Config.render.defaultResX,
     resY            = Config.render.defaultResY,
     presentMode     = Config.render.presentMode,
+    fov             = Config.render.fov,
     zNear           = Config.render.zNear,
     zFar            = Config.render.zFar,
     thrusterLights  = Config.render.thrusterLights,
@@ -39,6 +40,7 @@ GameState.audio = {
     soundEnabled = Config.audio.soundEnabled,
     fxVolume     = Config.audio.fxVolume,
     musicVolume  = Config.audio.musicVolume,
+    menuTheme    = Config.audio.mainMenu
 }
 
 GameState.ui = {

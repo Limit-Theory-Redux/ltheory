@@ -107,7 +107,7 @@ function MainMenu:Open()
     end
 
     Log.Debug("MainMenu:Open: QueueTrack(true)")
-    mainMenuMusic = MusicPlayer:QueueTrack(Config.audio.mainMenu, true)
+    mainMenuMusic = MusicPlayer:QueueTrack(GameState.audio.menuTheme, true)
 
     Log.Debug("Opening Main Menu.")
 end

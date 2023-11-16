@@ -56,7 +56,6 @@ function Application:appInit()
 
     Preload.Run()
 
-    -- TODO: InputInstance:loadGamepadDatabase('gamecontrollerdb_205.txt');
     self:onInit()
     self:onResize(self.resX, self.resY)
 
@@ -73,6 +72,7 @@ function Application:appInit()
 
     self.profiling = false
     self.toggleProfiler = false
+    self.showBackgroundModeHints = true
 end
 
 function Application:onFrame()
@@ -174,6 +174,10 @@ function Application:onFrame()
             GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
         end
 
+        if MainMenu.inBackgroundMode and InputInstance:isPressed(Bindings.ToggleHUD) then
+            self.showBackgroundModeHints = not self.showBackgroundModeHints
+        end
+
         self:onInput()
         Profiler.End()
     end
@@ -196,14 +200,51 @@ function Application:onFrame()
         Profiler.End()
     end
 
-    UI.DrawEx.TextAdditive(
-        'NovaRound',
-        "EXPERIMENTAL BUILD - NOT FINAL!",
-        20,
-        self.resX / 2 - 24, 62, 40, 20,
-        1, 1, 1, 1,
-        0.5, 0.5
-    )
+    if MainMenu.inBackgroundMode then
+        if self.showBackgroundModeHints then
+            UI.DrawEx.TextAdditive(
+                'Exo2',
+                "[B] Generate new star system",
+                20,
+                self.resX / 2, self.resY - 150, 40, 20,
+                1, 1, 1, 1,
+                0.5, 0.5
+            )
+            UI.DrawEx.TextAdditive(
+                'Exo2',
+                "[H] Speed up time",
+                20,
+                self.resX / 2, self.resY - 125, 40, 20,
+                1, 1, 1, 1,
+                0.5, 1
+            )
+            UI.DrawEx.TextAdditive(
+                'Exo2',
+                "[K] Metrics display",
+                20,
+                self.resX / 2, self.resY - 100, 40, 20,
+                1, 1, 1, 1,
+                0.5, 1
+            )
+            UI.DrawEx.TextAdditive(
+                'Exo2',
+                "[V] Toggle hints",
+                20,
+                self.resX / 2, self.resY - 75, 40, 20,
+                1, 1, 1, 1,
+                0.5, 1
+            )
+        end
+    else
+        UI.DrawEx.TextAdditive(
+            'NovaRound',
+            "EXPERIMENTAL BUILD - NOT FINAL!",
+            20,
+            self.resX / 2 - 24, 62, 40, 20,
+            1, 1, 1, 1,
+            0.5, 0.5
+        )
+    end
 
     if GameState:GetCurrentState() ~= Enums.GameStates.MainMenu then
         if GameState.paused then
