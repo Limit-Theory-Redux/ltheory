@@ -427,12 +427,12 @@ end
 
 function LTheoryRedux:showShipCreationHint()
     Gui:textEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
-    Gui:setAlign(0.5, 0.85)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
 function LTheoryRedux:showShipCreationHint()
     Gui:textEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
-    Gui:setAlign(0.5, 0.85)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
 function LTheoryRedux:exitGame()
