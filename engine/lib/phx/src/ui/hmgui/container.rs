@@ -49,39 +49,44 @@ impl HmGuiContainer {
 
         let mut min_size = Vec2::ZERO;
 
-        let mut not_head = false;
-        for widget_rf in &self.children {
-            let widget = widget_rf.as_ref();
-            let widget_min_size = widget.min_size;
+        match self.layout {
+            LayoutType::None | LayoutType::Stack => {
+                for widget_rf in &self.children {
+                    let widget = widget_rf.as_ref();
+                    let widget_min_size = widget.min_size;
 
-            match self.layout {
-                LayoutType::None | LayoutType::Stack => {
                     min_size = min_size.max(widget_min_size);
                 }
-                LayoutType::Horizontal => {
+            }
+            LayoutType::Horizontal => {
+                for (i, widget_rf) in self.children.iter().enumerate() {
+                    let widget = widget_rf.as_ref();
+                    let widget_min_size = widget.min_size;
+
                     min_size.x += widget_min_size.x;
                     min_size.y = min_size.y.max(widget_min_size.y);
 
-                    if not_head {
+                    if i > 0 {
                         min_size.x += self.spacing;
                     }
                 }
-                LayoutType::Vertical => {
+            }
+            LayoutType::Vertical => {
+                for (i, widget_rf) in self.children.iter().enumerate() {
+                    let widget = widget_rf.as_ref();
+                    let widget_min_size = widget.min_size;
+
                     min_size.x = min_size.x.max(widget_min_size.x);
                     min_size.y += widget_min_size.y;
 
-                    if not_head {
+                    if i > 0 {
                         min_size.y += self.spacing;
                     }
                 }
             }
-
-            not_head = true;
         }
 
-        min_size += self.padding_lower + self.padding_upper;
-
-        min_size
+        min_size + self.padding_lower + self.padding_upper
     }
 
     /// Go from the top to the bottom of the widgets hierarchy tree to calculate their pos and size.
