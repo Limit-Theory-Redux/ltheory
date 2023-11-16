@@ -190,7 +190,7 @@ function Camera:refreshMatrices()
     self.mView = self.mViewInv:inverse()
 
     self.mProj = Matrix.Perspective(
-        Settings.get('render.fovY'),
+        GameState.render.fov,
         self.sx / self.sy,
         self.zNear,
         self.zFar)

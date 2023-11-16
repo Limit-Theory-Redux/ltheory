@@ -2,6 +2,7 @@ local MusicPlayer = class(function(self) end)
 
 local MusicObject = require("Types.MusicObject")
 local SFXObject = require("Types.SFXObject")
+local rng = RNG.FromTime()
 
 function MusicPlayer:Init()
     self.trackList = {}
@@ -44,7 +45,7 @@ function MusicPlayer:SetVolume(volume)
         return
     end
 
-    self.volume = volume
+    GameState.audio.musicVolume = volume
 
     for _, soundObject in ipairs(self.trackList) do
         Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
@@ -53,7 +54,10 @@ function MusicPlayer:SetVolume(volume)
 end
 
 function MusicPlayer:OnUpdate(dt)
-    local rng = RNG.FromTime()
+    if GameState.audio.musicVolume ~= self.volume then
+        self.volume = GameState.audio.musicVolume
+    end
+
     if self.currentlyPlaying then
         if not self.currentlyPlaying:IsPlaying() then
             self.currentlyPlaying = nil
@@ -186,7 +190,7 @@ function MusicPlayer:LoadMusic()
         end
 
         if not fileUnsupported then
-            local newSoundObject = MusicObject:Create {
+            local newMusicObject = MusicObject:Create {
                 name = fname,
                 path = path,
                 volume = self.volume,
@@ -194,8 +198,15 @@ function MusicPlayer:LoadMusic()
             }
 
             --Log.Debug("VOLUME: " .. self.volume)
-            if newSoundObject then
-                table.insert(self.trackList, newSoundObject)
+            if newMusicObject then
+                table.insert(self.trackList, newMusicObject)
+
+                -- Generate Enums
+                if not Enums.SoundtrackNames then Enums.SoundtrackNames = {} end
+                table.insert(Enums.SoundtrackNames, newMusicObject.name)
+
+                if not Enums.SoundtrackCount then Enums.SoundtrackCount = 0 end
+                Enums.SoundtrackCount = Enums.SoundtrackCount + 1
             end
         end
     end

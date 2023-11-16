@@ -49,8 +49,7 @@ impl WinitWindows {
 
         let mut winit_window_builder = winit::window::WindowBuilder::new();
 
-        // Due to a UIA limitation, winit windows need to be invisible for the
-        // AccessKit adapter is initialized.
+        // Hide window until it is properly initialized
         winit_window_builder = winit_window_builder.with_visible(false);
 
         winit_window_builder = match window.mode {

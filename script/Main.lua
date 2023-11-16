@@ -17,7 +17,7 @@ function SetEngine(engine)
 
     InputInstance = EngineInstance:input()
     WindowInstance = EngineInstance:window()
-    Gui = EngineInstance:hmgui()
+    Gui = EngineInstance:hmGui()
 end
 
 function InitSystem()
