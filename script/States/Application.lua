@@ -240,18 +240,21 @@ function Application:onFrame()
             'NovaRound',
             "WORK IN PROGRESS",
             20,
-            self.resX / 2 - 24, 50, 40, 20,
-            0.65, 0.65, 0.65, 0.65,
+            self.resX / 2, 50, 40, 20,
+            0.75, 0.75, 0.75, 0.75,
             0.5, 0.5
         )
-        UI.DrawEx.TextAdditive(
-            'NovaRound',
-            "Build " .. Config.gameVersion,
-            16,
-            self.resX / 2 - 24, 70, 40, 20,
-            0.65, 0.65, 0.65, 0.65,
-            0.5, 0.5
-        )
+
+        if GameState:GetCurrentState() == Enums.GameStates.InGame then
+            UI.DrawEx.TextAdditive(
+                'NovaRound',
+                "Build " .. Config.gameVersion,
+                12,
+                5, self.resY - 20, 40, 20,
+                0.75, 0.75, 0.75, 0.75,
+                0, 0.5
+            )
+        end
     end
 
     if GameState:GetCurrentState() ~= Enums.GameStates.MainMenu then
