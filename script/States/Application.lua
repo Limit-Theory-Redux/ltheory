@@ -206,7 +206,7 @@ function Application:onFrame()
                 'Exo2',
                 "[B] Generate new star system",
                 20,
-                self.resX / 2, self.resY - 150, 40, 20,
+                self.resX / 2 - 20, self.resY - 150, 40, 20,
                 1, 1, 1, 1,
                 0.5, 0.5
             )
@@ -214,25 +214,25 @@ function Application:onFrame()
                 'Exo2',
                 "[H] Speed up time",
                 20,
-                self.resX / 2, self.resY - 125, 40, 20,
+                self.resX / 2 - 20, self.resY - 125, 40, 20,
                 1, 1, 1, 1,
-                0.5, 1
+                0.5, 0.5
             )
             UI.DrawEx.TextAdditive(
                 'Exo2',
                 "[K] Metrics display",
                 20,
-                self.resX / 2, self.resY - 100, 40, 20,
+                self.resX / 2 - 20, self.resY - 100, 40, 20,
                 1, 1, 1, 1,
-                0.5, 1
+                0.5, 0.5
             )
             UI.DrawEx.TextAdditive(
                 'Exo2',
                 "[V] Toggle hints",
                 20,
-                self.resX / 2, self.resY - 75, 40, 20,
+                self.resX / 2 - 20, self.resY - 75, 40, 20,
                 1, 1, 1, 1,
-                0.5, 1
+                0.5, 0.5
             )
         end
     else
@@ -240,7 +240,7 @@ function Application:onFrame()
             'NovaRound',
             "WORK IN PROGRESS",
             20,
-            self.resX / 2, 50, 40, 20,
+            self.resX / 2 - 20, 50, 40, 20,
             0.75, 0.75, 0.75, 0.75,
             0.5, 0.5
         )
