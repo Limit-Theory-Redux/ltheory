@@ -250,7 +250,7 @@ function Application:onFrame()
                 'NovaRound',
                 "Build " .. Config.gameVersion,
                 12,
-                5, self.resY - 20, 40, 20,
+                4, self.resY - 20, 40, 20,
                 0.75, 0.75, 0.75, 0.75,
                 0, 0.5
             )
