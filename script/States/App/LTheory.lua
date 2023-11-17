@@ -85,7 +85,7 @@ function LTheory:onInit()
     GameState.ui.showTrackers = true
     GameState.player.humanPlayer = self.player
 
-    self.gameView = Systems.Overlay.GameView(self.player)
+    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, LTheory.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView

@@ -45,11 +45,11 @@ function StationTest:onInit()
     self:generate()
 
     DebugControl.ltheory = self
-    self.gameView = Systems.Overlay.GameView(self.player)
+    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, StationTest.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
-            :add(Systems.Controls.Controls.GenTestControl(self.gameView, self.player)))
+            :add(Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
 end
 
 function StationTest:onInput()
