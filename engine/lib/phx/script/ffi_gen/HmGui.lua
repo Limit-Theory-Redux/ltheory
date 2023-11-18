@@ -31,6 +31,8 @@ function Loader.defineType()
             bool  HmGui_Button                         (HmGui*, cstr label);
             bool  HmGui_Checkbox                       (HmGui*, cstr label, bool value);
             float HmGui_Slider                         (HmGui*, float lower, float upper, float value);
+            void  HmGui_HorizontalDivider              (HmGui*, float height, float r, float g, float b, float a);
+            void  HmGui_VerticalDivider                (HmGui*, float width, float r, float g, float b, float a);
             void  HmGui_Image                          (HmGui*, Tex2D* image);
             void  HmGui_Rect                           (HmGui*, float r, float g, float b, float a);
             void  HmGui_Text                           (HmGui*, cstr text);
@@ -54,6 +56,10 @@ function Loader.defineType()
             void  HmGui_SetBorderWidth                 (HmGui const*, float width);
             void  HmGui_SetBorderColor                 (HmGui const*, float r, float g, float b, float a);
             void  HmGui_SetBorderColorV4               (HmGui const*, Vec4f const* color);
+            void  HmGui_SetBorder                      (HmGui const*, float width, float r, float g, float b, float a);
+            void  HmGui_SetBorderV4                    (HmGui const*, float width, Vec4f const* color);
+            void  HmGui_SetBgColor                     (HmGui*, float r, float g, float b, float a);
+            void  HmGui_SetBgColorV4                   (HmGui*, Vec4f const* color);
             void  HmGui_SetAlignment                   (HmGui const*, AlignHorizontal h, AlignVertical v);
             void  HmGui_SetHorizontalAlignment         (HmGui const*, AlignHorizontal align);
             void  HmGui_SetVerticalAlignment           (HmGui const*, AlignVertical align);
@@ -93,6 +99,8 @@ function Loader.defineType()
             Button                         = libphx.HmGui_Button,
             Checkbox                       = libphx.HmGui_Checkbox,
             Slider                         = libphx.HmGui_Slider,
+            HorizontalDivider              = libphx.HmGui_HorizontalDivider,
+            VerticalDivider                = libphx.HmGui_VerticalDivider,
             Image                          = libphx.HmGui_Image,
             Rect                           = libphx.HmGui_Rect,
             Text                           = libphx.HmGui_Text,
@@ -116,6 +124,10 @@ function Loader.defineType()
             SetBorderWidth                 = libphx.HmGui_SetBorderWidth,
             SetBorderColor                 = libphx.HmGui_SetBorderColor,
             SetBorderColorV4               = libphx.HmGui_SetBorderColorV4,
+            SetBorder                      = libphx.HmGui_SetBorder,
+            SetBorderV4                    = libphx.HmGui_SetBorderV4,
+            SetBgColor                     = libphx.HmGui_SetBgColor,
+            SetBgColorV4                   = libphx.HmGui_SetBgColorV4,
             SetAlignment                   = libphx.HmGui_SetAlignment,
             SetHorizontalAlignment         = libphx.HmGui_SetHorizontalAlignment,
             SetVerticalAlignment           = libphx.HmGui_SetVerticalAlignment,
@@ -160,6 +172,8 @@ function Loader.defineType()
                 button                         = libphx.HmGui_Button,
                 checkbox                       = libphx.HmGui_Checkbox,
                 slider                         = libphx.HmGui_Slider,
+                horizontalDivider              = libphx.HmGui_HorizontalDivider,
+                verticalDivider                = libphx.HmGui_VerticalDivider,
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,
                 text                           = libphx.HmGui_Text,
@@ -183,6 +197,10 @@ function Loader.defineType()
                 setBorderWidth                 = libphx.HmGui_SetBorderWidth,
                 setBorderColor                 = libphx.HmGui_SetBorderColor,
                 setBorderColorV4               = libphx.HmGui_SetBorderColorV4,
+                setBorder                      = libphx.HmGui_SetBorder,
+                setBorderV4                    = libphx.HmGui_SetBorderV4,
+                setBgColor                     = libphx.HmGui_SetBgColor,
+                setBgColorV4                   = libphx.HmGui_SetBgColorV4,
                 setAlignment                   = libphx.HmGui_SetAlignment,
                 setHorizontalAlignment         = libphx.HmGui_SetHorizontalAlignment,
                 setVerticalAlignment           = libphx.HmGui_SetVerticalAlignment,

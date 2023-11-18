@@ -503,6 +503,18 @@ impl HmGui {
         0.0
     }
 
+    pub fn horizontal_divider(&mut self, height: f32, r: f32, g: f32, b: f32, a: f32) {
+        self.rect(r, g, b, a);
+        self.set_fixed_height(height);
+        self.set_horizontal_alignment(AlignHorizontal::Stretch);
+    }
+
+    pub fn vertical_divider(&mut self, width: f32, r: f32, g: f32, b: f32, a: f32) {
+        self.rect(r, g, b, a);
+        self.set_fixed_width(width);
+        self.set_vertical_alignment(AlignVertical::Stretch);
+    }
+
     pub fn image(&mut self, image: &mut Tex2D) {
         let image_item = HmGuiImage { image };
 
@@ -673,6 +685,32 @@ impl HmGui {
         let mut widget = self.last.as_mut();
 
         widget.border_color = *color;
+    }
+
+    pub fn set_border(&self, width: f32, r: f32, g: f32, b: f32, a: f32) {
+        let mut widget = self.last.as_mut();
+
+        widget.border_width = width;
+        widget.border_color = Vec4::new(r, g, b, a);
+    }
+
+    pub fn set_border_v4(&self, width: f32, color: &Vec4) {
+        let mut widget = self.last.as_mut();
+
+        widget.border_width = width;
+        widget.border_color = *color;
+    }
+
+    pub fn set_bg_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
+        let mut widget = self.last.as_mut();
+
+        widget.bg_color = Some(Vec4::new(r, g, b, a));
+    }
+
+    pub fn set_bg_color_v4(&mut self, color: &Vec4) {
+        let mut widget = self.last.as_mut();
+
+        widget.bg_color = Some(*color);
     }
 
     pub fn set_alignment(&self, h: AlignHorizontal, v: AlignVertical) {

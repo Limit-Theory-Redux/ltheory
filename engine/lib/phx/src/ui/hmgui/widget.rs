@@ -59,7 +59,7 @@ pub struct HmGuiWidget {
     pub vertical_alignment: AlignVertical,
     pub margin_upper: Vec2,
     pub margin_lower: Vec2,
-    pub bg_color: Vec4,
+    pub bg_color: Option<Vec4>,
     pub border_width: f32,
     pub border_color: Vec4,
 
@@ -206,6 +206,19 @@ impl HmGuiWidget {
         if size.x > 0.0 && size.y > 0.0 {
             let pos = self.inner_pos;
 
+            if self.border_width > 0.0 {
+                hmgui.renderer.rect(
+                    pos - self.border_width,
+                    size + self.border_width * 2.0,
+                    self.border_color,
+                    Some(self.border_width),
+                );
+            }
+
+            if let Some(bg_color) = self.bg_color {
+                hmgui.renderer.rect(pos, size, bg_color, None);
+            }
+
             match &self.item {
                 WidgetItem::Container(container) => {
                     let hmgui_focus = hmgui.mouse_focus_hash();
@@ -225,15 +238,6 @@ impl HmGuiWidget {
                 WidgetItem::Image(image) => {
                     image.draw(&mut hmgui.renderer, pos, size);
                 }
-            }
-
-            if self.border_width > 0.0 {
-                hmgui.renderer.rect(
-                    pos - self.border_width,
-                    size + self.border_width * 2.0,
-                    self.border_color,
-                    Some(self.border_width),
-                );
             }
         }
     }
