@@ -408,7 +408,7 @@ impl HmGuiContainer {
                     if focus {
                         let color = Vec4::new(0.1, 0.5, 1.0, 1.0);
 
-                        hmgui.renderer.rect(pos, size, color, true);
+                        hmgui.renderer.rect(pos, size, color, Some(1.0));
                     }
                 }
                 FocusStyle::Underline => {
@@ -423,7 +423,7 @@ impl HmGuiContainer {
                         },
                     );
 
-                    hmgui.renderer.rect(pos, size, color, false);
+                    hmgui.renderer.rect(pos, size, color, None);
                 }
             }
         }

@@ -52,6 +52,8 @@ function Loader.defineType()
             void  HmGui_SetMarginRight                 (HmGui const*, float margin);
             void  HmGui_SetMarginBottom                (HmGui const*, float margin);
             void  HmGui_SetBorderWidth                 (HmGui const*, float width);
+            void  HmGui_SetBorderColor                 (HmGui const*, float r, float g, float b, float a);
+            void  HmGui_SetBorderColorV4               (HmGui const*, Vec4f const* color);
             void  HmGui_SetAlignment                   (HmGui const*, AlignHorizontal h, AlignVertical v);
             void  HmGui_SetHorizontalAlignment         (HmGui const*, AlignHorizontal align);
             void  HmGui_SetVerticalAlignment           (HmGui const*, AlignVertical align);
@@ -112,6 +114,8 @@ function Loader.defineType()
             SetMarginRight                 = libphx.HmGui_SetMarginRight,
             SetMarginBottom                = libphx.HmGui_SetMarginBottom,
             SetBorderWidth                 = libphx.HmGui_SetBorderWidth,
+            SetBorderColor                 = libphx.HmGui_SetBorderColor,
+            SetBorderColorV4               = libphx.HmGui_SetBorderColorV4,
             SetAlignment                   = libphx.HmGui_SetAlignment,
             SetHorizontalAlignment         = libphx.HmGui_SetHorizontalAlignment,
             SetVerticalAlignment           = libphx.HmGui_SetVerticalAlignment,
@@ -177,6 +181,8 @@ function Loader.defineType()
                 setMarginRight                 = libphx.HmGui_SetMarginRight,
                 setMarginBottom                = libphx.HmGui_SetMarginBottom,
                 setBorderWidth                 = libphx.HmGui_SetBorderWidth,
+                setBorderColor                 = libphx.HmGui_SetBorderColor,
+                setBorderColorV4               = libphx.HmGui_SetBorderColorV4,
                 setAlignment                   = libphx.HmGui_SetAlignment,
                 setHorizontalAlignment         = libphx.HmGui_SetHorizontalAlignment,
                 setVerticalAlignment           = libphx.HmGui_SetVerticalAlignment,

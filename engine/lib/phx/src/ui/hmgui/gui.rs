@@ -663,6 +663,18 @@ impl HmGui {
         widget.border_width = width;
     }
 
+    pub fn set_border_color(&self, r: f32, g: f32, b: f32, a: f32) {
+        let mut widget = self.last.as_mut();
+
+        widget.border_color = Vec4::new(r, g, b, a);
+    }
+
+    pub fn set_border_color_v4(&self, color: &Vec4) {
+        let mut widget = self.last.as_mut();
+
+        widget.border_color = *color;
+    }
+
     pub fn set_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
         let mut widget = self.last.as_mut();
 

@@ -9,7 +9,7 @@ pub struct HmGuiRect {
 
 impl HmGuiRect {
     pub fn draw(&self, renderer: &mut UIRenderer, pos: Vec2, size: Vec2) {
-        renderer.rect(pos, size, self.color, false);
+        renderer.rect(pos, size, self.color, None);
     }
 
     // For testing.

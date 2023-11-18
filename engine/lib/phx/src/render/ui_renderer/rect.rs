@@ -8,5 +8,5 @@ pub struct UIRendererRect {
     pub pos: Vec2,
     pub size: Vec2,
     pub color: Vec4,
-    pub outline: bool,
+    pub outline: Option<f32>,
 }

@@ -226,6 +226,15 @@ impl HmGuiWidget {
                     image.draw(&mut hmgui.renderer, pos, size);
                 }
             }
+
+            if self.border_width > 0.0 {
+                hmgui.renderer.rect(
+                    pos - self.border_width,
+                    size + self.border_width * 2.0,
+                    self.border_color,
+                    Some(self.border_width),
+                );
+            }
         }
     }
 
