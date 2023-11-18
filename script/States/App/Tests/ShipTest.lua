@@ -46,7 +46,7 @@ function ShipTest:onInit()
     self:generate()
 
     DebugControl.ltheory = self
-    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, ShipTest.audio)
+    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView

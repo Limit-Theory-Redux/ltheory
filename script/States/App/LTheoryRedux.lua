@@ -135,7 +135,7 @@ function LTheoryRedux:onInput()
             GameState:SetState(Enums.GameStates.InGame)
 
             -- Insert the game view into the application canvas to make it visible
-            self.gameView = Systems.Overlay.GameView(self.player, LTheoryRedux.audio)
+            self.gameView = Systems.Overlay.GameView(self.player, self.audio)
             GameState.render.gameView = self.gameView
 
             self.canvas = UI.Canvas()
@@ -392,7 +392,7 @@ function LTheoryRedux:createStarSystem()
         MusicPlayer:PlayAmbient()
 
         DebugControl.ltheory = self
-        self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, LTheoryRedux.audio)
+        self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
         GameState.render.gameView = self.gameView
         self.canvas = UI.Canvas()
         self.canvas
@@ -402,7 +402,7 @@ function LTheoryRedux:createStarSystem()
         InputInstance:setCursorVisible(true)
     else
         -- Insert the game view into the application canvas to make it visible
-        self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer)
+        self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
         GameState.render.gameView = self.gameView
 
         self.canvas = UI.Canvas()
