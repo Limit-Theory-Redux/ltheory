@@ -135,7 +135,7 @@ function LTheory:onInit()
     self:generate()
 
     DebugControl.ltheory = self
-    self.gameView = GameView(self.player)
+    self.gameView = GameView(self.player, self.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
