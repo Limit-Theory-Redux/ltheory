@@ -232,14 +232,9 @@ function GameView:onUpdate(state)
         self.eyeLast:setv(eye)
     end
 
-    if LTheoryRedux.audio then
-        LTheoryRedux.audio:setListenerPos(
-            self.camera.pos,
-            self.camera.rot)
-    else
-        LTheoryRedux.audio = Audio.Create()
-        Log.Warn("[GameView.lua Update] Audio not initialized at this point. This should not happen.")
-    end
+    self.audio:setListenerPos(
+        self.camera.pos,
+        self.camera.rot)
 
     self.camera:pop()
 end
@@ -301,7 +296,15 @@ function GameView:setCameraMode(cameraMode)
     return self.camera
 end
 
-function GameView.Create(player)
+function GameView.Create(player, audioInstance)
+    if not player then
+        Log.Error("No player passed")
+    end
+
+    if not audioInstance then
+        Log.Error("No audioInstance passed")
+    end
+
     local self = setmetatable({
         player            = player,
         renderer          = Renderer(),
@@ -312,6 +315,7 @@ function GameView.Create(player)
         eyeLast           = nil,
         eyeVel            = nil,
         children          = List(),
+        audio             = audioInstance
     }, GameView)
 
     self:setCameraMode(GameState.player.currentCamera)
