@@ -4,6 +4,15 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+    - '**/README.md'
+    - '**/CONTRIBUTING.md'
+    - '**/LICENSE-MIT'
+    - '**/LICENSE-APACHE-2.0'
+    - '**/.vscode/**'
+    - '**/.gitignore'
+    - '**/.gitattributes'
+    - '**/.editorconfig'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
