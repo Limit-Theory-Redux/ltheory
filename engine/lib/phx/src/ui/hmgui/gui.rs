@@ -40,7 +40,6 @@ impl HmGui {
         let container = HmGuiContainer {
             layout: LayoutType::None,
             spacing: 0.0,
-            max_size: Vec2::new(1e30, 1e30),
             clip: true,
             ..Default::default()
         };
@@ -108,7 +107,6 @@ impl HmGui {
         let container = HmGuiContainer {
             layout,
             spacing,
-            max_size: Vec2::new(1e30, 1e30),
             ..Default::default()
         };
 
@@ -258,7 +256,7 @@ impl HmGui {
         self.container = parent;
     }
 
-    pub fn begin_scroll(&mut self, max_size: f32) {
+    pub fn begin_scroll(&mut self, _max_size: f32) {
         let widget_rf = self.container.clone();
         let mut widget = widget_rf.as_mut();
         let widget_hash = widget.hash;
@@ -275,7 +273,6 @@ impl HmGui {
         self.set_padding(6.0, 6.0);
 
         container.store_size = true;
-        container.max_size.y = max_size; // TODO: still needed?
 
         let data = self.get_data(widget_hash);
 

@@ -30,7 +30,6 @@ pub struct HmGuiContainer {
     pub children_hash: u32,
     pub focus_style: FocusStyle,
     pub offset: Vec2,
-    pub max_size: Vec2, // TODO: do we still need this?
     pub total_stretch: Vec2,
     pub frame_opacity: f32,
     pub clip: bool,
@@ -445,7 +444,6 @@ impl HmGuiContainer {
         println!("{ident_str}- spacing:          {}", self.spacing);
         println!("{ident_str}- children_hash:    {}", self.children_hash);
         println!("{ident_str}- focus_style:      {:?}", self.focus_style);
-        println!("{ident_str}- max_size:         {:?}", self.max_size);
         println!("{ident_str}- total_stretch:    {:?}", self.total_stretch);
         println!("{ident_str}- frame_opacity:    {}", self.frame_opacity);
         println!("{ident_str}- clip:             {}", self.clip);
