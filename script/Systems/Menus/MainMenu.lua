@@ -246,6 +246,7 @@ function MainMenu:ShowSeedDialog()
 
     -- TODO: this should be window title parameter
     Gui:textEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.6, 1.0, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
     self:ShowSeedDialogInner()
 
@@ -344,6 +345,7 @@ function MainMenu:ShowSettingsScreen()
 
     -- TODO: this should be window title parameter
     Gui:textEx(Cache.Font('Iceland', 42), 'Settings', 0.3, 0.6, 1.0, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
     -- Separator
     Gui:rect(0.3, 0.6, 1.0, 1.0)
@@ -730,15 +732,16 @@ end
 function MainMenu:ShowFlightDialog()
     -- Add Flight Mode dialog menu
     Gui:beginWindow("Flight Mode", InputInstance)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
     Gui:textEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.6, 1.0, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
     self:ShowFlightDialogInner()
 
     Gui:endWindow()
-    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
 function MainMenu:ShowFlightDialogInner()

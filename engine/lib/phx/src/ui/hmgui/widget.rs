@@ -19,7 +19,7 @@ impl WidgetItem {
     pub fn name(&self) -> String {
         match self {
             WidgetItem::Container(item) => format!("Container/{:?}", item.layout),
-            WidgetItem::Text(_) => "Text".into(),
+            WidgetItem::Text(text) => format!("Text/{}", text.text),
             WidgetItem::Rect(_) => "Rect".into(),
             WidgetItem::Image(_) => "Image".into(),
         }

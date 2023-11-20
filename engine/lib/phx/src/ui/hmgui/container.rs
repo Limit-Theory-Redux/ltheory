@@ -95,8 +95,8 @@ impl HmGuiContainer {
         let size = size - self.padding_lower - self.padding_upper;
 
         // 1. Calculate percentage size of the children
-        if extra.x > 0.0 || extra.y > 0.0 {
-            let mut percent_extra = Vec2::ZERO;
+        if size.x > 0.0 || size.y > 0.0 {
+            let mut extra_diff = Vec2::ZERO;
 
             let stretch_x = if self.layout == LayoutType::Horizontal {
                 1.0
@@ -116,39 +116,39 @@ impl HmGuiContainer {
                 // Horizontal.
                 // Child docking stretch has priority over fixed/percentage size
                 // that in turn has higher priority than children stretch.
-                if extra.x > 0.0 && !widget.horizontal_alignment.is_stretch() {
+                if size.x > 0.0 && !widget.horizontal_alignment.is_stretch() {
                     if let Some(Length::Percent(percent_width)) = widget.default_width {
-                        let widget_width = extra.x * percent_width / 100.0;
+                        let widget_width = size.x * percent_width / 100.0;
+
+                        extra_diff.x += stretch_x * (widget_width - widget.inner_min_size.x);
 
                         widget.inner_min_size.x = widget_width;
                         widget.min_size.x = widget_width
                             + widget.border_width * 2.0
                             + widget.margin_upper.x
                             + widget.margin_lower.x;
-
-                        percent_extra.x += stretch_x * widget_width;
                     }
                 }
 
                 // Vertical.
                 // Docking stretch has priority over fixed/percentage size
                 // that in turn has higher priority than children stretch.
-                if extra.y > 0.0 && !widget.vertical_alignment.is_stretch() {
+                if size.y > 0.0 && !widget.vertical_alignment.is_stretch() {
                     if let Some(Length::Percent(percent_height)) = widget.default_height {
-                        let widget_height = extra.y * percent_height / 100.0;
+                        let widget_height = size.y * percent_height / 100.0;
+
+                        extra_diff.y += stretch_y * (widget_height - widget.inner_min_size.y);
 
                         widget.inner_min_size.y = widget_height;
                         widget.min_size.y = widget_height
                             + widget.border_width * 2.0
                             + widget.margin_upper.y
                             + widget.margin_lower.y;
-
-                        percent_extra.y += stretch_y * widget_height;
                     }
                 }
             }
 
-            extra -= percent_extra;
+            extra -= extra_diff;
         }
 
         // 2. Calculate per child extra space distribution

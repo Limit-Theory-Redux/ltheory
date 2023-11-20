@@ -954,10 +954,10 @@ mod tests {
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
                     (300.0, 200.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (55.5, 90.0), (189.0, 20.0), (189.0, 20.0), None),
-                        WidgetCheck("Rect2", (135.0, 46.0), (30.0, 108.0), (30.0, 108.0), None),
-                        WidgetCheck("Rect3", (-12.0, 90.0), (324.0, 20.0), (324.0, 20.0), None),
-                        WidgetCheck("Rect4", (135.0, -17.0), (30.0, 234.0), (30.0, 234.0), None),
+                        WidgetCheck("Rect1", (45.0, 90.0), (210.0, 20.0), (210.0, 20.0), None),
+                        WidgetCheck("Rect2", (135.0, 40.0), (30.0, 120.0), (30.0, 120.0), None),
+                        WidgetCheck("Rect3", (-30.0, 90.0), (360.0, 20.0), (360.0, 20.0), None),
+                        WidgetCheck("Rect4", (135.0, -30.0), (30.0, 260.0), (30.0, 260.0), None),
                     ]),
                 )]),
             ),
@@ -1032,8 +1032,8 @@ mod tests {
                         (300.0, 200.0),
                         Some(vec![
                             WidgetCheck("Rect1", (0.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
-                            WidgetCheck("Rect2", (20.0, 85.0), (140.0, 30.0), (140.0, 30.0), None),
-                            WidgetCheck("Rect3", (160.0, 80.0), (140.0, 40.0), (140.0, 40.0), None),
+                            WidgetCheck("Rect2", (20.0, 85.0), (150.0, 30.0), (150.0, 30.0), None),
+                            WidgetCheck("Rect3", (170.0, 80.0), (130.0, 40.0), (130.0, 40.0), None),
                         ]),
                     ),
                     WidgetCheck(
@@ -1042,9 +1042,9 @@ mod tests {
                         (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
-                            WidgetCheck("Rect1", (-70.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
-                            WidgetCheck("Rect2", (-50.0, 85.0), (420.0, 30.0), (420.0, 30.0), None),
-                            WidgetCheck("Rect3", (370.0, 80.0), (0.0, 40.0), (0.0, 40.0), None),
+                            WidgetCheck("Rect1", (-85.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect2", (-65.0, 85.0), (450.0, 30.0), (450.0, 30.0), None),
+                            WidgetCheck("Rect3", (385.0, 80.0), (0.0, 40.0), (0.0, 40.0), None),
                         ]),
                     ),
                 ]),
@@ -1120,8 +1120,8 @@ mod tests {
                         (300.0, 200.0),
                         Some(vec![
                             WidgetCheck("Rect1", (140.0, 0.0), (20.0, 30.0), (20.0, 30.0), None),
-                            WidgetCheck("Rect2", (135.0, 30.0), (30.0, 85.0), (30.0, 85.0), None),
-                            WidgetCheck("Rect3", (130.0, 115.0), (40.0, 85.0), (40.0, 85.0), None),
+                            WidgetCheck("Rect2", (135.0, 30.0), (30.0, 100.0), (30.0, 100.0), None),
+                            WidgetCheck("Rect3", (130.0, 130.0), (40.0, 70.0), (40.0, 70.0), None),
                         ]),
                     ),
                     WidgetCheck(
@@ -1130,12 +1130,110 @@ mod tests {
                         (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
-                            WidgetCheck("Rect1", (140.0, -17.0), (20.0, 30.0), (20.0, 30.0), None),
-                            WidgetCheck("Rect2", (135.0, 13.0), (30.0, 204.0), (30.0, 204.0), None),
-                            WidgetCheck("Rect3", (130.0, 217.0), (40.0, 0.0), (40.0, 0.0), None),
+                            WidgetCheck("Rect1", (140.0, -35.0), (20.0, 30.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect2", (135.0, -5.0), (30.0, 240.0), (30.0, 240.0), None),
+                            WidgetCheck("Rect3", (130.0, 235.0), (40.0, 0.0), (40.0, 0.0), None),
                         ]),
                     ),
                 ]),
+            ),
+        );
+    }
+
+    #[test]
+    fn test_hmgui_alignment_combination() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(300.0, 200.0, &input);
+
+        gui.begin_horizontal_container();
+        gui.set_horizontal_alignment(AlignHorizontal::Stretch);
+        gui.set_spacing(0.0);
+        gui.set_children_vertical_alignment(AlignVertical::Stretch);
+
+        gui.begin_vertical_container();
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
+        gui.set_percent_width(10.0);
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+        gui.end_container();
+
+        gui.begin_horizontal_container();
+        gui.set_horizontal_alignment(AlignHorizontal::Stretch);
+        gui.set_children_horizontal_alignment(AlignHorizontal::Center);
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+        gui.set_vertical_alignment(AlignVertical::Center);
+        gui.end_container();
+
+        gui.begin_stack_container();
+        gui.set_percent_width(10.0);
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+        gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
+        gui.end_container();
+
+        gui.end_container();
+
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
+                Some(vec![WidgetCheck(
+                    "Horizontal",
+                    (0.0, 0.0),
+                    (300.0, 30.0), // Horizontal container expanded so has the same position and size as root one
+                    (300.0, 30.0),
+                    Some(vec![
+                        WidgetCheck(
+                            "Horizontal1",
+                            (0.0, 0.0),
+                            (30.0, 30.0),
+                            (30.0, 30.0),
+                            Some(vec![WidgetCheck(
+                                "Rect1",
+                                (5.0, 0.0),
+                                (20.0, 30.0),
+                                (20.0, 30.0),
+                                None,
+                            )]),
+                        ),
+                        WidgetCheck(
+                            "Horizontal2",
+                            (30.0, 0.0),
+                            (240.0, 30.0),
+                            (240.0, 30.0),
+                            Some(vec![WidgetCheck(
+                                "Rect2",
+                                (140.0, 0.0),
+                                (20.0, 30.0),
+                                (20.0, 30.0),
+                                None,
+                            )]),
+                        ),
+                        WidgetCheck(
+                            "Horizontal3",
+                            (270.0, 0.0),
+                            (30.0, 30.0),
+                            (30.0, 30.0),
+                            Some(vec![WidgetCheck(
+                                "Rect3",
+                                (275.0, 0.0),
+                                (20.0, 30.0),
+                                (20.0, 30.0),
+                                None,
+                            )]),
+                        ),
+                    ]),
+                )]),
             ),
         );
     }
