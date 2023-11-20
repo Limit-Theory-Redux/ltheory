@@ -44,7 +44,7 @@ jobs:
         id: build_name
         run: |
           echo ${NEXT_VERSION}-${BRANCH}-${SHA_SHORT}
-          echo build="${NEXT_VERSION}-${BRANCH}-${SHA_SHORT}"" >> $GITHUB_OUTPUT
+          echo build="${NEXT_VERSION}-${BRANCH}-${SHA_SHORT}" >> $GITHUB_OUTPUT
 
   build-windows:
     needs: gen-build-version
@@ -78,6 +78,7 @@ jobs:
             ${{github.workspace}}/README.md
 
   build-macos:
+    needs: gen-build-version
     name: Build macOS
     runs-on: macos-11
     steps:
@@ -91,6 +92,7 @@ jobs:
           path: ${{github.workspace}}/bin/*
 
   build-ubuntu:
+    needs: gen-build-version
     name: Build Ubuntu 20.04
     runs-on: ubuntu-20.04
     steps:
