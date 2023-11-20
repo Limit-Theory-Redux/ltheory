@@ -2,6 +2,15 @@ name: Build Binaries (Pull Request)
 
 on:
   pull_request:
+    paths-ignore:
+    - '**/README.md'
+    - '**/CONTRIBUTING.md'
+    - '**/LICENSE-MIT'
+    - '**/LICENSE-APACHE-2.0'
+    - '**/.vscode/**'
+    - '**/.gitignore'
+    - '**/.gitattributes'
+    - '**/.editorconfig'
 
 permissions:
   contents: write
