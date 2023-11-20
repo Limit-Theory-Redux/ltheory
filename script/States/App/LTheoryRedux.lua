@@ -171,7 +171,7 @@ function LTheoryRedux:onDraw()
 
     self.canvas:draw(self.resX, self.resY)
 
-    HmGui.Draw() -- draw controls
+    Gui:draw() -- draw controls
 end
 
 function LTheoryRedux:onUpdate(dt)
@@ -269,7 +269,7 @@ function LTheoryRedux:onUpdate(dt)
     end
 
     -- Decide which game controls screens (if any) to display on top of the canvas
-    HmGui.Begin(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY, InputInstance)
 
     if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
         LTheoryRedux:showGameLogo()
@@ -297,7 +297,7 @@ function LTheoryRedux:onUpdate(dt)
     if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         LTheoryRedux:showShipCreationHint()
     end
-    HmGui.End(InputInstance)
+    Gui:endGui(InputInstance)
 
     -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
     if InputInstance:isPressed(Bindings.NewBackground) and MainMenu.currentMode == Enums.MenuMode.MainMenu then
@@ -419,14 +419,19 @@ function LTheoryRedux:showGameLogo()
     local scaleFactor = ((self.resX * self.resY) / (1600 * 900)) ^ 0.5
     local scaleFactorX = self.resX / 1600
     local scaleFactorY = self.resY / 900
-    HmGui.Image(self.logo)                                                                  -- draw the LTR logo on top of the canvas
-    HmGui.SetStretch(0.76 * scaleFactor / scaleFactorX, 0.243 * scaleFactor / scaleFactorY) -- scale logo (width, height)
-    HmGui.SetAlign(0.5, 0.5)                                                                -- align logo
+    Gui:image(self.logo)                                                                  -- draw the LTR logo on top of the canvas
+    Gui:setStretch(0.76 * scaleFactor / scaleFactorX, 0.243 * scaleFactor / scaleFactorY) -- scale logo (width, height)
+    Gui:setAlign(0.5, 0.5)                                                                -- align logo
 end
 
 function LTheoryRedux:showShipCreationHint()
-    HmGui.TextEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
-    HmGui.SetAlign(0.5, 0.85)
+    Gui:textEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
+    Gui:setAlign(0.5, 0.85)
+end
+
+function LTheoryRedux:showShipCreationHint()
+    Gui:textEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
+    Gui:setAlign(0.5, 0.85)
 end
 
 function LTheoryRedux:exitGame()

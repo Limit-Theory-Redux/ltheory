@@ -1,5 +1,3 @@
-use internal::ConvertIntoString;
-
 /// Defines the way a [`Window`] is displayed.
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]

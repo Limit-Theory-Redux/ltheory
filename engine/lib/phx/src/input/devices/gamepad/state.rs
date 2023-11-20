@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-
-use gilrs::{ev::filter::axis_dpad_to_button, EventType, Filter, GamepadId, Gilrs, GilrsBuilder};
+use gilrs::ev::filter::axis_dpad_to_button;
+use gilrs::{EventType, Filter, GamepadId, Gilrs, GilrsBuilder};
 use indexmap::IndexMap;
 
 use super::*;
-use crate::{input::*, system::TimeStamp};
+use crate::input::*;
 
 pub struct GamepadDeviceState {
     name: String,

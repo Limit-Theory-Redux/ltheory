@@ -1,7 +1,5 @@
 use tracing::error;
 
-use crate::common::*;
-
 /* --- Error -------------------------------------------------------------------
  *
  *   A compact error status encoding.

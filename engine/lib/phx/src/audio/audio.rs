@@ -1,11 +1,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use kira::manager::backend::cpal::CpalBackend;
 use kira::manager::{AudioManager, AudioManagerSettings, Capacities};
 use kira::sound::static_sound::StaticSoundHandle;
 use kira::sound::PlaybackState;
-use kira::spatial::emitter::{EmitterHandle, EmitterSettings};
+use kira::spatial::emitter::EmitterSettings;
 use kira::spatial::listener::{ListenerHandle, ListenerSettings};
 use kira::spatial::scene::{SpatialSceneHandle, SpatialSceneSettings};
 use kira::tween::Tween;
