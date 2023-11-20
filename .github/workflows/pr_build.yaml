@@ -3,9 +3,6 @@ name: Build Binaries (Pull Request)
 on:
   pull_request:
 
-env:
-  BUILD_TYPE: RelWithDebInfo
-
 permissions:
   contents: write
 
@@ -23,7 +20,7 @@ jobs:
         run: |
           VERSION=$(awk -F '"' '/^version =/ { print $2 }' Cargo.toml)
           echo "The package version is $VERSION"
-          echo "CARGO_PKG_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "NEXT_VERSION=$VERSION" >> $GITHUB_ENV
       - name: Set short git commit SHA
         shell: bash
         run: |
@@ -37,15 +34,15 @@ jobs:
       - name: Confirm nightly build name
         id: build_name
         run: |
-          echo ${CARGO_PKG_VERSION}-${BRANCH}-${SHA_SHORT}
-          echo build=${CARGO_PKG_VERSION}-${BRANCH}-${SHA_SHORT} >> $GITHUB_OUTPUT
+          echo ${NEXT_VERSION}-${BRANCH}-${SHA_SHORT}
+          echo build="${NEXT_VERSION}-${BRANCH}-${SHA_SHORT}"" >> $GITHUB_OUTPUT
 
   build-windows:
     needs: gen-build-version
     name: Build Windows
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Update build number
         run: |
           sed -i 's/Config.gameVersion = \".*\"/Config.gameVersion = \"${{ needs.gen-build-version.outputs.build }}\"/' "${env:GITHUB_WORKSPACE}/script/Config/App.lua"
@@ -75,7 +72,7 @@ jobs:
     name: Build macOS
     runs-on: macos-11
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build
         run: ./build.sh
       - name: Upload binary
@@ -88,7 +85,7 @@ jobs:
     name: Build Ubuntu 20.04
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Update packages
         run: sudo apt-get update
       - name: Install packages

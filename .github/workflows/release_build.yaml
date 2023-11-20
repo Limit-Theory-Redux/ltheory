@@ -9,9 +9,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  BUILD_TYPE: RelWithDebInfo
-
 permissions:
   contents: write
 
@@ -29,7 +26,7 @@ jobs:
         run: |
           VERSION=$(awk -F '"' '/^version =/ { print $2 }' Cargo.toml)
           echo "The package version is $VERSION"
-          echo "CARGO_PKG_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "NEXT_VERSION=$VERSION" >> $GITHUB_ENV
       - name: Set short git commit SHA
         shell: bash
         run: |
@@ -40,15 +37,15 @@ jobs:
       - name: Confirm nightly build name
         id: build_name
         run: |
-          echo $CARGO_PKG_VERSION-$SHA_SHORT
-          echo build=$CARGO_PKG_VERSION-$SHA_SHORT >> $GITHUB_OUTPUT
+          echo $NEXT_VERSION-$SHA_SHORT
+          echo build=$NEXT_VERSION-$SHA_SHORT >> $GITHUB_OUTPUT
 
   build-windows:
     needs: gen-build-version
     name: Build Windows
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Update build number
         run: |
           sed -i 's/Config.gameVersion = \".*\"/Config.gameVersion = \"${{ needs.gen-build-version.outputs.build }}\"/' "${env:GITHUB_WORKSPACE}/script/Config/Version.lua"
@@ -79,7 +76,7 @@ jobs:
     name: Build macOS
     runs-on: macos-11
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build
         run: ./build.sh
       - name: Upload binary
@@ -93,7 +90,7 @@ jobs:
     name: Build Ubuntu 20.04
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Update packages
         run: sudo apt-get update
       - name: Install packages
@@ -106,52 +103,10 @@ jobs:
           name: ltheory-bin-ubuntu2004
           path: ${{github.workspace}}/bin/*
 
-  tag:
-    name: New tag
-    needs:
-      - gen-build-version
-      - build-windows
-      - build-macos
-      - build-ubuntu
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get latest release ID
-        uses: octokit/request-action@v2.x
-        id: get_latest_release
-        with:
-          route: GET /repos/${{github.repository}}/releases/tags/latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Delete 'latest' tag ref
-        uses: octokit/request-action@v2.x
-        with:
-          route: DELETE /repos/${{github.repository}}/git/refs/tags/latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Delete latest release
-        uses: octokit/request-action@v2.x
-        with:
-          route: DELETE /repos/${{github.repository}}/releases/{release_id}
-          release_id: ${{ fromJson(steps.get_latest_release.outputs.data).id }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Create tag
-        uses: rickstaa/action-create-tag@v1
-        id: "tag_create"
-        with:
-          tag: "latest"
-          force_push_tag: true
-          tag_exists_error: false
-          message: "Build ${{ needs.gen-build-version.outputs.build }}"
-
   release:
     name: New release
     needs:
       - gen-build-version
-      - tag
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -162,6 +117,34 @@ jobs:
         run: for dir in $(ls); do cd $dir && zip ../$dir.zip ./* -r && cd ..; done
       - name: echo repo
         run: echo ${{github.repository}}
+            - name: Get latest release ID
+        uses: octokit/request-action@v2.x
+        id: get_latest_release
+        with:
+          route: GET /repos/${{github.repository}}/releases/tags/latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Delete latest release
+        uses: octokit/request-action@v2.x
+        with:
+          route: DELETE /repos/${{github.repository}}/releases/{release_id}
+          release_id: ${{ fromJson(steps.get_latest_release.outputs.data).id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Delete 'latest' tag ref
+        uses: octokit/request-action@v2.x
+        with:
+          route: DELETE /repos/${{github.repository}}/git/refs/tags/latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Re-create 'latest' tag with the current SHA
+        uses: octokit/request-action@v2.x
+        with:
+          route: POST /repos/Limit-Theory-Redux/ltheory/git/refs
+          ref: refs/tags/latest
+          sha: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create release
         uses: softprops/action-gh-release@v1
         env:
