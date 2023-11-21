@@ -60,7 +60,9 @@ jobs:
           sed -i 's/Config.gameVersion = \".*\"/Config.gameVersion = \"${{ needs.gen-build-version.outputs.build }}\"/' "${env:GITHUB_WORKSPACE}/script/Config/Version.lua"
       - name: Build
         shell: bash
-        run: ./build.sh
+        run: |
+          PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
+          ./build.sh
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
