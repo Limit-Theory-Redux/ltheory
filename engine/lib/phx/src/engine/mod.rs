@@ -598,7 +598,7 @@ impl Engine {
         self.init_time.get_elapsed()
     }
 
-    pub fn get_version(&self) -> &'static str {
+    pub fn get_version() -> &'static str {
         env!("CARGO_PKG_VERSION")
     }
 
