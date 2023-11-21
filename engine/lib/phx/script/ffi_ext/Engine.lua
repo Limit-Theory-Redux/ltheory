@@ -1,7 +1,7 @@
 local libphx = require('libphx').lib
 
-function onDef_Engine_t(t, mt)
-    mt.__index.getVersion = function(...)
-        return ffi.string(...)
+function onDef_Engine(t, mt)
+    t.GetVersion = function()
+        return ffi.string(libphx.Engine_GetVersion())
     end
 end
