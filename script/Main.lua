@@ -30,6 +30,7 @@ function InitSystem()
 
         GlobalRestrict.On()
 
+        dofile('./script/Config/Version.lua')
         dofile('./script/Config/App.lua')
 
         -- Load Enums
