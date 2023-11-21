@@ -599,7 +599,7 @@ impl Engine {
     }
 
     pub fn get_version() -> &'static str {
-        env!("PHX_VERSION")
+        env!("CARGO_PKG_VERSION")
     }
 
     pub fn exit(&mut self) {
