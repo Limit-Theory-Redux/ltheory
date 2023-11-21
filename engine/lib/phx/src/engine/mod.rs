@@ -33,6 +33,7 @@ pub struct Engine {
     input: Input,
     frame_state: FrameState,
     exit_app: bool,
+    app_version: &'static str,
     lua: Lua,
 }
 
@@ -75,6 +76,7 @@ impl Engine {
             input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,
+            app_version: env!("CARGO_PKG_VERSION"),
             lua,
         }
     }
@@ -598,8 +600,8 @@ impl Engine {
         self.init_time.get_elapsed()
     }
 
-    pub fn get_version() -> &'static str {
-        env!("CARGO_PKG_VERSION")
+    pub fn get_version(&self) -> &'static str {
+        self.app_version
     }
 
     pub fn exit(&mut self) {
