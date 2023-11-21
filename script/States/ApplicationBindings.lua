@@ -24,7 +24,7 @@ local self = {
     CameraOrbit       = Button.KeyboardF3,
     Exit              = Button.SystemExit, -- Modifier.Ctrl + Button.W or Modifier.Alt + Button.Q
 
-    All               = Control.Or(
+    All = Control.Or(
             Control.Key(Button.KeyboardA),
             Control.Key(Button.KeyboardB),
             Control.Key(Button.KeyboardC),

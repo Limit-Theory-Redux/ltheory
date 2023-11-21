@@ -132,8 +132,6 @@ function LTheoryRedux:onInput()
         end
 
         if InputInstance:isPressed(Button.KeyboardF) then
-            GameState:SetState(Enums.GameStates.InGame)
-
             -- Insert the game view into the application canvas to make it visible
             self.gameView = Systems.Overlay.GameView(self.player, self.audio)
             GameState.render.gameView = self.gameView
@@ -144,6 +142,8 @@ function LTheoryRedux:onInput()
                     :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
                 )
             self.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
+
+            GameState:SetState(Enums.GameStates.InGame)
         end
     end
 end
@@ -422,11 +422,6 @@ function LTheoryRedux:showGameLogo()
 
     Gui:image(self.logo) -- draw the LTR logo on top of the canvas
     Gui:setPercentSize(76.0 * scaleFactor / scaleFactorX, 24.3 * scaleFactor / scaleFactorY)
-    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
-end
-
-function LTheoryRedux:showShipCreationHint()
-    Gui:textEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
