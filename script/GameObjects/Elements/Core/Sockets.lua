@@ -24,8 +24,8 @@ function Entity:addSockets()
     self.sockets = {}
 
     -- TODO : This is just a temporary hack. We should probably create a
-    --        dedicated structure for 'aggregate statistics' of entity; this
-    --        will be useful in LOD simulation
+    -- dedicated structure for 'aggregate statistics' of entity; this
+    -- will be useful in LOD simulation
     self.socketRangeMin = 1e6
     self.socketRangeMax = 0
     self.socketSpeedMin = 1e6

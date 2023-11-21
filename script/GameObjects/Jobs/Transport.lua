@@ -93,7 +93,7 @@ function Transport:getPayout(e)
     end
 
     --Log.Debug("Transport check: Asset %s (%d free) taking %d (max %d) units of item %s from %s to %s, raw profit = %d, payout = %d",
-    --    e:getName(), capacity, count, maxCount, self.item:getName(), self.src:getName(), self.dst:getName(), profit, payout)
+    -- e:getName(), capacity, count, maxCount, self.item:getName(), self.src:getName(), self.dst:getName(), profit, payout)
 
     return payout
 end
@@ -217,8 +217,8 @@ function Transport:onUpdateActive(e, dt)
             end
         elseif e.jobState == Enums.JobStateTransport.JobFinished then
             -- TODO : This is just a quick hack to force AI to re-evaluate job
-            --        decisions. In reality, AI should 'pre-empt' the job, which
-            --        should otherwise loop indefinitely by default
+            -- decisions. In reality, AI should 'pre-empt' the job, which
+            -- should otherwise loop indefinitely by default
             self:cancelJob(e)
         end
         Profiler.End()

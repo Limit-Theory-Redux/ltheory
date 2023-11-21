@@ -9,13 +9,13 @@ local BasicShapes = {}
 
 -- BAD INPUT PROTECTION POLICY
 -- Because we use so much randomness,
---   sometimes the input to the shape functions may be bad,
---   even in release.
+-- sometimes the input to the shape functions may be bad,
+-- even in release.
 -- For example, we may call Prism() and ask for fewer than 3 verts.
 -- If any input is invalid, the warp function MUST
---   1. ASSERT, so that devs can debug the bad input AND
---   2. Set the input to a valid default value,
---      so that we prevent junk shapes & crashes in release.
+-- 1. ASSERT, so that devs can debug the bad input AND
+-- 2. Set the input to a valid default value,
+-- so that we prevent junk shapes & crashes in release.
 
 -- Box(float resolution)
 function BasicShapes.Box(res)
@@ -253,11 +253,11 @@ function BasicShapes.Ellipsoid(res)
 end
 
 -- Torus (fn* outer shape function (torus shape),
---        fn* inner shape function (segment shape),
---        float rOuter (torus radius),
---        float rInner (segment radius),
---        int stacks,
---        int slices)
+-- fn* inner shape function (segment shape),
+-- float rOuter (torus radius),
+-- float rInner (segment radius),
+-- int stacks,
+-- int slices)
 -- Unliked the rest of the shape fns, the Torus actually takes
 -- size input because warps won't change the ratio
 -- of the size of the segments to the whole torus radius

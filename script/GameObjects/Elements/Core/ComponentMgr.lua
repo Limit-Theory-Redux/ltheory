@@ -1,11 +1,11 @@
 local Entity = require('GameObjects.Entity')
 
 -- This module integrates functionality for multiple components of each type installed
---    in a vessel (which currently includes Ship and Station but not Asteroid or Planet)
+-- in a vessel (which currently includes Ship and Station but not Asteroid or Planet)
 
 -- WARNING : Note the subtlety that isAlive and isDestroyed are NOT
---           complementary! An asteroid is not alive, but neither has it been
---           destroyed. Both 'alive' and 'destroyed' require an entity to have a Hull.
+-- complementary! An asteroid is not alive, but neither has it been
+-- destroyed. Both 'alive' and 'destroyed' require an entity to have a Hull.
 
 -- *** GENERAL FUNCTIONS ***
 function Entity:addComponents()
@@ -232,7 +232,7 @@ end
 function Entity:mgrCloakGetStrength()
     -- Returns the total current strength of all _active_ cloaking devices installed
     -- TODO: Continuously compare the current cloak strength against the hull size + active emissions of the ship
-    --       If the cloak strength >= size + emissions, then the ship remains cloaked
+    -- If the cloak strength >= size + emissions, then the ship remains cloaked
     local cloaks = self.components.cloak
     if not cloaks or #cloaks == 0 then return end
 

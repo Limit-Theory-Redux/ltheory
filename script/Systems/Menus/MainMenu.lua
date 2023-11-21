@@ -187,7 +187,8 @@ function MainMenu:ShowGui()
 
     Gui:spacer()
 
-    self:ShadowText('Resolution = ' .. LTheoryRedux.resX .. ' x ' .. LTheoryRedux.resY, 'RajdhaniSemiBold', 12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
+    self:ShadowText('Resolution = ' .. LTheoryRedux.resX .. ' x ' .. LTheoryRedux.resY, 'RajdhaniSemiBold',
+        12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
     Gui:setHorizontalAlignment(AlignHorizontal.Right)
 
     Gui:endContainer()
@@ -552,7 +553,8 @@ function MainMenu:ShowGraphicsSettingsBlock()
     end
 
     -- Supersampling
-    local spinnerValue = self:GuiSpinner(guiSettings[3][3], Settings.getEnumValName('render.superSample', guiSettings[3][1]))
+    local spinnerValue = self:GuiSpinner(guiSettings[3][3],
+        Settings.getEnumValName('render.superSample', guiSettings[3][1]))
     if guiSettings[3][2] == nil then
         guiSettings[3][1] = Settings.get('render.superSample')
         guiSettings[3][2] = Settings.get('render.superSample')
@@ -630,7 +632,7 @@ function MainMenu:ShowGenerationSettingsBlock()
     end
 
     -- NOTE: Although it's possible to factor these latter values down into one set of updates and one loop (which I tried),
-    --       the things we can tweak in Settings *will* change. This section of code should not be prematurely optimized.
+    -- the things we can tweak in Settings *will* change. This section of code should not be prematurely optimized.
 
     -- Asteroid Fields
     local spinnerValue = self:GuiSpinner(guiSettings[8][3], tostring(guiSettings[8][1]))
@@ -717,7 +719,8 @@ function MainMenu:ShowGenerationSettingsBlock()
     end
 
     -- Ship Size
-    local spinnerValue = self:GuiSpinner(guiSettings[15][3], Config:getObjectInfo("ship_subtypes", 3 + (guiSettings[15][1] - 1)))
+    local spinnerValue = self:GuiSpinner(guiSettings[15][3],
+        Config:getObjectInfo("ship_subtypes", 3 + (guiSettings[15][1] - 1)))
     if guiSettings[15][2] == nil then
         guiSettings[15][1] = GameState.player.shipHull
         guiSettings[15][2] = GameState.player.shipHull

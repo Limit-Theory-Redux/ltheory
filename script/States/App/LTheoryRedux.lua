@@ -107,9 +107,9 @@ function LTheoryRedux:onInput()
                 self.gameView:setCameraMode(Enums.CameraMode.Chase)
             end
         elseif InputInstance:isPressed(Bindings.CameraOrbit) then
-            --if GameState.player.currentCamera ~= Enums.CameraMode.Orbit then
-            --  self.gameView:setCameraMode(Enums.CameraMode.Orbit)
-            --end
+            -- if GameState.player.currentCamera ~= Enums.CameraMode.Orbit then
+            --     self.gameView:setCameraMode(Enums.CameraMode.Orbit)
+            -- end
         end
     elseif GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         --! i see all of this as a temporary feature addition - this should all be handled by a proper system later. ~ Jack
@@ -306,12 +306,12 @@ function LTheoryRedux:onUpdate(dt)
 
     -- If player pressed the "toggle audio" key (currently F8), turn audio off if it's on or on if it's off
     -- NOTE: This is now disabled as we can use Settings to control Audio on/off, but I'm
-    --       preserving it temporarily in case we want it back for some reason
+    -- preserving it temporarily in case we want it back for some reason
     -- NOTE 2: This is currently the only place that calls LTheoryRedux:toggleSound(), so it might also be
-    --         a candidate for deletion if we do decide to yank the key-based audio toggle
-    --  if InputInstance:isPressed(Bindings.ToggleSound) then
-    --    LTheoryRedux:toggleSound()
-    --  end
+    -- a candidate for deletion if we do decide to yank the key-based audio toggle
+    -- if InputInstance:isPressed(Bindings.ToggleSound) then
+    -- LTheoryRedux:toggleSound()
+    -- end
 end
 
 function LTheoryRedux:generateNewSeed()
@@ -360,7 +360,7 @@ function LTheoryRedux:createStarSystem()
 
         -- Background Mode
         -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
-        --   a space station, and an invisible rotating ship
+        -- a space station, and an invisible rotating ship
         self.backgroundSystem:spawnBackground() -- spawn a ship that can't be seen
 
         -- Add a planet
@@ -420,7 +420,7 @@ function LTheoryRedux:showGameLogo()
     local scaleFactorX = self.resX / 1600
     local scaleFactorY = self.resY / 900
 
-    Gui:image(self.logo)                                                                  -- draw the LTR logo on top of the canvas
+    Gui:image(self.logo) -- draw the LTR logo on top of the canvas
     Gui:setPercentSize(76.0 * scaleFactor / scaleFactorX, 24.3 * scaleFactor / scaleFactorY)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end

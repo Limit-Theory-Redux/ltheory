@@ -54,7 +54,7 @@ function Entity:applyDamage(amount, source)
 
         -- TODO: process the formerly "isAlive()" entity's assets, including credits and cargo
         -- TODO: notify nearby ships that entity has been destroyed
-        --       resulting Actions may include Evade, Attack, and/or alert faction members
+        -- resulting Actions may include Evade, Attack, and/or alert faction members
 
         -- If this object was attackable, make it unattackable
         if self:hasAttackable() then
@@ -100,7 +100,7 @@ function Entity:applyDamage(amount, source)
         end
 
         -- TODO: Replace the vessel's RigidBody with an appropriate destroyed object
-        --       Also create a temporary debris field (zone + numerous small objects)
+        -- Also create a temporary debris field (zone + numerous small objects)
 
         if self == GameState.player.currentShip then
             -- TODO: Do any unloading/savegame/etc actions required upon player ship destruction

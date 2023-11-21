@@ -28,7 +28,7 @@ function Entity:hasAssets()
 end
 
 -- TODO : Surely there is a way to achieve 'for x in e:iterBlah' without having
---        to resort to table creation??
+-- to resort to table creation??
 function Entity:iterAssets()
     return iterateAssets, { list = self:getAssets(), i = 0 }
 end

@@ -97,7 +97,7 @@ function DrawEx.Hologram(mesh, x, y, sx, sy, color, radius, yaw, pitch)
 end
 
 function DrawEx.Icon(icon, x, y, sx, sy, color)
-    --  Log.Debug(icon)
+    -- Log.Debug(icon)
     local x, y, sx, sy = padAndCenter(0, x, y, sx, sy)
     local shader = Cache.Shader('ui', 'ui/icon')
     local alpha = alphaStack:last() or 1
