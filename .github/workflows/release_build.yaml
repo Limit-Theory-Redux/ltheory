@@ -116,6 +116,9 @@ jobs:
     name: New release
     needs:
       - gen-build-version
+      - build-windows
+      - build-ubuntu
+      - build-macos
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
