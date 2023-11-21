@@ -14,22 +14,24 @@ local function iterateThroughFactoryInputs(self, station)
                 -- Does the Trader at the same station as this Factory have any bids for the minable Item?
                 if itemBidVol > 0 then
                     -- Get no more than [considerCount] of the asteroids in the zone of this station
-                    --     whose current Yield is at least the number of the trader's bids for this Input Item
+                    -- whose current Yield is at least the number of the trader's bids for this Input Item
                     local considerCount = 50
                     local baseYield = itemBidVol * 3
 
-                    --for i, asteroid in station.zone:iterChildren() do
-                    --    if asteroid:hasYield() and asteroid:getYieldSize() > baseYield then
-                    --        insert(self.yields, asteroid)
-                    --    end
-                    --    if i > considerCount then break end
-                    --end
-                    --printf    ("ECONOMY: Mine job test: station = %s, prod = %s, item = %s, #asteroids = %d",
-                    --    st    ation:getName(), prodLine.type.name, item:getName(), #self.yields)
+                    --[[
+                    for i, asteroid in station.zone:iterChildren() do
+                        if asteroid:hasYield() and asteroid:getYieldSize() > baseYield then
+                            insert(self.yields, asteroid)
+                        end
+                        if i > considerCount then break end
+                    end
+                    printf("ECONOMY: Mine job test: station = %s, prod = %s, item = %s, #asteroids = %d",
+                        station:getName(), prodLine.type.name, item:getName(), #self.yields)
+                    ]]--
 
                     for i, asteroid in ipairs(self.yields) do
                         --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
-                        --    asteroid:getName(), station:getName(), item:getName(), itemBidVol)
+                        -- asteroid:getName(), station:getName(), item:getName(), itemBidVol)
                         insert(self.jobs[Enums.Jobs.Mining], Jobs.Mine(asteroid, station, item))
                         if i == considerCount then break end
                     end
@@ -64,10 +66,10 @@ local function cacheTransportJobs(self)
                                 if src ~= dst then
                                     local sellPrice = dst:getTrader():getSellToPrice(item, 1)
                                     --printf("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
-                                    --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
+                                    -- item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                                     if buyPrice < sellPrice then
                                         --printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
-                                        --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
+                                        -- item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                                         insert(self.jobs[Enums.Jobs.Transport], Jobs.Transport(src, dst, item))
                                     end
                                 end
@@ -91,7 +93,7 @@ local function cacheMaraudingJobs(self)
                     --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
                     if sellPrice > 0 then
                         --printf("Marauding job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
-                        --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
+                        -- item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                         insert(self.blackMarketJobs[Enums.BlackMarketJobs.Marauding], Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems.
                     end
                 end

@@ -270,10 +270,10 @@ function Test:showMenuDropInner()
 
     Gui:setSpacing(16)
 
-    Gui:beginHorizontalContainer()                 -- selected station service details
+    Gui:beginHorizontalContainer()      -- selected station service details
     if station_options_market == 1 then -- Commodities Screen
         Gui:beginHorizontalContainer()
-        Gui:beginStackContainer()         -- Commodity Panel
+        Gui:beginStackContainer()       -- Commodity Panel
         -- Create a nice border
         Gui:rect(1.0, 1.0, 0.7, 0.7, 0.7, 1.0);
         Gui:setStretch(1.0, 1.0)
@@ -281,7 +281,7 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.992, 0.997)
         Gui:setAlign(0.5, 0.5)
 
-        Gui:beginVerticalContainer() -- Commodity Window Panel
+        Gui:beginVerticalContainer()   -- Commodity Window Panel
         Gui:beginHorizontalContainer() -- Commodity Window Panel; search filter
         Gui:textEx(Cache.Font('Exo2', 20), 'Search:', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.5, 0.0)
@@ -555,14 +555,14 @@ function Test:showMenuDropInner()
         Gui:setAlign(0.0, 0.0)
         Gui:endScroll(InputInstance)
         Gui:endContainer()
-        --                    Gui:setStretch(0.95, 0.95)
-        --                    Gui:setAlign(1.0, 0.05)
+        -- Gui:setStretch(0.95, 0.95)
+        -- Gui:setAlign(1.0, 0.05)
         Gui:endContainer()
         Gui:setStretch(0.95, 0.9)
         Gui:setAlign(0.1, 0.05)
         Gui:endContainer() -- end Commodity Window Panel
-        --                Gui:setStretch(1.0, 1.0)
-        --                Gui:setAlign(0.5, 1.0)
+        -- Gui:setStretch(1.0, 1.0)
+        -- Gui:setAlign(0.5, 1.0)
         Gui:endContainer() -- end Construction Materials Panel
         Gui:setStretch(1.0, 1.0)
 
@@ -574,7 +574,7 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.992, 0.997)
         Gui:setAlign(0.5, 0.5)
 
-        Gui:beginVerticalContainer() -- Commodity Window Panel
+        Gui:beginVerticalContainer()   -- Commodity Window Panel
         Gui:beginHorizontalContainer() -- Commodity Window Panel; search filter
         Gui:textEx(Cache.Font('Exo2', 20), 'Search:', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.5, 0.0)
@@ -699,7 +699,7 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.992, 0.997)
         Gui:setAlign(0.5, 0.5)
 
-        Gui:beginVerticalContainer() -- Commodity Window Panel
+        Gui:beginVerticalContainer()   -- Commodity Window Panel
         Gui:beginHorizontalContainer() -- Commodity Window Panel; search filter
         Gui:textEx(Cache.Font('Exo2', 20), 'Search:', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.5, 0.0)
@@ -816,23 +816,23 @@ function Test:showMenuDropInner()
         Gui:endContainer() -- end Place Order Panel
         Gui:setStretch(1.0, 1.0)
 
-        Gui:endContainer()                    -- end Commodity Screen
+        Gui:endContainer()                  -- end Commodity Screen
         Gui:setStretch(1.0, 1.0)
     elseif station_options_market == 2 then -- Data/Intel Screen
         Gui:beginScroll(200)
         Gui:checkbox("Thing1", true)
         Gui:checkbox("Thing2", false)
-        Gui:endScroll(InputInstance)                   -- end Data/Intel Screen
+        Gui:endScroll(InputInstance)        -- end Data/Intel Screen
     elseif station_options_market == 3 then -- Exchange Orders Screen
         Gui:beginScroll(200)
         Gui:button("Parnellite")
         Gui:button("Glorboscite")
         Gui:button("Lonsdaleite")
         Gui:button("Ketracel White")
-        Gui:endScroll(InputInstance)                   -- end Exchange Orders Screen
+        Gui:endScroll(InputInstance)        -- end Exchange Orders Screen
     elseif station_options_market == 4 then -- Blank Screen
         Gui:beginScroll(200)
-        Gui:endScroll(InputInstance)                   -- end Blank Screen
+        Gui:endScroll(InputInstance)        -- end Blank Screen
     end
     Gui:endContainer()
     Gui:setStretch(1.0, 1.0)
@@ -885,7 +885,7 @@ function Test:onUpdate(dt)
         self:showCtrlMenu()
         Gui:endContainer()
     else
-        --      self:showMetrics()
+        -- self:showMetrics()
         self:showMenuDrop()
     end
     Gui:endGui(InputInstance)

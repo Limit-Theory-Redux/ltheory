@@ -106,7 +106,7 @@ function MusicPlayer:QueueTrack(query, clearQueue)
 
     table.insert(self.queue, track)
 
-    --  Log.Debug("Queuing Track: " .. track.name)
+    -- Log.Debug("Queuing Track: " .. track.name)
     return track
 end
 

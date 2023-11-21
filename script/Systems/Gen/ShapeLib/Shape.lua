@@ -4,19 +4,19 @@ local wrap     = Math.Wrap
 
 -- BAD MESH PROTECTION POLICY
 -- In the case that a bad piece of mesh data is encountered
---   in any function which operates on a poly,
---   IE, a poly fails a shape:polyValid(poly) test,
---   the function MUST skip that poly for that operation
---   so that we prevent junk shapes & crashes in release.
+-- in any function which operates on a poly,
+-- IE, a poly fails a shape:polyValid(poly) test,
+-- the function MUST skip that poly for that operation
+-- so that we prevent junk shapes & crashes in release.
 -- It is assumed that the validPoly function will ASSERT
---   so that the devs can debug the offending shape.
+-- so that the devs can debug the offending shape.
 
 local Shape    = {}
 Shape.__index  = Shape
 
 -- Shape
---   verts: list of Vec3d
---   polys: list of int indicies, of variable size
+-- verts: list of Vec3d
+-- polys: list of int indicies, of variable size
 setmetatable(Shape, {
     __call = function(T)
         return setmetatable({
@@ -84,7 +84,7 @@ end
 
 -- Connect(Shape other, int[] otherPoly, int[] myPoly)
 -- Transforms other.verts so that the vertex defined by otherPoly
---   is attached to myPoly.
+-- is attached to myPoly.
 function Shape:connect(other, otherPoly, myPoly)
     local myJoint = Joint()
     local valid = myJoint:generateFromPoly(self, myPoly)
@@ -218,8 +218,8 @@ function Shape:getFaceNormal(poly)
         n:inormalize()
         return n
     else
-        --    Log.Debug("Bad normal at poly:") -- TEMP: disabled to keep it from interrupting other testing
-        --    self:printPoly(poly)         -- TEMP: disabled to keep it from interrupting other testing
+        -- Log.Debug("Bad normal at poly:") -- TEMP: disabled to keep it from interrupting other testing
+        -- self:printPoly(poly)         -- TEMP: disabled to keep it from interrupting other testing
         --assert(n:length() > 1e-6)
     end
     return nil
@@ -317,8 +317,8 @@ function Shape:clone()
 end
 
 -- TODO LR : In the rest of the engine, we use 'bound' instead of AABB, please
---           change to :getBound for uniformity (this performs the same
---           operation as the engine's Mesh_GetBound function)
+-- change to :getBound for uniformity (this performs the same
+-- operation as the engine's Mesh_GetBound function)
 -- GetAABB ()
 -- Returns {Vec3d min, Vec3d max}
 function Shape:getAABB()
@@ -423,11 +423,11 @@ function Shape:invertPoly(pi)
 end
 
 -- ExtrudePoly (int pi,
---              float length,
---              Vec3d scale,
---              Vec3d dir)
+-- float length,
+-- Vec3d scale,
+-- Vec3d dir)
 -- Extrudes a single poly by length along normal, contracts/expands by scale
---   toward centroid (no contraction/expansion if omitted)
+-- toward centroid (no contraction/expansion if omitted)
 -- Direction defaults to surface normal
 -- Deletes original poly unless specified otherwise in preserveOriginal
 function Shape:extrudePoly(pi, length, scale, dir, preserveOriginal)
@@ -466,7 +466,7 @@ function Shape:extrudePoly(pi, length, scale, dir, preserveOriginal)
 
     -- Stitch extrusion sides with quads
     -- NOTE : Winding order on the sides must be *opposite* that of the base
-    --        poly order! (Picture it ...)
+    -- poly order! (Picture it ...)
     for j0 = 1, #poly do
         local j1 = j0 % #poly + 1
         self:addQuad(
@@ -490,7 +490,7 @@ end
 
 -- TriangulatePolyCentroid (int[] poly, float length)
 -- Adds a new vertex in the center of poly & creates tris connecting
---   that center to the existing verticies of the poly
+-- that center to the existing verticies of the poly
 -- Extrudes the new vertex by length
 function Shape:triangulatePolyCentroid(pi, length, dir)
     local poly = self.polys[pi]
@@ -514,7 +514,7 @@ end
 -- TriangulateTriEven (int pi, int[] edgeMap)
 -- Splits a single tri into 4 tris (imagine the triforce symbol)
 -- Is useful for applying warps after using,
---   because preserves tri angles
+-- because preserves tri angles
 -- Adds new verts; uses edgeMap to avoid creating duplicate verts
 function Shape:triangulateTriEven(pi, edgeMap, vc)
     local poly = self.polys[pi]
@@ -754,8 +754,8 @@ end
 
 -- PolyValid (int[] poly)
 -- A poly is invalid if it has:
---   < 3 indicies
---   OR normal length < 1e-6
+-- < 3 indicies
+-- OR normal length < 1e-6
 function Shape:polyValid(poly)
     if poly == nil then
         assert(poly ~= nil)

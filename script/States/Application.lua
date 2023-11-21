@@ -152,9 +152,9 @@ function Application:onFrame()
 
         -- Preserving this in case we need to be able to automatically pause on window exit again
         -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
-        --      if InputInstance:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
-        --        GameState.paused = true
-        --      end
+        -- if InputInstance:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
+        --     GameState.paused = true
+        -- end
 
         if GameState.paused then
             timeScale = 0.0
@@ -271,7 +271,7 @@ function Application:onFrame()
 
         if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
             --TODO: replace this with a general "is alive" game state here and in LTR,
-            --      the whole process needs to be improved
+            -- the whole process needs to be improved
             if MainMenu and not MainMenu.dialogDisplayed and
                 not MainMenu.seedDialogDisplayed and
                 not MainMenu.settingsScreenDisplayed then

@@ -26,10 +26,10 @@ local ControlSets = {
     -- Undocked
     {
         -- NOTE: the order of controls matters. When switching away from a non-Ship control,
-        --       the first control in the list will be the new control to be selected. This
-        --       matters when undocking as we need to return to the Ship control for the HUD
-        --       to be activated. That's currently where the code lives for switching the
-        --       active game view back to the ship (and returning the ship to flight mode).
+        -- the first control in the list will be the new control to be selected. This
+        -- matters when undocking as we need to return to the Ship control for the HUD
+        -- to be activated. That's currently where the code lives for switching the
+        -- active game view back to the ship (and returning the ship to flight mode).
         -- NOTE2: Some of the above text is being overtaken by changes. Updates to text to follow.
         predicate = function(self) return not self.player:getControlling():getCurrentAction() end,
         container = nil,
@@ -180,11 +180,11 @@ function MasterControl:activateControl(controlDef)
 end
 
 --function MasterControl:getControlDefName ()
---  if self.activeControlDef then
---    return self.activeControlDef.name
---  else
---    return "-"
---  end
+-- if self.activeControlDef then
+-- return self.activeControlDef.name
+-- else
+-- return "-"
+-- end
 --end
 
 function MasterControl.Create(gameView, player)

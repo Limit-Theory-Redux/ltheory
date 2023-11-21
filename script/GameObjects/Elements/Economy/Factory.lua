@@ -99,7 +99,7 @@ function Factory:updateProduction(prod, dt)
             prod.active = false
             for i, output in prod.type:iterOutputs() do
                 -- TODO : How to handle failure when a factory finishes a production
-                --        for which the output inventory has insufficient capacity?
+                -- for which the output inventory has insufficient capacity?
                 if self.parent:mgrInventoryAddItem(output.item, output.count) then
                     if output.item ~= Item.Energy then
                         Log.Debug("FACTORY %s produced %d units of %s", self.parent:getName(), output.count,
@@ -112,7 +112,7 @@ function Factory:updateProduction(prod, dt)
             end
 
             -- TODO: Make factory trade order timers work
-            --       Until then, after a production run, respawn bids and asks per factory inputs and outputs
+            -- Until then, after a production run, respawn bids and asks per factory inputs and outputs
             for _, input in prod.type:iterInputs() do
                 for i = 1, input.count * Config.econ.inputBacklog do
                     if input.item == Item.Energy then
@@ -152,13 +152,13 @@ end
 function Factory:updateTradeOrders(prod, dt)
     -- Buy inputs and sell outputs
     -- NOTE: This is Josh's original code for re-adding bids and asks after a production run
-    --       Currently it runs constantly (not just after a production run) and inconsistently
+    -- Currently it runs constantly (not just after a production run) and inconsistently
     -- TODO: Fix this so that trade orders run at the correct time and to the correct amounts
     local trader = self.parent:getTrader()
     local duration = prod.type:getDuration() -- ????: should this be used here somewhere?
 
     -- TODO : Intelligently compute price ranges via estimation using item
-    --        intrinsic energy
+    -- intrinsic energy
 
     local askSlope = 0.995
     local bidSlope = 0.995
@@ -200,9 +200,9 @@ function Factory:update(dt)
         end
 
         -- NOTE : Disabled trade orders for the moment due to not having limits on
-        --        max active orders, leading to stalling the entire game via tens
-        --        of thousands of individual energy cell orders...
-        --    self:updateTradeOrders(prod, dt)
+        -- max active orders, leading to stalling the entire game via tens
+        -- of thousands of individual energy cell orders...
+        -- self:updateTradeOrders(prod, dt)
         Profiler.End()
     end
 end

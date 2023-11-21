@@ -33,7 +33,7 @@ function Universe:CreateStarSystem(seed)
         GameState.player.weaponGroup  = 1
 
         -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
-        --   a space station, a visible pilotable ship, and possibly some NPC ships
+        -- a space station, a visible pilotable ship, and possibly some NPC ships
         local afield                  = nil
 
         -- Add planets
@@ -80,7 +80,7 @@ function Universe:CreateStarSystem(seed)
                 end
 
                 -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
-                --       These will be dogfighting challenges!
+                -- These will be dogfighting challenges!
                 if rng:getInt(0, 100) < 20 then
                     local escortHullInteg = escort:mgrHullGetHealthMax()
                     escort:mgrHullSetHealth(floor(escortHullInteg * 1.5), floor(escortHullInteg * 1.5))

@@ -1,12 +1,12 @@
 -- TODO : Seems like there's a unification opportunity here as well. Certainly
---        integrity and capacitor should be unified: all the 'energies' of an
---        entity should be stored in a kind of 'energy inventory' -- to be used
---        by shields, armor, hull, capacitor, and anything else that uses a
---        similar 'virtual currency'
+-- integrity and capacitor should be unified: all the 'energies' of an
+-- entity should be stored in a kind of 'energy inventory' -- to be used
+-- by shields, armor, hull, capacitor, and anything else that uses a
+-- similar 'virtual currency'
 -- NOTE: The above "TODO" came from Josh -- we may want to rethink it. It makes sense
---           that things using energy -- energy weapons, shield generators -- should
---           take that energy from a capacitor. But physical objects, such as hull and
---           armor, don't need to take energy and should have their own "health" values.
+-- that things using energy -- energy weapons, shield generators -- should
+-- take that energy from a capacitor. But physical objects, such as hull and
+-- armor, don't need to take energy and should have their own "health" values.
 
 local Entity      = require('GameObjects.Entity')
 local BasicShapes = require('Systems.Gen.ShapeLib.BasicShapes')

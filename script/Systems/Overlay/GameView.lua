@@ -19,7 +19,7 @@ function GameView:draw(focus, active)
     self.camera:beginDraw()
 
     local system = GameState.world.currentSystem
-    --  local system = self.player:getRoot()
+    -- local system = self.player:getRoot()
     local eye = self.camera.pos
     system:beginRender()
 
@@ -200,10 +200,11 @@ function GameView:draw(focus, active)
 
     --[[
     Unclear what this is referencing will need to investigate later
-  ]]
-    --  if GUI.DrawHmGui then
-    --    GUI.DrawHmGui(self.sx, self.sy)
-    --  end
+
+    if GUI.DrawHmGui then
+        GUI.DrawHmGui(self.sx, self.sy)
+    end
+    --]]
 
     RenderState.PopAll()
     ClipRect.Pop()
