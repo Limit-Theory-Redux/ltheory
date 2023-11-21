@@ -53,11 +53,17 @@ function Loader.defineType()
         local t  = ffi.typeof('Engine')
         local mt = {
             __index = {
-                window  = libphx.Engine_Window,
-                input   = libphx.Engine_Input,
-                hmGui   = libphx.Engine_HmGui,
-                getTime = libphx.Engine_GetTime,
-                exit    = libphx.Engine_Exit,
+                window     = libphx.Engine_Window,
+                input      = libphx.Engine_Input,
+                hmGui      = libphx.Engine_HmGui,
+                free       = libphx.Engine_Free,
+                abort      = libphx.Engine_Abort,
+                getBits    = libphx.Engine_GetBits,
+                getTime    = libphx.Engine_GetTime,
+                getVersion = libphx.Engine_GetVersion,
+                exit       = libphx.Engine_Exit,
+                terminate  = libphx.Engine_Terminate,
+                update     = libphx.Engine_Update,
             },
         }
 
