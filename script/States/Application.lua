@@ -43,12 +43,12 @@ function Application:appInit()
     WindowInstance:setCenteredPosition()
     WindowInstance:setSize(self.resX, self.resY)
 
-    self.audio                  = Audio.Create()
-    self.audiofx                = Audio.Create()
+    self.audio   = Audio.Create()
+    self.audiofx = Audio.Create()
 
     GameState.render.gameWindow = WindowInstance
 
-    self.exit                   = false
+    self.exit = false
 
     WindowInstance:setPresentMode(GameState.render.presentMode)
 
