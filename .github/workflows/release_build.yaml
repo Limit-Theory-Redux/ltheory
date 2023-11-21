@@ -126,7 +126,7 @@ jobs:
         run: for dir in $(ls); do cd $dir && zip ../$dir.zip ./* -r && cd ..; done
       - name: echo repo
         run: echo ${{github.repository}}
-            - name: Get latest release ID
+      - name: Get latest release ID
         uses: octokit/request-action@v2.x
         id: get_latest_release
         with:
