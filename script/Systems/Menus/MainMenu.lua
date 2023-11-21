@@ -140,46 +140,72 @@ function MainMenu:SetMenuMode(mode)
     end
 end
 
+function MainMenu:ShadowText(text, fontName, fontSize, shadowSize, r, g, b, a)
+    Gui:beginStackContainer()
+    Gui:textEx(Cache.Font(fontName, fontSize), text, 0.2, 0.2, 0.2, a)
+    Gui:setMarginEx(shadowSize, shadowSize, 0.0, 0.0) -- make a shadow
+    Gui:textEx(Cache.Font(fontName, fontSize), text, r, g, b, a)
+    Gui:endContainer()
+end
+
 function MainMenu:ShowGui()
     -- Add Main Menu dialog
     local scalefactor = (LTheoryRedux.resX / 22) / 72
     local scalefactorMenuX = 352.8 / LTheoryRedux.resX
     local scalefactorMenuY = 549 / LTheoryRedux.resY
 
-    Gui:beginGroupStack()
-    Gui:textEx(Cache.Font('RajdhaniSemiBold', 72 * scalefactor), 'LIMIT THEORY', 0.2, 0.2, 0.2, 1.0)
-    Gui:setAlign(0.031, 0.042)
-    Gui:textEx(Cache.Font('RajdhaniSemiBold', 72 * scalefactor), 'LIMIT THEORY', 0.9, 0.9, 0.9, 1.0)
-    Gui:setAlign(0.03, 0.04)
-    Gui:textEx(Cache.Font('RajdhaniSemiBold', 58 * scalefactor), 'REDUX', 0.2, 0.2, 0.2, 1.0)
-    Gui:setAlign(0.181, 0.132)
-    Gui:textEx(Cache.Font('RajdhaniSemiBold', 58 * scalefactor), 'REDUX', 0.9, 0.9, 0.9, 1.0)
-    Gui:setAlign(0.18, 0.13)
+    Gui:beginStackContainer()
+    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+    Gui:setPadding(10.0, 10.0)
 
-    Gui:textEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), Config.gameVersion, 0.2, 0.2, 0.2, 1.0)
-    Gui:setAlign(0.012, 0.971)
-    Gui:textEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), Config.gameVersion, 0.9, 0.9, 0.9, 1.0)
-    Gui:setAlign(0.011, 0.970)
+    Gui:beginVerticalContainer()
+    Gui:setVerticalAlignment(AlignVertical.Stretch)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
-    Gui:textEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor),
-        'Resolution = ' .. LTheoryRedux.resX .. ' x ' .. LTheoryRedux.resY, 0.2, 0.2, 0.2, 1.0)
-    Gui:setAlign(0.221, 0.971)
-    Gui:textEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor),
-        'Resolution = ' .. LTheoryRedux.resX .. ' x ' .. LTheoryRedux.resY, 0.9, 0.9, 0.9, 1.0)
-    Gui:setAlign(0.220, 0.970)
+    -- Header
+    Gui:beginVerticalContainer()
+
+    self:ShadowText('LIMIT THEORY', 'RajdhaniSemiBold', 72 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Right)
+    Gui:setMargin(20.0, 20.0)
+
+    self:ShadowText('REDUX', 'RajdhaniSemiBold', 58 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Right)
+    Gui:setMargin(20.0, 20.0)
+
+    Gui:endContainer()
+
+    Gui:spacer()
 
     self:ShowMainMenuInner()
 
-    Gui:setStretch(0.18, 0.5)
-    Gui:setAlign(0.0065, 0.8)
-    Gui:endGroup()
+    -- Footer
+    Gui:beginHorizontalContainer()
+    Gui:setMarginEx(5.0, 10.0, 5.0, 10.0)
+
+    self:ShadowText(Config.gameVersion, 'RajdhaniSemiBold', 12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
+
+    Gui:spacer()
+
+    self:ShadowText('Resolution = ' .. LTheoryRedux.resX .. ' x ' .. LTheoryRedux.resY, 'RajdhaniSemiBold', 12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Right)
+
+    Gui:endContainer()
+
+    Gui:spacer()
+
+    Gui:endContainer()
+
+    Gui:endContainer()
 end
 
 function MainMenu:ShowMainMenuInner()
     -- Add Main Menu items
     local scalefactor = (LTheoryRedux.resX / 24) / 72
 
-    Gui:beginGroupY()
+    Gui:beginVerticalContainer()
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
+
     Gui:pushTextColor(0.9, 0.9, 0.9, 1.0)
     Gui:pushFont(Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
 
@@ -205,8 +231,9 @@ function MainMenu:ShowMainMenuInner()
     if Gui:button("EXIT GAME") then
         LTheoryRedux:exitGame()
     end
+
     Gui:popStyle(2)
-    Gui:endGroup()
+    Gui:endContainer()
 end
 
 function MainMenu:ShowSeedDialog()
@@ -215,17 +242,25 @@ function MainMenu:ShowSeedDialog()
     self.seedDialogDisplayed = true
 
     Gui:beginWindow(guiElements.name, InputInstance)
-    Gui:textEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.6, 1.0, 1.0)
-    Gui:setAlign(0.5, 0.5)
     Gui:setSpacing(16)
+
+    -- TODO: this should be window title parameter
+    Gui:textEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.6, 1.0, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Center)
+
     self:ShowSeedDialogInner()
+
     Gui:endWindow()
-    Gui:setAlign(0.5, 0.5)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
 function MainMenu:ShowSeedDialogInner()
     -- Add new star system seed selection dialog menu items
-    Gui:beginGroupY()
+    Gui:beginVerticalContainer()
+    Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
+    Gui:setSpacing(8)
+
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
     Gui:pushFont(Cache.Font('Exo2', 26))
 
@@ -246,11 +281,16 @@ function MainMenu:ShowSeedDialogInner()
             -- Save the star system seed associated with it
             LTheoryRedux.seed = guiElements[1]["elems"][i][2]
         end
-        Gui:setSpacing(8)
     end
+
+    Gui:popStyle(2)
+    Gui:endContainer()
+
+    -- Buttons: Cancel, Random Seed, Use Seed
+    Gui:beginHorizontalContainer()
+    Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(16)
 
-    Gui:beginGroupX()
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
     Gui:pushFont(Cache.Font('Exo2Bold', 28))
 
@@ -260,8 +300,6 @@ function MainMenu:ShowSeedDialogInner()
         end
         self.seedDialogDisplayed = false
     end
-
-    Gui:setSpacing(16)
 
     if Gui:button("Random Seed") then
         LTheoryRedux:generateNewSeed()
@@ -276,8 +314,6 @@ function MainMenu:ShowSeedDialogInner()
         InputInstance:setCursorVisible(false)
         LTheoryRedux:createStarSystem()
     end
-
-    Gui:setSpacing(16)
 
     if Gui:button("Use Seed") then
         self.seedDialogDisplayed = false
@@ -294,10 +330,7 @@ function MainMenu:ShowSeedDialogInner()
     end
 
     Gui:popStyle(2)
-    Gui:endGroup()
-    Gui:setAlign(0.5, 0.5)
-    Gui:popStyle(2)
-    Gui:endGroup()
+    Gui:endContainer()
 end
 
 function MainMenu:ShowSettingsScreen()
@@ -308,351 +341,49 @@ function MainMenu:ShowSettingsScreen()
     self.settingsScreenDisplayed = true
 
     Gui:beginWindow(guiElements.name, InputInstance)
-    Gui:textEx(Cache.Font('Iceland', 42), 'Settings', 0.3, 0.6, 1.0, 1.0)
-    Gui:setAlign(0.5, 0.5)
-    Gui:rect(1.0, 1.0, 0.3, 0.6, 1.0, 1.0)
-    Gui:setStretch(1.0, 0.5)
     Gui:setSpacing(16)
+
+    -- TODO: this should be window title parameter
+    Gui:textEx(Cache.Font('Iceland', 42), 'Settings', 0.3, 0.6, 1.0, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Center)
+
+    -- Separator
+    Gui:rect(0.3, 0.6, 1.0, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
+    Gui:setFixedHeight(1.0)
+
     self:ShowSettingsScreenInner()
+
     Gui:endWindow()
-    Gui:setAlign(0.5, 0.5)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
 function MainMenu:ShowSettingsScreenInner()
     -- Add new star system seed selection dialog menu items
-    Gui:beginGroupY()
+    Gui:beginVerticalContainer()
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
+
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
     Gui:pushFont(Cache.Font('Exo2', 24))
 
     -- Show Settings options
-    Gui:beginGroupY()
-
-    Gui:textEx(Cache.Font('Exo2', 24), "--- Audio ---", 0.3, 0.6, 1.0, 1.0)
-    Gui:setStretch(0.0, 0.0)
-    Gui:setAlign(0.5, 0.5)
-
-    guiSettings[1][1] = GameState.audio.soundEnabled
-    if guiSettings[1][2] == nil then
-        guiSettings[1][2] = GameState.audio.soundEnabled
-    end
-    guiSettings[1][1] = Gui:checkbox(guiSettings[1][3], guiSettings[1][1])
-    if guiSettings[1][1] then
-        -- Checkbox was selected
-        if not GameState.audio.soundEnabled then
-            LTheoryRedux:SoundOn()
-        end
-    else
-        if GameState.audio.soundEnabled then
-            LTheoryRedux:SoundOff()
-        end
-    end
-
-    Gui:setSpacing(16)
-    Gui:textEx(Cache.Font('Exo2', 24), "--- Graphics ---", 0.3, 0.6, 1.0, 1.0)
-    Gui:setStretch(0.0, 0.0)
-    Gui:setAlign(0.5, 0.5)
-
-    guiSettings[2][1] = GameState.render.fullscreen
-    if guiSettings[2][2] == nil then
-        guiSettings[2][2] = GameState.render.fullscreen
-    end
-    guiSettings[2][1] = Gui:checkbox(guiSettings[2][3], guiSettings[2][1])
-    if guiSettings[2][1] then
-        -- Checkbox was selected
-        if not GameState.render.fullscreen then
-            LTheoryRedux:SetFullscreen(true)
-        end
-    else
-        if GameState.render.fullscreen then
-            LTheoryRedux:SetFullscreen(false)
-        end
-    end
-
+    Gui:beginVerticalContainer()
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
-    Gui:beginGroupX()
-    Gui:textEx(Cache.Font('Exo2', 24), guiSettings[3][3], 1.0, 1.0, 1.0, 1.0)
-    Gui:setStretch(1.0, 0.0)
-    Gui:beginGroupX()
-    if guiSettings[3][2] == nil then
-        guiSettings[3][1] = Settings.get('render.superSample')
-        guiSettings[3][2] = Settings.get('render.superSample')
-    end
-    if Gui:button("-") and guiSettings[3][1] > 1 then
-        guiSettings[3][1] = guiSettings[3][1] - 1
-        Settings.set('render.superSample', guiSettings[3][1])
-    end
-    Gui:textEx(Cache.Font("Ubuntu", 20), Settings.getEnumValName('render.superSample', guiSettings[3][1]), 0.3, 1.0,
-        0.4, 1.0)
-    if Gui:button("+") and guiSettings[3][1] < 3 then
-        guiSettings[3][1] = guiSettings[3][1] + 1
-        Settings.set('render.superSample', guiSettings[3][1])
-    end
-    Gui:endGroup()
-    Gui:endGroup()
-    Gui:setStretch(1.0, 0.0)
 
-    Gui:setSpacing(8)
-    Gui:beginGroupX()
-    Gui:textEx(Cache.Font('Exo2', 24), guiSettings[4][3], 1.0, 1.0, 1.0, 1.0)
-    Gui:setStretch(1.0, 0.0)
-    Gui:beginGroupX()
-    if guiSettings[4][2] == nil then
-        guiSettings[4][1] = GameState.gen.nebulaBrightnessScale
-        guiSettings[4][2] = GameState.gen.nebulaBrightnessScale
-    end
-    if Gui:button("-") and guiSettings[4][1] > 0.25 then
-        guiSettings[4][1] = guiSettings[4][1] - 0.25
-    end
-    Gui:textEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[4][1]), 0.3, 1.0, 0.4, 1.0)
-    if Gui:button("+") and guiSettings[4][1] < 10 then
-        guiSettings[4][1] = guiSettings[4][1] + 0.25
-    end
-    Gui:endGroup()
-    Gui:endGroup()
-    Gui:setStretch(1.0, 0.0)
-
-    Gui:setSpacing(16)
-    Gui:textEx(Cache.Font('Exo2', 24), "--- Interface ---", 0.3, 0.6, 1.0, 1.0)
-    Gui:setStretch(0.0, 0.0)
-    Gui:setAlign(0.5, 0.5)
-
-    Gui:setSpacing(8)
-    Gui:beginGroupX()
-    Gui:textEx(Cache.Font('Exo2', 24), guiSettings[5][3], 1.0, 1.0, 1.0, 1.0)
-    Gui:setStretch(1.0, 0.0)
-    Gui:beginGroupX()
-    if guiSettings[5][2] == nil then
-        guiSettings[5][1] = GameState.ui.cursorStyle
-        guiSettings[5][2] = GameState.ui.cursorStyle
-    end
-    if Gui:button("-") and guiSettings[5][1] > 1 then
-        guiSettings[5][1] = guiSettings[5][1] - 1
-        LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
-    end
-    Gui:textEx(Cache.Font("Ubuntu", 20), Enums.CursorStyleNames[guiSettings[5][1]], 0.3, 1.0, 0.4, 1.0)
-    if Gui:button("+") and guiSettings[5][1] < Enums.CursorStyleCount then
-        guiSettings[5][1] = guiSettings[5][1] + 1
-        LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
-    end
-    Gui:endGroup()
-    Gui:endGroup()
-    Gui:setStretch(1.0, 0.0)
-
-    Gui:setSpacing(8)
-    Gui:beginGroupX()
-    Gui:textEx(Cache.Font('Exo2', 24), guiSettings[6][3], 1.0, 1.0, 1.0, 1.0)
-    Gui:setStretch(1.0, 0.0)
-    Gui:beginGroupX()
-    if guiSettings[6][2] == nil then
-        guiSettings[6][1] = GameState.ui.hudStyle
-        guiSettings[6][2] = GameState.ui.hudStyle
-    end
-    if Gui:button("-") and guiSettings[6][1] > 1 then
-        guiSettings[6][1] = guiSettings[6][1] - 1
-    end
-    Gui:textEx(Cache.Font("Ubuntu", 20), Enums.HudStyleNames[guiSettings[6][1]], 0.3, 1.0, 0.4, 1.0)
-    if Gui:button("+") and guiSettings[6][1] < Enums.HudStyleCount then
-        guiSettings[6][1] = guiSettings[6][1] + 1
-    end
-    Gui:endGroup()
-    Gui:endGroup()
-    Gui:setStretch(1.0, 0.0)
+    self:ShowAudioSettingsBlock()
+    self:ShowGraphicsSettingsBlock()
+    self:ShowInterfaceSettingsBlock()
 
     if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
         -- Don't display game generation settings when viewing Settings in Flight mode
-        Gui:setSpacing(16)
-        Gui:textEx(Cache.Font('Exo2', 24), "--- Generation ---", 0.3, 0.6, 1.0, 1.0)
-        Gui:setStretch(0.0, 0.0)
-        Gui:setAlign(0.5, 0.5)
-
-        Gui:setSpacing(8)
-        guiSettings[7][1] = GameState.gen.uniqueShips
-        if guiSettings[7][2] == nil then
-            guiSettings[7][2] = GameState.gen.uniqueShips
-        end
-        guiSettings[7][1] = Gui:checkbox(guiSettings[7][3], guiSettings[7][1])
-        if guiSettings[7][1] then
-            -- Checkbox was selected
-            if not GameState.gen.uniqueShips then
-                GameState.gen.uniqueShips = true
-            end
-        else
-            if GameState.gen.uniqueShips then
-                GameState.gen.uniqueShips = false
-            end
-        end
-
-        -- NOTE: Although it's possible to factor these latter values down into one set of updates and one loop (which I tried),
-        --       the things we can tweak in Settings *will* change. This section of code should not be prematurely optimized.
-
-        Gui:setSpacing(8)
-        Gui:beginGroupX()
-        Gui:textEx(Cache.Font('Exo2', 24), guiSettings[8][3], 1.0, 1.0, 1.0, 1.0)
-        Gui:setStretch(1.0, 0.0)
-        Gui:beginGroupX()
-        if guiSettings[8][2] == nil then
-            guiSettings[8][1] = GameState.gen.nFields
-            guiSettings[8][2] = GameState.gen.nFields
-        end
-        if Gui:button("-") and guiSettings[8][1] > 0 then
-            guiSettings[8][1] = guiSettings[8][1] - 1
-        end
-        Gui:textEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[8][1]), 0.3, 1.0, 0.4, 1.0)
-        if Gui:button("+") and guiSettings[8][1] < 20 then
-            guiSettings[8][1] = guiSettings[8][1] + 1
-        end
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:setStretch(1.0, 0.0)
-
-        Gui:setSpacing(8)
-        Gui:beginGroupX()
-        Gui:textEx(Cache.Font('Exo2', 24), guiSettings[9][3], 1.0, 1.0, 1.0, 1.0)
-        Gui:setStretch(1.0, 0.0)
-        Gui:beginGroupX()
-        if guiSettings[9][2] == nil then
-            guiSettings[9][1] = GameState.gen.nAsteroids
-            guiSettings[9][2] = GameState.gen.nAsteroids
-        end
-        if Gui:button("-") and guiSettings[9][1] > 1 then
-            guiSettings[9][1] = guiSettings[9][1] - 1
-        end
-        Gui:textEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[9][1]), 0.3, 1.0, 0.4, 1.0)
-        if Gui:button("+") and guiSettings[9][1] < 200 then
-            guiSettings[9][1] = guiSettings[9][1] + 1
-        end
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:setStretch(1.0, 0.0)
-
-        Gui:setSpacing(8)
-        Gui:beginGroupX()
-        Gui:textEx(Cache.Font('Exo2', 24), guiSettings[10][3], 1.0, 1.0, 1.0, 1.0)
-        Gui:setStretch(1.0, 0.0)
-        Gui:beginGroupX()
-        if guiSettings[10][2] == nil then
-            guiSettings[10][1] = GameState.gen.nPlanets
-            guiSettings[10][2] = GameState.gen.nPlanets
-        end
-        if Gui:button("-") and guiSettings[10][1] > 0 then
-            guiSettings[10][1] = guiSettings[10][1] - 1
-        end
-        Gui:textEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[10][1]), 0.3, 1.0, 0.4, 1.0)
-        if Gui:button("+") and guiSettings[10][1] < 1 then
-            guiSettings[10][1] = guiSettings[10][1] + 1
-        end
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:setStretch(1.0, 0.0)
-
-        Gui:setSpacing(8)
-        Gui:beginGroupX()
-        Gui:textEx(Cache.Font('Exo2', 24), guiSettings[11][3], 1.0, 1.0, 1.0, 1.0)
-        Gui:setStretch(1.0, 0.0)
-        Gui:beginGroupX()
-        if guiSettings[11][2] == nil then
-            guiSettings[11][1] = GameState.gen.nStations
-            guiSettings[11][2] = GameState.gen.nStations
-        end
-        if Gui:button("-") and guiSettings[11][1] > 0 then
-            guiSettings[11][1] = guiSettings[11][1] - 1
-        end
-        Gui:textEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[11][1]), 0.3, 1.0, 0.4, 1.0)
-        if Gui:button("+") and guiSettings[11][1] < 50 then
-            guiSettings[11][1] = guiSettings[11][1] + 1
-        end
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:setStretch(1.0, 0.0)
-
-        Gui:setSpacing(8)
-        Gui:beginGroupX()
-        Gui:textEx(Cache.Font('Exo2', 24), guiSettings[12][3], 1.0, 1.0, 1.0, 1.0)
-        Gui:setStretch(1.0, 0.0)
-        Gui:beginGroupX()
-        if guiSettings[12][2] == nil then
-            guiSettings[12][1] = GameState.gen.nAIPlayers
-            guiSettings[12][2] = GameState.gen.nAIPlayers
-        end
-        if Gui:button("-") and guiSettings[12][1] > 0 then
-            guiSettings[12][1] = guiSettings[12][1] - 1
-        end
-        Gui:textEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[12][1]), 0.3, 1.0, 0.4, 1.0)
-        if Gui:button("+") and guiSettings[12][1] < 20 then
-            guiSettings[12][1] = guiSettings[12][1] + 1
-        end
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:setStretch(1.0, 0.0)
-
-        Gui:setSpacing(8)
-        Gui:beginGroupX()
-        Gui:textEx(Cache.Font('Exo2', 24), guiSettings[13][3], 1.0, 1.0, 1.0, 1.0)
-        Gui:setStretch(1.0, 0.0)
-        Gui:beginGroupX()
-        if guiSettings[13][2] == nil then
-            guiSettings[13][1] = GameState.gen.nEconNPCs
-            guiSettings[13][2] = GameState.gen.nEconNPCs
-        end
-        if Gui:button("-") and guiSettings[13][1] > 0 then
-            guiSettings[13][1] = guiSettings[13][1] - 1
-        end
-        Gui:textEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[13][1]), 0.3, 1.0, 0.4, 1.0)
-        if Gui:button("+") and guiSettings[13][1] < 100 then
-            guiSettings[13][1] = guiSettings[13][1] + 1
-        end
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:setStretch(1.0, 0.0)
-
-        Gui:setSpacing(8)
-        Gui:beginGroupX()
-        Gui:textEx(Cache.Font('Exo2', 24), guiSettings[14][3], 1.0, 1.0, 1.0, 1.0)
-        Gui:setStretch(1.0, 0.0)
-        Gui:beginGroupX()
-        if guiSettings[14][2] == nil then
-            guiSettings[14][1] = GameState.gen.nEscortNPCs
-            guiSettings[14][2] = GameState.gen.nEscortNPCs
-        end
-        if Gui:button("-") and guiSettings[14][1] > 0 then
-            guiSettings[14][1] = guiSettings[14][1] - 1
-        end
-        Gui:textEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[14][1]), 0.3, 1.0, 0.4, 1.0)
-        if Gui:button("+") and guiSettings[14][1] < 50 then
-            guiSettings[14][1] = guiSettings[14][1] + 1
-        end
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:setStretch(1.0, 0.0)
-
-        Gui:setSpacing(8)
-        Gui:beginGroupX()
-        Gui:textEx(Cache.Font('Exo2', 24), guiSettings[15][3], 1.0, 1.0, 1.0, 1.0)
-        Gui:setStretch(1.0, 0.0)
-        Gui:beginGroupX()
-        if guiSettings[15][2] == nil then
-            guiSettings[15][1] = GameState.player.shipHull
-            guiSettings[15][2] = GameState.player.shipHull
-        end
-        if Gui:button("-") and guiSettings[15][1] > Enums.ShipHulls.Solo then
-            guiSettings[15][1] = guiSettings[15][1] - 1
-        end
-        local hullSizeName = Config:getObjectInfo("ship_subtypes", 3 + (guiSettings[15][1] - 1))
-        Gui:textEx(Cache.Font("Ubuntu", 20), hullSizeName, 0.3, 1.0, 0.4, 1.0)
-
-        if Gui:button("+") and guiSettings[15][1] < Enums.ShipHulls.VeryLarge then
-            guiSettings[15][1] = guiSettings[15][1] + 1
-        end
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:setStretch(1.0, 0.0)
+        self:ShowGenerationSettingsBlock()
     end
 
-    Gui:endGroup()
+    Gui:endContainer()
 
     -- Show Settings control buttons
-    Gui:setSpacing(16)
-    Gui:beginGroupX()
+    Gui:beginHorizontalContainer()
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
     Gui:pushFont(Cache.Font('Exo2Bold', 28))
 
@@ -708,7 +439,7 @@ function MainMenu:ShowSettingsScreenInner()
         end
     end
 
-    Gui:setSpacing(16)
+    Gui:spacer()
 
     if Gui:button("Use") then
         -- Return to the game using the selected values of each setting
@@ -747,27 +478,279 @@ function MainMenu:ShowSettingsScreenInner()
     end
 
     Gui:popStyle(2)
-    Gui:endGroup()
+    Gui:endContainer()
 
-    Gui:setAlign(0.5, 0.5)
     Gui:popStyle(2)
-    Gui:endGroup()
+    Gui:endContainer()
+end
+
+function MainMenu:ShowAudioSettingsBlock()
+    Gui:textEx(Cache.Font('Exo2', 24), "--- Audio ---", 0.3, 0.6, 1.0, 1.0)
+    Gui:setMargin(0, 5)
+
+    guiSettings[1][1] = GameState.audio.soundEnabled
+    if guiSettings[1][2] == nil then
+        guiSettings[1][2] = GameState.audio.soundEnabled
+    end
+    guiSettings[1][1] = Gui:checkbox(guiSettings[1][3], guiSettings[1][1])
+    if guiSettings[1][1] then
+        -- Checkbox was selected
+        if not GameState.audio.soundEnabled then
+            LTheoryRedux:SoundOn()
+        end
+    else
+        if GameState.audio.soundEnabled then
+            LTheoryRedux:SoundOff()
+        end
+    end
+end
+
+-- TODO: reimplement in HmGui after styling refactoring
+-- TODO: (idea) disable (make grey) -/+ button if operation is not possible
+function MainMenu:GuiSpinner(title, valueText)
+    Gui:beginHorizontalContainer()
+
+    Gui:textEx(Cache.Font('Exo2', 24), title, 1.0, 1.0, 1.0, 1.0)
+
+    Gui:spacer()
+
+    local value = 0
+
+    if Gui:button("-") then
+        value = -1
+    end
+
+    Gui:textEx(Cache.Font("Ubuntu", 20), valueText, 0.3, 1.0, 0.4, 1.0)
+
+    if Gui:button("+") then
+        value = value + 1
+    end
+
+    Gui:endContainer()
+
+    return value
+end
+
+function MainMenu:ShowGraphicsSettingsBlock()
+    Gui:textEx(Cache.Font('Exo2', 24), "--- Graphics ---", 0.3, 0.6, 1.0, 1.0)
+    Gui:setMargin(0, 5)
+
+    guiSettings[2][1] = GameState.render.fullscreen
+    if guiSettings[2][2] == nil then
+        guiSettings[2][2] = GameState.render.fullscreen
+    end
+    guiSettings[2][1] = Gui:checkbox(guiSettings[2][3], guiSettings[2][1])
+    if guiSettings[2][1] then
+        -- Checkbox was selected
+        if not GameState.render.fullscreen then
+            LTheoryRedux:SetFullscreen(true)
+        end
+    else
+        if GameState.render.fullscreen then
+            LTheoryRedux:SetFullscreen(false)
+        end
+    end
+
+    -- Supersampling
+    local spinnerValue = self:GuiSpinner(guiSettings[3][3], Settings.getEnumValName('render.superSample', guiSettings[3][1]))
+    if guiSettings[3][2] == nil then
+        guiSettings[3][1] = Settings.get('render.superSample')
+        guiSettings[3][2] = Settings.get('render.superSample')
+    end
+    if spinnerValue < 0 and guiSettings[3][1] > 1 then
+        guiSettings[3][1] = guiSettings[3][1] - 1
+        Settings.set('render.superSample', guiSettings[3][1])
+    elseif spinnerValue > 0 and guiSettings[3][1] < 3 then
+        guiSettings[3][1] = guiSettings[3][1] + 1
+        Settings.set('render.superSample', guiSettings[3][1])
+    end
+
+    -- Nebula Brightness
+    local spinnerValue = self:GuiSpinner(guiSettings[4][3], tostring(guiSettings[4][1]))
+    if guiSettings[4][2] == nil then
+        guiSettings[4][1] = GameState.gen.nebulaBrightnessScale
+        guiSettings[4][2] = GameState.gen.nebulaBrightnessScale
+    end
+    if spinnerValue < 0 and guiSettings[4][1] > 0.25 then
+        guiSettings[4][1] = guiSettings[4][1] - 0.25
+    elseif spinnerValue > 0 and guiSettings[4][1] < 10 then
+        guiSettings[4][1] = guiSettings[4][1] + 0.25
+    end
+end
+
+function MainMenu:ShowInterfaceSettingsBlock()
+    Gui:textEx(Cache.Font('Exo2', 24), "--- Interface ---", 0.3, 0.6, 1.0, 1.0)
+    Gui:setMargin(0, 5)
+
+    -- Cursor Style
+    local spinnerValue = self:GuiSpinner(guiSettings[5][3], Enums.CursorStyleNames[guiSettings[5][1]])
+    if guiSettings[5][2] == nil then
+        guiSettings[5][1] = GameState.ui.cursorStyle
+        guiSettings[5][2] = GameState.ui.cursorStyle
+    end
+    if spinnerValue < 0 and guiSettings[5][1] > 1 then
+        guiSettings[5][1] = guiSettings[5][1] - 1
+        LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
+    elseif spinnerValue > 0 and guiSettings[5][1] < Enums.CursorStyleCount then
+        guiSettings[5][1] = guiSettings[5][1] + 1
+        LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
+    end
+
+    -- HUD Style
+    local spinnerValue = self:GuiSpinner(guiSettings[6][3], Enums.HudStyleNames[guiSettings[6][1]])
+    if guiSettings[6][2] == nil then
+        guiSettings[6][1] = GameState.ui.hudStyle
+        guiSettings[6][2] = GameState.ui.hudStyle
+    end
+    if spinnerValue < 0 and guiSettings[6][1] > 1 then
+        guiSettings[6][1] = guiSettings[6][1] - 1
+    elseif spinnerValue > 0 and guiSettings[6][1] < Enums.HudStyleCount then
+        guiSettings[6][1] = guiSettings[6][1] + 1
+    end
+end
+
+function MainMenu:ShowGenerationSettingsBlock()
+    Gui:textEx(Cache.Font('Exo2', 24), "--- Generation ---", 0.3, 0.6, 1.0, 1.0)
+    Gui:setMargin(0, 5)
+
+    guiSettings[7][1] = GameState.gen.uniqueShips
+    if guiSettings[7][2] == nil then
+        guiSettings[7][2] = GameState.gen.uniqueShips
+    end
+    guiSettings[7][1] = Gui:checkbox(guiSettings[7][3], guiSettings[7][1])
+    if guiSettings[7][1] then
+        -- Checkbox was selected
+        if not GameState.gen.uniqueShips then
+            GameState.gen.uniqueShips = true
+        end
+    else
+        if GameState.gen.uniqueShips then
+            GameState.gen.uniqueShips = false
+        end
+    end
+
+    -- NOTE: Although it's possible to factor these latter values down into one set of updates and one loop (which I tried),
+    --       the things we can tweak in Settings *will* change. This section of code should not be prematurely optimized.
+
+    -- Asteroid Fields
+    local spinnerValue = self:GuiSpinner(guiSettings[8][3], tostring(guiSettings[8][1]))
+    if guiSettings[8][2] == nil then
+        guiSettings[8][1] = GameState.gen.nFields
+        guiSettings[8][2] = GameState.gen.nFields
+    end
+    if spinnerValue < 0 and guiSettings[8][1] > 0 then
+        guiSettings[8][1] = guiSettings[8][1] - 1
+    elseif spinnerValue > 0 and guiSettings[8][1] < 20 then
+        guiSettings[8][1] = guiSettings[8][1] + 1
+    end
+
+    -- Asteroids per Field
+    local spinnerValue = self:GuiSpinner(guiSettings[9][3], tostring(guiSettings[9][1]))
+    if guiSettings[9][2] == nil then
+        guiSettings[9][1] = GameState.gen.nAsteroids
+        guiSettings[9][2] = GameState.gen.nAsteroids
+    end
+    if spinnerValue < 0 and guiSettings[9][1] > 1 then
+        guiSettings[9][1] = guiSettings[9][1] - 1
+    elseif spinnerValue > 0 and guiSettings[9][1] < 200 then
+        guiSettings[9][1] = guiSettings[9][1] + 1
+    end
+
+    -- Planets
+    local spinnerValue = self:GuiSpinner(guiSettings[10][3], tostring(guiSettings[10][1]))
+    if guiSettings[10][2] == nil then
+        guiSettings[10][1] = GameState.gen.nPlanets
+        guiSettings[10][2] = GameState.gen.nPlanets
+    end
+    if spinnerValue < 0 and guiSettings[10][1] > 0 then
+        guiSettings[10][1] = guiSettings[10][1] - 1
+    elseif spinnerValue > 0 and guiSettings[10][1] < 1 then
+        guiSettings[10][1] = guiSettings[10][1] + 1
+    end
+
+    -- Stations
+    local spinnerValue = self:GuiSpinner(guiSettings[11][3], tostring(guiSettings[11][1]))
+    if guiSettings[11][2] == nil then
+        guiSettings[11][1] = GameState.gen.nStations
+        guiSettings[11][2] = GameState.gen.nStations
+    end
+    if spinnerValue < 0 and guiSettings[11][1] > 0 then
+        guiSettings[11][1] = guiSettings[11][1] - 1
+    elseif spinnerValue > 0 and guiSettings[11][1] < 50 then
+        guiSettings[11][1] = guiSettings[11][1] + 1
+    end
+
+    -- AI Players
+    local spinnerValue = self:GuiSpinner(guiSettings[12][3], tostring(guiSettings[12][1]))
+    if guiSettings[12][2] == nil then
+        guiSettings[12][1] = GameState.gen.nAIPlayers
+        guiSettings[12][2] = GameState.gen.nAIPlayers
+    end
+    if spinnerValue < 0 and guiSettings[12][1] > 0 then
+        guiSettings[12][1] = guiSettings[12][1] - 1
+    elseif spinnerValue > 0 and guiSettings[12][1] < 20 then
+        guiSettings[12][1] = guiSettings[12][1] + 1
+    end
+
+    -- Econ NPCs
+    local spinnerValue = self:GuiSpinner(guiSettings[13][3], tostring(guiSettings[13][1]))
+    if guiSettings[13][2] == nil then
+        guiSettings[13][1] = GameState.gen.nEconNPCs
+        guiSettings[13][2] = GameState.gen.nEconNPCs
+    end
+    if spinnerValue < 0 and guiSettings[13][1] > 0 then
+        guiSettings[13][1] = guiSettings[13][1] - 1
+    elseif spinnerValue > 0 and guiSettings[13][1] < 100 then
+        guiSettings[13][1] = guiSettings[13][1] + 1
+    end
+
+    -- Escort NPCs
+    local spinnerValue = self:GuiSpinner(guiSettings[14][3], tostring(guiSettings[14][1]))
+    if guiSettings[14][2] == nil then
+        guiSettings[14][1] = GameState.gen.nEscortNPCs
+        guiSettings[14][2] = GameState.gen.nEscortNPCs
+    end
+    if spinnerValue < 0 and guiSettings[14][1] > 0 then
+        guiSettings[14][1] = guiSettings[14][1] - 1
+    elseif spinnerValue > 0 and guiSettings[14][1] < 50 then
+        guiSettings[14][1] = guiSettings[14][1] + 1
+    end
+
+    -- Ship Size
+    local spinnerValue = self:GuiSpinner(guiSettings[15][3], Config:getObjectInfo("ship_subtypes", 3 + (guiSettings[15][1] - 1)))
+    if guiSettings[15][2] == nil then
+        guiSettings[15][1] = GameState.player.shipHull
+        guiSettings[15][2] = GameState.player.shipHull
+    end
+    if spinnerValue < 0 and guiSettings[15][1] > Enums.ShipHulls.Solo then
+        guiSettings[15][1] = guiSettings[15][1] - 1
+    elseif spinnerValue > 0 and guiSettings[15][1] < Enums.ShipHulls.VeryLarge then
+        guiSettings[15][1] = guiSettings[15][1] + 1
+    end
 end
 
 function MainMenu:ShowFlightDialog()
     -- Add Flight Mode dialog menu
     Gui:beginWindow("Flight Mode", InputInstance)
-    Gui:textEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.6, 1.0, 1.0)
-    Gui:setAlign(0.5, 0.5)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
     Gui:setSpacing(16)
+
+    -- TODO: this should be window title parameter
+    Gui:textEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.6, 1.0, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Center)
+
     self:ShowFlightDialogInner()
+
     Gui:endWindow()
-    Gui:setAlign(0.5, 0.5)
 end
 
 function MainMenu:ShowFlightDialogInner()
     -- Add Flight Mode dialog menu items
-    Gui:beginGroupY()
+    Gui:beginVerticalContainer()
+    Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
+    Gui:setSpacing(8)
+
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
     Gui:pushFont(Cache.Font('Exo2Bold', 26))
 
@@ -786,8 +769,6 @@ function MainMenu:ShowFlightDialogInner()
     end
 
     if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
-        Gui:setSpacing(8)
-
         if Gui:button("Save Game") then
             -- TODO: Save game state here
             LTheoryRedux:freezeTurrets()
@@ -796,14 +777,12 @@ function MainMenu:ShowFlightDialogInner()
             InputInstance:setCursorVisible(false)
         end
     end
-    Gui:setSpacing(8)
 
     if Gui:button("Load Game") then
         -- TODO: Show Load Game menu once that's been implemented
         -- NOTE: For now, just pop up a Seed Menu dialog for creating a new star system
         self:ShowSeedDialog()
     end
-    Gui:setSpacing(8)
 
     if Gui:button("Game Settings") then
         -- Show Game Settings menu
@@ -811,20 +790,19 @@ function MainMenu:ShowFlightDialogInner()
         GameState:Pause()
         InputInstance:setCursorVisible(true)
     end
-    Gui:setSpacing(8)
 
     if Gui:button("Exit to Main Menu") then
         GameState:SetState(Enums.GameStates.MainMenu)        -- switch to Startup Mode
         LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu) -- use random seed for new background star system and display it in Main Menu mode
         GameState:Unpause()
     end
-    Gui:setSpacing(8)
 
     if Gui:button("Exit Game") then
         LTheoryRedux:exitGame()
     end
+
     Gui:popStyle(2)
-    Gui:endGroup()
+    Gui:endContainer()
 end
 
 function MainMenu:utf8(decimal)

@@ -112,7 +112,7 @@ impl UIRenderer {
         }
     }
 
-    pub fn rect(&mut self, pos: Vec2, size: Vec2, color: Vec4, outline: bool) {
+    pub fn rect(&mut self, pos: Vec2, size: Vec2, color: Vec4, outline: Option<f32>) {
         if let Some(current_layer_id) = self.current_layer_id {
             let next = self.layers[*current_layer_id].rect_id;
             let item = UIRendererRect {

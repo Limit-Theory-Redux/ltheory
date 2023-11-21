@@ -91,8 +91,8 @@ impl UIRendererLayer {
 
                 Draw_Color(rect.color.x, rect.color.y, rect.color.z, rect.color.w);
 
-                if rect.outline {
-                    Draw_Border(1.0, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+                if let Some(s) = rect.outline {
+                    Draw_Border(s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
                 } else {
                     Draw_Rect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
                 }

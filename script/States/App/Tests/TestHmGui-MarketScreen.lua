@@ -62,18 +62,18 @@ function Test:showMenuDrop()
 end
 
 function Test:showMenuDropInner()
-    Gui:beginGroupY()
-    Gui:beginGroupX() -- upper group: 1) location text, 2) station services type buttons, 3) cash on hand text
-    Gui:beginGroupY()
+    Gui:beginVerticalContainer()
+    Gui:beginHorizontalContainer() -- upper group: 1) location text, 2) station services type buttons, 3) cash on hand text
+    Gui:beginVerticalContainer()
     Gui:textEx(Cache.Font('Iceland', 32), 'Docked at', 1.0, 1.0, 1.0, 1.0)
     Gui:setAlign(0.5, 0.2)
     Gui:textEx(Cache.Font('Iceland', 32), 'Titan Station', 1.0, 1.0, 1.0, 1.0)
     Gui:setAlign(0.5, 0.2)
     Gui:textEx(Cache.Font('Iceland', 24), 'Parnell System', 1.0, 1.0, 1.0, 1.0)
     Gui:setAlign(0.5, 0.2)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(0.7, 0.0)
-    Gui:beginGroupX()
+    Gui:beginHorizontalContainer()
     if station_options == 1 then -- Station services: Marketplace
         if station_options_market == 1 then
             Gui:pushFont(Cache.Font('RajdhaniBold', 24))
@@ -186,12 +186,12 @@ function Test:showMenuDropInner()
         if Gui:button("FACTIONS") then station_options_occupy = 4 end
         Gui:popStyle(2)
     end
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(1.0, 1.0)
     Gui:textEx(Cache.Font('Iceland', 24), '$300,561,000', 1.0, 1.0, 1.0, 1.0)
     Gui:setAlign(2.0, 0.5)
     Gui:setStretch(0.1, 0.0)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(1.0, 0.1)
 
     -- divider (ImGui.Divider is a thing that exists. Gui:divider does not. So this is a kludge.
@@ -200,13 +200,13 @@ function Test:showMenuDropInner()
     Gui:setStretch(1.0, 0.0)
     Gui:setSpacing(16)
 
-    Gui:beginGroupX() -- lower group, 2 windows: 1) Station buttons, 2) selected top button details
-    Gui:beginGroupX() -- Station buttons
+    Gui:beginHorizontalContainer() -- lower group, 2 windows: 1) Station buttons, 2) selected top button details
+    Gui:beginHorizontalContainer() -- Station buttons
     Gui:setAlign(0.0, 0.0)
     Gui:setStretch(0.1, 1.0)
-    Gui:beginGroupY()
-    Gui:beginGroupY()
-    Gui:beginGroupY()
+    Gui:beginVerticalContainer()
+    Gui:beginVerticalContainer()
+    Gui:beginVerticalContainer()
     Gui:pushFont(Cache.Font('RajdhaniBold', 32))
     if station_options == 1 then
         Gui:pushTextColor(1.0, 0.3, 0.9, 1.0)
@@ -234,28 +234,28 @@ function Test:showMenuDropInner()
     if Gui:button("OCCUPATION INFO") then station_options = 3 end
     Gui:popStyle(2)
     Gui:setStretch(1.0, 1.8)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setAlign(0.5, 0.4)
     Gui:setStretch(1.0, 0.7)
     Gui:setSpacing(50)
-    Gui:beginGroupY()
+    Gui:beginVerticalContainer()
     Gui:pushTextColor(0.2, 1.0, 0.3, 1.0)
     Gui:pushFont(Cache.Font('RajdhaniBold', 36))
     Gui:button("LAUNCH")
     Gui:popStyle(2)
     Gui:setAlign(0.5, 0.0)
     Gui:setStretch(0.5, 0.0)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setAlign(0.5, 3.0)
     Gui:setStretch(1.0, 0.6)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setAlign(0.5, 1.0)
     Gui:setStretch(2.0, 1.0)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(0.1, 1.0)
-    Gui:endGroup()
+    Gui:endContainer()
 
-    Gui:beginGroupY() -- selected station service details: name and info
+    Gui:beginVerticalContainer() -- selected station service details: name and info
     if station_options_market == 1 then
         Gui:textEx(Cache.Font('Iceland', 24), 'COMMODITY EXCHANGE', 1.0, 1.0, 1.0, 1.0)
     elseif station_options_market == 2 then
@@ -270,10 +270,10 @@ function Test:showMenuDropInner()
 
     Gui:setSpacing(16)
 
-    Gui:beginGroupX()                 -- selected station service details
+    Gui:beginHorizontalContainer()                 -- selected station service details
     if station_options_market == 1 then -- Commodities Screen
-        Gui:beginGroupX()
-        Gui:beginGroupStack()         -- Commodity Panel
+        Gui:beginHorizontalContainer()
+        Gui:beginStackContainer()         -- Commodity Panel
         -- Create a nice border
         Gui:rect(1.0, 1.0, 0.7, 0.7, 0.7, 1.0);
         Gui:setStretch(1.0, 1.0)
@@ -281,20 +281,20 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.992, 0.997)
         Gui:setAlign(0.5, 0.5)
 
-        Gui:beginGroupY() -- Commodity Window Panel
-        Gui:beginGroupX() -- Commodity Window Panel; search filter
+        Gui:beginVerticalContainer() -- Commodity Window Panel
+        Gui:beginHorizontalContainer() -- Commodity Window Panel; search filter
         Gui:textEx(Cache.Font('Exo2', 20), 'Search:', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.5, 0.0)
         Gui:setAlign(0.5, 0.6)
 
-        Gui:beginGroupStack()
+        Gui:beginStackContainer()
         Gui:rect(1.0, 1.0, 0.2, 0.2, 0.2, 1.0);
         Gui:setStretch(1.0, 0.6)
         Gui:setAlign(0.5, 0.5)
         Gui:textEx(Cache.Font('Exo2', 16), 'Current Station', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.7, 0.0)
         Gui:setAlign(0.2, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.2, 0.8)
         Gui:setAlign(0.0, 1.0)
 
@@ -303,7 +303,7 @@ function Test:showMenuDropInner()
         Gui:popStyle(1)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 1.0)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(0.965, 0.2)
         Gui:setAlign(0.5, 0.5)
 
@@ -311,16 +311,16 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.995, 0.05)
         Gui:setAlign(0.5, 1.0)
 
-        Gui:beginGroupX() -- Commodity Window Panel; commodity search textbox
-        Gui:beginGroupStack()
+        Gui:beginHorizontalContainer() -- Commodity Window Panel; commodity search textbox
+        Gui:beginStackContainer()
         Gui:rect(1.0, 1.0, 0.2, 0.2, 0.2, 1.0);
         Gui:setStretch(0.98, 1.0)
         Gui:setAlign(0.5, 0.1)
         Gui:textEx(Cache.Font('Exo2', 16), 'Search Commodity', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.7, 1.0)
         Gui:setAlign(0.2, 1.0)
-        Gui:endGroup()
-        Gui:endGroup()
+        Gui:endContainer()
+        Gui:endContainer()
         Gui:setStretch(0.965, 0.3)
         Gui:setAlign(0.5, 0.0)
 
@@ -328,10 +328,10 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.995, 0.05)
         Gui:setAlign(0.5, 0.0)
 
-        Gui:beginGroupStack()
+        Gui:beginStackContainer()
         Gui:rect(1.0, 1.0, 0.15, 0.15, 0.15, 1.0);
 
-        Gui:beginGroupStack() -- Commodity List Panel
+        Gui:beginStackContainer() -- Commodity List Panel
         -- The BeginScroll() calculation is a hack to keep the length of the scrollable area
         -- inside the bound of its enclosing GroupStack. It glitches when the full game window
         -- is vertically resized too far (but not all the way to the full vertical extent).
@@ -393,15 +393,15 @@ function Test:showMenuDropInner()
         Gui:textEx(Cache.Font('Exo2', 14), 'Unit Prefabs', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Utility', 1.0, 1.0, 1.0, 1.0)
         Gui:endScroll(InputInstance)
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:endGroup() -- end Commodity Window Panel
+        Gui:endContainer()
+        Gui:endContainer()
+        Gui:endContainer() -- end Commodity Window Panel
         Gui:setStretch(1.0, 1.0)
-        Gui:endGroup() -- end Commodity Panel
+        Gui:endContainer() -- end Commodity Panel
         Gui:setStretch(1.0, 1.0)
 
-        Gui:beginGroupY() -- Construction Materials Table Panel
-        Gui:beginGroupX()
+        Gui:beginVerticalContainer() -- Construction Materials Table Panel
+        Gui:beginHorizontalContainer()
         Gui:textEx(Cache.Font('Exo2', 18), 'Construction Materials', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.5, 0.0)
         Gui:setAlign(0.2, 0.5)
@@ -410,11 +410,11 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
         Gui:popStyle(1)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(0.965, 0.0)
         Gui:setAlign(0.5, 0.0)
 
-        Gui:beginGroupStack() -- Construction Materials Panel
+        Gui:beginStackContainer() -- Construction Materials Panel
         -- Create a nice border with internal borders
         Gui:rect(1.0, 1.0, 0.7, 0.7, 0.7, 1.0);
         Gui:setStretch(1.0, 1.0)
@@ -438,135 +438,135 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.995, 0.002)
         Gui:setAlign(0.5, 0.054)
 
-        Gui:beginGroupY()
-        Gui:beginGroupX()
-        Gui:beginGroupY()
+        Gui:beginVerticalContainer()
+        Gui:beginHorizontalContainer()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 18), 'Commodity', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Ticker', 1.0, 1.0, 1.0, 1.0)
-        Gui:endGroup()
-        Gui:beginGroupY()
+        Gui:endContainer()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 18), 'Ask', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Amount', 1.0, 1.0, 1.0, 1.0)
-        Gui:endGroup()
-        Gui:beginGroupY()
+        Gui:endContainer()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 18), 'Bid', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Amount', 1.0, 1.0, 1.0, 1.0)
-        Gui:endGroup()
-        Gui:beginGroupY()
+        Gui:endContainer()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 14), 'Supply', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Demand', 1.0, 1.0, 1.0, 1.0)
-        Gui:endGroup()
-        Gui:endGroup()
+        Gui:endContainer()
+        Gui:endContainer()
         Gui:setStretch(0.965, 0.0)
         Gui:setAlign(0.5, 1.0)
 
-        Gui:beginGroupStack() -- Commodity List Panel
+        Gui:beginStackContainer() -- Commodity List Panel
         -- The BeginScroll() calculation is a hack to keep the length of the scrollable area
         -- inside the bound of its enclosing GroupStack. It glitches when the full game window
         -- is vertically resized too far (but not all the way to the full vertical extent).
         Gui:beginScroll(500 + (self.resY - 900))
-        Gui:beginGroupX()
-        Gui:beginGroupY()
+        Gui:beginHorizontalContainer()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 14), 'Nano Fiber', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(0.0, 0.5)
         Gui:textEx(Cache.Font('Exo2', 12), 'NF.Titan', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(0.0, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(0.0, 0.5)
-        Gui:beginGroupY()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 14), '9.99', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
         Gui:textEx(Cache.Font('Exo2', 12), '2,300', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(0.4, 0.5)
-        Gui:beginGroupY()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 14), '6.50', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
         Gui:textEx(Cache.Font('Exo2', 12), '1300', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(0.8, 0.5)
-        Gui:beginGroupY()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 14), '2,300', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
         Gui:textEx(Cache.Font('Exo2', 14), '1300', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(1.0, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(0.0, 0.0)
-        Gui:beginGroupX()
-        Gui:beginGroupY()
+        Gui:beginHorizontalContainer()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 14), 'Steel', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(0.0, 0.5)
         Gui:textEx(Cache.Font('Exo2', 12), 'STL.Titan', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(0.0, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(0.0, 0.5)
-        Gui:beginGroupY()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 14), '850', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
         Gui:textEx(Cache.Font('Exo2', 12), '10', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(0.4, 0.5)
-        Gui:beginGroupY()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 14), '817', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
         Gui:textEx(Cache.Font('Exo2', 12), '13', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(0.8, 0.5)
-        Gui:beginGroupY()
+        Gui:beginVerticalContainer()
         Gui:textEx(Cache.Font('Exo2', 14), '3001', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
         Gui:textEx(Cache.Font('Exo2', 14), '306', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(1.0, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(0.0, 0.0)
         Gui:endScroll(InputInstance)
-        Gui:endGroup()
+        Gui:endContainer()
         --                    Gui:setStretch(0.95, 0.95)
         --                    Gui:setAlign(1.0, 0.05)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(0.95, 0.9)
         Gui:setAlign(0.1, 0.05)
-        Gui:endGroup() -- end Commodity Window Panel
+        Gui:endContainer() -- end Commodity Window Panel
         --                Gui:setStretch(1.0, 1.0)
         --                Gui:setAlign(0.5, 1.0)
-        Gui:endGroup() -- end Construction Materials Panel
+        Gui:endContainer() -- end Construction Materials Panel
         Gui:setStretch(1.0, 1.0)
 
-        Gui:beginGroupStack() -- Order Book (offers/requests) Panel
+        Gui:beginStackContainer() -- Order Book (offers/requests) Panel
         -- Create a nice border
         Gui:rect(1.0, 1.0, 0.7, 0.7, 0.7, 1.0);
         Gui:setStretch(1.0, 1.0)
@@ -574,19 +574,19 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.992, 0.997)
         Gui:setAlign(0.5, 0.5)
 
-        Gui:beginGroupY() -- Commodity Window Panel
-        Gui:beginGroupX() -- Commodity Window Panel; search filter
+        Gui:beginVerticalContainer() -- Commodity Window Panel
+        Gui:beginHorizontalContainer() -- Commodity Window Panel; search filter
         Gui:textEx(Cache.Font('Exo2', 20), 'Search:', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.5, 0.0)
         Gui:setAlign(0.5, 0.49)
-        Gui:beginGroupStack()
+        Gui:beginStackContainer()
         Gui:rect(1.0, 1.0, 0.2, 0.2, 0.2, 1.0);
         Gui:setStretch(1.0, 0.6)
         Gui:setAlign(0.5, 0.5)
         Gui:textEx(Cache.Font('Exo2', 16), 'Current Station', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.7, 0.0)
         Gui:setAlign(0.2, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.2, 1.0)
         Gui:setAlign(0.0, 0.5)
         Gui:pushFont(Cache.Font('Exo2Bold', 16))
@@ -594,7 +594,7 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
         Gui:popStyle(1)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(0.965, 0.2)
         Gui:setAlign(0.5, 0.05)
 
@@ -602,16 +602,16 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.995, 0.05)
         Gui:setAlign(0.5, 0.0)
 
-        Gui:beginGroupX() -- Commodity Window Panel; commodity search textbox
-        Gui:beginGroupStack()
+        Gui:beginHorizontalContainer() -- Commodity Window Panel; commodity search textbox
+        Gui:beginStackContainer()
         Gui:rect(1.0, 1.0, 0.2, 0.2, 0.2, 1.0);
         Gui:setStretch(0.98, 0.9)
         Gui:setAlign(0.5, 0.5)
         Gui:textEx(Cache.Font('Exo2', 16), 'Search Commodity', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.7, 0.0)
         Gui:setAlign(0.2, 0.5)
-        Gui:endGroup()
-        Gui:endGroup()
+        Gui:endContainer()
+        Gui:endContainer()
         Gui:setStretch(0.965, 0.3)
         Gui:setAlign(0.5, 0.0)
 
@@ -619,10 +619,10 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.995, 0.05)
         Gui:setAlign(0.5, 0.0)
 
-        Gui:beginGroupStack()
+        Gui:beginStackContainer()
         Gui:rect(1.0, 1.0, 0.15, 0.15, 0.15, 1.0);
 
-        Gui:beginGroupStack() -- Commodity List Panel
+        Gui:beginStackContainer() -- Commodity List Panel
         -- The BeginScroll() calculation is a hack to keep the length of the scrollable area
         -- inside the bound of its enclosing GroupStack. It glitches when the full game window
         -- is vertically resized too far (but not all the way to the full vertical extent).
@@ -684,14 +684,14 @@ function Test:showMenuDropInner()
         Gui:textEx(Cache.Font('Exo2', 14), 'Unit Prefabs', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Utility', 1.0, 1.0, 1.0, 1.0)
         Gui:endScroll(InputInstance)
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:endGroup() -- end Commodity Window Panel
+        Gui:endContainer()
+        Gui:endContainer()
+        Gui:endContainer() -- end Commodity Window Panel
         Gui:setStretch(1.0, 1.0)
-        Gui:endGroup() -- Order Book (offers/requests) Panel
+        Gui:endContainer() -- Order Book (offers/requests) Panel
         Gui:setStretch(1.0, 1.0)
 
-        Gui:beginGroupStack() -- Place Order Panel
+        Gui:beginStackContainer() -- Place Order Panel
         -- Create a nice border
         Gui:rect(1.0, 1.0, 0.7, 0.7, 0.7, 1.0);
         Gui:setStretch(1.0, 1.0)
@@ -699,19 +699,19 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.992, 0.997)
         Gui:setAlign(0.5, 0.5)
 
-        Gui:beginGroupY() -- Commodity Window Panel
-        Gui:beginGroupX() -- Commodity Window Panel; search filter
+        Gui:beginVerticalContainer() -- Commodity Window Panel
+        Gui:beginHorizontalContainer() -- Commodity Window Panel; search filter
         Gui:textEx(Cache.Font('Exo2', 20), 'Search:', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.5, 0.0)
         Gui:setAlign(0.5, 0.49)
-        Gui:beginGroupStack()
+        Gui:beginStackContainer()
         Gui:rect(1.0, 1.0, 0.2, 0.2, 0.2, 1.0);
         Gui:setStretch(1.0, 0.6)
         Gui:setAlign(0.5, 0.5)
         Gui:textEx(Cache.Font('Exo2', 16), 'Current Station', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.7, 0.0)
         Gui:setAlign(0.2, 0.5)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1.2, 1.0)
         Gui:setAlign(0.0, 0.5)
         Gui:pushFont(Cache.Font('Exo2Bold', 16))
@@ -719,7 +719,7 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.0, 0.0)
         Gui:setAlign(1.0, 0.5)
         Gui:popStyle(1)
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(0.965, 0.2)
         Gui:setAlign(0.5, 0.05)
 
@@ -727,16 +727,16 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.995, 0.05)
         Gui:setAlign(0.5, 0.0)
 
-        Gui:beginGroupX() -- Commodity Window Panel; commodity search textbox
-        Gui:beginGroupStack()
+        Gui:beginHorizontalContainer() -- Commodity Window Panel; commodity search textbox
+        Gui:beginStackContainer()
         Gui:rect(1.0, 1.0, 0.2, 0.2, 0.2, 1.0);
         Gui:setStretch(0.98, 0.9)
         Gui:setAlign(0.5, 0.5)
         Gui:textEx(Cache.Font('Exo2', 16), 'Search Commodity', 1.0, 1.0, 1.0, 1.0)
         Gui:setStretch(0.7, 0.0)
         Gui:setAlign(0.2, 0.5)
-        Gui:endGroup()
-        Gui:endGroup()
+        Gui:endContainer()
+        Gui:endContainer()
         Gui:setStretch(0.965, 0.3)
         Gui:setAlign(0.5, 0.0)
 
@@ -744,10 +744,10 @@ function Test:showMenuDropInner()
         Gui:setStretch(0.995, 0.05)
         Gui:setAlign(0.5, 0.0)
 
-        Gui:beginGroupStack()
+        Gui:beginStackContainer()
         Gui:rect(1.0, 1.0, 0.15, 0.15, 0.15, 1.0);
 
-        Gui:beginGroupStack() -- Commodity List Panel
+        Gui:beginStackContainer() -- Commodity List Panel
         -- The BeginScroll() calculation is a hack to keep the length of the scrollable area
         -- inside the bound of its enclosing GroupStack. It glitches when the full game window
         -- is vertically resized too far (but not all the way to the full vertical extent).
@@ -809,14 +809,14 @@ function Test:showMenuDropInner()
         Gui:textEx(Cache.Font('Exo2', 14), 'Unit Prefabs', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Utility', 1.0, 1.0, 1.0, 1.0)
         Gui:endScroll(InputInstance)
-        Gui:endGroup()
-        Gui:endGroup()
-        Gui:endGroup() -- end Commodity Window Panel
+        Gui:endContainer()
+        Gui:endContainer()
+        Gui:endContainer() -- end Commodity Window Panel
         Gui:setStretch(1.0, 1.0)
-        Gui:endGroup() -- end Place Order Panel
+        Gui:endContainer() -- end Place Order Panel
         Gui:setStretch(1.0, 1.0)
 
-        Gui:endGroup()                    -- end Commodity Screen
+        Gui:endContainer()                    -- end Commodity Screen
         Gui:setStretch(1.0, 1.0)
     elseif station_options_market == 2 then -- Data/Intel Screen
         Gui:beginScroll(200)
@@ -834,18 +834,18 @@ function Test:showMenuDropInner()
         Gui:beginScroll(200)
         Gui:endScroll(InputInstance)                   -- end Blank Screen
     end
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(1.0, 1.0)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(1.0, 1.0)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(1.0, 1.0)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(1.0, 1.0)
 end
 
 function Test:showGameCtrlInner()
-    Gui:beginGroupY()
+    Gui:beginVerticalContainer()
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
     Gui:pushFont(Cache.Font('Exo2Bold', 18))
     if Gui:button("Cancel") then
@@ -855,7 +855,7 @@ function Test:showGameCtrlInner()
     if Gui:button("Quit") then
         Test:quit()
     end
-    Gui:endGroup()
+    Gui:endContainer()
 end
 
 function Test:showCtrlMenu()
@@ -881,9 +881,9 @@ function Test:onUpdate(dt)
     end
     Gui:beginGui(self.resX, self.resY, InputInstance)
     if drawExitMenu then
-        Gui:beginGroupStack()
+        Gui:beginStackContainer()
         self:showCtrlMenu()
-        Gui:endGroup()
+        Gui:endContainer()
     else
         --      self:showMetrics()
         self:showMenuDrop()
