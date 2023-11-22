@@ -11,7 +11,9 @@ edition.workspace = true
 phx.workspace = true
 
 # external crates
+build-time = "0.1"
 clap = { version = "4.4", features = ["derive"] }
+git-version = "0.3"
 libc = "0.2"
 
 [build-dependencies]

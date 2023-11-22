@@ -31,6 +31,10 @@ function InitSystem()
         GlobalRestrict.On()
 
         dofile('./script/Config/Version.lua')
+        if Config.gameVersion ~= "0.0.0" and Config.gameVersion ~= Engine.GetVersion() then
+            Log.Error("Engine and script version mismatch. Engine: %s. Script: %s.", Engine.GetVersion(), Config.gameVersion)
+        end
+
         dofile('./script/Config/App.lua')
 
         -- Load Enums

@@ -39,7 +39,9 @@ jobs:
         run: echo $SHA_SHORT
       - name: Extract branch name
         shell: bash
-        run: echo "BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_ENV
+        run: |
+          BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          echo "BRANCH=${BRANCH_NAME/\//\\\/}" >> $GITHUB_ENV
       - name: Confirm nightly build name
         id: build_name
         run: |
@@ -54,10 +56,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Update build number
         run: |
-          sed -i 's/Config.gameVersion = \".*\"/Config.gameVersion = \"${{ needs.gen-build-version.outputs.build }}\"/' "${env:GITHUB_WORKSPACE}/script/Config/App.lua"
+          sed -i 's/Config.gameVersion = \".*\"/Config.gameVersion = \"${{ needs.gen-build-version.outputs.build }}\"/' "${env:GITHUB_WORKSPACE}/script/Config/Version.lua"
       - name: Build
         shell: bash
-        run: ./build.sh
+        run: |
+          PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
+          ./build.sh
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
