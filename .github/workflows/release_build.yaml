@@ -166,7 +166,7 @@ jobs:
         with:
           name: "Nightly ${{ needs.gen-build-version.outputs.build }}"
           body: "Build log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          tag_name: "latest"
+          tag_name: latest
           draft: false
           prerelease: true
           files: ./*.zip
