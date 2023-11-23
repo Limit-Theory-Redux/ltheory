@@ -31,6 +31,11 @@ elif [[ "$OSTYPE" == "msys" ]]; then
 fi
 
 mkdir -p bin
+
+if [ -z "$PHX_VERSION" ]; then
+    export PHX_VERSION
+fi
+
 if [[ $debug = 1 ]]; then
     cargo build
     cargo test --no-fail-fast
