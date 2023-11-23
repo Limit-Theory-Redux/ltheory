@@ -155,7 +155,7 @@ jobs:
       - name: Re-create 'latest' tag with the current SHA
         uses: octokit/request-action@v2.x
         with:
-          route: POST /repos/Limit-Theory-Redux/ltheory/git/refs
+          route: POST /repos/${{github.repository}}/git/refs
           ref: refs/tags/latest
           sha: ${{ github.sha }}
         env:
