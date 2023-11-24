@@ -149,7 +149,8 @@ local function addBlackMarket(system)
     })
 
     system.pirateStation = system:spawnPirateStation(Enums.StationHulls.Small, piratePlayer)
-    system.pirateStation:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
+    -- disp shouldn't be based on a ship tbh, also replace with faction/ai player dispo later
+    system.pirateStation:setDisposition(GameState.player.currentShip, Config.game.dispoMin)
     GameState.player.currentShip:setDisposition(system.pirateStation, Config.game.dispoMin)
 
     system:spawnAI(aiPirateCount, Actions.Wait(1), piratePlayer)
