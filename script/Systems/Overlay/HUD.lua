@@ -52,62 +52,62 @@ function HUD:drawSystemText(a)
     HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBarLight, hudFsize, 0.0, text2)
 end
 
-function HUD:drawTargetText (a)
-  local player = self.player
-  local playerShip = player:getControlling()
-  local playerTarget = playerShip:getTarget()
+function HUD:drawTargetText(a)
+    local player = self.player
+    local playerShip = player:getControlling()
+    local playerTarget = playerShip:getTarget()
 
-  if playerTarget then
-    local cx, cy = self.sx / 2, self.sy / 2
+    if playerTarget then
+        local cx, cy = self.sx / 2, self.sy / 2
 
-    local subtypetext = ""
-    if playerTarget:getType() == Config:getObjectTypeByName("object_types", "Station") then
-      subtypetext = Config:getObjectInfo("station_subtypes", playerTarget:getSubType()) .. " "
+        local subtypetext = ""
+        if playerTarget:getType() == Config:getObjectTypeByName("object_types", "Station") then
+            subtypetext = Config:getObjectInfo("station_subtypes", playerTarget:getSubType()) .. " "
+        end
+
+        local faction
+        local factionName = "none"
+        if playerTarget.owner then
+            faction = playerTarget.owner:getFaction()
+
+            if faction ~= "none" then
+                factionName = faction:getName()
+            end
+        end
+
+        local text1 = format("Target ID: %s", subtypetext .. playerTarget:getName())
+        local text2 = format("Target Faction: %s", factionName)
+
+        if playerTarget.usesBoost then
+            text1 = text1 .. " [Ace]"
+        end
+        if playerTarget:isDestroyed() then
+            text1 = text1 .. " [destroyed]"
+        end
+
+        local longestText = max(#text1, #text2)
+
+        local hudX = 0
+        local hudY = 0
+        local hudFsize = hudFontSize
+        if GameState.ui.hudStyle == Enums.HudStyles.Wide then
+            hudX = self.sx - (longestText * 19)
+            hudY = floor(self.sy / 16)
+            hudFsize = hudFontSize + 12
+        elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
+            hudX = cx + floor(cx / 4)
+            hudY = floor(self.sy / 8)
+            hudFsize = hudFontSize + 6
+        elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
+            hudX = cx + 100
+            hudY = cy - 280
+            hudFsize = hudFontSize
+        end
+
+        -- Draw target faction name and ID
+        HUD:drawHudTextDouble(hudX, hudY - 32, Config.ui.color.meterBarLight, hudFsize, 0.0, text1)
+        HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBarLight, hudFsize, 0.0, text2)
     end
-
-    local faction
-    local factionName = "none"
-    if playerTarget.owner then
-      faction = playerTarget.owner:getFaction()
-
-      if faction ~= "none" then
-        factionName = faction:getName()
-      end
-    end
-
-    local text1 = format("Target ID: %s", subtypetext .. playerTarget:getName())
-    local text2 = format("Target Faction: %s", factionName)
-
-    if playerTarget.usesBoost then
-      text1 = text1 .. " [Ace]"
-    end
-    if playerTarget:isDestroyed() then
-      text1 = text1 .. " [destroyed]"
-    end
-
-    local longestText = max(#text1, #text2)
-
-    local hudX = 0
-    local hudY = 0
-    local hudFsize = hudFontSize
-    if GameState.ui.hudStyle == Enums.HudStyles.Wide then
-      hudX = self.sx - (longestText * 19)
-      hudY = floor(self.sy / 16)
-      hudFsize = hudFontSize + 12
-    elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
-      hudX = cx + floor(cx / 4)
-      hudY = floor(self.sy / 8)
-      hudFsize = hudFontSize + 6
-    elseif GameState.ui.hudStyle == Enums.HudStyles.Tight  then
-      hudX = cx + 100
-      hudY = cy - 280
-      hudFsize = hudFontSize
-    end
-
-    -- Draw target faction name and ID
-    HUD:drawHudTextDouble(hudX, hudY - 32, Config.ui.color.meterBarLight, hudFsize, 0.0, text1)
-    HUD:drawHudTextDouble(hudX, hudY,      Config.ui.color.meterBarLight, hudFsize, 0.0, text2)
-  end
 end
 
 function HUD:drawArmorIntegrity(a)
