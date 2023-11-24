@@ -11,7 +11,9 @@ function Entity:addClaim(entity, strength)
     end
 end
 
-function Entity:getRelation(entity)
+function Entity:getClaimStrength(entity)
     local guid = entity:getGuid()
     return self.claims[guid] or format('Entity @ %p', self)
 end
+
+--! Consider if this is a duplicate of Elements\NPC\Claims or both are of use
