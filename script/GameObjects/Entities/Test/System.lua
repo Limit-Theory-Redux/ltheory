@@ -848,10 +848,10 @@ function System:spawnPirateStation(hullSize, player)
     -- Spawn a new space station
     local station = Objects.Station(self.rng:get31(), hullSize)
     station:setType(Config:getObjectTypeByName("object_types", "Station"))
-    station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirate")) -- pirate station
+    station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirates")) -- pirate station
 
     -- Give the station a name
-    station:setName(Words.getCoolName(rng) .. " Marauders")
+    station:setName(player:getFaction().name)
 
     -- Set station location within the extent of a randomly selected asteroid field
     station.zone = self:place(station)
