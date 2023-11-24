@@ -5,7 +5,7 @@ local BasicShapes  = require('Systems.Gen.ShapeLib.BasicShapes')
 local RandomShapes = require('Systems.Gen.ShapeLib.RandomShapes')
 require('Systems.Gen.ShapeLib.Warp')
 -- util
-local MathUtil     = require('Systems.Gen.MathUtil')
+local MathUtil = require('Systems.Gen.MathUtil')
 
 Settings.addFloat('genship.global.curveZ', 'Curve Z', 0.0, -3.0, 3.0)
 Settings.addFloat('genship.global.curveY', 'Curve Y', 0.0, -3.0, 3.0)
@@ -13,47 +13,47 @@ Settings.addFloat('genship.global.curveY', 'Curve Y', 0.0, -3.0, 3.0)
 local ShipWarps = {}
 
 function ShipWarps.CurveWarps(rng, shape)
-  -- center (makes curves better)
-  shape:center()
+    -- center (makes curves better)
+    shape:center()
 
-  -- helper data
-  local shapeAABB = shape:getAABB()
-  local xMin = shapeAABB.lower.x
-  local xMax = shapeAABB.upper.x
+    -- helper data
+    local shapeAABB = shape:getAABB()
+    local xMin = shapeAABB.lower.x
+    local xMax = shapeAABB.upper.x
 
-  local curveY = 0
-  local curveZ = 0
-  if Settings['genship.override'] then
-    curveY = Settings['genship.global.curveY']
-    curveZ = Settings['genship.global.curveZ']
-  else
-    if rng:chance(0.5) then curveY = rng:getUniformRange(-1.0, 1.0) end
-    if rng:chance(0.5) then curveZ = rng:getUniformRange(-1.0, 1.0) end
-  end
+    local curveY = 0
+    local curveZ = 0
+    if Settings['genship.override'] then
+        curveY = Settings['genship.global.curveY']
+        curveZ = Settings['genship.global.curveZ']
+    else
+        if rng:chance(0.5) then curveY = rng:getUniformRange(-1.0, 1.0) end
+        if rng:chance(0.5) then curveZ = rng:getUniformRange(-1.0, 1.0) end
+    end
 
-  --print("curveY: ", curveY)
-  --print("curveZ: ", curveZ)
+    --Log.Debug("curveY: ", curveY)
+    --Log.Debug("curveZ: ", curveZ)
 
-  -- Curve z along x
-  shape:warp(function (v)
-    -- min, max, amt
-    local x = (v.x - xMin)/(xMax - xMin)
-    x = Math.Lerp(0, math.pi, x)
-    v.z = v.z + sin(x)*curveZ
-  end)
-  shape:center()
+    -- Curve z along x
+    shape:warp(function(v)
+        -- min, max, amt
+        local x = (v.x - xMin) / (xMax - xMin)
+        x = Math.Lerp(0, math.pi, x)
+        v.z = v.z + sin(x) * curveZ
+    end)
+    shape:center()
 
-  -- Curve y along x
-  shape:warp(function (v)
-    -- min, max, amt
-    local x = (v.x - xMin)/(xMax - xMin)
-    x = Math.Lerp(0, math.pi, x)
-    v.y = v.y + sin(x)*curveY
-  end)
+    -- Curve y along x
+    shape:warp(function(v)
+        -- min, max, amt
+        local x = (v.x - xMin) / (xMax - xMin)
+        x = Math.Lerp(0, math.pi, x)
+        v.y = v.y + sin(x) * curveY
+    end)
 
-  shape:center()
+    shape:center()
 
-  return shape
+    return shape
 end
 
 return ShipWarps

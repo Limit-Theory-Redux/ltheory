@@ -7,10 +7,10 @@
 /target/
 
 # IDEs
-/.vs/
-/.vscode/
-/.idea/
-/cmake-build-*/
+.idea/
+.vs/
+.vscode/
+cmake-build-*/
 
 ## OS Junk files
 
@@ -45,4 +45,3 @@ ehthumbs.db
 ehthumbs_vista.db
 *.stackdump
 [Dd]esktop.ini
-*.code-workspace

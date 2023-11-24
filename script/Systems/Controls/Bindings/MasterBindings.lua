@@ -1,12 +1,12 @@
 local Control = require('Systems.Controls.Control')
 
 local self = {
-  TogglePanel     = Control.Key(Button.Keyboard.Backtick):delta(),
-  Controls = {
-                    Control.Key(Button.Keyboard.N1):delta(),
-                    Control.Key(Button.Keyboard.N2):delta(),
-                    Control.Key(Button.Keyboard.N3):delta(),
-  },
+    TogglePanel = Control.Key(Button.KeyboardBackslash):delta(),
+    Controls    = {
+        Control.Key(Button.KeyboardKey1):delta(),
+        Control.Key(Button.KeyboardKey2):delta(),
+        Control.Key(Button.KeyboardKey3):delta(),
+    },
 }
 
 return self
