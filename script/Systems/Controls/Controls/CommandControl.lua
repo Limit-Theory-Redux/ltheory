@@ -293,7 +293,7 @@ function CommandControl:onInput(state)
     end
 
     self.moveDir = Vec3f(
-        CameraBindings.TranslateX:get(), 0,
+        CameraBindings.TranslateX:get(), CameraBindings.TranslateY:get(),
         CameraBindings.TranslateZ:get()
     ):clampLength(1)
     if not self.moveDir:isZero() then
