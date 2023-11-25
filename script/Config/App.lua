@@ -873,7 +873,7 @@ Config.objectInfo                = {
             { 2, "Reserved" },
             { 3, "Solar Energy Array" },
             { 4, "Nuclear Reactor" },
-            { 5, "Pirates" },
+            { 5, "Pirate" },
         }
     },
     {
