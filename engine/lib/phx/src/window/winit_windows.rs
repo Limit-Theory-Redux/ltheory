@@ -13,9 +13,6 @@ use super::{CursorGrabMode, Window, WindowMode, WindowPosition, WindowResolution
 /// A resource which contains [`winit`] library windows.
 #[derive(Debug)]
 pub struct WinitWindows {
-    gl_version_major: u8,
-    gl_version_minor: u8,
-
     /// Stores [`winit`] windows by window identifier.
     pub windows: HashMap<winit::window::WindowId, WinitWindow>,
 
@@ -27,10 +24,8 @@ pub struct WinitWindows {
 
 impl WinitWindows {
     /// Create WinitWindows manager for specified GL version
-    pub fn new(gl_version_major: u8, gl_version_minor: u8) -> Self {
+    pub fn new(_: u8, _: u8) -> Self {
         Self {
-            gl_version_major,
-            gl_version_minor,
             windows: Default::default(),
             _not_send_sync: Default::default(),
         }
@@ -118,6 +113,43 @@ impl WinitWindows {
         // Create the window.
         let winit_window = winit_window_builder.build(&event_loop).unwrap();
 
+        // Set up WGPU.
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::default());
+        let surface = unsafe { instance.create_surface(&winit_window) }.unwrap();
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::HighPerformance,
+            compatible_surface: Some(&surface),
+            force_fallback_adapter: false,
+        }))
+        .unwrap();
+    
+        let (device, queue) = pollster::block_on(adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                label: None,
+                features: wgpu::Features::empty(),
+                limits: wgpu::Limits::default(),
+            },
+            None, // Trace path
+        ))
+        .unwrap();
+    
+        let size = winit_window.inner_size();
+        let surface_caps = surface.get_capabilities(&adapter);
+        let surface_format = surface_caps.formats.iter()
+            .copied()
+            .find(|f| f.is_srgb())            
+            .unwrap_or(surface_caps.formats[0]);
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: surface_format,
+            width: size.width,
+            height: size.height,
+            present_mode: wgpu::PresentMode::Fifo,//surface_caps.present_modes[0],
+            alpha_mode: wgpu::CompositeAlphaMode::Opaque,
+            view_formats: vec![],
+        };
+        surface.configure(&device, &config);
+
         // let template = ConfigTemplateBuilder::new()
         //     .with_alpha_size(8)
         //     .with_transparency(cfg!(cgl_backend));
@@ -187,8 +219,15 @@ impl WinitWindows {
         }
 
         let id = winit_window.id();
-        
-        let mut winit_window_wrapper = WinitWindow::new(winit_window);
+
+        let mut winit_window_wrapper = WinitWindow::new(
+            surface,
+            device,
+            queue,
+            config,
+            size,
+            winit_window
+        );
         winit_window_wrapper.resume();
 
         // Track the window and return its ID.

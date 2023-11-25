@@ -3,14 +3,32 @@ use tracing::{debug, error, warn};
 
 #[derive(Debug)]
 pub struct WinitWindow {
+    surface: wgpu::Surface,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
+    size: winit::dpi::PhysicalSize<u32>,
+    // The window must be declared after the surface so
+    // it gets dropped after it as the surface contains
+    // unsafe references to the window's resources.
     window: winit::window::Window,
 }
 
 impl WinitWindow {
     pub fn new(
+        surface: wgpu::Surface,
+        device: wgpu::Device,
+        queue: wgpu::Queue,
+        config: wgpu::SurfaceConfiguration,
+        size: winit::dpi::PhysicalSize<u32>,
         window: winit::window::Window,
     ) -> Self {
         Self {
+            surface,
+            device,
+            queue,
+            config,
+            size,
             window,
         }
     }
@@ -27,23 +45,17 @@ impl WinitWindow {
         debug!("WinitWindow::suspend");
     }
 
-    pub fn resize(&self, width: u32, height: u32) {
-        if let Some(width) = NonZeroU32::new(width) {
-            if let Some(height) = NonZeroU32::new(height) {
-                // Some platforms like EGL require resizing GL surface to update the size
-                // Notable platforms here are Wayland and macOS, other don't require it
-                // and the function is no-op, but it's wise to resize it for portability
-                // reasons.
-                // if let GlState::Current { context, surface } = &self.gl_state {
-                //     surface.resize(context, width, height);
-
-                //     glutin_render::resize(width.get() as i32, height.get() as i32);
-                // }
-            }
+    pub fn resize(&mut self, width: u32, height: u32) {
+        if width != 0 && height != 0 {
+            self.size.width = width;
+            self.size.height = height;
+            self.config.width = width;
+            self.config.height = height;
+            self.surface.configure(&self.device, &self.config);
         }
     }
 
-    pub fn redraw(&self) {
+    pub fn redraw(&mut self) {
         // if let GlState::Current { context, surface } = &self.gl_state {
         //     self.window.request_redraw();
 

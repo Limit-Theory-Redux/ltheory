@@ -87,9 +87,9 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
     if !TexFormat_IsValid(format) {
         panic!("TexCube_Create: Invalid texture format requested");
     }
-    if TexFormat_IsDepth(format) {
-        panic!("TexCube_Create: Cannot create cubemap with depth format");
-    }
+    // if TexFormat_IsDepth(format) {
+    //     panic!("TexCube_Create: Cannot create cubemap with depth format");
+    // }
 
     let this = MemNew!(TexCube);
     (*this)._refCount = 1;

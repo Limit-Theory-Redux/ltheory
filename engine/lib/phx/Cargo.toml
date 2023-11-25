@@ -43,6 +43,7 @@ winit = "0.28"
 wgpu = "0.18"
 env_logger = "0.10"
 log = "0.4"
+pollster = "0.3"
 
 [build-dependencies]
 cmake = "0.1"

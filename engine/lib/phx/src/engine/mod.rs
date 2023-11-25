@@ -119,10 +119,8 @@ impl Engine {
             self.window.state = None;
         }
 
-        let winit_window = winit_window_wrapper.window();
-
         if self.window.title != self.cache.window.title {
-            winit_window.set_title(self.window.title.as_str());
+            winit_window_wrapper.window().set_title(self.window.title.as_str());
         }
 
         if self.window.mode != self.cache.window.mode {
@@ -131,11 +129,11 @@ impl Engine {
                     Some(winit::window::Fullscreen::Borderless(None))
                 }
                 WindowMode::Fullscreen => Some(winit::window::Fullscreen::Exclusive(
-                    get_best_videomode(&winit_window.current_monitor().unwrap()),
+                    get_best_videomode(&winit_window_wrapper.window().current_monitor().unwrap()),
                 )),
                 WindowMode::SizedFullscreen => {
                     Some(winit::window::Fullscreen::Exclusive(get_fitting_videomode(
-                        &winit_window.current_monitor().unwrap(),
+                        &winit_window_wrapper.window().current_monitor().unwrap(),
                         self.window.width() as u32,
                         self.window.height() as u32,
                     )))
@@ -143,8 +141,8 @@ impl Engine {
                 WindowMode::Windowed => None,
             };
 
-            if winit_window.fullscreen() != new_mode {
-                winit_window.set_fullscreen(new_mode);
+            if winit_window_wrapper.window().fullscreen() != new_mode {
+                winit_window_wrapper.window().set_fullscreen(new_mode);
             }
         }
 
@@ -153,9 +151,11 @@ impl Engine {
             let height = self.window.resolution.physical_height();
             let physical_size = PhysicalSize::new(width, height);
 
-            winit_window.set_inner_size(physical_size);
+            winit_window_wrapper.window().set_inner_size(physical_size);
             winit_window_wrapper.resize(width, height);
         }
+
+        let winit_window = winit_window_wrapper.window();
 
         if self.window.physical_cursor_position() != self.cache.window.physical_cursor_position() {
             if let Some(physical_position) = self.window.physical_cursor_position() {
@@ -297,7 +297,6 @@ impl Engine {
         let mut engine = Engine::new(2, 1);
 
         let entry_point_path = PathBuf::new().join(entry_point);
-
         if !entry_point_path.exists() {
             // TODO: do we really need this magic?
             std::env::set_current_dir("../").expect("Cannot change folder to parent");
@@ -308,7 +307,6 @@ impl Engine {
         }
 
         let event_loop = EventLoop::new();
-
         engine.init_winit_window(&event_loop);
 
         // Apply window changes made by a script
@@ -375,6 +373,15 @@ impl Engine {
                                 .window
                                 .resolution
                                 .set_physical_resolution(size.width, size.height);
+                        }
+                        WindowEvent::ScaleFactorChanged {
+                            new_inner_size,
+                            ..
+                        } => {
+                            engine
+                                .window
+                                .resolution
+                                .set_physical_resolution(new_inner_size.width, new_inner_size.height);
                         }
                         WindowEvent::CloseRequested => {
                             call_lua_func(&engine, "AppClose");
@@ -477,12 +484,6 @@ impl Engine {
                         }
                         WindowEvent::ReceivedCharacter(_c) => {
                             // TODO: typing in the GUI?
-                        }
-                        WindowEvent::ScaleFactorChanged {
-                            scale_factor: _,
-                            new_inner_size: _,
-                        } => {
-                            // TODO: implement
                         }
                         WindowEvent::Focused(focused) => {
                             engine.window.focused = focused;
