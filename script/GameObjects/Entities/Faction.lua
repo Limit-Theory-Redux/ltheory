@@ -6,7 +6,7 @@ local Faction = subclass(Entity, function(self, def)
     self:setFactionType(def.type)
 
     if def.owner then
-        self:setOwner(def.owner)
+        self:setOwner(def.owner, false)
         def.owner:setFaction(self)
     end
 end)

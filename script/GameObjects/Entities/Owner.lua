@@ -17,13 +17,19 @@ function Entity:getOwnerRoot()
     return root
 end
 
-function Entity:setOwner(owner)
+function Entity:setOwner(owner, isAsset)
     if self.owner then
-        self.owner:removeAsset(self)
+        if self.owner.hasAsset and self.owner:hasAsset(self) then
+            self.owner:removeAsset(self)
+        end
         self.owner = nil
     end
 
     if owner then
-        owner:addAsset(self)
+        if isAsset then
+            owner:addAsset(self)
+        else
+            self.owner = owner
+        end
     end
 end

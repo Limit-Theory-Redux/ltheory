@@ -44,7 +44,7 @@ function LTheory:generate()
     ship:setPos(Config.gen.origin)
     ship:setFriction(0)
     ship:setSleepThreshold(0, 0)
-    ship:setOwner(self.player)
+    ship:setOwner(self.player, true)
     self.player:setControlling(ship)
     GameState.player.currentShip = ship
 
@@ -59,7 +59,7 @@ function LTheory:generate()
         local escort = self.system:spawnShip(shipSize, nil)
         local offset = rng:getSphere():scale(300)
         escort:setPos(ship:getPos() + offset)
-        escort:setOwner(self.player)
+        escort:setOwner(self.player, true)
         if rng:getInt(0, 100) < 20 then
             escort.usesBoost = true
         end

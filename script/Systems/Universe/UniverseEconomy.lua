@@ -24,7 +24,7 @@ local function addSystemGenerics(system)
 
     -- Add a generic ship-like entity to serve as the imaginary player ship
     system.tradeShip = Entity()
-    system.tradeShip:setOwner(tradeAi)
+    system.tradeShip:setOwner(tradeAi, true)
 
     -- Every inhabited star system gets one "free" solar plant
     -- TODO: Don't do this step for star systems that are not inhabited
@@ -105,10 +105,8 @@ local function addMarket(system)
         printf("%d assets added to %s", aiAssetCount, aiPlayer:getName())
         -- Configure assets
         for asset in aiPlayer:iterAssets() do
-            if asset.type ~= Enums.EntityType.Faction then
-                asset:setFaction(playerFaction)
-                system:place(asset)
-            end
+            asset:setFaction(playerFaction)
+            system:place(asset)
         end
 
         -- Tell AI player to start using the Think action
@@ -157,18 +155,16 @@ local function addBlackMarket(system)
     printf("%d assets added to %s", aiPirateCount, piratePlayer:getName())
     -- Configure assets
     for asset in piratePlayer:iterAssets() do
-        if asset.type ~= Enums.EntityType.Faction then
-            asset:setDisposition(GameState.player.currentShip, Config.game.dispoMin)
-            GameState.player.currentShip:setDisposition(asset, Config.game.dispoMin)
+        asset:setDisposition(GameState.player.currentShip, Config.game.dispoMin)
+        GameState.player.currentShip:setDisposition(asset, Config.game.dispoMin)
 
-            if Config:getObjectInfo("object_types", asset:getType()) == "Ship" then
-                local pirateHullInteg = asset:mgrHullGetHealthMax()
-                asset:mgrHullSetHealth(pirateHullInteg, pirateHullInteg)
-                asset.usesBoost = true
-            end
-            asset:setFaction(playerFaction)
-            system:place(asset)
+        if Config:getObjectInfo("object_types", asset:getType()) == "Ship" then
+            local pirateHullInteg = asset:mgrHullGetHealthMax()
+            asset:mgrHullSetHealth(pirateHullInteg, pirateHullInteg)
+            asset.usesBoost = true
         end
+        asset:setFaction(playerFaction)
+        system:place(asset)
     end
     piratePlayer:pushAction(Actions.CriminalThink())
     table.insert(system.aiPlayers, piratePlayer)
