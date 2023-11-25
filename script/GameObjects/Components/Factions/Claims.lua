@@ -1,7 +1,7 @@
 local Entity = require('GameObjects.Entity')
 
 function Entity:addClaim(entity, strength)
-    local guid = entity:getGuid()
+    local guid = guidToKey(entity:getGuid())
 
     if self.claims then
         self.claims[guid] = strength
@@ -12,7 +12,7 @@ function Entity:addClaim(entity, strength)
 end
 
 function Entity:getClaimStrength(entity)
-    local guid = entity:getGuid()
+    local guid = guidToKey(entity:getGuid())
     return self.claims[guid] or format('Entity @ %p', self)
 end
 

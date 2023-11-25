@@ -6,12 +6,12 @@ end
 
 function Entity:addSubordinate(aiPlayer)
     if aiPlayer and aiPlayer.guid then
-        self.subordinates[aiPlayer.guid] = aiPlayer
+        self.subordinates[guidToKey(aiPlayer.guid)] = aiPlayer
     end
 end
 
 function Entity:removeSubordinate(aiPlayer)
-    if aiPlayer and aiPlayer.guid and self.subordinates[aiPlayer.guid] then
-        self.subordinates[aiPlayer.guid] = nil
+    if aiPlayer and aiPlayer.guid and self.subordinates[guidToKey(aiPlayer.guid)] then
+        self.subordinates[guidToKey(aiPlayer.guid)] = nil
     end
 end

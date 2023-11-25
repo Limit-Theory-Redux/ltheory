@@ -1,7 +1,7 @@
 local Entity = require('GameObjects.Entity')
 
 function Entity:setRelation(faction, value)
-    local guid = faction:getGuid()
+    local guid = guidToKey(faction:getGuid())
 
     if self.relations then
         self.relations[guid] = value
@@ -12,6 +12,6 @@ function Entity:setRelation(faction, value)
 end
 
 function Entity:getRelation(faction)
-    local guid = faction:getGuid()
+    local guid = guidToKey(faction:getGuid())
     return self.relations[guid] or format('Entity @ %p', self)
 end
