@@ -18,6 +18,7 @@ function Entity:getOwnerRoot()
 end
 
 function Entity:setOwner(owner, isAsset)
+    --! we can prob design a better automation process than this
     if self.owner then
         if self.owner.hasAsset and self.owner:hasAsset(self) then
             self.owner:removeAsset(self)
