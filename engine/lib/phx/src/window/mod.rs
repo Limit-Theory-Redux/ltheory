@@ -1,7 +1,6 @@
 mod cursor;
 mod monitor_selection;
 mod present_mode;
-mod window_level;
 mod window_mode;
 mod window_position;
 mod window_resize_constraints;
@@ -12,7 +11,6 @@ mod winit_window;
 pub use cursor::*;
 pub use monitor_selection::*;
 pub use present_mode::*;
-pub use window_level::*;
 pub use window_mode::*;
 pub use window_position::*;
 pub use window_resize_constraints::*;
@@ -83,12 +81,6 @@ pub struct Window {
     pub decorations: bool,
     /// Get/set whether the window is focused.
     pub focused: bool,
-    /// Where should the window appear relative to other overlapping window.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - iOS / Android / Web / Wayland: Unsupported.
-    pub window_level: WindowLevel,
     /// The "html canvas" element selector.
     ///
     /// If set, this selector will be used to find a matching html canvas element,
@@ -159,7 +151,6 @@ impl Default for Window {
             resizable: true,
             decorations: true,
             focused: true,
-            window_level: Default::default(),
             fit_canvas_to_parent: false,
             prevent_default_event_handling: true,
             canvas: None,

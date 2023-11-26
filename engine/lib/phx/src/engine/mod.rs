@@ -235,10 +235,6 @@ impl Engine {
             winit_window.focus_window();
         }
 
-        if self.window.window_level != self.cache.window.window_level {
-            winit_window.set_window_level(convert_window_level(self.window.window_level));
-        }
-
         // Currently unsupported changes
         if self.window.ime_enabled != self.cache.window.ime_enabled {
             winit_window.set_ime_allowed(self.window.ime_enabled);

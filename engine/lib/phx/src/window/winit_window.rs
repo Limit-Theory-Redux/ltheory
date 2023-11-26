@@ -90,7 +90,6 @@ impl WinitWindow {
         };
 
         winit_window_builder = winit_window_builder
-            .with_window_level(window.window_level.into())
             .with_theme(window.window_theme.map(winit::window::Theme::from))
             .with_resizable(window.resizable)
             .with_decorations(window.decorations);
