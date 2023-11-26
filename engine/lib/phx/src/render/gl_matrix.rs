@@ -1,100 +1,166 @@
 use super::*;
 use crate::math::*;
 
-/* NOTE : LoadMatrix expects column-major memory layout. */
+// OpenGL 2.1 style matrix stack emulation.
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_Clear() {
-    // gl_load_identity();
+pub enum MatrixMode {
+    ModelView,
+    Projection,
 }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_Load(matrix: &mut Matrix) {
-    // gl_load_matrixf(matrix.as_ref().as_ptr());
+pub struct MatrixStack {
+    mode: MatrixMode,
+    modelview: Vec<Matrix>,
+    projection: Vec<Matrix>,
 }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_LookAt(eye: &DVec3, at: &DVec3, up: &DVec3) {
-    // let matrix = glam::DMat4::look_at_rh(*eye, *at, *up);
-    // gl_mult_matrixd(matrix.as_ref().as_ptr());
+static mut INSTANCE: MatrixStack = MatrixStack {
+    mode: MatrixMode::ModelView,
+    modelview: vec![],
+    projection: vec![],
+};
+
+impl MatrixStack {
+    fn count(&self) -> usize {
+        match self.mode {
+            MatrixMode::ModelView => self.modelview.len(),
+            MatrixMode::Projection => self.projection.len(),
+        }
+    }
+
+    fn push(&mut self) {
+        let m = self.top().unwrap_or(&Matrix::IDENTITY).clone();
+        match self.mode {
+            MatrixMode::ModelView => self.modelview.push(m),
+            MatrixMode::Projection => self.projection.push(m),
+        }
+    }
+
+    fn pop(&mut self) {
+        match self.mode {
+            MatrixMode::ModelView => self.modelview.pop(),
+            MatrixMode::Projection => self.projection.pop(),
+        };
+    }
+
+    fn top(&self) -> Option<&Matrix> {
+        if self.count() == 0 {
+            None
+        } else {
+            Some(match self.mode {
+                MatrixMode::ModelView => &self.modelview[self.modelview.len() - 1],
+                MatrixMode::Projection => &self.projection[self.projection.len() - 1],
+            })
+        }
+    }
+
+    fn top_mut(&mut self) -> Option<&mut Matrix> {
+        if self.count() == 0 {
+            None
+        } else {
+            Some(match self.mode {
+                MatrixMode::ModelView => {
+                    let len = self.modelview.len();
+                    &mut self.modelview[len - 1]
+                }
+                MatrixMode::Projection => {
+                    let len = self.projection.len();
+                    &mut self.projection[len - 1]
+                }
+            })
+        }
+    }
+
+    fn load(&mut self, m: Matrix) {
+        self.top_mut().map(|top| {
+            *top = m;
+        });
+    }
+
+    fn mult(&mut self, m: Matrix) {
+        self.top_mut().map(|top| {
+            *top *= m;
+        });
+    }
+}
+struct GLMatrix;
+
+impl GLMatrix {
+    fn inst() -> &'static MatrixStack {
+        unsafe { &INSTANCE }
+    }
+
+    fn inst_mut() -> &'static mut MatrixStack {
+        unsafe { &mut INSTANCE }
+    }
 }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_ModeP() {
-    // gl_matrix_mode(gl::PROJECTION);
-}
+#[luajit_ffi_gen::luajit_ffi]
+impl GLMatrix {
+    pub fn clear() {
+        Self::inst_mut().load(Matrix::IDENTITY);
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_ModeWV() {
-    // gl_matrix_mode(gl::MODELVIEW);
-}
+    pub fn load(matrix: &Matrix) {
+        Self::inst_mut().load(*matrix);
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_Mult(matrix: &mut Matrix) {
-    // gl_mult_matrixf(matrix.as_ref().as_ptr());
-}
+    pub fn look_at(eye: &DVec3, at: &DVec3, up: &DVec3) {
+        let dmatrix = glam::DMat4::look_at_rh(*eye, *at, *up);
+        Self::inst_mut().mult(dmatrix.as_mat4());
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_Perspective(fovy: f64, aspect: f64, z0: f64, z1: f64) {
-    // let matrix = glam::DMat4::perspective_rh_gl(fovy, aspect, z0, z1);
-    // gl_mult_matrixd(matrix.as_ref().as_ptr());
-}
+    pub fn mode_p() {
+        Self::inst_mut().mode = MatrixMode::Projection;
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_Pop() {
-    // gl_pop_matrix();
-}
+    pub fn mode_w_v() {
+        Self::inst_mut().mode = MatrixMode::ModelView;
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_Push() {
-    // gl_push_matrix();
-}
+    pub fn mult(matrix: &mut Matrix) {
+        Self::inst_mut().mult(*matrix);
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_PushClear() {
-    // gl_push_matrix();
-    // gl_load_identity();
-}
+    pub fn perspective(fovy: f64, aspect: f64, z0: f64, z1: f64) {
+        let dmatrix = glam::DMat4::perspective_rh_gl(fovy, aspect, z0, z1);
+        Self::inst_mut().mult(dmatrix.as_mat4());
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_Get() -> Option<Box<Matrix>> {
-    // let mut matrix_mode: gl::types::GLint = 0;
-    // gl_get_integerv(gl::MATRIX_MODE, &mut matrix_mode);
+    pub fn pop() {
+        Self::inst_mut().pop();
+    }
 
-    // let matrix_enum = match matrix_mode as u32 {
-    //     gl::MODELVIEW => gl::MODELVIEW_MATRIX,
-    //     gl::PROJECTION => gl::PROJECTION_MATRIX,
-    //     _ => return None,
-    // };
+    pub fn push() {
+        Self::inst_mut().push();
+    }
 
-    // let mut matrix = Matrix::IDENTITY;
-    // gl_get_floatv(matrix_enum, matrix.as_mut().as_mut_ptr());
+    pub fn push_clear() {
+        Self::inst_mut().push();
+        Self::inst_mut().load(Matrix::IDENTITY);
+    }
 
-    // Some(Box::new(matrix))
-    None
-}
+    pub fn get() -> Option<Matrix> {
+        Self::inst().top().map(|ref_mut: &Mat4| ref_mut.clone())
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_RotateX(angle: f64) {
-    // gl_rotated(angle, 1.0, 0.0, 0.0);
-}
+    pub fn rotate_x(angle: f64) {
+        Self::inst_mut().mult(glam::DMat4::from_rotation_x(angle).as_mat4())
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_RotateY(angle: f64) {
-    // gl_rotated(angle, 0.0, 1.0, 0.0);
-}
+    pub fn rotate_y(angle: f64) {
+        Self::inst_mut().mult(glam::DMat4::from_rotation_y(angle).as_mat4())
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_RotateZ(angle: f64) {
-    // gl_rotated(angle, 0.0, 0.0, 1.0);
-}
+    pub fn rotate_z(angle: f64) {
+        Self::inst_mut().mult(glam::DMat4::from_rotation_z(angle).as_mat4())
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_Scale(x: f64, y: f64, z: f64) {
-    // gl_scaled(x, y, z);
-}
+    pub fn scale(x: f64, y: f64, z: f64) {
+        Self::inst_mut().mult(glam::DMat4::from_scale(DVec3::new(x, y, z)).as_mat4())
+    }
 
-#[no_mangle]
-pub extern "C" fn GLMatrix_Translate(x: f64, y: f64, z: f64) {
-    // gl_translated(x, y, z);
+    pub fn translate(x: f64, y: f64, z: f64) {
+        Self::inst_mut().mult(glam::DMat4::from_translation(DVec3::new(x, y, z)).as_mat4())
+    }
 }
