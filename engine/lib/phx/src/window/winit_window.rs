@@ -151,7 +151,7 @@ impl WinitWindow {
             format: surface_format,
             width: size.width,
             height: size.height,
-            present_mode: wgpu::PresentMode::Fifo,//surface_caps.present_modes[0],
+            present_mode: window.present_mode.into(),
             alpha_mode: wgpu::CompositeAlphaMode::Opaque,
             view_formats: vec![],
         };

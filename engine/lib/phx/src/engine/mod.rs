@@ -75,11 +75,6 @@ impl Engine {
     }
 
     // Apply user changes, and then detect changes to the window and update the winit window accordingly.
-    //
-    // Notes:
-    // - [`Window::transparent`] currently cannot be updated after startup for winit.
-    // - [`Window::canvas`] currently cannot be updated after startup, not entirely sure if it would work well with the
-    //   event channel stuff.
     fn changed_window(&mut self) {
         for user_change in self.input.user_changes() {
             match user_change {
@@ -233,6 +228,11 @@ impl Engine {
 
         if self.window.focused != self.cache.window.focused && self.window.focused {
             winit_window.focus_window();
+        }
+
+        if self.window.present_mode != self.cache.window.present_mode {
+            warn!("unable to change present mode after the window was created!");
+            self.window.present_mode = self.cache.window.present_mode;
         }
 
         // Currently unsupported changes
