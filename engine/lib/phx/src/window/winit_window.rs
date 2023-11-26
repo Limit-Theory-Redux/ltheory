@@ -152,8 +152,7 @@ impl WinitWindow {
             .with_window_level(window.window_level.into())
             .with_theme(window.window_theme.map(winit::window::Theme::from))
             .with_resizable(window.resizable)
-            .with_decorations(window.decorations)
-            .with_transparent(window.transparent);
+            .with_decorations(window.decorations);
 
         let constraints = window.resize_constraints.check_constraints();
         let min_inner_size = LogicalSize {

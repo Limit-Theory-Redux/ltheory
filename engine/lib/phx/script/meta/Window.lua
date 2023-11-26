@@ -121,14 +121,6 @@ function Window:hasDecorations() end
 ---@param decorations boolean
 function Window:setDecorations(decorations) end
 
--- Is the window transparent?
----@return boolean
-function Window:isTransparent() end
-
--- Should the window be transparent?
----@param transparent boolean
-function Window:setTransparent(transparent) end
-
 -- Is the window focused?
 ---@return boolean
 function Window:isFocused() end
