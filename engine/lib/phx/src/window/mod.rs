@@ -9,7 +9,6 @@ mod window_resize_constraints;
 mod window_resolution;
 mod winit_converters;
 mod winit_window;
-mod winit_windows;
 
 pub use composite_alpha_mode::*;
 pub use cursor::*;
@@ -22,7 +21,6 @@ pub use window_resize_constraints::*;
 pub use window_resolution::*;
 pub use winit_converters::*;
 pub use winit_window::*;
-pub use winit_windows::*;
 
 use internal::ConvertIntoString;
 
