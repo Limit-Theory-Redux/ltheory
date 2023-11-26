@@ -16,11 +16,8 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            PresentMode PresentMode_AutoVsync;
-            PresentMode PresentMode_AutoNoVsync;
-            PresentMode PresentMode_Immediate;
-            PresentMode PresentMode_Mailbox;
-            PresentMode PresentMode_Fifo;
+            PresentMode PresentMode_Vsync;
+            PresentMode PresentMode_NoVsync;
 
             cstr        PresentMode_ToString(PresentMode);
         ]]
@@ -28,13 +25,10 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         PresentMode = {
-            AutoVsync   = libphx.PresentMode_AutoVsync,
-            AutoNoVsync = libphx.PresentMode_AutoNoVsync,
-            Immediate   = libphx.PresentMode_Immediate,
-            Mailbox     = libphx.PresentMode_Mailbox,
-            Fifo        = libphx.PresentMode_Fifo,
+            Vsync    = libphx.PresentMode_Vsync,
+            NoVsync  = libphx.PresentMode_NoVsync,
 
-            ToString    = libphx.PresentMode_ToString,
+            ToString = libphx.PresentMode_ToString,
         }
 
         if onDef_PresentMode then onDef_PresentMode(PresentMode, mt) end

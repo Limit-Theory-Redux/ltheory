@@ -7,7 +7,7 @@ use glutin::context::{
 };
 use glutin::display::GetGlDisplay;
 use glutin::prelude::{GlConfig, GlDisplay, NotCurrentGlContext, PossiblyCurrentGlContext};
-use glutin::surface::{GlSurface, Surface, SurfaceAttributes, SwapInterval, WindowSurface};
+use glutin::surface::{GlSurface, Surface, SurfaceAttributes, WindowSurface};
 use glutin_winit::{DisplayBuilder, GlWindow};
 use raw_window_handle::HasRawWindowHandle;
 use tracing::{debug, error, info, warn};
@@ -16,7 +16,10 @@ use winit::{
     monitor::MonitorHandle,
 };
 
-use super::{glutin_render, CursorGrabMode, Window, WindowMode, WindowPosition, WindowResolution};
+use super::{
+    glutin_render, CursorGrabMode, PresentMode, Window, WindowMode, WindowPosition,
+    WindowResolution,
+};
 
 // TODO: Add GlStateManager with state: Option<GlState> field to avoid std::mem::replace
 #[derive(Debug)]
@@ -36,6 +39,7 @@ impl GlState {
         &mut self,
         config: &glutin::config::Config,
         attrs: &SurfaceAttributes<WindowSurface>,
+        present_mode: PresentMode,
     ) -> bool {
         if matches!(self, Self::NotCurrent { .. }) {
             let old_self = std::mem::replace(self, Self::Undefined);
@@ -55,9 +59,7 @@ impl GlState {
                 .expect("Cannot make context current");
 
             // Try setting vsync.
-            if let Err(res) =
-                surface.set_swap_interval(&context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))
-            {
+            if let Err(res) = surface.set_swap_interval(&context, present_mode.into()) {
                 warn!("Error setting vsync: {res:?}");
             }
 
@@ -100,6 +102,7 @@ impl GlState {
 #[derive(Debug)]
 pub struct WinitWindow {
     window: winit::window::Window,
+    present_mode: PresentMode,
     gl_config: glutin::config::Config,
     gl_state: GlState,
 }
@@ -243,6 +246,7 @@ impl WinitWindow {
 
         Self {
             window: winit_window,
+            present_mode: window.present_mode,
             gl_config,
             gl_state: GlState::NotCurrent {
                 context: gl_context,
@@ -259,7 +263,10 @@ impl WinitWindow {
 
         let attrs = self.window.build_surface_attributes(<_>::default());
 
-        if self.gl_state.make_current(&self.gl_config, &attrs) {
+        if self
+            .gl_state
+            .make_current(&self.gl_config, &attrs, self.present_mode)
+        {
             // The context needs to be current for the Renderer to set up shaders and
             // buffers. It also performs function loading, which needs a current context on
             // WGL.
