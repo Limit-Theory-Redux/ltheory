@@ -1,7 +1,7 @@
-use std::num::NonZeroU32;
-use tracing::{info, debug, error, warn};
 use super::{CursorGrabMode, Window, WindowMode, WindowPosition, WindowResolution};
 use raw_window_handle::HasRawWindowHandle;
+use std::num::NonZeroU32;
+use tracing::{debug, error, info, warn};
 use winit::{
     dpi::{LogicalSize, PhysicalPosition},
     monitor::MonitorHandle,
@@ -42,10 +42,7 @@ pub fn get_best_videomode(monitor: &winit::monitor::MonitorHandle) -> winit::mon
 }
 
 impl WinitWindow {
-    pub fn new(
-        event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
-        window: &Window,
-    ) -> Self {
+    pub fn new(event_loop: &winit::event_loop::EventLoopWindowTarget<()>, window: &Window) -> Self {
         info!("Create new window: {}", window.title);
 
         let mut winit_window_builder = winit::window::WindowBuilder::new();
@@ -113,7 +110,7 @@ impl WinitWindow {
             } else {
                 winit_window_builder.with_min_inner_size(min_inner_size)
             };
-    
+
         // Set the title.
         winit_window_builder = winit_window_builder.with_title(window.title.as_str());
 
@@ -129,7 +126,7 @@ impl WinitWindow {
             force_fallback_adapter: false,
         }))
         .unwrap();
-    
+
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: None,
@@ -139,12 +136,14 @@ impl WinitWindow {
             None, // Trace path
         ))
         .unwrap();
-    
+
         let size = winit_window.inner_size();
         let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = surface_caps.formats.iter()
+        let surface_format = surface_caps
+            .formats
+            .iter()
             .copied()
-            .find(|f| f.is_srgb())            
+            .find(|f| f.is_srgb())
             .unwrap_or(surface_caps.formats[0]);
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -214,6 +213,44 @@ impl WinitWindow {
 
         //     surface.swap_buffers(context).expect("Cannot redraw");
         // }
+
+        let output = self.surface.get_current_texture()?;
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
+
+        {
+            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.1,
+                            g: 0.2,
+                            b: 0.3,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+        }
+
+        // submit will accept anything that implements IntoIter
+        self.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
         Ok(())
     }
 }

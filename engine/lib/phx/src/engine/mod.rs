@@ -28,6 +28,7 @@ pub struct Engine {
     window: Window,
     cache: CachedWindow,
     winit_window: WinitWindow,
+    draw: Draw,
     hmgui: HmGui,
     input: Input,
     frame_state: FrameState,
@@ -59,7 +60,9 @@ impl Engine {
 
         // Create window.
         let window = Window::default();
-        let cache = CachedWindow { window: window.clone() };
+        let cache = CachedWindow {
+            window: window.clone(),
+        };
         let winit_window = WinitWindow::new(&event_loop, &window);
 
         Self {
@@ -67,6 +70,7 @@ impl Engine {
             window,
             cache,
             winit_window,
+            draw: Draw::new(),
             hmgui: HmGui::new(Font::load("Rajdhani", 14)),
             input: Default::default(),
             frame_state: Default::default(),
@@ -96,7 +100,9 @@ impl Engine {
         }
 
         if self.window.title != self.cache.window.title {
-            self.winit_window.window().set_title(self.window.title.as_str());
+            self.winit_window
+                .window()
+                .set_title(self.window.title.as_str());
         }
 
         if self.window.mode != self.cache.window.mode {
@@ -278,6 +284,8 @@ impl Engine {
         let event_loop = EventLoop::new();
         let mut engine = Engine::new(&event_loop);
 
+        Draw::set_instance(&mut engine.draw as *mut Draw);
+
         let event_handler = move |event: Event<()>,
                                   _: &EventLoopWindowTarget<()>,
                                   control_flow: &mut ControlFlow| {
@@ -324,11 +332,7 @@ impl Engine {
                     engine.frame_state.low_power_event = false;
                     engine.frame_state.timeout_reached = false; //auto_timeout_reached || manual_timeout_reached;
                 }
-                event::Event::WindowEvent {
-                    event,
-                    window_id: _winit_window_id,
-                    ..
-                } => {
+                event::Event::WindowEvent { event, .. } => {
                     engine.frame_state.low_power_event = true;
 
                     match event {
@@ -338,14 +342,11 @@ impl Engine {
                                 .resolution
                                 .set_physical_resolution(size.width, size.height);
                         }
-                        WindowEvent::ScaleFactorChanged {
-                            new_inner_size,
-                            ..
-                        } => {
-                            engine
-                                .window
-                                .resolution
-                                .set_physical_resolution(new_inner_size.width, new_inner_size.height);
+                        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                            engine.window.resolution.set_physical_resolution(
+                                new_inner_size.width,
+                                new_inner_size.height,
+                            );
                         }
                         WindowEvent::CloseRequested => {
                             call_lua_func(&engine, "AppClose");
@@ -525,7 +526,7 @@ impl Engine {
                             let width = engine.window.resolution.physical_width();
                             let height = engine.window.resolution.physical_height();
                             engine.winit_window.resize(width, height)
-                        },
+                        }
                         // The system is out of memory, we should probably quit
                         Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
                         // All other errors (Outdated, Timeout) should be resolved by the next frame

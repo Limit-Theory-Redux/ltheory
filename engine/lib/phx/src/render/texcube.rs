@@ -438,9 +438,9 @@ pub extern "C" fn TexCube_SetMagFilter(this: &mut TexCube, filter: TexFilter) {
 
 #[no_mangle]
 pub extern "C" fn TexCube_SetMinFilter(this: &mut TexCube, filter: TexFilter) {
-//     gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
-//     gl_tex_parameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, filter);
-//     gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
+    //     gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
+    //     gl_tex_parameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, filter);
+    //     gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]

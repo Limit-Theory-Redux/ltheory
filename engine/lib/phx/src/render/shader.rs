@@ -47,7 +47,7 @@ extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const libc::c_ch
 }
 
 // unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
-    // let this = gl_create_shader(type_0);
+// let this = gl_create_shader(type_0);
 //     let c_src = CString::new(src).unwrap();
 
 //     let mut srcs: [*const libc::c_char; 2] = [versionString, c_src.as_ptr()];
@@ -545,17 +545,17 @@ pub unsafe extern "C" fn Shader_ISetTex1D(index: i32, value: &mut Tex1D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_SetTex2D(name: *const libc::c_char, value: &mut Tex2D) {
-//     gl_uniform1i(
-//         GetUniformIndex(current.as_mut(), name),
-//         (*current).texIndex as i32,
-//     );
+    //     gl_uniform1i(
+    //         GetUniformIndex(current.as_mut(), name),
+    //         (*current).texIndex as i32,
+    //     );
 
-//     let fresh16 = (*current).texIndex;
-//     (*current).texIndex = ((*current).texIndex).wrapping_add(1);
+    //     let fresh16 = (*current).texIndex;
+    //     (*current).texIndex = ((*current).texIndex).wrapping_add(1);
 
-//     gl_active_texture((gl::TEXTURE0).wrapping_add(fresh16));
-//     gl_bind_texture(gl::TEXTURE_2D, Tex2D_GetHandle(value));
-//     gl_active_texture(gl::TEXTURE0);
+    //     gl_active_texture((gl::TEXTURE0).wrapping_add(fresh16));
+    //     gl_bind_texture(gl::TEXTURE_2D, Tex2D_GetHandle(value));
+    //     gl_active_texture(gl::TEXTURE0);
 }
 
 #[no_mangle]

@@ -1,4 +1,4 @@
-use std::{path::Path, env};
+use std::{env, path::Path};
 
 fn link_lib_from_cmake(lib: &str, root: &Path, path_segments: &[&str]) {
     let mut path = root.to_path_buf();
