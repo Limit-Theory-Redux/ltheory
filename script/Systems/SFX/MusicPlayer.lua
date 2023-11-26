@@ -23,12 +23,15 @@ end
 
 function MusicPlayer:LoadEffects()
     -- *** TEMP: Audio FX test START ***
+
+    --[[ -- Pulse weapon firing sound effect temporarily commented out until setVolume() is working
     Config.audio.pulseFire = SFXObject:Create {
         name = Config.audio.pulseFireName,
         path = Config.paths.soundEffects .. Config.audio.pulseFireName,
         volume = 0.0,
         isLooping = false
     }
+    ]]
 
     Config.audio.fxSensors = SFXObject:Create {
         name = Config.audio.fxSensorsName,
@@ -106,7 +109,7 @@ function MusicPlayer:QueueTrack(query, clearQueue)
 
     table.insert(self.queue, track)
 
-    --  Log.Debug("Queuing Track: " .. track.name)
+    -- Log.Debug("Queuing Track: " .. track.name)
     return track
 end
 

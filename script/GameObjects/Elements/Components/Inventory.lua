@@ -148,7 +148,7 @@ function Inventory:removeItem(item, count)
     self.inventory[item] = self:getItemCount(item) - count
 
     --Log.Debug("Removed %d units of item %s to inventory of object %s, count now = %d",
-    --      count, item:getName(), self:getName(), self.inventory[item])
+    -- count, item:getName(), self:getName(), self.inventory[item])
 
     if self.inventory[item] == 0 then
         self.inventory[item] = nil

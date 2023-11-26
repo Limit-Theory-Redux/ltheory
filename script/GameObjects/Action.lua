@@ -40,7 +40,7 @@ local kLeadTime = 1
 local expMap = Core.FFI.Math.ExpMap1Signed
 
 -- TODO : This is a *major* bottleneck; AI steering / thrust controller needs
---        to be pushed to C. Probably pathing / nav grid as well?
+-- to be pushed to C. Probably pathing / nav grid as well?
 function Action:flyToward(e, targetPos, targetForward, targetUp)
     local c = e:getThrustController()
     if not c then return end
@@ -56,10 +56,10 @@ function Action:flyToward(e, targetPos, targetForward, targetUp)
     local roll     = e:getUp():cross(targetUp)
 
     -- TODO: Instead of reducing NPC ship max speed, need to tie speed and maneuverability
-    --       to ship's mass (currently radius... or scale... or both....) and reduce pitch
-    --       and yaw as z-axis (length) increases in the larger ship hulls.
+    -- to ship's mass (currently radius... or scale... or both....) and reduce pitch
+    -- and yaw as z-axis (length) increases in the larger ship hulls.
     c.forward      = expMap(2.0 * e:getForward():dot(forward)) / 3
-    --  c.forward = expMap(  2.0 * e:getForward():dot(forward))
+    -- c.forward = expMap(  2.0 * e:getForward():dot(forward))
     c.right        = expMap(2.0 * e:getRight():dot(forward))
     c.up           = expMap(2.0 * e:getUp():dot(forward))
     c.yaw          = expMap(-10.0 * e:getUp():dot(yawPitch))
@@ -69,9 +69,9 @@ function Action:flyToward(e, targetPos, targetForward, targetUp)
     if e == GameState.player.currentShip or e.usesBoost then
         c.boost = 0.0
         local newBoost = 1.0 - exp(-max(0.0, (dist / 150.0) - 1.0))
-        --    if newBoost > 0 and e:mgrCapacitorDischarge(newBoost) then -- for now, boost has zero cost
+        -- if newBoost > 0 and e:mgrCapacitorDischarge(newBoost) then -- for now, boost has zero cost
         c.boost = newBoost
-        --    end
+        -- end
     end
 
     if e.travelDriveActive then

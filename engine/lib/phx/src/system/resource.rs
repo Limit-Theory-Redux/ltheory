@@ -1,6 +1,7 @@
 use std::ffi::CStr;
 
 use internal::*;
+use tracing::debug;
 
 use super::*;
 use crate::common::*;
@@ -44,9 +45,9 @@ unsafe fn resource_resolve(ty: ResourceType, name: &str, fail_hard: bool) -> Opt
 
     if fail_hard {
         panic!(
-            "Resource_Resolve: Failed to find {:?}:{} <{name}>",
+            "Resource_Resolve: Failed to find {:?}:{ty} <{name}>. Current directory: {:?}",
             resource_type_to_string(ty),
-            ty,
+            std::env::current_dir(),
         );
     }
 

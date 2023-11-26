@@ -8,7 +8,6 @@ Config.orgInfo                   = {
 }
 
 Config.gameTitle                 = "Limit Theory Redux"
-Config.gameVersion               = "0.0.0"
 
 Config.userInitFilename          = "user.ini"
 
@@ -31,7 +30,7 @@ Config.audio                     = {
     supportedFormats     = { ".ogg" },
     mainMenuMusicEnabled = true,
     soundMin             = 0,
-    soundMax             = 1,    -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+    soundMax             = 1,   -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
     musicVolume          = 0.5, -- current volume
     mainMenu             = "LTR_Explorer.ogg",
 

@@ -20,36 +20,38 @@ local function applyFlows(flows, mult)
     end
 end
 
---function Think:manageAsset (asset)
---  local root = asset:getRoot()
---  local bestPressure = asset.job and asset.job:getPressure(asset) or math.huge
---  local bestJob = asset.job
---  for i = 1, Config.econ.jobIterations do
---    -- TODO : KnowsAbout check
---    local job = self.rng:choose(root:getEconomy().jobs)
---    if not job then break end
---
---    local pressure = job:getPressure(asset)
---    if pressure < bestPressure then
---      bestPressure = pressure
---      bestJob = job
-----Log.Debug("[asset:%s] pressure = %s, job = %s", asset:getName(), pressure, job:getName(asset))
---    end
---  end
---
---  if bestJob then
---    if asset.jobFlows then
---      applyFlows(asset.jobFlows, -1)
---      asset.jobFlows = nil
---    end
---
---    asset.job = bestJob
---    asset.jobFlows = bestJob:getFlows(asset)
---    applyFlows(asset.jobFlows, 1)
---
---    asset:pushAction(bestJob)
---  end
---end
+--[[
+function Think:manageAsset(asset)
+    local root = asset:getRoot()
+    local bestPressure = asset.job and asset.job:getPressure(asset) or math.huge
+    local bestJob = asset.job
+    for i = 1, Config.econ.jobIterations do
+        -- TODO : KnowsAbout check
+        local job = self.rng:choose(root:getEconomy().jobs)
+        if not job then break end
+
+        local pressure = job:getPressure(asset)
+        if pressure < bestPressure then
+            bestPressure = pressure
+            bestJob = job
+            Log.Debug("[asset:%s] pressure = %s, job = %s", asset:getName(), pressure, job:getName(asset))
+        end
+    end
+
+    if bestJob then
+        if asset.jobFlows then
+            applyFlows(asset.jobFlows, -1)
+            asset.jobFlows = nil
+        end
+
+        asset.job = bestJob
+        asset.jobFlows = bestJob:getFlows(asset)
+        applyFlows(asset.jobFlows, 1)
+
+        asset:pushAction(bestJob)
+    end
+end
+]]--
 
 -- Use payout, not flow
 function Think:manageAsset(asset)
@@ -100,7 +102,7 @@ function Think:manageAsset(asset)
                     bestJob = job
                     --else
                     --printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-                    --    asset:getName(), job:getName(), payout)
+                    -- asset:getName(), job:getName(), payout)
                     --end
                     --! we really need to replace this jcount stuff, it´s confusing and error prone
                 end
@@ -155,16 +157,16 @@ function Think:manageAsset(asset)
                 local station = asset:isShipDocked()
                 if station then
                     --printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
-                    --    asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount,
-                    --    asset.job.bids)
+                    -- asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount,
+                    -- asset.job.bids)
                     --for i, v in ipairs(asset.actions) do
-                    --  printf("  Actions %d : %s", i, v:getName(asset))
+                    -- printf("  Actions %d : %s", i, v:getName(asset))
                     --end
                     asset:pushAction(Actions.Undock())
                     --printf("THINK +++ 2: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
                     --asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
                     --for i, v in ipairs(asset.actions) do
-                    --  printf("  Actions %d : %s", i, v:getName(asset))
+                    -- printf("  Actions %d : %s", i, v:getName(asset))
                     --end
                 end
             end
@@ -233,7 +235,7 @@ function Think:onUpdateActive(e, dt)
         -- Increment elapsed time in seconds (a float value) since game start
         -- Note that self.timer does not appear to reset!
         -- TODO: Correct the self.timer tests below to trigger on their _intervals_,
-        --       not on elapsed time (which never resets)
+        -- not on elapsed time (which never resets)
         self.timer = self.timer + dt
         --Log.Debug("THINK [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
 

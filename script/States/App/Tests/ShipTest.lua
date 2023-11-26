@@ -46,11 +46,11 @@ function ShipTest:onInit()
     self:generate()
 
     DebugControl.ltheory = self
-    self.gameView = Systems.Overlay.GameView(self.player)
+    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
-            :add(Systems.Controls.Controls.GenTestControl(self.gameView, self.player)))
+            :add(Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
 end
 
 function ShipTest:onInput()
@@ -66,13 +66,13 @@ end
 function ShipTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
-    HmGui.Begin(self.resX, self.resY, InputInstance)
-    HmGui.End(InputInstance)
+    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:endGui(InputInstance)
 end
 
 function ShipTest:onDraw()
     self.canvas:draw(self.resX, self.resY)
-    HmGui.Draw()
+    Gui:draw()
 end
 
 return ShipTest

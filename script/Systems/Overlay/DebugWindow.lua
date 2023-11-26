@@ -67,17 +67,19 @@ function DebugWindow:createProfilingText()
                         end
                         return total
                     end))
-                --:add(UI.Label('Awake Rigidbodies'))
-                --:add(UI.Label():setPollFn(function ()
-                --  local total = 0
-                --  for i = 1, Type.GetCount() do
-                --    local type = Type.GetByID(i)
-                --    if type.pool and type:hasField('body') then
-                --      total = total + libphx.MemPool_GetSize(type.pool)
-                --    end
-                --  end
-                --  return total
-                --end))
+                    --[[
+                    :add(UI.Label('Awake Rigidbodies'))
+                    :add(UI.Label():setPollFn(function()
+                        local total = 0
+                        for i = 1, Type.GetCount() do
+                            local type = Type.GetByID(i)
+                            if type.pool and type:hasField('body') then
+                                total = total + libphx.MemPool_GetSize(type.pool)
+                            end
+                        end
+                        return total
+                    end))
+                    --]]
                 )
             )
         )
@@ -133,7 +135,7 @@ function DebugWindow:createUISection()
                 :add(uiDebugGrid:setPadCellX(8)
                     --:add(UI.Label('Input Time'))
                     --:add(UI.Label():setFormat('%.3f ms')
-                    --  :setPollFn(function () return 1000 * canvas.inputTime end))
+                    -- :setPollFn(function () return 1000 * canvas.inputTime end))
                     :add(UI.Label('Update Time'))
                     :add(UI.Label():setFormat('%.3f ms')
                         :setPollFn(function() return 1000 * canvas.updateTime end))
@@ -145,7 +147,7 @@ function DebugWindow:createUISection()
                         :setPollFn(function() return 1000 * self.drawTime end))
                     --:add(UI.Label('Total Time'))
                     --:add(UI.Label():setFormat('%.3f ms')
-                    --  :setPollFn(function () return 1000 * (canvas.inputTime + canvas.updateTime + canvas.layoutTime + self.drawTime) end))
+                    -- :setPollFn(function () return 1000 * (canvas.inputTime + canvas.updateTime + canvas.layoutTime + self.drawTime) end))
                     -- TODO : Fix this
                     --:add(UI.Label('Input Events'))
                     --:add(UI.Label():setPollFn(function () return self.ltheory.eventCount end))

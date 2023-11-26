@@ -19,7 +19,7 @@ function GameView:draw(focus, active)
     self.camera:beginDraw()
 
     local system = GameState.world.currentSystem
-    --  local system = self.player:getRoot()
+    -- local system = self.player:getRoot()
     local eye = self.camera.pos
     system:beginRender()
 
@@ -200,10 +200,11 @@ function GameView:draw(focus, active)
 
     --[[
     Unclear what this is referencing will need to investigate later
-  ]]
-    --  if GUI.DrawHmGui then
-    --    GUI.DrawHmGui(self.sx, self.sy)
-    --  end
+
+    if GUI.DrawHmGui then
+        GUI.DrawHmGui(self.sx, self.sy)
+    end
+    --]]
 
     RenderState.PopAll()
     ClipRect.Pop()
@@ -232,14 +233,9 @@ function GameView:onUpdate(state)
         self.eyeLast:setv(eye)
     end
 
-    if LTheoryRedux.audio then
-        LTheoryRedux.audio:setListenerPos(
-            self.camera.pos,
-            self.camera.rot)
-    else
-        LTheoryRedux.audio = Audio.Create()
-        Log.Warn("[GameView.lua Update] Audio not initialized at this point. This should not happen.")
-    end
+    self.audio:setListenerPos(
+        self.camera.pos,
+        self.camera.rot)
 
     self.camera:pop()
 end
@@ -301,7 +297,15 @@ function GameView:setCameraMode(cameraMode)
     return self.camera
 end
 
-function GameView.Create(player)
+function GameView.Create(player, audioInstance)
+    if not player then
+        Log.Error("No player passed")
+    end
+
+    if not audioInstance then
+        Log.Error("No audioInstance passed")
+    end
+
     local self = setmetatable({
         player            = player,
         renderer          = Renderer(),
@@ -312,6 +316,7 @@ function GameView.Create(player)
         eyeLast           = nil,
         eyeVel            = nil,
         children          = List(),
+        audio             = audioInstance
     }, GameView)
 
     self:setCameraMode(GameState.player.currentCamera)

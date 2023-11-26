@@ -27,7 +27,7 @@ local function wasDamaged(self, event)
                 if attackAction then
                     if attackAction ~= self:getCurrentAction(actionName) then
                         -- If the action to attack the attacker exists in this entity's Actions queue but isn't the current
-                        --     action, delete the old Attack action and push a new instance to the top of the Actions queue
+                        -- action, delete the old Attack action and push a new instance to the top of the Actions queue
                         self:deleteAction(actionName)
                         self:pushAction(Actions.Attack(shipEntry.ship))
                     end
@@ -187,7 +187,7 @@ local Station = subclass(Entity, function(self, seed, hull)
 
     -- Add all sockets to parent
     -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
-    --        better for ShipType etc.
+    -- better for ShipType etc.
     self:addSockets()
 
     for type, elems in pairs(self.positions) do

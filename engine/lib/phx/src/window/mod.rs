@@ -20,11 +20,8 @@ pub use winit_window::*;
 
 use internal::ConvertIntoString;
 
-use super::*;
-use crate::common::*;
 use crate::math::*;
 use crate::render::*;
-use crate::system::*;
 
 /// The cached state of the window so we can check which properties were changed from within the app.
 #[derive(Debug, Clone)]

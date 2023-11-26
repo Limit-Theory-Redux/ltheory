@@ -25,5 +25,5 @@ end
 return GlobalRestrict
 
 -- TODO : When attempting to access a non-existent global variable this script
---        ends up on the top of the stack and we don't get a proper line number
---        for the error.
+-- ends up on the top of the stack and we don't get a proper line number
+-- for the error.

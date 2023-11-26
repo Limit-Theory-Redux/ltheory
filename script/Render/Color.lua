@@ -6,8 +6,8 @@ local Color = class(function(self, r, g, b, a)
 end)
 
 -- TODO : Re-evaluate the benefit of this not being a Vec4. We lose a lot of
---        power (e.g. having to re-implement lerp and any other standard vec
---        math functions). But maybe it's worth the clarity?
+-- power (e.g. having to re-implement lerp and any other standard vec
+-- math functions). But maybe it's worth the clarity?
 
 function Color:clone()
     return (Color(self.r, self.g, self.b, self.a))
