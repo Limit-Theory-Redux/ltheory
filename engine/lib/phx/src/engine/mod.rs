@@ -240,11 +240,6 @@ impl Engine {
         }
 
         // Currently unsupported changes
-        if self.window.transparent != self.cache.window.transparent {
-            self.window.transparent = self.cache.window.transparent;
-            warn!("Winit does not currently support updating transparency after window creation.");
-        }
-
         if self.window.ime_enabled != self.cache.window.ime_enabled {
             winit_window.set_ime_allowed(self.window.ime_enabled);
         }

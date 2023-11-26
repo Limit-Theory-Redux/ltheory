@@ -1,4 +1,3 @@
-mod composite_alpha_mode;
 mod cursor;
 mod monitor_selection;
 mod present_mode;
@@ -10,7 +9,6 @@ mod window_resolution;
 mod winit_converters;
 mod winit_window;
 
-pub use composite_alpha_mode::*;
 pub use cursor::*;
 pub use monitor_selection::*;
 pub use present_mode::*;
@@ -67,8 +65,6 @@ pub struct Window {
     pub position: WindowPosition,
     /// What resolution the window should have.
     pub resolution: WindowResolution,
-    /// How the alpha channel of textures should be handled while compositing.
-    pub composite_alpha_mode: CompositeAlphaMode,
     /// The limits of the window's logical size
     /// (found in its [`resolution`](WindowResolution)) when resizing.
     pub resize_constraints: WindowResizeConstraints,
@@ -85,17 +81,6 @@ pub struct Window {
     //
     //  **`iOS`**, **`Android`**, and the **`Web`** do not have decorations.
     pub decorations: bool,
-    /// Should the window be transparent?
-    ///
-    /// Defines whether the background of the window should be transparent.
-    ///
-    /// ## Platform-specific
-    /// - iOS / Android / Web: Unsupported.
-    /// - macOS X: Not working as expected.
-    ///
-    /// macOS X transparent works with winit out of the box, so this issue might be related to: <https://github.com/gfx-rs/wgpu/issues/687>.
-    /// You should also set the window `composite_alpha_mode` to `CompositeAlphaMode::PostMultiplied`.
-    pub transparent: bool,
     /// Get/set whether the window is focused.
     pub focused: bool,
     /// Where should the window appear relative to other overlapping window.
@@ -168,13 +153,11 @@ impl Default for Window {
             position: Default::default(),
             resolution: Default::default(),
             internal: Default::default(),
-            composite_alpha_mode: Default::default(),
             resize_constraints: Default::default(),
             ime_enabled: Default::default(),
             ime_position: Default::default(),
             resizable: true,
             decorations: true,
-            transparent: false,
             focused: true,
             window_level: Default::default(),
             fit_canvas_to_parent: false,
@@ -354,16 +337,6 @@ impl Window {
     /// Should the window have decorations?
     pub fn set_decorations(&mut self, decorations: bool) {
         self.decorations = decorations;
-    }
-
-    /// Is the window transparent?
-    pub fn is_transparent(&self) -> bool {
-        self.transparent
-    }
-
-    /// Should the window be transparent?
-    pub fn set_transparent(&mut self, transparent: bool) {
-        self.transparent = transparent;
     }
 
     /// Is the window focused?

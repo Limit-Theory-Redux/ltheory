@@ -40,8 +40,6 @@ function Loader.defineType()
             void         Window_SetResizable              (Window*, bool resizable);
             bool         Window_HasDecorations            (Window const*);
             void         Window_SetDecorations            (Window*, bool decorations);
-            bool         Window_IsTransparent             (Window const*);
-            void         Window_SetTransparent            (Window*, bool transparent);
             bool         Window_IsFocused                 (Window const*);
             void         Window_SetFocused                (Window*, bool focused);
             void         Window_SetFullscreen             (Window*, bool fs);
@@ -80,8 +78,6 @@ function Loader.defineType()
             SetResizable              = libphx.Window_SetResizable,
             HasDecorations            = libphx.Window_HasDecorations,
             SetDecorations            = libphx.Window_SetDecorations,
-            IsTransparent             = libphx.Window_IsTransparent,
-            SetTransparent            = libphx.Window_SetTransparent,
             IsFocused                 = libphx.Window_IsFocused,
             SetFocused                = libphx.Window_SetFocused,
             SetFullscreen             = libphx.Window_SetFullscreen,
@@ -125,8 +121,6 @@ function Loader.defineType()
                 setResizable              = libphx.Window_SetResizable,
                 hasDecorations            = libphx.Window_HasDecorations,
                 setDecorations            = libphx.Window_SetDecorations,
-                isTransparent             = libphx.Window_IsTransparent,
-                setTransparent            = libphx.Window_SetTransparent,
                 isFocused                 = libphx.Window_IsFocused,
                 setFocused                = libphx.Window_SetFocused,
                 setFullscreen             = libphx.Window_SetFullscreen,

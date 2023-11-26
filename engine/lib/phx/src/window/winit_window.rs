@@ -93,8 +93,7 @@ impl WinitWindow {
             .with_window_level(window.window_level.into())
             .with_theme(window.window_theme.map(winit::window::Theme::from))
             .with_resizable(window.resizable)
-            .with_decorations(window.decorations)
-            .with_transparent(window.transparent);
+            .with_decorations(window.decorations);
 
         // Set up window size constraints.
         let constraints = window.resize_constraints.check_constraints();
