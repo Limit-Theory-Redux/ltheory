@@ -65,8 +65,18 @@ function HUD:drawTargetText(a)
             subtypetext = Config:getObjectInfo("station_subtypes", playerTarget:getSubType()) .. " "
         end
 
+        local faction
+        local factionName = "none"
+        if playerTarget.owner then
+            faction = playerTarget.owner:getFaction()
+
+            if faction ~= "none" then
+                factionName = faction:getName()
+            end
+        end
+
         local text1 = format("Target ID: %s", subtypetext .. playerTarget:getName())
-        local text2 = format("Target Faction: %s", "XXX")
+        local text2 = format("Target Faction: %s", factionName)
 
         if playerTarget.usesBoost then
             text1 = text1 .. " [Ace]"

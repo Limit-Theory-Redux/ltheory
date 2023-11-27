@@ -15,7 +15,7 @@ function ShipTest:spawnShip()
         ship:setPos(Config.gen.origin)
         ship:setFriction(0)
         ship:setSleepThreshold(0, 0)
-        ship:setOwner(self.player)
+        ship:setOwner(self.player, true)
         --self.system:addChild(ship)
         self.player:setControlling(ship)
         self.currentShip = ship

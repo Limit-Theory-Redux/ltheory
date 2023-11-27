@@ -15,7 +15,7 @@ function StationTest:spawnStation()
         station:setPos(Config.gen.origin)
         station:setFriction(0)
         station:setSleepThreshold(0, 0)
-        station:setOwner(self.player)
+        station:setOwner(self.player, true)
         --self.system:addChild(ship)
         self.player:setControlling(station)
         self.currentStation = station
