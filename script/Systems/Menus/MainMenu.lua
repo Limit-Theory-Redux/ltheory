@@ -190,8 +190,9 @@ function MainMenu:ShowMainMenuInner()
     Gui:setVerticalAlignment(AlignVertical.Stretch)
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
-    Gui:pushTextColor(0.9, 0.9, 0.9, 1.0)
-    Gui:pushFont(Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(0.9, 0.9, 0.9, 1.0))
+    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
 
     Gui:spacer()
     Gui:setPercentHeight(10)
@@ -225,7 +226,7 @@ function MainMenu:ShowMainMenuInner()
     end
     Gui:setVerticalAlignment(AlignVertical.Stretch)
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
 
     -- Show the game version (and, for now, current screen resolution)
     Gui:beginHorizontalContainer() -- begin metrics panel
