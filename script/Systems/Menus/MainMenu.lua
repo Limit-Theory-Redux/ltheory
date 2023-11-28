@@ -207,8 +207,9 @@ function MainMenu:ShowMainMenuInner()
     Gui:beginVerticalContainer()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
-    Gui:pushTextColor(0.9, 0.9, 0.9, 1.0)
-    Gui:pushFont(Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(0.9, 0.9, 0.9, 1.0))
+    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
 
     if Gui:button("NEW GAME") then
         self:ShowSeedDialog()
@@ -233,7 +234,7 @@ function MainMenu:ShowMainMenuInner()
         LTheoryRedux:exitGame()
     end
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
     Gui:endContainer()
 end
 
@@ -262,8 +263,9 @@ function MainMenu:ShowSeedDialogInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
 
-    Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
-    Gui:pushFont(Cache.Font('Exo2', 26))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2', 26))
 
     -- Loop through saved seeds (hardcoded for now) and display as checkboxes
     for i = 1, #guiElements[1]["elems"] do
@@ -284,7 +286,7 @@ function MainMenu:ShowSeedDialogInner()
         end
     end
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
     Gui:endContainer()
 
     -- Buttons: Cancel, Random Seed, Use Seed
@@ -292,8 +294,9 @@ function MainMenu:ShowSeedDialogInner()
     Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(16)
 
-    Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
-    Gui:pushFont(Cache.Font('Exo2Bold', 28))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
         if GameState:GetCurrentState() == Enums.GameStates.InGame then
@@ -330,7 +333,7 @@ function MainMenu:ShowSeedDialogInner()
         LTheoryRedux:createStarSystem()
     end
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
     Gui:endContainer()
 end
 
@@ -364,8 +367,9 @@ function MainMenu:ShowSettingsScreenInner()
     Gui:beginVerticalContainer()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
-    Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
-    Gui:pushFont(Cache.Font('Exo2', 24))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2', 24))
 
     -- Show Settings options
     Gui:beginVerticalContainer()
@@ -385,8 +389,9 @@ function MainMenu:ShowSettingsScreenInner()
 
     -- Show Settings control buttons
     Gui:beginHorizontalContainer()
-    Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
-    Gui:pushFont(Cache.Font('Exo2Bold', 28))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
         -- Revert to the pre-Settings values of each setting
@@ -478,10 +483,9 @@ function MainMenu:ShowSettingsScreenInner()
         InitFiles:writeUserInits()
     end
 
-    Gui:popStyle(2)
     Gui:endContainer()
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
     Gui:endContainer()
 end
 
@@ -754,8 +758,9 @@ function MainMenu:ShowFlightDialogInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
 
-    Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
-    Gui:pushFont(Cache.Font('Exo2Bold', 26))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2Bold', 26))
 
     if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
         if Gui:button("Return to Game") then
@@ -804,7 +809,7 @@ function MainMenu:ShowFlightDialogInner()
         LTheoryRedux:exitGame()
     end
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
     Gui:endContainer()
 end
 

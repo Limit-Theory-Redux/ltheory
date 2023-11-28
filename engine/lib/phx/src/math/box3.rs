@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default)]
 #[repr(C)]
 pub struct Box3 {
     pub lower: Vec3,

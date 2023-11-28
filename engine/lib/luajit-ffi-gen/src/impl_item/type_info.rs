@@ -83,8 +83,12 @@ impl TypeInfo {
         } else {
             ffi_ty
         };
-        let opt = if self.is_option && !self.is_reference && !self.variant.is_string() {
-            " const*"
+        let opt = if self.is_option
+            && !self.is_reference
+            && !self.variant.is_string()
+            && !Self::is_copyable(&self.variant.as_string())
+        {
+            "*"
         } else {
             ""
         };

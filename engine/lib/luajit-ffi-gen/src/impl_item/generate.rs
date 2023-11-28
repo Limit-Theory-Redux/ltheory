@@ -267,9 +267,16 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         };
 
         let method_call = if ty.is_option {
-            quote! {
-                #method_call
-                let Some(__res__) = __res__ else { return std::ptr::null(); };
+            if ty.is_mutable {
+                quote! {
+                    #method_call
+                    let Some(__res__) = __res__ else { return std::ptr::null_mut(); };
+                }
+            } else {
+                quote! {
+                    #method_call
+                    let Some(__res__) = __res__ else { return std::ptr::null(); };
+                }
             }
         } else {
             method_call

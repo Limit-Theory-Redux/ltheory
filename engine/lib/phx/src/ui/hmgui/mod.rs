@@ -4,10 +4,13 @@ mod data;
 mod focus;
 mod gui;
 mod image;
+mod property;
+mod property_registry;
 mod rect;
 mod rf;
 mod style;
 mod text;
+mod theme_registry;
 mod widget;
 
 use internal::*;
@@ -18,10 +21,13 @@ pub(self) use data::*;
 pub use focus::*;
 pub use gui::*;
 pub use image::*;
+pub use property::*;
+pub use property_registry::*;
 pub use rect::*;
 pub use rf::*;
 pub use style::*;
 pub use text::*;
+pub use theme_registry::*;
 pub use widget::*;
 
 pub(self) const IDENT: &str = "  ";
@@ -47,7 +53,7 @@ mod tests {
     );
 
     fn init_test() -> (HmGui, Input) {
-        (HmGui::new(Default::default()), Default::default())
+        (HmGui::new(), Default::default())
     }
 
     fn check_widget(widget: &Ref<'_, HmGuiWidget>, expected: &WidgetCheck) {

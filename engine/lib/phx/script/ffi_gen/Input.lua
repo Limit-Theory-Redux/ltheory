@@ -22,7 +22,7 @@ function Loader.defineType()
             GamepadState const*     Input_Gamepad                (Input const*);
             DragAndDropState const* Input_DragAndDrop            (Input const*);
             InputDevice const*      Input_ActiveDevice           (Input const*);
-            InputDeviceType const*  Input_ActiveDeviceType       (Input const*);
+            InputDeviceType         Input_ActiveDeviceType       (Input const*);
             InputDeviceId const*    Input_ActiveDeviceId         (Input const*);
             void                    Input_SetCursorVisible       (Input*, bool visible);
             void                    Input_SetCursorVisibleAuto   (Input*);
