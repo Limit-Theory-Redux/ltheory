@@ -149,41 +149,91 @@ function MainMenu:ShadowText(text, fontName, fontSize, shadowSize, r, g, b, a)
 end
 
 function MainMenu:ShowGui()
-    -- Add Main Menu dialog
+    -- Add title and Main Menu dialog
     local scalefactor = (LTheoryRedux.resX / 22) / 72
-    local scalefactorMenuX = 352.8 / LTheoryRedux.resX
-    local scalefactorMenuY = 549 / LTheoryRedux.resY
 
-    Gui:beginStackContainer()
+    Gui:beginStackContainer() -- begin game window panel
     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
     Gui:setPadding(10.0, 10.0)
 
-    Gui:beginVerticalContainer()
+    Gui:beginVerticalContainer() -- begin title/menu panel
+    Gui:setPercentWidth(30)
     Gui:setVerticalAlignment(AlignVertical.Stretch)
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
-    -- Header
-    Gui:beginVerticalContainer()
+    -- Title
+    Gui:beginVerticalContainer() -- begin title panel
 
     self:ShadowText('LIMIT THEORY', 'RajdhaniSemiBold', 72 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
-    Gui:setHorizontalAlignment(AlignHorizontal.Right)
+    Gui:setHorizontalAlignment(AlignHorizontal.Left)
     Gui:setMargin(20.0, 20.0)
 
     self:ShadowText('REDUX', 'RajdhaniSemiBold', 58 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
     Gui:setHorizontalAlignment(AlignHorizontal.Right)
     Gui:setMargin(20.0, 20.0)
 
-    Gui:endContainer()
+    Gui:endContainer() -- end title panel
 
-    Gui:spacer()
-
+    -- Main Menu
     self:ShowMainMenuInner()
 
-    -- Footer
-    Gui:beginHorizontalContainer()
+    Gui:endContainer() -- end title/menu panel
+
+    Gui:endContainer() -- end game window panel
+end
+
+function MainMenu:ShowMainMenuInner()
+    -- Add Main Menu items
+    local scalefactor = (LTheoryRedux.resX / 24) / 72
+
+    Gui:beginVerticalContainer() -- begin menu/metrics panel
+    Gui:setVerticalAlignment(AlignVertical.Stretch)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
+
+    Gui:pushTextColor(0.9, 0.9, 0.9, 1.0)
+    Gui:pushFont(Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
+
+    Gui:spacer()
+    Gui:setPercentHeight(10)
+
+    if Gui:button("NEW GAME") then
+        self:ShowSeedDialog()
+    end
+    Gui:setVerticalAlignment(AlignVertical.Stretch)
+
+    if Gui:button("LOAD GAME") then
+        self:ShowSeedDialog()
+    end
+    Gui:setVerticalAlignment(AlignVertical.Stretch)
+
+    if Gui:button("SETTINGS") then
+        self:ShowSettingsScreen()
+    end
+    Gui:setVerticalAlignment(AlignVertical.Stretch)
+
+    if Gui:button("CREDITS") then
+    end
+    Gui:setVerticalAlignment(AlignVertical.Stretch)
+
+    if Gui:button("BACKGROUND") then
+        self:SetBackgroundMode(true)
+    end
+    Gui:setVerticalAlignment(AlignVertical.Stretch)
+
+    if Gui:button("EXIT GAME") then
+        LTheoryRedux:exitGame()
+    end
+    Gui:setVerticalAlignment(AlignVertical.Stretch)
+
+    Gui:popStyle(2)
+
+    -- Show the game version (and, for now, current screen resolution)
+    Gui:beginHorizontalContainer() -- begin metrics panel
+    Gui:setChildrenVerticalAlignment(AlignVertical.Bottom)
     Gui:setMarginEx(5.0, 10.0, 5.0, 10.0)
 
     self:ShadowText(Config.gameVersion, 'RajdhaniSemiBold', 12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
+    Gui:setHorizontalAlignment(AlignHorizontal.Left)
 
     Gui:spacer()
 
@@ -191,51 +241,9 @@ function MainMenu:ShowGui()
         12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
     Gui:setHorizontalAlignment(AlignHorizontal.Right)
 
-    Gui:endContainer()
+    Gui:endContainer() -- end metrics panel
 
-    Gui:spacer()
-
-    Gui:endContainer()
-
-    Gui:endContainer()
-end
-
-function MainMenu:ShowMainMenuInner()
-    -- Add Main Menu items
-    local scalefactor = (LTheoryRedux.resX / 24) / 72
-
-    Gui:beginVerticalContainer()
-    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
-
-    Gui:clearStyle()
-    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(0.9, 0.9, 0.9, 1.0))
-    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
-
-    if Gui:button("NEW GAME") then
-        self:ShowSeedDialog()
-    end
-
-    if Gui:button("LOAD GAME") then
-        self:ShowSeedDialog()
-    end
-
-    if Gui:button("SETTINGS") then
-        self:ShowSettingsScreen()
-    end
-
-    if Gui:button("CREDITS") then
-    end
-
-    if Gui:button("BACKGROUND") then
-        self:SetBackgroundMode(true)
-    end
-
-    if Gui:button("EXIT GAME") then
-        LTheoryRedux:exitGame()
-    end
-
-    Gui:clearStyle()
-    Gui:endContainer()
+    Gui:endContainer() -- end menu/metrics panel
 end
 
 function MainMenu:ShowSeedDialog()
@@ -389,6 +397,8 @@ function MainMenu:ShowSettingsScreenInner()
 
     -- Show Settings control buttons
     Gui:beginHorizontalContainer()
+    Gui:setHorizontalAlignment(AlignHorizontal.Center)
+
     Gui:clearStyle()
     Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
     Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2Bold', 28))
@@ -738,8 +748,9 @@ end
 
 function MainMenu:ShowFlightDialog()
     -- Add Flight Mode dialog menu
-    Gui:beginWindow("Flight Mode", InputInstance)
+    Gui:beginVerticalContainer()
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+    Gui:beginWindow("Flight Mode", InputInstance)
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
@@ -749,6 +760,7 @@ function MainMenu:ShowFlightDialog()
     self:ShowFlightDialogInner()
 
     Gui:endWindow()
+    Gui:endContainer()
 end
 
 function MainMenu:ShowFlightDialogInner()

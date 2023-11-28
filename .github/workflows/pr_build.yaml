@@ -60,7 +60,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
+          export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
           ./build.sh
       - name: Upload binary
         uses: actions/upload-artifact@v3

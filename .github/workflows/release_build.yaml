@@ -61,7 +61,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
+          export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
           ./build.sh
       - name: Upload binary
         uses: actions/upload-artifact@v3
@@ -154,7 +154,7 @@ jobs:
       - name: Re-create 'latest' tag with the current SHA
         uses: octokit/request-action@v2.x
         with:
-          route: POST /repos/Limit-Theory-Redux/ltheory/git/refs
+          route: POST /repos/${{github.repository}}/git/refs
           ref: refs/tags/latest
           sha: ${{ github.sha }}
         env:
@@ -166,6 +166,7 @@ jobs:
         with:
           name: "Nightly ${{ needs.gen-build-version.outputs.build }}"
           body: "Build log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          tag_name: "latest"
+          tag_name: latest
+          draft: false
           prerelease: true
           files: ./*.zip

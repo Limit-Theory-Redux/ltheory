@@ -52,6 +52,14 @@ function LTheoryRedux:onInit()
     self.player = Entities.Player(GameState.player.humanPlayerName)
     GameState.player.humanPlayer = self.player
 
+    -- temporary
+    -- TODO: allow player to join other factions if they want
+    self.player:setFaction(Entities.Faction({
+        name = GameState.player.playerFactionName,
+        owner = self.player,
+        type = Enums.FactionType.Player
+    }))
+
     self:generate()
 end
 
@@ -426,8 +434,12 @@ function LTheoryRedux:showGameLogo()
 end
 
 function LTheoryRedux:showShipCreationHint()
+    Gui:beginStackContainer()
+    Gui:setFixedHeight(100)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Bottom)
+    Gui:setChildrenVerticalAlignment(AlignVertical.Center)
     Gui:textEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
-    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+    Gui:endContainer()
 end
 
 function LTheoryRedux:exitGame()

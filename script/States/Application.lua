@@ -110,7 +110,6 @@ function Application:onFrame()
         Profiler.Begin('App.onInput')
 
         -- Immediately quit game without saving
-        if InputInstance:isKeyboardCtrlPressed() and InputInstance:isPressed(Button.KeyboardW) then self:quit() end
         if InputInstance:isKeyboardAltPressed() and InputInstance:isPressed(Button.KeyboardQ) then self:quit() end
         if InputInstance:isPressed(Bindings.Exit) then self:quit() end
 
