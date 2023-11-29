@@ -53,7 +53,6 @@ impl Engine {
             }
 
             Metric_Reset();
-            Resource_Init();
             ShaderVar_Init();
         }
 

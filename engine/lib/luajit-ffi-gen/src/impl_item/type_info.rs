@@ -40,6 +40,7 @@ const COPY_TYPES: &[&str] = &[
     "FocusType",
     "AlignHorizontal",
     "AlignVertical",
+    "ResourceType",
 ];
 
 #[derive(Debug)]

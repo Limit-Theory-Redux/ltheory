@@ -42,7 +42,6 @@ mod tests {
     use tracing_subscriber::FmtSubscriber;
 
     use crate::input::Input;
-    use crate::system::Resource_Init;
 
     use super::*;
 
@@ -70,8 +69,6 @@ mod tests {
 
                 resources_initialized = true;
             }
-
-            Resource_Init();
         }
 
         (HmGui::new(), Default::default())

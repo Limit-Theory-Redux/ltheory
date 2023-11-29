@@ -165,7 +165,7 @@ fn parse_params<'a>(
                     if !ty.is_reference && !TypeInfo::is_copyable(&ty_name) {
                         return Err(Error::new(
                             pat_type.ty.span(),
-                            "by value non-copyable parameters are not supported",
+                            format!("by value non-copyable parameters are not supported\nadd {ty_name:?} type into the COPY_TYPES array in the type_info.rs file"),
                         ));
                     }
                 }
