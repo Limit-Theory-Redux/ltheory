@@ -41,8 +41,11 @@ mod tests {
     use tracing_subscriber::FmtSubscriber;
 
     use crate::input::Input;
+    use crate::system::Resource_Init;
 
     use super::*;
+
+    static mut resources_initialized: bool = false;
 
     struct WidgetCheck(
         &'static str,             // Widget name
@@ -53,6 +56,15 @@ mod tests {
     );
 
     fn init_test() -> (HmGui, Input) {
+        unsafe {
+            if !resources_initialized {
+                std::env::set_current_dir("../../..").expect("Cannot set current directory");
+                resources_initialized = true;
+            }
+
+            Resource_Init();
+        }
+
         (HmGui::new(), Default::default())
     }
 

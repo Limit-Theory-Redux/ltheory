@@ -1,4 +1,4 @@
-use std::ffi::CStr;
+use std::{ffi::CStr, path};
 
 use internal::*;
 use tracing::debug;
@@ -115,84 +115,67 @@ pub unsafe fn resource_load_cstr(ty: ResourceType, name: &str) -> Option<String>
     Some(data)
 }
 
+macro_rules! add_path {
+    ($ty:ident, $p:literal) => {
+        Resource_AddPath($ty, |s| format!($p, s));
+    };
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn Resource_Init() {
-    Resource_AddPath(ResourceType_Font, |s| {
-        format!("../shared/res/font/{}.ttf", s)
-    });
-    Resource_AddPath(ResourceType_Font, |s| {
-        format!("../shared/res/font/{}.otf", s)
-    });
-    Resource_AddPath(ResourceType_Mesh, |s| {
-        format!("../shared/res/mesh/{}.bin", s)
-    });
-    Resource_AddPath(ResourceType_Mesh, |s| {
-        format!("../shared/res/mesh/{}.obj", s)
-    });
-    Resource_AddPath(ResourceType_Other, |s| format!("../shared/res/{}", s));
-    Resource_AddPath(ResourceType_Script, |s| {
-        format!("../shared/res/script/{}.lua", s)
-    });
-    Resource_AddPath(ResourceType_Shader, |s| {
-        format!("../shared/res/shader/{}.glsl", s)
-    });
-    Resource_AddPath(ResourceType_Sound, |s| {
-        format!("../shared/res/sound/{}.mp3", s)
-    });
-    Resource_AddPath(ResourceType_Sound, |s| {
-        format!("../shared/res/sound/{}.ogg", s)
-    });
-    Resource_AddPath(ResourceType_Sound, |s| {
-        format!("../shared/res/sound/{}.ogx", s)
-    });
-    Resource_AddPath(ResourceType_Sound, |s| {
-        format!("../shared/res/sound/{}.wav", s)
-    });
-    Resource_AddPath(ResourceType_Tex1D, |s| {
-        format!("../shared/res/tex1d/{}.bin", s)
-    });
-    Resource_AddPath(ResourceType_Tex2D, |s| {
-        format!("../shared/res/tex2d/{}.jpg", s)
-    });
-    Resource_AddPath(ResourceType_Tex2D, |s| {
-        format!("../shared/res/tex2d/{}.png", s)
-    });
-    Resource_AddPath(ResourceType_Tex3D, |s| {
-        format!("../shared/res/tex3d/{}.bin", s)
-    });
-    Resource_AddPath(ResourceType_TexCube, |s| {
-        format!("../shared/res/texcube/{}", s)
-    });
-    Resource_AddPath(ResourceType_Font, |s| format!("./res/font/{}.ttf", s));
-    Resource_AddPath(ResourceType_Font, |s| format!("./res/font/{}.otf", s));
-    Resource_AddPath(ResourceType_Mesh, |s| format!("./res/mesh/{}.bin", s));
-    Resource_AddPath(ResourceType_Mesh, |s| format!("./res/mesh/{}.obj", s));
-    Resource_AddPath(ResourceType_Other, |s| format!("./res/{}", s));
-    Resource_AddPath(ResourceType_Script, |s| format!("./res/script/{}.lua", s));
-    Resource_AddPath(ResourceType_Shader, |s| format!("./res/shader/{}.glsl", s));
-    Resource_AddPath(ResourceType_Sound, |s| format!("./res/sound/{}.mp3", s));
-    Resource_AddPath(ResourceType_Sound, |s| format!("./res/sound/{}.ogg", s));
-    Resource_AddPath(ResourceType_Sound, |s| format!("./res/sound/{}.ogx", s));
-    Resource_AddPath(ResourceType_Sound, |s| format!("./res/sound/{}.wav", s));
-    Resource_AddPath(ResourceType_Tex1D, |s| format!("./res/tex1d/{}.bin", s));
-    Resource_AddPath(ResourceType_Tex2D, |s| format!("./res/tex2d/{}.jpg", s));
-    Resource_AddPath(ResourceType_Tex2D, |s| format!("./res/tex2d/{}.png", s));
-    Resource_AddPath(ResourceType_Tex3D, |s| format!("./res/tex3d/{}.bin", s));
-    Resource_AddPath(ResourceType_TexCube, |s| format!("./res/texcube/{}", s));
-    Resource_AddPath(ResourceType_Font, |s| format!("{}.ttf", s));
-    Resource_AddPath(ResourceType_Font, |s| format!("{}.otf", s));
-    Resource_AddPath(ResourceType_Mesh, |s| format!("{}.bin", s));
-    Resource_AddPath(ResourceType_Mesh, |s| format!("{}.obj", s));
-    Resource_AddPath(ResourceType_Other, |s| format!("{}", s));
-    Resource_AddPath(ResourceType_Script, |s| format!("{}.lua", s));
-    Resource_AddPath(ResourceType_Shader, |s| format!("{}.glsl", s));
-    Resource_AddPath(ResourceType_Sound, |s| format!("{}.mp3", s));
-    Resource_AddPath(ResourceType_Sound, |s| format!("{}.ogg", s));
-    Resource_AddPath(ResourceType_Sound, |s| format!("{}.ogx", s));
-    Resource_AddPath(ResourceType_Sound, |s| format!("{}.wav", s));
-    Resource_AddPath(ResourceType_Tex1D, |s| format!("{}.bin", s));
-    Resource_AddPath(ResourceType_Tex2D, |s| format!("{}.jpg", s));
-    Resource_AddPath(ResourceType_Tex2D, |s| format!("{}.png", s));
-    Resource_AddPath(ResourceType_Tex3D, |s| format!("{}.bin", s));
-    Resource_AddPath(ResourceType_TexCube, |s| format!("{}", s));
+    // TODO: this is needed for tests not to crash periodically. Should be removed after resource refactoring
+    for path in &mut paths {
+        path.clear();
+    }
+
+    add_path!(ResourceType_Font, "../shared/res/font/{}.ttf");
+    add_path!(ResourceType_Font, "../shared/res/font/{}.otf");
+    add_path!(ResourceType_Mesh, "../shared/res/mesh/{}.bin");
+    add_path!(ResourceType_Mesh, "../shared/res/mesh/{}.obj");
+    add_path!(ResourceType_Other, "../shared/res/{}");
+    add_path!(ResourceType_Script, "../shared/res/script/{}.lua");
+    add_path!(ResourceType_Shader, "../shared/res/shader/{}.glsl");
+    add_path!(ResourceType_Sound, "../shared/res/sound/{}.mp3");
+    add_path!(ResourceType_Sound, "../shared/res/sound/{}.ogg");
+    add_path!(ResourceType_Sound, "../shared/res/sound/{}.ogx");
+    add_path!(ResourceType_Sound, "../shared/res/sound/{}.wav");
+    add_path!(ResourceType_Tex1D, "../shared/res/tex1d/{}.bin");
+    add_path!(ResourceType_Tex2D, "../shared/res/tex2d/{}.jpg");
+    add_path!(ResourceType_Tex2D, "../shared/res/tex2d/{}.png");
+    add_path!(ResourceType_Tex3D, "../shared/res/tex3d/{}.bin");
+    add_path!(ResourceType_TexCube, "../shared/res/texcube/{}");
+
+    add_path!(ResourceType_Font, "./res/font/{}.ttf");
+    add_path!(ResourceType_Font, "./res/font/{}.otf");
+    add_path!(ResourceType_Mesh, "./res/mesh/{}.bin");
+    add_path!(ResourceType_Mesh, "./res/mesh/{}.obj");
+    add_path!(ResourceType_Other, "./res/{}");
+    add_path!(ResourceType_Script, "./res/script/{}.lua");
+    add_path!(ResourceType_Shader, "./res/shader/{}.glsl");
+    add_path!(ResourceType_Sound, "./res/sound/{}.mp3");
+    add_path!(ResourceType_Sound, "./res/sound/{}.ogg");
+    add_path!(ResourceType_Sound, "./res/sound/{}.ogx");
+    add_path!(ResourceType_Sound, "./res/sound/{}.wav");
+    add_path!(ResourceType_Tex1D, "./res/tex1d/{}.bin");
+    add_path!(ResourceType_Tex2D, "./res/tex2d/{}.jpg");
+    add_path!(ResourceType_Tex2D, "./res/tex2d/{}.png");
+    add_path!(ResourceType_Tex3D, "./res/tex3d/{}.bin");
+    add_path!(ResourceType_TexCube, "./res/texcube/{}");
+
+    add_path!(ResourceType_Font, "{}.ttf");
+    add_path!(ResourceType_Font, "{}.otf");
+    add_path!(ResourceType_Mesh, "{}.bin");
+    add_path!(ResourceType_Mesh, "{}.obj");
+    add_path!(ResourceType_Other, "{}");
+    add_path!(ResourceType_Script, "{}.lua");
+    add_path!(ResourceType_Shader, "{}.glsl");
+    add_path!(ResourceType_Sound, "{}.mp3");
+    add_path!(ResourceType_Sound, "{}.ogg");
+    add_path!(ResourceType_Sound, "{}.ogx");
+    add_path!(ResourceType_Sound, "{}.wav");
+    add_path!(ResourceType_Tex1D, "{}.bin");
+    add_path!(ResourceType_Tex2D, "{}.jpg");
+    add_path!(ResourceType_Tex2D, "{}.png");
+    add_path!(ResourceType_Tex3D, "{}.bin");
+    add_path!(ResourceType_TexCube, "{}");
 }
