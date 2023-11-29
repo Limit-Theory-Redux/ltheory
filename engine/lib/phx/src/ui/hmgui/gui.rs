@@ -866,8 +866,8 @@ impl HmGui {
 
     // Style methods ----------------------------------------------------------
 
-    pub fn get_property_id(&self, name: &str) -> usize {
-        *self.property_registry.get_id(name)
+    pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
+        self.property_registry.registry[id].get_type()
     }
 
     pub fn clear_style(&mut self) {
