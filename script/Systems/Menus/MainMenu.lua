@@ -191,8 +191,8 @@ function MainMenu:ShowMainMenuInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     Gui:clearStyle()
-    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(0.9, 0.9, 0.9, 1.0))
-    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(0.9, 0.9, 0.9, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
 
     Gui:spacer()
     Gui:setPercentHeight(10)
@@ -273,8 +273,8 @@ function MainMenu:ShowSeedDialogInner()
     Gui:setSpacing(8)
 
     Gui:clearStyle()
-    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2', 26))
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2', 26))
 
     -- Loop through saved seeds (hardcoded for now) and display as checkboxes
     for i = 1, #guiElements[1]["elems"] do
@@ -304,8 +304,8 @@ function MainMenu:ShowSeedDialogInner()
     Gui:setSpacing(16)
 
     Gui:clearStyle()
-    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2Bold', 28))
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
         if GameState:GetCurrentState() == Enums.GameStates.InGame then
@@ -377,8 +377,8 @@ function MainMenu:ShowSettingsScreenInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     Gui:clearStyle()
-    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2', 24))
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2', 24))
 
     -- Show Settings options
     Gui:beginVerticalContainer()
@@ -401,8 +401,8 @@ function MainMenu:ShowSettingsScreenInner()
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
     Gui:clearStyle()
-    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2Bold', 28))
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
         -- Revert to the pre-Settings values of each setting
@@ -772,8 +772,8 @@ function MainMenu:ShowFlightDialogInner()
     Gui:setSpacing(8)
 
     Gui:clearStyle()
-    Gui:setPropertyVec4(Enums.Gui.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(Enums.Gui.TextFontId, Cache.Font('Exo2Bold', 26))
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2Bold', 26))
 
     if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
         if Gui:button("Return to Game") then

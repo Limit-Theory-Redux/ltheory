@@ -5,15 +5,25 @@ use crate::{math::Box3, render::Font};
 
 use super::{HmGuiProperty, HmGuiPropertyId};
 
+#[luajit_ffi_gen::luajit_ffi(name = "GuiProperties")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HmGuiProperties {
+    ContainerSpacingId,
+    ContainerColorFrameId,
+    ContainerColorPrimaryId,
+    TextFontId,
+    TextColorId,
+    ButtonBorderWidthId,
+}
+
+impl HmGuiProperties {
+    pub fn id(&self) -> usize {
+        *self as _
+    }
+}
+
 pub struct HmGuiPropertyRegistry {
     pub registry: IndexMap<String, HmGuiProperty>,
-
-    pub container_spacing_id: HmGuiPropertyId,
-    pub container_color_frame_id: HmGuiPropertyId,
-    pub container_color_primary_id: HmGuiPropertyId,
-    pub text_font_id: HmGuiPropertyId,
-    pub text_color_id: HmGuiPropertyId,
-    pub button_border_width_id: HmGuiPropertyId,
 }
 
 macro_rules! decl_prop_method {
@@ -47,16 +57,14 @@ impl HmGuiPropertyRegistry {
     pub fn new() -> Self {
         let mut r = Default::default();
 
-        Self {
-            container_spacing_id:       reg(&mut r, "container.spacing", 6.0f32),
-            container_color_frame_id:   reg(&mut r, "container.color-frame", Vec4::new(0.1, 0.1, 0.1, 0.5)),
-            container_color_primary_id: reg(&mut r, "container.color-primary", Vec4::new(0.1, 0.5, 1.0, 1.0)),
-            text_font_id:               reg(&mut r, "text.font", Font::load("Rajdhani", 14)),
-            text_color_id:              reg(&mut r, "text.color", Vec4::ONE),
-            button_border_width_id:     reg(&mut r, "button.border-width", 0.0f32),
+        reg(&mut r, "container.spacing", 6.0f32, HmGuiProperties::ContainerSpacingId);
+        reg(&mut r, "container.color-frame", Vec4::new(0.1, 0.1, 0.1, 0.5), HmGuiProperties::ContainerColorFrameId);
+        reg(&mut r, "container.color-primary", Vec4::new(0.1, 0.5, 1.0, 1.0), HmGuiProperties::ContainerColorPrimaryId);
+        reg(&mut r, "text.font", Font::load("Rajdhani", 14), HmGuiProperties::TextFontId);
+        reg(&mut r, "text.color", Vec4::ONE, HmGuiProperties::TextColorId);
+        reg(&mut r, "button.border-width", 0.0f32, HmGuiProperties::ButtonBorderWidthId);
 
-            registry: r,
-        }
+        Self { registry: r }
     }
 
     pub fn get_id(&self, name: &str) -> HmGuiPropertyId {
@@ -112,12 +120,12 @@ fn reg<T: Into<HmGuiProperty>>(
     r: &mut IndexMap<String, HmGuiProperty>,
     name: &str,
     value: T,
-) -> HmGuiPropertyId {
+    expected_id: HmGuiProperties,
+) {
     assert!(r.get(name).is_none(), "Property {name:?} already exists");
 
     let id = r.len();
+    assert_eq!(id, expected_id as _, "Wrong property id");
 
     r.insert(name.into(), value.into());
-
-    id.into()
 }

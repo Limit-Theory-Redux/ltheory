@@ -1,4 +1,5 @@
 Enums.Gui = {}
 
-Enums.Gui.TextFontId = Gui:getPropertyId("text.font")
-Enums.Gui.TextColorId = Gui:getPropertyId("text.color")
+-- Register script defined properties
+-- Example:
+--     Enums.Gui.TextColorId = Gui:registerPropertyVec4("text.color", Vec4(1, 1, 1, 1))

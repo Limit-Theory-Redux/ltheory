@@ -102,7 +102,7 @@ impl HmGui {
 
     /// Start a new container with specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
-        let spacing = self.get_property_f32(*self.property_registry.container_spacing_id);
+        let spacing = self.get_property_f32(HmGuiProperties::ContainerSpacingId.id());
 
         let container = HmGuiContainer {
             layout,
@@ -372,8 +372,7 @@ impl HmGui {
             self.rect(0.0, 0.0, 0.0, 0.0);
             self.set_fixed_size(handle_pos, 4.0);
 
-            let color_frame =
-                self.get_property_vec4(*self.property_registry.container_color_frame_id);
+            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
 
             self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
             self.set_fixed_size(handle_size, 4.0);
@@ -398,8 +397,7 @@ impl HmGui {
             self.rect(0.0, 0.0, 0.0, 0.0);
             self.set_fixed_size(4.0, handle_pos);
 
-            let color_frame =
-                self.get_property_vec4(*self.property_registry.container_color_frame_id);
+            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
 
             self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
             self.set_fixed_size(4.0, handle_size);
@@ -516,10 +514,9 @@ impl HmGui {
         self.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         let (color_frame, color_primary) = {
-            let color_frame =
-                self.get_property_vec4(*self.property_registry.container_color_frame_id);
+            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
             let color_primary =
-                self.get_property_vec4(*self.property_registry.container_color_primary_id);
+                self.get_property_vec4(HmGuiProperties::ContainerColorPrimaryId.id());
 
             (color_frame.clone(), color_primary.clone())
         };
@@ -582,8 +579,8 @@ impl HmGui {
     }
 
     pub fn text(&mut self, text: &str) {
-        let font = self.get_property_font(*self.property_registry.text_font_id);
-        let color = self.get_property_vec4(*self.property_registry.text_color_id);
+        let font = self.get_property_font(HmGuiProperties::TextFontId.id());
+        let color = self.get_property_vec4(HmGuiProperties::TextColorId.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
@@ -599,7 +596,7 @@ impl HmGui {
     }
 
     pub fn text_colored(&mut self, text: &str, r: f32, g: f32, b: f32, a: f32) {
-        let font = self.get_property_font(*self.property_registry.text_font_id);
+        let font = self.get_property_font(HmGuiProperties::TextFontId.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
