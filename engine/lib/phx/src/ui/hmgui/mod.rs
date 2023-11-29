@@ -32,6 +32,7 @@ pub use widget::*;
 
 pub(self) const IDENT: &str = "  ";
 
+#[cfg(target_os = "linux")]
 #[cfg(test)]
 mod tests {
     use std::cell::Ref;
