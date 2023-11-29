@@ -58,7 +58,8 @@ mod tests {
     fn init_test() -> (HmGui, Input) {
         unsafe {
             if !resources_initialized {
-                std::env::set_current_dir("../../..").expect("Cannot set current directory");
+                let path = format!("{}/../../../", env!("CARGO_MANIFEST_DIR"));
+                std::env::set_current_dir(path).expect("Cannot set current directory");
                 resources_initialized = true;
             }
 
