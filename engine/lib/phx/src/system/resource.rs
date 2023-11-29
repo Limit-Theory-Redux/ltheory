@@ -13,10 +13,11 @@ const RESOURCE_EXTENSION_INFO: &[(&str, &[&str])] = &[
     ("mesh", &["bin", "obj"]),                // ResourceType::Mesh
     ("script", &["lua"]),                     // ResourceType::Script
     ("shader", &["glsl"]),                    // ResourceType::Shader
-    ("sound", &["mp3", "ogg", "ogx", "wav"]), // ResourceType::Tex1D
-    ("tex1d", &["bin"]),                      // ResourceType::Tex2D
-    ("tex2d", &["jpg", "png"]),               // ResourceType::Tex3D
-    ("tex3d", &["bin"]),                      // ResourceType::TexCube
+    ("sound", &["mp3", "ogg", "ogx", "wav"]), // ResourceType::Sound
+    ("tex1d", &["bin"]),                      // ResourceType::Tex1D
+    ("tex2d", &["jpg", "png"]),               // ResourceType::Tex2D
+    ("tex3d", &["bin"]),                      // ResourceType::Tex3D
+    ("texcube", &[]),                         // ResourceType::TexCube
     ("", &[]),                                // ResourceType::Other
 ];
 const RESOURCE_FOLDERS: &[&str] = &["../shared/res", "./res"];
@@ -64,12 +65,22 @@ fn resolve_opt(ty: ResourceType, name: &str) -> Option<String> {
         .collect();
     folders.push(PathBuf::new().join(""));
 
-    for folder in &folders {
-        for extension in *extensions {
-            let path = folder.join(format!("{name}.{extension}"));
+    if extensions.is_empty() {
+        for folder in &folders {
+            let path = folder.join(name);
 
             if path.exists() {
                 return Some(path.display().to_string());
+            }
+        }
+    } else {
+        for folder in &folders {
+            for extension in *extensions {
+                let path = folder.join(format!("{name}.{extension}"));
+
+                if path.exists() {
+                    return Some(path.display().to_string());
+                }
             }
         }
     }
