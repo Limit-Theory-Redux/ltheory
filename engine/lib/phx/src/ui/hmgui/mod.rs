@@ -35,6 +35,7 @@ pub(self) const IDENT: &str = "  ";
 #[cfg(test)]
 mod tests {
     use std::cell::Ref;
+    use std::path::PathBuf;
 
     use glam::Vec2;
     use tracing::Level;
@@ -58,8 +59,15 @@ mod tests {
     fn init_test() -> (HmGui, Input) {
         unsafe {
             if !resources_initialized {
-                let path = format!("{}/../../../", env!("CARGO_MANIFEST_DIR"));
-                std::env::set_current_dir(path).expect("Cannot set current directory");
+                let path = PathBuf::new()
+                    .join(env!("CARGO_MANIFEST_DIR"))
+                    .join("../../../");
+
+                std::env::set_current_dir(&path).expect(&format!(
+                    "Cannot set current directory to: {}",
+                    path.display(),
+                ));
+
                 resources_initialized = true;
             }
 
