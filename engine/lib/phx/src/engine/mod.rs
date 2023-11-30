@@ -296,7 +296,7 @@ impl Engine {
 
         let mut engine = Engine::new(2, 1);
 
-        let entry_point_path = PathBuf::new().join(entry_point);
+        let entry_point_path = PathBuf::from(entry_point);
 
         if !entry_point_path.exists() {
             // TODO: do we really need this magic?

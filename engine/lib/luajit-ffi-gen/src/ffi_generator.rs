@@ -142,7 +142,7 @@ impl FfiGenerator {
 
     fn ffi_dir() -> PathBuf {
         // TODO: env!("OUT_DIR") doesn't work
-        PathBuf::new().join("target").join("ffi")
+        PathBuf::from("target").join("ffi")
     }
 
     fn ffi_file(module_name: &str) -> PathBuf {

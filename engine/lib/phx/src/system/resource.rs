@@ -54,16 +54,16 @@ impl Resource {
 }
 
 fn resolve_opt(ty: ResourceType, name: &str) -> Option<String> {
-    if PathBuf::new().join(name).exists() {
+    if PathBuf::from(name).exists() {
         return Some(name.into());
     }
 
     let (resource_dir, extensions) = RESOURCE_EXTENSION_INFO.get(ty as usize)?;
     let mut folders: Vec<_> = RESOURCE_FOLDERS
         .iter()
-        .map(|f| PathBuf::new().join(f).join(resource_dir))
+        .map(|f| PathBuf::from(f).join(resource_dir))
         .collect();
-    folders.push(PathBuf::new().join(""));
+    folders.push("".into());
 
     if extensions.is_empty() {
         for folder in &folders {
