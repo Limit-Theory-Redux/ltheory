@@ -42,14 +42,12 @@ mod tests {
     use std::path::PathBuf;
 
     use glam::Vec2;
-    use tracing::Level;
-    use tracing_subscriber::FmtSubscriber;
 
     use crate::input::Input;
 
     use super::*;
 
-    static mut resources_initialized: bool = false;
+    static mut RESOURCES_INITIALIZED: bool = false;
 
     struct WidgetCheck(
         &'static str,             // Widget name
@@ -61,7 +59,7 @@ mod tests {
 
     fn init_test() -> (HmGui, Input) {
         unsafe {
-            if !resources_initialized {
+            if !RESOURCES_INITIALIZED {
                 let path = PathBuf::new()
                     .join(env!("CARGO_MANIFEST_DIR"))
                     .join("../../../");
@@ -71,7 +69,7 @@ mod tests {
                     path.display(),
                 ));
 
-                resources_initialized = true;
+                RESOURCES_INITIALIZED = true;
             }
         }
 

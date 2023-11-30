@@ -1,10 +1,6 @@
 use std::collections::HashMap;
 use std::ops::Deref;
 
-use glam::Vec4;
-
-use crate::render::Font;
-
 use super::{HmGuiProperty, HmGuiPropertyId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
