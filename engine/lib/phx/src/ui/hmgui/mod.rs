@@ -1,5 +1,6 @@
 mod alignment;
 mod container;
+mod core_properties;
 mod data;
 mod focus;
 mod gui;
@@ -17,6 +18,7 @@ use internal::*;
 
 pub use alignment::*;
 pub use container::*;
+pub use core_properties::*;
 pub(self) use data::*;
 pub use focus::*;
 pub use gui::*;
