@@ -49,6 +49,12 @@ macro_rules! decl_property {
                 }
             }
         )*
+
+        #[luajit_ffi_gen::luajit_ffi]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum HmGuiPropertyType {
+            $($v),*
+        }
     };
 }
 
@@ -79,35 +85,4 @@ decl_property! {
     Box3(Box3),
     String(String),
     Font(Font),
-}
-
-#[luajit_ffi_gen::luajit_ffi]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HmGuiPropertyType {
-    Bool,
-    I8,
-    U8,
-    I16,
-    U16,
-    I32,
-    U32,
-    I64,
-    U64,
-    F32,
-    F64,
-    Vec2,
-    Vec3,
-    Vec4,
-    IVec2,
-    IVec3,
-    IVec4,
-    UVec2,
-    UVec3,
-    UVec4,
-    DVec2,
-    DVec3,
-    DVec4,
-    Box3,
-    String,
-    Font,
 }

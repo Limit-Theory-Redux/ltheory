@@ -5,21 +5,37 @@ use crate::{math::Box3, render::Font};
 
 use super::{HmGuiProperty, HmGuiPropertyId};
 
-#[luajit_ffi_gen::luajit_ffi(name = "GuiProperties")]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HmGuiProperties {
-    ContainerSpacingId,
-    ContainerColorFrameId,
-    ContainerColorPrimaryId,
-    TextFontId,
-    TextColorId,
-    ButtonBorderWidthId,
+macro_rules! core_properties {
+    ($(($v:ident, $n:literal, $d:expr),)*) => {
+        #[luajit_ffi_gen::luajit_ffi(name = "GuiProperties")]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum HmGuiProperties {
+            $($v),*
+        }
+
+        impl HmGuiProperties {
+            pub fn id(&self) -> usize {
+                *self as _
+            }
+        }
+
+        fn register_properties() -> IndexMap<String, HmGuiProperty> {
+            let mut r = Default::default();
+
+            $(reg(&mut r, $n, $d, HmGuiProperties::$v);)*
+
+            r
+        }
+    };
 }
 
-impl HmGuiProperties {
-    pub fn id(&self) -> usize {
-        *self as _
-    }
+core_properties! {
+    (ContainerSpacingId,      "container.spacing",       6.0f32),
+    (ContainerColorFrameId,   "container.color-frame",   Vec4::new(0.1, 0.1, 0.1, 0.5)),
+    (ContainerColorPrimaryId, "container.color-primary", Vec4::new(0.1, 0.5, 1.0, 1.0)),
+    (TextFontId,              "text.font",               Font::load("Rajdhani", 14)),
+    (TextColorId,             "text.color",              Vec4::ONE),
+    (ButtonBorderWidthId,     "button.border-width",     0.0f32),
 }
 
 pub struct HmGuiPropertyRegistry {
@@ -53,18 +69,10 @@ macro_rules! decl_prop_ref_method {
 }
 
 impl HmGuiPropertyRegistry {
-    #[rustfmt::skip]
     pub fn new() -> Self {
-        let mut r = Default::default();
-
-        reg(&mut r, "container.spacing", 6.0f32, HmGuiProperties::ContainerSpacingId);
-        reg(&mut r, "container.color-frame", Vec4::new(0.1, 0.1, 0.1, 0.5), HmGuiProperties::ContainerColorFrameId);
-        reg(&mut r, "container.color-primary", Vec4::new(0.1, 0.5, 1.0, 1.0), HmGuiProperties::ContainerColorPrimaryId);
-        reg(&mut r, "text.font", Font::load("Rajdhani", 14), HmGuiProperties::TextFontId);
-        reg(&mut r, "text.color", Vec4::ONE, HmGuiProperties::TextColorId);
-        reg(&mut r, "button.border-width", 0.0f32, HmGuiProperties::ButtonBorderWidthId);
-
-        Self { registry: r }
+        Self {
+            registry: register_properties(),
+        }
     }
 
     pub fn get_id(&self, name: &str) -> HmGuiPropertyId {
