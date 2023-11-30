@@ -23,7 +23,7 @@ impl Deref for HmGuiPropertyId {
 
 macro_rules! decl_property {
     ($($v:ident($ty:ident),)*) => {
-        #[derive(Clone)]
+        #[derive(Clone, PartialEq)]
         pub enum HmGuiProperty {
             $($v($ty)),*
         }

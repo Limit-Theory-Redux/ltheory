@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq)]
 #[repr(C)]
 pub struct Box3 {
     pub lower: Vec3,
@@ -8,7 +8,7 @@ pub struct Box3 {
 }
 
 impl Box3 {
-    pub fn new(lower: Vec3, upper: Vec3) -> Box3 {
+    pub const fn new(lower: Vec3, upper: Vec3) -> Box3 {
         Box3 { lower, upper }
     }
 

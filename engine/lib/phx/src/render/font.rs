@@ -20,10 +20,10 @@ use internal::*;
 const K_GAMMA: f32 = 1.8;
 const K_RCP_GAMMA: f32 = 1.0 / K_GAMMA;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct Font(Rf<FontData>);
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 struct FontData {
     name: String,
     handle: FT_Face,
@@ -40,7 +40,7 @@ impl Default for FontData {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Glyph {
     pub index: i32,
     pub tex: *mut Tex2D,
