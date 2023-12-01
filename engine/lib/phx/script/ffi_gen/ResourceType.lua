@@ -25,6 +25,8 @@ function Loader.defineType()
             ResourceType ResourceType_Tex2D;
             ResourceType ResourceType_Tex3D;
             ResourceType ResourceType_TexCube;
+            ResourceType ResourceType_Theme;
+            ResourceType ResourceType_Style;
             ResourceType ResourceType_Other;
 
             cstr         ResourceType_ToString(ResourceType);
@@ -42,6 +44,8 @@ function Loader.defineType()
             Tex2D    = libphx.ResourceType_Tex2D,
             Tex3D    = libphx.ResourceType_Tex3D,
             TexCube  = libphx.ResourceType_TexCube,
+            Theme    = libphx.ResourceType_Theme,
+            Style    = libphx.ResourceType_Style,
             Other    = libphx.ResourceType_Other,
 
             ToString = libphx.ResourceType_ToString,

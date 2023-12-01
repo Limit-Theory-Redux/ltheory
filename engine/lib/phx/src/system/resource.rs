@@ -18,8 +18,15 @@ const RESOURCE_EXTENSION_INFO: &[(&str, &[&str])] = &[
     ("tex2d", &["jpg", "png"]),               // ResourceType::Tex2D
     ("tex3d", &["bin"]),                      // ResourceType::Tex3D
     ("texcube", &[]),                         // ResourceType::TexCube
+    ("theme", &[]),                           // ResourceType::Theme
+    ("style", &[]),                           // ResourceType::Style
     ("", &[]),                                // ResourceType::Other
 ];
+const _: () = assert!(
+    RESOURCE_EXTENSION_INFO.len() == ResourceType::SIZE,
+    "Size of RESOURCE_EXTENSION_INFO is not equal to number of ResourceType variants"
+);
+
 const RESOURCE_FOLDERS: &[&str] = &["../shared/res", "./res"];
 
 pub struct Resource;
@@ -50,6 +57,17 @@ impl Resource {
             Ok(data) => data,
             Err(err) => panic!("Cannot read file: {path}. Error: {err}"),
         }
+    }
+}
+
+impl Resource {
+    pub fn get_folders(ty: ResourceType) -> Vec<PathBuf> {
+        let (ext_folder, _) = &RESOURCE_EXTENSION_INFO[ty.value() as usize];
+
+        RESOURCE_FOLDERS
+            .iter()
+            .map(|f| PathBuf::from(f).join(ext_folder))
+            .collect()
     }
 }
 

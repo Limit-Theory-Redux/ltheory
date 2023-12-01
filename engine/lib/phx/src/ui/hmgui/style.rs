@@ -20,15 +20,21 @@ impl Deref for HmGuiStyleId {
     }
 }
 
+impl From<usize> for HmGuiStyleId {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
 #[derive(Clone, Default)]
 pub struct HmGuiStyle {
     pub properties: HashMap<HmGuiPropertyId, HmGuiProperty>,
 }
 
 impl HmGuiStyle {
-    pub fn load(
+    pub fn load<F: FnMut(&str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
         file_path: &Path,
-        f: impl Fn(&str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>,
+        mut f: F,
     ) -> Self {
         let s = std::fs::read_to_string(file_path).unwrap_or_else(|err| {
             panic!(
@@ -57,6 +63,7 @@ impl HmGuiStyle {
 
                 properties.insert(id, prop);
             } else {
+                // TODO: panic?
                 warn!("Unknown property {name:?} in {}", file_path.display());
             }
         }

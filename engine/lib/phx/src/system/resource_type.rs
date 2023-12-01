@@ -14,5 +14,7 @@ pub enum ResourceType {
     Tex2D,
     Tex3D,
     TexCube,
+    Theme,
+    Style,
     Other,
 }

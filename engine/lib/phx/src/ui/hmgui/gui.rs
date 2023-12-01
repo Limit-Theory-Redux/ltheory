@@ -6,7 +6,7 @@ use crate::common::*;
 use crate::input::*;
 use crate::math::*;
 use crate::render::*;
-use crate::system::{Hash_FNV64_Incremental, Hash_FNV64_Init, Profiler_Begin, Profiler_End};
+use crate::system::*;
 
 use super::*;
 
@@ -27,6 +27,7 @@ pub struct HmGui {
 
     property_registry: HmGuiPropertyRegistry,
     theme_registry: HmGuiThemeRegistry,
+    style_registry: HmGuiStyleRegistry,
     element_style: HmGuiStyle,
 }
 
@@ -46,6 +47,35 @@ impl HmGui {
         let container = root.clone();
         let last = root.clone();
 
+        let property_registry = HmGuiPropertyRegistry::new();
+
+        let f = |name: &str| {
+            property_registry
+                .registry
+                .get_full(name)
+                .map(|(id, _, prop)| (id.into(), prop.get_type()))
+        };
+
+        let theme_folders = Resource::get_folders(ResourceType::Theme);
+        let mut theme_registry = HmGuiThemeRegistry::default();
+        for folder_path in theme_folders {
+            let registry = HmGuiThemeRegistry::load(&folder_path, f);
+            if registry.size() > 0 {
+                theme_registry = registry;
+                break;
+            }
+        }
+
+        let style_folders = Resource::get_folders(ResourceType::Style);
+        let mut style_registry = HmGuiStyleRegistry::default();
+        for folder_path in style_folders {
+            let registry = HmGuiStyleRegistry::load(&folder_path, f);
+            if registry.size() > 0 {
+                style_registry = registry;
+                break;
+            }
+        }
+
         Self {
             renderer: Default::default(),
             root,
@@ -55,8 +85,9 @@ impl HmGui {
             focus: [0; 2],
             focus_pos: Vec2::ZERO,
             activate: false,
-            property_registry: HmGuiPropertyRegistry::new(),
-            theme_registry: Default::default(),
+            property_registry,
+            theme_registry,
+            style_registry,
             element_style: Default::default(),
         }
     }
@@ -168,9 +199,7 @@ impl HmGui {
             return prop;
         }
 
-        if let Some(theme_id) = self.theme_registry.active_theme {
-            let style = &self.theme_registry.registry[*theme_id];
-
+        if let Some(style) = self.theme_registry.active_theme() {
             if let Some(prop) = style.properties.get(&id) {
                 return prop;
             }
@@ -861,14 +890,41 @@ impl HmGui {
         container.children_vertical_alignment = align;
     }
 
+    // Theme methods ----------------------------------------------------------
+
+    pub fn set_theme(&mut self, name: &str) {
+        self.theme_registry.set_active_theme(name);
+    }
+
+    pub fn clear_theme(&mut self) {
+        self.theme_registry.clear_active_theme();
+    }
+
     // Style methods ----------------------------------------------------------
 
-    pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
-        self.property_registry.registry[id].get_type()
+    pub fn get_style_id(&self, name: &str) -> usize {
+        *self
+            .style_registry
+            .get_id(name)
+            .expect(&format!("Unknown style: {name}"))
+    }
+
+    pub fn set_style(&mut self, id: usize) {
+        self.element_style = self
+            .style_registry
+            .get(id.into())
+            .expect(&format!("Unknown style with id: {id:?}"))
+            .clone();
     }
 
     pub fn clear_style(&mut self) {
         self.element_style.properties.clear();
+    }
+
+    // Property methods -------------------------------------------------------
+
+    pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
+        self.property_registry.registry[id].get_type()
     }
 
     pub fn removeProperty(&mut self, property_id: usize) {

@@ -74,8 +74,12 @@ function Loader.defineType()
             void              HmGui_SetChildrenAlignment           (HmGui const*, AlignHorizontal h, AlignVertical v);
             void              HmGui_SetChildrenHorizontalAlignment (HmGui const*, AlignHorizontal align);
             void              HmGui_SetChildrenVerticalAlignment   (HmGui const*, AlignVertical align);
-            HmGuiPropertyType HmGui_GetPropertyType                (HmGui const*, uint64 id);
+            void              HmGui_SetTheme                       (HmGui*, cstr name);
+            void              HmGui_ClearTheme                     (HmGui*);
+            uint64            HmGui_GetStyleId                     (HmGui const*, cstr name);
+            void              HmGui_SetStyle                       (HmGui*, uint64 id);
             void              HmGui_ClearStyle                     (HmGui*);
+            HmGuiPropertyType HmGui_GetPropertyType                (HmGui const*, uint64 id);
             void              HmGui_RemoveProperty                 (HmGui*, uint64 propertyId);
             void              HmGui_SetPropertyBool                (HmGui*, uint64 propertyId, bool value);
             void              HmGui_SetPropertyI8                  (HmGui*, uint64 propertyId, int8 value);
@@ -193,8 +197,12 @@ function Loader.defineType()
             SetChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
             SetChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
             SetChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
-            GetPropertyType                = libphx.HmGui_GetPropertyType,
+            SetTheme                       = libphx.HmGui_SetTheme,
+            ClearTheme                     = libphx.HmGui_ClearTheme,
+            GetStyleId                     = libphx.HmGui_GetStyleId,
+            SetStyle                       = libphx.HmGui_SetStyle,
             ClearStyle                     = libphx.HmGui_ClearStyle,
+            GetPropertyType                = libphx.HmGui_GetPropertyType,
             RemoveProperty                 = libphx.HmGui_RemoveProperty,
             SetPropertyBool                = libphx.HmGui_SetPropertyBool,
             SetPropertyI8                  = libphx.HmGui_SetPropertyI8,
@@ -317,8 +325,12 @@ function Loader.defineType()
                 setChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
                 setChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
                 setChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
-                getPropertyType                = libphx.HmGui_GetPropertyType,
+                setTheme                       = libphx.HmGui_SetTheme,
+                clearTheme                     = libphx.HmGui_ClearTheme,
+                getStyleId                     = libphx.HmGui_GetStyleId,
+                setStyle                       = libphx.HmGui_SetStyle,
                 clearStyle                     = libphx.HmGui_ClearStyle,
+                getPropertyType                = libphx.HmGui_GetPropertyType,
                 removeProperty                 = libphx.HmGui_RemoveProperty,
                 setPropertyBool                = libphx.HmGui_SetPropertyBool,
                 setPropertyI8                  = libphx.HmGui_SetPropertyI8,
