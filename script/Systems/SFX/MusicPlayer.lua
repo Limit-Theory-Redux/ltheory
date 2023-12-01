@@ -43,7 +43,7 @@ function MusicPlayer:LoadEffects()
     -- *** TEMP: Audio FX test END ***
 end
 
-function MusicPlayer:SetVolume(volume)
+function MusicPlayer:SetVolume(volume, fadeMS)
     if volume == self.volume then
         return
     end
@@ -52,7 +52,7 @@ function MusicPlayer:SetVolume(volume)
 
     for _, soundObject in ipairs(self.trackList) do
         Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
-        soundObject.sound:setVolume(volume)
+        soundObject:SetVolume(volume, fadeMS)
     end
 end
 
