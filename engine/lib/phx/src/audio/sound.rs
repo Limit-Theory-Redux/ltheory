@@ -99,8 +99,21 @@ impl Sound {
         }
     }
 
-    pub fn set_volume(&mut self, volume: f64) {
-        self.sound_data.settings.volume = volume.into();
+    pub fn set_volume(&mut self, volume: f64, fade_millis: u64) {
+        if let Some(sound_handle) = &self.sound_handle {
+            process_command_error(
+                sound_handle.borrow_mut().set_volume(
+                    volume,
+                    Tween {
+                        duration: Duration::from_millis(fade_millis),
+                        ..Default::default()
+                    },
+                ),
+                "Could not set volume on sound",
+            );
+        } else {
+            self.sound_data.settings.volume = volume.into();
+        }
     }
 
     pub fn pause(&mut self, fade_millis: u64) {
