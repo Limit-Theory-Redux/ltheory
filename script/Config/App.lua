@@ -27,7 +27,7 @@ Config.render                    = {
 
 Config.audio                     = {
     soundEnabled         = true,
-    supportedFormats     = { ".ogg" },
+    supportedFormats     = { ".ogg", ".mp3", ".wav" },
     mainMenuMusicEnabled = true,
     soundMin             = 0,
     soundMax             = 1,   -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
