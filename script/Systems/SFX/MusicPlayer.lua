@@ -14,9 +14,11 @@ function MusicPlayer:Init()
     else
         self.volume = 0
     end
-    self:LoadMusic()
 
-    MusicPlayer:LoadEffects()
+    self.lastVolume = self.volume
+
+    self:LoadMusic()
+    self:LoadEffects()
 end
 
 -- add block queueing
@@ -48,10 +50,11 @@ function MusicPlayer:SetVolume(volume, fadeMS)
         return
     end
 
+    self.lastVolume = GameState.audio.musicVolume
     GameState.audio.musicVolume = volume
 
     for _, soundObject in ipairs(self.trackList) do
-        Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
+        Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, volume)
         soundObject:SetVolume(volume, fadeMS)
     end
 end

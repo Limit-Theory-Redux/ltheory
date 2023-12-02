@@ -400,10 +400,14 @@ function MainMenu:ShowSettingsScreenInner()
 
     if Gui:button("Cancel") then
         -- Revert to the pre-Settings values of each setting
-        if guiSettings[1][2] then
-            LTheoryRedux:SoundOn()
-        else
-            LTheoryRedux:SoundOff()
+        if guiSettings[1][2] and guiSettings[1][1] ~= guiSettings[1][2] then
+            if guiSettings[1][2] then
+                LTheoryRedux:SoundOn()
+                Log.Debug("Reverting to Sound Enabled")
+            else
+                LTheoryRedux:SoundOff()
+                Log.Debug("Reverting to Sound Disabled")
+            end
         end
 
         LTheoryRedux:SetFullscreen(guiSettings[2][2])
