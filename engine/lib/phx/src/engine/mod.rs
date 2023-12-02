@@ -63,14 +63,14 @@ impl Engine {
         let cache = CachedWindow {
             window: window.clone(),
         };
-        let winit_window = WinitWindow::new(&event_loop, &window);
+        let (winit_window, renderer) = WinitWindow::new(&event_loop, &window);
 
         Self {
             init_time: TimeStamp::now(),
             window,
             cache,
             winit_window,
-            draw: Draw::new(),
+            draw: Draw::new(renderer),
             hmgui: HmGui::new(Font::load("Rajdhani", 14)),
             input: Default::default(),
             frame_state: Default::default(),
@@ -512,6 +512,28 @@ impl Engine {
                     // Load all gamepad events.
                     engine.input.update_gamepad(|state| state.update());
 
+                    // Begin the frame.
+                    let frame = match engine.winit_window.begin_frame() {
+                        Ok(frame) => frame,
+                        // Reconfigure the surface if lost.
+                        Err(wgpu::SurfaceError::Lost) => {
+                            let width = engine.window.resolution.physical_width();
+                            let height = engine.window.resolution.physical_height();
+                            engine.winit_window.resize(width, height);
+                            return;
+                        }
+                        // The system is out of memory, we should probably quit.
+                        Err(wgpu::SurfaceError::OutOfMemory) => {
+                            *control_flow = ControlFlow::Exit;
+                            return;
+                        }
+                        // All other errors (Outdated, Timeout) should be resolved by the next frame
+                        Err(e) => {
+                            debug!("Draw error: {:?}", e);
+                            return;
+                        }
+                    };
+
                     // Tick the lua script.
                     call_lua_func(&engine, "AppFrame");
 
@@ -519,19 +541,7 @@ impl Engine {
                     engine.changed_window();
 
                     // Display frame.
-                    match engine.winit_window.redraw() {
-                        Ok(_) => {}
-                        // Reconfigure the surface if lost
-                        Err(wgpu::SurfaceError::Lost) => {
-                            let width = engine.window.resolution.physical_width();
-                            let height = engine.window.resolution.physical_height();
-                            engine.winit_window.resize(width, height)
-                        }
-                        // The system is out of memory, we should probably quit
-                        Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                        // All other errors (Outdated, Timeout) should be resolved by the next frame
-                        Err(e) => debug!("Draw error: {:?}", e),
-                    }
+                    engine.winit_window.end_frame(frame);
 
                     // Reset inputs.
                     engine.input.reset();

@@ -4,22 +4,27 @@ use crate::logging::warn;
 use crate::math::*;
 use crate::system::*;
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::OnceLock;
 
 pub struct Draw {
     alpha_stack: Vec<f32>,
     color: Vec4,
     draw_color: Vec4,
+
+    renderer: Rc<RefCell<Renderer>>,
     ids: ImmediateDrawSet,
 }
 
 static mut INSTANCE: Option<*mut Draw> = None;
 impl Draw {
-    pub fn new() -> Draw {
+    pub fn new(renderer: Rc<RefCell<Renderer>>) -> Draw {
         Draw {
             alpha_stack: vec![],
             color: Vec4::ONE,
             draw_color: Vec4::ONE,
+            renderer,
             ids: ImmediateDrawSet::new(),
         }
     }
@@ -163,6 +168,18 @@ impl Draw {
     }
 
     pub fn clear(r: f32, g: f32, b: f32, a: f32) {
+        let this = Draw::inst_mut();
+
+        let mut renderer = this.renderer.borrow_mut();
+        let frame = renderer.get_frame();
+
+        frame.start_render_pass(wgpu::Color {
+            r: r as f64,
+            g: g as f64,
+            b: b as f64,
+            a: a as f64,
+        });
+
         // let status = gl_check_framebuffer_status(gl::FRAMEBUFFER);
         // if status != gl::FRAMEBUFFER_COMPLETE {
         //     warn!(
