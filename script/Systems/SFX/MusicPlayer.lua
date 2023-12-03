@@ -186,8 +186,11 @@ function MusicPlayer:LoadMusic()
         local fileUnsupported = false
 
         if #Config.audio.supportedFormats > 1 then
-            for supportedFormat in ipairs(Config.audio.supportedFormats) do
-                if not string.find(path, supportedFormat) then
+            for _, supportedFormat in ipairs(Config.audio.supportedFormats) do
+                if string.find(path, supportedFormat) then
+                    fileUnsupported = false
+                    break
+                else
                     fileUnsupported = true
                 end
             end
