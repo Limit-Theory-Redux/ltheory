@@ -31,8 +31,8 @@ function MusicObject:Rewind()
     self.sound:setPlayPos(0)
 end
 
-function MusicObject:SetVolume(volume)
-    self.sound:setVolume(volume)
+function MusicObject:SetVolume(volume, fadeMS)
+    self.sound:setVolume(volume, fadeMS)
 end
 
 function MusicObject:IsPlaying()

@@ -43,8 +43,8 @@ function SFXObject:SetPlayPos(pos)
     self.sound:setPlayPos(pos % self.sound:getDuration())
 end
 
-function SFXObject:SetVolume(volume)
-    self.sound:setVolume(volume)
+function SFXObject:SetVolume(volume, fadeMS)
+    self.sound:setVolume(volume, fadeMS)
 end
 
 function SFXObject:IsPlaying()

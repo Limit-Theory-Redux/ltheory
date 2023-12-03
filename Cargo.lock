@@ -1146,6 +1146,7 @@ dependencies = [
  "glam",
  "mint",
  "ringbuf",
+ "serde",
  "symphonia",
 ]
 

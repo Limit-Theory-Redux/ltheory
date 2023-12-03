@@ -24,7 +24,9 @@ local rng = RNG.FromTime()
 --** MAIN CODE **--
 function LTheoryRedux:onInit()
     --* Value initializations *--
-    self.logo = Tex2D.Load("./res/images/LTR_logo2.png") -- load the LTR logo
+    self.logo     = Tex2D.Load("./res/images/LTR_logo2.png") -- load the full LTR logo
+    self.logoname = Tex2D.Load("./res/images/LTR-logo-name.png")
+    self.logoicon = Tex2D.Load("./res/images/LTR-logo-icon.png")
 
     DebugControl.ltheory = self
 
@@ -70,20 +72,17 @@ function LTheoryRedux:setCursor(cursorStyle, cursorX, cursorY)
 end
 
 function LTheoryRedux:toggleSound()
-    GameState.audio.soundEnabled = not GameState.audio.soundEnabled
-
     if GameState.audio.soundEnabled then
-        MusicPlayer:SetVolume(GameState.audio.musicVolume)
+        self:SoundOff()
     else
-        --Log.Debug("LTheoryRedux:toggleSound: volume set to 0")
-        MusicPlayer:SetVolume(0)
+        self:SoundOn()
     end
 end
 
 function LTheoryRedux:SoundOn()
     GameState.audio.soundEnabled = true
     --Log.Debug("LTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
-    MusicPlayer:SetVolume(GameState.audio.musicVolume)
+    MusicPlayer:SetVolume(MusicPlayer.lastVolume)
 end
 
 function LTheoryRedux:SoundOff()
