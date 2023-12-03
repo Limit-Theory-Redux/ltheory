@@ -24,7 +24,9 @@ local rng = RNG.FromTime()
 --** MAIN CODE **--
 function LTheoryRedux:onInit()
     --* Value initializations *--
-    self.logo = Tex2D.Load("./res/images/LTR_logo2.png") -- load the LTR logo
+    self.logo     = Tex2D.Load("./res/images/LTR_logo2.png") -- load the full LTR logo
+    self.logoname = Tex2D.Load("./res/images/LTR-logo-name.png")
+    self.logoicon = Tex2D.Load("./res/images/LTR-logo-icon.png")
 
     DebugControl.ltheory = self
 
