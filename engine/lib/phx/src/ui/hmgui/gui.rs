@@ -25,8 +25,9 @@ pub struct HmGui {
     focus_pos: Vec2,
     activate: bool,
 
+    default_property_registry: HmGuiPropertyRegistry,
     property_registry: HmGuiPropertyRegistry,
-    theme_registry: HmGuiThemeRegistry,
+    theme_registry: HmGuiStyleRegistry,
     style_registry: HmGuiStyleRegistry,
     element_style: HmGuiStyle,
 }
@@ -48,6 +49,7 @@ impl HmGui {
         let last = root.clone();
 
         let property_registry = HmGuiPropertyRegistry::new();
+        let default_property_registry = property_registry.clone();
 
         let f = |name: &str| {
             property_registry
@@ -57,9 +59,9 @@ impl HmGui {
         };
 
         let theme_folders = Resource::get_folders(ResourceType::Theme);
-        let mut theme_registry = HmGuiThemeRegistry::default();
+        let mut theme_registry = HmGuiStyleRegistry::default();
         for folder_path in theme_folders {
-            let registry = HmGuiThemeRegistry::load(&folder_path, f);
+            let registry = HmGuiStyleRegistry::load(&folder_path, f);
             if registry.size() > 0 {
                 theme_registry = registry;
                 break;
@@ -85,6 +87,7 @@ impl HmGui {
             focus: [0; 2],
             focus_pos: Vec2::ZERO,
             activate: false,
+            default_property_registry,
             property_registry,
             theme_registry,
             style_registry,
@@ -199,12 +202,6 @@ impl HmGui {
             return prop;
         }
 
-        if let Some(style) = self.theme_registry.active_theme() {
-            if let Some(prop) = style.properties.get(&id) {
-                return prop;
-            }
-        }
-
         if let Some((_, prop)) = self.property_registry.registry.get_index(property_id) {
             return prop;
         }
@@ -215,7 +212,7 @@ impl HmGui {
 
 macro_rules! set_property {
     ($self:ident, $id:ident, $val:expr) => {
-        let Some((_, def_prop)) = $self.property_registry.registry.get_index($id) else {
+        let Some((_, def_prop)) = $self.default_property_registry.registry.get_index($id) else {
             panic!("Unknown property id {}", $id);
         };
         let value: HmGuiProperty = $val.into();
@@ -893,11 +890,15 @@ impl HmGui {
     // Theme methods ----------------------------------------------------------
 
     pub fn set_theme(&mut self, name: &str) {
-        self.theme_registry.set_active_theme(name);
+        let mut property_registry = self.default_property_registry.clone();
+
+        self.theme_registry.merge_to(&mut property_registry, name);
+
+        self.property_registry = property_registry;
     }
 
     pub fn clear_theme(&mut self) {
-        self.theme_registry.clear_active_theme();
+        self.property_registry = self.default_property_registry.clone();
     }
 
     // Style methods ----------------------------------------------------------
@@ -924,7 +925,7 @@ impl HmGui {
     // Property methods -------------------------------------------------------
 
     pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
-        self.property_registry.registry[id].get_type()
+        self.default_property_registry.registry[id].get_type()
     }
 
     pub fn removeProperty(&mut self, property_id: usize) {

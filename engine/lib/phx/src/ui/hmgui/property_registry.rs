@@ -5,6 +5,7 @@ use crate::{math::Box3, render::Font};
 
 use super::{register_core_properties, HmGuiProperty, HmGuiPropertyId};
 
+#[derive(Clone)]
 pub struct HmGuiPropertyRegistry {
     pub registry: IndexMap<String, HmGuiProperty>,
 }

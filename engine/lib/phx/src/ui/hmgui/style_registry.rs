@@ -3,7 +3,7 @@ use std::path::Path;
 use indexmap::IndexMap;
 use walkdir::WalkDir;
 
-use super::{HmGuiPropertyId, HmGuiPropertyType, HmGuiStyle, HmGuiStyleId};
+use super::{HmGuiPropertyId, HmGuiPropertyRegistry, HmGuiPropertyType, HmGuiStyle, HmGuiStyleId};
 
 #[derive(Default)]
 pub struct HmGuiStyleRegistry {
@@ -32,6 +32,13 @@ impl HmGuiStyleRegistry {
         }
 
         Self { registry }
+    }
+
+    pub fn merge_to(&self, property_registry: &mut HmGuiPropertyRegistry, style_name: &str) {
+        let style = &self.registry[style_name];
+        for (id, prop) in &style.properties {
+            property_registry.registry[**id] = prop.clone();
+        }
     }
 
     pub fn get(&self, id: HmGuiStyleId) -> Option<&HmGuiStyle> {

@@ -12,7 +12,6 @@ mod rf;
 mod style;
 mod style_registry;
 mod text;
-mod theme_registry;
 mod widget;
 
 use internal::*;
@@ -31,7 +30,6 @@ pub use rf::*;
 pub use style::*;
 pub use style_registry::*;
 pub use text::*;
-pub use theme_registry::*;
 pub use widget::*;
 
 pub(self) const IDENT: &str = "  ";
