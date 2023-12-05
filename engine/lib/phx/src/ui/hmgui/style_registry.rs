@@ -54,6 +54,13 @@ impl HmGuiStyleRegistry {
                 file_path.display()
             )
         });
+
+        if root_value.is_null() {
+            return Self {
+                registry: Default::default(),
+            };
+        }
+
         let prop_table = root_value.as_mapping().unwrap_or_else(|| {
             panic!(
                 "Cannot parse style map: {}. Expecting map type but was {root_value:?}",

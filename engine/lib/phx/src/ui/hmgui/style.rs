@@ -51,6 +51,12 @@ impl HmGuiStyle {
             )
         });
 
+        if root_value.is_null() {
+            return Self {
+                properties: Default::default(),
+            };
+        }
+
         Self::parse_value(&root_value, f)
             .unwrap_or_else(|err| panic!("{err}. File: {}", file_path.display()))
     }
