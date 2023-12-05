@@ -389,7 +389,10 @@ function LTheoryRedux:createStarSystem()
             self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer, nil)
         end
     else
-        GameState:SetState(Enums.GameStates.ShipCreation)
+        -- Quickstart if forced to ingame
+        if GameState:GetCurrentState() ~= Enums.GameStates.InGame then
+            GameState:SetState(Enums.GameStates.ShipCreation)
+        end
         Universe:CreateStarSystem(self.seed)
     end
 
