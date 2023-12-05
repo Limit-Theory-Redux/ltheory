@@ -21,6 +21,12 @@ impl Deref for HmGuiPropertyId {
     }
 }
 
+#[derive(Clone, PartialEq)]
+pub struct HmGuiPropertyInfo {
+    pub property: HmGuiProperty,
+    pub map_ids: Vec<HmGuiPropertyId>,
+}
+
 macro_rules! decl_property {
     ($($v:ident($ty:ident),)*) => {
         #[derive(Clone, PartialEq)]

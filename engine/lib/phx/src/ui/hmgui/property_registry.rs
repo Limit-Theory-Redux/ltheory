@@ -3,17 +3,17 @@ use indexmap::IndexMap;
 
 use crate::{math::Box3, render::Font};
 
-use super::{register_core_properties, HmGuiProperty, HmGuiPropertyId};
+use super::{register_core_properties, HmGuiProperty, HmGuiPropertyId, HmGuiPropertyInfo};
 
 #[derive(Clone)]
 pub struct HmGuiPropertyRegistry {
-    pub registry: IndexMap<String, HmGuiProperty>,
+    pub registry: IndexMap<String, HmGuiPropertyInfo>,
 }
 
 macro_rules! decl_prop_method {
     ($m:ident, $v:ident, $ty:ident) => {
         pub fn $m(&self, id: HmGuiPropertyId) -> $ty {
-            let prop = &self.registry[*id];
+            let prop = &self.registry[*id].property;
             let HmGuiProperty::$v(value) = prop else {
                 panic!("Expected {} but was {:?}", stringify!($v), prop.name())
             };
@@ -26,7 +26,7 @@ macro_rules! decl_prop_method {
 macro_rules! decl_prop_ref_method {
     ($m:ident, $v:ident, $ty:ident) => {
         pub fn $m(&self, id: HmGuiPropertyId) -> &$ty {
-            let prop = &self.registry[*id];
+            let prop = &self.registry[*id].property;
             let HmGuiProperty::$v(value) = prop else {
                 panic!("Expected {} but was {:?}", stringify!($v), prop.name())
             };
@@ -50,7 +50,24 @@ impl HmGuiPropertyRegistry {
             .unwrap_or_else(|| panic!("Property {name:?} was not registered"))
     }
 
-    pub fn register(&mut self, name: &str, value: HmGuiProperty) -> HmGuiPropertyId {
+    pub fn set_property(&mut self, id: &HmGuiPropertyId, prop: &HmGuiProperty) {
+        assert!(**id < self.registry.len(), "Unknown property id {}", **id);
+
+        assert_eq!(
+            self.registry[**id].property.get_type(),
+            prop.get_type(),
+            "Wrong property type"
+        );
+
+        self.registry[**id].property = prop.clone();
+    }
+
+    pub fn register(
+        &mut self,
+        name: &str,
+        value: HmGuiProperty,
+        map_ids: &[HmGuiPropertyId],
+    ) -> HmGuiPropertyId {
         assert!(
             !self.registry.contains_key(name),
             "Property {name:?} was already registered"
@@ -58,7 +75,13 @@ impl HmGuiPropertyRegistry {
 
         let id = self.registry.len();
 
-        self.registry.insert(name.into(), value);
+        self.registry.insert(
+            name.into(),
+            HmGuiPropertyInfo {
+                property: value,
+                map_ids: map_ids.into(),
+            },
+        );
 
         id.into()
     }

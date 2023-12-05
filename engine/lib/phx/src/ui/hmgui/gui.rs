@@ -55,7 +55,7 @@ impl HmGui {
             property_registry
                 .registry
                 .get_full(name)
-                .map(|(id, _, prop)| (id.into(), prop.get_type()))
+                .map(|(id, _, prop)| (id.into(), prop.property.get_type()))
         };
 
         let theme_folders = Resource::get_folders(ResourceType::Theme);
@@ -203,7 +203,7 @@ impl HmGui {
         }
 
         if let Some((_, prop)) = self.property_registry.registry.get_index(property_id) {
-            return prop;
+            return &prop.property;
         }
 
         panic!("Unknown property id {property_id}");
@@ -216,7 +216,11 @@ macro_rules! set_property {
             panic!("Unknown property id {}", $id);
         };
         let value: HmGuiProperty = $val.into();
-        assert_eq!(def_prop.name(), value.name(), "Wrong property type");
+        assert_eq!(
+            def_prop.property.get_type(),
+            value.get_type(),
+            "Wrong property type"
+        );
 
         $self.element_style.properties.insert($id.into(), value);
     };
@@ -924,11 +928,51 @@ impl HmGui {
 
     // Property methods -------------------------------------------------------
 
-    pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
-        self.default_property_registry.registry[id].get_type()
+    // TODO: map_ids: Vec<usize>
+    pub fn register_property_bool(
+        &mut self,
+        name: &str,
+        value: bool,
+        map_id: Option<usize>,
+    ) -> usize {
+        let mut map_ids = vec![];
+        if let Some(map_id) = map_id {
+            map_ids.push(map_id.into());
+        }
+
+        let def_id = self
+            .default_property_registry
+            .register(name, value.into(), &map_ids);
+        let id = self
+            .property_registry
+            .register(name, value.into(), &map_ids);
+        debug_assert_eq!(def_id, id);
+
+        *id
     }
 
-    pub fn removeProperty(&mut self, property_id: usize) {
+    pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
+        self.default_property_registry.registry[id]
+            .property
+            .get_type()
+    }
+
+    pub fn map_property(&mut self, property_id: usize) {
+        if let Some(prop) = self
+            .element_style
+            .properties
+            .get(&property_id.into())
+            .cloned()
+        {
+            let map_ids = &self.property_registry.registry[property_id].map_ids;
+
+            for map_id in map_ids {
+                self.element_style.properties.insert(*map_id, prop.clone());
+            }
+        }
+    }
+
+    pub fn remove_property(&mut self, property_id: usize) {
         self.element_style.properties.remove(&property_id.into());
     }
 

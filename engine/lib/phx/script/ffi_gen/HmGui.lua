@@ -79,7 +79,9 @@ function Loader.defineType()
             uint64            HmGui_GetStyleId                     (HmGui const*, cstr name);
             void              HmGui_SetStyle                       (HmGui*, uint64 id);
             void              HmGui_ClearStyle                     (HmGui*);
+            uint64            HmGui_RegisterPropertyBool           (HmGui*, cstr name, bool value, uint64* mapId);
             HmGuiPropertyType HmGui_GetPropertyType                (HmGui const*, uint64 id);
+            void              HmGui_MapProperty                    (HmGui*, uint64 propertyId);
             void              HmGui_RemoveProperty                 (HmGui*, uint64 propertyId);
             void              HmGui_SetPropertyBool                (HmGui*, uint64 propertyId, bool value);
             void              HmGui_SetPropertyI8                  (HmGui*, uint64 propertyId, int8 value);
@@ -202,7 +204,9 @@ function Loader.defineType()
             GetStyleId                     = libphx.HmGui_GetStyleId,
             SetStyle                       = libphx.HmGui_SetStyle,
             ClearStyle                     = libphx.HmGui_ClearStyle,
+            RegisterPropertyBool           = libphx.HmGui_RegisterPropertyBool,
             GetPropertyType                = libphx.HmGui_GetPropertyType,
+            MapProperty                    = libphx.HmGui_MapProperty,
             RemoveProperty                 = libphx.HmGui_RemoveProperty,
             SetPropertyBool                = libphx.HmGui_SetPropertyBool,
             SetPropertyI8                  = libphx.HmGui_SetPropertyI8,
@@ -330,7 +334,9 @@ function Loader.defineType()
                 getStyleId                     = libphx.HmGui_GetStyleId,
                 setStyle                       = libphx.HmGui_SetStyle,
                 clearStyle                     = libphx.HmGui_ClearStyle,
+                registerPropertyBool           = libphx.HmGui_RegisterPropertyBool,
                 getPropertyType                = libphx.HmGui_GetPropertyType,
+                mapProperty                    = libphx.HmGui_MapProperty,
                 removeProperty                 = libphx.HmGui_RemoveProperty,
                 setPropertyBool                = libphx.HmGui_SetPropertyBool,
                 setPropertyI8                  = libphx.HmGui_SetPropertyI8,

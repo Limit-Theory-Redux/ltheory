@@ -22,6 +22,7 @@ function Loader.defineType()
             GuiProperties GuiProperties_TextFontId;
             GuiProperties GuiProperties_TextColorId;
             GuiProperties GuiProperties_ButtonBorderWidthId;
+            GuiProperties GuiProperties_ButtonTextColorId;
 
             cstr          GuiProperties_ToString(GuiProperties);
         ]]
@@ -35,6 +36,7 @@ function Loader.defineType()
             TextFontId              = libphx.GuiProperties_TextFontId,
             TextColorId             = libphx.GuiProperties_TextColorId,
             ButtonBorderWidthId     = libphx.GuiProperties_ButtonBorderWidthId,
+            ButtonTextColorId       = libphx.GuiProperties_ButtonTextColorId,
 
             ToString                = libphx.GuiProperties_ToString,
         }

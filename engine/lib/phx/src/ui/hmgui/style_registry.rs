@@ -37,7 +37,7 @@ impl HmGuiStyleRegistry {
     pub fn merge_to(&self, property_registry: &mut HmGuiPropertyRegistry, style_name: &str) {
         let style = &self.registry[style_name];
         for (id, prop) in &style.properties {
-            property_registry.registry[**id] = prop.clone();
+            property_registry.set_property(id, prop);
         }
     }
 

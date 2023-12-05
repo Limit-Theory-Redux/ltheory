@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+use std::fs::File;
 use std::ops::Deref;
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
 
-use toml::{Table, Value};
+use serde_yaml::Value;
 use tracing::warn;
 
 use crate::math::Box3;
@@ -36,22 +38,30 @@ impl HmGuiStyle {
         file_path: &Path,
         mut f: F,
     ) -> Self {
-        let s = std::fs::read_to_string(file_path).unwrap_or_else(|err| {
+        let file = File::open(file_path).unwrap_or_else(|err| {
             panic!(
                 "Cannot load style file: {}. Error: {err}",
                 file_path.display()
             )
         });
-        let prop_table: Table = toml::from_str(&s).unwrap_or_else(|err| {
+        let root_value: Value = serde_yaml::from_reader(&file).unwrap_or_else(|err| {
             panic!(
                 "Cannot parse style file: {}. Error: {err}",
+                file_path.display()
+            )
+        });
+        let prop_table = root_value.as_mapping().unwrap_or_else(|| {
+            panic!(
+                "Cannot parse style file: {}. Error: expecting map type but was {root_value:?}",
                 file_path.display()
             )
         });
 
         let mut properties = HashMap::new();
 
-        for (name, value) in prop_table {
+        for (name_value, value) in prop_table.iter() {
+            let name = parse_string(name_value).expect("Cannot parse property name");
+
             if let Some((id, ty)) = f(&name) {
                 let prop = match create_property(ty, &value) {
                     Ok(prop) => prop,
@@ -74,9 +84,7 @@ impl HmGuiStyle {
 
 fn create_property(ty: HmGuiPropertyType, value: &Value) -> Result<HmGuiProperty, String> {
     let prop = match ty {
-        HmGuiPropertyType::Bool => {
-            HmGuiProperty::Bool(value.as_bool().ok_or("Expected bool value".to_string())?)
-        }
+        HmGuiPropertyType::Bool => HmGuiProperty::Bool(parse_bool(value)?),
         HmGuiPropertyType::I8 => HmGuiProperty::I8(parse_int(value)?),
         HmGuiPropertyType::U8 => HmGuiProperty::U8(parse_int(value)?),
         HmGuiPropertyType::I16 => HmGuiProperty::I16(parse_int(value)?),
@@ -85,12 +93,8 @@ fn create_property(ty: HmGuiPropertyType, value: &Value) -> Result<HmGuiProperty
         HmGuiPropertyType::U32 => HmGuiProperty::U32(parse_int(value)?),
         HmGuiPropertyType::I64 => HmGuiProperty::I64(parse_int(value)?),
         HmGuiPropertyType::U64 => HmGuiProperty::U64(parse_int(value)?),
-        HmGuiPropertyType::F32 => {
-            HmGuiProperty::F32(value.as_float().ok_or("Expected f32 value".to_string())? as _)
-        }
-        HmGuiPropertyType::F64 => {
-            HmGuiProperty::F64(value.as_float().ok_or("Expected f64 value".to_string())?)
-        }
+        HmGuiPropertyType::F32 => HmGuiProperty::F32(parse_f32(value)?),
+        HmGuiPropertyType::F64 => HmGuiProperty::F64(parse_f64(value)?),
         HmGuiPropertyType::Vec2 => HmGuiProperty::Vec2(parse_f32_vec(value)?),
         HmGuiPropertyType::Vec3 => HmGuiProperty::Vec3(parse_f32_vec(value)?),
         HmGuiPropertyType::Vec4 => HmGuiProperty::Vec4(parse_f32_vec(value)?),
@@ -104,30 +108,19 @@ fn create_property(ty: HmGuiPropertyType, value: &Value) -> Result<HmGuiProperty
         HmGuiPropertyType::DVec3 => HmGuiProperty::DVec3(parse_f64_vec(value)?),
         HmGuiPropertyType::DVec4 => HmGuiProperty::DVec4(parse_f64_vec(value)?),
         HmGuiPropertyType::Box3 => {
-            let arr = value.as_array().ok_or("Expected array value".to_string())?;
-            if arr.len() != 2 {
-                return Err(format!(
-                    "Wring array size. Expected 2 but was {}",
-                    arr.len()
-                ));
-            }
+            let arr = parse_sequence::<2>(value)?;
+            let lower = parse_f32_vec(&arr[0])?;
+            let upper = parse_f32_vec(&arr[1])?;
 
-            HmGuiProperty::Box3(Box3::new(parse_f32_vec(&arr[0])?, parse_f32_vec(&arr[1])?))
+            HmGuiProperty::Box3(Box3::new(lower, upper))
         }
-        HmGuiPropertyType::String => HmGuiProperty::String(value.as_str().expect("").to_string()),
+        HmGuiPropertyType::String => HmGuiProperty::String(parse_string(value)?),
         HmGuiPropertyType::Font => {
-            let arr = value.as_array().ok_or("Expected array value".to_string())?;
-            if arr.len() != 2 {
-                return Err(format!(
-                    "Wring array size. Expected 2 but was {}",
-                    arr.len()
-                ));
-            }
-
-            let name = arr[0].as_str().expect("");
+            let arr = parse_sequence::<2>(value)?;
+            let name = parse_string(&arr[0])?;
             let size = parse_int(&arr[1])?;
 
-            HmGuiProperty::Font(Font::load(name, size))
+            HmGuiProperty::Font(Font::load(&name, size))
         }
     };
 
@@ -135,15 +128,62 @@ fn create_property(ty: HmGuiPropertyType, value: &Value) -> Result<HmGuiProperty
 }
 
 #[inline]
+fn parse_sequence<const N: usize>(value: &Value) -> Result<Vec<&Value>, String> {
+    let val = value
+        .as_sequence()
+        .ok_or_else(|| format!("Expected sequence value but was {value:?}"))?;
+    if val.len() != N {
+        return Err(format!(
+            "Wrong sequence size. Expected {N} but was {}",
+            val.len()
+        ));
+    }
+
+    Ok(val.iter().map(|v| v).collect())
+}
+
+#[inline]
+fn parse_bool(value: &Value) -> Result<bool, String> {
+    let val = value
+        .as_bool()
+        .ok_or_else(|| format!("Expected bool value but was {value:?}"))?;
+    Ok(val)
+}
+
+#[inline]
 fn parse_int<T: TryFrom<i64>>(value: &Value) -> Result<T, String> {
     let integer = value
-        .as_integer()
-        .ok_or("Expected integer value".to_string())?;
+        .as_i64()
+        .ok_or_else(|| format!("Expected integer value but was {value:?}"))?;
 
     match integer.try_into() {
         Ok(v) => Ok(v),
-        Err(_) => Err("Cannot parse integer value".into()),
+        Err(_) => Err(format!("Cannot parse integer value {value:?}")),
     }
+}
+
+#[inline]
+fn parse_f32(value: &Value) -> Result<f32, String> {
+    let val = value
+        .as_f64()
+        .ok_or_else(|| format!("Expected f32 value but was {value:?}"))?;
+    Ok(val as _)
+}
+
+#[inline]
+fn parse_f64(value: &Value) -> Result<f64, String> {
+    let val = value
+        .as_f64()
+        .ok_or_else(|| format!("Expected f64 value but was {value:?}"))?;
+    Ok(val)
+}
+
+#[inline]
+fn parse_string(value: &Value) -> Result<String, String> {
+    let val = value
+        .as_str()
+        .ok_or_else(|| format!("Expected string value but was {value:?}"))?;
+    Ok(val.into())
 }
 
 #[inline]
@@ -152,18 +192,11 @@ where
     T: Default + Copy + TryFrom<i64>,
     V: From<[T; N]>,
 {
-    let arr = value.as_array().ok_or("Expected array value".to_string())?;
-    if arr.len() != N {
-        return Err(format!(
-            "Wring array size. Expected {N} but was {}",
-            arr.len()
-        ));
-    }
-
+    let arr = parse_sequence::<N>(value)?;
     let mut vec = [T::default(); N];
 
     for (i, v) in arr.iter().enumerate() {
-        let val_i64 = v.as_integer().ok_or("Expected integer value".to_string())?;
+        let val_i64: i64 = parse_int(v)?;
 
         vec[i] = val_i64
             .try_into()
@@ -178,21 +211,14 @@ fn parse_f64_vec<const N: usize, V>(value: &Value) -> Result<V, String>
 where
     V: From<[f64; N]>,
 {
-    let arr = value.as_array().ok_or("Expected array value".to_string())?;
-    if arr.len() != N {
-        return Err(format!(
-            "Wring array size. Expected {N} but was {}",
-            arr.len()
-        ));
-    }
-
+    let arr = parse_sequence::<N>(value)?;
     let mut vec = [0.0; N];
 
     for (i, v) in arr.iter().enumerate() {
-        vec[i] = if let Some(val) = v.as_float() {
+        vec[i] = if let Some(val) = v.as_f64() {
             val
         } else {
-            v.as_integer().ok_or("Expected f64 value".to_string())? as _
+            parse_int::<i64>(v)? as _
         };
     }
 
@@ -204,21 +230,14 @@ fn parse_f32_vec<const N: usize, V>(value: &Value) -> Result<V, String>
 where
     V: From<[f32; N]>,
 {
-    let arr = value.as_array().ok_or("Expected array value".to_string())?;
-    if arr.len() != N {
-        return Err(format!(
-            "Wring array size. Expected {N} but was {}",
-            arr.len()
-        ));
-    }
-
+    let arr = parse_sequence::<N>(value)?;
     let mut vec = [0.0; N];
 
     for (i, v) in arr.iter().enumerate() {
-        vec[i] = if let Some(val) = v.as_float() {
+        vec[i] = if let Some(val) = v.as_f64() {
             val as _
         } else {
-            v.as_integer().ok_or("Expected f32 value".to_string())? as _
+            parse_int::<i64>(v)? as _
         };
     }
 
@@ -267,7 +286,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_load_style() {
-        let file_path = PathBuf::from("test_data/style1.toml");
+        let file_path = PathBuf::from("test_data/style1.yaml");
         let style = HmGuiStyle::load(&file_path, |name| {
             TEST_DATA1
                 .iter()
@@ -296,7 +315,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_load_style_str() {
-        let file_path = PathBuf::from("test_data/style2.toml");
+        let file_path = PathBuf::from("test_data/style2.yaml");
         let style = HmGuiStyle::load(&file_path, |name| match name {
             "prop.string" => Some((0.into(), HmGuiPropertyType::String)),
             _ => None,
@@ -308,8 +327,12 @@ mod tests {
             "Cannot find string property. 0/prop.string/String/String"
         ));
 
-        if *actual != HmGuiProperty::String("Test".into()) {
-            panic!("Mismatched property: 0/prop.string/String/String - String");
-        }
+        let HmGuiProperty::String(val) = actual else {
+            panic!(
+                "Wrong property type. Expected string but was {:?}",
+                actual.get_type()
+            );
+        };
+        assert_eq!(val, "Test");
     }
 }
