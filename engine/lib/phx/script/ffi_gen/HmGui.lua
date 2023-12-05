@@ -79,7 +79,7 @@ function Loader.defineType()
             uint64            HmGui_GetStyleId                     (HmGui const*, cstr name);
             void              HmGui_SetStyle                       (HmGui*, uint64 id);
             void              HmGui_ClearStyle                     (HmGui*);
-            uint64            HmGui_RegisterPropertyBool           (HmGui*, cstr name, bool value, uint64* mapId);
+            uint64            HmGui_RegisterPropertyBool           (HmGui*, cstr name, bool value, cstr mapId);
             HmGuiPropertyType HmGui_GetPropertyType                (HmGui const*, uint64 id);
             void              HmGui_MapProperty                    (HmGui*, uint64 propertyId);
             void              HmGui_RemoveProperty                 (HmGui*, uint64 propertyId);

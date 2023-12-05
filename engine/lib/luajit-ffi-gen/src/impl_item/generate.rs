@@ -207,7 +207,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         .iter()
         .map(|param| {
             let name_ident = format_ident!("{}", param.name);
-            let name_accessor = if param.ty.is_option {
+            let name_accessor = if param.ty.is_option && !param.ty.variant.is_string() {
                 quote! { (*#name_ident) }
             } else {
                 quote! { #name_ident }

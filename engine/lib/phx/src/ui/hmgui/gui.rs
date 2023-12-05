@@ -933,10 +933,16 @@ impl HmGui {
         &mut self,
         name: &str,
         value: bool,
-        map_id: Option<usize>,
+        map_id: Option<&str>,
     ) -> usize {
         let mut map_ids = vec![];
-        if let Some(map_id) = map_id {
+        if let Some(map_id_str) = map_id {
+            let (map_id, _, _) = self
+                .default_property_registry
+                .registry
+                .get_full(map_id_str)
+                .unwrap_or_else(|| panic!("Unknown property: {map_id_str}"));
+
             map_ids.push(map_id.into());
         }
 
