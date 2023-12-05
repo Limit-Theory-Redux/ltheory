@@ -36,7 +36,7 @@ pub struct HmGuiStyle {
 impl HmGuiStyle {
     pub fn load<F: FnMut(&str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
         file_path: &Path,
-        mut f: F,
+        f: F,
     ) -> Self {
         let file = File::open(file_path).unwrap_or_else(|err| {
             panic!(
@@ -50,35 +50,37 @@ impl HmGuiStyle {
                 file_path.display()
             )
         });
-        let prop_table = root_value.as_mapping().unwrap_or_else(|| {
-            panic!(
-                "Cannot parse style file: {}. Error: expecting map type but was {root_value:?}",
-                file_path.display()
-            )
-        });
+
+        Self::parse_value(&root_value, f)
+            .unwrap_or_else(|err| panic!("{err}. File: {}", file_path.display()))
+    }
+
+    pub fn parse_value<F: FnMut(&str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
+        value: &Value,
+        mut f: F,
+    ) -> Result<Self, String> {
+        let prop_table = value
+            .as_mapping()
+            .ok_or_else(|| format!("Cannot parse style. Expecting map type but was {value:?}"))?;
 
         let mut properties = HashMap::new();
 
         for (name_value, value) in prop_table.iter() {
-            let name = parse_string(name_value).expect("Cannot parse property name");
+            let name = parse_string(name_value)?;
 
             if let Some((id, ty)) = f(&name) {
-                let prop = match create_property(ty, &value) {
-                    Ok(prop) => prop,
-                    Err(err) => panic!(
-                        "{err}. Value: {value:?}. Property: {name}/{ty:?}. File: {}",
-                        file_path.display()
-                    ),
-                };
+                let prop = create_property(ty, &value).map_err(|err| {
+                    format!("{err}. Value: {value:?}. Property: {name}/{ty:?}. Error: {err}")
+                })?;
 
                 properties.insert(id, prop);
             } else {
                 // TODO: panic?
-                warn!("Unknown property {name:?} in {}", file_path.display());
+                warn!("Unknown property {name:?}");
             }
         }
 
-        Self { properties }
+        Ok(Self { properties })
     }
 }
 
@@ -179,7 +181,7 @@ fn parse_f64(value: &Value) -> Result<f64, String> {
 }
 
 #[inline]
-fn parse_string(value: &Value) -> Result<String, String> {
+pub fn parse_string(value: &Value) -> Result<String, String> {
     let val = value
         .as_str()
         .ok_or_else(|| format!("Expected string value but was {value:?}"))?;

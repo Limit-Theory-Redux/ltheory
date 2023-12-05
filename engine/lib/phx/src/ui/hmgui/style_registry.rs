@@ -1,9 +1,13 @@
-use std::path::Path;
+use std::{fs::File, path::Path};
 
 use indexmap::IndexMap;
+use serde_yaml::Value;
 use walkdir::WalkDir;
 
-use super::{HmGuiPropertyId, HmGuiPropertyRegistry, HmGuiPropertyType, HmGuiStyle, HmGuiStyleId};
+use super::{
+    parse_string, HmGuiPropertyId, HmGuiPropertyRegistry, HmGuiPropertyType, HmGuiStyle,
+    HmGuiStyleId,
+};
 
 #[derive(Default)]
 pub struct HmGuiStyleRegistry {
@@ -29,6 +33,43 @@ impl HmGuiStyleRegistry {
                     registry.insert(theme_name, HmGuiStyle::load(file_path, &mut f));
                 }
             }
+        }
+
+        Self { registry }
+    }
+
+    pub fn load_map<F: FnMut(&str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
+        file_path: &Path,
+        mut f: F,
+    ) -> Self {
+        let file = File::open(file_path).unwrap_or_else(|err| {
+            panic!(
+                "Cannot load style map file: {}. Error: {err}",
+                file_path.display()
+            )
+        });
+        let root_value: Value = serde_yaml::from_reader(&file).unwrap_or_else(|err| {
+            panic!(
+                "Cannot parse style map file: {}. Error: {err}",
+                file_path.display()
+            )
+        });
+        let prop_table = root_value.as_mapping().unwrap_or_else(|| {
+            panic!(
+                "Cannot parse style map: {}. Expecting map type but was {root_value:?}",
+                file_path.display()
+            )
+        });
+
+        let mut registry = IndexMap::new();
+
+        for (name_value, value) in prop_table.iter() {
+            let name = parse_string(name_value)
+                .unwrap_or_else(|err| panic!("{err}. File: {}", file_path.display()));
+            let value = HmGuiStyle::parse_value(value, &mut f)
+                .unwrap_or_else(|err| panic!("{err}. File: {}", file_path.display()));
+
+            registry.insert(name, value);
         }
 
         Self { registry }

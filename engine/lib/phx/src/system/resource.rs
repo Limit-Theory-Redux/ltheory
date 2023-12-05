@@ -18,8 +18,7 @@ const RESOURCE_EXTENSION_INFO: &[(&str, &[&str])] = &[
     ("tex2d", &["jpg", "png"]),               // ResourceType::Tex2D
     ("tex3d", &["bin"]),                      // ResourceType::Tex3D
     ("texcube", &[]),                         // ResourceType::TexCube
-    ("theme", &[]),                           // ResourceType::Theme
-    ("style", &[]),                           // ResourceType::Style
+    ("theme", &["yaml"]),                     // ResourceType::Theme
     ("", &[]),                                // ResourceType::Other
 ];
 const _: () = assert!(

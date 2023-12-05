@@ -68,12 +68,12 @@ impl HmGui {
             }
         }
 
-        let style_folders = Resource::get_folders(ResourceType::Style);
+        let style_folders = Resource::get_folders(ResourceType::Other);
         let mut style_registry = HmGuiStyleRegistry::default();
         for folder_path in style_folders {
-            let registry = HmGuiStyleRegistry::load(&folder_path, f);
-            if registry.size() > 0 {
-                style_registry = registry;
+            let file_path = folder_path.join("styles.yaml");
+            if file_path.is_file() {
+                style_registry = HmGuiStyleRegistry::load_map(&file_path, f);
                 break;
             }
         }
@@ -956,6 +956,8 @@ impl HmGui {
 
         *id
     }
+
+    // TODO: add remaining register methods
 
     pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
         self.default_property_registry.registry[id]
