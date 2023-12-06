@@ -5,6 +5,8 @@ use crate::{math::Box3, render::Font};
 
 use super::{register_core_properties, HmGuiProperty, HmGuiPropertyId, HmGuiPropertyInfo};
 
+/// Contains a map of property name and info pairs.
+/// Map is ordered by insertion.
 #[derive(Clone)]
 pub struct HmGuiPropertyRegistry {
     pub registry: IndexMap<String, HmGuiPropertyInfo>,
@@ -37,12 +39,14 @@ macro_rules! decl_prop_ref_method {
 }
 
 impl HmGuiPropertyRegistry {
+    /// Create a registry initialized with a core properties.
     pub fn new() -> Self {
         Self {
             registry: register_core_properties(),
         }
     }
 
+    /// Get property id by name.
     pub fn get_id(&self, name: &str) -> HmGuiPropertyId {
         self.registry
             .get_index_of(name)
@@ -50,6 +54,7 @@ impl HmGuiPropertyRegistry {
             .unwrap_or_else(|| panic!("Property {name:?} was not registered"))
     }
 
+    /// Set value of the existing property.
     pub fn set_property(&mut self, id: &HmGuiPropertyId, prop: &HmGuiProperty) {
         assert!(**id < self.registry.len(), "Unknown property id {}", **id);
 
@@ -62,6 +67,7 @@ impl HmGuiPropertyRegistry {
         self.registry[**id].property = prop.clone();
     }
 
+    /// Register a new property and return its id.
     pub fn register(
         &mut self,
         name: &str,

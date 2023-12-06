@@ -9,12 +9,15 @@ use super::{
     HmGuiStyleId,
 };
 
+/// Contains a map of style name and style pairs.
+/// Map is ordered by insertion.
 #[derive(Default)]
 pub struct HmGuiStyleRegistry {
     registry: IndexMap<String, HmGuiStyle>,
 }
 
 impl HmGuiStyleRegistry {
+    /// Load styles from all files in the folder.
     pub fn load<F: FnMut(&str, &str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
         folder_path: &Path,
         mut f: F,
@@ -41,6 +44,7 @@ impl HmGuiStyleRegistry {
         Self { registry }
     }
 
+    /// Load list of styles from a single file.
     pub fn load_map<F: FnMut(&str, &str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
         file_path: &Path,
         mut f: F,
@@ -85,6 +89,7 @@ impl HmGuiStyleRegistry {
         Self { registry }
     }
 
+    /// Merge style properties into the property registry.
     pub fn merge_to(&self, property_registry: &mut HmGuiPropertyRegistry, style_name: &str) {
         let style = &self.registry[style_name];
         for (id, prop) in &style.properties {
@@ -92,18 +97,22 @@ impl HmGuiStyleRegistry {
         }
     }
 
+    /// Get style by id.
     pub fn get(&self, id: HmGuiStyleId) -> Option<&HmGuiStyle> {
         self.registry.get_index(*id).map(|(_, s)| s)
     }
 
+    /// Get style by name.
     pub fn get_by_name(&self, name: &str) -> Option<&HmGuiStyle> {
         self.registry.get(name)
     }
 
+    /// Get style id by name.
     pub fn get_id(&self, name: &str) -> Option<HmGuiStyleId> {
         self.registry.get_index_of(name).map(|id| id.into())
     }
 
+    /// Return number of registsred styles.
     pub fn size(&self) -> usize {
         self.registry.len()
     }

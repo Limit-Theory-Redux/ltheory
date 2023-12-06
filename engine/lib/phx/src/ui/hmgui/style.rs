@@ -28,12 +28,14 @@ impl From<usize> for HmGuiStyleId {
     }
 }
 
+/// Contains a map of the property id and property pairs.
 #[derive(Clone, Default)]
 pub struct HmGuiStyle {
     pub properties: HashMap<HmGuiPropertyId, HmGuiProperty>,
 }
 
 impl HmGuiStyle {
+    /// Load style from the config file containing property name/value pairs.
     pub fn load<F: FnMut(&str, &str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
         file_path: &Path,
         style_name: &str,
@@ -62,6 +64,7 @@ impl HmGuiStyle {
             .unwrap_or_else(|err| panic!("{err}. File: {}", file_path.display()))
     }
 
+    /// Parse style from the yaml value. Expecting a map with the property name/value pairs.
     pub fn parse_value<F: FnMut(&str, &str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
         style_name: &str,
         value: &Value,
@@ -92,6 +95,7 @@ impl HmGuiStyle {
     }
 }
 
+/// Create property of the provided type from the yaml value.
 fn create_property(ty: HmGuiPropertyType, value: &Value) -> Result<HmGuiProperty, String> {
     let prop = match ty {
         HmGuiPropertyType::Bool => HmGuiProperty::Bool(parse_bool(value)?),

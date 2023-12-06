@@ -21,6 +21,9 @@ impl Deref for HmGuiPropertyId {
     }
 }
 
+/// Property information:
+/// - property data
+/// - ids of the properties this one should be merged into
 #[derive(Clone, PartialEq)]
 pub struct HmGuiPropertyInfo {
     pub property: HmGuiProperty,

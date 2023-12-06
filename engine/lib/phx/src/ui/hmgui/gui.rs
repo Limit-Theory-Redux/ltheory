@@ -918,6 +918,7 @@ impl HmGui {
 
     // Theme methods ----------------------------------------------------------
 
+    /// Set a theme by merging it into the default properties.
     pub fn set_theme(&mut self, name: &str) {
         let mut property_registry = self.default_property_registry.clone();
 
@@ -926,12 +927,14 @@ impl HmGui {
         self.property_registry = property_registry;
     }
 
+    /// Restore default properties.
     pub fn clear_theme(&mut self) {
         self.property_registry = self.default_property_registry.clone();
     }
 
     // Style methods ----------------------------------------------------------
 
+    /// Get style id by its name.
     pub fn get_style_id(&self, name: &str) -> usize {
         *self
             .style_registry
@@ -939,6 +942,7 @@ impl HmGui {
             .expect(&format!("Unknown style: {name}"))
     }
 
+    /// Set a style for the following element.
     pub fn set_style(&mut self, id: usize) {
         self.element_style = self
             .style_registry
@@ -947,11 +951,42 @@ impl HmGui {
             .clone();
     }
 
+    /// Remove element style.
     pub fn clear_style(&mut self) {
         self.element_style.properties.clear();
     }
 
     // Property methods -------------------------------------------------------
+
+    /// Get property type by its id.
+    pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
+        self.default_property_registry.registry[id]
+            .property
+            .get_type()
+    }
+
+    /// Write property value into the mapped properties in the active element style.
+    pub fn map_property(&mut self, property_id: usize) {
+        if let Some(prop) = self
+            .element_style
+            .properties
+            .get(&property_id.into())
+            .cloned()
+        {
+            let map_ids = &self.property_registry.registry[property_id].map_ids;
+
+            for map_id in map_ids {
+                self.element_style.properties.insert(*map_id, prop.clone());
+            }
+        }
+    }
+
+    /// Remove property by id from the active element style.
+    pub fn remove_property(&mut self, property_id: usize) {
+        self.element_style.properties.remove(&property_id.into());
+    }
+
+    // register_property_* methods --------------------------------------------
 
     // TODO: map_ids: Vec<usize>
     pub fn register_property_bool(
@@ -1147,32 +1182,7 @@ impl HmGui {
         register_property!(self, name, value.clone(), map_id)
     }
 
-    // TODO: add remaining register methods
-
-    pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
-        self.default_property_registry.registry[id]
-            .property
-            .get_type()
-    }
-
-    pub fn map_property(&mut self, property_id: usize) {
-        if let Some(prop) = self
-            .element_style
-            .properties
-            .get(&property_id.into())
-            .cloned()
-        {
-            let map_ids = &self.property_registry.registry[property_id].map_ids;
-
-            for map_id in map_ids {
-                self.element_style.properties.insert(*map_id, prop.clone());
-            }
-        }
-    }
-
-    pub fn remove_property(&mut self, property_id: usize) {
-        self.element_style.properties.remove(&property_id.into());
-    }
+    // set_property_* methods -------------------------------------------------
 
     pub fn set_property_bool(&mut self, property_id: usize, value: bool) {
         set_property!(self, property_id, value);
@@ -1286,6 +1296,8 @@ impl HmGui {
     pub fn set_property_font(&mut self, property_id: usize, value: &Font) {
         set_property!(self, property_id, value.clone());
     }
+
+    // get_property_* methods -------------------------------------------------
 
     pub fn get_property_bool(&self, property_id: usize) -> bool {
         *get_property!(self, property_id, Bool)

@@ -29,6 +29,7 @@ macro_rules! core_properties {
     };
 }
 
+// Property id, name, value and optional list of mapped property ids
 core_properties! {
     (ContainerSpacingId,      "container.spacing",       6.0f32),
     (ContainerColorFrameId,   "container.color-frame",   Vec4::new(0.1, 0.1, 0.1, 0.5)),
@@ -39,6 +40,8 @@ core_properties! {
     (ButtonTextColorId,       "button.text-color",       Vec4::ONE, TextColorId),
 }
 
+/// Adds a new property to the map.
+/// Verifies its expected id and mapped ids.
 #[inline]
 fn reg<T: Into<HmGuiProperty>>(
     r: &mut IndexMap<String, HmGuiPropertyInfo>,

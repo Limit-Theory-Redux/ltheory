@@ -79,6 +79,9 @@ function Loader.defineType()
             uint64            HmGui_GetStyleId                     (HmGui const*, cstr name);
             void              HmGui_SetStyle                       (HmGui*, uint64 id);
             void              HmGui_ClearStyle                     (HmGui*);
+            HmGuiPropertyType HmGui_GetPropertyType                (HmGui const*, uint64 id);
+            void              HmGui_MapProperty                    (HmGui*, uint64 propertyId);
+            void              HmGui_RemoveProperty                 (HmGui*, uint64 propertyId);
             uint64            HmGui_RegisterPropertyBool           (HmGui*, cstr name, bool value, cstr mapId);
             uint64            HmGui_RegisterPropertyI8             (HmGui*, cstr name, int8 value, cstr mapId);
             uint64            HmGui_RegisterPropertyU8             (HmGui*, cstr name, uint8 value, cstr mapId);
@@ -105,9 +108,6 @@ function Loader.defineType()
             uint64            HmGui_RegisterPropertyBox3           (HmGui*, cstr name, Box3f const* value, cstr mapId);
             uint64            HmGui_RegisterPropertyString         (HmGui*, cstr name, cstr value, cstr mapId);
             uint64            HmGui_RegisterPropertyFont           (HmGui*, cstr name, Font const* value, cstr mapId);
-            HmGuiPropertyType HmGui_GetPropertyType                (HmGui const*, uint64 id);
-            void              HmGui_MapProperty                    (HmGui*, uint64 propertyId);
-            void              HmGui_RemoveProperty                 (HmGui*, uint64 propertyId);
             void              HmGui_SetPropertyBool                (HmGui*, uint64 propertyId, bool value);
             void              HmGui_SetPropertyI8                  (HmGui*, uint64 propertyId, int8 value);
             void              HmGui_SetPropertyU8                  (HmGui*, uint64 propertyId, uint8 value);
@@ -229,6 +229,9 @@ function Loader.defineType()
             GetStyleId                     = libphx.HmGui_GetStyleId,
             SetStyle                       = libphx.HmGui_SetStyle,
             ClearStyle                     = libphx.HmGui_ClearStyle,
+            GetPropertyType                = libphx.HmGui_GetPropertyType,
+            MapProperty                    = libphx.HmGui_MapProperty,
+            RemoveProperty                 = libphx.HmGui_RemoveProperty,
             RegisterPropertyBool           = libphx.HmGui_RegisterPropertyBool,
             RegisterPropertyI8             = libphx.HmGui_RegisterPropertyI8,
             RegisterPropertyU8             = libphx.HmGui_RegisterPropertyU8,
@@ -255,9 +258,6 @@ function Loader.defineType()
             RegisterPropertyBox3           = libphx.HmGui_RegisterPropertyBox3,
             RegisterPropertyString         = libphx.HmGui_RegisterPropertyString,
             RegisterPropertyFont           = libphx.HmGui_RegisterPropertyFont,
-            GetPropertyType                = libphx.HmGui_GetPropertyType,
-            MapProperty                    = libphx.HmGui_MapProperty,
-            RemoveProperty                 = libphx.HmGui_RemoveProperty,
             SetPropertyBool                = libphx.HmGui_SetPropertyBool,
             SetPropertyI8                  = libphx.HmGui_SetPropertyI8,
             SetPropertyU8                  = libphx.HmGui_SetPropertyU8,
@@ -384,6 +384,9 @@ function Loader.defineType()
                 getStyleId                     = libphx.HmGui_GetStyleId,
                 setStyle                       = libphx.HmGui_SetStyle,
                 clearStyle                     = libphx.HmGui_ClearStyle,
+                getPropertyType                = libphx.HmGui_GetPropertyType,
+                mapProperty                    = libphx.HmGui_MapProperty,
+                removeProperty                 = libphx.HmGui_RemoveProperty,
                 registerPropertyBool           = libphx.HmGui_RegisterPropertyBool,
                 registerPropertyI8             = libphx.HmGui_RegisterPropertyI8,
                 registerPropertyU8             = libphx.HmGui_RegisterPropertyU8,
@@ -410,9 +413,6 @@ function Loader.defineType()
                 registerPropertyBox3           = libphx.HmGui_RegisterPropertyBox3,
                 registerPropertyString         = libphx.HmGui_RegisterPropertyString,
                 registerPropertyFont           = libphx.HmGui_RegisterPropertyFont,
-                getPropertyType                = libphx.HmGui_GetPropertyType,
-                mapProperty                    = libphx.HmGui_MapProperty,
-                removeProperty                 = libphx.HmGui_RemoveProperty,
                 setPropertyBool                = libphx.HmGui_SetPropertyBool,
                 setPropertyI8                  = libphx.HmGui_SetPropertyI8,
                 setPropertyU8                  = libphx.HmGui_SetPropertyU8,
