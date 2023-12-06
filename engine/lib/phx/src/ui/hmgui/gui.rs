@@ -210,6 +210,31 @@ impl HmGui {
     }
 }
 
+macro_rules! register_property {
+    ($self:ident, $name:ident, $value:expr, $map_id:ident) => {{
+        let mut map_ids = vec![];
+        if let Some(map_id_str) = $map_id {
+            let (map_id, _, _) = $self
+                .default_property_registry
+                .registry
+                .get_full(map_id_str)
+                .unwrap_or_else(|| panic!("{:?} has unknown map property: {map_id_str}", $name));
+
+            map_ids.push(map_id.into());
+        }
+
+        let def_id = $self
+            .default_property_registry
+            .register($name, $value.into(), &map_ids);
+        let id = $self
+            .property_registry
+            .register($name, $value.into(), &map_ids);
+        debug_assert_eq!(def_id, id);
+
+        *id
+    }};
+}
+
 macro_rules! set_property {
     ($self:ident, $id:ident, $val:expr) => {
         let Some((_, def_prop)) = $self.default_property_registry.registry.get_index($id) else {
@@ -935,26 +960,116 @@ impl HmGui {
         value: bool,
         map_id: Option<&str>,
     ) -> usize {
-        let mut map_ids = vec![];
-        if let Some(map_id_str) = map_id {
-            let (map_id, _, _) = self
-                .default_property_registry
-                .registry
-                .get_full(map_id_str)
-                .unwrap_or_else(|| panic!("Unknown property: {map_id_str}"));
+        register_property!(self, name, value, map_id)
+    }
 
-            map_ids.push(map_id.into());
-        }
+    pub fn register_property_i8(&mut self, name: &str, value: i8, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
 
-        let def_id = self
-            .default_property_registry
-            .register(name, value.into(), &map_ids);
-        let id = self
-            .property_registry
-            .register(name, value.into(), &map_ids);
-        debug_assert_eq!(def_id, id);
+    pub fn register_property_u8(&mut self, name: &str, value: u8, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
 
-        *id
+    pub fn register_property_i16(&mut self, name: &str, value: i16, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    pub fn register_property_u16(&mut self, name: &str, value: u16, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    pub fn register_property_i32(&mut self, name: &str, value: i32, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    pub fn register_property_u32(&mut self, name: &str, value: u32, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    pub fn register_property_i64(&mut self, name: &str, value: i64, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    pub fn register_property_u64(&mut self, name: &str, value: u64, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    pub fn register_property_f32(&mut self, name: &str, value: f32, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    pub fn register_property_f64(&mut self, name: &str, value: f64, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    pub fn register_property_vec2(&mut self, name: &str, value: Vec2, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    pub fn register_property_vec3(&mut self, name: &str, value: &Vec3, map_id: Option<&str>) {
+        register_property!(self, name, value.clone(), map_id);
+    }
+
+    pub fn register_property_vec4(&mut self, name: &str, value: &Vec4, map_id: Option<&str>) {
+        register_property!(self, name, value.clone(), map_id);
+    }
+
+    #[bind(name = "RegisterPropertyIVec2")]
+    pub fn register_property_ivec2(&mut self, name: &str, value: IVec2, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    #[bind(name = "RegisterPropertyIVec3")]
+    pub fn register_property_ivec3(&mut self, name: &str, value: &IVec3, map_id: Option<&str>) {
+        register_property!(self, name, value.clone(), map_id);
+    }
+
+    #[bind(name = "RegisterPropertyIVec4")]
+    pub fn register_property_ivec4(&mut self, name: &str, value: &IVec4, map_id: Option<&str>) {
+        register_property!(self, name, value.clone(), map_id);
+    }
+
+    #[bind(name = "RegisterPropertyUVec2")]
+    pub fn register_property_uvec2(&mut self, name: &str, value: UVec2, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    #[bind(name = "RegisterPropertyUVec3")]
+    pub fn register_property_uvec3(&mut self, name: &str, value: &UVec3, map_id: Option<&str>) {
+        register_property!(self, name, value.clone(), map_id);
+    }
+
+    #[bind(name = "RegisterPropertyUVec4")]
+    pub fn register_property_uvec4(&mut self, name: &str, value: &UVec4, map_id: Option<&str>) {
+        register_property!(self, name, value.clone(), map_id);
+    }
+
+    #[bind(name = "RegisterPropertyDVec2")]
+    pub fn register_property_dvec2(&mut self, name: &str, value: DVec2, map_id: Option<&str>) {
+        register_property!(self, name, value, map_id);
+    }
+
+    #[bind(name = "RegisterPropertyDVec3")]
+    pub fn register_property_dvec3(&mut self, name: &str, value: &DVec3, map_id: Option<&str>) {
+        register_property!(self, name, value.clone(), map_id);
+    }
+
+    #[bind(name = "RegisterPropertyDVec4")]
+    pub fn register_property_dvec4(&mut self, name: &str, value: &DVec4, map_id: Option<&str>) {
+        register_property!(self, name, value.clone(), map_id);
+    }
+
+    pub fn register_property_box3(&mut self, name: &str, value: &Box3, map_id: Option<&str>) {
+        register_property!(self, name, value.clone(), map_id);
+    }
+
+    pub fn register_property_string(&mut self, name: &str, value: &str, map_id: Option<&str>) {
+        register_property!(self, name, value.to_string(), map_id);
+    }
+
+    pub fn register_property_font(&mut self, name: &str, value: &Font, map_id: Option<&str>) {
+        register_property!(self, name, value.clone(), map_id);
     }
 
     // TODO: add remaining register methods

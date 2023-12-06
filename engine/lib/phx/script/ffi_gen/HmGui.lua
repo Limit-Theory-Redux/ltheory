@@ -80,6 +80,31 @@ function Loader.defineType()
             void              HmGui_SetStyle                       (HmGui*, uint64 id);
             void              HmGui_ClearStyle                     (HmGui*);
             uint64            HmGui_RegisterPropertyBool           (HmGui*, cstr name, bool value, cstr mapId);
+            void              HmGui_RegisterPropertyI8             (HmGui*, cstr name, int8 value, cstr mapId);
+            void              HmGui_RegisterPropertyU8             (HmGui*, cstr name, uint8 value, cstr mapId);
+            void              HmGui_RegisterPropertyI16            (HmGui*, cstr name, int16 value, cstr mapId);
+            void              HmGui_RegisterPropertyU16            (HmGui*, cstr name, uint16 value, cstr mapId);
+            void              HmGui_RegisterPropertyI32            (HmGui*, cstr name, int value, cstr mapId);
+            void              HmGui_RegisterPropertyU32            (HmGui*, cstr name, uint32 value, cstr mapId);
+            void              HmGui_RegisterPropertyI64            (HmGui*, cstr name, int64 value, cstr mapId);
+            void              HmGui_RegisterPropertyU64            (HmGui*, cstr name, uint64 value, cstr mapId);
+            void              HmGui_RegisterPropertyF32            (HmGui*, cstr name, float value, cstr mapId);
+            void              HmGui_RegisterPropertyF64            (HmGui*, cstr name, double value, cstr mapId);
+            void              HmGui_RegisterPropertyVec2           (HmGui*, cstr name, Vec2f value, cstr mapId);
+            void              HmGui_RegisterPropertyVec3           (HmGui*, cstr name, Vec3f const* value, cstr mapId);
+            void              HmGui_RegisterPropertyVec4           (HmGui*, cstr name, Vec4f const* value, cstr mapId);
+            void              HmGui_RegisterPropertyIVec2          (HmGui*, cstr name, Vec2i value, cstr mapId);
+            void              HmGui_RegisterPropertyIVec3          (HmGui*, cstr name, Vec3i const* value, cstr mapId);
+            void              HmGui_RegisterPropertyIVec4          (HmGui*, cstr name, Vec4i const* value, cstr mapId);
+            void              HmGui_RegisterPropertyUVec2          (HmGui*, cstr name, Vec2u value, cstr mapId);
+            void              HmGui_RegisterPropertyUVec3          (HmGui*, cstr name, Vec3u const* value, cstr mapId);
+            void              HmGui_RegisterPropertyUVec4          (HmGui*, cstr name, Vec4u const* value, cstr mapId);
+            void              HmGui_RegisterPropertyDVec2          (HmGui*, cstr name, Vec2d value, cstr mapId);
+            void              HmGui_RegisterPropertyDVec3          (HmGui*, cstr name, Vec3d const* value, cstr mapId);
+            void              HmGui_RegisterPropertyDVec4          (HmGui*, cstr name, Vec4d const* value, cstr mapId);
+            void              HmGui_RegisterPropertyBox3           (HmGui*, cstr name, Box3f const* value, cstr mapId);
+            void              HmGui_RegisterPropertyString         (HmGui*, cstr name, cstr value, cstr mapId);
+            void              HmGui_RegisterPropertyFont           (HmGui*, cstr name, Font const* value, cstr mapId);
             HmGuiPropertyType HmGui_GetPropertyType                (HmGui const*, uint64 id);
             void              HmGui_MapProperty                    (HmGui*, uint64 propertyId);
             void              HmGui_RemoveProperty                 (HmGui*, uint64 propertyId);
@@ -205,6 +230,31 @@ function Loader.defineType()
             SetStyle                       = libphx.HmGui_SetStyle,
             ClearStyle                     = libphx.HmGui_ClearStyle,
             RegisterPropertyBool           = libphx.HmGui_RegisterPropertyBool,
+            RegisterPropertyI8             = libphx.HmGui_RegisterPropertyI8,
+            RegisterPropertyU8             = libphx.HmGui_RegisterPropertyU8,
+            RegisterPropertyI16            = libphx.HmGui_RegisterPropertyI16,
+            RegisterPropertyU16            = libphx.HmGui_RegisterPropertyU16,
+            RegisterPropertyI32            = libphx.HmGui_RegisterPropertyI32,
+            RegisterPropertyU32            = libphx.HmGui_RegisterPropertyU32,
+            RegisterPropertyI64            = libphx.HmGui_RegisterPropertyI64,
+            RegisterPropertyU64            = libphx.HmGui_RegisterPropertyU64,
+            RegisterPropertyF32            = libphx.HmGui_RegisterPropertyF32,
+            RegisterPropertyF64            = libphx.HmGui_RegisterPropertyF64,
+            RegisterPropertyVec2           = libphx.HmGui_RegisterPropertyVec2,
+            RegisterPropertyVec3           = libphx.HmGui_RegisterPropertyVec3,
+            RegisterPropertyVec4           = libphx.HmGui_RegisterPropertyVec4,
+            RegisterPropertyIVec2          = libphx.HmGui_RegisterPropertyIVec2,
+            RegisterPropertyIVec3          = libphx.HmGui_RegisterPropertyIVec3,
+            RegisterPropertyIVec4          = libphx.HmGui_RegisterPropertyIVec4,
+            RegisterPropertyUVec2          = libphx.HmGui_RegisterPropertyUVec2,
+            RegisterPropertyUVec3          = libphx.HmGui_RegisterPropertyUVec3,
+            RegisterPropertyUVec4          = libphx.HmGui_RegisterPropertyUVec4,
+            RegisterPropertyDVec2          = libphx.HmGui_RegisterPropertyDVec2,
+            RegisterPropertyDVec3          = libphx.HmGui_RegisterPropertyDVec3,
+            RegisterPropertyDVec4          = libphx.HmGui_RegisterPropertyDVec4,
+            RegisterPropertyBox3           = libphx.HmGui_RegisterPropertyBox3,
+            RegisterPropertyString         = libphx.HmGui_RegisterPropertyString,
+            RegisterPropertyFont           = libphx.HmGui_RegisterPropertyFont,
             GetPropertyType                = libphx.HmGui_GetPropertyType,
             MapProperty                    = libphx.HmGui_MapProperty,
             RemoveProperty                 = libphx.HmGui_RemoveProperty,
@@ -335,6 +385,31 @@ function Loader.defineType()
                 setStyle                       = libphx.HmGui_SetStyle,
                 clearStyle                     = libphx.HmGui_ClearStyle,
                 registerPropertyBool           = libphx.HmGui_RegisterPropertyBool,
+                registerPropertyI8             = libphx.HmGui_RegisterPropertyI8,
+                registerPropertyU8             = libphx.HmGui_RegisterPropertyU8,
+                registerPropertyI16            = libphx.HmGui_RegisterPropertyI16,
+                registerPropertyU16            = libphx.HmGui_RegisterPropertyU16,
+                registerPropertyI32            = libphx.HmGui_RegisterPropertyI32,
+                registerPropertyU32            = libphx.HmGui_RegisterPropertyU32,
+                registerPropertyI64            = libphx.HmGui_RegisterPropertyI64,
+                registerPropertyU64            = libphx.HmGui_RegisterPropertyU64,
+                registerPropertyF32            = libphx.HmGui_RegisterPropertyF32,
+                registerPropertyF64            = libphx.HmGui_RegisterPropertyF64,
+                registerPropertyVec2           = libphx.HmGui_RegisterPropertyVec2,
+                registerPropertyVec3           = libphx.HmGui_RegisterPropertyVec3,
+                registerPropertyVec4           = libphx.HmGui_RegisterPropertyVec4,
+                registerPropertyIVec2          = libphx.HmGui_RegisterPropertyIVec2,
+                registerPropertyIVec3          = libphx.HmGui_RegisterPropertyIVec3,
+                registerPropertyIVec4          = libphx.HmGui_RegisterPropertyIVec4,
+                registerPropertyUVec2          = libphx.HmGui_RegisterPropertyUVec2,
+                registerPropertyUVec3          = libphx.HmGui_RegisterPropertyUVec3,
+                registerPropertyUVec4          = libphx.HmGui_RegisterPropertyUVec4,
+                registerPropertyDVec2          = libphx.HmGui_RegisterPropertyDVec2,
+                registerPropertyDVec3          = libphx.HmGui_RegisterPropertyDVec3,
+                registerPropertyDVec4          = libphx.HmGui_RegisterPropertyDVec4,
+                registerPropertyBox3           = libphx.HmGui_RegisterPropertyBox3,
+                registerPropertyString         = libphx.HmGui_RegisterPropertyString,
+                registerPropertyFont           = libphx.HmGui_RegisterPropertyFont,
                 getPropertyType                = libphx.HmGui_GetPropertyType,
                 mapProperty                    = libphx.HmGui_MapProperty,
                 removeProperty                 = libphx.HmGui_RemoveProperty,
