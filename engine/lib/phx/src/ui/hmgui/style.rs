@@ -34,8 +34,9 @@ pub struct HmGuiStyle {
 }
 
 impl HmGuiStyle {
-    pub fn load<F: FnMut(&str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
+    pub fn load<F: FnMut(&str, &str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
         file_path: &Path,
+        style_name: &str,
         f: F,
     ) -> Self {
         let file = File::open(file_path).unwrap_or_else(|err| {
@@ -57,11 +58,12 @@ impl HmGuiStyle {
             };
         }
 
-        Self::parse_value(&root_value, f)
+        Self::parse_value(style_name, &root_value, f)
             .unwrap_or_else(|err| panic!("{err}. File: {}", file_path.display()))
     }
 
-    pub fn parse_value<F: FnMut(&str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
+    pub fn parse_value<F: FnMut(&str, &str) -> Option<(HmGuiPropertyId, HmGuiPropertyType)>>(
+        style_name: &str,
         value: &Value,
         mut f: F,
     ) -> Result<Self, String> {
@@ -74,7 +76,7 @@ impl HmGuiStyle {
         for (name_value, value) in prop_table.iter() {
             let name = parse_string(name_value)?;
 
-            if let Some((id, ty)) = f(&name) {
+            if let Some((id, ty)) = f(style_name, &name) {
                 let prop = create_property(ty, &value).map_err(|err| {
                     format!("{err}. Value: {value:?}. Property: {name}/{ty:?}. Error: {err}")
                 })?;
@@ -289,23 +291,12 @@ mod tests {
         ("prop.dvec3", HmGuiPropertyType::DVec3, HmGuiProperty::DVec3(DVec3::new(-10.2, 4.729, 0.0))),
         ("prop.dvec4", HmGuiPropertyType::DVec4, HmGuiProperty::DVec4(DVec4::new(-10.2, 4.729, 740.0, 44.6))),
         ("prop.box3", HmGuiPropertyType::Box3, HmGuiProperty::Box3(Box3::new(Vec3::new(10.2, 4.729, 1.0), Vec3::new(740.0, 44.6, -1.0)))),
-        // ("prop.string", HmGuiPropertyType::String, HmGuiProperty::String("Test".into())),
     ];
 
-    #[test]
-    fn test_hmgui_load_style() {
-        let file_path = PathBuf::from("test_data/style1.yaml");
-        let style = HmGuiStyle::load(&file_path, |name| {
-            TEST_DATA1
-                .iter()
-                .enumerate()
-                .find(|(_, (n, _, _))| *n == name)
-                .map(|(id, (_, ty, _))| (id.into(), *ty))
-        });
+    fn test_style(style: &HmGuiStyle, expected: &[(&str, HmGuiPropertyType, HmGuiProperty)]) {
+        assert_eq!(style.properties.len(), expected.len());
 
-        assert_eq!(style.properties.len(), 24);
-
-        for (id, (name, ty, expected)) in TEST_DATA1.iter().enumerate() {
+        for (id, (name, ty, expected)) in expected.iter().enumerate() {
             let actual = style.properties.get(&id.into()).expect(&format!(
                 "Cannot find property. {id}/{name}/{ty:?}/{}",
                 expected.name()
@@ -322,9 +313,23 @@ mod tests {
     }
 
     #[test]
+    fn test_hmgui_load_style() {
+        let file_path = PathBuf::from("test_data/style1.yaml");
+        let style = HmGuiStyle::load(&file_path, "style1", |_, name| {
+            TEST_DATA1
+                .iter()
+                .enumerate()
+                .find(|(_, (n, _, _))| *n == name)
+                .map(|(id, (_, ty, _))| (id.into(), *ty))
+        });
+
+        test_style(&style, TEST_DATA1);
+    }
+
+    #[test]
     fn test_hmgui_load_style_str() {
         let file_path = PathBuf::from("test_data/style2.yaml");
-        let style = HmGuiStyle::load(&file_path, |name| match name {
+        let style = HmGuiStyle::load(&file_path, "style2", |_, name| match name {
             "prop.string" => Some((0.into(), HmGuiPropertyType::String)),
             _ => None,
         });

@@ -92,7 +92,7 @@ pub unsafe extern "C" fn Mesh_Clone(other: &mut Mesh) -> Box<Mesh> {
 pub unsafe extern "C" fn Mesh_Load(name: *const libc::c_char) -> Box<Mesh> {
     let mut bytes = Resource_LoadBytes(ResourceType::Mesh, name);
     let this = Mesh_FromBytes(bytes.as_mut());
-    Bytes_Free(Box::leak(bytes));
+    Bytes_Free(Box::leak(bytes)); // TODO: potential memory problem. Refactor mesh to get rid of unsafe
     this
 }
 

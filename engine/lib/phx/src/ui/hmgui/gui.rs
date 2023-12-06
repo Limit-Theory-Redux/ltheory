@@ -51,7 +51,7 @@ impl HmGui {
         let property_registry = HmGuiPropertyRegistry::new();
         let default_property_registry = property_registry.clone();
 
-        let f = |name: &str| {
+        let f = |_: &str, name: &str| {
             property_registry
                 .registry
                 .get_full(name)
