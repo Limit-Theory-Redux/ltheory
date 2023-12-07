@@ -142,9 +142,9 @@ end
 
 function MainMenu:ShadowText(text, fontName, fontSize, shadowSize, r, g, b, a)
     Gui:beginStackContainer()
-    Gui:textEx(Cache.Font(fontName, fontSize), text, 0.2, 0.2, 0.2, a)
+    Gui:textEx(Cache.Font(fontName, fontSize), text, Color(0.2, 0.2, 0.2, a))
     Gui:setMarginEx(shadowSize, shadowSize, 0.0, 0.0) -- make a shadow
-    Gui:textEx(Cache.Font(fontName, fontSize), text, r, g, b, a)
+    Gui:textEx(Cache.Font(fontName, fontSize), text, Color(r, g, b, a))
     Gui:endContainer()
 end
 
@@ -169,7 +169,7 @@ function MainMenu:ShowGui()
     Gui:setPercentSize(99, 20)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    Gui:setBorder(1, 1.0, 1.0, 1.0, 1.0)
+    Gui:setBorder(1, Color(1.0, 1.0, 1.0, 1.0))
 --    Gui:setMinSize(5, 5)
     Gui:image(LTheoryRedux.logoname) -- draw the LTR name image
     Gui:setPercentSize(95, 55)
@@ -188,7 +188,6 @@ function MainMenu:ShowGui()
     Gui:setPercentHeight(95)
     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
---    Gui:setBorder(1, 1.0, 0.0, 0.0, 1.0)
 
     Gui:beginVerticalContainer()
     Gui:setPercentHeight(20)
@@ -197,26 +196,26 @@ function MainMenu:ShowGui()
     Gui:beginVerticalContainer() -- begin changelog text panel
     Gui:setPercentHeight(80)
     Gui:setSpacing(0)
-    Gui:setBgColor(0.1, 0.1, 0.1, 0.5)
+    Gui:setBgColor(Color(0.1, 0.1, 0.1, 0.5))
 
     Gui:beginStackContainer() -- begin top text panel
     Gui:setPercentSize(100, 8)
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    Gui:setBgColor(0.2, 0.2, 0.2, 0.3)
-    Gui:textEx(Cache.Font('RajdhaniBold', 38), 'Notes for version ' .. Config.gameVersion, 1.0, 1.0, 1.0, 1.0)
+    Gui:setBgColor(Color(0.2, 0.2, 0.2, 0.3))
+    Gui:textEx(Cache.Font('RajdhaniBold', 38), 'Notes for version ' .. Config.gameVersion, Color(1.0, 1.0, 1.0, 1.0))
     Gui:endContainer() -- end top text panel
     Gui:beginStackContainer() -- begin middle text panel
     Gui:setPercentSize(100, 8)
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    Gui:textEx(Cache.Font('Rajdhani', 28), 'Changelog', 1.0, 1.0, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Rajdhani', 28), 'Changelog', Color(1.0, 1.0, 1.0, 1.0))
     Gui:endContainer() -- end middle text panel
     Gui:beginStackContainer() -- begin details text panel
     Gui:setPercentSize(90, 84)
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Left)
-    Gui:textEx(Cache.Font('Rajdhani', 20), '- Lorem ipsum', 1.0, 1.0, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Rajdhani', 20), '- Lorem ipsum', Color(1.0, 1.0, 1.0, 1.0))
     Gui:endContainer() -- end details text panel
 
     Gui:endContainer() -- end changelog text panel
@@ -304,7 +303,7 @@ function MainMenu:ShowSeedDialog()
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
-    Gui:textEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.6, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Iceland', 42), 'Choose Seed', Color(0.3, 0.6, 1.0, 1.0))
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
     self:ShowSeedDialogInner()
@@ -405,11 +404,11 @@ function MainMenu:ShowSettingsScreen()
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
-    Gui:textEx(Cache.Font('Iceland', 42), 'Settings', 0.3, 0.6, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Iceland', 42), 'Settings', Color(0.3, 0.6, 1.0, 1.0))
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
     -- Separator
-    Gui:rect(0.3, 0.6, 1.0, 1.0)
+    Gui:rect(Color(0.3, 0.6, 1.0, 1.0))
     Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setFixedHeight(1.0)
 
@@ -553,7 +552,7 @@ function MainMenu:ShowSettingsScreenInner()
 end
 
 function MainMenu:ShowAudioSettingsBlock()
-    Gui:textEx(Cache.Font('Exo2', 24), "--- Audio ---", 0.3, 0.6, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Exo2', 24), "--- Audio ---", Color(0.3, 0.6, 1.0, 1.0))
     Gui:setMargin(0, 5)
 
     guiSettings[1][1] = GameState.audio.soundEnabled
@@ -578,7 +577,7 @@ end
 function MainMenu:GuiSpinner(title, valueText)
     Gui:beginHorizontalContainer()
 
-    Gui:textEx(Cache.Font('Exo2', 24), title, 1.0, 1.0, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Exo2', 24), title, Color(1.0, 1.0, 1.0, 1.0))
 
     Gui:spacer()
 
@@ -588,7 +587,7 @@ function MainMenu:GuiSpinner(title, valueText)
         value = -1
     end
 
-    Gui:textEx(Cache.Font("Ubuntu", 20), valueText, 0.3, 1.0, 0.4, 1.0)
+    Gui:textEx(Cache.Font("Ubuntu", 20), valueText, Color(0.3, 1.0, 0.4, 1.0))
 
     if Gui:button("+") then
         value = value + 1
@@ -600,7 +599,7 @@ function MainMenu:GuiSpinner(title, valueText)
 end
 
 function MainMenu:ShowGraphicsSettingsBlock()
-    Gui:textEx(Cache.Font('Exo2', 24), "--- Graphics ---", 0.3, 0.6, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Exo2', 24), "--- Graphics ---", Color(0.3, 0.6, 1.0, 1.0))
     Gui:setMargin(0, 5)
 
     guiSettings[2][1] = GameState.render.fullscreen
@@ -648,7 +647,7 @@ function MainMenu:ShowGraphicsSettingsBlock()
 end
 
 function MainMenu:ShowInterfaceSettingsBlock()
-    Gui:textEx(Cache.Font('Exo2', 24), "--- Interface ---", 0.3, 0.6, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Exo2', 24), "--- Interface ---", Color(0.3, 0.6, 1.0, 1.0))
     Gui:setMargin(0, 5)
 
     -- Cursor Style
@@ -679,7 +678,7 @@ function MainMenu:ShowInterfaceSettingsBlock()
 end
 
 function MainMenu:ShowGenerationSettingsBlock()
-    Gui:textEx(Cache.Font('Exo2', 24), "--- Generation ---", 0.3, 0.6, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Exo2', 24), "--- Generation ---", Color(0.3, 0.6, 1.0, 1.0))
     Gui:setMargin(0, 5)
 
     guiSettings[7][1] = GameState.gen.uniqueShips
@@ -807,7 +806,7 @@ function MainMenu:ShowFlightDialog()
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
-    Gui:textEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.6, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', Color(0.3, 0.6, 1.0, 1.0))
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
     self:ShowFlightDialogInner()

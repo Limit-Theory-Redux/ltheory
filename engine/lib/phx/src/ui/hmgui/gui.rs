@@ -421,15 +421,17 @@ impl HmGui {
                 (handle_size, handle_pos)
             };
 
-            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.rect(&Color::TRANSPARENT);
             self.set_fixed_size(handle_pos, 4.0);
 
-            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrameId.id());
+            let color_frame = self
+                .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
+                .clone();
 
-            self.rect(color_frame.r, color_frame.g, color_frame.b, color_frame.a);
+            self.rect(&color_frame);
             self.set_fixed_size(handle_size, 4.0);
         } else {
-            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.rect(&Color::TRANSPARENT);
             self.set_fixed_size(16.0, 4.0);
         }
 
@@ -446,15 +448,17 @@ impl HmGui {
                 (handle_size, handle_pos)
             };
 
-            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.rect(&Color::TRANSPARENT);
             self.set_fixed_size(4.0, handle_pos);
 
-            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrameId.id());
+            let color_frame = self
+                .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
+                .clone();
 
-            self.rect(color_frame.r, color_frame.g, color_frame.b, color_frame.a);
+            self.rect(&color_frame);
             self.set_fixed_size(4.0, handle_size);
         } else {
-            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.rect(&Color::TRANSPARENT);
             self.set_fixed_size(4.0, 16.0);
         }
 
@@ -505,7 +509,7 @@ impl HmGui {
     /// Invisible element that stretches in all directions.
     /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
     pub fn spacer(&mut self) {
-        self.rect(0.0, 0.0, 0.0, 0.0);
+        self.rect(&Color::TRANSPARENT);
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
     }
 
@@ -573,16 +577,11 @@ impl HmGui {
             (color_frame.clone(), color_primary.clone())
         };
 
-        self.rect(color_frame.r, color_frame.g, color_frame.b, color_frame.a);
+        self.rect(&color_frame);
         self.set_fixed_size(16.0, 16.0);
 
         if value {
-            self.rect(
-                color_primary.r,
-                color_primary.g,
-                color_primary.b,
-                color_primary.a,
-            );
+            self.rect(&color_primary);
             self.set_fixed_size(10.0, 10.0);
         }
 
@@ -596,7 +595,7 @@ impl HmGui {
         self.begin_stack_container();
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        self.rect(0.5, 0.5, 0.5, 1.0);
+        self.rect(&Color::new(0.5, 0.5, 0.5, 1.0));
         self.set_fixed_size(0.0, 2.0);
 
         self.end_container();
@@ -604,14 +603,14 @@ impl HmGui {
         0.0
     }
 
-    pub fn horizontal_divider(&mut self, height: f32, r: f32, g: f32, b: f32, a: f32) {
-        self.rect(r, g, b, a);
+    pub fn horizontal_divider(&mut self, height: f32, color: &Color) {
+        self.rect(color);
         self.set_fixed_height(height);
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
     }
 
-    pub fn vertical_divider(&mut self, width: f32, r: f32, g: f32, b: f32, a: f32) {
-        self.rect(r, g, b, a);
+    pub fn vertical_divider(&mut self, width: f32, color: &Color) {
+        self.rect(color);
         self.set_fixed_width(width);
         self.set_vertical_alignment(AlignVertical::Stretch);
     }
@@ -622,9 +621,9 @@ impl HmGui {
         let _widget_rf = self.init_widget(WidgetItem::Image(image_item));
     }
 
-    pub fn rect(&mut self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn rect(&mut self, color: &Color) {
         let rect_item = HmGuiRect {
-            color: Color::new(r, g, b, a),
+            color: color.clone(),
         };
 
         self.init_widget(WidgetItem::Rect(rect_item));
@@ -647,14 +646,14 @@ impl HmGui {
         widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
     }
 
-    pub fn text_colored(&mut self, text: &str, r: f32, g: f32, b: f32, a: f32) {
+    pub fn text_colored(&mut self, text: &str, color: &Color) {
         let font = self.get_property_font(HmGuiProperties::TextFontId.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
             font: font.clone(),
             text: text.into(),
-            color: Color::new(r, g, b, a),
+            color: color.clone(),
         };
         let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
@@ -663,11 +662,11 @@ impl HmGui {
         widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
     }
 
-    pub fn text_ex(&mut self, font: &Font, text: &str, r: f32, g: f32, b: f32, a: f32) {
+    pub fn text_ex(&mut self, font: &Font, text: &str, color: &Color) {
         let item = HmGuiText {
             font: font.clone().into(),
             text: text.into(),
-            color: Color::new(r, g, b, a),
+            color: color.clone(),
         };
         let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
@@ -777,10 +776,10 @@ impl HmGui {
         widget.border_width = width;
     }
 
-    pub fn set_border_color(&self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_border_color(&self, color: &Color) {
         let mut widget = self.last.as_mut();
 
-        widget.border_color = Color::new(r, g, b, a);
+        widget.border_color = color.clone();
     }
 
     pub fn set_border_color_v4(&self, color: &Color) {
@@ -789,11 +788,11 @@ impl HmGui {
         widget.border_color = *color;
     }
 
-    pub fn set_border(&self, width: f32, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_border(&self, width: f32, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.border_width = width;
-        widget.border_color = Color::new(r, g, b, a);
+        widget.border_color = color.clone();
     }
 
     pub fn set_border_v4(&self, width: f32, color: &Color) {
@@ -803,10 +802,10 @@ impl HmGui {
         widget.border_color = *color;
     }
 
-    pub fn set_bg_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_bg_color(&mut self, color: &Color) {
         let mut widget = self.last.as_mut();
 
-        widget.bg_color = Some(Color::new(r, g, b, a));
+        widget.bg_color = Some(color.clone());
     }
 
     pub fn set_bg_color_v4(&mut self, color: &Color) {
