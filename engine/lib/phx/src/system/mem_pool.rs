@@ -1,7 +1,5 @@
 use internal::*;
 
-use crate::*;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct MemPool {

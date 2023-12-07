@@ -1,6 +1,5 @@
 use super::gl;
 use super::*;
-use crate::common::*;
 use crate::logging::warn;
 use crate::math::*;
 use crate::system::*;
@@ -11,7 +10,7 @@ const MAX_STACK_DEPTH: usize = 16;
 
 static mut alphaStack: [f32; MAX_STACK_DEPTH] = [0.; MAX_STACK_DEPTH];
 static mut alphaIndex: i32 = -1;
-static mut color: Vec4 = Vec4::ONE;
+static mut color: Color = Color::WHITE;
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PushAlpha(a: f32) {
@@ -29,7 +28,7 @@ pub unsafe extern "C" fn Draw_PushAlpha(a: f32) {
     alphaIndex += 1;
     alphaStack[alphaIndex as usize] = alpha;
 
-    gl_color4f(color.x, color.y, color.z, color.w * alpha);
+    gl_color4f(color.r, color.g, color.b, color.a * alpha);
 }
 
 #[no_mangle]
@@ -45,7 +44,7 @@ pub unsafe extern "C" fn Draw_PopAlpha() {
         1.0f32
     };
 
-    gl_color4f(color.x, color.y, color.z, color.w * alpha);
+    gl_color4f(color.r, color.g, color.b, color.a * alpha);
 }
 
 #[no_mangle]
@@ -152,7 +151,7 @@ pub unsafe extern "C" fn Draw_Color(r: f32, g: f32, b: f32, a: f32) {
     } else {
         1.0f32
     };
-    color = Vec4::new(r, g, b, a);
+    color = Color::new(r, g, b, a);
 
     gl_color4f(r, g, b, a * alpha);
 }

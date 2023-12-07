@@ -2,6 +2,8 @@ use std::cell::RefMut;
 
 use glam::{Vec2, Vec4};
 
+use crate::render::Color;
+
 use super::*;
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
@@ -403,13 +405,13 @@ impl HmGuiContainer {
                 }
                 FocusStyle::Outline => {
                     if focus {
-                        let color = Vec4::new(0.1, 0.5, 1.0, 1.0);
+                        let color = Color::new(0.1, 0.5, 1.0, 1.0);
 
                         hmgui.renderer.rect(pos, size, color, Some(1.0));
                     }
                 }
                 FocusStyle::Underline => {
-                    let color = Vec4::new(
+                    let color = Color::new(
                         0.3,
                         0.3,
                         0.3,

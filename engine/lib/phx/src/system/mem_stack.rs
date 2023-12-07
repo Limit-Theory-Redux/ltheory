@@ -1,8 +1,5 @@
 use internal::*;
 
-use crate::common::*;
-use crate::*;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct MemStack {

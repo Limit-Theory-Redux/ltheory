@@ -121,6 +121,7 @@ fn create_property(ty: HmGuiPropertyType, value: &Value) -> Result<HmGuiProperty
         HmGuiPropertyType::DVec2 => HmGuiProperty::DVec2(parse_f64_vec(value)?),
         HmGuiPropertyType::DVec3 => HmGuiProperty::DVec3(parse_f64_vec(value)?),
         HmGuiPropertyType::DVec4 => HmGuiProperty::DVec4(parse_f64_vec(value)?),
+        HmGuiPropertyType::Color => HmGuiProperty::Color(parse_f32_vec(value)?),
         HmGuiPropertyType::Box3 => {
             let arr = parse_sequence::<2>(value)?;
             let lower = parse_f32_vec(&arr[0])?;

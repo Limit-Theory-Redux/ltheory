@@ -4,7 +4,6 @@ use super::*;
 use crate::error::Error;
 use crate::math::*;
 use crate::system::*;
-use crate::*;
 
 pub struct Mesh {
     pub _refCount: u32,

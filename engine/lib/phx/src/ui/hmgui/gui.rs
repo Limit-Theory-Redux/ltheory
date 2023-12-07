@@ -424,9 +424,9 @@ impl HmGui {
             self.rect(0.0, 0.0, 0.0, 0.0);
             self.set_fixed_size(handle_pos, 4.0);
 
-            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
+            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrameId.id());
 
-            self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+            self.rect(color_frame.r, color_frame.g, color_frame.b, color_frame.a);
             self.set_fixed_size(handle_size, 4.0);
         } else {
             self.rect(0.0, 0.0, 0.0, 0.0);
@@ -449,9 +449,9 @@ impl HmGui {
             self.rect(0.0, 0.0, 0.0, 0.0);
             self.set_fixed_size(4.0, handle_pos);
 
-            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
+            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrameId.id());
 
-            self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+            self.rect(color_frame.r, color_frame.g, color_frame.b, color_frame.a);
             self.set_fixed_size(4.0, handle_size);
         } else {
             self.rect(0.0, 0.0, 0.0, 0.0);
@@ -566,22 +566,22 @@ impl HmGui {
         self.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         let (color_frame, color_primary) = {
-            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
+            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrameId.id());
             let color_primary =
-                self.get_property_vec4(HmGuiProperties::ContainerColorPrimaryId.id());
+                self.get_property_color(HmGuiProperties::ContainerColorPrimaryId.id());
 
             (color_frame.clone(), color_primary.clone())
         };
 
-        self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+        self.rect(color_frame.r, color_frame.g, color_frame.b, color_frame.a);
         self.set_fixed_size(16.0, 16.0);
 
         if value {
             self.rect(
-                color_primary.x,
-                color_primary.y,
-                color_primary.z,
-                color_primary.w,
+                color_primary.r,
+                color_primary.g,
+                color_primary.b,
+                color_primary.a,
             );
             self.set_fixed_size(10.0, 10.0);
         }
@@ -624,7 +624,7 @@ impl HmGui {
 
     pub fn rect(&mut self, r: f32, g: f32, b: f32, a: f32) {
         let rect_item = HmGuiRect {
-            color: Vec4::new(r, g, b, a),
+            color: Color::new(r, g, b, a),
         };
 
         self.init_widget(WidgetItem::Rect(rect_item));
@@ -632,7 +632,7 @@ impl HmGui {
 
     pub fn text(&mut self, text: &str) {
         let font = self.get_property_font(HmGuiProperties::TextFontId.id());
-        let color = self.get_property_vec4(HmGuiProperties::TextColorId.id());
+        let color = self.get_property_color(HmGuiProperties::TextColorId.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
@@ -654,7 +654,7 @@ impl HmGui {
         let item = HmGuiText {
             font: font.clone(),
             text: text.into(),
-            color: Vec4::new(r, g, b, a),
+            color: Color::new(r, g, b, a),
         };
         let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
@@ -667,7 +667,7 @@ impl HmGui {
         let item = HmGuiText {
             font: font.clone().into(),
             text: text.into(),
-            color: Vec4::new(r, g, b, a),
+            color: Color::new(r, g, b, a),
         };
         let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
@@ -780,10 +780,10 @@ impl HmGui {
     pub fn set_border_color(&self, r: f32, g: f32, b: f32, a: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.border_color = Vec4::new(r, g, b, a);
+        widget.border_color = Color::new(r, g, b, a);
     }
 
-    pub fn set_border_color_v4(&self, color: &Vec4) {
+    pub fn set_border_color_v4(&self, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.border_color = *color;
@@ -793,10 +793,10 @@ impl HmGui {
         let mut widget = self.last.as_mut();
 
         widget.border_width = width;
-        widget.border_color = Vec4::new(r, g, b, a);
+        widget.border_color = Color::new(r, g, b, a);
     }
 
-    pub fn set_border_v4(&self, width: f32, color: &Vec4) {
+    pub fn set_border_v4(&self, width: f32, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.border_width = width;
@@ -806,10 +806,10 @@ impl HmGui {
     pub fn set_bg_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.bg_color = Some(Vec4::new(r, g, b, a));
+        widget.bg_color = Some(Color::new(r, g, b, a));
     }
 
-    pub fn set_bg_color_v4(&mut self, color: &Vec4) {
+    pub fn set_bg_color_v4(&mut self, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.bg_color = Some(*color);
@@ -1155,6 +1155,15 @@ impl HmGui {
         register_property!(self, name, value.clone(), map_id)
     }
 
+    pub fn register_property_color(
+        &mut self,
+        name: &str,
+        value: &Color,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
     pub fn register_property_box3(
         &mut self,
         name: &str,
@@ -1285,6 +1294,10 @@ impl HmGui {
         set_property!(self, property_id, value.clone());
     }
 
+    pub fn set_property_color(&mut self, property_id: usize, value: &Color) {
+        set_property!(self, property_id, value.clone());
+    }
+
     pub fn set_property_box3(&mut self, property_id: usize, value: &Box3) {
         set_property!(self, property_id, value.clone());
     }
@@ -1398,6 +1411,10 @@ impl HmGui {
     #[bind(name = "GetPropertyDVec4")]
     pub fn get_property_dvec4(&self, property_id: usize) -> &DVec4 {
         get_property!(self, property_id, DVec4)
+    }
+
+    pub fn get_property_color(&self, property_id: usize) -> &Color {
+        get_property!(self, property_id, Color)
     }
 
     pub fn get_property_box3(&self, property_id: usize) -> &Box3 {

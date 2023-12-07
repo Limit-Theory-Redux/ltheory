@@ -1,6 +1,6 @@
-use glam::{Vec2, Vec4};
+use glam::Vec2;
 
-use crate::render::Font;
+use crate::render::{Color, Font};
 
 use super::UIRendererTextId;
 
@@ -10,5 +10,5 @@ pub struct UIRendererText {
     pub pos: Vec2,
     pub font: *const Font,
     pub text: String,
-    pub color: Vec4,
+    pub color: Color,
 }

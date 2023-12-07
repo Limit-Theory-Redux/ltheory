@@ -1,5 +1,3 @@
-use crate::common::*;
-
 use image::{DynamicImage, ImageBuffer};
 use internal::ConvertIntoString;
 

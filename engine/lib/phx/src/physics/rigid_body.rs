@@ -51,7 +51,6 @@ PHX_API void        _cppRigidBody_SetScale                     (RigidBody*, floa
 */
 
 use crate::math::*;
-use crate::render::*;
 
 extern "C" {
     pub type RigidBody;

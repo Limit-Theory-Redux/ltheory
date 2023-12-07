@@ -1,6 +1,5 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
-#![allow(unused_imports)]
 #![feature(extern_types)]
 
 pub mod audio;

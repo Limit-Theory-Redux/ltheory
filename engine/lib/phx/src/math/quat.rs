@@ -1,6 +1,5 @@
 use crate::error::Error;
 use crate::math::*;
-use crate::*;
 
 pub use glam::Quat;
 

@@ -1,4 +1,6 @@
-use glam::{Vec2, Vec4};
+use glam::Vec2;
+
+use crate::render::Color;
 
 use super::{
     AlignHorizontal, AlignVertical, HmGui, HmGuiContainer, HmGuiImage, HmGuiRect, HmGuiText, Rf,
@@ -57,9 +59,9 @@ pub struct HmGuiWidget {
     pub vertical_alignment: AlignVertical,
     pub margin_upper: Vec2,
     pub margin_lower: Vec2,
-    pub bg_color: Option<Vec4>,
+    pub bg_color: Option<Color>,
     pub border_width: f32,
-    pub border_color: Vec4,
+    pub border_color: Color,
 
     /// Widget min size after compute_size() including margin and border
     pub min_size: Vec2,
