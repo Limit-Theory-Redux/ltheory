@@ -44,6 +44,7 @@ mod tests {
     use glam::Vec2;
 
     use crate::input::Input;
+    use crate::render::Color;
 
     use super::*;
 
@@ -121,10 +122,12 @@ mod tests {
         gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
@@ -163,10 +166,12 @@ mod tests {
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
@@ -207,10 +212,12 @@ mod tests {
         gui.set_fixed_size(50.0, 50.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
@@ -250,11 +257,13 @@ mod tests {
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_width(30.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_height(30.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
@@ -295,19 +304,21 @@ mod tests {
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
         gui.set_horizontal_alignment(AlignHorizontal::Left);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
         gui.set_horizontal_alignment(AlignHorizontal::Right);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
         gui.set_vertical_alignment(AlignVertical::Top);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
         gui.set_vertical_alignment(AlignVertical::Bottom);
 
@@ -350,10 +361,12 @@ mod tests {
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(500.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 400.0);
 
         gui.end_container();
@@ -394,21 +407,23 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_height(20.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(20.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
@@ -451,13 +466,15 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
@@ -500,10 +517,12 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Top);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
@@ -514,10 +533,10 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Bottom);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
@@ -571,21 +590,23 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_vertical_alignment(AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(20.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_height(20.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
@@ -628,13 +649,15 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Stretch);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
@@ -677,10 +700,12 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Left, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
@@ -691,10 +716,10 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Right, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
@@ -749,13 +774,15 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_height(20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_height(30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_height(40.0);
 
         gui.end_container();
@@ -766,16 +793,16 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Stretch);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(40.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(50.0);
 
         gui.end_container();
@@ -836,15 +863,17 @@ mod tests {
         gui.set_spacing(10.0);
         gui.set_children_horizontal_alignment(AlignHorizontal::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
         gui.set_margin(13.0, 13.0);
         gui.set_border_width(2.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
@@ -891,15 +920,17 @@ mod tests {
         gui.set_spacing(10.0);
         gui.set_children_vertical_alignment(AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
         gui.set_margin(13.0, 13.0);
         gui.set_border_width(2.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
@@ -942,21 +973,23 @@ mod tests {
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
         // Inside container
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_percent_width(70.0);
         gui.set_fixed_height(20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(30.0);
         gui.set_percent_height(60.0);
 
         // Outside container
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_percent_width(120.0);
         gui.set_fixed_height(20.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(30.0);
         gui.set_percent_height(130.0);
 
@@ -1002,15 +1035,17 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_percent_width(50.0);
         gui.set_min_width(0.0);
         gui.set_fixed_height(30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_height(40.0);
         gui.set_min_width(0.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
@@ -1023,15 +1058,15 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_percent_width(150.0);
         gui.set_min_width(0.0);
         gui.set_fixed_height(30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_height(40.0);
         gui.set_min_width(0.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
@@ -1090,15 +1125,17 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(30.0);
         gui.set_min_height(0.0);
         gui.set_percent_height(50.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(40.0);
         gui.set_min_height(0.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
@@ -1111,15 +1148,15 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(30.0);
         gui.set_min_height(0.0);
         gui.set_percent_height(120.0);
 
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_width(40.0);
         gui.set_min_height(0.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
@@ -1177,24 +1214,26 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_vertical_alignment(AlignVertical::Stretch);
 
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+
         gui.begin_vertical_container();
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
         gui.set_percent_width(10.0);
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
         gui.end_container();
 
         gui.begin_horizontal_container();
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
         gui.set_children_horizontal_alignment(AlignHorizontal::Center);
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
         gui.set_vertical_alignment(AlignVertical::Center);
         gui.end_container();
 
         gui.begin_stack_container();
         gui.set_percent_width(10.0);
-        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
         gui.set_fixed_size(20.0, 30.0);
         gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
         gui.end_container();
