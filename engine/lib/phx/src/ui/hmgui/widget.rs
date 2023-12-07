@@ -114,6 +114,13 @@ impl HmGuiWidget {
         item
     }
 
+    pub fn contains_point(&self, point: &Vec2) -> bool {
+        self.pos.x <= point.x
+            && self.pos.y <= point.y
+            && point.x <= self.pos.x + self.size.x
+            && point.y <= self.pos.y + self.size.y
+    }
+
     /// Calculate outer min size that includes margin and border.
     fn calculate_min_size(&self) -> Vec2 {
         let mut inner_min_width = self.inner_min_size.x;

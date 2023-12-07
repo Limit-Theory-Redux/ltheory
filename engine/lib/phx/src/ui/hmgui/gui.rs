@@ -151,19 +151,17 @@ impl HmGui {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
     }
 
-    #[inline]
-    fn is_clipped(&self, pos: Vec2, size: Vec2, p: Vec2) -> bool {
-        p.x < pos.x || p.y < pos.y || pos.x + size.x < p.x || pos.y + size.y < p.y
-    }
-
     /// Recursively iterate over container widgets and calculate if they are in a focus (mouse is over the container).
+    /// Setting focus at the end of the method guarantees that the last (top most) container will get the focus.
     fn check_focus(&mut self, widget_rf: Rf<HmGuiWidget>) {
         let widget = widget_rf.as_ref();
         let WidgetItem::Container(container) = &widget.item else {
             return;
         };
 
-        if container.clip && self.is_clipped(widget.pos, widget.size, self.focus_pos) {
+        let is_mouse_over = widget.contains_point(&self.focus_pos);
+
+        if container.clip && !is_mouse_over {
             return;
         }
 
@@ -171,14 +169,12 @@ impl HmGui {
             self.check_focus(widget_rf.clone());
         }
 
+        if !is_mouse_over {
+            return;
+        }
+
         for i in 0..self.focus.len() {
-            if self.focus[i] == 0
-                && container.focusable[i]
-                && widget.pos.x <= self.focus_pos.x
-                && widget.pos.y <= self.focus_pos.y
-                && self.focus_pos.x <= widget.pos.x + widget.size.x
-                && self.focus_pos.y <= widget.pos.y + widget.size.y
-            {
+            if self.focus[i] == 0 && container.focusable[i] {
                 self.focus[i] = widget.hash;
             }
         }
