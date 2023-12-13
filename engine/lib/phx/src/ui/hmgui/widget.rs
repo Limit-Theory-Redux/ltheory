@@ -228,9 +228,9 @@ impl HmGuiWidget {
 
             match &self.item {
                 WidgetItem::Container(container) => {
-                    let hmgui_focus = hmgui.mouse_focus_hash();
+                    let hash = hmgui.mouse_over_widget_hash();
 
-                    container.draw(hmgui, pos, size, hmgui_focus == self.hash);
+                    container.draw(hmgui, pos, size, hash == self.hash);
                 }
                 WidgetItem::Text(text) => {
                     let x = pos.x + (size.x - self.inner_min_size.x) / 2.0; // center text

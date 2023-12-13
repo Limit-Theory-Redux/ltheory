@@ -21,7 +21,7 @@ pub struct HmGui {
     last: Rf<HmGuiWidget>,
 
     data: HashMap<u64, HmGuiData>,
-    focus: [u64; 2],
+    mouse_over_widget_hash: [u64; 2],
     focus_pos: Vec2,
     activate: bool,
 
@@ -84,7 +84,7 @@ impl HmGui {
             container,
             last,
             data: HashMap::with_capacity(128),
-            focus: [0; 2],
+            mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
             activate: false,
             default_property_registry,
@@ -99,8 +99,8 @@ impl HmGui {
         self.root.clone()
     }
 
-    pub fn mouse_focus_hash(&self) -> u64 {
-        self.focus[FocusType::Mouse as usize]
+    pub fn mouse_over_widget_hash(&self) -> u64 {
+        self.mouse_over_widget_hash[FocusType::Mouse as usize]
     }
 
     /// Add a new widget into the current container.
@@ -151,9 +151,9 @@ impl HmGui {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
     }
 
-    /// Recursively iterate over container widgets and calculate if they are in a focus (mouse is over the container).
-    /// Setting focus at the end of the method guarantees that the last (top most) container will get the focus.
-    fn check_focus(&mut self, widget_rf: Rf<HmGuiWidget>) {
+    /// Recursively iterate over container widgets and calculate if mouse is over the container.
+    /// Setting mouse over hash at the end of the method guarantees that the last (top most) container will get the mouse over flag set.
+    fn check_mouse_over(&mut self, widget_rf: Rf<HmGuiWidget>) {
         let widget = widget_rf.as_ref();
         let WidgetItem::Container(container) = &widget.item else {
             return;
@@ -166,30 +166,33 @@ impl HmGui {
         }
 
         for widget_rf in container.children.iter().rev() {
-            self.check_focus(widget_rf.clone());
+            self.check_mouse_over(widget_rf.clone());
         }
 
         if !is_mouse_over {
             return;
         }
 
-        for i in 0..self.focus.len() {
-            if self.focus[i] == 0 && container.focusable[i] {
-                self.focus[i] = widget.hash;
+        for i in 0..self.mouse_over_widget_hash.len() {
+            // TODO: do we really need self.mouse_over_widget_hash[i] == 0 check here?
+            if container.mouse_over[i] && self.mouse_over_widget_hash[i] == 0 {
+                self.mouse_over_widget_hash[i] = widget.hash;
             }
         }
     }
 
-    /// Sets container `focusable` flag to true and returns if it's currently in focus.
-    fn container_has_focus_intern(
+    /// Sets container `mouse over` flag to true.
+    /// Will be used in the check_mouse_over to set `mouse over` hash for current container for the next frame.
+    /// Returns true if mouse is over container (was calculated in the previous frame).
+    fn is_mouse_over_intern(
         &self,
         container: &mut HmGuiContainer,
         ty: FocusType,
         hash: u64,
     ) -> bool {
-        container.focusable[ty as usize] = true;
+        container.mouse_over[ty as usize] = true;
 
-        self.focus[ty as usize] == hash
+        self.mouse_over_widget_hash[ty as usize] == hash
     }
 
     fn get_property(&self, property_id: usize) -> &HmGuiProperty {
@@ -299,9 +302,9 @@ impl HmGui {
         }
 
         self.focus_pos = input.mouse().position();
-        self.focus.fill(0);
+        self.mouse_over_widget_hash.fill(0);
 
-        self.check_focus(self.root.clone());
+        self.check_mouse_over(self.root.clone());
 
         unsafe { Profiler_End() };
     }
@@ -380,11 +383,11 @@ impl HmGui {
     pub fn end_scroll(&mut self, input: &Input) {
         let widget_rf = self.container.clone();
         let widget = widget_rf.as_ref();
-        let has_focus = self.container_has_focus(FocusType::Scroll);
+        let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
 
         let data = self.get_data(widget.hash);
 
-        if has_focus {
+        if is_mouse_over {
             let scroll_x = input.mouse().value(MouseControl::ScrollX);
             let scroll_y = input.mouse().value(MouseControl::ScrollY);
 
@@ -471,13 +474,13 @@ impl HmGui {
         // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
         {
             let mouse = input.mouse();
-            let has_focus = self.container_has_focus(FocusType::Mouse);
+            let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
 
             let widget_rf = self.container.clone();
             let mut widget = widget_rf.as_mut();
             let data = self.get_data(widget.hash);
 
-            if has_focus && mouse.is_down(MouseControl::Left) {
+            if is_mouse_over && mouse.is_down(MouseControl::Left) {
                 data.offset.x += mouse.value(MouseControl::DeltaX);
                 data.offset.y += mouse.value(MouseControl::DeltaY);
             }
@@ -522,7 +525,7 @@ impl HmGui {
             container.focus_style = FocusStyle::Fill;
             container.frame_opacity = 0.5;
 
-            self.container_has_focus_intern(container, FocusType::Mouse, hash)
+            self.is_mouse_over_intern(container, FocusType::Mouse, hash)
         };
 
         self.text(label);
@@ -549,9 +552,9 @@ impl HmGui {
 
             container.focus_style = FocusStyle::Underline;
 
-            let focus = self.container_has_focus_intern(container, FocusType::Mouse, hash);
+            let is_mouse_over = self.is_mouse_over_intern(container, FocusType::Mouse, hash);
 
-            if focus && self.activate {
+            if is_mouse_over && self.activate {
                 value = !value;
             }
         }
@@ -881,12 +884,12 @@ impl HmGui {
     }
 
     /// Makes current container `focusable` and returns if it's currently in focus.
-    pub fn container_has_focus(&self, ty: FocusType) -> bool {
+    pub fn is_mouse_over(&self, ty: FocusType) -> bool {
         let mut widget = self.container.as_mut();
         let hash = widget.hash;
         let container = widget.get_container_item_mut();
 
-        self.container_has_focus_intern(container, ty, hash)
+        self.is_mouse_over_intern(container, ty, hash)
     }
 
     pub fn set_children_alignment(&self, h: AlignHorizontal, v: AlignVertical) {

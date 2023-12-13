@@ -70,7 +70,7 @@ function Loader.defineType()
             void              HmGui_SetPaddingRight                (HmGui const*, float padding);
             void              HmGui_SetPaddingBottom               (HmGui const*, float padding);
             void              HmGui_SetSpacing                     (HmGui const*, float spacing);
-            bool              HmGui_ContainerHasFocus              (HmGui const*, FocusType ty);
+            bool              HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
             void              HmGui_SetChildrenAlignment           (HmGui const*, AlignHorizontal h, AlignVertical v);
             void              HmGui_SetChildrenHorizontalAlignment (HmGui const*, AlignHorizontal align);
             void              HmGui_SetChildrenVerticalAlignment   (HmGui const*, AlignVertical align);
@@ -223,7 +223,7 @@ function Loader.defineType()
             SetPaddingRight                = libphx.HmGui_SetPaddingRight,
             SetPaddingBottom               = libphx.HmGui_SetPaddingBottom,
             SetSpacing                     = libphx.HmGui_SetSpacing,
-            ContainerHasFocus              = libphx.HmGui_ContainerHasFocus,
+            IsMouseOver                    = libphx.HmGui_IsMouseOver,
             SetChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
             SetChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
             SetChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
@@ -381,7 +381,7 @@ function Loader.defineType()
                 setPaddingRight                = libphx.HmGui_SetPaddingRight,
                 setPaddingBottom               = libphx.HmGui_SetPaddingBottom,
                 setSpacing                     = libphx.HmGui_SetSpacing,
-                containerHasFocus              = libphx.HmGui_ContainerHasFocus,
+                isMouseOver                    = libphx.HmGui_IsMouseOver,
                 setChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
                 setChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
                 setChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,

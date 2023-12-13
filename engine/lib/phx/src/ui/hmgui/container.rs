@@ -33,7 +33,7 @@ pub struct HmGuiContainer {
     pub total_stretch: Vec2,
     pub frame_opacity: f32,
     pub clip: bool,
-    pub focusable: [bool; 2],
+    pub mouse_over: [bool; 2],
     pub store_size: bool,
 }
 
@@ -381,7 +381,7 @@ impl HmGuiContainer {
             widget_rf.as_ref().draw(hmgui);
         }
 
-        if self.focusable[FocusType::Mouse as usize] {
+        if self.mouse_over[FocusType::Mouse as usize] {
             match self.focus_style {
                 FocusStyle::None => {
                     let color = Vec4::new(0.1, 0.12, 0.13, 1.0);
@@ -447,7 +447,7 @@ impl HmGuiContainer {
         println!("{ident_str}- total_stretch:    {:?}", self.total_stretch);
         println!("{ident_str}- frame_opacity:    {}", self.frame_opacity);
         println!("{ident_str}- clip:             {}", self.clip);
-        println!("{ident_str}- focusable:        {:?}", self.focusable);
+        println!("{ident_str}- mouse_over_check: {:?}", self.mouse_over);
         println!("{ident_str}- store_size:       {:?}", self.store_size);
         println!("{ident_str}- children[{}]:", self.children.len());
 
