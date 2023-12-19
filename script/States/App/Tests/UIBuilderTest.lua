@@ -1,8 +1,8 @@
 local Test = require('States.Application')
 local UIBuilder = require('UI.UIBuilder')
-local Text = require('Types.UI.Text')
-local Spacer = require('Types.UI.Spacer')
-local Button = require('Types.UI.Button')
+local Text = require('UI.Components.Text')
+local Spacer = require('UI.Components.Spacer')
+local Button = require('UI.Components.Button')
 
 local rng = RNG.FromTime()
 
