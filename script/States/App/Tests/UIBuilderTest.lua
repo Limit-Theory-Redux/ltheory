@@ -1,5 +1,5 @@
 local Test = require('States.Application')
-local UIBuilder = require('Systems.Overlay.UIBuilder')
+local UIBuilder = require('UI.UIBuilder')
 local Text = require('Types.UI.Text')
 local Spacer = require('Types.UI.Spacer')
 local Button = require('Types.UI.Button')
@@ -129,7 +129,7 @@ function Test:onUpdate(dt)
         time = time + dt
     end
 
-    HmGui.Begin(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY, InputInstance)
     for guid, window in pairs(self.page) do
         if window.close then
             self.page[guid] = nil
@@ -139,14 +139,14 @@ function Test:onUpdate(dt)
         window.render()
         ::skip::
     end
-    HmGui.End(InputInstance)
+    Gui:endGui(InputInstance)
 end
 
 function Test:onDraw()
     if useRenderer then
         self.renderer:start(self.resX, self.resY)
         Viewport.Push(0, 0, self.resX, self.resY, true)
-        HmGui.Draw()
+        Gui:draw()
 
         if self.callbackTest then
             UI.DrawEx.TextAdditive(
@@ -168,7 +168,7 @@ function Test:onDraw()
         self.renderer:stop()
         self.renderer:present(0, 0, self.resX, self.resY)
     else
-        HmGui.Draw()
+        Gui:draw()
     end
 end
 

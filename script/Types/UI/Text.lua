@@ -21,10 +21,10 @@ function Text:new(args)
 
     newText.render = function ()
         if newText.font then
-            HmGui.PushFont(Cache.Font(newText.font, newText.size))
+            Gui:pushFont(Cache.Font(newText.font, newText.size))
         end
 
-        HmGui.TextColored(newText.text, newText.color.r, newText.color.g, newText.color.b, newText.color.a)
+        Gui:textColored(newText.text, newText.color.r, newText.color.g, newText.color.b, newText.color.a)
     end
 
     return newText

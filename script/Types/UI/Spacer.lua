@@ -16,7 +16,7 @@ function Spacer:new(args)
     newSpacer.size = args.size
 
     newSpacer.render = function()
-        HmGui.SetSpacing(newSpacer.size)
+        Gui:setSpacing(newSpacer.size)
     end
 
     return newSpacer

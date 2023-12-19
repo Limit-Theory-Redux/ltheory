@@ -17,7 +17,7 @@ function Button:new(args)
     newButton.callback = args.callback
 
     newButton.render = function()
-        if HmGui.Button(newButton.title) then newButton.callback() end
+        if Gui:button(newButton.title) then newButton.callback() end
     end
 
     return newButton
