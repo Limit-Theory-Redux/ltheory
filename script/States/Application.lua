@@ -43,12 +43,12 @@ function Application:appInit()
     WindowInstance:setCenteredPosition()
     WindowInstance:setSize(self.resX, self.resY)
 
-    self.audio                  = Audio.Create()
-    self.audiofx                = Audio.Create()
+    self.audio   = Audio.Create()
+    self.audiofx = Audio.Create()
 
     GameState.render.gameWindow = WindowInstance
 
-    self.exit                   = false
+    self.exit = false
 
     WindowInstance:setPresentMode(GameState.render.presentMode)
 
@@ -72,6 +72,7 @@ function Application:appInit()
 
     self.profiling = false
     self.toggleProfiler = false
+    self.showBackgroundModeHints = true
 end
 
 function Application:onFrame()
@@ -109,7 +110,6 @@ function Application:onFrame()
         Profiler.Begin('App.onInput')
 
         -- Immediately quit game without saving
-        if InputInstance:isKeyboardCtrlPressed() and InputInstance:isPressed(Button.KeyboardW) then self:quit() end
         if InputInstance:isKeyboardAltPressed() and InputInstance:isPressed(Button.KeyboardQ) then self:quit() end
         if InputInstance:isPressed(Bindings.Exit) then self:quit() end
 
@@ -151,9 +151,9 @@ function Application:onFrame()
 
         -- Preserving this in case we need to be able to automatically pause on window exit again
         -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
-        --      if InputInstance:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
-        --        GameState.paused = true
-        --      end
+        -- if InputInstance:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
+        --     GameState.paused = true
+        -- end
 
         if GameState.paused then
             timeScale = 0.0
@@ -171,6 +171,10 @@ function Application:onFrame()
 
         if InputInstance:isPressed(Bindings.ToggleMetrics) then
             GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
+        end
+
+        if MainMenu.inBackgroundMode and InputInstance:isPressed(Bindings.ToggleHUD) then
+            self.showBackgroundModeHints = not self.showBackgroundModeHints
         end
 
         self:onInput()
@@ -195,14 +199,62 @@ function Application:onFrame()
         Profiler.End()
     end
 
-    UI.DrawEx.TextAdditive(
-        'NovaRound',
-        "EXPERIMENTAL BUILD - NOT FINAL!",
-        20,
-        self.resX / 2 - 24, 62, 40, 20,
-        1, 1, 1, 1,
-        0.5, 0.5
-    )
+    if MainMenu.inBackgroundMode then
+        if self.showBackgroundModeHints then
+            UI.DrawEx.TextAdditive(
+                'Exo2',
+                "[B] Generate new star system",
+                20,
+                self.resX / 2 - 20, self.resY - 150, 40, 20,
+                1, 1, 1, 1,
+                0.5, 0.5
+            )
+            UI.DrawEx.TextAdditive(
+                'Exo2',
+                "[H] Speed up time",
+                20,
+                self.resX / 2 - 20, self.resY - 125, 40, 20,
+                1, 1, 1, 1,
+                0.5, 0.5
+            )
+            UI.DrawEx.TextAdditive(
+                'Exo2',
+                "[K] Metrics display",
+                20,
+                self.resX / 2 - 20, self.resY - 100, 40, 20,
+                1, 1, 1, 1,
+                0.5, 0.5
+            )
+            UI.DrawEx.TextAdditive(
+                'Exo2',
+                "[V] Toggle hints",
+                20,
+                self.resX / 2 - 20, self.resY - 75, 40, 20,
+                1, 1, 1, 1,
+                0.5, 0.5
+            )
+        end
+    else
+        UI.DrawEx.TextAdditive(
+            'NovaRound',
+            "WORK IN PROGRESS",
+            20,
+            self.resX / 2 - 20, 50, 40, 20,
+            0.75, 0.75, 0.75, 0.75,
+            0.5, 0.5
+        )
+
+        if GameState:GetCurrentState() == Enums.GameStates.InGame then
+            UI.DrawEx.TextAdditive(
+                'NovaRound',
+                "Build " .. Config.gameVersion,
+                12,
+                4, self.resY - 20, 40, 20,
+                0.75, 0.75, 0.75, 0.75,
+                0, 0.5
+            )
+        end
+    end
 
     if GameState:GetCurrentState() ~= Enums.GameStates.MainMenu then
         if GameState.paused then
@@ -218,7 +270,7 @@ function Application:onFrame()
 
         if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
             --TODO: replace this with a general "is alive" game state here and in LTR,
-            --      the whole process needs to be improved
+            -- the whole process needs to be improved
             if MainMenu and not MainMenu.dialogDisplayed and
                 not MainMenu.seedDialogDisplayed and
                 not MainMenu.settingsScreenDisplayed then

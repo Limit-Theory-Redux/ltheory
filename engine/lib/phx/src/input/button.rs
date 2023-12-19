@@ -1,7 +1,5 @@
 use super::{GamepadAxis, GamepadButton, KeyboardButton, MouseControl, SystemEvent, TouchpadAxis};
 
-use internal::static_string;
-
 macro_rules! buttons {
     ($($device_name:ident($as_func:ident): [$($(#[doc = $doc:expr])*($button_item:ident, $device_item:ident),)+])+) => {
         #[luajit_ffi_gen::luajit_ffi]

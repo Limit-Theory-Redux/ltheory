@@ -1,9 +1,9 @@
 local Entity = require('GameObjects.Entity')
 
 -- TODO : Warn if self.credits >= Math.Float64MaxInt (credits will no
---        longer work correctly as integers)
+-- longer work correctly as integers)
 -- TODO : Probably unify with inventory, just store credits as special item
---        in player inventory as we do in econ sandbox?
+-- in player inventory as we do in econ sandbox?
 
 function Entity:addCredits(count)
     assert(count >= 0)

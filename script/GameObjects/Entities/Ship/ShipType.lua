@@ -10,7 +10,7 @@ local Ship = require('GameObjects.Entities.Ship.Ship')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local ShipType = class(function(self, seed, generator, hull)
-    local scale         = 4   -- TODO: determine scale based on hull type
+    local scale         = 4 -- TODO: determine scale based on hull type
 
     local rng           = RNG.Create(seed)
     self.seed           = seed

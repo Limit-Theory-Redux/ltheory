@@ -14,21 +14,26 @@ function MusicPlayer:Init()
     else
         self.volume = 0
     end
-    self:LoadMusic()
 
-    MusicPlayer:LoadEffects()
+    self.lastVolume = self.volume
+
+    self:LoadMusic()
+    self:LoadEffects()
 end
 
 -- add block queueing
 
 function MusicPlayer:LoadEffects()
     -- *** TEMP: Audio FX test START ***
+
+    --[[ -- Pulse weapon firing sound effect temporarily commented out until setVolume() is working
     Config.audio.pulseFire = SFXObject:Create {
         name = Config.audio.pulseFireName,
         path = Config.paths.soundEffects .. Config.audio.pulseFireName,
         volume = 0.0,
         isLooping = false
     }
+    ]]
 
     Config.audio.fxSensors = SFXObject:Create {
         name = Config.audio.fxSensorsName,
@@ -40,16 +45,17 @@ function MusicPlayer:LoadEffects()
     -- *** TEMP: Audio FX test END ***
 end
 
-function MusicPlayer:SetVolume(volume)
+function MusicPlayer:SetVolume(volume, fadeMS)
     if volume == self.volume then
         return
     end
 
+    self.lastVolume = GameState.audio.musicVolume
     GameState.audio.musicVolume = volume
 
     for _, soundObject in ipairs(self.trackList) do
-        Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
-        soundObject.sound:setVolume(volume)
+        Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, volume)
+        soundObject:SetVolume(volume, fadeMS)
     end
 end
 
@@ -106,7 +112,7 @@ function MusicPlayer:QueueTrack(query, clearQueue)
 
     table.insert(self.queue, track)
 
-    --  Log.Debug("Queuing Track: " .. track.name)
+    -- Log.Debug("Queuing Track: " .. track.name)
     return track
 end
 
@@ -180,8 +186,11 @@ function MusicPlayer:LoadMusic()
         local fileUnsupported = false
 
         if #Config.audio.supportedFormats > 1 then
-            for supportedFormat in ipairs(Config.audio.supportedFormats) do
-                if not string.find(path, supportedFormat) then
+            for _, supportedFormat in ipairs(Config.audio.supportedFormats) do
+                if string.find(path, supportedFormat) then
+                    fileUnsupported = false
+                    break
+                else
                     fileUnsupported = true
                 end
             end

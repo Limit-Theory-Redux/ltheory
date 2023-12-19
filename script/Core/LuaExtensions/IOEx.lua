@@ -47,7 +47,7 @@ end
 
 -- Return two lists, the first of files, the second of (immediate) subdirs
 -- NOTE : Unlike io.listdir, returns name only (not path), since this function
---        is never recursive
+-- is never recursive
 function io.listdirex(root)
     local root = root:gsub('/$', '')
     local files, dirs = {}, {}

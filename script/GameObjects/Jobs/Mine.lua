@@ -65,8 +65,8 @@ end
 function Mine:getName()
     if self.jcount == 0 then
         -- This "bids" hack exists because something -- in between Think() waking up a sleeping ship to add
-        --     the Undock() action to its queue, and the Undock() function being performed -- is causing
-        --     the value of self.jcount for some jobs to be set to 0, and after several days I still can't find why.
+        -- the Undock() action to its queue, and the Undock() function being performed -- is causing
+        -- the value of self.jcount for some jobs to be set to 0, and after several days I still can't find why.
         self.jcount = self.bids
     end
 
@@ -122,8 +122,8 @@ function Mine:getBasePayout(e, src, dst)
     local itemBidVol = dst:getTrader():getBidVolume(item)
     if itemBidVol and itemBidVol > 0 then
         -- Mine only as many units as the destination has bids for
-        --    or as many as we can carry
-        --    or as many as are still minable
+        -- or as many as we can carry
+        -- or as many as are still minable
         local capacity = e:mgrInventoryGetFreeMax(mass)
         baseCount = math.min(itemBidVol, floor(capacity / mass))
         basePayout = dst:getTrader():getSellToPrice(item, baseCount)
@@ -141,7 +141,7 @@ end
 
 function Mine:getAdjustedPayout(e, src, dst, basePayout)
     -- Modify the value of the expected payout by the estimated yield
-    --   divided by travel time to reach the yield source plus travel time from the source to the destination
+    -- divided by travel time to reach the yield source plus travel time from the source to the destination
     local adjPayout = 0
 
     local yieldSize = 1000
@@ -232,7 +232,8 @@ function Mine:onUpdateActive(e, dt)
                     e:pushAction(Actions.DockAt(self.dst))
                 else
                     -- Destination station no longer exists, so terminate this entire job
-                    Log.Debug("[MINE 3] *** Destination station %s no longer exists for %s DockAt; terminating mining job",
+                    Log.Debug(
+                        "[MINE 3] *** Destination station %s no longer exists for %s DockAt; terminating mining job",
                         self.dst:getName(), e:getName())
                     self:cancelJob(e)
                 end
@@ -243,16 +244,17 @@ function Mine:onUpdateActive(e, dt)
             if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
                 local item = self.item
                 -- Log.Debug("[MINE 4] %s offers to sell %d units of %s to Trader %s",
-                --     e:getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.dst:getName())
+                -- e:getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.dst:getName())
                 local sold = 0
                 while e:mgrInventoryGetItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
                     sold = sold + 1
                 end
                 -- Log.Debug("[MINE 4] %s sold %d units of %s to Trader %s; %d units remaining in inventory",
-                --     e:getName(), sold, item:getName(), self.dst:getName(), e:mgrInventoryGetItemCount(item))
+                -- e:getName(), sold, item:getName(), self.dst:getName(), e:mgrInventoryGetItemCount(item))
             else
                 -- Destination station no longer exists, so terminate this entire job
-                Log.Debug("[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job",
+                Log.Debug(
+                    "[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job",
                     self.dst:getName(), e:getName())
                 self:cancelJob(e)
             end
@@ -262,8 +264,8 @@ function Mine:onUpdateActive(e, dt)
             end
         elseif e.jobState == Enums.JobStateMine.JobFinished then
             -- TODO : This is just a quick hack to force AI to re-evaluate job
-            --        decisions. In reality, AI should 'pre-empt' the job, which
-            --        should otherwise loop indefinitely by default
+            -- decisions. In reality, AI should 'pre-empt' the job, which
+            -- should otherwise loop indefinitely by default
             self:cancelJob(e)
         end
         Profiler.End()

@@ -52,15 +52,15 @@ function MineAt:onUpdateActive(e, dt)
         local maxBids = self.target:getTrader():getBidVolumeForAsset(item, e)
 
         -- Mine 1 unit of item every [duration in seconds as specified when pushing the MineAt action]
-        --    (unless instantJobs is true)
+        -- (unless instantJobs is true)
         if maxBids > 0 then
             if GameState.debug.instantJobs then
                 -- Immediately mine as many units as are bid or as the asset has capacity for
                 local addedCount = 0
                 for i = 1, maxBids do
                     --Log.Debug("MineAt MINE (instant): [%s (%s)] mining 1 unit of %s from %s, delivering to %s (wants %d)",
-                    --    e:getName(), e:getOwner():getName(), item:getName(), self.source:getName(), self.target:getName(),
-                    --    maxBids)
+                    -- e:getName(), e:getOwner():getName(), item:getName(), self.source:getName(), self.target:getName(),
+                    -- maxBids)
 
                     -- Try to add 1 unit of the item (note that item size is its mass, not necessarily 1 unit of cargo space)
                     if not e:mgrInventoryAddItem(item, 1) then
@@ -100,7 +100,8 @@ function MineAt:onUpdateActive(e, dt)
 
                     -- Try to add 1 unit of the item (note that item size is its mass, not necessarily 1 unit of cargo space)
                     if not e:mgrInventoryAddItem(item, 1) then
-                        Log.Debug("MineAt STOP (regular): [%s (%s)] mined %d units of %s from %s, but %s wanted %d units!",
+                        Log.Debug(
+                            "MineAt STOP (regular): [%s (%s)] mined %d units of %s from %s, but %s wanted %d units!",
                             e:getName(), e:getOwner():getName(), e:mgrInventoryGetItemCount(item), item:getName(),
                             self.source:getName(),
                             self.target:getName(), maxBids)

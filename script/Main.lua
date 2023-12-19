@@ -6,6 +6,7 @@ package.path = package.path .. ';./script/?.ffi.lua'
 EngineInstance = {}
 InputInstance = {}
 WindowInstance = {}
+Gui = {}
 
 require('Init')
 
@@ -16,6 +17,7 @@ function SetEngine(engine)
 
     InputInstance = EngineInstance:input()
     WindowInstance = EngineInstance:window()
+    Gui = EngineInstance:hmGui()
 end
 
 function InitSystem()
@@ -27,6 +29,12 @@ function InitSystem()
         Log.Debug("Application name: %s", app)
 
         GlobalRestrict.On()
+
+        dofile('./script/Config/Version.lua')
+
+        if Config.gameVersion ~= "0.0.0" and Config.gameVersion ~= Engine.GetVersion() then
+            Log.Error("Engine and script version mismatch. Engine: %s. Script: %s.", Engine.GetVersion(), Config.gameVersion)
+        end
 
         dofile('./script/Config/App.lua')
 

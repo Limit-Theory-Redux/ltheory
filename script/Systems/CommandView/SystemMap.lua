@@ -144,18 +144,20 @@ function SystemMap:onDraw(state)
                 bestDist = d
                 best = e
             end
-            --    else
-            --      -- Non-object entities (e.g., zones)
-            --Log.Debug("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
-            --      local p = e:getPos()
-            --      local x = p.x - dx
-            --      local y = p.z - dy
-            --      x = self.x + x * Config.game.mapSystemZoom + hx
-            --      y = self.y + y * Config.game.mapSystemZoom + hy
-            --      Draw.PointSize(2.0)
-            --      Draw.Color(1.0, 1.0, 1.0, 1)
-            --      Draw.Point(x, y)
-            --      --UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.8, g = 0.3, b = 0.8, a = 0.7 }, true)
+        --[[
+        else
+            -- Non-object entities (e.g., zones)
+            Log.Debug("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+            local p = e:getPos()
+            local x = p.x - dx
+            local y = p.z - dy
+            x = self.x + x * Config.game.mapSystemZoom + hx
+            y = self.y + y * Config.game.mapSystemZoom + hy
+            Draw.PointSize(2.0)
+            Draw.Color(1.0, 1.0, 1.0, 1)
+            Draw.Point(x, y)
+            UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.8, g = 0.3, b = 0.8, a = 0.7 }, true)
+        --]]
         end
     end
     Draw.Color(1, 1, 1, 1)
@@ -182,7 +184,7 @@ function SystemMap:onDraw(state)
         dbg:text("Stations: " .. #self.system.stations)
         dbg:text("Ships: " .. #self.system.ships)
         dbg:text("Lights: " .. #GameState.world.currentSystem.lightList)
-        --        dbg:text("Lights: " .. #self.system.lightList)
+        -- dbg:text("Lights: " .. #self.system.lightList)
         dbg:undent()
         self.system:send(Event.Debug(dbg))
         dbg:undent()
@@ -289,8 +291,8 @@ end
 function SystemMap:onInput(state)
     -- TODO: Connect to bindings (probably should be a new MapBindings.lua)
     -- NOTE: Keyboard pan and zoom previously used (e.g.) "kPanSpeed * state.dt"
-    --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
-    --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
+    -- Removing that allows panning and zooming with keyboard to work when the game is Paused, but
+    -- they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
     if state.dt and state.dt ~= 0 then
         self.lastDt = state.dt
     end
@@ -309,7 +311,8 @@ function SystemMap:onInput(state)
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
         exp(GameState.ui.mapSystemZoomSpeed * InputInstance:mouse():scroll().y)
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
-        exp(GameState.ui.mapSystemZoomSpeed * (InputInstance:getValue(Button.KeyboardP) - InputInstance:getValue(Button.KeyboardO)))
+        exp(GameState.ui.mapSystemZoomSpeed *
+            (InputInstance:getValue(Button.KeyboardP) - InputInstance:getValue(Button.KeyboardO)))
 
     GameState.player.currentMapSystemPos.x = GameState.player.currentMapSystemPos.x +
         GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (

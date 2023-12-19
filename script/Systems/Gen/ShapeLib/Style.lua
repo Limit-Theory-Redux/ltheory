@@ -12,9 +12,9 @@ local Style = {}
 Style.__index = Style
 
 -- Style
---   favoredShapes: list of Shapes
---   favoredWarps: list of Shape member function*s for warps
---   rng: cached RNG
+-- favoredShapes: list of Shapes
+-- favoredWarps: list of Shape member function*s for warps
+-- rng: cached RNG
 setmetatable(Style, {
     __call = function(T)
         return setmetatable({

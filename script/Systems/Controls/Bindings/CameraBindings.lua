@@ -17,6 +17,7 @@ local self = {
     Zoom       = Control.MouseWheel(),
 
     TranslateX = Control.Pair(Control.Key(Button.KeyboardD), Control.Key(Button.KeyboardA)),
+    TranslateY = Control.Pair(Control.Key(Button.KeyboardSpace), Control.Key(Button.KeyboardControlLeft)),
     TranslateZ = Control.Pair(Control.Key(Button.KeyboardW), Control.Key(Button.KeyboardS)),
 }
 
