@@ -51,69 +51,64 @@ local testCallbacks = {
     ["testCallback6"] = testCallback6
 }
 
--- remove later
-local testContainer = function()
-    return {
-        padding = { 10, 10 },
-        align = { AlignHorizontal.Center, AlignVertical.Center },
-        stackDirection = testStackDirection,
-        contents = {
-            [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
-                text = "Hello World!" },
-            [2] = UIComponent.Spacer { size = 16 },
-            [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey!" },
-            [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback }
-        }
+---@type UIComponentContainer
+local testContainer = UIComponent.Container {
+    padding = { 10, 10 },
+    align = { AlignHorizontal.Center, AlignVertical.Center },
+    stackDirection = testStackDirection,
+    contents = {
+        [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+            text = "Hello World!" },
+        [2] = UIComponent.Spacer { size = 16 },
+        [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey!" },
+        [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback }
     }
-end
+}
 
--- remove later
-local testContainer2 = function()
-    return {
-        align = { AlignHorizontal.Center, AlignVertical.Center },
-        padding = { 10, 10 },
-        stackDirection = testStackDirection,
-        contents = {
-            [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
-                text = "Hello World 2!" },
-            [2] = UIComponent.Spacer { size = 16 },
-            [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 2!" },
-            [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback2 }
-        }
+---@type UIComponentContainer
+local testContainer2 = UIComponent.Container {
+    align = { AlignHorizontal.Center, AlignVertical.Center },
+    padding = { 10, 10 },
+    stackDirection = testStackDirection,
+    contents = {
+        [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+            text = "Hello World 2!" },
+        [2] = UIComponent.Spacer { size = 16 },
+        [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 2!" },
+        [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback2 }
     }
-end
+}
 
--- remove later
-local testContainer3 = function()
-    return {
-        align = { AlignHorizontal.Center, AlignVertical.Center },
-        padding = { 10, 10 },
-        stackDirection = testStackDirection,
-        contents = {
-            [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
-                text = "Hello World 3!" },
-            [2] = UIComponent.Spacer { size = 16 },
-            [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 3!" },
-            [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback3 }
-        }
+---@type UIComponentContainer
+local testContainer3 = UIComponent.Container {
+    align = { AlignHorizontal.Center, AlignVertical.Center },
+    padding = { 10, 10 },
+    stackDirection = testStackDirection,
+    contents = {
+        [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+            text = "Hello World 3!" },
+        [2] = UIComponent.Spacer { size = 16 },
+        [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 3!" },
+        [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback3 }
     }
-end
+}
 
 -- random example for containers from a loop
 local generateContainersFromLoop = function()
     local containers = {}
 
     for id = 4, 6 do
-        local container = {}
-        container.align = { AlignHorizontal.Center, AlignVertical.Center }
-        container.padding = { 10, 10 }
-        container.stackDirection = testStackDirection
-        container.contents = {
-            [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
-                text = "Hello World " .. id .. "!" },
-            [2] = UIComponent.Spacer { size = 16 },
-            [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey " .. id .. "!" },
-            [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallbacks["testCallback" .. id] }
+        local container = UIComponent.Container {
+            align = { AlignHorizontal.Center, AlignVertical.Center },
+            padding = { 10, 10 },
+            stackDirection = testStackDirection,
+            contents = {
+                [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+                    text = "Hello World " .. id .. "!" },
+                [2] = UIComponent.Spacer { size = 16 },
+                [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey " .. id .. "!" },
+                [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallbacks["testCallback" .. id] }
+            }
         }
         table.insert(containers, container)
     end
@@ -131,9 +126,9 @@ local function createWindow()
         stackDirection = testStackDirection,
         canClose = true,
         containers = {
-            testContainer(),
-            testContainer2(),
-            testContainer3()
+            testContainer,
+            testContainer2,
+            testContainer3
         }
     }
 
@@ -163,9 +158,10 @@ local function switchPage()
 end
 
 local switchPageBackContainer = function()
-    -- demo for programmatically create pages while keeping everything clean and understandable
+    -- demo for programmatically working with pages/contents while keeping everything clean and understandable
     local availablePages = UIBuilder:getAvailablePages()
     local contentTable = {}
+
     table.insert(contentTable,
         UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = 1, b = 1, a = 1 }, text = "Available Pages" })
     table.insert(contentTable, UIComponent.Spacer { size = 4 })
@@ -178,7 +174,7 @@ local switchPageBackContainer = function()
     table.insert(contentTable,
         UIComponent.Button { title = "Switch back to Page 1", width = 120, callback = switchPage })
 
-    return {
+    return UIComponent.Container {
         align = { AlignHorizontal.Center, AlignVertical.Center },
         padding = { 10, 10 },
         stackDirection = Enums.UI.StackDirection.X,
@@ -186,17 +182,15 @@ local switchPageBackContainer = function()
     }
 end
 
-local createWindowContainer = function()
-    return {
-        align = { AlignHorizontal.Center, AlignVertical.Center },
-        padding = { 10, 10 },
-        stackDirection = testStackDirection,
-        contents = {
-            [1] = UIComponent.Button { title = "Create Window", width = 120, callback = createWindow },
-            [2] = UIComponent.Button { title = "Switch Page", width = 120, callback = switchPage }
-        }
+local createWindowContainer = UIComponent.Container {
+    align = { AlignHorizontal.Center, AlignVertical.Center },
+    padding = { 10, 10 },
+    stackDirection = testStackDirection,
+    contents = {
+        [1] = UIComponent.Button { title = "Create Window", width = 120, callback = createWindow },
+        [2] = UIComponent.Button { title = "Switch Page", width = 120, callback = switchPage }
     }
-end
+}
 
 function Test:onInit()
     self.renderer = Renderer()
@@ -216,7 +210,7 @@ function Test:onInit()
         title = "UI Builder Test Tools",
         stackDirection = rng:choose({ Enums.UI.StackDirection.X, Enums.UI.StackDirection.Y }),
         containers = {
-            createWindowContainer()
+            createWindowContainer
         }
     }
 

@@ -7,12 +7,22 @@ local meta = {
     end
 }
 
----@class Text
+---@class UIComponentText
+---@field font string
+---@field size number
+---@field color table<{r: number, g: number, b:number, a:number}>
+---@field text string
 ---@field render function renders the text
 
+---@class UIComponentTextConstructor
+---@field font string
+---@field size number
+---@field color table<{r: number, g: number, b:number, a:number}>
+---@field text string
+
 ---returns a text object
----@param args {font: string, size: number, color: table<{r: number, g: number, b:number, a:number}>, text: string}
----@return Text|nil
+---@param args UIComponentTextConstructor
+---@return UIComponentText|nil
 function Text:new(args)
     if not args then
         return
@@ -39,6 +49,7 @@ end
 setmetatable(Text, meta)
 
 -- Add to global UIComponent table
+---@type UIComponentTextConstructor
 UIComponent.Text = Text
 
 return Text

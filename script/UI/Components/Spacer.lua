@@ -7,12 +7,16 @@ local meta = {
     end
 }
 
----@class Spacer
+---@class UIComponentSpacer
+---@field size number
 ---@field render function renders the spacer
 
+---@class UIComponentSpacerConstructor
+---@field size number
+
 ---returns a spacer object
----@param args {size: number}
----@return Spacer|nil
+---@param args UIComponentSpacerConstructor
+---@return UIComponentSpacer|nil
 function Spacer:new(args)
     if not args then
         return
@@ -31,6 +35,7 @@ end
 setmetatable(Spacer, meta)
 
 -- Add to global UIComponent table
+---@type UIComponentSpacerConstructor
 UIComponent.Spacer = Spacer
 
 return Spacer

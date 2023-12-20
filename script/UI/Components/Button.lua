@@ -7,12 +7,20 @@ local meta = {
     end
 }
 
----@class Button
+---@class UIComponentButton
+---@field title string
+---@field width number
+---@field callback function
 ---@field render function renders the button
 
+---@class UIComponentButtonConstructor
+---@field title string
+---@field width number
+---@field callback function
+
 ---returns a button object
----@param args {title: string, width: number, callback: function }
----@return Button|nil
+---@param args UIComponentButtonConstructor
+---@return UIComponentButton|nil
 function Button:new(args)
     if not args then
         return
@@ -34,6 +42,7 @@ end
 setmetatable(Button, meta)
 
 -- Add to global UIComponent table
+---@type UIComponentButtonConstructor
 UIComponent.Button = Button
 
 return Button
