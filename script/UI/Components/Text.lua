@@ -38,4 +38,7 @@ end
 
 setmetatable(Text, meta)
 
+-- Add to global UIComponent table
+UIComponent.Text = Text
+
 return Text

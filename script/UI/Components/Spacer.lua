@@ -30,4 +30,7 @@ end
 
 setmetatable(Spacer, meta)
 
+-- Add to global UIComponent table
+UIComponent.Spacer = Spacer
+
 return Spacer

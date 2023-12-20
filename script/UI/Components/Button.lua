@@ -31,4 +31,7 @@ end
 
 setmetatable(Button, meta)
 
+-- Add to global UIComponent table
+UIComponent.Button = Button
+
 return Button
