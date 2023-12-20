@@ -1,6 +1,12 @@
 local Text = {}
 Text.__index = Text
 
+local meta = {
+    __call = function(cls, ...)
+        return cls:new(...)
+    end
+}
+
 ---@class Text
 ---@field render function renders the text
 
@@ -29,5 +35,7 @@ function Text:new(args)
 
     return newText
 end
+
+setmetatable(Text, meta)
 
 return Text

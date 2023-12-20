@@ -1,6 +1,12 @@
 local Spacer = {}
 Spacer.__index = Spacer
 
+local meta = {
+    __call = function(cls, ...)
+        return cls:new(...)
+    end
+}
+
 ---@class Spacer
 ---@field render function renders the spacer
 
@@ -21,5 +27,7 @@ function Spacer:new(args)
 
     return newSpacer
 end
+
+setmetatable(Spacer, meta)
 
 return Spacer

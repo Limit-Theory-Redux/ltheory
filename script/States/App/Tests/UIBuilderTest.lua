@@ -36,11 +36,11 @@ local testContainer = function()
         align = { 0.5, 0.5 },
         group = testGroup,
         contents = {
-            [1] = Text:new { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+            [1] = Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
                 text = "Hello World!" },
-            [2] = Spacer:new { size = 16 },
-            [3] = Text:new { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey!" },
-            [4] = Button:new { title = "Button", callback = testCallback }
+            [2] = Spacer { size = 16 },
+            [3] = Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey!" },
+            [4] = Button { title = "Button", callback = testCallback }
         }
     }
 end
@@ -52,11 +52,11 @@ local testContainer2 = function()
         padding = { 10, 10 },
         group = testGroup,
         contents = {
-            [1] = Text:new { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+            [1] = Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
                 text = "Hello World 2!" },
-            [2] = Spacer:new { size = 16 },
-            [3] = Text:new { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 2!" },
-            [4] = Button:new { title = "Button", callback = testCallback2 }
+            [2] = Spacer { size = 16 },
+            [3] = Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 2!" },
+            [4] = Button { title = "Button", callback = testCallback2 }
         }
     }
 end
@@ -68,11 +68,11 @@ local testContainer3 = function()
         padding = { 10, 10 },
         group = testGroup,
         contents = {
-            [1] = Text:new { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+            [1] = Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
                 text = "Hello World 3!" },
-            [2] = Spacer:new { size = 16 },
-            [3] = Text:new { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 3!" },
-            [4] = Button:new { title = "Button", callback = testCallback3 }
+            [2] = Spacer { size = 16 },
+            [3] = Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 3!" },
+            [4] = Button { title = "Button", callback = testCallback3 }
         }
     }
 end
@@ -103,7 +103,7 @@ local createWindowContainer = function()
         padding = { 10, 10 },
         group = testGroup,
         contents = {
-            [1] = Button:new { title = "Create Window", callback = createWindow }
+            [1] = Button { title = "Create Window", callback = createWindow }
         }
     }
 end

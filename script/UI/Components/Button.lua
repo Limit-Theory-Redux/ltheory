@@ -1,6 +1,12 @@
 local Button = {}
 Button.__index = Button
 
+local meta = {
+    __call = function(cls, ...)
+        return cls:new(...)
+    end
+}
+
 ---@class Button
 ---@field render function renders the button
 
@@ -22,5 +28,7 @@ function Button:new(args)
 
     return newButton
 end
+
+setmetatable(Button, meta)
 
 return Button
