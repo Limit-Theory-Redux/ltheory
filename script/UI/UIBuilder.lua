@@ -78,6 +78,17 @@ function UIBuilder:getLastPageName()
     return self.lastPage
 end
 
+-- gets current page
+function UIBuilder:getPage(page)
+    if not page then
+        Log.Error("get page is nil")
+    elseif not self.pages[page] then
+        Log.Error("page does not exist")
+    end
+
+    return self.pages[page]
+end
+
 -- gets all available pages as strings
 function UIBuilder:getAvailablePages()
     local pageNames = {}
