@@ -10,19 +10,19 @@ local time = 0
 local debugTestShowInS = 1
 local function testCallback()
     print("Executed Callback")
-    Test.callbackTest = true
+    Test.callbackTest = "Callback 1"
     time = 0
 end
 
 local function testCallback2()
     print("Executed Callback 2")
-    Test.callbackTest = true
+    Test.callbackTest = "Callback 2"
     time = 0
 end
 
 local function testCallback3()
     print("Executed Callback 3")
-    Test.callbackTest = true
+    Test.callbackTest = "Callback 3"
     time = 0
 end
 
@@ -198,7 +198,7 @@ function Test:onUpdate(dt)
     end
 
     Gui:beginGui(self.resX, self.resY, InputInstance)
-    UIBuilder:update()
+    UIBuilder:render()
     Gui:endGui(InputInstance)
 end
 
@@ -211,7 +211,7 @@ function Test:onDraw()
         if self.callbackTest then
             UI.DrawEx.TextAdditive(
                 'NovaRound',
-                'Executed Function',
+                self.callbackTest,
                 20,
                 self.resX / 2 - 24, 128, 40, 20,
                 1, .4, .4, 1,

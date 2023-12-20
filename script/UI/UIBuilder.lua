@@ -11,7 +11,7 @@ function UIBuilder:__init()
     return self
 end
 
-function UIBuilder:update()
+function UIBuilder:render()
     if self.currentPage then
         local page = self:getCurrentPage()
 
