@@ -4,10 +4,11 @@ local UIBuilder = require('UI.UIBuilder')
 local rng = RNG.FromTime()
 
 local useRenderer = true
-local testGroup = rng:choose({ "X", "Y" })
+local testStackDirection = rng:choose({ Enums.UI.StackDirection.X, Enums.UI.StackDirection.Y })
 
 local time = 0
 local debugTestShowInS = 1
+
 local function testCallback()
     print("Executed Callback")
     Test.callbackTest = "Callback 1"
@@ -26,12 +27,36 @@ local function testCallback3()
     time = 0
 end
 
+local function testCallback4()
+    print("Executed Callback 4")
+    Test.callbackTest = "Callback 4"
+    time = 0
+end
+
+local function testCallback5()
+    print("Executed Callback 5")
+    Test.callbackTest = "Callback 5"
+    time = 0
+end
+
+local function testCallback6()
+    print("Executed Callback 6")
+    Test.callbackTest = "Callback 6"
+    time = 0
+end
+
+local testCallbacks = {
+    ["testCallback4"] = testCallback4,
+    ["testCallback5"] = testCallback5,
+    ["testCallback6"] = testCallback6
+}
+
 -- remove later
 local testContainer = function()
     return {
         padding = { 10, 10 },
         align = { AlignHorizontal.Center, AlignVertical.Center },
-        group = testGroup,
+        stackDirection = testStackDirection,
         contents = {
             [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
                 text = "Hello World!" },
@@ -47,7 +72,7 @@ local testContainer2 = function()
     return {
         align = { AlignHorizontal.Center, AlignVertical.Center },
         padding = { 10, 10 },
-        group = testGroup,
+        stackDirection = testStackDirection,
         contents = {
             [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
                 text = "Hello World 2!" },
@@ -63,7 +88,7 @@ local testContainer3 = function()
     return {
         align = { AlignHorizontal.Center, AlignVertical.Center },
         padding = { 10, 10 },
-        group = testGroup,
+        stackDirection = testStackDirection,
         contents = {
             [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
                 text = "Hello World 3!" },
@@ -74,12 +99,36 @@ local testContainer3 = function()
     }
 end
 
-local function createWindow()
-    testGroup = rng:choose({ "X", "Y" })
+-- random example for containers from a loop
+local generateContainersFromLoop = function()
+    local containers = {}
 
+    for id = 4, 6 do
+        local container = {}
+        container.align = { AlignHorizontal.Center, AlignVertical.Center }
+        container.padding = { 10, 10 }
+        container.stackDirection = testStackDirection
+        container.contents = {
+            [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+                text = "Hello World " .. id .. "!" },
+            [2] = UIComponent.Spacer { size = 16 },
+            [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey " .. id .. "!" },
+            [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallbacks["testCallback" .. id] }
+        }
+        table.insert(containers, container)
+    end
+
+    return table.unpack(containers)
+end
+
+local createWindowCounter = 0
+
+local function createWindow()
+    testStackDirection = rng:choose({ Enums.UI.StackDirection.X, Enums.UI.StackDirection.Y })
+    createWindowCounter = createWindowCounter + 1
     local testWindow = UIBuilder:buildWindow {
-        title = "UI Builder Test",
-        group = testGroup,
+        title = "UI Builder Test " .. createWindowCounter,
+        stackDirection = testStackDirection,
         canClose = true,
         containers = {
             testContainer(),
@@ -117,19 +166,22 @@ local switchPageBackContainer = function()
     -- demo for programmatically create pages while keeping everything clean and understandable
     local availablePages = UIBuilder:getAvailablePages()
     local contentTable = {}
-    table.insert(contentTable, UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = 1, b = 1, a = 1 }, text = "Available Pages" })
+    table.insert(contentTable,
+        UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = 1, b = 1, a = 1 }, text = "Available Pages" })
     table.insert(contentTable, UIComponent.Spacer { size = 4 })
 
     for _, name in ipairs(availablePages) do
-        table.insert(contentTable, UIComponent.Text { font = "Exo2Bold", size = 10, color = { r = 1, g = .4, b = .4, a = 1 }, text = name })
+        table.insert(contentTable,
+            UIComponent.Text { font = "Exo2Bold", size = 10, color = { r = 1, g = .4, b = .4, a = 1 }, text = name })
     end
 
-    table.insert(contentTable, UIComponent.Button { title = "Switch back to Page 1", width = 120,  callback = switchPage })
+    table.insert(contentTable,
+        UIComponent.Button { title = "Switch back to Page 1", width = 120, callback = switchPage })
 
     return {
         align = { AlignHorizontal.Center, AlignVertical.Center },
         padding = { 10, 10 },
-        group = "X",
+        stackDirection = Enums.UI.StackDirection.X,
         contents = contentTable
     }
 end
@@ -138,7 +190,7 @@ local createWindowContainer = function()
     return {
         align = { AlignHorizontal.Center, AlignVertical.Center },
         padding = { 10, 10 },
-        group = testGroup,
+        stackDirection = testStackDirection,
         contents = {
             [1] = UIComponent.Button { title = "Create Window", width = 120, callback = createWindow },
             [2] = UIComponent.Button { title = "Switch Page", width = 120, callback = switchPage }
@@ -162,17 +214,27 @@ function Test:onInit()
 
     local uiBuilderWindow = UIBuilder:buildWindow {
         title = "UI Builder Test Tools",
-        group = rng:choose({ "X", "Y" }),
+        stackDirection = rng:choose({ Enums.UI.StackDirection.X, Enums.UI.StackDirection.Y }),
         containers = {
             createWindowContainer()
         }
     }
 
+    -- page 2 demo - windows
     local uiBuilderWindow2 = UIBuilder:buildWindow {
-        title = "UI Builder Page 2",
-        group = rng:choose({ "X", "Y" }),
+        title = "Page 2 - Window 1",
+        stackDirection = rng:choose({ Enums.UI.StackDirection.X, Enums.UI.StackDirection.Y }),
         containers = {
-            switchPageBackContainer()
+            switchPageBackContainer(),
+        }
+    }
+
+    local uiBuilderWindow3 = UIBuilder:buildWindow {
+        title = "Page 2 - Window 2",
+        stackDirection = rng:choose({ Enums.UI.StackDirection.X, Enums.UI.StackDirection.Y }),
+        canClose = true,
+        containers = {
+            generateContainersFromLoop(),
         }
     }
 
@@ -184,6 +246,11 @@ function Test:onInit()
     UIBuilder:addWindowToPage {
         page = "TestPage2",
         window = uiBuilderWindow2
+    }
+
+    UIBuilder:addWindowToPage {
+        page = "TestPage2",
+        window = uiBuilderWindow3
     }
 
     UIBuilder:setCurrentPage("TestPage")

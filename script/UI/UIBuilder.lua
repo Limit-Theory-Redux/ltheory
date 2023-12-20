@@ -1,7 +1,5 @@
 local UIBuilder = class(function(self) end)
 
-local windowId = 0
-
 function UIBuilder:__init()
     self.pages = {}
     self.windows = {}
@@ -15,10 +13,11 @@ function UIBuilder:render()
     if self.currentPage then
         local page = self:getCurrentPage()
 
-        if page then
-            for id, window in pairs(page) do
-                if window.close then
-                    page[id] = nil
+        if page and page.content then
+            for id, window in pairs(page.content) do
+                if window.close or not window.visible then
+                    window.visible = false
+                    window.close = false
                     goto skip
                 end
 
@@ -29,6 +28,7 @@ function UIBuilder:render()
     end
 end
 
+-- sets current page
 function UIBuilder:setCurrentPage(pageName)
     if not pageName or type(pageName) ~= "string" then
         Log.Error("nil page name or not a string")
@@ -38,8 +38,14 @@ function UIBuilder:setCurrentPage(pageName)
 
     self.lastPage = self.currentPage
     self.currentPage = pageName
+
+    UIBuilder:setWindowsVisibility {
+        page = pageName,
+        visible = true
+    }
 end
 
+-- gets current page
 function UIBuilder:getCurrentPage()
     if not self.currentPage then
         Log.Error("current page is nil")
@@ -50,6 +56,7 @@ function UIBuilder:getCurrentPage()
     return self.pages[self.currentPage]
 end
 
+-- gets current page name as string
 function UIBuilder:getCurrentPageName()
     if not self.currentPage then
         Log.Warn("current page is nil")
@@ -60,6 +67,7 @@ function UIBuilder:getCurrentPageName()
     return self.currentPage
 end
 
+-- gets last page name as string
 function UIBuilder:getLastPageName()
     if not self.lastPage then
         self.lastPage = self.currentPage
@@ -70,6 +78,7 @@ function UIBuilder:getLastPageName()
     return self.lastPage
 end
 
+-- gets all available pages as strings
 function UIBuilder:getAvailablePages()
     local pageNames = {}
     for name, page in pairs(self.pages) do
@@ -78,6 +87,7 @@ function UIBuilder:getAvailablePages()
     return pageNames
 end
 
+-- build a page
 function UIBuilder:buildPage(args)
     if not args then
         Log.Error("nil ui page arguments")
@@ -86,9 +96,10 @@ function UIBuilder:buildPage(args)
         Log.Error("nil or faulty ui page name argument")
     end
 
-    self.pages[args.name] = {}
+    self.pages[args.name] = { windowCount = 0, content = {} }
 end
 
+-- add a window to a page
 function UIBuilder:addWindowToPage(args)
     if not args.page or type(args.page) ~= "string" then
         Log.Error("page identifier nil or not a string")
@@ -96,24 +107,52 @@ function UIBuilder:addWindowToPage(args)
         Log.Error("argument not a table")
     end
 
-    self.pages[args.page][args.window.id] = args.window
+    self.pages[args.page].windowCount = self.pages[args.page].windowCount + 1
+    -- assing window count as id
+    args.window.id = self.pages[args.page].windowCount
+    self.pages[args.page].content[args.window.id] = args.window
 end
 
+-- set visibility of a singular window
+function UIBuilder:setWindowVisibility(args)
+    if not args.page or type(args.page) ~= "string" then
+        Log.Error("page identifier nil or not a string")
+    elseif type(args.window) ~= "table" then
+        Log.Error("argument not a table")
+    elseif type(args.visible) ~= "boolean" then
+        Log.Error("argument not a boolean")
+    end
+
+    self.pages[args.page].content[args.window.id].visible = false
+end
+
+-- set visibility of all windows of a page
+function UIBuilder:setWindowsVisibility(args)
+    if not args.page or type(args.page) ~= "string" then
+        Log.Error("page identifier nil or not a string")
+    elseif type(args.visible) ~= "boolean" then
+        Log.Error("argument not a boolean")
+    end
+
+    for id, window in ipairs(self.pages[args.page].content) do
+        window.visible = true
+    end
+end
+
+-- build a window
 function UIBuilder:buildWindow(args)
     if not args then
         Log.Error("nil ui window arguments")
         return
     end
 
-    windowId = windowId + 1
-
     local newWindow = {
-        id = windowId,
+        id = nil, -- id assigned via page
+        visible = true,
         title = args.title,
-        group = args.group,
+        stackDirection = args.group,
         canClose = args.canClose,
-        containers = {},
-        page = {}
+        containers = {}
     }
 
     newWindow.close = false
@@ -128,18 +167,18 @@ function UIBuilder:buildWindow(args)
         Gui:textColored(newWindow.title, 1, 1, 1, 0.25)
 
         -- temp until i figure out how to do groups properly
-        if newWindow.group == "Y" or not newWindow.group then
+        if newWindow.stackDirection == Enums.UI.StackDirection.X or not newWindow.stackDirection then
             Gui:beginVerticalContainer()
-        elseif newWindow.group == "X" then
+        elseif newWindow.stackDirection == Enums.UI.StackDirection.Y then
             Gui:beginHorizontalContainer()
         end
 
         for _, container in ipairs(newWindow.containers) do
             local subGroup
-            if container.group == "X" then
+            if container.stackDirection == Enums.UI.StackDirection.X then
                 Gui:beginVerticalContainer()
                 subGroup = true
-            elseif container.group == "Y" then
+            elseif container.stackDirection == Enums.UI.StackDirection.Y then
                 Gui:beginHorizontalContainer()
                 subGroup = true
             end
@@ -156,9 +195,9 @@ function UIBuilder:buildWindow(args)
             -- render content
             for _, element in ipairs(container.contents) do
                 -- temp until i figure out how to do groups properly
-                if not element.group or element.group == "X" then
+                if not element.stackDirection or element.stackDirection == Enums.UI.StackDirection.X then
                     Gui:beginVerticalContainer()
-                elseif element.group == "Y" then
+                elseif element.stackDirection == Enums.UI.StackDirection.Y then
                     Gui:beginHorizontalContainer()
                 end
                 Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
