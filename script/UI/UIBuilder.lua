@@ -48,6 +48,24 @@ function UIBuilder:getCurrentPage()
     return self.pages[self.currentPage]
 end
 
+function UIBuilder:getCurrentPageName()
+    if not self.currentPage then
+        Log.Error("current page is nil")
+    elseif not self.pages[self.currentPage] then
+        Log.Error("current page selected does not exist")
+    end
+
+    return self.currentPage
+end
+
+function UIBuilder:getAvailablePages()
+    local pageNames = {}
+    for name, page in pairs(self.pages) do
+        table.insert(pageNames, name)
+    end
+    return pageNames
+end
+
 function UIBuilder:buildPage(args)
     if not args then
         Log.Error("nil ui page arguments")

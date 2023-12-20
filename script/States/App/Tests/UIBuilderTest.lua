@@ -94,13 +94,47 @@ local function createWindow()
     }
 end
 
+local function switchPage()
+    local currentPage = UIBuilder:getCurrentPageName()
+    local availablePages = UIBuilder:getAvailablePages()
+
+    for _, name in ipairs(availablePages) do
+        if currentPage ~= name then
+            UIBuilder:setCurrentPage(name)
+            break
+        end
+    end
+end
+
+local switchPageBackContainer = function()
+    -- demo for programmatically create pages while keeping everything clean and understandable
+    local availablePages = UIBuilder:getAvailablePages()
+    local contentTable = {}
+    table.insert(contentTable, UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = 1, b = 1, a = 1 }, text = "Available Pages" })
+    table.insert(contentTable, UIComponent.Spacer { size = 4 })
+
+    for _, name in ipairs(availablePages) do
+        table.insert(contentTable, UIComponent.Text { font = "Exo2Bold", size = 10, color = { r = 1, g = .4, b = .4, a = 1 }, text = name })
+    end
+
+    table.insert(contentTable, UIComponent.Button { title = "Switch back to Page 1", callback = switchPage })
+
+    return {
+        align = { 0.5, 0.5 },
+        padding = { 10, 10 },
+        group = "X",
+        contents = contentTable
+    }
+end
+
 local createWindowContainer = function()
     return {
         align = { 0.5, 0.5 },
         padding = { 10, 10 },
         group = testGroup,
         contents = {
-            [1] = UIComponent.Button { title = "Create Window", callback = createWindow }
+            [1] = UIComponent.Button { title = "Create Window", callback = createWindow },
+            [2] = UIComponent.Button { title = "Switch Page", callback = switchPage }
         }
     }
 end
@@ -114,6 +148,11 @@ function Test:onInit()
         name = "TestPage"
     }
 
+    -- add another page to demo page switching
+    UIBuilder:buildPage {
+        name = "TestPage2"
+    }
+
     local uiBuilderWindow = UIBuilder:buildWindow {
         title = "UI Builder Test Tools",
         group = rng:choose({ "X", "Y" }),
@@ -122,9 +161,22 @@ function Test:onInit()
         }
     }
 
+    local uiBuilderWindow2 = UIBuilder:buildWindow {
+        title = "UI Builder Page 2",
+        group = rng:choose({ "X", "Y" }),
+        containers = {
+            switchPageBackContainer()
+        }
+    }
+
     UIBuilder:addWindowToPage {
         page = "TestPage",
         window = uiBuilderWindow
+    }
+
+    UIBuilder:addWindowToPage {
+        page = "TestPage2",
+        window = uiBuilderWindow2
     }
 
     UIBuilder:setCurrentPage("TestPage")
