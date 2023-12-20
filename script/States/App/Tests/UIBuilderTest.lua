@@ -30,14 +30,14 @@ end
 local testContainer = function()
     return {
         padding = { 10, 10 },
-        align = { 0.5, 0.5 },
+        align = { AlignHorizontal.Center, AlignVertical.Center },
         group = testGroup,
         contents = {
             [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
                 text = "Hello World!" },
             [2] = UIComponent.Spacer { size = 16 },
             [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey!" },
-            [4] = UIComponent.Button { title = "Button", callback = testCallback }
+            [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback }
         }
     }
 end
@@ -45,7 +45,7 @@ end
 -- remove later
 local testContainer2 = function()
     return {
-        align = { 0.5, 0.5 },
+        align = { AlignHorizontal.Center, AlignVertical.Center },
         padding = { 10, 10 },
         group = testGroup,
         contents = {
@@ -53,7 +53,7 @@ local testContainer2 = function()
                 text = "Hello World 2!" },
             [2] = UIComponent.Spacer { size = 16 },
             [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 2!" },
-            [4] = UIComponent.Button { title = "Button", callback = testCallback2 }
+            [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback2 }
         }
     }
 end
@@ -61,7 +61,7 @@ end
 -- remove later
 local testContainer3 = function()
     return {
-        align = { 0.5, 0.5 },
+        align = { AlignHorizontal.Center, AlignVertical.Center },
         padding = { 10, 10 },
         group = testGroup,
         contents = {
@@ -69,7 +69,7 @@ local testContainer3 = function()
                 text = "Hello World 3!" },
             [2] = UIComponent.Spacer { size = 16 },
             [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 3!" },
-            [4] = UIComponent.Button { title = "Button", callback = testCallback3 }
+            [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback3 }
         }
     }
 end
@@ -96,13 +96,20 @@ end
 
 local function switchPage()
     local currentPage = UIBuilder:getCurrentPageName()
-    local availablePages = UIBuilder:getAvailablePages()
+    local lastPage = UIBuilder:getLastPageName()
 
-    for _, name in ipairs(availablePages) do
-        if currentPage ~= name then
-            UIBuilder:setCurrentPage(name)
-            break
+    -- demo for switching pages & using last page
+    if lastPage == currentPage then
+        local availablePages = UIBuilder:getAvailablePages()
+
+        for _, name in ipairs(availablePages) do
+            if currentPage ~= name then
+                UIBuilder:setCurrentPage(name)
+                break
+            end
         end
+    else
+        UIBuilder:setCurrentPage(lastPage)
     end
 end
 
@@ -117,10 +124,10 @@ local switchPageBackContainer = function()
         table.insert(contentTable, UIComponent.Text { font = "Exo2Bold", size = 10, color = { r = 1, g = .4, b = .4, a = 1 }, text = name })
     end
 
-    table.insert(contentTable, UIComponent.Button { title = "Switch back to Page 1", callback = switchPage })
+    table.insert(contentTable, UIComponent.Button { title = "Switch back to Page 1", width = 120,  callback = switchPage })
 
     return {
-        align = { 0.5, 0.5 },
+        align = { AlignHorizontal.Center, AlignVertical.Center },
         padding = { 10, 10 },
         group = "X",
         contents = contentTable
@@ -129,12 +136,12 @@ end
 
 local createWindowContainer = function()
     return {
-        align = { 0.5, 0.5 },
+        align = { AlignHorizontal.Center, AlignVertical.Center },
         padding = { 10, 10 },
         group = testGroup,
         contents = {
-            [1] = UIComponent.Button { title = "Create Window", callback = createWindow },
-            [2] = UIComponent.Button { title = "Switch Page", callback = switchPage }
+            [1] = UIComponent.Button { title = "Create Window", width = 120, callback = createWindow },
+            [2] = UIComponent.Button { title = "Switch Page", width = 120, callback = switchPage }
         }
     }
 end

@@ -11,7 +11,7 @@ local meta = {
 ---@field render function renders the button
 
 ---returns a button object
----@param args {title: string, callback: function }
+---@param args {title: string, width: number, callback: function }
 ---@return Button|nil
 function Button:new(args)
     if not args then
@@ -20,10 +20,12 @@ function Button:new(args)
 
     local newButton = {}
     newButton.title = args.title
+    newButton.width = args.width
     newButton.callback = args.callback
 
     newButton.render = function()
         if Gui:button(newButton.title) then newButton.callback() end
+        if newButton.width then Gui:setFixedWidth(newButton.width) end
     end
 
     return newButton

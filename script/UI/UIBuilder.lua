@@ -6,6 +6,7 @@ function UIBuilder:__init()
     self.pages = {}
     self.windows = {}
     self.currentPage = nil
+    self.lastPage = nil
 
     return self
 end
@@ -35,6 +36,7 @@ function UIBuilder:setCurrentPage(pageName)
         Log.Error("page does not exist")
     end
 
+    self.lastPage = self.currentPage
     self.currentPage = pageName
 end
 
@@ -50,12 +52,22 @@ end
 
 function UIBuilder:getCurrentPageName()
     if not self.currentPage then
-        Log.Error("current page is nil")
+        Log.Warn("current page is nil")
     elseif not self.pages[self.currentPage] then
         Log.Error("current page selected does not exist")
     end
 
     return self.currentPage
+end
+
+function UIBuilder:getLastPageName()
+    if not self.lastPage then
+        self.lastPage = self.currentPage
+    elseif not self.pages[self.lastPage] then
+        Log.Error("last page selected does not exist")
+    end
+
+    return self.lastPage
 end
 
 function UIBuilder:getAvailablePages()
@@ -109,6 +121,8 @@ function UIBuilder:buildWindow(args)
     newWindow.containers = args.containers
 
     newWindow.render = function()
+        Gui:beginStackContainer()                                      -- begin game window
+        Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center) --! hardcoded to center right now, if we opt for this solution i will add configuration options
         Gui:beginWindow(newWindow.title, InputInstance)
         Gui:pushFont(Cache.Font("Exo2Bold", 12))
         Gui:textColored(newWindow.title, 1, 1, 1, 0.25)
@@ -147,7 +161,7 @@ function UIBuilder:buildWindow(args)
                 elseif element.group == "Y" then
                     Gui:beginHorizontalContainer()
                 end
-                Gui:setAlignment(0.5, 0.5)
+                Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 
                 element.render()
                 Gui:endContainer()
@@ -162,8 +176,11 @@ function UIBuilder:buildWindow(args)
 
         if args.canClose then
             if Gui:button("Close") then newWindow.close = true end
+            Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+            Gui:setFixedWidth(120)
         end
         Gui:endWindow()
+        Gui:endContainer() -- end game window
     end
 
     return newWindow
