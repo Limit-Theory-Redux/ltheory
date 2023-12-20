@@ -30,7 +30,7 @@ local function testCallback3()
 end
 
 -- remove later
-local testContainer = function ()
+local testContainer = function()
     return {
         padding = { 10, 10 },
         align = { 0.5, 0.5 },
@@ -46,7 +46,7 @@ local testContainer = function ()
 end
 
 -- remove later
-local testContainer2 = function ()
+local testContainer2 = function()
     return {
         align = { 0.5, 0.5 },
         padding = { 10, 10 },
@@ -62,7 +62,7 @@ local testContainer2 = function ()
 end
 
 -- remove later
-local testContainer3 = function ()
+local testContainer3 = function()
     return {
         align = { 0.5, 0.5 },
         padding = { 10, 10 },
@@ -91,10 +91,13 @@ local function createWindow()
         }
     }
 
-    Test.page[testWindow.guid] = testWindow
+    UIBuilder:addWindowToPage {
+        page = "TestPage",
+        window = testWindow
+    }
 end
 
-local createWindowContainer = function ()
+local createWindowContainer = function()
     return {
         align = { 0.5, 0.5 },
         padding = { 10, 10 },
@@ -108,7 +111,11 @@ end
 function Test:onInit()
     self.renderer = Renderer()
 
-    self.page = {}
+    --Init UIBuilder
+
+    UIBuilder:buildPage {
+        name = "TestPage"
+    }
 
     local uiBuilderWindow = UIBuilder:buildWindow {
         title = "UI Builder Test Tools",
@@ -118,7 +125,12 @@ function Test:onInit()
         }
     }
 
-    Test.page[uiBuilderWindow.guid] = uiBuilderWindow
+    UIBuilder:addWindowToPage {
+        page = "TestPage",
+        window = uiBuilderWindow
+    }
+
+    UIBuilder:setCurrentPage("TestPage")
 end
 
 function Test:onInput()
@@ -130,15 +142,7 @@ function Test:onUpdate(dt)
     end
 
     Gui:beginGui(self.resX, self.resY, InputInstance)
-    for guid, window in pairs(self.page) do
-        if window.close then
-            self.page[guid] = nil
-            goto skip
-        end
-
-        window.render()
-        ::skip::
-    end
+    UIBuilder:update()
     Gui:endGui(InputInstance)
 end
 

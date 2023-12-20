@@ -1,17 +1,84 @@
 local UIBuilder = class(function(self) end)
 
-function UIBuilder:Init()
+local windowId = 0
+
+function UIBuilder:__init()
+    self.pages = {}
     self.windows = {}
+    self.currentPage = nil
+
+    return self
+end
+
+function UIBuilder:update()
+    if self.currentPage then
+        local page = self:getCurrentPage()
+
+        if page then
+            for id, window in pairs(page) do
+                if window.close then
+                    page[id] = nil
+                    goto skip
+                end
+
+                window.render()
+                ::skip::
+            end
+        end
+    end
+end
+
+function UIBuilder:setCurrentPage(pageName)
+    if not pageName or type(pageName) ~= "string" then
+        Log.Error("nil page name or not a string")
+    elseif not self.pages[pageName] then
+        Log.Error("page does not exist")
+    end
+
+    self.currentPage = pageName
+end
+
+function UIBuilder:getCurrentPage()
+    if not self.currentPage then
+        Log.Error("current page is nil")
+    elseif not self.pages[self.currentPage] then
+        Log.Error("current page selected does not exist")
+    end
+
+    return self.pages[self.currentPage]
+end
+
+function UIBuilder:buildPage(args)
+    if not args then
+        Log.Error("nil ui page arguments")
+        return
+    elseif not args.name or type(args.name) ~= "string" then
+        Log.Error("nil or faulty ui page name argument")
+    end
+
+    self.pages[args.name] = {}
+end
+
+function UIBuilder:addWindowToPage(args)
+    if not args.page or type(args.page) ~= "string" then
+        Log.Error("page identifier nil or not a string")
+    elseif type(args.window) ~= "table" then
+        Log.Error("argument not a table")
+    end
+
+    self.pages[args.page][args.window.id] = args.window
 end
 
 function UIBuilder:buildWindow(args)
     if not args then
-        error("nil ui window arguments")
+        Log.Error("nil ui window arguments")
         return
     end
 
+    windowId = windowId + 1
+
     local newWindow = {
-        guid = guidToKey(GUID.Create()),
+        id = windowId,
         title = args.title,
         group = args.group,
         canClose = args.canClose,
@@ -84,4 +151,4 @@ function UIBuilder:buildWindow(args)
     return newWindow
 end
 
-return UIBuilder
+return UIBuilder:__init()
