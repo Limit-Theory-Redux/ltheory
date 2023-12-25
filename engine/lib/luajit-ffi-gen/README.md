@@ -302,10 +302,11 @@ Under the hood proc macro on the `enum` block instead of generating ***.lua** sc
 - **with_impl** \[bool, default = false]: specify if enum has connected implementation block.
 
 ### bind
-- **name** [string] - set user defined name of the function
+- **name** [string] - set user defined name of the function.
 - **role** [enum: constructor, to_string] - set function role.
-- **constructor** - function won't appear in the metatype section
-- **to_string** - will generate a binding in the metatype section
+- **constructor** - function won't appear in the metatype section.
+- **to_string** - will generate a binding in the metatype section.
+- **out_param** - return value via an out parameter at the end of the function signature.
 
 ## Macro expansion
 

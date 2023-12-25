@@ -6,7 +6,13 @@ use crate::utils::*;
 
 #[derive(Default, Clone)]
 pub struct Data {
-    pub val: bool,
+    pub val: u32,
+}
+
+impl Data {
+    fn new(val: u32) -> Data {
+        Data { val }
+    }
 }
 
 #[derive(Default)]
@@ -52,15 +58,31 @@ impl MyStruct {
 
     pub fn set_data(&mut self, val: &Data) {
         self.val_data = val.clone();
-        self.val_data.val = true;
+    }
+
+    pub fn take_data(&mut self, val: Data) {
+        self.val_data = val;
+    }
+
+    pub fn take_boxed_data(&mut self, val: Box<Data>) {
+        self.val_data = *val;
     }
 
     pub fn get_data(&self) -> Data {
         self.val_data.clone()
     }
 
+    #[bind(out_param = true)]
+    pub fn get_data_via_out_param(&self) -> Data {
+        self.val_data.clone()
+    }
+
     pub fn get_data_ref(&self) -> &Data {
         &self.val_data
+    }
+
+    pub fn get_boxed_data(&self) -> Box<Data> {
+        Box::new(self.val_data.clone())
     }
 
     pub fn get_data_mut(&mut self) -> &mut Data {
@@ -125,13 +147,21 @@ fn test_impl() {
     MyStruct_FUNC3();
 
     MyStruct_SetU32(&mut ms2, 33);
-    assert_eq!(MyStruct_GetU32(&mut ms2), 33);
+    assert_eq!(MyStruct_GetU32(&ms2), 33);
 
     MyStruct_SetF32(&mut ms2, 33.0);
-    assert_eq!(MyStruct_GetF32(&mut ms2), 33.0);
+    assert_eq!(MyStruct_GetF32(&ms2), 33.0);
 
-    MyStruct_SetData(&mut ms2, &Data::default());
-    assert!(MyStruct_GetData(&mut ms2).val);
+    MyStruct_SetData(&mut ms2, &Data::new(2));
+    assert_eq!(MyStruct_GetData(&ms2).val, 2);
+
+    MyStruct_TakeData(&mut ms2, Box::new(Data::new(4)));
+    let mut returned_data = Data::new(0);
+    MyStruct_GetDataViaOutParam(&ms2, &mut returned_data);
+    assert_eq!(returned_data.val, 4);
+
+    MyStruct_TakeBoxedData(&mut ms2, Box::new(Data::new(6)));
+    assert_eq!(MyStruct_GetBoxedData(&ms2).val, 6);
 
     let val = MyStruct_RetResVal();
     assert_eq!(val, 42)
