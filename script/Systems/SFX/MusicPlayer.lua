@@ -2,6 +2,7 @@ local MusicPlayer = class(function(self) end)
 
 local MusicObject = require("Types.MusicObject")
 local SFXObject = require("Types.SFXObject")
+local rng = RNG.FromTime()
 
 function MusicPlayer:Init()
     self.trackList = {}
@@ -13,21 +14,26 @@ function MusicPlayer:Init()
     else
         self.volume = 0
     end
-    self:LoadMusic()
 
-    MusicPlayer:LoadEffects()
+    self.lastVolume = self.volume
+
+    self:LoadMusic()
+    self:LoadEffects()
 end
 
 -- add block queueing
 
 function MusicPlayer:LoadEffects()
     -- *** TEMP: Audio FX test START ***
+
+    --[[ -- Pulse weapon firing sound effect temporarily commented out until setVolume() is working
     Config.audio.pulseFire = SFXObject:Create {
         name = Config.audio.pulseFireName,
         path = Config.paths.soundEffects .. Config.audio.pulseFireName,
         volume = 0.0,
         isLooping = false
     }
+    ]]
 
     Config.audio.fxSensors = SFXObject:Create {
         name = Config.audio.fxSensorsName,
@@ -39,21 +45,25 @@ function MusicPlayer:LoadEffects()
     -- *** TEMP: Audio FX test END ***
 end
 
-function MusicPlayer:SetVolume(volume)
+function MusicPlayer:SetVolume(volume, fadeMS)
     if volume == self.volume then
         return
     end
 
-    self.volume = volume
+    self.lastVolume = GameState.audio.musicVolume
+    GameState.audio.musicVolume = volume
 
     for _, soundObject in ipairs(self.trackList) do
-        Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
-        soundObject.sound:setVolume(volume)
+        Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, volume)
+        soundObject:SetVolume(volume, fadeMS)
     end
 end
 
 function MusicPlayer:OnUpdate(dt)
-    local rng = RNG.FromTime()
+    if GameState.audio.musicVolume ~= self.volume then
+        self.volume = GameState.audio.musicVolume
+    end
+
     if self.currentlyPlaying then
         if not self.currentlyPlaying:IsPlaying() then
             self.currentlyPlaying = nil
@@ -102,7 +112,7 @@ function MusicPlayer:QueueTrack(query, clearQueue)
 
     table.insert(self.queue, track)
 
-    --  Log.Debug("Queuing Track: " .. track.name)
+    -- Log.Debug("Queuing Track: " .. track.name)
     return track
 end
 
@@ -176,8 +186,11 @@ function MusicPlayer:LoadMusic()
         local fileUnsupported = false
 
         if #Config.audio.supportedFormats > 1 then
-            for supportedFormat in ipairs(Config.audio.supportedFormats) do
-                if not string.find(path, supportedFormat) then
+            for _, supportedFormat in ipairs(Config.audio.supportedFormats) do
+                if string.find(path, supportedFormat) then
+                    fileUnsupported = false
+                    break
+                else
                     fileUnsupported = true
                 end
             end
@@ -186,7 +199,7 @@ function MusicPlayer:LoadMusic()
         end
 
         if not fileUnsupported then
-            local newSoundObject = MusicObject:Create {
+            local newMusicObject = MusicObject:Create {
                 name = fname,
                 path = path,
                 volume = self.volume,
@@ -194,8 +207,15 @@ function MusicPlayer:LoadMusic()
             }
 
             --Log.Debug("VOLUME: " .. self.volume)
-            if newSoundObject then
-                table.insert(self.trackList, newSoundObject)
+            if newMusicObject then
+                table.insert(self.trackList, newMusicObject)
+
+                -- Generate Enums
+                if not Enums.SoundtrackNames then Enums.SoundtrackNames = {} end
+                table.insert(Enums.SoundtrackNames, newMusicObject.name)
+
+                if not Enums.SoundtrackCount then Enums.SoundtrackCount = 0 end
+                Enums.SoundtrackCount = Enums.SoundtrackCount + 1
             end
         end
     end

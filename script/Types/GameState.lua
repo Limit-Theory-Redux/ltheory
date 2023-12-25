@@ -25,6 +25,7 @@ GameState.render = {
     resX            = Config.render.defaultResX,
     resY            = Config.render.defaultResY,
     presentMode     = Config.render.presentMode,
+    fov             = Config.render.fov,
     zNear           = Config.render.zNear,
     zFar            = Config.render.zFar,
     thrusterLights  = Config.render.thrusterLights,
@@ -39,6 +40,7 @@ GameState.audio = {
     soundEnabled = Config.audio.soundEnabled,
     fxVolume     = Config.audio.fxVolume,
     musicVolume  = Config.audio.musicVolume,
+    menuTheme    = Config.audio.mainMenu
 }
 
 GameState.ui = {
@@ -70,6 +72,8 @@ GameState.player = {
     humanPlayer          = nil,
     humanPlayerName      = "[Human Player Name]",
     humanPlayerShipName  = "[Human Player Ship Name]",
+
+    playerFactionName    = "[Human Player Faction]",
 
     currentControl       = Config.ui.defaultControl,
     playerMoving         = false,

@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
 use glam::Vec2;
 
-use crate::{input::*, system::TimeStamp};
+use crate::input::*;
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

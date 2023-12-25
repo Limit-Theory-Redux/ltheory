@@ -23,7 +23,7 @@ function Loader.defineType()
             bool   Sound_IsPlaying     (Sound const*);
             bool   Sound_IsPaused      (Sound const*);
             bool   Sound_IsStopped     (Sound const*);
-            void   Sound_SetVolume     (Sound*, double volume);
+            void   Sound_SetVolume     (Sound*, double volume, uint64 fadeMillis);
             void   Sound_Pause         (Sound*, uint64 fadeMillis);
             void   Sound_Resume        (Sound*, uint64 fadeMillis);
             void   Sound_Stop          (Sound*, uint64 fadeMillis);

@@ -44,7 +44,7 @@ function LTheory:generate()
     ship:setPos(Config.gen.origin)
     ship:setFriction(0)
     ship:setSleepThreshold(0, 0)
-    ship:setOwner(self.player)
+    ship:setOwner(self.player, true)
     self.player:setControlling(ship)
     GameState.player.currentShip = ship
 
@@ -59,7 +59,7 @@ function LTheory:generate()
         local escort = self.system:spawnShip(shipSize, nil)
         local offset = rng:getSphere():scale(300)
         escort:setPos(ship:getPos() + offset)
-        escort:setOwner(self.player)
+        escort:setOwner(self.player, true)
         if rng:getInt(0, 100) < 20 then
             escort.usesBoost = true
         end
@@ -85,7 +85,7 @@ function LTheory:onInit()
     GameState.ui.showTrackers = true
     GameState.player.humanPlayer = self.player
 
-    self.gameView = Systems.Overlay.GameView(self.player)
+    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
@@ -111,13 +111,13 @@ function LTheory:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
 
-    HmGui.Begin(self.resX, self.resY, InputInstance) -- required for HmGui.Draw() to work without crashing
-    HmGui.End(InputInstance)
+    Gui:beginGui(self.resX, self.resY, InputInstance) -- required for Gui:draw() to work without crashing
+    Gui:endGui(InputInstance)
 end
 
 function LTheory:onDraw()
     self.canvas:draw(self.resX, self.resY)
-    HmGui.Draw() -- post-Rust, required for game universe to be displayed
+    Gui:draw() -- post-Rust, required for game universe to be displayed
 end
 
 return LTheory

@@ -4,7 +4,7 @@ local Credit = require('Systems.Economy.Item').Credit
 --------------------------------------------------------------------------------
 
 -- NOTE: All the evaluations below are made from the perspective of what is most
---       advantageous to _this trader_ (self).
+-- advantageous to _this trader_ (self).
 
 local Trader = class(function(self, parent)
     self.parent = parent
@@ -55,7 +55,7 @@ end
 function Trader:addAskOffer(bidder)
     local item = bidder.job.item
     local count = bidder:mgrInventoryGetFreeMax(item:getMass()) / item:getMass()
-    --  local count = bidder.job.jcount
+    -- local count = bidder.job.jcount
     local data = self:getData(item)
     local askOffersAdded = 0
 
@@ -95,7 +95,7 @@ end
 function Trader:addBidOffer(bidder)
     local item = bidder.job.item
     local count = bidder:mgrInventoryGetFreeMax(item:getMass()) / item:getMass()
-    --  local count = bidder.job.jcount
+    -- local count = bidder.job.jcount
     local data = self:getData(item)
     local bidOffersAdded = 0
 
@@ -126,7 +126,7 @@ end
 
 function Trader:computeTrade(item, maxCount, dst, asset)
     -- Return the maximum profitable volume and corresponding total profit from
-    --     buying item here and selling at destination
+    -- buying item here and selling at destination
     local src = self
     local srcData = src:getData(item)
     local dstData = dst:getData(item)
@@ -152,9 +152,9 @@ function Trader:computeTrade(item, maxCount, dst, asset)
     --local aname = "-"
     --if asset then aname = asset:getName() end
     --Log.Debug("computeTrade %s: item %s from station %s (asks %d) -> station %s (bids %d); " ..
-    --       "maxCount %d, assetBids %d, otherBids %d, bidsFree %d",
-    --       aname, item:getName(), src.parent:getName(), #asks, dst.parent:getName(), #bids,
-    --       maxCount, assetBids, otherBids, bidsFree)
+    -- "maxCount %d, assetBids %d, otherBids %d, bidsFree %d",
+    -- aname, item:getName(), src.parent:getName(), #asks, dst.parent:getName(), #bids,
+    -- maxCount, assetBids, otherBids, bidsFree)
 
     local count = 0
     local profit = 0
@@ -272,8 +272,8 @@ function Trader:getBuyFromPrice(item, count)
     end
 
     --Log.Debug("TRADER %s - BuyFromPrice (%s): #data.asks = %d, data.escrow = %d, data.askOffers = %d, " ..
-    --       "count = %d, maxCount = %d, price = %d",
-    --       self.parent:getName(), item:getName(), #data.asks, data.escrow, data.askOffers, count, maxCount, price)
+    -- "count = %d, maxCount = %d, price = %d",
+    -- self.parent:getName(), item:getName(), #data.asks, data.escrow, data.askOffers, count, maxCount, price)
 
     return price
 end
@@ -298,8 +298,8 @@ function Trader:getBuyFromPriceForAsset(item, count, asset)
     end
 
     --Log.Debug("TRADER %s - BuyFromPriceForAsset (%s): #data.asks = %d, data.escrow = %d, data.askOffers = %d, " ..
-    --       "count = %d, maxCount = %d, price = %d",
-    --       self.parent:getName(), item:getName(), #data.asks, data.escrow, data.askOffers, count, maxCount, price)
+    -- "count = %d, maxCount = %d, price = %d",
+    -- self.parent:getName(), item:getName(), #data.asks, data.escrow, data.askOffers, count, maxCount, price)
 
     return price
 end
@@ -408,13 +408,13 @@ function Trader:sell(asset, item)
             -- Make sure there's room for at least one unit of this item at its given mass
             if asset:mgrInventoryGetFreeMax(item:getMass()) >= item:getMass() then
                 -- Note that we don't have to remove the item from the trader's owner's inventory; that was
-                --     done when the ask was made and the escrow count was incremented
+                -- done when the ask was made and the escrow count was incremented
                 asset:mgrInventoryAddItem(item, 1)
                 --Log.Debug("SELL: Trader parent %s sells 1 unit of item %s to Asset %s (Owner %s) at price %d",
-                --    self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
+                -- self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
 
                 --Log.Debug("Trader %s now has %d units of item %s",
-                --    self.parent:getName(), self.parent:mgrInventoryGetItemCount(item), item:getName())
+                -- self.parent:getName(), self.parent:mgrInventoryGetItemCount(item), item:getName())
 
                 player:removeCredits(price)
                 self.parent:addCredits(price)
@@ -457,9 +457,9 @@ function Trader:update()
                 for i, v in ipairs(data.asksQueue) do insert(data.asks, v) end
                 table.clear(data.asksQueue)
                 table.sort(data.asks, sortAsks)
-                --for i = 1, #data.asks do
-                --  Log.Debug("ask[%d] = %d", i, data.asks[i])
-                --end
+                -- for i = 1, #data.asks do
+                --     Log.Debug("ask[%d] = %d", i, data.asks[i])
+                -- end
             end
 
             -- Move bids from bids queue to bids table
@@ -468,7 +468,7 @@ function Trader:update()
                 table.clear(data.bidsQueue)
                 table.sort(data.bids, sortBids)
                 --for i = 1, #data.bids do
-                --  Log.Debug("bid[%d] = %d", i, data.bids[i])
+                --    Log.Debug("bid[%d] = %d", i, data.bids[i])
                 --end
             end
 

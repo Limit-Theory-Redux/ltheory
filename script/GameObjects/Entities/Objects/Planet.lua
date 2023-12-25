@@ -16,8 +16,8 @@ local Planet = subclass(Entity, function(self, seed)
     local planetSizeType = Config.gen.sizePlanet
 
     -- TODO : Had to lower quality to 2 because RigidBody is automatically
-    --        building BSP, and sphere is pathological case for BSPs. Need
-    --        generalized CollisionShape.
+    -- building BSP, and sphere is pathological case for BSPs. Need
+    -- generalized CollisionShape.
     local mesh = Gen.Primitive.IcoSphere(5):managed()
     self:addRigidBody(true, mesh)
 
@@ -25,7 +25,7 @@ local Planet = subclass(Entity, function(self, seed)
     self:setMass(Config.gen.massPlanetTrue) -- TODO: change from Earth's actual mass value
 
     -- TODO: Replace with 0 - N colonies, each of which has its own distinct
-    --       market/production/research capabilities
+    -- market/production/research capabilities
     self:addActions()
     self:addChildren()
     self:addDockable()     -- TODO: rethink how "docking with planets" should work
@@ -99,7 +99,7 @@ local Planet = subclass(Entity, function(self, seed)
 
     -- Add all sockets to parent
     -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
-    --        better for ShipType etc.
+    -- better for ShipType etc.
     self:addSockets()
 
     for type, elems in pairs(self.positions) do

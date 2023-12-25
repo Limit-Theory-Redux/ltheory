@@ -73,7 +73,7 @@ function LTheory:generate()
         ship:setPos(Config.gen.origin)
         ship:setFriction(0)
         ship:setSleepThreshold(0, 0)
-        ship:setOwner(self.player)
+        ship:setOwner(self.player, true)
         self.system:addChild(ship)
         self.player:setControlling(ship)
 
@@ -135,7 +135,7 @@ function LTheory:onInit()
     self:generate()
 
     DebugControl.ltheory = self
-    self.gameView = GameView(self.player)
+    self.gameView = GameView(self.player, self.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
@@ -237,13 +237,13 @@ function LTheory:onUpdate(dt)
         end
     end
 
-    HmGui.Begin(self.resX, self.resY, InputInstance)
-    HmGui.End(InputInstance)
+    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:endGui(InputInstance)
 end
 
 function LTheory:onDraw()
     self.canvas:draw(self.resX, self.resY)
-    HmGui.Draw()
+    Gui:draw()
 end
 
 return LTheory

@@ -24,9 +24,14 @@ local rng = RNG.FromTime()
 --** MAIN CODE **--
 function LTheoryRedux:onInit()
     --* Value initializations *--
-    self.logo = Tex2D.Load("./res/images/LTR_logo2.png") -- load the LTR logo
+    self.logo     = Tex2D.Load("./res/images/LTR_logo2.png") -- load the full LTR logo
+    self.logoname = Tex2D.Load("./res/images/LTR-logo-name.png")
+    self.logoicon = Tex2D.Load("./res/images/LTR-logo-icon.png")
 
     DebugControl.ltheory = self
+
+    -- Load Soundtracks before config
+    MusicPlayer:Init()
 
     -- Read user-defined values and update game variables
     InitFiles:readUserInits()
@@ -35,7 +40,6 @@ function LTheoryRedux:onInit()
     Universe:Init()
 
     -- Open Main Menu
-    MusicPlayer:Init()
     MainMenu:Open()
 
     --* Game initializations *--
@@ -50,30 +54,38 @@ function LTheoryRedux:onInit()
     self.player = Entities.Player(GameState.player.humanPlayerName)
     GameState.player.humanPlayer = self.player
 
+    -- temporary
+    -- TODO: allow player to join other factions if they want
+    self.player:setFaction(Entities.Faction({
+        name = GameState.player.playerFactionName,
+        owner = self.player,
+        type = Enums.FactionType.Player
+    }))
+
     self:generate()
 end
 
 function LTheoryRedux:setCursor(cursorStyle, cursorX, cursorY)
     -- Set the game control cursor
     -- TODO: WindowInstance:cursor().setIcon(cursorStyle)
-    WindowInstance:setCursorPosition(Vec2f(cursorX, cursorY))
+
+    if cursorX and cursorY then
+        WindowInstance:setCursorPosition(Vec2f(cursorX, cursorY))
+    end
 end
 
 function LTheoryRedux:toggleSound()
-    GameState.audio.soundEnabled = not GameState.audio.soundEnabled
-
     if GameState.audio.soundEnabled then
-        MusicPlayer:SetVolume(GameState.audio.musicVolume)
+        self:SoundOff()
     else
-        --Log.Debug("LTheoryRedux:toggleSound: volume set to 0")
-        MusicPlayer:SetVolume(0)
+        self:SoundOn()
     end
 end
 
 function LTheoryRedux:SoundOn()
     GameState.audio.soundEnabled = true
     --Log.Debug("LTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
-    MusicPlayer:SetVolume(GameState.audio.musicVolume)
+    MusicPlayer:SetVolume(MusicPlayer.lastVolume)
 end
 
 function LTheoryRedux:SoundOff()
@@ -105,9 +117,43 @@ function LTheoryRedux:onInput()
                 self.gameView:setCameraMode(Enums.CameraMode.Chase)
             end
         elseif InputInstance:isPressed(Bindings.CameraOrbit) then
-            --if GameState.player.currentCamera ~= Enums.CameraMode.Orbit then
-            --  self.gameView:setCameraMode(Enums.CameraMode.Orbit)
-            --end
+            -- if GameState.player.currentCamera ~= Enums.CameraMode.Orbit then
+            --     self.gameView:setCameraMode(Enums.CameraMode.Orbit)
+            -- end
+        end
+    elseif GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
+        --! i see all of this as a temporary feature addition - this should all be handled by a proper system later. ~ Jack
+        if InputInstance:isPressed(Button.KeyboardB) then
+            if GameState.player.currentShip then
+                GameState.player.currentShip:delete()
+            end
+
+            local shipObject = {
+                owner = GameState.player.humanPlayer,
+                shipName = GameState.player.humanPlayerShipName,
+                friction = 0,
+                sleepThreshold = {
+                    [1] = 0,
+                    [2] = 0
+                }
+            }
+
+            GameState.player.currentShip = Universe:CreateShip(GameState.world.currentSystem, nil, shipObject)
+        end
+
+        if InputInstance:isPressed(Button.KeyboardF) then
+            -- Insert the game view into the application canvas to make it visible
+            self.gameView = Systems.Overlay.GameView(self.player, self.audio)
+            GameState.render.gameView = self.gameView
+
+            self.canvas = UI.Canvas()
+            self.canvas
+                :add(self.gameView
+                    :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
+                )
+            self.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
+
+            GameState:SetState(Enums.GameStates.InGame)
         end
     end
 end
@@ -135,7 +181,7 @@ function LTheoryRedux:onDraw()
 
     self.canvas:draw(self.resX, self.resY)
 
-    HmGui.Draw() -- draw controls
+    Gui:draw() -- draw controls
 end
 
 function LTheoryRedux:onUpdate(dt)
@@ -233,7 +279,7 @@ function LTheoryRedux:onUpdate(dt)
     end
 
     -- Decide which game controls screens (if any) to display on top of the canvas
-    HmGui.Begin(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY, InputInstance)
 
     if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
         LTheoryRedux:showGameLogo()
@@ -256,7 +302,12 @@ function LTheoryRedux:onUpdate(dt)
             MainMenu:ShowSettingsScreen()
         end
     end
-    HmGui.End(InputInstance)
+
+    --! temp hacking this in here
+    if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
+        LTheoryRedux:showShipCreationHint()
+    end
+    Gui:endGui(InputInstance)
 
     -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
     if InputInstance:isPressed(Bindings.NewBackground) and MainMenu.currentMode == Enums.MenuMode.MainMenu then
@@ -265,12 +316,12 @@ function LTheoryRedux:onUpdate(dt)
 
     -- If player pressed the "toggle audio" key (currently F8), turn audio off if it's on or on if it's off
     -- NOTE: This is now disabled as we can use Settings to control Audio on/off, but I'm
-    --       preserving it temporarily in case we want it back for some reason
+    -- preserving it temporarily in case we want it back for some reason
     -- NOTE 2: This is currently the only place that calls LTheoryRedux:toggleSound(), so it might also be
-    --         a candidate for deletion if we do decide to yank the key-based audio toggle
-    --  if InputInstance:isPressed(Bindings.ToggleSound) then
-    --    LTheoryRedux:toggleSound()
-    --  end
+    -- a candidate for deletion if we do decide to yank the key-based audio toggle
+    -- if InputInstance:isPressed(Bindings.ToggleSound) then
+    -- LTheoryRedux:toggleSound()
+    -- end
 end
 
 function LTheoryRedux:generateNewSeed()
@@ -319,7 +370,7 @@ function LTheoryRedux:createStarSystem()
 
         -- Background Mode
         -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
-        --   a space station, and an invisible rotating ship
+        -- a space station, and an invisible rotating ship
         self.backgroundSystem:spawnBackground() -- spawn a ship that can't be seen
 
         -- Add a planet
@@ -341,27 +392,34 @@ function LTheoryRedux:createStarSystem()
             self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer, nil)
         end
     else
-        GameState:SetState(Enums.GameStates.InGame)
+        GameState:SetState(Enums.GameStates.ShipCreation)
         Universe:CreateStarSystem(self.seed)
     end
 
-    -- Insert the game view into the application canvas to make it visible
-    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer)
-    GameState.render.gameView = self.gameView
-
-    self.canvas = UI.Canvas()
-    self.canvas
-        :add(self.gameView
-            :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
-        )
-
-    if GameState:GetCurrentState() == Enums.GameStates.InGame then
+    if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         -- TODO: replace with gamestate event system
         Log.Debug("LTheoryRedux: PlayAmbient")
         MusicPlayer:PlayAmbient()
 
-        self.gameView:setCameraMode(GameState.player.startupCamera)
+        DebugControl.ltheory = self
+        self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
+        GameState.render.gameView = self.gameView
+        self.canvas = UI.Canvas()
+        self.canvas
+            :add(self.gameView
+                :add(Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
+
+        InputInstance:setCursorVisible(true)
     else
+        -- Insert the game view into the application canvas to make it visible
+        self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
+        GameState.render.gameView = self.gameView
+
+        self.canvas = UI.Canvas()
+        self.canvas
+            :add(self.gameView
+                :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
+            )
         self.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
     end
 end
@@ -371,9 +429,19 @@ function LTheoryRedux:showGameLogo()
     local scaleFactor = ((self.resX * self.resY) / (1600 * 900)) ^ 0.5
     local scaleFactorX = self.resX / 1600
     local scaleFactorY = self.resY / 900
-    HmGui.Image(self.logo)                                                                  -- draw the LTR logo on top of the canvas
-    HmGui.SetStretch(0.76 * scaleFactor / scaleFactorX, 0.243 * scaleFactor / scaleFactorY) -- scale logo (width, height)
-    HmGui.SetAlign(0.5, 0.5)                                                                -- align logo
+
+    Gui:image(self.logo) -- draw the LTR logo on top of the canvas
+    Gui:setPercentSize(76.0 * scaleFactor / scaleFactorX, 24.3 * scaleFactor / scaleFactorY)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+end
+
+function LTheoryRedux:showShipCreationHint()
+    Gui:beginStackContainer()
+    Gui:setFixedHeight(100)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Bottom)
+    Gui:setChildrenVerticalAlignment(AlignVertical.Center)
+    Gui:textEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
+    Gui:endContainer()
 end
 
 function LTheoryRedux:exitGame()

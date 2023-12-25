@@ -1,9 +1,9 @@
 -- TODO : Split materials in subdir + flesh them out more as a first-class
---        asset (maybe we can even put the glsl inline in the material files?)
+-- asset (maybe we can even put the glsl inline in the material files?)
 -- TODO : Separate the concept of 'shading model' from 'material'
---        Metal shader is a specific shading model. Metal shader + metal/01_*
---        is a specific 'type' of metal
---           NOTE : Really they're just nested ShaderStates.
+-- Metal shader is a specific shading model. Metal shader + metal/01_*
+-- is a specific 'type' of metal
+-- NOTE : Really they're just nested ShaderStates.
 
 local Material = class(function(self) end)
 

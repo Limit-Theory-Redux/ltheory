@@ -1,10 +1,5 @@
 local Entity = require('GameObjects.Entity')
 
-local function iterateAssets(s)
-    s.i = s.i + 1
-    return s.list[s.i]
-end
-
 function Entity:addAsset(asset)
     --Log.Debug("adding new asset = %s (%s) to %s", asset, asset:getName(), self:getName())
     assert(self.assets)
@@ -27,10 +22,17 @@ function Entity:hasAssets()
     return self.assets ~= nil
 end
 
--- TODO : Surely there is a way to achieve 'for x in e:iterBlah' without having
---        to resort to table creation??
+function Entity:hasAsset(asset)
+    for itAsset in Iterator(self:getAssets()) do
+        if itAsset == asset then
+            return true
+        end
+    end
+    return false
+end
+
 function Entity:iterAssets()
-    return iterateAssets, { list = self:getAssets(), i = 0 }
+    return Iterator(self:getAssets())
 end
 
 function Entity:removeAsset(asset)

@@ -3,10 +3,10 @@ local Joint = require('Systems.Gen.ShapeLib.Joint')
 require('Systems.Gen.ShapeLib.Warp')
 
 -- JointFields are lists of joints
---   with helper functions to generate them.
+-- with helper functions to generate them.
 -- They can live separately from a Shape/Mesh,
---   so they're useful for creating clusters of Shapes
---   without using a Shape's Joints as the basis.
+-- so they're useful for creating clusters of Shapes
+-- without using a Shape's Joints as the basis.
 local JointField = {}
 JointField.__index = JointField
 
@@ -18,11 +18,11 @@ function JointField.Create()
 end
 
 -- GenerateFromFunction (
---   function* fnp, [position function]
---   function* fnd, [direction function]
---   function* fnu, [up function]
---   function* fns, [scale function]
---   int n)         [number to generate]
+-- function* fnp, [position function]
+-- function* fnd, [direction function]
+-- function* fnu, [up function]
+-- function* fns, [scale function]
+-- int n)         [number to generate]
 function JointField:generateFromFunction(fnp, fnd, fnu, fns, n, step)
     local ind = #self.joints + 1
     for i = 1, n do

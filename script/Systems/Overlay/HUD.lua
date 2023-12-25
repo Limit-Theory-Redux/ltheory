@@ -65,8 +65,18 @@ function HUD:drawTargetText(a)
             subtypetext = Config:getObjectInfo("station_subtypes", playerTarget:getSubType()) .. " "
         end
 
+        local faction
+        local factionName = "none"
+        if playerTarget.owner then
+            faction = playerTarget.owner:getFaction()
+
+            if faction ~= "none" then
+                factionName = faction:getName()
+            end
+        end
+
         local text1 = format("Target ID: %s", subtypetext .. playerTarget:getName())
-        local text2 = format("Target Faction: %s", "XXX")
+        local text2 = format("Target Faction: %s", factionName)
 
         if playerTarget.usesBoost then
             text1 = text1 .. " [Ace]"
@@ -1075,13 +1085,13 @@ function HUD:drawSensors(a)
             -- *** TEMP: Audio FX test START ***
             if Config.audio.fxSensors then
                 if not Config.audio.fxSensors:IsPlaying() then
-                    --                    Config.audio.fxSensors:Play(1)
+                    -- Config.audio.fxSensors:Play(1)
                     Config.audio.fxSensors.sound:setVolume(maxBarRatio)
                     LTheoryRedux.audiofx:play(Config.audio.fxSensors.sound)
                 else
-                    --                    Config.audio.fxSensors:Pause()
+                    -- Config.audio.fxSensors:Pause()
                     Config.audio.fxSensors.sound:setVolume(maxBarRatio)
-                    --                    Config.audio.fxSensors:Resume()
+                    -- Config.audio.fxSensors:Resume()
                 end
             end
             -- *** TEMP: Audio FX test END ***
@@ -1315,7 +1325,7 @@ function HUD:drawTargets(a)
                             if targetDistance <= renderDistance or playerTarget == target then
                                 if target:hasAttackable() and target:isAttackable() then
                                     -- Innermost box shows trackable object's disposition to player
-                                    --     (red = enemy, blue = neutral, green = friendly)
+                                    -- (red = enemy, blue = neutral, green = friendly)
                                     drawAttackable()
                                 end
 
@@ -1378,14 +1388,17 @@ function HUD:drawTargets(a)
                         end
 
                         -- TEMP: Draw target health bar
-                        -- if playerTarget == target and target:isAlive() and not target:isDestroyed() then
-                        --     local targetHealthPct = target:mgrHullGetHealthPercent()
-                        --     if targetHealthPct > 0.0 then
-                        --         local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
-                        --         UI.DrawEx.RectOutline(bx1 + 2, by2 - 3, (bx2 - bx1) - 6, 8, Config.ui.color.borderBright)
-                        --         UI.DrawEx.Rect(bx1 + 3, by2 - 1, (bx2 - bx1) - 8, 4, Config.ui.color.healthColor[targetHealthCI])
-                        --     end
-                        -- end
+                        --[[
+                        if playerTarget == target and target:isAlive() and not target:isDestroyed() then
+                            local targetHealthPct = target:mgrHullGetHealthPercent()
+                            if targetHealthPct > 0.0 then
+                                local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
+                                UI.DrawEx.RectOutline(bx1 + 2, by2 - 3, (bx2 - bx1) - 6, 8, Config.ui.color.borderBright)
+                                UI.DrawEx.Rect(bx1 + 3, by2 - 1, (bx2 - bx1) - 8, 4,
+                                    Config.ui.color.healthColor[targetHealthCI])
+                            end
+                        end
+                        --]]
 
                         local ss = camera:ndcToScreen(ndc)
                         local dist = ss:distance(center)
@@ -1473,7 +1486,7 @@ function HUD:drawDirPredict(a)
 
     -- Predictive impact point
     -- Takes into account player's movement, target's movement,
-    --     and the speed of the currently selected weapon/projectile
+    -- and the speed of the currently selected weapon/projectile
     -- TODO: change reference to Config.gen.compTurretPulseStats.range from App.lua when multiple weapon types are available
     local range = playerShip:getPos():distance(target:getPos())
     if target:hasAttackable() and target:isAttackable() and range < Config.gen.compTurretPulseStats.range then
@@ -1547,11 +1560,11 @@ function HUD:drawPlayerHullInteg(a)
 
     -- ** Uncomment if we need to retrieve the values used to define the viewing angle of holograms **
     -- if not GameState.paused then
-    --     local radius, mass = playerShip:getRadius(), playerShip:getMass()
-    --     local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
-    --     Log.Debug("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
-    --     Log.Debug("mass = %s, radius = %3.2f, yaw = %3.2f, pitch = %3.2f", mass, radius, yaw, pitch)
-    --     Log.Debug("mass = %s, radius = %3.2f, radius / 1.7 = %3.2f", mass, radius, radius / 1.7)
+    -- local radius, mass = playerShip:getRadius(), playerShip:getMass()
+    -- local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
+    -- Log.Debug("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
+    -- Log.Debug("mass = %s, radius = %3.2f, yaw = %3.2f, pitch = %3.2f", mass, radius, yaw, pitch)
+    -- Log.Debug("mass = %s, radius = %3.2f, radius / 1.7 = %3.2f", mass, radius, radius / 1.7)
     -- end
 
     -- Draw text of player ship name
@@ -1705,7 +1718,7 @@ function HUD:onInput(state)
 
         if self.dockable then
             -- Log.Debug("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()),
-            --     self.dockable:getName(), self.dockable:isDockable())
+            -- self.dockable:getName(), self.dockable:isDockable())
             if self.dockable:isDockable() and not self.dockable:isBanned(e) then
                 if ShipBindings.Dock:get() > 0 then
                     -- TODO: migrate this action outside the HUD

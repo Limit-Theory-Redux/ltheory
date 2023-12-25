@@ -9,6 +9,9 @@ pub static NvOptimusEnablement: std::os::raw::c_ulong = 0x00000001;
 #[no_mangle]
 pub static AmdPowerXpressRequestHighPerformance: std::os::raw::c_int = 1;
 
+const BUILD_TIME: &str = build_time::build_time_utc!("%Y-%m-%d / %H:%M:%S UTC");
+const GIT_VERSION: &str = git_version::git_version!(args = ["--tags", "--always", "--dirty=M"]);
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
@@ -37,6 +40,14 @@ extern "C" {
 }
 
 pub fn main() {
+    println!(
+        "App: {}, ver: {}, git: {}, build time: {}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        GIT_VERSION,
+        BUILD_TIME
+    );
+
     let cli = Cli::parse();
 
     let entry_point = CString::new(cli.entry_point)

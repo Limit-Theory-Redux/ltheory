@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 
 use glutin::prelude::GlDisplay;
 use tracing::{debug, info, warn};

@@ -1,6 +1,6 @@
 -- Maps pointers to numbers so that true pointers can be used as keys
 -- NOTE : Emphasis on *true* (i.e. 48-bit under x64) pointers! Will NOT work on
---        arbitrary 64-bit values (use guidToKey below)
+-- arbitrary 64-bit values (use guidToKey below)
 function ptrToKey(p)
     return tonumber(ffi.cast('intptr_t', ffi.cast('void*', p)))
 end

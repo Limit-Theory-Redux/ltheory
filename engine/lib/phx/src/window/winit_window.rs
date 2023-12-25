@@ -5,7 +5,7 @@ use glutin::display::GetGlDisplay;
 use glutin::prelude::{GlDisplay, NotCurrentGlContextSurfaceAccessor, PossiblyCurrentGlContext};
 use glutin::surface::{GlSurface, Surface, SurfaceAttributes, SwapInterval, WindowSurface};
 use glutin_winit::GlWindow;
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 
 use crate::window::glutin_render;
 

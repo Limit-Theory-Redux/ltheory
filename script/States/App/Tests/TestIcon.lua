@@ -6,15 +6,15 @@ local icon
 
 function Test:onInit()
     Cache.Texture('icon/lbumper', true)
-    --  icon = IconButton.Create('icon/lbumper', nil)
+    -- icon = IconButton.Create('icon/lbumper', nil)
 
     icon = Tex2D.Load("./res/images/LTR_logo2.png") -- load the LTR logo
 
     UI.DrawEx.Icon(icon, 100, 100, 100, 100, Color(1, 1, 1, 1))
 
 
-    --  icon:addPoint(0.5, 0.5)
-    --  icon:addPoint(0.2, 0.2)
+    -- icon:addPoint(0.5, 0.5)
+    -- icon:addPoint(0.2, 0.2)
 end
 
 function Test:onInput() end

@@ -5,11 +5,12 @@ use crate::*;
 
 pub type Metric = i32;
 
-static mut valueCurr: [i32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
+// TODO: figure out why we get an integer overflow in Metric_AddDraw for verts
+static mut valueCurr: [i64; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
 
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Get(this: Metric) -> i32 {
-    valueCurr[this as usize]
+    valueCurr[this as usize] as i32
 }
 
 #[no_mangle]
@@ -30,17 +31,17 @@ pub extern "C" fn Metric_GetName(this: Metric) -> *const libc::c_char {
 #[no_mangle]
 pub unsafe extern "C" fn Metric_AddDraw(polys: i32, tris: i32, verts: i32) {
     valueCurr[0x1] += 1;
-    valueCurr[0x3] += polys;
-    valueCurr[0x4] += tris;
-    valueCurr[0x5] += verts;
+    valueCurr[0x3] += polys as i64;
+    valueCurr[0x4] += tris as i64;
+    valueCurr[0x5] += verts as i64;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Metric_AddDrawImm(polys: i32, tris: i32, verts: i32) {
     valueCurr[0x2] += 1;
-    valueCurr[0x3] += polys;
-    valueCurr[0x4] += tris;
-    valueCurr[0x5] += verts;
+    valueCurr[0x3] += polys as i64;
+    valueCurr[0x4] += tris as i64;
+    valueCurr[0x5] += verts as i64;
 }
 
 #[no_mangle]
@@ -50,7 +51,7 @@ pub unsafe extern "C" fn Metric_Inc(this: Metric) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Mod(this: Metric, delta: i32) {
-    valueCurr[this as usize] += delta;
+    valueCurr[this as usize] += delta as i64;
 }
 
 #[no_mangle]

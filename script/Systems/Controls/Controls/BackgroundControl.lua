@@ -15,7 +15,7 @@ function BackgroundControl:controlThrust(e)
         0,
         0,
         0,
-        0.03,  -- spin the invisible ship
+        0.005, -- spin the invisible ship
         -0.01, -- ever so slightly
         0,
         0)

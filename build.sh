@@ -31,12 +31,19 @@ elif [[ "$OSTYPE" == "msys" ]]; then
 fi
 
 mkdir -p bin
+
+if [ -z "$PHX_VERSION" ]; then
+    export PHX_VERSION
+fi
+
 if [[ $debug = 1 ]]; then
     cargo build
+    cargo test --no-fail-fast
     cp target/debug/ltr${binsuffix} bin/lt64d${binsuffix}
     cp target/debug/deps/${libprefix}phx${libsuffix} bin/${libprefix}phx${libsuffix}
 else
     cargo build --release
+    cargo test --release
     cp target/release/ltr${binsuffix} bin/lt64${binsuffix}
     cp target/release/deps/${libprefix}phx${libsuffix} bin/${libprefix}phx${libsuffix}
 fi

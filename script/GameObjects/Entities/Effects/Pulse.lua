@@ -158,8 +158,8 @@ function Pulse.UpdatePostPhysics(system, projectiles, dt)
             local hitEnt = Entity.fromRigidBody(hit)
             local source = Deref(pulse.source)
             -- TODO: This hitEnt nil check fixes a bug in PhysicsTest.lua. For some reason these two objects do not
-            --       return anything fromRigidBody for the first few seconds. While this is a good check to do since
-            --       we cannot confirm that the hit will have a rigidbody. This is a hotfix for a weird error.
+            -- return anything fromRigidBody for the first few seconds. While this is a good check to do since
+            -- we cannot confirm that the hit will have a rigidbody. This is a hotfix for a weird error.
             if (hitEnt ~= nil) then
                 -- Don't collide with the socket that spawned me
                 if hitEnt ~= source then

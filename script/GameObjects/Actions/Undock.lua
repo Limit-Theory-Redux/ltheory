@@ -20,7 +20,7 @@ function Undock:onUpdateActive(e, dt)
         --end
         --Log.Debug("Undock(%s) job = %s, jcount = %d, bids = %d:", e:getName(), e.job, jc, bids)
         --for i, v in ipairs(e.actions) do
-        --  Log.Debug("Undock(%s) Actions %d : %s", e:getName(), i, v:getName(e))
+        -- Log.Debug("Undock(%s) Actions %d : %s", e:getName(), i, v:getName(e))
         --end
 
         e:getParent():removeDocked(e)

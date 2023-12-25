@@ -3,17 +3,17 @@ local wrap  = Math.Wrap
 
 -- BAD INPUT PROTECTION POLICY
 -- Because we use so much randomness,
---   sometimes the input to the warp functions may be bad,
---   even in release.
+-- sometimes the input to the warp functions may be bad,
+-- even in release.
 -- For example, we may call scale() with 0 or negative values.
 -- If any input is invalid, the warp function MUST
---   1. ASSERT, so that devs can debug the bad input AND
---   2. Return the original shape, unaffected,
---      so that we prevent junk shapes & crashes in release.
+-- 1. ASSERT, so that devs can debug the bad input AND
+-- 2. Return the original shape, unaffected,
+-- so that we prevent junk shapes & crashes in release.
 
 -- Warp (function* fn)
 -- It is assumed that the warp function takes a vertex
---   and operates on it in-place.
+-- and operates on it in-place.
 function Shape:warp(fn)
     -- bad input protection
     if fn == nil then
@@ -119,9 +119,9 @@ end
 
 -- Sphereize (float p)
 -- Normalize all vertex positions,
---   thereby projecting the piece onto the unit sphere.
+-- thereby projecting the piece onto the unit sphere.
 -- Optional p parameter allows specifying a p-norm
---   other than the standard p=2 norm.
+-- other than the standard p=2 norm.
 function Shape:sphereize(p)
     local p = p or 2
     self:warp(function(v)
@@ -283,7 +283,7 @@ end
 
 -- Greeble (RNG rng, int n, float low, float high)
 -- Tessellates shape n times
---  then extrudes all polys with random length between low, high
+-- then extrudes all polys with random length between low, high
 function Shape:greeble(rng, n, low, high, greebleChance, scaleChance)
     n = n or rng:getInt(1, 4)
     low = low or 0.05

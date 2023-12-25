@@ -47,7 +47,6 @@ do -- Opaque Structs
     typedef struct BoxTree      {} BoxTree;
     typedef struct Bytes        {} Bytes;
     typedef struct File         {} File;
-    typedef struct Font         {} Font;
     typedef struct HashGrid     {} HashGrid;
     typedef struct HashGridElem {} HashGridElem;
     typedef struct InputBinding {} InputBinding;
@@ -78,7 +77,6 @@ do -- Opaque Structs
     'BoxTree',
     'Bytes',
     'File',
-    'Font',
     'HashGrid',
     'HashGridElem',
     'KDTree',

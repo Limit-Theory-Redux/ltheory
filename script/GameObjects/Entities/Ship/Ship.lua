@@ -27,14 +27,14 @@ local function wasDamaged(self, event)
 
             if self ~= GameState.player.currentShip and self:isHostileTo(target) then
                 -- If this non-player-controlled ship is not currently attacking its attacker,
-                --    add an action to Attack its attacker
+                -- add an action to Attack its attacker
                 if self:hasActions() then
                     local actionName = format("Attack %s", target:getName()) -- must match namegen in Attack.lua
                     local attackAction = self:findAction(actionName)
                     if attackAction then
                         if attackAction ~= self:getCurrentAction(actionName) then
                             -- If the action to attack the attacker exists in this entity's Actions queue but isn't the current
-                            --     action, delete the old Attack action and push a new instance to the top of the Actions queue
+                            -- action, delete the old Attack action and push a new instance to the top of the Actions queue
                             self:deleteAction(actionName)
                             self:pushAction(Actions.Attack(target))
                         end
@@ -53,7 +53,7 @@ end
 local Ship = subclass(Entity, function(self, proto, hull)
     Log.Debug("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
     -- TODO : This will create a duplicate BSP because proto & RigidBody do not
-    --        share the same BSP cache. Need unified cache.
+    -- share the same BSP cache. Need unified cache.
     self:addRigidBody(true, proto.mesh) -- required
     self:addVisibleMesh(proto.mesh, Material.Metal())
 
@@ -67,9 +67,9 @@ local Ship = subclass(Entity, function(self, proto, hull)
 
     -- TEMP: give each ship the maximum number of every component
     -- TODO: Load each ship's component sockets with:
-    --       a) default loadout for ships never encountered
-    --       b) defined loadout from ships in a save file (including the player's ship)
-    --       c) nothing loaded for a ship newly built in a factory or in a trader's inventory
+    -- a) default loadout for ships never encountered
+    -- b) defined loadout from ships in a save file (including the player's ship)
+    -- c) nothing loaded for a ship newly built in a factory or in a trader's inventory
     self.countArmor     = proto.countArmor
     self.countBay       = proto.countBay
     self.countCapacitor = proto.countCapacitor
@@ -88,7 +88,7 @@ local Ship = subclass(Entity, function(self, proto, hull)
 
     -- Add all sockets to parent
     -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
-    --        better for ShipType etc.
+    -- better for ShipType etc.
     self:addSockets()
 
     for type, elems in pairs(proto.sockets) do
@@ -100,10 +100,10 @@ local Ship = subclass(Entity, function(self, proto, hull)
     self:addCredits(1000)
     self:addThrustController()
     self:setDrag(0.75, 4.0)
-    --  self:setScale(Config.gen.shipHullScale[hull])
-    --  if hull ~= Enums.ShipHulls.VeryLarge then
+    -- self:setScale(Config.gen.shipHullScale[hull])
+    -- if hull ~= Enums.ShipHulls.VeryLarge then
     self:setScale(proto.scale)
-    --  end
+    -- end
 
     -- TODO: Use mass values from the ship hull class _and_ installed components
     -- NOTE: a fully loaded F-15 ~= 20,000 kg
@@ -164,9 +164,9 @@ function Ship:setShipDocked(entity)
     end
 
     --if self.shipDockedAt then
-    --  Log.Debug("%s docked at Station %s", self:getName(), self.shipDockedAt:getName())
+    -- Log.Debug("%s docked at Station %s", self:getName(), self.shipDockedAt:getName())
     --else
-    --  Log.Debug("%s undocked from Station %s", self:getName(), self.shipDockedAt:getName())
+    -- Log.Debug("%s undocked from Station %s", self:getName(), self.shipDockedAt:getName())
     --end
 end
 

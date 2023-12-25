@@ -357,10 +357,10 @@ function BSPTest:onDraw()
         --Draw mesh 'inverted' so anything drawn behind
         --it gets culled (but not things inside it)
         --if (depthMode) {
-        --  RenderState.PushCullFace(CullFace.Front)
-        --  Draw.Color(1.0, 1.0, 1.0, 0.0)
-        --  Mesh.Draw(obj.mesh)
-        --  RenderState.PopCullFace()
+        -- RenderState.PushCullFace(CullFace.Front)
+        -- Draw.Color(1.0, 1.0, 1.0, 0.0)
+        -- Mesh.Draw(obj.mesh)
+        -- RenderState.PopCullFace()
         --}
 
         --No test, draw mesh
@@ -583,9 +583,9 @@ function BSPTest:onDraw()
 
         --cstr cullModeStr = ""
         --switch(cullModes[gen.cullMode]) {
-        --  case CullFace.None:  cullModeStr = "CullFace.None"  break
-        --  case CullFace.Back:  cullModeStr = "CullFace.Back"  break
-        --  case CullFace.Front: cullModeStr = "CullFace.Front" break
+        -- case CullFace.None:  cullModeStr = "CullFace.None"  break
+        -- case CullFace.Back:  cullModeStr = "CullFace.Back"  break
+        -- case CullFace.Front: cullModeStr = "CullFace.Front" break
         --}
         --snprintf(buffer, (size_t) Array_GetSize(buffer), "Culling: %s", cullModeStr)
         buffer = format('Leaves: %i', sphereProf.leaves)
@@ -605,11 +605,11 @@ function BSPTest:onDraw()
 
         -- TODO : Draw coordinate system. Need a coordinate transform
         --Draw.Axes(
-        --  &Vec3( {res.x - 120 - 40, res.y - 120 - 40, 0.0} ),
-        --  &Vec3f( {1.0, 0.0, 0.0} ),
-        --  &Vec3f( {0.0, 1.0, 0.0} ),
-        --  &Vec3f( {0.0, 0.0, 1.0} ),
-        --  120.0, 1.0
+        -- &Vec3( {res.x - 120 - 40, res.y - 120 - 40, 0.0} ),
+        -- &Vec3f( {1.0, 0.0, 0.0} ),
+        -- &Vec3f( {0.0, 1.0, 0.0} ),
+        -- &Vec3f( {0.0, 0.0, 1.0} ),
+        -- 120.0, 1.0
         --)
 
         GLMatrix.ModeP()

@@ -1,7 +1,13 @@
 const RUST_TO_LUA_TYPE_MAP: &[(&str, &str)] = &[
     ("IVec2", "Vec2i"),
+    ("IVec3", "Vec3i"),
+    ("IVec4", "Vec4i"),
     ("UVec2", "Vec2u"),
+    ("UVec3", "Vec3u"),
+    ("UVec4", "Vec4u"),
     ("DVec2", "Vec2d"),
+    ("DVec3", "Vec3d"),
+    ("DVec4", "Vec4d"),
     ("Vec2", "Vec2f"),
     ("Vec3", "Vec3f"),
     ("Vec4", "Vec4f"),
@@ -40,6 +46,9 @@ const COPY_TYPES: &[&str] = &[
     "PresentMode",
     "CursorIcon",
     "CursorGrabMode",
+    "FocusType",
+    "AlignHorizontal",
+    "AlignVertical",
 ];
 
 #[derive(Debug)]

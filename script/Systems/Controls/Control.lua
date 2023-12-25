@@ -8,29 +8,29 @@ local ControlT = class(function(self)
 end)
 
 local gamepadAxisIcon = {
-    [Button.GamepadLeftStickX]  = 'icon/lstick',
-    [Button.GamepadLeftStickY]  = 'icon/lstick',
+    [Button.GamepadLeftStickX]   = 'icon/lstick',
+    [Button.GamepadLeftStickY]   = 'icon/lstick',
     [Button.GamepadRightStickX]  = 'icon/rstick',
     [Button.GamepadRightStickY]  = 'icon/rstick',
-    [Button.GamepadLeftTrigger] = 'icon/ltrigger',
+    [Button.GamepadLeftTrigger]  = 'icon/ltrigger',
     [Button.GamepadRightTrigger] = 'icon/rtrigger',
 }
 
 local gamepadButtonIcon = {
-    [Button.GamepadSouth]       = 'icon/a',
-    [Button.GamepadEast]       = 'icon/b',
-    [Button.GamepadWest]       = 'icon/x',
-    [Button.GamepadNorth]       = 'icon/y',
-    [Button.GamepadSelect]    = 'icon/snap',
-    [Button.GamepadStart]   = 'icon/menu',
-    [Button.GamepadLeftThumb]  = 'icon/lstick',
-    [Button.GamepadRightThumb]  = 'icon/rstick',
-    [Button.GamepadLeftTrigger2] = 'icon/lbumper',
+    [Button.GamepadSouth]         = 'icon/a',
+    [Button.GamepadEast]          = 'icon/b',
+    [Button.GamepadWest]          = 'icon/x',
+    [Button.GamepadNorth]         = 'icon/y',
+    [Button.GamepadSelect]        = 'icon/snap',
+    [Button.GamepadStart]         = 'icon/menu',
+    [Button.GamepadLeftThumb]     = 'icon/lstick',
+    [Button.GamepadRightThumb]    = 'icon/rstick',
+    [Button.GamepadLeftTrigger2]  = 'icon/lbumper',
     [Button.GamepadRightTrigger2] = 'icon/rbumper',
-    [Button.GamepadDPadUp]      = 'icon/dpad_up',
-    [Button.GamepadDPadDown]    = 'icon/dpad_down',
-    [Button.GamepadDPadLeft]    = 'icon/dpad_left',
-    [Button.GamepadDPadRight]   = 'icon/dpad_right',
+    [Button.GamepadDPadUp]        = 'icon/dpad_up',
+    [Button.GamepadDPadDown]      = 'icon/dpad_down',
+    [Button.GamepadDPadLeft]      = 'icon/dpad_left',
+    [Button.GamepadDPadRight]     = 'icon/dpad_right',
 }
 
 function ControlT:delta()
@@ -69,9 +69,10 @@ function ControlT:setExponent(expn)
     return self
 end
 
--- TODO : Integrate disabled devices by implementing :isActive and dropping
---        inactive devices from consideration in And/Or.
-
+--[[
+TODO:   Integrate disabled devices by implementing :isActive and dropping
+        inactive devices from consideration in And/Or.
+--]]
 Control.And = subclass(ControlT, function(self, ...)
     if not ... then error() end
     self.controls = { ... }
@@ -92,14 +93,16 @@ function Control.Delta:getIconPath()
     return self.control:getIconPath()
 end
 
--- TODO : This must be split into an update & cached value, such that the
---        control can be retrieved multiple times in one frame without affecting
---        the delta value. In general, deltas require extra handling. This is
---        also where flattening bindings will come into play and potentially
---        get tricky. After PAX, having used this control system a bit, we'll
---        need to come back and assess what we've learned (and, in particular,
---        if deltas are the natural splitting point where we move to events
---        rather than 'continuous' controls, which deltas are not.)
+--[[
+TODO:   This must be split into an update & cached value, such that the
+        control can be retrieved multiple times in one frame without affecting
+        the delta value. In general, deltas require extra handling. This is
+        also where flattening bindings will come into play and potentially
+        get tricky. After PAX, having used this control system a bit, we'll
+        need to come back and assess what we've learned (and, in particular,
+        if deltas are the natural splitting point where we move to events
+        rather than 'continuous' controls, which deltas are not.)
+--]]
 function Control.Delta:getRaw()
     local curr = self.control:get()
     local last = self.last
@@ -168,8 +171,10 @@ function Control.Key:getRaw()
 end
 
 Control.Alt    = function() return Control.Or(Control.Key(Button.KeyboardAltLeft), Control.Key(Button.KeyboardAltRight)) end
-Control.Ctrl   = function() return Control.Or(Control.Key(Button.KeyboardControlLeft), Control.Key(Button.KeyboardControlRight)) end
-Control.Shift  = function() return Control.Or(Control.Key(Button.KeyboardShiftLeft), Control.Key(Button.KeyboardShiftRight)) end
+Control.Ctrl   = function() return Control.Or(Control.Key(Button.KeyboardControlLeft),
+        Control.Key(Button.KeyboardControlRight)) end
+Control.Shift  = function() return Control.Or(Control.Key(Button.KeyboardShiftLeft),
+        Control.Key(Button.KeyboardShiftRight)) end
 
 Control.MouseX = subclass(ControlT, function(self) end)
 Control.MouseY = subclass(ControlT, function(self) end)
@@ -186,8 +191,10 @@ function Control.MouseY:getRaw()
     return Math.Clamp(2.0 * (m - c.y) / c.sy - 1.0, -1.0, 1.0)
 end
 
--- TODO : Really a delta. Unify with MouseX/Y + think about out how 'mouse
---        relative to center' best fits into this architecture.
+--[[
+TODO:   Really a delta. Unify with MouseX/Y + think about out how 'mouse
+        relative to center' best fits into this architecture.
+--]]
 Control.MouseDX = subclass(ControlT, function(self) end)
 Control.MouseDY = subclass(ControlT, function(self) end)
 
@@ -211,9 +218,11 @@ end
 
 Control.MouseWheel = subclass(ControlT, function(self) end)
 
--- TODO : Unlike other signals, this won't be clamped to [-1, 1]. Problem?
--- NOTE : In reality, this is a delta.
--- NOTE : Yes, this has already caused problems in the form of dt-dependence
+--[[
+TODO:   Unlike other signals, this won't be clamped to [-1, 1]. Problem?
+NOTE:   In reality, this is a delta.
+NOTE:   Yes, this has already caused problems in the form of dt-dependence
+--]]
 function Control.MouseWheel:getRaw()
     return InputInstance:getValue(Button.MouseScrollY)
 end
@@ -248,5 +257,5 @@ end
 
 return Control
 
--- TODO : Don't trigger bindings without modifiers when a modifier is pressed.
--- TODO : It should be possible to get the delta from a non-delta control.
+-- TODO: Don't trigger bindings without modifiers when a modifier is pressed.
+-- TODO: It should be possible to get the delta from a non-delta control.
