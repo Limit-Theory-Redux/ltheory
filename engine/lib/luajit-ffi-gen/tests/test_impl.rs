@@ -15,12 +15,25 @@ impl Data {
     }
 }
 
+// This is a well known copyable type defined in type_info.rs
+#[derive(Default, Clone, Copy)]
+pub struct WindowPos {
+    pub val: u32,
+}
+
+impl WindowPos {
+    fn new(val: u32) -> WindowPos {
+        WindowPos { val }
+    }
+}
+
 #[derive(Default)]
 pub struct MyStruct {
     val_u32: u32,
     val_f32: f32,
     val_str: String,
     val_data: Data,
+    val_copyable: WindowPos,
 }
 
 // NOTE: remove 'lua_ffi' parameter to see generated Lua file. Do not commit it!!!
@@ -131,10 +144,35 @@ impl MyStruct {
     pub fn ret_res_opt_val() -> Result<Option<u8>, u8> {
         Ok(Some(42))
     }
+
+    pub fn set_copyable(&mut self, c: WindowPos) {
+        self.val_copyable = c;
+    }
+
+    pub fn set_copyable_by_ref(&mut self, c: &WindowPos) {
+        self.val_copyable = *c;
+    }
+
+    pub fn set_copyable_by_mut_ref(&mut self, c: &mut WindowPos) {
+        self.val_copyable = *c;
+    }
+
+    pub fn get_copyable(&self) -> WindowPos {
+        self.val_copyable
+    }
+
+    #[bind(out_param = true)]
+    pub fn get_copyable_via_out_param(&self) -> WindowPos {
+        self.val_copyable
+    }
+
+    pub fn get_boxed_copyable(&self) -> Box<WindowPos> {
+        Box::new(self.val_copyable)
+    }
 }
 
 #[test]
-fn test_impl() {
+fn test_functions() {
     let ms = MyStruct::default();
     let mut ms2 = MyStruct::default();
 
@@ -164,7 +202,29 @@ fn test_impl() {
     assert_eq!(MyStruct_GetBoxedData(&ms2).val, 6);
 
     let val = MyStruct_RetResVal();
-    assert_eq!(val, 42)
+    assert_eq!(val, 42);
+}
+
+
+#[test]
+fn test_copyable_param() {
+    let mut ms = MyStruct::default();
+
+    MyStruct_SetCopyable(&mut ms, WindowPos::new(5));
+    assert_eq!(ms.val_copyable.val, 5);
+
+    let copyable_data = WindowPos::new(7);
+    MyStruct_SetCopyableByRef(&mut ms, &copyable_data);
+    assert_eq!(MyStruct_GetCopyable(&ms).val, 7);
+
+    let mut copyable_data2 = WindowPos::new(9);
+    MyStruct_SetCopyableByMutRef(&mut ms, &mut copyable_data2);
+    assert_eq!(MyStruct_GetBoxedCopyable(&ms).val, 9);
+
+    MyStruct_SetCopyable(&mut ms, WindowPos::new(11));
+    let mut copyable_result = WindowPos::default();
+    MyStruct_GetCopyableViaOutParam(&ms, &mut copyable_result);
+    assert_eq!(copyable_result.val, 11);
 }
 
 #[test]
