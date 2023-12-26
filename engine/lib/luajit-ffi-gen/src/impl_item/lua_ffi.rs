@@ -1,6 +1,6 @@
 use crate::{args::ImplAttrArgs, ffi_generator::FfiGenerator, IDENT};
 
-use super::{ImplInfo, TypeInfo};
+use super::{ImplInfo, TypeInfo, TypeVariant};
 
 impl ImplInfo {
     /// Generate Lua FFI file
@@ -86,11 +86,7 @@ impl ImplInfo {
                     "void".len()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    if ret.is_self() {
-                        format!("{module_name}*")
-                    } else {
-                        ret.as_ffi_string()
-                    }.len()
+                    ret.as_ffi_string(module_name).len()
                 };
 
                 max_ret_len = std::cmp::max(max_ret_len, len);
@@ -121,26 +117,33 @@ impl ImplInfo {
                     "void".into()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    if ret.is_self() {
-                        if TypeInfo::is_copyable(module_name) {
-                            format!("{module_name}")
-                        }else {
-                            format!("{module_name}*")
-                        }
-                    } else {
-                        ret.as_ffi_string()
-                    }
+                    ret.as_ffi_string(module_name)
                 };
 
                 let mut params_str: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| format!("{} {}", param.ty.as_ffi_string(), param.as_ffi_name()))
+                    .map(|param| format!("{} {}", param.ty.as_ffi_string(module_name), param.as_ffi_name()))
                     .collect();
 
                 if method.bind_args.gen_out_param() && method.ret.is_some() {
                     let ret = method.ret.as_ref().unwrap();
-                    params_str.push(format!("{}* out", ret.as_ffi_string()));
+                    let ret_ffi = ret.as_ffi_string(module_name);
+                    let ret_param = match &ret.variant {
+                        TypeVariant::Custom(ty_name) => {
+                            if !TypeInfo::is_copyable(&ty_name) && !ret.is_boxed && !ret.is_option && !ret.is_reference {
+                                // If we have a non-copyable type that's not boxed, optional or a ref,
+                                // we don't need to return it as a pointer as it's already a pointer.
+                                format!("{} out", ret_ffi)
+                            } else {
+                                format!("{}* out", ret_ffi)
+                            }
+                        },
+                        _ => {
+                            format!("{}* out", ret_ffi)
+                        }
+                    };
+                    params_str.push(ret_param);
                 }
 
                 let self_str = if let Some(self_type) = &method.self_param {

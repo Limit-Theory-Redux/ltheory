@@ -192,6 +192,7 @@ fn test_functions() {
 
     MyStruct_SetData(&mut ms2, &Data::new(2));
     assert_eq!(MyStruct_GetData(&ms2).val, 2);
+    assert_eq!(unsafe { (*MyStruct_GetOptData(&ms2)).val }, 2);
 
     MyStruct_TakeData(&mut ms2, Box::new(Data::new(4)));
     let mut returned_data = Data::new(0);
@@ -204,7 +205,6 @@ fn test_functions() {
     let val = MyStruct_RetResVal();
     assert_eq!(val, 42);
 }
-
 
 #[test]
 fn test_copyable_param() {
