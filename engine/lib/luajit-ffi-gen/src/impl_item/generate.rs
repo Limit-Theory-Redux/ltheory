@@ -128,11 +128,10 @@ fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
                 if ty.is_mutable {
                     // Mutable is always with reference
                     quote! { &mut #ty_ident }
-                } else if TypeInfo::is_copyable(&ty_name) {
-                    // Ignore immutable reference of the copyable type
-                    quote! { #ty_ident }
                 } else if ty.is_reference {
                     quote! { &#ty_ident }
+                } else if TypeInfo::is_copyable(&ty_name) {
+                    quote! { #ty_ident }
                 } else {
                     quote! { Box<#ty_ident> }
                 }
@@ -178,7 +177,7 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo, never_box: bool) -> TokenStream
                 } else {
                     quote! { *const #ty_ident }
                 }
-            } else if is_copyable || never_box {
+            } else if (is_copyable && !ty.is_boxed) || never_box {
                 quote! { #ty_ident }
             } else if ty.is_mutable {
                 quote! { *mut #ty_ident }
@@ -224,13 +223,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 TypeVariant::String => quote! { #name_accessor.as_string() },
                 TypeVariant::CString => quote! { #name_accessor.as_cstring() },
                 TypeVariant::Custom(custom_ty) => {
-                    if TypeInfo::is_copyable(&custom_ty) {
-                        if param.ty.is_reference && !param.ty.is_mutable {
-                            quote! { &#name_accessor }
-                        } else {
-                            quote! { #name_accessor }
-                        }
-                    } else if param.ty.is_reference || param.ty.is_boxed {
+                    if param.ty.is_reference || param.ty.is_boxed || TypeInfo::is_copyable(&custom_ty) {
                         quote! { #name_accessor }
                     } else {
                         quote! { *#name_accessor }
