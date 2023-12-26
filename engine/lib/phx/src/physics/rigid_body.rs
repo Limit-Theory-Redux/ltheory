@@ -70,7 +70,6 @@ pub(crate) enum WorldState {
 //     }
 // }
 
-
 /// Convert an nalgebra Isometry to a Matrix.
 fn matrix_from_transform(transform: &rp::Isometry<f32>) -> Matrix {
     Matrix::from_cols_slice(transform.to_matrix().as_slice())
@@ -157,7 +156,6 @@ impl RigidBody {
             None
         }
     }
-
 
     /// Executes a function f with a reference to the RigidBody associated with this object.
     fn with_rigid_body<F, R>(&self, f: F) -> R
@@ -333,6 +331,7 @@ impl RigidBody {
 
     /// Return a reference to the parent rigid body, that we can guarantee
     /// has a lifetime as long as self.
+    #[bind(name = "GetParentBody")]
     pub fn get_parent(&self) -> Option<&mut RigidBody> {
         match &self.state {
             WorldState::AttachedToCompound { parent, .. } => {

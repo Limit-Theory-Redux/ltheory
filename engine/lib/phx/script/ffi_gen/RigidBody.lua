@@ -25,7 +25,7 @@ function Loader.defineType()
             bool       RigidBody_IsInCompound                (RigidBody const*);
             bool       RigidBody_IsChild                     (RigidBody const*);
             bool       RigidBody_IsRootInCompound            (RigidBody const*);
-            RigidBody* RigidBody_GetParent                   (RigidBody const*);
+            RigidBody* RigidBody_GetParentBody               (RigidBody const*);
             void       RigidBody_ApplyForce                  (RigidBody*, Vec3f const* force);
             void       RigidBody_ApplyTorque                 (RigidBody*, Vec3f const* torque);
             void       RigidBody_Attach                      (RigidBody*, RigidBody* child, Vec3f const* pos, Quat const* rot);
@@ -37,9 +37,9 @@ function Loader.defineType()
             float      RigidBody_GetBoundingRadius           (RigidBody const*);
             float      RigidBody_GetBoundingRadiusCompound   (RigidBody const*);
             float      RigidBody_GetSpeed                    (RigidBody const*);
-            Matrix     RigidBody_GetWorldMatrixUnscaled      (RigidBody const*);
-            Matrix     RigidBody_GetToWorldMatrix            (RigidBody const*);
-            Matrix     RigidBody_GetToLocalMatrix            (RigidBody const*);
+            Matrix*    RigidBody_GetWorldMatrixUnscaled      (RigidBody const*);
+            Matrix*    RigidBody_GetToWorldMatrix            (RigidBody const*);
+            Matrix*    RigidBody_GetToLocalMatrix            (RigidBody const*);
             void       RigidBody_GetVelocity                 (RigidBody const*, Vec3f* out);
             void       RigidBody_GetVelocityA                (RigidBody const*, Vec3f* out);
             void       RigidBody_SetCollidable               (RigidBody*, bool collidable);
@@ -76,7 +76,7 @@ function Loader.defineType()
             IsInCompound                = libphx.RigidBody_IsInCompound,
             IsChild                     = libphx.RigidBody_IsChild,
             IsRootInCompound            = libphx.RigidBody_IsRootInCompound,
-            GetParent                   = libphx.RigidBody_GetParent,
+            GetParentBody               = libphx.RigidBody_GetParentBody,
             ApplyForce                  = libphx.RigidBody_ApplyForce,
             ApplyTorque                 = libphx.RigidBody_ApplyTorque,
             Attach                      = libphx.RigidBody_Attach,
@@ -128,7 +128,7 @@ function Loader.defineType()
                 isInCompound                = libphx.RigidBody_IsInCompound,
                 isChild                     = libphx.RigidBody_IsChild,
                 isRootInCompound            = libphx.RigidBody_IsRootInCompound,
-                getParent                   = libphx.RigidBody_GetParent,
+                getParentBody               = libphx.RigidBody_GetParentBody,
                 applyForce                  = libphx.RigidBody_ApplyForce,
                 applyTorque                 = libphx.RigidBody_ApplyTorque,
                 attach                      = libphx.RigidBody_Attach,

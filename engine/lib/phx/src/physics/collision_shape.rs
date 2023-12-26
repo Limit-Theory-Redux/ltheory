@@ -26,10 +26,14 @@ pub enum CollisionShapeType {
 impl CollisionShapeType {
     pub fn clone(&mut self) -> CollisionShapeType {
         match self {
-            CollisionShapeType::Box { halfExtents } => CollisionShapeType::Box { halfExtents: *halfExtents },
+            CollisionShapeType::Box { halfExtents } => CollisionShapeType::Box {
+                halfExtents: *halfExtents,
+            },
             CollisionShapeType::Sphere { radius } => CollisionShapeType::Sphere { radius: *radius },
-            CollisionShapeType::Hull { mesh } => CollisionShapeType::Hull { mesh: unsafe { Mesh_Clone(&mut **mesh) } },
-            CollisionShapeType::Compound() => CollisionShapeType::Compound()
+            CollisionShapeType::Hull { mesh } => CollisionShapeType::Hull {
+                mesh: unsafe { Mesh_Clone(&mut **mesh) },
+            },
+            CollisionShapeType::Compound() => CollisionShapeType::Compound(),
         }
     }
 }
@@ -96,11 +100,6 @@ impl CollisionShape {
     }
 
     pub fn new_hull_from_mesh(mut mesh: Box<Mesh>) -> CollisionShape {
-        Self::new(
-            1.0,
-            CollisionShapeType::Hull {
-                mesh,
-            },
-        )
+        Self::new(1.0, CollisionShapeType::Hull { mesh })
     }
 }

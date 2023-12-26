@@ -17,7 +17,7 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void             Trigger_Free             (Trigger*);
-            Trigger          Trigger_CreateBox        (Vec3f const* halfExtents);
+            Trigger*         Trigger_CreateBox        (Vec3f const* halfExtents);
             void             Trigger_Attach           (Trigger*, RigidBody* rb, Vec3f const* offset);
             void             Trigger_Detach           (Trigger*, RigidBody* rb);
             void             Trigger_GetBoundingBox   (Trigger const*, Box3f* out);
