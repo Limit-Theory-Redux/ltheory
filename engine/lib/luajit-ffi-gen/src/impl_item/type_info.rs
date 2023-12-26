@@ -169,22 +169,6 @@ pub enum TypeVariant {
 }
 
 impl TypeVariant {
-    pub fn is_custom(&self) -> bool {
-        matches!(self, Self::Custom(_))
-    }
-
-    #[allow(dead_code)]
-    pub fn is_str(&self) -> bool {
-        matches!(self, Self::Str)
-    }
-
-    pub fn is_string(&self) -> bool {
-        match self {
-            Self::Str | Self::String | Self::CString => true,
-            _ => false,
-        }
-    }
-
     pub fn from_str(type_name: &str) -> Option<Self> {
         let res = match type_name {
             "bool" => Self::Bool,
