@@ -82,35 +82,67 @@ impl TypeInfo {
         COPY_TYPES.contains(&ty)
     }
 
-    pub fn as_ffi_string(&self) -> String {
-        let ffi_ty = self.variant.as_ffi_string();
+    pub fn as_ffi_string(&self, self_name: &str) -> String {
+        // These types should be the C equivalent of the result of `wrap_type` in `generate.rs`.
+        match &self.variant {
+            TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
+                if self.is_mutable {
+                    format!("char*")
+                } else {
+                    format!("cstr")
+                }
+            },
+            TypeVariant::Custom(ty_name) => {
+                let ty_ident = if self.is_self() {
+                    self_name
+                } else {
+                    ty_name
+                };
 
-        let res: String = if self.variant.is_custom() {
-            RUST_TO_LUA_TYPE_MAP
-                .iter()
-                .find(|(r_ty, _)| *r_ty == ffi_ty)
-                .map(|(_, l_ty)| l_ty.to_string())
-                .unwrap_or(ffi_ty)
-        } else {
-            ffi_ty
-        };
-        let opt = if self.is_option && !self.is_reference && !self.variant.is_string() {
-            " const*"
-        } else {
-            ""
-        };
+                let ffi_ty_name =
+                    RUST_TO_LUA_TYPE_MAP
+                        .iter()
+                        .find(|(r_ty, _)| *r_ty == ty_name)
+                        .map(|(_, l_ty)| l_ty.to_string())
+                        .unwrap_or(ty_ident.to_string());
 
-        if self.is_boxed {
-            // Boxed values transfer ownership across the boundary, so are never const.
-            format!("{res}*{opt}")
-        } else if self.is_reference && self.variant != TypeVariant::Str {
-            if self.is_mutable {
-                format!("{res}*{opt}")
-            } else {
-                format!("{res} const*{opt}")
+                if self.is_option {
+                    if self.is_mutable {
+                        format!("{ffi_ty_name}*")
+                    } else {
+                        format!("{ffi_ty_name} const*")
+                    }
+                } else {
+                    if self.is_mutable {
+                        // Mutable is always with reference
+                        format!("{ffi_ty_name}*")
+                    } else if self.is_reference {
+                        format!("{ffi_ty_name} const*")
+                    } else if TypeInfo::is_copyable(&ty_name) {
+                        format!("{ffi_ty_name}")
+                    } else {
+                        format!("{ffi_ty_name}*")
+                    }
+                }
+            },
+            _ => {
+                let ty_ident = self.variant.as_ffi_string();
+    
+                if self.is_option {
+                    // All options are sent by pointer
+                    if self.is_mutable {
+                        format!("{ty_ident}*")
+                    } else {
+                        format!("{ty_ident} const*")
+                    }
+                } else if self.is_mutable {
+                    // Mutable is always with reference
+                    format!("{ty_ident}*")
+                } else {
+                    // We don't care if there is reference on the numeric type - just accept it by value
+                    format!("{ty_ident}")
+                }
             }
-        } else {
-            format!("{res}{opt}")
         }
     }
 }

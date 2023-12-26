@@ -74,7 +74,7 @@ impl ImplInfo {
 
         let ret_token = if method.bind_args.gen_out_param() || method.ret.is_none() {
             quote! {}
-        } else  {
+        } else {
             let ret = method.ret.as_ref().unwrap();
             let ty_token = wrap_ret_type(&self.name, &ret, false);
 
