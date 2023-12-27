@@ -22,9 +22,6 @@ function Loader.defineType()
             RigidBody* RigidBody_CreateSphere                ();
             RigidBody* RigidBody_CreateSphereFromMesh        (Mesh* mesh);
             RigidBody* RigidBody_CreateHullFromMesh          (Mesh* mesh);
-            bool       RigidBody_IsInCompound                (RigidBody const*);
-            bool       RigidBody_IsChild                     (RigidBody const*);
-            bool       RigidBody_IsRootInCompound            (RigidBody const*);
             RigidBody* RigidBody_GetParentBody               (RigidBody const*);
             void       RigidBody_ApplyForce                  (RigidBody*, Vec3f const* force);
             void       RigidBody_ApplyTorque                 (RigidBody*, Vec3f const* torque);
@@ -37,7 +34,6 @@ function Loader.defineType()
             float      RigidBody_GetBoundingRadius           (RigidBody const*);
             float      RigidBody_GetBoundingRadiusCompound   (RigidBody const*);
             float      RigidBody_GetSpeed                    (RigidBody const*);
-            Matrix*    RigidBody_GetWorldMatrixUnscaled      (RigidBody const*);
             Matrix*    RigidBody_GetToWorldMatrix            (RigidBody const*);
             Matrix*    RigidBody_GetToLocalMatrix            (RigidBody const*);
             void       RigidBody_GetVelocity                 (RigidBody const*, Vec3f* out);
@@ -73,9 +69,6 @@ function Loader.defineType()
             CreateSphere                = libphx.RigidBody_CreateSphere,
             CreateSphereFromMesh        = libphx.RigidBody_CreateSphereFromMesh,
             CreateHullFromMesh          = libphx.RigidBody_CreateHullFromMesh,
-            IsInCompound                = libphx.RigidBody_IsInCompound,
-            IsChild                     = libphx.RigidBody_IsChild,
-            IsRootInCompound            = libphx.RigidBody_IsRootInCompound,
             GetParentBody               = libphx.RigidBody_GetParentBody,
             ApplyForce                  = libphx.RigidBody_ApplyForce,
             ApplyTorque                 = libphx.RigidBody_ApplyTorque,
@@ -88,7 +81,6 @@ function Loader.defineType()
             GetBoundingRadius           = libphx.RigidBody_GetBoundingRadius,
             GetBoundingRadiusCompound   = libphx.RigidBody_GetBoundingRadiusCompound,
             GetSpeed                    = libphx.RigidBody_GetSpeed,
-            GetWorldMatrixUnscaled      = libphx.RigidBody_GetWorldMatrixUnscaled,
             GetToWorldMatrix            = libphx.RigidBody_GetToWorldMatrix,
             GetToLocalMatrix            = libphx.RigidBody_GetToLocalMatrix,
             GetVelocity                 = libphx.RigidBody_GetVelocity,
@@ -125,9 +117,6 @@ function Loader.defineType()
             __index = {
                 managed                     = function(self) return ffi.gc(self, libphx.RigidBody_Free) end,
                 free                        = libphx.RigidBody_Free,
-                isInCompound                = libphx.RigidBody_IsInCompound,
-                isChild                     = libphx.RigidBody_IsChild,
-                isRootInCompound            = libphx.RigidBody_IsRootInCompound,
                 getParentBody               = libphx.RigidBody_GetParentBody,
                 applyForce                  = libphx.RigidBody_ApplyForce,
                 applyTorque                 = libphx.RigidBody_ApplyTorque,
@@ -140,7 +129,6 @@ function Loader.defineType()
                 getBoundingRadius           = libphx.RigidBody_GetBoundingRadius,
                 getBoundingRadiusCompound   = libphx.RigidBody_GetBoundingRadiusCompound,
                 getSpeed                    = libphx.RigidBody_GetSpeed,
-                getWorldMatrixUnscaled      = libphx.RigidBody_GetWorldMatrixUnscaled,
                 getToWorldMatrix            = libphx.RigidBody_GetToWorldMatrix,
                 getToLocalMatrix            = libphx.RigidBody_GetToLocalMatrix,
                 getVelocity                 = libphx.RigidBody_GetVelocity,

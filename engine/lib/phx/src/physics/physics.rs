@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::math::*;
 use crate::physics::*;
 use rapier3d::parry::query::RayCast;
@@ -67,6 +69,7 @@ pub(crate) struct PhysicsWorld {
     pub(crate) collider_set: rp::ColliderSet,
 }
 
+/// Ray/shape casts/overlaps will return RigidBodys but not Triggers.
 pub struct Physics {
     world: Rc<RefCell<PhysicsWorld>>,
 
@@ -84,7 +87,9 @@ pub struct Physics {
     rigid_body_map: HashMap<rp::RigidBodyHandle, *mut RigidBody>,
 }
 
+#[luajit_ffi_gen::luajit_ffi(managed = true)]
 impl Physics {
+    #[bind(name = "Create")]
     pub fn new() -> Physics {
         Physics {
             world: Rc::new(RefCell::new(PhysicsWorld {
@@ -106,7 +111,10 @@ impl Physics {
     }
 
     /// Adds this rigid body to this physics world if it doesn't exist, otherwise do nothing.
-    pub fn add(&mut self, rigid_body: &mut RigidBody) {
+    /// 
+    /// Automatically adds all attached Triggers. Automatically adds all
+    /// attached children and their Triggers.
+    pub fn add_rigid_body(&mut self, rigid_body: &mut RigidBody) {
         if let Some((_, rb_handle)) = rigid_body.add_to_world(&self.world) {
             self.rigid_body_map
                 .insert(rb_handle, rigid_body as *mut RigidBody);
@@ -114,13 +122,20 @@ impl Physics {
     }
 
     /// Removes this rigid body from this physics world if it's added, otherwise do nothing.
-    pub fn remove(&mut self, rigid_body: &mut RigidBody) {
+    /// 
+    /// Automatically removes all attached Triggers. Automatically removes all
+    /// attached children and their Triggers.
+    pub fn remove_rigid_body(&mut self, rigid_body: &mut RigidBody) {
         if let Some((_, rb_handle)) =
             rigid_body.remove_from_world(&mut self.impulse_joint_set, &mut self.multibody_joint_set)
         {
             self.rigid_body_map.remove(&rb_handle);
         }
     }
+
+    pub fn add_trigger(&mut self, trigger: &mut Trigger) {}
+
+    pub fn remove_trigger(&mut self, trigger: &mut Trigger) {}
 
     pub fn update(&mut self, dt: f32) {
         for trigger in self.triggers.iter_mut() {
@@ -157,7 +172,16 @@ impl Physics {
         }
     }
 
-    pub fn rayCast(&self, ray: &Ray) -> RayCastResult {
+    /// This will fill the collision object c with the collision information.
+    ///
+    /// Will include results for both child and parent RigidBodys that are
+    /// colliding. Will not include Triggers.
+    pub fn get_next_collision(&self, c: &mut Collision) -> bool {
+        false
+    }
+
+    #[bind(out_param = true)]
+    pub fn ray_cast(&self, ray: &Ray) -> RayCastResult {
         let from = {
             let mut data = Vec3::ZERO;
             Ray_GetPoint(ray, ray.tMin, &mut data);
@@ -201,97 +225,34 @@ impl Physics {
         }
         result
     }
+
+    /// Results are unsorted and will include child objects.
+    #[bind(out_param = true)]
+    pub fn sphere_cast(&mut self, sphere: &Sphere) -> ShapeCastResult {
+        ShapeCastResult { hits: vec![] }
+    }
+
+    /// Results are unsorted and will include child objects.
+    #[bind(out_param = true)]
+    pub fn box_cast(&mut self, pos: &Vec3, rot: &Quat, halfExtents: &Vec3) -> ShapeCastResult {
+        ShapeCastResult { hits: vec![] }
+    }
+
+    pub fn sphere_overlap(&mut self, sphere: &Sphere) -> bool {
+        false
+    }
+
+    pub fn box_overlap(&mut self, pos: &Vec3, rot: &Quat, halfExtents: &Vec3) -> bool {
+        false
+    }
+
+    pub fn print_profiling(&mut self) {}
+
+    pub fn draw_bounding_boxes_local(&mut self) {}
+
+    pub fn draw_bounding_boxes_world(&mut self) {}
+
+    pub fn draw_triggers(&mut self) {}
+
+    pub fn draw_wireframes(&mut self) {}
 }
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_Create() -> Box<Physics> {
-    Box::new(Physics::new())
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_Free(_: Box<Physics>) {}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_AddRigidBody(this: &mut Physics, rb: &mut RigidBody) {
-    this.add(rb);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_RemoveRigidBody(this: &mut Physics, rb: &mut RigidBody) {
-    this.remove(rb);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_AddTrigger(this: &mut Physics, t: *mut Trigger) {}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_RemoveTrigger(this: &mut Physics, t: *mut Trigger) {}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_GetNextCollision(this: &mut Physics, c: *mut Collision) -> bool {
-    false
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_Update(this: &mut Physics, dt: f32) {
-    this.update(dt);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_RayCast(
-    this: &mut Physics,
-    ray: &Ray,
-    result: &mut RayCastResult,
-) {
-    *result = this.rayCast(ray);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_SphereCast(
-    this: &mut Physics,
-    sphere: &Sphere,
-    result: &mut ShapeCastResult,
-) {
-    // *result = this.sphereCast(sphere);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_BoxCast(
-    this: &mut Physics,
-    pos: &Vec3,
-    rot: &Quat,
-    halfExtents: &Vec3,
-    result: &mut ShapeCastResult,
-) {
-    // *result = this.boxCast(pos, rot, halfExtents);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_SphereOverlap(this: &mut Physics, sphere: &Sphere) -> bool {
-    false
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_BoxOverlap(
-    this: &mut Physics,
-    pos: &Vec3,
-    rot: &Quat,
-    halfExtents: &Vec3,
-) -> bool {
-    false
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_PrintProfiling(this: &mut Physics) {}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_DrawBoundingBoxesLocal(this: &mut Physics) {}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_DrawBoundingBoxesWorld(this: &mut Physics) {}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_DrawTriggers(this: &mut Physics) {}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_DrawWireframes(this: &mut Physics) {}

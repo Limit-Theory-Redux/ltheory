@@ -55,6 +55,7 @@ impl Trigger {
         0
     }
 
+    /// Will only include the parent object when a compound is within the trigger.
     fn get_contents(&self, i: i32) -> Option<&mut RigidBody> {
         None
     }
@@ -71,38 +72,3 @@ impl Trigger {
 
     fn update(&mut self) {}
 }
-
-// #[no_mangle]
-// pub extern "C" fn Trigger_Attach(this: &mut Trigger, rb: &mut RigidBody, offset: &mut Vec3) {}
-
-// #[no_mangle]
-// pub extern "C" fn Trigger_Detach(this: &mut Trigger, rb: &mut RigidBody) {}
-
-// #[no_mangle]
-// pub extern "C" fn Trigger_GetBoundingBox(this: &mut Trigger, out: &mut Box3) {}
-
-// #[no_mangle]
-// pub extern "C" fn Trigger_GetContentsCount(this: &mut Trigger) -> i32 {
-//     0
-// }
-
-// /// Will only include the parent object when a compound is within the trigger.
-// #[no_mangle]
-// pub extern "C" fn Trigger_GetContents(this: &mut Trigger, i: i32) -> Option<&mut RigidBody> {
-//     None
-// }
-
-// #[no_mangle]
-// pub extern "C" fn Trigger_SetCollisionMask(this: &mut Trigger, i: i32) {}
-
-// #[no_mangle]
-// pub extern "C" fn Trigger_SetPos(this: &mut Trigger, pos: &mut Vec3) {}
-
-// #[no_mangle]
-// pub extern "C" fn Trigger_SetPosLocal(this: &mut Trigger, pos: &mut Vec3) {}
-
-// pub fn Trigger_GetParent(this: &mut Trigger) -> Option<&RigidBody> {
-//     None
-// }
-
-// pub fn Trigger_Update(this: &mut Trigger) {}

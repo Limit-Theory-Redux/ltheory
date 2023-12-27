@@ -56,7 +56,6 @@ do -- Opaque Structs
     typedef struct MemStack     {} MemStack;
     typedef struct Mesh         {} Mesh;
     typedef struct Octree       {} Octree;
-    typedef struct Physics      {} Physics;
     typedef struct RNG          {} RNG;
     typedef struct RmGui        {} RmGui;
     typedef struct SDF          {} SDF;
@@ -85,7 +84,6 @@ do -- Opaque Structs
     'MemStack',
     'Mesh',
     'Octree',
-    'Physics',
     'RNG',
     'RmGui',
     'SDF',
