@@ -7,7 +7,7 @@ use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 pub struct Collision {
     index: i32,
@@ -63,10 +63,51 @@ impl NalgebraQuatInterop for Quat {
     }
 }
 
+pub trait RapierMatrixInterop {
+    fn from_rp(_: &rp::Isometry<f32>) -> Self;
+}
+
+impl RapierMatrixInterop for Matrix {
+    fn from_rp(t: &rp::Isometry<f32>) -> Matrix {
+        Matrix::from_cols_slice(t.to_matrix().as_slice())
+    }
+}
+
 pub(crate) struct PhysicsWorld {
     pub(crate) island_manager: rp::IslandManager,
-    pub(crate) rigid_body_set: rp::RigidBodySet,
-    pub(crate) collider_set: rp::ColliderSet,
+    pub(crate) rigid_bodies: rp::RigidBodySet,
+    pub(crate) colliders: rp::ColliderSet,
+}
+
+impl PhysicsWorld {
+    pub fn get_rigid_body(&self, handle: rp::RigidBodyHandle) -> &rp::RigidBody {
+        self.rigid_bodies.get(handle).unwrap()
+    }
+    
+    pub fn get_rigid_body_mut(&mut self, handle: rp::RigidBodyHandle) -> &mut rp::RigidBody {
+        self.rigid_bodies.get_mut(handle).unwrap()
+    }
+
+    pub fn get_collider(&self, handle: rp::ColliderHandle) -> &rp::Collider {
+        self.colliders.get(handle).unwrap()
+    }
+    
+    pub fn get_collider_mut(&mut self, handle: rp::ColliderHandle) -> &mut rp::Collider {
+        self.colliders.get_mut(handle).unwrap()
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct PhysicsWorldHandle(Weak<RefCell<PhysicsWorld>>);
+
+impl PhysicsWorldHandle {
+    pub fn from_rc(rc: &Rc<RefCell<PhysicsWorld>>) -> PhysicsWorldHandle {
+        PhysicsWorldHandle(Rc::downgrade(rc))
+    }
+
+    pub fn upgrade(&self) -> Rc<RefCell<PhysicsWorld>> {
+        self.0.upgrade().expect("physics world was freed")
+    }
 }
 
 /// Ray/shape casts/overlaps will return RigidBodys but not Triggers.
@@ -94,8 +135,8 @@ impl Physics {
         Physics {
             world: Rc::new(RefCell::new(PhysicsWorld {
                 island_manager: rp::IslandManager::new(),
-                rigid_body_set: rp::RigidBodySet::new(),
-                collider_set: rp::ColliderSet::new(),
+                rigid_bodies: rp::RigidBodySet::new(),
+                colliders: rp::ColliderSet::new(),
             })),
             integration_parameters: rp::IntegrationParameters::default(),
             physics_pipeline: rp::PhysicsPipeline::new(),
@@ -155,8 +196,8 @@ impl Physics {
             &mut world.island_manager,
             &mut self.broadphase,
             &mut self.narrowphase,
-            &mut world.rigid_body_set,
-            &mut world.collider_set,
+            &mut world.rigid_bodies,
+            &mut world.colliders,
             &mut self.impulse_joint_set,
             &mut self.multibody_joint_set,
             &mut self.ccd_solver,
@@ -165,8 +206,8 @@ impl Physics {
             &event_handler,
         );
         self.query_pipeline
-            .update(&world.rigid_body_set, &world.collider_set);
-        for (_, rb) in world.rigid_body_set.iter_mut() {
+            .update(&world.rigid_bodies, &world.colliders);
+        for (_, rb) in world.rigid_bodies.iter_mut() {
             rb.reset_forces(false);
             rb.reset_torques(false);
         }
@@ -205,14 +246,14 @@ impl Physics {
             t: 0.0,
         };
         if let Some((handle, intersection)) = self.query_pipeline.cast_ray_and_get_normal(
-            &self.world.borrow().rigid_body_set,
-            &self.world.borrow().collider_set,
+            &self.world.borrow().rigid_bodies,
+            &self.world.borrow().colliders,
             &ray,
             length,
             true,
             filter,
         ) {
-            if let Some(collider) = self.world.borrow().collider_set.get(handle) {
+            if let Some(collider) = self.world.borrow().colliders.get(handle) {
                 let rigid_body_handle = collider.parent().unwrap();
                 result.body = *self
                     .rigid_body_map

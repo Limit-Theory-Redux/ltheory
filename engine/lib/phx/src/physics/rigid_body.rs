@@ -4,9 +4,10 @@ use crate::physics::*;
 use crate::render::*;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
+use std::cell::Ref;
 use std::cell::RefCell;
 use std::mem::replace;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 
 pub enum PhysicsType {
     Null,
@@ -15,7 +16,7 @@ pub enum PhysicsType {
 }
 
 #[derive(Clone)]
-pub(crate) enum WorldState {
+enum WorldState {
     // Uninitialized.
     None,
     // Removed from physics.
@@ -27,52 +28,16 @@ pub(crate) enum WorldState {
     Added {
         rb_handle: rp::RigidBodyHandle,
         collider_handle: rp::ColliderHandle,
-        world: Weak<RefCell<PhysicsWorld>>,
+        world: PhysicsWorldHandle,
+        children: Vec<rp::ColliderHandle>,
     },
     // Added to physics, and attached to a compound shape.
     AttachedToCompound {
         parent: *mut RigidBody, // Raw pointer to stable memory address of parent (as it's in a Box).
+        rb: rp::RigidBody, // Unused rapier RB, which we'd use again if the rigid body is detached.
         collider_handle: rp::ColliderHandle,
-        world: Weak<RefCell<PhysicsWorld>>,
+        world: PhysicsWorldHandle,
     },
-}
-
-// impl WorldState {
-//     fn replace_collider(&mut self, new_collider: rp::Collider) {
-//         match self {
-//             // If the RigidBody is not added to physics, then we can just replace the collider in the enum.
-//             WorldState::Removed { collider, .. } => {
-//                 *collider = new_collider;
-//             }
-//             // If the RigidBody is already added to physics, then we need to remove and re-add its collider.
-//             WorldState::Added {
-//                 rb_handle,
-//                 collider_handle,
-//                 world,
-//             } => {
-//                 let world_rc = world.upgrade().expect("physics world was freed");
-//                 let w = &mut *world_rc.borrow_mut();
-
-//                 let _ = w.collider_set.remove(
-//                     *collider_handle,
-//                     &mut w.island_manager,
-//                     &mut w.rigid_body_set,
-//                     false,
-//                 );
-//                 *collider_handle = w.collider_set.insert_with_parent(
-//                     new_collider,
-//                     *rb_handle,
-//                     &mut w.rigid_body_set,
-//                 );
-//             }
-//             _ => {}
-//         }
-//     }
-// }
-
-/// Convert an nalgebra Isometry to a Matrix.
-fn matrix_from_transform(transform: &rp::Isometry<f32>) -> Matrix {
-    Matrix::from_cols_slice(transform.to_matrix().as_slice())
 }
 
 /*
@@ -112,7 +77,7 @@ fn matrix_from_transform(transform: &rp::Isometry<f32>) -> Matrix {
 pub struct RigidBody {
     ty: PhysicsType,
 
-    // Stores the rigid body / collider state.
+    // Stores the rigid body / collider state machine.
     state: WorldState,
 
     // Fields to allow us to reconstruct the collision shape object.
@@ -133,14 +98,15 @@ impl RigidBody {
         // It only makes sense to add to the world if we're removed.
         if let WorldState::Removed { rb, collider } = replace(&mut self.state, WorldState::None) {
             let w = &mut *world.borrow_mut();
-            let rb_handle = w.rigid_body_set.insert(rb);
+            let rb_handle = w.rigid_bodies.insert(rb);
             let collider_handle =
-                w.collider_set
-                    .insert_with_parent(collider, rb_handle, &mut w.rigid_body_set);
+                w.colliders
+                    .insert_with_parent(collider, rb_handle, &mut w.rigid_bodies);
             self.state = WorldState::Added {
                 rb_handle,
                 collider_handle,
-                world: Rc::downgrade(world),
+                children: vec![],
+                world: PhysicsWorldHandle::from_rc(world),
             };
             Some((collider_handle, rb_handle))
         } else {
@@ -157,25 +123,26 @@ impl RigidBody {
             rb_handle,
             collider_handle,
             world,
+            ..
         } = replace(&mut self.state, WorldState::None)
         {
-            let world_rc = world.upgrade().expect("physics world was freed");
+            let world_rc = world.upgrade();
             let w = &mut *world_rc.borrow_mut();
             let collider = w
-                .collider_set
+                .colliders
                 .remove(
                     collider_handle,
                     &mut w.island_manager,
-                    &mut w.rigid_body_set,
+                    &mut w.rigid_bodies,
                     false,
                 )
                 .unwrap();
             let rigid_body = w
-                .rigid_body_set
+                .rigid_bodies
                 .remove(
                     rb_handle,
                     &mut w.island_manager,
-                    &mut w.collider_set,
+                    &mut w.colliders,
                     impulse_joint_set,
                     multibody_joint_set,
                     false,
@@ -203,11 +170,8 @@ impl RigidBody {
                 rb_handle, world, ..
             } => f(world
                 .upgrade()
-                .expect("physics world was freed")
                 .borrow()
-                .rigid_body_set
-                .get(*rb_handle)
-                .unwrap()),
+                .get_rigid_body(*rb_handle)),
             WorldState::AttachedToCompound { .. } => panic!("Not supported on children."),
         }
     }
@@ -224,11 +188,8 @@ impl RigidBody {
                 rb_handle, world, ..
             } => f(world
                 .upgrade()
-                .expect("physics world was freed")
                 .borrow_mut()
-                .rigid_body_set
-                .get_mut(*rb_handle)
-                .unwrap()),
+                .get_rigid_body_mut(*rb_handle)),
             WorldState::AttachedToCompound { .. } => panic!("Not supported on children."),
         }
     }
@@ -247,22 +208,16 @@ impl RigidBody {
                 ..
             } => f(world
                 .upgrade()
-                .expect("physics world was freed")
                 .borrow()
-                .collider_set
-                .get(*collider_handle)
-                .unwrap()),
+                .get_collider(*collider_handle)),
             WorldState::AttachedToCompound {
                 collider_handle,
                 world,
                 ..
             } => f(world
                 .upgrade()
-                .expect("physics world was freed")
                 .borrow()
-                .collider_set
-                .get(*collider_handle)
-                .unwrap()),
+                .get_collider(*collider_handle)),
         }
     }
 
@@ -280,22 +235,16 @@ impl RigidBody {
                 ..
             } => f(world
                 .upgrade()
-                .expect("physics world was freed")
                 .borrow_mut()
-                .collider_set
-                .get_mut(*collider_handle)
-                .unwrap()),
+                .get_collider_mut(*collider_handle)),
             WorldState::AttachedToCompound {
                 collider_handle,
                 world,
                 ..
             } => f(world
                 .upgrade()
-                .expect("physics world was freed")
                 .borrow_mut()
-                .collider_set
-                .get_mut(*collider_handle)
-                .unwrap()),
+                .get_collider_mut(*collider_handle)),
         }
     }
 
@@ -315,39 +264,40 @@ impl RigidBody {
         })
     }
 
-    /// Is this rigid body part of a compound shape?
-    pub fn is_in_compound(&self) -> bool {
-        self.is_root_in_compound() || self.is_child()
-    }
+    // /// Is this rigid body part of a compound shape?
+    // pub fn is_in_compound(&self) -> bool {
+    //     self.is_root_in_compound() || self.is_child()
+    // }
 
-    /// Is this rigid body a child of the root in a compound shape?
-    pub fn is_child(&self) -> bool {
-        if let WorldState::AttachedToCompound { .. } = &self.state {
-            true
-        } else {
-            false
-        }
-    }
+    // /// Is this rigid body a child of the root in a compound shape?
+    // pub fn is_child(&self) -> bool {
+    //     if let WorldState::AttachedToCompound { .. } = &self.state {
+    //         true
+    //     } else {
+    //         false
+    //     }
+    // }
 
-    /// Is this rigid body part of a compound shape, and is also the root?
-    pub fn is_root_in_compound(&self) -> bool {
-        // TODO: The collider is a compound shape
-        false
-    }
+    // /// Is this rigid body part of a compound shape, and is also the root?
+    // pub fn is_root_in_compound(&self) -> bool {
+    //     // TODO: The collider is a compound shape
+    //     false
+    // }
     
     /// Returns the unscaled world matrix of this rigid body.
     fn get_world_matrix_unscaled(&self) -> Matrix {
-        if let WorldState::AttachedToCompound { parent, .. } = &self.state {
-            let transform =
-                self.with_collider(|c| matrix_from_transform(c.position_wrt_parent().unwrap()));
-            let parent_transform =
-                unsafe { &**parent }.with_rigid_body(|rb| matrix_from_transform(rb.position()));
-            // transform.mul_mat4(&parent_transform)
-            parent_transform
-            // TODO: Fix this.
+        let global_transform = if let WorldState::AttachedToCompound { parent, .. } = &self.state {
+            self.with_collider(|c| {
+                unsafe { &**parent }.with_rigid_body(|parent_rb| {
+                    let transform = c.position_wrt_parent().unwrap();
+                    let parent_transform = parent_rb.position();
+                    parent_transform * transform
+                })
+            })
         } else {
-            self.with_rigid_body(|rb| matrix_from_transform(rb.position()))
-        }
+            self.with_rigid_body(|rb| rb.position().clone())
+        };
+        Matrix::from_rp(&global_transform)
     }
 }
 
@@ -414,7 +364,7 @@ impl RigidBody {
     /// This function assumes that `self` is not already a child.
     pub fn attach(&mut self, child: &mut RigidBody, pos: &Vec3, rot: &Quat) {
         let parent_ptr = self as *mut _;
-        match &mut self.state {
+        match &self.state {
             WorldState::None => {}
             WorldState::AttachedToCompound { .. } => {
                 panic!("Recursive attachment is not supported. Parent is already attached to something.");
@@ -435,24 +385,32 @@ impl RigidBody {
                         panic!("Child has not been removed from physics.");
                     }
                     WorldState::AttachedToCompound { .. } => {
-                        panic!("Child is already part of a compound.");
+                        panic!("Child is already attached to a parent.");
                     }
-                    WorldState::Removed { mut collider, .. } => {
-                        let world_rc = world.upgrade().expect("physics world was freed");
+                    WorldState::Removed { rb, mut collider } => {
+                        let world_rc = world.upgrade();
                         let w = &mut *world_rc.borrow_mut();
 
-                        // Position collider and attach it to the parent rigid body.
-                        collider.set_position_wrt_parent(na::Isometry3::from_parts(
-                            pos.to_na().into(),
+                        // Multiple colliders in Rapier can be attached to a single
+                        // rigid body, so there's no need to create a "compound shape"
+
+                        // Add the collider to the parent rigid body.
+                        let collider_handle = w.colliders.insert_with_parent(
+                            collider,
+                            *parent_handle,
+                            &mut w.rigid_bodies,
+                        );
+                        
+                        // Set the colliders relative position, scaled by the scale of the parent shape.
+                        let scaled_pos = *pos * self.shape_scale;
+                        w.get_collider_mut(collider_handle).set_position_wrt_parent(na::Isometry3::from_parts(
+                            scaled_pos.to_na().into(),
                             rot.to_na(),
                         ));
                         WorldState::AttachedToCompound {
                             parent: parent_ptr,
-                            collider_handle: w.collider_set.insert_with_parent(
-                                collider,
-                                *parent_handle,
-                                &mut w.rigid_body_set,
-                            ),
+                            rb,
+                            collider_handle,
                             world: world.clone(),
                         }
                     }
@@ -464,13 +422,45 @@ impl RigidBody {
     /// Removes a shape from this compound shape, and changes it back to a singular shape if
     /// no children are left.
     ///
-    /// This function is O(2N).
-    ///
     /// This function assumes that `self` is not already a child.
     pub fn detach(&mut self, child: &mut RigidBody) {
-        // TODO: Transition the child back into the Added state.
-        // TODO: Remove the childs collider from this collider.
-        // TODO: If no children remaining, turn back into a simple shape.
+        // TODO: Introduce some kind of state transition function for &mut RigidBody that does something like
+        /*
+        child.transition_state(|state| match state {
+        });
+        */
+        child.state = match replace(&mut child.state, WorldState::None) {
+            WorldState::None => {
+                panic!("Child is not initialised");
+            }
+            WorldState::Added { .. } | WorldState::Removed { .. } => {
+                panic!("Child is not attached to parent.");
+            }
+            WorldState::AttachedToCompound { mut rb, parent, collider_handle, world } => {
+                if parent != (self as *mut RigidBody) {
+                    panic!("Child is not attached to parent.");
+                }
+
+                // Convert current transform to world coordinates.
+                let parent_transform = self.with_rigid_body(|rb| rb.position().clone());
+                
+                // Get a mutable ref to the physics world.
+                let world_rc = world.upgrade();
+                let w = &mut *world_rc.borrow_mut();
+
+                // Compute the combined transform.
+                let child_transform = w.colliders.get(collider_handle).unwrap().position_wrt_parent().unwrap();
+                let combined_transform = parent_transform * child_transform;
+
+                // Detach from parent by removing from the collider set.
+                let collider = w.colliders.remove(collider_handle, &mut w.island_manager, &mut w.rigid_bodies, true).unwrap();
+                rb.set_position(combined_transform, true);
+                WorldState::Removed {
+                    rb,
+                    collider,
+                }
+            }
+        };
     }
 
     /// Calculates the bounding box, and assigns it to `out`.
@@ -497,10 +487,24 @@ impl RigidBody {
 
     /// Calculates the local compound bounding box, and assigns it to `out`.
     pub fn get_bounding_box_local_compound(&self, out: &mut Box3) {
-        // TODO: Get the AABB of the compound shape i.e. the root of a compound tree.
-        let aabb = self.with_collider(|c| c.shape().compute_local_aabb());
-        out.lower = Vec3::from_na_point(&aabb.mins);
-        out.upper = Vec3::from_na_point(&aabb.maxs);
+        if let WorldState::Added { collider_handle, children, world, .. } = &self.state {
+            let world_rc = world.upgrade();
+            let mut w = world_rc.borrow_mut();
+
+            // Get AABB of the main collider.
+            let mut aabb = w.get_collider(*collider_handle).shape().compute_local_aabb();
+
+            // Incorporate the AABBs of the compound shapes.
+            for child_collider_handle in children.iter() {
+                let collider = w.get_collider_mut(*child_collider_handle);
+                let child_aabb = collider.shape().compute_aabb(collider.position_wrt_parent().unwrap());
+                aabb.mins = aabb.mins.inf(&child_aabb.mins);
+                aabb.maxs = aabb.maxs.sup(&child_aabb.maxs);
+            }
+            
+            out.lower = Vec3::from_na_point(&aabb.mins);
+            out.upper = Vec3::from_na_point(&aabb.maxs);
+        }
     }
 
     pub fn get_bounding_radius(&self) -> f32 {
