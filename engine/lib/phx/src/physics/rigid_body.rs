@@ -344,7 +344,7 @@ impl RigidBody {
     }
 
     #[bind(name = "CreateHullFromMesh")]
-    pub fn new_hull_from_mesh(mesh: Box<Mesh>) -> Box<RigidBody> {
+    pub fn new_hull_from_mesh(mesh: &Mesh) -> Box<RigidBody> {
         Self::new(CollisionShape::new_hull_from_mesh(mesh))
     }
 
