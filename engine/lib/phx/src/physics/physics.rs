@@ -126,10 +126,10 @@ pub struct Physics {
     integration_parameters: rp::IntegrationParameters,
     physics_pipeline: rp::PhysicsPipeline,
     query_pipeline: rp::QueryPipeline,
-    broadphase: rp::BroadPhase,
-    narrowphase: rp::NarrowPhase,
-    impulse_joint_set: rp::ImpulseJointSet,
-    multibody_joint_set: rp::MultibodyJointSet,
+    broad_phase: rp::BroadPhase,
+    narrow_phase: rp::NarrowPhase,
+    impulse_joints: rp::ImpulseJointSet,
+    multibody_joints: rp::MultibodyJointSet,
     ccd_solver: rp::CCDSolver,
 
     triggers: Vec<Trigger>,
@@ -150,10 +150,10 @@ impl Physics {
             integration_parameters: rp::IntegrationParameters::default(),
             physics_pipeline: rp::PhysicsPipeline::new(),
             query_pipeline: rp::QueryPipeline::new(),
-            broadphase: rp::BroadPhase::new(),
-            narrowphase: rp::NarrowPhase::new(),
-            impulse_joint_set: rp::ImpulseJointSet::new(),
-            multibody_joint_set: rp::MultibodyJointSet::new(),
+            broad_phase: rp::BroadPhase::new(),
+            narrow_phase: rp::NarrowPhase::new(),
+            impulse_joints: rp::ImpulseJointSet::new(),
+            multibody_joints: rp::MultibodyJointSet::new(),
             ccd_solver: rp::CCDSolver::new(),
             triggers: Vec::new(),
             rigid_body_map: HashMap::new(),
@@ -177,7 +177,7 @@ impl Physics {
     /// attached children and their Triggers.
     pub fn remove_rigid_body(&mut self, rigid_body: &mut RigidBody) {
         if let Some((_, rb_handle)) =
-            rigid_body.remove_from_world(&mut self.impulse_joint_set, &mut self.multibody_joint_set)
+            rigid_body.remove_from_world(&mut self.impulse_joints, &mut self.multibody_joints)
         {
             self.rigid_body_map.remove(&rb_handle);
         }
@@ -203,12 +203,12 @@ impl Physics {
             &gravity,
             &integration_parameters,
             &mut world.island_manager,
-            &mut self.broadphase,
-            &mut self.narrowphase,
+            &mut self.broad_phase,
+            &mut self.narrow_phase,
             &mut world.rigid_bodies,
             &mut world.colliders,
-            &mut self.impulse_joint_set,
-            &mut self.multibody_joint_set,
+            &mut self.impulse_joints,
+            &mut self.multibody_joints,
             &mut self.ccd_solver,
             None,
             &physics_hooks,
@@ -228,7 +228,7 @@ impl Physics {
     /// colliding. Will not include Triggers.
     pub fn get_next_collision(&self, iterator: &mut Collision) -> bool {
         let collision_count = self
-            .narrowphase
+            .narrow_phase
             .contact_graph()
             .raw_graph()
             .raw_edges()
@@ -237,7 +237,7 @@ impl Physics {
         let world = &mut *self.world.borrow_mut();
         while (iterator.index as usize) < collision_count {
             let contact_pair = self
-                .narrowphase
+                .narrow_phase
                 .contact_pair_at_index(rp::TemporaryInteractionIndex::new(iterator.index));
             iterator.index += 1;
 
