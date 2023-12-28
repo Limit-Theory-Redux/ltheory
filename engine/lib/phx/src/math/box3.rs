@@ -61,6 +61,14 @@ impl Box3 {
             * (self.upper.z - self.lower.z)
     }
 
+    pub fn half_extents(&self) -> Vec3 {
+        Vec3::new(
+            self.upper.x - self.lower.x,
+            self.upper.y - self.lower.y,
+            self.upper.z - self.lower.z,
+        ) * 0.5
+    }
+
     pub fn contains(a: Box3, b: Box3) -> bool {
         a.lower.x <= b.lower.x
             && a.upper.x >= b.upper.x

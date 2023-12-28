@@ -6,6 +6,7 @@ use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
 use std::cell::Ref;
 use std::cell::RefCell;
+use std::cell::RefMut;
 use std::mem::replace;
 use std::rc::Rc;
 
@@ -168,10 +169,7 @@ impl RigidBody {
             WorldState::Removed { rb, .. } => f(rb),
             WorldState::Added {
                 rb_handle, world, ..
-            } => f(world
-                .upgrade()
-                .borrow()
-                .get_rigid_body(*rb_handle)),
+            } => f(world.upgrade().borrow().get_rigid_body(*rb_handle)),
             WorldState::AttachedToCompound { .. } => panic!("Not supported on children."),
         }
     }
@@ -186,10 +184,7 @@ impl RigidBody {
             WorldState::Removed { rb, .. } => f(rb),
             WorldState::Added {
                 rb_handle, world, ..
-            } => f(world
-                .upgrade()
-                .borrow_mut()
-                .get_rigid_body_mut(*rb_handle)),
+            } => f(world.upgrade().borrow_mut().get_rigid_body_mut(*rb_handle)),
             WorldState::AttachedToCompound { .. } => panic!("Not supported on children."),
         }
     }
@@ -206,18 +201,12 @@ impl RigidBody {
                 collider_handle,
                 world,
                 ..
-            } => f(world
-                .upgrade()
-                .borrow()
-                .get_collider(*collider_handle)),
+            } => f(world.upgrade().borrow().get_collider(*collider_handle)),
             WorldState::AttachedToCompound {
                 collider_handle,
                 world,
                 ..
-            } => f(world
-                .upgrade()
-                .borrow()
-                .get_collider(*collider_handle)),
+            } => f(world.upgrade().borrow().get_collider(*collider_handle)),
         }
     }
 
@@ -264,26 +253,29 @@ impl RigidBody {
         })
     }
 
-    // /// Is this rigid body part of a compound shape?
-    // pub fn is_in_compound(&self) -> bool {
-    //     self.is_root_in_compound() || self.is_child()
-    // }
+    /// Is this rigid body part of a compound shape?
+    pub fn is_in_compound(&self) -> bool {
+        self.is_root_in_compound() || self.is_child()
+    }
 
-    // /// Is this rigid body a child of the root in a compound shape?
-    // pub fn is_child(&self) -> bool {
-    //     if let WorldState::AttachedToCompound { .. } = &self.state {
-    //         true
-    //     } else {
-    //         false
-    //     }
-    // }
+    /// Is this rigid body a child of the root in a compound shape?
+    pub fn is_child(&self) -> bool {
+        if let WorldState::AttachedToCompound { .. } = &self.state {
+            true
+        } else {
+            false
+        }
+    }
 
-    // /// Is this rigid body part of a compound shape, and is also the root?
-    // pub fn is_root_in_compound(&self) -> bool {
-    //     // TODO: The collider is a compound shape
-    //     false
-    // }
-    
+    /// Is this rigid body part of a compound shape, and is also the root?
+    pub fn is_root_in_compound(&self) -> bool {
+        if let WorldState::Added { children, .. } = &self.state {
+            !children.is_empty()
+        } else {
+            false
+        }
+    }
+
     /// Returns the unscaled world matrix of this rigid body.
     fn get_world_matrix_unscaled(&self) -> Matrix {
         let global_transform = if let WorldState::AttachedToCompound { parent, .. } = &self.state {
@@ -400,13 +392,12 @@ impl RigidBody {
                             *parent_handle,
                             &mut w.rigid_bodies,
                         );
-                        
+
                         // Set the colliders relative position, scaled by the scale of the parent shape.
                         let scaled_pos = *pos * self.shape_scale;
-                        w.get_collider_mut(collider_handle).set_position_wrt_parent(na::Isometry3::from_parts(
-                            scaled_pos.to_na().into(),
-                            rot.to_na(),
-                        ));
+                        w.get_collider_mut(collider_handle).set_position_wrt_parent(
+                            na::Isometry3::from_parts(scaled_pos.to_na().into(), rot.to_na()),
+                        );
                         WorldState::AttachedToCompound {
                             parent: parent_ptr,
                             rb,
@@ -436,84 +427,148 @@ impl RigidBody {
             WorldState::Added { .. } | WorldState::Removed { .. } => {
                 panic!("Child is not attached to parent.");
             }
-            WorldState::AttachedToCompound { mut rb, parent, collider_handle, world } => {
+            WorldState::AttachedToCompound {
+                mut rb,
+                parent,
+                collider_handle,
+                world,
+            } => {
                 if parent != (self as *mut RigidBody) {
                     panic!("Child is not attached to parent.");
                 }
 
                 // Convert current transform to world coordinates.
                 let parent_transform = self.with_rigid_body(|rb| rb.position().clone());
-                
+
                 // Get a mutable ref to the physics world.
                 let world_rc = world.upgrade();
                 let w = &mut *world_rc.borrow_mut();
 
                 // Compute the combined transform.
-                let child_transform = w.colliders.get(collider_handle).unwrap().position_wrt_parent().unwrap();
+                let child_transform = w
+                    .get_collider(collider_handle)
+                    .position_wrt_parent()
+                    .unwrap();
                 let combined_transform = parent_transform * child_transform;
 
                 // Detach from parent by removing from the collider set.
-                let collider = w.colliders.remove(collider_handle, &mut w.island_manager, &mut w.rigid_bodies, true).unwrap();
+                let collider = w
+                    .colliders
+                    .remove(
+                        collider_handle,
+                        &mut w.island_manager,
+                        &mut w.rigid_bodies,
+                        true,
+                    )
+                    .unwrap();
                 rb.set_position(combined_transform, true);
-                WorldState::Removed {
-                    rb,
-                    collider,
-                }
+                WorldState::Removed { rb, collider }
             }
         };
     }
 
-    /// Calculates the bounding box, and assigns it to `out`.
-    pub fn get_bounding_box(&self, out: &mut Box3) {
+    /// Calculates the bounding box.
+    #[bind(out_param = true)]
+    pub fn get_bounding_box(&self) -> Box3 {
         let aabb = self.with_collider(|c| c.compute_aabb());
-        out.lower = Vec3::from_na_point(&aabb.mins);
-        out.upper = Vec3::from_na_point(&aabb.maxs);
+        Box3::new(
+            Vec3::from_na_point(&aabb.mins),
+            Vec3::from_na_point(&aabb.maxs),
+        )
     }
 
-    /// Calculates the compoind bounding box, and assigns it to `out`.
-    pub fn get_bounding_box_compound(&self, out: &mut Box3) {
-        // TODO: Get the AABB of the compound shape i.e. the root of a compound tree.
-        let aabb = self.with_collider(|c| c.compute_aabb());
-        out.lower = Vec3::from_na_point(&aabb.mins);
-        out.upper = Vec3::from_na_point(&aabb.maxs);
-    }
-
-    /// Calculates the local bounding box, and assigns it to `out`.
-    pub fn get_bounding_box_local(&self, out: &mut Box3) {
-        let aabb = self.with_collider(|c| c.shape().compute_local_aabb());
-        out.lower = Vec3::from_na_point(&aabb.mins);
-        out.upper = Vec3::from_na_point(&aabb.maxs);
-    }
-
-    /// Calculates the local compound bounding box, and assigns it to `out`.
-    pub fn get_bounding_box_local_compound(&self, out: &mut Box3) {
-        if let WorldState::Added { collider_handle, children, world, .. } = &self.state {
-            let world_rc = world.upgrade();
-            let mut w = world_rc.borrow_mut();
+    /// Calculates the compound bounding box.
+    #[bind(out_param = true)]
+    pub fn get_bounding_box_compound(&self) -> Box3 {
+        if let WorldState::Added {
+            collider_handle,
+            children,
+            world,
+            ..
+        } = &self.state
+        {
+            let w = world.upgrade();
+            let w = &mut *w.borrow_mut();
 
             // Get AABB of the main collider.
-            let mut aabb = w.get_collider(*collider_handle).shape().compute_local_aabb();
+            let mut aabb = w.get_collider(*collider_handle).compute_aabb();
+            let parent_transform = w.get_collider(*collider_handle).position().clone();
 
             // Incorporate the AABBs of the compound shapes.
             for child_collider_handle in children.iter() {
                 let collider = w.get_collider_mut(*child_collider_handle);
-                let child_aabb = collider.shape().compute_aabb(collider.position_wrt_parent().unwrap());
+                let child_global_transform =
+                    parent_transform * collider.position_wrt_parent().unwrap();
+                let child_aabb = collider.shape().compute_aabb(&child_global_transform);
                 aabb.mins = aabb.mins.inf(&child_aabb.mins);
                 aabb.maxs = aabb.maxs.sup(&child_aabb.maxs);
             }
-            
-            out.lower = Vec3::from_na_point(&aabb.mins);
-            out.upper = Vec3::from_na_point(&aabb.maxs);
+
+            Box3::new(
+                Vec3::from_na_point(&aabb.mins),
+                Vec3::from_na_point(&aabb.maxs),
+            )
+        } else {
+            Box3::default()
+        }
+    }
+
+    /// Calculates the local bounding box.
+    #[bind(out_param = true)]
+    pub fn get_bounding_box_local(&self) -> Box3 {
+        let aabb = self.with_collider(|c| c.shape().compute_local_aabb());
+        Box3::new(
+            Vec3::from_na_point(&aabb.mins),
+            Vec3::from_na_point(&aabb.maxs),
+        )
+    }
+
+    /// Calculates the local compound bounding box.
+    #[bind(out_param = true)]
+    pub fn get_bounding_box_local_compound(&self) -> Box3 {
+        if let WorldState::Added {
+            collider_handle,
+            children,
+            world,
+            ..
+        } = &self.state
+        {
+            let world_rc = world.upgrade();
+            let mut w = world_rc.borrow_mut();
+
+            // Get AABB of the main collider.
+            let mut aabb = w
+                .get_collider(*collider_handle)
+                .shape()
+                .compute_local_aabb();
+
+            // Incorporate the AABBs of the compound shapes.
+            for child_collider_handle in children.iter() {
+                let collider = w.get_collider_mut(*child_collider_handle);
+                let child_aabb = collider
+                    .shape()
+                    .compute_aabb(collider.position_wrt_parent().unwrap());
+                aabb.mins = aabb.mins.inf(&child_aabb.mins);
+                aabb.maxs = aabb.maxs.sup(&child_aabb.maxs);
+            }
+
+            Box3::new(
+                Vec3::from_na_point(&aabb.mins),
+                Vec3::from_na_point(&aabb.maxs),
+            )
+        } else {
+            Box3::default()
         }
     }
 
     pub fn get_bounding_radius(&self) -> f32 {
-        self.with_collider(|c| c.shape().compute_local_bounding_sphere().radius)
+        self.get_bounding_box_local().half_extents().length()
     }
 
     pub fn get_bounding_radius_compound(&self) -> f32 {
-        // TODO: Get the AABB of the compound shape i.e. the root of a compound tree.
-        self.with_collider(|c| c.shape().compute_local_bounding_sphere().radius)
+        self.get_bounding_box_local_compound()
+            .half_extents()
+            .length()
     }
 
     pub fn get_speed(&self) -> f32 {

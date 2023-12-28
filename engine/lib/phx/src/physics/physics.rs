@@ -83,7 +83,7 @@ impl PhysicsWorld {
     pub fn get_rigid_body(&self, handle: rp::RigidBodyHandle) -> &rp::RigidBody {
         self.rigid_bodies.get(handle).unwrap()
     }
-    
+
     pub fn get_rigid_body_mut(&mut self, handle: rp::RigidBodyHandle) -> &mut rp::RigidBody {
         self.rigid_bodies.get_mut(handle).unwrap()
     }
@@ -91,7 +91,7 @@ impl PhysicsWorld {
     pub fn get_collider(&self, handle: rp::ColliderHandle) -> &rp::Collider {
         self.colliders.get(handle).unwrap()
     }
-    
+
     pub fn get_collider_mut(&mut self, handle: rp::ColliderHandle) -> &mut rp::Collider {
         self.colliders.get_mut(handle).unwrap()
     }
@@ -152,7 +152,7 @@ impl Physics {
     }
 
     /// Adds this rigid body to this physics world if it doesn't exist, otherwise do nothing.
-    /// 
+    ///
     /// Automatically adds all attached Triggers. Automatically adds all
     /// attached children and their Triggers.
     pub fn add_rigid_body(&mut self, rigid_body: &mut RigidBody) {
@@ -163,7 +163,7 @@ impl Physics {
     }
 
     /// Removes this rigid body from this physics world if it's added, otherwise do nothing.
-    /// 
+    ///
     /// Automatically removes all attached Triggers. Automatically removes all
     /// attached children and their Triggers.
     pub fn remove_rigid_body(&mut self, rigid_body: &mut RigidBody) {
