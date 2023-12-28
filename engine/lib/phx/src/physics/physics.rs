@@ -26,7 +26,14 @@ pub struct RayCastResult {
 }
 
 pub struct ShapeCastResult {
-    hits: Vec<*mut RigidBody>,
+    hits: *const *mut RigidBody,
+    hits_len: u32,
+}
+
+impl ShapeCastResult {
+    pub fn get_hits(&self) -> &[*mut RigidBody] {
+        unsafe { std::slice::from_raw_parts(self.hits, self.hits_len as usize) }
+    }
 }
 
 pub trait NalgebraVec3Interop {
@@ -280,15 +287,16 @@ impl Physics {
             pos: Vec3::ZERO,
             t: 0.0,
         };
+        let world = self.world.borrow();
         if let Some((handle, intersection)) = self.query_pipeline.cast_ray_and_get_normal(
-            &self.world.borrow().rigid_bodies,
-            &self.world.borrow().colliders,
+            &world.rigid_bodies,
+            &world.colliders,
             &ray,
             length,
             true,
             filter,
         ) {
-            if let Some(collider) = self.world.borrow().colliders.get(handle) {
+            if let Some(collider) = world.colliders.get(handle) {
                 if let Some(parent_rb) = RigidBody::linked_with_collider_mut(collider) {
                     result.body = parent_rb as *mut RigidBody;
                     result.pos = Vec3::from_na_point(&ray.point_at(intersection.toi));
@@ -301,32 +309,109 @@ impl Physics {
     }
 
     /// Results are unsorted and will include child objects.
+    ///
+    /// The array stored inside ShapeCastResult is valid until the next call to sphere_cast.
     #[bind(out_param = true)]
-    pub fn sphere_cast(&mut self, sphere: &Sphere) -> ShapeCastResult {
-        ShapeCastResult { hits: vec![] }
+    pub fn sphere_cast(&self, sphere: &Sphere) -> ShapeCastResult {
+        let result = self.shape_cast(&rp::Ball { radius: sphere.r }, sphere.p, Quat::IDENTITY);
+        unsafe {
+            static mut storage: Option<Box<[*mut RigidBody]>> = None;
+            storage = Some(result.into_boxed_slice());
+            ShapeCastResult {
+                hits: storage.as_ref().unwrap().as_ptr(),
+                hits_len: storage.as_ref().unwrap().len() as u32,
+            }
+        }
     }
 
     /// Results are unsorted and will include child objects.
+    ///
+    /// The array stored inside ShapeCastResult is valid until the next call to box_cast.
     #[bind(out_param = true)]
-    pub fn box_cast(&mut self, pos: &Vec3, rot: &Quat, halfExtents: &Vec3) -> ShapeCastResult {
-        ShapeCastResult { hits: vec![] }
+    pub fn box_cast(&self, pos: &Vec3, rot: &Quat, half_extents: &Vec3) -> ShapeCastResult {
+        let result = self.shape_cast(
+            &rp::Cuboid {
+                half_extents: half_extents.to_na(),
+            },
+            *pos,
+            *rot,
+        );
+        unsafe {
+            static mut storage: Option<Box<[*mut RigidBody]>> = None;
+            storage = Some(result.into_boxed_slice());
+            ShapeCastResult {
+                hits: storage.as_ref().unwrap().as_ptr(),
+                hits_len: storage.as_ref().unwrap().len() as u32,
+            }
+        }
     }
 
-    pub fn sphere_overlap(&mut self, sphere: &Sphere) -> bool {
-        false
+    pub fn sphere_overlap(&self, sphere: &Sphere) -> bool {
+        self.shape_overlap(&rp::Ball { radius: sphere.r }, sphere.p, Quat::IDENTITY)
     }
 
-    pub fn box_overlap(&mut self, pos: &Vec3, rot: &Quat, halfExtents: &Vec3) -> bool {
-        false
+    pub fn box_overlap(&self, pos: &Vec3, rot: &Quat, half_extents: &Vec3) -> bool {
+        self.shape_overlap(
+            &rp::Cuboid {
+                half_extents: half_extents.to_na(),
+            },
+            *pos,
+            *rot,
+        )
     }
 
-    pub fn print_profiling(&mut self) {}
+    pub fn draw_bounding_boxes_local(&self) {}
 
-    pub fn draw_bounding_boxes_local(&mut self) {}
+    pub fn draw_bounding_boxes_world(&self) {}
 
-    pub fn draw_bounding_boxes_world(&mut self) {}
+    pub fn draw_triggers(&self) {}
 
-    pub fn draw_triggers(&mut self) {}
+    pub fn draw_wireframes(&self) {}
+}
 
-    pub fn draw_wireframes(&mut self) {}
+impl Physics {
+    /// Returns a list of all rigid bodies that are contained within the shape
+    /// at the given position and rotation.
+    fn shape_cast(&self, shape: &dyn rp::Shape, pos: Vec3, rot: Quat) -> Vec<*mut RigidBody> {
+        let rp_transform =
+            rp::Isometry::from_parts(rp::Translation::from(pos.to_na()), rot.to_na());
+        let world = self.world.borrow();
+
+        // Trigger scene query and populate results.
+        let mut result: Vec<*mut RigidBody> = vec![];
+        self.query_pipeline.intersections_with_shape(
+            &world.rigid_bodies,
+            &world.colliders,
+            &rp_transform,
+            shape,
+            rp::QueryFilter::default(),
+            |handle| {
+                if let Some(rigid_body) =
+                    RigidBody::linked_with_collider_mut(world.get_collider(handle))
+                {
+                    result.push(rigid_body as *mut RigidBody);
+                }
+                true
+            },
+        );
+
+        result
+    }
+
+    /// Returns true if any rigid bodies are contained within the shape at the
+    /// given position and rotation.
+    fn shape_overlap(&self, shape: &dyn rp::Shape, pos: Vec3, rot: Quat) -> bool {
+        let rp_transform =
+            rp::Isometry::from_parts(rp::Translation::from(pos.to_na()), rot.to_na());
+        let world = self.world.borrow();
+        self.query_pipeline
+            .intersection_with_shape(
+                &world.rigid_bodies,
+                &world.colliders,
+                &rp_transform,
+                shape,
+                rp::QueryFilter::default(),
+            )
+            .is_some()
+    }
 }

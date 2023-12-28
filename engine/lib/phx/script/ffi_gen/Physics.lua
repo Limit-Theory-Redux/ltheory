@@ -25,15 +25,14 @@ function Loader.defineType()
             void     Physics_Update                 (Physics*, float dt);
             bool     Physics_GetNextCollision       (Physics const*, Collision* iterator);
             void     Physics_RayCast                (Physics const*, Ray const* ray, RayCastResult* out);
-            void     Physics_SphereCast             (Physics*, Sphere const* sphere, ShapeCastResult* out);
-            void     Physics_BoxCast                (Physics*, Vec3f const* pos, Quat const* rot, Vec3f const* halfExtents, ShapeCastResult* out);
-            bool     Physics_SphereOverlap          (Physics*, Sphere const* sphere);
-            bool     Physics_BoxOverlap             (Physics*, Vec3f const* pos, Quat const* rot, Vec3f const* halfExtents);
-            void     Physics_PrintProfiling         (Physics*);
-            void     Physics_DrawBoundingBoxesLocal (Physics*);
-            void     Physics_DrawBoundingBoxesWorld (Physics*);
-            void     Physics_DrawTriggers           (Physics*);
-            void     Physics_DrawWireframes         (Physics*);
+            void     Physics_SphereCast             (Physics const*, Sphere const* sphere, ShapeCastResult* out);
+            void     Physics_BoxCast                (Physics const*, Vec3f const* pos, Quat const* rot, Vec3f const* halfExtents, ShapeCastResult* out);
+            bool     Physics_SphereOverlap          (Physics const*, Sphere const* sphere);
+            bool     Physics_BoxOverlap             (Physics const*, Vec3f const* pos, Quat const* rot, Vec3f const* halfExtents);
+            void     Physics_DrawBoundingBoxesLocal (Physics const*);
+            void     Physics_DrawBoundingBoxesWorld (Physics const*);
+            void     Physics_DrawTriggers           (Physics const*);
+            void     Physics_DrawWireframes         (Physics const*);
         ]]
     end
 
@@ -52,7 +51,6 @@ function Loader.defineType()
             BoxCast                = libphx.Physics_BoxCast,
             SphereOverlap          = libphx.Physics_SphereOverlap,
             BoxOverlap             = libphx.Physics_BoxOverlap,
-            PrintProfiling         = libphx.Physics_PrintProfiling,
             DrawBoundingBoxesLocal = libphx.Physics_DrawBoundingBoxesLocal,
             DrawBoundingBoxesWorld = libphx.Physics_DrawBoundingBoxesWorld,
             DrawTriggers           = libphx.Physics_DrawTriggers,
@@ -80,7 +78,6 @@ function Loader.defineType()
                 boxCast                = libphx.Physics_BoxCast,
                 sphereOverlap          = libphx.Physics_SphereOverlap,
                 boxOverlap             = libphx.Physics_BoxOverlap,
-                printProfiling         = libphx.Physics_PrintProfiling,
                 drawBoundingBoxesLocal = libphx.Physics_DrawBoundingBoxesLocal,
                 drawBoundingBoxesWorld = libphx.Physics_DrawBoundingBoxesWorld,
                 drawTriggers           = libphx.Physics_DrawTriggers,
