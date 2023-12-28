@@ -23,7 +23,7 @@ function Loader.defineType()
             void     Physics_AddTrigger             (Physics*, Trigger* trigger);
             void     Physics_RemoveTrigger          (Physics*, Trigger* trigger);
             void     Physics_Update                 (Physics*, float dt);
-            bool     Physics_GetNextCollision       (Physics const*, Collision* c);
+            bool     Physics_GetNextCollision       (Physics const*, Collision* iterator);
             void     Physics_RayCast                (Physics const*, Ray const* ray, RayCastResult* out);
             void     Physics_SphereCast             (Physics*, Sphere const* sphere, ShapeCastResult* out);
             void     Physics_BoxCast                (Physics*, Vec3f const* pos, Quat const* rot, Vec3f const* halfExtents, ShapeCastResult* out);

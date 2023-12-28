@@ -134,8 +134,8 @@ do -- Transparent Structs
     } Box3i;
 
     typedef struct Collision {
-      int        index;
-      int        count;
+      uint32     index;
+      uint32     count;
       RigidBody* body0;
       RigidBody* body1;
     } Collision;

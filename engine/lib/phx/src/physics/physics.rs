@@ -9,13 +9,15 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::{Rc, Weak};
 
+#[repr(C)]
 pub struct Collision {
-    index: i32,
-    count: i32,
+    index: u32,
+    count: u32,
     body0: *mut RigidBody,
     body1: *mut RigidBody,
 }
 
+#[repr(C)]
 pub struct RayCastResult {
     body: *mut RigidBody,
     norm: Vec3,
@@ -217,8 +219,53 @@ impl Physics {
     ///
     /// Will include results for both child and parent RigidBodys that are
     /// colliding. Will not include Triggers.
-    pub fn get_next_collision(&self, c: &mut Collision) -> bool {
-        false
+    pub fn get_next_collision(&self, iterator: &mut Collision) -> bool {
+        let collision_count = self
+            .narrowphase
+            .contact_graph()
+            .raw_graph()
+            .raw_edges()
+            .len();
+
+        let world = &mut *self.world.borrow_mut();
+        while (iterator.index as usize) < collision_count {
+            let contact_pair = self
+                .narrowphase
+                .contact_pair_at_index(rp::TemporaryInteractionIndex::new(iterator.index));
+            iterator.index += 1;
+
+            // Evaluate contact.
+            // TODO: If one of these colliders is a child of the rigid body, return the child instead.
+            // We need to somehow store the tree of nodes somewhere.
+            let c1_parent = world
+                .colliders
+                .get(contact_pair.collider1)
+                .unwrap()
+                .parent();
+            let c2_parent = world
+                .colliders
+                .get(contact_pair.collider2)
+                .unwrap()
+                .parent();
+            if !c1_parent.is_some() || !c2_parent.is_some() {
+                continue;
+            }
+
+            iterator.count += 1;
+            iterator.body0 = *self
+                .rigid_body_map
+                .get(&c1_parent.unwrap())
+                .unwrap_or(&std::ptr::null_mut());
+            iterator.body1 = *self
+                .rigid_body_map
+                .get(&c2_parent.unwrap())
+                .unwrap_or(&std::ptr::null_mut());
+            return true;
+        }
+
+        iterator.body0 = std::ptr::null_mut();
+        iterator.body1 = std::ptr::null_mut();
+        return false;
     }
 
     #[bind(out_param = true)]
