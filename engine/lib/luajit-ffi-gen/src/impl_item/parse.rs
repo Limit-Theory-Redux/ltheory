@@ -233,7 +233,9 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                 if counter > 1 {
                     return Err(Error::new(
                         type_path.span(),
-                        format!("a type can't be nested within more than one of: Box, Option, Result."),
+                        format!(
+                            "a type can't be nested within more than one of: Box, Option, Result."
+                        ),
                     ));
                 }
 
