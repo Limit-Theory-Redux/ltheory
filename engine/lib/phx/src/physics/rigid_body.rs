@@ -82,6 +82,38 @@ pub struct RigidBody {
 
 // Functions to add and remove the rigid body from physics.
 impl RigidBody {
+    /// Links a RigidBody to a Rapier Collider, which we can later retrieve
+    /// using linked_with_collider and linked_with_collider_mut.
+    pub(crate) fn link_with_collider(rb: &mut Box<RigidBody>, collider: &mut rp::Collider) {
+        collider.user_data = &mut **rb as *mut RigidBody as u128;
+    }
+
+    /// Retrieves a reference to the RigidBody linked to a Rapier Collider.
+    ///
+    /// The rest of the physics module guarantees that as long as a given
+    /// collider exists, it's corresponding linked RigidBody exists as well.
+    pub(crate) fn linked_with_collider(collider: &rp::Collider) -> Option<&'_ RigidBody> {
+        if collider.user_data != 0 {
+            let raw_ptr = collider.user_data as *const RigidBody;
+            Some(unsafe { &*raw_ptr })
+        } else {
+            None
+        }
+    }
+
+    /// Retrieves a mutable reference to the RigidBody linked to a Rapier Collider.
+    ///
+    /// The rest of the physics module guarantees that as long as a given
+    /// collider exists, it's corresponding linked RigidBody exists as well.
+    pub(crate) fn linked_with_collider_mut(collider: &rp::Collider) -> Option<&'_ mut RigidBody> {
+        if collider.user_data != 0 {
+            let raw_ptr = collider.user_data as *mut RigidBody;
+            Some(unsafe { &mut *raw_ptr })
+        } else {
+            None
+        }
+    }
+
     pub(crate) fn add_to_world(
         &mut self,
         world: &Rc<RefCell<PhysicsWorld>>,
@@ -227,19 +259,26 @@ impl RigidBody {
         }
     }
 
-    pub fn new(shape: CollisionShape) -> Box<RigidBody> {
-        let rigidBody = rp::RigidBodyBuilder::dynamic().build();
-        Box::new(RigidBody {
-            state: State::Removed {
-                rb: rigidBody,
-                collider: shape.collider,
-            },
+    pub fn new(mut shape: CollisionShape) -> Box<RigidBody> {
+        let mut rigid_body = Box::new(RigidBody {
+            state: State::None,
             shape_type: shape.shape,
             shape_scale: shape.scale,
             collidable: true,
             collision_group: rp::InteractionGroups::default(),
             mass: 1.0,
-        })
+        });
+
+        // The collider stores a reference to the handle for this rigid body
+        // in its user data, which currently is just the stable raw pointer.
+        RigidBody::link_with_collider(&mut rigid_body, &mut shape.collider);
+
+        // Set initial state and return.
+        rigid_body.state = State::Removed {
+            rb: rp::RigidBodyBuilder::dynamic().build(),
+            collider: shape.collider,
+        };
+        rigid_body
     }
 
     /// Is this rigid body part of a compound shape?

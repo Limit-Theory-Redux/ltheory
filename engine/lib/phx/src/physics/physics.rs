@@ -235,31 +235,19 @@ impl Physics {
             iterator.index += 1;
 
             // Evaluate contact.
-            // TODO: If one of these colliders is a child of the rigid body, return the child instead.
-            // We need to somehow store the tree of nodes somewhere.
-            let c1_parent = world
-                .colliders
-                .get(contact_pair.collider1)
-                .unwrap()
-                .parent();
-            let c2_parent = world
-                .colliders
-                .get(contact_pair.collider2)
-                .unwrap()
-                .parent();
+            let c1_parent = RigidBody::linked_with_collider_mut(
+                world.colliders.get(contact_pair.collider1).unwrap(),
+            );
+            let c2_parent = RigidBody::linked_with_collider_mut(
+                world.colliders.get(contact_pair.collider2).unwrap(),
+            );
             if !c1_parent.is_some() || !c2_parent.is_some() {
                 continue;
             }
 
             iterator.count += 1;
-            iterator.body0 = *self
-                .rigid_body_map
-                .get(&c1_parent.unwrap())
-                .unwrap_or(&std::ptr::null_mut());
-            iterator.body1 = *self
-                .rigid_body_map
-                .get(&c2_parent.unwrap())
-                .unwrap_or(&std::ptr::null_mut());
+            iterator.body0 = c1_parent.unwrap() as *mut RigidBody;
+            iterator.body1 = c2_parent.unwrap() as *mut RigidBody;
             return true;
         }
 
@@ -301,14 +289,12 @@ impl Physics {
             filter,
         ) {
             if let Some(collider) = self.world.borrow().colliders.get(handle) {
-                let rigid_body_handle = collider.parent().unwrap();
-                result.body = *self
-                    .rigid_body_map
-                    .get(&rigid_body_handle)
-                    .unwrap_or(&std::ptr::null_mut());
-                result.pos = Vec3::from_na_point(&ray.point_at(intersection.toi));
-                result.norm = Vec3::from_na(&intersection.normal);
-                result.t = intersection.toi;
+                if let Some(parent_rb) = RigidBody::linked_with_collider_mut(collider) {
+                    result.body = parent_rb as *mut RigidBody;
+                    result.pos = Vec3::from_na_point(&ray.point_at(intersection.toi));
+                    result.norm = Vec3::from_na(&intersection.normal);
+                    result.t = intersection.toi;
+                }
             }
         }
         result
