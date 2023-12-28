@@ -32,7 +32,7 @@ function Loader.defineType()
             void     Physics_DrawBoundingBoxesLocal (Physics const*);
             void     Physics_DrawBoundingBoxesWorld (Physics const*);
             void     Physics_DrawTriggers           (Physics const*);
-            void     Physics_DrawWireframes         (Physics const*);
+            void     Physics_DrawWireframes         (Physics*);
         ]]
     end
 

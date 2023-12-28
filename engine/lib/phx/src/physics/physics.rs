@@ -2,6 +2,7 @@
 
 use crate::math::*;
 use crate::physics::*;
+use crate::render::*;
 use rapier3d::parry::query::RayCast;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
@@ -135,6 +136,8 @@ pub struct Physics {
     triggers: Vec<Trigger>,
 
     rigid_body_map: HashMap<rp::RigidBodyHandle, *mut RigidBody>,
+
+    debug_renderer: rp::DebugRenderPipeline,
 }
 
 #[luajit_ffi_gen::luajit_ffi(managed = true)]
@@ -157,6 +160,7 @@ impl Physics {
             ccd_solver: rp::CCDSolver::new(),
             triggers: Vec::new(),
             rigid_body_map: HashMap::new(),
+            debug_renderer: rp::DebugRenderPipeline::new(Default::default(), Default::default()),
         }
     }
 
@@ -366,7 +370,17 @@ impl Physics {
 
     pub fn draw_triggers(&self) {}
 
-    pub fn draw_wireframes(&self) {}
+    pub fn draw_wireframes(&mut self) {
+        let world = self.world.borrow();
+        self.debug_renderer.render(
+            &mut RapierDebugRenderer,
+            &world.rigid_bodies,
+            &world.colliders,
+            &self.impulse_joints,
+            &self.multibody_joints,
+            &self.narrow_phase,
+        )
+    }
 }
 
 impl Physics {
@@ -413,5 +427,25 @@ impl Physics {
                 rp::QueryFilter::default(),
             )
             .is_some()
+    }
+}
+
+struct RapierDebugRenderer;
+
+impl rp::DebugRenderBackend for RapierDebugRenderer {
+    fn draw_line(
+        &mut self,
+        object: rp::DebugRenderObject<'_>,
+        a: rp::Point<rp::Real>,
+        b: rp::Point<rp::Real>,
+        color: [f32; 4],
+    ) {
+        unsafe {
+            Draw_Color(color[0], color[1], color[2], color[3]);
+            Draw_Line3(
+                &Vec3::from_na_point(&a) as *const _,
+                &Vec3::from_na_point(&b) as *const _,
+            );
+        }
     }
 }
