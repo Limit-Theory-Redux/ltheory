@@ -368,7 +368,7 @@ impl RigidBody {
                     State::AttachedToParent { .. } => {
                         panic!("Child is already attached to a parent.");
                     }
-                    State::Removed { rb, mut collider } => {
+                    State::Removed { rb, collider } => {
                         let w = world.upgrade();
                         let w = &mut *w.borrow_mut();
 
@@ -404,11 +404,6 @@ impl RigidBody {
     ///
     /// This function assumes that `self` is not already a child.
     pub fn detach(&mut self, child: &mut RigidBody) {
-        // TODO: Introduce some kind of state transition function for &mut RigidBody that does something like
-        /*
-        child.transition_state(|state| match state {
-        });
-        */
         child.state = match replace(&mut child.state, State::None) {
             State::None => {
                 panic!("Child is not initialised");
@@ -423,7 +418,7 @@ impl RigidBody {
                 world,
             } => {
                 if parent != (self as *mut RigidBody) {
-                    panic!("Child is not attached to parent.");
+                    panic!("Child is not attached to this rigid body.");
                 }
 
                 // Convert current transform to world coordinates.
