@@ -216,8 +216,9 @@ function LTheory:onUpdate(dt)
     self.canvas:update(dt)
 
     local collision = Collision()
+    local collisions = {}
     while (self.system.physics:getNextCollision(collision)) do
-        --Log.Debug('', collision.index, collision.body0, collision.body1)
+        table.insert(collisions, string.format('Collision %d between %s and %s', collision.index, tostring(collision.body0), tostring(collision.body1)))
     end
 
     Gui:beginGui(self.resX, self.resY, InputInstance)
@@ -239,6 +240,10 @@ function LTheory:onUpdate(dt)
         for i = 1, triggerCount do
             self.trigger2:getContents(i - 1)
         end
+    end
+
+    for k, v in ipairs(collisions) do
+        Gui:textEx(Cache.Font('Iceland', 32), v, 1.0, 1.0, 1.0, 1.0)
     end
 
     Gui:endContainer()
