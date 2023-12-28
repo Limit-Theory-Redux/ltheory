@@ -20,7 +20,6 @@ pub enum CollisionShapeType {
     Box { halfExtents: Vec3 },
     Sphere { radius: f32 },
     Hull { mesh: Box<Mesh> },
-    Compound(),
 }
 
 impl CollisionShapeType {
@@ -33,7 +32,6 @@ impl CollisionShapeType {
             CollisionShapeType::Hull { mesh } => CollisionShapeType::Hull {
                 mesh: unsafe { Mesh_Clone(&mut **mesh) },
             },
-            CollisionShapeType::Compound() => CollisionShapeType::Compound(),
         }
     }
 }
@@ -56,8 +54,8 @@ impl CollisionShape {
             _ => ColliderBuilder::ball(1.0), // TODO: Implement remaining types.
         };
         CollisionShape {
-            scale: scale,
-            shape: shape,
+            scale,
+            shape,
             collider: builder.restitution(0.4).build(),
         }
     }
@@ -99,7 +97,7 @@ impl CollisionShape {
         )
     }
 
-    pub fn new_hull_from_mesh(mut mesh: Box<Mesh>) -> CollisionShape {
+    pub fn new_hull_from_mesh(mesh: Box<Mesh>) -> CollisionShape {
         Self::new(1.0, CollisionShapeType::Hull { mesh })
     }
 }

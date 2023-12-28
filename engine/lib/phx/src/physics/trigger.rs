@@ -18,13 +18,13 @@ struct Trigger {
   Physics*     physics;
 };
  */
-pub(crate) enum TriggerState {
+enum State {
     Removed { collider: rp::Collider },
     Added { collider_handle: rp::ColliderHandle },
 }
 
 pub struct Trigger {
-    state: TriggerState,
+    state: State,
 }
 
 #[luajit_ffi_gen::luajit_ffi(managed = true)]
@@ -34,7 +34,7 @@ impl Trigger {
             .sensor(true)
             .build();
         Trigger {
-            state: TriggerState::Removed { collider: collider },
+            state: State::Removed { collider: collider },
         }
     }
 
