@@ -219,11 +219,15 @@ function LTheory:onUpdate(dt)
     while (self.system.physics:getNextCollision(collision)) do
         --Log.Debug('', collision.index, collision.body0, collision.body1)
     end
-    Log.Debug('Collision Count:', collision.count)
+
+    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:beginVerticalContainer()
+
+    Gui:textEx(Cache.Font('Iceland', 32), string.format('Collision Count: %d', collision.count), 1.0, 1.0, 1.0, 1.0)
 
     if worldTriggerTest then
         local triggerCount = self.trigger1:getContentsCount()
-        Log.Debug('World Trigger Count:', triggerCount)
+        Gui:textEx(Cache.Font('Iceland', 32), string.format('World Trigger Count: %d', triggerCount), 1.0, 1.0, 1.0, 1.0)
         for i = 1, triggerCount do
             self.trigger1:getContents(i - 1)
         end
@@ -231,13 +235,13 @@ function LTheory:onUpdate(dt)
 
     if attachedTriggerTest then
         local triggerCount = self.trigger2:getContentsCount()
-        Log.Debug('Attached Trigger Count:', triggerCount)
+        Gui:textEx(Cache.Font('Iceland', 32), string.format('Attached Trigger Count: %d', triggerCount), 1.0, 1.0, 1.0, 1.0)
         for i = 1, triggerCount do
             self.trigger2:getContents(i - 1)
         end
     end
 
-    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:endContainer()
     Gui:endGui(InputInstance)
 end
 

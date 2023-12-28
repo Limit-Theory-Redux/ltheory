@@ -8,13 +8,6 @@ use std::io::Cursor;
 use std::path::Path;
 use std::path::PathBuf;
 
-fn link_lib_from_cmake(lib: &str, root: &Path, path_segments: &[&str]) {
-    let mut path = root.to_path_buf();
-    path.extend(path_segments);
-    println!("cargo:rustc-link-search=native={}", path.display());
-    println!("cargo:rustc-link-lib={}", lib);
-}
-
 fn main() {
     let phx_version = env::var("PHX_VERSION").unwrap_or_else(|_| "0.0.0".to_string());
     println!("cargo:rustc-env=PHX_VERSION={}", phx_version);
