@@ -24,7 +24,7 @@ enum State {
         world: PhysicsWorldHandle,
         children: Vec<rp::ColliderHandle>,
     },
-    // Added to physics, and attached to a compound shape.
+    // Added to physics, and attached to another rigid body.
     AttachedToParent {
         parent: *mut RigidBody, // Raw pointer to stable memory address of parent (as it's in a Box).
         rb: rp::RigidBody, // Unused rapier RB, which we'd use again if the rigid body is detached.
@@ -182,7 +182,7 @@ impl RigidBody {
     }
 
     /// Executes a function f with a reference to the RigidBody associated with this object.
-    fn with_rigid_body<F, R>(&self, f: F) -> R
+    pub(crate) fn with_rigid_body<F, R>(&self, f: F) -> R
     where
         F: FnOnce(&rp::RigidBody) -> R,
     {
@@ -212,7 +212,7 @@ impl RigidBody {
     }
 
     /// Executes a function f with a reference to the collider associated with this object.
-    fn with_collider<F, R>(&self, f: F) -> R
+    pub(crate) fn with_collider<F, R>(&self, f: F) -> R
     where
         F: FnOnce(&rp::Collider) -> R,
     {
@@ -286,7 +286,7 @@ impl RigidBody {
         self.is_root_in_compound() || self.is_child()
     }
 
-    /// Is this rigid body a child of the root in a compound shape?
+    /// Is this rigid body a child of another?
     pub fn is_child(&self) -> bool {
         if let State::AttachedToParent { .. } = &self.state {
             true
@@ -318,6 +318,16 @@ impl RigidBody {
             self.with_rigid_body(|rb| rb.position().clone())
         };
         Matrix::from_rp(&global_transform)
+    }
+
+    // Returns the rapier handle of the root rigid body if this rigid body is
+    // added to the world or is attached to another, None otherwise.
+    pub fn get_rigid_body_handle(&self) -> Option<rp::RigidBodyHandle> {
+        match &self.state {
+            State::Added { rb_handle, .. } => Some(*rb_handle),
+            State::AttachedToParent { parent, .. } => unsafe { (**parent).get_rigid_body_handle() },
+            _ => None,
+        }
     }
 }
 

@@ -16,18 +16,17 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void             Trigger_Free             (Trigger*);
-            Trigger*         Trigger_CreateBox        (Vec3f const* halfExtents);
-            void             Trigger_Attach           (Trigger*, RigidBody* rb, Vec3f const* offset);
-            void             Trigger_Detach           (Trigger*, RigidBody* rb);
-            void             Trigger_GetBoundingBox   (Trigger const*, Box3f* out);
-            int              Trigger_GetContentsCount (Trigger const*);
-            RigidBody*       Trigger_GetContents      (Trigger const*, int i);
-            void             Trigger_SetCollisionMask (Trigger*, int i);
-            void             Trigger_SetPos           (Trigger*, Vec3f* pos);
-            void             Trigger_SetPosLocal      (Trigger*, Vec3f* pos);
-            RigidBody const* Trigger_GetParent        (Trigger*);
-            void             Trigger_Update           (Trigger*);
+            void       Trigger_Free             (Trigger*);
+            Trigger*   Trigger_CreateBox        (Vec3f const* halfExtents);
+            void       Trigger_Attach           (Trigger*, RigidBody* parent, Vec3f const* offset);
+            void       Trigger_Detach           (Trigger*, RigidBody* parent);
+            void       Trigger_GetBoundingBox   (Trigger const*, Box3f* out);
+            int        Trigger_GetContentsCount (Trigger const*);
+            RigidBody* Trigger_GetContents      (Trigger const*, int i);
+            void       Trigger_SetCollisionMask (Trigger*, uint32 mask);
+            void       Trigger_SetPos           (Trigger*, Vec3f* pos);
+            void       Trigger_SetPosLocal      (Trigger*, Vec3f* pos);
+            RigidBody* Trigger_GetParent        (Trigger*);
         ]]
     end
 
@@ -44,7 +43,6 @@ function Loader.defineType()
             SetPos           = libphx.Trigger_SetPos,
             SetPosLocal      = libphx.Trigger_SetPosLocal,
             GetParent        = libphx.Trigger_GetParent,
-            Update           = libphx.Trigger_Update,
         }
 
         if onDef_Trigger then onDef_Trigger(Trigger, mt) end
@@ -66,7 +64,6 @@ function Loader.defineType()
                 setPos           = libphx.Trigger_SetPos,
                 setPosLocal      = libphx.Trigger_SetPosLocal,
                 getParent        = libphx.Trigger_GetParent,
-                update           = libphx.Trigger_Update,
             },
         }
 

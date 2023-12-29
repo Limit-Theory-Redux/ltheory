@@ -133,8 +133,6 @@ pub struct Physics {
     multibody_joints: rp::MultibodyJointSet,
     ccd_solver: rp::CCDSolver,
 
-    triggers: Vec<Trigger>,
-
     rigid_body_map: HashMap<rp::RigidBodyHandle, *mut RigidBody>,
 
     debug_renderer: rp::DebugRenderPipeline,
@@ -158,7 +156,6 @@ impl Physics {
             impulse_joints: rp::ImpulseJointSet::new(),
             multibody_joints: rp::MultibodyJointSet::new(),
             ccd_solver: rp::CCDSolver::new(),
-            triggers: Vec::new(),
             rigid_body_map: HashMap::new(),
             debug_renderer: rp::DebugRenderPipeline::new(Default::default(), Default::default()),
         }
@@ -187,15 +184,15 @@ impl Physics {
         }
     }
 
-    pub fn add_trigger(&mut self, trigger: &mut Trigger) {}
+    pub fn add_trigger(&mut self, trigger: &mut Trigger) {
+        let _ = trigger.add_to_world(&self.world);
+    }
 
-    pub fn remove_trigger(&mut self, trigger: &mut Trigger) {}
+    pub fn remove_trigger(&mut self, trigger: &mut Trigger) {
+        let _ = trigger.remove_from_world();
+    }
 
     pub fn update(&mut self, dt: f32) {
-        for trigger in self.triggers.iter_mut() {
-            Trigger_Update(trigger);
-        }
-
         let gravity = Vec3::ZERO.to_na();
         let physics_hooks = ();
         let event_handler = ();
