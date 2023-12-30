@@ -161,6 +161,6 @@ impl Trigger {
     }
 
     fn get_parent(&mut self) -> Option<&mut RigidBody> {
-        self.parent.as_mut().map(|ptr| unsafe { ptr.as_mut() } )
+        self.parent.as_mut().map(|ptr| unsafe { ptr.as_mut() })
     }
 }

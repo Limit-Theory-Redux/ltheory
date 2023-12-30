@@ -1,4 +1,4 @@
-use crate::physics::PhysicsWorld;
+use crate::physics::*;
 use crate::rf::Rf;
 use rapier3d::prelude as rp;
 use std::cell::{Ref, RefMut};
@@ -48,60 +48,31 @@ impl<T> DerefMut for RefMutOrBorrow<'_, T> {
     }
 }
 
-// A wrapper over either a rigid body or a rigid body handle.
-pub(crate) enum RigidBodyWrapper {
-    Removed(rp::RigidBody),
-    Added(rp::RigidBodyHandle),
-}
-
-impl RigidBodyWrapper {
-    pub(crate) fn get<'a>(&'a self, world: &'a Rf<PhysicsWorld>) -> RefOrBorrow<'a, rp::RigidBody> {
-        match self {
-            RigidBodyWrapper::Removed(body) => RefOrBorrow::Borrow(body),
-            RigidBodyWrapper::Added(handle) => {
-                RefOrBorrow::Ref(Ref::map(world.as_ref(), |w| w.get(*handle)))
-            }
-        }
-    }
-
-    pub(crate) fn get_mut<'a>(
-        &'a mut self,
-        world: &'a Rf<PhysicsWorld>,
-    ) -> RefMutOrBorrow<'a, rp::RigidBody> {
-        match self {
-            RigidBodyWrapper::Removed(body) => RefMutOrBorrow::Borrow(body),
-            RigidBodyWrapper::Added(handle) => {
-                RefMutOrBorrow::Ref(RefMut::map(world.as_mut(), |w| w.get_mut(*handle)))
-            }
-        }
-    }
-}
-
 /// A wrapper over two states:
 /// - A rapier object that does not belong to a world
 /// - A rapier object handle that has been added to a world
 ///
 /// This wrapper allows us to access the underlying rapier type regardless of
 /// whether it's been added to the world or not.
-pub(crate) enum ColliderWrapper {
-    Removed(rp::Collider),
-    Added(rp::ColliderHandle, Rf<PhysicsWorld>),
+pub(crate) enum RapierWrapper<H: RapierHandle> {
+    Removed(H::Object),
+    Added(H, Rf<PhysicsWorld>),
 }
 
-impl ColliderWrapper {
-    pub(crate) fn as_ref<'a>(&'a self) -> RefOrBorrow<'a, rp::Collider> {
+impl<H: RapierHandle> RapierWrapper<H> {
+    pub(crate) fn as_ref<'a>(&'a self) -> RefOrBorrow<'a, H::Object> {
         match self {
-            ColliderWrapper::Removed(body) => RefOrBorrow::Borrow(body),
-            ColliderWrapper::Added(handle, world) => {
+            RapierWrapper::Removed(t) => RefOrBorrow::Borrow(t),
+            RapierWrapper::Added(handle, world) => {
                 RefOrBorrow::Ref(Ref::map(world.as_ref(), |w| w.get(*handle)))
             }
         }
     }
 
-    pub(crate) fn as_mut<'a>(&'a mut self) -> RefMutOrBorrow<'a, rp::Collider> {
+    pub(crate) fn as_mut<'a>(&'a mut self) -> RefMutOrBorrow<'a, H::Object> {
         match self {
-            ColliderWrapper::Removed(body) => RefMutOrBorrow::Borrow(body),
-            ColliderWrapper::Added(handle, world) => {
+            RapierWrapper::Removed(t) => RefMutOrBorrow::Borrow(t),
+            RapierWrapper::Added(handle, world) => {
                 RefMutOrBorrow::Ref(RefMut::map(world.as_mut(), |w| w.get_mut(*handle)))
             }
         }
@@ -110,8 +81,8 @@ impl ColliderWrapper {
     pub(crate) fn replace(&mut self) -> Self {
         std::mem::replace(
             self,
-            ColliderWrapper::Added(
-                rp::ColliderHandle::invalid(),
+            RapierWrapper::Added(
+                H::invalid(),
                 Rf::new(PhysicsWorld {
                     island_manager: rp::IslandManager::new(),
                     rigid_bodies: rp::RigidBodySet::new(),
@@ -121,65 +92,57 @@ impl ColliderWrapper {
         )
     }
 
-    pub(crate) fn removed_as_ref(&self) -> Option<&rp::Collider> {
+    pub(crate) fn removed_as_ref(&self) -> Option<&H::Object> {
         match self {
-            ColliderWrapper::Removed(collider) => Some(collider),
+            RapierWrapper::Removed(collider) => Some(collider),
             _ => None,
         }
     }
 
-    pub(crate) fn added_as_ref(&self) -> Option<(&rp::ColliderHandle, &Rf<PhysicsWorld>)> {
+    pub(crate) fn added_as_ref(&self) -> Option<(&H, &Rf<PhysicsWorld>)> {
         match self {
-            ColliderWrapper::Added(handle, world) => Some((handle, world)),
+            RapierWrapper::Added(handle, world) => Some((handle, world)),
             _ => None,
         }
     }
 
     pub(crate) fn set_added<F>(&mut self, f: F)
     where
-        F: FnOnce(rp::Collider) -> (rp::ColliderHandle, Rf<PhysicsWorld>),
+        F: FnOnce(H::Object) -> (H, Rf<PhysicsWorld>),
     {
         *self = match self.replace() {
-            ColliderWrapper::Removed(collider) => {
+            RapierWrapper::Removed(collider) => {
                 let (handle, world) = f(collider);
-                ColliderWrapper::Added(handle, world)
+                RapierWrapper::Added(handle, world)
             }
-            ColliderWrapper::Added(handle, world) => ColliderWrapper::Added(handle, world),
+            RapierWrapper::Added(handle, world) => RapierWrapper::Added(handle, world),
         }
     }
 
     pub(crate) fn set_removed<F>(&mut self, f: F)
     where
-        F: FnOnce(rp::ColliderHandle, Rf<PhysicsWorld>) -> rp::Collider,
+        F: FnOnce(H, Rf<PhysicsWorld>) -> H::Object,
     {
         *self = match self.replace() {
-            ColliderWrapper::Removed(collider) => ColliderWrapper::Removed(collider),
-            ColliderWrapper::Added(handle, world) => ColliderWrapper::Removed(f(handle, world)),
-        }
-    }
-
-    pub(crate) fn get_handle(&self) -> Option<rp::ColliderHandle> {
-        if let ColliderWrapper::Added(handle, _) = self {
-            Some(*handle)
-        } else {
-            None
+            RapierWrapper::Removed(collider) => RapierWrapper::Removed(collider),
+            RapierWrapper::Added(handle, world) => RapierWrapper::Removed(f(handle, world)),
         }
     }
 
     pub(crate) fn is_added(&self) -> bool {
         match self {
-            ColliderWrapper::Removed(..) => false,
-            ColliderWrapper::Added(..) => true,
+            RapierWrapper::Removed(..) => false,
+            RapierWrapper::Added(..) => true,
         }
     }
 
     pub(crate) fn is_removed(&self) -> bool {
         match self {
-            ColliderWrapper::Removed(..) => true,
-            ColliderWrapper::Added(..) => false,
+            RapierWrapper::Removed(..) => true,
+            RapierWrapper::Added(..) => false,
         }
     }
 }
 
-// type RigidBodyWrapper = RapierWrapper<rp::RigidBodyHandle>;
-// type ColliderWrapper = RapierWrapper<rp::ColliderHandle>;
+pub(crate) type RigidBodyWrapper = RapierWrapper<rp::RigidBodyHandle>;
+pub(crate) type ColliderWrapper = RapierWrapper<rp::ColliderHandle>;

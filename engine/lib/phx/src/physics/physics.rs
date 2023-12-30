@@ -88,44 +88,54 @@ pub(crate) struct PhysicsWorld {
     pub(crate) colliders: rp::ColliderSet,
 }
 
-pub(crate) trait RapierHandle {
-    type Concrete;
+// All Rapier handles are Copy
+pub(crate) trait RapierHandle: Copy {
+    type Object;
 
-    fn get_concrete<'a>(&self, world: &'a PhysicsWorld) -> &'a Self::Concrete;
-    fn get_concrete_mut<'a>(&self, world: &'a mut PhysicsWorld) -> &'a mut Self::Concrete;
+    fn invalid() -> Self;
+    fn lookup_object<'a>(&self, world: &'a PhysicsWorld) -> &'a Self::Object;
+    fn lookup_object_mut<'a>(&self, world: &'a mut PhysicsWorld) -> &'a mut Self::Object;
 }
 
 impl RapierHandle for rp::ColliderHandle {
-    type Concrete = rp::Collider;
+    type Object = rp::Collider;
 
-    fn get_concrete<'a>(&self, world: &'a PhysicsWorld) -> &'a rp::Collider {
+    fn invalid() -> rp::ColliderHandle {
+        rp::ColliderHandle::invalid()
+    }
+
+    fn lookup_object<'a>(&self, world: &'a PhysicsWorld) -> &'a rp::Collider {
         world.colliders.get(*self).unwrap()
     }
 
-    fn get_concrete_mut<'a>(&self, world: &'a mut PhysicsWorld) -> &'a mut rp::Collider {
+    fn lookup_object_mut<'a>(&self, world: &'a mut PhysicsWorld) -> &'a mut rp::Collider {
         world.colliders.get_mut(*self).unwrap()
     }
 }
 
 impl RapierHandle for rp::RigidBodyHandle {
-    type Concrete = rp::RigidBody;
+    type Object = rp::RigidBody;
 
-    fn get_concrete<'a>(&self, world: &'a PhysicsWorld) -> &'a rp::RigidBody {
+    fn invalid() -> rp::RigidBodyHandle {
+        rp::RigidBodyHandle::invalid()
+    }
+
+    fn lookup_object<'a>(&self, world: &'a PhysicsWorld) -> &'a rp::RigidBody {
         world.rigid_bodies.get(*self).unwrap()
     }
 
-    fn get_concrete_mut<'a>(&self, world: &'a mut PhysicsWorld) -> &'a mut rp::RigidBody {
+    fn lookup_object_mut<'a>(&self, world: &'a mut PhysicsWorld) -> &'a mut rp::RigidBody {
         world.rigid_bodies.get_mut(*self).unwrap()
     }
 }
 
 impl PhysicsWorld {
-    pub fn get<H: RapierHandle>(&self, handle: H) -> &H::Concrete {
-        handle.get_concrete(self)
+    pub fn get<H: RapierHandle>(&self, handle: H) -> &H::Object {
+        handle.lookup_object(self)
     }
 
-    pub fn get_mut<H: RapierHandle>(&mut self, handle: H) -> &mut H::Concrete {
-        handle.get_concrete_mut(self)
+    pub fn get_mut<H: RapierHandle>(&mut self, handle: H) -> &mut H::Object {
+        handle.lookup_object_mut(self)
     }
 }
 
