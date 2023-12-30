@@ -5,6 +5,7 @@ use rapier3d::prelude::nalgebra as na;
 use std::cell::RefCell;
 use std::mem::replace;
 use std::rc::Rc;
+use std::ptr::NonNull;
 
 enum State {
     // Uninitialized.
@@ -16,18 +17,18 @@ enum State {
     // Added to physics.
     Added {
         collider_handle: rp::ColliderHandle,
-        world: PhysicsWorldHandle,
     },
     // Added to physics, and attached to another rigid body.
     AttachedToParent {
-        parent: *mut RigidBody, // Raw pointer to stable memory address of parent (as it's in a Box).
         collider_handle: rp::ColliderHandle,
-        world: PhysicsWorldHandle,
     },
 }
 
 pub struct Trigger {
     state: State,
+    world: Option<PhysicsWorldHandle>,
+    // Raw pointer to stable memory address of parent (as it's in a Box).
+    parent: *mut RigidBody,
     collision_group: rp::InteractionGroups,
 }
 
@@ -38,11 +39,12 @@ impl Trigger {
     ) -> Option<rp::ColliderHandle> {
         // It only makes sense to add to the world if we're removed.
         if let State::Removed { collider } = replace(&mut self.state, State::None) {
-            let w = &mut *world.borrow_mut();
-            let collider_handle = w.colliders.insert(collider);
+            self.world = Some(PhysicsWorldHandle::from_rc(world));
+
+            // let w = &mut *world.borrow_mut();
+            let collider_handle = world.borrow_mut().colliders.insert(collider);
             self.state = State::Added {
                 collider_handle,
-                world: PhysicsWorldHandle::from_rc(world),
             };
             Some(collider_handle)
         } else {
@@ -52,11 +54,10 @@ impl Trigger {
 
     pub(crate) fn remove_from_world(&mut self) -> Option<rp::ColliderHandle> {
         if let State::Added {
-            collider_handle,
-            world,
+            collider_handle
         } = replace(&mut self.state, State::None)
         {
-            let w = world.upgrade();
+            let w = self.world.as_ref().unwrap().upgrade();
             let w = &mut *w.borrow_mut();
             let collider = w
                 .colliders
@@ -83,15 +84,11 @@ impl Trigger {
             State::None => panic!("Uninitialized Trigger."),
             State::Removed { collider, .. } => f(collider),
             State::Added {
-                collider_handle,
-                world,
-                ..
-            } => f(world.upgrade().borrow().get_collider(*collider_handle)),
+                collider_handle
+            } => f(self.world.as_ref().unwrap().upgrade().borrow().get_collider(*collider_handle)),
             State::AttachedToParent {
-                collider_handle,
-                world,
-                ..
-            } => f(world.upgrade().borrow().get_collider(*collider_handle)),
+                collider_handle
+            } => f(self.world.as_ref().unwrap().upgrade().borrow().get_collider(*collider_handle)),
         }
     }
 
@@ -105,17 +102,13 @@ impl Trigger {
             State::Removed { collider, .. } => f(collider),
             State::Added {
                 collider_handle,
-                world,
-                ..
-            } => f(world
+            } => f(self.world.as_ref().unwrap()
                 .upgrade()
                 .borrow_mut()
                 .get_collider_mut(*collider_handle)),
             State::AttachedToParent {
-                collider_handle,
-                world,
-                ..
-            } => f(world
+                collider_handle
+            } => f(self.world.as_ref().unwrap()
                 .upgrade()
                 .borrow_mut()
                 .get_collider_mut(*collider_handle)),
@@ -133,6 +126,8 @@ impl Trigger {
         Trigger {
             state: State::Removed { collider },
             collision_group: rp::InteractionGroups::default(),
+            world: None,
+            parent: std::ptr::null_mut(),
         }
     }
 
@@ -141,10 +136,9 @@ impl Trigger {
             State::AttachedToParent { .. } => panic!("Trigger is already attached to an object."),
             State::None | State::Removed { .. } => panic!("Trigger is not added to the world."),
             State::Added {
-                collider_handle,
-                world,
+                collider_handle
             } => {
-                let w = world.upgrade();
+                let w = self.world.as_ref().unwrap().upgrade();
                 let w = &mut *w.borrow_mut();
 
                 // Update the parent link.
@@ -165,10 +159,10 @@ impl Trigger {
                 w.get_collider_mut(collider_handle)
                     .set_position_wrt_parent(transform);
 
+                self.parent = parent as *mut RigidBody;
+
                 State::AttachedToParent {
-                    parent: parent as *mut RigidBody,
                     collider_handle,
-                    world,
                 }
             }
         }
@@ -177,16 +171,14 @@ impl Trigger {
     fn detach(&mut self, parent: &mut RigidBody) {
         self.state = match replace(&mut self.state, State::None) {
             State::AttachedToParent {
-                parent: current_parent,
                 collider_handle,
-                world,
             } => {
                 // TODO: Remove this check and remove the parent parameter completely.
-                if parent as *mut RigidBody != current_parent {
+                if parent as *mut RigidBody != self.parent {
                     panic!("Trigger is attached to a different object.");
                 }
 
-                let w = world.upgrade();
+                let w = self.world.as_ref().unwrap().upgrade();
                 let w = &mut *w.borrow_mut();
 
                 // Update the parent link.
@@ -195,7 +187,6 @@ impl Trigger {
 
                 State::Added {
                     collider_handle,
-                    world,
                 }
             }
             // TODO: Maybe log here instead of panic?
@@ -235,14 +226,12 @@ impl Trigger {
     #[bind(name = "SetPosLocal")]
     fn set_position_local(&mut self, pos: &mut Vec3) {
         if let State::AttachedToParent {
-            parent,
             collider_handle,
-            world,
         } = &self.state
         {
-            let w = world.upgrade();
+            let w = self.world.as_ref().unwrap().upgrade();
             let w = &mut *w.borrow_mut();
-            let parent = unsafe { &mut **parent };
+            let parent = unsafe { &mut *self.parent };
 
             // Compute the new local transformation by taking the existing
             // rigid body hierarchy into account. If the parent is itself
@@ -259,9 +248,10 @@ impl Trigger {
     }
 
     fn get_parent(&mut self) -> Option<&mut RigidBody> {
-        match &self.state {
-            State::AttachedToParent { parent, .. } => unsafe { Some(&mut **parent) },
-            _ => None,
+        if self.parent != std::ptr::null_mut() {
+            unsafe { Some(&mut *self.parent) }
+        } else {
+            None
         }
     }
 }
