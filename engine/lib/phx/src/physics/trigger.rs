@@ -3,11 +3,12 @@ use crate::physics::*;
 use crate::rf::Rf;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
+use std::ptr::NonNull;
 
 pub struct Trigger {
     collider: ColliderWrapper,
     // Raw pointer to stable memory address of parent (as it's in a Box).
-    parent: *mut RigidBody,
+    parent: Option<NonNull<RigidBody>>,
     collision_group: rp::InteractionGroups,
 }
 
@@ -37,7 +38,7 @@ impl Trigger {
     }
 
     pub fn is_attached(&self) -> bool {
-        self.parent != std::ptr::null_mut()
+        self.parent.is_some()
     }
 }
 
@@ -51,7 +52,7 @@ impl Trigger {
         Trigger {
             collider: ColliderWrapper::Removed(collider),
             collision_group: rp::InteractionGroups::default(),
-            parent: std::ptr::null_mut(),
+            parent: None,
         }
     }
 
@@ -85,15 +86,10 @@ impl Trigger {
         w.get_mut(*collider_handle)
             .set_position_wrt_parent(transform);
 
-        self.parent = parent as *mut RigidBody;
+        self.parent = Some(NonNull::new(parent as *mut _).expect("parent cannot be null"));
     }
 
-    fn detach(&mut self, parent: &mut RigidBody) {
-        // TODO: Remove this check and remove the parent parameter completely.
-        if parent as *mut RigidBody != self.parent {
-            panic!("Trigger is attached to a different object.");
-        }
-
+    fn detach(&mut self, _parent: &mut RigidBody) {
         if !self.is_attached() {
             // TODO: Maybe log here instead of panic?
             panic!("Trigger is not attached to an object.");
@@ -150,7 +146,7 @@ impl Trigger {
             panic!("Only allowed when attached to a RigidBody.");
         }
 
-        let parent = unsafe { &mut *self.parent };
+        let parent = unsafe { self.parent.as_mut().unwrap().as_mut() };
 
         // Compute the new local transformation by taking the existing
         // rigid body hierarchy into account. If the parent is itself
@@ -165,10 +161,6 @@ impl Trigger {
     }
 
     fn get_parent(&mut self) -> Option<&mut RigidBody> {
-        if self.parent != std::ptr::null_mut() {
-            unsafe { Some(&mut *self.parent) }
-        } else {
-            None
-        }
+        self.parent.as_mut().map(|ptr| unsafe { ptr.as_mut() } )
     }
 }
