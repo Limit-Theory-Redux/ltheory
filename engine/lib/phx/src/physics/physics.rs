@@ -427,21 +427,66 @@ impl Physics {
     }
 }
 
+/// Convert HSL color to RGB
+pub fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (f32, f32, f32) {
+    if s == 0.0 {
+        // Achromatic, i.e., grey.
+        return (l, l, l);
+    }
+
+    let h = h / 360.0; // treat this as 0..1 instead of degrees
+
+    let q = if l < 0.5 {
+        l * (1.0 + s)
+    } else {
+        l + s - (l * s)
+    };
+    let p = 2.0 * l - q;
+
+    (
+        hue_to_rgb(p, q, h + 1.0 / 3.0),
+        hue_to_rgb(p, q, h),
+        hue_to_rgb(p, q, h - 1.0 / 3.0),
+    )
+}
+
+fn hue_to_rgb(p: f32, q: f32, t: f32) -> f32 {
+    // Normalize
+    let t = if t < 0.0 {
+        t + 1.0
+    } else if t > 1.0 {
+        t - 1.0
+    } else {
+        t
+    };
+
+    if t < 1.0 / 6.0 {
+        p + (q - p) * 6.0 * t
+    } else if t < 1.0 / 2.0 {
+        q
+    } else if t < 2.0 / 3.0 {
+        p + (q - p) * (2.0 / 3.0 - t) * 6.0
+    } else {
+        p
+    }
+}
+
 struct RapierDebugRenderer;
 
 impl rp::DebugRenderBackend for RapierDebugRenderer {
     fn draw_line(
         &mut self,
         object: rp::DebugRenderObject<'_>,
-        a: rp::Point<rp::Real>,
-        b: rp::Point<rp::Real>,
+        start: rp::Point<rp::Real>,
+        end: rp::Point<rp::Real>,
         color: [f32; 4],
     ) {
         unsafe {
-            Draw_Color(color[0], color[1], color[2], color[3]);
+            let (r, g, b) = hsl_to_rgb(color[0], color[1], color[2]);
+            Draw_Color(r, g, b, color[3]);
             Draw_Line3(
-                &Vec3::from_na_point(&a) as *const _,
-                &Vec3::from_na_point(&b) as *const _,
+                &Vec3::from_na_point(&start) as *const _,
+                &Vec3::from_na_point(&end) as *const _,
             );
         }
     }
