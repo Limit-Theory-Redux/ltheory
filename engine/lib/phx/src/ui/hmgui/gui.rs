@@ -6,6 +6,7 @@ use crate::common::*;
 use crate::input::*;
 use crate::math::*;
 use crate::render::*;
+use crate::rf::Rf;
 use crate::system::{Hash_FNV64_Incremental, Hash_FNV64_Init, Profiler_Begin, Profiler_End};
 
 use super::*;

@@ -4,6 +4,8 @@ use std::fs::File;
 
 use glam::{Vec2, Vec4};
 
+use crate::rf::Rf;
+
 use super::*;
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
