@@ -1,24 +1,8 @@
-use crate::physics::{PhysicsWorld, PhysicsWorldHandle};
+use crate::physics::PhysicsWorld;
+use crate::rf::Rf;
 use rapier3d::prelude as rp;
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{Ref, RefMut};
 use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
-
-// struct PhysicsWorldRef<'a> {
-//     rc: Rc<RefCell<PhysicsWorld>>,
-//     world_ref: Option<Ref<'a, PhysicsWorld>>,
-// }
-
-// impl PhysicsWorldRef<'_> {
-//     pub fn upgrade<'a>(world: &'a PhysicsWorldHandle) -> PhysicsWorldRef<'a> {
-//         let mut r = PhysicsWorldRef {
-//             rc: world.upgrade(),
-//             world_ref: None,
-//         };
-//         r.world_ref = Some(r.rc.borrow());
-//         r
-//     }
-// }
 
 pub enum RefOrBorrow<'a, T> {
     Ref(Ref<'a, T>),
@@ -71,26 +55,23 @@ pub(crate) enum RigidBodyWrapper {
 }
 
 impl RigidBodyWrapper {
-    pub(crate) fn get<'a>(
-        &'a self,
-        world: &'a Rc<RefCell<PhysicsWorld>>,
-    ) -> RefOrBorrow<'a, rp::RigidBody> {
+    pub(crate) fn get<'a>(&'a self, world: &'a Rf<PhysicsWorld>) -> RefOrBorrow<'a, rp::RigidBody> {
         match self {
             RigidBodyWrapper::Removed(body) => RefOrBorrow::Borrow(body),
             RigidBodyWrapper::Added(handle) => {
-                RefOrBorrow::Ref(Ref::map(world.borrow(), |w| w.get(*handle)))
+                RefOrBorrow::Ref(Ref::map(world.as_ref(), |w| w.get(*handle)))
             }
         }
     }
 
     pub(crate) fn get_mut<'a>(
         &'a mut self,
-        world: &'a Rc<RefCell<PhysicsWorld>>,
+        world: &'a Rf<PhysicsWorld>,
     ) -> RefMutOrBorrow<'a, rp::RigidBody> {
         match self {
             RigidBodyWrapper::Removed(body) => RefMutOrBorrow::Borrow(body),
             RigidBodyWrapper::Added(handle) => {
-                RefMutOrBorrow::Ref(RefMut::map(world.borrow_mut(), |w| w.get_mut(*handle)))
+                RefMutOrBorrow::Ref(RefMut::map(world.as_mut(), |w| w.get_mut(*handle)))
             }
         }
     }
@@ -104,7 +85,7 @@ impl RigidBodyWrapper {
 /// whether it's been added to the world or not.
 pub(crate) enum ColliderWrapper {
     Removed(rp::Collider),
-    Added(rp::ColliderHandle, Rc<RefCell<PhysicsWorld>>),
+    Added(rp::ColliderHandle, Rf<PhysicsWorld>),
 }
 
 impl ColliderWrapper {
@@ -112,7 +93,7 @@ impl ColliderWrapper {
         match self {
             ColliderWrapper::Removed(body) => RefOrBorrow::Borrow(body),
             ColliderWrapper::Added(handle, world) => {
-                RefOrBorrow::Ref(Ref::map(world.borrow(), |w| w.get(*handle)))
+                RefOrBorrow::Ref(Ref::map(world.as_ref(), |w| w.get(*handle)))
             }
         }
     }
@@ -121,7 +102,7 @@ impl ColliderWrapper {
         match self {
             ColliderWrapper::Removed(body) => RefMutOrBorrow::Borrow(body),
             ColliderWrapper::Added(handle, world) => {
-                RefMutOrBorrow::Ref(RefMut::map(world.borrow_mut(), |w| w.get_mut(*handle)))
+                RefMutOrBorrow::Ref(RefMut::map(world.as_mut(), |w| w.get_mut(*handle)))
             }
         }
     }
@@ -131,11 +112,11 @@ impl ColliderWrapper {
             self,
             ColliderWrapper::Added(
                 rp::ColliderHandle::invalid(),
-                Rc::new(RefCell::new(PhysicsWorld {
+                Rf::new(PhysicsWorld {
                     island_manager: rp::IslandManager::new(),
                     rigid_bodies: rp::RigidBodySet::new(),
                     colliders: rp::ColliderSet::new(),
-                })),
+                }),
             ),
         )
     }
@@ -147,7 +128,7 @@ impl ColliderWrapper {
         }
     }
 
-    pub(crate) fn added_as_ref(&self) -> Option<(&rp::ColliderHandle, &Rc<RefCell<PhysicsWorld>>)> {
+    pub(crate) fn added_as_ref(&self) -> Option<(&rp::ColliderHandle, &Rf<PhysicsWorld>)> {
         match self {
             ColliderWrapper::Added(handle, world) => Some((handle, world)),
             _ => None,
@@ -156,7 +137,7 @@ impl ColliderWrapper {
 
     pub(crate) fn set_added<F>(&mut self, f: F)
     where
-        F: FnOnce(rp::Collider) -> (rp::ColliderHandle, Rc<RefCell<PhysicsWorld>>),
+        F: FnOnce(rp::Collider) -> (rp::ColliderHandle, Rf<PhysicsWorld>),
     {
         *self = match self.replace() {
             ColliderWrapper::Removed(collider) => {
@@ -169,7 +150,7 @@ impl ColliderWrapper {
 
     pub(crate) fn set_removed<F>(&mut self, f: F)
     where
-        F: FnOnce(rp::ColliderHandle, Rc<RefCell<PhysicsWorld>>) -> rp::Collider,
+        F: FnOnce(rp::ColliderHandle, Rf<PhysicsWorld>) -> rp::Collider,
     {
         *self = match self.replace() {
             ColliderWrapper::Removed(collider) => ColliderWrapper::Removed(collider),
@@ -199,3 +180,6 @@ impl ColliderWrapper {
         }
     }
 }
+
+// type RigidBodyWrapper = RapierWrapper<rp::RigidBodyHandle>;
+// type ColliderWrapper = RapierWrapper<rp::ColliderHandle>;

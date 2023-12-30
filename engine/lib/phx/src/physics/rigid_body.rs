@@ -2,6 +2,7 @@ use crate::common::*;
 use crate::math::*;
 use crate::physics::*;
 use crate::render::*;
+use crate::rf::Rf;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
 use std::cell::RefCell;
@@ -13,7 +14,6 @@ use tracing::debug;
 // states for RigidBody/RigidBodyHandle (depending on
 // whether it's in the world or not). Then use that
 // primitive instead.
-#[derive(Clone)]
 enum State {
     // Uninitialized.
     None,
@@ -26,7 +26,7 @@ enum State {
     Added {
         rb_handle: rp::RigidBodyHandle,
         collider_handle: rp::ColliderHandle,
-        world: PhysicsWorldHandle,
+        world: Rf<PhysicsWorld>,
         children: Vec<rp::ColliderHandle>,
     },
     // Added to physics, and attached to another rigid body.
@@ -34,7 +34,7 @@ enum State {
         parent: *mut RigidBody, // Raw pointer to stable memory address of parent (as it's in a Box).
         rb: rp::RigidBody, // Unused rapier RB, which we'd use again if the rigid body is detached.
         collider_handle: rp::ColliderHandle,
-        world: PhysicsWorldHandle,
+        world: Rf<PhysicsWorld>,
     },
 }
 
@@ -121,20 +121,23 @@ impl RigidBody {
 
     pub(crate) fn add_to_world(
         &mut self,
-        world: &Rc<RefCell<PhysicsWorld>>,
+        world: Rf<PhysicsWorld>,
     ) -> Option<(rp::ColliderHandle, rp::RigidBodyHandle)> {
         // It only makes sense to add to the world if we're removed.
         if let State::Removed { rb, collider } = replace(&mut self.state, State::None) {
-            let w = &mut *world.borrow_mut();
-            let rb_handle = w.rigid_bodies.insert(rb);
-            let collider_handle =
-                w.colliders
-                    .insert_with_parent(collider, rb_handle, &mut w.rigid_bodies);
+            let (rb_handle, collider_handle) = {
+                let w = &mut *world.as_mut();
+                let rb_handle = w.rigid_bodies.insert(rb);
+                let collider_handle =
+                    w.colliders
+                        .insert_with_parent(collider, rb_handle, &mut w.rigid_bodies);
+                (rb_handle, collider_handle)
+            };
             self.state = State::Added {
                 rb_handle,
                 collider_handle,
                 children: vec![],
-                world: PhysicsWorldHandle::from_rc(world),
+                world,
             };
             Some((collider_handle, rb_handle))
         } else {
@@ -154,8 +157,7 @@ impl RigidBody {
             children,
         } = replace(&mut self.state, State::None)
         {
-            let w = world.upgrade();
-            let w = &mut *w.borrow_mut();
+            let w = &mut *world.as_mut();
             let collider = w
                 .colliders
                 .remove(
@@ -200,7 +202,7 @@ impl RigidBody {
             State::Removed { rb, .. } => f(rb),
             State::Added {
                 rb_handle, world, ..
-            } => f(world.upgrade().borrow().get(*rb_handle)),
+            } => f(world.as_ref().get(*rb_handle)),
             State::AttachedToParent { .. } => panic!("Not supported on children."),
         }
     }
@@ -215,7 +217,7 @@ impl RigidBody {
             State::Removed { rb, .. } => f(rb),
             State::Added {
                 rb_handle, world, ..
-            } => f(world.upgrade().borrow_mut().get_mut(*rb_handle)),
+            } => f(world.as_mut().get_mut(*rb_handle)),
             State::AttachedToParent { .. } => panic!("Not supported on children."),
         }
     }
@@ -232,12 +234,12 @@ impl RigidBody {
                 collider_handle,
                 world,
                 ..
-            } => f(world.upgrade().borrow().get(*collider_handle)),
+            } => f(world.as_ref().get(*collider_handle)),
             State::AttachedToParent {
                 collider_handle,
                 world,
                 ..
-            } => f(world.upgrade().borrow().get(*collider_handle)),
+            } => f(world.as_ref().get(*collider_handle)),
         }
     }
 
@@ -253,12 +255,12 @@ impl RigidBody {
                 collider_handle,
                 world,
                 ..
-            } => f(world.upgrade().borrow_mut().get_mut(*collider_handle)),
+            } => f(world.as_mut().get_mut(*collider_handle)),
             State::AttachedToParent {
                 collider_handle,
                 world,
                 ..
-            } => f(world.upgrade().borrow_mut().get_mut(*collider_handle)),
+            } => f(world.as_mut().get_mut(*collider_handle)),
         }
     }
 
@@ -412,7 +414,7 @@ impl RigidBody {
                 children,
                 ..
             } => {
-                child.state = match child.state.clone() {
+                child.state = match replace(&mut child.state, State::None) {
                     State::None => {
                         panic!("Child is not initialised");
                     }
@@ -423,8 +425,7 @@ impl RigidBody {
                         panic!("Child is already attached to a parent.");
                     }
                     State::Removed { rb, collider } => {
-                        let w = world.upgrade();
-                        let w = &mut *w.borrow_mut();
+                        let w = &mut *world.as_mut();
 
                         debug!(
                             "Attaching rigid body {:?} to {:?}",
@@ -485,8 +486,7 @@ impl RigidBody {
                 let parent_transform = self.with_rigid_body(|rb| rb.position().clone());
 
                 // Get a mutable ref to the physics world.
-                let w = world.upgrade();
-                let w = &mut *w.borrow_mut();
+                let w = &mut *world.as_mut();
 
                 // Compute the combined transform.
                 let child_transform = w.get(collider_handle).position_wrt_parent().unwrap();
@@ -532,8 +532,7 @@ impl RigidBody {
             ..
         } = &self.state
         {
-            let w = world.upgrade();
-            let w = &mut *w.borrow_mut();
+            let w = &mut *world.as_mut();
 
             // Get AABB of the main collider.
             let mut aabb = w.get(*collider_handle).compute_aabb();
@@ -578,8 +577,7 @@ impl RigidBody {
             ..
         } = &self.state
         {
-            let w = world.upgrade();
-            let w = &mut *w.borrow_mut();
+            let w = &mut *world.as_mut();
 
             // Get AABB of the main collider.
             let mut aabb = w.get(*collider_handle).shape().compute_local_aabb();

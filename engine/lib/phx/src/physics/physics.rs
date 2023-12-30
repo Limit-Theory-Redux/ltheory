@@ -3,12 +3,11 @@
 use crate::math::*;
 use crate::physics::*;
 use crate::render::*;
+use crate::rf::Rf;
 use rapier3d::parry::query::RayCast;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::{Rc, Weak};
 
 #[repr(C)]
 pub struct Collision {
@@ -130,22 +129,9 @@ impl PhysicsWorld {
     }
 }
 
-#[derive(Clone)]
-pub(crate) struct PhysicsWorldHandle(Weak<RefCell<PhysicsWorld>>);
-
-impl PhysicsWorldHandle {
-    pub fn from_rc(rc: &Rc<RefCell<PhysicsWorld>>) -> PhysicsWorldHandle {
-        PhysicsWorldHandle(Rc::downgrade(rc))
-    }
-
-    pub fn upgrade(&self) -> Rc<RefCell<PhysicsWorld>> {
-        self.0.upgrade().expect("physics world was freed")
-    }
-}
-
 /// Ray/shape casts/overlaps will return RigidBodys but not Triggers.
 pub struct Physics {
-    world: Rc<RefCell<PhysicsWorld>>,
+    world: Rf<PhysicsWorld>,
 
     integration_parameters: rp::IntegrationParameters,
     physics_pipeline: rp::PhysicsPipeline,
@@ -166,11 +152,11 @@ impl Physics {
     #[bind(name = "Create")]
     pub fn new() -> Physics {
         Physics {
-            world: Rc::new(RefCell::new(PhysicsWorld {
+            world: Rf::new(PhysicsWorld {
                 island_manager: rp::IslandManager::new(),
                 rigid_bodies: rp::RigidBodySet::new(),
                 colliders: rp::ColliderSet::new(),
-            })),
+            }),
             integration_parameters: rp::IntegrationParameters::default(),
             physics_pipeline: rp::PhysicsPipeline::new(),
             query_pipeline: rp::QueryPipeline::new(),
@@ -189,7 +175,7 @@ impl Physics {
     /// Automatically adds all attached Triggers. Automatically adds all
     /// attached children and their Triggers.
     pub fn add_rigid_body(&mut self, rigid_body: &mut RigidBody) {
-        if let Some((_, rb_handle)) = rigid_body.add_to_world(&self.world) {
+        if let Some((_, rb_handle)) = rigid_body.add_to_world(self.world.clone()) {
             self.rigid_body_map
                 .insert(rb_handle, rigid_body as *mut RigidBody);
         }
@@ -222,7 +208,7 @@ impl Physics {
 
         let mut integration_parameters = self.integration_parameters;
         integration_parameters.dt = dt;
-        let world = &mut *self.world.borrow_mut();
+        let world = &mut *self.world.as_mut();
         self.physics_pipeline.step(
             &gravity,
             &integration_parameters,
@@ -258,7 +244,7 @@ impl Physics {
             .raw_edges()
             .len();
 
-        let world = &mut *self.world.borrow_mut();
+        let world = &mut *self.world.as_mut();
         while (iterator.index as usize) < collision_count {
             let contact_pair = self
                 .narrow_phase
@@ -311,7 +297,7 @@ impl Physics {
             pos: Vec3::ZERO,
             t: 0.0,
         };
-        let world = self.world.borrow();
+        let world = self.world.as_ref();
         if let Some((handle, intersection)) = self.query_pipeline.cast_ray_and_get_normal(
             &world.rigid_bodies,
             &world.colliders,
@@ -391,7 +377,7 @@ impl Physics {
     pub fn draw_triggers(&self) {}
 
     pub fn draw_wireframes(&mut self) {
-        let world = self.world.borrow();
+        let world = self.world.as_ref();
         self.debug_renderer.render(
             &mut RapierDebugRenderer,
             &world.rigid_bodies,
@@ -409,7 +395,7 @@ impl Physics {
     fn shape_cast(&self, shape: &dyn rp::Shape, pos: Vec3, rot: Quat) -> Vec<*mut RigidBody> {
         let rp_transform =
             rp::Isometry::from_parts(rp::Translation::from(pos.to_na()), rot.to_na());
-        let world = self.world.borrow();
+        let world = self.world.as_ref();
 
         // Trigger scene query and populate results.
         let mut result: Vec<*mut RigidBody> = vec![];
@@ -435,7 +421,7 @@ impl Physics {
     fn shape_overlap(&self, shape: &dyn rp::Shape, pos: Vec3, rot: Quat) -> bool {
         let rp_transform =
             rp::Isometry::from_parts(rp::Translation::from(pos.to_na()), rot.to_na());
-        let world = self.world.borrow();
+        let world = self.world.as_ref();
         self.query_pipeline
             .intersection_with_shape(
                 &world.rigid_bodies,

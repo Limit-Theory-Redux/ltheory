@@ -1,10 +1,8 @@
 use crate::math::{Box3, Vec3};
 use crate::physics::*;
+use crate::rf::Rf;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
-use std::cell::RefCell;
-use std::mem::replace;
-use std::rc::Rc;
 
 pub struct Trigger {
     collider: ColliderWrapper,
@@ -14,13 +12,13 @@ pub struct Trigger {
 }
 
 impl Trigger {
-    pub(crate) fn add_to_world(&mut self, world: Rc<RefCell<PhysicsWorld>>) {
+    pub(crate) fn add_to_world(&mut self, world: Rf<PhysicsWorld>) {
         if self.collider.is_added() {
             return;
         }
 
         self.collider.set_added(|collider| {
-            let handle = world.borrow_mut().colliders.insert(collider);
+            let handle = world.as_mut().colliders.insert(collider);
             (handle, world)
         })
     }
@@ -31,7 +29,7 @@ impl Trigger {
         }
 
         self.collider.set_removed(|handle, world| {
-            let w = &mut *world.borrow_mut();
+            let w = &mut *world.as_mut();
             w.colliders
                 .remove(handle, &mut w.island_manager, &mut w.rigid_bodies, false)
                 .unwrap()
@@ -67,7 +65,7 @@ impl Trigger {
         }
 
         let (collider_handle, world) = self.collider.added_as_ref().unwrap();
-        let w = &mut *world.borrow_mut();
+        let w = &mut *world.as_mut();
 
         // Update the parent link.
         let parent_handle = parent
@@ -106,7 +104,7 @@ impl Trigger {
         }
 
         let (collider_handle, world) = self.collider.added_as_ref().unwrap();
-        let w = &mut *world.borrow_mut();
+        let w = &mut *world.as_mut();
 
         // Update the parent link.
         w.colliders
