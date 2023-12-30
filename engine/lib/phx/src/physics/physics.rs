@@ -89,21 +89,44 @@ pub(crate) struct PhysicsWorld {
     pub(crate) colliders: rp::ColliderSet,
 }
 
+pub(crate) trait RapierHandle {
+    type Concrete;
+
+    fn get_concrete<'a>(&self, world: &'a PhysicsWorld) -> &'a Self::Concrete;
+    fn get_concrete_mut<'a>(&self, world: &'a mut PhysicsWorld) -> &'a mut Self::Concrete;
+}
+
+impl RapierHandle for rp::ColliderHandle {
+    type Concrete = rp::Collider;
+
+    fn get_concrete<'a>(&self, world: &'a PhysicsWorld) -> &'a rp::Collider {
+        world.colliders.get(*self).unwrap()
+    }
+
+    fn get_concrete_mut<'a>(&self, world: &'a mut PhysicsWorld) -> &'a mut rp::Collider {
+        world.colliders.get_mut(*self).unwrap()
+    }
+}
+
+impl RapierHandle for rp::RigidBodyHandle {
+    type Concrete = rp::RigidBody;
+
+    fn get_concrete<'a>(&self, world: &'a PhysicsWorld) -> &'a rp::RigidBody {
+        world.rigid_bodies.get(*self).unwrap()
+    }
+
+    fn get_concrete_mut<'a>(&self, world: &'a mut PhysicsWorld) -> &'a mut rp::RigidBody {
+        world.rigid_bodies.get_mut(*self).unwrap()
+    }
+}
+
 impl PhysicsWorld {
-    pub fn get_rigid_body(&self, handle: rp::RigidBodyHandle) -> &rp::RigidBody {
-        self.rigid_bodies.get(handle).unwrap()
+    pub fn get<H: RapierHandle>(&self, handle: H) -> &H::Concrete {
+        handle.get_concrete(self)
     }
 
-    pub fn get_rigid_body_mut(&mut self, handle: rp::RigidBodyHandle) -> &mut rp::RigidBody {
-        self.rigid_bodies.get_mut(handle).unwrap()
-    }
-
-    pub fn get_collider(&self, handle: rp::ColliderHandle) -> &rp::Collider {
-        self.colliders.get(handle).unwrap()
-    }
-
-    pub fn get_collider_mut(&mut self, handle: rp::ColliderHandle) -> &mut rp::Collider {
-        self.colliders.get_mut(handle).unwrap()
+    pub fn get_mut<H: RapierHandle>(&mut self, handle: H) -> &mut H::Concrete {
+        handle.get_concrete_mut(self)
     }
 }
 
@@ -185,11 +208,11 @@ impl Physics {
     }
 
     pub fn add_trigger(&mut self, trigger: &mut Trigger) {
-        let _ = trigger.add_to_world(&self.world);
+        trigger.add_to_world(self.world.clone());
     }
 
     pub fn remove_trigger(&mut self, trigger: &mut Trigger) {
-        let _ = trigger.remove_from_world();
+        trigger.remove_from_world();
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -397,9 +420,7 @@ impl Physics {
             shape,
             rp::QueryFilter::default(),
             |handle| {
-                if let Some(rigid_body) =
-                    RigidBody::linked_with_collider_mut(world.get_collider(handle))
-                {
+                if let Some(rigid_body) = RigidBody::linked_with_collider_mut(world.get(handle)) {
                     result.push(rigid_body as *mut RigidBody);
                 }
                 true

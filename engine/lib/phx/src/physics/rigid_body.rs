@@ -7,7 +7,12 @@ use rapier3d::prelude::nalgebra as na;
 use std::cell::RefCell;
 use std::mem::replace;
 use std::rc::Rc;
+use tracing::debug;
 
+// TODO: Remove this state transition thing in favour of
+// states for RigidBody/RigidBodyHandle (depending on
+// whether it's in the world or not). Then use that
+// primitive instead.
 #[derive(Clone)]
 enum State {
     // Uninitialized.
@@ -146,7 +151,7 @@ impl RigidBody {
             rb_handle,
             collider_handle,
             world,
-            ..
+            children,
         } = replace(&mut self.state, State::None)
         {
             let w = world.upgrade();
@@ -171,6 +176,10 @@ impl RigidBody {
                     false,
                 )
                 .unwrap();
+            debug!(
+                "Removing rigid body {:?} with {:?} children",
+                self as *mut _, children
+            );
             self.state = State::Removed {
                 rb: rigid_body,
                 collider,
@@ -191,7 +200,7 @@ impl RigidBody {
             State::Removed { rb, .. } => f(rb),
             State::Added {
                 rb_handle, world, ..
-            } => f(world.upgrade().borrow().get_rigid_body(*rb_handle)),
+            } => f(world.upgrade().borrow().get(*rb_handle)),
             State::AttachedToParent { .. } => panic!("Not supported on children."),
         }
     }
@@ -206,7 +215,7 @@ impl RigidBody {
             State::Removed { rb, .. } => f(rb),
             State::Added {
                 rb_handle, world, ..
-            } => f(world.upgrade().borrow_mut().get_rigid_body_mut(*rb_handle)),
+            } => f(world.upgrade().borrow_mut().get_mut(*rb_handle)),
             State::AttachedToParent { .. } => panic!("Not supported on children."),
         }
     }
@@ -223,12 +232,12 @@ impl RigidBody {
                 collider_handle,
                 world,
                 ..
-            } => f(world.upgrade().borrow().get_collider(*collider_handle)),
+            } => f(world.upgrade().borrow().get(*collider_handle)),
             State::AttachedToParent {
                 collider_handle,
                 world,
                 ..
-            } => f(world.upgrade().borrow().get_collider(*collider_handle)),
+            } => f(world.upgrade().borrow().get(*collider_handle)),
         }
     }
 
@@ -244,18 +253,12 @@ impl RigidBody {
                 collider_handle,
                 world,
                 ..
-            } => f(world
-                .upgrade()
-                .borrow_mut()
-                .get_collider_mut(*collider_handle)),
+            } => f(world.upgrade().borrow_mut().get_mut(*collider_handle)),
             State::AttachedToParent {
                 collider_handle,
                 world,
                 ..
-            } => f(world
-                .upgrade()
-                .borrow_mut()
-                .get_collider_mut(*collider_handle)),
+            } => f(world.upgrade().borrow_mut().get_mut(*collider_handle)),
         }
     }
 
@@ -309,7 +312,8 @@ impl RigidBody {
         let global_transform = if let State::AttachedToParent { parent, .. } = &self.state {
             self.with_collider(|c| {
                 unsafe { &**parent }.with_rigid_body(|parent_rb| {
-                    let transform = c.position_wrt_parent().unwrap();
+                    let default = rp::Isometry::default();
+                    let transform = c.position_wrt_parent().unwrap_or(&default); //.expect(format!("child {:?} does not have a position_wrt parent {:?}", self as *const _, parent).as_str());
                     let parent_transform = parent_rb.position();
                     parent_transform * transform
                 })
@@ -394,7 +398,7 @@ impl RigidBody {
     /// This function assumes that `self` is not already a child.
     pub fn attach(&mut self, child: &mut RigidBody, pos: &Vec3, rot: &Quat) {
         let parent_ptr = self as *mut _;
-        match &self.state {
+        match &mut self.state {
             State::None => {}
             State::AttachedToParent { .. } => {
                 panic!("Recursive attachment is not supported. Parent is already attached to something.");
@@ -405,6 +409,7 @@ impl RigidBody {
             State::Added {
                 rb_handle: parent_handle,
                 world,
+                children,
                 ..
             } => {
                 child.state = match child.state.clone() {
@@ -421,6 +426,11 @@ impl RigidBody {
                         let w = world.upgrade();
                         let w = &mut *w.borrow_mut();
 
+                        debug!(
+                            "Attaching rigid body {:?} to {:?}",
+                            child as *mut _, parent_ptr
+                        );
+
                         // Multiple colliders in Rapier can be attached to a single
                         // rigid body, so there's no need to create a "compound shape"
 
@@ -430,10 +440,11 @@ impl RigidBody {
                             *parent_handle,
                             &mut w.rigid_bodies,
                         );
+                        children.push(collider_handle);
 
                         // Set the colliders relative position, scaled by the scale of the parent shape.
                         let scaled_pos = *pos * self.shape_scale;
-                        w.get_collider_mut(collider_handle).set_position_wrt_parent(
+                        w.get_mut(collider_handle).set_position_wrt_parent(
                             na::Isometry3::from_parts(scaled_pos.to_na().into(), rot.to_na()),
                         );
                         State::AttachedToParent {
@@ -478,11 +489,10 @@ impl RigidBody {
                 let w = &mut *w.borrow_mut();
 
                 // Compute the combined transform.
-                let child_transform = w
-                    .get_collider(collider_handle)
-                    .position_wrt_parent()
-                    .unwrap();
+                let child_transform = w.get(collider_handle).position_wrt_parent().unwrap();
                 let combined_transform = parent_transform * child_transform;
+
+                // TODO: Store child transform state so we can reconstruct when re-adding to the world.
 
                 // Detach from parent by removing from the collider set.
                 let collider = w
@@ -526,12 +536,12 @@ impl RigidBody {
             let w = &mut *w.borrow_mut();
 
             // Get AABB of the main collider.
-            let mut aabb = w.get_collider(*collider_handle).compute_aabb();
-            let parent_transform = w.get_collider(*collider_handle).position().clone();
+            let mut aabb = w.get(*collider_handle).compute_aabb();
+            let parent_transform = w.get(*collider_handle).position().clone();
 
             // Incorporate the AABBs of the compound shapes.
             for child_collider_handle in children.iter() {
-                let collider = w.get_collider_mut(*child_collider_handle);
+                let collider = w.get_mut(*child_collider_handle);
                 let child_global_transform =
                     parent_transform * collider.position_wrt_parent().unwrap();
                 let child_aabb = collider.shape().compute_aabb(&child_global_transform);
@@ -572,14 +582,11 @@ impl RigidBody {
             let w = &mut *w.borrow_mut();
 
             // Get AABB of the main collider.
-            let mut aabb = w
-                .get_collider(*collider_handle)
-                .shape()
-                .compute_local_aabb();
+            let mut aabb = w.get(*collider_handle).shape().compute_local_aabb();
 
             // Incorporate the AABBs of the compound shapes.
             for child_collider_handle in children.iter() {
-                let collider = w.get_collider_mut(*child_collider_handle);
+                let collider = w.get_mut(*child_collider_handle);
                 let child_aabb = collider
                     .shape()
                     .compute_aabb(collider.position_wrt_parent().unwrap());

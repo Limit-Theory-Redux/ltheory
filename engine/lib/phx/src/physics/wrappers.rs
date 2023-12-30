@@ -64,31 +64,6 @@ impl<T> DerefMut for RefMutOrBorrow<'_, T> {
     }
 }
 
-// Immutable reference to a rapier object, created either from a normal ref or a function.
-// pub(crate) struct RapierRef<'a, T>(RefOrBorrow<'a, T>);
-
-// impl<T> RapierRef<'_, T> {
-//     fn from_ref(r: &T) -> RapierRef<T> {
-//         RapierRef(RefOrBorrow::Borrow(r))
-//     }
-
-//     fn from_func<F>(world: &Rc<RefCell<PhysicsWorld>>, get_ref_func: F) -> RapierRef<T>
-//     where
-//         F: FnOnce(&PhysicsWorld) -> &T
-//     {
-//         RapierRef(RefOrBorrow::Ref(Ref::map(world.borrow(), get_ref_func)))
-//     }
-// }
-
-// impl<T> Deref for RapierRef<'_, T> {
-//     type Target = T;
-
-//     #[inline]
-//     fn deref(&self) -> &T {
-//         self.0.deref()
-//     }
-// }
-
 // A wrapper over either a rigid body or a rigid body handle.
 pub(crate) enum RigidBodyWrapper {
     Removed(rp::RigidBody),
@@ -103,7 +78,7 @@ impl RigidBodyWrapper {
         match self {
             RigidBodyWrapper::Removed(body) => RefOrBorrow::Borrow(body),
             RigidBodyWrapper::Added(handle) => {
-                RefOrBorrow::Ref(Ref::map(world.borrow(), |w| w.get_rigid_body(*handle)))
+                RefOrBorrow::Ref(Ref::map(world.borrow(), |w| w.get(*handle)))
             }
         }
     }
@@ -115,79 +90,95 @@ impl RigidBodyWrapper {
         match self {
             RigidBodyWrapper::Removed(body) => RefMutOrBorrow::Borrow(body),
             RigidBodyWrapper::Added(handle) => {
-                RefMutOrBorrow::Ref(RefMut::map(world.borrow_mut(), |w| {
-                    w.get_rigid_body_mut(*handle)
-                }))
+                RefMutOrBorrow::Ref(RefMut::map(world.borrow_mut(), |w| w.get_mut(*handle)))
             }
         }
     }
 }
 
-// A wrapper over either a collider or a collider handle.
+/// A wrapper over two states:
+/// - A rapier object that does not belong to a world
+/// - A rapier object handle that has been added to a world
+///
+/// This wrapper allows us to access the underlying rapier type regardless of
+/// whether it's been added to the world or not.
 pub(crate) enum ColliderWrapper {
     Removed(rp::Collider),
-    Added(rp::ColliderHandle),
+    Added(rp::ColliderHandle, Rc<RefCell<PhysicsWorld>>),
 }
 
 impl ColliderWrapper {
-    pub(crate) fn get<'a>(
-        &'a self,
-        world: Option<&'a Rc<RefCell<PhysicsWorld>>>,
-    ) -> RefOrBorrow<'a, rp::Collider> {
+    pub(crate) fn as_ref<'a>(&'a self) -> RefOrBorrow<'a, rp::Collider> {
         match self {
             ColliderWrapper::Removed(body) => RefOrBorrow::Borrow(body),
-            ColliderWrapper::Added(handle) => {
-                RefOrBorrow::Ref(Ref::map(world.unwrap().borrow(), |w| w.get_collider(*handle)))
+            ColliderWrapper::Added(handle, world) => {
+                RefOrBorrow::Ref(Ref::map(world.borrow(), |w| w.get(*handle)))
             }
         }
     }
 
-    pub(crate) fn get_mut<'a>(
-        &'a mut self,
-        world: Option<&'a Rc<RefCell<PhysicsWorld>>>,
-    ) -> RefMutOrBorrow<'a, rp::Collider> {
+    pub(crate) fn as_mut<'a>(&'a mut self) -> RefMutOrBorrow<'a, rp::Collider> {
         match self {
             ColliderWrapper::Removed(body) => RefMutOrBorrow::Borrow(body),
-            ColliderWrapper::Added(handle) => {
-                RefMutOrBorrow::Ref(RefMut::map(world.unwrap().borrow_mut(), |w| {
-                    w.get_collider_mut(*handle)
-                }))
+            ColliderWrapper::Added(handle, world) => {
+                RefMutOrBorrow::Ref(RefMut::map(world.borrow_mut(), |w| w.get_mut(*handle)))
             }
         }
     }
 
     pub(crate) fn replace(&mut self) -> Self {
-        std::mem::replace(self, ColliderWrapper::Added(rp::ColliderHandle::invalid()))
+        std::mem::replace(
+            self,
+            ColliderWrapper::Added(
+                rp::ColliderHandle::invalid(),
+                Rc::new(RefCell::new(PhysicsWorld {
+                    island_manager: rp::IslandManager::new(),
+                    rigid_bodies: rp::RigidBodySet::new(),
+                    colliders: rp::ColliderSet::new(),
+                })),
+            ),
+        )
     }
 
-    pub(crate) fn take_collider(&mut self) -> rp::Collider {
-        if let ColliderWrapper::Removed(collider) = self.replace() {
-            collider
-        } else {
-            panic!("Trying to take a collider that's already added to the world.");
+    pub(crate) fn removed_as_ref(&self) -> Option<&rp::Collider> {
+        match self {
+            ColliderWrapper::Removed(collider) => Some(collider),
+            _ => None,
         }
     }
 
-    // pub(crate) fn to_added<F>(&mut self, f: F)
-    //     where
-    //         F: FnOnce(rp::Collider) -> rp::ColliderHandle {
-    //     self = match self {
-    //         ColliderWrapper::Removed(collider) => ColliderWrapper::Added(f(*collider)),
-    //         ColliderWrapper::Added(handle) => ColliderWrapper::Added(*handle),
-    //     }
-    // }
+    pub(crate) fn added_as_ref(&self) -> Option<(&rp::ColliderHandle, &Rc<RefCell<PhysicsWorld>>)> {
+        match self {
+            ColliderWrapper::Added(handle, world) => Some((handle, world)),
+            _ => None,
+        }
+    }
 
-    // pub(crate) fn to_removed<F>(&mut self, f: F)
-    //     where
-    //         F: FnOnce(rp::ColliderHandle) -> rp::Collider {
-    //     *self = match self {
-    //         ColliderWrapper::Removed(collider) => ColliderWrapper::Removed(*collider),
-    //         ColliderWrapper::Added(handle) => ColliderWrapper::Removed(f(*handle)),
-    //     }
-    // }
+    pub(crate) fn set_added<F>(&mut self, f: F)
+    where
+        F: FnOnce(rp::Collider) -> (rp::ColliderHandle, Rc<RefCell<PhysicsWorld>>),
+    {
+        *self = match self.replace() {
+            ColliderWrapper::Removed(collider) => {
+                let (handle, world) = f(collider);
+                ColliderWrapper::Added(handle, world)
+            }
+            ColliderWrapper::Added(handle, world) => ColliderWrapper::Added(handle, world),
+        }
+    }
+
+    pub(crate) fn set_removed<F>(&mut self, f: F)
+    where
+        F: FnOnce(rp::ColliderHandle, Rc<RefCell<PhysicsWorld>>) -> rp::Collider,
+    {
+        *self = match self.replace() {
+            ColliderWrapper::Removed(collider) => ColliderWrapper::Removed(collider),
+            ColliderWrapper::Added(handle, world) => ColliderWrapper::Removed(f(handle, world)),
+        }
+    }
 
     pub(crate) fn get_handle(&self) -> Option<rp::ColliderHandle> {
-        if let ColliderWrapper::Added(handle) = self {
+        if let ColliderWrapper::Added(handle, _) = self {
             Some(*handle)
         } else {
             None
@@ -196,15 +187,15 @@ impl ColliderWrapper {
 
     pub(crate) fn is_added(&self) -> bool {
         match self {
-            ColliderWrapper::Removed(_) => false,
-            ColliderWrapper::Added(_) => true
+            ColliderWrapper::Removed(..) => false,
+            ColliderWrapper::Added(..) => true,
         }
     }
 
     pub(crate) fn is_removed(&self) -> bool {
         match self {
-            ColliderWrapper::Removed(_) => true,
-            ColliderWrapper::Added(_) => false
+            ColliderWrapper::Removed(..) => true,
+            ColliderWrapper::Added(..) => false,
         }
     }
 }
