@@ -91,20 +91,15 @@ impl TypeInfo {
                 } else {
                     format!("cstr")
                 }
-            },
+            }
             TypeVariant::Custom(ty_name) => {
-                let ty_ident = if self.is_self() {
-                    self_name
-                } else {
-                    ty_name
-                };
+                let ty_ident = if self.is_self() { self_name } else { ty_name };
 
-                let ffi_ty_name =
-                    RUST_TO_LUA_TYPE_MAP
-                        .iter()
-                        .find(|(r_ty, _)| *r_ty == ty_name)
-                        .map(|(_, l_ty)| l_ty.to_string())
-                        .unwrap_or(ty_ident.to_string());
+                let ffi_ty_name = RUST_TO_LUA_TYPE_MAP
+                    .iter()
+                    .find(|(r_ty, _)| *r_ty == ty_name)
+                    .map(|(_, l_ty)| l_ty.to_string())
+                    .unwrap_or(ty_ident.to_string());
 
                 if self.is_option {
                     if self.is_mutable {
@@ -124,10 +119,10 @@ impl TypeInfo {
                         format!("{ffi_ty_name}*")
                     }
                 }
-            },
+            }
             _ => {
                 let ty_ident = self.variant.as_ffi_string();
-    
+
                 if self.is_option {
                     // All options are sent by pointer
                     if self.is_mutable {
