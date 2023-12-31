@@ -1,6 +1,6 @@
 use crate::{args::ImplAttrArgs, ffi_generator::FfiGenerator, IDENT};
 
-use super::{ImplInfo, TypeInfo};
+use super::{ImplInfo, TypeInfo, TypeVariant};
 
 impl ImplInfo {
     /// Generate Lua FFI file
@@ -82,18 +82,12 @@ impl ImplInfo {
             .iter()
             .filter(|method| method.bind_args.gen_lua_ffi())
             .for_each(|method| {
-                let len = method
-                    .ret
-                    .as_ref()
-                    .map(|ret| {
-                        if ret.is_self() {
-                            format!("{module_name}*")
-                        } else {
-                            ret.as_ffi_string()
-                        }
-                        .len()
-                    })
-                    .unwrap_or("void".len());
+                let len = if method.bind_args.gen_out_param() || method.ret.is_none() {
+                    "void".len()
+                } else {
+                    let ret = method.ret.as_ref().unwrap();
+                    ret.as_ffi_string(module_name).len()
+                };
 
                 max_ret_len = std::cmp::max(max_ret_len, len);
                 max_method_name_len =
@@ -118,27 +112,39 @@ impl ImplInfo {
             .filter(|method| method.bind_args.gen_lua_ffi())
             .for_each(|method| {
                 let method_name = method.as_ffi_name();
-                let ret_ty_str = method
-                    .ret
-                    .as_ref()
-                    .map(|ret| {
-                        if ret.is_self() {
-                            if TypeInfo::is_copyable(module_name) {
-                                format!("{module_name}")
-                            }else {
-                                format!("{module_name}*")
-                            }
-                        } else {
-                            ret.as_ffi_string()
-                        }
-                    })
-                    .unwrap_or("void".into());
+                
+                let ret_ty_str =  if method.bind_args.gen_out_param() || method.ret.is_none() {
+                    "void".into()
+                } else {
+                    let ret = method.ret.as_ref().unwrap();
+                    ret.as_ffi_string(module_name)
+                };
 
-                let params_str: Vec<_> = method
+                let mut params_str: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| format!("{} {}", param.ty.as_ffi_string(), param.as_ffi_name()))
+                    .map(|param| format!("{} {}", param.ty.as_ffi_string(module_name), param.as_ffi_name()))
                     .collect();
+
+                if method.bind_args.gen_out_param() && method.ret.is_some() {
+                    let ret = method.ret.as_ref().unwrap();
+                    let ret_ffi = ret.as_ffi_string(module_name);
+                    let ret_param = match &ret.variant {
+                        TypeVariant::Custom(ty_name) => {
+                            if !TypeInfo::is_copyable(&ty_name) && !ret.is_boxed && !ret.is_option && !ret.is_reference {
+                                // If we have a non-copyable type that's not boxed, optional or a ref,
+                                // we don't need to return it as a pointer as it's already a pointer.
+                                format!("{} out", ret_ffi)
+                            } else {
+                                format!("{}* out", ret_ffi)
+                            }
+                        },
+                        _ => {
+                            format!("{}* out", ret_ffi)
+                        }
+                    };
+                    params_str.push(ret_param);
+                }
 
                 let self_str = if let Some(self_type) = &method.self_param {
                     let const_str = if !self_type.is_mutable { " const" } else { "" };

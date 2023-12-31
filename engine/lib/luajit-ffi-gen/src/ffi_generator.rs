@@ -1,4 +1,5 @@
-use std::io::Write;
+use std::fmt::Write as FmtWrite;
+use std::io::Write as IoWrite;
 use std::{env::VarError, fs::File, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -188,153 +189,160 @@ impl FfiGenerator {
             std::env::current_dir()
         ));
 
+        let mut module = String::new();
+
         // Header
         writeln!(
-            &mut file,
+            &mut module,
             "-- {} {:-<2$}",
             self.module_name,
             "-",
             80 - 4 - self.module_name.len()
         )
         .unwrap();
-        writeln!(&mut file, "local Loader = {{}}\n").unwrap();
+        writeln!(&mut module, "local Loader = {{}}\n").unwrap();
 
         // Type declaration
-        writeln!(&mut file, "function Loader.declareType()").unwrap();
+        writeln!(&mut module, "function Loader.declareType()").unwrap();
 
         match &self.type_decl {
             TypeDecl::NoDecl => {}
             TypeDecl::Opaque => {
-                writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
+                writeln!(&mut module, "{IDENT}ffi.cdef [[").unwrap();
                 writeln!(
-                    &mut file,
+                    &mut module,
                     "{IDENT}{IDENT}typedef struct {0} {{}} {0};",
                     self.module_name
                 )
                 .unwrap();
-                writeln!(&mut file, "{IDENT}]]\n").unwrap();
+                writeln!(&mut module, "{IDENT}]]\n").unwrap();
             }
             TypeDecl::Struct(ty) => {
-                writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
+                writeln!(&mut module, "{IDENT}ffi.cdef [[").unwrap();
                 writeln!(
-                    &mut file,
+                    &mut module,
                     "{IDENT}{IDENT}typedef {ty} {};",
                     self.module_name
                 )
                 .unwrap();
-                writeln!(&mut file, "{IDENT}]]\n").unwrap();
+                writeln!(&mut module, "{IDENT}]]\n").unwrap();
             }
         }
         writeln!(
-            &mut file,
+            &mut module,
             "{IDENT}return {}, '{}'",
             self.type_decl.id(),
             self.module_name
         )
         .unwrap();
 
-        writeln!(&mut file, "end\n").unwrap();
+        writeln!(&mut module, "end\n").unwrap();
 
         // Type definition
-        writeln!(&mut file, "function Loader.defineType()").unwrap();
+        writeln!(&mut module, "function Loader.defineType()").unwrap();
 
-        writeln!(&mut file, "{IDENT}local ffi = require('ffi')").unwrap();
-        writeln!(&mut file, "{IDENT}local libphx = require('libphx').lib").unwrap();
-        writeln!(&mut file, "{IDENT}local {}\n", self.module_name).unwrap();
+        writeln!(&mut module, "{IDENT}local ffi = require('ffi')").unwrap();
+        writeln!(&mut module, "{IDENT}local libphx = require('libphx').lib").unwrap();
+        writeln!(&mut module, "{IDENT}local {}\n", self.module_name).unwrap();
 
         // C Definitions
-        writeln!(&mut file, "{IDENT}do -- C Definitions").unwrap();
-        writeln!(&mut file, "{IDENT}{IDENT}ffi.cdef [[").unwrap();
+        writeln!(&mut module, "{IDENT}do -- C Definitions").unwrap();
+        writeln!(&mut module, "{IDENT}{IDENT}ffi.cdef [[").unwrap();
 
         self.c_definitions
             .iter()
-            .for_each(|def| writeln!(&mut file, "{def}").unwrap());
+            .for_each(|def| writeln!(&mut module, "{def}").unwrap());
 
-        writeln!(&mut file, "{IDENT}{IDENT}]]").unwrap();
-        writeln!(&mut file, "{IDENT}end\n").unwrap();
+        writeln!(&mut module, "{IDENT}{IDENT}]]").unwrap();
+        writeln!(&mut module, "{IDENT}end\n").unwrap();
 
         // Global Symbol Table
-        writeln!(&mut file, "{IDENT}do -- Global Symbol Table").unwrap();
-        writeln!(&mut file, "{IDENT}{IDENT}{} = {{", self.module_name).unwrap();
+        writeln!(&mut module, "{IDENT}do -- Global Symbol Table").unwrap();
+        writeln!(&mut module, "{IDENT}{IDENT}{} = {{", self.module_name).unwrap();
 
         self.global_symbol_table
             .iter()
-            .for_each(|def| writeln!(&mut file, "{def}").unwrap());
+            .for_each(|def| writeln!(&mut module, "{def}").unwrap());
 
-        writeln!(&mut file, "{IDENT}{IDENT}}}\n").unwrap();
+        writeln!(&mut module, "{IDENT}{IDENT}}}\n").unwrap();
 
         if self.is_mt_clone {
-            writeln!(&mut file, "{IDENT}{IDENT}local mt = {{").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}local mt = {{").unwrap();
             writeln!(
-                &mut file,
+                &mut module,
                 "{IDENT}{IDENT}{IDENT}__call = function(t, ...) return {}_t(...) end,",
                 self.module_name
             )
             .unwrap();
-            writeln!(&mut file, "{IDENT}{IDENT}}}\n").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}}}\n").unwrap();
         }
 
         writeln!(
-            &mut file,
+            &mut module,
             "{IDENT}{IDENT}if onDef_{0} then onDef_{0}({0}, mt) end",
             self.module_name
         )
         .unwrap();
         writeln!(
-            &mut file,
+            &mut module,
             "{IDENT}{IDENT}{0} = setmetatable({0}, mt)",
             self.module_name
         )
         .unwrap();
-        writeln!(&mut file, "{IDENT}end\n").unwrap();
+        writeln!(&mut module, "{IDENT}end\n").unwrap();
 
         // Metatype for class instances
         if self.to_string_method.is_some() || !self.metatype.is_empty() {
-            writeln!(&mut file, "{IDENT}do -- Metatype for class instances").unwrap();
+            writeln!(&mut module, "{IDENT}do -- Metatype for class instances").unwrap();
             writeln!(
-                &mut file,
+                &mut module,
                 "{IDENT}{IDENT}local t  = ffi.typeof('{}')",
                 self.module_name
             )
             .unwrap();
-            writeln!(&mut file, "{IDENT}{IDENT}local mt = {{").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}local mt = {{").unwrap();
 
             if let Some(method) = &self.to_string_method {
                 writeln!(
-                    &mut file,
+                    &mut module,
                     "{IDENT}{IDENT}{IDENT}__tostring = function(self) return ffi.string(libphx.{}_{method}(self)) end,",
                     self.module_name,
                 )
                 .unwrap();
             }
 
-            writeln!(&mut file, "{IDENT}{IDENT}{IDENT}__index = {{").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}{IDENT}__index = {{").unwrap();
 
             self.metatype
                 .iter()
-                .for_each(|mt| writeln!(&mut file, "{mt}").unwrap());
+                .for_each(|mt| writeln!(&mut module, "{mt}").unwrap());
 
-            writeln!(&mut file, "{IDENT}{IDENT}{IDENT}}},").unwrap();
-            writeln!(&mut file, "{IDENT}{IDENT}}}\n").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}{IDENT}}},").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}}}\n").unwrap();
 
             writeln!(
-                &mut file,
+                &mut module,
                 "{IDENT}{IDENT}if onDef_{0}_t then onDef_{0}_t(t, mt) end",
                 self.module_name
             )
             .unwrap();
             writeln!(
-                &mut file,
+                &mut module,
                 "{IDENT}{IDENT}{}_t = ffi.metatype(t, mt)",
                 self.module_name
             )
             .unwrap();
-            writeln!(&mut file, "{IDENT}end\n").unwrap();
+            writeln!(&mut module, "{IDENT}end\n").unwrap();
         }
 
-        writeln!(&mut file, "{IDENT}return {}", self.module_name).unwrap();
+        writeln!(&mut module, "{IDENT}return {}", self.module_name).unwrap();
 
-        writeln!(&mut file, "end\n").unwrap();
-        writeln!(&mut file, "return Loader").unwrap();
+        writeln!(&mut module, "end\n").unwrap();
+        writeln!(&mut module, "return Loader").unwrap();
+
+        if cfg!(windows) {
+            module = module.replace("\n", "\r\n");
+        }
+        file.write_all(module.as_bytes()).unwrap();
     }
 }

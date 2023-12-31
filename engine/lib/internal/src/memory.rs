@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 #[inline]
 pub unsafe extern "C" fn MemAlloc(size: usize) -> *mut libc::c_void {
     libc::malloc(size)
