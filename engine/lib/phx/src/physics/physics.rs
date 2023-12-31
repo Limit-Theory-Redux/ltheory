@@ -185,7 +185,7 @@ impl Physics {
     /// Automatically adds all attached Triggers. Automatically adds all
     /// attached children and their Triggers.
     pub fn add_rigid_body(&mut self, rigid_body: &mut RigidBody) {
-        if let Some((_, rb_handle)) = rigid_body.add_to_world(self.world.clone()) {
+        if let Some((rb_handle, _)) = rigid_body.add_to_world(self.world.clone()) {
             self.rigid_body_map
                 .insert(rb_handle, rigid_body as *mut RigidBody);
         }
@@ -196,7 +196,7 @@ impl Physics {
     /// Automatically removes all attached Triggers. Automatically removes all
     /// attached children and their Triggers.
     pub fn remove_rigid_body(&mut self, rigid_body: &mut RigidBody) {
-        if let Some((_, rb_handle)) =
+        if let Some((rb_handle, _)) =
             rigid_body.remove_from_world(&mut self.impulse_joints, &mut self.multibody_joints)
         {
             self.rigid_body_map.remove(&rb_handle);

@@ -21,7 +21,7 @@ impl Trigger {
         self.collider.set_added(|collider| {
             let handle = world.as_mut().colliders.insert(collider);
             (handle, world)
-        })
+        });
     }
 
     pub(crate) fn remove_from_world(&mut self) {
@@ -82,7 +82,7 @@ impl Trigger {
         // then we need to append to its relative transform.
         let translation = rp::Isometry::translation(offset.x, offset.y, offset.z);
         let transform: na::Isometry<f32, na::Unit<na::Quaternion<f32>>, 3> = if parent.is_child() {
-            parent.with_collider(|c| c.position_wrt_parent().unwrap() * translation)
+            parent.get_collider_ref().position_wrt_parent().unwrap() * translation
         } else {
             translation
         };
@@ -158,7 +158,7 @@ impl Trigger {
         // a child, then we need to append to its relative transform.
         let translation = rp::Isometry::translation(pos.x, pos.y, pos.z);
         let transform = if parent.is_child() {
-            parent.with_collider(|c| c.position_wrt_parent().unwrap() * translation)
+            parent.get_collider_ref().position_wrt_parent().unwrap() * translation
         } else {
             translation
         };
