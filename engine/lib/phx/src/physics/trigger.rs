@@ -66,14 +66,17 @@ impl Trigger {
         }
 
         let (collider_handle, world) = self.collider.added_as_ref().unwrap();
-        let w = &mut *world.as_mut();
 
-        // Update the parent link.
-        let parent_handle = parent
-            .get_rigid_body_handle()
-            .expect("The parent needs to be added to the world");
-        w.colliders
-            .set_parent(*collider_handle, Some(parent_handle), &mut w.rigid_bodies);
+        {
+            let w = &mut *world.as_mut();
+
+            // Update the parent link.
+            let parent_handle = parent
+                .get_rigid_body_handle()
+                .expect("The parent needs to be added to the world");
+            w.colliders
+                .set_parent(*collider_handle, Some(parent_handle), &mut w.rigid_bodies);
+        }
 
         // Set the offset correctly. If the parent is itself a child,
         // then we need to append to its relative transform.
@@ -83,7 +86,9 @@ impl Trigger {
         } else {
             translation
         };
-        w.get_mut(*collider_handle)
+        world
+            .as_mut()
+            .get_mut(*collider_handle)
             .set_position_wrt_parent(transform);
 
         self.parent = Some(NonNull::new(parent as *mut _).expect("parent cannot be null"));
