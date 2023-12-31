@@ -81,7 +81,6 @@ pub struct RigidBody {
 
     collidable: bool,
     collision_group: rp::InteractionGroups,
-    mass: f32,
 }
 
 // Functions to add and remove the rigid body from physics.
@@ -270,7 +269,6 @@ impl RigidBody {
             shape_scale: shape.scale,
             collidable: true,
             collision_group: rp::InteractionGroups::default(),
-            mass: 1.0,
         });
 
         // The collider stores a reference to the handle for this rigid body
