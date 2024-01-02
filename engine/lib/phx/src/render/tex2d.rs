@@ -310,7 +310,7 @@ pub unsafe extern "C" fn Tex2D_GetSizeLevel(this: &mut Tex2D, out: *mut IVec2, l
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Load(name: *const libc::c_char) -> *mut Tex2D {
-    let path: *const libc::c_char = Resource_GetPath(ResourceType_Tex2D, name);
+    let path = Resource_GetPath(ResourceType::Tex2D, name);
     let mut sx: i32 = 0;
     let mut sy: i32 = 0;
     let mut components: i32 = 4;

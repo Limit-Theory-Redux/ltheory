@@ -1,12 +1,12 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::path::PathBuf;
+
+use glam::*;
 
 use crate::common::*;
 use crate::input::*;
 use crate::math::*;
 use crate::render::*;
-use crate::system::{Hash_FNV64_Incremental, Hash_FNV64_Init, Profiler_Begin, Profiler_End};
+use crate::system::*;
 
 use super::*;
 
@@ -20,23 +20,20 @@ pub struct HmGui {
     /// Either last created/initialized widget (container, image, text, rect) or the last widget of the ended container
     last: Rf<HmGuiWidget>,
 
-    styles: Vec<HmGuiStyle>,
     data: HashMap<u64, HmGuiData>,
     focus: [u64; 2],
     focus_pos: Vec2,
     activate: bool,
+
+    default_property_registry: HmGuiPropertyRegistry,
+    property_registry: HmGuiPropertyRegistry,
+    theme_registry: HmGuiStyleRegistry,
+    style_registry: HmGuiStyleRegistry,
+    element_style: HmGuiStyle,
 }
 
 impl HmGui {
-    pub fn new(default_font: Font) -> Self {
-        let style = HmGuiStyle {
-            font: default_font.into(),
-            spacing: 6.0,
-            color_primary: Vec4::new(0.1, 0.5, 1.0, 1.0),
-            color_frame: Vec4::new(0.1, 0.1, 0.1, 0.5),
-            color_text: Vec4::ONE,
-        };
-
+    pub fn new() -> Self {
         let container = HmGuiContainer {
             layout: LayoutType::None,
             spacing: 0.0,
@@ -51,16 +48,50 @@ impl HmGui {
         let container = root.clone();
         let last = root.clone();
 
+        let property_registry = HmGuiPropertyRegistry::new();
+        let default_property_registry = property_registry.clone();
+
+        let f = |_: &str, name: &str| {
+            property_registry
+                .registry
+                .get_full(name)
+                .map(|(id, _, prop)| (id.into(), prop.property.get_type()))
+        };
+
+        let theme_folders = Resource::get_folders(ResourceType::Theme);
+        let mut theme_registry = HmGuiStyleRegistry::default();
+        for folder_path in theme_folders {
+            let registry = HmGuiStyleRegistry::load(&folder_path, f);
+            if registry.size() > 0 {
+                theme_registry = registry;
+                break;
+            }
+        }
+
+        let style_folders = Resource::get_folders(ResourceType::Other);
+        let mut style_registry = HmGuiStyleRegistry::default();
+        for folder_path in style_folders {
+            let file_path = folder_path.join("styles.yaml");
+            if file_path.is_file() {
+                style_registry = HmGuiStyleRegistry::load_map(&file_path, f);
+                break;
+            }
+        }
+
         Self {
             renderer: Default::default(),
             root,
             container,
             last,
-            styles: vec![style],
             data: HashMap::with_capacity(128),
             focus: [0; 2],
             focus_pos: Vec2::ZERO,
             activate: false,
+            default_property_registry,
+            property_registry,
+            theme_registry,
+            style_registry,
+            element_style: Default::default(),
         }
     }
 
@@ -102,7 +133,7 @@ impl HmGui {
 
     /// Start a new container with specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
-        let spacing = self.styles.last().expect("Style was not set").spacing;
+        let spacing = self.get_property_f32(HmGuiProperties::ContainerSpacingId.id());
 
         let container = HmGuiContainer {
             layout,
@@ -164,6 +195,76 @@ impl HmGui {
 
         self.focus[ty as usize] == hash
     }
+
+    fn get_property(&self, property_id: usize) -> &HmGuiProperty {
+        let id = property_id.into();
+        if let Some(prop) = self.element_style.properties.get(&id) {
+            return prop;
+        }
+
+        if let Some((_, prop)) = self.property_registry.registry.get_index(property_id) {
+            return &prop.property;
+        }
+
+        panic!("Unknown property id {property_id}");
+    }
+}
+
+macro_rules! register_property {
+    ($self:ident, $name:ident, $value:expr, $map_id:ident) => {{
+        let mut map_ids = vec![];
+        if let Some(map_id_str) = $map_id {
+            let (map_id, _, _) = $self
+                .default_property_registry
+                .registry
+                .get_full(map_id_str)
+                .unwrap_or_else(|| panic!("{:?} has unknown map property: {map_id_str}", $name));
+
+            map_ids.push(map_id.into());
+        }
+
+        let def_id = $self
+            .default_property_registry
+            .register($name, $value.into(), &map_ids);
+        let id = $self
+            .property_registry
+            .register($name, $value.into(), &map_ids);
+        debug_assert_eq!(def_id, id);
+
+        *id
+    }};
+}
+
+macro_rules! set_property {
+    ($self:ident, $id:ident, $val:expr) => {
+        let Some((_, def_prop)) = $self.default_property_registry.registry.get_index($id) else {
+            panic!("Unknown property id {}", $id);
+        };
+        let value: HmGuiProperty = $val.into();
+        assert_eq!(
+            def_prop.property.get_type(),
+            value.get_type(),
+            "Wrong property type"
+        );
+
+        $self.element_style.properties.insert($id.into(), value);
+    };
+}
+
+macro_rules! get_property {
+    ($self:ident, $id:ident, $v:ident) => {{
+        let prop = $self.get_property($id);
+
+        let HmGuiProperty::$v(value) = prop else {
+            panic!(
+                "Wrong property type. Expected {} but was {}",
+                stringify!($v),
+                prop.name()
+            )
+        };
+
+        value
+    }};
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -323,7 +424,7 @@ impl HmGui {
             self.rect(0.0, 0.0, 0.0, 0.0);
             self.set_fixed_size(handle_pos, 4.0);
 
-            let color_frame = self.styles.last().expect("Style was not set").color_frame;
+            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
 
             self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
             self.set_fixed_size(handle_size, 4.0);
@@ -348,7 +449,7 @@ impl HmGui {
             self.rect(0.0, 0.0, 0.0, 0.0);
             self.set_fixed_size(4.0, handle_pos);
 
-            let color_frame = self.styles.last().expect("Style was not set").color_frame;
+            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
 
             self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
             self.set_fixed_size(4.0, handle_size);
@@ -465,8 +566,11 @@ impl HmGui {
         self.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         let (color_frame, color_primary) = {
-            let style = self.styles.last().expect("Style was not set");
-            (style.color_frame, style.color_primary)
+            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
+            let color_primary =
+                self.get_property_vec4(HmGuiProperties::ContainerColorPrimaryId.id());
+
+            (color_frame.clone(), color_primary.clone())
         };
 
         self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
@@ -527,13 +631,14 @@ impl HmGui {
     }
 
     pub fn text(&mut self, text: &str) {
-        let style = self.styles.last().expect("Style was not set");
+        let font = self.get_property_font(HmGuiProperties::TextFontId.id());
+        let color = self.get_property_vec4(HmGuiProperties::TextColorId.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
-            font: style.font.clone().into(),
             text: text.into(),
-            color: style.color_text,
+            font: font.clone(),
+            color: color.clone(),
         };
         let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
@@ -543,11 +648,11 @@ impl HmGui {
     }
 
     pub fn text_colored(&mut self, text: &str, r: f32, g: f32, b: f32, a: f32) {
-        let style = self.styles.last().expect("Style was not set");
+        let font = self.get_property_font(HmGuiProperties::TextFontId.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
-            font: style.font.clone().into(),
+            font: font.clone(),
             text: text.into(),
             color: Vec4::new(r, g, b, a),
         };
@@ -811,32 +916,500 @@ impl HmGui {
         container.children_vertical_alignment = align;
     }
 
-    pub fn push_style(&mut self) {
-        let style = self.styles.last().cloned().unwrap_or_default();
+    // Theme methods ----------------------------------------------------------
 
-        self.styles.push(style);
+    /// Set a theme by merging it into the default properties.
+    pub fn set_theme(&mut self, name: &str) {
+        let mut property_registry = self.default_property_registry.clone();
+
+        self.theme_registry.merge_to(&mut property_registry, name);
+
+        self.property_registry = property_registry;
     }
 
-    pub fn push_font(&mut self, font: &Font) {
-        self.push_style();
-
-        let style = self.styles.last_mut().expect("Style was not set");
-
-        style.font = font.clone().into();
+    /// Restore default properties.
+    pub fn clear_theme(&mut self) {
+        self.property_registry = self.default_property_registry.clone();
     }
 
-    pub fn push_text_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
-        self.push_style();
+    // Style methods ----------------------------------------------------------
 
-        let style = self.styles.last_mut().expect("Style was not set");
-
-        style.color_text = Vec4::new(r, g, b, a);
+    /// Get style id by its name.
+    pub fn get_style_id(&self, name: &str) -> usize {
+        *self
+            .style_registry
+            .get_id(name)
+            .expect(&format!("Unknown style: {name}"))
     }
 
-    pub fn pop_style(&mut self, depth: i32) {
-        assert!(self.styles.len() >= depth as usize);
+    /// Set a style for the following element.
+    pub fn set_style(&mut self, id: usize) {
+        self.element_style = self
+            .style_registry
+            .get(id.into())
+            .expect(&format!("Unknown style with id: {id:?}"))
+            .clone();
+    }
 
-        self.styles.truncate(self.styles.len() - depth as usize);
+    /// Remove element style.
+    pub fn clear_style(&mut self) {
+        self.element_style.properties.clear();
+    }
+
+    // Property methods -------------------------------------------------------
+
+    /// Get property type by its id.
+    pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
+        self.default_property_registry.registry[id]
+            .property
+            .get_type()
+    }
+
+    /// Write property value into the mapped properties in the active element style.
+    pub fn map_property(&mut self, property_id: usize) {
+        if let Some(prop) = self
+            .element_style
+            .properties
+            .get(&property_id.into())
+            .cloned()
+        {
+            let map_ids = &self.property_registry.registry[property_id].map_ids;
+
+            for map_id in map_ids {
+                self.element_style.properties.insert(*map_id, prop.clone());
+            }
+        }
+    }
+
+    /// Remove property by id from the active element style.
+    pub fn remove_property(&mut self, property_id: usize) {
+        self.element_style.properties.remove(&property_id.into());
+    }
+
+    // register_property_* methods --------------------------------------------
+
+    // TODO: map_ids: Vec<usize>
+    pub fn register_property_bool(
+        &mut self,
+        name: &str,
+        value: bool,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_i8(&mut self, name: &str, value: i8, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_u8(&mut self, name: &str, value: u8, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_i16(&mut self, name: &str, value: i16, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_u16(&mut self, name: &str, value: u16, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_i32(&mut self, name: &str, value: i32, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_u32(&mut self, name: &str, value: u32, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_i64(&mut self, name: &str, value: i64, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_u64(&mut self, name: &str, value: u64, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_f32(&mut self, name: &str, value: f32, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_f64(&mut self, name: &str, value: f64, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_vec2(
+        &mut self,
+        name: &str,
+        value: Vec2,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_vec3(
+        &mut self,
+        name: &str,
+        value: &Vec3,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    pub fn register_property_vec4(
+        &mut self,
+        name: &str,
+        value: &Vec4,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyIVec2")]
+    pub fn register_property_ivec2(
+        &mut self,
+        name: &str,
+        value: IVec2,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    #[bind(name = "RegisterPropertyIVec3")]
+    pub fn register_property_ivec3(
+        &mut self,
+        name: &str,
+        value: &IVec3,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyIVec4")]
+    pub fn register_property_ivec4(
+        &mut self,
+        name: &str,
+        value: &IVec4,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyUVec2")]
+    pub fn register_property_uvec2(
+        &mut self,
+        name: &str,
+        value: UVec2,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    #[bind(name = "RegisterPropertyUVec3")]
+    pub fn register_property_uvec3(
+        &mut self,
+        name: &str,
+        value: &UVec3,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyUVec4")]
+    pub fn register_property_uvec4(
+        &mut self,
+        name: &str,
+        value: &UVec4,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyDVec2")]
+    pub fn register_property_dvec2(
+        &mut self,
+        name: &str,
+        value: DVec2,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    #[bind(name = "RegisterPropertyDVec3")]
+    pub fn register_property_dvec3(
+        &mut self,
+        name: &str,
+        value: &DVec3,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyDVec4")]
+    pub fn register_property_dvec4(
+        &mut self,
+        name: &str,
+        value: &DVec4,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    pub fn register_property_box3(
+        &mut self,
+        name: &str,
+        value: &Box3,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    pub fn register_property_string(
+        &mut self,
+        name: &str,
+        value: &str,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.to_string(), map_id)
+    }
+
+    pub fn register_property_font(
+        &mut self,
+        name: &str,
+        value: &Font,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    // set_property_* methods -------------------------------------------------
+
+    pub fn set_property_bool(&mut self, property_id: usize, value: bool) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_i8(&mut self, property_id: usize, value: i8) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_u8(&mut self, property_id: usize, value: u8) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_i16(&mut self, property_id: usize, value: i16) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_u16(&mut self, property_id: usize, value: u16) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_i32(&mut self, property_id: usize, value: i32) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_u32(&mut self, property_id: usize, value: u32) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_i64(&mut self, property_id: usize, value: i64) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_u64(&mut self, property_id: usize, value: u64) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_f32(&mut self, property_id: usize, value: f32) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_f64(&mut self, property_id: usize, value: f64) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_vec2(&mut self, property_id: usize, value: Vec2) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_vec3(&mut self, property_id: usize, value: &Vec3) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    pub fn set_property_vec4(&mut self, property_id: usize, value: &Vec4) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyIVec2")]
+    pub fn set_property_ivec2(&mut self, property_id: usize, value: IVec2) {
+        set_property!(self, property_id, value);
+    }
+
+    #[bind(name = "SetPropertyIVec3")]
+    pub fn set_property_ivec3(&mut self, property_id: usize, value: &IVec3) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyIVec4")]
+    pub fn set_property_ivec4(&mut self, property_id: usize, value: &IVec4) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyUVec2")]
+    pub fn set_property_uvec2(&mut self, property_id: usize, value: UVec2) {
+        set_property!(self, property_id, value);
+    }
+
+    #[bind(name = "SetPropertyUVec3")]
+    pub fn set_property_uvec3(&mut self, property_id: usize, value: &UVec3) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyUVec4")]
+    pub fn set_property_uvec4(&mut self, property_id: usize, value: &UVec4) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyDVec2")]
+    pub fn set_property_dvec2(&mut self, property_id: usize, value: DVec2) {
+        set_property!(self, property_id, value);
+    }
+
+    #[bind(name = "SetPropertyDVec3")]
+    pub fn set_property_dvec3(&mut self, property_id: usize, value: &DVec3) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyDVec4")]
+    pub fn set_property_dvec4(&mut self, property_id: usize, value: &DVec4) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    pub fn set_property_box3(&mut self, property_id: usize, value: &Box3) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    pub fn set_property_string(&mut self, property_id: usize, value: &str) {
+        set_property!(self, property_id, value.to_string());
+    }
+
+    pub fn set_property_font(&mut self, property_id: usize, value: &Font) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    // get_property_* methods -------------------------------------------------
+
+    pub fn get_property_bool(&self, property_id: usize) -> bool {
+        *get_property!(self, property_id, Bool)
+    }
+
+    pub fn get_property_i8(&self, property_id: usize) -> i8 {
+        *get_property!(self, property_id, I8)
+    }
+
+    pub fn get_property_u8(&self, property_id: usize) -> u8 {
+        *get_property!(self, property_id, U8)
+    }
+
+    pub fn get_property_i16(&self, property_id: usize) -> i16 {
+        *get_property!(self, property_id, I16)
+    }
+
+    pub fn get_property_u16(&self, property_id: usize) -> u16 {
+        *get_property!(self, property_id, U16)
+    }
+
+    pub fn get_property_i32(&self, property_id: usize) -> i32 {
+        *get_property!(self, property_id, I32)
+    }
+
+    pub fn get_property_u32(&self, property_id: usize) -> u32 {
+        *get_property!(self, property_id, U32)
+    }
+
+    pub fn get_property_i64(&self, property_id: usize) -> i64 {
+        *get_property!(self, property_id, I64)
+    }
+
+    pub fn get_property_u64(&self, property_id: usize) -> u64 {
+        *get_property!(self, property_id, U64)
+    }
+
+    pub fn get_property_f32(&self, property_id: usize) -> f32 {
+        *get_property!(self, property_id, F32)
+    }
+
+    pub fn get_property_f64(&self, property_id: usize) -> f64 {
+        *get_property!(self, property_id, F64)
+    }
+
+    pub fn get_property_vec2(&self, property_id: usize) -> Vec2 {
+        *get_property!(self, property_id, Vec2)
+    }
+
+    pub fn get_property_vec3(&self, property_id: usize) -> &Vec3 {
+        get_property!(self, property_id, Vec3)
+    }
+
+    pub fn get_property_vec4(&self, property_id: usize) -> &Vec4 {
+        get_property!(self, property_id, Vec4)
+    }
+
+    #[bind(name = "GetPropertyIVec2")]
+    pub fn get_property_ivec2(&self, property_id: usize) -> IVec2 {
+        *get_property!(self, property_id, IVec2)
+    }
+
+    #[bind(name = "GetPropertyIVec3")]
+    pub fn get_property_ivec3(&self, property_id: usize) -> &IVec3 {
+        get_property!(self, property_id, IVec3)
+    }
+
+    #[bind(name = "GetPropertyIVec4")]
+    pub fn get_property_ivec4(&self, property_id: usize) -> &IVec4 {
+        get_property!(self, property_id, IVec4)
+    }
+
+    #[bind(name = "GetPropertyUVec2")]
+    pub fn get_property_uvec2(&self, property_id: usize) -> UVec2 {
+        *get_property!(self, property_id, UVec2)
+    }
+
+    #[bind(name = "GetPropertyUVec3")]
+    pub fn get_property_uvec3(&self, property_id: usize) -> &UVec3 {
+        get_property!(self, property_id, UVec3)
+    }
+
+    #[bind(name = "GetPropertyUVec4")]
+    pub fn get_property_uvec4(&self, property_id: usize) -> &UVec4 {
+        get_property!(self, property_id, UVec4)
+    }
+
+    #[bind(name = "GetPropertyDVec2")]
+    pub fn get_property_dvec2(&self, property_id: usize) -> DVec2 {
+        *get_property!(self, property_id, DVec2)
+    }
+
+    #[bind(name = "GetPropertyDVec3")]
+    pub fn get_property_dvec3(&self, property_id: usize) -> &DVec3 {
+        get_property!(self, property_id, DVec3)
+    }
+
+    #[bind(name = "GetPropertyDVec4")]
+    pub fn get_property_dvec4(&self, property_id: usize) -> &DVec4 {
+        get_property!(self, property_id, DVec4)
+    }
+
+    pub fn get_property_box3(&self, property_id: usize) -> &Box3 {
+        get_property!(self, property_id, Box3)
+    }
+
+    pub fn get_property_string(&self, property_id: usize) -> &str {
+        get_property!(self, property_id, String).as_str()
+    }
+
+    pub fn get_property_font(&self, property_id: usize) -> &Font {
+        get_property!(self, property_id, Font)
     }
 
     /// Prints widgets hierarchy to the console. For testing.
