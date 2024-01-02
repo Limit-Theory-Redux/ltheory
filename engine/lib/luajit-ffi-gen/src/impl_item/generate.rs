@@ -61,18 +61,24 @@ impl ImplInfo {
             quote! {}
         };
 
-        let param_tokens: Vec<_> = method
+        let mut param_tokens: Vec<_> = method
             .params
             .iter()
             .map(|param| wrap_param(&self.name, param))
             .collect();
 
-        let ret_token = if let Some(ty) = &method.ret {
-            let ty_token = wrap_ret_type(&self.name, &ty);
+        if method.bind_args.gen_out_param() && method.ret.is_some() {
+            let return_ty_token = wrap_ret_type(&self.name, method.ret.as_ref().unwrap(), true);
+            param_tokens.push(quote! { out: &mut #return_ty_token })
+        }
+
+        let ret_token = if method.bind_args.gen_out_param() || method.ret.is_none() {
+            quote! {}
+        } else {
+            let ret = method.ret.as_ref().unwrap();
+            let ty_token = wrap_ret_type(&self.name, &ret, false);
 
             quote! { -> #ty_token }
-        } else {
-            quote! {}
         };
 
         let func_ident_str = format!("{func_ident}");
@@ -122,11 +128,10 @@ fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
                 if ty.is_mutable {
                     // Mutable is always with reference
                     quote! { &mut #ty_ident }
-                } else if TypeInfo::is_copyable(&ty_name) {
-                    // Ignore immutable reference of the copyable type
-                    quote! { #ty_ident }
                 } else if ty.is_reference {
                     quote! { &#ty_ident }
+                } else if TypeInfo::is_copyable(&ty_name) {
+                    quote! { #ty_ident }
                 } else {
                     quote! { Box<#ty_ident> }
                 }
@@ -153,7 +158,7 @@ fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
     }
 }
 
-fn wrap_ret_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
+fn wrap_ret_type(self_name: &str, ty: &TypeInfo, never_box: bool) -> TokenStream {
     match &ty.variant {
         TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
             quote! { *const libc::c_char }
@@ -172,7 +177,7 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
                 } else {
                     quote! { *const #ty_ident }
                 }
-            } else if is_copyable {
+            } else if (is_copyable && !ty.is_boxed) || never_box {
                 quote! { #ty_ident }
             } else if ty.is_mutable {
                 quote! { *mut #ty_ident }
@@ -218,17 +223,10 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 TypeVariant::String => quote! { #name_accessor.as_string() },
                 TypeVariant::CString => quote! { #name_accessor.as_cstring() },
                 TypeVariant::Custom(custom_ty) => {
-                    if TypeInfo::is_copyable(&custom_ty) {
-                        if param.ty.is_reference && !param.ty.is_mutable {
-                            quote! { &#name_accessor }
-                        } else {
-                            quote! { #name_accessor }
-                        }
-                    } else if param.ty.is_reference{
+                    if param.ty.is_reference || param.ty.is_boxed || TypeInfo::is_copyable(&custom_ty) {
                         quote! { #name_accessor }
                     } else {
-                        // FIXME: Boxed type. into_inner is nightly only. Alternative Option::unwrap
-                        quote! { #name_accessor.into_inner() }
+                        quote! { *#name_accessor }
                     }
                 },
                 _ => {
@@ -300,7 +298,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     } else {
                         gen_buffered_ret(&type_ident)
                     }
-                } else if is_copyable {
+                } else if is_copyable || method.bind_args.gen_out_param() {
                     if ty.is_reference {
                         quote! { *__res__ }
                     } else {
@@ -310,9 +308,10 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     quote! { __res__ as *mut #type_ident }
                 } else if ty.is_reference {
                     quote! { __res__ as *const #type_ident }
-                } else {
-                    // Do boxing
+                } else if !ty.is_boxed {
                     quote! { __res__.into() }
+                } else {
+                    quote! { __res__ }
                 }
             }
             _ => {
@@ -326,9 +325,16 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
             }
         };
 
-        quote! {
-            #method_call
-            #return_item
+        if method.bind_args.gen_out_param() {
+            quote! {
+                #method_call
+                *out = #return_item;
+            }
+        } else {
+            quote! {
+                #method_call
+                #return_item
+            }
         }
     } else {
         quote! {

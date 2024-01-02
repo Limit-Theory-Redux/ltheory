@@ -16,17 +16,17 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            uint64    GamepadState_GamepadsCount  (GamepadState const*);
-            GamepadId GamepadState_GamepadId      (GamepadState const*, uint64 index);
-            cstr      GamepadState_GamepadName    (GamepadState const*, GamepadId gamepadId);
-            float     GamepadState_Value          (GamepadState const*, GamepadAxis axis);
-            bool      GamepadState_IsPressed      (GamepadState const*, GamepadButton button);
-            bool      GamepadState_IsDown         (GamepadState const*, GamepadButton button);
-            bool      GamepadState_IsReleased     (GamepadState const*, GamepadButton button);
-            float     GamepadState_ValueById      (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
-            bool      GamepadState_IsPressedById  (GamepadState const*, GamepadId gamepadId, GamepadButton button);
-            bool      GamepadState_IsDownById     (GamepadState const*, GamepadId gamepadId, GamepadButton button);
-            bool      GamepadState_IsReleasedById (GamepadState const*, GamepadId gamepadId, GamepadButton button);
+            uint64           GamepadState_GamepadsCount  (GamepadState const*);
+            GamepadId const* GamepadState_GamepadId      (GamepadState const*, uint64 index);
+            cstr             GamepadState_GamepadName    (GamepadState const*, GamepadId gamepadId);
+            float            GamepadState_Value          (GamepadState const*, GamepadAxis axis);
+            bool             GamepadState_IsPressed      (GamepadState const*, GamepadButton button);
+            bool             GamepadState_IsDown         (GamepadState const*, GamepadButton button);
+            bool             GamepadState_IsReleased     (GamepadState const*, GamepadButton button);
+            float            GamepadState_ValueById      (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
+            bool             GamepadState_IsPressedById  (GamepadState const*, GamepadId gamepadId, GamepadButton button);
+            bool             GamepadState_IsDownById     (GamepadState const*, GamepadId gamepadId, GamepadButton button);
+            bool             GamepadState_IsReleasedById (GamepadState const*, GamepadId gamepadId, GamepadButton button);
         ]]
     end
 

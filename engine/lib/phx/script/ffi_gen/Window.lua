@@ -16,41 +16,41 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void        Window_BeginDraw                 (Window const*);
-            void        Window_EndDraw                   (Window const*);
-            cstr        Window_Title                     (Window const*);
-            void        Window_SetTitle                  (Window*, cstr title);
-            Cursor*     Window_Cursor                    (Window*);
-            PresentMode Window_PresentMode               (Window const*);
-            void        Window_SetPresentMode            (Window*, PresentMode presentMode);
-            void        Window_SetMaximized              (Window*, bool maximized);
-            void        Window_SetMinimized              (Window*, bool minimized);
-            Vec2i       Window_Position                  (Window const*);
-            void        Window_SetCenteredPosition       (Window*);
-            void        Window_SetPosition               (Window*, int x, int y);
-            float       Window_Width                     (Window const*);
-            float       Window_Height                    (Window const*);
-            Vec2f       Window_Size                      (Window const*);
-            void        Window_SetSize                   (Window*, float width, float height);
-            uint32      Window_PhysicalWidth             (Window const*);
-            uint32      Window_PhysicalHeight            (Window const*);
-            Vec2i       Window_PhysicalSize              (Window const*);
-            void        Window_SetPhysicalSize           (Window*, int width, int height);
-            bool        Window_IsResizable               (Window const*);
-            void        Window_SetResizable              (Window*, bool resizable);
-            bool        Window_HasDecorations            (Window const*);
-            void        Window_SetDecorations            (Window*, bool decorations);
-            bool        Window_IsTransparent             (Window const*);
-            void        Window_SetTransparent            (Window*, bool transparent);
-            bool        Window_IsFocused                 (Window const*);
-            void        Window_SetFocused                (Window*, bool focused);
-            void        Window_SetFullscreen             (Window*, bool fs);
-            void        Window_ToggleFullscreen          (Window*);
-            double      Window_ScaleFactor               (Window const*);
-            Vec2f       Window_CursorPosition            (Window const*);
-            void        Window_SetCursorPosition         (Window*, Vec2f position);
-            Vec2f       Window_PhysicalCursorPosition    (Window const*);
-            void        Window_SetPhysicalCursorPosition (Window*, Vec2d position);
+            void         Window_BeginDraw                 (Window const*);
+            void         Window_EndDraw                   (Window const*);
+            cstr         Window_Title                     (Window const*);
+            void         Window_SetTitle                  (Window*, cstr title);
+            Cursor*      Window_Cursor                    (Window*);
+            PresentMode  Window_PresentMode               (Window const*);
+            void         Window_SetPresentMode            (Window*, PresentMode presentMode);
+            void         Window_SetMaximized              (Window*, bool maximized);
+            void         Window_SetMinimized              (Window*, bool minimized);
+            Vec2i        Window_Position                  (Window const*);
+            void         Window_SetCenteredPosition       (Window*);
+            void         Window_SetPosition               (Window*, int x, int y);
+            float        Window_Width                     (Window const*);
+            float        Window_Height                    (Window const*);
+            Vec2f        Window_Size                      (Window const*);
+            void         Window_SetSize                   (Window*, float width, float height);
+            uint32       Window_PhysicalWidth             (Window const*);
+            uint32       Window_PhysicalHeight            (Window const*);
+            Vec2i        Window_PhysicalSize              (Window const*);
+            void         Window_SetPhysicalSize           (Window*, int width, int height);
+            bool         Window_IsResizable               (Window const*);
+            void         Window_SetResizable              (Window*, bool resizable);
+            bool         Window_HasDecorations            (Window const*);
+            void         Window_SetDecorations            (Window*, bool decorations);
+            bool         Window_IsTransparent             (Window const*);
+            void         Window_SetTransparent            (Window*, bool transparent);
+            bool         Window_IsFocused                 (Window const*);
+            void         Window_SetFocused                (Window*, bool focused);
+            void         Window_SetFullscreen             (Window*, bool fs);
+            void         Window_ToggleFullscreen          (Window*);
+            double       Window_ScaleFactor               (Window const*);
+            Vec2f const* Window_CursorPosition            (Window const*);
+            void         Window_SetCursorPosition         (Window*, Vec2f const* position);
+            Vec2f const* Window_PhysicalCursorPosition    (Window const*);
+            void         Window_SetPhysicalCursorPosition (Window*, Vec2d const* position);
         ]]
     end
 

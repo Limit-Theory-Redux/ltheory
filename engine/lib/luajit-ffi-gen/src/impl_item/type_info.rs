@@ -20,6 +20,15 @@ const COPY_TYPES: &[&str] = &[
     "UVec2",
     "DVec2",
     "Vec2",
+    "IVec3",
+    "UVec3",
+    "DVec3",
+    "Vec3",
+    "IVec4",
+    "UVec4",
+    "DVec4",
+    "Vec4",
+    "Box3",
     "WindowPos",
     "WindowMode",
     "MouseControl",
@@ -52,6 +61,8 @@ pub struct TypeInfo {
     pub is_option: bool,
     /// Reference type: &T
     pub is_reference: bool,
+    /// Boxed type: Box<T>
+    pub is_boxed: bool,
     /// Mutable reference type: &mut T
     pub is_mutable: bool,
     pub variant: TypeVariant,
@@ -72,36 +83,62 @@ impl TypeInfo {
         COPY_TYPES.contains(&ty)
     }
 
-    pub fn as_ffi_string(&self) -> String {
-        let ffi_ty = self.variant.as_ffi_string();
-
-        let res = if self.variant.is_custom() {
-            RUST_TO_LUA_TYPE_MAP
-                .iter()
-                .find(|(r_ty, _)| *r_ty == ffi_ty)
-                .map(|(_, l_ty)| l_ty.to_string())
-                .unwrap_or(ffi_ty)
-        } else {
-            ffi_ty
-        };
-        let opt = if self.is_option
-            && !self.is_reference
-            && !self.variant.is_string()
-            && !Self::is_copyable(&self.variant.as_string())
-        {
-            "*"
-        } else {
-            ""
-        };
-
-        if self.is_reference && self.variant != TypeVariant::Str {
-            if self.is_mutable {
-                format!("{res}*{opt}")
-            } else {
-                format!("{res} const*{opt}")
+    pub fn as_ffi_string(&self, self_name: &str) -> String {
+        // These types should be the C equivalent of the result of `wrap_type` in `generate.rs`.
+        match &self.variant {
+            TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
+                if self.is_mutable {
+                    format!("char*")
+                } else {
+                    format!("cstr")
+                }
             }
-        } else {
-            format!("{res}{opt}")
+            TypeVariant::Custom(ty_name) => {
+                let ty_ident = if self.is_self() { self_name } else { ty_name };
+
+                let ffi_ty_name = RUST_TO_LUA_TYPE_MAP
+                    .iter()
+                    .find(|(r_ty, _)| *r_ty == ty_name)
+                    .map(|(_, l_ty)| l_ty.to_string())
+                    .unwrap_or(ty_ident.to_string());
+
+                if self.is_option {
+                    if self.is_mutable {
+                        format!("{ffi_ty_name}*")
+                    } else {
+                        format!("{ffi_ty_name} const*")
+                    }
+                } else {
+                    if self.is_mutable {
+                        // Mutable is always with reference
+                        format!("{ffi_ty_name}*")
+                    } else if self.is_reference {
+                        format!("{ffi_ty_name} const*")
+                    } else if TypeInfo::is_copyable(&ty_name) {
+                        format!("{ffi_ty_name}")
+                    } else {
+                        format!("{ffi_ty_name}*")
+                    }
+                }
+            }
+            _ => {
+                let ty_ident = self.variant.as_ffi_string();
+
+                if self.is_option {
+                    // All options are sent by pointer
+                    if self.is_mutable {
+                        format!("{ty_ident}*")
+                    } else {
+                        format!("{ty_ident} const*")
+                    }
+                } else if self.is_mutable {
+                    // Mutable is always with reference
+                    format!("{ty_ident}*")
+                } else {
+                    // We don't care if there is reference on the numeric type - just accept it by value
+                    format!("{ty_ident}")
+                }
+            }
         }
     }
 }
@@ -128,15 +165,6 @@ pub enum TypeVariant {
 }
 
 impl TypeVariant {
-    pub fn is_custom(&self) -> bool {
-        matches!(self, Self::Custom(_))
-    }
-
-    #[allow(dead_code)]
-    pub fn is_str(&self) -> bool {
-        matches!(self, Self::Str)
-    }
-
     pub fn is_string(&self) -> bool {
         match self {
             Self::Str | Self::String | Self::CString => true,
