@@ -12,10 +12,10 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            bool  Resource_Exists     (ResourceType ty, cstr name);
-            cstr  Resource_GetPath    (ResourceType ty, cstr name);
-            Bytes Resource_LoadBytes  (ResourceType ty, cstr name);
-            cstr  Resource_LoadString (ResourceType ty, cstr name);
+            bool   Resource_Exists     (ResourceType ty, cstr name);
+            cstr   Resource_GetPath    (ResourceType ty, cstr name);
+            Bytes* Resource_LoadBytes  (ResourceType ty, cstr name);
+            cstr   Resource_LoadString (ResourceType ty, cstr name);
         ]]
     end
 

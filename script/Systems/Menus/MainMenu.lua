@@ -470,8 +470,7 @@ function MainMenu:ShowSettingsScreenInner()
         GameState.gen.nebulaBrightnessScale = guiSettings[4][2]
 
         GameState.ui.cursorStyle = guiSettings[5][2]
-        LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX,
-            GameState.ui.cursorY)
+        LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle])
 
         GameState.ui.hudStyle = guiSettings[6][2]
 
