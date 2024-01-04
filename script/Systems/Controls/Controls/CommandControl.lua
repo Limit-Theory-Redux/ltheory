@@ -219,7 +219,25 @@ function CommandControl:centerOnFocus(zoom)
     local count = #self.focus
     if count == 0 then return end
 
+    local player = self.player
+    local playerShip = GameState.player.currentShip
+
+    -- Unit Icons
+    for i = 1, #self.units.tracked do
+        local unit = self.units.tracked[i]
+
+        if unit:isAlive() then
+            local rect = self.unitRects[i]
+            local ndc = self.unitNDCs[i]
+            -- TODO: replace with faction relation
+            local rel = unit:getDisposition(playerShip)
+            local color = Disposition.GetColor(rel)
+            self:drawUnitRect(rect, ndc, color, 4, self.camera)
+        end
+    end
+
     local center = Vec3f()
+
     for i = 1, count do
         local unit = self.focus[i]
         center:iadd(unit:getPos())
@@ -229,6 +247,7 @@ function CommandControl:centerOnFocus(zoom)
 
     if zoom and count > 0 then
         local radius = 0
+
         for i = 1, count do
             local unit = self.focus[i]
             local dist = (unit:getPos() - center):length() + unit:getRadius()
@@ -274,7 +293,7 @@ function CommandControl:onInput(state)
     end
 
     self.moveDir = Vec3f(
-        CameraBindings.TranslateX:get(), 0,
+        CameraBindings.TranslateX:get(), CameraBindings.TranslateY:get(),
         CameraBindings.TranslateZ:get()
     ):clampLength(1)
     if not self.moveDir:isZero() then

@@ -137,7 +137,7 @@ extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
 //         return (cached as *const libc::c_char).as_string();
 //     }
 
-//     let rawCode = Resource_LoadCstr(ResourceType_Shader, c_name.as_ptr()).as_string();
+//     let rawCode = Resource::load_string(ResourceType::Shader, name);
 //     let code = rawCode.replace("\r\n", "\n");
 //     let c_code = glsl_preprocess(&code, this);
 

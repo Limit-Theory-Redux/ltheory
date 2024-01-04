@@ -760,7 +760,7 @@ function System:spawnStation(hullSize, player, prodType)
     station.zone = self:place(station)
 
     -- Assign the station to an owner
-    station:setOwner(player)
+    station:setOwner(player, true)
 
     -- Stations have market capacity
     station:addMarket()
@@ -848,16 +848,16 @@ function System:spawnPirateStation(hullSize, player)
     -- Spawn a new space station
     local station = Objects.Station(self.rng:get31(), hullSize)
     station:setType(Config:getObjectTypeByName("object_types", "Station"))
-    station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirate")) -- pirate station
+    station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirates")) -- pirate station
 
     -- Give the station a name
-    station:setName(Words.getCoolName(rng) .. " Marauders")
+    station:setName(player:getFaction().name)
 
     -- Set station location within the extent of a randomly selected asteroid field
     station.zone = self:place(station)
 
     -- Assign the station to an owner
-    station:setOwner(player)
+    station:setOwner(player, true)
 
     -- Add the black market
     station:addBlackMarket()
@@ -902,7 +902,7 @@ function System:spawnAI(shipCount, action, player)
     local rng = self.rng
     for i = 1, shipCount do
         local ship = self:spawnShip(rng:choose({ 1, 2, 3, 4, 5, 6 }), player)
-        ship:setOwner(player)
+        ship:setOwner(player, true)
         if action then
             ship:pushAction(action)
         end
@@ -940,7 +940,7 @@ function System:spawnShip(hullSize, player)
         shipPlayer = Player(format("Ship Player for %s", ship:getName()))
         insert(self.players, shipPlayer)
     end
-    ship:setOwner(shipPlayer)
+    ship:setOwner(shipPlayer, true)
 
     -- TODO: make sure spawn position for ship is well outside any planetary volume
     local shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp()))
@@ -1117,7 +1117,7 @@ function System:spawnBackground()
     backgroundShip:setPos(Config.gen.origin)
     backgroundShip:setFriction(0)
     backgroundShip:setSleepThreshold(0, 0)
-    backgroundShip:setOwner(player)
+    backgroundShip:setOwner(player, true)
     self:addChild(backgroundShip)
     GameState.player.currentShip = backgroundShip
     GameState.player.humanPlayer:setControlling(backgroundShip)

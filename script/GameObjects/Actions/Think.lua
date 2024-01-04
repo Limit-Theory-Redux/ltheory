@@ -173,7 +173,7 @@ function Think:manageAsset(asset)
         elseif string.find(asset.job:getName(), "Patrolling") and not asset.job.src:isDestroyed() then
             asset:pushAction(bestJob)
             jobAssigned = true
-            asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Patrol"))
+            asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Security"))
 
             local station = asset:isShipDocked()
             if station then

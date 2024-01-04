@@ -1,6 +1,7 @@
 local id = 1
 
 local Entity = class(function(self)
+    self:addGuid()
     self.id = id
     self.handlers = {}
     self.visibleMesh = nil

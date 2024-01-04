@@ -24,7 +24,7 @@ glam = { version = "0.24", features = ["scalar-math"] }
 hashbrown = { version = "0.14", features = ["serde"] }
 image = "0.24"
 indexmap = "2.0"
-kira = "0.8"
+kira = { version = "0.8", features = ["symphonia", "cpal", "serde"] }
 libc = "0.2"
 memoffset = "0.9"
 # TODO: we can switch to the first version released that includes this commit, most likely 0.9.2
@@ -36,6 +36,7 @@ num_cpus = "1.15"
 raw-window-handle = "0.5"
 regex = "1.8"
 rodio = "0.17"
+serde_yaml = "0.9"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -44,6 +45,7 @@ wgpu = "0.18"
 env_logger = "0.10"
 log = "0.4"
 pollster = "0.3"
+walkdir = "2.4"
 
 [build-dependencies]
 cmake = "0.1"

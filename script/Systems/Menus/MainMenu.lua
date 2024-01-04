@@ -150,11 +150,14 @@ end
 
 function MainMenu:ShowGui()
     -- Add title and Main Menu dialog
-    local scalefactor = (LTheoryRedux.resX / 22) / 72
+    local scaleFactor = (LTheoryRedux.resX / 22) / 72
 
-    Gui:beginStackContainer() -- begin game window panel
+    Gui:beginStackContainer() -- begin game window
     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
     Gui:setPadding(10.0, 10.0)
+
+    Gui:beginHorizontalContainer() -- begin main menu screen
+    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
 
     Gui:beginVerticalContainer() -- begin title/menu panel
     Gui:setPercentWidth(30)
@@ -162,16 +165,14 @@ function MainMenu:ShowGui()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     -- Title
-    Gui:beginVerticalContainer() -- begin title panel
-
-    self:ShadowText('LIMIT THEORY', 'RajdhaniSemiBold', 72 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
-    Gui:setHorizontalAlignment(AlignHorizontal.Left)
-    Gui:setMargin(20.0, 20.0)
-
-    self:ShadowText('REDUX', 'RajdhaniSemiBold', 58 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
-    Gui:setHorizontalAlignment(AlignHorizontal.Right)
-    Gui:setMargin(20.0, 20.0)
-
+    Gui:beginStackContainer() -- begin title panel
+    Gui:setPercentSize(99, 20)
+    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+    Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
+    Gui:setBorder(1, 1.0, 1.0, 1.0, 1.0)
+--    Gui:setMinSize(5, 5)
+    Gui:image(LTheoryRedux.logoname) -- draw the LTR name image
+    Gui:setPercentSize(95, 55)
     Gui:endContainer() -- end title panel
 
     -- Main Menu
@@ -179,27 +180,75 @@ function MainMenu:ShowGui()
 
     Gui:endContainer() -- end title/menu panel
 
-    Gui:endContainer() -- end game window panel
+    Gui:spacer()
+
+    -- Changelog
+    Gui:beginVerticalContainer() -- begin changelog panel
+    Gui:setPercentWidth(40)
+    Gui:setPercentHeight(95)
+    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
+--    Gui:setBorder(1, 1.0, 0.0, 0.0, 1.0)
+
+    Gui:beginVerticalContainer()
+    Gui:setPercentHeight(20)
+    Gui:endContainer()
+
+    Gui:beginVerticalContainer() -- begin changelog text panel
+    Gui:setPercentHeight(80)
+    Gui:setSpacing(0)
+    Gui:setBgColor(0.1, 0.1, 0.1, 0.5)
+
+    Gui:beginStackContainer() -- begin top text panel
+    Gui:setPercentSize(100, 8)
+    Gui:setHorizontalAlignment(AlignHorizontal.Center)
+    Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
+    Gui:setBgColor(0.2, 0.2, 0.2, 0.3)
+    Gui:textEx(Cache.Font('RajdhaniBold', 38), 'Notes for version ' .. Config.gameVersion, 1.0, 1.0, 1.0, 1.0)
+    Gui:endContainer() -- end top text panel
+    Gui:beginStackContainer() -- begin middle text panel
+    Gui:setPercentSize(100, 8)
+    Gui:setHorizontalAlignment(AlignHorizontal.Center)
+    Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
+    Gui:textEx(Cache.Font('Rajdhani', 28), 'Changelog', 1.0, 1.0, 1.0, 1.0)
+    Gui:endContainer() -- end middle text panel
+    Gui:beginStackContainer() -- begin details text panel
+    Gui:setPercentSize(90, 84)
+    Gui:setHorizontalAlignment(AlignHorizontal.Center)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Left)
+    Gui:textEx(Cache.Font('Rajdhani', 20), '- Lorem ipsum', 1.0, 1.0, 1.0, 1.0)
+    Gui:endContainer() -- end details text panel
+
+    Gui:endContainer() -- end changelog text panel
+
+    Gui:spacer()
+
+    Gui:endContainer() -- end changelog panel
+
+    Gui:beginStackContainer()
+    Gui:setPercentWidth(3)
+
+    Gui:endContainer() -- end main menu screen
+
+    Gui:endContainer() -- end game window
 end
 
 function MainMenu:ShowMainMenuInner()
     -- Add Main Menu items
-    local scalefactor = (LTheoryRedux.resX / 24) / 72
+    local scaleFactor = (LTheoryRedux.resX / 24) / 72
 
     Gui:beginVerticalContainer() -- begin menu/metrics panel
     Gui:setVerticalAlignment(AlignVertical.Stretch)
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
-    Gui:pushTextColor(0.9, 0.9, 0.9, 1.0)
-    Gui:pushFont(Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
-
-    Gui:spacer()
-    Gui:setPercentHeight(10)
+    Gui:clearStyle()
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(0.9, 0.9, 0.9, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('RajdhaniSemiBold', 36 * scaleFactor))
 
     if Gui:button("NEW GAME") then
         self:ShowSeedDialog()
     end
-    Gui:setVerticalAlignment(AlignVertical.Stretch)
+    Gui:setVerticalAlignment(AlignVertical.Stretch) -- set individually on each button child to enforce full stretching
 
     if Gui:button("LOAD GAME") then
         self:ShowSeedDialog()
@@ -225,20 +274,20 @@ function MainMenu:ShowMainMenuInner()
     end
     Gui:setVerticalAlignment(AlignVertical.Stretch)
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
 
     -- Show the game version (and, for now, current screen resolution)
     Gui:beginHorizontalContainer() -- begin metrics panel
     Gui:setChildrenVerticalAlignment(AlignVertical.Bottom)
     Gui:setMarginEx(5.0, 10.0, 5.0, 10.0)
 
-    self:ShadowText(Config.gameVersion, 'RajdhaniSemiBold', 12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
+    self:ShadowText(Config.gameVersion, 'RajdhaniSemiBold', 12 * scaleFactor, 2.0, 0.9, 0.9, 0.9, 1.0)
     Gui:setHorizontalAlignment(AlignHorizontal.Left)
 
     Gui:spacer()
 
     self:ShadowText('Resolution = ' .. LTheoryRedux.resX .. ' x ' .. LTheoryRedux.resY, 'RajdhaniSemiBold',
-        12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
+        12 * scaleFactor, 2.0, 0.9, 0.9, 0.9, 1.0)
     Gui:setHorizontalAlignment(AlignHorizontal.Right)
 
     Gui:endContainer() -- end metrics panel
@@ -271,8 +320,9 @@ function MainMenu:ShowSeedDialogInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
 
-    Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
-    Gui:pushFont(Cache.Font('Exo2', 26))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2', 26))
 
     -- Loop through saved seeds (hardcoded for now) and display as checkboxes
     for i = 1, #guiElements[1]["elems"] do
@@ -293,7 +343,7 @@ function MainMenu:ShowSeedDialogInner()
         end
     end
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
     Gui:endContainer()
 
     -- Buttons: Cancel, Random Seed, Use Seed
@@ -301,8 +351,9 @@ function MainMenu:ShowSeedDialogInner()
     Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(16)
 
-    Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
-    Gui:pushFont(Cache.Font('Exo2Bold', 28))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
         if GameState:GetCurrentState() == Enums.GameStates.InGame then
@@ -339,7 +390,7 @@ function MainMenu:ShowSeedDialogInner()
         LTheoryRedux:createStarSystem()
     end
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
     Gui:endContainer()
 end
 
@@ -373,8 +424,9 @@ function MainMenu:ShowSettingsScreenInner()
     Gui:beginVerticalContainer()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
-    Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
-    Gui:pushFont(Cache.Font('Exo2', 24))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2', 24))
 
     -- Show Settings options
     Gui:beginVerticalContainer()
@@ -395,15 +447,21 @@ function MainMenu:ShowSettingsScreenInner()
     -- Show Settings control buttons
     Gui:beginHorizontalContainer()
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
-    Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
-    Gui:pushFont(Cache.Font('Exo2Bold', 28))
+
+    Gui:clearStyle()
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
         -- Revert to the pre-Settings values of each setting
-        if guiSettings[1][2] then
-            LTheoryRedux:SoundOn()
-        else
-            LTheoryRedux:SoundOff()
+        if guiSettings[1][2] and guiSettings[1][1] ~= guiSettings[1][2] then
+            if guiSettings[1][2] then
+                LTheoryRedux:SoundOn()
+                Log.Debug("Reverting to Sound Enabled")
+            else
+                LTheoryRedux:SoundOff()
+                Log.Debug("Reverting to Sound Disabled")
+            end
         end
 
         LTheoryRedux:SetFullscreen(guiSettings[2][2])
@@ -413,8 +471,7 @@ function MainMenu:ShowSettingsScreenInner()
         GameState.gen.nebulaBrightnessScale = guiSettings[4][2]
 
         GameState.ui.cursorStyle = guiSettings[5][2]
-        LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX,
-            GameState.ui.cursorY)
+        LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle])
 
         GameState.ui.hudStyle = guiSettings[6][2]
 
@@ -488,10 +545,9 @@ function MainMenu:ShowSettingsScreenInner()
         InitFiles:writeUserInits()
     end
 
-    Gui:popStyle(2)
     Gui:endContainer()
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
     Gui:endContainer()
 end
 
@@ -766,8 +822,9 @@ function MainMenu:ShowFlightDialogInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
 
-    Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
-    Gui:pushFont(Cache.Font('Exo2Bold', 26))
+    Gui:clearStyle()
+    Gui:setPropertyVec4(GuiProperties.TextColorId, Vec4f(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2Bold', 26))
 
     if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
         if Gui:button("Return to Game") then
@@ -816,7 +873,7 @@ function MainMenu:ShowFlightDialogInner()
         LTheoryRedux:exitGame()
     end
 
-    Gui:popStyle(2)
+    Gui:clearStyle()
     Gui:endContainer()
 end
 

@@ -1,6 +1,4 @@
 use std::cell::RefMut;
-use std::collections::HashMap;
-use std::fs::File;
 
 use glam::{Vec2, Vec4};
 
@@ -119,13 +117,13 @@ impl HmGuiContainer {
                     if let Some(Length::Percent(percent_width)) = widget.default_width {
                         let widget_width = size.x * percent_width / 100.0;
 
-                        extra_diff.x += stretch_x * (widget_width - widget.inner_min_size.x);
+                        extra_diff.x += stretch_x * (widget_width - widget.min_size.x);
 
-                        widget.inner_min_size.x = widget_width;
-                        widget.min_size.x = widget_width
-                            + widget.border_width * 2.0
-                            + widget.margin_upper.x
-                            + widget.margin_lower.x;
+                        widget.min_size.x = widget_width;
+                        widget.inner_min_size.x = widget_width
+                            - widget.border_width * 2.0
+                            - widget.margin_upper.x
+                            - widget.margin_lower.x;
                     }
                 }
 
@@ -136,13 +134,13 @@ impl HmGuiContainer {
                     if let Some(Length::Percent(percent_height)) = widget.default_height {
                         let widget_height = size.y * percent_height / 100.0;
 
-                        extra_diff.y += stretch_y * (widget_height - widget.inner_min_size.y);
+                        extra_diff.y += stretch_y * (widget_height - widget.min_size.y);
 
-                        widget.inner_min_size.y = widget_height;
-                        widget.min_size.y = widget_height
-                            + widget.border_width * 2.0
-                            + widget.margin_upper.y
-                            + widget.margin_lower.y;
+                        widget.min_size.y = widget_height;
+                        widget.inner_min_size.y = widget_height
+                            - widget.border_width * 2.0
+                            - widget.margin_upper.y
+                            - widget.margin_lower.y;
                     }
                 }
             }

@@ -11,8 +11,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
 
 ## Screenshots
 
-![LTR Screenshot](./res/images/screenshot.png)
+![LTR Screenshot](./res/images/Readme_01.png)
 
-![LTR Screenshot 2](./res/images/screenshot2.png)
+![LTR Screenshot 2](./res/images/Readme_02.png)
 
-![LTR Screenshot 3](./res/images/screenshot3.png)
+![LTR Screenshot 3](./res/images/Readme_03.png)

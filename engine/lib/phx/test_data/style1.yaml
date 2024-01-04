@@ -1,0 +1,24 @@
+prop.bool: true
+prop.i8: -10
+prop.u8: 63
+prop.i16: -400
+prop.u16: 1000
+prop.i32: -100000
+prop.u32: 630000
+prop.i64: -10
+prop.u64: 63
+prop.f32: -10.69
+prop.f64: 63.132
+prop.vec2: [-10.2, 4.729]
+prop.vec3: [-10.2, 4.729, 0.0]
+prop.vec4: [-10.2, 4.729, 740, 44.6]
+prop.ivec2: [-10, 4]
+prop.ivec3: [-10, 4, 0]
+prop.ivec4: [-10, 4, 740, 44]
+prop.uvec2: [10, 4]
+prop.uvec3: [10, 4, 0]
+prop.uvec4: [10, 4, 740, 44]
+prop.dvec2: [-10.2, 4.729]
+prop.dvec3: [-10.2, 4.729, 0.0]
+prop.dvec4: [-10.2, 4.729, 740, 44.6]
+prop.box3: [[10.2, 4.729, 1.0], [740, 44.6, -1.0]]

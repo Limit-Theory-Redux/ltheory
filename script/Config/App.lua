@@ -27,7 +27,7 @@ Config.render                    = {
 
 Config.audio                     = {
     soundEnabled         = true,
-    supportedFormats     = { ".ogg" },
+    supportedFormats     = { ".ogg", ".mp3", ".wav", ".flac" },
     mainMenuMusicEnabled = true,
     soundMin             = 0,
     soundMax             = 1,   -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
@@ -935,7 +935,8 @@ Config.objectInfo                = {
             { 36, "Sloop" },
             { 37, "Yacht" },
             { 38, "Liner" },
-            { 39, "Marauder" }
+            { 39, "Marauder" },
+            { 40, "Security" }
         }
     },
     {

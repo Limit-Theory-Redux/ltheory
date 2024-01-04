@@ -120,7 +120,7 @@ function Universe:CreateShip(system, pos, shipObject)
     ship:setPos(spawnPosition)
     ship:setFriction(shipObject.friction)
     ship:setSleepThreshold(shipObject.sleepThreshold[1], shipObject.sleepThreshold[2])
-    ship:setOwner(shipObject.owner)
+    ship:setOwner(shipObject.owner, true)
     shipObject.owner:setControlling(ship)
 
     return ship

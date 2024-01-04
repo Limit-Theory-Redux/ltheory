@@ -51,7 +51,6 @@ impl Engine {
             }
 
             Metric_Reset();
-            Resource_Init();
             ShaderVar_Init();
         }
 
@@ -71,7 +70,7 @@ impl Engine {
             cache,
             winit_window,
             draw: Draw::new(renderer),
-            hmgui: HmGui::new(Font::load("Rajdhani", 14)),
+            hmgui: HmGui::new(),
             input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,
@@ -271,7 +270,7 @@ impl Engine {
         // Keep log till the end of the execution
         let _log = init_log(console_log, log_dir);
 
-        let entry_point_path = PathBuf::new().join(entry_point);
+        let entry_point_path = PathBuf::from(entry_point);
         if !entry_point_path.exists() {
             // TODO: do we really need this magic?
             std::env::set_current_dir("../").expect("Cannot change folder to parent");
