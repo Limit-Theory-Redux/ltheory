@@ -179,22 +179,10 @@ impl Draw {
             b: b as f64,
             a: a as f64,
         });
-
-        // let status = gl_check_framebuffer_status(gl::FRAMEBUFFER);
-        // if status != gl::FRAMEBUFFER_COMPLETE {
-        //     warn!(
-        //         "Framebuffer is incomplete, skipping clear. Status[{status}]: {}",
-        //         framebuffer_status_to_str(status)
-        //     );
-        // } else {
-        //     gl_clear_color(r, g, b, a);
-        //     gl_clear(gl::COLOR_BUFFER_BIT);
-        // };
     }
 
     pub fn clear_depth(d: f32) {
-        // gl_clear_depth(d as f64);
-        // gl_clear(gl::DEPTH_BUFFER_BIT);
+        // TODO:
     }
 
     pub fn color(r: f32, g: f32, b: f32, a: f32) {
