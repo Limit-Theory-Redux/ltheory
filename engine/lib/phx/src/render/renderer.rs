@@ -1,4 +1,5 @@
 use crate::window::PresentMode;
+use super::*;
 
 // Low level renderer class, managing WGPU command buffers and render passes.
 #[derive(Debug)]
@@ -9,6 +10,8 @@ pub struct Renderer {
     config: wgpu::SurfaceConfiguration,
 
     frame: Option<OpaqueFrame>,
+
+    current_shader: Option<*const Shader>,
 }
 
 impl Renderer {
@@ -58,6 +61,7 @@ impl Renderer {
             queue,
             config,
             frame: None,
+            current_shader: None,
         }
     }
 
@@ -118,6 +122,18 @@ impl Renderer {
             .as_mut()
             .expect("Cannot access frame object outside AppFrame")
             .get_mut()
+    }
+
+    pub fn use_shader(&mut self, sh: Option<&Shader>) {
+        self.current_shader = sh.map(|r| r as *const _);
+    }
+
+    pub fn get_device(&self) -> &wgpu::Device {
+        &self.device
+    }
+
+    pub fn get_device_mut(&mut self) -> &mut wgpu::Device {
+        &mut self.device
     }
 }
 

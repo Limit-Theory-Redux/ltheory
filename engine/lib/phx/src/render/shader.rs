@@ -10,16 +10,22 @@ use crate::math::*;
 use crate::system::*;
 use crate::*;
 
-#[derive(Default)]
-#[repr(C)]
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use wgpu::naga;
+
+use std::borrow::Cow;
+
 pub struct Shader {
-    pub _refCount: u32,
-    pub name: String,
-    pub vs: u32,
-    pub fs: u32,
-    pub program: u32,
-    pub texIndex: u32,
-    pub vars: Vec<ShaderVar>,
+    _refCount: u32,
+    name: String,
+    vs: Option<wgpu::ShaderModule>,
+    fs: Option<wgpu::ShaderModule>,
+    // pub program: u32,
+    // pub texIndex: u32,
+    // pub vars: Vec<ShaderVar>,
+    // shared: Rf<ShaderShared>
 }
 
 pub struct ShaderVar {
@@ -36,6 +42,103 @@ static mut versionString: *const libc::c_char =
 static mut current: *mut Shader = std::ptr::null_mut();
 
 static mut cache: *mut StrMap = std::ptr::null_mut();
+
+static mut renderer_inst: Option<Rc<RefCell<Renderer>>> = None;
+
+impl Shader {
+    pub fn set_renderer(r: Rc<RefCell<Renderer>>) {
+        unsafe {
+            renderer_inst = Some(r);
+        }
+    }
+
+    fn renderer() -> &'static Rc<RefCell<Renderer>> {
+        unsafe { renderer_inst.as_ref().unwrap() }
+    }
+
+    pub fn create(vs_source: &str, fs_source: &str) -> Shader {
+        warn!("Shader::create {} {}", vs_source, fs_source);
+        let mut r = Shader::renderer().borrow_mut();
+
+        let vs_module = {
+            // Parse the given shader code and store its representation.
+            let options = naga::front::glsl::Options {
+                stage: naga::ShaderStage::Vertex,
+                defines: naga::FastHashMap::default(),
+            };
+            let mut parser = naga::front::glsl::Frontend::default();
+            let module = parser.parse(&options, vs_source).unwrap();
+            module
+        };
+
+        let fs_module = {
+            // Parse the given shader code and store its representation.
+            let options = naga::front::glsl::Options {
+                stage: naga::ShaderStage::Fragment,
+                defines: naga::FastHashMap::default(),
+            };
+            let mut parser = naga::front::glsl::Frontend::default();
+            let module = parser.parse(&options, fs_source).unwrap();
+            module
+        };
+
+        Shader {
+            _refCount: 0,
+            name: String::new(),
+            vs: Some(r
+                .get_device_mut()
+                .create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("[anonymous vertex shader]"),
+                    source: wgpu::ShaderSource::Naga(Cow::Owned(vs_module)),
+                })),
+            fs: Some(r
+                .get_device_mut()
+                .create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("[anonymous fragment shader]"),
+                    source: wgpu::ShaderSource::Naga(Cow::Owned(fs_module)),
+                })),
+        }
+
+        // this.vars = Vec::new();
+
+        // let vs = glsl_preprocess(&vs.replace("\r\n", "\n"), this.as_mut());
+        // let fs = glsl_preprocess(&fs.replace("\r\n", "\n"), this.as_mut());
+
+        // this.vs = create_gl_shader(&vs, gl::VERTEX_SHADER);
+        // this.fs = create_gl_shader(&fs, gl::FRAGMENT_SHADER);
+        // this.program = CreateGLProgram(this.vs, this.fs);
+        // this.texIndex = 1;
+        // this.name = format!("[anonymous shader @ {:p}]", &*this);
+
+        // Shader_BindVariables(this.as_mut());
+
+        // sh
+    }
+
+    pub fn load(v_name: &str, f_name: &str) -> Shader {
+        warn!("Shader::load {} {}", v_name, f_name);
+
+        Shader {
+            _refCount: 0,
+            name: String::new(),
+            vs: None,
+            fs: None,
+        }
+
+        // this.vars = Vec::new();
+
+        // let vs = glsl_load(&vName.as_str(), this.as_mut());
+        // let fs = glsl_load(&fName.as_str(), this.as_mut());
+
+        // this.vs = create_gl_shader(&vs, gl::VERTEX_SHADER);
+        // this.fs = create_gl_shader(&fs, gl::FRAGMENT_SHADER);
+        // this.program = CreateGLProgram(this.vs, this.fs);
+        // this.texIndex = 1;
+        // this.name = format!("[vs: {} , fs: {}]", vName.as_str(), fName.as_str());
+
+        // Shader_BindVariables(this.as_mut());
+    }
+}
 
 extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const libc::c_char) -> i32 {
     0
@@ -227,46 +330,18 @@ pub unsafe extern "C" fn Shader_Create(
 }
 
 pub unsafe fn shader_create(vs: &str, fs: &str) -> Box<Shader> {
-    let mut this = Box::new(Shader::default());
-
-    // this._refCount = 1;
-    // this.vars = Vec::new();
-
-    // let vs = glsl_preprocess(&vs.replace("\r\n", "\n"), this.as_mut());
-    // let fs = glsl_preprocess(&fs.replace("\r\n", "\n"), this.as_mut());
-
-    // this.vs = create_gl_shader(&vs, gl::VERTEX_SHADER);
-    // this.fs = create_gl_shader(&fs, gl::FRAGMENT_SHADER);
-    // this.program = CreateGLProgram(this.vs, this.fs);
-    // this.texIndex = 1;
-    // this.name = format!("[anonymous shader @ {:p}]", &*this);
-
-    // Shader_BindVariables(this.as_mut());
-
+    let mut this = Box::new(Shader::create(vs, fs));
+    this._refCount = 1;
     this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_Load(
-    vName: *const libc::c_char,
-    fName: *const libc::c_char,
+    v_name: *const libc::c_char,
+    f_name: *const libc::c_char,
 ) -> Box<Shader> {
-    let mut this = Box::new(Shader::default());
-
-    // this._refCount = 1;
-    // this.vars = Vec::new();
-
-    // let vs = glsl_load(&vName.as_str(), this.as_mut());
-    // let fs = glsl_load(&fName.as_str(), this.as_mut());
-
-    // this.vs = create_gl_shader(&vs, gl::VERTEX_SHADER);
-    // this.fs = create_gl_shader(&fs, gl::FRAGMENT_SHADER);
-    // this.program = CreateGLProgram(this.vs, this.fs);
-    // this.texIndex = 1;
-    // this.name = format!("[vs: {} , fs: {}]", vName.as_str(), fName.as_str());
-
-    // Shader_BindVariables(this.as_mut());
-
+    let mut this = Box::new(Shader::load(v_name.as_str(), f_name.as_str()));
+    this._refCount = 1;
     this
 }
 
@@ -281,9 +356,6 @@ pub unsafe extern "C" fn Shader_Free(this: *mut Shader) {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
     } {
-        // gl_delete_shader((*this).vs);
-        // gl_delete_shader((*this).fs);
-        // gl_delete_program((*this).program);
         drop(Box::from_raw(this));
     }
 }
@@ -297,112 +369,99 @@ pub extern "C" fn Shader_ToShaderState(this: &mut Shader) -> Box<ShaderState> {
 pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
     Profiler_Begin(c_str!("Shader_Start"));
 
-    // gl_use_program(this.program);
+    let mut r = Shader::renderer().borrow_mut();
 
-    current = this;
-    this.texIndex = 1;
+    r.use_shader(Some(this));
+    current = this as *mut _;
+    // this.texIndex = 1;
 
-    /* Fetch & bind automatic variables from the shader var stack. */
-    let mut i: i32 = 0;
-    while i < this.vars.len() as i32 {
-        let var = &mut this.vars[i as usize];
+    // /* Fetch & bind automatic variables from the shader var stack. */
+    // let mut i: i32 = 0;
+    // while i < this.vars.len() as i32 {
+    //     let var = &mut this.vars[i as usize];
 
-        if !((*var).index < 0) {
-            // TODO: investigate why pinning is needed here
-            let c_name = static_string!((*var).name.as_str());
-            let pValue = ShaderVar_Get(c_name, (*var).type_0);
+    //     if !((*var).index < 0) {
+    //         // TODO: investigate why pinning is needed here
+    //         let c_name = static_string!((*var).name.as_str());
+    //         let pValue = ShaderVar_Get(c_name, (*var).type_0);
 
-            if pValue.is_null() {
-                panic!(
-                    "Shader_Start: Shader variable stack does not contain variable <{}>",
-                    (*var).name,
-                );
-            }
+    //         if pValue.is_null() {
+    //             panic!(
+    //                 "Shader_Start: Shader variable stack does not contain variable <{}>",
+    //                 (*var).name,
+    //             );
+    //         }
 
-            // match (*var).type_0.value() {
-            //     1 => {
-            //         let value: f32 = *(pValue as *mut f32);
-            //         gl_uniform1f((*var).index, value);
-            //     }
-            //     2 => {
-            //         let value_0 = *(pValue as *mut Vec2);
-            //         gl_uniform2f((*var).index, value_0.x, value_0.y);
-            //     }
-            //     3 => {
-            //         let value_1: Vec3 = *(pValue as *mut Vec3);
-            //         gl_uniform3f((*var).index, value_1.x, value_1.y, value_1.z);
-            //     }
-            //     4 => {
-            //         let value_2: Vec4 = *(pValue as *mut Vec4);
-            //         gl_uniform4f((*var).index, value_2.x, value_2.y, value_2.z, value_2.w);
-            //     }
-            //     5 => {
-            //         let value_3: i32 = *(pValue as *mut i32);
-            //         gl_uniform1i((*var).index, value_3);
-            //     }
-            //     6 => {
-            //         let value_4: IVec2 = *(pValue as *mut IVec2);
-            //         gl_uniform2i((*var).index, value_4.x, value_4.y);
-            //     }
-            //     7 => {
-            //         let value_5: IVec3 = *(pValue as *mut IVec3);
-            //         gl_uniform3i((*var).index, value_5.x, value_5.y, value_5.z);
-            //     }
-            //     8 => {
-            //         let value_6: IVec4 = *(pValue as *mut IVec4);
-            //         gl_uniform4i((*var).index, value_6.x, value_6.y, value_6.z, value_6.w);
-            //     }
-            //     9 => {
-            //         Shader_ISetMatrix((*var).index, &mut **(pValue as *mut *mut Matrix));
-            //     }
-            //     10 => {
-            //         Shader_ISetTex1D((*var).index, &mut **(pValue as *mut *mut Tex1D));
-            //     }
-            //     11 => {
-            //         Shader_ISetTex2D((*var).index, &mut **(pValue as *mut *mut Tex2D));
-            //     }
-            //     12 => {
-            //         Shader_ISetTex3D((*var).index, &mut **(pValue as *mut *mut Tex3D));
-            //     }
-            //     13 => {
-            //         Shader_ISetTexCube((*var).index, &mut **(pValue as *mut *mut TexCube));
-            //     }
-            //     _ => {}
-            // }
-        }
-        i += 1;
-    }
+    //         // match (*var).type_0.value() {
+    //         //     1 => {
+    //         //         let value: f32 = *(pValue as *mut f32);
+    //         //         gl_uniform1f((*var).index, value);
+    //         //     }
+    //         //     2 => {
+    //         //         let value_0 = *(pValue as *mut Vec2);
+    //         //         gl_uniform2f((*var).index, value_0.x, value_0.y);
+    //         //     }
+    //         //     3 => {
+    //         //         let value_1: Vec3 = *(pValue as *mut Vec3);
+    //         //         gl_uniform3f((*var).index, value_1.x, value_1.y, value_1.z);
+    //         //     }
+    //         //     4 => {
+    //         //         let value_2: Vec4 = *(pValue as *mut Vec4);
+    //         //         gl_uniform4f((*var).index, value_2.x, value_2.y, value_2.z, value_2.w);
+    //         //     }
+    //         //     5 => {
+    //         //         let value_3: i32 = *(pValue as *mut i32);
+    //         //         gl_uniform1i((*var).index, value_3);
+    //         //     }
+    //         //     6 => {
+    //         //         let value_4: IVec2 = *(pValue as *mut IVec2);
+    //         //         gl_uniform2i((*var).index, value_4.x, value_4.y);
+    //         //     }
+    //         //     7 => {
+    //         //         let value_5: IVec3 = *(pValue as *mut IVec3);
+    //         //         gl_uniform3i((*var).index, value_5.x, value_5.y, value_5.z);
+    //         //     }
+    //         //     8 => {
+    //         //         let value_6: IVec4 = *(pValue as *mut IVec4);
+    //         //         gl_uniform4i((*var).index, value_6.x, value_6.y, value_6.z, value_6.w);
+    //         //     }
+    //         //     9 => {
+    //         //         Shader_ISetMatrix((*var).index, &mut **(pValue as *mut *mut Matrix));
+    //         //     }
+    //         //     10 => {
+    //         //         Shader_ISetTex1D((*var).index, &mut **(pValue as *mut *mut Tex1D));
+    //         //     }
+    //         //     11 => {
+    //         //         Shader_ISetTex2D((*var).index, &mut **(pValue as *mut *mut Tex2D));
+    //         //     }
+    //         //     12 => {
+    //         //         Shader_ISetTex3D((*var).index, &mut **(pValue as *mut *mut Tex3D));
+    //         //     }
+    //         //     13 => {
+    //         //         Shader_ISetTexCube((*var).index, &mut **(pValue as *mut *mut TexCube));
+    //         //     }
+    //         //     _ => {}
+    //         // }
+    //     }
+    //     i += 1;
+    // }
 
     Profiler_End();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_Stop(_s: *mut Shader) {
-    // gl_use_program(0);
+    Shader::renderer().borrow_mut().use_shader(None);
     current = std::ptr::null_mut();
-}
-
-unsafe extern "C" fn ShaderCache_FreeElem(_s: *const libc::c_char, data: *mut libc::c_void) {
-    MemFree(data);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_ClearCache() {
-    if !cache.is_null() {
-        StrMap_FreeEx(
-            &mut *cache,
-            Some(
-                ShaderCache_FreeElem
-                    as unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> (),
-            ),
-        );
-        cache = std::ptr::null_mut();
-    }
 }
 
 #[no_mangle]
 pub extern "C" fn Shader_GetHandle(this: &mut Shader) -> u32 {
-    this.program
+    0 // this.program
 }
 
 #[no_mangle]
@@ -427,7 +486,7 @@ pub extern "C" fn Shader_HasVariable(this: &mut Shader, name: *const libc::c_cha
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_ResetTexIndex() {
-    (*current).texIndex = 1;
+    // (*current).texIndex = 1;
 }
 
 #[no_mangle]

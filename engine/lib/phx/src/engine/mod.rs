@@ -64,6 +64,8 @@ impl Engine {
         };
         let (winit_window, renderer) = WinitWindow::new(&event_loop, &window);
 
+        Shader::set_renderer(renderer.clone());
+
         Self {
             init_time: TimeStamp::now(),
             window,
