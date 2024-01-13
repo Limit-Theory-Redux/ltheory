@@ -14,11 +14,11 @@ end
 
 function NavGroup:getRoot()
     local firstFocusable = self:findInHierarchy(
-        function (w) return w.focusable end
+        function(w) return w.focusable end
     )
     if firstFocusable then
         local focusableCount = firstFocusable.parent.children:count(
-            function (w) return w.focusable end
+            function(w) return w.focusable end
         )
         if focusableCount == 1 then return firstFocusable end
     end
@@ -34,7 +34,7 @@ function NavGroup:moveFocus(currFocus, moveDir)
 
     local root       = self:getRoot()
     local focusables = self:findAllInHierarchy(
-        function (w) return w.focusable end
+        function(w) return w.focusable end
     )
 
     for i = 1, #focusables do

@@ -24,9 +24,9 @@ function Namespace.Inject(dst, dstName, src, srcName)
         if type(v) ~= 'boolean' then
             if rawget(dst, k) then
                 if keySource[dst][k] then
-                    Log.Warning('%s.%s is shadowing %s.%s in %s', srcName, k, keySource[dst][k], k, dstName)
+                    Log.Warn('%s.%s is shadowing %s.%s in %s', srcName, k, keySource[dst][k], k, dstName)
                 else
-                    Log.Warning('%s.%s is shadowing %s in %s', srcName, k, k, dstName)
+                    Log.Warn('%s.%s is shadowing %s in %s', srcName, k, k, dstName)
                 end
             end
 

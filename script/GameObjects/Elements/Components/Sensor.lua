@@ -5,7 +5,7 @@ local SocketType  = require('GameObjects.Entities.Ship.SocketType')
 local shared
 local rng         = RNG.FromTime()
 
-local Sensor      = subclass(Entity, function (self)
+local Sensor      = subclass(Entity, function(self)
     -- All of this crap is completely worthless, but updateSensor() will not be called without it
     if not shared then
         shared = {}
@@ -25,7 +25,7 @@ local Sensor      = subclass(Entity, function (self)
     self.mappingRange = Config.gen.compSensorStats.mappingRange
     self.scanDetail   = Config.gen.compSensorStats.scanDetail
     self.scanSpeed    = Config.gen.compSensorStats.scanSpeed
-    --printf("Register: Sensor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateSensor)
+    --Log.Debug("Register: Sensor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateSensor)
     self:register(Event.Update, self.updateSensor)
 end)
 
@@ -39,7 +39,7 @@ function Sensor:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s sensor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s sensor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 end
 
 function Sensor:getHealth()
@@ -90,7 +90,7 @@ end
 
 function Sensor:updateSensor(state)
     if not self:getParent():isDestroyed() then
-        --printf("SENSOR: %s", self:getName())
+        --Log.Debug("SENSOR: %s", self:getName())
     end
 end
 

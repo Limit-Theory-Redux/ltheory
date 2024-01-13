@@ -27,6 +27,7 @@ pub struct BindArgs {
     name: Option<String>,
     role: Option<BindMethodRole>,
     lua_ffi: bool,
+    out_param: bool,
 }
 
 impl Default for BindArgs {
@@ -35,6 +36,7 @@ impl Default for BindArgs {
             name: None,
             role: None,
             lua_ffi: true,
+            out_param: false,
         }
     }
 }
@@ -49,7 +51,9 @@ impl BindArgs {
     /// If true then the function return string representation of the object.
     /// 'tostring' binding will be added to the metatype section of the Lua FFI file.
     pub fn is_to_string(&self) -> bool {
-        let Some(ty) = self.role else { return false; };
+        let Some(ty) = self.role else {
+            return false;
+        };
 
         ty == BindMethodRole::ToString
     }
@@ -58,6 +62,12 @@ impl BindArgs {
     /// Default: true
     pub fn gen_lua_ffi(&self) -> bool {
         self.lua_ffi
+    }
+
+    /// Specify if the return value should be sent via an &mut out parameter.
+    /// Default: false
+    pub fn gen_out_param(&self) -> bool {
+        self.out_param
     }
 }
 
@@ -99,10 +109,22 @@ impl Parse for BindArgs {
                         ));
                     }
                 }
+                "out_param" => {
+                    if let Lit::Bool(val) = &param.value.lit {
+                        res.out_param = val.value();
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'out_param' bind attribute parameter as boolean literal",
+                        ));
+                    }
+                }
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        format!("expected bind attribute parameter: name, role, lua_ffi"),
+                        format!(
+                            "expected bind attribute parameter: name, role, lua_ffi, out_param"
+                        ),
                     ))
                 }
             }

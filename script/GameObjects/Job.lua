@@ -1,6 +1,6 @@
 local Action = require('GameObjects.Action')
 
-local Job = subclass(Action, function (self) end)
+local Job = subclass(Action, function(self) end)
 
 function Job:clone()
     assert(false, 'NYI @ Job.clone')
@@ -15,7 +15,7 @@ function Job:getName()
 end
 
 function Job:getPayout(e)
-    printf("??? JOB:payout = nil")
+    Log.Warn("??? JOB:payout = nil")
     assert(false, 'NYI @ Job.getPayout')
 end
 

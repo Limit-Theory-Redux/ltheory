@@ -24,9 +24,6 @@ function LTheoryRedux:onInit()
     GameState.ui.showTrackers = true
     GameState.audio.musicVolume = 0
 
-    -- Read user-defined values and update game variables
-    InitFiles:readUserInits()
-
     -- Initialize Universe
     Universe:Init()
 
@@ -34,8 +31,8 @@ function LTheoryRedux:onInit()
     MusicPlayer:Init()
 
     --* Game initializations *--
-    self.window:setSize(GameState.render.resX, GameState.render.resY)
-    Window.SetPosition(self.window, WindowPos.Centered, WindowPos.Centered)
+    WindowInstance:setSize(GameState.render.resX, GameState.render.resY)
+    WindowInstance:setCenteredPosition()
     self:SetFullscreen(GameState.render.fullscreen)
     -- Set the default game control cursor
     self:setCursor(
@@ -50,7 +47,7 @@ function LTheoryRedux:onInit()
     MainMenu:SetMenuMode(Enums.MenuMode.Dialog)
     GameState:Unpause()
     GameState.player.currentControl = Enums.ControlModes.Ship
-    Input.SetMouseVisible(false)
+    InputInstance:setCursorVisible(false)
     GameState:SetState(Enums.GameStates.InGame)
     self:seedStarsystem(Enums.MenuMode.Dialog)
 end

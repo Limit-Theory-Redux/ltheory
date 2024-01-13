@@ -13,7 +13,7 @@ local escortShips = 20
 
 function LTheory:generate()
     self.seed = rng:get64()
-    printf('Seed: %s', self.seed)
+    Log.Info('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = System(self.seed)
@@ -44,7 +44,7 @@ function LTheory:generate()
     ship:setPos(Config.gen.origin)
     ship:setFriction(0)
     ship:setSleepThreshold(0, 0)
-    ship:setOwner(self.player)
+    ship:setOwner(self.player, true)
     self.player:setControlling(ship)
     GameState.player.currentShip = ship
 
@@ -59,7 +59,7 @@ function LTheory:generate()
         local escort = self.system:spawnShip(shipSize, nil)
         local offset = rng:getSphere():scale(300)
         escort:setPos(ship:getPos() + offset)
-        escort:setOwner(self.player)
+        escort:setOwner(self.player, true)
         if rng:getInt(0, 100) < 20 then
             escort.usesBoost = true
         end
@@ -85,13 +85,15 @@ function LTheory:onInit()
     GameState.ui.showTrackers = true
     GameState.player.humanPlayer = self.player
 
-    self.gameView = Systems.Overlay.GameView(self.player)
+    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
             :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player)))
 
-    self.window:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
+    -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
+    WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+
     MainMenu:SetMenuMode(Enums.MenuMode.Dialog)
 end
 
@@ -102,20 +104,20 @@ end
 function LTheory:onUpdate(dt)
     -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
     -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
-    if Input.GetPressed(Bindings.ToggleLights) then
+    if InputInstance:isPressed(Bindings.ToggleLights) then
         GameState.render.pulseLights = not GameState.render.pulseLights
     end
 
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
 
-    HmGui.Begin(self.resX, self.resY) -- required for HmGui.Draw() to work without crashing
-    HmGui.End()
+    Gui:beginGui(self.resX, self.resY, InputInstance) -- required for Gui:draw() to work without crashing
+    Gui:endGui(InputInstance)
 end
 
 function LTheory:onDraw()
     self.canvas:draw(self.resX, self.resY)
-    HmGui.Draw() -- post-Rust, required for game universe to be displayed
+    Gui:draw() -- post-Rust, required for game universe to be displayed
 end
 
 return LTheory

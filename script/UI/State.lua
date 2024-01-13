@@ -16,13 +16,13 @@ function State:setFocus(focus)
         end
 
         -- NOTE : Focus is 'sticky' on active widgets when not using the mouse
-        if Input.GetActiveDeviceType() ~= DeviceType.Mouse then
+        if InputInstance:activeDeviceType() ~= InputDeviceType.Mouse then
             if self.active then self.focus = self.active end
         end
     end
 
     if self.focus then
-        if Input.GetActiveDeviceType() ~= DeviceType.Mouse then
+        if InputInstance:activeDeviceType() ~= InputDeviceType.Mouse then
             if self.scrollFocus then self.scrollFocus:keepFocusVisible(self) end
         end
     end
@@ -67,7 +67,7 @@ end
 
 function State:onWidgetDisabled(widget)
     local function isDisabled(w)
-        return w and w:hasParentOrSelfWhere(function (p)
+        return w and w:hasParentOrSelfWhere(function(p)
             return p.removed or (p.isContainer and not p:isEnabled())
         end)
     end
@@ -94,7 +94,7 @@ function State:clearFocus()
 end
 
 function State:refreshFocus()
-    if Input.GetActiveDeviceType() == DeviceType.Mouse then
+    if InputInstance:activeDeviceType() == InputDeviceType.Mouse then
         self.canvas:findMouseFocus()
     else
         --[[ NOTE : There is a 'hierarchy' to focus. panelFocus, navFocus, and
@@ -116,7 +116,7 @@ function State:refreshFocus()
                 panel = self.modalFocus
             else
                 panel = self.canvas:findAllInHierarchy(
-                    function (w) return w.isPanel end
+                    function(w) return w.isPanel end
                 )[1]
             end
             self:setPanelFocus(panel)
@@ -124,8 +124,8 @@ function State:refreshFocus()
 
         if self.panelFocus and not self.navFocus then
             local navGroup = self.panelFocus:findInHierarchy(
-                function (w) return w.isNavGroup end,
-                function (w) return not w.isPanel or w == self.panelFocus end
+                function(w) return w.isNavGroup end,
+                function(w) return not w.isPanel or w == self.panelFocus end
             )
             self:setNavFocus(navGroup)
         end
@@ -143,7 +143,7 @@ function State:refreshFocus()
 
         local focus = self.focus or self.navFocus
         if focus and not self.scrollFocus then
-            local scrollView = focus:getFirstParentWhere(function (p)
+            local scrollView = focus:getFirstParentWhere(function(p)
                 return p.isScrollView
             end)
             self:setScrollFocus(scrollView)

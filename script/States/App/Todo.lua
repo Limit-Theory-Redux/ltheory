@@ -1,6 +1,6 @@
 local Test = require('States.Application')
 
-local Todo = class(function (self, name, done)
+local Todo = class(function(self, name, done)
     self.name = name
     self.children = {}
     self.done = done or false
@@ -12,14 +12,14 @@ function Todo:add(child)
 end
 
 function Todo:show()
-    self.done = HmGui.Checkbox(self.name, self.done)
+    self.done = Gui:checkbox(self.name, self.done)
     if #self.children > 0 then
-        HmGui.BeginGroupY()
-        HmGui.SetPaddingLeft(12)
+        Gui:beginVerticalContainer()
+        Gui:setPaddingLeft(12)
         for i = 1, #self.children do
             self.children[i]:show()
         end
-        HmGui.EndGroup()
+        Gui:endContainer()
     end
 end
 
@@ -54,19 +54,19 @@ function Test:onInit()
 end
 
 function Test:showTodo()
-    HmGui.BeginWindow("HmGui Todo List")
-    HmGui.BeginScroll(512)
+    Gui:beginWindow("HmGui Todo List", InputInstance)
+    Gui:beginScroll(512)
     todo:show()
-    HmGui.EndScroll()
-    HmGui.EndWindow()
-    HmGui.SetAlign(0.5, 0.5)
+    Gui:endScroll(InputInstance)
+    Gui:endWindow()
+    Gui:setAlign(0.5, 0.5)
 end
 
 function Test:onUpdate(dt)
-    HmGui.Begin(self.resX, self.resY)
-    HmGui.Image(self.bg)
+    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:image(self.bg)
     self:showTodo()
-    HmGui.End()
+    Gui:endGui(InputInstance)
 end
 
 function Test:onDraw()
@@ -74,7 +74,7 @@ function Test:onDraw()
     self.renderer:stop()
     self.renderer:startUI()
     Viewport.Push(0, 0, self.resX, self.resY, true)
-    HmGui.Draw()
+    Gui:draw()
     Viewport.Pop()
     self.renderer:stopUI()
     self.renderer:present(0, 0, self.resX, self.resY)

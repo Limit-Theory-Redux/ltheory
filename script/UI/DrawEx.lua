@@ -85,7 +85,7 @@ function DrawEx.Hologram(mesh, x, y, sx, sy, color, radius, yaw, pitch)
     shader:start()
     Shader.SetMatrix('mView', mView)
     Shader.SetMatrix('mProj', mProj)
-    Shader.SetFloat('time', Engine.GetTime())
+    Shader.SetFloat('time', EngineInstance:getTime())
     Shader.SetFloat3('eye', eye.x, eye.y, eye.z)
     Shader.SetFloat4('color', color.r, color.g, color.b, color.a * alpha)
     Shader.SetFloat4('viewport', x, y, x + sx, y + sy)
@@ -97,7 +97,7 @@ function DrawEx.Hologram(mesh, x, y, sx, sy, color, radius, yaw, pitch)
 end
 
 function DrawEx.Icon(icon, x, y, sx, sy, color)
-    --  print(icon)
+    -- Log.Debug(icon)
     local x, y, sx, sy = padAndCenter(0, x, y, sx, sy)
     local shader = Cache.Shader('ui', 'ui/icon')
     local alpha = alphaStack:last() or 1

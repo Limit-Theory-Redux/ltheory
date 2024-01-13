@@ -1,5 +1,6 @@
+use internal::ConvertIntoString;
+
 use super::*;
-use crate::internal::*;
 use crate::system::*;
 use crate::*;
 
@@ -8,15 +9,6 @@ use crate::*;
 pub struct Rng {
     pub seed: u64,
     pub state: [u64; 2],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Quat {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
 }
 
 #[inline]

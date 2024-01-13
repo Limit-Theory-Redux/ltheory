@@ -9,8 +9,8 @@ OptionSlider.value     = 0
 OptionSlider.minValue  = 0
 OptionSlider.maxValue  = 1
 OptionSlider.elems     = nil
-OptionSlider.getFn     = function () return 0.0 end
-OptionSlider.setFn     = function (value) Log.Warning('OptionSlider - setFn has not been assigned') end
+OptionSlider.getFn     = function() return 0.0 end
+OptionSlider.setFn     = function(value) Log.Warn('OptionSlider - setFn has not been assigned') end
 
 OptionSlider.dimBox    = 14
 
@@ -43,7 +43,7 @@ function OptionSlider:onUpdate(state)
     if getValue < self.minValue or getValue > self.maxValue then
         if not self.didRangeWarning then
             self.didRangeWarning = true
-            Log.Warning('OptionSlider - Value returned from getFn (%s) is out of the range [%s, %s]',
+            Log.Warn('OptionSlider - Value returned from getFn (%s) is out of the range [%s, %s]',
                 self.getFn(), self.minValue, self.maxValue
             )
         end

@@ -8,7 +8,7 @@ local updateRates = {
     [3] = 300, -- strategic goal-planning AI
 }
 
-local Think = subclass(Action, function (self)
+local Think = subclass(Action, function(self)
     self.timer = 0
     self.rng = RNG.FromTime()
     self.fabricationGoal = Production.Station
@@ -34,36 +34,38 @@ local function applyFlows(flows, mult)
     end
 end
 
---function Think:manageAsset (asset)
---  local root = asset:getRoot()
---  local bestPressure = asset.job and asset.job:getPressure(asset) or math.huge
---  local bestJob = asset.job
---  for i = 1, Config.econ.jobIterations do
---    -- TODO : KnowsAbout check
---    local job = self.rng:choose(root:getEconomy().jobs)
---    if not job then break end
---
---    local pressure = job:getPressure(asset)
---    if pressure < bestPressure then
---      bestPressure = pressure
---      bestJob = job
-----printf("[asset:%s] pressure = %s, job = %s", asset:getName(), pressure, job:getName(asset))
---    end
---  end
---
---  if bestJob then
---    if asset.jobFlows then
---      applyFlows(asset.jobFlows, -1)
---      asset.jobFlows = nil
---    end
---
---    asset.job = bestJob
---    asset.jobFlows = bestJob:getFlows(asset)
---    applyFlows(asset.jobFlows, 1)
---
---    asset:pushAction(bestJob)
---  end
---end
+--[[
+function Think:manageAsset(asset)
+    local root = asset:getRoot()
+    local bestPressure = asset.job and asset.job:getPressure(asset) or math.huge
+    local bestJob = asset.job
+    for i = 1, Config.econ.jobIterations do
+        -- TODO : KnowsAbout check
+        local job = self.rng:choose(root:getEconomy().jobs)
+        if not job then break end
+
+        local pressure = job:getPressure(asset)
+        if pressure < bestPressure then
+            bestPressure = pressure
+            bestJob = job
+            Log.Debug("[asset:%s] pressure = %s, job = %s", asset:getName(), pressure, job:getName(asset))
+        end
+    end
+
+    if bestJob then
+        if asset.jobFlows then
+            applyFlows(asset.jobFlows, -1)
+            asset.jobFlows = nil
+        end
+
+        asset.job = bestJob
+        asset.jobFlows = bestJob:getFlows(asset)
+        applyFlows(asset.jobFlows, 1)
+
+        asset:pushAction(bestJob)
+    end
+end
+]]--
 
 -- Use payout, not flow
 function Think:manageAsset(asset)
@@ -114,7 +116,7 @@ function Think:manageAsset(asset)
                     bestJob = job
                     --else
                     --printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-                    --    asset:getName(), job:getName(), payout)
+                    -- asset:getName(), job:getName(), payout)
                     --end
                     --! we really need to replace this jcount stuff, it´s confusing and error prone
                 end
@@ -147,7 +149,6 @@ function Think:manageAsset(asset)
                 asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
                 asset.job.bids = asset.job.jcount -- terrible hack for when jcount is mysteriously set to 0
 
-
                 -- Push job to asset's Action queue
                 printf("THINK: pushing job %s '%s' to %s, bids = %d, bestPayout = %d",
                     asset.job, asset.job:getName(asset), asset:getName(), asset.job.bids, bestPayout)
@@ -170,23 +171,23 @@ function Think:manageAsset(asset)
                 local station = asset:isShipDocked()
                 if station then
                     --printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
-                    --    asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount,
-                    --    asset.job.bids)
+                    -- asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount,
+                    -- asset.job.bids)
                     --for i, v in ipairs(asset.actions) do
-                    --  printf("  Actions %d : %s", i, v:getName(asset))
+                    -- printf("  Actions %d : %s", i, v:getName(asset))
                     --end
                     asset:pushAction(Actions.Undock())
                     --printf("THINK +++ 2: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
                     --asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
                     --for i, v in ipairs(asset.actions) do
-                    --  printf("  Actions %d : %s", i, v:getName(asset))
+                    -- printf("  Actions %d : %s", i, v:getName(asset))
                     --end
                 end
             end
         elseif string.find(asset.job:getName(), "Patrolling") and not asset.job.src:isDestroyed() then
             asset:pushAction(bestJob)
             jobAssigned = true
-            asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Patrol"))
+            asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Security"))
 
             local station = asset:isShipDocked()
             if station then
@@ -206,34 +207,22 @@ function Think:manageAsset(asset)
         end
     end
 
-    if asset:isIdle() and asset:isShipDocked() == nil then
+    if asset:isIdle() and not asset:isShipDocked() then
         -- No more jobs available; send asset to nearest station to sleep
         -- TODO: Make sure this is only done at the AI player's direction for ECONOMIC ships (miners and transports)!
         local system = asset.parent
+        -- TODO: this currently results in ships also docking at pirate stations as their ship ban is not in effect
+        -- TODO: this will be fixed later on, see: https://github.com/Limit-Theory-Redux/ltheory/pull/142#issuecomment-1742217935
         local stations = system:getStationsByDistance(asset)
         if #stations > 0 and stations[1] ~= nil then
-            local stations = system:getStationsByDistance(asset)
+            local station = stations[1].stationRef
 
-            if #stations > 0 then
-                local i = 1
-                -- don´t dock at hostile stations
-                while stations[i] and stations[i].stationRef:getOwner() ~= asset:getOwner() do
-                    i = i + 1
-                end
-
-                if stations[i] then
-                    local station = stations[i].stationRef
-                    printf(
-                        "THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
-                        asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal(),
-                        station:getName())
-                    asset:clearActions()
-                    asset:pushAction(Actions.DockAt(station))
-                else
-                    -- do nothing
-                    asset:clearActions()
-                end
-            end
+            printf(
+                "THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
+                asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal(),
+                station:getName())
+            asset:clearActions()
+            asset:pushAction(Actions.DockAt(station))
         end
     end
 
@@ -260,9 +249,9 @@ function Think:onUpdateActive(e, dt)
         -- Increment elapsed time in seconds (a float value) since game start
         -- Note that self.timer does not appear to reset!
         -- TODO: Correct the self.timer tests below to trigger on their _intervals_,
-        --       not on elapsed time (which never resets)
+        -- not on elapsed time (which never resets)
         self.timer = self.timer + dt
-        --printf("THINK [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
+        --Log.Debug("THINK [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
 
         do -- TODO: capital expenditure AI
             if self.timer >= self.nextUpdates[1] then

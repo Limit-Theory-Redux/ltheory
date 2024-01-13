@@ -15,7 +15,7 @@ function StationTest:spawnStation()
         station:setPos(Config.gen.origin)
         station:setFriction(0)
         station:setSleepThreshold(0, 0)
-        station:setOwner(self.player)
+        station:setOwner(self.player, true)
         --self.system:addChild(ship)
         self.player:setControlling(station)
         self.currentStation = station
@@ -24,7 +24,7 @@ end
 
 function StationTest:newSystem()
     self.seed = rng:get64()
-    printf('Seed: %s', self.seed)
+    Log.Debug('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = System(self.seed)
@@ -45,19 +45,19 @@ function StationTest:onInit()
     self:generate()
 
     DebugControl.ltheory = self
-    self.gameView = Systems.Overlay.GameView(self.player)
+    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
-            :add(Systems.Controls.Controls.GenTestControl(self.gameView, self.player)))
+            :add(Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
 end
 
 function StationTest:onInput()
     self.canvas:input()
 
-    if Input.GetKeyboardShift() and Input.GetPressed(Button.Keyboard.B) then
+    if InputInstance:isKeyboardShiftPressed() and InputInstance:isPressed(Button.KeyboardB) then
         self:newSystem()
-    elseif Input.GetPressed(Button.Keyboard.B) then
+    elseif InputInstance:isPressed(Button.KeyboardB) then
         self:spawnStation()
     end
 end
@@ -65,13 +65,13 @@ end
 function StationTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
-    HmGui.Begin(self.resX, self.resY)
-    HmGui.End()
+    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:endGui(InputInstance)
 end
 
 function StationTest:onDraw()
     self.canvas:draw(self.resX, self.resY)
-    HmGui.Draw()
+    Gui:draw()
 end
 
 return StationTest

@@ -55,7 +55,7 @@ end
 
 function string.parse(str, format, fn, ...)
     local args = { ... }
-    return string.gsub(str, format, function (...)
+    return string.gsub(str, format, function(...)
         fn(unpack(args), ...)
         return ''
     end)

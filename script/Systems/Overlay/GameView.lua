@@ -19,7 +19,7 @@ function GameView:draw(focus, active)
     self.camera:beginDraw()
 
     local system = GameState.world.currentSystem
-    --  local system = self.player:getRoot()
+    -- local system = self.player:getRoot()
     local eye = self.camera.pos
     system:beginRender()
 
@@ -36,10 +36,10 @@ function GameView:draw(focus, active)
         -- Note: Scan only objects with lights attached
         local lights = {}
         if #system.lightList > 0 then
-            --print("---------")
+            --Log.Debug("---------")
             for _, v in ipairs(system.lightList) do
                 insert(lights, { pos = v:getPos(), color = v:getLight() })
-                --printf("light '%s' @ %s, %s", v:getName(), v:getPos(), v:getLight())
+                --Log.Debug("light '%s' @ %s, %s", v:getName(), v:getPos(), v:getLight())
             end
         end
 
@@ -182,12 +182,12 @@ function GameView:draw(focus, active)
         if Settings.get('postfx.bloom.enable') then self.renderer:bloom(Settings.get('postfx.bloom.radius')) end
         if Settings.get('postfx.tonemap.enable') then self.renderer:tonemap() end
         if Settings.get('postfx.aberration.enable') then
-            self.renderer:applyFilter('aberration', function ()
+            self.renderer:applyFilter('aberration', function()
                 Shader.SetFloat('strength', Settings.get('postfx.aberration.strength'))
             end)
         end
         if Settings.get('postfx.radialblur.enable') then
-            self.renderer:applyFilter('radialblur', function ()
+            self.renderer:applyFilter('radialblur', function()
                 Shader.SetFloat('strength', Settings.get('postfx.radialblur.strength'))
             end)
         end
@@ -200,10 +200,11 @@ function GameView:draw(focus, active)
 
     --[[
     Unclear what this is referencing will need to investigate later
-  ]]
-    --  if GUI.DrawHmGui then
-    --    GUI.DrawHmGui(self.sx, self.sy)
-    --  end
+
+    if GUI.DrawHmGui then
+        GUI.DrawHmGui(self.sx, self.sy)
+    end
+    --]]
 
     RenderState.PopAll()
     ClipRect.Pop()
@@ -232,14 +233,9 @@ function GameView:onUpdate(state)
         self.eyeLast:setv(eye)
     end
 
-    if LTheoryRedux.audio then
-        LTheoryRedux.audio:setListenerPos(
-            self.camera.pos,
-            self.camera.rot)
-    else
-        LTheoryRedux.audio = Audio.Create()
-        Log.Warning("[GameView.lua Update] Audio not initialized at this point. This should not happen.")
-    end
+    self.audio:setListenerPos(
+        self.camera.pos,
+        self.camera.rot)
 
     self.camera:pop()
 end
@@ -301,7 +297,15 @@ function GameView:setCameraMode(cameraMode)
     return self.camera
 end
 
-function GameView.Create(player)
+function GameView.Create(player, audioInstance)
+    if not player then
+        Log.Error("No player passed")
+    end
+
+    if not audioInstance then
+        Log.Error("No audioInstance passed")
+    end
+
     local self = setmetatable({
         player            = player,
         renderer          = Renderer(),
@@ -312,6 +316,7 @@ function GameView.Create(player)
         eyeLast           = nil,
         eyeVel            = nil,
         children          = List(),
+        audio             = audioInstance
     }, GameView)
 
     self:setCameraMode(GameState.player.currentCamera)

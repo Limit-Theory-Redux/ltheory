@@ -5,9 +5,9 @@ local Item = require('Systems.Economy.Item')
 --------------------------------------------------------------------------------
 
 -- NOTE: All the evaluations below are made from the perspective of what is most
---       advantageous to _this trader_ (self).
+-- advantageous to _this trader_ (self).
 
-local BlackMarketTrader = class(function (self, parent)
+local BlackMarketTrader = class(function(self, parent)
     self.parent = parent
     self.elems = {}
 end)
@@ -94,10 +94,12 @@ function BlackMarketTrader:addBidOffer(bidder)
     local count = bidder.job.jcount
     -- first item for now .. Sketchy stuff in the following line :D
     local item = nil
-    for a, v in pairs(self.elems) do if a ~= nil then
+    for a, v in pairs(self.elems) do
+        if a ~= nil then
             item = a
             break
-        end end
+        end
+    end
     local data = self:getData(item)
     local offersAdded = 0
 
@@ -120,7 +122,7 @@ function BlackMarketTrader:addBidOffer(bidder)
 end
 
 -- Return the maximum profitable volume and corresponding total profit from
---     buying item here and selling at destination
+-- buying item here and selling at destination
 function BlackMarketTrader:computeTrade(item, maxCount, dst, asset)
     local src = self
     local srcData = src:getData(item)
@@ -147,9 +149,9 @@ function BlackMarketTrader:computeTrade(item, maxCount, dst, asset)
     --local aname = "-"
     --if asset then aname = asset:getName() end
     --printf("computeTrade %s: item %s from station %s (asks %d) -> station %s (bids %d); " ..
-    --       "maxCount %d, assetBids %d, otherBids %d, bidsFree %d",
-    --       aname, item:getName(), src.parent:getName(), #asks, dst.parent:getName(), #bids,
-    --       maxCount, assetBids, otherBids, bidsFree)
+    -- "maxCount %d, assetBids %d, otherBids %d, bidsFree %d",
+    -- aname, item:getName(), src.parent:getName(), #asks, dst.parent:getName(), #bids,
+    -- maxCount, assetBids, otherBids, bidsFree)
 
     local count = 0
     local profit = 0
@@ -267,8 +269,8 @@ function BlackMarketTrader:getBuyFromPrice(item, count)
     end
 
     --printf("TRADER %s - BuyFromPrice (%s): #data.asks = %d, data.escrow = %d, data.askOffers = %d, " ..
-    --       "count = %d, maxCount = %d, price = %d",
-    --       self.parent:getName(), item:getName(), #data.asks, data.escrow, data.askOffers, count, maxCount, price)
+    -- "count = %d, maxCount = %d, price = %d",
+    -- self.parent:getName(), item:getName(), #data.asks, data.escrow, data.askOffers, count, maxCount, price)
 
     return price
 end
@@ -293,8 +295,8 @@ function BlackMarketTrader:getBuyFromPriceForAsset(item, count, asset)
     end
 
     --printf("TRADER %s - BuyFromPriceForAsset (%s): #data.asks = %d, data.escrow = %d, data.askOffers = %d, " ..
-    --       "count = %d, maxCount = %d, price = %d",
-    --       self.parent:getName(), item:getName(), #data.asks, data.escrow, data.askOffers, count, maxCount, price)
+    -- "count = %d, maxCount = %d, price = %d",
+    -- self.parent:getName(), item:getName(), #data.asks, data.escrow, data.askOffers, count, maxCount, price)
 
     return price
 end
@@ -401,13 +403,13 @@ function BlackMarketTrader:sell(asset, item)
         if price > 0 and player:hasCredits(price) then
             if asset:getInventoryFree() >= item:getMass() then
                 -- Note that we don't have to remove the item from the trader's owner; that was
-                --     done when the ask was made and the escrow count was incremented
+                -- done when the ask was made and the escrow count was incremented
                 asset:addItem(item, 1)
                 --printf("SELL: Trader parent %s sells 1 unit of item %s to Asset %s (Owner %s) at price %d",
-                --    self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
+                -- self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
 
                 --printf("Trader %s now has %d units of item %s",
-                --    self.parent:getName(), self.parent:getItemCount(item), item:getName())
+                -- self.parent:getName(), self.parent:getItemCount(item), item:getName())
 
                 asset:removeCredits(price)
                 self.parent:addCredits(price)

@@ -8,8 +8,8 @@ setmetatable(Slider, Widget)
 Slider.value     = 0
 Slider.minValue  = 0.0
 Slider.maxValue  = 1.0
-Slider.getFn     = function () return 0.0 end
-Slider.setFn     = function (value) Log.Warning('Slider - setFn has not been assigned') end
+Slider.getFn     = function() return 0.0 end
+Slider.setFn     = function(value) Log.Warn('Slider - setFn has not been assigned') end
 Slider.thumbSX   = 4
 Slider.thumbSY   = 12
 
@@ -57,7 +57,7 @@ function Slider:onUpdate(state)
     if getValue < self.minValue or getValue > self.maxValue then
         if not self.didRangeWarning then
             self.didRangeWarning = true
-            Log.Warning('Slider - Value returned from getFn (%s) is out of the range [%s, %s]',
+            Log.Warn('Slider - Value returned from getFn (%s) is out of the range [%s, %s]',
                 self.getFn(), self.minValue, self.maxValue
             )
         end

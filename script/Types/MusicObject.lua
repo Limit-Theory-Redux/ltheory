@@ -3,10 +3,10 @@ MusicObject.__index = MusicObject
 
 function MusicObject:Create(arg)
     if not arg.name or not arg.path or not arg.volume then
-        print("error")
+        Log.Warn("Cannot create MusicObject")
         return
     end
-    printf("MusicObject: create new sound: " .. arg.name)
+    Log.Debug("MusicObject: create new sound: " .. arg.name)
 
     local object = {}
     object.name = arg.name
@@ -31,8 +31,8 @@ function MusicObject:Rewind()
     self.sound:setPlayPos(0)
 end
 
-function MusicObject:SetVolume(volume)
-    self.sound:setVolume(volume)
+function MusicObject:SetVolume(volume, fadeMS)
+    self.sound:setVolume(volume, fadeMS)
 end
 
 function MusicObject:IsPlaying()

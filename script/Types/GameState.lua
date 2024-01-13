@@ -10,11 +10,12 @@ GameState.input = {
 }
 
 GameState.debug = {
-    metricsEnabled  = Config.debug.metricsEnabled,
-    instantJobs     = Config.debug.instantJobs,
-    jobSpeed        = Config.debug.jobSpeed,
-    timeAccelFactor = Config.debug.timeAccelFactor,
-    printConfig     = Config.debug.printConfig
+    metricsEnabled     = Config.debug.metricsEnabled,
+    instantJobs        = Config.debug.instantJobs,
+    jobSpeed           = Config.debug.jobSpeed,
+    timeAccelFactor    = Config.debug.timeAccelFactor,
+    printConfig        = Config.debug.printConfig,
+    showMapActionLines = Config.debug.showMapActionLines
 }
 
 GameState.render = {
@@ -23,7 +24,8 @@ GameState.render = {
     gameView        = nil,
     resX            = Config.render.defaultResX,
     resY            = Config.render.defaultResY,
-    vsync           = Config.render.vsync,
+    presentMode     = Config.render.presentMode,
+    fov             = Config.render.fov,
     zNear           = Config.render.zNear,
     zFar            = Config.render.zFar,
     thrusterLights  = Config.render.thrusterLights,
@@ -38,6 +40,7 @@ GameState.audio = {
     soundEnabled = Config.audio.soundEnabled,
     fxVolume     = Config.audio.fxVolume,
     musicVolume  = Config.audio.musicVolume,
+    menuTheme    = Config.audio.mainMenu
 }
 
 GameState.ui = {
@@ -61,14 +64,16 @@ GameState.ui = {
     },
     trackerObjectOcclusion           = Config.ui.trackerObjectOcclusion,
 
-    mapSystemPanSpeed = 0.5,
-    mapSystemZoomSpeed = 0.1,
+    mapSystemPanSpeed                = 0.5,
+    mapSystemZoomSpeed               = 0.1,
 }
 
 GameState.player = {
     humanPlayer          = nil,
     humanPlayerName      = "[Human Player Name]",
     humanPlayerShipName  = "[Human Player Ship Name]",
+
+    playerFactionName    = "[Human Player Faction]",
 
     currentControl       = Config.ui.defaultControl,
     playerMoving         = false,

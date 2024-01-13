@@ -7,11 +7,11 @@ local maxUpdateRateDeviation = 0.2
 local updateRates = {
     [1] = 2, -- Mining
     [2] = 2, -- Transport
-    [3] = 2,  -- Marauding
+    [3] = 2, -- Marauding
     [4] = 2  -- Patrolling
 }
 
-local Economy = class(function (self, parent)
+local Economy = class(function(self, parent)
     self.parent = parent
     self.factories = {}
     self.flows = {}
@@ -39,7 +39,7 @@ end)
 function Economy:update(dt)
     self.timer = self.timer + dt
     if not GameState.paused then
-        --    Profiler.Begin('Economy.Update')
+        -- Profiler.Begin('Economy.Update')
         Profiler.Begin('Economy.Update.tableclear')
         table.clear(self.factories)
         table.clear(self.flows)
@@ -50,7 +50,7 @@ function Economy:update(dt)
         table.clear(self.blackMarketJobs)
         table.clear(self.blackMarketTraders)
         table.clear(self.yields)
-        --        table.clear(self.yields)
+        -- table.clear(self.yields)
         Profiler.End()
 
         Profiler.Begin('Economy.Update.POI')
@@ -130,7 +130,7 @@ function Economy:update(dt)
             self.goods = {}
         end
 
-        --    Profiler.End()
+        -- Profiler.End()
     end
 end
 

@@ -29,7 +29,7 @@ function SystemMap:onDraw(state)
 
     local best = nil
     local bestDist = math.huge
-    local mp = Input.GetMousePosition()
+    local mp = InputInstance:mouse():position()
 
     -- If an object is target locked in flight view (via HUD), give it focus in the System Map
     local playerShip = GameState.player.currentShip
@@ -41,17 +41,17 @@ function SystemMap:onDraw(state)
         playerTarget = playerShip:getTarget()
     end
     if playerTarget ~= nil then
-        --printf("Targeting a %s", Config:getObjectInfo("object_types", playerTarget:getType()))
+        --Log.Debug("Targeting a %s", Config:getObjectInfo("object_types", playerTarget:getType()))
         self.focus = playerTarget
     end
 
     BlendMode.PushAlpha()
     Draw.SmoothPoints(true)
-    --printf("------------------------------")
+    --Log.Debug("------------------------------")
     for _, e in self.system:iterChildren() do
         -- Check to make sure this is an actual object with a body
         if e.body ~= nil then
-            --printf("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+            --Log.Debug("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
             local p = e:getPos()
             local x = p.x - dx
             local y = p.z - dy
@@ -60,7 +60,7 @@ function SystemMap:onDraw(state)
             Draw.PointSize(3.0)
 
             if e:hasActions() then
-                --printf("Action: %s", e:getName())
+                --Log.Debug("Action: %s", e:getName())
                 if GameState.player.currentShip == e then
                     Draw.PointSize(5.0)
                     Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
@@ -75,7 +75,7 @@ function SystemMap:onDraw(state)
                 else
                     local entAction = e:getCurrentAction()
                     if entAction ~= nil then
-                        --printf("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
+                        --Log.Debug("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
                         if string.match(Config:getObjectInfo("object_types", e:getType()), "Ship") and e.usesBoost then
                             -- Draw the dot for ships that are aces larger than regular ships
                             Draw.PointSize(5.0)
@@ -97,7 +97,7 @@ function SystemMap:onDraw(state)
                             ftx = self.x + ftx * GameState.player.currentMapSystemZoom + hx
                             fty = self.y + fty * GameState.player.currentMapSystemZoom + hy
 
-                            if e == playerTarget then
+                            if e == playerTarget or GameState.debug.showMapActionLines then
                                 if string.find(entAction:getName(), "Attack") then
                                     UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 }, false)
                                 else
@@ -134,7 +134,7 @@ function SystemMap:onDraw(state)
             end
 
             if self.focus == e then
-                --printf("Focus: %s", e:getName())
+                --Log.Debug("Focus: %s", e:getName())
                 UI.DrawEx.Ring(x, y, 8, { r = 1.0, g = 0.0, b = 0.3, a = 1.0 }, true)
             end
 
@@ -144,25 +144,27 @@ function SystemMap:onDraw(state)
                 bestDist = d
                 best = e
             end
-            --    else
-            --      -- Non-object entities (e.g., zones)
-            --printf("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
-            --      local p = e:getPos()
-            --      local x = p.x - dx
-            --      local y = p.z - dy
-            --      x = self.x + x * Config.game.mapSystemZoom + hx
-            --      y = self.y + y * Config.game.mapSystemZoom + hy
-            --      Draw.PointSize(2.0)
-            --      Draw.Color(1.0, 1.0, 1.0, 1)
-            --      Draw.Point(x, y)
-            --      --UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.8, g = 0.3, b = 0.8, a = 0.7 }, true)
+        --[[
+        else
+            -- Non-object entities (e.g., zones)
+            Log.Debug("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+            local p = e:getPos()
+            local x = p.x - dx
+            local y = p.z - dy
+            x = self.x + x * Config.game.mapSystemZoom + hx
+            y = self.y + y * Config.game.mapSystemZoom + hy
+            Draw.PointSize(2.0)
+            Draw.Color(1.0, 1.0, 1.0, 1)
+            Draw.Point(x, y)
+            UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.8, g = 0.3, b = 0.8, a = 0.7 }, true)
+        --]]
         end
     end
     Draw.Color(1, 1, 1, 1)
     Draw.SmoothPoints(false)
     BlendMode.Pop()
 
-    if Input.GetDown(Button.Mouse.Left) then
+    if InputInstance:isDown(Button.MouseLeft) then
         self.focus = best
         -- Set focused-on object in the System Map as the player ship's current target
         if GameState.player.currentShip ~= nil and GameState.player.currentShip ~= self.focus then
@@ -182,7 +184,7 @@ function SystemMap:onDraw(state)
         dbg:text("Stations: " .. #self.system.stations)
         dbg:text("Ships: " .. #self.system.ships)
         dbg:text("Lights: " .. #GameState.world.currentSystem.lightList)
-        --        dbg:text("Lights: " .. #self.system.lightList)
+        -- dbg:text("Lights: " .. #self.system.lightList)
         dbg:undent()
         self.system:send(Event.Debug(dbg))
         dbg:undent()
@@ -220,7 +222,7 @@ function SystemMap:onDraw(state)
                 if string.match(objtype, "Station") and self.focus:hasDockable() then
                     local docked = self.focus:getDocked()
                     if docked and #docked > 0 then
-                        table.sort(docked, function (a, b) return a:getName() < b:getName() end)
+                        table.sort(docked, function(a, b) return a:getName() < b:getName() end)
                         dbg:indent()
                         dbg:text("Docked here:")
                         dbg:indent()
@@ -289,8 +291,8 @@ end
 function SystemMap:onInput(state)
     -- TODO: Connect to bindings (probably should be a new MapBindings.lua)
     -- NOTE: Keyboard pan and zoom previously used (e.g.) "kPanSpeed * state.dt"
-    --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
-    --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
+    -- Removing that allows panning and zooming with keyboard to work when the game is Paused, but
+    -- they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
     if state.dt and state.dt ~= 0 then
         self.lastDt = state.dt
     end
@@ -299,24 +301,25 @@ function SystemMap:onInput(state)
         GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * state.dt
     else
         GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed *
-        self.lastDt                                                                         -- temp fix for -> see NOTE above
+            self.lastDt -- temp fix for -> see NOTE above
     end
 
-    if Input.GetValue(Button.Keyboard.LShift) == 1 then
+    if InputInstance:getValue(Button.KeyboardShiftLeft) == 1 then
         GameState.player.currentMapSystemPan = GameState.player.currentMapSystemPan * 2
     end
 
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
-        exp(GameState.ui.mapSystemZoomSpeed * Input.GetMouseScroll().y)
+        exp(GameState.ui.mapSystemZoomSpeed * InputInstance:mouse():scroll().y)
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
-        exp(GameState.ui.mapSystemZoomSpeed * (Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
+        exp(GameState.ui.mapSystemZoomSpeed *
+            (InputInstance:getValue(Button.KeyboardP) - InputInstance:getValue(Button.KeyboardO)))
 
     GameState.player.currentMapSystemPos.x = GameState.player.currentMapSystemPos.x +
         GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
-            Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
+            InputInstance:getValue(Button.KeyboardD) - InputInstance:getValue(Button.KeyboardA))
     GameState.player.currentMapSystemPos.y = GameState.player.currentMapSystemPos.y +
         GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
-            Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
+            InputInstance:getValue(Button.KeyboardS) - InputInstance:getValue(Button.KeyboardW))
 end
 
 function SystemMap.Create(system)

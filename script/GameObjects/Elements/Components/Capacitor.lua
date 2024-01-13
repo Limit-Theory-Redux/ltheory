@@ -1,13 +1,14 @@
--- TODO : Seems like there's a unification opportunity here as well. Certainly
---        integrity and capacitor should be unified: all the 'energies' of an
---        entity should be stored in a kind of 'energy inventory' -- to be used
---        by shields, armor, hull, capacitor, and anything else that uses a
---        similar 'virtual currency'
--- NOTE: The above "TODO" came from Josh -- we may want to rethink it. It makes sense
---           that things using energy -- energy weapons, shield generators -- should
---           take that energy from a capacitor. But physical objects, such as hull and
---           armor, don't need to take energy and should have their own "health" values.
-
+--[[
+    TODO:   Seems like there's a unification opportunity here as well. Certainly
+            integrity and capacitor should be unified: all the 'energies' of an
+            entity should be stored in a kind of 'energy inventory' -- to be used
+            by shields, armor, hull, capacitor, and anything else that uses a
+            similar 'virtual currency'
+    NOTE:   The above "TODO" came from Josh -- we may want to rethink it. It makes sense
+            that things using energy -- energy weapons, shield generators -- should
+            take that energy from a capacitor. But physical objects, such as hull and
+            armor, don't need to take energy and should have their own "health" values.
+--]]
 local Entity      = require('GameObjects.Entity')
 local BasicShapes = require('Systems.Gen.ShapeLib.BasicShapes')
 local SocketType  = require('GameObjects.Entities.Ship.SocketType')
@@ -16,7 +17,7 @@ local Bindings    = require('States.ApplicationBindings')
 local shared
 local rng         = RNG.FromTime()
 
-local Capacitor   = subclass(Entity, function (self)
+local Capacitor   = subclass(Entity, function(self)
     -- All of this crap is completely worthless, but updateCapacitor() will not be called without it
     if not shared then
         shared = {}
@@ -34,7 +35,7 @@ local Capacitor   = subclass(Entity, function (self)
     self.chargeCurr = Config.gen.compCapacitorStats.chargeCurr
     self.chargeMax  = Config.gen.compCapacitorStats.chargeMax
     self.chargeRate = Config.gen.compCapacitorStats.chargeRate
-    --printf("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCapacitor)
+    --Log.Debug("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCapacitor)
     self:register(Event.Update, self.updateCapacitor)
 end)
 
@@ -52,7 +53,7 @@ function Capacitor:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s capacitor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s capacitor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 
     -- Reduce maximum possible charge due to damage
     -- We could also reduce the charge rate, but let's be nice for now
@@ -74,7 +75,7 @@ function Capacitor:discharge(value)
     end
 
     self.chargeCurr = newCharge
-    --printf("Entity %s discharges %s, %s charge remaining, %s undischarged",
+    --Log.Debug("Entity %s discharges %s, %s charge remaining, %s undischarged",
     --self:getName(), value, self.chargeCurr, undischargedAmount)
     return undischargedAmount
 end
@@ -130,12 +131,12 @@ function Capacitor:updateCapacitor(state)
             if GameState.paused then
                 timeScale = 0.0
             end
-            if Input.GetDown(Bindings.TimeAccel) then
+            if InputInstance:isDown(Bindings.TimeAccel) then
                 timeScale = GameState.debug.timeAccelFactor
             end
 
             self.chargeCurr = min(self.chargeMax, self.chargeCurr + (timeScale * state.dt) * self.chargeRate)
-            --printf("CAPACITOR: %s - curr = %s, max = %s, rate = %s", self:getName(), self.chargeCurr, self.chargeMax, self.chargeRate)
+            --Log.Debug("CAPACITOR: %s - curr = %s, max = %s, rate = %s", self:getName(), self.chargeCurr, self.chargeMax, self.chargeRate)
         end
     end
 end

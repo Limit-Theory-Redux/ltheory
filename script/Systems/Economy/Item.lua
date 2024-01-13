@@ -1,6 +1,6 @@
 local all = {}
 
-local Item = class(function (self, name, mass, energyDensity, distribution)
+local Item = class(function(self, name, mass, energyDensity, distribution)
     self.name = name -- must be unique within items
     self.mass = mass or 1
     self.energy = Math.Round(math.max(1, (energyDensity or 1) * self.mass))

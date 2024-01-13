@@ -3,10 +3,10 @@ SFXObject.__index = SFXObject
 
 function SFXObject:Create(arg)
     if not arg.name or not arg.path or not arg.volume then
-        print("error")
+        Log.Warn("Cannot create SFXObject")
         return
     end
-    printf("SFXObject: create new sound: " .. arg.name)
+    Log.Debug("SFXObject: create new sound: " .. arg.name)
 
     local object = {}
     object.name = arg.name
@@ -43,8 +43,8 @@ function SFXObject:SetPlayPos(pos)
     self.sound:setPlayPos(pos % self.sound:getDuration())
 end
 
-function SFXObject:SetVolume(volume)
-    self.sound:setVolume(volume)
+function SFXObject:SetVolume(volume, fadeMS)
+    self.sound:setVolume(volume, fadeMS)
 end
 
 function SFXObject:IsPlaying()

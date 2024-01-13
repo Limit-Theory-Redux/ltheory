@@ -5,7 +5,7 @@ local SocketType  = require('GameObjects.Entities.Ship.SocketType')
 local shared
 local rng         = RNG.FromTime()
 
-local Computer    = subclass(Entity, function (self)
+local Computer    = subclass(Entity, function(self)
     -- All of this crap is completely worthless, but updateComputer() will not be called without it
     if not shared then
         shared = {}
@@ -24,7 +24,7 @@ local Computer    = subclass(Entity, function (self)
     self.mappingSpeed = Config.gen.compComputerStats.mappingSpeed
     self.lockCount    = Config.gen.compComputerStats.lockCount
     self.lockStrength = Config.gen.compComputerStats.lockStrength
-    --printf("Register: Computer name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateComputer)
+    --Log.Debug("Register: Computer name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateComputer)
     self:register(Event.Update, self.updateComputer)
 end)
 
@@ -38,7 +38,7 @@ function Computer:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s computer takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s computer takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 end
 
 function Computer:getHealth()
@@ -85,7 +85,7 @@ end
 
 function Computer:updateComputer(state)
     if not self:getParent():isDestroyed() then
-        --printf("COMPUTER: %s", self:getName())
+        --Log.Debug("COMPUTER: %s", self:getName())
     end
 end
 

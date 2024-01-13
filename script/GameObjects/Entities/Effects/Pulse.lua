@@ -19,7 +19,7 @@ local shaderHead
 local shaderTail
 local onAddedToParent
 
-Preload.Add(function ()
+Preload.Add(function()
     meshHead = Gen.Primitive.Billboard(-1, -1, 1, 1)
     meshTail = Gen.Primitive.Billboard(-1, -1, 1, 0)
     shaderHead = Cache.Shader('billboard/quad', 'effect/pulsehead')
@@ -28,19 +28,19 @@ Preload.Add(function ()
     cacheTail = ShaderVarCache(shaderTail, { 'alpha', 'size', 'axis', 'mWorld' })
 end)
 
-Pulse:setInitializer(function (self)
+Pulse:setInitializer(function(self)
     self.matrix = Matrix.Identity()
     self:register(Event.AddedToParent, onAddedToParent)
 end)
 
-Pulse:addOnDestruct(function (self)
+Pulse:addOnDestruct(function(self)
     self.matrix:free()
     DecRef(self.source)
 end)
 
 Pulse:define()
 
-onAddedToParent = function (self, parent)
+onAddedToParent = function(self, parent)
     self:refreshMatrix()
 end
 
@@ -116,7 +116,7 @@ function Pulse.UpdatePrePhysics(system, projectiles, dt)
         local pulse = proj.effect
         pulse.life  = pulse.life - dt
         if pulse.life <= 0 then
-            --printf("PULSE: projectile delete on expiration = %s", projectiles[i]:getName())
+            --Log.Debug("PULSE: projectile delete on expiration = %s", projectiles[i]:getName())
             if proj then
                 proj:deleteLight(proj)
             end
@@ -158,8 +158,8 @@ function Pulse.UpdatePostPhysics(system, projectiles, dt)
             local hitEnt = Entity.fromRigidBody(hit)
             local source = Deref(pulse.source)
             -- TODO: This hitEnt nil check fixes a bug in PhysicsTest.lua. For some reason these two objects do not
-            --       return anything fromRigidBody for the first few seconds. While this is a good check to do since
-            --       we cannot confirm that the hit will have a rigidbody. This is a hotfix for a weird error.
+            -- return anything fromRigidBody for the first few seconds. While this is a good check to do since
+            -- we cannot confirm that the hit will have a rigidbody. This is a hotfix for a weird error.
             if (hitEnt ~= nil) then
                 -- Don't collide with the socket that spawned me
                 if hitEnt ~= source then
@@ -170,7 +170,7 @@ function Pulse.UpdatePostPhysics(system, projectiles, dt)
                     end
 
                     -- Remove projectile
-                    --printf("PULSE: projectile delete on hit = %s", projectiles[i]:getName())
+                    --Log.Debug("PULSE: projectile delete on hit = %s", projectiles[i]:getName())
                     if projectiles[i] then
                         projectiles[i]:deleteLight(projectiles[i])
                     end

@@ -1,13 +1,14 @@
--- TODO : Seems like there's a unification opportunity here as well. Certainly
---        integrity and capacitor should be unified: all the 'energies' of an
---        entity should be stored in a kind of 'energy inventory' -- to be used
---        by shields, armor, hull, capacitor, and anything else that uses a
---        similar 'virtual currency'
--- NOTE: The above "TODO" came from Josh -- we may want to rethink it. It makes sense
---           that things using energy -- energy weapons, shield generators -- should
---           take that energy from a capacitor. But physical objects, such as hull and
---           armor, don't need to take energy and should have their own "health" values.
-
+--[[
+    TODO:   Seems like there's a unification opportunity here as well. Certainly
+            integrity and capacitor should be unified: all the 'energies' of an
+            entity should be stored in a kind of 'energy inventory' -- to be used
+            by shields, armor, hull, capacitor, and anything else that uses a
+            similar 'virtual currency'
+    NOTE:   The above "TODO" came from Josh -- we may want to rethink it. It makes sense
+            that things using energy -- energy weapons, shield generators -- should
+            take that energy from a capacitor. But physical objects, such as hull and
+            armor, don't need to take energy and should have their own "health" values.
+--]]
 local Entity      = require('GameObjects.Entity')
 local BasicShapes = require('Systems.Gen.ShapeLib.BasicShapes')
 local SocketType  = require('GameObjects.Entities.Ship.SocketType')
@@ -16,7 +17,7 @@ local Bindings    = require('States.ApplicationBindings')
 local shared
 local rng         = RNG.FromTime()
 
-local Shield      = subclass(Entity, function (self)
+local Shield      = subclass(Entity, function(self)
     -- All of this crap is completely worthless, but updateShield() will not be called without it
     if not shared then
         shared = {}
@@ -38,7 +39,7 @@ local Shield      = subclass(Entity, function (self)
     self.colorR       = Config.gen.compShieldStats.colorR
     self.colorG       = Config.gen.compShieldStats.colorG
     self.colorB       = Config.gen.compShieldStats.colorB
-    --printf("Register: Shield type = %s, handler = %s", Event.Update, self.updateShield)
+    --Log.Debug("Register: Shield type = %s, handler = %s", Event.Update, self.updateShield)
     self:register(Event.Update, self.updateShield)
 end)
 
@@ -60,7 +61,7 @@ function Shield:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s shield takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s shield takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 
     -- Reduce maximum possible shield strength due to damage
     local maxStrength = self.strengthMax * (self.healthCurr / self.healthMax)
@@ -112,7 +113,7 @@ function Shield:reduceStrength(value)
     else
         self.strengthCurr = self.strengthCurr - reducedValue
     end
-    --printf("Vessel %s shield reduced by %s, %s remaining", self:getName(), reducedValue, self.strengthCurr)
+    --Log.Debug("Vessel %s shield reduced by %s, %s remaining", self:getName(), reducedValue, self.strengthCurr)
 
     -- TODO: Visual effect for shield activation
     UI.DrawEx.Ring(200, 200, 50, Config.ui.color.shieldStrength, true)
@@ -132,7 +133,7 @@ function Shield:updateShield(state)
             if GameState.paused then
                 timeScale = 0.0
             end
-            if Input.GetDown(Bindings.TimeAccel) then
+            if InputInstance:isDown(Bindings.TimeAccel) then
                 timeScale = GameState.debug.timeAccelFactor
             end
 
@@ -143,7 +144,7 @@ function Shield:updateShield(state)
             local undischarged = self:getParent():mgrCapacitorDischarge(diffStrength)
 
             self.strengthCurr = newStrength - undischarged
-            --printf("SHIELD: %s - curr = %s, max = %s, rate = %s, diff = %s, undischarged = %s",
+            --Log.Debug("SHIELD: %s - curr = %s, max = %s, rate = %s, diff = %s, undischarged = %s",
             --self:getName(), self.strengthCurr, self.strengthMax, self.reviveRate, diffStrength, undischarged)
         end
     end

@@ -12,13 +12,13 @@ local Nebula = require('GameObjects.Entities.Objects.Nebula')
 local Words = require('Systems.Gen.Words')
 local HUD = require('Systems.Overlay.HUD')
 
-local System = subclass(Entity, function (self, seed)
+local System = subclass(Entity, function(self, seed)
     self.rng = RNG.Create(seed):managed()
 
     self:setName(Words.getCoolName(self.rng))
     self:setType(Config:getObjectTypeByName("object_types", "Star System"))
 
-    printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
+    Log.Debug("Spawning new star system '%s' using seed = %s", self:getName(), seed)
 
     self:addChildren()
 
@@ -27,29 +27,29 @@ local System = subclass(Entity, function (self, seed)
     self:addProjectiles()
 
     -- NOTE : For now, we will use a flow component on the system to represent
-    --        the summed net flow of all entities in the system. Seems natural,
-    --        but should keep an eye on gameplay code to ensure this does not
-    --        result in unexpected behavior
+    -- the summed net flow of all entities in the system. Seems natural,
+    -- but should keep an eye on gameplay code to ensure this does not
+    -- result in unexpected behavior
     self:addFlows()
 
     -- TODO : Will physics be freed correctly?
-    self.physics    = Physics.Create():managed()
-    local starAngle = self.rng:getDir2()
-    self.starDir    = Vec3f(starAngle.x, 0, starAngle.y)
-    self.nebula     = Nebula(self.rng:get64(), self.starDir)
-    self.dust       = Dust()
+    self.physics         = Physics.Create():managed()
+    local starAngle      = self.rng:getDir2()
+    self.starDir         = Vec3f(starAngle.x, 0, starAngle.y)
+    self.nebula          = Nebula(self.rng:get64(), self.starDir)
+    self.dust            = Dust()
 
-    self.players    = {}
-    self.aiPlayers  = nil
-    self.stars      = {}
-    self.planets    = {}
-    self.zones      = {}
-    self.stations   = {}
-    self.ships      = {}
-    self.lightList  = {}
+    self.players         = {}
+    self.aiPlayers       = nil
+    self.stars           = {}
+    self.planets         = {}
+    self.zones           = {}
+    self.stations        = {}
+    self.ships           = {}
+    self.lightList       = {}
 
     -- When creating a new system, initialize station subtype options from all production types
-    local prodType  = Config:getObjectTypeIndex("station_subtypes")
+    local prodType       = Config:getObjectTypeIndex("station_subtypes")
     local originalLength = #Config.objectInfo[prodType]["elems"]
 
     for i, prod in ipairs(Production.All()) do
@@ -107,7 +107,7 @@ function System:getStationsByDistance(ship)
         end
     end
 
-    table.sort(stationList, function (a, b) return a.stationDist < b.stationDist end)
+    table.sort(stationList, function(a, b) return a.stationDist < b.stationDist end)
 
     return stationList
 end
@@ -155,7 +155,7 @@ end
 
 function System:addExtraFactories(system, planetCount, aiPlayer)
     -- Based on what factories were added randomly to stations, a system may need some
-    --    additional factories to provide the necessary Input items
+    -- additional factories to provide the necessary Input items
     if Config.gen.nEconNPCs > 0 then
         local newStation = nil
         local prodTypeCount = 0
@@ -229,7 +229,7 @@ function System:place(object, spawnOutOfAsteroidZone)
                 local function checkDistanceToAllStations(pos)
                     for _, station in ipairs(stations) do
                         if pos:distance(station:getPos()) < Config.gen.stationMinimumDistance then
-                            print("New Station closer than " ..
+                            Log.Debug("New Station closer than " ..
                                 Config.gen.stationMinimumDistance .. " (" ..
                                 math.floor(pos:distance(station:getPos())) ..
                                 ") to station: '" .. station:getName() .. "'. Finding New Position.")
@@ -244,7 +244,7 @@ function System:place(object, spawnOutOfAsteroidZone)
                         local distanceFromOrigin = pos:distance(Config.gen.origin)
                         -- TODO: replace later with actual system size
                         if distanceFromOrigin > 200000 then
-                            print("New Station too far away from system core: " ..
+                            Log.Debug("New Station too far away from system core: " ..
                                 math.floor(distanceFromOrigin) .. ". Finding New Position.")
                             return false
                         end
@@ -254,13 +254,13 @@ function System:place(object, spawnOutOfAsteroidZone)
 
                 do
                     if counter >= Config.gen.minimumDistancePlacementMaxTries then
-                        printf("Exceeded max placement tries, placing at last random position: %s", pos)
+                        Log.Debug("Exceeded max placement tries, placing at last random position: %s", pos)
                         validSpawn = true
                     elseif not checkIfInSystem(pos) or not checkDistanceToAllStations(pos) then
                         pos = field:getRandomPos(self.rng)
                         counter = counter + 1
                     else
-                        printf("Found Position to Spawn: %s", pos)
+                        Log.Debug("Found Position to Spawn: %s", pos)
                         validSpawn = true
                     end
                 end
@@ -274,9 +274,9 @@ function System:place(object, spawnOutOfAsteroidZone)
     elseif spawnOutOfAsteroidZone then
         local minPirateStationSpawnPositionScale = math.floor(Config.gen.scaleSystem * 0.9)
         pos = Vec3f(self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem), 0,
-            self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem))                                                                                         -- place new object _near_ the origin
+            self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem)) -- place new object _near_ the origin
     else
-        pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000))                                                                                                 -- place new object _near_ the origin
+        pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000))         -- place new object _near_ the origin
     end
     object:setPos(pos)
     -- Return the Asteroid Field zone in which the object is being placed
@@ -314,7 +314,7 @@ function System:update(dt)
         for _, player in ipairs(self.players) do player:send(event) end
         Profiler.End()
 
-        --    self:send(event) -- unnecessary extra event?
+        -- self:send(event) -- unnecessary extra event?
         Profiler.Begin('Broadcast Update')
         self:send(Event.Broadcast(event))
         Profiler.End()
@@ -365,14 +365,14 @@ function System:spawnPlanet(bAddBelt)
     local psmod = math.floor(Config.gen.scalePlanetMod * math.abs(rng:getGaussian())) -- or rng:getErlang(2)
     local scale = psbase + psmod
     planet:setScale(scale)
-    --printf("planet base size = %d, psmod = %d, scale = %d", psbase, psmod, scale)
+    --Log.Debug("planet base size = %d, psmod = %d, scale = %d", psbase, psmod, scale)
 
     self:addChild(planet)
 
     -- Add all applicable components to this planet
     -- TODO: For now, every socket gets one of the appropriate components. Later, this must be replaced by:
-    --       1) default components (for planets created when a new star system is generated)
-    --       2) loaded components (for planets recreated when the player loads a saved game)
+    -- 1) default components (for planets created when a new star system is generated)
+    -- 2) loaded components (for planets recreated when the player loads a saved game)
     -- NOTE: Components must be instantiated AFTER their parent is added as a child to the star system!
 
     -- Add as many communicators as there are communicator plugs for
@@ -396,7 +396,7 @@ function System:spawnPlanet(bAddBelt)
         local sensor = Components.Sensor()
         sensor:setName(planet:getName() .. ": " .. "April's " .. sensor:getName() .. " " .. tostring(i))
         insert(planet.components.sensor, sensor)
-        --    planet:plug(sensor)
+        -- planet:plug(sensor)
     end
 
     -- Add transport pods to every inventory plug
@@ -424,7 +424,7 @@ function System:spawnPlanet(bAddBelt)
 
     -- Planets have significant market capacity
     planet:addMarket()
-    --  planet:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0)) -- TEMP
+    -- planet:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0)) -- TEMP
 
     -- Planets have enormous trading capacity
     planet:addTrader()
@@ -436,9 +436,9 @@ function System:spawnPlanet(bAddBelt)
     local dprice = 0   -- desire price
     local bidCount = 0 -- number of bids to offer
     -- NOTE: bid prices are being generated higher than all of the ask prices for these items when they're
-    --       produced. This is temporary to insure there's always a profit in trading factory-produced goods.
+    -- produced. This is temporary to insure there's always a profit in trading factory-produced goods.
     -- TODO: generate prices based on the item's "energy," but enable random "high demand" bids and/or
-    --       locally higher-than-normal bid prices.
+    -- locally higher-than-normal bid prices.
     -- TODO: Add AI to station/trader/factory owners to let them set the prices for their bids and asks (bidding wars!)
     for _, v in pairs(Item.T1) do
         bidCount = rng:getInt(1000, 10000)
@@ -467,8 +467,8 @@ function System:spawnPlanet(bAddBelt)
 
     -- Planets have significant manufacturing capacity
     -- TODO: Move on-planet production to manufacturing colonies
-    --  planet:addFactory()
-    --  planet:addProduction(self.rng:choose(Production.All()))
+    -- planet:addFactory()
+    -- planet:addProduction(self.rng:choose(Production.All()))
 
     if bAddBelt then
         -- Add a planetary belt
@@ -509,7 +509,7 @@ function System:spawnPlanet(bAddBelt)
 
     local typeName = Config:getObjectInfo("object_types", planet:getType())
     local subtypeName = Config:getObjectSubInfo("object_types", planet:getType(), planet:getSubType())
-    printf("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
+    Log.Debug("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
 
     return planet
 end
@@ -527,7 +527,7 @@ function System:spawnAsteroidField(count, reduced)
     zone:setSubType(Config:getObjectTypeByName("zone_subtypes", "Asteroid Field"))
 
     -- Pick a random location in the system for the center of the asteroid field
-    --   (unless background, in which case pick the center of the system)
+    -- (unless background, in which case pick the center of the system)
     -- If count is -1, that's the signal to create a field for background mode
     if count == -1 then
         zone.pos = Vec3f(200, 0, 200)
@@ -554,7 +554,7 @@ function System:spawnAsteroidField(count, reduced)
         -- Give the individual asteroid a name
         local asteroidName = System:getAsteroidName(self, rng)
         asteroid:setName(format("%s", asteroidName))
-        --printf("Added %s '%s'", Config.objectInfo[1]["elems"][asteroid:getType()][2], asteroid:getName())
+        --Log.Debug("Added %s '%s'", Config.objectInfo[1]["elems"][asteroid:getType()][2], asteroid:getName())
 
         -- Actually set the scale of the new asteroid
         asteroid:setScale(scale)
@@ -565,7 +565,7 @@ function System:spawnAsteroidField(count, reduced)
             pos = zone.pos -- place first object at zone's center (for non-asteroid field zones)
         else
             -- We place this asteroid directly, rather than using self:place(asteroid) for randomness,
-            --   because we want it to go into the area around this AsteroidField (a Zone) we just created
+            -- because we want it to go into the area around this AsteroidField (a Zone) we just created
             pos = zone.pos + rng:getDir3():scale((0.1 * zone:getExtent()) * rng:getExp() ^ rng:getExp())
             if Config.gen.scaleSystem < 5e4 then
                 while pos:distance(Config.gen.origin) > 200000 do -- constrain max extent of small star systems for performance
@@ -594,7 +594,7 @@ function System:spawnAsteroidField(count, reduced)
 
     local typeName = Config:getObjectInfo("object_types", zone:getType())
     local subtypeName = Config:getObjectInfo("zone_subtypes", zone:getSubType())
-    printf("Added %s - %s '%s'", typeName, subtypeName, zone:getName())
+    Log.Debug("Added %s - %s '%s'", typeName, subtypeName, zone:getName())
 
     return zone
 end
@@ -619,7 +619,7 @@ function System:setAsteroidYield(rng, asteroid)
     if rng:getInt(0, 100) < 70 then
         local amass = math.floor(asteroid:getMass() / 1000)
         local itemT2 = Item.T2
-        table.sort(itemT2, function (a, b) return a.distribution < b.distribution end)
+        table.sort(itemT2, function(a, b) return a.distribution < b.distribution end)
         local itemType = nil
         local ichance = 0.0
         local uval = rng:getUniformRange(0.00, 1.00)
@@ -640,18 +640,18 @@ end
 local function addStationComponents(station, hullSize)
     -- Add all components to this station
     -- TODO: For now, every socket gets one of the appropriate components. Later, this must be replaced by:
-    --       1) default components (for stations magically spawned when a new star system is generated)
-    --       2) no components (for stations newly built at a factory)
-    --       3) loaded components (for stations recreated when the player loads a saved game)
+    -- 1) default components (for stations magically spawned when a new star system is generated)
+    -- 2) no components (for stations newly built at a factory)
+    -- 3) loaded components (for stations recreated when the player loads a saved game)
     -- NOTE: Components must be instantiated AFTER their parent is added as a child to the star system!
 
     -- Add as many armor plates as there are armor plugs for
-    --  station:addArmor(Config.gen.compArmorStats.healthMax * station.countArmor) -- TEMP
+    -- station:addArmor(Config.gen.compArmorStats.healthMax * station.countArmor) -- TEMP
     for i = 1, station.countArmor do
         local armor = Components.Armor()
         armor:setName(station:getName() .. ": " .. "Glassiron " .. armor:getName() .. " " .. tostring(i))
         insert(station.components.armor, armor)
-        --    station:plug(armor)
+        -- station:plug(armor)
     end
 
     -- Add as many bays as there are bay plugs for
@@ -692,7 +692,7 @@ local function addStationComponents(station, hullSize)
         local drone = Ship.Drone()
         drone:setName(station:getName() .. ": " .. "Wilson's " .. drone:getName() .. " " .. tostring(i))
         insert(station.components.drone, drone)
-        --    station:plug(drone)
+        -- station:plug(drone)
     end
 
     -- Add a Hull component as a unitary object
@@ -701,7 +701,7 @@ local function addStationComponents(station, hullSize)
     local hullHealth = hull:getHealth() * Config.gen.stationComponents[Enums.StationComponents.Hull][hullSize]
     hull:setHealth(hullHealth, hullHealth)
     insert(station.components.hull, hull)
-    --  station:plug(hull)
+    -- station:plug(hull)
 
     -- Add transport pods to every inventory plug
     for i = 1, station.countInventory do
@@ -713,7 +713,7 @@ local function addStationComponents(station, hullSize)
         station:plug(inventory)
     end
     if station.countInventory > 0 then
-        --printf("SYSTEM(station): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
+        --Log.Debug("SYSTEM(station): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
         station:register(Event.Debug, Entity.mgrInventoryDebug)
     end
 
@@ -722,7 +722,7 @@ local function addStationComponents(station, hullSize)
         local sensor = Components.Sensor()
         sensor:setName(station:getName() .. ": " .. "April's " .. sensor:getName() .. " " .. tostring(i))
         insert(station.components.sensor, sensor)
-        --    station:plug(sensor)
+        -- station:plug(sensor)
     end
 
     -- Add as many shield generators as there are shield plugs for
@@ -760,7 +760,7 @@ function System:spawnStation(hullSize, player, prodType)
     station.zone = self:place(station)
 
     -- Assign the station to an owner
-    station:setOwner(player)
+    station:setOwner(player, true)
 
     -- Stations have market capacity
     station:addMarket()
@@ -768,7 +768,7 @@ function System:spawnStation(hullSize, player, prodType)
         -- TODO: generate better bid price; this is just for testing the flow-based "payout" model in Think.lua
         local flowval = self.rng:getUniformRange(-1000, 0)
         station:setFlow(v, flowval) -- TEMP
-        --printf("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
+        --Log.Debug("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
     end
 
     -- Stations have trading capacity
@@ -776,12 +776,12 @@ function System:spawnStation(hullSize, player, prodType)
 
     -- Stations have manufacturing capacity for one randomly-chosen production type
     -- TODO: Assign a station's production type based on system needs (e.g., insure there's
-    --       always at least one energy-generating station in each system)
+    -- always at least one energy-generating station in each system)
     station:addFactory()
     local prod = prodType
     if not prodType then
         -- No specific production type provided, so pick one randomly
-        --      prod = rng:choose(Production.All()) -- if no production type is provided, choose anything randomly
+        -- prod = rng:choose(Production.All()) -- if no production type is provided, choose anything randomly
         local rint = rng:getInt(0, 100)
         if rint > 80 then
             prod = rng:choose(Production.P0) -- small chance for a powerplant
@@ -798,7 +798,7 @@ function System:spawnStation(hullSize, player, prodType)
     station:addCredits(Config.econ.eStartCredits * 100)
 
     -- The station sets asks for selling items its facility produces as outputs,
-    --     and sets bids for buying items its facility wants as inputs
+    -- and sets bids for buying items its facility wants as inputs
     -- Ask prices (for selling) are calculated as the item's base price times a markup value
     -- Bid prices (for buying) are calculated as the item's base price times a markdown value
     for _, input in prod:iterInputs() do
@@ -822,14 +822,14 @@ function System:spawnStation(hullSize, player, prodType)
     end
 
     -- TODO: The weapon installed in each turret/bay should dictate its base emission or thruster color
-    --       For now, every weapon per station gets the same pulse weapon color effect
+    -- For now, every weapon per station gets the same pulse weapon color effect
     station.projColorR = self.rng:getUniformRange(0.1, 1.2)
     station.projColorG = self.rng:getUniformRange(0.1, 1.2)
     station.projColorB = self.rng:getUniformRange(0.1, 1.2)
 
     local typeName = Config:getObjectInfo("object_types", station:getType())
     local subtypeName = Config:getObjectInfo("station_subtypes", station:getSubType())
-    printf("SYSTEM(station) - Added %s %s '%s' (production = %s)", subtypeName, typeName, station:getName(),
+    Log.Debug("SYSTEM(station) - Added %s %s '%s' (production = %s)", subtypeName, typeName, station:getName(),
         prod:getName())
 
     -- Add the station to this star system
@@ -848,16 +848,16 @@ function System:spawnPirateStation(hullSize, player)
     -- Spawn a new space station
     local station = Objects.Station(self.rng:get31(), hullSize)
     station:setType(Config:getObjectTypeByName("object_types", "Station"))
-    station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirate")) -- pirate station
+    station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirates")) -- pirate station
 
     -- Give the station a name
-    station:setName(Words.getCoolName(rng) .. " Marauders")
+    station:setName(player:getFaction().name)
 
     -- Set station location within the extent of a randomly selected asteroid field
     station.zone = self:place(station)
 
     -- Assign the station to an owner
-    station:setOwner(player)
+    station:setOwner(player, true)
 
     -- Add the black market
     station:addBlackMarket()
@@ -871,7 +871,7 @@ function System:spawnPirateStation(hullSize, player)
     station:addCredits(Config.econ.eStartCredits * 100)
 
     -- The station sets asks for selling items its facility produces as outputs,
-    --     and sets bids for buying items its facility wants as inputs
+    -- and sets bids for buying items its facility wants as inputs
     -- Ask prices (for selling) are calculated as the item's base price times a markup value
     -- Bid prices (for buying) are calculated as the item's base price times a markdown value
     for _, input in prod:iterInputs() do
@@ -880,7 +880,8 @@ function System:spawnPirateStation(hullSize, player)
             if input.item == Item.Energy then
                 station.blackMarketTrader:addBid(input.item, 100 + rng:getInt(25, 100)) -- make sure Energy-requiring factories bid well
             else
-                station.blackMarketTrader:addBid(input.item, math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33)))
+                station.blackMarketTrader:addBid(input.item,
+                    math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33)))
             end
         end
     end
@@ -901,7 +902,7 @@ function System:spawnAI(shipCount, action, player)
     local rng = self.rng
     for i = 1, shipCount do
         local ship = self:spawnShip(rng:choose({ 1, 2, 3, 4, 5, 6 }), player)
-        ship:setOwner(player)
+        ship:setOwner(player, true)
         if action then
             ship:pushAction(action)
         end
@@ -939,7 +940,7 @@ function System:spawnShip(hullSize, player)
         shipPlayer = Player(format("Ship Player for %s", ship:getName()))
         insert(self.players, shipPlayer)
     end
-    ship:setOwner(shipPlayer)
+    ship:setOwner(shipPlayer, true)
 
     -- TODO: make sure spawn position for ship is well outside any planetary volume
     local shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp()))
@@ -955,18 +956,18 @@ function System:spawnShip(hullSize, player)
 
     -- Add all components to this ship
     -- TODO: For now, every socket gets one of the appropriate components. Later, this must be replaced by:
-    --       1) default components (for ships magically spawned when a new star system is generated)
-    --       2) no components (for ships newly built at a factory)
-    --       3) loaded components (for ships recreated when the player loads a saved game)
+    -- 1) default components (for ships magically spawned when a new star system is generated)
+    -- 2) no components (for ships newly built at a factory)
+    -- 3) loaded components (for ships recreated when the player loads a saved game)
     -- NOTE: Components must be instantiated AFTER their parent is added as a child to the star system!
 
     -- Add as many armor plates as there are armor plugs for
-    --  ship:addArmor(Config.gen.compArmorStats.healthMax * ship.countArmor) -- TEMP
+    -- ship:addArmor(Config.gen.compArmorStats.healthMax * ship.countArmor) -- TEMP
     for i = 1, ship.countArmor do
         local armor = Components.Armor()
         armor:setName(ship:getName() .. ": " .. "Glassiron " .. armor:getName() .. " " .. tostring(i))
         insert(ship.components.armor, armor)
-        --    ship:plug(armor)
+        -- ship:plug(armor)
     end
 
     -- Add as many bays as there are bay plugs for
@@ -991,7 +992,7 @@ function System:spawnShip(hullSize, player)
         local cloak = Components.Cloak()
         cloak:setName(ship:getName() .. ": " .. "Valeria's " .. cloak:getName() .. " " .. tostring(i))
         insert(ship.components.cloak, cloak)
-        --    ship:plug(cloak)
+        -- ship:plug(cloak)
     end
 
     -- Add as many communicators as there are communicator plugs for
@@ -1016,14 +1017,14 @@ function System:spawnShip(hullSize, player)
     local hullHealth = hull:getHealth() * Config.gen.shipComponents[Enums.ShipComponents.Hull][hullSize]
     hull:setHealth(hullHealth, hullHealth)
     insert(ship.components.hull, hull)
-    --  ship:plug(hull)
+    -- ship:plug(hull)
 
     -- Add as many drone racks as there are drone plugs for
     for i = 1, ship.countDrone do
         local drone = Ship.Drone()
         drone:setName(ship:getName() .. ": " .. "Wilson's " .. drone:getName() .. " " .. tostring(i))
         insert(ship.components.drone, drone)
-        --    ship:plug(drone)
+        -- ship:plug(drone)
     end
 
     -- Add transport pods to every inventory plug
@@ -1036,7 +1037,7 @@ function System:spawnShip(hullSize, player)
         ship:plug(inventory)
     end
     if ship.countInventory > 0 then
-        --printf("SYSTEM(ship): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
+        --Log.Debug("SYSTEM(ship): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
         ship:register(Event.Debug, Entity.mgrInventoryDebug)
     end
 
@@ -1045,7 +1046,7 @@ function System:spawnShip(hullSize, player)
         local sensor = Components.Sensor()
         sensor:setName(ship:getName() .. ": " .. "April's " .. sensor:getName() .. " " .. tostring(i))
         insert(ship.components.sensor, sensor)
-        --    ship:plug(sensor)
+        -- ship:plug(sensor)
     end
 
     -- Add as many shield generators as there are shield plugs for
@@ -1083,7 +1084,7 @@ function System:spawnShip(hullSize, player)
     ship:addLight(0, 0, 0)
 
     -- TODO: The weapon installed in each turret/bay should dictate its base emission or thruster color
-    --       For now, every weapon per ship gets the same pulse weapon color effect
+    -- For now, every weapon per ship gets the same pulse weapon color effect
     ship.projColorR = self.rng:getUniformRange(0.1, 1.2)
     ship.projColorG = self.rng:getUniformRange(0.1, 1.2)
     ship.projColorB = self.rng:getUniformRange(0.1, 1.2)
@@ -1092,15 +1093,15 @@ function System:spawnShip(hullSize, player)
     self:addShip(ship)
 
     --local subtypeName = Config:getObjectInfo("ship_subtypes", ship:getSubType())
-    --printf("SYSTEM(ship) - Added %s '%s'", subtypeName, ship:getName())
+    --Log.Debug("SYSTEM(ship) - Added %s '%s'", subtypeName, ship:getName())
 
     return ship
 end
 
 function System:spawnBackground()
     -- For a star system background only (no ship), spawn an invisible ship
-    --   (because System.lua needs a thing with mass, scale, drag, and thrust
-    --   in order to rotate around a camera viewpoint)
+    -- (because System.lua needs a thing with mass, scale, drag, and thrust
+    -- in order to rotate around a camera viewpoint)
     local player = Player("Background Player")
     local hullType = Enums.ShipHulls.Solo
     if not self.shipType then
@@ -1116,7 +1117,7 @@ function System:spawnBackground()
     backgroundShip:setPos(Config.gen.origin)
     backgroundShip:setFriction(0)
     backgroundShip:setSleepThreshold(0, 0)
-    backgroundShip:setOwner(player)
+    backgroundShip:setOwner(player, true)
     self:addChild(backgroundShip)
     GameState.player.currentShip = backgroundShip
     GameState.player.humanPlayer:setControlling(backgroundShip)

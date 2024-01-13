@@ -4,7 +4,7 @@ require('Systems.Gen.ShapeLib.Warp')
 local Scaffolding = {}
 
 -- BasicScaffoldingBlock (int resolution [optional],
---                        float bar width [optional])
+-- float bar width [optional])
 function Scaffolding.BasicScaffoldingBlock(res, bar)
     res = res or 0
     bar = bar or 0.05

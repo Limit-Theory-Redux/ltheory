@@ -22,7 +22,7 @@ Production.P2      = {} -- Factory
 Production.P3      = {} -- Drydock
 Production.P4      = {} -- Misc
 
---                         NAME                         UNIT MASS   ENERGY-DENSITY DISTRIBUTION %
+-- Item(NAME, UNIT, MASS, ENERGY-DENSITY, DISTRIBUTION %)
 Item.Energy        = Item("Energy Cell", 1, 1.00, 1.00)
 Item.Data          = Item("Data Cube", 1, 2.10, 0.67)
 Item.Information   = Item("Info Wafer", 1, 3.82, 0.33)

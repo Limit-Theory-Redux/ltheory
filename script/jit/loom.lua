@@ -19,7 +19,7 @@ end
 local function allipairs(t, start)
     start = start or 1
     local maxn = table.maxn(t)
-    return function (t, k) -- luacheck: ignore t
+    return function(t, k)  -- luacheck: ignore t
         repeat
             k = k + 1
         until t[k] ~= nil or k > maxn
@@ -30,7 +30,7 @@ end
 local function sortedpairs(t, emptyelem)
     if emptyelem ~= nil and next(t) == nil then
         local done = false
-        return function ()
+        return function()
             if not done then
                 done = true
                 return emptyelem
@@ -46,7 +46,7 @@ local function sortedpairs(t, emptyelem)
     end
     table.sort(t2)
     local i = 1
-    return function ()
+    return function()
         local k = map[t2[i]]
         i = i + 1
         return k, t[k]
@@ -174,7 +174,7 @@ local function dump_mcode(tr)
     local mcode, addr, loop = jutil.tracemc(tr)
     if not mcode then return end
     if addr < 0 then addr = addr + 2 ^ 32 end
-    local ctx = disass.create(mcode, addr, function (s) pushf(o, s) end)
+    local ctx = disass.create(mcode, addr, function(s) pushf(o, s) end)
     ctx.hexdump = 0
     ctx.symtab = fillsymtab(tr, info.nexit)
     if loop ~= 0 then
@@ -218,7 +218,7 @@ local irtype = {
 
 -- Lookup tables to convert some literals into names.
 local litname = {
-    ["SLOAD "] = setmetatable({}, { __index = function (t, mode)
+    ["SLOAD "] = setmetatable({}, { __index = function(t, mode)
         local s = ""
         if band(mode, 1) ~= 0 then s = s .. "P" end
         if band(mode, 2) ~= 0 then s = s .. "F" end
@@ -230,7 +230,7 @@ local litname = {
         return s
     end }),
     ["XLOAD "] = { [0] = "", "R", "V", "RV", "U", "RU", "VU", "RVU", },
-    ["CONV  "] = setmetatable({}, { __index = function (t, mode)
+    ["CONV  "] = setmetatable({}, { __index = function(t, mode)
         local s = irtype[band(mode, 31)]
         s = irtype[band(shr(mode, 5), 31)] .. "." .. s
         if band(mode, 0x800) ~= 0 then s = s .. " sext" end
@@ -561,7 +561,7 @@ do
     local traces_data, seen_funcs = {}, {}
     local prevtraces = {}
     local prevexp_t = {
-        trace = function (what, tr, func, pc, otr, oex)     -- luacheck: ignore func pc
+        trace = function(what, tr, func, pc, otr, oex)      -- luacheck: ignore func pc
             if what == 'start' then
                 local mcode, addr, loop = jutil.tracemc(tr) -- luacheck: ignore mcode loop
                 if addr ~= nil then
@@ -573,8 +573,8 @@ do
                 end
             end
         end,
-        record = function () end,
-        texit = function () end,
+        record = function() end,
+        texit = function() end,
     }
     local function gettrace(tn)
         local tr = traces_data[tn]
@@ -603,26 +603,26 @@ do
     end
 
     local exp_trace_t = {
-        start = function (tr, func, pc, otr, oex) -- luacheck: ignore func pc
+        start = function(tr, func, pc, otr, oex)  -- luacheck: ignore func pc
             local t = gettrace(tr)
             t.parent = t.parent or otr
             t.p_exit = t.p_exit or oex
         end,
 
-        stop = function (tr, func, pc, otr, oex) -- luacheck: ignore tr func pc otr oex
+        stop = function(tr, func, pc, otr, oex)  -- luacheck: ignore tr func pc otr oex
         end,
 
-        abort = function (tr, func, pc, otr, oex) -- luacheck: ignore func pc
+        abort = function(tr, func, pc, otr, oex)  -- luacheck: ignore func pc
             local t = gettrace(tr)
             t.err = t.err or fmterr(otr, oex)
         end,
 
-        flush = function (tr, func, pc, otr, oex) -- luacheck: ignore tr func pc otr oex
+        flush = function(tr, func, pc, otr, oex)  -- luacheck: ignore tr func pc otr oex
             symtab, nexitsym = {}, 0
         end,
     }
     local expand_t = {
-        trace = function (what, tr, func, pc, otr, oex)
+        trace = function(what, tr, func, pc, otr, oex)
             seen_funcs[func] = true
             local t = gettrace(tr)
             t.n.trace = t.n.trace + 1
@@ -645,7 +645,7 @@ do
             return expf and expf(tr, func, pc, otr, oex)
         end,
 
-        record = function (tr, func, pc, depth)
+        record = function(tr, func, pc, depth)
             local t = gettrace(tr)
             t.n.record = t.n.record + 1
             seen_funcs[func] = true
@@ -655,7 +655,7 @@ do
             end
         end,
 
-        texit = function (tr, ex, ngpr, nfpr, ...)
+        texit = function(tr, ex, ngpr, nfpr, ...)
             local t = gettrace(tr)
             t.n.texit = t.n.texit + 1
             t.exits[ex] = (t.exits[ex] or 0) + 1
@@ -863,8 +863,8 @@ do
         end
 
         local args = { '_e' }
-        tpl = tpl:gsub('{@(.-)}', function (argl)
-            argl:gsub('([_%a][_%w]*)', function (a)
+        tpl = tpl:gsub('{@(.-)}', function(argl)
+            argl:gsub('([_%a][_%w]*)', function(a)
                 args[#args + 1] = a
                 return ''
             end)
@@ -891,7 +891,7 @@ do
                 :gsub('%%}', ' _p[=[')
             )
         local f = assert(loadstring(src, tplname))
-        return function (...)
+        return function(...)
             return f(escape, ...)
         end
     end
@@ -905,16 +905,16 @@ return {
     on = loomstart,
     off = loomstop,
 
-    start = function (opt, out)
+    start = function(opt, out)
         local tmpl = template(opt or 'loom.html')
         defer = newproxy(true)
-        getmetatable(defer).__gc = function ()
-            xpcall(function ()
+        getmetatable(defer).__gc = function()
+            xpcall(function()
                 local o = loomstop(tmpl)
                 out = type(out) == 'string' and assert(io.open(out, 'w'), 'Failed to open output file')
                     or out or io.stdout
                 out:write(o)
-            end, function (err) print(debug.traceback(err)) end)
+            end, function(err) print(debug.traceback(err)) end)
         end
 
         loomstart()

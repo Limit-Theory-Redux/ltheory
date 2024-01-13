@@ -2,6 +2,8 @@ local Settings = {}
 local varMap   = {}
 local varList  = {}
 
+--! We need to think about this, seems to me this is obsolete
+
 function Settings.addBool(key, name, default)
     local self = {
         key = key,
@@ -11,8 +13,8 @@ function Settings.addBool(key, name, default)
         type = 'bool',
     }
 
-    self.getter = function () return self.value end
-    self.setter = function (v) self.value = v end
+    self.getter = function() return self.value end
+    self.setter = function(v) self.value = v end
     varMap[key] = self
     table.insert(varList, self)
 end
@@ -27,8 +29,8 @@ function Settings.addEnum(key, name, default, elems)
         type = 'enum',
     }
 
-    self.getter = function () return self.value end
-    self.setter = function (v) self.value = v end
+    self.getter = function() return self.value end
+    self.setter = function(v) self.value = v end
     varMap[key] = self
     table.insert(varList, self)
 end
@@ -44,8 +46,8 @@ function Settings.addFloat(key, name, default, min, max)
         max = max,
     }
 
-    self.getter = function () return self.value end
-    self.setter = function (v) self.value = v end
+    self.getter = function() return self.value end
+    self.setter = function(v) self.value = v end
     varMap[key] = self
     table.insert(varList, self)
 end
@@ -88,6 +90,6 @@ function Settings.set(key, value)
     self.value = value
 end
 
-setmetatable(Settings, { __index = function (t, k) return Settings.get(k) end })
+setmetatable(Settings, { __index = function(t, k) return Settings.get(k) end })
 
 return Settings

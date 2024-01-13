@@ -65,8 +65,18 @@ function HUD:drawTargetText(a)
             subtypetext = Config:getObjectInfo("station_subtypes", playerTarget:getSubType()) .. " "
         end
 
+        local faction
+        local factionName = "none"
+        if playerTarget.owner then
+            faction = playerTarget.owner:getFaction()
+
+            if faction ~= "none" then
+                factionName = faction:getName()
+            end
+        end
+
         local text1 = format("Target ID: %s", subtypetext .. playerTarget:getName())
-        local text2 = format("Target Faction: %s", "XXX")
+        local text2 = format("Target Faction: %s", factionName)
 
         if playerTarget.usesBoost then
             text1 = text1 .. " [Ace]"
@@ -1036,9 +1046,9 @@ function HUD:drawSensors(a)
 
                         for i = 1, barCount do
                             barHeightUp[i]   = barHeightUp[i] +
-                            Config.gen.objectEmissions[i][emType] * barBase * dropoff / 100
+                                Config.gen.objectEmissions[i][emType] * barBase * dropoff / 100
                             barHeightDown[i] = barHeightDown[i] +
-                            Config.gen.objectEmissions[i][emType] * barReflect * dropoff / 100
+                                Config.gen.objectEmissions[i][emType] * barReflect * dropoff / 100
                         end
                     end
 
@@ -1075,13 +1085,13 @@ function HUD:drawSensors(a)
             -- *** TEMP: Audio FX test START ***
             if Config.audio.fxSensors then
                 if not Config.audio.fxSensors:IsPlaying() then
-                    --                    Config.audio.fxSensors:Play(1)
+                    -- Config.audio.fxSensors:Play(1)
                     Config.audio.fxSensors.sound:setVolume(maxBarRatio)
                     LTheoryRedux.audiofx:play(Config.audio.fxSensors.sound)
                 else
-                    --                    Config.audio.fxSensors:Pause()
+                    -- Config.audio.fxSensors:Pause()
                     Config.audio.fxSensors.sound:setVolume(maxBarRatio)
-                    --                    Config.audio.fxSensors:Resume()
+                    -- Config.audio.fxSensors:Resume()
                 end
             end
             -- *** TEMP: Audio FX test END ***
@@ -1315,7 +1325,7 @@ function HUD:drawTargets(a)
                             if targetDistance <= renderDistance or playerTarget == target then
                                 if target:hasAttackable() and target:isAttackable() then
                                     -- Innermost box shows trackable object's disposition to player
-                                    --     (red = enemy, blue = neutral, green = friendly)
+                                    -- (red = enemy, blue = neutral, green = friendly)
                                     drawAttackable()
                                 end
 
@@ -1378,14 +1388,17 @@ function HUD:drawTargets(a)
                         end
 
                         -- TEMP: Draw target health bar
-                        -- if playerTarget == target and target:isAlive() and not target:isDestroyed() then
-                        --     local targetHealthPct = target:mgrHullGetHealthPercent()
-                        --     if targetHealthPct > 0.0 then
-                        --         local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
-                        --         UI.DrawEx.RectOutline(bx1 + 2, by2 - 3, (bx2 - bx1) - 6, 8, Config.ui.color.borderBright)
-                        --         UI.DrawEx.Rect(bx1 + 3, by2 - 1, (bx2 - bx1) - 8, 4, Config.ui.color.healthColor[targetHealthCI])
-                        --     end
-                        -- end
+                        --[[
+                        if playerTarget == target and target:isAlive() and not target:isDestroyed() then
+                            local targetHealthPct = target:mgrHullGetHealthPercent()
+                            if targetHealthPct > 0.0 then
+                                local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
+                                UI.DrawEx.RectOutline(bx1 + 2, by2 - 3, (bx2 - bx1) - 6, 8, Config.ui.color.borderBright)
+                                UI.DrawEx.Rect(bx1 + 3, by2 - 1, (bx2 - bx1) - 8, 4,
+                                    Config.ui.color.healthColor[targetHealthCI])
+                            end
+                        end
+                        --]]
 
                         local ss = camera:ndcToScreen(ndc)
                         local dist = ss:distance(center)
@@ -1473,7 +1486,7 @@ function HUD:drawDirPredict(a)
 
     -- Predictive impact point
     -- Takes into account player's movement, target's movement,
-    --     and the speed of the currently selected weapon/projectile
+    -- and the speed of the currently selected weapon/projectile
     -- TODO: change reference to Config.gen.compTurretPulseStats.range from App.lua when multiple weapon types are available
     local range = playerShip:getPos():distance(target:getPos())
     if target:hasAttackable() and target:isAttackable() and range < Config.gen.compTurretPulseStats.range then
@@ -1547,11 +1560,11 @@ function HUD:drawPlayerHullInteg(a)
 
     -- ** Uncomment if we need to retrieve the values used to define the viewing angle of holograms **
     -- if not GameState.paused then
-    --     local radius, mass = playerShip:getRadius(), playerShip:getMass()
-    --     local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
-    --     printf("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
-    --     printf("mass = %s, radius = %3.2f, yaw = %3.2f, pitch = %3.2f", mass, radius, yaw, pitch)
-    --     printf("mass = %s, radius = %3.2f, radius / 1.7 = %3.2f", mass, radius, radius / 1.7)
+    -- local radius, mass = playerShip:getRadius(), playerShip:getMass()
+    -- local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
+    -- Log.Debug("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
+    -- Log.Debug("mass = %s, radius = %3.2f, yaw = %3.2f, pitch = %3.2f", mass, radius, yaw, pitch)
+    -- Log.Debug("mass = %s, radius = %3.2f, radius / 1.7 = %3.2f", mass, radius, radius / 1.7)
     -- end
 
     -- Draw text of player ship name
@@ -1676,21 +1689,21 @@ function HUD:onInput(state)
         -- camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
         -- Select a weapon group
-        if Input.GetPressed(Button.Keyboard.N1) and GameState.player.weaponGroup ~= 1 then
+        if InputInstance:isPressed(Button.KeyboardKey1) and GameState.player.weaponGroup ~= 1 then
             GameState.player.weaponGroup = 1
-        elseif Input.GetPressed(Button.Keyboard.N2) and GameState.player.weaponGroup ~= 2 then
+        elseif InputInstance:isPressed(Button.KeyboardKey2) and GameState.player.weaponGroup ~= 2 then
             GameState.player.weaponGroup = 2
-        elseif Input.GetPressed(Button.Keyboard.N3) and GameState.player.weaponGroup ~= 3 then
+        elseif InputInstance:isPressed(Button.KeyboardKey3) and GameState.player.weaponGroup ~= 3 then
             GameState.player.weaponGroup = 3
-        elseif Input.GetPressed(Button.Keyboard.N4) and GameState.player.weaponGroup ~= 4 then
+        elseif InputInstance:isPressed(Button.KeyboardKey4) and GameState.player.weaponGroup ~= 4 then
             GameState.player.weaponGroup = 4
-        elseif Input.GetPressed(Button.Keyboard.N5) and GameState.player.weaponGroup ~= 5 then
+        elseif InputInstance:isPressed(Button.KeyboardKey5) and GameState.player.weaponGroup ~= 5 then
             GameState.player.weaponGroup = 5
-        elseif Input.GetPressed(Button.Keyboard.N6) and GameState.player.weaponGroup ~= 6 then
+        elseif InputInstance:isPressed(Button.KeyboardKey6) and GameState.player.weaponGroup ~= 6 then
             GameState.player.weaponGroup = 6
-        elseif Input.GetPressed(Button.Keyboard.N7) and GameState.player.weaponGroup ~= 7 then
+        elseif InputInstance:isPressed(Button.KeyboardKey7) and GameState.player.weaponGroup ~= 7 then
             GameState.player.weaponGroup = 7
-        elseif Input.GetPressed(Button.Keyboard.N8) and GameState.player.weaponGroup ~= 8 then
+        elseif InputInstance:isPressed(Button.KeyboardKey8) and GameState.player.weaponGroup ~= 8 then
             GameState.player.weaponGroup = 8
         end
 
@@ -1704,8 +1717,8 @@ function HUD:onInput(state)
         camera:pop()
 
         if self.dockable then
-            -- printf("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()),
-            --     self.dockable:getName(), self.dockable:isDockable())
+            -- Log.Debug("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()),
+            -- self.dockable:getName(), self.dockable:isDockable())
             if self.dockable:isDockable() and not self.dockable:isBanned(e) then
                 if ShipBindings.Dock:get() > 0 then
                     -- TODO: migrate this action outside the HUD
@@ -1719,14 +1732,14 @@ end
 
 function HUD:onUpdate(state)
     if not GameState.paused then
-        if Input.GetPressed(Bindings.ToggleHUD) then
+        if InputInstance:isPressed(Bindings.ToggleHUD) then
             GameState.ui.hudStyle = GameState.ui.hudStyle + 1
             if GameState.ui.hudStyle > Enums.HudStyles.Tight then
                 GameState.ui.hudStyle = Enums.HudStyles.None
             end
         end
 
-        if Input.GetPressed(Bindings.ToggleSensors) then
+        if InputInstance:isPressed(Bindings.ToggleSensors) then
             GameState.ui.sensorsDisplayed = not GameState.ui.sensorsDisplayed
         end
 
@@ -1874,10 +1887,10 @@ function HUD:onEnable()
     camera:lerpFrom(pCamera.pos, pCamera.rot)
 
     -- Set the mouse position when the Flight mode HUD is activated to the center of the game window
-    GameState.render.gameWindow:setWindowGrab(true)
-    local size = GameState.render.gameWindow:getSize()
-    Input.SetMousePosition(size.x / 2, size.y / 2)
-    GameState.render.gameWindow:setWindowGrab(false)
+    GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.Confined)
+    local size = GameState.render.gameWindow:size()
+    InputInstance:setCursorPosition(size.x / 2, size.y / 2)
+    GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.None)
 end
 
 function HUD:controlThrust(e)
@@ -1902,7 +1915,7 @@ function HUD:controlThrust(e)
         ShipBindings.Boost:get())
     self.aimX = c.yaw
     self.aimY = c.pitch
-    -- printf("yaw = %f, pitch = %f", c.yaw, c.pitch)
+    -- Log.Debug("yaw = %f, pitch = %f", c.yaw, c.pitch)
 end
 
 function HUD:controlTurrets(e)
@@ -2033,7 +2046,7 @@ function HUD.Create(gameView, player)
         children        = List(),
     }, HUD)
 
-    self.icon:setOnDraw(function (ib, focus, active)
+    self.icon:setOnDraw(function(ib, focus, active)
         self:onDrawIcon(ib, focus, active)
     end)
 

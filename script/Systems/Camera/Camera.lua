@@ -1,4 +1,4 @@
-local Camera = class(function (self)
+local Camera = class(function(self)
     self.x         = 0
     self.y         = 0
     self.sx        = 1
@@ -160,7 +160,7 @@ function Camera:ndcToRay(ndc, length)
 end
 
 function Camera:mouseToRay(length)
-    local mp  = Input.GetMousePosition()
+    local mp  = InputInstance:mouse():position()
     local ss  = self:windowToScreen(mp)
     local ndc = self:screenToNDC(ss)
     local ray = self:ndcToRay(ndc, length)
@@ -190,7 +190,7 @@ function Camera:refreshMatrices()
     self.mView = self.mViewInv:inverse()
 
     self.mProj = Matrix.Perspective(
-        Settings.get('render.fovY'),
+        GameState.render.fov,
         self.sx / self.sy,
         self.zNear,
         self.zFar)

@@ -11,10 +11,10 @@ local shared
 local varCache
 local rng = RNG.FromTime()
 
-local Bay = subclass(Entity, function (self)
+local Bay = subclass(Entity, function(self)
     if not shared then
         shared = {}
-        --    shared.mesh = Gen.ShipBasic.BaySingle(rng)
+        -- shared.mesh = Gen.ShipBasic.BaySingle(rng)
         shared.mesh = Gen.ShipFighter.BaySingle(rng)
         shared.mesh:computeNormals()
         shared.mesh:computeAO(0.1)
@@ -57,7 +57,7 @@ local Bay = subclass(Entity, function (self)
     self.cooldown   = 0
     self.heat       = 0
 
-    --printf("Register: Bay name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateBay)
+    --Log.Debug("Register: Bay name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateBay)
     self:register(Event.Update, self.updateBay)
 end)
 
@@ -105,7 +105,7 @@ end
 
 function Bay:fire()
     if not self:canFire() then return end
-    --printf("%s firing!", self:getParent():getName())
+    --Log.Debug("%s firing!", self:getParent():getName())
 
     self:getParent().projColorR = Config.gen.compBayPulseStats.colorBodyR
     self:getParent().projColorG = Config.gen.compBayPulseStats.colorBodyG
@@ -129,10 +129,10 @@ function Bay:fire()
     self:getParent():mgrCapacitorDischarge(Config.gen.compBayPulseStats.charge)
 
     -- NOTE : In the future, it may be beneficial to store the actual bay
-    --        rather than the parent. It would allow, for example, data-driven
-    --        AI threat analysis by keeping track of which weapons have caused
-    --        the most real damage to it, allowing for optimal sub-system
-    --        targetting.
+    -- rather than the parent. It would allow, for example, data-driven
+    -- AI threat analysis by keeping track of which weapons have caused
+    -- the most real damage to it, allowing for optimal sub-system
+    -- targetting.
     local rpmDeviation = Config.gen.compBayPulseStats.weaponRPM - Config.gen.compBayPulseStats.weaponRPM *
         rng:getUniformRange(Config.gen.compTurretPulseStats.weaponRPMDeviation, 0)
     self.cooldown = 60 / rpmDeviation -- 60 seconds / fire rate per minute
@@ -157,7 +157,7 @@ function Bay:render(state)
 end
 
 function Bay:updateBay(state)
-    --printf("name = %s", self.name)
+    --Log.Debug("name = %s", self.name)
     local decay = exp(-16.0 * state.dt)
     self:setRotLocal(self:getParent():getRot():inverse() * self.aim)
     if self.firing > 0 then

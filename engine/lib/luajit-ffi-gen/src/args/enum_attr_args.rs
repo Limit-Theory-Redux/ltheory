@@ -7,9 +7,10 @@ use super::arg::Arg;
 /// Arguments of the `luajit_ffi` attribute.
 pub struct EnumAttrArgs {
     name: Option<String>,
-    repr: Option<String>,
+    repr: Option<String>, // TODO: extract this value from #[repr(...)] instead
     start_index: Option<u64>,
     lua_ffi: bool,
+    with_impl: bool,
 }
 
 impl Default for EnumAttrArgs {
@@ -19,6 +20,7 @@ impl Default for EnumAttrArgs {
             repr: None,
             start_index: None,
             lua_ffi: true,
+            with_impl: false,
         }
     }
 }
@@ -44,6 +46,14 @@ impl EnumAttrArgs {
     /// Specify if Lua FFI file should be generated or only C API.
     pub fn gen_lua_ffi(&self) -> bool {
         self.lua_ffi
+    }
+
+    /// Specify if enum has connected implementation block.
+    /// In this case Lua FFI file won't be generated. Instead config file with all enum data needed for FFI
+    /// generation will be stored in the target folder. Impl attribute will read it, combine it with it's own data
+    /// and then generate complete FFI file.
+    pub fn with_impl(&self) -> bool {
+        self.with_impl
     }
 }
 
@@ -94,11 +104,21 @@ impl Parse for EnumAttrArgs {
                         ));
                     }
                 }
+                "with_impl" => {
+                    if let Lit::Bool(val) = &param.value.lit {
+                        res.with_impl = val.value();
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'with_impl' attribute parameter as bool literal",
+                        ));
+                    }
+                }
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
                         format!(
-                            "expected attribute parameter value: name, repr, start_index, lua_ffi"
+                            "expected attribute parameter value: name, repr, start_index, lua_ffi, with_impl"
                         ),
                     ));
                 }

@@ -1,10 +1,11 @@
+use std::ffi::{CStr, CString};
+
+use internal::*;
+
 use super::*;
 use crate::common::*;
-use crate::internal::*;
 use crate::math::*;
 use crate::*;
-
-use std::ffi::CString;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

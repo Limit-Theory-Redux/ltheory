@@ -2,7 +2,7 @@ local Job = require('GameObjects.Job')
 local Flow = require('Systems.Economy.Flow')
 local Actions = requireAll('GameObjects.Actions')
 
-local Mine = subclass(Job, function (self, src, dst, item)
+local Mine = subclass(Job, function(self, src, dst, item)
     self.src = src
     self.dst = dst
     self.item = item
@@ -65,8 +65,8 @@ end
 function Mine:getName()
     if self.jcount == 0 then
         -- This "bids" hack exists because something -- in between Think() waking up a sleeping ship to add
-        --     the Undock() action to its queue, and the Undock() function being performed -- is causing
-        --     the value of self.jcount for some jobs to be set to 0, and after several days I still can't find why.
+        -- the Undock() action to its queue, and the Undock() function being performed -- is causing
+        -- the value of self.jcount for some jobs to be set to 0, and after several days I still can't find why.
         self.jcount = self.bids
     end
 
@@ -78,8 +78,8 @@ function Mine:getName()
         self.dst:getName(),
         self.src:getDistance(self.dst))
     --if self.jcount == 0 then
-    --printf("1 MINE:getName - jcount = 0, bids = %d!!!: %s", self.bids, mineName)
-    --printf("1 MINE:getName - jcount = 0!!!: %s", self:bonk()) -- this is intended to crash the game for debugging purposes ***
+    --Log.Debug("1 MINE:getName - jcount = 0, bids = %d!!!: %s", self.bids, mineName)
+    --Log.Debug("1 MINE:getName - jcount = 0!!!: %s", self:bonk()) -- this is intended to crash the game for debugging purposes ***
     --end
 
     return mineName
@@ -104,7 +104,7 @@ function Mine:getPayout(e)
     --local pstr1 = "Mine PAYOUT-ADJU [%s (%s)]: count = %d, item = %s, src = %s, dest = %s, "
     --local pstr2 = "base payout = %d, adjusted payout = %d"
     --local pstr  = pstr1 .. pstr2
-    --printf(pstr,
+    --Log.Debug(pstr,
     --e:getName(), e:getOwner():getName(), self.jcount, item:getName(), self.src:getName(), self.dst:getName(),
     --basePayout, payout)
 
@@ -122,8 +122,8 @@ function Mine:getBasePayout(e, src, dst)
     local itemBidVol = dst:getTrader():getBidVolume(item)
     if itemBidVol and itemBidVol > 0 then
         -- Mine only as many units as the destination has bids for
-        --    or as many as we can carry
-        --    or as many as are still minable
+        -- or as many as we can carry
+        -- or as many as are still minable
         local capacity = e:mgrInventoryGetFreeMax(mass)
         baseCount = math.min(itemBidVol, floor(capacity / mass))
         basePayout = dst:getTrader():getSellToPrice(item, baseCount)
@@ -131,7 +131,7 @@ function Mine:getBasePayout(e, src, dst)
         --local pstr1 = "Mine PAYOUT-BASE [%s (%s)]: baseCount = %d, item = %s, src = %s, dest = %s, "
         --local pstr2 = "base payout = %d"
         --local pstr  = pstr1 .. pstr2
-        --printf(pstr,
+        --Log.Debug(pstr,
         --e:getName(), e:getOwner():getName(), baseCount, item:getName(), src:getName(), dst:getName(),
         --basePayout)
     end
@@ -141,7 +141,7 @@ end
 
 function Mine:getAdjustedPayout(e, src, dst, basePayout)
     -- Modify the value of the expected payout by the estimated yield
-    --   divided by travel time to reach the yield source plus travel time from the source to the destination
+    -- divided by travel time to reach the yield source plus travel time from the source to the destination
     local adjPayout = 0
 
     local yieldSize = 1000
@@ -191,7 +191,7 @@ function Mine:onUpdateActive(e, dt)
             local itemBidVol = self.dst:getTrader():getBidVolumeForAsset(item, e)
 
             if capCount == 0 or itemBidVol == 0 then
-                printf(
+                Log.Debug(
                     "*** MINE 1 FAIL *** [e:%s (%s)] %d x %s from %s (travel: %d) -> %s (travel: %d), %d bid (dt = %f)",
                     e:getName(), e:getOwner():getName(), capCount, item:getName(),
                     self.src:getName(), self:getShipTravelTime(e, self.dst), self.dst:getName(),
@@ -202,15 +202,15 @@ function Mine:onUpdateActive(e, dt)
             local mcount = math.min(itemBidVol, capCount)
             if mcount == 0 then
                 -- Can't do this Mine job! End this job (owning player should seek a new sale for existing inventory)
-                printf("[MINE 1 FAIL] *** %s: itemBidVol = %d, capCount = %d; terminating mining job", e:getName(),
+                Log.Debug("[MINE 1 FAIL] *** %s: itemBidVol = %d, capCount = %d; terminating mining job", e:getName(),
                     itemBidVol, capCount)
                 self:cancelJob(e)
             else
                 self.jcount = mcount -- only in case jcount is needed by Trader, which I think it doesn't anymore
-                --printf("MINE 1: jcount = %d", self.jcount)
+                --Log.Debug("MINE 1: jcount = %d", self.jcount)
 
                 local profit = self.dst:getTrader():getSellToPriceForAsset(item, self.jcount, e)
-                printf(
+                Log.Debug(
                     "[MINE 1] [e:%s (%s)] %d x %s from %s (travel: %d) -> %s (travel: %d), %d bid, expect %d profit (dt = %f)",
                     e:getName(), e:getOwner():getName(), self.jcount, item:getName(),
                     self.src:getName(), self:getShipTravelTime(e, self.dst), self.dst:getName(),
@@ -223,7 +223,7 @@ function Mine:onUpdateActive(e, dt)
             e:pushAction(Actions.MineAt(self.src, self.dst, miningTimePerItem))
         elseif e.jobState == Enums.JobStateMine.DockingAtDst then
             if e:mgrInventoryGetItemCount(self.item) == 0 then
-                printf(
+                Log.Debug(
                     "[MINE 3] *** NO SALE *** %s was unable to mine any units of %s for Trader %s, ending MINE action",
                     e:getName(), self.item:getName(), self.dst:getName())
                 self:cancelJob(e)
@@ -232,7 +232,8 @@ function Mine:onUpdateActive(e, dt)
                     e:pushAction(Actions.DockAt(self.dst))
                 else
                     -- Destination station no longer exists, so terminate this entire job
-                    printf("[MINE 3] *** Destination station %s no longer exists for %s DockAt; terminating mining job",
+                    Log.Debug(
+                        "[MINE 3] *** Destination station %s no longer exists for %s DockAt; terminating mining job",
                         self.dst:getName(), e:getName())
                     self:cancelJob(e)
                 end
@@ -242,17 +243,18 @@ function Mine:onUpdateActive(e, dt)
         elseif e.jobState == Enums.JobStateMine.SellingItems then
             if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
                 local item = self.item
-                --printf("[MINE 4] %s offers to sell %d units of %s to Trader %s",
-                --e:getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.dst:getName())
+                -- Log.Debug("[MINE 4] %s offers to sell %d units of %s to Trader %s",
+                -- e:getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.dst:getName())
                 local sold = 0
                 while e:mgrInventoryGetItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
                     sold = sold + 1
                 end
-                printf("[MINE 4] %s sold %d units of %s to Trader %s", e:getName(), sold, item:getName(),
-                    self.dst:getName())
+                -- Log.Debug("[MINE 4] %s sold %d units of %s to Trader %s; %d units remaining in inventory",
+                -- e:getName(), sold, item:getName(), self.dst:getName(), e:mgrInventoryGetItemCount(item))
             else
                 -- Destination station no longer exists, so terminate this entire job
-                printf("[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job",
+                Log.Debug(
+                    "[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job",
                     self.dst:getName(), e:getName())
                 self:cancelJob(e)
             end
@@ -262,8 +264,8 @@ function Mine:onUpdateActive(e, dt)
             end
         elseif e.jobState == Enums.JobStateMine.JobFinished then
             -- TODO : This is just a quick hack to force AI to re-evaluate job
-            --        decisions. In reality, AI should 'pre-empt' the job, which
-            --        should otherwise loop indefinitely by default
+            -- decisions. In reality, AI should 'pre-empt' the job, which
+            -- should otherwise loop indefinitely by default
             self:cancelJob(e)
         end
         Profiler.End()

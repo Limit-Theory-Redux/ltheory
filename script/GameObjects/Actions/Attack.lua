@@ -4,7 +4,7 @@ local SocketType = require('GameObjects.Entities.Ship.SocketType')
 -- temp settings
 local outOfRangeCancel = 30
 
-local Attack = subclass(Action, function (self, target)
+local Attack = subclass(Action, function(self, target)
     self.target = target
 end)
 
@@ -79,6 +79,7 @@ end
 
 function Attack:onUpdatePassive(e, dt)
     if not e or not self.target then return end
+    if e == self.target then return end
 
     local distance = e:getDistance(self.target)
     local align = (self.target:getPos() - e:getPos()):normalize():dot(e:getForward())

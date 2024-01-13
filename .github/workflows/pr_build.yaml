@@ -1,0 +1,114 @@
+name: Build Binaries (Pull Request)
+
+on:
+  pull_request:
+    paths-ignore:
+    - '**/README.md'
+    - '**/CONTRIBUTING.md'
+    - '**/LICENSE-MIT'
+    - '**/LICENSE-APACHE-2.0'
+    - '**/.vscode/**'
+    - '**/.gitignore'
+    - '**/.gitattributes'
+    - '**/.editorconfig'
+
+permissions:
+  contents: write
+
+jobs:
+  gen-build-version:
+    name: Generate Build Version
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.build_name.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get the cargo package version
+        run: |
+          VERSION=$(awk -F '"' '/^version =/ { print $2 }' Cargo.toml)
+          echo "The package version is $VERSION"
+          echo "NEXT_VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Set short git commit SHA
+        shell: bash
+        run: |
+          CALCULATED_SHA=$(git rev-parse --short ${{ github.sha }})
+          echo "SHA_SHORT=$CALCULATED_SHA" >> $GITHUB_ENV
+      - name: Confirm git commit SHA output
+        run: echo $SHA_SHORT
+      - name: Extract branch name
+        shell: bash
+        run: |
+          BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          echo "BRANCH=${BRANCH_NAME/\//\\\/}" >> $GITHUB_ENV
+      - name: Confirm nightly build name
+        id: build_name
+        run: |
+          echo ${NEXT_VERSION}-${BRANCH}-${SHA_SHORT}
+          echo build="${NEXT_VERSION}-${BRANCH}-${SHA_SHORT}" >> $GITHUB_OUTPUT
+
+  build-windows:
+    needs: gen-build-version
+    name: Build Windows
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update build number
+        run: |
+          sed -i 's/Config.gameVersion = \".*\"/Config.gameVersion = \"${{ needs.gen-build-version.outputs.build }}\"/' "${env:GITHUB_WORKSPACE}/script/Config/Version.lua"
+      - name: Build
+        shell: bash
+        run: |
+          export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
+          ./build.sh
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: ltheory-bin-win32
+          path: ${{github.workspace}}/bin/*
+      - name: Upload binary with assets
+        uses: actions/upload-artifact@v3
+        with:
+          name: ltheory-distro-win32
+          path: |
+            ${{github.workspace}}/bin/*
+            !${{github.workspace}}/bin/*.pdb
+            ${{github.workspace}}/docs/*
+            ${{github.workspace}}/engine/lib/phx/script/*
+            ${{github.workspace}}/res/*
+            ${{github.workspace}}/script/*
+            ${{github.workspace}}/LICENSE
+            ${{github.workspace}}/README.md
+
+  build-macos:
+    needs: gen-build-version
+    name: Build macOS
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: ./build.sh
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: ltheory-bin-macos
+          path: ${{github.workspace}}/bin/*
+
+  build-ubuntu:
+    needs: gen-build-version
+    name: Build Ubuntu 20.04
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update packages
+        run: sudo apt-get update
+      - name: Install packages
+        run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libudev-dev
+      - name: Build
+        run: ./build.sh
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: ltheory-bin-ubuntu2004
+          path: ${{github.workspace}}/bin/*

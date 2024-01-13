@@ -15,7 +15,7 @@ function ShipTest:spawnShip()
         ship:setPos(Config.gen.origin)
         ship:setFriction(0)
         ship:setSleepThreshold(0, 0)
-        ship:setOwner(self.player)
+        ship:setOwner(self.player, true)
         --self.system:addChild(ship)
         self.player:setControlling(ship)
         self.currentShip = ship
@@ -24,7 +24,7 @@ end
 
 function ShipTest:newSystem()
     self.seed = rng:get64()
-    printf('Seed: %s', self.seed)
+    Log.Debug('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = System(self.seed)
@@ -46,19 +46,19 @@ function ShipTest:onInit()
     self:generate()
 
     DebugControl.ltheory = self
-    self.gameView = Systems.Overlay.GameView(self.player)
+    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
-            :add(Systems.Controls.Controls.GenTestControl(self.gameView, self.player)))
+            :add(Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
 end
 
 function ShipTest:onInput()
     self.canvas:input()
 
-    if Input.GetKeyboardShift() and Input.GetPressed(Button.Keyboard.B) then
+    if InputInstance:isKeyboardShiftPressed() and InputInstance:isPressed(Button.KeyboardB) then
         self:newSystem()
-    elseif Input.GetPressed(Button.Keyboard.B) then
+    elseif InputInstance:isPressed(Button.KeyboardB) then
         self:spawnShip()
     end
 end
@@ -66,13 +66,13 @@ end
 function ShipTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
-    HmGui.Begin(self.resX, self.resY)
-    HmGui.End()
+    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:endGui(InputInstance)
 end
 
 function ShipTest:onDraw()
     self.canvas:draw(self.resX, self.resY)
-    HmGui.Draw()
+    Gui:draw()
 end
 
 return ShipTest

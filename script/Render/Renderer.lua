@@ -2,7 +2,7 @@ local Cache = require('Render.Cache')
 
 -- TODO JP : Refactor all of this monolithic nonsense into RenderPass objects.
 
-local Renderer = class(function (self)
+local Renderer = class(function(self)
     self.ds = 4
 end)
 
@@ -256,7 +256,7 @@ end
 
 function Renderer:startPostEffects()
     -- TODO: Skip this by setting to 1 in settings above.
-    --       Radeon cards seem to white screen otherwise
+    -- Radeon cards seem to white screen otherwise
     if self.ss > 1 then
         -- Logarithmic downsample before post (we do not supersample post effects)
         local factor = 1

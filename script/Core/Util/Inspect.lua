@@ -44,8 +44,8 @@ inspect._LICENSE = [[
   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]
-inspect.KEY = setmetatable({}, { __tostring = function () return 'inspect.KEY' end })
-inspect.METATABLE = setmetatable({}, { __tostring = function () return 'inspect.METATABLE' end })
+inspect.KEY = setmetatable({}, { __tostring = function() return 'inspect.KEY' end })
+inspect.METATABLE = setmetatable({}, { __tostring = function() return 'inspect.METATABLE' end })
 
 local tostring = tostring
 local rep = string.rep
@@ -335,7 +335,7 @@ function inspect.inspect(root, options)
 end
 
 setmetatable(inspect, {
-    __call = function (_, root, options)
+    __call = function(_, root, options)
         return inspect.inspect(root, options)
     end,
 })

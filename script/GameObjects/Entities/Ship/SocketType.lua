@@ -1,4 +1,4 @@
-local SocketType = {}
+local SocketType     = {}
 
 SocketType.Generator = "Generator"
 SocketType.Armor     = "Armor Plating"

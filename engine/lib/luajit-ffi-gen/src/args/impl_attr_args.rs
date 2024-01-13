@@ -7,6 +7,7 @@ use super::arg::Arg;
 /// Arguments of the `luajit_ffi` attribute.
 pub struct ImplAttrArgs {
     name: Option<String>,
+    opaque: bool,
     managed: bool,
     clone: bool,
     lua_ffi: bool,
@@ -16,6 +17,7 @@ impl Default for ImplAttrArgs {
     fn default() -> Self {
         Self {
             name: None,
+            opaque: true,
             managed: false,
             clone: false,
             lua_ffi: true,
@@ -28,6 +30,11 @@ impl ImplAttrArgs {
     /// otherwise Rust type name is used.
     pub fn name(&self) -> Option<String> {
         self.name.clone()
+    }
+
+    /// If true then typedef is generated for the module.
+    pub fn is_opaque(&self) -> bool {
+        self.opaque
     }
 
     /// If true then Lua will be responsible for cleaning object memory.
@@ -61,6 +68,16 @@ impl Parse for ImplAttrArgs {
                         return Err(Error::new(
                             param.value.span(),
                             "expected 'name' attribute parameter as string literal",
+                        ));
+                    }
+                }
+                "opaque" => {
+                    if let Lit::Bool(val) = &param.value.lit {
+                        res.opaque = val.value();
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'opaque' attribute parameter as bool literal",
                         ));
                     }
                 }
@@ -98,7 +115,7 @@ impl Parse for ImplAttrArgs {
                     return Err(Error::new(
                         param.name.span(),
                         format!(
-                            "expected attribute parameter value: name, managed, clone, lua_ffi"
+                            "expected attribute parameter value: name, opaque, managed, clone, lua_ffi"
                         ),
                     ));
                 }

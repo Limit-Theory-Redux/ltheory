@@ -7,8 +7,8 @@ local Rect        = require('UI.Rect')
 
 local Widget      = {}
 Widget.__index    = Widget
-Widget.__call     = function (t, ...) return t.Create(...) end
-Widget.__tostring = function (t) return t.name end
+Widget.__call     = function(t, ...) return t.Create(...) end
+Widget.__tostring = function(t) return t.name end
 
 Widget.name       = 'Widget'
 Widget.parent     = nil
@@ -311,7 +311,7 @@ end
 
 function Widget:findInHierarchy(predicate, filter)
     -- NOTE : Breadth first search
-    filter = filter or function (w) return true end
+    filter = filter or function(w) return true end
 
     local i, queue = 1, List({ self })
     while i <= #queue do
@@ -333,7 +333,7 @@ end
 
 function Widget:findAllInHierarchy(predicate, filter)
     -- NOTE : Breadth first search
-    filter = filter or function (w) return true end
+    filter = filter or function(w) return true end
 
     local results = List()
     local i, queue = 1, List({ self })

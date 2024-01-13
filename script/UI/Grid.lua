@@ -57,7 +57,7 @@ function Grid:onLayoutSizeChildren()
     else
         if not self.didLayoutWarning then
             self.didLayoutWarning = true
-            Log.Warning('Grid has neither rows nor columns set. Ya broke it.')
+            Log.Warn('Grid has neither rows nor columns set. Ya broke it.')
         end
         return
     end
@@ -176,16 +176,16 @@ end
 function Grid:setRows(rows)
     self.fixedRows  = rows
     self.fixedCols  = nil
-    self.indexToRow = function (i) return ((i - 1) % self.rows) + 1 end
-    self.indexToCol = function (i) return floor((i - 1) / self.rows) + 1 end
+    self.indexToRow = function(i) return ((i - 1) % self.rows) + 1 end
+    self.indexToCol = function(i) return floor((i - 1) / self.rows) + 1 end
     return self
 end
 
 function Grid:setCols(cols)
     self.fixedRows  = nil
     self.fixedCols  = cols
-    self.indexToRow = function (i) return floor((i - 1) / self.cols) + 1 end
-    self.indexToCol = function (i) return ((i - 1) % self.cols) + 1 end
+    self.indexToRow = function(i) return floor((i - 1) / self.cols) + 1 end
+    self.indexToCol = function(i) return ((i - 1) % self.cols) + 1 end
     return self
 end
 

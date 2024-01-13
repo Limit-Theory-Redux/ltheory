@@ -4,7 +4,7 @@ local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local function iterateSocketsByType(s)
     s.i = s.i + 1
-    --printf("Sockets: s.entity = %s, s.type = %s", s.entity:getName(), s.type)
+    --Log.Debug("Sockets: s.entity = %s, s.type = %s", s.entity:getName(), s.type)
     while s.entity.sockets[s.i] do
         if s.entity.sockets[s.i].child and
             s.entity.sockets[s.i].type == s.type then
@@ -24,8 +24,8 @@ function Entity:addSockets()
     self.sockets = {}
 
     -- TODO : This is just a temporary hack. We should probably create a
-    --        dedicated structure for 'aggregate statistics' of entity; this
-    --        will be useful in LOD simulation
+    -- dedicated structure for 'aggregate statistics' of entity; this
+    -- will be useful in LOD simulation
     self.socketRangeMin = 1e6
     self.socketRangeMax = 0
     self.socketSpeedMin = 1e6
@@ -33,7 +33,7 @@ function Entity:addSockets()
 end
 
 function Entity:getSockets()
-    Log.Warning(Inspect(self.sockets))
+    Log.Warn(Inspect(self.sockets))
     assert(self.sockets)
     return self.sockets
 end
@@ -43,7 +43,7 @@ function Entity:hasSockets()
 end
 
 function Entity:iterSocketsByType(type)
-    --printf("Sockets: [%s] iterSocketsByType(%s)", self:getName(), type)
+    --Log.Debug("Sockets: [%s] iterSocketsByType(%s)", self:getName(), type)
     assert(self.sockets)
     return iterateSocketsByType, { entity = self, type = type, i = 0 }
 end
@@ -55,7 +55,7 @@ function Entity:plug(child)
     for i, socket in ipairs(self.sockets) do
         if socket.type == type and socket.child == nil then
             socket.child = child
-            --printf("Sockets (%s): Checking socket %d to attach child %s of type %s at pos %s",
+            --Log.Debug("Sockets (%s): Checking socket %d to attach child %s of type %s at pos %s",
             --self:getName(), i, child, type, socket.pos)
             self:attach(child, socket.pos, Quat.Identity())
 

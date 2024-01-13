@@ -12,7 +12,7 @@ local thrustRollMax     = 2e7 * thrustMult
 
 --------------------------------------------------------------------------------
 
-local ThrustController  = class(function (self)
+local ThrustController  = class(function(self)
     self:clear()
 end)
 
@@ -50,9 +50,9 @@ end
 
 function ThrustController:update(e, dt)
     local boost         = 0.0
-    --  if self.boost > 0 and e:mgrCapacitorDischarge(dt * self.boost * Config.game.boostCost) then -- disabled for now
+    -- if self.boost > 0 and e:mgrCapacitorDischarge(dt * self.boost * Config.game.boostCost) then -- disabled for now
     boost               = self.boost
-    --  end
+    -- end
 
     -- Large ships should have much less lateral/vertical movement and somewhat less maneuverability
     local mult          = 1.0 + 2.0 * boost
@@ -63,7 +63,7 @@ function ThrustController:update(e, dt)
     ThrustController:updateThrustMax(e.countThruster)
 
     -- TODO : Push this branching into the physics engine instead; engine
-    --        should ignore impulses / torques below certain threshold
+    -- should ignore impulses / torques below certain threshold
     -- BUG  : This does not respect thrustBackwardMax
     -- NOTE: applyForce() and applyTorque() seem to be resisted by a ship's radius, rather than its mass. WHY?!
     if abs(self.forward) > 1e-6 then

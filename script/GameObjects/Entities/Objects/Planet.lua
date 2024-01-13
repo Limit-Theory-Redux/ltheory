@@ -1,7 +1,7 @@
 local Entity = require('GameObjects.Entity')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
-local genColor = function (rng)
+local genColor = function(rng)
     local h = rng:getUniformRange(0, 0.5)
     local l = Math.Saturate(rng:getUniformRange(0.2, 0.3) + 0.05 * rng:getExp())
     local s = rng:getUniformRange(0.1, 0.3)
@@ -9,15 +9,15 @@ local genColor = function (rng)
     return Vec3f(c.r, c.g, c.b)
 end
 
-local Planet = subclass(Entity, function (self, seed)
+local Planet = subclass(Entity, function(self, seed)
     local rng = RNG.Create(seed):managed()
 
     -- TODO: Improve planet size generation
     local planetSizeType = Config.gen.sizePlanet
 
     -- TODO : Had to lower quality to 2 because RigidBody is automatically
-    --        building BSP, and sphere is pathological case for BSPs. Need
-    --        generalized CollisionShape.
+    -- building BSP, and sphere is pathological case for BSPs. Need
+    -- generalized CollisionShape.
     local mesh = Gen.Primitive.IcoSphere(5):managed()
     self:addRigidBody(true, mesh)
 
@@ -25,7 +25,7 @@ local Planet = subclass(Entity, function (self, seed)
     self:setMass(Config.gen.massPlanetTrue) -- TODO: change from Earth's actual mass value
 
     -- TODO: Replace with 0 - N colonies, each of which has its own distinct
-    --       market/production/research capabilities
+    -- market/production/research capabilities
     self:addActions()
     self:addChildren()
     self:addDockable()     -- TODO: rethink how "docking with planets" should work
@@ -99,7 +99,7 @@ local Planet = subclass(Entity, function (self, seed)
 
     -- Add all sockets to parent
     -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
-    --        better for ShipType etc.
+    -- better for ShipType etc.
     self:addSockets()
 
     for type, elems in pairs(self.positions) do

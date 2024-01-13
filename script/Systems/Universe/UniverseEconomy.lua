@@ -4,7 +4,7 @@ local Actions = requireAll('GameObjects.Actions')
 local Words = require('Systems.Gen.Words')
 local rng = RNG.FromTime()
 
-local UniverseEconomy = class(function (self) end)
+local UniverseEconomy = class(function(self) end)
 
 function UniverseEconomy:Init()
     self.systems = {
@@ -24,7 +24,7 @@ local function addSystemGenerics(system)
 
     -- Add a generic ship-like entity to serve as the imaginary player ship
     system.tradeShip = Entity()
-    system.tradeShip:setOwner(tradeAi)
+    system.tradeShip:setOwner(tradeAi, true)
 
     -- Every inhabited star system gets one "free" solar plant
     -- TODO: Don't do this step for star systems that are not inhabited
@@ -44,7 +44,7 @@ local function addSystemGenerics(system)
         -- Create Stations within randomly selected AsteroidField Zones
         system:spawnStation(Enums.StationHulls.Small, tradeAi, nil)
     end
-    printf("Spawned %d Stations for AI Player '%s'", GameState.gen.nStations, tradeAi:getName())
+    Log.Debug("Spawned %d Stations for AI Player '%s'", GameState.gen.nStations, tradeAi:getName())
 
     -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
     system:addExtraFactories(system, GameState.gen.nPlanets, tradeAi)
@@ -69,6 +69,28 @@ local function addMarket(system)
         -- temp name until we have rnd names
         local aiPlayer = Entities.Player("AI Trade Player " .. i)
         aiPlayer:addCredits(Config.econ.eStartCredits)
+
+        local factionType = math.random(1, #Enums.FactionTypeNames)
+        local factionName
+
+        -- TODO: TRAITS & CHANCES -> BASE FACTION TYPE ON OWNER TRAITS / OWNER BIRTHPLACE TRAITS
+
+        if factionType == Enums.FactionType.Corporation or
+            factionType == Enums.FactionType.TradingGuild or
+            factionType == Enums.FactionType.Empire then
+            do
+                factionName = Words.getCoolName(rng) .. " " .. Enums.FactionTypeNames[factionType]
+            end
+        else
+            factionName = Enums.FactionTypeNames[factionType] .. " " .. Words.getCoolName(rng)
+        end
+
+        local playerFaction = Entities.Faction({
+            name = factionName,
+            type = factionType,
+            owner = aiPlayer
+        })
+
         -- Create assets (ships)
         local aiAssetCount
 
@@ -81,10 +103,12 @@ local function addMarket(system)
         else
             aiAssetCount = GameState.gen.nEconNPCs
         end
+
         system:spawnAI(aiAssetCount, Actions.Wait(1), aiPlayer)
         printf("%d assets added to %s", aiAssetCount, aiPlayer:getName())
         -- Configure assets
         for asset in aiPlayer:iterAssets() do
+            asset:setFaction(playerFaction)
             system:place(asset)
         end
 
@@ -116,21 +140,33 @@ local function addBlackMarket(system)
 
     local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
     piratePlayer:addCredits(Config.econ.eStartCredits)
+
+    local factionName = Words.getCoolName(rng) .. " " .. Enums.FactionTypeNames[Enums.FactionType.Marauders]
+
+    local playerFaction = Entities.Faction({
+        name = factionName,
+        type = Enums.FactionType.Marauders,
+        owner = piratePlayer
+    })
+
     system.pirateStation = system:spawnPirateStation(Enums.StationHulls.Small, piratePlayer)
-    system.pirateStation:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
-    GameState.player.humanPlayer:getControlling():setDisposition(system.pirateStation, Config.game.dispoMin)
+    -- disp shouldn't be based on a ship tbh, also replace with faction/ai player dispo later
+    system.pirateStation:setDisposition(GameState.player.currentShip, Config.game.dispoMin)
+    GameState.player.currentShip:setDisposition(system.pirateStation, Config.game.dispoMin)
 
     system:spawnAI(aiPirateCount, Actions.Wait(1), piratePlayer)
     printf("%d assets added to %s", aiPirateCount, piratePlayer:getName())
     -- Configure assets
     for asset in piratePlayer:iterAssets() do
-        asset:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
-        GameState.player.humanPlayer:getControlling():setDisposition(asset, Config.game.dispoMin)
+        asset:setDisposition(GameState.player.currentShip, Config.game.dispoMin)
+        GameState.player.currentShip:setDisposition(asset, Config.game.dispoMin)
+
         if Config:getObjectInfo("object_types", asset:getType()) == "Ship" then
             local pirateHullInteg = asset:mgrHullGetHealthMax()
             asset:mgrHullSetHealth(pirateHullInteg, pirateHullInteg)
             asset.usesBoost = true
         end
+        asset:setFaction(playerFaction)
         system:place(asset)
     end
     piratePlayer:pushAction(Actions.CriminalThink())
@@ -146,7 +182,7 @@ function UniverseEconomy:OnUpdate(dt)
             addMarket(system)
             addBlackMarket(system)
             addSystemGenerics(system)
-            print("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
+            Log.Debug("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
         end
 
         -- Handle High Attention Systems
@@ -164,7 +200,8 @@ function UniverseEconomy:OnUpdate(dt)
 end
 
 function UniverseEconomy:AddSystem(system)
-    print("Adding a new system to universe economy: " .. system:getName())
+    Log.Debug("Adding a new system to universe economy: " .. system:getName())
+
     table.insert(self.systems.highAttention, system)
 end
 

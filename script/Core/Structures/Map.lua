@@ -1,4 +1,4 @@
-local Map = class(function (self, ctor)
+local Map = class(function(self, ctor)
     self.__ctor = ctor
 end)
 

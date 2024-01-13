@@ -11,10 +11,10 @@ local shared
 local varCache
 local rng = RNG.FromTime()
 
-local Turret = subclass(Entity, function (self)
+local Turret = subclass(Entity, function(self)
     if not shared then
         shared = {}
-        --    shared.mesh = Gen.ShipBasic.TurretSingle(rng)
+        -- shared.mesh = Gen.ShipBasic.TurretSingle(rng)
         shared.mesh = Gen.ShipFighter.TurretSingle(rng)
         shared.mesh:computeNormals()
         shared.mesh:computeAO(0.1)
@@ -57,7 +57,7 @@ local Turret = subclass(Entity, function (self)
     self.heat       = 0
     self.cooldown   = 0
 
-    --printf("Register: Turret name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateTurret)
+    --Log.Debug("Register: Turret name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateTurret)
     self:register(Event.Update, self.updateTurret)
 end)
 
@@ -105,7 +105,7 @@ end
 
 function Turret:fire()
     if not self:canFire() then return end
-    --printf("%s firing!", self:getParent():getName())
+    --Log.Debug("%s firing!", self:getParent():getName())
 
     self:getParent().projColorR = Config.gen.compTurretPulseStats.colorBodyR
     self:getParent().projColorG = Config.gen.compTurretPulseStats.colorBodyG
@@ -130,10 +130,10 @@ function Turret:fire()
     self:getParent():mgrCapacitorDischarge(Config.gen.compTurretPulseStats.charge)
 
     -- NOTE : In the future, it may be beneficial to store the actual turret
-    --        rather than the parent. It would allow, for example, data-driven
-    --        AI threat analysis by keeping track of which weapons have caused
-    --        the most real damage to it, allowing for optimal sub-system
-    --        targetting.
+    -- rather than the parent. It would allow, for example, data-driven
+    -- AI threat analysis by keeping track of which weapons have caused
+    -- the most real damage to it, allowing for optimal sub-system
+    -- targetting.
     --print(self:getParent().name)
 
     local rpmDeviation = Config.gen.compTurretPulseStats.weaponRPM - Config.gen.compTurretPulseStats.weaponRPM *
@@ -163,7 +163,7 @@ function Turret:render(state)
 end
 
 function Turret:updateTurret(state)
-    --printf("name = %s", self.name)
+    --Log.Debug("name = %s", self.name)
     local decay = exp(-16.0 * state.dt)
     self:setRotLocal(self:getParent():getRot():inverse() * self.aim)
     if self.firing > 0 then

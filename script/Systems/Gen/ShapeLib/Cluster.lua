@@ -11,11 +11,11 @@ require('Systems.Gen.ShapeLib.Warp')
 local Cluster = {}
 
 -- GenerateLinear (
---   Style style,
---   int numShapes [optional],
---   float spacing [optional],
---   Shape shape [optional],
---   Joint joint [optional]
+-- Style style,
+-- int numShapes [optional],
+-- float spacing [optional],
+-- Shape shape [optional],
+-- Joint joint [optional]
 -- )
 -- Generates on z axis
 function Cluster.GenerateLinear(style, numShapes, spacing, shape, joint)
@@ -24,10 +24,10 @@ function Cluster.GenerateLinear(style, numShapes, spacing, shape, joint)
 
     local field = JointField()
     field:generateFromFunction(
-        function (i) return Vec3d(0, 0, i * spacing) end, -- pos
-        function (i) return Vec3d(0, 0, 1) end,          -- dir
-        function (i) return Vec3d(0, 1, 0) end,          -- up
-        function (i) return Vec3d(1, 1, 1) end,          -- scale
+        function(i) return Vec3d(0, 0, i * spacing) end, -- pos
+        function(i) return Vec3d(0, 0, 1) end,           -- dir
+        function(i) return Vec3d(0, 1, 0) end,           -- up
+        function(i) return Vec3d(1, 1, 1) end,           -- scale
         numShapes, 1
     )
 
@@ -45,10 +45,10 @@ function Cluster.GenerateParametricSafe(style, r)
 end
 
 -- GenerateParametric (
---  Style style, float r,
---  Shape shape [optional],
---  function* fn [optional],
---  Joint joint [optional]
+-- Style style, float r,
+-- Shape shape [optional],
+-- function* fn [optional],
+-- Joint joint [optional]
 --)
 -- Generates on x,y plane
 function Cluster.GenerateParametric(style, r, fn, shape, joint)
@@ -59,10 +59,10 @@ function Cluster.GenerateParametric(style, r, fn, shape, joint)
     local step = (2 * math.pi) / numShapes
     local field = JointField()
     field:generateFromFunction(
-        function (t) return Vec3d(fn(t).x * r, fn(t).y * r, 0) end, -- pos
-        function (t) return Vec3d(fn(t).x * r, fn(t).y * r, 0) end, -- dir
-        function (t) return Vec3d(0, 0, 1) end,                    -- up
-        function (t) return Vec3d(scale, scale, scale) end,        -- scale
+        function(t) return Vec3d(fn(t).x * r, fn(t).y * r, 0) end, -- pos
+        function(t) return Vec3d(fn(t).x * r, fn(t).y * r, 0) end, -- dir
+        function(t) return Vec3d(0, 0, 1) end,                     -- up
+        function(t) return Vec3d(scale, scale, scale) end,         -- scale
         numShapes, step
     )
 
@@ -77,8 +77,8 @@ function Cluster.GenerateParametric(style, r, fn, shape, joint)
 end
 
 -- GenerateCurve (
---   Style style, float length,
---   Shape shape [optional]
+-- Style style, float length,
+-- Shape shape [optional]
 -- )
 -- Generates on x,z plane
 function Cluster.GenerateCurve(style, length, shape)
@@ -94,7 +94,7 @@ function Cluster.GenerateCurve(style, length, shape)
     local scale = length / numShapes
 
     -- bezier function
-    local fnbez = function (t)
+    local fnbez = function(t)
         return Vec3d(
             ((1 - t) ^ 3) * p0.x + 3 * (1 - t) * (1 - t) * t * p1.x + 3 * (1 - t) * t * t * p2.x + (t ^ 3) * p3.x,
             0,
@@ -107,8 +107,8 @@ function Cluster.GenerateCurve(style, length, shape)
     field:generateFromFunction(
         fnbez,                                             -- pos
         fnbez,                                             -- dir
-        function (i) return Vec3d(0, 1, 0) end,            -- up
-        function (i) return Vec3d(scale, scale, scale) end, -- scale
+        function(i) return Vec3d(0, 1, 0) end,             -- up
+        function(i) return Vec3d(scale, scale, scale) end, -- scale
         numShapes, step
     )
 
@@ -123,11 +123,11 @@ function Cluster.GenerateCurve(style, length, shape)
 end
 
 -- GeneratePlane (Style style,
---   int numShapes - x,
---   float spacing - x,
---   int numShapes - y,
---   float spacing - y,
---   Shape shape, Joint joint
+-- int numShapes - x,
+-- float spacing - x,
+-- int numShapes - y,
+-- float spacing - y,
+-- Shape shape, Joint joint
 -- )
 -- Generates on the x,y plane
 function Cluster.GeneratePlane(style, nX, sX, nY, sY, shape, joint)
@@ -210,8 +210,8 @@ function Cluster.GenerateSpherical(style, r, shape, joint)
 
     -- create field
     -- can't use JointField:generateFromFunction()
-    --   because of the random pos on spehere, which determines
-    --   both position and direction
+    -- because of the random pos on spehere, which determines
+    -- both position and direction
     local numShapes = style.rng:getInt(5, 30)
     local field = JointField()
     local ind = #field.joints + 1

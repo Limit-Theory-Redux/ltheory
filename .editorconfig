@@ -19,7 +19,7 @@ max_line_length = 120
 
 # optional crlf/lf/cr/auto, if it is 'auto', in windows it is crlf other platforms are lf
 # in neovim the value 'auto' is not a valid option, please use 'unset' 
-end_of_line = auto
+end_of_line = unset
 
 #optional keep/never/always/smart
 trailing_table_separator = keep
@@ -41,7 +41,7 @@ space_before_function_open_parenthesis = false
 
 space_before_function_call_open_parenthesis = false
 
-space_before_closure_open_parenthesis = true
+space_before_closure_open_parenthesis = false
 
 # optional always/only_string/only_table/none
 # or true/false

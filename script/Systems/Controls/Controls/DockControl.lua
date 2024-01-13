@@ -24,10 +24,10 @@ end
 
 function DockControl:onInput(state)
     if not GameState.paused and ShipBindings.Undock:get() > 0 then
-        printf("*** Undocking (manual)!")
+        Log.Debug("*** Undocking (manual)!")
         self.player:getControlling():pushAction(Actions.Undock())
         self.gameView:setCameraMode(GameState.player.lastCamera)
-        Input.SetMouseVisible(false)
+        InputInstance:setCursorVisible(false)
     end
 
     self.camera:push()
@@ -90,7 +90,7 @@ function DockControl.Create(gameView, player)
         children = List(),
     }, DockControl)
 
-    self.icon:setOnDraw(function (ib, focus, active)
+    self.icon:setOnDraw(function(ib, focus, active)
         self:onDrawIcon(ib, focus, active)
     end)
 

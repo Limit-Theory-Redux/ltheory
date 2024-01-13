@@ -3,7 +3,7 @@ local Action = require('GameObjects.Action')
 local kLeadTime = 1.0
 local orbitTime = 30
 
-local MineAt = subclass(Action, function (self, source, target, miningTimePerItem)
+local MineAt = subclass(Action, function(self, source, target, miningTimePerItem)
     assert(source:hasYield())
     self.source = source
     self.target = target
@@ -52,15 +52,15 @@ function MineAt:onUpdateActive(e, dt)
         local maxBids = self.target:getTrader():getBidVolumeForAsset(item, e)
 
         -- Mine 1 unit of item every [duration in seconds as specified when pushing the MineAt action]
-        --    (unless instantJobs is true)
+        -- (unless instantJobs is true)
         if maxBids > 0 then
             if GameState.debug.instantJobs then
                 -- Immediately mine as many units as are bid or as the asset has capacity for
                 local addedCount = 0
                 for i = 1, maxBids do
-                    --printf("MineAt MINE (instant): [%s (%s)] mining 1 unit of %s from %s, delivering to %s (wants %d)",
-                    --    e:getName(), e:getOwner():getName(), item:getName(), self.source:getName(), self.target:getName(),
-                    --    maxBids)
+                    --Log.Debug("MineAt MINE (instant): [%s (%s)] mining 1 unit of %s from %s, delivering to %s (wants %d)",
+                    -- e:getName(), e:getOwner():getName(), item:getName(), self.source:getName(), self.target:getName(),
+                    -- maxBids)
 
                     -- Try to add 1 unit of the item (note that item size is its mass, not necessarily 1 unit of cargo space)
                     if not e:mgrInventoryAddItem(item, 1) then
@@ -71,7 +71,7 @@ function MineAt:onUpdateActive(e, dt)
                 end
 
                 if addedCount < maxBids then
-                    printf(
+                    Log.Debug(
                         "MineAt STOP (instant): [%s (%s)] has mined %d total units of %s from %s, but %s has %s bids!",
                         e:getName(), e:getOwner():getName(), e:mgrInventoryGetItemCount(item), item:getName(),
                         self.source:getName(),
@@ -92,7 +92,7 @@ function MineAt:onUpdateActive(e, dt)
                 if self.etimer > self.duration then
                     self.etimer = 0
 
-                    printf(
+                    Log.Debug(
                         "MineAt MINE (regular): [%s (%s)] mining 1 unit of %s (mass = %s) from %s, delivering to %s (wants %d)",
                         e:getName(), e:getOwner():getName(), item:getName(), item:getMass(), self.source:getName(),
                         self.target:getName(),
@@ -100,7 +100,8 @@ function MineAt:onUpdateActive(e, dt)
 
                     -- Try to add 1 unit of the item (note that item size is its mass, not necessarily 1 unit of cargo space)
                     if not e:mgrInventoryAddItem(item, 1) then
-                        printf("MineAt STOP (regular): [%s (%s)] mined %d units of %s from %s, but %s wanted %d units!",
+                        Log.Debug(
+                            "MineAt STOP (regular): [%s (%s)] mined %d units of %s from %s, but %s wanted %d units!",
                             e:getName(), e:getOwner():getName(), e:mgrInventoryGetItemCount(item), item:getName(),
                             self.source:getName(),
                             self.target:getName(), maxBids)
@@ -108,7 +109,7 @@ function MineAt:onUpdateActive(e, dt)
                     else
                         -- Remove 1 unit of item from the source if any remain
                         if not self.source:decreaseYield() then
-                            printf(
+                            Log.Debug(
                                 "MineAt STOP (regular): [%s (%s)] mined %d units of %s from %s (%s wanted %d), but yield = 0!",
                                 e:getName(), e:getOwner():getName(), e:mgrInventoryGetItemCount(item), item:getName(),
                                 self.source:getName(),

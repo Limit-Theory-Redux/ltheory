@@ -3,7 +3,7 @@ local Player = require('GameObjects.Entities.Player')
 
 -- Temporary File until other systems are more fleshed out, to be merged into a general AI script that handles all the THINKING
 
-local CriminalThink = subclass(Action, function (self)
+local CriminalThink = subclass(Action, function(self)
     self.timer = 0
     self.rng = RNG.FromTime()
 end)
@@ -49,11 +49,13 @@ function CriminalThink:manageAsset(asset)
 
                 if not job then break end
 
-                --if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
-                --  if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here
-                --    goto skipJob
-                --  end
-                --end
+                --[[
+                if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
+                    if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here
+                        goto skipJob
+                    end
+                end
+                --]]
 
                 local payout = job:getPayout(asset)
                 if payout > bestPayout then
@@ -152,7 +154,7 @@ function CriminalThink:onUpdateActive(e, dt)
         -- Increment elapsed time in seconds (a float value) since game start
         -- Note that self.timer does not appear to reset!
         -- TODO: Correct the self.timer tests below to trigger on their _intervals_,
-        --       not on elapsed time (which never resets)
+        -- not on elapsed time (which never resets)
         self.timer = self.timer + dt
         --printf("CriminalThink [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
     end

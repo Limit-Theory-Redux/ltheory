@@ -5,7 +5,7 @@ local Jobs = requireAll('GameObjects.Jobs')
 
 local rng = RNG.FromTime()
 
-local Universe = class(function (self) end)
+local Universe = class(function(self) end)
 
 function Universe:Init()
     self.systems = {}
@@ -33,7 +33,7 @@ function Universe:CreateStarSystem(seed)
         GameState.player.weaponGroup  = 1
 
         -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
-        --   a space station, a visible pilotable ship, and possibly some NPC ships
+        -- a space station, a visible pilotable ship, and possibly some NPC ships
         local afield                  = nil
 
         -- Add planets
@@ -46,7 +46,7 @@ function Universe:CreateStarSystem(seed)
         -- Must add BEFORE space stations
         for i = 1, GameState.gen.nFields do
             afield = system:spawnAsteroidField(GameState.gen.nAsteroids, false)
-            printf("Added %s asteroids to %s", GameState.gen.nAsteroids, afield:getName())
+            Log.Debug("Added %s asteroids to %s", GameState.gen.nAsteroids, afield:getName())
         end
 
         local shipObject = {
@@ -63,7 +63,7 @@ function Universe:CreateStarSystem(seed)
 
         GameState.player.currentShip = playerShip
 
-        printf("Added our ship, the '%s', at pos %s", playerShip:getName(), playerShip:getPos())
+        Log.Debug("Added our ship, the '%s', at pos %s", playerShip:getName(), playerShip:getPos())
 
         -- Escort ships for testing
         local escortShips = {}
@@ -80,7 +80,7 @@ function Universe:CreateStarSystem(seed)
                 end
 
                 -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
-                --       These will be dogfighting challenges!
+                -- These will be dogfighting challenges!
                 if rng:getInt(0, 100) < 20 then
                     local escortHullInteg = escort:mgrHullGetHealthMax()
                     escort:mgrHullSetHealth(floor(escortHullInteg * 1.5), floor(escortHullInteg * 1.5))
@@ -93,16 +93,12 @@ function Universe:CreateStarSystem(seed)
             for i = 1, #escortShips - 1 do
                 escortShips[i]:pushAction(Actions.Attack(escortShips[i + 1]))
             end
-            printf("Added %d escort ships", GameState.gen.nEscortNPCs)
+            Log.Debug("Added %d escort ships", GameState.gen.nEscortNPCs)
         end
 
         -- Add System to the Universe
         table.insert(self.systems, system)
-        printf("Added System: " .. system:getName() .. " to the Universe.")
-
-        -- Add System to the Universe
-        table.insert(self.systems, system)
-        printf("Added System: " .. system:getName() .. " to the Universe.")
+        Log.Debug("Added System: " .. system:getName() .. " to the Universe.")
     end
     self:AddSystemEconomy(system)
 end
@@ -118,11 +114,13 @@ function Universe:CreateShip(system, pos, shipObject)
     ship:setName(shipObject.shipName)
 
     -- Insert ship into this star system
-    local spawnPosition = pos or Config.gen.origin
+    local spawnPosition = ship:getPos() -- use semi-randomly generated position from spawnShip()
+    if pos then spawnPosition = pos end -- unless a position was explicitly provided, in which case use that position
+
     ship:setPos(spawnPosition)
     ship:setFriction(shipObject.friction)
     ship:setSleepThreshold(shipObject.sleepThreshold[1], shipObject.sleepThreshold[2])
-    ship:setOwner(shipObject.owner)
+    ship:setOwner(shipObject.owner, true)
     shipObject.owner:setControlling(ship)
 
     return ship

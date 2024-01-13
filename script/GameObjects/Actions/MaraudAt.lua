@@ -1,6 +1,6 @@
 local Action = require('GameObjects.Action')
 
-local MaraudAt = subclass(Action, function (self, zone, radius)
+local MaraudAt = subclass(Action, function(self, zone, radius)
     self.radius = radius
     self.targetPosition = nil
     self.system = nil

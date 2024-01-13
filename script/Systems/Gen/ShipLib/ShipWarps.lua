@@ -31,11 +31,11 @@ function ShipWarps.CurveWarps(rng, shape)
         if rng:chance(0.5) then curveZ = rng:getUniformRange(-1.0, 1.0) end
     end
 
-    --print("curveY: ", curveY)
-    --print("curveZ: ", curveZ)
+    --Log.Debug("curveY: ", curveY)
+    --Log.Debug("curveZ: ", curveZ)
 
     -- Curve z along x
-    shape:warp(function (v)
+    shape:warp(function(v)
         -- min, max, amt
         local x = (v.x - xMin) / (xMax - xMin)
         x = Math.Lerp(0, math.pi, x)
@@ -44,7 +44,7 @@ function ShipWarps.CurveWarps(rng, shape)
     shape:center()
 
     -- Curve y along x
-    shape:warp(function (v)
+    shape:warp(function(v)
         -- min, max, amt
         local x = (v.x - xMin) / (xMax - xMin)
         x = Math.Lerp(0, math.pi, x)

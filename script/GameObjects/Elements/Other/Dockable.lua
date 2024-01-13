@@ -1,5 +1,5 @@
 -- NOTE: "Dockable" means "this object can have objects docked to it,"
---       not "this object can dock at other objects."
+-- not "this object can dock at other objects."
 
 -- NOTE: Requires the Children component
 local Entity = require('GameObjects.Entity')
@@ -14,7 +14,7 @@ local function destroyed(self, source)
         if e:getType() and Config:getObjectInfo("object_types", e:getType()) == "Ship" then
             e:applyDamage(10, source)
             self:removeDocked(e)
-            printf("%s forcibly undocked from Station %s", e:getName(), self:getName())
+            Log.Debug("%s forcibly undocked from Station %s", e:getName(), self:getName())
         end
     end
 end
@@ -34,16 +34,16 @@ end
 function Entity:addDocked(e)
     assert(self.dockable)
 
-    --for i, v in ipairs(e.actions) do
-    --  printf("Pre-Dock %s Actions %d : %s", e:getName(), i, v:getName(e))
-    --end
+    -- for i, v in ipairs(e.actions) do
+    --     Log.Debug("Pre-Dock %s Actions %d : %s", e:getName(), i, v:getName(e))
+    -- end
 
     self:getParent():removeChild(e)
     self:addChild(e)
 
-    --for i, v in ipairs(e.actions) do
-    --  printf("Post-Dock %s Actions %d : %s", e:getName(), i, v:getName(e))
-    --end
+    -- for i, v in ipairs(e.actions) do
+    --     Log.Debug("Post-Dock %s Actions %d : %s", e:getName(), i, v:getName(e))
+    -- end
 
     e:setShipDocked(self) -- mark ship as docked to this entity
 end
@@ -83,16 +83,16 @@ end
 function Entity:removeDocked(e)
     assert(self.dockable)
 
-    --for i, v in ipairs(e.actions) do
-    --  printf("Pre-Undock %s Actions %d : %s", e:getName(), i, v:getName(e))
-    --end
+    -- for i, v in ipairs(e.actions) do
+    --     Log.Debug("Pre-Undock %s Actions %d : %s", e:getName(), i, v:getName(e))
+    -- end
 
     self:removeChild(e)
     self:getParent():addChild(e)
 
-    --for i, v in ipairs(e.actions) do
-    --  printf("Post-Undock %s Actions %d : %s", e:getName(), i, v:getName(e))
-    --end
+    -- for i, v in ipairs(e.actions) do
+    --     Log.Debug("Post-Undock %s Actions %d : %s", e:getName(), i, v:getName(e))
+    -- end
 
     e:setShipDocked(nil) -- mark ship as undocked
     e:setPos(self:getPos())
@@ -100,10 +100,10 @@ end
 
 function Entity:setDockable()
     self.dockable = true
-    printf("%s %s is now dockable", Config:getObjectInfo("object_types", self:getType()), self:getName())
+    Log.Debug("%s %s is now dockable", Config:getObjectInfo("object_types", self:getType()), self:getName())
 end
 
 function Entity:setUndockable()
     self.dockable = false
-    printf("%s %s is now undockable", Config:getObjectInfo("object_types", self:getType()), self:getName())
+    Log.Debug("%s %s is now undockable", Config:getObjectInfo("object_types", self:getType()), self:getName())
 end

@@ -2,20 +2,18 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use crate::internal::*;
+use internal::ConvertIntoString;
+
 use crate::math::*;
 
+use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle, StaticSoundSettings};
 use kira::sound::PlaybackState;
-use kira::{
-    modulator::lfo::LfoHandle,
-    sound::{
-        static_sound::{StaticSoundData, StaticSoundHandle, StaticSoundSettings},
-        EndPosition, PlaybackPosition, Region,
-    },
-    spatial::emitter::EmitterHandle,
-    tween::{Easing, Tween},
-    StartTime,
-};
+use kira::sound::{EndPosition, PlaybackPosition, Region};
+use kira::spatial::emitter::EmitterHandle;
+use kira::tween::{Easing, Tween};
+use kira::StartTime;
+
+use super::process_command_error;
 
 pub struct Sound {
     path: String,
@@ -101,72 +99,86 @@ impl Sound {
         }
     }
 
-    pub fn set_volume(&mut self, volume: f64) {
-        self.sound_data.settings.volume = volume.into();
+    pub fn set_volume(&mut self, volume: f64, fade_millis: u64) {
+        if let Some(sound_handle) = &self.sound_handle {
+            process_command_error(
+                sound_handle.borrow_mut().set_volume(
+                    volume,
+                    Tween {
+                        duration: Duration::from_millis(fade_millis),
+                        ..Default::default()
+                    },
+                ),
+                "Could not set volume on sound",
+            );
+        } else {
+            self.sound_data.settings.volume = volume.into();
+        }
     }
 
     pub fn pause(&mut self, fade_millis: u64) {
         if let Some(sound_handle) = &mut self.sound_handle {
-            sound_handle
-                .borrow_mut()
-                .pause(Tween {
+            process_command_error(
+                sound_handle.borrow_mut().pause(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
-                })
-                .expect("Cannot pause sound");
+                }),
+                "Cannot pause sound",
+            );
         }
     }
 
     pub fn resume(&mut self, fade_millis: u64) {
         if let Some(sound_handle) = &mut self.sound_handle {
-            sound_handle
-                .borrow_mut()
-                .resume(Tween {
+            process_command_error(
+                sound_handle.borrow_mut().resume(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
-                })
-                .expect("Cannot resume sound");
+                }),
+                "Cannot resume sound",
+            );
         }
     }
 
     pub fn stop(&mut self, fade_millis: u64) {
         if let Some(sound_handle) = &mut self.sound_handle {
-            sound_handle
-                .borrow_mut()
-                .stop(Tween {
+            process_command_error(
+                sound_handle.borrow_mut().stop(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
-                })
-                .expect("Cannot stop sound");
+                }),
+                "Cannot stop sound",
+            );
         }
     }
 
     pub fn set_play_pos(&mut self, position: f64) {
         if let Some(sound_handle) = &mut self.sound_handle {
-            sound_handle
-                .borrow_mut()
-                .seek_to(position)
-                .expect("Cannot set sound position");
+            process_command_error(
+                sound_handle.borrow_mut().seek_to(position),
+                "Cannot set sound position",
+            );
         }
     }
 
     pub fn move_play_pos(&mut self, offset: f64) {
         if let Some(sound_handle) = &mut self.sound_handle {
-            sound_handle
-                .borrow_mut()
-                .seek_by(offset)
-                .expect("Cannot set sound position");
+            process_command_error(
+                sound_handle.borrow_mut().seek_by(offset),
+                "Cannot set sound position",
+            );
         }
     }
 
     pub fn set_emitter_pos(&mut self, position: &Vec3) {
         if let Some(emitter) = &mut self.emitter {
-            emitter
-                .set_position(*position, Tween::default())
-                .expect("Cannot set sound emitter position");
+            process_command_error(
+                emitter.set_position(*position, Tween::default()),
+                "Cannot set sound emitter position",
+            );
         }
     }
 }

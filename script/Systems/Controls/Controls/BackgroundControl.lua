@@ -15,7 +15,7 @@ function BackgroundControl:controlThrust(e)
         0,
         0,
         0,
-        0.03,  -- spin the invisible ship
+        0.005, -- spin the invisible ship
         -0.01, -- ever so slightly
         0,
         0)
@@ -65,7 +65,7 @@ function BackgroundControl.Create(gameView, player)
 
     self.gameView:setCameraMode(Enums.CameraMode.Chase)
 
-    self.icon:setOnDraw(function (ib, focus, active)
+    self.icon:setOnDraw(function(ib, focus, active)
         self:onDrawIcon(ib, focus, active)
     end)
 

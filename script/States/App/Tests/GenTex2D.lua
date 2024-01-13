@@ -3,7 +3,7 @@ local GenTex2D = require('States.Application')
 local kTexSize = 1024
 local rng = RNG.FromTime()
 
-local vs = Resource.LoadCstr(ResourceType.Shader, 'vertex/ui')
+local vs = Resource.LoadString(ResourceType.Shader, 'vertex/ui')
 
 -- Main generating fragment shader
 local fs = [[
@@ -167,14 +167,14 @@ function GenTex2D:onInit()
 end
 
 function GenTex2D:onUpdate(dt)
-    if Input.GetDown(Button.Keyboard.LCtrl) and Input.GetPressed(Button.Keyboard.W) then self:quit() end
-    if Input.GetPressed(Button.Keyboard.Space) then self:onGenerate() end
-    if Input.GetDown(Button.Mouse.Left) then
-        local dp = Input.GetMouseDelta()
+    if InputInstance:isDown(Button.KeyboardControlLeft) and InputInstance:isPressed(Button.KeyboardW) then self:quit() end
+    if InputInstance:isPressed(Button.KeyboardSpace) then self:onGenerate() end
+    if InputInstance:isDown(Button.MouseLeft) then
+        local dp = InputInstance:mouse():delta()
         self.panX = self.panX + dp.x / self.zoom
         self.panY = self.panY + dp.y / self.zoom
     end
-    self.zoomT = self.zoomT * exp(0.1 * Input.GetValue(Button.Mouse.ScrollY))
+    self.zoomT = self.zoomT * exp(0.1 * InputInstance:getValue(Button.MouseScrollY))
     self.zoom = Math.Lerp(self.zoom, self.zoomT, 1.0 - exp(-16.0 * dt))
 end
 

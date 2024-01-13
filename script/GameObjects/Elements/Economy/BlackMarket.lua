@@ -3,12 +3,12 @@ local Entity = require('GameObjects.Entity')
 local OrderType = {
     Buy = {
         -- Buy orders are sorted such that last element has the highest bid price
-        comparator = function (a, b) return a.price < b.price end
+        comparator = function(a, b) return a.price < b.price end
     },
 
     Sell = {
         -- Sell orders are sorted such that last element has the lowest ask price
-        comparator = function (a, b) return a.price > b.price end
+        comparator = function(a, b) return a.price > b.price end
     },
 }
 
@@ -38,7 +38,7 @@ local function addOrder(type, self, actor, item, count, price)
     sort(orders, type.comparator)
 end
 
-local BlackMarket = class(function (self)
+local BlackMarket = class(function(self)
     self.data = {}
     self.escrow = {}
 end)

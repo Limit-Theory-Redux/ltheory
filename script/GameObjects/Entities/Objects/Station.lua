@@ -27,7 +27,7 @@ local function wasDamaged(self, event)
                 if attackAction then
                     if attackAction ~= self:getCurrentAction(actionName) then
                         -- If the action to attack the attacker exists in this entity's Actions queue but isn't the current
-                        --     action, delete the old Attack action and push a new instance to the top of the Actions queue
+                        -- action, delete the old Attack action and push a new instance to the top of the Actions queue
                         self:deleteAction(actionName)
                         self:pushAction(Actions.Attack(shipEntry.ship))
                     end
@@ -51,7 +51,7 @@ local function wasDamaged(self, event)
     end
 end
 
-local Station = subclass(Entity, function (self, seed, hull)
+local Station = subclass(Entity, function(self, seed, hull)
     local rng = RNG.Create(seed)
     local mesh = Gen.StationOld(seed):managed()
     local bsp = BSP.Create(mesh):managed()
@@ -116,7 +116,7 @@ local Station = subclass(Entity, function (self, seed, hull)
         if p then
             insert(self.positions[SocketType.Bay], Vec3f(0, 1, 1)) -- TODO: Replace with visible mount position for a Bay weapon
         else
-            printf("No mount point found for bay %d being mounted on Station %s", i, self:getName())
+            Log.Debug("No mount point found for bay %d being mounted on Station %s", i, self:getName())
         end
     end
 
@@ -181,13 +181,13 @@ local Station = subclass(Entity, function (self, seed, hull)
         if p then
             insert(self.positions[SocketType.Turret], p * Vec3f(1, 1, 1))
         else
-            printf("No mount point found for turret %d being mounted on Station %s", i, self:getName())
+            Log.Debug("No mount point found for turret %d being mounted on Station %s", i, self:getName())
         end
     end
 
     -- Add all sockets to parent
     -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
-    --        better for ShipType etc.
+    -- better for ShipType etc.
     self:addSockets()
 
     for type, elems in pairs(self.positions) do

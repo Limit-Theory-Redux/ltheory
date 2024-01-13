@@ -33,6 +33,7 @@ end
 
 function TestEcon:onUpdate(dt)
     self.system:update(dt)
+    self.system:updateEconomy(dt)
     self.canvas:update(dt)
 end
 
@@ -52,7 +53,7 @@ function TestEcon:onInit()
 
     -- Add a generic ship-like entity to serve as the imaginary player ship
     self.tradeShip = Entity()
-    self.tradeShip:setOwner(self.tradeAI)
+    self.tradeShip:setOwner(self.tradeAI, true)
 
     -- Use repeat ship builds, fast movement, and hyperspeedup for economic testing
     GameState.gen.uniqueShips       = true
@@ -93,9 +94,9 @@ function TestEcon:onInit()
         local ownerNum = rng:getInt(1, kPlayers)
         for i, v in ipairs(self.system.players) do
             if i == ownerNum then
-                -- printf("New station %s should have owner %s", newStation:getName(), v:getName())
-                -- newStation:setOwner(v) -- causes an infinite loop somewhere
-                -- printf("New station %s actually has owner %s", newStation:getName(), newStation:getOwner():getName())
+                -- Log.Debug("New station %s should have owner %s", newStation:getName(), v:getName())
+                -- newStation:setOwner(v, true) -- causes an infinite loop somewhere
+                -- Log.Debug("New station %s actually has owner %s", newStation:getName(), newStation:getOwner():getName())
                 break
             end
         end
@@ -111,7 +112,7 @@ function TestEcon:onInit()
 
         -- Create assets (ships)
         self.system:spawnAI(kAssets, Actions.Wait(1), tradePlayer)
-        printf("%d assets added to %s", kAssets, tradePlayer:getName())
+        Log.Debug("%d assets added to %s", kAssets, tradePlayer:getName())
 
         -- Configure assets
         for asset in tradePlayer:iterAssets() do

@@ -155,7 +155,7 @@ local function createUVMap(mesh, res)
 
     do -- Print debug info
         local fill = 100 * (texelScale * texelScale * totalArea) / (mapSX * mapSY)
-        printf('[UVMapper] %d tris packed into %.2f x %.2f with %.2f%% fill', #tris, mapSX, mapSY, fill)
+        Log.Debug('[UVMapper] %d tris packed into %.2f x %.2f with %.2f%% fill', #tris, mapSX, mapSY, fill)
     end
 
     do -- Transform back to UV space

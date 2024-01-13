@@ -1,6 +1,58 @@
-const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 2] = [("IVec2", "Vec2i"), ("Vec3", "Vec3f")];
-const COPY_TYPES: [&str; 3] = ["IVec2", "WindowPos", "WindowMode"];
+const RUST_TO_LUA_TYPE_MAP: &[(&str, &str)] = &[
+    ("IVec2", "Vec2i"),
+    ("IVec3", "Vec3i"),
+    ("IVec4", "Vec4i"),
+    ("UVec2", "Vec2u"),
+    ("UVec3", "Vec3u"),
+    ("UVec4", "Vec4u"),
+    ("DVec2", "Vec2d"),
+    ("DVec3", "Vec3d"),
+    ("DVec4", "Vec4d"),
+    ("Vec2", "Vec2f"),
+    ("Vec3", "Vec3f"),
+    ("Vec4", "Vec4f"),
+    ("Box3", "Box3f"),
+];
 
+// TODO: find out different way to mark types as copyable
+const COPY_TYPES: &[&str] = &[
+    "IVec2",
+    "UVec2",
+    "DVec2",
+    "Vec2",
+    "IVec3",
+    "UVec3",
+    "DVec3",
+    "Vec3",
+    "IVec4",
+    "UVec4",
+    "DVec4",
+    "Vec4",
+    "Box3",
+    "WindowPos",
+    "WindowMode",
+    "MouseControl",
+    "KeyboardButton",
+    "TouchpadAxis",
+    "GamepadId",
+    "GamepadButton2",
+    "GamepadAxis2",
+    "Button",
+    "Button2",
+    "DeviceType",
+    "GamepadButton",
+    "GamepadAxis",
+    "InputDeviceType",
+    "PresentMode",
+    "CursorIcon",
+    "CursorGrabMode",
+    "FocusType",
+    "AlignHorizontal",
+    "AlignVertical",
+    "ResourceType",
+];
+
+#[derive(Debug)]
 pub struct TypeInfo {
     /// Result type. Can be used only in the return position
     pub is_result: bool,
@@ -9,6 +61,8 @@ pub struct TypeInfo {
     pub is_option: bool,
     /// Reference type: &T
     pub is_reference: bool,
+    /// Boxed type: Box<T>
+    pub is_boxed: bool,
     /// Mutable reference type: &mut T
     pub is_mutable: bool,
     pub variant: TypeVariant,
@@ -29,32 +83,62 @@ impl TypeInfo {
         COPY_TYPES.contains(&ty)
     }
 
-    pub fn as_ffi_string(&self) -> String {
-        let ffi_ty = self.variant.as_ffi_string();
-
-        let res = if self.variant.is_custom() {
-            RUST_TO_LUA_TYPE_MAP
-                .iter()
-                .find(|(r_ty, _)| *r_ty == ffi_ty)
-                .map(|(_, l_ty)| l_ty.to_string())
-                .unwrap_or(ffi_ty)
-        } else {
-            ffi_ty
-        };
-        let opt = if self.is_option && !self.variant.is_string() {
-            "*"
-        } else {
-            ""
-        };
-
-        if self.is_reference && self.variant != TypeVariant::Str {
-            if self.is_mutable {
-                format!("{res}*{opt}")
-            } else {
-                format!("{res} const*{opt}")
+    pub fn as_ffi_string(&self, self_name: &str) -> String {
+        // These types should be the C equivalent of the result of `wrap_type` in `generate.rs`.
+        match &self.variant {
+            TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
+                if self.is_mutable {
+                    format!("char*")
+                } else {
+                    format!("cstr")
+                }
             }
-        } else {
-            format!("{res}{opt}")
+            TypeVariant::Custom(ty_name) => {
+                let ty_ident = if self.is_self() { self_name } else { ty_name };
+
+                let ffi_ty_name = RUST_TO_LUA_TYPE_MAP
+                    .iter()
+                    .find(|(r_ty, _)| *r_ty == ty_name)
+                    .map(|(_, l_ty)| l_ty.to_string())
+                    .unwrap_or(ty_ident.to_string());
+
+                if self.is_option {
+                    if self.is_mutable {
+                        format!("{ffi_ty_name}*")
+                    } else {
+                        format!("{ffi_ty_name} const*")
+                    }
+                } else {
+                    if self.is_mutable {
+                        // Mutable is always with reference
+                        format!("{ffi_ty_name}*")
+                    } else if self.is_reference {
+                        format!("{ffi_ty_name} const*")
+                    } else if TypeInfo::is_copyable(&ty_name) {
+                        format!("{ffi_ty_name}")
+                    } else {
+                        format!("{ffi_ty_name}*")
+                    }
+                }
+            }
+            _ => {
+                let ty_ident = self.variant.as_ffi_string();
+
+                if self.is_option {
+                    // All options are sent by pointer
+                    if self.is_mutable {
+                        format!("{ty_ident}*")
+                    } else {
+                        format!("{ty_ident} const*")
+                    }
+                } else if self.is_mutable {
+                    // Mutable is always with reference
+                    format!("{ty_ident}*")
+                } else {
+                    // We don't care if there is reference on the numeric type - just accept it by value
+                    format!("{ty_ident}")
+                }
+            }
         }
     }
 }
@@ -70,6 +154,8 @@ pub enum TypeVariant {
     U32,
     I64,
     U64,
+    ISize,
+    USize,
     F32,
     F64,
     Str,
@@ -79,14 +165,6 @@ pub enum TypeVariant {
 }
 
 impl TypeVariant {
-    pub fn is_custom(&self) -> bool {
-        matches!(self, Self::Custom(_))
-    }
-
-    pub fn is_str(&self) -> bool {
-        matches!(self, Self::Str)
-    }
-
     pub fn is_string(&self) -> bool {
         match self {
             Self::Str | Self::String | Self::CString => true,
@@ -105,6 +183,8 @@ impl TypeVariant {
             "u32" => Self::U32,
             "i64" => Self::I64,
             "u64" => Self::U64,
+            "isize" => Self::ISize,
+            "usize" => Self::USize,
             "f32" => Self::F32,
             "f64" => Self::F64,
             "str" => Self::Str,
@@ -127,6 +207,8 @@ impl TypeVariant {
             Self::U32 => "u32",
             Self::I64 => "i64",
             Self::U64 => "u64",
+            Self::ISize => "isize",
+            Self::USize => "usize",
             Self::F32 => "f32",
             Self::F64 => "f64",
             Self::Str => "str",
@@ -137,7 +219,7 @@ impl TypeVariant {
         .into()
     }
 
-    fn as_ffi_string(&self) -> String {
+    pub fn as_ffi_string(&self) -> String {
         match self {
             Self::Bool => "bool",
             Self::I8 => "int8",
@@ -148,6 +230,8 @@ impl TypeVariant {
             Self::U32 => "uint32",
             Self::I64 => "int64",
             Self::U64 => "uint64",
+            Self::ISize => "int64",
+            Self::USize => "uint64",
             Self::F32 => "float",
             Self::F64 => "double",
             Self::Str | Self::String | Self::CString => "cstr",
