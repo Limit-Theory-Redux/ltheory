@@ -7,7 +7,6 @@ use crate::rf::Rf;
 use rapier3d::parry::query::RayCast;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
-use std::collections::HashMap;
 
 #[repr(C)]
 pub struct Collision {
@@ -152,8 +151,6 @@ pub struct Physics {
     multibody_joints: rp::MultibodyJointSet,
     ccd_solver: rp::CCDSolver,
 
-    rigid_body_map: HashMap<rp::RigidBodyHandle, *mut RigidBody>,
-
     debug_renderer: rp::DebugRenderPipeline,
 }
 
@@ -175,7 +172,6 @@ impl Physics {
             impulse_joints: rp::ImpulseJointSet::new(),
             multibody_joints: rp::MultibodyJointSet::new(),
             ccd_solver: rp::CCDSolver::new(),
-            rigid_body_map: HashMap::new(),
             debug_renderer: rp::DebugRenderPipeline::new(Default::default(), Default::default()),
         }
     }
@@ -185,10 +181,7 @@ impl Physics {
     /// Automatically adds all attached Triggers. Automatically adds all
     /// attached children and their Triggers.
     pub fn add_rigid_body(&mut self, rigid_body: &mut RigidBody) {
-        if let Some((rb_handle, _)) = rigid_body.add_to_world(self.world.clone()) {
-            self.rigid_body_map
-                .insert(rb_handle, rigid_body as *mut RigidBody);
-        }
+        rigid_body.add_to_world(self.world.clone());
     }
 
     /// Removes this rigid body from this physics world if it's added, otherwise do nothing.
@@ -196,11 +189,7 @@ impl Physics {
     /// Automatically removes all attached Triggers. Automatically removes all
     /// attached children and their Triggers.
     pub fn remove_rigid_body(&mut self, rigid_body: &mut RigidBody) {
-        if let Some((rb_handle, _)) =
-            rigid_body.remove_from_world(&mut self.impulse_joints, &mut self.multibody_joints)
-        {
-            self.rigid_body_map.remove(&rb_handle);
-        }
+        rigid_body.remove_from_world(&mut self.impulse_joints, &mut self.multibody_joints);
     }
 
     pub fn add_trigger(&mut self, trigger: &mut Trigger) {

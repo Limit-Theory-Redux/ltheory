@@ -53,7 +53,7 @@ function Loader.defineType()
             void       RigidBody_SetPos                      (RigidBody*, Vec3f const* pos);
             void       RigidBody_SetPosLocal                 (RigidBody*, Vec3f const* pos);
             void       RigidBody_GetRot                      (RigidBody const*, Quat* out);
-            void       RigidBody_GetRotLocal                 (RigidBody*, Quat* out);
+            void       RigidBody_GetRotLocal                 (RigidBody const*, Quat* out);
             void       RigidBody_SetRot                      (RigidBody*, Quat* rot);
             void       RigidBody_SetRotLocal                 (RigidBody*, Quat const* rot);
             float      RigidBody_GetScale                    (RigidBody const*);

@@ -42,12 +42,19 @@ use tracing::debug;
  * multiplied in order to maintain the same relative position.
  */
 
-// TODO: Implement Free semantics: Automatically frees all attached Triggers when called on a parent. Automatically frees all attached children and their Triggers when called on a parent. This function is O(M*N) for parents.
+struct RigidBodyParent {
+    rigid_body: NonNull<RigidBody>,
+    offset: na::Isometry3<rp::Real>,
+}
+
 pub struct RigidBody {
     rigid_body: RigidBodyWrapper,
     collider: ColliderWrapper,
-    parent: Option<NonNull<RigidBody>>, // Raw pointer to stable memory address of parent (as it's in a Box).
-    children: Vec<rp::ColliderHandle>,
+
+    // These contain raw pointers to stable memory addresses of RigidBody's.
+    // TODO: Replace these with an arena index into the PhysicsWorld.
+    parent: Option<RigidBodyParent>,
+    children: Vec<NonNull<RigidBody>>,
 
     // Fields to allow us to reconstruct the collision shape object.
     shape_type: CollisionShapeType,
@@ -77,80 +84,114 @@ impl RigidBody {
         rigid_body
     }
 
-    pub(crate) fn add_to_world(
-        &mut self,
-        world: Rf<PhysicsWorld>,
-    ) -> Option<(rp::RigidBodyHandle, rp::ColliderHandle)> {
+    // Adds this rigid body and any children to the world.
+    pub(crate) fn add_to_world(&mut self, world: Rf<PhysicsWorld>) {
         if self.collider.is_added() {
-            return None;
+            return;
         }
 
-        // Add rigid body.
-        let rb_handle = self.rigid_body.set_added(|rb| {
-            let handle = world.as_mut().rigid_bodies.insert(rb);
-            (handle, world.clone())
-        });
+        // If we have a parent, just add the collider as a child of it.
+        if let Some(parent) = &self.parent {
+            // Assumption: The parent is already in the world.
+            let parent_ref = unsafe { parent.rigid_body.as_ref() };
+            let parent_handle = parent_ref.rigid_body.added_as_ref().unwrap().0;
 
-        // Add collider.
-        let collider_handle = self.collider.set_added(|collider| {
-            let handle = {
-                let w = &mut *world.as_mut();
-                w.colliders
-                    .insert_with_parent(collider, rb_handle, &mut w.rigid_bodies)
-            };
-            (handle, world)
-        });
+            // Add the collider to the parent rigid body.
+            self.collider.set_added(|collider| {
+                let handle = {
+                    // Lock the world as mutable.
+                    let w = &mut *world.as_mut();
 
-        Some((rb_handle, collider_handle))
+                    // Add the collider, then position it correctly.
+                    let handle = w.colliders.insert_with_parent(
+                        collider,
+                        *parent_handle,
+                        &mut w.rigid_bodies,
+                    );
+                    w.get_mut(handle).set_position_wrt_parent(parent.offset);
+
+                    handle
+                };
+                (handle, world)
+            });
+        } else {
+            // Add rigid body.
+            let rb_handle = self.rigid_body.set_added(|rb| {
+                let handle = world.as_mut().rigid_bodies.insert(rb);
+                (handle, world.clone())
+            });
+
+            // Add collider.
+            self.collider.set_added(|collider| {
+                let handle = {
+                    let w = &mut *world.as_mut();
+                    w.colliders
+                        .insert_with_parent(collider, rb_handle, &mut w.rigid_bodies)
+                };
+                (handle, world.clone())
+            });
+
+            // Recurse on children.
+            for child in self.children.iter_mut() {
+                unsafe { child.as_mut() }.add_to_world(world.clone());
+            }
+        }
     }
 
+    // Removes this rigid body and any children from the physics world.
     pub(crate) fn remove_from_world(
         &mut self,
         impulse_joint_set: &mut rp::ImpulseJointSet,
         multibody_joint_set: &mut rp::MultibodyJointSet,
-    ) -> Option<(rp::RigidBodyHandle, rp::ColliderHandle)> {
-        if self.collider.is_removed() && self.rigid_body.is_removed() {
-            return None;
+    ) {
+        if self.collider.is_removed() {
+            return;
         }
 
-        // TODO: Remove children.
+        // Remove children from the world.
+        for child in self.children.iter_mut() {
+            unsafe { child.as_mut() }.remove_collider_from_world();
+        }
 
-        debug!(
-            "Removing rigid body {:?} with {:?} children",
-            self as *mut _, self.children
-        );
+        // Remove this collider.
+        self.remove_collider_from_world();
 
-        let mut collider_handle = rp::ColliderHandle::invalid();
-        let mut rigid_body_handle = rp::RigidBodyHandle::invalid();
+        // Remove the rigid body if this is a parent.
+        if self.is_parent() {
+            self.rigid_body.set_removed(|handle, world| {
+                let w = &mut *world.as_mut();
+                w.rigid_bodies
+                    .remove(
+                        handle,
+                        &mut w.island_manager,
+                        &mut w.colliders,
+                        impulse_joint_set,
+                        multibody_joint_set,
+                        false,
+                    )
+                    .unwrap()
+            });
+        }
+    }
+
+    // Like remove_from_world, but just for the collider, as it doesn't need the impulse and multibody joint sets.
+    // Used as a helper function in remove_from_world and detach.
+    //
+    // Valid for both parents and children.
+    fn remove_collider_from_world(&mut self) {
+        if self.collider.is_removed() {
+            return;
+        }
 
         // Remove collider.
         self.collider.set_removed(|handle, world| {
-            collider_handle = handle;
             let w = &mut *world.as_mut();
             w.colliders
                 .remove(handle, &mut w.island_manager, &mut w.rigid_bodies, false)
                 .unwrap()
         });
-
-        // Remove rigid body.
-        self.rigid_body.set_removed(|handle, world| {
-            rigid_body_handle = handle;
-            let w = &mut *world.as_mut();
-            w.rigid_bodies
-                .remove(
-                    handle,
-                    &mut w.island_manager,
-                    &mut w.colliders,
-                    impulse_joint_set,
-                    multibody_joint_set,
-                    false,
-                )
-                .unwrap()
-        });
-
-        Some((rigid_body_handle, collider_handle))
     }
-    
+
     /// Links a RigidBody to a Rapier Collider, which we can later retrieve
     /// using linked_with_collider and linked_with_collider_mut.
     pub(crate) fn encode_as_user_data(rb: &Box<RigidBody>) -> u128 {
@@ -217,11 +258,12 @@ impl RigidBody {
     // Returns the rapier handle of the root rigid body if this rigid body is
     // added to the world or is attached to another, None otherwise.
     pub fn get_rigid_body_handle(&self) -> Option<rp::RigidBodyHandle> {
-        if self.parent.is_some() {
+        if self.is_child() {
             unsafe {
                 self.parent
                     .as_ref()
                     .unwrap()
+                    .rigid_body
                     .as_ref()
                     .get_rigid_body_handle()
             }
@@ -266,7 +308,7 @@ impl RigidBody {
     pub fn get_parent(&self) -> Option<&mut RigidBody> {
         self.parent
             .as_ref()
-            .map(|ptr| unsafe { &mut *ptr.as_ptr() })
+            .map(|parent| unsafe { &mut *parent.rigid_body.as_ptr() })
     }
 
     pub fn apply_force(&mut self, force: &Vec3) {
@@ -287,6 +329,9 @@ impl RigidBody {
     /// third object happens to be between them this may trap the third object.
     /// The same issue may occur when spawning one compound inside another.
     ///
+    /// This function expects that the child is not already in the physics
+    /// world, as it will add it if the parent is already in the world.
+    ///
     /// This function assumes that `self` is not already a child.
     pub fn attach(&mut self, child: &mut RigidBody, pos: &Vec3, rot: &Quat) {
         if self as *mut _ == child as *mut _ {
@@ -297,10 +342,6 @@ impl RigidBody {
             panic!(
                 "Recursive attachment is not supported. Parent is already attached to something."
             );
-        }
-
-        if self.collider.is_removed() && self.rigid_body.is_removed() {
-            panic!("Parent has been removed from physics.");
         }
 
         if child.collider.is_added() && child.rigid_body.is_added() {
@@ -316,42 +357,30 @@ impl RigidBody {
             child as *mut _, self as *mut _
         );
 
-        // Multiple colliders in Rapier can be attached to a single
-        // rigid body, so there's no need to create a "compound shape"
-
-        let (parent_handle, world) = self.rigid_body.added_as_ref().unwrap();
-
         // Compute the colliders relative position, scaled by the scale of the parent shape.
         let scaled_pos = *pos * self.shape_scale;
 
-        // Add the child collider to the parent rigid body.
-        let child_collider_handle = child.collider.set_added(|collider| {
-            let handle = {
-                // Lock the world as mutable.
-                let w = &mut *world.as_mut();
-
-                // Add the collider, and position it correctly.
-                let handle =
-                    w.colliders
-                        .insert_with_parent(collider, *parent_handle, &mut w.rigid_bodies);
-                w.get_mut(handle)
-                    .set_position_wrt_parent(na::Isometry3::from_parts(
-                        scaled_pos.to_na().into(),
-                        rot.to_na(),
-                    ));
-
-                handle
-            };
-            (handle, world.clone())
+        // Set the parent-child link.
+        self.children.push(rigid_body_to_non_null(child));
+        child.parent = Some(RigidBodyParent {
+            rigid_body: rigid_body_to_non_null(self),
+            offset: na::Isometry3::from_parts(scaled_pos.to_na().into(), rot.to_na()),
         });
 
-        // Set the parent-child link.
-        self.children.push(child_collider_handle);
-        child.parent = Some(NonNull::new(self as *mut _).unwrap());
+        // Multiple colliders in Rapier can be attached to a single
+        // rigid body, so there's no need to create a "compound shape"
+
+        // If the rigid body is in the world, add the child now.
+        if self.rigid_body.is_added() {
+            child.add_to_world(self.rigid_body.added_as_ref().unwrap().1.clone());
+        }
     }
 
-    /// Removes a shape from this compound shape, and changes it back to a singular shape if
-    /// no children are left.
+    /// Removes a rigid body as a child of this rigid body. This means that
+    /// the child's will be under control of it's own position.
+    ///
+    /// This function will result in a child that is not in the world anymore,
+    /// so it will need to be re-added with physics.add_rigid_body(...).
     ///
     /// This function assumes that `self` is not already a child.
     pub fn detach(&mut self, child: &mut RigidBody) {
@@ -359,51 +388,35 @@ impl RigidBody {
             panic!("Child is not attached to parent.");
         }
 
-        if child.parent.as_ref().unwrap().as_ptr() != (self as *mut RigidBody) {
-            panic!("Child is not attached to this rigid body.");
+        if child.parent.as_ref().unwrap().rigid_body.as_ptr() != (self as *mut RigidBody) {
+            panic!("Child is attached to a different rigid body.");
         }
 
         // Convert current transform to world coordinates.
         let parent_transform = self.rigid_body.as_ref().position().clone();
 
-        // TODO: Store child transform states so we can reconstruct when re-adding to the world.
+        // Compute the combined transform, then update the rigid body
+        // transform of the child so it's in the right place once it's
+        // re-added to the world.
+        let combined_transform = parent_transform * child.parent.as_ref().unwrap().offset;
+        child
+            .rigid_body
+            .as_mut()
+            .set_position(combined_transform, true);
 
-        // Detach from parent by removing from the collider set.
-        self.collider.set_removed(|handle, world| {
-            // Compute the combined transform, then update the rigid body
-            // transform of the child so it's in the right place once it's
-            // re-added to the world.
-            //
-            // We need to do this before removing the collider from the world,
-            // because position_wrt_parent() gets cleared.
-            let combined_transform =
-                parent_transform * world.as_ref().get(handle).position_wrt_parent().unwrap();
-            child
-                .rigid_body
-                .as_mut()
-                .set_position(combined_transform, true);
+        // Remove from the world if needed.
+        if child.collider.is_added() {
+            child.remove_collider_from_world();
+        }
 
-            // Remove from the world.
-            let collider = {
-                let w = &mut *world.as_mut();
-                w.colliders
-                    .remove(handle, &mut w.island_manager, &mut w.rigid_bodies, true)
-                    .unwrap()
-            };
-
-            // Break parent-child link.
-            self.children.swap_remove(
-                self.children
-                    .iter()
-                    .position(|h| *h == handle)
-                    .expect("child collider missing from children list"),
-            );
-            child.parent = None;
-
-            collider
-        });
-
-        // Now we're in the 'removed' state.
+        // Break parent-child link.
+        self.children.swap_remove(
+            self.children
+                .iter()
+                .position(|rb| rb.as_ptr() == child as *mut _)
+                .expect("child missing from children list"),
+        );
+        child.parent = None;
     }
 
     /// Calculates the bounding box.
@@ -434,9 +447,9 @@ impl RigidBody {
         let mut aabb = w.get(*collider_handle).compute_aabb();
         let parent_transform = w.get(*collider_handle).position().clone();
 
-        // Incorporate the AABBs of the compound shapes.
-        for child_collider_handle in self.children.iter() {
-            let collider = w.get_mut(*child_collider_handle);
+        // Incorporate the AABBs of any children.
+        for child in self.children.iter() {
+            let collider = unsafe { child.as_ref() }.collider.as_ref();
             let child_global_transform = parent_transform * collider.position_wrt_parent().unwrap();
             let child_aabb = collider.shape().compute_aabb(&child_global_transform);
             aabb.mins = aabb.mins.inf(&child_aabb.mins);
@@ -476,9 +489,9 @@ impl RigidBody {
         // Get AABB of the main collider.
         let mut aabb = w.get(*collider_handle).shape().compute_local_aabb();
 
-        // Incorporate the AABBs of the compound shapes.
-        for child_collider_handle in self.children.iter() {
-            let collider = w.get_mut(*child_collider_handle);
+        // Incorporate the AABBs of any children.
+        for child in self.children.iter() {
+            let collider = unsafe { child.as_ref() }.collider.as_ref();
             let child_aabb = collider
                 .shape()
                 .compute_aabb(collider.position_wrt_parent().unwrap());
@@ -605,16 +618,8 @@ impl RigidBody {
     /// Local coordinates are relative to the parent *before* scaling.
     #[bind(name = "GetPosLocal", out_param = true)]
     pub fn get_position_local(&self) -> Vec3 {
-        if self.parent.is_some() {
-            Vec3::from_na(
-                &self
-                    .collider
-                    .as_ref()
-                    .position_wrt_parent()
-                    .unwrap()
-                    .translation
-                    .vector,
-            )
+        if let Some(parent) = &self.parent {
+            Vec3::from_na(&parent.offset.translation.vector)
         } else {
             Vec3::ZERO
         }
@@ -629,15 +634,11 @@ impl RigidBody {
     /// given position will be multiplied by the parent's scale.
     #[bind(name = "SetPosLocal")]
     pub fn set_position_local(&mut self, pos: &Vec3) {
-        if self.parent.is_some() {
-            let mut isometry = self
-                .collider
-                .as_ref()
-                .position_wrt_parent()
-                .unwrap()
-                .clone();
-            isometry.translation.vector = Vec3::to_na(pos);
-            self.collider.as_mut().set_position_wrt_parent(isometry);
+        if let Some(parent) = &mut self.parent {
+            parent.offset.translation.vector = Vec3::to_na(pos);
+            self.collider
+                .as_mut()
+                .set_position_wrt_parent(parent.offset);
         }
     }
 
@@ -647,16 +648,9 @@ impl RigidBody {
     }
 
     #[bind(name = "GetRotLocal", out_param = true)]
-    pub fn get_rotation_local(&mut self) -> Quat {
-        if self.parent.is_some() {
-            Quat::from_na(
-                &self
-                    .collider
-                    .as_ref()
-                    .position_wrt_parent()
-                    .unwrap()
-                    .rotation,
-            )
+    pub fn get_rotation_local(&self) -> Quat {
+        if let Some(parent) = &self.parent {
+            Quat::from_na(&parent.offset.rotation)
         } else {
             Quat::IDENTITY
         }
@@ -669,15 +663,11 @@ impl RigidBody {
 
     #[bind(name = "SetRotLocal")]
     pub fn set_rotation_local(&mut self, rot: &Quat) {
-        if self.parent.is_some() {
-            let mut isometry = self
-                .collider
-                .as_ref()
-                .position_wrt_parent()
-                .unwrap()
-                .clone();
-            isometry.rotation = Quat::to_na(rot);
-            self.collider.as_mut().set_position_wrt_parent(isometry);
+        if let Some(parent) = &mut self.parent {
+            parent.offset.rotation = Quat::to_na(rot);
+            self.collider
+                .as_mut()
+                .set_position_wrt_parent(parent.offset);
         }
     }
 
@@ -699,4 +689,8 @@ impl RigidBody {
         self.shape_type = scaled_shape.shape;
         self.shape_scale = scale;
     }
+}
+
+fn rigid_body_to_non_null(rb: &mut RigidBody) -> NonNull<RigidBody> {
+    NonNull::new(rb as *mut _).unwrap()
 }
