@@ -18,10 +18,8 @@ impl Trigger {
             return;
         }
 
-        self.collider.set_added(|collider| {
-            let handle = world.as_mut().colliders.insert(collider);
-            (handle, world)
-        });
+        self.collider
+            .set_added(world, |collider, w| w.colliders.insert(collider));
     }
 
     pub(crate) fn remove_from_world(&mut self) {
@@ -29,8 +27,7 @@ impl Trigger {
             return;
         }
 
-        self.collider.set_removed(|handle, world| {
-            let w = &mut *world.as_mut();
+        self.collider.set_removed(|handle, w| {
             w.colliders
                 .remove(handle, &mut w.island_manager, &mut w.rigid_bodies, false)
                 .unwrap()

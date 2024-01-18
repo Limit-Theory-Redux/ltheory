@@ -106,14 +106,14 @@ impl<H: RapierHandle> RapierWrapper<H> {
         }
     }
 
-    pub(crate) fn set_added<F>(&mut self, f: F) -> H
+    pub(crate) fn set_added<F>(&mut self, world: Rf<PhysicsWorld>, f: F) -> H
     where
-        F: FnOnce(H::Object) -> (H, Rf<PhysicsWorld>),
+        F: FnOnce(H::Object, &mut PhysicsWorld) -> H,
     {
         let mut out_handle = H::invalid();
         *self = match self.replace() {
             RapierWrapper::Removed(collider) => {
-                let (handle, world) = f(collider);
+                let handle = f(collider, &mut *world.as_mut());
                 out_handle = handle;
                 RapierWrapper::Added(handle, world)
             }
@@ -127,11 +127,13 @@ impl<H: RapierHandle> RapierWrapper<H> {
 
     pub(crate) fn set_removed<F>(&mut self, f: F)
     where
-        F: FnOnce(H, Rf<PhysicsWorld>) -> H::Object,
+        F: FnOnce(H, &mut PhysicsWorld) -> H::Object,
     {
         *self = match self.replace() {
             RapierWrapper::Removed(collider) => RapierWrapper::Removed(collider),
-            RapierWrapper::Added(handle, world) => RapierWrapper::Removed(f(handle, world)),
+            RapierWrapper::Added(handle, world) => {
+                RapierWrapper::Removed(f(handle, &mut *world.as_mut()))
+            }
         }
     }
 

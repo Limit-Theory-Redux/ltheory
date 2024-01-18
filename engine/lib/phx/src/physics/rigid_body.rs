@@ -97,38 +97,25 @@ impl RigidBody {
             let parent_handle = parent_ref.rigid_body.added_as_ref().unwrap().0;
 
             // Add the collider to the parent rigid body.
-            self.collider.set_added(|collider| {
-                let handle = {
-                    // Lock the world as mutable.
-                    let w = &mut *world.as_mut();
+            self.collider.set_added(world, |collider, w| {
+                // Add the collider, then position it correctly.
+                let handle =
+                    w.colliders
+                        .insert_with_parent(collider, *parent_handle, &mut w.rigid_bodies);
+                w.get_mut(handle).set_position_wrt_parent(parent.offset);
 
-                    // Add the collider, then position it correctly.
-                    let handle = w.colliders.insert_with_parent(
-                        collider,
-                        *parent_handle,
-                        &mut w.rigid_bodies,
-                    );
-                    w.get_mut(handle).set_position_wrt_parent(parent.offset);
-
-                    handle
-                };
-                (handle, world)
+                handle
             });
         } else {
             // Add rigid body.
-            let rb_handle = self.rigid_body.set_added(|rb| {
-                let handle = world.as_mut().rigid_bodies.insert(rb);
-                (handle, world.clone())
-            });
+            let rb_handle = self
+                .rigid_body
+                .set_added(world.clone(), |rb, w| w.rigid_bodies.insert(rb));
 
             // Add collider.
-            self.collider.set_added(|collider| {
-                let handle = {
-                    let w = &mut *world.as_mut();
-                    w.colliders
-                        .insert_with_parent(collider, rb_handle, &mut w.rigid_bodies)
-                };
-                (handle, world.clone())
+            self.collider.set_added(world.clone(), |collider, w| {
+                w.colliders
+                    .insert_with_parent(collider, rb_handle, &mut w.rigid_bodies)
             });
 
             // Recurse on children.
@@ -158,8 +145,7 @@ impl RigidBody {
 
         // Remove the rigid body if this is a parent.
         if self.is_parent() {
-            self.rigid_body.set_removed(|handle, world| {
-                let w = &mut *world.as_mut();
+            self.rigid_body.set_removed(|handle, w| {
                 w.rigid_bodies
                     .remove(
                         handle,
@@ -184,8 +170,7 @@ impl RigidBody {
         }
 
         // Remove collider.
-        self.collider.set_removed(|handle, world| {
-            let w = &mut *world.as_mut();
+        self.collider.set_removed(|handle, w| {
             w.colliders
                 .remove(handle, &mut w.island_manager, &mut w.rigid_bodies, false)
                 .unwrap()
@@ -195,6 +180,7 @@ impl RigidBody {
     /// Links a RigidBody to a Rapier Collider, which we can later retrieve
     /// using linked_with_collider and linked_with_collider_mut.
     pub(crate) fn encode_as_user_data(rb: &Box<RigidBody>) -> u128 {
+        // TODO: Replace this with an arena index into the PhysicsWorld.
         &**rb as *const RigidBody as *mut RigidBody as u128
     }
 
