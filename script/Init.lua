@@ -56,6 +56,8 @@ Namespace.Inline(Core.Struct, 'Core.Struct')
 Core.Events = requireAll('Systems.Events')
 Namespace.Inline(Core.Events, 'Systems.Events')
 
+---- AsyncTask EventLoop
+require('Core.LuaExtensions.CooperativeTasks')
 
 ---- Load in FFI
 -- Please note. All of this will need double checking. This is near 1-1 to Josh's.
