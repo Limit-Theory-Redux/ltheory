@@ -515,13 +515,20 @@ impl RigidBody {
     }
 
     pub fn get_bounding_radius(&self) -> f32 {
-        self.get_bounding_box_local().half_extents().length()
+        self.collider.as_ref().shape().compute_local_bounding_sphere().radius()
     }
 
     pub fn get_bounding_radius_compound(&self) -> f32 {
-        self.get_bounding_box_local_compound()
-            .half_extents()
-            .length()
+        // Compute the compounds bounding radius by taking the max of all child colliders bounding radii, offset by its local position.
+        let mut max_radius = self.get_bounding_radius();
+        for child in self.children.iter() {
+            let collider = unsafe { child.as_ref() }.collider.as_ref();
+            let child_bounding_sphere = collider
+                .shape()
+                .compute_bounding_sphere(collider.position_wrt_parent().unwrap());
+            max_radius = f32::max(max_radius, child_bounding_sphere.radius());
+        }
+        max_radius
     }
 
     pub fn get_speed(&self) -> f32 {
