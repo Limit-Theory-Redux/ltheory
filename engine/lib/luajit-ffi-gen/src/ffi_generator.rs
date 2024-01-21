@@ -1,6 +1,8 @@
+use std::env::VarError;
 use std::fmt::Write as FmtWrite;
+use std::fs::File;
 use std::io::Write as IoWrite;
-use std::{env::VarError, fs::File, path::PathBuf};
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
@@ -143,7 +145,7 @@ impl FfiGenerator {
 
     fn ffi_dir() -> PathBuf {
         // TODO: env!("OUT_DIR") doesn't work
-        PathBuf::new().join("target").join("ffi")
+        PathBuf::from("target").join("ffi")
     }
 
     fn ffi_file(module_name: &str) -> PathBuf {

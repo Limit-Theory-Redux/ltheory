@@ -39,10 +39,12 @@ num_cpus = "1.15"
 raw-window-handle = "0.5"
 regex = "1.8"
 rodio = "0.17"
+serde_yaml = "0.9"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 winit = "0.28"
+walkdir = "2.4"
 
 [build-dependencies]
 gl_generator = "0.14"

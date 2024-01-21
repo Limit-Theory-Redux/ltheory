@@ -209,8 +209,8 @@ function BSPTest:onInit()
         obj.mesh = Mesh.FromBytes(bytes)
         Bytes.Free(bytes)
     else
-        --local objData = Resource.LoadCstr(ResourceType.Mesh, 'test/mesh/' .. obj.fileName)
-        local objData = Resource.LoadCstr(ResourceType.Mesh, obj.fileName)
+        --local objData = Resource.LoadString(ResourceType.Mesh, 'test/mesh/' .. obj.fileName)
+        local objData = Resource.LoadString(ResourceType.Mesh, obj.fileName)
         Assert(objData ~= nil)
 
         obj.mesh = Mesh.FromObj(objData)

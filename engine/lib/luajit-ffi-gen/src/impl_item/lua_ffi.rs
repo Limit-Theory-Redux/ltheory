@@ -112,7 +112,7 @@ impl ImplInfo {
             .filter(|method| method.bind_args.gen_lua_ffi())
             .for_each(|method| {
                 let method_name = method.as_ffi_name();
-                
+
                 let ret_ty_str =  if method.bind_args.gen_out_param() || method.ret.is_none() {
                     "void".into()
                 } else {

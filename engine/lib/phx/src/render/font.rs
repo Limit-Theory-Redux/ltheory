@@ -5,8 +5,10 @@ use std::ffi::CString;
 use super::*;
 use crate::common::*;
 use crate::math::*;
+use crate::system::{
+    Profiler_Begin, Profiler_End, ResourceType, ResourceType_Font, Resource_GetPath,
+};
 use crate::rf::Rf;
-use crate::system::{Profiler_Begin, Profiler_End, ResourceType_Font, Resource_GetPath};
 
 use freetype_sys::*;
 use internal::*;
@@ -18,10 +20,10 @@ use internal::*;
 const K_GAMMA: f32 = 1.8;
 const K_RCP_GAMMA: f32 = 1.0 / K_GAMMA;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct Font(Rf<FontData>);
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 struct FontData {
     name: String,
     handle: FT_Face,
@@ -38,7 +40,7 @@ impl Default for FontData {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Glyph {
     pub index: i32,
     pub tex: *mut Tex2D,
@@ -159,7 +161,7 @@ impl Font {
             }
 
             let name_cstr = CString::new(name).expect("Cannot convert string to C string");
-            let path = Resource_GetPath(ResourceType_Font, name_cstr.as_ptr());
+            let path = Resource_GetPath(ResourceType::Font, name_cstr.as_ptr());
             let mut handle = std::ptr::null_mut();
 
             if FT_New_Face(FT, path, 0 as FT_Long, &mut handle) != 0 {

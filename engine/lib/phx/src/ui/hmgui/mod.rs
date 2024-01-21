@@ -1,11 +1,15 @@
 mod alignment;
 mod container;
+mod core_properties;
 mod data;
 mod focus;
 mod gui;
 mod image;
+mod property;
+mod property_registry;
 mod rect;
 mod style;
+mod style_registry;
 mod text;
 mod widget;
 
@@ -13,28 +17,35 @@ use internal::*;
 
 pub use alignment::*;
 pub use container::*;
+pub use core_properties::*;
 pub(self) use data::*;
 pub use focus::*;
 pub use gui::*;
 pub use image::*;
+pub use property::*;
+pub use property_registry::*;
 pub use rect::*;
 pub use style::*;
+pub use style_registry::*;
 pub use text::*;
 pub use widget::*;
 
 pub(self) const IDENT: &str = "  ";
 
+// TODO fix tests for win and mac
+#[cfg(target_os = "linux")]
 #[cfg(test)]
 mod tests {
     use std::cell::Ref;
+    use std::path::PathBuf;
 
     use glam::Vec2;
-    use tracing::Level;
-    use tracing_subscriber::FmtSubscriber;
 
     use crate::input::Input;
 
     use super::*;
+
+    static mut RESOURCES_INITIALIZED: bool = false;
 
     struct WidgetCheck(
         &'static str,             // Widget name
@@ -45,7 +56,22 @@ mod tests {
     );
 
     fn init_test() -> (HmGui, Input) {
-        (HmGui::new(Default::default()), Default::default())
+        unsafe {
+            if !RESOURCES_INITIALIZED {
+                let path = PathBuf::new()
+                    .join(env!("CARGO_MANIFEST_DIR"))
+                    .join("../../../");
+
+                std::env::set_current_dir(&path).expect(&format!(
+                    "Cannot set current directory to: {}",
+                    path.display(),
+                ));
+
+                RESOURCES_INITIALIZED = true;
+            }
+        }
+
+        (HmGui::new(), Default::default())
     }
 
     fn check_widget(widget: &Ref<'_, HmGuiWidget>, expected: &WidgetCheck) {

@@ -255,6 +255,11 @@ do -- Transparent Structs
       int y;
     } Vec2i;
 
+    typedef struct Vec2u {
+      uint x;
+      uint y;
+    } Vec2u;
+
     typedef struct Vec3d {
       double x;
       double y;
@@ -266,6 +271,12 @@ do -- Transparent Structs
       int y;
       int z;
     } Vec3i;
+
+    typedef struct Vec3u {
+      uint x;
+      uint y;
+      uint z;
+    } Vec3u;
 
     typedef struct Vec4d {
       double x;
@@ -287,6 +298,13 @@ do -- Transparent Structs
       int z;
       int w;
     } Vec4i;
+
+    typedef struct Vec4u {
+      uint x;
+      uint y;
+      uint z;
+      uint w;
+    } Vec4u;
 
     typedef struct Vertex {
       float px;

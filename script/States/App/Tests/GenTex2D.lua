@@ -3,7 +3,7 @@ local GenTex2D = require('States.Application')
 local kTexSize = 1024
 local rng = RNG.FromTime()
 
-local vs = Resource.LoadCstr(ResourceType.Shader, 'vertex/ui')
+local vs = Resource.LoadString(ResourceType.Shader, 'vertex/ui')
 
 -- Main generating fragment shader
 local fs = [[

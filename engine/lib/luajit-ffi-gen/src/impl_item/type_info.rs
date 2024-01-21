@@ -49,6 +49,7 @@ const COPY_TYPES: &[&str] = &[
     "FocusType",
     "AlignHorizontal",
     "AlignVertical",
+    "ResourceType",
 ];
 
 #[derive(Debug)]
@@ -164,6 +165,13 @@ pub enum TypeVariant {
 }
 
 impl TypeVariant {
+    pub fn is_string(&self) -> bool {
+        match self {
+            Self::Str | Self::String | Self::CString => true,
+            _ => false,
+        }
+    }
+
     pub fn from_str(type_name: &str) -> Option<Self> {
         let res = match type_name {
             "bool" => Self::Bool,

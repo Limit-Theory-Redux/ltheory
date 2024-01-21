@@ -53,7 +53,6 @@ impl Engine {
             }
 
             Metric_Reset();
-            Resource_Init();
             ShaderVar_Init();
         }
 
@@ -71,7 +70,7 @@ impl Engine {
             cache,
             winit_windows: WinitWindows::new(gl_version_major, gl_version_minor),
             winit_window_id: None,
-            hmgui: HmGui::new(Font::load("Rajdhani", 14)),
+            hmgui: HmGui::new(),
             input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,
@@ -297,7 +296,7 @@ impl Engine {
 
         let mut engine = Engine::new(2, 1);
 
-        let entry_point_path = PathBuf::new().join(entry_point);
+        let entry_point_path = PathBuf::from(entry_point);
 
         if !entry_point_path.exists() {
             // TODO: do we really need this magic?
