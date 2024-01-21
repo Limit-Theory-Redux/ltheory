@@ -42,9 +42,9 @@ use tracing::debug;
  * multiplied in order to maintain the same relative position.
  */
 
-struct RigidBodyParent {
-    rigid_body: NonNull<RigidBody>,
-    offset: na::Isometry3<rp::Real>,
+pub(crate) struct RigidBodyParent {
+    pub rigid_body: NonNull<RigidBody>,
+    pub offset: na::Isometry3<rp::Real>,
 }
 
 pub struct RigidBody {
@@ -52,9 +52,10 @@ pub struct RigidBody {
     collider: ColliderWrapper,
 
     // These contain raw pointers to stable memory addresses of RigidBody's.
-    // TODO: Replace these with an arena index into the PhysicsWorld.
+    // TODO: Replace these with an index into the PhysicsWorld.
     parent: Option<RigidBodyParent>,
     children: Vec<NonNull<RigidBody>>,
+    triggers: Vec<NonNull<Trigger>>,
 
     // Fields to allow us to reconstruct the collision shape object.
     shape_type: CollisionShapeType,
@@ -71,6 +72,7 @@ impl RigidBody {
             collider: ColliderWrapper::Removed(shape.collider),
             parent: None,
             children: vec![],
+            triggers: vec![],
             shape_type: shape.shape,
             shape_scale: shape.scale,
             collidable: true,
@@ -97,7 +99,7 @@ impl RigidBody {
             let parent_handle = parent_ref.rigid_body.added_as_ref().unwrap().0;
 
             // Add the collider to the parent rigid body.
-            self.collider.set_added(world, |collider, w| {
+            self.collider.set_added(world.clone(), |collider, w| {
                 // Add the collider, then position it correctly.
                 let handle =
                     w.colliders
@@ -123,6 +125,11 @@ impl RigidBody {
                 unsafe { child.as_mut() }.add_to_world(world.clone());
             }
         }
+
+        // Add triggers.
+        for trigger in self.triggers.iter_mut() {
+            unsafe { trigger.as_mut() }.add_to_world(world.clone());
+        }
     }
 
     // Removes this rigid body and any children from the physics world.
@@ -133,6 +140,11 @@ impl RigidBody {
     ) {
         if self.collider.is_removed() {
             return;
+        }
+
+        // Remove triggers from the world.
+        for trigger in self.triggers.iter_mut() {
+            unsafe { trigger.as_mut() }.remove_from_world();
         }
 
         // Remove children from the world.
@@ -218,6 +230,23 @@ impl RigidBody {
     /// Is this rigid body a parent?
     pub fn is_parent(&self) -> bool {
         !self.children.is_empty()
+    }
+
+    pub(crate) fn get_parent_internal(&self) -> Option<&RigidBodyParent> {
+        self.parent.as_ref()
+    }
+
+    pub(crate) fn add_trigger(&mut self, trigger: &mut Trigger) {
+        self.triggers.push(type_to_non_null(trigger));
+    }
+
+    pub(crate) fn remove_trigger(&mut self, trigger: &mut Trigger) {
+        self.triggers.swap_remove(
+            self.triggers
+                .iter()
+                .position(|t| t.as_ptr() == trigger as *mut _)
+                .expect("trigger missing from trigger list"),
+        );
     }
 
     /// Returns the unscaled world matrix of this rigid body.
@@ -338,18 +367,13 @@ impl RigidBody {
             panic!("Child is already attached to a parent.");
         }
 
-        debug!(
-            "Attaching rigid body {:?} to {:?}",
-            child as *mut _, self as *mut _
-        );
-
         // Compute the colliders relative position, scaled by the scale of the parent shape.
         let scaled_pos = *pos * self.shape_scale;
 
         // Set the parent-child link.
-        self.children.push(rigid_body_to_non_null(child));
+        self.children.push(type_to_non_null(child));
         child.parent = Some(RigidBodyParent {
-            rigid_body: rigid_body_to_non_null(self),
+            rigid_body: type_to_non_null(self),
             offset: na::Isometry3::from_parts(scaled_pos.to_na().into(), rot.to_na()),
         });
 
@@ -625,6 +649,10 @@ impl RigidBody {
             self.collider
                 .as_mut()
                 .set_position_wrt_parent(parent.offset);
+
+            for trigger in self.triggers.iter_mut() {
+                unsafe { trigger.as_mut() }.refresh_collider_offset();
+            }
         }
     }
 
@@ -654,6 +682,10 @@ impl RigidBody {
             self.collider
                 .as_mut()
                 .set_position_wrt_parent(parent.offset);
+
+            for trigger in self.triggers.iter_mut() {
+                unsafe { trigger.as_mut() }.refresh_collider_offset();
+            }
         }
     }
 
@@ -672,11 +704,26 @@ impl RigidBody {
             scaled_shape.collider.shared_shape().0.clone(),
         ));
 
+        let scale_ratio = scale / self.shape_scale;
+
         self.shape_type = scaled_shape.shape;
         self.shape_scale = scale;
+
+        // Children keep the same relative position.
+        for child in self.children.iter_mut() {
+            let child = unsafe { child.as_mut() };
+            let scaled_position = child.get_position_local() * scale_ratio;
+            child.set_position_local(&scaled_position);
+        }
+
+        for trigger in self.triggers.iter_mut() {
+            let trigger = unsafe { trigger.as_mut() };
+            let scaled_position = trigger.get_position_local() * scale_ratio;
+            trigger.set_position_local(&scaled_position);
+        }
     }
 }
 
-fn rigid_body_to_non_null(rb: &mut RigidBody) -> NonNull<RigidBody> {
-    NonNull::new(rb as *mut _).unwrap()
+fn type_to_non_null<T>(reference: &mut T) -> NonNull<T> {
+    NonNull::new(reference as *mut _).unwrap()
 }

@@ -5,10 +5,14 @@ use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
 use std::ptr::NonNull;
 
+struct TriggerParent {
+    rigid_body: NonNull<RigidBody>,
+    translation: na::Isometry3<rp::Real>,
+}
+
 pub struct Trigger {
     collider: ColliderWrapper,
-    // Raw pointer to stable memory address of parent (as it's in a Box).
-    parent: Option<NonNull<RigidBody>>,
+    parent: Option<TriggerParent>,
     collision_group: rp::InteractionGroups,
 }
 
@@ -18,8 +22,22 @@ impl Trigger {
             return;
         }
 
-        self.collider
-            .set_added(world, |collider, w| w.colliders.insert(collider));
+        self.collider.set_added(world, |collider, w| {
+            let collider = w.colliders.insert(collider);
+
+            // If we're attached to a rigid body, set the collider's parent.
+            if let Some(parent) = &self.parent {
+                let parent_handle = unsafe { parent.rigid_body.as_ref() }
+                    .get_rigid_body_handle()
+                    .expect("The parent needs to be added to the world");
+                w.colliders
+                    .set_parent(collider, Some(parent_handle), &mut w.rigid_bodies);
+            }
+
+            collider
+        });
+
+        self.refresh_collider_offset();
     }
 
     pub(crate) fn remove_from_world(&mut self) {
@@ -34,6 +52,23 @@ impl Trigger {
         });
     }
 
+    pub(crate) fn refresh_collider_offset(&mut self) {
+        if let Some(parent) = &self.parent {
+            let parent_rb = unsafe { parent.rigid_body.as_ref() };
+
+            // Set the offset correctly. If the parent is itself a child,
+            // then we need to append to its relative transform.
+            let transform = if parent_rb.is_child() {
+                // TODO: If the child's relative position gets changed, we need to update our own offset.
+                parent_rb.get_parent_internal().unwrap().offset * parent.translation
+            } else {
+                parent.translation
+            };
+
+            self.collider.as_mut().set_position_wrt_parent(transform);
+        }
+    }
+
     pub fn is_attached(&self) -> bool {
         self.parent.is_some()
     }
@@ -41,7 +76,7 @@ impl Trigger {
 
 #[luajit_ffi_gen::luajit_ffi(managed = true)]
 impl Trigger {
-    fn create_box(half_extents: &Vec3) -> Trigger {
+    pub fn create_box(half_extents: &Vec3) -> Trigger {
         let collider = rp::ColliderBuilder::cuboid(half_extents.x, half_extents.y, half_extents.z)
             .sensor(true)
             .density(0.0)
@@ -53,64 +88,43 @@ impl Trigger {
         }
     }
 
-    fn attach(&mut self, parent: &mut RigidBody, offset: &Vec3) {
+    pub fn attach(&mut self, parent: &mut RigidBody, offset: &Vec3) {
         if self.is_attached() {
             panic!("Trigger is already attached to an object.");
         }
 
-        if self.collider.is_removed() {
-            panic!("Trigger is not added to the world.");
+        self.parent = Some(TriggerParent {
+            rigid_body: NonNull::new(parent as *mut _).expect("parent cannot be null"),
+            translation: rp::Isometry::translation(offset.x, offset.y, offset.z),
+        });
+        parent.add_trigger(self);
+
+        // If we're already added to the world, remove and re-add with the new parent information.
+        if self.collider.is_added() {
+            let world = self.collider.added_as_ref().unwrap().1.clone();
+            self.remove_from_world();
+            self.add_to_world(world)
         }
-
-        let (collider_handle, world) = self.collider.added_as_ref().unwrap();
-
-        {
-            let w = &mut *world.as_mut();
-
-            // Update the parent link.
-            let parent_handle = parent
-                .get_rigid_body_handle()
-                .expect("The parent needs to be added to the world");
-            w.colliders
-                .set_parent(*collider_handle, Some(parent_handle), &mut w.rigid_bodies);
-        }
-
-        // Set the offset correctly. If the parent is itself a child,
-        // then we need to append to its relative transform.
-        let translation = rp::Isometry::translation(offset.x, offset.y, offset.z);
-        let transform: na::Isometry<f32, na::Unit<na::Quaternion<f32>>, 3> = if parent.is_child() {
-            parent.get_collider_ref().position_wrt_parent().unwrap() * translation
-        } else {
-            translation
-        };
-        world
-            .as_mut()
-            .get_mut(*collider_handle)
-            .set_position_wrt_parent(transform);
-
-        self.parent = Some(NonNull::new(parent as *mut _).expect("parent cannot be null"));
     }
 
-    fn detach(&mut self, _parent: &mut RigidBody) {
+    pub fn detach(&mut self, parent: &mut RigidBody) {
         if !self.is_attached() {
-            // TODO: Maybe log here instead of panic?
             panic!("Trigger is not attached to an object.");
         }
 
-        if self.collider.is_removed() {
-            panic!("Trigger is not added to the world.");
+        parent.remove_trigger(self);
+        self.parent = None;
+
+        // If we're already added to the world, remove and re-add with the new parent information.
+        if self.collider.is_added() {
+            let world = self.collider.added_as_ref().unwrap().1.clone();
+            self.remove_from_world();
+            self.add_to_world(world)
         }
-
-        let (collider_handle, world) = self.collider.added_as_ref().unwrap();
-        let w = &mut *world.as_mut();
-
-        // Update the parent link.
-        w.colliders
-            .set_parent(*collider_handle, None, &mut w.rigid_bodies);
     }
 
     #[bind(out_param = true)]
-    fn get_bounding_box(&self) -> Box3 {
+    pub fn get_bounding_box(&self) -> Box3 {
         let aabb = self.collider.as_ref().compute_aabb();
         Box3::new(
             Vec3::from_na_point(&aabb.mins),
@@ -118,23 +132,25 @@ impl Trigger {
         )
     }
 
-    fn get_contents_count(&self) -> i32 {
+    pub fn get_contents_count(&self) -> i32 {
+        // TODO: Implement.
         0
     }
 
     /// Will only include the parent object when a compound is within the trigger.
-    fn get_contents(&self, _i: i32) -> Option<&mut RigidBody> {
+    pub fn get_contents(&self, _i: i32) -> Option<&mut RigidBody> {
+        // TODO: Implement.
         None
     }
 
-    fn set_collision_mask(&mut self, mask: u32) {
+    pub fn set_collision_mask(&mut self, mask: u32) {
         self.collision_group.filter = mask.into();
         let collision_group = self.collision_group;
         self.collider.as_mut().set_collision_groups(collision_group);
     }
 
     #[bind(name = "SetPos")]
-    fn set_position(&mut self, pos: &mut Vec3) {
+    pub fn set_position(&mut self, pos: &Vec3) {
         if self.is_attached() {
             panic!("Not allowed when attached to a RigidBody.");
         }
@@ -143,12 +159,12 @@ impl Trigger {
     }
 
     #[bind(name = "SetPosLocal")]
-    fn set_position_local(&mut self, pos: &mut Vec3) {
-        if self.is_attached() {
+    pub fn set_position_local(&mut self, pos: &Vec3) {
+        if !self.is_attached() {
             panic!("Only allowed when attached to a RigidBody.");
         }
 
-        let parent = unsafe { self.parent.as_mut().unwrap().as_mut() };
+        let parent = unsafe { self.parent.as_mut().unwrap().rigid_body.as_mut() };
 
         // Compute the new local transformation by taking the existing
         // rigid body hierarchy into account. If the parent is itself
@@ -162,7 +178,27 @@ impl Trigger {
         self.collider.as_mut().set_position_wrt_parent(transform);
     }
 
-    fn get_parent(&mut self) -> Option<&mut RigidBody> {
-        self.parent.as_mut().map(|ptr| unsafe { ptr.as_mut() })
+    #[bind(name = "GetPos", out_param = true)]
+    pub fn get_position(&self) -> Vec3 {
+        if self.is_attached() {
+            panic!("Not allowed when attached to a RigidBody.");
+        }
+
+        Vec3::from_na(&self.collider.as_ref().position().translation.vector)
+    }
+
+    #[bind(name = "GetPosLocal", out_param = true)]
+    pub fn get_position_local(&self) -> Vec3 {
+        if let Some(parent) = &self.parent {
+            Vec3::from_na(&parent.translation.translation.vector)
+        } else {
+            Vec3::ZERO
+        }
+    }
+
+    pub fn get_parent(&mut self) -> Option<&mut RigidBody> {
+        self.parent
+            .as_mut()
+            .map(|parent: &mut TriggerParent| unsafe { parent.rigid_body.as_mut() })
     }
 }

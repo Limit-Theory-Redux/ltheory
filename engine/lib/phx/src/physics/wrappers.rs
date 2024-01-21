@@ -92,6 +92,7 @@ impl<H: RapierHandle> RapierWrapper<H> {
         )
     }
 
+    #[allow(dead_code)]
     pub(crate) fn removed_as_ref(&self) -> Option<&H::Object> {
         match self {
             RapierWrapper::Removed(collider) => Some(collider),
@@ -110,6 +111,7 @@ impl<H: RapierHandle> RapierWrapper<H> {
     where
         F: FnOnce(H::Object, &mut PhysicsWorld) -> H,
     {
+        #[allow(unused_assignments)]
         let mut out_handle = H::invalid();
         *self = match self.replace() {
             RapierWrapper::Removed(collider) => {

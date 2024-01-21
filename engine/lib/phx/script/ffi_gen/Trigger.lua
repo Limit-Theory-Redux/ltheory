@@ -24,8 +24,10 @@ function Loader.defineType()
             int        Trigger_GetContentsCount (Trigger const*);
             RigidBody* Trigger_GetContents      (Trigger const*, int i);
             void       Trigger_SetCollisionMask (Trigger*, uint32 mask);
-            void       Trigger_SetPos           (Trigger*, Vec3f* pos);
-            void       Trigger_SetPosLocal      (Trigger*, Vec3f* pos);
+            void       Trigger_SetPos           (Trigger*, Vec3f const* pos);
+            void       Trigger_SetPosLocal      (Trigger*, Vec3f const* pos);
+            void       Trigger_GetPos           (Trigger const*, Vec3f* out);
+            void       Trigger_GetPosLocal      (Trigger const*, Vec3f* out);
             RigidBody* Trigger_GetParent        (Trigger*);
         ]]
     end
@@ -42,6 +44,8 @@ function Loader.defineType()
             SetCollisionMask = libphx.Trigger_SetCollisionMask,
             SetPos           = libphx.Trigger_SetPos,
             SetPosLocal      = libphx.Trigger_SetPosLocal,
+            GetPos           = libphx.Trigger_GetPos,
+            GetPosLocal      = libphx.Trigger_GetPosLocal,
             GetParent        = libphx.Trigger_GetParent,
         }
 
@@ -63,6 +67,8 @@ function Loader.defineType()
                 setCollisionMask = libphx.Trigger_SetCollisionMask,
                 setPos           = libphx.Trigger_SetPos,
                 setPosLocal      = libphx.Trigger_SetPosLocal,
+                getPos           = libphx.Trigger_GetPos,
+                getPosLocal      = libphx.Trigger_GetPosLocal,
                 getParent        = libphx.Trigger_GetParent,
             },
         }
