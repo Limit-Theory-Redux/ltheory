@@ -172,7 +172,12 @@ impl Physics {
             impulse_joints: rp::ImpulseJointSet::new(),
             multibody_joints: rp::MultibodyJointSet::new(),
             ccd_solver: rp::CCDSolver::new(),
-            debug_renderer: rp::DebugRenderPipeline::new(Default::default(), Default::default()),
+            debug_renderer: rp::DebugRenderPipeline::new(
+                rp::DebugRenderStyle::default(),
+                rp::DebugRenderMode::COLLIDER_SHAPES
+                    | rp::DebugRenderMode::RIGID_BODY_AXES
+                    | rp::DebugRenderMode::CONTACTS,
+            ),
         }
     }
 

@@ -66,7 +66,9 @@ pub struct RigidBody {
 impl RigidBody {
     pub fn new(shape: CollisionShape) -> Box<RigidBody> {
         let mut rigid_body = Box::new(RigidBody {
-            rigid_body: RigidBodyWrapper::Removed(rp::RigidBodyBuilder::dynamic().build()),
+            rigid_body: RigidBodyWrapper::Removed(
+                rp::RigidBodyBuilder::dynamic().additional_mass(1.0).build(),
+            ),
             collider: ColliderWrapper::Removed(shape.collider),
             parent: None,
             children: vec![],

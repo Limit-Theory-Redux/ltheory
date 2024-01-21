@@ -41,7 +41,9 @@ impl CollisionShape {
                 ColliderBuilder::convex_hull(points).expect("Convex hull computation failed")
             }
         };
-        let collider = builder.restitution(0.4).build();
+
+        // Rapier does not support 0 mass, so we just set it to a negligible value here.
+        let collider = builder.restitution(0.4).mass(0.0000001).build();
         CollisionShape {
             scale,
             shape,
