@@ -5,9 +5,7 @@ use crate::render::*;
 use crate::rf::Rf;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
-use std::mem::replace;
 use std::ptr::NonNull;
-use tracing::debug;
 
 /*
  * The following API functions are disabled for parent objects:
@@ -200,6 +198,7 @@ impl RigidBody {
     ///
     /// The rest of the physics module guarantees that as long as a given
     /// collider exists, it's corresponding linked RigidBody exists as well.
+    #[allow(dead_code)]
     pub(crate) fn linked_with_collider(collider: &rp::Collider) -> Option<&'_ RigidBody> {
         if collider.user_data != 0 {
             let raw_ptr = collider.user_data as *const RigidBody;
