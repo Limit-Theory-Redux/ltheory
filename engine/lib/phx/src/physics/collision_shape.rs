@@ -6,16 +6,14 @@ use crate::render::*;
 use rapier3d::prelude::nalgebra as na;
 use rapier3d::prelude::{self as rp, ColliderBuilder};
 
-pub type CollisionGroup = i32;
-pub type CollisionMask = i32;
+pub type CollisionGroup = u32;
+pub type CollisionMask = u32;
 
 pub const CollisionGroup_Null: CollisionGroup = 0 << 0;
 pub const CollisionGroup_Default: CollisionGroup = 1 << 0;
-pub const CollisionGroup_Trigger: CollisionGroup = 1 << 1;
 
 pub const CollisionMask_Null: CollisionMask = 0 << 0;
 pub const CollisionMask_All: CollisionMask = !CollisionGroup_Null;
-pub const CollisionMask_NoTriggers: CollisionMask = !CollisionGroup_Trigger;
 
 #[derive(Clone)]
 pub enum CollisionShapeType {
@@ -76,7 +74,7 @@ impl CollisionShape {
     }
 
     pub fn new_sphere(radius: f32) -> CollisionShape {
-        Self::new(1.0, CollisionShapeType::Sphere { radius: radius })
+        Self::new(1.0, CollisionShapeType::Sphere { radius })
     }
 
     pub fn new_sphere_from_mesh(mesh: &mut Mesh) -> CollisionShape {

@@ -199,10 +199,9 @@ impl RigidBody {
     /// The rest of the physics module guarantees that as long as a given
     /// collider exists, it's corresponding linked RigidBody exists as well.
     #[allow(dead_code)]
-    pub(crate) fn linked_with_collider(collider: &rp::Collider) -> Option<&'_ RigidBody> {
+    pub(crate) fn linked_with_collider(collider: &rp::Collider) -> Option<*const RigidBody> {
         if collider.user_data != 0 {
-            let raw_ptr = collider.user_data as *const RigidBody;
-            Some(unsafe { &*raw_ptr })
+            Some(collider.user_data as *const RigidBody)
         } else {
             None
         }
@@ -212,10 +211,9 @@ impl RigidBody {
     ///
     /// The rest of the physics module guarantees that as long as a given
     /// collider exists, it's corresponding linked RigidBody exists as well.
-    pub(crate) fn linked_with_collider_mut(collider: &rp::Collider) -> Option<&'_ mut RigidBody> {
+    pub(crate) fn linked_with_collider_mut(collider: &rp::Collider) -> Option<*mut RigidBody> {
         if collider.user_data != 0 {
-            let raw_ptr = collider.user_data as *mut RigidBody;
-            Some(unsafe { &mut *raw_ptr })
+            Some(collider.user_data as *mut RigidBody)
         } else {
             None
         }

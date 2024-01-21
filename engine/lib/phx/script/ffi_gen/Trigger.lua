@@ -21,7 +21,7 @@ function Loader.defineType()
             void       Trigger_Attach           (Trigger*, RigidBody* parent, Vec3f const* offset);
             void       Trigger_Detach           (Trigger*, RigidBody* parent);
             void       Trigger_GetBoundingBox   (Trigger const*, Box3f* out);
-            int        Trigger_GetContentsCount (Trigger const*);
+            int        Trigger_GetContentsCount (Trigger*);
             RigidBody* Trigger_GetContents      (Trigger const*, int i);
             void       Trigger_SetCollisionMask (Trigger*, uint32 mask);
             void       Trigger_SetPos           (Trigger*, Vec3f const* pos);

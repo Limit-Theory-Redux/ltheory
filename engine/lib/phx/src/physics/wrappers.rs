@@ -87,6 +87,7 @@ impl<H: RapierHandle> RapierWrapper<H> {
                     island_manager: rp::IslandManager::new(),
                     rigid_bodies: rp::RigidBodySet::new(),
                     colliders: rp::ColliderSet::new(),
+                    narrow_phase: rp::NarrowPhase::new(),
                 }),
             ),
         )

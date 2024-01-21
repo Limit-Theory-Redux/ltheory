@@ -82,9 +82,10 @@ impl RapierMatrixInterop for Matrix {
 }
 
 pub(crate) struct PhysicsWorld {
-    pub(crate) island_manager: rp::IslandManager,
-    pub(crate) rigid_bodies: rp::RigidBodySet,
-    pub(crate) colliders: rp::ColliderSet,
+    pub island_manager: rp::IslandManager,
+    pub rigid_bodies: rp::RigidBodySet,
+    pub colliders: rp::ColliderSet,
+    pub narrow_phase: rp::NarrowPhase,
 }
 
 // All Rapier handles are Copy
@@ -146,7 +147,6 @@ pub struct Physics {
     physics_pipeline: rp::PhysicsPipeline,
     query_pipeline: rp::QueryPipeline,
     broad_phase: rp::BroadPhase,
-    narrow_phase: rp::NarrowPhase,
     impulse_joints: rp::ImpulseJointSet,
     multibody_joints: rp::MultibodyJointSet,
     ccd_solver: rp::CCDSolver,
@@ -163,12 +163,12 @@ impl Physics {
                 island_manager: rp::IslandManager::new(),
                 rigid_bodies: rp::RigidBodySet::new(),
                 colliders: rp::ColliderSet::new(),
+                narrow_phase: rp::NarrowPhase::new(),
             }),
             integration_parameters: rp::IntegrationParameters::default(),
             physics_pipeline: rp::PhysicsPipeline::new(),
             query_pipeline: rp::QueryPipeline::new(),
             broad_phase: rp::BroadPhase::new(),
-            narrow_phase: rp::NarrowPhase::new(),
             impulse_joints: rp::ImpulseJointSet::new(),
             multibody_joints: rp::MultibodyJointSet::new(),
             ccd_solver: rp::CCDSolver::new(),
@@ -213,7 +213,7 @@ impl Physics {
             &integration_parameters,
             &mut world.island_manager,
             &mut self.broad_phase,
-            &mut self.narrow_phase,
+            &mut world.narrow_phase,
             &mut world.rigid_bodies,
             &mut world.colliders,
             &mut self.impulse_joints,
@@ -231,21 +231,22 @@ impl Physics {
         }
     }
 
-    /// This will fill the collision object c with the collision information.
+    /// This will fill the collision object with the collision information.
     ///
     /// Will include results for both child and parent RigidBodys that are
     /// colliding. Will not include Triggers.
     pub fn get_next_collision(&self, iterator: &mut Collision) -> bool {
-        let collision_count = self
+        let world = &*self.world.as_ref();
+
+        let collision_count = world
             .narrow_phase
             .contact_graph()
             .raw_graph()
             .raw_edges()
             .len();
 
-        let world = &mut *self.world.as_mut();
         while (iterator.index as usize) < collision_count {
-            let contact_pair = self
+            let contact_pair = world
                 .narrow_phase
                 .contact_pair_at_index(rp::TemporaryInteractionIndex::new(iterator.index));
             iterator.index += 1;
@@ -307,7 +308,7 @@ impl Physics {
         ) {
             if let Some(collider) = world.colliders.get(handle) {
                 if let Some(parent_rb) = RigidBody::linked_with_collider_mut(collider) {
-                    result.body = parent_rb as *mut RigidBody;
+                    result.body = parent_rb;
                     result.pos = Vec3::from_na_point(&ray.point_at(intersection.toi));
                     result.norm = Vec3::from_na(&intersection.normal);
                     result.t = intersection.toi;
@@ -383,7 +384,7 @@ impl Physics {
             &world.colliders,
             &self.impulse_joints,
             &self.multibody_joints,
-            &self.narrow_phase,
+            &world.narrow_phase,
         )
     }
 }
@@ -406,7 +407,7 @@ impl Physics {
             rp::QueryFilter::default(),
             |handle| {
                 if let Some(rigid_body) = RigidBody::linked_with_collider_mut(world.get(handle)) {
-                    result.push(rigid_body as *mut RigidBody);
+                    result.push(rigid_body);
                 }
                 true
             },

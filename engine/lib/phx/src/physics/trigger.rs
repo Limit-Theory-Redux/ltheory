@@ -3,6 +3,7 @@ use crate::physics::*;
 use crate::rf::Rf;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
+use std::cell::Ref;
 use std::ptr::NonNull;
 
 struct TriggerParent {
@@ -14,6 +15,7 @@ pub struct Trigger {
     collider: ColliderWrapper,
     parent: Option<TriggerParent>,
     collision_group: rp::InteractionGroups,
+    contents_cache: Vec<*mut RigidBody>,
 }
 
 impl Trigger {
@@ -83,8 +85,9 @@ impl Trigger {
             .build();
         Trigger {
             collider: ColliderWrapper::Removed(collider),
-            collision_group: rp::InteractionGroups::default(),
+            collision_group: rp::InteractionGroups::all(),
             parent: None,
+            contents_cache: vec![],
         }
     }
 
@@ -132,15 +135,38 @@ impl Trigger {
         )
     }
 
-    pub fn get_contents_count(&self) -> i32 {
-        // TODO: Implement.
-        0
+    pub fn get_contents_count(&mut self) -> i32 {
+        if self.collider.is_removed() {
+            return 0;
+        }
+
+        // Update the contacts list.
+        let (collider, world) = self.collider.added_as_ref().unwrap();
+        let world = &*world.as_ref();
+
+        self.contents_cache.clear();
+        self.contents_cache
+            .extend(
+                world
+                    .narrow_phase
+                    .intersections_with(*collider)
+                    .filter_map(|pair| {
+                        let other_collider = if pair.0 == *collider { pair.1 } else { pair.0 };
+
+                        RigidBody::linked_with_collider_mut(
+                            world.colliders.get(other_collider).unwrap(),
+                        )
+                    }),
+            );
+
+        self.contents_cache.len() as i32
     }
 
     /// Will only include the parent object when a compound is within the trigger.
-    pub fn get_contents(&self, _i: i32) -> Option<&mut RigidBody> {
-        // TODO: Implement.
-        None
+    pub fn get_contents(&self, i: i32) -> Option<&mut RigidBody> {
+        self.contents_cache
+            .get(i as usize)
+            .map(|ptr| unsafe { &mut **ptr })
     }
 
     pub fn set_collision_mask(&mut self, mask: u32) {
