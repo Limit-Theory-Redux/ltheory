@@ -3,6 +3,7 @@ use crate::math::*;
 use crate::physics::*;
 use crate::render::*;
 use crate::rf::Rf;
+use rapier3d::parry::simba::scalar::SupersetOf;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
 use std::ptr::NonNull;
@@ -59,6 +60,8 @@ pub struct RigidBody {
     shape_type: CollisionShapeType,
     shape_scale: f32,
 
+    mass: f32,
+
     collidable: bool,
     collision_group: rp::InteractionGroups,
 }
@@ -67,7 +70,7 @@ impl RigidBody {
     pub fn new(shape: CollisionShape) -> Box<RigidBody> {
         let mut rigid_body = Box::new(RigidBody {
             rigid_body: RigidBodyWrapper::Removed(
-                rp::RigidBodyBuilder::dynamic().additional_mass(1.0).build(),
+                rp::RigidBodyBuilder::dynamic().build(),
             ),
             collider: ColliderWrapper::Removed(shape.collider),
             parent: None,
@@ -75,6 +78,7 @@ impl RigidBody {
             triggers: vec![],
             shape_type: shape.shape,
             shape_scale: shape.scale,
+            mass: 1.0,
             collidable: true,
             collision_group: rp::InteractionGroups::default(),
         });
@@ -376,6 +380,9 @@ impl RigidBody {
             offset: na::Isometry3::from_parts(scaled_pos.to_na().into(), rot.to_na()),
         });
 
+        // Set this childs mass to a negligible value.
+        child.collider.as_mut().set_mass(0.000001);
+
         // Multiple colliders in Rapier can be attached to a single
         // rigid body, so there's no need to create a "compound shape"
 
@@ -417,6 +424,9 @@ impl RigidBody {
         if child.collider.is_added() {
             child.remove_collider_from_world();
         }
+
+        // Reset the child collider's mass.
+        child.collider.as_mut().set_mass(child.mass);
 
         // Break parent-child link.
         self.children.swap_remove(
@@ -515,7 +525,11 @@ impl RigidBody {
     }
 
     pub fn get_bounding_radius(&self) -> f32 {
-        self.collider.as_ref().shape().compute_local_bounding_sphere().radius()
+        self.collider
+            .as_ref()
+            .shape()
+            .compute_local_bounding_sphere()
+            .radius()
     }
 
     pub fn get_bounding_radius_compound(&self) -> f32 {
@@ -617,12 +631,19 @@ impl RigidBody {
     }
 
     pub fn get_mass(&self) -> f32 {
-        self.rigid_body.as_ref().mass()
+        self.mass
     }
 
     /// The mass of child objects does not affect the mass or inertia of the parent
     pub fn set_mass(&mut self, mass: f32) {
-        self.rigid_body.as_mut().set_additional_mass(mass, true);
+        self.mass = mass;
+        
+        // Only update the colliders mass if we're not attached to something, as
+        // the expectation is that a child collider's mass does not contribute
+        // to the parent's mass.
+        if !self.is_child() {
+            self.collider.as_mut().set_mass(mass);
+        }
     }
 
     /// Children return the parent position.
@@ -727,6 +748,10 @@ impl RigidBody {
             let scaled_position = trigger.get_position_local() * scale_ratio;
             trigger.set_position_local(&scaled_position);
         }
+    }
+
+    pub fn is_sleeping(&self) -> bool {
+        self.rigid_body.as_ref().is_sleeping()
     }
 }
 

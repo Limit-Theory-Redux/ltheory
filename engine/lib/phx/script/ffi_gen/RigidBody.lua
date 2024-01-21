@@ -58,6 +58,7 @@ function Loader.defineType()
             void       RigidBody_SetRotLocal                 (RigidBody*, Quat const* rot);
             float      RigidBody_GetScale                    (RigidBody const*);
             void       RigidBody_SetScale                    (RigidBody*, float scale);
+            bool       RigidBody_IsSleeping                  (RigidBody const*);
         ]]
     end
 
@@ -105,6 +106,7 @@ function Loader.defineType()
             SetRotLocal                 = libphx.RigidBody_SetRotLocal,
             GetScale                    = libphx.RigidBody_GetScale,
             SetScale                    = libphx.RigidBody_SetScale,
+            IsSleeping                  = libphx.RigidBody_IsSleeping,
         }
 
         if onDef_RigidBody then onDef_RigidBody(RigidBody, mt) end
@@ -153,6 +155,7 @@ function Loader.defineType()
                 setRotLocal                 = libphx.RigidBody_SetRotLocal,
                 getScale                    = libphx.RigidBody_GetScale,
                 setScale                    = libphx.RigidBody_SetScale,
+                isSleeping                  = libphx.RigidBody_IsSleeping,
             },
         }
 

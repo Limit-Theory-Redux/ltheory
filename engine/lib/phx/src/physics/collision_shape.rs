@@ -42,8 +42,7 @@ impl CollisionShape {
             }
         };
 
-        // Rapier does not support 0 mass, so we just set it to a negligible value here.
-        let collider = builder.restitution(0.4).mass(0.0000001).build();
+        let collider = builder.restitution(0.4).mass(1.0).build();
         CollisionShape {
             scale,
             shape,
