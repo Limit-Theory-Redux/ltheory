@@ -312,9 +312,19 @@ impl RigidBody {
         Self::new(CollisionShape::new_sphere_from_mesh(mesh))
     }
 
-    #[bind(name = "CreateHullFromMesh")]
-    pub fn new_hull_from_mesh(mesh: &Mesh) -> Box<RigidBody> {
-        Self::new(CollisionShape::new_hull_from_mesh(mesh))
+    #[bind(name = "CreateConvexHullFromMesh")]
+    pub fn new_convex_hull_from_mesh(mesh: &Mesh) -> Box<RigidBody> {
+        Self::new(CollisionShape::new_convex_hull_from_mesh(mesh))
+    }
+
+    #[bind(name = "CreateConvexDecompositionFromMesh")]
+    pub fn new_convex_decomposition_from_mesh(mesh: &Mesh) -> Box<RigidBody> {
+        Self::new(CollisionShape::new_convex_decomposition_from_mesh(mesh))
+    }
+
+    #[bind(name = "CreateTrimeshFromMesh")]
+    pub fn new_trimesh_from_mesh(mesh: &Mesh) -> Box<RigidBody> {
+        Self::new(CollisionShape::new_trimesh_from_mesh(mesh))
     }
 
     /// Return a reference to the parent rigid body, that we can guarantee

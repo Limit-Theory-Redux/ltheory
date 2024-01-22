@@ -33,9 +33,14 @@ function Entity:addRigidBody(isCollider, collisionMesh, colliderType)
 
     if colliderType == Enums.ColliderType.Box then
         self.body = RigidBody.CreateBoxFromMesh(collisionMesh)
-    elseif colliderType == Enums.ColliderType.Hull then
-        self.body = RigidBody.CreateHullFromMesh(collisionMesh)
+    elseif colliderType == Enums.ColliderType.ConvexHull then
+        self.body = RigidBody.CreateConvexHullFromMesh(collisionMesh)
+    elseif colliderType == Enums.ColliderType.ConvexDecomposition then
+        self.body = RigidBody.CreateConvexDecompositionFromMesh(collisionMesh)
+    elseif colliderType == Enums.ColliderType.Trimesh then
+        self.body = RigidBody.CreateTrimeshFromMesh(collisionMesh)
     else
+        -- Default case.
         self.body = RigidBody.CreateSphereFromMesh(collisionMesh)
     end
 

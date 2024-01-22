@@ -17,9 +17,23 @@ pub const CollisionMask_All: CollisionMask = !CollisionGroup_Null;
 
 #[derive(Clone)]
 pub enum CollisionShapeType {
-    Box { half_extents: Vec3 },
-    Sphere { radius: f32 },
-    Hull { points: Vec<na::Point3<rp::Real>> },
+    Box {
+        half_extents: Vec3,
+    },
+    Sphere {
+        radius: f32,
+    },
+    ConvexHull {
+        points: Vec<na::Point3<rp::Real>>,
+    },
+    ConvexDecomposition {
+        vertices: Vec<na::Point3<rp::Real>>,
+        indices: Vec<[u32; 3]>,
+    },
+    Trimesh {
+        vertices: Vec<na::Point3<rp::Real>>,
+        indices: Vec<[u32; 3]>,
+    },
 }
 
 pub struct CollisionShape {
@@ -39,11 +53,21 @@ impl CollisionShape {
             CollisionShapeType::Sphere { radius } => {
                 ColliderBuilder::ball((radius * scale) as rp::Real)
             }
-            CollisionShapeType::Hull { points } => {
+            CollisionShapeType::ConvexHull { points } => {
                 let scaled_points: Vec<na::Point3<rp::Real>> =
                     points.iter().map(|p| *p * (scale as rp::Real)).collect();
                 ColliderBuilder::convex_hull(&scaled_points)
                     .expect("Convex hull computation failed")
+            }
+            CollisionShapeType::ConvexDecomposition { vertices, indices } => {
+                let scaled_vertices: Vec<na::Point3<rp::Real>> =
+                    vertices.iter().map(|p| *p * (scale as rp::Real)).collect();
+                ColliderBuilder::convex_decomposition(&scaled_vertices, indices)
+            }
+            CollisionShapeType::Trimesh { vertices, indices } => {
+                let scaled_vertices: Vec<na::Point3<rp::Real>> =
+                    vertices.iter().map(|p| *p * (scale as rp::Real)).collect();
+                ColliderBuilder::trimesh(scaled_vertices, indices.clone())
             }
         };
 
@@ -92,12 +116,50 @@ impl CollisionShape {
         )
     }
 
-    pub fn new_hull_from_mesh(mesh: &Mesh) -> CollisionShape {
+    pub fn new_convex_hull_from_mesh(mesh: &Mesh) -> CollisionShape {
         Self::new(
             1.0,
-            CollisionShapeType::Hull {
-                points: mesh.vertex.iter().map(|v| v.p.to_na_point()).collect(),
+            CollisionShapeType::ConvexHull {
+                points: Self::convert_vertices(mesh),
             },
         )
+    }
+
+    pub fn new_convex_decomposition_from_mesh(mesh: &Mesh) -> CollisionShape {
+        Self::new(
+            1.0,
+            CollisionShapeType::ConvexDecomposition {
+                vertices: Self::convert_vertices(mesh),
+                indices: Self::convert_indices(mesh),
+            },
+        )
+    }
+
+    pub fn new_trimesh_from_mesh(mesh: &Mesh) -> CollisionShape {
+        Self::new(
+            1.0,
+            CollisionShapeType::Trimesh {
+                vertices: Self::convert_vertices(mesh),
+                indices: Self::convert_indices(mesh),
+            },
+        )
+    }
+
+    fn convert_vertices(mesh: &Mesh) -> Vec<na::Point3<rp::Real>> {
+        mesh.vertex.iter().map(|v| v.p.to_na_point()).collect()
+    }
+
+    fn convert_indices(mesh: &Mesh) -> Vec<[u32; 3]> {
+        let mesh_indices = &mesh.index[..mesh.index.len() - (mesh.index.len() % 3)];
+        let mut indices: Vec<[u32; 3]> = Vec::new();
+        indices.reserve(mesh_indices.len() / 3);
+        for i in 0..mesh_indices.len() / 3 {
+            indices.push([
+                mesh_indices[i * 3] as u32,
+                mesh_indices[i * 3 + 1] as u32,
+                mesh_indices[i * 3 + 2] as u32,
+            ])
+        }
+        indices
     }
 }
