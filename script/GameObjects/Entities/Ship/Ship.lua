@@ -54,7 +54,7 @@ local Ship = subclass(Entity, function(self, proto, hull)
     Log.Debug("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
     -- TODO : This will create a duplicate BSP because proto & RigidBody do not
     -- share the same BSP cache. Need unified cache.
-    self:addRigidBody(true, proto.mesh) -- required
+    self:addRigidBody(true, proto.mesh, Enums.ColliderType.Hull) -- required
     self:addVisibleMesh(proto.mesh, Material.Metal())
 
     self:addActions()
