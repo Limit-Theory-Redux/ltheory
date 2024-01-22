@@ -1766,10 +1766,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "parry3d"
+name = "parry3d-f64"
 version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b55dc0e6db79bddbc5fd583569f7356cdcc63e1e9b2b93a9ab70dd8e717160e0"
+checksum = "9789fd9474afd3b68cc1379a20b56c221dc73e1d5b21671c0646f78cd5441d8c"
 dependencies = [
  "approx",
  "arrayvec",
@@ -1827,7 +1827,7 @@ dependencies = [
  "memoffset 0.9.0",
  "mlua",
  "num_cpus",
- "rapier3d",
+ "rapier3d-f64",
  "raw-window-handle",
  "regex",
  "rodio",
@@ -1902,10 +1902,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "rapier3d"
+name = "rapier3d-f64"
 version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62a8a0bd9d3135f7b4eb45d0796540e7bab47b6b7c974f90567ccc5a0454f42b"
+checksum = "4b680491ffdf398dc4728782a094bc566f49af9676de8995881e9759155fffbd"
 dependencies = [
  "approx",
  "arrayvec",
@@ -1916,7 +1916,7 @@ dependencies = [
  "nalgebra",
  "num-derive",
  "num-traits",
- "parry3d",
+ "parry3d-f64",
  "rustc-hash",
  "simba",
  "vec_map",

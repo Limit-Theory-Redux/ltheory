@@ -3,9 +3,9 @@ use crate::math::*;
 use crate::physics::*;
 use crate::render::*;
 use crate::rf::Rf;
-use rapier3d::parry::simba::scalar::SupersetOf;
-use rapier3d::prelude as rp;
-use rapier3d::prelude::nalgebra as na;
+use rapier3d_f64::parry::simba::scalar::SupersetOf;
+use rapier3d_f64::prelude as rp;
+use rapier3d_f64::prelude::nalgebra as na;
 use std::ptr::NonNull;
 
 /*
@@ -69,9 +69,7 @@ pub struct RigidBody {
 impl RigidBody {
     pub fn new(shape: CollisionShape) -> Box<RigidBody> {
         let mut rigid_body = Box::new(RigidBody {
-            rigid_body: RigidBodyWrapper::Removed(
-                rp::RigidBodyBuilder::dynamic().build(),
-            ),
+            rigid_body: RigidBodyWrapper::Removed(rp::RigidBodyBuilder::dynamic().build()),
             collider: ColliderWrapper::Removed(shape.collider),
             parent: None,
             children: vec![],
@@ -426,7 +424,7 @@ impl RigidBody {
         }
 
         // Reset the child collider's mass.
-        child.collider.as_mut().set_mass(child.mass);
+        child.collider.as_mut().set_mass(child.mass as rp::Real);
 
         // Break parent-child link.
         self.children.swap_remove(
@@ -529,7 +527,7 @@ impl RigidBody {
             .as_ref()
             .shape()
             .compute_local_bounding_sphere()
-            .radius()
+            .radius() as f32
     }
 
     pub fn get_bounding_radius_compound(&self) -> f32 {
@@ -540,13 +538,13 @@ impl RigidBody {
             let child_bounding_sphere = collider
                 .shape()
                 .compute_bounding_sphere(collider.position_wrt_parent().unwrap());
-            max_radius = f32::max(max_radius, child_bounding_sphere.radius());
+            max_radius = f32::max(max_radius, child_bounding_sphere.radius() as f32);
         }
         max_radius
     }
 
     pub fn get_speed(&self) -> f32 {
-        self.rigid_body.as_ref().linvel().norm()
+        self.rigid_body.as_ref().linvel().norm() as f32
     }
 
     /// Returns the local -> world matrix for this rigid body.
@@ -603,12 +601,12 @@ impl RigidBody {
 
     pub fn set_drag(&mut self, linear: f32, angular: f32) {
         let mut rb = self.rigid_body.as_mut();
-        rb.set_linear_damping(linear);
-        rb.set_angular_damping(angular);
+        rb.set_linear_damping(linear as rp::Real);
+        rb.set_angular_damping(angular as rp::Real);
     }
 
     pub fn set_friction(&mut self, friction: f32) {
-        self.collider.as_mut().set_friction(friction);
+        self.collider.as_mut().set_friction(friction as rp::Real);
     }
 
     pub fn set_kinematic(&mut self, kinematic: bool) {
@@ -621,13 +619,15 @@ impl RigidBody {
     }
 
     pub fn set_restitution(&mut self, restitution: f32) {
-        self.collider.as_mut().set_restitution(restitution);
+        self.collider
+            .as_mut()
+            .set_restitution(restitution as rp::Real);
     }
 
     pub fn set_sleep_threshold(&mut self, linear: f32, angular: f32) {
         let mut rb = self.rigid_body.as_mut();
-        rb.activation_mut().linear_threshold = linear;
-        rb.activation_mut().angular_threshold = angular;
+        rb.activation_mut().linear_threshold = linear as rp::Real;
+        rb.activation_mut().angular_threshold = angular as rp::Real;
     }
 
     pub fn get_mass(&self) -> f32 {
@@ -637,12 +637,12 @@ impl RigidBody {
     /// The mass of child objects does not affect the mass or inertia of the parent
     pub fn set_mass(&mut self, mass: f32) {
         self.mass = mass;
-        
+
         // Only update the colliders mass if we're not attached to something, as
         // the expectation is that a child collider's mass does not contribute
         // to the parent's mass.
         if !self.is_child() {
-            self.collider.as_mut().set_mass(mass);
+            self.collider.as_mut().set_mass(mass as rp::Real);
         }
     }
 

@@ -1,8 +1,8 @@
 use crate::math::{Box3, Vec3};
 use crate::physics::*;
 use crate::rf::Rf;
-use rapier3d::prelude as rp;
-use rapier3d::prelude::nalgebra as na;
+use rapier3d_f64::prelude as rp;
+use rapier3d_f64::prelude::nalgebra as na;
 use std::cell::Ref;
 use std::ptr::NonNull;
 
@@ -79,10 +79,14 @@ impl Trigger {
 #[luajit_ffi_gen::luajit_ffi(managed = true)]
 impl Trigger {
     pub fn create_box(half_extents: &Vec3) -> Trigger {
-        let collider = rp::ColliderBuilder::cuboid(half_extents.x, half_extents.y, half_extents.z)
-            .sensor(true)
-            .density(0.0)
-            .build();
+        let collider = rp::ColliderBuilder::cuboid(
+            half_extents.x as rp::Real,
+            half_extents.y as rp::Real,
+            half_extents.z as rp::Real,
+        )
+        .sensor(true)
+        .density(0.0)
+        .build();
         Trigger {
             collider: ColliderWrapper::Removed(collider),
             collision_group: rp::InteractionGroups::all(),
@@ -98,7 +102,11 @@ impl Trigger {
 
         self.parent = Some(TriggerParent {
             rigid_body: NonNull::new(parent as *mut _).expect("parent cannot be null"),
-            translation: rp::Isometry::translation(offset.x, offset.y, offset.z),
+            translation: rp::Isometry::translation(
+                offset.x as rp::Real,
+                offset.y as rp::Real,
+                offset.z as rp::Real,
+            ),
         });
         parent.add_trigger(self);
 
@@ -195,7 +203,8 @@ impl Trigger {
         // Compute the new local transformation by taking the existing
         // rigid body hierarchy into account. If the parent is itself
         // a child, then we need to append to its relative transform.
-        let translation = rp::Isometry::translation(pos.x, pos.y, pos.z);
+        let translation =
+            rp::Isometry::translation(pos.x as rp::Real, pos.y as rp::Real, pos.z as rp::Real);
         let transform = if parent.is_child() {
             parent.get_collider_ref().position_wrt_parent().unwrap() * translation
         } else {

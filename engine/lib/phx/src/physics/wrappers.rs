@@ -1,6 +1,6 @@
 use crate::physics::*;
 use crate::rf::Rf;
-use rapier3d::prelude as rp;
+use rapier3d_f64::prelude as rp;
 use std::cell::{Ref, RefMut};
 use std::ops::{Deref, DerefMut};
 

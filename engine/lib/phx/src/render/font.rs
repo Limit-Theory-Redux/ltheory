@@ -5,10 +5,10 @@ use std::ffi::CString;
 use super::*;
 use crate::common::*;
 use crate::math::*;
+use crate::rf::Rf;
 use crate::system::{
     Profiler_Begin, Profiler_End, ResourceType, ResourceType_Font, Resource_GetPath,
 };
-use crate::rf::Rf;
 
 use freetype_sys::*;
 use internal::*;

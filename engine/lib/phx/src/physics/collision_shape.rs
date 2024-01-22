@@ -3,8 +3,8 @@ use std::rc::{Rc, Weak};
 use crate::math::{Box3, Vec3};
 use crate::physics::*;
 use crate::render::*;
-use rapier3d::prelude::nalgebra as na;
-use rapier3d::prelude::{self as rp, ColliderBuilder};
+use rapier3d_f64::prelude::nalgebra as na;
+use rapier3d_f64::prelude::{self as rp, ColliderBuilder};
 
 pub type CollisionGroup = u32;
 pub type CollisionMask = u32;
@@ -19,7 +19,7 @@ pub const CollisionMask_All: CollisionMask = !CollisionGroup_Null;
 pub enum CollisionShapeType {
     Box { half_extents: Vec3 },
     Sphere { radius: f32 },
-    Hull { points: Vec<na::Point3<f32>> },
+    Hull { points: Vec<na::Point3<rp::Real>> },
 }
 
 pub struct CollisionShape {
@@ -32,11 +32,13 @@ impl CollisionShape {
     pub(crate) fn new(scale: f32, shape: CollisionShapeType) -> CollisionShape {
         let builder = match &shape {
             CollisionShapeType::Box { half_extents } => ColliderBuilder::cuboid(
-                half_extents.x * scale,
-                half_extents.y * scale,
-                half_extents.z * scale,
+                (half_extents.x * scale) as rp::Real,
+                (half_extents.y * scale) as rp::Real,
+                (half_extents.z * scale) as rp::Real,
             ),
-            CollisionShapeType::Sphere { radius } => ColliderBuilder::ball(radius * scale),
+            CollisionShapeType::Sphere { radius } => {
+                ColliderBuilder::ball((radius * scale) as rp::Real)
+            }
             CollisionShapeType::Hull { points } => {
                 ColliderBuilder::convex_hull(points).expect("Convex hull computation failed")
             }

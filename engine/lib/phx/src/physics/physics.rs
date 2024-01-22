@@ -4,9 +4,9 @@ use crate::math::*;
 use crate::physics::*;
 use crate::render::*;
 use crate::rf::Rf;
-use rapier3d::parry::query::RayCast;
-use rapier3d::prelude as rp;
-use rapier3d::prelude::nalgebra as na;
+use rapier3d_f64::parry::query::RayCast;
+use rapier3d_f64::prelude as rp;
+use rapier3d_f64::prelude::nalgebra as na;
 
 #[repr(C)]
 pub struct Collision {
@@ -36,48 +36,56 @@ impl ShapeCastResult {
 }
 
 pub trait NalgebraVec3Interop {
-    fn to_na(&self) -> na::Vector3<f32>;
-    fn to_na_point(&self) -> na::Point3<f32>;
-    fn from_na(_: &na::Vector3<f32>) -> Self;
-    fn from_na_point(_: &na::Point3<f32>) -> Self;
+    fn to_na(&self) -> na::Vector3<rp::Real>;
+    fn to_na_point(&self) -> na::Point3<rp::Real>;
+    fn from_na(_: &na::Vector3<rp::Real>) -> Self;
+    fn from_na_point(_: &na::Point3<rp::Real>) -> Self;
 }
 
 impl NalgebraVec3Interop for Vec3 {
-    fn to_na(&self) -> na::Vector3<f32> {
-        na::Vector3::new(self.x, self.y, self.z)
+    fn to_na(&self) -> na::Vector3<rp::Real> {
+        na::Vector3::new(self.x as rp::Real, self.y as rp::Real, self.z as rp::Real)
     }
-    fn to_na_point(&self) -> na::Point3<f32> {
-        na::Point3::new(self.x, self.y, self.z)
+    fn to_na_point(&self) -> na::Point3<rp::Real> {
+        na::Point3::new(self.x as rp::Real, self.y as rp::Real, self.z as rp::Real)
     }
-    fn from_na(v: &na::Vector3<f32>) -> Vec3 {
-        Vec3::new(v.x, v.y, v.z)
+    fn from_na(v: &na::Vector3<rp::Real>) -> Vec3 {
+        Vec3::new(v.x as f32, v.y as f32, v.z as f32)
     }
-    fn from_na_point(v: &na::Point3<f32>) -> Vec3 {
-        Vec3::new(v.x, v.y, v.z)
+    fn from_na_point(v: &na::Point3<rp::Real>) -> Vec3 {
+        Vec3::new(v.x as f32, v.y as f32, v.z as f32)
     }
 }
 
 pub trait NalgebraQuatInterop {
-    fn to_na(&self) -> na::UnitQuaternion<f32>;
-    fn from_na(_: &na::UnitQuaternion<f32>) -> Self;
+    fn to_na(&self) -> na::UnitQuaternion<rp::Real>;
+    fn from_na(_: &na::UnitQuaternion<rp::Real>) -> Self;
 }
 
 impl NalgebraQuatInterop for Quat {
-    fn to_na(&self) -> na::UnitQuaternion<f32> {
-        na::UnitQuaternion::from_quaternion(na::Quaternion::new(self.w, self.x, self.y, self.z))
+    fn to_na(&self) -> na::UnitQuaternion<rp::Real> {
+        na::UnitQuaternion::from_quaternion(na::Quaternion::new(
+            self.w as rp::Real,
+            self.x as rp::Real,
+            self.y as rp::Real,
+            self.z as rp::Real,
+        ))
     }
-    fn from_na(v: &na::UnitQuaternion<f32>) -> Quat {
-        Quat_Create(v.i, v.j, v.k, v.w)
+    fn from_na(v: &na::UnitQuaternion<rp::Real>) -> Quat {
+        Quat_Create(v.i as f32, v.j as f32, v.k as f32, v.w as f32)
     }
 }
 
 pub trait RapierMatrixInterop {
-    fn from_rp(_: &rp::Isometry<f32>) -> Self;
+    fn from_rp(_: &rp::Isometry<rp::Real>) -> Self;
 }
 
 impl RapierMatrixInterop for Matrix {
-    fn from_rp(t: &rp::Isometry<f32>) -> Matrix {
-        Matrix::from_cols_slice(t.to_matrix().as_slice())
+    fn from_rp(t: &rp::Isometry<rp::Real>) -> Matrix {
+        Matrix::from_rotation_translation(
+            Quat::from_na(&t.rotation),
+            Vec3::from_na(&t.translation.vector),
+        )
     }
 }
 
@@ -211,7 +219,7 @@ impl Physics {
         let event_handler = ();
 
         let mut integration_parameters = self.integration_parameters;
-        integration_parameters.dt = dt;
+        integration_parameters.dt = dt as rp::Real;
         let world = &mut *self.world.as_mut();
         self.physics_pipeline.step(
             &gravity,
@@ -316,7 +324,7 @@ impl Physics {
                     result.body = parent_rb;
                     result.pos = Vec3::from_na_point(&ray.point_at(intersection.toi));
                     result.norm = Vec3::from_na(&intersection.normal);
-                    result.t = intersection.toi;
+                    result.t = intersection.toi as f32;
                 }
             }
         }
@@ -328,7 +336,13 @@ impl Physics {
     /// The array stored inside ShapeCastResult is valid until the next call to sphere_cast.
     #[bind(out_param = true)]
     pub fn sphere_cast(&self, sphere: &Sphere) -> ShapeCastResult {
-        let result = self.shape_cast(&rp::Ball { radius: sphere.r }, sphere.p, Quat::IDENTITY);
+        let result = self.shape_cast(
+            &rp::Ball {
+                radius: sphere.r as rp::Real,
+            },
+            sphere.p,
+            Quat::IDENTITY,
+        );
         unsafe {
             static mut storage: Option<Box<[*mut RigidBody]>> = None;
             storage = Some(result.into_boxed_slice());
@@ -362,7 +376,13 @@ impl Physics {
     }
 
     pub fn sphere_overlap(&self, sphere: &Sphere) -> bool {
-        self.shape_overlap(&rp::Ball { radius: sphere.r }, sphere.p, Quat::IDENTITY)
+        self.shape_overlap(
+            &rp::Ball {
+                radius: sphere.r as rp::Real,
+            },
+            sphere.p,
+            Quat::IDENTITY,
+        )
     }
 
     pub fn box_overlap(&self, pos: &Vec3, rot: &Quat, half_extents: &Vec3) -> bool {
