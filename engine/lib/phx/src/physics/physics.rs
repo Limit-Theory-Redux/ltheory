@@ -7,6 +7,7 @@ use crate::rf::Rf;
 use rapier3d_f64::parry::query::RayCast;
 use rapier3d_f64::prelude as rp;
 use rapier3d_f64::prelude::nalgebra as na;
+use std::ffi::{CStr, CString};
 
 #[repr(C)]
 pub struct Collision {
@@ -399,8 +400,6 @@ impl Physics {
 
     pub fn draw_bounding_boxes_world(&self) {}
 
-    pub fn draw_triggers(&self) {}
-
     pub fn draw_wireframes(&mut self) {
         let world = self.world.as_ref();
         self.debug_renderer.render(
@@ -515,7 +514,7 @@ impl rp::DebugRenderBackend for RapierDebugRenderer {
     ) {
         unsafe {
             let (r, g, b) = hsl_to_rgb(color[0], color[1], color[2]);
-            Draw_Color(r, g, b, color[3]);
+            Shader_SetFloat4(CString::new("color").unwrap().as_c_str().as_ptr(), r, g, b, color[3]);
             Draw_Line3(
                 &Vec3::from_na_point(&start) as *const _,
                 &Vec3::from_na_point(&end) as *const _,

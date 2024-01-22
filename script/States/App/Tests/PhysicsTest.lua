@@ -1,6 +1,5 @@
 Config.debug.physics.drawBoundingBoxesLocal = false
 Config.debug.physics.drawBoundingBoxesWorld = false
-Config.debug.physics.drawTriggers           = true
 Config.debug.physics.drawWireframes         = true
 
 --[[-- Controls ----------------------------------------------------------------

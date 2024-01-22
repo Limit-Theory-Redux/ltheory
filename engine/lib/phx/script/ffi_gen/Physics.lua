@@ -31,7 +31,6 @@ function Loader.defineType()
             bool     Physics_BoxOverlap             (Physics const*, Vec3f const* pos, Quat const* rot, Vec3f const* halfExtents);
             void     Physics_DrawBoundingBoxesLocal (Physics const*);
             void     Physics_DrawBoundingBoxesWorld (Physics const*);
-            void     Physics_DrawTriggers           (Physics const*);
             void     Physics_DrawWireframes         (Physics*);
         ]]
     end
@@ -53,7 +52,6 @@ function Loader.defineType()
             BoxOverlap             = libphx.Physics_BoxOverlap,
             DrawBoundingBoxesLocal = libphx.Physics_DrawBoundingBoxesLocal,
             DrawBoundingBoxesWorld = libphx.Physics_DrawBoundingBoxesWorld,
-            DrawTriggers           = libphx.Physics_DrawTriggers,
             DrawWireframes         = libphx.Physics_DrawWireframes,
         }
 
@@ -80,7 +78,6 @@ function Loader.defineType()
                 boxOverlap             = libphx.Physics_BoxOverlap,
                 drawBoundingBoxesLocal = libphx.Physics_DrawBoundingBoxesLocal,
                 drawBoundingBoxesWorld = libphx.Physics_DrawBoundingBoxesWorld,
-                drawTriggers           = libphx.Physics_DrawTriggers,
                 drawWireframes         = libphx.Physics_DrawWireframes,
             },
         }

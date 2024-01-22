@@ -112,8 +112,7 @@ function GameView:draw(focus, active)
         -- TODO : This should be moved into a render pass
         if Config.debug.physics.drawBoundingBoxesLocal or
             Config.debug.physics.drawBoundingBoxesWorld or
-            Config.debug.physics.drawWireframes or
-            Config.debug.physics.drawTriggers
+            Config.debug.physics.drawWireframes
         then
             local mat = Material.DebugColorA()
             mat:start()
@@ -128,18 +127,11 @@ function GameView:draw(focus, active)
                 Shader.SetFloat4('color', 1, 0, 0, 0.5)
                 system.physics:drawBoundingBoxesWorld()
             end
-            if Config.debug.physics.drawTriggers then
-                Shader.SetMatrix('mWorld', Matrix.Identity())
-                Shader.SetMatrixT('mWorldIT', Matrix.Identity())
-                Shader.SetFloat('scale', 1)
-                Shader.SetFloat4('color', 1, 0.5, 0, 0.5)
-                system.physics:drawTriggers()
-            end
             if Config.debug.physics.drawWireframes then
                 Shader.SetMatrix('mWorld', Matrix.Identity())
                 Shader.SetMatrixT('mWorldIT', Matrix.Identity())
                 Shader.SetFloat('scale', 1)
-                Shader.SetFloat4('color', 0, 1, 0, 0.5)
+                -- drawWireframes will set the 'color' shader variable.
                 system.physics:drawWireframes()
             end
             mat:stop()
