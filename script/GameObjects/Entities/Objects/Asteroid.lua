@@ -13,7 +13,7 @@ end
 
 local Asteroid = subclass(Entity, function(self, seed, scale)
     local mesh = getMesh(seed)
-    self:addRigidBody(true, mesh:get(0), Enums.ColliderType.Trimesh)
+    self:addRigidBody(true, mesh:get(0))
     self:addVisibleLodMesh(mesh, Material.Rock())
     self:addTrackable(true)
     self:addMinable(true)
