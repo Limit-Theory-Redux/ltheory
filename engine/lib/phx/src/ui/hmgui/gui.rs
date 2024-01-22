@@ -239,8 +239,8 @@ macro_rules! register_property {
 macro_rules! set_property {
     ($self:ident, $id:ident, $val:expr) => {
         let Some((_, def_prop)) = $self.default_property_registry.registry.get_index($id) else {
-            panic!("Unknown property id {}", $id);
-        };
+                    panic!("Unknown property id {}", $id);
+                };
         let value: HmGuiProperty = $val.into();
         assert_eq!(
             def_prop.property.get_type(),
@@ -257,12 +257,12 @@ macro_rules! get_property {
         let prop = $self.get_property($id);
 
         let HmGuiProperty::$v(value) = prop else {
-            panic!(
-                "Wrong property type. Expected {} but was {}",
-                stringify!($v),
-                prop.name()
-            )
-        };
+                panic!(
+                    "Wrong property type. Expected {} but was {}",
+                    stringify!($v),
+                    prop.name()
+                )
+            };
 
         value
     }};

@@ -15,13 +15,13 @@ mod widget;
 
 use internal::*;
 
+pub use self::image::*;
 pub use alignment::*;
 pub use container::*;
 pub use core_properties::*;
 pub(self) use data::*;
 pub use focus::*;
 pub use gui::*;
-pub use image::*;
 pub use property::*;
 pub use property_registry::*;
 pub use rect::*;

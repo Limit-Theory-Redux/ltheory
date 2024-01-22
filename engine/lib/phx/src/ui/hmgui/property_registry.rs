@@ -17,8 +17,8 @@ macro_rules! decl_prop_method {
         pub fn $m(&self, id: HmGuiPropertyId) -> $ty {
             let prop = &self.registry[*id].property;
             let HmGuiProperty::$v(value) = prop else {
-                panic!("Expected {} but was {:?}", stringify!($v), prop.name())
-            };
+                        panic!("Expected {} but was {:?}", stringify!($v), prop.name())
+                    };
 
             *value
         }
@@ -30,8 +30,8 @@ macro_rules! decl_prop_ref_method {
         pub fn $m(&self, id: HmGuiPropertyId) -> &$ty {
             let prop = &self.registry[*id].property;
             let HmGuiProperty::$v(value) = prop else {
-                panic!("Expected {} but was {:?}", stringify!($v), prop.name())
-            };
+                        panic!("Expected {} but was {:?}", stringify!($v), prop.name())
+                    };
 
             value
         }
