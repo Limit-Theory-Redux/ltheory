@@ -514,7 +514,13 @@ impl rp::DebugRenderBackend for RapierDebugRenderer {
     ) {
         unsafe {
             let (r, g, b) = hsl_to_rgb(color[0], color[1], color[2]);
-            Shader_SetFloat4(CString::new("color").unwrap().as_c_str().as_ptr(), r, g, b, color[3]);
+            Shader_SetFloat4(
+                CString::new("color").unwrap().as_c_str().as_ptr(),
+                r,
+                g,
+                b,
+                color[3],
+            );
             Draw_Line3(
                 &Vec3::from_na_point(&start) as *const _,
                 &Vec3::from_na_point(&end) as *const _,

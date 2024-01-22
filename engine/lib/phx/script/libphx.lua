@@ -205,6 +205,8 @@ do -- Transparent Structs
     } RayCastResult;
 
     typedef struct ShapeCastResult {
+      RigidBody** hits;
+      uint32      hits_len;
     } ShapeCastResult;
 
     typedef struct Sphere {
