@@ -68,7 +68,10 @@ end
 function LTheoryRedux:setCursor(cursorStyle, cursorX, cursorY)
     -- Set the game control cursor
     -- TODO: WindowInstance:cursor().setIcon(cursorStyle)
-    WindowInstance:setCursorPosition(Vec2f(cursorX, cursorY))
+
+    if cursorX and cursorY then
+        WindowInstance:setCursorPosition(Vec2f(cursorX, cursorY))
+    end
 end
 
 function LTheoryRedux:toggleSound()
