@@ -40,7 +40,10 @@ impl CollisionShape {
                 ColliderBuilder::ball((radius * scale) as rp::Real)
             }
             CollisionShapeType::Hull { points } => {
-                ColliderBuilder::convex_hull(points).expect("Convex hull computation failed")
+                let scaled_points: Vec<na::Point3<rp::Real>> =
+                    points.iter().map(|p| *p * (scale as rp::Real)).collect();
+                ColliderBuilder::convex_hull(&scaled_points)
+                    .expect("Convex hull computation failed")
             }
         };
 

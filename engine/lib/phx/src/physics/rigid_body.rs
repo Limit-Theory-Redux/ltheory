@@ -3,7 +3,6 @@ use crate::math::*;
 use crate::physics::*;
 use crate::render::*;
 use crate::rf::Rf;
-use rapier3d_f64::parry::simba::scalar::SupersetOf;
 use rapier3d_f64::prelude as rp;
 use rapier3d_f64::prelude::nalgebra as na;
 use std::ptr::NonNull;
