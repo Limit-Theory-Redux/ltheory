@@ -27,8 +27,8 @@ pub struct Engine {
     init_time: TimeStamp,
     window: Window,
     cache: CachedWindow,
-    winit_windows: WinitWindows,
-    winit_window_id: Option<winit::window::WindowId>,
+    winit_window: WinitWindow,
+    draw: Draw,
     hmgui: HmGui,
     input: Input,
     frame_state: FrameState,
@@ -37,12 +37,10 @@ pub struct Engine {
 }
 
 impl Engine {
-    fn new(gl_version_major: u8, gl_version_minor: u8) -> Self {
+    fn new(event_loop: &EventLoop<()>) -> Self {
         unsafe {
             static mut FIRST_TIME: bool = true;
             Signal_Init();
-
-            info!("Engine_Init: Requesting GL {gl_version_major}.{gl_version_minor}");
 
             if FIRST_TIME {
                 FIRST_TIME = false;
@@ -56,20 +54,22 @@ impl Engine {
             ShaderVar_Init();
         }
 
+        // Unsafe is required for FFI and JIT libs
+        let lua = unsafe { Lua::unsafe_new() };
+
+        // Create window.
         let window = Window::default();
         let cache = CachedWindow {
             window: window.clone(),
         };
-
-        // Unsafe is required for FFI and JIT libs
-        let lua = unsafe { Lua::unsafe_new() };
+        let (winit_window, renderer) = WinitWindow::new(&event_loop, &window);
 
         Self {
             init_time: TimeStamp::now(),
             window,
             cache,
-            winit_windows: WinitWindows::new(gl_version_major, gl_version_minor),
-            winit_window_id: None,
+            winit_window,
+            draw: Draw::new(renderer),
             hmgui: HmGui::new(),
             input: Default::default(),
             frame_state: Default::default(),
@@ -78,20 +78,7 @@ impl Engine {
         }
     }
 
-    fn init_winit_window(&mut self, event_loop: &EventLoop<()>) {
-        debug!("Engine.init_winit_window");
-
-        let winit_window_id = self.winit_windows.create_window(event_loop, &self.window);
-
-        self.winit_window_id = Some(winit_window_id);
-    }
-
     // Apply user changes, and then detect changes to the window and update the winit window accordingly.
-    //
-    // Notes:
-    // - [`Window::transparent`] currently cannot be updated after startup for winit.
-    // - [`Window::canvas`] currently cannot be updated after startup, not entirely sure if it would work well with the
-    //   event channel stuff.
     fn changed_window(&mut self) {
         for user_change in self.input.user_changes() {
             match user_change {
@@ -102,27 +89,19 @@ impl Engine {
             }
         }
 
-        let Some(winit_window_wrapper) = self
-            .winit_window_id
-            .map(|winit_window_id| self.winit_windows.get_window_mut(winit_window_id))
-            .flatten()
-        else {
-            return;
-        };
-
         if let Some(state) = self.window.state {
             match state {
-                WindowState::Suspended => winit_window_wrapper.suspend(),
-                WindowState::Resumed => winit_window_wrapper.resume(),
+                WindowState::Suspended => self.winit_window.suspend(),
+                WindowState::Resumed => self.winit_window.resume(),
             }
 
             self.window.state = None;
         }
 
-        let winit_window = winit_window_wrapper.window();
-
         if self.window.title != self.cache.window.title {
-            winit_window.set_title(self.window.title.as_str());
+            self.winit_window
+                .window()
+                .set_title(self.window.title.as_str());
         }
 
         if self.window.mode != self.cache.window.mode {
@@ -131,11 +110,11 @@ impl Engine {
                     Some(winit::window::Fullscreen::Borderless(None))
                 }
                 WindowMode::Fullscreen => Some(winit::window::Fullscreen::Exclusive(
-                    get_best_videomode(&winit_window.current_monitor().unwrap()),
+                    get_best_videomode(&self.winit_window.window().current_monitor().unwrap()),
                 )),
                 WindowMode::SizedFullscreen => {
                     Some(winit::window::Fullscreen::Exclusive(get_fitting_videomode(
-                        &winit_window.current_monitor().unwrap(),
+                        &self.winit_window.window().current_monitor().unwrap(),
                         self.window.width() as u32,
                         self.window.height() as u32,
                     )))
@@ -143,8 +122,8 @@ impl Engine {
                 WindowMode::Windowed => None,
             };
 
-            if winit_window.fullscreen() != new_mode {
-                winit_window.set_fullscreen(new_mode);
+            if self.winit_window.window().fullscreen() != new_mode {
+                self.winit_window.window().set_fullscreen(new_mode);
             }
         }
 
@@ -153,9 +132,11 @@ impl Engine {
             let height = self.window.resolution.physical_height();
             let physical_size = PhysicalSize::new(width, height);
 
-            winit_window.set_inner_size(physical_size);
-            winit_window_wrapper.resize(width, height);
+            self.winit_window.window().set_inner_size(physical_size);
+            self.winit_window.resize(width, height);
         }
+
+        let winit_window = self.winit_window.window();
 
         if self.window.physical_cursor_position() != self.cache.window.physical_cursor_position() {
             if let Some(physical_position) = self.window.physical_cursor_position() {
@@ -255,16 +236,12 @@ impl Engine {
             winit_window.focus_window();
         }
 
-        if self.window.window_level != self.cache.window.window_level {
-            winit_window.set_window_level(convert_window_level(self.window.window_level));
+        if self.window.present_mode != self.cache.window.present_mode {
+            warn!("unable to change present mode after the window was created!");
+            self.window.present_mode = self.cache.window.present_mode;
         }
 
         // Currently unsupported changes
-        if self.window.transparent != self.cache.window.transparent {
-            self.window.transparent = self.cache.window.transparent;
-            warn!("Winit does not currently support updating transparency after window creation.");
-        }
-
         if self.window.ime_enabled != self.cache.window.ime_enabled {
             winit_window.set_ime_allowed(self.window.ime_enabled);
         }
@@ -280,8 +257,7 @@ impl Engine {
             winit_window.set_theme(self.window.window_theme.map(convert_window_theme));
         }
 
-        winit_window_wrapper.redraw();
-
+        // Save window state to cache.
         self.cache.window = self.window.clone();
     }
 }
@@ -294,10 +270,7 @@ impl Engine {
         // Keep log till the end of the execution
         let _log = init_log(console_log, log_dir);
 
-        let mut engine = Engine::new(2, 1);
-
         let entry_point_path = PathBuf::from(entry_point);
-
         if !entry_point_path.exists() {
             // TODO: do we really need this magic?
             std::env::set_current_dir("../").expect("Cannot change folder to parent");
@@ -308,16 +281,12 @@ impl Engine {
         }
 
         let event_loop = EventLoop::new();
+        let mut engine = Engine::new(&event_loop);
 
-        engine.init_winit_window(&event_loop);
-
-        // Apply window changes made by a script
-        engine.changed_window();
-
-        let finished_and_setup_done = true;
+        Draw::set_instance(&mut engine.draw as *mut Draw);
 
         let event_handler = move |event: Event<()>,
-                                  _event_loop: &EventLoopWindowTarget<()>,
+                                  _: &EventLoopWindowTarget<()>,
                                   control_flow: &mut ControlFlow| {
             if engine.exit_app {
                 call_lua_func(&engine, "AppClose");
@@ -362,11 +331,7 @@ impl Engine {
                     engine.frame_state.low_power_event = false;
                     engine.frame_state.timeout_reached = false; //auto_timeout_reached || manual_timeout_reached;
                 }
-                event::Event::WindowEvent {
-                    event,
-                    window_id: _winit_window_id,
-                    ..
-                } => {
+                event::Event::WindowEvent { event, .. } => {
                     engine.frame_state.low_power_event = true;
 
                     match event {
@@ -375,6 +340,12 @@ impl Engine {
                                 .window
                                 .resolution
                                 .set_physical_resolution(size.width, size.height);
+                        }
+                        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                            engine.window.resolution.set_physical_resolution(
+                                new_inner_size.width,
+                                new_inner_size.height,
+                            );
                         }
                         WindowEvent::CloseRequested => {
                             call_lua_func(&engine, "AppClose");
@@ -478,12 +449,6 @@ impl Engine {
                         WindowEvent::ReceivedCharacter(_c) => {
                             // TODO: typing in the GUI?
                         }
-                        WindowEvent::ScaleFactorChanged {
-                            scale_factor: _,
-                            new_inner_size: _,
-                        } => {
-                            // TODO: implement
-                        }
                         WindowEvent::Focused(focused) => {
                             engine.window.focused = focused;
                         }
@@ -541,19 +506,44 @@ impl Engine {
                     engine.window.state = Some(WindowState::Resumed);
                 }
                 event::Event::MainEventsCleared => {
-                    if finished_and_setup_done {
-                        engine.frame_state.last_update = Instant::now();
+                    engine.frame_state.last_update = Instant::now();
 
-                        // Load all gamepad events
-                        engine.input.update_gamepad(|state| state.update());
+                    // Load all gamepad events.
+                    engine.input.update_gamepad(|state| state.update());
 
-                        // Let Lua script perform frame operations
-                        call_lua_func(&engine, "AppFrame");
+                    // Begin the frame.
+                    let frame = match engine.winit_window.begin_frame() {
+                        Ok(frame) => frame,
+                        // Reconfigure the surface if lost.
+                        Err(wgpu::SurfaceError::Lost) => {
+                            let width = engine.window.resolution.physical_width();
+                            let height = engine.window.resolution.physical_height();
+                            engine.winit_window.resize(width, height);
+                            return;
+                        }
+                        // The system is out of memory, we should probably quit.
+                        Err(wgpu::SurfaceError::OutOfMemory) => {
+                            *control_flow = ControlFlow::Exit;
+                            return;
+                        }
+                        // All other errors (Outdated, Timeout) should be resolved by the next frame
+                        Err(e) => {
+                            debug!("Draw error: {:?}", e);
+                            return;
+                        }
+                    };
 
-                        // Apply window changes made by a script
-                        engine.changed_window();
-                        engine.input.reset();
-                    }
+                    // Tick the lua script.
+                    call_lua_func(&engine, "AppFrame");
+
+                    // Apply any window changes made from calling AppFrame or from any events.
+                    engine.changed_window();
+
+                    // Display frame.
+                    engine.winit_window.end_frame(frame);
+
+                    // Reset inputs.
+                    engine.input.reset();
                 }
                 _ => {
                     trace!("Unprocessed event: {event:?}");

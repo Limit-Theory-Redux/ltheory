@@ -30,14 +30,14 @@ unsafe extern "C" fn GetActive() -> *mut FBO {
 
 #[inline]
 unsafe extern "C" fn SetDrawBuffers(count: i32) {
-    static mut bufs: [gl::types::GLenum; 4] = [
-        gl::COLOR_ATTACHMENT0 as _,
-        gl::COLOR_ATTACHMENT1 as _,
-        gl::COLOR_ATTACHMENT2 as _,
-        gl::COLOR_ATTACHMENT3 as _,
-    ];
+    // static mut bufs: [gl::types::GLenum; 4] = [
+    //     gl::COLOR_ATTACHMENT0 as _,
+    //     gl::COLOR_ATTACHMENT1 as _,
+    //     gl::COLOR_ATTACHMENT2 as _,
+    //     gl::COLOR_ATTACHMENT3 as _,
+    // ];
 
-    gl_draw_buffers(count, bufs.as_ptr());
+    // gl_draw_buffers(count, bufs.as_ptr());
 }
 
 #[no_mangle]
@@ -59,8 +59,8 @@ pub unsafe extern "C" fn RenderTarget_Push(sx: i32, sy: i32) {
 
     Metric_Inc(0x7);
 
-    gl_gen_framebuffers(1, &mut (*this).handle);
-    gl_bind_framebuffer(gl::FRAMEBUFFER, (*this).handle);
+    // gl_gen_framebuffers(1, &mut (*this).handle);
+    // gl_bind_framebuffer(gl::FRAMEBUFFER, (*this).handle);
 
     Viewport_Push(0, 0, sx, sy, false);
 
@@ -75,33 +75,33 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
         panic!("RenderTarget_Pop: Attempting to pop an empty stack");
     }
 
-    let mut i: u32 = 0;
-    while i < 4 {
-        gl_framebuffer_texture2d(
-            gl::FRAMEBUFFER,
-            gl::COLOR_ATTACHMENT0 + i,
-            gl::TEXTURE_2D,
-            0,
-            0,
-        );
-        i += 1;
-    }
+    // let mut i: u32 = 0;
+    // while i < 4 {
+    //     gl_framebuffer_texture2d(
+    //         gl::FRAMEBUFFER,
+    //         gl::COLOR_ATTACHMENT0 + i,
+    //         gl::TEXTURE_2D,
+    //         0,
+    //         0,
+    //     );
+    //     i += 1;
+    // }
 
-    gl_framebuffer_texture2d(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::TEXTURE_2D, 0, 0);
-    gl_delete_framebuffers(
-        1,
-        &mut (*fboStack.as_mut_ptr().offset(fboIndex as isize)).handle,
-    );
+    // gl_framebuffer_texture2d(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::TEXTURE_2D, 0, 0);
+    // gl_delete_framebuffers(
+    //     1,
+    //     &mut (*fboStack.as_mut_ptr().offset(fboIndex as isize)).handle,
+    // );
 
     fboIndex -= 1;
 
     Metric_Inc(0x7);
 
-    if fboIndex >= 0 {
-        gl_bind_framebuffer(gl::FRAMEBUFFER, (*GetActive()).handle);
-    } else {
-        gl_bind_framebuffer(gl::FRAMEBUFFER, 0);
-    }
+    // if fboIndex >= 0 {
+    //     gl_bind_framebuffer(gl::FRAMEBUFFER, (*GetActive()).handle);
+    // } else {
+    //     gl_bind_framebuffer(gl::FRAMEBUFFER, 0);
+    // }
 
     Viewport_Pop();
 
@@ -115,37 +115,37 @@ pub unsafe extern "C" fn RenderTarget_BindTex2D(this: &mut Tex2D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: &mut Tex2D, level: i32) {
-    let this: *mut FBO = GetActive();
-    let handle: u32 = Tex2D_GetHandle(tex);
+    // let this: *mut FBO = GetActive();
+    // let handle: u32 = Tex2D_GetHandle(tex);
 
-    if TexFormat_IsColor(Tex2D_GetFormat(tex)) {
-        if (*this).colorIndex >= 4 {
-            panic!("RenderTarget_BindTex2D: Max color attachments exceeded");
-        }
+    // if TexFormat_IsColor(Tex2D_GetFormat(tex)) {
+    //     if (*this).colorIndex >= 4 {
+    //         panic!("RenderTarget_BindTex2D: Max color attachments exceeded");
+    //     }
 
-        gl_framebuffer_texture2d(
-            gl::FRAMEBUFFER,
-            gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
-            gl::TEXTURE_2D,
-            handle,
-            level,
-        );
-        (*this).colorIndex += 1;
-        SetDrawBuffers((*this).colorIndex);
-    } else {
-        if (*this).depth {
-            panic!("RenderTarget_BindTex2D: Target already has a depth buffer");
-        }
+    //     gl_framebuffer_texture2d(
+    //         gl::FRAMEBUFFER,
+    //         gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
+    //         gl::TEXTURE_2D,
+    //         handle,
+    //         level,
+    //     );
+    //     (*this).colorIndex += 1;
+    //     SetDrawBuffers((*this).colorIndex);
+    // } else {
+    //     if (*this).depth {
+    //         panic!("RenderTarget_BindTex2D: Target already has a depth buffer");
+    //     }
 
-        gl_framebuffer_texture2d(
-            gl::FRAMEBUFFER,
-            gl::DEPTH_ATTACHMENT,
-            gl::TEXTURE_2D,
-            handle,
-            level,
-        );
-        (*this).depth = true;
-    }
+    //     gl_framebuffer_texture2d(
+    //         gl::FRAMEBUFFER,
+    //         gl::DEPTH_ATTACHMENT,
+    //         gl::TEXTURE_2D,
+    //         handle,
+    //         level,
+    //     );
+    //     (*this).depth = true;
+    // }
 }
 
 #[no_mangle]
@@ -160,17 +160,17 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(tex: &mut Tex3D, layer: i32
         panic!("RenderTarget_BindTex3D: Max color attachments exceeded");
     }
 
-    let handle: u32 = Tex3D_GetHandle(tex);
-    gl_framebuffer_texture3d(
-        gl::FRAMEBUFFER,
-        gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
-        gl::TEXTURE_3D,
-        handle,
-        level,
-        layer,
-    );
-    (*this).colorIndex += 1;
-    SetDrawBuffers((*this).colorIndex);
+    // let handle: u32 = Tex3D_GetHandle(tex);
+    // gl_framebuffer_texture3d(
+    //     gl::FRAMEBUFFER,
+    //     gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
+    //     gl::TEXTURE_3D,
+    //     handle,
+    //     level,
+    //     layer,
+    // );
+    // (*this).colorIndex += 1;
+    // SetDrawBuffers((*this).colorIndex);
 }
 
 #[no_mangle]
@@ -190,15 +190,15 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
     }
     let handle: u32 = TexCube_GetHandle(tex);
 
-    gl_framebuffer_texture2d(
-        gl::FRAMEBUFFER,
-        gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
-        face as u32,
-        handle,
-        level,
-    );
-    (*this).colorIndex += 1;
-    SetDrawBuffers((*this).colorIndex);
+    // gl_framebuffer_texture2d(
+    //     gl::FRAMEBUFFER,
+    //     gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
+    //     face as u32,
+    //     handle,
+    //     level,
+    // );
+    // (*this).colorIndex += 1;
+    // SetDrawBuffers((*this).colorIndex);
 }
 
 #[no_mangle]

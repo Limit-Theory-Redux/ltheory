@@ -1,27 +1,25 @@
-use super::gl;
-
 pub type DataFormat = i32;
 
 #[no_mangle]
-pub static DataFormat_U8: DataFormat = gl::UNSIGNED_BYTE as DataFormat;
+pub static DataFormat_U8: DataFormat = 1; //gl::UNSIGNED_BYTE as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_I8: DataFormat = gl::BYTE as DataFormat;
+pub static DataFormat_I8: DataFormat = 1; //gl::BYTE as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_U16: DataFormat = gl::UNSIGNED_SHORT as DataFormat;
+pub static DataFormat_U16: DataFormat = 1; //gl::UNSIGNED_SHORT as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_I16: DataFormat = gl::SHORT as DataFormat;
+pub static DataFormat_I16: DataFormat = 1; //gl::SHORT as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_U32: DataFormat = gl::UNSIGNED_INT as DataFormat;
+pub static DataFormat_U32: DataFormat = 1; //gl::UNSIGNED_INT as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_I32: DataFormat = gl::INT as DataFormat;
+pub static DataFormat_I32: DataFormat = 1; //gl::INT as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_Float: DataFormat = gl::FLOAT as DataFormat;
+pub static DataFormat_Float: DataFormat = 1; //gl::FLOAT as DataFormat;
 
 // Size in bytes of single element
 #[no_mangle]

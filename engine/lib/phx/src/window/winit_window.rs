@@ -1,111 +1,155 @@
+use super::{CursorGrabMode, Window, WindowMode, WindowPosition, WindowResolution};
+use crate::render::{Frame, Renderer};
+use raw_window_handle::HasRawWindowHandle;
+use std::cell::RefCell;
 use std::num::NonZeroU32;
-
-use glutin::context::{NotCurrentContext, PossiblyCurrentContext};
-use glutin::display::GetGlDisplay;
-use glutin::prelude::{GlDisplay, NotCurrentGlContextSurfaceAccessor, PossiblyCurrentGlContext};
-use glutin::surface::{GlSurface, Surface, SurfaceAttributes, SwapInterval, WindowSurface};
-use glutin_winit::GlWindow;
-use tracing::{debug, warn};
-
-use crate::window::glutin_render;
-
-// TODO: Add GlStateManager with state: Option<GlState> field to avoid std::mem::replace
-#[derive(Debug)]
-enum GlState {
-    Current {
-        context: PossiblyCurrentContext,
-        surface: Surface<WindowSurface>,
-    },
-    NotCurrent {
-        context: NotCurrentContext,
-    },
-    Undefined,
-}
-
-impl GlState {
-    fn make_current(
-        &mut self,
-        config: &glutin::config::Config,
-        attrs: &SurfaceAttributes<WindowSurface>,
-    ) -> bool {
-        if matches!(self, Self::NotCurrent { .. }) {
-            let old_self = std::mem::replace(self, Self::Undefined);
-            let Self::NotCurrent { context } = old_self else {
-                unreachable!()
-            };
-
-            let surface = unsafe {
-                config
-                    .display()
-                    .create_window_surface(config, &attrs)
-                    .unwrap()
-            };
-
-            let context = context
-                .make_current(&surface)
-                .expect("Cannot make context current");
-
-            // Try setting vsync.
-            if let Err(res) =
-                surface.set_swap_interval(&context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))
-            {
-                warn!("Error setting vsync: {res:?}");
-            }
-
-            *self = Self::Current { context, surface };
-
-            true
-        } else if matches!(self, Self::Current { .. }) {
-            warn!("Context is already current");
-
-            false
-        } else {
-            panic!("Context is undefined");
-        }
-    }
-
-    fn make_not_current(&mut self) -> bool {
-        if matches!(self, Self::NotCurrent { .. }) {
-            warn!("Context is already not current");
-
-            false
-        } else if matches!(self, Self::Current { .. }) {
-            let old_self = std::mem::replace(self, Self::Undefined);
-            let Self::Current { context, .. } = old_self else {
-                unreachable!()
-            };
-
-            let context = context
-                .make_not_current()
-                .expect("Cannot make context not current");
-
-            *self = Self::NotCurrent { context };
-
-            true
-        } else {
-            panic!("Context is undefined");
-        }
-    }
-}
+use std::rc::Rc;
+use tracing::{debug, error, info, warn};
+use winit::{
+    dpi::{LogicalSize, PhysicalPosition},
+    monitor::MonitorHandle,
+};
 
 #[derive(Debug)]
 pub struct WinitWindow {
+    renderer: Rc<RefCell<Renderer>>,
+    // The window must be declared after the surface so
+    // it gets dropped after it as the surface contains
+    // unsafe references to the window's resources.
     window: winit::window::Window,
-    gl_config: glutin::config::Config,
-    gl_state: GlState,
+}
+
+/// Gets the "best" videomode from a monitor.
+///
+/// The heuristic for "best" prioritizes width, height, and refresh rate in that order.
+pub fn get_best_videomode(monitor: &winit::monitor::MonitorHandle) -> winit::monitor::VideoMode {
+    let mut modes = monitor.video_modes().collect::<Vec<_>>();
+    modes.sort_by(|a, b| {
+        use std::cmp::Ordering::*;
+        match b.size().width.cmp(&a.size().width) {
+            Equal => match b.size().height.cmp(&a.size().height) {
+                Equal => b
+                    .refresh_rate_millihertz()
+                    .cmp(&a.refresh_rate_millihertz()),
+                default => default,
+            },
+            default => default,
+        }
+    });
+
+    modes.first().unwrap().clone()
 }
 
 impl WinitWindow {
     pub fn new(
-        window: winit::window::Window,
-        gl_config: glutin::config::Config,
-        context: NotCurrentContext,
-    ) -> Self {
-        Self {
-            window,
-            gl_config,
-            gl_state: GlState::NotCurrent { context },
+        event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
+        window: &Window,
+    ) -> (Self, Rc<RefCell<Renderer>>) {
+        info!("Create new window: {}", window.title);
+
+        let mut winit_window_builder = winit::window::WindowBuilder::new();
+
+        // Hide window until it is properly initialized
+        winit_window_builder = winit_window_builder.with_visible(false);
+
+        winit_window_builder = match window.mode {
+            WindowMode::BorderlessFullscreen => winit_window_builder.with_fullscreen(Some(
+                winit::window::Fullscreen::Borderless(event_loop.primary_monitor()),
+            )),
+            WindowMode::Fullscreen => {
+                winit_window_builder.with_fullscreen(Some(winit::window::Fullscreen::Exclusive(
+                    get_best_videomode(&event_loop.primary_monitor().unwrap()),
+                )))
+            }
+            WindowMode::SizedFullscreen => winit_window_builder.with_fullscreen(Some(
+                winit::window::Fullscreen::Exclusive(get_fitting_videomode(
+                    &event_loop.primary_monitor().unwrap(),
+                    window.width() as u32,
+                    window.height() as u32,
+                )),
+            )),
+            WindowMode::Windowed => {
+                if let Some(position) = winit_window_position(
+                    &window.position,
+                    &window.resolution,
+                    event_loop.available_monitors(),
+                    event_loop.primary_monitor(),
+                    None,
+                ) {
+                    winit_window_builder = winit_window_builder.with_position(position);
+                }
+
+                let logical_size = LogicalSize::new(window.width(), window.height());
+                if let Some(sf) = window.resolution.scale_factor_override() {
+                    winit_window_builder.with_inner_size(logical_size.to_physical::<f64>(sf))
+                } else {
+                    winit_window_builder.with_inner_size(logical_size)
+                }
+            }
+        };
+
+        winit_window_builder = winit_window_builder
+            .with_theme(window.window_theme.map(winit::window::Theme::from))
+            .with_resizable(window.resizable)
+            .with_decorations(window.decorations);
+
+        // Set up window size constraints.
+        let constraints = window.resize_constraints.check_constraints();
+        let min_inner_size = LogicalSize {
+            width: constraints.min_width,
+            height: constraints.min_height,
+        };
+        let max_inner_size = LogicalSize {
+            width: constraints.max_width,
+            height: constraints.max_height,
+        };
+
+        winit_window_builder =
+            if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
+                winit_window_builder
+                    .with_min_inner_size(min_inner_size)
+                    .with_max_inner_size(max_inner_size)
+            } else {
+                winit_window_builder.with_min_inner_size(min_inner_size)
+            };
+
+        // Set the title.
+        winit_window_builder = winit_window_builder.with_title(window.title.as_str());
+
+        // Create the window.
+        let winit_window = winit_window_builder.build(&event_loop).unwrap();
+
+        winit_window.set_visible(true);
+
+        // Do not set the grab mode on window creation if it's none, this can fail on mobile
+        if window.cursor.grab_mode != CursorGrabMode::None {
+            attempt_grab(&winit_window, window.cursor.grab_mode);
         }
+        winit_window.set_cursor_visible(window.cursor.visible);
+
+        // Do not set the cursor hittest on window creation if it's false, as it will always fail on some
+        // platforms and log an unfixable warning.
+        if !window.cursor.hit_test {
+            if let Err(err) = winit_window.set_cursor_hittest(window.cursor.hit_test) {
+                warn!(
+                    "Could not set cursor hit test for window {:?}: {:?}",
+                    window.title, err
+                );
+            }
+        }
+
+        // Create renderer
+        let renderer = Rc::new(RefCell::new(Renderer::new(
+            &winit_window,
+            window.present_mode,
+        )));
+        (
+            Self {
+                renderer: renderer.clone(),
+                window: winit_window,
+            },
+            renderer,
+        )
     }
 
     pub fn window(&self) -> &winit::window::Window {
@@ -114,44 +158,139 @@ impl WinitWindow {
 
     pub fn resume(&mut self) {
         debug!("WinitWindow::resume");
-
-        let attrs = self.window.build_surface_attributes(<_>::default());
-
-        if self.gl_state.make_current(&self.gl_config, &attrs) {
-            // The context needs to be current for the Renderer to set up shaders and
-            // buffers. It also performs function loading, which needs a current context on
-            // WGL.
-            glutin_render::init_renderer(&self.gl_config.display());
-        }
     }
 
     pub fn suspend(&mut self) {
         debug!("WinitWindow::suspend");
-
-        self.gl_state.make_not_current();
     }
 
-    pub fn resize(&self, width: u32, height: u32) {
-        if let Some(width) = NonZeroU32::new(width) {
-            if let Some(height) = NonZeroU32::new(height) {
-                // Some platforms like EGL require resizing GL surface to update the size
-                // Notable platforms here are Wayland and macOS, other don't require it
-                // and the function is no-op, but it's wise to resize it for portability
-                // reasons.
-                if let GlState::Current { context, surface } = &self.gl_state {
-                    surface.resize(context, width, height);
+    pub fn resize(&mut self, width: u32, height: u32) {
+        if width != 0 && height != 0 {
+            self.renderer.borrow_mut().resize(width, height);
+        }
+    }
 
-                    glutin_render::resize(width.get() as i32, height.get() as i32);
+    pub fn begin_frame<'a>(&mut self) -> Result<Box<Frame<'a>>, wgpu::SurfaceError> {
+        self.renderer.borrow_mut().begin_frame()
+    }
+
+    pub fn end_frame<'a>(&mut self, frame: Box<Frame<'a>>) {
+        self.renderer.borrow_mut().end_frame(frame);
+    }
+}
+
+/// Gets the "best" video mode which fits the given dimensions.
+///
+/// The heuristic for "best" prioritizes width, height, and refresh rate in that order.
+pub fn get_fitting_videomode(
+    monitor: &winit::monitor::MonitorHandle,
+    width: u32,
+    height: u32,
+) -> winit::monitor::VideoMode {
+    let mut modes = monitor.video_modes().collect::<Vec<_>>();
+
+    fn abs_diff(a: u32, b: u32) -> u32 {
+        if a > b {
+            return a - b;
+        }
+        b - a
+    }
+
+    modes.sort_by(|a, b| {
+        use std::cmp::Ordering::*;
+        match abs_diff(a.size().width, width).cmp(&abs_diff(b.size().width, width)) {
+            Equal => {
+                match abs_diff(a.size().height, height).cmp(&abs_diff(b.size().height, height)) {
+                    Equal => b
+                        .refresh_rate_millihertz()
+                        .cmp(&a.refresh_rate_millihertz()),
+                    default => default,
                 }
             }
+            default => default,
+        }
+    });
+
+    modes.first().unwrap().clone()
+}
+
+/// Compute the physical window position for a given [`WindowPosition`].
+// Ideally we could generify this across window backends, but we only really have winit atm
+// so whatever.
+pub fn winit_window_position(
+    position: &WindowPosition,
+    resolution: &WindowResolution,
+    mut available_monitors: impl Iterator<Item = MonitorHandle>,
+    primary_monitor: Option<MonitorHandle>,
+    current_monitor: Option<MonitorHandle>,
+) -> Option<PhysicalPosition<i32>> {
+    match position {
+        WindowPosition::Automatic => {
+            /* Window manager will handle position */
+            None
+        }
+        WindowPosition::Centered(monitor_selection) => {
+            use super::MonitorSelection::*;
+            let maybe_monitor = match monitor_selection {
+                Current => {
+                    if current_monitor.is_none() {
+                        warn!("Can't select current monitor on window creation or cannot find current monitor!");
+                    }
+                    current_monitor
+                }
+                Primary => primary_monitor,
+                Index(n) => available_monitors.nth(*n),
+            };
+
+            if let Some(monitor) = maybe_monitor {
+                let screen_size = monitor.size();
+
+                // We use the monitors scale factor here since WindowResolution.scale_factor
+                // is not yet populated when windows are created at plugin setup
+                let scale_factor = monitor.scale_factor();
+
+                // Logical to physical window size
+                let (width, height): (u32, u32) =
+                    LogicalSize::new(resolution.width(), resolution.height())
+                        .to_physical::<u32>(scale_factor)
+                        .into();
+
+                let position = PhysicalPosition {
+                    x: screen_size.width.saturating_sub(width) as f64 / 2.
+                        + monitor.position().x as f64,
+                    y: screen_size.height.saturating_sub(height) as f64 / 2.
+                        + monitor.position().y as f64,
+                };
+
+                Some(position.cast::<i32>())
+            } else {
+                warn!("Couldn't get monitor selected with: {monitor_selection:?}");
+                None
+            }
+        }
+        WindowPosition::At(position) => {
+            Some(PhysicalPosition::new(position[0] as f64, position[1] as f64).cast::<i32>())
         }
     }
+}
 
-    pub fn redraw(&self) {
-        if let GlState::Current { context, surface } = &self.gl_state {
-            self.window.request_redraw();
+pub(crate) fn attempt_grab(winit_window: &winit::window::Window, grab_mode: CursorGrabMode) {
+    let grab_result = match grab_mode {
+        CursorGrabMode::None => winit_window.set_cursor_grab(winit::window::CursorGrabMode::None),
+        CursorGrabMode::Confined => winit_window
+            .set_cursor_grab(winit::window::CursorGrabMode::Confined)
+            .or_else(|_e| winit_window.set_cursor_grab(winit::window::CursorGrabMode::Locked)),
+        CursorGrabMode::Locked => winit_window
+            .set_cursor_grab(winit::window::CursorGrabMode::Locked)
+            .or_else(|_e| winit_window.set_cursor_grab(winit::window::CursorGrabMode::Confined)),
+    };
 
-            surface.swap_buffers(context).expect("Cannot redraw");
-        }
+    if let Err(err) = grab_result {
+        let err_desc = match grab_mode {
+            CursorGrabMode::Confined | CursorGrabMode::Locked => "grab",
+            CursorGrabMode::None => "ungrab",
+        };
+
+        error!("Unable to {} cursor: {}", err_desc, err);
     }
 }

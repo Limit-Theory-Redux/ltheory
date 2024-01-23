@@ -18,10 +18,10 @@ pub struct Tex2D {
 
 #[inline]
 extern "C" fn Tex2D_Init() {
-    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+    // gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+    // gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+    // gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+    // gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
 }
 
 #[no_mangle]
@@ -35,28 +35,28 @@ pub unsafe extern "C" fn Tex2D_Create(sx: i32, sy: i32, format: TexFormat) -> *m
     (*this).size = IVec2::new(sx, sy);
     (*this).format = format;
 
-    gl_gen_textures(1, &mut (*this).handle);
-    gl_active_texture(gl::TEXTURE0);
-    gl_bind_texture(gl::TEXTURE_2D, (*this).handle);
-    gl_tex_image2d(
-        gl::TEXTURE_2D,
-        0,
-        (*this).format,
-        (*this).size.x,
-        (*this).size.y,
-        0,
-        if TexFormat_IsColor(format) {
-            gl::RED
-        } else {
-            gl::DEPTH_COMPONENT
-        },
-        gl::UNSIGNED_BYTE,
-        std::ptr::null(),
-    );
+    // gl_gen_textures(1, &mut (*this).handle);
+    // gl_active_texture(gl::TEXTURE0);
+    // gl_bind_texture(gl::TEXTURE_2D, (*this).handle);
+    // gl_tex_image2d(
+    //     gl::TEXTURE_2D,
+    //     0,
+    //     (*this).format,
+    //     (*this).size.x,
+    //     (*this).size.y,
+    //     0,
+    //     if TexFormat_IsColor(format) {
+    //         gl::RED
+    //     } else {
+    //         gl::DEPTH_COMPONENT
+    //     },
+    //     gl::UNSIGNED_BYTE,
+    //     std::ptr::null(),
+    // );
 
     Tex2D_Init();
 
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 
     this
 }
@@ -71,54 +71,54 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
 
     Metric_Inc(0x6);
 
-    gl_read_pixels(
-        0,
-        0,
-        size.x,
-        size.y,
-        gl::RGBA,
-        gl::UNSIGNED_BYTE,
-        buf as *mut _,
-    );
+    // gl_read_pixels(
+    //     0,
+    //     0,
+    //     size.x,
+    //     size.y,
+    //     gl::RGBA,
+    //     gl::UNSIGNED_BYTE,
+    //     buf as *mut _,
+    // );
 
-    let mut y: i32 = 0;
-    while y < size.y / 2 {
-        let mut x: i32 = 0;
-        while x < size.x {
-            let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
-            MemCpy(
-                swap_temp.as_mut_ptr() as *mut _,
-                &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32 as *const _,
-                std::mem::size_of::<u32>(),
-            );
-            MemCpy(
-                &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32 as *mut _,
-                &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *const _,
-                std::mem::size_of::<u32>(),
-            );
-            MemCpy(
-                &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *mut _,
-                swap_temp.as_mut_ptr() as *const _,
-                std::mem::size_of::<u32>(),
-            );
-            x += 1;
-        }
-        y += 1;
-    }
+    // let mut y: i32 = 0;
+    // while y < size.y / 2 {
+    //     let mut x: i32 = 0;
+    //     while x < size.x {
+    //         let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
+    //         MemCpy(
+    //             swap_temp.as_mut_ptr() as *mut _,
+    //             &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32 as *const _,
+    //             std::mem::size_of::<u32>(),
+    //         );
+    //         MemCpy(
+    //             &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32 as *mut _,
+    //             &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *const _,
+    //             std::mem::size_of::<u32>(),
+    //         );
+    //         MemCpy(
+    //             &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *mut _,
+    //             swap_temp.as_mut_ptr() as *const _,
+    //             std::mem::size_of::<u32>(),
+    //         );
+    //         x += 1;
+    //     }
+    //     y += 1;
+    // }
 
-    gl_bind_texture(gl::TEXTURE_2D, (*this).handle);
-    gl_tex_image2d(
-        gl::TEXTURE_2D,
-        0,
-        TexFormat_RGBA8,
-        size.x,
-        size.y,
-        0,
-        gl::RGBA,
-        gl::UNSIGNED_BYTE,
-        buf as *const _,
-    );
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, (*this).handle);
+    // gl_tex_image2d(
+    //     gl::TEXTURE_2D,
+    //     0,
+    //     TexFormat_RGBA8,
+    //     size.x,
+    //     size.y,
+    //     0,
+    //     gl::RGBA,
+    //     gl::UNSIGNED_BYTE,
+    //     buf as *const _,
+    // );
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 
     this
 }
@@ -134,7 +134,7 @@ pub unsafe extern "C" fn Tex2D_Free(this: *mut Tex2D) {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
     } {
-        gl_delete_textures(1, &mut (*this).handle);
+        // gl_delete_textures(1, &mut (*this).handle);
         MemFree(this as *const _);
     }
 }
@@ -167,18 +167,18 @@ pub unsafe extern "C" fn Tex2D_Clone(this: &mut Tex2D) -> *mut Tex2D {
 
     RenderTarget_PushTex2D(this);
 
-    gl_bind_texture(gl::TEXTURE_2D, (*clone).handle);
-    gl_copy_tex_image2d(
-        gl::TEXTURE_2D,
-        0,
-        this.format as gl::types::GLenum,
-        0,
-        0,
-        this.size.x,
-        this.size.y,
-        0,
-    );
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, (*clone).handle);
+    // gl_copy_tex_image2d(
+    //     gl::TEXTURE_2D,
+    //     0,
+    //     this.format as gl::types::GLenum,
+    //     0,
+    //     0,
+    //     this.size.x,
+    //     this.size.y,
+    //     0,
+    // );
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 
     RenderTarget_Pop();
 
@@ -189,21 +189,21 @@ pub unsafe extern "C" fn Tex2D_Clone(this: &mut Tex2D) -> *mut Tex2D {
 pub extern "C" fn Tex2D_Draw(this: &mut Tex2D, x: f32, y: f32, sx: f32, sy: f32) {
     unsafe { Metric_AddDrawImm(1, 2, 4) };
 
-    gl_enable(gl::TEXTURE_2D);
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_enable(gl::TEXTURE_2D);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
 
-    gl_begin(gl::QUADS);
-    gl_tex_coord2f(0.0f32, 0.0f32);
-    gl_vertex2f(x, y);
-    gl_tex_coord2f(0.0f32, 1.0f32);
-    gl_vertex2f(x, y + sy);
-    gl_tex_coord2f(1.0f32, 1.0f32);
-    gl_vertex2f(x + sx, y + sy);
-    gl_tex_coord2f(1.0f32, 0.0f32);
-    gl_vertex2f(x + sx, y);
-    gl_end();
+    // gl_begin(gl::QUADS);
+    // gl_tex_coord2f(0.0f32, 0.0f32);
+    // gl_vertex2f(x, y);
+    // gl_tex_coord2f(0.0f32, 1.0f32);
+    // gl_vertex2f(x, y + sy);
+    // gl_tex_coord2f(1.0f32, 1.0f32);
+    // gl_vertex2f(x + sx, y + sy);
+    // gl_tex_coord2f(1.0f32, 0.0f32);
+    // gl_vertex2f(x + sx, y);
+    // gl_end();
 
-    gl_disable(gl::TEXTURE_2D);
+    // gl_disable(gl::TEXTURE_2D);
 }
 
 #[no_mangle]
@@ -220,28 +220,28 @@ pub extern "C" fn Tex2D_DrawEx(
 ) {
     unsafe { Metric_AddDrawImm(1, 2, 4) };
 
-    gl_enable(gl::TEXTURE_2D);
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_enable(gl::TEXTURE_2D);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
 
-    gl_begin(gl::QUADS);
-    gl_tex_coord2f(u0, v0);
-    gl_vertex2f(x0, y0);
-    gl_tex_coord2f(u0, v1);
-    gl_vertex2f(x0, y1);
-    gl_tex_coord2f(u1, v1);
-    gl_vertex2f(x1, y1);
-    gl_tex_coord2f(u1, v0);
-    gl_vertex2f(x1, y0);
-    gl_end();
+    // gl_begin(gl::QUADS);
+    // gl_tex_coord2f(u0, v0);
+    // gl_vertex2f(x0, y0);
+    // gl_tex_coord2f(u0, v1);
+    // gl_vertex2f(x0, y1);
+    // gl_tex_coord2f(u1, v1);
+    // gl_vertex2f(x1, y1);
+    // gl_tex_coord2f(u1, v0);
+    // gl_vertex2f(x1, y0);
+    // gl_end();
 
-    gl_disable(gl::TEXTURE_2D);
+    // gl_disable(gl::TEXTURE_2D);
 }
 
 #[no_mangle]
 pub extern "C" fn Tex2D_GenMipmap(this: &mut Tex2D) {
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
-    gl_generate_mipmap(gl::TEXTURE_2D);
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_generate_mipmap(gl::TEXTURE_2D);
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
@@ -253,15 +253,15 @@ pub extern "C" fn Tex2D_GetData(
 ) {
     unsafe { Metric_Inc(0x6) };
 
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
-    gl_get_tex_image(
-        gl::TEXTURE_2D,
-        0,
-        pf as gl::types::GLenum,
-        df as gl::types::GLenum,
-        data,
-    );
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_get_tex_image(
+    //     gl::TEXTURE_2D,
+    //     0,
+    //     pf as gl::types::GLenum,
+    //     df as gl::types::GLenum,
+    //     data,
+    // );
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
@@ -317,31 +317,31 @@ pub unsafe extern "C" fn Tex2D_Load(name: *const libc::c_char) -> *mut Tex2D {
     let data: *mut libc::c_uchar = Tex2D_LoadRaw(path, &mut sx, &mut sy, &mut components);
     let this: *mut Tex2D = Tex2D_Create(sx, sy, TexFormat_RGBA8);
 
-    let format = if components == 4 {
-        gl::RGBA
-    } else if components == 3 {
-        gl::RGB
-    } else if components == 2 {
-        gl::RG
-    } else {
-        gl::RED
-    };
+    // let format = if components == 4 {
+    //     gl::RGBA
+    // } else if components == 3 {
+    //     gl::RGB
+    // } else if components == 2 {
+    //     gl::RG
+    // } else {
+    //     gl::RED
+    // };
 
-    gl_active_texture(gl::TEXTURE0);
-    gl_bind_texture(gl::TEXTURE_2D, (*this).handle);
-    gl_tex_image2d(
-        gl::TEXTURE_2D,
-        0,
-        gl::RGBA8 as i32,
-        (*this).size.x,
-        (*this).size.y,
-        0,
-        format,
-        gl::UNSIGNED_BYTE,
-        data as *const _,
-    );
-    Tex2D_Init();
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_active_texture(gl::TEXTURE0);
+    // gl_bind_texture(gl::TEXTURE_2D, (*this).handle);
+    // gl_tex_image2d(
+    //     gl::TEXTURE_2D,
+    //     0,
+    //     gl::RGBA8 as i32,
+    //     (*this).size.x,
+    //     (*this).size.y,
+    //     0,
+    //     format,
+    //     gl::UNSIGNED_BYTE,
+    //     data as *const _,
+    // );
+    // Tex2D_Init();
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 
     MemFree(data as *const _);
 
@@ -350,9 +350,9 @@ pub unsafe extern "C" fn Tex2D_Load(name: *const libc::c_char) -> *mut Tex2D {
 
 #[no_mangle]
 pub extern "C" fn Tex2D_SetAnisotropy(this: &mut Tex2D, factor: f32) {
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
-    gl_tex_parameterf(gl::TEXTURE_2D, gl::TEXTURE_MAX_ANISOTROPY_EXT, factor);
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_tex_parameterf(gl::TEXTURE_2D, gl::TEXTURE_MAX_ANISOTROPY_EXT, factor);
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
@@ -362,19 +362,19 @@ pub extern "C" fn Tex2D_SetData(
     pf: PixelFormat,
     df: DataFormat,
 ) {
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
-    gl_tex_image2d(
-        gl::TEXTURE_2D,
-        0,
-        this.format,
-        this.size.x,
-        this.size.y,
-        0,
-        pf as gl::types::GLenum,
-        df as gl::types::GLenum,
-        data,
-    );
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_tex_image2d(
+    //     gl::TEXTURE_2D,
+    //     0,
+    //     this.format,
+    //     this.size.x,
+    //     this.size.y,
+    //     0,
+    //     pf as gl::types::GLenum,
+    //     df as gl::types::GLenum,
+    //     data,
+    // );
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
@@ -389,16 +389,16 @@ pub unsafe extern "C" fn Tex2D_SetDataBytes(
 
 #[no_mangle]
 pub extern "C" fn Tex2D_SetMagFilter(this: &mut Tex2D, filter: TexFilter) {
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
-    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter);
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter);
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
 pub extern "C" fn Tex2D_SetMinFilter(this: &mut Tex2D, filter: TexFilter) {
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
-    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter);
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter);
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 /* NOTE : In general, using BASE_LEVEL, MAX_LEVEL, and MIN/MAX_LOD params is
@@ -415,55 +415,55 @@ pub extern "C" fn Tex2D_SetMipRange(this: &mut Tex2D, minLevel: i32, maxLevel: i
     if minLevel != maxLevel {
         warn!("Tex2D_SetMipRange: Setting mip range with min != max; this may fail on old drivers with mip-handling bugs.");
     }
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
-    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_BASE_LEVEL, minLevel);
-    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAX_LEVEL, maxLevel);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_BASE_LEVEL, minLevel);
+    // gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAX_LEVEL, maxLevel);
 }
 
 #[no_mangle]
 pub extern "C" fn Tex2D_SetTexel(this: &mut Tex2D, x: i32, y: i32, r: f32, g: f32, b: f32, a: f32) {
-    let mut rgba: [f32; 4] = [r, g, b, a];
+    // let mut rgba: [f32; 4] = [r, g, b, a];
 
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
-    gl_tex_sub_image2d(
-        gl::TEXTURE_2D,
-        0,
-        x,
-        y,
-        1,
-        1,
-        gl::RGBA,
-        gl::FLOAT,
-        rgba.as_mut_ptr() as *const _,
-    );
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_tex_sub_image2d(
+    //     gl::TEXTURE_2D,
+    //     0,
+    //     x,
+    //     y,
+    //     1,
+    //     1,
+    //     gl::RGBA,
+    //     gl::FLOAT,
+    //     rgba.as_mut_ptr() as *const _,
+    // );
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
 pub extern "C" fn Tex2D_SetWrapMode(this: &mut Tex2D, mode: TexWrapMode) {
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
-    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode);
-    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode);
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode);
+    // gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode);
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Save(this: &mut Tex2D, path: *const libc::c_char) {
     Metric_Inc(0x6);
 
-    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    // gl_bind_texture(gl::TEXTURE_2D, this.handle);
 
-    let buffer: *mut libc::c_uchar =
-        MemAlloc((4 * this.size.x * this.size.y) as usize) as *mut libc::c_uchar;
-    gl_get_tex_image(
-        gl::TEXTURE_2D,
-        0,
-        gl::RGBA,
-        gl::UNSIGNED_BYTE,
-        buffer as *mut _,
-    );
-    Tex2D_Save_Png(path, this.size.x, this.size.y, 4, buffer);
-    MemFree(buffer as *const _);
+    // let buffer: *mut libc::c_uchar =
+    //     MemAlloc((4 * this.size.x * this.size.y) as usize) as *mut libc::c_uchar;
+    // gl_get_tex_image(
+    //     gl::TEXTURE_2D,
+    //     0,
+    //     gl::RGBA,
+    //     gl::UNSIGNED_BYTE,
+    //     buffer as *mut _,
+    // );
+    // Tex2D_Save_Png(path, this.size.x, this.size.y, 4, buffer);
+    // MemFree(buffer as *const _);
 
-    gl_bind_texture(gl::TEXTURE_2D, 0);
+    // gl_bind_texture(gl::TEXTURE_2D, 0);
 }

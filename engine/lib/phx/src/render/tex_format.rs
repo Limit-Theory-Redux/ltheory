@@ -1,61 +1,59 @@
-use super::gl;
-
 pub type TexFormat = i32;
 
 #[no_mangle]
-pub static TexFormat_R8: TexFormat = gl::R8 as TexFormat;
+pub static TexFormat_R8: TexFormat = 1; //gl::R8 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_R16: TexFormat = gl::R16 as TexFormat;
+pub static TexFormat_R16: TexFormat = 1; //gl::R16 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_R16F: TexFormat = gl::R16F as TexFormat;
+pub static TexFormat_R16F: TexFormat = 1; //gl::R16F as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_R32F: TexFormat = gl::R32F as TexFormat;
+pub static TexFormat_R32F: TexFormat = 1; //gl::R32F as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RG8: TexFormat = gl::RGB as TexFormat;
+pub static TexFormat_RG8: TexFormat = 1; //gl::RGB as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RG16: TexFormat = gl::RG16 as TexFormat;
+pub static TexFormat_RG16: TexFormat = 1; //gl::RG16 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RG16F: TexFormat = gl::RG16F as TexFormat;
+pub static TexFormat_RG16F: TexFormat = 1; //gl::RG16F as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RG32F: TexFormat = gl::RG32F as TexFormat;
+pub static TexFormat_RG32F: TexFormat = 1; //gl::RG32F as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RGB8: TexFormat = gl::RGB8 as TexFormat;
+pub static TexFormat_RGB8: TexFormat = 1; //gl::RGB8 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RGBA8: TexFormat = gl::RGBA8 as TexFormat;
+pub static TexFormat_RGBA8: TexFormat = 1; //gl::RGBA8 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RGBA16: TexFormat = gl::RGBA16 as TexFormat;
+pub static TexFormat_RGBA16: TexFormat = 1; //gl::RGBA16 as TexFormat;
 
 // #[no_mangle]
-// pub static TexFormat_RGBA16F: TexFormat = gl::RGBA16F as TexFormat;
+// pub static TexFormat_RGBA16F: TexFormat = 1; //gl::RGBA16F as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RGBA16F: TexFormat = 0x881a;
-
-// #[no_mangle]
-// pub static TexFormat_RGBA32F: TexFormat = gl::RGBA32F as TexFormat;
-#[no_mangle]
-pub static TexFormat_RGBA32F: TexFormat = 0x8814;
-
-#[no_mangle]
-pub static TexFormat_Depth16: TexFormat = gl::DEPTH_COMPONENT16 as TexFormat;
-
-#[no_mangle]
-pub static TexFormat_Depth24: TexFormat = gl::DEPTH_COMPONENT24 as TexFormat;
+pub static TexFormat_RGBA16F: TexFormat = 1; //0x881a;
 
 // #[no_mangle]
-// pub static TexFormat_Depth32F: TexFormat = gl::DEPTH_COMPONENT32F as TexFormat;
+// pub static TexFormat_RGBA32F: TexFormat = 1; //gl::RGBA32F as TexFormat;
 #[no_mangle]
-pub static TexFormat_Depth32F: TexFormat = 0x8cac;
+pub static TexFormat_RGBA32F: TexFormat = 1; //0x8814;
+
+#[no_mangle]
+pub static TexFormat_Depth16: TexFormat = 1; //gl::DEPTH_COMPONENT16 as TexFormat;
+
+#[no_mangle]
+pub static TexFormat_Depth24: TexFormat = 1; //gl::DEPTH_COMPONENT24 as TexFormat;
+
+// #[no_mangle]
+// pub static TexFormat_Depth32F: TexFormat = 1; //gl::DEPTH_COMPONENT32F as TexFormat;
+#[no_mangle]
+pub static TexFormat_Depth32F: TexFormat = 1; //0x8cac;
 
 #[no_mangle]
 pub extern "C" fn TexFormat_Components(this: TexFormat) -> i32 {

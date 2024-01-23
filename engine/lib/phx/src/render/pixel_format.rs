@@ -1,27 +1,25 @@
-use super::gl;
-
 pub type PixelFormat = i32;
 
 #[no_mangle]
-pub static PixelFormat_Red: PixelFormat = gl::RED as PixelFormat;
+pub static PixelFormat_Red: PixelFormat = 1; //gl::RED as PixelFormat;
 
 #[no_mangle]
-pub static PixelFormat_RG: PixelFormat = gl::RG as PixelFormat;
+pub static PixelFormat_RG: PixelFormat = 1; //gl::RG as PixelFormat;
 
 #[no_mangle]
-pub static PixelFormat_RGB: PixelFormat = gl::RGB as PixelFormat;
+pub static PixelFormat_RGB: PixelFormat = 1; //gl::RGB as PixelFormat;
 
 #[no_mangle]
-pub static PixelFormat_BGR: PixelFormat = gl::BGR as PixelFormat;
+pub static PixelFormat_BGR: PixelFormat = 1; //gl::BGR as PixelFormat;
 
 #[no_mangle]
-pub static PixelFormat_RGBA: PixelFormat = gl::RGBA as PixelFormat;
+pub static PixelFormat_RGBA: PixelFormat = 1; //gl::RGBA as PixelFormat;
 
 #[no_mangle]
-pub static PixelFormat_BGRA: PixelFormat = gl::BGRA as PixelFormat;
+pub static PixelFormat_BGRA: PixelFormat = 1; //gl::BGRA as PixelFormat;
 
 #[no_mangle]
-pub static PixelFormat_Depth_Component: PixelFormat = gl::DEPTH_COMPONENT as PixelFormat;
+pub static PixelFormat_Depth_Component: PixelFormat = 1; //gl::DEPTH_COMPONENT as PixelFormat;
 
 #[no_mangle]
 pub extern "C" fn PixelFormat_Components(this: PixelFormat) -> i32 {
