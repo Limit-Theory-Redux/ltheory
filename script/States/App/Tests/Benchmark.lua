@@ -159,6 +159,8 @@ function Benchmark:onInit()
 
     self:generate()
 
+    GameState.debug.metricsEnabled = true
+
     DebugControl.ltheory = self
     self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     self.canvas = UI.Canvas()
@@ -169,6 +171,10 @@ end
 
 function Benchmark:onInput()
     self.canvas:input()
+
+    if InputInstance:isPressed(Button.KeyboardEscape) then
+        self:quit()
+    end
 end
 
 function Benchmark:onUpdate(dt)
