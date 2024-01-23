@@ -447,7 +447,7 @@ impl HmGuiContainer {
         println!("{ident_str}- total_stretch:    {:?}", self.total_stretch);
         println!("{ident_str}- frame_opacity:    {}", self.frame_opacity);
         println!("{ident_str}- clip:             {}", self.clip);
-        println!("{ident_str}- mouse_over_check: {:?}", self.mouse_over);
+        println!("{ident_str}- mouse_over:       {:?}", self.mouse_over);
         println!("{ident_str}- store_size:       {:?}", self.store_size);
         println!("{ident_str}- children[{}]:", self.children.len());
 
