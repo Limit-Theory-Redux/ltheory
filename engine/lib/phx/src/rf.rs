@@ -9,7 +9,7 @@ use std::rc::Rc;
 ///
 /// to see original borrowing place on panic.
 /// Change target if you are not on Linux.
-#[derive(Clone, Default, PartialEq, Eq)]
+#[derive(Default, PartialEq, Eq)]
 pub struct Rf<T>(Rc<RefCell<T>>);
 
 impl<T> Rf<T> {
@@ -34,5 +34,16 @@ impl<T> Rf<T> {
 impl<T> From<T> for Rf<T> {
     fn from(value: T) -> Self {
         Self::new(value)
+    }
+}
+
+// Note: Using #[derive(Clone)] doesn't quite work correctly, because the Rust
+// compiler erroneously expects T to also implement Clone, and that isn't
+// always possible.
+//
+// See https://github.com/rust-lang/rust/issues/41481
+impl<T> Clone for Rf<T> {
+    fn clone(&self) -> Self {
+        Rf(self.0.clone())
     }
 }

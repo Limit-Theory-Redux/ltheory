@@ -5,7 +5,7 @@ mod rect;
 mod renderer;
 mod text;
 
-use image::*;
+use self::image::*;
 use layer::*;
 use panel::*;
 use rect::*;

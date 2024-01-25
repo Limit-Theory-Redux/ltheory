@@ -620,7 +620,11 @@ impl Engine {
 
 fn call_lua_func(engine: &Engine, func_name: &str) {
     let globals = engine.lua.globals();
-    let app_frame_func: Function = globals.get(func_name).unwrap();
+    let app_frame_func: Function = globals
+        .get(func_name)
+        .expect(format!("Unknown function {}", func_name).as_str());
 
-    app_frame_func.call::<_, ()>(()).unwrap();
+    if let Err(e) = app_frame_func.call::<_, ()>(()) {
+        trace!("{}", e);
+    }
 }

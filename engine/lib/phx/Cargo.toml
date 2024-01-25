@@ -34,6 +34,7 @@ mlua = { git = "https://github.com/khvzak/mlua.git", rev = "54c14cc5b8390785ffd0
     "luajit52",
     "vendored",
 ] }
+rapier3d-f64 = { version = "0.17", features = [ "simd-stable", "debug-render" ] }
 num_cpus = "1.15"
 raw-window-handle = "0.5"
 regex = "1.8"
@@ -46,6 +47,4 @@ winit = "0.28"
 walkdir = "2.4"
 
 [build-dependencies]
-cmake = "0.1"
-cc = { version = "1.0", features = ["parallel"] }
 gl_generator = "0.14"
