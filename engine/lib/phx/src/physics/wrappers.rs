@@ -90,6 +90,7 @@ impl<H: RapierHandle> RapierWrapper<H> {
                     rigid_bodies: rp::RigidBodySet::new(),
                     colliders: rp::ColliderSet::new(),
                     narrow_phase: rp::NarrowPhase::new(),
+                    shape_cache: ShapeCache::new(),
                 }),
             ),
         )

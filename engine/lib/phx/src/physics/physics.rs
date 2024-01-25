@@ -110,6 +110,7 @@ pub(crate) struct PhysicsWorld {
     pub rigid_bodies: rp::RigidBodySet,
     pub colliders: rp::ColliderSet,
     pub narrow_phase: rp::NarrowPhase,
+    pub shape_cache: ShapeCache,
 }
 
 // All Rapier handles are Copy
@@ -188,6 +189,7 @@ impl Physics {
                 rigid_bodies: rp::RigidBodySet::new(),
                 colliders: rp::ColliderSet::new(),
                 narrow_phase: rp::NarrowPhase::new(),
+                shape_cache: ShapeCache::new(),
             }),
             integration_parameters: rp::IntegrationParameters::default(),
             physics_pipeline: rp::PhysicsPipeline::new(),

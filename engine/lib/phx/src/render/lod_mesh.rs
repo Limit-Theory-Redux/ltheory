@@ -55,7 +55,7 @@ pub unsafe extern "C" fn LodMesh_Free(this: *mut LodMesh) {
         let mut e: *mut LodMeshEntry = (*this).head;
         while !e.is_null() {
             let next: *mut LodMeshEntry = (*e).next;
-            Mesh_Free(Box::from_raw((*e).mesh));
+            Mesh_Free((*e).mesh);
             MemFree(e as *const _);
             e = next;
         }

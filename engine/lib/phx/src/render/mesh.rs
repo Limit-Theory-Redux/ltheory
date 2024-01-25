@@ -101,12 +101,19 @@ pub extern "C" fn Mesh_Acquire(this: &mut Mesh) {
 }
 
 #[no_mangle]
-pub extern "C" fn Mesh_Free(mut this: Box<Mesh>) {
-    this._refCount = (this._refCount).wrapping_sub(1);
+pub extern "C" fn Mesh_Free(mut this: *mut Mesh) {
+    unsafe {
+        (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
 
-    if this._refCount <= 0 && this.vbo != 0 {
-        gl_delete_buffers(1, &mut this.vbo);
-        gl_delete_buffers(1, &mut this.ibo);
+        if (*this)._refCount <= 0 {
+            if (*this).vbo != 0 {
+                gl_delete_buffers(1, &mut (*this).vbo);
+                gl_delete_buffers(1, &mut (*this).ibo);
+            }
+
+            // Convert 'this' into a box so we can drop it and finally free its memory.
+            Box::from_raw(this);
+        }
     }
 }
 
