@@ -8,7 +8,6 @@ mod image;
 mod property;
 mod property_registry;
 mod rect;
-mod rf;
 mod style;
 mod style_registry;
 mod text;
@@ -16,17 +15,16 @@ mod widget;
 
 use internal::*;
 
+pub use self::image::*;
 pub use alignment::*;
 pub use container::*;
 pub use core_properties::*;
 pub(self) use data::*;
 pub use focus::*;
 pub use gui::*;
-pub use image::*;
 pub use property::*;
 pub use property_registry::*;
 pub use rect::*;
-pub use rf::*;
 pub use style::*;
 pub use style_registry::*;
 pub use text::*;

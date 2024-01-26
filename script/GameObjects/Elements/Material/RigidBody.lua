@@ -28,11 +28,21 @@ function Entity.fromRigidBody(body)
     return bodyToEntity[ptrToKey(body)]
 end
 
-function Entity:addRigidBody(isCollider, collisionMesh)
+function Entity:addRigidBody(isCollider, collisionMesh, colliderType)
     assert(not self.body)
-    self.body = RigidBody.CreateSphereFromMesh(collisionMesh)
-    --self.body = RigidBody.CreateBoxFromMesh(collisionMesh)
-    --self.body = RigidBody.CreateHullFromMesh(collisionMesh)
+
+    if colliderType == Enums.ColliderType.Box then
+        self.body = RigidBody.CreateBoxFromMesh(collisionMesh)
+    elseif colliderType == Enums.ColliderType.ConvexHull then
+        self.body = RigidBody.CreateConvexHullFromMesh(collisionMesh)
+    elseif colliderType == Enums.ColliderType.ConvexDecomposition then
+        self.body = RigidBody.CreateConvexDecompositionFromMesh(collisionMesh)
+    elseif colliderType == Enums.ColliderType.Trimesh then
+        self.body = RigidBody.CreateTrimeshFromMesh(collisionMesh)
+    else
+        -- Default case.
+        self.body = RigidBody.CreateSphereFromMesh(collisionMesh)
+    end
 
     self:register(Event.AddedToParent, onAddedToParent)
     self:register(Event.RemovedFromParent, onRemovedFromParent)
@@ -258,8 +268,6 @@ end
 
 function Entity:setDrag(linear, angular)
     assert(self.body)
-    linear  = 1 - exp(-linear);
-    angular = 1 - exp(-angular);
     self.body:setDrag(linear, angular)
 end
 
