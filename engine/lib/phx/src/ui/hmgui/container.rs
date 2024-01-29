@@ -1,8 +1,7 @@
 use std::cell::RefMut;
 
-use glam::{Vec2, Vec4};
+use glam::Vec2;
 
-use crate::render::Color;
 use crate::rf::Rf;
 
 use super::*;
@@ -29,12 +28,9 @@ pub struct HmGuiContainer {
     pub spacing: f32,
 
     pub children_hash: u32,
-    pub focus_style: FocusStyle,
     pub offset: Vec2,
     pub total_stretch: Vec2,
-    pub frame_opacity: f32,
     pub clip: bool,
-    pub mouse_over: [bool; 2],
     pub store_size: bool,
 }
 
@@ -375,57 +371,11 @@ impl HmGuiContainer {
         }
     }
 
-    pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2, focus: bool) {
+    pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
         hmgui.renderer.begin_layer(pos, size, self.clip);
 
         for widget_rf in self.children.iter().rev() {
             widget_rf.as_ref().draw(hmgui);
-        }
-
-        if self.mouse_over[FocusType::Mouse as usize] {
-            match self.focus_style {
-                FocusStyle::None => {
-                    let color = Vec4::new(0.1, 0.12, 0.13, 1.0);
-
-                    hmgui
-                        .renderer
-                        .panel(pos, size, color, 8.0, self.frame_opacity);
-                }
-                FocusStyle::Fill => {
-                    if focus {
-                        let color = Vec4::new(0.1, 0.5, 1.0, 1.0);
-
-                        hmgui.renderer.panel(pos, size, color, 0.0, 1.0);
-                    } else {
-                        let color = Vec4::new(0.15, 0.15, 0.15, 0.8);
-
-                        hmgui
-                            .renderer
-                            .panel(pos, size, color, 0.0, self.frame_opacity);
-                    }
-                }
-                FocusStyle::Outline => {
-                    if focus {
-                        let color = Color::new(0.1, 0.5, 1.0, 1.0);
-
-                        hmgui.renderer.rect(pos, size, color, Some(1.0));
-                    }
-                }
-                FocusStyle::Underline => {
-                    let color = Color::new(
-                        0.3,
-                        0.3,
-                        0.3,
-                        if focus as i32 != 0 {
-                            0.5
-                        } else {
-                            self.frame_opacity
-                        },
-                    );
-
-                    hmgui.renderer.rect(pos, size, color, None);
-                }
-            }
         }
 
         hmgui.renderer.end_layer();
@@ -444,11 +394,8 @@ impl HmGuiContainer {
         println!("{ident_str}- padding_upper:    {:?}", self.padding_upper);
         println!("{ident_str}- spacing:          {}", self.spacing);
         println!("{ident_str}- children_hash:    {}", self.children_hash);
-        println!("{ident_str}- focus_style:      {:?}", self.focus_style);
         println!("{ident_str}- total_stretch:    {:?}", self.total_stretch);
-        println!("{ident_str}- frame_opacity:    {}", self.frame_opacity);
         println!("{ident_str}- clip:             {}", self.clip);
-        println!("{ident_str}- mouse_over:       {:?}", self.mouse_over);
         println!("{ident_str}- store_size:       {:?}", self.store_size);
         println!("{ident_str}- children[{}]:", self.children.len());
 

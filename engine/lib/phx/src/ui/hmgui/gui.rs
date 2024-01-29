@@ -152,22 +152,18 @@ impl HmGui {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
     }
 
-    /// Recursively iterate over container widgets and calculate if mouse is over the container.
-    /// Setting mouse over hash at the end of the method guarantees that the last (top most) container will get the mouse over flag set.
+    /// Calculate if mouse is over the widget. Recursively iterate over container widgets.
+    /// Setting mouse over hash at the end of the method guarantees that the last (top most) widget will get the mouse over flag set.
     fn check_mouse_over(&mut self, widget_rf: Rf<HmGuiWidget>) {
         let widget = widget_rf.as_ref();
-        let WidgetItem::Container(container) = &widget.item else {
-            return;
-        };
-
         let is_mouse_over = widget.contains_point(&self.focus_pos);
 
-        if container.clip && !is_mouse_over {
-            return;
-        }
-
-        for widget_rf in container.children.iter().rev() {
-            self.check_mouse_over(widget_rf.clone());
+        if let WidgetItem::Container(container) = &widget.item {
+            if !container.clip || is_mouse_over {
+                for widget_rf in container.children.iter().rev() {
+                    self.check_mouse_over(widget_rf.clone());
+                }
+            }
         }
 
         if !is_mouse_over {
@@ -176,24 +172,19 @@ impl HmGui {
 
         for i in 0..self.mouse_over_widget_hash.len() {
             // TODO: do we really need self.mouse_over_widget_hash[i] == 0 check here?
-            if container.mouse_over[i] && self.mouse_over_widget_hash[i] == 0 {
+            if widget.mouse_over[i] && self.mouse_over_widget_hash[i] == 0 {
                 self.mouse_over_widget_hash[i] = widget.hash;
             }
         }
     }
 
-    /// Sets container `mouse over` flag to true.
-    /// Will be used in the check_mouse_over to set `mouse over` hash for current container for the next frame.
-    /// Returns true if mouse is over container (was calculated in the previous frame).
-    fn is_mouse_over_intern(
-        &self,
-        container: &mut HmGuiContainer,
-        ty: FocusType,
-        hash: u64,
-    ) -> bool {
-        container.mouse_over[ty as usize] = true;
+    /// Sets widget's `mouse over` flag to true.
+    /// Will be used in the check_mouse_over to set `mouse over` hash for current widget for the next frame.
+    /// Returns true if mouse is over the widget (was calculated in the previous frame).
+    fn is_mouse_over_intern(&self, widget: &mut HmGuiWidget, ty: FocusType) -> bool {
+        widget.mouse_over[ty as usize] = true;
 
-        self.mouse_over_widget_hash[ty as usize] == hash
+        self.mouse_over_widget_hash[ty as usize] == widget.hash
     }
 
     fn get_property(&self, property_id: usize) -> &HmGuiProperty {
@@ -238,8 +229,8 @@ macro_rules! register_property {
 macro_rules! set_property {
     ($self:ident, $id:ident, $val:expr) => {
         let Some((_, def_prop)) = $self.default_property_registry.registry.get_index($id) else {
-                    panic!("Unknown property id {}", $id);
-                };
+            panic!("Unknown property id {}", $id);
+        };
         let value: HmGuiProperty = $val.into();
         assert_eq!(
             def_prop.property.get_type(),
@@ -256,12 +247,12 @@ macro_rules! get_property {
         let prop = $self.get_property($id);
 
         let HmGuiProperty::$v(value) = prop else {
-                panic!(
-                    "Wrong property type. Expected {} but was {}",
-                    stringify!($v),
-                    prop.name()
-                )
-            };
+            panic!(
+                "Wrong property type. Expected {} but was {}",
+                stringify!($v),
+                prop.name()
+            )
+        };
 
         value
     }};
@@ -488,10 +479,10 @@ impl HmGui {
 
             widget.pos.x += data.offset.x;
             widget.pos.y += data.offset.y;
+            widget.focus_style = FocusStyle::None;
+            widget.frame_opacity = 0.95;
 
             let container = widget.get_container_item_mut();
-            container.focus_style = FocusStyle::None;
-            container.frame_opacity = 0.95;
             container.clip = true;
         }
 
@@ -520,13 +511,11 @@ impl HmGui {
         // A separate scope to prevent runtime borrow panics - widget borrowing conflicts with self.text() below
         let focus = {
             let mut widget = self.container.as_mut();
-            let hash = widget.hash;
-            let container = widget.get_container_item_mut();
 
-            container.focus_style = FocusStyle::Fill;
-            container.frame_opacity = 0.5;
+            widget.focus_style = FocusStyle::Fill;
+            widget.frame_opacity = 0.5;
 
-            self.is_mouse_over_intern(container, FocusType::Mouse, hash)
+            self.is_mouse_over_intern(&mut widget, FocusType::Mouse)
         };
 
         self.text(label);
@@ -548,12 +537,10 @@ impl HmGui {
         // A separate scope to prevent runtime borrow conflict with self.text() below
         {
             let mut widget = self.container.as_mut();
-            let hash = widget.hash;
-            let container = widget.get_container_item_mut();
 
-            container.focus_style = FocusStyle::Underline;
+            widget.focus_style = FocusStyle::Underline;
 
-            let is_mouse_over = self.is_mouse_over_intern(container, FocusType::Mouse, hash);
+            let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
 
             if is_mouse_over && self.activate {
                 value = !value;
@@ -887,10 +874,8 @@ impl HmGui {
     /// Makes current container `focusable` and returns if it's currently in focus.
     pub fn is_mouse_over(&self, ty: FocusType) -> bool {
         let mut widget = self.container.as_mut();
-        let hash = widget.hash;
-        let container = widget.get_container_item_mut();
 
-        self.is_mouse_over_intern(container, ty, hash)
+        self.is_mouse_over_intern(&mut widget, ty)
     }
 
     pub fn set_children_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
