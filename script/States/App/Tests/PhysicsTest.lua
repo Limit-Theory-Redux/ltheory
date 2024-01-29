@@ -1,7 +1,3 @@
-Config.debug.physics.drawBoundingBoxesLocal = false
-Config.debug.physics.drawBoundingBoxesWorld = false
-Config.debug.physics.drawWireframes         = true
-
 --[[-- Controls ----------------------------------------------------------------
 
   There are 2 asteroids you can control. Use Ctrl + <button> to control the
@@ -130,6 +126,10 @@ end
 function LTheory:onInit()
     self.player = Entities.Player()
     GameState.player.humanPlayer = self.player
+
+    GameState.debug.physics.drawBoundingBoxesLocal = false
+    GameState.debug.physics.drawBoundingBoxesWorld = false
+    GameState.debug.physics.drawWireframes         = true
 
     self:generate()
 

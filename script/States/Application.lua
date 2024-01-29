@@ -166,7 +166,7 @@ function Application:onFrame()
         end
 
         if InputInstance:isPressed(Bindings.ToggleWireframe) then
-            Settings.set('render.wireframe', not Settings.get('render.wireframe'))
+            GameState.debug.physics.drawWireframes = not GameState.debug.physics.drawWireframes
         end
 
         if InputInstance:isPressed(Bindings.ToggleMetrics) then
