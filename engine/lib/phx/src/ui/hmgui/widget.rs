@@ -3,8 +3,8 @@ use glam::{Vec2, Vec4};
 use crate::render::Color;
 
 use super::{
-    AlignHorizontal, AlignVertical, FocusStyle, FocusType, HmGui, HmGuiContainer, HmGuiImage,
-    HmGuiRect, HmGuiText, IDENT,
+    AlignHorizontal, AlignVertical, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiRect,
+    HmGuiText, RenderStyle, IDENT,
 };
 
 use crate::rf::Rf;
@@ -70,7 +70,7 @@ pub struct HmGuiWidget {
     /// Widget min size after compute_size() excluding margin and border
     pub inner_min_size: Vec2,
 
-    pub focus_style: FocusStyle,
+    pub render_style: RenderStyle,
     pub frame_opacity: f32,
     pub mouse_over: [bool; FocusType::SIZE],
 }
@@ -101,7 +101,7 @@ impl HmGuiWidget {
             min_size: Default::default(),
             inner_min_size: Vec2::new(20.0, 20.0),
 
-            focus_style: Default::default(),
+            render_style: Default::default(),
             frame_opacity: Default::default(),
             mouse_over: Default::default(),
         }
@@ -263,15 +263,15 @@ impl HmGuiWidget {
         if self.mouse_over[FocusType::Mouse as usize] {
             let focus = hmgui.mouse_over_widget_hash() == self.hash;
 
-            match self.focus_style {
-                FocusStyle::None => {
+            match self.render_style {
+                RenderStyle::None => {
                     let color = Vec4::new(0.1, 0.12, 0.13, 1.0);
 
                     hmgui
                         .renderer
                         .panel(pos, size, color, 8.0, self.frame_opacity);
                 }
-                FocusStyle::Fill => {
+                RenderStyle::Fill => {
                     if focus {
                         let color = Vec4::new(0.1, 0.5, 1.0, 1.0);
 
@@ -284,14 +284,14 @@ impl HmGuiWidget {
                             .panel(pos, size, color, 0.0, self.frame_opacity);
                     }
                 }
-                FocusStyle::Outline => {
+                RenderStyle::Outline => {
                     if focus {
                         let color = Color::new(0.1, 0.5, 1.0, 1.0);
 
                         hmgui.renderer.rect(pos, size, color, Some(1.0));
                     }
                 }
-                FocusStyle::Underline => {
+                RenderStyle::Underline => {
                     let color =
                         Color::new(0.3, 0.3, 0.3, if focus { 0.5 } else { self.frame_opacity });
 
@@ -324,7 +324,7 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}- min_size:       {:?}", self.min_size);
         println!("{ident_str}{IDENT}- inner_min_size: {:?}", self.inner_min_size);
         println!("{ident_str}{IDENT}- hash:           0x{:X?}", self.hash);
-        println!("{ident_str}{IDENT}- focus_style:    {:?}", self.focus_style);
+        println!("{ident_str}{IDENT}- render_style:   {:?}", self.render_style);
         println!("{ident_str}{IDENT}- frame_opacity:  {}", self.frame_opacity);
         println!("{ident_str}{IDENT}- mouse_over:     {:?}", self.mouse_over);
         println!("{ident_str}{IDENT}# item: {}", self.item.name());

@@ -479,7 +479,7 @@ impl HmGui {
 
             widget.pos.x += data.offset.x;
             widget.pos.y += data.offset.y;
-            widget.focus_style = FocusStyle::None;
+            widget.render_style = RenderStyle::None;
             widget.frame_opacity = 0.95;
 
             let container = widget.get_container_item_mut();
@@ -514,7 +514,7 @@ impl HmGui {
             let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
 
             if is_mouse_over {
-                widget.focus_style = FocusStyle::Fill;
+                widget.render_style = RenderStyle::Fill;
                 widget.frame_opacity = 0.5;
             }
 
@@ -543,7 +543,7 @@ impl HmGui {
             let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
 
             if is_mouse_over {
-                widget.focus_style = FocusStyle::Underline;
+                widget.render_style = RenderStyle::Underline;
             }
 
             if is_mouse_over && self.activate {
