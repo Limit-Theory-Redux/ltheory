@@ -15,7 +15,13 @@ GameState.debug = {
     jobSpeed           = Config.debug.jobSpeed,
     timeAccelFactor    = Config.debug.timeAccelFactor,
     printConfig        = Config.debug.printConfig,
-    showMapActionLines = Config.debug.showMapActionLines
+    showMapActionLines = Config.debug.showMapActionLines,
+
+    physics = {
+        drawWireframes         = Config.debug.physics.drawWireframes,
+        drawBoundingBoxesLocal = Config.debug.physics.drawBoundingBoxesLocal,
+        drawBoundingBoxesworld = Config.debug.physics.drawBoundingBoxesworld,
+    }
 }
 
 GameState.render = {

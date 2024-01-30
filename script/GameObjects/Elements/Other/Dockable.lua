@@ -95,7 +95,6 @@ function Entity:removeDocked(e)
     -- end
 
     e:setShipDocked(nil) -- mark ship as undocked
-    e:setPos(self:getPos())
 end
 
 function Entity:setDockable()

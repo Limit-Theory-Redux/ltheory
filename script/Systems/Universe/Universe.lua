@@ -114,8 +114,7 @@ function Universe:CreateShip(system, pos, shipObject)
     ship:setName(shipObject.shipName)
 
     -- Insert ship into this star system
-    local spawnPosition = ship:getPos() -- use semi-randomly generated position from spawnShip()
-    if pos then spawnPosition = pos end -- unless a position was explicitly provided, in which case use that position
+    local spawnPosition = pos or Config.gen.origin + Vec3f(20000, 20000, 20000)
 
     ship:setPos(spawnPosition)
     ship:setFriction(shipObject.friction)

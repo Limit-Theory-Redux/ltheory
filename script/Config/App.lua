@@ -140,12 +140,12 @@ Config.gen                       = {
         0.06,
         0.03,
         0.0 },
-    shipHullManuM                    = { 0.8, -- pitch/roll/yaw speed based on hull size
+    shipHullManuM                    = { 0.3, -- pitch/roll/yaw speed based on hull size
         0.5,
-        0.35,
-        0.25,
-        0.16,
-        4.0 },                           -- radius is already slowing maneuvering
+        0.2,
+        0.1,
+        0.06,
+        1.5 },                           -- radius is already slowing maneuvering
 
     shipComponents                   = { -- Sockets available for (ComponentEnums.lua):
         { 0, 0, 1, 3, 5,  8 },           -- armor plates

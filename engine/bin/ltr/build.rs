@@ -20,6 +20,10 @@ fn main() {
             manifest.display()
         );
         println!("cargo:rerun-if-changed=src/ltr.exe.manifest");
+
+        // Prefer dedicated graphics.
+        println!("cargo:rustc-link-arg=/EXPORT:NvOptimusEnablement");
+        println!("cargo:rustc-link-arg=/EXPORT:AmdPowerXpressRequestHighPerformance");
     }
 
     if cfg!(target_os = "linux") {
