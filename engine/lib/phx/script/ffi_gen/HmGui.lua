@@ -38,6 +38,7 @@ function Loader.defineType()
             void               HmGui_Text                           (HmGui*, cstr text);
             void               HmGui_TextColored                    (HmGui*, cstr text, Color const* color);
             void               HmGui_TextEx                         (HmGui*, Font const* font, cstr text, Color const* color);
+            bool               HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
             void               HmGui_SetMinWidth                    (HmGui const*, float width);
             void               HmGui_SetMinHeight                   (HmGui const*, float height);
             void               HmGui_SetMinSize                     (HmGui const*, float width, float height);
@@ -70,7 +71,6 @@ function Loader.defineType()
             void               HmGui_SetPaddingRight                (HmGui const*, float padding);
             void               HmGui_SetPaddingBottom               (HmGui const*, float padding);
             void               HmGui_SetSpacing                     (HmGui const*, float spacing);
-            bool               HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
             void               HmGui_SetChildrenAlignment           (HmGui const*, AlignHorizontal h, AlignVertical v);
             void               HmGui_SetChildrenHorizontalAlignment (HmGui const*, AlignHorizontal align);
             void               HmGui_SetChildrenVerticalAlignment   (HmGui const*, AlignVertical align);
@@ -191,6 +191,7 @@ function Loader.defineType()
             Text                           = libphx.HmGui_Text,
             TextColored                    = libphx.HmGui_TextColored,
             TextEx                         = libphx.HmGui_TextEx,
+            IsMouseOver                    = libphx.HmGui_IsMouseOver,
             SetMinWidth                    = libphx.HmGui_SetMinWidth,
             SetMinHeight                   = libphx.HmGui_SetMinHeight,
             SetMinSize                     = libphx.HmGui_SetMinSize,
@@ -223,7 +224,6 @@ function Loader.defineType()
             SetPaddingRight                = libphx.HmGui_SetPaddingRight,
             SetPaddingBottom               = libphx.HmGui_SetPaddingBottom,
             SetSpacing                     = libphx.HmGui_SetSpacing,
-            IsMouseOver                    = libphx.HmGui_IsMouseOver,
             SetChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
             SetChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
             SetChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
@@ -349,6 +349,7 @@ function Loader.defineType()
                 text                           = libphx.HmGui_Text,
                 textColored                    = libphx.HmGui_TextColored,
                 textEx                         = libphx.HmGui_TextEx,
+                isMouseOver                    = libphx.HmGui_IsMouseOver,
                 setMinWidth                    = libphx.HmGui_SetMinWidth,
                 setMinHeight                   = libphx.HmGui_SetMinHeight,
                 setMinSize                     = libphx.HmGui_SetMinSize,
@@ -381,7 +382,6 @@ function Loader.defineType()
                 setPaddingRight                = libphx.HmGui_SetPaddingRight,
                 setPaddingBottom               = libphx.HmGui_SetPaddingBottom,
                 setSpacing                     = libphx.HmGui_SetSpacing,
-                isMouseOver                    = libphx.HmGui_IsMouseOver,
                 setChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
                 setChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
                 setChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,

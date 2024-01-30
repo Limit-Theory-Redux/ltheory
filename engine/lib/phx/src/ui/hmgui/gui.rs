@@ -509,19 +509,22 @@ impl HmGui {
         self.set_padding(8.0, 8.0);
 
         // A separate scope to prevent runtime borrow panics - widget borrowing conflicts with self.text() below
-        let focus = {
-            let mut widget = self.container.as_mut();
+        let is_mouse_over = {
+            let mut widget = self.last.as_mut();
+            let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
 
-            widget.focus_style = FocusStyle::Fill;
-            widget.frame_opacity = 0.5;
+            if is_mouse_over {
+                widget.focus_style = FocusStyle::Fill;
+                widget.frame_opacity = 0.5;
+            }
 
-            self.is_mouse_over_intern(&mut widget, FocusType::Mouse)
+            is_mouse_over
         };
+
+        let pressed = is_mouse_over && self.activate;
 
         self.text(label);
         self.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
-
-        let pressed = focus && self.activate;
 
         self.end_container();
 
@@ -536,11 +539,12 @@ impl HmGui {
 
         // A separate scope to prevent runtime borrow conflict with self.text() below
         {
-            let mut widget = self.container.as_mut();
-
-            widget.focus_style = FocusStyle::Underline;
-
+            let mut widget = self.last.as_mut();
             let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
+
+            if is_mouse_over {
+                widget.focus_style = FocusStyle::Underline;
+            }
 
             if is_mouse_over && self.activate {
                 value = !value;
@@ -660,6 +664,13 @@ impl HmGui {
         let mut widget = widget_rf.as_mut();
 
         widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+    }
+
+    /// Makes current widget `focusable` and returns true if mouse is over it.
+    pub fn is_mouse_over(&self, ty: FocusType) -> bool {
+        let mut widget = self.last.as_mut();
+
+        self.is_mouse_over_intern(&mut widget, ty)
     }
 
     pub fn set_min_width(&self, width: f32) {
@@ -869,13 +880,6 @@ impl HmGui {
         let container = widget.get_container_item_mut();
 
         container.spacing = spacing;
-    }
-
-    /// Makes current container `focusable` and returns if it's currently in focus.
-    pub fn is_mouse_over(&self, ty: FocusType) -> bool {
-        let mut widget = self.container.as_mut();
-
-        self.is_mouse_over_intern(&mut widget, ty)
     }
 
     pub fn set_children_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
