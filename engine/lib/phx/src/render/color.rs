@@ -55,6 +55,56 @@ impl Color {
 
         Self { r, g, b, a }
     }
+
+    /// Convert HSL color to RGB
+    pub fn from_hsl(h: f32, s: f32, l: f32, a: f32) -> Self {
+        if s == 0.0 {
+            // Achromatic, i.e., grey.
+            return Self {
+                r: 1.0,
+                g: 1.0,
+                b: 1.0,
+                a,
+            };
+        }
+
+        let h = h / 360.0; // treat this as 0..1 instead of degrees
+
+        let q = if l < 0.5 {
+            l * (1.0 + s)
+        } else {
+            l + s - (l * s)
+        };
+        let p = 2.0 * l - q;
+
+        Self::new(
+            Self::hue_to_rgb(p, q, h + 1.0 / 3.0),
+            Self::hue_to_rgb(p, q, h),
+            Self::hue_to_rgb(p, q, h - 1.0 / 3.0),
+            a,
+        )
+    }
+
+    fn hue_to_rgb(p: f32, q: f32, t: f32) -> f32 {
+        // Normalize
+        let t = if t < 0.0 {
+            t + 1.0
+        } else if t > 1.0 {
+            t - 1.0
+        } else {
+            t
+        };
+
+        if t < 1.0 / 6.0 {
+            p + (q - p) * 6.0 * t
+        } else if t < 1.0 / 2.0 {
+            q
+        } else if t < 2.0 / 3.0 {
+            p + (q - p) * (2.0 / 3.0 - t) * 6.0
+        } else {
+            p
+        }
+    }
 }
 
 impl Default for Color {
