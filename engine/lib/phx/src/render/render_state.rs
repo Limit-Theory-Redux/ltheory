@@ -1,5 +1,4 @@
 use super::*;
-use crate::common::*;
 
 static mut wireframe: [bool; 16] = [false; 16];
 

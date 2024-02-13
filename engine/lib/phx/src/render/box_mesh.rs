@@ -1,16 +1,15 @@
 use super::*;
 use crate::math::*;
-use crate::*;
 
 #[derive(Clone)]
 #[repr(C)]
 pub struct BoxMesh {
-    pub elem: Vec<Box_0>,
+    pub elem: Vec<Box0>,
 }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct Box_0 {
+pub struct Box0 {
     pub p: Vec3,
     pub s: Vec3,
     pub r: Vec3,
@@ -54,7 +53,7 @@ pub extern "C" fn BoxMesh_Free(_: Box<BoxMesh>) {}
 
 #[no_mangle]
 pub extern "C" fn BoxMesh_Add(this: &mut BoxMesh, p: &Vec3, s: &Vec3, r: &Vec3, b: &Vec3) {
-    this.elem.push(Box_0 {
+    this.elem.push(Box0 {
         p: *p,
         s: *s,
         r: *r,

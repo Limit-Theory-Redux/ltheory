@@ -1,8 +1,6 @@
 use std::io::ErrorKind;
 use std::{env, fs};
 
-use crate::*;
-
 use directories::ProjectDirs;
 use internal::ConvertIntoString;
 use tracing::error;

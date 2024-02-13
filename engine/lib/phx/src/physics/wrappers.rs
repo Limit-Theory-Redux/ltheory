@@ -1,8 +1,10 @@
-use crate::physics::*;
-use crate::rf::Rf;
-use rapier3d_f64::prelude as rp;
 use std::cell::{Ref, RefMut};
 use std::ops::{Deref, DerefMut};
+
+use rapier3d_f64::prelude as rp;
+
+use crate::physics::*;
+use crate::rf::Rf;
 
 pub enum RefOrBorrow<'a, T> {
     Ref(Ref<'a, T>),

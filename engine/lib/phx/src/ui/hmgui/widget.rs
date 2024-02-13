@@ -1,7 +1,10 @@
 use glam::{Vec2, Vec4};
 
+use crate::render::Color;
+
 use super::{
-    AlignHorizontal, AlignVertical, HmGui, HmGuiContainer, HmGuiImage, HmGuiRect, HmGuiText, IDENT,
+    AlignHorizontal, AlignVertical, FocusStyle, FocusType, HmGui, HmGuiContainer, HmGuiImage,
+    HmGuiRect, HmGuiText, IDENT,
 };
 
 use crate::rf::Rf;
@@ -58,14 +61,18 @@ pub struct HmGuiWidget {
     pub vertical_alignment: AlignVertical,
     pub margin_upper: Vec2,
     pub margin_lower: Vec2,
-    pub bg_color: Option<Vec4>,
+    pub bg_color: Option<Color>,
     pub border_width: f32,
-    pub border_color: Vec4,
+    pub border_color: Color,
 
     /// Widget min size after compute_size() including margin and border
     pub min_size: Vec2,
     /// Widget min size after compute_size() excluding margin and border
     pub inner_min_size: Vec2,
+
+    pub focus_style: FocusStyle,
+    pub frame_opacity: f32,
+    pub mouse_over: [bool; FocusType::SIZE],
 }
 
 impl HmGuiWidget {
@@ -93,6 +100,10 @@ impl HmGuiWidget {
 
             min_size: Default::default(),
             inner_min_size: Vec2::new(20.0, 20.0),
+
+            focus_style: Default::default(),
+            frame_opacity: Default::default(),
+            mouse_over: Default::default(),
         }
     }
 
@@ -111,6 +122,13 @@ impl HmGuiWidget {
         };
 
         item
+    }
+
+    pub fn contains_point(&self, point: &Vec2) -> bool {
+        self.pos.x <= point.x
+            && self.pos.y <= point.y
+            && point.x <= self.pos.x + self.size.x
+            && point.y <= self.pos.y + self.size.y
     }
 
     /// Calculate outer min size that includes margin and border.
@@ -220,9 +238,7 @@ impl HmGuiWidget {
 
             match &self.item {
                 WidgetItem::Container(container) => {
-                    let hmgui_focus = hmgui.mouse_focus_hash();
-
-                    container.draw(hmgui, pos, size, hmgui_focus == self.hash);
+                    container.draw(hmgui, pos, size);
                 }
                 WidgetItem::Text(text) => {
                     let x = pos.x + (size.x - self.inner_min_size.x) / 2.0; // center text
@@ -236,6 +252,50 @@ impl HmGuiWidget {
                 }
                 WidgetItem::Image(image) => {
                     image.draw(&mut hmgui.renderer, pos, size);
+                }
+            }
+
+            self.process_mouse_over(hmgui, pos, size);
+        }
+    }
+
+    fn process_mouse_over(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
+        if self.mouse_over[FocusType::Mouse as usize] {
+            let focus = hmgui.mouse_over_widget_hash() == self.hash;
+
+            match self.focus_style {
+                FocusStyle::None => {
+                    let color = Vec4::new(0.1, 0.12, 0.13, 1.0);
+
+                    hmgui
+                        .renderer
+                        .panel(pos, size, color, 8.0, self.frame_opacity);
+                }
+                FocusStyle::Fill => {
+                    if focus {
+                        let color = Vec4::new(0.1, 0.5, 1.0, 1.0);
+
+                        hmgui.renderer.panel(pos, size, color, 0.0, 1.0);
+                    } else {
+                        let color = Vec4::new(0.15, 0.15, 0.15, 0.8);
+
+                        hmgui
+                            .renderer
+                            .panel(pos, size, color, 0.0, self.frame_opacity);
+                    }
+                }
+                FocusStyle::Outline => {
+                    if focus {
+                        let color = Color::new(0.1, 0.5, 1.0, 1.0);
+
+                        hmgui.renderer.rect(pos, size, color, Some(1.0));
+                    }
+                }
+                FocusStyle::Underline => {
+                    let color =
+                        Color::new(0.3, 0.3, 0.3, if focus { 0.5 } else { self.frame_opacity });
+
+                    hmgui.renderer.rect(pos, size, color, None);
                 }
             }
         }
@@ -264,6 +324,9 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}- min_size:       {:?}", self.min_size);
         println!("{ident_str}{IDENT}- inner_min_size: {:?}", self.inner_min_size);
         println!("{ident_str}{IDENT}- hash:           0x{:X?}", self.hash);
+        println!("{ident_str}{IDENT}- focus_style:    {:?}", self.focus_style);
+        println!("{ident_str}{IDENT}- frame_opacity:  {}", self.frame_opacity);
+        println!("{ident_str}{IDENT}- mouse_over:     {:?}", self.mouse_over);
         println!("{ident_str}{IDENT}# item: {}", self.item.name());
 
         match &self.item {

@@ -1,8 +1,6 @@
 use internal::static_string;
 
-use crate::common::*;
 use crate::logging::warn;
-use crate::*;
 
 use std::collections::HashMap;
 use std::ffi::CStr;

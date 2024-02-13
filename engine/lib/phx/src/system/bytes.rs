@@ -1,9 +1,7 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::io::Write;
 
 use super::*;
-use crate::common::*;
-use crate::*;
 
 use flate2::write::{ZlibDecoder, ZlibEncoder};
 use flate2::Compression;

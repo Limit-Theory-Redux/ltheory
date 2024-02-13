@@ -28,4 +28,3 @@ pub use quat::*;
 pub use ray::*;
 pub use rng::*;
 pub use triangle::*;
-pub use vec2::*;

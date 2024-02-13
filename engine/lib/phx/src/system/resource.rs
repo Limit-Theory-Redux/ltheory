@@ -1,12 +1,8 @@
-use std::collections::HashMap;
-use std::ffi::CStr;
-use std::path::{self, PathBuf};
+use std::path::PathBuf;
 
 use internal::*;
-use tracing::debug;
 
 use super::*;
-use crate::common::*;
 
 const RESOURCE_EXTENSION_INFO: &[(&str, &[&str])] = &[
     ("font", &["ttf", "otf"]),                // ResourceType::Font

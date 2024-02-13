@@ -1,7 +1,5 @@
 use std::time::SystemTime;
 
-use crate::*;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Timer {

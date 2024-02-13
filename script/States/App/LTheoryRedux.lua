@@ -443,7 +443,7 @@ function LTheoryRedux:showShipCreationHint()
     Gui:setFixedHeight(100)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Bottom)
     Gui:setChildrenVerticalAlignment(AlignVertical.Center)
-    Gui:textEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', Color(1.0, 1.0, 1.0, 1.0))
     Gui:endContainer()
 end
 

@@ -22,7 +22,7 @@ pub struct HmGui {
     last: Rf<HmGuiWidget>,
 
     data: HashMap<u64, HmGuiData>,
-    focus: [u64; 2],
+    mouse_over_widget_hash: [u64; 2],
     focus_pos: Vec2,
     activate: bool,
 
@@ -85,7 +85,7 @@ impl HmGui {
             container,
             last,
             data: HashMap::with_capacity(128),
-            focus: [0; 2],
+            mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
             activate: false,
             default_property_registry,
@@ -100,8 +100,8 @@ impl HmGui {
         self.root.clone()
     }
 
-    pub fn mouse_focus_hash(&self) -> u64 {
-        self.focus[FocusType::Mouse as usize]
+    pub fn mouse_over_widget_hash(&self) -> u64 {
+        self.mouse_over_widget_hash[FocusType::Mouse as usize]
     }
 
     /// Add a new widget into the current container.
@@ -152,49 +152,39 @@ impl HmGui {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
     }
 
-    #[inline]
-    fn is_clipped(&self, pos: Vec2, size: Vec2, p: Vec2) -> bool {
-        p.x < pos.x || p.y < pos.y || pos.x + size.x < p.x || pos.y + size.y < p.y
-    }
-
-    /// Recursively iterate over container widgets and calculate if they are in a focus (mouse is over the container).
-    fn check_focus(&mut self, widget_rf: Rf<HmGuiWidget>) {
+    /// Calculate if mouse is over the widget. Recursively iterate over container widgets.
+    /// Setting mouse over hash at the end of the method guarantees that the last (top most) widget will get the mouse over flag set.
+    fn check_mouse_over(&mut self, widget_rf: Rf<HmGuiWidget>) {
         let widget = widget_rf.as_ref();
-        let WidgetItem::Container(container) = &widget.item else {
-            return;
-        };
+        let is_mouse_over = widget.contains_point(&self.focus_pos);
 
-        if container.clip && self.is_clipped(widget.pos, widget.size, self.focus_pos) {
+        if let WidgetItem::Container(container) = &widget.item {
+            if !container.clip || is_mouse_over {
+                for widget_rf in container.children.iter().rev() {
+                    self.check_mouse_over(widget_rf.clone());
+                }
+            }
+        }
+
+        if !is_mouse_over {
             return;
         }
 
-        for widget_rf in container.children.iter().rev() {
-            self.check_focus(widget_rf.clone());
-        }
-
-        for i in 0..self.focus.len() {
-            if self.focus[i] == 0
-                && container.focusable[i]
-                && widget.pos.x <= self.focus_pos.x
-                && widget.pos.y <= self.focus_pos.y
-                && self.focus_pos.x <= widget.pos.x + widget.size.x
-                && self.focus_pos.y <= widget.pos.y + widget.size.y
-            {
-                self.focus[i] = widget.hash;
+        for i in 0..self.mouse_over_widget_hash.len() {
+            // TODO: do we really need self.mouse_over_widget_hash[i] == 0 check here?
+            if widget.mouse_over[i] && self.mouse_over_widget_hash[i] == 0 {
+                self.mouse_over_widget_hash[i] = widget.hash;
             }
         }
     }
 
-    /// Sets container `focusable` flag to true and returns if it's currently in focus.
-    fn container_has_focus_intern(
-        &self,
-        container: &mut HmGuiContainer,
-        ty: FocusType,
-        hash: u64,
-    ) -> bool {
-        container.focusable[ty as usize] = true;
+    /// Sets widget's `mouse over` flag to true.
+    /// Will be used in the check_mouse_over to set `mouse over` hash for current widget for the next frame.
+    /// Returns true if mouse is over the widget (was calculated in the previous frame).
+    fn is_mouse_over_intern(&self, widget: &mut HmGuiWidget, ty: FocusType) -> bool {
+        widget.mouse_over[ty as usize] = true;
 
-        self.focus[ty as usize] == hash
+        self.mouse_over_widget_hash[ty as usize] == widget.hash
     }
 
     fn get_property(&self, property_id: usize) -> &HmGuiProperty {
@@ -239,8 +229,8 @@ macro_rules! register_property {
 macro_rules! set_property {
     ($self:ident, $id:ident, $val:expr) => {
         let Some((_, def_prop)) = $self.default_property_registry.registry.get_index($id) else {
-                    panic!("Unknown property id {}", $id);
-                };
+            panic!("Unknown property id {}", $id);
+        };
         let value: HmGuiProperty = $val.into();
         assert_eq!(
             def_prop.property.get_type(),
@@ -257,12 +247,12 @@ macro_rules! get_property {
         let prop = $self.get_property($id);
 
         let HmGuiProperty::$v(value) = prop else {
-                panic!(
-                    "Wrong property type. Expected {} but was {}",
-                    stringify!($v),
-                    prop.name()
-                )
-            };
+            panic!(
+                "Wrong property type. Expected {} but was {}",
+                stringify!($v),
+                prop.name()
+            )
+        };
 
         value
     }};
@@ -304,9 +294,9 @@ impl HmGui {
         }
 
         self.focus_pos = input.mouse().position();
-        self.focus.fill(0);
+        self.mouse_over_widget_hash.fill(0);
 
-        self.check_focus(self.root.clone());
+        self.check_mouse_over(self.root.clone());
 
         unsafe { Profiler_End() };
     }
@@ -385,11 +375,11 @@ impl HmGui {
     pub fn end_scroll(&mut self, input: &Input) {
         let widget_rf = self.container.clone();
         let widget = widget_rf.as_ref();
-        let has_focus = self.container_has_focus(FocusType::Scroll);
+        let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
 
         let data = self.get_data(widget.hash);
 
-        if has_focus {
+        if is_mouse_over {
             let scroll_x = input.mouse().value(MouseControl::ScrollX);
             let scroll_y = input.mouse().value(MouseControl::ScrollY);
 
@@ -422,15 +412,17 @@ impl HmGui {
                 (handle_size, handle_pos)
             };
 
-            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.rect(&Color::TRANSPARENT);
             self.set_fixed_size(handle_pos, 4.0);
 
-            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
+            let color_frame = self
+                .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
+                .clone();
 
-            self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+            self.rect(&color_frame);
             self.set_fixed_size(handle_size, 4.0);
         } else {
-            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.rect(&Color::TRANSPARENT);
             self.set_fixed_size(16.0, 4.0);
         }
 
@@ -447,15 +439,17 @@ impl HmGui {
                 (handle_size, handle_pos)
             };
 
-            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.rect(&Color::TRANSPARENT);
             self.set_fixed_size(4.0, handle_pos);
 
-            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
+            let color_frame = self
+                .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
+                .clone();
 
-            self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+            self.rect(&color_frame);
             self.set_fixed_size(4.0, handle_size);
         } else {
-            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.rect(&Color::TRANSPARENT);
             self.set_fixed_size(4.0, 16.0);
         }
 
@@ -472,23 +466,23 @@ impl HmGui {
         // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
         {
             let mouse = input.mouse();
-            let has_focus = self.container_has_focus(FocusType::Mouse);
+            let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
 
             let widget_rf = self.container.clone();
             let mut widget = widget_rf.as_mut();
             let data = self.get_data(widget.hash);
 
-            if has_focus && mouse.is_down(MouseControl::Left) {
+            if is_mouse_over && mouse.is_down(MouseControl::Left) {
                 data.offset.x += mouse.value(MouseControl::DeltaX);
                 data.offset.y += mouse.value(MouseControl::DeltaY);
             }
 
             widget.pos.x += data.offset.x;
             widget.pos.y += data.offset.y;
+            widget.focus_style = FocusStyle::None;
+            widget.frame_opacity = 0.95;
 
             let container = widget.get_container_item_mut();
-            container.focus_style = FocusStyle::None;
-            container.frame_opacity = 0.95;
             container.clip = true;
         }
 
@@ -506,7 +500,7 @@ impl HmGui {
     /// Invisible element that stretches in all directions.
     /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
     pub fn spacer(&mut self) {
-        self.rect(0.0, 0.0, 0.0, 0.0);
+        self.rect(&Color::TRANSPARENT);
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
     }
 
@@ -517,13 +511,11 @@ impl HmGui {
         // A separate scope to prevent runtime borrow panics - widget borrowing conflicts with self.text() below
         let focus = {
             let mut widget = self.container.as_mut();
-            let hash = widget.hash;
-            let container = widget.get_container_item_mut();
 
-            container.focus_style = FocusStyle::Fill;
-            container.frame_opacity = 0.5;
+            widget.focus_style = FocusStyle::Fill;
+            widget.frame_opacity = 0.5;
 
-            self.container_has_focus_intern(container, FocusType::Mouse, hash)
+            self.is_mouse_over_intern(&mut widget, FocusType::Mouse)
         };
 
         self.text(label);
@@ -545,14 +537,12 @@ impl HmGui {
         // A separate scope to prevent runtime borrow conflict with self.text() below
         {
             let mut widget = self.container.as_mut();
-            let hash = widget.hash;
-            let container = widget.get_container_item_mut();
 
-            container.focus_style = FocusStyle::Underline;
+            widget.focus_style = FocusStyle::Underline;
 
-            let focus = self.container_has_focus_intern(container, FocusType::Mouse, hash);
+            let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
 
-            if focus && self.activate {
+            if is_mouse_over && self.activate {
                 value = !value;
             }
         }
@@ -567,23 +557,18 @@ impl HmGui {
         self.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         let (color_frame, color_primary) = {
-            let color_frame = self.get_property_vec4(HmGuiProperties::ContainerColorFrameId.id());
+            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrameId.id());
             let color_primary =
-                self.get_property_vec4(HmGuiProperties::ContainerColorPrimaryId.id());
+                self.get_property_color(HmGuiProperties::ContainerColorPrimaryId.id());
 
             (color_frame.clone(), color_primary.clone())
         };
 
-        self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+        self.rect(&color_frame);
         self.set_fixed_size(16.0, 16.0);
 
         if value {
-            self.rect(
-                color_primary.x,
-                color_primary.y,
-                color_primary.z,
-                color_primary.w,
-            );
+            self.rect(&color_primary);
             self.set_fixed_size(10.0, 10.0);
         }
 
@@ -597,7 +582,7 @@ impl HmGui {
         self.begin_stack_container();
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        self.rect(0.5, 0.5, 0.5, 1.0);
+        self.rect(&Color::new(0.5, 0.5, 0.5, 1.0));
         self.set_fixed_size(0.0, 2.0);
 
         self.end_container();
@@ -605,14 +590,14 @@ impl HmGui {
         0.0
     }
 
-    pub fn horizontal_divider(&mut self, height: f32, r: f32, g: f32, b: f32, a: f32) {
-        self.rect(r, g, b, a);
+    pub fn horizontal_divider(&mut self, height: f32, color: &Color) {
+        self.rect(color);
         self.set_fixed_height(height);
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
     }
 
-    pub fn vertical_divider(&mut self, width: f32, r: f32, g: f32, b: f32, a: f32) {
-        self.rect(r, g, b, a);
+    pub fn vertical_divider(&mut self, width: f32, color: &Color) {
+        self.rect(color);
         self.set_fixed_width(width);
         self.set_vertical_alignment(AlignVertical::Stretch);
     }
@@ -623,9 +608,9 @@ impl HmGui {
         let _widget_rf = self.init_widget(WidgetItem::Image(image_item));
     }
 
-    pub fn rect(&mut self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn rect(&mut self, color: &Color) {
         let rect_item = HmGuiRect {
-            color: Vec4::new(r, g, b, a),
+            color: color.clone(),
         };
 
         self.init_widget(WidgetItem::Rect(rect_item));
@@ -633,7 +618,7 @@ impl HmGui {
 
     pub fn text(&mut self, text: &str) {
         let font = self.get_property_font(HmGuiProperties::TextFontId.id());
-        let color = self.get_property_vec4(HmGuiProperties::TextColorId.id());
+        let color = self.get_property_color(HmGuiProperties::TextColorId.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
@@ -648,14 +633,14 @@ impl HmGui {
         widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
     }
 
-    pub fn text_colored(&mut self, text: &str, r: f32, g: f32, b: f32, a: f32) {
+    pub fn text_colored(&mut self, text: &str, color: &Color) {
         let font = self.get_property_font(HmGuiProperties::TextFontId.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
             font: font.clone(),
             text: text.into(),
-            color: Vec4::new(r, g, b, a),
+            color: color.clone(),
         };
         let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
@@ -664,11 +649,11 @@ impl HmGui {
         widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
     }
 
-    pub fn text_ex(&mut self, font: &Font, text: &str, r: f32, g: f32, b: f32, a: f32) {
+    pub fn text_ex(&mut self, font: &Font, text: &str, color: &Color) {
         let item = HmGuiText {
             font: font.clone().into(),
             text: text.into(),
-            color: Vec4::new(r, g, b, a),
+            color: color.clone(),
         };
         let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
@@ -778,39 +763,39 @@ impl HmGui {
         widget.border_width = width;
     }
 
-    pub fn set_border_color(&self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_border_color(&self, color: &Color) {
         let mut widget = self.last.as_mut();
 
-        widget.border_color = Vec4::new(r, g, b, a);
+        widget.border_color = color.clone();
     }
 
-    pub fn set_border_color_v4(&self, color: &Vec4) {
+    pub fn set_border_color_v4(&self, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.border_color = *color;
     }
 
-    pub fn set_border(&self, width: f32, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_border(&self, width: f32, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.border_width = width;
-        widget.border_color = Vec4::new(r, g, b, a);
+        widget.border_color = color.clone();
     }
 
-    pub fn set_border_v4(&self, width: f32, color: &Vec4) {
+    pub fn set_border_v4(&self, width: f32, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.border_width = width;
         widget.border_color = *color;
     }
 
-    pub fn set_bg_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_bg_color(&mut self, color: &Color) {
         let mut widget = self.last.as_mut();
 
-        widget.bg_color = Some(Vec4::new(r, g, b, a));
+        widget.bg_color = Some(color.clone());
     }
 
-    pub fn set_bg_color_v4(&mut self, color: &Vec4) {
+    pub fn set_bg_color_v4(&mut self, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.bg_color = Some(*color);
@@ -887,12 +872,10 @@ impl HmGui {
     }
 
     /// Makes current container `focusable` and returns if it's currently in focus.
-    pub fn container_has_focus(&self, ty: FocusType) -> bool {
+    pub fn is_mouse_over(&self, ty: FocusType) -> bool {
         let mut widget = self.container.as_mut();
-        let hash = widget.hash;
-        let container = widget.get_container_item_mut();
 
-        self.container_has_focus_intern(container, ty, hash)
+        self.is_mouse_over_intern(&mut widget, ty)
     }
 
     pub fn set_children_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
@@ -1156,6 +1139,15 @@ impl HmGui {
         register_property!(self, name, value.clone(), map_id)
     }
 
+    pub fn register_property_color(
+        &mut self,
+        name: &str,
+        value: &Color,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
     pub fn register_property_box3(
         &mut self,
         name: &str,
@@ -1286,6 +1278,10 @@ impl HmGui {
         set_property!(self, property_id, value.clone());
     }
 
+    pub fn set_property_color(&mut self, property_id: usize, value: &Color) {
+        set_property!(self, property_id, value.clone());
+    }
+
     pub fn set_property_box3(&mut self, property_id: usize, value: &Box3) {
         set_property!(self, property_id, value.clone());
     }
@@ -1399,6 +1395,10 @@ impl HmGui {
     #[bind(name = "GetPropertyDVec4")]
     pub fn get_property_dvec4(&self, property_id: usize) -> &DVec4 {
         get_property!(self, property_id, DVec4)
+    }
+
+    pub fn get_property_color(&self, property_id: usize) -> &Color {
+        get_property!(self, property_id, Color)
     }
 
     pub fn get_property_box3(&self, property_id: usize) -> &Box3 {

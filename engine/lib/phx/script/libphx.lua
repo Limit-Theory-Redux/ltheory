@@ -318,6 +318,13 @@ do -- Transparent Structs
       float uvx;
       float uvy;
     } Vertex;
+
+    typedef struct Color {
+      float r;
+      float g;
+      float b;
+      float a;
+    } Color;
   ]]
 
   libphx.Structs = {
@@ -348,6 +355,7 @@ do -- Transparent Structs
     'Vec4f',
     'Vec4i',
     'Vertex',
+    'Color',
   }
 end
 

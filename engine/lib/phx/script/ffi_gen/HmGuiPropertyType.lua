@@ -39,6 +39,7 @@ function Loader.defineType()
             HmGuiPropertyType HmGuiPropertyType_DVec2;
             HmGuiPropertyType HmGuiPropertyType_DVec3;
             HmGuiPropertyType HmGuiPropertyType_DVec4;
+            HmGuiPropertyType HmGuiPropertyType_Color;
             HmGuiPropertyType HmGuiPropertyType_Box3;
             HmGuiPropertyType HmGuiPropertyType_String;
             HmGuiPropertyType HmGuiPropertyType_Font;
@@ -72,6 +73,7 @@ function Loader.defineType()
             DVec2    = libphx.HmGuiPropertyType_DVec2,
             DVec3    = libphx.HmGuiPropertyType_DVec3,
             DVec4    = libphx.HmGuiPropertyType_DVec4,
+            Color    = libphx.HmGuiPropertyType_Color,
             Box3     = libphx.HmGuiPropertyType_Box3,
             String   = libphx.HmGuiPropertyType_String,
             Font     = libphx.HmGuiPropertyType_Font,
