@@ -21,6 +21,12 @@ const K_RCP_GAMMA: f32 = 1.0 / K_GAMMA;
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Font(Rf<FontData>);
 
+impl std::fmt::Debug for Font {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Font").field(&self.name()).finish()
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 struct FontData {
     name: String,

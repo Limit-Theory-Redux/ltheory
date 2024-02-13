@@ -218,8 +218,11 @@ Image is specified as an image format data blob whose contents have been read fr
 ### Property
 
 Property can have one of the following types:
-```
-bool, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, Vec2, Vec3, Vec4, IVec2, IVec3, IVec4, UVec2, UVec3, UVec4, DVec2, DVec3, DVec4, Box3, String, Font
+```rust
+bool,
+i8, u8, i16, u16, i32, u32, i64, u64, f32, f64,
+Vec2, Vec3, Vec4, IVec2, IVec3, IVec4, UVec2, UVec3, UVec4, DVec2, DVec3, DVec4,
+Box3, String, Font
 ```
 
 Property name should have following format: `(<element_name>.)+<property-name>`. Example:
@@ -279,7 +282,7 @@ end
 -- somewhere later
 Gui:clearStyle()
 Gui:setPropertyColor(Enums.Gui.ButtonTextColorId, Color(0, 1, 0, 1))
-button("My button")
+Gui:button("My button")
 ```
 
 ### Property methods

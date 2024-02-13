@@ -1,10 +1,10 @@
-use glam::{Vec2, Vec4};
+use glam::Vec2;
 
 use crate::render::Color;
 
 use super::{
-    AlignHorizontal, AlignVertical, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiRect,
-    HmGuiText, RenderStyle, IDENT,
+    AlignHorizontal, AlignVertical, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiProperties,
+    HmGuiRect, HmGuiText, RenderStyle, IDENT,
 };
 
 use crate::rf::Rf;
@@ -71,7 +71,6 @@ pub struct HmGuiWidget {
     pub inner_min_size: Vec2,
 
     pub render_style: RenderStyle,
-    pub frame_opacity: f32,
     pub mouse_over: [bool; FocusType::SIZE],
 }
 
@@ -102,7 +101,6 @@ impl HmGuiWidget {
             inner_min_size: Vec2::new(20.0, 20.0),
 
             render_style: Default::default(),
-            frame_opacity: Default::default(),
             mouse_over: Default::default(),
         }
     }
@@ -261,41 +259,49 @@ impl HmGuiWidget {
 
     fn process_mouse_over(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
         if self.mouse_over[FocusType::Mouse as usize] {
-            let focus = hmgui.mouse_over_widget_hash() == self.hash;
+            let is_mouse_over = hmgui.mouse_over_widget_hash() == self.hash;
 
             match self.render_style {
                 RenderStyle::None => {
-                    let color = Vec4::new(0.1, 0.12, 0.13, 1.0);
+                    let color = hmgui.get_property_color(HmGuiProperties::BackgroundColorId.id());
+                    let inner_alpha = hmgui.get_property_f32(HmGuiProperties::OpacityId.id());
 
                     hmgui
                         .renderer
-                        .panel(pos, size, color, 8.0, self.frame_opacity);
+                        .panel(pos, size, color.clone(), 8.0, inner_alpha);
                 }
                 RenderStyle::Fill => {
-                    if focus {
-                        let color = Vec4::new(0.1, 0.5, 1.0, 1.0);
+                    if is_mouse_over {
+                        let color =
+                            hmgui.get_property_color(HmGuiProperties::HighlightColorId.id());
 
-                        hmgui.renderer.panel(pos, size, color, 0.0, 1.0);
+                        hmgui.renderer.panel(pos, size, color.clone(), 0.0, 1.0);
                     } else {
-                        let color = Vec4::new(0.15, 0.15, 0.15, 0.8);
+                        let color =
+                            hmgui.get_property_color(HmGuiProperties::BackgroundColorId.id());
+                        let inner_alpha = hmgui.get_property_f32(HmGuiProperties::OpacityId.id());
 
                         hmgui
                             .renderer
-                            .panel(pos, size, color, 0.0, self.frame_opacity);
+                            .panel(pos, size, color.clone(), 0.0, inner_alpha);
                     }
                 }
                 RenderStyle::Outline => {
-                    if focus {
+                    // TODO: not used. Remove?
+                    if is_mouse_over {
                         let color = Color::new(0.1, 0.5, 1.0, 1.0);
 
                         hmgui.renderer.rect(pos, size, color, Some(1.0));
                     }
                 }
                 RenderStyle::Underline => {
-                    let color =
-                        Color::new(0.3, 0.3, 0.3, if focus { 0.5 } else { self.frame_opacity });
+                    let color = if is_mouse_over {
+                        hmgui.get_property_color(HmGuiProperties::BackgroundColorId.id())
+                    } else {
+                        hmgui.get_property_color(HmGuiProperties::HighlightColorId.id())
+                    };
 
-                    hmgui.renderer.rect(pos, size, color, None);
+                    hmgui.renderer.rect(pos, size, color.clone(), None);
                 }
             }
         }
@@ -325,7 +331,6 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}- inner_min_size: {:?}", self.inner_min_size);
         println!("{ident_str}{IDENT}- hash:           0x{:X?}", self.hash);
         println!("{ident_str}{IDENT}- render_style:   {:?}", self.render_style);
-        println!("{ident_str}{IDENT}- frame_opacity:  {}", self.frame_opacity);
         println!("{ident_str}{IDENT}- mouse_over:     {:?}", self.mouse_over);
         println!("{ident_str}{IDENT}# item: {}", self.item.name());
 

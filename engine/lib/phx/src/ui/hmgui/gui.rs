@@ -461,6 +461,7 @@ impl HmGui {
     /// Begins window element.
     // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
+        self.set_property_f32(HmGuiProperties::OpacityId.id(), 0.95);
         self.begin_stack_container();
 
         // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
@@ -480,7 +481,6 @@ impl HmGui {
             widget.pos.x += data.offset.x;
             widget.pos.y += data.offset.y;
             widget.render_style = RenderStyle::None;
-            widget.frame_opacity = 0.95;
 
             let container = widget.get_container_item_mut();
             container.clip = true;
@@ -505,6 +505,12 @@ impl HmGui {
     }
 
     pub fn button(&mut self, label: &str) -> bool {
+        self.map_property(HmGuiProperties::ButtonBorderWidthId.id());
+        self.map_property(HmGuiProperties::ButtonTextColorId.id());
+        self.map_property(HmGuiProperties::ButtonOpacityId.id());
+        self.map_property(HmGuiProperties::ButtonBackgroundColorId.id());
+        self.map_property(HmGuiProperties::ButtonHighlightColorId.id());
+
         self.begin_stack_container();
         self.set_padding(8.0, 8.0);
 
@@ -515,7 +521,6 @@ impl HmGui {
 
             if is_mouse_over {
                 widget.render_style = RenderStyle::Fill;
-                widget.frame_opacity = 0.5;
             }
 
             is_mouse_over
@@ -955,17 +960,15 @@ impl HmGui {
 
     /// Write property value into the mapped properties in the active element style.
     pub fn map_property(&mut self, property_id: usize) {
-        if let Some(prop) = self
-            .element_style
-            .properties
-            .get(&property_id.into())
-            .cloned()
-        {
-            let map_ids = &self.property_registry.registry[property_id].map_ids;
+        let map_ids = &self.property_registry.registry[property_id].map_ids;
+        if map_ids.is_empty() {
+            return;
+        }
 
-            for map_id in map_ids {
-                self.element_style.properties.insert(*map_id, prop.clone());
-            }
+        let prop = self.get_property(property_id).clone();
+
+        for map_id in map_ids {
+            self.element_style.properties.insert(*map_id, prop.clone());
         }
     }
 

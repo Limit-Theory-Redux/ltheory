@@ -12,6 +12,7 @@ macro_rules! core_properties {
             $($v),*
         }
 
+        // NOTE: it's not possible to implement Deref because of recursive call
         impl HmGuiProperties {
             pub fn id(&self) -> usize {
                 *self as _
@@ -30,13 +31,25 @@ macro_rules! core_properties {
 
 // Property id, name, value and optional list of mapped property ids
 core_properties! {
+    (OpacityId,               "opacity",                 1.0f32),
+    (BackgroundColorId,       "background-color",        Color::new(0.1, 0.12, 0.13, 1.0)),
+    (HighlightColorId,        "highlight-color",         Color::new(0.1, 0.5, 1.0, 1.0)),
+
+    (TextFontId,              "text.font",               Font::load("Rajdhani", 14)),
+    (TextColorId,             "text.color",              Color::WHITE),
+
     (ContainerSpacingId,      "container.spacing",       6.0f32),
     (ContainerColorFrameId,   "container.color-frame",   Color::new(0.1, 0.1, 0.1, 0.5)),
     (ContainerColorPrimaryId, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),
-    (TextFontId,              "text.font",               Font::load("Rajdhani", 14)),
-    (TextColorId,             "text.color",              Color::WHITE),
+
     (ButtonBorderWidthId,     "button.border-width",     0.0f32),
     (ButtonTextColorId,       "button.text-color",       Color::WHITE, TextColorId),
+    (ButtonOpacityId,         "button.opacity",          0.5f32, OpacityId),
+    (ButtonBackgroundColorId, "button.background-color", Color::new(0.15, 0.15, 0.15, 0.8), BackgroundColorId),
+    (ButtonHighlightColorId,  "button.highlight-color",  Color::new(0.1, 0.5, 1.0, 1.0), HighlightColorId),
+
+    (CheckboxBackgroundColorId, "checkbox.background-color", Color::new(0.3, 0.3, 0.3, 0.5), BackgroundColorId),
+    (CheckboxHighlightColorId,  "checkbox.highlight-color",  Color::new(0.3, 0.3, 0.3, 1.0), HighlightColorId),
 }
 
 /// Adds a new property to the map.
