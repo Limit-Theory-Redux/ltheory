@@ -32,16 +32,16 @@ function Entity:addRigidBody(isCollider, collisionMesh, colliderType)
     assert(not self.body)
 
     if colliderType == Enums.ColliderType.Box then
-        self.body = RigidBody.CreateBoxFromMesh(collisionMesh)
+        self.body = RigidBody.CreateBoxFromMesh(collisionMesh):managed()
     elseif colliderType == Enums.ColliderType.ConvexHull then
-        self.body = RigidBody.CreateConvexHullFromMesh(collisionMesh)
+        self.body = RigidBody.CreateConvexHullFromMesh(collisionMesh):managed()
     elseif colliderType == Enums.ColliderType.ConvexDecomposition then
-        self.body = RigidBody.CreateConvexDecompositionFromMesh(collisionMesh)
+        self.body = RigidBody.CreateConvexDecompositionFromMesh(collisionMesh):managed()
     elseif colliderType == Enums.ColliderType.Trimesh then
-        self.body = RigidBody.CreateTrimeshFromMesh(collisionMesh)
+        self.body = RigidBody.CreateTrimeshFromMesh(collisionMesh):managed()
     else
         -- Default case.
-        self.body = RigidBody.CreateSphereFromMesh(collisionMesh)
+        self.body = RigidBody.CreateSphereFromMesh(collisionMesh):managed()
     end
 
     self:register(Event.AddedToParent, onAddedToParent)
@@ -191,12 +191,12 @@ end
 
 function Entity:getToLocalMatrix()
     assert(self.body)
-    return self.body:getToLocalMatrix()
+    return self.body:getToLocalMatrix():managed()
 end
 
 function Entity:getToWorldMatrix()
     assert(self.body)
-    return self.body:getToWorldMatrix()
+    return self.body:getToWorldMatrix():managed()
 end
 
 function Entity:getParentBody()

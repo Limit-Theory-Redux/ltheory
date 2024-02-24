@@ -11,7 +11,7 @@ function SFXObject:Create(arg)
     local object = {}
     object.name = arg.name
     object.path = arg.path
-    object.sound = Sound.Load(arg.path, arg.isLooping)
+    object.sound = Sound.Load(arg.path, arg.isLooping):managed()
     object.volume = arg.volume
     setmetatable(object, SFXObject)
     return object
