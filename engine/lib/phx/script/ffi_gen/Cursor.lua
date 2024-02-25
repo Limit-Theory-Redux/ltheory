@@ -30,7 +30,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Cursor = {
-            Free        = libphx.Cursor_Free,
             Icon        = libphx.Cursor_Icon,
             SetIcon     = libphx.Cursor_SetIcon,
             IsVisible   = libphx.Cursor_IsVisible,

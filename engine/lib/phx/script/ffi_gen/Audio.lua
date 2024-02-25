@@ -28,8 +28,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Audio = {
-            Free            = libphx.Audio_Free,
-            Create          = libphx.Audio_Create,
+            Create          = function(...)
+                local instance = libphx.Audio_Create(...)
+                ffi.gc(instance, libphx.Audio_Free)
+                return instance
+            end,
             Play            = libphx.Audio_Play,
             SetListenerPos  = libphx.Audio_SetListenerPos,
             GetLoadedCount  = libphx.Audio_GetLoadedCount,

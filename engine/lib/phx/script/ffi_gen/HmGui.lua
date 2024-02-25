@@ -170,7 +170,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         HmGui = {
-            Free                           = libphx.HmGui_Free,
             BeginGui                       = libphx.HmGui_BeginGui,
             EndGui                         = libphx.HmGui_EndGui,
             Draw                           = libphx.HmGui_Draw,
@@ -234,7 +233,11 @@ function Loader.defineType()
             GetStyleId                     = libphx.HmGui_GetStyleId,
             SetStyle                       = libphx.HmGui_SetStyle,
             ClearStyle                     = libphx.HmGui_ClearStyle,
-            GetPropertyType                = libphx.HmGui_GetPropertyType,
+            GetPropertyType                = function(...)
+                local instance = libphx.HmGui_GetPropertyType(...)
+                ffi.gc(instance, libphx.HmGuiPropertyType_Free)
+                return instance
+            end,
             MapProperty                    = libphx.HmGui_MapProperty,
             RemoveProperty                 = libphx.HmGui_RemoveProperty,
             RegisterPropertyBool           = libphx.HmGui_RegisterPropertyBool,

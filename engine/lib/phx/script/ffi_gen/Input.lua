@@ -40,7 +40,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Input = {
-            Free                   = libphx.Input_Free,
             Keyboard               = libphx.Input_Keyboard,
             Mouse                  = libphx.Input_Mouse,
             Touchpad               = libphx.Input_Touchpad,

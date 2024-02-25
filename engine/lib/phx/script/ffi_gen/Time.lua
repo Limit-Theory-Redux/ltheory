@@ -20,8 +20,16 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Time = {
-            GetLocal = libphx.Time_GetLocal,
-            GetUtc   = libphx.Time_GetUtc,
+            GetLocal = function(...)
+                local instance = libphx.Time_GetLocal(...)
+                ffi.gc(instance, libphx.Time_Free)
+                return instance
+            end,
+            GetUtc   = function(...)
+                local instance = libphx.Time_GetUtc(...)
+                ffi.gc(instance, libphx.Time_Free)
+                return instance
+            end,
             GetRaw   = libphx.Time_GetRaw,
         }
 

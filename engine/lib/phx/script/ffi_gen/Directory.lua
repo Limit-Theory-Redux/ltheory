@@ -29,8 +29,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Directory = {
-            Free        = libphx.Directory_Free,
-            Open        = libphx.Directory_Open,
+            Open        = function(...)
+                local instance = libphx.Directory_Open(...)
+                ffi.gc(instance, libphx.Directory_Free)
+                return instance
+            end,
             GetNext     = libphx.Directory_GetNext,
             Change      = libphx.Directory_Change,
             Create      = libphx.Directory_Create,

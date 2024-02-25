@@ -30,13 +30,24 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         TimeStamp = {
-            Free          = libphx.TimeStamp_Free,
-            Now           = libphx.TimeStamp_Now,
-            GetFuture     = libphx.TimeStamp_GetFuture,
+            Now           = function(...)
+                local instance = libphx.TimeStamp_Now(...)
+                ffi.gc(instance, libphx.TimeStamp_Free)
+                return instance
+            end,
+            GetFuture     = function(...)
+                local instance = libphx.TimeStamp_GetFuture(...)
+                ffi.gc(instance, libphx.TimeStamp_Free)
+                return instance
+            end,
             GetDifference = libphx.TimeStamp_GetDifference,
             GetElapsed    = libphx.TimeStamp_GetElapsed,
             GetElapsedMs  = libphx.TimeStamp_GetElapsedMs,
-            GetRelative   = libphx.TimeStamp_GetRelative,
+            GetRelative   = function(...)
+                local instance = libphx.TimeStamp_GetRelative(...)
+                ffi.gc(instance, libphx.TimeStamp_Free)
+                return instance
+            end,
             ToDouble      = libphx.TimeStamp_ToDouble,
             ToSeconds     = libphx.TimeStamp_ToSeconds,
         }

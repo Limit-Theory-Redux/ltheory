@@ -37,8 +37,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Physics = {
-            Free                   = libphx.Physics_Free,
-            Create                 = libphx.Physics_Create,
+            Create                 = function(...)
+                local instance = libphx.Physics_Create(...)
+                ffi.gc(instance, libphx.Physics_Free)
+                return instance
+            end,
             AddRigidBody           = libphx.Physics_AddRigidBody,
             RemoveRigidBody        = libphx.Physics_RemoveRigidBody,
             AddTrigger             = libphx.Physics_AddTrigger,

@@ -29,7 +29,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         KeyboardState = {
-            Free         = libphx.KeyboardState_Free,
             IsPressed    = libphx.KeyboardState_IsPressed,
             IsDown       = libphx.KeyboardState_IsDown,
             IsReleased   = libphx.KeyboardState_IsReleased,

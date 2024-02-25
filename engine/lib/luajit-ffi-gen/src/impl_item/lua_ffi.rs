@@ -28,7 +28,7 @@ impl ImplInfo {
             self.write_c_defs(&mut ffi_gen, &module_name, is_managed);
 
         // Global Symbol Table
-        self.write_global_sym_table(&mut ffi_gen, &module_name, max_method_name_len, is_managed);
+        self.write_global_sym_table(&mut ffi_gen, &module_name, max_method_name_len);
 
         if gen_metatype && attr_args.is_clone() {
             ffi_gen.set_mt_clone();
@@ -170,28 +170,28 @@ impl ImplInfo {
         ffi_gen: &mut FfiGenerator,
         module_name: &str,
         max_method_name_len: usize,
-        is_managed: bool,
     ) {
         if ffi_gen.has_global_symbols() {
             ffi_gen.add_global_symbol("");
-        }
-
-        if is_managed {
-            ffi_gen.add_global_symbol(format!(
-                "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
-                "Free", max_method_name_len
-            ));
         }
 
         self.methods
             .iter()
             .filter(|method| method.bind_args.gen_lua_ffi())
             .for_each(|method| {
-                ffi_gen.add_global_symbol(format!(
-                    "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
-                    method.as_ffi_name(),
-                    max_method_name_len
-                ));
+                write_method_map(
+                    &format!("{IDENT}{IDENT}{IDENT}"),
+                    &format!("{:<1$}", method.as_ffi_name(), max_method_name_len),
+                    method,
+                    module_name,
+                    |value| ffi_gen.add_global_symbol(value),
+                );
+
+                // ffi_gen.add_global_symbol(format!(
+                //     "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
+                //     method.as_ffi_name(),
+                //     max_method_name_len
+                // ));
             });
     }
 
@@ -220,51 +220,60 @@ impl ImplInfo {
             .iter()
             .filter(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some())
             .for_each(|method| {
-                let gc_type = if !method.bind_args.gen_out_param() {
-                    if let Some(ret) = &method.ret {
-                        if !ret.is_reference {
-                            ret.get_managed_type().map(|gc_type| if gc_type == "Self" {
-                                module_name
-                            } else {
-                                gc_type
-                            } )
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
-
-                if let Some(gc_type) = gc_type {
-                    ffi_gen.add_metatype(format!(
-                        "{IDENT}{IDENT}{IDENT}{IDENT}{:<1$} = function(...)",
-                        method.as_ffi_var(),
-                        max_method_name_len
-                    ));
-                    ffi_gen.add_metatype(format!(
-                        "{IDENT}{IDENT}{IDENT}{IDENT}{IDENT}local instance = libphx.{module_name}_{}(...)",
-                        method.as_ffi_name(),
-                    ));
-                    ffi_gen.add_metatype(format!(
-                        "{IDENT}{IDENT}{IDENT}{IDENT}{IDENT}ffi.gc(instance, libphx.{gc_type}_Free)"
-                    ));
-                    ffi_gen.add_metatype(format!(
-                        "{IDENT}{IDENT}{IDENT}{IDENT}{IDENT}return instance"
-                    ));
-                    ffi_gen.add_metatype(format!(
-                        "{IDENT}{IDENT}{IDENT}{IDENT}end,"
-                    ));
-                } else {
-                    ffi_gen.add_metatype(format!(
-                        "{IDENT}{IDENT}{IDENT}{IDENT}{:<2$} = libphx.{module_name}_{},",
-                        method.as_ffi_var(),
-                        method.as_ffi_name(),
-                        max_method_name_len
-                    ));
-                }
+                write_method_map(
+                    &format!("{IDENT}{IDENT}{IDENT}{IDENT}"),
+                    &format!("{:<1$}", method.as_ffi_var(), max_method_name_len),
+                    method,
+                    module_name,
+                    |value| ffi_gen.add_metatype(value),
+                );
             });
+    }
+}
+
+fn write_method_map<F: FnMut(String)>(
+    ident: &str,
+    mapped_method: &str,
+    method: &super::MethodInfo,
+    module_name: &str,
+    mut writer: F,
+) {
+    // TODO: refactor these nested ifs
+    let gc_type = if !method.bind_args.gen_out_param() {
+        if let Some(ret) = &method.ret {
+            if !ret.is_reference {
+                ret.get_managed_type().map(|gc_type| {
+                    if gc_type == "Self" {
+                        module_name
+                    } else {
+                        gc_type
+                    }
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    if let Some(gc_type) = gc_type {
+        writer(format!("{ident}{mapped_method} = function(...)"));
+        writer(format!(
+            "{ident}{IDENT}local instance = libphx.{module_name}_{}(...)",
+            method.as_ffi_name(),
+        ));
+        writer(format!(
+            "{ident}{IDENT}ffi.gc(instance, libphx.{gc_type}_Free)"
+        ));
+        writer(format!("{ident}{IDENT}return instance"));
+        writer(format!("{ident}end,"));
+    } else {
+        writer(format!(
+            "{ident}{mapped_method} = libphx.{module_name}_{},",
+            method.as_ffi_name(),
+        ));
     }
 }

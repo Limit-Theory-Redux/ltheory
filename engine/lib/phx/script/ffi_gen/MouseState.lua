@@ -31,7 +31,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         MouseState = {
-            Free        = libphx.MouseState_Free,
             Value       = libphx.MouseState_Value,
             IsPressed   = libphx.MouseState_IsPressed,
             IsDown      = libphx.MouseState_IsDown,

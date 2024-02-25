@@ -66,14 +66,41 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         RigidBody = {
-            Free                              = libphx.RigidBody_Free,
-            CreateBox                         = libphx.RigidBody_CreateBox,
-            CreateBoxFromMesh                 = libphx.RigidBody_CreateBoxFromMesh,
-            CreateSphere                      = libphx.RigidBody_CreateSphere,
-            CreateSphereFromMesh              = libphx.RigidBody_CreateSphereFromMesh,
-            CreateConvexHullFromMesh          = libphx.RigidBody_CreateConvexHullFromMesh,
-            CreateConvexDecompositionFromMesh = libphx.RigidBody_CreateConvexDecompositionFromMesh,
-            CreateTrimeshFromMesh             = libphx.RigidBody_CreateTrimeshFromMesh,
+            CreateBox                         = function(...)
+                local instance = libphx.RigidBody_CreateBox(...)
+                ffi.gc(instance, libphx.RigidBody_Free)
+                return instance
+            end,
+            CreateBoxFromMesh                 = function(...)
+                local instance = libphx.RigidBody_CreateBoxFromMesh(...)
+                ffi.gc(instance, libphx.RigidBody_Free)
+                return instance
+            end,
+            CreateSphere                      = function(...)
+                local instance = libphx.RigidBody_CreateSphere(...)
+                ffi.gc(instance, libphx.RigidBody_Free)
+                return instance
+            end,
+            CreateSphereFromMesh              = function(...)
+                local instance = libphx.RigidBody_CreateSphereFromMesh(...)
+                ffi.gc(instance, libphx.RigidBody_Free)
+                return instance
+            end,
+            CreateConvexHullFromMesh          = function(...)
+                local instance = libphx.RigidBody_CreateConvexHullFromMesh(...)
+                ffi.gc(instance, libphx.RigidBody_Free)
+                return instance
+            end,
+            CreateConvexDecompositionFromMesh = function(...)
+                local instance = libphx.RigidBody_CreateConvexDecompositionFromMesh(...)
+                ffi.gc(instance, libphx.RigidBody_Free)
+                return instance
+            end,
+            CreateTrimeshFromMesh             = function(...)
+                local instance = libphx.RigidBody_CreateTrimeshFromMesh(...)
+                ffi.gc(instance, libphx.RigidBody_Free)
+                return instance
+            end,
             GetParentBody                     = libphx.RigidBody_GetParentBody,
             ApplyForce                        = libphx.RigidBody_ApplyForce,
             ApplyTorque                       = libphx.RigidBody_ApplyTorque,
@@ -86,8 +113,16 @@ function Loader.defineType()
             GetBoundingRadius                 = libphx.RigidBody_GetBoundingRadius,
             GetBoundingRadiusCompound         = libphx.RigidBody_GetBoundingRadiusCompound,
             GetSpeed                          = libphx.RigidBody_GetSpeed,
-            GetToWorldMatrix                  = libphx.RigidBody_GetToWorldMatrix,
-            GetToLocalMatrix                  = libphx.RigidBody_GetToLocalMatrix,
+            GetToWorldMatrix                  = function(...)
+                local instance = libphx.RigidBody_GetToWorldMatrix(...)
+                ffi.gc(instance, libphx.Matrix_Free)
+                return instance
+            end,
+            GetToLocalMatrix                  = function(...)
+                local instance = libphx.RigidBody_GetToLocalMatrix(...)
+                ffi.gc(instance, libphx.Matrix_Free)
+                return instance
+            end,
             GetVelocity                       = libphx.RigidBody_GetVelocity,
             GetVelocityA                      = libphx.RigidBody_GetVelocityA,
             SetCollidable                     = libphx.RigidBody_SetCollidable,

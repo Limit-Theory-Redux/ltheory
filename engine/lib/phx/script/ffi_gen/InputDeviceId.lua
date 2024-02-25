@@ -23,7 +23,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         InputDeviceId = {
-            Free     = libphx.InputDeviceId_Free,
             ToString = libphx.InputDeviceId_ToString,
         }
 

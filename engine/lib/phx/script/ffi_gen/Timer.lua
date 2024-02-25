@@ -26,8 +26,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Timer = {
-            Free        = libphx.Timer_Free,
-            Create      = libphx.Timer_Create,
+            Create      = function(...)
+                local instance = libphx.Timer_Create(...)
+                ffi.gc(instance, libphx.Timer_Free)
+                return instance
+            end,
             GetAndReset = libphx.Timer_GetAndReset,
             GetElapsed  = libphx.Timer_GetElapsed,
             Reset       = libphx.Timer_Reset,

@@ -34,8 +34,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Trigger = {
-            Free             = libphx.Trigger_Free,
-            CreateBox        = libphx.Trigger_CreateBox,
+            CreateBox        = function(...)
+                local instance = libphx.Trigger_CreateBox(...)
+                ffi.gc(instance, libphx.Trigger_Free)
+                return instance
+            end,
             Attach           = libphx.Trigger_Attach,
             Detach           = libphx.Trigger_Detach,
             GetBoundingBox   = libphx.Trigger_GetBoundingBox,

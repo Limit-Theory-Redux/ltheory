@@ -33,7 +33,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         GamepadState = {
-            Free           = libphx.GamepadState_Free,
             GamepadsCount  = libphx.GamepadState_GamepadsCount,
             GamepadId      = libphx.GamepadState_GamepadId,
             GamepadName    = libphx.GamepadState_GamepadName,

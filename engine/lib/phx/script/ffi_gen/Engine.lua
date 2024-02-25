@@ -32,7 +32,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Engine = {
-            Free       = libphx.Engine_Free,
             Window     = libphx.Engine_Window,
             Input      = libphx.Engine_Input,
             HmGui      = libphx.Engine_HmGui,

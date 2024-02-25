@@ -35,8 +35,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Sound = {
-            Free          = libphx.Sound_Free,
-            Load          = libphx.Sound_Load,
+            Load          = function(...)
+                local instance = libphx.Sound_Load(...)
+                ffi.gc(instance, libphx.Sound_Free)
+                return instance
+            end,
             GetDuration   = libphx.Sound_GetDuration,
             GetPath       = libphx.Sound_GetPath,
             IsPlaying     = libphx.Sound_IsPlaying,

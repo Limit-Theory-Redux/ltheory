@@ -57,7 +57,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Window = {
-            Free                      = libphx.Window_Free,
             BeginDraw                 = libphx.Window_BeginDraw,
             EndDraw                   = libphx.Window_EndDraw,
             Title                     = libphx.Window_Title,

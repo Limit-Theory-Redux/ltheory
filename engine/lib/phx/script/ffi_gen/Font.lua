@@ -28,8 +28,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Font = {
-            Free          = libphx.Font_Free,
-            Load          = libphx.Font_Load,
+            Load          = function(...)
+                local instance = libphx.Font_Load(...)
+                ffi.gc(instance, libphx.Font_Free)
+                return instance
+            end,
             Draw          = libphx.Font_Draw,
             DrawShaded    = libphx.Font_DrawShaded,
             GetLineHeight = libphx.Font_GetLineHeight,

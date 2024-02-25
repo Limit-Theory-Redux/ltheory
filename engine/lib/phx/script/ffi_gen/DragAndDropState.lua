@@ -25,7 +25,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         DragAndDropState = {
-            Free                   = libphx.DragAndDropState_Free,
             GetDroppedFile         = libphx.DragAndDropState_GetDroppedFile,
             GetHoveredFile         = libphx.DragAndDropState_GetHoveredFile,
             IfHoveredFileCancelled = libphx.DragAndDropState_IfHoveredFileCancelled,

@@ -24,7 +24,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         InputDevice = {
-            Free     = libphx.InputDevice_Free,
             Equal    = libphx.InputDevice_Equal,
             ToString = libphx.InputDevice_ToString,
         }
