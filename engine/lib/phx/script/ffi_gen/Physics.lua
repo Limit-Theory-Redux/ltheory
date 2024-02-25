@@ -37,22 +37,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Physics = {
-            Free                   = libphx.Physics_Free,
-            Create                 = libphx.Physics_Create,
-            AddRigidBody           = libphx.Physics_AddRigidBody,
-            RemoveRigidBody        = libphx.Physics_RemoveRigidBody,
-            AddTrigger             = libphx.Physics_AddTrigger,
-            RemoveTrigger          = libphx.Physics_RemoveTrigger,
-            Update                 = libphx.Physics_Update,
-            GetNextCollision       = libphx.Physics_GetNextCollision,
-            RayCast                = libphx.Physics_RayCast,
-            SphereCast             = libphx.Physics_SphereCast,
-            BoxCast                = libphx.Physics_BoxCast,
-            SphereOverlap          = libphx.Physics_SphereOverlap,
-            BoxOverlap             = libphx.Physics_BoxOverlap,
-            DrawBoundingBoxesLocal = libphx.Physics_DrawBoundingBoxesLocal,
-            DrawBoundingBoxesWorld = libphx.Physics_DrawBoundingBoxesWorld,
-            DrawWireframes         = libphx.Physics_DrawWireframes,
+            Create                 = function(...)
+                local instance = libphx.Physics_Create(...)
+                ffi.gc(instance, libphx.Physics_Free)
+                return instance
+            end,
         }
 
         if onDef_Physics then onDef_Physics(Physics, mt) end
@@ -63,8 +52,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Physics')
         local mt = {
             __index = {
-                managed                = function(self) return ffi.gc(self, libphx.Physics_Free) end,
-                free                   = libphx.Physics_Free,
                 addRigidBody           = libphx.Physics_AddRigidBody,
                 removeRigidBody        = libphx.Physics_RemoveRigidBody,
                 addTrigger             = libphx.Physics_AddTrigger,

@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void  KeyboardState_Free         (KeyboardState*);
             bool  KeyboardState_IsPressed    (KeyboardState const*, KeyboardButton button);
             bool  KeyboardState_IsDown       (KeyboardState const*, KeyboardButton button);
             bool  KeyboardState_IsReleased   (KeyboardState const*, KeyboardButton button);
@@ -27,15 +28,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        KeyboardState = {
-            IsPressed    = libphx.KeyboardState_IsPressed,
-            IsDown       = libphx.KeyboardState_IsDown,
-            IsReleased   = libphx.KeyboardState_IsReleased,
-            AltPressed   = libphx.KeyboardState_AltPressed,
-            CtrlPressed  = libphx.KeyboardState_CtrlPressed,
-            ShiftPressed = libphx.KeyboardState_ShiftPressed,
-            Value        = libphx.KeyboardState_Value,
-        }
+        KeyboardState = {}
 
         if onDef_KeyboardState then onDef_KeyboardState(KeyboardState, mt) end
         KeyboardState = setmetatable(KeyboardState, mt)

@@ -77,7 +77,7 @@ impl Trigger {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Trigger {
     pub fn create_box(half_extents: &Vec3) -> Trigger {
         let collider = rp::ColliderBuilder::cuboid(

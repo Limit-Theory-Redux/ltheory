@@ -16,14 +16,13 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void SystemEventState_Free   (SystemEventState*);
             bool SystemEventState_IsExit (SystemEventState const*);
         ]]
     end
 
     do -- Global Symbol Table
-        SystemEventState = {
-            IsExit = libphx.SystemEventState_IsExit,
-        }
+        SystemEventState = {}
 
         if onDef_SystemEventState then onDef_SystemEventState(SystemEventState, mt) end
         SystemEventState = setmetatable(SystemEventState, mt)

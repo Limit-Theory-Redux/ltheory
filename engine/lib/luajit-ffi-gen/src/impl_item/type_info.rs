@@ -83,6 +83,19 @@ impl TypeInfo {
         COPY_TYPES.contains(&ty)
     }
 
+    pub fn get_managed_type(&self) -> Option<&str> {
+        match &self.variant {
+            TypeVariant::Custom(ty_name) => {
+                if !COPY_TYPES.contains(&ty_name.as_str()) {
+                    Some(ty_name.as_str())
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
     pub fn as_ffi_string(&self, self_name: &str) -> String {
         // These types should be the C equivalent of the result of `wrap_type` in `generate.rs`.
         match &self.variant {

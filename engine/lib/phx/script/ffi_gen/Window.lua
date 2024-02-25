@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void         Window_Free                      (Window*);
             void         Window_BeginDraw                 (Window const*);
             void         Window_EndDraw                   (Window const*);
             cstr         Window_Title                     (Window const*);
@@ -55,43 +56,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        Window = {
-            BeginDraw                 = libphx.Window_BeginDraw,
-            EndDraw                   = libphx.Window_EndDraw,
-            Title                     = libphx.Window_Title,
-            SetTitle                  = libphx.Window_SetTitle,
-            Cursor                    = libphx.Window_Cursor,
-            PresentMode               = libphx.Window_PresentMode,
-            SetPresentMode            = libphx.Window_SetPresentMode,
-            SetMaximized              = libphx.Window_SetMaximized,
-            SetMinimized              = libphx.Window_SetMinimized,
-            Position                  = libphx.Window_Position,
-            SetCenteredPosition       = libphx.Window_SetCenteredPosition,
-            SetPosition               = libphx.Window_SetPosition,
-            Width                     = libphx.Window_Width,
-            Height                    = libphx.Window_Height,
-            Size                      = libphx.Window_Size,
-            SetSize                   = libphx.Window_SetSize,
-            PhysicalWidth             = libphx.Window_PhysicalWidth,
-            PhysicalHeight            = libphx.Window_PhysicalHeight,
-            PhysicalSize              = libphx.Window_PhysicalSize,
-            SetPhysicalSize           = libphx.Window_SetPhysicalSize,
-            IsResizable               = libphx.Window_IsResizable,
-            SetResizable              = libphx.Window_SetResizable,
-            HasDecorations            = libphx.Window_HasDecorations,
-            SetDecorations            = libphx.Window_SetDecorations,
-            IsTransparent             = libphx.Window_IsTransparent,
-            SetTransparent            = libphx.Window_SetTransparent,
-            IsFocused                 = libphx.Window_IsFocused,
-            SetFocused                = libphx.Window_SetFocused,
-            SetFullscreen             = libphx.Window_SetFullscreen,
-            ToggleFullscreen          = libphx.Window_ToggleFullscreen,
-            ScaleFactor               = libphx.Window_ScaleFactor,
-            CursorPosition            = libphx.Window_CursorPosition,
-            SetCursorPosition         = libphx.Window_SetCursorPosition,
-            PhysicalCursorPosition    = libphx.Window_PhysicalCursorPosition,
-            SetPhysicalCursorPosition = libphx.Window_SetPhysicalCursorPosition,
-        }
+        Window = {}
 
         if onDef_Window then onDef_Window(Window, mt) end
         Window = setmetatable(Window, mt)

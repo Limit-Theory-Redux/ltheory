@@ -291,7 +291,7 @@ impl RigidBody {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl RigidBody {
     #[bind(name = "CreateBox")]
     pub fn new_box() -> Box<RigidBody> {

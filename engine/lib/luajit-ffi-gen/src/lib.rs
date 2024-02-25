@@ -19,7 +19,6 @@ pub(crate) const IDENT: &str = "    ";
 ///
 /// Arguments for `impl` block:
 /// - **name** \[string]: optional object name. If not specified then name is taken from the `impl` definition.
-/// - **managed** \[bool]: if set then Lua will be responsible for cleaning object memory. Default: false.
 /// - **clone** \[bool]: if true then adds `__call` method to Global Symbol Table section and `clone` method to metatype section. Default: false.
 /// - **lua_ffi** \[bool]: specify if Lua FFI file should be generated or only C API. Default: true.
 ///

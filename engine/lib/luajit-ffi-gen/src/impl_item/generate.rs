@@ -19,8 +19,14 @@ impl ImplInfo {
             .iter()
             .map(|method| self.wrap_method(method))
             .collect();
-        // Additional Free C API wrapper if requested
-        let free_method_token = if attr_args.is_managed() {
+
+        let is_managed = self
+            .methods
+            .iter()
+            .any(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some());
+
+        // Additional Free C API wrapper if managed
+        let free_method_token = if is_managed {
             let module_name = attr_args.name().unwrap_or(self.name.clone());
             let free_method_ident = format_ident!("{module_name}_Free");
             let module_ident = format_ident!("{}", self.name);

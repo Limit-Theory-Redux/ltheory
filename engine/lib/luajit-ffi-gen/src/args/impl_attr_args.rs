@@ -8,7 +8,6 @@ use super::arg::Arg;
 pub struct ImplAttrArgs {
     name: Option<String>,
     opaque: bool,
-    managed: bool,
     clone: bool,
     lua_ffi: bool,
 }
@@ -18,7 +17,6 @@ impl Default for ImplAttrArgs {
         Self {
             name: None,
             opaque: true,
-            managed: false,
             clone: false,
             lua_ffi: true,
         }
@@ -35,12 +33,6 @@ impl ImplAttrArgs {
     /// If true then typedef is generated for the module.
     pub fn is_opaque(&self) -> bool {
         self.opaque
-    }
-
-    /// If true then Lua will be responsible for cleaning object memory.
-    /// <module-name>_Free C Api function and Lua FFI 'managed' binding will be generated.
-    pub fn is_managed(&self) -> bool {
-        self.managed
     }
 
     /// If true then adds `__call` method to Global Symbol Table section and `clone` method to metatype section.
@@ -81,16 +73,6 @@ impl Parse for ImplAttrArgs {
                         ));
                     }
                 }
-                "managed" => {
-                    if let Lit::Bool(val) = &param.value.lit {
-                        res.managed = val.value();
-                    } else {
-                        return Err(Error::new(
-                            param.value.span(),
-                            "expected 'managed' attribute parameter as bool literal",
-                        ));
-                    }
-                }
                 "clone" => {
                     if let Lit::Bool(val) = &param.value.lit {
                         res.clone = val.value();
@@ -114,9 +96,7 @@ impl Parse for ImplAttrArgs {
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        format!(
-                            "expected attribute parameter value: name, opaque, managed, clone, lua_ffi"
-                        ),
+                        format!("expected attribute parameter value: name, opaque, clone, lua_ffi"),
                     ));
                 }
             }

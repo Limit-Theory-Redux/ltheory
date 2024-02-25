@@ -30,15 +30,16 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         TimeStamp = {
-            Free          = libphx.TimeStamp_Free,
-            Now           = libphx.TimeStamp_Now,
-            GetFuture     = libphx.TimeStamp_GetFuture,
-            GetDifference = libphx.TimeStamp_GetDifference,
-            GetElapsed    = libphx.TimeStamp_GetElapsed,
-            GetElapsedMs  = libphx.TimeStamp_GetElapsedMs,
-            GetRelative   = libphx.TimeStamp_GetRelative,
-            ToDouble      = libphx.TimeStamp_ToDouble,
-            ToSeconds     = libphx.TimeStamp_ToSeconds,
+            Now           = function(...)
+                local instance = libphx.TimeStamp_Now(...)
+                ffi.gc(instance, libphx.TimeStamp_Free)
+                return instance
+            end,
+            GetFuture     = function(...)
+                local instance = libphx.TimeStamp_GetFuture(...)
+                ffi.gc(instance, libphx.TimeStamp_Free)
+                return instance
+            end,
         }
 
         if onDef_TimeStamp then onDef_TimeStamp(TimeStamp, mt) end
@@ -49,12 +50,14 @@ function Loader.defineType()
         local t  = ffi.typeof('TimeStamp')
         local mt = {
             __index = {
-                managed       = function(self) return ffi.gc(self, libphx.TimeStamp_Free) end,
-                free          = libphx.TimeStamp_Free,
                 getDifference = libphx.TimeStamp_GetDifference,
                 getElapsed    = libphx.TimeStamp_GetElapsed,
                 getElapsedMs  = libphx.TimeStamp_GetElapsedMs,
-                getRelative   = libphx.TimeStamp_GetRelative,
+                getRelative   = function(...)
+                    local instance = libphx.TimeStamp_GetRelative(...)
+                    ffi.gc(instance, libphx.TimeStamp_Free)
+                    return instance
+                end,
                 toDouble      = libphx.TimeStamp_ToDouble,
                 toSeconds     = libphx.TimeStamp_ToSeconds,
             },
