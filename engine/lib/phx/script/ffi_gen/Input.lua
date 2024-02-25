@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void                    Input_Free                   (Input*);
             KeyboardState const*    Input_Keyboard               (Input const*);
             MouseState const*       Input_Mouse                  (Input const*);
             TouchpadState const*    Input_Touchpad               (Input const*);
@@ -39,6 +40,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Input = {
+            Free                   = libphx.Input_Free,
             Keyboard               = libphx.Input_Keyboard,
             Mouse                  = libphx.Input_Mouse,
             Touchpad               = libphx.Input_Touchpad,

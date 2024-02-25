@@ -16,12 +16,14 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void SystemEventState_Free   (SystemEventState*);
             bool SystemEventState_IsExit (SystemEventState const*);
         ]]
     end
 
     do -- Global Symbol Table
         SystemEventState = {
+            Free   = libphx.SystemEventState_Free,
             IsExit = libphx.SystemEventState_IsExit,
         }
 

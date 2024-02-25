@@ -42,7 +42,7 @@ impl Sound {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Sound {
     #[bind(name = "Load")]
     pub fn new(path: &str, is_looping: bool) -> Self {

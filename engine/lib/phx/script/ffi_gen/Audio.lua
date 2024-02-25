@@ -45,8 +45,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Audio')
         local mt = {
             __index = {
-                managed         = function(self) return ffi.gc(self, libphx.Audio_Free) end,
-                free            = libphx.Audio_Free,
                 play            = libphx.Audio_Play,
                 setListenerPos  = libphx.Audio_SetListenerPos,
                 getLoadedCount  = libphx.Audio_GetLoadedCount,

@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void         Window_Free                      (Window*);
             void         Window_BeginDraw                 (Window const*);
             void         Window_EndDraw                   (Window const*);
             cstr         Window_Title                     (Window const*);
@@ -56,6 +57,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Window = {
+            Free                      = libphx.Window_Free,
             BeginDraw                 = libphx.Window_BeginDraw,
             EndDraw                   = libphx.Window_EndDraw,
             Title                     = libphx.Window_Title,

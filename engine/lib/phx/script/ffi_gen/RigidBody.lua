@@ -121,8 +121,6 @@ function Loader.defineType()
         local t  = ffi.typeof('RigidBody')
         local mt = {
             __index = {
-                managed                     = function(self) return ffi.gc(self, libphx.RigidBody_Free) end,
-                free                        = libphx.RigidBody_Free,
                 getParentBody               = libphx.RigidBody_GetParentBody,
                 applyForce                  = libphx.RigidBody_ApplyForce,
                 applyTorque                 = libphx.RigidBody_ApplyTorque,
@@ -135,8 +133,16 @@ function Loader.defineType()
                 getBoundingRadius           = libphx.RigidBody_GetBoundingRadius,
                 getBoundingRadiusCompound   = libphx.RigidBody_GetBoundingRadiusCompound,
                 getSpeed                    = libphx.RigidBody_GetSpeed,
-                getToWorldMatrix            = libphx.RigidBody_GetToWorldMatrix,
-                getToLocalMatrix            = libphx.RigidBody_GetToLocalMatrix,
+                getToWorldMatrix            = function(...)
+                    local instance = libphx.RigidBody_GetToWorldMatrix(...)
+                    ffi.gc(instance, libphx.Matrix_Free)
+                    return instance
+                end,
+                getToLocalMatrix            = function(...)
+                    local instance = libphx.RigidBody_GetToLocalMatrix(...)
+                    ffi.gc(instance, libphx.Matrix_Free)
+                    return instance
+                end,
                 getVelocity                 = libphx.RigidBody_GetVelocity,
                 getVelocityA                = libphx.RigidBody_GetVelocityA,
                 setCollidable               = libphx.RigidBody_SetCollidable,

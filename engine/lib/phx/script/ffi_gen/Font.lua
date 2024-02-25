@@ -45,8 +45,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Font')
         local mt = {
             __index = {
-                managed       = function(self) return ffi.gc(self, libphx.Font_Free) end,
-                free          = libphx.Font_Free,
                 draw          = libphx.Font_Draw,
                 drawShaded    = libphx.Font_DrawShaded,
                 getLineHeight = libphx.Font_GetLineHeight,

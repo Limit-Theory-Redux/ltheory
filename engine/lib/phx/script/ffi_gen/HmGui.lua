@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void               HmGui_Free                           (HmGui*);
             void               HmGui_BeginGui                       (HmGui*, float sx, float sy, Input const* input);
             void               HmGui_EndGui                         (HmGui*, Input const* input);
             void               HmGui_Draw                           (HmGui*);
@@ -169,6 +170,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         HmGui = {
+            Free                           = libphx.HmGui_Free,
             BeginGui                       = libphx.HmGui_BeginGui,
             EndGui                         = libphx.HmGui_EndGui,
             Draw                           = libphx.HmGui_Draw,
@@ -390,7 +392,11 @@ function Loader.defineType()
                 getStyleId                     = libphx.HmGui_GetStyleId,
                 setStyle                       = libphx.HmGui_SetStyle,
                 clearStyle                     = libphx.HmGui_ClearStyle,
-                getPropertyType                = libphx.HmGui_GetPropertyType,
+                getPropertyType                = function(...)
+                    local instance = libphx.HmGui_GetPropertyType(...)
+                    ffi.gc(instance, libphx.HmGuiPropertyType_Free)
+                    return instance
+                end,
                 mapProperty                    = libphx.HmGui_MapProperty,
                 removeProperty                 = libphx.HmGui_RemoveProperty,
                 registerPropertyBool           = libphx.HmGui_RegisterPropertyBool,

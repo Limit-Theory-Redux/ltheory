@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void             GamepadState_Free           (GamepadState*);
             uint64           GamepadState_GamepadsCount  (GamepadState const*);
             GamepadId const* GamepadState_GamepadId      (GamepadState const*, uint64 index);
             cstr             GamepadState_GamepadName    (GamepadState const*, GamepadId gamepadId);
@@ -32,6 +33,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         GamepadState = {
+            Free           = libphx.GamepadState_Free,
             GamepadsCount  = libphx.GamepadState_GamepadsCount,
             GamepadId      = libphx.GamepadState_GamepadId,
             GamepadName    = libphx.GamepadState_GamepadName,

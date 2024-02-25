@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void InputDevice_Free     (InputDevice*);
             bool InputDevice_Equal    (InputDevice const*, InputDevice const* other);
             cstr InputDevice_ToString (InputDevice const*);
         ]]
@@ -23,6 +24,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         InputDevice = {
+            Free     = libphx.InputDevice_Free,
             Equal    = libphx.InputDevice_Equal,
             ToString = libphx.InputDevice_ToString,
         }

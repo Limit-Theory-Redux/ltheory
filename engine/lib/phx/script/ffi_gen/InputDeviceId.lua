@@ -16,12 +16,14 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void InputDeviceId_Free     (InputDeviceId*);
             cstr InputDeviceId_ToString (InputDeviceId const*);
         ]]
     end
 
     do -- Global Symbol Table
         InputDeviceId = {
+            Free     = libphx.InputDeviceId_Free,
             ToString = libphx.InputDeviceId_ToString,
         }
 

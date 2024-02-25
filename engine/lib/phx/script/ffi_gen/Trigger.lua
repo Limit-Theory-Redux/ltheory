@@ -57,8 +57,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Trigger')
         local mt = {
             __index = {
-                managed          = function(self) return ffi.gc(self, libphx.Trigger_Free) end,
-                free             = libphx.Trigger_Free,
                 attach           = libphx.Trigger_Attach,
                 detach           = libphx.Trigger_Detach,
                 getBoundingBox   = libphx.Trigger_GetBoundingBox,

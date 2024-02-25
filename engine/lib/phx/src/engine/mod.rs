@@ -578,12 +578,13 @@ impl Engine {
         &mut self.hmgui
     }
 
-    pub fn free() {
-        unsafe {
-            ShaderVar_Free();
-            Signal_Free();
-        }
-    }
+    // TODO: convert ShaderVar and Signal into the proper Rust types
+    // pub fn free() {
+    //     unsafe {
+    //         ShaderVar_Free();
+    //         Signal_Free();
+    //     }
+    // }
 
     pub fn abort() {
         std::process::abort();

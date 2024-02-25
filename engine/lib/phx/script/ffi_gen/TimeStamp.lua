@@ -49,12 +49,14 @@ function Loader.defineType()
         local t  = ffi.typeof('TimeStamp')
         local mt = {
             __index = {
-                managed       = function(self) return ffi.gc(self, libphx.TimeStamp_Free) end,
-                free          = libphx.TimeStamp_Free,
                 getDifference = libphx.TimeStamp_GetDifference,
                 getElapsed    = libphx.TimeStamp_GetElapsed,
                 getElapsedMs  = libphx.TimeStamp_GetElapsedMs,
-                getRelative   = libphx.TimeStamp_GetRelative,
+                getRelative   = function(...)
+                    local instance = libphx.TimeStamp_GetRelative(...)
+                    ffi.gc(instance, libphx.TimeStamp_Free)
+                    return instance
+                end,
                 toDouble      = libphx.TimeStamp_ToDouble,
                 toSeconds     = libphx.TimeStamp_ToSeconds,
             },

@@ -47,8 +47,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Directory')
         local mt = {
             __index = {
-                managed = function(self) return ffi.gc(self, libphx.Directory_Free) end,
-                free    = libphx.Directory_Free,
                 getNext = libphx.Directory_GetNext,
             },
         }
