@@ -22,8 +22,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        SystemEventState = {
-        }
+        SystemEventState = {}
 
         if onDef_SystemEventState then onDef_SystemEventState(SystemEventState, mt) end
         SystemEventState = setmetatable(SystemEventState, mt)

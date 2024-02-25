@@ -22,8 +22,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        InputDeviceId = {
-        }
+        InputDeviceId = {}
 
         if onDef_InputDeviceId then onDef_InputDeviceId(InputDeviceId, mt) end
         InputDeviceId = setmetatable(InputDeviceId, mt)

@@ -32,8 +32,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        GamepadState = {
-        }
+        GamepadState = {}
 
         if onDef_GamepadState then onDef_GamepadState(GamepadState, mt) end
         GamepadState = setmetatable(GamepadState, mt)

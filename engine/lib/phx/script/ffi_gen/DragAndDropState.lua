@@ -24,8 +24,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        DragAndDropState = {
-        }
+        DragAndDropState = {}
 
         if onDef_DragAndDropState then onDef_DragAndDropState(DragAndDropState, mt) end
         DragAndDropState = setmetatable(DragAndDropState, mt)

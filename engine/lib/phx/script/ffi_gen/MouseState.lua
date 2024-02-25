@@ -30,8 +30,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        MouseState = {
-        }
+        MouseState = {}
 
         if onDef_MouseState then onDef_MouseState(MouseState, mt) end
         MouseState = setmetatable(MouseState, mt)

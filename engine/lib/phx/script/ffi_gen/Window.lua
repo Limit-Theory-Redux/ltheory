@@ -56,8 +56,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        Window = {
-        }
+        Window = {}
 
         if onDef_Window then onDef_Window(Window, mt) end
         Window = setmetatable(Window, mt)

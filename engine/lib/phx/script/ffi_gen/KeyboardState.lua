@@ -28,8 +28,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        KeyboardState = {
-        }
+        KeyboardState = {}
 
         if onDef_KeyboardState then onDef_KeyboardState(KeyboardState, mt) end
         KeyboardState = setmetatable(KeyboardState, mt)

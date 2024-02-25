@@ -25,8 +25,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        TouchpadState = {
-        }
+        TouchpadState = {}
 
         if onDef_TouchpadState then onDef_TouchpadState(TouchpadState, mt) end
         TouchpadState = setmetatable(TouchpadState, mt)

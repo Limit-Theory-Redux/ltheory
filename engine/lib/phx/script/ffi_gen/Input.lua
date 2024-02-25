@@ -39,8 +39,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        Input = {
-        }
+        Input = {}
 
         if onDef_Input then onDef_Input(Input, mt) end
         Input = setmetatable(Input, mt)

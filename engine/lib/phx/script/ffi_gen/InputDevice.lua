@@ -23,8 +23,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        InputDevice = {
-        }
+        InputDevice = {}
 
         local mt = {
             __call = function(t, ...) return InputDevice_t(...) end,

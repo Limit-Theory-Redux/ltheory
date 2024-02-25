@@ -169,8 +169,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        HmGui = {
-        }
+        HmGui = {}
 
         if onDef_HmGui then onDef_HmGui(HmGui, mt) end
         HmGui = setmetatable(HmGui, mt)

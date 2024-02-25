@@ -29,8 +29,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        Cursor = {
-        }
+        Cursor = {}
 
         if onDef_Cursor then onDef_Cursor(Cursor, mt) end
         Cursor = setmetatable(Cursor, mt)
