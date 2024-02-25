@@ -32,12 +32,12 @@ function Entity:addProjectile(source)
     -- TODO: Extend projectile types to non-pulse effects
 
     -- *** TEMP: Audio FX test START ***
-    if Config.audio.pulseFire then
+    if Config.audio.sounds.pulseFire then
         local distance = GameState.player.currentShip:getDistance(source)
         local volDist = max(0, 1.0 - (min(5000, distance) / 5000))
 
-        Config.audio.pulseFire.sound:setVolume(volDist)
-        LTheoryRedux.audio:play(Config.audio.pulseFire.sound)
+        Config.audio.sounds.pulseFire.sound:setVolume(volDist)
+        LTheoryRedux.audio:play(Config.audio.sounds.pulseFire.sound)
     end
     -- *** TEMP: Audio FX test END ***
 
