@@ -10,7 +10,7 @@ pub struct Directory {
     pub iterator: fs::ReadDir,
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Directory {
     pub fn open(path: &str) -> Option<Self> {
         match fs::read_dir(path) {

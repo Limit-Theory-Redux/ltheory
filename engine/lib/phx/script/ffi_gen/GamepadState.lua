@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void             GamepadState_Free           (GamepadState*);
             uint64           GamepadState_GamepadsCount  (GamepadState const*);
             GamepadId const* GamepadState_GamepadId      (GamepadState const*, uint64 index);
             cstr             GamepadState_GamepadName    (GamepadState const*, GamepadId gamepadId);
@@ -31,19 +32,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        GamepadState = {
-            GamepadsCount  = libphx.GamepadState_GamepadsCount,
-            GamepadId      = libphx.GamepadState_GamepadId,
-            GamepadName    = libphx.GamepadState_GamepadName,
-            Value          = libphx.GamepadState_Value,
-            IsPressed      = libphx.GamepadState_IsPressed,
-            IsDown         = libphx.GamepadState_IsDown,
-            IsReleased     = libphx.GamepadState_IsReleased,
-            ValueById      = libphx.GamepadState_ValueById,
-            IsPressedById  = libphx.GamepadState_IsPressedById,
-            IsDownById     = libphx.GamepadState_IsDownById,
-            IsReleasedById = libphx.GamepadState_IsReleasedById,
-        }
+        GamepadState = {}
 
         if onDef_GamepadState then onDef_GamepadState(GamepadState, mt) end
         GamepadState = setmetatable(GamepadState, mt)

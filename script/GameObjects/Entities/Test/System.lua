@@ -32,8 +32,7 @@ local System = subclass(Entity, function(self, seed)
     -- result in unexpected behavior
     self:addFlows()
 
-    -- TODO : Will physics be freed correctly?
-    self.physics         = Physics.Create():managed()
+    self.physics         = Physics.Create()
     local starAngle      = self.rng:getDir2()
     self.starDir         = Vec3f(starAngle.x, 0, starAngle.y)
     self.nebula          = Nebula(self.rng:get64(), self.starDir)

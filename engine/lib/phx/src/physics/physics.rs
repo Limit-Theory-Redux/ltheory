@@ -163,7 +163,7 @@ pub struct Physics {
     debug_renderer: rp::DebugRenderPipeline,
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Physics {
     #[bind(name = "Create")]
     pub fn new() -> Physics {
