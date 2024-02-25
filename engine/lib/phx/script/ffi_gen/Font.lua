@@ -33,11 +33,6 @@ function Loader.defineType()
                 ffi.gc(instance, libphx.Font_Free)
                 return instance
             end,
-            Draw          = libphx.Font_Draw,
-            DrawShaded    = libphx.Font_DrawShaded,
-            GetLineHeight = libphx.Font_GetLineHeight,
-            GetSize       = libphx.Font_GetSize,
-            GetSize2      = libphx.Font_GetSize2,
         }
 
         if onDef_Font then onDef_Font(Font, mt) end

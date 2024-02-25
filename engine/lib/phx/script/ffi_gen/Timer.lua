@@ -31,9 +31,6 @@ function Loader.defineType()
                 ffi.gc(instance, libphx.Timer_Free)
                 return instance
             end,
-            GetAndReset = libphx.Timer_GetAndReset,
-            GetElapsed  = libphx.Timer_GetElapsed,
-            Reset       = libphx.Timer_Reset,
         }
 
         if onDef_Timer then onDef_Timer(Timer, mt) end

@@ -33,11 +33,6 @@ function Loader.defineType()
                 ffi.gc(instance, libphx.Audio_Free)
                 return instance
             end,
-            Play            = libphx.Audio_Play,
-            SetListenerPos  = libphx.Audio_SetListenerPos,
-            GetLoadedCount  = libphx.Audio_GetLoadedCount,
-            GetPlayingCount = libphx.Audio_GetPlayingCount,
-            GetTotalCount   = libphx.Audio_GetTotalCount,
         }
 
         if onDef_Audio then onDef_Audio(Audio, mt) end

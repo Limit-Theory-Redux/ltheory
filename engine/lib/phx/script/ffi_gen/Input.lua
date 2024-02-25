@@ -40,24 +40,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Input = {
-            Keyboard               = libphx.Input_Keyboard,
-            Mouse                  = libphx.Input_Mouse,
-            Touchpad               = libphx.Input_Touchpad,
-            Gamepad                = libphx.Input_Gamepad,
-            DragAndDrop            = libphx.Input_DragAndDrop,
-            ActiveDevice           = libphx.Input_ActiveDevice,
-            ActiveDeviceType       = libphx.Input_ActiveDeviceType,
-            ActiveDeviceId         = libphx.Input_ActiveDeviceId,
-            SetCursorVisible       = libphx.Input_SetCursorVisible,
-            SetCursorVisibleAuto   = libphx.Input_SetCursorVisibleAuto,
-            SetCursorPosition      = libphx.Input_SetCursorPosition,
-            IsPressed              = libphx.Input_IsPressed,
-            IsDown                 = libphx.Input_IsDown,
-            IsReleased             = libphx.Input_IsReleased,
-            GetValue               = libphx.Input_GetValue,
-            IsKeyboardAltPressed   = libphx.Input_IsKeyboardAltPressed,
-            IsKeyboardCtrlPressed  = libphx.Input_IsKeyboardCtrlPressed,
-            IsKeyboardShiftPressed = libphx.Input_IsKeyboardShiftPressed,
         }
 
         if onDef_Input then onDef_Input(Input, mt) end

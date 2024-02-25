@@ -101,51 +101,6 @@ function Loader.defineType()
                 ffi.gc(instance, libphx.RigidBody_Free)
                 return instance
             end,
-            GetParentBody                     = libphx.RigidBody_GetParentBody,
-            ApplyForce                        = libphx.RigidBody_ApplyForce,
-            ApplyTorque                       = libphx.RigidBody_ApplyTorque,
-            Attach                            = libphx.RigidBody_Attach,
-            Detach                            = libphx.RigidBody_Detach,
-            GetBoundingBox                    = libphx.RigidBody_GetBoundingBox,
-            GetBoundingBoxCompound            = libphx.RigidBody_GetBoundingBoxCompound,
-            GetBoundingBoxLocal               = libphx.RigidBody_GetBoundingBoxLocal,
-            GetBoundingBoxLocalCompound       = libphx.RigidBody_GetBoundingBoxLocalCompound,
-            GetBoundingRadius                 = libphx.RigidBody_GetBoundingRadius,
-            GetBoundingRadiusCompound         = libphx.RigidBody_GetBoundingRadiusCompound,
-            GetSpeed                          = libphx.RigidBody_GetSpeed,
-            GetToWorldMatrix                  = function(...)
-                local instance = libphx.RigidBody_GetToWorldMatrix(...)
-                ffi.gc(instance, libphx.Matrix_Free)
-                return instance
-            end,
-            GetToLocalMatrix                  = function(...)
-                local instance = libphx.RigidBody_GetToLocalMatrix(...)
-                ffi.gc(instance, libphx.Matrix_Free)
-                return instance
-            end,
-            GetVelocity                       = libphx.RigidBody_GetVelocity,
-            GetVelocityA                      = libphx.RigidBody_GetVelocityA,
-            SetCollidable                     = libphx.RigidBody_SetCollidable,
-            SetCollisionGroup                 = libphx.RigidBody_SetCollisionGroup,
-            SetCollisionMask                  = libphx.RigidBody_SetCollisionMask,
-            SetDrag                           = libphx.RigidBody_SetDrag,
-            SetFriction                       = libphx.RigidBody_SetFriction,
-            SetKinematic                      = libphx.RigidBody_SetKinematic,
-            SetRestitution                    = libphx.RigidBody_SetRestitution,
-            SetSleepThreshold                 = libphx.RigidBody_SetSleepThreshold,
-            GetMass                           = libphx.RigidBody_GetMass,
-            SetMass                           = libphx.RigidBody_SetMass,
-            GetPos                            = libphx.RigidBody_GetPos,
-            GetPosLocal                       = libphx.RigidBody_GetPosLocal,
-            SetPos                            = libphx.RigidBody_SetPos,
-            SetPosLocal                       = libphx.RigidBody_SetPosLocal,
-            GetRot                            = libphx.RigidBody_GetRot,
-            GetRotLocal                       = libphx.RigidBody_GetRotLocal,
-            SetRot                            = libphx.RigidBody_SetRot,
-            SetRotLocal                       = libphx.RigidBody_SetRotLocal,
-            GetScale                          = libphx.RigidBody_GetScale,
-            SetScale                          = libphx.RigidBody_SetScale,
-            IsSleeping                        = libphx.RigidBody_IsSleeping,
         }
 
         if onDef_RigidBody then onDef_RigidBody(RigidBody, mt) end

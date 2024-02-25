@@ -177,7 +177,7 @@ impl ImplInfo {
 
         self.methods
             .iter()
-            .filter(|method| method.bind_args.gen_lua_ffi())
+            .filter(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_none())
             .for_each(|method| {
                 write_method_map(
                     &format!("{IDENT}{IDENT}{IDENT}"),

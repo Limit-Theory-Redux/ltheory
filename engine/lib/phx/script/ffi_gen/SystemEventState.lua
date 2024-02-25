@@ -23,7 +23,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         SystemEventState = {
-            IsExit = libphx.SystemEventState_IsExit,
         }
 
         if onDef_SystemEventState then onDef_SystemEventState(SystemEventState, mt) end

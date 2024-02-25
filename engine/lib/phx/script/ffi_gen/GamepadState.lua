@@ -33,17 +33,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         GamepadState = {
-            GamepadsCount  = libphx.GamepadState_GamepadsCount,
-            GamepadId      = libphx.GamepadState_GamepadId,
-            GamepadName    = libphx.GamepadState_GamepadName,
-            Value          = libphx.GamepadState_Value,
-            IsPressed      = libphx.GamepadState_IsPressed,
-            IsDown         = libphx.GamepadState_IsDown,
-            IsReleased     = libphx.GamepadState_IsReleased,
-            ValueById      = libphx.GamepadState_ValueById,
-            IsPressedById  = libphx.GamepadState_IsPressedById,
-            IsDownById     = libphx.GamepadState_IsDownById,
-            IsReleasedById = libphx.GamepadState_IsReleasedById,
         }
 
         if onDef_GamepadState then onDef_GamepadState(GamepadState, mt) end

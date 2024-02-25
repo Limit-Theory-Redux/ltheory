@@ -23,7 +23,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         InputDeviceId = {
-            ToString = libphx.InputDeviceId_ToString,
         }
 
         if onDef_InputDeviceId then onDef_InputDeviceId(InputDeviceId, mt) end

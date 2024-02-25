@@ -42,20 +42,6 @@ function Loader.defineType()
                 ffi.gc(instance, libphx.Physics_Free)
                 return instance
             end,
-            AddRigidBody           = libphx.Physics_AddRigidBody,
-            RemoveRigidBody        = libphx.Physics_RemoveRigidBody,
-            AddTrigger             = libphx.Physics_AddTrigger,
-            RemoveTrigger          = libphx.Physics_RemoveTrigger,
-            Update                 = libphx.Physics_Update,
-            GetNextCollision       = libphx.Physics_GetNextCollision,
-            RayCast                = libphx.Physics_RayCast,
-            SphereCast             = libphx.Physics_SphereCast,
-            BoxCast                = libphx.Physics_BoxCast,
-            SphereOverlap          = libphx.Physics_SphereOverlap,
-            BoxOverlap             = libphx.Physics_BoxOverlap,
-            DrawBoundingBoxesLocal = libphx.Physics_DrawBoundingBoxesLocal,
-            DrawBoundingBoxesWorld = libphx.Physics_DrawBoundingBoxesWorld,
-            DrawWireframes         = libphx.Physics_DrawWireframes,
         }
 
         if onDef_Physics then onDef_Physics(Physics, mt) end

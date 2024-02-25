@@ -34,7 +34,6 @@ function Loader.defineType()
                 ffi.gc(instance, libphx.Directory_Free)
                 return instance
             end,
-            GetNext     = libphx.Directory_GetNext,
             Change      = libphx.Directory_Change,
             Create      = libphx.Directory_Create,
             GetCurrent  = libphx.Directory_GetCurrent,

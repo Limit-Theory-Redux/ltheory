@@ -40,18 +40,6 @@ function Loader.defineType()
                 ffi.gc(instance, libphx.Sound_Free)
                 return instance
             end,
-            GetDuration   = libphx.Sound_GetDuration,
-            GetPath       = libphx.Sound_GetPath,
-            IsPlaying     = libphx.Sound_IsPlaying,
-            IsPaused      = libphx.Sound_IsPaused,
-            IsStopped     = libphx.Sound_IsStopped,
-            SetVolume     = libphx.Sound_SetVolume,
-            Pause         = libphx.Sound_Pause,
-            Resume        = libphx.Sound_Resume,
-            Stop          = libphx.Sound_Stop,
-            SetPlayPos    = libphx.Sound_SetPlayPos,
-            MovePlayPos   = libphx.Sound_MovePlayPos,
-            SetEmitterPos = libphx.Sound_SetEmitterPos,
         }
 
         if onDef_Sound then onDef_Sound(Sound, mt) end

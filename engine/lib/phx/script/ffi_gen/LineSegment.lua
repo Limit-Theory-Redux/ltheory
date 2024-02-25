@@ -21,9 +21,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         LineSegment = {
-            ToRay    = libphx.LineSegment_ToRay,
             FromRay  = libphx.LineSegment_FromRay,
-            ToString = libphx.LineSegment_ToString,
         }
 
         local mt = {

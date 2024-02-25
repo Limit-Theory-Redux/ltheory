@@ -39,17 +39,6 @@ function Loader.defineType()
                 ffi.gc(instance, libphx.Trigger_Free)
                 return instance
             end,
-            Attach           = libphx.Trigger_Attach,
-            Detach           = libphx.Trigger_Detach,
-            GetBoundingBox   = libphx.Trigger_GetBoundingBox,
-            GetContentsCount = libphx.Trigger_GetContentsCount,
-            GetContents      = libphx.Trigger_GetContents,
-            SetCollisionMask = libphx.Trigger_SetCollisionMask,
-            SetPos           = libphx.Trigger_SetPos,
-            SetPosLocal      = libphx.Trigger_SetPosLocal,
-            GetPos           = libphx.Trigger_GetPos,
-            GetPosLocal      = libphx.Trigger_GetPosLocal,
-            GetParent        = libphx.Trigger_GetParent,
         }
 
         if onDef_Trigger then onDef_Trigger(Trigger, mt) end

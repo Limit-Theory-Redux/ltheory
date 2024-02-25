@@ -31,15 +31,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         MouseState = {
-            Value       = libphx.MouseState_Value,
-            IsPressed   = libphx.MouseState_IsPressed,
-            IsDown      = libphx.MouseState_IsDown,
-            IsReleased  = libphx.MouseState_IsReleased,
-            Delta       = libphx.MouseState_Delta,
-            Scroll      = libphx.MouseState_Scroll,
-            ScrollPixel = libphx.MouseState_ScrollPixel,
-            Position    = libphx.MouseState_Position,
-            InWindow    = libphx.MouseState_InWindow,
         }
 
         if onDef_MouseState then onDef_MouseState(MouseState, mt) end

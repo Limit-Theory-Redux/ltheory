@@ -40,16 +40,6 @@ function Loader.defineType()
                 ffi.gc(instance, libphx.TimeStamp_Free)
                 return instance
             end,
-            GetDifference = libphx.TimeStamp_GetDifference,
-            GetElapsed    = libphx.TimeStamp_GetElapsed,
-            GetElapsedMs  = libphx.TimeStamp_GetElapsedMs,
-            GetRelative   = function(...)
-                local instance = libphx.TimeStamp_GetRelative(...)
-                ffi.gc(instance, libphx.TimeStamp_Free)
-                return instance
-            end,
-            ToDouble      = libphx.TimeStamp_ToDouble,
-            ToSeconds     = libphx.TimeStamp_ToSeconds,
         }
 
         if onDef_TimeStamp then onDef_TimeStamp(TimeStamp, mt) end

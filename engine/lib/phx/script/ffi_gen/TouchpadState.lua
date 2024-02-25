@@ -26,10 +26,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         TouchpadState = {
-            Value        = libphx.TouchpadState_Value,
-            Position     = libphx.TouchpadState_Position,
-            MagnifyDelta = libphx.TouchpadState_MagnifyDelta,
-            RotateDelta  = libphx.TouchpadState_RotateDelta,
         }
 
         if onDef_TouchpadState then onDef_TouchpadState(TouchpadState, mt) end
