@@ -3,6 +3,7 @@ local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('GameObjects.Actions')
 local Words = require('Systems.Gen.Words')
+local SFXObject = require("Types.SFXObject")
 
 local BattleTest = require('States.Application')
 local rng = RNG.FromTime()
@@ -98,10 +99,19 @@ function BattleTest:onInit()
 
     DebugControl.ltheory = self
     self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
+    GameState.render.gameView = self.gameView
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
             :add(Systems.Controls.Controls.CommandControl(self.gameView, GameState.player.humanPlayer)))
+
+    -- add projectile sound
+    Config.audio.pulseFire = SFXObject:Create {
+        name = Config.audio.pulseFireName,
+        path = Config.paths.soundEffects .. Config.audio.pulseFireName,
+        volume = 0.0,
+        isLooping = false
+    }
 end
 
 function BattleTest:onInput()

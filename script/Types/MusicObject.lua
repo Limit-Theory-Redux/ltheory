@@ -20,7 +20,7 @@ end
 function MusicObject:Play(volume)
     local vol = volume or self.volume
     self.sound:setVolume(vol)
-    LTheoryRedux.audio:play(self.sound)
+    GameState.audio.musicManager:play(self.sound)
 end
 
 function MusicObject:Pause()

@@ -43,6 +43,8 @@ GameState.render = {
 }
 
 GameState.audio = {
+    musicManager = nil,
+    fxManager    = nil,
     soundEnabled = Config.audio.soundEnabled,
     fxVolume     = Config.audio.fxVolume,
     musicVolume  = Config.audio.musicVolume,

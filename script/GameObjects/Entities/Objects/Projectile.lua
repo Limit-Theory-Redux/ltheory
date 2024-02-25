@@ -33,11 +33,35 @@ function Entity:addProjectile(source)
 
     -- *** TEMP: Audio FX test START ***
     if Config.audio.pulseFire then
-        local distance = GameState.player.currentShip:getDistance(source)
-        local volDist = max(0, 1.0 - (min(5000, distance) / 5000))
+        local function calculateDistance(pointA, pointB)
+            local dx = pointB.x - pointA.x
+            local dy = pointB.y - pointA.y
+            local dz = pointB.z - pointA.z
+            return math.sqrt(dx * dx + dy * dy + dz * dz)
+        end
 
-        Config.audio.pulseFire.sound:setVolume(volDist)
-        LTheoryRedux.audio:play(Config.audio.pulseFire.sound)
+        local function calculateVolume(distance)
+            local maxDistance = 5000
+            local clampedDistance = math.min(distance, maxDistance)
+            local normalizedDistance = clampedDistance / maxDistance
+            local volume = (1 - normalizedDistance) ^ 2 * 0.25
+            if distance >= maxDistance then
+                volume = 0
+            end
+            return volume
+        end
+
+        local distance = calculateDistance(GameState.render.gameView.eyeLast, source:getPos())
+        local volDist = calculateVolume(distance)
+
+        if volDist > 0 then
+            Config.audio.pulseFire.sound:setVolume(volDist)
+            GameState.audio.fxManager:play(Config.audio.pulseFire.sound)
+        end
+
+        print("Loaded: " .. tostring(GameState.audio.fxManager:getLoadedCount()),
+            "Playing: " .. tostring(GameState.audio.fxManager:getPlayingCount()),
+            "Total: " .. tostring(GameState.audio.fxManager:getTotalCount()))
     end
     -- *** TEMP: Audio FX test END ***
 
