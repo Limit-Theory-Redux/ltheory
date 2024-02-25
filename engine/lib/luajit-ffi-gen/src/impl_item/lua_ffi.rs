@@ -186,12 +186,6 @@ impl ImplInfo {
                     module_name,
                     |value| ffi_gen.add_global_symbol(value),
                 );
-
-                // ffi_gen.add_global_symbol(format!(
-                //     "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
-                //     method.as_ffi_name(),
-                //     max_method_name_len
-                // ));
             });
     }
 
