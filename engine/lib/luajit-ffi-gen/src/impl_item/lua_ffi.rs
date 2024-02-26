@@ -7,15 +7,14 @@ impl ImplInfo {
     pub fn generate_ffi(&self, attr_args: &ImplAttrArgs) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
         let mut ffi_gen = FfiGenerator::load(&module_name);
+        let is_managed = self
+            .methods
+            .iter()
+            .any(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some());
 
         // Generate metatype section only if there is at least one method with `self` parameter,
-        // or managed or clone parameter is set
-        let gen_metatype = attr_args.is_managed()
-            || attr_args.is_clone()
-            || self
-                .methods
-                .iter()
-                .any(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some());
+        // or clone parameter is set
+        let gen_metatype = attr_args.is_clone() || is_managed;
 
         // Type declaration
         let is_opaque = !ffi_gen.has_type_decl() && attr_args.is_opaque() && gen_metatype;
@@ -26,15 +25,10 @@ impl ImplInfo {
 
         // C Definitions
         let (max_method_name_len, max_self_method_name_len) =
-            self.write_c_defs(&mut ffi_gen, &module_name, attr_args.is_managed());
+            self.write_c_defs(&mut ffi_gen, &module_name, is_managed);
 
         // Global Symbol Table
-        self.write_global_sym_table(
-            &mut ffi_gen,
-            &module_name,
-            max_method_name_len,
-            attr_args.is_managed(),
-        );
+        self.write_global_sym_table(&mut ffi_gen, &module_name, max_method_name_len);
 
         if gen_metatype && attr_args.is_clone() {
             ffi_gen.set_mt_clone();
@@ -176,28 +170,22 @@ impl ImplInfo {
         ffi_gen: &mut FfiGenerator,
         module_name: &str,
         max_method_name_len: usize,
-        is_managed: bool,
     ) {
         if ffi_gen.has_global_symbols() {
             ffi_gen.add_global_symbol("");
         }
 
-        if is_managed {
-            ffi_gen.add_global_symbol(format!(
-                "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
-                "Free", max_method_name_len
-            ));
-        }
-
         self.methods
             .iter()
-            .filter(|method| method.bind_args.gen_lua_ffi())
+            .filter(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_none())
             .for_each(|method| {
-                ffi_gen.add_global_symbol(format!(
-                    "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
-                    method.as_ffi_name(),
-                    max_method_name_len
-                ));
+                write_method_map(
+                    &format!("{IDENT}{IDENT}{IDENT}"),
+                    &format!("{:<1$}", method.as_ffi_name(), max_method_name_len),
+                    method,
+                    module_name,
+                    |value| ffi_gen.add_global_symbol(value),
+                );
             });
     }
 
@@ -208,9 +196,7 @@ impl ImplInfo {
         max_self_method_name_len: usize,
         attr_args: &ImplAttrArgs,
     ) {
-        let max_method_name_len = if attr_args.is_managed() {
-            std::cmp::max(max_self_method_name_len, "managed".len())
-        } else if attr_args.is_clone() {
+        let max_method_name_len = if attr_args.is_clone() {
             std::cmp::max(max_self_method_name_len, "clone".len())
         } else {
             max_self_method_name_len
@@ -224,30 +210,64 @@ impl ImplInfo {
             ));
         }
 
-        // Add managed method if requested
-        if attr_args.is_managed() {
-            ffi_gen.add_metatype(format!(
-                "{IDENT}{IDENT}{IDENT}{IDENT}{0:<1$} = function(self) return ffi.gc(self, libphx.{module_name}_Free) end,",
-                "managed", max_method_name_len
-            )
-            );
-
-            ffi_gen.add_metatype(format!(
-                "{IDENT}{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_Free,",
-                "free", max_method_name_len
-            ));
-        }
-
         self.methods
             .iter()
             .filter(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some())
             .for_each(|method| {
-                ffi_gen.add_metatype(format!(
-                    "{IDENT}{IDENT}{IDENT}{IDENT}{:<2$} = libphx.{module_name}_{},",
-                    method.as_ffi_var(),
-                    method.as_ffi_name(),
-                    max_method_name_len
-                ));
+                write_method_map(
+                    &format!("{IDENT}{IDENT}{IDENT}{IDENT}"),
+                    &format!("{:<1$}", method.as_ffi_var(), max_method_name_len),
+                    method,
+                    module_name,
+                    |value| ffi_gen.add_metatype(value),
+                );
             });
+    }
+}
+
+fn write_method_map<F: FnMut(String)>(
+    ident: &str,
+    mapped_method: &str,
+    method: &super::MethodInfo,
+    module_name: &str,
+    mut writer: F,
+) {
+    // TODO: refactor these nested ifs
+    let gc_type = if !method.bind_args.gen_out_param() {
+        if let Some(ret) = &method.ret {
+            if !ret.is_reference {
+                ret.get_managed_type().map(|gc_type| {
+                    if gc_type == "Self" {
+                        module_name
+                    } else {
+                        gc_type
+                    }
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    if let Some(gc_type) = gc_type {
+        writer(format!("{ident}{mapped_method} = function(...)"));
+        writer(format!(
+            "{ident}{IDENT}local instance = libphx.{module_name}_{}(...)",
+            method.as_ffi_name(),
+        ));
+        writer(format!(
+            "{ident}{IDENT}ffi.gc(instance, libphx.{gc_type}_Free)"
+        ));
+        writer(format!("{ident}{IDENT}return instance"));
+        writer(format!("{ident}end,"));
+    } else {
+        writer(format!(
+            "{ident}{mapped_method} = libphx.{module_name}_{},",
+            method.as_ffi_name(),
+        ));
     }
 }

@@ -28,13 +28,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Audio = {
-            Free            = libphx.Audio_Free,
-            Create          = libphx.Audio_Create,
-            Play            = libphx.Audio_Play,
-            SetListenerPos  = libphx.Audio_SetListenerPos,
-            GetLoadedCount  = libphx.Audio_GetLoadedCount,
-            GetPlayingCount = libphx.Audio_GetPlayingCount,
-            GetTotalCount   = libphx.Audio_GetTotalCount,
+            Create          = function(...)
+                local instance = libphx.Audio_Create(...)
+                ffi.gc(instance, libphx.Audio_Free)
+                return instance
+            end,
         }
 
         if onDef_Audio then onDef_Audio(Audio, mt) end
@@ -45,8 +43,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Audio')
         local mt = {
             __index = {
-                managed         = function(self) return ffi.gc(self, libphx.Audio_Free) end,
-                free            = libphx.Audio_Free,
                 play            = libphx.Audio_Play,
                 setListenerPos  = libphx.Audio_SetListenerPos,
                 getLoadedCount  = libphx.Audio_GetLoadedCount,

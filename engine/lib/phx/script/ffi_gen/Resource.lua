@@ -23,7 +23,11 @@ function Loader.defineType()
         Resource = {
             Exists     = libphx.Resource_Exists,
             GetPath    = libphx.Resource_GetPath,
-            LoadBytes  = libphx.Resource_LoadBytes,
+            LoadBytes  = function(...)
+                local instance = libphx.Resource_LoadBytes(...)
+                ffi.gc(instance, libphx.Bytes_Free)
+                return instance
+            end,
             LoadString = libphx.Resource_LoadString,
         }
 

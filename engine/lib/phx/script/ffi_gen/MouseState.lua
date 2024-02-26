@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void  MouseState_Free        (MouseState*);
             float MouseState_Value       (MouseState const*, MouseControl control);
             bool  MouseState_IsPressed   (MouseState const*, MouseControl control);
             bool  MouseState_IsDown      (MouseState const*, MouseControl control);
@@ -29,17 +30,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        MouseState = {
-            Value       = libphx.MouseState_Value,
-            IsPressed   = libphx.MouseState_IsPressed,
-            IsDown      = libphx.MouseState_IsDown,
-            IsReleased  = libphx.MouseState_IsReleased,
-            Delta       = libphx.MouseState_Delta,
-            Scroll      = libphx.MouseState_Scroll,
-            ScrollPixel = libphx.MouseState_ScrollPixel,
-            Position    = libphx.MouseState_Position,
-            InWindow    = libphx.MouseState_InWindow,
-        }
+        MouseState = {}
 
         if onDef_MouseState then onDef_MouseState(MouseState, mt) end
         MouseState = setmetatable(MouseState, mt)

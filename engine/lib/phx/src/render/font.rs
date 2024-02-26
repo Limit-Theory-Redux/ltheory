@@ -156,7 +156,7 @@ impl Font {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Font {
     pub fn load(name: &str, size: u32) -> Self {
         let handle = unsafe {

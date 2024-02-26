@@ -35,20 +35,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Sound = {
-            Free          = libphx.Sound_Free,
-            Load          = libphx.Sound_Load,
-            GetDuration   = libphx.Sound_GetDuration,
-            GetPath       = libphx.Sound_GetPath,
-            IsPlaying     = libphx.Sound_IsPlaying,
-            IsPaused      = libphx.Sound_IsPaused,
-            IsStopped     = libphx.Sound_IsStopped,
-            SetVolume     = libphx.Sound_SetVolume,
-            Pause         = libphx.Sound_Pause,
-            Resume        = libphx.Sound_Resume,
-            Stop          = libphx.Sound_Stop,
-            SetPlayPos    = libphx.Sound_SetPlayPos,
-            MovePlayPos   = libphx.Sound_MovePlayPos,
-            SetEmitterPos = libphx.Sound_SetEmitterPos,
+            Load          = function(...)
+                local instance = libphx.Sound_Load(...)
+                ffi.gc(instance, libphx.Sound_Free)
+                return instance
+            end,
         }
 
         if onDef_Sound then onDef_Sound(Sound, mt) end
@@ -59,8 +50,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Sound')
         local mt = {
             __index = {
-                managed       = function(self) return ffi.gc(self, libphx.Sound_Free) end,
-                free          = libphx.Sound_Free,
                 getDuration   = libphx.Sound_GetDuration,
                 getPath       = libphx.Sound_GetPath,
                 isPlaying     = libphx.Sound_IsPlaying,

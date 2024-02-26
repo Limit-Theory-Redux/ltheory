@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void           Cursor_Free        (Cursor*);
             CursorIcon     Cursor_Icon        (Cursor const*);
             void           Cursor_SetIcon     (Cursor*, CursorIcon icon);
             bool           Cursor_IsVisible   (Cursor const*);
@@ -28,16 +29,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        Cursor = {
-            Icon        = libphx.Cursor_Icon,
-            SetIcon     = libphx.Cursor_SetIcon,
-            IsVisible   = libphx.Cursor_IsVisible,
-            SetVisible  = libphx.Cursor_SetVisible,
-            GrabMode    = libphx.Cursor_GrabMode,
-            SetGrabMode = libphx.Cursor_SetGrabMode,
-            IsHitTest   = libphx.Cursor_IsHitTest,
-            SetHitTest  = libphx.Cursor_SetHitTest,
-        }
+        Cursor = {}
 
         if onDef_Cursor then onDef_Cursor(Cursor, mt) end
         Cursor = setmetatable(Cursor, mt)

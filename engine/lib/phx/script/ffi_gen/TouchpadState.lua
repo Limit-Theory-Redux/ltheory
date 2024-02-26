@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void  TouchpadState_Free         (TouchpadState*);
             float TouchpadState_Value        (TouchpadState const*, TouchpadAxis axis);
             Vec2f TouchpadState_Position     (TouchpadState const*);
             float TouchpadState_MagnifyDelta (TouchpadState const*);
@@ -24,12 +25,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        TouchpadState = {
-            Value        = libphx.TouchpadState_Value,
-            Position     = libphx.TouchpadState_Position,
-            MagnifyDelta = libphx.TouchpadState_MagnifyDelta,
-            RotateDelta  = libphx.TouchpadState_RotateDelta,
-        }
+        TouchpadState = {}
 
         if onDef_TouchpadState then onDef_TouchpadState(TouchpadState, mt) end
         TouchpadState = setmetatable(TouchpadState, mt)

@@ -12,6 +12,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void LineSegment_Free     (LineSegment*);
             void LineSegment_ToRay    (LineSegment const*, Ray* out);
             void LineSegment_FromRay  (Ray const* ray, LineSegment* out);
             cstr LineSegment_ToString (LineSegment const*);
@@ -20,9 +21,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         LineSegment = {
-            ToRay    = libphx.LineSegment_ToRay,
             FromRay  = libphx.LineSegment_FromRay,
-            ToString = libphx.LineSegment_ToString,
         }
 
         local mt = {

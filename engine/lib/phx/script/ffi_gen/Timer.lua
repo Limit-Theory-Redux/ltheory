@@ -26,11 +26,11 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Timer = {
-            Free        = libphx.Timer_Free,
-            Create      = libphx.Timer_Create,
-            GetAndReset = libphx.Timer_GetAndReset,
-            GetElapsed  = libphx.Timer_GetElapsed,
-            Reset       = libphx.Timer_Reset,
+            Create      = function(...)
+                local instance = libphx.Timer_Create(...)
+                ffi.gc(instance, libphx.Timer_Free)
+                return instance
+            end,
         }
 
         if onDef_Timer then onDef_Timer(Timer, mt) end
@@ -41,8 +41,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Timer')
         local mt = {
             __index = {
-                managed     = function(self) return ffi.gc(self, libphx.Timer_Free) end,
-                free        = libphx.Timer_Free,
                 getAndReset = libphx.Timer_GetAndReset,
                 getElapsed  = libphx.Timer_GetElapsed,
                 reset       = libphx.Timer_Reset,

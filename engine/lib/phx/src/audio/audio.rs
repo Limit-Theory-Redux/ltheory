@@ -22,7 +22,7 @@ pub struct Audio {
     sounds: Vec<Rc<RefCell<StaticSoundHandle>>>,
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Audio {
     #[bind(name = "Create")]
     pub fn new() -> Self {

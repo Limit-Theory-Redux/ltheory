@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void DragAndDropState_Free                   (DragAndDropState*);
             cstr DragAndDropState_GetDroppedFile         (DragAndDropState const*);
             cstr DragAndDropState_GetHoveredFile         (DragAndDropState const*);
             bool DragAndDropState_IfHoveredFileCancelled (DragAndDropState const*);
@@ -23,11 +24,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        DragAndDropState = {
-            GetDroppedFile         = libphx.DragAndDropState_GetDroppedFile,
-            GetHoveredFile         = libphx.DragAndDropState_GetHoveredFile,
-            IfHoveredFileCancelled = libphx.DragAndDropState_IfHoveredFileCancelled,
-        }
+        DragAndDropState = {}
 
         if onDef_DragAndDropState then onDef_DragAndDropState(DragAndDropState, mt) end
         DragAndDropState = setmetatable(DragAndDropState, mt)
