@@ -63,10 +63,8 @@ function MusicPlayer:OnUpdate(dt)
         self.volume = GameState.audio.musicVolume
     end
 
-    if self.currentlyPlaying then
-        if not self.currentlyPlaying:IsPlaying() then
-            self.currentlyPlaying = nil
-        end
+    if self.currentlyPlaying and not self.currentlyPlaying:IsPlaying() then
+        self.currentlyPlaying = nil
     elseif not self.currentlyPlaying and #self.queue > 0 then
         local trackNum = rng:getInt(1, #self.queue)
         local track = self.queue[trackNum]
