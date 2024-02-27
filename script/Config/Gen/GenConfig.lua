@@ -1,6 +1,6 @@
 --! This should be broken down into their own configurations at some point
 
-Config.gen                       = {
+Config.gen = {
     seedGlobal                       = nil,            -- Set to force deterministic global RNG
     seedSystem                       = nil,            -- Set to force deterministic system generation
 
