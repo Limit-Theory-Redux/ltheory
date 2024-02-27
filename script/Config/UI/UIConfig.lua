@@ -1,4 +1,4 @@
-Config.ui.general                        = {
+Config.ui.general = {
     defaultControl                   = "Background",
     controlBarHeight                 = 48,
     hudStyle                         = 1,

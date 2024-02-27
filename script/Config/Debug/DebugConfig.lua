@@ -1,4 +1,4 @@
-Config.debug                     = {
+Config.debug         = {
     metricsEnabled     = false,
     window             = true, -- Debug window visible by default at launch?
     windowSection      = nil,  -- Set to the name of a debug window section to
@@ -14,7 +14,7 @@ Config.debug                     = {
     showMapActionLines = false
 }
 
-Config.debug.physics             = {
+Config.debug.physics = {
     drawWireframes         = false,
     drawBoundingBoxesLocal = false,
     drawBoundingBoxesworld = false,

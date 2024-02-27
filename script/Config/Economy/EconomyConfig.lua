@@ -1,4 +1,4 @@
-Config.econ                      = {
+Config.econ = {
     pStartCredits          = 10000,   -- player starting credits
     eStartCredits          = 1000000, -- NPC player starting credits
 
