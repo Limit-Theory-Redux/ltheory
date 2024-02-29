@@ -1,7 +1,6 @@
 local MusicPlayer = class(function(self) end)
 
 local MusicObject = require("Types.MusicObject")
-local SFXObject = require("Types.SFXObject")
 local rng = RNG.FromTime()
 
 function MusicPlayer:Init()
@@ -18,31 +17,6 @@ function MusicPlayer:Init()
     self.lastVolume = self.volume
 
     self:LoadMusic()
-    self:LoadEffects()
-end
-
--- add block queueing
-
-function MusicPlayer:LoadEffects()
-    -- *** TEMP: Audio FX test START ***
-
-    --[[ -- Pulse weapon firing sound effect temporarily commented out until setVolume() is working
-    Config.audio.pulseFire = SFXObject:Create {
-        name = Config.audio.pulseFireName,
-        path = Config.paths.soundEffects .. Config.audio.pulseFireName,
-        volume = 0.0,
-        isLooping = false
-    }
-    ]]
-
-    Config.audio.fxSensors = SFXObject:Create {
-        name = Config.audio.fxSensorsName,
-        path = Config.paths.soundEffects .. Config.audio.fxSensorsName,
-        volume = 0.0,
-        isLooping = true
-    }
-
-    -- *** TEMP: Audio FX test END ***
 end
 
 function MusicPlayer:SetVolume(volume, fadeMS)
@@ -64,10 +38,8 @@ function MusicPlayer:OnUpdate(dt)
         self.volume = GameState.audio.musicVolume
     end
 
-    if self.currentlyPlaying then
-        if not self.currentlyPlaying:IsPlaying() then
-            self.currentlyPlaying = nil
-        end
+    if self.currentlyPlaying and not self.currentlyPlaying:IsPlaying() then
+        self.currentlyPlaying = nil
     elseif not self.currentlyPlaying and #self.queue > 0 then
         local trackNum = rng:getInt(1, #self.queue)
         local track = self.queue[trackNum]
@@ -83,7 +55,7 @@ function MusicPlayer:PlayAmbient()
     MusicPlayer:ClearQueue()
 
     for index, soundObject in ipairs(self.trackList) do
-        if not string.match(soundObject.name, Config.audio.mainMenu) then
+        if not string.match(soundObject.name, Config.audio.general.mainMenu) then
             -- ignore main menu
             -- replace this with music types later
             Log.Debug("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)
@@ -185,8 +157,8 @@ function MusicPlayer:LoadMusic()
         local path = Config.paths.soundAmbiance .. fname
         local fileUnsupported = false
 
-        if #Config.audio.supportedFormats > 1 then
-            for _, supportedFormat in ipairs(Config.audio.supportedFormats) do
+        if #Config.audio.general.supportedFormats > 1 then
+            for _, supportedFormat in ipairs(Config.audio.general.supportedFormats) do
                 if string.find(path, supportedFormat) then
                     fileUnsupported = false
                     break
@@ -194,7 +166,7 @@ function MusicPlayer:LoadMusic()
                     fileUnsupported = true
                 end
             end
-        elseif not string.find(path, Config.audio.supportedFormats[1]) then
+        elseif not string.find(path, Config.audio.general.supportedFormats[1]) then
             fileUnsupported = true
         end
 

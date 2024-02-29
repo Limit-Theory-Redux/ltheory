@@ -11,7 +11,7 @@ pub(crate) fn process_command_error(res: Result<(), CommandError>, msg: &str) {
     match res {
         Ok(_) => {}
         Err(CommandError::CommandQueueFull) => {
-            debug!("Command queue is full");
+            debug!("{msg}. Command queue is full");
         }
         Err(err) => panic!("{msg}. Error: {err}"),
     }

@@ -109,7 +109,7 @@ impl Sound {
                         ..Default::default()
                     },
                 ),
-                "Could not set volume on sound",
+                "Cannot set volume on sound",
             );
         } else {
             self.sound_data.settings.volume = volume.into();
