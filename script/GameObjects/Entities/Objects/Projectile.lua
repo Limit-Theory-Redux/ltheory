@@ -59,9 +59,9 @@ function Entity:addProjectile(source)
             Config.audio.pulseFire.sound:setVolume(volDist)
             GameState.audio.fxManager:play(Config.audio.pulseFire.sound)
 
-            print("Loaded: " .. tostring(GameState.audio.fxManager:getLoadedCount()),
+            --[[print("Loaded: " .. tostring(GameState.audio.fxManager:getLoadedCount()),
                 "Playing: " .. tostring(GameState.audio.fxManager:getPlayingCount()),
-                "Total: " .. tostring(GameState.audio.fxManager:getTotalCount()))
+                "Total: " .. tostring(GameState.audio.fxManager:getTotalCount()))]]
         end
     end
     -- *** TEMP: Audio FX test END ***

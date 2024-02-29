@@ -52,25 +52,25 @@ GameState.audio = {
 }
 
 GameState.ui = {
-    controlBarHeight                 = Config.ui.controlBarHeight,
-    hudStyle                         = Config.ui.hudStyle,
-    cursorStyle                      = Config.ui.cursorStyle,
-    cursorX                          = Config.ui.cursorX,
-    cursorY                          = Config.ui.cursorY,
-    sensorsDisplayed                 = Config.ui.sensorsDisplayed,
+    controlBarHeight                 = Config.ui.general.controlBarHeight,
+    hudStyle                         = Config.ui.general.hudStyle,
+    cursorStyle                      = Config.ui.general.cursorStyle,
+    cursorX                          = Config.ui.general.cursorX,
+    cursorY                          = Config.ui.general.cursorY,
+    sensorsDisplayed                 = Config.ui.general.sensorsDisplayed,
 
     -- Trackers
-    showTrackers                     = Config.ui.showTrackers,
-    maxTrackingRange                 = Config.ui.maxTrackingRange,
+    showTrackers                     = Config.ui.general.showTrackers,
+    maxTrackingRange                 = Config.ui.general.maxTrackingRange,
     trackerBracketingRenderDistances = {
-        Planet   = Config.ui.trackerBracketingRenderDistances.Planet,
-        Asteroid = Config.ui.trackerBracketingRenderDistances.Asteroid,
-        Jumpgate = Config.ui.trackerBracketingRenderDistances.Jumpgate,
-        Station  = Config.ui.trackerBracketingRenderDistances.Station,
-        Ship     = Config.ui.trackerBracketingRenderDistances.Ship,
-        Colony   = Config.ui.trackerBracketingRenderDistances.Colony,
+        Planet   = Config.ui.general.trackerBracketingRenderDistances.Planet,
+        Asteroid = Config.ui.general.trackerBracketingRenderDistances.Asteroid,
+        Jumpgate = Config.ui.general.trackerBracketingRenderDistances.Jumpgate,
+        Station  = Config.ui.general.trackerBracketingRenderDistances.Station,
+        Ship     = Config.ui.general.trackerBracketingRenderDistances.Ship,
+        Colony   = Config.ui.general.trackerBracketingRenderDistances.Colony,
     },
-    trackerObjectOcclusion           = Config.ui.trackerObjectOcclusion,
+    trackerObjectOcclusion           = Config.ui.general.trackerObjectOcclusion,
 
     mapSystemPanSpeed                = 0.5,
     mapSystemZoomSpeed               = 0.1,
@@ -83,7 +83,7 @@ GameState.player = {
 
     playerFactionName    = "[Human Player Faction]",
 
-    currentControl       = Config.ui.defaultControl,
+    currentControl       = Config.ui.general.defaultControl,
     playerMoving         = false,
 
     currentShip          = nil,
