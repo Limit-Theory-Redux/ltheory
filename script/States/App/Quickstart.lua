@@ -48,7 +48,7 @@ function LTheoryRedux:onInit()
     GameState:Unpause()
     GameState.player.currentControl = Enums.ControlModes.Ship
     InputInstance:setCursorVisible(false)
-    GameState:SetState(Enums.GameStates.InGame)
+    GameState:SetState(Enums.GameStates.Quickstart)
     self:seedStarsystem(Enums.MenuMode.Dialog)
 end
 

@@ -55,7 +55,7 @@ function MusicPlayer:PlayAmbient()
     MusicPlayer:ClearQueue()
 
     for index, soundObject in ipairs(self.trackList) do
-        if not string.match(soundObject.name, Config.audio.mainMenu) then
+        if not string.match(soundObject.name, Config.audio.general.mainMenu) then
             -- ignore main menu
             -- replace this with music types later
             Log.Debug("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)

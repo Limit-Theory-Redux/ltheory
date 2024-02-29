@@ -337,7 +337,6 @@ end
 
 function LTheoryRedux:seedStarsystem(menuMode)
     self.seed = rng:get64()
-
     LTheoryRedux:createStarSystem()
 
     MainMenu:SetMenuMode(menuMode)
@@ -393,7 +392,7 @@ function LTheoryRedux:createStarSystem()
         end
     else
         -- Quickstart if forced to ingame
-        if GameState:GetCurrentState() ~= Enums.GameStates.InGame then
+        if GameState:GetCurrentState() ~= Enums.GameStates.Quickstart then
             GameState:SetState(Enums.GameStates.ShipCreation)
         end
         Universe:CreateStarSystem(self.seed)
