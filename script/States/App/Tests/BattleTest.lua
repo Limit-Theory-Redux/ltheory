@@ -104,14 +104,6 @@ function BattleTest:onInit()
     self.canvas
         :add(self.gameView
             :add(Systems.Controls.Controls.CommandControl(self.gameView, GameState.player.humanPlayer)))
-
-    -- add projectile sound
-    Config.audio.pulseFire = SFXObject:Create {
-        name = Config.audio.pulseFireName,
-        path = Config.paths.soundEffects .. Config.audio.pulseFireName,
-        volume = 0.0,
-        isLooping = false
-    }
 end
 
 function BattleTest:onInput()

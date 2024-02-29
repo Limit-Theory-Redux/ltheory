@@ -32,7 +32,7 @@ function Entity:addProjectile(source)
     -- TODO: Extend projectile types to non-pulse effects
 
     -- *** TEMP: Audio FX test START ***
-    if Config.audio.pulseFire then
+    if Config.audio.sounds.pulseFire then
         local function calculateDistance(pointA, pointB)
             local dx = pointB.x - pointA.x
             local dy = pointB.y - pointA.y
@@ -55,10 +55,9 @@ function Entity:addProjectile(source)
         local distance = calculateDistance(GameState.render.gameView.eyeLast, source:getPos())
         local volDist = calculateVolume(distance)
 
+        --! needs to be handled properly by the audio system eventually
         if volDist > 0 then
-            Config.audio.pulseFire.sound:setVolume(volDist)
-            GameState.audio.fxManager:play(Config.audio.pulseFire.sound)
-
+            Config.audio.sounds.pulseFire:Play(volDist)
             --[[print("Loaded: " .. tostring(GameState.audio.fxManager:getLoadedCount()),
                 "Playing: " .. tostring(GameState.audio.fxManager:getPlayingCount()),
                 "Total: " .. tostring(GameState.audio.fxManager:getTotalCount()))]]

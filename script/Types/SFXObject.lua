@@ -10,8 +10,8 @@ function SFXObject:Create(arg)
 
     local object = {}
     object.name = arg.name
-    object.path = arg.path
-    object.sound = Sound.Load(arg.path, arg.isLooping)
+    object.path = Config.paths.soundEffects .. arg.path
+    object.sound = Sound.Load(object.path, arg.isLooping)
     object.volume = arg.volume
     setmetatable(object, SFXObject)
     return object
@@ -20,7 +20,7 @@ end
 function SFXObject:Play(volume)
     local vol = volume or self.volume
     self.sound:setVolume(vol)
-    LTheoryRedux.audiofx:play(self.sound)
+    GameState.audio.fxManager:play(self.sound)
 end
 
 function SFXObject:Stop()

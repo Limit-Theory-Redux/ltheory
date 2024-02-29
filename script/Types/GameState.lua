@@ -45,10 +45,10 @@ GameState.render = {
 GameState.audio = {
     musicManager = nil,
     fxManager    = nil,
-    soundEnabled = Config.audio.soundEnabled,
-    fxVolume     = Config.audio.fxVolume,
-    musicVolume  = Config.audio.musicVolume,
-    menuTheme    = Config.audio.mainMenu
+    soundEnabled = Config.audio.general.soundEnabled,
+    fxVolume     = Config.audio.general.fxVolume,
+    musicVolume  = Config.audio.general.musicVolume,
+    menuTheme    = Config.audio.general.mainMenu
 }
 
 GameState.ui = {
