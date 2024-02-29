@@ -3,7 +3,6 @@ local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('GameObjects.Actions')
 local Words = require('Systems.Gen.Words')
-local SFXObject = require("Types.SFXObject")
 
 local BattleTest = require('States.Application')
 local rng = RNG.FromTime()
