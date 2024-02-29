@@ -45,6 +45,8 @@ function Application:appInit()
 
     self.audio   = Audio.Create()
     self.audiofx = Audio.Create()
+    GameState.audio.musicManager = self.audio
+    GameState.audio.fxManager = self.audiofx
 
     GameState.render.gameWindow = WindowInstance
 

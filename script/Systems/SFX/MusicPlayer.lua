@@ -38,10 +38,8 @@ function MusicPlayer:OnUpdate(dt)
         self.volume = GameState.audio.musicVolume
     end
 
-    if self.currentlyPlaying then
-        if not self.currentlyPlaying:IsPlaying() then
-            self.currentlyPlaying = nil
-        end
+    if self.currentlyPlaying and not self.currentlyPlaying:IsPlaying() then
+        self.currentlyPlaying = nil
     elseif not self.currentlyPlaying and #self.queue > 0 then
         local trackNum = rng:getInt(1, #self.queue)
         local track = self.queue[trackNum]
@@ -57,7 +55,7 @@ function MusicPlayer:PlayAmbient()
     MusicPlayer:ClearQueue()
 
     for index, soundObject in ipairs(self.trackList) do
-        if not string.match(soundObject.name, Config.audio.mainMenu) then
+        if not string.match(soundObject.name, Config.audio.general.mainMenu) then
             -- ignore main menu
             -- replace this with music types later
             Log.Debug("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)

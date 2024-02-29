@@ -55,28 +55,23 @@ impl Audio {
     }
 
     pub fn play(&mut self, sound: &mut Sound) {
-        if sound.has_sound_handle() {
-            sound.set_play_pos(0.0);
-            sound.resume(0);
-        } else {
-            let emitter = self
-                .spatial_scene
-                .add_emitter([0.0, 0.0, 0.0], EmitterSettings::default())
-                .expect("Cannot add an emitter");
+        let emitter = self
+            .spatial_scene
+            .add_emitter([0.0, 0.0, 0.0], EmitterSettings::default())
+            .expect("Cannot add an emitter");
 
-            sound.set_emitter(emitter);
+        sound.set_emitter(emitter);
 
-            let sound_handle = self
-                .audio_manager
-                .play(sound.sound_data().clone())
-                .expect("Cannot play sound");
+        let sound_handle = self
+            .audio_manager
+            .play(sound.sound_data().clone())
+            .expect("Cannot play sound");
 
-            let sound_handle = Rc::new(RefCell::new(sound_handle));
+        let sound_handle = Rc::new(RefCell::new(sound_handle));
 
-            self.sounds.push(sound_handle.clone());
+        self.sounds.push(sound_handle.clone());
 
-            sound.set_sound_handle(sound_handle);
-        }
+        sound.set_sound_handle(sound_handle);
     }
 
     pub fn set_listener_pos(&mut self, pos: &Vec3, rot: &Quat) {

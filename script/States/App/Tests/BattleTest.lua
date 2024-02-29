@@ -98,6 +98,7 @@ function BattleTest:onInit()
 
     DebugControl.ltheory = self
     self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
+    GameState.render.gameView = self.gameView
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
