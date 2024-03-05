@@ -7,6 +7,7 @@ function MusicPlayer:Init()
     self.trackList = {}
     self.queue = {}
     self.currentlyPlaying = nil
+    self.currentTrackNum = 0
 
     if GameState.audio.soundEnabled then
         self.volume = GameState.audio.musicVolume
@@ -40,13 +41,19 @@ function MusicPlayer:OnUpdate(dt)
 
     if self.currentlyPlaying and not self.currentlyPlaying:IsPlaying() then
         self.currentlyPlaying = nil
+        self.currentTrackNum = 0
     elseif not self.currentlyPlaying and #self.queue > 0 then
         local trackNum = rng:getInt(1, #self.queue)
+
+        while trackNum == self.currentTrackNum do
+            trackNum = rng:getInt(1, #self.queue)
+        end
+
         local track = self.queue[trackNum]
         self.currentlyPlaying = track -- randomly pick one of the queued tracks
+        self.currentTrackNum = trackNum
         Log.Debug("*** MusicPlayer:OnUpdate: playing tracknum %d '%s' with volume %s", trackNum, track.name, self.volume)
-        self.currentlyPlaying:Play()
-        track:SetVolume(self.volume)
+        self.currentlyPlaying:Play(self.volume, 2000)
     end
 end
 
@@ -117,13 +124,12 @@ function MusicPlayer:ClearQueueTrack(query)
     end
 end
 
-function MusicPlayer:StartTrack(query)
+function MusicPlayer:StartTrack(query, fadeInMS)
     local track = self:FindTrack(query)
     if self.currentlyPlaying ~= track then
         Log.Debug("MusicPlayer:StartTrack: playing track '%s' with volume %s", track.name, self.volume)
         track:Rewind()
-        track:Play()
-        track:SetVolume(self.volume)
+        track:Play(self.volume, fadeInMS)
         self.currentlyPlaying = track
     end
 end
@@ -171,12 +177,22 @@ function MusicPlayer:LoadMusic()
         end
 
         if not fileUnsupported then
-            local newMusicObject = MusicObject:Create {
-                name = fname,
-                path = path,
-                volume = self.volume,
-                isLooping = true -- temporary
-            }
+            local newMusicObject
+            if string.find(path, Config.audio.general.mainMenu) then
+                newMusicObject = MusicObject:Create {
+                    name = fname,
+                    path = path,
+                    volume = self.volume,
+                    isLooping = true
+                }
+            else
+                newMusicObject = MusicObject:Create {
+                    name = fname,
+                    path = path,
+                    volume = self.volume,
+                    isLooping = false
+                }
+            end
 
             --Log.Debug("VOLUME: " .. self.volume)
             if newMusicObject then

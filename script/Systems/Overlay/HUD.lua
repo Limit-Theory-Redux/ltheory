@@ -1083,18 +1083,27 @@ function HUD:drawSensors(a)
             end
 
             -- *** TEMP: Audio FX test START ***
-            if Config.audio.fxSensors then
-                if not Config.audio.fxSensors:IsPlaying() then
-                    -- Config.audio.fxSensors:Play(1)
-                    Config.audio.fxSensors.sound:setVolume(maxBarRatio)
-                    LTheoryRedux.audiofx:play(Config.audio.fxSensors.sound)
+            if Config.audio.sounds.fxSensors then
+                if not self.sensorSoundInstance then
+                    -- start looping sound
+                    self.sensorSoundInstance = Config.audio.sounds.fxSensors:Play(maxBarRatio)
                 else
-                    -- Config.audio.fxSensors:Pause()
-                    Config.audio.fxSensors.sound:setVolume(maxBarRatio)
-                    -- Config.audio.fxSensors:Resume()
+                    local vol = maxBarRatio
+                    -- prevent jitter
+                    if vol < 0.1 then
+                        vol = 0
+                    end
+                    -- adjust volume
+                    self.sensorSoundInstance:setVolume(vol)
                 end
             end
             -- *** TEMP: Audio FX test END ***
+        end
+    else
+        -- stop sound
+        if self.sensorSoundInstance then
+            self.sensorSoundInstance:stop()
+            self.sensorSoundInstance = nil
         end
     end
 end

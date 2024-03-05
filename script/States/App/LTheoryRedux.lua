@@ -8,6 +8,7 @@ local Actions = requireAll('GameObjects.Actions')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 local InitFiles = require('Systems.Files.InitFiles')
 local MainMenu = require('Systems.Menus.MainMenu')
+local SoundManager = require("Systems.SFX.SoundManager")
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local Universe = require('Systems.Universe.Universe')
 
@@ -24,11 +25,13 @@ local rng = RNG.FromTime()
 --** MAIN CODE **--
 function LTheoryRedux:onInit()
     --* Value initializations *--
-    self.logo     = Tex2D.Load("./res/images/LTR_logo2.png") -- load the full LTR logo
-    self.logoname = Tex2D.Load("./res/images/LTR-logo-name.png")
-    self.logoicon = Tex2D.Load("./res/images/LTR-logo-icon.png")
+    self.logo            = Tex2D.Load("./res/images/LTR_logo2.png") -- load the full LTR logo
+    self.logoname        = Tex2D.Load("./res/images/LTR-logo-name.png")
+    self.logoicon        = Tex2D.Load("./res/images/LTR-logo-icon.png")
 
     DebugControl.ltheory = self
+
+    SoundManager:init()
 
     -- Load Soundtracks before config
     MusicPlayer:Init()
@@ -189,6 +192,7 @@ function LTheoryRedux:onUpdate(dt)
     GameState.player.humanPlayer:getRoot():update(dt)
     self.canvas:update(dt)
     MainMenu:OnUpdate(dt)
+    SoundManager:clean(dt)
     MusicPlayer:OnUpdate(dt)
     Universe:OnUpdate(dt)
 

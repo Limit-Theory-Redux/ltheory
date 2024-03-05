@@ -56,7 +56,7 @@ function AudioTest:onInit()
     self.music[0] = Sound.Load(Music.MainTheme, true)
     self.music[1] = Sound.Load(Music.AltTheme, true)
 
-    self.audio:play(self.music[self.musicToggle])
+    self.currentlyPlaying = self.audio:play(self.music[self.musicToggle], 1.0, 5000)
 
     for i = 1, #self.emitters do
         local e = self.emitters[i]
@@ -102,10 +102,10 @@ function AudioTest:onInput()
 
     if InputInstance:isPressed(Button.MouseLeft) then
         -- Fade out currently playing music
-        self.music[self.musicToggle]:fadeOut(5.0)
+        self.currentlyPlaying:stop(500)
         -- Fade in alternate music
         self.musicToggle = (self.musicToggle + 1) % 2
-        self.music[self.musicToggle]:fadeIn(5.0)
+        self.currentlyPlaying = self.audio:play(self.music[self.musicToggle], 1.0, 5000)
     end
 
     if InputInstance:isDown(Button.MouseLeft) then
@@ -121,8 +121,8 @@ function AudioTest:onInput()
 
     if InputInstance:isDown(Button.MouseRight) then
         local is = InputInstance:mouse():position()
-        self.pos.x = is.mousePosition.x
-        self.pos.z = is.mousePosition.y
+        self.pos.x = is.x
+        self.pos.z = is.y
     end
 
     -- for k, v in pairs(self.onKeyDown) do
@@ -209,7 +209,7 @@ function AudioTest:onUpdate(dt)
 end
 
 function AudioTest:onExit()
-    self.audio:free()
+    --self.audio:free()
 end
 
 return AudioTest
