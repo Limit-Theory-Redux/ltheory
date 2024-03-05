@@ -16,13 +16,13 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void   Audio_Free            (Audio*);
-            Audio* Audio_Create          ();
-            void   Audio_Play            (Audio*, Sound* sound);
-            void   Audio_SetListenerPos  (Audio*, Vec3f const* pos, Quat const* rot);
-            uint64 Audio_GetLoadedCount  (Audio const*);
-            uint64 Audio_GetPlayingCount (Audio const*);
-            uint64 Audio_GetTotalCount   (Audio const*);
+            void           Audio_Free            (Audio*);
+            Audio*         Audio_Create          ();
+            SoundInstance* Audio_Play            (Audio*, Sound* sound, SoundGroup soundGroup, double initVolume);
+            void           Audio_SetListenerPos  (Audio*, Vec3f const* pos, Quat const* rot);
+            uint64         Audio_GetLoadedCount  (Audio const*);
+            uint64         Audio_GetPlayingCount (Audio const*);
+            uint64         Audio_GetTotalCount   (Audio const*);
         ]]
     end
 
@@ -43,7 +43,11 @@ function Loader.defineType()
         local t  = ffi.typeof('Audio')
         local mt = {
             __index = {
-                play            = libphx.Audio_Play,
+                play            = function(...)
+                    local instance = libphx.Audio_Play(...)
+                    ffi.gc(instance, libphx.SoundInstance_Free)
+                    return instance
+                end,
                 setListenerPos  = libphx.Audio_SetListenerPos,
                 getLoadedCount  = libphx.Audio_GetLoadedCount,
                 getPlayingCount = libphx.Audio_GetPlayingCount,

@@ -13,30 +13,38 @@ function MusicObject:Create(arg)
     object.path = arg.path
     object.sound = Sound.Load(arg.path, arg.isLooping)
     object.volume = arg.volume
+    object.instance = nil
     setmetatable(object, MusicObject)
     return object
 end
 
 function MusicObject:Play(volume)
     local vol = volume or self.volume
-    self.sound:setVolume(vol)
-    GameState.audio.musicManager:play(self.sound)
+    self.instance = GameState.audio.manager:play(self.sound, SoundGroup.Music, vol)
 end
 
 function MusicObject:Pause()
-    self.sound:pause(0)
+    if self.instance then
+        self.instance:pause(0)
+    end
 end
 
 function MusicObject:Rewind()
-    self.sound:setPlayPos(0)
+    if self.instance then
+        self.instance:setPlayPos(0)
+    end
 end
 
 function MusicObject:SetVolume(volume, fadeMS)
-    self.sound:setVolume(volume, fadeMS)
+    if self.instance then
+        self.instance:setVolume(volume, fadeMS)
+    end
 end
 
 function MusicObject:IsPlaying()
-    return self.sound:isPlaying()
+    if self.instance then
+        return self.instance:isPlaying()
+    end
 end
 
 return MusicObject
