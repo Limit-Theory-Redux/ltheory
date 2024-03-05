@@ -57,7 +57,12 @@ impl Audio {
         }
     }
 
-    pub fn play(&mut self, sound: &mut Sound, sound_group: SoundGroup, init_volume: f64) -> SoundInstance {
+    pub fn play(
+        &mut self,
+        sound: &mut Sound,
+        sound_group: SoundGroup,
+        init_volume: f64,
+    ) -> SoundInstance {
         let emitter = self
             .spatial_scene
             .add_emitter([0.0, 0.0, 0.0], EmitterSettings::default())

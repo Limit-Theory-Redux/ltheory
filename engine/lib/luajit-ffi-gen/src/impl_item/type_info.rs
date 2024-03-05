@@ -50,7 +50,7 @@ const COPY_TYPES: &[&str] = &[
     "AlignHorizontal",
     "AlignVertical",
     "ResourceType",
-    "SoundGroup"
+    "SoundGroup",
 ];
 
 #[derive(Debug)]

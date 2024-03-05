@@ -1,6 +1,10 @@
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
-use kira::{sound::{static_sound::StaticSoundHandle, PlaybackState}, tween::{Easing, Tween}, StartTime};
+use kira::{
+    sound::{static_sound::StaticSoundHandle, PlaybackState},
+    tween::{Easing, Tween},
+    StartTime,
+};
 
 use super::process_command_error;
 
@@ -14,7 +18,7 @@ impl SoundInstance {
     pub fn new(handle: Rc<RefCell<StaticSoundHandle>>) -> Self {
         Self {
             handle: Some(handle),
-            volume: 0.0
+            volume: 0.0,
         }
     }
 }
