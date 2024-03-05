@@ -16,7 +16,7 @@ pub struct Sound {
     path: String,
     sound_data: StaticSoundData,
     emitter: Option<EmitterHandle>,
-    pub instances: Vec<Rc<RefCell<SoundInstance>>>,
+    instances: Vec<Rc<RefCell<SoundInstance>>>,
 }
 
 impl Sound {
