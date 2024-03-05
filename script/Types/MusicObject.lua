@@ -25,6 +25,12 @@ function MusicObject:Play(volume)
 
     local soundGroup = Enums.SoundGroups.Music
 
+    -- clear existing instance
+    if self.instance then
+        self.instance:stop()
+        self.instance = nil
+    end
+
     if SoundManager:canSoundPlay(soundGroup) then
         self.instance = GameState.audio.manager:play(self.sound, vol)
         SoundManager:addInstance(self.instance, soundGroup)

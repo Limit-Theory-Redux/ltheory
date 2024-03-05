@@ -18,7 +18,7 @@ function Loader.defineType()
         ffi.cdef [[
             void           Audio_Free           (Audio*);
             Audio*         Audio_Create         ();
-            SoundInstance* Audio_Play           (Audio*, Sound* sound, double initVolume);
+            SoundInstance* Audio_Play           (Audio*, Sound* sound, double initVolume, uint64 fadeMillis);
             void           Audio_SetListenerPos (Audio*, Vec3f const* pos, Quat const* rot);
             uint64         Audio_GetLoadedCount (Audio const*);
             uint64         Audio_GetTotalCount  (Audio const*);

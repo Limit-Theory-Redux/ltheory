@@ -1,11 +1,13 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::Duration;
 
 use kira::manager::{AudioManager, AudioManagerSettings, Capacities};
 use kira::spatial::emitter::EmitterSettings;
 use kira::spatial::listener::{ListenerHandle, ListenerSettings};
 use kira::spatial::scene::{SpatialSceneHandle, SpatialSceneSettings};
-use kira::tween::Tween;
+use kira::tween::{Easing, Tween};
+use kira::StartTime;
 
 use crate::math::*;
 
@@ -52,7 +54,12 @@ impl Audio {
         }
     }
 
-    pub fn play(&mut self, sound: &mut Sound, init_volume: f64) -> Box<SoundInstance> {
+    pub fn play(
+        &mut self,
+        sound: &mut Sound,
+        init_volume: f64,
+        fade_millis: u64,
+    ) -> Box<SoundInstance> {
         let emitter = self
             .spatial_scene
             .add_emitter([0.0, 0.0, 0.0], EmitterSettings::default())
@@ -62,6 +69,12 @@ impl Audio {
 
         let mut sound_data_clone = sound.sound_data().clone();
         sound_data_clone.settings.volume = init_volume.into();
+
+        sound_data_clone.settings.fade_in_tween = Some(Tween {
+            start_time: StartTime::Immediate,
+            duration: Duration::from_millis(fade_millis),
+            easing: Easing::Linear,
+        });
 
         let sound_handle = self
             .audio_manager
