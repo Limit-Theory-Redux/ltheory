@@ -28,7 +28,9 @@ function SoundManager:canSoundPlay(soundGroup)
         end
     end
 
-    if soundIndexToRemove then
+    local instanceToRemove = self.groups[soundGroup][soundIndexToRemove]
+
+    if soundIndexToRemove and instanceToRemove then
         self.groups[soundGroup][soundIndexToRemove]:stop()
         table.remove(self.groups[soundGroup], soundIndexToRemove)
 
@@ -40,6 +42,10 @@ function SoundManager:canSoundPlay(soundGroup)
 end
 
 function SoundManager:addInstance(instance, soundGroup)
+    if not instance then
+        Log.Error("Sound instance is nil")
+    end
+
     if self.groups[soundGroup] and #self.groups[soundGroup] > Enums.SoundGroupLimits[soundGroup] then
         Log.Warn("Cannot play sound as it would exceed group limits")
         return
