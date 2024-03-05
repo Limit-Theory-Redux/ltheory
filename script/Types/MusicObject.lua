@@ -20,7 +20,7 @@ function MusicObject:Create(arg)
     return object
 end
 
-function MusicObject:Play(volume)
+function MusicObject:Play(volume, fadeInMS)
     local vol = volume or self.volume
 
     local soundGroup = Enums.SoundGroups.Music
@@ -32,7 +32,7 @@ function MusicObject:Play(volume)
     end
 
     if SoundManager:canSoundPlay(soundGroup) then
-        self.instance = GameState.audio.manager:play(self.sound, vol)
+        self.instance = GameState.audio.manager:play(self.sound, vol, fadeInMS)
         SoundManager:addInstance(self.instance, soundGroup)
     end
 end
