@@ -57,7 +57,7 @@ function Entity:addProjectile(source)
 
         --! needs to be handled properly by the audio system eventually
         if volDist > 0 then
-            local soundInstance = Config.audio.sounds.pulseFire:Play(volDist)
+            Config.audio.sounds.pulseFire:Play(volDist)
             --[[print("Loaded: " .. tostring(GameState.audio.fxManager:getLoadedCount()),
                 "Playing: " .. tostring(GameState.audio.fxManager:getPlayingCount()),
                 "Total: " .. tostring(GameState.audio.fxManager:getTotalCount()))]]
