@@ -48,6 +48,13 @@ function SoundManager:addInstance(instance, soundGroup)
     table.insert(self.groups[soundGroup], instance)
 end
 
+function SoundManager:getSoundsPlaying(soundGroup)
+    if self.groups[soundGroup] and #self.groups[soundGroup] < Enums.SoundGroupLimits[soundGroup] then
+        return #self.groups[soundGroup]
+    end
+    return nil
+end
+
 function SoundManager:clean(dt)
     local time = EngineInstance:getTime()
 

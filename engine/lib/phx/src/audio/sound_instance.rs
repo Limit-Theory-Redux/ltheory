@@ -15,10 +15,10 @@ pub struct SoundInstance {
 }
 
 impl SoundInstance {
-    pub fn new(handle: Rc<RefCell<StaticSoundHandle>>) -> Box<Self> {
+    pub fn new(handle: Rc<RefCell<StaticSoundHandle>>, init_volume: f64) -> Box<Self> {
         Box::new(Self {
             handle: Some(handle),
-            volume: 0.0,
+            volume: init_volume,
         })
     }
 }

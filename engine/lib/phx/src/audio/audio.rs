@@ -70,7 +70,7 @@ impl Audio {
             .expect("Cannot play sound");
 
         let sound_handle = Rc::new(RefCell::new(sound_handle));
-        let sound_instance = SoundInstance::new(sound_handle);
+        let sound_instance = SoundInstance::new(sound_handle, init_volume);
 
         sound_instance
     }
