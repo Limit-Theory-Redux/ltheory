@@ -14,6 +14,6 @@ Config.audio.sounds = {
         name = "Ship Sensors",
         path = "sensors.wav",
         volume = 0.0,
-        isLooping = false
+        isLooping = true
     },
 }

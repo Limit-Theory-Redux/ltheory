@@ -1,6 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use internal::ConvertIntoString;
 
 use crate::math::*;
@@ -10,7 +7,7 @@ use kira::sound::{EndPosition, PlaybackPosition, Region};
 use kira::spatial::emitter::EmitterHandle;
 use kira::tween::Tween;
 
-use super::{process_command_error, SoundInstance};
+use super::process_command_error;
 
 pub struct Sound {
     path: String,
