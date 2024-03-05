@@ -1,3 +1,5 @@
+local SoundManager = require "Systems.SFX.SoundManager"
+
 local MusicObject = {}
 MusicObject.__index = MusicObject
 
@@ -20,7 +22,13 @@ end
 
 function MusicObject:Play(volume)
     local vol = volume or self.volume
-    self.instance = GameState.audio.manager:play(self.sound, SoundGroup.Music, vol)
+
+    local soundGroup = Enums.SoundGroups.Music
+
+    if SoundManager:canSoundPlay(soundGroup) then
+        self.instance = GameState.audio.manager:play(self.sound, vol)
+        SoundManager:addInstance(self.instance, soundGroup)
+    end
 end
 
 function MusicObject:Pause()

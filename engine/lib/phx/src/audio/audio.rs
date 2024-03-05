@@ -10,7 +10,7 @@ use kira::tween::Tween;
 
 use crate::math::*;
 
-use super::{process_command_error, Sound, SoundGroup, SoundGroupManager, SoundInstance};
+use super::{process_command_error, Sound, SoundInstance};
 
 const DEFAULT_COMMAND_CAPACITY: usize = 1024;
 
@@ -18,8 +18,6 @@ pub struct Audio {
     audio_manager: AudioManager,
     spatial_scene: SpatialSceneHandle,
     listener: ListenerHandle,
-    sounds: Vec<Rc<RefCell<SoundInstance>>>,
-    sound_groups: SoundGroupManager,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -52,17 +50,10 @@ impl Audio {
             audio_manager,
             spatial_scene,
             listener,
-            sounds: vec![],
-            sound_groups: SoundGroupManager::new(),
         }
     }
 
-    pub fn play(
-        &mut self,
-        sound: &mut Sound,
-        sound_group: SoundGroup,
-        init_volume: f64,
-    ) -> SoundInstance {
+    pub fn play(&mut self, sound: &mut Sound, init_volume: f64) -> Box<SoundInstance> {
         let emitter = self
             .spatial_scene
             .add_emitter([0.0, 0.0, 0.0], EmitterSettings::default())
@@ -79,15 +70,7 @@ impl Audio {
             .expect("Cannot play sound");
 
         let sound_handle = Rc::new(RefCell::new(sound_handle));
-
         let sound_instance = SoundInstance::new(sound_handle);
-        let sound_instance_ref = Rc::new(RefCell::new(sound_instance.clone()));
-
-        self.sound_groups
-            .add_sound(sound_group, sound_instance_ref.clone());
-        self.sounds.push(sound_instance_ref.clone());
-
-        sound.add_instance(sound_instance_ref.clone());
 
         sound_instance
     }
@@ -108,19 +91,19 @@ impl Audio {
         self.audio_manager.num_sounds() as u64
     }
 
-    pub fn get_playing_count(&self) -> u64 {
-        self.sounds
-            .iter()
-            .filter(|sound_instance| {
-                if let Some(handle) = &sound_instance.borrow().handle {
-                    let handle_borrow = handle.borrow();
-                    handle_borrow.state() == PlaybackState::Playing
-                } else {
-                    false
-                }
-            })
-            .count() as u64
-    }
+    //pub fn get_playing_count(&self) -> u64 {
+    //    self.sounds
+    //        .iter()
+    //        .filter(|sound_instance| {
+    //            if let Some(handle) = &sound_instance.borrow().handle {
+    //                let handle_borrow = handle.borrow();
+    //                handle_borrow.state() == PlaybackState::Playing
+    //            } else {
+    //                false
+    //            }
+    //        })
+    //        .count() as u64
+    //}
 
     pub fn get_total_count(&self) -> u64 {
         self.audio_manager.sound_capacity() as u64

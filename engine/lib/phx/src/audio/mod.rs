@@ -1,13 +1,9 @@
 mod audio;
 mod sound;
-mod sound_group;
-mod sound_group_manager;
 mod sound_instance;
 
 pub use audio::*;
 pub use sound::*;
-pub use sound_group::*;
-pub use sound_group_manager::*;
 pub use sound_instance::*;
 
 use kira::CommandError;

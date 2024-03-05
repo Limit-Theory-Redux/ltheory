@@ -16,7 +16,6 @@ pub struct Sound {
     path: String,
     sound_data: StaticSoundData,
     emitter: Option<EmitterHandle>,
-    instances: Vec<Rc<RefCell<SoundInstance>>>,
 }
 
 impl Sound {
@@ -28,10 +27,6 @@ impl Sound {
         // FIXME: for some reason adding emitter kills the sound
         // self.sound_data.settings.output_destination = emitter.id().into();
         self.emitter = Some(emitter);
-    }
-
-    pub fn add_instance(&mut self, instance: Rc<RefCell<SoundInstance>>) {
-        self.instances.push(instance);
     }
 }
 
@@ -56,7 +51,6 @@ impl Sound {
             path: path.into(),
             sound_data,
             emitter: None,
-            instances: vec![],
         }
     }
 

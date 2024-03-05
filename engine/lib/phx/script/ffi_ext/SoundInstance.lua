@@ -5,4 +5,9 @@ function onDef_SoundInstance_t(t, mt)
         local fadeTime = fadeMS or 0 -- set fade time or default to instant
         libphx.SoundInstance_SetVolume(self, volume, fadeTime)
     end
+
+    mt.__index.stop = function(self, fadeMS)
+        local fadeTime = fadeMS or 0 -- set fade time or default to instant
+        libphx.SoundInstance_Stop(self, fadeTime)
+    end
 end

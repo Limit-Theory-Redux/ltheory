@@ -1,3 +1,5 @@
+local SoundManager = require "Systems.SFX.SoundManager"
+
 local SFXObject = {}
 SFXObject.__index = SFXObject
 
@@ -13,7 +15,6 @@ function SFXObject:Create(arg)
     object.path = Config.paths.soundEffects .. arg.path
     object.sound = Sound.Load(object.path, arg.isLooping)
     object.volume = arg.volume
-    object.instances = {}
     object.last_created = 0
     setmetatable(object, SFXObject)
     return object
@@ -24,9 +25,14 @@ function SFXObject:Play(volume)
     if (time - self.last_created) > 0.05 or self.last_created == 0 then
         self.last_created = time
         local vol = volume or self.volume
-        local instance = GameState.audio.manager:play(self.sound, SoundGroup.Effects, vol)
-        table.insert(self.instances, instance)
-        return instance
+
+        local soundGroup = Enums.SoundGroups.Effects
+
+        if SoundManager:canSoundPlay(soundGroup) then
+            local instance = GameState.audio.manager:play(self.sound, vol)
+            SoundManager:addInstance(instance, soundGroup)
+            return instance
+        end
     end
 end
 

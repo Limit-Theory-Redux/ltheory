@@ -16,16 +16,17 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void SoundInstance_Free        (SoundInstance*);
-            bool SoundInstance_IsPlaying   (SoundInstance const*);
-            bool SoundInstance_IsPaused    (SoundInstance const*);
-            bool SoundInstance_IsStopped   (SoundInstance const*);
-            void SoundInstance_SetVolume   (SoundInstance*, double volume, uint64 fadeMillis);
-            void SoundInstance_Pause       (SoundInstance*, uint64 fadeMillis);
-            void SoundInstance_Resume      (SoundInstance*, uint64 fadeMillis);
-            void SoundInstance_Stop        (SoundInstance*, uint64 fadeMillis);
-            void SoundInstance_SetPlayPos  (SoundInstance*, double position);
-            void SoundInstance_MovePlayPos (SoundInstance*, double offset);
+            void   SoundInstance_Free        (SoundInstance*);
+            bool   SoundInstance_IsPlaying   (SoundInstance const*);
+            bool   SoundInstance_IsPaused    (SoundInstance const*);
+            bool   SoundInstance_IsStopped   (SoundInstance const*);
+            double SoundInstance_GetVolume   (SoundInstance const*);
+            void   SoundInstance_SetVolume   (SoundInstance*, double volume, uint64 fadeMillis);
+            void   SoundInstance_Pause       (SoundInstance*, uint64 fadeMillis);
+            void   SoundInstance_Resume      (SoundInstance*, uint64 fadeMillis);
+            void   SoundInstance_Stop        (SoundInstance*, uint64 fadeMillis);
+            void   SoundInstance_SetPlayPos  (SoundInstance*, double position);
+            void   SoundInstance_MovePlayPos (SoundInstance*, double offset);
         ]]
     end
 
@@ -43,6 +44,7 @@ function Loader.defineType()
                 isPlaying   = libphx.SoundInstance_IsPlaying,
                 isPaused    = libphx.SoundInstance_IsPaused,
                 isStopped   = libphx.SoundInstance_IsStopped,
+                getVolume   = libphx.SoundInstance_GetVolume,
                 setVolume   = libphx.SoundInstance_SetVolume,
                 pause       = libphx.SoundInstance_Pause,
                 resume      = libphx.SoundInstance_Resume,

@@ -15,11 +15,11 @@ pub struct SoundInstance {
 }
 
 impl SoundInstance {
-    pub fn new(handle: Rc<RefCell<StaticSoundHandle>>) -> Self {
-        Self {
+    pub fn new(handle: Rc<RefCell<StaticSoundHandle>>) -> Box<Self> {
+        Box::new(Self {
             handle: Some(handle),
             volume: 0.0,
-        }
+        })
     }
 }
 
@@ -47,6 +47,10 @@ impl SoundInstance {
         } else {
             false
         }
+    }
+
+    pub fn get_volume(&self) -> f64 {
+        self.volume.clone()
     }
 
     pub fn set_volume(&mut self, volume: f64, fade_millis: u64) {
