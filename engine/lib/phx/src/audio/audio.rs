@@ -91,20 +91,6 @@ impl Audio {
         self.audio_manager.num_sounds() as u64
     }
 
-    //pub fn get_playing_count(&self) -> u64 {
-    //    self.sounds
-    //        .iter()
-    //        .filter(|sound_instance| {
-    //            if let Some(handle) = &sound_instance.borrow().handle {
-    //                let handle_borrow = handle.borrow();
-    //                handle_borrow.state() == PlaybackState::Playing
-    //            } else {
-    //                false
-    //            }
-    //        })
-    //        .count() as u64
-    //}
-
     pub fn get_total_count(&self) -> u64 {
         self.audio_manager.sound_capacity() as u64
     }
