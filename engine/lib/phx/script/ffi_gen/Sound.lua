@@ -20,15 +20,6 @@ function Loader.defineType()
             Sound* Sound_Load          (cstr path, bool isLooping);
             float  Sound_GetDuration   (Sound const*);
             cstr   Sound_GetPath       (Sound const*);
-            bool   Sound_IsPlaying     (Sound const*);
-            bool   Sound_IsPaused      (Sound const*);
-            bool   Sound_IsStopped     (Sound const*);
-            void   Sound_SetVolume     (Sound*, double volume, uint64 fadeMillis);
-            void   Sound_Pause         (Sound*, uint64 fadeMillis);
-            void   Sound_Resume        (Sound*, uint64 fadeMillis);
-            void   Sound_Stop          (Sound*, uint64 fadeMillis);
-            void   Sound_SetPlayPos    (Sound*, double position);
-            void   Sound_MovePlayPos   (Sound*, double offset);
             void   Sound_SetEmitterPos (Sound*, Vec3f const* position);
         ]]
     end
@@ -52,15 +43,6 @@ function Loader.defineType()
             __index = {
                 getDuration   = libphx.Sound_GetDuration,
                 getPath       = libphx.Sound_GetPath,
-                isPlaying     = libphx.Sound_IsPlaying,
-                isPaused      = libphx.Sound_IsPaused,
-                isStopped     = libphx.Sound_IsStopped,
-                setVolume     = libphx.Sound_SetVolume,
-                pause         = libphx.Sound_Pause,
-                resume        = libphx.Sound_Resume,
-                stop          = libphx.Sound_Stop,
-                setPlayPos    = libphx.Sound_SetPlayPos,
-                movePlayPos   = libphx.Sound_MovePlayPos,
                 setEmitterPos = libphx.Sound_SetEmitterPos,
             },
         }

@@ -43,10 +43,8 @@ function Application:appInit()
     WindowInstance:setCenteredPosition()
     WindowInstance:setSize(self.resX, self.resY)
 
-    self.audio   = Audio.Create()
-    self.audiofx = Audio.Create()
-    GameState.audio.musicManager = self.audio
-    GameState.audio.fxManager = self.audiofx
+    self.audio = Audio.Create()
+    GameState.audio.manager = self.audio
 
     GameState.render.gameWindow = WindowInstance
 

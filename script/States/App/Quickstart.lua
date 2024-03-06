@@ -3,6 +3,7 @@ local InitFiles = require('Systems.Files.InitFiles')
 local Universe = require('Systems.Universe.Universe')
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local MainMenu = require('Systems.Menus.MainMenu')
+local SoundManager = require("Systems.SFX.SoundManager")
 
 local LTheoryRedux = require('States.App.LTheoryRedux')
 
@@ -26,6 +27,8 @@ function LTheoryRedux:onInit()
 
     -- Initialize Universe
     Universe:Init()
+
+    SoundManager:init()
 
     -- Open Main Menu
     MusicPlayer:Init()

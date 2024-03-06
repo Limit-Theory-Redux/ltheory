@@ -1,3 +1,5 @@
+local SoundManager = require "Systems.SFX.SoundManager"
+
 local MusicObject = {}
 MusicObject.__index = MusicObject
 
@@ -13,30 +15,50 @@ function MusicObject:Create(arg)
     object.path = arg.path
     object.sound = Sound.Load(arg.path, arg.isLooping)
     object.volume = arg.volume
+    object.instance = nil
     setmetatable(object, MusicObject)
     return object
 end
 
-function MusicObject:Play(volume)
+function MusicObject:Play(volume, fadeInMS)
     local vol = volume or self.volume
-    self.sound:setVolume(vol)
-    GameState.audio.musicManager:play(self.sound)
+
+    local soundGroup = Enums.SoundGroups.Music
+
+    -- clear existing instance
+    if self.instance then
+        self.instance:stop()
+        self.instance = nil
+    end
+
+    if SoundManager:canSoundPlay(soundGroup) then
+        self.instance = GameState.audio.manager:play(self.sound, vol, fadeInMS)
+        SoundManager:addInstance(self.instance, soundGroup)
+    end
 end
 
 function MusicObject:Pause()
-    self.sound:pause(0)
+    if self.instance then
+        self.instance:pause(0)
+    end
 end
 
 function MusicObject:Rewind()
-    self.sound:setPlayPos(0)
+    if self.instance then
+        self.instance:setPlayPos(0)
+    end
 end
 
 function MusicObject:SetVolume(volume, fadeMS)
-    self.sound:setVolume(volume, fadeMS)
+    if self.instance then
+        self.instance:setVolume(volume, fadeMS)
+    end
 end
 
 function MusicObject:IsPlaying()
-    return self.sound:isPlaying()
+    if self.instance then
+        return self.instance:isPlaying()
+    end
 end
 
 return MusicObject
