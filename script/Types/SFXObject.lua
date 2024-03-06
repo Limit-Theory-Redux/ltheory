@@ -15,21 +15,24 @@ function SFXObject:Create(arg)
     object.path = Config.paths.soundEffects .. arg.path
     object.sound = Sound.Load(object.path, arg.isLooping)
     object.volume = arg.volume
-    object.last_created = 0
+    object.last_created = TimeStamp.Now()
     setmetatable(object, SFXObject)
     return object
 end
 
 function SFXObject:Play(pos, volume)
-    local time = EngineInstance:getTime()
-    if (time - self.last_created) > 0.05 or self.last_created == 0 then
-        self.last_created = time
+    if self.last_created:getElapsed() > 0.05 then
         local vol = volume or self.volume
 
         local soundGroup = Enums.SoundGroups.Effects
 
         if SoundManager:canSoundPlay(soundGroup) then
-            local instance = GameState.audio.manager:play3d(self.sound, vol, 50)
+            local instance
+            if pos then
+                instance = GameState.audio.manager:play3d(self.sound, vol, 50, pos)
+            else
+                instance = GameState.audio.manager:play(self.sound, vol, 50)
+            end
             SoundManager:addInstance(instance, soundGroup)
             return instance
         end
