@@ -89,7 +89,7 @@ impl Audio {
         min_distance: f32,
         max_distance: f32,
     ) -> Box<SoundInstance> {
-        let emitter = self
+        let emitter_handle = self
             .spatial_scene
             .add_emitter(
                 [init_pos.x, init_pos.y, init_pos.z],
@@ -109,7 +109,7 @@ impl Audio {
             easing: Easing::Linear,
         });
 
-        sound_data_clone.settings.output_destination = (&emitter).into();
+        sound_data_clone.settings.output_destination = (&emitter_handle).into();
 
         let sound_handle = self
             .audio_manager
@@ -119,8 +119,8 @@ impl Audio {
         let sound_handle = Rc::new(RefCell::new(sound_handle));
         let mut sound_instance = SoundInstance::new(sound_handle, init_volume);
 
-        let emitter = Rc::new(RefCell::new(emitter));
-        sound_instance.set_emitter(emitter);
+        let emitter_handle = Rc::new(RefCell::new(emitter_handle));
+        sound_instance.set_emitter(emitter_handle);
 
         println!(
             "{}, {}",
