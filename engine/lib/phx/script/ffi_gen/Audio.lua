@@ -19,6 +19,7 @@ function Loader.defineType()
             void           Audio_Free           (Audio*);
             Audio*         Audio_Create         ();
             SoundInstance* Audio_Play           (Audio*, Sound* sound, double initVolume, uint64 fadeMillis);
+            SoundInstance* Audio_Play3D         (Audio*, Sound* sound, double initVolume, uint64 fadeMillis, Vec3f initPos, float minDistance, float maxDistance);
             void           Audio_SetListenerPos (Audio*, Vec3f const* pos, Quat const* rot);
             uint64         Audio_GetLoadedCount (Audio const*);
             uint64         Audio_GetTotalCount  (Audio const*);
@@ -44,6 +45,11 @@ function Loader.defineType()
             __index = {
                 play           = function(...)
                     local instance = libphx.Audio_Play(...)
+                    ffi.gc(instance, libphx.SoundInstance_Free)
+                    return instance
+                end,
+                play3D         = function(...)
+                    local instance = libphx.Audio_Play3D(...)
                     ffi.gc(instance, libphx.SoundInstance_Free)
                     return instance
                 end,

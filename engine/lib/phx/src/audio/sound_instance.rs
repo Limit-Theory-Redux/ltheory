@@ -1,7 +1,9 @@
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
+use glam::Vec3;
 use kira::{
     sound::{static_sound::StaticSoundHandle, PlaybackState},
+    spatial::emitter::EmitterHandle,
     tween::{Easing, Tween},
     StartTime,
 };
@@ -12,6 +14,7 @@ use super::process_command_error;
 pub struct SoundInstance {
     pub handle: Option<Rc<RefCell<StaticSoundHandle>>>,
     pub volume: f64, // keep track of volume because we can`t get it from the handle
+    pub emitter: Option<Rc<RefCell<EmitterHandle>>>,
 }
 
 impl SoundInstance {
@@ -19,7 +22,12 @@ impl SoundInstance {
         Box::new(Self {
             handle: Some(handle),
             volume: init_volume,
+            emitter: None,
         })
+    }
+
+    pub fn set_emitter(&mut self, emitter: Rc<RefCell<EmitterHandle>>) {
+        self.emitter = Some(emitter);
     }
 }
 
@@ -125,6 +133,17 @@ impl SoundInstance {
             process_command_error(
                 handle.borrow_mut().seek_by(offset),
                 "Cannot set sound position",
+            );
+        }
+    }
+
+    pub fn set_emitter_pos(&mut self, position: &Vec3) {
+        if let Some(emitter) = &mut self.emitter {
+            process_command_error(
+                emitter
+                    .borrow_mut()
+                    .set_position(*position, Tween::default()),
+                "Cannot set sound emitter position",
             );
         }
     }

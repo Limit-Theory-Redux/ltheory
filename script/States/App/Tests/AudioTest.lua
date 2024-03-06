@@ -2,15 +2,11 @@
 local Bindings = require('States.ApplicationBindings')
 
 local AudioTest = require('States.Application')
+local SoundManager = require('Systems.SFX.SoundManager')
 
 local Music = {
     MainTheme = './res/sound/system/audio/music/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg',
     AltTheme  = './res/sound/system/audio/music/LTR_Parallax_Universe.ogg'
-}
-
-local SFX = {
-    -- Gun  = 'blaster',
-    -- Hero = 'chewy',
 }
 
 local kMoveSpeed = 100.0
@@ -43,13 +39,9 @@ function AudioTest:onInit()
 
     self.rng = RNG.FromTime()
 
-    do -- Start async preload of effects
-        for k, v in pairs(SFX) do
-            Sound.Load(v, false)
-        end
-    end
-
     -- Sound.Load('cantina', true, true)
+
+    SoundManager:init()
 
     self.musicToggle = 0
     self.music = {}
@@ -71,8 +63,8 @@ function AudioTest:onInit()
         self.audio:play(e.sound)
     end
 
-    self.lastFireTime = 0
-    self.pos = Vec3f(256, 0, 256)
+    self.lastFireTime = TimeStamp.Now()
+    self.pos = Vec3f(self.resX / 2, 0, self.resY / 2)
     self.vel = Vec3f(0, 0, 0)
     self.ambianceTimer = 1.0 + self.rng:getExp()
     self.particles = {}
@@ -105,24 +97,34 @@ function AudioTest:onInput()
         self.currentlyPlaying:stop(500)
         -- Fade in alternate music
         self.musicToggle = (self.musicToggle + 1) % 2
+
         self.currentlyPlaying = self.audio:play(self.music[self.musicToggle], 1.0, 5000)
     end
 
     if InputInstance:isDown(Button.MouseLeft) then
-        -- if self.lastFireTime:getElapsed() > 0.12 then
-        -- self.lastFireTime = self.lastUpdate
-        -- local sound = Sound.Load(SFX.Gun, false, true)
-        -- sound:setFreeOnFinish(true)
-        -- sound:set3DPos(Vec3f(0, 0, 0), Vec3f(0, 0, 0))
-        -- sound:setVolume(Math.Lerp(0.2, 0.6, self.rng:getUniform() ^ 2.0))
-        -- sound:play()
-        -- end
+        --if self.lastFireTime:getElapsed() > 0.12 then
+        --    self.lastFireTime = self.lastUpdate
+        --    local sound = Sound.Load(SFX.Gun, false, true)
+        --    sound:setFreeOnFinish(true)
+        --    sound:set3DPos(Vec3f(0, 0, 0), Vec3f(0, 0, 0))
+        --    sound:setVolume(Math.Lerp(0.2, 0.6, self.rng:getUniform() ^ 2.0))
+        --    sound:play()
+        --end
     end
 
     if InputInstance:isDown(Button.MouseRight) then
         local is = InputInstance:mouse():position()
         self.pos.x = is.x
         self.pos.z = is.y
+
+        if self.lastFireTime:getElapsed() > 0.12 then
+            self.lastFireTime = TimeStamp.Now()
+
+            if Config.audio.sounds.pulseFire then
+                local instance = Config.audio.sounds.pulseFire:Play(self.pos, 1.0)
+                instance:setEmitterPos(self.pos)
+            end
+        end
     end
 
     -- for k, v in pairs(self.onKeyDown) do
@@ -166,6 +168,8 @@ function AudioTest:onUpdate(dt)
     self.pos = self.pos + self.vel:scale(dt)
     self.vel:iscale(exp(-dt))
 
+    SoundManager:clean(dt)
+
     do -- Play 'ambient' sound effects in a cloud around the listener
         -- WARNING : May cause extreme annoyance, nightmares, and/or euphoria.
         -- Josh hereby absolves himself of all responsibility.
@@ -197,7 +201,7 @@ function AudioTest:onUpdate(dt)
         end
     end
 
-    self.audio:setListenerPos(self.pos, Quat(0, 0, -1, 0)) -- TODO: fix quat
+    self.audio:setListenerPos(Vec3f(self.resX / 2, 0, self.resY / 2), Quat(0, 0, 0, 1))
 
     --[[
   for i = 1, #self.emitters do

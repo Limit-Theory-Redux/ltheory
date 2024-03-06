@@ -20,7 +20,7 @@ function SFXObject:Create(arg)
     return object
 end
 
-function SFXObject:Play(volume)
+function SFXObject:Play(pos, volume)
     local time = EngineInstance:getTime()
     if (time - self.last_created) > 0.05 or self.last_created == 0 then
         self.last_created = time
@@ -29,7 +29,7 @@ function SFXObject:Play(volume)
         local soundGroup = Enums.SoundGroups.Effects
 
         if SoundManager:canSoundPlay(soundGroup) then
-            local instance = GameState.audio.manager:play(self.sound, vol)
+            local instance = GameState.audio.manager:play3d(self.sound, vol, 50)
             SoundManager:addInstance(instance, soundGroup)
             return instance
         end

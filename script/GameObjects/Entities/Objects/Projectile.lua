@@ -33,35 +33,7 @@ function Entity:addProjectile(source)
 
     -- *** TEMP: Audio FX test START ***
     if Config.audio.sounds.pulseFire then
-        local function calculateDistance(pointA, pointB)
-            local dx = pointB.x - pointA.x
-            local dy = pointB.y - pointA.y
-            local dz = pointB.z - pointA.z
-            return math.sqrt(dx * dx + dy * dy + dz * dz)
-        end
-
-        --!FAKE SPATIAL VOLUME
-        local function calculateVolume(distance)
-            local maxDistance = 5000
-            local clampedDistance = math.min(distance, maxDistance)
-            local normalizedDistance = clampedDistance / maxDistance
-            local volume = (1 - normalizedDistance) ^ 2 * 0.25
-            if distance >= maxDistance then
-                volume = 0
-            end
-            return volume
-        end
-
-        local distance = calculateDistance(GameState.render.gameView.eyeLast, source:getPos())
-        local volDist = calculateVolume(distance)
-
-        --! needs to be handled properly by the audio system eventually
-        if volDist > 0 then
-            Config.audio.sounds.pulseFire:Play(volDist)
-            --[[print("Loaded: " .. tostring(GameState.audio.fxManager:getLoadedCount()),
-                "Playing: " .. tostring(GameState.audio.fxManager:getPlayingCount()),
-                "Total: " .. tostring(GameState.audio.fxManager:getTotalCount()))]]
-        end
+        Config.audio.sounds.pulseFire:Play(source:getPos(), 1.0)
     end
     -- *** TEMP: Audio FX test END ***
 

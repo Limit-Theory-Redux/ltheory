@@ -1086,7 +1086,7 @@ function HUD:drawSensors(a)
             if Config.audio.sounds.fxSensors then
                 if not self.sensorSoundInstance then
                     -- start looping sound
-                    self.sensorSoundInstance = Config.audio.sounds.fxSensors:Play(maxBarRatio)
+                    self.sensorSoundInstance = Config.audio.sounds.fxSensors:Play(nil, maxBarRatio)
                 else
                     local vol = maxBarRatio
                     -- prevent jitter
