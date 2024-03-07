@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::time::Duration;
 
 use kira::manager::{AudioManager, AudioManagerSettings, Capacities};
@@ -54,12 +52,7 @@ impl Audio {
         }
     }
 
-    pub fn play(
-        &mut self,
-        sound: &mut Sound,
-        init_volume: f64,
-        fade_millis: u64,
-    ) -> Box<SoundInstance> {
+    pub fn play(&mut self, sound: &mut Sound, init_volume: f64, fade_millis: u64) -> SoundInstance {
         let mut sound_data_clone = sound.sound_data().clone();
         sound_data_clone.settings.volume = init_volume.into();
 
@@ -74,7 +67,6 @@ impl Audio {
             .play(sound_data_clone)
             .expect("Cannot play sound");
 
-        let sound_handle = Rc::new(RefCell::new(sound_handle));
         let sound_instance = SoundInstance::new(sound_handle, init_volume, None);
 
         sound_instance
@@ -88,7 +80,7 @@ impl Audio {
         init_pos: Vec3,
         min_distance: f32,
         max_distance: f32,
-    ) -> Box<SoundInstance> {
+    ) -> SoundInstance {
         let emitter_handle = self
             .spatial_scene
             .add_emitter(
@@ -115,9 +107,6 @@ impl Audio {
             .audio_manager
             .play(sound_data_clone)
             .expect("Cannot play sound");
-
-        let sound_handle = Rc::new(RefCell::new(sound_handle));
-        let emitter_handle = Rc::new(RefCell::new(emitter_handle));
 
         let sound_instance = SoundInstance::new(sound_handle, init_volume, Some(emitter_handle));
 

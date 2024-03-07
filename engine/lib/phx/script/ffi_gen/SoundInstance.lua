@@ -28,7 +28,6 @@ function Loader.defineType()
             void   SoundInstance_SetPlayPos    (SoundInstance*, double position);
             void   SoundInstance_MovePlayPos   (SoundInstance*, double offset);
             void   SoundInstance_SetEmitterPos (SoundInstance*, Vec3f const* position);
-            void   SoundInstance_ClearEmitter  (SoundInstance*);
         ]]
     end
 
@@ -54,7 +53,6 @@ function Loader.defineType()
                 setPlayPos    = libphx.SoundInstance_SetPlayPos,
                 movePlayPos   = libphx.SoundInstance_MovePlayPos,
                 setEmitterPos = libphx.SoundInstance_SetEmitterPos,
-                clearEmitter  = libphx.SoundInstance_ClearEmitter,
             },
         }
 

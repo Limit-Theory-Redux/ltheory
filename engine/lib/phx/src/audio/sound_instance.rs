@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, time::Duration};
+use std::time::Duration;
 
 use glam::Vec3;
 use kira::{
@@ -10,24 +10,23 @@ use kira::{
 
 use super::process_command_error;
 
-#[derive(Clone)]
 pub struct SoundInstance {
-    pub handle: Option<Rc<RefCell<StaticSoundHandle>>>,
+    pub handle: Option<StaticSoundHandle>,
     pub volume: f64, // keep track of volume because we can`t get it from the handle
-    pub emitter: Option<Rc<RefCell<EmitterHandle>>>,
+    pub emitter: Option<EmitterHandle>,
 }
 
 impl SoundInstance {
     pub fn new(
-        handle: Rc<RefCell<StaticSoundHandle>>,
+        handle: StaticSoundHandle,
         init_volume: f64,
-        emitter: Option<Rc<RefCell<EmitterHandle>>>,
-    ) -> Box<Self> {
-        Box::new(Self {
+        emitter: Option<EmitterHandle>,
+    ) -> Self {
+        Self {
             handle: Some(handle),
             volume: init_volume,
             emitter: emitter,
-        })
+        }
     }
 }
 
@@ -35,7 +34,7 @@ impl SoundInstance {
 impl SoundInstance {
     pub fn is_playing(&self) -> bool {
         if let Some(handle) = &self.handle {
-            handle.borrow().state() == PlaybackState::Playing
+            handle.state() == PlaybackState::Playing
         } else {
             false
         }
@@ -43,7 +42,7 @@ impl SoundInstance {
 
     pub fn is_paused(&self) -> bool {
         if let Some(handle) = &self.handle {
-            handle.borrow().state() == PlaybackState::Paused
+            handle.state() == PlaybackState::Paused
         } else {
             false
         }
@@ -51,20 +50,20 @@ impl SoundInstance {
 
     pub fn is_stopped(&self) -> bool {
         if let Some(handle) = &self.handle {
-            handle.borrow().state() == PlaybackState::Stopped
+            handle.state() == PlaybackState::Stopped
         } else {
             false
         }
     }
 
     pub fn get_volume(&self) -> f64 {
-        self.volume.clone()
+        self.volume
     }
 
     pub fn set_volume(&mut self, volume: f64, fade_millis: u64) {
-        if let Some(handle) = &self.handle {
+        if let Some(handle) = &mut self.handle {
             process_command_error(
-                handle.borrow_mut().set_volume(
+                handle.set_volume(
                     volume,
                     Tween {
                         duration: Duration::from_millis(fade_millis),
@@ -83,7 +82,7 @@ impl SoundInstance {
     pub fn pause(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
             process_command_error(
-                handle.borrow_mut().pause(Tween {
+                handle.pause(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
@@ -96,7 +95,7 @@ impl SoundInstance {
     pub fn resume(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
             process_command_error(
-                handle.borrow_mut().resume(Tween {
+                handle.resume(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
@@ -109,7 +108,7 @@ impl SoundInstance {
     pub fn stop(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
             process_command_error(
-                handle.borrow_mut().stop(Tween {
+                handle.stop(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
@@ -121,34 +120,22 @@ impl SoundInstance {
 
     pub fn set_play_pos(&mut self, position: f64) {
         if let Some(handle) = &mut self.handle {
-            process_command_error(
-                handle.borrow_mut().seek_to(position),
-                "Cannot set sound position",
-            );
+            process_command_error(handle.seek_to(position), "Cannot set sound position");
         }
     }
 
     pub fn move_play_pos(&mut self, offset: f64) {
         if let Some(handle) = &mut self.handle {
-            process_command_error(
-                handle.borrow_mut().seek_by(offset),
-                "Cannot set sound position",
-            );
+            process_command_error(handle.seek_by(offset), "Cannot set sound position");
         }
     }
 
     pub fn set_emitter_pos(&mut self, position: &Vec3) {
         if let Some(emitter) = &mut self.emitter {
             process_command_error(
-                emitter
-                    .borrow_mut()
-                    .set_position(*position, Tween::default()),
+                emitter.set_position(*position, Tween::default()),
                 "Cannot set sound emitter position",
             );
         }
-    }
-
-    pub fn clear_emitter(&mut self) {
-        self.emitter = None;
     }
 }
