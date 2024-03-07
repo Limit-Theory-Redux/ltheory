@@ -30,8 +30,7 @@ function Loader.defineType()
         Audio = {
             Create         = function(...)
                 local instance = libphx.Audio_Create(...)
-                ffi.gc(instance, libphx.Audio_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Audio_Free)
             end,
         }
 
@@ -45,13 +44,11 @@ function Loader.defineType()
             __index = {
                 play           = function(...)
                     local instance = libphx.Audio_Play(...)
-                    ffi.gc(instance, libphx.SoundInstance_Free)
-                    return instance
+                    return Core.ManagedObject(instance, libphx.SoundInstance_Free)
                 end,
                 play3D         = function(...)
                     local instance = libphx.Audio_Play3D(...)
-                    ffi.gc(instance, libphx.SoundInstance_Free)
-                    return instance
+                    return Core.ManagedObject(instance, libphx.SoundInstance_Free)
                 end,
                 setListenerPos = libphx.Audio_SetListenerPos,
                 getLoadedCount = libphx.Audio_GetLoadedCount,

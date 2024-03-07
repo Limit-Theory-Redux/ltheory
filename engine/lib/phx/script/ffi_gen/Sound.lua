@@ -27,8 +27,7 @@ function Loader.defineType()
         Sound = {
             Load        = function(...)
                 local instance = libphx.Sound_Load(...)
-                ffi.gc(instance, libphx.Sound_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Sound_Free)
             end,
         }
 

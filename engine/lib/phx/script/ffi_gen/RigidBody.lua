@@ -68,38 +68,31 @@ function Loader.defineType()
         RigidBody = {
             CreateBox                         = function(...)
                 local instance = libphx.RigidBody_CreateBox(...)
-                ffi.gc(instance, libphx.RigidBody_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
             CreateBoxFromMesh                 = function(...)
                 local instance = libphx.RigidBody_CreateBoxFromMesh(...)
-                ffi.gc(instance, libphx.RigidBody_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
             CreateSphere                      = function(...)
                 local instance = libphx.RigidBody_CreateSphere(...)
-                ffi.gc(instance, libphx.RigidBody_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
             CreateSphereFromMesh              = function(...)
                 local instance = libphx.RigidBody_CreateSphereFromMesh(...)
-                ffi.gc(instance, libphx.RigidBody_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
             CreateConvexHullFromMesh          = function(...)
                 local instance = libphx.RigidBody_CreateConvexHullFromMesh(...)
-                ffi.gc(instance, libphx.RigidBody_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
             CreateConvexDecompositionFromMesh = function(...)
                 local instance = libphx.RigidBody_CreateConvexDecompositionFromMesh(...)
-                ffi.gc(instance, libphx.RigidBody_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
             CreateTrimeshFromMesh             = function(...)
                 local instance = libphx.RigidBody_CreateTrimeshFromMesh(...)
-                ffi.gc(instance, libphx.RigidBody_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
         }
 
@@ -125,13 +118,11 @@ function Loader.defineType()
                 getSpeed                    = libphx.RigidBody_GetSpeed,
                 getToWorldMatrix            = function(...)
                     local instance = libphx.RigidBody_GetToWorldMatrix(...)
-                    ffi.gc(instance, libphx.Matrix_Free)
-                    return instance
+                    return Core.ManagedObject(instance, libphx.Matrix_Free)
                 end,
                 getToLocalMatrix            = function(...)
                     local instance = libphx.RigidBody_GetToLocalMatrix(...)
-                    ffi.gc(instance, libphx.Matrix_Free)
-                    return instance
+                    return Core.ManagedObject(instance, libphx.Matrix_Free)
                 end,
                 getVelocity                 = libphx.RigidBody_GetVelocity,
                 getVelocityA                = libphx.RigidBody_GetVelocityA,

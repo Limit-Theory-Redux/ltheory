@@ -183,3 +183,22 @@ function Core.Call(fn, ...)
     end
     return ret
 end
+
+function Core.ManagedObject(instance, free_func)
+    if instance == nil then
+        return nil
+    end
+
+    local proxy = newproxy(true)
+    local mt = getmetatable(proxy)
+
+    mt.__index = instance
+
+    mt.__gc = function() free_func(instance) end
+
+    mt.__call = function(self, ...)
+        return instance(...)
+    end
+
+    return proxy
+end
