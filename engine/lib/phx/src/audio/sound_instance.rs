@@ -18,16 +18,16 @@ pub struct SoundInstance {
 }
 
 impl SoundInstance {
-    pub fn new(handle: Rc<RefCell<StaticSoundHandle>>, init_volume: f64) -> Box<Self> {
+    pub fn new(
+        handle: Rc<RefCell<StaticSoundHandle>>,
+        init_volume: f64,
+        emitter: Option<Rc<RefCell<EmitterHandle>>>,
+    ) -> Box<Self> {
         Box::new(Self {
             handle: Some(handle),
             volume: init_volume,
-            emitter: None,
+            emitter: emitter,
         })
-    }
-
-    pub fn set_emitter(&mut self, emitter: Rc<RefCell<EmitterHandle>>) {
-        self.emitter = Some(emitter);
     }
 }
 
@@ -146,5 +146,9 @@ impl SoundInstance {
                 "Cannot set sound emitter position",
             );
         }
+    }
+
+    pub fn clear_emitter(&mut self) {
+        self.emitter = None;
     }
 }

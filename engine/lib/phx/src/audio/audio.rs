@@ -75,7 +75,7 @@ impl Audio {
             .expect("Cannot play sound");
 
         let sound_handle = Rc::new(RefCell::new(sound_handle));
-        let sound_instance = SoundInstance::new(sound_handle, init_volume);
+        let sound_instance = SoundInstance::new(sound_handle, init_volume, None);
 
         sound_instance
     }
@@ -117,10 +117,9 @@ impl Audio {
             .expect("Cannot play sound");
 
         let sound_handle = Rc::new(RefCell::new(sound_handle));
-        let mut sound_instance = SoundInstance::new(sound_handle, init_volume);
-
         let emitter_handle = Rc::new(RefCell::new(emitter_handle));
-        sound_instance.set_emitter(emitter_handle);
+
+        let sound_instance = SoundInstance::new(sound_handle, init_volume, Some(emitter_handle));
 
         println!(
             "{}, {}",

@@ -31,7 +31,8 @@ function SoundManager:canSoundPlay(soundGroup)
     local instanceToRemove = self.groups[soundGroup][soundIndexToRemove]
 
     if soundIndexToRemove and instanceToRemove then
-        self.groups[soundGroup][soundIndexToRemove]:stop()
+        instanceToRemove:stop()
+        instanceToRemove:clearEmitter() --! temporary
         table.remove(self.groups[soundGroup], soundIndexToRemove)
 
         if self.groups[soundGroup] and #self.groups[soundGroup] < Enums.SoundGroupLimits[soundGroup] then
@@ -69,6 +70,7 @@ function SoundManager:clean(dt)
         for _, soundGroup in ipairs(self.groups) do
             for index, soundInstance in ipairs(soundGroup) do
                 if not soundInstance:isPlaying() then
+                    soundInstance:clearEmitter() --! temporary
                     table.remove(soundGroup, index)
                 end
             end
