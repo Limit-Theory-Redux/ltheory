@@ -3,7 +3,7 @@ local SoundManager = class(function(self) end)
 local CLEAN_EVERY_S = 2
 
 function SoundManager:init()
-    self.lastClean = 0
+    self.lastClean = TimeStamp.Now()
     self.groups = {}
 
     for _, soundGroup in pairs(Enums.SoundGroups) do
@@ -63,18 +63,22 @@ function SoundManager:getSoundsPlaying(soundGroup)
 end
 
 function SoundManager:clean(dt)
-    local time = EngineInstance:getTime()
-
-    if time >= self.lastClean + CLEAN_EVERY_S then
+    if self.lastClean:getElapsed() > CLEAN_EVERY_S then
+        local instanceCount = 0
         for _, soundGroup in ipairs(self.groups) do
             for index, soundInstance in ipairs(soundGroup) do
                 if not soundInstance:isPlaying() then
+                    instanceCount = instanceCount + 1
                     table.remove(soundGroup, index)
                 end
             end
         end
 
-        self.lastClean = time
+        if instanceCount > 0 then
+            Log.Debug("[SoundManager] Cleaned " .. instanceCount .. " SoundInstance")
+        end
+
+        self.lastClean = TimeStamp.Now()
     end
 end
 
