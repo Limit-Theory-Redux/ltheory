@@ -193,6 +193,7 @@ function Core.ManagedObject(instance, free_func)
     local mt = getmetatable(proxy)
 
     mt.__gc = function()
+        print(instance)
         free_func(instance)
     end
 

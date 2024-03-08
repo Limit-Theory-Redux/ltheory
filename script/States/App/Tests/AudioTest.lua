@@ -123,6 +123,7 @@ function AudioTest:onInput()
             if Config.audio.sounds.pulseFire then
                 local instance = Config.audio.sounds.pulseFire:Play(self.pos, 1.0)
                 instance:setEmitterPos(self.pos)
+                print(instance)
             end
         end
     end
