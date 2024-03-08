@@ -38,7 +38,7 @@ function SoundManager:canSoundPlay(soundGroup)
             return true
         end
     end
-    Log.Warn("Sound would exceed group limits. Cancel play.")
+    -- Log.Warn("Sound would exceed group limits. Cancel play.")
     return false
 end
 

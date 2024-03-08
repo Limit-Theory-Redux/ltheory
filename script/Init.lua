@@ -189,30 +189,5 @@ function Core.ManagedObject(instance, free_func)
         return nil
     end
 
-    local proxy = newproxy(true)
-    local mt = getmetatable(proxy)
-
-    mt.__gc = function()
-        print(instance)
-        free_func(instance)
-    end
-
-    mt.__index = function(tbl, key)
-        if key == "__cdata" then
-            return instance
-        end
-
-        local attribute = instance[key]
-        return function(_, ...)
-            local args = { ... }
-            for i, arg in ipairs(args) do
-                if type(arg) == "userdata" and getmetatable(arg) then
-                    args[i] = arg.__cdata -- Replace proxy with cdata
-                end
-            end
-            return attribute(instance, table.unpack(args))
-        end
-    end
-
-    return proxy
+    return ffi.gc(instance, free_func)
 end
