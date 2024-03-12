@@ -12,13 +12,13 @@ function SoundManager:init()
 end
 
 function SoundManager:canSoundPlay(soundGroup)
-    if self.groups[soundGroup] and #self.groups[soundGroup] < Enums.SoundGroupLimits[soundGroup] then
+    if not self.groups[soundGroup] or #self.groups[soundGroup] < Enums.SoundGroupLimits[soundGroup] then
         return true
     end
 
     -- remove sound with lowest volume
     local lowestVolume = 1.0
-    local soundIndexToRemove = nil
+    local soundIndexToRemove = 1
 
     for index, soundInstance in ipairs(self.groups[soundGroup]) do
         local soundVolume = soundInstance:getVolume()
@@ -30,15 +30,17 @@ function SoundManager:canSoundPlay(soundGroup)
 
     local instanceToRemove = self.groups[soundGroup][soundIndexToRemove]
 
-    if soundIndexToRemove and instanceToRemove then
+    if instanceToRemove then
         instanceToRemove:stop() -- a stopped sound will get dropped
+        instanceToRemove:freeEmitter()
         table.remove(self.groups[soundGroup], soundIndexToRemove)
 
-        if self.groups[soundGroup] and #self.groups[soundGroup] < Enums.SoundGroupLimits[soundGroup] then
+        if not self.groups[soundGroup] or #self.groups[soundGroup] < Enums.SoundGroupLimits[soundGroup] then
             return true
         end
     end
     -- Log.Warn("Sound would exceed group limits. Cancel play.")
+
     return false
 end
 
@@ -69,6 +71,7 @@ function SoundManager:clean(dt)
             for index, soundInstance in ipairs(soundGroup) do
                 if not soundInstance:isPlaying() then
                     instanceCount = instanceCount + 1
+                    soundInstance:freeEmitter()
                     table.remove(soundGroup, index)
                 end
             end

@@ -25,6 +25,7 @@ function Loader.defineType()
             void   SoundInstance_Pause         (SoundInstance*, uint64 fadeMillis);
             void   SoundInstance_Resume        (SoundInstance*, uint64 fadeMillis);
             void   SoundInstance_Stop          (SoundInstance*, uint64 fadeMillis);
+            void   SoundInstance_FreeEmitter   (SoundInstance*);
             void   SoundInstance_SetPlayPos    (SoundInstance*, double position);
             void   SoundInstance_MovePlayPos   (SoundInstance*, double offset);
             void   SoundInstance_SetEmitterPos (SoundInstance*, Vec3f const* position);
@@ -50,6 +51,7 @@ function Loader.defineType()
                 pause         = libphx.SoundInstance_Pause,
                 resume        = libphx.SoundInstance_Resume,
                 stop          = libphx.SoundInstance_Stop,
+                freeEmitter   = libphx.SoundInstance_FreeEmitter,
                 setPlayPos    = libphx.SoundInstance_SetPlayPos,
                 movePlayPos   = libphx.SoundInstance_MovePlayPos,
                 setEmitterPos = libphx.SoundInstance_SetEmitterPos,

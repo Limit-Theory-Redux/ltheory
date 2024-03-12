@@ -11,9 +11,9 @@ use kira::{
 use super::process_command_error;
 
 pub struct SoundInstance {
-    pub handle: Option<StaticSoundHandle>,
-    pub volume: f64, // keep track of volume because we can`t get it from the handle
-    pub emitter: Option<EmitterHandle>,
+    handle: Option<StaticSoundHandle>,
+    volume: f64, // keep track of volume because we can`t get it from the handle
+    emitter: Option<EmitterHandle>,
 }
 
 impl SoundInstance {
@@ -116,6 +116,10 @@ impl SoundInstance {
                 "Cannot stop sound",
             );
         }
+    }
+
+    pub fn free_emitter(&mut self) {
+        self.emitter = None;
     }
 
     pub fn set_play_pos(&mut self, position: f64) {
