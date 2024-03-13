@@ -34,6 +34,7 @@ function SFXObject:Play(pos, volume)
                 instance = GameState.audio.manager:play(self.sound, vol, 50)
             end
             SoundManager:addInstance(instance, soundGroup)
+            self.last_created = TimeStamp.Now()
             return instance
         end
     end

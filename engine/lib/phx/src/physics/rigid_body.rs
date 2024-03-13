@@ -760,6 +760,18 @@ impl RigidBody {
         }
     }
 
+    #[bind(name = "GetDistance")]
+    pub fn get_distance(&self, target: &RigidBody) -> f32 {
+        let my_position = self.get_position();
+        let target_position = target.get_position();
+
+        let diff = my_position - target_position;
+        let distance_squared = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
+        let distance = distance_squared.sqrt();
+
+        distance
+    }
+
     pub fn is_sleeping(&self) -> bool {
         self.rigid_body.as_ref().is_sleeping()
     }

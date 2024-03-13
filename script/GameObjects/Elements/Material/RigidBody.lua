@@ -115,7 +115,7 @@ end
 function Entity:getDistance(other)
     assert(self.body)
     assert(other.body)
-    return self:getPos():distance(other:getPos())
+    return self.body:getDistance(other.body)
 end
 
 function Entity:getForward()
@@ -131,7 +131,7 @@ end
 function Entity:getMinDistance(other)
     assert(self.body)
     assert(other.body)
-    return math.max(0.0, self:getPos():distance(other:getPos())
+    return math.max(0.0, self.body:getDistance(other.body)
         - self:getRadius()
         - other:getRadius())
 end

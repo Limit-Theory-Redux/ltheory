@@ -23,7 +23,7 @@ function SoundManager:canSoundPlay(soundGroup)
     for index, soundInstance in ipairs(self.groups[soundGroup]) do
         local soundVolume = soundInstance:getVolume()
         if soundVolume < lowestVolume then
-            lowestVolume = soundInstance:getVolume()
+            lowestVolume = soundVolume
             soundIndexToRemove = index
         end
     end
@@ -50,6 +50,8 @@ function SoundManager:addInstance(instance, soundGroup)
     end
 
     if self.groups[soundGroup] and #self.groups[soundGroup] > Enums.SoundGroupLimits[soundGroup] then
+        instance:stop()
+        instance:freeEmitter()
         Log.Warn("Cannot play sound as it would exceed group limits")
         return
     end
