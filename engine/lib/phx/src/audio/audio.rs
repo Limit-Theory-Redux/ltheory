@@ -13,10 +13,16 @@ use super::{process_command_error, Sound, SoundInstance};
 
 const DEFAULT_COMMAND_CAPACITY: usize = 1024;
 
+struct ListenerInfo {
+    listener: ListenerHandle,
+    position: Vec3,
+    orientation: Quat,
+}
+
 pub struct Audio {
     audio_manager: AudioManager,
     spatial_scene: SpatialSceneHandle,
-    listener: ListenerHandle,
+    listener_info: ListenerInfo,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -41,14 +47,20 @@ impl Audio {
             )
             .expect("Cannot add spatial scene");
 
+        let position = Vec3::ZERO;
+        let orientation = Quat::IDENTITY;
         let listener = spatial_scene
-            .add_listener(Vec3::ZERO, Quat::IDENTITY, ListenerSettings::default())
+            .add_listener(position, orientation, ListenerSettings::default())
             .expect("Cannot add listener");
 
         Self {
             audio_manager,
             spatial_scene,
-            listener,
+            listener_info: ListenerInfo {
+                listener,
+                position,
+                orientation,
+            },
         }
     }
 
@@ -108,7 +120,8 @@ impl Audio {
             .play(sound_data_clone)
             .expect("Cannot play sound");
 
-        let sound_instance = SoundInstance::new(sound_handle, init_volume, Some(emitter_handle));
+        let sound_instance =
+            SoundInstance::new(sound_handle, init_volume, Some((emitter_handle, init_pos)));
 
         println!(
             "{}, {}",
@@ -119,16 +132,34 @@ impl Audio {
         sound_instance
     }
 
-    pub fn set_listener_pos(&mut self, pos: &Vec3, rot: &Quat) {
+    pub fn set_listener_pos(&mut self, pos: &Vec3) {
         process_command_error(
-            self.listener.set_position(*pos, Tween::default()),
+            self.listener_info
+                .listener
+                .set_position(*pos, Tween::default()),
             "Cannot set listener position",
         );
+
+        self.listener_info.position = *pos;
+    }
+
+    pub fn listener_pos(&self) -> Vec3 {
+        self.listener_info.position
+    }
+
+    pub fn set_listener_rot(&mut self, rot: &Quat) {
         process_command_error(
-            self.listener
+            self.listener_info
+                .listener
                 .set_orientation([rot.x, rot.y, rot.z, rot.w], Tween::default()),
-            "Cannot set listener position",
+            "Cannot set listener orientation",
         );
+
+        self.listener_info.orientation = *rot;
+    }
+
+    pub fn listener_rot(&self) -> Quat {
+        self.listener_info.orientation
     }
 
     pub fn get_loaded_count(&self) -> u64 {

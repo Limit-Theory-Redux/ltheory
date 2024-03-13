@@ -1,31 +1,34 @@
 use std::time::Duration;
 
 use glam::Vec3;
-use kira::{
-    sound::{static_sound::StaticSoundHandle, PlaybackState},
-    spatial::emitter::EmitterHandle,
-    tween::{Easing, Tween},
-    StartTime,
-};
+use kira::sound::{static_sound::StaticSoundHandle, PlaybackState};
+use kira::spatial::emitter::EmitterHandle;
+use kira::tween::{Easing, Tween};
+use kira::StartTime;
 
 use super::process_command_error;
+
+struct EmitterInfo {
+    emitter: EmitterHandle,
+    position: Vec3,
+}
 
 pub struct SoundInstance {
     handle: Option<StaticSoundHandle>,
     volume: f64, // keep track of volume because we can`t get it from the handle
-    emitter: Option<EmitterHandle>,
+    emitter_info: Option<EmitterInfo>,
 }
 
 impl SoundInstance {
     pub fn new(
         handle: StaticSoundHandle,
         init_volume: f64,
-        emitter: Option<EmitterHandle>,
+        emitter: Option<(EmitterHandle, Vec3)>,
     ) -> Self {
         Self {
             handle: Some(handle),
             volume: init_volume,
-            emitter: emitter,
+            emitter_info: emitter.map(|(emitter, position)| EmitterInfo { emitter, position }),
         }
     }
 }
@@ -119,7 +122,7 @@ impl SoundInstance {
     }
 
     pub fn free_emitter(&mut self) {
-        self.emitter = None;
+        self.emitter_info = None;
     }
 
     pub fn set_play_pos(&mut self, position: f64) {
@@ -135,11 +138,28 @@ impl SoundInstance {
     }
 
     pub fn set_emitter_pos(&mut self, position: &Vec3) {
-        if let Some(emitter) = &mut self.emitter {
+        if let Some(emitter_info) = &mut self.emitter_info {
             process_command_error(
-                emitter.set_position(*position, Tween::default()),
+                emitter_info
+                    .emitter
+                    .set_position(*position, Tween::default()),
                 "Cannot set sound emitter position",
             );
+            emitter_info.position = *position;
         }
+    }
+
+    pub fn emitter_pos(&self) -> Vec3 {
+        self.emitter_info
+            .as_ref()
+            .map(|emitter_info| emitter_info.position)
+            .unwrap_or(Vec3::MAX)
+    }
+
+    pub fn emitter_distance(&self, listener_pos: &Vec3) -> f32 {
+        self.emitter_info
+            .as_ref()
+            .map(|emitter_info| listener_pos.distance(emitter_info.position))
+            .unwrap_or(f32::MAX)
     }
 }

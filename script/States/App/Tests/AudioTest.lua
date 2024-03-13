@@ -202,7 +202,8 @@ function AudioTest:onUpdate(dt)
         end
     end
 
-    self.audio:setListenerPos(Vec3f(self.resX / 2, 0, self.resY / 2), Quat(0, 0, 0, 1))
+    self.audio:setListenerPos(Vec3f(self.resX / 2, 0, self.resY / 2))
+    self.audio:setListenerRot(Quat(0, 0, 0, 1))
 
     --[[
   for i = 1, #self.emitters do

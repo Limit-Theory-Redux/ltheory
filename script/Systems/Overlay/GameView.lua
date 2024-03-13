@@ -225,9 +225,8 @@ function GameView:onUpdate(state)
         self.eyeLast:setv(eye)
     end
 
-    self.audio:setListenerPos(
-        self.camera.pos,
-        self.camera.rot)
+    self.audio:setListenerPos(self.camera.pos)
+    self.audio:setListenerRot(self.camera.rot)
 
     self.camera:pop()
 end
