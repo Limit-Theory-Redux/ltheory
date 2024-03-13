@@ -20,7 +20,7 @@ function SFXObject:Create(arg)
     return object
 end
 
-function SFXObject:Play(pos, volume)
+function SFXObject:Play(volume, pos)
     if self.last_created:getElapsed() > 0.05 then
         local vol = volume or self.volume
 

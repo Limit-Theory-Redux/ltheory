@@ -760,14 +760,11 @@ impl RigidBody {
         }
     }
 
-    #[bind(name = "GetDistance")]
-    pub fn get_distance(&self, target: &RigidBody) -> f32 {
+    pub fn distance_to(&self, target: &RigidBody) -> f32 {
         let my_position = self.get_position();
         let target_position = target.get_position();
 
-        let diff = my_position - target_position;
-        let distance_squared = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
-        let distance = distance_squared.sqrt();
+        let distance = my_position.distance(target_position);
 
         distance
     }

@@ -115,7 +115,7 @@ end
 function Entity:getDistance(other)
     assert(self.body)
     assert(other.body)
-    return self.body:getDistance(other.body)
+    return self.body:distanceTo(other.body)
 end
 
 function Entity:getForward()

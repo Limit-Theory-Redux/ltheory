@@ -60,7 +60,7 @@ function Loader.defineType()
             void       RigidBody_SetRotLocal                       (RigidBody*, Quat const* rot);
             float      RigidBody_GetScale                          (RigidBody const*);
             void       RigidBody_SetScale                          (RigidBody*, float scale);
-            float      RigidBody_GetDistance                       (RigidBody const*, RigidBody const* target);
+            float      RigidBody_DistanceTo                        (RigidBody const*, RigidBody const* target);
             bool       RigidBody_IsSleeping                        (RigidBody const*);
         ]]
     end
@@ -147,7 +147,7 @@ function Loader.defineType()
                 setRotLocal                 = libphx.RigidBody_SetRotLocal,
                 getScale                    = libphx.RigidBody_GetScale,
                 setScale                    = libphx.RigidBody_SetScale,
-                getDistance                 = libphx.RigidBody_GetDistance,
+                distanceTo                  = libphx.RigidBody_DistanceTo,
                 isSleeping                  = libphx.RigidBody_IsSleeping,
             },
         }

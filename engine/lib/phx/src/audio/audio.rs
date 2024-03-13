@@ -123,12 +123,6 @@ impl Audio {
         let sound_instance =
             SoundInstance::new(sound_handle, init_volume, Some((emitter_handle, init_pos)));
 
-        println!(
-            "{}, {}",
-            self.audio_manager.num_sounds(),
-            self.spatial_scene.num_emitters()
-        );
-
         sound_instance
     }
 
