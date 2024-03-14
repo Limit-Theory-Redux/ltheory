@@ -22,13 +22,11 @@ function Loader.defineType()
         Time = {
             GetLocal = function(...)
                 local instance = libphx.Time_GetLocal(...)
-                ffi.gc(instance, libphx.Time_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Time_Free)
             end,
             GetUtc   = function(...)
                 local instance = libphx.Time_GetUtc(...)
-                ffi.gc(instance, libphx.Time_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Time_Free)
             end,
             GetRaw   = libphx.Time_GetRaw,
         }

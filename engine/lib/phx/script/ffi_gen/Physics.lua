@@ -39,8 +39,7 @@ function Loader.defineType()
         Physics = {
             Create                 = function(...)
                 local instance = libphx.Physics_Create(...)
-                ffi.gc(instance, libphx.Physics_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Physics_Free)
             end,
         }
 

@@ -1,25 +1,35 @@
-use std::{cell::RefCell, rc::Rc, time::Duration};
+use std::time::Duration;
 
-use kira::{
-    sound::{static_sound::StaticSoundHandle, PlaybackState},
-    tween::{Easing, Tween},
-    StartTime,
-};
+use glam::Vec3;
+use kira::sound::{static_sound::StaticSoundHandle, PlaybackState};
+use kira::spatial::emitter::EmitterHandle;
+use kira::tween::{Easing, Tween};
+use kira::StartTime;
 
 use super::process_command_error;
 
-#[derive(Clone)]
+struct EmitterInfo {
+    emitter: EmitterHandle,
+    position: Vec3,
+}
+
 pub struct SoundInstance {
-    pub handle: Option<Rc<RefCell<StaticSoundHandle>>>,
-    pub volume: f64, // keep track of volume because we can`t get it from the handle
+    handle: Option<StaticSoundHandle>,
+    volume: f64, // keep track of volume because we can`t get it from the handle
+    emitter_info: Option<EmitterInfo>,
 }
 
 impl SoundInstance {
-    pub fn new(handle: Rc<RefCell<StaticSoundHandle>>, init_volume: f64) -> Box<Self> {
-        Box::new(Self {
+    pub fn new(
+        handle: StaticSoundHandle,
+        init_volume: f64,
+        emitter: Option<(EmitterHandle, Vec3)>,
+    ) -> Self {
+        Self {
             handle: Some(handle),
             volume: init_volume,
-        })
+            emitter_info: emitter.map(|(emitter, position)| EmitterInfo { emitter, position }),
+        }
     }
 }
 
@@ -27,7 +37,7 @@ impl SoundInstance {
 impl SoundInstance {
     pub fn is_playing(&self) -> bool {
         if let Some(handle) = &self.handle {
-            handle.borrow().state() == PlaybackState::Playing
+            handle.state() == PlaybackState::Playing
         } else {
             false
         }
@@ -35,7 +45,7 @@ impl SoundInstance {
 
     pub fn is_paused(&self) -> bool {
         if let Some(handle) = &self.handle {
-            handle.borrow().state() == PlaybackState::Paused
+            handle.state() == PlaybackState::Paused
         } else {
             false
         }
@@ -43,20 +53,20 @@ impl SoundInstance {
 
     pub fn is_stopped(&self) -> bool {
         if let Some(handle) = &self.handle {
-            handle.borrow().state() == PlaybackState::Stopped
+            handle.state() == PlaybackState::Stopped
         } else {
             false
         }
     }
 
     pub fn get_volume(&self) -> f64 {
-        self.volume.clone()
+        self.volume
     }
 
     pub fn set_volume(&mut self, volume: f64, fade_millis: u64) {
-        if let Some(handle) = &self.handle {
+        if let Some(handle) = &mut self.handle {
             process_command_error(
-                handle.borrow_mut().set_volume(
+                handle.set_volume(
                     volume,
                     Tween {
                         duration: Duration::from_millis(fade_millis),
@@ -75,7 +85,7 @@ impl SoundInstance {
     pub fn pause(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
             process_command_error(
-                handle.borrow_mut().pause(Tween {
+                handle.pause(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
@@ -88,7 +98,7 @@ impl SoundInstance {
     pub fn resume(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
             process_command_error(
-                handle.borrow_mut().resume(Tween {
+                handle.resume(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
@@ -101,7 +111,7 @@ impl SoundInstance {
     pub fn stop(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
             process_command_error(
-                handle.borrow_mut().stop(Tween {
+                handle.stop(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
@@ -111,21 +121,45 @@ impl SoundInstance {
         }
     }
 
+    pub fn free_emitter(&mut self) {
+        self.emitter_info = None;
+    }
+
     pub fn set_play_pos(&mut self, position: f64) {
         if let Some(handle) = &mut self.handle {
-            process_command_error(
-                handle.borrow_mut().seek_to(position),
-                "Cannot set sound position",
-            );
+            process_command_error(handle.seek_to(position), "Cannot set sound position");
         }
     }
 
     pub fn move_play_pos(&mut self, offset: f64) {
         if let Some(handle) = &mut self.handle {
-            process_command_error(
-                handle.borrow_mut().seek_by(offset),
-                "Cannot set sound position",
-            );
+            process_command_error(handle.seek_by(offset), "Cannot set sound position");
         }
+    }
+
+    pub fn set_emitter_pos(&mut self, position: &Vec3) {
+        if let Some(emitter_info) = &mut self.emitter_info {
+            process_command_error(
+                emitter_info
+                    .emitter
+                    .set_position(*position, Tween::default()),
+                "Cannot set sound emitter position",
+            );
+            emitter_info.position = *position;
+        }
+    }
+
+    pub fn emitter_pos(&self) -> Vec3 {
+        self.emitter_info
+            .as_ref()
+            .map(|emitter_info| emitter_info.position)
+            .unwrap_or(Vec3::MAX)
+    }
+
+    pub fn emitter_distance(&self, listener_pos: &Vec3) -> f32 {
+        self.emitter_info
+            .as_ref()
+            .map(|emitter_info| listener_pos.distance(emitter_info.position))
+            .unwrap_or(f32::MAX)
     }
 }

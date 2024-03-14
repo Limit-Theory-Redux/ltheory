@@ -760,6 +760,15 @@ impl RigidBody {
         }
     }
 
+    pub fn distance_to(&self, target: &RigidBody) -> f32 {
+        let my_position = self.get_position();
+        let target_position = target.get_position();
+
+        let distance = my_position.distance(target_position);
+
+        distance
+    }
+
     pub fn is_sleeping(&self) -> bool {
         self.rigid_body.as_ref().is_sleeping()
     }

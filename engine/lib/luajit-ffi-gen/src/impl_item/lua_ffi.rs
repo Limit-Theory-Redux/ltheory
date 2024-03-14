@@ -260,9 +260,8 @@ fn write_method_map<F: FnMut(String)>(
             method.as_ffi_name(),
         ));
         writer(format!(
-            "{ident}{IDENT}ffi.gc(instance, libphx.{gc_type}_Free)"
+            "{ident}{IDENT}return Core.ManagedObject(instance, libphx.{gc_type}_Free)"
         ));
-        writer(format!("{ident}{IDENT}return instance"));
         writer(format!("{ident}end,"));
     } else {
         writer(format!(

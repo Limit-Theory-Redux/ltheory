@@ -28,8 +28,7 @@ function Loader.defineType()
         Timer = {
             Create      = function(...)
                 local instance = libphx.Timer_Create(...)
-                ffi.gc(instance, libphx.Timer_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Timer_Free)
             end,
         }
 

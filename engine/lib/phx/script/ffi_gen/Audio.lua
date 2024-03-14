@@ -19,7 +19,11 @@ function Loader.defineType()
             void           Audio_Free           (Audio*);
             Audio*         Audio_Create         ();
             SoundInstance* Audio_Play           (Audio*, Sound* sound, double initVolume, uint64 fadeMillis);
-            void           Audio_SetListenerPos (Audio*, Vec3f const* pos, Quat const* rot);
+            SoundInstance* Audio_Play3D         (Audio*, Sound* sound, double initVolume, uint64 fadeMillis, Vec3f initPos, float minDistance, float maxDistance);
+            void           Audio_SetListenerPos (Audio*, Vec3f const* pos);
+            Vec3f          Audio_ListenerPos    (Audio const*);
+            void           Audio_SetListenerRot (Audio*, Quat const* rot);
+            Quat*          Audio_ListenerRot    (Audio const*);
             uint64         Audio_GetLoadedCount (Audio const*);
             uint64         Audio_GetTotalCount  (Audio const*);
         ]]
@@ -29,8 +33,7 @@ function Loader.defineType()
         Audio = {
             Create         = function(...)
                 local instance = libphx.Audio_Create(...)
-                ffi.gc(instance, libphx.Audio_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Audio_Free)
             end,
         }
 
@@ -44,10 +47,19 @@ function Loader.defineType()
             __index = {
                 play           = function(...)
                     local instance = libphx.Audio_Play(...)
-                    ffi.gc(instance, libphx.SoundInstance_Free)
-                    return instance
+                    return Core.ManagedObject(instance, libphx.SoundInstance_Free)
+                end,
+                play3D         = function(...)
+                    local instance = libphx.Audio_Play3D(...)
+                    return Core.ManagedObject(instance, libphx.SoundInstance_Free)
                 end,
                 setListenerPos = libphx.Audio_SetListenerPos,
+                listenerPos    = libphx.Audio_ListenerPos,
+                setListenerRot = libphx.Audio_SetListenerRot,
+                listenerRot    = function(...)
+                    local instance = libphx.Audio_ListenerRot(...)
+                    return Core.ManagedObject(instance, libphx.Quat_Free)
+                end,
                 getLoadedCount = libphx.Audio_GetLoadedCount,
                 getTotalCount  = libphx.Audio_GetTotalCount,
             },
