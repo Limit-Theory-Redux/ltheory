@@ -16,20 +16,18 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void   Sound_Free          (Sound*);
-            Sound* Sound_Load          (cstr path, bool isLooping);
-            float  Sound_GetDuration   (Sound const*);
-            cstr   Sound_GetPath       (Sound const*);
-            void   Sound_SetEmitterPos (Sound*, Vec3f const* position);
+            void   Sound_Free        (Sound*);
+            Sound* Sound_Load        (cstr path, bool isLooping);
+            float  Sound_GetDuration (Sound const*);
+            cstr   Sound_GetPath     (Sound const*);
         ]]
     end
 
     do -- Global Symbol Table
         Sound = {
-            Load          = function(...)
+            Load        = function(...)
                 local instance = libphx.Sound_Load(...)
-                ffi.gc(instance, libphx.Sound_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Sound_Free)
             end,
         }
 
@@ -41,9 +39,8 @@ function Loader.defineType()
         local t  = ffi.typeof('Sound')
         local mt = {
             __index = {
-                getDuration   = libphx.Sound_GetDuration,
-                getPath       = libphx.Sound_GetPath,
-                setEmitterPos = libphx.Sound_SetEmitterPos,
+                getDuration = libphx.Sound_GetDuration,
+                getPath     = libphx.Sound_GetPath,
             },
         }
 

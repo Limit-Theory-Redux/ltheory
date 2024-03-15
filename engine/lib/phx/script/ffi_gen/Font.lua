@@ -30,8 +30,7 @@ function Loader.defineType()
         Font = {
             Load          = function(...)
                 local instance = libphx.Font_Load(...)
-                ffi.gc(instance, libphx.Font_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Font_Free)
             end,
         }
 

@@ -244,8 +244,7 @@ function Loader.defineType()
                 clearStyle                     = libphx.HmGui_ClearStyle,
                 getPropertyType                = function(...)
                     local instance = libphx.HmGui_GetPropertyType(...)
-                    ffi.gc(instance, libphx.HmGuiPropertyType_Free)
-                    return instance
+                    return Core.ManagedObject(instance, libphx.HmGuiPropertyType_Free)
                 end,
                 mapProperty                    = libphx.HmGui_MapProperty,
                 removeProperty                 = libphx.HmGui_RemoveProperty,

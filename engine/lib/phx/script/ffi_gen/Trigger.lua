@@ -36,8 +36,7 @@ function Loader.defineType()
         Trigger = {
             CreateBox        = function(...)
                 local instance = libphx.Trigger_CreateBox(...)
-                ffi.gc(instance, libphx.Trigger_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Trigger_Free)
             end,
         }
 

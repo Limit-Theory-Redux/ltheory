@@ -32,13 +32,11 @@ function Loader.defineType()
         TimeStamp = {
             Now           = function(...)
                 local instance = libphx.TimeStamp_Now(...)
-                ffi.gc(instance, libphx.TimeStamp_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.TimeStamp_Free)
             end,
             GetFuture     = function(...)
                 local instance = libphx.TimeStamp_GetFuture(...)
-                ffi.gc(instance, libphx.TimeStamp_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.TimeStamp_Free)
             end,
         }
 
@@ -55,8 +53,7 @@ function Loader.defineType()
                 getElapsedMs  = libphx.TimeStamp_GetElapsedMs,
                 getRelative   = function(...)
                     local instance = libphx.TimeStamp_GetRelative(...)
-                    ffi.gc(instance, libphx.TimeStamp_Free)
-                    return instance
+                    return Core.ManagedObject(instance, libphx.TimeStamp_Free)
                 end,
                 toDouble      = libphx.TimeStamp_ToDouble,
                 toSeconds     = libphx.TimeStamp_ToSeconds,

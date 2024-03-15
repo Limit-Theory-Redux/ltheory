@@ -31,8 +31,7 @@ function Loader.defineType()
         Directory = {
             Open        = function(...)
                 local instance = libphx.Directory_Open(...)
-                ffi.gc(instance, libphx.Directory_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Directory_Free)
             end,
             Change      = libphx.Directory_Change,
             Create      = libphx.Directory_Create,

@@ -25,8 +25,7 @@ function Loader.defineType()
             GetPath    = libphx.Resource_GetPath,
             LoadBytes  = function(...)
                 local instance = libphx.Resource_LoadBytes(...)
-                ffi.gc(instance, libphx.Bytes_Free)
-                return instance
+                return Core.ManagedObject(instance, libphx.Bytes_Free)
             end,
             LoadString = libphx.Resource_LoadString,
         }
