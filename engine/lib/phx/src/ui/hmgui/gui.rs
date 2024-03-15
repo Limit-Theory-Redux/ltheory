@@ -348,31 +348,24 @@ impl HmGui {
         self.container = parent;
     }
 
-    pub fn begin_scroll(&mut self, _max_size: f32) {
-        let widget_rf = self.container.clone();
-        let mut widget = widget_rf.as_mut();
-        let widget_hash = widget.hash;
-        let container = widget.get_container_item_mut();
-
-        self.begin_horizontal_container();
-        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
-        self.set_spacing(2.0);
-
-        container.clip = true;
+    pub fn begin_scroll_area(&mut self) {
+        self.begin_stack_container();
 
         self.begin_vertical_container();
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
-        self.set_padding(6.0, 6.0);
 
-        container.store_size = true;
-
+        let widget_rf = self.container.clone();
+        let mut widget = widget_rf.as_mut();
+        let widget_hash = widget.hash;
         let data = self.get_data(widget_hash);
 
-        container.offset.x = -data.offset.x;
-        container.offset.y = -data.offset.y;
+        let container = widget.get_container_item_mut();
+        container.clip = true;
+        container.store_size = true;
+        container.offset = -data.offset;
     }
 
-    pub fn end_scroll(&mut self, input: &Input) {
+    pub fn end_scroll_area(&mut self, input: &Input) {
         let widget_rf = self.container.clone();
         let widget = widget_rf.as_ref();
         let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
@@ -383,8 +376,8 @@ impl HmGui {
             let scroll_x = input.mouse().value(MouseControl::ScrollX);
             let scroll_y = input.mouse().value(MouseControl::ScrollY);
 
-            data.offset.x -= 10.0 * scroll_x as f32;
-            data.offset.y -= 10.0 * scroll_y as f32;
+            data.offset.x -= 20.0 * scroll_x as f32;
+            data.offset.y -= 20.0 * scroll_y as f32;
         }
 
         let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
@@ -395,65 +388,65 @@ impl HmGui {
 
         self.end_container();
 
-        self.begin_vertical_container();
-        self.set_vertical_alignment(AlignVertical::Stretch);
-        self.set_spacing(0.0);
+        // self.begin_vertical_container();
+        // self.set_vertical_alignment(AlignVertical::Stretch);
+        // self.set_spacing(0.0);
 
-        if max_scroll_x > 0.0 {
-            let (handle_size, handle_pos) = {
-                let data = self.get_data(widget.hash);
-                let handle_size = data.size.x * (data.size.x / data.min_size.x);
-                let handle_pos = Lerp(
-                    0.0f64,
-                    (data.size.x - handle_size) as f64,
-                    (data.offset.x / max_scroll_x) as f64,
-                ) as f32;
+        // if max_scroll_x > 0.0 {
+        //     let (handle_size, handle_pos) = {
+        //         let data = self.get_data(widget.hash);
+        //         let handle_size = data.size.x * (data.size.x / data.min_size.x);
+        //         let handle_pos = Lerp(
+        //             0.0f64,
+        //             (data.size.x - handle_size) as f64,
+        //             (data.offset.x / max_scroll_x) as f64,
+        //         ) as f32;
 
-                (handle_size, handle_pos)
-            };
+        //         (handle_size, handle_pos)
+        //     };
 
-            self.rect(&Color::TRANSPARENT);
-            self.set_fixed_size(handle_pos, 4.0);
+        //     self.rect(&Color::TRANSPARENT);
+        //     self.set_fixed_size(handle_pos, 4.0);
 
-            let color_frame = self
-                .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
-                .clone();
+        //     let color_frame = self
+        //         .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
+        //         .clone();
 
-            self.rect(&color_frame);
-            self.set_fixed_size(handle_size, 4.0);
-        } else {
-            self.rect(&Color::TRANSPARENT);
-            self.set_fixed_size(16.0, 4.0);
-        }
+        //     self.rect(&color_frame);
+        //     self.set_fixed_size(handle_size, 4.0);
+        // } else {
+        //     self.rect(&Color::TRANSPARENT);
+        //     self.set_fixed_size(16.0, 4.0);
+        // }
 
-        if max_scroll_y > 0.0 {
-            let (handle_size, handle_pos) = {
-                let data = self.get_data(widget.hash);
-                let handle_size = data.size.y * (data.size.y / data.min_size.y);
-                let handle_pos = Lerp(
-                    0.0f64,
-                    (data.size.y - handle_size) as f64,
-                    (data.offset.y / max_scroll_y) as f64,
-                ) as f32;
+        // if max_scroll_y > 0.0 {
+        //     let (handle_size, handle_pos) = {
+        //         let data = self.get_data(widget.hash);
+        //         let handle_size = data.size.y * (data.size.y / data.min_size.y);
+        //         let handle_pos = Lerp(
+        //             0.0f64,
+        //             (data.size.y - handle_size) as f64,
+        //             (data.offset.y / max_scroll_y) as f64,
+        //         ) as f32;
 
-                (handle_size, handle_pos)
-            };
+        //         (handle_size, handle_pos)
+        //     };
 
-            self.rect(&Color::TRANSPARENT);
-            self.set_fixed_size(4.0, handle_pos);
+        //     self.rect(&Color::TRANSPARENT);
+        //     self.set_fixed_size(4.0, handle_pos);
 
-            let color_frame = self
-                .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
-                .clone();
+        //     let color_frame = self
+        //         .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
+        //         .clone();
 
-            self.rect(&color_frame);
-            self.set_fixed_size(4.0, handle_size);
-        } else {
-            self.rect(&Color::TRANSPARENT);
-            self.set_fixed_size(4.0, 16.0);
-        }
+        //     self.rect(&color_frame);
+        //     self.set_fixed_size(4.0, handle_size);
+        // } else {
+        //     self.rect(&Color::TRANSPARENT);
+        //     self.set_fixed_size(4.0, 16.0);
+        // }
 
-        self.end_container();
+        // self.end_container();
 
         self.end_container();
     }

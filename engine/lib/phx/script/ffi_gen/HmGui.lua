@@ -24,8 +24,8 @@ function Loader.defineType()
             void               HmGui_BeginVerticalContainer         (HmGui*);
             void               HmGui_BeginStackContainer            (HmGui*);
             void               HmGui_EndContainer                   (HmGui*);
-            void               HmGui_BeginScroll                    (HmGui*, float maxSize);
-            void               HmGui_EndScroll                      (HmGui*, Input const* input);
+            void               HmGui_BeginScrollArea                (HmGui*);
+            void               HmGui_EndScrollArea                  (HmGui*, Input const* input);
             void               HmGui_BeginWindow                    (HmGui*, cstr title, Input const* input);
             void               HmGui_EndWindow                      (HmGui*);
             void               HmGui_Spacer                         (HmGui*);
@@ -187,8 +187,8 @@ function Loader.defineType()
                 beginVerticalContainer         = libphx.HmGui_BeginVerticalContainer,
                 beginStackContainer            = libphx.HmGui_BeginStackContainer,
                 endContainer                   = libphx.HmGui_EndContainer,
-                beginScroll                    = libphx.HmGui_BeginScroll,
-                endScroll                      = libphx.HmGui_EndScroll,
+                beginScrollArea                = libphx.HmGui_BeginScrollArea,
+                endScrollArea                  = libphx.HmGui_EndScrollArea,
                 beginWindow                    = libphx.HmGui_BeginWindow,
                 endWindow                      = libphx.HmGui_EndWindow,
                 spacer                         = libphx.HmGui_Spacer,
