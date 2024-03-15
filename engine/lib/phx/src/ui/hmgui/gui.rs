@@ -973,19 +973,16 @@ impl HmGui {
     ///   It will map all properties with prefix "button.".
     pub fn map_property_group(&mut self, group: &str) {
         let prefix = format!("{group}.");
-        for (name, prop_info) in &mut self.property_registry.registry {
-            if name.starts_with(&prefix) {
-                let map_ids = &prop_info.map_ids;
-                if map_ids.is_empty() {
-                    return;
-                }
+        let property_ids: Vec<_> = self
+            .property_registry
+            .registry
+            .iter()
+            .enumerate()
+            .filter_map(|(property_id, (name, _))| name.starts_with(&prefix).then(|| property_id))
+            .collect();
 
-                for map_id in map_ids {
-                    self.element_style
-                        .properties
-                        .insert(*map_id, prop_info.property.clone());
-                }
-            }
+        for property_id in property_ids {
+            self.map_property(property_id);
         }
     }
 
