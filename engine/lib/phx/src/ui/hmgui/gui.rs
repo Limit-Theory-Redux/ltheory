@@ -505,11 +505,7 @@ impl HmGui {
     }
 
     pub fn button(&mut self, label: &str) -> bool {
-        self.map_property(HmGuiProperties::ButtonBorderWidthId.id());
-        self.map_property(HmGuiProperties::ButtonTextColorId.id());
-        self.map_property(HmGuiProperties::ButtonOpacityId.id());
-        self.map_property(HmGuiProperties::ButtonBackgroundColorId.id());
-        self.map_property(HmGuiProperties::ButtonHighlightColorId.id());
+        self.map_property_group("button");
 
         self.begin_stack_container();
         self.set_padding(8.0, 8.0);
@@ -969,6 +965,27 @@ impl HmGui {
 
         for map_id in map_ids {
             self.element_style.properties.insert(*map_id, prop.clone());
+        }
+    }
+
+    /// Write all properties values of the group into their mapped properties in the active element style.
+    /// Example: `gui.map_property_group("button")`
+    ///   It will map all properties with prefix "button.".
+    pub fn map_property_group(&mut self, group: &str) {
+        let prefix = format!("{group}.");
+        for (name, prop_info) in &mut self.property_registry.registry {
+            if name.starts_with(&prefix) {
+                let map_ids = &prop_info.map_ids;
+                if map_ids.is_empty() {
+                    return;
+                }
+
+                for map_id in map_ids {
+                    self.element_style
+                        .properties
+                        .insert(*map_id, prop_info.property.clone());
+                }
+            }
         }
     }
 

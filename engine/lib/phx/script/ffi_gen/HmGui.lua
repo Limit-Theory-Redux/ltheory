@@ -82,6 +82,7 @@ function Loader.defineType()
             void               HmGui_ClearStyle                     (HmGui*);
             HmGuiPropertyType* HmGui_GetPropertyType                (HmGui const*, uint64 id);
             void               HmGui_MapProperty                    (HmGui*, uint64 propertyId);
+            void               HmGui_MapPropertyGroup               (HmGui*, cstr group);
             void               HmGui_RemoveProperty                 (HmGui*, uint64 propertyId);
             uint64             HmGui_RegisterPropertyBool           (HmGui*, cstr name, bool value, cstr mapId);
             uint64             HmGui_RegisterPropertyI8             (HmGui*, cstr name, int8 value, cstr mapId);
@@ -247,6 +248,7 @@ function Loader.defineType()
                     return Core.ManagedObject(instance, libphx.HmGuiPropertyType_Free)
                 end,
                 mapProperty                    = libphx.HmGui_MapProperty,
+                mapPropertyGroup               = libphx.HmGui_MapPropertyGroup,
                 removeProperty                 = libphx.HmGui_RemoveProperty,
                 registerPropertyBool           = libphx.HmGui_RegisterPropertyBool,
                 registerPropertyI8             = libphx.HmGui_RegisterPropertyI8,

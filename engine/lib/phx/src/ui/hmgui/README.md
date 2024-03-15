@@ -274,6 +274,8 @@ Enums.Gui.ButtonTextColorId = Gui:registerPropertyVec4("button.text-color", Vec4
 -- button element
 function button(name)
 Gui:mapProperty(Enums.Gui.ButtonTextColorId) -- copy this property value into the "text.color"
+-- or alternatively map all Button properties - it will map all properties with the name containing "button." prefix
+Gui:mapPropertyGroup("button")
 ...
 Gui:text(name)
 ...
@@ -291,6 +293,7 @@ HmGui provides several methods allowing Lua scripters to manage element properti
 
 - `Gui:getPropertyType(id)`: returns property type
 - `Gui:mapProperty(id)`: copies property value to its mapped properties for the current following element. Should be used inside element function definition.
+- `Gui:mapPropertyGroup(group)`: copies group properties values which names starting with `group + "."` to their mapped properties for the current following element. Should be used inside element function definition.
 - `Gui:removeProperty(id)`: remove property from the current element style
 - `Gui:registerProperty*(name, value, map_id)`: register a new property with optional id of the mapped property
 - `Gui:setProperty*(id, value)`: set property value
@@ -348,6 +351,8 @@ function menu(variants)
 local borderWidth = Gui:getPropertyF32(Enums.Gui.MenuBorderWidthId)
 
 Gui:mapProperty(Enums.Gui.MenuItemTextColorId) -- copy this property value into the "menuitem.text-color"
+-- or alternatively map all MenuItem properties - it will map all properties with the name containing "manuitem." prefix
+Gui:mapPropertyGroup("menuitem")
 ...
 menu_item(variants[1])
 ...
