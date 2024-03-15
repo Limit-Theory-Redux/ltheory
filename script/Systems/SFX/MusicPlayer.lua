@@ -45,8 +45,10 @@ function MusicPlayer:OnUpdate(dt)
     elseif not self.currentlyPlaying and #self.queue > 0 then
         local trackNum = rng:getInt(1, #self.queue)
 
-        while trackNum == self.currentTrackNum do
-            trackNum = rng:getInt(1, #self.queue)
+        if #self.queue > 1 then
+            while trackNum == self.currentTrackNum do
+                trackNum = rng:getInt(1, #self.queue)
+            end
         end
 
         local track = self.queue[trackNum]
@@ -91,17 +93,16 @@ function MusicPlayer:QueueTrack(query, clearQueue)
 
     table.insert(self.queue, track)
 
-    -- Log.Debug("Queuing Track: " .. track.name)
+    Log.Debug("Queuing Track: " .. track.name)
     return track
 end
 
 function MusicPlayer:ClearQueue()
     if #self.queue > 0 then
-        --Log.Debug("MusicPlayer:ClearQueue: clearing entire queue")
+        Log.Debug("MusicPlayer:ClearQueue: clearing entire queue")
         self.queue = {}
         if self.currentlyPlaying then
-            self.currentlyPlaying:Pause()
-            self.currentlyPlaying:Rewind()
+            self.currentlyPlaying:Stop()
             self.currentlyPlaying = nil
         end
     end
@@ -110,8 +111,7 @@ end
 function MusicPlayer:ClearQueueTrack(query)
     if #self.queue > 0 then
         if self.currentlyPlaying and self.currentlyPlaying == query then
-            self.currentlyPlaying:Pause()
-            self.currentlyPlaying:Rewind()
+            self.currentlyPlaying:Stop()
             self.currentlyPlaying = nil
         end
         for i, track in ipairs(self.queue) do

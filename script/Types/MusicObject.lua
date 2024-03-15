@@ -32,8 +32,16 @@ function MusicObject:Play(volume, fadeInMS)
     end
 
     if SoundManager:canSoundPlay(soundGroup) then
+        Log.Debug("[MusicObject:Play] " .. self.name)
         self.instance = GameState.audio.manager:play(self.sound, vol, fadeInMS)
         SoundManager:addInstance(self.instance, soundGroup)
+    end
+end
+
+function MusicObject:Stop()
+    if self.instance then
+        self.instance:stop()
+        self.instance = nil
     end
 end
 
