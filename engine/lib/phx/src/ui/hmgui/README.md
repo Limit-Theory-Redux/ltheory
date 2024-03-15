@@ -262,9 +262,15 @@ prop.string: "Test"
 prop.font: ["NovaMono", 14]
 ```
 
+### Property group
+
+Any property that has a prefix in the name separated with "." can be accessed as a group property. See [Property mapping](#property-mapping) for details.
+
+Example: all properties from the section above can be treated as a members of the **prop** group.
+
 ### Property mapping
 
-This feature is used for automatically transferring a property value from one element to another. Let's take a `button` element as an example. The `button` element internally contains a `text` element that expects `text.font` and `text.color` properties. To preserve the benefits of Immediate Mode UI definition, properties cannot be set directly on an element. Instead, we define ("register") special variables that can be accessed from LuaJIT, and map these variables to the various properties of elements.
+This feature is used for automatically transferring a property value from one element to another. Let's take a `button` element as an example. The `button` element internally contains a `text` element that expects `text.font` and `text.color` properties. To preserve the benefits of Immediate Mode UI definition, properties cannot be set directly on an element. Instead, we register special variables that can be accessed from LuaJIT, and map these variables to the various properties of elements.
 
 In our `button` example, we first register `button.text-font` and `button.text-color`, then we map these to the corresponding `text` properties of `button`. Imagine we have defined a `button` element in Lua:
 ```lua
@@ -273,9 +279,7 @@ Enums.Gui.ButtonTextColorId = Gui:registerPropertyVec4("button.text-color", Vec4
 
 -- button element
 function button(name)
-Gui:mapProperty(Enums.Gui.ButtonTextColorId) -- copy this property value into the "text.color"
--- or alternatively map all Button properties - it will map all properties with the name containing "button." prefix
-Gui:mapPropertyGroup("button")
+Gui:mapPropertyGroup("button") -- map all Button properties - it will map all properties with the name containing "button." prefix
 ...
 Gui:text(name)
 ...
@@ -286,6 +290,7 @@ Gui:clearStyle()
 Gui:setPropertyColor(Enums.Gui.ButtonTextColorId, Color(0, 1, 0, 1))
 Gui:button("My button")
 ```
+It's recommended to add `Gui:mapPropertyGroup(group)` call at the beginning of every element declaration that has group properties (usually group name is the same as an element name).
 
 ### Property methods
 
@@ -348,11 +353,9 @@ Enums.Gui.MenuBorderWidthId = Gui:registerPropertyVec4("menu.border-width", 2, n
 Then this property can be used in the custom element definition:
 ```lua
 function menu(variants)
-local borderWidth = Gui:getPropertyF32(Enums.Gui.MenuBorderWidthId)
+Gui:mapPropertyGroup("menuitem") -- map all MenuItem properties - it will map all properties with the name containing "manuitem." prefix
 
-Gui:mapProperty(Enums.Gui.MenuItemTextColorId) -- copy this property value into the "menuitem.text-color"
--- or alternatively map all MenuItem properties - it will map all properties with the name containing "manuitem." prefix
-Gui:mapPropertyGroup("menuitem")
+local borderWidth = Gui:getPropertyF32(Enums.Gui.MenuBorderWidthId)
 ...
 menu_item(variants[1])
 ...
