@@ -43,8 +43,9 @@ impl HmGuiStyle {
     ) -> Self {
         let file = File::open(file_path).unwrap_or_else(|err| {
             panic!(
-                "Cannot load style file: {}. Error: {err}",
-                file_path.display()
+                "Cannot load style file: {}. Current folder: {:?}. Error: {err}",
+                file_path.display(),
+                std::env::current_dir(),
             )
         });
         let root_value: Value = serde_yaml::from_reader(&file).unwrap_or_else(|err| {
