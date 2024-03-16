@@ -367,44 +367,60 @@ impl HmGui {
     }
 
     pub fn end_scroll_area(&mut self, input: &Input) {
-        let widget_rf = self.container.clone();
-        let widget = widget_rf.as_ref();
-        let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
-
-        let data = self.get_data(widget.hash);
-
         let scroll = input.mouse().scroll();
 
-        let fade_scale = if is_mouse_over
-            && (scroll.length() > 0.3 || input.mouse().delta().length() > 0.5)
-        {
-            data.scrollbar_activation_time = Instant::now();
-            1.0
-        } else {
-            let elapsed_time = Instant::now() - data.scrollbar_activation_time;
-            let stable_time = Duration::from_millis(400);
-            let fade_time = Duration::from_millis(200);
+        let (max_scroll_x, max_scroll_y, inner_widget_hash) = {
+            let widget_rf = self.container.clone();
+            let widget = widget_rf.as_ref();
 
-            if elapsed_time <= stable_time {
-                1.0
-            } else if elapsed_time <= stable_time + fade_time {
-                1.0 - (elapsed_time - stable_time).as_millis() as f32 / fade_time.as_millis() as f32
-            } else {
-                0.0
-            }
+            let data = self.get_data(widget.hash);
+
+            let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
+            let max_scroll_y = f32::max(0.0, data.min_size.y - data.size.y);
+
+            data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
+            data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
+
+            self.end_container();
+
+            (max_scroll_x, max_scroll_y, widget.hash)
         };
 
-        if is_mouse_over {
-            data.offset -= scroll * 20.0;
-        }
+        let fade_scale = {
+            let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
 
-        let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
-        let max_scroll_y = f32::max(0.0, data.min_size.y - data.size.y);
+            let widget_rf = self.container.clone();
+            let widget = widget_rf.as_ref();
 
-        data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
-        data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
+            let data = self.get_data(widget.hash);
 
-        self.end_container();
+            let fade_scale = if is_mouse_over
+                && (scroll.length() > 0.3 || input.mouse().delta().length() > 0.5)
+            {
+                data.scrollbar_activation_time = Instant::now();
+                1.0
+            } else {
+                let elapsed_time = Instant::now() - data.scrollbar_activation_time;
+                let stable_time = Duration::from_millis(400);
+                let fade_time = Duration::from_millis(200);
+
+                if elapsed_time <= stable_time {
+                    1.0
+                } else if elapsed_time <= stable_time + fade_time {
+                    1.0 - (elapsed_time - stable_time).as_millis() as f32
+                        / fade_time.as_millis() as f32
+                } else {
+                    0.0
+                }
+            };
+
+            if is_mouse_over {
+                let data = self.get_data(inner_widget_hash);
+                data.offset -= scroll * 20.0;
+            }
+
+            fade_scale
+        };
 
         if fade_scale > 0.0 {
             let sb_length = 4.0;
@@ -421,7 +437,7 @@ impl HmGui {
 
             if max_scroll_x > 0.0 {
                 let (handle_size, handle_pos) = {
-                    let data = self.get_data(widget.hash);
+                    let data = self.get_data(inner_widget_hash);
                     let handle_size = data.size.x * (data.size.x / data.min_size.x);
                     let handle_pos = Lerp(
                         0.0f64,
@@ -454,7 +470,7 @@ impl HmGui {
 
             if max_scroll_y > 0.0 {
                 let (handle_size, handle_pos) = {
-                    let data = self.get_data(widget.hash);
+                    let data = self.get_data(inner_widget_hash);
                     let handle_size = data.size.y * (data.size.y / data.min_size.y);
                     let handle_pos = Lerp(
                         0.0f64,
