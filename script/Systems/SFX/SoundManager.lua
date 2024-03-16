@@ -79,9 +79,9 @@ function SoundManager:clean(dt)
             end
         end
 
-        if instanceCount > 0 then
-            Log.Debug("[SoundManager] Cleaned " .. instanceCount .. " SoundInstance")
-        end
+        -- if instanceCount > 0 then
+        --     Log.Debug("[SoundManager] Cleaned " .. instanceCount .. " SoundInstance")
+        -- end
 
         self.lastClean = TimeStamp.Now()
     end
