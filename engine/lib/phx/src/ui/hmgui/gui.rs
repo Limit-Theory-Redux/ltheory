@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 use glam::*;
 
@@ -372,12 +373,29 @@ impl HmGui {
 
         let data = self.get_data(widget.hash);
 
-        if is_mouse_over {
-            let scroll_x = input.mouse().value(MouseControl::ScrollX);
-            let scroll_y = input.mouse().value(MouseControl::ScrollY);
+        let scroll = input.mouse().scroll();
 
-            data.offset.x -= 20.0 * scroll_x as f32;
-            data.offset.y -= 20.0 * scroll_y as f32;
+        let fade_scale = if is_mouse_over
+            && (scroll.length() > 0.3 || input.mouse().delta().length() > 0.5)
+        {
+            data.scrollbar_activation_time = Instant::now();
+            1.0
+        } else {
+            let elapsed_time = Instant::now() - data.scrollbar_activation_time;
+            let stable_time = Duration::from_millis(400);
+            let fade_time = Duration::from_millis(200);
+
+            if elapsed_time <= stable_time {
+                1.0
+            } else if elapsed_time <= stable_time + fade_time {
+                1.0 - (elapsed_time - stable_time).as_millis() as f32 / fade_time.as_millis() as f32
+            } else {
+                0.0
+            }
+        };
+
+        if is_mouse_over {
+            data.offset -= scroll * 20.0;
         }
 
         let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
@@ -388,65 +406,81 @@ impl HmGui {
 
         self.end_container();
 
-        // self.begin_vertical_container();
-        // self.set_vertical_alignment(AlignVertical::Stretch);
-        // self.set_spacing(0.0);
+        if fade_scale > 0.0 {
+            let sb_length = 4.0;
+            let sb_bg_color = Color::new(0.3, 0.3, 0.3, 0.3 * fade_scale);
+            let mut sb_knob_color = self
+                .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
+                .clone();
 
-        // if max_scroll_x > 0.0 {
-        //     let (handle_size, handle_pos) = {
-        //         let data = self.get_data(widget.hash);
-        //         let handle_size = data.size.x * (data.size.x / data.min_size.x);
-        //         let handle_pos = Lerp(
-        //             0.0f64,
-        //             (data.size.x - handle_size) as f64,
-        //             (data.offset.x / max_scroll_x) as f64,
-        //         ) as f32;
+            sb_knob_color.a *= fade_scale;
 
-        //         (handle_size, handle_pos)
-        //     };
+            self.begin_horizontal_container();
+            self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Bottom);
+            self.set_spacing(0.0);
 
-        //     self.rect(&Color::TRANSPARENT);
-        //     self.set_fixed_size(handle_pos, 4.0);
+            if max_scroll_x > 0.0 {
+                let (handle_size, handle_pos) = {
+                    let data = self.get_data(widget.hash);
+                    let handle_size = data.size.x * (data.size.x / data.min_size.x);
+                    let handle_pos = Lerp(
+                        0.0f64,
+                        (data.size.x - handle_size) as f64,
+                        (data.offset.x / max_scroll_x) as f64,
+                    ) as f32;
 
-        //     let color_frame = self
-        //         .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
-        //         .clone();
+                    (handle_size, handle_pos)
+                };
 
-        //     self.rect(&color_frame);
-        //     self.set_fixed_size(handle_size, 4.0);
-        // } else {
-        //     self.rect(&Color::TRANSPARENT);
-        //     self.set_fixed_size(16.0, 4.0);
-        // }
+                self.rect(&sb_bg_color);
+                self.set_fixed_size(handle_pos, sb_length);
 
-        // if max_scroll_y > 0.0 {
-        //     let (handle_size, handle_pos) = {
-        //         let data = self.get_data(widget.hash);
-        //         let handle_size = data.size.y * (data.size.y / data.min_size.y);
-        //         let handle_pos = Lerp(
-        //             0.0f64,
-        //             (data.size.y - handle_size) as f64,
-        //             (data.offset.y / max_scroll_y) as f64,
-        //         ) as f32;
+                self.rect(&sb_knob_color);
+                self.set_fixed_size(handle_size, sb_length);
 
-        //         (handle_size, handle_pos)
-        //     };
+                self.rect(&sb_bg_color);
+                self.set_fixed_height(sb_length);
+                self.set_horizontal_alignment(AlignHorizontal::Stretch);
+            } else {
+                // self.rect(&sb_bg_color);
+                // self.set_fixed_size(16.0, sb_length);
+            }
 
-        //     self.rect(&Color::TRANSPARENT);
-        //     self.set_fixed_size(4.0, handle_pos);
+            self.end_container();
 
-        //     let color_frame = self
-        //         .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
-        //         .clone();
+            self.begin_vertical_container();
+            self.set_alignment(AlignHorizontal::Right, AlignVertical::Stretch);
+            self.set_spacing(0.0);
 
-        //     self.rect(&color_frame);
-        //     self.set_fixed_size(4.0, handle_size);
-        // } else {
-        //     self.rect(&Color::TRANSPARENT);
-        //     self.set_fixed_size(4.0, 16.0);
-        // }
+            if max_scroll_y > 0.0 {
+                let (handle_size, handle_pos) = {
+                    let data = self.get_data(widget.hash);
+                    let handle_size = data.size.y * (data.size.y / data.min_size.y);
+                    let handle_pos = Lerp(
+                        0.0f64,
+                        (data.size.y - handle_size) as f64,
+                        (data.offset.y / max_scroll_y) as f64,
+                    ) as f32;
 
-        // self.end_container();
+                    (handle_size, handle_pos)
+                };
+
+                self.rect(&sb_bg_color);
+                self.set_fixed_size(sb_length, handle_pos);
+
+                self.rect(&sb_knob_color);
+                self.set_fixed_size(sb_length, handle_size);
+
+                self.rect(&sb_bg_color);
+                self.set_fixed_width(sb_length);
+                self.set_vertical_alignment(AlignVertical::Stretch);
+            } else {
+                // self.rect(&sb_bg_color);
+                // self.set_fixed_size(sb_length, 16.0);
+            }
+
+            self.end_container();
+        }
 
         self.end_container();
     }
