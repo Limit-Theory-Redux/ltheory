@@ -29,7 +29,7 @@ function MusicPlayer:SetVolume(volume, fadeMS)
     GameState.audio.musicVolume = volume
 
     for _, soundObject in ipairs(self.trackList) do
-        Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, volume)
+        -- Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, volume)
         soundObject:SetVolume(volume, fadeMS)
     end
 end
@@ -54,7 +54,7 @@ function MusicPlayer:OnUpdate(dt)
         local track = self.queue[trackNum]
         self.currentlyPlaying = track -- randomly pick one of the queued tracks
         self.currentTrackNum = trackNum
-        Log.Debug("*** MusicPlayer:OnUpdate: playing tracknum %d '%s' with volume %s", trackNum, track.name, self.volume)
+        -- Log.Debug("*** MusicPlayer:OnUpdate: playing tracknum %d '%s' with volume %s", trackNum, track.name, self.volume)
         self.currentlyPlaying:Play(self.volume, 2000)
     end
 end
@@ -67,7 +67,7 @@ function MusicPlayer:PlayAmbient()
         if not string.match(soundObject.name, Config.audio.general.mainMenu) then
             -- ignore main menu
             -- replace this with music types later
-            Log.Debug("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)
+            -- Log.Debug("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)
             MusicPlayer:QueueTrack(soundObject, false)
         end
     end
@@ -83,7 +83,7 @@ function MusicPlayer:QueueTrack(query, clearQueue)
     local track = self:FindTrack(query)
 
     if not track then
-        Log.Debug("No track found for query")
+        Log.Warn("No track found for query")
         return
     end
 
@@ -93,13 +93,13 @@ function MusicPlayer:QueueTrack(query, clearQueue)
 
     table.insert(self.queue, track)
 
-    Log.Debug("Queuing Track: " .. track.name)
+    -- Log.Debug("Queuing Track: " .. track.name)
     return track
 end
 
 function MusicPlayer:ClearQueue()
     if #self.queue > 0 then
-        Log.Debug("MusicPlayer:ClearQueue: clearing entire queue")
+        -- Log.Debug("MusicPlayer:ClearQueue: clearing entire queue")
         self.queue = {}
         if self.currentlyPlaying then
             self.currentlyPlaying:Stop()
@@ -116,7 +116,7 @@ function MusicPlayer:ClearQueueTrack(query)
         end
         for i, track in ipairs(self.queue) do
             if track == query then
-                Log.Debug("MusicPlayer:ClearQueueTrack: clearing queued track '%s'", query.name)
+                -- Log.Debug("MusicPlayer:ClearQueueTrack: clearing queued track '%s'", query.name)
                 table.remove(self.queue, i)
                 break
             end
@@ -127,7 +127,7 @@ end
 function MusicPlayer:StartTrack(query, fadeInMS)
     local track = self:FindTrack(query)
     if self.currentlyPlaying ~= track then
-        Log.Debug("MusicPlayer:StartTrack: playing track '%s' with volume %s", track.name, self.volume)
+        -- Log.Debug("MusicPlayer:StartTrack: playing track '%s' with volume %s", track.name, self.volume)
         track:Rewind()
         track:Play(self.volume, fadeInMS)
         self.currentlyPlaying = track
@@ -137,7 +137,7 @@ end
 function MusicPlayer:StopTrack(query)
     local track = self:FindTrack(query)
     if track and self.currentlyPlaying == track then
-        Log.Debug("MusicPlayer:StopTrack: stopping track '%s'", track.name)
+        -- Log.Debug("MusicPlayer:StopTrack: stopping track '%s'", track.name)
         track:Pause()
         track:Rewind()
         self.currentlyPlaying = nil

@@ -8,7 +8,7 @@ function MusicObject:Create(arg)
         Log.Warn("Cannot create MusicObject")
         return
     end
-    Log.Debug("MusicObject: create new sound: " .. arg.name)
+    -- Log.Debug("MusicObject: create new sound: " .. arg.name)
 
     local object = {}
     object.name = arg.name
@@ -32,7 +32,7 @@ function MusicObject:Play(volume, fadeInMS)
     end
 
     if SoundManager:canSoundPlay(soundGroup) then
-        Log.Debug("[MusicObject:Play] " .. self.name)
+        -- Log.Debug("[MusicObject:Play] " .. self.name)
         self.instance = GameState.audio.manager:play(self.sound, vol, fadeInMS)
         SoundManager:addInstance(self.instance, soundGroup)
     end
