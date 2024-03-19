@@ -367,8 +367,6 @@ impl HmGui {
     }
 
     pub fn end_scroll_area(&mut self, input: &Input) {
-        let scroll = input.mouse().scroll();
-
         let (max_scroll_x, max_scroll_y, inner_widget_hash) = {
             let widget_rf = self.container.clone();
             let widget = widget_rf.as_ref();
@@ -388,6 +386,12 @@ impl HmGui {
 
         let fade_scale = {
             let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
+            let mut scroll = input.mouse().scroll();
+
+            if input.keyboard().is_down(KeyboardButton::ShiftLeft) {
+                let scroll_x = scroll.y;
+                scroll = Vec2::new(scroll_x, 0.0);
+            }
 
             let widget_rf = self.container.clone();
             let widget = widget_rf.as_ref();
