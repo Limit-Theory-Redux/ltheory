@@ -305,8 +305,8 @@ impl Physics {
         let ray = rp::Ray::new(from, dir / length);
         let filter = rp::QueryFilter::default().groups(rp::InteractionGroups::new(
             0xFFFFFFFF.into(),
-            0xFFFFFFFE.into(),
-        )); //* Allow all groups except player ship (group 1)
+            0xFFFFFFFC.into(),
+        )); //* Allow all groups except triggers & player ship (group 1, 2)
 
         let mut result = RayCastResult {
             body: std::ptr::null_mut(),

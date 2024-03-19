@@ -30,6 +30,7 @@ local boundingTest        = true
 local scaleTest           = true
 local worldTriggerTest    = true
 local attachedTriggerTest = true
+local rayCastTest         = true
 local printCounts         = false
 
 local print_              = print
@@ -124,8 +125,10 @@ function LTheory:generate()
 end
 
 function LTheory:onInit()
-    self.player = Entities.Player()
-    GameState.player.humanPlayer = self.player
+    Systems.SFX.SoundManager:init()
+
+    self.player                                    = Entities.Player()
+    GameState.player.humanPlayer                   = self.player
 
     GameState.debug.physics.drawBoundingBoxesLocal = false
     GameState.debug.physics.drawBoundingBoxesWorld = false
@@ -217,17 +220,34 @@ function LTheory:onUpdate(dt)
     local collision = Collision()
     local collisions = {}
     while (self.system.physics:getNextCollision(collision)) do
-        table.insert(collisions, string.format('Collision %d between %s and %s', collision.index, tostring(collision.body0), tostring(collision.body1)))
+        table.insert(collisions,
+            string.format('Collision %d between %s and %s', collision.index, tostring(collision.body0),
+                tostring(collision.body1)))
+    end
+
+    if rayCastTest then
+        local camera = self.gameView.camera
+        local ray = camera:mouseToRay(50000)
+
+        local rayCastResult = self.system.physics:rayCast(ray)
+        local hit = rayCastResult.body
+        local entity = Entity.fromRigidBody(hit)
+
+        if hit and entity and entity:getName() then
+            print_(ray, entity:getName())
+        end
     end
 
     Gui:beginGui(self.resX, self.resY, InputInstance)
     Gui:beginVerticalContainer()
 
-    Gui:textEx(Cache.Font('Iceland', 32), string.format('Collision Count: %d', collision.count), 1.0, 1.0, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Iceland', 32), string.format('Collision Count: %d', collision.count),
+        Color(1.0, 1.0, 1.0, 1.0))
 
     if worldTriggerTest then
         local triggerCount = self.trigger1:getContentsCount()
-        Gui:textEx(Cache.Font('Iceland', 32), string.format('World Trigger Count: %d', triggerCount), 1.0, 1.0, 1.0, 1.0)
+        Gui:textEx(Cache.Font('Iceland', 32), string.format('World Trigger Count: %d', triggerCount),
+            Color(1.0, 1.0, 1.0, 1.0))
         for i = 1, triggerCount do
             self.trigger1:getContents(i - 1)
         end
@@ -235,14 +255,15 @@ function LTheory:onUpdate(dt)
 
     if attachedTriggerTest then
         local triggerCount = self.trigger2:getContentsCount()
-        Gui:textEx(Cache.Font('Iceland', 32), string.format('Attached Trigger Count: %d', triggerCount), 1.0, 1.0, 1.0, 1.0)
+        Gui:textEx(Cache.Font('Iceland', 32), string.format('Attached Trigger Count: %d', triggerCount),
+            Color(1.0, 1.0, 1.0, 1.0))
         for i = 1, triggerCount do
             self.trigger2:getContents(i - 1)
         end
     end
 
     for k, v in ipairs(collisions) do
-        Gui:textEx(Cache.Font('Iceland', 32), v, 1.0, 1.0, 1.0, 1.0)
+        Gui:textEx(Cache.Font('Iceland', 32), v, Color(1.0, 1.0, 1.0, 1.0))
     end
 
     Gui:endContainer()

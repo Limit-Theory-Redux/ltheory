@@ -90,7 +90,10 @@ impl Trigger {
         .build();
         Trigger {
             collider: ColliderWrapper::Removed(collider),
-            collision_group: rp::InteractionGroups::all(),
+            collision_group: rp::InteractionGroups::new(
+                0x1.into(),        // trigger group
+                0xFFFFFFFF.into(), // interact with all groups
+            ),
             parent: None,
             contents_cache: vec![],
         }
