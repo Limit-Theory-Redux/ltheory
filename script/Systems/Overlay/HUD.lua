@@ -1173,13 +1173,14 @@ function HUD:drawTargets(a)
                     local ndcMax = max(abs(ndc.x), abs(ndc.y))
 
                     local system = player:getRoot()
-                    local hit = system.physics:rayCast(ray).body
+                    local rayCastResult = system.physics:rayCast(ray)
+                    local hit = rayCastResult.body
                     local alphaOverwrite = nil
 
                     if hit ~= nil then
                         while hit:getParentBody() ~= nil do hit = hit:getParentBody() end
                         local hitEnt = Entity.fromRigidBody(hit)
-                        --
+
                         if hitEnt ~= target then
                             alphaOverwrite = math.max(0, math.min(GameState.ui.trackerObjectOcclusion, 1.0))
                         end

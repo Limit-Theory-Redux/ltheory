@@ -62,6 +62,7 @@ function Universe:CreateStarSystem(seed)
         local playerShip = self:CreateShip(system, nil, shipObject)
 
         GameState.player.currentShip = playerShip
+        GameState.player.currentShip.body:setCollisionGroup(Enums.CollisionGroups.PlayerShip) -- PlayerShip Collision Group
 
         Log.Debug("Added our ship, the '%s', at pos %s", playerShip:getName(), playerShip:getPos())
 

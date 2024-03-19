@@ -142,6 +142,7 @@ function LTheoryRedux:onInput()
             }
 
             GameState.player.currentShip = Universe:CreateShip(GameState.world.currentSystem, nil, shipObject)
+            GameState.player.currentShip.body:setCollisionGroup(Enums.CollisionGroups.PlayerShip) -- PlayerShip Collision Group
         end
 
         if InputInstance:isPressed(Button.KeyboardF) then

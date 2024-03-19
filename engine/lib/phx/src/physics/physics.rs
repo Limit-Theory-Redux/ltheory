@@ -303,7 +303,10 @@ impl Physics {
         let length = dir.norm();
 
         let ray = rp::Ray::new(from, dir / length);
-        let filter = rp::QueryFilter::default();
+        let filter = rp::QueryFilter::default().groups(rp::InteractionGroups::new(
+            0xFFFFFFFF.into(),
+            0xFFFFFFFE.into(),
+        )); //* Allow all groups except player ship (group 1)
 
         let mut result = RayCastResult {
             body: std::ptr::null_mut(),

@@ -146,15 +146,22 @@ function Camera:entityToScreenRect(entity)
 end
 
 function Camera:ndcToRay(ndc, length)
-    ndc.z = 0.9
+    -- Transform NDC to view space
     local vs = self:ndcToView(ndc)
-    local ws = self:viewToWorld(vs)
 
-    -- NOTE : Calculate dir in View Space to avoid catastrophic cancellation
-    ndc.z = 0.99
-    local vs_p1 = self:ndcToView(ndc)
-    local vs_dir = vs_p1 - vs
+    -- Calculate ray direction in view space
+    local vs_dir
+    if vs:lengthSquared() < 1e-12 then -- prevent zero len vector error
+        vs_dir = Vec3f(0, 0, 0)
+    else
+        vs_dir = vs:normalize()
+    end
+
+    -- Transform view space direction to world space
     local dir = self.mViewInv:mulDir(vs_dir):normalize()
+
+    -- Transform view space origin to world space
+    local ws = self:viewToWorld(vs)
 
     return Ray(ws.x, ws.y, ws.z, dir.x, dir.y, dir.z, 0, length)
 end
