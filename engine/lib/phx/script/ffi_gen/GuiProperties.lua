@@ -16,13 +16,21 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            GuiProperties GuiProperties_OpacityId;
+            GuiProperties GuiProperties_BackgroundColorId;
+            GuiProperties GuiProperties_HighlightColorId;
+            GuiProperties GuiProperties_TextFontId;
+            GuiProperties GuiProperties_TextColorId;
             GuiProperties GuiProperties_ContainerSpacingId;
             GuiProperties GuiProperties_ContainerColorFrameId;
             GuiProperties GuiProperties_ContainerColorPrimaryId;
-            GuiProperties GuiProperties_TextFontId;
-            GuiProperties GuiProperties_TextColorId;
             GuiProperties GuiProperties_ButtonBorderWidthId;
             GuiProperties GuiProperties_ButtonTextColorId;
+            GuiProperties GuiProperties_ButtonOpacityId;
+            GuiProperties GuiProperties_ButtonBackgroundColorId;
+            GuiProperties GuiProperties_ButtonHighlightColorId;
+            GuiProperties GuiProperties_CheckboxBackgroundColorId;
+            GuiProperties GuiProperties_CheckboxHighlightColorId;
 
             cstr          GuiProperties_ToString(GuiProperties);
         ]]
@@ -30,15 +38,23 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         GuiProperties = {
-            ContainerSpacingId      = libphx.GuiProperties_ContainerSpacingId,
-            ContainerColorFrameId   = libphx.GuiProperties_ContainerColorFrameId,
-            ContainerColorPrimaryId = libphx.GuiProperties_ContainerColorPrimaryId,
-            TextFontId              = libphx.GuiProperties_TextFontId,
-            TextColorId             = libphx.GuiProperties_TextColorId,
-            ButtonBorderWidthId     = libphx.GuiProperties_ButtonBorderWidthId,
-            ButtonTextColorId       = libphx.GuiProperties_ButtonTextColorId,
+            OpacityId                 = libphx.GuiProperties_OpacityId,
+            BackgroundColorId         = libphx.GuiProperties_BackgroundColorId,
+            HighlightColorId          = libphx.GuiProperties_HighlightColorId,
+            TextFontId                = libphx.GuiProperties_TextFontId,
+            TextColorId               = libphx.GuiProperties_TextColorId,
+            ContainerSpacingId        = libphx.GuiProperties_ContainerSpacingId,
+            ContainerColorFrameId     = libphx.GuiProperties_ContainerColorFrameId,
+            ContainerColorPrimaryId   = libphx.GuiProperties_ContainerColorPrimaryId,
+            ButtonBorderWidthId       = libphx.GuiProperties_ButtonBorderWidthId,
+            ButtonTextColorId         = libphx.GuiProperties_ButtonTextColorId,
+            ButtonOpacityId           = libphx.GuiProperties_ButtonOpacityId,
+            ButtonBackgroundColorId   = libphx.GuiProperties_ButtonBackgroundColorId,
+            ButtonHighlightColorId    = libphx.GuiProperties_ButtonHighlightColorId,
+            CheckboxBackgroundColorId = libphx.GuiProperties_CheckboxBackgroundColorId,
+            CheckboxHighlightColorId  = libphx.GuiProperties_CheckboxHighlightColorId,
 
-            ToString                = libphx.GuiProperties_ToString,
+            ToString                  = libphx.GuiProperties_ToString,
         }
 
         if onDef_GuiProperties then onDef_GuiProperties(GuiProperties, mt) end

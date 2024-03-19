@@ -57,10 +57,10 @@ impl UIRendererLayer {
                     Shader_SetFloat2(c_str!("size"), sx, sy);
                     Shader_SetFloat4(
                         c_str!("color"),
-                        panel.color.x,
-                        panel.color.y,
-                        panel.color.z,
-                        panel.color.w,
+                        panel.color.r,
+                        panel.color.g,
+                        panel.color.b,
+                        panel.color.a,
                     );
 
                     Draw_Rect(x, y, sx, sy);

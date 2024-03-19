@@ -56,6 +56,30 @@ impl Color {
         Self { r, g, b, a }
     }
 
+    pub fn with_red(self, r: f32) -> Self {
+        assert!(0.0 <= r && r <= 1.0);
+
+        Self { r, ..self }
+    }
+
+    pub fn with_green(self, g: f32) -> Self {
+        assert!(0.0 <= g && g <= 1.0);
+
+        Self { g, ..self }
+    }
+
+    pub fn with_blue(self, b: f32) -> Self {
+        assert!(0.0 <= b && b <= 1.0);
+
+        Self { b, ..self }
+    }
+
+    pub fn with_alpha(self, a: f32) -> Self {
+        assert!(0.0 <= a && a <= 1.0);
+
+        Self { a, ..self }
+    }
+
     /// Convert HSL color to RGB
     pub fn from_hsl(h: f32, s: f32, l: f32, a: f32) -> Self {
         if s == 0.0 {

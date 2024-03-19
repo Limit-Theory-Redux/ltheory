@@ -93,7 +93,7 @@ impl UIRenderer {
         }
     }
 
-    pub fn panel(&mut self, pos: Vec2, size: Vec2, color: Vec4, bevel: f32, inner_alpha: f32) {
+    pub fn panel(&mut self, pos: Vec2, size: Vec2, color: Color, bevel: f32, inner_alpha: f32) {
         if let Some(current_layer_id) = self.current_layer_id {
             let next = self.layers[*current_layer_id].panel_id;
             let item = UIRendererPanel {

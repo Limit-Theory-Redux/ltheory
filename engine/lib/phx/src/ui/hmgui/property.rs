@@ -33,7 +33,7 @@ pub struct HmGuiPropertyInfo {
 
 macro_rules! decl_property {
     ($($v:ident($ty:ident),)*) => {
-        #[derive(Clone, PartialEq)]
+        #[derive(Clone, Debug, PartialEq)]
         pub enum HmGuiProperty {
             $($v($ty)),*
         }
