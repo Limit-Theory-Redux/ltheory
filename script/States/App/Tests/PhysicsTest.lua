@@ -154,7 +154,7 @@ function LTheory:onInput()
             local asteroid = asteroids[i]
 
             -- Attach/detach
-            if InputInstance:isPressed(Button.KeyboardReturn) then
+            if InputInstance:isPressed(Button.KeyboardEnter) then
                 local parent = asteroid:getParentBody()
                 if parent == nil then
                     self.system:removeChild(asteroid)
@@ -170,7 +170,7 @@ function LTheory:onInput()
                 local scale = asteroid:getScale()
                 if scale > 1 then asteroid:setScale(scale - 1) end
             end
-            if InputInstance:isPressed(Button.KeyboardEquals) then
+            if InputInstance:isPressed(Button.KeyboardEqual) then
                 local scale = asteroid:getScale()
                 asteroid:setScale(scale + 1)
             end

@@ -94,9 +94,7 @@ pub enum CursorIcon {
     /// A simple crosshair.
     Crosshair,
     /// A hand (often used to indicate links in web browsers).
-    Hand,
-    /// An arrow. This is the default cursor on most systems.
-    Arrow,
+    Pointer,
     /// Indicates something is to be moved.
     Move,
     /// Indicates text that may be selected or edited.

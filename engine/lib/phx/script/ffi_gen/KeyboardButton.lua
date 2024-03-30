@@ -16,6 +16,12 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            KeyboardButton KeyboardButton_Backquote;
+            KeyboardButton KeyboardButton_Backslash;
+            KeyboardButton KeyboardButton_BracketLeft;
+            KeyboardButton KeyboardButton_BracketRight;
+            KeyboardButton KeyboardButton_Comma;
+            KeyboardButton KeyboardButton_Key0;
             KeyboardButton KeyboardButton_Key1;
             KeyboardButton KeyboardButton_Key2;
             KeyboardButton KeyboardButton_Key3;
@@ -25,7 +31,10 @@ function Loader.defineType()
             KeyboardButton KeyboardButton_Key7;
             KeyboardButton KeyboardButton_Key8;
             KeyboardButton KeyboardButton_Key9;
-            KeyboardButton KeyboardButton_Key0;
+            KeyboardButton KeyboardButton_Equal;
+            KeyboardButton KeyboardButton_IntlBackslash;
+            KeyboardButton KeyboardButton_IntlRo;
+            KeyboardButton KeyboardButton_IntlYen;
             KeyboardButton KeyboardButton_A;
             KeyboardButton KeyboardButton_B;
             KeyboardButton KeyboardButton_C;
@@ -52,7 +61,120 @@ function Loader.defineType()
             KeyboardButton KeyboardButton_X;
             KeyboardButton KeyboardButton_Y;
             KeyboardButton KeyboardButton_Z;
+            KeyboardButton KeyboardButton_Minus;
+            KeyboardButton KeyboardButton_Period;
+            KeyboardButton KeyboardButton_Quote;
+            KeyboardButton KeyboardButton_Semicolon;
+            KeyboardButton KeyboardButton_Slash;
+            KeyboardButton KeyboardButton_AltLeft;
+            KeyboardButton KeyboardButton_AltRight;
+            KeyboardButton KeyboardButton_Backspace;
+            KeyboardButton KeyboardButton_CapsLock;
+            KeyboardButton KeyboardButton_ContextMenu;
+            KeyboardButton KeyboardButton_ControlLeft;
+            KeyboardButton KeyboardButton_ControlRight;
+            KeyboardButton KeyboardButton_Enter;
+            KeyboardButton KeyboardButton_SuperLeft;
+            KeyboardButton KeyboardButton_SuperRight;
+            KeyboardButton KeyboardButton_ShiftLeft;
+            KeyboardButton KeyboardButton_ShiftRight;
+            KeyboardButton KeyboardButton_Space;
+            KeyboardButton KeyboardButton_Tab;
+            KeyboardButton KeyboardButton_Convert;
+            KeyboardButton KeyboardButton_KanaMode;
+            KeyboardButton KeyboardButton_Lang1;
+            KeyboardButton KeyboardButton_Lang2;
+            KeyboardButton KeyboardButton_Lang3;
+            KeyboardButton KeyboardButton_Lang4;
+            KeyboardButton KeyboardButton_Lang5;
+            KeyboardButton KeyboardButton_NonConvert;
+            KeyboardButton KeyboardButton_Delete;
+            KeyboardButton KeyboardButton_End;
+            KeyboardButton KeyboardButton_Help;
+            KeyboardButton KeyboardButton_Home;
+            KeyboardButton KeyboardButton_Insert;
+            KeyboardButton KeyboardButton_PageDown;
+            KeyboardButton KeyboardButton_PageUp;
+            KeyboardButton KeyboardButton_Down;
+            KeyboardButton KeyboardButton_Left;
+            KeyboardButton KeyboardButton_Right;
+            KeyboardButton KeyboardButton_Up;
+            KeyboardButton KeyboardButton_NumLock;
+            KeyboardButton KeyboardButton_Numpad0;
+            KeyboardButton KeyboardButton_Numpad1;
+            KeyboardButton KeyboardButton_Numpad2;
+            KeyboardButton KeyboardButton_Numpad3;
+            KeyboardButton KeyboardButton_Numpad4;
+            KeyboardButton KeyboardButton_Numpad5;
+            KeyboardButton KeyboardButton_Numpad6;
+            KeyboardButton KeyboardButton_Numpad7;
+            KeyboardButton KeyboardButton_Numpad8;
+            KeyboardButton KeyboardButton_Numpad9;
+            KeyboardButton KeyboardButton_NumpadAdd;
+            KeyboardButton KeyboardButton_NumpadBackspace;
+            KeyboardButton KeyboardButton_NumpadClear;
+            KeyboardButton KeyboardButton_NumpadClearEntry;
+            KeyboardButton KeyboardButton_NumpadComma;
+            KeyboardButton KeyboardButton_NumpadDecimal;
+            KeyboardButton KeyboardButton_NumpadDivide;
+            KeyboardButton KeyboardButton_NumpadEnter;
+            KeyboardButton KeyboardButton_NumpadEqual;
+            KeyboardButton KeyboardButton_NumpadHash;
+            KeyboardButton KeyboardButton_NumpadMemoryAdd;
+            KeyboardButton KeyboardButton_NumpadMemoryClear;
+            KeyboardButton KeyboardButton_NumpadMemoryRecall;
+            KeyboardButton KeyboardButton_NumpadMemoryStore;
+            KeyboardButton KeyboardButton_NumpadMemorySubtract;
+            KeyboardButton KeyboardButton_NumpadMultiply;
+            KeyboardButton KeyboardButton_NumpadParenLeft;
+            KeyboardButton KeyboardButton_NumpadParenRight;
+            KeyboardButton KeyboardButton_NumpadStar;
+            KeyboardButton KeyboardButton_NumpadSubtract;
             KeyboardButton KeyboardButton_Escape;
+            KeyboardButton KeyboardButton_Fn;
+            KeyboardButton KeyboardButton_FnLock;
+            KeyboardButton KeyboardButton_PrintScreen;
+            KeyboardButton KeyboardButton_ScrollLock;
+            KeyboardButton KeyboardButton_Pause;
+            KeyboardButton KeyboardButton_BrowserBack;
+            KeyboardButton KeyboardButton_BrowserFavorites;
+            KeyboardButton KeyboardButton_BrowserForward;
+            KeyboardButton KeyboardButton_BrowserHome;
+            KeyboardButton KeyboardButton_BrowserRefresh;
+            KeyboardButton KeyboardButton_BrowserSearch;
+            KeyboardButton KeyboardButton_BrowserStop;
+            KeyboardButton KeyboardButton_Eject;
+            KeyboardButton KeyboardButton_LaunchApp1;
+            KeyboardButton KeyboardButton_LaunchApp2;
+            KeyboardButton KeyboardButton_LaunchMail;
+            KeyboardButton KeyboardButton_MediaPlayPause;
+            KeyboardButton KeyboardButton_MediaSelect;
+            KeyboardButton KeyboardButton_MediaStop;
+            KeyboardButton KeyboardButton_MediaTrackNext;
+            KeyboardButton KeyboardButton_MediaTrackPrevious;
+            KeyboardButton KeyboardButton_Power;
+            KeyboardButton KeyboardButton_Sleep;
+            KeyboardButton KeyboardButton_AudioVolumeDown;
+            KeyboardButton KeyboardButton_AudioVolumeMute;
+            KeyboardButton KeyboardButton_AudioVolumeUp;
+            KeyboardButton KeyboardButton_WakeUp;
+            KeyboardButton KeyboardButton_Meta;
+            KeyboardButton KeyboardButton_Hyper;
+            KeyboardButton KeyboardButton_Turbo;
+            KeyboardButton KeyboardButton_Abort;
+            KeyboardButton KeyboardButton_Resume;
+            KeyboardButton KeyboardButton_Suspend;
+            KeyboardButton KeyboardButton_Again;
+            KeyboardButton KeyboardButton_Copy;
+            KeyboardButton KeyboardButton_Cut;
+            KeyboardButton KeyboardButton_Find;
+            KeyboardButton KeyboardButton_Open;
+            KeyboardButton KeyboardButton_Paste;
+            KeyboardButton KeyboardButton_Props;
+            KeyboardButton KeyboardButton_Select;
+            KeyboardButton KeyboardButton_Undo;
+            KeyboardButton KeyboardButton_Hiragana;
+            KeyboardButton KeyboardButton_Katakana;
             KeyboardButton KeyboardButton_F1;
             KeyboardButton KeyboardButton_F2;
             KeyboardButton KeyboardButton_F3;
@@ -77,108 +199,17 @@ function Loader.defineType()
             KeyboardButton KeyboardButton_F22;
             KeyboardButton KeyboardButton_F23;
             KeyboardButton KeyboardButton_F24;
-            KeyboardButton KeyboardButton_Snapshot;
-            KeyboardButton KeyboardButton_Scroll;
-            KeyboardButton KeyboardButton_Pause;
-            KeyboardButton KeyboardButton_Insert;
-            KeyboardButton KeyboardButton_Home;
-            KeyboardButton KeyboardButton_Delete;
-            KeyboardButton KeyboardButton_End;
-            KeyboardButton KeyboardButton_PageDown;
-            KeyboardButton KeyboardButton_PageUp;
-            KeyboardButton KeyboardButton_Left;
-            KeyboardButton KeyboardButton_Up;
-            KeyboardButton KeyboardButton_Right;
-            KeyboardButton KeyboardButton_Down;
-            KeyboardButton KeyboardButton_Back;
-            KeyboardButton KeyboardButton_Return;
-            KeyboardButton KeyboardButton_Space;
-            KeyboardButton KeyboardButton_Compose;
-            KeyboardButton KeyboardButton_Caret;
-            KeyboardButton KeyboardButton_Numlock;
-            KeyboardButton KeyboardButton_Numpad0;
-            KeyboardButton KeyboardButton_Numpad1;
-            KeyboardButton KeyboardButton_Numpad2;
-            KeyboardButton KeyboardButton_Numpad3;
-            KeyboardButton KeyboardButton_Numpad4;
-            KeyboardButton KeyboardButton_Numpad5;
-            KeyboardButton KeyboardButton_Numpad6;
-            KeyboardButton KeyboardButton_Numpad7;
-            KeyboardButton KeyboardButton_Numpad8;
-            KeyboardButton KeyboardButton_Numpad9;
-            KeyboardButton KeyboardButton_AbntC1;
-            KeyboardButton KeyboardButton_AbntC2;
-            KeyboardButton KeyboardButton_NumpadAdd;
-            KeyboardButton KeyboardButton_Apostrophe;
-            KeyboardButton KeyboardButton_Apps;
-            KeyboardButton KeyboardButton_Asterisk;
-            KeyboardButton KeyboardButton_Plus;
-            KeyboardButton KeyboardButton_At;
-            KeyboardButton KeyboardButton_Ax;
-            KeyboardButton KeyboardButton_Backslash;
-            KeyboardButton KeyboardButton_Calculator;
-            KeyboardButton KeyboardButton_Capital;
-            KeyboardButton KeyboardButton_Colon;
-            KeyboardButton KeyboardButton_Comma;
-            KeyboardButton KeyboardButton_Convert;
-            KeyboardButton KeyboardButton_NumpadDecimal;
-            KeyboardButton KeyboardButton_NumpadDivide;
-            KeyboardButton KeyboardButton_Equals;
-            KeyboardButton KeyboardButton_Grave;
-            KeyboardButton KeyboardButton_Kana;
-            KeyboardButton KeyboardButton_Kanji;
-            KeyboardButton KeyboardButton_AltLeft;
-            KeyboardButton KeyboardButton_BracketLeft;
-            KeyboardButton KeyboardButton_ControlLeft;
-            KeyboardButton KeyboardButton_ShiftLeft;
-            KeyboardButton KeyboardButton_SuperLeft;
-            KeyboardButton KeyboardButton_Mail;
-            KeyboardButton KeyboardButton_MediaSelect;
-            KeyboardButton KeyboardButton_MediaStop;
-            KeyboardButton KeyboardButton_Minus;
-            KeyboardButton KeyboardButton_NumpadMultiply;
-            KeyboardButton KeyboardButton_Mute;
-            KeyboardButton KeyboardButton_MyComputer;
-            KeyboardButton KeyboardButton_NavigateForward;
-            KeyboardButton KeyboardButton_NavigateBackward;
-            KeyboardButton KeyboardButton_NextTrack;
-            KeyboardButton KeyboardButton_NoConvert;
-            KeyboardButton KeyboardButton_NumpadComma;
-            KeyboardButton KeyboardButton_NumpadEnter;
-            KeyboardButton KeyboardButton_NumpadEquals;
-            KeyboardButton KeyboardButton_Oem102;
-            KeyboardButton KeyboardButton_Period;
-            KeyboardButton KeyboardButton_PlayPause;
-            KeyboardButton KeyboardButton_Power;
-            KeyboardButton KeyboardButton_PrevTrack;
-            KeyboardButton KeyboardButton_AltRight;
-            KeyboardButton KeyboardButton_BracketRight;
-            KeyboardButton KeyboardButton_ControlRight;
-            KeyboardButton KeyboardButton_ShiftRight;
-            KeyboardButton KeyboardButton_SuperRight;
-            KeyboardButton KeyboardButton_Semicolon;
-            KeyboardButton KeyboardButton_Slash;
-            KeyboardButton KeyboardButton_Sleep;
-            KeyboardButton KeyboardButton_Stop;
-            KeyboardButton KeyboardButton_NumpadSubtract;
-            KeyboardButton KeyboardButton_Sysrq;
-            KeyboardButton KeyboardButton_Tab;
-            KeyboardButton KeyboardButton_Underline;
-            KeyboardButton KeyboardButton_Unlabeled;
-            KeyboardButton KeyboardButton_VolumeDown;
-            KeyboardButton KeyboardButton_VolumeUp;
-            KeyboardButton KeyboardButton_Wake;
-            KeyboardButton KeyboardButton_WebBack;
-            KeyboardButton KeyboardButton_WebFavorites;
-            KeyboardButton KeyboardButton_WebForward;
-            KeyboardButton KeyboardButton_WebHome;
-            KeyboardButton KeyboardButton_WebRefresh;
-            KeyboardButton KeyboardButton_WebSearch;
-            KeyboardButton KeyboardButton_WebStop;
-            KeyboardButton KeyboardButton_Yen;
-            KeyboardButton KeyboardButton_Copy;
-            KeyboardButton KeyboardButton_Paste;
-            KeyboardButton KeyboardButton_Cut;
+            KeyboardButton KeyboardButton_F25;
+            KeyboardButton KeyboardButton_F26;
+            KeyboardButton KeyboardButton_F27;
+            KeyboardButton KeyboardButton_F28;
+            KeyboardButton KeyboardButton_F29;
+            KeyboardButton KeyboardButton_F30;
+            KeyboardButton KeyboardButton_F31;
+            KeyboardButton KeyboardButton_F32;
+            KeyboardButton KeyboardButton_F33;
+            KeyboardButton KeyboardButton_F34;
+            KeyboardButton KeyboardButton_F35;
 
             cstr           KeyboardButton_ToString(KeyboardButton);
         ]]
@@ -186,171 +217,202 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         KeyboardButton = {
-            Key1             = libphx.KeyboardButton_Key1,
-            Key2             = libphx.KeyboardButton_Key2,
-            Key3             = libphx.KeyboardButton_Key3,
-            Key4             = libphx.KeyboardButton_Key4,
-            Key5             = libphx.KeyboardButton_Key5,
-            Key6             = libphx.KeyboardButton_Key6,
-            Key7             = libphx.KeyboardButton_Key7,
-            Key8             = libphx.KeyboardButton_Key8,
-            Key9             = libphx.KeyboardButton_Key9,
-            Key0             = libphx.KeyboardButton_Key0,
-            A                = libphx.KeyboardButton_A,
-            B                = libphx.KeyboardButton_B,
-            C                = libphx.KeyboardButton_C,
-            D                = libphx.KeyboardButton_D,
-            E                = libphx.KeyboardButton_E,
-            F                = libphx.KeyboardButton_F,
-            G                = libphx.KeyboardButton_G,
-            H                = libphx.KeyboardButton_H,
-            I                = libphx.KeyboardButton_I,
-            J                = libphx.KeyboardButton_J,
-            K                = libphx.KeyboardButton_K,
-            L                = libphx.KeyboardButton_L,
-            M                = libphx.KeyboardButton_M,
-            N                = libphx.KeyboardButton_N,
-            O                = libphx.KeyboardButton_O,
-            P                = libphx.KeyboardButton_P,
-            Q                = libphx.KeyboardButton_Q,
-            R                = libphx.KeyboardButton_R,
-            S                = libphx.KeyboardButton_S,
-            T                = libphx.KeyboardButton_T,
-            U                = libphx.KeyboardButton_U,
-            V                = libphx.KeyboardButton_V,
-            W                = libphx.KeyboardButton_W,
-            X                = libphx.KeyboardButton_X,
-            Y                = libphx.KeyboardButton_Y,
-            Z                = libphx.KeyboardButton_Z,
-            Escape           = libphx.KeyboardButton_Escape,
-            F1               = libphx.KeyboardButton_F1,
-            F2               = libphx.KeyboardButton_F2,
-            F3               = libphx.KeyboardButton_F3,
-            F4               = libphx.KeyboardButton_F4,
-            F5               = libphx.KeyboardButton_F5,
-            F6               = libphx.KeyboardButton_F6,
-            F7               = libphx.KeyboardButton_F7,
-            F8               = libphx.KeyboardButton_F8,
-            F9               = libphx.KeyboardButton_F9,
-            F10              = libphx.KeyboardButton_F10,
-            F11              = libphx.KeyboardButton_F11,
-            F12              = libphx.KeyboardButton_F12,
-            F13              = libphx.KeyboardButton_F13,
-            F14              = libphx.KeyboardButton_F14,
-            F15              = libphx.KeyboardButton_F15,
-            F16              = libphx.KeyboardButton_F16,
-            F17              = libphx.KeyboardButton_F17,
-            F18              = libphx.KeyboardButton_F18,
-            F19              = libphx.KeyboardButton_F19,
-            F20              = libphx.KeyboardButton_F20,
-            F21              = libphx.KeyboardButton_F21,
-            F22              = libphx.KeyboardButton_F22,
-            F23              = libphx.KeyboardButton_F23,
-            F24              = libphx.KeyboardButton_F24,
-            Snapshot         = libphx.KeyboardButton_Snapshot,
-            Scroll           = libphx.KeyboardButton_Scroll,
-            Pause            = libphx.KeyboardButton_Pause,
-            Insert           = libphx.KeyboardButton_Insert,
-            Home             = libphx.KeyboardButton_Home,
-            Delete           = libphx.KeyboardButton_Delete,
-            End              = libphx.KeyboardButton_End,
-            PageDown         = libphx.KeyboardButton_PageDown,
-            PageUp           = libphx.KeyboardButton_PageUp,
-            Left             = libphx.KeyboardButton_Left,
-            Up               = libphx.KeyboardButton_Up,
-            Right            = libphx.KeyboardButton_Right,
-            Down             = libphx.KeyboardButton_Down,
-            Back             = libphx.KeyboardButton_Back,
-            Return           = libphx.KeyboardButton_Return,
-            Space            = libphx.KeyboardButton_Space,
-            Compose          = libphx.KeyboardButton_Compose,
-            Caret            = libphx.KeyboardButton_Caret,
-            Numlock          = libphx.KeyboardButton_Numlock,
-            Numpad0          = libphx.KeyboardButton_Numpad0,
-            Numpad1          = libphx.KeyboardButton_Numpad1,
-            Numpad2          = libphx.KeyboardButton_Numpad2,
-            Numpad3          = libphx.KeyboardButton_Numpad3,
-            Numpad4          = libphx.KeyboardButton_Numpad4,
-            Numpad5          = libphx.KeyboardButton_Numpad5,
-            Numpad6          = libphx.KeyboardButton_Numpad6,
-            Numpad7          = libphx.KeyboardButton_Numpad7,
-            Numpad8          = libphx.KeyboardButton_Numpad8,
-            Numpad9          = libphx.KeyboardButton_Numpad9,
-            AbntC1           = libphx.KeyboardButton_AbntC1,
-            AbntC2           = libphx.KeyboardButton_AbntC2,
-            NumpadAdd        = libphx.KeyboardButton_NumpadAdd,
-            Apostrophe       = libphx.KeyboardButton_Apostrophe,
-            Apps             = libphx.KeyboardButton_Apps,
-            Asterisk         = libphx.KeyboardButton_Asterisk,
-            Plus             = libphx.KeyboardButton_Plus,
-            At               = libphx.KeyboardButton_At,
-            Ax               = libphx.KeyboardButton_Ax,
-            Backslash        = libphx.KeyboardButton_Backslash,
-            Calculator       = libphx.KeyboardButton_Calculator,
-            Capital          = libphx.KeyboardButton_Capital,
-            Colon            = libphx.KeyboardButton_Colon,
-            Comma            = libphx.KeyboardButton_Comma,
-            Convert          = libphx.KeyboardButton_Convert,
-            NumpadDecimal    = libphx.KeyboardButton_NumpadDecimal,
-            NumpadDivide     = libphx.KeyboardButton_NumpadDivide,
-            Equals           = libphx.KeyboardButton_Equals,
-            Grave            = libphx.KeyboardButton_Grave,
-            Kana             = libphx.KeyboardButton_Kana,
-            Kanji            = libphx.KeyboardButton_Kanji,
-            AltLeft          = libphx.KeyboardButton_AltLeft,
-            BracketLeft      = libphx.KeyboardButton_BracketLeft,
-            ControlLeft      = libphx.KeyboardButton_ControlLeft,
-            ShiftLeft        = libphx.KeyboardButton_ShiftLeft,
-            SuperLeft        = libphx.KeyboardButton_SuperLeft,
-            Mail             = libphx.KeyboardButton_Mail,
-            MediaSelect      = libphx.KeyboardButton_MediaSelect,
-            MediaStop        = libphx.KeyboardButton_MediaStop,
-            Minus            = libphx.KeyboardButton_Minus,
-            NumpadMultiply   = libphx.KeyboardButton_NumpadMultiply,
-            Mute             = libphx.KeyboardButton_Mute,
-            MyComputer       = libphx.KeyboardButton_MyComputer,
-            NavigateForward  = libphx.KeyboardButton_NavigateForward,
-            NavigateBackward = libphx.KeyboardButton_NavigateBackward,
-            NextTrack        = libphx.KeyboardButton_NextTrack,
-            NoConvert        = libphx.KeyboardButton_NoConvert,
-            NumpadComma      = libphx.KeyboardButton_NumpadComma,
-            NumpadEnter      = libphx.KeyboardButton_NumpadEnter,
-            NumpadEquals     = libphx.KeyboardButton_NumpadEquals,
-            Oem102           = libphx.KeyboardButton_Oem102,
-            Period           = libphx.KeyboardButton_Period,
-            PlayPause        = libphx.KeyboardButton_PlayPause,
-            Power            = libphx.KeyboardButton_Power,
-            PrevTrack        = libphx.KeyboardButton_PrevTrack,
-            AltRight         = libphx.KeyboardButton_AltRight,
-            BracketRight     = libphx.KeyboardButton_BracketRight,
-            ControlRight     = libphx.KeyboardButton_ControlRight,
-            ShiftRight       = libphx.KeyboardButton_ShiftRight,
-            SuperRight       = libphx.KeyboardButton_SuperRight,
-            Semicolon        = libphx.KeyboardButton_Semicolon,
-            Slash            = libphx.KeyboardButton_Slash,
-            Sleep            = libphx.KeyboardButton_Sleep,
-            Stop             = libphx.KeyboardButton_Stop,
-            NumpadSubtract   = libphx.KeyboardButton_NumpadSubtract,
-            Sysrq            = libphx.KeyboardButton_Sysrq,
-            Tab              = libphx.KeyboardButton_Tab,
-            Underline        = libphx.KeyboardButton_Underline,
-            Unlabeled        = libphx.KeyboardButton_Unlabeled,
-            VolumeDown       = libphx.KeyboardButton_VolumeDown,
-            VolumeUp         = libphx.KeyboardButton_VolumeUp,
-            Wake             = libphx.KeyboardButton_Wake,
-            WebBack          = libphx.KeyboardButton_WebBack,
-            WebFavorites     = libphx.KeyboardButton_WebFavorites,
-            WebForward       = libphx.KeyboardButton_WebForward,
-            WebHome          = libphx.KeyboardButton_WebHome,
-            WebRefresh       = libphx.KeyboardButton_WebRefresh,
-            WebSearch        = libphx.KeyboardButton_WebSearch,
-            WebStop          = libphx.KeyboardButton_WebStop,
-            Yen              = libphx.KeyboardButton_Yen,
-            Copy             = libphx.KeyboardButton_Copy,
-            Paste            = libphx.KeyboardButton_Paste,
-            Cut              = libphx.KeyboardButton_Cut,
+            Backquote            = libphx.KeyboardButton_Backquote,
+            Backslash            = libphx.KeyboardButton_Backslash,
+            BracketLeft          = libphx.KeyboardButton_BracketLeft,
+            BracketRight         = libphx.KeyboardButton_BracketRight,
+            Comma                = libphx.KeyboardButton_Comma,
+            Key0                 = libphx.KeyboardButton_Key0,
+            Key1                 = libphx.KeyboardButton_Key1,
+            Key2                 = libphx.KeyboardButton_Key2,
+            Key3                 = libphx.KeyboardButton_Key3,
+            Key4                 = libphx.KeyboardButton_Key4,
+            Key5                 = libphx.KeyboardButton_Key5,
+            Key6                 = libphx.KeyboardButton_Key6,
+            Key7                 = libphx.KeyboardButton_Key7,
+            Key8                 = libphx.KeyboardButton_Key8,
+            Key9                 = libphx.KeyboardButton_Key9,
+            Equal                = libphx.KeyboardButton_Equal,
+            IntlBackslash        = libphx.KeyboardButton_IntlBackslash,
+            IntlRo               = libphx.KeyboardButton_IntlRo,
+            IntlYen              = libphx.KeyboardButton_IntlYen,
+            A                    = libphx.KeyboardButton_A,
+            B                    = libphx.KeyboardButton_B,
+            C                    = libphx.KeyboardButton_C,
+            D                    = libphx.KeyboardButton_D,
+            E                    = libphx.KeyboardButton_E,
+            F                    = libphx.KeyboardButton_F,
+            G                    = libphx.KeyboardButton_G,
+            H                    = libphx.KeyboardButton_H,
+            I                    = libphx.KeyboardButton_I,
+            J                    = libphx.KeyboardButton_J,
+            K                    = libphx.KeyboardButton_K,
+            L                    = libphx.KeyboardButton_L,
+            M                    = libphx.KeyboardButton_M,
+            N                    = libphx.KeyboardButton_N,
+            O                    = libphx.KeyboardButton_O,
+            P                    = libphx.KeyboardButton_P,
+            Q                    = libphx.KeyboardButton_Q,
+            R                    = libphx.KeyboardButton_R,
+            S                    = libphx.KeyboardButton_S,
+            T                    = libphx.KeyboardButton_T,
+            U                    = libphx.KeyboardButton_U,
+            V                    = libphx.KeyboardButton_V,
+            W                    = libphx.KeyboardButton_W,
+            X                    = libphx.KeyboardButton_X,
+            Y                    = libphx.KeyboardButton_Y,
+            Z                    = libphx.KeyboardButton_Z,
+            Minus                = libphx.KeyboardButton_Minus,
+            Period               = libphx.KeyboardButton_Period,
+            Quote                = libphx.KeyboardButton_Quote,
+            Semicolon            = libphx.KeyboardButton_Semicolon,
+            Slash                = libphx.KeyboardButton_Slash,
+            AltLeft              = libphx.KeyboardButton_AltLeft,
+            AltRight             = libphx.KeyboardButton_AltRight,
+            Backspace            = libphx.KeyboardButton_Backspace,
+            CapsLock             = libphx.KeyboardButton_CapsLock,
+            ContextMenu          = libphx.KeyboardButton_ContextMenu,
+            ControlLeft          = libphx.KeyboardButton_ControlLeft,
+            ControlRight         = libphx.KeyboardButton_ControlRight,
+            Enter                = libphx.KeyboardButton_Enter,
+            SuperLeft            = libphx.KeyboardButton_SuperLeft,
+            SuperRight           = libphx.KeyboardButton_SuperRight,
+            ShiftLeft            = libphx.KeyboardButton_ShiftLeft,
+            ShiftRight           = libphx.KeyboardButton_ShiftRight,
+            Space                = libphx.KeyboardButton_Space,
+            Tab                  = libphx.KeyboardButton_Tab,
+            Convert              = libphx.KeyboardButton_Convert,
+            KanaMode             = libphx.KeyboardButton_KanaMode,
+            Lang1                = libphx.KeyboardButton_Lang1,
+            Lang2                = libphx.KeyboardButton_Lang2,
+            Lang3                = libphx.KeyboardButton_Lang3,
+            Lang4                = libphx.KeyboardButton_Lang4,
+            Lang5                = libphx.KeyboardButton_Lang5,
+            NonConvert           = libphx.KeyboardButton_NonConvert,
+            Delete               = libphx.KeyboardButton_Delete,
+            End                  = libphx.KeyboardButton_End,
+            Help                 = libphx.KeyboardButton_Help,
+            Home                 = libphx.KeyboardButton_Home,
+            Insert               = libphx.KeyboardButton_Insert,
+            PageDown             = libphx.KeyboardButton_PageDown,
+            PageUp               = libphx.KeyboardButton_PageUp,
+            Down                 = libphx.KeyboardButton_Down,
+            Left                 = libphx.KeyboardButton_Left,
+            Right                = libphx.KeyboardButton_Right,
+            Up                   = libphx.KeyboardButton_Up,
+            NumLock              = libphx.KeyboardButton_NumLock,
+            Numpad0              = libphx.KeyboardButton_Numpad0,
+            Numpad1              = libphx.KeyboardButton_Numpad1,
+            Numpad2              = libphx.KeyboardButton_Numpad2,
+            Numpad3              = libphx.KeyboardButton_Numpad3,
+            Numpad4              = libphx.KeyboardButton_Numpad4,
+            Numpad5              = libphx.KeyboardButton_Numpad5,
+            Numpad6              = libphx.KeyboardButton_Numpad6,
+            Numpad7              = libphx.KeyboardButton_Numpad7,
+            Numpad8              = libphx.KeyboardButton_Numpad8,
+            Numpad9              = libphx.KeyboardButton_Numpad9,
+            NumpadAdd            = libphx.KeyboardButton_NumpadAdd,
+            NumpadBackspace      = libphx.KeyboardButton_NumpadBackspace,
+            NumpadClear          = libphx.KeyboardButton_NumpadClear,
+            NumpadClearEntry     = libphx.KeyboardButton_NumpadClearEntry,
+            NumpadComma          = libphx.KeyboardButton_NumpadComma,
+            NumpadDecimal        = libphx.KeyboardButton_NumpadDecimal,
+            NumpadDivide         = libphx.KeyboardButton_NumpadDivide,
+            NumpadEnter          = libphx.KeyboardButton_NumpadEnter,
+            NumpadEqual          = libphx.KeyboardButton_NumpadEqual,
+            NumpadHash           = libphx.KeyboardButton_NumpadHash,
+            NumpadMemoryAdd      = libphx.KeyboardButton_NumpadMemoryAdd,
+            NumpadMemoryClear    = libphx.KeyboardButton_NumpadMemoryClear,
+            NumpadMemoryRecall   = libphx.KeyboardButton_NumpadMemoryRecall,
+            NumpadMemoryStore    = libphx.KeyboardButton_NumpadMemoryStore,
+            NumpadMemorySubtract = libphx.KeyboardButton_NumpadMemorySubtract,
+            NumpadMultiply       = libphx.KeyboardButton_NumpadMultiply,
+            NumpadParenLeft      = libphx.KeyboardButton_NumpadParenLeft,
+            NumpadParenRight     = libphx.KeyboardButton_NumpadParenRight,
+            NumpadStar           = libphx.KeyboardButton_NumpadStar,
+            NumpadSubtract       = libphx.KeyboardButton_NumpadSubtract,
+            Escape               = libphx.KeyboardButton_Escape,
+            Fn                   = libphx.KeyboardButton_Fn,
+            FnLock               = libphx.KeyboardButton_FnLock,
+            PrintScreen          = libphx.KeyboardButton_PrintScreen,
+            ScrollLock           = libphx.KeyboardButton_ScrollLock,
+            Pause                = libphx.KeyboardButton_Pause,
+            BrowserBack          = libphx.KeyboardButton_BrowserBack,
+            BrowserFavorites     = libphx.KeyboardButton_BrowserFavorites,
+            BrowserForward       = libphx.KeyboardButton_BrowserForward,
+            BrowserHome          = libphx.KeyboardButton_BrowserHome,
+            BrowserRefresh       = libphx.KeyboardButton_BrowserRefresh,
+            BrowserSearch        = libphx.KeyboardButton_BrowserSearch,
+            BrowserStop          = libphx.KeyboardButton_BrowserStop,
+            Eject                = libphx.KeyboardButton_Eject,
+            LaunchApp1           = libphx.KeyboardButton_LaunchApp1,
+            LaunchApp2           = libphx.KeyboardButton_LaunchApp2,
+            LaunchMail           = libphx.KeyboardButton_LaunchMail,
+            MediaPlayPause       = libphx.KeyboardButton_MediaPlayPause,
+            MediaSelect          = libphx.KeyboardButton_MediaSelect,
+            MediaStop            = libphx.KeyboardButton_MediaStop,
+            MediaTrackNext       = libphx.KeyboardButton_MediaTrackNext,
+            MediaTrackPrevious   = libphx.KeyboardButton_MediaTrackPrevious,
+            Power                = libphx.KeyboardButton_Power,
+            Sleep                = libphx.KeyboardButton_Sleep,
+            AudioVolumeDown      = libphx.KeyboardButton_AudioVolumeDown,
+            AudioVolumeMute      = libphx.KeyboardButton_AudioVolumeMute,
+            AudioVolumeUp        = libphx.KeyboardButton_AudioVolumeUp,
+            WakeUp               = libphx.KeyboardButton_WakeUp,
+            Meta                 = libphx.KeyboardButton_Meta,
+            Hyper                = libphx.KeyboardButton_Hyper,
+            Turbo                = libphx.KeyboardButton_Turbo,
+            Abort                = libphx.KeyboardButton_Abort,
+            Resume               = libphx.KeyboardButton_Resume,
+            Suspend              = libphx.KeyboardButton_Suspend,
+            Again                = libphx.KeyboardButton_Again,
+            Copy                 = libphx.KeyboardButton_Copy,
+            Cut                  = libphx.KeyboardButton_Cut,
+            Find                 = libphx.KeyboardButton_Find,
+            Open                 = libphx.KeyboardButton_Open,
+            Paste                = libphx.KeyboardButton_Paste,
+            Props                = libphx.KeyboardButton_Props,
+            Select               = libphx.KeyboardButton_Select,
+            Undo                 = libphx.KeyboardButton_Undo,
+            Hiragana             = libphx.KeyboardButton_Hiragana,
+            Katakana             = libphx.KeyboardButton_Katakana,
+            F1                   = libphx.KeyboardButton_F1,
+            F2                   = libphx.KeyboardButton_F2,
+            F3                   = libphx.KeyboardButton_F3,
+            F4                   = libphx.KeyboardButton_F4,
+            F5                   = libphx.KeyboardButton_F5,
+            F6                   = libphx.KeyboardButton_F6,
+            F7                   = libphx.KeyboardButton_F7,
+            F8                   = libphx.KeyboardButton_F8,
+            F9                   = libphx.KeyboardButton_F9,
+            F10                  = libphx.KeyboardButton_F10,
+            F11                  = libphx.KeyboardButton_F11,
+            F12                  = libphx.KeyboardButton_F12,
+            F13                  = libphx.KeyboardButton_F13,
+            F14                  = libphx.KeyboardButton_F14,
+            F15                  = libphx.KeyboardButton_F15,
+            F16                  = libphx.KeyboardButton_F16,
+            F17                  = libphx.KeyboardButton_F17,
+            F18                  = libphx.KeyboardButton_F18,
+            F19                  = libphx.KeyboardButton_F19,
+            F20                  = libphx.KeyboardButton_F20,
+            F21                  = libphx.KeyboardButton_F21,
+            F22                  = libphx.KeyboardButton_F22,
+            F23                  = libphx.KeyboardButton_F23,
+            F24                  = libphx.KeyboardButton_F24,
+            F25                  = libphx.KeyboardButton_F25,
+            F26                  = libphx.KeyboardButton_F26,
+            F27                  = libphx.KeyboardButton_F27,
+            F28                  = libphx.KeyboardButton_F28,
+            F29                  = libphx.KeyboardButton_F29,
+            F30                  = libphx.KeyboardButton_F30,
+            F31                  = libphx.KeyboardButton_F31,
+            F32                  = libphx.KeyboardButton_F32,
+            F33                  = libphx.KeyboardButton_F33,
+            F34                  = libphx.KeyboardButton_F34,
+            F35                  = libphx.KeyboardButton_F35,
 
-            ToString         = libphx.KeyboardButton_ToString,
+            ToString             = libphx.KeyboardButton_ToString,
         }
 
         if onDef_KeyboardButton then onDef_KeyboardButton(KeyboardButton, mt) end
