@@ -2,7 +2,6 @@ use internal::ConvertIntoString;
 
 use super::*;
 use crate::system::*;
-use crate::*;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

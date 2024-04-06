@@ -1,7 +1,6 @@
 use internal::MemZero;
 
 use crate::common::*;
-use crate::*;
 
 pub type Metric = i32;
 

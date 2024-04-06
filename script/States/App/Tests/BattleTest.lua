@@ -3,6 +3,7 @@ local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('GameObjects.Actions')
 local Words = require('Systems.Gen.Words')
+local SoundManager = require("Systems.SFX.SoundManager")
 
 local BattleTest = require('States.Application')
 local rng = RNG.FromTime()
@@ -96,8 +97,11 @@ function BattleTest:onInit()
 
     self:generate()
 
+    SoundManager:init()
+
     DebugControl.ltheory = self
     self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
+    GameState.render.gameView = self.gameView
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
@@ -111,6 +115,7 @@ end
 function BattleTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
+    SoundManager:clean(dt)
     Gui:beginGui(self.resX, self.resY, InputInstance)
     Gui:endGui(InputInstance)
 end

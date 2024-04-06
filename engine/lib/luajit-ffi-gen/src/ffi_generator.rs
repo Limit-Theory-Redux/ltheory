@@ -260,13 +260,18 @@ impl FfiGenerator {
 
         // Global Symbol Table
         writeln!(&mut module, "{IDENT}do -- Global Symbol Table").unwrap();
-        writeln!(&mut module, "{IDENT}{IDENT}{} = {{", self.module_name).unwrap();
 
-        self.global_symbol_table
-            .iter()
-            .for_each(|def| writeln!(&mut module, "{def}").unwrap());
+        if !self.global_symbol_table.is_empty() {
+            writeln!(&mut module, "{IDENT}{IDENT}{} = {{", self.module_name).unwrap();
 
-        writeln!(&mut module, "{IDENT}{IDENT}}}\n").unwrap();
+            self.global_symbol_table
+                .iter()
+                .for_each(|def| writeln!(&mut module, "{def}").unwrap());
+
+            writeln!(&mut module, "{IDENT}{IDENT}}}\n").unwrap();
+        } else {
+            writeln!(&mut module, "{IDENT}{IDENT}{} = {{}}\n", self.module_name).unwrap();
+        }
 
         if self.is_mt_clone {
             writeln!(&mut module, "{IDENT}{IDENT}local mt = {{").unwrap();

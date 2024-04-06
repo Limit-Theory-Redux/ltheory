@@ -2,7 +2,6 @@ use internal::*;
 
 use crate::math::*;
 use crate::render::*;
-use crate::*;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

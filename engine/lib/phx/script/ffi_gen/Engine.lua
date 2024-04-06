@@ -16,10 +16,10 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void    Engine_Free       (Engine*);
             Window* Engine_Window     (Engine*);
             Input*  Engine_Input      (Engine*);
             HmGui*  Engine_HmGui      (Engine*);
-            void    Engine_Free       ();
             void    Engine_Abort      ();
             int     Engine_GetBits    ();
             double  Engine_GetTime    (Engine const*);
@@ -32,15 +32,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Engine = {
-            Window     = libphx.Engine_Window,
-            Input      = libphx.Engine_Input,
-            HmGui      = libphx.Engine_HmGui,
-            Free       = libphx.Engine_Free,
             Abort      = libphx.Engine_Abort,
             GetBits    = libphx.Engine_GetBits,
-            GetTime    = libphx.Engine_GetTime,
             GetVersion = libphx.Engine_GetVersion,
-            Exit       = libphx.Engine_Exit,
             Terminate  = libphx.Engine_Terminate,
             Update     = libphx.Engine_Update,
         }

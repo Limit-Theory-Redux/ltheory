@@ -1,7 +1,6 @@
-use glam::*;
 use indexmap::IndexMap;
 
-use crate::render::Font;
+use crate::render::{Color, Font};
 
 use super::{HmGuiProperty, HmGuiPropertyId, HmGuiPropertyInfo};
 
@@ -32,12 +31,12 @@ macro_rules! core_properties {
 // Property id, name, value and optional list of mapped property ids
 core_properties! {
     (ContainerSpacingId,      "container.spacing",       6.0f32),
-    (ContainerColorFrameId,   "container.color-frame",   Vec4::new(0.1, 0.1, 0.1, 0.5)),
-    (ContainerColorPrimaryId, "container.color-primary", Vec4::new(0.1, 0.5, 1.0, 1.0)),
+    (ContainerColorFrameId,   "container.color-frame",   Color::new(0.1, 0.1, 0.1, 0.5)),
+    (ContainerColorPrimaryId, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),
     (TextFontId,              "text.font",               Font::load("Rajdhani", 14)),
-    (TextColorId,             "text.color",              Vec4::ONE),
+    (TextColorId,             "text.color",              Color::WHITE),
     (ButtonBorderWidthId,     "button.border-width",     0.0f32),
-    (ButtonTextColorId,       "button.text-color",       Vec4::ONE, TextColorId),
+    (ButtonTextColorId,       "button.text-color",       Color::WHITE, TextColorId),
 }
 
 /// Adds a new property to the map.

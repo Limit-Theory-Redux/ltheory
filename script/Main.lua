@@ -33,10 +33,21 @@ function InitSystem()
         dofile('./script/Config/Version.lua')
 
         if Config.gameVersion ~= "0.0.0" and Config.gameVersion ~= Engine.GetVersion() then
-            Log.Error("Engine and script version mismatch. Engine: %s. Script: %s.", Engine.GetVersion(), Config.gameVersion)
+            Log.Error("Engine and script version mismatch. Engine: %s. Script: %s.", Engine.GetVersion(),
+                Config.gameVersion)
         end
 
+        -- ensure App.lua is loaded first
         dofile('./script/Config/App.lua')
+
+        local configDir = io.listdir('./script/Config', true)
+
+        for _, fpath in ipairs(configDir) do
+            -- don´t load again
+            if fpath ~= './script/Config/App.lua' then
+                dofile(fpath)
+            end
+        end
 
         -- Load Enums
         for _, fname in ipairs(io.listdirex(Config.paths.enums)) do

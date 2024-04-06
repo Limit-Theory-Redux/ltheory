@@ -16,6 +16,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void               HmGui_Free                           (HmGui*);
             void               HmGui_BeginGui                       (HmGui*, float sx, float sy, Input const* input);
             void               HmGui_EndGui                         (HmGui*, Input const* input);
             void               HmGui_Draw                           (HmGui*);
@@ -31,13 +32,13 @@ function Loader.defineType()
             bool               HmGui_Button                         (HmGui*, cstr label);
             bool               HmGui_Checkbox                       (HmGui*, cstr label, bool value);
             float              HmGui_Slider                         (HmGui*, float lower, float upper, float value);
-            void               HmGui_HorizontalDivider              (HmGui*, float height, float r, float g, float b, float a);
-            void               HmGui_VerticalDivider                (HmGui*, float width, float r, float g, float b, float a);
+            void               HmGui_HorizontalDivider              (HmGui*, float height, Color const* color);
+            void               HmGui_VerticalDivider                (HmGui*, float width, Color const* color);
             void               HmGui_Image                          (HmGui*, Tex2D* image);
-            void               HmGui_Rect                           (HmGui*, float r, float g, float b, float a);
+            void               HmGui_Rect                           (HmGui*, Color const* color);
             void               HmGui_Text                           (HmGui*, cstr text);
-            void               HmGui_TextColored                    (HmGui*, cstr text, float r, float g, float b, float a);
-            void               HmGui_TextEx                         (HmGui*, Font const* font, cstr text, float r, float g, float b, float a);
+            void               HmGui_TextColored                    (HmGui*, cstr text, Color const* color);
+            void               HmGui_TextEx                         (HmGui*, Font const* font, cstr text, Color const* color);
             void               HmGui_SetMinWidth                    (HmGui const*, float width);
             void               HmGui_SetMinHeight                   (HmGui const*, float height);
             void               HmGui_SetMinSize                     (HmGui const*, float width, float height);
@@ -54,12 +55,12 @@ function Loader.defineType()
             void               HmGui_SetMarginRight                 (HmGui const*, float margin);
             void               HmGui_SetMarginBottom                (HmGui const*, float margin);
             void               HmGui_SetBorderWidth                 (HmGui const*, float width);
-            void               HmGui_SetBorderColor                 (HmGui const*, float r, float g, float b, float a);
-            void               HmGui_SetBorderColorV4               (HmGui const*, Vec4f const* color);
-            void               HmGui_SetBorder                      (HmGui const*, float width, float r, float g, float b, float a);
-            void               HmGui_SetBorderV4                    (HmGui const*, float width, Vec4f const* color);
-            void               HmGui_SetBgColor                     (HmGui*, float r, float g, float b, float a);
-            void               HmGui_SetBgColorV4                   (HmGui*, Vec4f const* color);
+            void               HmGui_SetBorderColor                 (HmGui const*, Color const* color);
+            void               HmGui_SetBorderColorV4               (HmGui const*, Color const* color);
+            void               HmGui_SetBorder                      (HmGui const*, float width, Color const* color);
+            void               HmGui_SetBorderV4                    (HmGui const*, float width, Color const* color);
+            void               HmGui_SetBgColor                     (HmGui*, Color const* color);
+            void               HmGui_SetBgColorV4                   (HmGui*, Color const* color);
             void               HmGui_SetAlignment                   (HmGui const*, AlignHorizontal h, AlignVertical v);
             void               HmGui_SetHorizontalAlignment         (HmGui const*, AlignHorizontal align);
             void               HmGui_SetVerticalAlignment           (HmGui const*, AlignVertical align);
@@ -70,7 +71,7 @@ function Loader.defineType()
             void               HmGui_SetPaddingRight                (HmGui const*, float padding);
             void               HmGui_SetPaddingBottom               (HmGui const*, float padding);
             void               HmGui_SetSpacing                     (HmGui const*, float spacing);
-            bool               HmGui_ContainerHasFocus              (HmGui const*, FocusType ty);
+            bool               HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
             void               HmGui_SetChildrenAlignment           (HmGui const*, AlignHorizontal h, AlignVertical v);
             void               HmGui_SetChildrenHorizontalAlignment (HmGui const*, AlignHorizontal align);
             void               HmGui_SetChildrenVerticalAlignment   (HmGui const*, AlignVertical align);
@@ -105,6 +106,7 @@ function Loader.defineType()
             uint64             HmGui_RegisterPropertyDVec2          (HmGui*, cstr name, Vec2d value, cstr mapId);
             uint64             HmGui_RegisterPropertyDVec3          (HmGui*, cstr name, Vec3d const* value, cstr mapId);
             uint64             HmGui_RegisterPropertyDVec4          (HmGui*, cstr name, Vec4d const* value, cstr mapId);
+            uint64             HmGui_RegisterPropertyColor          (HmGui*, cstr name, Color const* value, cstr mapId);
             uint64             HmGui_RegisterPropertyBox3           (HmGui*, cstr name, Box3f const* value, cstr mapId);
             uint64             HmGui_RegisterPropertyString         (HmGui*, cstr name, cstr value, cstr mapId);
             uint64             HmGui_RegisterPropertyFont           (HmGui*, cstr name, Font const* value, cstr mapId);
@@ -131,6 +133,7 @@ function Loader.defineType()
             void               HmGui_SetPropertyDVec2               (HmGui*, uint64 propertyId, Vec2d value);
             void               HmGui_SetPropertyDVec3               (HmGui*, uint64 propertyId, Vec3d const* value);
             void               HmGui_SetPropertyDVec4               (HmGui*, uint64 propertyId, Vec4d const* value);
+            void               HmGui_SetPropertyColor               (HmGui*, uint64 propertyId, Color const* value);
             void               HmGui_SetPropertyBox3                (HmGui*, uint64 propertyId, Box3f const* value);
             void               HmGui_SetPropertyString              (HmGui*, uint64 propertyId, cstr value);
             void               HmGui_SetPropertyFont                (HmGui*, uint64 propertyId, Font const* value);
@@ -157,6 +160,7 @@ function Loader.defineType()
             Vec2d              HmGui_GetPropertyDVec2               (HmGui const*, uint64 propertyId);
             Vec3d const*       HmGui_GetPropertyDVec3               (HmGui const*, uint64 propertyId);
             Vec4d const*       HmGui_GetPropertyDVec4               (HmGui const*, uint64 propertyId);
+            Color const*       HmGui_GetPropertyColor               (HmGui const*, uint64 propertyId);
             Box3f const*       HmGui_GetPropertyBox3                (HmGui const*, uint64 propertyId);
             cstr               HmGui_GetPropertyString              (HmGui const*, uint64 propertyId);
             Font const*        HmGui_GetPropertyFont                (HmGui const*, uint64 propertyId);
@@ -165,153 +169,7 @@ function Loader.defineType()
     end
 
     do -- Global Symbol Table
-        HmGui = {
-            BeginGui                       = libphx.HmGui_BeginGui,
-            EndGui                         = libphx.HmGui_EndGui,
-            Draw                           = libphx.HmGui_Draw,
-            BeginHorizontalContainer       = libphx.HmGui_BeginHorizontalContainer,
-            BeginVerticalContainer         = libphx.HmGui_BeginVerticalContainer,
-            BeginStackContainer            = libphx.HmGui_BeginStackContainer,
-            EndContainer                   = libphx.HmGui_EndContainer,
-            BeginScroll                    = libphx.HmGui_BeginScroll,
-            EndScroll                      = libphx.HmGui_EndScroll,
-            BeginWindow                    = libphx.HmGui_BeginWindow,
-            EndWindow                      = libphx.HmGui_EndWindow,
-            Spacer                         = libphx.HmGui_Spacer,
-            Button                         = libphx.HmGui_Button,
-            Checkbox                       = libphx.HmGui_Checkbox,
-            Slider                         = libphx.HmGui_Slider,
-            HorizontalDivider              = libphx.HmGui_HorizontalDivider,
-            VerticalDivider                = libphx.HmGui_VerticalDivider,
-            Image                          = libphx.HmGui_Image,
-            Rect                           = libphx.HmGui_Rect,
-            Text                           = libphx.HmGui_Text,
-            TextColored                    = libphx.HmGui_TextColored,
-            TextEx                         = libphx.HmGui_TextEx,
-            SetMinWidth                    = libphx.HmGui_SetMinWidth,
-            SetMinHeight                   = libphx.HmGui_SetMinHeight,
-            SetMinSize                     = libphx.HmGui_SetMinSize,
-            SetFixedWidth                  = libphx.HmGui_SetFixedWidth,
-            SetFixedHeight                 = libphx.HmGui_SetFixedHeight,
-            SetFixedSize                   = libphx.HmGui_SetFixedSize,
-            SetPercentWidth                = libphx.HmGui_SetPercentWidth,
-            SetPercentHeight               = libphx.HmGui_SetPercentHeight,
-            SetPercentSize                 = libphx.HmGui_SetPercentSize,
-            SetMargin                      = libphx.HmGui_SetMargin,
-            SetMarginEx                    = libphx.HmGui_SetMarginEx,
-            SetMarginLeft                  = libphx.HmGui_SetMarginLeft,
-            SetMarginTop                   = libphx.HmGui_SetMarginTop,
-            SetMarginRight                 = libphx.HmGui_SetMarginRight,
-            SetMarginBottom                = libphx.HmGui_SetMarginBottom,
-            SetBorderWidth                 = libphx.HmGui_SetBorderWidth,
-            SetBorderColor                 = libphx.HmGui_SetBorderColor,
-            SetBorderColorV4               = libphx.HmGui_SetBorderColorV4,
-            SetBorder                      = libphx.HmGui_SetBorder,
-            SetBorderV4                    = libphx.HmGui_SetBorderV4,
-            SetBgColor                     = libphx.HmGui_SetBgColor,
-            SetBgColorV4                   = libphx.HmGui_SetBgColorV4,
-            SetAlignment                   = libphx.HmGui_SetAlignment,
-            SetHorizontalAlignment         = libphx.HmGui_SetHorizontalAlignment,
-            SetVerticalAlignment           = libphx.HmGui_SetVerticalAlignment,
-            SetPadding                     = libphx.HmGui_SetPadding,
-            SetPaddingEx                   = libphx.HmGui_SetPaddingEx,
-            SetPaddingLeft                 = libphx.HmGui_SetPaddingLeft,
-            SetPaddingTop                  = libphx.HmGui_SetPaddingTop,
-            SetPaddingRight                = libphx.HmGui_SetPaddingRight,
-            SetPaddingBottom               = libphx.HmGui_SetPaddingBottom,
-            SetSpacing                     = libphx.HmGui_SetSpacing,
-            ContainerHasFocus              = libphx.HmGui_ContainerHasFocus,
-            SetChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
-            SetChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
-            SetChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
-            SetTheme                       = libphx.HmGui_SetTheme,
-            ClearTheme                     = libphx.HmGui_ClearTheme,
-            GetStyleId                     = libphx.HmGui_GetStyleId,
-            SetStyle                       = libphx.HmGui_SetStyle,
-            ClearStyle                     = libphx.HmGui_ClearStyle,
-            GetPropertyType                = libphx.HmGui_GetPropertyType,
-            MapProperty                    = libphx.HmGui_MapProperty,
-            RemoveProperty                 = libphx.HmGui_RemoveProperty,
-            RegisterPropertyBool           = libphx.HmGui_RegisterPropertyBool,
-            RegisterPropertyI8             = libphx.HmGui_RegisterPropertyI8,
-            RegisterPropertyU8             = libphx.HmGui_RegisterPropertyU8,
-            RegisterPropertyI16            = libphx.HmGui_RegisterPropertyI16,
-            RegisterPropertyU16            = libphx.HmGui_RegisterPropertyU16,
-            RegisterPropertyI32            = libphx.HmGui_RegisterPropertyI32,
-            RegisterPropertyU32            = libphx.HmGui_RegisterPropertyU32,
-            RegisterPropertyI64            = libphx.HmGui_RegisterPropertyI64,
-            RegisterPropertyU64            = libphx.HmGui_RegisterPropertyU64,
-            RegisterPropertyF32            = libphx.HmGui_RegisterPropertyF32,
-            RegisterPropertyF64            = libphx.HmGui_RegisterPropertyF64,
-            RegisterPropertyVec2           = libphx.HmGui_RegisterPropertyVec2,
-            RegisterPropertyVec3           = libphx.HmGui_RegisterPropertyVec3,
-            RegisterPropertyVec4           = libphx.HmGui_RegisterPropertyVec4,
-            RegisterPropertyIVec2          = libphx.HmGui_RegisterPropertyIVec2,
-            RegisterPropertyIVec3          = libphx.HmGui_RegisterPropertyIVec3,
-            RegisterPropertyIVec4          = libphx.HmGui_RegisterPropertyIVec4,
-            RegisterPropertyUVec2          = libphx.HmGui_RegisterPropertyUVec2,
-            RegisterPropertyUVec3          = libphx.HmGui_RegisterPropertyUVec3,
-            RegisterPropertyUVec4          = libphx.HmGui_RegisterPropertyUVec4,
-            RegisterPropertyDVec2          = libphx.HmGui_RegisterPropertyDVec2,
-            RegisterPropertyDVec3          = libphx.HmGui_RegisterPropertyDVec3,
-            RegisterPropertyDVec4          = libphx.HmGui_RegisterPropertyDVec4,
-            RegisterPropertyBox3           = libphx.HmGui_RegisterPropertyBox3,
-            RegisterPropertyString         = libphx.HmGui_RegisterPropertyString,
-            RegisterPropertyFont           = libphx.HmGui_RegisterPropertyFont,
-            SetPropertyBool                = libphx.HmGui_SetPropertyBool,
-            SetPropertyI8                  = libphx.HmGui_SetPropertyI8,
-            SetPropertyU8                  = libphx.HmGui_SetPropertyU8,
-            SetPropertyI16                 = libphx.HmGui_SetPropertyI16,
-            SetPropertyU16                 = libphx.HmGui_SetPropertyU16,
-            SetPropertyI32                 = libphx.HmGui_SetPropertyI32,
-            SetPropertyU32                 = libphx.HmGui_SetPropertyU32,
-            SetPropertyI64                 = libphx.HmGui_SetPropertyI64,
-            SetPropertyU64                 = libphx.HmGui_SetPropertyU64,
-            SetPropertyF32                 = libphx.HmGui_SetPropertyF32,
-            SetPropertyF64                 = libphx.HmGui_SetPropertyF64,
-            SetPropertyVec2                = libphx.HmGui_SetPropertyVec2,
-            SetPropertyVec3                = libphx.HmGui_SetPropertyVec3,
-            SetPropertyVec4                = libphx.HmGui_SetPropertyVec4,
-            SetPropertyIVec2               = libphx.HmGui_SetPropertyIVec2,
-            SetPropertyIVec3               = libphx.HmGui_SetPropertyIVec3,
-            SetPropertyIVec4               = libphx.HmGui_SetPropertyIVec4,
-            SetPropertyUVec2               = libphx.HmGui_SetPropertyUVec2,
-            SetPropertyUVec3               = libphx.HmGui_SetPropertyUVec3,
-            SetPropertyUVec4               = libphx.HmGui_SetPropertyUVec4,
-            SetPropertyDVec2               = libphx.HmGui_SetPropertyDVec2,
-            SetPropertyDVec3               = libphx.HmGui_SetPropertyDVec3,
-            SetPropertyDVec4               = libphx.HmGui_SetPropertyDVec4,
-            SetPropertyBox3                = libphx.HmGui_SetPropertyBox3,
-            SetPropertyString              = libphx.HmGui_SetPropertyString,
-            SetPropertyFont                = libphx.HmGui_SetPropertyFont,
-            GetPropertyBool                = libphx.HmGui_GetPropertyBool,
-            GetPropertyI8                  = libphx.HmGui_GetPropertyI8,
-            GetPropertyU8                  = libphx.HmGui_GetPropertyU8,
-            GetPropertyI16                 = libphx.HmGui_GetPropertyI16,
-            GetPropertyU16                 = libphx.HmGui_GetPropertyU16,
-            GetPropertyI32                 = libphx.HmGui_GetPropertyI32,
-            GetPropertyU32                 = libphx.HmGui_GetPropertyU32,
-            GetPropertyI64                 = libphx.HmGui_GetPropertyI64,
-            GetPropertyU64                 = libphx.HmGui_GetPropertyU64,
-            GetPropertyF32                 = libphx.HmGui_GetPropertyF32,
-            GetPropertyF64                 = libphx.HmGui_GetPropertyF64,
-            GetPropertyVec2                = libphx.HmGui_GetPropertyVec2,
-            GetPropertyVec3                = libphx.HmGui_GetPropertyVec3,
-            GetPropertyVec4                = libphx.HmGui_GetPropertyVec4,
-            GetPropertyIVec2               = libphx.HmGui_GetPropertyIVec2,
-            GetPropertyIVec3               = libphx.HmGui_GetPropertyIVec3,
-            GetPropertyIVec4               = libphx.HmGui_GetPropertyIVec4,
-            GetPropertyUVec2               = libphx.HmGui_GetPropertyUVec2,
-            GetPropertyUVec3               = libphx.HmGui_GetPropertyUVec3,
-            GetPropertyUVec4               = libphx.HmGui_GetPropertyUVec4,
-            GetPropertyDVec2               = libphx.HmGui_GetPropertyDVec2,
-            GetPropertyDVec3               = libphx.HmGui_GetPropertyDVec3,
-            GetPropertyDVec4               = libphx.HmGui_GetPropertyDVec4,
-            GetPropertyBox3                = libphx.HmGui_GetPropertyBox3,
-            GetPropertyString              = libphx.HmGui_GetPropertyString,
-            GetPropertyFont                = libphx.HmGui_GetPropertyFont,
-            DumpWidgets                    = libphx.HmGui_DumpWidgets,
-        }
+        HmGui = {}
 
         if onDef_HmGui then onDef_HmGui(HmGui, mt) end
         HmGui = setmetatable(HmGui, mt)
@@ -375,7 +233,7 @@ function Loader.defineType()
                 setPaddingRight                = libphx.HmGui_SetPaddingRight,
                 setPaddingBottom               = libphx.HmGui_SetPaddingBottom,
                 setSpacing                     = libphx.HmGui_SetSpacing,
-                containerHasFocus              = libphx.HmGui_ContainerHasFocus,
+                isMouseOver                    = libphx.HmGui_IsMouseOver,
                 setChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
                 setChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
                 setChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
@@ -384,7 +242,10 @@ function Loader.defineType()
                 getStyleId                     = libphx.HmGui_GetStyleId,
                 setStyle                       = libphx.HmGui_SetStyle,
                 clearStyle                     = libphx.HmGui_ClearStyle,
-                getPropertyType                = libphx.HmGui_GetPropertyType,
+                getPropertyType                = function(...)
+                    local instance = libphx.HmGui_GetPropertyType(...)
+                    return Core.ManagedObject(instance, libphx.HmGuiPropertyType_Free)
+                end,
                 mapProperty                    = libphx.HmGui_MapProperty,
                 removeProperty                 = libphx.HmGui_RemoveProperty,
                 registerPropertyBool           = libphx.HmGui_RegisterPropertyBool,
@@ -410,6 +271,7 @@ function Loader.defineType()
                 registerPropertyDVec2          = libphx.HmGui_RegisterPropertyDVec2,
                 registerPropertyDVec3          = libphx.HmGui_RegisterPropertyDVec3,
                 registerPropertyDVec4          = libphx.HmGui_RegisterPropertyDVec4,
+                registerPropertyColor          = libphx.HmGui_RegisterPropertyColor,
                 registerPropertyBox3           = libphx.HmGui_RegisterPropertyBox3,
                 registerPropertyString         = libphx.HmGui_RegisterPropertyString,
                 registerPropertyFont           = libphx.HmGui_RegisterPropertyFont,
@@ -436,6 +298,7 @@ function Loader.defineType()
                 setPropertyDVec2               = libphx.HmGui_SetPropertyDVec2,
                 setPropertyDVec3               = libphx.HmGui_SetPropertyDVec3,
                 setPropertyDVec4               = libphx.HmGui_SetPropertyDVec4,
+                setPropertyColor               = libphx.HmGui_SetPropertyColor,
                 setPropertyBox3                = libphx.HmGui_SetPropertyBox3,
                 setPropertyString              = libphx.HmGui_SetPropertyString,
                 setPropertyFont                = libphx.HmGui_SetPropertyFont,
@@ -462,6 +325,7 @@ function Loader.defineType()
                 getPropertyDVec2               = libphx.HmGui_GetPropertyDVec2,
                 getPropertyDVec3               = libphx.HmGui_GetPropertyDVec3,
                 getPropertyDVec4               = libphx.HmGui_GetPropertyDVec4,
+                getPropertyColor               = libphx.HmGui_GetPropertyColor,
                 getPropertyBox3                = libphx.HmGui_GetPropertyBox3,
                 getPropertyString              = libphx.HmGui_GetPropertyString,
                 getPropertyFont                = libphx.HmGui_GetPropertyFont,

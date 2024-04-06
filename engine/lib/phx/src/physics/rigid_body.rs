@@ -1,11 +1,12 @@
-use crate::common::*;
+use std::ptr::NonNull;
+
+use rapier3d_f64::prelude as rp;
+use rapier3d_f64::prelude::nalgebra as na;
+
 use crate::math::*;
 use crate::physics::*;
 use crate::render::*;
 use crate::rf::Rf;
-use rapier3d_f64::prelude as rp;
-use rapier3d_f64::prelude::nalgebra as na;
-use std::ptr::NonNull;
 
 /*
  * The following API functions are disabled for parent objects:
@@ -290,7 +291,7 @@ impl RigidBody {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl RigidBody {
     #[bind(name = "CreateBox")]
     pub fn new_box() -> Box<RigidBody> {
@@ -757,6 +758,15 @@ impl RigidBody {
             let scaled_position = trigger.get_position_local() * scale_ratio;
             trigger.set_position_local(&scaled_position);
         }
+    }
+
+    pub fn distance_to(&self, target: &RigidBody) -> f32 {
+        let my_position = self.get_position();
+        let target_position = target.get_position();
+
+        let distance = my_position.distance(target_position);
+
+        distance
     }
 
     pub fn is_sleeping(&self) -> bool {

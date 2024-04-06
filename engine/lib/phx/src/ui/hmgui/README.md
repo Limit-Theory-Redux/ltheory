@@ -278,7 +278,7 @@ end
 
 -- somewhere later
 Gui:clearStyle()
-Gui:setPropertyVec4(Enums.Gui.ButtonTextColorId, Vec4(0, 1, 0, 1))
+Gui:setPropertyColor(Enums.Gui.ButtonTextColorId, Color(0, 1, 0, 1))
 button("My button")
 ```
 
@@ -314,7 +314,7 @@ Any property value applied by setting a theme that contains that property will b
   - Example of direct styling in code:
 ```lua
 Gui:clearStyle()
-Gui:setPropertyVec4(GuiProperties.ButtonTextColorId, Vec4(1, 0, 0, 1))
+Gui:setPropertyColor(GuiProperties.ButtonTextColorId, Color(1, 0, 0, 1))
 Gui:button("MyButton")
 ```
   - Example of styling through the global style configuration file `styles.yaml`:

@@ -10,7 +10,7 @@ pub struct MyStruct {
     val_u32: u32,
 }
 
-#[luajit_ffi_gen::luajit_ffi(name = "My_Struct", meta = true, managed = true)]
+#[luajit_ffi_gen::luajit_ffi(name = "My_Struct", meta = true)]
 impl MyStruct {
     pub fn set_u32(&mut self, val: u32) {
         self.val_u32 = val;
@@ -289,7 +289,6 @@ Under the hood proc macro on the `enum` block instead of generating ***.lua** sc
 
 - **name** \[string, default = None]: set user defined name of the module
 - **opaque** \[bool, default = true]: generate **typedef** C API module structure definition
-- **managed** \[bool, default = false]: generate **Free** C API function and add **managed** and **free** metatype bindings
 - **clone** \[bool, default = false]: adds **__call** method to Global Symbol Table section and **clone** method to metatype section
 - **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API
 

@@ -34,19 +34,10 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Trigger = {
-            Free             = libphx.Trigger_Free,
-            CreateBox        = libphx.Trigger_CreateBox,
-            Attach           = libphx.Trigger_Attach,
-            Detach           = libphx.Trigger_Detach,
-            GetBoundingBox   = libphx.Trigger_GetBoundingBox,
-            GetContentsCount = libphx.Trigger_GetContentsCount,
-            GetContents      = libphx.Trigger_GetContents,
-            SetCollisionMask = libphx.Trigger_SetCollisionMask,
-            SetPos           = libphx.Trigger_SetPos,
-            SetPosLocal      = libphx.Trigger_SetPosLocal,
-            GetPos           = libphx.Trigger_GetPos,
-            GetPosLocal      = libphx.Trigger_GetPosLocal,
-            GetParent        = libphx.Trigger_GetParent,
+            CreateBox        = function(...)
+                local instance = libphx.Trigger_CreateBox(...)
+                return Core.ManagedObject(instance, libphx.Trigger_Free)
+            end,
         }
 
         if onDef_Trigger then onDef_Trigger(Trigger, mt) end
@@ -57,8 +48,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Trigger')
         local mt = {
             __index = {
-                managed          = function(self) return ffi.gc(self, libphx.Trigger_Free) end,
-                free             = libphx.Trigger_Free,
                 attach           = libphx.Trigger_Attach,
                 detach           = libphx.Trigger_Detach,
                 getBoundingBox   = libphx.Trigger_GetBoundingBox,

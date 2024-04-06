@@ -2,7 +2,8 @@ use std::ops::Deref;
 
 use glam::*;
 
-use crate::{math::Box3, render::Font};
+use crate::math::Box3;
+use crate::render::{Color, Font};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct HmGuiPropertyId(usize);
@@ -91,6 +92,7 @@ decl_property! {
     DVec2(DVec2),
     DVec3(DVec3),
     DVec4(DVec4),
+    Color(Color),
     Box3(Box3),
     String(String),
     Font(Font),

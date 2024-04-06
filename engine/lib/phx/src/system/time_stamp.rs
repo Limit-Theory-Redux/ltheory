@@ -18,7 +18,7 @@ impl TimeStamp {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl TimeStamp {
     pub fn now() -> Self {
         Self {

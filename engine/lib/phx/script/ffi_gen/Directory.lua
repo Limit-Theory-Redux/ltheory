@@ -29,9 +29,10 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Directory = {
-            Free        = libphx.Directory_Free,
-            Open        = libphx.Directory_Open,
-            GetNext     = libphx.Directory_GetNext,
+            Open        = function(...)
+                local instance = libphx.Directory_Open(...)
+                return Core.ManagedObject(instance, libphx.Directory_Free)
+            end,
             Change      = libphx.Directory_Change,
             Create      = libphx.Directory_Create,
             GetCurrent  = libphx.Directory_GetCurrent,
@@ -47,8 +48,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Directory')
         local mt = {
             __index = {
-                managed = function(self) return ffi.gc(self, libphx.Directory_Free) end,
-                free    = libphx.Directory_Free,
                 getNext = libphx.Directory_GetNext,
             },
         }

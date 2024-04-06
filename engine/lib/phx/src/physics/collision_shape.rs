@@ -1,5 +1,3 @@
-use std::rc::{Rc, Weak};
-
 use crate::math::{Box3, Vec3};
 use crate::physics::*;
 use crate::render::*;

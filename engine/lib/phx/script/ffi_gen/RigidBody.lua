@@ -60,57 +60,41 @@ function Loader.defineType()
             void       RigidBody_SetRotLocal                       (RigidBody*, Quat const* rot);
             float      RigidBody_GetScale                          (RigidBody const*);
             void       RigidBody_SetScale                          (RigidBody*, float scale);
+            float      RigidBody_DistanceTo                        (RigidBody const*, RigidBody const* target);
             bool       RigidBody_IsSleeping                        (RigidBody const*);
         ]]
     end
 
     do -- Global Symbol Table
         RigidBody = {
-            Free                              = libphx.RigidBody_Free,
-            CreateBox                         = libphx.RigidBody_CreateBox,
-            CreateBoxFromMesh                 = libphx.RigidBody_CreateBoxFromMesh,
-            CreateSphere                      = libphx.RigidBody_CreateSphere,
-            CreateSphereFromMesh              = libphx.RigidBody_CreateSphereFromMesh,
-            CreateConvexHullFromMesh          = libphx.RigidBody_CreateConvexHullFromMesh,
-            CreateConvexDecompositionFromMesh = libphx.RigidBody_CreateConvexDecompositionFromMesh,
-            CreateTrimeshFromMesh             = libphx.RigidBody_CreateTrimeshFromMesh,
-            GetParentBody                     = libphx.RigidBody_GetParentBody,
-            ApplyForce                        = libphx.RigidBody_ApplyForce,
-            ApplyTorque                       = libphx.RigidBody_ApplyTorque,
-            Attach                            = libphx.RigidBody_Attach,
-            Detach                            = libphx.RigidBody_Detach,
-            GetBoundingBox                    = libphx.RigidBody_GetBoundingBox,
-            GetBoundingBoxCompound            = libphx.RigidBody_GetBoundingBoxCompound,
-            GetBoundingBoxLocal               = libphx.RigidBody_GetBoundingBoxLocal,
-            GetBoundingBoxLocalCompound       = libphx.RigidBody_GetBoundingBoxLocalCompound,
-            GetBoundingRadius                 = libphx.RigidBody_GetBoundingRadius,
-            GetBoundingRadiusCompound         = libphx.RigidBody_GetBoundingRadiusCompound,
-            GetSpeed                          = libphx.RigidBody_GetSpeed,
-            GetToWorldMatrix                  = libphx.RigidBody_GetToWorldMatrix,
-            GetToLocalMatrix                  = libphx.RigidBody_GetToLocalMatrix,
-            GetVelocity                       = libphx.RigidBody_GetVelocity,
-            GetVelocityA                      = libphx.RigidBody_GetVelocityA,
-            SetCollidable                     = libphx.RigidBody_SetCollidable,
-            SetCollisionGroup                 = libphx.RigidBody_SetCollisionGroup,
-            SetCollisionMask                  = libphx.RigidBody_SetCollisionMask,
-            SetDrag                           = libphx.RigidBody_SetDrag,
-            SetFriction                       = libphx.RigidBody_SetFriction,
-            SetKinematic                      = libphx.RigidBody_SetKinematic,
-            SetRestitution                    = libphx.RigidBody_SetRestitution,
-            SetSleepThreshold                 = libphx.RigidBody_SetSleepThreshold,
-            GetMass                           = libphx.RigidBody_GetMass,
-            SetMass                           = libphx.RigidBody_SetMass,
-            GetPos                            = libphx.RigidBody_GetPos,
-            GetPosLocal                       = libphx.RigidBody_GetPosLocal,
-            SetPos                            = libphx.RigidBody_SetPos,
-            SetPosLocal                       = libphx.RigidBody_SetPosLocal,
-            GetRot                            = libphx.RigidBody_GetRot,
-            GetRotLocal                       = libphx.RigidBody_GetRotLocal,
-            SetRot                            = libphx.RigidBody_SetRot,
-            SetRotLocal                       = libphx.RigidBody_SetRotLocal,
-            GetScale                          = libphx.RigidBody_GetScale,
-            SetScale                          = libphx.RigidBody_SetScale,
-            IsSleeping                        = libphx.RigidBody_IsSleeping,
+            CreateBox                         = function(...)
+                local instance = libphx.RigidBody_CreateBox(...)
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            end,
+            CreateBoxFromMesh                 = function(...)
+                local instance = libphx.RigidBody_CreateBoxFromMesh(...)
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            end,
+            CreateSphere                      = function(...)
+                local instance = libphx.RigidBody_CreateSphere(...)
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            end,
+            CreateSphereFromMesh              = function(...)
+                local instance = libphx.RigidBody_CreateSphereFromMesh(...)
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            end,
+            CreateConvexHullFromMesh          = function(...)
+                local instance = libphx.RigidBody_CreateConvexHullFromMesh(...)
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            end,
+            CreateConvexDecompositionFromMesh = function(...)
+                local instance = libphx.RigidBody_CreateConvexDecompositionFromMesh(...)
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            end,
+            CreateTrimeshFromMesh             = function(...)
+                local instance = libphx.RigidBody_CreateTrimeshFromMesh(...)
+                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            end,
         }
 
         if onDef_RigidBody then onDef_RigidBody(RigidBody, mt) end
@@ -121,8 +105,6 @@ function Loader.defineType()
         local t  = ffi.typeof('RigidBody')
         local mt = {
             __index = {
-                managed                     = function(self) return ffi.gc(self, libphx.RigidBody_Free) end,
-                free                        = libphx.RigidBody_Free,
                 getParentBody               = libphx.RigidBody_GetParentBody,
                 applyForce                  = libphx.RigidBody_ApplyForce,
                 applyTorque                 = libphx.RigidBody_ApplyTorque,
@@ -135,8 +117,14 @@ function Loader.defineType()
                 getBoundingRadius           = libphx.RigidBody_GetBoundingRadius,
                 getBoundingRadiusCompound   = libphx.RigidBody_GetBoundingRadiusCompound,
                 getSpeed                    = libphx.RigidBody_GetSpeed,
-                getToWorldMatrix            = libphx.RigidBody_GetToWorldMatrix,
-                getToLocalMatrix            = libphx.RigidBody_GetToLocalMatrix,
+                getToWorldMatrix            = function(...)
+                    local instance = libphx.RigidBody_GetToWorldMatrix(...)
+                    return Core.ManagedObject(instance, libphx.Matrix_Free)
+                end,
+                getToLocalMatrix            = function(...)
+                    local instance = libphx.RigidBody_GetToLocalMatrix(...)
+                    return Core.ManagedObject(instance, libphx.Matrix_Free)
+                end,
                 getVelocity                 = libphx.RigidBody_GetVelocity,
                 getVelocityA                = libphx.RigidBody_GetVelocityA,
                 setCollidable               = libphx.RigidBody_SetCollidable,
@@ -159,6 +147,7 @@ function Loader.defineType()
                 setRotLocal                 = libphx.RigidBody_SetRotLocal,
                 getScale                    = libphx.RigidBody_GetScale,
                 setScale                    = libphx.RigidBody_SetScale,
+                distanceTo                  = libphx.RigidBody_DistanceTo,
                 isSleeping                  = libphx.RigidBody_IsSleeping,
             },
         }

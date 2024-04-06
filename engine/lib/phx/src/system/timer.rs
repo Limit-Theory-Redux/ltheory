@@ -1,14 +1,12 @@
 use std::time::SystemTime;
 
-use crate::*;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Timer {
     pub value: SystemTime,
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Timer {
     #[bind(name = "Create")]
     pub fn new() -> Self {

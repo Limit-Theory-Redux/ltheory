@@ -1,7 +1,3 @@
-use internal::static_string;
-
-use crate::common::*;
-
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResourceType {

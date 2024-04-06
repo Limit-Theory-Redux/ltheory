@@ -1,6 +1,3 @@
-use crate::common::*;
-use crate::*;
-
 use image::io::Reader as ImageReader;
 use image::{DynamicImage, GenericImageView};
 use internal::*;

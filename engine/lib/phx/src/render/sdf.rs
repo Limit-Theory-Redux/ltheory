@@ -2,7 +2,6 @@ use internal::*;
 
 use super::*;
 use crate::math::*;
-use crate::*;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

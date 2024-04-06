@@ -1,12 +1,12 @@
-use glam::{Vec2, Vec4};
+use glam::Vec2;
 
-use crate::render::{Font, UIRenderer};
+use crate::render::{Color, Font, UIRenderer};
 
 #[derive(Clone)]
 pub struct HmGuiText {
     pub font: Font,
     pub text: String,
-    pub color: Vec4,
+    pub color: Color,
 }
 
 impl PartialEq for HmGuiText {

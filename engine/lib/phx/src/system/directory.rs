@@ -1,8 +1,6 @@
 use std::io::ErrorKind;
 use std::{env, fs};
 
-use crate::*;
-
 use directories::ProjectDirs;
 use internal::ConvertIntoString;
 use tracing::error;
@@ -12,7 +10,7 @@ pub struct Directory {
     pub iterator: fs::ReadDir,
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Directory {
     pub fn open(path: &str) -> Option<Self> {
         match fs::read_dir(path) {

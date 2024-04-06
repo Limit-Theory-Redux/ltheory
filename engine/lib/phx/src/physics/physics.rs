@@ -163,7 +163,7 @@ pub struct Physics {
     debug_renderer: rp::DebugRenderPipeline,
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Physics {
     #[bind(name = "Create")]
     pub fn new() -> Physics {
@@ -458,50 +458,6 @@ impl Physics {
     }
 }
 
-/// Convert HSL color to RGB
-pub fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (f32, f32, f32) {
-    if s == 0.0 {
-        // Achromatic, i.e., grey.
-        return (l, l, l);
-    }
-
-    let h = h / 360.0; // treat this as 0..1 instead of degrees
-
-    let q = if l < 0.5 {
-        l * (1.0 + s)
-    } else {
-        l + s - (l * s)
-    };
-    let p = 2.0 * l - q;
-
-    (
-        hue_to_rgb(p, q, h + 1.0 / 3.0),
-        hue_to_rgb(p, q, h),
-        hue_to_rgb(p, q, h - 1.0 / 3.0),
-    )
-}
-
-fn hue_to_rgb(p: f32, q: f32, t: f32) -> f32 {
-    // Normalize
-    let t = if t < 0.0 {
-        t + 1.0
-    } else if t > 1.0 {
-        t - 1.0
-    } else {
-        t
-    };
-
-    if t < 1.0 / 6.0 {
-        p + (q - p) * 6.0 * t
-    } else if t < 1.0 / 2.0 {
-        q
-    } else if t < 2.0 / 3.0 {
-        p + (q - p) * (2.0 / 3.0 - t) * 6.0
-    } else {
-        p
-    }
-}
-
 struct RapierDebugRenderer;
 
 impl rp::DebugRenderBackend for RapierDebugRenderer {
@@ -512,14 +468,15 @@ impl rp::DebugRenderBackend for RapierDebugRenderer {
         end: rp::Point<rp::Real>,
         color: [f32; 4],
     ) {
+        let Color { r, g, b, a } = Color::from_hsl(color[0], color[1], color[2], color[3]);
+
         unsafe {
-            let (r, g, b) = hsl_to_rgb(color[0], color[1], color[2]);
             Shader_SetFloat4(
                 CString::new("color").unwrap().as_c_str().as_ptr(),
                 r,
                 g,
                 b,
-                color[3],
+                a,
             );
             Draw_Line3(
                 &Vec3::from_na_point(&start) as *const _,

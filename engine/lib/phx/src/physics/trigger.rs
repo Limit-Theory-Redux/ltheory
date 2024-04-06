@@ -1,10 +1,11 @@
+use std::ptr::NonNull;
+
+use rapier3d_f64::prelude as rp;
+use rapier3d_f64::prelude::nalgebra as na;
+
 use crate::math::{Box3, Vec3};
 use crate::physics::*;
 use crate::rf::Rf;
-use rapier3d_f64::prelude as rp;
-use rapier3d_f64::prelude::nalgebra as na;
-use std::cell::Ref;
-use std::ptr::NonNull;
 
 struct TriggerParent {
     rigid_body: NonNull<RigidBody>,
@@ -76,7 +77,7 @@ impl Trigger {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Trigger {
     pub fn create_box(half_extents: &Vec3) -> Trigger {
         let collider = rp::ColliderBuilder::cuboid(

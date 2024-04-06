@@ -1,3 +1,5 @@
+local SoundManager = require "Systems.SFX.SoundManager"
+
 local SFXObject = {}
 SFXObject.__index = SFXObject
 
@@ -10,49 +12,32 @@ function SFXObject:Create(arg)
 
     local object = {}
     object.name = arg.name
-    object.path = arg.path
-    object.sound = Sound.Load(arg.path, arg.isLooping)
+    object.path = Config.paths.soundEffects .. arg.path
+    object.sound = Sound.Load(object.path, arg.isLooping)
     object.volume = arg.volume
+    object.last_created = TimeStamp.Now()
     setmetatable(object, SFXObject)
     return object
 end
 
-function SFXObject:Play(volume)
-    local vol = volume or self.volume
-    self.sound:setVolume(vol)
-    LTheoryRedux.audiofx:play(self.sound)
-end
+function SFXObject:Play(volume, pos)
+    if self.last_created:getElapsed() > 0.05 then
+        local vol = volume or self.volume
 
-function SFXObject:Stop()
-    self.sound:stop(0)
-end
+        local soundGroup = Enums.SoundGroups.Effects
 
-function SFXObject:Pause()
-    self.sound:pause(0)
-end
-
-function SFXObject:Resume()
-    self.sound:resume(0)
-end
-
-function SFXObject:Rewind()
-    self.sound:setPlayPos(0)
-end
-
-function SFXObject:SetPlayPos(pos)
-    self.sound:setPlayPos(pos % self.sound:getDuration())
-end
-
-function SFXObject:SetVolume(volume, fadeMS)
-    self.sound:setVolume(volume, fadeMS)
-end
-
-function SFXObject:IsPlaying()
-    return self.sound:isPlaying()
-end
-
-function SFXObject:IsPaused()
-    return self.sound:isPaused()
+        if SoundManager:canSoundPlay(soundGroup) then
+            local instance
+            if pos then
+                instance = GameState.audio.manager:play3d(self.sound, vol, 50, pos)
+            else
+                instance = GameState.audio.manager:play(self.sound, vol, 50)
+            end
+            SoundManager:addInstance(instance, soundGroup)
+            self.last_created = TimeStamp.Now()
+            return instance
+        end
+    end
 end
 
 return SFXObject

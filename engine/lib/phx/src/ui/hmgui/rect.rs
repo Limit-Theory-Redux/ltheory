@@ -1,10 +1,10 @@
-use glam::{Vec2, Vec4};
+use glam::Vec2;
 
-use crate::render::UIRenderer;
+use crate::render::{Color, UIRenderer};
 
 #[derive(Clone, PartialEq)]
 pub struct HmGuiRect {
-    pub color: Vec4,
+    pub color: Color,
 }
 
 impl HmGuiRect {
