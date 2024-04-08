@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::ptr::addr_of_mut;
 
 use super::*;
 use crate::common::*;
@@ -155,7 +156,7 @@ impl Font {
     pub fn load(name: &str, size: u32) -> Self {
         let handle = unsafe {
             if FT.is_null() {
-                FT_Init_FreeType(&mut FT);
+                FT_Init_FreeType(addr_of_mut!(FT));
             }
 
             let name_cstr = CString::new(name).expect("Cannot convert string to C string");

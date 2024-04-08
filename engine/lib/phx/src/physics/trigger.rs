@@ -158,7 +158,7 @@ impl Trigger {
             .extend(
                 world
                     .narrow_phase
-                    .intersections_with(*collider)
+                    .intersection_pairs_with(*collider)
                     .filter_map(|pair| {
                         let other_collider = if pair.0 == *collider { pair.1 } else { pair.0 };
 

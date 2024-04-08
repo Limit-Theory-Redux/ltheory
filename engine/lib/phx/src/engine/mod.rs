@@ -349,19 +349,27 @@ impl Engine {
                             .lua
                             .load(&*entry_point_path)
                             .exec()
-                            .expect("Cannot execute entry point script");
+                            .unwrap_or_else(|e| {
+                            panic!("Error executing the entry point script: {}", e);
+                        });
 
                         let set_engine_func: Function = globals.get("SetEngine").unwrap();
 
                         set_engine_func
                             .call::<_, ()>(&engine as *const Engine as usize)
-                            .unwrap();
+                            .unwrap_or_else(|e| {
+                                panic!("Error calling SetEngine: {}", e);
+                            });
 
                         let init_system_func: Function = globals.get("InitSystem").unwrap();
-                        init_system_func.call::<_, ()>(()).unwrap();
+                        init_system_func.call::<_, ()>(()).unwrap_or_else(|e| {
+                            panic!("Error calling InitSystem: {}", e);
+                        });
 
                         let app_init_func: Function = globals.get("AppInit").unwrap();
-                        app_init_func.call::<_, ()>(()).unwrap();
+                        app_init_func.call::<_, ()>(()).unwrap_or_else(|e| {
+                            panic!("Error calling AppInit: {}", e);
+                        });
                     }
 
                     // The low_power_event state and timeout must be reset at the start of every frame.
