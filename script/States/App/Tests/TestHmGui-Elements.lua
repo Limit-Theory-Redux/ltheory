@@ -11,6 +11,7 @@ end
 function Test:onInput() end
 
 function Test:scrollArea()
+    Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShowId, false)
     Gui:beginScrollArea()
     Gui:setBorder(3, Color(0,1,0,1));
 

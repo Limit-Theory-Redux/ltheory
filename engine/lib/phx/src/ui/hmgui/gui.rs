@@ -426,7 +426,10 @@ impl HmGui {
             fade_scale
         };
 
-        if fade_scale > 0.0 {
+        let hscroll = self.get_property_bool(HmGuiProperties::ScrollAreaHScrollShowId.id());
+        let vscroll = self.get_property_bool(HmGuiProperties::ScrollAreaVScrollShowId.id());
+
+        if (hscroll || vscroll) && fade_scale > 0.0 {
             let sb_length = 4.0;
             let sb_bg_color = Color::new(0.3, 0.3, 0.3, 0.3 * fade_scale);
             let mut sb_knob_color = self
@@ -435,71 +438,75 @@ impl HmGui {
 
             sb_knob_color.a *= fade_scale;
 
-            self.begin_horizontal_container();
-            self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Bottom);
-            self.set_spacing(0.0);
+            if hscroll {
+                self.begin_horizontal_container();
+                self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Bottom);
+                self.set_spacing(0.0);
 
-            if max_scroll_x > 0.0 {
-                let (handle_size, handle_pos) = {
-                    let data = self.get_data(inner_widget_hash);
-                    let handle_size = data.size.x * (data.size.x / data.min_size.x);
-                    let handle_pos = Lerp(
-                        0.0f64,
-                        (data.size.x - handle_size) as f64,
-                        (data.offset.x / max_scroll_x) as f64,
-                    ) as f32;
+                if max_scroll_x > 0.0 {
+                    let (handle_size, handle_pos) = {
+                        let data = self.get_data(inner_widget_hash);
+                        let handle_size = data.size.x * (data.size.x / data.min_size.x);
+                        let handle_pos = Lerp(
+                            0.0f64,
+                            (data.size.x - handle_size) as f64,
+                            (data.offset.x / max_scroll_x) as f64,
+                        ) as f32;
 
-                    (handle_size, handle_pos)
-                };
+                        (handle_size, handle_pos)
+                    };
 
-                self.rect(&sb_bg_color);
-                self.set_fixed_size(handle_pos, sb_length);
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_size(handle_pos, sb_length);
 
-                self.rect(&sb_knob_color);
-                self.set_fixed_size(handle_size, sb_length);
+                    self.rect(&sb_knob_color);
+                    self.set_fixed_size(handle_size, sb_length);
 
-                self.rect(&sb_bg_color);
-                self.set_fixed_height(sb_length);
-                self.set_horizontal_alignment(AlignHorizontal::Stretch);
-            } else {
-                // self.rect(&sb_bg_color);
-                // self.set_fixed_size(16.0, sb_length);
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_height(sb_length);
+                    self.set_horizontal_alignment(AlignHorizontal::Stretch);
+                } else {
+                    // self.rect(&sb_bg_color);
+                    // self.set_fixed_size(16.0, sb_length);
+                }
+
+                self.end_container();
             }
 
-            self.end_container();
+            if vscroll {
+                self.begin_vertical_container();
+                self.set_alignment(AlignHorizontal::Right, AlignVertical::Stretch);
+                self.set_spacing(0.0);
 
-            self.begin_vertical_container();
-            self.set_alignment(AlignHorizontal::Right, AlignVertical::Stretch);
-            self.set_spacing(0.0);
+                if max_scroll_y > 0.0 {
+                    let (handle_size, handle_pos) = {
+                        let data = self.get_data(inner_widget_hash);
+                        let handle_size = data.size.y * (data.size.y / data.min_size.y);
+                        let handle_pos = Lerp(
+                            0.0f64,
+                            (data.size.y - handle_size) as f64,
+                            (data.offset.y / max_scroll_y) as f64,
+                        ) as f32;
 
-            if max_scroll_y > 0.0 {
-                let (handle_size, handle_pos) = {
-                    let data = self.get_data(inner_widget_hash);
-                    let handle_size = data.size.y * (data.size.y / data.min_size.y);
-                    let handle_pos = Lerp(
-                        0.0f64,
-                        (data.size.y - handle_size) as f64,
-                        (data.offset.y / max_scroll_y) as f64,
-                    ) as f32;
+                        (handle_size, handle_pos)
+                    };
 
-                    (handle_size, handle_pos)
-                };
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_size(sb_length, handle_pos);
 
-                self.rect(&sb_bg_color);
-                self.set_fixed_size(sb_length, handle_pos);
+                    self.rect(&sb_knob_color);
+                    self.set_fixed_size(sb_length, handle_size);
 
-                self.rect(&sb_knob_color);
-                self.set_fixed_size(sb_length, handle_size);
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_width(sb_length);
+                    self.set_vertical_alignment(AlignVertical::Stretch);
+                } else {
+                    // self.rect(&sb_bg_color);
+                    // self.set_fixed_size(sb_length, 16.0);
+                }
 
-                self.rect(&sb_bg_color);
-                self.set_fixed_width(sb_length);
-                self.set_vertical_alignment(AlignVertical::Stretch);
-            } else {
-                // self.rect(&sb_bg_color);
-                // self.set_fixed_size(sb_length, 16.0);
+                self.end_container();
             }
-
-            self.end_container();
         }
 
         self.end_container();

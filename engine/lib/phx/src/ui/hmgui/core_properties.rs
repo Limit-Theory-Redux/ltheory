@@ -50,6 +50,9 @@ core_properties! {
 
     (CheckboxBackgroundColorId, "checkbox.background-color", Color::new(0.3, 0.3, 0.3, 0.5), BackgroundColorId),
     (CheckboxHighlightColorId,  "checkbox.highlight-color",  Color::new(0.3, 0.3, 0.3, 1.0), HighlightColorId),
+
+    (ScrollAreaHScrollShowId, "scroll-area.hscroll.show", true),
+    (ScrollAreaVScrollShowId, "scroll-area.vscroll.show", true),
 }
 
 /// Adds a new property to the map.

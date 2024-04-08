@@ -31,6 +31,8 @@ function Loader.defineType()
             GuiProperties GuiProperties_ButtonHighlightColorId;
             GuiProperties GuiProperties_CheckboxBackgroundColorId;
             GuiProperties GuiProperties_CheckboxHighlightColorId;
+            GuiProperties GuiProperties_ScrollAreaHScrollShowId;
+            GuiProperties GuiProperties_ScrollAreaVScrollShowId;
 
             cstr          GuiProperties_ToString(GuiProperties);
         ]]
@@ -53,6 +55,8 @@ function Loader.defineType()
             ButtonHighlightColorId    = libphx.GuiProperties_ButtonHighlightColorId,
             CheckboxBackgroundColorId = libphx.GuiProperties_CheckboxBackgroundColorId,
             CheckboxHighlightColorId  = libphx.GuiProperties_CheckboxHighlightColorId,
+            ScrollAreaHScrollShowId   = libphx.GuiProperties_ScrollAreaHScrollShowId,
+            ScrollAreaVScrollShowId   = libphx.GuiProperties_ScrollAreaVScrollShowId,
 
             ToString                  = libphx.GuiProperties_ToString,
         }
