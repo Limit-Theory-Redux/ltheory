@@ -307,6 +307,10 @@ local function defineVec3f_t(t, mt)
         return Vec3d(v.x, v.y, v.z)
     end
 
+    function mt.__index.toPosition(v)
+        return Position(v.x, v.y, v.z)
+    end
+
     function mt.__index.toVec2f(v)
         return Vec2f(v.x, v.y)
     end
@@ -342,9 +346,32 @@ local function defineVec3d_t(t, mt)
     end
 end
 
+local function definePosition_t(t, mt)
+    function mt.__index.toVec3i(v)
+        return Vec3i(v.x, v.y, v.z)
+    end
+
+    function mt.__index.toVec3f(v)
+        return Vec3f(v.x, v.y, v.z)
+    end
+
+    function mt.__index.toVec3d(v)
+        return Vec3d(v.x, v.y, v.z)
+    end
+
+    function mt.__index.relativeTo(v, frame)
+        return Vec3f(v.x - frame.x, v.y - frame.y, v.z - frame.z)
+    end
+
+    function mt.__tostring(v)
+        return string.format('(%.4f, %.4f, %.4f)', v.x, v.y, v.z)
+    end
+end
+
 onDef_Vec3i = defineVec3
 onDef_Vec3f = defineVec3
 onDef_Vec3d = defineVec3
+onDef_Position = defineVec3
 
 onDef_Vec3i_t = function(t, mt)
     defineVec3_t(t, mt)
@@ -357,4 +384,8 @@ end
 onDef_Vec3d_t = function(t, mt)
     defineVec3_t(t, mt)
     defineVec3d_t(t, mt)
+end
+onDef_Position_t = function(t, mt)
+    defineVec3_t(t, mt)
+    definePosition_t(t, mt)
 end
