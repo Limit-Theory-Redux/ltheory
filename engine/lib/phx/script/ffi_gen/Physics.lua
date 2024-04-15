@@ -51,14 +51,32 @@ function Loader.defineType()
         local t  = ffi.typeof('Physics')
         local mt = {
             __index = {
+                -- Adds this rigid body to this physics world if it doesn't exist, otherwise do nothing.
+                -- 
+                -- Automatically adds all attached Triggers. Automatically adds all
+                -- attached children and their Triggers.
                 addRigidBody           = libphx.Physics_AddRigidBody,
+                -- Removes this rigid body from this physics world if it's added, otherwise do nothing.
+                -- 
+                -- Automatically removes all attached Triggers. Automatically removes all
+                -- attached children and their Triggers.
                 removeRigidBody        = libphx.Physics_RemoveRigidBody,
                 addTrigger             = libphx.Physics_AddTrigger,
                 removeTrigger          = libphx.Physics_RemoveTrigger,
                 update                 = libphx.Physics_Update,
+                -- This will fill the collision object with the collision information.
+                -- 
+                -- Will include results for both child and parent RigidBodys that are
+                -- colliding. Will not include Triggers.
                 getNextCollision       = libphx.Physics_GetNextCollision,
                 rayCast                = libphx.Physics_RayCast,
+                -- Results are unsorted and will include child objects.
+                -- 
+                -- The array stored inside ShapeCastResult is valid until the next call to sphere_cast.
                 sphereCast             = libphx.Physics_SphereCast,
+                -- Results are unsorted and will include child objects.
+                -- 
+                -- The array stored inside ShapeCastResult is valid until the next call to box_cast.
                 boxCast                = libphx.Physics_BoxCast,
                 sphereOverlap          = libphx.Physics_SphereOverlap,
                 boxOverlap             = libphx.Physics_BoxOverlap,

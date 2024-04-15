@@ -253,6 +253,11 @@ fn write_method_map<F: FnMut(String)>(
         None
     };
 
+    method
+        .doc
+        .iter()
+        .for_each(|d| writer(format!("{ident}-- {d}")));
+
     if let Some(gc_type) = gc_type {
         writer(format!("{ident}{mapped_method} = function(...)"));
         writer(format!(

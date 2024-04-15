@@ -49,6 +49,7 @@ function Loader.defineType()
         local mt = {
             __index = {
                 getDifference = libphx.TimeStamp_GetDifference,
+                -- Number of seconds elapsed since this timestamp.
                 getElapsed    = libphx.TimeStamp_GetElapsed,
                 getElapsedMs  = libphx.TimeStamp_GetElapsedMs,
                 getRelative   = function(...)

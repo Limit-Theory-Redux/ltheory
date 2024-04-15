@@ -105,28 +105,59 @@ function Loader.defineType()
         local t  = ffi.typeof('RigidBody')
         local mt = {
             __index = {
+                -- Return a reference to the parent rigid body, that we can guarantee
+                -- has a lifetime as long as self.
                 getParentBody               = libphx.RigidBody_GetParentBody,
                 applyForce                  = libphx.RigidBody_ApplyForce,
                 applyTorque                 = libphx.RigidBody_ApplyTorque,
+                -- Adds another rigid body as a child of this rigid body. This means that
+                -- the child's position will be controlled by `self`.
+                -- 
+                -- Only a single level of attachment is supported. Child objects do not
+                -- affect the mass or inertia of the parent. Position is relative to the
+                -- unscaled parent. i.e. it will be multiplied by the current scale. This
+                -- function is O(1). Warning: if one object is attached to another and a
+                -- third object happens to be between them this may trap the third object.
+                -- The same issue may occur when spawning one compound inside another.
+                -- 
+                -- This function expects that the child is not already in the physics
+                -- world, as it will add it if the parent is already in the world.
+                -- 
+                -- This function assumes that `self` is not already a child.
                 attach                      = libphx.RigidBody_Attach,
+                -- Removes a rigid body as a child of this rigid body. This means that
+                -- the child's will be under control of it's own position.
+                -- 
+                -- This function will result in a child that is not in the world anymore,
+                -- so it will need to be re-added with physics.add_rigid_body(...).
+                -- 
+                -- This function assumes that `self` is not already a child.
                 detach                      = libphx.RigidBody_Detach,
+                -- Calculates the bounding box.
                 getBoundingBox              = libphx.RigidBody_GetBoundingBox,
+                -- Calculates the compound bounding box.
                 getBoundingBoxCompound      = libphx.RigidBody_GetBoundingBoxCompound,
+                -- Calculates the local bounding box.
                 getBoundingBoxLocal         = libphx.RigidBody_GetBoundingBoxLocal,
+                -- Calculates the local compound bounding box.
                 getBoundingBoxLocalCompound = libphx.RigidBody_GetBoundingBoxLocalCompound,
                 getBoundingRadius           = libphx.RigidBody_GetBoundingRadius,
                 getBoundingRadiusCompound   = libphx.RigidBody_GetBoundingRadiusCompound,
                 getSpeed                    = libphx.RigidBody_GetSpeed,
+                -- Returns the local -> world matrix for this rigid body.
                 getToWorldMatrix            = function(...)
                     local instance = libphx.RigidBody_GetToWorldMatrix(...)
                     return Core.ManagedObject(instance, libphx.Matrix_Free)
                 end,
+                -- Returns the world -> local matrix for this rigid body.
                 getToLocalMatrix            = function(...)
                     local instance = libphx.RigidBody_GetToLocalMatrix(...)
                     return Core.ManagedObject(instance, libphx.Matrix_Free)
                 end,
                 getVelocity                 = libphx.RigidBody_GetVelocity,
                 getVelocityA                = libphx.RigidBody_GetVelocityA,
+                -- When disabled, the object will pass through others without colliding
+                -- and will not be returned from ray or shape casts.
                 setCollidable               = libphx.RigidBody_SetCollidable,
                 setCollisionGroup           = libphx.RigidBody_SetCollisionGroup,
                 setCollisionMask            = libphx.RigidBody_SetCollisionMask,
@@ -136,16 +167,24 @@ function Loader.defineType()
                 setRestitution              = libphx.RigidBody_SetRestitution,
                 setSleepThreshold           = libphx.RigidBody_SetSleepThreshold,
                 getMass                     = libphx.RigidBody_GetMass,
+                -- The mass of child objects does not affect the mass or inertia of the parent
                 setMass                     = libphx.RigidBody_SetMass,
+                -- Children return the parent position.
                 getPos                      = libphx.RigidBody_GetPos,
+                -- Local coordinates are relative to the parent *before* scaling.
                 getPosLocal                 = libphx.RigidBody_GetPosLocal,
                 setPos                      = libphx.RigidBody_SetPos,
+                -- Local coordinates are relative to the parent *before* scaling. The
+                -- given position will be multiplied by the parent's scale.
                 setPosLocal                 = libphx.RigidBody_SetPosLocal,
                 getRot                      = libphx.RigidBody_GetRot,
                 getRotLocal                 = libphx.RigidBody_GetRotLocal,
                 setRot                      = libphx.RigidBody_SetRot,
                 setRotLocal                 = libphx.RigidBody_SetRotLocal,
                 getScale                    = libphx.RigidBody_GetScale,
+                -- When called on a parent object the positions of all children will be
+                -- multiplied such that they retain the same relative position. Child
+                -- scale is not affected by parent scale (i.e. it is not inherited).
                 setScale                    = libphx.RigidBody_SetScale,
                 distanceTo                  = libphx.RigidBody_DistanceTo,
                 isSleeping                  = libphx.RigidBody_IsSleeping,

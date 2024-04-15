@@ -52,6 +52,7 @@ function Loader.defineType()
                 detach           = libphx.Trigger_Detach,
                 getBoundingBox   = libphx.Trigger_GetBoundingBox,
                 getContentsCount = libphx.Trigger_GetContentsCount,
+                -- Will only include the parent object when a compound is within the trigger.
                 getContents      = libphx.Trigger_GetContents,
                 setCollisionMask = libphx.Trigger_SetCollisionMask,
                 setPos           = libphx.Trigger_SetPos,

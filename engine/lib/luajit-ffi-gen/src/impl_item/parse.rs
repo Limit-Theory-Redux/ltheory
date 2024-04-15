@@ -2,8 +2,8 @@ use quote::quote;
 use syn::parse::{Error, Parse, Result};
 use syn::spanned::Spanned;
 use syn::{
-    Attribute, FnArg, GenericArgument, ImplItem, ItemImpl, Pat, Path, PathArguments, ReturnType,
-    Type,
+    Attribute, Expr, ExprLit, FnArg, GenericArgument, ImplItem, ItemImpl, Lit, Pat, Path,
+    PathArguments, ReturnType, Type,
 };
 
 use crate::args::BindArgs;
@@ -81,9 +81,11 @@ fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
     for item in items {
         if let ImplItem::Fn(fn_item) = item {
             let (self_param, params) = parse_params(fn_item.sig.inputs.iter())?;
+            let (doc, bind_args) = parse_method_attrs(&mut fn_item.attrs)?;
 
             methods.push(MethodInfo {
-                bind_args: get_bind_args(&mut fn_item.attrs)?,
+                doc,
+                bind_args,
                 name: format!("{}", fn_item.sig.ident),
                 self_param,
                 params,
@@ -95,38 +97,55 @@ fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
     Ok(methods)
 }
 
-/// Look for the bind attribute an extract its parameters.
+/// Parse the document and bind attributes.
 ///
 /// Expected format:
 /// ```ignore
+/// /// My cool method
 /// #[bind(name = "lua_function_name")]
 /// fn my_cool_method(...) {...}
 /// ```
-fn get_bind_args(attrs: &mut Vec<Attribute>) -> Result<BindArgs> {
+fn parse_method_attrs(attrs: &mut Vec<Attribute>) -> Result<(Vec<String>, BindArgs)> {
     let mut res = None;
+    let mut doc = vec![];
 
     for (i, attr) in attrs.iter().enumerate() {
         let attr_name = get_path_last_name(attr.meta.path())?;
 
-        if attr_name != "bind" {
-            continue;
+        match attr_name.as_str() {
+            "bind" => {
+                if res.is_some() {
+                    return Err(Error::new(
+                        attr.span(),
+                        "multiple 'bind' attributes are not supported",
+                    ));
+                }
+
+                let meta_list = attr.meta.require_list()?;
+                let args = meta_list.parse_args_with(BindArgs::parse)?;
+
+                res = Some((i, args));
+            }
+            "doc" => {
+                let doc_text = attr.meta.require_name_value()?;
+
+                if let Expr::Lit(ExprLit { lit, .. }) = &doc_text.value {
+                    if let Lit::Str(lit_str) = lit {
+                        doc.push(format!("{}", lit_str.value().trim()));
+                    }
+                }
+            }
+            _ => {}
         }
-
-        let meta_list = attr.meta.require_list()?;
-        let args = meta_list.parse_args_with(BindArgs::parse)?;
-
-        res = Some((i, args));
-
-        break;
     }
 
     if let Some((i, args)) = res {
         // Remove #[bind] attribute so it won't break compilation
         attrs.remove(i);
 
-        Ok(args)
+        Ok((doc, args))
     } else {
-        Ok(BindArgs::default())
+        Ok((doc, BindArgs::default()))
     }
 }
 

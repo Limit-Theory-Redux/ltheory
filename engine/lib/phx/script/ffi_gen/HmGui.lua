@@ -179,8 +179,11 @@ function Loader.defineType()
         local t  = ffi.typeof('HmGui')
         local mt = {
             __index = {
+                -- Begin GUI declaration. Region is limited by [0, 0] - [sx, sy] rectangle.
                 beginGui                       = libphx.HmGui_BeginGui,
+                -- Finish GUI declaration, calculate hierarchy widgets sizes and layout.
                 endGui                         = libphx.HmGui_EndGui,
+                -- Pass information about widgets to the renderer and draw them.
                 draw                           = libphx.HmGui_Draw,
                 beginHorizontalContainer       = libphx.HmGui_BeginHorizontalContainer,
                 beginVerticalContainer         = libphx.HmGui_BeginVerticalContainer,
@@ -188,8 +191,12 @@ function Loader.defineType()
                 endContainer                   = libphx.HmGui_EndContainer,
                 beginScroll                    = libphx.HmGui_BeginScroll,
                 endScroll                      = libphx.HmGui_EndScroll,
+                -- Begins window element.
                 beginWindow                    = libphx.HmGui_BeginWindow,
+                -- Ends window element.
                 endWindow                      = libphx.HmGui_EndWindow,
+                -- Invisible element that stretches in all directions.
+                -- Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
                 spacer                         = libphx.HmGui_Spacer,
                 button                         = libphx.HmGui_Button,
                 checkbox                       = libphx.HmGui_Checkbox,
@@ -233,20 +240,29 @@ function Loader.defineType()
                 setPaddingRight                = libphx.HmGui_SetPaddingRight,
                 setPaddingBottom               = libphx.HmGui_SetPaddingBottom,
                 setSpacing                     = libphx.HmGui_SetSpacing,
+                -- Makes current container `focusable` and returns if it's currently in focus.
                 isMouseOver                    = libphx.HmGui_IsMouseOver,
                 setChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
                 setChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
                 setChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
+                -- Set a theme by merging it into the default properties.
                 setTheme                       = libphx.HmGui_SetTheme,
+                -- Restore default properties.
                 clearTheme                     = libphx.HmGui_ClearTheme,
+                -- Get style id by its name.
                 getStyleId                     = libphx.HmGui_GetStyleId,
+                -- Set a style for the following element.
                 setStyle                       = libphx.HmGui_SetStyle,
+                -- Remove element style.
                 clearStyle                     = libphx.HmGui_ClearStyle,
+                -- Get property type by its id.
                 getPropertyType                = function(...)
                     local instance = libphx.HmGui_GetPropertyType(...)
                     return Core.ManagedObject(instance, libphx.HmGuiPropertyType_Free)
                 end,
+                -- Write property value into the mapped properties in the active element style.
                 mapProperty                    = libphx.HmGui_MapProperty,
+                -- Remove property by id from the active element style.
                 removeProperty                 = libphx.HmGui_RemoveProperty,
                 registerPropertyBool           = libphx.HmGui_RegisterPropertyBool,
                 registerPropertyI8             = libphx.HmGui_RegisterPropertyI8,
@@ -329,6 +345,7 @@ function Loader.defineType()
                 getPropertyBox3                = libphx.HmGui_GetPropertyBox3,
                 getPropertyString              = libphx.HmGui_GetPropertyString,
                 getPropertyFont                = libphx.HmGui_GetPropertyFont,
+                -- Prints widgets hierarchy to the console. For testing.
                 dumpWidgets                    = libphx.HmGui_DumpWidgets,
             },
         }
