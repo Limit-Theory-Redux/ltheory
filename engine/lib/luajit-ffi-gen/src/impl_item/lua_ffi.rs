@@ -80,7 +80,7 @@ impl ImplInfo {
                     "void".len()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    ret.as_ffi_string(module_name).len()
+                    ret.as_c_ffi_string(module_name).len()
                 };
 
                 max_ret_len = std::cmp::max(max_ret_len, len);
@@ -111,18 +111,18 @@ impl ImplInfo {
                     "void".into()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    ret.as_ffi_string(module_name)
+                    ret.as_c_ffi_string(module_name)
                 };
 
                 let mut params_str: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| format!("{} {}", param.ty.as_ffi_string(module_name), param.as_ffi_name()))
+                    .map(|param| format!("{} {}", param.ty.as_c_ffi_string(module_name), param.as_ffi_name()))
                     .collect();
 
                 if method.bind_args.gen_out_param() && method.ret.is_some() {
                     let ret = method.ret.as_ref().unwrap();
-                    let ret_ffi = ret.as_ffi_string(module_name);
+                    let ret_ffi = ret.as_c_ffi_string(module_name);
                     let ret_param = match &ret.variant {
                         TypeVariant::Custom(ty_name) => {
                             if !TypeInfo::is_copyable(&ty_name) && !ret.is_boxed && !ret.is_option && !ret.is_reference {
@@ -267,7 +267,7 @@ fn write_method_map<F: FnMut(String)>(
         writer(format!(
             "{ident}---@param {} {}",
             param.name,
-            param.ty.as_ffi_string(module_name)
+            param.ty.as_lua_ffi_string()
         ));
     });
 
@@ -275,13 +275,10 @@ fn write_method_map<F: FnMut(String)>(
         if method.bind_args.gen_out_param() {
             writer(format!(
                 "{ident}---@param [out] {}",
-                ret.as_ffi_string(module_name)
+                ret.as_lua_ffi_string()
             ));
         } else {
-            writer(format!(
-                "{ident}---@return {}",
-                ret.as_ffi_string(module_name)
-            ));
+            writer(format!("{ident}---@return {}", ret.as_lua_ffi_string()));
         }
     }
 

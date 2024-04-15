@@ -45,34 +45,34 @@ function Loader.defineType()
         local t  = ffi.typeof('SoundInstance')
         local mt = {
             __index = {
-                ---@return bool
+                ---@return boolean
                 isPlaying       = libphx.SoundInstance_IsPlaying,
-                ---@return bool
+                ---@return boolean
                 isPaused        = libphx.SoundInstance_IsPaused,
-                ---@return bool
+                ---@return boolean
                 isStopped       = libphx.SoundInstance_IsStopped,
-                ---@return double
+                ---@return number
                 getVolume       = libphx.SoundInstance_GetVolume,
-                ---@param volume double
-                ---@param fade_millis uint64
+                ---@param volume number
+                ---@param fade_millis integer
                 setVolume       = libphx.SoundInstance_SetVolume,
-                ---@param fade_millis uint64
+                ---@param fade_millis integer
                 pause           = libphx.SoundInstance_Pause,
-                ---@param fade_millis uint64
+                ---@param fade_millis integer
                 resume          = libphx.SoundInstance_Resume,
-                ---@param fade_millis uint64
+                ---@param fade_millis integer
                 stop            = libphx.SoundInstance_Stop,
                 freeEmitter     = libphx.SoundInstance_FreeEmitter,
-                ---@param position double
+                ---@param position number
                 setPlayPos      = libphx.SoundInstance_SetPlayPos,
-                ---@param offset double
+                ---@param offset number
                 movePlayPos     = libphx.SoundInstance_MovePlayPos,
-                ---@param position Vec3f const*
+                ---@param position Vec3
                 setEmitterPos   = libphx.SoundInstance_SetEmitterPos,
-                ---@return Vec3f
+                ---@return Vec3
                 emitterPos      = libphx.SoundInstance_EmitterPos,
-                ---@param listener_pos Vec3f const*
-                ---@return float
+                ---@param listener_pos Vec3
+                ---@return number
                 emitterDistance = libphx.SoundInstance_EmitterDistance,
             },
         }

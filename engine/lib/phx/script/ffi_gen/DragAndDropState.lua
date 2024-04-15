@@ -34,11 +34,11 @@ function Loader.defineType()
         local t  = ffi.typeof('DragAndDropState')
         local mt = {
             __index = {
-                ---@return cstr
+                ---@return string
                 getDroppedFile         = libphx.DragAndDropState_GetDroppedFile,
-                ---@return cstr
+                ---@return string
                 getHoveredFile         = libphx.DragAndDropState_GetHoveredFile,
-                ---@return bool
+                ---@return boolean
                 ifHoveredFileCancelled = libphx.DragAndDropState_IfHoveredFileCancelled,
             },
         }

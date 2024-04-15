@@ -28,9 +28,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Font = {
-            ---@param name cstr
-            ---@param size uint32
-            ---@return Font*
+            ---@param name string
+            ---@param size integer
+            ---@return Self
             Load          = function(...)
                 local instance = libphx.Font_Load(...)
                 return Core.ManagedObject(instance, libphx.Font_Free)
@@ -45,25 +45,25 @@ function Loader.defineType()
         local t  = ffi.typeof('Font')
         local mt = {
             __index = {
-                ---@param text cstr
-                ---@param x float
-                ---@param y float
-                ---@param r float
-                ---@param g float
-                ---@param b float
-                ---@param a float
+                ---@param text string
+                ---@param x number
+                ---@param y number
+                ---@param r number
+                ---@param g number
+                ---@param b number
+                ---@param a number
                 draw          = libphx.Font_Draw,
-                ---@param text cstr
-                ---@param x float
-                ---@param y float
+                ---@param text string
+                ---@param x number
+                ---@param y number
                 drawShaded    = libphx.Font_DrawShaded,
-                ---@return int
+                ---@return integer
                 getLineHeight = libphx.Font_GetLineHeight,
-                ---@param text cstr
-                ---@param out Vec4i*
+                ---@param text string
+                ---@param out IVec4
                 getSize       = libphx.Font_GetSize,
-                ---@param text cstr
-                ---@return Vec2i
+                ---@param text string
+                ---@return IVec2
                 getSize2      = libphx.Font_GetSize2,
             },
         }

@@ -31,7 +31,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Audio = {
-            ---@return Audio*
+            ---@return Self
             Create         = function(...)
                 local instance = libphx.Audio_Create(...)
                 return Core.ManagedObject(instance, libphx.Audio_Free)
@@ -46,39 +46,39 @@ function Loader.defineType()
         local t  = ffi.typeof('Audio')
         local mt = {
             __index = {
-                ---@param sound Sound*
-                ---@param init_volume double
-                ---@param fade_millis uint64
-                ---@return SoundInstance*
+                ---@param sound Sound
+                ---@param init_volume number
+                ---@param fade_millis integer
+                ---@return SoundInstance
                 play           = function(...)
                     local instance = libphx.Audio_Play(...)
                     return Core.ManagedObject(instance, libphx.SoundInstance_Free)
                 end,
-                ---@param sound Sound*
-                ---@param init_volume double
-                ---@param fade_millis uint64
-                ---@param init_pos Vec3f
-                ---@param min_distance float
-                ---@param max_distance float
-                ---@return SoundInstance*
+                ---@param sound Sound
+                ---@param init_volume number
+                ---@param fade_millis integer
+                ---@param init_pos Vec3
+                ---@param min_distance number
+                ---@param max_distance number
+                ---@return SoundInstance
                 play3D         = function(...)
                     local instance = libphx.Audio_Play3D(...)
                     return Core.ManagedObject(instance, libphx.SoundInstance_Free)
                 end,
-                ---@param pos Vec3f const*
+                ---@param pos Vec3
                 setListenerPos = libphx.Audio_SetListenerPos,
-                ---@return Vec3f
+                ---@return Vec3
                 listenerPos    = libphx.Audio_ListenerPos,
-                ---@param rot Quat const*
+                ---@param rot Quat
                 setListenerRot = libphx.Audio_SetListenerRot,
-                ---@return Quat*
+                ---@return Quat
                 listenerRot    = function(...)
                     local instance = libphx.Audio_ListenerRot(...)
                     return Core.ManagedObject(instance, libphx.Quat_Free)
                 end,
-                ---@return uint64
+                ---@return integer
                 getLoadedCount = libphx.Audio_GetLoadedCount,
-                ---@return uint64
+                ---@return integer
                 getTotalCount  = libphx.Audio_GetTotalCount,
             },
         }

@@ -29,26 +29,26 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Directory = {
-            ---@param path cstr
-            ---@return Directory const*
+            ---@param path string
+            ---@return Self
             Open        = function(...)
                 local instance = libphx.Directory_Open(...)
                 return Core.ManagedObject(instance, libphx.Directory_Free)
             end,
-            ---@param cwd cstr
-            ---@return bool
+            ---@param cwd string
+            ---@return boolean
             Change      = libphx.Directory_Change,
-            ---@param path cstr
-            ---@return bool
+            ---@param path string
+            ---@return boolean
             Create      = libphx.Directory_Create,
-            ---@return cstr
+            ---@return string
             GetCurrent  = libphx.Directory_GetCurrent,
-            ---@param org cstr
-            ---@param app cstr
-            ---@return cstr
+            ---@param org string
+            ---@param app string
+            ---@return string
             GetPrefPath = libphx.Directory_GetPrefPath,
-            ---@param path cstr
-            ---@return bool
+            ---@param path string
+            ---@return boolean
             Remove      = libphx.Directory_Remove,
         }
 
@@ -60,7 +60,7 @@ function Loader.defineType()
         local t  = ffi.typeof('Directory')
         local mt = {
             __index = {
-                ---@return cstr
+                ---@return string
                 getNext = libphx.Directory_GetNext,
             },
         }

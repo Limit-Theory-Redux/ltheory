@@ -43,17 +43,17 @@ function Loader.defineType()
                 icon        = libphx.Cursor_Icon,
                 ---@param icon CursorIcon
                 setIcon     = libphx.Cursor_SetIcon,
-                ---@return bool
+                ---@return boolean
                 isVisible   = libphx.Cursor_IsVisible,
-                ---@param visible bool
+                ---@param visible boolean
                 setVisible  = libphx.Cursor_SetVisible,
                 ---@return CursorGrabMode
                 grabMode    = libphx.Cursor_GrabMode,
                 ---@param grab_mode CursorGrabMode
                 setGrabMode = libphx.Cursor_SetGrabMode,
-                ---@return bool
+                ---@return boolean
                 isHitTest   = libphx.Cursor_IsHitTest,
-                ---@param hit_test bool
+                ---@param hit_test boolean
                 setHitTest  = libphx.Cursor_SetHitTest,
             },
         }

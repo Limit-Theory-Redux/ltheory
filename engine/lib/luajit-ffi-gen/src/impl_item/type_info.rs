@@ -96,7 +96,7 @@ impl TypeInfo {
         }
     }
 
-    pub fn as_ffi_string(&self, self_name: &str) -> String {
+    pub fn as_c_ffi_string(&self, self_name: &str) -> String {
         // These types should be the C equivalent of the result of `wrap_type` in `generate.rs`.
         match &self.variant {
             TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
@@ -135,7 +135,7 @@ impl TypeInfo {
                 }
             }
             _ => {
-                let ty_ident = self.variant.as_ffi_string();
+                let ty_ident = self.variant.as_c_ffi_string();
 
                 if self.is_option {
                     // All options are sent by pointer
@@ -153,6 +153,10 @@ impl TypeInfo {
                 }
             }
         }
+    }
+
+    pub fn as_lua_ffi_string(&self) -> String {
+        self.variant.as_lua_ffi_string()
     }
 }
 
@@ -232,7 +236,7 @@ impl TypeVariant {
         .into()
     }
 
-    pub fn as_ffi_string(&self) -> String {
+    pub fn as_c_ffi_string(&self) -> String {
         match self {
             Self::Bool => "bool",
             Self::I8 => "int8",
@@ -248,6 +252,26 @@ impl TypeVariant {
             Self::F32 => "float",
             Self::F64 => "double",
             Self::Str | Self::String | Self::CString => "cstr",
+            Self::Custom(val) => return val.clone(),
+        }
+        .into()
+    }
+
+    pub fn as_lua_ffi_string(&self) -> String {
+        match self {
+            Self::Bool => "boolean",
+            Self::I8
+            | Self::U8
+            | Self::I16
+            | Self::U16
+            | Self::I32
+            | Self::U32
+            | Self::I64
+            | Self::U64
+            | Self::ISize
+            | Self::USize => "integer",
+            Self::F32 | Self::F64 => "number",
+            Self::Str | Self::String | Self::CString => "string",
             Self::Custom(val) => return val.clone(),
         }
         .into()

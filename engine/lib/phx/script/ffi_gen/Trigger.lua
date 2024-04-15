@@ -34,8 +34,8 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Trigger = {
-            ---@param half_extents Vec3f const*
-            ---@return Trigger*
+            ---@param half_extents Vec3
+            ---@return Trigger
             CreateBox        = function(...)
                 local instance = libphx.Trigger_CreateBox(...)
                 return Core.ManagedObject(instance, libphx.Trigger_Free)
@@ -50,30 +50,30 @@ function Loader.defineType()
         local t  = ffi.typeof('Trigger')
         local mt = {
             __index = {
-                ---@param parent RigidBody*
-                ---@param offset Vec3f const*
+                ---@param parent RigidBody
+                ---@param offset Vec3
                 attach           = libphx.Trigger_Attach,
-                ---@param parent RigidBody*
+                ---@param parent RigidBody
                 detach           = libphx.Trigger_Detach,
-                ---@param [out] Box3f
+                ---@param [out] Box3
                 getBoundingBox   = libphx.Trigger_GetBoundingBox,
-                ---@return int
+                ---@return integer
                 getContentsCount = libphx.Trigger_GetContentsCount,
                 -- Will only include the parent object when a compound is within the trigger.
-                ---@param i int
-                ---@return RigidBody*
+                ---@param i integer
+                ---@return RigidBody
                 getContents      = libphx.Trigger_GetContents,
-                ---@param mask uint32
+                ---@param mask integer
                 setCollisionMask = libphx.Trigger_SetCollisionMask,
-                ---@param pos Vec3f const*
+                ---@param pos Vec3
                 setPos           = libphx.Trigger_SetPos,
-                ---@param pos Vec3f const*
+                ---@param pos Vec3
                 setPosLocal      = libphx.Trigger_SetPosLocal,
-                ---@param [out] Vec3f
+                ---@param [out] Vec3
                 getPos           = libphx.Trigger_GetPos,
-                ---@param [out] Vec3f
+                ---@param [out] Vec3
                 getPosLocal      = libphx.Trigger_GetPosLocal,
-                ---@return RigidBody*
+                ---@return RigidBody
                 getParent        = libphx.Trigger_GetParent,
             },
         }

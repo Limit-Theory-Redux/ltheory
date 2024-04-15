@@ -39,22 +39,22 @@ function Loader.defineType()
         local mt = {
             __index = {
                 ---@param button KeyboardButton
-                ---@return bool
+                ---@return boolean
                 isPressed    = libphx.KeyboardState_IsPressed,
                 ---@param button KeyboardButton
-                ---@return bool
+                ---@return boolean
                 isDown       = libphx.KeyboardState_IsDown,
                 ---@param button KeyboardButton
-                ---@return bool
+                ---@return boolean
                 isReleased   = libphx.KeyboardState_IsReleased,
-                ---@return bool
+                ---@return boolean
                 altPressed   = libphx.KeyboardState_AltPressed,
-                ---@return bool
+                ---@return boolean
                 ctrlPressed  = libphx.KeyboardState_CtrlPressed,
-                ---@return bool
+                ---@return boolean
                 shiftPressed = libphx.KeyboardState_ShiftPressed,
                 ---@param button KeyboardButton
-                ---@return float
+                ---@return number
                 value        = libphx.KeyboardState_Value,
             },
         }

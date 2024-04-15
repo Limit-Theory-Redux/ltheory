@@ -22,15 +22,15 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Logger = {
-            ---@param msg cstr
+            ---@param msg string
             Trace = libphx.Logger_Trace,
-            ---@param msg cstr
+            ---@param msg string
             Debug = libphx.Logger_Debug,
-            ---@param msg cstr
+            ---@param msg string
             Info  = libphx.Logger_Info,
-            ---@param msg cstr
+            ---@param msg string
             Warn  = libphx.Logger_Warn,
-            ---@param msg cstr
+            ---@param msg string
             Error = libphx.Logger_Error,
         }
 

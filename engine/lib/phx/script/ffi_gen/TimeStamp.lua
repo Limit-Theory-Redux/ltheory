@@ -30,13 +30,13 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         TimeStamp = {
-            ---@return TimeStamp*
+            ---@return Self
             Now           = function(...)
                 local instance = libphx.TimeStamp_Now(...)
                 return Core.ManagedObject(instance, libphx.TimeStamp_Free)
             end,
-            ---@param seconds double
-            ---@return TimeStamp*
+            ---@param seconds number
+            ---@return Self
             GetFuture     = function(...)
                 local instance = libphx.TimeStamp_GetFuture(...)
                 return Core.ManagedObject(instance, libphx.TimeStamp_Free)
@@ -51,23 +51,23 @@ function Loader.defineType()
         local t  = ffi.typeof('TimeStamp')
         local mt = {
             __index = {
-                ---@param end TimeStamp const*
-                ---@return double
+                ---@param end TimeStamp
+                ---@return number
                 getDifference = libphx.TimeStamp_GetDifference,
                 -- Number of seconds elapsed since this timestamp.
-                ---@return double
+                ---@return number
                 getElapsed    = libphx.TimeStamp_GetElapsed,
-                ---@return double
+                ---@return number
                 getElapsedMs  = libphx.TimeStamp_GetElapsedMs,
-                ---@param seconds double
-                ---@return TimeStamp*
+                ---@param seconds number
+                ---@return Self
                 getRelative   = function(...)
                     local instance = libphx.TimeStamp_GetRelative(...)
                     return Core.ManagedObject(instance, libphx.TimeStamp_Free)
                 end,
-                ---@return double
+                ---@return number
                 toDouble      = libphx.TimeStamp_ToDouble,
-                ---@return uint64
+                ---@return integer
                 toSeconds     = libphx.TimeStamp_ToSeconds,
             },
         }

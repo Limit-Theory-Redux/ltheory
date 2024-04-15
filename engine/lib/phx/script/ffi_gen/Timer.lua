@@ -26,7 +26,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Timer = {
-            ---@return Timer*
+            ---@return Self
             Create      = function(...)
                 local instance = libphx.Timer_Create(...)
                 return Core.ManagedObject(instance, libphx.Timer_Free)
@@ -41,9 +41,9 @@ function Loader.defineType()
         local t  = ffi.typeof('Timer')
         local mt = {
             __index = {
-                ---@return double
+                ---@return number
                 getAndReset = libphx.Timer_GetAndReset,
-                ---@return double
+                ---@return number
                 getElapsed  = libphx.Timer_GetElapsed,
                 reset       = libphx.Timer_Reset,
             },

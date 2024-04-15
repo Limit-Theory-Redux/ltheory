@@ -21,8 +21,8 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         LineSegment = {
-            ---@param ray Ray const*
-            ---@param out LineSegment*
+            ---@param ray Ray
+            ---@param out LineSegment
             FromRay  = libphx.LineSegment_FromRay,
         }
 
@@ -40,9 +40,9 @@ function Loader.defineType()
             __tostring = function(self) return ffi.string(libphx.LineSegment_ToString(self)) end,
             __index = {
                 clone    = function(x) return LineSegment_t(x) end,
-                ---@param out Ray*
+                ---@param out Ray
                 toRay    = libphx.LineSegment_ToRay,
-                ---@return cstr
+                ---@return string
                 toString = libphx.LineSegment_ToString,
             },
         }

@@ -41,26 +41,26 @@ function Loader.defineType()
         local mt = {
             __index = {
                 ---@param control MouseControl
-                ---@return float
+                ---@return number
                 value       = libphx.MouseState_Value,
                 ---@param control MouseControl
-                ---@return bool
+                ---@return boolean
                 isPressed   = libphx.MouseState_IsPressed,
                 ---@param control MouseControl
-                ---@return bool
+                ---@return boolean
                 isDown      = libphx.MouseState_IsDown,
                 ---@param control MouseControl
-                ---@return bool
+                ---@return boolean
                 isReleased  = libphx.MouseState_IsReleased,
-                ---@return Vec2f
+                ---@return Vec2
                 delta       = libphx.MouseState_Delta,
-                ---@return Vec2f
+                ---@return Vec2
                 scroll      = libphx.MouseState_Scroll,
-                ---@return Vec2f
+                ---@return Vec2
                 scrollPixel = libphx.MouseState_ScrollPixel,
-                ---@return Vec2f
+                ---@return Vec2
                 position    = libphx.MouseState_Position,
-                ---@return bool
+                ---@return boolean
                 inWindow    = libphx.MouseState_InWindow,
             },
         }

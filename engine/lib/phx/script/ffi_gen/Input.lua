@@ -49,45 +49,45 @@ function Loader.defineType()
         local t  = ffi.typeof('Input')
         local mt = {
             __index = {
-                ---@return KeyboardState const*
+                ---@return KeyboardState
                 keyboard               = libphx.Input_Keyboard,
-                ---@return MouseState const*
+                ---@return MouseState
                 mouse                  = libphx.Input_Mouse,
-                ---@return TouchpadState const*
+                ---@return TouchpadState
                 touchpad               = libphx.Input_Touchpad,
-                ---@return GamepadState const*
+                ---@return GamepadState
                 gamepad                = libphx.Input_Gamepad,
-                ---@return DragAndDropState const*
+                ---@return DragAndDropState
                 dragAndDrop            = libphx.Input_DragAndDrop,
-                ---@return InputDevice const*
+                ---@return InputDevice
                 activeDevice           = libphx.Input_ActiveDevice,
-                ---@return InputDeviceType const*
+                ---@return InputDeviceType
                 activeDeviceType       = libphx.Input_ActiveDeviceType,
-                ---@return InputDeviceId const*
+                ---@return InputDeviceId
                 activeDeviceId         = libphx.Input_ActiveDeviceId,
-                ---@param visible bool
+                ---@param visible boolean
                 setCursorVisible       = libphx.Input_SetCursorVisible,
                 setCursorVisibleAuto   = libphx.Input_SetCursorVisibleAuto,
-                ---@param x float
-                ---@param y float
+                ---@param x number
+                ---@param y number
                 setCursorPosition      = libphx.Input_SetCursorPosition,
                 ---@param button Button
-                ---@return bool
+                ---@return boolean
                 isPressed              = libphx.Input_IsPressed,
                 ---@param button Button
-                ---@return bool
+                ---@return boolean
                 isDown                 = libphx.Input_IsDown,
                 ---@param button Button
-                ---@return bool
+                ---@return boolean
                 isReleased             = libphx.Input_IsReleased,
                 ---@param button Button
-                ---@return float
+                ---@return number
                 getValue               = libphx.Input_GetValue,
-                ---@return bool
+                ---@return boolean
                 isKeyboardAltPressed   = libphx.Input_IsKeyboardAltPressed,
-                ---@return bool
+                ---@return boolean
                 isKeyboardCtrlPressed  = libphx.Input_IsKeyboardCtrlPressed,
-                ---@return bool
+                ---@return boolean
                 isKeyboardShiftPressed = libphx.Input_IsKeyboardShiftPressed,
             },
         }

@@ -36,13 +36,13 @@ function Loader.defineType()
         local mt = {
             __index = {
                 ---@param axis TouchpadAxis
-                ---@return float
+                ---@return number
                 value        = libphx.TouchpadState_Value,
-                ---@return Vec2f
+                ---@return Vec2
                 position     = libphx.TouchpadState_Position,
-                ---@return float
+                ---@return number
                 magnifyDelta = libphx.TouchpadState_MagnifyDelta,
-                ---@return float
+                ---@return number
                 rotateDelta  = libphx.TouchpadState_RotateDelta,
             },
         }

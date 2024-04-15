@@ -25,9 +25,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Sound = {
-            ---@param path cstr
-            ---@param is_looping bool
-            ---@return Sound*
+            ---@param path string
+            ---@param is_looping boolean
+            ---@return Self
             Load        = function(...)
                 local instance = libphx.Sound_Load(...)
                 return Core.ManagedObject(instance, libphx.Sound_Free)
@@ -42,9 +42,9 @@ function Loader.defineType()
         local t  = ffi.typeof('Sound')
         local mt = {
             __index = {
-                ---@return float
+                ---@return number
                 getDuration = libphx.Sound_GetDuration,
-                ---@return cstr
+                ---@return string
                 getPath     = libphx.Sound_GetPath,
             },
         }

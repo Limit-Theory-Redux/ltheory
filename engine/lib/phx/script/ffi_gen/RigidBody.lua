@@ -67,42 +67,42 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         RigidBody = {
-            ---@return RigidBody*
+            ---@return RigidBody
             CreateBox                         = function(...)
                 local instance = libphx.RigidBody_CreateBox(...)
                 return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
-            ---@param mesh Mesh*
-            ---@return RigidBody*
+            ---@param mesh Mesh
+            ---@return RigidBody
             CreateBoxFromMesh                 = function(...)
                 local instance = libphx.RigidBody_CreateBoxFromMesh(...)
                 return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
-            ---@return RigidBody*
+            ---@return RigidBody
             CreateSphere                      = function(...)
                 local instance = libphx.RigidBody_CreateSphere(...)
                 return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
-            ---@param mesh Mesh*
-            ---@return RigidBody*
+            ---@param mesh Mesh
+            ---@return RigidBody
             CreateSphereFromMesh              = function(...)
                 local instance = libphx.RigidBody_CreateSphereFromMesh(...)
                 return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
-            ---@param mesh Mesh const*
-            ---@return RigidBody*
+            ---@param mesh Mesh
+            ---@return RigidBody
             CreateConvexHullFromMesh          = function(...)
                 local instance = libphx.RigidBody_CreateConvexHullFromMesh(...)
                 return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
-            ---@param mesh Mesh const*
-            ---@return RigidBody*
+            ---@param mesh Mesh
+            ---@return RigidBody
             CreateConvexDecompositionFromMesh = function(...)
                 local instance = libphx.RigidBody_CreateConvexDecompositionFromMesh(...)
                 return Core.ManagedObject(instance, libphx.RigidBody_Free)
             end,
-            ---@param mesh Mesh const*
-            ---@return RigidBody*
+            ---@param mesh Mesh
+            ---@return RigidBody
             CreateTrimeshFromMesh             = function(...)
                 local instance = libphx.RigidBody_CreateTrimeshFromMesh(...)
                 return Core.ManagedObject(instance, libphx.RigidBody_Free)
@@ -119,11 +119,11 @@ function Loader.defineType()
             __index = {
                 -- Return a reference to the parent rigid body, that we can guarantee
                 -- has a lifetime as long as self.
-                ---@return RigidBody*
+                ---@return RigidBody
                 getParentBody               = libphx.RigidBody_GetParentBody,
-                ---@param force Vec3f const*
+                ---@param force Vec3
                 applyForce                  = libphx.RigidBody_ApplyForce,
-                ---@param torque Vec3f const*
+                ---@param torque Vec3
                 applyTorque                 = libphx.RigidBody_ApplyTorque,
                 -- Adds another rigid body as a child of this rigid body. This means that
                 -- the child's position will be controlled by `self`.
@@ -139,9 +139,9 @@ function Loader.defineType()
                 -- world, as it will add it if the parent is already in the world.
                 --
                 -- This function assumes that `self` is not already a child.
-                ---@param child RigidBody*
-                ---@param pos Vec3f const*
-                ---@param rot Quat const*
+                ---@param child RigidBody
+                ---@param pos Vec3
+                ---@param rot Quat
                 attach                      = libphx.RigidBody_Attach,
                 -- Removes a rigid body as a child of this rigid body. This means that
                 -- the child's will be under control of it's own position.
@@ -150,98 +150,98 @@ function Loader.defineType()
                 -- so it will need to be re-added with physics.add_rigid_body(...).
                 --
                 -- This function assumes that `self` is not already a child.
-                ---@param child RigidBody*
+                ---@param child RigidBody
                 detach                      = libphx.RigidBody_Detach,
                 -- Calculates the bounding box.
-                ---@param [out] Box3f
+                ---@param [out] Box3
                 getBoundingBox              = libphx.RigidBody_GetBoundingBox,
                 -- Calculates the compound bounding box.
-                ---@param [out] Box3f
+                ---@param [out] Box3
                 getBoundingBoxCompound      = libphx.RigidBody_GetBoundingBoxCompound,
                 -- Calculates the local bounding box.
-                ---@param [out] Box3f
+                ---@param [out] Box3
                 getBoundingBoxLocal         = libphx.RigidBody_GetBoundingBoxLocal,
                 -- Calculates the local compound bounding box.
-                ---@param [out] Box3f
+                ---@param [out] Box3
                 getBoundingBoxLocalCompound = libphx.RigidBody_GetBoundingBoxLocalCompound,
-                ---@return float
+                ---@return number
                 getBoundingRadius           = libphx.RigidBody_GetBoundingRadius,
-                ---@return float
+                ---@return number
                 getBoundingRadiusCompound   = libphx.RigidBody_GetBoundingRadiusCompound,
-                ---@return float
+                ---@return number
                 getSpeed                    = libphx.RigidBody_GetSpeed,
                 -- Returns the local -> world matrix for this rigid body.
-                ---@return Matrix*
+                ---@return Matrix
                 getToWorldMatrix            = function(...)
                     local instance = libphx.RigidBody_GetToWorldMatrix(...)
                     return Core.ManagedObject(instance, libphx.Matrix_Free)
                 end,
                 -- Returns the world -> local matrix for this rigid body.
-                ---@return Matrix*
+                ---@return Matrix
                 getToLocalMatrix            = function(...)
                     local instance = libphx.RigidBody_GetToLocalMatrix(...)
                     return Core.ManagedObject(instance, libphx.Matrix_Free)
                 end,
-                ---@param [out] Vec3f
+                ---@param [out] Vec3
                 getVelocity                 = libphx.RigidBody_GetVelocity,
-                ---@param [out] Vec3f
+                ---@param [out] Vec3
                 getVelocityA                = libphx.RigidBody_GetVelocityA,
                 -- When disabled, the object will pass through others without colliding
                 -- and will not be returned from ray or shape casts.
-                ---@param collidable bool
+                ---@param collidable boolean
                 setCollidable               = libphx.RigidBody_SetCollidable,
-                ---@param group uint32
+                ---@param group integer
                 setCollisionGroup           = libphx.RigidBody_SetCollisionGroup,
-                ---@param mask uint32
+                ---@param mask integer
                 setCollisionMask            = libphx.RigidBody_SetCollisionMask,
-                ---@param linear float
-                ---@param angular float
+                ---@param linear number
+                ---@param angular number
                 setDrag                     = libphx.RigidBody_SetDrag,
-                ---@param friction float
+                ---@param friction number
                 setFriction                 = libphx.RigidBody_SetFriction,
-                ---@param kinematic bool
+                ---@param kinematic boolean
                 setKinematic                = libphx.RigidBody_SetKinematic,
-                ---@param restitution float
+                ---@param restitution number
                 setRestitution              = libphx.RigidBody_SetRestitution,
-                ---@param linear float
-                ---@param angular float
+                ---@param linear number
+                ---@param angular number
                 setSleepThreshold           = libphx.RigidBody_SetSleepThreshold,
-                ---@return float
+                ---@return number
                 getMass                     = libphx.RigidBody_GetMass,
                 -- The mass of child objects does not affect the mass or inertia of the parent
-                ---@param mass float
+                ---@param mass number
                 setMass                     = libphx.RigidBody_SetMass,
                 -- Children return the parent position.
-                ---@param [out] Vec3f
+                ---@param [out] Vec3
                 getPos                      = libphx.RigidBody_GetPos,
                 -- Local coordinates are relative to the parent *before* scaling.
-                ---@param [out] Vec3f
+                ---@param [out] Vec3
                 getPosLocal                 = libphx.RigidBody_GetPosLocal,
-                ---@param pos Vec3f const*
+                ---@param pos Vec3
                 setPos                      = libphx.RigidBody_SetPos,
                 -- Local coordinates are relative to the parent *before* scaling. The
                 -- given position will be multiplied by the parent's scale.
-                ---@param pos Vec3f const*
+                ---@param pos Vec3
                 setPosLocal                 = libphx.RigidBody_SetPosLocal,
-                ---@param [out] Quat*
+                ---@param [out] Quat
                 getRot                      = libphx.RigidBody_GetRot,
-                ---@param [out] Quat*
+                ---@param [out] Quat
                 getRotLocal                 = libphx.RigidBody_GetRotLocal,
-                ---@param rot Quat*
+                ---@param rot Quat
                 setRot                      = libphx.RigidBody_SetRot,
-                ---@param rot Quat const*
+                ---@param rot Quat
                 setRotLocal                 = libphx.RigidBody_SetRotLocal,
-                ---@return float
+                ---@return number
                 getScale                    = libphx.RigidBody_GetScale,
                 -- When called on a parent object the positions of all children will be
                 -- multiplied such that they retain the same relative position. Child
                 -- scale is not affected by parent scale (i.e. it is not inherited).
-                ---@param scale float
+                ---@param scale number
                 setScale                    = libphx.RigidBody_SetScale,
-                ---@param target RigidBody const*
-                ---@return float
+                ---@param target RigidBody
+                ---@return number
                 distanceTo                  = libphx.RigidBody_DistanceTo,
-                ---@return bool
+                ---@return boolean
                 isSleeping                  = libphx.RigidBody_IsSleeping,
             },
         }
