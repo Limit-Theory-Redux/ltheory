@@ -1,4 +1,8 @@
 -- InputDeviceId ---------------------------------------------------------------
+
+---@class InputDeviceId
+---@field ToString fun(self): string
+
 local Loader = {}
 
 function Loader.declareType()

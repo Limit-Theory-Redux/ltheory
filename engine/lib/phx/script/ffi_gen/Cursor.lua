@@ -1,4 +1,15 @@
 -- Cursor ----------------------------------------------------------------------
+
+---@class Cursor
+---@field Icon fun(self): CursorIcon
+---@field SetIcon fun(self, icon: CursorIcon)
+---@field IsVisible fun(self): boolean
+---@field SetVisible fun(self, visible: boolean)
+---@field GrabMode fun(self): CursorGrabMode
+---@field SetGrabMode fun(self, grab_mode: CursorGrabMode)
+---@field IsHitTest fun(self): boolean
+---@field SetHitTest fun(self, hit_test: boolean)
+
 local Loader = {}
 
 function Loader.declareType()

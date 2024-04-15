@@ -1,4 +1,42 @@
 -- Window ----------------------------------------------------------------------
+
+---@class Window
+---@field BeginDraw fun(self)
+---@field EndDraw fun(self)
+---@field Title fun(self): string
+---@field SetTitle fun(self, title: string)
+---@field Cursor fun(self): Cursor
+---@field PresentMode fun(self): PresentMode
+---@field SetPresentMode fun(self, present_mode: PresentMode)
+---@field SetMaximized fun(self, maximized: boolean)
+---@field SetMinimized fun(self, minimized: boolean)
+---@field Position fun(self): IVec2
+---@field SetCenteredPosition fun(self)
+---@field SetPosition fun(self, x: integer, y: integer)
+---@field Width fun(self): number
+---@field Height fun(self): number
+---@field Size fun(self): Vec2
+---@field SetSize fun(self, width: number, height: number)
+---@field PhysicalWidth fun(self): integer
+---@field PhysicalHeight fun(self): integer
+---@field PhysicalSize fun(self): IVec2
+---@field SetPhysicalSize fun(self, width: integer, height: integer)
+---@field IsResizable fun(self): boolean
+---@field SetResizable fun(self, resizable: boolean)
+---@field HasDecorations fun(self): boolean
+---@field SetDecorations fun(self, decorations: boolean)
+---@field IsTransparent fun(self): boolean
+---@field SetTransparent fun(self, transparent: boolean)
+---@field IsFocused fun(self): boolean
+---@field SetFocused fun(self, focused: boolean)
+---@field SetFullscreen fun(self, fs: boolean)
+---@field ToggleFullscreen fun(self)
+---@field ScaleFactor fun(self): number
+---@field CursorPosition fun(self): Vec2
+---@field SetCursorPosition fun(self, position: Vec2)
+---@field PhysicalCursorPosition fun(self): Vec2
+---@field SetPhysicalCursorPosition fun(self, position: DVec2)
+
 local Loader = {}
 
 function Loader.declareType()

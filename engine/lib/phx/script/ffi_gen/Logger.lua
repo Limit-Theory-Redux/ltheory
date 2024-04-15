@@ -1,4 +1,12 @@
 -- Logger ----------------------------------------------------------------------
+
+---@class Logger
+---@field Trace fun(msg: string)
+---@field Debug fun(msg: string)
+---@field Info fun(msg: string)
+---@field Warn fun(msg: string)
+---@field Error fun(msg: string)
+
 local Loader = {}
 
 function Loader.declareType()

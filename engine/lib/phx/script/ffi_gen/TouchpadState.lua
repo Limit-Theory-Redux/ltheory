@@ -1,4 +1,11 @@
 -- TouchpadState ---------------------------------------------------------------
+
+---@class TouchpadState
+---@field Value fun(self, axis: TouchpadAxis): number
+---@field Position fun(self): Vec2
+---@field MagnifyDelta fun(self): number
+---@field RotateDelta fun(self): number
+
 local Loader = {}
 
 function Loader.declareType()

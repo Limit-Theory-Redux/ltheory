@@ -1,4 +1,9 @@
 -- InputDevice -----------------------------------------------------------------
+
+---@class InputDevice
+---@field Equal fun(self, other: InputDevice): boolean
+---@field ToString fun(self): string
+
 local Loader = {}
 
 function Loader.declareType()

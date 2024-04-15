@@ -155,8 +155,12 @@ impl TypeInfo {
         }
     }
 
-    pub fn as_lua_ffi_string(&self) -> String {
-        self.variant.as_lua_ffi_string()
+    pub fn as_lua_ffi_string(&self, self_name: &str) -> String {
+        if self.is_self() {
+            self_name.into()
+        } else {
+            self.variant.as_lua_ffi_string()
+        }
     }
 }
 

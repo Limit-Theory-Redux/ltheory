@@ -1,4 +1,15 @@
 -- TimeStamp -------------------------------------------------------------------
+
+---@class TimeStamp
+---@field Now fun(): TimeStamp
+---@field GetFuture fun(seconds: number): TimeStamp
+---@field GetDifference fun(self, end: TimeStamp): number
+---@field GetElapsed fun(self): number
+---@field GetElapsedMs fun(self): number
+---@field GetRelative fun(self, seconds: number): TimeStamp
+---@field ToDouble fun(self): number
+---@field ToSeconds fun(self): integer
+
 local Loader = {}
 
 function Loader.declareType()
@@ -30,13 +41,13 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         TimeStamp = {
-            ---@return Self
+            ---@return TimeStamp
             Now           = function(...)
                 local instance = libphx.TimeStamp_Now(...)
                 return Core.ManagedObject(instance, libphx.TimeStamp_Free)
             end,
             ---@param seconds number
-            ---@return Self
+            ---@return TimeStamp
             GetFuture     = function(...)
                 local instance = libphx.TimeStamp_GetFuture(...)
                 return Core.ManagedObject(instance, libphx.TimeStamp_Free)
@@ -60,7 +71,7 @@ function Loader.defineType()
                 ---@return number
                 getElapsedMs  = libphx.TimeStamp_GetElapsedMs,
                 ---@param seconds number
-                ---@return Self
+                ---@return TimeStamp
                 getRelative   = function(...)
                     local instance = libphx.TimeStamp_GetRelative(...)
                     return Core.ManagedObject(instance, libphx.TimeStamp_Free)

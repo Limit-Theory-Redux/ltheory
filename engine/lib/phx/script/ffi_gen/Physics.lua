@@ -1,4 +1,22 @@
 -- Physics ---------------------------------------------------------------------
+
+---@class Physics
+---@field Create fun(): Physics
+---@field AddRigidBody fun(self, rigid_body: RigidBody)
+---@field RemoveRigidBody fun(self, rigid_body: RigidBody)
+---@field AddTrigger fun(self, trigger: Trigger)
+---@field RemoveTrigger fun(self, trigger: Trigger)
+---@field Update fun(self, dt: number)
+---@field GetNextCollision fun(self, iterator: Collision): boolean
+---@field RayCast fun(self, ray: Ray, result: RayCastResult)
+---@field SphereCast fun(self, sphere: Sphere, result: ShapeCastResult)
+---@field BoxCast fun(self, pos: Vec3, rot: Quat, half_extents: Vec3, result: ShapeCastResult)
+---@field SphereOverlap fun(self, sphere: Sphere): boolean
+---@field BoxOverlap fun(self, pos: Vec3, rot: Quat, half_extents: Vec3): boolean
+---@field DrawBoundingBoxesLocal fun(self)
+---@field DrawBoundingBoxesWorld fun(self)
+---@field DrawWireframes fun(self)
+
 local Loader = {}
 
 function Loader.declareType()

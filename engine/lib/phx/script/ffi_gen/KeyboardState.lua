@@ -1,4 +1,14 @@
 -- KeyboardState ---------------------------------------------------------------
+
+---@class KeyboardState
+---@field IsPressed fun(self, button: KeyboardButton): boolean
+---@field IsDown fun(self, button: KeyboardButton): boolean
+---@field IsReleased fun(self, button: KeyboardButton): boolean
+---@field AltPressed fun(self): boolean
+---@field CtrlPressed fun(self): boolean
+---@field ShiftPressed fun(self): boolean
+---@field Value fun(self, button: KeyboardButton): number
+
 local Loader = {}
 
 function Loader.declareType()

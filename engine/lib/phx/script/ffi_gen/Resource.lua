@@ -1,4 +1,11 @@
 -- Resource --------------------------------------------------------------------
+
+---@class Resource
+---@field Exists fun(ty: ResourceType, name: string): boolean
+---@field GetPath fun(ty: ResourceType, name: string): string
+---@field LoadBytes fun(ty: ResourceType, name: string): Bytes
+---@field LoadString fun(ty: ResourceType, name: string): string
+
 local Loader = {}
 
 function Loader.declareType()

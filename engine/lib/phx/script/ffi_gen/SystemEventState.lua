@@ -1,4 +1,8 @@
 -- SystemEventState ------------------------------------------------------------
+
+---@class SystemEventState
+---@field IsExit fun(self): boolean
+
 local Loader = {}
 
 function Loader.declareType()

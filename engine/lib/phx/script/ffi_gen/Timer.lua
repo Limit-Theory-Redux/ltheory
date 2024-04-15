@@ -1,4 +1,11 @@
 -- Timer -----------------------------------------------------------------------
+
+---@class Timer
+---@field Create fun(): Timer
+---@field GetAndReset fun(self): number
+---@field GetElapsed fun(self): number
+---@field Reset fun(self)
+
 local Loader = {}
 
 function Loader.declareType()
@@ -26,7 +33,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Timer = {
-            ---@return Self
+            ---@return Timer
             Create      = function(...)
                 local instance = libphx.Timer_Create(...)
                 return Core.ManagedObject(instance, libphx.Timer_Free)

@@ -1,4 +1,17 @@
 -- Engine ----------------------------------------------------------------------
+
+---@class Engine
+---@field Window fun(self): Window
+---@field Input fun(self): Input
+---@field HmGui fun(self): HmGui
+---@field Abort fun()
+---@field GetBits fun(): integer
+---@field GetTime fun(self): number
+---@field GetVersion fun(): string
+---@field Exit fun(self)
+---@field Terminate fun()
+---@field Update fun()
+
 local Loader = {}
 
 function Loader.declareType()

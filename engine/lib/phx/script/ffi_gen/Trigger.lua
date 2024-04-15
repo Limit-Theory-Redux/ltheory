@@ -1,4 +1,19 @@
 -- Trigger ---------------------------------------------------------------------
+
+---@class Trigger
+---@field CreateBox fun(half_extents: Vec3): Trigger
+---@field Attach fun(self, parent: RigidBody, offset: Vec3)
+---@field Detach fun(self, parent: RigidBody)
+---@field GetBoundingBox fun(self, result: Box3)
+---@field GetContentsCount fun(self): integer
+---@field GetContents fun(self, i: integer): RigidBody
+---@field SetCollisionMask fun(self, mask: integer)
+---@field SetPos fun(self, pos: Vec3)
+---@field SetPosLocal fun(self, pos: Vec3)
+---@field GetPos fun(self, result: Vec3)
+---@field GetPosLocal fun(self, result: Vec3)
+---@field GetParent fun(self): RigidBody
+
 local Loader = {}
 
 function Loader.declareType()

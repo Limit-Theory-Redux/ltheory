@@ -1,4 +1,14 @@
 -- Directory -------------------------------------------------------------------
+
+---@class Directory
+---@field Open fun(path: string): Directory
+---@field GetNext fun(self): string
+---@field Change fun(cwd: string): boolean
+---@field Create fun(path: string): boolean
+---@field GetCurrent fun(): string
+---@field GetPrefPath fun(org: string, app: string): string
+---@field Remove fun(path: string): boolean
+
 local Loader = {}
 
 function Loader.declareType()
@@ -30,7 +40,7 @@ function Loader.defineType()
     do -- Global Symbol Table
         Directory = {
             ---@param path string
-            ---@return Self
+            ---@return Directory
             Open        = function(...)
                 local instance = libphx.Directory_Open(...)
                 return Core.ManagedObject(instance, libphx.Directory_Free)

@@ -39,6 +39,7 @@ impl TypeDecl {
 pub struct FfiGenerator {
     module_name: String,
     type_decl: TypeDecl,
+    class_definitions: Vec<String>,
     c_definitions: Vec<String>,
     global_symbol_table: Vec<String>,
     is_mt_clone: bool,
@@ -53,6 +54,7 @@ impl FfiGenerator {
         Self {
             module_name: module_name.into(),
             type_decl: Default::default(),
+            class_definitions: Default::default(),
             c_definitions: Default::default(),
             global_symbol_table: Default::default(),
             is_mt_clone: Default::default(),
@@ -71,6 +73,10 @@ impl FfiGenerator {
 
     pub fn has_type_decl(&self) -> bool {
         !matches!(self.type_decl, TypeDecl::NoDecl)
+    }
+
+    pub fn add_class_definition(&mut self, value: impl Into<String>) {
+        self.class_definitions.push(value.into());
     }
 
     pub fn add_c_definition(&mut self, value: impl Into<String>) {
@@ -196,13 +202,19 @@ impl FfiGenerator {
         // Header
         writeln!(
             &mut module,
-            "-- {} {:-<2$}",
+            "-- {} {:-<2$}\n",
             self.module_name,
             "-",
             80 - 4 - self.module_name.len()
         )
         .unwrap();
-        writeln!(&mut module, "local Loader = {{}}\n").unwrap();
+
+        // Class declaration
+        self.class_definitions
+            .iter()
+            .for_each(|def| writeln!(&mut module, "{def}").unwrap());
+
+        writeln!(&mut module, "\nlocal Loader = {{}}\n").unwrap();
 
         // Type declaration
         writeln!(&mut module, "function Loader.declareType()").unwrap();

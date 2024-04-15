@@ -1,4 +1,155 @@
 -- HmGui -----------------------------------------------------------------------
+
+---@class HmGui
+---@field BeginGui fun(self, sx: number, sy: number, input: Input)
+---@field EndGui fun(self, input: Input)
+---@field Draw fun(self)
+---@field BeginHorizontalContainer fun(self)
+---@field BeginVerticalContainer fun(self)
+---@field BeginStackContainer fun(self)
+---@field EndContainer fun(self)
+---@field BeginScroll fun(self, _max_size: number)
+---@field EndScroll fun(self, input: Input)
+---@field BeginWindow fun(self, _title: string, input: Input)
+---@field EndWindow fun(self)
+---@field Spacer fun(self)
+---@field Button fun(self, label: string): boolean
+---@field Checkbox fun(self, label: string, value: boolean): boolean
+---@field Slider fun(self, _lower: number, _upper: number, _value: number): number
+---@field HorizontalDivider fun(self, height: number, color: Color)
+---@field VerticalDivider fun(self, width: number, color: Color)
+---@field Image fun(self, image: Tex2D)
+---@field Rect fun(self, color: Color)
+---@field Text fun(self, text: string)
+---@field TextColored fun(self, text: string, color: Color)
+---@field TextEx fun(self, font: Font, text: string, color: Color)
+---@field SetMinWidth fun(self, width: number)
+---@field SetMinHeight fun(self, height: number)
+---@field SetMinSize fun(self, width: number, height: number)
+---@field SetFixedWidth fun(self, width: number)
+---@field SetFixedHeight fun(self, height: number)
+---@field SetFixedSize fun(self, width: number, height: number)
+---@field SetPercentWidth fun(self, width: number)
+---@field SetPercentHeight fun(self, height: number)
+---@field SetPercentSize fun(self, width: number, height: number)
+---@field SetMargin fun(self, px: number, py: number)
+---@field SetMarginEx fun(self, left: number, top: number, right: number, bottom: number)
+---@field SetMarginLeft fun(self, margin: number)
+---@field SetMarginTop fun(self, margin: number)
+---@field SetMarginRight fun(self, margin: number)
+---@field SetMarginBottom fun(self, margin: number)
+---@field SetBorderWidth fun(self, width: number)
+---@field SetBorderColor fun(self, color: Color)
+---@field SetBorderColorV4 fun(self, color: Color)
+---@field SetBorder fun(self, width: number, color: Color)
+---@field SetBorderV4 fun(self, width: number, color: Color)
+---@field SetBgColor fun(self, color: Color)
+---@field SetBgColorV4 fun(self, color: Color)
+---@field SetAlignment fun(self, h: AlignHorizontal, v: AlignVertical)
+---@field SetHorizontalAlignment fun(self, align: AlignHorizontal)
+---@field SetVerticalAlignment fun(self, align: AlignVertical)
+---@field SetPadding fun(self, px: number, py: number)
+---@field SetPaddingEx fun(self, left: number, top: number, right: number, bottom: number)
+---@field SetPaddingLeft fun(self, padding: number)
+---@field SetPaddingTop fun(self, padding: number)
+---@field SetPaddingRight fun(self, padding: number)
+---@field SetPaddingBottom fun(self, padding: number)
+---@field SetSpacing fun(self, spacing: number)
+---@field IsMouseOver fun(self, ty: FocusType): boolean
+---@field SetChildrenAlignment fun(self, h: AlignHorizontal, v: AlignVertical)
+---@field SetChildrenHorizontalAlignment fun(self, align: AlignHorizontal)
+---@field SetChildrenVerticalAlignment fun(self, align: AlignVertical)
+---@field SetTheme fun(self, name: string)
+---@field ClearTheme fun(self)
+---@field GetStyleId fun(self, name: string): integer
+---@field SetStyle fun(self, id: integer)
+---@field ClearStyle fun(self)
+---@field GetPropertyType fun(self, id: integer): HmGuiPropertyType
+---@field MapProperty fun(self, property_id: integer)
+---@field RemoveProperty fun(self, property_id: integer)
+---@field RegisterPropertyBool fun(self, name: string, value: boolean, map_id: string): integer
+---@field RegisterPropertyI8 fun(self, name: string, value: integer, map_id: string): integer
+---@field RegisterPropertyU8 fun(self, name: string, value: integer, map_id: string): integer
+---@field RegisterPropertyI16 fun(self, name: string, value: integer, map_id: string): integer
+---@field RegisterPropertyU16 fun(self, name: string, value: integer, map_id: string): integer
+---@field RegisterPropertyI32 fun(self, name: string, value: integer, map_id: string): integer
+---@field RegisterPropertyU32 fun(self, name: string, value: integer, map_id: string): integer
+---@field RegisterPropertyI64 fun(self, name: string, value: integer, map_id: string): integer
+---@field RegisterPropertyU64 fun(self, name: string, value: integer, map_id: string): integer
+---@field RegisterPropertyF32 fun(self, name: string, value: number, map_id: string): integer
+---@field RegisterPropertyF64 fun(self, name: string, value: number, map_id: string): integer
+---@field RegisterPropertyVec2 fun(self, name: string, value: Vec2, map_id: string): integer
+---@field RegisterPropertyVec3 fun(self, name: string, value: Vec3, map_id: string): integer
+---@field RegisterPropertyVec4 fun(self, name: string, value: Vec4, map_id: string): integer
+---@field RegisterPropertyIVec2 fun(self, name: string, value: IVec2, map_id: string): integer
+---@field RegisterPropertyIVec3 fun(self, name: string, value: IVec3, map_id: string): integer
+---@field RegisterPropertyIVec4 fun(self, name: string, value: IVec4, map_id: string): integer
+---@field RegisterPropertyUVec2 fun(self, name: string, value: UVec2, map_id: string): integer
+---@field RegisterPropertyUVec3 fun(self, name: string, value: UVec3, map_id: string): integer
+---@field RegisterPropertyUVec4 fun(self, name: string, value: UVec4, map_id: string): integer
+---@field RegisterPropertyDVec2 fun(self, name: string, value: DVec2, map_id: string): integer
+---@field RegisterPropertyDVec3 fun(self, name: string, value: DVec3, map_id: string): integer
+---@field RegisterPropertyDVec4 fun(self, name: string, value: DVec4, map_id: string): integer
+---@field RegisterPropertyColor fun(self, name: string, value: Color, map_id: string): integer
+---@field RegisterPropertyBox3 fun(self, name: string, value: Box3, map_id: string): integer
+---@field RegisterPropertyString fun(self, name: string, value: string, map_id: string): integer
+---@field RegisterPropertyFont fun(self, name: string, value: Font, map_id: string): integer
+---@field SetPropertyBool fun(self, property_id: integer, value: boolean)
+---@field SetPropertyI8 fun(self, property_id: integer, value: integer)
+---@field SetPropertyU8 fun(self, property_id: integer, value: integer)
+---@field SetPropertyI16 fun(self, property_id: integer, value: integer)
+---@field SetPropertyU16 fun(self, property_id: integer, value: integer)
+---@field SetPropertyI32 fun(self, property_id: integer, value: integer)
+---@field SetPropertyU32 fun(self, property_id: integer, value: integer)
+---@field SetPropertyI64 fun(self, property_id: integer, value: integer)
+---@field SetPropertyU64 fun(self, property_id: integer, value: integer)
+---@field SetPropertyF32 fun(self, property_id: integer, value: number)
+---@field SetPropertyF64 fun(self, property_id: integer, value: number)
+---@field SetPropertyVec2 fun(self, property_id: integer, value: Vec2)
+---@field SetPropertyVec3 fun(self, property_id: integer, value: Vec3)
+---@field SetPropertyVec4 fun(self, property_id: integer, value: Vec4)
+---@field SetPropertyIVec2 fun(self, property_id: integer, value: IVec2)
+---@field SetPropertyIVec3 fun(self, property_id: integer, value: IVec3)
+---@field SetPropertyIVec4 fun(self, property_id: integer, value: IVec4)
+---@field SetPropertyUVec2 fun(self, property_id: integer, value: UVec2)
+---@field SetPropertyUVec3 fun(self, property_id: integer, value: UVec3)
+---@field SetPropertyUVec4 fun(self, property_id: integer, value: UVec4)
+---@field SetPropertyDVec2 fun(self, property_id: integer, value: DVec2)
+---@field SetPropertyDVec3 fun(self, property_id: integer, value: DVec3)
+---@field SetPropertyDVec4 fun(self, property_id: integer, value: DVec4)
+---@field SetPropertyColor fun(self, property_id: integer, value: Color)
+---@field SetPropertyBox3 fun(self, property_id: integer, value: Box3)
+---@field SetPropertyString fun(self, property_id: integer, value: string)
+---@field SetPropertyFont fun(self, property_id: integer, value: Font)
+---@field GetPropertyBool fun(self, property_id: integer): boolean
+---@field GetPropertyI8 fun(self, property_id: integer): integer
+---@field GetPropertyU8 fun(self, property_id: integer): integer
+---@field GetPropertyI16 fun(self, property_id: integer): integer
+---@field GetPropertyU16 fun(self, property_id: integer): integer
+---@field GetPropertyI32 fun(self, property_id: integer): integer
+---@field GetPropertyU32 fun(self, property_id: integer): integer
+---@field GetPropertyI64 fun(self, property_id: integer): integer
+---@field GetPropertyU64 fun(self, property_id: integer): integer
+---@field GetPropertyF32 fun(self, property_id: integer): number
+---@field GetPropertyF64 fun(self, property_id: integer): number
+---@field GetPropertyVec2 fun(self, property_id: integer): Vec2
+---@field GetPropertyVec3 fun(self, property_id: integer): Vec3
+---@field GetPropertyVec4 fun(self, property_id: integer): Vec4
+---@field GetPropertyIVec2 fun(self, property_id: integer): IVec2
+---@field GetPropertyIVec3 fun(self, property_id: integer): IVec3
+---@field GetPropertyIVec4 fun(self, property_id: integer): IVec4
+---@field GetPropertyUVec2 fun(self, property_id: integer): UVec2
+---@field GetPropertyUVec3 fun(self, property_id: integer): UVec3
+---@field GetPropertyUVec4 fun(self, property_id: integer): UVec4
+---@field GetPropertyDVec2 fun(self, property_id: integer): DVec2
+---@field GetPropertyDVec3 fun(self, property_id: integer): DVec3
+---@field GetPropertyDVec4 fun(self, property_id: integer): DVec4
+---@field GetPropertyColor fun(self, property_id: integer): Color
+---@field GetPropertyBox3 fun(self, property_id: integer): Box3
+---@field GetPropertyString fun(self, property_id: integer): string
+---@field GetPropertyFont fun(self, property_id: integer): Font
+---@field DumpWidgets fun(self)
+
 local Loader = {}
 
 function Loader.declareType()

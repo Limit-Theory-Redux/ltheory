@@ -1,4 +1,16 @@
 -- Audio -----------------------------------------------------------------------
+
+---@class Audio
+---@field Create fun(): Audio
+---@field Play fun(self, sound: Sound, init_volume: number, fade_millis: integer): SoundInstance
+---@field Play3D fun(self, sound: Sound, init_volume: number, fade_millis: integer, init_pos: Vec3, min_distance: number, max_distance: number): SoundInstance
+---@field SetListenerPos fun(self, pos: Vec3)
+---@field ListenerPos fun(self): Vec3
+---@field SetListenerRot fun(self, rot: Quat)
+---@field ListenerRot fun(self): Quat
+---@field GetLoadedCount fun(self): integer
+---@field GetTotalCount fun(self): integer
+
 local Loader = {}
 
 function Loader.declareType()
@@ -31,7 +43,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Audio = {
-            ---@return Self
+            ---@return Audio
             Create         = function(...)
                 local instance = libphx.Audio_Create(...)
                 return Core.ManagedObject(instance, libphx.Audio_Free)

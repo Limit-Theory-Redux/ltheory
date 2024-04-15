@@ -1,4 +1,16 @@
 -- MouseState ------------------------------------------------------------------
+
+---@class MouseState
+---@field Value fun(self, control: MouseControl): number
+---@field IsPressed fun(self, control: MouseControl): boolean
+---@field IsDown fun(self, control: MouseControl): boolean
+---@field IsReleased fun(self, control: MouseControl): boolean
+---@field Delta fun(self): Vec2
+---@field Scroll fun(self): Vec2
+---@field ScrollPixel fun(self): Vec2
+---@field Position fun(self): Vec2
+---@field InWindow fun(self): boolean
+
 local Loader = {}
 
 function Loader.declareType()

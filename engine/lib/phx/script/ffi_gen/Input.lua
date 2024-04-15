@@ -1,4 +1,25 @@
 -- Input -----------------------------------------------------------------------
+
+---@class Input
+---@field Keyboard fun(self): KeyboardState
+---@field Mouse fun(self): MouseState
+---@field Touchpad fun(self): TouchpadState
+---@field Gamepad fun(self): GamepadState
+---@field DragAndDrop fun(self): DragAndDropState
+---@field ActiveDevice fun(self): InputDevice
+---@field ActiveDeviceType fun(self): InputDeviceType
+---@field ActiveDeviceId fun(self): InputDeviceId
+---@field SetCursorVisible fun(self, visible: boolean)
+---@field SetCursorVisibleAuto fun(self)
+---@field SetCursorPosition fun(self, x: number, y: number)
+---@field IsPressed fun(self, button: Button): boolean
+---@field IsDown fun(self, button: Button): boolean
+---@field IsReleased fun(self, button: Button): boolean
+---@field GetValue fun(self, button: Button): number
+---@field IsKeyboardAltPressed fun(self): boolean
+---@field IsKeyboardCtrlPressed fun(self): boolean
+---@field IsKeyboardShiftPressed fun(self): boolean
+
 local Loader = {}
 
 function Loader.declareType()

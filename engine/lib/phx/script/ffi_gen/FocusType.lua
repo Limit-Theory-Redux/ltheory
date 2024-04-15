@@ -1,4 +1,6 @@
 -- FocusType -------------------------------------------------------------------
+
+
 local Loader = {}
 
 function Loader.declareType()

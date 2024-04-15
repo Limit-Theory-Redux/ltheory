@@ -23,6 +23,9 @@ impl ImplInfo {
             ffi_gen.set_type_decl_opaque();
         }
 
+        // Class definition
+        self.write_class_defs(&mut ffi_gen, &module_name);
+
         // C Definitions
         let (max_method_name_len, max_self_method_name_len) =
             self.write_c_defs(&mut ffi_gen, &module_name, is_managed);
@@ -54,6 +57,46 @@ impl ImplInfo {
         }
 
         ffi_gen.generate();
+    }
+
+    pub(crate) fn write_class_defs(&self, ffi_gen: &mut FfiGenerator, module_name: &str) {
+        ffi_gen.add_class_definition(format!("---@class {module_name}"));
+
+        self.methods
+            .iter()
+            .filter(|method| method.bind_args.gen_lua_ffi())
+            .for_each(|method| {
+                let mut params = vec![];
+
+                if method.self_param.is_some() {
+                    params.push("self".to_string());
+                }
+
+                method.params.iter().for_each(|param| {
+                    params.push(format!(
+                        "{}: {}",
+                        param.name,
+                        param.ty.as_lua_ffi_string(module_name)
+                    ))
+                });
+
+                let ret_str = if let Some(ret) = &method.ret {
+                    if method.bind_args.gen_out_param() {
+                        params.push(format!("result: {}", ret.as_lua_ffi_string(module_name)));
+                        "".to_string()
+                    } else {
+                        format!(": {}", ret.as_lua_ffi_string(module_name))
+                    }
+                } else {
+                    "".to_string()
+                };
+
+                ffi_gen.add_class_definition(format!(
+                    "---@field {} fun({}){ret_str}",
+                    method.as_ffi_name(),
+                    params.join(", ")
+                ));
+            });
     }
 
     fn write_c_defs(
@@ -267,7 +310,7 @@ fn write_method_map<F: FnMut(String)>(
         writer(format!(
             "{ident}---@param {} {}",
             param.name,
-            param.ty.as_lua_ffi_string()
+            param.ty.as_lua_ffi_string(module_name)
         ));
     });
 
@@ -275,10 +318,13 @@ fn write_method_map<F: FnMut(String)>(
         if method.bind_args.gen_out_param() {
             writer(format!(
                 "{ident}---@param [out] {}",
-                ret.as_lua_ffi_string()
+                ret.as_lua_ffi_string(module_name)
             ));
         } else {
-            writer(format!("{ident}---@return {}", ret.as_lua_ffi_string()));
+            writer(format!(
+                "{ident}---@return {}",
+                ret.as_lua_ffi_string(module_name)
+            ));
         }
     }
 

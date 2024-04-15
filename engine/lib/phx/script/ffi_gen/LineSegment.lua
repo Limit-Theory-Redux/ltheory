@@ -1,4 +1,10 @@
 -- LineSegment -----------------------------------------------------------------
+
+---@class LineSegment
+---@field ToRay fun(self, out: Ray)
+---@field FromRay fun(ray: Ray, out: LineSegment)
+---@field ToString fun(self): string
+
 local Loader = {}
 
 function Loader.declareType()

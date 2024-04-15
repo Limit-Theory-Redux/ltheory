@@ -1,4 +1,21 @@
 -- SoundInstance ---------------------------------------------------------------
+
+---@class SoundInstance
+---@field IsPlaying fun(self): boolean
+---@field IsPaused fun(self): boolean
+---@field IsStopped fun(self): boolean
+---@field GetVolume fun(self): number
+---@field SetVolume fun(self, volume: number, fade_millis: integer)
+---@field Pause fun(self, fade_millis: integer)
+---@field Resume fun(self, fade_millis: integer)
+---@field Stop fun(self, fade_millis: integer)
+---@field FreeEmitter fun(self)
+---@field SetPlayPos fun(self, position: number)
+---@field MovePlayPos fun(self, offset: number)
+---@field SetEmitterPos fun(self, position: Vec3)
+---@field EmitterPos fun(self): Vec3
+---@field EmitterDistance fun(self, listener_pos: Vec3): number
+
 local Loader = {}
 
 function Loader.declareType()

@@ -1,4 +1,18 @@
 -- GamepadState ----------------------------------------------------------------
+
+---@class GamepadState
+---@field GamepadsCount fun(self): integer
+---@field GamepadId fun(self, index: integer): GamepadId
+---@field GamepadName fun(self, gamepad_id: GamepadId): string
+---@field Value fun(self, axis: GamepadAxis): number
+---@field IsPressed fun(self, button: GamepadButton): boolean
+---@field IsDown fun(self, button: GamepadButton): boolean
+---@field IsReleased fun(self, button: GamepadButton): boolean
+---@field ValueById fun(self, gamepad_id: GamepadId, axis: GamepadAxis): number
+---@field IsPressedById fun(self, gamepad_id: GamepadId, button: GamepadButton): boolean
+---@field IsDownById fun(self, gamepad_id: GamepadId, button: GamepadButton): boolean
+---@field IsReleasedById fun(self, gamepad_id: GamepadId, button: GamepadButton): boolean
+
 local Loader = {}
 
 function Loader.declareType()

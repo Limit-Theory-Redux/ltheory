@@ -1,4 +1,10 @@
 -- Sound -----------------------------------------------------------------------
+
+---@class Sound
+---@field Load fun(path: string, is_looping: boolean): Sound
+---@field GetDuration fun(self): number
+---@field GetPath fun(self): string
+
 local Loader = {}
 
 function Loader.declareType()
@@ -27,7 +33,7 @@ function Loader.defineType()
         Sound = {
             ---@param path string
             ---@param is_looping boolean
-            ---@return Self
+            ---@return Sound
             Load        = function(...)
                 local instance = libphx.Sound_Load(...)
                 return Core.ManagedObject(instance, libphx.Sound_Free)

@@ -1,4 +1,15 @@
 -- Bit -------------------------------------------------------------------------
+
+---@class Bit
+---@field And32 fun(x: integer, y: integer): integer
+---@field Or32 fun(x: integer, y: integer): integer
+---@field Xor32 fun(x: integer, y: integer): integer
+---@field Has32 fun(x: integer, y: integer): boolean
+---@field And64 fun(x: integer, y: integer): integer
+---@field Or64 fun(x: integer, y: integer): integer
+---@field Xor64 fun(x: integer, y: integer): integer
+---@field Has64 fun(x: integer, y: integer): boolean
+
 local Loader = {}
 
 function Loader.declareType()

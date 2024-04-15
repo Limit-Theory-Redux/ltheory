@@ -1,4 +1,13 @@
 -- Font ------------------------------------------------------------------------
+
+---@class Font
+---@field Load fun(name: string, size: integer): Font
+---@field Draw fun(self, text: string, x: number, y: number, r: number, g: number, b: number, a: number)
+---@field DrawShaded fun(self, text: string, x: number, y: number)
+---@field GetLineHeight fun(self): integer
+---@field GetSize fun(self, text: string, out: IVec4)
+---@field GetSize2 fun(self, text: string): IVec2
+
 local Loader = {}
 
 function Loader.declareType()
@@ -30,7 +39,7 @@ function Loader.defineType()
         Font = {
             ---@param name string
             ---@param size integer
-            ---@return Self
+            ---@return Font
             Load          = function(...)
                 local instance = libphx.Font_Load(...)
                 return Core.ManagedObject(instance, libphx.Font_Free)

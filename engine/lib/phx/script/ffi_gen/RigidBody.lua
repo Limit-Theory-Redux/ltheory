@@ -1,4 +1,52 @@
 -- RigidBody -------------------------------------------------------------------
+
+---@class RigidBody
+---@field CreateBox fun(): RigidBody
+---@field CreateBoxFromMesh fun(mesh: Mesh): RigidBody
+---@field CreateSphere fun(): RigidBody
+---@field CreateSphereFromMesh fun(mesh: Mesh): RigidBody
+---@field CreateConvexHullFromMesh fun(mesh: Mesh): RigidBody
+---@field CreateConvexDecompositionFromMesh fun(mesh: Mesh): RigidBody
+---@field CreateTrimeshFromMesh fun(mesh: Mesh): RigidBody
+---@field GetParentBody fun(self): RigidBody
+---@field ApplyForce fun(self, force: Vec3)
+---@field ApplyTorque fun(self, torque: Vec3)
+---@field Attach fun(self, child: RigidBody, pos: Vec3, rot: Quat)
+---@field Detach fun(self, child: RigidBody)
+---@field GetBoundingBox fun(self, result: Box3)
+---@field GetBoundingBoxCompound fun(self, result: Box3)
+---@field GetBoundingBoxLocal fun(self, result: Box3)
+---@field GetBoundingBoxLocalCompound fun(self, result: Box3)
+---@field GetBoundingRadius fun(self): number
+---@field GetBoundingRadiusCompound fun(self): number
+---@field GetSpeed fun(self): number
+---@field GetToWorldMatrix fun(self): Matrix
+---@field GetToLocalMatrix fun(self): Matrix
+---@field GetVelocity fun(self, result: Vec3)
+---@field GetVelocityA fun(self, result: Vec3)
+---@field SetCollidable fun(self, collidable: boolean)
+---@field SetCollisionGroup fun(self, group: integer)
+---@field SetCollisionMask fun(self, mask: integer)
+---@field SetDrag fun(self, linear: number, angular: number)
+---@field SetFriction fun(self, friction: number)
+---@field SetKinematic fun(self, kinematic: boolean)
+---@field SetRestitution fun(self, restitution: number)
+---@field SetSleepThreshold fun(self, linear: number, angular: number)
+---@field GetMass fun(self): number
+---@field SetMass fun(self, mass: number)
+---@field GetPos fun(self, result: Vec3)
+---@field GetPosLocal fun(self, result: Vec3)
+---@field SetPos fun(self, pos: Vec3)
+---@field SetPosLocal fun(self, pos: Vec3)
+---@field GetRot fun(self, result: Quat)
+---@field GetRotLocal fun(self, result: Quat)
+---@field SetRot fun(self, rot: Quat)
+---@field SetRotLocal fun(self, rot: Quat)
+---@field GetScale fun(self): number
+---@field SetScale fun(self, scale: number)
+---@field DistanceTo fun(self, target: RigidBody): number
+---@field IsSleeping fun(self): boolean
+
 local Loader = {}
 
 function Loader.declareType()

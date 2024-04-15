@@ -1,4 +1,10 @@
 -- DragAndDropState ------------------------------------------------------------
+
+---@class DragAndDropState
+---@field GetDroppedFile fun(self): string
+---@field GetHoveredFile fun(self): string
+---@field IfHoveredFileCancelled fun(self): boolean
+
 local Loader = {}
 
 function Loader.declareType()
