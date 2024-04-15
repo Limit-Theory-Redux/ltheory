@@ -25,13 +25,37 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Bit = {
+            ---@param x uint32
+            ---@param y uint32
+            ---@return uint32
             And32 = libphx.Bit_And32,
+            ---@param x uint32
+            ---@param y uint32
+            ---@return uint32
             Or32  = libphx.Bit_Or32,
+            ---@param x uint32
+            ---@param y uint32
+            ---@return uint32
             Xor32 = libphx.Bit_Xor32,
+            ---@param x uint32
+            ---@param y uint32
+            ---@return bool
             Has32 = libphx.Bit_Has32,
+            ---@param x uint64
+            ---@param y uint64
+            ---@return uint64
             And64 = libphx.Bit_And64,
+            ---@param x uint64
+            ---@param y uint64
+            ---@return uint64
             Or64  = libphx.Bit_Or64,
+            ---@param x uint64
+            ---@param y uint64
+            ---@return uint64
             Xor64 = libphx.Bit_Xor64,
+            ---@param x uint64
+            ---@param y uint64
+            ---@return bool
             Has64 = libphx.Bit_Has64,
         }
 

@@ -40,14 +40,27 @@ function Loader.defineType()
         local t  = ffi.typeof('MouseState')
         local mt = {
             __index = {
+                ---@param control MouseControl
+                ---@return float
                 value       = libphx.MouseState_Value,
+                ---@param control MouseControl
+                ---@return bool
                 isPressed   = libphx.MouseState_IsPressed,
+                ---@param control MouseControl
+                ---@return bool
                 isDown      = libphx.MouseState_IsDown,
+                ---@param control MouseControl
+                ---@return bool
                 isReleased  = libphx.MouseState_IsReleased,
+                ---@return Vec2f
                 delta       = libphx.MouseState_Delta,
+                ---@return Vec2f
                 scroll      = libphx.MouseState_Scroll,
+                ---@return Vec2f
                 scrollPixel = libphx.MouseState_ScrollPixel,
+                ---@return Vec2f
                 position    = libphx.MouseState_Position,
+                ---@return bool
                 inWindow    = libphx.MouseState_InWindow,
             },
         }

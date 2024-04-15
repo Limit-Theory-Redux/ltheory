@@ -32,6 +32,7 @@ function Loader.defineType()
         local t  = ffi.typeof('SystemEventState')
         local mt = {
             __index = {
+                ---@return bool
                 isExit = libphx.SystemEventState_IsExit,
             },
         }

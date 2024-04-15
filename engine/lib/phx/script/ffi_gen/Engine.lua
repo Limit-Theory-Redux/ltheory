@@ -33,7 +33,9 @@ function Loader.defineType()
     do -- Global Symbol Table
         Engine = {
             Abort      = libphx.Engine_Abort,
+            ---@return int
             GetBits    = libphx.Engine_GetBits,
+            ---@return cstr
             GetVersion = libphx.Engine_GetVersion,
             Terminate  = libphx.Engine_Terminate,
             Update     = libphx.Engine_Update,
@@ -47,9 +49,13 @@ function Loader.defineType()
         local t  = ffi.typeof('Engine')
         local mt = {
             __index = {
+                ---@return Window*
                 window  = libphx.Engine_Window,
+                ---@return Input*
                 input   = libphx.Engine_Input,
+                ---@return HmGui*
                 hmGui   = libphx.Engine_HmGui,
+                ---@return double
                 getTime = libphx.Engine_GetTime,
                 exit    = libphx.Engine_Exit,
             },

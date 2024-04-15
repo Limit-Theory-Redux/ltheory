@@ -21,12 +21,24 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Resource = {
+            ---@param ty ResourceType
+            ---@param name cstr
+            ---@return bool
             Exists     = libphx.Resource_Exists,
+            ---@param ty ResourceType
+            ---@param name cstr
+            ---@return cstr
             GetPath    = libphx.Resource_GetPath,
+            ---@param ty ResourceType
+            ---@param name cstr
+            ---@return Bytes*
             LoadBytes  = function(...)
                 local instance = libphx.Resource_LoadBytes(...)
                 return Core.ManagedObject(instance, libphx.Bytes_Free)
             end,
+            ---@param ty ResourceType
+            ---@param name cstr
+            ---@return cstr
             LoadString = libphx.Resource_LoadString,
         }
 

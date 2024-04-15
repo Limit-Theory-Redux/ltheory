@@ -45,19 +45,34 @@ function Loader.defineType()
         local t  = ffi.typeof('SoundInstance')
         local mt = {
             __index = {
+                ---@return bool
                 isPlaying       = libphx.SoundInstance_IsPlaying,
+                ---@return bool
                 isPaused        = libphx.SoundInstance_IsPaused,
+                ---@return bool
                 isStopped       = libphx.SoundInstance_IsStopped,
+                ---@return double
                 getVolume       = libphx.SoundInstance_GetVolume,
+                ---@param volume double
+                ---@param fade_millis uint64
                 setVolume       = libphx.SoundInstance_SetVolume,
+                ---@param fade_millis uint64
                 pause           = libphx.SoundInstance_Pause,
+                ---@param fade_millis uint64
                 resume          = libphx.SoundInstance_Resume,
+                ---@param fade_millis uint64
                 stop            = libphx.SoundInstance_Stop,
                 freeEmitter     = libphx.SoundInstance_FreeEmitter,
+                ---@param position double
                 setPlayPos      = libphx.SoundInstance_SetPlayPos,
+                ---@param offset double
                 movePlayPos     = libphx.SoundInstance_MovePlayPos,
+                ---@param position Vec3f const*
                 setEmitterPos   = libphx.SoundInstance_SetEmitterPos,
+                ---@return Vec3f
                 emitterPos      = libphx.SoundInstance_EmitterPos,
+                ---@param listener_pos Vec3f const*
+                ---@return float
                 emitterDistance = libphx.SoundInstance_EmitterDistance,
             },
         }

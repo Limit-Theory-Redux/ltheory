@@ -180,8 +180,12 @@ function Loader.defineType()
         local mt = {
             __index = {
                 -- Begin GUI declaration. Region is limited by [0, 0] - [sx, sy] rectangle.
+                ---@param sx float
+                ---@param sy float
+                ---@param input Input const*
                 beginGui                       = libphx.HmGui_BeginGui,
                 -- Finish GUI declaration, calculate hierarchy widgets sizes and layout.
+                ---@param input Input const*
                 endGui                         = libphx.HmGui_EndGui,
                 -- Pass information about widgets to the renderer and draw them.
                 draw                           = libphx.HmGui_Draw,
@@ -189,161 +193,462 @@ function Loader.defineType()
                 beginVerticalContainer         = libphx.HmGui_BeginVerticalContainer,
                 beginStackContainer            = libphx.HmGui_BeginStackContainer,
                 endContainer                   = libphx.HmGui_EndContainer,
+                ---@param _max_size float
                 beginScroll                    = libphx.HmGui_BeginScroll,
+                ---@param input Input const*
                 endScroll                      = libphx.HmGui_EndScroll,
                 -- Begins window element.
+                ---@param _title cstr
+                ---@param input Input const*
                 beginWindow                    = libphx.HmGui_BeginWindow,
                 -- Ends window element.
                 endWindow                      = libphx.HmGui_EndWindow,
                 -- Invisible element that stretches in all directions.
                 -- Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
                 spacer                         = libphx.HmGui_Spacer,
+                ---@param label cstr
+                ---@return bool
                 button                         = libphx.HmGui_Button,
+                ---@param label cstr
+                ---@param value bool
+                ---@return bool
                 checkbox                       = libphx.HmGui_Checkbox,
+                ---@param _lower float
+                ---@param _upper float
+                ---@param _value float
+                ---@return float
                 slider                         = libphx.HmGui_Slider,
+                ---@param height float
+                ---@param color Color const*
                 horizontalDivider              = libphx.HmGui_HorizontalDivider,
+                ---@param width float
+                ---@param color Color const*
                 verticalDivider                = libphx.HmGui_VerticalDivider,
+                ---@param image Tex2D*
                 image                          = libphx.HmGui_Image,
+                ---@param color Color const*
                 rect                           = libphx.HmGui_Rect,
+                ---@param text cstr
                 text                           = libphx.HmGui_Text,
+                ---@param text cstr
+                ---@param color Color const*
                 textColored                    = libphx.HmGui_TextColored,
+                ---@param font Font const*
+                ---@param text cstr
+                ---@param color Color const*
                 textEx                         = libphx.HmGui_TextEx,
+                ---@param width float
                 setMinWidth                    = libphx.HmGui_SetMinWidth,
+                ---@param height float
                 setMinHeight                   = libphx.HmGui_SetMinHeight,
+                ---@param width float
+                ---@param height float
                 setMinSize                     = libphx.HmGui_SetMinSize,
+                ---@param width float
                 setFixedWidth                  = libphx.HmGui_SetFixedWidth,
+                ---@param height float
                 setFixedHeight                 = libphx.HmGui_SetFixedHeight,
+                ---@param width float
+                ---@param height float
                 setFixedSize                   = libphx.HmGui_SetFixedSize,
+                ---@param width float
                 setPercentWidth                = libphx.HmGui_SetPercentWidth,
+                ---@param height float
                 setPercentHeight               = libphx.HmGui_SetPercentHeight,
+                ---@param width float
+                ---@param height float
                 setPercentSize                 = libphx.HmGui_SetPercentSize,
+                ---@param px float
+                ---@param py float
                 setMargin                      = libphx.HmGui_SetMargin,
+                ---@param left float
+                ---@param top float
+                ---@param right float
+                ---@param bottom float
                 setMarginEx                    = libphx.HmGui_SetMarginEx,
+                ---@param margin float
                 setMarginLeft                  = libphx.HmGui_SetMarginLeft,
+                ---@param margin float
                 setMarginTop                   = libphx.HmGui_SetMarginTop,
+                ---@param margin float
                 setMarginRight                 = libphx.HmGui_SetMarginRight,
+                ---@param margin float
                 setMarginBottom                = libphx.HmGui_SetMarginBottom,
+                ---@param width float
                 setBorderWidth                 = libphx.HmGui_SetBorderWidth,
+                ---@param color Color const*
                 setBorderColor                 = libphx.HmGui_SetBorderColor,
+                ---@param color Color const*
                 setBorderColorV4               = libphx.HmGui_SetBorderColorV4,
+                ---@param width float
+                ---@param color Color const*
                 setBorder                      = libphx.HmGui_SetBorder,
+                ---@param width float
+                ---@param color Color const*
                 setBorderV4                    = libphx.HmGui_SetBorderV4,
+                ---@param color Color const*
                 setBgColor                     = libphx.HmGui_SetBgColor,
+                ---@param color Color const*
                 setBgColorV4                   = libphx.HmGui_SetBgColorV4,
+                ---@param h AlignHorizontal
+                ---@param v AlignVertical
                 setAlignment                   = libphx.HmGui_SetAlignment,
+                ---@param align AlignHorizontal
                 setHorizontalAlignment         = libphx.HmGui_SetHorizontalAlignment,
+                ---@param align AlignVertical
                 setVerticalAlignment           = libphx.HmGui_SetVerticalAlignment,
+                ---@param px float
+                ---@param py float
                 setPadding                     = libphx.HmGui_SetPadding,
+                ---@param left float
+                ---@param top float
+                ---@param right float
+                ---@param bottom float
                 setPaddingEx                   = libphx.HmGui_SetPaddingEx,
+                ---@param padding float
                 setPaddingLeft                 = libphx.HmGui_SetPaddingLeft,
+                ---@param padding float
                 setPaddingTop                  = libphx.HmGui_SetPaddingTop,
+                ---@param padding float
                 setPaddingRight                = libphx.HmGui_SetPaddingRight,
+                ---@param padding float
                 setPaddingBottom               = libphx.HmGui_SetPaddingBottom,
+                ---@param spacing float
                 setSpacing                     = libphx.HmGui_SetSpacing,
                 -- Makes current container `focusable` and returns if it's currently in focus.
+                ---@param ty FocusType
+                ---@return bool
                 isMouseOver                    = libphx.HmGui_IsMouseOver,
+                ---@param h AlignHorizontal
+                ---@param v AlignVertical
                 setChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
+                ---@param align AlignHorizontal
                 setChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
+                ---@param align AlignVertical
                 setChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
                 -- Set a theme by merging it into the default properties.
+                ---@param name cstr
                 setTheme                       = libphx.HmGui_SetTheme,
                 -- Restore default properties.
                 clearTheme                     = libphx.HmGui_ClearTheme,
                 -- Get style id by its name.
+                ---@param name cstr
+                ---@return uint64
                 getStyleId                     = libphx.HmGui_GetStyleId,
                 -- Set a style for the following element.
+                ---@param id uint64
                 setStyle                       = libphx.HmGui_SetStyle,
                 -- Remove element style.
                 clearStyle                     = libphx.HmGui_ClearStyle,
                 -- Get property type by its id.
+                ---@param id uint64
+                ---@return HmGuiPropertyType*
                 getPropertyType                = function(...)
                     local instance = libphx.HmGui_GetPropertyType(...)
                     return Core.ManagedObject(instance, libphx.HmGuiPropertyType_Free)
                 end,
                 -- Write property value into the mapped properties in the active element style.
+                ---@param property_id uint64
                 mapProperty                    = libphx.HmGui_MapProperty,
                 -- Remove property by id from the active element style.
+                ---@param property_id uint64
                 removeProperty                 = libphx.HmGui_RemoveProperty,
+                ---@param name cstr
+                ---@param value bool
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyBool           = libphx.HmGui_RegisterPropertyBool,
+                ---@param name cstr
+                ---@param value int8
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyI8             = libphx.HmGui_RegisterPropertyI8,
+                ---@param name cstr
+                ---@param value uint8
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyU8             = libphx.HmGui_RegisterPropertyU8,
+                ---@param name cstr
+                ---@param value int16
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyI16            = libphx.HmGui_RegisterPropertyI16,
+                ---@param name cstr
+                ---@param value uint16
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyU16            = libphx.HmGui_RegisterPropertyU16,
+                ---@param name cstr
+                ---@param value int
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyI32            = libphx.HmGui_RegisterPropertyI32,
+                ---@param name cstr
+                ---@param value uint32
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyU32            = libphx.HmGui_RegisterPropertyU32,
+                ---@param name cstr
+                ---@param value int64
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyI64            = libphx.HmGui_RegisterPropertyI64,
+                ---@param name cstr
+                ---@param value uint64
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyU64            = libphx.HmGui_RegisterPropertyU64,
+                ---@param name cstr
+                ---@param value float
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyF32            = libphx.HmGui_RegisterPropertyF32,
+                ---@param name cstr
+                ---@param value double
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyF64            = libphx.HmGui_RegisterPropertyF64,
+                ---@param name cstr
+                ---@param value Vec2f
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyVec2           = libphx.HmGui_RegisterPropertyVec2,
+                ---@param name cstr
+                ---@param value Vec3f const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyVec3           = libphx.HmGui_RegisterPropertyVec3,
+                ---@param name cstr
+                ---@param value Vec4f const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyVec4           = libphx.HmGui_RegisterPropertyVec4,
+                ---@param name cstr
+                ---@param value Vec2i
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyIVec2          = libphx.HmGui_RegisterPropertyIVec2,
+                ---@param name cstr
+                ---@param value Vec3i const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyIVec3          = libphx.HmGui_RegisterPropertyIVec3,
+                ---@param name cstr
+                ---@param value Vec4i const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyIVec4          = libphx.HmGui_RegisterPropertyIVec4,
+                ---@param name cstr
+                ---@param value Vec2u
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyUVec2          = libphx.HmGui_RegisterPropertyUVec2,
+                ---@param name cstr
+                ---@param value Vec3u const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyUVec3          = libphx.HmGui_RegisterPropertyUVec3,
+                ---@param name cstr
+                ---@param value Vec4u const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyUVec4          = libphx.HmGui_RegisterPropertyUVec4,
+                ---@param name cstr
+                ---@param value Vec2d
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyDVec2          = libphx.HmGui_RegisterPropertyDVec2,
+                ---@param name cstr
+                ---@param value Vec3d const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyDVec3          = libphx.HmGui_RegisterPropertyDVec3,
+                ---@param name cstr
+                ---@param value Vec4d const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyDVec4          = libphx.HmGui_RegisterPropertyDVec4,
+                ---@param name cstr
+                ---@param value Color const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyColor          = libphx.HmGui_RegisterPropertyColor,
+                ---@param name cstr
+                ---@param value Box3f const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyBox3           = libphx.HmGui_RegisterPropertyBox3,
+                ---@param name cstr
+                ---@param value cstr
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyString         = libphx.HmGui_RegisterPropertyString,
+                ---@param name cstr
+                ---@param value Font const*
+                ---@param map_id cstr
+                ---@return uint64
                 registerPropertyFont           = libphx.HmGui_RegisterPropertyFont,
+                ---@param property_id uint64
+                ---@param value bool
                 setPropertyBool                = libphx.HmGui_SetPropertyBool,
+                ---@param property_id uint64
+                ---@param value int8
                 setPropertyI8                  = libphx.HmGui_SetPropertyI8,
+                ---@param property_id uint64
+                ---@param value uint8
                 setPropertyU8                  = libphx.HmGui_SetPropertyU8,
+                ---@param property_id uint64
+                ---@param value int16
                 setPropertyI16                 = libphx.HmGui_SetPropertyI16,
+                ---@param property_id uint64
+                ---@param value uint16
                 setPropertyU16                 = libphx.HmGui_SetPropertyU16,
+                ---@param property_id uint64
+                ---@param value int
                 setPropertyI32                 = libphx.HmGui_SetPropertyI32,
+                ---@param property_id uint64
+                ---@param value uint32
                 setPropertyU32                 = libphx.HmGui_SetPropertyU32,
+                ---@param property_id uint64
+                ---@param value int64
                 setPropertyI64                 = libphx.HmGui_SetPropertyI64,
+                ---@param property_id uint64
+                ---@param value uint64
                 setPropertyU64                 = libphx.HmGui_SetPropertyU64,
+                ---@param property_id uint64
+                ---@param value float
                 setPropertyF32                 = libphx.HmGui_SetPropertyF32,
+                ---@param property_id uint64
+                ---@param value double
                 setPropertyF64                 = libphx.HmGui_SetPropertyF64,
+                ---@param property_id uint64
+                ---@param value Vec2f
                 setPropertyVec2                = libphx.HmGui_SetPropertyVec2,
+                ---@param property_id uint64
+                ---@param value Vec3f const*
                 setPropertyVec3                = libphx.HmGui_SetPropertyVec3,
+                ---@param property_id uint64
+                ---@param value Vec4f const*
                 setPropertyVec4                = libphx.HmGui_SetPropertyVec4,
+                ---@param property_id uint64
+                ---@param value Vec2i
                 setPropertyIVec2               = libphx.HmGui_SetPropertyIVec2,
+                ---@param property_id uint64
+                ---@param value Vec3i const*
                 setPropertyIVec3               = libphx.HmGui_SetPropertyIVec3,
+                ---@param property_id uint64
+                ---@param value Vec4i const*
                 setPropertyIVec4               = libphx.HmGui_SetPropertyIVec4,
+                ---@param property_id uint64
+                ---@param value Vec2u
                 setPropertyUVec2               = libphx.HmGui_SetPropertyUVec2,
+                ---@param property_id uint64
+                ---@param value Vec3u const*
                 setPropertyUVec3               = libphx.HmGui_SetPropertyUVec3,
+                ---@param property_id uint64
+                ---@param value Vec4u const*
                 setPropertyUVec4               = libphx.HmGui_SetPropertyUVec4,
+                ---@param property_id uint64
+                ---@param value Vec2d
                 setPropertyDVec2               = libphx.HmGui_SetPropertyDVec2,
+                ---@param property_id uint64
+                ---@param value Vec3d const*
                 setPropertyDVec3               = libphx.HmGui_SetPropertyDVec3,
+                ---@param property_id uint64
+                ---@param value Vec4d const*
                 setPropertyDVec4               = libphx.HmGui_SetPropertyDVec4,
+                ---@param property_id uint64
+                ---@param value Color const*
                 setPropertyColor               = libphx.HmGui_SetPropertyColor,
+                ---@param property_id uint64
+                ---@param value Box3f const*
                 setPropertyBox3                = libphx.HmGui_SetPropertyBox3,
+                ---@param property_id uint64
+                ---@param value cstr
                 setPropertyString              = libphx.HmGui_SetPropertyString,
+                ---@param property_id uint64
+                ---@param value Font const*
                 setPropertyFont                = libphx.HmGui_SetPropertyFont,
+                ---@param property_id uint64
+                ---@return bool
                 getPropertyBool                = libphx.HmGui_GetPropertyBool,
+                ---@param property_id uint64
+                ---@return int8
                 getPropertyI8                  = libphx.HmGui_GetPropertyI8,
+                ---@param property_id uint64
+                ---@return uint8
                 getPropertyU8                  = libphx.HmGui_GetPropertyU8,
+                ---@param property_id uint64
+                ---@return int16
                 getPropertyI16                 = libphx.HmGui_GetPropertyI16,
+                ---@param property_id uint64
+                ---@return uint16
                 getPropertyU16                 = libphx.HmGui_GetPropertyU16,
+                ---@param property_id uint64
+                ---@return int
                 getPropertyI32                 = libphx.HmGui_GetPropertyI32,
+                ---@param property_id uint64
+                ---@return uint32
                 getPropertyU32                 = libphx.HmGui_GetPropertyU32,
+                ---@param property_id uint64
+                ---@return int64
                 getPropertyI64                 = libphx.HmGui_GetPropertyI64,
+                ---@param property_id uint64
+                ---@return uint64
                 getPropertyU64                 = libphx.HmGui_GetPropertyU64,
+                ---@param property_id uint64
+                ---@return float
                 getPropertyF32                 = libphx.HmGui_GetPropertyF32,
+                ---@param property_id uint64
+                ---@return double
                 getPropertyF64                 = libphx.HmGui_GetPropertyF64,
+                ---@param property_id uint64
+                ---@return Vec2f
                 getPropertyVec2                = libphx.HmGui_GetPropertyVec2,
+                ---@param property_id uint64
+                ---@return Vec3f const*
                 getPropertyVec3                = libphx.HmGui_GetPropertyVec3,
+                ---@param property_id uint64
+                ---@return Vec4f const*
                 getPropertyVec4                = libphx.HmGui_GetPropertyVec4,
+                ---@param property_id uint64
+                ---@return Vec2i
                 getPropertyIVec2               = libphx.HmGui_GetPropertyIVec2,
+                ---@param property_id uint64
+                ---@return Vec3i const*
                 getPropertyIVec3               = libphx.HmGui_GetPropertyIVec3,
+                ---@param property_id uint64
+                ---@return Vec4i const*
                 getPropertyIVec4               = libphx.HmGui_GetPropertyIVec4,
+                ---@param property_id uint64
+                ---@return Vec2u
                 getPropertyUVec2               = libphx.HmGui_GetPropertyUVec2,
+                ---@param property_id uint64
+                ---@return Vec3u const*
                 getPropertyUVec3               = libphx.HmGui_GetPropertyUVec3,
+                ---@param property_id uint64
+                ---@return Vec4u const*
                 getPropertyUVec4               = libphx.HmGui_GetPropertyUVec4,
+                ---@param property_id uint64
+                ---@return Vec2d
                 getPropertyDVec2               = libphx.HmGui_GetPropertyDVec2,
+                ---@param property_id uint64
+                ---@return Vec3d const*
                 getPropertyDVec3               = libphx.HmGui_GetPropertyDVec3,
+                ---@param property_id uint64
+                ---@return Vec4d const*
                 getPropertyDVec4               = libphx.HmGui_GetPropertyDVec4,
+                ---@param property_id uint64
+                ---@return Color const*
                 getPropertyColor               = libphx.HmGui_GetPropertyColor,
+                ---@param property_id uint64
+                ---@return Box3f const*
                 getPropertyBox3                = libphx.HmGui_GetPropertyBox3,
+                ---@param property_id uint64
+                ---@return cstr
                 getPropertyString              = libphx.HmGui_GetPropertyString,
+                ---@param property_id uint64
+                ---@return Font const*
                 getPropertyFont                = libphx.HmGui_GetPropertyFont,
                 -- Prints widgets hierarchy to the console. For testing.
                 dumpWidgets                    = libphx.HmGui_DumpWidgets,

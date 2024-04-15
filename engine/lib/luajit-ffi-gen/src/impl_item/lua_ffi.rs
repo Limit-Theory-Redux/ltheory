@@ -253,10 +253,37 @@ fn write_method_map<F: FnMut(String)>(
         None
     };
 
-    method
-        .doc
-        .iter()
-        .for_each(|d| writer(format!("{ident}-- {d}")));
+    // Add user defined method documentation
+    method.doc.iter().for_each(|d| {
+        if d.is_empty() {
+            writer(format!("{ident}--"))
+        } else {
+            writer(format!("{ident}-- {d}"))
+        }
+    });
+
+    // Add method signature documentation
+    method.params.iter().for_each(|param| {
+        writer(format!(
+            "{ident}---@param {} {}",
+            param.name,
+            param.ty.as_ffi_string(module_name)
+        ));
+    });
+
+    if let Some(ret) = &method.ret {
+        if method.bind_args.gen_out_param() {
+            writer(format!(
+                "{ident}---@param [out] {}",
+                ret.as_ffi_string(module_name)
+            ));
+        } else {
+            writer(format!(
+                "{ident}---@return {}",
+                ret.as_ffi_string(module_name)
+            ));
+        }
+    }
 
     if let Some(gc_type) = gc_type {
         writer(format!("{ident}{mapped_method} = function(...)"));

@@ -39,13 +39,21 @@ function Loader.defineType()
         local t  = ffi.typeof('Cursor')
         local mt = {
             __index = {
+                ---@return CursorIcon
                 icon        = libphx.Cursor_Icon,
+                ---@param icon CursorIcon
                 setIcon     = libphx.Cursor_SetIcon,
+                ---@return bool
                 isVisible   = libphx.Cursor_IsVisible,
+                ---@param visible bool
                 setVisible  = libphx.Cursor_SetVisible,
+                ---@return CursorGrabMode
                 grabMode    = libphx.Cursor_GrabMode,
+                ---@param grab_mode CursorGrabMode
                 setGrabMode = libphx.Cursor_SetGrabMode,
+                ---@return bool
                 isHitTest   = libphx.Cursor_IsHitTest,
+                ---@param hit_test bool
                 setHitTest  = libphx.Cursor_SetHitTest,
             },
         }

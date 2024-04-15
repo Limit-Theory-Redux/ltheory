@@ -35,9 +35,14 @@ function Loader.defineType()
         local t  = ffi.typeof('TouchpadState')
         local mt = {
             __index = {
+                ---@param axis TouchpadAxis
+                ---@return float
                 value        = libphx.TouchpadState_Value,
+                ---@return Vec2f
                 position     = libphx.TouchpadState_Position,
+                ---@return float
                 magnifyDelta = libphx.TouchpadState_MagnifyDelta,
+                ---@return float
                 rotateDelta  = libphx.TouchpadState_RotateDelta,
             },
         }

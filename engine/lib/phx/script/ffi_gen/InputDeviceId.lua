@@ -33,6 +33,7 @@ function Loader.defineType()
         local mt = {
             __tostring = function(self) return ffi.string(libphx.InputDeviceId_ToString(self)) end,
             __index = {
+                ---@return cstr
                 toString = libphx.InputDeviceId_ToString,
             },
         }

@@ -38,12 +38,23 @@ function Loader.defineType()
         local t  = ffi.typeof('KeyboardState')
         local mt = {
             __index = {
+                ---@param button KeyboardButton
+                ---@return bool
                 isPressed    = libphx.KeyboardState_IsPressed,
+                ---@param button KeyboardButton
+                ---@return bool
                 isDown       = libphx.KeyboardState_IsDown,
+                ---@param button KeyboardButton
+                ---@return bool
                 isReleased   = libphx.KeyboardState_IsReleased,
+                ---@return bool
                 altPressed   = libphx.KeyboardState_AltPressed,
+                ---@return bool
                 ctrlPressed  = libphx.KeyboardState_CtrlPressed,
+                ---@return bool
                 shiftPressed = libphx.KeyboardState_ShiftPressed,
+                ---@param button KeyboardButton
+                ---@return float
                 value        = libphx.KeyboardState_Value,
             },
         }

@@ -20,14 +20,17 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Time = {
+            ---@return Time*
             GetLocal = function(...)
                 local instance = libphx.Time_GetLocal(...)
                 return Core.ManagedObject(instance, libphx.Time_Free)
             end,
+            ---@return Time*
             GetUtc   = function(...)
                 local instance = libphx.Time_GetUtc(...)
                 return Core.ManagedObject(instance, libphx.Time_Free)
             end,
+            ---@return uint32
             GetRaw   = libphx.Time_GetRaw,
         }
 

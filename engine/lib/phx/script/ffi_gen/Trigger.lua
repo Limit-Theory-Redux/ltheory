@@ -34,6 +34,8 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Trigger = {
+            ---@param half_extents Vec3f const*
+            ---@return Trigger*
             CreateBox        = function(...)
                 local instance = libphx.Trigger_CreateBox(...)
                 return Core.ManagedObject(instance, libphx.Trigger_Free)
@@ -48,17 +50,30 @@ function Loader.defineType()
         local t  = ffi.typeof('Trigger')
         local mt = {
             __index = {
+                ---@param parent RigidBody*
+                ---@param offset Vec3f const*
                 attach           = libphx.Trigger_Attach,
+                ---@param parent RigidBody*
                 detach           = libphx.Trigger_Detach,
+                ---@param [out] Box3f
                 getBoundingBox   = libphx.Trigger_GetBoundingBox,
+                ---@return int
                 getContentsCount = libphx.Trigger_GetContentsCount,
                 -- Will only include the parent object when a compound is within the trigger.
+                ---@param i int
+                ---@return RigidBody*
                 getContents      = libphx.Trigger_GetContents,
+                ---@param mask uint32
                 setCollisionMask = libphx.Trigger_SetCollisionMask,
+                ---@param pos Vec3f const*
                 setPos           = libphx.Trigger_SetPos,
+                ---@param pos Vec3f const*
                 setPosLocal      = libphx.Trigger_SetPosLocal,
+                ---@param [out] Vec3f
                 getPos           = libphx.Trigger_GetPos,
+                ---@param [out] Vec3f
                 getPosLocal      = libphx.Trigger_GetPosLocal,
+                ---@return RigidBody*
                 getParent        = libphx.Trigger_GetParent,
             },
         }

@@ -39,7 +39,10 @@ function Loader.defineType()
             __tostring = function(self) return ffi.string(libphx.InputDevice_ToString(self)) end,
             __index = {
                 clone    = function(x) return InputDevice_t(x) end,
+                ---@param other InputDevice const*
+                ---@return bool
                 equal    = libphx.InputDevice_Equal,
+                ---@return cstr
                 toString = libphx.InputDevice_ToString,
             },
         }

@@ -37,6 +37,7 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Physics = {
+            ---@return Physics*
             Create                 = function(...)
                 local instance = libphx.Physics_Create(...)
                 return Core.ManagedObject(instance, libphx.Physics_Free)
@@ -52,33 +53,54 @@ function Loader.defineType()
         local mt = {
             __index = {
                 -- Adds this rigid body to this physics world if it doesn't exist, otherwise do nothing.
-                -- 
+                --
                 -- Automatically adds all attached Triggers. Automatically adds all
                 -- attached children and their Triggers.
+                ---@param rigid_body RigidBody*
                 addRigidBody           = libphx.Physics_AddRigidBody,
                 -- Removes this rigid body from this physics world if it's added, otherwise do nothing.
-                -- 
+                --
                 -- Automatically removes all attached Triggers. Automatically removes all
                 -- attached children and their Triggers.
+                ---@param rigid_body RigidBody*
                 removeRigidBody        = libphx.Physics_RemoveRigidBody,
+                ---@param trigger Trigger*
                 addTrigger             = libphx.Physics_AddTrigger,
+                ---@param trigger Trigger*
                 removeTrigger          = libphx.Physics_RemoveTrigger,
+                ---@param dt float
                 update                 = libphx.Physics_Update,
                 -- This will fill the collision object with the collision information.
-                -- 
+                --
                 -- Will include results for both child and parent RigidBodys that are
                 -- colliding. Will not include Triggers.
+                ---@param iterator Collision*
+                ---@return bool
                 getNextCollision       = libphx.Physics_GetNextCollision,
+                ---@param ray Ray const*
+                ---@param [out] RayCastResult*
                 rayCast                = libphx.Physics_RayCast,
                 -- Results are unsorted and will include child objects.
-                -- 
+                --
                 -- The array stored inside ShapeCastResult is valid until the next call to sphere_cast.
+                ---@param sphere Sphere const*
+                ---@param [out] ShapeCastResult*
                 sphereCast             = libphx.Physics_SphereCast,
                 -- Results are unsorted and will include child objects.
-                -- 
+                --
                 -- The array stored inside ShapeCastResult is valid until the next call to box_cast.
+                ---@param pos Vec3f const*
+                ---@param rot Quat const*
+                ---@param half_extents Vec3f const*
+                ---@param [out] ShapeCastResult*
                 boxCast                = libphx.Physics_BoxCast,
+                ---@param sphere Sphere const*
+                ---@return bool
                 sphereOverlap          = libphx.Physics_SphereOverlap,
+                ---@param pos Vec3f const*
+                ---@param rot Quat const*
+                ---@param half_extents Vec3f const*
+                ---@return bool
                 boxOverlap             = libphx.Physics_BoxOverlap,
                 drawBoundingBoxesLocal = libphx.Physics_DrawBoundingBoxesLocal,
                 drawBoundingBoxesWorld = libphx.Physics_DrawBoundingBoxesWorld,

@@ -49,23 +49,45 @@ function Loader.defineType()
         local t  = ffi.typeof('Input')
         local mt = {
             __index = {
+                ---@return KeyboardState const*
                 keyboard               = libphx.Input_Keyboard,
+                ---@return MouseState const*
                 mouse                  = libphx.Input_Mouse,
+                ---@return TouchpadState const*
                 touchpad               = libphx.Input_Touchpad,
+                ---@return GamepadState const*
                 gamepad                = libphx.Input_Gamepad,
+                ---@return DragAndDropState const*
                 dragAndDrop            = libphx.Input_DragAndDrop,
+                ---@return InputDevice const*
                 activeDevice           = libphx.Input_ActiveDevice,
+                ---@return InputDeviceType const*
                 activeDeviceType       = libphx.Input_ActiveDeviceType,
+                ---@return InputDeviceId const*
                 activeDeviceId         = libphx.Input_ActiveDeviceId,
+                ---@param visible bool
                 setCursorVisible       = libphx.Input_SetCursorVisible,
                 setCursorVisibleAuto   = libphx.Input_SetCursorVisibleAuto,
+                ---@param x float
+                ---@param y float
                 setCursorPosition      = libphx.Input_SetCursorPosition,
+                ---@param button Button
+                ---@return bool
                 isPressed              = libphx.Input_IsPressed,
+                ---@param button Button
+                ---@return bool
                 isDown                 = libphx.Input_IsDown,
+                ---@param button Button
+                ---@return bool
                 isReleased             = libphx.Input_IsReleased,
+                ---@param button Button
+                ---@return float
                 getValue               = libphx.Input_GetValue,
+                ---@return bool
                 isKeyboardAltPressed   = libphx.Input_IsKeyboardAltPressed,
+                ---@return bool
                 isKeyboardCtrlPressed  = libphx.Input_IsKeyboardCtrlPressed,
+                ---@return bool
                 isKeyboardShiftPressed = libphx.Input_IsKeyboardShiftPressed,
             },
         }

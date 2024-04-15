@@ -42,16 +42,41 @@ function Loader.defineType()
         local t  = ffi.typeof('GamepadState')
         local mt = {
             __index = {
+                ---@return uint64
                 gamepadsCount  = libphx.GamepadState_GamepadsCount,
+                ---@param index uint64
+                ---@return GamepadId const*
                 gamepadId      = libphx.GamepadState_GamepadId,
+                ---@param gamepad_id GamepadId
+                ---@return cstr
                 gamepadName    = libphx.GamepadState_GamepadName,
+                ---@param axis GamepadAxis
+                ---@return float
                 value          = libphx.GamepadState_Value,
+                ---@param button GamepadButton
+                ---@return bool
                 isPressed      = libphx.GamepadState_IsPressed,
+                ---@param button GamepadButton
+                ---@return bool
                 isDown         = libphx.GamepadState_IsDown,
+                ---@param button GamepadButton
+                ---@return bool
                 isReleased     = libphx.GamepadState_IsReleased,
+                ---@param gamepad_id GamepadId
+                ---@param axis GamepadAxis
+                ---@return float
                 valueById      = libphx.GamepadState_ValueById,
+                ---@param gamepad_id GamepadId
+                ---@param button GamepadButton
+                ---@return bool
                 isPressedById  = libphx.GamepadState_IsPressedById,
+                ---@param gamepad_id GamepadId
+                ---@param button GamepadButton
+                ---@return bool
                 isDownById     = libphx.GamepadState_IsDownById,
+                ---@param gamepad_id GamepadId
+                ---@param button GamepadButton
+                ---@return bool
                 isReleasedById = libphx.GamepadState_IsReleasedById,
             },
         }
