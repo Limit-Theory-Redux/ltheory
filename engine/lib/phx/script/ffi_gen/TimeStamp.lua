@@ -19,7 +19,7 @@ function Loader.defineType()
             void       TimeStamp_Free          (TimeStamp*);
             TimeStamp* TimeStamp_Now           ();
             TimeStamp* TimeStamp_GetFuture     (double seconds);
-            double     TimeStamp_GetDifference (TimeStamp const*, TimeStamp const* end);
+            double     TimeStamp_GetDifference (TimeStamp const*, TimeStamp const* endTime);
             double     TimeStamp_GetElapsed    (TimeStamp const*);
             double     TimeStamp_GetElapsedMs  (TimeStamp const*);
             TimeStamp* TimeStamp_GetRelative   (TimeStamp const*, double seconds);

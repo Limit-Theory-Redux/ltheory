@@ -14,6 +14,7 @@ use winit::event::{self, *};
 use winit::event_loop::*;
 
 use internal::ConvertIntoString;
+use winit::keyboard::PhysicalKey;
 
 use crate::common::*;
 use crate::input::*;
@@ -153,8 +154,10 @@ impl Engine {
             let height = self.window.resolution.physical_height();
             let physical_size = PhysicalSize::new(width, height);
 
-            winit_window.set_inner_size(physical_size);
-            winit_window_wrapper.resize(width, height);
+            // Try to resize the window.
+            if let Some(new_size) = winit_window.request_inner_size(physical_size) {
+                winit_window_wrapper.resize(new_size.width, new_size.height);
+            }
         }
 
         if self.window.physical_cursor_position() != self.cache.window.physical_cursor_position() {
@@ -270,10 +273,14 @@ impl Engine {
         }
 
         if self.window.ime_position != self.cache.window.ime_position {
-            winit_window.set_ime_position(LogicalPosition::new(
+            // TODO: Set the IME cursor area correctly.
+            let width = self.window.resolution.physical_width();
+            let height = self.window.resolution.physical_height();
+            let physical_size = PhysicalSize::new(width, height);
+            winit_window.set_ime_cursor_area(LogicalPosition::new(
                 self.window.ime_position.x,
                 self.window.ime_position.y,
-            ));
+            ), physical_size);
         }
 
         if self.window.window_theme != self.cache.window.window_theme {
@@ -307,7 +314,7 @@ impl Engine {
             }
         }
 
-        let event_loop = EventLoop::new();
+        let event_loop = EventLoop::new().expect("Failed to build event loop");
 
         engine.init_winit_window(&event_loop);
 
@@ -317,12 +324,11 @@ impl Engine {
         let finished_and_setup_done = true;
 
         let event_handler = move |event: Event<()>,
-                                  _event_loop: &EventLoopWindowTarget<()>,
-                                  control_flow: &mut ControlFlow| {
+                                  event_loop: &EventLoopWindowTarget<()>| {
             if engine.exit_app {
                 call_lua_func(&engine, "AppClose");
 
-                control_flow.set_exit();
+                event_loop.exit();
                 return;
             }
 
@@ -343,19 +349,27 @@ impl Engine {
                             .lua
                             .load(&*entry_point_path)
                             .exec()
-                            .expect("Cannot execute entry point script");
+                            .unwrap_or_else(|e| {
+                            panic!("Error executing the entry point script: {}", e);
+                        });
 
                         let set_engine_func: Function = globals.get("SetEngine").unwrap();
 
                         set_engine_func
                             .call::<_, ()>(&engine as *const Engine as usize)
-                            .unwrap();
+                            .unwrap_or_else(|e| {
+                                panic!("Error calling SetEngine: {}", e);
+                            });
 
                         let init_system_func: Function = globals.get("InitSystem").unwrap();
-                        init_system_func.call::<_, ()>(()).unwrap();
+                        init_system_func.call::<_, ()>(()).unwrap_or_else(|e| {
+                            panic!("Error calling InitSystem: {}", e);
+                        });
 
                         let app_init_func: Function = globals.get("AppInit").unwrap();
-                        app_init_func.call::<_, ()>(()).unwrap();
+                        app_init_func.call::<_, ()>(()).unwrap_or_else(|e| {
+                            panic!("Error calling AppInit: {}", e);
+                        });
                     }
 
                     // The low_power_event state and timeout must be reset at the start of every frame.
@@ -375,23 +389,30 @@ impl Engine {
                                 .window
                                 .resolution
                                 .set_physical_resolution(size.width, size.height);
+                            // Update the cache immediately so we don't try to resize again at the end of the frame.
+                            engine.cache.window.resolution = engine.window.resolution.clone();
+
+                            if let Some(window) = engine
+                            .winit_window_id
+                            .map(|id| engine.winit_windows.get_window_mut(id))
+                            .flatten() {
+                                window.resize(size.width, size.height);
+                            }
                         }
                         WindowEvent::CloseRequested => {
                             call_lua_func(&engine, "AppClose");
-
-                            control_flow.set_exit();
+                            event_loop.exit();
                         }
                         WindowEvent::KeyboardInput {
                             device_id,
-                            ref input,
+                            event,
                             ..
                         } => {
-                            // TODO: scancode?
-                            if let Some(virtual_keycode) = input.virtual_keycode {
+                            if let PhysicalKey::Code(keycode) = event.physical_key {
                                 engine.input.update_keyboard(device_id, |state| {
                                     state.update(
-                                        convert_virtual_key_code(virtual_keycode),
-                                        input.state == ElementState::Pressed,
+                                        convert_keycode(keycode),
+                                        event.state == ElementState::Pressed,
                                     )
                                 });
                             }
@@ -475,12 +496,9 @@ impl Engine {
                                 state.update_position(x, y)
                             });
                         }
-                        WindowEvent::ReceivedCharacter(_c) => {
-                            // TODO: typing in the GUI?
-                        }
                         WindowEvent::ScaleFactorChanged {
                             scale_factor: _,
-                            new_inner_size: _,
+                            inner_size_writer: _,
                         } => {
                             // TODO: implement
                         }
@@ -540,7 +558,7 @@ impl Engine {
                     engine.frame_state.active = true;
                     engine.window.state = Some(WindowState::Resumed);
                 }
-                event::Event::MainEventsCleared => {
+                event::Event::AboutToWait => {
                     if finished_and_setup_done {
                         engine.frame_state.last_update = Instant::now();
 
@@ -562,7 +580,7 @@ impl Engine {
         };
 
         // Start event loop and never exit
-        event_loop.run(event_handler);
+        let _ = event_loop.run(event_handler);
     }
 
     pub fn window(&mut self) -> &mut Window {

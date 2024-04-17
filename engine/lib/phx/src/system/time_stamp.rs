@@ -36,8 +36,8 @@ impl TimeStamp {
         }
     }
 
-    pub fn get_difference(&self, end: &TimeStamp) -> f64 {
-        let difference = end
+    pub fn get_difference(&self, end_time: &TimeStamp) -> f64 {
+        let difference = end_time
             .value
             .duration_since(self.value)
             .expect("Cannot get timestamp difference");

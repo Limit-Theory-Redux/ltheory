@@ -4,6 +4,8 @@ use super::TypeInfo;
 
 /// `Impl` method information
 pub struct MethodInfo {
+    /// Method documentation strings
+    pub doc: Vec<String>,
     /// `#[bind]` attribute arguments
     pub bind_args: BindArgs,
     /// Method name

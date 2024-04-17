@@ -23,6 +23,9 @@ impl ImplInfo {
             ffi_gen.set_type_decl_opaque();
         }
 
+        // Class definition
+        self.write_class_defs(&mut ffi_gen, &module_name);
+
         // C Definitions
         let (max_method_name_len, max_self_method_name_len) =
             self.write_c_defs(&mut ffi_gen, &module_name, is_managed);
@@ -56,6 +59,70 @@ impl ImplInfo {
         ffi_gen.generate();
     }
 
+    fn write_class_defs(&self, ffi_gen: &mut FfiGenerator, module_name: &str) {
+        if !ffi_gen.has_class_definitions() {
+            ffi_gen.add_class_definition(format!("---@meta\n"));
+            ffi_gen.add_class_definition(format!("---@class {module_name}"));
+            ffi_gen.add_class_definition(format!("{module_name} = {{}}\n"));
+        }
+
+        self.methods
+            .iter()
+            .filter(|method| method.bind_args.gen_lua_ffi())
+            .for_each(|method| {
+                // Add user defined method documentation
+                method
+                    .doc
+                    .iter()
+                    .for_each(|d| ffi_gen.add_class_definition(format!("---{d}")));
+
+                // Add method signature documentation
+                method.params.iter().for_each(|param| {
+                    ffi_gen.add_class_definition(format!(
+                        "---@param {} {}",
+                        param.as_ffi_name(),
+                        param.ty.as_lua_ffi_string(module_name)
+                    ));
+                });
+
+                let mut params: Vec<_> = method
+                    .params
+                    .iter()
+                    .map(|param| format!("{}", param.as_ffi_name()))
+                    .collect();
+
+                if let Some(ret) = &method.ret {
+                    if method.bind_args.gen_out_param() {
+                        ffi_gen.add_class_definition(format!(
+                            "---@param result {} [out]",
+                            ret.as_lua_ffi_string(module_name)
+                        ));
+
+                        params.push("result".into());
+                    } else {
+                        ffi_gen.add_class_definition(format!(
+                            "---@return {}",
+                            ret.as_lua_ffi_string(module_name)
+                        ));
+                    }
+                }
+
+                if method.self_param.is_some() {
+                    ffi_gen.add_class_definition(format!(
+                        "function {module_name}:{}({}) end\n",
+                        method.as_ffi_var(),
+                        params.join(", ")
+                    ));
+                } else {
+                    ffi_gen.add_class_definition(format!(
+                        "function {module_name}.{}({}) end\n",
+                        method.as_ffi_name(),
+                        params.join(", ")
+                    ));
+                }
+            });
+    }
+
     fn write_c_defs(
         &self,
         ffi_gen: &mut FfiGenerator,
@@ -80,7 +147,7 @@ impl ImplInfo {
                     "void".len()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    ret.as_ffi_string(module_name).len()
+                    ret.as_c_ffi_string(module_name).len()
                 };
 
                 max_ret_len = std::cmp::max(max_ret_len, len);
@@ -111,18 +178,18 @@ impl ImplInfo {
                     "void".into()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    ret.as_ffi_string(module_name)
+                    ret.as_c_ffi_string(module_name)
                 };
 
                 let mut params_str: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| format!("{} {}", param.ty.as_ffi_string(module_name), param.as_ffi_name()))
+                    .map(|param| format!("{} {}", param.ty.as_c_ffi_string(module_name), param.as_ffi_name()))
                     .collect();
 
                 if method.bind_args.gen_out_param() && method.ret.is_some() {
                     let ret = method.ret.as_ref().unwrap();
-                    let ret_ffi = ret.as_ffi_string(module_name);
+                    let ret_ffi = ret.as_c_ffi_string(module_name);
                     let ret_param = match &ret.variant {
                         TypeVariant::Custom(ty_name) => {
                             if !TypeInfo::is_copyable(&ty_name) && !ret.is_boxed && !ret.is_option && !ret.is_reference {
