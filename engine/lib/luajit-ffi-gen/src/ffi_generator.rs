@@ -10,6 +10,8 @@ use crate::IDENT;
 
 const LUAJIT_FFI_GEN_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
 const LUAJIT_FFI_GEN_DIR: &str = "../phx/script/ffi_gen";
+const LUAJIT_FFI_META_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
+const LUAJIT_FFI_META_DIR: &str = "../phx/script/meta";
 
 /// FFI type declaration type.
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -39,6 +41,7 @@ impl TypeDecl {
 pub struct FfiGenerator {
     module_name: String,
     type_decl: TypeDecl,
+    class_definitions: Vec<String>,
     c_definitions: Vec<String>,
     global_symbol_table: Vec<String>,
     is_mt_clone: bool,
@@ -53,6 +56,7 @@ impl FfiGenerator {
         Self {
             module_name: module_name.into(),
             type_decl: Default::default(),
+            class_definitions: Default::default(),
             c_definitions: Default::default(),
             global_symbol_table: Default::default(),
             is_mt_clone: Default::default(),
@@ -71,6 +75,14 @@ impl FfiGenerator {
 
     pub fn has_type_decl(&self) -> bool {
         !matches!(self.type_decl, TypeDecl::NoDecl)
+    }
+
+    pub fn add_class_definition(&mut self, value: impl Into<String>) {
+        self.class_definitions.push(value.into());
+    }
+
+    pub fn has_class_definitions(&self) -> bool {
+        !self.class_definitions.is_empty()
     }
 
     pub fn add_c_definition(&mut self, value: impl Into<String>) {
@@ -161,33 +173,20 @@ impl FfiGenerator {
     /// and type name.
     /// Latter does overall type registration: c function declarations, symbol table registration, etc.
     pub fn generate(&self) {
-        let luajit_ffi_gen_dir = match std::env::var(LUAJIT_FFI_GEN_DIR_ENV) {
-            Ok(var) => {
-                if !var.is_empty() {
-                    var
-                } else {
-                    LUAJIT_FFI_GEN_DIR.into()
-                }
-            }
-            Err(VarError::NotPresent) => LUAJIT_FFI_GEN_DIR.into(),
-            Err(err) => {
-                println!("Cannot read '{LUAJIT_FFI_GEN_DIR_ENV}' environment variable. Use default value: {LUAJIT_FFI_GEN_DIR}. Error: {err}");
-
-                LUAJIT_FFI_GEN_DIR.into()
-            }
-        };
+        let ffi_gen_dir = from_env_or_default(LUAJIT_FFI_GEN_DIR_ENV, LUAJIT_FFI_GEN_DIR);
 
         let cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let luajit_ffi_gen_dir_path = cargo_manifest_dir.join(&luajit_ffi_gen_dir);
+
+        let ffi_gen_dir_path = cargo_manifest_dir.join(&ffi_gen_dir);
         assert!(
-            luajit_ffi_gen_dir_path.exists(),
-            "FFI directory '{luajit_ffi_gen_dir_path:?}' doesn't exist"
+            ffi_gen_dir_path.exists(),
+            "FFI directory '{}' doesn't exist",
+            ffi_gen_dir_path.display()
         );
 
-        let luajit_ffi_module_path =
-            luajit_ffi_gen_dir_path.join(format!("{}.lua", self.module_name));
-        let mut file = File::create(&luajit_ffi_module_path).expect(&format!(
-            "Cannot create file: {luajit_ffi_module_path:?}\nCurrent folder: {:?}",
+        let ffi_module_path = ffi_gen_dir_path.join(format!("{}.lua", self.module_name));
+        let mut module_file = File::create(&ffi_module_path).expect(&format!(
+            "Cannot create file: {ffi_module_path:?}\nCurrent folder: {:?}",
             std::env::current_dir()
         ));
 
@@ -202,6 +201,7 @@ impl FfiGenerator {
             80 - 4 - self.module_name.len()
         )
         .unwrap();
+
         writeln!(&mut module, "local Loader = {{}}\n").unwrap();
 
         // Type declaration
@@ -350,6 +350,51 @@ impl FfiGenerator {
         if cfg!(windows) {
             module = module.replace("\n", "\r\n");
         }
-        file.write_all(module.as_bytes()).unwrap();
+
+        module_file.write_all(module.as_bytes()).unwrap();
+
+        if !self.class_definitions.is_empty() {
+            let ffi_meta_dir = from_env_or_default(LUAJIT_FFI_META_DIR_ENV, LUAJIT_FFI_META_DIR);
+
+            let ffi_meta_dir_path = cargo_manifest_dir.join(&ffi_meta_dir);
+            assert!(
+                ffi_meta_dir_path.exists(),
+                "Meta directory '{}' doesn't exist",
+                ffi_meta_dir_path.display()
+            );
+
+            let ffi_meta_def_path = ffi_meta_dir_path.join(format!("{}.lua", self.module_name));
+            let mut meta_def_file = File::create(&ffi_meta_def_path).expect(&format!(
+                "Cannot create file: {ffi_meta_def_path:?}\nCurrent folder: {:?}",
+                std::env::current_dir()
+            ));
+
+            let mut meta_def = String::new();
+
+            // Class declaration
+            self.class_definitions
+                .iter()
+                .for_each(|def| writeln!(&mut meta_def, "{def}").unwrap());
+
+            meta_def_file.write_all(meta_def.as_bytes()).unwrap();
+        }
+    }
+}
+
+fn from_env_or_default(env_var: &str, def_value: &str) -> String {
+    match std::env::var(env_var) {
+        Ok(var) => {
+            if !var.is_empty() {
+                var
+            } else {
+                def_value.into()
+            }
+        }
+        Err(VarError::NotPresent) => def_value.into(),
+        Err(err) => {
+            println!("Cannot read '{env_var}' environment variable. Use default value: {def_value}. Error: {err}");
+
+            def_value.into()
+        }
     }
 }
