@@ -1,6 +1,7 @@
 ---@meta
 
-Timer = Timer
+---@class Timer
+Timer = {}
 
 ---@return Timer
 function Timer.Create() end

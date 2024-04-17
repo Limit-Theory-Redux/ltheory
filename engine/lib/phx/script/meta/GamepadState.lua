@@ -1,6 +1,7 @@
 ---@meta
 
-GamepadState = GamepadState
+---@class GamepadState
+GamepadState = {}
 
 ---@return integer
 function GamepadState:gamepadsCount(self) end

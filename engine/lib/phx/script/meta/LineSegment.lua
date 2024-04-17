@@ -1,6 +1,7 @@
 ---@meta
 
-LineSegment = LineSegment
+---@class LineSegment
+LineSegment = {}
 
 ---@param out Ray
 function LineSegment:toRay(self, out) end

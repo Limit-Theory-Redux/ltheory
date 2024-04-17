@@ -1,6 +1,7 @@
 ---@meta
 
-Bit = Bit
+---@class Bit
+Bit = {}
 
 ---@param x integer
 ---@param y integer

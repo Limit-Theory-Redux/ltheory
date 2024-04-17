@@ -1,6 +1,7 @@
 ---@meta
 
-InputDevice = InputDevice
+---@class InputDevice
+InputDevice = {}
 
 ---@param other InputDevice
 ---@return boolean

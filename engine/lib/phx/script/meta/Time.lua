@@ -1,6 +1,7 @@
 ---@meta
 
-Time = Time
+---@class Time
+Time = {}
 
 ---@return Time
 function Time.GetLocal() end

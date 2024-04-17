@@ -1,6 +1,7 @@
 ---@meta
 
-Resource = Resource
+---@class Resource
+Resource = {}
 
 ---@param ty ResourceType
 ---@param name string

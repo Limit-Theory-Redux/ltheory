@@ -1,6 +1,7 @@
 ---@meta
 
-RigidBody = RigidBody
+---@class RigidBody
+RigidBody = {}
 
 ---@return RigidBody
 function RigidBody.CreateBox() end

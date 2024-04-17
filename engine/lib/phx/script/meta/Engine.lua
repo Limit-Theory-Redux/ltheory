@@ -1,6 +1,7 @@
 ---@meta
 
-Engine = Engine
+---@class Engine
+Engine = {}
 
 ---@return Window
 function Engine:window(self) end

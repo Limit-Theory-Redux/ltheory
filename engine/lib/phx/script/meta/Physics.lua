@@ -1,6 +1,7 @@
 ---@meta
 
-Physics = Physics
+---@class Physics
+Physics = {}
 
 ---@return Physics
 function Physics.Create() end

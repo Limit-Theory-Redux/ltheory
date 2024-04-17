@@ -1,6 +1,7 @@
 ---@meta
 
-TouchpadState = TouchpadState
+---@class TouchpadState
+TouchpadState = {}
 
 ---@param axis TouchpadAxis
 ---@return number

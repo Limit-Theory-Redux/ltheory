@@ -59,10 +59,11 @@ impl ImplInfo {
         ffi_gen.generate();
     }
 
-    pub(crate) fn write_class_defs(&self, ffi_gen: &mut FfiGenerator, module_name: &str) {
+    fn write_class_defs(&self, ffi_gen: &mut FfiGenerator, module_name: &str) {
         if !ffi_gen.has_class_definitions() {
             ffi_gen.add_class_definition(format!("---@meta\n"));
-            ffi_gen.add_class_definition(format!("{module_name} = {module_name}\n"));
+            ffi_gen.add_class_definition(format!("---@class {module_name}"));
+            ffi_gen.add_class_definition(format!("{module_name} = {{}}\n"));
         }
 
         self.methods

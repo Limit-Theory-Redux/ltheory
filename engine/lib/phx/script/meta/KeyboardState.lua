@@ -1,6 +1,7 @@
 ---@meta
 
-KeyboardState = KeyboardState
+---@class KeyboardState
+KeyboardState = {}
 
 ---@param button KeyboardButton
 ---@return boolean

@@ -1,6 +1,7 @@
 ---@meta
 
-Window = Window
+---@class Window
+Window = {}
 
 function Window:beginDraw(self) end
 

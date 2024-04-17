@@ -1,6 +1,7 @@
 ---@meta
 
-DragAndDropState = DragAndDropState
+---@class DragAndDropState
+DragAndDropState = {}
 
 ---@return string
 function DragAndDropState:getDroppedFile(self) end

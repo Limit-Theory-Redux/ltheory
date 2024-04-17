@@ -1,6 +1,7 @@
 ---@meta
 
-Cursor = Cursor
+---@class Cursor
+Cursor = {}
 
 ---@return CursorIcon
 function Cursor:icon(self) end

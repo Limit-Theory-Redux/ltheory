@@ -1,6 +1,7 @@
 ---@meta
 
-Font = Font
+---@class Font
+Font = {}
 
 ---@param name string
 ---@param size integer

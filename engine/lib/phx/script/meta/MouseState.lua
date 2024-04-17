@@ -1,6 +1,7 @@
 ---@meta
 
-MouseState = MouseState
+---@class MouseState
+MouseState = {}
 
 ---@param control MouseControl
 ---@return number

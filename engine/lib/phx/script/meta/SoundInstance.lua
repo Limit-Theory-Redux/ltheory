@@ -1,6 +1,7 @@
 ---@meta
 
-SoundInstance = SoundInstance
+---@class SoundInstance
+SoundInstance = {}
 
 ---@return boolean
 function SoundInstance:isPlaying(self) end

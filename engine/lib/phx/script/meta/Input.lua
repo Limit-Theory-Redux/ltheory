@@ -1,6 +1,7 @@
 ---@meta
 
-Input = Input
+---@class Input
+Input = {}
 
 ---@return KeyboardState
 function Input:keyboard(self) end

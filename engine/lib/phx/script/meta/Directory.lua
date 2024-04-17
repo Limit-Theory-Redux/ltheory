@@ -1,6 +1,7 @@
 ---@meta
 
-Directory = Directory
+---@class Directory
+Directory = {}
 
 ---@param path string
 ---@return Directory

@@ -1,6 +1,7 @@
 ---@meta
 
-Sound = Sound
+---@class Sound
+Sound = {}
 
 ---@param path string
 ---@param is_looping boolean

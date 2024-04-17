@@ -1,6 +1,7 @@
 ---@meta
 
-TimeStamp = TimeStamp
+---@class TimeStamp
+TimeStamp = {}
 
 ---@return TimeStamp
 function TimeStamp.Now() end

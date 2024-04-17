@@ -1,6 +1,7 @@
 ---@meta
 
-Logger = Logger
+---@class Logger
+Logger = {}
 
 ---@param msg string
 function Logger.Trace(msg) end

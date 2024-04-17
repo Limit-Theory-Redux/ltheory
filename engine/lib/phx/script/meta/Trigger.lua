@@ -1,6 +1,7 @@
 ---@meta
 
-Trigger = Trigger
+---@class Trigger
+Trigger = {}
 
 ---@param half_extents Vec3
 ---@return Trigger

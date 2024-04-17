@@ -1,6 +1,7 @@
 ---@meta
 
-Audio = Audio
+---@class Audio
+Audio = {}
 
 ---@return Audio
 function Audio.Create() end

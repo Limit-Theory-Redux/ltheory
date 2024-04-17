@@ -1,6 +1,7 @@
 ---@meta
 
-HmGui = HmGui
+---@class HmGui
+HmGui = {}
 
 ---Begin GUI declaration. Region is limited by [0, 0] - [sx, sy] rectangle.
 ---@param sx number
