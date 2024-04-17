@@ -32,13 +32,13 @@ function RigidBody.CreateTrimeshFromMesh(mesh) end
 ---Return a reference to the parent rigid body, that we can guarantee
 ---has a lifetime as long as self.
 ---@return RigidBody
-function RigidBody:getParentBody(self) end
+function RigidBody:getParentBody() end
 
 ---@param force Vec3
-function RigidBody:applyForce(self, force) end
+function RigidBody:applyForce(force) end
 
 ---@param torque Vec3
-function RigidBody:applyTorque(self, torque) end
+function RigidBody:applyTorque(torque) end
 
 ---Adds another rigid body as a child of this rigid body. This means that
 ---the child's position will be controlled by `self`.
@@ -57,7 +57,7 @@ function RigidBody:applyTorque(self, torque) end
 ---@param child RigidBody
 ---@param pos Vec3
 ---@param rot Quat
-function RigidBody:attach(self, child, pos, rot) end
+function RigidBody:attach(child, pos, rot) end
 
 ---Removes a rigid body as a child of this rigid body. This means that
 ---the child's will be under control of it's own position.
@@ -67,123 +67,123 @@ function RigidBody:attach(self, child, pos, rot) end
 ---
 ---This function assumes that `self` is not already a child.
 ---@param child RigidBody
-function RigidBody:detach(self, child) end
+function RigidBody:detach(child) end
 
 ---Calculates the bounding box.
 ---@param result Box3 [out]
-function RigidBody:getBoundingBox(self, result) end
+function RigidBody:getBoundingBox(result) end
 
 ---Calculates the compound bounding box.
 ---@param result Box3 [out]
-function RigidBody:getBoundingBoxCompound(self, result) end
+function RigidBody:getBoundingBoxCompound(result) end
 
 ---Calculates the local bounding box.
 ---@param result Box3 [out]
-function RigidBody:getBoundingBoxLocal(self, result) end
+function RigidBody:getBoundingBoxLocal(result) end
 
 ---Calculates the local compound bounding box.
 ---@param result Box3 [out]
-function RigidBody:getBoundingBoxLocalCompound(self, result) end
+function RigidBody:getBoundingBoxLocalCompound(result) end
 
 ---@return number
-function RigidBody:getBoundingRadius(self) end
+function RigidBody:getBoundingRadius() end
 
 ---@return number
-function RigidBody:getBoundingRadiusCompound(self) end
+function RigidBody:getBoundingRadiusCompound() end
 
 ---@return number
-function RigidBody:getSpeed(self) end
+function RigidBody:getSpeed() end
 
 ---Returns the local -> world matrix for this rigid body.
 ---@return Matrix
-function RigidBody:getToWorldMatrix(self) end
+function RigidBody:getToWorldMatrix() end
 
 ---Returns the world -> local matrix for this rigid body.
 ---@return Matrix
-function RigidBody:getToLocalMatrix(self) end
+function RigidBody:getToLocalMatrix() end
 
 ---@param result Vec3 [out]
-function RigidBody:getVelocity(self, result) end
+function RigidBody:getVelocity(result) end
 
 ---@param result Vec3 [out]
-function RigidBody:getVelocityA(self, result) end
+function RigidBody:getVelocityA(result) end
 
 ---When disabled, the object will pass through others without colliding
 ---and will not be returned from ray or shape casts.
 ---@param collidable boolean
-function RigidBody:setCollidable(self, collidable) end
+function RigidBody:setCollidable(collidable) end
 
 ---@param group integer
-function RigidBody:setCollisionGroup(self, group) end
+function RigidBody:setCollisionGroup(group) end
 
 ---@param mask integer
-function RigidBody:setCollisionMask(self, mask) end
+function RigidBody:setCollisionMask(mask) end
 
 ---@param linear number
 ---@param angular number
-function RigidBody:setDrag(self, linear, angular) end
+function RigidBody:setDrag(linear, angular) end
 
 ---@param friction number
-function RigidBody:setFriction(self, friction) end
+function RigidBody:setFriction(friction) end
 
 ---@param kinematic boolean
-function RigidBody:setKinematic(self, kinematic) end
+function RigidBody:setKinematic(kinematic) end
 
 ---@param restitution number
-function RigidBody:setRestitution(self, restitution) end
+function RigidBody:setRestitution(restitution) end
 
 ---@param linear number
 ---@param angular number
-function RigidBody:setSleepThreshold(self, linear, angular) end
+function RigidBody:setSleepThreshold(linear, angular) end
 
 ---@return number
-function RigidBody:getMass(self) end
+function RigidBody:getMass() end
 
 ---The mass of child objects does not affect the mass or inertia of the parent
 ---@param mass number
-function RigidBody:setMass(self, mass) end
+function RigidBody:setMass(mass) end
 
 ---Children return the parent position.
 ---@param result Vec3 [out]
-function RigidBody:getPos(self, result) end
+function RigidBody:getPos(result) end
 
 ---Local coordinates are relative to the parent *before* scaling.
 ---@param result Vec3 [out]
-function RigidBody:getPosLocal(self, result) end
+function RigidBody:getPosLocal(result) end
 
 ---@param pos Vec3
-function RigidBody:setPos(self, pos) end
+function RigidBody:setPos(pos) end
 
 ---Local coordinates are relative to the parent *before* scaling. The
 ---given position will be multiplied by the parent's scale.
 ---@param pos Vec3
-function RigidBody:setPosLocal(self, pos) end
+function RigidBody:setPosLocal(pos) end
 
 ---@param result Quat [out]
-function RigidBody:getRot(self, result) end
+function RigidBody:getRot(result) end
 
 ---@param result Quat [out]
-function RigidBody:getRotLocal(self, result) end
+function RigidBody:getRotLocal(result) end
 
 ---@param rot Quat
-function RigidBody:setRot(self, rot) end
+function RigidBody:setRot(rot) end
 
 ---@param rot Quat
-function RigidBody:setRotLocal(self, rot) end
+function RigidBody:setRotLocal(rot) end
 
 ---@return number
-function RigidBody:getScale(self) end
+function RigidBody:getScale() end
 
 ---When called on a parent object the positions of all children will be
 ---multiplied such that they retain the same relative position. Child
 ---scale is not affected by parent scale (i.e. it is not inherited).
 ---@param scale number
-function RigidBody:setScale(self, scale) end
+function RigidBody:setScale(scale) end
 
 ---@param target RigidBody
 ---@return number
-function RigidBody:distanceTo(self, target) end
+function RigidBody:distanceTo(target) end
 
 ---@return boolean
-function RigidBody:isSleeping(self) end
+function RigidBody:isSleeping() end
 

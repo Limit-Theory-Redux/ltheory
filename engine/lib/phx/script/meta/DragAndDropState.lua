@@ -4,11 +4,11 @@
 DragAndDropState = {}
 
 ---@return string
-function DragAndDropState:getDroppedFile(self) end
+function DragAndDropState:getDroppedFile() end
 
 ---@return string
-function DragAndDropState:getHoveredFile(self) end
+function DragAndDropState:getHoveredFile() end
 
 ---@return boolean
-function DragAndDropState:ifHoveredFileCancelled(self) end
+function DragAndDropState:ifHoveredFileCancelled() end
 

@@ -5,8 +5,8 @@ InputDevice = {}
 
 ---@param other InputDevice
 ---@return boolean
-function InputDevice:equal(self, other) end
+function InputDevice:equal(other) end
 
 ---@return string
-function InputDevice:toString(self) end
+function InputDevice:toString() end
 

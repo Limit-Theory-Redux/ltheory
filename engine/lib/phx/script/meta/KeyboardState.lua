@@ -5,26 +5,26 @@ KeyboardState = {}
 
 ---@param button KeyboardButton
 ---@return boolean
-function KeyboardState:isPressed(self, button) end
+function KeyboardState:isPressed(button) end
 
 ---@param button KeyboardButton
 ---@return boolean
-function KeyboardState:isDown(self, button) end
+function KeyboardState:isDown(button) end
 
 ---@param button KeyboardButton
 ---@return boolean
-function KeyboardState:isReleased(self, button) end
+function KeyboardState:isReleased(button) end
 
 ---@return boolean
-function KeyboardState:altPressed(self) end
+function KeyboardState:altPressed() end
 
 ---@return boolean
-function KeyboardState:ctrlPressed(self) end
+function KeyboardState:ctrlPressed() end
 
 ---@return boolean
-function KeyboardState:shiftPressed(self) end
+function KeyboardState:shiftPressed() end
 
 ---@param button KeyboardButton
 ---@return number
-function KeyboardState:value(self, button) end
+function KeyboardState:value(button) end
 

@@ -8,7 +8,7 @@ Directory = {}
 function Directory.Open(path) end
 
 ---@return string
-function Directory:getNext(self) end
+function Directory:getNext() end
 
 ---@param cwd string
 ---@return boolean

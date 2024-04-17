@@ -7,10 +7,10 @@ Timer = {}
 function Timer.Create() end
 
 ---@return number
-function Timer:getAndReset(self) end
+function Timer:getAndReset() end
 
 ---@return number
-function Timer:getElapsed(self) end
+function Timer:getElapsed() end
 
-function Timer:reset(self) end
+function Timer:reset() end
 

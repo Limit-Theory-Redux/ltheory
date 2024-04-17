@@ -85,16 +85,11 @@ impl ImplInfo {
                     ));
                 });
 
-                let mut params = vec![];
-
-                if method.self_param.is_some() {
-                    params.push("self".to_string());
-                }
-
-                method
+                let mut params: Vec<_> = method
                     .params
                     .iter()
-                    .for_each(|param| params.push(format!("{}", param.name)));
+                    .map(|param| format!("{}", param.name))
+                    .collect();
 
                 if let Some(ret) = &method.ret {
                     if method.bind_args.gen_out_param() {

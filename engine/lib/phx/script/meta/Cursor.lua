@@ -4,26 +4,26 @@
 Cursor = {}
 
 ---@return CursorIcon
-function Cursor:icon(self) end
+function Cursor:icon() end
 
 ---@param icon CursorIcon
-function Cursor:setIcon(self, icon) end
+function Cursor:setIcon(icon) end
 
 ---@return boolean
-function Cursor:isVisible(self) end
+function Cursor:isVisible() end
 
 ---@param visible boolean
-function Cursor:setVisible(self, visible) end
+function Cursor:setVisible(visible) end
 
 ---@return CursorGrabMode
-function Cursor:grabMode(self) end
+function Cursor:grabMode() end
 
 ---@param grab_mode CursorGrabMode
-function Cursor:setGrabMode(self, grab_mode) end
+function Cursor:setGrabMode(grab_mode) end
 
 ---@return boolean
-function Cursor:isHitTest(self) end
+function Cursor:isHitTest() end
 
 ---@param hit_test boolean
-function Cursor:setHitTest(self, hit_test) end
+function Cursor:setHitTest(hit_test) end
 

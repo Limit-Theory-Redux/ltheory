@@ -9,8 +9,8 @@ Sound = {}
 function Sound.Load(path, is_looping) end
 
 ---@return number
-function Sound:getDuration(self) end
+function Sound:getDuration() end
 
 ---@return string
-function Sound:getPath(self) end
+function Sound:getPath() end
 

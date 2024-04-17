@@ -4,60 +4,60 @@
 Input = {}
 
 ---@return KeyboardState
-function Input:keyboard(self) end
+function Input:keyboard() end
 
 ---@return MouseState
-function Input:mouse(self) end
+function Input:mouse() end
 
 ---@return TouchpadState
-function Input:touchpad(self) end
+function Input:touchpad() end
 
 ---@return GamepadState
-function Input:gamepad(self) end
+function Input:gamepad() end
 
 ---@return DragAndDropState
-function Input:dragAndDrop(self) end
+function Input:dragAndDrop() end
 
 ---@return InputDevice
-function Input:activeDevice(self) end
+function Input:activeDevice() end
 
 ---@return InputDeviceType
-function Input:activeDeviceType(self) end
+function Input:activeDeviceType() end
 
 ---@return InputDeviceId
-function Input:activeDeviceId(self) end
+function Input:activeDeviceId() end
 
 ---@param visible boolean
-function Input:setCursorVisible(self, visible) end
+function Input:setCursorVisible(visible) end
 
-function Input:setCursorVisibleAuto(self) end
+function Input:setCursorVisibleAuto() end
 
 ---@param x number
 ---@param y number
-function Input:setCursorPosition(self, x, y) end
+function Input:setCursorPosition(x, y) end
 
 ---@param button Button
 ---@return boolean
-function Input:isPressed(self, button) end
+function Input:isPressed(button) end
 
 ---@param button Button
 ---@return boolean
-function Input:isDown(self, button) end
+function Input:isDown(button) end
 
 ---@param button Button
 ---@return boolean
-function Input:isReleased(self, button) end
+function Input:isReleased(button) end
 
 ---@param button Button
 ---@return number
-function Input:getValue(self, button) end
+function Input:getValue(button) end
 
 ---@return boolean
-function Input:isKeyboardAltPressed(self) end
+function Input:isKeyboardAltPressed() end
 
 ---@return boolean
-function Input:isKeyboardCtrlPressed(self) end
+function Input:isKeyboardCtrlPressed() end
 
 ---@return boolean
-function Input:isKeyboardShiftPressed(self) end
+function Input:isKeyboardShiftPressed() end
 

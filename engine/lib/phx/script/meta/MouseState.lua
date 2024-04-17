@@ -5,32 +5,32 @@ MouseState = {}
 
 ---@param control MouseControl
 ---@return number
-function MouseState:value(self, control) end
+function MouseState:value(control) end
 
 ---@param control MouseControl
 ---@return boolean
-function MouseState:isPressed(self, control) end
+function MouseState:isPressed(control) end
 
 ---@param control MouseControl
 ---@return boolean
-function MouseState:isDown(self, control) end
+function MouseState:isDown(control) end
 
 ---@param control MouseControl
 ---@return boolean
-function MouseState:isReleased(self, control) end
+function MouseState:isReleased(control) end
 
 ---@return Vec2
-function MouseState:delta(self) end
+function MouseState:delta() end
 
 ---@return Vec2
-function MouseState:scroll(self) end
+function MouseState:scroll() end
 
 ---@return Vec2
-function MouseState:scrollPixel(self) end
+function MouseState:scrollPixel() end
 
 ---@return Vec2
-function MouseState:position(self) end
+function MouseState:position() end
 
 ---@return boolean
-function MouseState:inWindow(self) end
+function MouseState:inWindow() end
 

@@ -4,49 +4,49 @@
 GamepadState = {}
 
 ---@return integer
-function GamepadState:gamepadsCount(self) end
+function GamepadState:gamepadsCount() end
 
 ---@param index integer
 ---@return GamepadId
-function GamepadState:gamepadId(self, index) end
+function GamepadState:gamepadId(index) end
 
 ---@param gamepad_id GamepadId
 ---@return string
-function GamepadState:gamepadName(self, gamepad_id) end
+function GamepadState:gamepadName(gamepad_id) end
 
 ---@param axis GamepadAxis
 ---@return number
-function GamepadState:value(self, axis) end
+function GamepadState:value(axis) end
 
 ---@param button GamepadButton
 ---@return boolean
-function GamepadState:isPressed(self, button) end
+function GamepadState:isPressed(button) end
 
 ---@param button GamepadButton
 ---@return boolean
-function GamepadState:isDown(self, button) end
+function GamepadState:isDown(button) end
 
 ---@param button GamepadButton
 ---@return boolean
-function GamepadState:isReleased(self, button) end
+function GamepadState:isReleased(button) end
 
 ---@param gamepad_id GamepadId
 ---@param axis GamepadAxis
 ---@return number
-function GamepadState:valueById(self, gamepad_id, axis) end
+function GamepadState:valueById(gamepad_id, axis) end
 
 ---@param gamepad_id GamepadId
 ---@param button GamepadButton
 ---@return boolean
-function GamepadState:isPressedById(self, gamepad_id, button) end
+function GamepadState:isPressedById(gamepad_id, button) end
 
 ---@param gamepad_id GamepadId
 ---@param button GamepadButton
 ---@return boolean
-function GamepadState:isDownById(self, gamepad_id, button) end
+function GamepadState:isDownById(gamepad_id, button) end
 
 ---@param gamepad_id GamepadId
 ---@param button GamepadButton
 ---@return boolean
-function GamepadState:isReleasedById(self, gamepad_id, button) end
+function GamepadState:isReleasedById(gamepad_id, button) end
 

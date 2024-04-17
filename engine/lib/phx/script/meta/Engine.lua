@@ -4,13 +4,13 @@
 Engine = {}
 
 ---@return Window
-function Engine:window(self) end
+function Engine:window() end
 
 ---@return Input
-function Engine:input(self) end
+function Engine:input() end
 
 ---@return HmGui
-function Engine:hmGui(self) end
+function Engine:hmGui() end
 
 function Engine.Abort() end
 
@@ -18,12 +18,12 @@ function Engine.Abort() end
 function Engine.GetBits() end
 
 ---@return number
-function Engine:getTime(self) end
+function Engine:getTime() end
 
 ---@return string
 function Engine.GetVersion() end
 
-function Engine:exit(self) end
+function Engine:exit() end
 
 function Engine.Terminate() end
 

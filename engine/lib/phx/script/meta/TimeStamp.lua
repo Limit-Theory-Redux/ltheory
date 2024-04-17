@@ -12,22 +12,22 @@ function TimeStamp.GetFuture(seconds) end
 
 ---@param end TimeStamp
 ---@return number
-function TimeStamp:getDifference(self, end) end
+function TimeStamp:getDifference(end) end
 
 ---Number of seconds elapsed since this timestamp.
 ---@return number
-function TimeStamp:getElapsed(self) end
+function TimeStamp:getElapsed() end
 
 ---@return number
-function TimeStamp:getElapsedMs(self) end
+function TimeStamp:getElapsedMs() end
 
 ---@param seconds number
 ---@return TimeStamp
-function TimeStamp:getRelative(self, seconds) end
+function TimeStamp:getRelative(seconds) end
 
 ---@return number
-function TimeStamp:toDouble(self) end
+function TimeStamp:toDouble() end
 
 ---@return integer
-function TimeStamp:toSeconds(self) end
+function TimeStamp:toSeconds() end
 
