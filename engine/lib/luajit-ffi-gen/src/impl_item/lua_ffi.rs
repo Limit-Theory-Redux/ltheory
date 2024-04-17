@@ -80,7 +80,7 @@ impl ImplInfo {
                 method.params.iter().for_each(|param| {
                     ffi_gen.add_class_definition(format!(
                         "---@param {} {}",
-                        param.name,
+                        param.as_ffi_name(),
                         param.ty.as_lua_ffi_string(module_name)
                     ));
                 });
@@ -88,7 +88,7 @@ impl ImplInfo {
                 let mut params: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| format!("{}", param.name))
+                    .map(|param| format!("{}", param.as_ffi_name()))
                     .collect();
 
                 if let Some(ret) = &method.ret {

@@ -24,16 +24,16 @@ function HmGui:beginStackContainer() end
 
 function HmGui:endContainer() end
 
----@param _max_size number
-function HmGui:beginScroll(_max_size) end
+---@param maxSize number
+function HmGui:beginScroll(maxSize) end
 
 ---@param input Input
 function HmGui:endScroll(input) end
 
 ---Begins window element.
----@param _title string
+---@param title string
 ---@param input Input
-function HmGui:beginWindow(_title, input) end
+function HmGui:beginWindow(title, input) end
 
 ---Ends window element.
 function HmGui:endWindow() end
@@ -51,11 +51,11 @@ function HmGui:button(label) end
 ---@return boolean
 function HmGui:checkbox(label, value) end
 
----@param _lower number
----@param _upper number
----@param _value number
+---@param lower number
+---@param upper number
+---@param value number
 ---@return number
-function HmGui:slider(_lower, _upper, _value) end
+function HmGui:slider(lower, upper, value) end
 
 ---@param height number
 ---@param color Color
@@ -233,390 +233,390 @@ function HmGui:clearStyle() end
 function HmGui:getPropertyType(id) end
 
 ---Write property value into the mapped properties in the active element style.
----@param property_id integer
-function HmGui:mapProperty(property_id) end
+---@param propertyId integer
+function HmGui:mapProperty(propertyId) end
 
 ---Remove property by id from the active element style.
----@param property_id integer
-function HmGui:removeProperty(property_id) end
+---@param propertyId integer
+function HmGui:removeProperty(propertyId) end
 
 ---@param name string
 ---@param value boolean
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyBool(name, value, map_id) end
+function HmGui:registerPropertyBool(name, value, mapId) end
 
 ---@param name string
 ---@param value integer
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyI8(name, value, map_id) end
+function HmGui:registerPropertyI8(name, value, mapId) end
 
 ---@param name string
 ---@param value integer
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyU8(name, value, map_id) end
+function HmGui:registerPropertyU8(name, value, mapId) end
 
 ---@param name string
 ---@param value integer
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyI16(name, value, map_id) end
+function HmGui:registerPropertyI16(name, value, mapId) end
 
 ---@param name string
 ---@param value integer
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyU16(name, value, map_id) end
+function HmGui:registerPropertyU16(name, value, mapId) end
 
 ---@param name string
 ---@param value integer
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyI32(name, value, map_id) end
+function HmGui:registerPropertyI32(name, value, mapId) end
 
 ---@param name string
 ---@param value integer
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyU32(name, value, map_id) end
+function HmGui:registerPropertyU32(name, value, mapId) end
 
 ---@param name string
 ---@param value integer
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyI64(name, value, map_id) end
+function HmGui:registerPropertyI64(name, value, mapId) end
 
 ---@param name string
 ---@param value integer
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyU64(name, value, map_id) end
+function HmGui:registerPropertyU64(name, value, mapId) end
 
 ---@param name string
 ---@param value number
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyF32(name, value, map_id) end
+function HmGui:registerPropertyF32(name, value, mapId) end
 
 ---@param name string
 ---@param value number
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyF64(name, value, map_id) end
+function HmGui:registerPropertyF64(name, value, mapId) end
 
 ---@param name string
 ---@param value Vec2
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyVec2(name, value, map_id) end
+function HmGui:registerPropertyVec2(name, value, mapId) end
 
 ---@param name string
 ---@param value Vec3
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyVec3(name, value, map_id) end
+function HmGui:registerPropertyVec3(name, value, mapId) end
 
 ---@param name string
 ---@param value Vec4
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyVec4(name, value, map_id) end
+function HmGui:registerPropertyVec4(name, value, mapId) end
 
 ---@param name string
 ---@param value IVec2
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyIVec2(name, value, map_id) end
+function HmGui:registerPropertyIVec2(name, value, mapId) end
 
 ---@param name string
 ---@param value IVec3
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyIVec3(name, value, map_id) end
+function HmGui:registerPropertyIVec3(name, value, mapId) end
 
 ---@param name string
 ---@param value IVec4
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyIVec4(name, value, map_id) end
+function HmGui:registerPropertyIVec4(name, value, mapId) end
 
 ---@param name string
 ---@param value UVec2
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyUVec2(name, value, map_id) end
+function HmGui:registerPropertyUVec2(name, value, mapId) end
 
 ---@param name string
 ---@param value UVec3
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyUVec3(name, value, map_id) end
+function HmGui:registerPropertyUVec3(name, value, mapId) end
 
 ---@param name string
 ---@param value UVec4
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyUVec4(name, value, map_id) end
+function HmGui:registerPropertyUVec4(name, value, mapId) end
 
 ---@param name string
 ---@param value DVec2
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyDVec2(name, value, map_id) end
+function HmGui:registerPropertyDVec2(name, value, mapId) end
 
 ---@param name string
 ---@param value DVec3
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyDVec3(name, value, map_id) end
+function HmGui:registerPropertyDVec3(name, value, mapId) end
 
 ---@param name string
 ---@param value DVec4
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyDVec4(name, value, map_id) end
+function HmGui:registerPropertyDVec4(name, value, mapId) end
 
 ---@param name string
 ---@param value Color
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyColor(name, value, map_id) end
+function HmGui:registerPropertyColor(name, value, mapId) end
 
 ---@param name string
 ---@param value Box3
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyBox3(name, value, map_id) end
+function HmGui:registerPropertyBox3(name, value, mapId) end
 
 ---@param name string
 ---@param value string
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyString(name, value, map_id) end
+function HmGui:registerPropertyString(name, value, mapId) end
 
 ---@param name string
 ---@param value Font
----@param map_id string
+---@param mapId string
 ---@return integer
-function HmGui:registerPropertyFont(name, value, map_id) end
+function HmGui:registerPropertyFont(name, value, mapId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value boolean
-function HmGui:setPropertyBool(property_id, value) end
+function HmGui:setPropertyBool(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value integer
-function HmGui:setPropertyI8(property_id, value) end
+function HmGui:setPropertyI8(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value integer
-function HmGui:setPropertyU8(property_id, value) end
+function HmGui:setPropertyU8(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value integer
-function HmGui:setPropertyI16(property_id, value) end
+function HmGui:setPropertyI16(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value integer
-function HmGui:setPropertyU16(property_id, value) end
+function HmGui:setPropertyU16(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value integer
-function HmGui:setPropertyI32(property_id, value) end
+function HmGui:setPropertyI32(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value integer
-function HmGui:setPropertyU32(property_id, value) end
+function HmGui:setPropertyU32(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value integer
-function HmGui:setPropertyI64(property_id, value) end
+function HmGui:setPropertyI64(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value integer
-function HmGui:setPropertyU64(property_id, value) end
+function HmGui:setPropertyU64(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value number
-function HmGui:setPropertyF32(property_id, value) end
+function HmGui:setPropertyF32(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value number
-function HmGui:setPropertyF64(property_id, value) end
+function HmGui:setPropertyF64(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value Vec2
-function HmGui:setPropertyVec2(property_id, value) end
+function HmGui:setPropertyVec2(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value Vec3
-function HmGui:setPropertyVec3(property_id, value) end
+function HmGui:setPropertyVec3(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value Vec4
-function HmGui:setPropertyVec4(property_id, value) end
+function HmGui:setPropertyVec4(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value IVec2
-function HmGui:setPropertyIVec2(property_id, value) end
+function HmGui:setPropertyIVec2(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value IVec3
-function HmGui:setPropertyIVec3(property_id, value) end
+function HmGui:setPropertyIVec3(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value IVec4
-function HmGui:setPropertyIVec4(property_id, value) end
+function HmGui:setPropertyIVec4(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value UVec2
-function HmGui:setPropertyUVec2(property_id, value) end
+function HmGui:setPropertyUVec2(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value UVec3
-function HmGui:setPropertyUVec3(property_id, value) end
+function HmGui:setPropertyUVec3(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value UVec4
-function HmGui:setPropertyUVec4(property_id, value) end
+function HmGui:setPropertyUVec4(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value DVec2
-function HmGui:setPropertyDVec2(property_id, value) end
+function HmGui:setPropertyDVec2(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value DVec3
-function HmGui:setPropertyDVec3(property_id, value) end
+function HmGui:setPropertyDVec3(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value DVec4
-function HmGui:setPropertyDVec4(property_id, value) end
+function HmGui:setPropertyDVec4(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value Color
-function HmGui:setPropertyColor(property_id, value) end
+function HmGui:setPropertyColor(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value Box3
-function HmGui:setPropertyBox3(property_id, value) end
+function HmGui:setPropertyBox3(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value string
-function HmGui:setPropertyString(property_id, value) end
+function HmGui:setPropertyString(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@param value Font
-function HmGui:setPropertyFont(property_id, value) end
+function HmGui:setPropertyFont(propertyId, value) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return boolean
-function HmGui:getPropertyBool(property_id) end
+function HmGui:getPropertyBool(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return integer
-function HmGui:getPropertyI8(property_id) end
+function HmGui:getPropertyI8(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return integer
-function HmGui:getPropertyU8(property_id) end
+function HmGui:getPropertyU8(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return integer
-function HmGui:getPropertyI16(property_id) end
+function HmGui:getPropertyI16(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return integer
-function HmGui:getPropertyU16(property_id) end
+function HmGui:getPropertyU16(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return integer
-function HmGui:getPropertyI32(property_id) end
+function HmGui:getPropertyI32(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return integer
-function HmGui:getPropertyU32(property_id) end
+function HmGui:getPropertyU32(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return integer
-function HmGui:getPropertyI64(property_id) end
+function HmGui:getPropertyI64(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return integer
-function HmGui:getPropertyU64(property_id) end
+function HmGui:getPropertyU64(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return number
-function HmGui:getPropertyF32(property_id) end
+function HmGui:getPropertyF32(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return number
-function HmGui:getPropertyF64(property_id) end
+function HmGui:getPropertyF64(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return Vec2
-function HmGui:getPropertyVec2(property_id) end
+function HmGui:getPropertyVec2(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return Vec3
-function HmGui:getPropertyVec3(property_id) end
+function HmGui:getPropertyVec3(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return Vec4
-function HmGui:getPropertyVec4(property_id) end
+function HmGui:getPropertyVec4(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return IVec2
-function HmGui:getPropertyIVec2(property_id) end
+function HmGui:getPropertyIVec2(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return IVec3
-function HmGui:getPropertyIVec3(property_id) end
+function HmGui:getPropertyIVec3(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return IVec4
-function HmGui:getPropertyIVec4(property_id) end
+function HmGui:getPropertyIVec4(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return UVec2
-function HmGui:getPropertyUVec2(property_id) end
+function HmGui:getPropertyUVec2(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return UVec3
-function HmGui:getPropertyUVec3(property_id) end
+function HmGui:getPropertyUVec3(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return UVec4
-function HmGui:getPropertyUVec4(property_id) end
+function HmGui:getPropertyUVec4(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return DVec2
-function HmGui:getPropertyDVec2(property_id) end
+function HmGui:getPropertyDVec2(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return DVec3
-function HmGui:getPropertyDVec3(property_id) end
+function HmGui:getPropertyDVec3(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return DVec4
-function HmGui:getPropertyDVec4(property_id) end
+function HmGui:getPropertyDVec4(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return Color
-function HmGui:getPropertyColor(property_id) end
+function HmGui:getPropertyColor(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return Box3
-function HmGui:getPropertyBox3(property_id) end
+function HmGui:getPropertyBox3(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return string
-function HmGui:getPropertyString(property_id) end
+function HmGui:getPropertyString(propertyId) end
 
----@param property_id integer
+---@param propertyId integer
 ---@return Font
-function HmGui:getPropertyFont(property_id) end
+function HmGui:getPropertyFont(propertyId) end
 
 ---Prints widgets hierarchy to the console. For testing.
 function HmGui:dumpWidgets() end

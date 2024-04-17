@@ -16,17 +16,17 @@ function SoundInstance:isStopped() end
 function SoundInstance:getVolume() end
 
 ---@param volume number
----@param fade_millis integer
-function SoundInstance:setVolume(volume, fade_millis) end
+---@param fadeMillis integer
+function SoundInstance:setVolume(volume, fadeMillis) end
 
----@param fade_millis integer
-function SoundInstance:pause(fade_millis) end
+---@param fadeMillis integer
+function SoundInstance:pause(fadeMillis) end
 
----@param fade_millis integer
-function SoundInstance:resume(fade_millis) end
+---@param fadeMillis integer
+function SoundInstance:resume(fadeMillis) end
 
----@param fade_millis integer
-function SoundInstance:stop(fade_millis) end
+---@param fadeMillis integer
+function SoundInstance:stop(fadeMillis) end
 
 function SoundInstance:freeEmitter() end
 
@@ -42,7 +42,7 @@ function SoundInstance:setEmitterPos(position) end
 ---@return Vec3
 function SoundInstance:emitterPos() end
 
----@param listener_pos Vec3
+---@param listenerPos Vec3
 ---@return number
-function SoundInstance:emitterDistance(listener_pos) end
+function SoundInstance:emitterDistance(listenerPos) end
 

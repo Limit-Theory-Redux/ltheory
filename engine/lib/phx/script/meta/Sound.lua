@@ -4,9 +4,9 @@
 Sound = {}
 
 ---@param path string
----@param is_looping boolean
+---@param isLooping boolean
 ---@return Sound
-function Sound.Load(path, is_looping) end
+function Sound.Load(path, isLooping) end
 
 ---@return number
 function Sound:getDuration() end

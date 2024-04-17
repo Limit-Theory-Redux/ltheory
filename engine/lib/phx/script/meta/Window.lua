@@ -24,8 +24,8 @@ function Window:cursor() end
 function Window:presentMode() end
 
 ---Set window present mode.
----@param present_mode PresentMode
-function Window:setPresentMode(present_mode) end
+---@param presentMode PresentMode
+function Window:setPresentMode(presentMode) end
 
 ---Setting this to true will attempt to maximize the window.
 ---

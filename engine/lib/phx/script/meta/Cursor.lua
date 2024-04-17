@@ -18,12 +18,12 @@ function Cursor:setVisible(visible) end
 ---@return CursorGrabMode
 function Cursor:grabMode() end
 
----@param grab_mode CursorGrabMode
-function Cursor:setGrabMode(grab_mode) end
+---@param grabMode CursorGrabMode
+function Cursor:setGrabMode(grabMode) end
 
 ---@return boolean
 function Cursor:isHitTest() end
 
----@param hit_test boolean
-function Cursor:setHitTest(hit_test) end
+---@param hitTest boolean
+function Cursor:setHitTest(hitTest) end
 

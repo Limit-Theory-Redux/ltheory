@@ -10,15 +10,15 @@ function Physics.Create() end
 ---
 ---Automatically adds all attached Triggers. Automatically adds all
 ---attached children and their Triggers.
----@param rigid_body RigidBody
-function Physics:addRigidBody(rigid_body) end
+---@param rigidBody RigidBody
+function Physics:addRigidBody(rigidBody) end
 
 ---Removes this rigid body from this physics world if it's added, otherwise do nothing.
 ---
 ---Automatically removes all attached Triggers. Automatically removes all
 ---attached children and their Triggers.
----@param rigid_body RigidBody
-function Physics:removeRigidBody(rigid_body) end
+---@param rigidBody RigidBody
+function Physics:removeRigidBody(rigidBody) end
 
 ---@param trigger Trigger
 function Physics:addTrigger(trigger) end
@@ -53,9 +53,9 @@ function Physics:sphereCast(sphere, result) end
 ---The array stored inside ShapeCastResult is valid until the next call to box_cast.
 ---@param pos Vec3
 ---@param rot Quat
----@param half_extents Vec3
+---@param halfExtents Vec3
 ---@param result ShapeCastResult [out]
-function Physics:boxCast(pos, rot, half_extents, result) end
+function Physics:boxCast(pos, rot, halfExtents, result) end
 
 ---@param sphere Sphere
 ---@return boolean
@@ -63,9 +63,9 @@ function Physics:sphereOverlap(sphere) end
 
 ---@param pos Vec3
 ---@param rot Quat
----@param half_extents Vec3
+---@param halfExtents Vec3
 ---@return boolean
-function Physics:boxOverlap(pos, rot, half_extents) end
+function Physics:boxOverlap(pos, rot, halfExtents) end
 
 function Physics:drawBoundingBoxesLocal() end
 

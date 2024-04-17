@@ -3,9 +3,9 @@
 ---@class Trigger
 Trigger = {}
 
----@param half_extents Vec3
+---@param halfExtents Vec3
 ---@return Trigger
-function Trigger.CreateBox(half_extents) end
+function Trigger.CreateBox(halfExtents) end
 
 ---@param parent RigidBody
 ---@param offset Vec3
