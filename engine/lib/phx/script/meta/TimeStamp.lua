@@ -10,9 +10,9 @@ function TimeStamp.Now() end
 ---@return TimeStamp
 function TimeStamp.GetFuture(seconds) end
 
----@param end TimeStamp
+---@param end_time TimeStamp
 ---@return number
-function TimeStamp:getDifference(end) end
+function TimeStamp:getDifference(end_time) end
 
 ---Number of seconds elapsed since this timestamp.
 ---@return number
