@@ -1,6 +1,5 @@
 -- KeyboardButton --------------------------------------------------------------
 
-
 local Loader = {}
 
 function Loader.declareType()

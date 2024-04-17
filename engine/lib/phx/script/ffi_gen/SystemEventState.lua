@@ -1,8 +1,5 @@
 -- SystemEventState ------------------------------------------------------------
 
----@class SystemEventState
----@field IsExit fun(self): boolean
-
 local Loader = {}
 
 function Loader.declareType()
@@ -36,7 +33,6 @@ function Loader.defineType()
         local t  = ffi.typeof('SystemEventState')
         local mt = {
             __index = {
-                ---@return boolean
                 isExit = libphx.SystemEventState_IsExit,
             },
         }

@@ -1,17 +1,5 @@
 -- Engine ----------------------------------------------------------------------
 
----@class Engine
----@field Window fun(self): Window
----@field Input fun(self): Input
----@field HmGui fun(self): HmGui
----@field Abort fun()
----@field GetBits fun(): integer
----@field GetTime fun(self): number
----@field GetVersion fun(): string
----@field Exit fun(self)
----@field Terminate fun()
----@field Update fun()
-
 local Loader = {}
 
 function Loader.declareType()
@@ -46,9 +34,7 @@ function Loader.defineType()
     do -- Global Symbol Table
         Engine = {
             Abort      = libphx.Engine_Abort,
-            ---@return integer
             GetBits    = libphx.Engine_GetBits,
-            ---@return string
             GetVersion = libphx.Engine_GetVersion,
             Terminate  = libphx.Engine_Terminate,
             Update     = libphx.Engine_Update,
@@ -62,13 +48,9 @@ function Loader.defineType()
         local t  = ffi.typeof('Engine')
         local mt = {
             __index = {
-                ---@return Window
                 window  = libphx.Engine_Window,
-                ---@return Input
                 input   = libphx.Engine_Input,
-                ---@return HmGui
                 hmGui   = libphx.Engine_HmGui,
-                ---@return number
                 getTime = libphx.Engine_GetTime,
                 exit    = libphx.Engine_Exit,
             },

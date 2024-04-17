@@ -1,0 +1,5 @@
+{
+    "workspace.library": [
+        "engine/lib/phx/script/meta"
+    ]
+}

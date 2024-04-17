@@ -1,6 +1,5 @@
 -- AlignHorizontal -------------------------------------------------------------
 
-
 local Loader = {}
 
 function Loader.declareType()

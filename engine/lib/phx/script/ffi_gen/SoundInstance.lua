@@ -1,21 +1,5 @@
 -- SoundInstance ---------------------------------------------------------------
 
----@class SoundInstance
----@field IsPlaying fun(self): boolean
----@field IsPaused fun(self): boolean
----@field IsStopped fun(self): boolean
----@field GetVolume fun(self): number
----@field SetVolume fun(self, volume: number, fade_millis: integer)
----@field Pause fun(self, fade_millis: integer)
----@field Resume fun(self, fade_millis: integer)
----@field Stop fun(self, fade_millis: integer)
----@field FreeEmitter fun(self)
----@field SetPlayPos fun(self, position: number)
----@field MovePlayPos fun(self, offset: number)
----@field SetEmitterPos fun(self, position: Vec3)
----@field EmitterPos fun(self): Vec3
----@field EmitterDistance fun(self, listener_pos: Vec3): number
-
 local Loader = {}
 
 function Loader.declareType()
@@ -62,34 +46,19 @@ function Loader.defineType()
         local t  = ffi.typeof('SoundInstance')
         local mt = {
             __index = {
-                ---@return boolean
                 isPlaying       = libphx.SoundInstance_IsPlaying,
-                ---@return boolean
                 isPaused        = libphx.SoundInstance_IsPaused,
-                ---@return boolean
                 isStopped       = libphx.SoundInstance_IsStopped,
-                ---@return number
                 getVolume       = libphx.SoundInstance_GetVolume,
-                ---@param volume number
-                ---@param fade_millis integer
                 setVolume       = libphx.SoundInstance_SetVolume,
-                ---@param fade_millis integer
                 pause           = libphx.SoundInstance_Pause,
-                ---@param fade_millis integer
                 resume          = libphx.SoundInstance_Resume,
-                ---@param fade_millis integer
                 stop            = libphx.SoundInstance_Stop,
                 freeEmitter     = libphx.SoundInstance_FreeEmitter,
-                ---@param position number
                 setPlayPos      = libphx.SoundInstance_SetPlayPos,
-                ---@param offset number
                 movePlayPos     = libphx.SoundInstance_MovePlayPos,
-                ---@param position Vec3
                 setEmitterPos   = libphx.SoundInstance_SetEmitterPos,
-                ---@return Vec3
                 emitterPos      = libphx.SoundInstance_EmitterPos,
-                ---@param listener_pos Vec3
-                ---@return number
                 emitterDistance = libphx.SoundInstance_EmitterDistance,
             },
         }

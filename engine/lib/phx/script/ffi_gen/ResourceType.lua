@@ -1,6 +1,5 @@
 -- ResourceType ----------------------------------------------------------------
 
-
 local Loader = {}
 
 function Loader.declareType()

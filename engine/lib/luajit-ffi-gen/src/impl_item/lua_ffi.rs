@@ -60,42 +60,70 @@ impl ImplInfo {
     }
 
     pub(crate) fn write_class_defs(&self, ffi_gen: &mut FfiGenerator, module_name: &str) {
-        ffi_gen.add_class_definition(format!("---@class {module_name}"));
+        if !ffi_gen.has_class_definitions() {
+            ffi_gen.add_class_definition(format!("---@meta\n"));
+            ffi_gen.add_class_definition(format!("{module_name} = {module_name}\n"));
+        }
 
         self.methods
             .iter()
             .filter(|method| method.bind_args.gen_lua_ffi())
             .for_each(|method| {
+                // Add user defined method documentation
+                method
+                    .doc
+                    .iter()
+                    .for_each(|d| ffi_gen.add_class_definition(format!("---{d}")));
+
+                // Add method signature documentation
+                method.params.iter().for_each(|param| {
+                    ffi_gen.add_class_definition(format!(
+                        "---@param {} {}",
+                        param.name,
+                        param.ty.as_lua_ffi_string(module_name)
+                    ));
+                });
+
                 let mut params = vec![];
 
                 if method.self_param.is_some() {
                     params.push("self".to_string());
                 }
 
-                method.params.iter().for_each(|param| {
-                    params.push(format!(
-                        "{}: {}",
-                        param.name,
-                        param.ty.as_lua_ffi_string(module_name)
-                    ))
-                });
+                method
+                    .params
+                    .iter()
+                    .for_each(|param| params.push(format!("{}", param.name)));
 
-                let ret_str = if let Some(ret) = &method.ret {
+                if let Some(ret) = &method.ret {
                     if method.bind_args.gen_out_param() {
-                        params.push(format!("result: {}", ret.as_lua_ffi_string(module_name)));
-                        "".to_string()
-                    } else {
-                        format!(": {}", ret.as_lua_ffi_string(module_name))
-                    }
-                } else {
-                    "".to_string()
-                };
+                        ffi_gen.add_class_definition(format!(
+                            "---@param result {} [out]",
+                            ret.as_lua_ffi_string(module_name)
+                        ));
 
-                ffi_gen.add_class_definition(format!(
-                    "---@field {} fun({}){ret_str}",
-                    method.as_ffi_name(),
-                    params.join(", ")
-                ));
+                        params.push("result".into());
+                    } else {
+                        ffi_gen.add_class_definition(format!(
+                            "---@return {}",
+                            ret.as_lua_ffi_string(module_name)
+                        ));
+                    }
+                }
+
+                if method.self_param.is_some() {
+                    ffi_gen.add_class_definition(format!(
+                        "function {module_name}.{}({}) end\n",
+                        method.as_ffi_var(),
+                        params.join(", ")
+                    ));
+                } else {
+                    ffi_gen.add_class_definition(format!(
+                        "function {module_name}:{}({}) end\n",
+                        method.as_ffi_name(),
+                        params.join(", ")
+                    ));
+                }
             });
     }
 
@@ -295,38 +323,6 @@ fn write_method_map<F: FnMut(String)>(
     } else {
         None
     };
-
-    // Add user defined method documentation
-    method.doc.iter().for_each(|d| {
-        if d.is_empty() {
-            writer(format!("{ident}--"))
-        } else {
-            writer(format!("{ident}-- {d}"))
-        }
-    });
-
-    // Add method signature documentation
-    method.params.iter().for_each(|param| {
-        writer(format!(
-            "{ident}---@param {} {}",
-            param.name,
-            param.ty.as_lua_ffi_string(module_name)
-        ));
-    });
-
-    if let Some(ret) = &method.ret {
-        if method.bind_args.gen_out_param() {
-            writer(format!(
-                "{ident}---@param [out] {}",
-                ret.as_lua_ffi_string(module_name)
-            ));
-        } else {
-            writer(format!(
-                "{ident}---@return {}",
-                ret.as_lua_ffi_string(module_name)
-            ));
-        }
-    }
 
     if let Some(gc_type) = gc_type {
         writer(format!("{ident}{mapped_method} = function(...)"));

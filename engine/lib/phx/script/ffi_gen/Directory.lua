@@ -1,14 +1,5 @@
 -- Directory -------------------------------------------------------------------
 
----@class Directory
----@field Open fun(path: string): Directory
----@field GetNext fun(self): string
----@field Change fun(cwd: string): boolean
----@field Create fun(path: string): boolean
----@field GetCurrent fun(): string
----@field GetPrefPath fun(org: string, app: string): string
----@field Remove fun(path: string): boolean
-
 local Loader = {}
 
 function Loader.declareType()
@@ -39,26 +30,14 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Directory = {
-            ---@param path string
-            ---@return Directory
             Open        = function(...)
                 local instance = libphx.Directory_Open(...)
                 return Core.ManagedObject(instance, libphx.Directory_Free)
             end,
-            ---@param cwd string
-            ---@return boolean
             Change      = libphx.Directory_Change,
-            ---@param path string
-            ---@return boolean
             Create      = libphx.Directory_Create,
-            ---@return string
             GetCurrent  = libphx.Directory_GetCurrent,
-            ---@param org string
-            ---@param app string
-            ---@return string
             GetPrefPath = libphx.Directory_GetPrefPath,
-            ---@param path string
-            ---@return boolean
             Remove      = libphx.Directory_Remove,
         }
 
@@ -70,7 +49,6 @@ function Loader.defineType()
         local t  = ffi.typeof('Directory')
         local mt = {
             __index = {
-                ---@return string
                 getNext = libphx.Directory_GetNext,
             },
         }

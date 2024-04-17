@@ -1,15 +1,5 @@
 -- Bit -------------------------------------------------------------------------
 
----@class Bit
----@field And32 fun(x: integer, y: integer): integer
----@field Or32 fun(x: integer, y: integer): integer
----@field Xor32 fun(x: integer, y: integer): integer
----@field Has32 fun(x: integer, y: integer): boolean
----@field And64 fun(x: integer, y: integer): integer
----@field Or64 fun(x: integer, y: integer): integer
----@field Xor64 fun(x: integer, y: integer): integer
----@field Has64 fun(x: integer, y: integer): boolean
-
 local Loader = {}
 
 function Loader.declareType()
@@ -36,37 +26,13 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Bit = {
-            ---@param x integer
-            ---@param y integer
-            ---@return integer
             And32 = libphx.Bit_And32,
-            ---@param x integer
-            ---@param y integer
-            ---@return integer
             Or32  = libphx.Bit_Or32,
-            ---@param x integer
-            ---@param y integer
-            ---@return integer
             Xor32 = libphx.Bit_Xor32,
-            ---@param x integer
-            ---@param y integer
-            ---@return boolean
             Has32 = libphx.Bit_Has32,
-            ---@param x integer
-            ---@param y integer
-            ---@return integer
             And64 = libphx.Bit_And64,
-            ---@param x integer
-            ---@param y integer
-            ---@return integer
             Or64  = libphx.Bit_Or64,
-            ---@param x integer
-            ---@param y integer
-            ---@return integer
             Xor64 = libphx.Bit_Xor64,
-            ---@param x integer
-            ---@param y integer
-            ---@return boolean
             Has64 = libphx.Bit_Has64,
         }
 

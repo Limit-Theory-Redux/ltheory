@@ -1,9 +1,5 @@
 -- InputDevice -----------------------------------------------------------------
 
----@class InputDevice
----@field Equal fun(self, other: InputDevice): boolean
----@field ToString fun(self): string
-
 local Loader = {}
 
 function Loader.declareType()
@@ -44,10 +40,7 @@ function Loader.defineType()
             __tostring = function(self) return ffi.string(libphx.InputDevice_ToString(self)) end,
             __index = {
                 clone    = function(x) return InputDevice_t(x) end,
-                ---@param other InputDevice
-                ---@return boolean
                 equal    = libphx.InputDevice_Equal,
-                ---@return string
                 toString = libphx.InputDevice_ToString,
             },
         }

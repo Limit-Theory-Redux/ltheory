@@ -1,25 +1,5 @@
 -- Input -----------------------------------------------------------------------
 
----@class Input
----@field Keyboard fun(self): KeyboardState
----@field Mouse fun(self): MouseState
----@field Touchpad fun(self): TouchpadState
----@field Gamepad fun(self): GamepadState
----@field DragAndDrop fun(self): DragAndDropState
----@field ActiveDevice fun(self): InputDevice
----@field ActiveDeviceType fun(self): InputDeviceType
----@field ActiveDeviceId fun(self): InputDeviceId
----@field SetCursorVisible fun(self, visible: boolean)
----@field SetCursorVisibleAuto fun(self)
----@field SetCursorPosition fun(self, x: number, y: number)
----@field IsPressed fun(self, button: Button): boolean
----@field IsDown fun(self, button: Button): boolean
----@field IsReleased fun(self, button: Button): boolean
----@field GetValue fun(self, button: Button): number
----@field IsKeyboardAltPressed fun(self): boolean
----@field IsKeyboardCtrlPressed fun(self): boolean
----@field IsKeyboardShiftPressed fun(self): boolean
-
 local Loader = {}
 
 function Loader.declareType()
@@ -70,45 +50,23 @@ function Loader.defineType()
         local t  = ffi.typeof('Input')
         local mt = {
             __index = {
-                ---@return KeyboardState
                 keyboard               = libphx.Input_Keyboard,
-                ---@return MouseState
                 mouse                  = libphx.Input_Mouse,
-                ---@return TouchpadState
                 touchpad               = libphx.Input_Touchpad,
-                ---@return GamepadState
                 gamepad                = libphx.Input_Gamepad,
-                ---@return DragAndDropState
                 dragAndDrop            = libphx.Input_DragAndDrop,
-                ---@return InputDevice
                 activeDevice           = libphx.Input_ActiveDevice,
-                ---@return InputDeviceType
                 activeDeviceType       = libphx.Input_ActiveDeviceType,
-                ---@return InputDeviceId
                 activeDeviceId         = libphx.Input_ActiveDeviceId,
-                ---@param visible boolean
                 setCursorVisible       = libphx.Input_SetCursorVisible,
                 setCursorVisibleAuto   = libphx.Input_SetCursorVisibleAuto,
-                ---@param x number
-                ---@param y number
                 setCursorPosition      = libphx.Input_SetCursorPosition,
-                ---@param button Button
-                ---@return boolean
                 isPressed              = libphx.Input_IsPressed,
-                ---@param button Button
-                ---@return boolean
                 isDown                 = libphx.Input_IsDown,
-                ---@param button Button
-                ---@return boolean
                 isReleased             = libphx.Input_IsReleased,
-                ---@param button Button
-                ---@return number
                 getValue               = libphx.Input_GetValue,
-                ---@return boolean
                 isKeyboardAltPressed   = libphx.Input_IsKeyboardAltPressed,
-                ---@return boolean
                 isKeyboardCtrlPressed  = libphx.Input_IsKeyboardCtrlPressed,
-                ---@return boolean
                 isKeyboardShiftPressed = libphx.Input_IsKeyboardShiftPressed,
             },
         }

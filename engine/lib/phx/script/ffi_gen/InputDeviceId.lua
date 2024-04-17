@@ -1,8 +1,5 @@
 -- InputDeviceId ---------------------------------------------------------------
 
----@class InputDeviceId
----@field ToString fun(self): string
-
 local Loader = {}
 
 function Loader.declareType()
@@ -37,7 +34,6 @@ function Loader.defineType()
         local mt = {
             __tostring = function(self) return ffi.string(libphx.InputDeviceId_ToString(self)) end,
             __index = {
-                ---@return string
                 toString = libphx.InputDeviceId_ToString,
             },
         }

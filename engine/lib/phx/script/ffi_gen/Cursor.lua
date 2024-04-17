@@ -1,15 +1,5 @@
 -- Cursor ----------------------------------------------------------------------
 
----@class Cursor
----@field Icon fun(self): CursorIcon
----@field SetIcon fun(self, icon: CursorIcon)
----@field IsVisible fun(self): boolean
----@field SetVisible fun(self, visible: boolean)
----@field GrabMode fun(self): CursorGrabMode
----@field SetGrabMode fun(self, grab_mode: CursorGrabMode)
----@field IsHitTest fun(self): boolean
----@field SetHitTest fun(self, hit_test: boolean)
-
 local Loader = {}
 
 function Loader.declareType()
@@ -50,21 +40,13 @@ function Loader.defineType()
         local t  = ffi.typeof('Cursor')
         local mt = {
             __index = {
-                ---@return CursorIcon
                 icon        = libphx.Cursor_Icon,
-                ---@param icon CursorIcon
                 setIcon     = libphx.Cursor_SetIcon,
-                ---@return boolean
                 isVisible   = libphx.Cursor_IsVisible,
-                ---@param visible boolean
                 setVisible  = libphx.Cursor_SetVisible,
-                ---@return CursorGrabMode
                 grabMode    = libphx.Cursor_GrabMode,
-                ---@param grab_mode CursorGrabMode
                 setGrabMode = libphx.Cursor_SetGrabMode,
-                ---@return boolean
                 isHitTest   = libphx.Cursor_IsHitTest,
-                ---@param hit_test boolean
                 setHitTest  = libphx.Cursor_SetHitTest,
             },
         }

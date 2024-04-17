@@ -1,10 +1,5 @@
 -- Time ------------------------------------------------------------------------
 
----@class Time
----@field GetLocal fun(): Time
----@field GetUtc fun(): Time
----@field GetRaw fun(): integer
-
 local Loader = {}
 
 function Loader.declareType()
@@ -26,17 +21,14 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Time = {
-            ---@return Time
             GetLocal = function(...)
                 local instance = libphx.Time_GetLocal(...)
                 return Core.ManagedObject(instance, libphx.Time_Free)
             end,
-            ---@return Time
             GetUtc   = function(...)
                 local instance = libphx.Time_GetUtc(...)
                 return Core.ManagedObject(instance, libphx.Time_Free)
             end,
-            ---@return integer
             GetRaw   = libphx.Time_GetRaw,
         }
 

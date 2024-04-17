@@ -1,14 +1,5 @@
 -- KeyboardState ---------------------------------------------------------------
 
----@class KeyboardState
----@field IsPressed fun(self, button: KeyboardButton): boolean
----@field IsDown fun(self, button: KeyboardButton): boolean
----@field IsReleased fun(self, button: KeyboardButton): boolean
----@field AltPressed fun(self): boolean
----@field CtrlPressed fun(self): boolean
----@field ShiftPressed fun(self): boolean
----@field Value fun(self, button: KeyboardButton): number
-
 local Loader = {}
 
 function Loader.declareType()
@@ -48,23 +39,12 @@ function Loader.defineType()
         local t  = ffi.typeof('KeyboardState')
         local mt = {
             __index = {
-                ---@param button KeyboardButton
-                ---@return boolean
                 isPressed    = libphx.KeyboardState_IsPressed,
-                ---@param button KeyboardButton
-                ---@return boolean
                 isDown       = libphx.KeyboardState_IsDown,
-                ---@param button KeyboardButton
-                ---@return boolean
                 isReleased   = libphx.KeyboardState_IsReleased,
-                ---@return boolean
                 altPressed   = libphx.KeyboardState_AltPressed,
-                ---@return boolean
                 ctrlPressed  = libphx.KeyboardState_CtrlPressed,
-                ---@return boolean
                 shiftPressed = libphx.KeyboardState_ShiftPressed,
-                ---@param button KeyboardButton
-                ---@return number
                 value        = libphx.KeyboardState_Value,
             },
         }

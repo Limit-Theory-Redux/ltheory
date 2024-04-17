@@ -1,11 +1,5 @@
 -- TouchpadState ---------------------------------------------------------------
 
----@class TouchpadState
----@field Value fun(self, axis: TouchpadAxis): number
----@field Position fun(self): Vec2
----@field MagnifyDelta fun(self): number
----@field RotateDelta fun(self): number
-
 local Loader = {}
 
 function Loader.declareType()
@@ -42,14 +36,9 @@ function Loader.defineType()
         local t  = ffi.typeof('TouchpadState')
         local mt = {
             __index = {
-                ---@param axis TouchpadAxis
-                ---@return number
                 value        = libphx.TouchpadState_Value,
-                ---@return Vec2
                 position     = libphx.TouchpadState_Position,
-                ---@return number
                 magnifyDelta = libphx.TouchpadState_MagnifyDelta,
-                ---@return number
                 rotateDelta  = libphx.TouchpadState_RotateDelta,
             },
         }

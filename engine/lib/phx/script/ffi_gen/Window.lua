@@ -1,42 +1,5 @@
 -- Window ----------------------------------------------------------------------
 
----@class Window
----@field BeginDraw fun(self)
----@field EndDraw fun(self)
----@field Title fun(self): string
----@field SetTitle fun(self, title: string)
----@field Cursor fun(self): Cursor
----@field PresentMode fun(self): PresentMode
----@field SetPresentMode fun(self, present_mode: PresentMode)
----@field SetMaximized fun(self, maximized: boolean)
----@field SetMinimized fun(self, minimized: boolean)
----@field Position fun(self): IVec2
----@field SetCenteredPosition fun(self)
----@field SetPosition fun(self, x: integer, y: integer)
----@field Width fun(self): number
----@field Height fun(self): number
----@field Size fun(self): Vec2
----@field SetSize fun(self, width: number, height: number)
----@field PhysicalWidth fun(self): integer
----@field PhysicalHeight fun(self): integer
----@field PhysicalSize fun(self): IVec2
----@field SetPhysicalSize fun(self, width: integer, height: integer)
----@field IsResizable fun(self): boolean
----@field SetResizable fun(self, resizable: boolean)
----@field HasDecorations fun(self): boolean
----@field SetDecorations fun(self, decorations: boolean)
----@field IsTransparent fun(self): boolean
----@field SetTransparent fun(self, transparent: boolean)
----@field IsFocused fun(self): boolean
----@field SetFocused fun(self, focused: boolean)
----@field SetFullscreen fun(self, fs: boolean)
----@field ToggleFullscreen fun(self)
----@field ScaleFactor fun(self): number
----@field CursorPosition fun(self): Vec2
----@field SetCursorPosition fun(self, position: Vec2)
----@field PhysicalCursorPosition fun(self): Vec2
----@field SetPhysicalCursorPosition fun(self, position: DVec2)
-
 local Loader = {}
 
 function Loader.declareType()
@@ -106,141 +69,38 @@ function Loader.defineType()
             __index = {
                 beginDraw                 = libphx.Window_BeginDraw,
                 endDraw                   = libphx.Window_EndDraw,
-                -- The window title.
-                ---@return string
                 title                     = libphx.Window_Title,
-                -- Set the window title.
-                ---@param title string
                 setTitle                  = libphx.Window_SetTitle,
-                -- The window cursor.
-                ---@return Cursor
                 cursor                    = libphx.Window_Cursor,
-                -- The window present mode.
-                ---@return PresentMode
                 presentMode               = libphx.Window_PresentMode,
-                -- Set window present mode.
-                ---@param present_mode PresentMode
                 setPresentMode            = libphx.Window_SetPresentMode,
-                -- Setting this to true will attempt to maximize the window.
-                --
-                -- Setting it to false will attempt to un-maximize the window.
-                ---@param maximized boolean
                 setMaximized              = libphx.Window_SetMaximized,
-                -- Setting this to true will attempt to minimize the window.
-                --
-                -- Setting it to false will attempt to un-minimize the window.
-                ---@param minimized boolean
                 setMinimized              = libphx.Window_SetMinimized,
-                -- The window's client position in physical pixels.
-                --
-                -- See [`WindowPosition`] for an explanation about logical/physical sizes.
-                ---@return IVec2
                 position                  = libphx.Window_Position,
-                -- Set the window's client position in the center of the current monitor.
                 setCenteredPosition       = libphx.Window_SetCenteredPosition,
-                -- Set the window's client position in physical pixels.
-                --
-                -- See [`WindowPosition`] for an explanation about logical/physical sizes.
-                ---@param x integer
-                ---@param y integer
                 setPosition               = libphx.Window_SetPosition,
-                -- The window's client area width in logical pixels.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@return number
                 width                     = libphx.Window_Width,
-                -- The window's client area height in logical pixels.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@return number
                 height                    = libphx.Window_Height,
-                -- The window's client area size in logical pixels.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@return Vec2
                 size                      = libphx.Window_Size,
-                -- Set the window's client area size in logical pixels.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@param width number
-                ---@param height number
                 setSize                   = libphx.Window_SetSize,
-                -- The window's client area width in physical pixels.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@return integer
                 physicalWidth             = libphx.Window_PhysicalWidth,
-                -- The window's client area height in physical pixels.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@return integer
                 physicalHeight            = libphx.Window_PhysicalHeight,
-                -- The window's client area size in physical pixels.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@return IVec2
                 physicalSize              = libphx.Window_PhysicalSize,
-                -- Set the window's client area size in physical pixels.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@param width integer
-                ---@param height integer
                 setPhysicalSize           = libphx.Window_SetPhysicalSize,
-                -- Is the window resizable?
-                ---@return boolean
                 isResizable               = libphx.Window_IsResizable,
-                -- Should the window be resizable?
-                ---@param resizable boolean
                 setResizable              = libphx.Window_SetResizable,
-                -- Has the window decorations?
-                ---@return boolean
                 hasDecorations            = libphx.Window_HasDecorations,
-                -- Should the window have decorations?
-                ---@param decorations boolean
                 setDecorations            = libphx.Window_SetDecorations,
-                -- Is the window transparent?
-                ---@return boolean
                 isTransparent             = libphx.Window_IsTransparent,
-                -- Should the window be transparent?
-                ---@param transparent boolean
                 setTransparent            = libphx.Window_SetTransparent,
-                -- Is the window focused?
-                ---@return boolean
                 isFocused                 = libphx.Window_IsFocused,
-                -- Should the window be focused?
-                ---@param focused boolean
                 setFocused                = libphx.Window_SetFocused,
-                ---@param fs boolean
                 setFullscreen             = libphx.Window_SetFullscreen,
                 toggleFullscreen          = libphx.Window_ToggleFullscreen,
-                -- The window's scale factor.
-                --
-                -- Ratio of physical size to logical size, see [`WindowResolution`].
-                ---@return number
                 scaleFactor               = libphx.Window_ScaleFactor,
-                -- The cursor position in this window in logical pixels.
-                --
-                -- Returns `None` if the cursor is outside the window area.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@return Vec2
                 cursorPosition            = libphx.Window_CursorPosition,
-                -- Set the cursor position in this window in logical pixels.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@param position Vec2
                 setCursorPosition         = libphx.Window_SetCursorPosition,
-                -- The cursor position in this window in physical pixels.
-                --
-                -- Returns `None` if the cursor is outside the window area.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@return Vec2
                 physicalCursorPosition    = libphx.Window_PhysicalCursorPosition,
-                -- Set the cursor position in this window in physical pixels.
-                --
-                -- See [`WindowResolution`] for an explanation about logical/physical sizes.
-                ---@param position DVec2
                 setPhysicalCursorPosition = libphx.Window_SetPhysicalCursorPosition,
             },
         }

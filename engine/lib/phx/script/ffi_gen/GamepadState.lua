@@ -1,18 +1,5 @@
 -- GamepadState ----------------------------------------------------------------
 
----@class GamepadState
----@field GamepadsCount fun(self): integer
----@field GamepadId fun(self, index: integer): GamepadId
----@field GamepadName fun(self, gamepad_id: GamepadId): string
----@field Value fun(self, axis: GamepadAxis): number
----@field IsPressed fun(self, button: GamepadButton): boolean
----@field IsDown fun(self, button: GamepadButton): boolean
----@field IsReleased fun(self, button: GamepadButton): boolean
----@field ValueById fun(self, gamepad_id: GamepadId, axis: GamepadAxis): number
----@field IsPressedById fun(self, gamepad_id: GamepadId, button: GamepadButton): boolean
----@field IsDownById fun(self, gamepad_id: GamepadId, button: GamepadButton): boolean
----@field IsReleasedById fun(self, gamepad_id: GamepadId, button: GamepadButton): boolean
-
 local Loader = {}
 
 function Loader.declareType()
@@ -56,41 +43,16 @@ function Loader.defineType()
         local t  = ffi.typeof('GamepadState')
         local mt = {
             __index = {
-                ---@return integer
                 gamepadsCount  = libphx.GamepadState_GamepadsCount,
-                ---@param index integer
-                ---@return GamepadId
                 gamepadId      = libphx.GamepadState_GamepadId,
-                ---@param gamepad_id GamepadId
-                ---@return string
                 gamepadName    = libphx.GamepadState_GamepadName,
-                ---@param axis GamepadAxis
-                ---@return number
                 value          = libphx.GamepadState_Value,
-                ---@param button GamepadButton
-                ---@return boolean
                 isPressed      = libphx.GamepadState_IsPressed,
-                ---@param button GamepadButton
-                ---@return boolean
                 isDown         = libphx.GamepadState_IsDown,
-                ---@param button GamepadButton
-                ---@return boolean
                 isReleased     = libphx.GamepadState_IsReleased,
-                ---@param gamepad_id GamepadId
-                ---@param axis GamepadAxis
-                ---@return number
                 valueById      = libphx.GamepadState_ValueById,
-                ---@param gamepad_id GamepadId
-                ---@param button GamepadButton
-                ---@return boolean
                 isPressedById  = libphx.GamepadState_IsPressedById,
-                ---@param gamepad_id GamepadId
-                ---@param button GamepadButton
-                ---@return boolean
                 isDownById     = libphx.GamepadState_IsDownById,
-                ---@param gamepad_id GamepadId
-                ---@param button GamepadButton
-                ---@return boolean
                 isReleasedById = libphx.GamepadState_IsReleasedById,
             },
         }

@@ -1,10 +1,5 @@
 -- DragAndDropState ------------------------------------------------------------
 
----@class DragAndDropState
----@field GetDroppedFile fun(self): string
----@field GetHoveredFile fun(self): string
----@field IfHoveredFileCancelled fun(self): boolean
-
 local Loader = {}
 
 function Loader.declareType()
@@ -40,11 +35,8 @@ function Loader.defineType()
         local t  = ffi.typeof('DragAndDropState')
         local mt = {
             __index = {
-                ---@return string
                 getDroppedFile         = libphx.DragAndDropState_GetDroppedFile,
-                ---@return string
                 getHoveredFile         = libphx.DragAndDropState_GetHoveredFile,
-                ---@return boolean
                 ifHoveredFileCancelled = libphx.DragAndDropState_IfHoveredFileCancelled,
             },
         }

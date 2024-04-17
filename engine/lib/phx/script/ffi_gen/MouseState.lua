@@ -1,16 +1,5 @@
 -- MouseState ------------------------------------------------------------------
 
----@class MouseState
----@field Value fun(self, control: MouseControl): number
----@field IsPressed fun(self, control: MouseControl): boolean
----@field IsDown fun(self, control: MouseControl): boolean
----@field IsReleased fun(self, control: MouseControl): boolean
----@field Delta fun(self): Vec2
----@field Scroll fun(self): Vec2
----@field ScrollPixel fun(self): Vec2
----@field Position fun(self): Vec2
----@field InWindow fun(self): boolean
-
 local Loader = {}
 
 function Loader.declareType()
@@ -52,27 +41,14 @@ function Loader.defineType()
         local t  = ffi.typeof('MouseState')
         local mt = {
             __index = {
-                ---@param control MouseControl
-                ---@return number
                 value       = libphx.MouseState_Value,
-                ---@param control MouseControl
-                ---@return boolean
                 isPressed   = libphx.MouseState_IsPressed,
-                ---@param control MouseControl
-                ---@return boolean
                 isDown      = libphx.MouseState_IsDown,
-                ---@param control MouseControl
-                ---@return boolean
                 isReleased  = libphx.MouseState_IsReleased,
-                ---@return Vec2
                 delta       = libphx.MouseState_Delta,
-                ---@return Vec2
                 scroll      = libphx.MouseState_Scroll,
-                ---@return Vec2
                 scrollPixel = libphx.MouseState_ScrollPixel,
-                ---@return Vec2
                 position    = libphx.MouseState_Position,
-                ---@return boolean
                 inWindow    = libphx.MouseState_InWindow,
             },
         }

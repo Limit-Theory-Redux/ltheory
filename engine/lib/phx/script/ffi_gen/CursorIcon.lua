@@ -1,6 +1,5 @@
 -- CursorIcon ------------------------------------------------------------------
 
-
 local Loader = {}
 
 function Loader.declareType()

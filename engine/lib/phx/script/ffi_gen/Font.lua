@@ -1,13 +1,5 @@
 -- Font ------------------------------------------------------------------------
 
----@class Font
----@field Load fun(name: string, size: integer): Font
----@field Draw fun(self, text: string, x: number, y: number, r: number, g: number, b: number, a: number)
----@field DrawShaded fun(self, text: string, x: number, y: number)
----@field GetLineHeight fun(self): integer
----@field GetSize fun(self, text: string, out: IVec4)
----@field GetSize2 fun(self, text: string): IVec2
-
 local Loader = {}
 
 function Loader.declareType()
@@ -37,9 +29,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Font = {
-            ---@param name string
-            ---@param size integer
-            ---@return Font
             Load          = function(...)
                 local instance = libphx.Font_Load(...)
                 return Core.ManagedObject(instance, libphx.Font_Free)
@@ -54,25 +43,10 @@ function Loader.defineType()
         local t  = ffi.typeof('Font')
         local mt = {
             __index = {
-                ---@param text string
-                ---@param x number
-                ---@param y number
-                ---@param r number
-                ---@param g number
-                ---@param b number
-                ---@param a number
                 draw          = libphx.Font_Draw,
-                ---@param text string
-                ---@param x number
-                ---@param y number
                 drawShaded    = libphx.Font_DrawShaded,
-                ---@return integer
                 getLineHeight = libphx.Font_GetLineHeight,
-                ---@param text string
-                ---@param out IVec4
                 getSize       = libphx.Font_GetSize,
-                ---@param text string
-                ---@return IVec2
                 getSize2      = libphx.Font_GetSize2,
             },
         }
