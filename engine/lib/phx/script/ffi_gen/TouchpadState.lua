@@ -1,5 +1,4 @@
 -- TouchpadState ---------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

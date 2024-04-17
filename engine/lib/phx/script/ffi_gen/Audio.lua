@@ -1,5 +1,4 @@
 -- Audio -----------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

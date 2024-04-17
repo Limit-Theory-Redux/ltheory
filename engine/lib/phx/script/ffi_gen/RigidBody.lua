@@ -1,5 +1,4 @@
 -- RigidBody -------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

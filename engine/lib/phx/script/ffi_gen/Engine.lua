@@ -1,5 +1,4 @@
 -- Engine ----------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

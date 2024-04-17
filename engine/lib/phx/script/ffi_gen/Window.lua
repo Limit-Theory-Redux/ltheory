@@ -1,5 +1,4 @@
 -- Window ----------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

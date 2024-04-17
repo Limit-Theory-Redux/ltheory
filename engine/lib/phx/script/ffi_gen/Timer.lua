@@ -1,5 +1,4 @@
 -- Timer -----------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

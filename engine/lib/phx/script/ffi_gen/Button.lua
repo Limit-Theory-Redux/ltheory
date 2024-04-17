@@ -1,5 +1,4 @@
 -- Button ----------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

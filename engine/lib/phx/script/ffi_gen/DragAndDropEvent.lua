@@ -1,5 +1,4 @@
 -- DragAndDropEvent ------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

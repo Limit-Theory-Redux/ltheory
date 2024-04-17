@@ -1,5 +1,4 @@
 -- Directory -------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

@@ -1,5 +1,4 @@
 -- TimeStamp -------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

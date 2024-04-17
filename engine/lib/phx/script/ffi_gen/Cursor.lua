@@ -1,5 +1,4 @@
 -- Cursor ----------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

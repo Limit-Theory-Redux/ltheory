@@ -1,5 +1,4 @@
 -- SystemEventState ------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

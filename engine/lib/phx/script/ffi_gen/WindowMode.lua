@@ -1,5 +1,4 @@
 -- WindowMode ------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

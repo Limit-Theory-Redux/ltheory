@@ -1,5 +1,4 @@
 -- GamepadButton ---------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

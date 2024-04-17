@@ -1,5 +1,4 @@
 -- MouseControl ----------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

@@ -1,5 +1,4 @@
 -- GamepadState ----------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

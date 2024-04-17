@@ -195,7 +195,7 @@ impl FfiGenerator {
         // Header
         writeln!(
             &mut module,
-            "-- {} {:-<2$}\n",
+            "-- {} {:-<2$}",
             self.module_name,
             "-",
             80 - 4 - self.module_name.len()

@@ -1,5 +1,4 @@
 -- KeyboardState ---------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

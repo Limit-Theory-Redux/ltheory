@@ -1,5 +1,4 @@
 -- Trigger ---------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

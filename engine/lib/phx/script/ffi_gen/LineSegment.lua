@@ -1,5 +1,4 @@
 -- LineSegment -----------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

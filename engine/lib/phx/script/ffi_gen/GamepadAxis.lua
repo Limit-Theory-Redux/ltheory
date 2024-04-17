@@ -1,5 +1,4 @@
 -- GamepadAxis -----------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

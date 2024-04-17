@@ -1,5 +1,4 @@
 -- Physics ---------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

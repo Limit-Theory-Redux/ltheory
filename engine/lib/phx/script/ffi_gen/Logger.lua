@@ -1,5 +1,4 @@
 -- Logger ----------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

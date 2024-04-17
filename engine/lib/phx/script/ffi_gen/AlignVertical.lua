@@ -1,5 +1,4 @@
 -- AlignVertical ---------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

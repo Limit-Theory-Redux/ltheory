@@ -1,5 +1,4 @@
 -- MouseState ------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

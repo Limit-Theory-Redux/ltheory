@@ -1,5 +1,4 @@
 -- InputDevice -----------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()

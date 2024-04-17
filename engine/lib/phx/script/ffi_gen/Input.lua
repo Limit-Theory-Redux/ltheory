@@ -1,5 +1,4 @@
 -- Input -----------------------------------------------------------------------
-
 local Loader = {}
 
 function Loader.declareType()
