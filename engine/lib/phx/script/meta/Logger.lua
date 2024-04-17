@@ -3,17 +3,17 @@
 Logger = Logger
 
 ---@param msg string
-function Logger:Trace(msg) end
+function Logger.Trace(msg) end
 
 ---@param msg string
-function Logger:Debug(msg) end
+function Logger.Debug(msg) end
 
 ---@param msg string
-function Logger:Info(msg) end
+function Logger.Info(msg) end
 
 ---@param msg string
-function Logger:Warn(msg) end
+function Logger.Warn(msg) end
 
 ---@param msg string
-function Logger:Error(msg) end
+function Logger.Error(msg) end
 

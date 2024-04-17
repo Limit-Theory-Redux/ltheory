@@ -3,5 +3,5 @@
 SystemEventState = SystemEventState
 
 ---@return boolean
-function SystemEventState.isExit(self) end
+function SystemEventState:isExit(self) end
 

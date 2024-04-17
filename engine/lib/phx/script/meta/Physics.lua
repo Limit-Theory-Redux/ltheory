@@ -3,30 +3,30 @@
 Physics = Physics
 
 ---@return Physics
-function Physics:Create() end
+function Physics.Create() end
 
 ---Adds this rigid body to this physics world if it doesn't exist, otherwise do nothing.
 ---
 ---Automatically adds all attached Triggers. Automatically adds all
 ---attached children and their Triggers.
 ---@param rigid_body RigidBody
-function Physics.addRigidBody(self, rigid_body) end
+function Physics:addRigidBody(self, rigid_body) end
 
 ---Removes this rigid body from this physics world if it's added, otherwise do nothing.
 ---
 ---Automatically removes all attached Triggers. Automatically removes all
 ---attached children and their Triggers.
 ---@param rigid_body RigidBody
-function Physics.removeRigidBody(self, rigid_body) end
+function Physics:removeRigidBody(self, rigid_body) end
 
 ---@param trigger Trigger
-function Physics.addTrigger(self, trigger) end
+function Physics:addTrigger(self, trigger) end
 
 ---@param trigger Trigger
-function Physics.removeTrigger(self, trigger) end
+function Physics:removeTrigger(self, trigger) end
 
 ---@param dt number
-function Physics.update(self, dt) end
+function Physics:update(self, dt) end
 
 ---This will fill the collision object with the collision information.
 ---
@@ -34,18 +34,18 @@ function Physics.update(self, dt) end
 ---colliding. Will not include Triggers.
 ---@param iterator Collision
 ---@return boolean
-function Physics.getNextCollision(self, iterator) end
+function Physics:getNextCollision(self, iterator) end
 
 ---@param ray Ray
 ---@param result RayCastResult [out]
-function Physics.rayCast(self, ray, result) end
+function Physics:rayCast(self, ray, result) end
 
 ---Results are unsorted and will include child objects.
 ---
 ---The array stored inside ShapeCastResult is valid until the next call to sphere_cast.
 ---@param sphere Sphere
 ---@param result ShapeCastResult [out]
-function Physics.sphereCast(self, sphere, result) end
+function Physics:sphereCast(self, sphere, result) end
 
 ---Results are unsorted and will include child objects.
 ---
@@ -54,21 +54,21 @@ function Physics.sphereCast(self, sphere, result) end
 ---@param rot Quat
 ---@param half_extents Vec3
 ---@param result ShapeCastResult [out]
-function Physics.boxCast(self, pos, rot, half_extents, result) end
+function Physics:boxCast(self, pos, rot, half_extents, result) end
 
 ---@param sphere Sphere
 ---@return boolean
-function Physics.sphereOverlap(self, sphere) end
+function Physics:sphereOverlap(self, sphere) end
 
 ---@param pos Vec3
 ---@param rot Quat
 ---@param half_extents Vec3
 ---@return boolean
-function Physics.boxOverlap(self, pos, rot, half_extents) end
+function Physics:boxOverlap(self, pos, rot, half_extents) end
 
-function Physics.drawBoundingBoxesLocal(self) end
+function Physics:drawBoundingBoxesLocal(self) end
 
-function Physics.drawBoundingBoxesWorld(self) end
+function Physics:drawBoundingBoxesWorld(self) end
 
-function Physics.drawWireframes(self) end
+function Physics:drawWireframes(self) end
 

@@ -113,13 +113,13 @@ impl ImplInfo {
 
                 if method.self_param.is_some() {
                     ffi_gen.add_class_definition(format!(
-                        "function {module_name}.{}({}) end\n",
+                        "function {module_name}:{}({}) end\n",
                         method.as_ffi_var(),
                         params.join(", ")
                     ));
                 } else {
                     ffi_gen.add_class_definition(format!(
-                        "function {module_name}:{}({}) end\n",
+                        "function {module_name}.{}({}) end\n",
                         method.as_ffi_name(),
                         params.join(", ")
                     ));
