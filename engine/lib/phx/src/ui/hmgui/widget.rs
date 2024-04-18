@@ -269,8 +269,8 @@ impl HmGuiWidget {
 
             match self.render_style {
                 RenderStyle::None => {
-                    let color = hmgui.get_property_color(HmGuiProperties::BackgroundColorId.id());
-                    let inner_alpha = hmgui.get_property_f32(HmGuiProperties::OpacityId.id());
+                    let color = hmgui.get_property_color(HmGuiProperties::BackgroundColor.id());
+                    let inner_alpha = hmgui.get_property_f32(HmGuiProperties::Opacity.id());
 
                     hmgui
                         .renderer
@@ -278,14 +278,12 @@ impl HmGuiWidget {
                 }
                 RenderStyle::Fill => {
                     if is_mouse_over {
-                        let color =
-                            hmgui.get_property_color(HmGuiProperties::HighlightColorId.id());
+                        let color = hmgui.get_property_color(HmGuiProperties::HighlightColor.id());
 
                         hmgui.renderer.panel(pos, size, color.clone(), 0.0, 1.0);
                     } else {
-                        let color =
-                            hmgui.get_property_color(HmGuiProperties::BackgroundColorId.id());
-                        let inner_alpha = hmgui.get_property_f32(HmGuiProperties::OpacityId.id());
+                        let color = hmgui.get_property_color(HmGuiProperties::BackgroundColor.id());
+                        let inner_alpha = hmgui.get_property_f32(HmGuiProperties::Opacity.id());
 
                         hmgui
                             .renderer
@@ -302,9 +300,9 @@ impl HmGuiWidget {
                 }
                 RenderStyle::Underline => {
                     let color = if is_mouse_over {
-                        hmgui.get_property_color(HmGuiProperties::BackgroundColorId.id())
+                        hmgui.get_property_color(HmGuiProperties::BackgroundColor.id())
                     } else {
-                        hmgui.get_property_color(HmGuiProperties::HighlightColorId.id())
+                        hmgui.get_property_color(HmGuiProperties::HighlightColor.id())
                     };
 
                     hmgui.renderer.rect(pos, size, color.clone(), None);

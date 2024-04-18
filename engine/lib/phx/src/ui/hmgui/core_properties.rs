@@ -31,29 +31,29 @@ macro_rules! core_properties {
 
 // Property id, name, value and optional list of mapped property ids
 core_properties! {
-    (OpacityId,               "opacity",                 1.0f32),
-    (BackgroundColorId,       "background-color",        Color::new(0.1, 0.12, 0.13, 1.0)),
-    (HighlightColorId,        "highlight-color",         Color::new(0.1, 0.5, 1.0, 1.0)),
+    (Opacity,               "opacity",                 1.0f32),
+    (BackgroundColor,       "background-color",        Color::new(0.1, 0.12, 0.13, 1.0)),
+    (HighlightColor,        "highlight-color",         Color::new(0.1, 0.5, 1.0, 1.0)),
 
-    (TextFontId,              "text.font",               Font::load("Rajdhani", 14)),
-    (TextColorId,             "text.color",              Color::WHITE),
+    (TextFont,              "text.font",               Font::load("Rajdhani", 14)),
+    (TextColor,             "text.color",              Color::WHITE),
 
-    (ContainerClipId,         "container.clip",          true),
-    (ContainerSpacingId,      "container.spacing",       6.0f32),
-    (ContainerColorFrameId,   "container.color-frame",   Color::new(0.1, 0.1, 0.1, 0.5)),
-    (ContainerColorPrimaryId, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),
+    (ContainerClip,         "container.clip",          true),
+    (ContainerSpacing,      "container.spacing",       6.0f32),
+    (ContainerColorFrame,   "container.color-frame",   Color::new(0.1, 0.1, 0.1, 0.5)),
+    (ContainerColorPrimary, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),
 
-    (ButtonBorderWidthId,     "button.border-width",     0.0f32),
-    (ButtonTextColorId,       "button.text-color",       Color::WHITE, TextColorId),
-    (ButtonOpacityId,         "button.opacity",          0.5f32, OpacityId),
-    (ButtonBackgroundColorId, "button.background-color", Color::new(0.15, 0.15, 0.15, 0.8), BackgroundColorId),
-    (ButtonHighlightColorId,  "button.highlight-color",  Color::new(0.1, 0.5, 1.0, 1.0), HighlightColorId),
+    (ButtonBorderWidth,     "button.border-width",     0.0f32),
+    (ButtonTextColor,       "button.text-color",       Color::WHITE, TextColor),
+    (ButtonOpacity,         "button.opacity",          0.5f32, Opacity),
+    (ButtonBackgroundColor, "button.background-color", Color::new(0.15, 0.15, 0.15, 0.8), BackgroundColor),
+    (ButtonHighlightColor,  "button.highlight-color",  Color::new(0.1, 0.5, 1.0, 1.0), HighlightColor),
 
-    (CheckboxBackgroundColorId, "checkbox.background-color", Color::new(0.3, 0.3, 0.3, 0.5), BackgroundColorId),
-    (CheckboxHighlightColorId,  "checkbox.highlight-color",  Color::new(0.3, 0.3, 0.3, 1.0), HighlightColorId),
+    (CheckboxBackgroundColor, "checkbox.background-color", Color::new(0.3, 0.3, 0.3, 0.5), BackgroundColor),
+    (CheckboxHighlightColor,  "checkbox.highlight-color",  Color::new(0.3, 0.3, 0.3, 1.0), HighlightColor),
 
-    (ScrollAreaHScrollShowId, "scroll-area.hscroll.show", true),
-    (ScrollAreaVScrollShowId, "scroll-area.vscroll.show", true),
+    (ScrollAreaHScrollShow, "scroll-area.hscroll.show", true),
+    (ScrollAreaVScrollShow, "scroll-area.vscroll.show", true),
 }
 
 /// Adds a new property to the map.

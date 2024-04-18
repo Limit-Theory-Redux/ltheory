@@ -134,7 +134,7 @@ impl HmGui {
 
     /// Start a new container with specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
-        let spacing = self.get_property_f32(HmGuiProperties::ContainerSpacingId.id());
+        let spacing = self.get_property_f32(HmGuiProperties::ContainerSpacing.id());
 
         let container = HmGuiContainer {
             layout,
@@ -159,7 +159,7 @@ impl HmGui {
         let is_mouse_over = widget.contains_point(&self.focus_pos);
 
         if let WidgetItem::Container(container) = &widget.item {
-            let clip = self.get_property_bool(HmGuiProperties::ContainerClipId.id());
+            let clip = self.get_property_bool(HmGuiProperties::ContainerClip.id());
 
             if !clip || is_mouse_over {
                 for widget_rf in container.children.iter().rev() {
@@ -402,9 +402,9 @@ impl HmGui {
         self.end_container();
 
         let hscroll =
-            allow_hscroll && self.get_property_bool(HmGuiProperties::ScrollAreaHScrollShowId.id());
+            allow_hscroll && self.get_property_bool(HmGuiProperties::ScrollAreaHScrollShow.id());
         let vscroll =
-            allow_vscroll && self.get_property_bool(HmGuiProperties::ScrollAreaVScrollShowId.id());
+            allow_vscroll && self.get_property_bool(HmGuiProperties::ScrollAreaVScrollShow.id());
 
         if hscroll || vscroll {
             let fade_scale = {
@@ -453,7 +453,7 @@ impl HmGui {
                 let sb_length = 4.0;
                 let sb_bg_color = Color::new(0.3, 0.3, 0.3, 0.3 * fade_scale);
                 let mut sb_knob_color = self
-                    .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
+                    .get_property_color(HmGuiProperties::ContainerColorFrame.id())
                     .clone();
 
                 sb_knob_color.a *= fade_scale;
@@ -536,7 +536,7 @@ impl HmGui {
     /// Begins window element.
     // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
-        self.set_property_f32(HmGuiProperties::OpacityId.id(), 0.95);
+        self.set_property_f32(HmGuiProperties::Opacity.id(), 0.95);
         self.begin_stack_container();
 
         // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
@@ -634,9 +634,9 @@ impl HmGui {
         self.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         let (color_frame, color_primary) = {
-            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrameId.id());
+            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrame.id());
             let color_primary =
-                self.get_property_color(HmGuiProperties::ContainerColorPrimaryId.id());
+                self.get_property_color(HmGuiProperties::ContainerColorPrimary.id());
 
             (color_frame.clone(), color_primary.clone())
         };
@@ -694,8 +694,8 @@ impl HmGui {
     }
 
     pub fn text(&mut self, text: &str) {
-        let font = self.get_property_font(HmGuiProperties::TextFontId.id());
-        let color = self.get_property_color(HmGuiProperties::TextColorId.id());
+        let font = self.get_property_font(HmGuiProperties::TextFont.id());
+        let color = self.get_property_color(HmGuiProperties::TextColor.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
@@ -711,7 +711,7 @@ impl HmGui {
     }
 
     pub fn text_colored(&mut self, text: &str, color: &Color) {
-        let font = self.get_property_font(HmGuiProperties::TextFontId.id());
+        let font = self.get_property_font(HmGuiProperties::TextFont.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {

@@ -446,7 +446,7 @@ impl HmGuiContainer {
     }
 
     pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
-        let clip = hmgui.get_property_bool(HmGuiProperties::ContainerClipId.id());
+        let clip = hmgui.get_property_bool(HmGuiProperties::ContainerClip.id());
 
         hmgui.renderer.begin_layer(pos, size, clip);
 

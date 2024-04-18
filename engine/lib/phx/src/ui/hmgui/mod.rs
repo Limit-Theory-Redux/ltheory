@@ -1311,8 +1311,8 @@ mod tests {
 
         gui.begin_gui(800.0, 600.0, &input);
 
-        gui.set_property_bool(HmGuiProperties::ScrollAreaHScrollShowId.id(), false);
-        gui.set_property_bool(HmGuiProperties::ScrollAreaVScrollShowId.id(), false);
+        gui.set_property_bool(HmGuiProperties::ScrollAreaHScrollShow.id(), false);
+        gui.set_property_bool(HmGuiProperties::ScrollAreaVScrollShow.id(), false);
         gui.begin_scroll_area(ScrollDirection::Vertical);
 
         gui.begin_vertical_container();

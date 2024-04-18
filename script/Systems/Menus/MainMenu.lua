@@ -170,10 +170,10 @@ function MainMenu:ShowGui()
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
     Gui:setBorder(1, Color(1.0, 1.0, 1.0, 1.0))
---    Gui:setMinSize(5, 5)
+    --    Gui:setMinSize(5, 5)
     Gui:image(LTheoryRedux.logoname) -- draw the LTR name image
     Gui:setPercentSize(95, 55)
-    Gui:endContainer() -- end title panel
+    Gui:endContainer()               -- end title panel
 
     -- Main Menu
     self:ShowMainMenuInner()
@@ -204,13 +204,13 @@ function MainMenu:ShowGui()
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
     Gui:setBgColor(Color(0.2, 0.2, 0.2, 0.3))
     Gui:textEx(Cache.Font('RajdhaniBold', 38), 'Notes for version ' .. Config.gameVersion, Color(1.0, 1.0, 1.0, 1.0))
-    Gui:endContainer() -- end top text panel
+    Gui:endContainer()        -- end top text panel
     Gui:beginStackContainer() -- begin middle text panel
     Gui:setPercentSize(100, 8)
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
     Gui:textEx(Cache.Font('Rajdhani', 28), 'Changelog', Color(1.0, 1.0, 1.0, 1.0))
-    Gui:endContainer() -- end middle text panel
+    Gui:endContainer()        -- end middle text panel
     Gui:beginStackContainer() -- begin details text panel
     Gui:setPercentSize(90, 84)
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
@@ -241,8 +241,8 @@ function MainMenu:ShowMainMenuInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColorId, Color(0.9, 0.9, 0.9, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('RajdhaniSemiBold', 36 * scaleFactor))
+    Gui:setPropertyColor(GuiProperties.TextColor, Color(0.9, 0.9, 0.9, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('RajdhaniSemiBold', 36 * scaleFactor))
 
     if Gui:button("NEW GAME") then
         self:ShowSeedDialog()
@@ -320,8 +320,8 @@ function MainMenu:ShowSeedDialogInner()
     Gui:setSpacing(8)
 
     Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColorId, Color(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2', 26))
+    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2', 26))
 
     -- Loop through saved seeds (hardcoded for now) and display as checkboxes
     for i = 1, #guiElements[1]["elems"] do
@@ -351,8 +351,8 @@ function MainMenu:ShowSeedDialogInner()
     Gui:setSpacing(16)
 
     Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColorId, Color(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2Bold', 28))
+    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
         if GameState:GetCurrentState() == Enums.GameStates.InGame then
@@ -424,8 +424,8 @@ function MainMenu:ShowSettingsScreenInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColorId, Color(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2', 24))
+    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2', 24))
 
     -- Show Settings options
     Gui:beginVerticalContainer()
@@ -448,8 +448,8 @@ function MainMenu:ShowSettingsScreenInner()
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
     Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColorId, Color(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2Bold', 28))
+    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
         -- Revert to the pre-Settings values of each setting
@@ -822,8 +822,8 @@ function MainMenu:ShowFlightDialogInner()
     Gui:setSpacing(8)
 
     Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColorId, Color(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFontId, Cache.Font('Exo2Bold', 26))
+    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2Bold', 26))
 
     if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
         if Gui:button("Return to Game") then

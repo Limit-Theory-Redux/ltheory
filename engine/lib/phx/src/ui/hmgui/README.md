@@ -325,7 +325,7 @@ Any property value applied by setting a theme that contains that property will b
   - Example of direct styling in code:
 ```lua
 Gui:clearStyle()
-Gui:setPropertyColor(GuiProperties.ButtonTextColorId, Color(1, 0, 0, 1))
+Gui:setPropertyColor(GuiProperties.ButtonTextColor, Color(1, 0, 0, 1))
 Gui:button("MyButton")
 ```
   - Example of styling through the global style configuration file `styles.yaml`:

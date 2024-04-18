@@ -11,7 +11,7 @@ end
 function Test:onInput() end
 
 function Test:scrollArea()
-    Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShowId, false)
+    Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShow, false)
     Gui:beginScrollArea(ScrollDirection.All)
 
     Gui:beginVerticalContainer()
