@@ -182,7 +182,7 @@ impl HmGuiWidget {
 
                 self.min_size = self.calculate_min_size();
 
-                if container.store_size {
+                if container.scroll_dir.is_some() {
                     let data = hmgui.get_data(self.hash);
 
                     data.min_size = self.min_size;
@@ -194,18 +194,24 @@ impl HmGuiWidget {
         }
     }
 
-    pub fn layout(&self, hmgui: &mut HmGui) {
+    pub fn layout(&mut self, hmgui: &mut HmGui) {
         // TODO: do not process widgets with min size, margin and border all 0
         match &self.item {
             WidgetItem::Container(container) => {
-                container.layout(
+                self.inner_size = container.layout(
                     hmgui,
+                    self.horizontal_alignment == AlignHorizontal::Stretch,
+                    self.vertical_alignment == AlignVertical::Stretch,
                     self.inner_pos,
                     self.inner_size,
                     self.inner_size - self.inner_min_size,
                 );
+                self.size = self.inner_size
+                    + self.border_width * 2.0
+                    + self.margin_upper
+                    + self.margin_lower;
 
-                if container.store_size {
+                if container.scroll_dir.is_some() {
                     let data = hmgui.get_data(self.hash);
 
                     data.size = self.size;

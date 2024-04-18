@@ -87,7 +87,7 @@ mod tests {
                 Vec2::new(expected.2 .0, expected.2 .1),
                 Vec2::new(expected.3 .0, expected.3 .1)
             ),
-            "{} widget position, outer and inner sizes",
+            "[{}] - Wrong widget position, outer or inner sizes",
             expected.0
         );
 
@@ -96,7 +96,7 @@ mod tests {
             assert_eq!(
                 container.children.len(),
                 expected_children.len(),
-                "Children count {} container",
+                "[{}] - Wrong number of children",
                 expected.0
             );
 
@@ -109,7 +109,7 @@ mod tests {
         } else {
             assert!(
                 !matches!(widget.item, WidgetItem::Container(_)),
-                "Expected non-container item for: {}",
+                "[{}] - Expected non-container item",
                 expected.0
             );
         }
@@ -1315,8 +1315,10 @@ mod tests {
         gui.set_property_bool(HmGuiProperties::ScrollAreaVScrollShowId.id(), false);
         gui.begin_scroll_area(ScrollDirection::Vertical);
 
-        gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
-        gui.set_fixed_size(600.0, 700.0);
+        gui.begin_vertical_container();
+
+        gui.set_horizontal_alignment(AlignHorizontal::Stretch);
+        gui.set_fixed_height(700.0);
         gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
@@ -1324,6 +1326,8 @@ mod tests {
         gui.rect(&color);
         gui.rect(&color);
         gui.rect(&color);
+
+        gui.end_container();
 
         gui.end_scroll_area(&input);
         gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
@@ -1348,39 +1352,45 @@ mod tests {
                     (500.0, 500.0),
                     Some(vec![WidgetCheck(
                         "ScrollAreaIntern",
-                        (100.0, -50.0),
-                        (600.0, 700.0),
-                        (600.0, 700.0),
-                        Some(vec![
-                            WidgetCheck(
-                                "Rect1",
-                                (100.0, -50.0),
-                                (600.0, 170.5),
-                                (600.0, 170.5),
-                                None,
-                            ),
-                            WidgetCheck(
-                                "Rect2",
-                                (100.0, 126.5),
-                                (600.0, 170.5),
-                                (600.0, 170.5),
-                                None,
-                            ),
-                            WidgetCheck(
-                                "Rect3",
-                                (100.0, 303.0),
-                                (600.0, 170.5),
-                                (600.0, 170.5),
-                                None,
-                            ),
-                            WidgetCheck(
-                                "Rect4",
-                                (100.0, 479.5),
-                                (600.0, 170.5),
-                                (600.0, 170.5),
-                                None,
-                            ),
-                        ]),
+                        (150.0, 50.0),
+                        (500.0, 500.0),
+                        (500.0, 500.0),
+                        Some(vec![WidgetCheck(
+                            "Vertical",
+                            (150.0, 50.0),
+                            (500.0, 700.0),
+                            (500.0, 700.0),
+                            Some(vec![
+                                WidgetCheck(
+                                    "Rect1",
+                                    (150.0, 50.0),
+                                    (500.0, 170.5),
+                                    (500.0, 170.5),
+                                    None,
+                                ),
+                                WidgetCheck(
+                                    "Rect2",
+                                    (150.0, 226.5),
+                                    (500.0, 170.5),
+                                    (500.0, 170.5),
+                                    None,
+                                ),
+                                WidgetCheck(
+                                    "Rect3",
+                                    (150.0, 403.0),
+                                    (500.0, 170.5),
+                                    (500.0, 170.5),
+                                    None,
+                                ),
+                                WidgetCheck(
+                                    "Rect4",
+                                    (150.0, 579.5),
+                                    (500.0, 170.5),
+                                    (500.0, 170.5),
+                                    None,
+                                ),
+                            ]),
+                        )]),
                     )]),
                 )]),
             ),

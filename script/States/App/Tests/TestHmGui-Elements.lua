@@ -12,30 +12,18 @@ function Test:onInput() end
 
 function Test:scrollArea()
     Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShowId, false)
-    Gui:beginScrollArea(ScrollDirection.Vertical)
-    Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+    Gui:beginScrollArea(ScrollDirection.All)
 
-    Gui:button("Button1")
-    Gui:button("Button2")
-    Gui:button("Button3")
-    Gui:button("Button4")
-    Gui:button("Button5")
-    Gui:button("Button6")
-    Gui:button("Button7")
-    Gui:button("Button8")
-    Gui:button("Button9")
-    Gui:button("Button10")
-    Gui:button("Button11")
-    Gui:button("Button12")
-    Gui:button("Button13")
-    Gui:button("Button14")
-    Gui:button("Button15")
-    Gui:button("Button16")
-    Gui:button("Button17")
-    Gui:button("Button18")
-    Gui:button("Button19")
-    Gui:button("Button20")
-    Gui:button("Button21")
+    Gui:beginVerticalContainer()
+    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+    Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+
+    for i = 1, 21 do
+        Gui:button("Button-" .. i)
+    end
+
+    Gui:endContainer()
+    Gui:setBorder(3, Color(0, 1, 0, 1));
 
     Gui:endScrollArea(InputInstance)
     Gui:setBorder(3, Color(0, 0, 1, 1));

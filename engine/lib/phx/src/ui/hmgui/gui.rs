@@ -173,7 +173,8 @@ impl HmGui {
         }
 
         for i in 0..self.mouse_over_widget_hash.len() {
-            // TODO: do we really need self.mouse_over_widget_hash[i] == 0 check here?
+            // we need `self.mouse_over_widget_hash[i] == 0` check here to prevent parent container to overwrite
+            // mouse over child situation
             if widget.mouse_over[i] && self.mouse_over_widget_hash[i] == 0 {
                 self.mouse_over_widget_hash[i] = widget.hash;
             }
@@ -353,29 +354,18 @@ impl HmGui {
     pub fn begin_scroll_area(&mut self, dir: ScrollDirection) {
         self.begin_stack_container();
 
-        match dir {
-            ScrollDirection::All => {
-                self.begin_stack_container();
-            }
-            ScrollDirection::Horizontal => {
-                self.begin_horizontal_container();
-            }
-            ScrollDirection::Vertical => {
-                self.begin_vertical_container();
-            }
-        }
-
+        self.begin_stack_container();
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         let widget_rf = self.container.clone();
         let mut widget = widget_rf.as_mut();
 
         let container = widget.get_container_item_mut();
-        container.store_size = true;
+        container.scroll_dir = Some(dir);
     }
 
     pub fn end_scroll_area(&mut self, input: &Input) {
-        let (max_scroll_x, max_scroll_y, inner_widget_hash) = {
+        let (max_scroll_x, max_scroll_y, inner_widget_hash, allow_hscroll, allow_vscroll) = {
             let widget_rf = self.container.clone();
             let mut widget = widget_rf.as_mut();
 
@@ -390,133 +380,153 @@ impl HmGui {
             let container = widget.get_container_item_mut();
             container.offset = -data.offset;
 
-            (max_scroll_x, max_scroll_y, widget.hash)
+            let (allow_hscroll, allow_vscroll) = if let Some(dir) = container.scroll_dir {
+                match dir {
+                    ScrollDirection::All => (true, true),
+                    ScrollDirection::Horizontal => (true, false),
+                    ScrollDirection::Vertical => (false, true),
+                }
+            } else {
+                (false, false)
+            };
+
+            (
+                max_scroll_x,
+                max_scroll_y,
+                widget.hash,
+                allow_hscroll,
+                allow_vscroll,
+            )
         };
 
         self.end_container();
 
-        let fade_scale = {
-            let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
-            let mut scroll = input.mouse().scroll();
+        let hscroll =
+            allow_hscroll && self.get_property_bool(HmGuiProperties::ScrollAreaHScrollShowId.id());
+        let vscroll =
+            allow_vscroll && self.get_property_bool(HmGuiProperties::ScrollAreaVScrollShowId.id());
 
-            if input.keyboard().is_down(KeyboardButton::ShiftLeft) {
-                let scroll_x = scroll.y;
-                scroll = Vec2::new(scroll_x, 0.0);
-            }
+        if hscroll || vscroll {
+            let fade_scale = {
+                let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
+                let mut scroll = input.mouse().scroll();
 
-            let widget_rf = self.container.clone();
-            let widget = widget_rf.as_ref();
-
-            let data = self.get_data(widget.hash);
-
-            let fade_scale = if is_mouse_over
-                && (scroll.length() > 0.3 || input.mouse().delta().length() > 0.5)
-            {
-                data.scrollbar_activation_time = Instant::now();
-                1.0
-            } else {
-                let elapsed_time = Instant::now() - data.scrollbar_activation_time;
-                let stable_time = Duration::from_millis(400);
-                let fade_time = Duration::from_millis(200);
-
-                if elapsed_time <= stable_time {
-                    1.0
-                } else if elapsed_time <= stable_time + fade_time {
-                    1.0 - (elapsed_time - stable_time).as_millis() as f32
-                        / fade_time.as_millis() as f32
-                } else {
-                    0.0
+                if input.keyboard().is_down(KeyboardButton::ShiftLeft) {
+                    let scroll_x = scroll.y;
+                    scroll = Vec2::new(scroll_x, 0.0);
                 }
+
+                let widget_rf = self.container.clone();
+                let widget = widget_rf.as_ref();
+
+                let data = self.get_data(widget.hash);
+
+                let fade_scale = if is_mouse_over
+                    && (scroll.length() > 0.3 || input.mouse().delta().length() > 0.5)
+                {
+                    data.scrollbar_activation_time = Instant::now();
+                    1.0
+                } else {
+                    let elapsed_time = Instant::now() - data.scrollbar_activation_time;
+                    let stable_time = Duration::from_millis(400);
+                    let fade_time = Duration::from_millis(200);
+
+                    if elapsed_time <= stable_time {
+                        1.0
+                    } else if elapsed_time <= stable_time + fade_time {
+                        1.0 - (elapsed_time - stable_time).as_millis() as f32
+                            / fade_time.as_millis() as f32
+                    } else {
+                        0.0
+                    }
+                };
+
+                if is_mouse_over {
+                    let data = self.get_data(inner_widget_hash);
+                    data.offset -= scroll * 20.0;
+                }
+
+                fade_scale
             };
 
-            if is_mouse_over {
-                let data = self.get_data(inner_widget_hash);
-                data.offset -= scroll * 20.0;
-            }
+            if fade_scale > 0.0 {
+                let sb_length = 4.0;
+                let sb_bg_color = Color::new(0.3, 0.3, 0.3, 0.3 * fade_scale);
+                let mut sb_knob_color = self
+                    .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
+                    .clone();
 
-            fade_scale
-        };
+                sb_knob_color.a *= fade_scale;
 
-        let hscroll = self.get_property_bool(HmGuiProperties::ScrollAreaHScrollShowId.id());
-        let vscroll = self.get_property_bool(HmGuiProperties::ScrollAreaVScrollShowId.id());
+                if hscroll {
+                    self.begin_horizontal_container();
+                    self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Bottom);
+                    self.set_spacing(0.0);
 
-        if (hscroll || vscroll) && fade_scale > 0.0 {
-            let sb_length = 4.0;
-            let sb_bg_color = Color::new(0.3, 0.3, 0.3, 0.3 * fade_scale);
-            let mut sb_knob_color = self
-                .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
-                .clone();
+                    if max_scroll_x > 0.0 {
+                        let (handle_size, handle_pos) = {
+                            let data = self.get_data(inner_widget_hash);
+                            let handle_size = data.size.x * (data.size.x / data.min_size.x);
+                            let handle_pos = Lerp(
+                                0.0f64,
+                                (data.size.x - handle_size) as f64,
+                                (data.offset.x / max_scroll_x) as f64,
+                            ) as f32;
 
-            sb_knob_color.a *= fade_scale;
+                            (handle_size, handle_pos)
+                        };
 
-            if hscroll {
-                self.begin_horizontal_container();
-                self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Bottom);
-                self.set_spacing(0.0);
+                        self.rect(&sb_bg_color);
+                        self.set_fixed_size(handle_pos, sb_length);
 
-                if max_scroll_x > 0.0 {
-                    let (handle_size, handle_pos) = {
-                        let data = self.get_data(inner_widget_hash);
-                        let handle_size = data.size.x * (data.size.x / data.min_size.x);
-                        let handle_pos = Lerp(
-                            0.0f64,
-                            (data.size.x - handle_size) as f64,
-                            (data.offset.x / max_scroll_x) as f64,
-                        ) as f32;
+                        self.rect(&sb_knob_color);
+                        self.set_fixed_size(handle_size, sb_length);
 
-                        (handle_size, handle_pos)
-                    };
+                        self.rect(&sb_bg_color);
+                        self.set_fixed_height(sb_length);
+                        self.set_horizontal_alignment(AlignHorizontal::Stretch);
+                    } else {
+                        // self.rect(&sb_bg_color);
+                        // self.set_fixed_size(16.0, sb_length);
+                    }
 
-                    self.rect(&sb_bg_color);
-                    self.set_fixed_size(handle_pos, sb_length);
-
-                    self.rect(&sb_knob_color);
-                    self.set_fixed_size(handle_size, sb_length);
-
-                    self.rect(&sb_bg_color);
-                    self.set_fixed_height(sb_length);
-                    self.set_horizontal_alignment(AlignHorizontal::Stretch);
-                } else {
-                    // self.rect(&sb_bg_color);
-                    // self.set_fixed_size(16.0, sb_length);
+                    self.end_container();
                 }
 
-                self.end_container();
-            }
+                if vscroll {
+                    self.begin_vertical_container();
+                    self.set_alignment(AlignHorizontal::Right, AlignVertical::Stretch);
+                    self.set_spacing(0.0);
 
-            if vscroll {
-                self.begin_vertical_container();
-                self.set_alignment(AlignHorizontal::Right, AlignVertical::Stretch);
-                self.set_spacing(0.0);
+                    if max_scroll_y > 0.0 {
+                        let (handle_size, handle_pos) = {
+                            let data = self.get_data(inner_widget_hash);
+                            let handle_size = data.size.y * (data.size.y / data.min_size.y);
+                            let handle_pos = Lerp(
+                                0.0f64,
+                                (data.size.y - handle_size) as f64,
+                                (data.offset.y / max_scroll_y) as f64,
+                            ) as f32;
 
-                if max_scroll_y > 0.0 {
-                    let (handle_size, handle_pos) = {
-                        let data = self.get_data(inner_widget_hash);
-                        let handle_size = data.size.y * (data.size.y / data.min_size.y);
-                        let handle_pos = Lerp(
-                            0.0f64,
-                            (data.size.y - handle_size) as f64,
-                            (data.offset.y / max_scroll_y) as f64,
-                        ) as f32;
+                            (handle_size, handle_pos)
+                        };
 
-                        (handle_size, handle_pos)
-                    };
+                        self.rect(&sb_bg_color);
+                        self.set_fixed_size(sb_length, handle_pos);
 
-                    self.rect(&sb_bg_color);
-                    self.set_fixed_size(sb_length, handle_pos);
+                        self.rect(&sb_knob_color);
+                        self.set_fixed_size(sb_length, handle_size);
 
-                    self.rect(&sb_knob_color);
-                    self.set_fixed_size(sb_length, handle_size);
+                        self.rect(&sb_bg_color);
+                        self.set_fixed_width(sb_length);
+                        self.set_vertical_alignment(AlignVertical::Stretch);
+                    } else {
+                        // self.rect(&sb_bg_color);
+                        // self.set_fixed_size(sb_length, 16.0);
+                    }
 
-                    self.rect(&sb_bg_color);
-                    self.set_fixed_width(sb_length);
-                    self.set_vertical_alignment(AlignVertical::Stretch);
-                } else {
-                    // self.rect(&sb_bg_color);
-                    // self.set_fixed_size(sb_length, 16.0);
+                    self.end_container();
                 }
-
-                self.end_container();
             }
         }
 
