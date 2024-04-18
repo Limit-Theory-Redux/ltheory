@@ -38,6 +38,7 @@ core_properties! {
     (TextFontId,              "text.font",               Font::load("Rajdhani", 14)),
     (TextColorId,             "text.color",              Color::WHITE),
 
+    (ContainerClipId,         "container.clip",          true),
     (ContainerSpacingId,      "container.spacing",       6.0f32),
     (ContainerColorFrameId,   "container.color-frame",   Color::new(0.1, 0.1, 0.1, 0.5)),
     (ContainerColorPrimaryId, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),

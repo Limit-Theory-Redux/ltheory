@@ -30,7 +30,6 @@ pub struct HmGuiContainer {
     pub children_hash: u32,
     pub offset: Vec2, // TODO: move to widget?
     pub total_stretch: Vec2,
-    pub clip: bool, // TODO: style property?
     pub store_size: bool,
 }
 
@@ -372,7 +371,9 @@ impl HmGuiContainer {
     }
 
     pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
-        hmgui.renderer.begin_layer(pos, size, self.clip);
+        let clip = hmgui.get_property_bool(HmGuiProperties::ContainerClipId.id());
+
+        hmgui.renderer.begin_layer(pos, size, clip);
 
         for widget_rf in self.children.iter().rev() {
             widget_rf.as_ref().draw(hmgui);
@@ -395,7 +396,6 @@ impl HmGuiContainer {
         println!("{ident_str}- spacing:          {}", self.spacing);
         println!("{ident_str}- children_hash:    {}", self.children_hash);
         println!("{ident_str}- total_stretch:    {:?}", self.total_stretch);
-        println!("{ident_str}- clip:             {}", self.clip);
         println!("{ident_str}- store_size:       {:?}", self.store_size);
         println!("{ident_str}- children[{}]:", self.children.len());
 

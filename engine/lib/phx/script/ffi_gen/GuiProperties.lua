@@ -21,6 +21,7 @@ function Loader.defineType()
             GuiProperties GuiProperties_HighlightColorId;
             GuiProperties GuiProperties_TextFontId;
             GuiProperties GuiProperties_TextColorId;
+            GuiProperties GuiProperties_ContainerClipId;
             GuiProperties GuiProperties_ContainerSpacingId;
             GuiProperties GuiProperties_ContainerColorFrameId;
             GuiProperties GuiProperties_ContainerColorPrimaryId;
@@ -45,6 +46,7 @@ function Loader.defineType()
             HighlightColorId          = libphx.GuiProperties_HighlightColorId,
             TextFontId                = libphx.GuiProperties_TextFontId,
             TextColorId               = libphx.GuiProperties_TextColorId,
+            ContainerClipId           = libphx.GuiProperties_ContainerClipId,
             ContainerSpacingId        = libphx.GuiProperties_ContainerSpacingId,
             ContainerColorFrameId     = libphx.GuiProperties_ContainerColorFrameId,
             ContainerColorPrimaryId   = libphx.GuiProperties_ContainerColorPrimaryId,

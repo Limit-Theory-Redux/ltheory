@@ -39,7 +39,6 @@ impl HmGui {
         let container = HmGuiContainer {
             layout: LayoutType::None,
             spacing: 0.0,
-            clip: true,
             ..Default::default()
         };
 
@@ -160,7 +159,9 @@ impl HmGui {
         let is_mouse_over = widget.contains_point(&self.focus_pos);
 
         if let WidgetItem::Container(container) = &widget.item {
-            if !container.clip || is_mouse_over {
+            let clip = self.get_property_bool(HmGuiProperties::ContainerClipId.id());
+
+            if !clip || is_mouse_over {
                 for widget_rf in container.children.iter().rev() {
                     self.check_mouse_over(widget_rf.clone());
                 }
@@ -368,19 +369,15 @@ impl HmGui {
 
         let widget_rf = self.container.clone();
         let mut widget = widget_rf.as_mut();
-        let widget_hash = widget.hash;
-        let data = self.get_data(widget_hash);
 
         let container = widget.get_container_item_mut();
-        container.clip = true;
         container.store_size = true;
-        container.offset = -data.offset;
     }
 
     pub fn end_scroll_area(&mut self, input: &Input) {
         let (max_scroll_x, max_scroll_y, inner_widget_hash) = {
             let widget_rf = self.container.clone();
-            let widget = widget_rf.as_ref();
+            let mut widget = widget_rf.as_mut();
 
             let data = self.get_data(widget.hash);
 
@@ -390,10 +387,13 @@ impl HmGui {
             data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
             data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
 
-            self.end_container();
+            let container = widget.get_container_item_mut();
+            container.offset = -data.offset;
 
             (max_scroll_x, max_scroll_y, widget.hash)
         };
+
+        self.end_container();
 
         let fade_scale = {
             let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
@@ -546,9 +546,6 @@ impl HmGui {
             widget.pos.x += data.offset.x;
             widget.pos.y += data.offset.y;
             widget.render_style = RenderStyle::None;
-
-            let container = widget.get_container_item_mut();
-            container.clip = true;
         }
 
         self.begin_vertical_container();
