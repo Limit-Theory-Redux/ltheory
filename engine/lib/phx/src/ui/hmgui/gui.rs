@@ -349,10 +349,21 @@ impl HmGui {
         self.container = parent;
     }
 
-    pub fn begin_scroll_area(&mut self) {
+    pub fn begin_scroll_area(&mut self, dir: ScrollDirection) {
         self.begin_stack_container();
 
-        self.begin_vertical_container();
+        match dir {
+            ScrollDirection::All => {
+                self.begin_stack_container();
+            }
+            ScrollDirection::Horizontal => {
+                self.begin_horizontal_container();
+            }
+            ScrollDirection::Vertical => {
+                self.begin_vertical_container();
+            }
+        }
+
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         let widget_rf = self.container.clone();

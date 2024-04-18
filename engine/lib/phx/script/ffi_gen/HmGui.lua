@@ -24,7 +24,7 @@ function Loader.defineType()
             void               HmGui_BeginVerticalContainer         (HmGui*);
             void               HmGui_BeginStackContainer            (HmGui*);
             void               HmGui_EndContainer                   (HmGui*);
-            void               HmGui_BeginScrollArea                (HmGui*);
+            void               HmGui_BeginScrollArea                (HmGui*, ScrollDirection dir);
             void               HmGui_EndScrollArea                  (HmGui*, Input const* input);
             void               HmGui_BeginWindow                    (HmGui*, cstr title, Input const* input);
             void               HmGui_EndWindow                      (HmGui*);
