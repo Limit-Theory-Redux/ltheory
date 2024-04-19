@@ -20,5 +20,10 @@ GuiProperties = {
     CheckboxHighlightColor = 15,
     ScrollAreaHScrollShow = 16,
     ScrollAreaVScrollShow = 17,
+    ScrollAreaScrollbarLength = 18,
+    ScrollAreaScrollbarBackgroundColor = 19,
+    ScrollAreaScrollScale = 20,
+    ScrollAreaScrollbarVisibilityStableTime = 21,
+    ScrollAreaScrollbarVisibilityFadeTime = 22,
 }
 

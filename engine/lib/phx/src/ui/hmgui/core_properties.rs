@@ -52,8 +52,13 @@ core_properties! {
     (CheckboxBackgroundColor, "checkbox.background-color", Color::new(0.3, 0.3, 0.3, 0.5), BackgroundColor),
     (CheckboxHighlightColor,  "checkbox.highlight-color",  Color::new(0.3, 0.3, 0.3, 1.0), HighlightColor),
 
-    (ScrollAreaHScrollShow, "scroll-area.hscroll.show", true),
-    (ScrollAreaVScrollShow, "scroll-area.vscroll.show", true),
+    (ScrollAreaHScrollShow,                   "scroll-area.hscroll.show", true),
+    (ScrollAreaVScrollShow,                   "scroll-area.vscroll.show", true),
+    (ScrollAreaScrollbarLength,               "scroll-area.scrollbar.length", 4f32),
+    (ScrollAreaScrollbarBackgroundColor,      "scroll-area.scrollbar.background-color", Color::new(0.3, 0.3, 0.3, 0.3)),
+    (ScrollAreaScrollScale,                   "scroll-area.scroll-scale", 20f32),
+    (ScrollAreaScrollbarVisibilityStableTime, "scroll-area.scrollbar.visibility-stable-time", 400u64),
+    (ScrollAreaScrollbarVisibilityFadeTime,   "scroll-area.scrollbar.visibility-fade-time", 200u64),
 }
 
 /// Adds a new property to the map.

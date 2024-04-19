@@ -359,8 +359,8 @@ impl HmGui {
 
         let widget_rf = self.container.clone();
         let mut widget = widget_rf.as_mut();
-
         let container = widget.get_container_item_mut();
+
         container.scroll_dir = Some(dir);
     }
 
@@ -408,6 +408,8 @@ impl HmGui {
 
         if hscroll || vscroll {
             let fade_scale = {
+                let scroll_scale =
+                    self.get_property_f32(HmGuiProperties::ScrollAreaScrollScale.id());
                 let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
                 let mut scroll = input.mouse().scroll();
 
@@ -428,8 +430,12 @@ impl HmGui {
                     1.0
                 } else {
                     let elapsed_time = Instant::now() - data.scrollbar_activation_time;
-                    let stable_time = Duration::from_millis(400);
-                    let fade_time = Duration::from_millis(200);
+                    let stable_time = Duration::from_millis(self.get_property_u64(
+                        HmGuiProperties::ScrollAreaScrollbarVisibilityStableTime.id(),
+                    ));
+                    let fade_time = Duration::from_millis(self.get_property_u64(
+                        HmGuiProperties::ScrollAreaScrollbarVisibilityFadeTime.id(),
+                    ));
 
                     if elapsed_time <= stable_time {
                         1.0
@@ -443,87 +449,83 @@ impl HmGui {
 
                 if is_mouse_over {
                     let data = self.get_data(inner_widget_hash);
-                    data.offset -= scroll * 20.0;
+                    data.offset -= scroll * scroll_scale;
                 }
 
                 fade_scale
             };
 
             if fade_scale > 0.0 {
-                let sb_length = 4.0;
-                let sb_bg_color = Color::new(0.3, 0.3, 0.3, 0.3 * fade_scale);
+                let sb_length =
+                    self.get_property_f32(HmGuiProperties::ScrollAreaScrollbarLength.id());
+
+                let mut sb_bg_color = self
+                    .get_property_color(HmGuiProperties::ScrollAreaScrollbarBackgroundColor.id())
+                    .clone();
+                sb_bg_color.a *= fade_scale;
+
                 let mut sb_knob_color = self
                     .get_property_color(HmGuiProperties::ContainerColorFrame.id())
                     .clone();
 
                 sb_knob_color.a *= fade_scale;
 
-                if hscroll {
+                if hscroll && max_scroll_x > 0.0 {
                     self.begin_horizontal_container();
                     self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Bottom);
                     self.set_spacing(0.0);
 
-                    if max_scroll_x > 0.0 {
-                        let (handle_size, handle_pos) = {
-                            let data = self.get_data(inner_widget_hash);
-                            let handle_size = data.size.x * (data.size.x / data.min_size.x);
-                            let handle_pos = Lerp(
-                                0.0f64,
-                                (data.size.x - handle_size) as f64,
-                                (data.offset.x / max_scroll_x) as f64,
-                            ) as f32;
+                    let (handle_size, handle_pos) = {
+                        let data = self.get_data(inner_widget_hash);
+                        let handle_size = data.size.x * (data.size.x / data.min_size.x);
+                        let handle_pos = Lerp(
+                            0.0f64,
+                            (data.size.x - handle_size) as f64,
+                            (data.offset.x / max_scroll_x) as f64,
+                        ) as f32;
 
-                            (handle_size, handle_pos)
-                        };
+                        (handle_size, handle_pos)
+                    };
 
-                        self.rect(&sb_bg_color);
-                        self.set_fixed_size(handle_pos, sb_length);
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_size(handle_pos, sb_length);
 
-                        self.rect(&sb_knob_color);
-                        self.set_fixed_size(handle_size, sb_length);
+                    self.rect(&sb_knob_color);
+                    self.set_fixed_size(handle_size, sb_length);
 
-                        self.rect(&sb_bg_color);
-                        self.set_fixed_height(sb_length);
-                        self.set_horizontal_alignment(AlignHorizontal::Stretch);
-                    } else {
-                        // self.rect(&sb_bg_color);
-                        // self.set_fixed_size(16.0, sb_length);
-                    }
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_height(sb_length);
+                    self.set_horizontal_alignment(AlignHorizontal::Stretch);
 
                     self.end_container();
                 }
 
-                if vscroll {
+                if vscroll && max_scroll_y > 0.0 {
                     self.begin_vertical_container();
                     self.set_alignment(AlignHorizontal::Right, AlignVertical::Stretch);
                     self.set_spacing(0.0);
 
-                    if max_scroll_y > 0.0 {
-                        let (handle_size, handle_pos) = {
-                            let data = self.get_data(inner_widget_hash);
-                            let handle_size = data.size.y * (data.size.y / data.min_size.y);
-                            let handle_pos = Lerp(
-                                0.0f64,
-                                (data.size.y - handle_size) as f64,
-                                (data.offset.y / max_scroll_y) as f64,
-                            ) as f32;
+                    let (handle_size, handle_pos) = {
+                        let data = self.get_data(inner_widget_hash);
+                        let handle_size = data.size.y * (data.size.y / data.min_size.y);
+                        let handle_pos = Lerp(
+                            0.0f64,
+                            (data.size.y - handle_size) as f64,
+                            (data.offset.y / max_scroll_y) as f64,
+                        ) as f32;
 
-                            (handle_size, handle_pos)
-                        };
+                        (handle_size, handle_pos)
+                    };
 
-                        self.rect(&sb_bg_color);
-                        self.set_fixed_size(sb_length, handle_pos);
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_size(sb_length, handle_pos);
 
-                        self.rect(&sb_knob_color);
-                        self.set_fixed_size(sb_length, handle_size);
+                    self.rect(&sb_knob_color);
+                    self.set_fixed_size(sb_length, handle_size);
 
-                        self.rect(&sb_bg_color);
-                        self.set_fixed_width(sb_length);
-                        self.set_vertical_alignment(AlignVertical::Stretch);
-                    } else {
-                        // self.rect(&sb_bg_color);
-                        // self.set_fixed_size(sb_length, 16.0);
-                    }
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_width(sb_length);
+                    self.set_vertical_alignment(AlignVertical::Stretch);
 
                     self.end_container();
                 }
