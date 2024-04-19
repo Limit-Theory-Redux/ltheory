@@ -4,6 +4,8 @@ use syn::parse::Result;
 use syn::spanned::Spanned;
 use syn::{Attribute, Error, Expr, ExprLit, Fields, ItemEnum, Lit, Variant};
 
+use crate::util::{get_meta_str_value, get_path_last_name};
+
 use super::variants_info::VariantsInfo;
 use super::*;
 
@@ -37,6 +39,8 @@ fn parse_variants(
             ));
         }
 
+        let docs = parse_variant_docs(&variant.attrs)?;
+
         let discriminant = if let Some((_, expr)) = &variant.discriminant {
             if let Expr::Lit(ExprLit { lit, .. }) = expr {
                 match lit {
@@ -52,13 +56,15 @@ fn parse_variants(
 
         let name = variant.ident.to_string();
 
-        res.push((name, discriminant));
+        res.push((docs, name, discriminant));
     }
 
-    let discriminants: Vec<_> = res.iter().filter_map(|v| v.1).collect();
+    let discriminants: Vec<_> = res.iter().filter_map(|(_, _, index)| *index).collect();
 
     if discriminants.is_empty() {
-        Ok(VariantsInfo::Simple(res.into_iter().map(|v| v.0).collect()))
+        Ok(VariantsInfo::Simple(
+            res.into_iter().map(|(doc, name, _)| (doc, name)).collect(),
+        ))
     } else if discriminants.len() != res.len() {
         Err(Error::new(
             enum_span,
@@ -68,9 +74,23 @@ fn parse_variants(
         let values = res
             .into_iter()
             .zip(discriminants)
-            .map(|((name, _), d)| (name, d))
+            .map(|((doc, name, _), d)| (doc, name, d))
             .collect();
 
         Ok(VariantsInfo::Value(values))
     }
+}
+
+fn parse_variant_docs(attrs: &Vec<Attribute>) -> Result<Vec<String>> {
+    let mut docs = vec![];
+
+    for attr in attrs {
+        if get_path_last_name(attr.meta.path())? == "doc" {
+            if let Some(doc_text) = get_meta_str_value(&attr.meta)? {
+                docs.push(doc_text);
+            }
+        }
+    }
+
+    Ok(docs)
 }

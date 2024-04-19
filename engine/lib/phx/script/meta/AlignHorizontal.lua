@@ -2,6 +2,7 @@
 
 ---@enum AlignHorizontal
 AlignHorizontal = {
+    ---Default alignment (Left)
     Default = 0,
     Center = 1,
     Left = 2,

@@ -31,10 +31,10 @@ impl EnumInfo {
         };
         let repr_type_ident = format_ident!("{repr_type}");
 
-        let variant_pairs = self.variants.get_pairs(start_index);
+        let variant_pairs = self.variants.get_info(start_index);
         let constant_items: Vec<_> = variant_pairs
             .iter()
-            .map(|(variant_name, _)| {
+            .map(|(_, variant_name, _)| {
                 let mangle_ident = if let Some(enum_name) = attr_args.name() {
                     let export_name = format!("{enum_name}_{variant_name}");
                     quote!(#[export_name = #export_name])
@@ -54,7 +54,7 @@ impl EnumInfo {
         let enum_size = variant_pairs.len();
         let value_items: Vec<_> = variant_pairs
             .iter()
-            .map(|(name, d)| {
+            .map(|(_, name, d)| {
                 let variant_ident = format_ident!("{name}");
 
                 quote! {
