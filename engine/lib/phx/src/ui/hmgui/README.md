@@ -275,7 +275,7 @@ This feature is used for automatically transferring a property value from one el
 In our `button` example, we first register `button.text-font` and `button.text-color`, then we map these to the corresponding `text` properties of `button`. Imagine we have defined a `button` element in Lua:
 ```lua
 -- registration in GuiEnums.lua
-Enums.Gui.ButtonTextColorId = Gui:registerPropertyVec4("button.text-color", Vec4(1, 1, 1, 1), "text.color")
+Enums.Gui.ButtonTextColor = Gui:registerPropertyVec4("button.text-color", Vec4(1, 1, 1, 1), "text.color")
 
 -- button element
 function button(name)
@@ -287,7 +287,7 @@ end
 
 -- somewhere later
 Gui:clearStyle()
-Gui:setPropertyColor(Enums.Gui.ButtonTextColorId, Color(0, 1, 0, 1))
+Gui:setPropertyColor(Enums.Gui.ButtonTextColor, Color(0, 1, 0, 1))
 Gui:button("My button")
 ```
 It's recommended to add `Gui:mapPropertyGroup(group)` call at the beginning of every element declaration that has group properties (usually group name is the same as an element name).
@@ -330,7 +330,7 @@ Gui:button("MyButton")
 ```
   - Example of styling through the global style configuration file `styles.yaml`:
 ```lua
-Gui:setStyle(Enums.Gui.Styles.MyButtonStyleId)
+Gui:setStyle(Enums.Gui.Styles.MyButtonStyle)
 Gui:button("MyButton")
 ```
 During startup the engine loads all element styles from the `styles.yaml` configuration file in the resource folder. [Example](../../../test_data/styles.yaml).
@@ -345,9 +345,9 @@ Element style scripting methods:
 
 Scripters can define custom properties in the [`GuiEnums.lua`](/script/Enums/GuiEnums.lua) file. Example:
 ```lua
-Enums.Gui.MItemTextColorId = Gui:registerPropertyVec4("menuitem.text-color", Vec4(1, 0, 1, 1), "text.color")
-Enums.Gui.MenuItemTextColorId = Gui:registerPropertyVec4("menu.item-text-color", Vec4(1, 1, 0, 1), "menuitem.text-color")
-Enums.Gui.MenuBorderWidthId = Gui:registerPropertyVec4("menu.border-width", 2, nil)
+Enums.Gui.MItemTextColor = Gui:registerPropertyVec4("menuitem.text-color", Vec4(1, 0, 1, 1), "text.color")
+Enums.Gui.MenuItemTextColor = Gui:registerPropertyVec4("menu.item-text-color", Vec4(1, 1, 0, 1), "menuitem.text-color")
+Enums.Gui.MenuBorderWidth = Gui:registerPropertyVec4("menu.border-width", 2, nil)
 ```
 
 Then this property can be used in the custom element definition:
@@ -355,14 +355,14 @@ Then this property can be used in the custom element definition:
 function menu(variants)
 Gui:mapPropertyGroup("menuitem") -- map all MenuItem properties - it will map all properties with the name containing "manuitem." prefix
 
-local borderWidth = Gui:getPropertyF32(Enums.Gui.MenuBorderWidthId)
+local borderWidth = Gui:getPropertyF32(Enums.Gui.MenuBorderWidth)
 ...
 menu_item(variants[1])
 ...
 end
 
 function menu_item(name)
-Gui:mapProperty(Enums.Gui.MItemTextColorId) -- copy this property value into the "text.color"
+Gui:mapProperty(Enums.Gui.MItemTextColor) -- copy this property value into the "text.color"
 ...
 Gui:text(name)
 ...
