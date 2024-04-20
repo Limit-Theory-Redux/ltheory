@@ -4,7 +4,7 @@ use syn::spanned::Spanned;
 use syn::{Attribute, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Type};
 
 use crate::args::BindArgs;
-use crate::util::{get_meta_str_value, get_path_last_name, get_path_last_name_with_generics};
+use crate::util::{get_meta_name, get_path_last_name, get_path_last_name_with_generics};
 
 use super::*;
 
@@ -88,7 +88,7 @@ fn parse_method_attrs(attrs: &mut Vec<Attribute>) -> Result<(Vec<String>, BindAr
                 res = Some((i, args));
             }
             "doc" => {
-                if let Some(doc_text) = get_meta_str_value(&attr.meta)? {
+                if let Some(doc_text) = get_meta_name(&attr.meta) {
                     doc.push(doc_text);
                 }
             }

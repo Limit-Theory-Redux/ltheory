@@ -38,16 +38,18 @@ pub fn get_path_last_name_with_generics(path: &Path) -> Result<(String, Vec<Type
     Ok((format!("{}", last_seg.ident), generic_types))
 }
 
-pub fn get_meta_str_value(meta: &Meta) -> Result<Option<String>> {
-    let doc_text = meta.require_name_value()?;
+pub fn get_meta_name(meta: &Meta) -> Option<String> {
+    let Ok(doc_text) = meta.require_name_value() else {
+        return None;
+    };
 
     if let Expr::Lit(ExprLit { lit, .. }) = &doc_text.value {
         if let Lit::Str(lit_str) = lit {
-            return Ok(Some(format!("{}", lit_str.value().trim())));
+            return Some(format!("{}", lit_str.value().trim()));
         }
     }
 
-    Ok(None)
+    None
 }
 
 /// Convert snake case string into a camel case one.
