@@ -15,7 +15,7 @@ impl EnumInfo {
 
         ffi_gen.set_type_decl_struct(enum_repr_ty.as_c_ffi_string());
 
-        gen_class_definitions(&mut ffi_gen, &module_name, &variants_info);
+        gen_class_definitions(&mut ffi_gen, &self.doc, &module_name, &variants_info);
         gen_c_definitions(&mut ffi_gen, &module_name, &variants_info);
         gen_global_symbol_table(&mut ffi_gen, &module_name, &variants_info);
 
@@ -31,10 +31,14 @@ impl EnumInfo {
 
 fn gen_class_definitions(
     ffi_gen: &mut FfiGenerator,
+    doc: &[String],
     module_name: &str,
     variants_info: &[(&[String], &str, u64)],
 ) {
     ffi_gen.add_class_definition(format!("---@meta\n"));
+
+    doc.iter()
+        .for_each(|d| ffi_gen.add_class_definition(format!("---{d}")));
     ffi_gen.add_class_definition(format!("---@enum {module_name}"));
 
     ffi_gen.add_class_definition(format!("{module_name} = {{"));

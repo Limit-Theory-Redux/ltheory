@@ -11,11 +11,13 @@ use super::*;
 
 impl EnumInfo {
     pub fn parse(item: ItemEnum, attrs: &[Attribute]) -> Result<Self> {
+        let doc = parse_doc_attrs(attrs)?;
         let name = item.ident.to_string();
         let variants = parse_variants(item.variants.iter(), item.span())?;
         let source = quote! { #(#attrs)* #item };
 
         let enum_info = EnumInfo {
+            doc,
             source,
             name,
             variants,
@@ -39,7 +41,7 @@ fn parse_variants(
             ));
         }
 
-        let docs = parse_variant_docs(&variant.attrs)?;
+        let docs = parse_doc_attrs(&variant.attrs)?;
 
         let discriminant = if let Some((_, expr)) = &variant.discriminant {
             if let Expr::Lit(ExprLit { lit, .. }) = expr {
@@ -81,7 +83,7 @@ fn parse_variants(
     }
 }
 
-fn parse_variant_docs(attrs: &Vec<Attribute>) -> Result<Vec<String>> {
+fn parse_doc_attrs(attrs: &[Attribute]) -> Result<Vec<String>> {
     let mut docs = vec![];
 
     for attr in attrs {

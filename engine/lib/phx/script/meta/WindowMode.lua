@@ -1,5 +1,6 @@
 ---@meta
 
+---Defines the way a [`Window`] is displayed.
 ---@enum WindowMode
 WindowMode = {
     ---The window should take a portion of the screen, using the window resolution size.
