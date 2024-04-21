@@ -24,11 +24,42 @@ function HmGui:beginStackContainer() end
 
 function HmGui:endContainer() end
 
----@param maxSize number
-function HmGui:beginScroll(maxSize) end
+---Start scroll area.
+---
+---Internally scroll area represented by 2 nested stack containers for a area itself
+---and 2 other containers for scroll bars. So it is possible to set layout parameters
+---for both external and internal containers. For the former parameters should be
+---specified after `Gui:end_scroll_area()` function call and for the latter after
+---`Gui:beginScrollArea()`.
+---
+---Parameters:
+---**dir** - define directions in which scrolling is enabled: All, Horizontal, Vertical.
+---
+---Example:
+---```lua
+---Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShow, false)
+---Gui:beginScrollArea(ScrollDirection.All)
+---
+---Gui:beginVerticalContainer()
+---Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+---Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+---
+---Gui:button("Button1")
+---Gui:button("Button2")
+---
+---Gui:endContainer()
+---Gui:endScrollArea(InputInstance)
+---Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+---Gui:setFixedSize(500, 500)
+---```
+---@param dir ScrollDirection
+function HmGui:beginScrollArea(dir) end
 
+---End of the scroll area.
+---
+---See [`HmGui::begin_scroll_area`] for example.
 ---@param input Input
-function HmGui:endScroll(input) end
+function HmGui:endScrollArea(input) end
 
 ---Begins window element.
 ---@param title string
@@ -82,6 +113,11 @@ function HmGui:textColored(text, color) end
 ---@param text string
 ---@param color Color
 function HmGui:textEx(font, text, color) end
+
+---Makes current widget `focusable` and returns true if mouse is over it.
+---@param ty FocusType
+---@return boolean
+function HmGui:isMouseOver(ty) end
 
 ---@param width number
 function HmGui:setMinWidth(width) end
@@ -193,11 +229,6 @@ function HmGui:setPaddingBottom(padding) end
 ---@param spacing number
 function HmGui:setSpacing(spacing) end
 
----Makes current container `focusable` and returns if it's currently in focus.
----@param ty FocusType
----@return boolean
-function HmGui:isMouseOver(ty) end
-
 ---@param h AlignHorizontal
 ---@param v AlignVertical
 function HmGui:setChildrenAlignment(h, v) end
@@ -235,6 +266,12 @@ function HmGui:getPropertyType(id) end
 ---Write property value into the mapped properties in the active element style.
 ---@param propertyId integer
 function HmGui:mapProperty(propertyId) end
+
+---Write all properties values of the group into their mapped properties in the active element style.
+---Example: `gui.map_property_group("button")`
+---It will map all properties with prefix "button.".
+---@param group string
+function HmGui:mapPropertyGroup(group) end
 
 ---Remove property by id from the active element style.
 ---@param propertyId integer

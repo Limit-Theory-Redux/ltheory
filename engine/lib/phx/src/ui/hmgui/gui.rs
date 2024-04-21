@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 use glam::*;
 
@@ -38,7 +39,6 @@ impl HmGui {
         let container = HmGuiContainer {
             layout: LayoutType::None,
             spacing: 0.0,
-            clip: true,
             ..Default::default()
         };
 
@@ -134,7 +134,7 @@ impl HmGui {
 
     /// Start a new container with specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
-        let spacing = self.get_property_f32(HmGuiProperties::ContainerSpacingId.id());
+        let spacing = self.get_property_f32(HmGuiProperties::ContainerSpacing.id());
 
         let container = HmGuiContainer {
             layout,
@@ -159,7 +159,9 @@ impl HmGui {
         let is_mouse_over = widget.contains_point(&self.focus_pos);
 
         if let WidgetItem::Container(container) = &widget.item {
-            if !container.clip || is_mouse_over {
+            let clip = self.get_property_bool(HmGuiProperties::ContainerClip.id());
+
+            if !clip || is_mouse_over {
                 for widget_rf in container.children.iter().rev() {
                     self.check_mouse_over(widget_rf.clone());
                 }
@@ -171,7 +173,8 @@ impl HmGui {
         }
 
         for i in 0..self.mouse_over_widget_hash.len() {
-            // TODO: do we really need self.mouse_over_widget_hash[i] == 0 check here?
+            // we need `self.mouse_over_widget_hash[i] == 0` check here to prevent parent container to overwrite
+            // mouse over child situation
             if widget.mouse_over[i] && self.mouse_over_widget_hash[i] == 0 {
                 self.mouse_over_widget_hash[i] = widget.hash;
             }
@@ -348,112 +351,217 @@ impl HmGui {
         self.container = parent;
     }
 
-    pub fn begin_scroll(&mut self, _max_size: f32) {
+    /// Start scroll area.
+    ///
+    /// Internally scroll area represented by 2 nested stack containers for a area itself
+    /// and 2 other containers for scroll bars. So it is possible to set layout parameters
+    /// for both external and internal containers. For the former parameters should be
+    /// specified after `Gui:end_scroll_area()` function call and for the latter after
+    /// `Gui:beginScrollArea()`.
+    ///
+    /// Parameters:
+    /// **dir** - define directions in which scrolling is enabled: All, Horizontal, Vertical.
+    ///
+    /// Example:
+    /// ```lua
+    /// Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShow, false)
+    /// Gui:beginScrollArea(ScrollDirection.All)
+    ///
+    /// Gui:beginVerticalContainer()
+    /// Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+    /// Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+    ///
+    /// Gui:button("Button1")
+    /// Gui:button("Button2")
+    ///
+    /// Gui:endContainer()
+    /// Gui:endScrollArea(InputInstance)
+    /// Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+    /// Gui:setFixedSize(500, 500)
+    /// ```
+    pub fn begin_scroll_area(&mut self, dir: ScrollDirection) {
+        self.begin_stack_container();
+
+        self.begin_stack_container();
+        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+
         let widget_rf = self.container.clone();
         let mut widget = widget_rf.as_mut();
-        let widget_hash = widget.hash;
         let container = widget.get_container_item_mut();
 
-        self.begin_horizontal_container();
-        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
-        self.set_spacing(2.0);
-
-        container.clip = true;
-
-        self.begin_vertical_container();
-        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
-        self.set_padding(6.0, 6.0);
-
-        container.store_size = true;
-
-        let data = self.get_data(widget_hash);
-
-        container.offset.x = -data.offset.x;
-        container.offset.y = -data.offset.y;
+        container.scroll_dir = Some(dir);
     }
 
-    pub fn end_scroll(&mut self, input: &Input) {
-        let widget_rf = self.container.clone();
-        let widget = widget_rf.as_ref();
-        let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
+    /// End of the scroll area.
+    ///
+    /// See [`HmGui::begin_scroll_area`] for example.
+    pub fn end_scroll_area(&mut self, input: &Input) {
+        let (max_scroll_x, max_scroll_y, inner_widget_hash, allow_hscroll, allow_vscroll) = {
+            let widget_rf = self.container.clone();
+            let mut widget = widget_rf.as_mut();
 
-        let data = self.get_data(widget.hash);
+            let data = self.get_data(widget.hash);
 
-        if is_mouse_over {
-            let scroll_x = input.mouse().value(MouseControl::ScrollX);
-            let scroll_y = input.mouse().value(MouseControl::ScrollY);
+            let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
+            let max_scroll_y = f32::max(0.0, data.min_size.y - data.size.y);
 
-            data.offset.x -= 10.0 * scroll_x as f32;
-            data.offset.y -= 10.0 * scroll_y as f32;
-        }
+            data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
+            data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
 
-        let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
-        let max_scroll_y = f32::max(0.0, data.min_size.y - data.size.y);
+            let container = widget.get_container_item_mut();
+            container.offset = -data.offset;
 
-        data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
-        data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
+            let (allow_hscroll, allow_vscroll) = if let Some(dir) = container.scroll_dir {
+                match dir {
+                    ScrollDirection::All => (true, true),
+                    ScrollDirection::Horizontal => (true, false),
+                    ScrollDirection::Vertical => (false, true),
+                }
+            } else {
+                (false, false)
+            };
+
+            (
+                max_scroll_x,
+                max_scroll_y,
+                widget.hash,
+                allow_hscroll,
+                allow_vscroll,
+            )
+        };
 
         self.end_container();
 
-        self.begin_vertical_container();
-        self.set_vertical_alignment(AlignVertical::Stretch);
-        self.set_spacing(0.0);
+        let hscroll =
+            allow_hscroll && self.get_property_bool(HmGuiProperties::ScrollAreaHScrollShow.id());
+        let vscroll =
+            allow_vscroll && self.get_property_bool(HmGuiProperties::ScrollAreaVScrollShow.id());
 
-        if max_scroll_x > 0.0 {
-            let (handle_size, handle_pos) = {
+        if hscroll || vscroll {
+            let fade_scale = {
+                let scroll_scale =
+                    self.get_property_f32(HmGuiProperties::ScrollAreaScrollScale.id());
+                let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
+                let mut scroll = input.mouse().scroll();
+
+                if input.keyboard().is_down(KeyboardButton::ShiftLeft) {
+                    let scroll_x = scroll.y;
+                    scroll = Vec2::new(scroll_x, 0.0);
+                }
+
+                let widget_rf = self.container.clone();
+                let widget = widget_rf.as_ref();
+
                 let data = self.get_data(widget.hash);
-                let handle_size = data.size.x * (data.size.x / data.min_size.x);
-                let handle_pos = Lerp(
-                    0.0f64,
-                    (data.size.x - handle_size) as f64,
-                    (data.offset.x / max_scroll_x) as f64,
-                ) as f32;
 
-                (handle_size, handle_pos)
+                let fade_scale = if is_mouse_over
+                    && (scroll.length() > 0.3 || input.mouse().delta().length() > 0.5)
+                {
+                    data.scrollbar_activation_time = Instant::now();
+                    1.0
+                } else {
+                    let elapsed_time = Instant::now() - data.scrollbar_activation_time;
+                    let stable_time = Duration::from_millis(self.get_property_u64(
+                        HmGuiProperties::ScrollAreaScrollbarVisibilityStableTime.id(),
+                    ));
+                    let fade_time = Duration::from_millis(self.get_property_u64(
+                        HmGuiProperties::ScrollAreaScrollbarVisibilityFadeTime.id(),
+                    ));
+
+                    if elapsed_time <= stable_time {
+                        1.0
+                    } else if elapsed_time <= stable_time + fade_time {
+                        1.0 - (elapsed_time - stable_time).as_millis() as f32
+                            / fade_time.as_millis() as f32
+                    } else {
+                        0.0
+                    }
+                };
+
+                if is_mouse_over {
+                    let data = self.get_data(inner_widget_hash);
+                    data.offset -= scroll * scroll_scale;
+                }
+
+                fade_scale
             };
 
-            self.rect(&Color::TRANSPARENT);
-            self.set_fixed_size(handle_pos, 4.0);
+            if fade_scale > 0.0 {
+                let sb_length =
+                    self.get_property_f32(HmGuiProperties::ScrollAreaScrollbarLength.id());
 
-            let color_frame = self
-                .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
-                .clone();
+                let mut sb_bg_color = self
+                    .get_property_color(HmGuiProperties::ScrollAreaScrollbarBackgroundColor.id())
+                    .clone();
+                sb_bg_color.a *= fade_scale;
 
-            self.rect(&color_frame);
-            self.set_fixed_size(handle_size, 4.0);
-        } else {
-            self.rect(&Color::TRANSPARENT);
-            self.set_fixed_size(16.0, 4.0);
+                let mut sb_knob_color = self
+                    .get_property_color(HmGuiProperties::ContainerColorFrame.id())
+                    .clone();
+
+                sb_knob_color.a *= fade_scale;
+
+                if hscroll && max_scroll_x > 0.0 {
+                    self.begin_horizontal_container();
+                    self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Bottom);
+                    self.set_spacing(0.0);
+
+                    let (handle_size, handle_pos) = {
+                        let data = self.get_data(inner_widget_hash);
+                        let handle_size = data.size.x * (data.size.x / data.min_size.x);
+                        let handle_pos = Lerp(
+                            0.0f64,
+                            (data.size.x - handle_size) as f64,
+                            (data.offset.x / max_scroll_x) as f64,
+                        ) as f32;
+
+                        (handle_size, handle_pos)
+                    };
+
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_size(handle_pos, sb_length);
+
+                    self.rect(&sb_knob_color);
+                    self.set_fixed_size(handle_size, sb_length);
+
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_height(sb_length);
+                    self.set_horizontal_alignment(AlignHorizontal::Stretch);
+
+                    self.end_container();
+                }
+
+                if vscroll && max_scroll_y > 0.0 {
+                    self.begin_vertical_container();
+                    self.set_alignment(AlignHorizontal::Right, AlignVertical::Stretch);
+                    self.set_spacing(0.0);
+
+                    let (handle_size, handle_pos) = {
+                        let data = self.get_data(inner_widget_hash);
+                        let handle_size = data.size.y * (data.size.y / data.min_size.y);
+                        let handle_pos = Lerp(
+                            0.0f64,
+                            (data.size.y - handle_size) as f64,
+                            (data.offset.y / max_scroll_y) as f64,
+                        ) as f32;
+
+                        (handle_size, handle_pos)
+                    };
+
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_size(sb_length, handle_pos);
+
+                    self.rect(&sb_knob_color);
+                    self.set_fixed_size(sb_length, handle_size);
+
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_width(sb_length);
+                    self.set_vertical_alignment(AlignVertical::Stretch);
+
+                    self.end_container();
+                }
+            }
         }
-
-        if max_scroll_y > 0.0 {
-            let (handle_size, handle_pos) = {
-                let data = self.get_data(widget.hash);
-                let handle_size = data.size.y * (data.size.y / data.min_size.y);
-                let handle_pos = Lerp(
-                    0.0f64,
-                    (data.size.y - handle_size) as f64,
-                    (data.offset.y / max_scroll_y) as f64,
-                ) as f32;
-
-                (handle_size, handle_pos)
-            };
-
-            self.rect(&Color::TRANSPARENT);
-            self.set_fixed_size(4.0, handle_pos);
-
-            let color_frame = self
-                .get_property_color(HmGuiProperties::ContainerColorFrameId.id())
-                .clone();
-
-            self.rect(&color_frame);
-            self.set_fixed_size(4.0, handle_size);
-        } else {
-            self.rect(&Color::TRANSPARENT);
-            self.set_fixed_size(4.0, 16.0);
-        }
-
-        self.end_container();
 
         self.end_container();
     }
@@ -461,6 +569,7 @@ impl HmGui {
     /// Begins window element.
     // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
+        self.set_property_f32(HmGuiProperties::Opacity.id(), 0.95);
         self.begin_stack_container();
 
         // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
@@ -479,11 +588,7 @@ impl HmGui {
 
             widget.pos.x += data.offset.x;
             widget.pos.y += data.offset.y;
-            widget.focus_style = FocusStyle::None;
-            widget.frame_opacity = 0.95;
-
-            let container = widget.get_container_item_mut();
-            container.clip = true;
+            widget.render_style = RenderStyle::None;
         }
 
         self.begin_vertical_container();
@@ -505,23 +610,27 @@ impl HmGui {
     }
 
     pub fn button(&mut self, label: &str) -> bool {
+        self.map_property_group("button");
+
         self.begin_stack_container();
         self.set_padding(8.0, 8.0);
 
         // A separate scope to prevent runtime borrow panics - widget borrowing conflicts with self.text() below
-        let focus = {
-            let mut widget = self.container.as_mut();
+        let is_mouse_over = {
+            let mut widget = self.last.as_mut();
+            let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
 
-            widget.focus_style = FocusStyle::Fill;
-            widget.frame_opacity = 0.5;
+            if is_mouse_over {
+                widget.render_style = RenderStyle::Fill;
+            }
 
-            self.is_mouse_over_intern(&mut widget, FocusType::Mouse)
+            is_mouse_over
         };
+
+        let pressed = is_mouse_over && self.activate;
 
         self.text(label);
         self.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
-
-        let pressed = focus && self.activate;
 
         self.end_container();
 
@@ -536,11 +645,12 @@ impl HmGui {
 
         // A separate scope to prevent runtime borrow conflict with self.text() below
         {
-            let mut widget = self.container.as_mut();
-
-            widget.focus_style = FocusStyle::Underline;
-
+            let mut widget = self.last.as_mut();
             let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
+
+            if is_mouse_over {
+                widget.render_style = RenderStyle::Underline;
+            }
 
             if is_mouse_over && self.activate {
                 value = !value;
@@ -557,9 +667,9 @@ impl HmGui {
         self.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         let (color_frame, color_primary) = {
-            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrameId.id());
+            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrame.id());
             let color_primary =
-                self.get_property_color(HmGuiProperties::ContainerColorPrimaryId.id());
+                self.get_property_color(HmGuiProperties::ContainerColorPrimary.id());
 
             (color_frame.clone(), color_primary.clone())
         };
@@ -617,8 +727,8 @@ impl HmGui {
     }
 
     pub fn text(&mut self, text: &str) {
-        let font = self.get_property_font(HmGuiProperties::TextFontId.id());
-        let color = self.get_property_color(HmGuiProperties::TextColorId.id());
+        let font = self.get_property_font(HmGuiProperties::TextFont.id());
+        let color = self.get_property_color(HmGuiProperties::TextColor.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
@@ -634,7 +744,7 @@ impl HmGui {
     }
 
     pub fn text_colored(&mut self, text: &str, color: &Color) {
-        let font = self.get_property_font(HmGuiProperties::TextFontId.id());
+        let font = self.get_property_font(HmGuiProperties::TextFont.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
@@ -660,6 +770,13 @@ impl HmGui {
         let mut widget = widget_rf.as_mut();
 
         widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+    }
+
+    /// Makes current widget `focusable` and returns true if mouse is over it.
+    pub fn is_mouse_over(&self, ty: FocusType) -> bool {
+        let mut widget = self.last.as_mut();
+
+        self.is_mouse_over_intern(&mut widget, ty)
     }
 
     pub fn set_min_width(&self, width: f32) {
@@ -871,13 +988,6 @@ impl HmGui {
         container.spacing = spacing;
     }
 
-    /// Makes current container `focusable` and returns if it's currently in focus.
-    pub fn is_mouse_over(&self, ty: FocusType) -> bool {
-        let mut widget = self.container.as_mut();
-
-        self.is_mouse_over_intern(&mut widget, ty)
-    }
-
     pub fn set_children_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
         let mut widget = self.container.as_mut();
         let container = widget.get_container_item_mut();
@@ -951,17 +1061,33 @@ impl HmGui {
 
     /// Write property value into the mapped properties in the active element style.
     pub fn map_property(&mut self, property_id: usize) {
-        if let Some(prop) = self
-            .element_style
-            .properties
-            .get(&property_id.into())
-            .cloned()
-        {
-            let map_ids = &self.property_registry.registry[property_id].map_ids;
+        let map_ids = &self.property_registry.registry[property_id].map_ids;
+        if map_ids.is_empty() {
+            return;
+        }
 
-            for map_id in map_ids {
-                self.element_style.properties.insert(*map_id, prop.clone());
-            }
+        let prop = self.get_property(property_id).clone();
+
+        for map_id in map_ids {
+            self.element_style.properties.insert(*map_id, prop.clone());
+        }
+    }
+
+    /// Write all properties values of the group into their mapped properties in the active element style.
+    /// Example: `gui.map_property_group("button")`
+    ///   It will map all properties with prefix "button.".
+    pub fn map_property_group(&mut self, group: &str) {
+        let prefix = format!("{group}.");
+        let property_ids: Vec<_> = self
+            .property_registry
+            .registry
+            .iter()
+            .enumerate()
+            .filter_map(|(property_id, (name, _))| name.starts_with(&prefix).then(|| property_id))
+            .collect();
+
+        for property_id in property_ids {
+            self.map_property(property_id);
         }
     }
 

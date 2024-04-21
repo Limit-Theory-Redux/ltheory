@@ -2,12 +2,14 @@ mod alignment;
 mod container;
 mod core_properties;
 mod data;
-mod focus;
+mod focus_type;
 mod gui;
 mod image;
 mod property;
 mod property_registry;
 mod rect;
+mod render_style;
+mod scroll_direction;
 mod style;
 mod style_registry;
 mod text;
@@ -20,11 +22,13 @@ pub use alignment::*;
 pub use container::*;
 pub use core_properties::*;
 pub(self) use data::*;
-pub use focus::*;
+pub use focus_type::*;
 pub use gui::*;
 pub use property::*;
 pub use property_registry::*;
 pub use rect::*;
+pub use render_style::*;
+pub use scroll_direction::*;
 pub use style::*;
 pub use style_registry::*;
 pub use text::*;
@@ -83,7 +87,7 @@ mod tests {
                 Vec2::new(expected.2 .0, expected.2 .1),
                 Vec2::new(expected.3 .0, expected.3 .1)
             ),
-            "{} widget position, outer and inner sizes",
+            "[{}] - Wrong widget position, outer or inner sizes",
             expected.0
         );
 
@@ -92,7 +96,7 @@ mod tests {
             assert_eq!(
                 container.children.len(),
                 expected_children.len(),
-                "Children count {} container",
+                "[{}] - Wrong number of children",
                 expected.0
             );
 
@@ -105,7 +109,7 @@ mod tests {
         } else {
             assert!(
                 !matches!(widget.item, WidgetItem::Container(_)),
-                "Expected non-container item for: {}",
+                "[{}] - Expected non-container item",
                 expected.0
             );
         }
@@ -1296,6 +1300,98 @@ mod tests {
                             )]),
                         ),
                     ]),
+                )]),
+            ),
+        );
+    }
+
+    #[test]
+    fn test_hmgui_scroll_area() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(800.0, 600.0, &input);
+
+        gui.set_property_bool(HmGuiProperties::ScrollAreaHScrollShow.id(), false);
+        gui.set_property_bool(HmGuiProperties::ScrollAreaVScrollShow.id(), false);
+        gui.begin_scroll_area(ScrollDirection::Vertical);
+
+        gui.begin_vertical_container();
+
+        gui.set_horizontal_alignment(AlignHorizontal::Stretch);
+        gui.set_fixed_height(700.0);
+        gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+        gui.rect(&color);
+        gui.rect(&color);
+        gui.rect(&color);
+        gui.rect(&color);
+
+        gui.end_container();
+
+        gui.end_scroll_area(&input);
+        gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
+        gui.set_fixed_size(500.0, 500.0);
+
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (800.0, 600.0), // Root widget should always keep it's position and size
+                (800.0, 600.0),
+                Some(vec![WidgetCheck(
+                    "ScrollArea",
+                    (150.0, 50.0),
+                    (500.0, 500.0), // Horizontal container expanded so has the same position and size as root one
+                    (500.0, 500.0),
+                    Some(vec![WidgetCheck(
+                        "ScrollAreaIntern",
+                        (150.0, 50.0),
+                        (500.0, 500.0),
+                        (500.0, 500.0),
+                        Some(vec![WidgetCheck(
+                            "Vertical",
+                            (150.0, 50.0),
+                            (500.0, 700.0),
+                            (500.0, 700.0),
+                            Some(vec![
+                                WidgetCheck(
+                                    "Rect1",
+                                    (150.0, 50.0),
+                                    (500.0, 170.5),
+                                    (500.0, 170.5),
+                                    None,
+                                ),
+                                WidgetCheck(
+                                    "Rect2",
+                                    (150.0, 226.5),
+                                    (500.0, 170.5),
+                                    (500.0, 170.5),
+                                    None,
+                                ),
+                                WidgetCheck(
+                                    "Rect3",
+                                    (150.0, 403.0),
+                                    (500.0, 170.5),
+                                    (500.0, 170.5),
+                                    None,
+                                ),
+                                WidgetCheck(
+                                    "Rect4",
+                                    (150.0, 579.5),
+                                    (500.0, 170.5),
+                                    (500.0, 170.5),
+                                    None,
+                                ),
+                            ]),
+                        )]),
+                    )]),
                 )]),
             ),
         );

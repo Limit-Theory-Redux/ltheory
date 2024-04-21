@@ -5,13 +5,22 @@ use crate::render::{Color, Font};
 use super::{HmGuiProperty, HmGuiPropertyId, HmGuiPropertyInfo};
 
 macro_rules! core_properties {
-    ($(($v:ident, $n:literal, $d:expr $(, $m:ident)*),)*) => {
+    ($(
+        $(#[doc = $doc:literal])*
+        ($v:ident, $n:literal, $d:expr $(, $m:ident)*),
+    )*) => {
         #[luajit_ffi_gen::luajit_ffi(name = "GuiProperties")]
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub enum HmGuiProperties {
-            $($v),*
+            $(
+                #[doc = "Config name: "]
+                #[doc = $n]
+                $(#[doc = $doc])*
+                $v
+            ),*
         }
 
+        // NOTE: it's not possible to implement Deref because of recursive call
         impl HmGuiProperties {
             pub fn id(&self) -> usize {
                 *self as _
@@ -30,13 +39,57 @@ macro_rules! core_properties {
 
 // Property id, name, value and optional list of mapped property ids
 core_properties! {
-    (ContainerSpacingId,      "container.spacing",       6.0f32),
-    (ContainerColorFrameId,   "container.color-frame",   Color::new(0.1, 0.1, 0.1, 0.5)),
-    (ContainerColorPrimaryId, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),
-    (TextFontId,              "text.font",               Font::load("Rajdhani", 14)),
-    (TextColorId,             "text.color",              Color::WHITE),
-    (ButtonBorderWidthId,     "button.border-width",     0.0f32),
-    (ButtonTextColorId,       "button.text-color",       Color::WHITE, TextColorId),
+    /// Type: f32. Default value: 1
+    (Opacity,               "opacity",                 1.0f32),
+    /// Type: Color. Default value: Color(0.1, 0.12, 0.13, 1.0)
+    (BackgroundColor,       "background-color",        Color::new(0.1, 0.12, 0.13, 1.0)),
+    /// Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0)
+    (HighlightColor,        "highlight-color",         Color::new(0.1, 0.5, 1.0, 1.0)),
+
+    /// Type: Font. Default value: Font("Rajdhani", 14)
+    (TextFont,              "text.font",               Font::load("Rajdhani", 14)),
+    /// Type: Color. Default value: White
+    (TextColor,             "text.color",              Color::WHITE),
+
+    /// Type: boolean. Default value: true
+    (ContainerClip,         "container.clip",          true),
+    /// Type: f32. Default value: 6
+    (ContainerSpacing,      "container.spacing",       6.0f32),
+    /// Type: Color. Default value: Color(0.1, 0.1, 0.1, 0.5)
+    (ContainerColorFrame,   "container.color-frame",   Color::new(0.1, 0.1, 0.1, 0.5)),
+    /// Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0)
+    (ContainerColorPrimary, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),
+
+    /// Type: f32. Default value: 0
+    (ButtonBorderWidth,     "button.border-width",     0.0f32),
+    /// Type: Color. Default value: Wite. Maps to: TextColor
+    (ButtonTextColor,       "button.text-color",       Color::WHITE, TextColor),
+    /// Type: f32. Default value: 0.5
+    (ButtonOpacity,         "button.opacity",          0.5f32, Opacity),
+    /// Type: Color. Default value: Color(0.15, 0.15, 0.15, 0.8). Maps to: BackgroundColor
+    (ButtonBackgroundColor, "button.background-color", Color::new(0.15, 0.15, 0.15, 0.8), BackgroundColor),
+    /// Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0). Maps to: HighlightColor
+    (ButtonHighlightColor,  "button.highlight-color",  Color::new(0.1, 0.5, 1.0, 1.0), HighlightColor),
+
+    /// Type: Color. Default value: Color(0.3, 0.3, 0.3, 0.5). Maps to: BackgroundColor
+    (CheckboxBackgroundColor, "checkbox.background-color", Color::new(0.3, 0.3, 0.3, 0.5), BackgroundColor),
+    /// Type: Color. Default value: Color(0.3, 0.3, 0.3, 1.0). Maps to: HighlightColor
+    (CheckboxHighlightColor,  "checkbox.highlight-color",  Color::new(0.3, 0.3, 0.3, 1.0), HighlightColor),
+
+    /// Type: boolean. Default value: true
+    (ScrollAreaHScrollShow,                   "scroll-area.hscroll.show", true),
+    /// Type: boolean. Default value: true
+    (ScrollAreaVScrollShow,                   "scroll-area.vscroll.show", true),
+    /// Type: f32. Default value: 4
+    (ScrollAreaScrollbarLength,               "scroll-area.scrollbar.length", 4f32),
+    /// Type: Color. Default value: Color(0.3, 0.3, 0.3, 0.3)
+    (ScrollAreaScrollbarBackgroundColor,      "scroll-area.scrollbar.background-color", Color::new(0.3, 0.3, 0.3, 0.3)),
+    /// Type: f32. Default value: 20
+    (ScrollAreaScrollScale,                   "scroll-area.scroll-scale", 20f32),
+    /// Type: u64. Default value: 400
+    (ScrollAreaScrollbarVisibilityStableTime, "scroll-area.scrollbar.visibility-stable-time", 400u64),
+    /// Type: u64. Default value: 200
+    (ScrollAreaScrollbarVisibilityFadeTime,   "scroll-area.scrollbar.visibility-fade-time", 200u64),
 }
 
 /// Adds a new property to the map.

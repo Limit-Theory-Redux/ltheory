@@ -24,8 +24,8 @@ function Loader.defineType()
             void               HmGui_BeginVerticalContainer         (HmGui*);
             void               HmGui_BeginStackContainer            (HmGui*);
             void               HmGui_EndContainer                   (HmGui*);
-            void               HmGui_BeginScroll                    (HmGui*, float maxSize);
-            void               HmGui_EndScroll                      (HmGui*, Input const* input);
+            void               HmGui_BeginScrollArea                (HmGui*, ScrollDirection dir);
+            void               HmGui_EndScrollArea                  (HmGui*, Input const* input);
             void               HmGui_BeginWindow                    (HmGui*, cstr title, Input const* input);
             void               HmGui_EndWindow                      (HmGui*);
             void               HmGui_Spacer                         (HmGui*);
@@ -39,6 +39,7 @@ function Loader.defineType()
             void               HmGui_Text                           (HmGui*, cstr text);
             void               HmGui_TextColored                    (HmGui*, cstr text, Color const* color);
             void               HmGui_TextEx                         (HmGui*, Font const* font, cstr text, Color const* color);
+            bool               HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
             void               HmGui_SetMinWidth                    (HmGui const*, float width);
             void               HmGui_SetMinHeight                   (HmGui const*, float height);
             void               HmGui_SetMinSize                     (HmGui const*, float width, float height);
@@ -71,7 +72,6 @@ function Loader.defineType()
             void               HmGui_SetPaddingRight                (HmGui const*, float padding);
             void               HmGui_SetPaddingBottom               (HmGui const*, float padding);
             void               HmGui_SetSpacing                     (HmGui const*, float spacing);
-            bool               HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
             void               HmGui_SetChildrenAlignment           (HmGui const*, AlignHorizontal h, AlignVertical v);
             void               HmGui_SetChildrenHorizontalAlignment (HmGui const*, AlignHorizontal align);
             void               HmGui_SetChildrenVerticalAlignment   (HmGui const*, AlignVertical align);
@@ -82,6 +82,7 @@ function Loader.defineType()
             void               HmGui_ClearStyle                     (HmGui*);
             HmGuiPropertyType* HmGui_GetPropertyType                (HmGui const*, uint64 id);
             void               HmGui_MapProperty                    (HmGui*, uint64 propertyId);
+            void               HmGui_MapPropertyGroup               (HmGui*, cstr group);
             void               HmGui_RemoveProperty                 (HmGui*, uint64 propertyId);
             uint64             HmGui_RegisterPropertyBool           (HmGui*, cstr name, bool value, cstr mapId);
             uint64             HmGui_RegisterPropertyI8             (HmGui*, cstr name, int8 value, cstr mapId);
@@ -186,8 +187,8 @@ function Loader.defineType()
                 beginVerticalContainer         = libphx.HmGui_BeginVerticalContainer,
                 beginStackContainer            = libphx.HmGui_BeginStackContainer,
                 endContainer                   = libphx.HmGui_EndContainer,
-                beginScroll                    = libphx.HmGui_BeginScroll,
-                endScroll                      = libphx.HmGui_EndScroll,
+                beginScrollArea                = libphx.HmGui_BeginScrollArea,
+                endScrollArea                  = libphx.HmGui_EndScrollArea,
                 beginWindow                    = libphx.HmGui_BeginWindow,
                 endWindow                      = libphx.HmGui_EndWindow,
                 spacer                         = libphx.HmGui_Spacer,
@@ -201,6 +202,7 @@ function Loader.defineType()
                 text                           = libphx.HmGui_Text,
                 textColored                    = libphx.HmGui_TextColored,
                 textEx                         = libphx.HmGui_TextEx,
+                isMouseOver                    = libphx.HmGui_IsMouseOver,
                 setMinWidth                    = libphx.HmGui_SetMinWidth,
                 setMinHeight                   = libphx.HmGui_SetMinHeight,
                 setMinSize                     = libphx.HmGui_SetMinSize,
@@ -233,7 +235,6 @@ function Loader.defineType()
                 setPaddingRight                = libphx.HmGui_SetPaddingRight,
                 setPaddingBottom               = libphx.HmGui_SetPaddingBottom,
                 setSpacing                     = libphx.HmGui_SetSpacing,
-                isMouseOver                    = libphx.HmGui_IsMouseOver,
                 setChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
                 setChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
                 setChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
@@ -247,6 +248,7 @@ function Loader.defineType()
                     return Core.ManagedObject(instance, libphx.HmGuiPropertyType_Free)
                 end,
                 mapProperty                    = libphx.HmGui_MapProperty,
+                mapPropertyGroup               = libphx.HmGui_MapPropertyGroup,
                 removeProperty                 = libphx.HmGui_RemoveProperty,
                 registerPropertyBool           = libphx.HmGui_RegisterPropertyBool,
                 registerPropertyI8             = libphx.HmGui_RegisterPropertyI8,

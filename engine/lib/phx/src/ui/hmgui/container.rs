@@ -28,10 +28,9 @@ pub struct HmGuiContainer {
     pub spacing: f32,
 
     pub children_hash: u32,
-    pub offset: Vec2,
+    pub offset: Vec2, // TODO: move to widget?
     pub total_stretch: Vec2,
-    pub clip: bool,
-    pub store_size: bool,
+    pub scroll_dir: Option<ScrollDirection>,
 }
 
 impl HmGuiContainer {
@@ -86,7 +85,15 @@ impl HmGuiContainer {
     }
 
     /// Go from the top to the bottom of the widgets hierarchy tree to calculate their pos and size.
-    pub fn layout(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2, mut extra: Vec2) {
+    pub fn layout(
+        &self,
+        hmgui: &mut HmGui,
+        widget_hstretch: bool,
+        widget_vstretch: bool,
+        pos: Vec2,
+        size: Vec2,
+        mut extra: Vec2,
+    ) -> Vec2 {
         let mut pos = pos + self.padding_lower + self.offset;
         let size = size - self.padding_lower - self.padding_upper;
 
@@ -229,8 +236,35 @@ impl HmGuiContainer {
         }
 
         // 3. Recalculate widgets position and size
+        let children_size = if widget_hstretch {
+            if widget_vstretch {
+                self.calculate_children_layout::<true, true>(hmgui, pos, size, extra_size)
+            } else {
+                self.calculate_children_layout::<true, false>(hmgui, pos, size, extra_size)
+            }
+        } else {
+            if widget_vstretch {
+                self.calculate_children_layout::<false, true>(hmgui, pos, size, extra_size)
+            } else {
+                self.calculate_children_layout::<false, false>(hmgui, pos, size, extra_size)
+            }
+        };
+
+        children_size + self.padding_lower + self.padding_upper
+    }
+
+    fn calculate_children_layout<const HStretch: bool, const VStretch: bool>(
+        &self,
+        hmgui: &mut HmGui,
+        mut pos: Vec2,
+        size: Vec2,
+        extra_size: Vec<f32>,
+    ) -> Vec2 {
+        let mut children_size = size;
+        let mut spacing = 0.0;
+
         match self.layout {
-            LayoutType::None | LayoutType::Stack => {
+            LayoutType::None => {
                 for widget_rf in &self.children {
                     let mut widget = widget_rf.as_mut();
 
@@ -242,7 +276,29 @@ impl HmGuiContainer {
                     widget.layout(hmgui);
                 }
             }
+            LayoutType::Stack => {
+                for widget_rf in &self.children {
+                    let mut widget = widget_rf.as_mut();
+
+                    self.calculate_horizontal_layout(&mut widget, pos, size);
+                    self.calculate_vertical_layout(&mut widget, pos, size);
+
+                    widget.calculate_inner_pos_size();
+
+                    widget.layout(hmgui);
+
+                    if !HStretch {
+                        children_size.x = children_size.x.max(widget.size.x);
+                    }
+
+                    if !VStretch {
+                        children_size.y = children_size.y.max(widget.size.y);
+                    }
+                }
+            }
             LayoutType::Horizontal => {
+                children_size.x = 0.0;
+
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let mut widget = widget_rf.as_mut();
 
@@ -255,9 +311,18 @@ impl HmGuiContainer {
                     widget.calculate_inner_pos_size();
 
                     widget.layout(hmgui);
+
+                    if !HStretch {
+                        children_size.x += widget.size.x + spacing;
+                        spacing = self.spacing;
+                    }
                 }
+
+                children_size.x = children_size.x.max(size.x);
             }
             LayoutType::Vertical => {
+                children_size.y = 0.0;
+
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let mut widget = widget_rf.as_mut();
 
@@ -270,9 +335,18 @@ impl HmGuiContainer {
                     widget.calculate_inner_pos_size();
 
                     widget.layout(hmgui);
+
+                    if !VStretch {
+                        children_size.y += widget.size.y + spacing;
+                        spacing = self.spacing;
+                    }
                 }
+
+                children_size.y = children_size.y.max(size.y);
             }
         }
+
+        children_size
     }
 
     fn calculate_horizontal_layout(
@@ -372,7 +446,9 @@ impl HmGuiContainer {
     }
 
     pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
-        hmgui.renderer.begin_layer(pos, size, self.clip);
+        let clip = hmgui.get_property_bool(HmGuiProperties::ContainerClip.id());
+
+        hmgui.renderer.begin_layer(pos, size, clip);
 
         for widget_rf in self.children.iter().rev() {
             widget_rf.as_ref().draw(hmgui);
@@ -395,8 +471,7 @@ impl HmGuiContainer {
         println!("{ident_str}- spacing:          {}", self.spacing);
         println!("{ident_str}- children_hash:    {}", self.children_hash);
         println!("{ident_str}- total_stretch:    {:?}", self.total_stretch);
-        println!("{ident_str}- clip:             {}", self.clip);
-        println!("{ident_str}- store_size:       {:?}", self.store_size);
+        println!("{ident_str}- scroll_dir:       {:?}", self.scroll_dir);
         println!("{ident_str}- children[{}]:", self.children.len());
 
         for head_rf in &self.children {

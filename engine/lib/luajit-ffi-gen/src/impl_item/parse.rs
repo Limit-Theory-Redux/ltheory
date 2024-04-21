@@ -1,12 +1,10 @@
 use quote::quote;
 use syn::parse::{Error, Parse, Result};
 use syn::spanned::Spanned;
-use syn::{
-    Attribute, Expr, ExprLit, FnArg, GenericArgument, ImplItem, ItemImpl, Lit, Pat, Path,
-    PathArguments, ReturnType, Type,
-};
+use syn::{Attribute, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Type};
 
 use crate::args::BindArgs;
+use crate::util::{get_meta_name, get_path_last_name, get_path_last_name_with_generics};
 
 use super::*;
 
@@ -36,43 +34,6 @@ fn get_impl_self_name(ty: &Type) -> Result<String> {
             "expected an impl for type or type reference",
         )),
     }
-}
-
-fn get_path_last_name(path: &Path) -> Result<String> {
-    let (name, generics) = get_path_last_name_with_generics(path)?;
-
-    if !generics.is_empty() {
-        Err(Error::new(
-            path.span(),
-            "expected a type name without generic arguments",
-        ))
-    } else {
-        Ok(name)
-    }
-}
-
-fn get_path_last_name_with_generics(path: &Path) -> Result<(String, Vec<Type>)> {
-    let Some(last_seg) = path.segments.last() else {
-        return Err(Error::new(path.span(), "expected a type identifier"));
-    };
-
-    let generic_types = if let PathArguments::AngleBracketed(generic_args) = &last_seg.arguments {
-        generic_args
-            .args
-            .iter()
-            .filter_map(|arg| {
-                if let GenericArgument::Type(ty) = arg {
-                    Some(ty.clone())
-                } else {
-                    None
-                }
-            })
-            .collect()
-    } else {
-        vec![]
-    };
-
-    Ok((format!("{}", last_seg.ident), generic_types))
 }
 
 fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
@@ -127,12 +88,8 @@ fn parse_method_attrs(attrs: &mut Vec<Attribute>) -> Result<(Vec<String>, BindAr
                 res = Some((i, args));
             }
             "doc" => {
-                let doc_text = attr.meta.require_name_value()?;
-
-                if let Expr::Lit(ExprLit { lit, .. }) = &doc_text.value {
-                    if let Lit::Str(lit_str) = lit {
-                        doc.push(format!("{}", lit_str.value().trim()));
-                    }
+                if let Some(doc_text) = get_meta_name(&attr.meta) {
+                    doc.push(doc_text);
                 }
             }
             _ => {}

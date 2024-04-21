@@ -218,8 +218,11 @@ Image is specified as an image format data blob whose contents have been read fr
 ### Property
 
 Property can have one of the following types:
-```
-bool, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, Vec2, Vec3, Vec4, IVec2, IVec3, IVec4, UVec2, UVec3, UVec4, DVec2, DVec3, DVec4, Box3, String, Font
+```rust
+bool,
+i8, u8, i16, u16, i32, u32, i64, u64, f32, f64,
+Vec2, Vec3, Vec4, IVec2, IVec3, IVec4, UVec2, UVec3, UVec4, DVec2, DVec3, DVec4,
+Box3, String, Font
 ```
 
 Property name should have following format: `(<element_name>.)+<property-name>`. Example:
@@ -259,18 +262,24 @@ prop.string: "Test"
 prop.font: ["NovaMono", 14]
 ```
 
+### Property group
+
+Any property that has a prefix in the name separated with "." can be accessed as a group property. See [Property mapping](#property-mapping) for details.
+
+Example: all properties from the section above can be treated as a members of the **prop** group.
+
 ### Property mapping
 
-This feature is used for automatically transferring a property value from one element to another. Let's take a `button` element as an example. The `button` element internally contains a `text` element that expects `text.font` and `text.color` properties. To preserve the benefits of Immediate Mode UI definition, properties cannot be set directly on an element. Instead, we define ("register") special variables that can be accessed from LuaJIT, and map these variables to the various properties of elements.
+This feature is used for automatically transferring a property value from one element to another. Let's take a `button` element as an example. The `button` element internally contains a `text` element that expects `text.font` and `text.color` properties. To preserve the benefits of Immediate Mode UI definition, properties cannot be set directly on an element. Instead, we register special variables that can be accessed from LuaJIT, and map these variables to the various properties of elements.
 
 In our `button` example, we first register `button.text-font` and `button.text-color`, then we map these to the corresponding `text` properties of `button`. Imagine we have defined a `button` element in Lua:
 ```lua
 -- registration in GuiEnums.lua
-Enums.Gui.ButtonTextColorId = Gui:registerPropertyVec4("button.text-color", Vec4(1, 1, 1, 1), "text.color")
+Enums.Gui.ButtonTextColor = Gui:registerPropertyVec4("button.text-color", Vec4(1, 1, 1, 1), "text.color")
 
 -- button element
 function button(name)
-Gui:mapProperty(Enums.Gui.ButtonTextColorId) -- copy this property value into the "text.color"
+Gui:mapPropertyGroup("button") -- map all Button properties - it will map all properties with the name containing "button." prefix
 ...
 Gui:text(name)
 ...
@@ -278,9 +287,10 @@ end
 
 -- somewhere later
 Gui:clearStyle()
-Gui:setPropertyColor(Enums.Gui.ButtonTextColorId, Color(0, 1, 0, 1))
-button("My button")
+Gui:setPropertyColor(Enums.Gui.ButtonTextColor, Color(0, 1, 0, 1))
+Gui:button("My button")
 ```
+It's recommended to add `Gui:mapPropertyGroup(group)` call at the beginning of every element declaration that has group properties (usually group name is the same as an element name).
 
 ### Property methods
 
@@ -288,6 +298,7 @@ HmGui provides several methods allowing Lua scripters to manage element properti
 
 - `Gui:getPropertyType(id)`: returns property type
 - `Gui:mapProperty(id)`: copies property value to its mapped properties for the current following element. Should be used inside element function definition.
+- `Gui:mapPropertyGroup(group)`: copies group properties values which names starting with `group + "."` to their mapped properties for the current following element. Should be used inside element function definition.
 - `Gui:removeProperty(id)`: remove property from the current element style
 - `Gui:registerProperty*(name, value, map_id)`: register a new property with optional id of the mapped property
 - `Gui:setProperty*(id, value)`: set property value
@@ -314,12 +325,12 @@ Any property value applied by setting a theme that contains that property will b
   - Example of direct styling in code:
 ```lua
 Gui:clearStyle()
-Gui:setPropertyColor(GuiProperties.ButtonTextColorId, Color(1, 0, 0, 1))
+Gui:setPropertyColor(GuiProperties.ButtonTextColor, Color(1, 0, 0, 1))
 Gui:button("MyButton")
 ```
   - Example of styling through the global style configuration file `styles.yaml`:
 ```lua
-Gui:setStyle(Enums.Gui.Styles.MyButtonStyleId)
+Gui:setStyle(Enums.Gui.Styles.MyButtonStyle)
 Gui:button("MyButton")
 ```
 During startup the engine loads all element styles from the `styles.yaml` configuration file in the resource folder. [Example](../../../test_data/styles.yaml).
@@ -334,24 +345,24 @@ Element style scripting methods:
 
 Scripters can define custom properties in the [`GuiEnums.lua`](/script/Enums/GuiEnums.lua) file. Example:
 ```lua
-Enums.Gui.MItemTextColorId = Gui:registerPropertyVec4("menuitem.text-color", Vec4(1, 0, 1, 1), "text.color")
-Enums.Gui.MenuItemTextColorId = Gui:registerPropertyVec4("menu.item-text-color", Vec4(1, 1, 0, 1), "menuitem.text-color")
-Enums.Gui.MenuBorderWidthId = Gui:registerPropertyVec4("menu.border-width", 2, nil)
+Enums.Gui.MItemTextColor = Gui:registerPropertyVec4("menuitem.text-color", Vec4(1, 0, 1, 1), "text.color")
+Enums.Gui.MenuItemTextColor = Gui:registerPropertyVec4("menu.item-text-color", Vec4(1, 1, 0, 1), "menuitem.text-color")
+Enums.Gui.MenuBorderWidth = Gui:registerPropertyVec4("menu.border-width", 2, nil)
 ```
 
 Then this property can be used in the custom element definition:
 ```lua
 function menu(variants)
-local borderWidth = Gui:getPropertyF32(Enums.Gui.MenuBorderWidthId)
+Gui:mapPropertyGroup("menuitem") -- map all MenuItem properties - it will map all properties with the name containing "manuitem." prefix
 
-Gui:mapProperty(Enums.Gui.MenuItemTextColorId) -- copy this property value into the "menuitem.text-color"
+local borderWidth = Gui:getPropertyF32(Enums.Gui.MenuBorderWidth)
 ...
 menu_item(variants[1])
 ...
 end
 
 function menu_item(name)
-Gui:mapProperty(Enums.Gui.MItemTextColorId) -- copy this property value into the "text.color"
+Gui:mapProperty(Enums.Gui.MItemTextColor) -- copy this property value into the "text.color"
 ...
 Gui:text(name)
 ...
