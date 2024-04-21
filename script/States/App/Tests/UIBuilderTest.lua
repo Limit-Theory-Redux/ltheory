@@ -1,6 +1,8 @@
 local Test = require('States.Application')
 local UIBuilder = require('UI.HmGui.UIBuilder')
 
+--todo: to be restructured as ui builder example
+
 local rng = RNG.FromTime()
 
 local useRenderer = true
