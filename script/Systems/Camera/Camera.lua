@@ -154,7 +154,12 @@ function Camera:ndcToRay(ndc, length)
     ndc.z = 0.99
     local vs_p1 = self:ndcToView(ndc)
     local vs_dir = vs_p1 - vs
-    local dir = self.mViewInv:mulDir(vs_dir):normalize()
+
+    -- NOTE: We now need to test inputs to normalize() to prevent near-zero inputs
+    local dir = self.mViewInv:mulDir(vs_dir)
+    if dir:length() >= 0.00000001 then
+       dir = dir:normalize()
+    end
 
     return Ray(ws.x, ws.y, ws.z, dir.x, dir.y, dir.z, 0, length)
 end
