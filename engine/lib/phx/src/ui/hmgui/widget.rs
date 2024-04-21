@@ -1,11 +1,13 @@
-use std::{fs::File, io::Write};
+use glam::Vec2;
 
-use glam::{Vec2, Vec4};
+use crate::render::Color;
 
 use super::{
-    AlignHorizontal, AlignVertical, HmGui, HmGuiContainer, HmGuiImage, HmGuiRect, HmGuiText, Rf,
-    IDENT,
+    AlignHorizontal, AlignVertical, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiProperties,
+    HmGuiRect, HmGuiText, RenderStyle, IDENT,
 };
+
+use crate::rf::Rf;
 
 #[derive(Clone, PartialEq)]
 pub enum WidgetItem {
@@ -59,14 +61,17 @@ pub struct HmGuiWidget {
     pub vertical_alignment: AlignVertical,
     pub margin_upper: Vec2,
     pub margin_lower: Vec2,
-    pub bg_color: Option<Vec4>,
+    pub bg_color: Option<Color>,
     pub border_width: f32,
-    pub border_color: Vec4,
+    pub border_color: Color,
 
     /// Widget min size after compute_size() including margin and border
     pub min_size: Vec2,
     /// Widget min size after compute_size() excluding margin and border
     pub inner_min_size: Vec2,
+
+    pub render_style: RenderStyle,
+    pub mouse_over: [bool; FocusType::SIZE],
 }
 
 impl HmGuiWidget {
@@ -94,6 +99,9 @@ impl HmGuiWidget {
 
             min_size: Default::default(),
             inner_min_size: Vec2::new(20.0, 20.0),
+
+            render_style: Default::default(),
+            mouse_over: Default::default(),
         }
     }
 
@@ -112,6 +120,13 @@ impl HmGuiWidget {
         };
 
         item
+    }
+
+    pub fn contains_point(&self, point: &Vec2) -> bool {
+        self.pos.x <= point.x
+            && self.pos.y <= point.y
+            && point.x <= self.pos.x + self.size.x
+            && point.y <= self.pos.y + self.size.y
     }
 
     /// Calculate outer min size that includes margin and border.
@@ -167,7 +182,7 @@ impl HmGuiWidget {
 
                 self.min_size = self.calculate_min_size();
 
-                if container.store_size {
+                if container.scroll_dir.is_some() {
                     let data = hmgui.get_data(self.hash);
 
                     data.min_size = self.min_size;
@@ -179,18 +194,24 @@ impl HmGuiWidget {
         }
     }
 
-    pub fn layout(&self, hmgui: &mut HmGui) {
+    pub fn layout(&mut self, hmgui: &mut HmGui) {
         // TODO: do not process widgets with min size, margin and border all 0
         match &self.item {
             WidgetItem::Container(container) => {
-                container.layout(
+                self.inner_size = container.layout(
                     hmgui,
+                    self.horizontal_alignment == AlignHorizontal::Stretch,
+                    self.vertical_alignment == AlignVertical::Stretch,
                     self.inner_pos,
                     self.inner_size,
                     self.inner_size - self.inner_min_size,
                 );
+                self.size = self.inner_size
+                    + self.border_width * 2.0
+                    + self.margin_upper
+                    + self.margin_lower;
 
-                if container.store_size {
+                if container.scroll_dir.is_some() {
                     let data = hmgui.get_data(self.hash);
 
                     data.size = self.size;
@@ -221,9 +242,7 @@ impl HmGuiWidget {
 
             match &self.item {
                 WidgetItem::Container(container) => {
-                    let hmgui_focus = hmgui.mouse_focus_hash();
-
-                    container.draw(hmgui, pos, size, hmgui_focus == self.hash);
+                    container.draw(hmgui, pos, size);
                 }
                 WidgetItem::Text(text) => {
                     let x = pos.x + (size.x - self.inner_min_size.x) / 2.0; // center text
@@ -237,6 +256,56 @@ impl HmGuiWidget {
                 }
                 WidgetItem::Image(image) => {
                     image.draw(&mut hmgui.renderer, pos, size);
+                }
+            }
+
+            self.process_mouse_over(hmgui, pos, size);
+        }
+    }
+
+    fn process_mouse_over(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
+        if self.mouse_over[FocusType::Mouse as usize] {
+            let is_mouse_over = hmgui.mouse_over_widget_hash() == self.hash;
+
+            match self.render_style {
+                RenderStyle::None => {
+                    let color = hmgui.get_property_color(HmGuiProperties::BackgroundColor.id());
+                    let inner_alpha = hmgui.get_property_f32(HmGuiProperties::Opacity.id());
+
+                    hmgui
+                        .renderer
+                        .panel(pos, size, color.clone(), 8.0, inner_alpha);
+                }
+                RenderStyle::Fill => {
+                    if is_mouse_over {
+                        let color = hmgui.get_property_color(HmGuiProperties::HighlightColor.id());
+
+                        hmgui.renderer.panel(pos, size, color.clone(), 0.0, 1.0);
+                    } else {
+                        let color = hmgui.get_property_color(HmGuiProperties::BackgroundColor.id());
+                        let inner_alpha = hmgui.get_property_f32(HmGuiProperties::Opacity.id());
+
+                        hmgui
+                            .renderer
+                            .panel(pos, size, color.clone(), 0.0, inner_alpha);
+                    }
+                }
+                RenderStyle::Outline => {
+                    // TODO: not used. Remove?
+                    if is_mouse_over {
+                        let color = Color::new(0.1, 0.5, 1.0, 1.0);
+
+                        hmgui.renderer.rect(pos, size, color, Some(1.0));
+                    }
+                }
+                RenderStyle::Underline => {
+                    let color = if is_mouse_over {
+                        hmgui.get_property_color(HmGuiProperties::BackgroundColor.id())
+                    } else {
+                        hmgui.get_property_color(HmGuiProperties::HighlightColor.id())
+                    };
+
+                    hmgui.renderer.rect(pos, size, color.clone(), None);
                 }
             }
         }
@@ -265,6 +334,8 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}- min_size:       {:?}", self.min_size);
         println!("{ident_str}{IDENT}- inner_min_size: {:?}", self.inner_min_size);
         println!("{ident_str}{IDENT}- hash:           0x{:X?}", self.hash);
+        println!("{ident_str}{IDENT}- render_style:   {:?}", self.render_style);
+        println!("{ident_str}{IDENT}- mouse_over:     {:?}", self.mouse_over);
         println!("{ident_str}{IDENT}# item: {}", self.item.name());
 
         match &self.item {

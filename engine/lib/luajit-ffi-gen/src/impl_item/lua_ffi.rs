@@ -1,21 +1,20 @@
 use crate::{args::ImplAttrArgs, ffi_generator::FfiGenerator, IDENT};
 
-use super::{ImplInfo, TypeInfo};
+use super::{ImplInfo, TypeInfo, TypeVariant};
 
 impl ImplInfo {
     /// Generate Lua FFI file
     pub fn generate_ffi(&self, attr_args: &ImplAttrArgs) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
         let mut ffi_gen = FfiGenerator::load(&module_name);
+        let is_managed = self
+            .methods
+            .iter()
+            .any(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some());
 
         // Generate metatype section only if there is at least one method with `self` parameter,
-        // or managed or clone parameter is set
-        let gen_metatype = attr_args.is_managed()
-            || attr_args.is_clone()
-            || self
-                .methods
-                .iter()
-                .any(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some());
+        // or clone parameter is set
+        let gen_metatype = attr_args.is_clone() || is_managed;
 
         // Type declaration
         let is_opaque = !ffi_gen.has_type_decl() && attr_args.is_opaque() && gen_metatype;
@@ -24,17 +23,15 @@ impl ImplInfo {
             ffi_gen.set_type_decl_opaque();
         }
 
+        // Class definition
+        self.write_class_defs(&mut ffi_gen, &module_name);
+
         // C Definitions
         let (max_method_name_len, max_self_method_name_len) =
-            self.write_c_defs(&mut ffi_gen, &module_name, attr_args.is_managed());
+            self.write_c_defs(&mut ffi_gen, &module_name, is_managed);
 
         // Global Symbol Table
-        self.write_global_sym_table(
-            &mut ffi_gen,
-            &module_name,
-            max_method_name_len,
-            attr_args.is_managed(),
-        );
+        self.write_global_sym_table(&mut ffi_gen, &module_name, max_method_name_len);
 
         if gen_metatype && attr_args.is_clone() {
             ffi_gen.set_mt_clone();
@@ -62,6 +59,70 @@ impl ImplInfo {
         ffi_gen.generate();
     }
 
+    fn write_class_defs(&self, ffi_gen: &mut FfiGenerator, module_name: &str) {
+        if !ffi_gen.has_class_definitions() {
+            ffi_gen.add_class_definition(format!("---@meta\n"));
+            ffi_gen.add_class_definition(format!("---@class {module_name}"));
+            ffi_gen.add_class_definition(format!("{module_name} = {{}}\n"));
+        }
+
+        self.methods
+            .iter()
+            .filter(|method| method.bind_args.gen_lua_ffi())
+            .for_each(|method| {
+                // Add user defined method documentation
+                method
+                    .doc
+                    .iter()
+                    .for_each(|d| ffi_gen.add_class_definition(format!("---{d}")));
+
+                // Add method signature documentation
+                method.params.iter().for_each(|param| {
+                    ffi_gen.add_class_definition(format!(
+                        "---@param {} {}",
+                        param.as_ffi_name(),
+                        param.ty.as_lua_ffi_string(module_name)
+                    ));
+                });
+
+                let mut params: Vec<_> = method
+                    .params
+                    .iter()
+                    .map(|param| format!("{}", param.as_ffi_name()))
+                    .collect();
+
+                if let Some(ret) = &method.ret {
+                    if method.bind_args.gen_out_param() {
+                        ffi_gen.add_class_definition(format!(
+                            "---@param result {} [out]",
+                            ret.as_lua_ffi_string(module_name)
+                        ));
+
+                        params.push("result".into());
+                    } else {
+                        ffi_gen.add_class_definition(format!(
+                            "---@return {}",
+                            ret.as_lua_ffi_string(module_name)
+                        ));
+                    }
+                }
+
+                if method.self_param.is_some() {
+                    ffi_gen.add_class_definition(format!(
+                        "function {module_name}:{}({}) end\n",
+                        method.as_ffi_var(),
+                        params.join(", ")
+                    ));
+                } else {
+                    ffi_gen.add_class_definition(format!(
+                        "function {module_name}.{}({}) end\n",
+                        method.as_ffi_name(),
+                        params.join(", ")
+                    ));
+                }
+            });
+    }
+
     fn write_c_defs(
         &self,
         ffi_gen: &mut FfiGenerator,
@@ -82,18 +143,12 @@ impl ImplInfo {
             .iter()
             .filter(|method| method.bind_args.gen_lua_ffi())
             .for_each(|method| {
-                let len = method
-                    .ret
-                    .as_ref()
-                    .map(|ret| {
-                        if ret.is_self() {
-                            format!("{module_name}*")
-                        } else {
-                            ret.as_ffi_string()
-                        }
-                        .len()
-                    })
-                    .unwrap_or("void".len());
+                let len = if method.bind_args.gen_out_param() || method.ret.is_none() {
+                    "void".len()
+                } else {
+                    let ret = method.ret.as_ref().unwrap();
+                    ret.as_c_ffi_string(module_name).len()
+                };
 
                 max_ret_len = std::cmp::max(max_ret_len, len);
                 max_method_name_len =
@@ -118,27 +173,39 @@ impl ImplInfo {
             .filter(|method| method.bind_args.gen_lua_ffi())
             .for_each(|method| {
                 let method_name = method.as_ffi_name();
-                let ret_ty_str = method
-                    .ret
-                    .as_ref()
-                    .map(|ret| {
-                        if ret.is_self() {
-                            if TypeInfo::is_copyable(module_name) {
-                                format!("{module_name}")
-                            }else {
-                                format!("{module_name}*")
-                            }
-                        } else {
-                            ret.as_ffi_string()
-                        }
-                    })
-                    .unwrap_or("void".into());
 
-                let params_str: Vec<_> = method
+                let ret_ty_str =  if method.bind_args.gen_out_param() || method.ret.is_none() {
+                    "void".into()
+                } else {
+                    let ret = method.ret.as_ref().unwrap();
+                    ret.as_c_ffi_string(module_name)
+                };
+
+                let mut params_str: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| format!("{} {}", param.ty.as_ffi_string(), param.as_ffi_name()))
+                    .map(|param| format!("{} {}", param.ty.as_c_ffi_string(module_name), param.as_ffi_name()))
                     .collect();
+
+                if method.bind_args.gen_out_param() && method.ret.is_some() {
+                    let ret = method.ret.as_ref().unwrap();
+                    let ret_ffi = ret.as_c_ffi_string(module_name);
+                    let ret_param = match &ret.variant {
+                        TypeVariant::Custom(ty_name) => {
+                            if !TypeInfo::is_copyable(&ty_name) && !ret.is_boxed && !ret.is_option && !ret.is_reference {
+                                // If we have a non-copyable type that's not boxed, optional or a ref,
+                                // we don't need to return it as a pointer as it's already a pointer.
+                                format!("{} out", ret_ffi)
+                            } else {
+                                format!("{}* out", ret_ffi)
+                            }
+                        },
+                        _ => {
+                            format!("{}* out", ret_ffi)
+                        }
+                    };
+                    params_str.push(ret_param);
+                }
 
                 let self_str = if let Some(self_type) = &method.self_param {
                     let const_str = if !self_type.is_mutable { " const" } else { "" };
@@ -170,28 +237,22 @@ impl ImplInfo {
         ffi_gen: &mut FfiGenerator,
         module_name: &str,
         max_method_name_len: usize,
-        is_managed: bool,
     ) {
         if ffi_gen.has_global_symbols() {
             ffi_gen.add_global_symbol("");
         }
 
-        if is_managed {
-            ffi_gen.add_global_symbol(format!(
-                "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
-                "Free", max_method_name_len
-            ));
-        }
-
         self.methods
             .iter()
-            .filter(|method| method.bind_args.gen_lua_ffi())
+            .filter(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_none())
             .for_each(|method| {
-                ffi_gen.add_global_symbol(format!(
-                    "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
-                    method.as_ffi_name(),
-                    max_method_name_len
-                ));
+                write_method_map(
+                    &format!("{IDENT}{IDENT}{IDENT}"),
+                    &format!("{:<1$}", method.as_ffi_name(), max_method_name_len),
+                    method,
+                    module_name,
+                    |value| ffi_gen.add_global_symbol(value),
+                );
             });
     }
 
@@ -202,9 +263,7 @@ impl ImplInfo {
         max_self_method_name_len: usize,
         attr_args: &ImplAttrArgs,
     ) {
-        let max_method_name_len = if attr_args.is_managed() {
-            std::cmp::max(max_self_method_name_len, "managed".len())
-        } else if attr_args.is_clone() {
+        let max_method_name_len = if attr_args.is_clone() {
             std::cmp::max(max_self_method_name_len, "clone".len())
         } else {
             max_self_method_name_len
@@ -218,30 +277,63 @@ impl ImplInfo {
             ));
         }
 
-        // Add managed method if requested
-        if attr_args.is_managed() {
-            ffi_gen.add_metatype(format!(
-                "{IDENT}{IDENT}{IDENT}{IDENT}{0:<1$} = function(self) return ffi.gc(self, libphx.{module_name}_Free) end,",
-                "managed", max_method_name_len
-            )
-            );
-
-            ffi_gen.add_metatype(format!(
-                "{IDENT}{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_Free,",
-                "free", max_method_name_len
-            ));
-        }
-
         self.methods
             .iter()
             .filter(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some())
             .for_each(|method| {
-                ffi_gen.add_metatype(format!(
-                    "{IDENT}{IDENT}{IDENT}{IDENT}{:<2$} = libphx.{module_name}_{},",
-                    method.as_ffi_var(),
-                    method.as_ffi_name(),
-                    max_method_name_len
-                ));
+                write_method_map(
+                    &format!("{IDENT}{IDENT}{IDENT}{IDENT}"),
+                    &format!("{:<1$}", method.as_ffi_var(), max_method_name_len),
+                    method,
+                    module_name,
+                    |value| ffi_gen.add_metatype(value),
+                );
             });
+    }
+}
+
+fn write_method_map<F: FnMut(String)>(
+    ident: &str,
+    mapped_method: &str,
+    method: &super::MethodInfo,
+    module_name: &str,
+    mut writer: F,
+) {
+    // TODO: refactor these nested ifs
+    let gc_type = if !method.bind_args.gen_out_param() {
+        if let Some(ret) = &method.ret {
+            if !ret.is_reference {
+                ret.get_managed_type().map(|gc_type| {
+                    if gc_type == "Self" {
+                        module_name
+                    } else {
+                        gc_type
+                    }
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    if let Some(gc_type) = gc_type {
+        writer(format!("{ident}{mapped_method} = function(...)"));
+        writer(format!(
+            "{ident}{IDENT}local instance = libphx.{module_name}_{}(...)",
+            method.as_ffi_name(),
+        ));
+        writer(format!(
+            "{ident}{IDENT}return Core.ManagedObject(instance, libphx.{gc_type}_Free)"
+        ));
+        writer(format!("{ident}end,"));
+    } else {
+        writer(format!(
+            "{ident}{mapped_method} = libphx.{module_name}_{},",
+            method.as_ffi_name(),
+        ));
     }
 }

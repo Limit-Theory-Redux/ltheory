@@ -1,12 +1,14 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::path::PathBuf;
+use std::time::{Duration, Instant};
+
+use glam::*;
 
 use crate::common::*;
 use crate::input::*;
 use crate::math::*;
 use crate::render::*;
-use crate::system::{Hash_FNV64_Incremental, Hash_FNV64_Init, Profiler_Begin, Profiler_End};
+use crate::rf::Rf;
+use crate::system::*;
 
 use super::*;
 
@@ -20,27 +22,23 @@ pub struct HmGui {
     /// Either last created/initialized widget (container, image, text, rect) or the last widget of the ended container
     last: Rf<HmGuiWidget>,
 
-    styles: Vec<HmGuiStyle>,
     data: HashMap<u64, HmGuiData>,
-    focus: [u64; 2],
+    mouse_over_widget_hash: [u64; 2],
     focus_pos: Vec2,
     activate: bool,
+
+    default_property_registry: HmGuiPropertyRegistry,
+    property_registry: HmGuiPropertyRegistry,
+    theme_registry: HmGuiStyleRegistry,
+    style_registry: HmGuiStyleRegistry,
+    element_style: HmGuiStyle,
 }
 
 impl HmGui {
-    pub fn new(default_font: Font) -> Self {
-        let style = HmGuiStyle {
-            font: default_font.into(),
-            spacing: 6.0,
-            color_primary: Vec4::new(0.1, 0.5, 1.0, 1.0),
-            color_frame: Vec4::new(0.1, 0.1, 0.1, 0.5),
-            color_text: Vec4::ONE,
-        };
-
+    pub fn new() -> Self {
         let container = HmGuiContainer {
             layout: LayoutType::None,
             spacing: 0.0,
-            clip: true,
             ..Default::default()
         };
 
@@ -51,16 +49,50 @@ impl HmGui {
         let container = root.clone();
         let last = root.clone();
 
+        let property_registry = HmGuiPropertyRegistry::new();
+        let default_property_registry = property_registry.clone();
+
+        let f = |_: &str, name: &str| {
+            property_registry
+                .registry
+                .get_full(name)
+                .map(|(id, _, prop)| (id.into(), prop.property.get_type()))
+        };
+
+        let theme_folders = Resource::get_folders(ResourceType::Theme);
+        let mut theme_registry = HmGuiStyleRegistry::default();
+        for folder_path in theme_folders {
+            let registry = HmGuiStyleRegistry::load(&folder_path, f);
+            if registry.size() > 0 {
+                theme_registry = registry;
+                break;
+            }
+        }
+
+        let style_folders = Resource::get_folders(ResourceType::Other);
+        let mut style_registry = HmGuiStyleRegistry::default();
+        for folder_path in style_folders {
+            let file_path = folder_path.join("styles.yaml");
+            if file_path.is_file() {
+                style_registry = HmGuiStyleRegistry::load_map(&file_path, f);
+                break;
+            }
+        }
+
         Self {
             renderer: Default::default(),
             root,
             container,
             last,
-            styles: vec![style],
             data: HashMap::with_capacity(128),
-            focus: [0; 2],
+            mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
             activate: false,
+            default_property_registry,
+            property_registry,
+            theme_registry,
+            style_registry,
+            element_style: Default::default(),
         }
     }
 
@@ -68,8 +100,8 @@ impl HmGui {
         self.root.clone()
     }
 
-    pub fn mouse_focus_hash(&self) -> u64 {
-        self.focus[FocusType::Mouse as usize]
+    pub fn mouse_over_widget_hash(&self) -> u64 {
+        self.mouse_over_widget_hash[FocusType::Mouse as usize]
     }
 
     /// Add a new widget into the current container.
@@ -102,7 +134,7 @@ impl HmGui {
 
     /// Start a new container with specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
-        let spacing = self.styles.last().expect("Style was not set").spacing;
+        let spacing = self.get_property_f32(HmGuiProperties::ContainerSpacing.id());
 
         let container = HmGuiContainer {
             layout,
@@ -120,50 +152,113 @@ impl HmGui {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
     }
 
-    #[inline]
-    fn is_clipped(&self, pos: Vec2, size: Vec2, p: Vec2) -> bool {
-        p.x < pos.x || p.y < pos.y || pos.x + size.x < p.x || pos.y + size.y < p.y
-    }
-
-    /// Recursively iterate over container widgets and calculate if they are in a focus (mouse is over the container).
-    fn check_focus(&mut self, widget_rf: Rf<HmGuiWidget>) {
+    /// Calculate if mouse is over the widget. Recursively iterate over container widgets.
+    /// Setting mouse over hash at the end of the method guarantees that the last (top most) widget will get the mouse over flag set.
+    fn check_mouse_over(&mut self, widget_rf: Rf<HmGuiWidget>) {
         let widget = widget_rf.as_ref();
-        let WidgetItem::Container(container) = &widget.item else {
-            return;
-        };
+        let is_mouse_over = widget.contains_point(&self.focus_pos);
 
-        if container.clip && self.is_clipped(widget.pos, widget.size, self.focus_pos) {
+        if let WidgetItem::Container(container) = &widget.item {
+            let clip = self.get_property_bool(HmGuiProperties::ContainerClip.id());
+
+            if !clip || is_mouse_over {
+                for widget_rf in container.children.iter().rev() {
+                    self.check_mouse_over(widget_rf.clone());
+                }
+            }
+        }
+
+        if !is_mouse_over {
             return;
         }
 
-        for widget_rf in container.children.iter().rev() {
-            self.check_focus(widget_rf.clone());
-        }
-
-        for i in 0..self.focus.len() {
-            if self.focus[i] == 0
-                && container.focusable[i]
-                && widget.pos.x <= self.focus_pos.x
-                && widget.pos.y <= self.focus_pos.y
-                && self.focus_pos.x <= widget.pos.x + widget.size.x
-                && self.focus_pos.y <= widget.pos.y + widget.size.y
-            {
-                self.focus[i] = widget.hash;
+        for i in 0..self.mouse_over_widget_hash.len() {
+            // we need `self.mouse_over_widget_hash[i] == 0` check here to prevent parent container to overwrite
+            // mouse over child situation
+            if widget.mouse_over[i] && self.mouse_over_widget_hash[i] == 0 {
+                self.mouse_over_widget_hash[i] = widget.hash;
             }
         }
     }
 
-    /// Sets container `focusable` flag to true and returns if it's currently in focus.
-    fn container_has_focus_intern(
-        &self,
-        container: &mut HmGuiContainer,
-        ty: FocusType,
-        hash: u64,
-    ) -> bool {
-        container.focusable[ty as usize] = true;
+    /// Sets widget's `mouse over` flag to true.
+    /// Will be used in the check_mouse_over to set `mouse over` hash for current widget for the next frame.
+    /// Returns true if mouse is over the widget (was calculated in the previous frame).
+    fn is_mouse_over_intern(&self, widget: &mut HmGuiWidget, ty: FocusType) -> bool {
+        widget.mouse_over[ty as usize] = true;
 
-        self.focus[ty as usize] == hash
+        self.mouse_over_widget_hash[ty as usize] == widget.hash
     }
+
+    fn get_property(&self, property_id: usize) -> &HmGuiProperty {
+        let id = property_id.into();
+        if let Some(prop) = self.element_style.properties.get(&id) {
+            return prop;
+        }
+
+        if let Some((_, prop)) = self.property_registry.registry.get_index(property_id) {
+            return &prop.property;
+        }
+
+        panic!("Unknown property id {property_id}");
+    }
+}
+
+macro_rules! register_property {
+    ($self:ident, $name:ident, $value:expr, $map_id:ident) => {{
+        let mut map_ids = vec![];
+        if let Some(map_id_str) = $map_id {
+            let (map_id, _, _) = $self
+                .default_property_registry
+                .registry
+                .get_full(map_id_str)
+                .unwrap_or_else(|| panic!("{:?} has unknown map property: {map_id_str}", $name));
+
+            map_ids.push(map_id.into());
+        }
+
+        let def_id = $self
+            .default_property_registry
+            .register($name, $value.into(), &map_ids);
+        let id = $self
+            .property_registry
+            .register($name, $value.into(), &map_ids);
+        debug_assert_eq!(def_id, id);
+
+        *id
+    }};
+}
+
+macro_rules! set_property {
+    ($self:ident, $id:ident, $val:expr) => {
+        let Some((_, def_prop)) = $self.default_property_registry.registry.get_index($id) else {
+            panic!("Unknown property id {}", $id);
+        };
+        let value: HmGuiProperty = $val.into();
+        assert_eq!(
+            def_prop.property.get_type(),
+            value.get_type(),
+            "Wrong property type"
+        );
+
+        $self.element_style.properties.insert($id.into(), value);
+    };
+}
+
+macro_rules! get_property {
+    ($self:ident, $id:ident, $v:ident) => {{
+        let prop = $self.get_property($id);
+
+        let HmGuiProperty::$v(value) = prop else {
+            panic!(
+                "Wrong property type. Expected {} but was {}",
+                stringify!($v),
+                prop.name()
+            )
+        };
+
+        value
+    }};
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -202,9 +297,9 @@ impl HmGui {
         }
 
         self.focus_pos = input.mouse().position();
-        self.focus.fill(0);
+        self.mouse_over_widget_hash.fill(0);
 
-        self.check_focus(self.root.clone());
+        self.check_mouse_over(self.root.clone());
 
         unsafe { Profiler_End() };
     }
@@ -256,108 +351,217 @@ impl HmGui {
         self.container = parent;
     }
 
-    pub fn begin_scroll(&mut self, _max_size: f32) {
+    /// Start scroll area.
+    ///
+    /// Internally scroll area represented by 2 nested stack containers for a area itself
+    /// and 2 other containers for scroll bars. So it is possible to set layout parameters
+    /// for both external and internal containers. For the former parameters should be
+    /// specified after `Gui:end_scroll_area()` function call and for the latter after
+    /// `Gui:beginScrollArea()`.
+    ///
+    /// Parameters:
+    /// **dir** - define directions in which scrolling is enabled: All, Horizontal, Vertical.
+    ///
+    /// Example:
+    /// ```lua
+    /// Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShow, false)
+    /// Gui:beginScrollArea(ScrollDirection.All)
+    ///
+    /// Gui:beginVerticalContainer()
+    /// Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+    /// Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+    ///
+    /// Gui:button("Button1")
+    /// Gui:button("Button2")
+    ///
+    /// Gui:endContainer()
+    /// Gui:endScrollArea(InputInstance)
+    /// Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+    /// Gui:setFixedSize(500, 500)
+    /// ```
+    pub fn begin_scroll_area(&mut self, dir: ScrollDirection) {
+        self.begin_stack_container();
+
+        self.begin_stack_container();
+        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+
         let widget_rf = self.container.clone();
         let mut widget = widget_rf.as_mut();
-        let widget_hash = widget.hash;
         let container = widget.get_container_item_mut();
 
-        self.begin_horizontal_container();
-        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
-        self.set_spacing(2.0);
-
-        container.clip = true;
-
-        self.begin_vertical_container();
-        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
-        self.set_padding(6.0, 6.0);
-
-        container.store_size = true;
-
-        let data = self.get_data(widget_hash);
-
-        container.offset.x = -data.offset.x;
-        container.offset.y = -data.offset.y;
+        container.scroll_dir = Some(dir);
     }
 
-    pub fn end_scroll(&mut self, input: &Input) {
-        let widget_rf = self.container.clone();
-        let widget = widget_rf.as_ref();
-        let has_focus = self.container_has_focus(FocusType::Scroll);
+    /// End of the scroll area.
+    ///
+    /// See [`HmGui::begin_scroll_area`] for example.
+    pub fn end_scroll_area(&mut self, input: &Input) {
+        let (max_scroll_x, max_scroll_y, inner_widget_hash, allow_hscroll, allow_vscroll) = {
+            let widget_rf = self.container.clone();
+            let mut widget = widget_rf.as_mut();
 
-        let data = self.get_data(widget.hash);
+            let data = self.get_data(widget.hash);
 
-        if has_focus {
-            let scroll_x = input.mouse().value(MouseControl::ScrollX);
-            let scroll_y = input.mouse().value(MouseControl::ScrollY);
+            let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
+            let max_scroll_y = f32::max(0.0, data.min_size.y - data.size.y);
 
-            data.offset.x -= 10.0 * scroll_x as f32;
-            data.offset.y -= 10.0 * scroll_y as f32;
-        }
+            data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
+            data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
 
-        let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
-        let max_scroll_y = f32::max(0.0, data.min_size.y - data.size.y);
+            let container = widget.get_container_item_mut();
+            container.offset = -data.offset;
 
-        data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
-        data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
+            let (allow_hscroll, allow_vscroll) = if let Some(dir) = container.scroll_dir {
+                match dir {
+                    ScrollDirection::All => (true, true),
+                    ScrollDirection::Horizontal => (true, false),
+                    ScrollDirection::Vertical => (false, true),
+                }
+            } else {
+                (false, false)
+            };
+
+            (
+                max_scroll_x,
+                max_scroll_y,
+                widget.hash,
+                allow_hscroll,
+                allow_vscroll,
+            )
+        };
 
         self.end_container();
 
-        self.begin_vertical_container();
-        self.set_vertical_alignment(AlignVertical::Stretch);
-        self.set_spacing(0.0);
+        let hscroll =
+            allow_hscroll && self.get_property_bool(HmGuiProperties::ScrollAreaHScrollShow.id());
+        let vscroll =
+            allow_vscroll && self.get_property_bool(HmGuiProperties::ScrollAreaVScrollShow.id());
 
-        if max_scroll_x > 0.0 {
-            let (handle_size, handle_pos) = {
+        if hscroll || vscroll {
+            let fade_scale = {
+                let scroll_scale =
+                    self.get_property_f32(HmGuiProperties::ScrollAreaScrollScale.id());
+                let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
+                let mut scroll = input.mouse().scroll();
+
+                if input.keyboard().is_down(KeyboardButton::ShiftLeft) {
+                    let scroll_x = scroll.y;
+                    scroll = Vec2::new(scroll_x, 0.0);
+                }
+
+                let widget_rf = self.container.clone();
+                let widget = widget_rf.as_ref();
+
                 let data = self.get_data(widget.hash);
-                let handle_size = data.size.x * (data.size.x / data.min_size.x);
-                let handle_pos = Lerp(
-                    0.0f64,
-                    (data.size.x - handle_size) as f64,
-                    (data.offset.x / max_scroll_x) as f64,
-                ) as f32;
 
-                (handle_size, handle_pos)
+                let fade_scale = if is_mouse_over
+                    && (scroll.length() > 0.3 || input.mouse().delta().length() > 0.5)
+                {
+                    data.scrollbar_activation_time = Instant::now();
+                    1.0
+                } else {
+                    let elapsed_time = Instant::now() - data.scrollbar_activation_time;
+                    let stable_time = Duration::from_millis(self.get_property_u64(
+                        HmGuiProperties::ScrollAreaScrollbarVisibilityStableTime.id(),
+                    ));
+                    let fade_time = Duration::from_millis(self.get_property_u64(
+                        HmGuiProperties::ScrollAreaScrollbarVisibilityFadeTime.id(),
+                    ));
+
+                    if elapsed_time <= stable_time {
+                        1.0
+                    } else if elapsed_time <= stable_time + fade_time {
+                        1.0 - (elapsed_time - stable_time).as_millis() as f32
+                            / fade_time.as_millis() as f32
+                    } else {
+                        0.0
+                    }
+                };
+
+                if is_mouse_over {
+                    let data = self.get_data(inner_widget_hash);
+                    data.offset -= scroll * scroll_scale;
+                }
+
+                fade_scale
             };
 
-            self.rect(0.0, 0.0, 0.0, 0.0);
-            self.set_fixed_size(handle_pos, 4.0);
+            if fade_scale > 0.0 {
+                let sb_length =
+                    self.get_property_f32(HmGuiProperties::ScrollAreaScrollbarLength.id());
 
-            let color_frame = self.styles.last().expect("Style was not set").color_frame;
+                let mut sb_bg_color = self
+                    .get_property_color(HmGuiProperties::ScrollAreaScrollbarBackgroundColor.id())
+                    .clone();
+                sb_bg_color.a *= fade_scale;
 
-            self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
-            self.set_fixed_size(handle_size, 4.0);
-        } else {
-            self.rect(0.0, 0.0, 0.0, 0.0);
-            self.set_fixed_size(16.0, 4.0);
+                let mut sb_knob_color = self
+                    .get_property_color(HmGuiProperties::ContainerColorFrame.id())
+                    .clone();
+
+                sb_knob_color.a *= fade_scale;
+
+                if hscroll && max_scroll_x > 0.0 {
+                    self.begin_horizontal_container();
+                    self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Bottom);
+                    self.set_spacing(0.0);
+
+                    let (handle_size, handle_pos) = {
+                        let data = self.get_data(inner_widget_hash);
+                        let handle_size = data.size.x * (data.size.x / data.min_size.x);
+                        let handle_pos = Lerp(
+                            0.0f64,
+                            (data.size.x - handle_size) as f64,
+                            (data.offset.x / max_scroll_x) as f64,
+                        ) as f32;
+
+                        (handle_size, handle_pos)
+                    };
+
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_size(handle_pos, sb_length);
+
+                    self.rect(&sb_knob_color);
+                    self.set_fixed_size(handle_size, sb_length);
+
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_height(sb_length);
+                    self.set_horizontal_alignment(AlignHorizontal::Stretch);
+
+                    self.end_container();
+                }
+
+                if vscroll && max_scroll_y > 0.0 {
+                    self.begin_vertical_container();
+                    self.set_alignment(AlignHorizontal::Right, AlignVertical::Stretch);
+                    self.set_spacing(0.0);
+
+                    let (handle_size, handle_pos) = {
+                        let data = self.get_data(inner_widget_hash);
+                        let handle_size = data.size.y * (data.size.y / data.min_size.y);
+                        let handle_pos = Lerp(
+                            0.0f64,
+                            (data.size.y - handle_size) as f64,
+                            (data.offset.y / max_scroll_y) as f64,
+                        ) as f32;
+
+                        (handle_size, handle_pos)
+                    };
+
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_size(sb_length, handle_pos);
+
+                    self.rect(&sb_knob_color);
+                    self.set_fixed_size(sb_length, handle_size);
+
+                    self.rect(&sb_bg_color);
+                    self.set_fixed_width(sb_length);
+                    self.set_vertical_alignment(AlignVertical::Stretch);
+
+                    self.end_container();
+                }
+            }
         }
-
-        if max_scroll_y > 0.0 {
-            let (handle_size, handle_pos) = {
-                let data = self.get_data(widget.hash);
-                let handle_size = data.size.y * (data.size.y / data.min_size.y);
-                let handle_pos = Lerp(
-                    0.0f64,
-                    (data.size.y - handle_size) as f64,
-                    (data.offset.y / max_scroll_y) as f64,
-                ) as f32;
-
-                (handle_size, handle_pos)
-            };
-
-            self.rect(0.0, 0.0, 0.0, 0.0);
-            self.set_fixed_size(4.0, handle_pos);
-
-            let color_frame = self.styles.last().expect("Style was not set").color_frame;
-
-            self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
-            self.set_fixed_size(4.0, handle_size);
-        } else {
-            self.rect(0.0, 0.0, 0.0, 0.0);
-            self.set_fixed_size(4.0, 16.0);
-        }
-
-        self.end_container();
 
         self.end_container();
     }
@@ -365,29 +569,26 @@ impl HmGui {
     /// Begins window element.
     // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
+        self.set_property_f32(HmGuiProperties::Opacity.id(), 0.95);
         self.begin_stack_container();
 
         // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
         {
             let mouse = input.mouse();
-            let has_focus = self.container_has_focus(FocusType::Mouse);
+            let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
 
             let widget_rf = self.container.clone();
             let mut widget = widget_rf.as_mut();
             let data = self.get_data(widget.hash);
 
-            if has_focus && mouse.is_down(MouseControl::Left) {
+            if is_mouse_over && mouse.is_down(MouseControl::Left) {
                 data.offset.x += mouse.value(MouseControl::DeltaX);
                 data.offset.y += mouse.value(MouseControl::DeltaY);
             }
 
             widget.pos.x += data.offset.x;
             widget.pos.y += data.offset.y;
-
-            let container = widget.get_container_item_mut();
-            container.focus_style = FocusStyle::None;
-            container.frame_opacity = 0.95;
-            container.clip = true;
+            widget.render_style = RenderStyle::None;
         }
 
         self.begin_vertical_container();
@@ -404,30 +605,32 @@ impl HmGui {
     /// Invisible element that stretches in all directions.
     /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
     pub fn spacer(&mut self) {
-        self.rect(0.0, 0.0, 0.0, 0.0);
+        self.rect(&Color::TRANSPARENT);
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
     }
 
     pub fn button(&mut self, label: &str) -> bool {
+        self.map_property_group("button");
+
         self.begin_stack_container();
         self.set_padding(8.0, 8.0);
 
         // A separate scope to prevent runtime borrow panics - widget borrowing conflicts with self.text() below
-        let focus = {
-            let mut widget = self.container.as_mut();
-            let hash = widget.hash;
-            let container = widget.get_container_item_mut();
+        let is_mouse_over = {
+            let mut widget = self.last.as_mut();
+            let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
 
-            container.focus_style = FocusStyle::Fill;
-            container.frame_opacity = 0.5;
+            if is_mouse_over {
+                widget.render_style = RenderStyle::Fill;
+            }
 
-            self.container_has_focus_intern(container, FocusType::Mouse, hash)
+            is_mouse_over
         };
+
+        let pressed = is_mouse_over && self.activate;
 
         self.text(label);
         self.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
-
-        let pressed = focus && self.activate;
 
         self.end_container();
 
@@ -442,15 +645,14 @@ impl HmGui {
 
         // A separate scope to prevent runtime borrow conflict with self.text() below
         {
-            let mut widget = self.container.as_mut();
-            let hash = widget.hash;
-            let container = widget.get_container_item_mut();
+            let mut widget = self.last.as_mut();
+            let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
 
-            container.focus_style = FocusStyle::Underline;
+            if is_mouse_over {
+                widget.render_style = RenderStyle::Underline;
+            }
 
-            let focus = self.container_has_focus_intern(container, FocusType::Mouse, hash);
-
-            if focus && self.activate {
+            if is_mouse_over && self.activate {
                 value = !value;
             }
         }
@@ -465,20 +667,18 @@ impl HmGui {
         self.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
         let (color_frame, color_primary) = {
-            let style = self.styles.last().expect("Style was not set");
-            (style.color_frame, style.color_primary)
+            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrame.id());
+            let color_primary =
+                self.get_property_color(HmGuiProperties::ContainerColorPrimary.id());
+
+            (color_frame.clone(), color_primary.clone())
         };
 
-        self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+        self.rect(&color_frame);
         self.set_fixed_size(16.0, 16.0);
 
         if value {
-            self.rect(
-                color_primary.x,
-                color_primary.y,
-                color_primary.z,
-                color_primary.w,
-            );
+            self.rect(&color_primary);
             self.set_fixed_size(10.0, 10.0);
         }
 
@@ -492,7 +692,7 @@ impl HmGui {
         self.begin_stack_container();
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        self.rect(0.5, 0.5, 0.5, 1.0);
+        self.rect(&Color::new(0.5, 0.5, 0.5, 1.0));
         self.set_fixed_size(0.0, 2.0);
 
         self.end_container();
@@ -500,14 +700,14 @@ impl HmGui {
         0.0
     }
 
-    pub fn horizontal_divider(&mut self, height: f32, r: f32, g: f32, b: f32, a: f32) {
-        self.rect(r, g, b, a);
+    pub fn horizontal_divider(&mut self, height: f32, color: &Color) {
+        self.rect(color);
         self.set_fixed_height(height);
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
     }
 
-    pub fn vertical_divider(&mut self, width: f32, r: f32, g: f32, b: f32, a: f32) {
-        self.rect(r, g, b, a);
+    pub fn vertical_divider(&mut self, width: f32, color: &Color) {
+        self.rect(color);
         self.set_fixed_width(width);
         self.set_vertical_alignment(AlignVertical::Stretch);
     }
@@ -518,22 +718,23 @@ impl HmGui {
         let _widget_rf = self.init_widget(WidgetItem::Image(image_item));
     }
 
-    pub fn rect(&mut self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn rect(&mut self, color: &Color) {
         let rect_item = HmGuiRect {
-            color: Vec4::new(r, g, b, a),
+            color: color.clone(),
         };
 
         self.init_widget(WidgetItem::Rect(rect_item));
     }
 
     pub fn text(&mut self, text: &str) {
-        let style = self.styles.last().expect("Style was not set");
+        let font = self.get_property_font(HmGuiProperties::TextFont.id());
+        let color = self.get_property_color(HmGuiProperties::TextColor.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
-            font: style.font.clone().into(),
             text: text.into(),
-            color: style.color_text,
+            font: font.clone(),
+            color: color.clone(),
         };
         let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
@@ -542,14 +743,14 @@ impl HmGui {
         widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
     }
 
-    pub fn text_colored(&mut self, text: &str, r: f32, g: f32, b: f32, a: f32) {
-        let style = self.styles.last().expect("Style was not set");
+    pub fn text_colored(&mut self, text: &str, color: &Color) {
+        let font = self.get_property_font(HmGuiProperties::TextFont.id());
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
-            font: style.font.clone().into(),
+            font: font.clone(),
             text: text.into(),
-            color: Vec4::new(r, g, b, a),
+            color: color.clone(),
         };
         let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
@@ -558,17 +759,24 @@ impl HmGui {
         widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
     }
 
-    pub fn text_ex(&mut self, font: &Font, text: &str, r: f32, g: f32, b: f32, a: f32) {
+    pub fn text_ex(&mut self, font: &Font, text: &str, color: &Color) {
         let item = HmGuiText {
             font: font.clone().into(),
             text: text.into(),
-            color: Vec4::new(r, g, b, a),
+            color: color.clone(),
         };
         let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
         let mut widget = widget_rf.as_mut();
 
         widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+    }
+
+    /// Makes current widget `focusable` and returns true if mouse is over it.
+    pub fn is_mouse_over(&self, ty: FocusType) -> bool {
+        let mut widget = self.last.as_mut();
+
+        self.is_mouse_over_intern(&mut widget, ty)
     }
 
     pub fn set_min_width(&self, width: f32) {
@@ -672,39 +880,39 @@ impl HmGui {
         widget.border_width = width;
     }
 
-    pub fn set_border_color(&self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_border_color(&self, color: &Color) {
         let mut widget = self.last.as_mut();
 
-        widget.border_color = Vec4::new(r, g, b, a);
+        widget.border_color = color.clone();
     }
 
-    pub fn set_border_color_v4(&self, color: &Vec4) {
+    pub fn set_border_color_v4(&self, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.border_color = *color;
     }
 
-    pub fn set_border(&self, width: f32, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_border(&self, width: f32, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.border_width = width;
-        widget.border_color = Vec4::new(r, g, b, a);
+        widget.border_color = color.clone();
     }
 
-    pub fn set_border_v4(&self, width: f32, color: &Vec4) {
+    pub fn set_border_v4(&self, width: f32, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.border_width = width;
         widget.border_color = *color;
     }
 
-    pub fn set_bg_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_bg_color(&mut self, color: &Color) {
         let mut widget = self.last.as_mut();
 
-        widget.bg_color = Some(Vec4::new(r, g, b, a));
+        widget.bg_color = Some(color.clone());
     }
 
-    pub fn set_bg_color_v4(&mut self, color: &Vec4) {
+    pub fn set_bg_color_v4(&mut self, color: &Color) {
         let mut widget = self.last.as_mut();
 
         widget.bg_color = Some(*color);
@@ -780,15 +988,6 @@ impl HmGui {
         container.spacing = spacing;
     }
 
-    /// Makes current container `focusable` and returns if it's currently in focus.
-    pub fn container_has_focus(&self, ty: FocusType) -> bool {
-        let mut widget = self.container.as_mut();
-        let hash = widget.hash;
-        let container = widget.get_container_item_mut();
-
-        self.container_has_focus_intern(container, ty, hash)
-    }
-
     pub fn set_children_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
         let mut widget = self.container.as_mut();
         let container = widget.get_container_item_mut();
@@ -811,32 +1010,533 @@ impl HmGui {
         container.children_vertical_alignment = align;
     }
 
-    pub fn push_style(&mut self) {
-        let style = self.styles.last().cloned().unwrap_or_default();
+    // Theme methods ----------------------------------------------------------
 
-        self.styles.push(style);
+    /// Set a theme by merging it into the default properties.
+    pub fn set_theme(&mut self, name: &str) {
+        let mut property_registry = self.default_property_registry.clone();
+
+        self.theme_registry.merge_to(&mut property_registry, name);
+
+        self.property_registry = property_registry;
     }
 
-    pub fn push_font(&mut self, font: &Font) {
-        self.push_style();
-
-        let style = self.styles.last_mut().expect("Style was not set");
-
-        style.font = font.clone().into();
+    /// Restore default properties.
+    pub fn clear_theme(&mut self) {
+        self.property_registry = self.default_property_registry.clone();
     }
 
-    pub fn push_text_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
-        self.push_style();
+    // Style methods ----------------------------------------------------------
 
-        let style = self.styles.last_mut().expect("Style was not set");
-
-        style.color_text = Vec4::new(r, g, b, a);
+    /// Get style id by its name.
+    pub fn get_style_id(&self, name: &str) -> usize {
+        *self
+            .style_registry
+            .get_id(name)
+            .expect(&format!("Unknown style: {name}"))
     }
 
-    pub fn pop_style(&mut self, depth: i32) {
-        assert!(self.styles.len() >= depth as usize);
+    /// Set a style for the following element.
+    pub fn set_style(&mut self, id: usize) {
+        self.element_style = self
+            .style_registry
+            .get(id.into())
+            .expect(&format!("Unknown style with id: {id:?}"))
+            .clone();
+    }
 
-        self.styles.truncate(self.styles.len() - depth as usize);
+    /// Remove element style.
+    pub fn clear_style(&mut self) {
+        self.element_style.properties.clear();
+    }
+
+    // Property methods -------------------------------------------------------
+
+    /// Get property type by its id.
+    pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
+        self.default_property_registry.registry[id]
+            .property
+            .get_type()
+    }
+
+    /// Write property value into the mapped properties in the active element style.
+    pub fn map_property(&mut self, property_id: usize) {
+        let map_ids = &self.property_registry.registry[property_id].map_ids;
+        if map_ids.is_empty() {
+            return;
+        }
+
+        let prop = self.get_property(property_id).clone();
+
+        for map_id in map_ids {
+            self.element_style.properties.insert(*map_id, prop.clone());
+        }
+    }
+
+    /// Write all properties values of the group into their mapped properties in the active element style.
+    /// Example: `gui.map_property_group("button")`
+    ///   It will map all properties with prefix "button.".
+    pub fn map_property_group(&mut self, group: &str) {
+        let prefix = format!("{group}.");
+        let property_ids: Vec<_> = self
+            .property_registry
+            .registry
+            .iter()
+            .enumerate()
+            .filter_map(|(property_id, (name, _))| name.starts_with(&prefix).then(|| property_id))
+            .collect();
+
+        for property_id in property_ids {
+            self.map_property(property_id);
+        }
+    }
+
+    /// Remove property by id from the active element style.
+    pub fn remove_property(&mut self, property_id: usize) {
+        self.element_style.properties.remove(&property_id.into());
+    }
+
+    // register_property_* methods --------------------------------------------
+
+    // TODO: map_ids: Vec<usize>
+    pub fn register_property_bool(
+        &mut self,
+        name: &str,
+        value: bool,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_i8(&mut self, name: &str, value: i8, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_u8(&mut self, name: &str, value: u8, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_i16(&mut self, name: &str, value: i16, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_u16(&mut self, name: &str, value: u16, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_i32(&mut self, name: &str, value: i32, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_u32(&mut self, name: &str, value: u32, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_i64(&mut self, name: &str, value: i64, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_u64(&mut self, name: &str, value: u64, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_f32(&mut self, name: &str, value: f32, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_f64(&mut self, name: &str, value: f64, map_id: Option<&str>) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_vec2(
+        &mut self,
+        name: &str,
+        value: Vec2,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    pub fn register_property_vec3(
+        &mut self,
+        name: &str,
+        value: &Vec3,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    pub fn register_property_vec4(
+        &mut self,
+        name: &str,
+        value: &Vec4,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyIVec2")]
+    pub fn register_property_ivec2(
+        &mut self,
+        name: &str,
+        value: IVec2,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    #[bind(name = "RegisterPropertyIVec3")]
+    pub fn register_property_ivec3(
+        &mut self,
+        name: &str,
+        value: &IVec3,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyIVec4")]
+    pub fn register_property_ivec4(
+        &mut self,
+        name: &str,
+        value: &IVec4,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyUVec2")]
+    pub fn register_property_uvec2(
+        &mut self,
+        name: &str,
+        value: UVec2,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    #[bind(name = "RegisterPropertyUVec3")]
+    pub fn register_property_uvec3(
+        &mut self,
+        name: &str,
+        value: &UVec3,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyUVec4")]
+    pub fn register_property_uvec4(
+        &mut self,
+        name: &str,
+        value: &UVec4,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyDVec2")]
+    pub fn register_property_dvec2(
+        &mut self,
+        name: &str,
+        value: DVec2,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value, map_id)
+    }
+
+    #[bind(name = "RegisterPropertyDVec3")]
+    pub fn register_property_dvec3(
+        &mut self,
+        name: &str,
+        value: &DVec3,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    #[bind(name = "RegisterPropertyDVec4")]
+    pub fn register_property_dvec4(
+        &mut self,
+        name: &str,
+        value: &DVec4,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    pub fn register_property_color(
+        &mut self,
+        name: &str,
+        value: &Color,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    pub fn register_property_box3(
+        &mut self,
+        name: &str,
+        value: &Box3,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    pub fn register_property_string(
+        &mut self,
+        name: &str,
+        value: &str,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.to_string(), map_id)
+    }
+
+    pub fn register_property_font(
+        &mut self,
+        name: &str,
+        value: &Font,
+        map_id: Option<&str>,
+    ) -> usize {
+        register_property!(self, name, value.clone(), map_id)
+    }
+
+    // set_property_* methods -------------------------------------------------
+
+    pub fn set_property_bool(&mut self, property_id: usize, value: bool) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_i8(&mut self, property_id: usize, value: i8) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_u8(&mut self, property_id: usize, value: u8) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_i16(&mut self, property_id: usize, value: i16) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_u16(&mut self, property_id: usize, value: u16) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_i32(&mut self, property_id: usize, value: i32) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_u32(&mut self, property_id: usize, value: u32) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_i64(&mut self, property_id: usize, value: i64) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_u64(&mut self, property_id: usize, value: u64) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_f32(&mut self, property_id: usize, value: f32) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_f64(&mut self, property_id: usize, value: f64) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_vec2(&mut self, property_id: usize, value: Vec2) {
+        set_property!(self, property_id, value);
+    }
+
+    pub fn set_property_vec3(&mut self, property_id: usize, value: &Vec3) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    pub fn set_property_vec4(&mut self, property_id: usize, value: &Vec4) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyIVec2")]
+    pub fn set_property_ivec2(&mut self, property_id: usize, value: IVec2) {
+        set_property!(self, property_id, value);
+    }
+
+    #[bind(name = "SetPropertyIVec3")]
+    pub fn set_property_ivec3(&mut self, property_id: usize, value: &IVec3) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyIVec4")]
+    pub fn set_property_ivec4(&mut self, property_id: usize, value: &IVec4) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyUVec2")]
+    pub fn set_property_uvec2(&mut self, property_id: usize, value: UVec2) {
+        set_property!(self, property_id, value);
+    }
+
+    #[bind(name = "SetPropertyUVec3")]
+    pub fn set_property_uvec3(&mut self, property_id: usize, value: &UVec3) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyUVec4")]
+    pub fn set_property_uvec4(&mut self, property_id: usize, value: &UVec4) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyDVec2")]
+    pub fn set_property_dvec2(&mut self, property_id: usize, value: DVec2) {
+        set_property!(self, property_id, value);
+    }
+
+    #[bind(name = "SetPropertyDVec3")]
+    pub fn set_property_dvec3(&mut self, property_id: usize, value: &DVec3) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    #[bind(name = "SetPropertyDVec4")]
+    pub fn set_property_dvec4(&mut self, property_id: usize, value: &DVec4) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    pub fn set_property_color(&mut self, property_id: usize, value: &Color) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    pub fn set_property_box3(&mut self, property_id: usize, value: &Box3) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    pub fn set_property_string(&mut self, property_id: usize, value: &str) {
+        set_property!(self, property_id, value.to_string());
+    }
+
+    pub fn set_property_font(&mut self, property_id: usize, value: &Font) {
+        set_property!(self, property_id, value.clone());
+    }
+
+    // get_property_* methods -------------------------------------------------
+
+    pub fn get_property_bool(&self, property_id: usize) -> bool {
+        *get_property!(self, property_id, Bool)
+    }
+
+    pub fn get_property_i8(&self, property_id: usize) -> i8 {
+        *get_property!(self, property_id, I8)
+    }
+
+    pub fn get_property_u8(&self, property_id: usize) -> u8 {
+        *get_property!(self, property_id, U8)
+    }
+
+    pub fn get_property_i16(&self, property_id: usize) -> i16 {
+        *get_property!(self, property_id, I16)
+    }
+
+    pub fn get_property_u16(&self, property_id: usize) -> u16 {
+        *get_property!(self, property_id, U16)
+    }
+
+    pub fn get_property_i32(&self, property_id: usize) -> i32 {
+        *get_property!(self, property_id, I32)
+    }
+
+    pub fn get_property_u32(&self, property_id: usize) -> u32 {
+        *get_property!(self, property_id, U32)
+    }
+
+    pub fn get_property_i64(&self, property_id: usize) -> i64 {
+        *get_property!(self, property_id, I64)
+    }
+
+    pub fn get_property_u64(&self, property_id: usize) -> u64 {
+        *get_property!(self, property_id, U64)
+    }
+
+    pub fn get_property_f32(&self, property_id: usize) -> f32 {
+        *get_property!(self, property_id, F32)
+    }
+
+    pub fn get_property_f64(&self, property_id: usize) -> f64 {
+        *get_property!(self, property_id, F64)
+    }
+
+    pub fn get_property_vec2(&self, property_id: usize) -> Vec2 {
+        *get_property!(self, property_id, Vec2)
+    }
+
+    pub fn get_property_vec3(&self, property_id: usize) -> &Vec3 {
+        get_property!(self, property_id, Vec3)
+    }
+
+    pub fn get_property_vec4(&self, property_id: usize) -> &Vec4 {
+        get_property!(self, property_id, Vec4)
+    }
+
+    #[bind(name = "GetPropertyIVec2")]
+    pub fn get_property_ivec2(&self, property_id: usize) -> IVec2 {
+        *get_property!(self, property_id, IVec2)
+    }
+
+    #[bind(name = "GetPropertyIVec3")]
+    pub fn get_property_ivec3(&self, property_id: usize) -> &IVec3 {
+        get_property!(self, property_id, IVec3)
+    }
+
+    #[bind(name = "GetPropertyIVec4")]
+    pub fn get_property_ivec4(&self, property_id: usize) -> &IVec4 {
+        get_property!(self, property_id, IVec4)
+    }
+
+    #[bind(name = "GetPropertyUVec2")]
+    pub fn get_property_uvec2(&self, property_id: usize) -> UVec2 {
+        *get_property!(self, property_id, UVec2)
+    }
+
+    #[bind(name = "GetPropertyUVec3")]
+    pub fn get_property_uvec3(&self, property_id: usize) -> &UVec3 {
+        get_property!(self, property_id, UVec3)
+    }
+
+    #[bind(name = "GetPropertyUVec4")]
+    pub fn get_property_uvec4(&self, property_id: usize) -> &UVec4 {
+        get_property!(self, property_id, UVec4)
+    }
+
+    #[bind(name = "GetPropertyDVec2")]
+    pub fn get_property_dvec2(&self, property_id: usize) -> DVec2 {
+        *get_property!(self, property_id, DVec2)
+    }
+
+    #[bind(name = "GetPropertyDVec3")]
+    pub fn get_property_dvec3(&self, property_id: usize) -> &DVec3 {
+        get_property!(self, property_id, DVec3)
+    }
+
+    #[bind(name = "GetPropertyDVec4")]
+    pub fn get_property_dvec4(&self, property_id: usize) -> &DVec4 {
+        get_property!(self, property_id, DVec4)
+    }
+
+    pub fn get_property_color(&self, property_id: usize) -> &Color {
+        get_property!(self, property_id, Color)
+    }
+
+    pub fn get_property_box3(&self, property_id: usize) -> &Box3 {
+        get_property!(self, property_id, Box3)
+    }
+
+    pub fn get_property_string(&self, property_id: usize) -> &str {
+        get_property!(self, property_id, String).as_str()
+    }
+
+    pub fn get_property_font(&self, property_id: usize) -> &Font {
+        get_property!(self, property_id, Font)
     }
 
     /// Prints widgets hierarchy to the console. For testing.

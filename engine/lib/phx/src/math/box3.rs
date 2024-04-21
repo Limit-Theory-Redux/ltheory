@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq)]
 #[repr(C)]
 pub struct Box3 {
     pub lower: Vec3,
@@ -8,7 +8,7 @@ pub struct Box3 {
 }
 
 impl Box3 {
-    pub fn new(lower: Vec3, upper: Vec3) -> Box3 {
+    pub const fn new(lower: Vec3, upper: Vec3) -> Box3 {
         Box3 { lower, upper }
     }
 
@@ -59,6 +59,14 @@ impl Box3 {
         (self.upper.x - self.lower.x)
             * (self.upper.y - self.lower.y)
             * (self.upper.z - self.lower.z)
+    }
+
+    pub fn half_extents(&self) -> Vec3 {
+        Vec3::new(
+            self.upper.x - self.lower.x,
+            self.upper.y - self.lower.y,
+            self.upper.z - self.lower.z,
+        ) * 0.5
     }
 
     pub fn contains(a: Box3, b: Box3) -> bool {

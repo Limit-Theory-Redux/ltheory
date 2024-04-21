@@ -3,7 +3,6 @@ use internal::*;
 use super::*;
 use crate::common::*;
 use crate::math::*;
-use crate::*;
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ComputeAO(this: &mut Mesh, radius: f32) {

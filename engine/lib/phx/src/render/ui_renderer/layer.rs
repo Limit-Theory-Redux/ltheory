@@ -57,10 +57,10 @@ impl UIRendererLayer {
                     Shader_SetFloat2(c_str!("size"), sx, sy);
                     Shader_SetFloat4(
                         c_str!("color"),
-                        panel.color.x,
-                        panel.color.y,
-                        panel.color.z,
-                        panel.color.w,
+                        panel.color.r,
+                        panel.color.g,
+                        panel.color.b,
+                        panel.color.a,
                     );
 
                     Draw_Rect(x, y, sx, sy);
@@ -89,7 +89,7 @@ impl UIRendererLayer {
             while let Some(rect_id) = rect_id_opt {
                 let rect = &renderer.rects[*rect_id];
 
-                Draw_Color(rect.color.x, rect.color.y, rect.color.z, rect.color.w);
+                Draw_Color(rect.color.r, rect.color.g, rect.color.b, rect.color.a);
 
                 if let Some(s) = rect.outline {
                     Draw_Border(s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
@@ -108,10 +108,10 @@ impl UIRendererLayer {
                     &text.text,
                     text.pos.x,
                     text.pos.y,
-                    text.color.x,
-                    text.color.y,
-                    text.color.z,
-                    text.color.w,
+                    text.color.r,
+                    text.color.g,
+                    text.color.b,
+                    text.color.a,
                 );
 
                 text_id_opt = text.next;

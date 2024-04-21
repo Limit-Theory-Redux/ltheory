@@ -1,4 +1,6 @@
-use glam::{Vec2, Vec4};
+use glam::Vec2;
+
+use crate::render::Color;
 
 use super::UIRendererRectId;
 
@@ -7,6 +9,6 @@ pub struct UIRendererRect {
     pub next: Option<UIRendererRectId>,
     pub pos: Vec2,
     pub size: Vec2,
-    pub color: Vec4,
+    pub color: Color,
     pub outline: Option<f32>,
 }

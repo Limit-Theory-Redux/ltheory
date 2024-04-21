@@ -62,13 +62,9 @@ local function ErrorHandler(e)
             local path = info.source:sub(2)
             -- TODO : Does src/ need to be changed to script?
             if path:beginsWith('./script/Main') then goto continue end
-            if prevPath == path then
-                styleLine('')
-            else
-                print()
-                styleSource(format('%s', path:gsub('%./', '', 1):gsub('/', '.')))
-                prevPath = path
-            end
+            
+            print()
+            styleSource(format('%s:%d', path, info.currentline))
 
             if info.currentline and io.open(path, 'r') then
                 lines = {}

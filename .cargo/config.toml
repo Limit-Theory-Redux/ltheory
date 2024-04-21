@@ -1,0 +1,9 @@
+[profile.release]
+lto = true        # remove dead code, reduce size
+strip = true      # reve debug symbols from the binary
+opt-level = 3     # all optimizations
+codegen-units = 1 # increase optimization
+panic = "abort"   # abort on panic - removes panic unwinding code
+
+[term]
+color = "always"

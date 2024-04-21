@@ -4,7 +4,6 @@ use super::*;
 use crate::error::Error;
 use crate::math::*;
 use crate::system::*;
-use crate::*;
 
 pub struct Mesh {
     pub _refCount: u32,
@@ -90,9 +89,9 @@ pub unsafe extern "C" fn Mesh_Clone(other: &mut Mesh) -> Box<Mesh> {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Load(name: *const libc::c_char) -> Box<Mesh> {
-    let bytes = Resource_LoadBytes(ResourceType_Mesh, name);
-    let this = Mesh_FromBytes(&mut *bytes);
-    Bytes_Free(bytes);
+    let mut bytes = Resource_LoadBytes(ResourceType::Mesh, name);
+    let this = Mesh_FromBytes(bytes.as_mut());
+    Bytes_Free(Box::leak(bytes)); // TODO: potential memory problem. Refactor mesh to get rid of unsafe
     this
 }
 

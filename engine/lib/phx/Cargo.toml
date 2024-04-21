@@ -18,32 +18,29 @@ luajit-ffi-gen.workspace = true
 chrono = "0.4"
 directories = "5.0"
 flate2 = "1.0"
-freetype-sys = "0.18"
+freetype-sys = "0.20"
 gilrs = "0.10"
-glam = { version = "0.24", features = ["scalar-math"] }
-glutin = "0.30"
-glutin-winit = "0.3"
+glam = { version = "0.25", features = ["scalar-math"] }
+glutin = "0.31"
+glutin-winit = "0.4"
 hashbrown = { version = "0.14", features = ["serde"] }
-image = "0.24"
+image = "0.25"
 indexmap = "2.0"
 kira = { version = "0.8", features = ["symphonia", "cpal", "serde"] }
 libc = "0.2"
 memoffset = "0.9"
-# TODO: we can switch to the first version released that includes this commit, most likely 0.9.2
-mlua = { git = "https://github.com/khvzak/mlua.git", rev = "54c14cc5b8390785ffd0f1c4c96d2dd4a928cc3c", features = [
-    "luajit52",
-    "vendored",
-] }
+mlua = { version = "0.9", features = ["luajit52", "vendored"] }
+rapier3d-f64 = { version = "0.18", features = ["simd-stable", "debug-render"] }
 num_cpus = "1.15"
 raw-window-handle = "0.5"
 regex = "1.8"
 rodio = "0.17"
+serde_yaml = "0.9"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-winit = "0.28"
+winit = "0.29"
+walkdir = "2.4"
 
 [build-dependencies]
-cmake = "0.1"
-cc = { version = "1.0", features = ["parallel"] }
 gl_generator = "0.14"

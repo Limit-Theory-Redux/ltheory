@@ -1,12 +1,10 @@
 use quote::quote;
 use syn::parse::{Error, Parse, Result};
 use syn::spanned::Spanned;
-use syn::{
-    Attribute, FnArg, GenericArgument, ImplItem, ItemImpl, Pat, Path, PathArguments, ReturnType,
-    Type,
-};
+use syn::{Attribute, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Type};
 
 use crate::args::BindArgs;
+use crate::util::{get_meta_name, get_path_last_name, get_path_last_name_with_generics};
 
 use super::*;
 
@@ -38,52 +36,17 @@ fn get_impl_self_name(ty: &Type) -> Result<String> {
     }
 }
 
-fn get_path_last_name(path: &Path) -> Result<String> {
-    let (name, generics) = get_path_last_name_with_generics(path)?;
-
-    if !generics.is_empty() {
-        Err(Error::new(
-            path.span(),
-            "expected a type name without generic arguments",
-        ))
-    } else {
-        Ok(name)
-    }
-}
-
-fn get_path_last_name_with_generics(path: &Path) -> Result<(String, Vec<Type>)> {
-    let Some(last_seg) = path.segments.last() else {
-        return Err(Error::new(path.span(), "expected a type identifier"));
-    };
-
-    let generic_types = if let PathArguments::AngleBracketed(generic_args) = &last_seg.arguments {
-        generic_args
-            .args
-            .iter()
-            .filter_map(|arg| {
-                if let GenericArgument::Type(ty) = arg {
-                    Some(ty.clone())
-                } else {
-                    None
-                }
-            })
-            .collect()
-    } else {
-        vec![]
-    };
-
-    Ok((format!("{}", last_seg.ident), generic_types))
-}
-
 fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
     let mut methods = vec![];
 
     for item in items {
         if let ImplItem::Fn(fn_item) = item {
             let (self_param, params) = parse_params(fn_item.sig.inputs.iter())?;
+            let (doc, bind_args) = parse_method_attrs(&mut fn_item.attrs)?;
 
             methods.push(MethodInfo {
-                bind_args: get_bind_args(&mut fn_item.attrs)?,
+                doc,
+                bind_args,
                 name: format!("{}", fn_item.sig.ident),
                 self_param,
                 params,
@@ -95,38 +58,51 @@ fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
     Ok(methods)
 }
 
-/// Look for the bind attribute an extract its parameters.
+/// Parse the document and bind attributes.
 ///
 /// Expected format:
 /// ```ignore
+/// /// My cool method
 /// #[bind(name = "lua_function_name")]
 /// fn my_cool_method(...) {...}
 /// ```
-fn get_bind_args(attrs: &mut Vec<Attribute>) -> Result<BindArgs> {
+fn parse_method_attrs(attrs: &mut Vec<Attribute>) -> Result<(Vec<String>, BindArgs)> {
     let mut res = None;
+    let mut doc = vec![];
 
     for (i, attr) in attrs.iter().enumerate() {
         let attr_name = get_path_last_name(attr.meta.path())?;
 
-        if attr_name != "bind" {
-            continue;
+        match attr_name.as_str() {
+            "bind" => {
+                if res.is_some() {
+                    return Err(Error::new(
+                        attr.span(),
+                        "multiple 'bind' attributes are not supported",
+                    ));
+                }
+
+                let meta_list = attr.meta.require_list()?;
+                let args = meta_list.parse_args_with(BindArgs::parse)?;
+
+                res = Some((i, args));
+            }
+            "doc" => {
+                if let Some(doc_text) = get_meta_name(&attr.meta) {
+                    doc.push(doc_text);
+                }
+            }
+            _ => {}
         }
-
-        let meta_list = attr.meta.require_list()?;
-        let args = meta_list.parse_args_with(BindArgs::parse)?;
-
-        res = Some((i, args));
-
-        break;
     }
 
     if let Some((i, args)) = res {
         // Remove #[bind] attribute so it won't break compilation
         attrs.remove(i);
 
-        Ok(args)
+        Ok((doc, args))
     } else {
-        Ok(BindArgs::default())
+        Ok((doc, BindArgs::default()))
     }
 }
 
@@ -159,15 +135,6 @@ fn parse_params<'a>(
                         pat_type.ty.span(),
                         "result as input parameter is not supported",
                     ));
-                }
-
-                if let TypeVariant::Custom(ty_name) = &ty.variant {
-                    if !ty.is_reference && !TypeInfo::is_copyable(&ty_name) {
-                        return Err(Error::new(
-                            pat_type.ty.span(),
-                            "by value non-copyable parameters are not supported",
-                        ));
-                    }
                 }
 
                 let param_info = ParamInfo { name, ty };
@@ -216,7 +183,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                 type_info.is_result = true;
 
                 return Ok(type_info);
-            } else if type_name == "Option" {
+            } else if type_name == "Option" || type_name == "Box" {
                 if generics.len() != 1 {
                     return Err(Error::new(
                         type_path.span(),
@@ -229,21 +196,30 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
 
                 let mut type_info = parse_type(&generics[0])?;
 
+                let mut counter = 0;
                 if type_info.is_option {
-                    return Err(Error::new(
-                        type_path.span(),
-                        format!("nested option is not supported"),
-                    ));
+                    counter += 1;
                 }
-
                 if type_info.is_result {
+                    counter += 1;
+                }
+                if type_info.is_boxed {
+                    counter += 1;
+                }
+                if counter > 1 {
                     return Err(Error::new(
                         type_path.span(),
-                        format!("result nested in option is not supported"),
+                        format!(
+                            "a type can't be nested within more than one of: Box, Option, Result."
+                        ),
                     ));
                 }
 
-                type_info.is_option = true;
+                if type_name == "Option" {
+                    type_info.is_option = true;
+                } else {
+                    type_info.is_boxed = true;
+                }
 
                 return Ok(type_info);
             }
@@ -255,6 +231,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                     is_option: false,
                     is_reference: false,
                     is_mutable: false,
+                    is_boxed: false,
                     variant,
                 }
             } else {
@@ -263,6 +240,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                     is_option: false,
                     is_reference: false,
                     is_mutable: false,
+                    is_boxed: false,
                     // TODO: are we going to support full path to type? I.e. std::path::PathBuf
                     variant: TypeVariant::Custom(type_name),
                 }

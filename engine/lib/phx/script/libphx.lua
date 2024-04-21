@@ -56,9 +56,7 @@ do -- Opaque Structs
     typedef struct MemStack     {} MemStack;
     typedef struct Mesh         {} Mesh;
     typedef struct Octree       {} Octree;
-    typedef struct Physics      {} Physics;
     typedef struct RNG          {} RNG;
-    typedef struct RigidBody    {} RigidBody;
     typedef struct RmGui        {} RmGui;
     typedef struct SDF          {} SDF;
     typedef struct Shader       {} Shader;
@@ -70,7 +68,6 @@ do -- Opaque Structs
     typedef struct Tex2D        {} Tex2D;
     typedef struct Tex3D        {} Tex3D;
     typedef struct TexCube      {} TexCube;
-    typedef struct Trigger      {} Trigger;
   ]]
 
   libphx.Opaques = {
@@ -87,9 +84,7 @@ do -- Opaque Structs
     'MemStack',
     'Mesh',
     'Octree',
-    'Physics',
     'RNG',
-    'RigidBody',
     'RmGui',
     'SDF',
     'Shader',
@@ -101,7 +96,6 @@ do -- Opaque Structs
     'Tex2D',
     'Tex3D',
     'TexCube',
-    'Trigger',
   }
 end
 
@@ -140,8 +134,8 @@ do -- Transparent Structs
     } Box3i;
 
     typedef struct Collision {
-      int        index;
-      int        count;
+      uint32     index;
+      uint32     count;
       RigidBody* body0;
       RigidBody* body1;
     } Collision;
@@ -211,9 +205,8 @@ do -- Transparent Structs
     } RayCastResult;
 
     typedef struct ShapeCastResult {
-      int32       hits_size;
-      int32       hits_capacity;
-      RigidBody** hits_data;
+      RigidBody** hits;
+      uint32      hits_len;
     } ShapeCastResult;
 
     typedef struct Sphere {
@@ -264,6 +257,11 @@ do -- Transparent Structs
       int y;
     } Vec2i;
 
+    typedef struct Vec2u {
+      uint x;
+      uint y;
+    } Vec2u;
+
     typedef struct Vec3d {
       double x;
       double y;
@@ -275,6 +273,12 @@ do -- Transparent Structs
       int y;
       int z;
     } Vec3i;
+
+    typedef struct Vec3u {
+      uint x;
+      uint y;
+      uint z;
+    } Vec3u;
 
     typedef struct Vec4d {
       double x;
@@ -297,6 +301,13 @@ do -- Transparent Structs
       int w;
     } Vec4i;
 
+    typedef struct Vec4u {
+      uint x;
+      uint y;
+      uint z;
+      uint w;
+    } Vec4u;
+
     typedef struct Vertex {
       float px;
       float py;
@@ -307,6 +318,13 @@ do -- Transparent Structs
       float uvx;
       float uvy;
     } Vertex;
+
+    typedef struct Color {
+      float r;
+      float g;
+      float b;
+      float a;
+    } Color;
   ]]
 
   libphx.Structs = {
@@ -337,6 +355,7 @@ do -- Transparent Structs
     'Vec4f',
     'Vec4i',
     'Vertex',
+    'Color',
   }
 end
 

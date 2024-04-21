@@ -3,6 +3,7 @@ local InitFiles = require('Systems.Files.InitFiles')
 local Universe = require('Systems.Universe.Universe')
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local MainMenu = require('Systems.Menus.MainMenu')
+local SoundManager = require("Systems.SFX.SoundManager")
 
 local LTheoryRedux = require('States.App.LTheoryRedux')
 
@@ -27,6 +28,8 @@ function LTheoryRedux:onInit()
     -- Initialize Universe
     Universe:Init()
 
+    SoundManager:init()
+
     -- Open Main Menu
     MusicPlayer:Init()
 
@@ -48,7 +51,7 @@ function LTheoryRedux:onInit()
     GameState:Unpause()
     GameState.player.currentControl = Enums.ControlModes.Ship
     InputInstance:setCursorVisible(false)
-    GameState:SetState(Enums.GameStates.InGame)
+    GameState:SetState(Enums.GameStates.Quickstart)
     self:seedStarsystem(Enums.MenuMode.Dialog)
 end
 

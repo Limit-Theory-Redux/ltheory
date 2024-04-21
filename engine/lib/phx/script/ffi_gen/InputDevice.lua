@@ -16,16 +16,14 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void InputDevice_Free     (InputDevice*);
             bool InputDevice_Equal    (InputDevice const*, InputDevice const* other);
             cstr InputDevice_ToString (InputDevice const*);
         ]]
     end
 
     do -- Global Symbol Table
-        InputDevice = {
-            Equal    = libphx.InputDevice_Equal,
-            ToString = libphx.InputDevice_ToString,
-        }
+        InputDevice = {}
 
         local mt = {
             __call = function(t, ...) return InputDevice_t(...) end,

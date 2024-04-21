@@ -9,14 +9,15 @@ impl EnumInfo {
     pub fn generate_ffi(&self, attr_args: &EnumAttrArgs, repr_type: &str) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
         let enum_repr_ty = TypeVariant::from_str(repr_type).unwrap_or(TypeVariant::U32);
-        let variant_names = self.variants.get_names();
+        let variants_info = self.variants.get_info(attr_args.start_index());
 
         let mut ffi_gen = FfiGenerator::new(&module_name);
 
-        ffi_gen.set_type_decl_struct(enum_repr_ty.as_ffi_string());
+        ffi_gen.set_type_decl_struct(enum_repr_ty.as_c_ffi_string());
 
-        gen_c_definitions(&mut ffi_gen, &module_name, &variant_names);
-        gen_global_symbol_table(&mut ffi_gen, &module_name, &variant_names);
+        gen_class_definitions(&mut ffi_gen, &self.doc, &module_name, &variants_info);
+        gen_c_definitions(&mut ffi_gen, &module_name, &variants_info);
+        gen_global_symbol_table(&mut ffi_gen, &module_name, &variants_info);
 
         if attr_args.with_impl() {
             ffi_gen.save();
@@ -28,12 +29,39 @@ impl EnumInfo {
     }
 }
 
-fn gen_c_definitions(ffi_gen: &mut FfiGenerator, module_name: &str, variant_names: &[&str]) {
+fn gen_class_definitions(
+    ffi_gen: &mut FfiGenerator,
+    doc: &[String],
+    module_name: &str,
+    variants_info: &[(&[String], &str, u64)],
+) {
+    ffi_gen.add_class_definition(format!("---@meta\n"));
+
+    doc.iter()
+        .for_each(|d| ffi_gen.add_class_definition(format!("---{d}")));
+    ffi_gen.add_class_definition(format!("---@enum {module_name}"));
+
+    ffi_gen.add_class_definition(format!("{module_name} = {{"));
+
+    variants_info.iter().for_each(|(docs, name, index)| {
+        docs.iter()
+            .for_each(|doc| ffi_gen.add_class_definition(format!("{IDENT}---{doc}")));
+        ffi_gen.add_class_definition(format!("{IDENT}{name} = {index},"));
+    });
+
+    ffi_gen.add_class_definition("}\n");
+}
+
+fn gen_c_definitions(
+    ffi_gen: &mut FfiGenerator,
+    module_name: &str,
+    variants_info: &[(&[String], &str, u64)],
+) {
     let max_ret_len = std::cmp::max("cstr".len(), module_name.len());
 
-    variant_names.iter().for_each(|v| {
+    variants_info.iter().for_each(|(_, name, _)| {
         ffi_gen.add_c_definition(format!(
-            "{IDENT}{IDENT}{IDENT}{module_name:<0$} {module_name}_{v};",
+            "{IDENT}{IDENT}{IDENT}{module_name:<0$} {module_name}_{name};",
             max_ret_len
         ));
     });
@@ -46,17 +74,21 @@ fn gen_c_definitions(ffi_gen: &mut FfiGenerator, module_name: &str, variant_name
     ));
 }
 
-fn gen_global_symbol_table(ffi_gen: &mut FfiGenerator, module_name: &str, variant_names: &[&str]) {
-    let max_variant_len = variant_names
+fn gen_global_symbol_table(
+    ffi_gen: &mut FfiGenerator,
+    module_name: &str,
+    variants_info: &[(&[String], &str, u64)],
+) {
+    let max_variant_len = variants_info
         .iter()
-        .map(|name| name.len())
+        .map(|(_, name, _)| name.len())
         .max()
         .unwrap_or(0);
     let max_variant_len = std::cmp::max(max_variant_len, "ToString".len());
 
-    variant_names.iter().for_each(|v| {
+    variants_info.iter().for_each(|(_, name, _)| {
         ffi_gen.add_global_symbol(format!(
-            "{IDENT}{IDENT}{IDENT}{v:<0$} = libphx.{module_name}_{v},",
+            "{IDENT}{IDENT}{IDENT}{name:<0$} = libphx.{module_name}_{name},",
             max_variant_len
         ));
     });

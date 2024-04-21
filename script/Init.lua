@@ -184,3 +184,11 @@ function Core.Call(fn, ...)
     end
     return ret
 end
+
+function Core.ManagedObject(instance, free_func)
+    if instance == nil then
+        return nil
+    end
+
+    return ffi.gc(instance, free_func)
+end

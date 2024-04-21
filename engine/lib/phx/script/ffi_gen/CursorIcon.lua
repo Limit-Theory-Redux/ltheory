@@ -18,8 +18,7 @@ function Loader.defineType()
         ffi.cdef [[
             CursorIcon CursorIcon_Default;
             CursorIcon CursorIcon_Crosshair;
-            CursorIcon CursorIcon_Hand;
-            CursorIcon CursorIcon_Arrow;
+            CursorIcon CursorIcon_Pointer;
             CursorIcon CursorIcon_Move;
             CursorIcon CursorIcon_Text;
             CursorIcon CursorIcon_Wait;
@@ -60,8 +59,7 @@ function Loader.defineType()
         CursorIcon = {
             Default      = libphx.CursorIcon_Default,
             Crosshair    = libphx.CursorIcon_Crosshair,
-            Hand         = libphx.CursorIcon_Hand,
-            Arrow        = libphx.CursorIcon_Arrow,
+            Pointer      = libphx.CursorIcon_Pointer,
             Move         = libphx.CursorIcon_Move,
             Text         = libphx.CursorIcon_Text,
             Wait         = libphx.CursorIcon_Wait,

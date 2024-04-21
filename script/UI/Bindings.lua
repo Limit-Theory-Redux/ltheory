@@ -3,7 +3,7 @@ local Control = require('Systems.Controls.Control')
 return {
     Select    = Control.Or(
         Control.MouseButton(Button.MouseLeft),
-        Control.Key(Button.KeyboardReturn)
+        Control.Key(Button.KeyboardEnter)
     ):delta(),
     Cancel    = Control.Or(
         Control.MouseButton(Button.MouseRight),

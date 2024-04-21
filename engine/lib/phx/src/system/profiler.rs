@@ -1,14 +1,11 @@
 use std::cmp::Ordering;
 use std::ffi::CStr;
-use std::io::{self, Write};
 
 use internal::*;
 use tracing::{info, warn};
 
 use super::*;
 use crate::common::*;
-use crate::math::*;
-use crate::*;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

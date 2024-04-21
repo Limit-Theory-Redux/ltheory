@@ -43,8 +43,8 @@ function Application:appInit()
     WindowInstance:setCenteredPosition()
     WindowInstance:setSize(self.resX, self.resY)
 
-    self.audio   = Audio.Create()
-    self.audiofx = Audio.Create()
+    self.audio = Audio.Create()
+    GameState.audio.manager = self.audio
 
     GameState.render.gameWindow = WindowInstance
 
@@ -166,7 +166,7 @@ function Application:onFrame()
         end
 
         if InputInstance:isPressed(Bindings.ToggleWireframe) then
-            Settings.set('render.wireframe', not Settings.get('render.wireframe'))
+            GameState.debug.physics.drawWireframes = not GameState.debug.physics.drawWireframes
         end
 
         if InputInstance:isPressed(Bindings.ToggleMetrics) then

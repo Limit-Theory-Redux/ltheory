@@ -1,8 +1,3 @@
-Config.debug.physics.drawBoundingBoxesLocal = false
-Config.debug.physics.drawBoundingBoxesWorld = false
-Config.debug.physics.drawTriggers           = true
-Config.debug.physics.drawWireframes         = true
-
 --[[-- Controls ----------------------------------------------------------------
 
   There are 2 asteroids you can control. Use Ctrl + <button> to control the
@@ -132,6 +127,10 @@ function LTheory:onInit()
     self.player = Entities.Player()
     GameState.player.humanPlayer = self.player
 
+    GameState.debug.physics.drawBoundingBoxesLocal = false
+    GameState.debug.physics.drawBoundingBoxesWorld = false
+    GameState.debug.physics.drawWireframes         = true
+
     self:generate()
 
     DebugControl.ltheory = self
@@ -155,7 +154,7 @@ function LTheory:onInput()
             local asteroid = asteroids[i]
 
             -- Attach/detach
-            if InputInstance:isPressed(Button.KeyboardReturn) then
+            if InputInstance:isPressed(Button.KeyboardEnter) then
                 local parent = asteroid:getParentBody()
                 if parent == nil then
                     self.system:removeChild(asteroid)
@@ -171,7 +170,7 @@ function LTheory:onInput()
                 local scale = asteroid:getScale()
                 if scale > 1 then asteroid:setScale(scale - 1) end
             end
-            if InputInstance:isPressed(Button.KeyboardEquals) then
+            if InputInstance:isPressed(Button.KeyboardEqual) then
                 local scale = asteroid:getScale()
                 asteroid:setScale(scale + 1)
             end
@@ -216,14 +215,19 @@ function LTheory:onUpdate(dt)
     self.canvas:update(dt)
 
     local collision = Collision()
+    local collisions = {}
     while (self.system.physics:getNextCollision(collision)) do
-        --Log.Debug('', collision.index, collision.body0, collision.body1)
+        table.insert(collisions, string.format('Collision %d between %s and %s', collision.index, tostring(collision.body0), tostring(collision.body1)))
     end
-    Log.Debug('Collision Count:', collision.count)
+
+    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:beginVerticalContainer()
+
+    Gui:textEx(Cache.Font('Iceland', 32), string.format('Collision Count: %d', collision.count), 1.0, 1.0, 1.0, 1.0)
 
     if worldTriggerTest then
         local triggerCount = self.trigger1:getContentsCount()
-        Log.Debug('World Trigger Count:', triggerCount)
+        Gui:textEx(Cache.Font('Iceland', 32), string.format('World Trigger Count: %d', triggerCount), 1.0, 1.0, 1.0, 1.0)
         for i = 1, triggerCount do
             self.trigger1:getContents(i - 1)
         end
@@ -231,13 +235,17 @@ function LTheory:onUpdate(dt)
 
     if attachedTriggerTest then
         local triggerCount = self.trigger2:getContentsCount()
-        Log.Debug('Attached Trigger Count:', triggerCount)
+        Gui:textEx(Cache.Font('Iceland', 32), string.format('Attached Trigger Count: %d', triggerCount), 1.0, 1.0, 1.0, 1.0)
         for i = 1, triggerCount do
             self.trigger2:getContents(i - 1)
         end
     end
 
-    Gui:beginGui(self.resX, self.resY, InputInstance)
+    for k, v in ipairs(collisions) do
+        Gui:textEx(Cache.Font('Iceland', 32), v, 1.0, 1.0, 1.0, 1.0)
+    end
+
+    Gui:endContainer()
     Gui:endGui(InputInstance)
 end
 

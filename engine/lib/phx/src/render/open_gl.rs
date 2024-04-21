@@ -1,11 +1,9 @@
 use super::*;
-use crate::common::*;
 use gl::types::*;
 
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 
-use glutin::{display::GetGlDisplay, prelude::GlDisplay};
-use tracing::{debug, error};
+use tracing::error;
 
 pub fn check_error(file: &str, line: u32, msg: &str) {
     let msg_str = if !msg.is_empty() {

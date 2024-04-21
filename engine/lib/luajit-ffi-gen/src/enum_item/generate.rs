@@ -31,15 +31,21 @@ impl EnumInfo {
         };
         let repr_type_ident = format_ident!("{repr_type}");
 
-        let variant_pairs = self.variants.get_pairs(start_index);
+        let variant_pairs = self.variants.get_info(start_index);
         let constant_items: Vec<_> = variant_pairs
             .iter()
-            .map(|(name, _)| {
-                let const_ident = format_ident!("{}_{name}", self.name);
-                let variant_ident = format_ident!("{name}");
+            .map(|(_, variant_name, _)| {
+                let mangle_ident = if let Some(enum_name) = attr_args.name() {
+                    let export_name = format!("{enum_name}_{variant_name}");
+                    quote!(#[export_name = #export_name])
+                } else {
+                    quote!(#[no_mangle])
+                };
+                let const_ident = format_ident!("{}_{variant_name}", self.name);
+                let variant_ident = format_ident!("{variant_name}");
 
                 quote! {
-                    #[no_mangle]
+                    #mangle_ident
                     pub static #const_ident: #repr_type_ident = #self_ident::#variant_ident.value();
                 }
             })
@@ -48,7 +54,7 @@ impl EnumInfo {
         let enum_size = variant_pairs.len();
         let value_items: Vec<_> = variant_pairs
             .iter()
-            .map(|(name, d)| {
+            .map(|(_, name, d)| {
                 let variant_ident = format_ident!("{name}");
 
                 quote! {
@@ -57,6 +63,12 @@ impl EnumInfo {
             })
             .collect();
 
+        let to_string_mangle = if let Some(enum_name) = attr_args.name() {
+            let export_name = format!("{enum_name}_ToString");
+            quote!(#[export_name = #export_name])
+        } else {
+            quote!(#[no_mangle])
+        };
         let to_string_c_ident = format_ident!("{}_ToString", self.name);
 
         if attr_args.gen_lua_ffi() {
@@ -88,7 +100,7 @@ impl EnumInfo {
 
             pub const #enum_size_ident: usize = #enum_size;
 
-            #[no_mangle]
+            #to_string_mangle
             pub extern "C" fn #to_string_c_ident(this: #self_ident) -> *const libc::c_char {
                 let res = this.to_string();
 

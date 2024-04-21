@@ -1,3 +1,57 @@
+use syn::spanned::Spanned;
+use syn::{Error, Expr, ExprLit, GenericArgument, Lit, Meta, Path, PathArguments, Result, Type};
+
+pub fn get_path_last_name(path: &Path) -> Result<String> {
+    let (name, generics) = get_path_last_name_with_generics(path)?;
+
+    if !generics.is_empty() {
+        Err(Error::new(
+            path.span(),
+            "expected a type name without generic arguments",
+        ))
+    } else {
+        Ok(name)
+    }
+}
+
+pub fn get_path_last_name_with_generics(path: &Path) -> Result<(String, Vec<Type>)> {
+    let Some(last_seg) = path.segments.last() else {
+        return Err(Error::new(path.span(), "expected a type identifier"));
+    };
+
+    let generic_types = if let PathArguments::AngleBracketed(generic_args) = &last_seg.arguments {
+        generic_args
+            .args
+            .iter()
+            .filter_map(|arg| {
+                if let GenericArgument::Type(ty) = arg {
+                    Some(ty.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    } else {
+        vec![]
+    };
+
+    Ok((format!("{}", last_seg.ident), generic_types))
+}
+
+pub fn get_meta_name(meta: &Meta) -> Option<String> {
+    let Ok(doc_text) = meta.require_name_value() else {
+        return None;
+    };
+
+    if let Expr::Lit(ExprLit { lit, .. }) = &doc_text.value {
+        if let Lit::Str(lit_str) = lit {
+            return Some(format!("{}", lit_str.value().trim()));
+        }
+    }
+
+    None
+}
+
 /// Convert snake case string into a camel case one.
 ///
 /// Rules:

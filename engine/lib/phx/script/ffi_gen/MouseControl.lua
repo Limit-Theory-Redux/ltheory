@@ -19,6 +19,8 @@ function Loader.defineType()
             MouseControl MouseControl_Left;
             MouseControl MouseControl_Middle;
             MouseControl MouseControl_Right;
+            MouseControl MouseControl_Forward;
+            MouseControl MouseControl_Back;
             MouseControl MouseControl_X1;
             MouseControl MouseControl_X2;
             MouseControl MouseControl_DeltaX;
@@ -37,6 +39,8 @@ function Loader.defineType()
             Left         = libphx.MouseControl_Left,
             Middle       = libphx.MouseControl_Middle,
             Right        = libphx.MouseControl_Right,
+            Forward      = libphx.MouseControl_Forward,
+            Back         = libphx.MouseControl_Back,
             X1           = libphx.MouseControl_X1,
             X2           = libphx.MouseControl_X2,
             DeltaX       = libphx.MouseControl_DeltaX,

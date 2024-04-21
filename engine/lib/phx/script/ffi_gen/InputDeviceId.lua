@@ -16,14 +16,13 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void InputDeviceId_Free     (InputDeviceId*);
             cstr InputDeviceId_ToString (InputDeviceId const*);
         ]]
     end
 
     do -- Global Symbol Table
-        InputDeviceId = {
-            ToString = libphx.InputDeviceId_ToString,
-        }
+        InputDeviceId = {}
 
         if onDef_InputDeviceId then onDef_InputDeviceId(InputDeviceId, mt) end
         InputDeviceId = setmetatable(InputDeviceId, mt)

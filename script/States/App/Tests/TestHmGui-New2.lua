@@ -346,7 +346,7 @@ function Test:showMarketOverlayDivider()
     Gui:setPadding(0, 0)
     Gui:setBorder(0, 1.0, 1.0, 1.0, 1.0)
 
-    Gui:horizontalDivider(6, 0.8, 0.8, 0.8, 0.5)
+    Gui:horizontalDivider(Color(6, 0.8, 0.8, 0.8, 0.5))
     Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
 
     Gui:endContainer()
@@ -421,7 +421,7 @@ function Test:showMarketOverlayData()
     Gui:beginStackContainer()
     Gui:setVerticalAlignment(AlignVertical.Stretch)
 
-    Gui:verticalDivider(2, 0.8, 0.8, 0.8, 0.5)
+    Gui:verticalDivider(Color(2, 0.8, 0.8, 0.8, 0.5))
     Gui:setAlignment(AlignHorizontal.Left, AlignVertical.Stretch)
 
     Gui:endContainer()
@@ -469,7 +469,7 @@ function Test:showMarketOverlayData()
             Gui:setHorizontalAlignment(AlignHorizontal.Right)
             Gui:endContainer() -- end Commodities search dropdown subpanel
 
-            Gui:horizontalDivider(2, 0.8, 0.8, 0.8, 0.5)
+            Gui:horizontalDivider(Color(2, 0.8, 0.8, 0.8, 0.5))
 
             Gui:beginStackContainer() -- begin Commodities search text subpanel
             Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
@@ -480,7 +480,7 @@ function Test:showMarketOverlayData()
             Gui:setHorizontalAlignment(AlignHorizontal.Left)
             Gui:endContainer() -- end Commodities search text subpanel
 
-            Gui:horizontalDivider(2, 0.8, 0.8, 0.8, 0.5)
+            Gui:horizontalDivider(Color(2, 0.8, 0.8, 0.8, 0.5))
 
             Gui:beginVerticalContainer() -- begin Commodities search list subpanel
             Gui:setMargin(10, 6)

@@ -1,5 +1,8 @@
-use std::io::Write;
-use std::{env::VarError, fs::File, path::PathBuf};
+use std::env::VarError;
+use std::fmt::Write as FmtWrite;
+use std::fs::File;
+use std::io::Write as IoWrite;
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
@@ -7,6 +10,8 @@ use crate::IDENT;
 
 const LUAJIT_FFI_GEN_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
 const LUAJIT_FFI_GEN_DIR: &str = "../phx/script/ffi_gen";
+const LUAJIT_FFI_META_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
+const LUAJIT_FFI_META_DIR: &str = "../phx/script/meta";
 
 /// FFI type declaration type.
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -36,6 +41,7 @@ impl TypeDecl {
 pub struct FfiGenerator {
     module_name: String,
     type_decl: TypeDecl,
+    class_definitions: Vec<String>,
     c_definitions: Vec<String>,
     global_symbol_table: Vec<String>,
     is_mt_clone: bool,
@@ -50,6 +56,7 @@ impl FfiGenerator {
         Self {
             module_name: module_name.into(),
             type_decl: Default::default(),
+            class_definitions: Default::default(),
             c_definitions: Default::default(),
             global_symbol_table: Default::default(),
             is_mt_clone: Default::default(),
@@ -68,6 +75,14 @@ impl FfiGenerator {
 
     pub fn has_type_decl(&self) -> bool {
         !matches!(self.type_decl, TypeDecl::NoDecl)
+    }
+
+    pub fn add_class_definition(&mut self, value: impl Into<String>) {
+        self.class_definitions.push(value.into());
+    }
+
+    pub fn has_class_definitions(&self) -> bool {
+        !self.class_definitions.is_empty()
     }
 
     pub fn add_c_definition(&mut self, value: impl Into<String>) {
@@ -142,7 +157,7 @@ impl FfiGenerator {
 
     fn ffi_dir() -> PathBuf {
         // TODO: env!("OUT_DIR") doesn't work
-        PathBuf::new().join("target").join("ffi")
+        PathBuf::from("target").join("ffi")
     }
 
     fn ffi_file(module_name: &str) -> PathBuf {
@@ -158,183 +173,228 @@ impl FfiGenerator {
     /// and type name.
     /// Latter does overall type registration: c function declarations, symbol table registration, etc.
     pub fn generate(&self) {
-        let luajit_ffi_gen_dir = match std::env::var(LUAJIT_FFI_GEN_DIR_ENV) {
-            Ok(var) => {
-                if !var.is_empty() {
-                    var
-                } else {
-                    LUAJIT_FFI_GEN_DIR.into()
-                }
-            }
-            Err(VarError::NotPresent) => LUAJIT_FFI_GEN_DIR.into(),
-            Err(err) => {
-                println!("Cannot read '{LUAJIT_FFI_GEN_DIR_ENV}' environment variable. Use default value: {LUAJIT_FFI_GEN_DIR}. Error: {err}");
-
-                LUAJIT_FFI_GEN_DIR.into()
-            }
-        };
+        let ffi_gen_dir = from_env_or_default(LUAJIT_FFI_GEN_DIR_ENV, LUAJIT_FFI_GEN_DIR);
 
         let cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let luajit_ffi_gen_dir_path = cargo_manifest_dir.join(&luajit_ffi_gen_dir);
+
+        let ffi_gen_dir_path = cargo_manifest_dir.join(&ffi_gen_dir);
         assert!(
-            luajit_ffi_gen_dir_path.exists(),
-            "FFI directory '{luajit_ffi_gen_dir_path:?}' doesn't exist"
+            ffi_gen_dir_path.exists(),
+            "FFI directory '{}' doesn't exist",
+            ffi_gen_dir_path.display()
         );
 
-        let luajit_ffi_module_path =
-            luajit_ffi_gen_dir_path.join(format!("{}.lua", self.module_name));
-        let mut file = File::create(&luajit_ffi_module_path).expect(&format!(
-            "Cannot create file: {luajit_ffi_module_path:?}\nCurrent folder: {:?}",
+        let ffi_module_path = ffi_gen_dir_path.join(format!("{}.lua", self.module_name));
+        let mut module_file = File::create(&ffi_module_path).expect(&format!(
+            "Cannot create file: {ffi_module_path:?}\nCurrent folder: {:?}",
             std::env::current_dir()
         ));
 
+        let mut module = String::new();
+
         // Header
         writeln!(
-            &mut file,
+            &mut module,
             "-- {} {:-<2$}",
             self.module_name,
             "-",
             80 - 4 - self.module_name.len()
         )
         .unwrap();
-        writeln!(&mut file, "local Loader = {{}}\n").unwrap();
+
+        writeln!(&mut module, "local Loader = {{}}\n").unwrap();
 
         // Type declaration
-        writeln!(&mut file, "function Loader.declareType()").unwrap();
+        writeln!(&mut module, "function Loader.declareType()").unwrap();
 
         match &self.type_decl {
             TypeDecl::NoDecl => {}
             TypeDecl::Opaque => {
-                writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
+                writeln!(&mut module, "{IDENT}ffi.cdef [[").unwrap();
                 writeln!(
-                    &mut file,
+                    &mut module,
                     "{IDENT}{IDENT}typedef struct {0} {{}} {0};",
                     self.module_name
                 )
                 .unwrap();
-                writeln!(&mut file, "{IDENT}]]\n").unwrap();
+                writeln!(&mut module, "{IDENT}]]\n").unwrap();
             }
             TypeDecl::Struct(ty) => {
-                writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
+                writeln!(&mut module, "{IDENT}ffi.cdef [[").unwrap();
                 writeln!(
-                    &mut file,
+                    &mut module,
                     "{IDENT}{IDENT}typedef {ty} {};",
                     self.module_name
                 )
                 .unwrap();
-                writeln!(&mut file, "{IDENT}]]\n").unwrap();
+                writeln!(&mut module, "{IDENT}]]\n").unwrap();
             }
         }
         writeln!(
-            &mut file,
+            &mut module,
             "{IDENT}return {}, '{}'",
             self.type_decl.id(),
             self.module_name
         )
         .unwrap();
 
-        writeln!(&mut file, "end\n").unwrap();
+        writeln!(&mut module, "end\n").unwrap();
 
         // Type definition
-        writeln!(&mut file, "function Loader.defineType()").unwrap();
+        writeln!(&mut module, "function Loader.defineType()").unwrap();
 
-        writeln!(&mut file, "{IDENT}local ffi = require('ffi')").unwrap();
-        writeln!(&mut file, "{IDENT}local libphx = require('libphx').lib").unwrap();
-        writeln!(&mut file, "{IDENT}local {}\n", self.module_name).unwrap();
+        writeln!(&mut module, "{IDENT}local ffi = require('ffi')").unwrap();
+        writeln!(&mut module, "{IDENT}local libphx = require('libphx').lib").unwrap();
+        writeln!(&mut module, "{IDENT}local {}\n", self.module_name).unwrap();
 
         // C Definitions
-        writeln!(&mut file, "{IDENT}do -- C Definitions").unwrap();
-        writeln!(&mut file, "{IDENT}{IDENT}ffi.cdef [[").unwrap();
+        writeln!(&mut module, "{IDENT}do -- C Definitions").unwrap();
+        writeln!(&mut module, "{IDENT}{IDENT}ffi.cdef [[").unwrap();
 
         self.c_definitions
             .iter()
-            .for_each(|def| writeln!(&mut file, "{def}").unwrap());
+            .for_each(|def| writeln!(&mut module, "{def}").unwrap());
 
-        writeln!(&mut file, "{IDENT}{IDENT}]]").unwrap();
-        writeln!(&mut file, "{IDENT}end\n").unwrap();
+        writeln!(&mut module, "{IDENT}{IDENT}]]").unwrap();
+        writeln!(&mut module, "{IDENT}end\n").unwrap();
 
         // Global Symbol Table
-        writeln!(&mut file, "{IDENT}do -- Global Symbol Table").unwrap();
-        writeln!(&mut file, "{IDENT}{IDENT}{} = {{", self.module_name).unwrap();
+        writeln!(&mut module, "{IDENT}do -- Global Symbol Table").unwrap();
 
-        self.global_symbol_table
-            .iter()
-            .for_each(|def| writeln!(&mut file, "{def}").unwrap());
+        if !self.global_symbol_table.is_empty() {
+            writeln!(&mut module, "{IDENT}{IDENT}{} = {{", self.module_name).unwrap();
 
-        writeln!(&mut file, "{IDENT}{IDENT}}}\n").unwrap();
+            self.global_symbol_table
+                .iter()
+                .for_each(|def| writeln!(&mut module, "{def}").unwrap());
+
+            writeln!(&mut module, "{IDENT}{IDENT}}}\n").unwrap();
+        } else {
+            writeln!(&mut module, "{IDENT}{IDENT}{} = {{}}\n", self.module_name).unwrap();
+        }
 
         if self.is_mt_clone {
-            writeln!(&mut file, "{IDENT}{IDENT}local mt = {{").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}local mt = {{").unwrap();
             writeln!(
-                &mut file,
+                &mut module,
                 "{IDENT}{IDENT}{IDENT}__call = function(t, ...) return {}_t(...) end,",
                 self.module_name
             )
             .unwrap();
-            writeln!(&mut file, "{IDENT}{IDENT}}}\n").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}}}\n").unwrap();
         }
 
         writeln!(
-            &mut file,
+            &mut module,
             "{IDENT}{IDENT}if onDef_{0} then onDef_{0}({0}, mt) end",
             self.module_name
         )
         .unwrap();
         writeln!(
-            &mut file,
+            &mut module,
             "{IDENT}{IDENT}{0} = setmetatable({0}, mt)",
             self.module_name
         )
         .unwrap();
-        writeln!(&mut file, "{IDENT}end\n").unwrap();
+        writeln!(&mut module, "{IDENT}end\n").unwrap();
 
         // Metatype for class instances
         if self.to_string_method.is_some() || !self.metatype.is_empty() {
-            writeln!(&mut file, "{IDENT}do -- Metatype for class instances").unwrap();
+            writeln!(&mut module, "{IDENT}do -- Metatype for class instances").unwrap();
             writeln!(
-                &mut file,
+                &mut module,
                 "{IDENT}{IDENT}local t  = ffi.typeof('{}')",
                 self.module_name
             )
             .unwrap();
-            writeln!(&mut file, "{IDENT}{IDENT}local mt = {{").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}local mt = {{").unwrap();
 
             if let Some(method) = &self.to_string_method {
                 writeln!(
-                    &mut file,
+                    &mut module,
                     "{IDENT}{IDENT}{IDENT}__tostring = function(self) return ffi.string(libphx.{}_{method}(self)) end,",
                     self.module_name,
                 )
                 .unwrap();
             }
 
-            writeln!(&mut file, "{IDENT}{IDENT}{IDENT}__index = {{").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}{IDENT}__index = {{").unwrap();
 
             self.metatype
                 .iter()
-                .for_each(|mt| writeln!(&mut file, "{mt}").unwrap());
+                .for_each(|mt| writeln!(&mut module, "{mt}").unwrap());
 
-            writeln!(&mut file, "{IDENT}{IDENT}{IDENT}}},").unwrap();
-            writeln!(&mut file, "{IDENT}{IDENT}}}\n").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}{IDENT}}},").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}}}\n").unwrap();
 
             writeln!(
-                &mut file,
+                &mut module,
                 "{IDENT}{IDENT}if onDef_{0}_t then onDef_{0}_t(t, mt) end",
                 self.module_name
             )
             .unwrap();
             writeln!(
-                &mut file,
+                &mut module,
                 "{IDENT}{IDENT}{}_t = ffi.metatype(t, mt)",
                 self.module_name
             )
             .unwrap();
-            writeln!(&mut file, "{IDENT}end\n").unwrap();
+            writeln!(&mut module, "{IDENT}end\n").unwrap();
         }
 
-        writeln!(&mut file, "{IDENT}return {}", self.module_name).unwrap();
+        writeln!(&mut module, "{IDENT}return {}", self.module_name).unwrap();
 
-        writeln!(&mut file, "end\n").unwrap();
-        writeln!(&mut file, "return Loader").unwrap();
+        writeln!(&mut module, "end\n").unwrap();
+        writeln!(&mut module, "return Loader").unwrap();
+
+        if cfg!(windows) {
+            module = module.replace("\n", "\r\n");
+        }
+
+        module_file.write_all(module.as_bytes()).unwrap();
+
+        if !self.class_definitions.is_empty() {
+            let ffi_meta_dir = from_env_or_default(LUAJIT_FFI_META_DIR_ENV, LUAJIT_FFI_META_DIR);
+
+            let ffi_meta_dir_path = cargo_manifest_dir.join(&ffi_meta_dir);
+            assert!(
+                ffi_meta_dir_path.exists(),
+                "Meta directory '{}' doesn't exist",
+                ffi_meta_dir_path.display()
+            );
+
+            let ffi_meta_def_path = ffi_meta_dir_path.join(format!("{}.lua", self.module_name));
+            let mut meta_def_file = File::create(&ffi_meta_def_path).expect(&format!(
+                "Cannot create file: {ffi_meta_def_path:?}\nCurrent folder: {:?}",
+                std::env::current_dir()
+            ));
+
+            let mut meta_def = String::new();
+
+            // Class declaration
+            self.class_definitions
+                .iter()
+                .for_each(|def| writeln!(&mut meta_def, "{def}").unwrap());
+
+            meta_def_file.write_all(meta_def.as_bytes()).unwrap();
+        }
+    }
+}
+
+fn from_env_or_default(env_var: &str, def_value: &str) -> String {
+    match std::env::var(env_var) {
+        Ok(var) => {
+            if !var.is_empty() {
+                var
+            } else {
+                def_value.into()
+            }
+        }
+        Err(VarError::NotPresent) => def_value.into(),
+        Err(err) => {
+            println!("Cannot read '{env_var}' environment variable. Use default value: {def_value}. Error: {err}");
+
+            def_value.into()
+        }
     }
 }

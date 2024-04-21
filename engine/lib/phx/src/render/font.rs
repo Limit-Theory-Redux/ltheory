@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::ptr::addr_of_mut;
 
 use super::*;
 use crate::common::*;
 use crate::math::*;
-use crate::system::{Profiler_Begin, Profiler_End, ResourceType_Font, Resource_GetPath};
-use crate::ui::hmgui::Rf;
+use crate::rf::Rf;
+use crate::system::{Profiler_Begin, Profiler_End, ResourceType, Resource_GetPath};
 
 use freetype_sys::*;
 use internal::*;
@@ -18,10 +19,16 @@ use internal::*;
 const K_GAMMA: f32 = 1.8;
 const K_RCP_GAMMA: f32 = 1.0 / K_GAMMA;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct Font(Rf<FontData>);
 
-#[derive(Clone)]
+impl std::fmt::Debug for Font {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Font").field(&self.name()).finish()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
 struct FontData {
     name: String,
     handle: FT_Face,
@@ -38,7 +45,7 @@ impl Default for FontData {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Glyph {
     pub index: i32,
     pub tex: *mut Tex2D,
@@ -150,22 +157,23 @@ impl Font {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
+#[luajit_ffi_gen::luajit_ffi]
 impl Font {
     pub fn load(name: &str, size: u32) -> Self {
         let handle = unsafe {
             if FT.is_null() {
-                FT_Init_FreeType(&mut FT);
+                FT_Init_FreeType(addr_of_mut!(FT));
             }
 
             let name_cstr = CString::new(name).expect("Cannot convert string to C string");
-            let path = Resource_GetPath(ResourceType_Font, name_cstr.as_ptr());
+            let path = Resource_GetPath(ResourceType::Font, name_cstr.as_ptr());
             let mut handle = std::ptr::null_mut();
 
             if FT_New_Face(FT, path, 0 as FT_Long, &mut handle) != 0 {
                 panic!(
-                    "Font_Load: Failed to load font <{name}> at <{:?}>",
+                    "Font_Load: Failed to load font <{name}> from file {:?}. Current folder: {:?}",
                     CStr::from_ptr(path),
+                    std::env::current_dir()
                 );
             }
 
