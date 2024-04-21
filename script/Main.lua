@@ -60,6 +60,7 @@ function InitSystem()
         end
 
         Namespace.Load('UI')
+        Namespace.LoadInline('UI.HmGui')
         Namespace.LoadInline('Systems')
         Namespace.LoadInline('GameObjects')
 
