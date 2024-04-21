@@ -12,7 +12,7 @@ local meta = {
 ---@field size number
 ---@field color table<{r: number, g: number, b:number, a:number}>
 ---@field text string
----@field render function renders the text
+---@field render fun(self: UIComponentText) renders the text
 
 ---@class UIComponentTextConstructor
 ---@field font string
@@ -32,15 +32,16 @@ function Text:new(args)
     newText.group = args.group
     newText.font = args.font or "Exo2Bold"
     newText.size = args.size or 14
-    newText.color = args.color or { 1, 1, 1, 1 }
+    newText.color = args.color or Color(1, 1, 1, 1)
     newText.text = args.text or "undefined text"
 
-    newText.render = function ()
-        if newText.font then
-            Gui:pushFont(Cache.Font(newText.font, newText.size))
+    newText.render = function(self)
+        if self.font then
+            Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font(self.font, self.size))
         end
 
-        Gui:textColored(newText.text, newText.color.r, newText.color.g, newText.color.b, newText.color.a)
+        Gui:setPropertyColor(GuiProperties.TextColor, self.color)
+        Gui:text(self.text)
     end
 
     return newText

@@ -1,5 +1,5 @@
 local Test = require('States.Application')
-local UIBuilder = require('UI.UIBuilder')
+local UIBuilder = require('UI.HmGui.UIBuilder')
 
 local rng = RNG.FromTime()
 
@@ -57,10 +57,10 @@ local testContainer = UIComponent.Container {
     align = { AlignHorizontal.Center, AlignVertical.Center },
     stackDirection = testStackDirection,
     contents = {
-        [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+        [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = Color(1, 1, 1, 1),
             text = "Hello World!" },
         [2] = UIComponent.Spacer { size = 16 },
-        [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey!" },
+        [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = Color(1, .4, .4, 1), text = "Hey!" },
         [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback }
     }
 }
@@ -71,10 +71,10 @@ local testContainer2 = UIComponent.Container {
     padding = { 10, 10 },
     stackDirection = testStackDirection,
     contents = {
-        [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+        [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = Color(1, 1, 1, 1),
             text = "Hello World 2!" },
         [2] = UIComponent.Spacer { size = 16 },
-        [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 2!" },
+        [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = Color(1, .4, .4, 1), text = "Hey 2!" },
         [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback2 }
     }
 }
@@ -85,10 +85,10 @@ local testContainer3 = UIComponent.Container {
     padding = { 10, 10 },
     stackDirection = testStackDirection,
     contents = {
-        [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+        [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = Color(1, 1, 1, 1),
             text = "Hello World 3!" },
         [2] = UIComponent.Spacer { size = 16 },
-        [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 3!" },
+        [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = Color(1, .4, .4, 1), text = "Hey 3!" },
         [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallback3 }
     }
 }
@@ -103,10 +103,10 @@ local generateContainersFromLoop = function()
             padding = { 10, 10 },
             stackDirection = testStackDirection,
             contents = {
-                [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+                [1] = UIComponent.Text { font = "Exo2Bold", size = 14, color = Color(1, 1, 1, 1),
                     text = "Hello World " .. id .. "!" },
                 [2] = UIComponent.Spacer { size = 16 },
-                [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey " .. id .. "!" },
+                [3] = UIComponent.Text { font = "Exo2Bold", size = 12, color = Color(1, .4, .4, 1), text = "Hey " .. id .. "!" },
                 [4] = UIComponent.Button { title = "Button", width = 120, callback = testCallbacks["testCallback" .. id] }
             }
         }
@@ -163,12 +163,12 @@ local switchPageBackContainer = function()
     local contentTable = {}
 
     table.insert(contentTable,
-        UIComponent.Text { font = "Exo2Bold", size = 12, color = { r = 1, g = 1, b = 1, a = 1 }, text = "Available Pages" })
+        UIComponent.Text { font = "Exo2Bold", size = 12, color = Color(1, 1, 1, 1), text = "Available Pages" })
     table.insert(contentTable, UIComponent.Spacer { size = 4 })
 
     for _, name in ipairs(availablePages) do
         table.insert(contentTable,
-            UIComponent.Text { font = "Exo2Bold", size = 10, color = { r = 1, g = .4, b = .4, a = 1 }, text = name })
+            UIComponent.Text { font = "Exo2Bold", size = 10, color = Color(1, .4, .4, 1), text = name })
     end
 
     table.insert(contentTable,

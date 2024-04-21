@@ -11,7 +11,7 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field callback function
----@field render function renders the button
+---@field render fun(self: UIComponentButton) renders the button
 
 ---@class UIComponentButtonConstructor
 ---@field title string
@@ -31,9 +31,9 @@ function Button:new(args)
     newButton.width = args.width
     newButton.callback = args.callback
 
-    newButton.render = function()
-        if Gui:button(newButton.title) then newButton.callback() end
-        if newButton.width then Gui:setFixedWidth(newButton.width) end
+    newButton.render = function(self)
+        if Gui:button(self.title) then self.callback() end
+        if self.width then Gui:setFixedWidth(self.width) end
     end
 
     return newButton
