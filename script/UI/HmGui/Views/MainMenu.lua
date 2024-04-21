@@ -1,3 +1,4 @@
+--todo: to be restructured as ui builder example
 function MainMenu:ShowGui()
     -- Add title and Main Menu dialog
     local scaleFactor = (LTheoryRedux.resX / 22) / 72
