@@ -351,6 +351,34 @@ impl HmGui {
         self.container = parent;
     }
 
+    /// Start scroll area.
+    ///
+    /// Internally scroll area represented by 2 nested stack containers for a area itself
+    /// and 2 other containers for scroll bars. So it is possible to set layout parameters
+    /// for both external and internal containers. For the former parameters should be
+    /// specified after `Gui:end_scroll_area()` function call and for the latter after
+    /// `Gui:beginScrollArea()`.
+    ///
+    /// Parameters:
+    /// **dir** - define directions in which scrolling is enabled: All, Horizontal, Vertical.
+    ///
+    /// Example:
+    /// ```lua
+    /// Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShow, false)
+    /// Gui:beginScrollArea(ScrollDirection.All)
+    ///
+    /// Gui:beginVerticalContainer()
+    /// Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+    /// Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+    ///
+    /// Gui:button("Button1")
+    /// Gui:button("Button2")
+    ///
+    /// Gui:endContainer()
+    /// Gui:endScrollArea(InputInstance)
+    /// Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+    /// Gui:setFixedSize(500, 500)
+    /// ```
     pub fn begin_scroll_area(&mut self, dir: ScrollDirection) {
         self.begin_stack_container();
 
@@ -364,6 +392,9 @@ impl HmGui {
         container.scroll_dir = Some(dir);
     }
 
+    /// End of the scroll area.
+    ///
+    /// See [`HmGui::begin_scroll_area`] for example.
     pub fn end_scroll_area(&mut self, input: &Input) {
         let (max_scroll_x, max_scroll_y, inner_widget_hash, allow_hscroll, allow_vscroll) = {
             let widget_rf = self.container.clone();
