@@ -10,14 +10,14 @@ local meta = {
 ---@class UIComponentText: UIComponent
 ---@field font string
 ---@field size number
----@field color table<{r: number, g: number, b:number, a:number}>
+---@field color Color
 ---@field text string
 ---@field render fun(self: UIComponentText) renders the text
 
 ---@class UIComponentTextConstructor
 ---@field font string
 ---@field size number
----@field color table<{r: number, g: number, b:number, a:number}>
+---@field color Color
 ---@field text string
 
 ---returns a text object

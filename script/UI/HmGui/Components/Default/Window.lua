@@ -65,18 +65,18 @@ function Window:new(args)
         Gui:textColored(self.title, Color(1, 1, 1, 0.25))
 
         -- temp until i figure out how to do groups properly
-        if self.stackDirection == Enums.UI.StackDirection.X or not self.stackDirection then
+        if self.stackDirection == Enums.UI.StackDirection.Vertical or not self.stackDirection then
             Gui:beginVerticalContainer()
-        elseif self.stackDirection == Enums.UI.StackDirection.Y then
+        elseif self.stackDirection == Enums.UI.StackDirection.Horizontal then
             Gui:beginHorizontalContainer()
         end
 
         for _, container in ipairs(self.containers) do
             local subGroup
-            if container.stackDirection == Enums.UI.StackDirection.X then
+            if container.stackDirection == Enums.UI.StackDirection.Vertical then
                 Gui:beginVerticalContainer()
                 subGroup = true
-            elseif container.stackDirection == Enums.UI.StackDirection.Y then
+            elseif container.stackDirection == Enums.UI.StackDirection.Horizontal then
                 Gui:beginHorizontalContainer()
                 subGroup = true
             end
@@ -93,9 +93,9 @@ function Window:new(args)
             -- render content
             for _, element in ipairs(container.contents) do
                 -- temp until i figure out how to do groups properly
-                if not element.stackDirection or element.stackDirection == Enums.UI.StackDirection.X then
+                if not element.stackDirection or element.stackDirection == Enums.UI.StackDirection.Vertical then
                     Gui:beginVerticalContainer()
-                elseif element.stackDirection == Enums.UI.StackDirection.Y then
+                elseif element.stackDirection == Enums.UI.StackDirection.Horizontal then
                     Gui:beginHorizontalContainer()
                 end
                 Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)

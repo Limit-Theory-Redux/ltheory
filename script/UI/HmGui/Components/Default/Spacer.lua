@@ -25,7 +25,7 @@ function Spacer:new(args)
     local newSpacer = {}
     newSpacer.size = args.size
 
-    newSpacer.render = function()
+    newSpacer.render = function(self)
         Gui:setSpacing(newSpacer.size)
     end
 

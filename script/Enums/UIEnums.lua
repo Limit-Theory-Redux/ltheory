@@ -1,6 +1,6 @@
 Enums.UI = {}
 
 Enums.UI.StackDirection = {
-    X = 0,
-    Y = 1
+    Horizontal = 0,
+    Vertical = 1
 }

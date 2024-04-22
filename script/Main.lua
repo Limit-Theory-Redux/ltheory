@@ -59,8 +59,11 @@ function InitSystem()
             dofile(Config.paths.types .. fname)
         end
 
+        Namespace.LoadInline('UI.HmGui.UICore')
+        Namespace.LoadInline('UI.HmGui.Components')
+        Namespace.LoadInline('UI.HmGui.Views')
+        Namespace.LoadInline('UI.HmGui.Pages') -- needs to be loaded in correct order
         Namespace.Load('UI')
-        Namespace.LoadInline('UI.HmGui')
         Namespace.LoadInline('Systems')
         Namespace.LoadInline('GameObjects')
 

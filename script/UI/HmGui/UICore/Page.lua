@@ -13,11 +13,11 @@ local meta = {
 ---@field currentView integer
 ---@field addViewToPage fun(self: UIPage, view: UIView)
 ---@field setView fun(self: UIPage, viewName: string)
+---@field render fun(self: UIPage)
 
 ---@class UIPageConstructor
 ---@field name string
 ---@field views string<UIView>
----@field initialView string
 
 ---returns a page object
 ---@param args UIPageConstructor
@@ -48,6 +48,12 @@ function Page:new(args)
         end
 
         self.currentView = self.views[viewName]
+    end
+
+    newPage.render = function(self)
+        if self.currentView then
+            self.currentView:render()
+        end
     end
 
     return newPage
