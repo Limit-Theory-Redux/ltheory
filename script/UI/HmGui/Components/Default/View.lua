@@ -27,7 +27,7 @@ function View:new(args)
 
     local newView = {}
     newView.name = args.name
-    newView.views = args.content
+    newView.content = args.content
     newView.windowCount = 0 -- 0 on init
 
     newView.addWindowToView = function(self, window)
