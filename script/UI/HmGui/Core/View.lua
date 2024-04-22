@@ -7,19 +7,19 @@ local meta = {
     end
 }
 
----@class UIComponentView: UIComponent
+---@class UIView
 ---@field name string
 ---@field content table
 ---@field windowCount integer
----@field addWindowToView fun(self: UIComponentView, window: UIComponentWindow)
+---@field addWindowToView fun(self: UIView, window: UIComponentWindow)
 
----@class UIComponentViewConstructor
+---@class UIViewConstructor
 ---@field name string
 ---@field content table
 
 ---returns a view object
----@param args UIComponentViewConstructor
----@return UIComponentView|nil
+---@param args UIViewConstructor
+---@return UIView|nil
 function View:new(args)
     if not args then
         return
@@ -46,8 +46,8 @@ end
 
 setmetatable(View, meta)
 
--- Add to global UIComponent table
----@type UIComponentViewConstructor
-UIComponent.View = View
+-- Add to global UICore table
+---@type UIViewConstructor
+UICore.View = View
 
 return View

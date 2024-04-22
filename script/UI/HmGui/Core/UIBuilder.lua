@@ -8,11 +8,11 @@ local UIBuilder = class(function(self) end)
 ]]
 
 function UIBuilder:__init()
-    ---@type table<UIComponentPage>
+    ---@type table<UIPage>
     self.pages = {}
-    ---@type UIComponentPage|nil
+    ---@type UIPage|nil
     self.currentPage = nil
-    ---@type UIComponentPage|nil
+    ---@type UIPage|nil
     self.lastPage = nil
 
     return self
@@ -58,7 +58,7 @@ function UIBuilder:setCurrentPage(name)
 end
 
 -- gets current page
----@return UIComponentPage
+---@return UIPage
 function UIBuilder:getCurrentPage()
     if not self.currentPage then
         Log.Error("current page is nil")
@@ -95,7 +95,7 @@ end
 
 -- gets current page
 ---@param name string
----@return UIComponentPage
+---@return UIPage
 function UIBuilder:getPage(name)
     if not name then
         Log.Error("page name provided is nil")
@@ -117,7 +117,7 @@ function UIBuilder:getAvailablePages()
 end
 
 -- add a page
----@param page UIComponentPage
+---@param page UIPage
 function UIBuilder:addPage(page)
     if not page then
         Log.Error("nil ui page")

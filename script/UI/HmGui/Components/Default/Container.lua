@@ -7,6 +7,9 @@ local meta = {
     end
 }
 
+---@class UIComponent
+---@field render function|nil
+
 ---@class UIComponentContainer: UIComponent
 ---@field align table
 ---@field padding table

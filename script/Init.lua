@@ -28,6 +28,7 @@ Render = {}
 Config = {}
 Enums = {}
 GameState = {}
+UICore = {}
 UIComponent = {}
 
 -- Application
