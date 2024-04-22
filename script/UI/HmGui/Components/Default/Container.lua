@@ -32,9 +32,9 @@ function Container:new(args)
     end
 
     local newContainer = {}
-    newContainer.align = args.align
-    newContainer.padding = args.padding
-    newContainer.stackDirection = args.stackDirection
+    newContainer.align = args.align or { AlignHorizontal.Default, AlignVertical.Default }
+    newContainer.padding = args.padding or { 0, 0 }
+    newContainer.stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal
     newContainer.contents = args.contents
 
     newContainer.render = function(self)

@@ -1,5 +1,5 @@
----@class UIBuilder
-local UIBuilder = class(function(self) end)
+---@class UIRouter
+local UIRouter = class(function(self) end)
 
 --[[
 * Development Notes:
@@ -8,7 +8,7 @@ local UIBuilder = class(function(self) end)
 * - router?
 ]]
 
-function UIBuilder:__init()
+function UIRouter:__init()
     ---@type table<UIPage>
     self.pages = {}
     ---@type UIPage|nil
@@ -19,7 +19,7 @@ function UIBuilder:__init()
     return self
 end
 
-function UIBuilder:render()
+function UIRouter:render()
     if self.currentPage then
         self.currentPage:render()
     end
@@ -27,7 +27,7 @@ end
 
 -- sets current page
 ---@param name string
-function UIBuilder:setCurrentPage(name)
+function UIRouter:setCurrentPage(name)
     if not name or type(name) ~= "string" then
         Log.Error("nil page name or not a string")
     elseif not self.pages[name] then
@@ -42,14 +42,14 @@ function UIBuilder:setCurrentPage(name)
 end
 
 -- resets current page to nil
-function UIBuilder:clearCurrentPage()
+function UIRouter:clearCurrentPage()
     self.lastPage = self.currentPage
     self.currentPage = nil
 end
 
 -- gets current page
 ---@return UIPage
-function UIBuilder:getCurrentPage()
+function UIRouter:getCurrentPage()
     if not self.currentPage then
         Log.Error("current page is nil")
     elseif self.currentPage and not self.pages[self.currentPage.name] then
@@ -61,7 +61,7 @@ end
 
 -- gets current page name as string
 ---@return string name
-function UIBuilder:getCurrentPageName()
+function UIRouter:getCurrentPageName()
     if not self.currentPage then
         Log.Error("current page is nil")
     elseif self.currentPage and not self.pages[self.currentPage.name] then
@@ -73,7 +73,7 @@ end
 
 -- gets last page name as string
 ---@return string name
-function UIBuilder:getLastPageName()
+function UIRouter:getLastPageName()
     if not self.lastPage then
         self.lastPage = self.currentPage
     elseif self.lastPage and not self.pages[self.lastPage.name] then
@@ -86,7 +86,7 @@ end
 -- gets current page
 ---@param name string
 ---@return UIPage
-function UIBuilder:getPage(name)
+function UIRouter:getPage(name)
     if not name then
         Log.Error("page name provided is nil")
     elseif not self.pages[name] then
@@ -98,7 +98,7 @@ end
 
 -- gets all available pages as strings
 ---@return table<string>
-function UIBuilder:getAvailablePages()
+function UIRouter:getAvailablePages()
     local pageNames = {}
     for name, page in pairs(self.pages) do
         table.insert(pageNames, name)
@@ -108,7 +108,7 @@ end
 
 -- add a page
 ---@param page UIPage
-function UIBuilder:addPage(page)
+function UIRouter:addPage(page)
     if not page then
         Log.Error("nil ui page")
         return
@@ -119,4 +119,4 @@ function UIBuilder:addPage(page)
     self.pages[page.name] = page
 end
 
-return UIBuilder:__init()
+return UIRouter:__init()

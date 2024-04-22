@@ -1,5 +1,5 @@
 local Test = require('States.Application')
-local UIBuilder = require('UI.HmGui.UICore.UIBuilder')
+local UIRouter = require('UI.HmGui.UICore.UIRouter')
 local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
 
 --todo: to be restructured as ui builder example
@@ -15,8 +15,8 @@ function Test:onInit()
     UIPageMainMenu:setView("Main")
 
     -- add page
-    UIBuilder:addPage(UIPageMainMenu)
-    UIBuilder:setCurrentPage("Main_Menu")
+    UIRouter:addPage(UIPageMainMenu)
+    UIRouter:setCurrentPage("Main_Menu")
 end
 
 function Test:onInput()
@@ -28,7 +28,7 @@ function Test:onUpdate(dt)
     end
 
     Gui:beginGui(self.resX, self.resY, InputInstance)
-    UIBuilder:render()
+    UIRouter:render()
     Gui:endGui(InputInstance)
 end
 

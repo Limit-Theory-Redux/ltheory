@@ -1,27 +1,34 @@
 ---@type UIView
 local Main = UICore.View {
-    name = "Main",
-    contents = {}
+    name = "Main"
 }
 
-local function someCallback()
-    print("what a callback!")
+---@type UIRouter
+local UIRouter = require("UI.HmGui.UICore.UIRouter")
+
+local function switchToTitleScreen()
+    UIRouter:getCurrentPage():setView("Title_Screen")
 end
 
 ---@type UIComponentContainer
-local testContainer = UIComponent.Container {
+local testContainerInner = UIComponent.Container {
+    align = { AlignHorizontal.Center, AlignVertical.Center },
+    stackDirection = Enums.UI.StackDirection.Vertical,
+    contents = {
+        UIComponent.Button { title = "Switch to title screen view", callback = switchToTitleScreen }
+    }
+}
+
+---@type UIComponentContainer
+local testContainerOuter = UIComponent.Container {
     padding = { 10, 10 },
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
-        UIComponent.Text { font = "Exo2Bold", size = 14, color = Color(1, 1, 1, 1),
-            text = "Hello World!" },
-        UIComponent.Spacer { size = 16 },
-        UIComponent.Text { font = "Exo2Bold", size = 12, color = Color(1, .4, .4, 1), text = "Some red text" },
-        UIComponent.Button { title = "A button", callback = someCallback }
+        testContainerInner
     }
 }
 
-Main:addContent(testContainer)
+Main:addContent(testContainerOuter)
 
 return Main
