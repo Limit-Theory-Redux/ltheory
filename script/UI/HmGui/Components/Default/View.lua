@@ -7,7 +7,7 @@ local meta = {
     end
 }
 
----@class UIComponentView
+---@class UIComponentView: UIComponent
 ---@field name string
 ---@field content table
 ---@field windowCount integer

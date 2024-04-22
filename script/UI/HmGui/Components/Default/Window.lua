@@ -7,7 +7,7 @@ local meta = {
     end
 }
 
----@class UIComponentWindow
+---@class UIComponentWindow: UIComponent
 ---@field id integer
 ---@field visible boolean
 ---@field title string
@@ -16,7 +16,7 @@ local meta = {
 ---@field containers table<UIComponentContainer>
 ---@field setVisible fun(visible: boolean)
 ---@field render fun(self: UIComponentWindow)
----@field private close boolean
+---@field close boolean
 
 ---@class UIComponentWindowConstructor
 ---@field id integer

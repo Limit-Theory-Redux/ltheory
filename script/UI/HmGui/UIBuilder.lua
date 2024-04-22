@@ -24,10 +24,12 @@ function UIBuilder:render()
             ---@param id integer
             ---@param view UIComponentView
             for id, view in ipairs(self.currentPage.views) do
+                ---@param component UIComponent
                 for _, component in ipairs(view.content) do
                     -- if content is window
                     if component.close or not component.visible then
                         ---@cast component UIComponentWindow
+                        component.close = false
                         component.visible = false
                         goto skip
                     end

@@ -7,7 +7,7 @@ local meta = {
     end
 }
 
----@class UIComponentContainer
+---@class UIComponentContainer: UIComponent
 ---@field align table
 ---@field padding table
 ---@field stackDirection number

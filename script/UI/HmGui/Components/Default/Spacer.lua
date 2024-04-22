@@ -7,7 +7,7 @@ local meta = {
     end
 }
 
----@class UIComponentSpacer
+---@class UIComponentSpacer: UIComponent
 ---@field size number
 ---@field render function renders the spacer
 

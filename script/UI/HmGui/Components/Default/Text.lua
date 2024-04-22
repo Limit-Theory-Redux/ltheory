@@ -7,7 +7,7 @@ local meta = {
     end
 }
 
----@class UIComponentText
+---@class UIComponentText: UIComponent
 ---@field font string
 ---@field size number
 ---@field color table<{r: number, g: number, b:number, a:number}>

@@ -7,7 +7,7 @@ local meta = {
     end
 }
 
----@class UIComponentButton
+---@class UIComponentButton: UIComponent
 ---@field title string
 ---@field width number
 ---@field callback function

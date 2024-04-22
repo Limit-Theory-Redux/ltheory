@@ -7,7 +7,10 @@ local meta = {
     end
 }
 
----@class UIComponentPage
+---@class UIComponent
+---@field render function|nil
+
+---@class UIComponentPage: UIComponent
 ---@field name string
 ---@field views string<UIComponentView>
 ---@field currentView integer
@@ -28,6 +31,8 @@ function Page:new(args)
     newPage.name = args.name
     newPage.views = args.views
     newPage.currentView = 1 -- start with first view
+
+    --todo: add set view function
 
     return newPage
 end
