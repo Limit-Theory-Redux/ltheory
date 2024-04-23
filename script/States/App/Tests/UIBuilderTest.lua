@@ -2,10 +2,6 @@ local Test = require('States.Application')
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
 local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
 
---todo: to be restructured as ui builder example
-
-local rng = RNG.FromTime()
-
 local useRenderer = true
 
 function Test:onInit()
