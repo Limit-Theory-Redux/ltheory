@@ -11,6 +11,7 @@ local meta = {
 ---@field render function|nil
 
 ---@class UIComponentContainer: UIComponent
+---@field visible boolean
 ---@field align table
 ---@field padding table
 ---@field stackDirection number

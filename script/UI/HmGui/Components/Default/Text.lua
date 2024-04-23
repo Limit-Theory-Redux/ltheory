@@ -8,6 +8,7 @@ local meta = {
 }
 
 ---@class UIComponentText: UIComponent
+---@field visible boolean
 ---@field font string
 ---@field size number
 ---@field color Color
@@ -15,6 +16,7 @@ local meta = {
 ---@field render fun(self: UIComponentText) renders the text
 
 ---@class UIComponentTextConstructor
+---@field visible boolean
 ---@field font string
 ---@field size number
 ---@field color Color
@@ -30,6 +32,7 @@ function Text:new(args)
 
     local newText = {}
     newText.state = UICore.ComponentState {
+        visible = args.visible or true,
         font = args.font or "Exo2Bold",
         size = args.size or 14,
         color = args.color or Color(1, 1, 1, 1),

@@ -8,12 +8,14 @@ local meta = {
 }
 
 ---@class UIComponentButton: UIComponent
+---@field visible boolean
 ---@field title string
 ---@field width number
 ---@field callback function
 ---@field render fun(self: UIComponentButton) renders the button
 
 ---@class UIComponentButtonConstructor
+---@field visible boolean
 ---@field title string
 ---@field width number
 ---@field callback function
@@ -28,6 +30,7 @@ function Button:new(args)
 
     local newButton = {}
     newButton.state = UICore.ComponentState {
+        visible = args.visible or true,
         title = args.title,
         width = args.width,
         callback = args.callback
@@ -36,6 +39,8 @@ function Button:new(args)
     newButton.render = function(self)
         if Gui:button(self.state.title()) then self.state.callback() end
         if self.state.width then Gui:setFixedWidth(self.state.width()) end
+
+        Gui:clearStyle() -- clear style so it doesn´t affect other components
     end
 
     return newButton
