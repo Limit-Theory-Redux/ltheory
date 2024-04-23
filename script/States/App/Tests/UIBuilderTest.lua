@@ -1,6 +1,6 @@
 local Test = require('States.Application')
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
-local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
+local UIPageExample = require('script.UI.HmGui.Pages.Example')
 
 local useRenderer = true
 
@@ -8,11 +8,11 @@ function Test:onInit()
     self.renderer = Renderer()
 
     -- set initial view
-    UIPageMainMenu:setView("Main")
+    UIPageExample:setView("Main")
 
     -- add page
-    UIRouter:addPage(UIPageMainMenu)
-    UIRouter:setCurrentPage("Main_Menu")
+    UIRouter:addPage(UIPageExample)
+    UIRouter:setCurrentPage("Example")
 end
 
 function Test:onInput(dt)

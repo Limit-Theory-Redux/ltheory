@@ -8,6 +8,8 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
 local someState = 0
 local isVisible = true
+local isVisibleColor = Color(1, .4, .4, 1)
+local isInvisibleColor = Color(.4, 1, .4, 1)
 
 function Main:onInput()
     if InputInstance:isPressed(Button.KeyboardF) then
@@ -27,8 +29,16 @@ local function getComponentVisible()
     return isVisible
 end
 
+local function getTextColor()
+    if isVisible then
+        return isVisibleColor
+    else
+        return isInvisibleColor
+    end
+end
+
 local function switchToTitleScreen()
-    UIRouter:getCurrentPage():setView("Title_Screen")
+    UIRouter:getCurrentPage():setView("Other_View")
 end
 
 ---@type UIComponentContainer
@@ -36,7 +46,7 @@ local testContainerInner = UIComponent.Container {
     align = { AlignHorizontal.Center, AlignVertical.Center },
     stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
-        UIComponent.Button { title = "Switch to title screen view", callback = switchToTitleScreen },
+        UIComponent.Button { title = "Switch to other view", callback = switchToTitleScreen },
         UIComponent.RawInput { fn = function()
             Gui:beginVerticalContainer()
             Gui:setVerticalAlignment(AlignVertical.Stretch)
@@ -62,13 +72,14 @@ local testContainerOuter = UIComponent.Container {
 
 ---@type UIComponentContainer
 local textContainer = UIComponent.Container {
+    padding = { 10, 10 },
     align = { AlignHorizontal.Center, AlignVertical.Center },
     stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
         UIComponent.Text {
             text = "Press F to toggle container visibility",
             size = 42,
-            color = Color(1.0, .4, .4, 1.0)
+            color = getTextColor
         }
     }
 }

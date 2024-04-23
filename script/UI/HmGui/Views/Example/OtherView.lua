@@ -1,13 +1,13 @@
 ---@type UIView
-local TitleScreen = UICore.View {
-    name = "Title_Screen"
+local OtherView = UICore.View {
+    name = "Other_View"
 }
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
-function TitleScreen:onInput() end
-function TitleScreen:onUpdate(dt) end
+function OtherView:onInput() end
+function OtherView:onUpdate(dt) end
 
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
@@ -27,6 +27,6 @@ local testContainer = UIComponent.Container {
     }
 }
 
-TitleScreen:addContent(testContainer)
+OtherView:addContent(testContainer)
 
-return TitleScreen
+return OtherView
