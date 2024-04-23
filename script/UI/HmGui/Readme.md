@@ -142,7 +142,7 @@ local testContainerInner = UIComponent.Container {
     }
 }
 
-Main:addContent(textContainer)
+Main:addContent(testContainerInner)
 ```
 
 ## Default components
