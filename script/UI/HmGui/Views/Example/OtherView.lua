@@ -16,7 +16,7 @@ end
 ---@type UIComponentContainer
 local testContainer = UIComponent.Container {
     padding = { 10, 10 },
-    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+    align = { AlignHorizontal.Left, AlignVertical.Center },
     stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
         UIComponent.Text { font = "Exo2Bold", size = 14, color = Color(1, 1, 1, 1),

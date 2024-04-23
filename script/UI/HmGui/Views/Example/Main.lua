@@ -10,6 +10,7 @@ local someState = 0
 local isVisible = true
 local isVisibleColor = Color(1, .4, .4, 1)
 local isInvisibleColor = Color(.4, 1, .4, 1)
+local checkBoxActive = false
 
 function Main:onInput()
     if InputInstance:isPressed(Button.KeyboardF) then
@@ -37,6 +38,14 @@ local function getTextColor()
     end
 end
 
+local function getText()
+    if isVisible then
+        return "Press F to hide container"
+    else
+        return "Press F to show container"
+    end
+end
+
 local function switchToTitleScreen()
     UIRouter:getCurrentPage():setView("Other_View")
 end
@@ -50,9 +59,18 @@ local testContainerInner = UIComponent.Container {
         UIComponent.RawInput { fn = function()
             Gui:beginVerticalContainer()
             Gui:setVerticalAlignment(AlignVertical.Stretch)
-            Gui:checkbox("Checkbox1", false)
-            Gui:checkbox("Checkbox2", true)
-            Gui:checkbox("Checkbox3", false)
+
+            local checkBox = Gui:checkbox("Checkbox1", checkBoxActive)
+            checkBoxActive = checkBox
+
+            if Gui:button("Hide Container") then
+                isVisible = false
+            end
+
+            if Gui:button("Reset Timer") then
+                someState = 0
+            end
+
             Gui:endContainer()
         end },
         UIComponent.Text { text = getSomeState }
@@ -63,7 +81,7 @@ local testContainerInner = UIComponent.Container {
 local testContainerOuter = UIComponent.Container {
     visible = getComponentVisible,
     padding = { 10, 10 },
-    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+    align = { AlignHorizontal.Left, AlignVertical.Center },
     stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
         testContainerInner
@@ -77,7 +95,7 @@ local textContainer = UIComponent.Container {
     stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
         UIComponent.Text {
-            text = "Press F to toggle container visibility",
+            text = getText,
             size = 42,
             color = getTextColor
         }
