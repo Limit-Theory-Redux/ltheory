@@ -24,29 +24,21 @@ local UIRouter = require('UI.HmGui.UICore.UIRouter')
 ```
 
 ## Functions
-### `UIRouter:addPage(page)`
-Adds a page to the router so it can be used.
+#### `UIRouter:addPage(page)` - Adds a page to the router so it can be used.
 
-### `UIRouter:clearCurrentPage()`
-Resets the currently displayed page back to nil.
+#### `UIRouter:clearCurrentPage()` - Resets the currently displayed page back to nil.
 
-### `UIRouter:setCurrentPage(name)`
-Sets the currently displayed page. Default is nil.
+#### `UIRouter:setCurrentPage(name)` - Sets the currently displayed page. Default is nil.
 
-### `UIRouter:getCurrentPage()`
-Returns the page object of the current page.
+#### `UIRouter:getCurrentPage()` - Returns the page object of the current page.
 
-### `UIRouter:getCurrentPageName()`
-Returns the name of the current page.
+#### `UIRouter:getCurrentPageName()` - Returns the name of the current page.
 
-### `UIRouter:getLastPageName()`
-Returns the name of the last page.
+#### `UIRouter:getLastPageName()` - Returns the name of the last page.
 
-### `UIRouter:getPage(name)`
-Gets a page by name.
+#### `UIRouter:getPage(name)` - Gets a page by name.
 
-### `UIRouter:getAvailablePages()`
-Gets all pages that were added to the router and returns them in table.
+#### `UIRouter:getAvailablePages()` - Gets all pages that were added to the router and returns them in table.
 
 ## Usage
 After you import the UI Router you need to import all pages that you want to use. Then you can set the view you want to display directly on the page, in this case "Main". After this is sorted you can add the page to the router and tell it to render the added page.
