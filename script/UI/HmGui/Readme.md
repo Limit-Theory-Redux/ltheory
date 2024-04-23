@@ -167,7 +167,7 @@ local meta = {
 Now define the language server documentation for the object and the constructor:
 
 ```lua
---@class UIComponentText: UIComponent
+---@class UIComponentText: UIComponent
 ---@field font string
 ---@field size number
 ---@field color Color
