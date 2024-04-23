@@ -70,7 +70,7 @@ end
 ```
 
 ### Pages
-Pages are defined via the UICore.Page object which requires a name, and the views you want to add to the page.
+Pages are defined via the `UICore.Page` object which requires a name, and the views you want to add to the page.
 
 - `addViewToPage(view)` is used to add a view to a page
 
@@ -89,7 +89,7 @@ return Example
 ```
 
 ### Views
-Views are defined via the UICore.View object which requires a name.
+Views are defined via the `UICore.View` object which requires a name.
 
 ```lua
 ---@type UIView
