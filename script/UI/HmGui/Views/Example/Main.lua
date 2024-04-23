@@ -22,7 +22,7 @@ function Main:onUpdate(dt)
 end
 
 local function getSomeState()
-    return someState
+    return math.floor(someState)
 end
 
 local function getComponentVisible()
