@@ -6,6 +6,9 @@ local TitleScreen = UICore.View {
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
+function TitleScreen:onInput() end
+function TitleScreen:onUpdate(dt) end
+
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
 end

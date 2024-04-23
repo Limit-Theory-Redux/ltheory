@@ -18,6 +18,7 @@ local meta = {
 ---@field render fun(self: UIComponentContainer)
 
 ---@class UIComponentContainerConstructor
+---@field visible boolean|nil
 ---@field align table
 ---@field padding table
 ---@field stackDirection number
@@ -32,27 +33,30 @@ function Container:new(args)
     end
 
     local newContainer = {}
-    newContainer.align = args.align or { AlignHorizontal.Default, AlignVertical.Default }
-    newContainer.padding = args.padding or { 0, 0 }
-    newContainer.stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal
-    newContainer.contents = args.contents
+    newContainer.state = UICore.ComponentState {
+        visible = args.visible or true,
+        align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
+        padding = args.padding or { 0, 0 },
+        stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
+        contents = args.contents
+    }
 
     newContainer.render = function(self)
-        if self.stackDirection == Enums.UI.StackDirection.Horizontal then
+        if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
             Gui:beginHorizontalContainer()
-        elseif self.stackDirection == Enums.UI.StackDirection.Vertical then
+        elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
             Gui:beginVerticalContainer()
         end
 
-        Gui:setAlignment(self.align[1], self.align[2])
-        Gui:setPadding(self.padding[1], self.padding[2])
+        Gui:setAlignment(self.state.align()[1], self.state.align()[2])
+        Gui:setPadding(self.state.padding()[1], self.state.padding()[2])
 
-        if #self.contents > 1 then
-            for _, component in ipairs(self.contents) do
+        if #self.state.contents() > 1 then
+            for _, component in ipairs(self.state.contents()) do
                 component:render()
             end
         else
-            self.contents[1]:render()
+            self.state.contents()[1]:render()
         end
 
         Gui:endContainer()

@@ -13,7 +13,10 @@ local meta = {
 ---@field windowCount integer
 ---@field addWindowToView fun(self: UIView, window: UIComponentWindow)
 ---@field addContent fun(self, component: UIComponent)
----@field render fun(self: UIView)
+---@field input fun(self: UIView)
+---@field update fun(self: UIView, dt: integer)
+---@field onInput fun(self: UIView)
+---@field onUpdate fun(self: UIView, dt: integer)
 
 ---@class UIViewConstructor
 ---@field name string
@@ -51,11 +54,27 @@ function View:new(args)
         table.insert(self.contents, component)
     end
 
-    newView.render = function(self)
+    newView.input = function(self)
+        if self.onInput then
+            self:onInput()
+        end
+    end
+
+    newView.update = function(self, dt)
+        if self.onUpdate then
+            -- call onUpdate function before rendering the components
+            self:onUpdate(dt)
+        end
+
         if #self.contents > 1 then
             for _, component in ipairs(self.contents) do
-                -- if content is window
-                if component.close or not component.visible then
+                -- if component is set to not visible
+                if component.state.visible and not component.state.visible() then
+                    goto skip
+                end
+
+                -- if component is a window
+                if component.state.close and not component.state.close() then
                     ---@cast component UIComponentWindow
                     component.close = false
                     component.visible = false
@@ -65,6 +84,10 @@ function View:new(args)
                 ::skip::
             end
         else
+            -- if component is set to not visible
+            if self.contents[1].state.visible and not self.contents[1].state.visible() then
+                return
+            end
             self.contents[1]:render()
         end
     end

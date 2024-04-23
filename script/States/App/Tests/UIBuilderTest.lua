@@ -19,16 +19,13 @@ function Test:onInit()
     UIRouter:setCurrentPage("Main_Menu")
 end
 
-function Test:onInput()
+function Test:onInput(dt)
+    UIRouter:input(dt)
 end
 
 function Test:onUpdate(dt)
-    if self.callbackTest then
-        time = time + dt
-    end
-
     Gui:beginGui(self.resX, self.resY, InputInstance)
-    UIRouter:render()
+    UIRouter:update(dt)
     Gui:endGui(InputInstance)
 end
 

@@ -27,13 +27,15 @@ function Button:new(args)
     end
 
     local newButton = {}
-    newButton.title = args.title
-    newButton.width = args.width
-    newButton.callback = args.callback
+    newButton.state = UICore.ComponentState {
+        title = args.title,
+        width = args.width,
+        callback = args.callback
+    }
 
     newButton.render = function(self)
-        if Gui:button(self.title) then self.callback() end
-        if self.width then Gui:setFixedWidth(self.width) end
+        if Gui:button(self.state.title()) then self.state.callback() end
+        if self.state.width then Gui:setFixedWidth(self.state.width()) end
     end
 
     return newButton

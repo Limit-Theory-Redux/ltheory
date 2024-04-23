@@ -13,7 +13,9 @@ local meta = {
 ---@field currentView integer
 ---@field addViewToPage fun(self: UIPage, view: UIView)
 ---@field setView fun(self: UIPage, viewName: string)
----@field render fun(self: UIPage)
+---@field getAvailableViews fun(self: UIPage)
+---@field input fun(self: UIPage)
+---@field update fun(self: UIPage, dt: integer)
 
 ---@class UIPageConstructor
 ---@field name string
@@ -29,7 +31,7 @@ function Page:new(args)
 
     local newPage = {}
     newPage.name = args.name
-    newPage.views = args.views
+    newPage.views = args.views or {}
     newPage.currentView = nil
 
     newPage.addViewToPage = function(self, view)
@@ -50,9 +52,23 @@ function Page:new(args)
         self.currentView = self.views[viewName]
     end
 
-    newPage.render = function(self)
+    newPage.getAvailableViews = function(self)
+        local viewNames = {}
+        for name, page in pairs(self.views) do
+            table.insert(viewNames, name)
+        end
+        return viewNames
+    end
+
+    newPage.input = function(self)
         if self.currentView then
-            self.currentView:render()
+            self.currentView:input()
+        end
+    end
+
+    newPage.update = function(self, dt)
+        if self.currentView then
+            self.currentView:update(dt)
         end
     end
 

@@ -1,7 +1,6 @@
 ---@type UIPage
 local MainMenu = UICore.Page {
-    name = "Main_Menu",
-    views = {}
+    name = "Main_Menu"
 }
 
 local TitleScreen = require("UI.HmGui.Views.MainMenu.TitleScreen")

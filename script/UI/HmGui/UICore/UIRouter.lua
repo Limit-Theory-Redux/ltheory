@@ -19,9 +19,21 @@ function UIRouter:__init()
     return self
 end
 
-function UIRouter:render()
+-- routing the input loop through to the views
+-- so it can be used there
+---@param dt integer
+function UIRouter:input()
     if self.currentPage then
-        self.currentPage:render()
+        self.currentPage:input()
+    end
+end
+
+-- routing the update loop through to the views
+-- so it can be used there
+---@param dt integer
+function UIRouter:update(dt)
+    if self.currentPage then
+        self.currentPage:update(dt)
     end
 end
 

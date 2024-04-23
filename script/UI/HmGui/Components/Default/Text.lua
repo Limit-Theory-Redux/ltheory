@@ -29,19 +29,22 @@ function Text:new(args)
     end
 
     local newText = {}
-    newText.group = args.group
-    newText.font = args.font or "Exo2Bold"
-    newText.size = args.size or 14
-    newText.color = args.color or Color(1, 1, 1, 1)
-    newText.text = args.text or "undefined text"
+    newText.state = UICore.ComponentState {
+        font = args.font or "Exo2Bold",
+        size = args.size or 14,
+        color = args.color or Color(1, 1, 1, 1),
+        text = args.text or "undefined text",
+    }
 
     newText.render = function(self)
-        if self.font then
-            Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font(self.font, self.size))
+        if self.state.font() then
+            Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font(self.state.font(), self.state.size()))
         end
 
-        Gui:setPropertyColor(GuiProperties.TextColor, self.color)
-        Gui:text(self.text)
+        Gui:setPropertyColor(GuiProperties.TextColor, self.state.color())
+        Gui:text(tostring(self.state.text()))
+
+        Gui:clearStyle() -- clear style so it doesn´t affect other components
     end
 
     return newText
