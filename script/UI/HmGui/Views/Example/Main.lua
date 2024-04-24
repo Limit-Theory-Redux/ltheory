@@ -55,21 +55,25 @@ local testContainerInner = UIComponent.Container {
     align = { AlignHorizontal.Center, AlignVertical.Center },
     stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
-        UIComponent.Button { title = "Switch to other view", callback = switchToTitleScreen },
+        UIComponent.Button { title = "Switch to other view", width = 160, callback = switchToTitleScreen },
         UIComponent.RawInput { fn = function()
             Gui:beginVerticalContainer()
             Gui:setVerticalAlignment(AlignVertical.Stretch)
 
+            Gui:setFixedWidth(160)
             local checkBox = Gui:checkbox("Checkbox1", checkBoxActive)
             checkBoxActive = checkBox
 
+            Gui:setFixedWidth(160)
             if Gui:button("Hide Container") then
                 isVisible = false
             end
 
+            Gui:setFixedWidth(160)
             if Gui:button("Reset Timer") then
                 someState = 0
             end
+            Gui:setFixedWidth(160)
 
             Gui:endContainer()
         end },
