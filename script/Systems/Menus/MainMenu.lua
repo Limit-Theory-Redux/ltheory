@@ -26,7 +26,7 @@ local guiElements = {
             { nil, 5199604093543988311ULL,  false }, -- KEEP even bluish-white with a bright yellow star
             { nil, 9471911754066691691ULL,  false }, -- KEEP completely dark with one small blue star
             { nil, 15887563511063255006ULL, false }, -- looks pretty cool
-            { nil, 976665863517979971ULL,   false }  -- looks pretty cool too
+            { nil, 976665863517979971ULL,   false }, -- looks pretty cool too
             -- 17682038400513250095ULL
         }
     }
@@ -169,7 +169,7 @@ function MainMenu:ShowGui()
     Gui:setPercentSize(99, 20)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    Gui:setBorder(1, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setBorder(0.0001, Color(1.0, 1.0, 1.0, 1.0)) -- tiny border width is a hack to enable transparent logo with no (visible) border
     --    Gui:setMinSize(5, 5)
     Gui:image(LTheoryRedux.logoname) -- draw the LTR name image
     Gui:setPercentSize(95, 55)
@@ -241,7 +241,6 @@ function MainMenu:ShowMainMenuInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColor, Color(0.9, 0.9, 0.9, 1.0))
     Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('RajdhaniSemiBold', 36 * scaleFactor))
 
     if Gui:button("NEW GAME") then
@@ -316,11 +315,18 @@ function MainMenu:ShowSeedDialogInner()
     -- Add new star system seed selection dialog menu items
     Gui:beginVerticalContainer()
     Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
+    Gui:setSpacing(16)
+
+    -- This container inside the dialog is a scolling area containing universe seed options
+    Gui:beginScrollArea(ScrollDirection.Vertical)
+
+    Gui:beginVerticalContainer()
+    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
 
     Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyColor(GuiProperties.TextColor, Config.ui.color.textBright)
     Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2', 26))
 
     -- Loop through saved seeds (hardcoded for now) and display as checkboxes
@@ -343,15 +349,21 @@ function MainMenu:ShowSeedDialogInner()
     end
 
     Gui:clearStyle()
+
     Gui:endContainer()
+
+    Gui:endScrollArea(InputInstance)
+    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+    Gui:setFixedHeight(500)
 
     -- Buttons: Cancel, Random Seed, Use Seed
     Gui:beginHorizontalContainer()
+    Gui:setVerticalAlignment(AlignVertical.Bottom)
     Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(16)
 
     Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyColor(GuiProperties.TextColor, Config.ui.color.textBright)
     Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
@@ -390,6 +402,9 @@ function MainMenu:ShowSeedDialogInner()
     end
 
     Gui:clearStyle()
+
+    Gui:endContainer()
+
     Gui:endContainer()
 end
 
