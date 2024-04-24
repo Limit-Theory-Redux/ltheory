@@ -70,7 +70,10 @@ function Grid:new(args)
                         container:render()
                         Gui:endContainer()
                     else
+                        Gui:beginStackContainer()
+                        Gui:setPercentSize(100, 100)
                         container:render()
+                        Gui:endContainer()
                     end
                     Gui:setPercentSize(100 / contentCount, 100)
                 elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
@@ -81,14 +84,16 @@ function Grid:new(args)
                         container:render()
                         Gui:endContainer()
                     else
+                        Gui:beginStackContainer()
+                        Gui:setPercentSize(100, 100)
                         container:render()
+                        Gui:endContainer()
                     end
                     Gui:setPercentSize(100, 100 / contentCount)
                 end
                 Gui:clearStyle()
             end
         end
-
         Gui:endContainer()
     end
 
