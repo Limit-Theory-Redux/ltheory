@@ -11,7 +11,7 @@ local menuGrid = UILayout.Grid {
     padding = { 50, 50 },
     margin = { 0, 0 },
     stackDirection = Enums.UI.StackDirection.Horizontal,
-    showGrid = false,
+    showGrid = true,
     contents = {
         UIComponent.Container {
             align = { AlignHorizontal.Stretch, AlignVertical.Center },

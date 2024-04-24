@@ -44,7 +44,8 @@ function Grid:new(args)
         margin = args.margin or { 0, 0 },
         stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
         contents = args.contents,
-        showGrid = args.showGrid or false
+        showGrid = args.showGrid or false,
+        showGridColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4)
     }
 
     newGridLayout.render = function(self)
@@ -65,7 +66,7 @@ function Grid:new(args)
                 if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
                     if self.state.showGrid() then
                         Gui:beginStackContainer()
-                        Gui:rect(Color(.8, .4, .2, .25))
+                        Gui:rect(self.state.showGridColor())
                         Gui:setPercentSize(100, 100)
                         container:render()
                         Gui:endContainer()
@@ -79,7 +80,7 @@ function Grid:new(args)
                 elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
                     if self.state.showGrid() then
                         Gui:beginStackContainer()
-                        Gui:rect(Color(.8, .4, .2, .25))
+                        Gui:rect(self.state.showGridColor())
                         Gui:setPercentSize(100, 100)
                         container:render()
                         Gui:endContainer()
