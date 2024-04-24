@@ -18,6 +18,11 @@ function ComponentState:new(args)
         return
     end
 
+    -- visible is available on everywhere
+    if args.visible == nil then
+        args.visible = true
+    end
+
     local newState = {}
     for index, arg in pairs(args) do
         newState[index] = function()

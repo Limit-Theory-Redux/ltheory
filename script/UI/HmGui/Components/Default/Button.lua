@@ -32,14 +32,18 @@ function Button:new(args)
 
     local newButton = {}
     newButton.state = UICore.ComponentState {
-        visible = args.visible or true,
+        visible = args.visible,
         title = args.title,
         width = args.width,
         sound = args.sound,
-        callback = args.callback
+        callback = args.callback or function() Log.Warn("undefined button callback function: " .. args.title) end
     }
 
     newButton.render = function(self)
+        if not self.state.visible() then
+            return
+        end
+
         if Gui:button(self.state.title()) then
             if self.state.sound then
                 self.state.sound():Play(1.0)

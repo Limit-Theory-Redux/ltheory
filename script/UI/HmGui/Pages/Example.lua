@@ -20,12 +20,15 @@ local function switchToOtherView()
 end
 
 local viewSelection = UIComponent.Container {
-    padding = { 10, 10 },
+    padding = { 10, 50 },
     align = { AlignHorizontal.Center, AlignVertical.Bottom },
     stackDirection = Enums.UI.StackDirection.Horizontal,
     contents = {
-        UIComponent.Button { title = "Main View", callback = switchToMainView, sound = Config.audio.sounds.click },
-        UIComponent.Button { title = "Other View", callback = switchToOtherView, sound = Config.audio.sounds.click }
+        UIComponent.Button { title = "Main View", width = 100, callback = switchToMainView, sound = Config.audio.sounds.click },
+        UIComponent.Spacer { size = 24 },
+        UIComponent.Button { title = "Other View", width = 100, callback = switchToOtherView, sound = Config.audio.sounds.click },
+        UIComponent.Spacer { size = 24 },
+        UIComponent.Button { title = "Hidden View", width = 100, sound = Config.audio.sounds.click, visible = false }
     }
 }
 
