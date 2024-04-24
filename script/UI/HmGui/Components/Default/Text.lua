@@ -32,7 +32,7 @@ function Text:new(args)
 
     local newText = {}
     newText.state = UICore.ComponentState {
-        visible = args.visible or true,
+        visible = args.visible,
         font = args.font or "Exo2Bold",
         size = args.size or 14,
         color = args.color or Color(1, 1, 1, 1),
@@ -40,6 +40,10 @@ function Text:new(args)
     }
 
     newText.render = function(self)
+        if not self.state.visible() then
+            return
+        end
+
         if self.state.font() then
             Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font(self.state.font(), self.state.size()))
         end

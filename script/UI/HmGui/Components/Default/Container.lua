@@ -35,7 +35,7 @@ function Container:new(args)
 
     local newContainer = {}
     newContainer.state = UICore.ComponentState {
-        visible = args.visible or true,
+        visible = args.visible,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         padding = args.padding or { 0, 0 },
         stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
