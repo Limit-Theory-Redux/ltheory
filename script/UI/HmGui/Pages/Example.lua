@@ -24,8 +24,8 @@ local viewSelection = UIComponent.Container {
     align = { AlignHorizontal.Center, AlignVertical.Bottom },
     stackDirection = Enums.UI.StackDirection.Horizontal,
     contents = {
-        UIComponent.Button { title = "Main View", callback = switchToMainView },
-        UIComponent.Button { title = "Other View", callback = switchToOtherView }
+        UIComponent.Button { title = "Main View", callback = switchToMainView, sound = Config.audio.sounds.click },
+        UIComponent.Button { title = "Other View", callback = switchToOtherView, sound = Config.audio.sounds.click }
     }
 }
 

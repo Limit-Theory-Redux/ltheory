@@ -16,4 +16,10 @@ Config.audio.sounds = {
         volume = 0.0,
         isLooping = true
     },
+    click = SFXObject:Create {
+        name = "UI Click",
+        path = "click.wav",
+        volume = 0.0,
+        isLooping = false
+    }
 }

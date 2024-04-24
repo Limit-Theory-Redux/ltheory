@@ -1,4 +1,5 @@
 local Test = require('States.Application')
+local SoundManager = require('Systems.SFX.SoundManager')
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
 local UIPageExample = require('script.UI.HmGui.Pages.Example')
 
@@ -6,6 +7,8 @@ local useRenderer = true
 
 function Test:onInit()
     self.renderer = Renderer()
+
+    SoundManager:init()
 
     -- set initial view
     UIPageExample:setView("Main")

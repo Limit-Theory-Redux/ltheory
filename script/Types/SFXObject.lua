@@ -1,5 +1,6 @@
 local SoundManager = require "Systems.SFX.SoundManager"
 
+---@class SFXObject
 local SFXObject = {}
 SFXObject.__index = SFXObject
 
@@ -29,9 +30,9 @@ function SFXObject:Play(volume, pos)
         if SoundManager:canSoundPlay(soundGroup) then
             local instance
             if pos then
-                instance = GameState.audio.manager:play3d(self.sound, vol, 50, pos)
+                instance = GameState.audio.manager:play3d(self.sound, vol, 5, pos)
             else
-                instance = GameState.audio.manager:play(self.sound, vol, 50)
+                instance = GameState.audio.manager:play(self.sound, vol, 5)
             end
             SoundManager:addInstance(instance, soundGroup)
             self.last_created = TimeStamp.Now()
