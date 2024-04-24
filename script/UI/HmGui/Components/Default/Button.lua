@@ -35,6 +35,7 @@ function Button:new(args)
         visible = args.visible,
         title = args.title,
         width = args.width,
+        height = args.height,
         sound = args.sound,
         callback = args.callback or function() Log.Warn("undefined button callback function: " .. args.title) end
     }
@@ -52,6 +53,7 @@ function Button:new(args)
             self.state.callback()
         end
         if self.state.width then Gui:setFixedWidth(self.state.width()) end
+        if self.state.height then Gui:setFixedHeight(self.state.height()) end
 
         Gui:clearStyle() -- clear style so it doesn´t affect other components
     end

@@ -21,6 +21,7 @@ local meta = {
 ---@field size number
 ---@field color Color
 ---@field text string
+---@field align table<AlignHorizontal, AlignVertical>
 
 ---returns a text object
 ---@param args UIComponentTextConstructor
@@ -37,6 +38,7 @@ function Text:new(args)
         size = args.size or 14,
         color = args.color or Color(1, 1, 1, 1),
         text = args.text or "undefined text",
+        align = args.align or { AlignHorizontal.Default, AlignVertical.Default }
     }
 
     newText.render = function(self)
@@ -50,6 +52,7 @@ function Text:new(args)
 
         Gui:setPropertyColor(GuiProperties.TextColor, self.state.color())
         Gui:text(tostring(self.state.text()))
+        Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 
         Gui:clearStyle() -- clear style so it doesn´t affect other components
     end

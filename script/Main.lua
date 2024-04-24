@@ -61,6 +61,7 @@ function InitSystem()
 
         Namespace.LoadInline('UI.HmGui.UICore')
         Namespace.LoadInline('UI.HmGui.Components')
+        Namespace.LoadInline('UI.HmGui.Layouts')
         Namespace.LoadInline('UI.HmGui.Views')
         Namespace.LoadInline('UI.HmGui.Pages') -- needs to be loaded in correct order
         Namespace.Load('UI')
