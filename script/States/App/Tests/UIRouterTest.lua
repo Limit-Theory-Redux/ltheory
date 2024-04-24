@@ -1,7 +1,7 @@
 local Test = require('States.Application')
 local SoundManager = require('Systems.SFX.SoundManager')
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
-local UIPageExample = require('script.UI.HmGui.Pages.MainMenu')
+local UIPageExample = require('script.UI.HmGui.Pages.Example')
 
 local useRenderer = true
 
@@ -11,11 +11,11 @@ function Test:onInit()
     SoundManager:init()
 
     -- set initial view
-    --UIPageExample:setView("Main")
+    UIPageExample:setView("Main")
 
     -- add page
     UIRouter:addPage(UIPageExample)
-    UIRouter:setCurrentPage("Main_Menu")
+    UIRouter:setCurrentPage("Example")
 end
 
 function Test:onInput(dt)
