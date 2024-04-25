@@ -12,7 +12,6 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field height number
----@field sound SFXObject|nil
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
 ---@field callback function
@@ -23,7 +22,6 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field height number
----@field sound SFXObject|nil
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
 ---@field callback function
@@ -51,7 +49,6 @@ function Button:new(args)
         title = args.title,
         width = args.width,
         height = args.height,
-        sound = args.sound,
         color = {
             text = args.color and args.color.text or Color(1.0, 1.0, 1.0, 1.0),
             background = args.color and args.color.background or Color(1.0, 1.0, 1.0, 1.0), -- stubbed but not yet implemented in HmGui
@@ -73,8 +70,9 @@ function Button:new(args)
         Gui:setPropertyColor(GuiProperties.ButtonHighlightColor, self.state.color().highlight)
 
         if Gui:button(self.state.title()) then
-            if self.state.sound then
-                self.state.sound():Play(1.0)
+            -- hardcoding the sound
+            if Config.audio.sounds.click then
+                Config.audio.sounds.click:Play(1.0)
             end
 
             self.state.callback()
