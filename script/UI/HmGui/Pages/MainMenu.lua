@@ -15,7 +15,17 @@ MainMenu:addViewToPage(BackgroundView)
 -- set initial view
 MainMenu:setView("Main")
 
-function MainMenu:onInput() end
+function MainMenu:onInput()
+    if InputInstance:isPressed(Button.MouseRight) then
+        ---@type UIView|nil
+        local lastView = MainMenu:getLastView()
+        local currentView = MainMenu:getCurrentView()
+
+        if lastView and lastView ~= currentView and currentView.name ~= "Main" then --todo: maybe introduce view hierarchies?
+            MainMenu:setView(lastView.name)
+        end
+    end
+end
 function MainMenu:onUpdate(dt) end
 
 return MainMenu

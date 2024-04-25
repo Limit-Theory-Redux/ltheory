@@ -12,7 +12,8 @@ local meta = {
 
 ---@class UIComponentContainer: UIComponent
 ---@field visible boolean
----@field align table
+---@field align table<AlignHorizontal, AlignVertical>
+---@field childrenAlign table<AlignHorizontal, AlignVertical>
 ---@field padding table
 ---@field stackDirection number
 ---@field contents table
@@ -20,7 +21,8 @@ local meta = {
 
 ---@class UIComponentContainerConstructor
 ---@field visible boolean|nil
----@field align table
+---@field align table<AlignHorizontal, AlignVertical>
+---@field childrenAlign table<AlignHorizontal, AlignVertical>
 ---@field padding table
 ---@field stackDirection number
 ---@field contents table
@@ -37,6 +39,7 @@ function Container:new(args)
     newContainer.state = UICore.ComponentState {
         visible = args.visible,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
+        childrenAlign = args.childrenAlign or { AlignHorizontal.Default, AlignVertical.Default },
         padding = args.padding or { 0, 0 },
         margin = args.margin or { 0, 0 },
         stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
@@ -51,6 +54,7 @@ function Container:new(args)
         end
 
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
+        Gui:setChildrenAlignment(self.state.childrenAlign()[1], self.state.childrenAlign()[2])
         Gui:setPadding(self.state.padding()[1], self.state.padding()[2])
         Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
 

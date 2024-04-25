@@ -20,7 +20,18 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field sound SFXObject|nil
+---@field color UIComponentButtonColors
+---@field font UIComponentFont
 ---@field callback function
+
+---@class UIComponentButtonColors
+---@field text Color|nil
+---@field background Color|nil
+---@field highlight Color|nil
+
+---@class UIComponentFont
+---@field name string
+---@field size number
 
 ---returns a button object
 ---@param args UIComponentButtonConstructor
@@ -37,6 +48,12 @@ function Button:new(args)
         width = args.width,
         height = args.height,
         sound = args.sound,
+        color = {
+            text = args.color and args.color.text or Color(1.0, 1.0, 1.0, 1.0),
+            background = args.color and args.color.background or Color(1.0, 1.0, 1.0, 1.0), -- stubbed but not yet implemented in HmGui
+            highlight = args.color and args.color.highlight or Color(1.0, 1.0, 1.0, 1.0)    -- stubbed but not yet implemented in HmGui
+        },
+        font = args.font or { name = "Exo2", size = 12 },
         callback = args.callback or function() Log.Warn("undefined button callback function: " .. args.title) end
     }
 
@@ -45,6 +62,12 @@ function Button:new(args)
             return
         end
 
+        -- no need for an if check, since we always have a default defined
+        Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font(self.state.font().name, self.state.font().size))
+        Gui:setPropertyColor(GuiProperties.ButtonTextColor, self.state.color().text)
+        Gui:setPropertyColor(GuiProperties.ButtonBackgroundColor, self.state.color().background)
+        Gui:setPropertyColor(GuiProperties.ButtonHighlightColor, self.state.color().highlight)
+
         if Gui:button(self.state.title()) then
             if self.state.sound then
                 self.state.sound():Play(1.0)
@@ -52,6 +75,7 @@ function Button:new(args)
 
             self.state.callback()
         end
+
         if self.state.width then Gui:setFixedWidth(self.state.width()) end
         if self.state.height then Gui:setFixedHeight(self.state.height()) end
 

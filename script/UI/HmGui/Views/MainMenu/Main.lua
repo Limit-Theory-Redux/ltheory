@@ -75,12 +75,17 @@ local menuGrid = UILayout.Grid {
             }
         },
         UIComponent.Container {
-            align = { AlignHorizontal.Stretch, AlignVertical.Center },
+            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+            childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
             padding = { 0, 0 },
             margin = { 0, 0 },
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
-                UIComponent.Text { text = "Hello2", align = { AlignHorizontal.Center, AlignVertical.Center } }
+                UIComponent.RawInput { fn = function()
+                    Gui:image(logo)
+                    Gui:setPercentSize(100, 20)
+                    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+                end }
             }
         }
     }

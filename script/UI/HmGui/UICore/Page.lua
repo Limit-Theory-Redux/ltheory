@@ -13,6 +13,8 @@ local meta = {
 ---@field currentView integer
 ---@field addViewToPage fun(self: UIPage, view: UIView)
 ---@field setView fun(self: UIPage, viewName: string)
+---@field getLastView fun(self: UIPage)
+---@field getCurrentView fun(self: UIPage)
 ---@field getAvailableViews fun(self: UIPage)
 ---@field addContent fun(self, component: UIComponent)
 ---@field input fun(self: UIPage)
@@ -23,6 +25,7 @@ local meta = {
 ---@class UIPageConstructor
 ---@field name string
 ---@field views string<UIView>
+---@field contents table<UIComponent|UILayout>
 
 ---returns a page object
 ---@param args UIPageConstructor
@@ -35,6 +38,7 @@ function Page:new(args)
     local newPage = {}
     newPage.name = args.name
     newPage.views = args.views or {}
+    newPage.lastView = nil
     newPage.currentView = nil
     newPage.contents = args.contents or {}
 
@@ -61,7 +65,18 @@ function Page:new(args)
             Log.Error("view doesnt exist")
         end
 
+        if self.lastView ~= self.currentView then
+            self.lastView = self.currentView
+        end
         self.currentView = self.views[viewName]
+    end
+
+    newPage.getLastView = function(self)
+        return self.lastView
+    end
+
+    newPage.getCurrentView = function(self)
+        return self.currentView
     end
 
     newPage.getAvailableViews = function(self)

@@ -3,6 +3,9 @@ local Example = UICore.Page {
     name = "Example"
 }
 
+---@type UIRouter
+local UIRouter = require("UI.HmGui.UICore.UIRouter")
+
 local OtherView = require("UI.HmGui.Views.Example.OtherView")
 Example:addViewToPage(OtherView)
 local MainView = require("UI.HmGui.Views.Example.Main")
@@ -19,6 +22,10 @@ local function switchToOtherView()
     Example:setView("Other_View")
 end
 
+local function switchToMainMenu()
+    UIRouter:setCurrentPage("Main_Menu")
+end
+
 local viewSelection = UIComponent.Container {
     padding = { 10, 50 },
     align = { AlignHorizontal.Center, AlignVertical.Bottom },
@@ -28,7 +35,11 @@ local viewSelection = UIComponent.Container {
         UIComponent.Spacer { size = 24 },
         UIComponent.Button { title = "Other View", width = 100, callback = switchToOtherView, sound = Config.audio.sounds.click },
         UIComponent.Spacer { size = 24 },
-        UIComponent.Button { title = "Hidden View", width = 100, sound = Config.audio.sounds.click, visible = false }
+        UIComponent.Button { title = "Hidden View", width = 100, sound = Config.audio.sounds.click, visible = false },
+        UIComponent.Spacer { size = 24 },
+        UIComponent.Button { title = "Main Menu", width = 100, callback = switchToMainMenu, sound = Config.audio.sounds.click, color = {
+            text = Color(1, 1, .4, 1)
+        } }
     }
 }
 
