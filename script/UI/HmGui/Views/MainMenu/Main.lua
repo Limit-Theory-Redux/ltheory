@@ -19,6 +19,10 @@ local function getButtonHeight()
     return GameState.render.resY / 900 * 40
 end
 
+local function switchToPlayView()
+    UIRouter:getCurrentPage():setView("Play")
+end
+
 local function switchToSettingsView()
     UIRouter:getCurrentPage():setView("Settings")
 end
@@ -44,6 +48,7 @@ local menuGrid = UILayout.Grid {
                     title = "Play",
                     width = getButtonWidth,
                     height = getButtonHeight,
+                    callback = switchToPlayView,
                     align = { AlignHorizontal.Center, AlignVertical.Center }
                 },
                 UIComponent.Button {
@@ -64,6 +69,7 @@ local menuGrid = UILayout.Grid {
                     title = "Exit",
                     width = getButtonWidth,
                     height = getButtonHeight,
+                    callback = function() EngineInstance:exit() end,
                     align = { AlignHorizontal.Center, AlignVertical.Center }
                 }
             }

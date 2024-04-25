@@ -5,6 +5,8 @@ local MainMenu = UICore.Page {
 
 local MainView = require("UI.HmGui.Views.MainMenu.Main")
 MainMenu:addViewToPage(MainView)
+local PlayView = require("UI.HmGui.Views.MainMenu.Play")
+MainMenu:addViewToPage(PlayView)
 local SettingsView = require("UI.HmGui.Views.MainMenu.Settings")
 MainMenu:addViewToPage(SettingsView)
 local BackgroundView = require("UI.HmGui.Views.MainMenu.Background")
