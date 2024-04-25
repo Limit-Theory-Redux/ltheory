@@ -22,7 +22,8 @@ function Main:onUpdate(dt)
     someState = someState + dt
 end
 
-function Main:onCloseView() end
+function Main:onViewOpen(isPageOpen) end
+function Main:onViewClose(isPageClose) end
 
 local function getSomeState()
     return math.floor(someState)

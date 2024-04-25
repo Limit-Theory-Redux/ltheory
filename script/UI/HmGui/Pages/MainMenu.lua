@@ -33,13 +33,13 @@ function MainMenu:onInput()
     end
 end
 
-function MainMenu:onOpenPage()
+function MainMenu:onPageOpen()
     if self:getCurrentView() then
         self:getCurrentView():open(true)
     end
 end
 
-function MainMenu:onClosePage()
+function MainMenu:onPageClose()
     if self:getCurrentView() then
         self:getCurrentView():close(true)
     end

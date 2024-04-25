@@ -12,13 +12,13 @@ local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 function MainView:onInput() end
 function MainView:onUpdate(dt) end
 
-function MainView:onOpenView(isPageOpen)
+function MainView:onViewOpen(isPageOpen)
     if isPageOpen then
         MusicPlayer:QueueTrack(GameState.audio.menuTheme, true)
     end
 end
 
-function MainView:onCloseView(isPageClose)
+function MainView:onViewClose(isPageClose)
     if isPageClose then
         MusicPlayer:ClearQueue()
     end

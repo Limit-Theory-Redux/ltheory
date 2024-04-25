@@ -21,6 +21,8 @@ local meta = {
 ---@field update fun(self: UIPage, dt: integer)
 ---@field onInput fun(self: UIPage)
 ---@field onUpdate fun(self: UIPage, dt: integer)
+---@field onPageOpen fun(self: UIPage)
+---@field onPageClose fun(self: UIPage)
 
 ---@class UIPageConstructor
 ---@field name string
@@ -90,14 +92,14 @@ function Page:new(args)
     end
 
     newPage.close = function(self)
-        if self.onClosePage then
-            self:onClosePage()
+        if self.onPageClose then
+            self:onPageClose()
         end
     end
 
     newPage.open = function(self)
-        if self.onOpenPage then
-            self:onOpenPage()
+        if self.onPageOpen then
+            self:onPageOpen()
         end
     end
 

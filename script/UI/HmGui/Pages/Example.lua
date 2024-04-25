@@ -13,6 +13,8 @@ Example:addViewToPage(MainView)
 
 function Example:onInput() end
 function Example:onUpdate(dt) end
+function Example:onPageOpen() end
+function Example:onPageClose() end
 
 local function switchToMainView()
     Example:setView("Main")

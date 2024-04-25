@@ -18,8 +18,8 @@ local meta = {
 ---@field close fun(self: UIView)
 ---@field onInput fun(self: UIView)
 ---@field onUpdate fun(self: UIView, dt: integer)
----@field onCloseView fun(self: UIView, isPageClose: boolean)
----@field onOpenView fun(self: UIView, isPageOpen: boolean)
+---@field onViewClose fun(self: UIView, isPageClose: boolean)
+---@field onViewOpen fun(self: UIView, isPageOpen: boolean)
 
 ---@class UIViewConstructor
 ---@field name string
@@ -58,14 +58,14 @@ function View:new(args)
     end
 
     newView.close = function(self, isPageClose)
-        if self.onCloseView then
-            self:onCloseView(isPageClose)
+        if self.onViewClose then
+            self:onViewClose(isPageClose)
         end
     end
 
     newView.open = function(self, isPageOpen)
-        if self.onOpenView then
-            self:onOpenView(isPageOpen)
+        if self.onViewOpen then
+            self:onViewOpen(isPageOpen)
         end
     end
 

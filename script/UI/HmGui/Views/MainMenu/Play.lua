@@ -8,7 +8,8 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
 function PlayView:onInput() end
 function PlayView:onUpdate(dt) end
-function PlayView:onCloseView() end
+function PlayView:onViewOpen(isPageOpen) end
+function PlayView:onViewClose(isPageClose) end
 
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200

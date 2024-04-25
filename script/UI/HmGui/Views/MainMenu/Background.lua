@@ -28,7 +28,9 @@ end
 
 function BackgroundView:onUpdate(dt) end
 
-function BackgroundView:onCloseView()
+function BackgroundView:onViewOpen(isPageOpen) end
+
+function BackgroundView:onViewClose(isPageClose)
     InputInstance:setCursorVisible(true) -- reset
 end
 
