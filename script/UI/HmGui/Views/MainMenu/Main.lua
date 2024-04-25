@@ -32,7 +32,7 @@ local function getButtonHeight()
     return GameState.render.resY / 900 * 40
 end
 
-local function getLayoutContainerWidthPercentage()
+local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
     return GameState.render.resX / 1600 * 175 * 2 / GameState.render.resX
 end
 
