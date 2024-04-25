@@ -11,7 +11,10 @@ local meta = {
 ---@field visible boolean
 ---@field title string
 ---@field width number
+---@field height number
 ---@field sound SFXObject|nil
+---@field color UIComponentButtonColors
+---@field font UIComponentFont
 ---@field callback function
 ---@field render fun(self: UIComponentButton) renders the button
 
@@ -19,6 +22,7 @@ local meta = {
 ---@field visible boolean
 ---@field title string
 ---@field width number
+---@field height number
 ---@field sound SFXObject|nil
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
