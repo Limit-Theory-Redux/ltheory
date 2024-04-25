@@ -28,6 +28,10 @@ end
 
 function BackgroundView:onUpdate(dt) end
 
+function BackgroundView:onCloseView()
+    InputInstance:setCursorVisible(true) -- reset
+end
+
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200
 end
@@ -56,7 +60,7 @@ local container = UIComponent.Container {
             margin = { 0, 0 },
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
-                UIComponent.Button {
+                UIComponent.Button_MainMenu {
                     visible = getBackButtonVisible,
                     title = "Back",
                     width = getButtonWidth,

@@ -8,6 +8,7 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
 function PlayView:onInput() end
 function PlayView:onUpdate(dt) end
+function PlayView:onCloseView() end
 
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200
@@ -33,19 +34,19 @@ local container = UIComponent.Container {
             margin = { 0, 0 },
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
-                UIComponent.Button {
+                UIComponent.Button_MainMenu {
                     title = "New Game",
                     width = getButtonWidth,
                     height = getButtonHeight,
                     align = { AlignHorizontal.Center, AlignVertical.Center },
                 },
-                UIComponent.Button {
+                UIComponent.Button_MainMenu {
                     title = "Load Game",
                     width = getButtonWidth,
                     height = getButtonHeight,
                     align = { AlignHorizontal.Center, AlignVertical.Center },
                 },
-                UIComponent.Button {
+                UIComponent.Button_MainMenu {
                     title = "Back",
                     width = getButtonWidth,
                     height = getButtonHeight,

@@ -8,6 +8,7 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
 function OtherView:onInput() end
 function OtherView:onUpdate(dt) end
+function OtherView:onCloseView() end
 
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")

@@ -10,6 +10,7 @@ local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
 function MainView:onInput() end
 function MainView:onUpdate(dt) end
+function MainView:onCloseView() end
 
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200

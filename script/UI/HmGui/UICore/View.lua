@@ -15,8 +15,10 @@ local meta = {
 ---@field addContent fun(self, component: UIComponent)
 ---@field input fun(self: UIView)
 ---@field update fun(self: UIView, dt: integer)
+---@field close fun(self: UIView)
 ---@field onInput fun(self: UIView)
 ---@field onUpdate fun(self: UIView, dt: integer)
+---@field onCloseView fun(self: UIView, dt: integer)
 
 ---@class UIViewConstructor
 ---@field name string
@@ -89,6 +91,12 @@ function View:new(args)
                 return
             end
             self.contents[1]:render()
+        end
+
+        newView.close = function(self)
+            if self.onCloseView then
+                self:onCloseView()
+            end
         end
     end
 

@@ -67,6 +67,7 @@ function Page:new(args)
 
         if self.lastView ~= self.currentView then
             self.lastView = self.currentView
+            self.lastView:close() -- calls onCloseView()
         end
         self.currentView = self.views[viewName]
     end

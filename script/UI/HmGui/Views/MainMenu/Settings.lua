@@ -8,6 +8,7 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
 function SettingsView:onInput() end
 function SettingsView:onUpdate(dt) end
+function SettingsView:onCloseView() end
 
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200
@@ -51,7 +52,13 @@ local container = UIComponent.Container {
             margin = { 0, 0 },
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
-                UIComponent.Button { title = "Back", width = getButtonWidth, height = getButtonHeight, align = { AlignHorizontal.Center, AlignVertical.Center }, callback = switchToMainScreen },
+                UIComponent.Button_MainMenu {
+                    title = "Back",
+                    width = getButtonWidth,
+                    height = getButtonHeight,
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                    callback = switchToMainScreen
+                },
             }
         },
         UIComponent.Container {
