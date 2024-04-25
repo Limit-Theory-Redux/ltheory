@@ -108,11 +108,13 @@ function Page:new(args)
             end
         else
             -- if component is set to not visible
-            if self.contents[1].state.visible and not self.contents[1].state.visible() then
-                return
+            if not self.contents[1] or self.contents[1].state.visible and not self.contents[1].state.visible() then
+                goto skip
             end
             self.contents[1]:render()
         end
+
+        ::skip::
 
         if self.currentView then
             self.currentView:update(dt)

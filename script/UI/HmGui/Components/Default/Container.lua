@@ -38,6 +38,7 @@ function Container:new(args)
         visible = args.visible,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         padding = args.padding or { 0, 0 },
+        margin = args.margin or { 0, 0 },
         stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
         contents = args.contents
     }
@@ -51,6 +52,7 @@ function Container:new(args)
 
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
         Gui:setPadding(self.state.padding()[1], self.state.padding()[2])
+        Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
 
         if #self.state.contents() > 1 then
             for _, component in ipairs(self.state.contents()) do
