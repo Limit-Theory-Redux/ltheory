@@ -28,9 +28,12 @@ end
 
 function BackgroundView:onUpdate(dt) end
 
-function BackgroundView:onViewOpen(isPageOpen) end
+function BackgroundView:onViewOpen(isPageOpen)
+    lastMoved = TimeStamp.Now()
+end
 
 function BackgroundView:onViewClose(isPageClose)
+    backButtonVisible = true
     InputInstance:setCursorVisible(true) -- reset
 end
 
@@ -52,26 +55,19 @@ end
 
 local container = UIComponent.Container {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-    padding = { 50, 50 },
+    childrenAlign = { AlignHorizontal.Right, AlignVertical.Bottom },
+    padding = { 10, 10 },
     margin = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Horizontal,
+    stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
-        UIComponent.Container {
+        UIComponent.Button_MainMenu {
+            visible = getBackButtonVisible,
+            title = "Back to Main Menu",
+            width = getButtonWidth,
+            height = getButtonHeight,
             align = { AlignHorizontal.Center, AlignVertical.Center },
-            padding = { 50, 10 },
-            margin = { 0, 0 },
-            stackDirection = Enums.UI.StackDirection.Vertical,
-            contents = {
-                UIComponent.Button_MainMenu {
-                    visible = getBackButtonVisible,
-                    title = "Back",
-                    width = getButtonWidth,
-                    height = getButtonHeight,
-                    align = { AlignHorizontal.Center, AlignVertical.Center },
-                    callback = switchToMainScreen
-                },
-            }
-        }
+            callback = switchToMainScreen
+        },
     }
 }
 

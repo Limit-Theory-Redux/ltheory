@@ -52,6 +52,10 @@ local function switchToBackgroundView()
     UIRouter:getCurrentPage():setView("Background")
 end
 
+local function switchToCreditsView()
+    UIRouter:getCurrentPage():setView("Credits")
+end
+
 local menuGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 50, 50 },
@@ -81,10 +85,10 @@ local menuGrid = UILayout.Grid {
                     callback = switchToSettingsView
                 },
                 UIComponent.Button_MainMenu {
-                    title = "Background Mode",
+                    title = "Credits",
                     width = getButtonWidth,
                     height = getButtonHeight,
-                    callback = switchToBackgroundView,
+                    callback = switchToCreditsView,
                     align = { AlignHorizontal.Center, AlignVertical.Center }
                 },
                 UIComponent.Button_MainMenu {
@@ -114,6 +118,24 @@ local menuGrid = UILayout.Grid {
     }
 }
 
+local backgroundButton = UIComponent.Container {
+    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+    childrenAlign = { AlignHorizontal.Right, AlignVertical.Bottom },
+    padding = { 10, 10 },
+    margin = { 0, 0 },
+    stackDirection = Enums.UI.StackDirection.Vertical,
+    contents = {
+        UIComponent.Button_MainMenu {
+            title = "Background Mode",
+            width = getButtonWidth,
+            height = getButtonHeight,
+            callback = switchToBackgroundView,
+            align = { AlignHorizontal.Default, AlignVertical.Default }
+        }
+    }
+}
+
 MainView:addContent(menuGrid)
+MainView:addContent(backgroundButton)
 
 return MainView

@@ -14,6 +14,8 @@ local SettingsView = require("UI.HmGui.Views.MainMenu.Settings")
 MainMenu:addViewToPage(SettingsView)
 local BackgroundView = require("UI.HmGui.Views.MainMenu.Background")
 MainMenu:addViewToPage(BackgroundView)
+local CreditsView = require("UI.HmGui.Views.MainMenu.Credits")
+MainMenu:addViewToPage(CreditsView)
 
 function MainMenu:onInput()
     if InputInstance:isPressed(Button.MouseRight) then
