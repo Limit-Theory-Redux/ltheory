@@ -10,10 +10,16 @@ local lastMousePos = Vec2f(0, 0)
 local lastMoved = TimeStamp.Now()
 local backButtonVisible = true
 
+local function distance(x1, y1, x2, y2)
+    return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
+end
+
+local minDistance = 50 -- pixel
+
 function BackgroundView:onInput()
     local mousePos = InputInstance:mouse():position()
 
-    if mousePos.x ~= lastMousePos.x and mousePos.y ~= lastMousePos.y then
+    if distance(mousePos.x, mousePos.y, lastMousePos.x, lastMousePos.y) > minDistance then
         lastMoved = TimeStamp.Now()
         lastMousePos = mousePos
         backButtonVisible = true

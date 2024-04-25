@@ -12,6 +12,8 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field height number
+---@field padding table<number, number>
+---@field margin table<number, number>
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
 ---@field callback function
@@ -22,6 +24,8 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field height number
+---@field padding table<number, number>
+---@field margin table<number, number>
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
 ---@field callback function
@@ -49,6 +53,8 @@ function Button:new(args)
         title = args.title,
         width = args.width,
         height = args.height,
+        margin = args.margin,
+        padding = args.padding,
         color = {
             text = args.color and args.color.text or Color(1.0, 1.0, 1.0, 1.0),
             background = args.color and args.color.background or Color(1.0, 1.0, 1.0, 1.0), -- stubbed but not yet implemented in HmGui
@@ -80,6 +86,9 @@ function Button:new(args)
 
         if self.state.width then Gui:setFixedWidth(self.state.width()) end
         if self.state.height then Gui:setFixedHeight(self.state.height()) end
+
+        if self.state.padding then Gui:setPadding(self.state.padding()[1], self.state.padding()[2]) end
+        if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end
 
         Gui:clearStyle() -- clear style so it doesn´t affect other components
     end

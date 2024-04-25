@@ -51,6 +51,7 @@ local container = UIComponent.Container {
                     title = "Back",
                     width = getButtonWidth,
                     height = getButtonHeight,
+                    margin = { 0, 10 },
                     align = { AlignHorizontal.Center, AlignVertical.Center },
                     callback = switchToMainScreen
                 },
