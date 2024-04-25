@@ -29,6 +29,10 @@ Config = {}
 Enums = {}
 GameState = {}
 
+UICore = {}
+UILayout = {}
+UIComponent = {}
+
 -- Application
 AppInit = {}
 AppFrame = {}
