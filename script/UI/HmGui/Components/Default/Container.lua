@@ -42,6 +42,10 @@ function Container:new(args)
         childrenAlign = args.childrenAlign or { AlignHorizontal.Default, AlignVertical.Default },
         padding = args.padding or { 0, 0 },
         margin = args.margin or { 0, 0 },
+        width = args.width,
+        height = args.height,
+        widthInLayout = args.widthInLayout,
+        heightInLayout = args.heightInLayout,
         stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
         contents = args.contents
     }
@@ -57,6 +61,14 @@ function Container:new(args)
         Gui:setChildrenAlignment(self.state.childrenAlign()[1], self.state.childrenAlign()[2])
         Gui:setPadding(self.state.padding()[1], self.state.padding()[2])
         Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
+
+        if self.state.width then
+            Gui:setPercentWidth(self.state.width() * 100)
+        end
+
+        if self.state.height then
+            Gui:setPercentHeight(self.state.width() * 100)
+        end
 
         if #self.state.contents() > 1 then
             for _, component in ipairs(self.state.contents()) do

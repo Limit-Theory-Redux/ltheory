@@ -19,6 +19,14 @@ local function getButtonHeight()
     return GameState.render.resY / 900 * 40
 end
 
+local function getLayoutContainerWidthPercentage()
+    return GameState.render.resX / 1600 * 175 * 2 / GameState.render.resX
+end
+
+local function getRemainingWidthPercentage()
+    return 1 - getLayoutContainerWidthPercentage()
+end
+
 local function switchToPlayView()
     UIRouter:getCurrentPage():setView("Play")
 end
@@ -39,33 +47,34 @@ local menuGrid = UILayout.Grid {
     showGrid = false,
     contents = {
         UIComponent.Container {
-            align = { AlignHorizontal.Stretch, AlignVertical.Center },
+            align = { AlignHorizontal.Default, AlignVertical.Center },
             padding = { 50, 10 },
             margin = { 0, 0 },
+            widthInLayout = getLayoutContainerWidthPercentage,
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
-                UIComponent.Button {
+                UIComponent.Button_MainMenu {
                     title = "Play",
                     width = getButtonWidth,
                     height = getButtonHeight,
                     callback = switchToPlayView,
                     align = { AlignHorizontal.Center, AlignVertical.Center }
                 },
-                UIComponent.Button {
+                UIComponent.Button_MainMenu {
                     title = "Settings",
                     width = getButtonWidth,
                     height = getButtonHeight,
                     align = { AlignHorizontal.Center, AlignVertical.Center },
                     callback = switchToSettingsView
                 },
-                UIComponent.Button {
+                UIComponent.Button_MainMenu {
                     title = "Background Mode",
                     width = getButtonWidth,
                     height = getButtonHeight,
                     callback = switchToBackgroundView,
                     align = { AlignHorizontal.Center, AlignVertical.Center }
                 },
-                UIComponent.Button {
+                UIComponent.Button_MainMenu {
                     title = "Exit",
                     width = getButtonWidth,
                     height = getButtonHeight,
@@ -77,13 +86,14 @@ local menuGrid = UILayout.Grid {
         UIComponent.Container {
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-            padding = { 0, 0 },
+            padding = { 50, 50 },
             margin = { 0, 0 },
+            widthInLayout = getRemainingWidthPercentage,
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
                 UIComponent.RawInput { fn = function()
                     Gui:image(logo)
-                    Gui:setPercentSize(100, 20)
+                    Gui:setPercentSize(70, 20)
                     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
                 end }
             }
