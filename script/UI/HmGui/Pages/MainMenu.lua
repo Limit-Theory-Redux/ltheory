@@ -26,6 +26,7 @@ function MainMenu:onInput()
         end
     end
 end
+
 function MainMenu:onUpdate(dt) end
 
 return MainMenu
