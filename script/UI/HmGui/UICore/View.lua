@@ -18,7 +18,8 @@ local meta = {
 ---@field close fun(self: UIView)
 ---@field onInput fun(self: UIView)
 ---@field onUpdate fun(self: UIView, dt: integer)
----@field onCloseView fun(self: UIView, dt: integer)
+---@field onCloseView fun(self: UIView, isPageClose: boolean)
+---@field onOpenView fun(self: UIView, isPageOpen: boolean)
 
 ---@class UIViewConstructor
 ---@field name string
@@ -56,6 +57,18 @@ function View:new(args)
         table.insert(self.contents, component)
     end
 
+    newView.close = function(self, isPageClose)
+        if self.onCloseView then
+            self:onCloseView(isPageClose)
+        end
+    end
+
+    newView.open = function(self, isPageOpen)
+        if self.onOpenView then
+            self:onOpenView(isPageOpen)
+        end
+    end
+
     newView.input = function(self)
         if self.onInput then
             self:onInput()
@@ -91,12 +104,6 @@ function View:new(args)
                 return
             end
             self.contents[1]:render()
-        end
-
-        newView.close = function(self)
-            if self.onCloseView then
-                self:onCloseView()
-            end
         end
     end
 

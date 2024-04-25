@@ -1,5 +1,6 @@
 local Test = require('States.Application')
 local SoundManager = require('Systems.SFX.SoundManager')
+local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
 local UIPageExample = require('script.UI.HmGui.Pages.Example')
 local UIPageMainMenu = require('script.UI.HmGui.Pages.MainMenu')
@@ -10,6 +11,7 @@ function Test:onInit()
     self.renderer = Renderer()
 
     SoundManager:init()
+    MusicPlayer:Init() --todo: fix all casing errors
 
     -- set initial view
     UIPageExample:setView("Main")
@@ -25,6 +27,9 @@ function Test:onInput(dt)
 end
 
 function Test:onUpdate(dt)
+    SoundManager:clean(dt)
+    MusicPlayer:OnUpdate(dt) --todo fix casing
+
     Gui:beginGui(self.resX, self.resY, InputInstance)
     UIRouter:update(dt)
     Gui:endGui(InputInstance)

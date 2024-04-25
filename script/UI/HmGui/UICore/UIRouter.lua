@@ -50,12 +50,22 @@ function UIRouter:setCurrentPage(name)
     end
 
     self.lastPage = self.currentPage
+
+    if self.lastPage then
+        self.lastPage:close()
+    end
+
     self.currentPage = self.pages[name]
+    self.currentPage:open()
 end
 
 -- resets current page to nil
 function UIRouter:clearCurrentPage()
     self.lastPage = self.currentPage
+
+    if self.currentPage then
+        self.currentPage:close()
+    end
     self.currentPage = nil
 end
 

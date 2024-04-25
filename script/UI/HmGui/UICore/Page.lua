@@ -70,6 +70,7 @@ function Page:new(args)
             self.lastView:close() -- calls onCloseView()
         end
         self.currentView = self.views[viewName]
+        self.currentView:open() -- calls onOpenView()
     end
 
     newPage.getLastView = function(self)
@@ -86,6 +87,18 @@ function Page:new(args)
             table.insert(viewNames, name)
         end
         return viewNames
+    end
+
+    newPage.close = function(self)
+        if self.onClosePage then
+            self:onClosePage()
+        end
+    end
+
+    newPage.open = function(self)
+        if self.onOpenPage then
+            self:onOpenPage()
+        end
     end
 
     newPage.input = function(self)

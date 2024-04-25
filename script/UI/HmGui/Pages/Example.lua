@@ -23,6 +23,7 @@ local function switchToOtherView()
 end
 
 local function switchToMainMenu()
+    UIRouter:getPage("Main_Menu"):setView("Main")
     UIRouter:setCurrentPage("Main_Menu")
 end
 
