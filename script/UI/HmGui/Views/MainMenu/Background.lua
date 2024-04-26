@@ -61,8 +61,8 @@ end
 
 local container = UIComponent.Container {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-    childrenAlign = { AlignHorizontal.Right, AlignVertical.Bottom },
-    padding = { 10, 10 },
+    childrenAlign = { AlignHorizontal.Left, AlignVertical.Center },
+    padding = { 125, 0 },
     margin = { 0, 0 },
     stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
@@ -71,7 +71,6 @@ local container = UIComponent.Container {
             title = "Back to Main Menu",
             width = getButtonWidth,
             height = getButtonHeight,
-            align = { AlignHorizontal.Center, AlignVertical.Center },
             callback = switchToMainScreen
         },
     }

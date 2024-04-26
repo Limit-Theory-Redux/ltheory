@@ -53,17 +53,20 @@ local settingOptions = {
 
 local settingsGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-    padding = { 50, 50 },
+    padding = { 125, 0 },
     margin = { 0, 0 },
     stackDirection = Enums.UI.StackDirection.Horizontal,
     showGrid = false,
     contents = {
         UIComponent.Container {
-            align = { AlignHorizontal.Default, AlignVertical.Center },
-            padding = { 50, 10 },
+            align = { AlignHorizontal.Center, AlignVertical.Center },
+            padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getLayoutContainerWidthPercentage,
             stackDirection = Enums.UI.StackDirection.Vertical,
+            color = {
+                background = Color(0.1, 0.1, 0.1, 0.2)
+            },
             contents = {
                 UIComponent.Button_MainMenu {
                     title = "Audio",
@@ -95,7 +98,6 @@ local settingsGrid = UILayout.Grid {
                 },
                 UIComponent.Button_MainMenu {
                     title = "Back",
-                    margin = { 0, 10 },
                     width = getButtonWidth,
                     height = getButtonHeight,
                     align = { AlignHorizontal.Center, AlignVertical.Center },
@@ -106,7 +108,7 @@ local settingsGrid = UILayout.Grid {
         UIComponent.Container {
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-            padding = { 50, 50 },
+            padding = { 0, 125 },
             margin = { 0, 0 },
             widthInLayout = getRemainingWidthPercentage,
             stackDirection = Enums.UI.StackDirection.Vertical,

@@ -48,15 +48,23 @@ function Container:new(args)
         heightInLayout = args.heightInLayout,
         stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
         contents = args.contents,
-        showContainer = args.showContainer or false,
+        color = {
+            background = args.color and args.color.background
+        },
+        showContainer = args.showContainer or function() return GameState.debug.metricsEnabled end,
         showContainerColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4)
     }
 
     newContainer.render = function(self)
         if self.state.showContainer() then
             Gui:beginStackContainer()
-            Gui:rect(self.state.showContainerColor())
-            Gui:setPercentSize(100, 100)
+            Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+            Gui:setBorder(1, self.state.showContainerColor())
+        end
+
+        -- color
+        if self.state.color().background then
+            Gui:setBgColor(self.state.color().background)
         end
 
         if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
@@ -92,6 +100,8 @@ function Container:new(args)
             Gui:endContainer()
             Gui:setPercentSize(100, 100)
         end
+
+        Gui:clearStyle() -- clear style so it doesn´t affect other components
     end
 
     return newContainer

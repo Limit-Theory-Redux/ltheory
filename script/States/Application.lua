@@ -242,9 +242,9 @@ function Application:onFrame()
             0.5, 0.5
         )
 
-        if GameState:GetCurrentState() == Enums.GameStates.InGame then
+        if GameState:GetCurrentState() >= Enums.GameStates.InGame then
             UI.DrawEx.TextAdditive(
-                'NovaRound',
+                'Exo2',
                 "Build " .. Config.gameVersion,
                 12,
                 4, self.resY - 20, 40, 20,

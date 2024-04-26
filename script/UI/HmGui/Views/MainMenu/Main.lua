@@ -5,22 +5,45 @@ local MainView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
-local MusicPlayer = require('Systems.SFX.MusicPlayer')
+--local MusicPlayer = require('Systems.SFX.MusicPlayer')
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
-function MainView:onInput() end
+local function distance(x1, y1, x2, y2)
+    return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
+end
+
+local lastMousePos = Vec2f(0, 0)
+local lastMoved = TimeStamp.Now()
+local minDistance = 50 -- pixel
+local timeTillBackground = 30
+
+function MainView:onInput()
+    local mousePos = InputInstance:mouse():position()
+
+    if distance(mousePos.x, mousePos.y, lastMousePos.x, lastMousePos.y) > minDistance then
+        lastMoved = TimeStamp.Now()
+        lastMousePos = mousePos
+    end
+
+    if lastMoved:getElapsed() >= timeTillBackground then
+        UIRouter:getCurrentPage():setView("Background")
+    end
+end
+
 function MainView:onUpdate(dt) end
 
 function MainView:onViewOpen(isPageOpen)
     if isPageOpen then
-        MusicPlayer:QueueTrack(GameState.audio.menuTheme, true)
+        --MusicPlayer:QueueTrack(GameState.audio.menuTheme, true)
     end
+
+    lastMoved = TimeStamp.Now()
 end
 
 function MainView:onViewClose(isPageClose)
     if isPageClose then
-        MusicPlayer:ClearQueue()
+        --MusicPlayer:ClearQueue()
     end
 end
 
@@ -58,84 +81,99 @@ end
 
 local menuGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-    padding = { 50, 50 },
+    padding = { 125, 0 },
     margin = { 0, 0 },
     stackDirection = Enums.UI.StackDirection.Horizontal,
-    showGrid = false,
     contents = {
-        UIComponent.Container {
-            align = { AlignHorizontal.Default, AlignVertical.Center },
-            padding = { 50, 10 },
+        UILayout.Grid {
+            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+            padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getLayoutContainerWidthPercentage,
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
-                UIComponent.Button_MainMenu {
-                    title = "Play",
-                    width = getButtonWidth,
-                    height = getButtonHeight,
-                    callback = switchToPlayView,
-                    align = { AlignHorizontal.Center, AlignVertical.Center }
+                UIComponent.Container {
+                    align = { AlignHorizontal.Center, AlignVertical.Top },
+                    padding = { 0, 0 },
+                    margin = { 0, 0 },
+                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    heightInLayout = 3 / 4,
+                    color = {
+                        background = Color(0.1, 0.1, 0.1, 0.2)
+                    },
+                    contents = {
+                        UIComponent.RawInput { fn = function()
+                            Gui:beginVerticalContainer()
+                            Gui:setBorder(0.0001, Color(1.0, 1.0, 1.0, 1)) --! using border as theres currently no other way
+                            Gui:image(logo)
+                            Gui:setPercentSize(100, 40)
+                            Gui:endContainer()
+                            Gui:setPaddingTop(50)
+                            Gui:setPercentSize(100, 50)
+                        end },
+                        UIComponent.Button_MainMenu {
+                            title = "Play",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = switchToPlayView,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
+                        UIComponent.Button_MainMenu {
+                            title = "Settings",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            callback = switchToSettingsView
+                        },
+                        UIComponent.Button_MainMenu {
+                            title = "Credits",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = switchToCreditsView,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
+                        UIComponent.Button_MainMenu {
+                            title = "Exit",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = function() EngineInstance:exit() end,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        }
+                    }
                 },
-                UIComponent.Button_MainMenu {
-                    title = "Settings",
-                    width = getButtonWidth,
-                    height = getButtonHeight,
-                    align = { AlignHorizontal.Center, AlignVertical.Center },
-                    callback = switchToSettingsView
-                },
-                UIComponent.Button_MainMenu {
-                    title = "Credits",
-                    width = getButtonWidth,
-                    height = getButtonHeight,
-                    callback = switchToCreditsView,
-                    align = { AlignHorizontal.Center, AlignVertical.Center }
-                },
-                UIComponent.Button_MainMenu {
-                    title = "Exit",
-                    width = getButtonWidth,
-                    height = getButtonHeight,
-                    callback = function() EngineInstance:exit() end,
-                    align = { AlignHorizontal.Center, AlignVertical.Center }
+                UIComponent.Container {
+                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+                    childrenAlign = { AlignHorizontal.Center, AlignVertical.Bottom },
+                    padding = { 0, 30 },
+                    margin = { 0, 0 },
+                    heightInLayout = 1 / 4,
+                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    color = {
+                        background = Color(0.1, 0.1, 0.1, 0.2)
+                    },
+                    contents = {
+                        UIComponent.Text {
+                            text = Config.gameVersion,
+                            align = { AlignHorizontal.Center, AlignVertical.Bottom }
+                        }
+                    }
                 }
             }
         },
         UIComponent.Container {
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-            padding = { 50, 50 },
+            padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getRemainingWidthPercentage,
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
-                UIComponent.RawInput { fn = function()
-                    Gui:image(logo)
-                    Gui:setPercentSize(70, 20)
-                    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
-                end }
+                UIComponent.RawInput { fn = function() end }
             }
         }
     }
 }
 
-local backgroundButton = UIComponent.Container {
-    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-    childrenAlign = { AlignHorizontal.Right, AlignVertical.Bottom },
-    padding = { 10, 10 },
-    margin = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Vertical,
-    contents = {
-        UIComponent.Button_MainMenu {
-            title = "Background Mode",
-            width = getButtonWidth,
-            height = getButtonHeight,
-            callback = switchToBackgroundView,
-            align = { AlignHorizontal.Default, AlignVertical.Default }
-        }
-    }
-}
-
 MainView:addContent(menuGrid)
-MainView:addContent(backgroundButton)
 
 return MainView

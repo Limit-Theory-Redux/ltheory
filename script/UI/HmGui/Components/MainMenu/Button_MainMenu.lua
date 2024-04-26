@@ -69,6 +69,8 @@ function Button:new(args)
             return
         end
 
+        Gui:beginStackContainer()
+
         -- no need for an if check, since we always have a default defined
         Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font(self.state.font().name, self.state.font().size))
         Gui:setPropertyColor(GuiProperties.ButtonTextColor, self.state.color().text)
@@ -89,6 +91,8 @@ function Button:new(args)
 
         if self.state.padding then Gui:setPadding(self.state.padding()[1], self.state.padding()[2]) end
         if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end
+
+        Gui:endContainer()
 
         Gui:clearStyle() -- clear style so it doesn´t affect other components
     end

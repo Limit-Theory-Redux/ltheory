@@ -1,8 +1,9 @@
 -- For dynamic states
 GameState = {
-    state       = Enums.GameStates.Splashscreen, -- previously gamemode
-    paused      = false,
-    panelActive = false,                         -- indicates whether MasterControl panel is enabled or not
+    state           = Enums.GameStates.Splashscreen, -- previously gamemode
+    paused          = false,
+    panelActive     = false,                         -- indicates whether MasterControl panel is enabled or not
+    skipTitleScreen = false
 }
 
 GameState.input = {
@@ -17,7 +18,7 @@ GameState.debug = {
     printConfig        = Config.debug.printConfig,
     showMapActionLines = Config.debug.showMapActionLines,
 
-    physics = {
+    physics            = {
         drawWireframes         = Config.debug.physics.drawWireframes,
         drawBoundingBoxesLocal = Config.debug.physics.drawBoundingBoxesLocal,
         drawBoundingBoxesworld = Config.debug.physics.drawBoundingBoxesworld,
@@ -43,7 +44,7 @@ GameState.render = {
 }
 
 GameState.audio = {
-    manager = nil,
+    manager      = nil,
     soundEnabled = Config.audio.general.soundEnabled,
     fxVolume     = Config.audio.general.fxVolume,
     musicVolume  = Config.audio.general.musicVolume,

@@ -6,6 +6,8 @@ local MainMenu = UICore.Page {
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
+local TitleView = require("UI.HmGui.Views.MainMenu.Title")
+MainMenu:addViewToPage(TitleView)
 local MainView = require("UI.HmGui.Views.MainMenu.Main")
 MainMenu:addViewToPage(MainView)
 local PlayView = require("UI.HmGui.Views.MainMenu.Play")
@@ -16,6 +18,9 @@ local BackgroundView = require("UI.HmGui.Views.MainMenu.Background")
 MainMenu:addViewToPage(BackgroundView)
 local CreditsView = require("UI.HmGui.Views.MainMenu.Credits")
 MainMenu:addViewToPage(CreditsView)
+
+---! debug only
+local bgTesting = Tex2D.Load("./res/images/Background-for-testing2.png")
 
 function MainMenu:onInput()
     if InputInstance:isPressed(Button.MouseRight) then
@@ -48,5 +53,25 @@ function MainMenu:onPageClose()
 end
 
 function MainMenu:onUpdate(dt) end
+
+---! debug only
+local backgroundContainer =
+    UIComponent.Container {
+        align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+        childrenAlign = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+        padding = { 0, 0 },
+        margin = { 0, 0 },
+        stackDirection = Enums.UI.StackDirection.Vertical,
+        contents = {
+            UIComponent.RawInput { fn = function()
+                Gui:setBorder(0.0001, Color(1.0, 1.0, 1.0, 0.5))
+                Gui:image(bgTesting)
+                Gui:setPercentSize(100, 100)
+            end
+            }
+        }
+    }
+
+MainMenu:addContent(backgroundContainer)
 
 return MainMenu
