@@ -55,6 +55,7 @@ function Button:new(args)
         height = args.height,
         margin = args.margin,
         padding = args.padding,
+        align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         color = {
             text = args.color and args.color.text or Color(1.0, 1.0, 1.0, 1.0),
             background = args.color and args.color.background or Color(1.0, 1.0, 1.0, 1.0), -- stubbed but not yet implemented in HmGui
@@ -70,6 +71,7 @@ function Button:new(args)
         end
 
         Gui:beginStackContainer()
+        Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 
         -- no need for an if check, since we always have a default defined
         Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font(self.state.font().name, self.state.font().size))

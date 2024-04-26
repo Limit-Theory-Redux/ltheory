@@ -56,7 +56,7 @@ local function getButtonHeight()
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
-    return GameState.render.resX / 1600 * 175 * 2 / GameState.render.resX
+    return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
 end
 
 local function getRemainingWidthPercentage()
@@ -93,7 +93,7 @@ local menuGrid = UILayout.Grid {
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
                 UIComponent.Container {
-                    align = { AlignHorizontal.Center, AlignVertical.Top },
+                    align = { AlignHorizontal.Stretch, AlignVertical.Top },
                     padding = { 0, 0 },
                     margin = { 0, 0 },
                     stackDirection = Enums.UI.StackDirection.Vertical,
@@ -106,10 +106,12 @@ local menuGrid = UILayout.Grid {
                             Gui:beginVerticalContainer()
                             Gui:setBorder(0.0001, Color(1.0, 1.0, 1.0, 1)) --! using border as theres currently no other way
                             Gui:image(logo)
-                            Gui:setPercentSize(100, 40)
+                            Gui:setPercentSize(100, 50)                    --! needs proper resolution scaling later
                             Gui:endContainer()
                             Gui:setPaddingTop(50)
-                            Gui:setPercentSize(100, 50)
+                            Gui:setPaddingRight(10)
+                            Gui:setPaddingLeft(10)
+                            Gui:setPercentSize(100, 55)
                         end },
                         UIComponent.Button_MainMenu {
                             title = "Play",
