@@ -47,10 +47,18 @@ function Container:new(args)
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
         stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
-        contents = args.contents
+        contents = args.contents,
+        showContainer = args.showContainer or false,
+        showContainerColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4)
     }
 
     newContainer.render = function(self)
+        if self.state.showContainer() then
+            Gui:beginStackContainer()
+            Gui:rect(self.state.showContainerColor())
+            Gui:setPercentSize(100, 100)
+        end
+
         if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
             Gui:beginHorizontalContainer()
         elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
@@ -79,6 +87,11 @@ function Container:new(args)
         end
 
         Gui:endContainer()
+
+        if self.state.showContainer() then
+            Gui:endContainer()
+            Gui:setPercentSize(100, 100)
+        end
     end
 
     return newContainer
