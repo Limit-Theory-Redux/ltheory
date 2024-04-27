@@ -8,7 +8,7 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local Bindings = require('States.ApplicationBindings')
 
-local logo = Tex2D.Load("./res/images/LTR-logo-name-white.png")
+local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
 local logoOpacity = 0
 local textOpacity = 0
