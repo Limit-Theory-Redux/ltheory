@@ -5,7 +5,6 @@ local MainView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
---local MusicPlayer = require('Systems.SFX.MusicPlayer')
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
@@ -34,18 +33,10 @@ end
 function MainView:onUpdate(dt) end
 
 function MainView:onViewOpen(isPageOpen)
-    if isPageOpen then
-        --MusicPlayer:QueueTrack(GameState.audio.menuTheme, true)
-    end
-
     lastMoved = TimeStamp.Now()
 end
 
-function MainView:onViewClose(isPageClose)
-    if isPageClose then
-        --MusicPlayer:ClearQueue()
-    end
-end
+function MainView:onViewClose(isPageClose) end
 
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200
