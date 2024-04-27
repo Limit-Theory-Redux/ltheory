@@ -62,10 +62,6 @@ local function switchToSettingsView()
     UIRouter:getCurrentPage():setView("Settings")
 end
 
-local function switchToBackgroundView()
-    UIRouter:getCurrentPage():setView("Background")
-end
-
 local function switchToCreditsView()
     UIRouter:getCurrentPage():setView("Credits")
 end
