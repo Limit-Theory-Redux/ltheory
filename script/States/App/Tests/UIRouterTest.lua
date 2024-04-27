@@ -15,6 +15,7 @@ function Test:onInit()
 
     -- set initial view
     UIPageExample:setView("Main")
+    UIPageMainMenu:setView("Title")
 
     -- add page
     UIRouter:addPage(UIPageExample)
