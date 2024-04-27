@@ -43,6 +43,7 @@ local print               = function(...) if printCounts then print_(...) end en
 local Entities            = requireAll('GameObjects.Entities')
 local DebugControl        = require('Systems.Controls.Controls.DebugControl')
 local MasterControl       = require('Systems.Controls.Controls.MasterControl')
+local SoundManager        = require("Systems.SFX.SoundManager")
 local GameView            = require('Systems.Overlay.GameView')
 
 local LTheory             = require('States.Application')
@@ -124,6 +125,8 @@ function LTheory:generate()
 end
 
 function LTheory:onInit()
+    SoundManager:init()
+
     self.player = Entities.Player()
     GameState.player.humanPlayer = self.player
 
@@ -223,11 +226,11 @@ function LTheory:onUpdate(dt)
     Gui:beginGui(self.resX, self.resY, InputInstance)
     Gui:beginVerticalContainer()
 
-    Gui:textEx(Cache.Font('Iceland', 32), string.format('Collision Count: %d', collision.count), 1.0, 1.0, 1.0, 1.0)
+    Gui:textEx(Cache.Font('Iceland', 32), string.format('Collision Count: %d', collision.count), Color(1.0, 1.0, 1.0, 1.0))
 
     if worldTriggerTest then
         local triggerCount = self.trigger1:getContentsCount()
-        Gui:textEx(Cache.Font('Iceland', 32), string.format('World Trigger Count: %d', triggerCount), 1.0, 1.0, 1.0, 1.0)
+        Gui:textEx(Cache.Font('Iceland', 32), string.format('World Trigger Count: %d', triggerCount), Color(1.0, 1.0, 1.0, 1.0))
         for i = 1, triggerCount do
             self.trigger1:getContents(i - 1)
         end
@@ -235,14 +238,14 @@ function LTheory:onUpdate(dt)
 
     if attachedTriggerTest then
         local triggerCount = self.trigger2:getContentsCount()
-        Gui:textEx(Cache.Font('Iceland', 32), string.format('Attached Trigger Count: %d', triggerCount), 1.0, 1.0, 1.0, 1.0)
+        Gui:textEx(Cache.Font('Iceland', 32), string.format('Attached Trigger Count: %d', triggerCount), Color(1.0, 1.0, 1.0, 1.0))
         for i = 1, triggerCount do
             self.trigger2:getContents(i - 1)
         end
     end
 
     for k, v in ipairs(collisions) do
-        Gui:textEx(Cache.Font('Iceland', 32), v, 1.0, 1.0, 1.0, 1.0)
+        Gui:textEx(Cache.Font('Iceland', 32), v, Color(1.0, 1.0, 1.0, 1.0))
     end
 
     Gui:endContainer()
