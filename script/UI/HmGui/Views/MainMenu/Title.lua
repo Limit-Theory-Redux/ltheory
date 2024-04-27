@@ -8,7 +8,7 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local Bindings = require('States.ApplicationBindings')
 
-local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
+local logo = Tex2D.Load("./res/images/LTR-logo-name-white.png")
 
 local logoOpacity = 0
 local textOpacity = 0
@@ -141,7 +141,7 @@ local textContainer = UIComponent.Container {
     stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
         UIComponent.RawInput { fn = function()
-            Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font("Exo2Bold", 24))
+            Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font("Unageo-Medium", 24))
             Gui:setPropertyColor(GuiProperties.TextColor, Color(1, 1, 1, textOpacity))
             Gui:text("PRESS ANY KEY TO CONTINUE")
         end }

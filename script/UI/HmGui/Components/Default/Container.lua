@@ -56,6 +56,10 @@ function Container:new(args)
     }
 
     newContainer.render = function(self)
+        if not self.state.visible() then
+            return
+        end
+
         if self.state.showContainer() then
             Gui:beginStackContainer()
             Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)

@@ -15,7 +15,7 @@ end
 local lastMousePos = Vec2f(0, 0)
 local lastMoved = TimeStamp.Now()
 local minDistance = 50 -- pixel
-local timeTillBackground = 30
+local timeTillBackground = 20
 
 function MainView:onInput()
     local mousePos = InputInstance:mouse():position()
@@ -83,27 +83,32 @@ local menuGrid = UILayout.Grid {
             widthInLayout = getLayoutContainerWidthPercentage,
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
+                UIComponent.RawInput {
+                    heightInLayout = 2 / 10,
+                    fn = function()
+                        Gui:setBgColor(Color(0.1, 0.1, 0.1, 0.2))
+                        Gui:beginStackContainer()
+                        Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
+                        Gui:setBorder(0.0001, Color(1.0, 1.0, 1.0, 1)) --! using border for logo color as theres currently no other way
+                        Gui:image(logo)
+                        Gui:setPercentSize(100, 42)
+                        Gui:endContainer()
+                        Gui:setPaddingTop(10)
+                        Gui:setPaddingRight(5)
+                        Gui:setPaddingBottom(10)
+                        Gui:setPaddingLeft(5)
+                        Gui:setPercentSize(100, 100)
+                    end },
                 UIComponent.Container {
                     align = { AlignHorizontal.Stretch, AlignVertical.Top },
-                    padding = { 0, 0 },
+                    padding = { 0, 50 },
                     margin = { 0, 0 },
                     stackDirection = Enums.UI.StackDirection.Vertical,
-                    heightInLayout = 3 / 4,
+                    heightInLayout = 7 / 10,
                     color = {
                         background = Color(0.1, 0.1, 0.1, 0.2)
                     },
                     contents = {
-                        UIComponent.RawInput { fn = function()
-                            Gui:beginVerticalContainer()
-                            Gui:setBorder(0.0001, Color(1.0, 1.0, 1.0, 1)) --! using border as theres currently no other way
-                            Gui:image(logo)
-                            Gui:setPercentSize(100, 50)                    --! needs proper resolution scaling later
-                            Gui:endContainer()
-                            Gui:setPaddingTop(50)
-                            Gui:setPaddingRight(10)
-                            Gui:setPaddingLeft(10)
-                            Gui:setPercentSize(100, 55)
-                        end },
                         UIComponent.Button_MainMenu {
                             title = "Play",
                             width = getButtonWidth,
@@ -136,10 +141,10 @@ local menuGrid = UILayout.Grid {
                 },
                 UIComponent.Container {
                     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-                    childrenAlign = { AlignHorizontal.Center, AlignVertical.Bottom },
-                    padding = { 0, 30 },
+                    childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+                    padding = { 0, 0 },
                     margin = { 0, 0 },
-                    heightInLayout = 1 / 4,
+                    heightInLayout = 1 / 10,
                     stackDirection = Enums.UI.StackDirection.Vertical,
                     color = {
                         background = Color(0.1, 0.1, 0.1, 0.2)
@@ -147,7 +152,9 @@ local menuGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = Config.gameVersion,
-                            align = { AlignHorizontal.Center, AlignVertical.Bottom }
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            font = "Exo2",
+                            size = 12
                         }
                     }
                 }

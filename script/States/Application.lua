@@ -234,7 +234,7 @@ function Application:onFrame()
         end
     else
         UI.DrawEx.TextAdditive(
-            'NovaRound',
+            'Unageo-Medium',
             "WORK IN PROGRESS",
             20,
             self.resX / 2 - 20, 50, 40, 20,

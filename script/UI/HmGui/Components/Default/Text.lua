@@ -38,6 +38,8 @@ function Text:new(args)
         size = args.size or 14,
         color = args.color or Color(1, 1, 1, 1),
         text = args.text or "undefined text",
+        widthInLayout = args.widthInLayout,
+        heightInLayout = args.heightInLayout,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default }
     }
 

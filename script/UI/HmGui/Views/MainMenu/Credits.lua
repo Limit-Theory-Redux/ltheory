@@ -20,7 +20,7 @@ local function getButtonHeight()
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
-    return GameState.render.resX / 1600 * 175 * 2 / GameState.render.resX
+    return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
 end
 
 local function getRemainingWidthPercentage()
@@ -36,47 +36,80 @@ local creditsGrid = UILayout.Grid {
     padding = { 125, 0 },
     margin = { 0, 0 },
     stackDirection = Enums.UI.StackDirection.Horizontal,
-    showGrid = false,
     contents = {
-        UIComponent.Container {
-            align = { AlignHorizontal.Center, AlignVertical.Center },
+        UILayout.Grid {
+            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getLayoutContainerWidthPercentage,
             stackDirection = Enums.UI.StackDirection.Vertical,
-            color = {
-                background = Color(0.1, 0.1, 0.1, 0.2)
-            },
             contents = {
-                UIComponent.Button_MainMenu {
-                    title = "Back",
-                    width = getButtonWidth,
-                    height = getButtonHeight,
+                UIComponent.Container {
                     align = { AlignHorizontal.Center, AlignVertical.Center },
-                    callback = switchToMainScreen
+                    padding = { 10, 10 },
+                    margin = { 0, 0 },
+                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    heightInLayout = 2 / 10,
+                    color = {
+                        background = Color(0.1, 0.1, 0.1, 0.2)
+                    },
+                    contents = {
+                        UIComponent.Text {
+                            text = "CREDITS",
+                            size = 32,
+                            font = "Unageo-Medium"
+                        }
+                    }
                 },
+                UIComponent.Container {
+                    align = { AlignHorizontal.Stretch, AlignVertical.Top },
+                    padding = { 0, 50 },
+                    margin = { 0, 0 },
+                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    heightInLayout = 7 / 10,
+                    color = {
+                        background = Color(0.1, 0.1, 0.1, 0.2)
+                    },
+                    contents = {
+                        UIComponent.Button_MainMenu {
+                            title = "Back",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = switchToMainScreen,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        }
+                    }
+                },
+                UIComponent.Container {
+                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+                    childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+                    padding = { 0, 0 },
+                    margin = { 0, 0 },
+                    heightInLayout = 1 / 10,
+                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    color = {
+                        background = Color(0.1, 0.1, 0.1, 0.2)
+                    },
+                    contents = {
+                        UIComponent.Text {
+                            text = Config.gameVersion,
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            font = "Exo2",
+                            size = 12
+                        }
+                    }
+                }
             }
         },
         UIComponent.Container {
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-            padding = { 0, 125 },
+            padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getRemainingWidthPercentage,
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
-                UIComponent.RawInput { fn = function()
-                    --! mockup
-                    Gui:beginStackContainer()
-                    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font("Exo2", 28))
-                    Gui:text("Credits")
-                    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Top)
-                    Gui:setMargin(0, 20)
-                    Gui:rect(Color(.1, .1, .115, .25))
-                    Gui:setPercentSize(100, 100)
-                    Gui:endContainer()
-                    Gui:setPercentSize(100, 100)
-                end }
+                UIComponent.RawInput { fn = function() end }
             }
         }
     }

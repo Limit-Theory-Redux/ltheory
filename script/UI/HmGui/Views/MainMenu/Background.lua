@@ -8,7 +8,8 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
 local lastMousePos = Vec2f(0, 0)
 local lastMoved = TimeStamp.Now()
-local backButtonVisible = true
+local menuVisible = true
+local clockVisible = GameState.backgroundClockEnabled
 
 local function distance(x1, y1, x2, y2)
     return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
@@ -22,12 +23,12 @@ function BackgroundView:onInput()
     if distance(mousePos.x, mousePos.y, lastMousePos.x, lastMousePos.y) > minDistance then
         lastMoved = TimeStamp.Now()
         lastMousePos = mousePos
-        backButtonVisible = true
+        menuVisible = true
         InputInstance:setCursorVisible(true)
     end
 
     if lastMoved:getElapsed() >= 5 then
-        backButtonVisible = false
+        menuVisible = false
         InputInstance:setCursorVisible(false)
     end
 end
@@ -39,7 +40,7 @@ function BackgroundView:onViewOpen(isPageOpen)
 end
 
 function BackgroundView:onViewClose(isPageClose)
-    backButtonVisible = true
+    menuVisible = true
     InputInstance:setCursorVisible(true) -- reset
 end
 
@@ -51,31 +52,139 @@ local function getButtonHeight()
     return GameState.render.resY / 900 * 40
 end
 
-local function getBackButtonVisible()
-    return backButtonVisible
+local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
+    return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
+end
+
+local function getRemainingWidthPercentage()
+    return 1 - getLayoutContainerWidthPercentage()
+end
+
+local function getMenuVisible()
+    return menuVisible
 end
 
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
 end
 
-local container = UIComponent.Container {
+local function toggleClock()
+    clockVisible = not clockVisible
+    GameState.backgroundClockEnabled = clockVisible
+end
+
+local backgroundGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-    childrenAlign = { AlignHorizontal.Left, AlignVertical.Center },
     padding = { 125, 0 },
     margin = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Vertical,
+    stackDirection = Enums.UI.StackDirection.Horizontal,
     contents = {
-        UIComponent.Button_MainMenu {
-            visible = getBackButtonVisible,
-            title = "Back to Main Menu",
-            width = getButtonWidth,
-            height = getButtonHeight,
-            callback = switchToMainScreen
+        UILayout.Grid {
+            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+            padding = { 0, 0 },
+            margin = { 0, 0 },
+            widthInLayout = getLayoutContainerWidthPercentage,
+            stackDirection = Enums.UI.StackDirection.Vertical,
+            contents = {
+                UIComponent.Container {
+                    visible = getMenuVisible,
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                    padding = { 0, 10 },
+                    margin = { 0, 0 },
+                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    heightInLayout = 2 / 10,
+                    color = {
+                        background = Color(0.1, 0.1, 0.1, 0.2)
+                    },
+                    contents = {
+                        UIComponent.Text {
+                            text = "SCREENSAVER",
+                            size = 32,
+                            font = "Unageo-Medium"
+                        }
+                    }
+                },
+                UIComponent.Container {
+                    visible = getMenuVisible,
+                    align = { AlignHorizontal.Stretch, AlignVertical.Top },
+                    padding = { 0, 50 },
+                    margin = { 0, 0 },
+                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    heightInLayout = 7 / 10,
+                    color = {
+                        background = Color(0.1, 0.1, 0.1, 0.2)
+                    },
+                    contents = {
+                        UIComponent.Button_MainMenu {
+                            title = "Toggle Clock",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = toggleClock,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
+                        UIComponent.Button_MainMenu {
+                            title = "Back to Main Menu",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = switchToMainScreen,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
+                    }
+                },
+                UIComponent.Container {
+                    visible = getMenuVisible,
+                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+                    childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+                    padding = { 0, 0 },
+                    margin = { 0, 0 },
+                    heightInLayout = 1 / 10,
+                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    color = {
+                        background = Color(0.1, 0.1, 0.1, 0.2)
+                    },
+                    contents = {
+                        UIComponent.Text {
+                            text = Config.gameVersion,
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            font = "Exo2",
+                            size = 12
+                        }
+                    }
+                }
+            }
         },
+        UIComponent.Container {
+            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+            childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+            padding = { 0, 10 },
+            margin = { 0, 0 },
+            widthInLayout = getRemainingWidthPercentage,
+            stackDirection = Enums.UI.StackDirection.Vertical,
+            contents = {
+                UIComponent.Text {
+                    visible = function() return clockVisible end,
+                    text = function() return os.date("%H:%M") end,
+                    size = 64,
+                    font = "Unageo-Semibold",
+                    align = { AlignHorizontal.Right, AlignVertical.Center },
+                },
+                UIComponent.Text {
+                    visible = function() return clockVisible end,
+                    text = function()
+                        local currentDate = os.date("%B %d %Y")
+                        ---@cast currentDate string
+                        currentDate = string.upper(currentDate)
+                        return currentDate
+                    end,
+                    size = 32,
+                    font = "Unageo-Semibold",
+                    align = { AlignHorizontal.Right, AlignVertical.Center },
+                }
+            }
+        }
     }
 }
 
-BackgroundView:addContent(container)
+BackgroundView:addContent(backgroundGrid)
 
 return BackgroundView

@@ -1,9 +1,10 @@
 -- For dynamic states
 GameState = {
-    state           = Enums.GameStates.Splashscreen, -- previously gamemode
-    paused          = false,
-    panelActive     = false,                         -- indicates whether MasterControl panel is enabled or not
-    skipTitleScreen = false
+    state                  = Enums.GameStates.Splashscreen, -- previously gamemode
+    paused                 = false,
+    panelActive            = false,                         -- indicates whether MasterControl panel is enabled or not
+    skipTitleScreen        = false,
+    backgroundClockEnabled = false
 }
 
 GameState.input = {
