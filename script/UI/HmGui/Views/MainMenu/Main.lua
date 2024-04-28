@@ -82,7 +82,7 @@ local menuGrid = UILayout.Grid {
                 UIComponent.RawInput {
                     heightInLayout = 2 / 10,
                     fn = function()
-                        Gui:setBgColor(Color(0.1, 0.1, 0.1, 0.2))
+                        Gui:setBgColor(Color(0, 0, 0, 0.3))
                         Gui:beginStackContainer()
                         Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
                         Gui:setBorder(0.0001, Color(1.0, 1.0, 1.0, 1)) --! using border for logo color as theres currently no other way
@@ -102,7 +102,7 @@ local menuGrid = UILayout.Grid {
                     stackDirection = Enums.UI.StackDirection.Vertical,
                     heightInLayout = 7 / 10,
                     color = {
-                        background = Color(0.1, 0.1, 0.1, 0.2)
+                        background = Color(0, 0, 0, 0.3)
                     },
                     contents = {
                         UIComponent.Button_MainMenu {
@@ -143,7 +143,7 @@ local menuGrid = UILayout.Grid {
                     heightInLayout = 1 / 10,
                     stackDirection = Enums.UI.StackDirection.Vertical,
                     color = {
-                        background = Color(0.1, 0.1, 0.1, 0.2)
+                        background = Color(0, 0, 0, 0.3)
                     },
                     contents = {
                         UIComponent.Text {

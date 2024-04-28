@@ -51,7 +51,7 @@ local playGrid = UILayout.Grid {
                     stackDirection = Enums.UI.StackDirection.Vertical,
                     heightInLayout = 2 / 10,
                     color = {
-                        background = Color(0.1, 0.1, 0.1, 0.2)
+                        background = Color(0, 0, 0, 0.3)
                     },
                     contents = {
                         UIComponent.Text {
@@ -68,7 +68,7 @@ local playGrid = UILayout.Grid {
                     stackDirection = Enums.UI.StackDirection.Vertical,
                     heightInLayout = 7 / 10,
                     color = {
-                        background = Color(0.1, 0.1, 0.1, 0.2)
+                        background = Color(0, 0, 0, 0.3)
                     },
                     contents = {
                         UIComponent.Button_MainMenu {
@@ -100,7 +100,7 @@ local playGrid = UILayout.Grid {
                     heightInLayout = 1 / 10,
                     stackDirection = Enums.UI.StackDirection.Vertical,
                     color = {
-                        background = Color(0.1, 0.1, 0.1, 0.2)
+                        background = Color(0, 0, 0, 0.3)
                     },
                     contents = {
                         UIComponent.Text {
@@ -121,7 +121,50 @@ local playGrid = UILayout.Grid {
             widthInLayout = getRemainingWidthPercentage,
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
-                UIComponent.RawInput { fn = function() end }
+                UILayout.Grid {
+                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+                    padding = { 0, 0 },
+                    margin = { 0, 0 },
+                    widthInLayout = getLayoutContainerWidthPercentage,
+                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    contents = {
+                        UIComponent.Container {
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            padding = { 0, 10 },
+                            margin = { 0, 0 },
+                            stackDirection = Enums.UI.StackDirection.Vertical,
+                            heightInLayout = 2 / 10,
+                            contents = {}
+                        },
+                        UIComponent.Container {
+                            align = { AlignHorizontal.Stretch, AlignVertical.Top },
+                            padding = { 0, 50 },
+                            margin = { 0, 0 },
+                            stackDirection = Enums.UI.StackDirection.Vertical,
+                            heightInLayout = 7 / 10,
+                            color = {
+                                background = Color(0, 0, 0, 0.3)
+                            },
+                            contents = {
+                                UIComponent.Button_MainMenu {
+                                    title = "Random Seed",
+                                    width = getButtonWidth,
+                                    height = getButtonHeight,
+                                    align = { AlignHorizontal.Center, AlignVertical.Center }
+                                }
+                            }
+                        },
+                        UIComponent.Container {
+                            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+                            childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+                            padding = { 0, 0 },
+                            margin = { 0, 0 },
+                            heightInLayout = 1 / 10,
+                            stackDirection = Enums.UI.StackDirection.Vertical,
+                            contents = {}
+                        }
+                    }
+                },
             }
         }
     }

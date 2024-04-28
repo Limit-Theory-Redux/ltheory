@@ -94,9 +94,9 @@ function Container:new(args)
             for _, component in ipairs(self.state.contents()) do
                 component:render()
             end
-        else
+        elseif #self.state.contents() == 1 then
             self.state.contents()[1]:render()
-        end
+        end -- this allows containers without any content
 
         Gui:endContainer()
 

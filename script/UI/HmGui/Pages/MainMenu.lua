@@ -36,6 +36,8 @@ function MainMenu:onInput()
 
         if lastView and lastView ~= currentView and currentView.name ~= "Main" then --todo: maybe introduce view hierarchies?
             MainMenu:setView(lastView.name)
+        elseif lastView and lastView ~= currentView and currentView.name == "Main" then
+            MainMenu:setView("Background")
         end
     end
 end
@@ -54,7 +56,7 @@ end
 
 function MainMenu:onUpdate(dt) end
 
----! debug only
+--[[! debug only
 local backgroundContainer =
     UIComponent.Container {
         align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
@@ -72,6 +74,6 @@ local backgroundContainer =
         }
     }
 
-MainMenu:addContent(backgroundContainer)
+MainMenu:addContent(backgroundContainer)]]
 
 return MainMenu

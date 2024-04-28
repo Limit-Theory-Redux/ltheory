@@ -94,7 +94,7 @@ local backgroundGrid = UILayout.Grid {
                     stackDirection = Enums.UI.StackDirection.Vertical,
                     heightInLayout = 2 / 10,
                     color = {
-                        background = Color(0.1, 0.1, 0.1, 0.2)
+                        background = Color(0, 0, 0, 0.3)
                     },
                     contents = {
                         UIComponent.Text {
@@ -112,7 +112,7 @@ local backgroundGrid = UILayout.Grid {
                     stackDirection = Enums.UI.StackDirection.Vertical,
                     heightInLayout = 7 / 10,
                     color = {
-                        background = Color(0.1, 0.1, 0.1, 0.2)
+                        background = Color(0, 0, 0, 0.3)
                     },
                     contents = {
                         UIComponent.Button_MainMenu {
@@ -140,7 +140,7 @@ local backgroundGrid = UILayout.Grid {
                     heightInLayout = 1 / 10,
                     stackDirection = Enums.UI.StackDirection.Vertical,
                     color = {
-                        background = Color(0.1, 0.1, 0.1, 0.2)
+                        background = Color(0, 0, 0, 0.3)
                     },
                     contents = {
                         UIComponent.Text {
