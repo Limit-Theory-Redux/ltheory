@@ -21,5 +21,11 @@ Config.audio.sounds = {
         path = "click.wav",
         volume = 0.0,
         isLooping = false
+    },
+    metallicAmbience = SFXObject:Create {
+        name = "Metallic Ambience",
+        path = "metallic_ambience.ogg",
+        volume = 0.0,
+        isLooping = true
     }
 }
