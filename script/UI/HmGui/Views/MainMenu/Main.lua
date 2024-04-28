@@ -5,6 +5,7 @@ local MainView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+local InitFiles = require('Systems.Files.InitFiles')
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
@@ -130,7 +131,12 @@ local menuGrid = UILayout.Grid {
                             title = "Exit",
                             width = getButtonWidth,
                             height = getButtonHeight,
-                            callback = function() EngineInstance:exit() end,
+                            callback = function()
+                                -- Write player-specific game variables to preserve them across gameplay sessions
+                                InitFiles:writeUserInits()
+
+                                EngineInstance:exit()
+                            end,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         }
                     }

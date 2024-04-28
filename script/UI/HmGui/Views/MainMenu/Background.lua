@@ -9,7 +9,6 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 local lastMousePos = Vec2f(0, 0)
 local lastMoved = TimeStamp.Now()
 local menuVisible = true
-local clockVisible = GameState.backgroundClockEnabled
 
 local function distance(x1, y1, x2, y2)
     return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
@@ -69,8 +68,7 @@ local function switchToMainScreen()
 end
 
 local function toggleClock()
-    clockVisible = not clockVisible
-    GameState.backgroundClockEnabled = clockVisible
+    GameState.ui.backgroundClockEnabled = not GameState.ui.backgroundClockEnabled
 end
 
 local backgroundGrid = UILayout.Grid {
@@ -162,14 +160,14 @@ local backgroundGrid = UILayout.Grid {
             stackDirection = Enums.UI.StackDirection.Vertical,
             contents = {
                 UIComponent.Text {
-                    visible = function() return clockVisible end,
+                    visible = function() return GameState.ui.backgroundClockEnabled end,
                     text = function() return os.date("%H:%M") end,
                     size = 64,
                     font = "Unageo-Semibold",
                     align = { AlignHorizontal.Right, AlignVertical.Center },
                 },
                 UIComponent.Text {
-                    visible = function() return clockVisible end,
+                    visible = function() return GameState.ui.backgroundClockEnabled end,
                     text = function()
                         local currentDate = os.date("%B %d %Y")
                         ---@cast currentDate string
