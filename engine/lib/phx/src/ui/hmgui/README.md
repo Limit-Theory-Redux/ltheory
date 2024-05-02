@@ -257,6 +257,7 @@ prop.uvec4: [10, 4, 740, 44]
 prop.dvec2: [-10.2, 4.729]
 prop.dvec3: [-10.2, 4.729, 0.0]
 prop.dvec4: [-10.2, 4.729, 740, 44.6]
+prop.color: [0.0, 1.0, 0.0, 1.0]
 prop.box3: [[10.2, 4.729, 1.0], [740, 44.6, -1.0]]
 prop.string: "Test"
 prop.font: ["NovaMono", 14]
@@ -320,7 +321,7 @@ The following methods can be used in Lua scripts to manage themes:
 Setting a theme is a heavy operation and should not be used too often, i.e. every frame.
 Any property value applied by setting a theme that contains that property will be used only if it is not overridden by a per-element styling on that property (see group 3 below).
 
-3. **Per-element styles**. This type of styling sets a property on an individual element. There are 2 ways to do it: either explictly in Lua code, or in a global style configuration file.
+3. **Per-element styles**. This type of styling sets a property on an individual element. There are 2 ways to do it: either explicitly in Lua code, or in a global style configuration file.
 
   - Example of direct styling in code:
 ```lua

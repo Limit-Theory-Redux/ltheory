@@ -165,11 +165,12 @@ function MainMenu:ShowGui()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     -- Title
+    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(1.0, 1.0, 1.0, 1.0))
     Gui:beginStackContainer() -- begin title panel
     Gui:setPercentSize(99, 20)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    Gui:setBorder(1, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setBorderWidth(1)
     --    Gui:setMinSize(5, 5)
     Gui:image(LTheoryRedux.logoname) -- draw the LTR name image
     Gui:setPercentSize(95, 55)
@@ -193,29 +194,37 @@ function MainMenu:ShowGui()
     Gui:setPercentHeight(20)
     Gui:endContainer()
 
+    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0.1, 0.1, 0.1, 0.5))
     Gui:beginVerticalContainer() -- begin changelog text panel
     Gui:setPercentHeight(80)
     Gui:setSpacing(0)
-    Gui:setBgColor(Color(0.1, 0.1, 0.1, 0.5))
 
+    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0.2, 0.2, 0.2, 0.3))
     Gui:beginStackContainer() -- begin top text panel
     Gui:setPercentSize(100, 8)
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    Gui:setBgColor(Color(0.2, 0.2, 0.2, 0.3))
+
     Gui:textEx(Cache.Font('RajdhaniBold', 38), 'Notes for version ' .. Config.gameVersion, Color(1.0, 1.0, 1.0, 1.0))
+
     Gui:endContainer()        -- end top text panel
+
     Gui:beginStackContainer() -- begin middle text panel
     Gui:setPercentSize(100, 8)
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
+
     Gui:textEx(Cache.Font('Rajdhani', 28), 'Changelog', Color(1.0, 1.0, 1.0, 1.0))
+
     Gui:endContainer()        -- end middle text panel
+
     Gui:beginStackContainer() -- begin details text panel
     Gui:setPercentSize(90, 84)
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Left)
+
     Gui:textEx(Cache.Font('Rajdhani', 20), '- Lorem ipsum', Color(1.0, 1.0, 1.0, 1.0))
+
     Gui:endContainer() -- end details text panel
 
     Gui:endContainer() -- end changelog text panel
@@ -241,6 +250,8 @@ function MainMenu:ShowMainMenuInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     Gui:clearStyle()
+    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0.1, 0.12, 0.13, 1.0))
+    Gui:setPropertyColor(GuiProperties.HighlightColor, Color(0.1, 0.5, 1.0, 1.0))
     Gui:setPropertyColor(GuiProperties.TextColor, Color(0.9, 0.9, 0.9, 1.0))
     Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('RajdhaniSemiBold', 36 * scaleFactor))
 
@@ -260,6 +271,7 @@ function MainMenu:ShowMainMenuInner()
     Gui:setVerticalAlignment(AlignVertical.Stretch)
 
     if Gui:button("CREDITS") then
+        -- TODO: self:ShowCreditsScreen()
     end
     Gui:setVerticalAlignment(AlignVertical.Stretch)
 
@@ -299,6 +311,7 @@ function MainMenu:ShowSeedDialog()
     self.dialogDisplayed = false
     self.seedDialogDisplayed = true
 
+    Gui:setStyle(Enums.Gui.Styles.SeedWindow)
     Gui:beginWindow(guiElements.name, InputInstance)
     Gui:setSpacing(16)
 
@@ -314,14 +327,11 @@ end
 
 function MainMenu:ShowSeedDialogInner()
     -- Add new star system seed selection dialog menu items
+    Gui:setStyle(Enums.Gui.Styles.SeedWindowContent)
     Gui:beginVerticalContainer()
     Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
-
-    Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2', 26))
 
     -- Loop through saved seeds (hardcoded for now) and display as checkboxes
     for i = 1, #guiElements[1]["elems"] do
@@ -400,6 +410,7 @@ function MainMenu:ShowSettingsScreen()
     end
     self.settingsScreenDisplayed = true
 
+    Gui:setStyle(Enums.Gui.Styles.SettingsWindow)
     Gui:beginWindow(guiElements.name, InputInstance)
     Gui:setSpacing(16)
 
@@ -408,9 +419,8 @@ function MainMenu:ShowSettingsScreen()
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
     -- Separator
-    Gui:rect(Color(0.3, 0.6, 1.0, 1.0))
-    Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
-    Gui:setFixedHeight(1.0)
+    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0.3, 0.6, 1.0, 1.0))
+    Gui:horizontalDivider(1.0)
 
     self:ShowSettingsScreenInner()
 
@@ -420,12 +430,9 @@ end
 
 function MainMenu:ShowSettingsScreenInner()
     -- Add new star system seed selection dialog menu items
+    Gui:setStyle(Enums.Gui.Styles.SettingsWindowContent)
     Gui:beginVerticalContainer()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
-
-    Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2', 24))
 
     -- Show Settings options
     Gui:beginVerticalContainer()
@@ -801,6 +808,8 @@ function MainMenu:ShowFlightDialog()
     -- Add Flight Mode dialog menu
     Gui:beginVerticalContainer()
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+
+    Gui:setStyle(Enums.Gui.Styles.FlightModeWindow)
     Gui:beginWindow("Flight Mode", InputInstance)
     Gui:setSpacing(16)
 
@@ -811,19 +820,17 @@ function MainMenu:ShowFlightDialog()
     self:ShowFlightDialogInner()
 
     Gui:endWindow()
+
     Gui:endContainer()
 end
 
 function MainMenu:ShowFlightDialogInner()
     -- Add Flight Mode dialog menu items
+    Gui:setStyle(Enums.Gui.Styles.FlightModeWindowContent)
     Gui:beginVerticalContainer()
     Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
-
-    Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2Bold', 26))
 
     if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
         if Gui:button("Return to Game") then

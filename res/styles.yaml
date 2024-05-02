@@ -1,0 +1,29 @@
+seed-window:
+  background-color: [0.1, 0.1, 0.1, 1.0]
+  opacity: 0.95
+
+seed-window-content:
+  background-color: [0.0, 0.0, 0.0, 0.0]
+  opacity: 0.95
+  text.color: [1.0, 1.0, 1.0, 1.0]
+  text.font: ["Exo2", 26]
+
+settings-window:
+  background-color: [0.1, 0.1, 0.1, 1.0]
+  opacity: 0.95
+
+settings-window-content:
+  background-color: [0.0, 0.0, 0.0, 0.0]
+  opacity: 0.95
+  text.color: [1.0, 1.0, 1.0, 1.0]
+  text.font: ["Exo2", 24]
+
+flight-mode-window:
+  background-color: [0.1, 0.1, 0.1, 1.0]
+  opacity: 0.95
+
+flight-mode-window-content:
+  background-color: [0.0, 0.0, 0.0, 0.0]
+  opacity: 0.95
+  text.color: [1.0, 1.0, 1.0, 1.0]
+  text.font: ["Exo2Bold", 26]

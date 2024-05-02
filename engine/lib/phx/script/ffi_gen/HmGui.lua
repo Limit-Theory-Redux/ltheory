@@ -32,10 +32,10 @@ function Loader.defineType()
             bool               HmGui_Button                         (HmGui*, cstr label);
             bool               HmGui_Checkbox                       (HmGui*, cstr label, bool value);
             float              HmGui_Slider                         (HmGui*, float lower, float upper, float value);
-            void               HmGui_HorizontalDivider              (HmGui*, float height, Color const* color);
-            void               HmGui_VerticalDivider                (HmGui*, float width, Color const* color);
+            void               HmGui_HorizontalDivider              (HmGui*, float height);
+            void               HmGui_VerticalDivider                (HmGui*, float width);
             void               HmGui_Image                          (HmGui*, Tex2D* image);
-            void               HmGui_Rect                           (HmGui*, Color const* color);
+            void               HmGui_Rect                           (HmGui*);
             void               HmGui_Text                           (HmGui*, cstr text);
             void               HmGui_TextColored                    (HmGui*, cstr text, Color const* color);
             void               HmGui_TextEx                         (HmGui*, Font const* font, cstr text, Color const* color);
@@ -56,12 +56,6 @@ function Loader.defineType()
             void               HmGui_SetMarginRight                 (HmGui const*, float margin);
             void               HmGui_SetMarginBottom                (HmGui const*, float margin);
             void               HmGui_SetBorderWidth                 (HmGui const*, float width);
-            void               HmGui_SetBorderColor                 (HmGui const*, Color const* color);
-            void               HmGui_SetBorderColorV4               (HmGui const*, Color const* color);
-            void               HmGui_SetBorder                      (HmGui const*, float width, Color const* color);
-            void               HmGui_SetBorderV4                    (HmGui const*, float width, Color const* color);
-            void               HmGui_SetBgColor                     (HmGui*, Color const* color);
-            void               HmGui_SetBgColorV4                   (HmGui*, Color const* color);
             void               HmGui_SetAlignment                   (HmGui const*, AlignHorizontal h, AlignVertical v);
             void               HmGui_SetHorizontalAlignment         (HmGui const*, AlignHorizontal align);
             void               HmGui_SetVerticalAlignment           (HmGui const*, AlignVertical align);
@@ -219,12 +213,6 @@ function Loader.defineType()
                 setMarginRight                 = libphx.HmGui_SetMarginRight,
                 setMarginBottom                = libphx.HmGui_SetMarginBottom,
                 setBorderWidth                 = libphx.HmGui_SetBorderWidth,
-                setBorderColor                 = libphx.HmGui_SetBorderColor,
-                setBorderColorV4               = libphx.HmGui_SetBorderColorV4,
-                setBorder                      = libphx.HmGui_SetBorder,
-                setBorderV4                    = libphx.HmGui_SetBorderV4,
-                setBgColor                     = libphx.HmGui_SetBgColor,
-                setBgColorV4                   = libphx.HmGui_SetBgColorV4,
                 setAlignment                   = libphx.HmGui_SetAlignment,
                 setHorizontalAlignment         = libphx.HmGui_SetHorizontalAlignment,
                 setVerticalAlignment           = libphx.HmGui_SetVerticalAlignment,

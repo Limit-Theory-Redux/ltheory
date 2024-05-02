@@ -39,13 +39,14 @@ macro_rules! core_properties {
 
 // Property id, name, value and optional list of mapped property ids
 core_properties! {
-    /// Type: f32. Default value: 1
-    (Opacity,               "opacity",                 1.0f32),
-    /// Type: Color. Default value: Color(0.1, 0.12, 0.13, 1.0)
-    (BackgroundColor,       "background-color",        Color::new(0.1, 0.12, 0.13, 1.0)),
-    /// Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0)
-    (HighlightColor,        "highlight-color",         Color::new(0.1, 0.5, 1.0, 1.0)),
-
+    /// Type: f32. Default value: 0
+    (Opacity,               "opacity",                 0.0f32),
+    /// Type: Color. Default value: Color.TRANSPARENT
+    (BorderColor,           "border-color",            Color::TRANSPARENT),
+    /// Type: Color. Default value: Color.TRANSPARENT
+    (BackgroundColor,       "background-color",        Color::TRANSPARENT),
+    /// Type: Color. Default value: Color.TRANSPARENT
+    (HighlightColor,        "highlight-color",         Color::TRANSPARENT),
     /// Type: Font. Default value: Font("Rajdhani", 14)
     (TextFont,              "text.font",               Font::load("Rajdhani", 14)),
     /// Type: Color. Default value: White
@@ -60,10 +61,6 @@ core_properties! {
     /// Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0)
     (ContainerColorPrimary, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),
 
-    /// Type: f32. Default value: 0
-    (ButtonBorderWidth,     "button.border-width",     0.0f32),
-    /// Type: Color. Default value: Wite. Maps to: TextColor
-    (ButtonTextColor,       "button.text-color",       Color::WHITE, TextColor),
     /// Type: f32. Default value: 0.5
     (ButtonOpacity,         "button.opacity",          0.5f32, Opacity),
     /// Type: Color. Default value: Color(0.15, 0.15, 0.15, 0.8). Maps to: BackgroundColor
@@ -75,6 +72,10 @@ core_properties! {
     (CheckboxBackgroundColor, "checkbox.background-color", Color::new(0.3, 0.3, 0.3, 0.5), BackgroundColor),
     /// Type: Color. Default value: Color(0.3, 0.3, 0.3, 1.0). Maps to: HighlightColor
     (CheckboxHighlightColor,  "checkbox.highlight-color",  Color::new(0.3, 0.3, 0.3, 1.0), HighlightColor),
+    /// Type: Color. Default value: Color(0.1, 0.1, 0.1, 0.5)
+    (CheckboxColorFrame,      "checkbox.color-frame",      Color::new(0.1, 0.1, 0.1, 0.5)),
+    /// Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0)
+    (CheckboxColorPrimary,    "checkbox.color-primary",    Color::new(0.1, 0.5, 1.0, 1.0)),
 
     /// Type: boolean. Default value: true
     (ScrollAreaHScrollShow,                   "scroll-area.hscroll.show", true),

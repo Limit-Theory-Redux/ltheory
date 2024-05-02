@@ -17,6 +17,7 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             GuiProperties GuiProperties_Opacity;
+            GuiProperties GuiProperties_BorderColor;
             GuiProperties GuiProperties_BackgroundColor;
             GuiProperties GuiProperties_HighlightColor;
             GuiProperties GuiProperties_TextFont;
@@ -25,13 +26,13 @@ function Loader.defineType()
             GuiProperties GuiProperties_ContainerSpacing;
             GuiProperties GuiProperties_ContainerColorFrame;
             GuiProperties GuiProperties_ContainerColorPrimary;
-            GuiProperties GuiProperties_ButtonBorderWidth;
-            GuiProperties GuiProperties_ButtonTextColor;
             GuiProperties GuiProperties_ButtonOpacity;
             GuiProperties GuiProperties_ButtonBackgroundColor;
             GuiProperties GuiProperties_ButtonHighlightColor;
             GuiProperties GuiProperties_CheckboxBackgroundColor;
             GuiProperties GuiProperties_CheckboxHighlightColor;
+            GuiProperties GuiProperties_CheckboxColorFrame;
+            GuiProperties GuiProperties_CheckboxColorPrimary;
             GuiProperties GuiProperties_ScrollAreaHScrollShow;
             GuiProperties GuiProperties_ScrollAreaVScrollShow;
             GuiProperties GuiProperties_ScrollAreaScrollbarLength;
@@ -47,6 +48,7 @@ function Loader.defineType()
     do -- Global Symbol Table
         GuiProperties = {
             Opacity                                 = libphx.GuiProperties_Opacity,
+            BorderColor                             = libphx.GuiProperties_BorderColor,
             BackgroundColor                         = libphx.GuiProperties_BackgroundColor,
             HighlightColor                          = libphx.GuiProperties_HighlightColor,
             TextFont                                = libphx.GuiProperties_TextFont,
@@ -55,13 +57,13 @@ function Loader.defineType()
             ContainerSpacing                        = libphx.GuiProperties_ContainerSpacing,
             ContainerColorFrame                     = libphx.GuiProperties_ContainerColorFrame,
             ContainerColorPrimary                   = libphx.GuiProperties_ContainerColorPrimary,
-            ButtonBorderWidth                       = libphx.GuiProperties_ButtonBorderWidth,
-            ButtonTextColor                         = libphx.GuiProperties_ButtonTextColor,
             ButtonOpacity                           = libphx.GuiProperties_ButtonOpacity,
             ButtonBackgroundColor                   = libphx.GuiProperties_ButtonBackgroundColor,
             ButtonHighlightColor                    = libphx.GuiProperties_ButtonHighlightColor,
             CheckboxBackgroundColor                 = libphx.GuiProperties_CheckboxBackgroundColor,
             CheckboxHighlightColor                  = libphx.GuiProperties_CheckboxHighlightColor,
+            CheckboxColorFrame                      = libphx.GuiProperties_CheckboxColorFrame,
+            CheckboxColorPrimary                    = libphx.GuiProperties_CheckboxColorPrimary,
             ScrollAreaHScrollShow                   = libphx.GuiProperties_ScrollAreaHScrollShow,
             ScrollAreaVScrollShow                   = libphx.GuiProperties_ScrollAreaVScrollShow,
             ScrollAreaScrollbarLength               = libphx.GuiProperties_ScrollAreaScrollbarLength,

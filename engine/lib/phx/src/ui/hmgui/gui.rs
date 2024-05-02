@@ -113,7 +113,11 @@ impl HmGui {
 
         parent_container.children_hash = (parent_container.children_hash).wrapping_add(1);
 
-        let mut widget = HmGuiWidget::new(Some(parent_rf.clone()), item);
+        let mut widget = HmGuiWidget::new(Some(parent_rf.clone()), item)
+            .with_border_color(self.get_property_color(HmGuiProperties::BorderColor.id()))
+            .with_background_color(self.get_property_color(HmGuiProperties::BackgroundColor.id()))
+            .with_highlight_color(self.get_property_color(HmGuiProperties::HighlightColor.id()))
+            .with_opacity(self.get_property_f32(HmGuiProperties::Opacity.id()));
 
         widget.hash = unsafe {
             Hash_FNV64_Incremental(
@@ -518,13 +522,16 @@ impl HmGui {
                         (handle_size, handle_pos)
                     };
 
-                    self.rect(&sb_bg_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.rect();
                     self.set_fixed_size(handle_pos, sb_length);
 
-                    self.rect(&sb_knob_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_knob_color);
+                    self.rect();
                     self.set_fixed_size(handle_size, sb_length);
 
-                    self.rect(&sb_bg_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.rect();
                     self.set_fixed_height(sb_length);
                     self.set_horizontal_alignment(AlignHorizontal::Stretch);
 
@@ -548,13 +555,16 @@ impl HmGui {
                         (handle_size, handle_pos)
                     };
 
-                    self.rect(&sb_bg_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.rect();
                     self.set_fixed_size(sb_length, handle_pos);
 
-                    self.rect(&sb_knob_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_knob_color);
+                    self.rect();
                     self.set_fixed_size(sb_length, handle_size);
 
-                    self.rect(&sb_bg_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.rect();
                     self.set_fixed_width(sb_length);
                     self.set_vertical_alignment(AlignVertical::Stretch);
 
@@ -588,9 +598,10 @@ impl HmGui {
 
             widget.pos.x += data.offset.x;
             widget.pos.y += data.offset.y;
-            widget.render_style = RenderStyle::None;
+            // widget.render_style = RenderStyle::None;
         }
 
+        self.set_property_f32(HmGuiProperties::Opacity.id(), 0.95);
         self.begin_vertical_container();
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         self.set_padding(8.0, 8.0);
@@ -605,7 +616,8 @@ impl HmGui {
     /// Invisible element that stretches in all directions.
     /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
     pub fn spacer(&mut self) {
-        self.rect(&Color::TRANSPARENT);
+        self.set_property_color(HmGuiProperties::BackgroundColor.id(), &Color::TRANSPARENT);
+        self.rect();
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
     }
 
@@ -619,10 +631,6 @@ impl HmGui {
         let is_mouse_over = {
             let mut widget = self.last.as_mut();
             let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
-
-            if is_mouse_over {
-                widget.render_style = RenderStyle::Fill;
-            }
 
             is_mouse_over
         };
@@ -638,6 +646,8 @@ impl HmGui {
     }
 
     pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
+        self.map_property_group("checkbox");
+
         self.begin_horizontal_container();
         self.set_padding(4.0, 4.0);
         self.set_spacing(8.0);
@@ -647,10 +657,6 @@ impl HmGui {
         {
             let mut widget = self.last.as_mut();
             let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
-
-            if is_mouse_over {
-                widget.render_style = RenderStyle::Underline;
-            }
 
             if is_mouse_over && self.activate {
                 value = !value;
@@ -662,28 +668,30 @@ impl HmGui {
         // Push text and rect to the sides if outer container has horizontal stretch
         self.spacer();
 
-        // TODO: replace with rect with border
-        self.begin_stack_container();
-        self.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
-
+        // checkbox itself
         let (color_frame, color_primary) = {
-            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrame.id());
-            let color_primary =
-                self.get_property_color(HmGuiProperties::ContainerColorPrimary.id());
+            let color_frame = self.get_property_color(HmGuiProperties::CheckboxColorFrame.id());
+            let color_primary = self.get_property_color(HmGuiProperties::CheckboxColorPrimary.id());
 
             (color_frame.clone(), color_primary.clone())
         };
 
-        self.rect(&color_frame);
-        self.set_fixed_size(16.0, 16.0);
-
-        if value {
-            self.rect(&color_primary);
-            self.set_fixed_size(10.0, 10.0);
-        }
+        self.set_property_color(HmGuiProperties::BorderColor.id(), &color_frame);
+        self.set_property_color(
+            HmGuiProperties::BackgroundColor.id(),
+            if value {
+                &color_primary
+            } else {
+                &Color::TRANSPARENT
+            },
+        );
+        self.rect();
+        self.set_fixed_size(10.0, 10.0);
+        self.set_border_width(3.0);
 
         self.end_container();
-        self.end_container();
+        // TODO: workaround. fix it
+        self.set_property_color(HmGuiProperties::BackgroundColor.id(), &Color::TRANSPARENT);
 
         value
     }
@@ -692,7 +700,11 @@ impl HmGui {
         self.begin_stack_container();
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        self.rect(&Color::new(0.5, 0.5, 0.5, 1.0));
+        self.set_property_color(
+            HmGuiProperties::BackgroundColor.id(),
+            &Color::new(0.5, 0.5, 0.5, 1.0),
+        );
+        self.rect();
         self.set_fixed_size(0.0, 2.0);
 
         self.end_container();
@@ -700,14 +712,14 @@ impl HmGui {
         0.0
     }
 
-    pub fn horizontal_divider(&mut self, height: f32, color: &Color) {
-        self.rect(color);
+    pub fn horizontal_divider(&mut self, height: f32) {
+        self.rect();
         self.set_fixed_height(height);
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
     }
 
-    pub fn vertical_divider(&mut self, width: f32, color: &Color) {
-        self.rect(color);
+    pub fn vertical_divider(&mut self, width: f32) {
+        self.rect();
         self.set_fixed_width(width);
         self.set_vertical_alignment(AlignVertical::Stretch);
     }
@@ -718,12 +730,8 @@ impl HmGui {
         let _widget_rf = self.init_widget(WidgetItem::Image(image_item));
     }
 
-    pub fn rect(&mut self, color: &Color) {
-        let rect_item = HmGuiRect {
-            color: color.clone(),
-        };
-
-        self.init_widget(WidgetItem::Rect(rect_item));
+    pub fn rect(&mut self) {
+        self.init_widget(WidgetItem::Rect);
     }
 
     pub fn text(&mut self, text: &str) {
@@ -880,44 +888,6 @@ impl HmGui {
         widget.border_width = width;
     }
 
-    pub fn set_border_color(&self, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.border_color = color.clone();
-    }
-
-    pub fn set_border_color_v4(&self, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.border_color = *color;
-    }
-
-    pub fn set_border(&self, width: f32, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.border_width = width;
-        widget.border_color = color.clone();
-    }
-
-    pub fn set_border_v4(&self, width: f32, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.border_width = width;
-        widget.border_color = *color;
-    }
-
-    pub fn set_bg_color(&mut self, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.bg_color = Some(color.clone());
-    }
-
-    pub fn set_bg_color_v4(&mut self, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.bg_color = Some(*color);
-    }
-
     pub fn set_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
         let mut widget = self.last.as_mut();
 
@@ -1037,6 +1007,7 @@ impl HmGui {
     }
 
     /// Set a style for the following element.
+    /// Completely replaces current style with a new one.
     pub fn set_style(&mut self, id: usize) {
         self.element_style = self
             .style_registry
