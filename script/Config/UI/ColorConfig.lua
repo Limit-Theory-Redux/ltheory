@@ -10,6 +10,7 @@ Config.ui.color = {
     borderOverlay     = Color(0.20, 0.60, 1.00, 1.0),
     borderDim         = Color(0.50, 0.50, 0.50, 0.4),
     fill              = Color(0.60, 0.60, 0.60, 1.0),
+    textBright        = Color(1.00, 1.00, 1.00, 1.0),
     textNormal        = Color(0.75, 0.75, 0.75, 1.0),
     textNormalFocused = Color(0.00, 0.00, 0.00, 1.0),
     textInvert        = Color(0.25, 0.25, 0.25, 1.0),

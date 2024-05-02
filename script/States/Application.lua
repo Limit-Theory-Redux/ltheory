@@ -93,10 +93,8 @@ function Application:onFrame()
         if size.x ~= self.resX or size.y ~= self.resY then
             self.resX = size.x
             self.resY = size.y
-            if not GameState.render.fullscreen then
-                GameState.render.resX = self.resX
-                GameState.render.resY = self.resY
-            end
+            GameState.render.resX = self.resX
+            GameState.render.resY = self.resY
             self:onResize(self.resX, self.resY)
         end
         Profiler.End()
