@@ -170,7 +170,7 @@ function MainMenu:ShowGui()
     Gui:setPercentSize(99, 20)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
     Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    Gui:setBorderWidth(1)
+    Gui:setBorderWidth(0.0001) -- tiny border width is a hack to enable transparent logo with no (visible) border
 
     --    Gui:setMinSize(5, 5)
     Gui:image(LTheoryRedux.logoname) -- draw the LTR name image

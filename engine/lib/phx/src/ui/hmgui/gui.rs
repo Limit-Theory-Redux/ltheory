@@ -598,7 +598,6 @@ impl HmGui {
 
             widget.pos.x += data.offset.x;
             widget.pos.y += data.offset.y;
-            // widget.render_style = RenderStyle::None;
         }
 
         self.set_property_f32(HmGuiProperties::Opacity.id(), 0.95);
