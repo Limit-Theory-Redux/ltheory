@@ -73,6 +73,7 @@ function Loader.defineType()
             void               HmGui_ClearTheme                     (HmGui*);
             uint64             HmGui_GetStyleId                     (HmGui const*, cstr name);
             void               HmGui_SetStyle                       (HmGui*, uint64 id);
+            void               HmGui_SetStyleByName                 (HmGui*, cstr name);
             void               HmGui_ClearStyle                     (HmGui*);
             HmGuiPropertyType* HmGui_GetPropertyType                (HmGui const*, uint64 id);
             void               HmGui_MapProperty                    (HmGui*, uint64 propertyId);
@@ -230,6 +231,7 @@ function Loader.defineType()
                 clearTheme                     = libphx.HmGui_ClearTheme,
                 getStyleId                     = libphx.HmGui_GetStyleId,
                 setStyle                       = libphx.HmGui_SetStyle,
+                setStyleByName                 = libphx.HmGui_SetStyleByName,
                 clearStyle                     = libphx.HmGui_ClearStyle,
                 getPropertyType                = function(...)
                     local instance = libphx.HmGui_GetPropertyType(...)

@@ -260,6 +260,8 @@ impl HmGuiWidget {
                 );
             }
 
+            self.draw_background(hmgui, pos, size);
+
             match &self.item {
                 WidgetItem::Container(container) => {
                     container.draw(hmgui, pos, size);
@@ -276,8 +278,6 @@ impl HmGuiWidget {
                     image.draw(&mut hmgui.renderer, pos, size);
                 }
             }
-
-            self.draw_background(hmgui, pos, size);
         }
     }
 

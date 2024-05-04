@@ -26,13 +26,28 @@ function Loader.defineType()
             GuiProperties GuiProperties_ContainerSpacing;
             GuiProperties GuiProperties_ContainerColorFrame;
             GuiProperties GuiProperties_ContainerColorPrimary;
-            GuiProperties GuiProperties_ButtonOpacity;
-            GuiProperties GuiProperties_ButtonBackgroundColor;
-            GuiProperties GuiProperties_ButtonHighlightColor;
-            GuiProperties GuiProperties_CheckboxBackgroundColor;
-            GuiProperties GuiProperties_CheckboxHighlightColor;
-            GuiProperties GuiProperties_CheckboxColorFrame;
-            GuiProperties GuiProperties_CheckboxColorPrimary;
+            GuiProperties GuiProperties_ButtonRectOpacity;
+            GuiProperties GuiProperties_ButtonRectBorderColor;
+            GuiProperties GuiProperties_ButtonRectBackgroundColor;
+            GuiProperties GuiProperties_ButtonRectHighlightColor;
+            GuiProperties GuiProperties_ButtonTextOpacity;
+            GuiProperties GuiProperties_ButtonTextBackgroundColor;
+            GuiProperties GuiProperties_ButtonTextHighlightColor;
+            GuiProperties GuiProperties_ButtonTextFont;
+            GuiProperties GuiProperties_ButtonTextColor;
+            GuiProperties GuiProperties_CheckboxRectOpacity;
+            GuiProperties GuiProperties_CheckboxRectBorderColor;
+            GuiProperties GuiProperties_CheckboxRectBackgroundColor;
+            GuiProperties GuiProperties_CheckboxRectHighlightColor;
+            GuiProperties GuiProperties_CheckboxTextOpacity;
+            GuiProperties GuiProperties_CheckboxTextBackgroundColor;
+            GuiProperties GuiProperties_CheckboxTextHighlightColor;
+            GuiProperties GuiProperties_CheckboxTextFont;
+            GuiProperties GuiProperties_CheckboxTextColor;
+            GuiProperties GuiProperties_CheckboxClickAreaBorderColor;
+            GuiProperties GuiProperties_CheckboxClickAreaBackgroundColor;
+            GuiProperties GuiProperties_CheckboxClickAreaHighlightColor;
+            GuiProperties GuiProperties_CheckboxClickAreaSelectedColor;
             GuiProperties GuiProperties_ScrollAreaHScrollShow;
             GuiProperties GuiProperties_ScrollAreaVScrollShow;
             GuiProperties GuiProperties_ScrollAreaScrollbarLength;
@@ -57,13 +72,28 @@ function Loader.defineType()
             ContainerSpacing                        = libphx.GuiProperties_ContainerSpacing,
             ContainerColorFrame                     = libphx.GuiProperties_ContainerColorFrame,
             ContainerColorPrimary                   = libphx.GuiProperties_ContainerColorPrimary,
-            ButtonOpacity                           = libphx.GuiProperties_ButtonOpacity,
-            ButtonBackgroundColor                   = libphx.GuiProperties_ButtonBackgroundColor,
-            ButtonHighlightColor                    = libphx.GuiProperties_ButtonHighlightColor,
-            CheckboxBackgroundColor                 = libphx.GuiProperties_CheckboxBackgroundColor,
-            CheckboxHighlightColor                  = libphx.GuiProperties_CheckboxHighlightColor,
-            CheckboxColorFrame                      = libphx.GuiProperties_CheckboxColorFrame,
-            CheckboxColorPrimary                    = libphx.GuiProperties_CheckboxColorPrimary,
+            ButtonRectOpacity                       = libphx.GuiProperties_ButtonRectOpacity,
+            ButtonRectBorderColor                   = libphx.GuiProperties_ButtonRectBorderColor,
+            ButtonRectBackgroundColor               = libphx.GuiProperties_ButtonRectBackgroundColor,
+            ButtonRectHighlightColor                = libphx.GuiProperties_ButtonRectHighlightColor,
+            ButtonTextOpacity                       = libphx.GuiProperties_ButtonTextOpacity,
+            ButtonTextBackgroundColor               = libphx.GuiProperties_ButtonTextBackgroundColor,
+            ButtonTextHighlightColor                = libphx.GuiProperties_ButtonTextHighlightColor,
+            ButtonTextFont                          = libphx.GuiProperties_ButtonTextFont,
+            ButtonTextColor                         = libphx.GuiProperties_ButtonTextColor,
+            CheckboxRectOpacity                     = libphx.GuiProperties_CheckboxRectOpacity,
+            CheckboxRectBorderColor                 = libphx.GuiProperties_CheckboxRectBorderColor,
+            CheckboxRectBackgroundColor             = libphx.GuiProperties_CheckboxRectBackgroundColor,
+            CheckboxRectHighlightColor              = libphx.GuiProperties_CheckboxRectHighlightColor,
+            CheckboxTextOpacity                     = libphx.GuiProperties_CheckboxTextOpacity,
+            CheckboxTextBackgroundColor             = libphx.GuiProperties_CheckboxTextBackgroundColor,
+            CheckboxTextHighlightColor              = libphx.GuiProperties_CheckboxTextHighlightColor,
+            CheckboxTextFont                        = libphx.GuiProperties_CheckboxTextFont,
+            CheckboxTextColor                       = libphx.GuiProperties_CheckboxTextColor,
+            CheckboxClickAreaBorderColor            = libphx.GuiProperties_CheckboxClickAreaBorderColor,
+            CheckboxClickAreaBackgroundColor        = libphx.GuiProperties_CheckboxClickAreaBackgroundColor,
+            CheckboxClickAreaHighlightColor         = libphx.GuiProperties_CheckboxClickAreaHighlightColor,
+            CheckboxClickAreaSelectedColor          = libphx.GuiProperties_CheckboxClickAreaSelectedColor,
             ScrollAreaHScrollShow                   = libphx.GuiProperties_ScrollAreaHScrollShow,
             ScrollAreaVScrollShow                   = libphx.GuiProperties_ScrollAreaVScrollShow,
             ScrollAreaScrollbarLength               = libphx.GuiProperties_ScrollAreaScrollbarLength,

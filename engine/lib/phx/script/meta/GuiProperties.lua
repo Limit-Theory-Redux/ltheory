@@ -43,60 +43,120 @@ GuiProperties = {
     ---Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0)
     ContainerColorPrimary = 9,
     ---Config name:
-    ---button.opacity
+    ---button.rect.opacity
     ---Type: f32. Default value: 0.5
-    ButtonOpacity = 10,
+    ButtonRectOpacity = 10,
     ---Config name:
-    ---button.background-color
+    ---button.rect.border-color
+    ---Type: Color. Default value: Color.TRANSPARENT. Maps to: BorderColor
+    ButtonRectBorderColor = 11,
+    ---Config name:
+    ---button.rect.background-color
     ---Type: Color. Default value: Color(0.15, 0.15, 0.15, 0.8). Maps to: BackgroundColor
-    ButtonBackgroundColor = 11,
+    ButtonRectBackgroundColor = 12,
     ---Config name:
-    ---button.highlight-color
+    ---button.rect.highlight-color
     ---Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0). Maps to: HighlightColor
-    ButtonHighlightColor = 12,
+    ButtonRectHighlightColor = 13,
     ---Config name:
-    ---checkbox.background-color
+    ---button.text.opacity
+    ---Type: f32. Default value: 0.5
+    ButtonTextOpacity = 14,
+    ---Config name:
+    ---button.text.background-color
+    ---Type: Color. Default value: Color::TRANSPARENT. Maps to: BackgroundColor
+    ButtonTextBackgroundColor = 15,
+    ---Config name:
+    ---button.text.highlight-color
+    ---Type: Color. Default value: Color::TRANSPARENT. Maps to: HighlightColor
+    ButtonTextHighlightColor = 16,
+    ---Config name:
+    ---button.text.font
+    ---Type: Font. Default value: Font("Rajdhani", 14). Maps to: TextFont
+    ButtonTextFont = 17,
+    ---Config name:
+    ---button.text.color
+    ---Type: Color. Default value: White. Maps to: TextColor
+    ButtonTextColor = 18,
+    ---Config name:
+    ---checkbox.rect.opacity
+    ---Type: f32. Default value: 0.5
+    CheckboxRectOpacity = 19,
+    ---Config name:
+    ---checkbox.rect.border-color
+    ---Type: Color. Default value: Color.TRANSPARENT. Maps to: BorderColor
+    CheckboxRectBorderColor = 20,
+    ---Config name:
+    ---checkbox.rect.background-color
     ---Type: Color. Default value: Color(0.3, 0.3, 0.3, 0.5). Maps to: BackgroundColor
-    CheckboxBackgroundColor = 13,
+    CheckboxRectBackgroundColor = 21,
     ---Config name:
-    ---checkbox.highlight-color
+    ---checkbox.rect.highlight-color
     ---Type: Color. Default value: Color(0.3, 0.3, 0.3, 1.0). Maps to: HighlightColor
-    CheckboxHighlightColor = 14,
+    CheckboxRectHighlightColor = 22,
     ---Config name:
-    ---checkbox.color-frame
-    ---Type: Color. Default value: Color(0.1, 0.1, 0.1, 0.5)
-    CheckboxColorFrame = 15,
+    ---checkbox.text.opacity
+    ---Type: f32. Default value: 0.5
+    CheckboxTextOpacity = 23,
     ---Config name:
-    ---checkbox.color-primary
+    ---checkbox.text.background-color
+    ---Type: Color. Default value: Color::TRANSPARENT. Maps to: BackgroundColor
+    CheckboxTextBackgroundColor = 24,
+    ---Config name:
+    ---checkbox.text.highlight-color
+    ---Type: Color. Default value: Color::TRANSPARENT. Maps to: HighlightColor
+    CheckboxTextHighlightColor = 25,
+    ---Config name:
+    ---checkbox.text.font
+    ---Type: Font. Default value: Font("Rajdhani", 14). Maps to: TextFont
+    CheckboxTextFont = 26,
+    ---Config name:
+    ---checkbox.text.color
+    ---Type: Color. Default value: White. Maps to: TextColor
+    CheckboxTextColor = 27,
+    ---Config name:
+    ---checkbox.click-area.border-color
+    ---Type: Color. Default value: Color(0.1, 0.1, 0.1, 0.5). Maps to: BorderColor
+    CheckboxClickAreaBorderColor = 28,
+    ---Config name:
+    ---checkbox.click-area.background-color
+    ---Type: Color. Default value: Color::TRANSPARENT. Maps to: BackgroundColor
+    CheckboxClickAreaBackgroundColor = 29,
+    ---Config name:
+    ---checkbox.click-area.highlight-color
+    ---Type: Color. Default value: Color::TRANSPARENT. Maps to: HighlightColor
+    CheckboxClickAreaHighlightColor = 30,
+    ---Config name:
+    ---checkbox.click-area.selected-color
     ---Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0)
-    CheckboxColorPrimary = 16,
+    CheckboxClickAreaSelectedColor = 31,
     ---Config name:
     ---scroll-area.hscroll.show
     ---Type: boolean. Default value: true
-    ScrollAreaHScrollShow = 17,
+    ScrollAreaHScrollShow = 32,
     ---Config name:
     ---scroll-area.vscroll.show
     ---Type: boolean. Default value: true
-    ScrollAreaVScrollShow = 18,
+    ScrollAreaVScrollShow = 33,
     ---Config name:
     ---scroll-area.scrollbar.length
     ---Type: f32. Default value: 4
-    ScrollAreaScrollbarLength = 19,
+    ScrollAreaScrollbarLength = 34,
     ---Config name:
     ---scroll-area.scrollbar.background-color
     ---Type: Color. Default value: Color(0.3, 0.3, 0.3, 0.3)
-    ScrollAreaScrollbarBackgroundColor = 20,
+    ScrollAreaScrollbarBackgroundColor = 35,
     ---Config name:
     ---scroll-area.scroll-scale
     ---Type: f32. Default value: 20
-    ScrollAreaScrollScale = 21,
+    ScrollAreaScrollScale = 36,
     ---Config name:
     ---scroll-area.scrollbar.visibility-stable-time
     ---Type: u64. Default value: 400
-    ScrollAreaScrollbarVisibilityStableTime = 22,
+    ScrollAreaScrollbarVisibilityStableTime = 37,
     ---Config name:
     ---scroll-area.scrollbar.visibility-fade-time
     ---Type: u64. Default value: 200
-    ScrollAreaScrollbarVisibilityFadeTime = 23,
+    ScrollAreaScrollbarVisibilityFadeTime = 38,
 }
 

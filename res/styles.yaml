@@ -1,29 +1,48 @@
+main-menu-content:
+  button.rect.opacity: 0.95
+  button.rect.background-color: [0.1, 0.12, 0.13, 1.0]
+  button.rect.highlight-color: [0.1, 0.5, 1.0, 1.0]
+  button.text.color: [0.9, 0.9, 0.9, 1.0]
+  button.text.font: ["RajdhaniSemiBold", 26]
+
 seed-window:
   background-color: [0.1, 0.1, 0.1, 1.0]
   opacity: 0.95
 
+dialog-buttons:
+  button.rect.opacity: 0.95
+  button.rect.background-color: [0.1, 0.12, 0.13, 1.0]
+  button.rect.highlight-color: [0.1, 0.5, 1.0, 1.0]
+  button.text.color: [0.9, 0.9, 0.9, 1.0]
+  button.text.font: ["Exo2Bold", 28]
+
 seed-window-content:
-  background-color: [0.0, 0.0, 0.0, 0.0]
-  opacity: 0.95
-  text.color: [1.0, 1.0, 1.0, 1.0]
-  text.font: ["Exo2", 26]
+  checkbox.rect.opacity: 0.95
+  checkbox.rect.background-color: [0.1, 0.12, 0.13, 1.0]
+  checkbox.text.color: [1.0, 1.0, 1.0, 1.0]
+  checkbox.text.font: ["Exo2", 26]
+  checkbox.click-area.border-color: [0.3, 0.3, 0.3, 0.5]
+  checkbox.click-area.selected-color: [0.1, 0.5, 1.0, 1.0]
 
 settings-window:
   background-color: [0.1, 0.1, 0.1, 1.0]
   opacity: 0.95
 
 settings-window-content:
-  background-color: [0.0, 0.0, 0.0, 0.0]
-  opacity: 0.95
-  text.color: [1.0, 1.0, 1.0, 1.0]
-  text.font: ["Exo2", 24]
+  checkbox.rect.opacity: 0.95
+  checkbox.rect.background-color: [0.1, 0.12, 0.13, 1.0]
+  checkbox.text.color: [1.0, 1.0, 1.0, 1.0]
+  checkbox.text.font: ["Exo2", 24]
+  checkbox.click-area.border-color: [0.3, 0.3, 0.3, 0.5]
+  checkbox.click-area.selected-color: [0.1, 0.5, 1.0, 1.0]
 
 flight-mode-window:
   background-color: [0.1, 0.1, 0.1, 1.0]
   opacity: 0.95
 
 flight-mode-window-content:
-  background-color: [0.0, 0.0, 0.0, 0.0]
-  opacity: 0.95
-  text.color: [1.0, 1.0, 1.0, 1.0]
-  text.font: ["Exo2Bold", 26]
+  button.rect.opacity: 0.95
+  button.rect.background-color: [0.1, 0.12, 0.13, 1.0]
+  button.rect.highlight-color: [0.1, 0.5, 1.0, 1.0]
+  button.text.color: [1.0, 1.0, 1.0, 1.0]
+  button.text.font: ["Exo2Bold", 26]

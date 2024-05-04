@@ -165,7 +165,7 @@ function MainMenu:ShowGui()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     -- Title
-    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0.0, 0.0, 0.0, 1.0))
     Gui:beginStackContainer() -- begin title panel
     Gui:setPercentSize(99, 20)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
@@ -246,45 +246,38 @@ function MainMenu:ShowMainMenuInner()
     -- Add Main Menu items
     local scaleFactor = (LTheoryRedux.resX / 24) / 72
 
+    Gui:setStyle(Enums.Gui.Styles.MainMenuContent)
+
+    -- TODO: remove this when text autosize feature is implemented
+    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('RajdhaniSemiBold', 36 * scaleFactor))
+
     Gui:beginVerticalContainer() -- begin menu/metrics panel
     Gui:setVerticalAlignment(AlignVertical.Stretch)
-    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
-
-    Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0.1, 0.12, 0.13, 1.0))
-    Gui:setPropertyColor(GuiProperties.HighlightColor, Color(0.1, 0.5, 1.0, 1.0))
-    Gui:setPropertyColor(GuiProperties.TextColor, Color(0.9, 0.9, 0.9, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('RajdhaniSemiBold', 36 * scaleFactor))
+    Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
 
     if Gui:button("NEW GAME") then
         self:ShowSeedDialog()
     end
-    Gui:setVerticalAlignment(AlignVertical.Stretch) -- set individually on each button child to enforce full stretching
 
     if Gui:button("LOAD GAME") then
         self:ShowSeedDialog()
     end
-    Gui:setVerticalAlignment(AlignVertical.Stretch)
 
     if Gui:button("SETTINGS") then
         self:ShowSettingsScreen()
     end
-    Gui:setVerticalAlignment(AlignVertical.Stretch)
 
     if Gui:button("CREDITS") then
         -- TODO: self:ShowCreditsScreen()
     end
-    Gui:setVerticalAlignment(AlignVertical.Stretch)
 
     if Gui:button("BACKGROUND") then
         self:SetBackgroundMode(true)
     end
-    Gui:setVerticalAlignment(AlignVertical.Stretch)
 
     if Gui:button("EXIT GAME") then
         LTheoryRedux:exitGame()
     end
-    Gui:setVerticalAlignment(AlignVertical.Stretch)
 
     Gui:clearStyle()
 
@@ -341,10 +334,6 @@ function MainMenu:ShowSeedDialogInner()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(8)
 
-    Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColor, Config.ui.color.textBright)
-    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2', 26))
-
     -- Loop through saved seeds (hardcoded for now) and display as checkboxes
     for i = 1, #guiElements[1]["elems"] do
         -- Create the new checkbox and save a reference to its current state (T/F)
@@ -364,8 +353,6 @@ function MainMenu:ShowSeedDialogInner()
         end
     end
 
-    Gui:clearStyle()
-
     Gui:endContainer()
 
     Gui:endScrollArea(InputInstance)
@@ -373,14 +360,11 @@ function MainMenu:ShowSeedDialogInner()
     Gui:setFixedHeight(500)
 
     -- Buttons: Cancel, Random Seed, Use Seed
+    Gui:setStyle(Enums.Gui.Styles.DialogButtons)
     Gui:beginHorizontalContainer()
     Gui:setVerticalAlignment(AlignVertical.Bottom)
     Gui:setHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setSpacing(16)
-
-    Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColor, Config.ui.color.textBright)
-    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
         if GameState:GetCurrentState() == Enums.GameStates.InGame then
@@ -417,10 +401,7 @@ function MainMenu:ShowSeedDialogInner()
         LTheoryRedux:createStarSystem()
     end
 
-    Gui:clearStyle()
-
     Gui:endContainer()
-
     Gui:endContainer()
 end
 
@@ -472,12 +453,9 @@ function MainMenu:ShowSettingsScreenInner()
     Gui:endContainer()
 
     -- Show Settings control buttons
+    Gui:setStyle(Enums.Gui.Styles.DialogButtons)
     Gui:beginHorizontalContainer()
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
-
-    Gui:clearStyle()
-    Gui:setPropertyColor(GuiProperties.TextColor, Color(1.0, 1.0, 1.0, 1.0))
-    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2Bold', 28))
 
     if Gui:button("Cancel") then
         -- Revert to the pre-Settings values of each setting
@@ -573,8 +551,6 @@ function MainMenu:ShowSettingsScreenInner()
     end
 
     Gui:endContainer()
-
-    Gui:clearStyle()
     Gui:endContainer()
 end
 

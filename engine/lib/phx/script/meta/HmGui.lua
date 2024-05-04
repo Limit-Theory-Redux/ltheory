@@ -228,10 +228,16 @@ function HmGui:clearTheme() end
 ---@return integer
 function HmGui:getStyleId(name) end
 
----Set a style for the following element.
+---Set a style for the following element by its id.
 ---Completely replaces current style with a new one.
 ---@param id integer
 function HmGui:setStyle(id) end
+
+---Set a style for the following element by its name.
+---Completely replaces current style with a new one.
+---NOTE: this method is slower than 'id' version.
+---@param name string
+function HmGui:setStyleByName(name) end
 
 ---Remove element style.
 function HmGui:clearStyle() end

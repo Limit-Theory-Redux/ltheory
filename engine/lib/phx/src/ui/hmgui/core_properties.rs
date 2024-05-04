@@ -40,7 +40,7 @@ macro_rules! core_properties {
 // Property id, name, value and optional list of mapped property ids
 core_properties! {
     /// Type: f32. Default value: 0
-    (Opacity,               "opacity",                 0.0f32),
+    (Opacity,               "opacity",                 1.0f32),
     /// Type: Color. Default value: Color.TRANSPARENT
     (BorderColor,           "border-color",            Color::TRANSPARENT),
     /// Type: Color. Default value: Color.TRANSPARENT
@@ -62,20 +62,50 @@ core_properties! {
     (ContainerColorPrimary, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),
 
     /// Type: f32. Default value: 0.5
-    (ButtonOpacity,         "button.opacity",          0.5f32, Opacity),
+    (ButtonRectOpacity,         "button.rect.opacity",          0.5f32, Opacity),
+    /// Type: Color. Default value: Color.TRANSPARENT. Maps to: BorderColor
+    (ButtonRectBorderColor,     "button.rect.border-color",     Color::TRANSPARENT, BorderColor),
     /// Type: Color. Default value: Color(0.15, 0.15, 0.15, 0.8). Maps to: BackgroundColor
-    (ButtonBackgroundColor, "button.background-color", Color::new(0.15, 0.15, 0.15, 0.8), BackgroundColor),
+    (ButtonRectBackgroundColor, "button.rect.background-color", Color::new(0.15, 0.15, 0.15, 0.8), BackgroundColor),
     /// Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0). Maps to: HighlightColor
-    (ButtonHighlightColor,  "button.highlight-color",  Color::new(0.1, 0.5, 1.0, 1.0), HighlightColor),
+    (ButtonRectHighlightColor,  "button.rect.highlight-color",  Color::new(0.1, 0.5, 1.0, 1.0), HighlightColor),
+    /// Type: f32. Default value: 0.5
+    (ButtonTextOpacity,         "button.text.opacity",          0.5f32, Opacity),
+    /// Type: Color. Default value: Color::TRANSPARENT. Maps to: BackgroundColor
+    (ButtonTextBackgroundColor, "button.text.background-color", Color::TRANSPARENT, BackgroundColor),
+    /// Type: Color. Default value: Color::TRANSPARENT. Maps to: HighlightColor
+    (ButtonTextHighlightColor,  "button.text.highlight-color",  Color::TRANSPARENT, HighlightColor),
+    /// Type: Font. Default value: Font("Rajdhani", 14). Maps to: TextFont
+    (ButtonTextFont,            "button.text.font",             Font::load("Rajdhani", 14), TextFont),
+    /// Type: Color. Default value: White. Maps to: TextColor
+    (ButtonTextColor,           "button.text.color",            Color::WHITE, TextColor),
 
+    /// Type: f32. Default value: 0.5
+    (CheckboxRectOpacity,          "checkbox.rect.opacity",          0.5f32, Opacity),
+    /// Type: Color. Default value: Color.TRANSPARENT. Maps to: BorderColor
+    (CheckboxRectBorderColor,      "checkbox.rect.border-color",     Color::TRANSPARENT, BorderColor),
     /// Type: Color. Default value: Color(0.3, 0.3, 0.3, 0.5). Maps to: BackgroundColor
-    (CheckboxBackgroundColor, "checkbox.background-color", Color::new(0.3, 0.3, 0.3, 0.5), BackgroundColor),
+    (CheckboxRectBackgroundColor,  "checkbox.rect.background-color", Color::new(0.3, 0.3, 0.3, 0.5), BackgroundColor),
     /// Type: Color. Default value: Color(0.3, 0.3, 0.3, 1.0). Maps to: HighlightColor
-    (CheckboxHighlightColor,  "checkbox.highlight-color",  Color::new(0.3, 0.3, 0.3, 1.0), HighlightColor),
-    /// Type: Color. Default value: Color(0.1, 0.1, 0.1, 0.5)
-    (CheckboxColorFrame,      "checkbox.color-frame",      Color::new(0.1, 0.1, 0.1, 0.5)),
+    (CheckboxRectHighlightColor,   "checkbox.rect.highlight-color",  Color::new(0.3, 0.3, 0.3, 1.0), HighlightColor),
+    /// Type: f32. Default value: 0.5
+    (CheckboxTextOpacity,          "checkbox.text.opacity",          0.5f32, Opacity),
+    /// Type: Color. Default value: Color::TRANSPARENT. Maps to: BackgroundColor
+    (CheckboxTextBackgroundColor,  "checkbox.text.background-color", Color::TRANSPARENT, BackgroundColor),
+    /// Type: Color. Default value: Color::TRANSPARENT. Maps to: HighlightColor
+    (CheckboxTextHighlightColor,   "checkbox.text.highlight-color",  Color::TRANSPARENT, HighlightColor),
+    /// Type: Font. Default value: Font("Rajdhani", 14). Maps to: TextFont
+    (CheckboxTextFont,             "checkbox.text.font",             Font::load("Rajdhani", 14), TextFont),
+    /// Type: Color. Default value: White. Maps to: TextColor
+    (CheckboxTextColor,            "checkbox.text.color",            Color::WHITE, TextColor),
+    /// Type: Color. Default value: Color(0.1, 0.1, 0.1, 0.5). Maps to: BorderColor
+    (CheckboxClickAreaBorderColor,     "checkbox.click-area.border-color",     Color::new(0.1, 0.1, 0.1, 0.5), BorderColor),
+    /// Type: Color. Default value: Color::TRANSPARENT. Maps to: BackgroundColor
+    (CheckboxClickAreaBackgroundColor, "checkbox.click-area.background-color", Color::TRANSPARENT, BackgroundColor),
+    /// Type: Color. Default value: Color::TRANSPARENT. Maps to: HighlightColor
+    (CheckboxClickAreaHighlightColor,  "checkbox.click-area.highlight-color",  Color::TRANSPARENT, HighlightColor),
     /// Type: Color. Default value: Color(0.1, 0.5, 1.0, 1.0)
-    (CheckboxColorPrimary,    "checkbox.color-primary",    Color::new(0.1, 0.5, 1.0, 1.0)),
+    (CheckboxClickAreaSelectedColor,   "checkbox.click-area.selected-color",   Color::new(0.1, 0.5, 1.0, 1.0)),
 
     /// Type: boolean. Default value: true
     (ScrollAreaHScrollShow,                   "scroll-area.hscroll.show", true),

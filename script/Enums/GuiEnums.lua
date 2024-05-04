@@ -6,6 +6,8 @@
 
 Enums.Gui = {
     Styles = {
+        MainMenuContent         = Gui:getStyleId("main-menu-content"),
+        DialogButtons           = Gui:getStyleId("dialog-buttons"),
         SeedWindow              = Gui:getStyleId("seed-window"),
         SeedWindowContent       = Gui:getStyleId("seed-window-content"),
         SettingsWindow          = Gui:getStyleId("settings-window"),

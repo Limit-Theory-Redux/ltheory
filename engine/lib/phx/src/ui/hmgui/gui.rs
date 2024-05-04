@@ -621,21 +621,14 @@ impl HmGui {
     }
 
     pub fn button(&mut self, label: &str) -> bool {
-        self.map_property_group("button");
-
+        self.map_property_group("button.rect");
         self.begin_stack_container();
         self.set_padding(8.0, 8.0);
 
-        // A separate scope to prevent runtime borrow panics - widget borrowing conflicts with self.text() below
-        let is_mouse_over = {
-            let mut widget = self.last.as_mut();
-            let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
-
-            is_mouse_over
-        };
-
+        let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
         let pressed = is_mouse_over && self.activate;
 
+        self.map_property_group("button.text");
         self.text(label);
         self.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
@@ -645,45 +638,32 @@ impl HmGui {
     }
 
     pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
-        self.map_property_group("checkbox");
-
+        self.map_property_group("checkbox.rect");
         self.begin_horizontal_container();
         self.set_padding(4.0, 4.0);
         self.set_spacing(8.0);
         self.set_children_vertical_alignment(AlignVertical::Center);
 
-        // A separate scope to prevent runtime borrow conflict with self.text() below
-        {
-            let mut widget = self.last.as_mut();
-            let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
-
-            if is_mouse_over && self.activate {
-                value = !value;
-            }
+        let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
+        if is_mouse_over && self.activate {
+            value = !value;
         }
 
+        self.map_property_group("checkbox.text");
         self.text(label);
 
         // Push text and rect to the sides if outer container has horizontal stretch
         self.spacer();
 
         // checkbox itself
-        let (color_frame, color_primary) = {
-            let color_frame = self.get_property_color(HmGuiProperties::CheckboxColorFrame.id());
-            let color_primary = self.get_property_color(HmGuiProperties::CheckboxColorPrimary.id());
-
-            (color_frame.clone(), color_primary.clone())
+        let bg_color = if value {
+            *self.get_property_color(HmGuiProperties::CheckboxClickAreaSelectedColor.id())
+        } else {
+            Color::TRANSPARENT
         };
 
-        self.set_property_color(HmGuiProperties::BorderColor.id(), &color_frame);
-        self.set_property_color(
-            HmGuiProperties::BackgroundColor.id(),
-            if value {
-                &color_primary
-            } else {
-                &Color::TRANSPARENT
-            },
-        );
+        self.map_property_group("checkbox.click-area");
+        self.set_property_color(HmGuiProperties::BackgroundColor.id(), &bg_color);
         self.rect();
         self.set_fixed_size(10.0, 10.0);
         self.set_border_width(3.0);
@@ -1005,13 +985,24 @@ impl HmGui {
             .expect(&format!("Unknown style: {name}"))
     }
 
-    /// Set a style for the following element.
+    /// Set a style for the following element by its id.
     /// Completely replaces current style with a new one.
     pub fn set_style(&mut self, id: usize) {
         self.element_style = self
             .style_registry
             .get(id.into())
             .expect(&format!("Unknown style with id: {id:?}"))
+            .clone();
+    }
+
+    /// Set a style for the following element by its name.
+    /// Completely replaces current style with a new one.
+    /// NOTE: this method is slower than 'id' version.
+    pub fn set_style_by_name(&mut self, name: &str) {
+        self.element_style = self
+            .style_registry
+            .get_by_name(name)
+            .expect(&format!("Unknown style: {name:?}"))
             .clone();
     }
 
