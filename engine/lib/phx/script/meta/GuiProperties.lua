@@ -4,7 +4,7 @@
 GuiProperties = {
     ---Config name:
     ---opacity
-    ---Type: f32. Default value: 0
+    ---Type: f32. Default value: 1
     Opacity = 0,
     ---Config name:
     ---border-color

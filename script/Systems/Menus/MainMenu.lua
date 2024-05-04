@@ -165,7 +165,7 @@ function MainMenu:ShowGui()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     -- Title
-    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0.0, 0.0, 0.0, 1.0))
+    Gui:setPropertyColor(GuiProperties.BorderColor, Color(1.0, 1.0, 1.0, 1.0))
     Gui:beginStackContainer() -- begin title panel
     Gui:setPercentSize(99, 20)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)

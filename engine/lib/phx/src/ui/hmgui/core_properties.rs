@@ -39,7 +39,7 @@ macro_rules! core_properties {
 
 // Property id, name, value and optional list of mapped property ids
 core_properties! {
-    /// Type: f32. Default value: 0
+    /// Type: f32. Default value: 1
     (Opacity,               "opacity",                 1.0f32),
     /// Type: Color. Default value: Color.TRANSPARENT
     (BorderColor,           "border-color",            Color::TRANSPARENT),
