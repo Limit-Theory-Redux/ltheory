@@ -254,7 +254,7 @@ impl HmGuiContainer {
         children_size + self.padding_lower + self.padding_upper
     }
 
-    fn calculate_children_layout<const HStretch: bool, const VStretch: bool>(
+    fn calculate_children_layout<const HSTRETCH: bool, const VSTRETCH: bool>(
         &self,
         hmgui: &mut HmGui,
         mut pos: Vec2,
@@ -288,11 +288,11 @@ impl HmGuiContainer {
 
                     widget.layout(hmgui);
 
-                    if !HStretch {
+                    if !HSTRETCH {
                         children_size.x = children_size.x.max(widget.size.x);
                     }
 
-                    if !VStretch {
+                    if !VSTRETCH {
                         children_size.y = children_size.y.max(widget.size.y);
                     }
                 }
@@ -313,7 +313,7 @@ impl HmGuiContainer {
 
                     widget.layout(hmgui);
 
-                    if !HStretch {
+                    if !HSTRETCH {
                         children_size.x += widget.size.x + spacing;
                         spacing = self.spacing;
                     }
@@ -337,7 +337,7 @@ impl HmGuiContainer {
 
                     widget.layout(hmgui);
 
-                    if !VStretch {
+                    if !VSTRETCH {
                         children_size.y += widget.size.y + spacing;
                         spacing = self.spacing;
                     }
