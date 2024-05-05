@@ -1,8 +1,6 @@
-mod utils;
-
 use luajit_ffi_gen::luajit_ffi;
 
-use crate::utils::*;
+use internal::ConvertIntoString;
 
 #[derive(Default, Clone)]
 pub struct Data {
