@@ -10,6 +10,7 @@ use std::rc::Rc;
 /// to see original borrowing place on panic.
 /// Change target if you are not on Linux.
 #[derive(Default, PartialEq, Eq)]
+#[must_use]
 pub struct Rf<T>(Rc<RefCell<T>>);
 
 impl<T> Rf<T> {

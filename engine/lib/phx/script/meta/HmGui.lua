@@ -89,18 +89,15 @@ function HmGui:checkbox(label, value) end
 function HmGui:slider(lower, upper, value) end
 
 ---@param height number
----@param color Color
-function HmGui:horizontalDivider(height, color) end
+function HmGui:horizontalDivider(height) end
 
 ---@param width number
----@param color Color
-function HmGui:verticalDivider(width, color) end
+function HmGui:verticalDivider(width) end
 
 ---@param image Tex2D
 function HmGui:image(image) end
 
----@param color Color
-function HmGui:rect(color) end
+function HmGui:rect() end
 
 ---@param text string
 function HmGui:text(text) end
@@ -174,26 +171,6 @@ function HmGui:setMarginBottom(margin) end
 ---@param width number
 function HmGui:setBorderWidth(width) end
 
----@param color Color
-function HmGui:setBorderColor(color) end
-
----@param color Color
-function HmGui:setBorderColorV4(color) end
-
----@param width number
----@param color Color
-function HmGui:setBorder(width, color) end
-
----@param width number
----@param color Color
-function HmGui:setBorderV4(width, color) end
-
----@param color Color
-function HmGui:setBgColor(color) end
-
----@param color Color
-function HmGui:setBgColorV4(color) end
-
 ---@param h AlignHorizontal
 ---@param v AlignVertical
 function HmGui:setAlignment(h, v) end
@@ -251,9 +228,16 @@ function HmGui:clearTheme() end
 ---@return integer
 function HmGui:getStyleId(name) end
 
----Set a style for the following element.
+---Set a style for the following element by its id.
+---Completely replaces current style with a new one.
 ---@param id integer
 function HmGui:setStyle(id) end
+
+---Set a style for the following element by its name.
+---Completely replaces current style with a new one.
+---NOTE: this method is slower than 'id' version.
+---@param name string
+function HmGui:setStyleByName(name) end
 
 ---Remove element style.
 function HmGui:clearStyle() end

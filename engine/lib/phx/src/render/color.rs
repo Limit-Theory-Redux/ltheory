@@ -80,6 +80,14 @@ impl Color {
         Self { a, ..self }
     }
 
+    pub fn is_transparent(&self) -> bool {
+        self.a <= 0.0
+    }
+
+    pub fn is_opaque(&self) -> bool {
+        self.a > 0.0
+    }
+
     /// Convert HSL color to RGB
     pub fn from_hsl(h: f32, s: f32, l: f32, a: f32) -> Self {
         if s == 0.0 {

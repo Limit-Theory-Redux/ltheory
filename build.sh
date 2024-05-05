@@ -37,13 +37,13 @@ if [ -z "$PHX_VERSION" ]; then
 fi
 
 if [[ $debug = 1 ]]; then
-    cargo build
-    cargo test --no-fail-fast
+    cargo build --color auto
+    cargo test --no-fail-fast --color auto
     cp target/debug/ltr${binsuffix} bin/lt64d${binsuffix}
     cp target/debug/deps/${libprefix}phx${libsuffix} bin/${libprefix}phx${libsuffix}
 else
-    cargo build --release
-    cargo test --release
+    cargo build --release --color auto
+    cargo test --release --color auto
     cp target/release/ltr${binsuffix} bin/lt64${binsuffix}
     cp target/release/deps/${libprefix}phx${libsuffix} bin/${libprefix}phx${libsuffix}
 fi

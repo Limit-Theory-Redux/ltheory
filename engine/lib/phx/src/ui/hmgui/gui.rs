@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
@@ -38,6 +39,7 @@ impl HmGui {
     pub fn new() -> Self {
         let container = HmGuiContainer {
             layout: LayoutType::None,
+            clip: true, // always clip elements out of the screen
             spacing: 0.0,
             ..Default::default()
         };
@@ -104,6 +106,13 @@ impl HmGui {
         self.mouse_over_widget_hash[FocusType::Mouse as usize]
     }
 
+    fn apply_widget_properties(&self, widget: &mut HmGuiWidget) {
+        widget.set_border_color(self.get_property_color(HmGuiProperties::BorderColor.id()));
+        widget.set_background_color(self.get_property_color(HmGuiProperties::BackgroundColor.id()));
+        widget.set_highlight_color(self.get_property_color(HmGuiProperties::HighlightColor.id()));
+        widget.set_opacity(self.get_property_f32(HmGuiProperties::Opacity.id()));
+    }
+
     /// Add a new widget into the current container.
     fn init_widget(&mut self, item: WidgetItem) -> Rf<HmGuiWidget> {
         let parent_rf = self.container.clone();
@@ -114,6 +123,8 @@ impl HmGui {
         parent_container.children_hash = (parent_container.children_hash).wrapping_add(1);
 
         let mut widget = HmGuiWidget::new(Some(parent_rf.clone()), item);
+
+        self.apply_widget_properties(&mut widget);
 
         widget.hash = unsafe {
             Hash_FNV64_Incremental(
@@ -135,10 +146,12 @@ impl HmGui {
     /// Start a new container with specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
         let spacing = self.get_property_f32(HmGuiProperties::ContainerSpacing.id());
+        let clip = self.get_property_bool(HmGuiProperties::ContainerClip.id());
 
         let container = HmGuiContainer {
             layout,
             spacing,
+            clip,
             ..Default::default()
         };
 
@@ -159,9 +172,7 @@ impl HmGui {
         let is_mouse_over = widget.contains_point(&self.focus_pos);
 
         if let WidgetItem::Container(container) = &widget.item {
-            let clip = self.get_property_bool(HmGuiProperties::ContainerClip.id());
-
-            if !clip || is_mouse_over {
+            if !container.clip || is_mouse_over {
                 for widget_rf in container.children.iter().rev() {
                     self.check_mouse_over(widget_rf.clone());
                 }
@@ -272,9 +283,13 @@ impl HmGui {
         root.inner_size = Vec2::new(sx, sy);
         root.size = root.inner_size;
 
+        self.apply_widget_properties(root.borrow_mut());
+
         let root_container = root.get_container_item_mut();
         root_container.children.clear();
         root_container.children_hash = 0;
+
+        root_container.spacing = self.get_property_f32(HmGuiProperties::ContainerSpacing.id());
 
         self.container = self.root.clone();
         self.last = self.root.clone();
@@ -438,6 +453,8 @@ impl HmGui {
             allow_vscroll && self.get_property_bool(HmGuiProperties::ScrollAreaVScrollShow.id());
 
         if hscroll || vscroll {
+            let fading =
+                self.get_property_bool(HmGuiProperties::ScrollAreaScrollbarVisibilityFading.id());
             let fade_scale = {
                 let scroll_scale =
                     self.get_property_f32(HmGuiProperties::ScrollAreaScrollScale.id());
@@ -454,7 +471,9 @@ impl HmGui {
 
                 let data = self.get_data(widget.hash);
 
-                let fade_scale = if is_mouse_over
+                let fade_scale = if !fading {
+                    1.0
+                } else if is_mouse_over
                     && (scroll.length() > 0.3 || input.mouse().delta().length() > 0.5)
                 {
                     data.scrollbar_activation_time = Instant::now();
@@ -496,7 +515,7 @@ impl HmGui {
                 sb_bg_color.a *= fade_scale;
 
                 let mut sb_knob_color = self
-                    .get_property_color(HmGuiProperties::ContainerColorFrame.id())
+                    .get_property_color(HmGuiProperties::ScrollAreaScrollbarKnobColor.id())
                     .clone();
 
                 sb_knob_color.a *= fade_scale;
@@ -518,13 +537,16 @@ impl HmGui {
                         (handle_size, handle_pos)
                     };
 
-                    self.rect(&sb_bg_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.rect();
                     self.set_fixed_size(handle_pos, sb_length);
 
-                    self.rect(&sb_knob_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_knob_color);
+                    self.rect();
                     self.set_fixed_size(handle_size, sb_length);
 
-                    self.rect(&sb_bg_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.rect();
                     self.set_fixed_height(sb_length);
                     self.set_horizontal_alignment(AlignHorizontal::Stretch);
 
@@ -548,13 +570,16 @@ impl HmGui {
                         (handle_size, handle_pos)
                     };
 
-                    self.rect(&sb_bg_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.rect();
                     self.set_fixed_size(sb_length, handle_pos);
 
-                    self.rect(&sb_knob_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_knob_color);
+                    self.rect();
                     self.set_fixed_size(sb_length, handle_size);
 
-                    self.rect(&sb_bg_color);
+                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.rect();
                     self.set_fixed_width(sb_length);
                     self.set_vertical_alignment(AlignVertical::Stretch);
 
@@ -588,9 +613,9 @@ impl HmGui {
 
             widget.pos.x += data.offset.x;
             widget.pos.y += data.offset.y;
-            widget.render_style = RenderStyle::None;
         }
 
+        self.set_property_f32(HmGuiProperties::Opacity.id(), 0.95);
         self.begin_vertical_container();
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         self.set_padding(8.0, 8.0);
@@ -605,30 +630,20 @@ impl HmGui {
     /// Invisible element that stretches in all directions.
     /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
     pub fn spacer(&mut self) {
-        self.rect(&Color::TRANSPARENT);
+        self.set_property_color(HmGuiProperties::BackgroundColor.id(), &Color::TRANSPARENT);
+        self.rect();
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
     }
 
     pub fn button(&mut self, label: &str) -> bool {
-        self.map_property_group("button");
-
+        self.map_property_group("button.rect");
         self.begin_stack_container();
         self.set_padding(8.0, 8.0);
 
-        // A separate scope to prevent runtime borrow panics - widget borrowing conflicts with self.text() below
-        let is_mouse_over = {
-            let mut widget = self.last.as_mut();
-            let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
-
-            if is_mouse_over {
-                widget.render_style = RenderStyle::Fill;
-            }
-
-            is_mouse_over
-        };
-
+        let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
         let pressed = is_mouse_over && self.activate;
 
+        self.map_property_group("button.text");
         self.text(label);
         self.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
@@ -638,52 +653,39 @@ impl HmGui {
     }
 
     pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
+        self.map_property_group("checkbox.rect");
         self.begin_horizontal_container();
         self.set_padding(4.0, 4.0);
         self.set_spacing(8.0);
         self.set_children_vertical_alignment(AlignVertical::Center);
 
-        // A separate scope to prevent runtime borrow conflict with self.text() below
-        {
-            let mut widget = self.last.as_mut();
-            let is_mouse_over = self.is_mouse_over_intern(&mut widget, FocusType::Mouse);
-
-            if is_mouse_over {
-                widget.render_style = RenderStyle::Underline;
-            }
-
-            if is_mouse_over && self.activate {
-                value = !value;
-            }
+        let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
+        if is_mouse_over && self.activate {
+            value = !value;
         }
 
+        self.map_property_group("checkbox.text");
         self.text(label);
 
         // Push text and rect to the sides if outer container has horizontal stretch
         self.spacer();
 
-        // TODO: replace with rect with border
-        self.begin_stack_container();
-        self.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
-
-        let (color_frame, color_primary) = {
-            let color_frame = self.get_property_color(HmGuiProperties::ContainerColorFrame.id());
-            let color_primary =
-                self.get_property_color(HmGuiProperties::ContainerColorPrimary.id());
-
-            (color_frame.clone(), color_primary.clone())
+        // checkbox itself
+        let bg_color = if value {
+            *self.get_property_color(HmGuiProperties::CheckboxClickAreaSelectedColor.id())
+        } else {
+            Color::TRANSPARENT
         };
 
-        self.rect(&color_frame);
-        self.set_fixed_size(16.0, 16.0);
-
-        if value {
-            self.rect(&color_primary);
-            self.set_fixed_size(10.0, 10.0);
-        }
+        self.map_property_group("checkbox.click-area");
+        self.set_property_color(HmGuiProperties::BackgroundColor.id(), &bg_color);
+        self.rect();
+        self.set_fixed_size(10.0, 10.0);
+        self.set_border_width(3.0);
 
         self.end_container();
-        self.end_container();
+        // TODO: workaround. fix it
+        self.set_property_color(HmGuiProperties::BackgroundColor.id(), &Color::TRANSPARENT);
 
         value
     }
@@ -692,7 +694,11 @@ impl HmGui {
         self.begin_stack_container();
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        self.rect(&Color::new(0.5, 0.5, 0.5, 1.0));
+        self.set_property_color(
+            HmGuiProperties::BackgroundColor.id(),
+            &Color::new(0.5, 0.5, 0.5, 1.0),
+        );
+        self.rect();
         self.set_fixed_size(0.0, 2.0);
 
         self.end_container();
@@ -700,14 +706,14 @@ impl HmGui {
         0.0
     }
 
-    pub fn horizontal_divider(&mut self, height: f32, color: &Color) {
-        self.rect(color);
+    pub fn horizontal_divider(&mut self, height: f32) {
+        self.rect();
         self.set_fixed_height(height);
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
     }
 
-    pub fn vertical_divider(&mut self, width: f32, color: &Color) {
-        self.rect(color);
+    pub fn vertical_divider(&mut self, width: f32) {
+        self.rect();
         self.set_fixed_width(width);
         self.set_vertical_alignment(AlignVertical::Stretch);
     }
@@ -715,15 +721,11 @@ impl HmGui {
     pub fn image(&mut self, image: &mut Tex2D) {
         let image_item = HmGuiImage { image };
 
-        let _widget_rf = self.init_widget(WidgetItem::Image(image_item));
+        let _ = self.init_widget(WidgetItem::Image(image_item));
     }
 
-    pub fn rect(&mut self, color: &Color) {
-        let rect_item = HmGuiRect {
-            color: color.clone(),
-        };
-
-        self.init_widget(WidgetItem::Rect(rect_item));
+    pub fn rect(&mut self) {
+        let _ = self.init_widget(WidgetItem::Rect);
     }
 
     pub fn text(&mut self, text: &str) {
@@ -880,44 +882,6 @@ impl HmGui {
         widget.border_width = width;
     }
 
-    pub fn set_border_color(&self, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.border_color = color.clone();
-    }
-
-    pub fn set_border_color_v4(&self, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.border_color = *color;
-    }
-
-    pub fn set_border(&self, width: f32, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.border_width = width;
-        widget.border_color = color.clone();
-    }
-
-    pub fn set_border_v4(&self, width: f32, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.border_width = width;
-        widget.border_color = *color;
-    }
-
-    pub fn set_bg_color(&mut self, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.bg_color = Some(color.clone());
-    }
-
-    pub fn set_bg_color_v4(&mut self, color: &Color) {
-        let mut widget = self.last.as_mut();
-
-        widget.bg_color = Some(*color);
-    }
-
     pub fn set_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
         let mut widget = self.last.as_mut();
 
@@ -1036,12 +1000,24 @@ impl HmGui {
             .expect(&format!("Unknown style: {name}"))
     }
 
-    /// Set a style for the following element.
+    /// Set a style for the following element by its id.
+    /// Completely replaces current style with a new one.
     pub fn set_style(&mut self, id: usize) {
         self.element_style = self
             .style_registry
             .get(id.into())
             .expect(&format!("Unknown style with id: {id:?}"))
+            .clone();
+    }
+
+    /// Set a style for the following element by its name.
+    /// Completely replaces current style with a new one.
+    /// NOTE: this method is slower than 'id' version.
+    pub fn set_style_by_name(&mut self, name: &str) {
+        self.element_style = self
+            .style_registry
+            .get_by_name(name)
+            .expect(&format!("Unknown style: {name:?}"))
             .clone();
     }
 
@@ -1541,10 +1517,8 @@ impl HmGui {
 
     /// Prints widgets hierarchy to the console. For testing.
     pub fn dump_widgets(&self) {
-        println!("Widgets:");
-
         let container = self.root.as_ref();
 
-        container.dump(1);
+        container.dump("GUI widgets", 1);
     }
 }
