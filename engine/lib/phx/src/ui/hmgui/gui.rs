@@ -139,10 +139,12 @@ impl HmGui {
     /// Start a new container with specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
         let spacing = self.get_property_f32(HmGuiProperties::ContainerSpacing.id());
+        let clip = self.get_property_bool(HmGuiProperties::ContainerClip.id());
 
         let container = HmGuiContainer {
             layout,
             spacing,
+            clip,
             ..Default::default()
         };
 
@@ -163,9 +165,7 @@ impl HmGui {
         let is_mouse_over = widget.contains_point(&self.focus_pos);
 
         if let WidgetItem::Container(container) = &widget.item {
-            let clip = self.get_property_bool(HmGuiProperties::ContainerClip.id());
-
-            if !clip || is_mouse_over {
+            if !container.clip || is_mouse_over {
                 for widget_rf in container.children.iter().rev() {
                     self.check_mouse_over(widget_rf.clone());
                 }

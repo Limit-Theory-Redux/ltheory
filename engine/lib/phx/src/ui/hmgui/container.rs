@@ -27,6 +27,7 @@ pub struct HmGuiContainer {
     pub padding_upper: Vec2,
     pub spacing: f32,
 
+    pub clip: bool,
     pub children_hash: u32,
     pub offset: Vec2, // TODO: move to widget?
     pub total_stretch: Vec2,

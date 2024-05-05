@@ -142,3 +142,4 @@ GuiProperties = {
     ---Default value: 200u64
     ScrollAreaScrollbarVisibilityFadeTime = 38,
 }
+
