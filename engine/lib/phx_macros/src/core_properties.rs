@@ -27,16 +27,14 @@ fn generate(input: Properties) -> TokenStream {
     {
         let doc1 = format!("Config name: {name}");
         let def_quote = quote! {#def};
-        let doc2 = if map_ids.is_empty() {
-            format!("Default value: {}", def_quote.to_string())
+        let doc2 = format!("Default value: {}", def_quote.to_string());
+        let doc3_quote = if map_ids.is_empty() {
+            quote! {}
         } else {
-            let map_ids_str = quote! {#(#map_ids),*};
+            let map_ids_str = quote! {#(#map_ids),*}.to_string();
+            let doc_str = format!("Maps to: {map_ids_str}");
 
-            format!(
-                "Default value: {}. Maps to: {}",
-                def_quote.to_string(),
-                map_ids_str.to_string()
-            )
+            quote! {#[doc = #doc_str]}
         };
         let variant_ident = format_ident!("{id}");
 
@@ -44,6 +42,7 @@ fn generate(input: Properties) -> TokenStream {
             #(#[doc = #docs])*
             #[doc = #doc1]
             #[doc = #doc2]
+            #doc3_quote
             #variant_ident
         });
 

@@ -34,67 +34,88 @@ GuiProperties = {
     ---Default value: Color :: new(0.1, 0.5, 1.0, 1.0)
     ContainerColorPrimary = 9,
     ---Config name: button.rect.opacity
-    ---Default value: 0.5f32. Maps to: Opacity
+    ---Default value: 0.5f32
+    ---Maps to: Opacity
     ButtonRectOpacity = 10,
     ---Config name: button.rect.border-color
-    ---Default value: Color :: TRANSPARENT. Maps to: BorderColor
+    ---Default value: Color :: TRANSPARENT
+    ---Maps to: BorderColor
     ButtonRectBorderColor = 11,
     ---Config name: button.rect.background-color
-    ---Default value: Color :: new(0.15, 0.15, 0.15, 0.8). Maps to: BackgroundColor
+    ---Default value: Color :: new(0.15, 0.15, 0.15, 0.8)
+    ---Maps to: BackgroundColor
     ButtonRectBackgroundColor = 12,
     ---Config name: button.rect.highlight-color
-    ---Default value: Color :: new(0.1, 0.5, 1.0, 1.0). Maps to: HighlightColor
+    ---Default value: Color :: new(0.1, 0.5, 1.0, 1.0)
+    ---Maps to: HighlightColor
     ButtonRectHighlightColor = 13,
     ---Config name: button.text.opacity
-    ---Default value: 0.5f32. Maps to: Opacity
+    ---Default value: 0.5f32
+    ---Maps to: Opacity
     ButtonTextOpacity = 14,
     ---Config name: button.text.background-color
-    ---Default value: Color :: TRANSPARENT. Maps to: BackgroundColor
+    ---Default value: Color :: TRANSPARENT
+    ---Maps to: BackgroundColor
     ButtonTextBackgroundColor = 15,
     ---Config name: button.text.highlight-color
-    ---Default value: Color :: TRANSPARENT. Maps to: HighlightColor
+    ---Default value: Color :: TRANSPARENT
+    ---Maps to: HighlightColor
     ButtonTextHighlightColor = 16,
     ---Config name: button.text.font
-    ---Default value: Font :: load("Rajdhani", 14). Maps to: TextFont
+    ---Default value: Font :: load("Rajdhani", 14)
+    ---Maps to: TextFont
     ButtonTextFont = 17,
     ---Config name: button.text.color
-    ---Default value: Color :: WHITE. Maps to: TextColor
+    ---Default value: Color :: WHITE
+    ---Maps to: TextColor
     ButtonTextColor = 18,
     ---Config name: checkbox.rect.opacity
-    ---Default value: 0.5f32. Maps to: Opacity
+    ---Default value: 0.5f32
+    ---Maps to: Opacity
     CheckboxRectOpacity = 19,
     ---Config name: checkbox.rect.border-color
-    ---Default value: Color :: TRANSPARENT. Maps to: BorderColor
+    ---Default value: Color :: TRANSPARENT
+    ---Maps to: BorderColor
     CheckboxRectBorderColor = 20,
     ---Config name: checkbox.rect.background-color
-    ---Default value: Color :: new(0.3, 0.3, 0.3, 0.5). Maps to: BackgroundColor
+    ---Default value: Color :: new(0.3, 0.3, 0.3, 0.5)
+    ---Maps to: BackgroundColor
     CheckboxRectBackgroundColor = 21,
     ---Config name: checkbox.rect.highlight-color
-    ---Default value: Color :: new(0.3, 0.3, 0.3, 1.0). Maps to: HighlightColor
+    ---Default value: Color :: new(0.3, 0.3, 0.3, 1.0)
+    ---Maps to: HighlightColor
     CheckboxRectHighlightColor = 22,
     ---Config name: checkbox.text.opacity
-    ---Default value: 0.5f32. Maps to: Opacity
+    ---Default value: 0.5f32
+    ---Maps to: Opacity
     CheckboxTextOpacity = 23,
     ---Config name: checkbox.text.background-color
-    ---Default value: Color :: TRANSPARENT. Maps to: BackgroundColor
+    ---Default value: Color :: TRANSPARENT
+    ---Maps to: BackgroundColor
     CheckboxTextBackgroundColor = 24,
     ---Config name: checkbox.text.highlight-color
-    ---Default value: Color :: TRANSPARENT. Maps to: HighlightColor
+    ---Default value: Color :: TRANSPARENT
+    ---Maps to: HighlightColor
     CheckboxTextHighlightColor = 25,
     ---Config name: checkbox.text.font
-    ---Default value: Font :: load("Rajdhani", 14). Maps to: TextFont
+    ---Default value: Font :: load("Rajdhani", 14)
+    ---Maps to: TextFont
     CheckboxTextFont = 26,
     ---Config name: checkbox.text.color
-    ---Default value: Color :: WHITE. Maps to: TextColor
+    ---Default value: Color :: WHITE
+    ---Maps to: TextColor
     CheckboxTextColor = 27,
     ---Config name: checkbox.click-area.border-color
-    ---Default value: Color :: new(0.1, 0.1, 0.1, 0.5). Maps to: BorderColor
+    ---Default value: Color :: new(0.1, 0.1, 0.1, 0.5)
+    ---Maps to: BorderColor
     CheckboxClickAreaBorderColor = 28,
     ---Config name: checkbox.click-area.background-color
-    ---Default value: Color :: TRANSPARENT. Maps to: BackgroundColor
+    ---Default value: Color :: TRANSPARENT
+    ---Maps to: BackgroundColor
     CheckboxClickAreaBackgroundColor = 29,
     ---Config name: checkbox.click-area.highlight-color
-    ---Default value: Color :: TRANSPARENT. Maps to: HighlightColor
+    ---Default value: Color :: TRANSPARENT
+    ---Maps to: HighlightColor
     CheckboxClickAreaHighlightColor = 30,
     ---Config name: checkbox.click-area.selected-color
     ---Default value: Color :: new(0.1, 0.5, 1.0, 1.0)
@@ -121,4 +142,3 @@ GuiProperties = {
     ---Default value: 200u64
     ScrollAreaScrollbarVisibilityFadeTime = 38,
 }
-
