@@ -24,7 +24,6 @@ function Loader.defineType()
             GuiProperties GuiProperties_TextColor;
             GuiProperties GuiProperties_ContainerClip;
             GuiProperties GuiProperties_ContainerSpacing;
-            GuiProperties GuiProperties_ContainerColorPrimary;
             GuiProperties GuiProperties_ButtonRectOpacity;
             GuiProperties GuiProperties_ButtonRectBorderColor;
             GuiProperties GuiProperties_ButtonRectBackgroundColor;
@@ -71,7 +70,6 @@ function Loader.defineType()
             TextColor                               = libphx.GuiProperties_TextColor,
             ContainerClip                           = libphx.GuiProperties_ContainerClip,
             ContainerSpacing                        = libphx.GuiProperties_ContainerSpacing,
-            ContainerColorPrimary                   = libphx.GuiProperties_ContainerColorPrimary,
             ButtonRectOpacity                       = libphx.GuiProperties_ButtonRectOpacity,
             ButtonRectBorderColor                   = libphx.GuiProperties_ButtonRectBorderColor,
             ButtonRectBackgroundColor               = libphx.GuiProperties_ButtonRectBackgroundColor,

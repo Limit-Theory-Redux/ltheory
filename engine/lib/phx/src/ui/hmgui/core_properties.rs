@@ -13,9 +13,8 @@ phx_macros::core_properties! {
     (TextFont,              "text.font",               Font::load("Rajdhani", 14)),
     (TextColor,             "text.color",              Color::WHITE),
 
-    (ContainerClip,         "container.clip",          true),
-    (ContainerSpacing,      "container.spacing",       6.0f32),
-    (ContainerColorPrimary, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),
+    (ContainerClip,    "container.clip",    true),
+    (ContainerSpacing, "container.spacing", 6.0f32),
 
     (ButtonRectOpacity,         "button.rect.opacity",          0.5f32, Opacity),
     (ButtonRectBorderColor,     "button.rect.border-color",     Color::TRANSPARENT, BorderColor),
