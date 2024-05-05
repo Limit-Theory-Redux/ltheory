@@ -39,6 +39,7 @@ impl HmGui {
     pub fn new() -> Self {
         let container = HmGuiContainer {
             layout: LayoutType::None,
+            clip: true, // always clip elements out of the screen
             spacing: 0.0,
             ..Default::default()
         };
@@ -279,8 +280,6 @@ impl HmGui {
 
         root.inner_pos = Vec2::ZERO;
         root.pos = root.inner_pos;
-        root.default_width = Some(Length::Fixed(sx));
-        root.default_height = Some(Length::Fixed(sy));
         root.inner_size = Vec2::new(sx, sy);
         root.size = root.inner_size;
 
@@ -289,6 +288,8 @@ impl HmGui {
         let root_container = root.get_container_item_mut();
         root_container.children.clear();
         root_container.children_hash = 0;
+
+        root_container.spacing = self.get_property_f32(HmGuiProperties::ContainerSpacing.id());
 
         self.container = self.root.clone();
         self.last = self.root.clone();
