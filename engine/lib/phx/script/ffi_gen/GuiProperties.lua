@@ -24,7 +24,6 @@ function Loader.defineType()
             GuiProperties GuiProperties_TextColor;
             GuiProperties GuiProperties_ContainerClip;
             GuiProperties GuiProperties_ContainerSpacing;
-            GuiProperties GuiProperties_ContainerColorFrame;
             GuiProperties GuiProperties_ContainerColorPrimary;
             GuiProperties GuiProperties_ButtonRectOpacity;
             GuiProperties GuiProperties_ButtonRectBorderColor;
@@ -50,11 +49,13 @@ function Loader.defineType()
             GuiProperties GuiProperties_CheckboxClickAreaSelectedColor;
             GuiProperties GuiProperties_ScrollAreaHScrollShow;
             GuiProperties GuiProperties_ScrollAreaVScrollShow;
+            GuiProperties GuiProperties_ScrollAreaScrollScale;
             GuiProperties GuiProperties_ScrollAreaScrollbarLength;
             GuiProperties GuiProperties_ScrollAreaScrollbarBackgroundColor;
-            GuiProperties GuiProperties_ScrollAreaScrollScale;
+            GuiProperties GuiProperties_ScrollAreaScrollbarVisibilityFading;
             GuiProperties GuiProperties_ScrollAreaScrollbarVisibilityStableTime;
             GuiProperties GuiProperties_ScrollAreaScrollbarVisibilityFadeTime;
+            GuiProperties GuiProperties_ScrollAreaScrollbarKnobColor;
 
             cstr          GuiProperties_ToString(GuiProperties);
         ]]
@@ -70,7 +71,6 @@ function Loader.defineType()
             TextColor                               = libphx.GuiProperties_TextColor,
             ContainerClip                           = libphx.GuiProperties_ContainerClip,
             ContainerSpacing                        = libphx.GuiProperties_ContainerSpacing,
-            ContainerColorFrame                     = libphx.GuiProperties_ContainerColorFrame,
             ContainerColorPrimary                   = libphx.GuiProperties_ContainerColorPrimary,
             ButtonRectOpacity                       = libphx.GuiProperties_ButtonRectOpacity,
             ButtonRectBorderColor                   = libphx.GuiProperties_ButtonRectBorderColor,
@@ -96,11 +96,13 @@ function Loader.defineType()
             CheckboxClickAreaSelectedColor          = libphx.GuiProperties_CheckboxClickAreaSelectedColor,
             ScrollAreaHScrollShow                   = libphx.GuiProperties_ScrollAreaHScrollShow,
             ScrollAreaVScrollShow                   = libphx.GuiProperties_ScrollAreaVScrollShow,
+            ScrollAreaScrollScale                   = libphx.GuiProperties_ScrollAreaScrollScale,
             ScrollAreaScrollbarLength               = libphx.GuiProperties_ScrollAreaScrollbarLength,
             ScrollAreaScrollbarBackgroundColor      = libphx.GuiProperties_ScrollAreaScrollbarBackgroundColor,
-            ScrollAreaScrollScale                   = libphx.GuiProperties_ScrollAreaScrollScale,
+            ScrollAreaScrollbarVisibilityFading     = libphx.GuiProperties_ScrollAreaScrollbarVisibilityFading,
             ScrollAreaScrollbarVisibilityStableTime = libphx.GuiProperties_ScrollAreaScrollbarVisibilityStableTime,
             ScrollAreaScrollbarVisibilityFadeTime   = libphx.GuiProperties_ScrollAreaScrollbarVisibilityFadeTime,
+            ScrollAreaScrollbarKnobColor            = libphx.GuiProperties_ScrollAreaScrollbarKnobColor,
 
             ToString                                = libphx.GuiProperties_ToString,
         }

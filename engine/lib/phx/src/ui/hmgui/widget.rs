@@ -109,24 +109,20 @@ impl HmGuiWidget {
         }
     }
 
-    pub fn with_border_color(mut self, color: &Color) -> Self {
+    pub fn set_border_color(&mut self, color: &Color) {
         self.border_color = *color;
-        self
     }
 
-    pub fn with_background_color(mut self, color: &Color) -> Self {
+    pub fn set_background_color(&mut self, color: &Color) {
         self.background_color = *color;
-        self
     }
 
-    pub fn with_highlight_color(mut self, color: &Color) -> Self {
+    pub fn set_highlight_color(&mut self, color: &Color) {
         self.highlight_color = *color;
-        self
     }
 
-    pub fn with_opacity(mut self, opacity: f32) -> Self {
+    pub fn set_opacity(&mut self, opacity: f32) {
         self.opacity = opacity;
-        self
     }
 
     pub fn get_container_item(&self) -> &HmGuiContainer {
@@ -298,9 +294,10 @@ impl HmGuiWidget {
     // For testing.
     #[allow(dead_code)]
     #[rustfmt::skip]
-    pub(crate) fn dump(&self, ident: usize) {
+    pub(crate) fn dump(&self, title: &str, ident: usize) {
         let ident_str = format!("{}", IDENT.repeat(ident));
 
+        println!("{ident_str}=== {title} ===");
         println!("{ident_str}{}:", self.item.name());
         println!("{ident_str}{IDENT}- pos:              {:?}", self.pos);
         println!("{ident_str}{IDENT}- size:             {:?}", self.size);

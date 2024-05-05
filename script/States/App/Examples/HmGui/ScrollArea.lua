@@ -6,11 +6,18 @@ local useRenderer = true
 
 function Test:onInit()
     self.renderer = Renderer()
+    self.fading = true
 end
 
 function Test:onInput() end
 
 function Test:scrollArea()
+    Gui:beginVerticalContainer()
+
+    self.fading = Gui:checkbox("Fading", self.fading)
+
+    Gui:setPropertyBool(GuiProperties.ScrollAreaScrollbarVisibilityFading, self.fading)
+    Gui:setPropertyColor(GuiProperties.ScrollAreaScrollbarKnobColor, Color(1, 0, 0, 1))
     Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShow, false)
     Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0, 0, 1, 1))
     Gui:beginScrollArea(ScrollDirection.All)
@@ -29,15 +36,22 @@ function Test:scrollArea()
 
     Gui:endScrollArea(InputInstance)
     Gui:setBorderWidth(3);
+    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+
+    Gui:endContainer()
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setFixedSize(500, 500)
 end
 
 function Test:onUpdate(dt)
     Profiler.Begin('Gui:update')
+
+    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0, 0, 0, 1))
     Gui:beginGui(self.resX, self.resY, InputInstance)
     self:scrollArea()
     Gui:endGui(InputInstance)
+
     Profiler.End()
 end
 

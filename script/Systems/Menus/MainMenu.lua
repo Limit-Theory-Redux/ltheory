@@ -310,6 +310,7 @@ function MainMenu:ShowSeedDialog()
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
+    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0, 0, 0, 0))
     Gui:textEx(Cache.Font('Iceland', 42), 'Choose Seed', Color(0.3, 0.6, 1.0, 1.0))
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
@@ -417,6 +418,7 @@ function MainMenu:ShowSettingsScreen()
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
+    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0, 0, 0, 0))
     Gui:textEx(Cache.Font('Iceland', 42), 'Settings', Color(0.3, 0.6, 1.0, 1.0))
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
 

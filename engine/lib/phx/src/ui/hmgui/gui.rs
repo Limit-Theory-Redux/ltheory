@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
@@ -104,6 +105,13 @@ impl HmGui {
         self.mouse_over_widget_hash[FocusType::Mouse as usize]
     }
 
+    fn apply_widget_properties(&self, widget: &mut HmGuiWidget) {
+        widget.set_border_color(self.get_property_color(HmGuiProperties::BorderColor.id()));
+        widget.set_background_color(self.get_property_color(HmGuiProperties::BackgroundColor.id()));
+        widget.set_highlight_color(self.get_property_color(HmGuiProperties::HighlightColor.id()));
+        widget.set_opacity(self.get_property_f32(HmGuiProperties::Opacity.id()));
+    }
+
     /// Add a new widget into the current container.
     fn init_widget(&mut self, item: WidgetItem) -> Rf<HmGuiWidget> {
         let parent_rf = self.container.clone();
@@ -113,11 +121,9 @@ impl HmGui {
 
         parent_container.children_hash = (parent_container.children_hash).wrapping_add(1);
 
-        let mut widget = HmGuiWidget::new(Some(parent_rf.clone()), item)
-            .with_border_color(self.get_property_color(HmGuiProperties::BorderColor.id()))
-            .with_background_color(self.get_property_color(HmGuiProperties::BackgroundColor.id()))
-            .with_highlight_color(self.get_property_color(HmGuiProperties::HighlightColor.id()))
-            .with_opacity(self.get_property_f32(HmGuiProperties::Opacity.id()));
+        let mut widget = HmGuiWidget::new(Some(parent_rf.clone()), item);
+
+        self.apply_widget_properties(&mut widget);
 
         widget.hash = unsafe {
             Hash_FNV64_Incremental(
@@ -273,8 +279,12 @@ impl HmGui {
 
         root.inner_pos = Vec2::ZERO;
         root.pos = root.inner_pos;
+        root.default_width = Some(Length::Fixed(sx));
+        root.default_height = Some(Length::Fixed(sy));
         root.inner_size = Vec2::new(sx, sy);
         root.size = root.inner_size;
+
+        self.apply_widget_properties(root.borrow_mut());
 
         let root_container = root.get_container_item_mut();
         root_container.children.clear();
@@ -442,6 +452,8 @@ impl HmGui {
             allow_vscroll && self.get_property_bool(HmGuiProperties::ScrollAreaVScrollShow.id());
 
         if hscroll || vscroll {
+            let fading =
+                self.get_property_bool(HmGuiProperties::ScrollAreaScrollbarVisibilityFading.id());
             let fade_scale = {
                 let scroll_scale =
                     self.get_property_f32(HmGuiProperties::ScrollAreaScrollScale.id());
@@ -458,7 +470,9 @@ impl HmGui {
 
                 let data = self.get_data(widget.hash);
 
-                let fade_scale = if is_mouse_over
+                let fade_scale = if !fading {
+                    1.0
+                } else if is_mouse_over
                     && (scroll.length() > 0.3 || input.mouse().delta().length() > 0.5)
                 {
                     data.scrollbar_activation_time = Instant::now();
@@ -500,7 +514,7 @@ impl HmGui {
                 sb_bg_color.a *= fade_scale;
 
                 let mut sb_knob_color = self
-                    .get_property_color(HmGuiProperties::ContainerColorFrame.id())
+                    .get_property_color(HmGuiProperties::ScrollAreaScrollbarKnobColor.id())
                     .clone();
 
                 sb_knob_color.a *= fade_scale;
@@ -1502,10 +1516,8 @@ impl HmGui {
 
     /// Prints widgets hierarchy to the console. For testing.
     pub fn dump_widgets(&self) {
-        println!("Widgets:");
-
         let container = self.root.as_ref();
 
-        container.dump(1);
+        container.dump("GUI widgets", 1);
     }
 }

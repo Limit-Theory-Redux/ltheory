@@ -447,10 +447,9 @@ impl HmGuiContainer {
     }
 
     pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
-        let clip = hmgui.get_property_bool(HmGuiProperties::ContainerClip.id());
+        hmgui.renderer.begin_layer(pos, size, self.clip);
 
-        hmgui.renderer.begin_layer(pos, size, clip);
-
+        // TODO: [optimization] do not draw children outside of clipped container or screen
         for widget_rf in self.children.iter().rev() {
             widget_rf.as_ref().draw(hmgui);
         }
@@ -476,7 +475,7 @@ impl HmGuiContainer {
         println!("{ident_str}- children[{}]:", self.children.len());
 
         for head_rf in &self.children {
-            head_rf.as_ref().dump(ident + 1);
+            head_rf.as_ref().dump("CHILDREN", ident + 1);
         }
     }
 }

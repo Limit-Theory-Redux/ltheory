@@ -15,7 +15,6 @@ phx_macros::core_properties! {
 
     (ContainerClip,         "container.clip",          true),
     (ContainerSpacing,      "container.spacing",       6.0f32),
-    (ContainerColorFrame,   "container.color-frame",   Color::new(0.1, 0.1, 0.1, 0.5)),
     (ContainerColorPrimary, "container.color-primary", Color::new(0.1, 0.5, 1.0, 1.0)),
 
     (ButtonRectOpacity,         "button.rect.opacity",          0.5f32, Opacity),
@@ -44,11 +43,15 @@ phx_macros::core_properties! {
 
     (ScrollAreaHScrollShow,                   "scroll-area.hscroll.show", true),
     (ScrollAreaVScrollShow,                   "scroll-area.vscroll.show", true),
+    (ScrollAreaScrollScale,                   "scroll-area.scroll-scale", 20f32),
     (ScrollAreaScrollbarLength,               "scroll-area.scrollbar.length", 4f32),
     (ScrollAreaScrollbarBackgroundColor,      "scroll-area.scrollbar.background-color", Color::new(0.3, 0.3, 0.3, 0.3)),
-    (ScrollAreaScrollScale,                   "scroll-area.scroll-scale", 20f32),
+    (ScrollAreaScrollbarVisibilityFading,     "scroll-area.scrollbar.visibility-fading", true),
+    /// Time in milliseconds for how long scrollbar is visible fading
     (ScrollAreaScrollbarVisibilityStableTime, "scroll-area.scrollbar.visibility-stable-time", 400u64),
+    /// Time in milliseconds for how long scrollbar is fading
     (ScrollAreaScrollbarVisibilityFadeTime,   "scroll-area.scrollbar.visibility-fade-time", 200u64),
+    (ScrollAreaScrollbarKnobColor,            "scroll-area.scrollbar.knob-color",   Color::new(0.1, 0.1, 0.1, 0.5)),
 }
 
 /// Adds a new property to the map.
