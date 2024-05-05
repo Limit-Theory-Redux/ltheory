@@ -1,5 +1,5 @@
 [package]
-name = "luajit-ffi-gen"
+name = "phx_macros"
 
 version.workspace = true
 authors.workspace = true
@@ -10,16 +10,7 @@ edition.workspace = true
 proc-macro = true
 
 [dependencies]
-# workspace crates
-internal.workspace = true
-
 # external crates
 proc-macro2.workspace = true
 quote.workspace = true
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 syn.workspace = true
-
-[dev-dependencies]
-libc = "0.2"
-tracing = "0.1"
