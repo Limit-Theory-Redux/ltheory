@@ -706,11 +706,11 @@ impl HmGui {
     pub fn image(&mut self, image: &mut Tex2D) {
         let image_item = HmGuiImage { image };
 
-        let _widget_rf = self.init_widget(WidgetItem::Image(image_item));
+        let _ = self.init_widget(WidgetItem::Image(image_item));
     }
 
     pub fn rect(&mut self) {
-        self.init_widget(WidgetItem::Rect);
+        let _ = self.init_widget(WidgetItem::Rect);
     }
 
     pub fn text(&mut self, text: &str) {
