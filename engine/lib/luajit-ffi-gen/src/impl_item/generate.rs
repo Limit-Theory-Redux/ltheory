@@ -13,11 +13,12 @@ impl ImplInfo {
     pub fn generate(&self, attr_args: ImplAttrArgs) -> TokenStream {
         // Original impl source code (with removed `bind` attributes)
         let source = &self.source;
+        let module_name = attr_args.name().unwrap_or(self.name.clone());
         // C API wrapper functions
         let method_tokens: Vec<_> = self
             .methods
             .iter()
-            .map(|method| self.wrap_method(method))
+            .map(|method| self.wrap_method(&module_name, method))
             .collect();
 
         let is_managed = self
@@ -27,7 +28,6 @@ impl ImplInfo {
 
         // Additional Free C API wrapper if managed
         let free_method_token = if is_managed {
-            let module_name = attr_args.name().unwrap_or(self.name.clone());
             let free_method_ident = format_ident!("{module_name}_Free");
             let module_ident = format_ident!("{}", self.name);
 
@@ -51,9 +51,9 @@ impl ImplInfo {
         }
     }
 
-    fn wrap_method(&self, method: &MethodInfo) -> TokenStream {
+    fn wrap_method(&self, module_name: &str, method: &MethodInfo) -> TokenStream {
         let method_name = method.as_ffi_name();
-        let func_name = format!("{}_{}", self.name, method_name);
+        let func_name = format!("{module_name}_{}", method_name);
         let func_ident = format_ident!("{func_name}");
         let self_ident = format_ident!("{}", self.name);
 

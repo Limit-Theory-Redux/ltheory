@@ -66,7 +66,7 @@ fn generate(input: Properties) -> TokenStream {
             }
         }
 
-        pub fn register_core_properties() -> IndexMap<String, HmGuiPropertyInfo> {
+        pub fn register_core_properties() -> IndexMap<String, HmGuiProperty> {
             let mut r = Default::default();
 
             #(#reg_quotes)*

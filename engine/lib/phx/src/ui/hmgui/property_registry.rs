@@ -3,20 +3,20 @@ use indexmap::IndexMap;
 
 use crate::{math::Box3, render::Font};
 
-use super::{register_core_properties, HmGuiProperty, HmGuiPropertyId, HmGuiPropertyInfo};
+use super::{register_core_properties, HmGuiProperty, HmGuiPropertyId, HmGuiPropertyValue};
 
 /// Contains a map of property name and info pairs.
 /// Map is ordered by insertion.
 #[derive(Clone)]
 pub struct HmGuiPropertyRegistry {
-    pub registry: IndexMap<String, HmGuiPropertyInfo>,
+    pub registry: IndexMap<String, HmGuiProperty>,
 }
 
 macro_rules! decl_prop_method {
     ($m:ident, $v:ident, $ty:ident) => {
         pub fn $m(&self, id: HmGuiPropertyId) -> $ty {
-            let prop = &self.registry[*id].property;
-            let HmGuiProperty::$v(value) = prop else {
+            let prop = &self.registry[*id].value;
+            let HmGuiPropertyValue::$v(value) = prop else {
                 panic!("Expected {} but was {:?}", stringify!($v), prop.name())
             };
 
@@ -28,8 +28,8 @@ macro_rules! decl_prop_method {
 macro_rules! decl_prop_ref_method {
     ($m:ident, $v:ident, $ty:ident) => {
         pub fn $m(&self, id: HmGuiPropertyId) -> &$ty {
-            let prop = &self.registry[*id].property;
-            let HmGuiProperty::$v(value) = prop else {
+            let prop = &self.registry[*id].value;
+            let HmGuiPropertyValue::$v(value) = prop else {
                 panic!("Expected {} but was {:?}", stringify!($v), prop.name())
             };
 
@@ -55,23 +55,23 @@ impl HmGuiPropertyRegistry {
     }
 
     /// Set value of the existing property.
-    pub fn set_property(&mut self, id: &HmGuiPropertyId, prop: &HmGuiProperty) {
+    pub fn set_property(&mut self, id: &HmGuiPropertyId, prop: &HmGuiPropertyValue) {
         assert!(**id < self.registry.len(), "Unknown property id {}", **id);
 
         assert_eq!(
-            self.registry[**id].property.get_type(),
+            self.registry[**id].value.get_type(),
             prop.get_type(),
             "Wrong property type"
         );
 
-        self.registry[**id].property = prop.clone();
+        self.registry[**id].value = prop.clone();
     }
 
     /// Register a new property and return its id.
     pub fn register(
         &mut self,
         name: &str,
-        value: HmGuiProperty,
+        value: HmGuiPropertyValue,
         map_ids: &[HmGuiPropertyId],
     ) -> HmGuiPropertyId {
         assert!(
@@ -83,8 +83,8 @@ impl HmGuiPropertyRegistry {
 
         self.registry.insert(
             name.into(),
-            HmGuiPropertyInfo {
-                property: value,
+            HmGuiProperty {
+                value,
                 map_ids: map_ids.into(),
             },
         );

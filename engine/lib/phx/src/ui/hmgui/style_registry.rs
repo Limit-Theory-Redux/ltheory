@@ -89,6 +89,20 @@ impl HmGuiStyleRegistry {
         Self { registry }
     }
 
+    /// Create a new empty style.
+    /// Returns style id or None/nil if style with the same name already exists.
+    pub fn create_style(&mut self, name: &str) -> Option<HmGuiStyleId> {
+        if self.registry.contains_key(name) {
+            None
+        } else {
+            let id = self.registry.len();
+
+            self.registry.insert(name.into(), HmGuiStyle::default());
+
+            Some(id.into())
+        }
+    }
+
     /// Merge style properties into the property registry.
     pub fn merge_to(&self, property_registry: &mut HmGuiPropertyRegistry, style_name: &str) {
         let style = &self.registry[style_name];
@@ -128,48 +142,48 @@ mod tests {
     use crate::ui::hmgui::style;
     use crate::{
         math::Box3,
-        ui::hmgui::{HmGuiProperty, HmGuiPropertyType},
+        ui::hmgui::{HmGuiPropertyType, HmGuiPropertyValue},
     };
 
     use super::HmGuiStyleRegistry;
 
     #[rustfmt::skip]
-    const TEST_MAP1: &[(&str, &[(&str, HmGuiPropertyType, HmGuiProperty)])] = &[
+    const TEST_MAP1: &[(&str, &[(&str, HmGuiPropertyType, HmGuiPropertyValue)])] = &[
         ("style1",&[
-            ("prop.bool", HmGuiPropertyType::Bool, HmGuiProperty::Bool(true)),
-            ("prop.i8", HmGuiPropertyType::I8, HmGuiProperty::I8(-10)),
-            ("prop.u8", HmGuiPropertyType::U8, HmGuiProperty::U8(63)),
-            ("prop.i16", HmGuiPropertyType::I16, HmGuiProperty::I16(-400)),
-            ("prop.u16", HmGuiPropertyType::U16, HmGuiProperty::U16(1000)),
-            ("prop.i32", HmGuiPropertyType::I32, HmGuiProperty::I32(-100000)),
-            ("prop.u32", HmGuiPropertyType::U32, HmGuiProperty::U32(630000)),
-            ("prop.i64", HmGuiPropertyType::I64, HmGuiProperty::I64(-10)),
-            ("prop.u64", HmGuiPropertyType::U64, HmGuiProperty::U64(63)),
+            ("prop.bool", HmGuiPropertyType::Bool, HmGuiPropertyValue::Bool(true)),
+            ("prop.i8", HmGuiPropertyType::I8, HmGuiPropertyValue::I8(-10)),
+            ("prop.u8", HmGuiPropertyType::U8, HmGuiPropertyValue::U8(63)),
+            ("prop.i16", HmGuiPropertyType::I16, HmGuiPropertyValue::I16(-400)),
+            ("prop.u16", HmGuiPropertyType::U16, HmGuiPropertyValue::U16(1000)),
+            ("prop.i32", HmGuiPropertyType::I32, HmGuiPropertyValue::I32(-100000)),
+            ("prop.u32", HmGuiPropertyType::U32, HmGuiPropertyValue::U32(630000)),
+            ("prop.i64", HmGuiPropertyType::I64, HmGuiPropertyValue::I64(-10)),
+            ("prop.u64", HmGuiPropertyType::U64, HmGuiPropertyValue::U64(63)),
         ]),
         ("style2",&[
-            ("prop.f32", HmGuiPropertyType::F32, HmGuiProperty::F32(-10.69)),
-            ("prop.f64", HmGuiPropertyType::F64, HmGuiProperty::F64(63.132)),
+            ("prop.f32", HmGuiPropertyType::F32, HmGuiPropertyValue::F32(-10.69)),
+            ("prop.f64", HmGuiPropertyType::F64, HmGuiPropertyValue::F64(63.132)),
         ]),
         ("style3",&[
-            ("prop.vec2", HmGuiPropertyType::Vec2, HmGuiProperty::Vec2(Vec2::new(-10.2, 4.729))),
-            ("prop.vec3", HmGuiPropertyType::Vec3, HmGuiProperty::Vec3(Vec3::new(-10.2, 4.729, 0.0))),
-            ("prop.vec4", HmGuiPropertyType::Vec4, HmGuiProperty::Vec4(Vec4::new(-10.2, 4.729, 740.0, 44.6))),
-            ("prop.ivec2", HmGuiPropertyType::IVec2, HmGuiProperty::IVec2(IVec2::new(-10, 4))),
-            ("prop.ivec3", HmGuiPropertyType::IVec3, HmGuiProperty::IVec3(IVec3::new(-10, 4, 0))),
-            ("prop.ivec4", HmGuiPropertyType::IVec4, HmGuiProperty::IVec4(IVec4::new(-10, 4, 740, 44))),
-            ("prop.uvec2", HmGuiPropertyType::UVec2, HmGuiProperty::UVec2(UVec2::new(10, 4))),
-            ("prop.uvec3", HmGuiPropertyType::UVec3, HmGuiProperty::UVec3(UVec3::new(10, 4, 0))),
-            ("prop.uvec4", HmGuiPropertyType::UVec4, HmGuiProperty::UVec4(UVec4::new(10, 4, 740, 44))),
-            ("prop.dvec2", HmGuiPropertyType::DVec2, HmGuiProperty::DVec2(DVec2::new(-10.2, 4.729))),
-            ("prop.dvec3", HmGuiPropertyType::DVec3, HmGuiProperty::DVec3(DVec3::new(-10.2, 4.729, 0.0))),
-            ("prop.dvec4", HmGuiPropertyType::DVec4, HmGuiProperty::DVec4(DVec4::new(-10.2, 4.729, 740.0, 44.6))),
+            ("prop.vec2", HmGuiPropertyType::Vec2, HmGuiPropertyValue::Vec2(Vec2::new(-10.2, 4.729))),
+            ("prop.vec3", HmGuiPropertyType::Vec3, HmGuiPropertyValue::Vec3(Vec3::new(-10.2, 4.729, 0.0))),
+            ("prop.vec4", HmGuiPropertyType::Vec4, HmGuiPropertyValue::Vec4(Vec4::new(-10.2, 4.729, 740.0, 44.6))),
+            ("prop.ivec2", HmGuiPropertyType::IVec2, HmGuiPropertyValue::IVec2(IVec2::new(-10, 4))),
+            ("prop.ivec3", HmGuiPropertyType::IVec3, HmGuiPropertyValue::IVec3(IVec3::new(-10, 4, 0))),
+            ("prop.ivec4", HmGuiPropertyType::IVec4, HmGuiPropertyValue::IVec4(IVec4::new(-10, 4, 740, 44))),
+            ("prop.uvec2", HmGuiPropertyType::UVec2, HmGuiPropertyValue::UVec2(UVec2::new(10, 4))),
+            ("prop.uvec3", HmGuiPropertyType::UVec3, HmGuiPropertyValue::UVec3(UVec3::new(10, 4, 0))),
+            ("prop.uvec4", HmGuiPropertyType::UVec4, HmGuiPropertyValue::UVec4(UVec4::new(10, 4, 740, 44))),
+            ("prop.dvec2", HmGuiPropertyType::DVec2, HmGuiPropertyValue::DVec2(DVec2::new(-10.2, 4.729))),
+            ("prop.dvec3", HmGuiPropertyType::DVec3, HmGuiPropertyValue::DVec3(DVec3::new(-10.2, 4.729, 0.0))),
+            ("prop.dvec4", HmGuiPropertyType::DVec4, HmGuiPropertyValue::DVec4(DVec4::new(-10.2, 4.729, 740.0, 44.6))),
         ]),
         ("style4",&[
-            ("prop.box3", HmGuiPropertyType::Box3, HmGuiProperty::Box3(Box3::new(Vec3::new(10.2, 4.729, 1.0), Vec3::new(740.0, 44.6, -1.0)))),
+            ("prop.box3", HmGuiPropertyType::Box3, HmGuiPropertyValue::Box3(Box3::new(Vec3::new(10.2, 4.729, 1.0), Vec3::new(740.0, 44.6, -1.0)))),
         ]),
     ];
 
-    fn test_style(style: &HmGuiStyle, expected: &[(&str, HmGuiPropertyType, HmGuiProperty)]) {
+    fn test_style(style: &HmGuiStyle, expected: &[(&str, HmGuiPropertyType, HmGuiPropertyValue)]) {
         assert_eq!(style.properties.len(), expected.len());
 
         for (id, (name, ty, expected)) in expected.iter().enumerate() {

@@ -9,7 +9,7 @@ use tracing::warn;
 use crate::math::Box3;
 use crate::render::Font;
 
-use super::{HmGuiProperty, HmGuiPropertyId, HmGuiPropertyType};
+use super::{HmGuiPropertyId, HmGuiPropertyType, HmGuiPropertyValue};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HmGuiStyleId(usize);
@@ -31,7 +31,7 @@ impl From<usize> for HmGuiStyleId {
 /// Contains a map of the property id and property pairs.
 #[derive(Clone, Default)]
 pub struct HmGuiStyle {
-    pub properties: HashMap<HmGuiPropertyId, HmGuiProperty>,
+    pub properties: HashMap<HmGuiPropertyId, HmGuiPropertyValue>,
 }
 
 impl HmGuiStyle {
@@ -97,46 +97,46 @@ impl HmGuiStyle {
 }
 
 /// Create property of the provided type from the yaml value.
-fn create_property(ty: HmGuiPropertyType, value: &Value) -> Result<HmGuiProperty, String> {
+fn create_property(ty: HmGuiPropertyType, value: &Value) -> Result<HmGuiPropertyValue, String> {
     let prop = match ty {
-        HmGuiPropertyType::Bool => HmGuiProperty::Bool(parse_bool(value)?),
-        HmGuiPropertyType::I8 => HmGuiProperty::I8(parse_int(value)?),
-        HmGuiPropertyType::U8 => HmGuiProperty::U8(parse_int(value)?),
-        HmGuiPropertyType::I16 => HmGuiProperty::I16(parse_int(value)?),
-        HmGuiPropertyType::U16 => HmGuiProperty::U16(parse_int(value)?),
-        HmGuiPropertyType::I32 => HmGuiProperty::I32(parse_int(value)?),
-        HmGuiPropertyType::U32 => HmGuiProperty::U32(parse_int(value)?),
-        HmGuiPropertyType::I64 => HmGuiProperty::I64(parse_int(value)?),
-        HmGuiPropertyType::U64 => HmGuiProperty::U64(parse_int(value)?),
-        HmGuiPropertyType::F32 => HmGuiProperty::F32(parse_f32(value)?),
-        HmGuiPropertyType::F64 => HmGuiProperty::F64(parse_f64(value)?),
-        HmGuiPropertyType::Vec2 => HmGuiProperty::Vec2(parse_f32_vec(value)?),
-        HmGuiPropertyType::Vec3 => HmGuiProperty::Vec3(parse_f32_vec(value)?),
-        HmGuiPropertyType::Vec4 => HmGuiProperty::Vec4(parse_f32_vec(value)?),
-        HmGuiPropertyType::IVec2 => HmGuiProperty::IVec2(parse_int_vec(value)?),
-        HmGuiPropertyType::IVec3 => HmGuiProperty::IVec3(parse_int_vec(value)?),
-        HmGuiPropertyType::IVec4 => HmGuiProperty::IVec4(parse_int_vec(value)?),
-        HmGuiPropertyType::UVec2 => HmGuiProperty::UVec2(parse_int_vec(value)?),
-        HmGuiPropertyType::UVec3 => HmGuiProperty::UVec3(parse_int_vec(value)?),
-        HmGuiPropertyType::UVec4 => HmGuiProperty::UVec4(parse_int_vec(value)?),
-        HmGuiPropertyType::DVec2 => HmGuiProperty::DVec2(parse_f64_vec(value)?),
-        HmGuiPropertyType::DVec3 => HmGuiProperty::DVec3(parse_f64_vec(value)?),
-        HmGuiPropertyType::DVec4 => HmGuiProperty::DVec4(parse_f64_vec(value)?),
-        HmGuiPropertyType::Color => HmGuiProperty::Color(parse_f32_vec(value)?),
+        HmGuiPropertyType::Bool => HmGuiPropertyValue::Bool(parse_bool(value)?),
+        HmGuiPropertyType::I8 => HmGuiPropertyValue::I8(parse_int(value)?),
+        HmGuiPropertyType::U8 => HmGuiPropertyValue::U8(parse_int(value)?),
+        HmGuiPropertyType::I16 => HmGuiPropertyValue::I16(parse_int(value)?),
+        HmGuiPropertyType::U16 => HmGuiPropertyValue::U16(parse_int(value)?),
+        HmGuiPropertyType::I32 => HmGuiPropertyValue::I32(parse_int(value)?),
+        HmGuiPropertyType::U32 => HmGuiPropertyValue::U32(parse_int(value)?),
+        HmGuiPropertyType::I64 => HmGuiPropertyValue::I64(parse_int(value)?),
+        HmGuiPropertyType::U64 => HmGuiPropertyValue::U64(parse_int(value)?),
+        HmGuiPropertyType::F32 => HmGuiPropertyValue::F32(parse_f32(value)?),
+        HmGuiPropertyType::F64 => HmGuiPropertyValue::F64(parse_f64(value)?),
+        HmGuiPropertyType::Vec2 => HmGuiPropertyValue::Vec2(parse_f32_vec(value)?),
+        HmGuiPropertyType::Vec3 => HmGuiPropertyValue::Vec3(parse_f32_vec(value)?),
+        HmGuiPropertyType::Vec4 => HmGuiPropertyValue::Vec4(parse_f32_vec(value)?),
+        HmGuiPropertyType::IVec2 => HmGuiPropertyValue::IVec2(parse_int_vec(value)?),
+        HmGuiPropertyType::IVec3 => HmGuiPropertyValue::IVec3(parse_int_vec(value)?),
+        HmGuiPropertyType::IVec4 => HmGuiPropertyValue::IVec4(parse_int_vec(value)?),
+        HmGuiPropertyType::UVec2 => HmGuiPropertyValue::UVec2(parse_int_vec(value)?),
+        HmGuiPropertyType::UVec3 => HmGuiPropertyValue::UVec3(parse_int_vec(value)?),
+        HmGuiPropertyType::UVec4 => HmGuiPropertyValue::UVec4(parse_int_vec(value)?),
+        HmGuiPropertyType::DVec2 => HmGuiPropertyValue::DVec2(parse_f64_vec(value)?),
+        HmGuiPropertyType::DVec3 => HmGuiPropertyValue::DVec3(parse_f64_vec(value)?),
+        HmGuiPropertyType::DVec4 => HmGuiPropertyValue::DVec4(parse_f64_vec(value)?),
+        HmGuiPropertyType::Color => HmGuiPropertyValue::Color(parse_f32_vec(value)?),
         HmGuiPropertyType::Box3 => {
             let arr = parse_sequence::<2>(value)?;
             let lower = parse_f32_vec(&arr[0])?;
             let upper = parse_f32_vec(&arr[1])?;
 
-            HmGuiProperty::Box3(Box3::new(lower, upper))
+            HmGuiPropertyValue::Box3(Box3::new(lower, upper))
         }
-        HmGuiPropertyType::String => HmGuiProperty::String(parse_string(value)?),
+        HmGuiPropertyType::String => HmGuiPropertyValue::String(parse_string(value)?),
         HmGuiPropertyType::Font => {
             let arr = parse_sequence::<2>(value)?;
             let name = parse_string(&arr[0])?;
             let size = parse_int(&arr[1])?;
 
-            HmGuiProperty::Font(Font::load(&name, size))
+            HmGuiPropertyValue::Font(Font::load(&name, size))
         }
     };
 
@@ -268,38 +268,38 @@ mod tests {
 
     use crate::{
         math::Box3,
-        ui::hmgui::{HmGuiProperty, HmGuiPropertyType, HmGuiStyle},
+        ui::hmgui::{HmGuiPropertyType, HmGuiPropertyValue, HmGuiStyle},
     };
 
     #[rustfmt::skip]
-    const TEST_DATA1: &[(&str, HmGuiPropertyType, HmGuiProperty)] = &[
-        ("prop.bool", HmGuiPropertyType::Bool, HmGuiProperty::Bool(true)),
-        ("prop.i8", HmGuiPropertyType::I8, HmGuiProperty::I8(-10)),
-        ("prop.u8", HmGuiPropertyType::U8, HmGuiProperty::U8(63)),
-        ("prop.i16", HmGuiPropertyType::I16, HmGuiProperty::I16(-400)),
-        ("prop.u16", HmGuiPropertyType::U16, HmGuiProperty::U16(1000)),
-        ("prop.i32", HmGuiPropertyType::I32, HmGuiProperty::I32(-100000)),
-        ("prop.u32", HmGuiPropertyType::U32, HmGuiProperty::U32(630000)),
-        ("prop.i64", HmGuiPropertyType::I64, HmGuiProperty::I64(-10)),
-        ("prop.u64", HmGuiPropertyType::U64, HmGuiProperty::U64(63)),
-        ("prop.f32", HmGuiPropertyType::F32, HmGuiProperty::F32(-10.69)),
-        ("prop.f64", HmGuiPropertyType::F64, HmGuiProperty::F64(63.132)),
-        ("prop.vec2", HmGuiPropertyType::Vec2, HmGuiProperty::Vec2(Vec2::new(-10.2, 4.729))),
-        ("prop.vec3", HmGuiPropertyType::Vec3, HmGuiProperty::Vec3(Vec3::new(-10.2, 4.729, 0.0))),
-        ("prop.vec4", HmGuiPropertyType::Vec4, HmGuiProperty::Vec4(Vec4::new(-10.2, 4.729, 740.0, 44.6))),
-        ("prop.ivec2", HmGuiPropertyType::IVec2, HmGuiProperty::IVec2(IVec2::new(-10, 4))),
-        ("prop.ivec3", HmGuiPropertyType::IVec3, HmGuiProperty::IVec3(IVec3::new(-10, 4, 0))),
-        ("prop.ivec4", HmGuiPropertyType::IVec4, HmGuiProperty::IVec4(IVec4::new(-10, 4, 740, 44))),
-        ("prop.uvec2", HmGuiPropertyType::UVec2, HmGuiProperty::UVec2(UVec2::new(10, 4))),
-        ("prop.uvec3", HmGuiPropertyType::UVec3, HmGuiProperty::UVec3(UVec3::new(10, 4, 0))),
-        ("prop.uvec4", HmGuiPropertyType::UVec4, HmGuiProperty::UVec4(UVec4::new(10, 4, 740, 44))),
-        ("prop.dvec2", HmGuiPropertyType::DVec2, HmGuiProperty::DVec2(DVec2::new(-10.2, 4.729))),
-        ("prop.dvec3", HmGuiPropertyType::DVec3, HmGuiProperty::DVec3(DVec3::new(-10.2, 4.729, 0.0))),
-        ("prop.dvec4", HmGuiPropertyType::DVec4, HmGuiProperty::DVec4(DVec4::new(-10.2, 4.729, 740.0, 44.6))),
-        ("prop.box3", HmGuiPropertyType::Box3, HmGuiProperty::Box3(Box3::new(Vec3::new(10.2, 4.729, 1.0), Vec3::new(740.0, 44.6, -1.0)))),
+    const TEST_DATA1: &[(&str, HmGuiPropertyType, HmGuiPropertyValue)] = &[
+        ("prop.bool", HmGuiPropertyType::Bool, HmGuiPropertyValue::Bool(true)),
+        ("prop.i8", HmGuiPropertyType::I8, HmGuiPropertyValue::I8(-10)),
+        ("prop.u8", HmGuiPropertyType::U8, HmGuiPropertyValue::U8(63)),
+        ("prop.i16", HmGuiPropertyType::I16, HmGuiPropertyValue::I16(-400)),
+        ("prop.u16", HmGuiPropertyType::U16, HmGuiPropertyValue::U16(1000)),
+        ("prop.i32", HmGuiPropertyType::I32, HmGuiPropertyValue::I32(-100000)),
+        ("prop.u32", HmGuiPropertyType::U32, HmGuiPropertyValue::U32(630000)),
+        ("prop.i64", HmGuiPropertyType::I64, HmGuiPropertyValue::I64(-10)),
+        ("prop.u64", HmGuiPropertyType::U64, HmGuiPropertyValue::U64(63)),
+        ("prop.f32", HmGuiPropertyType::F32, HmGuiPropertyValue::F32(-10.69)),
+        ("prop.f64", HmGuiPropertyType::F64, HmGuiPropertyValue::F64(63.132)),
+        ("prop.vec2", HmGuiPropertyType::Vec2, HmGuiPropertyValue::Vec2(Vec2::new(-10.2, 4.729))),
+        ("prop.vec3", HmGuiPropertyType::Vec3, HmGuiPropertyValue::Vec3(Vec3::new(-10.2, 4.729, 0.0))),
+        ("prop.vec4", HmGuiPropertyType::Vec4, HmGuiPropertyValue::Vec4(Vec4::new(-10.2, 4.729, 740.0, 44.6))),
+        ("prop.ivec2", HmGuiPropertyType::IVec2, HmGuiPropertyValue::IVec2(IVec2::new(-10, 4))),
+        ("prop.ivec3", HmGuiPropertyType::IVec3, HmGuiPropertyValue::IVec3(IVec3::new(-10, 4, 0))),
+        ("prop.ivec4", HmGuiPropertyType::IVec4, HmGuiPropertyValue::IVec4(IVec4::new(-10, 4, 740, 44))),
+        ("prop.uvec2", HmGuiPropertyType::UVec2, HmGuiPropertyValue::UVec2(UVec2::new(10, 4))),
+        ("prop.uvec3", HmGuiPropertyType::UVec3, HmGuiPropertyValue::UVec3(UVec3::new(10, 4, 0))),
+        ("prop.uvec4", HmGuiPropertyType::UVec4, HmGuiPropertyValue::UVec4(UVec4::new(10, 4, 740, 44))),
+        ("prop.dvec2", HmGuiPropertyType::DVec2, HmGuiPropertyValue::DVec2(DVec2::new(-10.2, 4.729))),
+        ("prop.dvec3", HmGuiPropertyType::DVec3, HmGuiPropertyValue::DVec3(DVec3::new(-10.2, 4.729, 0.0))),
+        ("prop.dvec4", HmGuiPropertyType::DVec4, HmGuiPropertyValue::DVec4(DVec4::new(-10.2, 4.729, 740.0, 44.6))),
+        ("prop.box3", HmGuiPropertyType::Box3, HmGuiPropertyValue::Box3(Box3::new(Vec3::new(10.2, 4.729, 1.0), Vec3::new(740.0, 44.6, -1.0)))),
     ];
 
-    fn test_style(style: &HmGuiStyle, expected: &[(&str, HmGuiPropertyType, HmGuiProperty)]) {
+    fn test_style(style: &HmGuiStyle, expected: &[(&str, HmGuiPropertyType, HmGuiPropertyValue)]) {
         assert_eq!(style.properties.len(), expected.len());
 
         for (id, (name, ty, expected)) in expected.iter().enumerate() {
@@ -346,7 +346,7 @@ mod tests {
             "Cannot find string property. 0/prop.string/String/String"
         ));
 
-        let HmGuiProperty::String(val) = actual else {
+        let HmGuiPropertyValue::String(val) = actual else {
             panic!(
                 "Wrong property type. Expected string but was {:?}",
                 actual.get_type()

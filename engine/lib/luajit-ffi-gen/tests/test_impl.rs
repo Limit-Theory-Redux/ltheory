@@ -178,29 +178,29 @@ fn test_functions() {
     ms2.func2();
     MyStruct::func3();
 
-    MyStruct_Func1(&ms);
-    MyStruct_Func2(&mut ms2);
-    MyStruct_FUNC3();
+    My_Struct_Func1(&ms);
+    My_Struct_Func2(&mut ms2);
+    My_Struct_FUNC3();
 
-    MyStruct_SetU32(&mut ms2, 33);
-    assert_eq!(MyStruct_GetU32(&ms2), 33);
+    My_Struct_SetU32(&mut ms2, 33);
+    assert_eq!(My_Struct_GetU32(&ms2), 33);
 
-    MyStruct_SetF32(&mut ms2, 33.0);
-    assert_eq!(MyStruct_GetF32(&ms2), 33.0);
+    My_Struct_SetF32(&mut ms2, 33.0);
+    assert_eq!(My_Struct_GetF32(&ms2), 33.0);
 
-    MyStruct_SetData(&mut ms2, &Data::new(2));
-    assert_eq!(MyStruct_GetData(&ms2).val, 2);
-    assert_eq!(unsafe { (*MyStruct_GetOptData(&ms2)).val }, 2);
+    My_Struct_SetData(&mut ms2, &Data::new(2));
+    assert_eq!(My_Struct_GetData(&ms2).val, 2);
+    assert_eq!(unsafe { (*My_Struct_GetOptData(&ms2)).val }, 2);
 
-    MyStruct_TakeData(&mut ms2, Box::new(Data::new(4)));
+    My_Struct_TakeData(&mut ms2, Box::new(Data::new(4)));
     let mut returned_data = Data::new(0);
-    MyStruct_GetDataViaOutParam(&ms2, &mut returned_data);
+    My_Struct_GetDataViaOutParam(&ms2, &mut returned_data);
     assert_eq!(returned_data.val, 4);
 
-    MyStruct_TakeBoxedData(&mut ms2, Box::new(Data::new(6)));
-    assert_eq!(MyStruct_GetBoxedData(&ms2).val, 6);
+    My_Struct_TakeBoxedData(&mut ms2, Box::new(Data::new(6)));
+    assert_eq!(My_Struct_GetBoxedData(&ms2).val, 6);
 
-    let val = MyStruct_RetResVal();
+    let val = My_Struct_RetResVal();
     assert_eq!(val, 42);
 }
 
@@ -208,25 +208,25 @@ fn test_functions() {
 fn test_copyable_param() {
     let mut ms = MyStruct::default();
 
-    MyStruct_SetCopyable(&mut ms, WindowPos::new(5));
+    My_Struct_SetCopyable(&mut ms, WindowPos::new(5));
     assert_eq!(ms.val_copyable.val, 5);
 
     let copyable_data = WindowPos::new(7);
-    MyStruct_SetCopyableByRef(&mut ms, &copyable_data);
-    assert_eq!(MyStruct_GetCopyable(&ms).val, 7);
+    My_Struct_SetCopyableByRef(&mut ms, &copyable_data);
+    assert_eq!(My_Struct_GetCopyable(&ms).val, 7);
 
     let mut copyable_data2 = WindowPos::new(9);
-    MyStruct_SetCopyableByMutRef(&mut ms, &mut copyable_data2);
-    assert_eq!(MyStruct_GetBoxedCopyable(&ms).val, 9);
+    My_Struct_SetCopyableByMutRef(&mut ms, &mut copyable_data2);
+    assert_eq!(My_Struct_GetBoxedCopyable(&ms).val, 9);
 
-    MyStruct_SetCopyable(&mut ms, WindowPos::new(11));
+    My_Struct_SetCopyable(&mut ms, WindowPos::new(11));
     let mut copyable_result = WindowPos::default();
-    MyStruct_GetCopyableViaOutParam(&ms, &mut copyable_result);
+    My_Struct_GetCopyableViaOutParam(&ms, &mut copyable_result);
     assert_eq!(copyable_result.val, 11);
 }
 
 #[test]
 #[should_panic]
 fn test_impl_return_error() {
-    MyStruct_RetResErr();
+    My_Struct_RetResErr();
 }

@@ -58,7 +58,7 @@ impl HmGui {
             property_registry
                 .registry
                 .get_full(name)
-                .map(|(id, _, prop)| (id.into(), prop.property.get_type()))
+                .map(|(id, _, prop)| (id.into(), prop.value.get_type()))
         };
 
         let theme_folders = Resource::get_folders(ResourceType::Theme);
@@ -201,14 +201,14 @@ impl HmGui {
         self.mouse_over_widget_hash[ty as usize] == widget.hash
     }
 
-    fn get_property(&self, property_id: usize) -> &HmGuiProperty {
+    fn get_property(&self, property_id: usize) -> &HmGuiPropertyValue {
         let id = property_id.into();
         if let Some(prop) = self.element_style.properties.get(&id) {
             return prop;
         }
 
         if let Some((_, prop)) = self.property_registry.registry.get_index(property_id) {
-            return &prop.property;
+            return &prop.value;
         }
 
         panic!("Unknown property id {property_id}");
@@ -245,9 +245,9 @@ macro_rules! set_property {
         let Some((_, def_prop)) = $self.default_property_registry.registry.get_index($id) else {
             panic!("Unknown property id {}", $id);
         };
-        let value: HmGuiProperty = $val.into();
+        let value: HmGuiPropertyValue = $val.into();
         assert_eq!(
-            def_prop.property.get_type(),
+            def_prop.value.get_type(),
             value.get_type(),
             "Wrong property type"
         );
@@ -260,7 +260,7 @@ macro_rules! get_property {
     ($self:ident, $id:ident, $v:ident) => {{
         let prop = $self.get_property($id);
 
-        let HmGuiProperty::$v(value) = prop else {
+        let HmGuiPropertyValue::$v(value) = prop else {
             panic!(
                 "Wrong property type. Expected {} but was {}",
                 stringify!($v),
@@ -1030,9 +1030,7 @@ impl HmGui {
 
     /// Get property type by its id.
     pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
-        self.default_property_registry.registry[id]
-            .property
-            .get_type()
+        self.default_property_registry.registry[id].value.get_type()
     }
 
     /// Write property value into the mapped properties in the active element style.

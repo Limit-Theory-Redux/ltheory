@@ -12,6 +12,8 @@ const RUST_TO_LUA_TYPE_MAP: &[(&str, &str)] = &[
     ("Vec3", "Vec3f"),
     ("Vec4", "Vec4f"),
     ("Box3", "Box3f"),
+    ("HmGuiPropertyType", "GuiPropertyType"),
+    ("HmGuiPropertyValue", "GuiPropertyValue"),
 ];
 
 // TODO: find out different way to mark types as copyable
@@ -51,6 +53,7 @@ const COPY_TYPES: &[&str] = &[
     "AlignVertical",
     "ResourceType",
     "ScrollDirection",
+    "HmGuiPropertyType",
 ];
 
 #[derive(Debug)]
