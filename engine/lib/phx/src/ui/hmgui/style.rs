@@ -320,7 +320,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_load_style() {
-        let file_path = PathBuf::from("test_data/style1.yaml");
+        let file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test_data/style1.yaml");
         let style = HmGuiStyle::load(&file_path, "style1", |_, name| {
             TEST_DATA1
                 .iter()
@@ -334,7 +334,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_load_style_str() {
-        let file_path = PathBuf::from("test_data/style2.yaml");
+        let file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test_data/style2.yaml");
         let style = HmGuiStyle::load(&file_path, "style2", |_, name| match name {
             "prop.string" => Some((0.into(), HmGuiPropertyType::String)),
             _ => None,

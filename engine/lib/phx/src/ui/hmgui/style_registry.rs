@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_load_map() {
-        let file_path = PathBuf::from("test_data/styles.yaml");
+        let file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test_data/styles.yaml");
         let registry = HmGuiStyleRegistry::load_map(&file_path, |style_name, name| {
             if let Some((_, properties)) = TEST_MAP1.iter().find(|(name, _)| *name == style_name) {
                 properties
