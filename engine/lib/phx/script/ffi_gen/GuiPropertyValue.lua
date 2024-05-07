@@ -64,14 +64,14 @@ function Loader.defineType()
             Vec3d             GuiPropertyValue_GetDvec3   (GuiPropertyValue const*);
             GuiPropertyValue* GuiPropertyValue_FromDvec4  (Vec4d value);
             Vec4d             GuiPropertyValue_GetDvec4   (GuiPropertyValue const*);
-            GuiPropertyValue* GuiPropertyValue_FromColor  (Color* value);
-            Color*            GuiPropertyValue_GetColor   (GuiPropertyValue const*);
+            GuiPropertyValue* GuiPropertyValue_FromColor  (Color const* value);
+            Color const*      GuiPropertyValue_GetColor   (GuiPropertyValue const*);
             GuiPropertyValue* GuiPropertyValue_FromBox3   (Box3f value);
             Box3f             GuiPropertyValue_GetBox3    (GuiPropertyValue const*);
             GuiPropertyValue* GuiPropertyValue_FromString (cstr value);
             cstr              GuiPropertyValue_GetString  (GuiPropertyValue const*);
-            GuiPropertyValue* GuiPropertyValue_FromFont   (Font* value);
-            Font*             GuiPropertyValue_GetFont    (GuiPropertyValue const*);
+            GuiPropertyValue* GuiPropertyValue_FromFont   (Font const* value);
+            Font const*       GuiPropertyValue_GetFont    (GuiPropertyValue const*);
         ]]
     end
 
@@ -219,16 +219,10 @@ function Loader.defineType()
                 getDvec2  = libphx.GuiPropertyValue_GetDvec2,
                 getDvec3  = libphx.GuiPropertyValue_GetDvec3,
                 getDvec4  = libphx.GuiPropertyValue_GetDvec4,
-                getColor  = function(...)
-                    local instance = libphx.GuiPropertyValue_GetColor(...)
-                    return Core.ManagedObject(instance, libphx.Color_Free)
-                end,
+                getColor  = libphx.GuiPropertyValue_GetColor,
                 getBox3   = libphx.GuiPropertyValue_GetBox3,
                 getString = libphx.GuiPropertyValue_GetString,
-                getFont   = function(...)
-                    local instance = libphx.GuiPropertyValue_GetFont(...)
-                    return Core.ManagedObject(instance, libphx.Font_Free)
-                end,
+                getFont   = libphx.GuiPropertyValue_GetFont,
             },
         }
 

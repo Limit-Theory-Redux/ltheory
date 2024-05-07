@@ -34,5 +34,5 @@ pub struct HmGuiProperty {
 
 phx_macros::define_properties![
     bool, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, Vec2, Vec3, Vec4, IVec2, IVec3, IVec4,
-    UVec2, UVec3, UVec4, DVec2, DVec3, DVec4, Color, Box3, String, Font,
+    UVec2, UVec3, UVec4, DVec2, DVec3, DVec4, &Color, Box3, &String, &Font,
 ];

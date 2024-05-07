@@ -18,7 +18,7 @@ function Test:showElements()
     Gui:beginVerticalContainer()
     Gui:setVerticalAlignment(AlignVertical.Stretch)
 
-    Gui:setPropertyColor(GuiProperties.ButtonHighlightColor, Color(1, 0, 0, 0.5))
+    Gui:setProperty(GuiProperties.ButtonHighlightColor, GuiPropertyValue.FromColor(Color(1, 0, 0, 0.5)))
     Gui:button("Button1")
     Gui:button("Button2")
     Gui:button("Button3")

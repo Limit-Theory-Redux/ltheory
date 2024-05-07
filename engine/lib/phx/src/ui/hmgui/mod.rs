@@ -122,11 +122,11 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -168,11 +168,11 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -216,11 +216,11 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -263,12 +263,12 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(30.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
@@ -312,22 +312,22 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
         gui.set_horizontal_alignment(AlignHorizontal::Left);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_horizontal_alignment(AlignHorizontal::Right);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
         gui.set_vertical_alignment(AlignVertical::Top);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_vertical_alignment(AlignVertical::Bottom);
@@ -373,11 +373,11 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(500.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 400.0);
 
@@ -421,25 +421,25 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(20.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(20.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -485,15 +485,15 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -539,11 +539,11 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -555,11 +555,11 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Bottom);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -616,25 +616,25 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(20.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(20.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -680,15 +680,15 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -734,11 +734,11 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -750,11 +750,11 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Right, AlignVertical::Center);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -812,15 +812,15 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(40.0);
 
@@ -832,19 +832,19 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Stretch);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(40.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(50.0);
 
@@ -908,17 +908,17 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_margin(13.0, 13.0);
         gui.set_border_width(2.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -968,17 +968,17 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_margin(13.0, 13.0);
         gui.set_border_width(2.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -1025,23 +1025,23 @@ mod tests {
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
         // Inside container
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_percent_width(70.0);
         gui.set_fixed_height(20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
         gui.set_percent_height(60.0);
 
         // Outside container
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_percent_width(120.0);
         gui.set_fixed_height(20.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
         gui.set_percent_height(130.0);
@@ -1090,17 +1090,17 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_percent_width(50.0);
         gui.set_min_width(0.0);
         gui.set_fixed_height(30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(40.0);
         gui.set_min_width(0.0);
@@ -1114,17 +1114,17 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_percent_width(150.0);
         gui.set_min_width(0.0);
         gui.set_fixed_height(30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(40.0);
         gui.set_min_width(0.0);
@@ -1186,17 +1186,17 @@ mod tests {
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
         gui.set_min_height(0.0);
         gui.set_percent_height(50.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(40.0);
         gui.set_min_height(0.0);
@@ -1210,17 +1210,17 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
         gui.set_min_height(0.0);
         gui.set_percent_height(120.0);
 
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(40.0);
         gui.set_min_height(0.0);
@@ -1284,7 +1284,7 @@ mod tests {
         gui.begin_vertical_container();
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
         gui.set_percent_width(10.0);
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.end_container();
@@ -1292,7 +1292,7 @@ mod tests {
         gui.begin_horizontal_container();
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
         gui.set_children_horizontal_alignment(AlignHorizontal::Center);
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_vertical_alignment(AlignVertical::Center);
@@ -1300,7 +1300,7 @@ mod tests {
 
         gui.begin_stack_container();
         gui.set_percent_width(10.0);
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
@@ -1377,8 +1377,8 @@ mod tests {
 
         gui.begin_gui(800.0, 600.0, &input);
 
-        gui.set_property_bool(HmGuiProperties::ScrollAreaHScrollShow.id(), false);
-        gui.set_property_bool(HmGuiProperties::ScrollAreaVScrollShow.id(), false);
+        gui.set_property_value(HmGuiProperties::ScrollAreaHScrollShow, false);
+        gui.set_property_value(HmGuiProperties::ScrollAreaVScrollShow, false);
         gui.begin_scroll_area(ScrollDirection::Vertical);
 
         gui.begin_vertical_container();
@@ -1388,13 +1388,13 @@ mod tests {
         gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         let color = Color::new(0.0, 1.0, 0.0, 1.0);
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
-        gui.set_property_color(HmGuiProperties::BackgroundColor.id(), &color);
+        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
         gui.rect();
 
         gui.end_container();

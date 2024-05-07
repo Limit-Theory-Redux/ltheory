@@ -19,7 +19,11 @@ fn generate(input: Properties) -> TokenStream {
     let mut variants_from = vec![];
     let mut variants_from_ffi = vec![];
 
-    for ty_ident in input.properties {
+    for Property {
+        ty_ident,
+        reference,
+    } in input.properties
+    {
         let ty_name = format!("{ty_ident}");
         let from_fn_name = format_ident!("from_{}", ty_name.to_lowercase());
         let get_fn_name = format_ident!("get_{}", ty_name.to_lowercase());
@@ -37,18 +41,36 @@ fn generate(input: Properties) -> TokenStream {
                 }
             }
         });
-        variants_from_ffi.push(quote! {
-            fn #from_fn_name(value: #ty_ident) -> Self {
-                value.into()
-            }
-            fn #get_fn_name(&self) -> #ty_ident {
-                if let Self::#enum_name(value) = self {
-                    value.clone()
-                } else {
-                    panic!("Wrong property type. Requested {} but actual type is {}", #ty_name, self.name());
+
+        if reference {
+            variants_from_ffi.push(quote! {
+                pub fn #from_fn_name(value: &#ty_ident) -> Self {
+                    value.clone().into()
                 }
-            }
-        });
+
+                pub fn #get_fn_name(&self) -> &#ty_ident {
+                    if let Self::#enum_name(value) = self {
+                        value
+                    } else {
+                        panic!("Wrong property type. Requested {} but actual type is {}", #ty_name, self.name());
+                    }
+                }
+            });
+        } else {
+            variants_from_ffi.push(quote! {
+                pub fn #from_fn_name(value: #ty_ident) -> Self {
+                    value.into()
+                }
+
+                pub fn #get_fn_name(&self) -> #ty_ident {
+                    if let Self::#enum_name(value) = self {
+                        value.clone()
+                    } else {
+                        panic!("Wrong property type. Requested {} but actual type is {}", #ty_name, self.name());
+                    }
+                }
+            });
+        }
     }
 
     quote! {
@@ -88,13 +110,36 @@ fn generate(input: Properties) -> TokenStream {
 }
 
 struct Properties {
-    properties: Punctuated<Ident, Token![,]>,
+    properties: Punctuated<Property, Token![,]>,
 }
 
 impl Parse for Properties {
     fn parse(input: ParseStream) -> Result<Self> {
-        let properties = input.parse_terminated(Ident::parse, Token![,])?;
+        let properties = input.parse_terminated(Property::parse, Token![,])?;
 
         Ok(Self { properties })
+    }
+}
+
+struct Property {
+    ty_ident: Ident,
+    reference: bool,
+}
+
+impl Parse for Property {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        let reference = if lookahead.peek(Token![&]) {
+            let _amp: Token![&] = input.parse()?;
+            true
+        } else {
+            false
+        };
+        let ty_ident = input.parse()?;
+
+        Ok(Self {
+            ty_ident,
+            reference,
+        })
     }
 }

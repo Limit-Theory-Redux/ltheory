@@ -107,10 +107,23 @@ impl HmGui {
     }
 
     fn apply_widget_properties(&self, widget: &mut HmGuiWidget) {
-        widget.set_border_color(self.get_property_color(HmGuiProperties::BorderColor.id()));
-        widget.set_background_color(self.get_property_color(HmGuiProperties::BackgroundColor.id()));
-        widget.set_highlight_color(self.get_property_color(HmGuiProperties::HighlightColor.id()));
-        widget.set_opacity(self.get_property_f32(HmGuiProperties::Opacity.id()));
+        let color = self
+            .get_property(HmGuiProperties::BorderColor.id())
+            .get_color();
+        widget.set_border_color(&color);
+
+        let color = self
+            .get_property(HmGuiProperties::BackgroundColor.id())
+            .get_color();
+        widget.set_background_color(&color);
+
+        let color = self
+            .get_property(HmGuiProperties::HighlightColor.id())
+            .get_color();
+        widget.set_highlight_color(&color);
+
+        let opacity = self.get_property(HmGuiProperties::Opacity.id()).get_f32();
+        widget.set_opacity(opacity);
     }
 
     /// Add a new widget into the current container.
@@ -145,8 +158,12 @@ impl HmGui {
 
     /// Start a new container with specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
-        let spacing = self.get_property_f32(HmGuiProperties::ContainerSpacing.id());
-        let clip = self.get_property_bool(HmGuiProperties::ContainerClip.id());
+        let spacing = self
+            .get_property(HmGuiProperties::ContainerSpacing.id())
+            .get_f32();
+        let clip = self
+            .get_property(HmGuiProperties::ContainerClip.id())
+            .get_bool();
 
         let container = HmGuiContainer {
             layout,
@@ -163,6 +180,14 @@ impl HmGui {
     /// Get persistent data of the widget by its hash.
     pub fn get_data(&mut self, widget_hash: u64) -> &mut HmGuiData {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
+    }
+
+    pub fn set_property_value<T: Into<HmGuiPropertyValue>>(
+        &mut self,
+        id: HmGuiProperties,
+        value: T,
+    ) {
+        self.set_property(id.id(), &value.into());
     }
 
     /// Calculate if mouse is over the widget. Recursively iterate over container widgets.
@@ -200,76 +225,6 @@ impl HmGui {
 
         self.mouse_over_widget_hash[ty as usize] == widget.hash
     }
-
-    fn get_property(&self, property_id: usize) -> &HmGuiPropertyValue {
-        let id = property_id.into();
-        if let Some(prop) = self.element_style.properties.get(&id) {
-            return prop;
-        }
-
-        if let Some((_, prop)) = self.property_registry.registry.get_index(property_id) {
-            return &prop.value;
-        }
-
-        panic!("Unknown property id {property_id}");
-    }
-}
-
-macro_rules! register_property {
-    ($self:ident, $name:ident, $value:expr, $map_id:ident) => {{
-        let mut map_ids = vec![];
-        if let Some(map_id_str) = $map_id {
-            let (map_id, _, _) = $self
-                .default_property_registry
-                .registry
-                .get_full(map_id_str)
-                .unwrap_or_else(|| panic!("{:?} has unknown map property: {map_id_str}", $name));
-
-            map_ids.push(map_id.into());
-        }
-
-        let def_id = $self
-            .default_property_registry
-            .register($name, $value.into(), &map_ids);
-        let id = $self
-            .property_registry
-            .register($name, $value.into(), &map_ids);
-        debug_assert_eq!(def_id, id);
-
-        *id
-    }};
-}
-
-macro_rules! set_property {
-    ($self:ident, $id:ident, $val:expr) => {
-        let Some((_, def_prop)) = $self.default_property_registry.registry.get_index($id) else {
-            panic!("Unknown property id {}", $id);
-        };
-        let value: HmGuiPropertyValue = $val.into();
-        assert_eq!(
-            def_prop.value.get_type(),
-            value.get_type(),
-            "Wrong property type"
-        );
-
-        $self.element_style.properties.insert($id.into(), value);
-    };
-}
-
-macro_rules! get_property {
-    ($self:ident, $id:ident, $v:ident) => {{
-        let prop = $self.get_property($id);
-
-        let HmGuiPropertyValue::$v(value) = prop else {
-            panic!(
-                "Wrong property type. Expected {} but was {}",
-                stringify!($v),
-                prop.name()
-            )
-        };
-
-        value
-    }};
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -289,7 +244,9 @@ impl HmGui {
         root_container.children.clear();
         root_container.children_hash = 0;
 
-        root_container.spacing = self.get_property_f32(HmGuiProperties::ContainerSpacing.id());
+        root_container.spacing = self
+            .get_property(HmGuiProperties::ContainerSpacing.id())
+            .get_f32();
 
         self.container = self.root.clone();
         self.last = self.root.clone();
@@ -379,7 +336,7 @@ impl HmGui {
     ///
     /// Example:
     /// ```lua
-    /// Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShow, false)
+    /// Gui:setProperty(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
     /// Gui:beginScrollArea(ScrollDirection.All)
     ///
     /// Gui:beginVerticalContainer()
@@ -447,17 +404,23 @@ impl HmGui {
 
         self.end_container();
 
-        let hscroll =
-            allow_hscroll && self.get_property_bool(HmGuiProperties::ScrollAreaHScrollShow.id());
-        let vscroll =
-            allow_vscroll && self.get_property_bool(HmGuiProperties::ScrollAreaVScrollShow.id());
+        let hscroll = allow_hscroll
+            && self
+                .get_property(HmGuiProperties::ScrollAreaHScrollShow.id())
+                .get_bool();
+        let vscroll = allow_vscroll
+            && self
+                .get_property(HmGuiProperties::ScrollAreaVScrollShow.id())
+                .get_bool();
 
         if hscroll || vscroll {
-            let fading =
-                self.get_property_bool(HmGuiProperties::ScrollAreaScrollbarVisibilityFading.id());
+            let fading = self
+                .get_property(HmGuiProperties::ScrollAreaScrollbarVisibilityFading.id())
+                .get_bool();
             let fade_scale = {
-                let scroll_scale =
-                    self.get_property_f32(HmGuiProperties::ScrollAreaScrollScale.id());
+                let scroll_scale = self
+                    .get_property(HmGuiProperties::ScrollAreaScrollScale.id())
+                    .get_f32();
                 let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
                 let mut scroll = input.mouse().scroll();
 
@@ -480,12 +443,18 @@ impl HmGui {
                     1.0
                 } else {
                     let elapsed_time = Instant::now() - data.scrollbar_activation_time;
-                    let stable_time = Duration::from_millis(self.get_property_u64(
-                        HmGuiProperties::ScrollAreaScrollbarVisibilityStableTime.id(),
-                    ));
-                    let fade_time = Duration::from_millis(self.get_property_u64(
-                        HmGuiProperties::ScrollAreaScrollbarVisibilityFadeTime.id(),
-                    ));
+                    let stable_time = Duration::from_millis(
+                        self.get_property(
+                            HmGuiProperties::ScrollAreaScrollbarVisibilityStableTime.id(),
+                        )
+                        .get_u64(),
+                    );
+                    let fade_time = Duration::from_millis(
+                        self.get_property(
+                            HmGuiProperties::ScrollAreaScrollbarVisibilityFadeTime.id(),
+                        )
+                        .get_u64(),
+                    );
 
                     if elapsed_time <= stable_time {
                         1.0
@@ -506,17 +475,18 @@ impl HmGui {
             };
 
             if fade_scale > 0.0 {
-                let sb_length =
-                    self.get_property_f32(HmGuiProperties::ScrollAreaScrollbarLength.id());
+                let sb_length = self
+                    .get_property(HmGuiProperties::ScrollAreaScrollbarLength.id())
+                    .get_f32();
 
-                let mut sb_bg_color = self
-                    .get_property_color(HmGuiProperties::ScrollAreaScrollbarBackgroundColor.id())
-                    .clone();
+                let mut sb_bg_color = *self
+                    .get_property(HmGuiProperties::ScrollAreaScrollbarBackgroundColor.id())
+                    .get_color();
                 sb_bg_color.a *= fade_scale;
 
-                let mut sb_knob_color = self
-                    .get_property_color(HmGuiProperties::ScrollAreaScrollbarKnobColor.id())
-                    .clone();
+                let mut sb_knob_color = *self
+                    .get_property(HmGuiProperties::ScrollAreaScrollbarKnobColor.id())
+                    .get_color();
 
                 sb_knob_color.a *= fade_scale;
 
@@ -537,15 +507,15 @@ impl HmGui {
                         (handle_size, handle_pos)
                     };
 
-                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_bg_color);
                     self.rect();
                     self.set_fixed_size(handle_pos, sb_length);
 
-                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_knob_color);
+                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_knob_color);
                     self.rect();
                     self.set_fixed_size(handle_size, sb_length);
 
-                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_bg_color);
                     self.rect();
                     self.set_fixed_height(sb_length);
                     self.set_horizontal_alignment(AlignHorizontal::Stretch);
@@ -570,15 +540,15 @@ impl HmGui {
                         (handle_size, handle_pos)
                     };
 
-                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_bg_color);
                     self.rect();
                     self.set_fixed_size(sb_length, handle_pos);
 
-                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_knob_color);
+                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_knob_color);
                     self.rect();
                     self.set_fixed_size(sb_length, handle_size);
 
-                    self.set_property_color(HmGuiProperties::BackgroundColor.id(), &sb_bg_color);
+                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_bg_color);
                     self.rect();
                     self.set_fixed_width(sb_length);
                     self.set_vertical_alignment(AlignVertical::Stretch);
@@ -594,7 +564,7 @@ impl HmGui {
     /// Begins window element.
     // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
-        self.set_property_f32(HmGuiProperties::Opacity.id(), 0.95);
+        self.set_property_value(HmGuiProperties::Opacity, 0.95f32);
         self.begin_stack_container();
 
         // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
@@ -615,7 +585,7 @@ impl HmGui {
             widget.pos.y += data.offset.y;
         }
 
-        self.set_property_f32(HmGuiProperties::Opacity.id(), 0.95);
+        self.set_property_value(HmGuiProperties::Opacity, 0.95f32);
         self.begin_vertical_container();
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         self.set_padding(8.0, 8.0);
@@ -630,7 +600,7 @@ impl HmGui {
     /// Invisible element that stretches in all directions.
     /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
     pub fn spacer(&mut self) {
-        self.set_property_color(HmGuiProperties::BackgroundColor.id(), &Color::TRANSPARENT);
+        self.set_property_value(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
         self.rect();
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
     }
@@ -672,20 +642,22 @@ impl HmGui {
 
         // checkbox itself
         let bg_color = if value {
-            *self.get_property_color(HmGuiProperties::CheckboxClickAreaSelectedColor.id())
+            *self
+                .get_property(HmGuiProperties::CheckboxClickAreaSelectedColor.id())
+                .get_color()
         } else {
             Color::TRANSPARENT
         };
 
         self.map_property_group("checkbox.click-area");
-        self.set_property_color(HmGuiProperties::BackgroundColor.id(), &bg_color);
+        self.set_property_value(HmGuiProperties::BackgroundColor, bg_color);
         self.rect();
         self.set_fixed_size(10.0, 10.0);
         self.set_border_width(3.0);
 
         self.end_container();
         // TODO: workaround. fix it
-        self.set_property_color(HmGuiProperties::BackgroundColor.id(), &Color::TRANSPARENT);
+        self.set_property_value(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
 
         value
     }
@@ -694,9 +666,9 @@ impl HmGui {
         self.begin_stack_container();
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        self.set_property_color(
-            HmGuiProperties::BackgroundColor.id(),
-            &Color::new(0.5, 0.5, 0.5, 1.0),
+        self.set_property_value(
+            HmGuiProperties::BackgroundColor,
+            Color::new(0.5, 0.5, 0.5, 1.0),
         );
         self.rect();
         self.set_fixed_size(0.0, 2.0);
@@ -729,8 +701,10 @@ impl HmGui {
     }
 
     pub fn text(&mut self, text: &str) {
-        let font = self.get_property_font(HmGuiProperties::TextFont.id());
-        let color = self.get_property_color(HmGuiProperties::TextColor.id());
+        let font = self.get_property(HmGuiProperties::TextFont.id()).get_font();
+        let color = self
+            .get_property(HmGuiProperties::TextColor.id())
+            .get_color();
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
@@ -746,7 +720,7 @@ impl HmGui {
     }
 
     pub fn text_colored(&mut self, text: &str, color: &Color) {
-        let font = self.get_property_font(HmGuiProperties::TextFont.id());
+        let font = self.get_property(HmGuiProperties::TextFont.id()).get_font();
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
@@ -1070,447 +1044,63 @@ impl HmGui {
         self.element_style.properties.remove(&property_id.into());
     }
 
-    // register_property_* methods --------------------------------------------
-
-    // TODO: map_ids: Vec<usize>
-    pub fn register_property_bool(
+    pub fn register_property(
         &mut self,
         name: &str,
-        value: bool,
+        value: &HmGuiPropertyValue,
         map_id: Option<&str>,
     ) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_i8(&mut self, name: &str, value: i8, map_id: Option<&str>) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_u8(&mut self, name: &str, value: u8, map_id: Option<&str>) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_i16(&mut self, name: &str, value: i16, map_id: Option<&str>) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_u16(&mut self, name: &str, value: u16, map_id: Option<&str>) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_i32(&mut self, name: &str, value: i32, map_id: Option<&str>) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_u32(&mut self, name: &str, value: u32, map_id: Option<&str>) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_i64(&mut self, name: &str, value: i64, map_id: Option<&str>) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_u64(&mut self, name: &str, value: u64, map_id: Option<&str>) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_f32(&mut self, name: &str, value: f32, map_id: Option<&str>) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_f64(&mut self, name: &str, value: f64, map_id: Option<&str>) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_vec2(
-        &mut self,
-        name: &str,
-        value: Vec2,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    pub fn register_property_vec3(
-        &mut self,
-        name: &str,
-        value: &Vec3,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    pub fn register_property_vec4(
-        &mut self,
-        name: &str,
-        value: &Vec4,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    #[bind(name = "RegisterPropertyIVec2")]
-    pub fn register_property_ivec2(
-        &mut self,
-        name: &str,
-        value: IVec2,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    #[bind(name = "RegisterPropertyIVec3")]
-    pub fn register_property_ivec3(
-        &mut self,
-        name: &str,
-        value: &IVec3,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    #[bind(name = "RegisterPropertyIVec4")]
-    pub fn register_property_ivec4(
-        &mut self,
-        name: &str,
-        value: &IVec4,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    #[bind(name = "RegisterPropertyUVec2")]
-    pub fn register_property_uvec2(
-        &mut self,
-        name: &str,
-        value: UVec2,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    #[bind(name = "RegisterPropertyUVec3")]
-    pub fn register_property_uvec3(
-        &mut self,
-        name: &str,
-        value: &UVec3,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    #[bind(name = "RegisterPropertyUVec4")]
-    pub fn register_property_uvec4(
-        &mut self,
-        name: &str,
-        value: &UVec4,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    #[bind(name = "RegisterPropertyDVec2")]
-    pub fn register_property_dvec2(
-        &mut self,
-        name: &str,
-        value: DVec2,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value, map_id)
-    }
-
-    #[bind(name = "RegisterPropertyDVec3")]
-    pub fn register_property_dvec3(
-        &mut self,
-        name: &str,
-        value: &DVec3,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    #[bind(name = "RegisterPropertyDVec4")]
-    pub fn register_property_dvec4(
-        &mut self,
-        name: &str,
-        value: &DVec4,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    pub fn register_property_color(
-        &mut self,
-        name: &str,
-        value: &Color,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    pub fn register_property_box3(
-        &mut self,
-        name: &str,
-        value: &Box3,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    pub fn register_property_string(
-        &mut self,
-        name: &str,
-        value: &str,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.to_string(), map_id)
-    }
-
-    pub fn register_property_font(
-        &mut self,
-        name: &str,
-        value: &Font,
-        map_id: Option<&str>,
-    ) -> usize {
-        register_property!(self, name, value.clone(), map_id)
-    }
-
-    // set_property_* methods -------------------------------------------------
-
-    pub fn set_property_bool(&mut self, property_id: usize, value: bool) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_i8(&mut self, property_id: usize, value: i8) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_u8(&mut self, property_id: usize, value: u8) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_i16(&mut self, property_id: usize, value: i16) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_u16(&mut self, property_id: usize, value: u16) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_i32(&mut self, property_id: usize, value: i32) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_u32(&mut self, property_id: usize, value: u32) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_i64(&mut self, property_id: usize, value: i64) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_u64(&mut self, property_id: usize, value: u64) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_f32(&mut self, property_id: usize, value: f32) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_f64(&mut self, property_id: usize, value: f64) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_vec2(&mut self, property_id: usize, value: Vec2) {
-        set_property!(self, property_id, value);
-    }
-
-    pub fn set_property_vec3(&mut self, property_id: usize, value: &Vec3) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    pub fn set_property_vec4(&mut self, property_id: usize, value: &Vec4) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    #[bind(name = "SetPropertyIVec2")]
-    pub fn set_property_ivec2(&mut self, property_id: usize, value: IVec2) {
-        set_property!(self, property_id, value);
-    }
-
-    #[bind(name = "SetPropertyIVec3")]
-    pub fn set_property_ivec3(&mut self, property_id: usize, value: &IVec3) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    #[bind(name = "SetPropertyIVec4")]
-    pub fn set_property_ivec4(&mut self, property_id: usize, value: &IVec4) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    #[bind(name = "SetPropertyUVec2")]
-    pub fn set_property_uvec2(&mut self, property_id: usize, value: UVec2) {
-        set_property!(self, property_id, value);
-    }
-
-    #[bind(name = "SetPropertyUVec3")]
-    pub fn set_property_uvec3(&mut self, property_id: usize, value: &UVec3) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    #[bind(name = "SetPropertyUVec4")]
-    pub fn set_property_uvec4(&mut self, property_id: usize, value: &UVec4) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    #[bind(name = "SetPropertyDVec2")]
-    pub fn set_property_dvec2(&mut self, property_id: usize, value: DVec2) {
-        set_property!(self, property_id, value);
-    }
-
-    #[bind(name = "SetPropertyDVec3")]
-    pub fn set_property_dvec3(&mut self, property_id: usize, value: &DVec3) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    #[bind(name = "SetPropertyDVec4")]
-    pub fn set_property_dvec4(&mut self, property_id: usize, value: &DVec4) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    pub fn set_property_color(&mut self, property_id: usize, value: &Color) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    pub fn set_property_box3(&mut self, property_id: usize, value: &Box3) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    pub fn set_property_string(&mut self, property_id: usize, value: &str) {
-        set_property!(self, property_id, value.to_string());
-    }
-
-    pub fn set_property_font(&mut self, property_id: usize, value: &Font) {
-        set_property!(self, property_id, value.clone());
-    }
-
-    // get_property_* methods -------------------------------------------------
-
-    pub fn get_property_bool(&self, property_id: usize) -> bool {
-        *get_property!(self, property_id, Bool)
-    }
-
-    pub fn get_property_i8(&self, property_id: usize) -> i8 {
-        *get_property!(self, property_id, I8)
-    }
-
-    pub fn get_property_u8(&self, property_id: usize) -> u8 {
-        *get_property!(self, property_id, U8)
-    }
-
-    pub fn get_property_i16(&self, property_id: usize) -> i16 {
-        *get_property!(self, property_id, I16)
-    }
-
-    pub fn get_property_u16(&self, property_id: usize) -> u16 {
-        *get_property!(self, property_id, U16)
-    }
-
-    pub fn get_property_i32(&self, property_id: usize) -> i32 {
-        *get_property!(self, property_id, I32)
-    }
-
-    pub fn get_property_u32(&self, property_id: usize) -> u32 {
-        *get_property!(self, property_id, U32)
-    }
-
-    pub fn get_property_i64(&self, property_id: usize) -> i64 {
-        *get_property!(self, property_id, I64)
-    }
-
-    pub fn get_property_u64(&self, property_id: usize) -> u64 {
-        *get_property!(self, property_id, U64)
-    }
-
-    pub fn get_property_f32(&self, property_id: usize) -> f32 {
-        *get_property!(self, property_id, F32)
-    }
-
-    pub fn get_property_f64(&self, property_id: usize) -> f64 {
-        *get_property!(self, property_id, F64)
-    }
-
-    pub fn get_property_vec2(&self, property_id: usize) -> Vec2 {
-        *get_property!(self, property_id, Vec2)
-    }
-
-    pub fn get_property_vec3(&self, property_id: usize) -> &Vec3 {
-        get_property!(self, property_id, Vec3)
-    }
-
-    pub fn get_property_vec4(&self, property_id: usize) -> &Vec4 {
-        get_property!(self, property_id, Vec4)
-    }
-
-    #[bind(name = "GetPropertyIVec2")]
-    pub fn get_property_ivec2(&self, property_id: usize) -> IVec2 {
-        *get_property!(self, property_id, IVec2)
-    }
-
-    #[bind(name = "GetPropertyIVec3")]
-    pub fn get_property_ivec3(&self, property_id: usize) -> &IVec3 {
-        get_property!(self, property_id, IVec3)
-    }
-
-    #[bind(name = "GetPropertyIVec4")]
-    pub fn get_property_ivec4(&self, property_id: usize) -> &IVec4 {
-        get_property!(self, property_id, IVec4)
-    }
-
-    #[bind(name = "GetPropertyUVec2")]
-    pub fn get_property_uvec2(&self, property_id: usize) -> UVec2 {
-        *get_property!(self, property_id, UVec2)
-    }
-
-    #[bind(name = "GetPropertyUVec3")]
-    pub fn get_property_uvec3(&self, property_id: usize) -> &UVec3 {
-        get_property!(self, property_id, UVec3)
-    }
-
-    #[bind(name = "GetPropertyUVec4")]
-    pub fn get_property_uvec4(&self, property_id: usize) -> &UVec4 {
-        get_property!(self, property_id, UVec4)
-    }
-
-    #[bind(name = "GetPropertyDVec2")]
-    pub fn get_property_dvec2(&self, property_id: usize) -> DVec2 {
-        *get_property!(self, property_id, DVec2)
-    }
-
-    #[bind(name = "GetPropertyDVec3")]
-    pub fn get_property_dvec3(&self, property_id: usize) -> &DVec3 {
-        get_property!(self, property_id, DVec3)
-    }
-
-    #[bind(name = "GetPropertyDVec4")]
-    pub fn get_property_dvec4(&self, property_id: usize) -> &DVec4 {
-        get_property!(self, property_id, DVec4)
-    }
-
-    pub fn get_property_color(&self, property_id: usize) -> &Color {
-        get_property!(self, property_id, Color)
-    }
-
-    pub fn get_property_box3(&self, property_id: usize) -> &Box3 {
-        get_property!(self, property_id, Box3)
-    }
-
-    pub fn get_property_string(&self, property_id: usize) -> &str {
-        get_property!(self, property_id, String).as_str()
-    }
-
-    pub fn get_property_font(&self, property_id: usize) -> &Font {
-        get_property!(self, property_id, Font)
+        let mut map_ids = vec![];
+
+        if let Some(map_id_str) = map_id {
+            let (map_id, _, _) = self
+                .default_property_registry
+                .registry
+                .get_full(map_id_str)
+                .unwrap_or_else(|| panic!("{name:?} has unknown map property: {map_id_str}"));
+
+            map_ids.push(map_id.into());
+        }
+
+        let def_id = self
+            .default_property_registry
+            .register(name, value.clone(), &map_ids);
+        let id = self
+            .property_registry
+            .register(name, value.clone(), &map_ids);
+        debug_assert_eq!(def_id, id);
+
+        *id
+    }
+
+    pub fn set_property(&mut self, id: usize, value: &HmGuiPropertyValue) {
+        let (_, prop) = self
+            .default_property_registry
+            .registry
+            .get_index_mut(id)
+            .unwrap_or_else(|| {
+                panic!("Unknown property id {id}");
+            });
+        assert_eq!(
+            prop.value.get_type(),
+            value.get_type(),
+            "Wrong property type"
+        );
+
+        prop.value = value.clone();
+    }
+
+    pub fn get_property(&self, id: usize) -> &HmGuiPropertyValue {
+        let prop_id = id.into();
+        if let Some(prop) = self.element_style.properties.get(&prop_id) {
+            return prop;
+        }
+
+        if let Some((_, prop)) = self.property_registry.registry.get_index(id) {
+            return &prop.value;
+        }
+
+        panic!("Unknown property id {id}");
     }
 
     /// Prints widgets hierarchy to the console. For testing.

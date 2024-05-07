@@ -288,7 +288,7 @@ end
 
 -- somewhere later
 Gui:clearStyle()
-Gui:setPropertyColor(Enums.Gui.ButtonTextColor, Color(0, 1, 0, 1))
+Gui:setProperty(Enums.Gui.ButtonTextColor, GuiPropertyValue.FromColor(Color(0, 1, 0, 1)))
 Gui:button("My button")
 ```
 It's recommended to add `Gui:mapPropertyGroup(group)` call at the beginning of every element declaration that has group properties (usually group name is the same as an element name).
@@ -301,11 +301,9 @@ HmGui provides several methods allowing Lua scripters to manage element properti
 - `Gui:mapProperty(id)`: copies property value to its mapped properties for the current following element. Should be used inside element function definition.
 - `Gui:mapPropertyGroup(group)`: copies group properties values which names starting with `group + "."` to their mapped properties for the current following element. Should be used inside element function definition.
 - `Gui:removeProperty(id)`: remove property from the current element style
-- `Gui:registerProperty*(name, value, map_id)`: register a new property with optional id of the mapped property
-- `Gui:setProperty*(id, value)`: set property value
-- `Gui:getProperty*(id)`: get property value
-
-`*` in `register/set/getProperty*()` methods is a property type substitution, i.e.: `setPropertyU32`, `getPropertyFont`, etc.
+- `Gui:registerProperty(name, value, map_id)`: register a new property with optional id of the mapped property
+- `Gui:setProperty(id, value)`: set property value
+- `Gui:getProperty(id)`: get property value
 
 ### Styling groups
 
@@ -326,7 +324,7 @@ Any property value applied by setting a theme that contains that property will b
   - Example of direct styling in code:
 ```lua
 Gui:clearStyle()
-Gui:setPropertyColor(GuiProperties.ButtonTextColor, Color(1, 0, 0, 1))
+Gui:setProperty(GuiProperties.ButtonTextColor, GuiPropertyValue.FromColor(Color(1, 0, 0, 1)))
 Gui:button("MyButton")
 ```
   - Example of styling through the global style configuration file `styles.yaml`:
@@ -356,7 +354,7 @@ Then this property can be used in the custom element definition:
 function menu(variants)
 Gui:mapPropertyGroup("menuitem") -- map all MenuItem properties - it will map all properties with the name containing "manuitem." prefix
 
-local borderWidth = Gui:getPropertyF32(Enums.Gui.MenuBorderWidth)
+local borderWidth = Gui:getProperty(Enums.Gui.MenuBorderWidth).getF32()
 ...
 menu_item(variants[1])
 ...
