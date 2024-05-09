@@ -60,17 +60,22 @@ function Container:new(args)
             return
         end
 
-        if self.state.showContainer() then
-            Gui:beginStackContainer()
-            Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
-            Gui:setBorderWidth(1)
-            Gui:setPropertyColor(GuiProperties.BorderColor, self.state.showContainerColor())
-        end
-
         -- color
         if self.state.color().background then
             Gui:setPropertyColor(GuiProperties.BackgroundColor, self.state.color().background)
         end
+
+        if self.state.showContainer() then
+            Gui:setPropertyColor(GuiProperties.BorderColor, self.state.showContainerColor())
+            Gui:beginStackContainer()
+            Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+            Gui:setBorderWidth(1)
+        else
+            Gui:beginStackContainer()
+            Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+        end
+
+        Gui:clearStyle()
 
         if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
             Gui:beginHorizontalContainer()
@@ -101,10 +106,8 @@ function Container:new(args)
 
         Gui:endContainer()
 
-        if self.state.showContainer() then
-            Gui:endContainer()
-            Gui:setPercentSize(100, 100)
-        end
+        Gui:endContainer()
+        Gui:setPercentSize(100, 100)
 
         Gui:clearStyle() -- clear style so it doesn´t affect other components
     end

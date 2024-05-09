@@ -85,6 +85,8 @@ local menuGrid = UILayout.Grid {
                     fn = function()
                         Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0, 0, 0, 0.3))
                         Gui:beginStackContainer()
+                        Gui:setPercentSize(100, 100)
+                        Gui:beginStackContainer()
                         Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
                         Gui:image(logo)
                         Gui:setPercentSize(100, 42)
@@ -94,6 +96,7 @@ local menuGrid = UILayout.Grid {
                         Gui:setPaddingBottom(10)
                         Gui:setPaddingLeft(5)
                         Gui:setPercentSize(100, 100)
+                        Gui:endContainer()
                     end },
                 UIComponent.Container {
                     align = { AlignHorizontal.Stretch, AlignVertical.Top },
