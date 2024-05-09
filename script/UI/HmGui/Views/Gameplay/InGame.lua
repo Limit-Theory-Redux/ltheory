@@ -10,10 +10,10 @@ local Bindings = require('States.ApplicationBindings')
 ---@type AIActions
 local Actions = requireAll('GameObjects.Actions')
 
-local autoNavigationActive = false
-
 function InGame:onInput()
-    if InputInstance:isPressed(Bindings.SystemMap) then
+    if InputInstance:isPressed(Bindings.Escape) then
+        UIRouter:getCurrentPage():setView("Paused")
+    elseif InputInstance:isPressed(Bindings.SystemMap) then
         UIRouter:getCurrentPage():setView("System_Map")
     elseif InputInstance:isPressed(Bindings.CameraFirstPerson) then
         if GameState.player.currentCamera ~= Enums.CameraMode.FirstPerson then

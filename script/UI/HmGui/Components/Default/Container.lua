@@ -67,20 +67,18 @@ function Container:new(args)
 
         if self.state.showContainer() then
             Gui:setPropertyColor(GuiProperties.BorderColor, self.state.showContainerColor())
-            Gui:beginStackContainer()
-            Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
-            Gui:setBorderWidth(1)
-        else
-            Gui:beginStackContainer()
-            Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
         end
-
-        Gui:clearStyle()
 
         if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
             Gui:beginHorizontalContainer()
         elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
             Gui:beginVerticalContainer()
+        end
+
+        Gui:clearStyle() -- clear properties
+
+        if self.state.showContainer() then
+            Gui:setBorderWidth(1)
         end
 
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
@@ -105,10 +103,8 @@ function Container:new(args)
         end -- this allows containers without any content
 
         Gui:endContainer()
-
-        Gui:endContainer()
-        Gui:setPercentSize(100, 100)
-
+        Gui:setPercentWidth(100)
+        Gui:setPercentHeight(100)
         Gui:clearStyle() -- clear style so it doesn´t affect other components
     end
 

@@ -10,6 +10,8 @@ local ShipCreationView = require("UI.HmGui.Views.Gameplay.ShipCreation")
 Gameplay:addViewToPage(ShipCreationView)
 local InGameView = require("UI.HmGui.Views.Gameplay.InGame")
 Gameplay:addViewToPage(InGameView)
+local PausedView = require("UI.HmGui.Views.Gameplay.Paused")
+Gameplay:addViewToPage(PausedView)
 local SystemMapView = require("UI.HmGui.Views.Gameplay.SystemMap")
 Gameplay:addViewToPage(SystemMapView)
 
