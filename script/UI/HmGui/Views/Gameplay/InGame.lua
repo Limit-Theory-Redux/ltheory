@@ -50,9 +50,7 @@ end
 function InGame:onUpdate(dt) end
 
 function InGame:onViewOpen(isPageOpen)
-    if isPageOpen then
-        GameState:SetState(Enums.GameStates.InGame)
-    end
+    GameState:SetState(Enums.GameStates.InGame)
 end
 
 return InGame
