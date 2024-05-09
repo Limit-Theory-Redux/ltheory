@@ -293,9 +293,8 @@ function InitFiles:writeUserInits()
             -- excluded
             if string.match(l_Variable, "current")
                 or string.match(l_Variable, "lastCamera")
-                or string.match(l_Variable, "playerMoving")
                 or string.match(l_Variable, "weaponGroup")
-                or string.match(l_Variable, "autonavTimestamp")
+                or string.match(l_Variable, "autonavActive")
                 or string.match(l_Variable, "mapSystemZoom") then
                 do
                     pass = false

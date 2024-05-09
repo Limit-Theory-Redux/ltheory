@@ -12,7 +12,9 @@ local Nebula = require('GameObjects.Entities.Objects.Nebula')
 local Words = require('Systems.Gen.Words')
 local HUD = require('Systems.Overlay.HUD')
 
+---@class StarSystem: Entity
 local System = subclass(Entity, function(self, seed)
+    ---@type RandomNumberGenerator
     self.rng = RNG.Create(seed):managed()
 
     self:setName(Words.getCoolName(self.rng))
@@ -60,14 +62,66 @@ local System = subclass(Entity, function(self, seed)
     end
 end)
 
-function System:addStar(star)
-    insert(self.stars, star)
+function System:generate()
+    -- get or gen system composition
+    if not self.composition then
+        self.composition = {
+            stars = {},
+            planets = {},
+            asteroidFields = {},
+            misc = {}
+        }
+
+        --! stars currently not implemented
+        --for i = 1, self.rng:getInt(1, Config.gen.nSystemStars) do
+        --    local star = Star:generate(self.rng)
+        --    table.insert(self.composition.stars, self:addStar())
+        --end
+
+        if GameState.gen.debug then
+            -- hardcoded system generation values
+            -- gen planets
+            for i = 1, GameState.gen.nPlanets do
+                local planet = self:spawnPlanet(false) --! temp hardcode to no asteroid belt
+                table.insert(self.composition.planets, planet)
+            end
+
+            -- gen asteroid fields
+            for i = 1, GameState.gen.nFields do
+                local asteroidField = self:spawnAsteroidField(GameState.gen.nAsteroids, false)
+                table.insert(self.composition.asteroidFields, asteroidField)
+            end
+        else
+            -- seed based system generation values
+            -- gen planets
+            for i = 1, self.rng:getInt(0, GameState.gen.nPlanetsMax) do
+                local planet = self:spawnPlanet(false) --! temp hardcode to no asteroid belt
+                table.insert(self.composition.planets, planet)
+            end
+
+            -- gen asteroid fields
+            for i = 1, self.rng:getInt(0, GameState.gen.nFieldsMax) do
+                local asteroidField = self:spawnAsteroidField(GameState.gen.nAsteroids, false)
+                table.insert(self.composition.asteroidFields, asteroidField)
+            end
+        end
+    end
+
+
+
+
+    -- gen factions
+
+    -- gen stations
+
+    -- gen ships
 end
 
 function System:getStars()
     return self.stars
 end
 
+---@param planet Planet
 function System:addPlanet(planet)
     insert(self.planets, planet)
 end
@@ -76,6 +130,7 @@ function System:getPlanets()
     return self.planets
 end
 
+---@param zone Zone
 function System:addZone(zone)
     insert(self.zones, zone)
 end
@@ -84,10 +139,12 @@ function System:getZones()
     return self.zones
 end
 
+---@param rng RandomNumberGenerator
 function System:sampleZones(rng)
     return rng:choose(self.zones)
 end
 
+---@param station Station
 function System:addStation(station)
     insert(self.stations, station)
 end
@@ -96,6 +153,7 @@ function System:getStations()
     return self.stations
 end
 
+---@param ship Ship
 function System:getStationsByDistance(ship)
     -- Return a table of stations sorted by nearest first
     local stationList = {}
@@ -111,10 +169,12 @@ function System:getStationsByDistance(ship)
     return stationList
 end
 
+---@param rng RandomNumberGenerator
 function System:sampleStations(rng)
     return rng:choose(self.stations)
 end
 
+---@param ship Ship
 function System:addShip(ship)
     insert(self.ships, ship)
 end
@@ -123,6 +183,7 @@ function System:getShips()
     return self.ships
 end
 
+---@param prodtype ProductionType
 function System:hasProdType(prodtype)
     -- Scan the production types of all factories in this system to see if one has the specified production type
     local hasProdType = false
@@ -138,6 +199,7 @@ function System:hasProdType(prodtype)
     return hasProdType
 end
 
+---@param prodtype ProductionType
 function System:countProdType(prodtype)
     -- Scan the production types of all factories in this system to see how many of the specified production type exist
     local numProdType = 0
@@ -152,6 +214,9 @@ function System:countProdType(prodtype)
     return numProdType
 end
 
+---@param system StarSystem
+---@param planetCount integer
+---@param aiPlayer Player
 function System:addExtraFactories(system, planetCount, aiPlayer)
     -- Based on what factories were added randomly to stations, a system may need some
     -- additional factories to provide the necessary Input items
@@ -207,6 +272,8 @@ function System:addExtraFactories(system, planetCount, aiPlayer)
     end
 end
 
+---@param object Entity
+---@param spawnOutOfAsteroidZone boolean
 function System:place(object, spawnOutOfAsteroidZone)
     -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
     -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
@@ -216,68 +283,10 @@ function System:place(object, spawnOutOfAsteroidZone)
     local field = self:sampleZones(self.rng)
     local counter = 1
 
-    if field and not spawnOutOfAsteroidZone then
+    if field then
         pos = field:getRandomPos(self.rng) -- place new object within a random field
-        -- Stations
-        if typeName == "Station" then
-            -- TODO: inefficient way of doing this. replace later.
-            local validSpawn = false
-            while not validSpawn do
-                local stations = self.stations
-
-                local function checkDistanceToAllStations(pos)
-                    for _, station in ipairs(stations) do
-                        if pos:distance(station:getPos()) < Config.gen.stationMinimumDistance then
-                            Log.Debug("New Station closer than " ..
-                                Config.gen.stationMinimumDistance .. " (" ..
-                                math.floor(pos:distance(station:getPos())) ..
-                                ") to station: '" .. station:getName() .. "'. Finding New Position.")
-                            return false
-                        end
-                    end
-                    return true
-                end
-
-                local function checkIfInSystem(pos)
-                    if Config.gen.scaleSystem < 5e4 then
-                        local distanceFromOrigin = pos:distance(Config.gen.origin)
-                        -- TODO: replace later with actual system size
-                        if distanceFromOrigin > 200000 then
-                            Log.Debug("New Station too far away from system core: " ..
-                                math.floor(distanceFromOrigin) .. ". Finding New Position.")
-                            return false
-                        end
-                        return true
-                    end
-                end
-
-                do
-                    if counter >= Config.gen.minimumDistancePlacementMaxTries then
-                        Log.Debug("Exceeded max placement tries, placing at last random position: %s", pos)
-                        validSpawn = true
-                    elseif not checkIfInSystem(pos) or not checkDistanceToAllStations(pos) then
-                        pos = field:getRandomPos(self.rng)
-                        counter = counter + 1
-                    else
-                        Log.Debug("Found Position to Spawn: %s", pos)
-                        validSpawn = true
-                    end
-                end
-            end
-        end
-
-        -- Ships
-        if typeName == "Ship" then
-
-        end
-    elseif spawnOutOfAsteroidZone then
-        local minPirateStationSpawnPositionScale = math.floor(Config.gen.scaleSystem * 0.9)
-        pos = Vec3f(self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem), 0,
-            self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem)) -- place new object _near_ the origin
-    else
-        pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000))         -- place new object _near_ the origin
+        object:setPos(pos)
     end
-    object:setPos(pos)
     -- Return the Asteroid Field zone in which the object is being placed
     return field
 end
@@ -302,6 +311,7 @@ function System:endRender()
     ShaderVar.Pop('irMap')
 end
 
+---@param dt integer
 function System:update(dt)
     if not GameState.paused then
         -- pre-physics update
@@ -344,6 +354,7 @@ end
 -- OBJECT CREATION --
 ---------------------
 
+---@param bAddBelt boolean
 function System:spawnPlanet(bAddBelt)
     local rng = self.rng
 
@@ -488,11 +499,11 @@ function System:spawnPlanet(bAddBelt)
             asteroid:setSubType(Config:getObjectTypeByName("asteroid_subtypes", "Silicaceous"))
 
             -- Give the individual asteroid a name
-            local asteroidName = System:getAsteroidName(self, rng)
+            local asteroidName = System:getAsteroidName()
             asteroid:setName(format("%s", asteroidName))
 
             -- Possibly give the new asteroid minable Yield
-            System:setAsteroidYield(rng, asteroid)
+            System:setAsteroidYield(asteroid)
 
             -- Place the new asteroid in a torus around the planet
             asteroid:setPos(center + Vec3f(r * dir.x, h, r * dir.y))
@@ -513,6 +524,8 @@ function System:spawnPlanet(bAddBelt)
     return planet
 end
 
+---@param count integer
+---@param reduced boolean
 function System:spawnAsteroidField(count, reduced)
     -- Spawn a new asteroid field (a zone containing individual asteroids)
     local rng = self.rng
@@ -551,7 +564,7 @@ function System:spawnAsteroidField(count, reduced)
         asteroid:setSubType(Config:getObjectTypeByName("asteroid_subtypes", "Silicaceous"))
 
         -- Give the individual asteroid a name
-        local asteroidName = System:getAsteroidName(self, rng)
+        local asteroidName = self:getAsteroidName()
         asteroid:setName(format("%s", asteroidName))
         --Log.Debug("Added %s '%s'", Config.objectInfo[1]["elems"][asteroid:getType()][2], asteroid:getName())
 
@@ -578,7 +591,7 @@ function System:spawnAsteroidField(count, reduced)
         asteroid:setRot(rng:getQuat())
 
         -- TODO: Replace with actual system for generating minable materials in asteroids
-        System:setAsteroidYield(rng, asteroid)
+        self:setAsteroidYield(asteroid)
 
         -- Asteroids are added both to this new AsteroidField (Zone) and as a child of this System
         -- TODO: add asteroids only to Zones, and let Systems iterate through zones for child objects to render
@@ -598,30 +611,33 @@ function System:spawnAsteroidField(count, reduced)
     return zone
 end
 
-function System:getAsteroidName(self, rng)
+---@param rng RandomNumberGenerator
+function System:getAsteroidName()
     local aNum = ""
-    local namernd = rng:getInt(0, 100)
+    local namernd = self.rng:getInt(0, 100)
     if namernd < 60 then
-        aNum = tostring(rng:getInt(11, 99)) .. " "
+        aNum = tostring(self.rng:getInt(11, 99)) .. " "
     elseif namernd < 85 then
-        aNum = tostring(rng:getInt(101, 999)) .. " "
+        aNum = tostring(self.rng:getInt(101, 999)) .. " "
     else
-        aNum = tostring(rng:getInt(1001, 9999)) .. " "
+        aNum = tostring(self.rng:getInt(1001, 9999)) .. " "
     end
 
     return (aNum .. Words.getCoolName(self.rng))
 end
 
-function System:setAsteroidYield(rng, asteroid)
+---@param rng RandomNumberGenerator
+---@param asteroid Asteroid
+function System:setAsteroidYield(asteroid)
     -- TODO: Replace with actual system for generating minable materials in asteroids
     -- Start with a 70% chance that an asteroid will have any yield at all
-    if rng:getInt(0, 100) < 70 then
+    if self.rng:getInt(0, 100) < 70 then
         local amass = math.floor(asteroid:getMass() / 1000)
         local itemT2 = Item.T2
         table.sort(itemT2, function(a, b) return a.distribution < b.distribution end)
         local itemType = nil
         local ichance = 0.0
-        local uval = rng:getUniformRange(0.00, 1.00)
+        local uval = self.rng:getUniformRange(0.00, 1.00)
         for i, item in ipairs(itemT2) do
             ichance = ichance + item.distribution
             if uval < ichance then -- pick a minable material based on distribution %
@@ -632,10 +648,12 @@ function System:setAsteroidYield(rng, asteroid)
         if itemType == nil then
             itemType = Item.Silicates
         end
-        asteroid:addYield(itemType, math.max(1, math.floor(rng:getUniformRange(amass / 2, amass))))
+        asteroid:addYield(itemType, math.max(1, math.floor(self.rng:getUniformRange(amass / 2, amass))))
     end
 end
 
+---@param station Station
+---@param hullSize HullSize
 local function addStationComponents(station, hullSize)
     -- Add all components to this station
     -- TODO: For now, every socket gets one of the appropriate components. Later, this must be replaced by:
@@ -745,6 +763,9 @@ local function addStationComponents(station, hullSize)
     end
 end
 
+---@param hullSize HullSize
+---@param player Player
+---@param prodType ProductionType
 function System:spawnStation(hullSize, player, prodType)
     local rng = self.rng
 
@@ -842,6 +863,8 @@ function System:spawnStation(hullSize, player, prodType)
     return station
 end
 
+---@param hullSize HullSize
+---@param player Player
 function System:spawnPirateStation(hullSize, player)
     local rng = self.rng
     -- Spawn a new space station
@@ -896,6 +919,9 @@ function System:spawnPirateStation(hullSize, player)
     return station
 end
 
+---@param shipCount integer
+---@param action AIAction
+---@param player Player
 function System:spawnAI(shipCount, action, player)
     -- Spawn a number of independent AI-controlled ships
     local rng = self.rng
@@ -908,6 +934,8 @@ function System:spawnAI(shipCount, action, player)
     end
 end
 
+---@param hullSize HullSize
+---@param player Player
 function System:spawnShip(hullSize, player)
     -- Spawn a new ship (with a new ship type)
     local shipHull = hullSize

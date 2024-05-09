@@ -7,9 +7,11 @@ Config.gen = {
     origin                           = Vec3f(0, 0, 0), -- Set far from zero to test engine precision
 
     nFields                          = 1,
+    nFieldsMax                       = 1,
     nFieldSize                       = function(rng) return 200 * (rng:getExp() + 1.0) end,
     nAsteroids                       = 150, -- asteroids per asteroid field (smaller = less CPU hit)
     nPlanets                         = 1,
+    nPlanetsMax                      = 1,
     nStations                        = 1,
     nBeltSize                        = function(rng) return 0 end, -- asteroids per planetary belt
 

@@ -2,7 +2,8 @@ Enums.GameStates = {
     Splashscreen = 0,
     MainMenu = 1,
     Menu = 2,
-    ShipCreation = 3,
-    InGame = 4,
-    Quickstart = 5
+    LoadingScreen = 3,
+    ShipCreation = 4,
+    InGame = 5,
+    Quickstart = 6
 }

@@ -5,6 +5,8 @@ local PlayView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type RandomNumberGenerator
+local rng = RNG.FromTime()
 
 function PlayView:onInput() end
 function PlayView:onUpdate(dt) end
@@ -29,6 +31,14 @@ end
 
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
+end
+
+local function newGameRandomSeed()
+    ---@type Universe
+    local Universe = require("Systems.Universe.Universe")
+    -- we want to create a new universe, do this here so loading screen knows what to load
+    Universe:init(rng:get64())
+    UIRouter:setCurrentPage("Loading_Screen")
 end
 
 local playGrid = UILayout.Grid {
@@ -150,7 +160,8 @@ local playGrid = UILayout.Grid {
                                     title = "Random Seed",
                                     width = getButtonWidth,
                                     height = getButtonHeight,
-                                    align = { AlignHorizontal.Center, AlignVertical.Center }
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    callback = newGameRandomSeed
                                 }
                             }
                         },

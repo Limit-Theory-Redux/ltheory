@@ -82,6 +82,7 @@ end
 
 function TitleView:onViewOpen(isPageOpen)
     if isPageOpen then
+        GameState:SetState(Enums.GameStates.Splashscreen)
         MusicPlayer:QueueTrack(GameState.audio.menuTheme, true)
         timeOpened = TimeStamp.Now()
     end

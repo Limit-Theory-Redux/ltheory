@@ -67,7 +67,7 @@ function DebugWindow:createProfilingText()
                         end
                         return total
                     end))
-                    --[[
+                --[[
                     :add(UI.Label('Awake Rigidbodies'))
                     :add(UI.Label():setPollFn(function()
                         local total = 0
@@ -122,8 +122,8 @@ function DebugWindow:createAudioSection()
 end
 
 function DebugWindow:createUISection()
-    local canvas      = self.ltheory.canvas
-    local state       = self.ltheory.canvas.state
+    local canvas      = GameState.render.uiCanvas
+    local state       = GameState.render.uiCanvas.state
     local uiDebugGrid = UI.Grid()
 
     return UI.NavGroup()

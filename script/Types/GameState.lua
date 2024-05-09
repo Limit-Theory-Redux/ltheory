@@ -1,8 +1,9 @@
 -- For dynamic states
 GameState = {
-    state           = Enums.GameStates.Splashscreen,        -- previously gamemode
+    state           = Enums.GameStates.Splashscreen, -- previously gamemode
+    appState        = nil,                           -- ApplicationGlobal ? needed
     paused          = false,
-    panelActive     = false,                                -- indicates whether MasterControl panel is enabled or not
+    panelActive     = false,                         -- indicates whether MasterControl panel is enabled or not
     skipTitleScreen = false,
 }
 
@@ -29,6 +30,7 @@ GameState.render = {
     fullscreen      = Config.render.fullscreen,
     gameWindow      = nil,
     gameView        = nil,
+    uiCanvas        = nil,
     resX            = Config.render.defaultResX,
     resY            = Config.render.defaultResY,
     presentMode     = Config.render.presentMode,
@@ -86,7 +88,6 @@ GameState.player = {
     playerFactionName    = "[Human Player Faction]",
 
     currentControl       = Config.ui.general.defaultControl,
-    playerMoving         = false,
 
     currentShip          = nil,
     shipHull             = Enums.ShipHulls.Solo,
@@ -100,7 +101,7 @@ GameState.player = {
     currentMapSystemZoom = 0.001,
     currentMapSystemPan  = 40.0,
 
-    autonavTimestamp     = nil,
+    autonavActive        = false,
 }
 
 GameState.world = {
@@ -110,8 +111,10 @@ GameState.world = {
 
 GameState.gen = {
     nFields               = Config.gen.nFields,
+    nFieldsMax            = Config.gen.nFieldsMax,
     nAsteroids            = Config.gen.nAsteroids,
     nPlanets              = Config.gen.nPlanets,
+    nPlanetsMax           = Config.gen.nPlanetsMax,
     nStations             = Config.gen.nStations,
     nAIPlayers            = Config.gen.nAIPlayers,
     randomizeAIPlayers    = Config.gen.randomizeAIPlayers,

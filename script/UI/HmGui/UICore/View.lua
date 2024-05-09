@@ -99,6 +99,9 @@ function View:new(args)
                 ::skip::
             end
         else
+            if not self.contents[1] then
+                return
+            end
             -- if component is set to not visible
             if self.contents[1].state.visible and not self.contents[1].state.visible() then
                 return

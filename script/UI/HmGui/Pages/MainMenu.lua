@@ -20,7 +20,7 @@ local CreditsView = require("UI.HmGui.Views.MainMenu.Credits")
 MainMenu:addViewToPage(CreditsView)
 
 ---! debug only
-local bgTesting = Tex2D.Load("./res/images/Background-for-testing2.png")
+--local bgTesting = Tex2D.Load("./res/images/Background-for-testing2.png")
 
 function MainMenu:onInput()
     if InputInstance:isPressed(Button.MouseRight) then
