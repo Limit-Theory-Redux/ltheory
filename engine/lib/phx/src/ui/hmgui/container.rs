@@ -27,6 +27,7 @@ pub struct HmGuiContainer {
     pub padding_upper: Vec2,
     pub spacing: f32,
 
+    pub clip: bool,
     pub children_hash: u32,
     pub offset: Vec2, // TODO: move to widget?
     pub total_stretch: Vec2,
@@ -253,7 +254,7 @@ impl HmGuiContainer {
         children_size + self.padding_lower + self.padding_upper
     }
 
-    fn calculate_children_layout<const HStretch: bool, const VStretch: bool>(
+    fn calculate_children_layout<const HSTRETCH: bool, const VSTRETCH: bool>(
         &self,
         hmgui: &mut HmGui,
         mut pos: Vec2,
@@ -287,11 +288,11 @@ impl HmGuiContainer {
 
                     widget.layout(hmgui);
 
-                    if !HStretch {
+                    if !HSTRETCH {
                         children_size.x = children_size.x.max(widget.size.x);
                     }
 
-                    if !VStretch {
+                    if !VSTRETCH {
                         children_size.y = children_size.y.max(widget.size.y);
                     }
                 }
@@ -312,7 +313,7 @@ impl HmGuiContainer {
 
                     widget.layout(hmgui);
 
-                    if !HStretch {
+                    if !HSTRETCH {
                         children_size.x += widget.size.x + spacing;
                         spacing = self.spacing;
                     }
@@ -336,7 +337,7 @@ impl HmGuiContainer {
 
                     widget.layout(hmgui);
 
-                    if !VStretch {
+                    if !VSTRETCH {
                         children_size.y += widget.size.y + spacing;
                         spacing = self.spacing;
                     }
@@ -446,10 +447,9 @@ impl HmGuiContainer {
     }
 
     pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
-        let clip = hmgui.get_property_bool(HmGuiProperties::ContainerClip.id());
+        hmgui.renderer.begin_layer(pos, size, self.clip);
 
-        hmgui.renderer.begin_layer(pos, size, clip);
-
+        // TODO: [optimization] do not draw children outside of clipped container or screen
         for widget_rf in self.children.iter().rev() {
             widget_rf.as_ref().draw(hmgui);
         }
@@ -475,7 +475,7 @@ impl HmGuiContainer {
         println!("{ident_str}- children[{}]:", self.children.len());
 
         for head_rf in &self.children {
-            head_rf.as_ref().dump(ident + 1);
+            head_rf.as_ref().dump("CHILDREN", ident + 1);
         }
     }
 }

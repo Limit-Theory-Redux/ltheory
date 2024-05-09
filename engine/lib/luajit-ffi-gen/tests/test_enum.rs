@@ -1,5 +1,3 @@
-mod utils;
-
 use luajit_ffi_gen::luajit_ffi;
 
 #[luajit_ffi(name = "My_Enum1", start_index = 3, lua_ffi = false)]
