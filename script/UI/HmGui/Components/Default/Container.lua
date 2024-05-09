@@ -88,7 +88,7 @@ function Container:new(args)
         end
 
         if self.state.height then
-            Gui:setPercentHeight(self.state.width() * 100)
+            Gui:setPercentHeight(self.state.height() * 100)
         end
 
         if #self.state.contents() > 1 then
