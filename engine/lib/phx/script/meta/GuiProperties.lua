@@ -16,7 +16,7 @@ GuiProperties = {
     ---Default value: Color :: TRANSPARENT
     HighlightColor = 3,
     ---Config name: text.font
-    ---Default value: Font :: load("Rajdhani", 14)
+    ---Default value: Font :: load ("Rajdhani" , 14)
     TextFont = 4,
     ---Config name: text.color
     ---Default value: Color :: WHITE
@@ -36,11 +36,11 @@ GuiProperties = {
     ---Maps to: BorderColor
     ButtonRectBorderColor = 9,
     ---Config name: button.rect.background-color
-    ---Default value: Color :: new(0.15, 0.15, 0.15, 0.8)
+    ---Default value: Color :: new (0.15 , 0.15 , 0.15 , 0.8)
     ---Maps to: BackgroundColor
     ButtonRectBackgroundColor = 10,
     ---Config name: button.rect.highlight-color
-    ---Default value: Color :: new(0.1, 0.5, 1.0, 1.0)
+    ---Default value: Color :: new (0.1 , 0.5 , 1.0 , 1.0)
     ---Maps to: HighlightColor
     ButtonRectHighlightColor = 11,
     ---Config name: button.text.opacity
@@ -56,7 +56,7 @@ GuiProperties = {
     ---Maps to: HighlightColor
     ButtonTextHighlightColor = 14,
     ---Config name: button.text.font
-    ---Default value: Font :: load("Rajdhani", 14)
+    ---Default value: Font :: load ("Rajdhani" , 14)
     ---Maps to: TextFont
     ButtonTextFont = 15,
     ---Config name: button.text.color
@@ -72,11 +72,11 @@ GuiProperties = {
     ---Maps to: BorderColor
     CheckboxRectBorderColor = 18,
     ---Config name: checkbox.rect.background-color
-    ---Default value: Color :: new(0.3, 0.3, 0.3, 0.5)
+    ---Default value: Color :: new (0.3 , 0.3 , 0.3 , 0.5)
     ---Maps to: BackgroundColor
     CheckboxRectBackgroundColor = 19,
     ---Config name: checkbox.rect.highlight-color
-    ---Default value: Color :: new(0.3, 0.3, 0.3, 1.0)
+    ---Default value: Color :: new (0.3 , 0.3 , 0.3 , 1.0)
     ---Maps to: HighlightColor
     CheckboxRectHighlightColor = 20,
     ---Config name: checkbox.text.opacity
@@ -92,7 +92,7 @@ GuiProperties = {
     ---Maps to: HighlightColor
     CheckboxTextHighlightColor = 23,
     ---Config name: checkbox.text.font
-    ---Default value: Font :: load("Rajdhani", 14)
+    ---Default value: Font :: load ("Rajdhani" , 14)
     ---Maps to: TextFont
     CheckboxTextFont = 24,
     ---Config name: checkbox.text.color
@@ -100,7 +100,7 @@ GuiProperties = {
     ---Maps to: TextColor
     CheckboxTextColor = 25,
     ---Config name: checkbox.click-area.border-color
-    ---Default value: Color :: new(0.1, 0.1, 0.1, 0.5)
+    ---Default value: Color :: new (0.1 , 0.1 , 0.1 , 0.5)
     ---Maps to: BorderColor
     CheckboxClickAreaBorderColor = 26,
     ---Config name: checkbox.click-area.background-color
@@ -112,7 +112,7 @@ GuiProperties = {
     ---Maps to: HighlightColor
     CheckboxClickAreaHighlightColor = 28,
     ---Config name: checkbox.click-area.selected-color
-    ---Default value: Color :: new(0.1, 0.5, 1.0, 1.0)
+    ---Default value: Color :: new (0.1 , 0.5 , 1.0 , 1.0)
     CheckboxClickAreaSelectedColor = 29,
     ---Config name: scroll-area.hscroll.show
     ---Default value: true
@@ -127,7 +127,7 @@ GuiProperties = {
     ---Default value: 4f32
     ScrollAreaScrollbarLength = 33,
     ---Config name: scroll-area.scrollbar.background-color
-    ---Default value: Color :: new(0.3, 0.3, 0.3, 0.3)
+    ---Default value: Color :: new (0.3 , 0.3 , 0.3 , 0.3)
     ScrollAreaScrollbarBackgroundColor = 34,
     ---Config name: scroll-area.scrollbar.visibility-fading
     ---Default value: true
@@ -141,7 +141,7 @@ GuiProperties = {
     ---Default value: 200u64
     ScrollAreaScrollbarVisibilityFadeTime = 37,
     ---Config name: scroll-area.scrollbar.knob-color
-    ---Default value: Color :: new(0.1, 0.1, 0.1, 0.5)
+    ---Default value: Color :: new (0.1 , 0.1 , 0.1 , 0.5)
     ScrollAreaScrollbarKnobColor = 38,
 }
 

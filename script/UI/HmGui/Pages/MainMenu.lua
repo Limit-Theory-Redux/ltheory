@@ -66,7 +66,8 @@ local backgroundContainer =
         stackDirection = Enums.UI.StackDirection.Vertical,
         contents = {
             UIComponent.RawInput { fn = function()
-                Gui:setBorder(0.0001, Color(1.0, 1.0, 1.0, 0.5))
+                Gui:setBorderWidth(0.00001)
+                Gui:setPropertyColor(GuiProperties.BorderColor, Color(1.0, 1.0, 1.0, 1.0)) --! using border as theres currently no other way
                 Gui:image(bgTesting)
                 Gui:setPercentSize(100, 100)
             end

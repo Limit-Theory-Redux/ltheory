@@ -69,8 +69,8 @@ function Button:new(args)
         -- no need for an if check, since we always have a default defined
         Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font(self.state.font().name, self.state.font().size))
         Gui:setPropertyColor(GuiProperties.ButtonTextColor, self.state.color().text)
-        Gui:setPropertyColor(GuiProperties.ButtonBackgroundColor, self.state.color().background)
-        Gui:setPropertyColor(GuiProperties.ButtonHighlightColor, self.state.color().highlight)
+        Gui:setPropertyColor(GuiProperties.BackgroundColor, self.state.color().background)
+        Gui:setPropertyColor(GuiProperties.ButtonTextHighlightColor, self.state.color().highlight)
 
         if Gui:button(self.state.title()) then
             if self.state.sound then

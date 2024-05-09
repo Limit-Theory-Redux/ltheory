@@ -124,7 +124,6 @@ local titleContainer = UIComponent.Container {
     contents = {
         UIComponent.RawInput { fn = function()
             Gui:beginStackContainer()
-            Gui:setBorder(0.0001, Color(1.0, 1.0, 1.0, logoOpacity)) --! using border as theres currently no other way
             Gui:image(logo)
             Gui:setFixedSize(getScaledImageSize((GameState.render.resX - 400) * logoScale,
                 (GameState.render.resY - 400) * logoScale, 1240, 240))

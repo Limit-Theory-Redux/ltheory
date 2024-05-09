@@ -83,10 +83,9 @@ local menuGrid = UILayout.Grid {
                 UIComponent.RawInput {
                     heightInLayout = 2 / 10,
                     fn = function()
-                        Gui:setBgColor(Color(0, 0, 0, 0.3))
+                        Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0, 0, 0, 0.3))
                         Gui:beginStackContainer()
                         Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
-                        Gui:setBorder(0.0001, Color(1.0, 1.0, 1.0, 1)) --! using border for logo color as theres currently no other way
                         Gui:image(logo)
                         Gui:setPercentSize(100, 42)
                         Gui:endContainer()

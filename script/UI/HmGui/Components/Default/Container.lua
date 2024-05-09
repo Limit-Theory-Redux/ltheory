@@ -63,12 +63,13 @@ function Container:new(args)
         if self.state.showContainer() then
             Gui:beginStackContainer()
             Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
-            Gui:setBorder(1, self.state.showContainerColor())
+            Gui:setBorderWidth(1)
+            Gui:setPropertyColor(GuiProperties.BorderColor, self.state.showContainerColor())
         end
 
         -- color
         if self.state.color().background then
-            Gui:setBgColor(self.state.color().background)
+            Gui:setPropertyColor(GuiProperties.BackgroundColor, self.state.color().background)
         end
 
         if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then

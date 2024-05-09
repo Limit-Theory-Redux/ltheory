@@ -68,7 +68,8 @@ function Grid:new(args)
                 if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
                     if self.state.showGrid() then
                         Gui:beginStackContainer()
-                        Gui:setBorder(2, self.state.showGridColor())
+                        Gui:setBorderWidth(2)
+                        Gui:setPropertyColor(GuiProperties.BorderColor, self.state.showGridColor())
                         Gui:setPercentSize(100, 100)
                         Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font("Exo2", 14))
                         Gui:setPropertyColor(GuiProperties.TextColor, self.state.showGridColor())
@@ -92,7 +93,8 @@ function Grid:new(args)
                 elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
                     if self.state.showGrid() then
                         Gui:beginStackContainer()
-                        Gui:setBorder(2, self.state.showGridColor())
+                        Gui:setBorderWidth(2)
+                        Gui:setPropertyColor(GuiProperties.BorderColor, self.state.showGridColor())
                         Gui:setPercentSize(100, 100)
                         Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font("Exo2", 14))
                         Gui:setPropertyColor(GuiProperties.TextColor, self.state.showGridColor())
