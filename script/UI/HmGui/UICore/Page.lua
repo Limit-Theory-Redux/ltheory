@@ -95,11 +95,19 @@ function Page:new(args)
         if self.onPageClose then
             self:onPageClose()
         end
+
+        if self:getCurrentView() then
+            self:getCurrentView():close(true)
+        end
     end
 
     newPage.open = function(self)
         if self.onPageOpen then
             self:onPageOpen()
+        end
+
+        if self:getCurrentView() then
+            self:getCurrentView():open(true)
         end
     end
 

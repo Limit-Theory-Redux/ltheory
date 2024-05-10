@@ -197,93 +197,45 @@ function Application:onFrame()
         Profiler.End()
     end
 
-    if MainMenu.inBackgroundMode then
-        if self.showBackgroundModeHints then
-            UI.DrawEx.TextAdditive(
-                'Exo2',
-                "[B] Generate new star system",
-                20,
-                self.resX / 2 - 20, self.resY - 150, 40, 20,
-                1, 1, 1, 1,
-                0.5, 0.5
-            )
-            UI.DrawEx.TextAdditive(
-                'Exo2',
-                "[H] Speed up time",
-                20,
-                self.resX / 2 - 20, self.resY - 125, 40, 20,
-                1, 1, 1, 1,
-                0.5, 0.5
-            )
-            UI.DrawEx.TextAdditive(
-                'Exo2',
-                "[K] Metrics display",
-                20,
-                self.resX / 2 - 20, self.resY - 100, 40, 20,
-                1, 1, 1, 1,
-                0.5, 0.5
-            )
-            UI.DrawEx.TextAdditive(
-                'Exo2',
-                "[V] Toggle hints",
-                20,
-                self.resX / 2 - 20, self.resY - 75, 40, 20,
-                1, 1, 1, 1,
-                0.5, 0.5
-            )
-        end
-    else
-        UI.DrawEx.TextAdditive(
-            'Unageo-Medium',
-            "WORK IN PROGRESS",
-            20,
-            self.resX / 2 - 20, 50, 40, 20,
-            0.75, 0.75, 0.75, 0.75,
-            0.5, 0.5
-        )
-
-        if GameState:GetCurrentState() >= Enums.GameStates.InGame then
-            UI.DrawEx.TextAdditive(
-                'Exo2',
-                "Build " .. Config.gameVersion,
-                12,
-                4, self.resY - 20, 40, 20,
-                0.75, 0.75, 0.75, 0.75,
-                0, 0.5
-            )
-        end
-    end
+    UI.DrawEx.TextAdditive(
+        'Unageo-Medium',
+        "WORK IN PROGRESS",
+        20,
+        self.resX / 2 - 20, 50, 40, 20,
+        0.75, 0.75, 0.75, 0.75,
+        0.5, 0.5
+    )
 
     if GameState:GetCurrentState() ~= Enums.GameStates.MainMenu then
-        if GameState.paused then
-            UI.DrawEx.TextAdditive(
-                'NovaRound',
-                "[PAUSED]",
-                24,
-                0, 0, self.resX, self.resY,
-                1, 1, 1, 1,
-                0.5, 0.99
-            )
-        end
+        --if GameState.paused then
+        --    UI.DrawEx.TextAdditive(
+        --        'NovaRound',
+        --        "[PAUSED]",
+        --        24,
+        --        0, 0, self.resX, self.resY,
+        --        1, 1, 1, 1,
+        --        0.5, 0.99
+        --    )
+        --end
 
-        if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
-            --TODO: replace this with a general "is alive" game state here and in LTR,
-            -- the whole process needs to be improved
-            if MainMenu and not MainMenu.dialogDisplayed and
-                not MainMenu.seedDialogDisplayed and
-                not MainMenu.settingsScreenDisplayed then
-                do
-                    UI.DrawEx.TextAdditive(
-                        'NovaRound',
-                        "[GAME OVER]",
-                        32,
-                        0, 0, self.resX, self.resY,
-                        1, 1, 1, 1,
-                        0.5, 0.5
-                    )
-                end
-            end
-        end
+        --if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
+        --    --TODO: replace this with a general "is alive" game state here and in LTR,
+        --    -- the whole process needs to be improved
+        --    if MainMenu and not MainMenu.dialogDisplayed and
+        --        not MainMenu.seedDialogDisplayed and
+        --        not MainMenu.settingsScreenDisplayed then
+        --        do
+        --            UI.DrawEx.TextAdditive(
+        --                'NovaRound',
+        --                "[GAME OVER]",
+        --                32,
+        --                0, 0, self.resX, self.resY,
+        --                1, 1, 1, 1,
+        --                0.5, 0.5
+        --            )
+        --        end
+        --    end
+        --end
     end
 
     -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed

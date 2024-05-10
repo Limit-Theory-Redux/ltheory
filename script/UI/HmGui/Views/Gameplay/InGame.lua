@@ -40,6 +40,8 @@ function InGame:onInput()
                     end
                 end
             else
+                GameState.player.currentShip.travelDriveActive = false --* temporary
+                GameState.player.currentShip.travelDriveTimer = 0      --* temporary
                 GameState.player.currentShip:clearActions()
                 GameState.player.autonavActive = false
             end
@@ -47,10 +49,24 @@ function InGame:onInput()
     end
 end
 
-function InGame:onUpdate(dt) end
+local unpausePlease = false
+
+function InGame:onUpdate(dt)
+    --* Temp fix for Paused.lua onViewClose
+    --* Why? - The game crashes if unpaused in the onInput loop. This has to be offset into the onUpdate loop. Needs further investigation.
+    if unpausePlease then
+        GameState:Unpause()
+        InputInstance:setCursorVisible(false)
+        unpausePlease = false
+    end
+end
 
 function InGame:onViewOpen(isPageOpen)
     GameState:SetState(Enums.GameStates.InGame)
+
+    if GameState.paused then
+        unpausePlease = true
+    end
 end
 
 return InGame

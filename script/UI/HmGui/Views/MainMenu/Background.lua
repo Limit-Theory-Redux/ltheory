@@ -86,7 +86,8 @@ local backgroundGrid = UILayout.Grid {
             contents = {
                 UIComponent.Container {
                     visible = getMenuVisible,
-                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+                    childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
                     padding = { 0, 10 },
                     margin = { 0, 0 },
                     stackDirection = Enums.UI.StackDirection.Vertical,

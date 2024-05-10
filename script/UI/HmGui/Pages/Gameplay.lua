@@ -20,4 +20,20 @@ function Gameplay:onUpdate(dt) end
 function Gameplay:onPageOpen() end
 function Gameplay:onPageClose() end
 
+local buildNumber = UIComponent.Container {
+    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+    childrenAlign = { AlignHorizontal.Left, AlignVertical.Bottom },
+    padding = { 5, 5 },
+    contents = {
+        UIComponent.Text {
+            text = "Build " .. Config.gameVersion,
+            font = "Unageo-Regular",
+            size = 12,
+            color = Color(0.75, 0.75, 0.75, 0.75)
+        }
+    }
+}
+
+Gameplay:addContent(buildNumber)
+
 return Gameplay

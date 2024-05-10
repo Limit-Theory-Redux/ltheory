@@ -42,17 +42,9 @@ function MainMenu:onInput()
     end
 end
 
-function MainMenu:onPageOpen()
-    if self:getCurrentView() then
-        self:getCurrentView():open(true)
-    end
-end
+function MainMenu:onPageOpen() end
 
-function MainMenu:onPageClose()
-    if self:getCurrentView() then
-        self:getCurrentView():close(true)
-    end
-end
+function MainMenu:onPageClose() end
 
 function MainMenu:onUpdate(dt) end
 
