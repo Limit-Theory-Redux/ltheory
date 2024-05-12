@@ -33,24 +33,6 @@ local function getRemainingWidthPercentage()
     return 1 - getLayoutContainerWidthPercentage()
 end
 
-local settingOptions = {
-    { false, nil, "Audio" },               -- checkbox for audio toggle
-    { false, nil, "Fullscreen" },          -- checkbox for fullscreen toggle
-    { 0,     nil, "Supersampling" },       -- value for enum of supersampling (anti-aliasing) mode
-    { 1,     nil, "Nebula Brightness" },   -- value for brightness scale of background nebula
-    { 0,     nil, "Cursor Style" },        -- value for enum of cursor style
-    { 0,     nil, "HUD Style" },           -- value for enum of HUD style
-    { false, nil, "Unique Ships" },        -- checkbox for unique ships toggle
-    { 0,     nil, "Asteroid Fields" },     -- value for number of asteroid fields
-    { 0,     nil, "Asteroids per Field" }, -- value for number of asteroids per field
-    { 0,     nil, "Planets" },             -- value for number of planets
-    { 0,     nil, "Stations" },            -- value for number of stations
-    { 0,     nil, "AI Players" },          -- value for number of AI Players
-    { 0,     nil, "EconNPCs" },            -- value for number of EconNPCs
-    { 0,     nil, "EscortNPCs" },          -- value for number of EscortNPCs
-    { 0,     nil, "Ship Size" },           -- value for hull type of player's ship
-}
-
 local settingsGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },

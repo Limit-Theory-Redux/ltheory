@@ -295,7 +295,8 @@ function InitFiles:writeUserInits()
                 or string.match(l_Variable, "lastCamera")
                 or string.match(l_Variable, "weaponGroup")
                 or string.match(l_Variable, "autonavActive")
-                or string.match(l_Variable, "mapSystemZoom") then
+                or string.match(l_Variable, "mapSystemZoom")
+                or string.match(l_Variable, "uiCanvas") then
                 do
                     pass = false
                 end
