@@ -12,7 +12,7 @@ local SoundManager = require("Systems.SFX.SoundManager")
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local Universe = require('Systems.Universe.Universe')
 
-LTheoryRedux = require('States.Application')
+LimitTheoryRedux = require('States.Application')
 
 --** LOCAL VARIABLES **--
 local newShip = nil
@@ -23,7 +23,7 @@ local smap = nil
 local rng = RNG.FromTime()
 
 --** MAIN CODE **--
-function LTheoryRedux:onInit()
+function LimitTheoryRedux:onInit()
     --* Value initializations *--
     self.logo            = Tex2D.Load("./res/images/LTR_logo2.png") -- load the full LTR logo
     self.logoname        = Tex2D.Load("./res/images/LTR-logo-name.png")
@@ -48,7 +48,7 @@ function LTheoryRedux:onInit()
     --* Game initializations *--
     WindowInstance:setSize(GameState.render.resX, GameState.render.resY)
     WindowInstance:setCenteredPosition()
-    LTheoryRedux:SetFullscreen(GameState.render.fullscreen)
+    LimitTheoryRedux:SetFullscreen(GameState.render.fullscreen)
 
     -- Set the default game control cursor
     -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
@@ -68,7 +68,7 @@ function LTheoryRedux:onInit()
     self:generate()
 end
 
-function LTheoryRedux:setCursor(cursorStyle, cursorX, cursorY)
+function LimitTheoryRedux:setCursor(cursorStyle, cursorX, cursorY)
     -- Set the game control cursor
     -- TODO: WindowInstance:cursor().setIcon(cursorStyle)
 
@@ -77,7 +77,7 @@ function LTheoryRedux:setCursor(cursorStyle, cursorX, cursorY)
     end
 end
 
-function LTheoryRedux:toggleSound()
+function LimitTheoryRedux:toggleSound()
     if GameState.audio.soundEnabled then
         self:SoundOff()
     else
@@ -85,29 +85,29 @@ function LTheoryRedux:toggleSound()
     end
 end
 
-function LTheoryRedux:SoundOn()
+function LimitTheoryRedux:SoundOn()
     GameState.audio.soundEnabled = true
-    --Log.Debug("LTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
+    --Log.Debug("LimitTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
     MusicPlayer:SetVolume(MusicPlayer.lastVolume)
 end
 
-function LTheoryRedux:SoundOff()
+function LimitTheoryRedux:SoundOff()
     GameState.audio.soundEnabled = false
-    --Log.Debug("LTheoryRedux:SoundOff: volume set to 0")
+    --Log.Debug("LimitTheoryRedux:SoundOff: volume set to 0")
     MusicPlayer:SetVolume(0)
 end
 
-function LTheoryRedux:ToggleFullscreen()
+function LimitTheoryRedux:ToggleFullscreen()
     GameState.render.fullscreen = not GameState.render.fullscreen
     WindowInstance:setFullscreen(GameState.render.fullscreen)
 end
 
-function LTheoryRedux:SetFullscreen(fullscreen)
+function LimitTheoryRedux:SetFullscreen(fullscreen)
     GameState.render.fullscreen = fullscreen
     WindowInstance:setFullscreen(fullscreen)
 end
 
-function LTheoryRedux:onInput()
+function LimitTheoryRedux:onInput()
     self.canvas:input()
 
     if GameState:GetCurrentState() == Enums.GameStates.InGame and GameState.player.currentControl == Enums.ControlModes.Ship then
@@ -161,7 +161,7 @@ function LTheoryRedux:onInput()
     end
 end
 
-function LTheoryRedux:onDraw()
+function LimitTheoryRedux:onDraw()
     -- Check to see whether to draw the System Map or the game world onto the canvas
     if bShowSystemMap then
         if not bSMapAdded then
@@ -187,7 +187,7 @@ function LTheoryRedux:onDraw()
     Gui:draw() -- draw controls
 end
 
-function LTheoryRedux:onUpdate(dt)
+function LimitTheoryRedux:onUpdate(dt)
     -- Routes
     GameState.player.humanPlayer:getRoot():update(dt)
     self.canvas:update(dt)
@@ -286,7 +286,7 @@ function LTheoryRedux:onUpdate(dt)
     Gui:beginGui(self.resX, self.resY, InputInstance)
 
     if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
-        LTheoryRedux:showGameLogo()
+        LimitTheoryRedux:showGameLogo()
     elseif MainMenu.currentMode == Enums.MenuMode.MainMenu then
         if not MainMenu.inBackgroundMode then
             if MainMenu.seedDialogDisplayed then
@@ -309,44 +309,44 @@ function LTheoryRedux:onUpdate(dt)
 
     --! temp hacking this in here
     if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
-        LTheoryRedux:showShipCreationHint()
+        LimitTheoryRedux:showShipCreationHint()
     end
     Gui:endGui(InputInstance)
 
     -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
     if InputInstance:isPressed(Bindings.NewBackground) and MainMenu.currentMode == Enums.MenuMode.MainMenu then
-        LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu)
+        LimitTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu)
     end
 
     -- If player pressed the "toggle audio" key (currently F8), turn audio off if it's on or on if it's off
     -- NOTE: This is now disabled as we can use Settings to control Audio on/off, but I'm
     -- preserving it temporarily in case we want it back for some reason
-    -- NOTE 2: This is currently the only place that calls LTheoryRedux:toggleSound(), so it might also be
+    -- NOTE 2: This is currently the only place that calls LimitTheoryRedux:toggleSound(), so it might also be
     -- a candidate for deletion if we do decide to yank the key-based audio toggle
     -- if InputInstance:isPressed(Bindings.ToggleSound) then
-    -- LTheoryRedux:toggleSound()
+    -- LimitTheoryRedux:toggleSound()
     -- end
 end
 
-function LTheoryRedux:generateNewSeed()
+function LimitTheoryRedux:generateNewSeed()
     self.seed = rng:get64()
 end
 
-function LTheoryRedux:generate()
+function LimitTheoryRedux:generate()
     GameState:SetState(Enums.GameStates.Splashscreen) -- start off in Startup Mode
 
     -- Use random seed for new background star system, and stay in "display game logo" startup mode
-    LTheoryRedux:seedStarsystem(Enums.MenuMode.Splashscreen)
+    LimitTheoryRedux:seedStarsystem(Enums.MenuMode.Splashscreen)
 end
 
-function LTheoryRedux:seedStarsystem(menuMode)
+function LimitTheoryRedux:seedStarsystem(menuMode)
     self.seed = rng:get64()
-    LTheoryRedux:createStarSystem()
+    LimitTheoryRedux:createStarSystem()
 
     MainMenu:SetMenuMode(menuMode)
 end
 
-function LTheoryRedux:createStarSystem()
+function LimitTheoryRedux:createStarSystem()
     if self.backgroundSystem then self.backgroundSystem:delete() end
 
     Log.Debug("------------------------")
@@ -404,7 +404,7 @@ function LTheoryRedux:createStarSystem()
 
     if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         -- TODO: replace with gamestate event system
-        Log.Debug("LTheoryRedux: PlayAmbient")
+        Log.Debug("LimitTheoryRedux: PlayAmbient")
         MusicPlayer:PlayAmbient()
 
         DebugControl.ltheory = self
@@ -430,7 +430,7 @@ function LTheoryRedux:createStarSystem()
     end
 end
 
-function LTheoryRedux:showGameLogo()
+function LimitTheoryRedux:showGameLogo()
     -- Draw the LTR game logo on top of the background star system
     local scaleFactor = ((self.resX * self.resY) / (1600 * 900)) ^ 0.5
     local scaleFactorX = self.resX / 1600
@@ -441,7 +441,7 @@ function LTheoryRedux:showGameLogo()
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 end
 
-function LTheoryRedux:showShipCreationHint()
+function LimitTheoryRedux:showShipCreationHint()
     Gui:beginStackContainer()
     Gui:setFixedHeight(100)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Bottom)
@@ -450,17 +450,17 @@ function LTheoryRedux:showShipCreationHint()
     Gui:endContainer()
 end
 
-function LTheoryRedux:exitGame()
+function LimitTheoryRedux:exitGame()
     -- Update Session vars ; temporary until we have a save state
     GameState.player.startupCamera = GameState.player.currentCamera
     -- Write player-specific game variables to preserve them across gameplay sessions
     InitFiles:writeUserInits()
 
-    LTheoryRedux:quit()
+    LimitTheoryRedux:quit()
 end
 
 --** SUPPORT FUNCTIONS **--
-function LTheoryRedux:freezeTurrets()
+function LimitTheoryRedux:freezeTurrets()
     -- When taking down a dialog, Turret:updateTurret sees the button click input and thinks it means "Fire"
     -- So this routine adds a very brief cooldown to the player ship's turrets
     if GameState.player.currentShip then
@@ -473,8 +473,8 @@ function LTheoryRedux:freezeTurrets()
     end
 end
 
-function LTheoryRedux:sleep(sec)
+function LimitTheoryRedux:sleep(sec)
     os.execute(package.config:sub(1, 1) == "/" and "sleep " .. sec or "timeout " .. sec)
 end
 
-return LTheoryRedux
+return LimitTheoryRedux

@@ -1,5 +1,5 @@
-Config.org                       = 'LTheoryRedux'
-Config.app                       = 'LTheoryRedux'
+Config.org                       = 'LimitTheoryRedux'
+Config.app                       = 'LimitTheoryRedux'
 
 Config.orgInfo                   = {
     repository = "https://github.com/Limit-Theory-Redux/ltheory",

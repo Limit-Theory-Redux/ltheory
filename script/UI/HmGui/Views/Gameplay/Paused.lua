@@ -70,6 +70,13 @@ local menuContainer = UIComponent.Container {
             end
         },
         UIComponent.Button_MainMenu {
+            title = "Back to Main Menu",
+            width = getButtonWidth,
+            height = getButtonHeight,
+            align = { AlignHorizontal.Center, AlignVertical.Center },
+            callback = function() LimitTheoryRedux:initMainMenu() end
+        },
+        UIComponent.Button_MainMenu {
             title = "Exit",
             width = getButtonWidth,
             height = getButtonHeight,

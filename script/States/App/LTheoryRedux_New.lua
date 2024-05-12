@@ -1,4 +1,4 @@
-local LimitTheoryRedux = require('States.Application')
+LimitTheoryRedux = require('States.Application')
 local SoundManager = require('Systems.SFX.SoundManager')
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local InitFiles = require('Systems.Files.InitFiles')
@@ -32,27 +32,7 @@ function LimitTheoryRedux:onInit()
 
     GameState.player.humanPlayer = Entities.Player(GameState.player.humanPlayerName)
 
-    Universe:init(rng:get64())
-
-    -- sizes for background star system
-    Config.gen.scaleSystem    = Config.gen.scaleSystemBack
-    Config.gen.scalePlanet    = Config.gen.scalePlanetBack
-    Config.gen.scalePlanetMod = Config.gen.scalePlanetModBack
-    GameState.render.zNear    = Config.gen.zNearBack
-    GameState.render.zFar     = Config.gen.zFarBack
-
-    Universe:createStarSystem(false)
-
-    self:initGameView()
-
-    -- set initial view
-    UIPageMainMenu:setView("Title")
-
-    -- add pages
-    UIRouter:addPage(UIPageMainMenu)
-    UIRouter:addPage(UIPageLoadingScreen)
-    UIRouter:addPage(UIPageGameplay)
-    UIRouter:setCurrentPage("Main_Menu")
+    self:initMainMenu(true)
 end
 
 ---@param dt integer
@@ -66,6 +46,7 @@ end
 ---@diagnostic disable-next-line: duplicate-set-field
 function LimitTheoryRedux:onUpdate(dt)
     GameState.player.humanPlayer:getRoot():update(dt)
+
     Universe:onUpdate(dt)
     SoundManager:clean(dt)
     MusicPlayer:OnUpdate(dt) --todo fix casing
@@ -80,6 +61,41 @@ end
 function LimitTheoryRedux:onDraw()
     GameState.render.uiCanvas:draw(self.resX, self.resY)
     Gui:draw()
+end
+
+function LimitTheoryRedux:initMainMenu(isAppInit)
+    -- sizes for background star system
+    Config.gen.scaleSystem    = Config.gen.scaleSystemBack
+    Config.gen.scalePlanet    = Config.gen.scalePlanetBack
+    Config.gen.scalePlanetMod = Config.gen.scalePlanetModBack
+    GameState.render.zNear    = Config.gen.zNearBack
+    GameState.render.zFar     = Config.gen.zFarBack
+
+    -- reset ship & system if not AppInit
+    if GameState.player.currentShip then
+        GameState.player.currentShip:delete()
+        GameState.player.currentShip = nil
+    elseif GameState.world.currentSystem then
+        GameState.world.currentSystem:delete()
+        GameState.world.currentSystem = nil
+    end
+
+    Universe:init(rng:get64())
+    Universe:createStarSystem(false)
+
+    self:initGameView()
+
+    -- set initial view
+    UIPageMainMenu:setView("Title")
+
+    -- add pages
+    if isAppInit then
+        UIRouter:addPage(UIPageMainMenu)
+        UIRouter:addPage(UIPageLoadingScreen)
+        UIRouter:addPage(UIPageGameplay)
+    end
+    InputInstance:setCursorVisible(true)
+    UIRouter:setCurrentPage("Main_Menu")
 end
 
 function LimitTheoryRedux:initGameView()

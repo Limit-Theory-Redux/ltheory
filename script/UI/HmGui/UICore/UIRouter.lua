@@ -39,6 +39,7 @@ end
 
 -- sets current page
 ---@param name string
+---@return UIPage
 function UIRouter:setCurrentPage(name)
     if not name or type(name) ~= "string" then
         Log.Error("nil page name or not a string")
@@ -46,7 +47,7 @@ function UIRouter:setCurrentPage(name)
         Log.Error("page does not exist")
     elseif name == self.currentPage then
         Log.Warn("Already rendering this page: " .. name)
-        return
+        return self.currentPage
     end
 
     self.lastPage = self.currentPage
@@ -57,6 +58,7 @@ function UIRouter:setCurrentPage(name)
 
     self.currentPage = self.pages[name]
     self.currentPage:open()
+    return self.currentPage
 end
 
 -- resets current page to nil

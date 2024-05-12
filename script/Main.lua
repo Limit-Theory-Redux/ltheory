@@ -24,7 +24,7 @@ function InitSystem()
     Log.Debug("InitSystem")
 
     Core.Call(function()
-        local app = __app__ or 'LTheoryRedux'
+        local app = __app__ or 'LimitTheoryRedux'
 
         Log.Debug("Application name: %s", app)
 

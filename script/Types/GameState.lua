@@ -1,7 +1,6 @@
 -- For dynamic states
 GameState = {
     state           = Enums.GameStates.Splashscreen, -- previously gamemode
-    appState        = nil,                           -- ApplicationGlobal ? needed
     paused          = false,
     panelActive     = false,                         -- indicates whether MasterControl panel is enabled or not
     skipTitleScreen = false,

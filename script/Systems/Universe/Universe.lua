@@ -22,6 +22,7 @@ function Universe:onUpdate(dt)
     UniverseEconomy:onUpdate(dt)
 end
 
+---@param withEconomy boolean
 function Universe:createStarSystem(withEconomy)
     -- Spawn a new star system
     ---@type StarSystem
@@ -74,7 +75,6 @@ function Universe:createShip(system, pos, shipObject)
     ship:setSleepThreshold(shipObject.sleepThreshold[1], shipObject.sleepThreshold[2])
     ship:setOwner(shipObject.owner, true)
     shipObject.owner:setControlling(ship)
-
     return ship
 end
 

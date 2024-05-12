@@ -18,7 +18,7 @@ function LoadingScreen:onPageOpen()
 
     GameState:SetState(Enums.GameStates.LoadingScreen)
 
-    Log.Debug("LTheoryRedux: PlayAmbient")
+    Log.Debug("LimitTheoryRedux: PlayAmbient")
     MusicPlayer:PlayAmbient()
 
     -- create star system from universe with economy
@@ -32,6 +32,7 @@ function LoadingScreen:onPageOpen()
     GameState.render.zNear    = Config.gen.zNearReal
     GameState.render.zFar     = Config.gen.zFarReal
 
+    -- create star system with economy
     Universe:createStarSystem(true)
 
     --! currently loading screen doesn´t render because the star system generation and game rendering are in sync
