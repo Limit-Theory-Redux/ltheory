@@ -41,6 +41,7 @@ local function getButtonHeight()
 end
 
 local buildNumber = UIComponent.Container {
+    visible = function() return not GameState.debug.metricsEnabled end,
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     childrenAlign = { AlignHorizontal.Left, AlignVertical.Bottom },
     padding = { 5, 5 },
