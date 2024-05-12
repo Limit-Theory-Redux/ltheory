@@ -23,11 +23,12 @@ function Paused:onViewOpen(isPageOpen)
     InputInstance:setCursorVisible(true)
 end
 
-function Paused:onViewClose(isPageOpen)
-    --? UNPAUSE WHILE PROJECTILES ARE STILL ALIVE LEADS TO CRASH IN THIS INSTANCE WHY?
-    --* see temporary fix in Views/InGame.lua
-    --GameState:Unpause()
-    --InputInstance:setCursorVisible(false)
+function Paused:onViewClose(isPageClose)
+    GameState:Unpause()
+
+    if not isPageClose then
+        InputInstance:setCursorVisible(false)
+    end
 end
 
 local function getButtonWidth()

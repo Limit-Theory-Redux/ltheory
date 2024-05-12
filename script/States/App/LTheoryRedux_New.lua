@@ -66,10 +66,6 @@ end
 function LimitTheoryRedux:initMainMenu(isAppInit)
     GameState:SetState(Enums.GameStates.MainMenu)
 
-    if GameState.paused then
-        GameState:Unpause()
-    end
-
     -- sizes for background star system
     Config.gen.scaleSystem    = Config.gen.scaleSystemBack
     Config.gen.scalePlanet    = Config.gen.scalePlanetBack

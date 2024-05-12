@@ -153,16 +153,6 @@ function Application:onFrame()
         --     GameState.paused = true
         -- end
 
-        if GameState.paused then
-            timeScale = 0.0
-        else
-            timeScale = 1.0
-        end
-
-        if InputInstance:isDown(Bindings.TimeAccel) then
-            timeScale = GameState.debug.timeAccelFactor
-        end
-
         if InputInstance:isPressed(Bindings.ToggleWireframe) then
             GameState.debug.physics.drawWireframes = not GameState.debug.physics.drawWireframes
         end
@@ -182,6 +172,17 @@ function Application:onFrame()
     do
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onUpdate')
+
+        if GameState.paused then --* moved to onUpdate so onInput can set pause/unpause without a crash
+            timeScale = 0.0
+        else
+            timeScale = 1.0
+        end
+
+        if InputInstance:isDown(Bindings.TimeAccel) then
+            timeScale = GameState.debug.timeAccelFactor
+        end
+
         local now = TimeStamp.Now()
         self.dt = self.lastUpdate:getDifference(now)
         self.lastUpdate = now

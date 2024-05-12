@@ -38,8 +38,8 @@ function LoadingScreen:onPageOpen()
     --! currently loading screen doesn´t render because the star system generation and game rendering are in sync
     -- todo: handle quickstart logic
 
+    UIRouter:getPage("Gameplay"):setView("Ship_Creation")
     UIRouter:setCurrentPage("Gameplay")
-    UIRouter:getCurrentPage():setView("Ship_Creation")
 end
 
 function LoadingScreen:onPageClose() end
