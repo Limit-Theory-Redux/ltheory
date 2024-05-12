@@ -62,6 +62,7 @@ local System = subclass(Entity, function(self, seed)
     end
 end)
 
+---@return StarSystem
 function System:generate()
     -- get or gen system composition
     if not self.composition then
@@ -106,15 +107,6 @@ function System:generate()
             end
         end
     end
-
-
-
-
-    -- gen factions
-
-    -- gen stations
-
-    -- gen ships
 end
 
 function System:getStars()
@@ -958,16 +950,7 @@ function System:spawnShip(hullSize, player)
     -- Give the ship a name
     local shipName = Words.getCoolName(self.rng)
     ship:setName(format("HSS %s", shipName))
-
-    -- Give the ship a player owner if one was not provided
-    local shipPlayer = nil
-    if player ~= nil then
-        shipPlayer = player
-    else
-        shipPlayer = Player(format("Ship Player for %s", ship:getName()))
-        insert(self.players, shipPlayer)
-    end
-    ship:setOwner(shipPlayer, true)
+    ship:setOwner(player, true)
 
     -- TODO: make sure spawn position for ship is well outside any planetary volume
     local shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp()))
@@ -1137,7 +1120,6 @@ function System:spawnBackground()
     local backgroundShip = self.shipType:instantiate(hullType)
     backgroundShip:setHull(hullType)
 
-    self:addChild(backgroundShip)
     insert(self.players, player)
 
     -- Insert ship into this star system
@@ -1145,9 +1127,9 @@ function System:spawnBackground()
     backgroundShip:setFriction(0)
     backgroundShip:setSleepThreshold(0, 0)
     backgroundShip:setOwner(player, true)
-    self:addChild(backgroundShip)
     GameState.player.currentShip = backgroundShip
     GameState.player.humanPlayer:setControlling(backgroundShip)
+    self:addChild(backgroundShip)
 end
 
 return System

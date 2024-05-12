@@ -64,6 +64,12 @@ function LimitTheoryRedux:onDraw()
 end
 
 function LimitTheoryRedux:initMainMenu(isAppInit)
+    GameState:SetState(Enums.GameStates.MainMenu)
+
+    if GameState.paused then
+        GameState:Unpause()
+    end
+
     -- sizes for background star system
     Config.gen.scaleSystem    = Config.gen.scaleSystemBack
     Config.gen.scalePlanet    = Config.gen.scalePlanetBack
@@ -71,17 +77,9 @@ function LimitTheoryRedux:initMainMenu(isAppInit)
     GameState.render.zNear    = Config.gen.zNearBack
     GameState.render.zFar     = Config.gen.zFarBack
 
-    -- reset ship & system if not AppInit
-    if GameState.player.currentShip then
-        GameState.player.currentShip:delete()
-        GameState.player.currentShip = nil
-    elseif GameState.world.currentSystem then
-        GameState.world.currentSystem:delete()
-        GameState.world.currentSystem = nil
-    end
-
     Universe:init(rng:get64())
-    Universe:createStarSystem(false)
+    Universe:addPlayer(GameState.player.humanPlayer)
+    Universe:createStarSystem(false) -- create star system without economy
 
     self:initGameView()
 
@@ -107,6 +105,7 @@ function LimitTheoryRedux:initGameView()
         :add(GameState.render.gameView
             :add(Systems.Controls.Controls.MasterControl(GameState.render.gameView, GameState.player.humanPlayer))
         )
+
     GameState.render.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
 end
 

@@ -45,15 +45,9 @@ end
 
 function ShipCreation:onUpdate(dt) end
 
+--! ONLY WORKS ON THE FIRST GAME LOAD, WHEN GOING BACK TO MAIN MENU AND THEN LOADING AGAIN THE CAMERA WILL STAY IN FIRST PERSON. WHY?
 function ShipCreation:onViewOpen(isPageOpen)
     GameState:SetState(Enums.GameStates.ShipCreation)
-    GameState.render.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)
-    GameState.render.uiCanvas = UI.Canvas()
-    GameState.render.uiCanvas
-        :add(GameState.render.gameView
-            :add(Systems.Controls.Controls.GenTestControl(GameState.render.gameView, GameState.player.humanPlayer)))
-
-    InputInstance:setCursorVisible(true)
 
     local shipObject = {
         owner = GameState.player.humanPlayer,
@@ -68,6 +62,14 @@ function ShipCreation:onViewOpen(isPageOpen)
     ---@type Universe
     local Universe = require("Systems.Universe.Universe")
     GameState.player.currentShip = Universe:createShip(GameState.world.currentSystem, nil, shipObject)
+
+    GameState.render.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)
+    GameState.render.uiCanvas = UI.Canvas()
+    GameState.render.uiCanvas
+        :add(GameState.render.gameView
+            :add(Systems.Controls.Controls.GenTestControl(GameState.render.gameView, GameState.player.humanPlayer)))
+
+    InputInstance:setCursorVisible(true)
 end
 
 function ShipCreation:onViewClose(isPageClose) end
