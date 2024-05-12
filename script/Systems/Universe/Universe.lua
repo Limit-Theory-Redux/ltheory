@@ -43,7 +43,6 @@ function Universe:_clean() --! this needs a fix: this stays in memory instead of
                         asset:delete()
                     end
                 end
-                table.clear(system.players)
             end
 
             if system.aiPlayers and #system.aiPlayers > 0 then
@@ -53,11 +52,9 @@ function Universe:_clean() --! this needs a fix: this stays in memory instead of
                         asset:delete()
                     end
                 end
-                table.clear(system.aiPlayers)
             end
 
             system:delete()
-            table.clear(system)
             Log.Debug("--- Destroyed System: %s", system:getName())
         end
     end
