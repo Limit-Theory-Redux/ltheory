@@ -14,7 +14,7 @@ function ShipCreation:onInput()
 
     if InputInstance:isPressed(Button.KeyboardB) then
         if GameState.player.currentShip then
-            GameState.player.currentShip:delete()
+            GameState.player.currentShip:delete() --todo: this needs a fix, ships stay around
         end
 
         local shipObject = {
@@ -47,6 +47,10 @@ function ShipCreation:onUpdate(dt) end
 
 --! ONLY WORKS ON THE FIRST GAME LOAD, WHEN GOING BACK TO MAIN MENU AND THEN LOADING AGAIN THE CAMERA WILL STAY IN FIRST PERSON. WHY?
 function ShipCreation:onViewOpen(isPageOpen)
+    if isPageOpen then
+        return
+    end
+
     GameState:SetState(Enums.GameStates.ShipCreation)
 
     local shipObject = {
@@ -61,6 +65,13 @@ function ShipCreation:onViewOpen(isPageOpen)
 
     ---@type Universe
     local Universe = require("Systems.Universe.Universe")
+
+    -- add player to system via universe
+    if not Universe:systemHasPlayer(GameState.world.currentSystem, GameState.player.humanPlayer) then
+        Universe:playerEnterSystem(GameState.world.currentSystem, GameState.player.humanPlayer)
+    end
+
+    -- add ship / create ship in system via universe
     GameState.player.currentShip = Universe:createShip(GameState.world.currentSystem, nil, shipObject)
 
     GameState.render.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)

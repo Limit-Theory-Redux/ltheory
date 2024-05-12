@@ -30,8 +30,6 @@ function LimitTheoryRedux:onInit()
     -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
     WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
 
-    GameState.player.humanPlayer = Entities.Player(GameState.player.humanPlayerName)
-
     self:initMainMenu(true)
 end
 
@@ -45,6 +43,10 @@ end
 ---@param dt integer
 ---@diagnostic disable-next-line: duplicate-set-field
 function LimitTheoryRedux:onUpdate(dt)
+    if not GameState.player.humanPlayer:getRoot().update then
+        return
+    end
+
     GameState.player.humanPlayer:getRoot():update(dt)
 
     Universe:onUpdate(dt)

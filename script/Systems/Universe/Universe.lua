@@ -6,50 +6,62 @@ local Jobs = requireAll('GameObjects.Jobs')
 ---@class Universe
 local Universe = class(function(self) end)
 
+local firstRun = true
+
 ---@param seed integer
 function Universe:init(seed)
-    self:_clean()
+    if not firstRun then
+        self:_clean()
+    end
+
+    -- Player
+    GameState.player.humanPlayer = Entities.Player(GameState.player.humanPlayerName)
 
     self.universeSeed = seed
     self.universeRng = RNG.Create(seed):managed()
     self.systems = {}
-    self.players = {}
-    self.aiPlayers = {}
-    self.factions = {}
+    self.players = {}   --* system or universe layer?
+    self.aiPlayers = {} --* system or universe layer?
+    self.factions = {}  --* system or universe layer?
     self.economy = UniverseEconomy:init()
+    firstRun = false
 end
 
 ---@private
-function Universe:_clean()
-    Log.Debug("--- Cleaning Universe ---")
+function Universe:_clean() --! this needs a fix: this stays in memory instead of being freed
+    Log.Debug("--------------------- Cleaning Universe ---------------------")
 
     -- destroy systems
     if self.systems and #self.systems > 0 then
         for _, system in ipairs(self.systems) do
-            Log.Debug("Destroyed System: %s", system:getName())
+            Log.Debug("- Destroying System: %s", system:getName())
+            -- destroy assets
+            if system.players and #system.players > 0 then
+                for _, player in ipairs(system.players) do
+                    for _, asset in ipairs(player:getAssets()) do
+                        Log.Debug("-- Destroying Asset: %s, Owner: %s", asset:getName(), player:getName())
+                        asset:delete()
+                    end
+                end
+                table.clear(system.players)
+            end
+
+            if system.aiPlayers and #system.aiPlayers > 0 then
+                for _, player in ipairs(system.aiPlayers) do
+                    for _, asset in ipairs(player:getAssets()) do
+                        Log.Debug("-- Destroying Asset: %s, Owner: %s", asset:getName(), player:getName())
+                        asset:delete()
+                    end
+                end
+                table.clear(system.aiPlayers)
+            end
+
             system:delete()
+            table.clear(system)
+            Log.Debug("--- Destroyed System: %s", system:getName())
         end
     end
-
-    -- destroy assets
-    if self.players and #self.players > 0 then
-        for _, player in ipairs(self.players) do
-            for _, asset in ipairs(player:getAssets()) do
-                Log.Debug("Destroyed Asset: %s, Owner: %s", asset:getName(), player:getName())
-                asset:delete()
-            end
-        end
-    end
-
-    if self.aiPlayers and #self.aiPlayers > 0 then
-        for _, player in ipairs(self.aiPlayers) do
-            for _, asset in ipairs(player:getAssets()) do
-                Log.Debug("Destroyed Asset: %s, Owner: %s", asset:getName(), player:getName())
-                asset:delete()
-            end
-        end
-    end
-    Log.Debug("-------------------------")
+    Log.Debug("-------------------------------------------------------------")
 end
 
 ---@param dt integer
@@ -91,7 +103,6 @@ function Universe:createShip(system, pos, shipObject)
     -- TEMP: Read player's ship hull size from user settings
     local shipSize = GameState.player.shipHull
 
-    self:playerEnterSystem(system, shipObject.owner)
     local ship = system:spawnShip(shipSize, shipObject.owner)
     ship:setName(shipObject.shipName)
 
@@ -117,6 +128,28 @@ function Universe:addFaction(name, type, players) end
 function Universe:addSystemEconomy(system)
     -- do other stuff here too
     UniverseEconomy:addSystem(system)
+end
+
+function Universe:systemHasPlayer(system, player, type) --* system or universe layer?
+    assert(system)
+    assert(player)
+
+    if not type then type = Enums.PlayerTypes.Human end
+
+    if type == Enums.PlayerTypes.Human then
+        for _, systemPlayer in ipairs(system.players) do
+            if systemPlayer == player then
+                return true
+            end
+        end
+    elseif type == Enums.PlayerTypes.AI then
+        for _, systemPlayer in ipairs(system.aiPlayers) do
+            if systemPlayer == player then
+                return true
+            end
+        end
+    end
+    return false
 end
 
 function Universe:playerEnterSystem(system, enteringPlayer, type)
