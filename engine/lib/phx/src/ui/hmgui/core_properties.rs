@@ -14,7 +14,7 @@ phx_macros::core_properties! {
     (TextColor,             "text.color",              Color::WHITE),
 
     (ContainerClip,    "container.clip",    true),
-    (ContainerSpacing, "container.spacing", 6.0f32),
+    (ContainerSpacing, "container.spacing", 0.0f32),
 
     (ButtonRectOpacity,         "button.rect.opacity",          0.5f32, Opacity),
     (ButtonRectBorderColor,     "button.rect.border-color",     Color::TRANSPARENT, BorderColor),

@@ -31,10 +31,22 @@ impl WidgetItem {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub enum Length {
+    #[default]
+    Auto,
     Fixed(f32),
     Percent(f32),
+}
+
+impl Length {
+    pub fn is_auto(&self) -> bool {
+        *self == Self::Auto
+    }
+
+    pub fn is_fixed(&self) -> bool {
+        matches!(self, Self::Fixed(_))
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -54,8 +66,8 @@ pub struct HmGuiWidget {
     pub inner_size: Vec2,
 
     // Layout
-    pub default_width: Option<Length>,
-    pub default_height: Option<Length>,
+    pub default_width: Length,
+    pub default_height: Length,
     pub horizontal_alignment: AlignHorizontal,
     pub vertical_alignment: AlignVertical,
     pub margin_upper: Vec2,
@@ -151,19 +163,17 @@ impl HmGuiWidget {
 
     /// Calculate outer min size that includes margin and border.
     fn calculate_min_size(&self) -> Vec2 {
-        let mut inner_min_width = self.inner_min_size.x;
-        if let Some(default_width) = self.default_width {
-            if let Length::Fixed(fixed_width) = default_width {
-                inner_min_width = fixed_width;
-            }
-        }
+        let inner_min_width = if let Length::Fixed(fixed_width) = self.default_width {
+            fixed_width
+        } else {
+            self.inner_min_size.x
+        };
 
-        let mut inner_min_height = self.inner_min_size.y;
-        if let Some(default_height) = self.default_height {
-            if let Length::Fixed(fixed_height) = default_height {
-                inner_min_height = fixed_height;
-            }
-        }
+        let inner_min_height = if let Length::Fixed(fixed_height) = self.default_height {
+            fixed_height
+        } else {
+            self.inner_min_size.y
+        };
 
         let x =
             inner_min_width + self.border_width * 2.0 + self.margin_upper.x + self.margin_lower.x;
@@ -175,7 +185,7 @@ impl HmGuiWidget {
 
     /// Calculate inner pos and size from outer ones by subtracting margins and border.
     /// Do not subtract if outer width and/or height is 0.
-    pub fn calculate_inner_pos_size(&mut self) {
+    fn calculate_inner_pos_size(&mut self) {
         if self.size.x > 0.0 {
             self.inner_pos.x = self.pos.x + self.border_width + self.margin_upper.x;
             self.inner_size.x =
@@ -215,6 +225,8 @@ impl HmGuiWidget {
     }
 
     pub fn layout(&mut self, hmgui: &mut HmGui) {
+        self.calculate_inner_pos_size();
+
         // TODO: do not process widgets with min size, margin and border all 0
         match &self.item {
             WidgetItem::Container(container) => {
@@ -226,6 +238,7 @@ impl HmGuiWidget {
                     self.inner_size,
                     self.inner_size - self.inner_min_size,
                 );
+
                 self.size = self.inner_size
                     + self.border_width * 2.0
                     + self.margin_upper

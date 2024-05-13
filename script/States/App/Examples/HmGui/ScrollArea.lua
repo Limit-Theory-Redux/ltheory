@@ -14,15 +14,17 @@ function Test:onInput() end
 function Test:scrollArea()
     Gui:beginVerticalContainer()
 
-    self.fading = Gui:checkbox("Fading", self.fading)
+    self.fading = Gui:checkbox("Fading scrollbars", self.fading)
 
     Gui:setProperty(GuiProperties.ScrollAreaScrollbarVisibilityFading, GuiPropertyValue.FromBool(self.fading))
     Gui:setProperty(GuiProperties.ScrollAreaScrollbarKnobColor, GuiPropertyValue.FromColor(Color(1, 0, 0, 1)))
     Gui:setProperty(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
     Gui:setProperty(GuiProperties.BackgroundColor, GuiPropertyValue.FromColor(Color(0, 0, 1, 1)))
+    Gui:setProperty(GuiProperties.BorderColor, GuiPropertyValue.FromColor(Color(1, 0, 0, 1)))
     Gui:beginScrollArea(ScrollDirection.All)
 
     Gui:setProperty(GuiProperties.BackgroundColor, GuiPropertyValue.FromColor(Color(0, 1, 0, 1)))
+    Gui:setProperty(GuiProperties.BorderColor, GuiPropertyValue.FromColor(Color(0, 1, 0, 1)))
     Gui:beginVerticalContainer()
     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
     Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
@@ -33,21 +35,22 @@ function Test:scrollArea()
 
     Gui:endContainer()
     Gui:setBorderWidth(3);
+    -- Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
 
     Gui:endScrollArea(InputInstance)
     Gui:setBorderWidth(3);
-    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Expand)
 
     Gui:endContainer()
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
+    -- Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setFixedSize(500, 500)
 end
 
 function Test:onUpdate(dt)
     Profiler.Begin('Gui:update')
 
-    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0, 0, 0, 1))
+    Gui:setProperty(GuiProperties.BackgroundColor, GuiPropertyValue.FromColor(Color(0, 0, 0, 1)))
     Gui:beginGui(self.resX, self.resY, InputInstance)
     self:scrollArea()
     Gui:endGui(InputInstance)

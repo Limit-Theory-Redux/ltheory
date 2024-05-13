@@ -16,8 +16,8 @@ The HmGui layout system is based on the following property assignments:
 
 1. Layout model of the container: Stack, Horizontal, Vertical
 2. Alignment of child elements.
-   - horizontal: Center, Left (default), Right, Stretch
-   - vertical: Center, Top (default), Right, Stretch
+   - horizontal: Center, Left (default), Right, Expand, Stretch
+   - vertical: Center, Top (default), Right, Expand, Stretch
 3. Size specification: Fixed, Percent
 4. Decorations: padding, spacing, margin and border
 
@@ -35,7 +35,7 @@ HmGui supports three layout models for arranging child elements in a Container:
 
 In addition to a parent Container's layout model, the positioning of elements in a Container is also affected by several properties of child elements:
 
-- **alignment** - telling an element to attach one or more of its four sides (Left, Right, Top and Bottom) to its parent's side, to be centered in its parent, or to stretch as far as possible (inside its parent) either vertically or horizontally
+- **alignment** - telling an element to attach one or more of its four sides (Left, Right, Top and Bottom) to its parent's side, to be centered in its parent, to expand to the parent sides (docking), or to stretch to the parent sides or as far as possible (inside its parent) either vertically or horizontally
 - **fixed/percent size** - telling an element to either:
   - span a fixed size in pixels, or
   - expand, if possible, to a percentage of its parent's size
@@ -73,7 +73,7 @@ All three Rect elements will be drawn in a horizontal row, in order from left to
 
 Alignment is a property that can be used to position an element in relation to any of the four sides of its parent Container, or to the element beside the selected child element in the designated direction.
 
-There are two dimensions along which elements can be aligned: Horizontal (width) and Vertical (height). In both alignment dimensions, one of six parameters can be specified: Center, Left (default), Right, Top (default), Bottom, and Stretch.
+There are two dimensions along which elements can be aligned: Horizontal (width) and Vertical (height). In both alignment dimensions, one of the following parameters can be specified: Center, Left (default), Right, Top (default), Bottom, Expand, and Stretch.
 
 The HmGui programmer can set alignment for both dimensions independently.
 
@@ -119,8 +119,6 @@ Gui:endContainer()
 ```
 
 All of the three child Rect elements in this example will be drawn stacked on top of each other, in order from top to bottom, with each element's left side touching the left side of their parent container, and the group of three elements will be centered vertically by default (since no explicit Vertical alignment was specified).
-
-Note: `setChildrenHorizontalAlignment()` will accept only the parameters AlignHorizontal.Center, AlignHorizontal.Left, AlignHorizontal.Right, and AlignHorizontal.Stretch; and `setChildrenVerticalAlignment()` will accept only the parameters AlignVertical.Center, AlignVertical.Top, AlignVertical.Bottom, and AlignVertical.Stretch.
 
 #### Advanced Alignment
 

@@ -1375,6 +1375,11 @@ mod tests {
 
         gui.begin_gui(800.0, 600.0, &input);
 
+        gui.begin_vertical_container();
+
+        gui.rect();
+        gui.set_fixed_height(10.0);
+
         gui.set_property_value(HmGuiProperties::ScrollAreaHScrollShow, false);
         gui.set_property_value(HmGuiProperties::ScrollAreaVScrollShow, false);
         gui.begin_scroll_area(ScrollDirection::Vertical);
@@ -1382,22 +1387,21 @@ mod tests {
         gui.begin_vertical_container();
 
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
-        gui.set_fixed_height(700.0);
-        gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Top);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
-        gui.rect();
-        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
-        gui.rect();
-        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
-        gui.rect();
-        gui.set_property_value(HmGuiProperties::BackgroundColor, color);
-        gui.rect();
+        let buttons_count = 14;
+        for _ in 0..buttons_count {
+            gui.rect();
+            gui.set_fixed_height(40.0);
+        }
 
         gui.end_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_scroll_area(&input);
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Expand);
+
+        gui.end_container();
         gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
         gui.set_fixed_size(500.0, 500.0);
 
@@ -1406,6 +1410,51 @@ mod tests {
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
+        const BUTTON_NAMES: &[&str] = &[
+            "Button1", "Button2", "Button3", "Button4", "Button5", "Button6", "Button7", "Button8",
+            "Button9", "Button10", "Button11", "Button12", "Button13", "Button14",
+        ];
+        let buttons: Vec<_> = (0..buttons_count)
+            .map(|i| {
+                WidgetCheck(
+                    BUTTON_NAMES[i],
+                    (150.0, 60.0 + 40.0 * i as f32),
+                    (500.0, 40.0),
+                    (500.0, 40.0),
+                    None,
+                )
+            })
+            .collect();
+
+        let top_container = vec![WidgetCheck(
+            "TopContainer",
+            (150.0, 50.0),
+            (500.0, 500.0),
+            (500.0, 500.0),
+            Some(vec![
+                WidgetCheck("Checkbox", (150.0, 50.0), (20.0, 10.0), (20.0, 10.0), None),
+                WidgetCheck(
+                    "ScrollArea",
+                    (150.0, 60.0),
+                    (500.0, 490.0), // Horizontal container expanded so has the same position and size as root one
+                    (500.0, 490.0),
+                    Some(vec![WidgetCheck(
+                        "ScrollAreaIntern",
+                        (150.0, 60.0),
+                        (500.0, 490.0),
+                        (500.0, 490.0),
+                        Some(vec![WidgetCheck(
+                            "Vertical",
+                            (150.0, 60.0),
+                            (500.0, 490.0),
+                            (500.0, 490.0),
+                            Some(buttons),
+                        )]),
+                    )]),
+                ),
+            ]),
+        )];
+
         check_widget(
             &root_widget,
             &WidgetCheck(
@@ -1413,54 +1462,7 @@ mod tests {
                 (0.0, 0.0),
                 (800.0, 600.0), // Root widget should always keep it's position and size
                 (800.0, 600.0),
-                Some(vec![WidgetCheck(
-                    "ScrollArea",
-                    (150.0, 50.0),
-                    (500.0, 500.0), // Horizontal container expanded so has the same position and size as root one
-                    (500.0, 500.0),
-                    Some(vec![WidgetCheck(
-                        "ScrollAreaIntern",
-                        (150.0, 50.0),
-                        (500.0, 500.0),
-                        (500.0, 500.0),
-                        Some(vec![WidgetCheck(
-                            "Vertical",
-                            (150.0, 50.0),
-                            (500.0, 700.0),
-                            (500.0, 700.0),
-                            Some(vec![
-                                WidgetCheck(
-                                    "Rect1",
-                                    (150.0, 50.0),
-                                    (500.0, 170.5),
-                                    (500.0, 170.5),
-                                    None,
-                                ),
-                                WidgetCheck(
-                                    "Rect2",
-                                    (150.0, 226.5),
-                                    (500.0, 170.5),
-                                    (500.0, 170.5),
-                                    None,
-                                ),
-                                WidgetCheck(
-                                    "Rect3",
-                                    (150.0, 403.0),
-                                    (500.0, 170.5),
-                                    (500.0, 170.5),
-                                    None,
-                                ),
-                                WidgetCheck(
-                                    "Rect4",
-                                    (150.0, 579.5),
-                                    (500.0, 170.5),
-                                    (500.0, 170.5),
-                                    None,
-                                ),
-                            ]),
-                        )]),
-                    )]),
-                )]),
+                Some(top_container),
             ),
         );
     }

@@ -777,39 +777,39 @@ impl HmGui {
     pub fn set_fixed_width(&self, width: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_width = Some(Length::Fixed(width));
+        widget.default_width = Length::Fixed(width);
     }
 
     pub fn set_fixed_height(&self, height: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_height = Some(Length::Fixed(height));
+        widget.default_height = Length::Fixed(height);
     }
 
     pub fn set_fixed_size(&self, width: f32, height: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_width = Some(Length::Fixed(width));
-        widget.default_height = Some(Length::Fixed(height));
+        widget.default_width = Length::Fixed(width);
+        widget.default_height = Length::Fixed(height);
     }
 
     pub fn set_percent_width(&self, width: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_width = Some(Length::Percent(width));
+        widget.default_width = Length::Percent(width);
     }
 
     pub fn set_percent_height(&self, height: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_height = Some(Length::Percent(height));
+        widget.default_height = Length::Percent(height);
     }
 
     pub fn set_percent_size(&self, width: f32, height: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_width = Some(Length::Percent(width));
-        widget.default_height = Some(Length::Percent(height));
+        widget.default_width = Length::Percent(width);
+        widget.default_height = Length::Percent(height);
     }
 
     pub fn set_margin(&self, px: f32, py: f32) {

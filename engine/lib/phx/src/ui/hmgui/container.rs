@@ -120,8 +120,8 @@ impl HmGuiContainer {
                 // Horizontal.
                 // Child docking stretch has priority over fixed/percentage size
                 // that in turn has higher priority than children stretch.
-                if size.x > 0.0 && !widget.horizontal_alignment.is_stretch() {
-                    if let Some(Length::Percent(percent_width)) = widget.default_width {
+                if size.x > 0.0 && !widget.horizontal_alignment.is_extend() {
+                    if let Length::Percent(percent_width) = widget.default_width {
                         let widget_width = size.x * percent_width / 100.0;
 
                         extra_diff.x += stretch_x * (widget_width - widget.min_size.x);
@@ -137,8 +137,8 @@ impl HmGuiContainer {
                 // Vertical.
                 // Docking stretch has priority over fixed/percentage size
                 // that in turn has higher priority than children stretch.
-                if size.y > 0.0 && !widget.vertical_alignment.is_stretch() {
-                    if let Some(Length::Percent(percent_height)) = widget.default_height {
+                if size.y > 0.0 && !widget.vertical_alignment.is_extend() {
+                    if let Length::Percent(percent_height) = widget.default_height {
                         let widget_height = size.y * percent_height / 100.0;
 
                         extra_diff.y += stretch_y * (widget_height - widget.min_size.y);
@@ -165,11 +165,11 @@ impl HmGuiContainer {
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let widget = widget_rf.as_ref();
 
-                    if widget.horizontal_alignment.is_stretch() // child stretching has always priority
-                        || widget.default_width.is_none() // fixed/percent size has priority over children docking
-                            && self.children_horizontal_alignment.is_stretch()
+                    if widget.horizontal_alignment.is_extend() // child stretching/expanding has always priority
+                        || widget.default_width.is_auto() // fixed/percent size has priority over children docking
+                            && self.children_horizontal_alignment.is_extend()
                     {
-                        let weight = 100.0; // weight per expandable widget
+                        let weight = 100.0; // weight per extendable widget
 
                         total_weight += weight;
                         extra_size[i] = extra.x * weight;
@@ -183,6 +183,29 @@ impl HmGuiContainer {
                 } else {
                     true // There are only fixed size children - center them
                 }
+            } else if extra.x < 0.0 {
+                // children overwhelm container -> try to shrink expandable widgets
+                let mut total_weight = 0.0;
+
+                for (i, widget_rf) in self.children.iter().enumerate() {
+                    let widget = widget_rf.as_ref();
+
+                    if widget.horizontal_alignment.is_expand() // child expanding has always priority
+                        || widget.default_width.is_auto() // fixed/percent size has priority over children docking
+                            && self.children_horizontal_alignment.is_expand()
+                    {
+                        let weight = 100.0; // weight per expandable widget
+
+                        total_weight += weight;
+                        extra_size[i] = extra.x * weight;
+                    }
+                }
+
+                if total_weight > 0.0 {
+                    extra_size.iter_mut().for_each(|d| *d /= total_weight);
+                }
+
+                false // Do not offset position - children can still overwhelm container width
             } else {
                 true // children should be centered
             };
@@ -203,11 +226,11 @@ impl HmGuiContainer {
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let widget = widget_rf.as_ref();
 
-                    if widget.vertical_alignment.is_stretch() // child stretching has always priority
-                        || widget.default_height.is_none() // fixed/percent size has priority over children stretching
-                            && self.children_vertical_alignment.is_stretch()
+                    if widget.vertical_alignment.is_extend() // child stretching/expanding has always priority
+                        || widget.default_height.is_auto() // fixed/percent size has priority over children stretching
+                            && self.children_vertical_alignment.is_extend()
                     {
-                        let weight = 100.0; // weight per expandable widget
+                        let weight = 100.0; // weight per extendable widget
 
                         total_weight += weight;
                         extra_size[i] = extra.y * weight;
@@ -221,6 +244,29 @@ impl HmGuiContainer {
                 } else {
                     true // There are only fixed size children - center them
                 }
+            } else if extra.y < 0.0 {
+                // children overwhelm container -> try to shrink expandable widgets
+                let mut total_weight = 0.0;
+
+                for (i, widget_rf) in self.children.iter().enumerate() {
+                    let widget = widget_rf.as_ref();
+
+                    if widget.vertical_alignment.is_expand() // child expanding has always priority
+                        || widget.default_width.is_auto() // fixed/percent size has priority over children docking
+                            && self.children_vertical_alignment.is_expand()
+                    {
+                        let weight = 100.0; // weight per expandable widget
+
+                        total_weight += weight;
+                        extra_size[i] = extra.y * weight;
+                    }
+                }
+
+                if total_weight > 0.0 {
+                    extra_size.iter_mut().for_each(|d| *d /= total_weight);
+                }
+
+                false // Do not offset position - children can still overwhelm container height
             } else {
                 true // children should be centered
             };
@@ -272,8 +318,6 @@ impl HmGuiContainer {
                     self.calculate_horizontal_layout(&mut widget, pos, size);
                     self.calculate_vertical_layout(&mut widget, pos, size);
 
-                    widget.calculate_inner_pos_size();
-
                     widget.layout(hmgui);
                 }
             }
@@ -283,8 +327,6 @@ impl HmGuiContainer {
 
                     self.calculate_horizontal_layout(&mut widget, pos, size);
                     self.calculate_vertical_layout(&mut widget, pos, size);
-
-                    widget.calculate_inner_pos_size();
 
                     widget.layout(hmgui);
 
@@ -309,8 +351,6 @@ impl HmGuiContainer {
 
                     self.calculate_vertical_layout(&mut widget, pos, size);
 
-                    widget.calculate_inner_pos_size();
-
                     widget.layout(hmgui);
 
                     if !HSTRETCH {
@@ -332,8 +372,6 @@ impl HmGuiContainer {
                     widget.pos.y = pos.y;
                     widget.size.y = widget.min_size.y + extra_size[i];
                     pos.y += widget.size.y + self.spacing; // Calculate position of the next widget
-
-                    widget.calculate_inner_pos_size();
 
                     widget.layout(hmgui);
 
