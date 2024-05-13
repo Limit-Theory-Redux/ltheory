@@ -107,4 +107,16 @@ function LimitTheoryRedux:initGameView()
     GameState.render.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
 end
 
+function LimitTheoryRedux:soundOn()
+    GameState.audio.soundEnabled = true
+    --Log.Debug("LimitTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
+    MusicPlayer:SetVolume(MusicPlayer.lastVolume)
+end
+
+function LimitTheoryRedux:soundOff()
+    GameState.audio.soundEnabled = false
+    --Log.Debug("LimitTheoryRedux:SoundOff: volume set to 0")
+    MusicPlayer:SetVolume(0)
+end
+
 return LimitTheoryRedux

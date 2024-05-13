@@ -59,6 +59,7 @@ function MusicObject:Rewind()
 end
 
 function MusicObject:SetVolume(volume, fadeMS)
+    self.volume = volume
     if self.instance then
         self.instance:setVolume(volume, fadeMS)
     end

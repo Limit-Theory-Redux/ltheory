@@ -109,6 +109,7 @@ GameState.world = {
 }
 
 GameState.gen = {
+    debug                 = Config.gen.debug,
     nFields               = Config.gen.nFields,
     nFieldsMax            = Config.gen.nFieldsMax,
     nAsteroids            = Config.gen.nAsteroids,
