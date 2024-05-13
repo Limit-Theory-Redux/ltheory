@@ -71,8 +71,25 @@ end
 
 function Entity:removeChild(child)
     assert(self.children)
-    assert(child.parent == self)
+
+    local parent
+
+    if not child.parent == self then
+        -- go to highest layer
+        parent = child.parent
+        while parent ~= nil do
+            local foundParent = parent.parent
+            if foundParent then parent = foundParent end
+        end
+    end
+
     child.parent = nil
     self:send(Event.ChildRemoved(child))
     child:send(Event.RemovedFromParent(self))
+
+    -- this make sure that a child is also removed from the root / system if it has a different parent than the system e.g. ship docked at station
+    if parent then
+        self:send(Event.ChildRemoved(child))
+        child:send(Event.RemovedFromParent(self))
+    end
 end
