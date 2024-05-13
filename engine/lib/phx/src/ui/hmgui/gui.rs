@@ -1077,7 +1077,7 @@ impl HmGui {
         let (_, prop) = self
             .default_property_registry
             .registry
-            .get_index_mut(id)
+            .get_index(id)
             .unwrap_or_else(|| {
                 panic!("Unknown property id {id}");
             });
@@ -1087,7 +1087,9 @@ impl HmGui {
             "Wrong property type"
         );
 
-        prop.value = value.clone();
+        self.element_style
+            .properties
+            .insert(id.into(), value.clone());
     }
 
     pub fn get_property(&self, id: usize) -> &HmGuiPropertyValue {
