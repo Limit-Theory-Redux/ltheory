@@ -19,16 +19,16 @@ function MouseState:isDown(control) end
 ---@return boolean
 function MouseState:isReleased(control) end
 
----@return Vec2
+---@return Vec2f
 function MouseState:delta() end
 
----@return Vec2
+---@return Vec2f
 function MouseState:scroll() end
 
----@return Vec2
+---@return Vec2f
 function MouseState:scrollPixel() end
 
----@return Vec2
+---@return Vec2f
 function MouseState:position() end
 
 ---@return boolean

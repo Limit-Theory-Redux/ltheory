@@ -3,7 +3,7 @@
 ---@class GuiPropertyValue
 GuiPropertyValue = {}
 
----@return HmGuiPropertyType
+---@return GuiPropertyType
 function GuiPropertyValue:getType() end
 
 ---@param value boolean
@@ -83,88 +83,88 @@ function GuiPropertyValue.FromF64(value) end
 ---@return number
 function GuiPropertyValue:getF64() end
 
----@param value Vec2
+---@param value Vec2f
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromVec2(value) end
 
----@return Vec2
+---@return Vec2f
 function GuiPropertyValue:getVec2() end
 
----@param value Vec3
+---@param value Vec3f
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromVec3(value) end
 
----@return Vec3
+---@return Vec3f
 function GuiPropertyValue:getVec3() end
 
----@param value Vec4
+---@param value Vec4f
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromVec4(value) end
 
----@return Vec4
+---@return Vec4f
 function GuiPropertyValue:getVec4() end
 
----@param value IVec2
+---@param value Vec2i
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromIvec2(value) end
 
----@return IVec2
+---@return Vec2i
 function GuiPropertyValue:getIvec2() end
 
----@param value IVec3
+---@param value Vec3i
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromIvec3(value) end
 
----@return IVec3
+---@return Vec3i
 function GuiPropertyValue:getIvec3() end
 
----@param value IVec4
+---@param value Vec4i
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromIvec4(value) end
 
----@return IVec4
+---@return Vec4i
 function GuiPropertyValue:getIvec4() end
 
----@param value UVec2
+---@param value Vec2u
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromUvec2(value) end
 
----@return UVec2
+---@return Vec2u
 function GuiPropertyValue:getUvec2() end
 
----@param value UVec3
+---@param value Vec3u
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromUvec3(value) end
 
----@return UVec3
+---@return Vec3u
 function GuiPropertyValue:getUvec3() end
 
----@param value UVec4
+---@param value Vec4u
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromUvec4(value) end
 
----@return UVec4
+---@return Vec4u
 function GuiPropertyValue:getUvec4() end
 
----@param value DVec2
+---@param value Vec2d
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromDvec2(value) end
 
----@return DVec2
+---@return Vec2d
 function GuiPropertyValue:getDvec2() end
 
----@param value DVec3
+---@param value Vec3d
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromDvec3(value) end
 
----@return DVec3
+---@return Vec3d
 function GuiPropertyValue:getDvec3() end
 
----@param value DVec4
+---@param value Vec4d
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromDvec4(value) end
 
----@return DVec4
+---@return Vec4d
 function GuiPropertyValue:getDvec4() end
 
 ---@param value Color
@@ -174,11 +174,11 @@ function GuiPropertyValue.FromColor(value) end
 ---@return Color
 function GuiPropertyValue:getColor() end
 
----@param value Box3
+---@param value Box3f
 ---@return GuiPropertyValue
 function GuiPropertyValue.FromBox3(value) end
 
----@return Box3
+---@return Box3f
 function GuiPropertyValue:getBox3() end
 
 ---@param value string

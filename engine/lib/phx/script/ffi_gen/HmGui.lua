@@ -20,9 +20,10 @@ function Loader.defineType()
             void                    HmGui_BeginGui                       (HmGui*, float sx, float sy, Input const* input);
             void                    HmGui_EndGui                         (HmGui*, Input const* input);
             void                    HmGui_Draw                           (HmGui*);
+            void                    HmGui_BeginContainer                 (HmGui*, GuiLayoutType layout);
+            void                    HmGui_BeginStackContainer            (HmGui*);
             void                    HmGui_BeginHorizontalContainer       (HmGui*);
             void                    HmGui_BeginVerticalContainer         (HmGui*);
-            void                    HmGui_BeginStackContainer            (HmGui*);
             void                    HmGui_EndContainer                   (HmGui*);
             void                    HmGui_BeginScrollArea                (HmGui*, ScrollDirection dir);
             void                    HmGui_EndScrollArea                  (HmGui*, Input const* input);
@@ -100,9 +101,10 @@ function Loader.defineType()
                 beginGui                       = libphx.HmGui_BeginGui,
                 endGui                         = libphx.HmGui_EndGui,
                 draw                           = libphx.HmGui_Draw,
+                beginContainer                 = libphx.HmGui_BeginContainer,
+                beginStackContainer            = libphx.HmGui_BeginStackContainer,
                 beginHorizontalContainer       = libphx.HmGui_BeginHorizontalContainer,
                 beginVerticalContainer         = libphx.HmGui_BeginVerticalContainer,
-                beginStackContainer            = libphx.HmGui_BeginStackContainer,
                 endContainer                   = libphx.HmGui_EndContainer,
                 beginScrollArea                = libphx.HmGui_BeginScrollArea,
                 endScrollArea                  = libphx.HmGui_EndScrollArea,

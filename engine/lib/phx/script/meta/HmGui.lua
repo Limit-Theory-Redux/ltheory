@@ -16,12 +16,23 @@ function HmGui:endGui(input) end
 ---Pass information about widgets to the renderer and draw them.
 function HmGui:draw() end
 
-function HmGui:beginHorizontalContainer() end
+---Start a new container with a specified layout.
+---@param layout GuiLayoutType
+function HmGui:beginContainer(layout) end
 
-function HmGui:beginVerticalContainer() end
-
+---Starts stack container.
+---Equivalent to: Gui:beginContainer(GuiLayoutType.Stack)
 function HmGui:beginStackContainer() end
 
+---Starts horizontal container.
+---Equivalent to: Gui:beginContainer(GuiLayoutType.Horizontal)
+function HmGui:beginHorizontalContainer() end
+
+---Starts vertical container.
+---Equivalent to: Gui:beginContainer(GuiLayoutType.Vertical)
+function HmGui:beginVerticalContainer() end
+
+---Closes container started with one of `Gui:beginContainer()` calls.
 function HmGui:endContainer() end
 
 ---Start scroll area.
@@ -244,7 +255,7 @@ function HmGui:clearStyle() end
 
 ---Get property type by its id.
 ---@param id integer
----@return HmGuiPropertyType
+---@return GuiPropertyType
 function HmGui:getPropertyType(id) end
 
 ---Write property value into the mapped properties in the active element style.
@@ -262,17 +273,17 @@ function HmGui:mapPropertyGroup(group) end
 function HmGui:removeProperty(propertyId) end
 
 ---@param name string
----@param value HmGuiPropertyValue
+---@param value GuiPropertyValue
 ---@param mapId string
 ---@return integer
 function HmGui:registerProperty(name, value, mapId) end
 
 ---@param id integer
----@param value HmGuiPropertyValue
+---@param value GuiPropertyValue
 function HmGui:setProperty(id, value) end
 
 ---@param id integer
----@return HmGuiPropertyValue
+---@return GuiPropertyValue
 function HmGui:getProperty(id) end
 
 ---Prints widgets hierarchy to the console. For testing.

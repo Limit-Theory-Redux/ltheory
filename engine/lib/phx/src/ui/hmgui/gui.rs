@@ -38,7 +38,7 @@ pub struct HmGui {
 impl HmGui {
     pub fn new() -> Self {
         let container = HmGuiContainer {
-            layout: LayoutType::None,
+            layout: LayoutType::Stack,
             clip: true, // always clip elements out of the screen
             spacing: 0.0,
             ..Default::default()
@@ -154,27 +154,6 @@ impl HmGui {
         self.last = widget_rf.clone();
 
         widget_rf.clone()
-    }
-
-    /// Start a new container with specified layout.
-    fn begin_container(&mut self, layout: LayoutType) {
-        let spacing = self
-            .get_property(HmGuiProperties::ContainerSpacing.id())
-            .get_f32();
-        let clip = self
-            .get_property(HmGuiProperties::ContainerClip.id())
-            .get_bool();
-
-        let container = HmGuiContainer {
-            layout,
-            spacing,
-            clip,
-            ..Default::default()
-        };
-
-        let widget_rf = self.init_widget(WidgetItem::Container(container));
-
-        self.container = widget_rf.clone();
     }
 
     /// Get persistent data of the widget by its hash.
@@ -301,18 +280,46 @@ impl HmGui {
         unsafe { Profiler_End() };
     }
 
-    pub fn begin_horizontal_container(&mut self) {
-        self.begin_container(LayoutType::Horizontal);
+    /// Start a new container with a specified layout.
+    fn begin_container(&mut self, layout: LayoutType) {
+        let spacing = self
+            .get_property(HmGuiProperties::ContainerSpacing.id())
+            .get_f32();
+        let clip = self
+            .get_property(HmGuiProperties::ContainerClip.id())
+            .get_bool();
+
+        let container = HmGuiContainer {
+            layout,
+            spacing,
+            clip,
+            ..Default::default()
+        };
+
+        let widget_rf = self.init_widget(WidgetItem::Container(container));
+
+        self.container = widget_rf.clone();
     }
 
-    pub fn begin_vertical_container(&mut self) {
-        self.begin_container(LayoutType::Vertical);
-    }
-
+    /// Starts stack container.
+    /// Equivalent to: Gui:beginContainer(GuiLayoutType.Stack)
     pub fn begin_stack_container(&mut self) {
         self.begin_container(LayoutType::Stack);
     }
 
+    /// Starts horizontal container.
+    /// Equivalent to: Gui:beginContainer(GuiLayoutType.Horizontal)
+    pub fn begin_horizontal_container(&mut self) {
+        self.begin_container(LayoutType::Horizontal);
+    }
+
+    /// Starts vertical container.
+    /// Equivalent to: Gui:beginContainer(GuiLayoutType.Vertical)
+    pub fn begin_vertical_container(&mut self) {
+        self.begin_container(LayoutType::Vertical);
+    }
+
+    /// Closes container started with one of `Gui:beginContainer()` calls.
     pub fn end_container(&mut self) {
         self.last = self.container.clone();
 
@@ -564,7 +571,6 @@ impl HmGui {
     /// Begins window element.
     // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
-        self.set_property_value(HmGuiProperties::Opacity, 0.95f32);
         self.begin_stack_container();
 
         // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
@@ -585,7 +591,6 @@ impl HmGui {
             widget.pos.y += data.offset.y;
         }
 
-        self.set_property_value(HmGuiProperties::Opacity, 0.95f32);
         self.begin_vertical_container();
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         self.set_padding(8.0, 8.0);

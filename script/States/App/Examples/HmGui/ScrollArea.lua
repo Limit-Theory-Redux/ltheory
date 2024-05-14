@@ -35,7 +35,6 @@ function Test:scrollArea()
 
     Gui:endContainer()
     Gui:setBorderWidth(3);
-    -- Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
 
     Gui:endScrollArea(InputInstance)
     Gui:setBorderWidth(3);
@@ -43,7 +42,6 @@ function Test:scrollArea()
 
     Gui:endContainer()
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    -- Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
     Gui:setFixedSize(500, 500)
 end
 

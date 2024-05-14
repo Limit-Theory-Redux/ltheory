@@ -42,7 +42,7 @@ function Window:setMinimized(minimized) end
 ---The window's client position in physical pixels.
 ---
 ---See [`WindowPosition`] for an explanation about logical/physical sizes.
----@return IVec2
+---@return Vec2i
 function Window:position() end
 
 ---Set the window's client position in the center of the current monitor.
@@ -70,7 +70,7 @@ function Window:height() end
 ---The window's client area size in logical pixels.
 ---
 ---See [`WindowResolution`] for an explanation about logical/physical sizes.
----@return Vec2
+---@return Vec2f
 function Window:size() end
 
 ---Set the window's client area size in logical pixels.
@@ -95,7 +95,7 @@ function Window:physicalHeight() end
 ---The window's client area size in physical pixels.
 ---
 ---See [`WindowResolution`] for an explanation about logical/physical sizes.
----@return IVec2
+---@return Vec2i
 function Window:physicalSize() end
 
 ---Set the window's client area size in physical pixels.
@@ -153,13 +153,13 @@ function Window:scaleFactor() end
 ---Returns `None` if the cursor is outside the window area.
 ---
 ---See [`WindowResolution`] for an explanation about logical/physical sizes.
----@return Vec2
+---@return Vec2f
 function Window:cursorPosition() end
 
 ---Set the cursor position in this window in logical pixels.
 ---
 ---See [`WindowResolution`] for an explanation about logical/physical sizes.
----@param position Vec2
+---@param position Vec2f
 function Window:setCursorPosition(position) end
 
 ---The cursor position in this window in physical pixels.
@@ -167,12 +167,12 @@ function Window:setCursorPosition(position) end
 ---Returns `None` if the cursor is outside the window area.
 ---
 ---See [`WindowResolution`] for an explanation about logical/physical sizes.
----@return Vec2
+---@return Vec2f
 function Window:physicalCursorPosition() end
 
 ---Set the cursor position in this window in physical pixels.
 ---
 ---See [`WindowResolution`] for an explanation about logical/physical sizes.
----@param position DVec2
+---@param position Vec2d
 function Window:setPhysicalCursorPosition(position) end
 

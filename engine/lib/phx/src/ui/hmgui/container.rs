@@ -6,10 +6,11 @@ use crate::rf::Rf;
 
 use super::*;
 
+/// Container element layout type.
+#[luajit_ffi_gen::luajit_ffi(name = "GuiLayoutType")]
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub enum LayoutType {
     #[default]
-    None,
     Stack,
     Horizontal,
     Vertical,
@@ -55,7 +56,7 @@ impl HmGuiContainer {
         let mut min_size = Vec2::ZERO;
 
         match self.layout {
-            LayoutType::None | LayoutType::Stack => {
+            LayoutType::Stack => {
                 for widget_rf in &self.children {
                     let widget = widget_rf.as_ref();
                     let widget_min_size = widget.min_size;
@@ -255,16 +256,6 @@ impl HmGuiContainer {
         let mut spacing = 0.0;
 
         match self.layout {
-            LayoutType::None => {
-                for widget_rf in &self.children {
-                    let mut widget = widget_rf.as_mut();
-
-                    self.calculate_layout::<0>(&mut widget, pos.x, size.x);
-                    self.calculate_layout::<1>(&mut widget, pos.y, size.y);
-
-                    widget.layout(hmgui);
-                }
-            }
             LayoutType::Stack => {
                 for widget_rf in &self.children {
                     let mut widget = widget_rf.as_mut();

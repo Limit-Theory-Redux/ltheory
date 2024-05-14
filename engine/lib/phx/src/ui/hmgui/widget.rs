@@ -219,10 +219,12 @@ impl HmGuiWidget {
         // TODO: do not process widgets with min size, margin and border all 0
         match &self.item {
             WidgetItem::Container(container) => {
+                let is_root = self.parent.is_none();
+
                 self.inner_size = container.layout(
                     hmgui,
-                    self.alignment[0] == Alignment::Stretch,
-                    self.alignment[1] == Alignment::Stretch,
+                    !is_root && self.alignment[0] == Alignment::Stretch,
+                    !is_root && self.alignment[1] == Alignment::Stretch,
                     self.inner_pos,
                     self.inner_size,
                     self.inner_size - self.inner_min_size,
