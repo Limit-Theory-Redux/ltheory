@@ -147,8 +147,8 @@ local textContainer = UIComponent.Container {
     stackDirection = Enums.UI.StackDirection.Vertical,
     contents = {
         UIComponent.RawInput { fn = function()
-            Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font("Unageo-Medium", 20))
-            Gui:setPropertyColor(GuiProperties.TextColor, Color(1, 1, 1, textOpacity))
+            Gui:setProperty(GuiProperties.TextFont, Cache.Font("Unageo-Medium", 20))
+            Gui:setProperty(GuiProperties.TextColor, Color(1, 1, 1, textOpacity))
             Gui:text("PRESS ANY KEY TO CONTINUE")
         end }
     }

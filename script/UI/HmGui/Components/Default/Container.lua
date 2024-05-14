@@ -62,11 +62,11 @@ function Container:new(args)
 
         -- color
         if self.state.color().background then
-            Gui:setPropertyColor(GuiProperties.BackgroundColor, self.state.color().background)
+            Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().background)
         end
 
         if self.state.showContainer() then
-            Gui:setPropertyColor(GuiProperties.BorderColor, self.state.showContainerColor())
+            Gui:setProperty(GuiProperties.BorderColor, self.state.showContainerColor())
         end
 
         if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
