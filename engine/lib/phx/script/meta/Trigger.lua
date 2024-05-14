@@ -3,18 +3,18 @@
 ---@class Trigger
 Trigger = {}
 
----@param halfExtents Vec3
+---@param halfExtents Vec3f
 ---@return Trigger
 function Trigger.CreateBox(halfExtents) end
 
 ---@param parent RigidBody
----@param offset Vec3
+---@param offset Vec3f
 function Trigger:attach(parent, offset) end
 
 ---@param parent RigidBody
 function Trigger:detach(parent) end
 
----@param result Box3 [out]
+---@param result Box3f [out]
 function Trigger:getBoundingBox(result) end
 
 ---@return integer
@@ -28,16 +28,16 @@ function Trigger:getContents(i) end
 ---@param mask integer
 function Trigger:setCollisionMask(mask) end
 
----@param pos Vec3
+---@param pos Vec3f
 function Trigger:setPos(pos) end
 
----@param pos Vec3
+---@param pos Vec3f
 function Trigger:setPosLocal(pos) end
 
----@param result Vec3 [out]
+---@param result Vec3f [out]
 function Trigger:getPos(result) end
 
----@param result Vec3 [out]
+---@param result Vec3f [out]
 function Trigger:getPosLocal(result) end
 
 ---@return RigidBody

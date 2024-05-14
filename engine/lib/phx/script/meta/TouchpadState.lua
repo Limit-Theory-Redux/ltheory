@@ -7,7 +7,7 @@ TouchpadState = {}
 ---@return number
 function TouchpadState:value(axis) end
 
----@return Vec2
+---@return Vec2f
 function TouchpadState:position() end
 
 ---@return number

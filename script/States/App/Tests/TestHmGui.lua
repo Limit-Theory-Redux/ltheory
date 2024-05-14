@@ -97,7 +97,7 @@ static void MemPool_Grow (MemPool* self) {
 ]]
 
 function Test:showSimple()
-    Gui:beginWindow('HmGui Test', InputInstance)
+    Gui:beginWindow('HmGui Test')
     Gui:beginHorizontalContainer()
     Gui:button(" < ")
     Gui:setStretch(0, 1)
@@ -205,7 +205,7 @@ function Test:showTodoInner()
 end
 
 function Test:showTodo()
-    Gui:beginWindow("HmGui Todo List", InputInstance)
+    Gui:beginWindow("HmGui Todo List")
     Gui:textEx(Cache.Font('Iceland', 20), 'HmGui Todo List', 0.3, 0.4, 0.5, 0.5)
     Gui:setAlign(0.5, 0.5)
     self:showTodoInner()
@@ -214,7 +214,7 @@ function Test:showTodo()
 end
 
 function Test:showMetrics()
-    Gui:beginWindow("Metrics", InputInstance)
+    Gui:beginWindow("Metrics")
     Gui:text(format("fps: %.2f", 1.0 / self.dt))
     Gui:endWindow()
 end

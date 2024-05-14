@@ -34,10 +34,10 @@ function RigidBody.CreateTrimeshFromMesh(mesh) end
 ---@return RigidBody
 function RigidBody:getParentBody() end
 
----@param force Vec3
+---@param force Vec3f
 function RigidBody:applyForce(force) end
 
----@param torque Vec3
+---@param torque Vec3f
 function RigidBody:applyTorque(torque) end
 
 ---Adds another rigid body as a child of this rigid body. This means that
@@ -55,7 +55,7 @@ function RigidBody:applyTorque(torque) end
 ---
 ---This function assumes that `self` is not already a child.
 ---@param child RigidBody
----@param pos Vec3
+---@param pos Vec3f
 ---@param rot Quat
 function RigidBody:attach(child, pos, rot) end
 
@@ -70,19 +70,19 @@ function RigidBody:attach(child, pos, rot) end
 function RigidBody:detach(child) end
 
 ---Calculates the bounding box.
----@param result Box3 [out]
+---@param result Box3f [out]
 function RigidBody:getBoundingBox(result) end
 
 ---Calculates the compound bounding box.
----@param result Box3 [out]
+---@param result Box3f [out]
 function RigidBody:getBoundingBoxCompound(result) end
 
 ---Calculates the local bounding box.
----@param result Box3 [out]
+---@param result Box3f [out]
 function RigidBody:getBoundingBoxLocal(result) end
 
 ---Calculates the local compound bounding box.
----@param result Box3 [out]
+---@param result Box3f [out]
 function RigidBody:getBoundingBoxLocalCompound(result) end
 
 ---@return number
@@ -102,10 +102,10 @@ function RigidBody:getToWorldMatrix() end
 ---@return Matrix
 function RigidBody:getToLocalMatrix() end
 
----@param result Vec3 [out]
+---@param result Vec3f [out]
 function RigidBody:getVelocity(result) end
 
----@param result Vec3 [out]
+---@param result Vec3f [out]
 function RigidBody:getVelocityA(result) end
 
 ---When disabled, the object will pass through others without colliding
@@ -144,19 +144,19 @@ function RigidBody:getMass() end
 function RigidBody:setMass(mass) end
 
 ---Children return the parent position.
----@param result Vec3 [out]
+---@param result Vec3f [out]
 function RigidBody:getPos(result) end
 
 ---Local coordinates are relative to the parent *before* scaling.
----@param result Vec3 [out]
+---@param result Vec3f [out]
 function RigidBody:getPosLocal(result) end
 
----@param pos Vec3
+---@param pos Vec3f
 function RigidBody:setPos(pos) end
 
 ---Local coordinates are relative to the parent *before* scaling. The
 ---given position will be multiplied by the parent's scale.
----@param pos Vec3
+---@param pos Vec3f
 function RigidBody:setPosLocal(pos) end
 
 ---@param result Quat [out]

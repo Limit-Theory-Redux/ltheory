@@ -12,6 +12,9 @@ const RUST_TO_LUA_TYPE_MAP: &[(&str, &str)] = &[
     ("Vec3", "Vec3f"),
     ("Vec4", "Vec4f"),
     ("Box3", "Box3f"),
+    ("HmGuiPropertyType", "GuiPropertyType"),
+    ("HmGuiPropertyValue", "GuiPropertyValue"),
+    ("LayoutType", "GuiLayoutType"),
 ];
 
 // TODO: find out different way to mark types as copyable
@@ -51,6 +54,9 @@ const COPY_TYPES: &[&str] = &[
     "AlignVertical",
     "ResourceType",
     "ScrollDirection",
+    "HmGuiPropertyType",
+    "LayoutType",
+    "HmGuiStyleId",
 ];
 
 #[derive(Debug)]
@@ -157,8 +163,14 @@ impl TypeInfo {
     }
 
     pub fn as_lua_ffi_string(&self, self_name: &str) -> String {
-        if self.is_self() {
-            self_name.into()
+        if let TypeVariant::Custom(ty_name) = &self.variant {
+            let ty_ident = if self.is_self() { self_name } else { ty_name };
+
+            RUST_TO_LUA_TYPE_MAP
+                .iter()
+                .find(|(r_ty, _)| *r_ty == ty_name)
+                .map(|(_, l_ty)| l_ty.to_string())
+                .unwrap_or(ty_ident.to_string())
         } else {
             self.variant.as_lua_ffi_string()
         }

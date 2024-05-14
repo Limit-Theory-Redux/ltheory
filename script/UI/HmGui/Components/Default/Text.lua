@@ -47,10 +47,11 @@ function Text:new(args)
         end
 
         if self.state.font() then
-            Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font(self.state.font(), self.state.size()))
+            Gui:setProperty(GuiProperties.TextFont,
+                Cache.Font(self.state.font(), self.state.size()))
         end
 
-        Gui:setPropertyColor(GuiProperties.TextColor, self.state.color())
+        Gui:setProperty(GuiProperties.TextColor, self.state.color())
         Gui:text(tostring(self.state.text()))
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 

@@ -60,8 +60,8 @@ function Window:new(args)
     newWindow.render = function(self)
         Gui:beginStackContainer()                                      -- begin game window
         Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center) --! hardcoded to center right now, if we opt for this solution i will add configuration options
-        Gui:beginWindow(self.title, InputInstance)
-        Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('Exo2', 26))
+        Gui:beginWindow(self.title)
+        Gui:setProperty(GuiProperties.TextFont, Cache.Font('Exo2', 26))
         Gui:textColored(self.title, Color(1, 1, 1, 0.25))
 
         -- temp until i figure out how to do groups properly

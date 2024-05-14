@@ -11,14 +11,14 @@ end
 function Test:onInput() end
 
 function Test:showElements()
-    -- Gui:beginWindow('HmGui Elements Test', InputInstance)
+    -- Gui:beginWindow('HmGui Elements Test')
     Gui:beginHorizontalContainer()
     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
 
     Gui:beginVerticalContainer()
     Gui:setVerticalAlignment(AlignVertical.Stretch)
 
-    Gui:setPropertyColor(GuiProperties.ButtonHighlightColor, Color(1, 0, 0, 0.5))
+    Gui:setProperty(GuiProperties.ButtonHighlightColor, Color(1, 0, 0, 0.5))
     Gui:button("Button1")
     Gui:button("Button2")
     Gui:button("Button3")

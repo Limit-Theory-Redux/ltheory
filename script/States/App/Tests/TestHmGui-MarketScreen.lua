@@ -44,7 +44,7 @@ static void MemPool_Grow (MemPool* self) {
 ]]
 
 function Test:showMenuDrop()
-    Gui:beginWindow("Screen Title", InputInstance)
+    Gui:beginWindow("Screen Title")
     if station_options == 1 then
         Gui:textEx(Cache.Font('Iceland', 64), 'MARKETPLACE', 1.0, 1.0, 1.0, 1.0)
     elseif station_options == 2 then
@@ -859,7 +859,7 @@ function Test:showGameCtrlInner()
 end
 
 function Test:showCtrlMenu()
-    Gui:beginWindow("Game Control", InputInstance)
+    Gui:beginWindow("Game Control")
     Gui:textEx(Cache.Font('Iceland', 20), 'Game Control', 0.3, 0.4, 0.5, 1.0)
     Gui:setAlign(0.5, 0.5)
     Gui:setSpacing(16)
@@ -869,7 +869,7 @@ function Test:showCtrlMenu()
 end
 
 function Test:showMetrics()
-    Gui:beginWindow("Metrics", InputInstance)
+    Gui:beginWindow("Metrics")
     Gui:text(format("fps: %.2f", 1.0 / self.dt))
     Gui:endWindow()
 end

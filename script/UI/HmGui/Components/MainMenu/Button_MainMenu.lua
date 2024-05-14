@@ -64,10 +64,11 @@ function Button:new(args)
         end
 
         -- no need for an if check, since we always have a default defined
-        Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font(self.state.font().name, self.state.font().size))
-        Gui:setPropertyColor(GuiProperties.ButtonTextColor, self.state.color().text)
-        Gui:setPropertyColor(GuiProperties.ButtonBackgroundColor, self.state.color().background)
-        Gui:setPropertyColor(GuiProperties.ButtonHighlightColor, self.state.color().highlight)
+        Gui:setProperty(GuiProperties.TextFont,
+            Cache.Font(self.state.font().name, self.state.font().size))
+        Gui:setProperty(GuiProperties.ButtonTextColor, self.state.color().text)
+        Gui:setProperty(GuiProperties.ButtonBackgroundColor, self.state.color().background)
+        Gui:setProperty(GuiProperties.ButtonHighlightColor, self.state.color().highlight)
 
         if Gui:button(self.state.title()) then
             -- hardcoding the sound

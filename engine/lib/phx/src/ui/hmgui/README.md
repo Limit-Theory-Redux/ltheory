@@ -16,8 +16,8 @@ The HmGui layout system is based on the following property assignments:
 
 1. Layout model of the container: Stack, Horizontal, Vertical
 2. Alignment of child elements.
-   - horizontal: Center, Left (default), Right, Stretch
-   - vertical: Center, Top (default), Right, Stretch
+   - horizontal: Center, Left (default), Right, Expand, Stretch
+   - vertical: Center, Top (default), Right, Expand, Stretch
 3. Size specification: Fixed, Percent
 4. Decorations: padding, spacing, margin and border
 
@@ -35,7 +35,7 @@ HmGui supports three layout models for arranging child elements in a Container:
 
 In addition to a parent Container's layout model, the positioning of elements in a Container is also affected by several properties of child elements:
 
-- **alignment** - telling an element to attach one or more of its four sides (Left, Right, Top and Bottom) to its parent's side, to be centered in its parent, or to stretch as far as possible (inside its parent) either vertically or horizontally
+- **alignment** - telling an element to attach one or more of its four sides (Left, Right, Top and Bottom) to its parent's side, to be centered in its parent, to expand to the parent sides (docking), or to stretch to the parent sides or as far as possible (inside its parent) either vertically or horizontally
 - **fixed/percent size** - telling an element to either:
   - span a fixed size in pixels, or
   - expand, if possible, to a percentage of its parent's size
@@ -73,7 +73,7 @@ All three Rect elements will be drawn in a horizontal row, in order from left to
 
 Alignment is a property that can be used to position an element in relation to any of the four sides of its parent Container, or to the element beside the selected child element in the designated direction.
 
-There are two dimensions along which elements can be aligned: Horizontal (width) and Vertical (height). In both alignment dimensions, one of six parameters can be specified: Center, Left (default), Right, Top (default), Bottom, and Stretch.
+There are two dimensions along which elements can be aligned: Horizontal (width) and Vertical (height). In both alignment dimensions, one of the following parameters can be specified: Center, Left (default), Right, Top (default), Bottom, Expand, and Stretch.
 
 The HmGui programmer can set alignment for both dimensions independently.
 
@@ -119,8 +119,6 @@ Gui:endContainer()
 ```
 
 All of the three child Rect elements in this example will be drawn stacked on top of each other, in order from top to bottom, with each element's left side touching the left side of their parent container, and the group of three elements will be centered vertically by default (since no explicit Vertical alignment was specified).
-
-Note: `setChildrenHorizontalAlignment()` will accept only the parameters AlignHorizontal.Center, AlignHorizontal.Left, AlignHorizontal.Right, and AlignHorizontal.Stretch; and `setChildrenVerticalAlignment()` will accept only the parameters AlignVertical.Center, AlignVertical.Top, AlignVertical.Bottom, and AlignVertical.Stretch.
 
 #### Advanced Alignment
 
@@ -288,7 +286,7 @@ end
 
 -- somewhere later
 Gui:clearStyle()
-Gui:setPropertyColor(Enums.Gui.ButtonTextColor, Color(0, 1, 0, 1))
+Gui:setProperty(Enums.Gui.ButtonTextColor, Color(0, 1, 0, 1))
 Gui:button("My button")
 ```
 It's recommended to add `Gui:mapPropertyGroup(group)` call at the beginning of every element declaration that has group properties (usually group name is the same as an element name).
@@ -301,11 +299,9 @@ HmGui provides several methods allowing Lua scripters to manage element properti
 - `Gui:mapProperty(id)`: copies property value to its mapped properties for the current following element. Should be used inside element function definition.
 - `Gui:mapPropertyGroup(group)`: copies group properties values which names starting with `group + "."` to their mapped properties for the current following element. Should be used inside element function definition.
 - `Gui:removeProperty(id)`: remove property from the current element style
-- `Gui:registerProperty*(name, value, map_id)`: register a new property with optional id of the mapped property
-- `Gui:setProperty*(id, value)`: set property value
-- `Gui:getProperty*(id)`: get property value
-
-`*` in `register/set/getProperty*()` methods is a property type substitution, i.e.: `setPropertyU32`, `getPropertyFont`, etc.
+- `Gui:registerProperty(name, value, map_id)`: register a new property with optional id of the mapped property
+- `Gui:setPropertyValue(id, value)`: set property value (or `Gui:setProperty(id, value)` extension method)
+- `Gui:getPropertyValue(id)`: get property value (or `Gui:getProperty(id)` extension method)
 
 ### Styling groups
 
@@ -326,7 +322,7 @@ Any property value applied by setting a theme that contains that property will b
   - Example of direct styling in code:
 ```lua
 Gui:clearStyle()
-Gui:setPropertyColor(GuiProperties.ButtonTextColor, Color(1, 0, 0, 1))
+Gui:setProperty(GuiProperties.ButtonTextColor, Color(1, 0, 0, 1))
 Gui:button("MyButton")
 ```
   - Example of styling through the global style configuration file `styles.yaml`:
@@ -342,6 +338,21 @@ Element style scripting methods:
 - `Gui:setStyle(id)`: set style for the following element
 - `Gui:clearStyle()`: clear element style so either theme or default properties will be used
 
+### Manual styles
+
+To create style in a code in runtime instead of loading it from `styles.yaml`, developer can use `Gui:newStyle(name)` and `Gui:setStyleProperty(styleId, propId, value)` methods. Example:
+```lua
+local styleId = Gui:newStyle("MyStyle")
+Gui:setStyleProperty(GuiProperties.BackgroundColor, Color(1, 0, 0, 1))
+Gui:setStyleProperty(GuiProperties.Opacity, 0.5)
+
+-- Later in the code
+Gui:setStyle(styleId)
+Gui:beginStackContainer()
+
+Gui:endContainer()
+```
+
 ### Custom properties
 
 Scripters can define custom properties in the [`GuiEnums.lua`](/script/Enums/GuiEnums.lua) file. Example:
@@ -356,7 +367,7 @@ Then this property can be used in the custom element definition:
 function menu(variants)
 Gui:mapPropertyGroup("menuitem") -- map all MenuItem properties - it will map all properties with the name containing "manuitem." prefix
 
-local borderWidth = Gui:getPropertyF32(Enums.Gui.MenuBorderWidth)
+local borderWidth = Gui:getPropertyValue(Enums.Gui.MenuBorderWidth).getF32()
 ...
 menu_item(variants[1])
 ...

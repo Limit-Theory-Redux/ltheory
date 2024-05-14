@@ -20,6 +20,7 @@ function Loader.defineType()
             AlignHorizontal AlignHorizontal_Center;
             AlignHorizontal AlignHorizontal_Left;
             AlignHorizontal AlignHorizontal_Right;
+            AlignHorizontal AlignHorizontal_Expand;
             AlignHorizontal AlignHorizontal_Stretch;
 
             cstr            AlignHorizontal_ToString(AlignHorizontal);
@@ -32,6 +33,7 @@ function Loader.defineType()
             Center   = libphx.AlignHorizontal_Center,
             Left     = libphx.AlignHorizontal_Left,
             Right    = libphx.AlignHorizontal_Right,
+            Expand   = libphx.AlignHorizontal_Expand,
             Stretch  = libphx.AlignHorizontal_Stretch,
 
             ToString = libphx.AlignHorizontal_ToString,

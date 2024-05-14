@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 
 use crate::render::{Color, Font};
 
-use super::{HmGuiProperty, HmGuiPropertyId, HmGuiPropertyInfo};
+use super::{HmGuiProperty, HmGuiPropertyId, HmGuiPropertyValue};
 
 // Property id, name, value and optional list of mapped property ids
 phx_macros::core_properties! {
@@ -14,7 +14,7 @@ phx_macros::core_properties! {
     (TextColor,             "text.color",              Color::WHITE),
 
     (ContainerClip,    "container.clip",    true),
-    (ContainerSpacing, "container.spacing", 6.0f32),
+    (ContainerSpacing, "container.spacing", 0.0f32),
 
     (ButtonRectOpacity,         "button.rect.opacity",          0.5f32, Opacity),
     (ButtonRectBorderColor,     "button.rect.border-color",     Color::TRANSPARENT, BorderColor),
@@ -56,8 +56,8 @@ phx_macros::core_properties! {
 /// Adds a new property to the map.
 /// Verifies its expected id and mapped ids.
 #[inline]
-fn reg<T: Into<HmGuiProperty>>(
-    r: &mut IndexMap<String, HmGuiPropertyInfo>,
+fn reg<T: Into<HmGuiPropertyValue>>(
+    r: &mut IndexMap<String, HmGuiProperty>,
     name: &str,
     value: T,
     expected_id: HmGuiProperties,
@@ -68,7 +68,7 @@ fn reg<T: Into<HmGuiProperty>>(
     let id = r.len();
     assert_eq!(id, expected_id as _, "Wrong property id");
 
-    let property: HmGuiProperty = value.into();
+    let property: HmGuiPropertyValue = value.into();
 
     for map_id in map_ids {
         assert_ne!(**map_id, id, "Property {name:?} maps to itself"); // TODO: check for the circular dependency
@@ -76,15 +76,15 @@ fn reg<T: Into<HmGuiProperty>>(
         let (map_name, property_info) = r.get_index(**map_id).expect("Unknown pam property");
         assert_eq!(
             property.get_type(),
-            property_info.property.get_type(),
+            property_info.value.get_type(),
             "Wrong {map_name:?} map property type"
         );
     }
 
     r.insert(
         name.into(),
-        HmGuiPropertyInfo {
-            property,
+        HmGuiProperty {
+            value: property,
             map_ids: map_ids.into(),
         },
     );
