@@ -1,5 +1,3 @@
-local libphx = require('libphx').lib
-
 local function initPropsFromFuncs(self)
     local propFromFuncs = {
         GuiPropertyValue.FromBool,
@@ -34,7 +32,7 @@ local function initPropsFromFuncs(self)
     local propCount = tonumber(Gui:getPropertiesCount() - 1)
 
     for id = 0, propCount do
-        local ty = Gui:getPropertyType(id)
+        local ty = tonumber(Gui:getPropertyType(id) + 1)
         self.propFromFuncMap[id] = propFromFuncs[ty]
     end
 
@@ -49,6 +47,7 @@ function onDef_HmGui_t(t, mt)
             -- init props once
             initPropsFromFuncs(self)
         end
+
         Gui:setProperty(id, self.propFromFuncMap[id](value))
     end
 end
