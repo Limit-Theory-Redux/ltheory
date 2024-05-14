@@ -214,6 +214,33 @@ function HmGui:setTheme(name) end
 ---Restore default properties.
 function HmGui:clearTheme() end
 
+---Create a new empty style.
+---Returns style id or None/nil if style with the same name already exists.
+---
+---Example:
+---```lua
+---local styleId = Gui:newStyle("MyStyle")
+---Gui:setStyleProperty(GuiProperties.BackgroundColor, Color(1, 0, 0, 1))
+---Gui:setStyleProperty(GuiProperties.Opacity, 0.5)
+---
+----- Later in the code
+---
+---Gui:setStyle(styleId)
+---Gui:beginStackContainer()
+---
+---Gui:endContainer()
+---```
+---@param name string
+---@return integer
+function HmGui:newStyle(name) end
+
+---Sets style property value.
+---See example in `Gui:newStyle()` method description.
+---@param styleId integer
+---@param propId integer
+---@param value GuiPropertyValue
+function HmGui:setStylePropertyValue(styleId, propId, value) end
+
 ---Get style id by its name.
 ---@param name string
 ---@return integer

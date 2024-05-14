@@ -909,6 +909,55 @@ impl HmGui {
 
     // Style methods ----------------------------------------------------------
 
+    /// Create a new empty style.
+    /// Returns style id or None/nil if style with the same name already exists.
+    ///
+    /// Example:
+    /// ```lua
+    /// local styleId = Gui:newStyle("MyStyle")
+    /// Gui:setStyleProperty(GuiProperties.BackgroundColor, Color(1, 0, 0, 1))
+    /// Gui:setStyleProperty(GuiProperties.Opacity, 0.5)
+    ///
+    /// -- Later in the code
+    ///
+    /// Gui:setStyle(styleId)
+    /// Gui:beginStackContainer()
+    ///
+    /// Gui:endContainer()
+    /// ```
+    pub fn new_style(&mut self, name: &str) -> Option<usize> {
+        self.style_registry.create_style(name).map(|id| *id)
+    }
+
+    /// Sets style property value.
+    /// See example in `Gui:newStyle()` method description.
+    pub fn set_style_property_value(
+        &mut self,
+        style_id: usize,
+        prop_id: usize,
+        value: &HmGuiPropertyValue,
+    ) {
+        let (_, prop) = self
+            .default_property_registry
+            .registry
+            .get_index(prop_id)
+            .unwrap_or_else(|| {
+                panic!("Unknown property id {prop_id}");
+            });
+        assert_eq!(
+            prop.value.get_type(),
+            value.get_type(),
+            "Wrong property type"
+        );
+
+        let style = self
+            .style_registry
+            .get_mut(style_id.into())
+            .expect(&format!("Unknown style with id: {style_id:?}"));
+
+        style.set_property_value(prop_id.into(), value);
+    }
+
     /// Get style id by its name.
     pub fn get_style_id(&self, name: &str) -> usize {
         *self

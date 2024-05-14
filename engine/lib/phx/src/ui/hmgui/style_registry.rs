@@ -116,6 +116,11 @@ impl HmGuiStyleRegistry {
         self.registry.get_index(*id).map(|(_, s)| s)
     }
 
+    /// Get mutable style by id.
+    pub fn get_mut(&mut self, id: HmGuiStyleId) -> Option<&mut HmGuiStyle> {
+        self.registry.get_index_mut(*id).map(|(_, s)| s)
+    }
+
     /// Get style by name.
     pub fn get_by_name(&self, name: &str) -> Option<&HmGuiStyle> {
         self.registry.get(name)

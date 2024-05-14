@@ -67,6 +67,8 @@ function Loader.defineType()
             void                    HmGui_SetChildrenVerticalAlignment   (HmGui const*, AlignVertical align);
             void                    HmGui_SetTheme                       (HmGui*, cstr name);
             void                    HmGui_ClearTheme                     (HmGui*);
+            uint64 const*           HmGui_NewStyle                       (HmGui*, cstr name);
+            void                    HmGui_SetStylePropertyValue          (HmGui*, uint64 styleId, uint64 propId, GuiPropertyValue const* value);
             uint64                  HmGui_GetStyleId                     (HmGui const*, cstr name);
             void                    HmGui_SetStyle                       (HmGui*, uint64 id);
             void                    HmGui_SetStyleByName                 (HmGui*, cstr name);
@@ -144,6 +146,8 @@ function Loader.defineType()
                 setChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
                 setTheme                       = libphx.HmGui_SetTheme,
                 clearTheme                     = libphx.HmGui_ClearTheme,
+                newStyle                       = libphx.HmGui_NewStyle,
+                setStylePropertyValue          = libphx.HmGui_SetStylePropertyValue,
                 getStyleId                     = libphx.HmGui_GetStyleId,
                 setStyle                       = libphx.HmGui_SetStyle,
                 setStyleByName                 = libphx.HmGui_SetStyleByName,

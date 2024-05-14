@@ -94,6 +94,10 @@ impl HmGuiStyle {
 
         Ok(Self { properties })
     }
+
+    pub fn set_property_value(&mut self, id: HmGuiPropertyId, value: &HmGuiPropertyValue) {
+        self.properties.insert(id, value.clone());
+    }
 }
 
 /// Create property of the provided type from the yaml value.

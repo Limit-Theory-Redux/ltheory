@@ -338,6 +338,21 @@ Element style scripting methods:
 - `Gui:setStyle(id)`: set style for the following element
 - `Gui:clearStyle()`: clear element style so either theme or default properties will be used
 
+### Manual styles
+
+To create style in a code in runtime instead of loading it from `styles.yaml`, developer can use `Gui:newStyle(name)` and `Gui:setStyleProperty(styleId, propId, value)` methods. Example:
+```lua
+local styleId = Gui:newStyle("MyStyle")
+Gui:setStyleProperty(GuiProperties.BackgroundColor, Color(1, 0, 0, 1))
+Gui:setStyleProperty(GuiProperties.Opacity, 0.5)
+
+-- Later in the code
+Gui:setStyle(styleId)
+Gui:beginStackContainer()
+
+Gui:endContainer()
+```
+
 ### Custom properties
 
 Scripters can define custom properties in the [`GuiEnums.lua`](/script/Enums/GuiEnums.lua) file. Example:

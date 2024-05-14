@@ -56,6 +56,7 @@ const COPY_TYPES: &[&str] = &[
     "ScrollDirection",
     "HmGuiPropertyType",
     "LayoutType",
+    "HmGuiStyleId",
 ];
 
 #[derive(Debug)]

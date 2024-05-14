@@ -47,6 +47,10 @@ function onDef_HmGui_t(t, mt)
         initPropsFromFuncs(self)
     end
 
+    mt.__index.setStyleProperty = function(self, style_id, prop_id, value)
+        Gui:setStylePropertyValue(style_id, prop_id, self.propFromFuncMap[prop_id].set(value))
+    end
+
     mt.__index.setProperty = function(self, id, value)
         Gui:setPropertyValue(id, self.propFromFuncMap[id].set(value))
     end
