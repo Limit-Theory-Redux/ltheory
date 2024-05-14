@@ -40,8 +40,8 @@ function InitFiles:readUserInits()
         local categories = {}
 
         for index, line in ipairs(lines) do
-            -- Skip comments
-            if string.sub(line, 1, 1) == "#" then
+            -- Skip comments or empty lines
+            if string.sub(line, 1, 1) == "#" or string.sub(line, 1, 1) == "" then
                 goto skip
             end
 
@@ -142,8 +142,8 @@ function InitFiles:readUserInits()
             local currentLine = lines[iterator]
 
             while currentLine and not string.match(currentLine, "%[") do
-                -- skip comments
-                if string.match(currentLine, "#") then
+                -- skip comments or empty lines
+                if string.match(currentLine, "#") or string.sub(currentLine, 1, 1) == "" then
                     iterator = iterator + 1
                     currentLine = lines[iterator]
                     goto skipLine
@@ -255,6 +255,7 @@ function InitFiles:writeUserInits()
     end
 
     local function writeSubCat(cat, var, val)
+        io.write("\n") -- empty line before every sub-category
         io.write(format("[%s]", tostring(cat) .. "." .. tostring(var)), "\n")
         for l_SubCat, l_SubTable in pairsByKeys(val) do
             io.write(format("%s=%s", tostring(l_SubCat), tostring(l_SubTable)), "\n")
@@ -275,12 +276,15 @@ function InitFiles:writeUserInits()
         "Support the LTR project by discussing, contributing or silent participation:",
         "GitHub: " .. Config.orgInfo.repository,
         "Discord: " .. Config.orgInfo.discord,
-        "Wiki: " .. Config.orgInfo.wiki
+        "Wiki: " .. Config.orgInfo.wiki,
+        "Blog: " .. Config.orgInfo.blog,
+        "Reddit: " .. Config.orgInfo.reddit
     }
 
     for l_Category, l_CategoryTable in pairsByKeys(noFunctions) do
         -- this is dirty for now, but its the only category without anything we need to save
         if l_Category ~= "world" then
+            io.write("\n") -- empty line before every category
             io.write(format("[%s]", tostring(l_Category)), "\n")
         end
 
