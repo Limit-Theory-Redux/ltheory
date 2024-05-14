@@ -131,10 +131,7 @@ local menuGrid = UILayout.Grid {
                             width = getButtonWidth,
                             height = getButtonHeight,
                             callback = function()
-                                -- Write player-specific game variables to preserve them across gameplay sessions
-                                InitFiles:writeUserInits()
-
-                                EngineInstance:exit()
+                                LimitTheoryRedux:exit() -- run pre-exit operations & exit game
                             end,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         }

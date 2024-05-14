@@ -82,7 +82,7 @@ local menuContainer = UIComponent.Container {
             width = getButtonWidth,
             height = getButtonHeight,
             callback = function()
-                EngineInstance:exit()
+                LimitTheoryRedux:exit() -- run pre-exit operations & exit game
             end
         }
     }

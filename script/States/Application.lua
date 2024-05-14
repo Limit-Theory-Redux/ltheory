@@ -30,7 +30,6 @@ function Application:onExit() end
 function Application:onInput() end
 
 function Application:quit()
-    self.exit = true
     EngineInstance:exit()
 end
 
@@ -47,8 +46,6 @@ function Application:appInit()
     GameState.audio.manager = self.audio
 
     GameState.render.gameWindow = WindowInstance
-
-    self.exit = false
 
     WindowInstance:setPresentMode(GameState.render.presentMode)
 

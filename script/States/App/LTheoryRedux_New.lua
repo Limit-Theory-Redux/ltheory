@@ -119,4 +119,14 @@ function LimitTheoryRedux:soundOff()
     MusicPlayer:SetVolume(0)
 end
 
+--* any operations we want to do before exiting the game
+function LimitTheoryRedux:exit()
+    -- Update Session vars ; temporary until we have a save state
+    GameState.player.startupCamera = GameState.player.currentCamera
+    -- Write player-specific game variables to preserve them across gameplay sessions
+    InitFiles:writeUserInits()
+
+    EngineInstance:exit()
+end
+
 return LimitTheoryRedux
