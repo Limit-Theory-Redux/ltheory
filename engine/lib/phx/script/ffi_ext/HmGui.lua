@@ -54,4 +54,28 @@ function onDef_HmGui_t(t, mt)
     mt.__index.getProperty = function(self, id)
         return self.propFromFuncMap[id].get(Gui:getPropertyValue(id))
     end
+
+    mt.__index.beginWindow = function(self, name)
+        Gui:beginStackContainer()
+        Gui:beginVerticalContainer()
+        Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+        Gui:setPadding(8, 8)
+    end
+
+    mt.__index.endWindow = function(self)
+        Gui:endContainer()
+        Gui:endContainer()
+    end
+
+    mt.__index.horizontalDivider = function(self, height)
+        Gui:rect();
+        Gui:setFixedHeight(height);
+        Gui:setHorizontalAlignment(AlignHorizontal.Stretch);
+    end
+
+    mt.__index.verticalDivider = function(self, width)
+        Gui:rect();
+        Gui:setFixedWidth(width);
+        Gui:setVerticalAlignment(AlignVertical.Stretch);
+    end
 end

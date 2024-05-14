@@ -306,7 +306,7 @@ function MainMenu:ShowSeedDialog()
     self.seedDialogDisplayed = true
 
     Gui:setStyle(Enums.Gui.Styles.SeedWindow)
-    Gui:beginWindow(guiElements.name, InputInstance)
+    Gui:beginWindow(guiElements.name)
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
@@ -414,7 +414,7 @@ function MainMenu:ShowSettingsScreen()
     self.settingsScreenDisplayed = true
 
     Gui:setStyle(Enums.Gui.Styles.SettingsWindow)
-    Gui:beginWindow(guiElements.name, InputInstance)
+    Gui:beginWindow(guiElements.name)
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
@@ -809,7 +809,7 @@ function MainMenu:ShowFlightDialog()
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 
     Gui:setStyle(Enums.Gui.Styles.FlightModeWindow)
-    Gui:beginWindow("Flight Mode", InputInstance)
+    Gui:beginWindow("Flight Mode")
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter

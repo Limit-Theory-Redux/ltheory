@@ -27,14 +27,9 @@ function Loader.defineType()
             void                    HmGui_EndContainer                   (HmGui*);
             void                    HmGui_BeginScrollArea                (HmGui*, ScrollDirection dir);
             void                    HmGui_EndScrollArea                  (HmGui*, Input const* input);
-            void                    HmGui_BeginWindow                    (HmGui*, cstr title, Input const* input);
-            void                    HmGui_EndWindow                      (HmGui*);
             void                    HmGui_Spacer                         (HmGui*);
             bool                    HmGui_Button                         (HmGui*, cstr label);
             bool                    HmGui_Checkbox                       (HmGui*, cstr label, bool value);
-            float                   HmGui_Slider                         (HmGui*, float lower, float upper, float value);
-            void                    HmGui_HorizontalDivider              (HmGui*, float height);
-            void                    HmGui_VerticalDivider                (HmGui*, float width);
             void                    HmGui_Image                          (HmGui*, Tex2D* image);
             void                    HmGui_Rect                           (HmGui*);
             void                    HmGui_Text                           (HmGui*, cstr text);
@@ -109,14 +104,9 @@ function Loader.defineType()
                 endContainer                   = libphx.HmGui_EndContainer,
                 beginScrollArea                = libphx.HmGui_BeginScrollArea,
                 endScrollArea                  = libphx.HmGui_EndScrollArea,
-                beginWindow                    = libphx.HmGui_BeginWindow,
-                endWindow                      = libphx.HmGui_EndWindow,
                 spacer                         = libphx.HmGui_Spacer,
                 button                         = libphx.HmGui_Button,
                 checkbox                       = libphx.HmGui_Checkbox,
-                slider                         = libphx.HmGui_Slider,
-                horizontalDivider              = libphx.HmGui_HorizontalDivider,
-                verticalDivider                = libphx.HmGui_VerticalDivider,
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,
                 text                           = libphx.HmGui_Text,

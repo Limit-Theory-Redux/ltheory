@@ -566,40 +566,6 @@ impl HmGui {
         self.end_container();
     }
 
-    /// Begins window element.
-    // TODO: refactor to draw title properly
-    pub fn begin_window(&mut self, _title: &str, input: &Input) {
-        self.begin_stack_container();
-
-        // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
-        {
-            let mouse = input.mouse();
-            let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
-
-            let widget_rf = self.container.clone();
-            let mut widget = widget_rf.as_mut();
-            let data = self.get_data(widget.hash);
-
-            if is_mouse_over && mouse.is_down(MouseControl::Left) {
-                data.offset.x += mouse.value(MouseControl::DeltaX);
-                data.offset.y += mouse.value(MouseControl::DeltaY);
-            }
-
-            widget.pos.x += data.offset.x;
-            widget.pos.y += data.offset.y;
-        }
-
-        self.begin_vertical_container();
-        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
-        self.set_padding(8.0, 8.0);
-    }
-
-    /// Ends window element.
-    pub fn end_window(&mut self) {
-        self.end_container(); // Vertical container
-        self.end_container(); // Stack container
-    }
-
     /// Invisible element that stretches in all directions.
     /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
     pub fn spacer(&mut self) {
@@ -663,34 +629,6 @@ impl HmGui {
         self.set_property(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
 
         value
-    }
-
-    pub fn slider(&mut self, _lower: f32, _upper: f32, _value: f32) -> f32 {
-        self.begin_stack_container();
-        self.set_horizontal_alignment(AlignHorizontal::Stretch);
-
-        self.set_property(
-            HmGuiProperties::BackgroundColor,
-            Color::new(0.5, 0.5, 0.5, 1.0),
-        );
-        self.rect();
-        self.set_fixed_size(0.0, 2.0);
-
-        self.end_container();
-
-        0.0
-    }
-
-    pub fn horizontal_divider(&mut self, height: f32) {
-        self.rect();
-        self.set_fixed_height(height);
-        self.set_horizontal_alignment(AlignHorizontal::Stretch);
-    }
-
-    pub fn vertical_divider(&mut self, width: f32) {
-        self.rect();
-        self.set_fixed_width(width);
-        self.set_vertical_alignment(AlignVertical::Stretch);
     }
 
     pub fn image(&mut self, image: &mut Tex2D) {

@@ -11,7 +11,7 @@ end
 function Test:onInput() end
 
 function Test:showElements()
-    -- Gui:beginWindow('HmGui Elements Test', InputInstance)
+    -- Gui:beginWindow('HmGui Elements Test')
     Gui:beginHorizontalContainer()
     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
 

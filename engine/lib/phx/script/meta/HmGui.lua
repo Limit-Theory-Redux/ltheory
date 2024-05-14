@@ -72,14 +72,6 @@ function HmGui:beginScrollArea(dir) end
 ---@param input Input
 function HmGui:endScrollArea(input) end
 
----Begins window element.
----@param title string
----@param input Input
-function HmGui:beginWindow(title, input) end
-
----Ends window element.
-function HmGui:endWindow() end
-
 ---Invisible element that stretches in all directions.
 ---Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
 function HmGui:spacer() end
@@ -92,18 +84,6 @@ function HmGui:button(label) end
 ---@param value boolean
 ---@return boolean
 function HmGui:checkbox(label, value) end
-
----@param lower number
----@param upper number
----@param value number
----@return number
-function HmGui:slider(lower, upper, value) end
-
----@param height number
-function HmGui:horizontalDivider(height) end
-
----@param width number
-function HmGui:verticalDivider(width) end
 
 ---@param image Tex2D
 function HmGui:image(image) end

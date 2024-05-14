@@ -54,7 +54,7 @@ function Test:onInit()
 end
 
 function Test:showTodo()
-    Gui:beginWindow("HmGui Todo List", InputInstance)
+    Gui:beginWindow("HmGui Todo List")
     Gui:beginScroll(512)
     todo:show()
     Gui:endScroll(InputInstance)
