@@ -300,8 +300,8 @@ HmGui provides several methods allowing Lua scripters to manage element properti
 - `Gui:mapPropertyGroup(group)`: copies group properties values which names starting with `group + "."` to their mapped properties for the current following element. Should be used inside element function definition.
 - `Gui:removeProperty(id)`: remove property from the current element style
 - `Gui:registerProperty(name, value, map_id)`: register a new property with optional id of the mapped property
-- `Gui:setPropertyValue(id, value)`: set property value (or extension method `Gui:setProperty(id, value)`)
-- `Gui:getPropertyValue(id)`: get property value
+- `Gui:setPropertyValue(id, value)`: set property value (or `Gui:setProperty(id, value)` extension method)
+- `Gui:getPropertyValue(id)`: get property value (or `Gui:getProperty(id)` extension method)
 
 ### Styling groups
 
