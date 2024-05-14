@@ -16,12 +16,23 @@ function HmGui:endGui(input) end
 ---Pass information about widgets to the renderer and draw them.
 function HmGui:draw() end
 
-function HmGui:beginHorizontalContainer() end
+---Start a new container with a specified layout.
+---@param layout GuiLayoutType
+function HmGui:beginContainer(layout) end
 
-function HmGui:beginVerticalContainer() end
-
+---Starts stack container.
+---Equivalent to: Gui:beginContainer(GuiLayoutType.Stack)
 function HmGui:beginStackContainer() end
 
+---Starts horizontal container.
+---Equivalent to: Gui:beginContainer(GuiLayoutType.Horizontal)
+function HmGui:beginHorizontalContainer() end
+
+---Starts vertical container.
+---Equivalent to: Gui:beginContainer(GuiLayoutType.Vertical)
+function HmGui:beginVerticalContainer() end
+
+---Closes container started with one of `Gui:beginContainer()` calls.
 function HmGui:endContainer() end
 
 ---Start scroll area.
@@ -37,7 +48,7 @@ function HmGui:endContainer() end
 ---
 ---Example:
 ---```lua
----Gui:setPropertyBool(GuiProperties.ScrollAreaHScrollShow, false)
+---Gui:setPropertyValue(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
 ---Gui:beginScrollArea(ScrollDirection.All)
 ---
 ---Gui:beginVerticalContainer()
@@ -61,14 +72,6 @@ function HmGui:beginScrollArea(dir) end
 ---@param input Input
 function HmGui:endScrollArea(input) end
 
----Begins window element.
----@param title string
----@param input Input
-function HmGui:beginWindow(title, input) end
-
----Ends window element.
-function HmGui:endWindow() end
-
 ---Invisible element that stretches in all directions.
 ---Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
 function HmGui:spacer() end
@@ -81,18 +84,6 @@ function HmGui:button(label) end
 ---@param value boolean
 ---@return boolean
 function HmGui:checkbox(label, value) end
-
----@param lower number
----@param upper number
----@param value number
----@return number
-function HmGui:slider(lower, upper, value) end
-
----@param height number
-function HmGui:horizontalDivider(height) end
-
----@param width number
-function HmGui:verticalDivider(width) end
 
 ---@param image Tex2D
 function HmGui:image(image) end
@@ -223,6 +214,33 @@ function HmGui:setTheme(name) end
 ---Restore default properties.
 function HmGui:clearTheme() end
 
+---Create a new empty style.
+---Returns style id or None/nil if style with the same name already exists.
+---
+---Example:
+---```lua
+---local styleId = Gui:newStyle("MyStyle")
+---Gui:setStyleProperty(GuiProperties.BackgroundColor, Color(1, 0, 0, 1))
+---Gui:setStyleProperty(GuiProperties.Opacity, 0.5)
+---
+----- Later in the code
+---
+---Gui:setStyle(styleId)
+---Gui:beginStackContainer()
+---
+---Gui:endContainer()
+---```
+---@param name string
+---@return integer
+function HmGui:newStyle(name) end
+
+---Sets style property value.
+---See example in `Gui:newStyle()` method description.
+---@param styleId integer
+---@param propId integer
+---@param value GuiPropertyValue
+function HmGui:setStylePropertyValue(styleId, propId, value) end
+
 ---Get style id by its name.
 ---@param name string
 ---@return integer
@@ -244,7 +262,7 @@ function HmGui:clearStyle() end
 
 ---Get property type by its id.
 ---@param id integer
----@return HmGuiPropertyType
+---@return GuiPropertyType
 function HmGui:getPropertyType(id) end
 
 ---Write property value into the mapped properties in the active element style.
@@ -262,382 +280,22 @@ function HmGui:mapPropertyGroup(group) end
 function HmGui:removeProperty(propertyId) end
 
 ---@param name string
----@param value boolean
+---@param value GuiPropertyValue
 ---@param mapId string
 ---@return integer
-function HmGui:registerPropertyBool(name, value, mapId) end
+function HmGui:registerProperty(name, value, mapId) end
 
----@param name string
----@param value integer
----@param mapId string
+---@param id integer
+---@param value GuiPropertyValue
+function HmGui:setPropertyValue(id, value) end
+
+---@param id integer
+---@return GuiPropertyValue
+function HmGui:getPropertyValue(id) end
+
+---Get number of registered properties.
 ---@return integer
-function HmGui:registerPropertyI8(name, value, mapId) end
-
----@param name string
----@param value integer
----@param mapId string
----@return integer
-function HmGui:registerPropertyU8(name, value, mapId) end
-
----@param name string
----@param value integer
----@param mapId string
----@return integer
-function HmGui:registerPropertyI16(name, value, mapId) end
-
----@param name string
----@param value integer
----@param mapId string
----@return integer
-function HmGui:registerPropertyU16(name, value, mapId) end
-
----@param name string
----@param value integer
----@param mapId string
----@return integer
-function HmGui:registerPropertyI32(name, value, mapId) end
-
----@param name string
----@param value integer
----@param mapId string
----@return integer
-function HmGui:registerPropertyU32(name, value, mapId) end
-
----@param name string
----@param value integer
----@param mapId string
----@return integer
-function HmGui:registerPropertyI64(name, value, mapId) end
-
----@param name string
----@param value integer
----@param mapId string
----@return integer
-function HmGui:registerPropertyU64(name, value, mapId) end
-
----@param name string
----@param value number
----@param mapId string
----@return integer
-function HmGui:registerPropertyF32(name, value, mapId) end
-
----@param name string
----@param value number
----@param mapId string
----@return integer
-function HmGui:registerPropertyF64(name, value, mapId) end
-
----@param name string
----@param value Vec2
----@param mapId string
----@return integer
-function HmGui:registerPropertyVec2(name, value, mapId) end
-
----@param name string
----@param value Vec3
----@param mapId string
----@return integer
-function HmGui:registerPropertyVec3(name, value, mapId) end
-
----@param name string
----@param value Vec4
----@param mapId string
----@return integer
-function HmGui:registerPropertyVec4(name, value, mapId) end
-
----@param name string
----@param value IVec2
----@param mapId string
----@return integer
-function HmGui:registerPropertyIVec2(name, value, mapId) end
-
----@param name string
----@param value IVec3
----@param mapId string
----@return integer
-function HmGui:registerPropertyIVec3(name, value, mapId) end
-
----@param name string
----@param value IVec4
----@param mapId string
----@return integer
-function HmGui:registerPropertyIVec4(name, value, mapId) end
-
----@param name string
----@param value UVec2
----@param mapId string
----@return integer
-function HmGui:registerPropertyUVec2(name, value, mapId) end
-
----@param name string
----@param value UVec3
----@param mapId string
----@return integer
-function HmGui:registerPropertyUVec3(name, value, mapId) end
-
----@param name string
----@param value UVec4
----@param mapId string
----@return integer
-function HmGui:registerPropertyUVec4(name, value, mapId) end
-
----@param name string
----@param value DVec2
----@param mapId string
----@return integer
-function HmGui:registerPropertyDVec2(name, value, mapId) end
-
----@param name string
----@param value DVec3
----@param mapId string
----@return integer
-function HmGui:registerPropertyDVec3(name, value, mapId) end
-
----@param name string
----@param value DVec4
----@param mapId string
----@return integer
-function HmGui:registerPropertyDVec4(name, value, mapId) end
-
----@param name string
----@param value Color
----@param mapId string
----@return integer
-function HmGui:registerPropertyColor(name, value, mapId) end
-
----@param name string
----@param value Box3
----@param mapId string
----@return integer
-function HmGui:registerPropertyBox3(name, value, mapId) end
-
----@param name string
----@param value string
----@param mapId string
----@return integer
-function HmGui:registerPropertyString(name, value, mapId) end
-
----@param name string
----@param value Font
----@param mapId string
----@return integer
-function HmGui:registerPropertyFont(name, value, mapId) end
-
----@param propertyId integer
----@param value boolean
-function HmGui:setPropertyBool(propertyId, value) end
-
----@param propertyId integer
----@param value integer
-function HmGui:setPropertyI8(propertyId, value) end
-
----@param propertyId integer
----@param value integer
-function HmGui:setPropertyU8(propertyId, value) end
-
----@param propertyId integer
----@param value integer
-function HmGui:setPropertyI16(propertyId, value) end
-
----@param propertyId integer
----@param value integer
-function HmGui:setPropertyU16(propertyId, value) end
-
----@param propertyId integer
----@param value integer
-function HmGui:setPropertyI32(propertyId, value) end
-
----@param propertyId integer
----@param value integer
-function HmGui:setPropertyU32(propertyId, value) end
-
----@param propertyId integer
----@param value integer
-function HmGui:setPropertyI64(propertyId, value) end
-
----@param propertyId integer
----@param value integer
-function HmGui:setPropertyU64(propertyId, value) end
-
----@param propertyId integer
----@param value number
-function HmGui:setPropertyF32(propertyId, value) end
-
----@param propertyId integer
----@param value number
-function HmGui:setPropertyF64(propertyId, value) end
-
----@param propertyId integer
----@param value Vec2
-function HmGui:setPropertyVec2(propertyId, value) end
-
----@param propertyId integer
----@param value Vec3
-function HmGui:setPropertyVec3(propertyId, value) end
-
----@param propertyId integer
----@param value Vec4
-function HmGui:setPropertyVec4(propertyId, value) end
-
----@param propertyId integer
----@param value IVec2
-function HmGui:setPropertyIVec2(propertyId, value) end
-
----@param propertyId integer
----@param value IVec3
-function HmGui:setPropertyIVec3(propertyId, value) end
-
----@param propertyId integer
----@param value IVec4
-function HmGui:setPropertyIVec4(propertyId, value) end
-
----@param propertyId integer
----@param value UVec2
-function HmGui:setPropertyUVec2(propertyId, value) end
-
----@param propertyId integer
----@param value UVec3
-function HmGui:setPropertyUVec3(propertyId, value) end
-
----@param propertyId integer
----@param value UVec4
-function HmGui:setPropertyUVec4(propertyId, value) end
-
----@param propertyId integer
----@param value DVec2
-function HmGui:setPropertyDVec2(propertyId, value) end
-
----@param propertyId integer
----@param value DVec3
-function HmGui:setPropertyDVec3(propertyId, value) end
-
----@param propertyId integer
----@param value DVec4
-function HmGui:setPropertyDVec4(propertyId, value) end
-
----@param propertyId integer
----@param value Color
-function HmGui:setPropertyColor(propertyId, value) end
-
----@param propertyId integer
----@param value Box3
-function HmGui:setPropertyBox3(propertyId, value) end
-
----@param propertyId integer
----@param value string
-function HmGui:setPropertyString(propertyId, value) end
-
----@param propertyId integer
----@param value Font
-function HmGui:setPropertyFont(propertyId, value) end
-
----@param propertyId integer
----@return boolean
-function HmGui:getPropertyBool(propertyId) end
-
----@param propertyId integer
----@return integer
-function HmGui:getPropertyI8(propertyId) end
-
----@param propertyId integer
----@return integer
-function HmGui:getPropertyU8(propertyId) end
-
----@param propertyId integer
----@return integer
-function HmGui:getPropertyI16(propertyId) end
-
----@param propertyId integer
----@return integer
-function HmGui:getPropertyU16(propertyId) end
-
----@param propertyId integer
----@return integer
-function HmGui:getPropertyI32(propertyId) end
-
----@param propertyId integer
----@return integer
-function HmGui:getPropertyU32(propertyId) end
-
----@param propertyId integer
----@return integer
-function HmGui:getPropertyI64(propertyId) end
-
----@param propertyId integer
----@return integer
-function HmGui:getPropertyU64(propertyId) end
-
----@param propertyId integer
----@return number
-function HmGui:getPropertyF32(propertyId) end
-
----@param propertyId integer
----@return number
-function HmGui:getPropertyF64(propertyId) end
-
----@param propertyId integer
----@return Vec2
-function HmGui:getPropertyVec2(propertyId) end
-
----@param propertyId integer
----@return Vec3
-function HmGui:getPropertyVec3(propertyId) end
-
----@param propertyId integer
----@return Vec4
-function HmGui:getPropertyVec4(propertyId) end
-
----@param propertyId integer
----@return IVec2
-function HmGui:getPropertyIVec2(propertyId) end
-
----@param propertyId integer
----@return IVec3
-function HmGui:getPropertyIVec3(propertyId) end
-
----@param propertyId integer
----@return IVec4
-function HmGui:getPropertyIVec4(propertyId) end
-
----@param propertyId integer
----@return UVec2
-function HmGui:getPropertyUVec2(propertyId) end
-
----@param propertyId integer
----@return UVec3
-function HmGui:getPropertyUVec3(propertyId) end
-
----@param propertyId integer
----@return UVec4
-function HmGui:getPropertyUVec4(propertyId) end
-
----@param propertyId integer
----@return DVec2
-function HmGui:getPropertyDVec2(propertyId) end
-
----@param propertyId integer
----@return DVec3
-function HmGui:getPropertyDVec3(propertyId) end
-
----@param propertyId integer
----@return DVec4
-function HmGui:getPropertyDVec4(propertyId) end
-
----@param propertyId integer
----@return Color
-function HmGui:getPropertyColor(propertyId) end
-
----@param propertyId integer
----@return Box3
-function HmGui:getPropertyBox3(propertyId) end
-
----@param propertyId integer
----@return string
-function HmGui:getPropertyString(propertyId) end
-
----@param propertyId integer
----@return Font
-function HmGui:getPropertyFont(propertyId) end
+function HmGui:getPropertiesCount() end
 
 ---Prints widgets hierarchy to the console. For testing.
 function HmGui:dumpWidgets() end

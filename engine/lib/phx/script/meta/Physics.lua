@@ -51,9 +51,9 @@ function Physics:sphereCast(sphere, result) end
 ---Results are unsorted and will include child objects.
 ---
 ---The array stored inside ShapeCastResult is valid until the next call to box_cast.
----@param pos Vec3
+---@param pos Vec3f
 ---@param rot Quat
----@param halfExtents Vec3
+---@param halfExtents Vec3f
 ---@param result ShapeCastResult [out]
 function Physics:boxCast(pos, rot, halfExtents, result) end
 
@@ -61,9 +61,9 @@ function Physics:boxCast(pos, rot, halfExtents, result) end
 ---@return boolean
 function Physics:sphereOverlap(sphere) end
 
----@param pos Vec3
+---@param pos Vec3f
 ---@param rot Quat
----@param halfExtents Vec3
+---@param halfExtents Vec3f
 ---@return boolean
 function Physics:boxOverlap(pos, rot, halfExtents) end
 

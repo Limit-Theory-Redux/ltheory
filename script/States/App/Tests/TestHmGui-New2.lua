@@ -138,7 +138,7 @@ function Test:showMarketOverlayMenuBar()
     Gui:setBgColor(0.25, 0.32, 0.35, 0.5)
     Gui:setMargin(0, 0)
     Gui:setPadding(0, 0)
---    Gui:setBorder(0, 0.0, 0.0, 0.0, 0.0)
+    --    Gui:setBorder(0, 0.0, 0.0, 0.0, 0.0)
 
     -- Section 1 is the player ship's current location
     Gui:beginVerticalContainer() -- begin menu bar section 1
@@ -356,10 +356,10 @@ function Test:showMarketOverlayData()
     -- This is where the bulk of the UI code will go to draw the many various Marketplace elements
 
     -- Must wrap child data panels inside this StackContainer because its parent uses setPercentSize() rather than .Stretch
-    Gui:beginStackContainer() -- begin child panel
+    Gui:beginStackContainer()                                        -- begin child panel
     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch) -- this child panel should stretch to parent, but doesn't
     Gui:setBgColor(0.6, 0.0, 0.0, 0.4)
---    Gui:setBorder(2, 1.0, 0.0, 0.0, 1.0)
+    --    Gui:setBorder(2, 1.0, 0.0, 0.0, 1.0)
 
     Gui:beginHorizontalContainer() -- begin market data area
     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
@@ -401,7 +401,7 @@ function Test:showMarketOverlayData()
     if Gui:button("MANAGEMENT") then station_options = 3 end
     Gui:setPercentHeight(25)
     Gui:popStyle(2)
-    Gui:endContainer() -- end market category top panel
+    Gui:endContainer()        -- end market category top panel
 
     Gui:beginStackContainer() -- begin market category buttons bottom panel
     Gui:setPercentHeight(25)
@@ -484,14 +484,14 @@ function Test:showMarketOverlayData()
 
             Gui:beginVerticalContainer() -- begin Commodities search list subpanel
             Gui:setMargin(10, 6)
---            Gui:beginWindow("Commodities List", InputInstance)
---            Gui:beginScroll(512)
+            --            Gui:beginWindow("Commodities List")
+            --            Gui:beginScroll(512)
             Gui:textEx(Cache.Font("Exo2", 14), listCommodities[1], 1.0, 1.0, 1.0, 1.0)
---            for i = 1, #listCommodities do
---                Gui:textEx(Cache.Font("Exo2", 14), listCommodities[i], 1.0, 1.0, 1.0, 1.0)
---            end
---            Gui:endScroll(InputInstance)
---            Gui:endWindow()
+            --            for i = 1, #listCommodities do
+            --                Gui:textEx(Cache.Font("Exo2", 14), listCommodities[i], 1.0, 1.0, 1.0, 1.0)
+            --            end
+            --            Gui:endScroll(InputInstance)
+            --            Gui:endWindow()
             Gui:endContainer() -- end Commodities search list subpanel
 
             Gui:endContainer() -- end Commodities Search subpanel
@@ -514,7 +514,7 @@ function Test:showMarketOverlayData()
             Gui:popStyle(2)
             Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Center)
 
-            Gui:endContainer() -- end Commodities Construction controls subpanel
+            Gui:endContainer()           -- end Commodities Construction controls subpanel
 
             Gui:beginVerticalContainer() -- begin Commodities Construction listing subpanel
             Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
@@ -523,9 +523,9 @@ function Test:showMarketOverlayData()
 
             local materialSelected = "STL.Titan" -- temp
 
-            Gui:endContainer() -- end Commodities Construction listing subpanel
+            Gui:endContainer()                   -- end Commodities Construction listing subpanel
 
-            Gui:endContainer() -- end Commodities Construction subpanel
+            Gui:endContainer()                   -- end Commodities Construction subpanel
 
             -- Commodities Order Book subpanel
             Gui:beginVerticalContainer() -- begin Commodities Order Book subpanel
@@ -534,7 +534,7 @@ function Test:showMarketOverlayData()
 
             Gui:beginHorizontalContainer() -- begin Commodities Construction controls subpanel
             Gui:setPercentHeight(0.5)
-            Gui:endContainer() -- end Commodities Construction controls subpanel
+            Gui:endContainer()             -- end Commodities Construction controls subpanel
 
             Gui:textEx(Cache.Font("Exo2", 18), "Order Book (" .. materialSelected .. ")", 1.0, 1.0, 1.0, 1.0)
 
@@ -604,7 +604,7 @@ end
 function Test:showCtrlDialog()
     Gui:beginStackContainer()
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    Gui:beginWindow("Game Control", InputInstance)
+    Gui:beginWindow("Game Control")
     Gui:setBorderWidth(2)
     Gui:textEx(Cache.Font("Iceland", 20), "Game Control", 0.6, 0.7, 1.0, 1.0)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)

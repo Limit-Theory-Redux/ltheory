@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
@@ -14,16 +14,20 @@ pub fn process(tokens: TokenStream) -> TokenStream {
 
 fn generate(input: Properties) -> TokenStream {
     let mut variant_quotes = vec![];
+    let mut variant_to_str_quotes = vec![];
     let mut reg_quotes = vec![];
 
-    for Property {
-        docs,
-        id,
-        name,
-        def,
-        map_ids,
-        ..
-    } in input.properties
+    for (
+        i,
+        Property {
+            docs,
+            id,
+            name,
+            def,
+            map_ids,
+            ..
+        },
+    ) in input.properties.iter().enumerate()
     {
         let doc1 = format!("Config name: {name}");
         let def_quote = quote! {#def};
@@ -36,18 +40,20 @@ fn generate(input: Properties) -> TokenStream {
 
             quote! {#[doc = #doc_str]}
         };
-        let variant_ident = format_ident!("{id}");
 
         variant_quotes.push(quote! {
             #(#[doc = #docs])*
             #[doc = #doc1]
             #[doc = #doc2]
             #doc3_quote
-            #variant_ident
+            #id
         });
 
+        let variant_id_str = format!("{id}");
+        variant_to_str_quotes.push(quote! {#i => #variant_id_str,});
+
         reg_quotes.push(quote! {
-            reg(&mut r, #name, #def, HmGuiProperties::#variant_ident, &[#((HmGuiProperties::#map_ids as usize).into(),)*]);
+            reg(&mut r, #name, #def, HmGuiProperties::#id, &[#((HmGuiProperties::#map_ids as usize).into(),)*]);
         });
     }
 
@@ -64,9 +70,16 @@ fn generate(input: Properties) -> TokenStream {
             pub fn id(&self) -> usize {
                 *self as _
             }
+
+            pub fn id_to_name(id: usize) -> &'static str {
+                match id {
+                    #(#variant_to_str_quotes)*
+                    _ => "<unknown>",
+                }
+            }
         }
 
-        pub fn register_core_properties() -> IndexMap<String, HmGuiPropertyInfo> {
+        pub fn register_core_properties() -> IndexMap<String, HmGuiProperty> {
             let mut r = Default::default();
 
             #(#reg_quotes)*

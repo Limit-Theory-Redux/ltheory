@@ -26,10 +26,10 @@ function Font:drawShaded(text, x, y) end
 function Font:getLineHeight() end
 
 ---@param text string
----@param out IVec4
+---@param out Vec4i
 function Font:getSize(text, out) end
 
 ---@param text string
----@return IVec2
+---@return Vec2i
 function Font:getSize2(text) end
 

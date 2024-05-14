@@ -6,13 +6,24 @@ use crate::rf::Rf;
 
 use super::*;
 
+/// Container element layout type.
+#[luajit_ffi_gen::luajit_ffi(name = "GuiLayoutType")]
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub enum LayoutType {
     #[default]
-    None,
     Stack,
     Horizontal,
     Vertical,
+}
+
+impl LayoutType {
+    pub fn is_horizontal(&self) -> bool {
+        *self == Self::Horizontal
+    }
+
+    pub fn is_vertical(&self) -> bool {
+        *self == Self::Vertical
+    }
 }
 
 #[derive(Clone, Default, PartialEq)]
@@ -21,8 +32,7 @@ pub struct HmGuiContainer {
 
     // Layout
     pub layout: LayoutType,
-    pub children_horizontal_alignment: AlignHorizontal,
-    pub children_vertical_alignment: AlignVertical,
+    pub children_alignment: [Alignment; 2],
     pub padding_lower: Vec2,
     pub padding_upper: Vec2,
     pub spacing: f32,
@@ -46,7 +56,7 @@ impl HmGuiContainer {
         let mut min_size = Vec2::ZERO;
 
         match self.layout {
-            LayoutType::None | LayoutType::Stack => {
+            LayoutType::Stack => {
                 for widget_rf in &self.children {
                     let widget = widget_rf.as_ref();
                     let widget_min_size = widget.min_size;
@@ -102,139 +112,31 @@ impl HmGuiContainer {
         if size.x > 0.0 || size.y > 0.0 {
             let mut extra_diff = Vec2::ZERO;
 
-            let stretch_x = if self.layout == LayoutType::Horizontal {
+            let stretch_x = if self.layout.is_horizontal() {
                 1.0
             } else {
                 0.0
             };
-
-            let stretch_y = if self.layout == LayoutType::Vertical {
-                1.0
-            } else {
-                0.0
-            };
+            let stretch_y = if self.layout.is_vertical() { 1.0 } else { 0.0 };
 
             for widget_rf in &self.children {
                 let mut widget = widget_rf.as_mut();
 
-                // Horizontal.
-                // Child docking stretch has priority over fixed/percentage size
-                // that in turn has higher priority than children stretch.
-                if size.x > 0.0 && !widget.horizontal_alignment.is_stretch() {
-                    if let Some(Length::Percent(percent_width)) = widget.default_width {
-                        let widget_width = size.x * percent_width / 100.0;
-
-                        extra_diff.x += stretch_x * (widget_width - widget.min_size.x);
-
-                        widget.min_size.x = widget_width;
-                        widget.inner_min_size.x = widget_width
-                            - widget.border_width * 2.0
-                            - widget.margin_upper.x
-                            - widget.margin_lower.x;
-                    }
-                }
-
-                // Vertical.
-                // Docking stretch has priority over fixed/percentage size
-                // that in turn has higher priority than children stretch.
-                if size.y > 0.0 && !widget.vertical_alignment.is_stretch() {
-                    if let Some(Length::Percent(percent_height)) = widget.default_height {
-                        let widget_height = size.y * percent_height / 100.0;
-
-                        extra_diff.y += stretch_y * (widget_height - widget.min_size.y);
-
-                        widget.min_size.y = widget_height;
-                        widget.inner_min_size.y = widget_height
-                            - widget.border_width * 2.0
-                            - widget.margin_upper.y
-                            - widget.margin_lower.y;
-                    }
-                }
+                extra_diff.x += stretch_x * Self::widget_percent_size::<0>(&mut widget, size.x);
+                extra_diff.y += stretch_y * Self::widget_percent_size::<1>(&mut widget, size.y);
             }
 
             extra -= extra_diff;
         }
 
         // 2. Calculate per child extra space distribution
-        let mut extra_size = vec![0.0; self.children.len()];
-
-        if self.layout == LayoutType::Horizontal {
-            let offset_pos = if extra.x > 0.0 {
-                let mut total_weight = 0.0;
-
-                for (i, widget_rf) in self.children.iter().enumerate() {
-                    let widget = widget_rf.as_ref();
-
-                    if widget.horizontal_alignment.is_stretch() // child stretching has always priority
-                        || widget.default_width.is_none() // fixed/percent size has priority over children docking
-                            && self.children_horizontal_alignment.is_stretch()
-                    {
-                        let weight = 100.0; // weight per expandable widget
-
-                        total_weight += weight;
-                        extra_size[i] = extra.x * weight;
-                    }
-                }
-
-                if total_weight > 0.0 {
-                    extra_size.iter_mut().for_each(|d| *d /= total_weight);
-
-                    false // Do not offset position - children will stretch to fill whole container width
-                } else {
-                    true // There are only fixed size children - center them
-                }
-            } else {
-                true // children should be centered
-            };
-
-            if offset_pos {
-                if self.children_horizontal_alignment.is_center() {
-                    // Either stretch or no horizontal docking at all - center children
-                    pos.x += extra.x / 2.0;
-                } else if self.children_horizontal_alignment.is_right() {
-                    // Stick children to the right
-                    pos.x += extra.x;
-                }
-            }
-        } else if self.layout == LayoutType::Vertical {
-            let offset_pos = if extra.y > 0.0 {
-                let mut total_weight = 0.0;
-
-                for (i, widget_rf) in self.children.iter().enumerate() {
-                    let widget = widget_rf.as_ref();
-
-                    if widget.vertical_alignment.is_stretch() // child stretching has always priority
-                        || widget.default_height.is_none() // fixed/percent size has priority over children stretching
-                            && self.children_vertical_alignment.is_stretch()
-                    {
-                        let weight = 100.0; // weight per expandable widget
-
-                        total_weight += weight;
-                        extra_size[i] = extra.y * weight;
-                    }
-                }
-
-                if total_weight > 0.0 {
-                    extra_size.iter_mut().for_each(|d| *d /= total_weight);
-
-                    false // Do not offset position - children will stretch to fill whole container height
-                } else {
-                    true // There are only fixed size children - center them
-                }
-            } else {
-                true // children should be centered
-            };
-
-            if offset_pos {
-                if self.children_vertical_alignment.is_center() {
-                    // Either stretch or no vertical docking at all - center children
-                    pos.y += extra.y / 2.0;
-                } else if self.children_vertical_alignment.is_bottom() {
-                    // Stick children to the bottom
-                    pos.y += extra.y;
-                }
-            }
-        }
+        let extra_size = if self.layout.is_horizontal() {
+            self.children_extra_size::<0>(&mut pos.x, extra.x)
+        } else if self.layout.is_vertical() {
+            self.children_extra_size::<1>(&mut pos.y, extra.y)
+        } else {
+            vec![0.0; self.children.len()]
+        };
 
         // 3. Recalculate widgets position and size
         let children_size = if widget_hstretch {
@@ -254,6 +156,95 @@ impl HmGuiContainer {
         children_size + self.padding_lower + self.padding_upper
     }
 
+    fn widget_percent_size<const DIM: usize>(widget: &mut HmGuiWidget, size: f32) -> f32 {
+        // Child docking stretch has priority over fixed/percentage size
+        // that in turn has higher priority than children stretch.
+        if size > 0.0 && !widget.alignment[DIM].is_extend() {
+            if let Length::Percent(percent) = widget.default_size[DIM] {
+                let widget_size = size * percent / 100.0;
+
+                let extra_diff = widget_size - widget.min_size[DIM];
+
+                widget.min_size[DIM] = widget_size;
+                widget.inner_min_size[DIM] = widget_size
+                    - widget.border_width * 2.0
+                    - widget.margin_upper[DIM]
+                    - widget.margin_lower[DIM];
+
+                return extra_diff;
+            }
+        }
+
+        0.0
+    }
+
+    fn children_extra_size<const DIM: usize>(&self, pos: &mut f32, extra: f32) -> Vec<f32> {
+        let mut extra_size = vec![0.0; self.children.len()];
+
+        let offset_pos = if extra > 0.0 {
+            let mut total_weight = 0.0;
+
+            for (i, widget_rf) in self.children.iter().enumerate() {
+                let widget = widget_rf.as_ref();
+
+                if widget.alignment[DIM].is_extend() // child stretching/expanding has always priority
+                    || widget.default_size[DIM].is_auto() // fixed/percent size has priority over children docking
+                        && self.children_alignment[DIM].is_extend()
+                {
+                    let weight = 100.0; // weight per extendable widget
+
+                    total_weight += weight;
+                    extra_size[i] = extra * weight;
+                }
+            }
+
+            if total_weight > 0.0 {
+                extra_size.iter_mut().for_each(|d| *d /= total_weight);
+
+                false // Do not offset position - children will stretch to fill whole container size
+            } else {
+                true // There are only fixed size children - center them
+            }
+        } else if extra < 0.0 {
+            // children overwhelm container -> try to shrink expandable widgets
+            let mut total_weight = 0.0;
+
+            for (i, widget_rf) in self.children.iter().enumerate() {
+                let widget = widget_rf.as_ref();
+
+                if widget.alignment[DIM].is_expand() // child expanding has always priority
+                    || widget.default_size[DIM].is_auto() // fixed/percent size has priority over children docking
+                        && self.children_alignment[DIM].is_expand()
+                {
+                    let weight = 100.0; // weight per expandable widget
+
+                    total_weight += weight;
+                    extra_size[i] = extra * weight;
+                }
+            }
+
+            if total_weight > 0.0 {
+                extra_size.iter_mut().for_each(|d| *d /= total_weight);
+            }
+
+            false // Do not offset position - children can still overwhelm container size
+        } else {
+            true // children should be centered
+        };
+
+        if offset_pos {
+            if self.children_alignment[DIM].is_center() {
+                // Either stretch or no docking at all - center children
+                *pos += extra / 2.0;
+            } else if self.children_alignment[DIM].is_end() {
+                // Stick children to the right/bottom
+                *pos += extra;
+            }
+        }
+
+        extra_size
+    }
+
     fn calculate_children_layout<const HSTRETCH: bool, const VSTRETCH: bool>(
         &self,
         hmgui: &mut HmGui,
@@ -265,26 +256,12 @@ impl HmGuiContainer {
         let mut spacing = 0.0;
 
         match self.layout {
-            LayoutType::None => {
-                for widget_rf in &self.children {
-                    let mut widget = widget_rf.as_mut();
-
-                    self.calculate_horizontal_layout(&mut widget, pos, size);
-                    self.calculate_vertical_layout(&mut widget, pos, size);
-
-                    widget.calculate_inner_pos_size();
-
-                    widget.layout(hmgui);
-                }
-            }
             LayoutType::Stack => {
                 for widget_rf in &self.children {
                     let mut widget = widget_rf.as_mut();
 
-                    self.calculate_horizontal_layout(&mut widget, pos, size);
-                    self.calculate_vertical_layout(&mut widget, pos, size);
-
-                    widget.calculate_inner_pos_size();
+                    self.calculate_layout::<0>(&mut widget, pos.x, size.x);
+                    self.calculate_layout::<1>(&mut widget, pos.y, size.y);
 
                     widget.layout(hmgui);
 
@@ -307,9 +284,7 @@ impl HmGuiContainer {
                     widget.size.x = widget.min_size.x + extra_size[i];
                     pos.x += widget.size.x + self.spacing; // Calculate position of the next widget
 
-                    self.calculate_vertical_layout(&mut widget, pos, size);
-
-                    widget.calculate_inner_pos_size();
+                    self.calculate_layout::<1>(&mut widget, pos.y, size.y);
 
                     widget.layout(hmgui);
 
@@ -327,13 +302,11 @@ impl HmGuiContainer {
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let mut widget = widget_rf.as_mut();
 
-                    self.calculate_horizontal_layout(&mut widget, pos, size);
+                    self.calculate_layout::<0>(&mut widget, pos.x, size.x);
 
                     widget.pos.y = pos.y;
                     widget.size.y = widget.min_size.y + extra_size[i];
                     pos.y += widget.size.y + self.spacing; // Calculate position of the next widget
-
-                    widget.calculate_inner_pos_size();
 
                     widget.layout(hmgui);
 
@@ -350,99 +323,44 @@ impl HmGuiContainer {
         children_size
     }
 
-    fn calculate_horizontal_layout(
+    fn calculate_layout<const DIM: usize>(
         &self,
         widget: &mut RefMut<'_, HmGuiWidget>,
-        pos: Vec2,
-        size: Vec2,
+        pos: f32,
+        size: f32,
     ) {
-        if widget.horizontal_alignment.is_default() {
+        if widget.alignment[DIM].is_default() {
             // Widget alignment has a priority, so when it's default we can use the children's alignment
-            if self.children_horizontal_alignment.is_stretch() {
-                // Stretch widget and center it in the parent one
-                // Widget can go out of parent's scope
-                widget.pos.x = pos.x;
-                widget.size.x = size.x;
-            } else if self.children_horizontal_alignment.is_center() {
-                // Center widget, size == min_size
-                widget.pos.x = pos.x + (size.x - widget.min_size.x) / 2.0;
-                widget.size.x = widget.min_size.x;
-            } else if self.children_horizontal_alignment.is_right() {
-                // Stick to right, size == min_size
-                widget.pos.x = pos.x + size.x - widget.min_size.x;
-                widget.size.x = widget.min_size.x;
-            } else {
-                // Otherwise stick to the left
-                widget.pos.x = pos.x;
-                widget.size.x = widget.min_size.x;
-            }
+            self.calculate_widget_layout::<DIM>(widget, self.children_alignment[DIM], pos, size);
         } else {
-            if widget.horizontal_alignment.is_stretch() {
-                // Stretch widget and center it in the parent one
-                // Widget can go out of parent's scope
-                widget.pos.x = pos.x;
-                widget.size.x = size.x;
-            } else if widget.horizontal_alignment.is_center() {
-                // Center widget, size == min_size
-                widget.pos.x = pos.x + (size.x - widget.min_size.x) / 2.0;
-                widget.size.x = widget.min_size.x;
-            } else if widget.horizontal_alignment.is_right() {
-                // Stick to right, size == min_size
-                widget.pos.x = pos.x + size.x - widget.min_size.x;
-                widget.size.x = widget.min_size.x;
-            } else {
-                // Otherwise stick to the left
-                widget.pos.x = pos.x;
-                widget.size.x = widget.min_size.x;
-            }
+            self.calculate_widget_layout::<DIM>(widget, widget.alignment[DIM], pos, size);
         }
     }
 
-    fn calculate_vertical_layout(
+    fn calculate_widget_layout<const DIM: usize>(
         &self,
         widget: &mut RefMut<'_, HmGuiWidget>,
-        pos: Vec2,
-        size: Vec2,
+        alignment: Alignment,
+        pos: f32,
+        size: f32,
     ) {
-        if widget.vertical_alignment.is_default() {
-            // Widget alignment has a priority, so when it's default we can use the children's alignment
-            if self.children_vertical_alignment.is_stretch() {
-                // Stretch widget and center it in the parent one
-                // Widget can go out of parent's scope
-                widget.pos.y = pos.y;
-                widget.size.y = size.y;
-            } else if self.children_vertical_alignment.is_center() {
-                // Center widget, size == min_size
-                widget.pos.y = pos.y + (size.y - widget.min_size.y) / 2.0;
-                widget.size.y = widget.min_size.y;
-            } else if self.children_vertical_alignment.is_bottom() {
-                // Stick to bottom, size == min_size
-                widget.pos.y = pos.y + size.y - widget.min_size.y;
-                widget.size.y = widget.min_size.y;
-            } else {
-                // Otherwise stick to the top
-                widget.pos.y = pos.y;
-                widget.size.y = widget.min_size.y;
-            }
+        if alignment.is_stretch() {
+            // Stretch widget and center it in the parent one
+            // Widget can go out of parent's scope
+            widget.pos[DIM] = pos;
+            widget.size[DIM] = size;
+        } else if alignment.is_center() {
+            // Center widget, size == min_size
+            widget.pos[DIM] = pos + (size - widget.min_size[DIM]) / 2.0;
+            widget.size[DIM] = widget.min_size[DIM];
+        } else if alignment.is_end() {
+            // Stick to right, size == min_size
+            widget.pos[DIM] = pos + size - widget.min_size[DIM];
+            widget.size[DIM] = widget.min_size[DIM];
         } else {
-            if widget.vertical_alignment.is_stretch() {
-                // Stretch widget and center it in the parent one
-                // Widget can go out of parent's scope
-                widget.pos.y = pos.y;
-                widget.size.y = size.y;
-            } else if widget.vertical_alignment.is_center() {
-                // Center widget, size == min_size
-                widget.pos.y = pos.y + (size.y - widget.min_size.y) / 2.0;
-                widget.size.y = widget.min_size.y;
-            } else if widget.vertical_alignment.is_bottom() {
-                // Stick to bottom, size == min_size
-                widget.pos.y = pos.y + size.y - widget.min_size.y;
-                widget.size.y = widget.min_size.y;
-            } else {
-                // Otherwise stick to the top
-                widget.pos.y = pos.y;
-                widget.size.y = widget.min_size.y;
-            }
+            // Otherwise stick to the left
+            widget.pos[DIM] = pos;
+            widget.size[DIM] = widget.min_size[DIM];
         }
     }
 
@@ -463,15 +381,14 @@ impl HmGuiContainer {
     pub(crate) fn dump(&self, ident: usize) {
         let ident_str = format!("{}", IDENT.repeat(ident));
 
-        println!("{ident_str}- layout:           {:?}", self.layout);
-        println!("{ident_str}- children_halign:  {:?}", self.children_horizontal_alignment);
-        println!("{ident_str}- children_valign:  {:?}", self.children_vertical_alignment);
-        println!("{ident_str}- padding_lower:    {:?}", self.padding_lower);
-        println!("{ident_str}- padding_upper:    {:?}", self.padding_upper);
-        println!("{ident_str}- spacing:          {}", self.spacing);
-        println!("{ident_str}- children_hash:    {}", self.children_hash);
-        println!("{ident_str}- total_stretch:    {:?}", self.total_stretch);
-        println!("{ident_str}- scroll_dir:       {:?}", self.scroll_dir);
+        println!("{ident_str}- layout:         {:?}", self.layout);
+        println!("{ident_str}- children_align: {:?}", self.children_alignment);
+        println!("{ident_str}- padding_lower:  {:?}", self.padding_lower);
+        println!("{ident_str}- padding_upper:  {:?}", self.padding_upper);
+        println!("{ident_str}- spacing:        {}", self.spacing);
+        println!("{ident_str}- children_hash:  {}", self.children_hash);
+        println!("{ident_str}- total_stretch:  {:?}", self.total_stretch);
+        println!("{ident_str}- scroll_dir:     {:?}", self.scroll_dir);
         println!("{ident_str}- children[{}]:", self.children.len());
 
         for head_rf in &self.children {

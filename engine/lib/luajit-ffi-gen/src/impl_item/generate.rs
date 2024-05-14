@@ -13,11 +13,12 @@ impl ImplInfo {
     pub fn generate(&self, attr_args: ImplAttrArgs) -> TokenStream {
         // Original impl source code (with removed `bind` attributes)
         let source = &self.source;
+        let module_name = attr_args.name().unwrap_or(self.name.clone());
         // C API wrapper functions
         let method_tokens: Vec<_> = self
             .methods
             .iter()
-            .map(|method| self.wrap_method(method))
+            .map(|method| self.wrap_method(&module_name, method))
             .collect();
 
         let is_managed = self
@@ -27,7 +28,6 @@ impl ImplInfo {
 
         // Additional Free C API wrapper if managed
         let free_method_token = if is_managed {
-            let module_name = attr_args.name().unwrap_or(self.name.clone());
             let free_method_ident = format_ident!("{module_name}_Free");
             let module_ident = format_ident!("{}", self.name);
 
@@ -51,9 +51,9 @@ impl ImplInfo {
         }
     }
 
-    fn wrap_method(&self, method: &MethodInfo) -> TokenStream {
+    fn wrap_method(&self, module_name: &str, method: &MethodInfo) -> TokenStream {
         let method_name = method.as_ffi_name();
-        let func_name = format!("{}_{}", self.name, method_name);
+        let func_name = format!("{module_name}_{}", method_name);
         let func_ident = format_ident!("{func_name}");
         let self_ident = format_ident!("{}", self.name);
 
@@ -226,7 +226,13 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
 
             let param_item = match &param.ty.variant {
                 TypeVariant::Str => quote! { #name_accessor.as_str() },
-                TypeVariant::String => quote! { #name_accessor.as_string() },
+                TypeVariant::String => {
+                    if param.ty.is_reference {
+                        quote! { &#name_accessor.as_string() }
+                    } else {
+                        quote! { #name_accessor.as_string() }
+                    }
+                },
                 TypeVariant::CString => quote! { #name_accessor.as_cstring() },
                 TypeVariant::Custom(custom_ty) => {
                     if param.ty.is_reference || param.ty.is_boxed || TypeInfo::is_copyable(&custom_ty) {
@@ -287,7 +293,14 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         };
 
         let return_item = match &ty.variant {
-            TypeVariant::Str | TypeVariant::String => quote! { internal::static_string!(__res__) },
+            TypeVariant::Str => quote! { internal::static_string!(__res__) },
+            TypeVariant::String => {
+                if ty.is_reference {
+                    quote! { internal::static_string!(__res__.as_str()) }
+                } else {
+                    quote! { internal::static_string!(__res__) }
+                }
+            }
             TypeVariant::CString => quote! { static_cstring!(__res__) },
             TypeVariant::Custom(custom_ty) => {
                 let type_ident = if ty.is_self() {

@@ -25,7 +25,7 @@ GuiProperties = {
     ---Default value: true
     ContainerClip = 6,
     ---Config name: container.spacing
-    ---Default value: 6.0f32
+    ---Default value: 0.0f32
     ContainerSpacing = 7,
     ---Config name: button.rect.opacity
     ---Default value: 0.5f32

@@ -2,9 +2,7 @@ use glam::Vec2;
 
 use crate::render::Color;
 
-use super::{
-    AlignHorizontal, AlignVertical, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT,
-};
+use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT};
 
 use crate::rf::Rf;
 
@@ -31,10 +29,22 @@ impl WidgetItem {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub enum Length {
+    #[default]
+    Auto,
     Fixed(f32),
     Percent(f32),
+}
+
+impl Length {
+    pub fn is_auto(&self) -> bool {
+        *self == Self::Auto
+    }
+
+    pub fn is_fixed(&self) -> bool {
+        matches!(self, Self::Fixed(_))
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -54,10 +64,8 @@ pub struct HmGuiWidget {
     pub inner_size: Vec2,
 
     // Layout
-    pub default_width: Option<Length>,
-    pub default_height: Option<Length>,
-    pub horizontal_alignment: AlignHorizontal,
-    pub vertical_alignment: AlignVertical,
+    pub default_size: [Length; 2],
+    pub alignment: [Alignment; 2],
     pub margin_upper: Vec2,
     pub margin_lower: Vec2,
     pub border_width: f32,
@@ -89,10 +97,8 @@ impl HmGuiWidget {
             inner_pos: Default::default(),
             inner_size: Default::default(),
 
-            default_width: Default::default(),
-            default_height: Default::default(),
-            horizontal_alignment: Default::default(),
-            vertical_alignment: Default::default(),
+            default_size: Default::default(),
+            alignment: Default::default(),
             margin_upper: Default::default(),
             margin_lower: Default::default(),
             border_width: Default::default(),
@@ -150,49 +156,42 @@ impl HmGuiWidget {
     }
 
     /// Calculate outer min size that includes margin and border.
+    fn calculate_min_size_dim<const DIM: usize>(&self) -> f32 {
+        let inner_min_size = if let Length::Fixed(size) = self.default_size[DIM] {
+            size
+        } else {
+            self.inner_min_size[DIM]
+        };
+
+        inner_min_size + self.border_width * 2.0 + self.margin_upper[DIM] + self.margin_lower[DIM]
+    }
+
+    /// Calculate outer min size that includes margin and border.
     fn calculate_min_size(&self) -> Vec2 {
-        let mut inner_min_width = self.inner_min_size.x;
-        if let Some(default_width) = self.default_width {
-            if let Length::Fixed(fixed_width) = default_width {
-                inner_min_width = fixed_width;
-            }
+        Vec2 {
+            x: self.calculate_min_size_dim::<0>(),
+            y: self.calculate_min_size_dim::<1>(),
         }
-
-        let mut inner_min_height = self.inner_min_size.y;
-        if let Some(default_height) = self.default_height {
-            if let Length::Fixed(fixed_height) = default_height {
-                inner_min_height = fixed_height;
-            }
-        }
-
-        let x =
-            inner_min_width + self.border_width * 2.0 + self.margin_upper.x + self.margin_lower.x;
-        let y =
-            inner_min_height + self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y;
-
-        Vec2 { x, y }
     }
 
     /// Calculate inner pos and size from outer ones by subtracting margins and border.
     /// Do not subtract if outer width and/or height is 0.
-    pub fn calculate_inner_pos_size(&mut self) {
-        if self.size.x > 0.0 {
-            self.inner_pos.x = self.pos.x + self.border_width + self.margin_upper.x;
-            self.inner_size.x =
-                self.size.x - (self.border_width * 2.0 + self.margin_upper.x + self.margin_lower.x);
+    fn calculate_inner_pos_size_dim<const DIM: usize>(&mut self) {
+        if self.size[DIM] > 0.0 {
+            self.inner_pos[DIM] = self.pos[DIM] + self.border_width + self.margin_upper[DIM];
+            self.inner_size[DIM] = self.size[DIM]
+                - (self.border_width * 2.0 + self.margin_upper[DIM] + self.margin_lower[DIM]);
         } else {
-            self.inner_pos.x = self.pos.x;
-            self.inner_size.x = 0.0;
+            self.inner_pos[DIM] = self.pos[DIM];
+            self.inner_size[DIM] = 0.0;
         }
+    }
 
-        if self.size.y > 0.0 {
-            self.inner_pos.y = self.pos.y + self.border_width + self.margin_upper.y;
-            self.inner_size.y =
-                self.size.y - (self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y);
-        } else {
-            self.inner_pos.y = self.pos.y;
-            self.inner_size.y = 0.0;
-        }
+    /// Calculate inner pos and size from outer ones by subtracting margins and border.
+    /// Do not subtract if outer width and/or height is 0.
+    fn calculate_inner_pos_size(&mut self) {
+        self.calculate_inner_pos_size_dim::<0>();
+        self.calculate_inner_pos_size_dim::<1>();
     }
 
     pub fn compute_size(&mut self, hmgui: &mut HmGui) {
@@ -215,17 +214,22 @@ impl HmGuiWidget {
     }
 
     pub fn layout(&mut self, hmgui: &mut HmGui) {
+        self.calculate_inner_pos_size();
+
         // TODO: do not process widgets with min size, margin and border all 0
         match &self.item {
             WidgetItem::Container(container) => {
+                let is_root = self.parent.is_none();
+
                 self.inner_size = container.layout(
                     hmgui,
-                    self.horizontal_alignment == AlignHorizontal::Stretch,
-                    self.vertical_alignment == AlignVertical::Stretch,
+                    !is_root && self.alignment[0] == Alignment::Stretch,
+                    !is_root && self.alignment[1] == Alignment::Stretch,
                     self.inner_pos,
                     self.inner_size,
                     self.inner_size - self.inner_min_size,
                 );
+
                 self.size = self.inner_size
                     + self.border_width * 2.0
                     + self.margin_upper
@@ -303,10 +307,8 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}- size:             {:?}", self.size);
         println!("{ident_str}{IDENT}- inner_pos:        {:?}", self.inner_pos);
         println!("{ident_str}{IDENT}- inner_size:       {:?}", self.inner_size);
-        println!("{ident_str}{IDENT}- default_width:    {:?}", self.default_width);
-        println!("{ident_str}{IDENT}- default_height:   {:?}", self.default_height);
-        println!("{ident_str}{IDENT}- horiz_align:      {:?}", self.vertical_alignment);
-        println!("{ident_str}{IDENT}- vert_align:       {:?}", self.horizontal_alignment);
+        println!("{ident_str}{IDENT}- default_size:     {:?}", self.default_size);
+        println!("{ident_str}{IDENT}- alignment:        {:?}", self.alignment);
         println!("{ident_str}{IDENT}- margin_upper:     {:?}", self.margin_upper);
         println!("{ident_str}{IDENT}- margin_lower:     {:?}", self.margin_lower);
         println!("{ident_str}{IDENT}- border_width:     {}",   self.border_width);

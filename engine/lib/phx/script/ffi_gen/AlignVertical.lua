@@ -20,6 +20,7 @@ function Loader.defineType()
             AlignVertical AlignVertical_Center;
             AlignVertical AlignVertical_Top;
             AlignVertical AlignVertical_Bottom;
+            AlignVertical AlignVertical_Expand;
             AlignVertical AlignVertical_Stretch;
 
             cstr          AlignVertical_ToString(AlignVertical);
@@ -32,6 +33,7 @@ function Loader.defineType()
             Center   = libphx.AlignVertical_Center,
             Top      = libphx.AlignVertical_Top,
             Bottom   = libphx.AlignVertical_Bottom,
+            Expand   = libphx.AlignVertical_Expand,
             Stretch  = libphx.AlignVertical_Stretch,
 
             ToString = libphx.AlignVertical_ToString,

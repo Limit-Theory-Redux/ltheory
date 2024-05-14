@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use glam::*;
+use internal::ConvertIntoString;
 
 use crate::math::Box3;
 use crate::render::{Color, Font};
@@ -23,77 +24,15 @@ impl Deref for HmGuiPropertyId {
 }
 
 /// Property information:
-/// - property data
+/// - property value
 /// - ids of the properties this one should be merged into
 #[derive(Clone, PartialEq)]
-pub struct HmGuiPropertyInfo {
-    pub property: HmGuiProperty,
+pub struct HmGuiProperty {
+    pub value: HmGuiPropertyValue,
     pub map_ids: Vec<HmGuiPropertyId>,
 }
 
-macro_rules! decl_property {
-    ($($v:ident($ty:ident),)*) => {
-        #[derive(Clone, Debug, PartialEq)]
-        pub enum HmGuiProperty {
-            $($v($ty)),*
-        }
-
-        impl HmGuiProperty {
-            pub fn name(&self) -> &'static str {
-                match self {
-                    $(Self::$v(_) => stringify!($v),)*
-                }
-            }
-
-            pub fn get_type(&self) -> HmGuiPropertyType {
-                match self {
-                    $(Self::$v(_) => HmGuiPropertyType::$v,)*
-                }
-            }
-        }
-
-        $(
-            impl From<$ty> for HmGuiProperty {
-                fn from(value: $ty) -> Self {
-                    Self::$v(value)
-                }
-            }
-        )*
-
-        #[luajit_ffi_gen::luajit_ffi]
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        pub enum HmGuiPropertyType {
-            $($v),*
-        }
-    };
-}
-
-decl_property! {
-    Bool(bool),
-    I8(i8),
-    U8(u8),
-    I16(i16),
-    U16(u16),
-    I32(i32),
-    U32(u32),
-    I64(i64),
-    U64(u64),
-    F32(f32),
-    F64(f64),
-    Vec2(Vec2),
-    Vec3(Vec3),
-    Vec4(Vec4),
-    IVec2(IVec2),
-    IVec3(IVec3),
-    IVec4(IVec4),
-    UVec2(UVec2),
-    UVec3(UVec3),
-    UVec4(UVec4),
-    DVec2(DVec2),
-    DVec3(DVec3),
-    DVec4(DVec4),
-    Color(Color),
-    Box3(Box3),
-    String(String),
-    Font(Font),
-}
+phx_macros::define_properties![
+    bool, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, Vec2, Vec3, Vec4, IVec2, IVec3, IVec4,
+    UVec2, UVec3, UVec4, DVec2, DVec3, DVec4, &Color, Box3, &String, &Font,
+];

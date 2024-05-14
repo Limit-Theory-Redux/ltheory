@@ -165,7 +165,7 @@ function MainMenu:ShowGui()
     Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
     -- Title
-    Gui:setPropertyColor(GuiProperties.BorderColor, Color(1.0, 1.0, 1.0, 1.0))
+    Gui:setProperty(GuiProperties.BorderColor, Color(1.0, 1.0, 1.0, 1.0))
     Gui:beginStackContainer() -- begin title panel
     Gui:setPercentSize(99, 20)
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
@@ -195,12 +195,12 @@ function MainMenu:ShowGui()
     Gui:setPercentHeight(20)
     Gui:endContainer()
 
-    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0.1, 0.1, 0.1, 0.5))
+    Gui:setProperty(GuiProperties.BackgroundColor, Color(0.1, 0.1, 0.1, 0.5))
     Gui:beginVerticalContainer() -- begin changelog text panel
     Gui:setPercentHeight(80)
     Gui:setSpacing(0)
 
-    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0.2, 0.2, 0.2, 0.3))
+    Gui:setProperty(GuiProperties.BackgroundColor, Color(0.2, 0.2, 0.2, 0.3))
     Gui:beginStackContainer() -- begin top text panel
     Gui:setPercentSize(100, 8)
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
@@ -249,7 +249,7 @@ function MainMenu:ShowMainMenuInner()
     Gui:setStyle(Enums.Gui.Styles.MainMenuContent)
 
     -- TODO: remove this when text autosize feature is implemented
-    Gui:setPropertyFont(GuiProperties.TextFont, Cache.Font('RajdhaniSemiBold', 36 * scaleFactor))
+    Gui:setProperty(GuiProperties.TextFont, Cache.Font('RajdhaniSemiBold', 36 * scaleFactor))
 
     Gui:beginVerticalContainer() -- begin menu/metrics panel
     Gui:setVerticalAlignment(AlignVertical.Stretch)
@@ -306,11 +306,11 @@ function MainMenu:ShowSeedDialog()
     self.seedDialogDisplayed = true
 
     Gui:setStyle(Enums.Gui.Styles.SeedWindow)
-    Gui:beginWindow(guiElements.name, InputInstance)
+    Gui:beginWindow(guiElements.name)
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
-    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0, 0, 0, 0))
+    Gui:setProperty(GuiProperties.BackgroundColor, Color(0, 0, 0, 0))
     Gui:textEx(Cache.Font('Iceland', 42), 'Choose Seed', Color(0.3, 0.6, 1.0, 1.0))
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
@@ -414,16 +414,16 @@ function MainMenu:ShowSettingsScreen()
     self.settingsScreenDisplayed = true
 
     Gui:setStyle(Enums.Gui.Styles.SettingsWindow)
-    Gui:beginWindow(guiElements.name, InputInstance)
+    Gui:beginWindow(guiElements.name)
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
-    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0, 0, 0, 0))
+    Gui:setProperty(GuiProperties.BackgroundColor, Color(0, 0, 0, 0))
     Gui:textEx(Cache.Font('Iceland', 42), 'Settings', Color(0.3, 0.6, 1.0, 1.0))
     Gui:setHorizontalAlignment(AlignHorizontal.Center)
 
     -- Separator
-    Gui:setPropertyColor(GuiProperties.BackgroundColor, Color(0.3, 0.6, 1.0, 1.0))
+    Gui:setProperty(GuiProperties.BackgroundColor, Color(0.3, 0.6, 1.0, 1.0))
     Gui:horizontalDivider(1.0)
 
     self:ShowSettingsScreenInner()
@@ -809,7 +809,7 @@ function MainMenu:ShowFlightDialog()
     Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 
     Gui:setStyle(Enums.Gui.Styles.FlightModeWindow)
-    Gui:beginWindow("Flight Mode", InputInstance)
+    Gui:beginWindow("Flight Mode")
     Gui:setSpacing(16)
 
     -- TODO: this should be window title parameter
