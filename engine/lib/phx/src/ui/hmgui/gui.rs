@@ -777,39 +777,39 @@ impl HmGui {
     pub fn set_fixed_width(&self, width: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_width = Length::Fixed(width);
+        widget.default_size[0] = Length::Fixed(width);
     }
 
     pub fn set_fixed_height(&self, height: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_height = Length::Fixed(height);
+        widget.default_size[1] = Length::Fixed(height);
     }
 
     pub fn set_fixed_size(&self, width: f32, height: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_width = Length::Fixed(width);
-        widget.default_height = Length::Fixed(height);
+        widget.default_size[0] = Length::Fixed(width);
+        widget.default_size[1] = Length::Fixed(height);
     }
 
     pub fn set_percent_width(&self, width: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_width = Length::Percent(width);
+        widget.default_size[0] = Length::Percent(width);
     }
 
     pub fn set_percent_height(&self, height: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_height = Length::Percent(height);
+        widget.default_size[1] = Length::Percent(height);
     }
 
     pub fn set_percent_size(&self, width: f32, height: f32) {
         let mut widget = self.last.as_mut();
 
-        widget.default_width = Length::Percent(width);
-        widget.default_height = Length::Percent(height);
+        widget.default_size[0] = Length::Percent(width);
+        widget.default_size[1] = Length::Percent(height);
     }
 
     pub fn set_margin(&self, px: f32, py: f32) {
@@ -859,20 +859,19 @@ impl HmGui {
     pub fn set_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
         let mut widget = self.last.as_mut();
 
-        widget.horizontal_alignment = h;
-        widget.vertical_alignment = v;
+        widget.alignment = [h.into(), v.into()];
     }
 
     pub fn set_horizontal_alignment(&self, align: AlignHorizontal) {
         let mut widget = self.last.as_mut();
 
-        widget.horizontal_alignment = align;
+        widget.alignment[0] = align.into();
     }
 
     pub fn set_vertical_alignment(&self, align: AlignVertical) {
         let mut widget = self.last.as_mut();
 
-        widget.vertical_alignment = align;
+        widget.alignment[1] = align.into();
     }
 
     pub fn set_padding(&self, px: f32, py: f32) {
@@ -930,22 +929,21 @@ impl HmGui {
         let mut widget = self.container.as_mut();
         let container = widget.get_container_item_mut();
 
-        container.children_horizontal_alignment = h;
-        container.children_vertical_alignment = v;
+        container.children_alignment = [h.into(), v.into()];
     }
 
     pub fn set_children_horizontal_alignment(&self, align: AlignHorizontal) {
         let mut widget = self.container.as_mut();
         let container = widget.get_container_item_mut();
 
-        container.children_horizontal_alignment = align;
+        container.children_alignment[0] = align.into();
     }
 
     pub fn set_children_vertical_alignment(&self, align: AlignVertical) {
         let mut widget = self.container.as_mut();
         let container = widget.get_container_item_mut();
 
-        container.children_vertical_alignment = align;
+        container.children_alignment[1] = align.into();
     }
 
     // Theme methods ----------------------------------------------------------

@@ -4,6 +4,7 @@
 ---@enum AlignVertical
 AlignVertical = {
     ---Default alignment (Top).
+    ---If element has default alignment then container's children alignment will be taken in account in layouting.
     Default = 0,
     ---Center element inside parent container.
     Center = 1,
