@@ -18,6 +18,7 @@ function SetEngine(engine)
     InputInstance = EngineInstance:input()
     WindowInstance = EngineInstance:window()
     Gui = EngineInstance:hmGui()
+    Gui:init() --* see engine\lib\phx\script\ffi_ext\HmGui.lua
 end
 
 function InitSystem()
