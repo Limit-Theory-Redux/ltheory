@@ -53,11 +53,6 @@ function onDef_HmGui_t(t, mt)
     end
 
     mt.__index.getProperty = function(self, id)
-        if self.propFromFuncMap and #self.propFromFuncMap == 0 then
-            -- init props once
-            initPropsFromFuncs(self)
-        end
-
         return self.propFromFuncMap[id].get(Gui:getPropertyValue(id))
     end
 end
