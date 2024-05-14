@@ -16,7 +16,7 @@ function Test:scrollArea()
 
     self.fading = Gui:checkbox("Fading scrollbars", self.fading)
 
-    Gui:setProperty(GuiProperties.ScrollAreaScrollbarVisibilityFading, GuiPropertyValue.FromBool(self.fading))
+    Gui:setPropertyValue(GuiProperties.ScrollAreaScrollbarVisibilityFading, self.fading)
     Gui:setProperty(GuiProperties.ScrollAreaScrollbarKnobColor, GuiPropertyValue.FromColor(Color(1, 0, 0, 1)))
     Gui:setProperty(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
     Gui:setProperty(GuiProperties.BackgroundColor, GuiPropertyValue.FromColor(Color(0, 0, 1, 1)))

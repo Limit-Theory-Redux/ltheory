@@ -1108,6 +1108,11 @@ impl HmGui {
         panic!("Unknown property id {id}");
     }
 
+    /// Get number of registered properties.
+    pub fn get_properties_count(&self) -> usize {
+        self.default_property_registry.registry.len()
+    }
+
     /// Prints widgets hierarchy to the console. For testing.
     pub fn dump_widgets(&self) {
         let container = self.root.as_ref();

@@ -83,6 +83,7 @@ function Loader.defineType()
             uint64                  HmGui_RegisterProperty               (HmGui*, cstr name, GuiPropertyValue const* value, cstr mapId);
             void                    HmGui_SetProperty                    (HmGui*, uint64 id, GuiPropertyValue const* value);
             GuiPropertyValue const* HmGui_GetProperty                    (HmGui const*, uint64 id);
+            uint64                  HmGui_GetPropertiesCount             (HmGui const*);
             void                    HmGui_DumpWidgets                    (HmGui const*);
         ]]
     end
@@ -164,6 +165,7 @@ function Loader.defineType()
                 registerProperty               = libphx.HmGui_RegisterProperty,
                 setProperty                    = libphx.HmGui_SetProperty,
                 getProperty                    = libphx.HmGui_GetProperty,
+                getPropertiesCount             = libphx.HmGui_GetPropertiesCount,
                 dumpWidgets                    = libphx.HmGui_DumpWidgets,
             },
         }

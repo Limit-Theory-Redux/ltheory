@@ -286,6 +286,10 @@ function HmGui:setProperty(id, value) end
 ---@return GuiPropertyValue
 function HmGui:getProperty(id) end
 
+---Get number of registered properties.
+---@return integer
+function HmGui:getPropertiesCount() end
+
 ---Prints widgets hierarchy to the console. For testing.
 function HmGui:dumpWidgets() end
 
