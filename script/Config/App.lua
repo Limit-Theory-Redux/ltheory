@@ -11,7 +11,8 @@ Config.orgInfo                   = {
 
 Config.gameTitle                 = "Limit Theory Redux"
 
-Config.userInitFilename          = "user.ini"
+Config.userInitFilename          = "user"
+Config.userInitFiletype          = ".ini"
 
 Config.timeToResetToSplashscreen = 60
 

@@ -9,8 +9,9 @@ function InitFiles:readUserInits()
     -- Reads user initialization values from file
     -- TODO: Encase io.xxx functions in local wrappers for security/safety
     local filename = Config.userInitFilename
+    local filetype = Config.userInitFiletype
     local filepath = Config.paths.files
-    local configPath = filepath .. filename
+    local configPath = filepath .. filename .. filetype
     local openedFile = io.open(configPath, "r")
 
     if openedFile then
@@ -211,14 +212,36 @@ function InitFiles:writeUserInits()
     -- Writes user initialization values to file
     -- TODO: Encase io.xxx functions in local wrappers for security/safety
     local filename = Config.userInitFilename
+    local filetype = Config.userInitFiletype
     local filepath = Config.paths.files
-    local configPath = filepath .. filename
-    local openedFile = io.open(configPath, "w")
+    local configPath = filepath .. filename .. filetype
+    local backupConfigPath = filepath .. filename .. "_backup" .. filetype
 
-    if openedFile == nil then
-        Log.Warn("Cannot open configuration file for writing: %s", configPath)
-    else
-        Log.Debug("Saving configuration to: %s", configPath)
+    -- Open the configuration file for reading
+    local openedFileReadable = io.open(configPath, "r")
+    if not openedFileReadable then
+        Log.Warn("Cannot open configuration file for reading: %s", configPath)
+        return
+    end
+
+    -- Create a safety backup
+    local oldContent = openedFileReadable:read("*a")
+    openedFileReadable:close()
+
+    local backupFile, backupFileErr = io.open(backupConfigPath, "w")
+    if not backupFile then
+        Log.Warn("Cannot open backup configuration file for writing: %s", backupFileErr)
+        return
+    end
+
+    backupFile:write(oldContent) -- write the content to the backup file
+    backupFile:close()           -- close the backup file
+
+    -- Open the configuration file for writing
+    local openedFileWritable, openedFileWritableErr = io.open(configPath, "w")
+    if not openedFileWritable then
+        Log.Warn("Cannot open configuration file for writing: %s", openedFileWritableErr)
+        return
     end
 
     local cursorType = string.lower(Enums.CursorStyleNames[GameState.ui.cursorStyle])
@@ -227,7 +250,7 @@ function InitFiles:writeUserInits()
     local menuTheme = string.lower(GameState.audio.menuTheme):gsub("(%..-)$", "")
 
     -- Sets the input file for writing
-    io.output(openedFile)
+    io.output(openedFileWritable)
 
     -- Clean up GameState table
     local noFunctions = {}
@@ -344,9 +367,10 @@ function InitFiles:writeUserInits()
         end
     end
 
-    if openedFile ~= nil then
+    if openedFileWritable ~= nil then
         -- Closes the open file
-        io.close(openedFile)
+        Log.Debug("Saved configuration at: %s", configPath)
+        io.close(openedFileWritable)
     end
 end
 
