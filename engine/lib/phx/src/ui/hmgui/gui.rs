@@ -108,21 +108,23 @@ impl HmGui {
 
     fn apply_widget_properties(&self, widget: &mut HmGuiWidget) {
         let color = self
-            .get_property(HmGuiProperties::BorderColor.id())
+            .get_property_value(HmGuiProperties::BorderColor.id())
             .get_color();
         widget.set_border_color(&color);
 
         let color = self
-            .get_property(HmGuiProperties::BackgroundColor.id())
+            .get_property_value(HmGuiProperties::BackgroundColor.id())
             .get_color();
         widget.set_background_color(&color);
 
         let color = self
-            .get_property(HmGuiProperties::HighlightColor.id())
+            .get_property_value(HmGuiProperties::HighlightColor.id())
             .get_color();
         widget.set_highlight_color(&color);
 
-        let opacity = self.get_property(HmGuiProperties::Opacity.id()).get_f32();
+        let opacity = self
+            .get_property_value(HmGuiProperties::Opacity.id())
+            .get_f32();
         widget.set_opacity(opacity);
     }
 
@@ -161,12 +163,8 @@ impl HmGui {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
     }
 
-    pub fn set_property_value<T: Into<HmGuiPropertyValue>>(
-        &mut self,
-        id: HmGuiProperties,
-        value: T,
-    ) {
-        self.set_property(id.id(), &value.into());
+    pub fn set_property<T: Into<HmGuiPropertyValue>>(&mut self, id: HmGuiProperties, value: T) {
+        self.set_property_value(id.id(), &value.into());
     }
 
     /// Calculate if mouse is over the widget. Recursively iterate over container widgets.
@@ -224,7 +222,7 @@ impl HmGui {
         root_container.children_hash = 0;
 
         root_container.spacing = self
-            .get_property(HmGuiProperties::ContainerSpacing.id())
+            .get_property_value(HmGuiProperties::ContainerSpacing.id())
             .get_f32();
 
         self.container = self.root.clone();
@@ -283,10 +281,10 @@ impl HmGui {
     /// Start a new container with a specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
         let spacing = self
-            .get_property(HmGuiProperties::ContainerSpacing.id())
+            .get_property_value(HmGuiProperties::ContainerSpacing.id())
             .get_f32();
         let clip = self
-            .get_property(HmGuiProperties::ContainerClip.id())
+            .get_property_value(HmGuiProperties::ContainerClip.id())
             .get_bool();
 
         let container = HmGuiContainer {
@@ -343,7 +341,7 @@ impl HmGui {
     ///
     /// Example:
     /// ```lua
-    /// Gui:setProperty(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
+    /// Gui:setPropertyValue(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
     /// Gui:beginScrollArea(ScrollDirection.All)
     ///
     /// Gui:beginVerticalContainer()
@@ -413,20 +411,20 @@ impl HmGui {
 
         let hscroll = allow_hscroll
             && self
-                .get_property(HmGuiProperties::ScrollAreaHScrollShow.id())
+                .get_property_value(HmGuiProperties::ScrollAreaHScrollShow.id())
                 .get_bool();
         let vscroll = allow_vscroll
             && self
-                .get_property(HmGuiProperties::ScrollAreaVScrollShow.id())
+                .get_property_value(HmGuiProperties::ScrollAreaVScrollShow.id())
                 .get_bool();
 
         if hscroll || vscroll {
             let fading = self
-                .get_property(HmGuiProperties::ScrollAreaScrollbarVisibilityFading.id())
+                .get_property_value(HmGuiProperties::ScrollAreaScrollbarVisibilityFading.id())
                 .get_bool();
             let fade_scale = {
                 let scroll_scale = self
-                    .get_property(HmGuiProperties::ScrollAreaScrollScale.id())
+                    .get_property_value(HmGuiProperties::ScrollAreaScrollScale.id())
                     .get_f32();
                 let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
                 let mut scroll = input.mouse().scroll();
@@ -451,13 +449,13 @@ impl HmGui {
                 } else {
                     let elapsed_time = Instant::now() - data.scrollbar_activation_time;
                     let stable_time = Duration::from_millis(
-                        self.get_property(
+                        self.get_property_value(
                             HmGuiProperties::ScrollAreaScrollbarVisibilityStableTime.id(),
                         )
                         .get_u64(),
                     );
                     let fade_time = Duration::from_millis(
-                        self.get_property(
+                        self.get_property_value(
                             HmGuiProperties::ScrollAreaScrollbarVisibilityFadeTime.id(),
                         )
                         .get_u64(),
@@ -483,16 +481,16 @@ impl HmGui {
 
             if fade_scale > 0.0 {
                 let sb_length = self
-                    .get_property(HmGuiProperties::ScrollAreaScrollbarLength.id())
+                    .get_property_value(HmGuiProperties::ScrollAreaScrollbarLength.id())
                     .get_f32();
 
                 let mut sb_bg_color = *self
-                    .get_property(HmGuiProperties::ScrollAreaScrollbarBackgroundColor.id())
+                    .get_property_value(HmGuiProperties::ScrollAreaScrollbarBackgroundColor.id())
                     .get_color();
                 sb_bg_color.a *= fade_scale;
 
                 let mut sb_knob_color = *self
-                    .get_property(HmGuiProperties::ScrollAreaScrollbarKnobColor.id())
+                    .get_property_value(HmGuiProperties::ScrollAreaScrollbarKnobColor.id())
                     .get_color();
 
                 sb_knob_color.a *= fade_scale;
@@ -514,15 +512,15 @@ impl HmGui {
                         (handle_size, handle_pos)
                     };
 
-                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_bg_color);
+                    self.set_property(HmGuiProperties::BackgroundColor, sb_bg_color);
                     self.rect();
                     self.set_fixed_size(handle_pos, sb_length);
 
-                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_knob_color);
+                    self.set_property(HmGuiProperties::BackgroundColor, sb_knob_color);
                     self.rect();
                     self.set_fixed_size(handle_size, sb_length);
 
-                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_bg_color);
+                    self.set_property(HmGuiProperties::BackgroundColor, sb_bg_color);
                     self.rect();
                     self.set_fixed_height(sb_length);
                     self.set_horizontal_alignment(AlignHorizontal::Stretch);
@@ -547,15 +545,15 @@ impl HmGui {
                         (handle_size, handle_pos)
                     };
 
-                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_bg_color);
+                    self.set_property(HmGuiProperties::BackgroundColor, sb_bg_color);
                     self.rect();
                     self.set_fixed_size(sb_length, handle_pos);
 
-                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_knob_color);
+                    self.set_property(HmGuiProperties::BackgroundColor, sb_knob_color);
                     self.rect();
                     self.set_fixed_size(sb_length, handle_size);
 
-                    self.set_property_value(HmGuiProperties::BackgroundColor, sb_bg_color);
+                    self.set_property(HmGuiProperties::BackgroundColor, sb_bg_color);
                     self.rect();
                     self.set_fixed_width(sb_length);
                     self.set_vertical_alignment(AlignVertical::Stretch);
@@ -605,7 +603,7 @@ impl HmGui {
     /// Invisible element that stretches in all directions.
     /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
     pub fn spacer(&mut self) {
-        self.set_property_value(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
+        self.set_property(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
         self.rect();
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
     }
@@ -648,21 +646,21 @@ impl HmGui {
         // checkbox itself
         let bg_color = if value {
             *self
-                .get_property(HmGuiProperties::CheckboxClickAreaSelectedColor.id())
+                .get_property_value(HmGuiProperties::CheckboxClickAreaSelectedColor.id())
                 .get_color()
         } else {
             Color::TRANSPARENT
         };
 
         self.map_property_group("checkbox.click-area");
-        self.set_property_value(HmGuiProperties::BackgroundColor, bg_color);
+        self.set_property(HmGuiProperties::BackgroundColor, bg_color);
         self.rect();
         self.set_fixed_size(10.0, 10.0);
         self.set_border_width(3.0);
 
         self.end_container();
         // TODO: workaround. fix it
-        self.set_property_value(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
+        self.set_property(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
 
         value
     }
@@ -671,7 +669,7 @@ impl HmGui {
         self.begin_stack_container();
         self.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        self.set_property_value(
+        self.set_property(
             HmGuiProperties::BackgroundColor,
             Color::new(0.5, 0.5, 0.5, 1.0),
         );
@@ -706,9 +704,11 @@ impl HmGui {
     }
 
     pub fn text(&mut self, text: &str) {
-        let font = self.get_property(HmGuiProperties::TextFont.id()).get_font();
+        let font = self
+            .get_property_value(HmGuiProperties::TextFont.id())
+            .get_font();
         let color = self
-            .get_property(HmGuiProperties::TextColor.id())
+            .get_property_value(HmGuiProperties::TextColor.id())
             .get_color();
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
@@ -725,7 +725,9 @@ impl HmGui {
     }
 
     pub fn text_colored(&mut self, text: &str, color: &Color) {
-        let font = self.get_property(HmGuiProperties::TextFont.id()).get_font();
+        let font = self
+            .get_property_value(HmGuiProperties::TextFont.id())
+            .get_font();
 
         // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
         let item = HmGuiText {
@@ -1017,7 +1019,7 @@ impl HmGui {
             return;
         }
 
-        let prop = self.get_property(property_id).clone();
+        let prop = self.get_property_value(property_id).clone();
 
         for map_id in map_ids {
             self.element_style.properties.insert(*map_id, prop.clone());
@@ -1076,7 +1078,7 @@ impl HmGui {
         *id
     }
 
-    pub fn set_property(&mut self, id: usize, value: &HmGuiPropertyValue) {
+    pub fn set_property_value(&mut self, id: usize, value: &HmGuiPropertyValue) {
         let (_, prop) = self
             .default_property_registry
             .registry
@@ -1095,7 +1097,7 @@ impl HmGui {
             .insert(id.into(), value.clone());
     }
 
-    pub fn get_property(&self, id: usize) -> &HmGuiPropertyValue {
+    pub fn get_property_value(&self, id: usize) -> &HmGuiPropertyValue {
         let prop_id = id.into();
         if let Some(prop) = self.element_style.properties.get(&prop_id) {
             return prop;

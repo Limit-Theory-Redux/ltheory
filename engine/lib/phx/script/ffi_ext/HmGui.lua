@@ -42,12 +42,12 @@ end
 function onDef_HmGui_t(t, mt)
     mt.__index.propFromFuncMap = {}
 
-    mt.__index.setPropertyValue = function(self, id, value)
+    mt.__index.setProperty = function(self, id, value)
         if self.propFromFuncMap and #self.propFromFuncMap == 0 then
             -- init props once
             initPropsFromFuncs(self)
         end
 
-        Gui:setProperty(id, self.propFromFuncMap[id](value))
+        Gui:setPropertyValue(id, self.propFromFuncMap[id](value))
     end
 end

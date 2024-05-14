@@ -209,10 +209,10 @@ Now we will get to the most important part of component: the render function. Th
 ```lua
     newText.render = function(self)
         if self.state.font() then
-            Gui:setProperty(GuiProperties.TextFont, GuiPropertyValue.FromFont(Cache.Font(self.state.font(), self.state.size())))
+            Gui:setProperty(GuiProperties.TextFont, Cache.Font(self.state.font(), self.state.size()))
         end
 
-        Gui:setProperty(GuiProperties.TextColor, GuiPropertyValue.FromColor(self.state.color()))
+        Gui:setProperty(GuiProperties.TextColor, self.state.color())
         Gui:text(tostring(self.state.text()))
 
         Gui:clearStyle() -- clear style so it doesn´t affect other components

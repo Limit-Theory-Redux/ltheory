@@ -81,8 +81,8 @@ function Loader.defineType()
             void                    HmGui_MapPropertyGroup               (HmGui*, cstr group);
             void                    HmGui_RemoveProperty                 (HmGui*, uint64 propertyId);
             uint64                  HmGui_RegisterProperty               (HmGui*, cstr name, GuiPropertyValue const* value, cstr mapId);
-            void                    HmGui_SetProperty                    (HmGui*, uint64 id, GuiPropertyValue const* value);
-            GuiPropertyValue const* HmGui_GetProperty                    (HmGui const*, uint64 id);
+            void                    HmGui_SetPropertyValue               (HmGui*, uint64 id, GuiPropertyValue const* value);
+            GuiPropertyValue const* HmGui_GetPropertyValue               (HmGui const*, uint64 id);
             uint64                  HmGui_GetPropertiesCount             (HmGui const*);
             void                    HmGui_DumpWidgets                    (HmGui const*);
         ]]
@@ -163,8 +163,8 @@ function Loader.defineType()
                 mapPropertyGroup               = libphx.HmGui_MapPropertyGroup,
                 removeProperty                 = libphx.HmGui_RemoveProperty,
                 registerProperty               = libphx.HmGui_RegisterProperty,
-                setProperty                    = libphx.HmGui_SetProperty,
-                getProperty                    = libphx.HmGui_GetProperty,
+                setPropertyValue               = libphx.HmGui_SetPropertyValue,
+                getPropertyValue               = libphx.HmGui_GetPropertyValue,
                 getPropertiesCount             = libphx.HmGui_GetPropertiesCount,
                 dumpWidgets                    = libphx.HmGui_DumpWidgets,
             },

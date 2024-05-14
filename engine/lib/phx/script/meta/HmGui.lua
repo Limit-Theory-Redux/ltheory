@@ -48,7 +48,7 @@ function HmGui:endContainer() end
 ---
 ---Example:
 ---```lua
----Gui:setProperty(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
+---Gui:setPropertyValue(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
 ---Gui:beginScrollArea(ScrollDirection.All)
 ---
 ---Gui:beginVerticalContainer()
@@ -280,11 +280,11 @@ function HmGui:registerProperty(name, value, mapId) end
 
 ---@param id integer
 ---@param value GuiPropertyValue
-function HmGui:setProperty(id, value) end
+function HmGui:setPropertyValue(id, value) end
 
 ---@param id integer
 ---@return GuiPropertyValue
-function HmGui:getProperty(id) end
+function HmGui:getPropertyValue(id) end
 
 ---Get number of registered properties.
 ---@return integer
