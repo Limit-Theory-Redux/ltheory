@@ -67,6 +67,7 @@ function Button:new(args)
         end
 
         -- no need for an if check, since we always have a default defined
+        Gui:setProperty(GuiProperties.ButtonRectOpacity, 1.0)
         Gui:setProperty(GuiProperties.TextFont,
             Cache.Font(self.state.font().name, self.state.font().size))
         Gui:setProperty(GuiProperties.ButtonTextColor, self.state.color().text)
