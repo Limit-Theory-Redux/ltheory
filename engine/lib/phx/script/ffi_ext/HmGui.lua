@@ -1,32 +1,32 @@
 local function initPropsFromFuncs(self)
     local propFromFuncs = {
-        { GuiPropertyValue.FromBool,   GuiPropertyValue.getBool },
-        { GuiPropertyValue.FromI8,     GuiPropertyValue.getI8 },
-        { GuiPropertyValue.FromU8,     GuiPropertyValue.getU8 },
-        { GuiPropertyValue.FromI16,    GuiPropertyValue.getI16 },
-        { GuiPropertyValue.FromU16,    GuiPropertyValue.getU16 },
-        { GuiPropertyValue.FromI32,    GuiPropertyValue.getI32 },
-        { GuiPropertyValue.FromU32,    GuiPropertyValue.getU32 },
-        { GuiPropertyValue.FromI64,    GuiPropertyValue.getI64 },
-        { GuiPropertyValue.FromU64,    GuiPropertyValue.getU64 },
-        { GuiPropertyValue.FromF32,    GuiPropertyValue.getF32 },
-        { GuiPropertyValue.FromF64,    GuiPropertyValue.getF64 },
-        { GuiPropertyValue.FromVec2,   GuiPropertyValue.getVec2 },
-        { GuiPropertyValue.FromVec3,   GuiPropertyValue.getVec3 },
-        { GuiPropertyValue.FromVec4,   GuiPropertyValue.getVec4 },
-        { GuiPropertyValue.FromIvec2,  GuiPropertyValue.getIvec2 },
-        { GuiPropertyValue.FromIvec3,  GuiPropertyValue.getIvec3 },
-        { GuiPropertyValue.FromIvec4,  GuiPropertyValue.getIvec4 },
-        { GuiPropertyValue.FromUvec2,  GuiPropertyValue.getUvec2 },
-        { GuiPropertyValue.FromUvec3,  GuiPropertyValue.getUvec3 },
-        { GuiPropertyValue.FromUvec4,  GuiPropertyValue.getUvec4 },
-        { GuiPropertyValue.FromDvec2,  GuiPropertyValue.getDvec2 },
-        { GuiPropertyValue.FromDvec3,  GuiPropertyValue.getDvec3 },
-        { GuiPropertyValue.FromDvec4,  GuiPropertyValue.getDvec4 },
-        { GuiPropertyValue.FromColor,  GuiPropertyValue.getColor },
-        { GuiPropertyValue.FromBox3,   GuiPropertyValue.getBox3 },
-        { GuiPropertyValue.FromString, GuiPropertyValue.getString },
-        { GuiPropertyValue.FromFont,   GuiPropertyValue.getFont },
+        { set = GuiPropertyValue.FromBool,   get = GuiPropertyValue.getBool },
+        { set = GuiPropertyValue.FromI8,     get = GuiPropertyValue.getI8 },
+        { set = GuiPropertyValue.FromU8,     get = GuiPropertyValue.getU8 },
+        { set = GuiPropertyValue.FromI16,    get = GuiPropertyValue.getI16 },
+        { set = GuiPropertyValue.FromU16,    get = GuiPropertyValue.getU16 },
+        { set = GuiPropertyValue.FromI32,    get = GuiPropertyValue.getI32 },
+        { set = GuiPropertyValue.FromU32,    get = GuiPropertyValue.getU32 },
+        { set = GuiPropertyValue.FromI64,    get = GuiPropertyValue.getI64 },
+        { set = GuiPropertyValue.FromU64,    get = GuiPropertyValue.getU64 },
+        { set = GuiPropertyValue.FromF32,    get = GuiPropertyValue.getF32 },
+        { set = GuiPropertyValue.FromF64,    get = GuiPropertyValue.getF64 },
+        { set = GuiPropertyValue.FromVec2,   get = GuiPropertyValue.getVec2 },
+        { set = GuiPropertyValue.FromVec3,   get = GuiPropertyValue.getVec3 },
+        { set = GuiPropertyValue.FromVec4,   get = GuiPropertyValue.getVec4 },
+        { set = GuiPropertyValue.FromIvec2,  get = GuiPropertyValue.getIvec2 },
+        { set = GuiPropertyValue.FromIvec3,  get = GuiPropertyValue.getIvec3 },
+        { set = GuiPropertyValue.FromIvec4,  get = GuiPropertyValue.getIvec4 },
+        { set = GuiPropertyValue.FromUvec2,  get = GuiPropertyValue.getUvec2 },
+        { set = GuiPropertyValue.FromUvec3,  get = GuiPropertyValue.getUvec3 },
+        { set = GuiPropertyValue.FromUvec4,  get = GuiPropertyValue.getUvec4 },
+        { set = GuiPropertyValue.FromDvec2,  get = GuiPropertyValue.getDvec2 },
+        { set = GuiPropertyValue.FromDvec3,  get = GuiPropertyValue.getDvec3 },
+        { set = GuiPropertyValue.FromDvec4,  get = GuiPropertyValue.getDvec4 },
+        { set = GuiPropertyValue.FromColor,  get = GuiPropertyValue.getColor },
+        { set = GuiPropertyValue.FromBox3,   get = GuiPropertyValue.getBox3 },
+        { set = GuiPropertyValue.FromString, get = GuiPropertyValue.getString },
+        { set = GuiPropertyValue.FromFont,   get = GuiPropertyValue.getFont },
     }
 
     local propCount = tonumber(Gui:getPropertiesCount() - 1)
@@ -48,7 +48,7 @@ function onDef_HmGui_t(t, mt)
             initPropsFromFuncs(self)
         end
 
-        Gui:setPropertyValue(id, self.propFromFuncMap[id][1](value))
+        Gui:setPropertyValue(id, self.propFromFuncMap[id].set(value))
     end
 
     mt.__index.getProperty = function(self, id)
@@ -57,6 +57,6 @@ function onDef_HmGui_t(t, mt)
             initPropsFromFuncs(self)
         end
 
-        return self.propFromFuncMap[id][2](Gui:getPropertyValue(id))
+        return self.propFromFuncMap[id].get(Gui:getPropertyValue(id))
     end
 end
