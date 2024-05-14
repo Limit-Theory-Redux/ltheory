@@ -42,10 +42,9 @@ end
 function onDef_HmGui_t(t, mt)
     mt.__index.init = function(self) -- dirtiest but fastest solution
         mt.__index.propFromFuncMap = {}
-        if self.propFromFuncMap and #self.propFromFuncMap == 0 then
-            -- init props once
-            initPropsFromFuncs(self)
-        end
+
+        -- init props once
+        initPropsFromFuncs(self)
     end
 
     mt.__index.setProperty = function(self, id, value)
