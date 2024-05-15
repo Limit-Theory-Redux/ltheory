@@ -33,11 +33,16 @@ local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
 end
 
-local function newGameRandomSeed()
+---@param seed integer|nil
+local function newGame(seed)
+    local seed = seed
+    if not seed then
+        seed = rng:get64()
+    end
     ---@type Universe
     local Universe = require("Systems.Universe.Universe")
     -- we want to create a new universe, do this here so loading screen knows what to load
-    Universe:init(rng:get64())
+    Universe:init(seed)
     UIRouter:setCurrentPage("Loading_Screen")
 end
 
@@ -158,11 +163,32 @@ local playGrid = UILayout.Grid {
                             },
                             contents = {
                                 UIComponent.Button_MainMenu {
+                                    title = "Test Seed 1",
+                                    width = getButtonWidth,
+                                    height = getButtonHeight,
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    callback = function() newGame(11487961515238620437ULL) end
+                                },
+                                UIComponent.Button_MainMenu {
+                                    title = "Test Seed 2",
+                                    width = getButtonWidth,
+                                    height = getButtonHeight,
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    callback = function() newGame(6934033808124312024ULL) end
+                                },
+                                UIComponent.Button_MainMenu {
+                                    title = "Test Seed 3",
+                                    width = getButtonWidth,
+                                    height = getButtonHeight,
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    callback = function() newGame(8616071071418665380ULL) end
+                                },
+                                UIComponent.Button_MainMenu {
                                     title = "Random Seed",
                                     width = getButtonWidth,
                                     height = getButtonHeight,
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
-                                    callback = newGameRandomSeed
+                                    callback = function() newGame() end
                                 }
                             }
                         },
