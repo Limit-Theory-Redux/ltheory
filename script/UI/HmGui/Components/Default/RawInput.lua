@@ -8,9 +8,13 @@ local meta = {
 }
 
 ---@class UIRawInput: UIComponent
+---@field widthInLayout number
+---@field heightInLayout number
 ---@field render function renders the spacer
 
 ---@class UIRawInputConstructor
+---@field widthInLayout number
+---@field heightInLayout number
 ---@field fn function
 
 ---returns a spacer object

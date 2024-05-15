@@ -14,6 +14,8 @@ local meta = {
 ---@field margin table<number, number>
 ---@field stackDirection UIStackDirection
 ---@field contents table<UIComponent>
+---@field widthInLayout number
+---@field heightInLayout number
 ---@field showGrid boolean
 
 ---@class UILayoutGrid: UILayout
@@ -25,8 +27,9 @@ local meta = {
 ---@field margin table<number, number>
 ---@field stackDirection UIStackDirection
 ---@field contents table<UIComponent>
+---@field widthInLayout number
+---@field heightInLayout number
 ---@field showGrid boolean|nil
-
 
 ---returns a grid layout object
 ---@param args UILayoutGridConstructor

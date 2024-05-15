@@ -13,6 +13,8 @@ local meta = {
 ---@field size number
 ---@field color Color
 ---@field text string
+---@field widthInLayout number
+---@field heightInLayout number
 ---@field render fun(self: UIComponentText) renders the text
 
 ---@class UIComponentTextConstructor
@@ -21,6 +23,8 @@ local meta = {
 ---@field size number
 ---@field color Color
 ---@field text string
+---@field widthInLayout number
+---@field heightInLayout number
 ---@field align table<AlignHorizontal, AlignVertical>
 
 ---returns a text object

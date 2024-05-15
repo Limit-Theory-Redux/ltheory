@@ -7,41 +7,37 @@ local meta = {
     end
 }
 
----@class UIComponentButton: UIComponent
+---@class UIComponentMainMenuButton: UIComponentButton
 ---@field visible boolean
 ---@field title string
 ---@field width number
 ---@field height number
----@field padding table<number, number>
----@field margin table<number, number>
+---@field padding { paddingX: number, paddingY: number }|nil
+---@field margin { marginX: number, marginY: number }|nil
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
 ---@field callback function
 ---@field render fun(self: UIComponentButton) renders the button
 
----@class UIComponentButtonConstructor
+---@class UIComponentMainMenuButtonConstructor
 ---@field visible boolean
 ---@field title string
 ---@field width number
 ---@field height number
----@field padding table<number, number>
----@field margin table<number, number>
+---@field padding { paddingX: number, paddingY: number }|nil
+---@field margin { marginX: number, marginY: number }|nil
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
 ---@field callback function
 
----@class UIComponentButtonColors
+---@class UIComponentMainMenuButtonColors
 ---@field text Color|nil
 ---@field background Color|nil
 ---@field highlight Color|nil
 
----@class UIComponentFont
----@field name string
----@field size number
-
 ---returns a button object
----@param args UIComponentButtonConstructor
----@return UIComponentButton|nil
+---@param args UIComponentMainMenuButtonConstructor
+---@return UIComponentMainMenuButton|nil
 function Button:new(args)
     if not args then
         return

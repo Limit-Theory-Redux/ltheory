@@ -14,18 +14,35 @@ local meta = {
 ---@field visible boolean
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
----@field padding table
+---@field width number
+---@field height number
+---@field widthInLayout number
+---@field heightInLayout number
+---@field padding { paddingX: number, paddingY: number }|nil
+---@field margin { marginX: number, marginY: number }|nil
 ---@field stackDirection number
----@field contents table
+---@field color UIComponentButtonColors
 ---@field render fun(self: UIComponentContainer)
+---@field contents table
+---@field showContainer boolean
 
 ---@class UIComponentContainerConstructor
 ---@field visible boolean|nil
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
----@field padding table
+---@field width number
+---@field height number
+---@field widthInLayout number
+---@field heightInLayout number
+---@field padding { paddingX: number, paddingY: number }|nil
+---@field margin { marginX: number, marginY: number }|nil
 ---@field stackDirection number
+---@field color UIComponentButtonColors
 ---@field contents table
+---@field showContainer boolean
+
+---@class UIComponentContainerColors
+---@field background Color|nil
 
 ---returns a container object
 ---@param args UIComponentContainerConstructor

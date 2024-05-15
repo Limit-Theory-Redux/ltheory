@@ -1,13 +1,6 @@
 ---@class UIRouter
 local UIRouter = class(function(self) end)
 
---[[
-* Development Notes:
-* - styles should be defined in styles.yaml or in code
-* - pages, views and component structure inspired by Vue.js
-* - router?
-]]
-
 function UIRouter:__init()
     ---@type table<UIPage>
     self.pages = {}
