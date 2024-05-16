@@ -3,7 +3,7 @@ local SystemGenerator = require('Systems.Gen.SystemGenerator')
 local Asteroid        = require('GameObjects.Entities.Objects.Asteroid')
 local Planet          = require('GameObjects.Entities.Objects.Planet')
 local Station         = require('GameObjects.Entities.Objects.Station')
-local System          = require('GameObjects.Entities.Test.System')
+local System          = require('GameObjects.Entities.StarSystem')
 
 local kSystemScale    = 5000.0
 

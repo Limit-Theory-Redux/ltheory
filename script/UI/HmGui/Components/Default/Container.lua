@@ -14,18 +14,35 @@ local meta = {
 ---@field visible boolean
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
----@field padding table
----@field stackDirection number
----@field contents table
+---@field width number
+---@field height number
+---@field widthInLayout number
+---@field heightInLayout number
+---@field padding { paddingX: number, paddingY: number }|nil
+---@field margin { marginX: number, marginY: number }|nil
+---@field layoutType GuiLayoutType
+---@field color UIComponentButtonColors
 ---@field render fun(self: UIComponentContainer)
+---@field contents table
+---@field showContainer boolean
 
 ---@class UIComponentContainerConstructor
 ---@field visible boolean|nil
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
----@field padding table
----@field stackDirection number
+---@field width number
+---@field height number
+---@field widthInLayout number
+---@field heightInLayout number
+---@field padding { paddingX: number, paddingY: number }|nil
+---@field margin { marginX: number, marginY: number }|nil
+---@field layoutType GuiLayoutType
+---@field color UIComponentButtonColors
 ---@field contents table
+---@field showContainer boolean
+
+---@class UIComponentContainerColors
+---@field background Color|nil
 
 ---returns a container object
 ---@param args UIComponentContainerConstructor
@@ -46,15 +63,34 @@ function Container:new(args)
         height = args.height,
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
-        stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
-        contents = args.contents
+        layoutType = args.layoutType or GuiLayoutType.Horizontal,
+        contents = args.contents,
+        color = {
+            background = args.color and args.color.background
+        },
+        showContainer = args.showContainer or function() return GameState.debug.metricsEnabled end,
+        showContainerColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4)
     }
 
     newContainer.render = function(self)
-        if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
-            Gui:beginHorizontalContainer()
-        elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
-            Gui:beginVerticalContainer()
+        if not self.state.visible() then
+            return
+        end
+
+        -- color
+        if self.state.color().background then
+            Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().background)
+        end
+
+        if self.state.showContainer() then
+            Gui:setProperty(GuiProperties.BorderColor, self.state.showContainerColor())
+        end
+
+        Gui:beginContainer(self.state.layoutType())
+        Gui:clearStyle() -- clear properties
+
+        if self.state.showContainer() then
+            Gui:setBorderWidth(1)
         end
 
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
@@ -67,18 +103,21 @@ function Container:new(args)
         end
 
         if self.state.height then
-            Gui:setPercentHeight(self.state.width() * 100)
+            Gui:setPercentHeight(self.state.height() * 100)
         end
 
         if #self.state.contents() > 1 then
             for _, component in ipairs(self.state.contents()) do
                 component:render()
             end
-        else
+        elseif #self.state.contents() == 1 then
             self.state.contents()[1]:render()
-        end
+        end -- this allows containers without any content
 
         Gui:endContainer()
+        Gui:setPercentWidth(100)
+        Gui:setPercentHeight(100)
+        Gui:clearStyle() -- clear style so it doesn´t affect other components
     end
 
     return newContainer

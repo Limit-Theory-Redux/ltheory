@@ -1,3 +1,5 @@
+local SoundManager = require "Systems.SFX.SoundManager"
+
 local DebugWindow = {}
 DebugWindow.__index = DebugWindow
 setmetatable(DebugWindow, UI.Window)
@@ -67,7 +69,7 @@ function DebugWindow:createProfilingText()
                         end
                         return total
                     end))
-                    --[[
+                --[[
                     :add(UI.Label('Awake Rigidbodies'))
                     :add(UI.Label():setPollFn(function()
                         local total = 0
@@ -112,18 +114,22 @@ function DebugWindow:createAudioSection()
         :add(UI.Collapsible('Audio')
             :add(UI.Grid():setPad(2, 0, 2, 2):setPadCellX(8)
                 :add(UI.Label('Loaded Sounds'))
-                :add(UI.Label():setPollFn(function() return LTheoryRedux.audio:getLoadedCount() end))
+                :add(UI.Label():setPollFn(function() return LimitTheoryRedux.audio:getLoadedCount() end))
                 :add(UI.Label('Total Sounds'))
-                :add(UI.Label():setPollFn(function() return LTheoryRedux.audio:getTotalCount() end))
-                :add(UI.Label('Playing Sounds'))
-                :add(UI.Label():setPollFn(function() return LTheoryRedux.audio:getPlayingCount() end))
+                :add(UI.Label():setPollFn(function() return LimitTheoryRedux.audio:getTotalCount() end))
+                :add(UI.Label('Playing SFX'))
+                :add(UI.Label():setPollFn(function() return SoundManager:getSoundsPlaying(Enums.SoundGroups.Effects) end))
+                :add(UI.Label('Playing Music'))
+                :add(UI.Label():setPollFn(function() return SoundManager:getSoundsPlaying(Enums.SoundGroups.Music) end))
+                :add(UI.Label('Playing Ambient'))
+                :add(UI.Label():setPollFn(function() return SoundManager:getSoundsPlaying(Enums.SoundGroups.Ambient) end))
             )
         )
 end
 
 function DebugWindow:createUISection()
-    local canvas      = self.ltheory.canvas
-    local state       = self.ltheory.canvas.state
+    local canvas      = GameState.render.uiCanvas
+    local state       = GameState.render.uiCanvas.state
     local uiDebugGrid = UI.Grid()
 
     return UI.NavGroup()

@@ -5,24 +5,39 @@ local MainView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
-local MusicPlayer = require('Systems.SFX.MusicPlayer')
+local InitFiles = require('Systems.Files.InitFiles')
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
-function MainView:onInput() end
+local function distance(x1, y1, x2, y2)
+    return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
+end
+
+local lastMousePos = Vec2f(0, 0)
+local lastMoved = TimeStamp.Now()
+local minDistance = 50 -- pixel
+local timeTillBackground = 20
+
+function MainView:onInput()
+    local mousePos = InputInstance:mouse():position()
+
+    if distance(mousePos.x, mousePos.y, lastMousePos.x, lastMousePos.y) > minDistance then
+        lastMoved = TimeStamp.Now()
+        lastMousePos = mousePos
+    end
+
+    if lastMoved:getElapsed() >= timeTillBackground then
+        UIRouter:getCurrentPage():setView("Background")
+    end
+end
+
 function MainView:onUpdate(dt) end
 
 function MainView:onViewOpen(isPageOpen)
-    if isPageOpen then
-        MusicPlayer:QueueTrack(GameState.audio.menuTheme, true)
-    end
+    lastMoved = TimeStamp.Now()
 end
 
-function MainView:onViewClose(isPageClose)
-    if isPageClose then
-        MusicPlayer:ClearQueue()
-    end
-end
+function MainView:onViewClose(isPageClose) end
 
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200
@@ -33,7 +48,7 @@ local function getButtonHeight()
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
-    return GameState.render.resX / 1600 * 175 * 2 / GameState.render.resX
+    return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
 end
 
 local function getRemainingWidthPercentage()
@@ -48,67 +63,110 @@ local function switchToSettingsView()
     UIRouter:getCurrentPage():setView("Settings")
 end
 
-local function switchToBackgroundView()
-    UIRouter:getCurrentPage():setView("Background")
+local function switchToCreditsView()
+    UIRouter:getCurrentPage():setView("Credits")
 end
 
 local menuGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-    padding = { 50, 50 },
+    padding = { 125, 0 },
     margin = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Horizontal,
-    showGrid = false,
+    stackDirection = GuiLayoutType.Horizontal,
     contents = {
-        UIComponent.Container {
-            align = { AlignHorizontal.Default, AlignVertical.Center },
-            padding = { 50, 10 },
+        UILayout.Grid {
+            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+            padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getLayoutContainerWidthPercentage,
-            stackDirection = Enums.UI.StackDirection.Vertical,
+            layoutType = GuiLayoutType.Vertical,
             contents = {
-                UIComponent.Button_MainMenu {
-                    title = "Play",
-                    width = getButtonWidth,
-                    height = getButtonHeight,
-                    callback = switchToPlayView,
-                    align = { AlignHorizontal.Center, AlignVertical.Center }
+                UIComponent.RawInput {
+                    heightInLayout = 2 / 10,
+                    fn = function()
+                        Gui:setProperty(GuiProperties.BackgroundColor, Color(0, 0, 0, 0.3))
+                        Gui:beginStackContainer()
+                        Gui:setPaddingTop(10)
+                        Gui:setPaddingRight(5)
+                        Gui:setPaddingBottom(10)
+                        Gui:setPaddingLeft(5)
+                        Gui:setPercentSize(100, 100)
+                        Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
+                        Gui:image(logo)
+                        Gui:setPercentSize(100, 42)
+                        Gui:endContainer()
+                    end },
+                UIComponent.Container {
+                    align = { AlignHorizontal.Stretch, AlignVertical.Top },
+                    padding = { 0, 50 },
+                    margin = { 0, 0 },
+                    layoutType = GuiLayoutType.Vertical,
+                    heightInLayout = 7 / 10,
+                    color = {
+                        background = Color(0, 0, 0, 0.3)
+                    },
+                    contents = {
+                        UIComponent.Button_MainMenu {
+                            title = "Play",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = switchToPlayView,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
+                        UIComponent.Button_MainMenu {
+                            title = "Settings",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            callback = switchToSettingsView
+                        },
+                        UIComponent.Button_MainMenu {
+                            title = "Credits",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = switchToCreditsView,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
+                        UIComponent.Button_MainMenu {
+                            title = "Exit",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = function()
+                                LimitTheoryRedux:exit() -- run pre-exit operations & exit game
+                            end,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        }
+                    }
                 },
-                UIComponent.Button_MainMenu {
-                    title = "Settings",
-                    width = getButtonWidth,
-                    height = getButtonHeight,
-                    align = { AlignHorizontal.Center, AlignVertical.Center },
-                    callback = switchToSettingsView
-                },
-                UIComponent.Button_MainMenu {
-                    title = "Background Mode",
-                    width = getButtonWidth,
-                    height = getButtonHeight,
-                    callback = switchToBackgroundView,
-                    align = { AlignHorizontal.Center, AlignVertical.Center }
-                },
-                UIComponent.Button_MainMenu {
-                    title = "Exit",
-                    width = getButtonWidth,
-                    height = getButtonHeight,
-                    callback = function() EngineInstance:exit() end,
-                    align = { AlignHorizontal.Center, AlignVertical.Center }
+                UIComponent.Container {
+                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+                    childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+                    padding = { 0, 0 },
+                    margin = { 0, 0 },
+                    heightInLayout = 1 / 10,
+                    layoutType = GuiLayoutType.Vertical,
+                    color = {
+                        background = Color(0, 0, 0, 0.3)
+                    },
+                    contents = {
+                        UIComponent.Text {
+                            text = Config.gameVersion,
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            font = "Exo2",
+                            size = 12
+                        }
+                    }
                 }
             }
         },
         UIComponent.Container {
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-            padding = { 50, 50 },
+            padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getRemainingWidthPercentage,
-            stackDirection = Enums.UI.StackDirection.Vertical,
+            layoutType = GuiLayoutType.Vertical,
             contents = {
-                UIComponent.RawInput { fn = function()
-                    Gui:image(logo)
-                    Gui:setPercentSize(70, 20)
-                    Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
-                end }
+                UIComponent.RawInput { fn = function() end }
             }
         }
     }

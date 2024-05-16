@@ -8,7 +8,9 @@ local meta = {
 }
 
 ---@class UIComponentState
+---@field visible boolean
 ---@class UIComponentStateConstructor
+---@field visible boolean|nil
 
 ---returns a text object
 ---@param args UIComponentStateConstructor

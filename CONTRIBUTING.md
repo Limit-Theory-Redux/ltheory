@@ -118,7 +118,7 @@ This runs CMake to generate the build files and places them in 'build`. Then, to
 
 If the compilation is successful, you now have `bin/lt64` (or `bin/lt64.exe` on Windows), which is the main executable. This program launches a Lua script. The intention is for Limit Theory (and all mods) to be broken into many Lua scripts, which would then implement the gameplay, using script functions exposed by the underlying engine.
 
-To launch the default script ('LTheoryRedux'), you can run the launcher directly from a terminal / command prompt:
+To launch the default script ('LimitTheoryRedux'), you can run the launcher directly from a terminal / command prompt:
 
 - Windows: `./bin/lt64.exe`
 - macOS/Linux: `./bin/lt64`
@@ -138,6 +138,6 @@ First, make sure that the CMake project is configured by running the steps above
 
 Next, open the Visual Studio solution by navigating to `build/LTheory.sln` and opening it. Once the project has loaded, right-click the `lt` project in the Solution Explorer, then select "Set as Startup Project".
 
-To select a Lua script to run, right-click the `lt` project, then select Properties, then Debugging, then change the value in "Command Line Arguments" to the desired Lua script. Leave this blank to launch the default Lua script (`LTheoryRedux`).
+To select a Lua script to run, right-click the `lt` project, then select Properties, then Debugging, then change the value in "Command Line Arguments" to the desired Lua script. Leave this blank to launch the default Lua script (`LimitTheoryRedux`).
 
 

@@ -32,14 +32,14 @@ function MoveTo:onUpdateActive(e, dt)
     local tp = getTargetPos(e, self.target)
 
     -- Within range of the target object?
-    if (e:getPos() - tp):length() <= self.range or (e == GameState.player.currentShip and not GameState.player.playerMoving) then
+    if (e:getPos() - tp):length() <= self.range then
         -- MoveTo is complete, remove movement action from entity's Action queue
         e:popAction()
         e.travelDriveActive = false
         e.travelDriveTimer = 0
 
-        if e == GameState.player.currentShip and GameState.player.playerMoving then
-            GameState.player.playerMoving = false
+        if e == GameState.player.currentShip and GameState.player.autonavActive then
+            GameState.player.autonavActive = false
         end
 
         return -- within range, so end flight

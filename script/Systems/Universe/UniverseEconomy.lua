@@ -6,7 +6,7 @@ local rng = RNG.FromTime()
 
 local UniverseEconomy = class(function(self) end)
 
-function UniverseEconomy:Init()
+function UniverseEconomy:init()
     self.systems = {
         highAttention = {},
         lowAttention = {}
@@ -170,7 +170,7 @@ local function addBlackMarket(system)
     table.insert(system.aiPlayers, piratePlayer)
 end
 
-function UniverseEconomy:OnUpdate(dt)
+function UniverseEconomy:onUpdate(dt)
     self.econDelta = self.econDelta + dt
     -- High Attention
     for _, system in ipairs(self.systems.highAttention) do
@@ -183,30 +183,30 @@ function UniverseEconomy:OnUpdate(dt)
         end
 
         -- Handle High Attention Systems
-        self:HandleHighAttention(dt, system)
+        self:handleHighAttention(dt, system)
     end
 
     if self.econDelta > self.nextUpdate then
         -- Low Attention
         for _, system in ipairs(self.systems.lowAttention) do
             -- Handle Low Attention Systems
-            self:HandleLowAttention(dt, system)
+            self:handleLowAttention(dt, system)
         end
         self.nextUpdate = self.econDelta + Config.econ.lowAttentionUpdateRate
     end
 end
 
-function UniverseEconomy:AddSystem(system)
+function UniverseEconomy:addSystem(system)
     Log.Debug("Adding a new system to universe economy: " .. system:getName())
 
     table.insert(self.systems.highAttention, system)
 end
 
-function UniverseEconomy:HandleHighAttention(dt, system)
+function UniverseEconomy:handleHighAttention(dt, system)
     system:updateEconomy(dt) --> script\GameObjects\Elements\Economy\Economy.lua
 end
 
-function UniverseEconomy:HandleLowAttention(dt, system)
+function UniverseEconomy:handleLowAttention(dt, system)
 
 end
 

@@ -7,37 +7,37 @@ local meta = {
     end
 }
 
----@class UIComponentButton: UIComponent
+---@class UIComponentMainMenuButton: UIComponentButton
 ---@field visible boolean
 ---@field title string
 ---@field width number
 ---@field height number
+---@field padding { paddingX: number, paddingY: number }|nil
+---@field margin { marginX: number, marginY: number }|nil
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
 ---@field callback function
 ---@field render fun(self: UIComponentButton) renders the button
 
----@class UIComponentButtonConstructor
+---@class UIComponentMainMenuButtonConstructor
 ---@field visible boolean
 ---@field title string
 ---@field width number
 ---@field height number
+---@field padding { paddingX: number, paddingY: number }|nil
+---@field margin { marginX: number, marginY: number }|nil
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
 ---@field callback function
 
----@class UIComponentButtonColors
+---@class UIComponentMainMenuButtonColors
 ---@field text Color|nil
 ---@field background Color|nil
 ---@field highlight Color|nil
 
----@class UIComponentFont
----@field name string
----@field size number
-
 ---returns a button object
----@param args UIComponentButtonConstructor
----@return UIComponentButton|nil
+---@param args UIComponentMainMenuButtonConstructor
+---@return UIComponentMainMenuButton|nil
 function Button:new(args)
     if not args then
         return
@@ -49,10 +49,13 @@ function Button:new(args)
         title = args.title,
         width = args.width,
         height = args.height,
+        margin = args.margin,
+        padding = args.padding,
+        align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         color = {
             text = args.color and args.color.text or Color(1.0, 1.0, 1.0, 1.0),
-            background = args.color and args.color.background or Color(1.0, 1.0, 1.0, 1.0), -- stubbed but not yet implemented in HmGui
-            highlight = args.color and args.color.highlight or Color(1.0, 1.0, 1.0, 1.0)    -- stubbed but not yet implemented in HmGui
+            background = args.color and args.color.background or Color(0.0, 0.0, 0.0, 1.0),
+            highlight = args.color and args.color.highlight or Color(0.1, 0.1, 0.1, 1.0)
         },
         font = args.font or { name = "Unageo-Regular", size = 13 },
         callback = args.callback or function() Log.Warn("undefined button callback function: " .. args.title) end
@@ -63,12 +66,16 @@ function Button:new(args)
             return
         end
 
+        Gui:beginStackContainer()
+        Gui:setAlignment(self.state.align()[1], self.state.align()[2])
+
         -- no need for an if check, since we always have a default defined
+        Gui:setProperty(GuiProperties.ButtonRectOpacity, 1.0)
         Gui:setProperty(GuiProperties.TextFont,
             Cache.Font(self.state.font().name, self.state.font().size))
         Gui:setProperty(GuiProperties.ButtonTextColor, self.state.color().text)
-        Gui:setProperty(GuiProperties.ButtonBackgroundColor, self.state.color().background)
-        Gui:setProperty(GuiProperties.ButtonHighlightColor, self.state.color().highlight)
+        Gui:setProperty(GuiProperties.ButtonRectBackgroundColor, self.state.color().background)
+        Gui:setProperty(GuiProperties.ButtonRectHighlightColor, self.state.color().highlight)
 
         if Gui:button(self.state.title()) then
             -- hardcoding the sound
@@ -81,6 +88,11 @@ function Button:new(args)
 
         if self.state.width then Gui:setFixedWidth(self.state.width()) end
         if self.state.height then Gui:setFixedHeight(self.state.height()) end
+
+        if self.state.padding then Gui:setPadding(self.state.padding()[1], self.state.padding()[2]) end
+        if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end
+
+        Gui:endContainer()
 
         Gui:clearStyle() -- clear style so it doesn´t affect other components
     end

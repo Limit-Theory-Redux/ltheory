@@ -1,4 +1,4 @@
-local System = require('GameObjects.Entities.Test.System')
+local System = require('GameObjects.Entities.StarSystem')
 
 local SystemGenerator = class(function(self, seed)
     self.rng = RNG.Create(seed)

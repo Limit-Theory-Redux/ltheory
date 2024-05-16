@@ -54,8 +54,8 @@ function Button:new(args)
         sound = args.sound,
         color = {
             text = args.color and args.color.text or Color(1.0, 1.0, 1.0, 1.0),
-            background = args.color and args.color.background or Color(1.0, 1.0, 1.0, 1.0), -- stubbed but not yet implemented in HmGui
-            highlight = args.color and args.color.highlight or Color(1.0, 1.0, 1.0, 1.0)    -- stubbed but not yet implemented in HmGui
+            background = args.color and args.color.background or Color(0.0, 0.0, 0.0, 1.0),
+            highlight = args.color and args.color.highlight or Color(0.1, 0.1, 0.1, 1.0)
         },
         font = args.font or { name = "Exo2", size = 12 },
         callback = args.callback or function() Log.Warn("undefined button callback function: " .. args.title) end
@@ -67,11 +67,12 @@ function Button:new(args)
         end
 
         -- no need for an if check, since we always have a default defined
+        Gui:setProperty(GuiProperties.ButtonRectOpacity, 1.0)
         Gui:setProperty(GuiProperties.TextFont,
             Cache.Font(self.state.font().name, self.state.font().size))
         Gui:setProperty(GuiProperties.ButtonTextColor, self.state.color().text)
-        Gui:setProperty(GuiProperties.ButtonBackgroundColor, self.state.color().background)
-        Gui:setProperty(GuiProperties.ButtonHighlightColor, self.state.color().highlight)
+        Gui:setProperty(GuiProperties.ButtonRectBackgroundColor, self.state.color().background)
+        Gui:setProperty(GuiProperties.ButtonTextHighlightColor, self.state.color().highlight)
 
         if Gui:button(self.state.title()) then
             if self.state.sound then

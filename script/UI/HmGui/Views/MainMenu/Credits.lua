@@ -1,17 +1,15 @@
 ---@type UIView
-local SettingsView = UICore.View {
-    name = "Settings"
+local CreditsView = UICore.View {
+    name = "Credits"
 }
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
-function SettingsView:onInput() end
-function SettingsView:onUpdate(dt) end
-function SettingsView:onViewOpen(isPageOpen) end
-function SettingsView:onViewClose(isPageClose) end
-
-local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
+function CreditsView:onInput() end
+function CreditsView:onUpdate(dt) end
+function CreditsView:onViewOpen(isPageOpen) end
+function CreditsView:onViewClose(isPageClose) end
 
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200
@@ -19,10 +17,6 @@ end
 
 local function getButtonHeight()
     return GameState.render.resY / 900 * 40
-end
-
-local function switchToMainScreen()
-    UIRouter:getCurrentPage():setView("Main")
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
@@ -33,7 +27,11 @@ local function getRemainingWidthPercentage()
     return 1 - getLayoutContainerWidthPercentage()
 end
 
-local settingsGrid = UILayout.Grid {
+local function switchToMainScreen()
+    UIRouter:getCurrentPage():setView("Main")
+end
+
+local creditsGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
     margin = { 0, 0 },
@@ -49,7 +47,7 @@ local settingsGrid = UILayout.Grid {
                 UIComponent.Container {
                     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
                     childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-                    padding = { 0, 10 },
+                    padding = { 10, 10 },
                     margin = { 0, 0 },
                     layoutType = GuiLayoutType.Vertical,
                     heightInLayout = 2 / 10,
@@ -58,7 +56,7 @@ local settingsGrid = UILayout.Grid {
                     },
                     contents = {
                         UIComponent.Text {
-                            text = "AUDIO",
+                            text = "CREDITS",
                             size = 32,
                             font = "Unageo-Medium"
                         }
@@ -74,30 +72,6 @@ local settingsGrid = UILayout.Grid {
                         background = Color(0, 0, 0, 0.3)
                     },
                     contents = {
-                        UIComponent.Button_MainMenu {
-                            title = "Audio",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        },
-                        UIComponent.Button_MainMenu {
-                            title = "Interface",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
-                            align = { AlignHorizontal.Center, AlignVertical.Center },
-                        },
-                        UIComponent.Button_MainMenu {
-                            title = "Graphics",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        },
-                        UIComponent.Button_MainMenu {
-                            title = "Keybinding",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        },
                         UIComponent.Button_MainMenu {
                             title = "Back",
                             width = getButtonWidth,
@@ -142,6 +116,7 @@ local settingsGrid = UILayout.Grid {
     }
 }
 
-SettingsView:addContent(settingsGrid)
 
-return SettingsView
+CreditsView:addContent(creditsGrid)
+
+return CreditsView

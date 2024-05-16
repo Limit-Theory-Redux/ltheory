@@ -26,6 +26,8 @@ local meta = {
 ---@field canClose boolean
 ---@field containers table<UIComponentContainer>
 
+--! THIS FILE IS OUTDATED AND NEEDS AN OVERHAUL
+
 ---returns a window object
 ---@param args UIComponentWindowConstructor
 ---@return UIComponentWindow|nil

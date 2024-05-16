@@ -8,9 +8,13 @@ local meta = {
 }
 
 ---@class UIRawInput: UIComponent
+---@field widthInLayout number
+---@field heightInLayout number
 ---@field render function renders the spacer
 
 ---@class UIRawInputConstructor
+---@field widthInLayout number
+---@field heightInLayout number
 ---@field fn function
 
 ---returns a spacer object
@@ -22,6 +26,11 @@ function RawInput:new(args)
     end
 
     local newRawInput = {}
+    newRawInput.state = UICore.ComponentState {
+        widthInLayout = args.widthInLayout,
+        heightInLayout = args.heightInLayout
+    }
+
     newRawInput.render = function(self)
         args:fn()
         Gui:clearStyle() -- automatically call clearStyle() so styling doesn´t get applied to other components

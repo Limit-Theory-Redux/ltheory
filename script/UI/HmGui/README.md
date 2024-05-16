@@ -127,7 +127,7 @@ end
 ---@type UIComponentContainer
 local testContainerInner = UIComponent.Container {
     align = { AlignHorizontal.Center, AlignVertical.Center },
-    stackDirection = Enums.UI.StackDirection.Vertical,
+    layoutType = GuiLayoutType.Vertical,
     contents = {
         UIComponent.Button { title = "Switch to other view", callback = switchToTitleScreen },
         UIComponent.RawInput { fn = function()

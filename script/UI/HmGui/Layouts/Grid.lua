@@ -12,8 +12,10 @@ local meta = {
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field padding table<number, number>
 ---@field margin table<number, number>
----@field stackDirection UIStackDirection
+---@field layoutType GuiLayoutType
 ---@field contents table<UIComponent>
+---@field widthInLayout number
+---@field heightInLayout number
 ---@field showGrid boolean
 
 ---@class UILayoutGrid: UILayout
@@ -23,10 +25,11 @@ local meta = {
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field padding table<number, number>
 ---@field margin table<number, number>
----@field stackDirection UIStackDirection
+---@field layoutType GuiLayoutType
 ---@field contents table<UIComponent>
+---@field widthInLayout number
+---@field heightInLayout number
 ---@field showGrid boolean|nil
-
 
 ---returns a grid layout object
 ---@param args UILayoutGridConstructor
@@ -42,19 +45,16 @@ function Grid:new(args)
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         padding = args.padding or { 0, 0 },
         margin = args.margin or { 0, 0 },
-        stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
+        layoutType = args.layoutType or GuiLayoutType.Horizontal,
         contents = args.contents,
-        showGrid = args.showGrid or false,
+        widthInLayout = args.widthInLayout,
+        heightInLayout = args.heightInLayout,
+        showGrid = args.showGrid or function() return GameState.debug.metricsEnabled end,
         showGridColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4)
     }
 
     newGridLayout.render = function(self)
-        if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
-            Gui:beginHorizontalContainer()
-        elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
-            Gui:beginVerticalContainer()
-        end
-
+        Gui:beginContainer(self.state.layoutType())
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
         Gui:setPadding(self.state.padding()[1], self.state.padding()[2])
         Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
@@ -62,12 +62,18 @@ function Grid:new(args)
         local contentCount = #self.state.contents()
 
         if contentCount > 1 then
-            for _, container in ipairs(self.state.contents()) do
-                if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
+            for index, container in ipairs(self.state.contents()) do
+                if self.state.layoutType() == GuiLayoutType.Horizontal then
                     if self.state.showGrid() then
                         Gui:beginStackContainer()
-                        Gui:rect(self.state.showGridColor())
+                        Gui:setBorderWidth(2)
+                        Gui:setProperty(GuiProperties.BorderColor, self.state.showGridColor())
                         Gui:setPercentSize(100, 100)
+                        Gui:setProperty(GuiProperties.TextFont, Cache.Font("Exo2", 14))
+                        Gui:setProperty(GuiProperties.TextColor, self.state.showGridColor())
+                        Gui:setAlignment(AlignHorizontal.Left, AlignVertical.Top)
+                        Gui:text(tostring(index))
+                        Gui:clearStyle()
                         container:render()
                         Gui:endContainer()
                     else
@@ -82,11 +88,17 @@ function Grid:new(args)
                     else
                         Gui:setPercentSize(100 / contentCount, 100) -- even distribution
                     end
-                elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
+                elseif self.state.layoutType() == GuiLayoutType.Vertical then
                     if self.state.showGrid() then
                         Gui:beginStackContainer()
-                        Gui:rect(self.state.showGridColor())
+                        Gui:setBorderWidth(2)
+                        Gui:setProperty(GuiProperties.BorderColor, self.state.showGridColor())
                         Gui:setPercentSize(100, 100)
+                        Gui:setProperty(GuiProperties.TextFont, Cache.Font("Exo2", 14))
+                        Gui:setProperty(GuiProperties.TextColor, self.state.showGridColor())
+                        Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Top)
+                        Gui:text(tostring(index))
+                        Gui:clearStyle()
                         container:render()
                         Gui:endContainer()
                     else
@@ -97,9 +109,9 @@ function Grid:new(args)
                     end
 
                     if container.state.heightInLayout then
-                        Gui:setPercentSize(container.state.heightInLayout() * 100, 100)
+                        Gui:setPercentSize(100, container.state.heightInLayout() * 100)
                     else
-                        Gui:setPercentSize(100 / contentCount, 100) -- even distribution
+                        Gui:setPercentSize(100, 100 / contentCount) -- even distribution
                     end
                 end
                 Gui:clearStyle()

@@ -25,14 +25,14 @@ local function switchToOtherView()
 end
 
 local function switchToMainMenu()
-    UIRouter:getPage("Main_Menu"):setView("Main")
+    UIRouter:getPage("Main_Menu"):setView("Title")
     UIRouter:setCurrentPage("Main_Menu")
 end
 
 local viewSelection = UIComponent.Container {
     padding = { 10, 50 },
     align = { AlignHorizontal.Center, AlignVertical.Bottom },
-    stackDirection = Enums.UI.StackDirection.Horizontal,
+    layoutType = GuiLayoutType.Horizontal,
     contents = {
         UIComponent.Button { title = "Main View", width = 100, callback = switchToMainView, sound = Config.audio.sounds.click },
         UIComponent.Spacer { size = 24 },

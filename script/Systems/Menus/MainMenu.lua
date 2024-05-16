@@ -150,7 +150,7 @@ end
 
 function MainMenu:ShowGui()
     -- Add title and Main Menu dialog
-    local scaleFactor = (LTheoryRedux.resX / 22) / 72
+    local scaleFactor = (LimitTheoryRedux.resX / 22) / 72
 
     Gui:beginStackContainer() -- begin game window
     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
@@ -173,9 +173,9 @@ function MainMenu:ShowGui()
     Gui:setBorderWidth(0.0001) -- tiny border width is a hack to enable transparent logo with no (visible) border
 
     --    Gui:setMinSize(5, 5)
-    Gui:image(LTheoryRedux.logoname) -- draw the LTR name image
+    Gui:image(LimitTheoryRedux.logoname) -- draw the LTR name image
     Gui:setPercentSize(95, 55)
-    Gui:endContainer()               -- end title panel
+    Gui:endContainer()                   -- end title panel
 
     -- Main Menu
     self:ShowMainMenuInner()
@@ -244,7 +244,7 @@ end
 
 function MainMenu:ShowMainMenuInner()
     -- Add Main Menu items
-    local scaleFactor = (LTheoryRedux.resX / 24) / 72
+    local scaleFactor = (LimitTheoryRedux.resX / 24) / 72
 
     Gui:setStyle(Enums.Gui.Styles.MainMenuContent)
 
@@ -276,7 +276,7 @@ function MainMenu:ShowMainMenuInner()
     end
 
     if Gui:button("EXIT GAME") then
-        LTheoryRedux:exitGame()
+        LimitTheoryRedux:exitGame()
     end
 
     Gui:clearStyle()
@@ -291,7 +291,7 @@ function MainMenu:ShowMainMenuInner()
 
     Gui:spacer()
 
-    self:ShadowText('Resolution = ' .. LTheoryRedux.resX .. ' x ' .. LTheoryRedux.resY, 'RajdhaniSemiBold',
+    self:ShadowText('Resolution = ' .. LimitTheoryRedux.resX .. ' x ' .. LimitTheoryRedux.resY, 'RajdhaniSemiBold',
         12 * scaleFactor, 2.0, 0.9, 0.9, 0.9, 1.0)
     Gui:setHorizontalAlignment(AlignHorizontal.Right)
 
@@ -350,7 +350,7 @@ function MainMenu:ShowSeedDialogInner()
                 end
             end
             -- Save the star system seed associated with it
-            LTheoryRedux.seed = guiElements[1]["elems"][i][2]
+            LimitTheoryRedux.seed = guiElements[1]["elems"][i][2]
         end
     end
 
@@ -375,7 +375,7 @@ function MainMenu:ShowSeedDialogInner()
     end
 
     if Gui:button("Random Seed") then
-        LTheoryRedux:generateNewSeed()
+        LimitTheoryRedux:generateNewSeed()
         self.seedDialogDisplayed = false
 
         for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
@@ -385,7 +385,7 @@ function MainMenu:ShowSeedDialogInner()
         self:SetMenuMode(Enums.MenuMode.Dialog)
         GameState:Unpause()
         InputInstance:setCursorVisible(false)
-        LTheoryRedux:createStarSystem()
+        LimitTheoryRedux:createStarSystem()
     end
 
     if Gui:button("Use Seed") then
@@ -399,7 +399,7 @@ function MainMenu:ShowSeedDialogInner()
         GameState:Unpause()
         GameState.player.currentControl = Enums.ControlModes.Ship
         InputInstance:setCursorVisible(false)
-        LTheoryRedux:createStarSystem()
+        LimitTheoryRedux:createStarSystem()
     end
 
     Gui:endContainer()
@@ -463,22 +463,22 @@ function MainMenu:ShowSettingsScreenInner()
         -- Revert to the pre-Settings values of each setting
         if guiSettings[1][2] and guiSettings[1][1] ~= guiSettings[1][2] then
             if guiSettings[1][2] then
-                LTheoryRedux:SoundOn()
+                LimitTheoryRedux:SoundOn()
                 Log.Debug("Reverting to Sound Enabled")
             else
-                LTheoryRedux:SoundOff()
+                LimitTheoryRedux:SoundOff()
                 Log.Debug("Reverting to Sound Disabled")
             end
         end
 
-        LTheoryRedux:SetFullscreen(guiSettings[2][2])
+        LimitTheoryRedux:SetFullscreen(guiSettings[2][2])
 
         Settings.set('render.superSample', guiSettings[3][2])
 
         GameState.gen.nebulaBrightnessScale = guiSettings[4][2]
 
         GameState.ui.cursorStyle = guiSettings[5][2]
-        LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle])
+        LimitTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle])
 
         GameState.ui.hudStyle = guiSettings[6][2]
 
@@ -509,7 +509,7 @@ function MainMenu:ShowSettingsScreenInner()
         self.settingsScreenDisplayed = false
 
         if MainMenu.currentMode == Enums.MenuMode.Dialog then
-            LTheoryRedux:freezeTurrets()
+            LimitTheoryRedux:freezeTurrets()
             InputInstance:setCursorVisible(true)
         end
     end
@@ -544,7 +544,7 @@ function MainMenu:ShowSettingsScreenInner()
         end
 
         if MainMenu.currentMode == Enums.MenuMode.Dialog then
-            LTheoryRedux:freezeTurrets()
+            LimitTheoryRedux:freezeTurrets()
             InputInstance:setCursorVisible(true)
         end
 
@@ -568,11 +568,11 @@ function MainMenu:ShowAudioSettingsBlock()
     if guiSettings[1][1] then
         -- Checkbox was selected
         if not GameState.audio.soundEnabled then
-            LTheoryRedux:SoundOn()
+            LimitTheoryRedux:SoundOn()
         end
     else
         if GameState.audio.soundEnabled then
-            LTheoryRedux:SoundOff()
+            LimitTheoryRedux:SoundOff()
         end
     end
 end
@@ -615,11 +615,11 @@ function MainMenu:ShowGraphicsSettingsBlock()
     if guiSettings[2][1] then
         -- Checkbox was selected
         if not GameState.render.fullscreen then
-            LTheoryRedux:SetFullscreen(true)
+            LimitTheoryRedux:SetFullscreen(true)
         end
     else
         if GameState.render.fullscreen then
-            LTheoryRedux:SetFullscreen(false)
+            LimitTheoryRedux:SetFullscreen(false)
         end
     end
 
@@ -663,10 +663,10 @@ function MainMenu:ShowInterfaceSettingsBlock()
     end
     if spinnerValue < 0 and guiSettings[5][1] > 1 then
         guiSettings[5][1] = guiSettings[5][1] - 1
-        LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
+        LimitTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
     elseif spinnerValue > 0 and guiSettings[5][1] < Enums.CursorStyleCount then
         guiSettings[5][1] = guiSettings[5][1] + 1
-        LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
+        LimitTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
     end
 
     -- HUD Style
@@ -833,7 +833,7 @@ function MainMenu:ShowFlightDialogInner()
 
     if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
         if Gui:button("Return to Game") then
-            LTheoryRedux:freezeTurrets()
+            LimitTheoryRedux:freezeTurrets()
             GameState:SetState(Enums.GameStates.InGame)
             GameState:Unpause()
             GameState.panelActive = false
@@ -848,7 +848,7 @@ function MainMenu:ShowFlightDialogInner()
     if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
         if Gui:button("Save Game") then
             -- TODO: Save game state here
-            LTheoryRedux:freezeTurrets()
+            LimitTheoryRedux:freezeTurrets()
             GameState:Unpause()
             GameState.panelActive = false
             InputInstance:setCursorVisible(false)
@@ -869,13 +869,13 @@ function MainMenu:ShowFlightDialogInner()
     end
 
     if Gui:button("Exit to Main Menu") then
-        GameState:SetState(Enums.GameStates.MainMenu)        -- switch to Startup Mode
-        LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu) -- use random seed for new background star system and display it in Main Menu mode
+        GameState:SetState(Enums.GameStates.MainMenu)            -- switch to Startup Mode
+        LimitTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu) -- use random seed for new background star system and display it in Main Menu mode
         GameState:Unpause()
     end
 
     if Gui:button("Exit Game") then
-        LTheoryRedux:exitGame()
+        LimitTheoryRedux:exitGame()
     end
 
     Gui:clearStyle()

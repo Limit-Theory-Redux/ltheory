@@ -1,109 +1,99 @@
 local UniverseEconomy = require('Systems.Universe.UniverseEconomy')
-local System = require('GameObjects.Entities.Test.System')
+local StarSystem = require('GameObjects.Entities.StarSystem')
 local Actions = requireAll('GameObjects.Actions')
 local Jobs = requireAll('GameObjects.Jobs')
 
-local rng = RNG.FromTime()
-
+---@class Universe
 local Universe = class(function(self) end)
 
-function Universe:Init()
-    self.systems = {}
-    self.players = {}
-    self.aiPlayers = {}
-    self.factions = {}
-    self.economy = UniverseEconomy:Init()
-end
+local firstRun = true
 
-function Universe:OnUpdate(dt)
-    UniverseEconomy:OnUpdate(dt)
-end
-
-function Universe:CreateStarSystem(seed)
-    -- Spawn a new star system
-    local system = System(seed)
-    GameState.world.currentSystem = system -- remember the player's current star system
-
-    do
-        -- Flight Mode
-        -- Reset variables used between star systems
-        GameState.paused              = false
-        GameState.panelActive         = false
-        GameState.player.playerMoving = false
-        GameState.player.weaponGroup  = 1
-
-        -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
-        -- a space station, a visible pilotable ship, and possibly some NPC ships
-        local afield                  = nil
-
-        -- Add planets
-        local planet                  = nil -- remember the last planet created (TODO: remember ALL the planets)
-        for i = 1, GameState.gen.nPlanets do
-            planet = system:spawnPlanet(false)
-        end
-
-        -- Add asteroid fields
-        -- Must add BEFORE space stations
-        for i = 1, GameState.gen.nFields do
-            afield = system:spawnAsteroidField(GameState.gen.nAsteroids, false)
-            Log.Debug("Added %s asteroids to %s", GameState.gen.nAsteroids, afield:getName())
-        end
-
-        local shipObject = {
-            owner = GameState.player.humanPlayer,
-            shipName = GameState.player.humanPlayerShipName,
-            friction = 0,
-            sleepThreshold = {
-                [1] = 0,
-                [2] = 0
-            }
-        }
-
-        local playerShip = self:CreateShip(system, nil, shipObject)
-
-        GameState.player.currentShip = playerShip
-
-        Log.Debug("Added our ship, the '%s', at pos %s", playerShip:getName(), playerShip:getPos())
-
-        -- Escort ships for testing
-        local escortShips = {}
-        if GameState.gen.nEscortNPCs > 0 then
-            for i = 1, GameState.gen.nEscortNPCs do
-                local escort = system:spawnShip(rng:choose({ 1, 2, 3, 4, 5, 6 }), nil)
-                local offset = system.rng:getSphere():scale(100)
-                escort:setPos(playerShip:getPos() + offset)
-
-                if i > GameState.gen.nEscortNPCs / 2 then
-                    escort:pushAction(Actions.Orbit(playerShip, rng:getInt(4, 10) * 10, rng:getInt(10, 40)))
-                else
-                    escort:pushAction(Actions.Escort(playerShip, offset))
-                end
-
-                -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
-                -- These will be dogfighting challenges!
-                if rng:getInt(0, 100) < 20 then
-                    local escortHullInteg = escort:mgrHullGetHealthMax()
-                    escort:mgrHullSetHealth(floor(escortHullInteg * 1.5), floor(escortHullInteg * 1.5))
-                    escort.usesBoost = true
-                end
-
-                insert(escortShips, escort)
-            end
-            -- TESTING: push Attack onto action queue of escort ships
-            for i = 1, #escortShips - 1 do
-                escortShips[i]:pushAction(Actions.Attack(escortShips[i + 1]))
-            end
-            Log.Debug("Added %d escort ships", GameState.gen.nEscortNPCs)
-        end
-
-        -- Add System to the Universe
-        table.insert(self.systems, system)
-        Log.Debug("Added System: " .. system:getName() .. " to the Universe.")
+---@param seed integer
+function Universe:init(seed)
+    if not firstRun then
+        self:_clean()
     end
-    self:AddSystemEconomy(system)
+
+    -- Player
+    GameState.player.humanPlayer = Entities.Player(GameState.player.humanPlayerName)
+
+    self.universeSeed = seed
+    self.universeRng = RNG.Create(seed):managed()
+    self.systems = {}
+    self.players = {}   --* system or universe layer?
+    self.aiPlayers = {} --* system or universe layer?
+    self.factions = {}  --* system or universe layer?
+    self.economy = UniverseEconomy:init()
+    firstRun = false
 end
 
-function Universe:CreateShip(system, pos, shipObject)
+---@private
+function Universe:_clean() --! this needs a fix: this stays in memory instead of being freed
+    Log.Debug("--------------------- Cleaning Universe ---------------------")
+
+    -- destroy systems
+    if self.systems and #self.systems > 0 then
+        for _, system in ipairs(self.systems) do
+            Log.Debug("- Destroying System: %s", system:getName())
+            -- destroy assets
+            if system.players and #system.players > 0 then
+                for _, player in ipairs(system.players) do
+                    for _, asset in ipairs(player:getAssets()) do
+                        Log.Debug("-- Destroying Asset: %s, Owner: %s", asset:getName(), player:getName())
+                        asset:delete()
+                    end
+                end
+            end
+
+            if system.aiPlayers and #system.aiPlayers > 0 then
+                for _, player in ipairs(system.aiPlayers) do
+                    for _, asset in ipairs(player:getAssets()) do
+                        Log.Debug("-- Destroying Asset: %s, Owner: %s", asset:getName(), player:getName())
+                        asset:delete()
+                    end
+                end
+            end
+
+            system:delete()
+            Log.Debug("--- Destroyed System: %s", system:getName())
+        end
+    end
+    Log.Debug("-------------------------------------------------------------")
+end
+
+---@param dt integer
+function Universe:onUpdate(dt)
+    UniverseEconomy:onUpdate(dt)
+end
+
+---@param withEconomy boolean
+---@return StarSystem
+function Universe:createStarSystem(withEconomy)
+    -- Spawn a new star system
+    ---@type StarSystem
+    local system = StarSystem(self.universeRng:get64())
+    GameState.world.currentSystem = system --! temporary: remember the player's current star system
+
+    system:generate()
+
+    if GameState:GetCurrentState() <= Enums.GameStates.MainMenu then
+        system:spawnBackground()
+        Log.Debug("Spawn Background")
+    end
+
+    -- Add System to the Universe
+    if withEconomy then
+        self:addSystemEconomy(system)
+    end
+    table.insert(self.systems, system)
+    Log.Debug("Added System: %s to the Universe.", system:getName())
+    return system
+end
+
+---@param system StarSystem
+---@param pos Vec3f|nil
+---@param shipObject table
+function Universe:createShip(system, pos, shipObject)
     -- Add the player's ship
     -- TODO: Integrate this with loading a saved ship
 
@@ -119,19 +109,82 @@ function Universe:CreateShip(system, pos, shipObject)
     ship:setPos(spawnPosition)
     ship:setFriction(shipObject.friction)
     ship:setSleepThreshold(shipObject.sleepThreshold[1], shipObject.sleepThreshold[2])
-    ship:setOwner(shipObject.owner, true)
     shipObject.owner:setControlling(ship)
 
     return ship
 end
 
-function Universe:AddFaction(name, type, players)
-
+function Universe:addPlayer(player)
+    assert(self.players)
+    table.insert(self.players, player)
+    Log.Debug("Added player to Universe: %s", player:getName())
 end
 
-function Universe:AddSystemEconomy(system)
+function Universe:addFaction(name, type, players) end
+
+function Universe:addSystemEconomy(system)
     -- do other stuff here too
-    UniverseEconomy:AddSystem(system)
+    UniverseEconomy:addSystem(system)
+end
+
+function Universe:systemHasPlayer(system, player, type) --* system or universe layer?
+    assert(system)
+    assert(player)
+
+    if not type then type = Enums.PlayerTypes.Human end
+
+    if type == Enums.PlayerTypes.Human then
+        for _, systemPlayer in ipairs(system.players) do
+            if systemPlayer == player then
+                return true
+            end
+        end
+    elseif type == Enums.PlayerTypes.AI then
+        for _, systemPlayer in ipairs(system.aiPlayers) do
+            if systemPlayer == player then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+function Universe:playerEnterSystem(system, enteringPlayer, type)
+    assert(system)
+    assert(enteringPlayer)
+
+    if not type then type = Enums.PlayerTypes.Human end
+
+    if type == Enums.PlayerTypes.Human then
+        table.insert(system.players, enteringPlayer)
+    elseif type == Enums.PlayerTypes.AI then
+        table.insert(system.aiPlayers, enteringPlayer)
+    end
+
+    Log.Debug("Player %s entered system: %s", enteringPlayer:getName(), system:getName())
+end
+
+function Universe:playerLeaveSystem(system, leavingPlayer, type)
+    assert(system)
+    assert(leavingPlayer)
+
+    if not type then type = Enums.PlayerTypes.Human end
+
+    if type == Enums.PlayerTypes.Human then
+        for index, player in ipairs(system.players) do
+            if player:getGuid() == leavingPlayer:getGuid() then
+                table.remove(system.players, index)
+            end
+        end
+    elseif type == Enums.PlayerTypes.AI then
+        for index, player in ipairs(system.aiPlayers) do
+            if player:getGuid() == leavingPlayer:getGuid() then
+                table.remove(system.aiPlayers, index)
+            end
+        end
+    end
+
+    Log.Debug("Player %s leaving system: %s", leavingPlayer:getName(), system:getName())
 end
 
 return Universe

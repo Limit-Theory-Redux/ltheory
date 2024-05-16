@@ -9,8 +9,9 @@ function InitFiles:readUserInits()
     -- Reads user initialization values from file
     -- TODO: Encase io.xxx functions in local wrappers for security/safety
     local filename = Config.userInitFilename
+    local filetype = Config.userInitFiletype
     local filepath = Config.paths.files
-    local configPath = filepath .. filename
+    local configPath = filepath .. filename .. filetype
     local openedFile = io.open(configPath, "r")
 
     if openedFile then
@@ -40,8 +41,8 @@ function InitFiles:readUserInits()
         local categories = {}
 
         for index, line in ipairs(lines) do
-            -- Skip comments
-            if string.sub(line, 1, 1) == "#" then
+            -- Skip comments or empty lines
+            if string.sub(line, 1, 1) == "#" or string.sub(line, 1, 1) == "" then
                 goto skip
             end
 
@@ -142,8 +143,8 @@ function InitFiles:readUserInits()
             local currentLine = lines[iterator]
 
             while currentLine and not string.match(currentLine, "%[") do
-                -- skip comments
-                if string.match(currentLine, "#") then
+                -- skip comments or empty lines
+                if string.match(currentLine, "#") or string.sub(currentLine, 1, 1) == "" then
                     iterator = iterator + 1
                     currentLine = lines[iterator]
                     goto skipLine
@@ -211,14 +212,36 @@ function InitFiles:writeUserInits()
     -- Writes user initialization values to file
     -- TODO: Encase io.xxx functions in local wrappers for security/safety
     local filename = Config.userInitFilename
+    local filetype = Config.userInitFiletype
     local filepath = Config.paths.files
-    local configPath = filepath .. filename
-    local openedFile = io.open(configPath, "w")
+    local configPath = filepath .. filename .. filetype
+    local backupConfigPath = filepath .. filename .. "_backup" .. filetype
 
-    if openedFile == nil then
-        Log.Warn("Cannot open configuration file for writing: %s", configPath)
-    else
-        Log.Debug("Saving configuration to: %s", configPath)
+    -- Open the configuration file for reading
+    local openedFileReadable = io.open(configPath, "r")
+    if not openedFileReadable then
+        Log.Warn("Cannot open configuration file for reading: %s", configPath)
+        return
+    end
+
+    -- Create a safety backup
+    local oldContent = openedFileReadable:read("*a")
+    openedFileReadable:close()
+
+    local backupFile, backupFileErr = io.open(backupConfigPath, "w")
+    if not backupFile then
+        Log.Warn("Cannot open backup configuration file for writing: %s", backupFileErr)
+        return
+    end
+
+    backupFile:write(oldContent) -- write the content to the backup file
+    backupFile:close()           -- close the backup file
+
+    -- Open the configuration file for writing
+    local openedFileWritable, openedFileWritableErr = io.open(configPath, "w")
+    if not openedFileWritable then
+        Log.Warn("Cannot open configuration file for writing: %s", openedFileWritableErr)
+        return
     end
 
     local cursorType = string.lower(Enums.CursorStyleNames[GameState.ui.cursorStyle])
@@ -227,7 +250,7 @@ function InitFiles:writeUserInits()
     local menuTheme = string.lower(GameState.audio.menuTheme):gsub("(%..-)$", "")
 
     -- Sets the input file for writing
-    io.output(openedFile)
+    io.output(openedFileWritable)
 
     -- Clean up GameState table
     local noFunctions = {}
@@ -255,6 +278,7 @@ function InitFiles:writeUserInits()
     end
 
     local function writeSubCat(cat, var, val)
+        io.write("\n") -- empty line before every sub-category
         io.write(format("[%s]", tostring(cat) .. "." .. tostring(var)), "\n")
         for l_SubCat, l_SubTable in pairsByKeys(val) do
             io.write(format("%s=%s", tostring(l_SubCat), tostring(l_SubTable)), "\n")
@@ -275,12 +299,15 @@ function InitFiles:writeUserInits()
         "Support the LTR project by discussing, contributing or silent participation:",
         "GitHub: " .. Config.orgInfo.repository,
         "Discord: " .. Config.orgInfo.discord,
-        "Wiki: " .. Config.orgInfo.wiki
+        "Wiki: " .. Config.orgInfo.wiki,
+        "Blog: " .. Config.orgInfo.blog,
+        "Reddit: " .. Config.orgInfo.reddit
     }
 
     for l_Category, l_CategoryTable in pairsByKeys(noFunctions) do
         -- this is dirty for now, but its the only category without anything we need to save
         if l_Category ~= "world" then
+            io.write("\n") -- empty line before every category
             io.write(format("[%s]", tostring(l_Category)), "\n")
         end
 
@@ -293,10 +320,10 @@ function InitFiles:writeUserInits()
             -- excluded
             if string.match(l_Variable, "current")
                 or string.match(l_Variable, "lastCamera")
-                or string.match(l_Variable, "playerMoving")
                 or string.match(l_Variable, "weaponGroup")
-                or string.match(l_Variable, "autonavTimestamp")
-                or string.match(l_Variable, "mapSystemZoom") then
+                or string.match(l_Variable, "autonavActive")
+                or string.match(l_Variable, "mapSystemZoom")
+                or string.match(l_Variable, "uiCanvas") then
                 do
                     pass = false
                 end
@@ -340,9 +367,10 @@ function InitFiles:writeUserInits()
         end
     end
 
-    if openedFile ~= nil then
+    if openedFileWritable ~= nil then
         -- Closes the open file
-        io.close(openedFile)
+        Log.Debug("Saved configuration at: %s", configPath)
+        io.close(openedFileWritable)
     end
 end
 

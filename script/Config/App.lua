@@ -1,15 +1,18 @@
-Config.org                       = 'LTheoryRedux'
-Config.app                       = 'LTheoryRedux'
+Config.org                       = 'LimitTheoryRedux'
+Config.app                       = 'LimitTheoryRedux'
 
 Config.orgInfo                   = {
     repository = "https://github.com/Limit-Theory-Redux/ltheory",
     discord = "https://discord.gg/MrfRR5ytJF",
-    wiki = "https://wiki.ltredux.org"
+    wiki = "https://wiki.ltredux.org",
+    blog = "https://blog.ltredux.org",
+    reddit = "https://www.reddit.com/r/LimitTheoryRedux/"
 }
 
 Config.gameTitle                 = "Limit Theory Redux"
 
-Config.userInitFilename          = "user.ini"
+Config.userInitFilename          = "user"
+Config.userInitFiletype          = ".ini"
 
 Config.timeToResetToSplashscreen = 60
 

@@ -1,8 +1,9 @@
 -- For dynamic states
 GameState = {
-    state       = Enums.GameStates.Splashscreen, -- previously gamemode
-    paused      = false,
-    panelActive = false,                         -- indicates whether MasterControl panel is enabled or not
+    state           = Enums.GameStates.Splashscreen, -- previously gamemode
+    paused          = false,
+    panelActive     = false,                         -- indicates whether MasterControl panel is enabled or not
+    skipTitleScreen = false,
 }
 
 GameState.input = {
@@ -17,7 +18,7 @@ GameState.debug = {
     printConfig        = Config.debug.printConfig,
     showMapActionLines = Config.debug.showMapActionLines,
 
-    physics = {
+    physics            = {
         drawWireframes         = Config.debug.physics.drawWireframes,
         drawBoundingBoxesLocal = Config.debug.physics.drawBoundingBoxesLocal,
         drawBoundingBoxesworld = Config.debug.physics.drawBoundingBoxesworld,
@@ -28,6 +29,7 @@ GameState.render = {
     fullscreen      = Config.render.fullscreen,
     gameWindow      = nil,
     gameView        = nil,
+    uiCanvas        = nil,
     resX            = Config.render.defaultResX,
     resY            = Config.render.defaultResY,
     presentMode     = Config.render.presentMode,
@@ -43,7 +45,7 @@ GameState.render = {
 }
 
 GameState.audio = {
-    manager = nil,
+    manager      = nil,
     soundEnabled = Config.audio.general.soundEnabled,
     fxVolume     = Config.audio.general.fxVolume,
     musicVolume  = Config.audio.general.musicVolume,
@@ -73,6 +75,8 @@ GameState.ui = {
 
     mapSystemPanSpeed                = 0.5,
     mapSystemZoomSpeed               = 0.1,
+
+    backgroundClockEnabled           = false
 }
 
 GameState.player = {
@@ -83,7 +87,6 @@ GameState.player = {
     playerFactionName    = "[Human Player Faction]",
 
     currentControl       = Config.ui.general.defaultControl,
-    playerMoving         = false,
 
     currentShip          = nil,
     shipHull             = Enums.ShipHulls.Solo,
@@ -97,7 +100,7 @@ GameState.player = {
     currentMapSystemZoom = 0.001,
     currentMapSystemPan  = 40.0,
 
-    autonavTimestamp     = nil,
+    autonavActive        = false,
 }
 
 GameState.world = {
@@ -106,9 +109,12 @@ GameState.world = {
 }
 
 GameState.gen = {
+    debug                 = Config.gen.debug,
     nFields               = Config.gen.nFields,
+    nFieldsMax            = Config.gen.nFieldsMax,
     nAsteroids            = Config.gen.nAsteroids,
     nPlanets              = Config.gen.nPlanets,
+    nPlanetsMax           = Config.gen.nPlanetsMax,
     nStations             = Config.gen.nStations,
     nAIPlayers            = Config.gen.nAIPlayers,
     randomizeAIPlayers    = Config.gen.randomizeAIPlayers,
