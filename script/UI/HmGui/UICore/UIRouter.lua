@@ -32,12 +32,14 @@ end
 
 -- sets current page
 ---@param name string
----@return UIPage
+---@return UIPage|nil
 function UIRouter:setCurrentPage(name)
     if not name or type(name) ~= "string" then
         Log.Error("nil page name or not a string")
+        return nil
     elseif not self.pages[name] then
         Log.Error("page does not exist")
+        return nil
     elseif name == self.currentPage then
         Log.Warn("Already rendering this page: " .. name)
         return self.currentPage
@@ -65,36 +67,26 @@ function UIRouter:clearCurrentPage()
 end
 
 -- gets current page
----@return UIPage
+---@return UIPage|nil
 function UIRouter:getCurrentPage()
-    if not self.currentPage then
-        Log.Error("current page is nil")
-    elseif self.currentPage and not self.pages[self.currentPage.name] then
-        Log.Error("current page selected does not exist")
-    end
-
     return self.currentPage
 end
 
 -- gets current page name as string
----@return string name
+---@return string|nil name
 function UIRouter:getCurrentPageName()
     if not self.currentPage then
-        Log.Error("current page is nil")
-    elseif self.currentPage and not self.pages[self.currentPage.name] then
-        Log.Error("current page selected does not exist")
+        return
     end
 
     return self.currentPage.name
 end
 
 -- gets last page name as string
----@return string name
+---@return string|nil name
 function UIRouter:getLastPageName()
     if not self.lastPage then
-        self.lastPage = self.currentPage
-    elseif self.lastPage and not self.pages[self.lastPage.name] then
-        Log.Error("current page selected does not exist")
+        return
     end
 
     return self.lastPage.name
@@ -102,12 +94,14 @@ end
 
 -- gets current page
 ---@param name string
----@return UIPage
+---@return UIPage|nil
 function UIRouter:getPage(name)
     if not name then
         Log.Error("page name provided is nil")
+        return nil
     elseif not self.pages[name] then
         Log.Error("page does not exist")
+        return nil
     end
 
     return self.pages[name]
@@ -126,11 +120,12 @@ end
 -- add a page
 ---@param page UIPage
 function UIRouter:addPage(page)
-    if not page then
-        Log.Error("nil ui page")
+    if not page or type(page) ~= "table" then
+        Log.Error("nil ui page or wrong datatype")
         return
     elseif page.name and self.pages[page.name] then
         Log.Error("page with that name already exists")
+        return
     end
 
     self.pages[page.name] = page

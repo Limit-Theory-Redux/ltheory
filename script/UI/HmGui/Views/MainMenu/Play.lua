@@ -50,21 +50,21 @@ local playGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
     margin = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Horizontal,
+    stackDirection = GuiLayoutType.Horizontal,
     contents = {
         UILayout.Grid {
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getLayoutContainerWidthPercentage,
-            stackDirection = Enums.UI.StackDirection.Vertical,
+            layoutType = GuiLayoutType.Vertical,
             contents = {
                 UIComponent.Container {
                     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
                     childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
                     padding = { 0, 10 },
                     margin = { 0, 0 },
-                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    layoutType = GuiLayoutType.Vertical,
                     heightInLayout = 2 / 10,
                     color = {
                         background = Color(0, 0, 0, 0.3)
@@ -81,7 +81,7 @@ local playGrid = UILayout.Grid {
                     align = { AlignHorizontal.Stretch, AlignVertical.Top },
                     padding = { 0, 50 },
                     margin = { 0, 0 },
-                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    layoutType = GuiLayoutType.Vertical,
                     heightInLayout = 7 / 10,
                     color = {
                         background = Color(0, 0, 0, 0.3)
@@ -114,7 +114,7 @@ local playGrid = UILayout.Grid {
                     padding = { 0, 0 },
                     margin = { 0, 0 },
                     heightInLayout = 1 / 10,
-                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    layoutType = GuiLayoutType.Vertical,
                     color = {
                         background = Color(0, 0, 0, 0.3)
                     },
@@ -135,20 +135,20 @@ local playGrid = UILayout.Grid {
             padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getRemainingWidthPercentage,
-            stackDirection = Enums.UI.StackDirection.Vertical,
+            layoutType = GuiLayoutType.Vertical,
             contents = {
                 UILayout.Grid {
                     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
                     padding = { 0, 0 },
                     margin = { 0, 0 },
                     widthInLayout = getLayoutContainerWidthPercentage,
-                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    layoutType = GuiLayoutType.Vertical,
                     contents = {
                         UIComponent.Container {
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                             padding = { 0, 10 },
                             margin = { 0, 0 },
-                            stackDirection = Enums.UI.StackDirection.Vertical,
+                            layoutType = GuiLayoutType.Vertical,
                             heightInLayout = 2 / 10,
                             contents = {}
                         },
@@ -156,7 +156,7 @@ local playGrid = UILayout.Grid {
                             align = { AlignHorizontal.Stretch, AlignVertical.Top },
                             padding = { 0, 50 },
                             margin = { 0, 0 },
-                            stackDirection = Enums.UI.StackDirection.Vertical,
+                            layoutType = GuiLayoutType.Vertical,
                             heightInLayout = 7 / 10,
                             color = {
                                 background = Color(0, 0, 0, 0.3)
@@ -198,7 +198,7 @@ local playGrid = UILayout.Grid {
                             padding = { 0, 0 },
                             margin = { 0, 0 },
                             heightInLayout = 1 / 10,
-                            stackDirection = Enums.UI.StackDirection.Vertical,
+                            layoutType = GuiLayoutType.Vertical,
                             contents = {}
                         }
                     }

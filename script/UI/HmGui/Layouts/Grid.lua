@@ -12,7 +12,7 @@ local meta = {
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field padding table<number, number>
 ---@field margin table<number, number>
----@field stackDirection UIStackDirection
+---@field layoutType GuiLayoutType
 ---@field contents table<UIComponent>
 ---@field widthInLayout number
 ---@field heightInLayout number
@@ -25,7 +25,7 @@ local meta = {
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field padding table<number, number>
 ---@field margin table<number, number>
----@field stackDirection UIStackDirection
+---@field layoutType GuiLayoutType
 ---@field contents table<UIComponent>
 ---@field widthInLayout number
 ---@field heightInLayout number
@@ -45,7 +45,7 @@ function Grid:new(args)
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         padding = args.padding or { 0, 0 },
         margin = args.margin or { 0, 0 },
-        stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
+        layoutType = args.layoutType or GuiLayoutType.Horizontal,
         contents = args.contents,
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
@@ -54,12 +54,7 @@ function Grid:new(args)
     }
 
     newGridLayout.render = function(self)
-        if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
-            Gui:beginHorizontalContainer()
-        elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
-            Gui:beginVerticalContainer()
-        end
-
+        Gui:beginContainer(self.state.layoutType())
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
         Gui:setPadding(self.state.padding()[1], self.state.padding()[2])
         Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
@@ -68,7 +63,7 @@ function Grid:new(args)
 
         if contentCount > 1 then
             for index, container in ipairs(self.state.contents()) do
-                if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
+                if self.state.layoutType() == GuiLayoutType.Horizontal then
                     if self.state.showGrid() then
                         Gui:beginStackContainer()
                         Gui:setBorderWidth(2)
@@ -93,7 +88,7 @@ function Grid:new(args)
                     else
                         Gui:setPercentSize(100 / contentCount, 100) -- even distribution
                     end
-                elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
+                elseif self.state.layoutType() == GuiLayoutType.Vertical then
                     if self.state.showGrid() then
                         Gui:beginStackContainer()
                         Gui:setBorderWidth(2)

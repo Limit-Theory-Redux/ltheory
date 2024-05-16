@@ -34,9 +34,9 @@ local function inOutCubic(t, b, c, d)
 end
 
 function TitleView:onInput()
-    if Bindings.All:get() == 1 and timeOpened and timeOpened:getElapsed() > 1 then --! elapsed only for debugging
-        skipTitle = true
-    end
+    --if Bindings.All:get() == 1 and timeOpened and timeOpened:getElapsed() > 1 then
+    --    skipTitle = true
+    --end
 end
 
 function TitleView:onUpdate(dt)
@@ -124,9 +124,9 @@ end
 local titleContainer = UIComponent.Container {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-    padding = { 400, 400 },
+    padding = { 0, 0 },
     margin = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Vertical,
+    layoutType = GuiLayoutType.Vertical,
     contents = {
         UIComponent.RawInput { fn = function()
             Gui:beginStackContainer()
@@ -144,7 +144,7 @@ local textContainer = UIComponent.Container {
     childrenAlign = { AlignHorizontal.Center, AlignVertical.Bottom },
     padding = { 0, 100 },
     margin = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Vertical,
+    layoutType = GuiLayoutType.Vertical,
     contents = {
         UIComponent.RawInput { fn = function()
             Gui:setProperty(GuiProperties.TextFont, Cache.Font("Unageo-Medium", 20))

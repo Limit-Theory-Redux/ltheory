@@ -56,7 +56,7 @@ end
 ---@type UIComponentContainer
 local testContainerInner = UIComponent.Container {
     align = { AlignHorizontal.Center, AlignVertical.Center },
-    stackDirection = Enums.UI.StackDirection.Vertical,
+    layoutType = GuiLayoutType.Vertical,
     contents = {
         UIComponent.Button { title = "Switch to other view", width = 160, callback = switchToTitleScreen },
         UIComponent.RawInput { fn = function()
@@ -89,7 +89,7 @@ local testContainerOuter = UIComponent.Container {
     visible = getComponentVisible,
     padding = { 10, 10 },
     align = { AlignHorizontal.Left, AlignVertical.Center },
-    stackDirection = Enums.UI.StackDirection.Vertical,
+    layoutType = GuiLayoutType.Vertical,
     contents = {
         testContainerInner
     }
@@ -99,7 +99,7 @@ local testContainerOuter = UIComponent.Container {
 local textContainer = UIComponent.Container {
     padding = { 10, 10 },
     align = { AlignHorizontal.Center, AlignVertical.Center },
-    stackDirection = Enums.UI.StackDirection.Vertical,
+    layoutType = GuiLayoutType.Vertical,
     contents = {
         UIComponent.Text {
             text = getText,

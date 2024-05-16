@@ -72,7 +72,7 @@ local titleContainer = UIComponent.Container {
     childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
     padding = { 400, 400 },
     margin = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Vertical,
+    layoutType = GuiLayoutType.Vertical,
     contents = {
         UIComponent.RawInput { fn = function()
             Gui:beginStackContainer()

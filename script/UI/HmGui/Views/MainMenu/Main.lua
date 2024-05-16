@@ -71,14 +71,14 @@ local menuGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
     margin = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Horizontal,
+    stackDirection = GuiLayoutType.Horizontal,
     contents = {
         UILayout.Grid {
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getLayoutContainerWidthPercentage,
-            stackDirection = Enums.UI.StackDirection.Vertical,
+            layoutType = GuiLayoutType.Vertical,
             contents = {
                 UIComponent.RawInput {
                     heightInLayout = 2 / 10,
@@ -99,7 +99,7 @@ local menuGrid = UILayout.Grid {
                     align = { AlignHorizontal.Stretch, AlignVertical.Top },
                     padding = { 0, 50 },
                     margin = { 0, 0 },
-                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    layoutType = GuiLayoutType.Vertical,
                     heightInLayout = 7 / 10,
                     color = {
                         background = Color(0, 0, 0, 0.3)
@@ -143,7 +143,7 @@ local menuGrid = UILayout.Grid {
                     padding = { 0, 0 },
                     margin = { 0, 0 },
                     heightInLayout = 1 / 10,
-                    stackDirection = Enums.UI.StackDirection.Vertical,
+                    layoutType = GuiLayoutType.Vertical,
                     color = {
                         background = Color(0, 0, 0, 0.3)
                     },
@@ -164,7 +164,7 @@ local menuGrid = UILayout.Grid {
             padding = { 0, 0 },
             margin = { 0, 0 },
             widthInLayout = getRemainingWidthPercentage,
-            stackDirection = Enums.UI.StackDirection.Vertical,
+            layoutType = GuiLayoutType.Vertical,
             contents = {
                 UIComponent.RawInput { fn = function() end }
             }

@@ -90,7 +90,7 @@ local textContainer = UIComponent.Container {
     childrenAlign = { AlignHorizontal.Center, AlignVertical.Bottom },
     padding = { 0, 100 },
     margin = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Vertical,
+    layoutType = GuiLayoutType.Vertical,
     contents = {
         UIComponent.RawInput { fn = function()
             Gui:setProperty(GuiProperties.TextFont, Cache.Font("Unageo-Medium", 20))

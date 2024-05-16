@@ -20,7 +20,7 @@ local meta = {
 ---@field heightInLayout number
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
----@field stackDirection number
+---@field layoutType GuiLayoutType
 ---@field color UIComponentButtonColors
 ---@field render fun(self: UIComponentContainer)
 ---@field contents table
@@ -36,7 +36,7 @@ local meta = {
 ---@field heightInLayout number
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
----@field stackDirection number
+---@field layoutType GuiLayoutType
 ---@field color UIComponentButtonColors
 ---@field contents table
 ---@field showContainer boolean
@@ -63,7 +63,7 @@ function Container:new(args)
         height = args.height,
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
-        stackDirection = args.stackDirection or Enums.UI.StackDirection.Horizontal,
+        layoutType = args.layoutType or GuiLayoutType.Horizontal,
         contents = args.contents,
         color = {
             background = args.color and args.color.background
@@ -86,12 +86,7 @@ function Container:new(args)
             Gui:setProperty(GuiProperties.BorderColor, self.state.showContainerColor())
         end
 
-        if self.state.stackDirection() == Enums.UI.StackDirection.Horizontal then
-            Gui:beginHorizontalContainer()
-        elseif self.state.stackDirection() == Enums.UI.StackDirection.Vertical then
-            Gui:beginVerticalContainer()
-        end
-
+        Gui:beginContainer(self.state.layoutType())
         Gui:clearStyle() -- clear properties
 
         if self.state.showContainer() then

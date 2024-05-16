@@ -32,7 +32,7 @@ end
 local viewSelection = UIComponent.Container {
     padding = { 10, 50 },
     align = { AlignHorizontal.Center, AlignVertical.Bottom },
-    stackDirection = Enums.UI.StackDirection.Horizontal,
+    layoutType = GuiLayoutType.Horizontal,
     contents = {
         UIComponent.Button { title = "Main View", width = 100, callback = switchToMainView, sound = Config.audio.sounds.click },
         UIComponent.Spacer { size = 24 },

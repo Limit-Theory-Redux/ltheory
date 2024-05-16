@@ -56,7 +56,7 @@ local menuContainer = UIComponent.Container {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
     padding = { 0, 0 },
-    stackDirection = Enums.UI.StackDirection.Vertical,
+    layoutType = GuiLayoutType.Vertical,
     color = {
         background = Color(0, 0, 0, 0.75)
     },
