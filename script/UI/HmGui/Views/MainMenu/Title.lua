@@ -34,9 +34,9 @@ local function inOutCubic(t, b, c, d)
 end
 
 function TitleView:onInput()
-    --if Bindings.All:get() == 1 and timeOpened and timeOpened:getElapsed() > 1 then
-    --    skipTitle = true
-    --end
+    if Bindings.All:get() == 1 and timeOpened and timeOpened:getElapsed() > 1 then
+        skipTitle = true
+    end
 end
 
 function TitleView:onUpdate(dt)
