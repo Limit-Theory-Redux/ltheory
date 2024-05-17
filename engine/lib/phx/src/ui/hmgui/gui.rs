@@ -574,23 +574,6 @@ impl HmGui {
         self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
     }
 
-    pub fn button(&mut self, label: &str) -> bool {
-        self.map_property_group("button.rect");
-        self.begin_stack_container();
-        self.set_padding(8.0, 8.0);
-
-        let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
-        let pressed = is_mouse_over && self.activate;
-
-        self.map_property_group("button.text");
-        self.text(label);
-        self.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
-
-        self.end_container();
-
-        pressed
-    }
-
     pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
         self.map_property_group("checkbox.rect");
         self.begin_horizontal_container();

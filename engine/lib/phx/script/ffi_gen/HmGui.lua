@@ -28,7 +28,6 @@ function Loader.defineType()
             void                    HmGui_BeginScrollArea                (HmGui*, ScrollDirection dir);
             void                    HmGui_EndScrollArea                  (HmGui*, Input const* input);
             void                    HmGui_Spacer                         (HmGui*);
-            bool                    HmGui_Button                         (HmGui*, cstr label);
             bool                    HmGui_Checkbox                       (HmGui*, cstr label, bool value);
             void                    HmGui_Image                          (HmGui*, Tex2D* image);
             void                    HmGui_Rect                           (HmGui*);
@@ -107,7 +106,6 @@ function Loader.defineType()
                 beginScrollArea                = libphx.HmGui_BeginScrollArea,
                 endScrollArea                  = libphx.HmGui_EndScrollArea,
                 spacer                         = libphx.HmGui_Spacer,
-                button                         = libphx.HmGui_Button,
                 checkbox                       = libphx.HmGui_Checkbox,
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,

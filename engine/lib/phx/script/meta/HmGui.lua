@@ -77,10 +77,6 @@ function HmGui:endScrollArea(input) end
 function HmGui:spacer() end
 
 ---@param label string
----@return boolean
-function HmGui:button(label) end
-
----@param label string
 ---@param value boolean
 ---@return boolean
 function HmGui:checkbox(label, value) end
