@@ -144,6 +144,15 @@ local menuGrid = UILayout.Grid {
                             end,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
+                        UIComponent.RadioGroup {
+                            selections = { "Radio 1", "Radio 2", "Radio 3", "Radio 4", "Radio 5" },
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = function(selectedIndex)
+                                print("radio: " .. tostring(selectedIndex))
+                            end,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
                     }
                 },
                 UIComponent.Container {
