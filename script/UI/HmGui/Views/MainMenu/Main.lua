@@ -134,7 +134,16 @@ local menuGrid = UILayout.Grid {
                                 LimitTheoryRedux:exit() -- run pre-exit operations & exit game
                             end,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
-                        }
+                        },
+                        UIComponent.Checkbox {
+                            title = "Test checkbox",
+                            width = getButtonWidth,
+                            height = getButtonHeight,
+                            callback = function(checked)
+                                print("checkbox: " .. tostring(checked))
+                            end,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
                     }
                 },
                 UIComponent.Container {

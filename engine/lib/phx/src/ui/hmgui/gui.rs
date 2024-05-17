@@ -566,54 +566,6 @@ impl HmGui {
         self.end_container();
     }
 
-    /// Invisible element that stretches in all directions.
-    /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
-    pub fn spacer(&mut self) {
-        self.set_property(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
-        self.rect();
-        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
-    }
-
-    pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
-        self.map_property_group("checkbox.rect");
-        self.begin_horizontal_container();
-        self.set_padding(4.0, 4.0);
-        self.set_spacing(8.0);
-        self.set_children_vertical_alignment(AlignVertical::Center);
-
-        let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
-        if is_mouse_over && self.activate {
-            value = !value;
-        }
-
-        self.map_property_group("checkbox.text");
-        self.text(label);
-
-        // Push text and rect to the sides if outer container has horizontal stretch
-        self.spacer();
-
-        // checkbox itself
-        let bg_color = if value {
-            *self
-                .get_property_value(HmGuiProperties::CheckboxClickAreaSelectedColor.id())
-                .get_color()
-        } else {
-            Color::TRANSPARENT
-        };
-
-        self.map_property_group("checkbox.click-area");
-        self.set_property(HmGuiProperties::BackgroundColor, bg_color);
-        self.rect();
-        self.set_fixed_size(10.0, 10.0);
-        self.set_border_width(3.0);
-
-        self.end_container();
-        // TODO: workaround. fix it
-        self.set_property(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
-
-        value
-    }
-
     pub fn image(&mut self, image: &mut Tex2D) {
         let image_item = HmGuiImage { image };
 

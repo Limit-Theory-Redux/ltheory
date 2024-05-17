@@ -72,15 +72,6 @@ function HmGui:beginScrollArea(dir) end
 ---@param input Input
 function HmGui:endScrollArea(input) end
 
----Invisible element that stretches in all directions.
----Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
-function HmGui:spacer() end
-
----@param label string
----@param value boolean
----@return boolean
-function HmGui:checkbox(label, value) end
-
 ---@param image Tex2D
 function HmGui:image(image) end
 

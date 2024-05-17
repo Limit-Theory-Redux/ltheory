@@ -80,8 +80,7 @@ function Button:new(args)
         local buttonClicked = Gui:isMouseOver(FocusType.Mouse) and InputInstance:mouse():isPressed(MouseControl.Left)
 
         -- no need for an if check, since we always have a default defined
-        Gui:setProperty(GuiProperties.TextFont,
-            Cache.Font(self.state.font().name, self.state.font().size))
+        Gui:setProperty(GuiProperties.TextFont, Cache.Font(self.state.font().name, self.state.font().size))
         Gui:setProperty(GuiProperties.TextColor, self.state.color().text)
 
         Gui:text(self.state.title())
