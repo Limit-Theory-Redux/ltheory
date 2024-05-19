@@ -1110,16 +1110,70 @@ end
 
 function HUD:drawTacticalMap(a)
     local cx, cy = self.sx / 2, self.sy / 2
+    local radiusOuterRing = 70
+    local radiusInnerRing = 44
 
     -- Draw tactical map
-    UI.DrawEx.Ring(cx, self.sy - 76, 70, Config.ui.color.meterBarLight, true)
-    UI.DrawEx.Ring(cx, self.sy - 76, 44, Config.ui.color.meterBarLight, false)
+    UI.DrawEx.Ring(cx, self.sy - 76, radiusOuterRing, Config.ui.color.meterBarLight, true)
+    UI.DrawEx.Ring(cx, self.sy - 76, radiusInnerRing, Config.ui.color.meterBarLight, false)
 
     UI.DrawEx.Line(cx, self.sy - 144, cx, self.sy - 6, Config.ui.color.meterBarLight, false)
-    UI.DrawEx.Line(cx - 70, self.sy - 78, cx + 70, self.sy - 78, Config.ui.color.meterBarLight, false)
+    UI.DrawEx.Line(cx - radiusOuterRing, self.sy - 78, cx + radiusOuterRing, self.sy - 78, Config.ui.color.meterBarLight, false)
 
     UI.DrawEx.Line(cx - 48, self.sy - 124, cx, self.sy - 78, Config.ui.color.meterBarLight, false)
     UI.DrawEx.Line(cx + 48, self.sy - 124, cx, self.sy - 78, Config.ui.color.meterBarLight, false)
+
+    -- Loop through nearby stations and ships and draw them on the tactical map
+    local maxDist = 6000.0 -- maximum distance within which objects appear on tactical map
+    local ix = self.sx / 2
+    local iy = self.sy - 76
+    local r = 1.0
+    local c = Color(1.0, 1.0, 1.0, 1.0)
+
+    local camera = self.gameView.camera
+    local player = self.player
+    local playerShip = player:getControlling()
+    local system = playerShip.parent
+    if system and not playerShip:isShipDocked() then -- no need to update tactical map while docked at a space station
+        local stations = system:getStations()
+        local ships    = system:getShips()
+
+        for _, station in ipairs(stations) do
+            local dist = playerShip:getDistance(station)
+            if not station:isDestroyed() and dist <= maxDist then
+                local pos = station:getPos()
+                local ndc = camera:worldToNDC(pos)
+                local x = ix + math.sin(max(-1.57, min(1.57, ndc.x))) *  radiusOuterRing * ndc.z * dist / maxDist
+                local y = iy + math.cos(max(-1.57, min(1.57, ndc.x))) * -radiusOuterRing * ndc.z * dist / maxDist
+
+                local disp = Config.game.dispoNeutral -- disposition to neutral by default
+                if station:hasAttackable() and station:isAttackable() then disp = station:getDisposition(playerShip) end
+                -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+                local c = Disposition.GetColor(disp)
+
+                r = 1.5
+                UI.DrawEx.Circle(x, y, r, c)
+            end
+        end
+        for _, ship in ipairs(ships) do
+            local dist = playerShip:getDistance(ship)
+            if ship ~= playerShip and not ship:isDestroyed() and dist <= maxDist then
+                local pos = ship:getPos()
+                local ndc = camera:worldToNDC(pos)
+                local x = ix + math.sin(max(-1.7, min(1.7, ndc.x))) *  radiusOuterRing * ndc.z * dist / maxDist
+                local y = iy + math.cos(max(-1.7, min(1.7, ndc.x))) * -radiusOuterRing * ndc.z * dist / maxDist
+
+                local disp = Config.game.dispoNeutral -- disposition to neutral by default
+                if ship:hasAttackable() and ship:isAttackable() then disp = ship:getDisposition(playerShip) end
+                -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+                local c = Disposition.GetColor(disp)
+
+--                r = 0.01
+--                UI.DrawEx.Circle(x, y, r, c)
+                UI.DrawEx.Point(x, y, 256, c)
+            end
+        end
+    end
 end
 
 local updateTargetsInterval = 1 / 60

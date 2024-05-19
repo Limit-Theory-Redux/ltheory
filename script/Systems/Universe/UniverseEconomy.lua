@@ -170,6 +170,45 @@ local function addBlackMarket(system)
     table.insert(system.aiPlayers, piratePlayer)
 end
 
+local function addEscorts(system)
+    -- Add escort ships for testing
+    -- THIS FUNCTION IS TEMPORARY
+    -- IT WILL GO AWAY WHEN WE CREATE THE REAL CODE FOR SPAWNING NPC SHIPS
+    -- UNTIL THEN IT IS USEFUL FOR FEATURE TESTING
+    local rng = RNG.FromTime()
+    local escortShips = {}
+    if GameState.gen.nEscortNPCs > 0 then
+        local playerShip = GameState.player.currentShip
+        for i = 1, GameState.gen.nEscortNPCs do
+            local escort = system:spawnShip(rng:choose({ 1, 2, 3, 4, 5, 6 }), nil)
+            local offset = system.rng:getSphere():scale(100)
+            escort:setPos(playerShip:getPos() + offset)
+            escort:setOwner(playerShip:getOwner(), true)
+
+            if i > GameState.gen.nEscortNPCs / 2 then
+                escort:pushAction(Actions.Orbit(playerShip, rng:getInt(4, 10) * 10, rng:getInt(10, 40)))
+            else
+                escort:pushAction(Actions.Escort(playerShip, offset))
+            end
+
+            -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
+            --       These will be dogfighting challenges!
+            if rng:getInt(0, 100) < 20 then
+                local escortHullInteg = escort:mgrHullGetHealthMax()
+                escort:mgrHullSetHealth(floor(escortHullInteg * 1.5), floor(escortHullInteg * 1.5))
+                escort.usesBoost = true
+            end
+
+            insert(escortShips, escort)
+        end
+        -- TESTING: push Attack onto action queue of escort ships
+        for i = 1, #escortShips - 1 do
+            escortShips[i]:pushAction(Actions.Attack(escortShips[i + 1]))
+        end
+        Log.Debug("Added %d escort ships", GameState.gen.nEscortNPCs)
+    end
+end
+
 function UniverseEconomy:onUpdate(dt)
     self.econDelta = self.econDelta + dt
     -- High Attention
@@ -178,6 +217,7 @@ function UniverseEconomy:onUpdate(dt)
         if not system.aiPlayers then
             addMarket(system)
             addBlackMarket(system)
+            addEscorts(system) -- TEMP: for feature testing (do not remove until NPC ship spawning is implemented)
             addSystemGenerics(system)
             Log.Debug("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
         end
