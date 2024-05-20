@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 /// Stores state that must persist between frames.
 pub struct FrameState {
@@ -13,6 +13,7 @@ pub struct FrameState {
     /// timeout.
     pub timeout_reached: bool,
     pub last_update: Instant,
+    pub delta_time: Duration,
 }
 
 impl Default for FrameState {
@@ -23,6 +24,7 @@ impl Default for FrameState {
             redraw_request_sent: false,
             timeout_reached: false,
             last_update: Instant::now(),
+            delta_time: Duration::from_secs(0),
         }
     }
 }

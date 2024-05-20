@@ -61,8 +61,7 @@ impl TimeStamp {
     pub fn get_elapsed_ms(&self) -> f64 {
         let elapsed = self.value.elapsed().expect("Cannot get elapsed time");
 
-        // TODO: check if case is ok here
-        elapsed.as_millis() as f64
+        elapsed.as_secs_f64() * 1000.0
     }
 
     /// Get timestamp `seconds` in a future relative to current one.
