@@ -90,6 +90,7 @@ function HmGui:textColored(text, color) end
 function HmGui:textEx(font, text, color) end
 
 ---Makes current widget `focusable` and returns true if mouse is over it.
+---Returns true if mouse is over the widget (was calculated in the previous frame).
 ---@param ty FocusType
 ---@return boolean
 function HmGui:isMouseOver(ty) end

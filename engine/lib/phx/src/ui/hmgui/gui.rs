@@ -193,15 +193,6 @@ impl HmGui {
             }
         }
     }
-
-    /// Sets widget's `mouse over` flag to true.
-    /// Will be used in the check_mouse_over to set `mouse over` hash for current widget for the next frame.
-    /// Returns true if mouse is over the widget (was calculated in the previous frame).
-    fn is_mouse_over_intern(&self, widget: &mut HmGuiWidget, ty: FocusType) -> bool {
-        widget.mouse_over[ty as usize] = true;
-
-        self.mouse_over_widget_hash[ty as usize] == widget.hash
-    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -629,10 +620,14 @@ impl HmGui {
     }
 
     /// Makes current widget `focusable` and returns true if mouse is over it.
+    /// Returns true if mouse is over the widget (was calculated in the previous frame).
     pub fn is_mouse_over(&self, ty: FocusType) -> bool {
         let mut widget = self.last.as_mut();
 
-        self.is_mouse_over_intern(&mut widget, ty)
+        // Will be used in the check_mouse_over to set `mouse over` hash for current widget for the next frame.
+        widget.mouse_over[ty as usize] = true;
+
+        self.mouse_over_widget_hash[ty as usize] == widget.hash
     }
 
     pub fn set_min_width(&self, width: f32) {

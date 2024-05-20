@@ -85,7 +85,7 @@ function RadioGroup:new(args)
     }
 
     newRadioGroup.render = function(self)
-        if not self.state.visible() or not self.selections or #self.selections == 0 then
+        if not self.state.visible() or #self.state.selections() == 0 then
             return
         end
 
@@ -93,7 +93,7 @@ function RadioGroup:new(args)
 
         Gui:beginVerticalContainer()
 
-        for i, name in ipairs(self.selections) do
+        for i, name in ipairs(self.state.selections()) do
             Gui:setProperty(GuiProperties.Opacity, 1.0)
             Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().background)
             Gui:setProperty(GuiProperties.HighlightColor, self.state.color().highlight)
@@ -103,7 +103,7 @@ function RadioGroup:new(args)
             local triggered = Gui:isMouseOver(FocusType.Mouse) and InputInstance:mouse():isPressed(MouseControl.Left)
             if triggered then
                 selectionChanged = true
-                self.selectedIndex = i
+                self.state.selectedIndex = i
             end
 
             -- no need for an if check, since we always have a default defined
@@ -115,7 +115,7 @@ function RadioGroup:new(args)
 
             Gui:spacer()
 
-            if self.selectedIndex == i then
+            if self.state.selectedIndex == i then
                 Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().clickArea.checked)
             else
                 Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().clickArea.notChecked)
@@ -145,8 +145,8 @@ function RadioGroup:new(args)
                 self.state.sound():Play(1.0)
             end
 
-            -- print("-> " .. tostring(self.selectedIndex))
-            self.state.callback(self.selectedIndex)
+            print("-> selectedIndex: " .. tostring(self.state.selectedIndex))
+            self.state.callback(self.state.selectedIndex)
         end
     end
 

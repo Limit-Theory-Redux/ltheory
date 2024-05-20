@@ -94,7 +94,8 @@ local menuGrid = UILayout.Grid {
                         Gui:image(logo)
                         Gui:setPercentSize(100, 42)
                         Gui:endContainer()
-                    end },
+                    end
+                },
                 UIComponent.Container {
                     align = { AlignHorizontal.Stretch, AlignVertical.Top },
                     padding = { 0, 50 },

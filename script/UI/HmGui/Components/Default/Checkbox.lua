@@ -94,7 +94,7 @@ function Checkbox:new(args)
 
         local triggered = Gui:isMouseOver(FocusType.Mouse) and InputInstance:mouse():isPressed(MouseControl.Left)
         if triggered then
-            self.checked = not self.checked
+            self.state.checked = not self.state.checked
         end
 
         -- no need for an if check, since we always have a default defined
@@ -106,7 +106,7 @@ function Checkbox:new(args)
 
         Gui:spacer()
 
-        if self.checked then
+        if self.state.checked then
             Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().clickArea.checked)
         else
             Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().clickArea.notChecked)
@@ -133,8 +133,8 @@ function Checkbox:new(args)
                 self.state.sound():Play(1.0)
             end
 
-            -- print("-> " .. tostring(self.checked))
-            self.state.callback(self.checked)
+            print("-> checked: " .. tostring(self.state.checked))
+            self.state.callback(self.state.checked)
         end
     end
 
