@@ -266,12 +266,14 @@ impl Physics {
             iterator.index += 1;
 
             // Evaluate contact.
-            let c1_parent = RigidBody::linked_with_collider_mut(
-                world.colliders.get(contact_pair.collider1).unwrap(),
-            );
-            let c2_parent = RigidBody::linked_with_collider_mut(
-                world.colliders.get(contact_pair.collider2).unwrap(),
-            );
+            let c1_parent = world
+                .colliders
+                .get(contact_pair.collider1)
+                .and_then(RigidBody::linked_with_collider_mut);
+            let c2_parent = world
+                .colliders
+                .get(contact_pair.collider2)
+                .and_then(RigidBody::linked_with_collider_mut);
             if !c1_parent.is_some() || !c2_parent.is_some() {
                 continue;
             }
