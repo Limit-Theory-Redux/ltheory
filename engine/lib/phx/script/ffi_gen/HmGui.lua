@@ -25,6 +25,10 @@ function Loader.defineType()
             void                    HmGui_BeginHorizontalContainer       (HmGui*);
             void                    HmGui_BeginVerticalContainer         (HmGui*);
             void                    HmGui_EndContainer                   (HmGui*);
+            Vec2f                   HmGui_UpdateContainerOffset          (HmGui*, Vec2f offset);
+            Vec2f                   HmGui_ElementSize                    (HmGui*);
+            Vec2f                   HmGui_ElementMinSize                 (HmGui*);
+            void                    HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
             void                    HmGui_BeginScrollArea                (HmGui*, ScrollDirection dir);
             void                    HmGui_EndScrollArea                  (HmGui*, Input const* input);
             void                    HmGui_Image                          (HmGui*, Tex2D* image);
@@ -101,6 +105,10 @@ function Loader.defineType()
                 beginHorizontalContainer       = libphx.HmGui_BeginHorizontalContainer,
                 beginVerticalContainer         = libphx.HmGui_BeginVerticalContainer,
                 endContainer                   = libphx.HmGui_EndContainer,
+                updateContainerOffset          = libphx.HmGui_UpdateContainerOffset,
+                elementSize                    = libphx.HmGui_ElementSize,
+                elementMinSize                 = libphx.HmGui_ElementMinSize,
+                updateElementOffset            = libphx.HmGui_UpdateElementOffset,
                 beginScrollArea                = libphx.HmGui_BeginScrollArea,
                 endScrollArea                  = libphx.HmGui_EndScrollArea,
                 image                          = libphx.HmGui_Image,

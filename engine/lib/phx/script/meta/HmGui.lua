@@ -35,6 +35,24 @@ function HmGui:beginVerticalContainer() end
 ---Closes container started with one of `Gui:beginContainer()` calls.
 function HmGui:endContainer() end
 
+---Update current container offset.
+---Return offset value.
+---@param offset Vec2f
+---@return Vec2f
+function HmGui:updateContainerOffset(offset) end
+
+---Return current element size calculated in previous frame.
+---@return Vec2f
+function HmGui:elementSize() end
+
+---Return current element size calculated in previous frame.
+---@return Vec2f
+function HmGui:elementMinSize() end
+
+---Update current element minimum size.
+---@param offset Vec2f
+function HmGui:updateElementOffset(offset) end
+
 ---Start scroll area.
 ---
 ---Internally scroll area represented by 2 nested stack containers for a area itself

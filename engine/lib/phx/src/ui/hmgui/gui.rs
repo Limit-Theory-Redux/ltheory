@@ -319,6 +319,48 @@ impl HmGui {
         self.container = parent;
     }
 
+    /// Update current container offset.
+    /// Return offset value.
+    pub fn update_container_offset(&mut self, offset: Vec2) -> Vec2 {
+        let widget_rf = self.container.clone();
+        let mut widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
+
+        data.offset = data.offset.clamp(Vec2::ZERO, offset);
+
+        let container = widget.get_container_item_mut();
+        container.offset = -data.offset;
+
+        offset
+    }
+
+    /// Return current element size calculated in previous frame.
+    pub fn element_size(&mut self) -> Vec2 {
+        let widget_rf = self.last.clone();
+        let widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
+
+        data.size
+    }
+
+    /// Return current element size calculated in previous frame.
+    pub fn element_min_size(&mut self) -> Vec2 {
+        let widget_rf = self.last.clone();
+        let widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
+
+        data.size
+    }
+
+    /// Update current element minimum size.
+    pub fn update_element_offset(&mut self, offset: Vec2) {
+        let widget_rf = self.last.clone();
+        let widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
+
+        data.offset -= offset;
+    }
+
     /// Start scroll area.
     ///
     /// Internally scroll area represented by 2 nested stack containers for a area itself

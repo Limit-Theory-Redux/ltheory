@@ -1,0 +1,273 @@
+local ScrollArea = {}
+ScrollArea.__index = ScrollArea
+
+local meta = {
+    __call = function(cls, ...)
+        return cls:new(...)
+    end
+}
+
+---@class UIComponent
+---@field render function|nil
+
+---@class UIComponentScrollArea: UIComponent
+---@field visible boolean
+---@field scrollDirection Enums.ScrollDirection|nil
+---@field showHScroolbar boolean|true
+---@field showVScroolbar boolean|true
+---@field scroolbarFading boolean|true
+---@field scrollScale number|20
+---@field scrollbarVisibilityStableTimeMs number|400
+---@field scrollbarVisibilityFadeTimeMs number|200
+---@field scrollbarSize number|4
+---@field scrollbarBackgroundColor Color|Color(0.3, 0.3, 0.3, 0.3)
+---@field scrollbarKnobColor Color|Color(0.1, 0.1, 0.1, 0.5)
+---@field align table<AlignHorizontal, AlignVertical>
+---@field childrenAlign table<AlignHorizontal, AlignVertical>
+---@field width number
+---@field height number
+---@field widthInLayout number
+---@field heightInLayout number
+---@field padding { paddingX: number, paddingY: number }|{ paddingX: 0, paddingY: 0 }
+---@field margin { marginX: number, marginY: number }|{ marginX: 0, marginY: 0 }
+---@field layoutType GuiLayoutType
+---@field color UIComponentButtonColors
+---@field render fun(self: UIComponentScrollArea)
+---@field contents table
+---@field showContainer boolean
+
+---@class UIComponentScrollAreaConstructor
+---@field visible boolean|nil
+---@field scrollDirection Enums.ScrollDirection|nil
+---@field showHScrollbar boolean
+---@field showVScrollbar boolean
+---@field scrollbarFading boolean
+---@field scrollScale number
+---@field scrollbarVisibilityStableTimeMs number
+---@field scrollbarVisibilityFadeTimeMs number
+---@field scrollbarSize number
+---@field scrollbarBackgroundColor Color|nil
+---@field scrollbarKnobColor Color|nil
+---@field align table<AlignHorizontal, AlignVertical>
+---@field childrenAlign table<AlignHorizontal, AlignVertical>
+---@field width number
+---@field height number
+---@field widthInLayout number
+---@field heightInLayout number
+---@field padding { paddingX: number, paddingY: number }|nil
+---@field margin { marginX: number, marginY: number }|nil
+---@field layoutType GuiLayoutType
+---@field color UIComponentButtonColors
+---@field contents table
+---@field showContainer boolean
+
+---@class UIComponentScrollAreaColors
+---@field background Color|nil
+
+local function lerp(a, b, t) return a * (1 - t) + b * t end
+
+---returns a scroll area object
+---@param args UIComponentScrollAreaConstructor
+---@return UIComponentScrollArea|nil
+function ScrollArea:new(args)
+    if not args then
+        return
+    end
+
+    local newScrollArea = {
+        scrollbarActivationTime = 0,
+    }
+
+    newScrollArea.state = UICore.ComponentState {
+        visible = args.visible,
+        scrollDirection = args.scrollDirection,
+        showHScrollbar = args.showHScrollbar and true,
+        showVScrollbar = args.showVScrollbar and true,
+        scrollbarFading = args.scrollbarFading and true,
+        scrollScale = args.scrollScale or 20,
+        scrollbarVisibilityStableTimeMs = args.scrollbarVisibilityStableTimeMs or 400,
+        scrollbarVisibilityFadeTimeMs = args.scrollbarVisibilityFadeTimeMs or 200,
+        scrollbarSize = args.scrollbarSize or 4,
+        scrollbarBackgroundColor = args.scrollbarBackgroundColor or Color(0.3, 0.3, 0.3, 0.3),
+        scrollbarKnobColor = args.scrollbarKnobColor or Color(0.1, 0.1, 0.1, 0.5),
+        align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
+        childrenAlign = args.childrenAlign or { AlignHorizontal.Default, AlignVertical.Default },
+        padding = args.padding or { 0, 0 },
+        margin = args.margin or { 0, 0 },
+        width = args.width,
+        height = args.height,
+        widthInLayout = args.widthInLayout,
+        heightInLayout = args.heightInLayout,
+        layoutType = args.layoutType or GuiLayoutType.Horizontal,
+        contents = args.contents,
+        color = {
+            background = args.color and args.color.background
+        },
+        showContainer = args.showContainer or function() return GameState.debug.metricsEnabled end,
+        showContainerColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4)
+    }
+
+    newScrollArea.render = function(self)
+        if not self.state.visible() then
+            return
+        end
+
+        -- color
+        if self.state.color().background then
+            Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().background)
+        end
+
+        if self.state.showContainer() then
+            Gui:setProperty(GuiProperties.BorderColor, self.state.showContainerColor())
+        end
+
+        -- external container
+        Gui:beginStackContainer()
+        Gui:clearStyle() -- clear properties
+
+        if self.state.showContainer() then
+            Gui:setBorderWidth(1)
+        end
+
+        Gui:setAlignment(self.state.align()[1], self.state.align()[2])
+        Gui:setChildrenAlignment(self.state.childrenAlign()[1], self.state.childrenAlign()[2])
+        Gui:setPadding(self.state.padding()[1], self.state.padding()[2])
+        Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
+
+        if self.state.width then
+            Gui:setPercentWidth(self.state.width() * 100)
+        end
+
+        if self.state.height then
+            Gui:setPercentHeight(self.state.height() * 100)
+        end
+
+        -- internal 'scrollable' container
+        Gui:beginContainer(self.state.layoutType())
+        Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+
+        if #self.state.contents() > 1 then
+            for _, component in ipairs(self.state.contents()) do
+                component:render()
+            end
+        elseif #self.state.contents() == 1 then
+            self.state.contents()[1]:render()
+        end -- this allows scroll areas without any content
+
+        -- recalculate container offset
+        local innerSize = Gui:elementSize()
+        local innerMinSize = Gui:elementMinSize()
+
+        local maxScroll = Vec2f(math.max(0, innerMinSize.x - innerSize.x), math.max(0, innerMinSize.y - innerSize.y))
+
+        -- store offset of the inner container
+        local innerOffset = Gui:updateContainerOffset(maxScroll)
+
+        Gui:endContainer()
+
+        local hScroll = self.state.showHScrollbar and (self.state.scrollDirection ~= Enums.ScrollDirection.Vertical)
+        local vScroll = self.state.showVScrollbar and (self.state.scrollDirection ~= Enums.ScrollDirection.Horizontal)
+
+        if hScroll or vScroll then
+            local isMouseOver = Gui:isMouseOver(FocusType.Scroll)
+            local scroll = InputInstance:mouse():scroll()
+
+            -- swap scroll values for horizontal scrolling
+            if InputInstance:keyboard():isDown(KeyboardButton.ShiftLeft) then
+                scroll = Vec2f(scroll.y, scroll.x)
+            end
+
+            local fadeScale = 1
+            if self.state.scrollbarFading then
+                -- TODO: use abs(X) and abs(Y) instead of length()
+                if isMouseOver and (scroll:length() > 0.3 or InputInstance:mouse():delta():length() > 0.5) then
+                    self.scrollbarActivationTime = EngineInstance.elapsedTime()
+                else
+                    local elapsedTime = Gui:elapsedTime():getDifference(self.scrollbarActivationTime)
+
+                    if elapsedTime <= self.state.scrollbarVisibilityStableTimeMs then
+                        fadeScale = 1
+                    elseif elapsedTime <= self.state.scrollbarVisibilityStableTimeMs + self.state.scrollbarVisibilityFadeTimeMs then
+                        fadeScale = 1 - (elapsedTime - self.state.scrollbarVisibilityStableTimeMs)
+                            / self.state.scrollbarVisibilityFadeTimeMs
+                    else
+                        fadeScale = 0
+                    end
+                end
+            end
+
+            if isMouseOver then
+                Gui:updateElementOffset(scroll * self.state.scrollScale)
+            end
+
+            if fadeScale > 0 then
+                local sbSize = self.state.scrollbarSize
+                local sbBackgroundColor = self.state.scrollbarBackgroundColor
+                sbBackgroundColor.a = sbBackgroundColor.a * fadeScale
+                local sbKnobColor = self.state.scrollbarKnobColor
+                sbKnobColor.a = sbKnobColor.a * fadeScale
+
+                if hScroll and innerOffset.x > 0 then
+                    Gui:beginHorizontalContainer()
+                    Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Bottom)
+
+                    local knobSize = innerSize.x * (innerSize.x / innerMinSize.x);
+                    local knobPos = lerp(0, (innerSize.x - knobSize), (innerOffset.x / maxScroll.x));
+
+                    Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
+                    Gui:rect();
+                    Gui:set_fixed_size(knobPos, sbSize);
+
+                    Gui:setProperty(GuiProperties.BackgroundColor, sbKnobColor);
+                    Gui:rect();
+                    Gui:set_fixed_size(knobSize, sbSize);
+
+                    Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
+                    Gui:rect();
+                    Gui:setFixedHeight(sbSize);
+                    Gui:setHorizontalAlignment(AlignHorizontal.Stretch);
+
+                    Gui:endContainer()
+                end
+
+                if vScroll and innerOffset.y > 0 then
+                    Gui:beginVerticalContainer()
+                    Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Stretch)
+
+                    local knobSize = innerSize.y * (innerSize.y / innerMinSize.y);
+                    local knobPos = lerp(0, (innerSize.y - knobSize), (innerOffset.y / maxScroll.y));
+
+                    Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
+                    Gui:rect();
+                    Gui:set_fixed_size(knobPos, sbSize);
+
+                    Gui:setProperty(GuiProperties.BackgroundColor, sbKnobColor);
+                    Gui:rect();
+                    Gui:set_fixed_size(sbSize, knobSize);
+
+                    Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
+                    Gui:rect();
+                    Gui:setFixedWidth(sbSize);
+                    Gui:setVerticalAlignment(AlignVertical.Stretch);
+
+                    Gui:endContainer()
+                end
+            end
+        end
+
+        Gui:endContainer()
+        Gui:setPercentWidth(100)
+        Gui:setPercentHeight(100)
+        Gui:clearStyle() -- clear style so it doesn´t affect other components
+    end
+
+    return newScrollArea
+end
+
+setmetatable(ScrollArea, meta)
+
+-- Add to global UIComponent table
+---@type UIComponentScrollAreaConstructor
+UIComponent.ScrollArea = ScrollArea
+
+return ScrollArea
