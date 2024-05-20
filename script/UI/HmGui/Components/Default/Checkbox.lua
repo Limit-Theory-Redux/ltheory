@@ -133,7 +133,6 @@ function Checkbox:new(args)
                 self.state.sound():Play(1.0)
             end
 
-            print("-> checked: " .. tostring(self.state.checked))
             self.state.callback(self.state.checked)
         end
     end

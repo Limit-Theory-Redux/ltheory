@@ -145,7 +145,6 @@ function RadioGroup:new(args)
                 self.state.sound():Play(1.0)
             end
 
-            print("-> selectedIndex: " .. tostring(self.state.selectedIndex))
             self.state.callback(self.state.selectedIndex)
         end
     end
