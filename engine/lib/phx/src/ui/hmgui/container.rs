@@ -365,7 +365,8 @@ impl HmGuiContainer {
     }
 
     pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
-        hmgui.renderer.begin_layer(pos, size, self.clip);
+        // extend clip area by 1 pixel to avoid border overlapping
+        hmgui.renderer.begin_layer(pos - 1.0, size + 2.0, self.clip);
 
         // TODO: [optimization] do not draw children outside of clipped container or screen
         for widget_rf in self.children.iter().rev() {
