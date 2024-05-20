@@ -1,5 +1,7 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+/// Wrapper around Rust [`SystemTime`].
+/// For documentation see: https://doc.rust-lang.org/std/time/struct.SystemTime.html
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub struct TimeStamp {
@@ -20,12 +22,14 @@ impl TimeStamp {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl TimeStamp {
+    /// Get current timestamp.
     pub fn now() -> Self {
         Self {
             value: SystemTime::now(),
         }
     }
 
+    /// Get timestamp `seconds` in a future from now.
     pub fn get_future(seconds: f64) -> Self {
         let d = Duration::from_secs_f64(seconds);
 
@@ -36,6 +40,7 @@ impl TimeStamp {
         }
     }
 
+    /// Get difference between 2 timestamps in double seconds.
     pub fn get_difference(&self, end_time: &TimeStamp) -> f64 {
         let difference = end_time
             .value
@@ -52,12 +57,15 @@ impl TimeStamp {
         elapsed.as_secs_f64()
     }
 
+    /// Number of milliseconds elapsed since this timestamp.
     pub fn get_elapsed_ms(&self) -> f64 {
         let elapsed = self.value.elapsed().expect("Cannot get elapsed time");
 
-        elapsed.as_secs_f64() * 1000.0
+        // TODO: check if case is ok here
+        elapsed.as_millis() as f64
     }
 
+    /// Get timestamp `seconds` in a future relative to current one.
     pub fn get_relative(&self, seconds: f64) -> Self {
         let d = Duration::from_secs_f64(seconds);
 
@@ -69,6 +77,7 @@ impl TimeStamp {
         }
     }
 
+    /// Get duration since Unix epoch in double seconds.
     pub fn to_double(&self) -> f64 {
         let difference = self
             .value
@@ -78,6 +87,7 @@ impl TimeStamp {
         difference.as_secs_f64()
     }
 
+    /// Get duration since Unix epoch in unsigned seconds.
     pub fn to_seconds(&self) -> u64 {
         let difference = self
             .value
