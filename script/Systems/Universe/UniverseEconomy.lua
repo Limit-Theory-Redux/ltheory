@@ -116,7 +116,7 @@ local function addMarket(system)
             -- Create Stations within randomly selected AsteroidField Zones
             system:spawnStation(Enums.StationHulls.Small, aiPlayer)
         end
-        print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, aiPlayer:getName())
+        printf("Spawned %d stations for AI Player '%s'", GameState.gen.nStations, aiPlayer:getName())
         -- Add AI Player to the system
         table.insert(system.aiPlayers, aiPlayer)
     end

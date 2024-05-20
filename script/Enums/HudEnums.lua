@@ -16,3 +16,9 @@ Enums.HudStyleNames = {
     "Balanced",
     "Tight",
 }
+
+Enums.HudTacMapRanges = {
+    Close   = 1,
+    Normal  = 2,
+    Distant = 3,
+}

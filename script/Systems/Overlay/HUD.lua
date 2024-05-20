@@ -1112,6 +1112,7 @@ function HUD:drawTacticalMap(a)
     local cx, cy = self.sx / 2, self.sy / 2
     local radiusOuterRing = 70
     local radiusInnerRing = 44
+    local radiusScaleRing = 10
 
     -- Draw tactical map
     UI.DrawEx.Ring(cx, self.sy - 76, radiusOuterRing, Config.ui.color.meterBarLight, true)
@@ -1123,8 +1124,13 @@ function HUD:drawTacticalMap(a)
     UI.DrawEx.Line(cx - 48, self.sy - 124, cx, self.sy - 78, Config.ui.color.meterBarLight, false)
     UI.DrawEx.Line(cx + 48, self.sy - 124, cx, self.sy - 78, Config.ui.color.meterBarLight, false)
 
+    UI.DrawEx.Ring(cx - 70, self.sy - 16, radiusScaleRing, Config.ui.color.meterBarLight, false)
+    UI.DrawEx.Ring(cx + 70, self.sy - 16, radiusScaleRing, Config.ui.color.meterBarLight, false)
+
+    UI.DrawEx.TextAlpha("UbuntuBold", "-", 34, cx - 75, self.sy - 14, 10, 10, 0.5, 0.6, 1.0, 1.0, 0.5, 0.5)
+    UI.DrawEx.TextAlpha("UbuntuBold", "+", 28, cx + 65, self.sy - 21, 10, 10, 0.5, 0.6, 1.0, 1.0, 0.5, 0.5)
+
     -- Loop through nearby stations and ships and draw them on the tactical map
-    local maxDist = 6000.0 -- maximum distance within which objects appear on tactical map
     local ix = self.sx / 2
     local iy = self.sy - 76
     local r = 1.0
@@ -1137,6 +1143,7 @@ function HUD:drawTacticalMap(a)
     if system and not playerShip:isShipDocked() then -- no need to update tactical map while docked at a space station
         local stations = system:getStations()
         local ships    = system:getShips()
+        local maxDist  = Config.ui.general.rangeDistances[GameState.ui.tacMapRange]
 
         for _, station in ipairs(stations) do
             local dist = playerShip:getDistance(station)
@@ -1168,8 +1175,6 @@ function HUD:drawTacticalMap(a)
                 -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
                 local c = Disposition.GetColor(disp)
 
---                r = 0.01
---                UI.DrawEx.Circle(x, y, r, c)
                 UI.DrawEx.Point(x, y, 256, c)
             end
         end
@@ -1751,7 +1756,7 @@ function HUD:onInput(state)
         -- camera:modYaw(0.005 * CameraBindings.Yaw:get())     -- only works when cameraOrbit is the current camera
         -- camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
-        -- Select a weapon group
+        -- HUD control: Select a weapon group
         if InputInstance:isPressed(Button.KeyboardKey1) and GameState.player.weaponGroup ~= 1 then
             GameState.player.weaponGroup = 1
         elseif InputInstance:isPressed(Button.KeyboardKey2) and GameState.player.weaponGroup ~= 2 then
@@ -1770,6 +1775,16 @@ function HUD:onInput(state)
             GameState.player.weaponGroup = 8
         end
 
+        -- HUD control: Select a tactical map range (close, normal, distant)
+        if InputInstance:isPressed(Button.KeyboardNumpad1) then
+            GameState.ui.tacMapRange = 1
+        elseif InputInstance:isPressed(Button.KeyboardNumpad2) then
+            GameState.ui.tacMapRange = 2
+        elseif InputInstance:isPressed(Button.KeyboardNumpad3) then
+            GameState.ui.tacMapRange = 3
+        end
+
+        -- Process player ship control actions
         local e = self.player:getControlling()
         if not e:isDestroyed() then
             self:controlThrust(e)
@@ -1942,7 +1957,7 @@ function HUD:onDrawIcon(iconButton, focus, active)
 end
 
 function HUD:onEnable()
-    -- TODO : Wtf does this do? Who wrote this?? WHY.
+    -- TODO : Wtf does this do? Who wrote this?? WHY. [<-- this comment was from Josh or Adam]
     local pCamera = self.gameView.camera
     local camera = self.gameView.camera
 
