@@ -92,17 +92,17 @@ function RadioGroup:new(args)
         local selectionChanged = false
 
         Gui:beginVerticalContainer()
+        Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 
         for i, name in ipairs(self.state.selections()) do
             Gui:setProperty(GuiProperties.Opacity, 1.0)
             Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().background)
             Gui:setProperty(GuiProperties.HighlightColor, self.state.color().highlight)
             Gui:beginHorizontalContainer()
-            Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 
             local triggered = Gui:isMouseOver(FocusType.Mouse) and InputInstance:mouse():isPressed(MouseControl.Left)
             if triggered then
-                selectionChanged = true
+                selectionChanged = self.state.selectedIndex ~= i
                 self.state.selectedIndex = i
             end
 
