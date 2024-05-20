@@ -154,19 +154,18 @@ impl Trigger {
         let world = &*world.as_ref();
 
         self.contents_cache.clear();
-        self.contents_cache
-            .extend(
-                world
-                    .narrow_phase
-                    .intersection_pairs_with(*collider)
-                    .filter_map(|pair| {
-                        let other_collider = if pair.0 == *collider { pair.1 } else { pair.0 };
-
-                        RigidBody::linked_with_collider_mut(
-                            world.colliders.get(other_collider).unwrap(),
-                        )
-                    }),
-            );
+        self.contents_cache.extend(
+            world
+                .narrow_phase
+                .intersection_pairs_with(*collider)
+                .filter_map(|pair| {
+                    let other_collider = if pair.0 == *collider { pair.1 } else { pair.0 };
+                    world
+                        .colliders
+                        .get(other_collider)
+                        .and_then(RigidBody::linked_with_collider_mut)
+                }),
+        );
 
         self.contents_cache.len() as i32
     }
