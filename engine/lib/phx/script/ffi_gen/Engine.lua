@@ -16,19 +16,17 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void         Engine_Free        (Engine*);
-            Window*      Engine_Window      (Engine*);
-            Input*       Engine_Input       (Engine*);
-            HmGui*       Engine_HmGui       (Engine*);
-            void         Engine_Abort       ();
-            int          Engine_GetBits     ();
-            double       Engine_ElapsedTime (Engine const*);
-            InstantTime* Engine_FrameTime   (Engine const*);
-            double       Engine_DeltaTime   (Engine const*);
-            cstr         Engine_GetVersion  ();
-            void         Engine_Exit        (Engine*);
-            void         Engine_Terminate   ();
-            void         Engine_Update      ();
+            void    Engine_Free        (Engine*);
+            Window* Engine_Window      (Engine*);
+            Input*  Engine_Input       (Engine*);
+            HmGui*  Engine_HmGui       (Engine*);
+            void    Engine_Abort       ();
+            int     Engine_GetBits     ();
+            double  Engine_ElapsedTime (Engine const*);
+            cstr    Engine_GetVersion  ();
+            void    Engine_Exit        (Engine*);
+            void    Engine_Terminate   ();
+            void    Engine_Update      ();
         ]]
     end
 
@@ -53,11 +51,6 @@ function Loader.defineType()
                 input       = libphx.Engine_Input,
                 hmGui       = libphx.Engine_HmGui,
                 elapsedTime = libphx.Engine_ElapsedTime,
-                frameTime   = function(...)
-                    local instance = libphx.Engine_FrameTime(...)
-                    return Core.ManagedObject(instance, libphx.InstantTime_Free)
-                end,
-                deltaTime   = libphx.Engine_DeltaTime,
                 exit        = libphx.Engine_Exit,
             },
         }

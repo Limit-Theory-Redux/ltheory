@@ -1,7 +1,6 @@
 mod frame_state;
 
 use std::path::PathBuf;
-use std::time::{Duration, Instant};
 
 pub(crate) use frame_state::*;
 
@@ -371,9 +370,6 @@ impl Engine {
                         });
                     }
 
-                    engine.frame_state.last_update = Instant::now();
-                    engine.frame_state.delta_time = Duration::from_secs(0);
-
                     // The low_power_event state and timeout must be reset at the start of every frame.
                     engine.frame_state.low_power_event = false;
                     engine.frame_state.timeout_reached = false; //auto_timeout_reached || manual_timeout_reached;
@@ -561,12 +557,6 @@ impl Engine {
                 }
                 event::Event::AboutToWait => {
                     if finished_and_setup_done {
-                        let last_update = Instant::now();
-
-                        engine.frame_state.delta_time =
-                            last_update - engine.frame_state.last_update;
-                        engine.frame_state.last_update = last_update;
-
                         // Load all gamepad events
                         engine.input.update_gamepad(|state| state.update());
 
@@ -620,16 +610,6 @@ impl Engine {
     /// Return time passed since engine start.
     pub fn elapsed_time(&self) -> f64 {
         self.init_time.get_elapsed()
-    }
-
-    /// Return time marker of the current frame.
-    pub fn frame_time(&self) -> InstantTime {
-        self.frame_state.last_update.into()
-    }
-
-    /// Return delta time between current and previous frames in double milliseconds.
-    pub fn delta_time(&self) -> f64 {
-        self.frame_state.delta_time.as_secs_f64() * 1000.0
     }
 
     pub fn get_version() -> &'static str {

@@ -1,5 +1,3 @@
-use std::time::{Duration, Instant};
-
 /// Stores state that must persist between frames.
 pub struct FrameState {
     /// Tracks whether or not the application is active or suspended.
@@ -12,8 +10,6 @@ pub struct FrameState {
     /// Tracks if the event loop was started this frame because of a [`ControlFlow::WaitUntil`]
     /// timeout.
     pub timeout_reached: bool,
-    pub last_update: Instant,
-    pub delta_time: Duration,
 }
 
 impl Default for FrameState {
@@ -23,8 +19,6 @@ impl Default for FrameState {
             low_power_event: false,
             redraw_request_sent: false,
             timeout_reached: false,
-            last_update: Instant::now(),
-            delta_time: Duration::from_secs(0),
         }
     }
 }
