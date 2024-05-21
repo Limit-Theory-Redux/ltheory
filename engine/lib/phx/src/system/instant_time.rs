@@ -6,6 +6,12 @@ pub struct InstantTime {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl InstantTime {
+    pub fn now() -> Self {
+        Self {
+            time: Instant::now(),
+        }
+    }
+
     /// Return time in double milliseconds passed since earlier time.
     pub fn duration_since(&self, earlier: &Self) -> f64 {
         self.time.duration_since(earlier.time).as_secs_f64() * 1000.0

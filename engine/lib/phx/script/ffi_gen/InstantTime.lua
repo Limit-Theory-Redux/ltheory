@@ -16,13 +16,19 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void   InstantTime_Free          (InstantTime*);
-            double InstantTime_DurationSince (InstantTime const*, InstantTime const* earlier);
+            void         InstantTime_Free          (InstantTime*);
+            InstantTime* InstantTime_Now           ();
+            double       InstantTime_DurationSince (InstantTime const*, InstantTime const* earlier);
         ]]
     end
 
     do -- Global Symbol Table
-        InstantTime = {}
+        InstantTime = {
+            Now           = function(...)
+                local instance = libphx.InstantTime_Now(...)
+                return Core.ManagedObject(instance, libphx.InstantTime_Free)
+            end,
+        }
 
         if onDef_InstantTime then onDef_InstantTime(InstantTime, mt) end
         InstantTime = setmetatable(InstantTime, mt)
