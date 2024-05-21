@@ -331,25 +331,25 @@ impl HmGui {
         let container = widget.get_container_item_mut();
         container.offset = -data.offset;
 
-        offset
+        data.offset
     }
 
-    /// Return current element size calculated in previous frame.
-    pub fn element_size(&mut self) -> Vec2 {
-        let widget_rf = self.last.clone();
+    /// Return current container element size calculated in previous frame.
+    pub fn container_size(&mut self) -> Vec2 {
+        let widget_rf = self.container.clone();
         let widget = widget_rf.as_mut();
         let data = self.get_data(widget.hash);
 
         data.size
     }
 
-    /// Return current element size calculated in previous frame.
-    pub fn element_min_size(&mut self) -> Vec2 {
-        let widget_rf = self.last.clone();
+    /// Return current container element size calculated in previous frame.
+    pub fn container_min_size(&mut self) -> Vec2 {
+        let widget_rf = self.container.clone();
         let widget = widget_rf.as_mut();
         let data = self.get_data(widget.hash);
 
-        data.size
+        data.min_size
     }
 
     /// Update current element minimum size.

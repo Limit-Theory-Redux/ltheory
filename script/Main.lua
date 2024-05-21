@@ -13,6 +13,7 @@ require('Init')
 function SetEngine(engine)
     Log.Debug("SetEngine")
 
+    ---@type Engine
     EngineInstance = ffi.cast('Engine*', engine)
 
     InputInstance = EngineInstance:input()

@@ -201,11 +201,8 @@ impl HmGuiWidget {
 
                 self.min_size = self.calculate_min_size();
 
-                if container.scroll_dir.is_some() {
-                    let data = hmgui.get_data(self.hash);
-
-                    data.min_size = self.min_size;
-                }
+                let data = hmgui.get_data(self.hash);
+                data.min_size = self.min_size;
             }
             _ => {
                 self.min_size = self.calculate_min_size();
@@ -235,11 +232,8 @@ impl HmGuiWidget {
                     + self.margin_upper
                     + self.margin_lower;
 
-                if container.scroll_dir.is_some() {
-                    let data = hmgui.get_data(self.hash);
-
-                    data.size = self.size;
-                }
+                let data = hmgui.get_data(self.hash);
+                data.size = self.size;
             }
             _ => {}
         }

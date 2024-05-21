@@ -1160,9 +1160,9 @@ mod tests {
                         (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
-                            WidgetCheck("Rect1", (-85.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
-                            WidgetCheck("Rect2", (-65.0, 85.0), (450.0, 30.0), (450.0, 30.0), None),
-                            WidgetCheck("Rect3", (385.0, 80.0), (0.0, 40.0), (0.0, 40.0), None),
+                            WidgetCheck("Rect4", (-85.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect5", (-65.0, 85.0), (450.0, 30.0), (450.0, 30.0), None),
+                            WidgetCheck("Rect6", (385.0, 80.0), (0.0, 40.0), (0.0, 40.0), None),
                         ]),
                     ),
                 ]),

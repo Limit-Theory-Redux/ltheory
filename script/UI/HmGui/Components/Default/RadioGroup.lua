@@ -8,26 +8,31 @@ local meta = {
 }
 
 ---@class UIComponentRadioGroup: UIComponent
+---@field selectedIndex number|nil
+---@field selections table
 ---@field visible boolean
----@field title string
 ---@field width number
 ---@field height number
----@field sound SFXObject|nil
----@field color UIComponentRadioGroupColors
+---@field padding { paddingX: number, paddingY: number }|{ paddingX: 0, paddingY: 0 }
+---@field margin { marginX: number, marginY: number }|{ marginX: 0, marginY: 0 }
+---@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
+---@field textAlign { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Left, v: AlignVertical.Center}
 ---@field font UIComponentFont
+---@field color UIComponentRadioGroupColors
+---@field sound SFXObject|nil
 ---@field callback function
 ---@field render fun(self: UIComponentRadioGroup) renders the radio group
 
 ---@class UIComponentRadioGroupConstructor
----@field selectedIndex number
+---@field selectedIndex number|nil
 ---@field selections table
 ---@field visible boolean
 ---@field width number
 ---@field height number
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
----@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
----@field textAlign { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Left, v: AlignVertical.Center}
+---@field align { h: AlignHorizontal, v: AlignVertical }|nil
+---@field textAlign { h: AlignHorizontal, v: AlignVertical }|nil
 ---@field font UIComponentFont
 ---@field color UIComponentRadioGroupColors
 ---@field sound SFXObject|nil
@@ -53,7 +58,7 @@ function RadioGroup:new(args)
 
     local newRadioGroup = {}
     newRadioGroup.state = UICore.ComponentState {
-        selectedIndex = args.selectedIndex or 1,
+        selectedIndex = args.selectedIndex,
         selections = args.selections or {},
         visible = args.visible,
         width = args.width,
@@ -72,9 +77,9 @@ function RadioGroup:new(args)
             background = args.color and args.color.background or Color(0.0, 0.0, 0.0, 1.0),
             highlight = args.color and args.color.highlight or Color(0.1, 0.1, 0.1, 1.0),
             clickArea = {
-                border = args.color and args.color.clickArea.border or Color(1, 1, 1, 1),
-                checked = args.color and args.color.clickArea.checked or Color(0.1, 0.5, 1, 1),
-                notChecked = args.color and args.color.clickArea.notChecked or Color(0, 0, 0, 0),
+                border = args.color and args.color.clickArea and args.color.clickArea.border or Color(1, 1, 1, 1),
+                checked = args.color and args.color.clickArea and args.color.clickArea.checked or Color(0.1, 0.5, 1, 1),
+                notChecked = args.color and args.color.clickArea and args.color.clickArea.notChecked or Color(0, 0, 0, 0),
             }
         },
         sound = args.sound,
@@ -93,6 +98,7 @@ function RadioGroup:new(args)
 
         Gui:beginVerticalContainer()
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
+        Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
         for i, name in ipairs(self.state.selections()) do
             Gui:setProperty(GuiProperties.Opacity, 1.0)

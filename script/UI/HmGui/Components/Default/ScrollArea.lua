@@ -26,8 +26,6 @@ local meta = {
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
 ---@field width number
 ---@field height number
----@field widthInLayout number
----@field heightInLayout number
 ---@field padding { paddingX: number, paddingY: number }|{ paddingX: 0, paddingY: 0 }
 ---@field margin { marginX: number, marginY: number }|{ marginX: 0, marginY: 0 }
 ---@field layoutType GuiLayoutType
@@ -52,8 +50,6 @@ local meta = {
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
 ---@field width number
 ---@field height number
----@field widthInLayout number
----@field heightInLayout number
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
 ---@field layoutType GuiLayoutType
@@ -75,30 +71,28 @@ function ScrollArea:new(args)
     end
 
     local newScrollArea = {
-        scrollbarActivationTime = 0,
+        scrollbarActivationTime = nil,
     }
 
     newScrollArea.state = UICore.ComponentState {
         visible = args.visible,
         scrollDirection = args.scrollDirection,
-        showHScrollbar = args.showHScrollbar and true,
-        showVScrollbar = args.showVScrollbar and true,
-        scrollbarFading = args.scrollbarFading and true,
+        showHScrollbar = args.showHScrollbar == nil or args.showHScrollbar, -- TODO: doesn't work. Idea is to treat nil as true. Same 2 below.
+        showVScrollbar = args.showVScrollbar == nil or args.showVScrollbar,
+        scrollbarFading = args.scrollbarFading == nil or args.scrollbarFading,
         scrollScale = args.scrollScale or 20,
         scrollbarVisibilityStableTimeMs = args.scrollbarVisibilityStableTimeMs or 400,
         scrollbarVisibilityFadeTimeMs = args.scrollbarVisibilityFadeTimeMs or 200,
         scrollbarSize = args.scrollbarSize or 4,
-        scrollbarBackgroundColor = args.scrollbarBackgroundColor or Color(0.3, 0.3, 0.3, 0.3),
-        scrollbarKnobColor = args.scrollbarKnobColor or Color(0.1, 0.1, 0.1, 0.5),
+        scrollbarBackgroundColor = args.scrollbarBackgroundColor or Color(0.3, 0.3, 0.3, 1),
+        scrollbarKnobColor = args.scrollbarKnobColor or Color(0.1, 0.1, 0.5, 1),
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         childrenAlign = args.childrenAlign or { AlignHorizontal.Default, AlignVertical.Default },
-        padding = args.padding or { 0, 0 },
-        margin = args.margin or { 0, 0 },
+        padding = args.padding,
+        margin = args.margin,
         width = args.width,
         height = args.height,
-        widthInLayout = args.widthInLayout,
-        heightInLayout = args.heightInLayout,
-        layoutType = args.layoutType or GuiLayoutType.Horizontal,
+        layoutType = args.layoutType or GuiLayoutType.Vertical,
         contents = args.contents,
         color = {
             background = args.color and args.color.background
@@ -131,16 +125,12 @@ function ScrollArea:new(args)
 
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
         Gui:setChildrenAlignment(self.state.childrenAlign()[1], self.state.childrenAlign()[2])
-        Gui:setPadding(self.state.padding()[1], self.state.padding()[2])
-        Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
 
-        if self.state.width then
-            Gui:setPercentWidth(self.state.width() * 100)
-        end
+        if self.state.padding then Gui:setPadding(self.state.padding()[1], self.state.padding()[2]) end
+        if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end
 
-        if self.state.height then
-            Gui:setPercentHeight(self.state.height() * 100)
-        end
+        if self.state.width then Gui:setFixedWidth(self.state.width()) end
+        if self.state.height then Gui:setFixedHeight(self.state.height()) end
 
         -- internal 'scrollable' container
         Gui:beginContainer(self.state.layoutType())
@@ -155,8 +145,8 @@ function ScrollArea:new(args)
         end -- this allows scroll areas without any content
 
         -- recalculate container offset
-        local innerSize = Gui:elementSize()
-        local innerMinSize = Gui:elementMinSize()
+        local innerSize = Gui:containerSize()
+        local innerMinSize = Gui:containerMinSize()
 
         local maxScroll = Vec2f(math.max(0, innerMinSize.x - innerSize.x), math.max(0, innerMinSize.y - innerSize.y))
 
@@ -178,36 +168,41 @@ function ScrollArea:new(args)
             end
 
             local fadeScale = 1
-            if self.state.scrollbarFading then
-                -- TODO: use abs(X) and abs(Y) instead of length()
-                if isMouseOver and (scroll:length() > 0.3 or InputInstance:mouse():delta():length() > 0.5) then
-                    self.scrollbarActivationTime = EngineInstance.elapsedTime()
-                else
-                    local elapsedTime = Gui:elapsedTime():getDifference(self.scrollbarActivationTime)
+            if self.state.scrollbarFading() then
+                local mouseDelata = InputInstance:mouse():delta()
+                if isMouseOver and
+                    (math.abs(scroll.x) > 0.3 or math.abs(scroll.y) > 0.3 or
+                        math.abs(mouseDelata.x) > 0.5 or math.abs(mouseDelata.y) > 0.5)
+                then
+                    self.scrollbarActivationTime = EngineInstance:frameTime()
+                elseif self.scrollbarActivationTime then
+                    local elapsedTime = EngineInstance:frameTime():durationSince(self.scrollbarActivationTime)
 
-                    if elapsedTime <= self.state.scrollbarVisibilityStableTimeMs then
+                    if elapsedTime <= self.state.scrollbarVisibilityStableTimeMs() then
                         fadeScale = 1
-                    elseif elapsedTime <= self.state.scrollbarVisibilityStableTimeMs + self.state.scrollbarVisibilityFadeTimeMs then
-                        fadeScale = 1 - (elapsedTime - self.state.scrollbarVisibilityStableTimeMs)
-                            / self.state.scrollbarVisibilityFadeTimeMs
+                    elseif elapsedTime <= self.state.scrollbarVisibilityStableTimeMs() + self.state.scrollbarVisibilityFadeTimeMs() then
+                        fadeScale = 1 - (elapsedTime - self.state.scrollbarVisibilityStableTimeMs())
+                            / self.state.scrollbarVisibilityFadeTimeMs()
                     else
                         fadeScale = 0
                     end
+                else
+                    fadeScale = 0
                 end
             end
 
             if isMouseOver then
-                Gui:updateElementOffset(scroll * self.state.scrollScale)
+                Gui:updateElementOffset(scroll:scale(self.state.scrollScale()))
             end
 
             if fadeScale > 0 then
-                local sbSize = self.state.scrollbarSize
-                local sbBackgroundColor = self.state.scrollbarBackgroundColor
+                local sbSize = self.state.scrollbarSize()
+                local sbBackgroundColor = Color(self.state.scrollbarBackgroundColor())
                 sbBackgroundColor.a = sbBackgroundColor.a * fadeScale
-                local sbKnobColor = self.state.scrollbarKnobColor
+                local sbKnobColor = Color(self.state.scrollbarKnobColor())
                 sbKnobColor.a = sbKnobColor.a * fadeScale
 
-                if hScroll and innerOffset.x > 0 then
+                if hScroll and maxScroll.x > 0 then
                     Gui:beginHorizontalContainer()
                     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Bottom)
 
@@ -216,11 +211,11 @@ function ScrollArea:new(args)
 
                     Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
                     Gui:rect();
-                    Gui:set_fixed_size(knobPos, sbSize);
+                    Gui:setFixedSize(knobPos, sbSize);
 
                     Gui:setProperty(GuiProperties.BackgroundColor, sbKnobColor);
                     Gui:rect();
-                    Gui:set_fixed_size(knobSize, sbSize);
+                    Gui:setFixedSize(knobSize, sbSize);
 
                     Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
                     Gui:rect();
@@ -230,7 +225,7 @@ function ScrollArea:new(args)
                     Gui:endContainer()
                 end
 
-                if vScroll and innerOffset.y > 0 then
+                if vScroll and maxScroll.y > 0 then
                     Gui:beginVerticalContainer()
                     Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Stretch)
 
@@ -239,11 +234,11 @@ function ScrollArea:new(args)
 
                     Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
                     Gui:rect();
-                    Gui:set_fixed_size(knobPos, sbSize);
+                    Gui:setFixedSize(sbSize, knobPos);
 
                     Gui:setProperty(GuiProperties.BackgroundColor, sbKnobColor);
                     Gui:rect();
-                    Gui:set_fixed_size(sbSize, knobSize);
+                    Gui:setFixedSize(sbSize, knobSize);
 
                     Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
                     Gui:rect();
@@ -256,8 +251,7 @@ function ScrollArea:new(args)
         end
 
         Gui:endContainer()
-        Gui:setPercentWidth(100)
-        Gui:setPercentHeight(100)
+
         Gui:clearStyle() -- clear style so it doesn´t affect other components
     end
 
