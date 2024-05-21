@@ -53,43 +53,6 @@ function HmGui:containerMinSize() end
 ---@param offset Vec2f
 function HmGui:updateElementOffset(offset) end
 
----Start scroll area.
----
----Internally scroll area represented by 2 nested stack containers for a area itself
----and 2 other containers for scroll bars. So it is possible to set layout parameters
----for both external and internal containers. For the former parameters should be
----specified after `Gui:end_scroll_area()` function call and for the latter after
----`Gui:beginScrollArea()`.
----
----Parameters:
----**dir** - define directions in which scrolling is enabled: All, Horizontal, Vertical.
----
----Example:
----```lua
----Gui:setPropertyValue(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
----Gui:beginScrollArea(ScrollDirection.All)
----
----Gui:beginVerticalContainer()
----Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
----Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
----
----Gui:button("Button1")
----Gui:button("Button2")
----
----Gui:endContainer()
----Gui:endScrollArea(InputInstance)
----Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
----Gui:setFixedSize(500, 500)
----```
----@param dir ScrollDirection
-function HmGui:beginScrollArea(dir) end
-
----End of the scroll area.
----
----See [`HmGui::begin_scroll_area`] for example.
----@param input Input
-function HmGui:endScrollArea(input) end
-
 ---@param image Tex2D
 function HmGui:image(image) end
 

@@ -40,8 +40,6 @@ pub struct HmGuiContainer {
     pub clip: bool,
     pub children_hash: u32,
     pub offset: Vec2, // TODO: move to widget?
-    pub total_stretch: Vec2,
-    pub scroll_dir: Option<ScrollDirection>,
 }
 
 impl HmGuiContainer {
@@ -388,8 +386,6 @@ impl HmGuiContainer {
         println!("{ident_str}- padding_upper:  {:?}", self.padding_upper);
         println!("{ident_str}- spacing:        {}", self.spacing);
         println!("{ident_str}- children_hash:  {}", self.children_hash);
-        println!("{ident_str}- total_stretch:  {:?}", self.total_stretch);
-        println!("{ident_str}- scroll_dir:     {:?}", self.scroll_dir);
         println!("{ident_str}- children[{}]:", self.children.len());
 
         for head_rf in &self.children {
