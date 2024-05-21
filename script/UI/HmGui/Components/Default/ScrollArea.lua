@@ -174,9 +174,9 @@ function ScrollArea:new(args)
                     (math.abs(scroll.x) > 0.3 or math.abs(scroll.y) > 0.3 or
                         math.abs(mouseDelata.x) > 0.5 or math.abs(mouseDelata.y) > 0.5)
                 then
-                    self.scrollbarActivationTime = EngineInstance:frameTime()
+                    self.scrollbarActivationTime = LimitTheoryRedux.lastUpdate
                 elseif self.scrollbarActivationTime then
-                    local elapsedTime = EngineInstance:frameTime():durationSince(self.scrollbarActivationTime)
+                    local elapsedTime = self.scrollbarActivationTime:getDifference(LimitTheoryRedux.lastUpdate) * 1000
 
                     if elapsedTime <= self.state.scrollbarVisibilityStableTimeMs() then
                         fadeScale = 1
