@@ -78,7 +78,6 @@ function Container:new(args)
         end
 
         Gui:beginContainer(self.state.layoutType())
-        Gui:clearStyle() -- clear properties
 
         if self.state.color().background then
             Gui:setBackgroundColor(self.state.color().background)

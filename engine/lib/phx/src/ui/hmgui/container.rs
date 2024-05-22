@@ -26,7 +26,7 @@ impl LayoutType {
     }
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct HmGuiContainer {
     pub children: Vec<Rf<HmGuiWidget>>,
 
@@ -40,6 +40,22 @@ pub struct HmGuiContainer {
     pub clip: bool,
     pub children_hash: u32,
     pub offset: Vec2, // TODO: move to widget?
+}
+
+impl Default for HmGuiContainer {
+    fn default() -> Self {
+        Self {
+            children: Default::default(),
+            layout: Default::default(),
+            children_alignment: Default::default(),
+            padding_lower: Default::default(),
+            padding_upper: Default::default(),
+            spacing: Default::default(),
+            clip: true,
+            children_hash: Default::default(),
+            offset: Default::default(),
+        }
+    }
 }
 
 impl HmGuiContainer {

@@ -108,7 +108,6 @@ function ScrollArea:new(args)
 
         -- external container
         Gui:beginStackContainer()
-        Gui:clearStyle() -- clear properties
 
         if self.state.color().background then
             Gui:setBackgroundColor(self.state.color().background)

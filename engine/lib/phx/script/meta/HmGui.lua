@@ -6,8 +6,7 @@ HmGui = {}
 ---Begin GUI declaration. Region is limited by [0, 0] - [sx, sy] rectangle.
 ---@param sx number
 ---@param sy number
----@param input Input
-function HmGui:beginGui(sx, sy, input) end
+function HmGui:beginGui(sx, sy) end
 
 ---Finish GUI declaration, calculate hierarchy widgets sizes and layout.
 ---@param input Input
@@ -143,6 +142,9 @@ function HmGui:setBackgroundColor(color) end
 ---@param opacity number
 function HmGui:setOpacity(opacity) end
 
+---@param clip boolean
+function HmGui:setClipping(clip) end
+
 ---@param px number
 ---@param py number
 function HmGui:setPadding(px, py) end
@@ -177,96 +179,6 @@ function HmGui:setChildrenHorizontalAlignment(align) end
 
 ---@param align AlignVertical
 function HmGui:setChildrenVerticalAlignment(align) end
-
----Set a theme by merging it into the default properties.
----@param name string
-function HmGui:setTheme(name) end
-
----Restore default properties.
-function HmGui:clearTheme() end
-
----Create a new empty style.
----Returns style id or None/nil if style with the same name already exists.
----
----Example:
----```lua
----local styleId = Gui:newStyle("MyStyle")
----Gui:setStyleProperty(GuiProperties.BackgroundColor, Color(1, 0, 0, 1))
----Gui:setStyleProperty(GuiProperties.Opacity, 0.5)
----
------ Later in the code
----
----Gui:setStyle(styleId)
----Gui:beginStackContainer()
----
----Gui:endContainer()
----```
----@param name string
----@return integer
-function HmGui:newStyle(name) end
-
----Sets style property value.
----See example in `Gui:newStyle()` method description.
----@param styleId integer
----@param propId integer
----@param value GuiPropertyValue
-function HmGui:setStylePropertyValue(styleId, propId, value) end
-
----Get style id by its name.
----@param name string
----@return integer
-function HmGui:getStyleId(name) end
-
----Set a style for the following element by its id.
----Completely replaces current style with a new one.
----@param id integer
-function HmGui:setStyle(id) end
-
----Set a style for the following element by its name.
----Completely replaces current style with a new one.
----NOTE: this method is slower than 'id' version.
----@param name string
-function HmGui:setStyleByName(name) end
-
----Remove element style.
-function HmGui:clearStyle() end
-
----Get property type by its id.
----@param id integer
----@return GuiPropertyType
-function HmGui:getPropertyType(id) end
-
----Write property value into the mapped properties in the active element style.
----@param propertyId integer
-function HmGui:mapProperty(propertyId) end
-
----Write all properties values of the group into their mapped properties in the active element style.
----Example: `gui.map_property_group("button")`
----It will map all properties with prefix "button.".
----@param group string
-function HmGui:mapPropertyGroup(group) end
-
----Remove property by id from the active element style.
----@param propertyId integer
-function HmGui:removeProperty(propertyId) end
-
----@param name string
----@param value GuiPropertyValue
----@param mapId string
----@return integer
-function HmGui:registerProperty(name, value, mapId) end
-
----@param id integer
----@param value GuiPropertyValue
-function HmGui:setPropertyValue(id, value) end
-
----@param id integer
----@return GuiPropertyValue
-function HmGui:getPropertyValue(id) end
-
----Get number of registered properties.
----@return integer
-function HmGui:getPropertiesCount() end
 
 ---Prints widgets hierarchy to the console. For testing.
 function HmGui:dumpWidgets() end

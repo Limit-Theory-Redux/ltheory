@@ -1,14 +1,9 @@
 mod alignment;
 mod container;
-mod core_properties;
 mod data;
 mod focus_type;
 mod gui;
 mod image;
-mod property;
-mod property_registry;
-mod style;
-mod style_registry;
 mod text;
 mod widget;
 
@@ -17,14 +12,9 @@ use internal::*;
 pub use self::image::*;
 pub use alignment::*;
 pub use container::*;
-pub use core_properties::*;
 pub(self) use data::*;
 pub use focus_type::*;
 pub use gui::*;
-pub use property::*;
-pub use property_registry::*;
-pub use style::*;
-pub use style_registry::*;
 pub use text::*;
 pub use widget::*;
 
@@ -40,7 +30,6 @@ mod tests {
     use glam::Vec2;
 
     use crate::input::Input;
-    use crate::render::Color;
 
     use super::*;
 
@@ -111,18 +100,14 @@ mod tests {
     fn test_hmgui_stack_layout_basic() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
         gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -157,18 +142,14 @@ mod tests {
     fn test_hmgui_stack_layout_stretch() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -204,19 +185,15 @@ mod tests {
     fn test_hmgui_stack_layout_docking_fixed_size_priority() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_fixed_size(50.0, 50.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -252,19 +229,15 @@ mod tests {
     fn test_hmgui_stack_layout_partial_stretch() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(30.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
@@ -301,29 +274,23 @@ mod tests {
     fn test_hmgui_stack_layout_stick_to_sides() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
         gui.set_horizontal_alignment(AlignHorizontal::Left);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_horizontal_alignment(AlignHorizontal::Right);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
         gui.set_vertical_alignment(AlignVertical::Top);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_vertical_alignment(AlignVertical::Bottom);
@@ -362,18 +329,14 @@ mod tests {
     fn test_hmgui_stack_layout_oversize() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(500.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 400.0);
 
@@ -409,33 +372,26 @@ mod tests {
     fn test_hmgui_vertical_layout_stretch() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
         gui.begin_vertical_container();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(20.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(20.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -473,23 +429,18 @@ mod tests {
     fn test_hmgui_vertical_layout_stretch_secondary_dim() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
         gui.begin_vertical_container();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -525,7 +476,7 @@ mod tests {
     fn test_hmgui_vertical_layout_dock_children() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
 
         // Vertical 1: dock top
         gui.begin_vertical_container();
@@ -533,13 +484,9 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Top);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -551,11 +498,9 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Bottom);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -604,33 +549,26 @@ mod tests {
     fn test_hmgui_horizontal_layout_stretch() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
         gui.begin_horizontal_container();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
         gui.set_children_vertical_alignment(AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(20.0);
         gui.set_vertical_alignment(AlignVertical::Stretch);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(20.0);
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -668,23 +606,18 @@ mod tests {
     fn test_hmgui_horizontal_layout_stretch_secondary_dim() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
         gui.begin_horizontal_container();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Stretch);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -720,7 +653,7 @@ mod tests {
     fn test_hmgui_horizontal_layout_dock_children() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
 
         // Horizontal 1: dock left
         gui.begin_horizontal_container();
@@ -728,13 +661,9 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Left, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -746,11 +675,9 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Right, AlignVertical::Center);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
@@ -798,7 +725,7 @@ mod tests {
     fn test_hmgui_evenly_stretching() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
 
         // Horizontal
         gui.begin_horizontal_container();
@@ -806,17 +733,12 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Stretch, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(40.0);
 
@@ -828,19 +750,15 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Stretch);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(40.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(50.0);
 
@@ -892,7 +810,7 @@ mod tests {
     fn test_hmgui_vertical_layout_margin_border_padding_spacing() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
 
         gui.begin_vertical_container();
         gui.set_margin(5.0, 5.0);
@@ -902,19 +820,14 @@ mod tests {
         gui.set_spacing(10.0);
         gui.set_children_horizontal_alignment(AlignHorizontal::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_margin(13.0, 13.0);
         gui.set_border_width(2.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -952,7 +865,7 @@ mod tests {
     fn test_hmgui_horizontal_layout_margin_border_padding_spacing() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
 
         gui.begin_horizontal_container();
         gui.set_margin(5.0, 5.0);
@@ -962,19 +875,14 @@ mod tests {
         gui.set_spacing(10.0);
         gui.set_children_vertical_alignment(AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(30.0, 20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_margin(13.0, 13.0);
         gui.set_border_width(2.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
@@ -1011,33 +919,29 @@ mod tests {
     fn test_hmgui_stack_percentage_size() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
 
         // Stack
         gui.begin_stack_container();
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
         // Inside container
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
+
         gui.rect();
         gui.set_percent_width(70.0);
         gui.set_fixed_height(20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
         gui.set_percent_height(60.0);
 
         // Outside container
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
+
         gui.rect();
         gui.set_percent_width(120.0);
         gui.set_fixed_height(20.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
         gui.set_percent_height(130.0);
@@ -1076,7 +980,7 @@ mod tests {
     fn test_hmgui_horizontal_percentage_size() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
 
         // Horizontal: first widget - fixed size - 20, second - 50% = 140, last - expands to non remaining width - 140
         gui.begin_horizontal_container();
@@ -1084,19 +988,14 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_percent_width(50.0);
         gui.set_min_width(0.0);
         gui.set_fixed_height(30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(40.0);
         gui.set_min_width(0.0);
@@ -1110,17 +1009,14 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_percent_width(150.0);
         gui.set_min_width(0.0);
         gui.set_fixed_height(30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_height(40.0);
         gui.set_min_width(0.0);
@@ -1172,7 +1068,7 @@ mod tests {
     fn test_hmgui_vertical_percentage_size() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
 
         // Vertical: first widget - fixed size - 30, second - 50% = 85, last - expands to non remaining width - 115
         gui.begin_vertical_container();
@@ -1180,19 +1076,14 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
         gui.set_min_height(0.0);
         gui.set_percent_height(50.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(40.0);
         gui.set_min_height(0.0);
@@ -1206,17 +1097,14 @@ mod tests {
         gui.set_spacing(0.0);
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(30.0);
         gui.set_min_height(0.0);
         gui.set_percent_height(120.0);
 
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
         gui.rect();
         gui.set_fixed_width(40.0);
         gui.set_min_height(0.0);
@@ -1268,19 +1156,17 @@ mod tests {
     fn test_hmgui_alignment_combination() {
         let (mut gui, input) = init_test();
 
-        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_gui(300.0, 200.0);
 
         gui.begin_horizontal_container();
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
         gui.set_spacing(0.0);
         gui.set_children_vertical_alignment(AlignVertical::Stretch);
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
-
         gui.begin_vertical_container();
         gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
         gui.set_percent_width(10.0);
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
+
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.end_container();
@@ -1288,7 +1174,7 @@ mod tests {
         gui.begin_horizontal_container();
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
         gui.set_children_horizontal_alignment(AlignHorizontal::Center);
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
+
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_vertical_alignment(AlignVertical::Center);
@@ -1296,7 +1182,7 @@ mod tests {
 
         gui.begin_stack_container();
         gui.set_percent_width(10.0);
-        gui.set_property(HmGuiProperties::BackgroundColor, color);
+
         gui.rect();
         gui.set_fixed_size(20.0, 30.0);
         gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);

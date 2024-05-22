@@ -102,9 +102,9 @@ impl HmGuiWidget {
             margin_lower: Default::default(),
             border_width: Default::default(),
 
-            border_color: Default::default(),
-            background_color: Default::default(),
-            opacity: Default::default(),
+            border_color: Color::TRANSPARENT,
+            background_color: Color::TRANSPARENT,
+            opacity: 1.0,
 
             min_size: Default::default(),
             inner_min_size: Vec2::new(20.0, 20.0),

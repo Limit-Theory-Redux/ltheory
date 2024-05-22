@@ -1986,7 +1986,6 @@ dependencies = [
  "memoffset",
  "mlua",
  "num_cpus",
- "phx_macros",
  "rapier3d-f64",
  "raw-window-handle 0.5.2",
  "regex",
@@ -1997,15 +1996,6 @@ dependencies = [
  "tracing-subscriber",
  "walkdir",
  "winit",
-]
-
-[[package]]
-name = "phx_macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.60",
 ]
 
 [[package]]

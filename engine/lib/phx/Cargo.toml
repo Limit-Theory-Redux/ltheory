@@ -13,7 +13,6 @@ crate-type = ["cdylib"]
 # workspace crates
 internal.workspace = true
 luajit-ffi-gen.workspace = true
-phx_macros.workspace = true
 
 # external crates
 chrono = "0.4"

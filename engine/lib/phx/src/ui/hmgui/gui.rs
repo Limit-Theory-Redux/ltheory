@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::collections::HashMap;
 
 use glam::*;
@@ -24,13 +23,6 @@ pub struct HmGui {
     data: HashMap<u64, HmGuiData>,
     mouse_over_widget_hash: [u64; 2],
     focus_pos: Vec2,
-    activate: bool,
-
-    default_property_registry: HmGuiPropertyRegistry,
-    property_registry: HmGuiPropertyRegistry,
-    theme_registry: HmGuiStyleRegistry,
-    style_registry: HmGuiStyleRegistry,
-    element_style: HmGuiStyle,
 }
 
 impl HmGui {
@@ -49,36 +41,6 @@ impl HmGui {
         let container = root.clone();
         let last = root.clone();
 
-        let property_registry = HmGuiPropertyRegistry::new();
-        let default_property_registry = property_registry.clone();
-
-        let f = |_: &str, name: &str| {
-            property_registry
-                .registry
-                .get_full(name)
-                .map(|(id, _, prop)| (id.into(), prop.value.get_type()))
-        };
-
-        let theme_folders = Resource::get_folders(ResourceType::Theme);
-        let mut theme_registry = HmGuiStyleRegistry::default();
-        for folder_path in theme_folders {
-            let registry = HmGuiStyleRegistry::load(&folder_path, f);
-            if registry.size() > 0 {
-                theme_registry = registry;
-                break;
-            }
-        }
-
-        let style_folders = Resource::get_folders(ResourceType::Other);
-        let mut style_registry = HmGuiStyleRegistry::default();
-        for folder_path in style_folders {
-            let file_path = folder_path.join("styles.yaml");
-            if file_path.is_file() {
-                style_registry = HmGuiStyleRegistry::load_map(&file_path, f);
-                break;
-            }
-        }
-
         Self {
             renderer: Default::default(),
             root,
@@ -87,12 +49,6 @@ impl HmGui {
             data: HashMap::with_capacity(128),
             mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
-            activate: false,
-            default_property_registry,
-            property_registry,
-            theme_registry,
-            style_registry,
-            element_style: Default::default(),
         }
     }
 
@@ -102,23 +58,6 @@ impl HmGui {
 
     pub fn mouse_over_widget_hash(&self) -> u64 {
         self.mouse_over_widget_hash[FocusType::Mouse as usize]
-    }
-
-    fn apply_widget_properties(&self, widget: &mut HmGuiWidget) {
-        let color = self
-            .get_property_value(HmGuiProperties::BorderColor.id())
-            .get_color();
-        widget.set_border_color(&color);
-
-        let color = self
-            .get_property_value(HmGuiProperties::BackgroundColor.id())
-            .get_color();
-        widget.set_background_color(&color);
-
-        let opacity = self
-            .get_property_value(HmGuiProperties::Opacity.id())
-            .get_f32();
-        widget.set_opacity(opacity);
     }
 
     /// Add a new widget into the current container.
@@ -131,8 +70,6 @@ impl HmGui {
         parent_container.children_hash = (parent_container.children_hash).wrapping_add(1);
 
         let mut widget = HmGuiWidget::new(Some(parent_rf.clone()), item);
-
-        self.apply_widget_properties(&mut widget);
 
         widget.hash = unsafe {
             Hash_FNV64_Incremental(
@@ -154,10 +91,6 @@ impl HmGui {
     /// Get persistent data of the widget by its hash.
     pub fn get_data(&mut self, widget_hash: u64) -> &mut HmGuiData {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
-    }
-
-    pub fn set_property<T: Into<HmGuiPropertyValue>>(&mut self, id: HmGuiProperties, value: T) {
-        self.set_property_value(id.id(), &value.into());
     }
 
     /// Calculate if mouse is over the widget. Recursively iterate over container widgets.
@@ -191,7 +124,7 @@ impl HmGui {
 #[luajit_ffi_gen::luajit_ffi]
 impl HmGui {
     /// Begin GUI declaration. Region is limited by [0, 0] - [sx, sy] rectangle.
-    pub fn begin_gui(&mut self, sx: f32, sy: f32, input: &Input) {
+    pub fn begin_gui(&mut self, sx: f32, sy: f32) {
         let root = &mut self.root.as_mut();
 
         root.inner_pos = Vec2::ZERO;
@@ -199,20 +132,12 @@ impl HmGui {
         root.inner_size = Vec2::new(sx, sy);
         root.size = root.inner_size;
 
-        self.apply_widget_properties(root.borrow_mut());
-
         let root_container = root.get_container_item_mut();
         root_container.children.clear();
         root_container.children_hash = 0;
 
-        root_container.spacing = self
-            .get_property_value(HmGuiProperties::ContainerSpacing.id())
-            .get_f32();
-
         self.container = self.root.clone();
         self.last = self.root.clone();
-
-        self.activate = input.mouse().is_pressed(MouseControl::Left);
     }
 
     /// Finish GUI declaration, calculate hierarchy widgets sizes and layout.
@@ -264,17 +189,8 @@ impl HmGui {
 
     /// Start a new container with a specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
-        let spacing = self
-            .get_property_value(HmGuiProperties::ContainerSpacing.id())
-            .get_f32();
-        let clip = self
-            .get_property_value(HmGuiProperties::ContainerClip.id())
-            .get_bool();
-
         let container = HmGuiContainer {
             layout,
-            spacing,
-            clip,
             ..Default::default()
         };
 
@@ -527,6 +443,13 @@ impl HmGui {
 
     // Container --------------------------------------------------------------
 
+    pub fn set_clipping(&self, clip: bool) {
+        let mut widget = self.container.as_mut();
+        let container = widget.get_container_item_mut();
+
+        container.clip = clip;
+    }
+
     pub fn set_padding(&self, px: f32, py: f32) {
         let mut widget = self.container.as_mut();
         let container = widget.get_container_item_mut();
@@ -597,217 +520,6 @@ impl HmGui {
         let container = widget.get_container_item_mut();
 
         container.children_alignment[1] = align.into();
-    }
-
-    // Theme methods ----------------------------------------------------------
-
-    /// Set a theme by merging it into the default properties.
-    pub fn set_theme(&mut self, name: &str) {
-        let mut property_registry = self.default_property_registry.clone();
-
-        self.theme_registry.merge_to(&mut property_registry, name);
-
-        self.property_registry = property_registry;
-    }
-
-    /// Restore default properties.
-    pub fn clear_theme(&mut self) {
-        self.property_registry = self.default_property_registry.clone();
-    }
-
-    // Style methods ----------------------------------------------------------
-
-    /// Create a new empty style.
-    /// Returns style id or None/nil if style with the same name already exists.
-    ///
-    /// Example:
-    /// ```lua
-    /// local styleId = Gui:newStyle("MyStyle")
-    /// Gui:setStyleProperty(GuiProperties.BackgroundColor, Color(1, 0, 0, 1))
-    /// Gui:setStyleProperty(GuiProperties.Opacity, 0.5)
-    ///
-    /// -- Later in the code
-    ///
-    /// Gui:setStyle(styleId)
-    /// Gui:beginStackContainer()
-    ///
-    /// Gui:endContainer()
-    /// ```
-    pub fn new_style(&mut self, name: &str) -> Option<usize> {
-        self.style_registry.create_style(name).map(|id| *id)
-    }
-
-    /// Sets style property value.
-    /// See example in `Gui:newStyle()` method description.
-    pub fn set_style_property_value(
-        &mut self,
-        style_id: usize,
-        prop_id: usize,
-        value: &HmGuiPropertyValue,
-    ) {
-        let (_, prop) = self
-            .default_property_registry
-            .registry
-            .get_index(prop_id)
-            .unwrap_or_else(|| {
-                panic!("Unknown property id {prop_id}");
-            });
-        assert_eq!(
-            prop.value.get_type(),
-            value.get_type(),
-            "Wrong property type"
-        );
-
-        let style = self
-            .style_registry
-            .get_mut(style_id.into())
-            .expect(&format!("Unknown style with id: {style_id:?}"));
-
-        style.set_property_value(prop_id.into(), value);
-    }
-
-    /// Get style id by its name.
-    pub fn get_style_id(&self, name: &str) -> usize {
-        *self
-            .style_registry
-            .get_id(name)
-            .expect(&format!("Unknown style: {name}"))
-    }
-
-    /// Set a style for the following element by its id.
-    /// Completely replaces current style with a new one.
-    pub fn set_style(&mut self, id: usize) {
-        self.element_style = self
-            .style_registry
-            .get(id.into())
-            .expect(&format!("Unknown style with id: {id:?}"))
-            .clone();
-    }
-
-    /// Set a style for the following element by its name.
-    /// Completely replaces current style with a new one.
-    /// NOTE: this method is slower than 'id' version.
-    pub fn set_style_by_name(&mut self, name: &str) {
-        self.element_style = self
-            .style_registry
-            .get_by_name(name)
-            .expect(&format!("Unknown style: {name:?}"))
-            .clone();
-    }
-
-    /// Remove element style.
-    pub fn clear_style(&mut self) {
-        self.element_style.properties.clear();
-    }
-
-    // Property methods -------------------------------------------------------
-
-    /// Get property type by its id.
-    pub fn get_property_type(&self, id: usize) -> HmGuiPropertyType {
-        self.default_property_registry.registry[id].value.get_type()
-    }
-
-    /// Write property value into the mapped properties in the active element style.
-    pub fn map_property(&mut self, property_id: usize) {
-        let map_ids = &self.property_registry.registry[property_id].map_ids;
-        if map_ids.is_empty() {
-            return;
-        }
-
-        let prop = self.get_property_value(property_id).clone();
-
-        for map_id in map_ids {
-            self.element_style.properties.insert(*map_id, prop.clone());
-        }
-    }
-
-    /// Write all properties values of the group into their mapped properties in the active element style.
-    /// Example: `gui.map_property_group("button")`
-    ///   It will map all properties with prefix "button.".
-    pub fn map_property_group(&mut self, group: &str) {
-        let prefix = format!("{group}.");
-        let property_ids: Vec<_> = self
-            .property_registry
-            .registry
-            .iter()
-            .enumerate()
-            .filter_map(|(property_id, (name, _))| name.starts_with(&prefix).then(|| property_id))
-            .collect();
-
-        for property_id in property_ids {
-            self.map_property(property_id);
-        }
-    }
-
-    /// Remove property by id from the active element style.
-    pub fn remove_property(&mut self, property_id: usize) {
-        self.element_style.properties.remove(&property_id.into());
-    }
-
-    pub fn register_property(
-        &mut self,
-        name: &str,
-        value: &HmGuiPropertyValue,
-        map_id: Option<&str>,
-    ) -> usize {
-        let mut map_ids = vec![];
-
-        if let Some(map_id_str) = map_id {
-            let (map_id, _, _) = self
-                .default_property_registry
-                .registry
-                .get_full(map_id_str)
-                .unwrap_or_else(|| panic!("{name:?} has unknown map property: {map_id_str}"));
-
-            map_ids.push(map_id.into());
-        }
-
-        let def_id = self
-            .default_property_registry
-            .register(name, value.clone(), &map_ids);
-        let id = self
-            .property_registry
-            .register(name, value.clone(), &map_ids);
-        debug_assert_eq!(def_id, id);
-
-        *id
-    }
-
-    pub fn set_property_value(&mut self, id: usize, value: &HmGuiPropertyValue) {
-        let (_, prop) = self
-            .default_property_registry
-            .registry
-            .get_index(id)
-            .unwrap_or_else(|| {
-                panic!("Unknown property id {id}");
-            });
-        assert_eq!(
-            prop.value.get_type(),
-            value.get_type(),
-            "Wrong property type"
-        );
-
-        self.element_style
-            .properties
-            .insert(id.into(), value.clone());
-    }
-
-    pub fn get_property_value(&self, id: usize) -> &HmGuiPropertyValue {
-        let prop_id = id.into();
-        if let Some(prop) = self.element_style.properties.get(&prop_id) {
-            return prop;
-        }
-
-        if let Some((_, prop)) = self.property_registry.registry.get_index(id) {
-            return &prop.value;
-        }
-
-        panic!("Unknown property id {id}");
-    }
-
-    /// Get number of registered properties.
-    pub fn get_properties_count(&self) -> usize {
-        self.default_property_registry.registry.len()
     }
 
     /// Prints widgets hierarchy to the console. For testing.
