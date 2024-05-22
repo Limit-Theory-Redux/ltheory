@@ -115,11 +115,6 @@ impl HmGui {
             .get_color();
         widget.set_background_color(&color);
 
-        let color = self
-            .get_property_value(HmGuiProperties::HighlightColor.id())
-            .get_color();
-        widget.set_highlight_color(&color);
-
         let opacity = self
             .get_property_value(HmGuiProperties::Opacity.id())
             .get_f32();
