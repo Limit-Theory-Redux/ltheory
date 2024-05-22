@@ -24,6 +24,10 @@ local updateSensorsInterval = 2 / 10
 local deltaSensorsTimer = 0
 local barTweak = 0
 
+local updateTargetsInterval = 1 / 60
+local lastTargetsUpdate = 0
+local deltaTimer = 0
+
 function HUD:drawSystemText(a)
     local cx, cy = self.sx / 2, self.sy / 2
 
@@ -393,7 +397,7 @@ function HUD:drawTargetSpeed(a)
         local hudFsize = hudFontSize
         if GameState.ui.hudStyle == Enums.HudStyles.Wide then
             hudX = cx + 70
-            hudY = 150
+            hudY = 146
             hudFsize = hudFontSize
         elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
             hudX = cx + 70
@@ -1113,26 +1117,27 @@ function HUD:drawTacticalMap(a)
     local radiusOuterRing = 70
     local radiusInnerRing = 44
     local radiusScaleRing = 10
+    local mapHeight = 82
 
     -- Draw tactical map
-    UI.DrawEx.Ring(cx, self.sy - 76, radiusOuterRing, Config.ui.color.meterBarLight, true)
-    UI.DrawEx.Ring(cx, self.sy - 76, radiusInnerRing, Config.ui.color.meterBarLight, false)
+    if GameState.ui.tacMapRange > Enums.HudTacMapRanges.Normal then
+        UI.DrawEx.Ring(cx, self.sy - mapHeight, radiusOuterRing + 10, Config.ui.color.meterBarLight, true)
+    end
+    if GameState.ui.tacMapRange > Enums.HudTacMapRanges.Close then
+        UI.DrawEx.Ring(cx, self.sy - mapHeight, radiusOuterRing + 5, Config.ui.color.meterBarLight, true)
+    end
+    UI.DrawEx.Ring(cx, self.sy - mapHeight, radiusOuterRing, Config.ui.color.meterBarLight, true)
+    UI.DrawEx.Ring(cx, self.sy - mapHeight, radiusInnerRing, Config.ui.color.meterBarLight, false)
 
-    UI.DrawEx.Line(cx, self.sy - 144, cx, self.sy - 6, Config.ui.color.meterBarLight, false)
-    UI.DrawEx.Line(cx - radiusOuterRing, self.sy - 78, cx + radiusOuterRing, self.sy - 78, Config.ui.color.meterBarLight, false)
+    UI.DrawEx.Line(cx, self.sy - 150, cx, self.sy - 12, Config.ui.color.meterBarLight, false)
+    UI.DrawEx.Line(cx - radiusOuterRing, self.sy - 84, cx + radiusOuterRing, self.sy - 84, Config.ui.color.meterBarLight, false)
 
-    UI.DrawEx.Line(cx - 48, self.sy - 124, cx, self.sy - 78, Config.ui.color.meterBarLight, false)
-    UI.DrawEx.Line(cx + 48, self.sy - 124, cx, self.sy - 78, Config.ui.color.meterBarLight, false)
-
-    UI.DrawEx.Ring(cx - 70, self.sy - 16, radiusScaleRing, Config.ui.color.meterBarLight, false)
-    UI.DrawEx.Ring(cx + 70, self.sy - 16, radiusScaleRing, Config.ui.color.meterBarLight, false)
-
-    UI.DrawEx.TextAlpha("UbuntuBold", "-", 34, cx - 75, self.sy - 14, 10, 10, 0.5, 0.6, 1.0, 1.0, 0.5, 0.5)
-    UI.DrawEx.TextAlpha("UbuntuBold", "+", 28, cx + 65, self.sy - 21, 10, 10, 0.5, 0.6, 1.0, 1.0, 0.5, 0.5)
+    UI.DrawEx.Line(cx - 48, self.sy - 130, cx, self.sy - 84, Config.ui.color.meterBarLight, false)
+    UI.DrawEx.Line(cx + 48, self.sy - 130, cx, self.sy - 84, Config.ui.color.meterBarLight, false)
 
     -- Loop through nearby stations and ships and draw them on the tactical map
     local ix = self.sx / 2
-    local iy = self.sy - 76
+    local iy = self.sy - mapHeight
     local r = 1.0
     local c = Color(1.0, 1.0, 1.0, 1.0)
 
@@ -1180,10 +1185,6 @@ function HUD:drawTacticalMap(a)
         end
     end
 end
-
-local updateTargetsInterval = 1 / 60
-local lastTargetsUpdate = 0
-local deltaTimer = 0
 
 local function getPosObject(def)
     local object = {}
