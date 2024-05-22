@@ -16,7 +16,6 @@ ltr = { path = "engine/bin/ltr" }
 internal = { path = "engine/lib/internal" }
 phx = { path = "engine/lib/phx" }
 luajit-ffi-gen = { path = "engine/lib/luajit-ffi-gen" }
-phx_macros = { path = "engine/lib/phx_macros" }
 
 # external crates
 proc-macro2 = "1.0"

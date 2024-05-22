@@ -73,7 +73,6 @@ pub struct HmGuiWidget {
     // Style
     pub border_color: Color,
     pub background_color: Color,
-    pub highlight_color: Color,
     pub opacity: f32,
 
     /// Widget min size after compute_size() including margin and border
@@ -103,10 +102,9 @@ impl HmGuiWidget {
             margin_lower: Default::default(),
             border_width: Default::default(),
 
-            border_color: Default::default(),
-            background_color: Default::default(),
-            highlight_color: Default::default(),
-            opacity: Default::default(),
+            border_color: Color::TRANSPARENT,
+            background_color: Color::TRANSPARENT,
+            opacity: 1.0,
 
             min_size: Default::default(),
             inner_min_size: Vec2::new(20.0, 20.0),
@@ -121,10 +119,6 @@ impl HmGuiWidget {
 
     pub fn set_background_color(&mut self, color: &Color) {
         self.background_color = *color;
-    }
-
-    pub fn set_highlight_color(&mut self, color: &Color) {
-        self.highlight_color = *color;
     }
 
     pub fn set_opacity(&mut self, opacity: f32) {
@@ -276,16 +270,10 @@ impl HmGuiWidget {
     }
 
     fn draw_background(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
-        let is_mouse_over = self.mouse_over[FocusType::Mouse as usize]
-            && hmgui.mouse_over_widget_hash() == self.hash;
-        let color = if is_mouse_over {
-            self.highlight_color
-        } else {
-            self.background_color
-        };
-
-        if color.is_opaque() || self.opacity > 0.0 {
-            hmgui.renderer.panel(pos, size, color, 0.0, self.opacity);
+        if self.background_color.is_opaque() || self.opacity > 0.0 {
+            hmgui
+                .renderer
+                .panel(pos, size, self.background_color, 0.0, self.opacity);
         }
     }
 
@@ -307,7 +295,6 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}- margin_lower:     {:?}", self.margin_lower);
         println!("{ident_str}{IDENT}- border_width:     {}",   self.border_width);
         println!("{ident_str}{IDENT}- background_color: {:?}", self.background_color);
-        println!("{ident_str}{IDENT}- highlight_color:  {:?}", self.highlight_color);
         println!("{ident_str}{IDENT}- opacity:          {}", self.opacity);
         println!("{ident_str}{IDENT}- min_size:         {:?}", self.min_size);
         println!("{ident_str}{IDENT}- inner_min_size:   {:?}", self.inner_min_size);

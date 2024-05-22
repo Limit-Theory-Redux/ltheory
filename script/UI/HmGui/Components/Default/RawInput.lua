@@ -33,7 +33,6 @@ function RawInput:new(args)
 
     newRawInput.render = function(self)
         args:fn()
-        Gui:clearStyle() -- automatically call clearStyle() so styling doesn´t get applied to other components
     end
 
     return newRawInput

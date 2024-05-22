@@ -58,7 +58,7 @@ function Button:new(args)
         color = {
             text = args.color and args.color.text or Color(1.0, 1.0, 1.0, 1.0),
             background = args.color and args.color.background or Color(0.0, 0.0, 0.0, 1.0),
-            highlight = args.color and args.color.highlight or Color(0.1, 0.1, 0.1, 1.0)
+            highlight = args.color and args.color.highlight or Color(0.3, 0.3, 0.3, 1.0)
         },
         font = args.font or { name = "Unageo-Regular", size = 13 },
         callback = args.callback or function() Log.Warn("undefined button callback function: " .. args.title) end
@@ -72,21 +72,15 @@ function Button:new(args)
         Gui:beginStackContainer()
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 
-        Gui:setProperty(GuiProperties.Opacity, 1.0)
-        Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().background)
-        Gui:setProperty(GuiProperties.HighlightColor, self.state.color().highlight)
         Gui:beginStackContainer()
+        Gui:setOpacity(1.0)
 
-        local buttonClicked = Gui:isMouseOver(FocusType.Mouse) and InputInstance:mouse():isPressed(MouseControl.Left)
-
-        -- no need for an if check, since we always have a default defined
-        Gui:setProperty(GuiProperties.TextFont, Cache.Font(self.state.font().name, self.state.font().size))
-        Gui:setProperty(GuiProperties.TextColor, self.state.color().text)
-
-        Gui:text(self.state.title())
-        Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
-
-        Gui:endContainer()
+        local isMouseOver = Gui:isMouseOver(FocusType.Mouse)
+        if isMouseOver then
+            Gui:setBackgroundColor(self.state.color().highlight)
+        else
+            Gui:setBackgroundColor(self.state.color().background)
+        end
 
         if self.state.width then Gui:setFixedWidth(self.state.width()) end
         if self.state.height then Gui:setFixedHeight(self.state.height()) end
@@ -94,10 +88,15 @@ function Button:new(args)
         if self.state.padding then Gui:setPadding(self.state.padding()[1], self.state.padding()[2]) end
         if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end
 
+        -- no need for an if check, since we always have a default defined
+        Gui:text(self.state.title(), Cache.Font(self.state.font().name, self.state.font().size), self.state.color().text)
+        Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
+
         Gui:endContainer()
 
-        Gui:clearStyle() -- clear style so it doesn´t affect other components
+        Gui:endContainer()
 
+        local buttonClicked = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
         if buttonClicked then
             -- hardcoding the sound
             if Config.audio.sounds.click then

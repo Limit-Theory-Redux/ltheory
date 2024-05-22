@@ -16,71 +16,57 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void                    HmGui_Free                           (HmGui*);
-            void                    HmGui_BeginGui                       (HmGui*, float sx, float sy, Input const* input);
-            void                    HmGui_EndGui                         (HmGui*, Input const* input);
-            void                    HmGui_Draw                           (HmGui*);
-            void                    HmGui_BeginContainer                 (HmGui*, GuiLayoutType layout);
-            void                    HmGui_BeginStackContainer            (HmGui*);
-            void                    HmGui_BeginHorizontalContainer       (HmGui*);
-            void                    HmGui_BeginVerticalContainer         (HmGui*);
-            void                    HmGui_EndContainer                   (HmGui*);
-            Vec2f                   HmGui_UpdateContainerOffset          (HmGui*, Vec2f offset);
-            Vec2f                   HmGui_ContainerSize                  (HmGui*);
-            Vec2f                   HmGui_ContainerMinSize               (HmGui*);
-            void                    HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
-            void                    HmGui_Image                          (HmGui*, Tex2D* image);
-            void                    HmGui_Rect                           (HmGui*);
-            void                    HmGui_Text                           (HmGui*, cstr text);
-            void                    HmGui_TextColored                    (HmGui*, cstr text, Color const* color);
-            void                    HmGui_TextEx                         (HmGui*, Font const* font, cstr text, Color const* color);
-            bool                    HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
-            void                    HmGui_SetMinWidth                    (HmGui const*, float width);
-            void                    HmGui_SetMinHeight                   (HmGui const*, float height);
-            void                    HmGui_SetMinSize                     (HmGui const*, float width, float height);
-            void                    HmGui_SetFixedWidth                  (HmGui const*, float width);
-            void                    HmGui_SetFixedHeight                 (HmGui const*, float height);
-            void                    HmGui_SetFixedSize                   (HmGui const*, float width, float height);
-            void                    HmGui_SetPercentWidth                (HmGui const*, float width);
-            void                    HmGui_SetPercentHeight               (HmGui const*, float height);
-            void                    HmGui_SetPercentSize                 (HmGui const*, float width, float height);
-            void                    HmGui_SetMargin                      (HmGui const*, float px, float py);
-            void                    HmGui_SetMarginEx                    (HmGui const*, float left, float top, float right, float bottom);
-            void                    HmGui_SetMarginLeft                  (HmGui const*, float margin);
-            void                    HmGui_SetMarginTop                   (HmGui const*, float margin);
-            void                    HmGui_SetMarginRight                 (HmGui const*, float margin);
-            void                    HmGui_SetMarginBottom                (HmGui const*, float margin);
-            void                    HmGui_SetBorderWidth                 (HmGui const*, float width);
-            void                    HmGui_SetAlignment                   (HmGui const*, AlignHorizontal h, AlignVertical v);
-            void                    HmGui_SetHorizontalAlignment         (HmGui const*, AlignHorizontal align);
-            void                    HmGui_SetVerticalAlignment           (HmGui const*, AlignVertical align);
-            void                    HmGui_SetPadding                     (HmGui const*, float px, float py);
-            void                    HmGui_SetPaddingEx                   (HmGui const*, float left, float top, float right, float bottom);
-            void                    HmGui_SetPaddingLeft                 (HmGui const*, float padding);
-            void                    HmGui_SetPaddingTop                  (HmGui const*, float padding);
-            void                    HmGui_SetPaddingRight                (HmGui const*, float padding);
-            void                    HmGui_SetPaddingBottom               (HmGui const*, float padding);
-            void                    HmGui_SetSpacing                     (HmGui const*, float spacing);
-            void                    HmGui_SetChildrenAlignment           (HmGui const*, AlignHorizontal h, AlignVertical v);
-            void                    HmGui_SetChildrenHorizontalAlignment (HmGui const*, AlignHorizontal align);
-            void                    HmGui_SetChildrenVerticalAlignment   (HmGui const*, AlignVertical align);
-            void                    HmGui_SetTheme                       (HmGui*, cstr name);
-            void                    HmGui_ClearTheme                     (HmGui*);
-            uint64 const*           HmGui_NewStyle                       (HmGui*, cstr name);
-            void                    HmGui_SetStylePropertyValue          (HmGui*, uint64 styleId, uint64 propId, GuiPropertyValue const* value);
-            uint64                  HmGui_GetStyleId                     (HmGui const*, cstr name);
-            void                    HmGui_SetStyle                       (HmGui*, uint64 id);
-            void                    HmGui_SetStyleByName                 (HmGui*, cstr name);
-            void                    HmGui_ClearStyle                     (HmGui*);
-            GuiPropertyType         HmGui_GetPropertyType                (HmGui const*, uint64 id);
-            void                    HmGui_MapProperty                    (HmGui*, uint64 propertyId);
-            void                    HmGui_MapPropertyGroup               (HmGui*, cstr group);
-            void                    HmGui_RemoveProperty                 (HmGui*, uint64 propertyId);
-            uint64                  HmGui_RegisterProperty               (HmGui*, cstr name, GuiPropertyValue const* value, cstr mapId);
-            void                    HmGui_SetPropertyValue               (HmGui*, uint64 id, GuiPropertyValue const* value);
-            GuiPropertyValue const* HmGui_GetPropertyValue               (HmGui const*, uint64 id);
-            uint64                  HmGui_GetPropertiesCount             (HmGui const*);
-            void                    HmGui_DumpWidgets                    (HmGui const*);
+            void  HmGui_Free                           (HmGui*);
+            void  HmGui_BeginGui                       (HmGui*, float sx, float sy);
+            void  HmGui_EndGui                         (HmGui*, Input const* input);
+            void  HmGui_Draw                           (HmGui*);
+            void  HmGui_BeginContainer                 (HmGui*, GuiLayoutType layout);
+            void  HmGui_BeginStackContainer            (HmGui*);
+            void  HmGui_BeginHorizontalContainer       (HmGui*);
+            void  HmGui_BeginVerticalContainer         (HmGui*);
+            void  HmGui_EndContainer                   (HmGui*);
+            Vec2f HmGui_UpdateContainerOffset          (HmGui*, Vec2f offset);
+            Vec2f HmGui_ContainerSize                  (HmGui*);
+            Vec2f HmGui_ContainerMinSize               (HmGui*);
+            void  HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
+            void  HmGui_Image                          (HmGui*, Tex2D* image);
+            void  HmGui_Rect                           (HmGui*);
+            void  HmGui_Text                           (HmGui*, cstr text, Font const* font, Color const* color);
+            bool  HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
+            void  HmGui_SetMinWidth                    (HmGui const*, float width);
+            void  HmGui_SetMinHeight                   (HmGui const*, float height);
+            void  HmGui_SetMinSize                     (HmGui const*, float width, float height);
+            void  HmGui_SetFixedWidth                  (HmGui const*, float width);
+            void  HmGui_SetFixedHeight                 (HmGui const*, float height);
+            void  HmGui_SetFixedSize                   (HmGui const*, float width, float height);
+            void  HmGui_SetPercentWidth                (HmGui const*, float width);
+            void  HmGui_SetPercentHeight               (HmGui const*, float height);
+            void  HmGui_SetPercentSize                 (HmGui const*, float width, float height);
+            void  HmGui_SetMargin                      (HmGui const*, float px, float py);
+            void  HmGui_SetMarginEx                    (HmGui const*, float left, float top, float right, float bottom);
+            void  HmGui_SetMarginLeft                  (HmGui const*, float margin);
+            void  HmGui_SetMarginTop                   (HmGui const*, float margin);
+            void  HmGui_SetMarginRight                 (HmGui const*, float margin);
+            void  HmGui_SetMarginBottom                (HmGui const*, float margin);
+            void  HmGui_SetBorderWidth                 (HmGui const*, float width);
+            void  HmGui_SetAlignment                   (HmGui const*, AlignHorizontal h, AlignVertical v);
+            void  HmGui_SetHorizontalAlignment         (HmGui const*, AlignHorizontal align);
+            void  HmGui_SetVerticalAlignment           (HmGui const*, AlignVertical align);
+            void  HmGui_SetBorderColor                 (HmGui const*, Color const* color);
+            void  HmGui_SetBackgroundColor             (HmGui const*, Color const* color);
+            void  HmGui_SetOpacity                     (HmGui const*, float opacity);
+            void  HmGui_SetClipping                    (HmGui const*, bool clip);
+            void  HmGui_SetPadding                     (HmGui const*, float px, float py);
+            void  HmGui_SetPaddingEx                   (HmGui const*, float left, float top, float right, float bottom);
+            void  HmGui_SetPaddingLeft                 (HmGui const*, float padding);
+            void  HmGui_SetPaddingTop                  (HmGui const*, float padding);
+            void  HmGui_SetPaddingRight                (HmGui const*, float padding);
+            void  HmGui_SetPaddingBottom               (HmGui const*, float padding);
+            void  HmGui_SetSpacing                     (HmGui const*, float spacing);
+            void  HmGui_SetChildrenAlignment           (HmGui const*, AlignHorizontal h, AlignVertical v);
+            void  HmGui_SetChildrenHorizontalAlignment (HmGui const*, AlignHorizontal align);
+            void  HmGui_SetChildrenVerticalAlignment   (HmGui const*, AlignVertical align);
+            void  HmGui_DumpWidgets                    (HmGui const*);
         ]]
     end
 
@@ -110,8 +96,6 @@ function Loader.defineType()
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,
                 text                           = libphx.HmGui_Text,
-                textColored                    = libphx.HmGui_TextColored,
-                textEx                         = libphx.HmGui_TextEx,
                 isMouseOver                    = libphx.HmGui_IsMouseOver,
                 setMinWidth                    = libphx.HmGui_SetMinWidth,
                 setMinHeight                   = libphx.HmGui_SetMinHeight,
@@ -132,6 +116,10 @@ function Loader.defineType()
                 setAlignment                   = libphx.HmGui_SetAlignment,
                 setHorizontalAlignment         = libphx.HmGui_SetHorizontalAlignment,
                 setVerticalAlignment           = libphx.HmGui_SetVerticalAlignment,
+                setBorderColor                 = libphx.HmGui_SetBorderColor,
+                setBackgroundColor             = libphx.HmGui_SetBackgroundColor,
+                setOpacity                     = libphx.HmGui_SetOpacity,
+                setClipping                    = libphx.HmGui_SetClipping,
                 setPadding                     = libphx.HmGui_SetPadding,
                 setPaddingEx                   = libphx.HmGui_SetPaddingEx,
                 setPaddingLeft                 = libphx.HmGui_SetPaddingLeft,
@@ -142,22 +130,6 @@ function Loader.defineType()
                 setChildrenAlignment           = libphx.HmGui_SetChildrenAlignment,
                 setChildrenHorizontalAlignment = libphx.HmGui_SetChildrenHorizontalAlignment,
                 setChildrenVerticalAlignment   = libphx.HmGui_SetChildrenVerticalAlignment,
-                setTheme                       = libphx.HmGui_SetTheme,
-                clearTheme                     = libphx.HmGui_ClearTheme,
-                newStyle                       = libphx.HmGui_NewStyle,
-                setStylePropertyValue          = libphx.HmGui_SetStylePropertyValue,
-                getStyleId                     = libphx.HmGui_GetStyleId,
-                setStyle                       = libphx.HmGui_SetStyle,
-                setStyleByName                 = libphx.HmGui_SetStyleByName,
-                clearStyle                     = libphx.HmGui_ClearStyle,
-                getPropertyType                = libphx.HmGui_GetPropertyType,
-                mapProperty                    = libphx.HmGui_MapProperty,
-                mapPropertyGroup               = libphx.HmGui_MapPropertyGroup,
-                removeProperty                 = libphx.HmGui_RemoveProperty,
-                registerProperty               = libphx.HmGui_RegisterProperty,
-                setPropertyValue               = libphx.HmGui_SetPropertyValue,
-                getPropertyValue               = libphx.HmGui_GetPropertyValue,
-                getPropertiesCount             = libphx.HmGui_GetPropertiesCount,
                 dumpWidgets                    = libphx.HmGui_DumpWidgets,
             },
         }

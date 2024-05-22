@@ -52,16 +52,8 @@ function Text:new(args)
             return
         end
 
-        if self.state.font() then
-            Gui:setProperty(GuiProperties.TextFont,
-                Cache.Font(self.state.font(), self.state.size()))
-        end
-
-        Gui:setProperty(GuiProperties.TextColor, self.state.color())
-        Gui:text(tostring(self.state.text()))
+        Gui:text(tostring(self.state.text()), Cache.Font(self.state.font(), self.state.size()), self.state.color())
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
-
-        Gui:clearStyle() -- clear style so it doesn´t affect other components
     end
 
     return newText

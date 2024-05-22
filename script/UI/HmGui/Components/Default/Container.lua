@@ -77,19 +77,14 @@ function Container:new(args)
             return
         end
 
-        -- color
-        if self.state.color().background then
-            Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().background)
-        end
-
-        if self.state.showContainer() then
-            Gui:setProperty(GuiProperties.BorderColor, self.state.showContainerColor())
-        end
-
         Gui:beginContainer(self.state.layoutType())
-        Gui:clearStyle() -- clear properties
+
+        if self.state.color().background then
+            Gui:setBackgroundColor(self.state.color().background)
+        end
 
         if self.state.showContainer() then
+            Gui:setBorderColor(self.state.showContainerColor())
             Gui:setBorderWidth(1)
         end
 
@@ -117,7 +112,6 @@ function Container:new(args)
         Gui:endContainer()
         Gui:setPercentWidth(100)
         Gui:setPercentHeight(100)
-        Gui:clearStyle() -- clear style so it doesn´t affect other components
     end
 
     return newContainer

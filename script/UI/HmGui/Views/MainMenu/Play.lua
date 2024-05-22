@@ -222,7 +222,7 @@ local playGrid = UILayout.Grid {
                                 UIComponent.Button {
                                     title = "Select",
                                     align = { AlignHorizontal.Center, AlignVertical.Stretch },
-                                    padding = { 8, 8 },
+                                    padding = { 10, 10 },
                                     margin = { 10, 10 },
                                     heightInLayout = 1 / 10,
                                     font = { name = "Exo2", size = 24 },
