@@ -1,6 +1,6 @@
 ---@meta
 
----Container element layout type.
+-- Container element layout type.
 ---@enum GuiLayoutType
 GuiLayoutType = {
     Stack = 0,

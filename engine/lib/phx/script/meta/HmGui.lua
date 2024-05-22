@@ -3,52 +3,52 @@
 ---@class HmGui
 HmGui = {}
 
----Begin GUI declaration. Region is limited by [0, 0] - [sx, sy] rectangle.
+-- Begin GUI declaration. Region is limited by [0, 0] - [sx, sy] rectangle.
 ---@param sx number
 ---@param sy number
 function HmGui:beginGui(sx, sy) end
 
----Finish GUI declaration, calculate hierarchy widgets sizes and layout.
+-- Finish GUI declaration, calculate hierarchy widgets sizes and layout.
 ---@param input Input
 function HmGui:endGui(input) end
 
----Pass information about widgets to the renderer and draw them.
+-- Pass information about widgets to the renderer and draw them.
 function HmGui:draw() end
 
----Start a new container with a specified layout.
+-- Start a new container with a specified layout.
 ---@param layout GuiLayoutType
 function HmGui:beginContainer(layout) end
 
----Starts stack container.
----Equivalent to: Gui:beginContainer(GuiLayoutType.Stack)
+-- Starts stack container.
+-- Equivalent to: Gui:beginContainer(GuiLayoutType.Stack)
 function HmGui:beginStackContainer() end
 
----Starts horizontal container.
----Equivalent to: Gui:beginContainer(GuiLayoutType.Horizontal)
+-- Starts horizontal container.
+-- Equivalent to: Gui:beginContainer(GuiLayoutType.Horizontal)
 function HmGui:beginHorizontalContainer() end
 
----Starts vertical container.
----Equivalent to: Gui:beginContainer(GuiLayoutType.Vertical)
+-- Starts vertical container.
+-- Equivalent to: Gui:beginContainer(GuiLayoutType.Vertical)
 function HmGui:beginVerticalContainer() end
 
----Closes container started with one of `Gui:beginContainer()` calls.
+-- Closes container started with one of `Gui:beginContainer()` calls.
 function HmGui:endContainer() end
 
----Update current container offset.
----Return offset value.
+-- Update current container offset.
+-- Return offset value.
 ---@param offset Vec2f
 ---@return Vec2f
 function HmGui:updateContainerOffset(offset) end
 
----Return current container element size calculated in previous frame.
+-- Return current container element size calculated in previous frame.
 ---@return Vec2f
 function HmGui:containerSize() end
 
----Return current container element size calculated in previous frame.
+-- Return current container element size calculated in previous frame.
 ---@return Vec2f
 function HmGui:containerMinSize() end
 
----Update current element minimum size.
+-- Update current element minimum size.
 ---@param offset Vec2f
 function HmGui:updateElementOffset(offset) end
 
@@ -62,8 +62,8 @@ function HmGui:rect() end
 ---@param color Color
 function HmGui:text(text, font, color) end
 
----Makes current widget `focusable` and returns true if mouse is over it.
----Returns true if mouse is over the widget (was calculated in the previous frame).
+-- Makes current widget `focusable` and returns true if mouse is over it.
+-- Returns true if mouse is over the widget (was calculated in the previous frame).
 ---@param ty FocusType
 ---@return boolean
 function HmGui:isMouseOver(ty) end
@@ -180,6 +180,6 @@ function HmGui:setChildrenHorizontalAlignment(align) end
 ---@param align AlignVertical
 function HmGui:setChildrenVerticalAlignment(align) end
 
----Prints widgets hierarchy to the console. For testing.
+-- Prints widgets hierarchy to the console. For testing.
 function HmGui:dumpWidgets() end
 
