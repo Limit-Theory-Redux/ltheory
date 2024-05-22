@@ -12,7 +12,7 @@ local meta = {
 
 ---@class UIComponentScrollArea: UIComponent
 ---@field visible boolean
----@field scrollDirection Enums.ScrollDirection|nil
+---@field scrollDirection ScrollDirection|nil
 ---@field showHScroolbar boolean|true
 ---@field showVScroolbar boolean|true
 ---@field scroolbarFading boolean|true
@@ -36,7 +36,7 @@ local meta = {
 
 ---@class UIComponentScrollAreaConstructor
 ---@field visible boolean|nil
----@field scrollDirection Enums.ScrollDirection|nil
+---@field scrollDirection ScrollDirection|nil
 ---@field showHScrollbar boolean
 ---@field showVScrollbar boolean
 ---@field scrollbarFading boolean
@@ -76,7 +76,7 @@ function ScrollArea:new(args)
 
     newScrollArea.state = UICore.ComponentState {
         visible = args.visible,
-        scrollDirection = args.scrollDirection,
+        scrollDirection = args.scrollDirection or Enums.UI.ScrollDirection.Both,
         showHScrollbar = args.showHScrollbar == nil or args.showHScrollbar, -- TODO: doesn't work. Idea is to treat nil as true. Same 2 below.
         showVScrollbar = args.showVScrollbar == nil or args.showVScrollbar,
         scrollbarFading = args.scrollbarFading == nil or args.scrollbarFading,
@@ -155,8 +155,8 @@ function ScrollArea:new(args)
 
         Gui:endContainer()
 
-        local hScroll = self.state.showHScrollbar and (self.state.scrollDirection ~= Enums.ScrollDirection.Vertical)
-        local vScroll = self.state.showVScrollbar and (self.state.scrollDirection ~= Enums.ScrollDirection.Horizontal)
+        local hScroll = self.state.showHScrollbar and (self.state.scrollDirection ~= Enums.UI.ScrollDirection.Vertical)
+        local vScroll = self.state.showVScrollbar and (self.state.scrollDirection ~= Enums.UI.ScrollDirection.Horizontal)
 
         if hScroll or vScroll then
             local isMouseOver = Gui:isMouseOver(FocusType.Scroll)
