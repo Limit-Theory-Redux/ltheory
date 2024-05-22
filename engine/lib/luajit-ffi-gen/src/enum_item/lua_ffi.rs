@@ -38,14 +38,14 @@ fn gen_class_definitions(
     ffi_gen.add_class_definition(format!("---@meta\n"));
 
     doc.iter()
-        .for_each(|d| ffi_gen.add_class_definition(format!("---{d}")));
+        .for_each(|d| ffi_gen.add_class_definition(format!("-- {d}")));
     ffi_gen.add_class_definition(format!("---@enum {module_name}"));
 
     ffi_gen.add_class_definition(format!("{module_name} = {{"));
 
     variants_info.iter().for_each(|(docs, name, index)| {
         docs.iter()
-            .for_each(|doc| ffi_gen.add_class_definition(format!("{IDENT}---{doc}")));
+            .for_each(|doc| ffi_gen.add_class_definition(format!("{IDENT}-- {doc}")));
         ffi_gen.add_class_definition(format!("{IDENT}{name} = {index},"));
     });
 

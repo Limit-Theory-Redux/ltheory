@@ -20,7 +20,7 @@ function Trigger:getBoundingBox(result) end
 ---@return integer
 function Trigger:getContentsCount() end
 
----Will only include the parent object when a compound is within the trigger.
+-- Will only include the parent object when a compound is within the trigger.
 ---@param i integer
 ---@return RigidBody
 function Trigger:getContents(i) end

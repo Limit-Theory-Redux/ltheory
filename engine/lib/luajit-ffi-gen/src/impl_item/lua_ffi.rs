@@ -74,7 +74,7 @@ impl ImplInfo {
                 method
                     .doc
                     .iter()
-                    .for_each(|d| ffi_gen.add_class_definition(format!("---{d}")));
+                    .for_each(|d| ffi_gen.add_class_definition(format!("-- {d}")));
 
                 // Add method signature documentation
                 method.params.iter().for_each(|param| {
