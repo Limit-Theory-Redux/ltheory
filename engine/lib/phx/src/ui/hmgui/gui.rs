@@ -369,49 +369,10 @@ impl HmGui {
         let _ = self.init_widget(WidgetItem::Rect);
     }
 
-    pub fn text(&mut self, text: &str) {
-        let font = self
-            .get_property_value(HmGuiProperties::TextFont.id())
-            .get_font();
-        let color = self
-            .get_property_value(HmGuiProperties::TextColor.id())
-            .get_color();
-
-        // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
+    pub fn text(&mut self, text: &str, font: &Font, color: &Color) {
         let item = HmGuiText {
             text: text.into(),
-            font: font.clone(),
-            color: color.clone(),
-        };
-        let size = item.font.get_size2(text);
-        let widget_rf = self.init_widget(WidgetItem::Text(item));
-        let mut widget = widget_rf.as_mut();
-
-        widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
-    }
-
-    pub fn text_colored(&mut self, text: &str, color: &Color) {
-        let font = self
-            .get_property_value(HmGuiProperties::TextFont.id())
-            .get_font();
-
-        // NOTE: cannot call text_ex() here because of mutable/immutable borrow conflict
-        let item = HmGuiText {
-            font: font.clone(),
-            text: text.into(),
-            color: color.clone(),
-        };
-        let size = item.font.get_size2(text);
-        let widget_rf = self.init_widget(WidgetItem::Text(item));
-        let mut widget = widget_rf.as_mut();
-
-        widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
-    }
-
-    pub fn text_ex(&mut self, font: &Font, text: &str, color: &Color) {
-        let item = HmGuiText {
             font: font.clone().into(),
-            text: text.into(),
             color: color.clone(),
         };
         let size = item.font.get_size2(text);

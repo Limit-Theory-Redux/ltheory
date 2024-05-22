@@ -31,9 +31,7 @@ function Loader.defineType()
             void                    HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
             void                    HmGui_Image                          (HmGui*, Tex2D* image);
             void                    HmGui_Rect                           (HmGui*);
-            void                    HmGui_Text                           (HmGui*, cstr text);
-            void                    HmGui_TextColored                    (HmGui*, cstr text, Color const* color);
-            void                    HmGui_TextEx                         (HmGui*, Font const* font, cstr text, Color const* color);
+            void                    HmGui_Text                           (HmGui*, cstr text, Font const* font, Color const* color);
             bool                    HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
             void                    HmGui_SetMinWidth                    (HmGui const*, float width);
             void                    HmGui_SetMinHeight                   (HmGui const*, float height);
@@ -113,8 +111,6 @@ function Loader.defineType()
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,
                 text                           = libphx.HmGui_Text,
-                textColored                    = libphx.HmGui_TextColored,
-                textEx                         = libphx.HmGui_TextEx,
                 isMouseOver                    = libphx.HmGui_IsMouseOver,
                 setMinWidth                    = libphx.HmGui_SetMinWidth,
                 setMinHeight                   = libphx.HmGui_SetMinHeight,

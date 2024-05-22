@@ -59,16 +59,9 @@ function HmGui:image(image) end
 function HmGui:rect() end
 
 ---@param text string
-function HmGui:text(text) end
-
----@param text string
----@param color Color
-function HmGui:textColored(text, color) end
-
 ---@param font Font
----@param text string
 ---@param color Color
-function HmGui:textEx(font, text, color) end
+function HmGui:text(text, font, color) end
 
 ---Makes current widget `focusable` and returns true if mouse is over it.
 ---Returns true if mouse is over the widget (was calculated in the previous frame).

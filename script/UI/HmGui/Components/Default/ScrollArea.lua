@@ -106,20 +106,16 @@ function ScrollArea:new(args)
             return
         end
 
-        -- color
-        if self.state.color().background then
-            Gui:setProperty(GuiProperties.BackgroundColor, self.state.color().background)
-        end
-
-        if self.state.showContainer() then
-            Gui:setProperty(GuiProperties.BorderColor, self.state.showContainerColor())
-        end
-
         -- external container
         Gui:beginStackContainer()
         Gui:clearStyle() -- clear properties
 
+        if self.state.color().background then
+            Gui:setBackgroundColor(self.state.color().background)
+        end
+
         if self.state.showContainer() then
+            Gui:setBorderColor(self.state.showContainerColor())
             Gui:setBorderWidth(1)
         end
 
@@ -209,18 +205,18 @@ function ScrollArea:new(args)
                     local knobSize = innerSize.x * (innerSize.x / innerMinSize.x);
                     local knobPos = lerp(0, (innerSize.x - knobSize), (innerOffset.x / maxScroll.x));
 
-                    Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
                     Gui:rect();
                     Gui:setFixedSize(knobPos, sbSize);
+                    Gui:setBackgroundColor(sbBackgroundColor);
 
-                    Gui:setProperty(GuiProperties.BackgroundColor, sbKnobColor);
                     Gui:rect();
                     Gui:setFixedSize(knobSize, sbSize);
+                    Gui:setBackgroundColor(sbKnobColor);
 
-                    Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
                     Gui:rect();
                     Gui:setFixedHeight(sbSize);
                     Gui:setHorizontalAlignment(AlignHorizontal.Stretch);
+                    Gui:setBackgroundColor(sbBackgroundColor);
 
                     Gui:endContainer()
                 end
@@ -232,18 +228,18 @@ function ScrollArea:new(args)
                     local knobSize = innerSize.y * (innerSize.y / innerMinSize.y);
                     local knobPos = lerp(0, (innerSize.y - knobSize), (innerOffset.y / maxScroll.y));
 
-                    Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
                     Gui:rect();
                     Gui:setFixedSize(sbSize, knobPos);
+                    Gui:setBackgroundColor(sbBackgroundColor);
 
-                    Gui:setProperty(GuiProperties.BackgroundColor, sbKnobColor);
                     Gui:rect();
                     Gui:setFixedSize(sbSize, knobSize);
+                    Gui:setBackgroundColor(sbKnobColor);
 
-                    Gui:setProperty(GuiProperties.BackgroundColor, sbBackgroundColor);
                     Gui:rect();
                     Gui:setFixedWidth(sbSize);
                     Gui:setVerticalAlignment(AlignVertical.Stretch);
+                    Gui:setBackgroundColor(sbBackgroundColor);
 
                     Gui:endContainer()
                 end
@@ -251,8 +247,6 @@ function ScrollArea:new(args)
         end
 
         Gui:endContainer()
-
-        Gui:clearStyle() -- clear style so it doesn´t affect other components
     end
 
     return newScrollArea

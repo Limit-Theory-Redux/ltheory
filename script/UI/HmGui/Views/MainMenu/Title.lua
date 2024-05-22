@@ -147,9 +147,7 @@ local textContainer = UIComponent.Container {
     layoutType = GuiLayoutType.Vertical,
     contents = {
         UIComponent.RawInput { fn = function()
-            Gui:setProperty(GuiProperties.TextFont, Cache.Font("Unageo-Medium", 20))
-            Gui:setProperty(GuiProperties.TextColor, Color(1, 1, 1, textOpacity))
-            Gui:text("PRESS ANY KEY TO CONTINUE")
+            Gui:text("PRESS ANY KEY TO CONTINUE", Cache.Font("Unageo-Medium", 20), Color(1, 1, 1, textOpacity))
         end }
     }
 }

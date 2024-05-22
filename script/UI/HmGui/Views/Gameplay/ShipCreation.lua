@@ -93,9 +93,7 @@ local textContainer = UIComponent.Container {
     layoutType = GuiLayoutType.Vertical,
     contents = {
         UIComponent.RawInput { fn = function()
-            Gui:setProperty(GuiProperties.TextFont, Cache.Font("Unageo-Medium", 20))
-            Gui:setProperty(GuiProperties.TextColor, Color(1, 1, 1, 1.0))
-            Gui:text("[F] SPAWN - [B] NEW SHIP")
+            Gui:text("[F] SPAWN - [B] NEW SHIP", Cache.Font("Unageo-Medium", 20), Color(1, 1, 1, 1.0))
         end }
     }
 }

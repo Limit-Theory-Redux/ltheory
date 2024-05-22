@@ -66,15 +66,15 @@ function Grid:new(args)
                 if self.state.layoutType() == GuiLayoutType.Horizontal then
                     if self.state.showGrid() then
                         Gui:beginStackContainer()
-                        Gui:setBorderWidth(2)
-                        Gui:setProperty(GuiProperties.BorderColor, self.state.showGridColor())
-                        Gui:setPercentSize(100, 100)
-                        Gui:setProperty(GuiProperties.TextFont, Cache.Font("Exo2", 14))
-                        Gui:setProperty(GuiProperties.TextColor, self.state.showGridColor())
                         Gui:setAlignment(AlignHorizontal.Left, AlignVertical.Top)
-                        Gui:text(tostring(index))
-                        Gui:clearStyle()
+                        Gui:setPercentSize(100, 100)
+                        Gui:setBorderWidth(2)
+                        Gui:setBorderColor(self.state.showGridColor())
+
+                        Gui:text(tostring(index), Cache.Font("Exo2", 14), self.state.showGridColor())
+
                         container:render()
+
                         Gui:endContainer()
                     else
                         Gui:beginStackContainer()
@@ -91,15 +91,15 @@ function Grid:new(args)
                 elseif self.state.layoutType() == GuiLayoutType.Vertical then
                     if self.state.showGrid() then
                         Gui:beginStackContainer()
-                        Gui:setBorderWidth(2)
-                        Gui:setProperty(GuiProperties.BorderColor, self.state.showGridColor())
                         Gui:setPercentSize(100, 100)
-                        Gui:setProperty(GuiProperties.TextFont, Cache.Font("Exo2", 14))
-                        Gui:setProperty(GuiProperties.TextColor, self.state.showGridColor())
                         Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Top)
-                        Gui:text(tostring(index))
-                        Gui:clearStyle()
+                        Gui:setBorderWidth(2)
+                        Gui:setBorderColor(self.state.showGridColor())
+
+                        Gui:text(tostring(index), Cache.Font("Exo2", 14), self.state.showGridColor())
+
                         container:render()
+
                         Gui:endContainer()
                     else
                         Gui:beginStackContainer()
@@ -114,7 +114,6 @@ function Grid:new(args)
                         Gui:setPercentSize(100, 100 / contentCount) -- even distribution
                     end
                 end
-                Gui:clearStyle()
             end
         end
         Gui:endContainer()
