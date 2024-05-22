@@ -24,7 +24,7 @@ end
 
 -- Average GC frequency since Engine_Init
 function GC.GetFrequency()
-    return passes / EngineInstance:elapsedTime()
+    return passes / EngineInstance:getTime()
 end
 
 -- GC Memory in Kb

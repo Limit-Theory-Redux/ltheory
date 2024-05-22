@@ -608,7 +608,7 @@ impl Engine {
     }
 
     /// Return time passed since engine start.
-    pub fn elapsed_time(&self) -> f64 {
+    pub fn get_time(&self) -> f64 {
         self.init_time.get_elapsed()
     }
 

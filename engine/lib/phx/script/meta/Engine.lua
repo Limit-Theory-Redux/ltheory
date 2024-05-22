@@ -19,7 +19,7 @@ function Engine.GetBits() end
 
 ---Return time passed since engine start.
 ---@return number
-function Engine:elapsedTime() end
+function Engine:getTime() end
 
 ---@return string
 function Engine.GetVersion() end
