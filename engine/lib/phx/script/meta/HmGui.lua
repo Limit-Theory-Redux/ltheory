@@ -35,55 +35,23 @@ function HmGui:beginVerticalContainer() end
 ---Closes container started with one of `Gui:beginContainer()` calls.
 function HmGui:endContainer() end
 
----Start scroll area.
----
----Internally scroll area represented by 2 nested stack containers for a area itself
----and 2 other containers for scroll bars. So it is possible to set layout parameters
----for both external and internal containers. For the former parameters should be
----specified after `Gui:end_scroll_area()` function call and for the latter after
----`Gui:beginScrollArea()`.
----
----Parameters:
----**dir** - define directions in which scrolling is enabled: All, Horizontal, Vertical.
----
----Example:
----```lua
----Gui:setPropertyValue(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
----Gui:beginScrollArea(ScrollDirection.All)
----
----Gui:beginVerticalContainer()
----Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
----Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
----
----Gui:button("Button1")
----Gui:button("Button2")
----
----Gui:endContainer()
----Gui:endScrollArea(InputInstance)
----Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
----Gui:setFixedSize(500, 500)
----```
----@param dir ScrollDirection
-function HmGui:beginScrollArea(dir) end
+---Update current container offset.
+---Return offset value.
+---@param offset Vec2f
+---@return Vec2f
+function HmGui:updateContainerOffset(offset) end
 
----End of the scroll area.
----
----See [`HmGui::begin_scroll_area`] for example.
----@param input Input
-function HmGui:endScrollArea(input) end
+---Return current container element size calculated in previous frame.
+---@return Vec2f
+function HmGui:containerSize() end
 
----Invisible element that stretches in all directions.
----Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
-function HmGui:spacer() end
+---Return current container element size calculated in previous frame.
+---@return Vec2f
+function HmGui:containerMinSize() end
 
----@param label string
----@return boolean
-function HmGui:button(label) end
-
----@param label string
----@param value boolean
----@return boolean
-function HmGui:checkbox(label, value) end
+---Update current element minimum size.
+---@param offset Vec2f
+function HmGui:updateElementOffset(offset) end
 
 ---@param image Tex2D
 function HmGui:image(image) end
@@ -103,6 +71,7 @@ function HmGui:textColored(text, color) end
 function HmGui:textEx(font, text, color) end
 
 ---Makes current widget `focusable` and returns true if mouse is over it.
+---Returns true if mouse is over the widget (was calculated in the previous frame).
 ---@param ty FocusType
 ---@return boolean
 function HmGui:isMouseOver(ty) end

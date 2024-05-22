@@ -8,6 +8,33 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 ---@type RandomNumberGenerator
 local rng = RNG.FromTime()
 
+local seeds = {
+    -- TODO: replace with proper list
+    { "Random Seed",                                      nil },
+    { "Test Seed 1",                                      11487961515238620437ULL },
+    { "Test Seed 2",                                      6934033808124312024ULL },
+    { "Test Seed 3",                                      8616071071418665380ULL },
+    { "Test Seed 4",                                      17682038400513250095ULL },
+    { "KEEP black",                                       5022463494542550306ULL },  -- KEEP black (good for testing dynamic lighting)
+    { "KEEP red",                                         5012768293123392491ULL },  -- KEEP red
+    { "KEEP blue and milky white",                        4933876146649964811ULL },  -- KEEP blue and milky white
+    { "MAYBE orange-ish",                                 2008422628673393673ULL },  -- MAYBE orange-ish
+    { "KEEP gold-yellow",                                 5712598467986491931ULL },  -- KEEP gold-yellow
+    { "KEEP milky-white and light blue",                  8272263000674654607ULL },  -- KEEP milky-white and light blue (really pretty)
+    { "KEEP bluish-green with a bright gold star",        14169804077813660835ULL }, -- KEEP bluish-green with a bright gold star
+    { "KEEP violet",                                      9806676695553338612ULL },  -- KEEP violet
+    { "KEEP blue",                                        14600758714913275339ULL }, -- KEEP blue
+    { "KEEP bright green",                                11589761683708427350ULL }, -- KEEP bright green
+    { "KEEP blue-red-orange",                             3432712644463072838ULL },  -- KEEP blue-red-orange
+    { "MAYBE 'Hubble palette'",                           10630444862697458122ULL }, -- MAYBE "Hubble palette"
+    { "KEEP even bluish-white with a bright yellow star", 5199604093543988311ULL },  -- KEEP even bluish-white with a bright yellow star
+    { "KEEP completely dark with one small blue star",    9471911754066691691ULL },  -- KEEP completely dark with one small blue star
+    { "looks pretty cool",                                15887563511063255006ULL }, -- looks pretty cool
+    { "looks pretty cool too",                            976665863517979971ULL },   -- looks pretty cool too
+}
+
+local selectedSeedIndex = nil
+
 function PlayView:onInput() end
 function PlayView:onUpdate(dt) end
 function PlayView:onViewOpen(isPageOpen) end
@@ -35,12 +62,10 @@ end
 
 ---@param seed integer|nil
 local function newGame(seed)
-    local seed = seed
-    if not seed then
-        seed = rng:get64()
-    end
+    local seed = seed or rng:get64()
     ---@type Universe
     local Universe = require("Systems.Universe.Universe")
+
     -- we want to create a new universe, do this here so loading screen knows what to load
     Universe:init(seed)
     UIRouter:setCurrentPage("Loading_Screen")
@@ -153,43 +178,60 @@ local playGrid = UILayout.Grid {
                             contents = {}
                         },
                         UIComponent.Container {
-                            align = { AlignHorizontal.Stretch, AlignVertical.Top },
-                            padding = { 0, 50 },
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            padding = { 0, 10 },
                             margin = { 0, 0 },
                             layoutType = GuiLayoutType.Vertical,
-                            heightInLayout = 7 / 10,
-                            color = {
-                                background = Color(0, 0, 0, 0.3)
-                            },
+                            heightInLayout = 2 / 10,
                             contents = {
-                                UIComponent.Button_MainMenu {
-                                    title = "Test Seed 1",
-                                    width = getButtonWidth,
-                                    height = getButtonHeight,
+                                UIComponent.ScrollArea {
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
-                                    callback = function() newGame(11487961515238620437ULL) end
+                                    padding = { 0, 0 },
+                                    margin = { 0, 0 },
+                                    layoutType = GuiLayoutType.Vertical,
+                                    height = 400,
+                                    scrollbarFading = true,
+                                    showVScrollbar = true,
+                                    contents = {
+                                        UIComponent.RadioGroup {
+                                            selections = function()
+                                                local selections = {}
+                                                for _, seed in ipairs(seeds) do
+                                                    if seed[1] then
+                                                        table.insert(selections, seed[1])
+                                                    elseif seed[2] then
+                                                        table.insert(selections, tostring(seed[2]))
+                                                    else
+                                                        table.insert(selections, "<unknown>")
+                                                    end
+                                                end
+                                                return selections
+                                            end,
+                                            align = { AlignHorizontal.Center, AlignVertical.Top },
+                                            padding = { 5, 0 },
+                                            margin = { 0, 0 },
+                                            layoutType = GuiLayoutType.Vertical,
+                                            heightInLayout = 7 / 10,
+                                            color = {
+                                                background = Color(0, 0, 0, 0.3)
+                                            },
+                                            callback = function(selectedIndex) selectedSeedIndex = selectedIndex end,
+                                        },
+                                    }
                                 },
-                                UIComponent.Button_MainMenu {
-                                    title = "Test Seed 2",
-                                    width = getButtonWidth,
-                                    height = getButtonHeight,
-                                    align = { AlignHorizontal.Center, AlignVertical.Center },
-                                    callback = function() newGame(6934033808124312024ULL) end
+                                UIComponent.Button {
+                                    title = "Select",
+                                    align = { AlignHorizontal.Center, AlignVertical.Stretch },
+                                    padding = { 8, 8 },
+                                    margin = { 10, 10 },
+                                    heightInLayout = 1 / 10,
+                                    font = { name = "Exo2", size = 24 },
+                                    callback = function()
+                                        if selectedSeedIndex then
+                                            newGame(seeds[selectedSeedIndex][2])
+                                        end
+                                    end,
                                 },
-                                UIComponent.Button_MainMenu {
-                                    title = "Test Seed 3",
-                                    width = getButtonWidth,
-                                    height = getButtonHeight,
-                                    align = { AlignHorizontal.Center, AlignVertical.Center },
-                                    callback = function() newGame(8616071071418665380ULL) end
-                                },
-                                UIComponent.Button_MainMenu {
-                                    title = "Random Seed",
-                                    width = getButtonWidth,
-                                    height = getButtonHeight,
-                                    align = { AlignHorizontal.Center, AlignVertical.Center },
-                                    callback = function() newGame() end
-                                }
                             }
                         },
                         UIComponent.Container {

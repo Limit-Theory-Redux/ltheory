@@ -1,7 +1,6 @@
 mod frame_state;
 
 use std::path::PathBuf;
-use std::time::Instant;
 
 pub(crate) use frame_state::*;
 
@@ -274,13 +273,13 @@ impl Engine {
 
         if self.window.ime_position != self.cache.window.ime_position {
             // TODO: Set the IME cursor area correctly.
+            let position =
+                LogicalPosition::new(self.window.ime_position.x, self.window.ime_position.y);
             let width = self.window.resolution.physical_width();
             let height = self.window.resolution.physical_height();
             let physical_size = PhysicalSize::new(width, height);
-            winit_window.set_ime_cursor_area(LogicalPosition::new(
-                self.window.ime_position.x,
-                self.window.ime_position.y,
-            ), physical_size);
+
+            winit_window.set_ime_cursor_area(position, physical_size);
         }
 
         if self.window.window_theme != self.cache.window.window_theme {
@@ -323,8 +322,7 @@ impl Engine {
 
         let finished_and_setup_done = true;
 
-        let event_handler = move |event: Event<()>,
-                                  event_loop: &EventLoopWindowTarget<()>| {
+        let event_handler = move |event: Event<()>, event_loop: &EventLoopWindowTarget<()>| {
             if engine.exit_app {
                 call_lua_func(&engine, "AppClose");
 
@@ -350,8 +348,8 @@ impl Engine {
                             .load(&*entry_point_path)
                             .exec()
                             .unwrap_or_else(|e| {
-                            panic!("Error executing the entry point script: {}", e);
-                        });
+                                panic!("Error executing the entry point script: {}", e);
+                            });
 
                         let set_engine_func: Function = globals.get("SetEngine").unwrap();
 
@@ -393,9 +391,10 @@ impl Engine {
                             engine.cache.window.resolution = engine.window.resolution.clone();
 
                             if let Some(window) = engine
-                            .winit_window_id
-                            .map(|id| engine.winit_windows.get_window_mut(id))
-                            .flatten() {
+                                .winit_window_id
+                                .map(|id| engine.winit_windows.get_window_mut(id))
+                                .flatten()
+                            {
                                 window.resize(size.width, size.height);
                             }
                         }
@@ -404,9 +403,7 @@ impl Engine {
                             event_loop.exit();
                         }
                         WindowEvent::KeyboardInput {
-                            device_id,
-                            event,
-                            ..
+                            device_id, event, ..
                         } => {
                             if let PhysicalKey::Code(keycode) = event.physical_key {
                                 engine.input.update_keyboard(device_id, |state| {
@@ -560,8 +557,6 @@ impl Engine {
                 }
                 event::Event::AboutToWait => {
                     if finished_and_setup_done {
-                        engine.frame_state.last_update = Instant::now();
-
                         // Load all gamepad events
                         engine.input.update_gamepad(|state| state.update());
 
@@ -612,6 +607,7 @@ impl Engine {
         8_usize.wrapping_mul(std::mem::size_of::<*mut libc::c_void>()) as i32
     }
 
+    /// Return time passed since engine start.
     pub fn get_time(&self) -> f64 {
         self.init_time.get_elapsed()
     }

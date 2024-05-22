@@ -25,11 +25,10 @@ function Loader.defineType()
             void                    HmGui_BeginHorizontalContainer       (HmGui*);
             void                    HmGui_BeginVerticalContainer         (HmGui*);
             void                    HmGui_EndContainer                   (HmGui*);
-            void                    HmGui_BeginScrollArea                (HmGui*, ScrollDirection dir);
-            void                    HmGui_EndScrollArea                  (HmGui*, Input const* input);
-            void                    HmGui_Spacer                         (HmGui*);
-            bool                    HmGui_Button                         (HmGui*, cstr label);
-            bool                    HmGui_Checkbox                       (HmGui*, cstr label, bool value);
+            Vec2f                   HmGui_UpdateContainerOffset          (HmGui*, Vec2f offset);
+            Vec2f                   HmGui_ContainerSize                  (HmGui*);
+            Vec2f                   HmGui_ContainerMinSize               (HmGui*);
+            void                    HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
             void                    HmGui_Image                          (HmGui*, Tex2D* image);
             void                    HmGui_Rect                           (HmGui*);
             void                    HmGui_Text                           (HmGui*, cstr text);
@@ -104,11 +103,10 @@ function Loader.defineType()
                 beginHorizontalContainer       = libphx.HmGui_BeginHorizontalContainer,
                 beginVerticalContainer         = libphx.HmGui_BeginVerticalContainer,
                 endContainer                   = libphx.HmGui_EndContainer,
-                beginScrollArea                = libphx.HmGui_BeginScrollArea,
-                endScrollArea                  = libphx.HmGui_EndScrollArea,
-                spacer                         = libphx.HmGui_Spacer,
-                button                         = libphx.HmGui_Button,
-                checkbox                       = libphx.HmGui_Checkbox,
+                updateContainerOffset          = libphx.HmGui_UpdateContainerOffset,
+                containerSize                  = libphx.HmGui_ContainerSize,
+                containerMinSize               = libphx.HmGui_ContainerMinSize,
+                updateElementOffset            = libphx.HmGui_UpdateElementOffset,
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,
                 text                           = libphx.HmGui_Text,

@@ -71,6 +71,14 @@ function onDef_HmGui_t(t, mt)
         Gui:endContainer()
     end
 
+    --- Invisible element that stretches in all directions.
+    --- Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
+    mt.__index.spacer = function(self)
+        Gui:setProperty(GuiProperties.BackgroundColor, Color(0, 0, 0, 0));
+        Gui:rect();
+        Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch);
+    end
+
     mt.__index.horizontalDivider = function(self, height)
         Gui:rect();
         Gui:setFixedHeight(height);

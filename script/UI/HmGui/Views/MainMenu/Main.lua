@@ -94,7 +94,8 @@ local menuGrid = UILayout.Grid {
                         Gui:image(logo)
                         Gui:setPercentSize(100, 42)
                         Gui:endContainer()
-                    end },
+                    end
+                },
                 UIComponent.Container {
                     align = { AlignHorizontal.Stretch, AlignVertical.Top },
                     padding = { 0, 50 },
@@ -134,7 +135,7 @@ local menuGrid = UILayout.Grid {
                                 LimitTheoryRedux:exit() -- run pre-exit operations & exit game
                             end,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
-                        }
+                        },
                     }
                 },
                 UIComponent.Container {

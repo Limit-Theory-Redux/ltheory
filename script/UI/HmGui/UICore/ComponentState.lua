@@ -27,9 +27,9 @@ function ComponentState:new(args)
 
     local newState = {}
     for index, arg in pairs(args) do
-        newState[index] = function()
+        newState[index] = function(...)
             if type(arg) == "function" then
-                return arg()
+                return arg(...)
             else
                 return arg
             end

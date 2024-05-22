@@ -1,12 +1,10 @@
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
 
 use glam::*;
 
 use crate::common::*;
 use crate::input::*;
-use crate::math::*;
 use crate::render::*;
 use crate::rf::Rf;
 use crate::system::*;
@@ -193,15 +191,6 @@ impl HmGui {
             }
         }
     }
-
-    /// Sets widget's `mouse over` flag to true.
-    /// Will be used in the check_mouse_over to set `mouse over` hash for current widget for the next frame.
-    /// Returns true if mouse is over the widget (was calculated in the previous frame).
-    fn is_mouse_over_intern(&self, widget: &mut HmGuiWidget, ty: FocusType) -> bool {
-        widget.mouse_over[ty as usize] = true;
-
-        self.mouse_over_widget_hash[ty as usize] == widget.hash
-    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -328,307 +317,46 @@ impl HmGui {
         self.container = parent;
     }
 
-    /// Start scroll area.
-    ///
-    /// Internally scroll area represented by 2 nested stack containers for a area itself
-    /// and 2 other containers for scroll bars. So it is possible to set layout parameters
-    /// for both external and internal containers. For the former parameters should be
-    /// specified after `Gui:end_scroll_area()` function call and for the latter after
-    /// `Gui:beginScrollArea()`.
-    ///
-    /// Parameters:
-    /// **dir** - define directions in which scrolling is enabled: All, Horizontal, Vertical.
-    ///
-    /// Example:
-    /// ```lua
-    /// Gui:setPropertyValue(GuiProperties.ScrollAreaHScrollShow, GuiPropertyValue.FromBool(false))
-    /// Gui:beginScrollArea(ScrollDirection.All)
-    ///
-    /// Gui:beginVerticalContainer()
-    /// Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
-    /// Gui:setChildrenAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
-    ///
-    /// Gui:button("Button1")
-    /// Gui:button("Button2")
-    ///
-    /// Gui:endContainer()
-    /// Gui:endScrollArea(InputInstance)
-    /// Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
-    /// Gui:setFixedSize(500, 500)
-    /// ```
-    pub fn begin_scroll_area(&mut self, dir: ScrollDirection) {
-        self.begin_stack_container();
-
-        self.begin_stack_container();
-        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
-
+    /// Update current container offset.
+    /// Return offset value.
+    pub fn update_container_offset(&mut self, offset: Vec2) -> Vec2 {
         let widget_rf = self.container.clone();
         let mut widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
+
+        data.offset = data.offset.clamp(Vec2::ZERO, offset);
+
         let container = widget.get_container_item_mut();
+        container.offset = -data.offset;
 
-        container.scroll_dir = Some(dir);
+        data.offset
     }
 
-    /// End of the scroll area.
-    ///
-    /// See [`HmGui::begin_scroll_area`] for example.
-    pub fn end_scroll_area(&mut self, input: &Input) {
-        let (max_scroll_x, max_scroll_y, inner_widget_hash, allow_hscroll, allow_vscroll) = {
-            let widget_rf = self.container.clone();
-            let mut widget = widget_rf.as_mut();
+    /// Return current container element size calculated in previous frame.
+    pub fn container_size(&mut self) -> Vec2 {
+        let widget_rf = self.container.clone();
+        let widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
 
-            let data = self.get_data(widget.hash);
-
-            let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
-            let max_scroll_y = f32::max(0.0, data.min_size.y - data.size.y);
-
-            data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
-            data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
-
-            let container = widget.get_container_item_mut();
-            container.offset = -data.offset;
-
-            let (allow_hscroll, allow_vscroll) = if let Some(dir) = container.scroll_dir {
-                match dir {
-                    ScrollDirection::All => (true, true),
-                    ScrollDirection::Horizontal => (true, false),
-                    ScrollDirection::Vertical => (false, true),
-                }
-            } else {
-                (false, false)
-            };
-
-            (
-                max_scroll_x,
-                max_scroll_y,
-                widget.hash,
-                allow_hscroll,
-                allow_vscroll,
-            )
-        };
-
-        self.end_container();
-
-        let hscroll = allow_hscroll
-            && self
-                .get_property_value(HmGuiProperties::ScrollAreaHScrollShow.id())
-                .get_bool();
-        let vscroll = allow_vscroll
-            && self
-                .get_property_value(HmGuiProperties::ScrollAreaVScrollShow.id())
-                .get_bool();
-
-        if hscroll || vscroll {
-            let fading = self
-                .get_property_value(HmGuiProperties::ScrollAreaScrollbarVisibilityFading.id())
-                .get_bool();
-            let fade_scale = {
-                let scroll_scale = self
-                    .get_property_value(HmGuiProperties::ScrollAreaScrollScale.id())
-                    .get_f32();
-                let is_mouse_over = self.is_mouse_over(FocusType::Scroll);
-                let mut scroll = input.mouse().scroll();
-
-                if input.keyboard().is_down(KeyboardButton::ShiftLeft) {
-                    let scroll_x = scroll.y;
-                    scroll = Vec2::new(scroll_x, 0.0);
-                }
-
-                let widget_rf = self.container.clone();
-                let widget = widget_rf.as_ref();
-
-                let data = self.get_data(widget.hash);
-
-                let fade_scale = if !fading {
-                    1.0
-                } else if is_mouse_over
-                    && (scroll.length() > 0.3 || input.mouse().delta().length() > 0.5)
-                {
-                    data.scrollbar_activation_time = Instant::now();
-                    1.0
-                } else {
-                    let elapsed_time = Instant::now() - data.scrollbar_activation_time;
-                    let stable_time = Duration::from_millis(
-                        self.get_property_value(
-                            HmGuiProperties::ScrollAreaScrollbarVisibilityStableTime.id(),
-                        )
-                        .get_u64(),
-                    );
-                    let fade_time = Duration::from_millis(
-                        self.get_property_value(
-                            HmGuiProperties::ScrollAreaScrollbarVisibilityFadeTime.id(),
-                        )
-                        .get_u64(),
-                    );
-
-                    if elapsed_time <= stable_time {
-                        1.0
-                    } else if elapsed_time <= stable_time + fade_time {
-                        1.0 - (elapsed_time - stable_time).as_millis() as f32
-                            / fade_time.as_millis() as f32
-                    } else {
-                        0.0
-                    }
-                };
-
-                if is_mouse_over {
-                    let data = self.get_data(inner_widget_hash);
-                    data.offset -= scroll * scroll_scale;
-                }
-
-                fade_scale
-            };
-
-            if fade_scale > 0.0 {
-                let sb_length = self
-                    .get_property_value(HmGuiProperties::ScrollAreaScrollbarLength.id())
-                    .get_f32();
-
-                let mut sb_bg_color = *self
-                    .get_property_value(HmGuiProperties::ScrollAreaScrollbarBackgroundColor.id())
-                    .get_color();
-                sb_bg_color.a *= fade_scale;
-
-                let mut sb_knob_color = *self
-                    .get_property_value(HmGuiProperties::ScrollAreaScrollbarKnobColor.id())
-                    .get_color();
-
-                sb_knob_color.a *= fade_scale;
-
-                if hscroll && max_scroll_x > 0.0 {
-                    self.begin_horizontal_container();
-                    self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Bottom);
-                    self.set_spacing(0.0);
-
-                    let (handle_size, handle_pos) = {
-                        let data = self.get_data(inner_widget_hash);
-                        let handle_size = data.size.x * (data.size.x / data.min_size.x);
-                        let handle_pos = Lerp(
-                            0.0f64,
-                            (data.size.x - handle_size) as f64,
-                            (data.offset.x / max_scroll_x) as f64,
-                        ) as f32;
-
-                        (handle_size, handle_pos)
-                    };
-
-                    self.set_property(HmGuiProperties::BackgroundColor, sb_bg_color);
-                    self.rect();
-                    self.set_fixed_size(handle_pos, sb_length);
-
-                    self.set_property(HmGuiProperties::BackgroundColor, sb_knob_color);
-                    self.rect();
-                    self.set_fixed_size(handle_size, sb_length);
-
-                    self.set_property(HmGuiProperties::BackgroundColor, sb_bg_color);
-                    self.rect();
-                    self.set_fixed_height(sb_length);
-                    self.set_horizontal_alignment(AlignHorizontal::Stretch);
-
-                    self.end_container();
-                }
-
-                if vscroll && max_scroll_y > 0.0 {
-                    self.begin_vertical_container();
-                    self.set_alignment(AlignHorizontal::Right, AlignVertical::Stretch);
-                    self.set_spacing(0.0);
-
-                    let (handle_size, handle_pos) = {
-                        let data = self.get_data(inner_widget_hash);
-                        let handle_size = data.size.y * (data.size.y / data.min_size.y);
-                        let handle_pos = Lerp(
-                            0.0f64,
-                            (data.size.y - handle_size) as f64,
-                            (data.offset.y / max_scroll_y) as f64,
-                        ) as f32;
-
-                        (handle_size, handle_pos)
-                    };
-
-                    self.set_property(HmGuiProperties::BackgroundColor, sb_bg_color);
-                    self.rect();
-                    self.set_fixed_size(sb_length, handle_pos);
-
-                    self.set_property(HmGuiProperties::BackgroundColor, sb_knob_color);
-                    self.rect();
-                    self.set_fixed_size(sb_length, handle_size);
-
-                    self.set_property(HmGuiProperties::BackgroundColor, sb_bg_color);
-                    self.rect();
-                    self.set_fixed_width(sb_length);
-                    self.set_vertical_alignment(AlignVertical::Stretch);
-
-                    self.end_container();
-                }
-            }
-        }
-
-        self.end_container();
+        data.size
     }
 
-    /// Invisible element that stretches in all directions.
-    /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
-    pub fn spacer(&mut self) {
-        self.set_property(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
-        self.rect();
-        self.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+    /// Return current container element size calculated in previous frame.
+    pub fn container_min_size(&mut self) -> Vec2 {
+        let widget_rf = self.container.clone();
+        let widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
+
+        data.min_size
     }
 
-    pub fn button(&mut self, label: &str) -> bool {
-        self.map_property_group("button.rect");
-        self.begin_stack_container();
-        self.set_padding(8.0, 8.0);
+    /// Update current element minimum size.
+    pub fn update_element_offset(&mut self, offset: Vec2) {
+        let widget_rf = self.last.clone();
+        let widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
 
-        let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
-        let pressed = is_mouse_over && self.activate;
-
-        self.map_property_group("button.text");
-        self.text(label);
-        self.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
-
-        self.end_container();
-
-        pressed
-    }
-
-    pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
-        self.map_property_group("checkbox.rect");
-        self.begin_horizontal_container();
-        self.set_padding(4.0, 4.0);
-        self.set_spacing(8.0);
-        self.set_children_vertical_alignment(AlignVertical::Center);
-
-        let is_mouse_over = self.is_mouse_over(FocusType::Mouse);
-        if is_mouse_over && self.activate {
-            value = !value;
-        }
-
-        self.map_property_group("checkbox.text");
-        self.text(label);
-
-        // Push text and rect to the sides if outer container has horizontal stretch
-        self.spacer();
-
-        // checkbox itself
-        let bg_color = if value {
-            *self
-                .get_property_value(HmGuiProperties::CheckboxClickAreaSelectedColor.id())
-                .get_color()
-        } else {
-            Color::TRANSPARENT
-        };
-
-        self.map_property_group("checkbox.click-area");
-        self.set_property(HmGuiProperties::BackgroundColor, bg_color);
-        self.rect();
-        self.set_fixed_size(10.0, 10.0);
-        self.set_border_width(3.0);
-
-        self.end_container();
-        // TODO: workaround. fix it
-        self.set_property(HmGuiProperties::BackgroundColor, Color::TRANSPARENT);
-
-        value
+        data.offset -= offset;
     }
 
     pub fn image(&mut self, image: &mut Tex2D) {
@@ -694,10 +422,14 @@ impl HmGui {
     }
 
     /// Makes current widget `focusable` and returns true if mouse is over it.
+    /// Returns true if mouse is over the widget (was calculated in the previous frame).
     pub fn is_mouse_over(&self, ty: FocusType) -> bool {
         let mut widget = self.last.as_mut();
 
-        self.is_mouse_over_intern(&mut widget, ty)
+        // Will be used in the check_mouse_over to set `mouse over` hash for current widget for the next frame.
+        widget.mouse_over[ty as usize] = true;
+
+        self.mouse_over_widget_hash[ty as usize] == widget.hash
     }
 
     pub fn set_min_width(&self, width: f32) {

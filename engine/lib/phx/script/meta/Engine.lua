@@ -17,6 +17,7 @@ function Engine.Abort() end
 ---@return integer
 function Engine.GetBits() end
 
+---Return time passed since engine start.
 ---@return number
 function Engine:getTime() end
 

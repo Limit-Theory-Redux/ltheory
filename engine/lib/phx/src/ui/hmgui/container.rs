@@ -40,8 +40,6 @@ pub struct HmGuiContainer {
     pub clip: bool,
     pub children_hash: u32,
     pub offset: Vec2, // TODO: move to widget?
-    pub total_stretch: Vec2,
-    pub scroll_dir: Option<ScrollDirection>,
 }
 
 impl HmGuiContainer {
@@ -365,7 +363,8 @@ impl HmGuiContainer {
     }
 
     pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
-        hmgui.renderer.begin_layer(pos, size, self.clip);
+        // extend clip area by 1 pixel to avoid border overlapping
+        hmgui.renderer.begin_layer(pos - 1.0, size + 2.0, self.clip);
 
         // TODO: [optimization] do not draw children outside of clipped container or screen
         for widget_rf in self.children.iter().rev() {
@@ -387,8 +386,6 @@ impl HmGuiContainer {
         println!("{ident_str}- padding_upper:  {:?}", self.padding_upper);
         println!("{ident_str}- spacing:        {}", self.spacing);
         println!("{ident_str}- children_hash:  {}", self.children_hash);
-        println!("{ident_str}- total_stretch:  {:?}", self.total_stretch);
-        println!("{ident_str}- scroll_dir:     {:?}", self.scroll_dir);
         println!("{ident_str}- children[{}]:", self.children.len());
 
         for head_rf in &self.children {
