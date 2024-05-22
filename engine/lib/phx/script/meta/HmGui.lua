@@ -141,6 +141,15 @@ function HmGui:setHorizontalAlignment(align) end
 ---@param align AlignVertical
 function HmGui:setVerticalAlignment(align) end
 
+---@param color Color
+function HmGui:setBorderColor(color) end
+
+---@param color Color
+function HmGui:setBackgroundColor(color) end
+
+---@param opacity number
+function HmGui:setOpacity(opacity) end
+
 ---@param px number
 ---@param py number
 function HmGui:setPadding(px, py) end

@@ -54,6 +54,9 @@ function Loader.defineType()
             void                    HmGui_SetAlignment                   (HmGui const*, AlignHorizontal h, AlignVertical v);
             void                    HmGui_SetHorizontalAlignment         (HmGui const*, AlignHorizontal align);
             void                    HmGui_SetVerticalAlignment           (HmGui const*, AlignVertical align);
+            void                    HmGui_SetBorderColor                 (HmGui const*, Color const* color);
+            void                    HmGui_SetBackgroundColor             (HmGui const*, Color const* color);
+            void                    HmGui_SetOpacity                     (HmGui const*, float opacity);
             void                    HmGui_SetPadding                     (HmGui const*, float px, float py);
             void                    HmGui_SetPaddingEx                   (HmGui const*, float left, float top, float right, float bottom);
             void                    HmGui_SetPaddingLeft                 (HmGui const*, float padding);
@@ -132,6 +135,9 @@ function Loader.defineType()
                 setAlignment                   = libphx.HmGui_SetAlignment,
                 setHorizontalAlignment         = libphx.HmGui_SetHorizontalAlignment,
                 setVerticalAlignment           = libphx.HmGui_SetVerticalAlignment,
+                setBorderColor                 = libphx.HmGui_SetBorderColor,
+                setBackgroundColor             = libphx.HmGui_SetBackgroundColor,
+                setOpacity                     = libphx.HmGui_SetOpacity,
                 setPadding                     = libphx.HmGui_SetPadding,
                 setPaddingEx                   = libphx.HmGui_SetPaddingEx,
                 setPaddingLeft                 = libphx.HmGui_SetPaddingLeft,

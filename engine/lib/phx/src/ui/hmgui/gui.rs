@@ -551,6 +551,26 @@ impl HmGui {
         widget.alignment[1] = align.into();
     }
 
+    pub fn set_border_color(&self, color: &Color) {
+        let mut widget = self.last.as_mut();
+
+        widget.border_color = *color;
+    }
+
+    pub fn set_background_color(&self, color: &Color) {
+        let mut widget = self.last.as_mut();
+
+        widget.background_color = *color;
+    }
+
+    pub fn set_opacity(&self, opacity: f32) {
+        let mut widget = self.last.as_mut();
+
+        widget.opacity = opacity;
+    }
+
+    // Container --------------------------------------------------------------
+
     pub fn set_padding(&self, px: f32, py: f32) {
         let mut widget = self.container.as_mut();
         let container = widget.get_container_item_mut();
