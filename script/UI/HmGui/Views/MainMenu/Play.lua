@@ -228,8 +228,8 @@ local playGrid = UILayout.Grid {
                                     font = { name = "Exo2", size = 24 },
                                     toolTip = function()
                                         if selectedSeedIndex then
-                                            return "Press to load game with the seed: " ..
-                                                seeds[selectedSeedIndex][1] .. "/" ..
+                                            return "Press to load game with the seed:\n" ..
+                                                seeds[selectedSeedIndex][1] .. "\n" ..
                                                 tostring(seeds[selectedSeedIndex][2])
                                         end
                                         return "No seed selected"

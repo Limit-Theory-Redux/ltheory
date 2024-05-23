@@ -366,16 +366,41 @@ impl HmGui {
     }
 
     pub fn text(&mut self, text: &str, font: &Font, color: &Color) {
-        let item = HmGuiText {
-            text: text.into(),
-            font: font.clone().into(),
-            color: color.clone(),
-        };
-        let size = item.font.get_size2(text);
-        let widget_rf = self.init_widget(WidgetItem::Text(item));
-        let mut widget = widget_rf.as_mut();
+        let lines: Vec<_> = text.lines().collect();
 
-        widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+        if lines.len() > 1 {
+            // TODO: this is a temporary solution for multiline text.
+            // Problem with it is all widget styling will be applied to container instead of text.
+            self.begin_vertical_container();
+            // self.set_alignment(AlignHorizontal::Center, AlignVertical::Expand);
+            self.set_spacing(5.0);
+
+            for line in lines {
+                let item = HmGuiText {
+                    text: line.into(),
+                    font: font.clone().into(),
+                    color: color.clone(),
+                };
+                let size = item.font.get_size2(line);
+                let widget_rf = self.init_widget(WidgetItem::Text(item));
+                let mut widget = widget_rf.as_mut();
+
+                widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+            }
+
+            self.end_container();
+        } else {
+            let item = HmGuiText {
+                text: text.into(),
+                font: font.clone().into(),
+                color: color.clone(),
+            };
+            let size = item.font.get_size2(text);
+            let widget_rf = self.init_widget(WidgetItem::Text(item));
+            let mut widget = widget_rf.as_mut();
+
+            widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+        }
     }
 
     /// Makes current widget `focusable` and returns true if mouse is over it.
