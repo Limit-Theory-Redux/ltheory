@@ -170,7 +170,7 @@ local playGrid = UILayout.Grid {
                     layoutType = GuiLayoutType.Vertical,
                     contents = {
                         UIComponent.Container {
-                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
                             padding = { 0, 10 },
                             margin = { 0, 0 },
                             layoutType = GuiLayoutType.Vertical,
@@ -178,11 +178,12 @@ local playGrid = UILayout.Grid {
                             contents = {}
                         },
                         UIComponent.Container {
-                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+                            childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
                             padding = { 0, 10 },
                             margin = { 0, 0 },
                             layoutType = GuiLayoutType.Vertical,
-                            heightInLayout = 2 / 10,
+                            heightInLayout = 7 / 10,
                             contents = {
                                 UIComponent.ScrollArea {
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
@@ -211,7 +212,6 @@ local playGrid = UILayout.Grid {
                                             padding = { 5, 0 },
                                             margin = { 0, 0 },
                                             layoutType = GuiLayoutType.Vertical,
-                                            heightInLayout = 7 / 10,
                                             color = {
                                                 background = Color(0, 0, 0, 0.3)
                                             },
@@ -221,11 +221,10 @@ local playGrid = UILayout.Grid {
                                 },
                                 UIComponent.Button {
                                     title = "Select",
-                                    align = { AlignHorizontal.Center, AlignVertical.Stretch },
-                                    padding = { 10, 10 },
-                                    margin = { 10, 10 },
-                                    heightInLayout = 1 / 10,
-                                    font = { name = "Exo2", size = 24 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    margin = { 0, 10 },
+                                    height = getButtonHeight,
+                                    width = getButtonWidth,
                                     toolTip = function()
                                         if selectedSeedIndex then
                                             return "Press to load game with the seed:\n" ..
