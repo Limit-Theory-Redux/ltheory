@@ -1,6 +1,7 @@
 -- Enumerations for HUD modes
 Enums.HudStyleCount = 5
 
+---@enum HudStyles
 Enums.HudStyles = {
     None     = 1,
     Minimal  = 2,
@@ -9,6 +10,7 @@ Enums.HudStyles = {
     Tight    = 5,
 }
 
+---@enum HudStyleNames
 Enums.HudStyleNames = {
     "None",
     "Minimal",
@@ -17,6 +19,7 @@ Enums.HudStyleNames = {
     "Tight",
 }
 
+---@enum HudTacMapRanges
 Enums.HudTacMapRanges = {
     Close   = 1,
     Normal  = 2,
