@@ -24,6 +24,7 @@ local meta = {
 ---@field render fun(self: UIComponentRadioGroup) renders the radio group
 
 ---@class UIComponentRadioGroupConstructor
+---@field lastIndex number|nil
 ---@field selectedIndex number|nil
 ---@field selections table
 ---@field visible boolean
@@ -58,7 +59,8 @@ function RadioGroup:new(args)
 
     local newRadioGroup = {}
     newRadioGroup.state = UICore.ComponentState {
-        selectedIndex = args.selectedIndex,
+        lastIndex = args.lastIndex,
+        selectedIndex = args.selectedIndex or 1,
         selections = args.selections or {},
         visible = args.visible,
         width = args.width,
@@ -112,8 +114,9 @@ function RadioGroup:new(args)
             end
 
             local triggered = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
-            if triggered then
+            if triggered or not self.state.lastIndex then
                 selectionChanged = self.state.selectedIndex ~= i
+                self.state.lastIndex = self.state.selectedIndex
                 self.state.selectedIndex = i
             end
 
