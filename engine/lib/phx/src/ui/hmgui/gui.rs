@@ -13,6 +13,8 @@ use super::*;
 pub struct HmGui {
     pub(super) renderer: UIRenderer,
 
+    screen_size: Vec2,
+
     layers: Vec<HmGuiLayer>,
     /// Current layer index in layers vector
     layer_index: usize,
@@ -26,6 +28,7 @@ impl HmGui {
     pub fn new() -> Self {
         Self {
             renderer: Default::default(),
+            screen_size: Default::default(),
             layers: vec![],
             layer_index: UNDEFINED_LAYER_INDEX,
             data: HashMap::with_capacity(128),
@@ -131,8 +134,9 @@ impl HmGui {
     pub fn begin_gui(&mut self, sx: f32, sy: f32) {
         // TODO: [optimization idea] do not clear all layers but reuse unchanged widgets
         self.layers.clear();
+        self.screen_size = Vec2::new(sx, sy);
 
-        self.beginLayer(sx, sy);
+        self.beginLayer();
     }
 
     /// Finish GUI declaration, calculate hierarchy widgets sizes and layout.
@@ -146,9 +150,24 @@ impl HmGui {
             "At least one beginLayer scope was not closed"
         );
 
-        let layers_root: Vec<_> = self.layers.iter().map(|layer| layer.root.clone()).collect();
-        for root_rf in &layers_root {
+        let layers_root: Vec<_> = self
+            .layers
+            .iter()
+            .map(|layer| (layer.root.clone(), layer.location))
+            .collect();
+        for (root_rf, location) in &layers_root {
             let mut root = root_rf.as_mut();
+
+            if let HmGuiLayerLocation::Below(widget_hash) = location {
+                // we assume here that widget_hash points to the widget on the previous layer,
+                // so its position and size are already calculated
+                let data = self.get_data(*widget_hash);
+
+                root.pos = Vec2::new(data.pos.x, data.pos.y + data.size.y);
+                root.inner_pos = root.pos;
+                root.size = self.screen_size - root.pos; // rest of the screen
+                root.inner_size = root.size;
+            }
 
             root.compute_size(self);
             root.layout(self);
@@ -197,12 +216,40 @@ impl HmGui {
         unsafe { Profiler_End() };
     }
 
-    /// Begin a new layer on top of the current one.
+    /// Begin a whole screen new layer on top of the current one.
+    /// Position of the layer (top/left corner) will be [0, 0] and size will be a size of the screen set in [`HmGui::begin_gui`].
     /// All new elements will be added to this new layer.
     /// Each layer has its own separate layout system.
-    pub fn beginLayer(&mut self, sx: f32, sy: f32) {
+    pub fn beginLayer(&mut self) {
         let layer_index = self.layers.len();
-        let layer = HmGuiLayer::new(self.layer_index, sx, sy);
+        let layer = HmGuiLayer::new_fixed(self.layer_index, Vec2::ZERO, self.screen_size);
+
+        self.layers.push(layer);
+        self.layer_index = layer_index;
+    }
+
+    /// Begin a new layer on top of the current one at specified position.
+    /// The size of new layer will bw up to the screen borders.
+    /// All new elements will be added to this new layer.
+    /// Each layer has its own separate layout system.
+    pub fn beginLayerAtPos(&mut self, pos: Vec2) {
+        let layer_index = self.layers.len();
+        // TODO: process situation when position is outside of the screen.
+        let layer = HmGuiLayer::new_fixed(self.layer_index, pos, self.screen_size - pos);
+
+        self.layers.push(layer);
+        self.layer_index = layer_index;
+    }
+
+    /// Begin a new layer below the latest element of the current layer.
+    /// Position and size of the new layer will be calculated after layouting of the previous layer.
+    /// All new elements will be added to this new layer.
+    /// Each layer has its own separate layout system.
+    pub fn beginLayerBelow(&mut self) {
+        let hash = self.last().as_ref().hash;
+
+        let layer_index = self.layers.len();
+        let layer = HmGuiLayer::new_below(self.layer_index, hash);
 
         self.layers.push(layer);
         self.layer_index = layer_index;

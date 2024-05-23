@@ -15,12 +15,24 @@ function HmGui:endGui(input) end
 -- Pass information about widgets to the renderer and draw them.
 function HmGui:draw() end
 
--- Begin a new layer on top of the current one.
+-- Begin a whole screen new layer on top of the current one.
+-- Position of the layer (top/left corner) will be [0, 0] and size will be a size of the screen set in [`HmGui::begin_gui`].
 -- All new elements will be added to this new layer.
 -- Each layer has its own separate layout system.
----@param sx number
----@param sy number
-function HmGui:beginLayer(sx, sy) end
+function HmGui:beginLayer() end
+
+-- Begin a new layer on top of the current one at specified position.
+-- The size of new layer will bw up to the screen borders.
+-- All new elements will be added to this new layer.
+-- Each layer has its own separate layout system.
+---@param pos Vec2f
+function HmGui:beginLayerAtPos(pos) end
+
+-- Begin a new layer below the latest element of the current layer.
+-- Position and size of the new layer will be calculated after layouting of the previous layer.
+-- All new elements will be added to this new layer.
+-- Each layer has its own separate layout system.
+function HmGui:beginLayerBelow() end
 
 -- Close current layer and return to the previous one.
 function HmGui:endLayer() end

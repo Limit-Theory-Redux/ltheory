@@ -228,6 +228,7 @@ impl HmGuiWidget {
 
                 let data = hmgui.get_data(self.hash);
                 data.size = self.size;
+                data.pos = self.pos;
             }
             _ => {}
         }
