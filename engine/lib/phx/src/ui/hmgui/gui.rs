@@ -200,7 +200,12 @@ impl HmGui {
 
         self.renderer.begin();
 
-        let layers_root: Vec<_> = self.layers.iter().map(|layer| layer.root.clone()).collect();
+        let layers_root: Vec<_> = self
+            .layers
+            .iter()
+            .rev()
+            .map(|layer| layer.root.clone())
+            .collect();
         for root_rf in layers_root {
             let root = root_rf.as_ref();
 

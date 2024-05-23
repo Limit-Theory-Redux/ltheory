@@ -52,7 +52,7 @@ function ToolTip:new(args)
         color = args.color or Color(1, 1, 1, 1),
         padding = args.padding or { 10, 10 },
         backgroundColor = args.backgroundColor or Color(0.7, 0.7, 0.7, 0.8),
-        borderWidth = args.borderWidth or 2,
+        borderWidth = args.borderWidth or 1,
         borderColor = args.borderColor or Color(1, 1, 1, 1),
         align = args.align or { AlignHorizontal.Center, AlignVertical.Center }
     }

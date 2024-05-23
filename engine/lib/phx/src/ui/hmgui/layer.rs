@@ -11,7 +11,7 @@ pub const UNDEFINED_LAYER_INDEX: usize = 0xFFFFFFFF;
 pub enum HmGuiLayerLocation {
     /// New layer will occupy predefined position and size on the screen.
     Fixed,
-    /// New layer position will be below the previous element (defined by u64 hash) of the current layer.
+    /// New layer position will be below the last element (defined by u64 hash) of the current layer.
     /// Size of the layer will be up to the screen borders.
     Below(u64),
 }
@@ -30,6 +30,8 @@ pub struct HmGuiLayer {
     pub last: Rf<HmGuiWidget>,
 }
 
+// TODO: root widget of the layer has a fixed size. Check if it would be possible to make it flexible (via alignment)
+// so there is no need to add internal container to have properly sized visualization
 impl HmGuiLayer {
     pub fn new_fixed(prev_index: usize, pos: Vec2, size: Vec2) -> Self {
         let mut widget = HmGuiWidget::new(None, WidgetItem::Container(Default::default()));
