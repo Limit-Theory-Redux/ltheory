@@ -69,7 +69,7 @@ impl HmGui {
 
     /// Add a new widget into the current container.
     fn init_widget(&mut self, item: WidgetItem) -> Rf<HmGuiWidget> {
-        let parent_rf = self.container().clone();
+        let parent_rf = self.container();
         let mut parent = parent_rf.as_mut();
         let parent_hash = parent.hash;
         let parent_container = parent.get_container_item_mut();
@@ -302,7 +302,7 @@ impl HmGui {
 
     /// Closes container started with one of `Gui:beginContainer()` calls.
     pub fn end_container(&mut self) {
-        self.set_last(self.container().clone());
+        self.set_last(self.container());
 
         // We always have a parent since since we don't call end_container for root
         let Some(parent) = self.container().as_ref().parent.clone() else {
@@ -315,7 +315,7 @@ impl HmGui {
     /// Update current container offset.
     /// Return offset value.
     pub fn update_container_offset(&mut self, offset: Vec2) -> Vec2 {
-        let widget_rf = self.container().clone();
+        let widget_rf = self.container();
         let mut widget = widget_rf.as_mut();
         let data = self.get_data(widget.hash);
 
@@ -329,7 +329,7 @@ impl HmGui {
 
     /// Return current container element size calculated in previous frame.
     pub fn container_size(&mut self) -> Vec2 {
-        let widget_rf = self.container().clone();
+        let widget_rf = self.container();
         let widget = widget_rf.as_mut();
         let data = self.get_data(widget.hash);
 
@@ -338,7 +338,7 @@ impl HmGui {
 
     /// Return current container element size calculated in previous frame.
     pub fn container_min_size(&mut self) -> Vec2 {
-        let widget_rf = self.container().clone();
+        let widget_rf = self.container();
         let widget = widget_rf.as_mut();
         let data = self.get_data(widget.hash);
 

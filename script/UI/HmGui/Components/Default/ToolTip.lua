@@ -62,7 +62,9 @@ function ToolTip:new(args)
             return
         end
 
-        local pos = InputInstance:mouse():position() + Vec2f(5, 5) -- shift tool tip position to not overlap mouse cursor
+        -- shift tool tip position to not overlap mouse cursor
+        -- TODO: use actual cursor size
+        local pos = InputInstance:mouse():position() + Vec2f(15, 20)
         Gui:beginLayerAtPos(pos)
 
         Gui:beginStackContainer()
