@@ -73,6 +73,8 @@ GameState.ui = {
     },
     trackerObjectOcclusion           = Config.ui.general.trackerObjectOcclusion,
 
+    tacMapRange                      = Enums.HudTacMapRanges.Normal,
+
     mapSystemPanSpeed                = 0.5,
     mapSystemZoomSpeed               = 0.1,
 

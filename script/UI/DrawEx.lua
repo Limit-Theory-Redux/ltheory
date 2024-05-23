@@ -211,9 +211,22 @@ end
 
 function DrawEx.Point(x, y, r, color)
     local x, y, sx, sy = padAndCenter(padPoint, x, y, r, r)
-    BlendMode.PushAdditive()
     local shader = Cache.Shader('ui', 'ui/point') -- previously used 'ui/circle-old' shader
     local alpha = alphaStack:last() or 1
+    BlendMode.PushAlpha()
+    shader:start()
+    Shader.SetFloat2('size', sx, sy)
+    Shader.SetFloat4('color', color.r, color.g, color.b, color.a * alpha)
+    Draw.Rect(x, y, sx, sy)
+    shader:stop()
+    BlendMode.Pop()
+end
+
+function DrawEx.PointGlow(x, y, r, color)
+    local x, y, sx, sy = padAndCenter(padPoint, x, y, r, r)
+    local shader = Cache.Shader('ui', 'ui/point') -- previously used 'ui/circle-old' shader
+    local alpha = alphaStack:last() or 1
+    BlendMode.PushAdditive()
     shader:start()
     Shader.SetFloat2('size', sx, sy)
     Shader.SetFloat4('color', color.r, color.g, color.b, color.a * alpha)
