@@ -15,6 +15,16 @@ function HmGui:endGui(input) end
 -- Pass information about widgets to the renderer and draw them.
 function HmGui:draw() end
 
+-- Begin a new layer on top of the current one.
+-- All new elements will be added to this new layer.
+-- Each layer has its own separate layout system.
+---@param sx number
+---@param sy number
+function HmGui:beginLayer(sx, sy) end
+
+-- Close current layer and return to the previous one.
+function HmGui:endLayer() end
+
 -- Start a new container with a specified layout.
 ---@param layout GuiLayoutType
 function HmGui:beginContainer(layout) end

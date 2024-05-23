@@ -20,6 +20,8 @@ function Loader.defineType()
             void  HmGui_BeginGui                       (HmGui*, float sx, float sy);
             void  HmGui_EndGui                         (HmGui*, Input const* input);
             void  HmGui_Draw                           (HmGui*);
+            void  HmGui_BeginLayer                     (HmGui*, float sx, float sy);
+            void  HmGui_EndLayer                       (HmGui*);
             void  HmGui_BeginContainer                 (HmGui*, GuiLayoutType layout);
             void  HmGui_BeginStackContainer            (HmGui*);
             void  HmGui_BeginHorizontalContainer       (HmGui*);
@@ -84,6 +86,8 @@ function Loader.defineType()
                 beginGui                       = libphx.HmGui_BeginGui,
                 endGui                         = libphx.HmGui_EndGui,
                 draw                           = libphx.HmGui_Draw,
+                beginLayer                     = libphx.HmGui_BeginLayer,
+                endLayer                       = libphx.HmGui_EndLayer,
                 beginContainer                 = libphx.HmGui_BeginContainer,
                 beginStackContainer            = libphx.HmGui_BeginStackContainer,
                 beginHorizontalContainer       = libphx.HmGui_BeginHorizontalContainer,
