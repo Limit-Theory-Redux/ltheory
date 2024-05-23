@@ -24,6 +24,10 @@ local updateSensorsInterval = 2 / 10
 local deltaSensorsTimer = 0
 local barTweak = 0
 
+local updateTargetsInterval = 1 / 60
+local lastTargetsUpdate = 0
+local deltaTimer = 0
+
 function HUD:drawSystemText(a)
     local cx, cy = self.sx / 2, self.sy / 2
 
@@ -393,7 +397,7 @@ function HUD:drawTargetSpeed(a)
         local hudFsize = hudFontSize
         if GameState.ui.hudStyle == Enums.HudStyles.Wide then
             hudX = cx + 70
-            hudY = 150
+            hudY = 146
             hudFsize = hudFontSize
         elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
             hudX = cx + 70
@@ -1110,21 +1114,77 @@ end
 
 function HUD:drawTacticalMap(a)
     local cx, cy = self.sx / 2, self.sy / 2
+    local radiusOuterRing = 70
+    local radiusInnerRing = 44
+    local radiusScaleRing = 10
+    local mapHeight = 82
 
     -- Draw tactical map
-    UI.DrawEx.Ring(cx, self.sy - 76, 70, Config.ui.color.meterBarLight, true)
-    UI.DrawEx.Ring(cx, self.sy - 76, 44, Config.ui.color.meterBarLight, false)
+    if GameState.ui.tacMapRange > Enums.HudTacMapRanges.Normal then
+        UI.DrawEx.Ring(cx, self.sy - mapHeight, radiusOuterRing + 10, Config.ui.color.meterBarLight, true)
+    end
+    if GameState.ui.tacMapRange > Enums.HudTacMapRanges.Close then
+        UI.DrawEx.Ring(cx, self.sy - mapHeight, radiusOuterRing + 5, Config.ui.color.meterBarLight, true)
+    end
+    UI.DrawEx.Ring(cx, self.sy - mapHeight, radiusOuterRing, Config.ui.color.meterBarLight, true)
+    UI.DrawEx.Ring(cx, self.sy - mapHeight, radiusInnerRing, Config.ui.color.meterBarLight, false)
 
-    UI.DrawEx.Line(cx, self.sy - 144, cx, self.sy - 6, Config.ui.color.meterBarLight, false)
-    UI.DrawEx.Line(cx - 70, self.sy - 78, cx + 70, self.sy - 78, Config.ui.color.meterBarLight, false)
+    UI.DrawEx.Line(cx, self.sy - 150, cx, self.sy - 12, Config.ui.color.meterBarLight, false)
+    UI.DrawEx.Line(cx - radiusOuterRing, self.sy - 84, cx + radiusOuterRing, self.sy - 84, Config.ui.color.meterBarLight, false)
 
-    UI.DrawEx.Line(cx - 48, self.sy - 124, cx, self.sy - 78, Config.ui.color.meterBarLight, false)
-    UI.DrawEx.Line(cx + 48, self.sy - 124, cx, self.sy - 78, Config.ui.color.meterBarLight, false)
+    UI.DrawEx.Line(cx - 48, self.sy - 130, cx, self.sy - 84, Config.ui.color.meterBarLight, false)
+    UI.DrawEx.Line(cx + 48, self.sy - 130, cx, self.sy - 84, Config.ui.color.meterBarLight, false)
+
+    -- Loop through nearby stations and ships and draw them on the tactical map
+    local ix = self.sx / 2
+    local iy = self.sy - mapHeight
+    local r = 1.0
+    local c = Color(1.0, 1.0, 1.0, 1.0)
+
+    local camera = self.gameView.camera
+    local player = self.player
+    local playerShip = player:getControlling()
+    local system = playerShip.parent
+    if system and not playerShip:isShipDocked() then -- no need to update tactical map while docked at a space station
+        local stations = system:getStations()
+        local ships    = system:getShips()
+        local maxDist  = Config.ui.general.rangeDistances[GameState.ui.tacMapRange]
+
+        for _, station in ipairs(stations) do
+            local dist = playerShip:getDistance(station)
+            if not station:isDestroyed() and dist <= maxDist then
+                local pos = station:getPos()
+                local ndc = camera:worldToNDC(pos)
+                local x = ix + math.sin(max(-1.57, min(1.57, ndc.x))) *  radiusOuterRing * ndc.z * dist / maxDist
+                local y = iy + math.cos(max(-1.57, min(1.57, ndc.x))) * -radiusOuterRing * ndc.z * dist / maxDist
+
+                local disp = Config.game.dispoNeutral -- disposition to neutral by default
+                if station:hasAttackable() and station:isAttackable() then disp = station:getDisposition(playerShip) end
+                -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+                local c = Disposition.GetColor(disp)
+
+                r = 1.5
+                UI.DrawEx.Circle(x, y, r, c)
+            end
+        end
+        for _, ship in ipairs(ships) do
+            local dist = playerShip:getDistance(ship)
+            if ship ~= playerShip and not ship:isDestroyed() and dist <= maxDist then
+                local pos = ship:getPos()
+                local ndc = camera:worldToNDC(pos)
+                local x = ix + math.sin(max(-1.7, min(1.7, ndc.x))) *  radiusOuterRing * ndc.z * dist / maxDist
+                local y = iy + math.cos(max(-1.7, min(1.7, ndc.x))) * -radiusOuterRing * ndc.z * dist / maxDist
+
+                local disp = Config.game.dispoNeutral -- disposition to neutral by default
+                if ship:hasAttackable() and ship:isAttackable() then disp = ship:getDisposition(playerShip) end
+                -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+                local c = Disposition.GetColor(disp)
+
+                UI.DrawEx.Point(x, y, 256, c)
+            end
+        end
+    end
 end
-
-local updateTargetsInterval = 1 / 60
-local lastTargetsUpdate = 0
-local deltaTimer = 0
 
 local function getPosObject(def)
     local object = {}
@@ -1697,7 +1757,7 @@ function HUD:onInput(state)
         -- camera:modYaw(0.005 * CameraBindings.Yaw:get())     -- only works when cameraOrbit is the current camera
         -- camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
-        -- Select a weapon group
+        -- HUD control: Select a weapon group
         if InputInstance:isPressed(Button.KeyboardKey1) and GameState.player.weaponGroup ~= 1 then
             GameState.player.weaponGroup = 1
         elseif InputInstance:isPressed(Button.KeyboardKey2) and GameState.player.weaponGroup ~= 2 then
@@ -1716,6 +1776,16 @@ function HUD:onInput(state)
             GameState.player.weaponGroup = 8
         end
 
+        -- HUD control: Select a tactical map range (close, normal, distant)
+        if InputInstance:isPressed(Button.KeyboardNumpad1) then
+            GameState.ui.tacMapRange = 1
+        elseif InputInstance:isPressed(Button.KeyboardNumpad2) then
+            GameState.ui.tacMapRange = 2
+        elseif InputInstance:isPressed(Button.KeyboardNumpad3) then
+            GameState.ui.tacMapRange = 3
+        end
+
+        -- Process player ship control actions
         local e = self.player:getControlling()
         if not e:isDestroyed() then
             self:controlThrust(e)
@@ -1888,7 +1958,7 @@ function HUD:onDrawIcon(iconButton, focus, active)
 end
 
 function HUD:onEnable()
-    -- TODO : Wtf does this do? Who wrote this?? WHY.
+    -- TODO : Wtf does this do? Who wrote this?? WHY. [<-- this comment was from Josh or Adam]
     local pCamera = self.gameView.camera
     local camera = self.gameView.camera
 
