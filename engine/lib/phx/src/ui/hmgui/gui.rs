@@ -327,7 +327,16 @@ impl HmGui {
         data.offset
     }
 
-    /// Return current container element size calculated in previous frame.
+    /// Return last element size calculated in the previous frame.
+    pub fn element_size(&mut self) -> Vec2 {
+        let widget_rf = self.last();
+        let widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
+
+        data.size
+    }
+
+    /// Return current container element size calculated in the previous frame.
     pub fn container_size(&mut self) -> Vec2 {
         let widget_rf = self.container();
         let widget = widget_rf.as_mut();
@@ -336,7 +345,7 @@ impl HmGui {
         data.size
     }
 
-    /// Return current container element size calculated in previous frame.
+    /// Return current container element size calculated in the previous frame.
     pub fn container_min_size(&mut self) -> Vec2 {
         let widget_rf = self.container();
         let widget = widget_rf.as_mut();

@@ -130,7 +130,11 @@ local playGrid = UILayout.Grid {
                             height = getButtonHeight,
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
-                        }
+                        },
+                        UIComponent.Dropdown {
+                            selections = { "Selection 1", "Selection 2", "Selection 3", "Selection 4", "Selection 5", "Selection 6", "Selection 7" },
+                            align = { AlignHorizontal.Stretch, AlignVertical.Center },
+                        },
                     }
                 },
                 UIComponent.Container {
@@ -239,7 +243,7 @@ local playGrid = UILayout.Grid {
                                         end
                                     end,
                                 },
-                            }
+                            },
                         },
                         UIComponent.Container {
                             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },

@@ -62,11 +62,15 @@ function HmGui:endContainer() end
 ---@return Vec2f
 function HmGui:updateContainerOffset(offset) end
 
--- Return current container element size calculated in previous frame.
+-- Return last element size calculated in the previous frame.
+---@return Vec2f
+function HmGui:elementSize() end
+
+-- Return current container element size calculated in the previous frame.
 ---@return Vec2f
 function HmGui:containerSize() end
 
--- Return current container element size calculated in previous frame.
+-- Return current container element size calculated in the previous frame.
 ---@return Vec2f
 function HmGui:containerMinSize() end
 
