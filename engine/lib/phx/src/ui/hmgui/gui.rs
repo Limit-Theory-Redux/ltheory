@@ -379,9 +379,8 @@ impl HmGui {
 
         if lines.len() > 1 {
             // TODO: this is a temporary solution for multiline text.
-            // Problem with it is all widget styling will be applied to container instead of text.
+            // Problem with it is that all widget styling will be applied to the container instead of text.
             self.begin_vertical_container();
-            // self.set_alignment(AlignHorizontal::Center, AlignVertical::Expand);
             self.set_spacing(5.0);
 
             for line in lines {
