@@ -76,7 +76,7 @@ function BattleTest:newSystem()
         local currentShip = self.currentShip or self.player:getControlling()
         if currentShip then currentShip:delete() end
         local ship = self.system:spawnShip(Enums.ShipHulls.Solo, self.player)
-        ship:setPos(aField:getPos() + Vec3f(0, 1000, 0))
+        ship:setPos(aField:getPos() + Position(0, 1000, 0))
         ship:setFriction(0)
         ship:setSleepThreshold(0, 0)
         ship:setOwner(self.player, true)

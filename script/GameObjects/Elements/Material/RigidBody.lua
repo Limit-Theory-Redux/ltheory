@@ -138,14 +138,14 @@ end
 
 function Entity:getPos()
     assert(self.body)
-    local pos = Vec3f()
+    local pos = Position()
     self.body:getPos(pos)
     return pos
 end
 
 function Entity:getPosLocal()
     assert(self.body)
-    local pos = Vec3f()
+    local pos = Position()
     self.body:getPosLocal(pos)
     return pos
 end
@@ -191,12 +191,12 @@ end
 
 function Entity:getToLocalMatrix()
     assert(self.body)
-    return self.body:getToLocalMatrix()
+    return self.body:getToLocalMatrix(Position.Identity())
 end
 
 function Entity:getToWorldMatrix()
     assert(self.body)
-    return self.body:getToWorldMatrix()
+    return self.body:getToWorldMatrix(Position.Identity())
 end
 
 function Entity:getParentBody()

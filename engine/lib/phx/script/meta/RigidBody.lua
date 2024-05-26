@@ -95,12 +95,18 @@ function RigidBody:getBoundingRadiusCompound() end
 function RigidBody:getSpeed() end
 
 -- Returns the local -> world matrix for this rigid body.
+--
+-- This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
+---@param cameraPos Position
 ---@return Matrix
-function RigidBody:getToWorldMatrix() end
+function RigidBody:getToWorldMatrix(cameraPos) end
 
 -- Returns the world -> local matrix for this rigid body.
+--
+-- This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
+---@param cameraPos Position
 ---@return Matrix
-function RigidBody:getToLocalMatrix() end
+function RigidBody:getToLocalMatrix(cameraPos) end
 
 ---@param result Vec3f [out]
 function RigidBody:getVelocity(result) end
@@ -144,19 +150,19 @@ function RigidBody:getMass() end
 function RigidBody:setMass(mass) end
 
 -- Children return the parent position.
----@param result Vec3f [out]
+---@param result Position [out]
 function RigidBody:getPos(result) end
 
 -- Local coordinates are relative to the parent *before* scaling.
----@param result Vec3f [out]
+---@param result Position [out]
 function RigidBody:getPosLocal(result) end
 
----@param pos Vec3f
+---@param pos Position
 function RigidBody:setPos(pos) end
 
 -- Local coordinates are relative to the parent *before* scaling. The
 -- given position will be multiplied by the parent's scale.
----@param pos Vec3f
+---@param pos Position
 function RigidBody:setPosLocal(pos) end
 
 ---@param result Quat [out]

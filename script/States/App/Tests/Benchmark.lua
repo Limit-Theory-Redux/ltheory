@@ -55,7 +55,7 @@ function Benchmark:spawnAsteroids()
             counter = 0
         end
 
-        asteroid:setPos(Config.gen.origin + Vec3f(x, y, z))
+        asteroid:setPos(Config.gen.origin + Position(x, y, z))
         asteroid:setRot(self.rng:getQuat())
 
         self.system:addChild(asteroid)
@@ -79,7 +79,7 @@ function Benchmark:spawnShips()
 
     for i = 1, BENCHMARK_SHIPS do
         local ship = self.system:spawnShip(BENCHMARK_SHIPS_HULL, self.player)
-        ship:setPos(Config.gen.origin + Vec3f(x, y, z))
+        ship:setPos(Config.gen.origin + Position(x, y, z))
         ship:setFriction(0)
         ship:setSleepThreshold(0, 0)
         ship:setOwner(self.player, true)
@@ -116,7 +116,7 @@ function Benchmark:spawnStations()
 
     for i = 1, BENCHMARK_STATIONS do
         local station = self.system:spawnStation(Enums.StationHulls.Small, self.player)
-        station:setPos(Config.gen.origin + Vec3f(x, y, z))
+        station:setPos(Config.gen.origin + Position(x, y, z))
         station:setFriction(0)
         station:setSleepThreshold(0, 0)
         station:setOwner(self.player, true)

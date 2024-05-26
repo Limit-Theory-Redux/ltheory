@@ -44,7 +44,7 @@ function Zone:sample(rng)
 end
 
 function Zone:getRandomPos(rng)
-    return self.pos + rng:getDir3():scale((0.1 * self.extent) * rng:getExp() ^ rng:getExp())
+    return self.pos + rng:getDir3():scale((0.1 * self.extent) * rng:getExp() ^ rng:getExp()):toPosition()
 end
 
 function Zone:updateZone(state)

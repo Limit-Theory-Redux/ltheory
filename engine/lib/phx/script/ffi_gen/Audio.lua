@@ -19,9 +19,9 @@ function Loader.defineType()
             void           Audio_Free           (Audio*);
             Audio*         Audio_Create         ();
             SoundInstance* Audio_Play           (Audio*, Sound* sound, double initVolume, uint64 fadeMillis);
-            SoundInstance* Audio_Play3D         (Audio*, Sound* sound, double initVolume, uint64 fadeMillis, Vec3f initPos, float minDistance, float maxDistance);
-            void           Audio_SetListenerPos (Audio*, Vec3f const* pos);
-            Vec3f          Audio_ListenerPos    (Audio const*);
+            SoundInstance* Audio_Play3D         (Audio*, Sound* sound, double initVolume, uint64 fadeMillis, Position initPos, float minDistance, float maxDistance);
+            void           Audio_SetListenerPos (Audio*, Position const* pos);
+            Position       Audio_ListenerPos    (Audio const*);
             void           Audio_SetListenerRot (Audio*, Quat const* rot);
             Quat*          Audio_ListenerRot    (Audio const*);
             uint64         Audio_GetLoadedCount (Audio const*);

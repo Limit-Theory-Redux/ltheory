@@ -360,7 +360,7 @@ function System:spawnPlanet(bAddBelt)
     planet:setName(format("%s", planetName))
 
     -- Randomly place the planet within the system
-    planet:setPos(rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + rng:getExp())))
+    planet:setPos(rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + rng:getExp())):toPosition())
 
     -- Set the planet's scale
     local psbase = Config.gen.scalePlanet
@@ -498,7 +498,7 @@ function System:spawnPlanet(bAddBelt)
             System:setAsteroidYield(asteroid)
 
             -- Place the new asteroid in a torus around the planet
-            asteroid:setPos(center + Vec3f(r * dir.x, h, r * dir.y))
+            asteroid:setPos(center + Position(r * dir.x, h, r * dir.y))
 
             -- Let the new asteroid have a random angle
             asteroid:setRot(rng:getQuat())
@@ -534,10 +534,10 @@ function System:spawnAsteroidField(count, reduced)
     -- (unless background, in which case pick the center of the system)
     -- If count is -1, that's the signal to create a field for background mode
     if count == -1 then
-        zone.pos = Vec3f(200, 0, 200)
+        zone.pos = Position(200, 0, 200)
         count = 500
     else
-        zone.pos = rng:getDir3():scale(1.0 * Config.gen.scaleSystem * (2 + rng:getExp()))
+        zone.pos = rng:getDir3():scale(1.0 * Config.gen.scaleSystem * (2 + rng:getExp())):toPosition()
     end
 
     -- Set the extent (scale) of the asteroid field within a spherical (3D) volume
@@ -953,10 +953,10 @@ function System:spawnShip(hullSize, player)
     ship:setOwner(player, true)
 
     -- TODO: make sure spawn position for ship is well outside any planetary volume
-    local shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp()))
+    local shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp())):toPosition()
     if Config.gen.scaleSystem < 5e4 then
         while shipPos:distance(Config.gen.origin) > 200000 do -- constrain max extent of small star systems for performance
-            shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp()))
+            shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp())):toPosition()
         end
     end
     ship:setPos(shipPos)

@@ -75,28 +75,28 @@ function LTheory:generate()
 
         if compoundTest then
             self.asteroid1 = Entities.Objects.Asteroid(1234, 5)
-            self.asteroid1:setPos(Vec3f(-10, 0, 10))
+            self.asteroid1:setPos(Position(-10, 0, 10))
             self.system:addChild(self.asteroid1)
             self.asteroid1.pos = Vec3f(1, 0, 0)
 
             self.asteroid2 = Entities.Objects.Asteroid(1234, 5)
-            self.asteroid2:setPos(Vec3f(10, 0, 10))
+            self.asteroid2:setPos(Position(10, 0, 10))
             self.system:addChild(self.asteroid2)
             self.asteroid2.pos = Vec3f(-1, 0, 0)
         end
 
         if collisionTest then
             local asteroid = Entities.Objects.Asteroid(1234, 20)
-            asteroid:setPos(Vec3f(20, 0, -100))
+            asteroid:setPos(Position(20, 0, -100))
             self.system:addChild(asteroid)
             local ship = self.system:spawnShip(Enums.ShipHulls.Solo, nil)
-            ship:setPos(Vec3f(-20, 0, -100))
+            ship:setPos(Position(-20, 0, -100))
 
             local ship = self.system:spawnShip(Enums.ShipHulls.Solo, nil)
             local mat = Matrix.YawPitchRoll(0, 0, math.pi / 4)
             local rot = mat:toQuat()
             mat:free()
-            ship:setPos(Vec3f(0, 40, -100))
+            ship:setPos(Position(0, 40, -100))
             ship:setRot(rot)
             if boundingTest then
                 ship:attach(Entities.Objects.Asteroid(1234, 5), Vec3f(10, 0, 0), Quat.Identity())
@@ -106,14 +106,14 @@ function LTheory:generate()
 
         if scaleTest then
             local asteroid = Entities.Objects.Asteroid(1234, 10000)
-            asteroid:setPos(Vec3f(0, 0, 10500))
+            asteroid:setPos(Position(0, 0, 10500))
             self.system:addChild(asteroid)
         end
     end
 
     if worldTriggerTest then
         self.trigger1 = Entities.Trigger(Vec3f(20, 20, 20))
-        self.trigger1:triggerSetPos(Vec3f(9, 0, 0))
+        self.trigger1:triggerSetPos(Position(9, 0, 0))
         self.system:addChild(self.trigger1)
     end
 
