@@ -13,12 +13,11 @@ use super::*;
 pub struct HmGui {
     pub(super) renderer: UIRenderer,
 
-    /// Top level container object with None layout. Used for recalculating sizes, layouts and drawing of the whole gui
-    root: Rf<HmGuiWidget>,
-    /// Current active container
-    container: Rf<HmGuiWidget>,
-    /// Either last created/initialized widget (container, image, text, rect) or the last widget of the ended container
-    last: Rf<HmGuiWidget>,
+    screen_size: Vec2,
+
+    layers: Vec<HmGuiLayer>,
+    /// Current layer index in layers vector
+    layer_index: usize,
 
     data: HashMap<u64, HmGuiData>,
     mouse_over_widget_hash: [u64; 2],
@@ -27,42 +26,50 @@ pub struct HmGui {
 
 impl HmGui {
     pub fn new() -> Self {
-        let container = HmGuiContainer {
-            layout: LayoutType::Stack,
-            clip: true, // always clip elements out of the screen
-            spacing: 0.0,
-            ..Default::default()
-        };
-
-        let mut widget = HmGuiWidget::new(None, WidgetItem::Container(container));
-        widget.hash = Hash_FNV64_Init();
-
-        let root = Rf::new(widget);
-        let container = root.clone();
-        let last = root.clone();
-
         Self {
             renderer: Default::default(),
-            root,
-            container,
-            last,
+            screen_size: Default::default(),
+            layers: vec![],
+            layer_index: UNDEFINED_LAYER_INDEX,
             data: HashMap::with_capacity(128),
             mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
         }
     }
 
+    #[inline]
     pub fn root(&self) -> Rf<HmGuiWidget> {
-        self.root.clone()
+        self.layers[self.layer_index].root.clone()
     }
 
+    #[inline]
+    pub fn container(&self) -> Rf<HmGuiWidget> {
+        self.layers[self.layer_index].container.clone()
+    }
+
+    #[inline]
+    pub fn set_container(&mut self, container: Rf<HmGuiWidget>) {
+        self.layers[self.layer_index].container = container;
+    }
+
+    #[inline]
+    pub fn last(&self) -> Rf<HmGuiWidget> {
+        self.layers[self.layer_index].last.clone()
+    }
+
+    #[inline]
+    pub fn set_last(&mut self, last: Rf<HmGuiWidget>) {
+        self.layers[self.layer_index].last = last;
+    }
+
+    #[inline]
     pub fn mouse_over_widget_hash(&self) -> u64 {
         self.mouse_over_widget_hash[FocusType::Mouse as usize]
     }
 
     /// Add a new widget into the current container.
     fn init_widget(&mut self, item: WidgetItem) -> Rf<HmGuiWidget> {
-        let parent_rf = self.container.clone();
+        let parent_rf = self.container();
         let mut parent = parent_rf.as_mut();
         let parent_hash = parent.hash;
         let parent_container = parent.get_container_item_mut();
@@ -83,7 +90,7 @@ impl HmGui {
 
         parent_container.children.push(widget_rf.clone());
 
-        self.last = widget_rf.clone();
+        self.set_last(widget_rf.clone());
 
         widget_rf.clone()
     }
@@ -125,19 +132,11 @@ impl HmGui {
 impl HmGui {
     /// Begin GUI declaration. Region is limited by [0, 0] - [sx, sy] rectangle.
     pub fn begin_gui(&mut self, sx: f32, sy: f32) {
-        let root = &mut self.root.as_mut();
+        // TODO: [optimization idea] do not clear all layers but reuse unchanged widgets
+        self.layers.clear();
+        self.screen_size = Vec2::new(sx, sy);
 
-        root.inner_pos = Vec2::ZERO;
-        root.pos = root.inner_pos;
-        root.inner_size = Vec2::new(sx, sy);
-        root.size = root.inner_size;
-
-        let root_container = root.get_container_item_mut();
-        root_container.children.clear();
-        root_container.children_hash = 0;
-
-        self.container = self.root.clone();
-        self.last = self.root.clone();
+        self.beginLayer();
     }
 
     /// Finish GUI declaration, calculate hierarchy widgets sizes and layout.
@@ -145,10 +144,30 @@ impl HmGui {
     pub fn end_gui(&mut self, input: &Input) {
         unsafe { Profiler_Begin(c_str!("HmGui_End")) };
 
-        // NOTE: Scope is needed to avoid borrow conflict with check_focus below
-        {
-            let root_rf = self.root.clone();
+        self.endLayer();
+        assert_eq!(
+            self.layer_index, UNDEFINED_LAYER_INDEX,
+            "At least one beginLayer scope was not closed"
+        );
+
+        let layers_root: Vec<_> = self
+            .layers
+            .iter()
+            .map(|layer| (layer.root.clone(), layer.location))
+            .collect();
+        for (root_rf, location) in &layers_root {
             let mut root = root_rf.as_mut();
+
+            if let HmGuiLayerLocation::Below(widget_hash) = location {
+                // we assume here that widget_hash points to the widget on the previous layer,
+                // so its position and size are already calculated
+                let data = self.get_data(*widget_hash);
+
+                root.pos = Vec2::new(data.pos.x, data.pos.y + data.size.y);
+                root.inner_pos = root.pos;
+                root.size = self.screen_size - root.pos; // rest of the screen
+                root.inner_size = root.size;
+            }
 
             root.compute_size(self);
             root.layout(self);
@@ -157,7 +176,15 @@ impl HmGui {
         self.focus_pos = input.mouse().position();
         self.mouse_over_widget_hash.fill(0);
 
-        self.check_mouse_over(self.root.clone());
+        let layers_root: Vec<_> = self
+            .layers
+            .iter()
+            .rev()
+            .map(|layer| layer.root.clone())
+            .collect();
+        for root in layers_root {
+            self.check_mouse_over(root);
+        }
 
         unsafe { Profiler_End() };
     }
@@ -173,10 +200,17 @@ impl HmGui {
 
         self.renderer.begin();
 
-        let root_rf = self.root.clone();
-        let root = root_rf.as_ref();
+        let layers_root: Vec<_> = self
+            .layers
+            .iter()
+            .rev()
+            .map(|layer| layer.root.clone())
+            .collect();
+        for root_rf in layers_root {
+            let root = root_rf.as_ref();
 
-        root.draw(self);
+            root.draw(self);
+        }
 
         self.renderer.end();
 
@@ -185,6 +219,55 @@ impl HmGui {
         self.renderer.draw();
 
         unsafe { Profiler_End() };
+    }
+
+    /// Begin a whole screen new layer on top of the current one.
+    /// Position of the layer (top/left corner) will be [0, 0] and size will be a size of the screen set in [`HmGui::begin_gui`].
+    /// All new elements will be added to this new layer.
+    /// Each layer has its own separate layout system.
+    pub fn beginLayer(&mut self) {
+        let layer_index = self.layers.len();
+        let layer = HmGuiLayer::new_fixed(self.layer_index, Vec2::ZERO, self.screen_size);
+
+        self.layers.push(layer);
+        self.layer_index = layer_index;
+    }
+
+    /// Begin a new layer on top of the current one at specified position.
+    /// The size of new layer will bw up to the screen borders.
+    /// All new elements will be added to this new layer.
+    /// Each layer has its own separate layout system.
+    pub fn beginLayerAtPos(&mut self, pos: Vec2) {
+        let layer_index = self.layers.len();
+        // TODO: process situation when position is outside of the screen.
+        let layer = HmGuiLayer::new_fixed(self.layer_index, pos, self.screen_size - pos);
+
+        self.layers.push(layer);
+        self.layer_index = layer_index;
+    }
+
+    /// Begin a new layer below the latest element of the current layer.
+    /// Position and size of the new layer will be calculated after layouting of the previous layer.
+    /// All new elements will be added to this new layer.
+    /// Each layer has its own separate layout system.
+    pub fn beginLayerBelow(&mut self) {
+        let hash = self.last().as_ref().hash;
+
+        let layer_index = self.layers.len();
+        let layer = HmGuiLayer::new_below(self.layer_index, hash);
+
+        self.layers.push(layer);
+        self.layer_index = layer_index;
+    }
+
+    /// Close current layer and return to the previous one.
+    pub fn endLayer(&mut self) {
+        assert_ne!(
+            self.layer_index, UNDEFINED_LAYER_INDEX,
+            "Unmatched endLayer scope"
+        );
+
+        self.layer_index = self.layers[self.layer_index].prev_index;
     }
 
     /// Start a new container with a specified layout.
@@ -196,7 +279,7 @@ impl HmGui {
 
         let widget_rf = self.init_widget(WidgetItem::Container(container));
 
-        self.container = widget_rf.clone();
+        self.set_container(widget_rf.clone());
     }
 
     /// Starts stack container.
@@ -219,19 +302,20 @@ impl HmGui {
 
     /// Closes container started with one of `Gui:beginContainer()` calls.
     pub fn end_container(&mut self) {
-        self.last = self.container.clone();
+        self.set_last(self.container());
 
         // We always have a parent since since we don't call end_container for root
-        let Some(parent) = self.container.as_ref().parent.clone() else {
+        let Some(parent) = self.container().as_ref().parent.clone() else {
             unreachable!()
         };
-        self.container = parent;
+
+        self.set_container(parent);
     }
 
     /// Update current container offset.
     /// Return offset value.
     pub fn update_container_offset(&mut self, offset: Vec2) -> Vec2 {
-        let widget_rf = self.container.clone();
+        let widget_rf = self.container();
         let mut widget = widget_rf.as_mut();
         let data = self.get_data(widget.hash);
 
@@ -243,18 +327,27 @@ impl HmGui {
         data.offset
     }
 
-    /// Return current container element size calculated in previous frame.
-    pub fn container_size(&mut self) -> Vec2 {
-        let widget_rf = self.container.clone();
+    /// Return last element size calculated in the previous frame.
+    pub fn element_size(&mut self) -> Vec2 {
+        let widget_rf = self.last();
         let widget = widget_rf.as_mut();
         let data = self.get_data(widget.hash);
 
         data.size
     }
 
-    /// Return current container element size calculated in previous frame.
+    /// Return current container element size calculated in the previous frame.
+    pub fn container_size(&mut self) -> Vec2 {
+        let widget_rf = self.container();
+        let widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
+
+        data.size
+    }
+
+    /// Return current container element size calculated in the previous frame.
     pub fn container_min_size(&mut self) -> Vec2 {
-        let widget_rf = self.container.clone();
+        let widget_rf = self.container();
         let widget = widget_rf.as_mut();
         let data = self.get_data(widget.hash);
 
@@ -263,7 +356,8 @@ impl HmGui {
 
     /// Update current element minimum size.
     pub fn update_element_offset(&mut self, offset: Vec2) {
-        let widget_rf = self.last.clone();
+        let last = self.last();
+        let widget_rf = last.clone();
         let widget = widget_rf.as_mut();
         let data = self.get_data(widget.hash);
 
@@ -281,22 +375,47 @@ impl HmGui {
     }
 
     pub fn text(&mut self, text: &str, font: &Font, color: &Color) {
-        let item = HmGuiText {
-            text: text.into(),
-            font: font.clone().into(),
-            color: color.clone(),
-        };
-        let size = item.font.get_size2(text);
-        let widget_rf = self.init_widget(WidgetItem::Text(item));
-        let mut widget = widget_rf.as_mut();
+        let lines: Vec<_> = text.lines().collect();
 
-        widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+        if lines.len() > 1 {
+            // TODO: this is a temporary solution for multiline text.
+            // Problem with it is that all widget styling will be applied to the container instead of text.
+            self.begin_vertical_container();
+            self.set_spacing(5.0);
+
+            for line in lines {
+                let item = HmGuiText {
+                    text: line.into(),
+                    font: font.clone().into(),
+                    color: color.clone(),
+                };
+                let size = item.font.get_size2(line);
+                let widget_rf = self.init_widget(WidgetItem::Text(item));
+                let mut widget = widget_rf.as_mut();
+
+                widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+            }
+
+            self.end_container();
+        } else {
+            let item = HmGuiText {
+                text: text.into(),
+                font: font.clone().into(),
+                color: color.clone(),
+            };
+            let size = item.font.get_size2(text);
+            let widget_rf = self.init_widget(WidgetItem::Text(item));
+            let mut widget = widget_rf.as_mut();
+
+            widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+        }
     }
 
     /// Makes current widget `focusable` and returns true if mouse is over it.
     /// Returns true if mouse is over the widget (was calculated in the previous frame).
     pub fn is_mouse_over(&self, ty: FocusType) -> bool {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         // Will be used in the check_mouse_over to set `mouse over` hash for current widget for the next frame.
         widget.mouse_over[ty as usize] = true;
@@ -305,138 +424,160 @@ impl HmGui {
     }
 
     pub fn set_min_width(&self, width: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.inner_min_size.x = width;
     }
 
     pub fn set_min_height(&self, height: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.inner_min_size.y = height;
     }
 
     pub fn set_min_size(&self, width: f32, height: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.inner_min_size.x = width;
         widget.inner_min_size.y = height;
     }
 
     pub fn set_fixed_width(&self, width: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.default_size[0] = Length::Fixed(width);
     }
 
     pub fn set_fixed_height(&self, height: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.default_size[1] = Length::Fixed(height);
     }
 
     pub fn set_fixed_size(&self, width: f32, height: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.default_size[0] = Length::Fixed(width);
         widget.default_size[1] = Length::Fixed(height);
     }
 
     pub fn set_percent_width(&self, width: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.default_size[0] = Length::Percent(width);
     }
 
     pub fn set_percent_height(&self, height: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.default_size[1] = Length::Percent(height);
     }
 
     pub fn set_percent_size(&self, width: f32, height: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.default_size[0] = Length::Percent(width);
         widget.default_size[1] = Length::Percent(height);
     }
 
     pub fn set_margin(&self, px: f32, py: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.margin_lower = Vec2::new(px, py);
         widget.margin_upper = Vec2::new(px, py);
     }
 
     pub fn set_margin_ex(&self, left: f32, top: f32, right: f32, bottom: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.margin_lower = Vec2::new(left, top);
         widget.margin_upper = Vec2::new(right, bottom);
     }
 
     pub fn set_margin_left(&self, margin: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.margin_lower.x = margin;
     }
 
     pub fn set_margin_top(&self, margin: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.margin_lower.y = margin;
     }
 
     pub fn set_margin_right(&self, margin: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.margin_upper.x = margin;
     }
 
     pub fn set_margin_bottom(&self, margin: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.margin_upper.y = margin;
     }
 
     pub fn set_border_width(&self, width: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.border_width = width;
     }
 
     pub fn set_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.alignment = [h.into(), v.into()];
     }
 
     pub fn set_horizontal_alignment(&self, align: AlignHorizontal) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.alignment[0] = align.into();
     }
 
     pub fn set_vertical_alignment(&self, align: AlignVertical) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.alignment[1] = align.into();
     }
 
     pub fn set_border_color(&self, color: &Color) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.border_color = *color;
     }
 
     pub fn set_background_color(&self, color: &Color) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.background_color = *color;
     }
 
     pub fn set_opacity(&self, opacity: f32) {
-        let mut widget = self.last.as_mut();
+        let last = self.last();
+        let mut widget = last.as_mut();
 
         widget.opacity = opacity;
     }
@@ -444,14 +585,16 @@ impl HmGui {
     // Container --------------------------------------------------------------
 
     pub fn set_clipping(&self, clip: bool) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.clip = clip;
     }
 
     pub fn set_padding(&self, px: f32, py: f32) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.padding_lower = Vec2::new(px, py);
@@ -459,7 +602,8 @@ impl HmGui {
     }
 
     pub fn set_padding_ex(&self, left: f32, top: f32, right: f32, bottom: f32) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.padding_lower = Vec2::new(left, top);
@@ -467,56 +611,64 @@ impl HmGui {
     }
 
     pub fn set_padding_left(&self, padding: f32) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.padding_lower.x = padding;
     }
 
     pub fn set_padding_top(&self, padding: f32) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.padding_lower.y = padding;
     }
 
     pub fn set_padding_right(&self, padding: f32) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.padding_upper.x = padding;
     }
 
     pub fn set_padding_bottom(&self, padding: f32) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.padding_upper.y = padding;
     }
 
     pub fn set_spacing(&self, spacing: f32) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.spacing = spacing;
     }
 
     pub fn set_children_alignment(&self, h: AlignHorizontal, v: AlignVertical) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.children_alignment = [h.into(), v.into()];
     }
 
     pub fn set_children_horizontal_alignment(&self, align: AlignHorizontal) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.children_alignment[0] = align.into();
     }
 
     pub fn set_children_vertical_alignment(&self, align: AlignVertical) {
-        let mut widget = self.container.as_mut();
+        let container = self.container();
+        let mut widget = container.as_mut();
         let container = widget.get_container_item_mut();
 
         container.children_alignment[1] = align.into();
@@ -524,7 +676,8 @@ impl HmGui {
 
     /// Prints widgets hierarchy to the console. For testing.
     pub fn dump_widgets(&self) {
-        let container = self.root.as_ref();
+        let root = self.root();
+        let container = root.as_ref();
 
         container.dump("GUI widgets", 1);
     }

@@ -16,18 +16,22 @@ end
 -- so it can be used there
 ---@param dt integer
 function UIRouter:input()
+    Profiler.Begin('UIRouter.Input')
     if self.currentPage then
         self.currentPage:input()
     end
+    Profiler.End()
 end
 
 -- routing the update loop through to the views
 -- so it can be used there
 ---@param dt integer
 function UIRouter:update(dt)
+    Profiler.Begin('UIRouter.Update')
     if self.currentPage then
         self.currentPage:update(dt)
     end
+    Profiler.End()
 end
 
 -- sets current page

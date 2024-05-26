@@ -100,6 +100,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
     Profiler_End();
 
     let total = this.start.get_elapsed();
+    let total_ms: f64 = this.start.get_elapsed_ms();
     let mut i = 0;
     while i < this.scopeList.len() {
         let scope: &mut Scope = &mut *this.scopeList[i];
@@ -119,7 +120,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
     });
 
     info!("-- PHX PROFILER -------------------------------------");
-    info!("-- Measured timespan: {total}ms");
+    info!("-- Measured timespan: {total_ms}ms");
     info!("");
     info!(" Scope |  Cumul |    Scope |    Min |      Max |   Mean |   Var | Var/Mean | Name");
     info!("-------|--------|----------|--------|----------|--------|-------|----------|---------------------------");

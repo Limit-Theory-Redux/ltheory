@@ -15,6 +15,7 @@ local meta = {
 ---@field sound SFXObject|nil
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
+---@field toolTip UIComponentToolTip
 ---@field callback function
 ---@field render fun(self: UIComponentButton) renders the button
 
@@ -29,6 +30,7 @@ local meta = {
 ---@field textAlign { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Center, v: AlignVertical.Center}
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
+---@field toolTip string
 ---@field sound SFXObject|nil
 ---@field callback function
 
@@ -65,6 +67,7 @@ function Button:new(args)
             highlight = args.color and args.color.highlight or Color(0.3, 0.3, 0.3, 1.0)
         },
         font = args.font or { name = "Exo2", size = 12 },
+        toolTip = UIComponent.ToolTip { text = args.toolTip },
         sound = args.sound,
         callback = args.callback or function() Log.Warn("undefined button callback function: " .. args.title) end
     }
@@ -96,6 +99,8 @@ function Button:new(args)
         Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
 
         Gui:endContainer()
+
+        self.state.toolTip():render()
 
         local buttonClicked = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
         if buttonClicked then

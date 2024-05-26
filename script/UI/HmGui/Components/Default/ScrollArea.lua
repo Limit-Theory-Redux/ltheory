@@ -28,6 +28,8 @@ local meta = {
 ---@field height number
 ---@field padding { paddingX: number, paddingY: number }|{ paddingX: 0, paddingY: 0 }
 ---@field margin { marginX: number, marginY: number }|{ marginX: 0, marginY: 0 }
+---@field borderWidth number
+---@field borderColor Color
 ---@field layoutType GuiLayoutType
 ---@field color UIComponentButtonColors
 ---@field render fun(self: UIComponentScrollArea)
@@ -52,6 +54,8 @@ local meta = {
 ---@field height number
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
+---@field borderWidth number
+---@field borderColor Color
 ---@field layoutType GuiLayoutType
 ---@field color UIComponentButtonColors
 ---@field contents table
@@ -90,6 +94,8 @@ function ScrollArea:new(args)
         childrenAlign = args.childrenAlign or { AlignHorizontal.Default, AlignVertical.Default },
         padding = args.padding,
         margin = args.margin,
+        borderWidth = args.borderWidth or 0,
+        borderColor = args.borderColor or Color(1, 1, 1, 1),
         width = args.width,
         height = args.height,
         layoutType = args.layoutType or GuiLayoutType.Vertical,
@@ -113,9 +119,9 @@ function ScrollArea:new(args)
             Gui:setBackgroundColor(self.state.color().background)
         end
 
-        if self.state.showContainer() then
-            Gui:setBorderColor(self.state.showContainerColor())
-            Gui:setBorderWidth(1)
+        if self.state.borderWidth() > 0 then
+            Gui:setBorderWidth(self.state.borderWidth())
+            Gui:setBorderColor(self.state.borderColor())
         end
 
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
@@ -148,7 +154,7 @@ function ScrollArea:new(args)
         -- store offset of the inner container
         local innerOffset = Gui:updateContainerOffset(maxScroll)
 
-        Gui:endContainer()
+        Gui:endContainer() -- internal container
 
         local hScroll = self.state.showHScrollbar and (self.state.scrollDirection ~= Enums.UI.ScrollDirection.Vertical)
         local vScroll = self.state.showVScrollbar and (self.state.scrollDirection ~= Enums.UI.ScrollDirection.Horizontal)
@@ -245,7 +251,7 @@ function ScrollArea:new(args)
             end
         end
 
-        Gui:endContainer()
+        Gui:endContainer() -- external container
     end
 
     return newScrollArea

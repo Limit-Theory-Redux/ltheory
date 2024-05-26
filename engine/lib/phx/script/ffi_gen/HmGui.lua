@@ -20,12 +20,17 @@ function Loader.defineType()
             void  HmGui_BeginGui                       (HmGui*, float sx, float sy);
             void  HmGui_EndGui                         (HmGui*, Input const* input);
             void  HmGui_Draw                           (HmGui*);
+            void  HmGui_BeginLayer                     (HmGui*);
+            void  HmGui_BeginLayerAtPos                (HmGui*, Vec2f pos);
+            void  HmGui_BeginLayerBelow                (HmGui*);
+            void  HmGui_EndLayer                       (HmGui*);
             void  HmGui_BeginContainer                 (HmGui*, GuiLayoutType layout);
             void  HmGui_BeginStackContainer            (HmGui*);
             void  HmGui_BeginHorizontalContainer       (HmGui*);
             void  HmGui_BeginVerticalContainer         (HmGui*);
             void  HmGui_EndContainer                   (HmGui*);
             Vec2f HmGui_UpdateContainerOffset          (HmGui*, Vec2f offset);
+            Vec2f HmGui_ElementSize                    (HmGui*);
             Vec2f HmGui_ContainerSize                  (HmGui*);
             Vec2f HmGui_ContainerMinSize               (HmGui*);
             void  HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
@@ -84,12 +89,17 @@ function Loader.defineType()
                 beginGui                       = libphx.HmGui_BeginGui,
                 endGui                         = libphx.HmGui_EndGui,
                 draw                           = libphx.HmGui_Draw,
+                beginLayer                     = libphx.HmGui_BeginLayer,
+                beginLayerAtPos                = libphx.HmGui_BeginLayerAtPos,
+                beginLayerBelow                = libphx.HmGui_BeginLayerBelow,
+                endLayer                       = libphx.HmGui_EndLayer,
                 beginContainer                 = libphx.HmGui_BeginContainer,
                 beginStackContainer            = libphx.HmGui_BeginStackContainer,
                 beginHorizontalContainer       = libphx.HmGui_BeginHorizontalContainer,
                 beginVerticalContainer         = libphx.HmGui_BeginVerticalContainer,
                 endContainer                   = libphx.HmGui_EndContainer,
                 updateContainerOffset          = libphx.HmGui_UpdateContainerOffset,
+                elementSize                    = libphx.HmGui_ElementSize,
                 containerSize                  = libphx.HmGui_ContainerSize,
                 containerMinSize               = libphx.HmGui_ContainerMinSize,
                 updateElementOffset            = libphx.HmGui_UpdateElementOffset,

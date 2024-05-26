@@ -4,6 +4,7 @@ mod data;
 mod focus_type;
 mod gui;
 mod image;
+mod layer;
 mod text;
 mod widget;
 
@@ -15,6 +16,7 @@ pub use container::*;
 pub(self) use data::*;
 pub use focus_type::*;
 pub use gui::*;
+pub use layer::*;
 pub use text::*;
 pub use widget::*;
 

@@ -8,9 +8,10 @@ local meta = {
 }
 
 ---@class UIComponentRadioGroup: UIComponent
----@field selectedIndex number|nil
----@field selections table
 ---@field visible boolean
+---@field lastIndex number|nil
+---@field selectedIndex number|1
+---@field selections table
 ---@field width number
 ---@field height number
 ---@field padding { paddingX: number, paddingY: number }|{ paddingX: 0, paddingY: 0 }
@@ -20,13 +21,14 @@ local meta = {
 ---@field font UIComponentFont
 ---@field color UIComponentRadioGroupColors
 ---@field sound SFXObject|nil
----@field callback function
+---@field callback fun(selectedIndex: number)
 ---@field render fun(self: UIComponentRadioGroup) renders the radio group
 
 ---@class UIComponentRadioGroupConstructor
----@field selectedIndex number|nil
----@field selections table
 ---@field visible boolean
+---@field lastIndex number|nil
+---@field selectedIndex number|1
+---@field selections table
 ---@field width number
 ---@field height number
 ---@field padding { paddingX: number, paddingY: number }|nil
@@ -36,7 +38,7 @@ local meta = {
 ---@field font UIComponentFont
 ---@field color UIComponentRadioGroupColors
 ---@field sound SFXObject|nil
----@field callback function
+---@field callback fun(selectedIndex: number)
 
 ---@class UIComponentRadioGroupColors
 ---@field text Color|nil
@@ -48,7 +50,8 @@ local meta = {
 ---@field name string
 ---@field size number
 
----returns a radio group object
+-- Component draws vertically list of radio button elements and allows to select one of them
+-- using mouse. Index of the selected item is being sent into the `callback` function.
 ---@param args UIComponentRadioGroupConstructor
 ---@return UIComponentRadioGroup|nil
 function RadioGroup:new(args)
@@ -56,11 +59,14 @@ function RadioGroup:new(args)
         return
     end
 
-    local newRadioGroup = {}
+    local newRadioGroup = {
+        selectionChanged = false
+    }
     newRadioGroup.state = UICore.ComponentState {
-        selectedIndex = args.selectedIndex,
-        selections = args.selections or {},
         visible = args.visible,
+        lastIndex = args.lastIndex,
+        selectedIndex = args.selectedIndex or 1,
+        selections = args.selections or {},
         width = args.width,
         height = args.height,
         padding = args.padding,
@@ -84,8 +90,7 @@ function RadioGroup:new(args)
         },
         sound = args.sound,
         callback = args.callback or function(selectedIndex)
-            Log.Warn("undefined radio group callback function: " ..
-                args.selections)
+            Log.Warn("undefined radio group callback function: " .. args.selections)
         end
     }
 
@@ -94,35 +99,44 @@ function RadioGroup:new(args)
             return
         end
 
-        local selectionChanged = false
+        self.selectionChanged = false
 
         Gui:beginVerticalContainer()
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
         Gui:setChildrenHorizontalAlignment(AlignHorizontal.Stretch)
 
+        -- draw radio buttons
         for i, name in ipairs(self.state.selections()) do
             Gui:beginHorizontalContainer()
             Gui:setOpacity(1.0)
 
             local isMouseOver = Gui:isMouseOver(FocusType.Mouse)
+
+            -- draw background depending on if radio button hovered or not
             if isMouseOver then
                 Gui:setBackgroundColor(self.state.color().highlight)
             else
                 Gui:setBackgroundColor(self.state.color().background)
             end
 
+            if not self.state.lastIndex then
+                self.state.lastIndex = self.state.selectedIndex
+            end
+
+            -- save selection if it was clicked
             local triggered = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
             if triggered then
-                selectionChanged = self.state.selectedIndex ~= i
+                self.selectionChanged = self.state.selectedIndex ~= i
                 self.state.selectedIndex = i
             end
 
-            -- no need for an if check, since we always have a default defined
+            -- radio button text
             Gui:text(name, Cache.Font(self.state.font().name, self.state.font().size), self.state.color().text)
             Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
 
             Gui:spacer()
 
+            -- radio button selection box
             Gui:rect()
             Gui:setFixedSize(self.state.clickArea().size[1], self.state.clickArea().size[2])
             Gui:setBorderWidth(self.state.clickArea().borderWidth)
@@ -146,7 +160,7 @@ function RadioGroup:new(args)
 
         Gui:endContainer()
 
-        if selectionChanged then
+        if self.selectionChanged then
             if self.state.sound then
                 self.state.sound():Play(1.0)
             end

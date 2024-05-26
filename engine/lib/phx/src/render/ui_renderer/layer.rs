@@ -24,7 +24,13 @@ impl UIRendererLayer {
     pub fn draw(&self, renderer: &UIRenderer) {
         unsafe {
             if self.clip {
-                ClipRect_PushCombined(self.pos.x, self.pos.y, self.size.x, self.size.y);
+                // extend clip area by 1 pixel to avoid border overlapping
+                ClipRect_PushCombined(
+                    self.pos.x - 1.0,
+                    self.pos.y - 1.0,
+                    self.size.x + 2.0,
+                    self.size.y + 2.0,
+                );
             }
 
             if self.panel_id.is_some() {
