@@ -61,16 +61,16 @@ jobs:
         shell: bash
         run: |
           export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
-          ./build.sh
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
+          ./build.sh --run-tests
+      - name: Upload development binaries
+        uses: actions/upload-artifact@v4
         with:
-          name: ltheory-bin-win32
+          name: dev-binaries-win32
           path: ${{github.workspace}}/bin/*
-      - name: Upload binary with assets
-        uses: actions/upload-artifact@v3
+      - name: Upload distributable
+        uses: actions/upload-artifact@v4
         with:
-          name: ltheory-distro-win32
+          name: ltheory-win32
           path: |
             ${{github.workspace}}/bin/*
             !${{github.workspace}}/bin/*.pdb
@@ -88,12 +88,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: ./build.sh
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
+        run: ./build.sh --run-tests --bundle
+      - name: Upload development binaries
+        uses: actions/upload-artifact@v4
         with:
-          name: ltheory-bin-macos
-          path: ${{github.workspace}}/bin/*
+          name: dev-binaries-macos
+          path: |
+            ${{github.workspace}}/bin/*
+            !${{github.workspace}}/bin/*.app
+      - name: Upload distributable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ltheory-macos
+          path: ${{github.workspace}}/bin/*.app
 
   build-ubuntu:
     needs: gen-build-version
@@ -107,8 +114,8 @@ jobs:
         run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libudev-dev
       - name: Build
         run: ./build.sh
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
+      - name: Upload development binaries
+        uses: actions/upload-artifact@v4
         with:
-          name: ltheory-bin-ubuntu2004
+          name: dev-binaries-ubuntu2004
           path: ${{github.workspace}}/bin/*
