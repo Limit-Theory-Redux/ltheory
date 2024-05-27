@@ -23,7 +23,13 @@ pub enum MouseControl {
 impl MouseControl {
     pub fn is_button(&self) -> bool {
         match self {
-            Self::Left | Self::Middle | Self::Right | Self::Forward | Self::Back | Self::X1 | Self::X2 => true,
+            Self::Left
+            | Self::Middle
+            | Self::Right
+            | Self::Forward
+            | Self::Back
+            | Self::X1
+            | Self::X2 => true,
             _ => false,
         }
     }
