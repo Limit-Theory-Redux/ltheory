@@ -18,7 +18,6 @@ while test $# -gt 0; do
       echo "    --run-tests     run tests"
       echo "    --debug         build and run tests in debug mode"
       echo "    --bundle        assemble an app bundle (only has an effect on macOS)"
-      echo "    --universal     builds a universal binary (only has an effect on macOS)"
       exit 0
       ;;
     --run-tests)
@@ -33,21 +32,12 @@ while test $# -gt 0; do
       bundle=true
       shift
       ;;
-    --universal)
-      universal=true
-      shift
-      ;;
     *)
       echo "Unknown flag $1"
       exit 1
       ;;
   esac
 done
-
-if [[ $universal == true ]]; then
-    echo "Universal binaries are not implemented yet."
-    exit 1
-fi
 
 # Tests are currently not working correctly on Linux.
 if [[ $run_tests == true && "$OSTYPE" == "linux-gnu"* ]]; then
