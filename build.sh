@@ -87,7 +87,7 @@ else
     cargo build --release --color auto
 
     if [[ $run_tests == true ]]; then
-        cargo test --release --color auto
+        cargo test --release --no-fail-fast --color auto
     fi
 fi
 
