@@ -13,6 +13,18 @@ jit = require('jit')
 lfs = require('lfs_ffi')
 
 --[[
+    Disable JIT on macOS ARM64, as it has significant performance issues.
+
+    Relevant context:
+    * https://github.com/LuaJIT/LuaJIT/issues/285
+    * https://github.com/minetest/minetest/issues/14611
+    * https://love2d.org/forums/viewtopic.php?t=94760
+]]
+if jit and ffi.os == "OSX" and ffi.arch == "arm64" then
+    jit.off()
+end
+
+--[[
     Importing all math functions (presumably from ffi and jit? Need Confirmation)
     into Global Table.
 ]]
