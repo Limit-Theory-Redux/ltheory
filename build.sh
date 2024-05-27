@@ -94,8 +94,8 @@ fi
 # Re-populate the 'bin' directory.
 rm -rf bin && mkdir -p bin
 
-cp ${target_dir}/ltr${binsuffix} bin/lt64d${binsuffix}
-cp ${target_dir}/deps/${libprefix}phx${libsuffix} bin/${libprefix}phx${libsuffix}
+cp "${target_dir}/ltr${binsuffix}" "bin/lt64d${binsuffix}"
+cp "${target_dir}/deps/${libprefix}phx${libsuffix}" "bin/${libprefix}phx${libsuffix}"
 
 if [[ $bundle == true ]]; then
     create_app_bundle bin
