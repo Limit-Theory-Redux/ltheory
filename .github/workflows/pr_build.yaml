@@ -8,6 +8,7 @@ on:
     - '**/LICENSE-MIT'
     - '**/LICENSE-APACHE-2.0'
     - '**/.vscode/**'
+    - '**/docs/**'
     - '**/.gitignore'
     - '**/.gitattributes'
     - '**/.editorconfig'

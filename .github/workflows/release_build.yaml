@@ -10,6 +10,7 @@ on:
     - '**/LICENSE-MIT'
     - '**/LICENSE-APACHE-2.0'
     - '**/.vscode/**'
+    - '**/docs/**'
     - '**/.gitignore'
     - '**/.gitattributes'
     - '**/.editorconfig'
@@ -55,30 +56,26 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "win32"
       - name: Update build number
         run: |
           sed -i 's/Config.gameVersion = \".*\"/Config.gameVersion = \"${{ needs.gen-build-version.outputs.build }}\"/' "${env:GITHUB_WORKSPACE}/script/Config/Version.lua"
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: |
-            engine/lib/internal
-            engine/lib/luajit-ffi-gen
-            engine/lib/phx
       - name: Build
         shell: bash
         run: |
           export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
-          ./build.sh
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
+          ./build.sh --run-tests
+      - name: Upload development binaries
+        uses: actions/upload-artifact@v4
         with:
-          name: ltheory-bin-win32
+          name: dev-binaries-win32
           path: ${{github.workspace}}/bin/*
-      - name: Upload binary with assets
-        uses: actions/upload-artifact@v3
+      - name: Upload distributable
+        uses: actions/upload-artifact@v4
         with:
-          name: ltheory-distro-win32
+          name: ltheory-win32
           path: |
             ${{github.workspace}}/bin/*
             !${{github.workspace}}/bin/*.pdb
@@ -95,20 +92,23 @@ jobs:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v4
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: |
-            engine/lib/internal
-            engine/lib/luajit-ffi-gen
-            engine/lib/phx
+          shared-key: "macos"
       - name: Build
-        run: ./build.sh
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
+        run: ./build.sh --run-tests --bundle
+      - name: Upload development binaries
+        uses: actions/upload-artifact@v4
         with:
-          name: ltheory-bin-macos
-          path: ${{github.workspace}}/bin/*
+          name: dev-binaries-macos
+          path: |
+            ${{github.workspace}}/bin/*
+            !${{github.workspace}}/bin/*.app
+      - name: Upload distributable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ltheory-macos
+          path: ${{github.workspace}}/bin/*.app
 
   build-ubuntu:
     needs: gen-build-version
@@ -120,19 +120,15 @@ jobs:
         run: sudo apt-get update
       - name: Install packages
         run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libudev-dev
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: |
-            engine/lib/internal
-            engine/lib/luajit-ffi-gen
-            engine/lib/phx
+          shared-key: "ubuntu2004"
       - name: Build
         run: ./build.sh
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
+      - name: Upload development binaries
+        uses: actions/upload-artifact@v4
         with:
-          name: ltheory-bin-ubuntu2004
+          name: dev-binaries-ubuntu2004
           path: ${{github.workspace}}/bin/*
 
   release:
