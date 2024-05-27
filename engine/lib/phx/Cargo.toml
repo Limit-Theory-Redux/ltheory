@@ -21,8 +21,8 @@ flate2 = "1.0"
 freetype-sys = "0.20"
 gilrs = "0.10"
 glam = { version = "0.25", features = ["scalar-math"] }
-glutin = "0.31"
-glutin-winit = "0.4"
+glutin = { git = "https://github.com/dgavedissian/glutin", rev = "0454c7b91890af1160513797d3a8ee1aea63fc8e" }
+glutin-winit = { git = "https://github.com/dgavedissian/glutin", rev = "0454c7b91890af1160513797d3a8ee1aea63fc8e" }
 hashbrown = { version = "0.14", features = ["serde"] }
 image = "0.25"
 indexmap = "2.0"

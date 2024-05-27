@@ -1030,8 +1030,7 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 [[package]]
 name = "glutin"
 version = "0.31.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18fcd4ae4e86d991ad1300b8f57166e5be0c95ef1f63f3f5b827f8a164548746"
+source = "git+https://github.com/dgavedissian/glutin?rev=0454c7b91890af1160513797d3a8ee1aea63fc8e#0454c7b91890af1160513797d3a8ee1aea63fc8e"
 dependencies = [
  "bitflags 2.5.0",
  "cfg_aliases",
@@ -1054,8 +1053,7 @@ dependencies = [
 [[package]]
 name = "glutin-winit"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ebcdfba24f73b8412c5181e56f092b5eff16671c514ce896b258a0a64bd7735"
+source = "git+https://github.com/dgavedissian/glutin?rev=0454c7b91890af1160513797d3a8ee1aea63fc8e#0454c7b91890af1160513797d3a8ee1aea63fc8e"
 dependencies = [
  "cfg_aliases",
  "glutin",
@@ -1066,8 +1064,7 @@ dependencies = [
 [[package]]
 name = "glutin_egl_sys"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77cc5623f5309ef433c3dd4ca1223195347fe62c413da8e2fdd0eb76db2d9bcd"
+source = "git+https://github.com/dgavedissian/glutin?rev=0454c7b91890af1160513797d3a8ee1aea63fc8e#0454c7b91890af1160513797d3a8ee1aea63fc8e"
 dependencies = [
  "gl_generator",
  "windows-sys 0.48.0",
@@ -1076,8 +1073,7 @@ dependencies = [
 [[package]]
 name = "glutin_glx_sys"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a165fd686c10dcc2d45380b35796e577eacfd43d4660ee741ec8ebe2201b3b4f"
+source = "git+https://github.com/dgavedissian/glutin?rev=0454c7b91890af1160513797d3a8ee1aea63fc8e#0454c7b91890af1160513797d3a8ee1aea63fc8e"
 dependencies = [
  "gl_generator",
  "x11-dl",
@@ -1086,8 +1082,7 @@ dependencies = [
 [[package]]
 name = "glutin_wgl_sys"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c8098adac955faa2d31079b65dc48841251f69efd3ac25477903fc424362ead"
+source = "git+https://github.com/dgavedissian/glutin?rev=0454c7b91890af1160513797d3a8ee1aea63fc8e#0454c7b91890af1160513797d3a8ee1aea63fc8e"
 dependencies = [
  "gl_generator",
 ]
