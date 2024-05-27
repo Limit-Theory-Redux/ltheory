@@ -95,7 +95,9 @@ jobs:
         with:
           shared-key: "macos"
       - name: Build
-        run: ./build.sh --run-tests --bundle
+        run: |
+          export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
+          ./build.sh --run-tests --bundle
       - name: Upload development binaries
         uses: actions/upload-artifact@v4
         with:
@@ -123,7 +125,9 @@ jobs:
         with:
           shared-key: "ubuntu2004"
       - name: Build
-        run: ./build.sh
+        run: |
+          export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
+          ./build.sh --run-tests
       - name: Upload development binaries
         uses: actions/upload-artifact@v4
         with:
