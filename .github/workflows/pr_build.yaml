@@ -57,7 +57,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: "win32"
+          shared-key: "windows"
       - name: Update build number
         run: |
           sed -i 's/Config.gameVersion = \".*\"/Config.gameVersion = \"${{ needs.gen-build-version.outputs.build }}\"/' "${env:GITHUB_WORKSPACE}/script/Config/Version.lua"
@@ -69,12 +69,12 @@ jobs:
       - name: Upload development binaries
         uses: actions/upload-artifact@v4
         with:
-          name: dev-binaries-win32
+          name: dev-binaries-windows
           path: ${{github.workspace}}/bin/*
       - name: Upload distributable
         uses: actions/upload-artifact@v4
         with:
-          name: ltheory-win32
+          name: ltheory-windows
           path: |
             ${{github.workspace}}/bin/*
             !${{github.workspace}}/bin/*.pdb
@@ -113,7 +113,7 @@ jobs:
 
   build-ubuntu:
     needs: gen-build-version
-    name: Build Ubuntu 20.04
+    name: Build Linux (Ubuntu 20.04)
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
@@ -123,7 +123,7 @@ jobs:
         run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libudev-dev
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: "ubuntu2004"
+          shared-key: "linux"
       - name: Build
         run: |
           export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
@@ -131,5 +131,5 @@ jobs:
       - name: Upload development binaries
         uses: actions/upload-artifact@v4
         with:
-          name: dev-binaries-ubuntu2004
+          name: dev-binaries-linux
           path: ${{github.workspace}}/bin/*
