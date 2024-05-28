@@ -375,6 +375,10 @@ impl FfiGenerator {
             self.class_definitions
                 .iter()
                 .for_each(|def| writeln!(&mut meta_def, "{def}").unwrap());
+            
+            if cfg!(windows) {
+                meta_def = meta_def.replace("\n", "\r\n");
+            }
 
             meta_def_file.write_all(meta_def.as_bytes()).unwrap();
         }
