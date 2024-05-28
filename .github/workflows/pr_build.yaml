@@ -111,7 +111,7 @@ jobs:
           name: ltheory-macos
           path: ${{github.workspace}}/bin/*.app
 
-  build-ubuntu:
+  build-linux:
     needs: gen-build-version
     name: Build Linux (Ubuntu 20.04)
     runs-on: ubuntu-20.04
@@ -133,3 +133,15 @@ jobs:
         with:
           name: dev-binaries-linux
           path: ${{github.workspace}}/bin/*
+      - name: Upload distributable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ltheory-linux
+          path: |
+            ${{github.workspace}}/bin/*
+            ${{github.workspace}}/docs/*
+            ${{github.workspace}}/engine/lib/phx/script/*
+            ${{github.workspace}}/res/*
+            ${{github.workspace}}/script/*
+            ${{github.workspace}}/LICENSE
+            ${{github.workspace}}/README.md
