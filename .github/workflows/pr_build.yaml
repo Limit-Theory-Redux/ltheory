@@ -8,6 +8,7 @@ on:
     - '**/LICENSE-MIT'
     - '**/LICENSE-APACHE-2.0'
     - '**/.vscode/**'
+    - '**/docs/**'
     - '**/.gitignore'
     - '**/.gitattributes'
     - '**/.editorconfig'
@@ -54,6 +55,9 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "windows"
       - name: Update build number
         run: |
           sed -i 's/Config.gameVersion = \".*\"/Config.gameVersion = \"${{ needs.gen-build-version.outputs.build }}\"/' "${env:GITHUB_WORKSPACE}/script/Config/Version.lua"
@@ -61,16 +65,16 @@ jobs:
         shell: bash
         run: |
           export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
-          ./build.sh
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
+          ./build.sh --run-tests
+      - name: Upload development binaries
+        uses: actions/upload-artifact@v4
         with:
-          name: ltheory-bin-win32
+          name: dev-binaries-windows
           path: ${{github.workspace}}/bin/*
-      - name: Upload binary with assets
-        uses: actions/upload-artifact@v3
+      - name: Upload distributable
+        uses: actions/upload-artifact@v4
         with:
-          name: ltheory-distro-win32
+          name: ltheory-windows
           path: |
             ${{github.workspace}}/bin/*
             !${{github.workspace}}/bin/*.pdb
@@ -87,17 +91,29 @@ jobs:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v4
-      - name: Build
-        run: ./build.sh
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
+      - uses: Swatinem/rust-cache@v2
         with:
-          name: ltheory-bin-macos
-          path: ${{github.workspace}}/bin/*
+          shared-key: "macos"
+      - name: Build
+        run: |
+          export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
+          ./build.sh --run-tests --bundle
+      - name: Upload development binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-binaries-macos
+          path: |
+            ${{github.workspace}}/bin/*
+            !${{github.workspace}}/bin/*.app
+      - name: Upload distributable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ltheory-macos
+          path: ${{github.workspace}}/bin/*.app
 
-  build-ubuntu:
+  build-linux:
     needs: gen-build-version
-    name: Build Ubuntu 20.04
+    name: Build Linux (Ubuntu 20.04)
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
@@ -105,10 +121,27 @@ jobs:
         run: sudo apt-get update
       - name: Install packages
         run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libudev-dev
-      - name: Build
-        run: ./build.sh
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
+      - uses: Swatinem/rust-cache@v2
         with:
-          name: ltheory-bin-ubuntu2004
+          shared-key: "linux"
+      - name: Build
+        run: |
+          export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
+          ./build.sh --run-tests
+      - name: Upload development binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-binaries-linux
           path: ${{github.workspace}}/bin/*
+      - name: Upload distributable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ltheory-linux
+          path: |
+            ${{github.workspace}}/bin/*
+            ${{github.workspace}}/docs/*
+            ${{github.workspace}}/engine/lib/phx/script/*
+            ${{github.workspace}}/res/*
+            ${{github.workspace}}/script/*
+            ${{github.workspace}}/LICENSE
+            ${{github.workspace}}/README.md

@@ -46,10 +46,6 @@ impl Engine {
 
             if FIRST_TIME {
                 FIRST_TIME = false;
-
-                if !Directory_Create(c_str!("log")) {
-                    panic!("Engine_Init: Failed to create log directory.");
-                }
             }
 
             Metric_Reset();
@@ -305,8 +301,12 @@ impl Engine {
         let entry_point_path = PathBuf::from(entry_point);
 
         if !entry_point_path.exists() {
-            // TODO: do we really need this magic?
-            std::env::set_current_dir("../").expect("Cannot change folder to parent");
+            // If we can't find it, set the current dir to one above the executable path and try that instead.
+            let mut dir = std::env::current_exe().expect("Cannot get the path to the executable");
+            dir.pop();
+            dir.pop();
+            debug!("Changing working directory to {:?}", dir);
+            std::env::set_current_dir(dir).expect("Cannot change folder to parent");
 
             if !entry_point_path.exists() {
                 panic!("Can't find script entrypoint: {entry_point}");
