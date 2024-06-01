@@ -5,6 +5,7 @@ local SettingsView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+local MusicPlayer = require("Systems.SFX.MusicPlayer")
 
 function SettingsView:onInput() end
 function SettingsView:onUpdate(dt) end
@@ -12,6 +13,8 @@ function SettingsView:onViewOpen(isPageOpen) end
 function SettingsView:onViewClose(isPageClose) end
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
+
+local someSliderValue = 0.5
 
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200
@@ -31,6 +34,14 @@ end
 
 local function getRemainingWidthPercentage()
     return 1 - getLayoutContainerWidthPercentage()
+end
+
+local function setSliderValue(value)
+    someSliderValue = value
+end
+
+local function setMusicVolume(value)
+    MusicPlayer:SetVolume(value)
 end
 
 local settingsGrid = UILayout.Grid {
@@ -136,7 +147,23 @@ local settingsGrid = UILayout.Grid {
             widthInLayout = getRemainingWidthPercentage,
             layoutType = GuiLayoutType.Vertical,
             contents = {
-                UIComponent.RawInput { fn = function() end }
+                UIComponent.Slider {
+                    title = "Smooth Slider",
+                    width = 200,
+                    height = 30,
+                    currentValue = someSliderValue,
+                    sound = Config.audio.sounds.click,
+                    callback = setSliderValue
+                },
+                UIComponent.Slider {
+                    title = "Incremented Slider",
+                    width = 200,
+                    height = 30,
+                    increment = 1, -- step of 1 (0.01 also works == 1%)
+                    currentValue = someSliderValue,
+                    sound = Config.audio.sounds.click,
+                    callback = setMusicVolume
+                }
             }
         }
     }
