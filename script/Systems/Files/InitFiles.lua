@@ -14,197 +14,198 @@ function InitFiles:readUserInits()
     local configPath = filepath .. filename .. filetype
     local openedFile = io.open(configPath, "r")
 
-    if openedFile then
-        local lines = {}
+    if not openedFile then
+        Log.Warn("Cannot open config file: %s", configPath)
+        return
+    end
 
-        -- Sets the input file for reading
-        io.input(openedFile)
+    local lines = {}
 
-        -- Reads all lines from the file
-        for line in openedFile.lines(openedFile) do
-            lines[#lines + 1] = line
+    -- Sets the input file for reading
+    io.input(openedFile)
+
+    -- Reads all lines from the file
+    for line in openedFile.lines(openedFile) do
+        lines[#lines + 1] = line
+    end
+
+    -- Closes the open file
+    io.close(openedFile)
+
+    -- Scan all lines and apply values to matched game values
+    local stringToBoolean = { ["true"] = true, ["false"] = false }
+
+    local function findCategory(line)
+        if not string.match(line, "=") then
+            return true
+        end
+        return false
+    end
+
+    local categories = {}
+
+    for index, line in ipairs(lines) do
+        -- Skip comments or empty lines
+        if string.sub(line, 1, 1) == "#" or string.sub(line, 1, 1) == "" then
+            goto skip
         end
 
-        -- Closes the open file
-        io.close(openedFile)
+        if findCategory(line) then
+            local categoryName
+            local subCategoryName
+            categoryName = string.gsub(line, "%[", "")
+            categoryName = string.gsub(categoryName, "%]", "")
 
-        -- Scan all lines and apply values to matched game values
-        local stringToBoolean = { ["true"] = true, ["false"] = false }
-
-        local function findCategory(line)
-            if not string.match(line, "=") then
-                return true
+            if string.match(categoryName, "%.") then
+                subCategoryName = string.gsub(categoryName, ".*%.", "")
+                categoryName = string.gsub(categoryName, "%..*", "")
             end
-            return false
+
+            local gameStateTable = GameState[categoryName]
+
+            if subCategoryName then
+                gameStateTable = GameState[categoryName][subCategoryName]
+            end
+
+            if gameStateTable then
+                local categoryTable = {
+                    name = categoryName,
+                    gameState = gameStateTable,
+                    index = index,
+                    vars = {}
+                }
+                table.insert(categories, categoryTable)
+            else
+                Log.Warn("Could not find game state for config category: " .. categoryName)
+            end
+        end
+        ::skip::
+    end
+
+    local function findValuesForCategory(categoryTable)
+        local function checkIfCursorStyle(val)
+            for cursorStyle = 1, Enums.CursorStyleCount do
+                if string.match(string.lower(val), string.lower(Enums.CursorStyleNames[cursorStyle])) then
+                    return cursorStyle
+                end
+            end
+            return nil
         end
 
-        local categories = {}
-
-        for index, line in ipairs(lines) do
-            -- Skip comments or empty lines
-            if string.sub(line, 1, 1) == "#" or string.sub(line, 1, 1) == "" then
-                goto skip
-            end
-
-            if findCategory(line) then
-                local categoryName
-                local subCategoryName
-                categoryName = string.gsub(line, "%[", "")
-                categoryName = string.gsub(categoryName, "%]", "")
-
-                if string.match(categoryName, "%.") then
-                    subCategoryName = string.gsub(categoryName, ".*%.", "")
-                    categoryName = string.gsub(categoryName, "%..*", "")
-                end
-
-                local gameStateTable = GameState[categoryName]
-
-                if subCategoryName then
-                    gameStateTable = GameState[categoryName][subCategoryName]
-                end
-
-                if gameStateTable then
-                    local categoryTable = {
-                        name = categoryName,
-                        gameState = gameStateTable,
-                        index = index,
-                        vars = {}
-                    }
-                    table.insert(categories, categoryTable)
-                else
-                    Log.Warn("Could not find game state for config category: " .. categoryName)
+        local function checkIfHudStyle(val)
+            for hudStyle = 1, Enums.HudStyleCount do
+                if string.match(string.lower(val), string.lower(Enums.HudStyleNames[hudStyle])) then
+                    return hudStyle
                 end
             end
-            ::skip::
+            return nil
         end
 
-        local function findValuesForCategory(categoryTable)
-            local function checkIfCursorStyle(val)
-                for cursorStyle = 1, Enums.CursorStyleCount do
-                    if string.match(string.lower(val), string.lower(Enums.CursorStyleNames[cursorStyle])) then
-                        return cursorStyle
-                    end
-                end
-                return nil
-            end
-
-            local function checkIfHudStyle(val)
-                for hudStyle = 1, Enums.HudStyleCount do
-                    if string.match(string.lower(val), string.lower(Enums.HudStyleNames[hudStyle])) then
-                        return hudStyle
-                    end
-                end
-                return nil
-            end
-
-            local function checkIfCameraMode(val)
-                for cameraMode = 1, Enums.CameraModeCount do
-                    if string.match(string.lower(val), string.lower(Enums.CameraModeNames[cameraMode])) then
-                        return cameraMode
-                    end
-                end
-                return nil
-            end
-
-            local function checkIfSoundtrack(val)
-                for soundtrackId = 1, Enums.SoundtrackCount do
-                    local soundtrackName = string.lower(string.gsub(Enums.SoundtrackNames[soundtrackId], "(%..-)$", ""))
-                    if string.match(string.lower(val), soundtrackName) then
-                        return Enums.SoundtrackNames[soundtrackId]
-                    end
-                end
-                return nil
-            end
-
-            local function firstToLower(string)
-                return (string:gsub("^%L", string.lower))
-            end
-
-            local function firstToUpper(string)
-                return (string:gsub("^%l", string.upper))
-            end
-
-            local function setValue(var, val)
-                local lower = firstToLower(var)
-                local upper = firstToUpper(var)
-
-                if categoryTable.gameState[lower] ~= nil then
-                    categoryTable.gameState[lower] = val
-                elseif categoryTable.gameState[upper] ~= nil then
-                    categoryTable.gameState[upper] = val
-                else
-                    Log.Warn("Can't find key in gamestate cat %s for var: %s with value %s", categoryTable.name, var,
-                        val)
+        local function checkIfCameraMode(val)
+            for cameraMode = 1, Enums.CameraModeCount do
+                if string.match(string.lower(val), string.lower(Enums.CameraModeNames[cameraMode])) then
+                    return cameraMode
                 end
             end
+            return nil
+        end
 
-            local iterator = tonumber(categoryTable.index) + 1
-            local vars = {}
-            local currentLine = lines[iterator]
-
-            while currentLine and not string.match(currentLine, "%[") do
-                -- skip comments or empty lines
-                if string.match(currentLine, "#") or string.sub(currentLine, 1, 1) == "" then
-                    iterator = iterator + 1
-                    currentLine = lines[iterator]
-                    goto skipLine
+        local function checkIfSoundtrack(val)
+            for soundtrackId = 1, Enums.SoundtrackCount do
+                local soundtrackName = string.lower(string.gsub(Enums.SoundtrackNames[soundtrackId], "(%..-)$", ""))
+                if string.match(string.lower(val), soundtrackName) then
+                    return Enums.SoundtrackNames[soundtrackId]
                 end
+            end
+            return nil
+        end
 
-                -- parse vars
-                local eIndex = string.find(currentLine, "=")
-                --Log.Debug("Line %s: %s", iterator, currentLine)
-                --Log.Debug("Current eIndex: %s", eIndex)
-                local var = string.sub(currentLine, 1, eIndex - 1)
-                local val = string.sub(currentLine, eIndex + 1)
-                val = string.gsub(val, "^%s*(.-)%s*$", "%1")
+        local function firstToLower(string)
+            return (string:gsub("^%L", string.lower))
+        end
 
-                if val == "true" or val == "false" then
-                    local bool = stringToBoolean[val]
-                    setValue(var, bool)
-                elseif tonumber(val) then
-                    setValue(var, tonumber(val))
-                elseif checkIfCursorStyle(val) then
-                    local style = checkIfCursorStyle(val)
-                    setValue(var, style)
-                    val = tostring(style)
-                elseif checkIfHudStyle(val) then
-                    local style = checkIfHudStyle(val)
-                    setValue(var, style)
-                    val = tostring(style)
-                elseif checkIfCameraMode(val) then
-                    local mode = checkIfCameraMode(val)
-                    setValue(var, mode)
-                    val = tostring(mode)
-                elseif checkIfSoundtrack(val) then
-                    local soundtrack = checkIfSoundtrack(val)
-                    setValue(var, soundtrack)
-                    val = tostring(soundtrack)
-                else
-                    setValue(var, val)
-                end
+        local function firstToUpper(string)
+            return (string:gsub("^%l", string.upper))
+        end
 
+        local function setValue(var, val)
+            local lower = firstToLower(var)
+            local upper = firstToUpper(var)
+
+            if categoryTable.gameState[lower] ~= nil then
+                categoryTable.gameState[lower] = val
+            elseif categoryTable.gameState[upper] ~= nil then
+                categoryTable.gameState[upper] = val
+            else
+                Log.Warn("Can't find key in gamestate cat %s for var: %s with value %s", categoryTable.name, var,
+                    val)
+            end
+        end
+
+        local iterator = tonumber(categoryTable.index) + 1
+        local vars = {}
+        local currentLine = lines[iterator]
+
+        while currentLine and not string.match(currentLine, "%[") do
+            -- skip comments or empty lines
+            if string.match(currentLine, "#") or string.sub(currentLine, 1, 1) == "" then
                 iterator = iterator + 1
                 currentLine = lines[iterator]
-                --Log.Debug("Setting var to gamestate: %s with value: %s", var, val)
-                ::skipLine::
+                goto skipLine
             end
-            return vars
-        end
 
-        for _, categoryTable in ipairs(categories) do
-            categoryTable.vars = findValuesForCategory(categoryTable)
-            -- do whatever with vars if needed
-        end
+            -- parse vars
+            local eIndex = string.find(currentLine, "=")
+            --Log.Debug("Line %s: %s", iterator, currentLine)
+            --Log.Debug("Current eIndex: %s", eIndex)
+            local var = string.sub(currentLine, 1, eIndex - 1)
+            local val = string.sub(currentLine, eIndex + 1)
+            val = string.gsub(val, "^%s*(.-)%s*$", "%1")
 
-        Log.Info("Loaded configuration from: %s", configPath)
+            if val == "true" or val == "false" then
+                local bool = stringToBoolean[val]
+                setValue(var, bool)
+            elseif tonumber(val) then
+                setValue(var, tonumber(val))
+            elseif checkIfCursorStyle(val) then
+                local style = checkIfCursorStyle(val)
+                setValue(var, style)
+                val = tostring(style)
+            elseif checkIfHudStyle(val) then
+                local style = checkIfHudStyle(val)
+                setValue(var, style)
+                val = tostring(style)
+            elseif checkIfCameraMode(val) then
+                local mode = checkIfCameraMode(val)
+                setValue(var, mode)
+                val = tostring(mode)
+            elseif checkIfSoundtrack(val) then
+                local soundtrack = checkIfSoundtrack(val)
+                setValue(var, soundtrack)
+                val = tostring(soundtrack)
+            else
+                setValue(var, val)
+            end
 
-        if GameState.debug.printConfig then
-            Log.Info("---------- Configuration File ----------")
-            for _, line in pairs(lines) do if not string.match(line, "#") then Log.Info(line) end end
-            Log.Info("----------------------------------------")
+            iterator = iterator + 1
+            currentLine = lines[iterator]
+            --Log.Debug("Setting var to gamestate: %s with value: %s", var, val)
+            ::skipLine::
         end
-    else
-        Log.Warn("Cannot open config file: %s", configPath)
+        return vars
+    end
+
+    for _, categoryTable in ipairs(categories) do
+        categoryTable.vars = findValuesForCategory(categoryTable)
+        -- do whatever with vars if needed
+    end
+
+    Log.Info("Loaded configuration from: %s", configPath)
+
+    if GameState.debug.printConfig then
+        Log.Info("---------- Configuration File ----------")
+        for _, line in pairs(lines) do if not string.match(line, "#") then Log.Info(line) end end
+        Log.Info("----------------------------------------")
     end
 end
 
@@ -217,25 +218,22 @@ function InitFiles:writeUserInits()
     local configPath = filepath .. filename .. filetype
     local backupConfigPath = filepath .. filename .. "_backup" .. filetype
 
-    -- Open the configuration file for reading
+    -- If a config file exists, open it so we can take a backup.
     local openedFileReadable = io.open(configPath, "r")
-    if not openedFileReadable then
-        Log.Warn("Cannot open configuration file for reading: %s", configPath)
-        return
+    if openedFileReadable then
+        -- Create a safety backup
+        local oldContent = openedFileReadable:read("*a")
+        openedFileReadable:close()
+
+        local backupFile, backupFileErr = io.open(backupConfigPath, "w")
+        if not backupFile then
+            Log.Warn("Cannot open backup configuration file for writing: %s", backupFileErr)
+            return
+        end
+
+        backupFile:write(oldContent) -- write the content to the backup file
+        backupFile:close()           -- close the backup file
     end
-
-    -- Create a safety backup
-    local oldContent = openedFileReadable:read("*a")
-    openedFileReadable:close()
-
-    local backupFile, backupFileErr = io.open(backupConfigPath, "w")
-    if not backupFile then
-        Log.Warn("Cannot open backup configuration file for writing: %s", backupFileErr)
-        return
-    end
-
-    backupFile:write(oldContent) -- write the content to the backup file
-    backupFile:close()           -- close the backup file
 
     -- Open the configuration file for writing
     local openedFileWritable, openedFileWritableErr = io.open(configPath, "w")
