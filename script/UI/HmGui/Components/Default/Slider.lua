@@ -27,6 +27,11 @@ local meta = {
 ---@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
 ---@field color UIComponentSliderColors
 ---@field font UIComponentFont
+---@field minValue number
+---@field maxValue number
+---@field currentValue number
+---@field increment number
+---@field showValueAsPercentage boolean
 ---@field sound SFXObject|nil
 ---@field callback function
 
@@ -34,6 +39,7 @@ local meta = {
 ---@field text Color|nil
 ---@field background Color|nil
 ---@field highlight Color|nil
+---@field thumb Color|nil
 
 ---@class UIComponentFont
 ---@field name string
@@ -57,9 +63,10 @@ function Slider:new(args)
         margin = args.margin,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         color = {
-            text = args.color and args.color.text or Color(1.0, 1.0, 1.0, 1.0),
-            background = args.color and args.color.background or Color(0.85, 0.85, 0.85, 1),
-            highlight = args.color and args.color.highlight or Color(0.95, 0.95, 0.95, 1)
+            text = args.color and args.color.text or Color(0.7, 0.7, 0.7, 1.0),
+            background = args.color and args.color.background or Color(0.85, 0.85, 0.85, 1.0),
+            highlight = args.color and args.color.highlight or Color(0.95, 0.95, 0.95, 1.0),
+            thumb = args.color and args.color.thumb or Color(1.0, 1.0, 1.0, 1.0)
         },
         font = args.font or { name = "Exo2Bold", size = 12 },
         minValue = args.minValue or 0,
@@ -174,9 +181,7 @@ function Slider:new(args)
         Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Default)
         Gui:setPercentWidth(0.5)
         Gui:setFixedHeight(self.state.height())
-        Gui:setBackgroundColor(Color(0, 0, 0, 1))
-        Gui:setBorderColor(Color(0.5, 1, 0.5, 0.5))
-        Gui:setBorderWidth(5)
+        Gui:setBackgroundColor(self.state.color().thumb)
         Gui:endContainer()
 
         -- slider value text
@@ -189,7 +194,7 @@ function Slider:new(args)
         end
         Gui:text(sliderValueText,
             Cache.Font(self.state.font().name, self.state.font().size),
-            Color(0.7, 0.7, 0.7, 1))
+            self.state.color().text)
         Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 
         Gui:endContainer()
