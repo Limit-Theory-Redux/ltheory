@@ -64,8 +64,8 @@ function Slider:new(args)
         },
         font = args.font or { name = "Exo2Bold", size = 12 },
         minValue = args.minValue or 0,
-        maxValue = args.maxValue or 1,
-        currentValue = args.currentValue or 0.5,
+        maxValue = args.maxValue or 100,
+        currentValue = args.currentValue or 50,
         increment = args.increment or 0,
         toolTip = UIComponent.ToolTip { text = args.toolTip },
         sound = args.sound,
@@ -106,8 +106,10 @@ function Slider:new(args)
         Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
         Gui:rect()
 
+        local minValue = self.state.minValue() or 0
+        local maxValue = self.state.maxValue() or 100
         local sliderValue = self.state.currentValue()
-        local sliderValuePercent = self.state.currentValue() * 100
+        local sliderValuePercent = (sliderValue - minValue) / (maxValue - minValue) * 100
 
         if sliderHeld then
             -- calculate relative mouse position
@@ -121,18 +123,17 @@ function Slider:new(args)
                 relativeMousePositionX = (containerSize.x - 2 * self.state.padding()[1])
             end
 
-            sliderValue = (relativeMousePositionX / (containerSize.x - 2 * self.state.padding()[1]))
+            sliderValue = (relativeMousePositionX / (containerSize.x - 2 * self.state.padding()[1])) *
+                (maxValue - minValue) + minValue
 
             local increment = self.state.increment()
 
             if increment > 0 then
-                if increment >= 1 then
-                    increment = increment / 100
-                end
                 sliderValue = math.floor(sliderValue / increment + 0.5) * increment
+                sliderValue = math.max(minValue, math.min(sliderValue, maxValue))
             end
 
-            sliderValuePercent = sliderValue * 100
+            sliderValuePercent = (sliderValue - minValue) / (maxValue - minValue) * 100
 
             if not self.state.lastValue then
                 self.state.lastValue = sliderValue
@@ -174,7 +175,7 @@ function Slider:new(args)
         Gui:endContainer()
 
         -- slider value text
-        Gui:text(tostring(math.floor(sliderValuePercent * 100) / 100),
+        Gui:text(tostring(math.floor(sliderValue * 100) / 100),
             Cache.Font(self.state.font().name, self.state.font().size),
             Color(0.7, 0.7, 0.7, 1))
         Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)

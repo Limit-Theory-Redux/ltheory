@@ -14,7 +14,7 @@ function SettingsView:onViewClose(isPageClose) end
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
-local someSliderValue = 0.5
+local someSliderValue = 50
 
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200
@@ -162,7 +162,7 @@ local settingsGrid = UILayout.Grid {
                     increment = 1, -- step of 1 (0.01 also works == 1%)
                     currentValue = someSliderValue,
                     sound = Config.audio.sounds.click,
-                    callback = setMusicVolume
+                    callback = function(value) print(value) end
                 }
             }
         }
