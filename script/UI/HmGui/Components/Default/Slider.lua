@@ -27,7 +27,6 @@ local meta = {
 ---@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
 ---@field color UIComponentSliderColors
 ---@field font UIComponentFont
----@field toolTip string
 ---@field sound SFXObject|nil
 ---@field callback function
 
@@ -67,7 +66,7 @@ function Slider:new(args)
         maxValue = args.maxValue or 100,
         currentValue = args.currentValue or 50,
         increment = args.increment or 0,
-        toolTip = UIComponent.ToolTip { text = args.toolTip },
+        showValueAsPercentage = args.showValueAsPercentage or false, -- if value is representing 0-100 by 0-1
         sound = args.sound,
         callback = args.callback or function() Log.Warn("undefined slider callback function: " .. tostring(args.title)) end
     }
@@ -108,8 +107,11 @@ function Slider:new(args)
 
         local minValue = self.state.minValue() or 0
         local maxValue = self.state.maxValue() or 100
-        local sliderValue = self.state.currentValue()
-        local sliderValuePercent = (sliderValue - minValue) / (maxValue - minValue) * 100
+        local outerValue = self.state.currentValue()
+
+        -- create internal representation
+        local internalValue = (outerValue - minValue) / (maxValue - minValue) * 100
+        local sliderValuePercent = internalValue
 
         if sliderHeld then
             -- calculate relative mouse position
@@ -123,25 +125,28 @@ function Slider:new(args)
                 relativeMousePositionX = (containerSize.x - 2 * self.state.padding()[1])
             end
 
-            sliderValue = (relativeMousePositionX / (containerSize.x - 2 * self.state.padding()[1])) *
-                (maxValue - minValue) + minValue
+            internalValue = (relativeMousePositionX / (containerSize.x - 2 * self.state.padding()[1])) * 100
 
             local increment = self.state.increment()
 
             if increment > 0 then
-                sliderValue = math.floor(sliderValue / increment + 0.5) * increment
-                sliderValue = math.max(minValue, math.min(sliderValue, maxValue))
+                -- scale increment to match the internal range (0-100)
+                local scaledIncrement = increment / (maxValue - minValue) * 100
+                internalValue = math.floor(internalValue / scaledIncrement + 0.5) * scaledIncrement
+                internalValue = math.max(0, math.min(internalValue, 100)) -- ensure internalValue is within the bounds
             end
 
-            sliderValuePercent = (sliderValue - minValue) / (maxValue - minValue) * 100
+            sliderValuePercent = internalValue
+
+            local newOuterValue = internalValue / 100 * (maxValue - minValue) + minValue
 
             if not self.state.lastValue then
-                self.state.lastValue = sliderValue
+                self.state.lastValue = outerValue
             end
 
-            if sliderValue ~= self.state.lastValue then
+            if newOuterValue ~= self.state.lastValue then
                 self.state.lastValue = self.state.currentValue()
-                self.state.currentValue = function() return sliderValue end
+                self.state.currentValue = function() return newOuterValue end
 
                 if self.state.sound then
                     self.state.sound():Play(1.0)
@@ -175,7 +180,14 @@ function Slider:new(args)
         Gui:endContainer()
 
         -- slider value text
-        Gui:text(tostring(math.floor(sliderValue * 100) / 100),
+        local sliderValueText
+
+        if not self.state.showValueAsPercentage() then
+            sliderValueText = string.format("%.2f", outerValue)       -- round to 2 decimals
+        else
+            sliderValueText = string.format("%.0f", outerValue * 100) -- display as percentage
+        end
+        Gui:text(sliderValueText,
             Cache.Font(self.state.font().name, self.state.font().size),
             Color(0.7, 0.7, 0.7, 1))
         Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
@@ -184,7 +196,9 @@ function Slider:new(args)
         Gui:endContainer()
 
         -- callback
-        self.state.callback(sliderValue)
+        if self.state.currentValue() ~= self.state.lastValue then
+            self.state.callback(self.state.currentValue())
+        end
     end
 
     return newSlider
