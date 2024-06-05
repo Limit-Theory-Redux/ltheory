@@ -139,6 +139,9 @@ function ScrollArea:new(args)
 
         if #self.state.contents() > 1 then
             for _, component in ipairs(self.state.contents()) do
+                if type(component) == "function" then
+                    component = component() -- dynamic components
+                end
                 component:render()
             end
         elseif #self.state.contents() == 1 then

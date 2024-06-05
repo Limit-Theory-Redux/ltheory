@@ -83,6 +83,10 @@ function View:new(args)
 
         if #self.contents > 1 then
             for _, component in ipairs(self.contents) do
+                if type(component) == "function" then
+                    component = component() -- dynamic components
+                end
+
                 -- if component is set to not visible
                 if component.state.visible and not component.state.visible() then
                     goto skip
