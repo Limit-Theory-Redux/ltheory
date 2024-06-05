@@ -11,11 +11,8 @@ function Font.Load(name, size) end
 ---@param text string
 ---@param x number
 ---@param y number
----@param r number
----@param g number
----@param b number
----@param a number
-function Font:draw(text, x, y, r, g, b, a) end
+---@param color Color
+function Font:draw(text, x, y, color) end
 
 ---@param text string
 ---@param x number

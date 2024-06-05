@@ -57,6 +57,7 @@ const COPY_TYPES: &[&str] = &[
     "HmGuiPropertyType",
     "LayoutType",
     "HmGuiStyleId",
+    "TextAlignment",
 ];
 
 #[derive(Debug)]

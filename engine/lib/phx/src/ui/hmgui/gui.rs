@@ -102,6 +102,7 @@ impl HmGui {
 
     /// Calculate if mouse is over the widget. Recursively iterate over container widgets.
     /// Setting mouse over hash at the end of the method guarantees that the last (top most) widget will get the mouse over flag set.
+    // TODO: take in account container clipping
     fn check_mouse_over(&mut self, widget_rf: Rf<HmGuiWidget>) {
         let widget = widget_rf.as_ref();
         let is_mouse_over = widget.contains_point(&self.focus_pos);
@@ -408,6 +409,24 @@ impl HmGui {
             let mut widget = widget_rf.as_mut();
 
             widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+        }
+    }
+
+    /// Add multiline styled text element.
+    pub fn text_view(&mut self, text_data: &TextData) {
+        let image_item = HmGuiImage {
+            image: std::ptr::null_mut(),
+        };
+
+        let widget_rf = self.init_widget(WidgetItem::Image(image_item));
+        let widget = widget_rf.as_mut();
+
+        let data = self.get_data(widget.hash);
+
+        if let Some(text_view) = &mut data.text_view {
+            text_view.set_data(text_data);
+        } else {
+            data.text_view = Some(TextView::new(text_data));
         }
     }
 

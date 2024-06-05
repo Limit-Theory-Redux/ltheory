@@ -235,8 +235,14 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 },
                 TypeVariant::CString => quote! { #name_accessor.as_cstring() },
                 TypeVariant::Custom(custom_ty) => {
-                    if param.ty.is_reference || param.ty.is_boxed || TypeInfo::is_copyable(&custom_ty) {
+                    if param.ty.is_boxed || TypeInfo::is_copyable(&custom_ty) {
                         quote! { #name_accessor }
+                    } else if param.ty.is_reference  {
+                        if param.ty.is_option {
+                            quote! { &#name_accessor }
+                        } else {
+                            quote! { #name_accessor }
+                        }
                     } else {
                         quote! { *#name_accessor }
                     }

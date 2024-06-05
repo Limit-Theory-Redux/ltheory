@@ -1,6 +1,8 @@
+use std::borrow::BorrowMut;
+
 use glam::Vec2;
 
-use crate::render::Color;
+use crate::render::{Color, TEXT_CTX};
 
 use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT};
 
@@ -12,6 +14,7 @@ pub enum WidgetItem {
     Text(HmGuiText),
     Rect,
     Image(HmGuiImage),
+    TextView(HmGuiImage),
 }
 
 impl WidgetItem {
@@ -21,6 +24,7 @@ impl WidgetItem {
             WidgetItem::Text(text) => format!("Text/{}", text.text),
             WidgetItem::Rect => "Rect".into(),
             WidgetItem::Image(_) => "Image".into(),
+            WidgetItem::TextView(_) => "TextView".into(),
         }
     }
 
@@ -230,6 +234,17 @@ impl HmGuiWidget {
                 data.size = self.size;
                 data.pos = self.pos;
             }
+            WidgetItem::TextView(_image) => {
+                let data = hmgui.get_data(self.hash);
+                let text_view = data.text_view.as_mut().expect("Text view data was not set");
+
+                // TODO: TextContext could be part of HmGui without Lazy<Mutex<>> wrapper
+                // but here it would conflict with mutable borrow of hmgui.get_data() above.
+                // Check if this can be solved.
+                let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
+
+                text_view.update(text_ctx.borrow_mut(), self.inner_size);
+            }
             _ => {}
         }
     }
@@ -263,7 +278,7 @@ impl HmGuiWidget {
                     text.draw(&mut hmgui.renderer, Vec2::new(x, y));
                 }
                 WidgetItem::Rect => {}
-                WidgetItem::Image(image) => {
+                WidgetItem::Image(image) | WidgetItem::TextView(image) => {
                     image.draw(&mut hmgui.renderer, pos, size);
                 }
             }
@@ -311,7 +326,7 @@ impl HmGuiWidget {
 
                 println!("{ident_str}- rect");
             },
-            WidgetItem::Image(item) => item.dump(ident + 1),
+            WidgetItem::Image(item) | WidgetItem::TextView(item) => item.dump(ident + 1),
         }
     }
 }

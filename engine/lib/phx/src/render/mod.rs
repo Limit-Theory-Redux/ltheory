@@ -35,6 +35,7 @@ mod tex_filter;
 mod tex_format;
 mod tex_wrap_mode;
 mod texcube;
+mod text;
 mod ui_renderer;
 mod viewport;
 
@@ -75,5 +76,6 @@ pub use tex_filter::*;
 pub use tex_format::*;
 pub use tex_wrap_mode::*;
 pub use texcube::*;
+pub use text::*;
 pub use ui_renderer::*;
 pub use viewport::*;

@@ -88,6 +88,10 @@ function HmGui:rect() end
 ---@param color Color
 function HmGui:text(text, font, color) end
 
+-- Add multiline styled text element.
+---@param textData TextData
+function HmGui:textView(textData) end
+
 -- Makes current widget `focusable` and returns true if mouse is over it.
 -- Returns true if mouse is over the widget (was calculated in the previous frame).
 ---@param ty FocusType
