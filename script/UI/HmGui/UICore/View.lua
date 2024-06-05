@@ -103,14 +103,21 @@ function View:new(args)
                 ::skip::
             end
         else
-            if not self.contents[1] then
+            local component = self.contents[1]
+
+            if not component then
                 return
             end
+
+            if type(component) == "function" then
+                component = component() -- dynamic components
+            end
+
             -- if component is set to not visible
-            if self.contents[1].state.visible and not self.contents[1].state.visible() then
+            if component.state.visible and not component.state.visible() then
                 return
             end
-            self.contents[1]:render()
+            component:render()
         end
     end
 
