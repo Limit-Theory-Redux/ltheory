@@ -166,6 +166,19 @@ local settingsGrid = UILayout.Grid {
                     showValueAsPercentage = true,
                     sound = Config.audio.sounds.click,
                     callback = setMusicVolume
+                },
+                UIComponent.Switch {
+                    title = "switchWithTitle",
+                    width = 40,
+                    height = 10,
+                    margin = { 0, 10 },
+                    callback = function(v) print(v) end
+                },
+                UIComponent.Switch {
+                    width = 40,
+                    height = 10,
+                    margin = { 0, 10 },
+                    callback = function(v) print(v) end
                 }
             }
         }
