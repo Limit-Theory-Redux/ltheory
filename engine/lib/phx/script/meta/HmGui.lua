@@ -74,6 +74,10 @@ function HmGui:containerSize() end
 ---@return Vec2f
 function HmGui:containerMinSize() end
 
+-- Return current container position (top-left) calculated in the previous frame.
+---@return Vec2f
+function HmGui:containerPos() end
+
 -- Update current element minimum size.
 ---@param offset Vec2f
 function HmGui:updateElementOffset(offset) end
