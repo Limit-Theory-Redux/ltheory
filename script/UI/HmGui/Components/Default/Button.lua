@@ -69,7 +69,7 @@ function Button:new(args)
         font = args.font or { name = "Exo2", size = 12 },
         toolTip = UIComponent.ToolTip { text = args.toolTip },
         sound = args.sound,
-        callback = args.callback or function() Log.Warn("undefined button callback function: " .. args.title) end
+        callback = args.callback or function() Log.Warn("undefined button callback function: " .. tostring(args.title)) end
     }
 
     newButton.render = function(self)
