@@ -109,7 +109,16 @@ function Container:new(args)
                 component:render()
             end
         elseif #self.state.contents() == 1 then
-            self.state.contents()[1]:render()
+            local component = self.state.contents()[1]
+
+            if not component then
+                return
+            end
+
+            if type(component) == "function" then
+                component = component() -- dynamic components
+            end
+            component:render()
         end -- this allows containers without any content
 
         Gui:endContainer()

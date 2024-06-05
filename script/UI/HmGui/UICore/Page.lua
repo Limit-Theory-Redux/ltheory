@@ -150,8 +150,17 @@ function Page:new(args)
                 ::skip::
             end
         else
+            local component = self.contents[1]
             -- if component is set to not visible
-            if not self.contents[1] or self.contents[1].state.visible and not self.contents[1].state.visible() then
+            if not component then
+                goto skip
+            end
+
+            if type(component) == "function" then
+                component = component() -- dynamic components
+            end
+
+            if component.state.visible and not component.state.visible() then
                 goto skip
             end
             self.contents[1]:render()
