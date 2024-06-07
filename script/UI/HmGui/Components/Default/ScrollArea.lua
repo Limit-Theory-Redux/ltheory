@@ -81,9 +81,9 @@ function ScrollArea:new(args)
     newScrollArea.state = UICore.ComponentState {
         visible = args.visible,
         scrollDirection = args.scrollDirection or Enums.UI.ScrollDirection.Both,
-        showHScrollbar = args.showHScrollbar == nil or args.showHScrollbar, -- TODO: doesn't work. Idea is to treat nil as true. Same 2 below.
-        showVScrollbar = args.showVScrollbar == nil or args.showVScrollbar,
-        scrollbarFading = args.scrollbarFading == nil or args.scrollbarFading,
+        showHScrollbar = args.showHScrollbar or true,
+        showVScrollbar = args.showVScrollbar or true,
+        scrollbarFading = args.scrollbarFading or true,
         scrollScale = args.scrollScale or 20,
         scrollbarVisibilityStableTimeMs = args.scrollbarVisibilityStableTimeMs or 400,
         scrollbarVisibilityFadeTimeMs = args.scrollbarVisibilityFadeTimeMs or 200,
@@ -139,10 +139,22 @@ function ScrollArea:new(args)
 
         if #self.state.contents() > 1 then
             for _, component in ipairs(self.state.contents()) do
+                if type(component) == "function" then
+                    component = component() -- dynamic components
+                end
                 component:render()
             end
         elseif #self.state.contents() == 1 then
-            self.state.contents()[1]:render()
+            local component = self.state.contents()[1]
+
+            if not component then
+                return
+            end
+
+            if type(component) == "function" then
+                component = component() -- dynamic components
+            end
+            component:render()
         end -- this allows scroll areas without any content
 
         -- recalculate container offset

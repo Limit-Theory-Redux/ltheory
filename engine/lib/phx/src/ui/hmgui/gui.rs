@@ -354,6 +354,15 @@ impl HmGui {
         data.min_size
     }
 
+    /// Return current container position (top-left) calculated in the previous frame.
+    pub fn container_pos(&mut self) -> Vec2 {
+        let widget_rf = self.container();
+        let widget = widget_rf.as_mut();
+        let data = self.get_data(widget.hash);
+
+        data.pos
+    }
+
     /// Update current element minimum size.
     pub fn update_element_offset(&mut self, offset: Vec2) {
         let last = self.last();

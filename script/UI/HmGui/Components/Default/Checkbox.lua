@@ -78,7 +78,8 @@ function Checkbox:new(args)
             }
         },
         sound = args.sound,
-        callback = args.callback or function(checked) Log.Warn("undefined checkbox callback function: " .. args.title) end
+        callback = args.callback or function(checked) Log.Warn("undefined checkbox callback function: " ..
+            tostring(args.title)) end
     }
 
     newCheckbox.render = function(self)

@@ -3,9 +3,13 @@ package.path = package.path .. ';./script/?.lua'
 package.path = package.path .. ';./script/?.ext.lua'
 package.path = package.path .. ';./script/?.ffi.lua'
 
+---@type Engine
 EngineInstance = {}
+---@type Input
 InputInstance = {}
+---@type Window
 WindowInstance = {}
+---@type HmGui
 Gui = {}
 
 require('Init')
