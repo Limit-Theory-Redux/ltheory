@@ -80,7 +80,7 @@ impl Directory {
             } else if let Some(path_str) = path.to_str() {
                 Some(format!("{path_str}/"))
             } else {
-                error!("Cannot get path string: {path:?}");
+                error!("Path is not valid UTF-8: {path:?}");
                 None
             }
         } else {

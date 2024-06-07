@@ -33,6 +33,7 @@ function Loader.defineType()
             Vec2f HmGui_ElementSize                    (HmGui*);
             Vec2f HmGui_ContainerSize                  (HmGui*);
             Vec2f HmGui_ContainerMinSize               (HmGui*);
+            Vec2f HmGui_ContainerPos                   (HmGui*);
             void  HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
             void  HmGui_Image                          (HmGui*, Tex2D* image);
             void  HmGui_Rect                           (HmGui*);
@@ -103,6 +104,7 @@ function Loader.defineType()
                 elementSize                    = libphx.HmGui_ElementSize,
                 containerSize                  = libphx.HmGui_ContainerSize,
                 containerMinSize               = libphx.HmGui_ContainerMinSize,
+                containerPos                   = libphx.HmGui_ContainerPos,
                 updateElementOffset            = libphx.HmGui_UpdateElementOffset,
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,
