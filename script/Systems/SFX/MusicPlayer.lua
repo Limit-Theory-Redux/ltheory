@@ -28,9 +28,25 @@ function MusicPlayer:SetVolume(volume, fadeMS)
     self.lastVolume = GameState.audio.musicVolume
     GameState.audio.musicVolume = volume
 
+    if not GameState.audio.soundEnabled then
+        return
+    end
+
     for _, soundObject in ipairs(self.trackList) do
         -- Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, volume)
         soundObject:SetVolume(volume, fadeMS)
+    end
+end
+
+function MusicPlayer:SetGlobalVolume()
+    local actualVolume = GameState.audio.musicVolume
+    if not GameState.audio.soundEnabled then
+        actualVolume = 0
+    end
+
+    for _, soundObject in ipairs(self.trackList) do
+        -- Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, actualVolume)
+        soundObject:SetVolume(actualVolume, 0)
     end
 end
 

@@ -1,6 +1,6 @@
 ---@type UIView
-local PlayView = UICore.View {
-    name = "Play"
+local LoadgameView = UICore.View {
+    name = "Loadgame"
 }
 
 ---@type UIRouter
@@ -35,10 +35,10 @@ local seeds = {
 
 local selectedSeedIndex = nil
 
-function PlayView:onInput() end
-function PlayView:onUpdate(dt) end
-function PlayView:onViewOpen(isPageOpen) end
-function PlayView:onViewClose(isPageClose) end
+function LoadgameView:onInput() end
+function LoadgameView:onUpdate(dt) end
+function LoadgameView:onViewOpen(isPageOpen) end
+function LoadgameView:onViewClose(isPageClose) end
 
 local function getButtonWidth()
     return GameState.render.resX / 1600 * 200
@@ -71,7 +71,7 @@ local function newGame(seed)
     UIRouter:setCurrentPage("Loading_Screen")
 end
 
-local playGrid = UILayout.Grid {
+local loadgameGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
     margin = { 0, 0 },
@@ -96,7 +96,7 @@ local playGrid = UILayout.Grid {
                     },
                     contents = {
                         UIComponent.Text {
-                            text = "PLAY",
+                            text = "LOAD GAME",
                             size = 32,
                             font = "Unageo-Medium"
                         }
@@ -112,18 +112,6 @@ local playGrid = UILayout.Grid {
                         background = Color(0, 0, 0, 0.3)
                     },
                     contents = {
-                        UIComponent.Button_MainMenu {
-                            title = "New Game",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        },
-                        UIComponent.Button_MainMenu {
-                            title = "Load Game",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
-                            align = { AlignHorizontal.Center, AlignVertical.Center },
-                        },
                         UIComponent.Button_MainMenu {
                             title = "Back",
                             width = getButtonWidth,
@@ -257,6 +245,6 @@ local playGrid = UILayout.Grid {
     }
 }
 
-PlayView:addContent(playGrid)
+LoadgameView:addContent(loadgameGrid)
 
-return PlayView
+return LoadgameView
