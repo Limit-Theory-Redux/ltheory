@@ -21,12 +21,20 @@ local settingsCategoryNames = {{"GENERAL",   "General"},
                                {"INTERFACE", "Interface"},
                                {"KEYBINDS",  "Keybinds"}}
 
+local function getScreenWidthAdj()
+    return GameState.render.resX / 1600
+end
+
+local function getScreenHeightAdj()
+    return GameState.render.resY / 900
+end
+
 local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
+    return getScreenWidthAdj() * 200
 end
 
 local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
+    return getScreenHeightAdj() * 40
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
@@ -91,10 +99,12 @@ local function settingsAudio()
         contents = {
             UIComponent.Switch {
                 title = "Global Audio On/Off",
-                width = 40,
-                height = 10,
+                width  = 80 * getScreenWidthAdj(),
+                height = 20 * getScreenHeightAdj(),
                 margin = { 0, 10 },
+                font = {name = "Unageo-Medium", size = 50},
                 sound = Config.audio.sounds.click,
+                toolTip = function() return "Turns all game audio off and on." end,
                 currentValue = function() return GameState.audio.soundEnabled end, -- send value back to component
                 callback = function(v) GameState.audio.soundEnabled = v;
                                        MusicPlayer:SetGlobalVolume();
@@ -102,9 +112,12 @@ local function settingsAudio()
             },
             UIComponent.Slider {
                 title = "Music Volume",
-                width = 200,
-                height = 30,
+                width  = 300 * getScreenWidthAdj(),
+                height =  40 * getScreenHeightAdj(),
+                margin = { 0, 10 },
+                font = {name = "Unageo-Medium", size = 50},
                 sound = Config.audio.sounds.click,
+                toolTip = function() return "Adjusts the music volume." end,
                 showValueAsPercentage = true,
                 increment = 0.01,
                 minValue = 0,
@@ -128,10 +141,12 @@ local function settingsGraphics()
         contents = {
             UIComponent.Switch {
                 title = "Fullscreen",
-                width = 40,
-                height = 10,
+                width  = 80 * getScreenWidthAdj(),
+                height = 20 * getScreenHeightAdj(),
                 margin = { 0, 10 },
+                font = {name = "Unageo-Medium", size = 50},
                 sound = Config.audio.sounds.click,
+                toolTip = function() return "Switches between fullscreen and windowed modes." end,
                 currentValue = function() return GameState.render.fullscreen end, -- send value back to component
                 callback = function(v) GameState.render.fullscreen = v;
                                        WindowInstance:setFullscreen(v);
@@ -139,9 +154,11 @@ local function settingsGraphics()
             },
             UIComponent.Slider {
                 title = "Supersampling (EXPERIMENTAL)",
-                width = 200,
-                height = 30,
+                width  = 300 * getScreenWidthAdj(),
+                height =  40 * getScreenHeightAdj(),
+                font = {name = "Unageo-Medium", size = 50},
                 sound = Config.audio.sounds.click,
+                toolTip = function() return "Switches supersampling between Off, 2x, and 4x.\nNOTE: 2x and 4x are completely unusable at this time." end,
                 increment = 1,
                 minValue = 1,
                 maxValue = 3,
@@ -164,9 +181,11 @@ local function settingsInterface()
         contents = {
             UIComponent.Slider {
                 title = "Cursor Style",
-                width = 200,
-                height = 30,
+                width  = 300 * getScreenWidthAdj(),
+                height =  40 * getScreenHeightAdj(),
+                font = {name = "Unageo-Medium", size = 50},
                 sound = Config.audio.sounds.click,
+                toolTip = function() return "Switch between game pointers.\nNOTE: This function is not yet fully implemented." end,
                 increment = 1,
                 minValue = 1,
                 maxValue = Enums.CursorStyleCount,
@@ -177,9 +196,11 @@ local function settingsInterface()
             },
             UIComponent.Slider {
                 title = "HUD Display Style",
-                width = 200,
-                height = 30,
+                width  = 300 * getScreenWidthAdj(),
+                height =  40 * getScreenHeightAdj(),
+                font = {name = "Unageo-Medium", size = 50},
                 sound = Config.audio.sounds.click,
+                toolTip = function() return "Switches between HUD display styles\n(HUD Off, Cursor Only, Wide, Medium, Narrow)." end,
                 increment = 1,
                 minValue = 1,
                 maxValue = Enums.HudStyleCount,

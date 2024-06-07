@@ -27,6 +27,7 @@ local meta = {
 ---@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
 ---@field color UIComponentSliderColors
 ---@field font UIComponentFont
+---@field toolTip UIComponentToolTip
 ---@field minValue number
 ---@field maxValue number
 ---@field currentValue number
@@ -38,6 +39,8 @@ local meta = {
 ---@class UIComponentSliderColors
 ---@field text Color|nil
 ---@field background Color|nil
+---@field borderWidth number
+---@field borderColor Color
 ---@field highlight Color|nil
 ---@field thumb Color|nil
 
@@ -55,8 +58,10 @@ function Slider:new(args)
         title = args.title,
         width = args.width,
         height = args.height,
-        padding = args.padding or { 10, 10 },
+        padding = args.padding or { 0, 10 },
         margin = args.margin,
+        borderWidth = args.borderWidth or 2,
+        borderColor = args.borderColor or Color(0.0, 0.0, 0.0, 1.0),
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         color = {
             text = args.color and args.color.text or Color(0.7, 0.7, 0.7, 1.0),
@@ -65,6 +70,7 @@ function Slider:new(args)
             thumb = args.color and args.color.thumb or Color(1.0, 1.0, 1.0, 1.0)
         },
         font = args.font or { name = "Unageo-Medium", size = 12 },
+        toolTip = UIComponent.ToolTip { text = args.toolTip },
         minValue = args.minValue or 0,
         maxValue = args.maxValue or 100,
         currentValue = args.currentValue or 50,
@@ -95,18 +101,25 @@ function Slider:new(args)
         local containerPos = Gui:containerPos()
         local containerSize = Gui:containerSize()
 
+        Gui:setBorderWidth(self.state.borderWidth())
+        Gui:setBorderColor(self.state.borderColor())
+
         -- check mouse interaction
         local isMouseOverSlider = Gui:isMouseOver(FocusType.Mouse)
         local sliderHeld = isMouseOverSlider and InputInstance:mouse():isDown(MouseControl.Left)
 
         -- slider stack
+        if self.state.width then Gui:setFixedWidth(self.state.width()) end
+        if self.state.height then Gui:setFixedHeight(self.state.height()) end
+
         Gui:beginStackContainer()
         Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
-        Gui:setBackgroundColor(Color(1, 1, 1, 0.2))
 
         -- slider body
-        Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+        Gui:setBackgroundColor(Color(0.2, 0.2, 0.2, 0.7))
         Gui:rect()
+        if self.state.width then Gui:setFixedWidth(self.state.width()) end
+        if self.state.height then Gui:setFixedHeight(self.state.height()) end
 
         local minValue = self.state.minValue() or 0
         local maxValue = self.state.maxValue() or 100
@@ -201,12 +214,14 @@ function Slider:new(args)
         end
 
         Gui:text(sliderValueText,
-            Cache.Font(self.state.font().name, self.state.font().size),
+            Cache.Font(self.state.font().name, floor(self.state.height() / 1.7)), -- calculate interior text size from slider bar height
             self.state.color().text)
         Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 
         Gui:endContainer()
         Gui:endContainer()
+
+        self.state.toolTip():render()
 
         -- callback
         if self.state.currentValue() ~= self.state.lastValue then

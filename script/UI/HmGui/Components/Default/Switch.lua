@@ -68,7 +68,7 @@ function Switch:new(args)
             highlight = args.color and args.color.highlight or Color(0.95, 0.95, 0.95, 1.0),
             thumb = args.color and args.color.thumb or Color(1.0, 1.0, 1.0, 1.0)
         },
-        font = args.font or { name = "Exo2", size = 12 },
+        font = args.font or { name = "Unageo-Medium", size = 12 },
         toolTip = UIComponent.ToolTip { text = args.toolTip },
         sound = args.sound,
         currentValue = args.currentValue or false,
