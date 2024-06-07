@@ -40,11 +40,11 @@ end
 function MainView:onViewClose(isPageClose) end
 
 local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
+    return GameState.render.resX / 1600 * 300
 end
 
 local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
+    return GameState.render.resY / 900 * 60
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
@@ -116,6 +116,7 @@ local menuGrid = UILayout.Grid {
                             title = "New Game",
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToNewgameView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -123,6 +124,7 @@ local menuGrid = UILayout.Grid {
                             title = "Load Game",
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToLoadgameView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -130,6 +132,7 @@ local menuGrid = UILayout.Grid {
                             title = "Settings",
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                             callback = switchToSettingsView
                         },
@@ -137,6 +140,7 @@ local menuGrid = UILayout.Grid {
                             title = "Credits",
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToCreditsView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -144,6 +148,7 @@ local menuGrid = UILayout.Grid {
                             title = "Exit",
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = function()
                                 LimitTheoryRedux:exit() -- run pre-exit operations & exit game
                             end,

@@ -30,11 +30,11 @@ local function getScreenHeightAdj()
 end
 
 local function getButtonWidth()
-    return getScreenWidthAdj() * 200
+    return getScreenWidthAdj() * 300
 end
 
 local function getButtonHeight()
-    return getScreenHeightAdj() * 40
+    return getScreenHeightAdj() * 60
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
@@ -269,7 +269,7 @@ local settingsGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = getSettingsCategoryText,
-                            size = 32,
+                            size = 50,
                             font = "Unageo-Medium"
                         }
                     }
@@ -288,6 +288,7 @@ local settingsGrid = UILayout.Grid {
                             title = settingsCategoryNames[1][2],
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToGeneralSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -295,6 +296,7 @@ local settingsGrid = UILayout.Grid {
                             title = settingsCategoryNames[2][2],
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToAudioSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -302,6 +304,7 @@ local settingsGrid = UILayout.Grid {
                             title = settingsCategoryNames[3][2],
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToGraphicsSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -309,6 +312,7 @@ local settingsGrid = UILayout.Grid {
                             title = settingsCategoryNames[4][2],
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToInterfaceSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                         },
@@ -316,6 +320,7 @@ local settingsGrid = UILayout.Grid {
                             title = settingsCategoryNames[5][2],
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToKeybindSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -323,6 +328,7 @@ local settingsGrid = UILayout.Grid {
                             title = "Back",
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         }

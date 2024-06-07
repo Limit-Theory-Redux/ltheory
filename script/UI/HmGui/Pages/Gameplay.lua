@@ -59,7 +59,6 @@ local deathText = UIComponent.Container {
     visible = function() return deathTextVisible end,
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-    padding = { 0, 0 },
     layoutType = GuiLayoutType.Vertical,
     contents = {
         UIComponent.Text {
@@ -72,6 +71,8 @@ local deathText = UIComponent.Container {
             title = "Back to Main Menu",
             width = getButtonWidth,
             height = getButtonHeight,
+            margin = { 0, 40 },
+            font = {name = "Unageo-Medium", size = 20},
             align = { AlignHorizontal.Center, AlignVertical.Center },
             callback = function() LimitTheoryRedux:initMainMenu() end
         },

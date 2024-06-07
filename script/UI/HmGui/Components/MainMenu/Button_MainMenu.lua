@@ -57,7 +57,7 @@ function Button:new(args)
         textAlign = args.textAlign or { AlignHorizontal.Center, AlignVertical.Center },
         color = {
             text = args.color and args.color.text or Color(1.0, 1.0, 1.0, 1.0),
-            background = args.color and args.color.background or Color(0.0, 0.0, 0.0, 1.0),
+            background = args.color and args.color.background or Color(0.0, 0.0, 0.0, 0.5),
             highlight = args.color and args.color.highlight or Color(0.3, 0.3, 0.3, 1.0)
         },
         font = args.font or { name = "Unageo-Regular", size = 13 },

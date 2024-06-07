@@ -41,11 +41,11 @@ function LoadgameView:onViewOpen(isPageOpen) end
 function LoadgameView:onViewClose(isPageClose) end
 
 local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
+    return GameState.render.resX / 1600 * 300
 end
 
 local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
+    return GameState.render.resY / 900 * 60
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
@@ -97,7 +97,7 @@ local loadgameGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = "LOAD GAME",
-                            size = 32,
+                            size = 50,
                             font = "Unageo-Medium"
                         }
                     }
@@ -116,6 +116,7 @@ local loadgameGrid = UILayout.Grid {
                             title = "Back",
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -213,6 +214,7 @@ local loadgameGrid = UILayout.Grid {
                                     margin = { 0, 10 },
                                     height = getButtonHeight,
                                     width = getButtonWidth,
+                                    font = {name = "Unageo-Medium", size = 30},
                                     toolTip = function()
                                         if selectedSeedIndex then
                                             return "Press to load game with the seed:\n" ..
