@@ -58,7 +58,7 @@ function Slider:new(args)
         title = args.title,
         width = args.width,
         height = args.height,
-        padding = args.padding or { 0, 10 },
+        padding = args.padding or { 0, 0 },
         margin = args.margin,
         borderWidth = args.borderWidth or 2,
         borderColor = args.borderColor or Color(0.0, 0.0, 0.0, 1.0),
@@ -116,7 +116,7 @@ function Slider:new(args)
         Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
 
         -- slider body
-        Gui:setBackgroundColor(Color(0.2, 0.2, 0.2, 0.7))
+        Gui:setBackgroundColor(Color(0.3, 0.3, 0.3, 0.7))
         Gui:rect()
         if self.state.width then Gui:setFixedWidth(self.state.width()) end
         if self.state.height then Gui:setFixedHeight(self.state.height()) end
