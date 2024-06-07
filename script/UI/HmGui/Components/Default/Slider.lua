@@ -214,7 +214,7 @@ function Slider:new(args)
         end
 
         Gui:text(sliderValueText,
-            Cache.Font(self.state.font().name, floor(self.state.height() / 1.7)), -- calculate interior text size from slider bar height
+            Cache.Font(self.state.font().name, floor(self.state.height() / 1.1)), -- calculate interior text size from slider bar height
             self.state.color().text)
         Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 

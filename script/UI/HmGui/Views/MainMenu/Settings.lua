@@ -113,7 +113,7 @@ local function settingsAudio()
             UIComponent.Slider {
                 title = "Music Volume",
                 width  = 300 * getScreenWidthAdj(),
-                height =  40 * getScreenHeightAdj(),
+                height =  30 * getScreenHeightAdj(),
                 margin = { 0, 20 },
                 font = {name = "Unageo-Medium", size = 50},
                 sound = Config.audio.sounds.click,
@@ -155,7 +155,7 @@ local function settingsGraphics()
             UIComponent.Slider {
                 title = "Supersampling (EXPERIMENTAL)",
                 width  = 300 * getScreenWidthAdj(),
-                height =  40 * getScreenHeightAdj(),
+                height =  30 * getScreenHeightAdj(),
                 margin = { 0, 20 },
                 font = {name = "Unageo-Medium", size = 50},
                 sound = Config.audio.sounds.click,
@@ -183,7 +183,7 @@ local function settingsInterface()
             UIComponent.Slider {
                 title = "Cursor Style",
                 width  = 300 * getScreenWidthAdj(),
-                height =  40 * getScreenHeightAdj(),
+                height =  30 * getScreenHeightAdj(),
                 margin = { 0, 20 },
                 font = {name = "Unageo-Medium", size = 50},
                 sound = Config.audio.sounds.click,
@@ -199,7 +199,7 @@ local function settingsInterface()
             UIComponent.Slider {
                 title = "HUD Display Style",
                 width  = 300 * getScreenWidthAdj(),
-                height =  40 * getScreenHeightAdj(),
+                height =  30 * getScreenHeightAdj(),
                 margin = { 0, 20 },
                 font = {name = "Unageo-Medium", size = 50},
                 sound = Config.audio.sounds.click,

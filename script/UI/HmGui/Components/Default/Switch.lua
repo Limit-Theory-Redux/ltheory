@@ -122,8 +122,8 @@ function Switch:new(args)
             Gui:setBackgroundColor(self.state.color().background)
         end
         Gui:setPercentSize(50, 100)
-        Gui:endContainer()
 
+        Gui:endContainer()
         Gui:endContainer()
 
         self.state.toolTip():render()
