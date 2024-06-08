@@ -115,7 +115,7 @@ function Switch:new(args)
         Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
         Gui:rect()
 
-        if self.state.currentValue then
+        if self.state.currentValue() then
             Gui:setBackgroundColor(self.state.color().background)
         else
             Gui:setBackgroundColor(self.state.color().thumb)
@@ -124,7 +124,7 @@ function Switch:new(args)
 
         Gui:rect()
 
-        if self.state.currentValue then
+        if self.state.currentValue() then
             Gui:setBackgroundColor(self.state.color().thumb)
         else
             Gui:setBackgroundColor(self.state.color().background)
@@ -138,13 +138,14 @@ function Switch:new(args)
 
         local switchClicked = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
         if switchClicked then
-            self.state.currentValue = not self.state.currentValue
+            local valueState = self.state.currentValue()
+            self.state.currentValue = function() return not valueState end
 
             if self.state.sound then
                 self.state.sound():Play(1.0)
             end
 
-            self.state.callback(self.state.currentValue)
+            self.state.callback(self.state.currentValue())
         end
     end
 
