@@ -375,7 +375,10 @@ impl HmGui {
     }
 
     pub fn image(&mut self, image: &mut Tex2D) {
-        let image_item = HmGuiImage { image };
+        let image_item = HmGuiImage {
+            image,
+            layout: HmGuiImageLayout::Fit,
+        };
 
         let _ = self.init_widget(WidgetItem::Image(image_item));
     }
@@ -425,6 +428,7 @@ impl HmGui {
     pub fn text_view(&mut self, text_data: &TextData) {
         let image_item = HmGuiImage {
             image: std::ptr::null_mut(),
+            layout: HmGuiImageLayout::Center,
         };
 
         let widget_rf = self.init_widget(WidgetItem::TextView(image_item));

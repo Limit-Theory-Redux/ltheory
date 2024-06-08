@@ -279,7 +279,7 @@ impl HmGuiWidget {
                 }
                 WidgetItem::Rect => {}
                 WidgetItem::Image(image) | WidgetItem::TextView(image) => {
-                    image.draw(&mut hmgui.renderer, pos, size);
+                    image.draw(hmgui, pos, size);
                 }
             }
         }

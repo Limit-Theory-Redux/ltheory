@@ -7,7 +7,7 @@ local creditsText = [[
 Limit Theory author: Josh Parnell
 Scripters:
  - Flatfingers
- - IllustriJack
+ - IllustrisJack
 Engine developers:
  - dga
  - Haron
