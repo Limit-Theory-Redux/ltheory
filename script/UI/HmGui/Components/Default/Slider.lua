@@ -117,17 +117,19 @@ function Slider:new(args)
         local sliderHeld = isMouseOverSlider and InputInstance:mouse():isDown(MouseControl.Left)
 
         -- slider stack
-        if self.state.width then Gui:setFixedWidth(self.state.width()) end
-        if self.state.height then Gui:setFixedHeight(self.state.height()) end
-
         Gui:beginStackContainer()
         Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
 
         -- slider body
         Gui:setBackgroundColor(Color(0.3, 0.3, 0.3, 0.7))
         Gui:rect()
-        if self.state.width then Gui:setFixedWidth(self.state.width()) end
-        if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        if self.state.size then
+            local size = self.state.size()
+            Gui:setFixedSize(size.x, size.y)
+        else
+            if self.state.width then Gui:setFixedWidth(self.state.width()) end
+            if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        end
 
         local minValue = self.state.minValue() or 0
         local maxValue = self.state.maxValue() or 100

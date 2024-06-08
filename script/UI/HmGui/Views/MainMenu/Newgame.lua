@@ -5,6 +5,8 @@ local NewgameView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type ResponsiveSize
+local ResponsiveSize = require("Types.ResponsiveSize")
 ---@type RandomNumberGenerator
 local rng = RNG.FromTime()
 
@@ -39,14 +41,6 @@ function NewgameView:onInput() end
 function NewgameView:onUpdate(dt) end
 function NewgameView:onViewOpen(isPageOpen) end
 function NewgameView:onViewClose(isPageClose) end
-
-local function getButtonWidth()
-    return GameState.render.resX / 1600 * 300
-end
-
-local function getButtonHeight()
-    return GameState.render.resY / 900 * 60
-end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
     return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
@@ -114,8 +108,7 @@ local newgameGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Back",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(300, 60),
                             font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
@@ -212,8 +205,7 @@ local newgameGrid = UILayout.Grid {
                                     title = "Start New Game",
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     margin = { 0, 10 },
-                                    height = getButtonHeight,
-                                    width = getButtonWidth,
+                                    size = ResponsiveSize(300, 60),
                                     font = { name = "Unageo-Medium", size = 30 },
                                     toolTip = function()
                                         if selectedSeedIndex then
