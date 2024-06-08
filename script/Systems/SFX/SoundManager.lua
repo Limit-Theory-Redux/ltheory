@@ -12,7 +12,9 @@ function SoundManager:init()
 end
 
 function SoundManager:canSoundPlay(soundGroup)
-    if not self.groups[soundGroup] or #self.groups[soundGroup] < Enums.SoundGroupLimits[soundGroup] then
+    if (not self.groups[soundGroup] or
+        #self.groups[soundGroup] < Enums.SoundGroupLimits[soundGroup]) and
+        GameState.audio.soundEnabled then
         return true
     end
 

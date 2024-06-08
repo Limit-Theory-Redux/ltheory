@@ -123,6 +123,7 @@ function Slider:new(args)
         -- create internal representation
         local internalValue = (outerValue - minValue) / (maxValue - minValue) * 100
         local sliderValuePercent = internalValue
+        local increment = self.state.increment()
 
         if sliderHeld then
             -- calculate relative mouse position
@@ -137,8 +138,6 @@ function Slider:new(args)
             end
 
             internalValue = (relativeMousePositionX / (containerSize.x - 2 * self.state.padding()[1])) * 100
-
-            local increment = self.state.increment()
 
             if increment > 0 then
                 -- scale increment to match the internal range (0-100)
@@ -192,10 +191,23 @@ function Slider:new(args)
         local sliderValueText
 
         if not self.state.showValueAsPercentage() then
-            sliderValueText = string.format("%.2f", outerValue)       -- round to 2 decimals
+            local decimalPlaces = 0
+
+            local function countDecimalPlaces(number)
+                local str = tostring(number)
+                local _, decimalPart = math.modf(number)
+                if decimalPart == 0 then
+                    return 0
+                end
+                return #str - str:find("%.")
+            end
+
+            decimalPlaces = countDecimalPlaces(increment)
+            sliderValueText = string.format("%." .. decimalPlaces .. "f", outerValue)
         else
             sliderValueText = string.format("%.0f", outerValue * 100) -- display as percentage
         end
+
         Gui:text(sliderValueText,
             Cache.Font(self.state.font().name, self.state.font().size),
             self.state.color().text)

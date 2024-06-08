@@ -49,8 +49,12 @@ local function getRemainingWidthPercentage()
     return 1 - getLayoutContainerWidthPercentage()
 end
 
-local function switchToPlayView()
-    UIRouter:getCurrentPage():setView("Play")
+local function switchToNewgameView()
+    UIRouter:getCurrentPage():setView("Newgame")
+end
+
+local function switchToLoadgameView()
+    UIRouter:getCurrentPage():setView("Loadgame")
 end
 
 local function switchToSettingsView()
@@ -103,9 +107,15 @@ local menuGrid = UILayout.Grid {
                     },
                     contents = {
                         UIComponent.Button_MainMenu {
-                            title = "Play",
+                            title = "New Game",
                             size = ResponsiveSize(200, 40),
-                            callback = switchToPlayView,
+                            callback = switchToNewgameView,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
+                        UIComponent.Button_MainMenu {
+                            title = "Load Game",
+                            size = ResponsiveSize(200, 40),
+                            callback = switchToLoadgameView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
