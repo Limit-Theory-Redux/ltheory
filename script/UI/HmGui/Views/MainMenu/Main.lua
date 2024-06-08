@@ -108,31 +108,36 @@ local menuGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "New Game",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToNewgameView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Load Game",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToLoadgameView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Settings",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                             callback = switchToSettingsView
                         },
                         UIComponent.Button_MainMenu {
                             title = "Credits",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToCreditsView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Exit",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = function()
                                 LimitTheoryRedux:exit() -- run pre-exit operations & exit game
                             end,

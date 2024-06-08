@@ -110,13 +110,13 @@ local backgroundGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Toggle Clock",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
                             callback = toggleClock,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Back to Main Menu",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },

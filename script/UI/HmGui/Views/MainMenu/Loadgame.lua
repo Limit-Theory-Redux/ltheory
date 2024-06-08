@@ -91,7 +91,7 @@ local loadgameGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = "LOAD GAME",
-                            size = 32,
+                            size = 50,
                             font = "Unageo-Medium"
                         }
                     }
@@ -108,7 +108,8 @@ local loadgameGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Back",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -204,7 +205,8 @@ local loadgameGrid = UILayout.Grid {
                                     title = "Select",
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     margin = { 0, 10 },
-                                    size = ResponsiveSize(200, 40),
+                                    size = ResponsiveSize(300, 60),
+                                    font = { name = "Unageo-Medium", size = 30 },
                                     toolTip = function()
                                         if selectedSeedIndex then
                                             return "Press to load game with the seed:\n" ..

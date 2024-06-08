@@ -41,11 +41,11 @@ function NewgameView:onViewOpen(isPageOpen) end
 function NewgameView:onViewClose(isPageClose) end
 
 local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
+    return GameState.render.resX / 1600 * 300
 end
 
 local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
+    return GameState.render.resY / 900 * 60
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
@@ -97,7 +97,7 @@ local newgameGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = "NEW GAME",
-                            size = 32,
+                            size = 50,
                             font = "Unageo-Medium"
                         }
                     }
@@ -116,6 +116,7 @@ local newgameGrid = UILayout.Grid {
                             title = "Back",
                             width = getButtonWidth,
                             height = getButtonHeight,
+                            font = {name = "Unageo-Medium", size = 40},
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -208,11 +209,12 @@ local newgameGrid = UILayout.Grid {
                                     }
                                 },
                                 UIComponent.Button {
-                                    title = "Select",
+                                    title = "Start New Game",
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     margin = { 0, 10 },
                                     height = getButtonHeight,
                                     width = getButtonWidth,
+                                    font = {name = "Unageo-Medium", size = 30},
                                     toolTip = function()
                                         if selectedSeedIndex then
                                             return "Press to load game with the seed:\n" ..

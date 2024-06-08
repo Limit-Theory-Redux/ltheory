@@ -265,7 +265,7 @@ local settingsGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = getSettingsCategoryText,
-                            size = 32,
+                            size = 50,
                             font = "Unageo-Medium"
                         }
                     }
@@ -282,37 +282,43 @@ local settingsGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[1][2],
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToGeneralSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[2][2],
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToAudioSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[3][2],
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToGraphicsSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[4][2],
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToInterfaceSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[5][2],
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToKeybindSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Back",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60),
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         }
