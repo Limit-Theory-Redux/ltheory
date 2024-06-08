@@ -15,6 +15,8 @@ local meta = {
 ---@field size ResponsiveSize -- if size is defined it will overwrite width, height
 ---@field sound SFXObject|nil
 ---@field color UIComponentSwitchColors
+---@field borderWidth number
+---@field borderColor Color
 ---@field font UIComponentFont
 ---@field toolTip UIComponentToolTip
 ---@field callback function
@@ -63,11 +65,13 @@ function Switch:new(args)
         size = args.size,
         padding = args.padding,
         margin = args.margin or { 0, 10 },
+        borderWidth = args.borderWidth or 2,
+        borderColor = args.borderColor or Color(0.0, 0.0, 0.0, 1.0),
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         textAlign = args.textAlign or { AlignHorizontal.Center, AlignVertical.Center },
         color = {
             text = args.color and args.color.text or Color(0.7, 0.7, 0.7, 1.0),
-            background = args.color and args.color.background or Color(1, 1, 1, 0.2),
+            background = args.color and args.color.background or Color(0.3, 0.3, 0.3, 0.7),
             highlight = args.color and args.color.highlight or Color(0.95, 0.95, 0.95, 1.0),
             thumb = args.color and args.color.thumb or Color(1.0, 1.0, 1.0, 1.0)
         },
@@ -103,6 +107,9 @@ function Switch:new(args)
 
         if self.state.padding then Gui:setPadding(self.state.padding()[1], self.state.padding()[2]) end
         if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end
+
+        Gui:setBorderWidth(self.state.borderWidth())
+        Gui:setBorderColor(self.state.borderColor())
 
         Gui:beginHorizontalContainer()
         Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)

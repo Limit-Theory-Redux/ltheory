@@ -90,7 +90,7 @@ local function settingsAudio()
             UIComponent.Switch {
                 title = "Global Audio On/Off",
                 size = ResponsiveSize(80, 20),
-                margin = { 0, 10 },
+                margin = { 0, 20 },
                 font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
                 toolTip = function() return "Turns all game audio off and on." end,
@@ -103,6 +103,8 @@ local function settingsAudio()
             UIComponent.Slider {
                 title = "Music Volume",
                 size = ResponsiveSize(300, 40),
+                margin = { 0, 20 },
+                font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
                 toolTip = function() return "Adjusts the music volume." end,
                 showValueAsPercentage = true,
@@ -129,7 +131,7 @@ local function settingsGraphics()
             UIComponent.Switch {
                 title = "Fullscreen",
                 size = ResponsiveSize(80, 20),
-                margin = { 0, 10 },
+                margin = { 0, 20 },
                 font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
                 toolTip = function() return "Switches between fullscreen and windowed modes." end,
@@ -142,9 +144,13 @@ local function settingsGraphics()
             UIComponent.Slider {
                 title = "Supersampling (EXPERIMENTAL)",
                 size = ResponsiveSize(300, 40),
+                margin = { 0, 20 },
+                font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
-                toolTip = function() return
-                    "Switches supersampling between Off, 2x, and 4x.\nNOTE: 2x and 4x are completely unusable at this time." end,
+                toolTip = function()
+                    return
+                    "Switches supersampling between Off, 2x, and 4x.\nNOTE: 2x and 4x are completely unusable at this time."
+                end,
                 increment = 1,
                 minValue = 1,
                 maxValue = 3,
@@ -168,9 +174,13 @@ local function settingsInterface()
             UIComponent.Slider {
                 title = "Cursor Style",
                 size = ResponsiveSize(300, 40),
+                margin = { 0, 20 },
+                font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
-                toolTip = function() return
-                    "Switch between game pointers.\nNOTE: This function is not yet fully implemented." end,
+                toolTip = function()
+                    return
+                    "Switch between game pointers.\nNOTE: This function is not yet fully implemented."
+                end,
                 increment = 1,
                 minValue = 1,
                 maxValue = Enums.CursorStyleCount,
@@ -183,9 +193,13 @@ local function settingsInterface()
             UIComponent.Slider {
                 title = "HUD Display Style",
                 size = ResponsiveSize(300, 40),
+                margin = { 0, 20 },
+                font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
-                toolTip = function() return
-                    "Switches between HUD display styles\n(HUD Off, Cursor Only, Wide, Medium, Narrow)." end,
+                toolTip = function()
+                    return
+                    "Switches between HUD display styles\n(HUD Off, Cursor Only, Wide, Medium, Narrow)."
+                end,
                 increment = 1,
                 minValue = 1,
                 maxValue = Enums.HudStyleCount,
