@@ -102,7 +102,7 @@ local function settingsAudio()
             },
             UIComponent.Slider {
                 title = "Music Volume",
-                size = ResponsiveSize(300, 40),
+                size = ResponsiveSize(300, 30),
                 margin = { 0, 20 },
                 font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
@@ -143,7 +143,7 @@ local function settingsGraphics()
             },
             UIComponent.Slider {
                 title = "Supersampling (EXPERIMENTAL)",
-                size = ResponsiveSize(300, 40),
+                size = ResponsiveSize(300, 30),
                 margin = { 0, 20 },
                 font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
@@ -173,7 +173,7 @@ local function settingsInterface()
         contents = {
             UIComponent.Slider {
                 title = "Cursor Style",
-                size = ResponsiveSize(300, 40),
+                size = ResponsiveSize(300, 30),
                 margin = { 0, 20 },
                 font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
@@ -192,7 +192,7 @@ local function settingsInterface()
             },
             UIComponent.Slider {
                 title = "HUD Display Style",
-                size = ResponsiveSize(300, 40),
+                size = ResponsiveSize(300, 30),
                 margin = { 0, 20 },
                 font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
