@@ -212,7 +212,7 @@ impl HmGuiWidget {
         self.calculate_inner_pos_size();
 
         // TODO: do not process widgets with min size, margin and border all 0
-        match &self.item {
+        match &mut self.item {
             WidgetItem::Container(container) => {
                 let is_root = self.parent.is_none();
 
@@ -234,7 +234,7 @@ impl HmGuiWidget {
                 data.size = self.size;
                 data.pos = self.pos;
             }
-            WidgetItem::TextView(_image) => {
+            WidgetItem::TextView(image) => {
                 let data = hmgui.get_data(self.hash);
                 let text_view = data.text_view.as_mut().expect("Text view data was not set");
 
@@ -243,7 +243,7 @@ impl HmGuiWidget {
                 // Check if this can be solved.
                 let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
 
-                text_view.update(text_ctx.borrow_mut(), self.inner_size);
+                image.image = text_view.update(text_ctx.borrow_mut(), self.inner_size);
             }
             _ => {}
         }

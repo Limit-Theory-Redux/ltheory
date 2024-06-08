@@ -3,6 +3,16 @@ local CreditsView = UICore.View {
     name = "Credits"
 }
 
+local creditsText = [[
+Limit Theory author: Josh Parnell
+Scripters:
+ - Flatfingers
+ - IllustriJack
+Engine developers:
+ - dga
+ - Haron
+]]
+
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
@@ -106,11 +116,21 @@ local creditsGrid = UILayout.Grid {
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
             padding = { 0, 0 },
-            margin = { 0, 0 },
+            margin = { 50, 50 },
             widthInLayout = getRemainingWidthPercentage,
             layoutType = GuiLayoutType.Vertical,
             contents = {
-                UIComponent.RawInput { fn = function() end }
+                UIComponent.TextView {
+                    text = creditsText,
+                    style = {
+                        font = {
+                            size = 28
+                        }
+                    },
+                    width = 400,
+                    height = 400,
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                }
             }
         }
     }

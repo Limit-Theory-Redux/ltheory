@@ -22,110 +22,147 @@ impl TextStyle {
 
     /// Font family list in CSS format.
     pub fn set_font_family(&mut self, family: &str) {
-        self.style_properties[&TextStylePropertyId::FontFamily] =
-            TextStyleProperty::FontFamily(family.into());
+        self.style_properties.insert(
+            TextStylePropertyId::FontFamily,
+            TextStyleProperty::FontFamily(family.into()),
+        );
     }
 
     pub fn set_font_size(&mut self, size: f32) {
-        self.style_properties[&TextStylePropertyId::FontSize] = TextStyleProperty::FontSize(size);
+        self.style_properties.insert(
+            TextStylePropertyId::FontSize,
+            TextStyleProperty::FontSize(size),
+        );
     }
 
     /// Visual width of a font-- a relative change from the normal aspect
     /// ratio, typically in the range 0.5 to 2.0.
     pub fn set_font_stretch(&mut self, stretch: f32) {
-        self.style_properties[&TextStylePropertyId::FontStretch] =
-            TextStyleProperty::FontStretch(FontStretch::from_ratio(stretch));
+        self.style_properties.insert(
+            TextStylePropertyId::FontStretch,
+            TextStyleProperty::FontStretch(FontStretch::from_ratio(stretch)),
+        );
     }
 
     /// Specify whether font italic or normal.
     pub fn set_font_italic(&mut self, italic: bool) {
-        self.style_properties[&TextStylePropertyId::FontStyle] = if italic {
-            TextStyleProperty::FontStyle(FontStyle::Italic)
-        } else {
-            TextStyleProperty::FontStyle(FontStyle::Normal)
-        };
+        self.style_properties.insert(
+            TextStylePropertyId::FontStyle,
+            if italic {
+                TextStyleProperty::FontStyle(FontStyle::Italic)
+            } else {
+                TextStyleProperty::FontStyle(FontStyle::Normal)
+            },
+        );
     }
 
     /// Visual weight class of a font, typically on a scale from 1.0 to 1000.0.
     pub fn set_font_weight(&mut self, weight: f32) {
-        self.style_properties[&TextStylePropertyId::FontWeight] =
-            TextStyleProperty::FontWeight(FontWeight::new(weight));
+        self.style_properties.insert(
+            TextStylePropertyId::FontWeight,
+            TextStyleProperty::FontWeight(FontWeight::new(weight)),
+        );
     }
 
     pub fn set_locale(&mut self, locale: Option<&str>) {
-        self.style_properties[&TextStylePropertyId::Locale] =
-            TextStyleProperty::Locale(locale.map(|l| l.into()));
+        self.style_properties.insert(
+            TextStylePropertyId::Locale,
+            TextStyleProperty::Locale(locale.map(|l| l.into())),
+        );
     }
 
     /// Brush for rendering text.
     pub fn set_brush(&mut self, color: &Color) {
-        self.style_properties[&TextStylePropertyId::Brush] = TextStyleProperty::Brush(*color);
+        self.style_properties
+            .insert(TextStylePropertyId::Brush, TextStyleProperty::Brush(*color));
     }
 
     /// Underline decoration.
     pub fn set_underline(&mut self, underline: bool) {
-        self.style_properties[&TextStylePropertyId::Underline] =
-            TextStyleProperty::Underline(underline);
+        self.style_properties.insert(
+            TextStylePropertyId::Underline,
+            TextStyleProperty::Underline(underline),
+        );
     }
 
     /// Offset of the underline decoration.
     pub fn set_underline_offset(&mut self, offset: Option<f32>) {
-        self.style_properties[&TextStylePropertyId::UnderlineOffset] =
-            TextStyleProperty::UnderlineOffset(offset);
+        self.style_properties.insert(
+            TextStylePropertyId::UnderlineOffset,
+            TextStyleProperty::UnderlineOffset(offset),
+        );
     }
 
     /// Size of the underline decoration.
     pub fn set_underline_size(&mut self, size: Option<f32>) {
-        self.style_properties[&TextStylePropertyId::UnderlineSize] =
-            TextStyleProperty::UnderlineSize(size);
+        self.style_properties.insert(
+            TextStylePropertyId::UnderlineSize,
+            TextStyleProperty::UnderlineSize(size),
+        );
     }
 
     /// Brush for rendering the underline decoration.
     pub fn set_underline_brush(&mut self, color: Option<&Color>) {
-        self.style_properties[&TextStylePropertyId::UnderlineBrush] =
-            TextStyleProperty::UnderlineBrush(color.map(|c| *c));
+        self.style_properties.insert(
+            TextStylePropertyId::UnderlineBrush,
+            TextStyleProperty::UnderlineBrush(color.map(|c| *c)),
+        );
     }
 
     /// Strikethrough decoration.
     pub fn set_strikethrough(&mut self, strikethrough: bool) {
-        self.style_properties[&TextStylePropertyId::Strikethrough] =
-            TextStyleProperty::Strikethrough(strikethrough);
+        self.style_properties.insert(
+            TextStylePropertyId::Strikethrough,
+            TextStyleProperty::Strikethrough(strikethrough),
+        );
     }
 
     /// Offset of the strikethrough decoration.
     pub fn set_strikethrough_offset(&mut self, offset: Option<f32>) {
-        self.style_properties[&TextStylePropertyId::StrikethroughOffset] =
-            TextStyleProperty::StrikethroughOffset(offset);
+        self.style_properties.insert(
+            TextStylePropertyId::StrikethroughOffset,
+            TextStyleProperty::StrikethroughOffset(offset),
+        );
     }
 
     /// Size of the strikethrough decoration.
     pub fn set_strikethrough_size(&mut self, size: Option<f32>) {
-        self.style_properties[&TextStylePropertyId::StrikethroughSize] =
-            TextStyleProperty::StrikethroughSize(size);
+        self.style_properties.insert(
+            TextStylePropertyId::StrikethroughSize,
+            TextStyleProperty::StrikethroughSize(size),
+        );
     }
 
     /// Brush for rendering the strikethrough decoration.
     pub fn set_strikethrough_brush(&mut self, color: Option<&Color>) {
-        self.style_properties[&TextStylePropertyId::StrikethroughBrush] =
-            TextStyleProperty::StrikethroughBrush(color.map(|c| *c));
+        self.style_properties.insert(
+            TextStylePropertyId::StrikethroughBrush,
+            TextStyleProperty::StrikethroughBrush(color.map(|c| *c)),
+        );
     }
 
     /// Line height multiplier.
     pub fn set_line_height(&mut self, height: f32) {
-        self.style_properties[&TextStylePropertyId::LineHeight] =
-            TextStyleProperty::LineHeight(height);
+        self.style_properties.insert(
+            TextStylePropertyId::LineHeight,
+            TextStyleProperty::LineHeight(height),
+        );
     }
 
     /// Extra spacing between words.
     pub fn set_word_spacing(&mut self, size: f32) {
-        self.style_properties[&TextStylePropertyId::WordSpacing] =
-            TextStyleProperty::WordSpacing(size);
+        self.style_properties.insert(
+            TextStylePropertyId::WordSpacing,
+            TextStyleProperty::WordSpacing(size),
+        );
     }
 
     /// Extra spacing between letters.
     pub fn set_letter_spacing(&mut self, size: f32) {
-        self.style_properties[&TextStylePropertyId::LetterSpacing] =
-            TextStyleProperty::LetterSpacing(size);
+        self.style_properties.insert(
+            TextStylePropertyId::LetterSpacing,
+            TextStyleProperty::LetterSpacing(size),
+        );
     }
 }
 

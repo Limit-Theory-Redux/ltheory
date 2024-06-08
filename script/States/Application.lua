@@ -260,11 +260,11 @@ function Application:onFrame()
             BlendMode.Push(BlendMode.Alpha)
             Draw.Color(0.1, 0.1, 0.1, 0.5)
             Draw.Rect(0, self.resY - 20, self.resX, self.resY)
-            self.profilerFont:draw(s, 10, self.resY - 5, 1, 1, 1, 1)
+            self.profilerFont:draw(s, 10, self.resY - 5, Color(1, 1, 1, 1))
 
             local y = self.resY - 5
             if self.profiling then
-                self.profilerFont:draw('>> PROFILER ACTIVE <<', self.resX - 128, y, 1, 0, 0.15, 1)
+                self.profilerFont:draw('>> PROFILER ACTIVE <<', self.resX - 128, y, Color(1, 0, 0.15, 1))
                 y = y - 12
             end
             BlendMode.Pop()

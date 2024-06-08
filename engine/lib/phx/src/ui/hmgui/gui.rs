@@ -427,7 +427,7 @@ impl HmGui {
             image: std::ptr::null_mut(),
         };
 
-        let widget_rf = self.init_widget(WidgetItem::Image(image_item));
+        let widget_rf = self.init_widget(WidgetItem::TextView(image_item));
         let widget = widget_rf.as_mut();
 
         let data = self.get_data(widget.hash);

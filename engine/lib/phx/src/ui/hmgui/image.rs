@@ -9,6 +9,7 @@ pub struct HmGuiImage {
 
 impl HmGuiImage {
     pub fn draw(&self, renderer: &mut UIRenderer, pos: Vec2, size: Vec2) {
+        debug_assert_ne!(self.image, std::ptr::null_mut(), "Image pointer is null");
         renderer.image(self.image, pos, size);
     }
 
