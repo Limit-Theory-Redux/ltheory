@@ -57,7 +57,7 @@ local menuContainer = UIComponent.Container {
     contents = {
         UIComponent.Button_MainMenu {
             title = "Return to Game",
-            size = ResponsiveSize(200, 40),
+            size = ResponsiveSize(200, 40, true),
             font = { name = "Unageo-Medium", size = 20 },
             callback = function()
                 freezeTurrets()
@@ -66,14 +66,14 @@ local menuContainer = UIComponent.Container {
         },
         UIComponent.Button_MainMenu {
             title = "Back to Main Menu",
-            size = ResponsiveSize(200, 40),
+            size = ResponsiveSize(200, 40, true),
             font = { name = "Unageo-Medium", size = 20 },
             align = { AlignHorizontal.Center, AlignVertical.Center },
             callback = function() LimitTheoryRedux:initMainMenu() end
         },
         UIComponent.Button_MainMenu {
             title = "Exit",
-            size = ResponsiveSize(200, 40),
+            size = ResponsiveSize(200, 40, true),
             font = { name = "Unageo-Medium", size = 20 },
             callback = function()
                 LimitTheoryRedux:exit() -- run pre-exit operations & exit game

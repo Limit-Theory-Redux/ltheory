@@ -108,7 +108,7 @@ local loadgameGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Back",
-                            size = ResponsiveSize(300, 60),
+                            size = ResponsiveSize(300, 60, true),
                             font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }

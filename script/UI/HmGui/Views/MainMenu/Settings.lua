@@ -206,6 +206,22 @@ local function settingsInterface()
                 currentValue = GameState.ui.hudStyle,
                 callback = function(v) GameState.ui.hudStyle = v end
             },
+            UIComponent.Slider {
+                title = "UI Scale",
+                size = ResponsiveSize(300, 30),
+                margin = { 0, 20 },
+                font = { name = "Unageo-Medium", size = 50 },
+                sound = Config.audio.sounds.click,
+                toolTip = function()
+                    return
+                    "Scales all responsive UI components"
+                end,
+                increment = 0.05,
+                minValue = 0.4,
+                maxValue = 1.0,
+                currentValue = GameState.ui.currentScale,
+                callback = function(v) GameState.ui.currentScale = v end
+            },
         }
     }
 end
@@ -282,42 +298,42 @@ local settingsGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[1][2],
-                            size = ResponsiveSize(300, 60),
+                            size = ResponsiveSize(300, 60, true),
                             font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToGeneralSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[2][2],
-                            size = ResponsiveSize(300, 60),
+                            size = ResponsiveSize(300, 60, true),
                             font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToAudioSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[3][2],
-                            size = ResponsiveSize(300, 60),
+                            size = ResponsiveSize(300, 60, true),
                             font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToGraphicsSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[4][2],
-                            size = ResponsiveSize(300, 60),
+                            size = ResponsiveSize(300, 60, true),
                             font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToInterfaceSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[5][2],
-                            size = ResponsiveSize(300, 60),
+                            size = ResponsiveSize(300, 60, true),
                             font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToKeybindSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Back",
-                            size = ResponsiveSize(300, 60),
+                            size = ResponsiveSize(300, 60, true),
                             font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
