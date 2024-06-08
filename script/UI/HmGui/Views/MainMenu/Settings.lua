@@ -89,9 +89,11 @@ local function settingsAudio()
         contents = {
             UIComponent.Switch {
                 title = "Global Audio On/Off",
-                size = ResponsiveSize(40, 10),
+                size = ResponsiveSize(80, 20),
                 margin = { 0, 10 },
+                font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
+                toolTip = function() return "Turns all game audio off and on." end,
                 currentValue = function() return GameState.audio.soundEnabled end, -- send value back to component
                 callback = function(v)
                     GameState.audio.soundEnabled = v;
@@ -100,8 +102,9 @@ local function settingsAudio()
             },
             UIComponent.Slider {
                 title = "Music Volume",
-                size = ResponsiveSize(200, 30),
+                size = ResponsiveSize(300, 40),
                 sound = Config.audio.sounds.click,
+                toolTip = function() return "Adjusts the music volume." end,
                 showValueAsPercentage = true,
                 increment = 0.01,
                 minValue = 0,
@@ -125,9 +128,11 @@ local function settingsGraphics()
         contents = {
             UIComponent.Switch {
                 title = "Fullscreen",
-                size = ResponsiveSize(40, 10),
+                size = ResponsiveSize(80, 20),
                 margin = { 0, 10 },
+                font = { name = "Unageo-Medium", size = 50 },
                 sound = Config.audio.sounds.click,
+                toolTip = function() return "Switches between fullscreen and windowed modes." end,
                 currentValue = function() return GameState.render.fullscreen end, -- send value back to component
                 callback = function(v)
                     GameState.render.fullscreen = v;
@@ -136,8 +141,10 @@ local function settingsGraphics()
             },
             UIComponent.Slider {
                 title = "Supersampling (EXPERIMENTAL)",
-                size = ResponsiveSize(200, 30),
+                size = ResponsiveSize(300, 40),
                 sound = Config.audio.sounds.click,
+                toolTip = function() return
+                    "Switches supersampling between Off, 2x, and 4x.\nNOTE: 2x and 4x are completely unusable at this time." end,
                 increment = 1,
                 minValue = 1,
                 maxValue = 3,
@@ -160,8 +167,10 @@ local function settingsInterface()
         contents = {
             UIComponent.Slider {
                 title = "Cursor Style",
-                size = ResponsiveSize(200, 30),
+                size = ResponsiveSize(300, 40),
                 sound = Config.audio.sounds.click,
+                toolTip = function() return
+                    "Switch between game pointers.\nNOTE: This function is not yet fully implemented." end,
                 increment = 1,
                 minValue = 1,
                 maxValue = Enums.CursorStyleCount,
@@ -173,8 +182,10 @@ local function settingsInterface()
             },
             UIComponent.Slider {
                 title = "HUD Display Style",
-                size = ResponsiveSize(200, 30),
+                size = ResponsiveSize(300, 40),
                 sound = Config.audio.sounds.click,
+                toolTip = function() return
+                    "Switches between HUD display styles\n(HUD Off, Cursor Only, Wide, Medium, Narrow)." end,
                 increment = 1,
                 minValue = 1,
                 maxValue = Enums.HudStyleCount,
