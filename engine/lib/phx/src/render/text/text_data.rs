@@ -104,14 +104,14 @@ impl TextData {
         // Padding around the output image
         // TODO: workaround. For some reason zeno crate (used by swash) shifts placement.left
         // by several pixels to the left that makes position coordinate negative in some cases
-        let padding = 10;
+        let padding = 5;
 
         // Perform layout (including bidi resolution and shaping) with alignment
         layout.break_all_lines(max_advance, self.alignment);
 
         // Create buffer to render into
         let width = layout.width().ceil() as u32 + (padding * 2);
-        let height = layout.height().ceil() as u32 + (padding * 2);
+        let height = layout.height().ceil() as u32;
         let mut buffer = vec![Color::TRANSPARENT; (width * height) as usize];
 
         // Iterate over laid out lines
@@ -174,7 +174,7 @@ fn render_glyph_run(
     // Iterates over the glyphs in the GlyphRun
     for glyph in glyph_run.glyphs() {
         let glyph_x = run_x + glyph.x + (padding as f32);
-        let glyph_y = run_y - glyph.y + (padding as f32);
+        let glyph_y = run_y - glyph.y;
 
         run_x += glyph.advance;
 

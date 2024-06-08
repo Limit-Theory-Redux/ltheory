@@ -22,7 +22,7 @@ local meta = {
 ---@field visible boolean
 ---@field text string|table<table<string, UIComponentTextViewStyle>|string>
 ---@field alignment TextAlignment
----@field style UIComponentTextViewStyle
+---@field style UIComponentTextViewStyle Default text style
 ---@field widthInLayout number
 ---@field heightInLayout number
 ---@field width number
