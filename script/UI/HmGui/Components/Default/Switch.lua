@@ -12,6 +12,7 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field height number
+---@field size ResponsiveSize -- if size is defined it will overwrite width, height
 ---@field sound SFXObject|nil
 ---@field color UIComponentSwitchColors
 ---@field font UIComponentFont
@@ -24,6 +25,7 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field height number
+---@field size ResponsiveSize -- if size is defined it will overwrite width, height
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
 ---@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
@@ -58,6 +60,7 @@ function Switch:new(args)
         title = args.title,
         width = args.width or 40,
         height = args.height or 10,
+        size = args.size,
         padding = args.padding,
         margin = args.margin or { 0, 10 },
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
@@ -90,8 +93,13 @@ function Switch:new(args)
 
         local isMouseOver = Gui:isMouseOver(FocusType.Mouse)
 
-        if self.state.width then Gui:setFixedWidth(self.state.width()) end
-        if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        if self.state.size then
+            local size = self.state.size()
+            Gui:setFixedSize(size.x, size.y)
+        else
+            if self.state.width then Gui:setFixedWidth(self.state.width()) end
+            if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        end
 
         if self.state.padding then Gui:setPadding(self.state.padding()[1], self.state.padding()[2]) end
         if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end

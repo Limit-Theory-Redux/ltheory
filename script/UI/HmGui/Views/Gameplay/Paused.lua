@@ -5,6 +5,8 @@ local Paused = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type ResponsiveSize
+local ResponsiveSize = require("Types.ResponsiveSize")
 ---@type ApplicationBindings
 local Bindings = require('States.ApplicationBindings')
 ---@type ShipSocketType
@@ -31,14 +33,6 @@ function Paused:onViewClose(isPageClose)
     end
 end
 
-local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
-end
-
-local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
-end
-
 local function freezeTurrets()
     -- When taking down a dialog, Turret:updateTurret sees the button click input and thinks it means "Fire"
     -- So this routine adds a very brief cooldown to the player ship's turrets
@@ -63,8 +57,7 @@ local menuContainer = UIComponent.Container {
     contents = {
         UIComponent.Button_MainMenu {
             title = "Return to Game",
-            width = getButtonWidth,
-            height = getButtonHeight,
+            size = ResponsiveSize(200, 40),
             callback = function()
                 freezeTurrets()
                 UIRouter:getCurrentPage():setView("In_Game")
@@ -72,15 +65,13 @@ local menuContainer = UIComponent.Container {
         },
         UIComponent.Button_MainMenu {
             title = "Back to Main Menu",
-            width = getButtonWidth,
-            height = getButtonHeight,
+            size = ResponsiveSize(200, 40),
             align = { AlignHorizontal.Center, AlignVertical.Center },
             callback = function() LimitTheoryRedux:initMainMenu() end
         },
         UIComponent.Button_MainMenu {
             title = "Exit",
-            width = getButtonWidth,
-            height = getButtonHeight,
+            size = ResponsiveSize(200, 40),
             callback = function()
                 LimitTheoryRedux:exit() -- run pre-exit operations & exit game
             end

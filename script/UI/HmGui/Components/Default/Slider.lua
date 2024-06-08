@@ -12,6 +12,7 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field height number
+---@field size ResponsiveSize -- if size is defined it will overwrite width, height
 ---@field sound SFXObject|nil
 ---@field color UIComponentSliderColors
 ---@field callback function
@@ -22,6 +23,7 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field height number
+---@field size ResponsiveSize -- if size is defined it will overwrite width, height
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
 ---@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
@@ -55,6 +57,7 @@ function Slider:new(args)
         title = args.title,
         width = args.width,
         height = args.height,
+        size = args.size,
         padding = args.padding or { 10, 10 },
         margin = args.margin,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
@@ -86,8 +89,13 @@ function Slider:new(args)
 
         Gui:beginHorizontalContainer()
 
-        if self.state.width then Gui:setFixedWidth(self.state.width()) end
-        if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        if self.state.size then
+            local size = self.state.size()
+            Gui:setFixedSize(size.x, size.y)
+        else
+            if self.state.width then Gui:setFixedWidth(self.state.width()) end
+            if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        end
 
         if self.state.padding then Gui:setPadding(self.state.padding()[1], self.state.padding()[2]) end
         if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end
@@ -176,7 +184,7 @@ function Slider:new(args)
         Gui:rect()
         Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Default)
         Gui:setPercentWidth(0.5)
-        Gui:setFixedHeight(self.state.height())
+        Gui:setFixedHeight(self.state.size().y)
         Gui:setBackgroundColor(self.state.color().thumb)
         Gui:endContainer()
 
