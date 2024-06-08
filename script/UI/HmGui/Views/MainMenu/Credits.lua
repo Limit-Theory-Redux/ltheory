@@ -3,15 +3,15 @@ local CreditsView = UICore.View {
     name = "Credits"
 }
 
-local creditsText = [[
-Limit Theory author: Josh Parnell
-Scripters:
- - Flatfingers
- - IllustrisJack
-Engine developers:
- - dga
- - Haron
-]]
+local boldGreenStyle = { font = { weight = 600 }, brush = Color(0, 1, 0, 1) }
+local creditsText = {
+    { "Limit Theory author:", boldGreenStyle },
+    " Josh Parnell\n",
+    { "Scripters:",           boldGreenStyle },
+    "\n - Flatfingers\n - IllustrisJack\n",
+    { "Engine developers:", boldGreenStyle },
+    "\n - dga\n - Haron",
+}
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")

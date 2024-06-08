@@ -20,7 +20,7 @@ local meta = {
 
 ---@class UIComponentTextViewConstructor
 ---@field visible boolean
----@field text string
+---@field text string|table<table<string, UIComponentTextViewStyle>|string>
 ---@field alignment TextAlignment
 ---@field style UIComponentTextViewStyle
 ---@field widthInLayout number
@@ -29,6 +29,10 @@ local meta = {
 ---@field height number
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field showContainer boolean
+
+---@class UIComponentTextViewSection
+---@field text string
+---@field style UIComponentTextViewStyle
 
 ---@class UIComponentTextViewStyle
 ---@field font UIComponentTextViewFont
@@ -54,18 +58,19 @@ local meta = {
 
 -- build text style from arguments style
 ---@param style UIComponentTextViewStyle
+---@param default boolean If true then font family, size and brush will be initialized with default values if they are nil
 ---@return TextStyle
-local function buildStyle(style)
+local function buildStyle(style, default)
     local textStyle = TextStyle.Create()
 
-    local fontFamily = "Exo2Bold"
-    local fontSize = 14
-    local brush = Color(1, 1, 1, 1)
+    local fontFamily = nil
+    local fontSize = nil
+    local brush = nil
 
     if style then
         if style.font then
-            fontFamily = style.font.family or fontFamily
-            fontSize = style.font.size or fontSize
+            fontFamily = style.font.family
+            fontSize = style.font.size
 
             if style.font.stretch then
                 textStyle:setFontStretch(style.font.stretch)
@@ -84,7 +89,7 @@ local function buildStyle(style)
             textStyle:setLocale(style.locale)
         end
 
-        brush = style.brush or brush
+        brush = style.brush
 
         if style.underline then
             textStyle:setUnderline(true)
@@ -113,11 +118,66 @@ local function buildStyle(style)
         end
     end
 
-    textStyle:setFontFamily("Exo2Bold")
-    textStyle:setFontSize(fontSize)
-    textStyle:setBrush(brush)
+    if fontFamily then
+        textStyle:setFontFamily(fontFamily)
+    elseif default then
+        textStyle:setFontFamily("Exo2Bold")
+    end
+
+    if fontSize then
+        textStyle:setFontSize(fontSize)
+    elseif default then
+        textStyle:setFontSize(14)
+    end
+
+    if brush then
+        textStyle:setBrush(brush)
+    elseif default then
+        textStyle:setBrush(Color(1, 1, 1, 1))
+    end
 
     return textStyle
+end
+
+local function buildTextData(args)
+    local text = args.text or "undefined text"
+
+    local sections = {}
+
+    if type(text) == "table" then
+        local section_text = ""
+        for _, section in ipairs(text) do
+            if type(section) == "table" then
+                if type(section[1]) == "string" and section[2] then
+                    table.insert(sections, {
+                        startPos = #section_text,
+                        endPos = #section_text + #section[1],
+                        style = buildStyle(section[2], false)
+                    })
+
+                    section_text = section_text .. section[1]
+                else
+                    Log.Error(
+                        "Expected section description as table with 'string' text and 'table' style fields but was " ..
+                        tostring(section))
+                end
+            elseif type(section) == "string" then
+                section_text = section_text .. section
+            else
+                Log.Error("Expected section description as table or string but was " ..
+                    tostring(type(section)) .. ": " .. tostring(section))
+            end
+        end
+        text = section_text
+    end
+
+    local textData = TextData.Create(text, buildStyle(args.style, true), args.alignment or TextAlignment.Start)
+
+    for _, section in ipairs(sections) do
+        textData:setSectionStyle(section.startPos, section.endPos, section.style)
+    end
+
+    return textData
 end
 
 -- returns a text object
@@ -131,7 +191,7 @@ function TextView:new(args)
     local newTextView = {}
     newTextView.state = UICore.ComponentState {
         visible = args.visible,
-        textData = TextData.Create(args.text or "undefined text", buildStyle(args.style), args.alignment or TextAlignment.Start),
+        textData = buildTextData(args),
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
         width = args.width,

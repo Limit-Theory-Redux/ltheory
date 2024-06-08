@@ -38,7 +38,8 @@ impl TextData {
     /// Set style of the text section beginning at 'start_pos' position and up to 'end_pos'.
     pub fn set_section_style(&mut self, start_pos: usize, end_pos: usize, style: &TextStyle) {
         // TODO: manage sections overlapping properly to avoid uncontrollable map growth
-        self.section_styles[&[start_pos, end_pos]] = style.clone();
+        self.section_styles
+            .insert([start_pos, end_pos], style.clone());
     }
 }
 
