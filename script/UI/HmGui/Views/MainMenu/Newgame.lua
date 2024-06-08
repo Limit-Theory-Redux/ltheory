@@ -116,7 +116,7 @@ local newgameGrid = UILayout.Grid {
                             title = "Back",
                             width = getButtonWidth,
                             height = getButtonHeight,
-                            font = {name = "Unageo-Medium", size = 40},
+                            font = { name = "Unageo-Medium", size = 40 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -214,7 +214,7 @@ local newgameGrid = UILayout.Grid {
                                     margin = { 0, 10 },
                                     height = getButtonHeight,
                                     width = getButtonWidth,
-                                    font = {name = "Unageo-Medium", size = 30},
+                                    font = { name = "Unageo-Medium", size = 30 },
                                     toolTip = function()
                                         if selectedSeedIndex then
                                             return "Press to load game with the seed:\n" ..
