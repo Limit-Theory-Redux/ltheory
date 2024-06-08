@@ -5,6 +5,8 @@ local MainView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type ResponsiveSize
+local ResponsiveSize = require("Types.ResponsiveSize")
 local InitFiles = require('Systems.Files.InitFiles')
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
@@ -38,14 +40,6 @@ function MainView:onViewOpen(isPageOpen)
 end
 
 function MainView:onViewClose(isPageClose) end
-
-local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
-end
-
-local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
-end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
     return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
@@ -110,29 +104,25 @@ local menuGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Play",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(200, 40),
                             callback = switchToPlayView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Settings",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(200, 40),
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                             callback = switchToSettingsView
                         },
                         UIComponent.Button_MainMenu {
                             title = "Credits",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(200, 40),
                             callback = switchToCreditsView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Exit",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(200, 40),
                             callback = function()
                                 LimitTheoryRedux:exit() -- run pre-exit operations & exit game
                             end,

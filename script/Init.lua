@@ -34,24 +34,8 @@ for k, v in pairs(math) do
     end
 end
 
----- Will be the global variable to access all functions and classes within Core/
-Core = {}
-Render = {}
-Config = {}
-Enums = {}
-Enums.UI = {}
-GameState = {}
-
-UICore = {}
-UILayout = {}
-UIComponent = {}
-
--- Application
-AppInit = {}
-AppFrame = {}
-AppClose = {}
-
-LimitTheoryRedux = {}
+---- Global Variables
+require('Globals')
 
 ---- Aliases Required for ToString. (Should I require them inside ToString?)
 require('Config.Aliases')

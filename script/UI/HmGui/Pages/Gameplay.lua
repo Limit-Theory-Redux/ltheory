@@ -5,6 +5,8 @@ local Gameplay = UICore.Page {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type ResponsiveSize
+local ResponsiveSize = require("Types.ResponsiveSize")
 
 local ShipCreationView = require("UI.HmGui.Views.Gameplay.ShipCreation")
 Gameplay:addViewToPage(ShipCreationView)
@@ -31,14 +33,6 @@ function Gameplay:onPageOpen()
 end
 
 function Gameplay:onPageClose() end
-
-local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
-end
-
-local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
-end
 
 local buildNumber = UIComponent.Container {
     visible = function() return not GameState.debug.metricsEnabled end,
@@ -70,8 +64,7 @@ local deathText = UIComponent.Container {
         },
         UIComponent.Button_MainMenu {
             title = "Back to Main Menu",
-            width = getButtonWidth,
-            height = getButtonHeight,
+            size = ResponsiveSize(200, 40),
             align = { AlignHorizontal.Center, AlignVertical.Center },
             callback = function() LimitTheoryRedux:initMainMenu() end
         },

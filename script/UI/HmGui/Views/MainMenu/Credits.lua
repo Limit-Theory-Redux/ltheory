@@ -15,19 +15,13 @@ Engine developers:
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type ResponsiveSize
+local ResponsiveSize = require("Types.ResponsiveSize")
 
 function CreditsView:onInput() end
 function CreditsView:onUpdate(dt) end
 function CreditsView:onViewOpen(isPageOpen) end
 function CreditsView:onViewClose(isPageClose) end
-
-local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
-end
-
-local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
-end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
     return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
@@ -84,8 +78,7 @@ local creditsGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Back",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(200, 40),
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         }

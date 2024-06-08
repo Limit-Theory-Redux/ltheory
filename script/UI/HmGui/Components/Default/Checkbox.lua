@@ -12,6 +12,7 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field height number
+---@field size ResponsiveSize -- if size is defined it will overwrite width, height
 ---@field sound SFXObject|nil
 ---@field color UIComponentCheckboxColors
 ---@field font UIComponentFont
@@ -24,6 +25,7 @@ local meta = {
 ---@field title string
 ---@field width number
 ---@field height number
+---@field size ResponsiveSize -- if size is defined it will overwrite width, height
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
 ---@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
@@ -58,6 +60,7 @@ function Checkbox:new(args)
         title = args.title,
         width = args.width,
         height = args.height,
+        size = args.size,
         padding = args.padding,
         margin = args.margin,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
@@ -78,8 +81,10 @@ function Checkbox:new(args)
             }
         },
         sound = args.sound,
-        callback = args.callback or function(checked) Log.Warn("undefined checkbox callback function: " ..
-            tostring(args.title)) end
+        callback = args.callback or function(checked)
+            Log.Warn("undefined checkbox callback function: " ..
+                tostring(args.title))
+        end
     }
 
     newCheckbox.render = function(self)
@@ -123,8 +128,13 @@ function Checkbox:new(args)
 
         Gui:endContainer()
 
-        if self.state.width then Gui:setFixedWidth(self.state.width()) end
-        if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        if self.state.size then
+            local size = self.state.size()
+            Gui:setFixedSize(size.x, size.y)
+        else
+            if self.state.width then Gui:setFixedWidth(self.state.width()) end
+            if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        end
 
         if self.state.padding then Gui:setPadding(self.state.padding()[1], self.state.padding()[2]) end
         if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end

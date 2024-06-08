@@ -5,6 +5,8 @@ local SettingsView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type ResponsiveSize
+local ResponsiveSize = require("Types.ResponsiveSize")
 local MusicPlayer = require("Systems.SFX.MusicPlayer")
 
 function SettingsView:onInput() end
@@ -15,14 +17,6 @@ function SettingsView:onViewClose(isPageClose) end
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
 local someSliderValue = 0.5
-
-local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
-end
-
-local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
-end
 
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
@@ -87,32 +81,27 @@ local settingsGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Audio",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(200, 40),
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Interface",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(200, 40),
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                         },
                         UIComponent.Button_MainMenu {
                             title = "Graphics",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(200, 40),
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Keybinding",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(200, 40),
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Back",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(200, 40),
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         }
@@ -149,16 +138,14 @@ local settingsGrid = UILayout.Grid {
             contents = {
                 UIComponent.Slider {
                     title = "Smooth Slider",
-                    width = 200,
-                    height = 30,
+                    size = ResponsiveSize(200, 30),
                     currentValue = someSliderValue,
                     sound = Config.audio.sounds.click,
                     callback = setSliderValue
                 },
                 UIComponent.Slider {
                     title = "Incremented Slider",
-                    width = 200,
-                    height = 30,
+                    size = ResponsiveSize(200, 30),
                     increment = 0.01,
                     minValue = 0,
                     maxValue = 1,
@@ -169,14 +156,12 @@ local settingsGrid = UILayout.Grid {
                 },
                 UIComponent.Switch {
                     title = "switchWithTitle",
-                    width = 40,
-                    height = 10,
+                    size = ResponsiveSize(40, 10),
                     margin = { 0, 10 },
                     callback = function(v) print(v) end
                 },
                 UIComponent.Switch {
-                    width = 40,
-                    height = 10,
+                    size = ResponsiveSize(40, 10),
                     margin = { 0, 10 },
                     callback = function(v) print(v) end
                 }
