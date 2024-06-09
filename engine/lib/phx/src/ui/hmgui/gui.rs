@@ -428,7 +428,7 @@ impl HmGui {
     pub fn text_view(&mut self, text_data: &TextData) {
         let image_item = HmGuiImage {
             image: std::ptr::null_mut(),
-            layout: HmGuiImageLayout::Center,
+            layout: HmGuiImageLayout::TopLeft,
         };
 
         let widget_rf = self.init_widget(WidgetItem::TextView(image_item));

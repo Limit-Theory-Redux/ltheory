@@ -10,6 +10,7 @@ local meta = {
 ---@class UIComponentTextView: UIComponent
 ---@field visible boolean
 ---@field textData TextData
+---@field backgroundColor Color
 ---@field widthInLayout number
 ---@field heightInLayout number
 ---@field width number
@@ -23,6 +24,7 @@ local meta = {
 ---@field text string|table<table<string, UIComponentTextViewStyle>|string>
 ---@field alignment TextAlignment
 ---@field style UIComponentTextViewStyle Default text style
+---@field backgroundColor Color|nil
 ---@field widthInLayout number
 ---@field heightInLayout number
 ---@field width number
@@ -192,6 +194,7 @@ function TextView:new(args)
     newTextView.state = UICore.ComponentState {
         visible = args.visible,
         textData = buildTextData(args),
+        backgroundColor = args.backgroundColor,
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
         width = args.width,
@@ -211,6 +214,7 @@ function TextView:new(args)
 
         if self.state.width then Gui:setFixedWidth(self.state.width()) end
         if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        if self.state.backgroundColor then Gui:setBackgroundColor(self.state.backgroundColor()) end
 
         if self.state.showContainer() then
             Gui:setBorderColor(self.state.showContainerColor())

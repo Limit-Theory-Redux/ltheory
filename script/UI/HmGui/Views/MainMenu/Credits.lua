@@ -3,16 +3,6 @@ local CreditsView = UICore.View {
     name = "Credits"
 }
 
-local boldGreenStyle = { font = { weight = 600 }, brush = Color(0, 1, 0, 1) }
-local creditsText = {
-    { "Limit Theory author:", boldGreenStyle },
-    " Josh Parnell\n",
-    { "Scripters:",           boldGreenStyle },
-    "\n - Flatfingers\n - IllustrisJack\n",
-    { "Engine developers:", boldGreenStyle },
-    "\n - dga\n - Haron",
-}
-
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 ---@type ResponsiveSize
@@ -34,6 +24,8 @@ end
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
 end
+
+local boldGreenStyle = { font = { weight = 600 }, brush = Color(0, 1, 0, 1) }
 
 local creditsGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
@@ -114,12 +106,13 @@ local creditsGrid = UILayout.Grid {
             layoutType = GuiLayoutType.Vertical,
             contents = {
                 UIComponent.TextView {
-                    text = creditsText,
-                    style = {
-                        font = {
-                            size = 28
-                        }
+                    text = {
+                        { "Limit Theory author:", boldGreenStyle }, " Josh Parnell\n",
+                        { "Scripters:",           boldGreenStyle }, "\n - Flatfingers\n - IllustrisJack\n",
+                        { "Engine developers:", boldGreenStyle }, "\n - dga\n - Haron",
                     },
+                    style = { font = { size = 16 } },
+                    backgroundColor = Color(0.7, 0.7, 0.7, 0.2),
                     width = 400,
                     height = 400,
                     align = { AlignHorizontal.Center, AlignVertical.Center },
