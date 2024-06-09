@@ -87,9 +87,13 @@ function Switch:new(args)
             return
         end
 
+        Gui:beginHorizontalContainer()
+        Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
+
         if self.state.title and self.state.title() then
             Gui:text(self.state.title(), Cache.Font(self.state.font().name, self.state.font().size),
                 self.state.color().text)
+            Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
         end
 
         Gui:beginStackContainer()
@@ -135,6 +139,8 @@ function Switch:new(args)
         Gui:endContainer()
 
         self.state.toolTip():render()
+
+        Gui:endContainer()
 
         local switchClicked = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
         if switchClicked then

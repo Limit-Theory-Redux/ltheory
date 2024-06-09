@@ -27,6 +27,7 @@ local meta = {
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
 ---@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
+---@field textAlign { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Center, v: AlignVertical.Center}
 ---@field color UIComponentSliderColors
 ---@field font UIComponentFont
 ---@field toolTip UIComponentToolTip
@@ -61,11 +62,12 @@ function Slider:new(args)
         width = args.width,
         height = args.height,
         size = args.size,
-        padding = args.padding or { 0, 0 },
+        padding = args.padding or { 0, 0 }, -- if non-zero, will remove the top and bottom of the inner slider
         margin = args.margin,
         borderWidth = args.borderWidth or 2,
         borderColor = args.borderColor or Color(0.0, 0.0, 0.0, 1.0),
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
+        textAlign = args.textAlign or { AlignHorizontal.Left, AlignVertical.Center },
         color = {
             text = args.color and args.color.text or Color(0.7, 0.7, 0.7, 1.0),
             background = args.color and args.color.background or Color(0.85, 0.85, 0.85, 1.0),
@@ -88,9 +90,13 @@ function Slider:new(args)
             return
         end
 
+        Gui:beginHorizontalContainer()
+        Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
+
         if self.state.title and self.state.title() then
             Gui:text(self.state.title(), Cache.Font(self.state.font().name, self.state.font().size),
                 self.state.color().text)
+            Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
         end
 
         Gui:beginHorizontalContainer()
@@ -232,6 +238,8 @@ function Slider:new(args)
         Gui:endContainer()
 
         self.state.toolTip():render()
+
+        Gui:endContainer()
 
         -- callback
         if self.state.currentValue() ~= self.state.lastValue then
