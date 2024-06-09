@@ -109,35 +109,35 @@ local menuGrid = UILayout.Grid {
                         UIComponent.Button_MainMenu {
                             title = "New Game",
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToNewgameView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Load Game",
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToLoadgameView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Settings",
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                             callback = switchToSettingsView
                         },
                         UIComponent.Button_MainMenu {
                             title = "Credits",
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToCreditsView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Exit",
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = function()
                                 LimitTheoryRedux:exit() -- run pre-exit operations & exit game
                             end,

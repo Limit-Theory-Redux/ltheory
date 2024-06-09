@@ -92,7 +92,7 @@ local backgroundGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = "SCREENSAVER",
-                            size = 32,
+                            size = 40,
                             font = "Unageo-Medium"
                         }
                     }
@@ -111,12 +111,14 @@ local backgroundGrid = UILayout.Grid {
                         UIComponent.Button_MainMenu {
                             title = "Toggle Clock",
                             size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = toggleClock,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Back to Main Menu",
                             size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },

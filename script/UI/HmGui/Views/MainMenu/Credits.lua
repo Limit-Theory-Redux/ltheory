@@ -51,7 +51,7 @@ local creditsGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = "CREDITS",
-                            size = 50,
+                            size = 40,
                             font = "Unageo-Medium"
                         }
                     }
@@ -69,7 +69,7 @@ local creditsGrid = UILayout.Grid {
                         UIComponent.Button_MainMenu {
                             title = "Back",
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         }

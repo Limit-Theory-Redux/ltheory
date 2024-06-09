@@ -91,7 +91,7 @@ local newgameGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = "NEW GAME",
-                            size = 50,
+                            size = 40,
                             font = "Unageo-Medium"
                         }
                     }
@@ -109,7 +109,7 @@ local newgameGrid = UILayout.Grid {
                         UIComponent.Button_MainMenu {
                             title = "Back",
                             size = ResponsiveSize(300, 60),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -155,52 +155,52 @@ local newgameGrid = UILayout.Grid {
                             contents = {
                                 UIComponent.Text {
                                     text = "Nebula Brightness",
-                                    size = 50,
+                                    size = 24,
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Asteroid Fields",
-                                    size = 50,
+                                    size = 24,
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Asteroids Per Field",
-                                    size = 50,
+                                    size = 24,
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Planets",
-                                    size = 50,
+                                    size = 24,
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Stations",
-                                    size = 50,
+                                    size = 24,
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "AI Players",
-                                    size = 50,
+                                    size = 24,
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "EconNPCs",
-                                    size = 50,
+                                    size = 24,
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "EscortNPCs",
-                                    size = 50,
+                                    size = 24,
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Ship Size",
-                                    size = 50,
+                                    size = 24,
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Unique Ships",
-                                    size = 50,
+                                    size = 24,
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 }
                             }
@@ -211,8 +211,8 @@ local newgameGrid = UILayout.Grid {
                             layoutType = GuiLayoutType.Vertical,
                             contents = {
                                 UIComponent.Slider {
-                                    size = ResponsiveSize(300, 28),
-                                    margin = { 0, 20 },
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 14 },
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     sound = Config.audio.sounds.click,
                                     toolTip = function()
@@ -226,8 +226,8 @@ local newgameGrid = UILayout.Grid {
                                     callback = function(v) GameState.gen.nebulaBrightnessScale = v end
                                 },
                                 UIComponent.Slider {
-                                    size = ResponsiveSize(300, 28),
-                                    margin = { 0, 20 },
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 14 },
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     sound = Config.audio.sounds.click,
                                     toolTip = function()
@@ -241,8 +241,8 @@ local newgameGrid = UILayout.Grid {
                                     callback = function(v) GameState.gen.nFields = v end
                                 },
                                 UIComponent.Slider {
-                                    size = ResponsiveSize(300, 28),
-                                    margin = { 0, 20 },
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 14 },
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     sound = Config.audio.sounds.click,
                                     toolTip = function()
@@ -256,8 +256,8 @@ local newgameGrid = UILayout.Grid {
                                     callback = function(v) GameState.gen.nAsteroids = v end
                                 },
                                 UIComponent.Slider {
-                                    size = ResponsiveSize(300, 28),
-                                    margin = { 0, 20 },
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 14 },
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     sound = Config.audio.sounds.click,
                                     toolTip = function()
@@ -271,8 +271,8 @@ local newgameGrid = UILayout.Grid {
                                     callback = function(v) GameState.gen.nPlanets = v end
                                 },
                                 UIComponent.Slider {
-                                    size = ResponsiveSize(300, 28),
-                                    margin = { 0, 20 },
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 14 },
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     sound = Config.audio.sounds.click,
                                     toolTip = function()
@@ -286,8 +286,8 @@ local newgameGrid = UILayout.Grid {
                                     callback = function(v) GameState.gen.nStations = v end
                                 },
                                 UIComponent.Slider {
-                                    size = ResponsiveSize(300, 28),
-                                    margin = { 0, 20 },
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 14 },
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     sound = Config.audio.sounds.click,
                                     toolTip = function()
@@ -301,8 +301,8 @@ local newgameGrid = UILayout.Grid {
                                     callback = function(v) GameState.gen.nAIPlayers = v end
                                 },
                                 UIComponent.Slider {
-                                    size = ResponsiveSize(300, 28),
-                                    margin = { 0, 20 },
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 14 },
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     sound = Config.audio.sounds.click,
                                     toolTip = function()
@@ -316,8 +316,8 @@ local newgameGrid = UILayout.Grid {
                                     callback = function(v) GameState.gen.nEconNPCs = v end
                                 },
                                 UIComponent.Slider {
-                                    size = ResponsiveSize(300, 28),
-                                    margin = { 0, 20 },
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 14 },
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     sound = Config.audio.sounds.click,
                                     toolTip = function()
@@ -331,8 +331,8 @@ local newgameGrid = UILayout.Grid {
                                     callback = function(v) GameState.gen.nEscortNPCs = v end
                                 },
                                 UIComponent.Slider {
-                                    size = ResponsiveSize(300, 28),
-                                    margin = { 0, 20 },
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 14 },
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     sound = Config.audio.sounds.click,
                                     toolTip = function()
@@ -346,8 +346,8 @@ local newgameGrid = UILayout.Grid {
                                     callback = function(v) GameState.player.shipHull = v end
                                 },
                                 UIComponent.Switch {
-                                    size = ResponsiveSize(80, 28),
-                                    margin = { 0, 20 },
+                                    size = ResponsiveSize(80, 20),
+                                    margin = { 0, 14 },
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     sound = Config.audio.sounds.click,
                                     toolTip = function()
@@ -366,7 +366,7 @@ local newgameGrid = UILayout.Grid {
                     align = { AlignHorizontal.Center, AlignVertical.Center },
                     margin = { 0, 10 },
                     size = ResponsiveSize(300, 60),
-                    font = { name = "Unageo-Medium", size = 30 },
+                    font = { name = "Unageo-Medium", size = 24 },
                     toolTip = function() return "Press to start a new game with a random seed." end,
                     callback = function() newGame(rng:get64()) end,
                 }

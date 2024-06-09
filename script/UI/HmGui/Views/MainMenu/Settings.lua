@@ -118,12 +118,12 @@ local function settingsAudio()
                         contents = {
                             UIComponent.Text {
                                 text = "Global Audio",
-                                size = 50,
+                                size = 24,
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             },
                             UIComponent.Text {
                                 text = "Music Volume",
-                                size = 50,
+                                size = 24,
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             }
                         }
@@ -134,8 +134,8 @@ local function settingsAudio()
                         layoutType = GuiLayoutType.Vertical,
                         contents = {
                             UIComponent.Switch {
-                                size = ResponsiveSize(80, 30),
-                                margin = { 0, 20 },
+                                size = ResponsiveSize(80, 20),
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Center, AlignVertical.Center },
                                 sound = Config.audio.sounds.click,
                                 toolTip = function() return "Turns all game audio off and on." end,
@@ -146,8 +146,8 @@ local function settingsAudio()
                                 end -- get value change from component
                             },
                             UIComponent.Slider {
-                                size = ResponsiveSize(300, 28),
-                                margin = { 0, 20 },
+                                size = ResponsiveSize(300, 20),
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Center, AlignVertical.Center },
                                 sound = Config.audio.sounds.click,
                                 toolTip = function() return "Adjusts the music volume." end,
@@ -187,12 +187,12 @@ local function settingsGraphics()
                         contents = {
                             UIComponent.Text {
                                 text = "Fullscreen",
-                                size = 50,
+                                size = 24,
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             },
                             UIComponent.Text {
                                 text = "Supersampling",
-                                size = 50,
+                                size = 24,
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             }
                         }
@@ -203,8 +203,8 @@ local function settingsGraphics()
                         layoutType = GuiLayoutType.Vertical,
                         contents = {
                             UIComponent.Switch {
-                                size = ResponsiveSize(80, 30),
-                                margin = { 0, 20 },
+                                size = ResponsiveSize(80, 20),
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Center, AlignVertical.Center },
                                 sound = Config.audio.sounds.click,
                                 toolTip = function() return "Switches between fullscreen and windowed modes." end,
@@ -215,8 +215,8 @@ local function settingsGraphics()
                                 end -- get value change from component
                             },
                             UIComponent.Slider {
-                                size = ResponsiveSize(300, 28),
-                                margin = { 0, 20 },
+                                size = ResponsiveSize(300, 20),
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Center, AlignVertical.Center },
                                 sound = Config.audio.sounds.click,
                                 toolTip = function()
@@ -258,17 +258,17 @@ local function settingsInterface()
                         contents = {
                             UIComponent.Text {
                                 text = "Cursor Style",
-                                size = 50,
+                                size = 24,
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             },
                             UIComponent.Text {
                                 text = "HUD Display Style",
-                                size = 50,
+                                size = 24,
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             },
                             UIComponent.Text {
                                 text = "UI Scale",
-                                size = 50,
+                                size = 24,
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             }
                         }
@@ -279,8 +279,8 @@ local function settingsInterface()
                         layoutType = GuiLayoutType.Vertical,
                         contents = {
                             UIComponent.Slider {
-                                size = ResponsiveSize(300, 28),
-                                margin = { 0, 20 },
+                                size = ResponsiveSize(300, 20),
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Center, AlignVertical.Center },
                                 sound = Config.audio.sounds.click,
                                 toolTip = function()
@@ -297,8 +297,8 @@ local function settingsInterface()
                                 end
                             },
                             UIComponent.Slider {
-                                size = ResponsiveSize(300, 28),
-                                margin = { 0, 20 },
+                                size = ResponsiveSize(300, 20),
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Center, AlignVertical.Center },
                                 sound = Config.audio.sounds.click,
                                 toolTip = function()
@@ -312,8 +312,8 @@ local function settingsInterface()
                                 callback = function(v) GameState.ui.hudStyle = v end
                             },
                             UIComponent.Slider {
-                                size = ResponsiveSize(300, 28),
-                                margin = { 0, 20 },
+                                size = ResponsiveSize(300, 20),
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Center, AlignVertical.Center },
                                 sound = Config.audio.sounds.click,
                                 toolTip = function()
@@ -388,7 +388,7 @@ local settingsGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = getSettingsCategoryText,
-                            size = 50,
+                            size = 40,
                             font = "Unageo-Medium"
                         }
                     }
@@ -406,42 +406,42 @@ local settingsGrid = UILayout.Grid {
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[1][2],
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToGeneralSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[2][2],
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToAudioSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[3][2],
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToGraphicsSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[4][2],
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToInterfaceSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                         },
                         UIComponent.Button_MainMenu {
                             title = settingsCategoryNames[5][2],
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToKeybindSettings,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Back",
                             size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 40 },
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         }
