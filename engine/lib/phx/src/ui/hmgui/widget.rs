@@ -216,7 +216,7 @@ impl HmGuiWidget {
                 let text_view = data.text_view.as_mut().expect("Cannot get a text view");
 
                 let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
-                // TODO: do not Tex2D. Return only it's size
+                // TODO: do not build Tex2D. Return only it's size
                 let image = text_view.update(text_ctx.borrow_mut(), width, scale_factor);
                 let image_ref = unsafe { &*image };
 
