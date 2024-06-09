@@ -39,6 +39,10 @@ impl HmGui {
         }
     }
 
+    pub fn screen_size(&self) -> Vec2 {
+        self.screen_size
+    }
+
     pub fn scale_factor(&self) -> f64 {
         self.scale_factor
     }
@@ -403,11 +407,8 @@ impl HmGui {
             font: font.clone().into(),
             color: color.clone(),
         };
-        let size = item.font.get_size2(text);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
-        let mut widget = widget_rf.as_mut();
-
-        widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+        let _ = widget_rf.as_mut();
     }
 
     /// Add multiline styled text element.

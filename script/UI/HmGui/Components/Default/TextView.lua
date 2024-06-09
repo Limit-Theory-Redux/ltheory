@@ -220,7 +220,7 @@ local function buildTextData(args)
     end
 
     local multiline = true
-    if args.multiline then
+    if args.multiline ~= nil then
         multiline = args.multiline
     end
 

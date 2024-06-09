@@ -1,4 +1,3 @@
-use glam::Vec2;
 use indexmap::IndexMap;
 use parley::layout::{Alignment, Glyph, GlyphRun};
 use parley::Layout;
@@ -51,6 +50,10 @@ impl TextData {
 }
 
 impl TextData {
+    pub fn is_multiline(&self) -> bool {
+        self.multiline
+    }
+
     pub(super) fn update(&mut self, text_data: &TextData) -> bool {
         let mut updated = if self.text != text_data.text {
             self.text = text_data.text.clone();
@@ -86,12 +89,7 @@ impl TextData {
     /// Generate Tex2D texture with layouted text based on text parameters.
     // TODO: keeping a texture for a large texts will be memory consuming.
     // Generate per-line textures and keep only visible ones with some buffered pre- and post-lines.
-    pub(super) fn render(
-        &self,
-        text_ctx: &mut TextContext,
-        size: Vec2,
-        scale_factor: f32,
-    ) -> *mut Tex2D {
+    pub fn render(&self, text_ctx: &mut TextContext, width: f32, scale_factor: f32) -> *mut Tex2D {
         // TODO: replace all `\n` in self.text with spaces if not multiline?
         let mut builder =
             text_ctx
@@ -107,13 +105,15 @@ impl TextData {
         // Build the builder into a Layout
         let mut layout: Layout<Color> = builder.build();
 
-        if self.multiline {
-            // The width for line wrapping
-            let max_advance = Some(size.x * scale_factor);
+        // The width for line wrapping
+        let max_advance = if self.multiline && width > 0.0 {
+            Some(width * scale_factor)
+        } else {
+            None
+        };
 
-            // Perform layout (including bidi resolution and shaping) with alignment
-            layout.break_all_lines(max_advance, self.alignment);
-        }
+        // Perform layout (including bidi resolution and shaping) with alignment
+        layout.break_all_lines(max_advance, self.alignment);
 
         // Padding around the output image
         // TODO: workaround. For some reason zeno crate (used by swash) shifts placement.left

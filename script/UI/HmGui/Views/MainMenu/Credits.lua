@@ -109,8 +109,7 @@ local creditsGrid = UILayout.Grid {
                 UIComponent.TextView {
                     text = "Credits",
                     style = { font = { size = 25, weight = 600 } },
-                    width = 100,
-                    height = 30,
+                    multiline = false,
                     align = { AlignHorizontal.Center, AlignVertical.Center },
                 },
                 UIComponent.TextView {

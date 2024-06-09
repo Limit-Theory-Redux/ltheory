@@ -202,6 +202,28 @@ impl HmGuiWidget {
                 let data = hmgui.get_data(self.hash);
                 data.min_size = self.min_size;
             }
+            WidgetItem::Text(text_item) => {
+                let size = text_item.font.get_size2(&text_item.text);
+
+                self.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+
+                self.min_size = self.calculate_min_size();
+            }
+            WidgetItem::TextView(_) => {
+                let scale_factor = hmgui.scale_factor() as f32;
+                let width = hmgui.screen_size().x; // TODO: use parent width if possible
+                let data = hmgui.get_data(self.hash);
+                let text_view = data.text_view.as_mut().expect("Cannot get a text view");
+
+                let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
+                // TODO: do not Tex2D. Return only it's size
+                let image = text_view.update(text_ctx.borrow_mut(), width, scale_factor);
+                let image_ref = unsafe { &*image };
+
+                self.inner_min_size = Vec2::new(image_ref.size.x as f32, image_ref.size.y as f32);
+
+                self.min_size = self.calculate_min_size();
+            }
             _ => {
                 self.min_size = self.calculate_min_size();
             }
@@ -245,7 +267,7 @@ impl HmGuiWidget {
                 let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
 
                 image.image =
-                    text_view.update(text_ctx.borrow_mut(), self.inner_size, scale_factor);
+                    text_view.update(text_ctx.borrow_mut(), self.inner_size.x, scale_factor);
             }
             _ => {}
         }

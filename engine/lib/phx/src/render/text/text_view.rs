@@ -1,12 +1,10 @@
-use glam::Vec2;
-
 use crate::render::{Tex2D, Tex2D_Free};
 
 use super::{TextContext, TextData};
 
 pub struct TextView {
     data: TextData,
-    size: Vec2,
+    width: f32,
     dirty: bool,
     tex: *mut Tex2D,
 }
@@ -15,7 +13,7 @@ impl TextView {
     pub fn new(data: &TextData) -> Self {
         Self {
             data: data.clone(),
-            size: Default::default(),
+            width: 0.0,
             dirty: true,
             tex: std::ptr::null_mut(),
         }
@@ -28,17 +26,17 @@ impl TextView {
     pub fn update(
         &mut self,
         text_ctx: &mut TextContext,
-        size: Vec2,
+        width: f32,
         scale_factor: f32,
     ) -> *mut Tex2D {
-        if self.size != size {
-            self.size = size;
+        if self.width != width {
+            self.width = width;
             self.dirty = true;
         }
 
         // Regenerate texture only if something was changed
         if self.dirty {
-            let tex = self.data.render(text_ctx, self.size, scale_factor);
+            let tex = self.data.render(text_ctx, self.width, scale_factor);
 
             if self.tex != std::ptr::null_mut() {
                 unsafe { Tex2D_Free(self.tex) };
