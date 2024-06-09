@@ -323,8 +323,8 @@ local function settingsInterface()
                                 increment = 0.05,
                                 minValue = 0.4,
                                 maxValue = 1.0,
-                                currentValue = GameState.ui.currentScale,
-                                callback = function(v) GameState.ui.currentScale = v end
+                                currentValue = GameState.ui.scaleFactorUI,
+                                callback = function(v) GameState.ui.scaleFactorUI = v end
                             }
                         }
                     }

@@ -10,6 +10,8 @@ Config.ui.general = {
     cursorX                          = 1,
     cursorY                          = 1,
 
+    scaleFactorUI                    = 0.75,
+
     rangeDistances = {3000.0, 6000.0, 10000.0}, -- maximum distances within which objects appear on tactical map
 
     -- Trackers

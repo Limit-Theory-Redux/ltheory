@@ -60,7 +60,7 @@ GameState.ui = {
     cursorY                          = Config.ui.general.cursorY,
     sensorsDisplayed                 = Config.ui.general.sensorsDisplayed,
 
-    currentScale                     = 1.0,
+    scaleFactorUI                    = Config.ui.general.scaleFactorUI,
 
     -- Trackers
     showTrackers                     = Config.ui.general.showTrackers,
