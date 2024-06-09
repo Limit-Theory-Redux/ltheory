@@ -125,6 +125,9 @@ function ScrollArea:new(args)
         if self.state.borderWidth() > 0 then
             Gui:setBorderWidth(self.state.borderWidth())
             Gui:setBorderColor(self.state.borderColor())
+        elseif self.state.showContainer() then
+            Gui:setBorderColor(self.state.showContainerColor())
+            Gui:setBorderWidth(1)
         end
 
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])

@@ -26,12 +26,12 @@ function Loader.defineType()
             void       TextStyle_SetLocale              (TextStyle*, cstr locale);
             void       TextStyle_SetBrush               (TextStyle*, Color const* color);
             void       TextStyle_SetUnderline           (TextStyle*, bool underline);
-            void       TextStyle_SetUnderlineOffset     (TextStyle*, float const* offset);
-            void       TextStyle_SetUnderlineSize       (TextStyle*, float const* size);
+            void       TextStyle_SetUnderlineOffset     (TextStyle*, float offset);
+            void       TextStyle_SetUnderlineSize       (TextStyle*, float size);
             void       TextStyle_SetUnderlineBrush      (TextStyle*, Color const* color);
             void       TextStyle_SetStrikethrough       (TextStyle*, bool strikethrough);
-            void       TextStyle_SetStrikethroughOffset (TextStyle*, float const* offset);
-            void       TextStyle_SetStrikethroughSize   (TextStyle*, float const* size);
+            void       TextStyle_SetStrikethroughOffset (TextStyle*, float offset);
+            void       TextStyle_SetStrikethroughSize   (TextStyle*, float size);
             void       TextStyle_SetStrikethroughBrush  (TextStyle*, Color const* color);
             void       TextStyle_SetLineHeight          (TextStyle*, float height);
             void       TextStyle_SetWordSpacing         (TextStyle*, float size);

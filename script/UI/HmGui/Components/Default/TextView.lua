@@ -13,6 +13,9 @@ local meta = {
 ---@field backgroundColor Color
 ---@field widthInLayout number
 ---@field heightInLayout number
+---@field margin { marginX: number, marginY: number }
+---@field borderWidth number
+---@field borderColor Color
 ---@field width number
 ---@field height number
 ---@field align table<AlignHorizontal, AlignVertical>
@@ -28,6 +31,9 @@ local meta = {
 ---@field backgroundColor Color|nil
 ---@field widthInLayout number
 ---@field heightInLayout number
+---@field margin { marginX: number, marginY: number }|nil
+---@field borderWidth number
+---@field borderColor Color
 ---@field width number
 ---@field height number
 ---@field align table<AlignHorizontal, AlignVertical>
@@ -44,8 +50,8 @@ local meta = {
 ---@field lineHeight number
 ---@field wordSpacing number
 ---@field letterSpacing number
----@field underline UIComponentTextViewDecoration|nil
----@field strikethrough UIComponentTextViewDecoration|nil
+---@field underline boolean|UIComponentTextViewDecoration|nil
+---@field strikethrough boolean|UIComponentTextViewDecoration|nil
 
 ---@class UIComponentTextViewFont
 ---@field family string
@@ -93,19 +99,60 @@ local function buildStyle(style, default)
         end
 
         brush = style.brush
+        if not brush and default then
+            brush = Color(1, 1, 1, 1)
+        end
 
         if style.underline then
-            textStyle:setUnderline(true)
-            textStyle:setUnderlineOffset(style.underline.offset)
-            textStyle:setUnderlineSize(style.underline.size)
-            textStyle:setUnderlineBrush(style.underline.brush)
+            if type(style.underline) == "boolean" then
+                if style.underline and brush then
+                    textStyle:setUnderline(true)
+                    textStyle:setUnderlineOffset(2)
+                    textStyle:setUnderlineSize(2)
+                    textStyle:setUnderlineBrush(brush)
+                end
+            elseif type(style.underline) == "table" then
+                textStyle:setUnderline(true)
+
+                if style.underline.offset then
+                    textStyle:setUnderlineOffset(style.underline.offset)
+                end
+                if style.underline.size then
+                    textStyle:setUnderlineSize(style.underline.size)
+                end
+                if style.underline.brush then
+                    textStyle:setUnderlineBrush(style.underline.brush)
+                end
+            else
+                Log.Error("Expected underline parameter either as boolean or table but was " ..
+                    tostring(type(style.underline)) .. ": " .. tostring(style.underline))
+            end
         end
 
         if style.strikethrough then
-            textStyle:setStrikethrough(true)
-            textStyle:setStrikethroughOffset(style.strikethrough.offset)
-            textStyle:setStrikethroughSize(style.strikethrough.size)
-            textStyle:setStrikethroughBrush(style.strikethrough.brush)
+            if type(style.strikethrough) == "boolean" then
+                if style.strikethrough and brush then
+                    textStyle:setStrikethrough(true)
+                    textStyle:setStrikethroughOffset(2)
+                    textStyle:setStrikethroughSize(2)
+                    textStyle:setStrikethroughBrush(brush)
+                end
+            elseif type(style.strikethrough) == "table" then
+                textStyle:setStrikethrough(true)
+
+                if style.strikethrough.offset then
+                    textStyle:setStrikethroughOffset(style.strikethrough.offset)
+                end
+                if style.strikethrough.size then
+                    textStyle:setStrikethroughSize(style.strikethrough.size)
+                end
+                if style.strikethrough.brush then
+                    textStyle:setStrikethroughBrush(style.strikethrough.brush)
+                end
+            else
+                Log.Error("Expected strikethrough parameter either as boolean or table but was " ..
+                    tostring(type(style.strikethrough)) .. ": " .. tostring(style.strikethrough))
+            end
         end
 
         if style.lineHeight then
@@ -135,8 +182,6 @@ local function buildStyle(style, default)
 
     if brush then
         textStyle:setBrush(brush)
-    elseif default then
-        textStyle:setBrush(Color(1, 1, 1, 1))
     end
 
     return textStyle
@@ -202,9 +247,12 @@ function TextView:new(args)
     newTextView.state = UICore.ComponentState {
         visible = args.visible,
         textData = buildTextData(args),
-        backgroundColor = args.backgroundColor,
+        borderWidth = args.borderWidth or 0,
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
+        margin = args.margin,
+        borderColor = args.borderColor or Color(1, 1, 1, 1),
+        backgroundColor = args.backgroundColor,
         width = args.width,
         height = args.height,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
@@ -220,14 +268,19 @@ function TextView:new(args)
         Gui:textView(self.state.textData())
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 
-        if self.state.width then Gui:setFixedWidth(self.state.width()) end
-        if self.state.height then Gui:setFixedHeight(self.state.height()) end
         if self.state.backgroundColor then Gui:setBackgroundColor(self.state.backgroundColor()) end
+        if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end
 
-        if self.state.showContainer() then
+        if self.state.borderWidth() > 0 then
+            Gui:setBorderWidth(self.state.borderWidth())
+            Gui:setBorderColor(self.state.borderColor())
+        elseif self.state.showContainer() then
             Gui:setBorderColor(self.state.showContainerColor())
             Gui:setBorderWidth(1)
         end
+
+        if self.state.width then Gui:setFixedWidth(self.state.width()) end
+        if self.state.height then Gui:setFixedHeight(self.state.height()) end
     end
 
     return newTextView

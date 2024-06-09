@@ -238,16 +238,19 @@ fn render_glyph(
 
     match glyph_image.content {
         Content::Mask => {
+            // TODO: check if a single loop over i: [0..glyph_height*glyph_width] will be more efficient
             let mut i = 0;
             for pixel_y in 0..glyph_height {
                 for pixel_x in 0..glyph_width {
-                    let x = glyph_x + pixel_x;
-                    let y = glyph_y + pixel_y;
-                    let idx = y * image_width + x;
-                    let alpha = color_u8_to_f32(glyph_image.data[i]);
-                    let color = color.with_alpha(alpha);
+                    if glyph_image.data[i] > 0 {
+                        let x = glyph_x + pixel_x;
+                        let y = glyph_y + pixel_y;
+                        let idx = y * image_width + x;
+                        let alpha = color_u8_to_f32(glyph_image.data[i]);
+                        let color = color.with_alpha(alpha);
 
-                    buffer[idx as usize].blend_with(color);
+                        buffer[idx as usize] = color;
+                    }
 
                     i += 1;
                 }
@@ -258,17 +261,19 @@ fn render_glyph(
             let row_size = glyph_width as usize * 4;
             for (pixel_y, row) in glyph_image.data.chunks_exact(row_size).enumerate() {
                 for (pixel_x, pixel) in row.chunks_exact(4).enumerate() {
-                    let x = glyph_x + pixel_x as u32;
-                    let y = glyph_y + pixel_y as u32;
-                    let idx = y * glyph_width + x;
-                    let color = Color::new(
-                        color_u8_to_f32(pixel[0]),
-                        color_u8_to_f32(pixel[1]),
-                        color_u8_to_f32(pixel[2]),
-                        color_u8_to_f32(pixel[3]),
-                    );
+                    if pixel[3] > 0 {
+                        let x = glyph_x + pixel_x as u32;
+                        let y = glyph_y + pixel_y as u32;
+                        let idx = y * glyph_width + x;
+                        let color = Color::new(
+                            color_u8_to_f32(pixel[0]),
+                            color_u8_to_f32(pixel[1]),
+                            color_u8_to_f32(pixel[2]),
+                            color_u8_to_f32(pixel[3]),
+                        );
 
-                    buffer[idx as usize].blend_with(color);
+                        buffer[idx as usize] = color;
+                    }
                 }
             }
         }

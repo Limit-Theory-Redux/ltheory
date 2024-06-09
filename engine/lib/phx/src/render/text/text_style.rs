@@ -86,18 +86,18 @@ impl TextStyle {
     }
 
     /// Offset of the underline decoration.
-    pub fn set_underline_offset(&mut self, offset: Option<f32>) {
+    pub fn set_underline_offset(&mut self, offset: f32) {
         self.style_properties.insert(
             TextStylePropertyId::UnderlineOffset,
-            TextStyleProperty::UnderlineOffset(offset),
+            TextStyleProperty::UnderlineOffset(Some(offset)),
         );
     }
 
     /// Size of the underline decoration.
-    pub fn set_underline_size(&mut self, size: Option<f32>) {
+    pub fn set_underline_size(&mut self, size: f32) {
         self.style_properties.insert(
             TextStylePropertyId::UnderlineSize,
-            TextStyleProperty::UnderlineSize(size),
+            TextStyleProperty::UnderlineSize(Some(size)),
         );
     }
 
@@ -118,18 +118,18 @@ impl TextStyle {
     }
 
     /// Offset of the strikethrough decoration.
-    pub fn set_strikethrough_offset(&mut self, offset: Option<f32>) {
+    pub fn set_strikethrough_offset(&mut self, offset: f32) {
         self.style_properties.insert(
             TextStylePropertyId::StrikethroughOffset,
-            TextStyleProperty::StrikethroughOffset(offset),
+            TextStyleProperty::StrikethroughOffset(Some(offset)),
         );
     }
 
     /// Size of the strikethrough decoration.
-    pub fn set_strikethrough_size(&mut self, size: Option<f32>) {
+    pub fn set_strikethrough_size(&mut self, size: f32) {
         self.style_properties.insert(
             TextStylePropertyId::StrikethroughSize,
-            TextStyleProperty::StrikethroughSize(size),
+            TextStyleProperty::StrikethroughSize(Some(size)),
         );
     }
 
