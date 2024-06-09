@@ -25,7 +25,12 @@ impl TextView {
         self.dirty = self.data.update(text_data);
     }
 
-    pub fn update(&mut self, text_ctx: &mut TextContext, size: Vec2) -> *mut Tex2D {
+    pub fn update(
+        &mut self,
+        text_ctx: &mut TextContext,
+        size: Vec2,
+        scale_factor: f32,
+    ) -> *mut Tex2D {
         if self.size != size {
             self.size = size;
             self.dirty = true;
@@ -33,7 +38,7 @@ impl TextView {
 
         // Regenerate texture only if something was changed
         if self.dirty {
-            let tex = self.data.render(text_ctx, self.size);
+            let tex = self.data.render(text_ctx, self.size, scale_factor);
 
             if self.tex != std::ptr::null_mut() {
                 unsafe { Tex2D_Free(self.tex) };

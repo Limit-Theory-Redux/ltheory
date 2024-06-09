@@ -14,6 +14,7 @@ pub struct HmGui {
     pub(super) renderer: UIRenderer,
 
     screen_size: Vec2,
+    scale_factor: f64,
 
     layers: Vec<HmGuiLayer>,
     /// Current layer index in layers vector
@@ -25,16 +26,25 @@ pub struct HmGui {
 }
 
 impl HmGui {
-    pub fn new() -> Self {
+    pub fn new(scale_factor: f64) -> Self {
         Self {
             renderer: Default::default(),
             screen_size: Default::default(),
+            scale_factor,
             layers: vec![],
             layer_index: UNDEFINED_LAYER_INDEX,
             data: HashMap::with_capacity(128),
             mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
         }
+    }
+
+    pub fn scale_factor(&self) -> f64 {
+        self.scale_factor
+    }
+
+    pub fn set_scale_factor(&mut self, scale_factor: f64) {
+        self.scale_factor = scale_factor;
     }
 
     #[inline]

@@ -235,6 +235,7 @@ impl HmGuiWidget {
                 data.pos = self.pos;
             }
             WidgetItem::TextView(image) => {
+                let scale_factor = hmgui.scale_factor() as f32;
                 let data = hmgui.get_data(self.hash);
                 let text_view = data.text_view.as_mut().expect("Text view data was not set");
 
@@ -243,7 +244,8 @@ impl HmGuiWidget {
                 // Check if this can be solved.
                 let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
 
-                image.image = text_view.update(text_ctx.borrow_mut(), self.inner_size);
+                image.image =
+                    text_view.update(text_ctx.borrow_mut(), self.inner_size, scale_factor);
             }
             _ => {}
         }

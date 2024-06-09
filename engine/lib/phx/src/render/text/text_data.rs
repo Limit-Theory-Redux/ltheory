@@ -79,15 +79,16 @@ impl TextData {
     /// Generate Tex2D texture with layouted text based on text parameters.
     // TODO: keeping a texture for a large texts will be memory consuming.
     // Generate per-line textures and keep only visible ones with some buffered pre- and post-lines.
-    pub(super) fn render(&self, text_ctx: &mut TextContext, size: Vec2) -> *mut Tex2D {
-        // The display scale for HiDPI rendering
-        // TODO: set from outside
-        let display_scale = 1.0;
-
+    pub(super) fn render(
+        &self,
+        text_ctx: &mut TextContext,
+        size: Vec2,
+        scale_factor: f32,
+    ) -> *mut Tex2D {
         let mut builder =
             text_ctx
                 .layout
-                .ranged_builder(&mut text_ctx.font, &self.text, display_scale);
+                .ranged_builder(&mut text_ctx.font, &self.text, scale_factor);
 
         self.default_style.apply_default(&mut builder);
 
@@ -99,7 +100,7 @@ impl TextData {
         let mut layout: Layout<Color> = builder.build();
 
         // The width for line wrapping
-        let max_advance = Some(size.x * display_scale);
+        let max_advance = Some(size.x * scale_factor);
 
         // Padding around the output image
         // TODO: workaround. For some reason zeno crate (used by swash) shifts placement.left
