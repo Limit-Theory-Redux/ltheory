@@ -6,8 +6,9 @@ TextData = {}
 ---@param text string
 ---@param defaultStyle TextStyle
 ---@param alignment TextAlignment
+---@param multiline boolean
 ---@return TextData
-function TextData.Create(text, defaultStyle, alignment) end
+function TextData.Create(text, defaultStyle, alignment, multiline) end
 
 -- Set style of the text section beginning at 'start_pos' position and up to 'end_pos'.
 ---@param startPos integer

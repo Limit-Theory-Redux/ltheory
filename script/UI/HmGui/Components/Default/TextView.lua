@@ -24,6 +24,7 @@ local meta = {
 ---@field text string|table<table<string, UIComponentTextViewStyle>|string>
 ---@field alignment TextAlignment
 ---@field style UIComponentTextViewStyle Default text style
+---@field multiline boolean|true
 ---@field backgroundColor Color|nil
 ---@field widthInLayout number
 ---@field heightInLayout number
@@ -173,7 +174,14 @@ local function buildTextData(args)
         text = section_text
     end
 
-    local textData = TextData.Create(text, buildStyle(args.style, true), args.alignment or TextAlignment.Start)
+    local multiline = true
+    if args.multiline then
+        multiline = args.multiline
+    end
+
+    -- TODO: replace all `\n` in text with spaces if not multiline?
+
+    local textData = TextData.Create(text, buildStyle(args.style, true), args.alignment or TextAlignment.Start, multiline)
 
     for _, section in ipairs(sections) do
         textData:setSectionStyle(section.startPos, section.endPos, section.style)

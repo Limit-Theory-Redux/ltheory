@@ -17,7 +17,7 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void      TextData_Free            (TextData*);
-            TextData* TextData_Create          (cstr text, TextStyle const* defaultStyle, TextAlignment alignment);
+            TextData* TextData_Create          (cstr text, TextStyle const* defaultStyle, TextAlignment alignment, bool multiline);
             void      TextData_SetSectionStyle (TextData*, uint64 startPos, uint64 endPos, TextStyle const* style);
         ]]
     end

@@ -102,9 +102,17 @@ local creditsGrid = UILayout.Grid {
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
             padding = { 0, 0 },
             margin = { 50, 50 },
+            spacing = 10,
             widthInLayout = getRemainingWidthPercentage,
             layoutType = GuiLayoutType.Vertical,
             contents = {
+                UIComponent.TextView {
+                    text = "Credits",
+                    style = { font = { size = 25, weight = 600 } },
+                    width = 100,
+                    height = 30,
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                },
                 UIComponent.TextView {
                     text = {
                         { "Limit Theory author:", boldGreenStyle }, " Josh Parnell\n",

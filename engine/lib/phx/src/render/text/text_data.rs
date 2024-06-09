@@ -21,17 +21,24 @@ pub struct TextData {
     default_style: TextStyle,
     section_styles: IndexMap<[usize; 2], TextStyle>,
     alignment: Alignment,
+    multiline: bool,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl TextData {
     #[bind(name = "Create")]
-    pub fn new(text: &str, default_style: &TextStyle, alignment: TextAlignment) -> Self {
+    pub fn new(
+        text: &str,
+        default_style: &TextStyle,
+        alignment: TextAlignment,
+        multiline: bool,
+    ) -> Self {
         Self {
             text: text.into(),
             default_style: default_style.clone(),
             section_styles: Default::default(),
             alignment: alignment.into(),
+            multiline,
         }
     }
 
@@ -85,6 +92,7 @@ impl TextData {
         size: Vec2,
         scale_factor: f32,
     ) -> *mut Tex2D {
+        // TODO: replace all `\n` in self.text with spaces if not multiline?
         let mut builder =
             text_ctx
                 .layout
@@ -99,16 +107,18 @@ impl TextData {
         // Build the builder into a Layout
         let mut layout: Layout<Color> = builder.build();
 
-        // The width for line wrapping
-        let max_advance = Some(size.x * scale_factor);
+        if self.multiline {
+            // The width for line wrapping
+            let max_advance = Some(size.x * scale_factor);
+
+            // Perform layout (including bidi resolution and shaping) with alignment
+            layout.break_all_lines(max_advance, self.alignment);
+        }
 
         // Padding around the output image
         // TODO: workaround. For some reason zeno crate (used by swash) shifts placement.left
         // by several pixels to the left that makes position coordinate negative in some cases
         let padding = 5;
-
-        // Perform layout (including bidi resolution and shaping) with alignment
-        layout.break_all_lines(max_advance, self.alignment);
 
         // Create buffer to render into
         let width = layout.width().ceil() as u32 + (padding * 2);
