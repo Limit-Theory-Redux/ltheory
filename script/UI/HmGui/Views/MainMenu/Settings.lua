@@ -17,11 +17,11 @@ function SettingsView:onViewClose(isPageClose) end
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
 local settingsCategory = 1
-local settingsCategoryNames = { { "GENERAL", "General" },
-    { "AUDIO",     "Audio" },
-    { "GRAPHICS",  "Graphics" },
-    { "INTERFACE", "Interface" },
-    { "KEYBINDS",  "Keybinds" } }
+local settingsCategoryNames = { { "GENERAL",   "General"   },
+                                { "AUDIO",     "Audio"     },
+                                { "GRAPHICS",  "Graphics"  },
+                                { "INTERFACE", "Interface" },
+                                { "KEYBINDS",  "Keybinds"  } }
 
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")

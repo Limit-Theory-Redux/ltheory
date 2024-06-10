@@ -242,7 +242,7 @@ function Slider:new(args)
         Gui:endContainer()
 
         -- callback
-        if self.state.currentValue() ~= self.state.lastValue then
+        if self.state.lastValue and self.state.currentValue() ~= self.state.lastValue then
             self.state.callback(self.state.currentValue())
         end
     end
