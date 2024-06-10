@@ -1,7 +1,8 @@
 use glam::Vec2;
 
+use crate::render::TextView;
+
 /// Persistent data storage used for the widget scrolling.
-#[derive(Clone)]
 pub struct HmGuiData {
     /// Scrolling offset.
     pub offset: Vec2,
@@ -14,6 +15,9 @@ pub struct HmGuiData {
 
     /// Actual position of the widget after layout().
     pub pos: Vec2,
+
+    /// Text view data. Only for the text view widgets.
+    pub text_view: Option<TextView>,
 }
 
 impl Default for HmGuiData {
@@ -23,6 +27,7 @@ impl Default for HmGuiData {
             min_size: Default::default(),
             size: Default::default(),
             pos: Default::default(),
+            text_view: Default::default(),
         }
     }
 }

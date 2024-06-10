@@ -20,6 +20,7 @@ local meta = {
 ---@field heightInLayout number
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
+---@field spacing number
 ---@field layoutType GuiLayoutType
 ---@field color UIComponentButtonColors
 ---@field render fun(self: UIComponentContainer)
@@ -36,6 +37,7 @@ local meta = {
 ---@field heightInLayout number
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
+---@field spacing number
 ---@field layoutType GuiLayoutType
 ---@field color UIComponentButtonColors
 ---@field contents table
@@ -59,6 +61,7 @@ function Container:new(args)
         childrenAlign = args.childrenAlign or { AlignHorizontal.Default, AlignVertical.Default },
         padding = args.padding or { 0, 0 },
         margin = args.margin or { 0, 0 },
+        spacing = args.spacing,
         width = args.width,
         height = args.height,
         widthInLayout = args.widthInLayout,
@@ -92,6 +95,10 @@ function Container:new(args)
         Gui:setChildrenAlignment(self.state.childrenAlign()[1], self.state.childrenAlign()[2])
         Gui:setPadding(self.state.padding()[1], self.state.padding()[2])
         Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
+
+        if self.state.spacing then
+            Gui:setSpacing(self.state.spacing())
+        end
 
         if self.state.width then
             Gui:setPercentWidth(self.state.width() * 100)

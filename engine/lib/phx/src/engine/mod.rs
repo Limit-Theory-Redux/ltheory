@@ -56,6 +56,7 @@ impl Engine {
         let cache = CachedWindow {
             window: window.clone(),
         };
+        let scale_factor = window.scale_factor();
 
         // Unsafe is required for FFI and JIT libs
         let lua = unsafe { Lua::unsafe_new() };
@@ -66,7 +67,7 @@ impl Engine {
             cache,
             winit_windows: WinitWindows::new(gl_version_major, gl_version_minor),
             winit_window_id: None,
-            hmgui: HmGui::new(),
+            hmgui: HmGui::new(scale_factor),
             input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,
@@ -80,6 +81,7 @@ impl Engine {
         let winit_window_id = self.winit_windows.create_window(event_loop, &self.window);
 
         self.winit_window_id = Some(winit_window_id);
+        self.hmgui.set_scale_factor(self.window.scale_factor());
     }
 
     // Apply user changes, and then detect changes to the window and update the winit window accordingly.
@@ -494,10 +496,10 @@ impl Engine {
                             });
                         }
                         WindowEvent::ScaleFactorChanged {
-                            scale_factor: _,
+                            scale_factor,
                             inner_size_writer: _,
                         } => {
-                            // TODO: implement
+                            engine.hmgui.set_scale_factor(scale_factor);
                         }
                         WindowEvent::Focused(focused) => {
                             engine.window.focused = focused;

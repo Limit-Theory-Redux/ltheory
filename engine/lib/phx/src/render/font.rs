@@ -192,7 +192,7 @@ impl Font {
         )
     }
 
-    pub fn draw(&self, text: &str, mut x: f32, mut y: f32, r: f32, g: f32, b: f32, a: f32) {
+    pub fn draw(&self, text: &str, mut x: f32, mut y: f32, color: &Color) {
         unsafe { Profiler_Begin(c_str!("Font_Draw")) };
 
         let mut glyph_last: i32 = 0;
@@ -202,7 +202,7 @@ impl Font {
 
         unsafe {
             RenderState_PushBlendMode(1);
-            Draw_Color(r, g, b, a);
+            Draw_Color(color.r, color.g, color.b, color.a);
         }
 
         for c in text.chars() {

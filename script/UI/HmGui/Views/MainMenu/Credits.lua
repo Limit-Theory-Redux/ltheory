@@ -25,6 +25,8 @@ local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
 end
 
+local boldGreenStyle = { font = { weight = 600 }, brush = Color(0, 1, 0, 1) }
+
 local creditsGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
@@ -100,11 +102,29 @@ local creditsGrid = UILayout.Grid {
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
             padding = { 0, 0 },
-            margin = { 0, 0 },
+            margin = { 50, 50 },
+            spacing = 10,
             widthInLayout = getRemainingWidthPercentage,
             layoutType = GuiLayoutType.Vertical,
             contents = {
-                UIComponent.RawInput { fn = function() end }
+                UIComponent.TextView {
+                    text = "Credits",
+                    style = { font = { size = 25, weight = 600 } },
+                    multiline = false,
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                },
+                UIComponent.TextView {
+                    text = {
+                        { "Limit Theory author:", boldGreenStyle }, " Josh Parnell\n",
+                        { "Scripters:",           boldGreenStyle }, "\n - Flatfingers\n - IllustrisJack\n",
+                        { "Engine developers:", boldGreenStyle }, "\n - dga\n - Haron",
+                    },
+                    style = { font = { size = 16 } },
+                    backgroundColor = Color(0.7, 0.7, 0.7, 0.2),
+                    width = 400,
+                    height = 400,
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                }
             }
         }
     }
