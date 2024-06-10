@@ -110,15 +110,7 @@ impl UIRendererLayer {
             while let Some(text_id) = text_id_opt {
                 let text = &renderer.texts[*text_id];
 
-                (&*text.font).draw(
-                    &text.text,
-                    text.pos.x,
-                    text.pos.y,
-                    text.color.r,
-                    text.color.g,
-                    text.color.b,
-                    text.color.a,
-                );
+                (&*text.font).draw(&text.text, text.pos.x, text.pos.y, &text.color);
 
                 text_id_opt = text.next;
             }

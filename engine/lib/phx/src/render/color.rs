@@ -1,4 +1,5 @@
 use glam::Vec4;
+use parley::style::Brush;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(C)]
@@ -117,6 +118,25 @@ impl Color {
         )
     }
 
+    /// Blends two colors proportionally to their alpha parameters
+    pub fn blend(&self, other: Color) -> Color {
+        let t1 = self.a / (self.a + other.a);
+        let t2 = other.a / (self.a + other.a);
+
+        let r = self.r * t1 + other.r * t2;
+        let g = self.g * t1 + other.g * t2;
+        let b = self.b * t1 + other.b * t2;
+        let a = self.a * t1 + other.a * t2;
+
+        Color { r, g, b, a }
+    }
+
+    /// Blends current color with the given one
+    /// proportionally to their alpha parameters
+    pub fn blend_with(&mut self, other: Color) {
+        *self = self.blend(other);
+    }
+
     fn hue_to_rgb(p: f32, q: f32, t: f32) -> f32 {
         // Normalize
         let t = if t < 0.0 {
@@ -144,6 +164,8 @@ impl Default for Color {
         Self::WHITE
     }
 }
+
+impl Brush for Color {}
 
 impl From<[f32; 4]> for Color {
     #[inline]

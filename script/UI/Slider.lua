@@ -81,7 +81,7 @@ function Slider:onDraw(focus, active)
   local labelX = self.x + self.padSumX/2 + self.alignX * (self.sx - self.padSumX - bound.z)
   local labelY = self.y + self.padSumY/2 + self.alignY * (self.sy - self.padSumY + bound.y) - bound.y
   local color = Config.ui.color.textNormal
-  font:draw(valName, labelX, labelY, color.r, color.g, color.b, color.a)
+  font:draw(valName, labelX, labelY, color)
   --]]
 
 
