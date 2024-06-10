@@ -27,8 +27,10 @@ local meta = {
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
 ---@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
+---@field textAlign { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Center, v: AlignVertical.Center}
 ---@field color UIComponentSliderColors
 ---@field font UIComponentFont
+---@field toolTip UIComponentToolTip
 ---@field minValue number
 ---@field maxValue number
 ---@field currentValue number
@@ -40,6 +42,8 @@ local meta = {
 ---@class UIComponentSliderColors
 ---@field text Color|nil
 ---@field background Color|nil
+---@field borderWidth number
+---@field borderColor Color
 ---@field highlight Color|nil
 ---@field thumb Color|nil
 
@@ -58,9 +62,12 @@ function Slider:new(args)
         width = args.width,
         height = args.height,
         size = args.size,
-        padding = args.padding or { 10, 10 },
+        padding = args.padding or { 0, 0 }, -- if non-zero, will remove the top and bottom of the inner slider
         margin = args.margin,
+        borderWidth = args.borderWidth or 2,
+        borderColor = args.borderColor or Color(0.0, 0.0, 0.0, 1.0),
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
+        textAlign = args.textAlign or { AlignHorizontal.Left, AlignVertical.Center },
         color = {
             text = args.color and args.color.text or Color(0.7, 0.7, 0.7, 1.0),
             background = args.color and args.color.background or Color(0.85, 0.85, 0.85, 1.0),
@@ -68,6 +75,7 @@ function Slider:new(args)
             thumb = args.color and args.color.thumb or Color(1.0, 1.0, 1.0, 1.0)
         },
         font = args.font or { name = "Unageo-Medium", size = 12 },
+        toolTip = UIComponent.ToolTip { text = args.toolTip },
         minValue = args.minValue or 0,
         maxValue = args.maxValue or 100,
         currentValue = args.currentValue or 50,
@@ -82,9 +90,13 @@ function Slider:new(args)
             return
         end
 
+        Gui:beginHorizontalContainer()
+        Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
+
         if self.state.title and self.state.title() then
             Gui:text(self.state.title(), Cache.Font(self.state.font().name, self.state.font().size),
                 self.state.color().text)
+            Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
         end
 
         Gui:beginHorizontalContainer()
@@ -103,6 +115,9 @@ function Slider:new(args)
         local containerPos = Gui:containerPos()
         local containerSize = Gui:containerSize()
 
+        Gui:setBorderWidth(self.state.borderWidth())
+        Gui:setBorderColor(self.state.borderColor())
+
         -- check mouse interaction
         local isMouseOverSlider = Gui:isMouseOver(FocusType.Mouse)
         local sliderHeld = isMouseOverSlider and InputInstance:mouse():isDown(MouseControl.Left)
@@ -110,11 +125,17 @@ function Slider:new(args)
         -- slider stack
         Gui:beginStackContainer()
         Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
-        Gui:setBackgroundColor(Color(1, 1, 1, 0.2))
 
         -- slider body
-        Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
+        Gui:setBackgroundColor(Color(0.3, 0.3, 0.3, 0.7))
         Gui:rect()
+        if self.state.size then
+            local size = self.state.size()
+            Gui:setFixedSize(size.x, size.y)
+        else
+            if self.state.width then Gui:setFixedWidth(self.state.width()) end
+            if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        end
 
         local minValue = self.state.minValue() or 0
         local maxValue = self.state.maxValue() or 100
@@ -123,6 +144,7 @@ function Slider:new(args)
         -- create internal representation
         local internalValue = (outerValue - minValue) / (maxValue - minValue) * 100
         local sliderValuePercent = internalValue
+        local increment = self.state.increment()
 
         if sliderHeld then
             -- calculate relative mouse position
@@ -137,8 +159,6 @@ function Slider:new(args)
             end
 
             internalValue = (relativeMousePositionX / (containerSize.x - 2 * self.state.padding()[1])) * 100
-
-            local increment = self.state.increment()
 
             if increment > 0 then
                 -- scale increment to match the internal range (0-100)
@@ -192,20 +212,37 @@ function Slider:new(args)
         local sliderValueText
 
         if not self.state.showValueAsPercentage() then
-            sliderValueText = string.format("%.2f", outerValue)       -- round to 2 decimals
+            local decimalPlaces = 0
+
+            local function countDecimalPlaces(number)
+                local str = tostring(number)
+                local _, decimalPart = math.modf(number)
+                if decimalPart == 0 then
+                    return 0
+                end
+                return #str - str:find("%.")
+            end
+
+            decimalPlaces = countDecimalPlaces(increment)
+            sliderValueText = string.format("%." .. decimalPlaces .. "f", outerValue)
         else
             sliderValueText = string.format("%.0f", outerValue * 100) -- display as percentage
         end
+
         Gui:text(sliderValueText,
-            Cache.Font(self.state.font().name, self.state.font().size),
+            Cache.Font(self.state.font().name, floor((self.state.size().y or self.state.height()) / 1.1)), -- calculate interior text size from slider bar height
             self.state.color().text)
         Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
 
         Gui:endContainer()
         Gui:endContainer()
 
+        self.state.toolTip():render()
+
+        Gui:endContainer()
+
         -- callback
-        if self.state.currentValue() ~= self.state.lastValue then
+        if self.state.lastValue and self.state.currentValue() ~= self.state.lastValue then
             self.state.callback(self.state.currentValue())
         end
     end

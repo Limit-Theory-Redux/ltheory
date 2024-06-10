@@ -49,8 +49,12 @@ local function getRemainingWidthPercentage()
     return 1 - getLayoutContainerWidthPercentage()
 end
 
-local function switchToPlayView()
-    UIRouter:getCurrentPage():setView("Play")
+local function switchToNewgameView()
+    UIRouter:getCurrentPage():setView("Newgame")
+end
+
+local function switchToLoadgameView()
+    UIRouter:getCurrentPage():setView("Loadgame")
 end
 
 local function switchToSettingsView()
@@ -103,26 +107,37 @@ local menuGrid = UILayout.Grid {
                     },
                     contents = {
                         UIComponent.Button_MainMenu {
-                            title = "Play",
-                            size = ResponsiveSize(200, 40),
-                            callback = switchToPlayView,
+                            title = "New Game",
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
+                            callback = switchToNewgameView,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
+                        UIComponent.Button_MainMenu {
+                            title = "Load Game",
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
+                            callback = switchToLoadgameView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Settings",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                             callback = switchToSettingsView
                         },
                         UIComponent.Button_MainMenu {
                             title = "Credits",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToCreditsView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Exit",
-                            size = ResponsiveSize(200, 40),
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = function()
                                 LimitTheoryRedux:exit() -- run pre-exit operations & exit game
                             end,
