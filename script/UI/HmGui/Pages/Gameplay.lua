@@ -63,7 +63,7 @@ local deathText = UIComponent.Container {
         },
         UIComponent.Button_MainMenu {
             title = "Back to Main Menu",
-            size = ResponsiveSize(200, 40),
+            size = ResponsiveSize(300, 60),
             margin = { 0, 40 },
             font = { name = "Unageo-Medium", size = 24 },
             align = { AlignHorizontal.Center, AlignVertical.Center },
