@@ -291,6 +291,15 @@ local function settingsfunction()
                         }
                     }
                 }
+            },
+            UIComponent.Button {
+                title = "Start New Game",
+                align = { AlignHorizontal.Center, AlignVertical.Center },
+                margin = { 0, 10 },
+                size = ResponsiveSize(300, 60),
+                font = { name = "Unageo-Medium", size = 24 },
+                toolTip = function() return "Press to start a new game with a random seed." end,
+                callback = function() newGame(rng:get64()) end,
             }
         }
     }
@@ -367,16 +376,7 @@ local newgameGrid = UILayout.Grid {
                 }
             }
         },
-        settingsfunction,
-        UIComponent.Button {
-            title = "Start New Game",
-            align = { AlignHorizontal.Center, AlignVertical.Center },
-            margin = { 0, 10 },
-            size = ResponsiveSize(300, 60),
-            font = { name = "Unageo-Medium", size = 24 },
-            toolTip = function() return "Press to start a new game with a random seed." end,
-            callback = function() newGame(rng:get64()) end,
-        }
+        settingsfunction
     }
 }
 
