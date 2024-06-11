@@ -8,7 +8,7 @@ local UIPageMainMenu = require('script.UI.HmGui.Pages.MainMenu')
 
 local rng = RNG.FromTime()
 local Universe = require("Systems.Universe.Universe")
-local System = require('GameObjects.Entities.Test.System')
+local System = require('GameObjects.Entities.StarSystem')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 
 local useRenderer = false

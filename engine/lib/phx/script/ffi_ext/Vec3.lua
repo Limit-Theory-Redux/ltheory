@@ -12,6 +12,10 @@ local function defineVec3_t(t, mt)
     local Vec3 = t
 
     function mt.__add(a, b)
+        -- Uncomment this code if you want to find places where we're accidentally converting Positions to something else.
+        -- if ffi.typeof(a) ~= ffi.typeof(b) and ffi.typeof(a) ~= ffi.typeof("Position") then
+        --     Log.Error("Mismatching type %s != %s", ffi.typeof(a), ffi.typeof(b))
+        -- end
         return (Vec3(a.x + b.x, a.y + b.y, a.z + b.z))
     end
 

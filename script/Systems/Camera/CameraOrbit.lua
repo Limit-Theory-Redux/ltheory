@@ -7,8 +7,8 @@ local CameraOrbit = subclass(Camera, function(self)
     self.pitchT   = Math.Pi6
     self.radius   = 100
     self.radiusT  = 100
-    self.center   = Vec3f(0, 0, 0)
-    self.centerT  = Vec3f(0, 0, 0)
+    self.center   = Position(0, 0, 0)
+    self.centerT  = Position(0, 0, 0)
     self.targetUp = Vec3f(0, 1, 0)
 
     self.target   = nil
@@ -66,7 +66,7 @@ function CameraOrbit:onUpdate(dt)
         self.posT = self.center + Math.Spherical(self.radius, self.pitch, self.yaw)
     end
 
-    local look = (self.center - self.posT):normalize()
+    local look = self.center:relativeTo(self.posT):normalize()
     local up   = self.targetUp:reject(look):normalize()
     self.rotT  = Quat.FromLookUp(look, up)
 

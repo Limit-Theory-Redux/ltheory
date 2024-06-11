@@ -71,7 +71,7 @@ end
 
 function Bay:aimAt(pos)
     if not GameState.paused then
-        local look = (pos - self:getPos()):toVec3f()
+        local look = pos:relativeTo(self:getPos())
         local up   = self:getParent():getUp()
         self.aim:iLerp(Quat.FromLookUp(look, up), 0.1)
         self.aim = Quat.FromLookUp(look, up)
@@ -86,7 +86,7 @@ function Bay:aimAtTarget(target, fallback)
         target:getPos(),
         self:getParent():getVelocity(),
         target:getVelocity(),
-        self.projSpeed):toPosition()
+        self.projSpeed)
 
     if tHit and tHit < self.projLife then
         self:aimAt(pHit)

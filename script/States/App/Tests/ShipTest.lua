@@ -1,5 +1,5 @@
 local Player = require('GameObjects.Entities.Player')
-local System = require('GameObjects.Entities.Test.System')
+local System = require('GameObjects.Entities.StarSystem')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('GameObjects.Actions')
 

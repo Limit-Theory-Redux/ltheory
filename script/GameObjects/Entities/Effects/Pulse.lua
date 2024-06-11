@@ -3,7 +3,7 @@ local Entity = require('GameObjects.Entity')
 local Pulse = CType.Struct('Pulse')
 Pulse:add(CType.Int32, 'source')
 Pulse:add(CType.Int32, 'type')
-Pulse:add(CType.Vec3f, 'pos')
+Pulse:add(CType.Position, 'pos')
 Pulse:add(CType.Vec3f, 'vel')
 Pulse:add(CType.Vec3f, 'dir')
 Pulse:add(CType.Float32, 'lifeMax')
@@ -46,7 +46,8 @@ end
 
 function Pulse:refreshMatrix()
     self.matrix:free()
-    self.matrix = Matrix.LookUp(self.pos, -self.dir, Math.OrthoVector(self.dir))
+    -- TODO: Relative to camera.
+    self.matrix = Matrix.LookUp(self.pos:relativeTo(Position.Identity()), -self.dir, Math.OrthoVector(self.dir))
 end
 
 function Pulse.Render(projectiles, state)

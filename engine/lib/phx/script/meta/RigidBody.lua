@@ -95,14 +95,14 @@ function RigidBody:getBoundingRadiusCompound() end
 function RigidBody:getSpeed() end
 
 -- Returns the local -> world matrix for this rigid body.
---
+-- 
 -- This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
 ---@param cameraPos Position
 ---@return Matrix
 function RigidBody:getToWorldMatrix(cameraPos) end
 
 -- Returns the world -> local matrix for this rigid body.
---
+-- 
 -- This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
 ---@param cameraPos Position
 ---@return Matrix

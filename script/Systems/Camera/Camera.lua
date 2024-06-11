@@ -3,11 +3,11 @@ local Camera = class(function(self)
     self.y         = 0
     self.sx        = 1
     self.sy        = 1
-    self.pos       = Vec3f()
+    self.pos       = Position()
     self.rot       = Quat.Identity()
-    self.posT      = Vec3f()
+    self.posT      = Position()
     self.rotT      = Quat.Identity()
-    self.posOffset = Vec3f()
+    self.posOffset = Position()
     self.rotOffset = Quat.Identity()
     self.zNear     = GameState.render.zNear
     self.zFar      = GameState.render.zFar
@@ -44,13 +44,13 @@ function Camera:lerpFrom(pos, rot)
 end
 
 function Camera:cancelLerp()
-    self.posOffset = Vec3f.Identity()
+    self.posOffset = Position.Identity()
     self.rotOffset = Quat.Identity()
 end
 
 function Camera:lerp(dt)
     local f = 1.0 - exp(-10.0 * dt)
-    self.posOffset:ilerp(Vec3f.Identity(), f)
+    self.posOffset:ilerp(Position.Identity(), f)
     self.rotOffset:iLerp(Quat.Identity(), f)
 end
 
@@ -191,7 +191,7 @@ function Camera:refreshMatrices()
     self.pos = self.posOffset + self.posT
     self.rot = self.rotOffset * self.rotT
 
-    self.mViewInv = Matrix.FromPosRot(self.pos, self.rot)
+    self.mViewInv = Matrix.FromPosRot(self.pos:toVec3f(), self.rot)
     self.mView = self.mViewInv:inverse()
 
     self.mProj = Matrix.Perspective(

@@ -41,6 +41,7 @@ local print               = function(...) if printCounts then print_(...) end en
 -- local Entites = RequireEach('GameObjects.Entites', [(System, Test.System), (Asteroid, Objects.Asteroid)]). Then we can call them by Entities.Objects.Asteroid and Entities.System
 -- Might be Faulty logic but should be investigated.
 local Entities            = requireAll('GameObjects.Entities')
+local System              = require('GameObjects.Entities.StarSystem')
 local DebugControl        = require('Systems.Controls.Controls.DebugControl')
 local MasterControl       = require('Systems.Controls.Controls.MasterControl')
 local SoundManager        = require("Systems.SFX.SoundManager")
@@ -58,7 +59,7 @@ function LTheory:generate()
     Log.Debug('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
-    self.system = Entities.Test.System(self.seed)
+    self.system = System(self.seed)
     GameState.world.currentSystem = self.system
     GameState.gen.uniqueShips = true
     GameState:SetState(Enums.GameStates.InGame)

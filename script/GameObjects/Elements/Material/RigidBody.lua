@@ -324,7 +324,7 @@ end
 function Entity:toLocal(pos)
     assert(self.body)
     local toLocal = self:getToLocalMatrix()
-    return toLocal:mulPoint(pos)
+    return toLocal:mulPoint(pos:toVec3f())
 end
 
 function Entity:toWorld(pos)
@@ -332,10 +332,10 @@ function Entity:toWorld(pos)
     local ePos = self:getPos()
     local eRot = self:getRot()
     return
+        ePos +
         eRot:getRight():scale(pos.x) +
         eRot:getUp():scale(pos.y) +
-        eRot:getForward():scale(pos.z) +
-        ePos
+        eRot:getForward():scale(pos.z)
 end
 
 function Entity:toWorldScaled(pos)
@@ -344,10 +344,10 @@ function Entity:toWorldScaled(pos)
     local eRot = self:getRot()
     local eScl = self:getScale()
     return
+        ePos +
         eRot:getRight():scale(eScl * pos.x) +
         eRot:getUp():scale(eScl * pos.y) +
-        eRot:getForward():scale(eScl * pos.z) +
-        ePos
+        eRot:getForward():scale(eScl * pos.z)
 end
 
 function Entity:getZone()
