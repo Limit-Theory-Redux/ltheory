@@ -183,9 +183,9 @@ do -- Transparent Structs
     } Quat;
 
     typedef struct Ray {
-      float px;
-      float py;
-      float pz;
+      double px;
+      double py;
+      double pz;
       float dirx;
       float diry;
       float dirz;
@@ -198,9 +198,9 @@ do -- Transparent Structs
       float      normx;
       float      normy;
       float      normz;
-      float      posx;
-      float      posy;
-      float      posz;
+      double     posx;
+      double     posy;
+      double     posz;
       float      t;
     } RayCastResult;
 

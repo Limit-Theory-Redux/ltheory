@@ -21,7 +21,7 @@ pub struct Collision {
 pub struct RayCastResult {
     body: *mut RigidBody,
     norm: Vec3,
-    pos: Vec3,
+    pos: Position,
     t: f32,
 }
 
@@ -307,12 +307,12 @@ impl Physics {
     #[bind(out_param = true)]
     pub fn ray_cast(&self, ray: &Ray) -> RayCastResult {
         let from = {
-            let mut data = Vec3::ZERO;
+            let mut data = Position::ZERO;
             Ray_GetPoint(ray, ray.tMin, &mut data);
             data.to_na_point()
         };
         let to = {
-            let mut data = Vec3::ZERO;
+            let mut data = Position::ZERO;
             Ray_GetPoint(ray, ray.tMax, &mut data);
             data.to_na_point()
         };
@@ -325,7 +325,7 @@ impl Physics {
         let mut result = RayCastResult {
             body: std::ptr::null_mut(),
             norm: Vec3::ZERO,
-            pos: Vec3::ZERO,
+            pos: Position::ZERO,
             t: 0.0,
         };
         let world = self.world.as_ref();
@@ -340,7 +340,7 @@ impl Physics {
             if let Some(collider) = world.colliders.get(handle) {
                 if let Some(parent_rb) = RigidBody::linked_with_collider_mut(collider) {
                     result.body = parent_rb;
-                    result.pos = Vec3::from_na_point(&ray.point_at(intersection.toi));
+                    result.pos = Position::from_na_point(&ray.point_at(intersection.toi));
                     result.norm = Vec3::from_na(&intersection.normal);
                     result.t = intersection.toi as f32;
                 }

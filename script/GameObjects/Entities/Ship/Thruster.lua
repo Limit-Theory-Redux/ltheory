@@ -67,7 +67,7 @@ function Thruster:render(state)
         Shader.SetFloat('time', self.time)
         Shader.SetFloat2('size', 2, 32 * self.activation)
         Shader.SetFloat3('color', 0.1 + 1.2 * self.boost, 0.3 + 0.2 * self.boost, 1.0 - 0.7 * self.boost)
-        Shader.SetMatrix('mWorld', self:getToWorldMatrix())
+        Shader.SetMatrix('mWorld', self:getToWorldMatrix(state.eye))
         meshJet:draw()
         shader:stop()
     end

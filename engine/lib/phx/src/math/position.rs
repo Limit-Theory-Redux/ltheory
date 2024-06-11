@@ -27,6 +27,10 @@ impl Position {
     pub const fn from_dvec(v: DVec3) -> Position {
         Position { v }
     }
+
+    pub fn from_vec(v: Vec3) -> Position {
+        Position { v: v.as_dvec3() }
+    }
 }
 
 impl Position {
@@ -45,6 +49,16 @@ impl Position {
     /// Computes the squared euclidean distance between two points in space.
     pub fn distance_squared(&self, rhs: Position) -> f64 {
         self.v.distance_squared(rhs.v)
+    }
+
+    /// Converts this Position into a 32-bit vector. Note that this loses precision.
+    pub fn as_vec3(&self) -> Vec3 {
+        self.v.as_vec3()
+    }
+
+    /// Converts this Position into a 64-bit vector.
+    pub fn as_dvec3(self) -> DVec3 {
+        self.v
     }
 }
 
@@ -242,5 +256,11 @@ impl Rem<Position> for f64 {
     #[inline]
     fn rem(self, rhs: Position) -> Position {
         Position::from_dvec(f64::rem(self, rhs.v))
+    }
+}
+
+impl ToString for Position {
+    fn to_string(&self) -> String {
+        self.v.to_string()
     }
 }

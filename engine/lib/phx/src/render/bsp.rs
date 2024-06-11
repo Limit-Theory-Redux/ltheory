@@ -361,7 +361,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
             let node: &mut BSPNode = &mut this.nodes[nodeRef.index as usize];
             //BSP_PROFILE(self->profilingData.ray.nodes++;)
 
-            let dist: f32 = Vec3::dot((*node).plane.n, ray.p) - (*node).plane.d;
+            let dist: f32 = Vec3::dot((*node).plane.n, ray.p.as_vec3()) - (*node).plane.d;
             let denom: f32 = -Vec3::dot((*node).plane.n, ray.dir);
 
             /* Near means the side of the plane the point p is on. */
@@ -473,13 +473,15 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     let mut t: f32 = 0.;
     let dir: Vec3 = lineSegment.p1 - lineSegment.p0;
     let mut ray: Ray = Ray {
-        p: lineSegment.p0,
+        p: Position::from_vec(lineSegment.p0),
         dir,
         tMin: 0.0f32,
         tMax: 1.0f32,
     };
     if BSP_IntersectRay(this, &mut ray, &mut t) {
-        Ray_GetPoint(&mut ray, t, pHit);
+        let mut positionHit = Position::ZERO;
+        Ray_GetPoint(&mut ray, t, &mut positionHit);
+        *pHit = positionHit.as_vec3();
         true
     } else {
         false

@@ -189,14 +189,14 @@ function Entity:getSpeed()
     return self.body:getSpeed()
 end
 
-function Entity:getToLocalMatrix()
+function Entity:getToLocalMatrix(eye)
     assert(self.body)
-    return self.body:getToLocalMatrix(Position.Identity())
+    return self.body:getToLocalMatrix(eye)
 end
 
-function Entity:getToWorldMatrix()
+function Entity:getToWorldMatrix(eye)
     assert(self.body)
-    return self.body:getToWorldMatrix(Position.Identity())
+    return self.body:getToWorldMatrix(eye)
 end
 
 function Entity:getParentBody()
