@@ -5,7 +5,7 @@ Config.gen = {
     seedGlobal                       = nil,            -- Set to force deterministic global RNG
     seedSystem                       = nil,            -- Set to force deterministic system generation
 
-    origin                           = Vec3f(0, 0, 0), -- Set far from zero to test engine precision
+    origin                           = Position(0, 0, 0), -- Set far from zero to test engine precision
 
     nFields                          = 1,
     nFieldsMax                       = 1,

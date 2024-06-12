@@ -15,7 +15,7 @@ const DEFAULT_COMMAND_CAPACITY: usize = 1024;
 
 struct ListenerInfo {
     listener: ListenerHandle,
-    position: Vec3,
+    position: Position,
     orientation: Quat,
 }
 
@@ -23,6 +23,7 @@ pub struct Audio {
     audio_manager: AudioManager,
     spatial_scene: SpatialSceneHandle,
     listener_info: ListenerInfo,
+    audio_origin: Position,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -47,10 +48,14 @@ impl Audio {
             )
             .expect("Cannot add spatial scene");
 
-        let position = Vec3::ZERO;
+        let position = Position::ZERO;
         let orientation = Quat::IDENTITY;
         let listener = spatial_scene
-            .add_listener(position, orientation, ListenerSettings::default())
+            .add_listener(
+                position.relative_to(Position::ZERO),
+                orientation,
+                ListenerSettings::default(),
+            )
             .expect("Cannot add listener");
 
         Self {
@@ -61,6 +66,7 @@ impl Audio {
                 position,
                 orientation,
             },
+            audio_origin: Position::ZERO,
         }
     }
 
@@ -89,17 +95,17 @@ impl Audio {
         sound: &mut Sound,
         init_volume: f64,
         fade_millis: u64,
-        init_pos: Vec3,
+        init_pos: Position,
         min_distance: f32,
         max_distance: f32,
     ) -> SoundInstance {
         let emitter_handle = self
             .spatial_scene
             .add_emitter(
-                [init_pos.x, init_pos.y, init_pos.z],
+                init_pos.relative_to(self.audio_origin),
                 EmitterSettings::new().distances(EmitterDistances {
-                    min_distance: min_distance,
-                    max_distance: max_distance,
+                    min_distance,
+                    max_distance,
                 }),
             )
             .expect("Cannot add an emitter");
@@ -120,24 +126,33 @@ impl Audio {
             .play(sound_data_clone)
             .expect("Cannot play sound");
 
-        let sound_instance =
-            SoundInstance::new(sound_handle, init_volume, Some((emitter_handle, init_pos)));
+        let sound_instance = SoundInstance::new(
+            sound_handle,
+            init_volume,
+            Some((emitter_handle, init_pos, self.audio_origin)),
+        );
 
         sound_instance
     }
 
-    pub fn set_listener_pos(&mut self, pos: &Vec3) {
+    pub fn set_listener_pos(&mut self, pos: &Position) {
         process_command_error(
             self.listener_info
                 .listener
-                .set_position(*pos, Tween::default()),
+                .set_position(pos.relative_to(self.audio_origin), Tween::default()),
             "Cannot set listener position",
         );
 
         self.listener_info.position = *pos;
+
+        // If the listener has strayed too far from the origin, update it.
+        const UPDATE_DIST: f64 = 1_000_000.0;
+        if pos.distance_squared(self.audio_origin) > (UPDATE_DIST * UPDATE_DIST) {
+            self.update_origin(pos);
+        }
     }
 
-    pub fn listener_pos(&self) -> Vec3 {
+    pub fn listener_pos(&self) -> Position {
         self.listener_info.position
     }
 
@@ -162,5 +177,25 @@ impl Audio {
 
     pub fn get_total_count(&self) -> u64 {
         self.audio_manager.sound_capacity() as u64
+    }
+}
+
+impl Audio {
+    /// Updates the origin in Kira's coordinate system.
+    ///
+    /// As Kira maintains a 32-bit coordinate system, if the listener strays too far away from the origin, we will start to have difficulty with 32-bit precision.
+    /// If this function is called, all currently playing sounds and the listener will have their position recalculated from the new origin in Kira's coordinate system.
+    pub fn update_origin(&mut self, origin: &Position) {
+        self.audio_origin = *origin;
+
+        process_command_error(
+            self.listener_info.listener.set_position(
+                self.listener_info.position.relative_to(self.audio_origin),
+                Tween::default(),
+            ),
+            "Cannot set listener position",
+        );
+
+        // TODO: Loop through currently playing sounds, and update their positions.
     }
 }

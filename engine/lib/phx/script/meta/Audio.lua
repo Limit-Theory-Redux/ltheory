@@ -15,16 +15,16 @@ function Audio:play(sound, initVolume, fadeMillis) end
 ---@param sound Sound
 ---@param initVolume number
 ---@param fadeMillis integer
----@param initPos Vec3f
+---@param initPos Position
 ---@param minDistance number
 ---@param maxDistance number
 ---@return SoundInstance
 function Audio:play3D(sound, initVolume, fadeMillis, initPos, minDistance, maxDistance) end
 
----@param pos Vec3f
+---@param pos Position
 function Audio:setListenerPos(pos) end
 
----@return Vec3f
+---@return Position
 function Audio:listenerPos() end
 
 ---@param rot Quat

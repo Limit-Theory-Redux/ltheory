@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use rapier3d_f64::prelude as rp;
 use rapier3d_f64::prelude::nalgebra as na;
 
-use crate::math::{Box3, Vec3};
+use crate::math::{Box3, Position, Vec3};
 use crate::physics::*;
 use crate::rf::Rf;
 
@@ -184,7 +184,7 @@ impl Trigger {
     }
 
     #[bind(name = "SetPos")]
-    pub fn set_position(&mut self, pos: &Vec3) {
+    pub fn set_position(&mut self, pos: &Position) {
         if self.is_attached() {
             panic!("Not allowed when attached to a RigidBody.");
         }
@@ -193,7 +193,7 @@ impl Trigger {
     }
 
     #[bind(name = "SetPosLocal")]
-    pub fn set_position_local(&mut self, pos: &Vec3) {
+    pub fn set_position_local(&mut self, pos: &Position) {
         if !self.is_attached() {
             panic!("Only allowed when attached to a RigidBody.");
         }
@@ -203,8 +203,7 @@ impl Trigger {
         // Compute the new local transformation by taking the existing
         // rigid body hierarchy into account. If the parent is itself
         // a child, then we need to append to its relative transform.
-        let translation =
-            rp::Isometry::translation(pos.x as rp::Real, pos.y as rp::Real, pos.z as rp::Real);
+        let translation = rp::Isometry::translation(pos.v.x, pos.v.y, pos.v.z);
         let transform = if parent.is_child() {
             parent.get_collider_ref().position_wrt_parent().unwrap() * translation
         } else {
@@ -214,20 +213,20 @@ impl Trigger {
     }
 
     #[bind(name = "GetPos", out_param = true)]
-    pub fn get_position(&self) -> Vec3 {
+    pub fn get_position(&self) -> Position {
         if self.is_attached() {
             panic!("Not allowed when attached to a RigidBody.");
         }
 
-        Vec3::from_na(&self.collider.as_ref().position().translation.vector)
+        Position::from_na(&self.collider.as_ref().position().translation.vector)
     }
 
     #[bind(name = "GetPosLocal", out_param = true)]
-    pub fn get_position_local(&self) -> Vec3 {
+    pub fn get_position_local(&self) -> Position {
         if let Some(parent) = &self.parent {
-            Vec3::from_na(&parent.translation.translation.vector)
+            Position::from_na(&parent.translation.translation.vector)
         } else {
-            Vec3::ZERO
+            Position::ZERO
         }
     }
 

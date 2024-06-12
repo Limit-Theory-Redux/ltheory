@@ -71,7 +71,7 @@ end
 
 function Turret:aimAt(pos)
     if not GameState.paused then
-        local look = pos - self:getPos()
+        local look = pos:relativeTo(self:getPos())
         local up   = self:getParent():getUp()
         self.aim:iLerp(Quat.FromLookUp(look, up), 0.1)
         self.aim = Quat.FromLookUp(look, up)

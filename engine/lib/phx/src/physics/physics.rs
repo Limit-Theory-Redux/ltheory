@@ -36,14 +36,14 @@ impl ShapeCastResult {
     }
 }
 
-pub trait NalgebraVec3Interop {
+pub trait NalgebraVecInterop {
     fn to_na(&self) -> na::Vector3<rp::Real>;
     fn to_na_point(&self) -> na::Point3<rp::Real>;
     fn from_na(_: &na::Vector3<rp::Real>) -> Self;
     fn from_na_point(_: &na::Point3<rp::Real>) -> Self;
 }
 
-impl NalgebraVec3Interop for Vec3 {
+impl NalgebraVecInterop for Vec3 {
     fn to_na(&self) -> na::Vector3<rp::Real> {
         na::Vector3::new(self.x as rp::Real, self.y as rp::Real, self.z as rp::Real)
     }
@@ -55,6 +55,21 @@ impl NalgebraVec3Interop for Vec3 {
     }
     fn from_na_point(v: &na::Point3<rp::Real>) -> Vec3 {
         Vec3::new(v.x as f32, v.y as f32, v.z as f32)
+    }
+}
+
+impl NalgebraVecInterop for Position {
+    fn to_na(&self) -> na::Vector3<rp::Real> {
+        na::Vector3::new(self.v.x, self.v.y, self.v.z)
+    }
+    fn to_na_point(&self) -> na::Point3<rp::Real> {
+        na::Point3::new(self.v.x, self.v.y, self.v.z)
+    }
+    fn from_na(v: &na::Vector3<rp::Real>) -> Position {
+        Position::new(v.x, v.y, v.z)
+    }
+    fn from_na_point(v: &na::Point3<rp::Real>) -> Position {
+        Position::new(v.x, v.y, v.z)
     }
 }
 
@@ -78,14 +93,14 @@ impl NalgebraQuatInterop for Quat {
 }
 
 pub trait RapierMatrixInterop {
-    fn from_rp(_: &rp::Isometry<rp::Real>) -> Self;
+    fn from_rp(_: &rp::Isometry<rp::Real>, frame: &Position) -> Self;
 }
 
 impl RapierMatrixInterop for Matrix {
-    fn from_rp(t: &rp::Isometry<rp::Real>) -> Matrix {
+    fn from_rp(t: &rp::Isometry<rp::Real>, frame: &Position) -> Matrix {
         Matrix::from_rotation_translation(
             Quat::from_na(&t.rotation),
-            Vec3::from_na(&t.translation.vector),
+            Position::from_na(&t.translation.vector).relative_to(*frame),
         )
     }
 }
