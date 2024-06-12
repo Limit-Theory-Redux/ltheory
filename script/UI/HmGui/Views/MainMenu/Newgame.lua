@@ -297,7 +297,7 @@ local function settingsfunction()
                                     "Size class of the player's ship."
                                 end,
                                 selections = ShipHullsText,
-                                currentValue = GameState.player.shipHull,
+                                selectedIndex = GameState.player.shipHull,
                                 callback = function(v) GameState.player.shipHull = v end
                             },
                             UIComponent.Switch {
