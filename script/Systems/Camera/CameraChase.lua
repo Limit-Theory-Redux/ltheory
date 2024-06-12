@@ -30,7 +30,7 @@ function CameraChase:onUpdate(dt)
         self.posT:iadd(tRight:scale(-4.0 * velA.y))
         self.posT:iadd(tUp:scale(4.0 * velA.x))
 
-        local look = (self.target:toWorldScaled(self.lookAtRel) - self.posT):normalize()
+        local look = (self.target:toWorldScaled(self.lookAtRel) - self.posT):toVec3f():normalize()
         local up   = (tUp + tRight:scale(0.2 * velA.y)):normalize()
         up         = up:reject(look):normalize()
         self.rotT  = Quat.FromLookUp(look, up)

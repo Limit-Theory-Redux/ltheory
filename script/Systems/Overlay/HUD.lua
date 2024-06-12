@@ -2010,7 +2010,7 @@ function HUD:controlTurrets(e)
     local firing   = ShipBindings.Fire:get() > 0 and 1 or 0
     local camera   = self.gameView.camera
     local ndc      = Vec3f(self.aimX, self.aimY)
-    local fallback = camera:mouseToRay(1):getPoint(e.socketRangeMin)
+    local fallback = camera:mouseToRay(1):getPoint(e.socketRangeMin):toPosition()
 
     -- Compute a firing solution separately for each turret to support different projectile velocities & ranges
     for turret in e:iterSocketsByType(SocketType.Turret) do

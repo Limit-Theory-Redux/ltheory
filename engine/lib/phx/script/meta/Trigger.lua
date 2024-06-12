@@ -28,16 +28,16 @@ function Trigger:getContents(i) end
 ---@param mask integer
 function Trigger:setCollisionMask(mask) end
 
----@param pos Vec3f
+---@param pos Position
 function Trigger:setPos(pos) end
 
----@param pos Vec3f
+---@param pos Position
 function Trigger:setPosLocal(pos) end
 
----@param result Vec3f [out]
+---@param result Position [out]
 function Trigger:getPos(result) end
 
----@param result Vec3f [out]
+---@param result Position [out]
 function Trigger:getPosLocal(result) end
 
 ---@return RigidBody
