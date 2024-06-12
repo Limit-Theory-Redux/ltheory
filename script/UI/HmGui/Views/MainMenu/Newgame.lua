@@ -35,6 +35,15 @@ local seeds = {
     { "looks pretty cool too",                            976665863517979971ULL },   -- looks pretty cool too
 }
 
+local ShipHullsText = {
+    "Solo",
+    "Small",
+    "Compact",
+    "Medium",
+    "Large",
+    "VeryLarge",
+}
+
 local selectedSeedIndex = nil
 
 function NewgameView:onInput() end
@@ -261,18 +270,33 @@ local function settingsfunction()
                                 currentValue = GameState.gen.nEscortNPCs,
                                 callback = function(v) GameState.gen.nEscortNPCs = v end
                             },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
+--                            UIComponent.Slider {
+--                                size = ResponsiveSize(300, 20),
+--                                margin = { 0, 18 },
+--                                align = { AlignHorizontal.Center, AlignVertical.Center },
+--                                sound = Config.audio.sounds.click,
+--                                toolTip = function()
+--                                    return
+--                                    "Size class of the player's ship."
+--                                end,
+--                                increment = 1,
+--                                minValue = 1,
+--                                maxValue = Enums.ShipHulls.VeryLarge,
+--                                currentValue = GameState.player.shipHull,
+--                                callback = function(v) GameState.player.shipHull = v end
+--                            },
+                            UIComponent.Dropdown {
+                                width = 300,
+                                height = 20,
                                 margin = { 0, 18 },
+                                font = { name = "Unageo-Medium", size = 20 },
                                 align = { AlignHorizontal.Center, AlignVertical.Center },
                                 sound = Config.audio.sounds.click,
                                 toolTip = function()
                                     return
                                     "Size class of the player's ship."
                                 end,
-                                increment = 1,
-                                minValue = 1,
-                                maxValue = Enums.ShipHulls.VeryLarge,
+                                selections = ShipHullsText,
                                 currentValue = GameState.player.shipHull,
                                 callback = function(v) GameState.player.shipHull = v end
                             },
