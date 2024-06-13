@@ -60,7 +60,7 @@ function Loader.defineType()
             void       RigidBody_SetRotLocal                       (RigidBody*, Quat const* rot);
             float      RigidBody_GetScale                          (RigidBody const*);
             void       RigidBody_SetScale                          (RigidBody*, float scale);
-            float      RigidBody_DistanceTo                        (RigidBody const*, RigidBody const* target);
+            double     RigidBody_DistanceTo                        (RigidBody const*, RigidBody const* target);
             bool       RigidBody_IsSleeping                        (RigidBody const*);
         ]]
     end

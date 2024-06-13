@@ -52,7 +52,7 @@ function Test:onUpdate(dt)
     GameState.player.humanPlayer:getRoot():update(dt)
     self.canvas:update(dt)
     Universe:OnUpdate(dt)
-    SoundManager:clean(dt)
+    SoundManager:update(dt)
     MusicPlayer:OnUpdate(dt) --todo fix casing
 
     Gui:beginGui(self.resX, self.resY, InputInstance)

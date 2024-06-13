@@ -1,6 +1,7 @@
 local SoundManager = class(function(self) end)
 
 local CLEAN_EVERY_S = 2
+local UPDATE_DIST = 100000.0
 
 function SoundManager:init()
     self.lastClean = TimeStamp.Now()
@@ -68,7 +69,8 @@ function SoundManager:getSoundsPlaying(soundGroup)
     return nil
 end
 
-function SoundManager:clean(dt)
+function SoundManager:update(dt)
+    -- Clean up finished sounds.
     if self.lastClean:getElapsed() > CLEAN_EVERY_S then
         local instanceCount = 0
         for _, soundGroup in ipairs(self.groups) do
@@ -86,6 +88,20 @@ function SoundManager:clean(dt)
         -- end
 
         self.lastClean = TimeStamp.Now()
+    end
+
+    -- If the listener has strayed too far from the origin, update it.
+    local audio = GameState.audio.manager
+    if audio:listenerPos():distanceSquared(audio:originPos()) > (UPDATE_DIST * UPDATE_DIST) then
+        local newOrigin = audio:listenerPos()
+        audio:setOriginPos(newOrigin)
+        
+        -- Update all playing sounds.
+        for _, soundGroup in ipairs(self.groups) do
+            for _, soundInstance in ipairs(soundGroup) do
+                soundInstance:setEmitterOriginPos(newOrigin)
+            end
+        end
     end
 end
 

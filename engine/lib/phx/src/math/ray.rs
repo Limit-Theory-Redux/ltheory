@@ -3,19 +3,19 @@ use super::*;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Ray {
-    pub p: Vec3,
-    pub dir: Vec3,
-    pub tMin: f32,
-    pub tMax: f32,
+    pub p: Position,
+    pub dir: DVec3,
+    pub tMin: f64,
+    pub tMax: f64,
 }
 
 #[no_mangle]
-pub extern "C" fn Ray_GetPoint(this: &Ray, t: f32, out: &mut Vec3) {
-    *out = this.p + (this.dir * t);
+pub extern "C" fn Ray_GetPoint(this: &Ray, t: f64, out: &mut Position) {
+    *out = Position::from_dvec(this.p.v + this.dir * t);
 }
 
 #[no_mangle]
-pub extern "C" fn Ray_IntersectPlane(this: &Ray, plane: &Plane, pHit: &mut Vec3) -> bool {
+pub extern "C" fn Ray_IntersectPlane(this: &Ray, plane: &Plane, pHit: &mut Position) -> bool {
     Intersect_RayPlane(this, plane, pHit)
 }
 
@@ -48,12 +48,12 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
 }
 
 #[no_mangle]
-pub extern "C" fn Ray_ToLineSegment(this: &Ray, lineSegment: &mut LineSegment) {
-    Ray_GetPoint(this, this.tMin, &mut lineSegment.p0);
-    Ray_GetPoint(this, this.tMax, &mut lineSegment.p1);
+pub extern "C" fn Ray_ToLineSegment(this: &Ray, line_segment: &mut LineSegment) {
+    Ray_GetPoint(this, this.tMin, &mut line_segment.p0);
+    Ray_GetPoint(this, this.tMax, &mut line_segment.p1);
 }
 
 #[no_mangle]
-pub extern "C" fn Ray_FromLineSegment(lineSegment: &LineSegment, this: &mut Ray) {
-    LineSegment_ToRay(lineSegment, this);
+pub extern "C" fn Ray_FromLineSegment(line_segment: &LineSegment, this: &mut Ray) {
+    LineSegment_ToRay(line_segment, this);
 }

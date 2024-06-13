@@ -83,14 +83,14 @@ pub unsafe extern "C" fn Intersect_PointTriangle_Barycentric(p: &Vec3, tri: &Tri
 }
 
 #[no_mangle]
-pub extern "C" fn Intersect_RayPlane(ray: &Ray, plane: &Plane, pHit: &mut Vec3) -> bool {
+pub extern "C" fn Intersect_RayPlane(ray: &Ray, plane: &Plane, pHit: &mut Position) -> bool {
     /* TODO : Shouldn't we handle denom == 0? */
-    let dist: f32 = (*plane).d - Vec3::dot((*plane).n, ray.p);
-    let denom: f32 = Vec3::dot((*plane).n, ray.dir);
-    let t: f32 = dist / denom;
+    let dist: f64 = (*plane).d as f64 - DVec3::dot((*plane).n.as_dvec3(), ray.p.v);
+    let denom: f64 = DVec3::dot((*plane).n.as_dvec3(), ray.dir);
+    let t: f64 = dist / denom;
 
     if t >= ray.tMin && t <= ray.tMax {
-        *pHit = ray.p + ray.dir * t;
+        *pHit = Position::from_dvec(ray.p.v + ray.dir * t);
         true
     } else {
         false
@@ -114,15 +114,16 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
     };
     Triangle_ToPlaneFast(tri, &mut plane);
 
-    let dist: f32 = Vec3::dot(plane.n, ray.p) - plane.d;
-    let denom: f32 = -Vec3::dot(plane.n, ray.dir);
+    let dist: f32 = Vec3::dot(plane.n, ray.p.as_vec3()) - plane.d;
+    let denom: f32 = -Vec3::dot(plane.n, ray.dir.as_vec3());
 
     if denom != 0.0f32 {
         let t: f32 = dist / denom;
-        if t > ray.tMin - tEpsilon && t < ray.tMax + tEpsilon {
+        if t > ray.tMin as f32 - tEpsilon && t < ray.tMax as f32 + tEpsilon {
             let v: &[Vec3; 3] = &tri.vertices;
-            let mut p = Vec3::ZERO;
-            Ray_GetPoint(&*ray, t, &mut p);
+            let mut pp = Position::ZERO;
+            Ray_GetPoint(ray, t as f64, &mut pp);
+            let p = pp.as_vec3();
 
             let pv0: Vec3 = v[0] - p;
             let pv1: Vec3 = v[1] - p;
@@ -169,7 +170,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
     let edge2: Vec3 = vt[2] - vt[0];
 
     /* Begin calculating determinant - also used to calculate U parameter. */
-    let pvec: Vec3 = Vec3::cross(ray.dir, edge2);
+    let pvec: Vec3 = Vec3::cross(ray.dir.as_vec3(), edge2);
 
     /* TODO : Need a proper epsilon */
     let epsilon: f32 = 0.000001f32;
@@ -178,7 +179,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
     let det: f32 = Vec3::dot(edge1, pvec);
     let qvec = if det > epsilon {
         /* Calculate distance from vert0 to ray origin. */
-        let tvec: Vec3 = ray.p - vt[0];
+        let tvec: Vec3 = ray.p.as_vec3() - vt[0];
 
         /* Calculate U parameter and test bounds. */
         let u = Vec3::dot(tvec, pvec);
@@ -190,7 +191,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
         let qvec = Vec3::cross(tvec, edge1);
 
         /* Calculate V parameter and test bounds. */
-        let v = Vec3::dot(ray.dir, qvec);
+        let v = Vec3::dot(ray.dir.as_vec3(), qvec);
 
         if (v as f64) < 0.0f64 || u + v > det {
             return false;
@@ -199,7 +200,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
         qvec
     } else if det < -epsilon {
         /* Calculate distance from vert0 to ray origin. */
-        let tvec: Vec3 = ray.p - vt[0];
+        let tvec: Vec3 = ray.p.as_vec3() - vt[0];
 
         /* Calculate U parameter and test bounds. */
         let u = Vec3::dot(tvec, pvec);
@@ -211,7 +212,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
         let qvec = Vec3::cross(tvec, edge1);
 
         /* Calculate V parameter and test bounds. */
-        let v = Vec3::dot(ray.dir, qvec);
+        let v = Vec3::dot(ray.dir.as_vec3(), qvec);
 
         if v as f64 > 0.0f64 || u + v < det {
             return false;
@@ -244,7 +245,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
     let edge2: Vec3 = vt[2] - vt[0];
 
     /* Begin calculating determinant - also used to calculate U parameter. */
-    let pvec: Vec3 = Vec3::cross(ray.dir, edge2);
+    let pvec: Vec3 = Vec3::cross(ray.dir.as_vec3(), edge2);
 
     /* If determinant is near zero ray lies in plane of triangle. */
     let det: f32 = Vec3::dot(edge1, pvec);
@@ -257,7 +258,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
     let inv_det: f32 = 1.0f32 / det;
 
     /* Calculate distance from vert to ray origin. */
-    let tvec: Vec3 = ray.p - vt[0];
+    let tvec: Vec3 = ray.p.as_vec3() - vt[0];
 
     /* TODO : Need a proper epsilon */
     let fuzzyMin: f32 = 0.0f32 - 0.01f32;
@@ -273,7 +274,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
     let qvec: Vec3 = Vec3::cross(tvec, edge1);
 
     /* Calculate V and test bounds. */
-    let v: f32 = Vec3::dot(ray.dir, qvec) * inv_det;
+    let v: f32 = Vec3::dot(ray.dir.as_vec3(), qvec) * inv_det;
     if v < fuzzyMin || u + v > fuzzyMax {
         return false;
     }
@@ -287,15 +288,15 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
 pub unsafe extern "C" fn Intersect_LineSegmentPlane(
     lineSegment: *const LineSegment,
     plane: &Plane,
-    pHit: &mut Vec3,
+    pHit: &mut Position,
 ) -> bool {
-    let dir: Vec3 = (*lineSegment).p1 - (*lineSegment).p0;
     let mut ray: Ray = Ray {
         p: (*lineSegment).p0,
-        dir,
-        tMin: 0.0f32,
-        tMax: 1.0f32,
+        dir: (*lineSegment).p1.as_dvec3() - (*lineSegment).p0.as_dvec3(),
+        tMin: 0.0,
+        tMax: 1.0,
     };
+
     Intersect_RayPlane(&mut ray, plane, pHit)
 }
 

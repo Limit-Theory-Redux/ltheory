@@ -39,6 +39,9 @@ function SoundInstance:movePlayPos(offset) end
 ---@param position Position
 function SoundInstance:setEmitterPos(position) end
 
+---@param origin Position
+function SoundInstance:setEmitterOriginPos(origin) end
+
 ---@return Position
 function SoundInstance:emitterPos() end
 

@@ -24,6 +24,8 @@ function Loader.defineType()
             Position       Audio_ListenerPos    (Audio const*);
             void           Audio_SetListenerRot (Audio*, Quat const* rot);
             Quat*          Audio_ListenerRot    (Audio const*);
+            void           Audio_SetOriginPos   (Audio*, Position const* origin);
+            Position       Audio_OriginPos      (Audio const*);
             uint64         Audio_GetLoadedCount (Audio const*);
             uint64         Audio_GetTotalCount  (Audio const*);
         ]]
@@ -60,6 +62,8 @@ function Loader.defineType()
                     local instance = libphx.Audio_ListenerRot(...)
                     return Core.ManagedObject(instance, libphx.Quat_Free)
                 end,
+                setOriginPos   = libphx.Audio_SetOriginPos,
+                originPos      = libphx.Audio_OriginPos,
                 getLoadedCount = libphx.Audio_GetLoadedCount,
                 getTotalCount  = libphx.Audio_GetTotalCount,
             },
