@@ -144,12 +144,6 @@ impl Audio {
         );
 
         self.listener_info.position = *pos;
-
-        // If the listener has strayed too far from the origin, update it.
-        const UPDATE_DIST: f64 = 1_000_000.0;
-        if pos.distance_squared(self.audio_origin) > (UPDATE_DIST * UPDATE_DIST) {
-            self.update_origin(pos);
-        }
     }
 
     pub fn listener_pos(&self) -> Position {
@@ -170,22 +164,12 @@ impl Audio {
     pub fn listener_rot(&self) -> Quat {
         self.listener_info.orientation
     }
-
-    pub fn get_loaded_count(&self) -> u64 {
-        self.audio_manager.num_sounds() as u64
-    }
-
-    pub fn get_total_count(&self) -> u64 {
-        self.audio_manager.sound_capacity() as u64
-    }
-}
-
-impl Audio {
+    
     /// Updates the origin in Kira's coordinate system.
     ///
     /// As Kira maintains a 32-bit coordinate system, if the listener strays too far away from the origin, we will start to have difficulty with 32-bit precision.
-    /// If this function is called, all currently playing sounds and the listener will have their position recalculated from the new origin in Kira's coordinate system.
-    pub fn update_origin(&mut self, origin: &Position) {
+    /// If this function is called, the listener and all new sounds will have their position calculated from the new origin in Kira's coordinate system.
+    pub fn set_origin_pos(&mut self, origin: &Position) {
         self.audio_origin = *origin;
 
         process_command_error(
@@ -195,7 +179,17 @@ impl Audio {
             ),
             "Cannot set listener position",
         );
+    }
 
-        // TODO: Loop through currently playing sounds, and update their positions.
+    pub fn origin_pos(&self) -> Position {
+        self.audio_origin
+    }
+
+    pub fn get_loaded_count(&self) -> u64 {
+        self.audio_manager.num_sounds() as u64
+    }
+
+    pub fn get_total_count(&self) -> u64 {
+        self.audio_manager.sound_capacity() as u64
     }
 }

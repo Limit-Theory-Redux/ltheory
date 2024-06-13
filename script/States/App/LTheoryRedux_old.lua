@@ -192,7 +192,7 @@ function LimitTheoryRedux:onUpdate(dt)
     GameState.player.humanPlayer:getRoot():update(dt)
     self.canvas:update(dt)
     MainMenu:OnUpdate(dt)
-    SoundManager:clean(dt)
+    SoundManager:update(dt)
     MusicPlayer:OnUpdate(dt)
     Universe:OnUpdate(dt)
 

@@ -115,7 +115,7 @@ end
 function BattleTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
-    SoundManager:clean(dt)
+    SoundManager:update(dt)
     Gui:beginGui(self.resX, self.resY, InputInstance)
     Gui:endGui(InputInstance)
 end

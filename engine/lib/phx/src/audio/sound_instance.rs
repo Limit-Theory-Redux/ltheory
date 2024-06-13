@@ -38,12 +38,8 @@ impl SoundInstance {
     }
 
     // This recomputes the emitters position relative to the current listeners position. This should be called anytime that the listener's origin is updated.
-    pub(crate) fn update_kira_emitter_position(&mut self, new_audio_origin: Option<Position>) {
+    fn update_kira_emitter_position(&mut self) {
         if let Some(emitter_info) = &mut self.emitter_info {
-            if let Some(new_audio_origin) = new_audio_origin {
-                emitter_info.audio_origin = new_audio_origin;
-            }
-
             process_command_error(
                 emitter_info.emitter.set_position(
                     emitter_info.position.relative_to(emitter_info.audio_origin),
@@ -162,7 +158,14 @@ impl SoundInstance {
     pub fn set_emitter_pos(&mut self, position: &Position) {
         if let Some(emitter_info) = &mut self.emitter_info {
             emitter_info.position = *position;
-            self.update_kira_emitter_position(None)
+            self.update_kira_emitter_position()
+        }
+    }
+
+    pub fn set_emitter_origin_pos(&mut self, origin: &Position) {
+        if let Some(emitter_info) = &mut self.emitter_info {
+            emitter_info.audio_origin = *origin;
+            self.update_kira_emitter_position();
         }
     }
 
