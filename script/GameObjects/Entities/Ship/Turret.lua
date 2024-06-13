@@ -154,7 +154,7 @@ function Turret:render(state)
         if self.heat > 1e-3 then
             Shader.ISetFloat(varCache.size, 8)
             Shader.ISetFloat(varCache.alpha, 2.0 * self.heat)
-            Shader.ISetMatrix(varCache.mWorld, self:getToWorldMatrix())
+            Shader.ISetMatrix(varCache.mWorld, self:getToWorldMatrix(state.eye))
             mesh:drawBound()
         end
         mesh:drawUnbind()

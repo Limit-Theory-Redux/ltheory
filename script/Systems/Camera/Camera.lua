@@ -26,7 +26,7 @@ function Camera:beginDraw()
     ShaderVar.PushMatrix('mViewInv', self.mViewInv)
     ShaderVar.PushMatrix('mProj', self.mProj)
     ShaderVar.PushMatrix('mProjInv', self.mProjInv)
-    ShaderVar.PushFloat3('eye', self.pos.x, self.pos.y, self.pos.z)
+    ShaderVar.PushFloat3('eye', 0.0, 0.0, 0.0)
 end
 
 function Camera:endDraw()
@@ -83,12 +83,12 @@ function Camera:ndcToView(ndc)
 end
 
 function Camera:viewToWorld(vs)
-    local ws = self.mViewInv:mulPoint(vs)
+    local ws = self.mViewInv:mulPoint(vs) + self.pos
     return ws
 end
 
 function Camera:worldToView(ws)
-    local vs = self.mView:mulPoint(ws)
+    local vs = self.mView:mulPoint(ws:relativeTo(self.pos))
     return vs
 end
 
@@ -191,7 +191,8 @@ function Camera:refreshMatrices()
     self.pos = self.posOffset + self.posT
     self.rot = self.rotOffset * self.rotT
 
-    self.mViewInv = Matrix.FromPosRot(self.pos:toVec3f(), self.rot)
+    -- View matrix has the "position" at (0,0,0), as all world matrices are offset by self.pos.
+    self.mViewInv = Matrix.FromPosRot(Vec3f.Identity(), self.rot)
     self.mView = self.mViewInv:inverse()
 
     self.mProj = Matrix.Perspective(

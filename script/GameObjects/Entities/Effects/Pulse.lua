@@ -30,7 +30,6 @@ end)
 
 Pulse:setInitializer(function(self)
     self.matrix = Matrix.Identity()
-    self:register(Event.AddedToParent, onAddedToParent)
 end)
 
 Pulse:addOnDestruct(function(self)
@@ -40,18 +39,21 @@ end)
 
 Pulse:define()
 
-onAddedToParent = function(self, parent)
-    self:refreshMatrix()
-end
-
-function Pulse:refreshMatrix()
+function Pulse:refreshMatrix(eye)
     self.matrix:free()
-    -- TODO: Relative to camera.
-    self.matrix = Matrix.LookUp(self.pos:relativeTo(Position.Identity()), -self.dir, Math.OrthoVector(self.dir))
+    self.matrix = Matrix.LookUp(self.pos:relativeTo(eye), -self.dir, Math.OrthoVector(self.dir))
 end
 
 function Pulse.Render(projectiles, state)
     if state.mode == BlendMode.Additive then
+        do -- Recalculate matrices.
+            for i = 1, #projectiles do
+                local proj  = projectiles[i]
+                local pulse = proj.effect
+                pulse:refreshMatrix(state.eye)
+            end
+        end
+
         do -- Heads
             Profiler.Begin('Pulse.RenderAdditive.Head')
             local shader = shaderHead
@@ -128,7 +130,6 @@ function Pulse.UpdatePrePhysics(system, projectiles, dt)
             pulse.pos:imadds(pulse.vel, dt)
             pulse.dir:ilerp(pulse.vel:normalize(), t) -- not needed for dumb-fire projectiles, but retained
             pulse.dist = pulse.dist + dt * Config.gen.compTurretPulseStats.speed
-            pulse:refreshMatrix()
         end
     end
     Profiler.End()

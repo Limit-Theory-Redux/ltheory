@@ -71,5 +71,6 @@ function Physics:drawBoundingBoxesLocal() end
 
 function Physics:drawBoundingBoxesWorld() end
 
-function Physics:drawWireframes() end
+---@param eye Position
+function Physics:drawWireframes(eye) end
 

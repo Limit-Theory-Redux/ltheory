@@ -128,6 +128,8 @@ end
 function LTheory:onInit()
     SoundManager:init()
 
+    GameState.render.uiCanvas = UI.Canvas()
+
     self.player = Entities.Player()
     GameState.player.humanPlayer = self.player
 
@@ -180,7 +182,7 @@ function LTheory:onInput()
             end
 
             -- Position
-            local pos = Vec3f(0, 0, 0)
+            local pos = Position(0, 0, 0)
             if InputInstance:isPressed(Button.KeyboardI) then pos.z = pos.z - 1 end
             if InputInstance:isPressed(Button.KeyboardK) then pos.z = pos.z + 1 end
             if InputInstance:isPressed(Button.KeyboardL) then pos.x = pos.x + 1 end
@@ -224,14 +226,14 @@ function LTheory:onUpdate(dt)
         table.insert(collisions, string.format('Collision %d between %s and %s', collision.index, tostring(collision.body0), tostring(collision.body1)))
     end
 
-    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY)
     Gui:beginVerticalContainer()
 
-    Gui:textEx(Cache.Font('Iceland', 32), string.format('Collision Count: %d', collision.count), Color(1.0, 1.0, 1.0, 1.0))
+    Gui:text(string.format('Collision Count: %d', collision.count), Cache.Font('Iceland', 32), Color(1.0, 1.0, 1.0, 1.0))
 
     if worldTriggerTest then
         local triggerCount = self.trigger1:getContentsCount()
-        Gui:textEx(Cache.Font('Iceland', 32), string.format('World Trigger Count: %d', triggerCount), Color(1.0, 1.0, 1.0, 1.0))
+        Gui:text(string.format('World Trigger Count: %d', triggerCount), Cache.Font('Iceland', 32), Color(1.0, 1.0, 1.0, 1.0))
         for i = 1, triggerCount do
             self.trigger1:getContents(i - 1)
         end
@@ -239,14 +241,14 @@ function LTheory:onUpdate(dt)
 
     if attachedTriggerTest then
         local triggerCount = self.trigger2:getContentsCount()
-        Gui:textEx(Cache.Font('Iceland', 32), string.format('Attached Trigger Count: %d', triggerCount), Color(1.0, 1.0, 1.0, 1.0))
+        Gui:text(string.format('Attached Trigger Count: %d', triggerCount), Cache.Font('Iceland', 32), Color(1.0, 1.0, 1.0, 1.0))
         for i = 1, triggerCount do
             self.trigger2:getContents(i - 1)
         end
     end
 
     for k, v in ipairs(collisions) do
-        Gui:textEx(Cache.Font('Iceland', 32), v, Color(1.0, 1.0, 1.0, 1.0))
+        Gui:text(v, Cache.Font('Iceland', 32), Color(1.0, 1.0, 1.0, 1.0))
     end
 
     Gui:endContainer()

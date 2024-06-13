@@ -171,10 +171,10 @@ pub extern "C" fn Draw_Line(x1: f32, y1: f32, x2: f32, y2: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Line3(p1: *const Vec3, p2: *const Vec3) {
+pub unsafe extern "C" fn Draw_Line3(p1: &Vec3, p2: &Vec3) {
     gl_begin(gl::LINES);
-    gl_vertex3f((*p1).x, (*p1).y, (*p1).z);
-    gl_vertex3f((*p2).x, (*p2).y, (*p2).z);
+    gl_vertex3f(p1.x, p1.y, p1.z);
+    gl_vertex3f(p2.x, p2.y, p2.z);
     gl_end();
 }
 

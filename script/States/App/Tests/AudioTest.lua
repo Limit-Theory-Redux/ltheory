@@ -169,7 +169,7 @@ function AudioTest:onUpdate(dt)
     self.pos = self.pos + self.vel:scale(dt)
     self.vel:iscale(exp(-dt))
 
-    SoundManager:clean(dt)
+    SoundManager:update(dt)
 
     do -- Play 'ambient' sound effects in a cloud around the listener
         -- WARNING : May cause extreme annoyance, nightmares, and/or euphoria.
