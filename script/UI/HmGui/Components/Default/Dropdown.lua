@@ -110,8 +110,8 @@ function Dropdown:new(args)
             return
         end
 
+        -- Set the dropdown text that is displayed when no selection has yet been made
         local selectedText = "--Select--"
-
         if self.state.listSelector().state.selectedIndex then
             selectedText = self.state.selections()[self.state.listSelector().state.selectedIndex]
         end
