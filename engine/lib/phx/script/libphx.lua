@@ -150,12 +150,12 @@ do -- Transparent Structs
     } IntersectSphereProfiling;
 
     typedef struct LineSegment {
-      float p0x;
-      float p0y;
-      float p0z;
-      float p1x;
-      float p1y;
-      float p1z;
+      double p0x;
+      double p0y;
+      double p0z;
+      double p1x;
+      double p1y;
+      double p1z;
     } LineSegment;
 
     typedef struct Matrix {
@@ -186,11 +186,11 @@ do -- Transparent Structs
       double px;
       double py;
       double pz;
-      float dirx;
-      float diry;
-      float dirz;
-      float tMin;
-      float tMax;
+      double dirx;
+      double diry;
+      double dirz;
+      double tMin;
+      double tMax;
     } Ray;
 
     typedef struct RayCastResult {
