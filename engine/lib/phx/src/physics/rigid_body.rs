@@ -764,11 +764,11 @@ impl RigidBody {
         }
     }
 
-    pub fn distance_to(&self, target: &RigidBody) -> f32 {
+    pub fn distance_to(&self, target: &RigidBody) -> f64 {
         let my_position = self.get_position();
         let target_position = target.get_position();
 
-        my_position.distance(target_position) as f32
+        my_position.distance(target_position)
     }
 
     pub fn is_sleeping(&self) -> bool {
