@@ -417,10 +417,10 @@ impl Physics {
 
     pub fn draw_bounding_boxes_world(&self) {}
 
-    pub fn draw_wireframes(&mut self) {
+    pub fn draw_wireframes(&mut self, eye: &Position) {
         let world = self.world.as_ref();
         self.debug_renderer.render(
-            &mut RapierDebugRenderer,
+            &mut RapierDebugRenderer{eye: *eye},
             &world.rigid_bodies,
             &world.colliders,
             &self.impulse_joints,
@@ -475,7 +475,9 @@ impl Physics {
     }
 }
 
-struct RapierDebugRenderer;
+struct RapierDebugRenderer {
+    eye: Position,
+}
 
 impl rp::DebugRenderBackend for RapierDebugRenderer {
     fn draw_line(
@@ -496,8 +498,8 @@ impl rp::DebugRenderBackend for RapierDebugRenderer {
                 a,
             );
             Draw_Line3(
-                &Vec3::from_na_point(&start) as *const _,
-                &Vec3::from_na_point(&end) as *const _,
+                &Position::from_na_point(&start).relative_to(self.eye),
+                &Position::from_na_point(&end).relative_to(self.eye),
             );
         }
     }
