@@ -114,160 +114,6 @@ function HUD:drawTargetText(a)
     end
 end
 
-function HUD:drawArmorIntegrity(a)
-    local cx, cy    = self.sx / 2, self.sy / 2
-
-    local mvWidth   = 18
-    local mvHeight  = 8
-    local mvSpacing = 10
-    local mvLevels  = 10
-    local mvYtot    = (mvHeight + mvSpacing) * mvLevels
-
-    local hudX      = 0
-    local hudY      = 0
-    if GameState.ui.hudStyle == Enums.HudStyles.Wide then
-        mvWidth   = 36
-        mvHeight  = 16
-        mvSpacing = 10
-        mvYtot    = (mvHeight + mvSpacing) * mvLevels
-        hudX      = 30
-        hudY      = cy + floor(cy / 10)
-    elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
-        mvWidth   = 32
-        mvHeight  = 12
-        mvSpacing = 10
-        mvYtot    = (mvHeight + mvSpacing) * mvLevels
-        hudX      = floor(cx / 3) - 60
-        hudY      = cy + floor(cy / 10)
-    elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
-        hudX = cx - 300 - 40
-        hudY = cy
-    end
-
-    local player = self.player
-    local playerShip = player:getControlling()
-    local playerArmorDecPct = floor((playerShip:mgrArmorGetHealthPercent() + 0.5) / 10)
-
-    UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
-    UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.armorIntegrity, mvSpacing, mvLevels,
-        playerArmorDecPct)
-end
-
-function HUD:drawHullIntegrity(a)
-    local cx, cy    = self.sx / 2, self.sy / 2
-
-    local mvWidth   = 18
-    local mvHeight  = 8
-    local mvSpacing = 10
-    local mvLevels  = 10
-    local mvYtot    = (mvHeight + mvSpacing) * mvLevels
-
-    local hudX      = 0
-    local hudY      = 0
-    if GameState.ui.hudStyle == Enums.HudStyles.Wide then
-        mvWidth   = 36
-        mvHeight  = 16
-        mvSpacing = 10
-        mvYtot    = (mvHeight + mvSpacing) * mvLevels
-        hudX      = 100
-        hudY      = cy + floor(cy / 10)
-    elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
-        mvWidth   = 32
-        mvHeight  = 12
-        mvSpacing = 10
-        mvYtot    = (mvHeight + mvSpacing) * mvLevels
-        hudX      = floor(cx / 3)
-        hudY      = cy + floor(cy / 10)
-    elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
-        hudX = cx - 300
-        hudY = cy
-    end
-
-    local player = self.player
-    local playerShip = player:getControlling()
-    local playerHealthDecPct = floor((playerShip:mgrHullGetHealthPercent() + 0.5) / 10)
-
-    UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
-    UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.hullIntegrity, mvSpacing, mvLevels,
-        playerHealthDecPct)
-end
-
-function HUD:drawCapacitorEnergy(a)
-    local cx, cy    = self.sx / 2, self.sy / 2
-
-    local mvWidth   = 18
-    local mvHeight  = 8
-    local mvSpacing = 10
-    local mvLevels  = 10
-    local mvYtot    = (mvHeight + mvSpacing) * mvLevels
-
-    local hudX      = 0
-    local hudY      = 0
-    if GameState.ui.hudStyle == Enums.HudStyles.Wide then
-        mvWidth   = 36
-        mvHeight  = 16
-        mvSpacing = 10
-        mvYtot    = (mvHeight + mvSpacing) * mvLevels
-        hudX      = self.sx - 100 - mvWidth
-        hudY      = cy + floor(cy / 10)
-    elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
-        mvWidth   = 32
-        mvHeight  = 12
-        mvSpacing = 10
-        mvYtot    = (mvHeight + mvSpacing) * mvLevels
-        hudX      = self.sx - floor(cx / 3) - mvWidth
-        hudY      = cy + floor(cy / 10)
-    elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
-        hudX = cx + (300 - mvWidth)
-        hudY = cy
-    end
-
-    local player = self.player
-    local playerShip = player:getControlling()
-    local capacitorDecPct = floor((playerShip:mgrCapacitorGetChargePercent() + 0.5) / 10)
-
-    UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
-    UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.capacitorEnergy, mvSpacing, mvLevels, capacitorDecPct)
-end
-
-function HUD:drawShieldStrength(a)
-    local cx, cy    = self.sx / 2, self.sy / 2
-
-    local mvWidth   = 18
-    local mvHeight  = 8
-    local mvSpacing = 10
-    local mvLevels  = 10
-    local mvYtot    = (mvHeight + mvSpacing) * mvLevels
-
-    local hudX      = 0
-    local hudY      = 0
-    if GameState.ui.hudStyle == Enums.HudStyles.Wide then
-        mvWidth   = 36
-        mvHeight  = 16
-        mvSpacing = 10
-        mvYtot    = (mvHeight + mvSpacing) * mvLevels
-        hudX      = self.sx - 30 - mvWidth
-        hudY      = cy + floor(cy / 10)
-    elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
-        mvWidth   = 32
-        mvHeight  = 12
-        mvSpacing = 10
-        mvYtot    = (mvHeight + mvSpacing) * mvLevels
-        hudX      = self.sx - floor(cx / 3) - mvWidth + 60
-        hudY      = cy + floor(cy / 10)
-    elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
-        hudX = cx + (300 - mvWidth) + 40
-        hudY = cy
-    end
-
-    local player = self.player
-    local playerShip = player:getControlling()
-    local shieldDecPct = floor((playerShip:mgrShieldGetStrengthPercent() + 0.5) / 10)
-
-    UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
-    UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.shieldStrength, mvSpacing, mvLevels, shieldDecPct)
-end
-
 function HUD:drawTargetType(a)
     local player = self.player
     local playerShip = player:getControlling()
@@ -1611,7 +1457,7 @@ function HUD:drawReticle(a)
     end
 end
 
-function HUD:drawPlayerHullInteg(a)
+function HUD:drawPlayerSystemInteg(a)
     local x, y, sx, sy    = self:getRectGlobal()
     local cx, cy          = sx / 2, sy / 2
     local playerShip      = self.player:getControlling()
@@ -1619,6 +1465,7 @@ function HUD:drawPlayerHullInteg(a)
     local playerShieldPct = playerShip:mgrShieldGetStrengthPercent()
     local playerArmorPct  = playerShip:mgrArmorGetHealthPercent()
     local playerHealthPct = playerShip:mgrHullGetHealthPercent()
+    local playerCapChgPct = playerShip:mgrCapacitorGetChargePercent()
     local playerHealthCI  = math.min(50, math.floor((playerHealthPct / 2.0) + 0.5) + 1)
 
     local hc              = Color(1, 1, 1, 1)
@@ -1637,28 +1484,28 @@ function HUD:drawPlayerHullInteg(a)
     -- end
 
     -- Draw text of player ship name
-    HUD:drawHudTextDouble(164, sy - 320, Config.ui.color.meterBarLight, hudFontSize, 0.5, playerShip:getName())
+    HUD:drawHudTextDouble(164, sy - 280, Config.ui.color.meterBarLight, hudFontSize, 0.5, playerShip:getName())
 
     -- Draw hologram of player ship on a grid background
-    UI.DrawEx.Grid(114, sy - 231, 100, 55, Config.ui.color.meterBarLight)
-    UI.DrawEx.Hologram(playerShip.mesh, 34, sy - 336, 260, 260, Config.ui.color.hologram, playerZoom / 1.7, -1.57, 0.0)
+--    UI.DrawEx.Grid(114, sy - 180, 100, 100, Config.ui.color.meterBarLight)
+    UI.DrawEx.Hologram(playerShip.mesh, 34, sy - 260, 260, 260, Config.ui.color.hologram, playerZoom / 1.7, -1.57, 0.0)
 
-    -- Draw player ship data as meters
-    UI.DrawEx.RectOutline(66, sy - 96, 202, 22, Config.ui.color.borderBright)
-    UI.DrawEx.Meter(72, sy - 90, 10, 10, Config.ui.color.shieldStrength, 10, 10, floor(playerShieldPct / 10), false, nil,
-        1)
-    UI.DrawEx.RectOutline(66, sy - 66, 202, 22, Config.ui.color.borderBright)
-    UI.DrawEx.Meter(72, sy - 60, 10, 10, Config.ui.color.armorIntegrity, 10, 10, floor(playerArmorPct / 10), false, nil,
-        1)
-    UI.DrawEx.RectOutline(66, sy - 36, 202, 22, Config.ui.color.borderBright)
-    UI.DrawEx.Meter(72, sy - 30, 10, 10, hc, 10, 10, floor(playerHealthPct / 10), false, nil, 1)
-
-    -- OBSOLETE?: Also draw the player ship's health bar under the central reticle
-    -- UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderDim)
-    -- UI.DrawEx.Rect(cx - 20, cy + 20, 40, 4, Config.ui.color.healthColor[playerHealthCI])
+    -- Draw the current percentage statuses of key player ship systems as concentric rings
+    for str = floor(playerShieldPct / 10), 1, -1 do
+        UI.DrawEx.RingDim(164, sy - 130, 110 + (str - 1), Config.ui.color.shieldStrength)
+    end
+    for str = floor(playerArmorPct / 10), 1, -1 do
+        UI.DrawEx.RingDim(164, sy - 130,  95 + (str - 1), Config.ui.color.armorIntegrity)
+    end
+    for str = floor(playerHealthPct / 10), 1, -1 do
+        UI.DrawEx.RingDim(164, sy - 130,  80 + (str - 1), Config.ui.color.hullIntegrity)
+    end
+    for str = floor(playerCapChgPct / 10), 1, -1 do
+        UI.DrawEx.RingDim(164, sy - 130,  65 + (str - 1), Config.ui.color.capacitorEnergy)
+    end
 end
 
-function HUD:drawTargetHullInteg(a)
+function HUD:drawTargetSystemInteg(a)
     local playerShip = self.player:getControlling()
     local target = playerShip:getTarget()
     if target and target:isAlive() and not target:isDestroyed() then
@@ -1697,22 +1544,23 @@ function HUD:drawTargetHullInteg(a)
             end
 
             -- Draw text of target name
-            HUD:drawHudTextDouble(sx - 160, sy - 320, Config.ui.color.meterBarLight, hudFontSize, 0.5, targetName)
+            HUD:drawHudTextDouble(sx - 160, sy - 280, Config.ui.color.meterBarLight, hudFontSize, 0.5, targetName)
 
             -- Draw hologram of target entity on a grid background
-            UI.DrawEx.Grid(sx - 206, sy - 231, 100, 55, Config.ui.color.meterBarLight)
-            UI.DrawEx.Hologram(target.mesh, sx - 287, sy - 336, 260, 260, Config.ui.color.hologram, targetZoomAdj, -1.57,
+--            UI.DrawEx.Grid(sx - 206, sy - 180, 100, 100, Config.ui.color.meterBarLight)
+            UI.DrawEx.Hologram(target.mesh, sx - 287, sy - 260, 260, 260, Config.ui.color.hologram, targetZoomAdj, -1.57,
                 0.0)
 
-            -- Draw target health as a meter
-            UI.DrawEx.RectOutline(sx - 254, sy - 96, 202, 22, Config.ui.color.borderBright)
-            UI.DrawEx.Meter(sx - 250, sy - 90, 10, 10, Config.ui.color.shieldStrength, 10, 10,
-                floor(targetShieldPct / 10), false, nil, 1)
-            UI.DrawEx.RectOutline(sx - 254, sy - 66, 202, 22, Config.ui.color.borderBright)
-            UI.DrawEx.Meter(sx - 250, sy - 60, 10, 10, Config.ui.color.armorIntegrity, 10, 10, floor(targetArmorPct / 10),
-                false, nil, 1)
-            UI.DrawEx.RectOutline(sx - 254, sy - 36, 202, 22, Config.ui.color.borderBright)
-            UI.DrawEx.Meter(sx - 250, sy - 30, 10, 10, hc, 10, 10, floor(targetHealthPct / 10), false, nil, 1)
+            -- Draw the current percentage statuses of key target ship systems as concentric rings
+            for str = floor(targetShieldPct / 10), 1, -1 do
+                UI.DrawEx.RingDim(sx - 156, sy - 130, 110 + (str - 1), Config.ui.color.shieldStrength)
+            end
+            for str = floor(targetArmorPct / 10), 1, -1 do
+                UI.DrawEx.RingDim(sx - 156, sy - 130,  95 + (str - 1), Config.ui.color.armorIntegrity)
+            end
+            for str = floor(targetHealthPct / 10), 1, -1 do
+                UI.DrawEx.RingDim(sx - 156, sy - 130,  80 + (str - 1), Config.ui.color.hullIntegrity)
+            end
         end
     end
 end
@@ -1902,10 +1750,6 @@ function HUD:onDraw(focus, active)
         elseif GameState.ui.hudStyle ~= Enums.HudStyles.None then
             self:drawSystemText(self.enabled)
             self:drawTargetText(self.enabled)
-            self:drawArmorIntegrity(self.enabled)
-            self:drawHullIntegrity(self.enabled)
-            self:drawCapacitorEnergy(self.enabled)
-            self:drawShieldStrength(self.enabled)
             self:drawTargetMission(self.enabled)
             self:drawTargetType(self.enabled)
             self:drawTargetRange(self.enabled)
@@ -1921,8 +1765,8 @@ function HUD:onDraw(focus, active)
             self:drawPowerDistro(self.enabled)
             self:drawSensors(self.enabled)
             self:drawTacticalMap(self.enabled)
-            self:drawPlayerHullInteg(self.enabled)
-            self:drawTargetHullInteg(self.enabled)
+            self:drawPlayerSystemInteg(self.enabled)
+            self:drawTargetSystemInteg(self.enabled)
             self:drawTargets(self.enabled)
             self:drawReticle(self.enabled)
             self:drawDirPredict(self.enabled)

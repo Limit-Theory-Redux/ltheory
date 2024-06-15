@@ -272,12 +272,32 @@ function DrawEx.Ring(x, y, r, c, glow)
     local x, y, sx, sy = padAndCenter(padRing, x, y, r, r)
     local shader = Cache.Shader('ui', 'ui/ring')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    if glow then
+        BlendMode.PushAdditive()
+    else
+        BlendMode.PushAlpha()
+    end
     shader:start()
     Shader.SetFloat('radius', r)
     Shader.SetFloat2('size', sx, sy)
     Shader.SetFloat4('color', c.r, c.g, c.b, c.a * alpha)
     Shader.SetInt('glow', glowval)
+    Draw.Rect(x, y, sx, sy)
+    shader:stop()
+    BlendMode.Pop()
+end
+
+function DrawEx.RingDim(x, y, r, c)
+    local glowval = 0
+    local x, y, sx, sy = padAndCenter(padRing, x, y, r, r)
+    local shader = Cache.Shader('ui', 'ui/ringdim')
+    local alpha = alphaStack:last() or 1
+    BlendMode.PushAdditive()
+    shader:start()
+    Shader.SetFloat('radius', r)
+    Shader.SetFloat2('size', sx, sy)
+    Shader.SetFloat4('color', c.r, c.g, c.b, c.a * alpha)
+    Shader.SetInt('glow', 1)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
     BlendMode.Pop()
