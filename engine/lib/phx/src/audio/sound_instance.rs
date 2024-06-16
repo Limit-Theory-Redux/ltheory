@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use glam::Vec3;
+use crate::math::Position;
 use kira::sound::{static_sound::StaticSoundHandle, PlaybackState};
 use kira::spatial::emitter::EmitterHandle;
 use kira::tween::{Easing, Tween};
@@ -10,12 +10,13 @@ use super::process_command_error;
 
 struct EmitterInfo {
     emitter: EmitterHandle,
-    position: Vec3,
+    position: Position,
+    audio_origin: Position,
 }
 
 pub struct SoundInstance {
     handle: Option<StaticSoundHandle>,
-    volume: f64, // keep track of volume because we can`t get it from the handle
+    volume: f64, // keep track of volume because we can't get it from the handle
     emitter_info: Option<EmitterInfo>,
 }
 
@@ -23,12 +24,29 @@ impl SoundInstance {
     pub fn new(
         handle: StaticSoundHandle,
         init_volume: f64,
-        emitter: Option<(EmitterHandle, Vec3)>,
+        emitter: Option<(EmitterHandle, Position, Position)>,
     ) -> Self {
         Self {
             handle: Some(handle),
             volume: init_volume,
-            emitter_info: emitter.map(|(emitter, position)| EmitterInfo { emitter, position }),
+            emitter_info: emitter.map(|(emitter, position, audio_origin)| EmitterInfo {
+                emitter,
+                position,
+                audio_origin,
+            }),
+        }
+    }
+
+    // This recomputes the emitters position relative to the current listeners position. This should be called anytime that the listener's origin is updated.
+    fn update_kira_emitter_position(&mut self) {
+        if let Some(emitter_info) = &mut self.emitter_info {
+            process_command_error(
+                emitter_info.emitter.set_position(
+                    emitter_info.position.relative_to(emitter_info.audio_origin),
+                    Tween::default(),
+                ),
+                "Cannot set sound emitter position",
+            );
         }
     }
 }
@@ -137,29 +155,31 @@ impl SoundInstance {
         }
     }
 
-    pub fn set_emitter_pos(&mut self, position: &Vec3) {
+    pub fn set_emitter_pos(&mut self, position: &Position) {
         if let Some(emitter_info) = &mut self.emitter_info {
-            process_command_error(
-                emitter_info
-                    .emitter
-                    .set_position(*position, Tween::default()),
-                "Cannot set sound emitter position",
-            );
             emitter_info.position = *position;
+            self.update_kira_emitter_position()
         }
     }
 
-    pub fn emitter_pos(&self) -> Vec3 {
+    pub fn set_emitter_origin_pos(&mut self, origin: &Position) {
+        if let Some(emitter_info) = &mut self.emitter_info {
+            emitter_info.audio_origin = *origin;
+            self.update_kira_emitter_position();
+        }
+    }
+
+    pub fn emitter_pos(&self) -> Position {
         self.emitter_info
             .as_ref()
             .map(|emitter_info| emitter_info.position)
-            .unwrap_or(Vec3::MAX)
+            .unwrap_or(Position::default())
     }
 
-    pub fn emitter_distance(&self, listener_pos: &Vec3) -> f32 {
+    pub fn emitter_distance(&self, listener_pos: &Position) -> f32 {
         self.emitter_info
             .as_ref()
-            .map(|emitter_info| listener_pos.distance(emitter_info.position))
+            .map(|emitter_info| listener_pos.distance(emitter_info.position) as f32)
             .unwrap_or(f32::MAX)
     }
 }

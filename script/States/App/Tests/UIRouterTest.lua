@@ -8,7 +8,7 @@ local UIPageMainMenu = require('script.UI.HmGui.Pages.MainMenu')
 
 local rng = RNG.FromTime()
 local Universe = require("Systems.Universe.Universe")
-local System = require('GameObjects.Entities.Test.System')
+local System = require('GameObjects.Entities.StarSystem')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 
 local useRenderer = false
@@ -52,7 +52,7 @@ function Test:onUpdate(dt)
     GameState.player.humanPlayer:getRoot():update(dt)
     self.canvas:update(dt)
     Universe:OnUpdate(dt)
-    SoundManager:clean(dt)
+    SoundManager:update(dt)
     MusicPlayer:OnUpdate(dt) --todo fix casing
 
     Gui:beginGui(self.resX, self.resY, InputInstance)

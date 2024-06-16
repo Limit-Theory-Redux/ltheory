@@ -36,13 +36,16 @@ function SoundInstance:setPlayPos(position) end
 ---@param offset number
 function SoundInstance:movePlayPos(offset) end
 
----@param position Vec3f
+---@param position Position
 function SoundInstance:setEmitterPos(position) end
 
----@return Vec3f
+---@param origin Position
+function SoundInstance:setEmitterOriginPos(origin) end
+
+---@return Position
 function SoundInstance:emitterPos() end
 
----@param listenerPos Vec3f
+---@param listenerPos Position
 ---@return number
 function SoundInstance:emitterDistance(listenerPos) end
 

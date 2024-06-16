@@ -35,6 +35,15 @@ local seeds = {
     { "looks pretty cool too",                            976665863517979971ULL },   -- looks pretty cool too
 }
 
+local ShipHullsText = {
+    "Solo",
+    "Small",
+    "Compact",
+    "Medium",
+    "Large",
+    "VeryLarge",
+}
+
 local selectedSeedIndex = nil
 
 function NewgameView:onInput() end
@@ -63,246 +72,6 @@ local function newGame(seed)
     -- we want to create a new universe, do this here so loading screen knows what to load
     Universe:init(seed)
     UIRouter:setCurrentPage("Loading_Screen")
-end
-
----@return UIComponentContainer
-local function settingsfunction()
-    return UIComponent.Container {
-        align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-        childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-        padding = { 0, 0 },
-        margin = { 80, 0 },
-        widthInLayout = getRemainingWidthPercentage,
-        layoutType = GuiLayoutType.Vertical,
-        contents = {
-            UILayout.Grid {
-                align = { AlignHorizontal.Stretch, AlignVertical.Center },
-                stackDirection = GuiLayoutType.Horizontal,
-                contents = {
-                    UILayout.Grid {
-                        align = { AlignHorizontal.Center, AlignVertical.Center },
-                        widthInLayout = 0.35, -- 35% of the parent grid width
-                        layoutType = GuiLayoutType.Vertical,
-                        contents = {
-                            UIComponent.Text {
-                                text = "Nebula Brightness",
-                                size = 24,
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "Asteroid Fields",
-                                size = 24,
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "Asteroids Per Field",
-                                size = 24,
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "Planets",
-                                size = 24,
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "Stations",
-                                size = 24,
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "AI Players",
-                                size = 24,
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "EconNPCs",
-                                size = 24,
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "EscortNPCs",
-                                size = 24,
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "Ship Size",
-                                size = 24,
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "Unique Ships",
-                                size = 24,
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            }
-                        }
-                    },
-                    UILayout.Grid {
-                        align = { AlignHorizontal.Center, AlignVertical.Center },
-                        widthInLayout = 0.65, -- 65% of the parent grid width
-                        layoutType = GuiLayoutType.Vertical,
-                        contents = {
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 18 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "1 = low brightness, 10 = high brightness."
-                                end,
-                                increment = 1,
-                                minValue = 1,
-                                maxValue = 10,
-                                currentValue = GameState.gen.nebulaBrightnessScale,
-                                callback = function(v) GameState.gen.nebulaBrightnessScale = v end
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 18 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Number of asteroid fields in the new star system."
-                                end,
-                                increment = 1,
-                                minValue = 0,
-                                maxValue = 20,
-                                currentValue = GameState.gen.nFields,
-                                callback = function(v) GameState.gen.nFields = v end
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 18 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Number of asteroids in each asteroid field."
-                                end,
-                                increment = 1,
-                                minValue = 0,
-                                maxValue = 200,
-                                currentValue = GameState.gen.nAsteroids,
-                                callback = function(v) GameState.gen.nAsteroids = v end
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 18 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Number of planets in the new star system."
-                                end,
-                                increment = 1,
-                                minValue = 0,
-                                maxValue = 1,
-                                currentValue = GameState.gen.nPlanets,
-                                callback = function(v) GameState.gen.nPlanets = v end
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 18 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Number of space stations in the new star system."
-                                end,
-                                increment = 1,
-                                minValue = 0,
-                                maxValue = 40,
-                                currentValue = GameState.gen.nStations,
-                                callback = function(v) GameState.gen.nStations = v end
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 18 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Number of AI Players in the new star system."
-                                end,
-                                increment = 1,
-                                minValue = 0,
-                                maxValue = 10,
-                                currentValue = GameState.gen.nAIPlayers,
-                                callback = function(v) GameState.gen.nAIPlayers = v end
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 18 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Number of economics-oriented NPC ships in the new star system."
-                                end,
-                                increment = 1,
-                                minValue = 0,
-                                maxValue = 50,
-                                currentValue = GameState.gen.nEconNPCs,
-                                callback = function(v) GameState.gen.nEconNPCs = v end
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 18 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Number of combat-oriented NPC ships in the new star system."
-                                end,
-                                increment = 1,
-                                minValue = 0,
-                                maxValue = 50,
-                                currentValue = GameState.gen.nEscortNPCs,
-                                callback = function(v) GameState.gen.nEscortNPCs = v end
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 18 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Size class of the player's ship."
-                                end,
-                                increment = 1,
-                                minValue = 1,
-                                maxValue = Enums.ShipHulls.VeryLarge,
-                                currentValue = GameState.player.shipHull,
-                                callback = function(v) GameState.player.shipHull = v end
-                            },
-                            UIComponent.Switch {
-                                size = ResponsiveSize(80, 20),
-                                margin = { 0, 18 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Controls whether a unique mesh is generated for each NPC ship."
-                                end,
-                                currentValue = GameState.gen.uniqueShips,
-                                callback = function(v) GameState.gen.uniqueShips = v end
-                            }
-                        }
-                    }
-                }
-            },
-            UIComponent.Button {
-                title = "Start New Game",
-                align = { AlignHorizontal.Center, AlignVertical.Center },
-                margin = { 0, 10 },
-                size = ResponsiveSize(300, 60),
-                font = { name = "Unageo-Medium", size = 24 },
-                toolTip = function() return "Press to start a new game with a random seed." end,
-                callback = function() newGame(rng:get64()) end,
-            }
-        }
-    }
 end
 
 local newgameGrid = UILayout.Grid {
@@ -376,7 +145,257 @@ local newgameGrid = UILayout.Grid {
                 }
             }
         },
-        settingsfunction
+        UIComponent.Container {
+            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+            childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+            padding = { 0, 0 },
+            margin = { 80, 0 },
+            widthInLayout = getRemainingWidthPercentage,
+            layoutType = GuiLayoutType.Vertical,
+            contents = {
+                UILayout.Grid {
+                    align = { AlignHorizontal.Stretch, AlignVertical.Center },
+                    stackDirection = GuiLayoutType.Horizontal,
+                    contents = {
+                        UILayout.Grid {
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            widthInLayout = 0.35, -- 35% of the parent grid width
+                            layoutType = GuiLayoutType.Vertical,
+                            contents = {
+                                UIComponent.Text {
+                                    text = "Nebula Brightness",
+                                    size = 24,
+                                    align = { AlignHorizontal.Left, AlignVertical.Center }
+                                },
+                                UIComponent.Text {
+                                    text = "Asteroid Fields",
+                                    size = 24,
+                                    align = { AlignHorizontal.Left, AlignVertical.Center }
+                                },
+                                UIComponent.Text {
+                                    text = "Asteroids Per Field",
+                                    size = 24,
+                                    align = { AlignHorizontal.Left, AlignVertical.Center }
+                                },
+                                UIComponent.Text {
+                                    text = "Planets",
+                                    size = 24,
+                                    align = { AlignHorizontal.Left, AlignVertical.Center }
+                                },
+                                UIComponent.Text {
+                                    text = "Stations",
+                                    size = 24,
+                                    align = { AlignHorizontal.Left, AlignVertical.Center }
+                                },
+                                UIComponent.Text {
+                                    text = "AI Players",
+                                    size = 24,
+                                    align = { AlignHorizontal.Left, AlignVertical.Center }
+                                },
+                                UIComponent.Text {
+                                    text = "EconNPCs",
+                                    size = 24,
+                                    align = { AlignHorizontal.Left, AlignVertical.Center }
+                                },
+                                UIComponent.Text {
+                                    text = "EscortNPCs",
+                                    size = 24,
+                                    align = { AlignHorizontal.Left, AlignVertical.Center }
+                                },
+                                UIComponent.Text {
+                                    text = "Ship Size",
+                                    size = 24,
+                                    align = { AlignHorizontal.Left, AlignVertical.Center }
+                                },
+                                UIComponent.Text {
+                                    text = "Unique Ships",
+                                    size = 24,
+                                    align = { AlignHorizontal.Left, AlignVertical.Center }
+                                }
+                            }
+                        },
+                        UILayout.Grid {
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            widthInLayout = 0.65, -- 65% of the parent grid width
+                            layoutType = GuiLayoutType.Vertical,
+                            contents = {
+                                UIComponent.Slider {
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 18 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    sound = Config.audio.sounds.click,
+                                    toolTip = function()
+                                        return
+                                        "1 = low brightness, 10 = high brightness."
+                                    end,
+                                    increment = 1,
+                                    minValue = 1,
+                                    maxValue = 10,
+                                    currentValue = function() return GameState.gen.nebulaBrightnessScale end,
+                                    callback = function(v) GameState.gen.nebulaBrightnessScale = v end
+                                },
+                                UIComponent.Slider {
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 18 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    sound = Config.audio.sounds.click,
+                                    toolTip = function()
+                                        return
+                                        "Number of asteroid fields in the new star system."
+                                    end,
+                                    increment = 1,
+                                    minValue = 0,
+                                    maxValue = 20,
+                                    currentValue = function() return GameState.gen.nFields end,
+                                    callback = function(v) GameState.gen.nFields = v end
+                                },
+                                UIComponent.Slider {
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 18 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    sound = Config.audio.sounds.click,
+                                    toolTip = function()
+                                        return
+                                        "Number of asteroids in each asteroid field."
+                                    end,
+                                    increment = 1,
+                                    minValue = 0,
+                                    maxValue = 200,
+                                    currentValue = function() return GameState.gen.nAsteroids end,
+                                    callback = function(v) GameState.gen.nAsteroids = v end
+                                },
+                                UIComponent.Slider {
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 18 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    sound = Config.audio.sounds.click,
+                                    toolTip = function()
+                                        return
+                                        "Number of planets in the new star system."
+                                    end,
+                                    increment = 1,
+                                    minValue = 0,
+                                    maxValue = 1,
+                                    currentValue = function() return GameState.gen.nPlanets end,
+                                    callback = function(v) GameState.gen.nPlanets = v end
+                                },
+                                UIComponent.Slider {
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 18 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    sound = Config.audio.sounds.click,
+                                    toolTip = function()
+                                        return
+                                        "Number of space stations in the new star system."
+                                    end,
+                                    increment = 1,
+                                    minValue = 0,
+                                    maxValue = 40,
+                                    currentValue = function() return GameState.gen.nStations end,
+                                    callback = function(v) GameState.gen.nStations = v end
+                                },
+                                UIComponent.Slider {
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 18 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    sound = Config.audio.sounds.click,
+                                    toolTip = function()
+                                        return
+                                        "Number of AI Players in the new star system."
+                                    end,
+                                    increment = 1,
+                                    minValue = 0,
+                                    maxValue = 10,
+                                    currentValue = function() return GameState.gen.nAIPlayers end,
+                                    callback = function(v) GameState.gen.nAIPlayers = v end
+                                },
+                                UIComponent.Slider {
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 18 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    sound = Config.audio.sounds.click,
+                                    toolTip = function()
+                                        return
+                                        "Number of economics-oriented NPC ships in the new star system."
+                                    end,
+                                    increment = 1,
+                                    minValue = 0,
+                                    maxValue = 50,
+                                    currentValue = function() return GameState.gen.nEconNPCs end,
+                                    callback = function(v) GameState.gen.nEconNPCs = v end
+                                },
+                                UIComponent.Slider {
+                                    size = ResponsiveSize(300, 20),
+                                    margin = { 0, 18 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    sound = Config.audio.sounds.click,
+                                    toolTip = function()
+                                        return
+                                        "Number of combat-oriented NPC ships in the new star system."
+                                    end,
+                                    increment = 1,
+                                    minValue = 0,
+                                    maxValue = 50,
+                                    currentValue = function() return GameState.gen.nEscortNPCs end,
+                                    callback = function(v) GameState.gen.nEscortNPCs = v end
+                                },
+--                              UIComponent.Slider {
+--                                  size = ResponsiveSize(300, 20),
+--                                  margin = { 0, 18 },
+--                                  align = { AlignHorizontal.Center, AlignVertical.Center },
+--                                  sound = Config.audio.sounds.click,
+--                                  toolTip = function()
+--                                      return
+--                                      "Size class of the player's ship."
+--                                  end,
+--                                  increment = 1,
+--                                  minValue = 1,
+--                                  maxValue = Enums.ShipHulls.VeryLarge,
+--                                  currentValue = function() return GameState.gen.shipHull end,
+--                                  callback = function(v) GameState.player.shipHull = v end
+--                              },
+                                UIComponent.Dropdown {
+                                    width = 300,
+                                    height = 20,
+                                    margin = { 0, 18 },
+                                    font = { name = "Unageo-Medium", size = 20 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    sound = Config.audio.sounds.click,
+                                    toolTip = function()
+                                        return
+                                        "Size class of the player's ship."
+                                    end,
+                                    selections = ShipHullsText,
+                                    selectedIndex = function() return GameState.gen.shipHull end,
+                                    callback = function(v) GameState.player.shipHull = v end
+                                },
+                                UIComponent.Switch {
+                                    size = ResponsiveSize(80, 20),
+                                    margin = { 0, 18 },
+                                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                                    sound = Config.audio.sounds.click,
+                                    toolTip = function()
+                                        return
+                                        "Controls whether a unique mesh is generated for each NPC ship."
+                                    end,
+                                    currentValue = function() return GameState.gen.uniqueShips end,
+                                    callback = function(v) GameState.gen.uniqueShips = v end
+                                }
+                            }
+                        }
+                    }
+                },
+                UIComponent.Button {
+                    title = "Start New Game",
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                    margin = { 0, 10 },
+                    size = ResponsiveSize(300, 60),
+                    font = { name = "Unageo-Medium", size = 24 },
+                    toolTip = function() return "Press to start a new game with a random seed." end,
+                    callback = function() newGame(rng:get64()) end,
+                }
+            }
+        }
     }
 }
 

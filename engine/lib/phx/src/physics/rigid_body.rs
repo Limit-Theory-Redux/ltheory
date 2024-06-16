@@ -251,8 +251,8 @@ impl RigidBody {
     }
 
     /// Returns the unscaled world matrix of this rigid body.
-    fn get_world_matrix_unscaled(&self) -> Matrix {
-        let global_transform = if let Some(parent) = self.get_parent() {
+    fn get_world_transform_unscaled(&self) -> rp::Isometry<rp::Real> {
+        if let Some(parent) = self.get_parent() {
             let collider = self.collider.as_ref();
             let parent_rb = parent.rigid_body.as_ref();
 
@@ -262,8 +262,7 @@ impl RigidBody {
             parent_transform * transform
         } else {
             self.rigid_body.as_ref().position().clone()
-        };
-        Matrix::from_rp(&global_transform)
+        }
     }
 
     // Returns a reference to the collider object.
@@ -558,13 +557,18 @@ impl RigidBody {
     }
 
     /// Returns the local -> world matrix for this rigid body.
-    pub fn get_to_world_matrix(&self) -> Matrix {
-        self.get_world_matrix_unscaled() * Matrix::from_scale(Vec3::splat(self.get_scale()))
+    ///
+    /// This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
+    pub fn get_to_world_matrix(&self, camera_pos: &Position) -> Matrix {
+        Matrix::from_rp(&self.get_world_transform_unscaled(), camera_pos)
+            * Matrix::from_scale(Vec3::splat(self.get_scale()))
     }
 
     /// Returns the world -> local matrix for this rigid body.
-    pub fn get_to_local_matrix(&self) -> Matrix {
-        self.get_to_world_matrix().inverse()
+    ///
+    /// This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
+    pub fn get_to_local_matrix(&self, camera_pos: &Position) -> Matrix {
+        self.get_to_world_matrix(camera_pos).inverse()
     }
 
     #[bind(out_param = true)]
@@ -658,31 +662,31 @@ impl RigidBody {
 
     /// Children return the parent position.
     #[bind(name = "GetPos", out_param = true)]
-    pub fn get_position(&self) -> Vec3 {
-        self.get_world_matrix_unscaled().get_translation()
+    pub fn get_position(&self) -> Position {
+        Position::from_na(&self.get_world_transform_unscaled().translation.vector)
     }
 
     /// Local coordinates are relative to the parent *before* scaling.
     #[bind(name = "GetPosLocal", out_param = true)]
-    pub fn get_position_local(&self) -> Vec3 {
+    pub fn get_position_local(&self) -> Position {
         if let Some(parent) = &self.parent {
-            Vec3::from_na(&parent.offset.translation.vector)
+            Position::from_na(&parent.offset.translation.vector)
         } else {
-            Vec3::ZERO
+            Position::ZERO
         }
     }
 
     #[bind(name = "SetPos")]
-    pub fn set_position(&mut self, pos: &Vec3) {
+    pub fn set_position(&mut self, pos: &Position) {
         self.rigid_body.as_mut().set_translation(pos.to_na(), true);
     }
 
     /// Local coordinates are relative to the parent *before* scaling. The
     /// given position will be multiplied by the parent's scale.
     #[bind(name = "SetPosLocal")]
-    pub fn set_position_local(&mut self, pos: &Vec3) {
+    pub fn set_position_local(&mut self, pos: &Position) {
         if let Some(parent) = &mut self.parent {
-            parent.offset.translation.vector = Vec3::to_na(pos);
+            parent.offset.translation.vector = pos.to_na();
             self.collider
                 .as_mut()
                 .set_position_wrt_parent(parent.offset);
@@ -695,7 +699,7 @@ impl RigidBody {
 
     #[bind(name = "GetRot", out_param = true)]
     pub fn get_rotation(&self) -> Quat {
-        Quat::from_mat4(&self.get_world_matrix_unscaled())
+        Quat::from_na(&self.get_world_transform_unscaled().rotation)
     }
 
     #[bind(name = "GetRotLocal", out_param = true)]
@@ -749,24 +753,22 @@ impl RigidBody {
         // Children keep the same relative position.
         for child in self.children.iter_mut() {
             let child = unsafe { child.as_mut() };
-            let scaled_position = child.get_position_local() * scale_ratio;
+            let scaled_position = child.get_position_local() * scale_ratio as f64;
             child.set_position_local(&scaled_position);
         }
 
         for trigger in self.triggers.iter_mut() {
             let trigger = unsafe { trigger.as_mut() };
-            let scaled_position = trigger.get_position_local() * scale_ratio;
+            let scaled_position = trigger.get_position_local() * scale_ratio as f64;
             trigger.set_position_local(&scaled_position);
         }
     }
 
-    pub fn distance_to(&self, target: &RigidBody) -> f32 {
+    pub fn distance_to(&self, target: &RigidBody) -> f64 {
         let my_position = self.get_position();
         let target_position = target.get_position();
 
-        let distance = my_position.distance(target_position);
-
-        distance
+        my_position.distance(target_position)
     }
 
     pub fn is_sleeping(&self) -> bool {

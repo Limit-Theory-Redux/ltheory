@@ -179,7 +179,7 @@ Namespace.Inline(Render, 'Render')
 function Core.Call(fn, ...)
     local status, ret = xpcall(fn, ErrorHandler, ...)
     if not status then
-        Log.Error('Error calling: %s(%s). Ret: %s', fn, ..., ret)
+        printf('Error calling: %s(%s). Ret: %s', fn, ..., ret)
         os.exit()
     end
     return ret
