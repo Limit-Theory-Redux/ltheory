@@ -102,6 +102,14 @@ function HmGui:textView(textData) end
 ---@return boolean
 function HmGui:isMouseOver(ty) end
 
+-- Sets current widget in `focus`.
+-- To be used in combination with some input check, i.e. mouse left click.
+function HmGui:setFocus() end
+
+-- Returns true if current widget is in focus.
+---@return boolean
+function HmGui:hasFocus() end
+
 ---@param width number
 function HmGui:setMinWidth(width) end
 

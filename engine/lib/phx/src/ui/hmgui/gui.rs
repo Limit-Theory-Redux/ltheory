@@ -23,6 +23,7 @@ pub struct HmGui {
     data: HashMap<u64, HmGuiData>,
     mouse_over_widget_hash: [u64; 2],
     focus_pos: Vec2,
+    active_widget: Option<u64>,
 }
 
 impl HmGui {
@@ -36,6 +37,7 @@ impl HmGui {
             data: HashMap::with_capacity(128),
             mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
+            active_widget: None,
         }
     }
 
@@ -440,6 +442,27 @@ impl HmGui {
         widget.mouse_over[ty as usize] = true;
 
         self.mouse_over_widget_hash[ty as usize] == widget.hash
+    }
+
+    /// Sets current widget in `focus`.
+    /// To be used in combination with some input check, i.e. mouse left click.
+    pub fn set_focus(&mut self) {
+        let last = self.last();
+        let widget = last.as_ref();
+
+        self.active_widget = Some(widget.hash);
+    }
+
+    /// Returns true if current widget is in focus.
+    pub fn has_focus(&self) -> bool {
+        if let Some(hash) = self.active_widget {
+            let last = self.last();
+            let widget = last.as_ref();
+
+            widget.hash == hash
+        } else {
+            false
+        }
     }
 
     pub fn set_min_width(&self, width: f32) {

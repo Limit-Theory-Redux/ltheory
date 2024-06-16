@@ -40,6 +40,8 @@ function Loader.defineType()
             void  HmGui_Text                           (HmGui*, cstr text, Font const* font, Color const* color);
             void  HmGui_TextView                       (HmGui*, TextData const* textData);
             bool  HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
+            void  HmGui_SetFocus                       (HmGui*);
+            bool  HmGui_HasFocus                       (HmGui const*);
             void  HmGui_SetMinWidth                    (HmGui const*, float width);
             void  HmGui_SetMinHeight                   (HmGui const*, float height);
             void  HmGui_SetMinSize                     (HmGui const*, float width, float height);
@@ -111,6 +113,8 @@ function Loader.defineType()
                 text                           = libphx.HmGui_Text,
                 textView                       = libphx.HmGui_TextView,
                 isMouseOver                    = libphx.HmGui_IsMouseOver,
+                setFocus                       = libphx.HmGui_SetFocus,
+                hasFocus                       = libphx.HmGui_HasFocus,
                 setMinWidth                    = libphx.HmGui_SetMinWidth,
                 setMinHeight                   = libphx.HmGui_SetMinHeight,
                 setMinSize                     = libphx.HmGui_SetMinSize,
