@@ -1,3 +1,6 @@
+use glam::Vec2;
+
+use crate::input::Input;
 use crate::render::{Tex2D, Tex2D_Free};
 
 use super::{TextContext, TextData};
@@ -28,6 +31,8 @@ impl TextView {
         text_ctx: &mut TextContext,
         width: f32,
         scale_factor: f32,
+        widget_pos: Vec2,
+        input: Option<&Input>,
     ) -> *mut Tex2D {
         if self.width != width {
             self.width = width;
@@ -36,7 +41,9 @@ impl TextView {
 
         // Regenerate texture only if something was changed
         if self.dirty {
-            let tex = self.data.render(text_ctx, self.width, scale_factor);
+            let tex = self
+                .data
+                .render(text_ctx, self.width, scale_factor, widget_pos, input);
 
             if self.tex != std::ptr::null_mut() {
                 unsafe { Tex2D_Free(self.tex) };

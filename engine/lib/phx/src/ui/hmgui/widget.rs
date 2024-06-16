@@ -2,6 +2,7 @@ use std::borrow::BorrowMut;
 
 use glam::Vec2;
 
+use crate::input::Input;
 use crate::render::{Color, TEXT_CTX};
 
 use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT};
@@ -146,11 +147,8 @@ impl HmGuiWidget {
         item
     }
 
-    pub fn contains_point(&self, point: &Vec2) -> bool {
-        self.pos.x <= point.x
-            && self.pos.y <= point.y
-            && point.x <= self.pos.x + self.size.x
-            && point.y <= self.pos.y + self.size.y
+    pub fn contains_point(&self, point: Vec2) -> bool {
+        contains_point(self.pos, self.size, point)
     }
 
     /// Calculate outer min size that includes margin and border.
@@ -217,7 +215,13 @@ impl HmGuiWidget {
 
                 let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
                 // TODO: do not build Tex2D. Return only it's size
-                let image = text_view.update(text_ctx.borrow_mut(), width, scale_factor);
+                let image = text_view.update(
+                    text_ctx.borrow_mut(),
+                    width,
+                    scale_factor,
+                    self.inner_pos,
+                    None,
+                );
                 let image_ref = unsafe { &*image };
 
                 self.inner_min_size = Vec2::new(image_ref.size.x as f32, image_ref.size.y as f32);
@@ -230,7 +234,7 @@ impl HmGuiWidget {
         }
     }
 
-    pub fn layout(&mut self, hmgui: &mut HmGui) {
+    pub fn layout(&mut self, hmgui: &mut HmGui, input: &Input) {
         self.calculate_inner_pos_size();
 
         // TODO: do not process widgets with min size, margin and border all 0
@@ -240,6 +244,7 @@ impl HmGuiWidget {
 
                 self.inner_size = container.layout(
                     hmgui,
+                    input,
                     !is_root && self.alignment[0] == Alignment::Stretch,
                     !is_root && self.alignment[1] == Alignment::Stretch,
                     self.inner_pos,
@@ -258,6 +263,13 @@ impl HmGuiWidget {
             }
             WidgetItem::TextView(image) => {
                 let scale_factor = hmgui.scale_factor() as f32;
+                let input =
+                    if contains_point(self.inner_pos, self.inner_size, input.mouse().position()) {
+                        Some(input)
+                    } else {
+                        None
+                    };
+
                 let data = hmgui.get_data(self.hash);
                 let text_view = data.text_view.as_mut().expect("Text view data was not set");
 
@@ -266,8 +278,13 @@ impl HmGuiWidget {
                 // Check if this can be solved.
                 let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
 
-                image.image =
-                    text_view.update(text_ctx.borrow_mut(), self.inner_size.x, scale_factor);
+                image.image = text_view.update(
+                    text_ctx.borrow_mut(),
+                    self.inner_size.x,
+                    scale_factor,
+                    self.inner_pos,
+                    input,
+                );
             }
             _ => {}
         }
@@ -353,4 +370,9 @@ impl HmGuiWidget {
             WidgetItem::Image(item) | WidgetItem::TextView(item) => item.dump(ident + 1),
         }
     }
+}
+
+#[inline]
+fn contains_point(pos: Vec2, size: Vec2, point: Vec2) -> bool {
+    pos.x <= point.x && pos.y <= point.y && point.x <= pos.x + size.x && point.y <= pos.y + size.y
 }

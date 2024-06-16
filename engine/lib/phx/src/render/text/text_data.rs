@@ -1,5 +1,8 @@
+use std::ops::Range;
+
+use glam::Vec2;
 use indexmap::IndexMap;
-use parley::layout::{Alignment, Glyph, GlyphRun};
+use parley::layout::{Alignment, Cursor, Glyph, GlyphRun};
 use parley::Layout;
 use swash::scale::{image::Content, Render, ScaleContext, Scaler, Source, StrikeWith};
 use swash::zeno::{Format, Vector};
@@ -7,20 +10,24 @@ use swash::FontRef;
 
 use internal::ConvertIntoString;
 
+use crate::input::{Button, Input};
 use crate::render::{
     Color, DataFormat_Float, PixelFormat_RGBA, Tex2D, Tex2D_Create, Tex2D_SetData, TexFormat_RGBA8,
 };
 
-use super::{TextAlignment, TextContext, TextStyle};
+use super::{TextAlignment, TextContext, TextSelection, TextStyle};
 
 /// Text string, styling and layouting parameters.
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct TextData {
     text: String,
     default_style: TextStyle,
     section_styles: IndexMap<[usize; 2], TextStyle>,
     alignment: Alignment,
     multiline: bool,
+    selection: TextSelection,
+    selection_color: Color,
+    mouse_pos: Vec2,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -38,6 +45,9 @@ impl TextData {
             section_styles: Default::default(),
             alignment: alignment.into(),
             multiline,
+            selection: TextSelection::new(),
+            selection_color: Color::new(0.2, 0.2, 0.7, 0.8),
+            mouse_pos: Vec2::new(-1.0, -1.0),
         }
     }
 
@@ -46,6 +56,30 @@ impl TextData {
         // TODO: manage sections overlapping properly to avoid uncontrollable map growth
         self.section_styles
             .insert([start_pos, end_pos], style.clone());
+    }
+
+    /// Sets cursor position in a text before character at position `pos`.
+    /// If pos >= text size then cursor is placed after the latest text character.
+    pub fn set_cursor_pos(&mut self, pos: usize) {
+        // pos == self.text.len() to select last symbol
+        assert!(pos <= self.text.len());
+
+        self.selection = TextSelection::Cursor(pos);
+    }
+
+    pub fn set_selection_color(&mut self, color: &Color) {
+        self.selection_color = *color;
+    }
+
+    pub fn set_selection(&mut self, start_pos: usize, end_pos: usize) {
+        // pos == self.text.len() to select last symbol
+        assert!(start_pos <= self.text.len());
+        assert!(end_pos <= self.text.len());
+
+        self.selection = TextSelection::Selection(Range {
+            start: start_pos,
+            end: end_pos,
+        });
     }
 }
 
@@ -89,7 +123,14 @@ impl TextData {
     /// Generate Tex2D texture with layouted text based on text parameters.
     // TODO: keeping a texture for a large texts will be memory consuming.
     // Generate per-line textures and keep only visible ones with some buffered pre- and post-lines.
-    pub fn render(&self, text_ctx: &mut TextContext, width: f32, scale_factor: f32) -> *mut Tex2D {
+    pub fn render(
+        &mut self,
+        text_ctx: &mut TextContext,
+        width: f32,
+        scale_factor: f32,
+        widget_pos: Vec2,
+        input: Option<&Input>,
+    ) -> *mut Tex2D {
         // TODO: replace all `\n` in self.text with spaces if not multiline?
         let mut builder =
             text_ctx
@@ -120,16 +161,41 @@ impl TextData {
         // by several pixels to the left that makes position coordinate negative in some cases
         let padding = 5;
 
+        if let Some(input) = input {
+            self.update_selection(&layout, widget_pos, padding, input);
+        }
+
         // Create buffer to render into
         let width = layout.width().ceil() as u32 + (padding * 2);
         let height = layout.height().ceil() as u32;
         let mut buffer = vec![Color::TRANSPARENT; (width * height) as usize];
+        let mut glyph_idx = 0;
 
         // Iterate over laid out lines
         for line in layout.lines() {
+            let metrics = line.metrics();
+            let line_range = Range {
+                start: (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor() as u32,
+                end: u32::min(
+                    (metrics.baseline + metrics.descent + metrics.leading * 0.5).floor() as u32,
+                    height,
+                ),
+            };
+
             // Iterate over GlyphRun's within each line
             for glyph_run in line.glyph_runs() {
-                render_glyph_run(&mut text_ctx.scale, &glyph_run, &mut buffer, padding, width);
+                render_glyph_run(
+                    &mut text_ctx.scale,
+                    &layout,
+                    &glyph_run,
+                    &mut buffer,
+                    padding,
+                    width,
+                    &mut glyph_idx,
+                    &self.selection.range(),
+                    &self.selection_color,
+                    &line_range,
+                );
             }
         }
 
@@ -147,14 +213,50 @@ impl TextData {
             tex
         }
     }
+
+    fn update_selection(
+        &mut self,
+        layout: &Layout<Color>,
+        widget_pos: Vec2,
+        padding: u32,
+        input: &Input,
+    ) {
+        let mouse_pos = input.mouse().position();
+
+        if (input.is_pressed(Button::MouseLeft)
+            || input.is_down(Button::MouseLeft)
+            || input.is_released(Button::MouseLeft))
+            && self.mouse_pos != mouse_pos
+        {
+            let widget_mouse_pos = mouse_pos - widget_pos;
+            let cursor = Cursor::from_point(
+                layout,
+                widget_mouse_pos.x - padding as f32,
+                widget_mouse_pos.y,
+            );
+
+            if input.is_pressed(Button::MouseLeft) {
+                self.selection.set_cursor(cursor.text_start);
+            } else {
+                self.selection.set_end(cursor.text_end);
+            }
+
+            self.mouse_pos = mouse_pos;
+        }
+    }
 }
 
 fn render_glyph_run(
     context: &mut ScaleContext,
+    layout: &Layout<Color>,
     glyph_run: &GlyphRun<Color>,
     buffer: &mut [Color],
     padding: u32,
     image_width: u32,
+    glyph_idx: &mut usize,
+    selection_range: &Range<usize>,
+    selection_color: &Color,
+    line_range: &Range<u32>,
 ) {
     // Resolve properties of the GlyphRun
     let mut run_x = glyph_run.offset();
@@ -189,29 +291,46 @@ fn render_glyph_run(
 
         run_x += glyph.advance;
 
+        let cursor = Cursor::from_point(layout, glyph_x, glyph_y);
+        let is_selected =
+            selection_range.start <= cursor.text_end && cursor.text_end <= selection_range.end;
+
+        let bg_color = if is_selected {
+            selection_color
+        } else {
+            &Color::TRANSPARENT
+        };
+
         render_glyph(
             buffer,
             &mut scaler,
-            color,
-            glyph,
+            &color,
+            bg_color,
+            &glyph,
             glyph_x,
             glyph_y,
             image_width,
+            line_range,
         );
+
+        *glyph_idx += 1;
     }
 }
 
 fn render_glyph(
     buffer: &mut [Color],
     scaler: &mut Scaler,
-    color: Color,
-    glyph: Glyph,
+    color: &Color,
+    bg_color: &Color,
+    glyph: &Glyph,
     glyph_x: f32,
     glyph_y: f32,
     image_width: u32,
+    line_range: &Range<u32>,
 ) {
     // Compute the fractional offset
     // You'll likely want to quantize this in a real renderer
+    // TODO: swash for some reason shifts horizontal offset by 1 pixel to the left so we have to correct it here
     let offset = Vector::new(glyph_x.fract() + 1.0, glyph_y.fract());
 
     // Render the glyph using swash
@@ -236,9 +355,20 @@ fn render_glyph(
     let glyph_x = (glyph_x.floor() as i32 + glyph_image.placement.left) as u32;
     let glyph_y = (glyph_y.floor() as i32 - glyph_image.placement.top) as u32;
 
+    if bg_color.is_opaque() {
+        // draw selection background
+        for y in line_range.clone() {
+            for x in glyph_x..glyph_x + glyph_width {
+                let idx = y * image_width + x;
+
+                buffer[idx as usize].blend_with(bg_color);
+            }
+        }
+    }
+
     match glyph_image.content {
         Content::Mask => {
-            // TODO: check if a single loop over i: [0..glyph_height*glyph_width] will be more efficient
+            // TODO: check if a single loop over i: [0..glyph_height*glyph_width] will be possible and more efficient
             let mut i = 0;
             for pixel_y in 0..glyph_height {
                 for pixel_x in 0..glyph_width {
@@ -246,9 +376,11 @@ fn render_glyph(
                         let x = glyph_x + pixel_x;
                         let y = glyph_y + pixel_y;
                         let idx = y * image_width + x;
+
                         let alpha = color_u8_to_f32(glyph_image.data[i]);
                         let color = color.with_alpha(alpha);
 
+                        // TODO: blend?
                         buffer[idx as usize] = color;
                     }
 
@@ -265,14 +397,14 @@ fn render_glyph(
                         let x = glyph_x + pixel_x as u32;
                         let y = glyph_y + pixel_y as u32;
                         let idx = y * glyph_width + x;
-                        let color = Color::new(
+
+                        // TODO: blend?
+                        buffer[idx as usize] = Color::new(
                             color_u8_to_f32(pixel[0]),
                             color_u8_to_f32(pixel[1]),
                             color_u8_to_f32(pixel[2]),
                             color_u8_to_f32(pixel[3]),
                         );
-
-                        buffer[idx as usize] = color;
                     }
                 }
             }

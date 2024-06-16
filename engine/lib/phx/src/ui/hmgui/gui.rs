@@ -121,7 +121,7 @@ impl HmGui {
     // TODO: take in account container clipping
     fn check_mouse_over(&mut self, widget_rf: Rf<HmGuiWidget>) {
         let widget = widget_rf.as_ref();
-        let is_mouse_over = widget.contains_point(&self.focus_pos);
+        let is_mouse_over = widget.contains_point(self.focus_pos);
 
         if let WidgetItem::Container(container) = &widget.item {
             if !container.clip || is_mouse_over {
@@ -187,7 +187,7 @@ impl HmGui {
             }
 
             root.compute_size(self);
-            root.layout(self);
+            root.layout(self, input);
         }
 
         self.focus_pos = input.mouse().position();
