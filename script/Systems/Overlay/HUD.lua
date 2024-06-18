@@ -314,6 +314,7 @@ function HUD:drawTargetMission(a)
 end
 
 function HUD:drawTargetShieldsHullArmor(a)
+    -- NOTE: Not used now, but retained temporarily
     local player = self.player
     local playerShip = player:getControlling()
     local playerTarget = playerShip:getTarget()
@@ -377,6 +378,7 @@ function HUD:drawTargetShieldsHullArmor(a)
 end
 
 function HUD:drawPlayerShieldsHullArmor(a)
+    -- NOTE: Not used now, but retained temporarily
     local player = self.player
     local playerShip = player:getControlling()
 
@@ -1503,6 +1505,15 @@ function HUD:drawPlayerSystemInteg(a)
     for str = floor(playerCapChgPct / 10), 1, -1 do
         UI.DrawEx.RingDim(164, sy - 130,  65 + (str - 1), Config.ui.color.capacitorEnergy)
     end
+
+    -- Also draw player ship hull, armor, and shield strengths in text form
+    local text = ""
+    text = format("%d%%", playerHealthPct)
+    HUD:drawHudTextDouble(164, sy - 54, Config.ui.color.meterBarLight, hudFontSize - 2, 0.5, text)
+    text = format("%d%%", playerArmorPct)
+    HUD:drawHudTextDouble(164, sy - 38, Config.ui.color.meterBarLight, hudFontSize - 2, 0.5, text)
+    text = format("%d%%", playerShieldPct)
+    HUD:drawHudTextDouble(164, sy - 22, Config.ui.color.meterBarLight, hudFontSize - 2, 0.5, text)
 end
 
 function HUD:drawTargetSystemInteg(a)
@@ -1561,6 +1572,15 @@ function HUD:drawTargetSystemInteg(a)
             for str = floor(targetHealthPct / 10), 1, -1 do
                 UI.DrawEx.RingDim(sx - 156, sy - 130,  80 + (str - 1), Config.ui.color.hullIntegrity)
             end
+
+            -- Also draw target ship hull, armor, and shield strengths in text form
+            local text = ""
+            text = format("%d%%", targetHealthPct)
+            HUD:drawHudTextDouble(sx - 156, sy - 54, Config.ui.color.meterBarLight, hudFontSize - 2, 0.5, text)
+            text = format("%d%%", targetArmorPct)
+            HUD:drawHudTextDouble(sx - 156, sy - 38, Config.ui.color.meterBarLight, hudFontSize - 2, 0.5, text)
+            text = format("%d%%", targetShieldPct)
+            HUD:drawHudTextDouble(sx - 156, sy - 22, Config.ui.color.meterBarLight, hudFontSize - 2, 0.5, text)
         end
     end
 end
@@ -1755,8 +1775,8 @@ function HUD:onDraw(focus, active)
             self:drawTargetRange(self.enabled)
             self:drawTargetSubtype(self.enabled)
             self:drawTargetSpeed(self.enabled)
-            self:drawTargetShieldsHullArmor(self.enabled)
-            self:drawPlayerShieldsHullArmor(self.enabled)
+--            self:drawTargetShieldsHullArmor(self.enabled)
+--            self:drawPlayerShieldsHullArmor(self.enabled)
             self:drawMissilesLeft(self.enabled)
             self:drawPlayerSpeed(self.enabled)
             self:drawChaffLeft(self.enabled)
