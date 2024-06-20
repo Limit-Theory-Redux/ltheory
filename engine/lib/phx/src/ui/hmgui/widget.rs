@@ -331,7 +331,7 @@ impl HmGuiWidget {
                         let cursor_size = text_view.data().cursor_rect_size();
 
                         if cursor_size.x > 0.0 && cursor_size.y > 0.0 {
-                            let cursor_pos = text_view.data().cursor_rect_pos();
+                            let cursor_pos = self.inner_pos + text_view.data().cursor_rect_pos();
 
                             hmgui
                                 .renderer

@@ -241,7 +241,7 @@ impl TextData {
 
         // calculate cursor rect
         if (self.text_changed || selection_changed) && editable && focused {
-            self.build_cursor_rect(&layout, widget_pos, height, padding as f32);
+            self.build_cursor_rect(&layout, height, padding as f32);
         }
 
         // Create texture
@@ -259,13 +259,7 @@ impl TextData {
         }
     }
 
-    fn build_cursor_rect(
-        &mut self,
-        layout: &Layout<Color>,
-        widget_pos: Vec2,
-        widget_height: u32,
-        padding: f32,
-    ) {
+    fn build_cursor_rect(&mut self, layout: &Layout<Color>, widget_height: u32, padding: f32) {
         let mut cursor_position = self.selection.cursor_position();
         let behind_last = if cursor_position >= self.text.len() {
             cursor_position -= 1;
@@ -297,8 +291,7 @@ impl TextData {
 
         let pos_offset = if behind_last { 0.0 } else { glyph.advance };
 
-        self.cursor_rect_pos =
-            widget_pos + Vec2::new(cursor.offset + glyph.x + padding - pos_offset, glyph.y);
+        self.cursor_rect_pos = Vec2::new(cursor.offset + glyph.x + padding - pos_offset, glyph.y);
         self.cursor_rect_size = Vec2::new(3.0, (line_range.end - line_range.start) as f32);
     }
 
