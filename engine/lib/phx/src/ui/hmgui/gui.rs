@@ -464,13 +464,19 @@ impl HmGui {
         self.mouse_over_widget_hash[ty as usize] == widget.hash
     }
 
-    /// Sets current widget in `focus`.
-    /// To be used in combination with some input check, i.e. mouse left click.
-    pub fn set_focus(&mut self) {
+    /// Sets or removes current widget focus.
+    /// To be used in combination with some input check, i.e. mouse left click inside or outside the widget.
+    pub fn set_focus(&mut self, focused: bool) {
         let last = self.last();
         let widget = last.as_ref();
 
-        self.active_widget = Some(widget.hash);
+        if focused {
+            self.active_widget = Some(widget.hash);
+        } else if let Some(hash) = self.active_widget {
+            if widget.hash == hash {
+                self.active_widget = None;
+            }
+        }
     }
 
     /// Returns true if current widget is in focus.

@@ -40,7 +40,7 @@ function Loader.defineType()
             void  HmGui_Text                           (HmGui*, cstr text, Font const* font, Color const* color);
             void  HmGui_TextView                       (HmGui*, TextData* textData, bool editable);
             bool  HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
-            void  HmGui_SetFocus                       (HmGui*);
+            void  HmGui_SetFocus                       (HmGui*, bool focused);
             bool  HmGui_HasFocus                       (HmGui const*);
             bool  HmGui_HasActiveInput                 (HmGui const*);
             void  HmGui_SetMinWidth                    (HmGui const*, float width);
