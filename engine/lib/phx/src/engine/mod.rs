@@ -416,11 +416,11 @@ impl Engine {
                                 });
                             }
                             if let Key::Character(text) = event.logical_key {
-                                if !event.repeat {
-                                    engine.input.update_keyboard(device_id, |state| {
-                                        state.set_text(text.as_str())
-                                    });
-                                }
+                                let time = engine.get_time();
+
+                                engine.input.update_keyboard(device_id, |state| {
+                                    state.set_text(text.as_str(), time)
+                                });
                             }
                         }
                         WindowEvent::CursorMoved {
