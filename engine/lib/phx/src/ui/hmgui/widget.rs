@@ -267,13 +267,6 @@ impl HmGuiWidget {
             }
             WidgetItem::TextView(image) => {
                 let scale_factor = hmgui.scale_factor() as f32;
-                let input =
-                    if contains_point(self.inner_pos, self.inner_size, input.mouse().position()) {
-                        Some(input)
-                    } else {
-                        None
-                    };
-
                 let data = hmgui.data_mut(self.hash);
                 let text_view = data.text_view.as_mut().expect("Text view data was not set");
 
@@ -287,7 +280,7 @@ impl HmGuiWidget {
                     self.inner_size.x,
                     scale_factor,
                     self.inner_pos,
-                    input,
+                    Some(input),
                     focused,
                 );
             }
