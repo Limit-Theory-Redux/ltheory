@@ -1459,7 +1459,7 @@ function HUD:drawReticle(a)
     end
 end
 
-function HUD:drawPlayerSystemInteg(a)
+function HUD:drawPlayerSystemIntegrity(a)
     local x, y, sx, sy    = self:getRectGlobal()
     local cx, cy          = sx / 2, sy / 2
     local playerShip      = self.player:getControlling()
@@ -1516,7 +1516,7 @@ function HUD:drawPlayerSystemInteg(a)
     HUD:drawHudTextDouble(164, sy - 22, Config.ui.color.meterBarLight, hudFontSize - 2, 0.5, text)
 end
 
-function HUD:drawTargetSystemInteg(a)
+function HUD:drawTargetSystemIntegrity(a)
     local playerShip = self.player:getControlling()
     local target = playerShip:getTarget()
     if target and target:isAlive() and not target:isDestroyed() then
@@ -1785,8 +1785,8 @@ function HUD:onDraw(focus, active)
             self:drawPowerDistro(self.enabled)
             self:drawSensors(self.enabled)
             self:drawTacticalMap(self.enabled)
-            self:drawPlayerSystemInteg(self.enabled)
-            self:drawTargetSystemInteg(self.enabled)
+            self:drawPlayerSystemIntegrity(self.enabled)
+            self:drawTargetSystemIntegrity(self.enabled)
             self:drawTargets(self.enabled)
             self:drawReticle(self.enabled)
             self:drawDirPredict(self.enabled)
