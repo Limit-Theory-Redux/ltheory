@@ -111,6 +111,10 @@ function HmGui:setFocus() end
 ---@return boolean
 function HmGui:hasFocus() end
 
+-- Returns true if there is an editable text view in focus.
+---@return boolean
+function HmGui:hasActiveInput() end
+
 ---@param width number
 function HmGui:setMinWidth(width) end
 

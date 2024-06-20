@@ -13,7 +13,7 @@ use winit::event::{self, *};
 use winit::event_loop::*;
 
 use internal::ConvertIntoString;
-use winit::keyboard::PhysicalKey;
+use winit::keyboard::{Key, PhysicalKey};
 
 use crate::common::*;
 use crate::input::*;
@@ -415,10 +415,12 @@ impl Engine {
                                     )
                                 });
                             }
-                            if let Some(text) = event.text {
-                                engine.input.update_keyboard(device_id, |state| {
-                                    state.set_text(text.as_str())
-                                });
+                            if let Key::Character(text) = event.logical_key {
+                                if !event.repeat {
+                                    engine.input.update_keyboard(device_id, |state| {
+                                        state.set_text(text.as_str())
+                                    });
+                                }
                             }
                         }
                         WindowEvent::CursorMoved {

@@ -24,18 +24,18 @@ impl TextView {
         }
     }
 
-    pub fn cursor_rect_pos(&self) -> Vec2 {
-        self.data.cursor_rect_pos()
-    }
-
-    pub fn cursor_rect_size(&self) -> Vec2 {
-        self.data.cursor_rect_size()
+    pub fn data(&self) -> &TextData {
+        &self.data
     }
 
     pub fn set_data(&mut self, text_data: &TextData) {
         // TODO: process input in text data
 
         self.dirty = self.data.update(text_data);
+    }
+
+    pub fn is_editable(&self) -> bool {
+        self.editable
     }
 
     pub fn update_source(&mut self, text_data: &mut TextData) {

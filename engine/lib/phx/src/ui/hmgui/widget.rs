@@ -197,7 +197,7 @@ impl HmGuiWidget {
 
                 self.min_size = self.calculate_min_size();
 
-                let data = hmgui.get_data(self.hash);
+                let data = hmgui.data_mut(self.hash);
                 data.min_size = self.min_size;
             }
             WidgetItem::Text(text_item) => {
@@ -211,7 +211,7 @@ impl HmGuiWidget {
                 let focused = hmgui.in_focus(self);
                 let scale_factor = hmgui.scale_factor() as f32;
                 let width = hmgui.screen_size().x; // TODO: use parent width if possible
-                let data = hmgui.get_data(self.hash);
+                let data = hmgui.data_mut(self.hash);
                 let text_view = data.text_view.as_mut().expect("Cannot get a text view");
 
                 let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
@@ -261,7 +261,7 @@ impl HmGuiWidget {
                     + self.margin_upper
                     + self.margin_lower;
 
-                let data = hmgui.get_data(self.hash);
+                let data = hmgui.data_mut(self.hash);
                 data.size = self.size;
                 data.pos = self.pos;
             }
@@ -274,7 +274,7 @@ impl HmGuiWidget {
                         None
                     };
 
-                let data = hmgui.get_data(self.hash);
+                let data = hmgui.data_mut(self.hash);
                 let text_view = data.text_view.as_mut().expect("Text view data was not set");
 
                 // TODO: TextContext could be part of HmGui without Lazy<Mutex<>> wrapper
@@ -331,12 +331,12 @@ impl HmGuiWidget {
                     image.draw(hmgui, pos, size);
 
                     // draw cursor
-                    let data = hmgui.get_data(self.hash);
+                    let data = hmgui.data_mut(self.hash);
                     let text_view = data.text_view.as_mut().expect("Text view data was not set");
-                    let cursor_size = text_view.cursor_rect_size();
+                    let cursor_size = text_view.data().cursor_rect_size();
 
                     if cursor_size.x > 0.0 && cursor_size.y > 0.0 {
-                        let cursor_pos = text_view.cursor_rect_pos();
+                        let cursor_pos = text_view.data().cursor_rect_pos();
 
                         hmgui
                             .renderer

@@ -199,9 +199,10 @@ impl TextData {
         // by several pixels to the left that makes position coordinate negative in some cases
         let padding = 5;
 
+        let mut selection_changed = false;
         if focused {
             if let Some(input) = input {
-                self.process_selection(&layout, widget_pos, padding, input);
+                selection_changed = self.process_selection(&layout, widget_pos, padding, input);
             }
         }
 
@@ -233,43 +234,14 @@ impl TextData {
                     width,
                     &mut glyph_idx,
                     &line_range,
+                    focused,
                 );
             }
         }
 
         // calculate cursor rect
-        if editable && focused {
-            let mut cursor_position = self.selection.cursor_position();
-            let behind_last = if cursor_position >= self.text.len() {
-                cursor_position -= 1;
-                true
-            } else {
-                false
-            };
-            let cursor = Cursor::from_position(&layout, cursor_position, false);
-            let line = cursor.path.line(&layout).expect("Cannot get cursor line");
-            let cluster = cursor
-                .path
-                .cluster(&layout)
-                .expect("Cannot get cursor cluster");
-            let metrics = line.metrics();
-            let glyph = cluster.glyphs().last().expect("Cannot get cursor glyph");
-            // if behind_last {
-            //     cluster.glyphs().last()
-            // } else {
-            //     cluster.glyphs().next()
-            // }
-            // .expect("Cannot get cursor glyph");
-            let line_range = Range {
-                start: (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor() as u32,
-                end: u32::min(
-                    (metrics.baseline + metrics.descent + metrics.leading * 0.5).floor() as u32,
-                    height,
-                ),
-            };
-
-            self.cursor_rect_pos = widget_pos + Vec2::new(glyph.x + padding as f32, glyph.y);
-            self.cursor_rect_size = Vec2::new(3.0, (line_range.end - line_range.start) as f32);
+        if (self.text_changed || selection_changed) && editable && focused {
+            self.build_cursor_rect(&layout, widget_pos, height, padding as f32);
         }
 
         // Create texture
@@ -287,20 +259,70 @@ impl TextData {
         }
     }
 
+    fn build_cursor_rect(
+        &mut self,
+        layout: &Layout<Color>,
+        widget_pos: Vec2,
+        widget_height: u32,
+        padding: f32,
+    ) {
+        let mut cursor_position = self.selection.cursor_position();
+        let behind_last = if cursor_position >= self.text.len() {
+            cursor_position -= 1;
+            true
+        } else {
+            false
+        };
+        let cursor = Cursor::from_position(&layout, cursor_position, false);
+        let line = cursor.path.line(&layout).expect("Cannot get cursor line");
+        let cluster = cursor
+            .path
+            .cluster(&layout)
+            .expect("Cannot get cursor cluster");
+        let metrics = line.metrics();
+        let glyph = if behind_last {
+            cluster.glyphs().last()
+        } else {
+            // first
+            cluster.glyphs().next()
+        }
+        .expect("Cannot get cursor glyph");
+        let line_range = Range {
+            start: (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor() as u32,
+            end: u32::min(
+                (metrics.baseline + metrics.descent + metrics.leading * 0.5).floor() as u32,
+                widget_height,
+            ),
+        };
+
+        let pos_offset = if behind_last { 0.0 } else { glyph.advance };
+
+        self.cursor_rect_pos =
+            widget_pos + Vec2::new(cursor.offset + glyph.x + padding - pos_offset, glyph.y);
+        self.cursor_rect_size = Vec2::new(3.0, (line_range.end - line_range.start) as f32);
+    }
+
     fn process_text_changes(&mut self, input: &Input) {
-        let typed_text = input.keyboard().text();
+        // remove backspace and del characters from the text input
+        let typed_text = input.keyboard().text(); //.replace(&['\u{7f}', '\u{8}'], "");
+
         if !typed_text.is_empty() {
             // TODO: update style sections
-            println!("= Typed text: {typed_text}");
+            println!("= Typed text: {typed_text:?}");
             match &mut self.selection {
                 TextSelection::Cursor(pos) => {
                     self.text.insert_str(*pos, typed_text);
                     *pos += typed_text.len();
                 }
                 TextSelection::Selection(range) => {
-                    self.text.replace_range(range.start..range.end, typed_text);
+                    let (start, end) = if range.start < range.end {
+                        (range.start, range.end)
+                    } else {
+                        (range.end, range.start)
+                    };
 
-                    self.selection = TextSelection::Cursor(range.start + typed_text.len());
+                    self.text.replace_range(start..end, typed_text);
+                    self.selection = TextSelection::Cursor(start + typed_text.len());
                 }
             }
 
@@ -309,14 +331,20 @@ impl TextData {
             match &mut self.selection {
                 TextSelection::Cursor(pos) => {
                     if *pos > 0 {
-                        self.text.remove(*pos - 1);
                         *pos -= 1;
+                        self.text.remove(*pos);
                         self.text_changed = true;
                     }
                 }
                 TextSelection::Selection(range) => {
-                    self.text.replace_range(range.start..range.end, "");
-                    self.selection = TextSelection::Cursor(range.start);
+                    let (start, end) = if range.start < range.end {
+                        (range.start, range.end)
+                    } else {
+                        (range.end, range.start)
+                    };
+
+                    self.text.replace_range(start..end, "");
+                    self.selection = TextSelection::Cursor(start);
                     self.text_changed = true;
                 }
             }
@@ -329,8 +357,14 @@ impl TextData {
                     }
                 }
                 TextSelection::Selection(range) => {
-                    self.text.replace_range(range.start..range.end, "");
-                    self.selection = TextSelection::Cursor(range.start);
+                    let (start, end) = if range.start < range.end {
+                        (range.start, range.end)
+                    } else {
+                        (range.end, range.start)
+                    };
+
+                    self.text.replace_range(start..end, "");
+                    self.selection = TextSelection::Cursor(start);
                     self.text_changed = true;
                 }
             }
@@ -343,7 +377,8 @@ impl TextData {
         widget_pos: Vec2,
         padding: u32,
         input: &Input,
-    ) {
+    ) -> bool {
+        let mut selection_changed = false;
         let mouse_pos = input.mouse().position();
 
         if (input.is_pressed(Button::MouseLeft)
@@ -365,14 +400,27 @@ impl TextData {
             }
 
             self.mouse_pos = mouse_pos;
+
+            selection_changed = true;
         } else if input.is_pressed(Button::KeyboardLeft) {
             let cursor_position = self.selection.cursor_position();
             if cursor_position > 0 {
                 if input.is_keyboard_shift_down() {
                     self.selection.set_end(cursor_position - 1);
                 } else {
-                    self.selection.set_cursor(cursor_position - 1);
+                    match &self.selection {
+                        TextSelection::Cursor(pos) => self.selection.set_cursor(*pos - 1),
+                        TextSelection::Selection(range) => {
+                            if range.start < range.end {
+                                self.selection.set_cursor(range.start);
+                            } else {
+                                self.selection.set_cursor(range.end);
+                            }
+                        }
+                    }
                 }
+
+                selection_changed = true;
             }
         } else if input.is_pressed(Button::KeyboardRight) {
             let cursor_position = self.selection.cursor_position();
@@ -380,12 +428,25 @@ impl TextData {
                 if input.is_keyboard_shift_down() {
                     self.selection.set_end(cursor_position + 1);
                 } else {
-                    self.selection.set_cursor(cursor_position + 1);
+                    match &self.selection {
+                        TextSelection::Cursor(pos) => self.selection.set_cursor(*pos + 1),
+                        TextSelection::Selection(range) => {
+                            if range.start < range.end {
+                                self.selection.set_cursor(range.end);
+                            } else {
+                                self.selection.set_cursor(range.start);
+                            }
+                        }
+                    }
                 }
+
+                selection_changed = true;
             }
         } else {
             // TODO: process up, down, home, end buttons
         }
+
+        selection_changed
     }
 
     fn render_glyph_run(
@@ -398,8 +459,9 @@ impl TextData {
         image_width: u32,
         glyph_idx: &mut usize,
         line_range: &Range<u32>,
+        focused: bool,
     ) {
-        let is_selection = !self.selection.is_cursor();
+        let is_selection = focused && !self.selection.is_cursor();
         let selection_range = self.selection.range();
 
         // Resolve properties of the GlyphRun
@@ -437,8 +499,8 @@ impl TextData {
 
             let cursor = Cursor::from_point(layout, glyph_x, glyph_y);
             let is_selected = is_selection
-                && selection_range.start <= cursor.text_end
-                && cursor.text_end <= selection_range.end;
+                && selection_range.start < cursor.text_end
+                && cursor.text_start < selection_range.end;
 
             let bg_color = if is_selected {
                 &self.selection_color

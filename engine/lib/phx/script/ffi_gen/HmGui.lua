@@ -42,6 +42,7 @@ function Loader.defineType()
             bool  HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
             void  HmGui_SetFocus                       (HmGui*);
             bool  HmGui_HasFocus                       (HmGui const*);
+            bool  HmGui_HasActiveInput                 (HmGui const*);
             void  HmGui_SetMinWidth                    (HmGui const*, float width);
             void  HmGui_SetMinHeight                   (HmGui const*, float height);
             void  HmGui_SetMinSize                     (HmGui const*, float width, float height);
@@ -115,6 +116,7 @@ function Loader.defineType()
                 isMouseOver                    = libphx.HmGui_IsMouseOver,
                 setFocus                       = libphx.HmGui_SetFocus,
                 hasFocus                       = libphx.HmGui_HasFocus,
+                hasActiveInput                 = libphx.HmGui_HasActiveInput,
                 setMinWidth                    = libphx.HmGui_SetMinWidth,
                 setMinHeight                   = libphx.HmGui_SetMinHeight,
                 setMinSize                     = libphx.HmGui_SetMinSize,

@@ -111,8 +111,14 @@ impl HmGui {
         widget_rf.clone()
     }
 
-    /// Get persistent data of the widget by its hash.
-    pub fn get_data(&mut self, widget_hash: u64) -> &mut HmGuiData {
+    /// Get persistent readonly data of the widget by its hash if exists.
+    pub fn data(&self, widget_hash: u64) -> Option<&HmGuiData> {
+        self.data.get(&widget_hash)
+    }
+
+    /// Get persistent mutable data of the widget by its hash.
+    /// Add new data entry if it doesn't exist.
+    pub fn data_mut(&mut self, widget_hash: u64) -> &mut HmGuiData {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
     }
 
@@ -186,7 +192,7 @@ impl HmGui {
             if let HmGuiLayerLocation::Below(widget_hash) = location {
                 // we assume here that widget_hash points to the widget on the previous layer,
                 // so its position and size are already calculated
-                let data = self.get_data(*widget_hash);
+                let data = self.data_mut(*widget_hash);
 
                 root.pos = Vec2::new(data.pos.x, data.pos.y + data.size.y);
                 root.inner_pos = root.pos;
@@ -342,7 +348,7 @@ impl HmGui {
     pub fn update_container_offset(&mut self, offset: Vec2) -> Vec2 {
         let widget_rf = self.container();
         let mut widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.offset = data.offset.clamp(Vec2::ZERO, offset);
 
@@ -356,7 +362,7 @@ impl HmGui {
     pub fn element_size(&mut self) -> Vec2 {
         let widget_rf = self.last();
         let widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.size
     }
@@ -365,7 +371,7 @@ impl HmGui {
     pub fn container_size(&mut self) -> Vec2 {
         let widget_rf = self.container();
         let widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.size
     }
@@ -374,7 +380,7 @@ impl HmGui {
     pub fn container_min_size(&mut self) -> Vec2 {
         let widget_rf = self.container();
         let widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.min_size
     }
@@ -383,7 +389,7 @@ impl HmGui {
     pub fn container_pos(&mut self) -> Vec2 {
         let widget_rf = self.container();
         let widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.pos
     }
@@ -393,7 +399,7 @@ impl HmGui {
         let last = self.last();
         let widget_rf = last.clone();
         let widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.offset -= offset;
     }
@@ -431,7 +437,7 @@ impl HmGui {
         let widget_rf = self.init_widget(WidgetItem::TextView(image_item));
         let widget = widget_rf.as_mut();
 
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         if let Some(text_view) = &mut data.text_view {
             if editable {
@@ -477,6 +483,19 @@ impl HmGui {
         } else {
             false
         }
+    }
+
+    /// Returns true if there is an editable text view in focus.
+    pub fn has_active_input(&self) -> bool {
+        if let Some(hash) = self.active_widget {
+            if let Some(data) = self.data(hash) {
+                if let Some(text_view) = &data.text_view {
+                    return text_view.is_editable();
+                }
+            }
+        }
+
+        false
     }
 
     pub fn set_min_width(&self, width: f32) {
