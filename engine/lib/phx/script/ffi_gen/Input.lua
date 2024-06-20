@@ -35,6 +35,7 @@ function Loader.defineType()
             bool                    Input_IsKeyboardAltPressed   (Input const*);
             bool                    Input_IsKeyboardCtrlPressed  (Input const*);
             bool                    Input_IsKeyboardShiftPressed (Input const*);
+            bool                    Input_IsKeyboardShiftDown    (Input const*);
         ]]
     end
 
@@ -67,6 +68,7 @@ function Loader.defineType()
                 isKeyboardAltPressed   = libphx.Input_IsKeyboardAltPressed,
                 isKeyboardCtrlPressed  = libphx.Input_IsKeyboardCtrlPressed,
                 isKeyboardShiftPressed = libphx.Input_IsKeyboardShiftPressed,
+                isKeyboardShiftDown    = libphx.Input_IsKeyboardShiftDown,
             },
         }
 

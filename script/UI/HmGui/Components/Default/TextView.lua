@@ -10,6 +10,7 @@ local meta = {
 ---@class UIComponentTextView: UIComponent
 ---@field visible boolean
 ---@field textData TextData
+---@field editable boolean
 ---@field backgroundColor Color
 ---@field widthInLayout number
 ---@field heightInLayout number
@@ -25,6 +26,7 @@ local meta = {
 ---@class UIComponentTextViewConstructor
 ---@field visible boolean
 ---@field text string|table<table<string, UIComponentTextViewStyle>|string>
+---@field editable boolean
 ---@field alignment TextAlignment
 ---@field style UIComponentTextViewStyle Default text style
 ---@field multiline boolean|true
@@ -219,7 +221,7 @@ local function buildTextData(args)
         text = section_text
     end
 
-    local multiline = true
+    local multiline = false
     if args.multiline ~= nil then
         multiline = args.multiline
     end
@@ -247,6 +249,7 @@ function TextView:new(args)
     newTextView.state = UICore.ComponentState {
         visible = args.visible,
         textData = buildTextData(args),
+        editable = args.editable or false,
         borderWidth = args.borderWidth or 0,
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
@@ -265,7 +268,7 @@ function TextView:new(args)
             return
         end
 
-        Gui:textView(self.state.textData())
+        Gui:textView(self.state.textData(), self.state.editable())
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 
         if self.state.backgroundColor then Gui:setBackgroundColor(self.state.backgroundColor()) end
@@ -281,6 +284,10 @@ function TextView:new(args)
 
         if self.state.width then Gui:setFixedWidth(self.state.width()) end
         if self.state.height then Gui:setFixedHeight(self.state.height()) end
+
+        if Gui:isMouseOver(FocusType.Mouse) and InputInstance:isPressed(Button.MouseLeft) then
+            Gui:setFocus()
+        end
     end
 
     return newTextView

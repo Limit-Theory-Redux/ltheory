@@ -38,7 +38,7 @@ function Loader.defineType()
             void  HmGui_Image                          (HmGui*, Tex2D* image);
             void  HmGui_Rect                           (HmGui*);
             void  HmGui_Text                           (HmGui*, cstr text, Font const* font, Color const* color);
-            void  HmGui_TextView                       (HmGui*, TextData const* textData);
+            void  HmGui_TextView                       (HmGui*, TextData* textData, bool editable);
             bool  HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
             void  HmGui_SetFocus                       (HmGui*);
             bool  HmGui_HasFocus                       (HmGui const*);

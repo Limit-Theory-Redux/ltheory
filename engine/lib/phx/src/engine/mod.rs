@@ -415,6 +415,11 @@ impl Engine {
                                     )
                                 });
                             }
+                            if let Some(text) = event.text {
+                                engine.input.update_keyboard(device_id, |state| {
+                                    state.set_text(text.as_str())
+                                });
+                            }
                         }
                         WindowEvent::CursorMoved {
                             device_id,

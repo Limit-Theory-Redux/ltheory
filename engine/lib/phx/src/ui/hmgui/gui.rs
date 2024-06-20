@@ -143,6 +143,14 @@ impl HmGui {
             }
         }
     }
+
+    pub fn in_focus(&self, widget: &HmGuiWidget) -> bool {
+        if let Some(hash) = self.active_widget {
+            widget.hash == hash
+        } else {
+            false
+        }
+    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -414,7 +422,7 @@ impl HmGui {
     }
 
     /// Add multiline styled text element.
-    pub fn text_view(&mut self, text_data: &TextData) {
+    pub fn text_view(&mut self, text_data: &mut TextData, editable: bool) {
         let image_item = HmGuiImage {
             image: std::ptr::null_mut(),
             layout: HmGuiImageLayout::TopLeft,
@@ -426,9 +434,15 @@ impl HmGui {
         let data = self.get_data(widget.hash);
 
         if let Some(text_view) = &mut data.text_view {
-            text_view.set_data(text_data);
+            if editable {
+                // TODO: this operation can be expensive, especially with a big text.
+                // Think about other ways of retrieving text data, i.e. on request.
+                text_view.update_source(text_data);
+            } else {
+                text_view.set_data(text_data);
+            }
         } else {
-            data.text_view = Some(TextView::new(text_data));
+            data.text_view = Some(TextView::new(text_data, editable));
         }
     }
 

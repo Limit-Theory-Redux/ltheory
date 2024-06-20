@@ -273,4 +273,10 @@ impl Input {
         keyboard.is_pressed(KeyboardButton::ShiftLeft)
             || keyboard.is_pressed(KeyboardButton::ShiftRight)
     }
+
+    pub fn is_keyboard_shift_down(&self) -> bool {
+        let keyboard = self.keyboard();
+
+        keyboard.is_down(KeyboardButton::ShiftLeft) || keyboard.is_down(KeyboardButton::ShiftRight)
+    }
 }

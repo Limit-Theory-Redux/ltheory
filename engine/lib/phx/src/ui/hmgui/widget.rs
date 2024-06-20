@@ -208,6 +208,7 @@ impl HmGuiWidget {
                 self.min_size = self.calculate_min_size();
             }
             WidgetItem::TextView(_) => {
+                let focused = hmgui.in_focus(self);
                 let scale_factor = hmgui.scale_factor() as f32;
                 let width = hmgui.screen_size().x; // TODO: use parent width if possible
                 let data = hmgui.get_data(self.hash);
@@ -221,6 +222,7 @@ impl HmGuiWidget {
                     scale_factor,
                     self.inner_pos,
                     None,
+                    focused,
                 );
                 let image_ref = unsafe { &*image };
 
@@ -236,6 +238,8 @@ impl HmGuiWidget {
 
     pub fn layout(&mut self, hmgui: &mut HmGui, input: &Input) {
         self.calculate_inner_pos_size();
+
+        let focused = hmgui.in_focus(self);
 
         // TODO: do not process widgets with min size, margin and border all 0
         match &mut self.item {
@@ -284,6 +288,7 @@ impl HmGuiWidget {
                     scale_factor,
                     self.inner_pos,
                     input,
+                    focused,
                 );
             }
             _ => {}
@@ -319,8 +324,24 @@ impl HmGuiWidget {
                     text.draw(&mut hmgui.renderer, Vec2::new(x, y));
                 }
                 WidgetItem::Rect => {}
-                WidgetItem::Image(image) | WidgetItem::TextView(image) => {
+                WidgetItem::Image(image) => {
                     image.draw(hmgui, pos, size);
+                }
+                WidgetItem::TextView(image) => {
+                    image.draw(hmgui, pos, size);
+
+                    // draw cursor
+                    let data = hmgui.get_data(self.hash);
+                    let text_view = data.text_view.as_mut().expect("Text view data was not set");
+                    let cursor_size = text_view.cursor_rect_size();
+
+                    if cursor_size.x > 0.0 && cursor_size.y > 0.0 {
+                        let cursor_pos = text_view.cursor_rect_pos();
+
+                        hmgui
+                            .renderer
+                            .rect(cursor_pos, cursor_size, Color::WHITE, None);
+                    }
                 }
             }
         }

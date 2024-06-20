@@ -61,3 +61,6 @@ function Input:isKeyboardCtrlPressed() end
 ---@return boolean
 function Input:isKeyboardShiftPressed() end
 
+---@return boolean
+function Input:isKeyboardShiftDown() end
+

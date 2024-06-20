@@ -21,6 +21,7 @@ use super::{TextAlignment, TextContext, TextSelection, TextStyle};
 #[derive(Clone)]
 pub struct TextData {
     text: String,
+    text_changed: bool,
     default_style: TextStyle,
     section_styles: IndexMap<[usize; 2], TextStyle>,
     alignment: Alignment,
@@ -28,6 +29,8 @@ pub struct TextData {
     selection: TextSelection,
     selection_color: Color,
     mouse_pos: Vec2,
+    cursor_rect_pos: Vec2,
+    cursor_rect_size: Vec2,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -41,6 +44,7 @@ impl TextData {
     ) -> Self {
         Self {
             text: text.into(),
+            text_changed: false,
             default_style: default_style.clone(),
             section_styles: Default::default(),
             alignment: alignment.into(),
@@ -48,7 +52,13 @@ impl TextData {
             selection: TextSelection::new(),
             selection_color: Color::new(0.2, 0.2, 0.7, 0.8),
             mouse_pos: Vec2::new(-1.0, -1.0),
+            cursor_rect_pos: Vec2::ZERO,
+            cursor_rect_size: Vec2::ZERO,
         }
+    }
+
+    pub fn text(&self) -> &str {
+        &self.text
     }
 
     /// Set style of the text section beginning at 'start_pos' position and up to 'end_pos'.
@@ -84,8 +94,28 @@ impl TextData {
 }
 
 impl TextData {
+    pub fn set_text(&mut self, text: &str) {
+        self.text = text.into();
+    }
+
     pub fn is_multiline(&self) -> bool {
         self.multiline
+    }
+
+    pub fn is_text_changed(&self) -> bool {
+        self.text_changed
+    }
+
+    pub fn unset_text_changed(&mut self) {
+        self.text_changed = false;
+    }
+
+    pub fn cursor_rect_pos(&self) -> Vec2 {
+        self.cursor_rect_pos
+    }
+
+    pub fn cursor_rect_size(&self) -> Vec2 {
+        self.cursor_rect_size
     }
 
     pub(super) fn update(&mut self, text_data: &TextData) -> bool {
@@ -130,7 +160,15 @@ impl TextData {
         scale_factor: f32,
         widget_pos: Vec2,
         input: Option<&Input>,
+        editable: bool,
+        focused: bool,
     ) -> *mut Tex2D {
+        if editable && focused {
+            if let Some(input) = input {
+                self.process_text_changes(input);
+            }
+        }
+
         // TODO: replace all `\n` in self.text with spaces if not multiline?
         let mut builder =
             text_ctx
@@ -156,13 +194,15 @@ impl TextData {
         // Perform layout (including bidi resolution and shaping) with alignment
         layout.break_all_lines(max_advance, self.alignment);
 
-        // Padding around the output image
+        // Horizontal padding around the output image
         // TODO: workaround. For some reason zeno crate (used by swash) shifts placement.left
         // by several pixels to the left that makes position coordinate negative in some cases
         let padding = 5;
 
-        if let Some(input) = input {
-            self.update_selection(&layout, widget_pos, padding, input);
+        if focused {
+            if let Some(input) = input {
+                self.process_selection(&layout, widget_pos, padding, input);
+            }
         }
 
         // Create buffer to render into
@@ -184,7 +224,7 @@ impl TextData {
 
             // Iterate over GlyphRun's within each line
             for glyph_run in line.glyph_runs() {
-                render_glyph_run(
+                self.render_glyph_run(
                     &mut text_ctx.scale,
                     &layout,
                     &glyph_run,
@@ -192,11 +232,44 @@ impl TextData {
                     padding,
                     width,
                     &mut glyph_idx,
-                    &self.selection.range(),
-                    &self.selection_color,
                     &line_range,
                 );
             }
+        }
+
+        // calculate cursor rect
+        if editable && focused {
+            let mut cursor_position = self.selection.cursor_position();
+            let behind_last = if cursor_position >= self.text.len() {
+                cursor_position -= 1;
+                true
+            } else {
+                false
+            };
+            let cursor = Cursor::from_position(&layout, cursor_position, false);
+            let line = cursor.path.line(&layout).expect("Cannot get cursor line");
+            let cluster = cursor
+                .path
+                .cluster(&layout)
+                .expect("Cannot get cursor cluster");
+            let metrics = line.metrics();
+            let glyph = cluster.glyphs().last().expect("Cannot get cursor glyph");
+            // if behind_last {
+            //     cluster.glyphs().last()
+            // } else {
+            //     cluster.glyphs().next()
+            // }
+            // .expect("Cannot get cursor glyph");
+            let line_range = Range {
+                start: (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor() as u32,
+                end: u32::min(
+                    (metrics.baseline + metrics.descent + metrics.leading * 0.5).floor() as u32,
+                    height,
+                ),
+            };
+
+            self.cursor_rect_pos = widget_pos + Vec2::new(glyph.x + padding as f32, glyph.y);
+            self.cursor_rect_size = Vec2::new(3.0, (line_range.end - line_range.start) as f32);
         }
 
         // Create texture
@@ -214,7 +287,57 @@ impl TextData {
         }
     }
 
-    fn update_selection(
+    fn process_text_changes(&mut self, input: &Input) {
+        let typed_text = input.keyboard().text();
+        if !typed_text.is_empty() {
+            // TODO: update style sections
+            println!("= Typed text: {typed_text}");
+            match &mut self.selection {
+                TextSelection::Cursor(pos) => {
+                    self.text.insert_str(*pos, typed_text);
+                    *pos += typed_text.len();
+                }
+                TextSelection::Selection(range) => {
+                    self.text.replace_range(range.start..range.end, typed_text);
+
+                    self.selection = TextSelection::Cursor(range.start + typed_text.len());
+                }
+            }
+
+            self.text_changed = true;
+        } else if input.is_pressed(Button::KeyboardBackspace) {
+            match &mut self.selection {
+                TextSelection::Cursor(pos) => {
+                    if *pos > 0 {
+                        self.text.remove(*pos - 1);
+                        *pos -= 1;
+                        self.text_changed = true;
+                    }
+                }
+                TextSelection::Selection(range) => {
+                    self.text.replace_range(range.start..range.end, "");
+                    self.selection = TextSelection::Cursor(range.start);
+                    self.text_changed = true;
+                }
+            }
+        } else if input.is_pressed(Button::KeyboardDelete) {
+            match &mut self.selection {
+                TextSelection::Cursor(pos) => {
+                    if *pos < self.text.len() {
+                        self.text.remove(*pos);
+                        self.text_changed = true;
+                    }
+                }
+                TextSelection::Selection(range) => {
+                    self.text.replace_range(range.start..range.end, "");
+                    self.selection = TextSelection::Cursor(range.start);
+                    self.text_changed = true;
+                }
+            }
+        }
+    }
+
+    fn process_selection(
         &mut self,
         layout: &Layout<Color>,
         widget_pos: Vec2,
@@ -235,85 +358,108 @@ impl TextData {
                 widget_mouse_pos.y,
             );
 
-            if input.is_pressed(Button::MouseLeft) {
+            if input.is_pressed(Button::MouseLeft) && !input.is_keyboard_shift_down() {
                 self.selection.set_cursor(cursor.text_start);
             } else {
                 self.selection.set_end(cursor.text_end);
             }
 
             self.mouse_pos = mouse_pos;
+        } else if input.is_pressed(Button::KeyboardLeft) {
+            let cursor_position = self.selection.cursor_position();
+            if cursor_position > 0 {
+                if input.is_keyboard_shift_down() {
+                    self.selection.set_end(cursor_position - 1);
+                } else {
+                    self.selection.set_cursor(cursor_position - 1);
+                }
+            }
+        } else if input.is_pressed(Button::KeyboardRight) {
+            let cursor_position = self.selection.cursor_position();
+            if cursor_position < self.text.len() {
+                if input.is_keyboard_shift_down() {
+                    self.selection.set_end(cursor_position + 1);
+                } else {
+                    self.selection.set_cursor(cursor_position + 1);
+                }
+            }
+        } else {
+            // TODO: process up, down, home, end buttons
         }
     }
-}
 
-fn render_glyph_run(
-    context: &mut ScaleContext,
-    layout: &Layout<Color>,
-    glyph_run: &GlyphRun<Color>,
-    buffer: &mut [Color],
-    padding: u32,
-    image_width: u32,
-    glyph_idx: &mut usize,
-    selection_range: &Range<usize>,
-    selection_color: &Color,
-    line_range: &Range<u32>,
-) {
-    // Resolve properties of the GlyphRun
-    let mut run_x = glyph_run.offset();
-    let run_y = glyph_run.baseline();
-    let style = glyph_run.style();
-    let color = style.brush;
+    fn render_glyph_run(
+        &self,
+        context: &mut ScaleContext,
+        layout: &Layout<Color>,
+        glyph_run: &GlyphRun<Color>,
+        buffer: &mut [Color],
+        padding: u32,
+        image_width: u32,
+        glyph_idx: &mut usize,
+        line_range: &Range<u32>,
+    ) {
+        let is_selection = !self.selection.is_cursor();
+        let selection_range = self.selection.range();
 
-    // Get the "Run" from the "GlyphRun"
-    let run = glyph_run.run();
+        // Resolve properties of the GlyphRun
+        let mut run_x = glyph_run.offset();
+        let run_y = glyph_run.baseline();
+        let style = glyph_run.style();
+        let color = style.brush;
 
-    // Resolve properties of the Run
-    let font = run.font();
-    let font_size = run.font_size();
-    let normalized_coords = run.normalized_coords();
+        // Get the "Run" from the "GlyphRun"
+        let run = glyph_run.run();
 
-    // Convert from parley::Font to swash::FontRef
-    let font_ref = FontRef::from_index(font.data.as_ref(), font.index as usize).unwrap();
+        // Resolve properties of the Run
+        let font = run.font();
+        let font_size = run.font_size();
+        let normalized_coords = run.normalized_coords();
 
-    // Build a scaler. As the font properties are constant across an entire run of glyphs
-    // we can build one scaler for the run and reuse it for each glyph.
-    let mut scaler = context
-        .builder(font_ref)
-        .size(font_size)
-        .hint(true)
-        .normalized_coords(normalized_coords)
-        .build();
+        // Convert from parley::Font to swash::FontRef
+        let font_ref = FontRef::from_index(font.data.as_ref(), font.index as usize).unwrap();
 
-    // Iterates over the glyphs in the GlyphRun
-    for glyph in glyph_run.glyphs() {
-        let glyph_x = run_x + glyph.x + (padding as f32);
-        let glyph_y = run_y - glyph.y;
+        // Build a scaler. As the font properties are constant across an entire run of glyphs
+        // we can build one scaler for the run and reuse it for each glyph.
+        let mut scaler = context
+            .builder(font_ref)
+            .size(font_size)
+            .hint(true)
+            .normalized_coords(normalized_coords)
+            .build();
 
-        run_x += glyph.advance;
+        // Iterates over the glyphs in the GlyphRun
+        for glyph in glyph_run.glyphs() {
+            let glyph_x = run_x + glyph.x + (padding as f32);
+            let glyph_y = run_y - glyph.y;
 
-        let cursor = Cursor::from_point(layout, glyph_x, glyph_y);
-        let is_selected =
-            selection_range.start <= cursor.text_end && cursor.text_end <= selection_range.end;
+            run_x += glyph.advance;
 
-        let bg_color = if is_selected {
-            selection_color
-        } else {
-            &Color::TRANSPARENT
-        };
+            let cursor = Cursor::from_point(layout, glyph_x, glyph_y);
+            let is_selected = is_selection
+                && selection_range.start <= cursor.text_end
+                && cursor.text_end <= selection_range.end;
 
-        render_glyph(
-            buffer,
-            &mut scaler,
-            &color,
-            bg_color,
-            &glyph,
-            glyph_x,
-            glyph_y,
-            image_width,
-            line_range,
-        );
+            let bg_color = if is_selected {
+                &self.selection_color
+            } else {
+                &Color::TRANSPARENT
+            };
 
-        *glyph_idx += 1;
+            render_glyph(
+                buffer,
+                &mut scaler,
+                &color,
+                bg_color,
+                &glyph,
+                glyph_x,
+                glyph_y,
+                image_width,
+                line_range,
+            );
+
+            *glyph_idx += 1;
+        }
     }
 }
 
