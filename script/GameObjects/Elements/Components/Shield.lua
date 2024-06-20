@@ -9,6 +9,9 @@
             take that energy from a capacitor. But physical objects, such as hull and
             armor, don't need to take energy and should have their own "health" values.
 --]]
+
+---@return Shield
+
 local Entity      = require('GameObjects.Entity')
 local BasicShapes = require('Systems.Gen.ShapeLib.BasicShapes')
 local SocketType  = require('GameObjects.Entities.Ship.SocketType')
@@ -43,18 +46,23 @@ local Shield      = subclass(Entity, function(self)
     self:register(Event.Update, self.updateShield)
 end)
 
+---@return SocketType.Shield
 function Shield:getSocketType()
     return SocketType.Shield
 end
 
+---@return string
 function Shield:getName()
     return self.name
 end
 
+---@param newName string
+---@return string
 function Shield:setName(newName)
     self.name = newName
 end
 
+---@param amount number
 function Shield:damageHealth(amount)
     if self.healthCurr - amount < 1e-6 then
         self.healthCurr = 0.0
@@ -69,41 +77,51 @@ function Shield:damageHealth(amount)
     Shield:setShield(self.strengthCurr, maxStrength, self.reviveRate)
 end
 
+---@return number|0.0
 function Shield:getHealth()
     return self.healthCurr or 0.0
 end
 
+---@return number|0.0
 function Shield:getHealthMax()
     return self.healthMax or 0.0
 end
 
+---@return number
 function Shield:getHealthPercent()
     if self.healthMax < 1e-6 then return 0.0 end
     return 100.0 * self.healthCurr / self.healthMax
 end
 
+---@param value number
+---@param max number
 function Shield:setHealth(value, max)
     self.healthCurr = value
     self.healthMax = floor(max)
 end
 
+---@return integer|0
 function Shield:getReviveRate()
     return self.reviveRate or 0
 end
 
+---@return number|0.0
 function Shield:getStrength()
     return self.strengthCurr or 0.0
 end
 
+---@return number|0.0
 function Shield:getStrengthMax()
     return self.strengthMax or 0.0
 end
 
+---@return number
 function Shield:getStrengthPercent()
     if self.strengthMax < 1e-6 then return 0.0 end
     return 100.0 * self.strengthCurr / self.strengthMax
 end
 
+---@param value number
 function Shield:reduceStrength(value)
     -- TODO: Modify shield reduction by its resistance versus incoming damage type
     local reducedValue = value
@@ -114,17 +132,18 @@ function Shield:reduceStrength(value)
         self.strengthCurr = self.strengthCurr - reducedValue
     end
     --Log.Debug("Vessel %s shield reduced by %s, %s remaining", self:getName(), reducedValue, self.strengthCurr)
-
-    -- TODO: Visual effect for shield activation
-    UI.DrawEx.Ring(200, 200, 50, Config.ui.color.shieldStrength, true)
 end
 
+---@param value number
+---@param max number
+---@param rate number
 function Shield:setStrength(value, max, rate)
     self.strengthCurr = value
     self.strengthMax = floor(max)
     self.reviveRate = rate
 end
 
+---@param state Event
 function Shield:updateShield(state)
     if not self:getParent():isDestroyed() then
         local oldStrength = self.strengthCurr
