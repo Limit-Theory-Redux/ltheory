@@ -414,7 +414,11 @@ impl TextData {
             );
 
             if input.is_pressed(Button::MouseLeft) && !input.is_keyboard_shift_down() {
-                self.selection.set_cursor(cursor.text_start);
+                if cursor.text_end < self.text.len() {
+                    self.selection.set_cursor(cursor.text_start);
+                } else {
+                    self.selection.set_cursor(cursor.text_end);
+                }
             } else {
                 self.selection.set_end(cursor.text_end);
             }
