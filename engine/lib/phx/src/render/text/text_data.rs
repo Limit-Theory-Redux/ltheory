@@ -42,9 +42,15 @@ impl TextData {
         alignment: TextAlignment,
         multiline: bool,
     ) -> Self {
+        let (text, text_changed) = if multiline {
+            (text.into(), false)
+        } else {
+            (text.replace(&['\n', '\r'], " "), true)
+        };
+
         Self {
-            text: text.into(),
-            text_changed: false,
+            text,
+            text_changed,
             default_style: default_style.clone(),
             section_styles: Default::default(),
             alignment: alignment.into(),
@@ -260,18 +266,13 @@ impl TextData {
     }
 
     fn build_cursor_rect(&mut self, layout: &Layout<Color>, widget_height: u32, padding: f32) {
-        let mut cursor_position = self.selection.cursor_position();
-        let cursor_at_end = if cursor_position >= self.text.len() {
-            // cursor_position -= 1;
-            true
-        } else {
-            false
-        };
-        let cursor = Cursor::from_position(&layout, cursor_position, cursor_at_end);
+        let cursor_position = self.selection.cursor_position();
+        let cursor = Cursor::from_position(&layout, cursor_position, false);
         let line = cursor.path.line(&layout).expect("Cannot get cursor line");
         let metrics = line.metrics();
+        let line_start = (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor();
         let line_range = Range {
-            start: (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor() as u32,
+            start: line_start as u32,
             end: u32::min(
                 (metrics.baseline + metrics.descent + metrics.leading * 0.5).floor() as u32,
                 widget_height,
@@ -289,25 +290,36 @@ impl TextData {
             .path
             .cluster(&layout)
             .expect("Cannot get cursor cluster");
-        let glyph = if cursor_at_end {
-            cluster.glyphs().last()
-        } else {
-            // first
-            cluster.glyphs().next()
-        };
+        let mut cursor_at_end = cursor_position >= self.text.len();
+        let glyph = cluster
+            .glyphs()
+            .next()
+            .or_else(|| {
+                // this can happen for special symbols (i.e. new line)
+                cursor_at_end = true;
+                line.glyph_runs()
+                    .last()
+                    .map(|glyph_run| glyph_run.glyphs().last())
+                    .flatten()
+            })
+            .expect("Cannot get cursor glyph");
 
-        // TODO: sometimes there is no glyph for the last character. Investigate
-        if let Some(glyph) = glyph {
-            let pos_offset = if cursor_at_end { 0.0 } else { glyph.advance };
+        let pos_offset = if cursor_at_end { 0.0 } else { glyph.advance };
 
-            self.cursor_rect_pos =
-                Vec2::new(cursor.offset + glyph.x + padding - pos_offset, glyph.y);
-        }
+        self.cursor_rect_pos = Vec2::new(
+            cursor.offset + glyph.x + padding - pos_offset,
+            line_start + glyph.y,
+        );
     }
 
     fn process_text_changes(&mut self, input: &Input) {
-        // remove backspace and del characters from the text input
-        let typed_text = input.keyboard().text().replace(&['\u{7f}', '\u{8}'], "");
+        // remove backspace, del and new line characters from the text input
+        let chars_to_remove: &[char] = if self.multiline {
+            &['\u{7f}', '\u{8}']
+        } else {
+            &['\u{7f}', '\u{8}', '\n', '\r']
+        };
+        let typed_text = input.keyboard().text().replace(chars_to_remove, "");
 
         if !typed_text.is_empty() {
             // TODO: update style sections
@@ -409,74 +421,94 @@ impl TextData {
             self.mouse_pos = mouse_pos;
 
             selection_changed = true;
-        } else if input.is_pressed(Button::KeyboardLeft) {
-            let cursor_position = self.selection.cursor_position();
-            if cursor_position > 0 {
-                if input.is_keyboard_shift_down() {
-                    self.selection.set_end(cursor_position - 1);
-                } else {
-                    match &self.selection {
-                        TextSelection::Cursor(pos) => self.selection.set_cursor(*pos - 1),
-                        TextSelection::Selection(range) => {
-                            if range.start < range.end {
-                                self.selection.set_cursor(range.start);
-                            } else {
-                                self.selection.set_cursor(range.end);
+        } else if !self.text.is_empty() {
+            if input.is_pressed(Button::KeyboardLeft) {
+                let cursor_position = self.selection.cursor_position();
+                if cursor_position > 0 {
+                    if input.is_keyboard_shift_down() {
+                        self.selection.set_end(cursor_position - 1);
+                    } else {
+                        match &self.selection {
+                            TextSelection::Cursor(pos) => self.selection.set_cursor(*pos - 1),
+                            TextSelection::Selection(range) => {
+                                if range.start < range.end {
+                                    self.selection.set_cursor(range.start);
+                                } else {
+                                    self.selection.set_cursor(range.end);
+                                }
                             }
                         }
+                    }
+
+                    selection_changed = true;
+                }
+            } else if input.is_pressed(Button::KeyboardRight) {
+                let cursor_position = self.selection.cursor_position();
+                if cursor_position < self.text.len() {
+                    if input.is_keyboard_shift_down() {
+                        self.selection.set_end(cursor_position + 1);
+                    } else {
+                        match &self.selection {
+                            TextSelection::Cursor(pos) => self.selection.set_cursor(*pos + 1),
+                            TextSelection::Selection(range) => {
+                                if range.start < range.end {
+                                    self.selection.set_cursor(range.end);
+                                } else {
+                                    self.selection.set_cursor(range.start);
+                                }
+                            }
+                        }
+                    }
+
+                    selection_changed = true;
+                }
+            } else if input.is_pressed(Button::KeyboardHome) {
+                if input.is_keyboard_ctrl_down() {
+                    // till the beginning of the text
+                    if input.is_keyboard_shift_down() {
+                        self.selection.set_end(0);
+                    } else {
+                        self.selection.set_cursor(0);
+                    }
+                } else {
+                    // till the beginning of the current line
+                    let cursor = Cursor::from_position(layout, self.selection.end(), false);
+                    let line = cursor.path.line(layout).expect("Cannot get cursor line");
+                    let line_range = line.text_range();
+
+                    if input.is_keyboard_shift_down() {
+                        self.selection.set_end(line_range.start);
+                    } else {
+                        self.selection.set_cursor(line_range.start);
                     }
                 }
 
                 selection_changed = true;
-            }
-        } else if input.is_pressed(Button::KeyboardRight) {
-            let cursor_position = self.selection.cursor_position();
-            if cursor_position < self.text.len() {
-                if input.is_keyboard_shift_down() {
-                    self.selection.set_end(cursor_position + 1);
+            } else if input.is_pressed(Button::KeyboardEnd) {
+                if input.is_keyboard_ctrl_down() {
+                    // till the end of the text
+                    if input.is_keyboard_shift_down() {
+                        self.selection.set_end(self.text.len());
+                    } else {
+                        self.selection.set_cursor(self.text.len());
+                    }
                 } else {
-                    match &self.selection {
-                        TextSelection::Cursor(pos) => self.selection.set_cursor(*pos + 1),
-                        TextSelection::Selection(range) => {
-                            if range.start < range.end {
-                                self.selection.set_cursor(range.end);
-                            } else {
-                                self.selection.set_cursor(range.start);
-                            }
-                        }
+                    // till the end of the current line
+                    let cursor = Cursor::from_position(layout, self.selection.end(), false);
+                    let line = cursor.path.line(layout).expect("Cannot get cursor line");
+                    let line_range = line.text_range();
+
+                    if input.is_keyboard_shift_down() {
+                        self.selection.set_end(line_range.end);
+                    } else {
+                        self.selection.set_cursor(line_range.end);
                     }
                 }
 
                 selection_changed = true;
-            }
-        } else if input.is_pressed(Button::KeyboardHome) {
-            if input.is_keyboard_ctrl_down() {
-                // till the beginning of the text
-                if input.is_keyboard_shift_down() {
-                    self.selection.set_end(0);
-                } else {
-                    self.selection.set_cursor(0);
-                }
             } else {
-                // TODO: till the beginning of the current line
+                // TODO: process up, down buttons
             }
-
-            selection_changed = true;
-        } else if input.is_pressed(Button::KeyboardEnd) {
-            if input.is_keyboard_ctrl_down() {
-                // till the end of the text
-                if input.is_keyboard_shift_down() {
-                    self.selection.set_end(self.text.len());
-                } else {
-                    self.selection.set_cursor(self.text.len());
-                }
-            } else {
-                // TODO: till the end of the current line
-            }
-
-            selection_changed = true;
-        } else {
-            // TODO: process up, down buttons
         }
 
         selection_changed

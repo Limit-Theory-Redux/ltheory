@@ -118,6 +118,7 @@ local creditsGrid = UILayout.Grid {
                         { "Scripters:",           boldGreenStyle }, "\n - Flatfingers\n - IllustrisJack\n",
                         { "Engine developers:", boldGreenStyle }, "\n - dga\n - Haron",
                     },
+                    editable = true,
                     style = { font = { size = 16 } },
                     multiline = true,
                     backgroundColor = Color(0.7, 0.7, 0.7, 0.2),
