@@ -448,16 +448,26 @@ impl HmGui {
         let data = self.data_mut(widget.hash);
 
         if let Some(text_view) = &mut data.text_view {
-            if editable {
-                // TODO: this operation can be expensive, especially with a big text.
-                // Think about other ways of retrieving text data, i.e. on request.
-                text_view.update_source(text_data);
-            } else {
+            if !editable {
+                // apply changes from Lua side. Readonly text view only
                 text_view.set_data(text_data);
             }
         } else {
             data.text_view = Some(TextView::new(text_data, editable));
         }
+    }
+
+    /// Apply changes to the text data if any and return if text was changed.
+    pub fn get_text_view_changes(&mut self, text_data: &mut TextData) -> bool {
+        let last = self.last();
+        let widget = last.as_mut();
+        let data = self.data_mut(widget.hash);
+        let text_view = data
+            .text_view
+            .as_mut()
+            .expect("Widget doesn't have a text view");
+
+        text_view.is_editable() && text_view.update_source(text_data)
     }
 
     /// Makes current widget `focusable` and returns true if mouse is over it.

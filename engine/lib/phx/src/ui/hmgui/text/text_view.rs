@@ -38,16 +38,18 @@ impl TextView {
         self.editable
     }
 
-    pub fn update_source(&mut self, text_data: &mut TextData) {
+    pub fn update_source(&mut self, text_data: &mut TextData) -> bool {
         debug_assert!(self.editable);
-
-        // TODO: process input in text data
 
         if self.data.is_text_changed() {
             text_data.set_text(self.data.text());
             // TODO: update other text data fields
 
             self.data.unset_text_changed();
+
+            true
+        } else {
+            false
         }
     }
 

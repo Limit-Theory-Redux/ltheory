@@ -97,6 +97,11 @@ function HmGui:text(text, font, color) end
 ---@param editable boolean
 function HmGui:textView(textData, editable) end
 
+-- Apply changes to the text data if any and return if text was changed.
+---@param textData TextData
+---@return boolean
+function HmGui:getTextViewChanges(textData) end
+
 -- Makes current widget `focusable` and returns true if mouse is over it.
 -- Returns true if mouse is over the widget (was calculated in the previous frame).
 ---@param ty FocusType

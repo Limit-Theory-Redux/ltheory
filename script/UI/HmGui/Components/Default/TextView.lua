@@ -40,6 +40,7 @@ local meta = {
 ---@field height number
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field showContainer boolean
+---@field callback fun(self: UIComponentTextViewConstructor)
 
 ---@class UIComponentTextViewSection
 ---@field text string
@@ -260,7 +261,8 @@ function TextView:new(args)
         height = args.height,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         showContainer = args.showContainer or function() return GameState.debug.metricsEnabled end,
-        showContainerColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4)
+        showContainerColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4),
+        callback = args.callback or function(self) end,
     }
 
     newTextView.render = function(self)
@@ -288,6 +290,14 @@ function TextView:new(args)
         local mouseOver = Gui:isMouseOver(FocusType.Mouse)
         if InputInstance:isPressed(Button.MouseLeft) then
             Gui:setFocus(mouseOver)
+        end
+
+        if Gui:hasFocus() then
+            local textChanged = Gui:getTextViewChanges(self.state.textData())
+
+            if textChanged then
+                self.state:callback()
+            end
         end
     end
 
