@@ -208,7 +208,8 @@ impl TextData {
         let mut selection_changed = false;
         if focused {
             if let Some(input) = input {
-                selection_changed = self.process_selection(&layout, widget_pos, padding, input);
+                selection_changed =
+                    self.process_text_selection(&layout, widget_pos, padding, input);
             }
         }
 
@@ -390,7 +391,7 @@ impl TextData {
         }
     }
 
-    fn process_selection(
+    fn process_text_selection(
         &mut self,
         layout: &Layout<Color>,
         widget_pos: Vec2,
@@ -462,6 +463,66 @@ impl TextData {
 
                     selection_changed = true;
                 }
+            } else if input.is_pressed(Button::KeyboardUp) {
+                let cursor_position = self.selection.cursor_position();
+                let cursor = Cursor::from_position(layout, cursor_position, false);
+                let line = cursor.path.line(layout).expect("Cannot get cursor line");
+                let line_text_range = line.text_range();
+
+                // if there is previous line
+                let cursor_position = if line_text_range.start > 0 {
+                    let line_cursor_offset = cursor_position - line_text_range.start;
+                    let cursor = Cursor::from_position(layout, line_text_range.start - 1, false);
+                    let line = cursor.path.line(layout).expect("Cannot get cursor line");
+                    let line_text_range = line.text_range();
+                    let mut cursor_position = line_text_range.start + line_cursor_offset;
+
+                    if cursor_position >= line_text_range.end {
+                        cursor_position = line_text_range.end - 1;
+                    }
+
+                    cursor_position
+                } else {
+                    0
+                };
+
+                if input.is_keyboard_shift_down() {
+                    self.selection.set_end(cursor_position);
+                } else {
+                    self.selection.set_cursor(cursor_position);
+                }
+
+                selection_changed = true;
+            } else if input.is_pressed(Button::KeyboardDown) {
+                let cursor_position = self.selection.cursor_position();
+                let cursor = Cursor::from_position(layout, cursor_position, false);
+                let line = cursor.path.line(layout).expect("Cannot get cursor line");
+                let line_text_range = line.text_range();
+
+                // if there is next line
+                let cursor_position = if line_text_range.end + 1 < self.text.len() {
+                    let line_cursor_offset = cursor_position - line_text_range.start;
+                    let cursor = Cursor::from_position(layout, line_text_range.end + 1, false);
+                    let line = cursor.path.line(layout).expect("Cannot get cursor line");
+                    let line_text_range = line.text_range();
+                    let mut cursor_position = line_text_range.start + line_cursor_offset;
+
+                    if cursor_position >= line_text_range.end {
+                        cursor_position = line_text_range.end - 1;
+                    }
+
+                    cursor_position
+                } else {
+                    self.text.len()
+                };
+
+                if input.is_keyboard_shift_down() {
+                    self.selection.set_end(cursor_position);
+                } else {
+                    self.selection.set_cursor(cursor_position);
+                }
+
+                selection_changed = true;
             } else if input.is_pressed(Button::KeyboardHome) {
                 if input.is_keyboard_ctrl_down() {
                     // till the beginning of the text
@@ -472,7 +533,8 @@ impl TextData {
                     }
                 } else {
                     // till the beginning of the current line
-                    let cursor = Cursor::from_position(layout, self.selection.end(), false);
+                    let cursor =
+                        Cursor::from_position(layout, self.selection.cursor_position(), false);
                     let line = cursor.path.line(layout).expect("Cannot get cursor line");
                     let line_range = line.text_range();
 
@@ -494,20 +556,25 @@ impl TextData {
                     }
                 } else {
                     // till the end of the current line
-                    let cursor = Cursor::from_position(layout, self.selection.end(), false);
+                    let cursor =
+                        Cursor::from_position(layout, self.selection.cursor_position(), false);
                     let line = cursor.path.line(layout).expect("Cannot get cursor line");
                     let line_range = line.text_range();
 
-                    if input.is_keyboard_shift_down() {
-                        self.selection.set_end(line_range.end);
+                    let cursor_position = if line_range.end == self.text.len() {
+                        line_range.end
                     } else {
-                        self.selection.set_cursor(line_range.end);
+                        line_range.end - 1
+                    };
+
+                    if input.is_keyboard_shift_down() {
+                        self.selection.set_end(cursor_position);
+                    } else {
+                        self.selection.set_cursor(cursor_position);
                     }
                 }
 
                 selection_changed = true;
-            } else {
-                // TODO: process up, down buttons
             }
         }
 
