@@ -262,18 +262,33 @@ impl TextData {
     fn build_cursor_rect(&mut self, layout: &Layout<Color>, widget_height: u32, padding: f32) {
         let mut cursor_position = self.selection.cursor_position();
         let cursor_at_end = if cursor_position >= self.text.len() {
-            cursor_position -= 1;
+            // cursor_position -= 1;
             true
         } else {
             false
         };
-        let cursor = Cursor::from_position(&layout, cursor_position, false);
+        let cursor = Cursor::from_position(&layout, cursor_position, cursor_at_end);
         let line = cursor.path.line(&layout).expect("Cannot get cursor line");
+        let metrics = line.metrics();
+        let line_range = Range {
+            start: (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor() as u32,
+            end: u32::min(
+                (metrics.baseline + metrics.descent + metrics.leading * 0.5).floor() as u32,
+                widget_height,
+            ),
+        };
+
+        self.cursor_rect_size = Vec2::new(3.0, (line_range.end - line_range.start) as f32);
+
+        if self.text.is_empty() {
+            self.cursor_rect_pos = Vec2::new(padding, 0.0);
+            return;
+        }
+
         let cluster = cursor
             .path
             .cluster(&layout)
             .expect("Cannot get cursor cluster");
-        let metrics = line.metrics();
         let glyph = if cursor_at_end {
             cluster.glyphs().last()
         } else {
@@ -283,34 +298,25 @@ impl TextData {
 
         // TODO: sometimes there is no glyph for the last character. Investigate
         if let Some(glyph) = glyph {
-            let line_range = Range {
-                start: (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor() as u32,
-                end: u32::min(
-                    (metrics.baseline + metrics.descent + metrics.leading * 0.5).floor() as u32,
-                    widget_height,
-                ),
-            };
-
             let pos_offset = if cursor_at_end { 0.0 } else { glyph.advance };
 
             self.cursor_rect_pos =
                 Vec2::new(cursor.offset + glyph.x + padding - pos_offset, glyph.y);
-            self.cursor_rect_size = Vec2::new(3.0, (line_range.end - line_range.start) as f32);
         }
     }
 
     fn process_text_changes(&mut self, input: &Input) {
         // remove backspace and del characters from the text input
-        let typed_text = input.keyboard().text(); //.replace(&['\u{7f}', '\u{8}'], "");
+        let typed_text = input.keyboard().text().replace(&['\u{7f}', '\u{8}'], "");
 
         if !typed_text.is_empty() {
             // TODO: update style sections
             match &mut self.selection {
                 TextSelection::Cursor(pos) => {
                     if *pos >= self.text.len() {
-                        self.text += typed_text;
+                        self.text += &typed_text;
                     } else {
-                        self.text.insert_str(*pos, typed_text);
+                        self.text.insert_str(*pos, &typed_text);
                     }
 
                     *pos += typed_text.len();
@@ -322,7 +328,7 @@ impl TextData {
                         (range.end, range.start)
                     };
 
-                    self.text.replace_range(start..end, typed_text);
+                    self.text.replace_range(start..end, &typed_text);
                     self.selection = TextSelection::Cursor(start + typed_text.len());
                 }
             }

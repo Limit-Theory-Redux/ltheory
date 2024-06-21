@@ -13,7 +13,7 @@ use winit::event::{self, *};
 use winit::event_loop::*;
 
 use internal::ConvertIntoString;
-use winit::keyboard::{Key, PhysicalKey};
+use winit::keyboard::PhysicalKey;
 
 use crate::common::*;
 use crate::input::*;
@@ -415,7 +415,7 @@ impl Engine {
                                     )
                                 });
                             }
-                            if let Key::Character(text) = event.logical_key {
+                            if let Some(text) = event.text {
                                 let time = engine.get_time();
 
                                 engine.input.update_keyboard(device_id, |state| {
