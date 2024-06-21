@@ -1,3 +1,4 @@
+Enums.UI = {}
 --- Define possible scroll directions for a scroll area.
 ---@enum (key) ScrollDirection
 Enums.UI.ScrollDirection = {

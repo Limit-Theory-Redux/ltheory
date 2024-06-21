@@ -21,7 +21,7 @@ pub struct Collision {
 pub struct RayCastResult {
     body: *mut RigidBody,
     norm: Vec3,
-    pos: Vec3,
+    pos: Position,
     t: f32,
 }
 
@@ -36,14 +36,14 @@ impl ShapeCastResult {
     }
 }
 
-pub trait NalgebraVec3Interop {
+pub trait NalgebraVecInterop {
     fn to_na(&self) -> na::Vector3<rp::Real>;
     fn to_na_point(&self) -> na::Point3<rp::Real>;
     fn from_na(_: &na::Vector3<rp::Real>) -> Self;
     fn from_na_point(_: &na::Point3<rp::Real>) -> Self;
 }
 
-impl NalgebraVec3Interop for Vec3 {
+impl NalgebraVecInterop for Vec3 {
     fn to_na(&self) -> na::Vector3<rp::Real> {
         na::Vector3::new(self.x as rp::Real, self.y as rp::Real, self.z as rp::Real)
     }
@@ -55,6 +55,21 @@ impl NalgebraVec3Interop for Vec3 {
     }
     fn from_na_point(v: &na::Point3<rp::Real>) -> Vec3 {
         Vec3::new(v.x as f32, v.y as f32, v.z as f32)
+    }
+}
+
+impl NalgebraVecInterop for Position {
+    fn to_na(&self) -> na::Vector3<rp::Real> {
+        na::Vector3::new(self.v.x, self.v.y, self.v.z)
+    }
+    fn to_na_point(&self) -> na::Point3<rp::Real> {
+        na::Point3::new(self.v.x, self.v.y, self.v.z)
+    }
+    fn from_na(v: &na::Vector3<rp::Real>) -> Position {
+        Position::new(v.x, v.y, v.z)
+    }
+    fn from_na_point(v: &na::Point3<rp::Real>) -> Position {
+        Position::new(v.x, v.y, v.z)
     }
 }
 
@@ -78,14 +93,14 @@ impl NalgebraQuatInterop for Quat {
 }
 
 pub trait RapierMatrixInterop {
-    fn from_rp(_: &rp::Isometry<rp::Real>) -> Self;
+    fn from_rp(_: &rp::Isometry<rp::Real>, frame: &Position) -> Self;
 }
 
 impl RapierMatrixInterop for Matrix {
-    fn from_rp(t: &rp::Isometry<rp::Real>) -> Matrix {
+    fn from_rp(t: &rp::Isometry<rp::Real>, frame: &Position) -> Matrix {
         Matrix::from_rotation_translation(
             Quat::from_na(&t.rotation),
-            Vec3::from_na(&t.translation.vector),
+            Position::from_na(&t.translation.vector).relative_to(*frame),
         )
     }
 }
@@ -292,12 +307,12 @@ impl Physics {
     #[bind(out_param = true)]
     pub fn ray_cast(&self, ray: &Ray) -> RayCastResult {
         let from = {
-            let mut data = Vec3::ZERO;
+            let mut data = Position::ZERO;
             Ray_GetPoint(ray, ray.tMin, &mut data);
             data.to_na_point()
         };
         let to = {
-            let mut data = Vec3::ZERO;
+            let mut data = Position::ZERO;
             Ray_GetPoint(ray, ray.tMax, &mut data);
             data.to_na_point()
         };
@@ -310,7 +325,7 @@ impl Physics {
         let mut result = RayCastResult {
             body: std::ptr::null_mut(),
             norm: Vec3::ZERO,
-            pos: Vec3::ZERO,
+            pos: Position::ZERO,
             t: 0.0,
         };
         let world = self.world.as_ref();
@@ -325,7 +340,7 @@ impl Physics {
             if let Some(collider) = world.colliders.get(handle) {
                 if let Some(parent_rb) = RigidBody::linked_with_collider_mut(collider) {
                     result.body = parent_rb;
-                    result.pos = Vec3::from_na_point(&ray.point_at(intersection.toi));
+                    result.pos = Position::from_na_point(&ray.point_at(intersection.toi));
                     result.norm = Vec3::from_na(&intersection.normal);
                     result.t = intersection.toi as f32;
                 }
@@ -402,10 +417,10 @@ impl Physics {
 
     pub fn draw_bounding_boxes_world(&self) {}
 
-    pub fn draw_wireframes(&mut self) {
+    pub fn draw_wireframes(&mut self, eye: &Position) {
         let world = self.world.as_ref();
         self.debug_renderer.render(
-            &mut RapierDebugRenderer,
+            &mut RapierDebugRenderer{eye: *eye},
             &world.rigid_bodies,
             &world.colliders,
             &self.impulse_joints,
@@ -460,7 +475,9 @@ impl Physics {
     }
 }
 
-struct RapierDebugRenderer;
+struct RapierDebugRenderer {
+    eye: Position,
+}
 
 impl rp::DebugRenderBackend for RapierDebugRenderer {
     fn draw_line(
@@ -481,8 +498,8 @@ impl rp::DebugRenderBackend for RapierDebugRenderer {
                 a,
             );
             Draw_Line3(
-                &Vec3::from_na_point(&start) as *const _,
-                &Vec3::from_na_point(&end) as *const _,
+                &Position::from_na_point(&start).relative_to(self.eye),
+                &Position::from_na_point(&end).relative_to(self.eye),
             );
         }
     }

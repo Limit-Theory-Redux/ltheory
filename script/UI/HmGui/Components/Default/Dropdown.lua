@@ -20,6 +20,7 @@ local meta = {
 ---@field font UIComponentFont
 ---@field color UIComponentDropdownColors
 ---@field sound SFXObject|nil
+---@field toolTip UIComponentToolTip
 ---@field callback function
 ---@field render fun(self: UIComponentDropdown) renders the dropdown
 
@@ -35,6 +36,7 @@ local meta = {
 ---@field align { h: AlignHorizontal, v: AlignVertical }|nil
 ---@field textAlign { h: AlignHorizontal, v: AlignVertical }|nil
 ---@field font UIComponentFont
+---@field toolTip string
 ---@field color UIComponentDropdownColors
 ---@field sound SFXObject|nil
 ---@field callback function
@@ -78,6 +80,7 @@ function Dropdown:new(args)
             background = args.color and args.color.background or Color(0.7, 0.7, 0.7, 1.0),
             highlight = args.color and args.color.highlight or Color(0.9, 0.9, 0.9, 1.0),
         },
+        toolTip = UIComponent.ToolTip { text = args.toolTip },
         sound = args.sound,
         callback = args.callback or function(selectedIndex)
             Log.Warn("undefined dropdown callback function: " .. tostring(selectedIndex))
@@ -107,8 +110,8 @@ function Dropdown:new(args)
             return
         end
 
+        -- Set the dropdown text that is displayed when no selection has yet been made
         local selectedText = "--Select--"
-
         if self.state.listSelector().state.selectedIndex then
             selectedText = self.state.selections()[self.state.listSelector().state.selectedIndex]
         end
@@ -133,6 +136,8 @@ function Dropdown:new(args)
         Gui:endContainer()
 
         local isMouseOverText = Gui:isMouseOver(FocusType.Mouse)
+
+        self.state.toolTip():render()
 
         -- drop down button
         Gui:image(self.dropdownIcon)

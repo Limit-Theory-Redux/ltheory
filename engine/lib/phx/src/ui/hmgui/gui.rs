@@ -14,6 +14,7 @@ pub struct HmGui {
     pub(super) renderer: UIRenderer,
 
     screen_size: Vec2,
+    scale_factor: f64,
 
     layers: Vec<HmGuiLayer>,
     /// Current layer index in layers vector
@@ -25,16 +26,29 @@ pub struct HmGui {
 }
 
 impl HmGui {
-    pub fn new() -> Self {
+    pub fn new(scale_factor: f64) -> Self {
         Self {
             renderer: Default::default(),
             screen_size: Default::default(),
+            scale_factor,
             layers: vec![],
             layer_index: UNDEFINED_LAYER_INDEX,
             data: HashMap::with_capacity(128),
             mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
         }
+    }
+
+    pub fn screen_size(&self) -> Vec2 {
+        self.screen_size
+    }
+
+    pub fn scale_factor(&self) -> f64 {
+        self.scale_factor
+    }
+
+    pub fn set_scale_factor(&mut self, scale_factor: f64) {
+        self.scale_factor = scale_factor;
     }
 
     #[inline]
@@ -102,6 +116,7 @@ impl HmGui {
 
     /// Calculate if mouse is over the widget. Recursively iterate over container widgets.
     /// Setting mouse over hash at the end of the method guarantees that the last (top most) widget will get the mouse over flag set.
+    // TODO: take in account container clipping
     fn check_mouse_over(&mut self, widget_rf: Rf<HmGuiWidget>) {
         let widget = widget_rf.as_ref();
         let is_mouse_over = widget.contains_point(&self.focus_pos);
@@ -374,7 +389,10 @@ impl HmGui {
     }
 
     pub fn image(&mut self, image: &mut Tex2D) {
-        let image_item = HmGuiImage { image };
+        let image_item = HmGuiImage {
+            image,
+            layout: HmGuiImageLayout::Fit,
+        };
 
         let _ = self.init_widget(WidgetItem::Image(image_item));
     }
@@ -384,39 +402,31 @@ impl HmGui {
     }
 
     pub fn text(&mut self, text: &str, font: &Font, color: &Color) {
-        let lines: Vec<_> = text.lines().collect();
+        let item = HmGuiText {
+            text: text.into(),
+            font: font.clone().into(),
+            color: color.clone(),
+        };
+        let widget_rf = self.init_widget(WidgetItem::Text(item));
+        let _ = widget_rf.as_mut();
+    }
 
-        if lines.len() > 1 {
-            // TODO: this is a temporary solution for multiline text.
-            // Problem with it is that all widget styling will be applied to the container instead of text.
-            self.begin_vertical_container();
-            self.set_spacing(5.0);
+    /// Add multiline styled text element.
+    pub fn text_view(&mut self, text_data: &TextData) {
+        let image_item = HmGuiImage {
+            image: std::ptr::null_mut(),
+            layout: HmGuiImageLayout::TopLeft,
+        };
 
-            for line in lines {
-                let item = HmGuiText {
-                    text: line.into(),
-                    font: font.clone().into(),
-                    color: color.clone(),
-                };
-                let size = item.font.get_size2(line);
-                let widget_rf = self.init_widget(WidgetItem::Text(item));
-                let mut widget = widget_rf.as_mut();
+        let widget_rf = self.init_widget(WidgetItem::TextView(image_item));
+        let widget = widget_rf.as_mut();
 
-                widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
-            }
+        let data = self.get_data(widget.hash);
 
-            self.end_container();
+        if let Some(text_view) = &mut data.text_view {
+            text_view.set_data(text_data);
         } else {
-            let item = HmGuiText {
-                text: text.into(),
-                font: font.clone().into(),
-                color: color.clone(),
-            };
-            let size = item.font.get_size2(text);
-            let widget_rf = self.init_widget(WidgetItem::Text(item));
-            let mut widget = widget_rf.as_mut();
-
-            widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+            data.text_view = Some(TextView::new(text_data));
         }
     }
 

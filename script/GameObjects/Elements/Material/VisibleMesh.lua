@@ -67,7 +67,7 @@ function Entity:renderVisibleMesh(state)
     if state.mode == BlendMode.Disabled then
         --Log.Debug("Entity:renderVisibleMesh() - self = %s", self:getName())
         self.material:start()
-        self.material:setState(self)
+        self.material:setState(self, state.eye)
         self.mesh:draw()
         self.material:stop()
         self.visibleMesh = true

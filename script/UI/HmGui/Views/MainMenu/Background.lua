@@ -5,6 +5,8 @@ local BackgroundView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type ResponsiveSize
+local ResponsiveSize = require("Types.ResponsiveSize")
 
 local lastMousePos = Vec2f(0, 0)
 local lastMoved = TimeStamp.Now()
@@ -41,14 +43,6 @@ end
 function BackgroundView:onViewClose(isPageClose)
     menuVisible = true
     InputInstance:setCursorVisible(true) -- reset
-end
-
-local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
-end
-
-local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
@@ -98,7 +92,7 @@ local backgroundGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = "SCREENSAVER",
-                            size = 32,
+                            size = 40,
                             font = "Unageo-Medium"
                         }
                     }
@@ -116,15 +110,15 @@ local backgroundGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Toggle Clock",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = toggleClock,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Back to Main Menu",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },

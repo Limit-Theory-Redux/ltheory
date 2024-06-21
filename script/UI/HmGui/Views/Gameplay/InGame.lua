@@ -11,7 +11,7 @@ local Bindings = require('States.ApplicationBindings')
 local Actions = requireAll('GameObjects.Actions')
 
 function InGame:onInput()
-    if InputInstance:isPressed(Bindings.Escape) then
+    if InputInstance:isPressed(Bindings.Escape) and GameState.player.currentShip and not GameState.player.currentShip:isDestroyed() then
         UIRouter:getCurrentPage():setView("Paused")
     elseif InputInstance:isPressed(Bindings.SystemMap) then
         UIRouter:getCurrentPage():setView("System_Map")

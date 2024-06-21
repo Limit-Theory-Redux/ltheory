@@ -73,20 +73,36 @@ function Grid:new(args)
 
                         Gui:text(tostring(index), Cache.Font("Exo2", 14), self.state.showGridColor())
 
-                        container:render()
+                        if type(container) == "function" then
+                            container = container() -- dynamic components
+                        end
+
+                        if container then
+                            container:render()
+                        end
 
                         Gui:endContainer()
                     else
                         Gui:beginStackContainer()
                         Gui:setPercentSize(100, 100)
-                        container:render()
+
+                        if type(container) == "function" then
+                            container = container() -- dynamic components
+                        end
+
+                        if container then
+                            container:render()
+                        end
+
                         Gui:endContainer()
                     end
 
-                    if container.state.widthInLayout then
-                        Gui:setPercentSize(container.state.widthInLayout() * 100, 100)
-                    else
-                        Gui:setPercentSize(100 / contentCount, 100) -- even distribution
+                    if container then
+                        if container.state.widthInLayout then
+                            Gui:setPercentSize(container.state.widthInLayout() * 100, 100)
+                        else
+                            Gui:setPercentSize(100 / contentCount, 100) -- even distribution
+                        end
                     end
                 elseif self.state.layoutType() == GuiLayoutType.Vertical then
                     if self.state.showGrid() then
@@ -98,20 +114,36 @@ function Grid:new(args)
 
                         Gui:text(tostring(index), Cache.Font("Exo2", 14), self.state.showGridColor())
 
-                        container:render()
+                        if type(container) == "function" then
+                            container = container() -- dynamic components
+                        end
+
+                        if container then
+                            container:render()
+                        end
 
                         Gui:endContainer()
                     else
                         Gui:beginStackContainer()
                         Gui:setPercentSize(100, 100)
-                        container:render()
+
+                        if type(container) == "function" then
+                            container = container() -- dynamic components
+                        end
+
+                        if container then
+                            container:render()
+                        end
+
                         Gui:endContainer()
                     end
 
-                    if container.state.heightInLayout then
-                        Gui:setPercentSize(100, container.state.heightInLayout() * 100)
-                    else
-                        Gui:setPercentSize(100, 100 / contentCount) -- even distribution
+                    if container then
+                        if container.state.heightInLayout then
+                            Gui:setPercentSize(100, container.state.heightInLayout() * 100)
+                        else
+                            Gui:setPercentSize(100, 100 / contentCount) -- even distribution
+                        end
                     end
                 end
             end

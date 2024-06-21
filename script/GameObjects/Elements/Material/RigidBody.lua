@@ -73,7 +73,7 @@ end
 function Entity:attach(child, pos, rot)
     assert(self.body)
     assert(child.body)
-    self.body:attach(child.body, pos, rot)
+    self.body:attach(child.body, Vec3f(pos.x, pos.y, pos.z), rot)
     self:addChild(child)
 end
 
@@ -138,14 +138,14 @@ end
 
 function Entity:getPos()
     assert(self.body)
-    local pos = Vec3f()
+    local pos = Position()
     self.body:getPos(pos)
     return pos
 end
 
 function Entity:getPosLocal()
     assert(self.body)
-    local pos = Vec3f()
+    local pos = Position()
     self.body:getPosLocal(pos)
     return pos
 end
@@ -189,14 +189,14 @@ function Entity:getSpeed()
     return self.body:getSpeed()
 end
 
-function Entity:getToLocalMatrix()
+function Entity:getToLocalMatrix(eye)
     assert(self.body)
-    return self.body:getToLocalMatrix()
+    return self.body:getToLocalMatrix(eye)
 end
 
-function Entity:getToWorldMatrix()
+function Entity:getToWorldMatrix(eye)
     assert(self.body)
-    return self.body:getToWorldMatrix()
+    return self.body:getToWorldMatrix(eye)
 end
 
 function Entity:getParentBody()
@@ -324,7 +324,7 @@ end
 function Entity:toLocal(pos)
     assert(self.body)
     local toLocal = self:getToLocalMatrix()
-    return toLocal:mulPoint(pos)
+    return toLocal:mulPoint(pos:toVec3f())
 end
 
 function Entity:toWorld(pos)
@@ -332,10 +332,10 @@ function Entity:toWorld(pos)
     local ePos = self:getPos()
     local eRot = self:getRot()
     return
+        ePos +
         eRot:getRight():scale(pos.x) +
         eRot:getUp():scale(pos.y) +
-        eRot:getForward():scale(pos.z) +
-        ePos
+        eRot:getForward():scale(pos.z)
 end
 
 function Entity:toWorldScaled(pos)
@@ -344,10 +344,10 @@ function Entity:toWorldScaled(pos)
     local eRot = self:getRot()
     local eScl = self:getScale()
     return
+        ePos +
         eRot:getRight():scale(eScl * pos.x) +
         eRot:getUp():scale(eScl * pos.y) +
-        eRot:getForward():scale(eScl * pos.z) +
-        ePos
+        eRot:getForward():scale(eScl * pos.z)
 end
 
 function Entity:getZone()

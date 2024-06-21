@@ -361,8 +361,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
             let node: &mut BSPNode = &mut this.nodes[nodeRef.index as usize];
             //BSP_PROFILE(self->profilingData.ray.nodes++;)
 
-            let dist: f32 = Vec3::dot((*node).plane.n, ray.p) - (*node).plane.d;
-            let denom: f32 = -Vec3::dot((*node).plane.n, ray.dir);
+            let dist: f32 = Vec3::dot((*node).plane.n, ray.p.as_vec3()) - (*node).plane.d;
+            let denom: f32 = -Vec3::dot((*node).plane.n, ray.dir.as_vec3());
 
             /* Near means the side of the plane the point p is on. */
             /* Early means the side of the plane we'll check first. */
@@ -375,9 +375,9 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 let planeBegin: f32 = t - tEpsilon;
                 let planeEnd: f32 = t + tEpsilon;
 
-                if planeBegin >= ray.tMax {
+                if planeBegin >= ray.tMax as f32 {
                     /* Entire ray lies on the near side */
-                } else if planeEnd <= ray.tMin {
+                } else if planeEnd <= ray.tMin as f32 {
                     /* Entire ray lies on one side */
                     earlyIndex = (t >= 0.0f32) as i32 ^ nearIndex;
                 } else {
@@ -385,18 +385,18 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                     earlyIndex = (t < 0.0f32) as i32 ^ nearIndex;
 
                     /* Don't let the ray 'creep past' tMin/tMax */
-                    let min: f32 = f32::max(planeBegin, ray.tMin);
-                    let max: f32 = f32::min(planeEnd, ray.tMax);
+                    let min: f32 = f32::max(planeBegin, ray.tMin as f32);
+                    let max: f32 = f32::min(planeEnd, ray.tMax as f32);
 
                     let d: DelayRay = DelayRay {
                         nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
                         tMin: min,
-                        tMax: ray.tMax,
+                        tMax: ray.tMax as f32,
                         depth,
                     };
                     rayStack.push(d);
 
-                    ray.tMax = max;
+                    ray.tMax = max as f64;
                 }
             } else {
                 /* Ray parallel to plane. */
@@ -405,8 +405,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
                     let d: DelayRay = DelayRay {
                         nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
-                        tMin: ray.tMin,
-                        tMax: ray.tMax,
+                        tMin: ray.tMin as f32,
+                        tMax: ray.tMax as f32,
                         depth,
                     };
                     rayStack.push(d);
@@ -449,8 +449,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
             let d = rayStack.pop().unwrap();
             nodeRef = d.nodeRef;
-            ray.tMin = d.tMin;
-            ray.tMax = d.tMax;
+            ray.tMin = d.tMin as f64;
+            ray.tMax = d.tMax as f64;
             depth = d.depth;
         }
     }
@@ -470,16 +470,17 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     lineSegment: &LineSegment,
     pHit: &mut Vec3,
 ) -> bool {
-    let mut t: f32 = 0.;
-    let dir: Vec3 = lineSegment.p1 - lineSegment.p0;
     let mut ray: Ray = Ray {
         p: lineSegment.p0,
-        dir,
-        tMin: 0.0f32,
-        tMax: 1.0f32,
+        dir: lineSegment.p1.as_dvec3() - lineSegment.p0.as_dvec3(),
+        tMin: 0.0,
+        tMax: 1.0,
     };
+    let mut t: f32 = 0.;
     if BSP_IntersectRay(this, &mut ray, &mut t) {
-        Ray_GetPoint(&mut ray, t, pHit);
+        let mut positionHit = Position::ZERO;
+        Ray_GetPoint(&ray, t as f64, &mut positionHit);
+        *pHit = positionHit.as_vec3();
         true
     } else {
         false
@@ -1385,20 +1386,29 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawLineSegment(bsp: &mut BSP, lineSegment: &mut LineSegment) {
+pub unsafe extern "C" fn BSPDebug_DrawLineSegment(bsp: &mut BSP, lineSegment: &mut LineSegment, eye: &Position) {
     let mut pHit = Vec3::ZERO;
     if BSP_IntersectLineSegment(bsp, lineSegment, &mut pHit) {
         Draw_Color(0.0f32, 1.0f32, 0.0f32, 0.1f32);
-        Draw_Line3(&mut (*lineSegment).p0, &mut pHit);
+        Draw_Line3(
+            &(*lineSegment).p0.relative_to(*eye),
+            &Position::from_vec(pHit).relative_to(*eye)
+        );
 
         Draw_Color(1.0f32, 0.0f32, 0.0f32, 1.0f32);
-        Draw_Line3(&mut pHit, &mut (*lineSegment).p1);
+        Draw_Line3(
+            &Position::from_vec(pHit).relative_to(*eye),
+            &(*lineSegment).p1.relative_to(*eye)
+        );
 
         Draw_PointSize(5.0f32);
         Draw_Point3(pHit.x, pHit.y, pHit.z);
     } else {
         Draw_Color(0.0f32, 1.0f32, 0.0f32, 1.0f32);
-        Draw_Line3(&mut (*lineSegment).p0, &mut (*lineSegment).p1);
+        Draw_Line3(
+            &(*lineSegment).p0.relative_to(*eye),
+            &(*lineSegment).p1.relative_to(*eye)
+        );
     };
 }
 

@@ -26,6 +26,7 @@ local meta = {
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
 ---@field width number
 ---@field height number
+---@field size ResponsiveSize -- if size is defined it will overwrite width, height
 ---@field padding { paddingX: number, paddingY: number }|{ paddingX: 0, paddingY: 0 }
 ---@field margin { marginX: number, marginY: number }|{ marginX: 0, marginY: 0 }
 ---@field borderWidth number
@@ -52,6 +53,7 @@ local meta = {
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
 ---@field width number
 ---@field height number
+---@field size ResponsiveSize -- if size is defined it will overwrite width, height
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
 ---@field borderWidth number
@@ -98,6 +100,7 @@ function ScrollArea:new(args)
         borderColor = args.borderColor or Color(1, 1, 1, 1),
         width = args.width,
         height = args.height,
+        size = args.size,
         layoutType = args.layoutType or GuiLayoutType.Vertical,
         contents = args.contents,
         color = {
@@ -122,16 +125,24 @@ function ScrollArea:new(args)
         if self.state.borderWidth() > 0 then
             Gui:setBorderWidth(self.state.borderWidth())
             Gui:setBorderColor(self.state.borderColor())
+        elseif self.state.showContainer() then
+            Gui:setBorderColor(self.state.showContainerColor())
+            Gui:setBorderWidth(1)
         end
 
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
         Gui:setChildrenAlignment(self.state.childrenAlign()[1], self.state.childrenAlign()[2])
 
+        if self.state.size then
+            local size = self.state.size()
+            Gui:setFixedSize(size.x, size.y)
+        else
+            if self.state.width then Gui:setFixedWidth(self.state.width()) end
+            if self.state.height then Gui:setFixedHeight(self.state.height()) end
+        end
+
         if self.state.padding then Gui:setPadding(self.state.padding()[1], self.state.padding()[2]) end
         if self.state.margin then Gui:setMargin(self.state.margin()[1], self.state.margin()[2]) end
-
-        if self.state.width then Gui:setFixedWidth(self.state.width()) end
-        if self.state.height then Gui:setFixedHeight(self.state.height()) end
 
         -- internal 'scrollable' container
         Gui:beginContainer(self.state.layoutType())

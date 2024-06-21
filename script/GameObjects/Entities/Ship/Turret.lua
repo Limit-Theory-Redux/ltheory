@@ -71,7 +71,7 @@ end
 
 function Turret:aimAt(pos)
     if not GameState.paused then
-        local look = pos - self:getPos()
+        local look = pos:relativeTo(self:getPos())
         local up   = self:getParent():getUp()
         self.aim:iLerp(Quat.FromLookUp(look, up), 0.1)
         self.aim = Quat.FromLookUp(look, up)
@@ -154,7 +154,7 @@ function Turret:render(state)
         if self.heat > 1e-3 then
             Shader.ISetFloat(varCache.size, 8)
             Shader.ISetFloat(varCache.alpha, 2.0 * self.heat)
-            Shader.ISetMatrix(varCache.mWorld, self:getToWorldMatrix())
+            Shader.ISetMatrix(varCache.mWorld, self:getToWorldMatrix(state.eye))
             mesh:drawBound()
         end
         mesh:drawUnbind()

@@ -50,7 +50,7 @@ function LimitTheoryRedux:onUpdate(dt)
     GameState.player.humanPlayer:getRoot():update(dt)
 
     Universe:onUpdate(dt)
-    SoundManager:clean(dt)
+    SoundManager:update(dt)
     MusicPlayer:OnUpdate(dt) --todo fix casing
 
     GameState.render.uiCanvas:update(dt)

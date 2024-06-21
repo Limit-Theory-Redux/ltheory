@@ -5,19 +5,13 @@ local CreditsView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type ResponsiveSize
+local ResponsiveSize = require("Types.ResponsiveSize")
 
 function CreditsView:onInput() end
 function CreditsView:onUpdate(dt) end
 function CreditsView:onViewOpen(isPageOpen) end
 function CreditsView:onViewClose(isPageClose) end
-
-local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
-end
-
-local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
-end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
     return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
@@ -30,6 +24,8 @@ end
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
 end
+
+local boldGreenStyle = { font = { weight = 600 }, brush = Color(0, 1, 0, 1) }
 
 local creditsGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
@@ -57,7 +53,7 @@ local creditsGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Text {
                             text = "CREDITS",
-                            size = 32,
+                            size = 40,
                             font = "Unageo-Medium"
                         }
                     }
@@ -74,8 +70,8 @@ local creditsGrid = UILayout.Grid {
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Back",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         }
@@ -106,11 +102,29 @@ local creditsGrid = UILayout.Grid {
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
             padding = { 0, 0 },
-            margin = { 0, 0 },
+            margin = { 50, 50 },
+            spacing = 10,
             widthInLayout = getRemainingWidthPercentage,
             layoutType = GuiLayoutType.Vertical,
             contents = {
-                UIComponent.RawInput { fn = function() end }
+                UIComponent.TextView {
+                    text = "Credits",
+                    style = { font = { size = 25, weight = 600 } },
+                    multiline = false,
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                },
+                UIComponent.TextView {
+                    text = {
+                        { "Limit Theory author:", boldGreenStyle }, " Josh Parnell\n",
+                        { "Scripters:",           boldGreenStyle }, "\n - Flatfingers\n - IllustrisJack\n",
+                        { "Engine developers:", boldGreenStyle }, "\n - dga\n - Haron",
+                    },
+                    style = { font = { size = 16 } },
+                    backgroundColor = Color(0.7, 0.7, 0.7, 0.2),
+                    width = 400,
+                    height = 400,
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                }
             }
         }
     }

@@ -34,24 +34,8 @@ for k, v in pairs(math) do
     end
 end
 
----- Will be the global variable to access all functions and classes within Core/
-Core = {}
-Render = {}
-Config = {}
-Enums = {}
-Enums.UI = {}
-GameState = {}
-
-UICore = {}
-UILayout = {}
-UIComponent = {}
-
--- Application
-AppInit = {}
-AppFrame = {}
-AppClose = {}
-
-LimitTheoryRedux = {}
+---- Global Variables
+require('Globals')
 
 ---- Aliases Required for ToString. (Should I require them inside ToString?)
 require('Config.Aliases')
@@ -195,7 +179,7 @@ Namespace.Inline(Render, 'Render')
 function Core.Call(fn, ...)
     local status, ret = xpcall(fn, ErrorHandler, ...)
     if not status then
-        Log.Error('Error calling: %s(%s). Ret: %s', fn, ..., ret)
+        printf('Error calling: %s(%s). Ret: %s', fn, ..., ret)
         os.exit()
     end
     return ret

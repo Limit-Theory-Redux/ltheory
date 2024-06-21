@@ -32,6 +32,7 @@ const COPY_TYPES: &[&str] = &[
     "DVec4",
     "Vec4",
     "Box3",
+    "Position",
     "WindowPos",
     "WindowMode",
     "MouseControl",
@@ -57,6 +58,7 @@ const COPY_TYPES: &[&str] = &[
     "HmGuiPropertyType",
     "LayoutType",
     "HmGuiStyleId",
+    "TextAlignment",
 ];
 
 #[derive(Debug)]

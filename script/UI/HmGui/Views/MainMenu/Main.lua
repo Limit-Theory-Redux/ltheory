@@ -5,6 +5,8 @@ local MainView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type ResponsiveSize
+local ResponsiveSize = require("Types.ResponsiveSize")
 local InitFiles = require('Systems.Files.InitFiles')
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
@@ -39,14 +41,6 @@ end
 
 function MainView:onViewClose(isPageClose) end
 
-local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
-end
-
-local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
-end
-
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
     return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
 end
@@ -55,8 +49,12 @@ local function getRemainingWidthPercentage()
     return 1 - getLayoutContainerWidthPercentage()
 end
 
-local function switchToPlayView()
-    UIRouter:getCurrentPage():setView("Play")
+local function switchToNewgameView()
+    UIRouter:getCurrentPage():setView("Newgame")
+end
+
+local function switchToLoadgameView()
+    UIRouter:getCurrentPage():setView("Loadgame")
 end
 
 local function switchToSettingsView()
@@ -109,30 +107,37 @@ local menuGrid = UILayout.Grid {
                     },
                     contents = {
                         UIComponent.Button_MainMenu {
-                            title = "Play",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
-                            callback = switchToPlayView,
+                            title = "New Game",
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
+                            callback = switchToNewgameView,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
+                        UIComponent.Button_MainMenu {
+                            title = "Load Game",
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
+                            callback = switchToLoadgameView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Settings",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             align = { AlignHorizontal.Center, AlignVertical.Center },
                             callback = switchToSettingsView
                         },
                         UIComponent.Button_MainMenu {
                             title = "Credits",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToCreditsView,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
                         UIComponent.Button_MainMenu {
                             title = "Exit",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = function()
                                 LimitTheoryRedux:exit() -- run pre-exit operations & exit game
                             end,

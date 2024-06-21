@@ -30,10 +30,10 @@ Config.ui.color = {
     meterBarLight     = Color(0.10, 0.60, 1.00, 0.7),
     meterBarDark      = Color(0.00, 0.30, 0.70, 0.1),
     meterBarBright    = Color(0.00, 0.20, 0.70, 0.3),
-    hullIntegrity     = Color(0.20, 0.25, 0.30, 0.9),
-    armorIntegrity    = Color(0.80, 0.75, 0.30, 0.6),
-    shieldStrength    = Color(0.20, 0.50, 1.00, 0.7),
-    capacitorEnergy   = Color(0.50, 0.00, 1.00, 0.7),
+    hullIntegrity     = Color(0.00, 0.70, 0.10, 1.0),
+    armorIntegrity    = Color(0.80, 0.75, 0.30, 1.0),
+    shieldStrength    = Color(0.10, 0.50, 1.50, 1.0),
+    capacitorEnergy   = Color(0.80, 0.10, 0.90, 1.0),
 
 
     healthColor = {

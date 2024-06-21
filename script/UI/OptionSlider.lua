@@ -79,7 +79,7 @@ function OptionSlider:onDraw(focus, active)
     local labelY = y - bound.y + (sy + bound.y) / 2
     local color = Config.ui.color.textNormal
     local textX = labelX + triSize
-    font:draw(valName, textX, labelY, color.r, color.g, color.b, color.a)
+    font:draw(valName, textX, labelY, color)
 end
 
 function OptionSlider:setNextValue()

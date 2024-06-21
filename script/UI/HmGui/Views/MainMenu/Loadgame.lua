@@ -1,10 +1,12 @@
 ---@type UIView
-local PlayView = UICore.View {
-    name = "Play"
+local LoadgameView = UICore.View {
+    name = "Loadgame"
 }
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
+---@type ResponsiveSize
+local ResponsiveSize = require("Types.ResponsiveSize")
 ---@type RandomNumberGenerator
 local rng = RNG.FromTime()
 
@@ -35,18 +37,10 @@ local seeds = {
 
 local selectedSeedIndex = nil
 
-function PlayView:onInput() end
-function PlayView:onUpdate(dt) end
-function PlayView:onViewOpen(isPageOpen) end
-function PlayView:onViewClose(isPageClose) end
-
-local function getButtonWidth()
-    return GameState.render.resX / 1600 * 200
-end
-
-local function getButtonHeight()
-    return GameState.render.resY / 900 * 40
-end
+function LoadgameView:onInput() end
+function LoadgameView:onUpdate(dt) end
+function LoadgameView:onViewOpen(isPageOpen) end
+function LoadgameView:onViewClose(isPageClose) end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
     return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
@@ -71,7 +65,7 @@ local function newGame(seed)
     UIRouter:setCurrentPage("Loading_Screen")
 end
 
-local playGrid = UILayout.Grid {
+local loadgameGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
     margin = { 0, 0 },
@@ -96,8 +90,8 @@ local playGrid = UILayout.Grid {
                     },
                     contents = {
                         UIComponent.Text {
-                            text = "PLAY",
-                            size = 32,
+                            text = "LOAD GAME",
+                            size = 40,
                             font = "Unageo-Medium"
                         }
                     }
@@ -113,21 +107,9 @@ local playGrid = UILayout.Grid {
                     },
                     contents = {
                         UIComponent.Button_MainMenu {
-                            title = "New Game",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        },
-                        UIComponent.Button_MainMenu {
-                            title = "Load Game",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
-                            align = { AlignHorizontal.Center, AlignVertical.Center },
-                        },
-                        UIComponent.Button_MainMenu {
                             title = "Back",
-                            width = getButtonWidth,
-                            height = getButtonHeight,
+                            size = ResponsiveSize(300, 60, true),
+                            font = { name = "Unageo-Medium", size = 24 },
                             callback = switchToMainScreen,
                             align = { AlignHorizontal.Center, AlignVertical.Center }
                         },
@@ -223,8 +205,8 @@ local playGrid = UILayout.Grid {
                                     title = "Select",
                                     align = { AlignHorizontal.Center, AlignVertical.Center },
                                     margin = { 0, 10 },
-                                    height = getButtonHeight,
-                                    width = getButtonWidth,
+                                    size = ResponsiveSize(300, 60),
+                                    font = { name = "Unageo-Medium", size = 24 },
                                     toolTip = function()
                                         if selectedSeedIndex then
                                             return "Press to load game with the seed:\n" ..
@@ -257,6 +239,6 @@ local playGrid = UILayout.Grid {
     }
 }
 
-PlayView:addContent(playGrid)
+LoadgameView:addContent(loadgameGrid)
 
-return PlayView
+return LoadgameView

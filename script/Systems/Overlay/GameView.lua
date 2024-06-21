@@ -132,7 +132,7 @@ function GameView:draw(focus, active)
                 Shader.SetMatrixT('mWorldIT', Matrix.Identity())
                 Shader.SetFloat('scale', 1)
                 -- drawWireframes will set the 'color' shader variable.
-                system.physics:drawWireframes()
+                system.physics:drawWireframes(eye)
             end
             mat:stop()
         end

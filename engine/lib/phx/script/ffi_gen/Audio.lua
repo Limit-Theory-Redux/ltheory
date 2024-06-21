@@ -19,11 +19,13 @@ function Loader.defineType()
             void           Audio_Free           (Audio*);
             Audio*         Audio_Create         ();
             SoundInstance* Audio_Play           (Audio*, Sound* sound, double initVolume, uint64 fadeMillis);
-            SoundInstance* Audio_Play3D         (Audio*, Sound* sound, double initVolume, uint64 fadeMillis, Vec3f initPos, float minDistance, float maxDistance);
-            void           Audio_SetListenerPos (Audio*, Vec3f const* pos);
-            Vec3f          Audio_ListenerPos    (Audio const*);
+            SoundInstance* Audio_Play3D         (Audio*, Sound* sound, double initVolume, uint64 fadeMillis, Position initPos, float minDistance, float maxDistance);
+            void           Audio_SetListenerPos (Audio*, Position const* pos);
+            Position       Audio_ListenerPos    (Audio const*);
             void           Audio_SetListenerRot (Audio*, Quat const* rot);
             Quat*          Audio_ListenerRot    (Audio const*);
+            void           Audio_SetOriginPos   (Audio*, Position const* origin);
+            Position       Audio_OriginPos      (Audio const*);
             uint64         Audio_GetLoadedCount (Audio const*);
             uint64         Audio_GetTotalCount  (Audio const*);
         ]]
@@ -60,6 +62,8 @@ function Loader.defineType()
                     local instance = libphx.Audio_ListenerRot(...)
                     return Core.ManagedObject(instance, libphx.Quat_Free)
                 end,
+                setOriginPos   = libphx.Audio_SetOriginPos,
+                originPos      = libphx.Audio_OriginPos,
                 getLoadedCount = libphx.Audio_GetLoadedCount,
                 getTotalCount  = libphx.Audio_GetTotalCount,
             },

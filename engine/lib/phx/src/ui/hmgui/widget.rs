@@ -1,6 +1,8 @@
+use std::borrow::BorrowMut;
+
 use glam::Vec2;
 
-use crate::render::Color;
+use crate::render::{Color, TEXT_CTX};
 
 use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT};
 
@@ -12,6 +14,7 @@ pub enum WidgetItem {
     Text(HmGuiText),
     Rect,
     Image(HmGuiImage),
+    TextView(HmGuiImage),
 }
 
 impl WidgetItem {
@@ -21,6 +24,7 @@ impl WidgetItem {
             WidgetItem::Text(text) => format!("Text/{}", text.text),
             WidgetItem::Rect => "Rect".into(),
             WidgetItem::Image(_) => "Image".into(),
+            WidgetItem::TextView(_) => "TextView".into(),
         }
     }
 
@@ -198,6 +202,28 @@ impl HmGuiWidget {
                 let data = hmgui.get_data(self.hash);
                 data.min_size = self.min_size;
             }
+            WidgetItem::Text(text_item) => {
+                let size = text_item.font.get_size2(&text_item.text);
+
+                self.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+
+                self.min_size = self.calculate_min_size();
+            }
+            WidgetItem::TextView(_) => {
+                let scale_factor = hmgui.scale_factor() as f32;
+                let width = hmgui.screen_size().x; // TODO: use parent width if possible
+                let data = hmgui.get_data(self.hash);
+                let text_view = data.text_view.as_mut().expect("Cannot get a text view");
+
+                let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
+                // TODO: do not build Tex2D. Return only it's size
+                let image = text_view.update(text_ctx.borrow_mut(), width, scale_factor);
+                let image_ref = unsafe { &*image };
+
+                self.inner_min_size = Vec2::new(image_ref.size.x as f32, image_ref.size.y as f32);
+
+                self.min_size = self.calculate_min_size();
+            }
             _ => {
                 self.min_size = self.calculate_min_size();
             }
@@ -208,7 +234,7 @@ impl HmGuiWidget {
         self.calculate_inner_pos_size();
 
         // TODO: do not process widgets with min size, margin and border all 0
-        match &self.item {
+        match &mut self.item {
             WidgetItem::Container(container) => {
                 let is_root = self.parent.is_none();
 
@@ -229,6 +255,19 @@ impl HmGuiWidget {
                 let data = hmgui.get_data(self.hash);
                 data.size = self.size;
                 data.pos = self.pos;
+            }
+            WidgetItem::TextView(image) => {
+                let scale_factor = hmgui.scale_factor() as f32;
+                let data = hmgui.get_data(self.hash);
+                let text_view = data.text_view.as_mut().expect("Text view data was not set");
+
+                // TODO: TextContext could be part of HmGui without Lazy<Mutex<>> wrapper
+                // but here it would conflict with mutable borrow of hmgui.get_data() above.
+                // Check if this can be solved.
+                let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
+
+                image.image =
+                    text_view.update(text_ctx.borrow_mut(), self.inner_size.x, scale_factor);
             }
             _ => {}
         }
@@ -263,8 +302,8 @@ impl HmGuiWidget {
                     text.draw(&mut hmgui.renderer, Vec2::new(x, y));
                 }
                 WidgetItem::Rect => {}
-                WidgetItem::Image(image) => {
-                    image.draw(&mut hmgui.renderer, pos, size);
+                WidgetItem::Image(image) | WidgetItem::TextView(image) => {
+                    image.draw(hmgui, pos, size);
                 }
             }
         }
@@ -311,7 +350,7 @@ impl HmGuiWidget {
 
                 println!("{ident_str}- rect");
             },
-            WidgetItem::Image(item) => item.dump(ident + 1),
+            WidgetItem::Image(item) | WidgetItem::TextView(item) => item.dump(ident + 1),
         }
     }
 }

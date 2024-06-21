@@ -150,12 +150,12 @@ do -- Transparent Structs
     } IntersectSphereProfiling;
 
     typedef struct LineSegment {
-      float p0x;
-      float p0y;
-      float p0z;
-      float p1x;
-      float p1y;
-      float p1z;
+      double p0x;
+      double p0y;
+      double p0z;
+      double p1x;
+      double p1y;
+      double p1z;
     } LineSegment;
 
     typedef struct Matrix {
@@ -183,14 +183,14 @@ do -- Transparent Structs
     } Quat;
 
     typedef struct Ray {
-      float px;
-      float py;
-      float pz;
-      float dirx;
-      float diry;
-      float dirz;
-      float tMin;
-      float tMax;
+      double px;
+      double py;
+      double pz;
+      double dirx;
+      double diry;
+      double dirz;
+      double tMin;
+      double tMax;
     } Ray;
 
     typedef struct RayCastResult {
@@ -198,9 +198,9 @@ do -- Transparent Structs
       float      normx;
       float      normy;
       float      normz;
-      float      posx;
-      float      posy;
-      float      posz;
+      double     posx;
+      double     posy;
+      double     posz;
       float      t;
     } RayCastResult;
 
@@ -325,6 +325,12 @@ do -- Transparent Structs
       float b;
       float a;
     } Color;
+
+    typedef struct Position {
+      double x;
+      double y;
+      double z;
+    } Position;
   ]]
 
   libphx.Structs = {
@@ -356,6 +362,7 @@ do -- Transparent Structs
     'Vec4i',
     'Vertex',
     'Color',
+    'Position',
   }
 end
 

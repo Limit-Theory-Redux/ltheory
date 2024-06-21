@@ -1,6 +1,6 @@
 --** REQUIRES **--
 local Player = require('GameObjects.Entities.Player')
-local System = require('GameObjects.Entities.Test.System')
+local System = require('GameObjects.Entities.StarSystem')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Bindings = require('States.ApplicationBindings')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
@@ -192,7 +192,7 @@ function LimitTheoryRedux:onUpdate(dt)
     GameState.player.humanPlayer:getRoot():update(dt)
     self.canvas:update(dt)
     MainMenu:OnUpdate(dt)
-    SoundManager:clean(dt)
+    SoundManager:update(dt)
     MusicPlayer:OnUpdate(dt)
     Universe:OnUpdate(dt)
 

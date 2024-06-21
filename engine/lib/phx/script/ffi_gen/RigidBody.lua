@@ -36,8 +36,8 @@ function Loader.defineType()
             float      RigidBody_GetBoundingRadius                 (RigidBody const*);
             float      RigidBody_GetBoundingRadiusCompound         (RigidBody const*);
             float      RigidBody_GetSpeed                          (RigidBody const*);
-            Matrix*    RigidBody_GetToWorldMatrix                  (RigidBody const*);
-            Matrix*    RigidBody_GetToLocalMatrix                  (RigidBody const*);
+            Matrix*    RigidBody_GetToWorldMatrix                  (RigidBody const*, Position const* cameraPos);
+            Matrix*    RigidBody_GetToLocalMatrix                  (RigidBody const*, Position const* cameraPos);
             void       RigidBody_GetVelocity                       (RigidBody const*, Vec3f* out);
             void       RigidBody_GetVelocityA                      (RigidBody const*, Vec3f* out);
             void       RigidBody_SetCollidable                     (RigidBody*, bool collidable);
@@ -50,17 +50,17 @@ function Loader.defineType()
             void       RigidBody_SetSleepThreshold                 (RigidBody*, float linear, float angular);
             float      RigidBody_GetMass                           (RigidBody const*);
             void       RigidBody_SetMass                           (RigidBody*, float mass);
-            void       RigidBody_GetPos                            (RigidBody const*, Vec3f* out);
-            void       RigidBody_GetPosLocal                       (RigidBody const*, Vec3f* out);
-            void       RigidBody_SetPos                            (RigidBody*, Vec3f const* pos);
-            void       RigidBody_SetPosLocal                       (RigidBody*, Vec3f const* pos);
+            void       RigidBody_GetPos                            (RigidBody const*, Position* out);
+            void       RigidBody_GetPosLocal                       (RigidBody const*, Position* out);
+            void       RigidBody_SetPos                            (RigidBody*, Position const* pos);
+            void       RigidBody_SetPosLocal                       (RigidBody*, Position const* pos);
             void       RigidBody_GetRot                            (RigidBody const*, Quat* out);
             void       RigidBody_GetRotLocal                       (RigidBody const*, Quat* out);
             void       RigidBody_SetRot                            (RigidBody*, Quat* rot);
             void       RigidBody_SetRotLocal                       (RigidBody*, Quat const* rot);
             float      RigidBody_GetScale                          (RigidBody const*);
             void       RigidBody_SetScale                          (RigidBody*, float scale);
-            float      RigidBody_DistanceTo                        (RigidBody const*, RigidBody const* target);
+            double     RigidBody_DistanceTo                        (RigidBody const*, RigidBody const* target);
             bool       RigidBody_IsSleeping                        (RigidBody const*);
         ]]
     end

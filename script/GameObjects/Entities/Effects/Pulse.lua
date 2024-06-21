@@ -3,7 +3,7 @@ local Entity = require('GameObjects.Entity')
 local Pulse = CType.Struct('Pulse')
 Pulse:add(CType.Int32, 'source')
 Pulse:add(CType.Int32, 'type')
-Pulse:add(CType.Vec3f, 'pos')
+Pulse:add(CType.Position, 'pos')
 Pulse:add(CType.Vec3f, 'vel')
 Pulse:add(CType.Vec3f, 'dir')
 Pulse:add(CType.Float32, 'lifeMax')
@@ -30,7 +30,6 @@ end)
 
 Pulse:setInitializer(function(self)
     self.matrix = Matrix.Identity()
-    self:register(Event.AddedToParent, onAddedToParent)
 end)
 
 Pulse:addOnDestruct(function(self)
@@ -40,17 +39,21 @@ end)
 
 Pulse:define()
 
-onAddedToParent = function(self, parent)
-    self:refreshMatrix()
-end
-
-function Pulse:refreshMatrix()
+function Pulse:refreshMatrix(eye)
     self.matrix:free()
-    self.matrix = Matrix.LookUp(self.pos, -self.dir, Math.OrthoVector(self.dir))
+    self.matrix = Matrix.LookUp(self.pos:relativeTo(eye), -self.dir, Math.OrthoVector(self.dir))
 end
 
 function Pulse.Render(projectiles, state)
     if state.mode == BlendMode.Additive then
+        do -- Recalculate matrices.
+            for i = 1, #projectiles do
+                local proj  = projectiles[i]
+                local pulse = proj.effect
+                pulse:refreshMatrix(state.eye)
+            end
+        end
+
         do -- Heads
             Profiler.Begin('Pulse.RenderAdditive.Head')
             local shader = shaderHead
@@ -127,7 +130,6 @@ function Pulse.UpdatePrePhysics(system, projectiles, dt)
             pulse.pos:imadds(pulse.vel, dt)
             pulse.dir:ilerp(pulse.vel:normalize(), t) -- not needed for dumb-fire projectiles, but retained
             pulse.dist = pulse.dist + dt * Config.gen.compTurretPulseStats.speed
-            pulse:refreshMatrix()
         end
     end
     Profiler.End()
