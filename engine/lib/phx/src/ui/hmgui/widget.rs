@@ -1,6 +1,7 @@
 use std::borrow::BorrowMut;
 
 use glam::Vec2;
+use tracing::warn;
 
 use crate::input::Input;
 use crate::render::{Color, TEXT_CTX};
@@ -207,26 +208,27 @@ impl HmGuiWidget {
 
                 self.min_size = self.calculate_min_size();
             }
-            WidgetItem::TextView(_) => {
-                let focused = hmgui.in_focus(self);
-                let scale_factor = hmgui.scale_factor() as f32;
-                let width = hmgui.screen_size().x; // TODO: use parent width if possible
-                let data = hmgui.data_mut(self.hash);
-                let text_view = data.text_view.as_mut().expect("Cannot get a text view");
+            WidgetItem::TextView(image) => {
+                if image.image != std::ptr::null_mut() {
+                    let image_ref = unsafe { &*image.image };
 
-                let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
-                // TODO: do not build Tex2D. Return only it's size
-                let image = text_view.update(
-                    text_ctx.borrow_mut(),
-                    width,
-                    scale_factor,
-                    self.inner_pos,
-                    None,
-                    focused,
-                );
-                let image_ref = unsafe { &*image };
+                    self.inner_min_size =
+                        Vec2::new(image_ref.size.x as f32, image_ref.size.y as f32);
+                } else {
+                    let scale_factor = hmgui.scale_factor() as f32;
+                    let data = hmgui.data_mut(self.hash);
+                    let text_view = data.text_view.as_mut().expect("Cannot get a text view");
 
-                self.inner_min_size = Vec2::new(image_ref.size.x as f32, image_ref.size.y as f32);
+                    let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
+
+                    let size = text_view
+                        .data()
+                        .calculate_rect(text_ctx.borrow_mut(), scale_factor);
+
+                    if let Some(size) = size {
+                        self.inner_min_size = size;
+                    }
+                }
 
                 self.min_size = self.calculate_min_size();
             }
@@ -266,6 +268,7 @@ impl HmGuiWidget {
                 data.pos = self.pos;
             }
             WidgetItem::TextView(image) => {
+                let mut clipboard = hmgui.clipboard().get_text().unwrap_or(String::new());
                 let scale_factor = hmgui.scale_factor() as f32;
                 let data = hmgui.data_mut(self.hash);
                 let text_view = data.text_view.as_mut().expect("Text view data was not set");
@@ -282,7 +285,14 @@ impl HmGuiWidget {
                     self.inner_pos,
                     Some(input),
                     focused,
+                    &mut clipboard,
                 );
+
+                if !clipboard.is_empty() {
+                    if let Err(err) = hmgui.clipboard().set_text(clipboard) {
+                        warn!("Cannot set clipboard text. Error: {err}");
+                    }
+                }
             }
             _ => {}
         }

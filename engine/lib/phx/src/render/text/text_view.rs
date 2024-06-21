@@ -59,6 +59,7 @@ impl TextView {
         widget_pos: Vec2,
         input: Option<&Input>,
         focused: bool,
+        clipboard: &mut String,
     ) -> *mut Tex2D {
         if self.width != width {
             self.width = width;
@@ -75,6 +76,7 @@ impl TextView {
                 input,
                 self.editable,
                 focused,
+                clipboard,
             );
 
             if self.tex != std::ptr::null_mut() {

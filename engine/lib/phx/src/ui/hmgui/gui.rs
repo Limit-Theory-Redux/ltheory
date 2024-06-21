@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use arboard::Clipboard;
 use glam::*;
 
 use crate::common::*;
@@ -24,6 +25,8 @@ pub struct HmGui {
     mouse_over_widget_hash: [u64; 2],
     focus_pos: Vec2,
     active_widget: Option<u64>,
+
+    clipboard: Clipboard,
 }
 
 impl HmGui {
@@ -38,7 +41,12 @@ impl HmGui {
             mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
             active_widget: None,
+            clipboard: Clipboard::new().expect("Cannot create clipboard"),
         }
+    }
+
+    pub fn clipboard(&mut self) -> &mut Clipboard {
+        &mut self.clipboard
     }
 
     pub fn screen_size(&self) -> Vec2 {

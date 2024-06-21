@@ -31,6 +31,11 @@ pub struct TextData {
     mouse_pos: Vec2,
     cursor_rect_pos: Vec2,
     cursor_rect_size: Vec2,
+
+    // Horizontal padding around the output image
+    // TODO: workaround. For some reason zeno crate (used by swash) shifts placement.left
+    // by several pixels to the left that makes position coordinate negative in some cases
+    padding: f32,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -60,6 +65,7 @@ impl TextData {
             mouse_pos: Vec2::new(-1.0, -1.0),
             cursor_rect_pos: Vec2::ZERO,
             cursor_rect_size: Vec2::ZERO,
+            padding: 5.0,
         }
     }
 
@@ -156,6 +162,39 @@ impl TextData {
         updated
     }
 
+    pub fn calculate_rect(&self, text_ctx: &mut TextContext, scale_factor: f32) -> Option<Vec2> {
+        if self.multiline {
+            // size of the multiline text should be specified explicitly
+            return None;
+        }
+
+        let mut builder =
+            text_ctx
+                .layout
+                .ranged_builder(&mut text_ctx.font, &self.text, scale_factor);
+
+        self.default_style.apply_default(&mut builder);
+
+        for (range, style) in &self.section_styles {
+            style.apply_to_section(&mut builder, range[0], range[1]);
+        }
+
+        let mut layout: Layout<Color> = builder.build();
+
+        // Perform layout (including bidi resolution and shaping) with alignment
+        layout.break_all_lines(None, self.alignment);
+
+        let width = layout.width().ceil() + self.padding * 2.0;
+        let height = layout.height().ceil();
+
+        println!(
+            "Text area size: [{width}, {height}]. Text: {:?}. Scale factor: {scale_factor}",
+            self.text
+        );
+
+        Some(Vec2::new(width, height))
+    }
+
     /// Generate Tex2D texture with layouted text based on text parameters.
     // TODO: keeping a texture for a large texts will be memory consuming.
     // Generate per-line textures and keep only visible ones with some buffered pre- and post-lines.
@@ -168,14 +207,14 @@ impl TextData {
         input: Option<&Input>,
         editable: bool,
         focused: bool,
+        clipboard: &mut String,
     ) -> *mut Tex2D {
         if editable && focused {
             if let Some(input) = input {
-                self.process_text_changes(input);
+                self.process_text_changes(input, clipboard);
             }
         }
 
-        // TODO: replace all `\n` in self.text with spaces if not multiline?
         let mut builder =
             text_ctx
                 .layout
@@ -200,21 +239,15 @@ impl TextData {
         // Perform layout (including bidi resolution and shaping) with alignment
         layout.break_all_lines(max_advance, self.alignment);
 
-        // Horizontal padding around the output image
-        // TODO: workaround. For some reason zeno crate (used by swash) shifts placement.left
-        // by several pixels to the left that makes position coordinate negative in some cases
-        let padding = 5;
-
         let mut selection_changed = false;
         if focused {
             if let Some(input) = input {
-                selection_changed =
-                    self.process_text_selection(&layout, widget_pos, padding, input);
+                selection_changed = self.process_text_selection(&layout, widget_pos, input);
             }
         }
 
         // Create buffer to render into
-        let width = layout.width().ceil() as u32 + (padding * 2);
+        let width = (layout.width().ceil() + self.padding * 2.0) as u32;
         let height = layout.height().ceil() as u32;
         let mut buffer = vec![Color::TRANSPARENT; (width * height) as usize];
         let mut glyph_idx = 0;
@@ -237,7 +270,6 @@ impl TextData {
                     &layout,
                     &glyph_run,
                     &mut buffer,
-                    padding,
                     width,
                     &mut glyph_idx,
                     &line_range,
@@ -248,7 +280,7 @@ impl TextData {
 
         // calculate cursor rect
         if (self.text_changed || selection_changed) && editable && focused {
-            self.build_cursor_rect(&layout, height, padding as f32);
+            self.build_cursor_rect(&layout, height);
         }
 
         // Create texture
@@ -266,7 +298,7 @@ impl TextData {
         }
     }
 
-    fn build_cursor_rect(&mut self, layout: &Layout<Color>, widget_height: u32, padding: f32) {
+    fn build_cursor_rect(&mut self, layout: &Layout<Color>, widget_height: u32) {
         let cursor_position = self.selection.cursor_position();
         let cursor = Cursor::from_position(&layout, cursor_position, false);
         let line = cursor.path.line(&layout).expect("Cannot get cursor line");
@@ -283,7 +315,7 @@ impl TextData {
         self.cursor_rect_size = Vec2::new(3.0, (line_range.end - line_range.start) as f32);
 
         if self.text.is_empty() {
-            self.cursor_rect_pos = Vec2::new(padding, 0.0);
+            self.cursor_rect_pos = Vec2::new(self.padding, 0.0);
             return;
         }
 
@@ -308,19 +340,33 @@ impl TextData {
         let pos_offset = if cursor_at_end { 0.0 } else { glyph.advance };
 
         self.cursor_rect_pos = Vec2::new(
-            cursor.offset + glyph.x + padding - pos_offset,
+            cursor.offset + glyph.x + self.padding - pos_offset,
             line_start + glyph.y,
         );
     }
 
-    fn process_text_changes(&mut self, input: &Input) {
+    fn process_text_changes(&mut self, input: &Input, clipboard: &mut String) {
         // remove backspace, del and new line characters from the text input
         let chars_to_remove: &[char] = if self.multiline {
             &['\u{7f}', '\u{8}']
         } else {
             &['\u{7f}', '\u{8}', '\n', '\r']
         };
-        let typed_text = input.keyboard().text().replace(chars_to_remove, "");
+        let mut typed_text = if !input.is_keyboard_alt_down() && !input.is_keyboard_ctrl_down() {
+            input.keyboard().text().replace(chars_to_remove, "")
+        } else {
+            "".into()
+        };
+
+        let insertFromClipboard = input.is_keyboard_ctrl_down()
+            && input.is_pressed(Button::KeyboardV)
+            || input.is_keyboard_shift_down() && input.is_pressed(Button::KeyboardInsert);
+
+        if typed_text.is_empty() && insertFromClipboard {
+            typed_text = clipboard.replace(chars_to_remove, "");
+        }
+
+        *clipboard = "".into();
 
         if !typed_text.is_empty() {
             // TODO: update style sections
@@ -347,45 +393,49 @@ impl TextData {
             }
 
             self.text_changed = true;
-        } else if input.is_pressed(Button::KeyboardBackspace) {
-            match &mut self.selection {
-                TextSelection::Cursor(pos) => {
-                    if *pos > 0 {
-                        *pos -= 1;
-                        self.text.remove(*pos);
-                        self.text_changed = true;
-                    }
-                }
-                TextSelection::Selection(range) => {
-                    let (start, end) = if range.start < range.end {
-                        (range.start, range.end)
-                    } else {
-                        (range.end, range.start)
-                    };
+        } else {
+            let cutToClipboard =
+                input.is_keyboard_ctrl_down() && input.is_pressed(Button::KeyboardX);
+            let copyToClipboard =
+                input.is_keyboard_ctrl_down() && input.is_pressed(Button::KeyboardC);
 
-                    self.text.replace_range(start..end, "");
-                    self.selection = TextSelection::Cursor(start);
-                    self.text_changed = true;
-                }
-            }
-        } else if input.is_pressed(Button::KeyboardDelete) {
-            match &mut self.selection {
-                TextSelection::Cursor(pos) => {
-                    if *pos < self.text.len() {
-                        self.text.remove(*pos);
-                        self.text_changed = true;
+            if input.is_pressed(Button::KeyboardBackspace)
+                || input.is_pressed(Button::KeyboardDelete)
+                || cutToClipboard
+                || copyToClipboard
+            {
+                match &mut self.selection {
+                    TextSelection::Cursor(pos) => {
+                        if input.is_pressed(Button::KeyboardBackspace) {
+                            if *pos > 0 {
+                                *pos -= 1;
+                                self.text.remove(*pos);
+                                self.text_changed = true;
+                            }
+                        } else if input.is_pressed(Button::KeyboardDelete) {
+                            if *pos < self.text.len() {
+                                self.text.remove(*pos);
+                                self.text_changed = true;
+                            }
+                        }
                     }
-                }
-                TextSelection::Selection(range) => {
-                    let (start, end) = if range.start < range.end {
-                        (range.start, range.end)
-                    } else {
-                        (range.end, range.start)
-                    };
+                    TextSelection::Selection(range) => {
+                        let (start, end) = if range.start < range.end {
+                            (range.start, range.end)
+                        } else {
+                            (range.end, range.start)
+                        };
 
-                    self.text.replace_range(start..end, "");
-                    self.selection = TextSelection::Cursor(start);
-                    self.text_changed = true;
+                        if cutToClipboard || copyToClipboard {
+                            *clipboard = self.text[start..end].into();
+                        }
+
+                        if !copyToClipboard {
+                            self.text.replace_range(start..end, "");
+                            self.selection = TextSelection::Cursor(start);
+                            self.text_changed = true;
+                        }
+                    }
                 }
             }
         }
@@ -395,7 +445,6 @@ impl TextData {
         &mut self,
         layout: &Layout<Color>,
         widget_pos: Vec2,
-        padding: u32,
         input: &Input,
     ) -> bool {
         let mut selection_changed = false;
@@ -409,7 +458,7 @@ impl TextData {
             let widget_mouse_pos = mouse_pos - widget_pos;
             let cursor = Cursor::from_point(
                 layout,
-                widget_mouse_pos.x - padding as f32,
+                widget_mouse_pos.x - self.padding,
                 widget_mouse_pos.y,
             );
 
@@ -591,7 +640,6 @@ impl TextData {
         layout: &Layout<Color>,
         glyph_run: &GlyphRun<Color>,
         buffer: &mut [Color],
-        padding: u32,
         image_width: u32,
         glyph_idx: &mut usize,
         line_range: &Range<u32>,
@@ -628,7 +676,7 @@ impl TextData {
 
         // Iterates over the glyphs in the GlyphRun
         for glyph in glyph_run.glyphs() {
-            let glyph_x = run_x + glyph.x + (padding as f32);
+            let glyph_x = run_x + glyph.x + self.padding;
             let glyph_y = run_y - glyph.y;
 
             run_x += glyph.advance;
