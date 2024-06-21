@@ -187,11 +187,6 @@ impl TextData {
         let width = layout.width().ceil() + self.padding * 2.0;
         let height = layout.height().ceil();
 
-        println!(
-            "Text area size: [{width}, {height}]. Text: {:?}. Scale factor: {scale_factor}",
-            self.text
-        );
-
         Some(Vec2::new(width, height))
     }
 
@@ -324,25 +319,25 @@ impl TextData {
             .cluster(&layout)
             .expect("Cannot get cursor cluster");
         let mut cursor_at_end = cursor_position >= self.text.len();
-        let glyph = cluster
-            .glyphs()
-            .next()
-            .or_else(|| {
-                // this can happen for special symbols (i.e. new line)
-                cursor_at_end = true;
-                line.glyph_runs()
-                    .last()
-                    .map(|glyph_run| glyph_run.glyphs().last())
-                    .flatten()
-            })
-            .expect("Cannot get cursor glyph");
+        let glyph = cluster.glyphs().next().or_else(|| {
+            // this can happen for special symbols (i.e. new line)
+            cursor_at_end = true;
+            line.glyph_runs()
+                .last()
+                .map(|glyph_run| glyph_run.glyphs().last())
+                .flatten()
+        });
 
-        let pos_offset = if cursor_at_end { 0.0 } else { glyph.advance };
+        self.cursor_rect_pos = if let Some(glyph) = glyph {
+            let pos_offset = if cursor_at_end { 0.0 } else { glyph.advance };
 
-        self.cursor_rect_pos = Vec2::new(
-            cursor.offset + glyph.x + self.padding - pos_offset,
-            line_start + glyph.y,
-        );
+            Vec2::new(
+                cursor.offset + glyph.x + self.padding - pos_offset,
+                line_start + glyph.y,
+            )
+        } else {
+            Vec2::new(self.padding, line_start)
+        };
     }
 
     fn process_text_changes(&mut self, input: &Input, clipboard: &mut String) {
@@ -353,7 +348,11 @@ impl TextData {
             &['\u{7f}', '\u{8}', '\n', '\r']
         };
         let mut typed_text = if !input.is_keyboard_alt_down() && !input.is_keyboard_ctrl_down() {
-            input.keyboard().text().replace(chars_to_remove, "")
+            input
+                .keyboard()
+                .text()
+                .replace(chars_to_remove, "")
+                .replace('\r', "\n") // Pressing Enter generates \r but parley uses \n for line division
         } else {
             "".into()
         };
