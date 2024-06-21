@@ -372,6 +372,12 @@ impl TextData {
             match &mut self.selection {
                 TextSelection::Cursor(pos) => {
                     if *pos >= self.text.len() {
+                        if typed_text == "\n"
+                            && self.text.get(self.text.len() - 1..self.text.len()) != Some("\n")
+                        {
+                            self.text += "\n";
+                        }
+
                         self.text += &typed_text;
                     } else {
                         self.text.insert_str(*pos, &typed_text);
