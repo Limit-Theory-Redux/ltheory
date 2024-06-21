@@ -33,7 +33,9 @@ function Loader.defineType()
             bool                    Input_IsReleased             (Input const*, Button button);
             float                   Input_GetValue               (Input const*, Button button);
             bool                    Input_IsKeyboardAltPressed   (Input const*);
+            bool                    Input_IsKeyboardAltDown      (Input const*);
             bool                    Input_IsKeyboardCtrlPressed  (Input const*);
+            bool                    Input_IsKeyboardCtrlDown     (Input const*);
             bool                    Input_IsKeyboardShiftPressed (Input const*);
             bool                    Input_IsKeyboardShiftDown    (Input const*);
         ]]
@@ -66,7 +68,9 @@ function Loader.defineType()
                 isReleased             = libphx.Input_IsReleased,
                 getValue               = libphx.Input_GetValue,
                 isKeyboardAltPressed   = libphx.Input_IsKeyboardAltPressed,
+                isKeyboardAltDown      = libphx.Input_IsKeyboardAltDown,
                 isKeyboardCtrlPressed  = libphx.Input_IsKeyboardCtrlPressed,
+                isKeyboardCtrlDown     = libphx.Input_IsKeyboardCtrlDown,
                 isKeyboardShiftPressed = libphx.Input_IsKeyboardShiftPressed,
                 isKeyboardShiftDown    = libphx.Input_IsKeyboardShiftDown,
             },

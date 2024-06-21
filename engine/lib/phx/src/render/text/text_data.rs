@@ -449,8 +449,34 @@ impl TextData {
 
                 selection_changed = true;
             }
+        } else if input.is_pressed(Button::KeyboardHome) {
+            if input.is_keyboard_ctrl_down() {
+                // till the beginning of the text
+                if input.is_keyboard_shift_down() {
+                    self.selection.set_end(0);
+                } else {
+                    self.selection.set_cursor(0);
+                }
+            } else {
+                // TODO: till the beginning of the current line
+            }
+
+            selection_changed = true;
+        } else if input.is_pressed(Button::KeyboardEnd) {
+            if input.is_keyboard_ctrl_down() {
+                // till the end of the text
+                if input.is_keyboard_shift_down() {
+                    self.selection.set_end(self.text.len());
+                } else {
+                    self.selection.set_cursor(self.text.len());
+                }
+            } else {
+                // TODO: till the end of the current line
+            }
+
+            selection_changed = true;
         } else {
-            // TODO: process up, down, home, end buttons
+            // TODO: process up, down buttons
         }
 
         selection_changed

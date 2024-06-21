@@ -56,7 +56,13 @@ function Input:getValue(button) end
 function Input:isKeyboardAltPressed() end
 
 ---@return boolean
+function Input:isKeyboardAltDown() end
+
+---@return boolean
 function Input:isKeyboardCtrlPressed() end
+
+---@return boolean
+function Input:isKeyboardCtrlDown() end
 
 ---@return boolean
 function Input:isKeyboardShiftPressed() end
