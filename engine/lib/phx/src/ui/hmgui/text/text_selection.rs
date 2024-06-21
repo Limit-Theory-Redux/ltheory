@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TextSelection {
     /// No real selection, only cursor position.
     Cursor(usize),
@@ -51,6 +51,23 @@ impl TextSelection {
                         start: range.end,
                         end: range.start,
                     }
+                }
+            }
+        }
+    }
+
+    /// Create a new text selection where start is always >= end.
+    pub fn normalized(&self) -> Self {
+        match self {
+            Self::Cursor(pos) => Self::Cursor(*pos),
+            Self::Selection(range) => {
+                if range.start < range.end {
+                    Self::Selection(range.clone())
+                } else {
+                    Self::Selection(Range {
+                        start: range.end,
+                        end: range.start,
+                    })
                 }
             }
         }

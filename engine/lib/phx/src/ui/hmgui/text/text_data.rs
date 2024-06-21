@@ -1,7 +1,6 @@
 use std::ops::Range;
 
 use glam::Vec2;
-use indexmap::IndexMap;
 use parley::layout::{Alignment, Cursor, Glyph, GlyphRun};
 use parley::Layout;
 use swash::scale::{image::Content, Render, ScaleContext, Scaler, Source, StrikeWith};
@@ -17,13 +16,28 @@ use crate::render::{
 
 use super::{TextAlignment, TextContext, TextSelection, TextStyle};
 
+#[derive(Clone, PartialEq)]
+struct SectionStyle {
+    range: Range<usize>,
+    style: TextStyle,
+}
+
+impl SectionStyle {
+    fn new(start: usize, end: usize, style: &TextStyle) -> Self {
+        Self {
+            range: Range { start, end },
+            style: style.clone(),
+        }
+    }
+}
+
 /// Text string, styling and layouting parameters.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct TextData {
     text: String,
     text_changed: bool,
     default_style: TextStyle,
-    section_styles: IndexMap<[usize; 2], TextStyle>,
+    section_styles: Vec<SectionStyle>,
     alignment: Alignment,
     multiline: bool,
     selection: TextSelection,
@@ -77,7 +91,7 @@ impl TextData {
     pub fn set_section_style(&mut self, start_pos: usize, end_pos: usize, style: &TextStyle) {
         // TODO: manage sections overlapping properly to avoid uncontrollable map growth
         self.section_styles
-            .insert([start_pos, end_pos], style.clone());
+            .push(SectionStyle::new(start_pos, end_pos, style));
     }
 
     /// Sets cursor position in a text before character at position `pos`.
@@ -175,8 +189,10 @@ impl TextData {
 
         self.default_style.apply_default(&mut builder);
 
-        for (range, style) in &self.section_styles {
-            style.apply_to_section(&mut builder, range[0], range[1]);
+        for section_style in &self.section_styles {
+            section_style
+                .style
+                .apply_to_section(&mut builder, &section_style.range);
         }
 
         let mut layout: Layout<Color> = builder.build();
@@ -206,7 +222,7 @@ impl TextData {
     ) -> *mut Tex2D {
         if editable && focused {
             if let Some(input) = input {
-                self.process_text_changes(input, clipboard);
+                self.process_text_edit(input, clipboard);
             }
         }
 
@@ -217,8 +233,10 @@ impl TextData {
 
         self.default_style.apply_default(&mut builder);
 
-        for (range, style) in &self.section_styles {
-            style.apply_to_section(&mut builder, range[0], range[1]);
+        for section_style in &self.section_styles {
+            section_style
+                .style
+                .apply_to_section(&mut builder, &section_style.range);
         }
 
         // Build the builder into a Layout
@@ -340,7 +358,7 @@ impl TextData {
         };
     }
 
-    fn process_text_changes(&mut self, input: &Input, clipboard: &mut String) {
+    fn process_text_edit(&mut self, input: &Input, clipboard: &mut String) {
         // remove backspace, del and new line characters from the text input
         let chars_to_remove: &[char] = if self.multiline {
             &['\u{7f}', '\u{8}']
@@ -367,20 +385,34 @@ impl TextData {
 
         *clipboard = "".into();
 
+        // information about change: Some((pos, removed, added))
+        // pos - position in a text where change happened
+        // removed - how much of a text was removed
+        // added - how much of a text was added
+        let mut change = None;
+
         if !typed_text.is_empty() {
-            // TODO: update style sections
             match &mut self.selection {
                 TextSelection::Cursor(pos) => {
+                    let mut added = 0;
+
                     if *pos >= self.text.len() {
                         if typed_text == "\n"
                             && self.text.get(self.text.len() - 1..self.text.len()) != Some("\n")
                         {
                             self.text += "\n";
+                            added += 1;
                         }
 
                         self.text += &typed_text;
                     } else {
                         self.text.insert_str(*pos, &typed_text);
+                    }
+
+                    added += typed_text.len();
+
+                    if !self.section_styles.is_empty() {
+                        change = Some((*pos, 0, added));
                     }
 
                     *pos += typed_text.len();
@@ -394,6 +426,10 @@ impl TextData {
 
                     self.text.replace_range(start..end, &typed_text);
                     self.selection = TextSelection::Cursor(start + typed_text.len());
+
+                    if !self.section_styles.is_empty() {
+                        change = Some((start, end - start, typed_text.len()));
+                    }
                 }
             }
 
@@ -416,11 +452,19 @@ impl TextData {
                                 *pos -= 1;
                                 self.text.remove(*pos);
                                 self.text_changed = true;
+
+                                if !self.section_styles.is_empty() {
+                                    change = Some((*pos, 1, 0));
+                                }
                             }
                         } else if input.is_pressed(Button::KeyboardDelete) {
                             if *pos < self.text.len() {
                                 self.text.remove(*pos);
                                 self.text_changed = true;
+
+                                if !self.section_styles.is_empty() {
+                                    change = Some((*pos, 1, 0));
+                                }
                             }
                         }
                     }
@@ -439,10 +483,123 @@ impl TextData {
                             self.text.replace_range(start..end, "");
                             self.selection = TextSelection::Cursor(start);
                             self.text_changed = true;
+
+                            if !self.section_styles.is_empty() {
+                                change = Some((start, end - start, 0));
+                            }
                         }
                     }
                 }
             }
+        }
+
+        if let Some(change) = change {
+            self.update_section_styles(change);
+        }
+    }
+
+    fn update_section_styles(&mut self, (pos, removed, added): (usize, usize, usize)) {
+        if self.section_styles.is_empty() {
+            return;
+        }
+
+        if removed == 0 {
+            debug_assert!(added > 0, "No changes made");
+
+            // text was inserted -> expand corresponding style sections
+            for section_style in &mut self.section_styles {
+                if section_style.range.start >= pos {
+                    section_style.range.start += added;
+                }
+
+                if section_style.range.end > pos {
+                    section_style.range.end += added;
+                }
+            }
+        } else {
+            let (offset, inc) = if added == 0 {
+                // selected text was removed -> remove and update corresponding sections
+                (removed, false)
+            } else {
+                // selected text was replaced with another one -> remove and update influenced sections
+                if removed > added {
+                    (removed - added, false)
+                } else {
+                    (added - removed, true)
+                }
+            };
+
+            let removed_start = pos;
+            let removed_end = pos + removed;
+            let mut section_styles = vec![];
+
+            while let Some(mut section_style) = self.section_styles.pop() {
+                if section_style.range.end <= removed_start {
+                    // section is before removed selection -> keep it
+                    //               [------------]  removed selection
+                    //  [--------]                   section
+                    //  [--------]                   result
+
+                    section_styles.push(section_style);
+                } else if section_style.range.start < removed_start {
+                    if section_style.range.end <= removed_end {
+                        //        [------------]  removed selection
+                        //  [-----.--]            section
+                        //  [-----]               result
+
+                        section_style.range.end = removed_start;
+                        section_styles.push(section_style);
+                    } else {
+                        //       [------------]     removed selection
+                        //  [----.------------.--]  section
+                        //  [------]                result
+
+                        if inc {
+                            section_style.range.end += offset;
+                        } else {
+                            section_style.range.end -= offset;
+                        }
+
+                        section_styles.push(section_style);
+                    }
+                } else if section_style.range.start <= removed_end {
+                    if section_style.range.end > removed_end {
+                        //  [------------]     removed selection
+                        //         [-----.--]  section
+                        //  [--]               result
+
+                        section_style.range.start = removed_start;
+
+                        if inc {
+                            section_style.range.end += offset;
+                        } else {
+                            section_style.range.end -= offset;
+                        }
+
+                        section_styles.push(section_style);
+                    }
+
+                    //  [------------]  removed selection
+                    //     [-----]      section
+                    //                  result
+                } else {
+                    //  [------------]              removed selection
+                    //                  [--------]  section
+                    //  [--------]                  result
+
+                    if inc {
+                        section_style.range.start += offset;
+                        section_style.range.end += offset;
+                    } else {
+                        section_style.range.start -= offset;
+                        section_style.range.end -= offset;
+                    }
+
+                    section_styles.push(section_style);
+                }
+            }
+
+            self.section_styles = section_styles;
         }
     }
 
