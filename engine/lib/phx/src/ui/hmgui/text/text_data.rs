@@ -475,7 +475,12 @@ impl TextData {
 
             selection_changed = true;
         } else if !self.text.is_empty() {
-            if input.is_pressed(Button::KeyboardLeft) {
+            if input.is_keyboard_ctrl_down() && input.is_pressed(Button::KeyboardA) {
+                self.selection.set_start(0);
+                self.selection.set_end(self.text.len());
+
+                selection_changed = true;
+            } else if input.is_pressed(Button::KeyboardLeft) {
                 let cursor_position = self.selection.cursor_position();
                 if cursor_position > 0 {
                     if input.is_keyboard_shift_down() {
