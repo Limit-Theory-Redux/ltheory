@@ -6,6 +6,7 @@ mod gui;
 mod image;
 mod layer;
 mod text;
+mod text_line;
 mod widget;
 
 use internal::*;
@@ -18,6 +19,7 @@ pub use focus_type::*;
 pub use gui::*;
 pub use layer::*;
 pub use text::*;
+pub use text_line::*;
 pub use widget::*;
 
 pub(self) const IDENT: &str = "  ";
@@ -59,7 +61,7 @@ mod tests {
             }
         }
 
-        (HmGui::new(), Default::default())
+        (HmGui::new(1.0), Default::default())
     }
 
     fn check_widget(widget: &Ref<'_, HmGuiWidget>, expected: &WidgetCheck) {

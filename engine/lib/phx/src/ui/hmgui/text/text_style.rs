@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use indexmap::IndexMap;
 use parley::{
     context::RangedBuilder,
@@ -176,11 +178,10 @@ impl TextStyle {
     pub fn apply_to_section<'a>(
         &'a self,
         builder: &mut RangedBuilder<'a, Color, &str>,
-        start: usize,
-        end: usize,
+        range: &Range<usize>,
     ) {
         for (_, property) in &self.style_properties {
-            builder.push(&property.as_parley(), start..end);
+            builder.push(&property.as_parley(), range.start..range.end);
         }
     }
 }

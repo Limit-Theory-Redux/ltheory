@@ -17,7 +17,6 @@ local meta = {
 ---@field color UIComponentButtonColors
 ---@field font UIComponentFont
 ---@field toolTip UIComponentToolTip
----@field callback function
 ---@field render fun(self: UIComponentButton) renders the button
 
 ---@class UIComponentButtonConstructor

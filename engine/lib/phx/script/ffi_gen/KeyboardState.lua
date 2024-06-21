@@ -24,6 +24,7 @@ function Loader.defineType()
             bool  KeyboardState_CtrlPressed  (KeyboardState const*);
             bool  KeyboardState_ShiftPressed (KeyboardState const*);
             float KeyboardState_Value        (KeyboardState const*, KeyboardButton button);
+            cstr  KeyboardState_Text         (KeyboardState const*);
         ]]
     end
 
@@ -45,6 +46,7 @@ function Loader.defineType()
                 ctrlPressed  = libphx.KeyboardState_CtrlPressed,
                 shiftPressed = libphx.KeyboardState_ShiftPressed,
                 value        = libphx.KeyboardState_Value,
+                text         = libphx.KeyboardState_Text,
             },
         }
 

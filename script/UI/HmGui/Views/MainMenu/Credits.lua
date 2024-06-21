@@ -99,18 +99,17 @@ local creditsGrid = UILayout.Grid {
             }
         },
         UIComponent.Container {
+            layoutType = GuiLayoutType.Vertical,
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
             padding = { 0, 0 },
             margin = { 50, 50 },
             spacing = 10,
             widthInLayout = getRemainingWidthPercentage,
-            layoutType = GuiLayoutType.Vertical,
             contents = {
                 UIComponent.TextView {
                     text = "Credits",
                     style = { font = { size = 25, weight = 600 } },
-                    multiline = false,
                     align = { AlignHorizontal.Center, AlignVertical.Center },
                 },
                 UIComponent.TextView {
@@ -119,12 +118,20 @@ local creditsGrid = UILayout.Grid {
                         { "Scripters:",           boldGreenStyle }, "\n - Flatfingers\n - IllustrisJack\n",
                         { "Engine developers:", boldGreenStyle }, "\n - dga\n - Haron",
                     },
+                    editable = true,
                     style = { font = { size = 16 } },
+                    multiline = true,
                     backgroundColor = Color(0.7, 0.7, 0.7, 0.2),
                     width = 400,
                     height = 400,
                     align = { AlignHorizontal.Center, AlignVertical.Center },
-                }
+                },
+                UIComponent.TextView {
+                    text = "Some text",
+                    editable = true,
+                    style = { font = { size = 25, weight = 600 } },
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                },
             }
         }
     }

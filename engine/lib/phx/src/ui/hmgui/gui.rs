@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use arboard::Clipboard;
 use glam::*;
 
 use crate::common::*;
@@ -23,6 +24,9 @@ pub struct HmGui {
     data: HashMap<u64, HmGuiData>,
     mouse_over_widget_hash: [u64; 2],
     focus_pos: Vec2,
+    active_widget: Option<u64>,
+
+    clipboard: Clipboard,
 }
 
 impl HmGui {
@@ -36,7 +40,13 @@ impl HmGui {
             data: HashMap::with_capacity(128),
             mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
+            active_widget: None,
+            clipboard: Clipboard::new().expect("Cannot create clipboard"),
         }
+    }
+
+    pub fn clipboard(&mut self) -> &mut Clipboard {
+        &mut self.clipboard
     }
 
     pub fn screen_size(&self) -> Vec2 {
@@ -109,8 +119,14 @@ impl HmGui {
         widget_rf.clone()
     }
 
-    /// Get persistent data of the widget by its hash.
-    pub fn get_data(&mut self, widget_hash: u64) -> &mut HmGuiData {
+    /// Get persistent readonly data of the widget by its hash if exists.
+    pub fn data(&self, widget_hash: u64) -> Option<&HmGuiData> {
+        self.data.get(&widget_hash)
+    }
+
+    /// Get persistent mutable data of the widget by its hash.
+    /// Add new data entry if it doesn't exist.
+    pub fn data_mut(&mut self, widget_hash: u64) -> &mut HmGuiData {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
     }
 
@@ -119,7 +135,7 @@ impl HmGui {
     // TODO: take in account container clipping
     fn check_mouse_over(&mut self, widget_rf: Rf<HmGuiWidget>) {
         let widget = widget_rf.as_ref();
-        let is_mouse_over = widget.contains_point(&self.focus_pos);
+        let is_mouse_over = widget.contains_point(self.focus_pos);
 
         if let WidgetItem::Container(container) = &widget.item {
             if !container.clip || is_mouse_over {
@@ -139,6 +155,14 @@ impl HmGui {
             if widget.mouse_over[i] && self.mouse_over_widget_hash[i] == 0 {
                 self.mouse_over_widget_hash[i] = widget.hash;
             }
+        }
+    }
+
+    pub fn in_focus(&self, widget: &HmGuiWidget) -> bool {
+        if let Some(hash) = self.active_widget {
+            widget.hash == hash
+        } else {
+            false
         }
     }
 }
@@ -176,7 +200,7 @@ impl HmGui {
             if let HmGuiLayerLocation::Below(widget_hash) = location {
                 // we assume here that widget_hash points to the widget on the previous layer,
                 // so its position and size are already calculated
-                let data = self.get_data(*widget_hash);
+                let data = self.data_mut(*widget_hash);
 
                 root.pos = Vec2::new(data.pos.x, data.pos.y + data.size.y);
                 root.inner_pos = root.pos;
@@ -185,7 +209,7 @@ impl HmGui {
             }
 
             root.compute_size(self);
-            root.layout(self);
+            root.layout(self, input);
         }
 
         self.focus_pos = input.mouse().position();
@@ -332,7 +356,7 @@ impl HmGui {
     pub fn update_container_offset(&mut self, offset: Vec2) -> Vec2 {
         let widget_rf = self.container();
         let mut widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.offset = data.offset.clamp(Vec2::ZERO, offset);
 
@@ -346,7 +370,7 @@ impl HmGui {
     pub fn element_size(&mut self) -> Vec2 {
         let widget_rf = self.last();
         let widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.size
     }
@@ -355,7 +379,7 @@ impl HmGui {
     pub fn container_size(&mut self) -> Vec2 {
         let widget_rf = self.container();
         let widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.size
     }
@@ -364,7 +388,7 @@ impl HmGui {
     pub fn container_min_size(&mut self) -> Vec2 {
         let widget_rf = self.container();
         let widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.min_size
     }
@@ -373,7 +397,7 @@ impl HmGui {
     pub fn container_pos(&mut self) -> Vec2 {
         let widget_rf = self.container();
         let widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.pos
     }
@@ -383,7 +407,7 @@ impl HmGui {
         let last = self.last();
         let widget_rf = last.clone();
         let widget = widget_rf.as_mut();
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         data.offset -= offset;
     }
@@ -412,7 +436,7 @@ impl HmGui {
     }
 
     /// Add multiline styled text element.
-    pub fn text_view(&mut self, text_data: &TextData) {
+    pub fn text_view(&mut self, text_data: &mut TextData, editable: bool) {
         let image_item = HmGuiImage {
             image: std::ptr::null_mut(),
             layout: HmGuiImageLayout::TopLeft,
@@ -421,13 +445,29 @@ impl HmGui {
         let widget_rf = self.init_widget(WidgetItem::TextView(image_item));
         let widget = widget_rf.as_mut();
 
-        let data = self.get_data(widget.hash);
+        let data = self.data_mut(widget.hash);
 
         if let Some(text_view) = &mut data.text_view {
-            text_view.set_data(text_data);
+            if !editable {
+                // apply changes from Lua side. Readonly text view only
+                text_view.set_data(text_data);
+            }
         } else {
-            data.text_view = Some(TextView::new(text_data));
+            data.text_view = Some(TextView::new(text_data, editable));
         }
+    }
+
+    /// Apply changes to the text data if any and return if text was changed.
+    pub fn get_text_view_changes(&mut self, text_data: &mut TextData) -> bool {
+        let last = self.last();
+        let widget = last.as_mut();
+        let data = self.data_mut(widget.hash);
+        let text_view = data
+            .text_view
+            .as_mut()
+            .expect("Widget doesn't have a text view");
+
+        text_view.is_editable() && text_view.update_source(text_data)
     }
 
     /// Makes current widget `focusable` and returns true if mouse is over it.
@@ -440,6 +480,46 @@ impl HmGui {
         widget.mouse_over[ty as usize] = true;
 
         self.mouse_over_widget_hash[ty as usize] == widget.hash
+    }
+
+    /// Sets or removes current widget focus.
+    /// To be used in combination with some input check, i.e. mouse left click inside or outside the widget.
+    pub fn set_focus(&mut self, focused: bool) {
+        let last = self.last();
+        let widget = last.as_ref();
+
+        if focused {
+            self.active_widget = Some(widget.hash);
+        } else if let Some(hash) = self.active_widget {
+            if widget.hash == hash {
+                self.active_widget = None;
+            }
+        }
+    }
+
+    /// Returns true if current widget is in focus.
+    pub fn has_focus(&self) -> bool {
+        if let Some(hash) = self.active_widget {
+            let last = self.last();
+            let widget = last.as_ref();
+
+            widget.hash == hash
+        } else {
+            false
+        }
+    }
+
+    /// Returns true if there is an editable text view in focus.
+    pub fn has_active_input(&self) -> bool {
+        if let Some(hash) = self.active_widget {
+            if let Some(data) = self.data(hash) {
+                if let Some(text_view) = &data.text_view {
+                    return text_view.is_editable();
+                }
+            }
+        }
+
+        false
     }
 
     pub fn set_min_width(&self, width: f32) {

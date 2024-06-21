@@ -94,13 +94,32 @@ function HmGui:text(text, font, color) end
 
 -- Add multiline styled text element.
 ---@param textData TextData
-function HmGui:textView(textData) end
+---@param editable boolean
+function HmGui:textView(textData, editable) end
+
+-- Apply changes to the text data if any and return if text was changed.
+---@param textData TextData
+---@return boolean
+function HmGui:getTextViewChanges(textData) end
 
 -- Makes current widget `focusable` and returns true if mouse is over it.
 -- Returns true if mouse is over the widget (was calculated in the previous frame).
 ---@param ty FocusType
 ---@return boolean
 function HmGui:isMouseOver(ty) end
+
+-- Sets or removes current widget focus.
+-- To be used in combination with some input check, i.e. mouse left click inside or outside the widget.
+---@param focused boolean
+function HmGui:setFocus(focused) end
+
+-- Returns true if current widget is in focus.
+---@return boolean
+function HmGui:hasFocus() end
+
+-- Returns true if there is an editable text view in focus.
+---@return boolean
+function HmGui:hasActiveInput() end
 
 ---@param width number
 function HmGui:setMinWidth(width) end
