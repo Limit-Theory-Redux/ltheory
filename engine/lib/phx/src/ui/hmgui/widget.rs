@@ -4,9 +4,9 @@ use glam::Vec2;
 use tracing::warn;
 
 use crate::input::Input;
-use crate::render::{Color, TEXT_CTX};
+use crate::render::Color;
 
-use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT};
+use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT, TEXT_CTX};
 
 use crate::rf::Rf;
 
