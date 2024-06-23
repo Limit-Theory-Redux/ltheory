@@ -28,8 +28,6 @@
 - - *Does Not Work* Relies on Unimplemented Icon UI Element.
 - TestImGui
 - - *Does Not Work* Relies on ```'./screenshot/wp2.png'``` which does not exist
-- TestStrMap
-- - *Complete* Fully Functional
 - Todo
 - - *Does Not Work* Relies on ```'./screenshot/wp2.png'``` which does not exist
 

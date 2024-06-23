@@ -1,10 +1,10 @@
+use std::collections::HashMap;
 use std::ffi::CStr;
 
 use internal::*;
 
 use super::*;
 use crate::math::*;
-use crate::system::*;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -16,34 +16,38 @@ pub struct VarStack {
     pub data: *mut libc::c_void,
 }
 
-static mut varMap: *mut StrMap = std::ptr::null_mut();
+static mut VAR_MAP: *mut HashMap<String, VarStack> = std::ptr::null_mut();
 
 #[inline]
 unsafe extern "C" fn ShaderVar_GetStack(
     var: *const libc::c_char,
     type_0: ShaderVarType,
 ) -> *mut VarStack {
-    let mut this: *mut VarStack = StrMap_Get(&mut *varMap, var) as *mut VarStack;
-    if this.is_null() {
+    let stack = (*VAR_MAP).get_mut(var.as_str());
+    if stack.is_none() {
         if type_0 == ShaderVarType::UNKNOWN {
             return std::ptr::null_mut();
         }
-        this = MemNew!(VarStack);
-        (*this).type_0 = type_0;
-        (*this).size = 0;
-        (*this).capacity = 4;
-        (*this).elemSize = ShaderVarType_GetSize(type_0);
-        (*this).data = MemAlloc(((*this).capacity * (*this).elemSize) as usize);
-        StrMap_Set(&mut *varMap, var, this as *mut _);
+        let varStack = VarStack {
+            type_0: type_0,
+            size: 0,
+            capacity: 4,
+            elemSize: ShaderVarType_GetSize(type_0),
+            data: MemAlloc((4 * ShaderVarType_GetSize(type_0)) as usize)};
+        (*VAR_MAP).entry(var.as_string()).or_insert(varStack)
     }
-    if type_0 != ShaderVarType::UNKNOWN && (*this).type_0 != type_0 {
-        panic!("ShaderVar_GetStack: Attempting to get stack of type <{:?}> for shader variable <{:?}> when existing stack has type <{:?}>",
-            ShaderVarType::get_name(type_0),
-            CStr::from_ptr(var),
-            ShaderVarType::get_name((*this).type_0),
-        );
+    else {
+        let this = stack.unwrap();
+
+        if type_0 != ShaderVarType::UNKNOWN && (*this).type_0 != type_0 {
+            panic!("ShaderVar_GetStack: Attempting to get stack of type <{:?}> for shader variable <{:?}> when existing stack has type <{:?}>",
+                ShaderVarType::get_name(type_0),
+                CStr::from_ptr(var),
+                ShaderVarType::get_name((*this).type_0),
+            );
+        }
+        this
     }
-    this
 }
 
 #[inline]
@@ -67,14 +71,23 @@ unsafe extern "C" fn ShaderVar_Push(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_Init() {
-    varMap = StrMap_Create(16);
+pub extern "C" fn ShaderVar_Init() {
+    unsafe {
+        let varMap = Box::new(HashMap::with_capacity(16));
+        VAR_MAP = Box::into_raw(varMap);
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_Free() {
-    StrMap_Free(varMap);
-    varMap = std::ptr::null_mut();
+pub extern "C" fn ShaderVar_Free() {
+    unsafe {
+        if !VAR_MAP.is_null() {
+            // TODO: Loop through map and MemFree all VarStack data stacks
+            (*VAR_MAP).clear();
+            let _varMap = Box::from(VAR_MAP);
+            VAR_MAP = std::ptr::null_mut();
+        }
+    }
 }
 
 #[no_mangle]
