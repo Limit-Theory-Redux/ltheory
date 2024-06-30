@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ffi::CStr;
 use std::ffi::CString;
 
@@ -34,7 +35,7 @@ static mut versionString: *const libc::c_char =
 
 static mut current: *mut Shader = std::ptr::null_mut();
 
-static mut cache: *mut StrMap = std::ptr::null_mut();
+static mut CACHE: *mut HashMap<String, String> = std::ptr::null_mut();
 
 extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const libc::c_char) -> i32 {
     if this.is_none() {
@@ -122,16 +123,18 @@ extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
 
 /* BUG : Cache does not contain information about custom preprocessor
  *       directives, hence cached shaders with custom directives do not work */
-unsafe fn glsl_load(name: &str, this: &mut Shader) -> String {
-    if cache.is_null() {
-        cache = StrMap_Create(16);
-    }
+fn glsl_load(name: &str, this: &mut Shader) -> String {
+    unsafe {
+        if CACHE.is_null() {
+            let cache = Box::new(HashMap::with_capacity(16));
+            CACHE = Box::into_raw(cache);
+        }
 
-    let c_name = CString::new(name).unwrap();
-    let cached: *mut libc::c_void = StrMap_Get(&mut *cache, c_name.as_ptr());
+        let cached = (*CACHE).get(name).cloned();
 
-    if !cached.is_null() {
-        return (cached as *const libc::c_char).as_string();
+        if cached.is_some() {
+            return cached.unwrap();
+        }
     }
 
     let rawCode = Resource::load_string(ResourceType::Shader, name);
@@ -139,12 +142,12 @@ unsafe fn glsl_load(name: &str, this: &mut Shader) -> String {
     let c_code = glsl_preprocess(&code, this);
 
     /* BUG : Disable GLSL caching until preprocessor cache works. */
-    // StrMap_Set(cache, name, (void*)code);
+    //(*CACHE).insert(name.to_string(), c_code.clone());
 
     c_code
 }
 
-unsafe fn glsl_preprocess(code: &str, this: &mut Shader) -> String {
+fn glsl_preprocess(code: &str, this: &mut Shader) -> String {
     let mut result = String::new();
 
     for line in code.lines() {
@@ -164,7 +167,7 @@ unsafe fn glsl_preprocess(code: &str, this: &mut Shader) -> String {
     result
 }
 
-unsafe fn parse_include(val: &str, this: &mut Shader) -> String {
+fn parse_include(val: &str, this: &mut Shader) -> String {
     let path = format!("{INCLUDE_PATH}{val}");
 
     glsl_load(&path, this)
@@ -378,21 +381,14 @@ pub unsafe extern "C" fn Shader_Stop(_s: *mut Shader) {
     current = std::ptr::null_mut();
 }
 
-unsafe extern "C" fn ShaderCache_FreeElem(_s: *const libc::c_char, data: *mut libc::c_void) {
-    MemFree(data);
-}
-
 #[no_mangle]
-pub unsafe extern "C" fn Shader_ClearCache() {
-    if !cache.is_null() {
-        StrMap_FreeEx(
-            &mut *cache,
-            Some(
-                ShaderCache_FreeElem
-                    as unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> (),
-            ),
-        );
-        cache = std::ptr::null_mut();
+pub extern "C" fn Shader_ClearCache() {
+    unsafe {
+        if !CACHE.is_null() {
+            (*CACHE).clear();
+            let _cache = Box::from(CACHE);
+            CACHE = std::ptr::null_mut();
+        }
     }
 }
 

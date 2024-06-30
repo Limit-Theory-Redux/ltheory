@@ -1,19 +1,20 @@
-#[no_mangle]
-pub static mut nextID: u64 = 1;
+use std::sync::atomic::{AtomicU64, Ordering};
 
-#[no_mangle]
-pub unsafe extern "C" fn GUID_Create() -> u64 {
-    let fresh0 = nextID;
-    nextID = nextID.wrapping_add(1);
-    fresh0
-}
+static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 
-#[no_mangle]
-pub unsafe extern "C" fn GUID_Exists(id: u64) -> bool {
-    id < nextID && id != 0
-}
+pub struct Guid;
 
-#[no_mangle]
-pub unsafe extern "C" fn GUID_Reset() {
-    nextID = 1;
+#[luajit_ffi_gen::luajit_ffi]
+impl Guid {
+    pub fn create() -> u64 {
+        NEXT_ID.fetch_add(1, Ordering::Relaxed)
+    }
+
+    pub fn exists(id: u64) -> bool {
+        id < NEXT_ID.load(Ordering::Relaxed) && id != 0
+    }
+
+    pub fn reset() {
+        NEXT_ID.store(1, Ordering::Relaxed);
+    }
 }
