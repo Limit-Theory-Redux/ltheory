@@ -1,35 +1,35 @@
--- GUID ------------------------------------------------------------------------
+-- Guid ------------------------------------------------------------------------
 local Loader = {}
 
 function Loader.declareType()
-    return 0, 'GUID'
+    return 0, 'Guid'
 end
 
 function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
-    local GUID
+    local Guid
 
     do -- C Definitions
         ffi.cdef [[
-            uint64 GUID_Create ();
-            bool   GUID_Exists (uint64 id);
-            void   GUID_Reset  ();
+            uint64 Guid_Create ();
+            bool   Guid_Exists (uint64 id);
+            void   Guid_Reset  ();
         ]]
     end
 
     do -- Global Symbol Table
-        GUID = {
-            Create = libphx.GUID_Create,
-            Exists = libphx.GUID_Exists,
-            Reset  = libphx.GUID_Reset,
+        Guid = {
+            Create = libphx.Guid_Create,
+            Exists = libphx.Guid_Exists,
+            Reset  = libphx.Guid_Reset,
         }
 
-        if onDef_GUID then onDef_GUID(GUID, mt) end
-        GUID = setmetatable(GUID, mt)
+        if onDef_Guid then onDef_Guid(Guid, mt) end
+        Guid = setmetatable(Guid, mt)
     end
 
-    return GUID
+    return Guid
 end
 
 return Loader

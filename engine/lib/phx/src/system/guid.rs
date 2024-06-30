@@ -4,7 +4,7 @@ static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 
 pub struct Guid;
 
-#[luajit_ffi_gen::luajit_ffi(name = "GUID")]
+#[luajit_ffi_gen::luajit_ffi]
 impl Guid {
     pub fn create() -> u64 {
         NEXT_ID.fetch_add(1, Ordering::Relaxed)

@@ -1,14 +1,14 @@
 ---@meta
 
----@class GUID
-GUID = {}
+---@class Guid
+Guid = {}
 
 ---@return integer
-function GUID.Create() end
+function Guid.Create() end
 
 ---@param id integer
 ---@return boolean
-function GUID.Exists(id) end
+function Guid.Exists(id) end
 
-function GUID.Reset() end
+function Guid.Reset() end
 
