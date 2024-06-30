@@ -33,10 +33,10 @@ unsafe extern "C" fn ShaderVar_GetStack(
             size: 0,
             capacity: 4,
             elemSize: ShaderVarType_GetSize(type_0),
-            data: MemAlloc((4 * ShaderVarType_GetSize(type_0)) as usize)};
+            data: MemAlloc((4 * ShaderVarType_GetSize(type_0)) as usize),
+        };
         (*VAR_MAP).entry(var.as_string()).or_insert(varStack)
-    }
-    else {
+    } else {
         let this = stack.unwrap();
 
         if type_0 != ShaderVarType::UNKNOWN && (*this).type_0 != type_0 {
