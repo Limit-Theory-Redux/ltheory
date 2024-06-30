@@ -36,6 +36,9 @@ local function addSystemGenerics(system)
     -- Add a free Waste Recycler station
     system:spawnStation(Enums.StationHulls.Small, tradeAi, Production.Recycler)
 
+    -- Add a free Station fabricator station cause how can we build fabricating stations without building stations ¯\_(ツ)_/¯
+    system:spawnStation(Enums.StationHulls.Small, tradeAi, Production.Station)
+
     -- Spawn space stations (start count at *2* for inhabited star systems -- see above)
     for i = 3, GameState.gen.nStations do
         -- Create Stations within randomly selected AsteroidField Zones
