@@ -1,4 +1,5 @@
 use std::ptr::NonNull;
+use std::sync::Once;
 
 use rapier3d_f64::prelude as rp;
 use rapier3d_f64::prelude::nalgebra as na;
@@ -67,15 +68,15 @@ pub struct RigidBody {
 }
 
 impl RigidBody {
-    pub fn new(shape: CollisionShape) -> Box<RigidBody> {
+    pub fn new(shape_scale: f32, shape_type: CollisionShapeType, shape: rp::SharedShape) -> Box<RigidBody> {
         let mut rigid_body = Box::new(RigidBody {
             rigid_body: RigidBodyWrapper::Removed(rp::RigidBodyBuilder::dynamic().build()),
-            collider: ColliderWrapper::Removed(shape.collider),
+            collider: ColliderWrapper::Removed(rp::ColliderBuilder::new(shape).restitution(0.4).mass(1.0).build()),
             parent: None,
             children: vec![],
             triggers: vec![],
-            shape_type: shape.shape,
-            shape_scale: shape.scale,
+            shape_type,
+            shape_scale,
             mass: 1.0,
             collidable: true,
             collision_group: rp::InteractionGroups::default(),
@@ -289,43 +290,75 @@ impl RigidBody {
             None
         }
     }
+
+    fn cache_mut() -> &'static mut ShapeCache {
+        unsafe {
+            static mut cache: Option<ShapeCache> = None;
+            static mut cache_init: Once = Once::new();
+            cache_init.call_once(|| cache = Some(ShapeCache::new()));
+            cache.as_mut().unwrap()
+        }
+    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl RigidBody {
     #[bind(name = "CreateBox")]
     pub fn new_box() -> Box<RigidBody> {
-        Self::new(CollisionShape::new_box(&Vec3::ONE))
+        let shape_type = CollisionShapeType::Box { half_extents: Vec3::ONE };
+        let shape = Self::cache_mut().get(1.0, &shape_type);
+        Self::new(1.0, shape_type, shape)
     }
 
     #[bind(name = "CreateBoxFromMesh")]
     pub fn new_box_from_mesh(mesh: &mut Mesh) -> Box<RigidBody> {
-        Self::new(CollisionShape::new_box_from_mesh(mesh))
+        let mut bounds = Box3::default();
+        Mesh_GetBound(mesh, &mut bounds);
+        let shape_type = CollisionShapeType::Box { half_extents: Vec3::new(
+            f32::max(f32::abs(bounds.upper.x), f32::abs(bounds.lower.x)),
+            f32::max(f32::abs(bounds.upper.y), f32::abs(bounds.lower.y)),
+            f32::max(f32::abs(bounds.upper.z), f32::abs(bounds.lower.z)),
+        ) };
+        let shape = Self::cache_mut().get(1.0, &shape_type);
+        Self::new(1.0, shape_type, shape)
     }
 
     #[bind(name = "CreateSphere")]
     pub fn new_sphere() -> Box<RigidBody> {
-        Self::new(CollisionShape::new_sphere(1.0))
+        let shape_type = CollisionShapeType::Sphere { radius: 1.0 };
+        let shape = Self::cache_mut().get(1.0, &shape_type);
+        Self::new(1.0, shape_type, shape)
     }
 
     #[bind(name = "CreateSphereFromMesh")]
     pub fn new_sphere_from_mesh(mesh: &mut Mesh) -> Box<RigidBody> {
-        Self::new(CollisionShape::new_sphere_from_mesh(mesh))
+        let shape_type = CollisionShapeType::Sphere { radius: Mesh_GetRadius(mesh) };
+        let shape = Self::cache_mut().get(1.0, &shape_type);
+        Self::new(1.0, shape_type, shape)
     }
 
     #[bind(name = "CreateConvexHullFromMesh")]
-    pub fn new_convex_hull_from_mesh(mesh: &Mesh) -> Box<RigidBody> {
-        Self::new(CollisionShape::new_convex_hull_from_mesh(mesh))
+    pub fn new_convex_hull_from_mesh(mesh: &mut Mesh) -> Box<RigidBody> {
+        Mesh_Acquire(mesh);
+        let shape_type = CollisionShapeType::ConvexHull { mesh: mesh as *mut _ };
+        let shape = Self::cache_mut().get(1.0, &shape_type);
+        Self::new(1.0, shape_type, shape)
     }
 
     #[bind(name = "CreateConvexDecompositionFromMesh")]
-    pub fn new_convex_decomposition_from_mesh(mesh: &Mesh) -> Box<RigidBody> {
-        Self::new(CollisionShape::new_convex_decomposition_from_mesh(mesh))
+    pub fn new_convex_decomposition_from_mesh(mesh: &mut Mesh) -> Box<RigidBody> {
+        Mesh_Acquire(mesh);
+        let shape_type = CollisionShapeType::ConvexDecomposition { mesh: mesh as *mut _ };
+        let shape = Self::cache_mut().get(1.0, &shape_type);
+        Self::new(1.0, shape_type, shape)
     }
 
     #[bind(name = "CreateTrimeshFromMesh")]
-    pub fn new_trimesh_from_mesh(mesh: &Mesh) -> Box<RigidBody> {
-        Self::new(CollisionShape::new_trimesh_from_mesh(mesh))
+    pub fn new_trimesh_from_mesh(mesh: &mut Mesh) -> Box<RigidBody> {
+        Mesh_Acquire(mesh);
+        let shape_type = CollisionShapeType::Trimesh { mesh: mesh as *mut _ };
+        let shape = Self::cache_mut().get(1.0, &shape_type);
+        Self::new(1.0, shape_type, shape)
     }
 
     /// Return a reference to the parent rigid body, that we can guarantee
@@ -739,17 +772,16 @@ impl RigidBody {
     /// multiplied such that they retain the same relative position. Child
     /// scale is not affected by parent scale (i.e. it is not inherited).
     pub fn set_scale(&mut self, scale: f32) {
-        let scaled_shape = CollisionShape::new(scale, self.shape_type.clone());
-
-        // Replace the shape of the current collider by cloning the reference counted Shape object.
-        self.collider.as_mut().set_shape(rp::SharedShape(
-            scaled_shape.collider.shared_shape().0.clone(),
-        ));
+        if scale == self.shape_scale {
+            return;
+        }
 
         let scale_ratio = scale / self.shape_scale;
 
-        self.shape_type = scaled_shape.shape;
+        // Update shape.
         self.shape_scale = scale;
+        // self.collider.as_mut().shape_mut()
+        self.collider.as_mut().set_shape(Self::cache_mut().get(scale, &self.shape_type));
 
         // Children keep the same relative position.
         for child in self.children.iter_mut() {
