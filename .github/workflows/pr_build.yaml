@@ -88,7 +88,7 @@ jobs:
   build-macos:
     needs: gen-build-version
     name: Build macOS
-    runs-on: macos-11
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
