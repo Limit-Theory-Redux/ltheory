@@ -640,7 +640,7 @@ impl RigidBody {
 
     pub fn set_sleep_threshold(&mut self, linear: f32, angular: f32) {
         let mut rb = self.rigid_body.as_mut();
-        rb.activation_mut().linear_threshold = linear as rp::Real;
+        rb.activation_mut().normalized_linear_threshold = linear as rp::Real;
         rb.activation_mut().angular_threshold = angular as rp::Real;
     }
 

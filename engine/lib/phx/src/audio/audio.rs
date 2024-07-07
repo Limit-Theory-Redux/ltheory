@@ -9,7 +9,7 @@ use kira::StartTime;
 
 use crate::math::*;
 
-use super::{process_command_error, Sound, SoundInstance};
+use super::{Sound, SoundInstance};
 
 const DEFAULT_COMMAND_CAPACITY: usize = 1024;
 
@@ -136,12 +136,9 @@ impl Audio {
     }
 
     pub fn set_listener_pos(&mut self, pos: &Position) {
-        process_command_error(
-            self.listener_info
-                .listener
-                .set_position(pos.relative_to(self.audio_origin), Tween::default()),
-            "Cannot set listener position",
-        );
+        self.listener_info
+            .listener
+            .set_position(pos.relative_to(self.audio_origin), Tween::default());
 
         self.listener_info.position = *pos;
     }
@@ -151,12 +148,9 @@ impl Audio {
     }
 
     pub fn set_listener_rot(&mut self, rot: &Quat) {
-        process_command_error(
-            self.listener_info
-                .listener
-                .set_orientation([rot.x, rot.y, rot.z, rot.w], Tween::default()),
-            "Cannot set listener orientation",
-        );
+        self.listener_info
+            .listener
+            .set_orientation([rot.x, rot.y, rot.z, rot.w], Tween::default());
 
         self.listener_info.orientation = *rot;
     }
@@ -172,12 +166,9 @@ impl Audio {
     pub fn set_origin_pos(&mut self, origin: &Position) {
         self.audio_origin = *origin;
 
-        process_command_error(
-            self.listener_info.listener.set_position(
-                self.listener_info.position.relative_to(self.audio_origin),
-                Tween::default(),
-            ),
-            "Cannot set listener position",
+        self.listener_info.listener.set_position(
+            self.listener_info.position.relative_to(self.audio_origin),
+            Tween::default(),
         );
     }
 
