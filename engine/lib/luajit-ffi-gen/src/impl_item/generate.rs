@@ -21,10 +21,7 @@ impl ImplInfo {
             .map(|method| self.wrap_method(&module_name, method))
             .collect();
 
-        let is_managed = self
-            .methods
-            .iter()
-            .any(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some());
+        let is_managed = self.is_managed();
 
         // Additional Free C API wrapper if managed
         let free_method_token = if is_managed {

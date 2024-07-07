@@ -7,10 +7,7 @@ impl ImplInfo {
     pub fn generate_ffi(&self, attr_args: &ImplAttrArgs) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
         let mut ffi_gen = FfiGenerator::load(&module_name);
-        let is_managed = self
-            .methods
-            .iter()
-            .any(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some());
+        let is_managed = self.is_managed();
 
         // Generate metatype section only if there is at least one method with `self` parameter,
         // or clone parameter is set
