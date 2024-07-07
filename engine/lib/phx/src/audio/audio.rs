@@ -164,7 +164,7 @@ impl Audio {
     pub fn listener_rot(&self) -> Quat {
         self.listener_info.orientation
     }
-    
+
     /// Updates the origin in Kira's coordinate system.
     ///
     /// As Kira maintains a 32-bit coordinate system, if the listener strays too far away from the origin, we will start to have difficulty with 32-bit precision.

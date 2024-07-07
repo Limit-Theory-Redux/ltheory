@@ -1386,19 +1386,23 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawLineSegment(bsp: &mut BSP, lineSegment: &mut LineSegment, eye: &Position) {
+pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
+    bsp: &mut BSP,
+    lineSegment: &mut LineSegment,
+    eye: &Position,
+) {
     let mut pHit = Vec3::ZERO;
     if BSP_IntersectLineSegment(bsp, lineSegment, &mut pHit) {
         Draw_Color(0.0f32, 1.0f32, 0.0f32, 0.1f32);
         Draw_Line3(
             &(*lineSegment).p0.relative_to(*eye),
-            &Position::from_vec(pHit).relative_to(*eye)
+            &Position::from_vec(pHit).relative_to(*eye),
         );
 
         Draw_Color(1.0f32, 0.0f32, 0.0f32, 1.0f32);
         Draw_Line3(
             &Position::from_vec(pHit).relative_to(*eye),
-            &(*lineSegment).p1.relative_to(*eye)
+            &(*lineSegment).p1.relative_to(*eye),
         );
 
         Draw_PointSize(5.0f32);
@@ -1407,7 +1411,7 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(bsp: &mut BSP, lineSegment: &m
         Draw_Color(0.0f32, 1.0f32, 0.0f32, 1.0f32);
         Draw_Line3(
             &(*lineSegment).p0.relative_to(*eye),
-            &(*lineSegment).p1.relative_to(*eye)
+            &(*lineSegment).p1.relative_to(*eye),
         );
     };
 }
