@@ -20,13 +20,13 @@ directories = "5.0"
 flate2 = "1.0"
 freetype-sys = "0.20"
 gilrs = "0.10"
-glam = { version = "0.25", features = ["scalar-math"] }
+glam = { version = "0.28", features = ["scalar-math"] }
 glutin = { git = "https://github.com/dgavedissian/glutin", rev = "0454c7b91890af1160513797d3a8ee1aea63fc8e" }
 glutin-winit = { git = "https://github.com/dgavedissian/glutin", rev = "0454c7b91890af1160513797d3a8ee1aea63fc8e" }
 hashbrown = { version = "0.14", features = ["serde"] }
 image = "0.25"
 indexmap = "2.0"
-kira = { version = "0.8", features = ["symphonia", "cpal", "serde"] }
+kira = { version = "0.9", features = ["symphonia", "cpal", "serde"] }
 libc = "0.2"
 memoffset = "0.9"
 mlua = { version = "0.9", features = ["luajit52", "vendored"] }
