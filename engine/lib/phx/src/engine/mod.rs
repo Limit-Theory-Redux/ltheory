@@ -27,8 +27,7 @@ pub struct Engine {
     init_time: TimeStamp,
     window: Window,
     cache: CachedWindow,
-    winit_windows: WinitWindows,
-    winit_window_id: Option<winit::window::WindowId>,
+    winit_window: WinitWindow,
     hmgui: HmGui,
     input: Input,
     frame_state: FrameState,
@@ -37,12 +36,10 @@ pub struct Engine {
 }
 
 impl Engine {
-    fn new(gl_version_major: u8, gl_version_minor: u8) -> Self {
+    fn new(event_loop: &EventLoop<()>) -> Self {
         unsafe {
             static mut FIRST_TIME: bool = true;
             Signal_Init();
-
-            info!("Engine_Init: Requesting GL {gl_version_major}.{gl_version_minor}");
 
             if FIRST_TIME {
                 FIRST_TIME = false;
@@ -52,36 +49,29 @@ impl Engine {
             ShaderVar_Init();
         }
 
+        // Unsafe is required for FFI and JIT libs
+        let lua = unsafe { Lua::unsafe_new() };
+
+        // Create window.
         let window = Window::default();
         let cache = CachedWindow {
             window: window.clone(),
         };
+        let mut winit_window = WinitWindow::new(&event_loop, &window);
+        winit_window.resume();
         let scale_factor = window.scale_factor();
-
-        // Unsafe is required for FFI and JIT libs
-        let lua = unsafe { Lua::unsafe_new() };
 
         Self {
             init_time: TimeStamp::now(),
             window,
             cache,
-            winit_windows: WinitWindows::new(gl_version_major, gl_version_minor),
-            winit_window_id: None,
+            winit_window,
             hmgui: HmGui::new(scale_factor),
             input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,
             lua,
         }
-    }
-
-    fn init_winit_window(&mut self, event_loop: &EventLoop<()>) {
-        debug!("Engine.init_winit_window");
-
-        let winit_window_id = self.winit_windows.create_window(event_loop, &self.window);
-
-        self.winit_window_id = Some(winit_window_id);
-        self.hmgui.set_scale_factor(self.window.scale_factor());
     }
 
     // Apply user changes, and then detect changes to the window and update the winit window accordingly.
@@ -100,27 +90,19 @@ impl Engine {
             }
         }
 
-        let Some(winit_window_wrapper) = self
-            .winit_window_id
-            .map(|winit_window_id| self.winit_windows.get_window_mut(winit_window_id))
-            .flatten()
-        else {
-            return;
-        };
-
         if let Some(state) = self.window.state {
             match state {
-                WindowState::Suspended => winit_window_wrapper.suspend(),
-                WindowState::Resumed => winit_window_wrapper.resume(),
+                WindowState::Suspended => self.winit_window.suspend(),
+                WindowState::Resumed => self.winit_window.resume(),
             }
 
             self.window.state = None;
         }
 
-        let winit_window = winit_window_wrapper.window();
-
         if self.window.title != self.cache.window.title {
-            winit_window.set_title(self.window.title.as_str());
+            self.winit_window
+                .window()
+                .set_title(self.window.title.as_str());
         }
 
         if self.window.mode != self.cache.window.mode {
@@ -129,11 +111,11 @@ impl Engine {
                     Some(winit::window::Fullscreen::Borderless(None))
                 }
                 WindowMode::Fullscreen => Some(winit::window::Fullscreen::Exclusive(
-                    get_best_videomode(&winit_window.current_monitor().unwrap()),
+                    get_best_videomode(&self.winit_window.window().current_monitor().unwrap()),
                 )),
                 WindowMode::SizedFullscreen => {
                     Some(winit::window::Fullscreen::Exclusive(get_fitting_videomode(
-                        &winit_window.current_monitor().unwrap(),
+                        &self.winit_window.window().current_monitor().unwrap(),
                         self.window.width() as u32,
                         self.window.height() as u32,
                     )))
@@ -141,8 +123,8 @@ impl Engine {
                 WindowMode::Windowed => None,
             };
 
-            if winit_window.fullscreen() != new_mode {
-                winit_window.set_fullscreen(new_mode);
+            if self.winit_window.window().fullscreen() != new_mode {
+                self.winit_window.window().set_fullscreen(new_mode);
             }
         }
 
@@ -152,14 +134,14 @@ impl Engine {
             let physical_size = PhysicalSize::new(width, height);
 
             // Try to resize the window.
-            if let Some(new_size) = winit_window.request_inner_size(physical_size) {
-                winit_window_wrapper.resize(new_size.width, new_size.height);
+            if let Some(new_size) = self.winit_window.window().request_inner_size(physical_size) {
+                self.winit_window.resize(new_size.width, new_size.height);
             }
         }
 
         if self.window.physical_cursor_position() != self.cache.window.physical_cursor_position() {
             if let Some(physical_position) = self.window.physical_cursor_position() {
-                let inner_size = winit_window.inner_size();
+                let inner_size = self.winit_window.window().inner_size();
 
                 let position = PhysicalPosition::new(
                     physical_position.x,
@@ -167,26 +149,34 @@ impl Engine {
                     inner_size.height as f32 - physical_position.y,
                 );
 
-                if let Err(err) = winit_window.set_cursor_position(position) {
+                if let Err(err) = self.winit_window.window().set_cursor_position(position) {
                     error!("could not set cursor position: {:?}", err);
                 }
             }
         }
 
         if self.window.cursor.icon != self.cache.window.cursor.icon {
-            winit_window.set_cursor_icon(convert_cursor_icon(self.window.cursor.icon));
+            self.winit_window
+                .window()
+                .set_cursor_icon(convert_cursor_icon(self.window.cursor.icon));
         }
 
         if self.window.cursor.grab_mode != self.cache.window.cursor.grab_mode {
-            attempt_grab(&winit_window, self.window.cursor.grab_mode);
+            attempt_grab(&self.winit_window.window(), self.window.cursor.grab_mode);
         }
 
         if self.window.cursor.visible != self.cache.window.cursor.visible {
-            winit_window.set_cursor_visible(self.window.cursor.visible);
+            self.winit_window
+                .window()
+                .set_cursor_visible(self.window.cursor.visible);
         }
 
         if self.window.cursor.hit_test != self.cache.window.cursor.hit_test {
-            if let Err(err) = winit_window.set_cursor_hittest(self.window.cursor.hit_test) {
+            if let Err(err) = self
+                .winit_window
+                .window()
+                .set_cursor_hittest(self.window.cursor.hit_test)
+            {
                 self.window.cursor.hit_test = self.cache.window.cursor.hit_test;
                 warn!(
                     "Could not set cursor hit test for window {:?}: {:?}",
@@ -196,15 +186,19 @@ impl Engine {
         }
 
         if self.window.decorations != self.cache.window.decorations
-            && self.window.decorations != winit_window.is_decorated()
+            && self.window.decorations != self.winit_window.window().is_decorated()
         {
-            winit_window.set_decorations(self.window.decorations);
+            self.winit_window
+                .window()
+                .set_decorations(self.window.decorations);
         }
 
         if self.window.resizable != self.cache.window.resizable
-            && self.window.resizable != winit_window.is_resizable()
+            && self.window.resizable != self.winit_window.window().is_resizable()
         {
-            winit_window.set_resizable(self.window.resizable);
+            self.winit_window
+                .window()
+                .set_resizable(self.window.resizable);
         }
 
         if self.window.resize_constraints != self.cache.window.resize_constraints {
@@ -218,9 +212,13 @@ impl Engine {
                 height: constraints.max_height,
             };
 
-            winit_window.set_min_inner_size(Some(min_inner_size));
+            self.winit_window
+                .window()
+                .set_min_inner_size(Some(min_inner_size));
             if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
-                winit_window.set_max_inner_size(Some(max_inner_size));
+                self.winit_window
+                    .window()
+                    .set_max_inner_size(Some(max_inner_size));
             }
         }
 
@@ -228,35 +226,37 @@ impl Engine {
             if let Some(position) = winit_window_position(
                 &self.window.position,
                 &self.window.resolution,
-                winit_window.available_monitors(),
-                winit_window.primary_monitor(),
-                winit_window.current_monitor(),
+                self.winit_window.window().available_monitors(),
+                self.winit_window.window().primary_monitor(),
+                self.winit_window.window().current_monitor(),
             ) {
-                let should_set = match winit_window.outer_position() {
+                let should_set = match self.winit_window.window().outer_position() {
                     Ok(current_position) => current_position != position,
                     _ => true,
                 };
 
                 if should_set {
-                    winit_window.set_outer_position(position);
+                    self.winit_window.window().set_outer_position(position);
                 }
             }
         }
 
         if let Some(maximized) = self.window.internal.take_maximize_request() {
-            winit_window.set_maximized(maximized);
+            self.winit_window.window().set_maximized(maximized);
         }
 
         if let Some(minimized) = self.window.internal.take_minimize_request() {
-            winit_window.set_minimized(minimized);
+            self.winit_window.window().set_minimized(minimized);
         }
 
         if self.window.focused != self.cache.window.focused && self.window.focused {
-            winit_window.focus_window();
+            self.winit_window.window().focus_window();
         }
 
         if self.window.window_level != self.cache.window.window_level {
-            winit_window.set_window_level(convert_window_level(self.window.window_level));
+            self.winit_window
+                .window()
+                .set_window_level(convert_window_level(self.window.window_level));
         }
 
         // Currently unsupported changes
@@ -266,7 +266,9 @@ impl Engine {
         }
 
         if self.window.ime_enabled != self.cache.window.ime_enabled {
-            winit_window.set_ime_allowed(self.window.ime_enabled);
+            self.winit_window
+                .window()
+                .set_ime_allowed(self.window.ime_enabled);
         }
 
         if self.window.ime_position != self.cache.window.ime_position {
@@ -277,14 +279,18 @@ impl Engine {
             let height = self.window.resolution.physical_height();
             let physical_size = PhysicalSize::new(width, height);
 
-            winit_window.set_ime_cursor_area(position, physical_size);
+            self.winit_window
+                .window()
+                .set_ime_cursor_area(position, physical_size);
         }
 
         if self.window.window_theme != self.cache.window.window_theme {
-            winit_window.set_theme(self.window.window_theme.map(convert_window_theme));
+            self.winit_window
+                .window()
+                .set_theme(self.window.window_theme.map(convert_window_theme));
         }
 
-        winit_window_wrapper.redraw();
+        self.winit_window.redraw();
 
         self.cache.window = self.window.clone();
     }
@@ -298,10 +304,7 @@ impl Engine {
         // Keep log till the end of the execution
         let _log = init_log(console_log, log_dir);
 
-        let mut engine = Engine::new(2, 1);
-
         let entry_point_path = PathBuf::from(entry_point);
-
         if !entry_point_path.exists() {
             // If we can't find it, set the current dir to one above the executable path and try that instead.
             let mut dir = std::env::current_exe().expect("Cannot get the path to the executable");
@@ -316,14 +319,8 @@ impl Engine {
         }
 
         let event_loop = EventLoop::new().expect("Failed to build event loop");
-
-        engine.init_winit_window(&event_loop);
-
-        // Apply window changes made by a script
-        engine.changed_window();
-
+        let mut engine = Engine::new(&event_loop);
         let finished_and_setup_done = true;
-
         let event_handler = move |event: Event<()>, event_loop: &EventLoopWindowTarget<()>| {
             if engine.exit_app {
                 call_lua_func(&engine, "AppClose");
@@ -391,14 +388,7 @@ impl Engine {
                                 .set_physical_resolution(size.width, size.height);
                             // Update the cache immediately so we don't try to resize again at the end of the frame.
                             engine.cache.window.resolution = engine.window.resolution.clone();
-
-                            if let Some(window) = engine
-                                .winit_window_id
-                                .map(|id| engine.winit_windows.get_window_mut(id))
-                                .flatten()
-                            {
-                                window.resize(size.width, size.height);
-                            }
+                            engine.winit_window.resize(size.width, size.height);
                         }
                         WindowEvent::CloseRequested => {
                             call_lua_func(&engine, "AppClose");
