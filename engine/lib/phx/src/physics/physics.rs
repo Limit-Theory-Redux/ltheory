@@ -420,7 +420,7 @@ impl Physics {
     pub fn draw_wireframes(&mut self, eye: &Position) {
         let world = self.world.as_ref();
         self.debug_renderer.render(
-            &mut RapierDebugRenderer{eye: *eye},
+            &mut RapierDebugRenderer { eye: *eye },
             &world.rigid_bodies,
             &world.colliders,
             &self.impulse_joints,
