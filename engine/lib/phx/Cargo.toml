@@ -33,7 +33,7 @@ mlua = { version = "0.9", features = ["luajit52", "vendored"] }
 once_cell = "1.19"
 parley = "0.1"
 swash = "0.1"
-rapier3d-f64 = { version = "0.18", features = ["simd-stable", "debug-render"] }
+rapier3d-f64 = { version = "0.21", features = ["simd-stable", "debug-render"] }
 num_cpus = "1.15"
 raw-window-handle = "0.5"
 regex = "1.8"
