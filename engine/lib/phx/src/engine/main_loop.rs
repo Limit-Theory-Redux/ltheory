@@ -15,7 +15,6 @@ pub struct MainLoop {
     pub engine: Option<Engine>,
     pub app_name: String,
     pub entry_point_path: PathBuf,
-    pub finished_and_setup_done: bool,
 }
 
 impl ApplicationHandler for MainLoop {
@@ -235,17 +234,16 @@ impl ApplicationHandler for MainLoop {
 
     fn about_to_wait(&mut self, _: &ActiveEventLoop) {
         let engine = self.engine.as_mut().unwrap();
-        if self.finished_and_setup_done {
-            // Load all gamepad events
-            engine.input.update_gamepad(|state| state.update());
 
-            // Let Lua script perform frame operations
-            engine.call_lua_func("AppFrame");
+        // Load all gamepad events
+        engine.input.update_gamepad(|state| state.update());
 
-            // Apply window changes made by a script
-            engine.changed_window();
-            engine.input.reset();
-        }
+        // Let Lua script perform frame operations
+        engine.call_lua_func("AppFrame");
+
+        // Apply window changes made by a script
+        engine.changed_window();
+        engine.input.reset();
     }
 
     fn suspended(&mut self, _: &ActiveEventLoop) {

@@ -314,7 +314,6 @@ impl Engine {
             engine: None,
             app_name,
             entry_point_path,
-            finished_and_setup_done: true,
         };
         let _ = event_loop.run_app(&mut app_state);
     }
