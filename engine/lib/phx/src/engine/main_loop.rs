@@ -6,7 +6,7 @@ use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::PhysicalKey;
 use winit::window::WindowId;
 
-use super::{call_lua_func, Engine, WindowState};
+use super::{call_lua_func, Engine};
 use crate::window::*;
 use glam::*;
 use tracing::*;
