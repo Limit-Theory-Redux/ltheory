@@ -61,25 +61,13 @@ impl ApplicationHandler for MainLoop {
                 panic!("Error calling AppInit: {}", e);
             });
         }
-
-        // The low_power_event state and timeout must be reset at the start of every frame.
-        let engine = self.engine.as_mut().unwrap();
-        engine.frame_state.low_power_event = false;
-        engine.frame_state.timeout_reached = false; //auto_timeout_reached || manual_timeout_reached;
     }
 
     fn resumed(&mut self, _: &ActiveEventLoop) {
-        let engine = self.engine.as_mut().unwrap();
-        engine.frame_state.active = true;
-        engine.window.state = Some(WindowState::Resumed);
     }
-
-    // fn user_event(&mut self, _: &ActiveEventLoop, event: T) {
-    // }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _: WindowId, event: WindowEvent) {
         let engine = self.engine.as_mut().unwrap();
-        engine.frame_state.low_power_event = true;
 
         // If exit_app is true, then exit the event loop.
         if engine.exit_app {
@@ -264,7 +252,6 @@ impl ApplicationHandler for MainLoop {
 
     fn suspended(&mut self, _: &ActiveEventLoop) {
         let engine = self.engine.as_mut().unwrap();
-        engine.frame_state.active = false;
         engine.window.state = Some(WindowState::Suspended);
     }
 

@@ -1,9 +1,5 @@
-mod frame_state;
 mod main_loop;
 
-use std::path::PathBuf;
-
-pub(crate) use frame_state::*;
 use main_loop::*;
 
 use glam::*;
@@ -11,6 +7,7 @@ use mlua::{Function, Lua};
 use tracing::*;
 use winit::dpi::*;
 use winit::event_loop::*;
+use std::path::PathBuf;
 
 use internal::ConvertIntoString;
 
@@ -29,7 +26,6 @@ pub struct Engine {
     winit_window: WinitWindow,
     hmgui: HmGui,
     input: Input,
-    frame_state: FrameState,
     exit_app: bool,
     lua: Lua,
 }
@@ -67,7 +63,6 @@ impl Engine {
             winit_window,
             hmgui: HmGui::new(scale_factor),
             input: Default::default(),
-            frame_state: Default::default(),
             exit_app: false,
             lua,
         }
@@ -332,7 +327,7 @@ impl Engine {
     // TODO: convert ShaderVar and Signal into the proper Rust types
     // pub fn free() {
     //     unsafe {
-    //         ShaderVar_Free();
+    //         ShaderVar_ee();
     //         Signal_Free();
     //     }
     // }
