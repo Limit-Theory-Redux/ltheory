@@ -6,7 +6,7 @@ use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::PhysicalKey;
 use winit::window::WindowId;
 
-use super::{call_lua_func, Engine};
+use super::Engine;
 use crate::window::*;
 use glam::*;
 use tracing::*;
@@ -44,7 +44,6 @@ impl ApplicationHandler for MainLoop {
                 });
 
             let set_engine_func: Function = globals.get("SetEngine").unwrap();
-
             set_engine_func
                 .call::<_, ()>(engine as *const Engine as usize)
                 .unwrap_or_else(|e| {
@@ -63,8 +62,7 @@ impl ApplicationHandler for MainLoop {
         }
     }
 
-    fn resumed(&mut self, _: &ActiveEventLoop) {
-    }
+    fn resumed(&mut self, _: &ActiveEventLoop) {}
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _: WindowId, event: WindowEvent) {
         let engine = self.engine.as_mut().unwrap();
@@ -242,7 +240,7 @@ impl ApplicationHandler for MainLoop {
             engine.input.update_gamepad(|state| state.update());
 
             // Let Lua script perform frame operations
-            call_lua_func(engine, "AppFrame");
+            engine.call_lua_func("AppFrame");
 
             // Apply window changes made by a script
             engine.changed_window();
@@ -259,7 +257,7 @@ impl ApplicationHandler for MainLoop {
         debug!("Stopping main loop!");
 
         let engine = self.engine.as_mut().unwrap();
-        call_lua_func(engine, "AppClose");
+        engine.call_lua_func("AppClose");
     }
 
     fn memory_warning(&mut self, _: &ActiveEventLoop) {}

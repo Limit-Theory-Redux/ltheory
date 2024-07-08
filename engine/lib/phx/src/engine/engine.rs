@@ -1,10 +1,9 @@
-
 use glam::*;
 use mlua::{Function, Lua};
+use std::path::PathBuf;
 use tracing::*;
 use winit::dpi::*;
 use winit::event_loop::*;
-use std::path::PathBuf;
 
 use internal::ConvertIntoString;
 
@@ -64,6 +63,16 @@ impl Engine {
             input: Default::default(),
             exit_app: false,
             lua,
+        }
+    }
+
+    pub fn call_lua_func(&self, func_name: &str) {
+        let globals = self.lua.globals();
+        let app_frame_func: Function = globals
+            .get(func_name)
+            .expect(format!("Unknown function {}", func_name).as_str());
+        if let Err(e) = app_frame_func.call::<_, ()>(()) {
+            trace!("{}", e);
         }
     }
 
@@ -362,16 +371,5 @@ impl Engine {
             Metric_Reset();
             Profiler_End();
         }
-    }
-}
-
-pub fn call_lua_func(engine: &Engine, func_name: &str) {
-    let globals = engine.lua.globals();
-    let app_frame_func: Function = globals
-        .get(func_name)
-        .expect(format!("Unknown function {}", func_name).as_str());
-
-    if let Err(e) = app_frame_func.call::<_, ()>(()) {
-        trace!("{}", e);
     }
 }
