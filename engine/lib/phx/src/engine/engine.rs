@@ -281,8 +281,6 @@ impl Engine {
                 .set_theme(self.window.window_theme.map(convert_window_theme));
         }
 
-        self.winit_window.redraw();
-
         self.cache.window = self.window.clone();
     }
 }

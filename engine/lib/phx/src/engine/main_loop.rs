@@ -252,6 +252,9 @@ impl ApplicationHandler for MainLoop {
         // Apply window changes made by a script
         engine.changed_window();
         engine.input.reset();
+
+        // Redraw, this really just means to swap buffers.
+        engine.winit_window.redraw();
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {

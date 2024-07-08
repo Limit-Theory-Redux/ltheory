@@ -298,9 +298,9 @@ impl WinitWindow {
     }
 
     pub fn redraw(&self) {
-        if let GlState::Current { context, surface } = &self.gl_state {
-            self.window.request_redraw();
+        self.window.request_redraw();
 
+        if let GlState::Current { context, surface } = &self.gl_state {
             surface.swap_buffers(context).expect("Cannot redraw");
         }
     }
