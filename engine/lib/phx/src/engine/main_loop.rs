@@ -61,8 +61,6 @@ impl ApplicationHandler for MainLoop {
         }
     }
 
-    fn resumed(&mut self, _: &ActiveEventLoop) {}
-
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _: WindowId, event: WindowEvent) {
         let engine = self.engine.as_mut().unwrap();
 
@@ -232,6 +230,16 @@ impl ApplicationHandler for MainLoop {
 
     fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, _: DeviceEvent) {}
 
+    fn resumed(&mut self, _: &ActiveEventLoop) {
+        let engine = self.engine.as_mut().unwrap();
+        engine.window.state = Some(WindowState::Resumed);
+    }
+
+    fn suspended(&mut self, _: &ActiveEventLoop) {
+        let engine = self.engine.as_mut().unwrap();
+        engine.window.state = Some(WindowState::Suspended);
+    }
+
     fn about_to_wait(&mut self, _: &ActiveEventLoop) {
         let engine = self.engine.as_mut().unwrap();
 
@@ -244,11 +252,6 @@ impl ApplicationHandler for MainLoop {
         // Apply window changes made by a script
         engine.changed_window();
         engine.input.reset();
-    }
-
-    fn suspended(&mut self, _: &ActiveEventLoop) {
-        let engine = self.engine.as_mut().unwrap();
-        engine.window.state = Some(WindowState::Suspended);
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {
