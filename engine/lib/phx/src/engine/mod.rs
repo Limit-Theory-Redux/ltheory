@@ -1,19 +1,18 @@
 mod frame_state;
+mod main_loop;
 
 use std::path::PathBuf;
 
 pub(crate) use frame_state::*;
+use main_loop::*;
 
 use glam::*;
 use mlua::{Function, Lua};
 use tracing::*;
 use winit::dpi::*;
-use winit::event::Event;
-use winit::event::{self, *};
 use winit::event_loop::*;
 
 use internal::ConvertIntoString;
-use winit::keyboard::PhysicalKey;
 
 use crate::common::*;
 use crate::input::*;
@@ -36,7 +35,7 @@ pub struct Engine {
 }
 
 impl Engine {
-    fn new(event_loop: &EventLoop<()>) -> Self {
+    fn new(event_loop: &ActiveEventLoop) -> Self {
         unsafe {
             static mut FIRST_TIME: bool = true;
             Signal_Init();
@@ -153,7 +152,7 @@ impl Engine {
         if self.window.cursor.icon != self.cache.window.cursor.icon {
             self.winit_window
                 .window()
-                .set_cursor_icon(convert_cursor_icon(self.window.cursor.icon));
+                .set_cursor(convert_cursor_icon(self.window.cursor.icon));
         }
 
         if self.window.cursor.grab_mode != self.cache.window.cursor.grab_mode {
@@ -308,255 +307,13 @@ impl Engine {
         }
 
         let event_loop = EventLoop::new().expect("Failed to build event loop");
-        let mut engine = Engine::new(&event_loop);
-        let finished_and_setup_done = true;
-        let event_handler = move |event: Event<()>, event_loop: &EventLoopWindowTarget<()>| {
-            if engine.exit_app {
-                call_lua_func(&engine, "AppClose");
-
-                event_loop.exit();
-                return;
-            }
-
-            match event {
-                event::Event::NewEvents(start_cause) => {
-                    if start_cause == StartCause::Init {
-                        let globals = engine.lua.globals();
-
-                        globals.set("__debug__", cfg!(debug_assertions)).unwrap();
-                        globals.set("__embedded__", true).unwrap();
-                        globals.set("__checklevel__", 0 as u64).unwrap();
-
-                        if !app_name.is_empty() {
-                            globals.set("__app__", app_name.clone()).unwrap();
-                        }
-
-                        engine
-                            .lua
-                            .load(&*entry_point_path)
-                            .exec()
-                            .unwrap_or_else(|e| {
-                                panic!("Error executing the entry point script: {}", e);
-                            });
-
-                        let set_engine_func: Function = globals.get("SetEngine").unwrap();
-
-                        set_engine_func
-                            .call::<_, ()>(&engine as *const Engine as usize)
-                            .unwrap_or_else(|e| {
-                                panic!("Error calling SetEngine: {}", e);
-                            });
-
-                        let init_system_func: Function = globals.get("InitSystem").unwrap();
-                        init_system_func.call::<_, ()>(()).unwrap_or_else(|e| {
-                            panic!("Error calling InitSystem: {}", e);
-                        });
-
-                        let app_init_func: Function = globals.get("AppInit").unwrap();
-                        app_init_func.call::<_, ()>(()).unwrap_or_else(|e| {
-                            panic!("Error calling AppInit: {}", e);
-                        });
-                    }
-
-                    // The low_power_event state and timeout must be reset at the start of every frame.
-                    engine.frame_state.low_power_event = false;
-                    engine.frame_state.timeout_reached = false; //auto_timeout_reached || manual_timeout_reached;
-                }
-                event::Event::WindowEvent {
-                    event,
-                    window_id: _winit_window_id,
-                    ..
-                } => {
-                    engine.frame_state.low_power_event = true;
-
-                    match event {
-                        WindowEvent::Resized(size) => {
-                            engine
-                                .window
-                                .resolution
-                                .set_physical_resolution(size.width, size.height);
-                            // Update the cache immediately so we don't try to resize again at the end of the frame.
-                            engine.cache.window.resolution = engine.window.resolution.clone();
-                            engine.winit_window.resize(size.width, size.height);
-                        }
-                        WindowEvent::CloseRequested => {
-                            call_lua_func(&engine, "AppClose");
-                            event_loop.exit();
-                        }
-                        WindowEvent::KeyboardInput {
-                            device_id, event, ..
-                        } => {
-                            if let PhysicalKey::Code(keycode) = event.physical_key {
-                                engine.input.update_keyboard(device_id, |state| {
-                                    state.update(
-                                        convert_keycode(keycode),
-                                        event.state == ElementState::Pressed,
-                                    )
-                                });
-                            }
-                        }
-                        WindowEvent::CursorMoved {
-                            device_id,
-                            position,
-                            ..
-                        } => {
-                            engine.input.update_mouse(device_id, |state| {
-                                state.update_position(position.x as f32, position.y as f32)
-                            });
-                        }
-                        WindowEvent::CursorEntered { device_id } => {
-                            engine
-                                .input
-                                .update_mouse(device_id, |state| state.update_in_window(true));
-                        }
-                        WindowEvent::CursorLeft { device_id } => {
-                            engine.input.update_mouse(device_id, |state| {
-                                state.update_in_window(false);
-                                true
-                            });
-                        }
-                        WindowEvent::MouseInput {
-                            device_id,
-                            state: elm_state,
-                            button,
-                            ..
-                        } => {
-                            let control = convert_mouse_button(button);
-
-                            if let Some(control) = control {
-                                engine.input.update_mouse(device_id, |state| {
-                                    state.update_button(control, elm_state == ElementState::Pressed)
-                                });
-                            }
-                        }
-                        WindowEvent::MouseWheel {
-                            device_id, delta, ..
-                        } => match delta {
-                            event::MouseScrollDelta::LineDelta(x, y) => {
-                                engine.input.update_mouse(device_id, |state| {
-                                    state.update_scroll_line(x, y)
-                                });
-                            }
-                            event::MouseScrollDelta::PixelDelta(p) => {
-                                engine.input.update_mouse(device_id, |state| {
-                                    state.update_scroll_pixel(p.x as f32, p.y as f32)
-                                });
-                            }
-                        },
-                        WindowEvent::TouchpadMagnify {
-                            device_id, delta, ..
-                        } => {
-                            engine.input.update_touchpad(device_id, |state| {
-                                state.update_magnify_delta(delta as f32)
-                            });
-                        }
-                        WindowEvent::TouchpadRotate {
-                            device_id, delta, ..
-                        } => {
-                            engine.input.update_touchpad(device_id, |state| {
-                                state.update_rotate_delta(delta)
-                            });
-                        }
-                        WindowEvent::Touch(touch) => {
-                            // TODO: expose more info from touch
-                            let location = touch
-                                .location
-                                .to_logical(engine.window.resolution.scale_factor());
-                            let (x, y) = if touch.phase == TouchPhase::Started
-                                || touch.phase == TouchPhase::Moved
-                            {
-                                (location.x, location.x)
-                            } else {
-                                (-1.0, -1.0) // TODO: special value for no touch?
-                            };
-
-                            engine.input.update_touchpad(touch.device_id, |state| {
-                                state.update_position(x, y)
-                            });
-                        }
-                        WindowEvent::ScaleFactorChanged {
-                            scale_factor,
-                            inner_size_writer: _,
-                        } => {
-                            engine.hmgui.set_scale_factor(scale_factor);
-                        }
-                        WindowEvent::Focused(focused) => {
-                            engine.window.focused = focused;
-                        }
-                        WindowEvent::DroppedFile(file) => {
-                            engine
-                                .input
-                                .update_drag_and_drop(|state| state.update_dropped(&file));
-                        }
-                        WindowEvent::HoveredFile(file) => {
-                            engine
-                                .input
-                                .update_drag_and_drop(|state| state.update_hovered(&file));
-                        }
-                        WindowEvent::HoveredFileCancelled => {
-                            engine
-                                .input
-                                .update_drag_and_drop(|state| state.update_cancelled());
-                        }
-                        WindowEvent::Moved(position) => {
-                            let position = ivec2(position.x, position.y);
-
-                            engine.window.position.set(position);
-                        }
-                        WindowEvent::Ime(event) => match event {
-                            event::Ime::Preedit(_value, _cursor) => {
-                                // TODO: implement
-                            }
-                            event::Ime::Commit(_value) => {
-                                // TODO: implement
-                            }
-                            event::Ime::Enabled => {
-                                // TODO: implement
-                            }
-                            event::Ime::Disabled => {
-                                // TODO: implement
-                            }
-                        },
-                        WindowEvent::ThemeChanged(_theme) => {
-                            // TODO: implement
-                        }
-                        WindowEvent::Destroyed => {
-                            // TODO: implement?
-                        }
-                        _ => {
-                            trace!("Unprocessed window event: {event:?}");
-                        }
-                    }
-                }
-                event::Event::Suspended => {
-                    engine.frame_state.active = false;
-                    engine.window.state = Some(WindowState::Suspended);
-                }
-                event::Event::Resumed => {
-                    engine.frame_state.active = true;
-                    engine.window.state = Some(WindowState::Resumed);
-                }
-                event::Event::AboutToWait => {
-                    if finished_and_setup_done {
-                        // Load all gamepad events
-                        engine.input.update_gamepad(|state| state.update());
-
-                        // Let Lua script perform frame operations
-                        call_lua_func(&engine, "AppFrame");
-
-                        // Apply window changes made by a script
-                        engine.changed_window();
-                        engine.input.reset();
-                    }
-                }
-                _ => {
-                    trace!("Unprocessed event: {event:?}");
-                }
-            }
+        let mut app_state = MainLoop {
+            engine: None,
+            app_name,
+            entry_point_path,
+            finished_and_setup_done: true,
         };
-
-        // Start event loop and never exit
-        let _ = event_loop.run(event_handler);
+        let _ = event_loop.run_app(&mut app_state);
     }
 
     pub fn window(&mut self) -> &mut Window {

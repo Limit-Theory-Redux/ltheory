@@ -9,7 +9,7 @@ use glutin::display::GetGlDisplay;
 use glutin::prelude::{GlConfig, GlDisplay, NotCurrentGlContext, PossiblyCurrentGlContext};
 use glutin::surface::{GlSurface, Surface, SurfaceAttributes, WindowSurface};
 use glutin_winit::{DisplayBuilder, GlWindow};
-use raw_window_handle::HasRawWindowHandle;
+use raw_window_handle::HasWindowHandle;
 use tracing::{debug, error, info, warn};
 use winit::{
     dpi::{LogicalSize, PhysicalPosition},
@@ -108,23 +108,23 @@ pub struct WinitWindow {
 }
 
 impl WinitWindow {
-    pub fn new(event_loop: &winit::event_loop::EventLoopWindowTarget<()>, window: &Window) -> Self {
+    pub fn new(event_loop: &winit::event_loop::ActiveEventLoop, window: &Window) -> Self {
         info!("Create new window: {}", window.title);
 
-        let mut winit_window_builder = winit::window::WindowBuilder::new();
+        let mut window_attributes = winit::window::Window::default_attributes();
 
         // Hide window until it is properly initialized
-        winit_window_builder = winit_window_builder.with_visible(false);
-        winit_window_builder = match window.mode {
-            WindowMode::BorderlessFullscreen => winit_window_builder.with_fullscreen(Some(
+        window_attributes = window_attributes.with_visible(false);
+        window_attributes = match window.mode {
+            WindowMode::BorderlessFullscreen => window_attributes.with_fullscreen(Some(
                 winit::window::Fullscreen::Borderless(event_loop.primary_monitor()),
             )),
             WindowMode::Fullscreen => {
-                winit_window_builder.with_fullscreen(Some(winit::window::Fullscreen::Exclusive(
+                window_attributes.with_fullscreen(Some(winit::window::Fullscreen::Exclusive(
                     get_best_videomode(&event_loop.primary_monitor().unwrap()),
                 )))
             }
-            WindowMode::SizedFullscreen => winit_window_builder.with_fullscreen(Some(
+            WindowMode::SizedFullscreen => window_attributes.with_fullscreen(Some(
                 winit::window::Fullscreen::Exclusive(get_fitting_videomode(
                     &event_loop.primary_monitor().unwrap(),
                     window.width() as u32,
@@ -139,19 +139,19 @@ impl WinitWindow {
                     event_loop.primary_monitor(),
                     None,
                 ) {
-                    winit_window_builder = winit_window_builder.with_position(position);
+                    window_attributes = window_attributes.with_position(position);
                 }
 
                 let logical_size = LogicalSize::new(window.width(), window.height());
                 if let Some(sf) = window.resolution.scale_factor_override() {
-                    winit_window_builder.with_inner_size(logical_size.to_physical::<f64>(sf))
+                    window_attributes.with_inner_size(logical_size.to_physical::<f64>(sf))
                 } else {
-                    winit_window_builder.with_inner_size(logical_size)
+                    window_attributes.with_inner_size(logical_size)
                 }
             }
         };
 
-        winit_window_builder = winit_window_builder
+        window_attributes = window_attributes
             .with_theme(window.window_theme.map(winit::window::Theme::from))
             .with_resizable(window.resizable)
             .with_decorations(window.decorations);
@@ -166,24 +166,23 @@ impl WinitWindow {
             height: constraints.max_height,
         };
 
-        let winit_window_builder =
+        window_attributes =
             if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
-                winit_window_builder
+                window_attributes
                     .with_min_inner_size(min_inner_size)
                     .with_max_inner_size(max_inner_size)
             } else {
-                winit_window_builder.with_min_inner_size(min_inner_size)
+                window_attributes.with_min_inner_size(min_inner_size)
             };
 
-        #[allow(unused_mut)]
-        let mut winit_window_builder = winit_window_builder.with_title(window.title.as_str());
+        window_attributes = window_attributes.with_title(window.title.as_str());
 
         let template = ConfigTemplateBuilder::new()
             .with_alpha_size(8)
             .with_transparency(cfg!(cgl_backend));
-        let display_builder = DisplayBuilder::new().with_window_builder(Some(winit_window_builder));
+        let display_builder = DisplayBuilder::new().with_window_attributes(Some(window_attributes));
         let (winit_window, gl_config) = display_builder
-            .build(&event_loop, template, |configs| {
+            .build(event_loop, template, |configs| {
                 // Find the config with the maximum number of samples, so our triangle will
                 // be smooth.
                 configs
@@ -201,28 +200,27 @@ impl WinitWindow {
             })
             .unwrap();
 
+        let winit_window = winit_window.unwrap();
+
         debug!("Picked a config with {} samples", gl_config.num_samples());
 
-        let raw_window_handle = winit_window
-            .as_ref()
-            .map(|window| window.raw_window_handle());
-
-        // XXX The display could be obtained from the any object created by it, so we
-        // can query it from the config.
         let gl_display = gl_config.display();
-
         let context_attributes = ContextAttributesBuilder::new()
             .with_context_api(ContextApi::OpenGl(Some(Version::new(2, 1))))
             .with_profile(GlProfile::Compatibility)
-            .build(raw_window_handle);
+            .build(
+                winit_window
+                    .window_handle()
+                    .as_ref()
+                    .ok()
+                    .map(|wh| wh.as_raw()),
+            );
 
         let gl_context = unsafe {
             gl_display
                 .create_context(&gl_config, &context_attributes)
                 .expect("failed to create context")
         };
-
-        let winit_window = winit_window.unwrap();
 
         winit_window.set_visible(true);
 
@@ -261,7 +259,10 @@ impl WinitWindow {
     pub fn resume(&mut self) {
         debug!("WinitWindow::resume");
 
-        let attrs = self.window.build_surface_attributes(<_>::default());
+        let attrs = self
+            .window
+            .build_surface_attributes(<_>::default())
+            .unwrap();
 
         if self
             .gl_state
@@ -312,7 +313,7 @@ pub fn get_fitting_videomode(
     monitor: &winit::monitor::MonitorHandle,
     width: u32,
     height: u32,
-) -> winit::monitor::VideoMode {
+) -> winit::monitor::VideoModeHandle {
     let mut modes = monitor.video_modes().collect::<Vec<_>>();
 
     fn abs_diff(a: u32, b: u32) -> u32 {
@@ -343,7 +344,9 @@ pub fn get_fitting_videomode(
 /// Gets the "best" videomode from a monitor.
 ///
 /// The heuristic for "best" prioritizes width, height, and refresh rate in that order.
-pub fn get_best_videomode(monitor: &winit::monitor::MonitorHandle) -> winit::monitor::VideoMode {
+pub fn get_best_videomode(
+    monitor: &winit::monitor::MonitorHandle,
+) -> winit::monitor::VideoModeHandle {
     let mut modes = monitor.video_modes().collect::<Vec<_>>();
     modes.sort_by(|a, b| {
         use std::cmp::Ordering::*;
