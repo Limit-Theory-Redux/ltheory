@@ -26,19 +26,20 @@ GameState.debug = {
 }
 
 GameState.render = {
-    fullscreen      = Config.render.fullscreen,
-    gameWindow      = nil,
-    gameView        = nil,
-    uiCanvas        = nil,
-    resX            = Config.render.defaultResX,
-    resY            = Config.render.defaultResY,
-    presentMode     = Config.render.presentMode,
-    fov             = Config.render.fov,
-    zNear           = Config.render.zNear,
-    zFar            = Config.render.zFar,
-    thrusterLights  = Config.render.thrusterLights,
-    pulseLights     = Config.render.pulseLights,
-    renderDistances = {
+    fullscreen          = Config.render.fullscreen,
+    fullscreenExclusive = Config.render.fullscreenExclusive,
+    gameWindow          = nil,
+    gameView            = nil,
+    uiCanvas            = nil,
+    resX                = Config.render.defaultResX,
+    resY                = Config.render.defaultResY,
+    presentMode         = Config.render.presentMode,
+    fov                 = Config.render.fov,
+    zNear               = Config.render.zNear,
+    zFar                = Config.render.zFar,
+    thrusterLights      = Config.render.thrusterLights,
+    pulseLights         = Config.render.pulseLights,
+    renderDistances     = {
         Ship = 10000,
         Station = 100000
     }

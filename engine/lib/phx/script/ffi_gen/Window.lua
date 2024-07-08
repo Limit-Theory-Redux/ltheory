@@ -43,8 +43,7 @@ function Loader.defineType()
             void         Window_SetDecorations            (Window*, bool decorations);
             bool         Window_IsFocused                 (Window const*);
             void         Window_SetFocused                (Window*, bool focused);
-            void         Window_SetFullscreen             (Window*, bool fs);
-            void         Window_ToggleFullscreen          (Window*);
+            void         Window_SetFullscreen             (Window*, bool fs, bool exclusive);
             double       Window_ScaleFactor               (Window const*);
             Vec2f const* Window_CursorPosition            (Window const*);
             void         Window_SetCursorPosition         (Window*, Vec2f const* position);
@@ -91,7 +90,6 @@ function Loader.defineType()
                 isFocused                 = libphx.Window_IsFocused,
                 setFocused                = libphx.Window_SetFocused,
                 setFullscreen             = libphx.Window_SetFullscreen,
-                toggleFullscreen          = libphx.Window_ToggleFullscreen,
                 scaleFactor               = libphx.Window_ScaleFactor,
                 cursorPosition            = libphx.Window_CursorPosition,
                 setCursorPosition         = libphx.Window_SetCursorPosition,

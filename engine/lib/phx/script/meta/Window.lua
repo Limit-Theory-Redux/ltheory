@@ -130,9 +130,8 @@ function Window:isFocused() end
 function Window:setFocused(focused) end
 
 ---@param fs boolean
-function Window:setFullscreen(fs) end
-
-function Window:toggleFullscreen() end
+---@param exclusive boolean
+function Window:setFullscreen(fs, exclusive) end
 
 -- The window's scale factor.
 -- 

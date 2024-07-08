@@ -339,20 +339,16 @@ impl Window {
         self.focused = focused;
     }
 
-    pub fn set_fullscreen(&mut self, fs: bool) {
+    pub fn set_fullscreen(&mut self, fs: bool, exclusive: bool) {
         self.mode = if fs {
-            WindowMode::Fullscreen
+            if exclusive {
+                WindowMode::Fullscreen
+            } else {
+                WindowMode::BorderlessFullscreen
+            }
         } else {
             WindowMode::Windowed
         };
-    }
-
-    pub fn toggle_fullscreen(&mut self) {
-        if self.mode == WindowMode::Fullscreen {
-            self.mode = WindowMode::Windowed;
-        } else {
-            self.mode = WindowMode::Fullscreen;
-        }
     }
 
     /// The window's scale factor.
