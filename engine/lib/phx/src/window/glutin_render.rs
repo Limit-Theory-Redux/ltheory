@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 
 use glutin::prelude::GlDisplay;
 use tracing::{debug, info, warn};
@@ -12,6 +12,13 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
         let symbol = CString::new(symbol).unwrap();
         gl_display.get_proc_address(symbol.as_c_str()).cast()
     });
+
+    let gl_get_string = |name: gl::types::GLenum| -> Option<String> {
+        unsafe {
+            let s = gl::GetString(name);
+            (!s.is_null()).then(|| CStr::from_ptr(s.cast()).to_string_lossy().to_string())
+        }
+    };
 
     if let Some(vendor) = gl_get_string(gl::VENDOR) {
         info!("OpenGL Vendor: {vendor}");
@@ -37,32 +44,30 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
         warn!("No Shaders version info");
     }
 
-    gl_disable(gl::MULTISAMPLE);
-    gl_disable(gl::CULL_FACE);
-    gl_cull_face(gl::BACK);
+    glcheck!(gl::Disable(gl::MULTISAMPLE));
+    glcheck!(gl::Disable(gl::CULL_FACE));
+    glcheck!(gl::CullFace(gl::BACK));
 
-    gl_pixel_storei(gl::PACK_ALIGNMENT, 1);
-    gl_pixel_storei(gl::UNPACK_ALIGNMENT, 1);
-    gl_depth_func(gl::LEQUAL);
+    glcheck!(gl::PixelStorei(gl::PACK_ALIGNMENT, 1));
+    glcheck!(gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1));
+    glcheck!(gl::DepthFunc(gl::LEQUAL));
 
-    gl_enable(gl::BLEND);
-    gl_blend_func(gl::ONE, gl::ZERO);
+    glcheck!(gl::Enable(gl::BLEND));
+    glcheck!(gl::BlendFunc(gl::ONE, gl::ZERO));
 
-    gl_enable(gl::TEXTURE_CUBE_MAP_SEAMLESS);
-    gl_disable(gl::POINT_SMOOTH);
-    gl_disable(gl::LINE_SMOOTH);
-    gl_hint(gl::POINT_SMOOTH_HINT, gl::FASTEST);
-    gl_hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
-    gl_line_width(2.0f32);
+    glcheck!(gl::Enable(gl::TEXTURE_CUBE_MAP_SEAMLESS));
+    glcheck!(gl::Disable(gl::LINE_SMOOTH));
+    glcheck!(gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST));
+    glcheck!(gl::LineWidth(2.0f32));
 
-    gl_matrix_mode(gl::PROJECTION);
-    gl_load_identity();
-    gl_matrix_mode(gl::MODELVIEW);
-    gl_load_identity();
+    glcheck!(gl::MatrixMode(gl::PROJECTION));
+    glcheck!(gl::LoadIdentity());
+    glcheck!(gl::MatrixMode(gl::MODELVIEW));
+    glcheck!(gl::LoadIdentity());
 
     unsafe { RenderState_PushAllDefaults() };
 }
 
 pub fn resize(width: i32, height: i32) {
-    gl_viewport(0, 0, width, height);
+    glcheck!(gl::Viewport(0, 0, width, height));
 }

@@ -24,21 +24,21 @@ static mut depthWritableIndex: i32 = -1;
 extern "C" fn RenderState_SetBlendMode(mode: BlendMode) {
     match mode {
         BlendMode_Additive => {
-            gl_blend_func_separate(gl::ONE, gl::ONE, gl::ONE, gl::ONE);
+            glcheck!(gl::BlendFuncSeparate(gl::ONE, gl::ONE, gl::ONE, gl::ONE));
         }
         BlendMode_Alpha => {
-            gl_blend_func_separate(
+            glcheck!(gl::BlendFuncSeparate(
                 gl::SRC_ALPHA,
                 gl::ONE_MINUS_SRC_ALPHA,
                 gl::ONE,
                 gl::ONE_MINUS_SRC_ALPHA,
-            );
+            ));
         }
         BlendMode_PreMultAlpha => {
-            gl_blend_func(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
+            glcheck!(gl::BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA));
         }
         BlendMode_Disabled => {
-            gl_blend_func(gl::ONE, gl::ZERO);
+            glcheck!(gl::BlendFunc(gl::ONE, gl::ZERO));
         }
         _ => {}
     }
@@ -48,15 +48,15 @@ extern "C" fn RenderState_SetBlendMode(mode: BlendMode) {
 extern "C" fn RenderState_SetCullFace(mode: CullFace) {
     match mode {
         CullFace_None => {
-            gl_disable(gl::CULL_FACE);
+            glcheck!(gl::Disable(gl::CULL_FACE));
         }
         CullFace_Back => {
-            gl_enable(gl::CULL_FACE);
-            gl_cull_face(gl::BACK);
+            glcheck!(gl::Enable(gl::CULL_FACE));
+            glcheck!(gl::CullFace(gl::BACK));
         }
         CullFace_Front => {
-            gl_enable(gl::CULL_FACE);
-            gl_cull_face(gl::FRONT);
+            glcheck!(gl::Enable(gl::CULL_FACE));
+            glcheck!(gl::CullFace(gl::FRONT));
         }
         _ => {}
     }
@@ -65,23 +65,23 @@ extern "C" fn RenderState_SetCullFace(mode: CullFace) {
 #[inline]
 extern "C" fn RenderState_SetDepthTest(enabled: bool) {
     if enabled {
-        gl_enable(gl::DEPTH_TEST);
+        glcheck!(gl::Enable(gl::DEPTH_TEST));
     } else {
-        gl_disable(gl::DEPTH_TEST);
+        glcheck!(gl::Disable(gl::DEPTH_TEST));
     };
 }
 
 #[inline]
 extern "C" fn RenderState_SetDepthWritable(enabled: bool) {
-    gl_depth_mask(enabled as gl::types::GLboolean);
+    glcheck!(gl::DepthMask(enabled as gl::types::GLboolean));
 }
 
 #[inline]
 extern "C" fn RenderState_SetWireframe(enabled: bool) {
     if enabled {
-        gl_polygon_mode(gl::FRONT_AND_BACK, gl::LINE);
+        glcheck!(gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE));
     } else {
-        gl_polygon_mode(gl::FRONT_AND_BACK, gl::FILL);
+        glcheck!(gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL));
     };
 }
 
