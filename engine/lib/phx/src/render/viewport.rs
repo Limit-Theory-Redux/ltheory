@@ -25,8 +25,8 @@ static mut vp: [VP; 16] = [VP {
 
 extern "C" fn Viewport_Set(this: &VP) {
     glcheck!(gl::Viewport(this.x, this.y, this.sx, this.sy));
-    glcheck!(gl::MatrixMode(gl::PROJECTION));
-    glcheck!(gl::LoadIdentity());
+    GLMatrix::mode_p();
+    GLMatrix::clear();
 
     if this.isWindow {
         glcheck!(gl::Translatef(-1.0f32, 1.0f32, 0.0f32));

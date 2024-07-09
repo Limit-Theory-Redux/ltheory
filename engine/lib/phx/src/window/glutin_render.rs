@@ -60,10 +60,10 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
     glcheck!(gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST));
     glcheck!(gl::LineWidth(2.0f32));
 
-    glcheck!(gl::MatrixMode(gl::PROJECTION));
-    glcheck!(gl::LoadIdentity());
-    glcheck!(gl::MatrixMode(gl::MODELVIEW));
-    glcheck!(gl::LoadIdentity());
+    GLMatrix::mode_p();
+    GLMatrix::clear();
+    GLMatrix::mode_w_v();
+    GLMatrix::clear();
 
     unsafe { RenderState_PushAllDefaults() };
 }

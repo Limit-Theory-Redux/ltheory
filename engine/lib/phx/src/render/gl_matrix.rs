@@ -1,4 +1,3 @@
-
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use crate::math::*;
@@ -79,7 +78,7 @@ impl MatrixStack {
         });
     }
 }
-struct GLMatrix;
+pub struct GLMatrix;
 
 impl GLMatrix {
     fn inst() -> MutexGuard<'static, MatrixStack> {
