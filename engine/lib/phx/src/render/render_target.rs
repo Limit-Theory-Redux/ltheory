@@ -37,7 +37,7 @@ unsafe extern "C" fn SetDrawBuffers(count: i32) {
         gl::COLOR_ATTACHMENT3 as _,
     ];
 
-    gl_draw_buffers(count, bufs.as_ptr());
+    glcheck!(gl::DrawBuffers(count, bufs.as_ptr()));
 }
 
 #[no_mangle]
@@ -59,8 +59,8 @@ pub unsafe extern "C" fn RenderTarget_Push(sx: i32, sy: i32) {
 
     Metric_Inc(0x7);
 
-    gl_gen_framebuffers(1, &mut (*this).handle);
-    gl_bind_framebuffer(gl::FRAMEBUFFER, (*this).handle);
+    glcheck!(gl::GenFramebuffers(1, &mut (*this).handle));
+    glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, (*this).handle));
 
     Viewport_Push(0, 0, sx, sy, false);
 
@@ -77,30 +77,36 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
 
     let mut i: u32 = 0;
     while i < 4 {
-        gl_framebuffer_texture2d(
+        glcheck!(gl::FramebufferTexture2D(
             gl::FRAMEBUFFER,
             gl::COLOR_ATTACHMENT0 + i,
             gl::TEXTURE_2D,
             0,
             0,
-        );
+        ));
         i += 1;
     }
 
-    gl_framebuffer_texture2d(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::TEXTURE_2D, 0, 0);
-    gl_delete_framebuffers(
+    glcheck!(gl::FramebufferTexture2D(
+        gl::FRAMEBUFFER,
+        gl::DEPTH_ATTACHMENT,
+        gl::TEXTURE_2D,
+        0,
+        0
+    ));
+    glcheck!(gl::DeleteFramebuffers(
         1,
         &mut (*fboStack.as_mut_ptr().offset(fboIndex as isize)).handle,
-    );
+    ));
 
     fboIndex -= 1;
 
     Metric_Inc(0x7);
 
     if fboIndex >= 0 {
-        gl_bind_framebuffer(gl::FRAMEBUFFER, (*GetActive()).handle);
+        glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, (*GetActive()).handle));
     } else {
-        gl_bind_framebuffer(gl::FRAMEBUFFER, 0);
+        glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));
     }
 
     Viewport_Pop();
@@ -123,13 +129,13 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: &mut Tex2D, level: i32
             panic!("RenderTarget_BindTex2D: Max color attachments exceeded");
         }
 
-        gl_framebuffer_texture2d(
+        glcheck!(gl::FramebufferTexture2D(
             gl::FRAMEBUFFER,
             gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
             gl::TEXTURE_2D,
             handle,
             level,
-        );
+        ));
         (*this).colorIndex += 1;
         SetDrawBuffers((*this).colorIndex);
     } else {
@@ -137,13 +143,13 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: &mut Tex2D, level: i32
             panic!("RenderTarget_BindTex2D: Target already has a depth buffer");
         }
 
-        gl_framebuffer_texture2d(
+        glcheck!(gl::FramebufferTexture2D(
             gl::FRAMEBUFFER,
             gl::DEPTH_ATTACHMENT,
             gl::TEXTURE_2D,
             handle,
             level,
-        );
+        ));
         (*this).depth = true;
     }
 }
@@ -161,14 +167,14 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(tex: &mut Tex3D, layer: i32
     }
 
     let handle: u32 = Tex3D_GetHandle(tex);
-    gl_framebuffer_texture3d(
+    glcheck!(gl::FramebufferTexture3D(
         gl::FRAMEBUFFER,
         gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
         gl::TEXTURE_3D,
         handle,
         level,
         layer,
-    );
+    ));
     (*this).colorIndex += 1;
     SetDrawBuffers((*this).colorIndex);
 }
@@ -190,13 +196,13 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
     }
     let handle: u32 = TexCube_GetHandle(tex);
 
-    gl_framebuffer_texture2d(
+    glcheck!(gl::FramebufferTexture2D(
         gl::FRAMEBUFFER,
         gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
         face as u32,
         handle,
         level,
-    );
+    ));
     (*this).colorIndex += 1;
     SetDrawBuffers((*this).colorIndex);
 }

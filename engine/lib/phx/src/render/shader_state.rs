@@ -283,30 +283,34 @@ pub unsafe extern "C" fn ShaderState_Start(this: &mut ShaderState) {
     for e in this.elems.iter() {
         match (*e).type_0 {
             1 => {
-                gl_uniform1f((*e).index, (*e).data.asFloat);
+                glcheck!(gl::Uniform1f((*e).index, (*e).data.asFloat));
             }
             2 => {
-                gl_uniform2f((*e).index, (*e).data.asFloat2.x, (*e).data.asFloat2.y);
+                glcheck!(gl::Uniform2f(
+                    (*e).index,
+                    (*e).data.asFloat2.x,
+                    (*e).data.asFloat2.y
+                ));
             }
             3 => {
-                gl_uniform3f(
+                glcheck!(gl::Uniform3f(
                     (*e).index,
                     (*e).data.asFloat3.x,
                     (*e).data.asFloat3.y,
                     (*e).data.asFloat3.z,
-                );
+                ));
             }
             4 => {
-                gl_uniform4f(
+                glcheck!(gl::Uniform4f(
                     (*e).index,
                     (*e).data.asFloat4.x,
                     (*e).data.asFloat4.y,
                     (*e).data.asFloat4.z,
                     (*e).data.asFloat4.w,
-                );
+                ));
             }
             5 => {
-                gl_uniform1i((*e).index, (*e).data.asInt);
+                glcheck!(gl::Uniform1i((*e).index, (*e).data.asInt));
             }
             6 => {
                 Shader_ISetMatrix((*e).index, &mut *(*e).data.asMatrix);
