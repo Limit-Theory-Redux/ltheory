@@ -34,7 +34,10 @@ impl TextSelection {
 
     /// Returns cursor position or end position of the selection.
     pub fn cursor_position(&self) -> usize {
-        self.end()
+        match self {
+            Self::Cursor(pos) => *pos,
+            Self::Selection(range) => range.end,
+        }
     }
 
     pub fn range(&self) -> Range<usize> {
