@@ -21,8 +21,8 @@ flate2 = "1.0"
 freetype-sys = "0.20"
 gilrs = "0.10"
 glam = { version = "0.28", features = ["scalar-math"] }
-glutin = { git = "https://github.com/dgavedissian/glutin", rev = "0454c7b91890af1160513797d3a8ee1aea63fc8e" }
-glutin-winit = { git = "https://github.com/dgavedissian/glutin", rev = "0454c7b91890af1160513797d3a8ee1aea63fc8e" }
+glutin = { git = "https://github.com/dgavedissian/glutin", rev = "4ca4190bd67a2a8c0bbe3a3304e529effe6172a8" }
+glutin-winit = { git = "https://github.com/dgavedissian/glutin", rev = "4ca4190bd67a2a8c0bbe3a3304e529effe6172a8" }
 hashbrown = { version = "0.14", features = ["serde"] }
 image = "0.25"
 indexmap = "2.0"
@@ -35,14 +35,14 @@ parley = "0.1"
 swash = "0.1"
 rapier3d-f64 = { version = "0.21", features = ["simd-stable", "debug-render"] }
 num_cpus = "1.15"
-raw-window-handle = "0.5"
+raw-window-handle = "0.6"
 regex = "1.8"
 rodio = "0.17"
 serde_yaml = "0.9"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-winit = "0.29"
+winit = "0.30"
 walkdir = "2.4"
 
 [build-dependencies]
