@@ -264,6 +264,8 @@ impl TextData {
         let height = layout.height().ceil() as u32;
         let mut buffer = vec![Color::TRANSPARENT; (width * height) as usize];
         let mut glyph_idx = 0;
+        let mut cursor_at_eol = false;
+        let selection_end = self.selection.end();
 
         // Iterate over laid out lines
         for line in layout.lines() {
@@ -275,6 +277,8 @@ impl TextData {
                     height,
                 ),
             };
+
+            cursor_at_eol |= line.text_range().end == selection_end;
 
             // Iterate over GlyphRun's within each line
             for glyph_run in line.glyph_runs() {
@@ -293,7 +297,11 @@ impl TextData {
 
         // calculate cursor rect
         if (self.text_changed || selection_changed) && editable && focused {
-            self.build_cursor_rect(&layout, height);
+            if cursor_at_eol && selection_end != self.text.len() {
+                self.build_cursor_rect(&layout, height, selection_end - 1);
+            } else {
+                self.build_cursor_rect(&layout, height, selection_end);
+            }
         }
 
         // Create texture
@@ -311,11 +319,12 @@ impl TextData {
         }
     }
 
-    fn build_cursor_rect(&mut self, layout: &Layout<Color>, widget_height: u32) {
-        let cursor_position = match &self.selection {
-            TextSelection::Cursor(pos) => *pos,
-            TextSelection::Selection(range) => range.end,
-        };
+    fn build_cursor_rect(
+        &mut self,
+        layout: &Layout<Color>,
+        widget_height: u32,
+        cursor_position: usize,
+    ) {
         let cursor = Cursor::from_position(&layout, cursor_position, false);
         let line = cursor.path.line(&layout).expect("Cannot get cursor line");
         let metrics = line.metrics();
