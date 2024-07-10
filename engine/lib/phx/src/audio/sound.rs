@@ -1,6 +1,6 @@
 use internal::ConvertIntoString;
 
-use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
+use kira::sound::static_sound::StaticSoundData;
 use kira::sound::{EndPosition, PlaybackPosition, Region};
 
 pub struct Sound {
@@ -18,18 +18,16 @@ impl Sound {
 impl Sound {
     #[bind(name = "Load")]
     pub fn new(path: &str, is_looping: bool) -> Self {
-        let mut settings = StaticSoundSettings::new();
+        let mut sound_data =
+            StaticSoundData::from_file(path).expect(&format!("Cannot load sound: {path}"));
 
         if is_looping {
             // Loop over whole audio
-            settings = settings.loop_region(Region {
+            sound_data = sound_data.loop_region(Region {
                 start: PlaybackPosition::Seconds(0.0),
                 end: EndPosition::EndOfAudio,
             });
         }
-
-        let sound_data = StaticSoundData::from_file(path, settings)
-            .expect(&format!("Cannot load sound: {path}"));
 
         Self {
             path: path.into(),

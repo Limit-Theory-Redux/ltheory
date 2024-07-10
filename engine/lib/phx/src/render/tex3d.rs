@@ -15,11 +15,31 @@ pub struct Tex3D {
 
 #[inline]
 extern "C" fn Tex3D_Init() {
-    gl_tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-    gl_tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-    gl_tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-    gl_tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-    gl_tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
+    glcheck!(gl::TexParameteri(
+        gl::TEXTURE_3D,
+        gl::TEXTURE_MAG_FILTER,
+        gl::NEAREST as i32
+    ));
+    glcheck!(gl::TexParameteri(
+        gl::TEXTURE_3D,
+        gl::TEXTURE_MIN_FILTER,
+        gl::NEAREST as i32
+    ));
+    glcheck!(gl::TexParameteri(
+        gl::TEXTURE_3D,
+        gl::TEXTURE_WRAP_S,
+        gl::CLAMP_TO_EDGE as i32
+    ));
+    glcheck!(gl::TexParameteri(
+        gl::TEXTURE_3D,
+        gl::TEXTURE_WRAP_T,
+        gl::CLAMP_TO_EDGE as i32
+    ));
+    glcheck!(gl::TexParameteri(
+        gl::TEXTURE_3D,
+        gl::TEXTURE_WRAP_R,
+        gl::CLAMP_TO_EDGE as i32
+    ));
 }
 
 #[no_mangle]
@@ -37,10 +57,10 @@ pub unsafe extern "C" fn Tex3D_Create(sx: i32, sy: i32, sz: i32, format: TexForm
     (*this).size = IVec3::new(sx, sy, sz);
     (*this).format = format;
 
-    gl_gen_textures(1, &mut (*this).handle);
-    gl_active_texture(gl::TEXTURE0);
-    gl_bind_texture(gl::TEXTURE_3D, (*this).handle);
-    gl_tex_image3d(
+    glcheck!(gl::GenTextures(1, &mut (*this).handle));
+    glcheck!(gl::ActiveTexture(gl::TEXTURE0));
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, (*this).handle));
+    glcheck!(gl::TexImage3D(
         gl::TEXTURE_3D,
         0,
         (*this).format,
@@ -51,9 +71,9 @@ pub unsafe extern "C" fn Tex3D_Create(sx: i32, sy: i32, sz: i32, format: TexForm
         gl::RED,
         gl::UNSIGNED_BYTE,
         std::ptr::null(),
-    );
+    ));
     Tex3D_Init();
-    gl_bind_texture(gl::TEXTURE_3D, 0);
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
 
     this
 }
@@ -69,7 +89,7 @@ pub unsafe extern "C" fn Tex3D_Free(this: *mut Tex3D) {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
     } {
-        gl_delete_textures(1, &mut (*this).handle);
+        glcheck!(gl::DeleteTextures(1, &mut (*this).handle));
         MemFree(this as *const _);
     }
 }
@@ -93,28 +113,30 @@ pub unsafe extern "C" fn Tex3D_PushLevel(this: &mut Tex3D, layer: i32, level: i3
 pub extern "C" fn Tex3D_Draw(this: &mut Tex3D, layer: i32, x: f32, y: f32, xs: f32, ys: f32) {
     let r: f32 = (layer + 1) as f32 / (this.size.z + 1) as f32;
 
-    gl_enable(gl::TEXTURE_3D);
-    gl_bind_texture(gl::TEXTURE_3D, this.handle);
+    glcheck!(gl::Enable(gl::TEXTURE_3D));
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
 
-    gl_begin(gl::QUADS);
-    gl_tex_coord3f(0.0f32, 0.0f32, r);
-    gl_vertex2f(x, y);
-    gl_tex_coord3f(0.0f32, 1.0f32, r);
-    gl_vertex2f(x, y + ys);
-    gl_tex_coord3f(1.0f32, 1.0f32, r);
-    gl_vertex2f(x + xs, y + ys);
-    gl_tex_coord3f(1.0f32, 0.0f32, r);
-    gl_vertex2f(x + xs, y);
-    gl_end();
+    unsafe {
+        gl::Begin(gl::QUADS);
+        gl::TexCoord3f(0.0f32, 0.0f32, r);
+        gl::Vertex2f(x, y);
+        gl::TexCoord3f(0.0f32, 1.0f32, r);
+        gl::Vertex2f(x, y + ys);
+        gl::TexCoord3f(1.0f32, 1.0f32, r);
+        gl::Vertex2f(x + xs, y + ys);
+        gl::TexCoord3f(1.0f32, 0.0f32, r);
+        gl::Vertex2f(x + xs, y);
+    }
+    glcheck!(gl::End());
 
-    gl_disable(gl::TEXTURE_3D);
+    glcheck!(gl::Disable(gl::TEXTURE_3D));
 }
 
 #[no_mangle]
 pub extern "C" fn Tex3D_GenMipmap(this: &mut Tex3D) {
-    gl_bind_texture(gl::TEXTURE_3D, this.handle);
-    gl_generate_mipmap(gl::TEXTURE_3D);
-    gl_bind_texture(gl::TEXTURE_3D, 0);
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
+    glcheck!(gl::GenerateMipmap(gl::TEXTURE_3D));
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
 }
 
 #[no_mangle]
@@ -124,15 +146,15 @@ pub extern "C" fn Tex3D_GetData(
     pf: PixelFormat,
     df: DataFormat,
 ) {
-    gl_bind_texture(gl::TEXTURE_3D, this.handle);
-    gl_get_tex_image(
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
+    glcheck!(gl::GetTexImage(
         gl::TEXTURE_3D,
         0,
         pf as gl::types::GLenum,
         df as gl::types::GLenum,
         data,
-    );
-    gl_bind_texture(gl::TEXTURE_3D, 0);
+    ));
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
 }
 
 #[no_mangle]
@@ -186,8 +208,8 @@ pub extern "C" fn Tex3D_SetData(
     pf: PixelFormat,
     df: DataFormat,
 ) {
-    gl_bind_texture(gl::TEXTURE_3D, this.handle);
-    gl_tex_image3d(
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
+    glcheck!(gl::TexImage3D(
         gl::TEXTURE_3D,
         0,
         this.format,
@@ -198,8 +220,8 @@ pub extern "C" fn Tex3D_SetData(
         pf as gl::types::GLenum,
         df as gl::types::GLenum,
         data,
-    );
-    gl_bind_texture(gl::TEXTURE_3D, 0);
+    ));
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
 }
 
 #[no_mangle]
@@ -214,23 +236,31 @@ pub unsafe extern "C" fn Tex3D_SetDataBytes(
 
 #[no_mangle]
 pub extern "C" fn Tex3D_SetMagFilter(this: &mut Tex3D, filter: TexFilter) {
-    gl_bind_texture(gl::TEXTURE_3D, this.handle);
-    gl_tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_MAG_FILTER, filter);
-    gl_bind_texture(gl::TEXTURE_3D, 0);
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
+    glcheck!(gl::TexParameteri(
+        gl::TEXTURE_3D,
+        gl::TEXTURE_MAG_FILTER,
+        filter
+    ));
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
 }
 
 #[no_mangle]
 pub extern "C" fn Tex3D_SetMinFilter(this: &mut Tex3D, filter: TexFilter) {
-    gl_bind_texture(gl::TEXTURE_3D, this.handle);
-    gl_tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_MIN_FILTER, filter);
-    gl_bind_texture(gl::TEXTURE_3D, 0);
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
+    glcheck!(gl::TexParameteri(
+        gl::TEXTURE_3D,
+        gl::TEXTURE_MIN_FILTER,
+        filter
+    ));
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
 }
 
 #[no_mangle]
 pub extern "C" fn Tex3D_SetWrapMode(this: &mut Tex3D, mode: TexWrapMode) {
-    gl_bind_texture(gl::TEXTURE_3D, this.handle);
-    gl_tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, mode);
-    gl_tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, mode);
-    gl_tex_parameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, mode);
-    gl_bind_texture(gl::TEXTURE_3D, 0);
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
+    glcheck!(gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, mode));
+    glcheck!(gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, mode));
+    glcheck!(gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, mode));
+    glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
 }

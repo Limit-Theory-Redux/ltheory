@@ -99,12 +99,12 @@ end
 
 function LimitTheoryRedux:ToggleFullscreen()
     GameState.render.fullscreen = not GameState.render.fullscreen
-    WindowInstance:setFullscreen(GameState.render.fullscreen)
+    WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
 end
 
 function LimitTheoryRedux:SetFullscreen(fullscreen)
     GameState.render.fullscreen = fullscreen
-    WindowInstance:setFullscreen(fullscreen)
+    WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
 end
 
 function LimitTheoryRedux:onInput()

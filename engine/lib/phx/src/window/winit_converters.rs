@@ -1,7 +1,7 @@
 use crate::input::{KeyboardButton, MouseControl};
 use winit::keyboard::KeyCode as WinitKeyCode;
 
-use super::{CursorIcon, WindowLevel, WindowTheme};
+use super::{CursorIcon, WindowTheme};
 
 pub fn convert_keycode(keycode: WinitKeyCode) -> KeyboardButton {
     match keycode {
@@ -239,14 +239,6 @@ pub fn convert_cursor_icon(cursor_icon: CursorIcon) -> winit::window::CursorIcon
         CursorIcon::NwseResize => winit::window::CursorIcon::NwseResize,
         CursorIcon::ColResize => winit::window::CursorIcon::ColResize,
         CursorIcon::RowResize => winit::window::CursorIcon::RowResize,
-    }
-}
-
-pub fn convert_window_level(window_level: WindowLevel) -> winit::window::WindowLevel {
-    match window_level {
-        WindowLevel::AlwaysOnBottom => winit::window::WindowLevel::AlwaysOnBottom,
-        WindowLevel::Normal => winit::window::WindowLevel::Normal,
-        WindowLevel::AlwaysOnTop => winit::window::WindowLevel::AlwaysOnTop,
     }
 }
 

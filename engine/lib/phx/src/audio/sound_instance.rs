@@ -6,8 +6,6 @@ use kira::spatial::emitter::EmitterHandle;
 use kira::tween::{Easing, Tween};
 use kira::StartTime;
 
-use super::process_command_error;
-
 struct EmitterInfo {
     emitter: EmitterHandle,
     position: Position,
@@ -40,12 +38,9 @@ impl SoundInstance {
     // This recomputes the emitters position relative to the current listeners position. This should be called anytime that the listener's origin is updated.
     fn update_kira_emitter_position(&mut self) {
         if let Some(emitter_info) = &mut self.emitter_info {
-            process_command_error(
-                emitter_info.emitter.set_position(
-                    emitter_info.position.relative_to(emitter_info.audio_origin),
-                    Tween::default(),
-                ),
-                "Cannot set sound emitter position",
+            emitter_info.emitter.set_position(
+                emitter_info.position.relative_to(emitter_info.audio_origin),
+                Tween::default(),
             );
         }
     }
@@ -83,59 +78,44 @@ impl SoundInstance {
 
     pub fn set_volume(&mut self, volume: f64, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
-            process_command_error(
-                handle.set_volume(
-                    volume,
-                    Tween {
-                        duration: Duration::from_millis(fade_millis),
-                        ..Default::default()
-                    },
-                ),
-                "Cannot set volume on sound",
+            handle.set_volume(
+                volume,
+                Tween {
+                    duration: Duration::from_millis(fade_millis),
+                    ..Default::default()
+                },
             );
-
-            self.volume = volume;
-        } else {
-            self.volume = volume;
         }
+        self.volume = volume;
     }
 
     pub fn pause(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
-            process_command_error(
-                handle.pause(Tween {
-                    start_time: StartTime::Immediate,
-                    duration: Duration::from_millis(fade_millis),
-                    easing: Easing::Linear,
-                }),
-                "Cannot pause sound",
-            );
+            handle.pause(Tween {
+                start_time: StartTime::Immediate,
+                duration: Duration::from_millis(fade_millis),
+                easing: Easing::Linear,
+            });
         }
     }
 
     pub fn resume(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
-            process_command_error(
-                handle.resume(Tween {
-                    start_time: StartTime::Immediate,
-                    duration: Duration::from_millis(fade_millis),
-                    easing: Easing::Linear,
-                }),
-                "Cannot resume sound",
-            );
+            handle.resume(Tween {
+                start_time: StartTime::Immediate,
+                duration: Duration::from_millis(fade_millis),
+                easing: Easing::Linear,
+            });
         }
     }
 
     pub fn stop(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
-            process_command_error(
-                handle.stop(Tween {
-                    start_time: StartTime::Immediate,
-                    duration: Duration::from_millis(fade_millis),
-                    easing: Easing::Linear,
-                }),
-                "Cannot stop sound",
-            );
+            handle.stop(Tween {
+                start_time: StartTime::Immediate,
+                duration: Duration::from_millis(fade_millis),
+                easing: Easing::Linear,
+            });
         }
     }
 
@@ -145,13 +125,13 @@ impl SoundInstance {
 
     pub fn set_play_pos(&mut self, position: f64) {
         if let Some(handle) = &mut self.handle {
-            process_command_error(handle.seek_to(position), "Cannot set sound position");
+            handle.seek_to(position);
         }
     }
 
     pub fn move_play_pos(&mut self, offset: f64) {
         if let Some(handle) = &mut self.handle {
-            process_command_error(handle.seek_by(offset), "Cannot set sound position");
+            handle.seek_by(offset);
         }
     }
 

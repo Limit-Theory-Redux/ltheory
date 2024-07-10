@@ -62,8 +62,6 @@ do -- Opaque Structs
     typedef struct Shader       {} Shader;
     typedef struct ShaderState  {} ShaderState;
     typedef struct Socket       {} Socket;
-    typedef struct StrMap       {} StrMap;
-    typedef struct StrMapIter   {} StrMapIter;
     typedef struct Tex1D        {} Tex1D;
     typedef struct Tex2D        {} Tex2D;
     typedef struct Tex3D        {} Tex3D;
@@ -90,8 +88,6 @@ do -- Opaque Structs
     'Shader',
     'ShaderState',
     'Socket',
-    'StrMap',
-    'StrMapIter',
     'Tex1D',
     'Tex2D',
     'Tex3D',

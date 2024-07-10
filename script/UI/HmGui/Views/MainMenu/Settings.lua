@@ -191,6 +191,11 @@ local function settingsGraphics()
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             },
                             UIComponent.Text {
+                                text = "Enable Exclusive Fullscreen",
+                                size = 24,
+                                align = { AlignHorizontal.Left, AlignVertical.Center }
+                            },
+                            UIComponent.Text {
                                 text = "Supersampling",
                                 size = 24,
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
@@ -211,7 +216,19 @@ local function settingsGraphics()
                                 currentValue = function() return GameState.render.fullscreen end, -- send value back to component
                                 callback = function(v)
                                     GameState.render.fullscreen = v;
-                                    WindowInstance:setFullscreen(v);
+                                    WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
+                                end -- get value change from component
+                            },
+                            UIComponent.Switch {
+                                size = ResponsiveSize(80, 20),
+                                margin = { 0, 14 },
+                                align = { AlignHorizontal.Center, AlignVertical.Center },
+                                sound = Config.audio.sounds.click,
+                                toolTip = function() return "Switches between exclusive and borderless fullscreen modes." end,
+                                currentValue = function() return GameState.render.fullscreenExclusive end, -- send value back to component
+                                callback = function(v)
+                                    GameState.render.fullscreenExclusive = v;
+                                    WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
                                 end -- get value change from component
                             },
                             UIComponent.Slider {

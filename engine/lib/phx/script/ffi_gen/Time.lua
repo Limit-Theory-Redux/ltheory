@@ -12,6 +12,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            void   Time_Free     (Time*);
             Time*  Time_GetLocal ();
             Time*  Time_GetUtc   ();
             uint32 Time_GetRaw   ();

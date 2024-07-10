@@ -58,7 +58,7 @@ pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
             let mut vpSize: IVec2 = IVec2::ZERO;
 
             unsafe { Viewport_GetSize(&mut vpSize) };
-            gl_enable(gl::SCISSOR_TEST);
+            glcheck!(gl::Enable(gl::SCISSOR_TEST));
 
             let mut x: f32 = this.x;
             let mut y: f32 = this.y;
@@ -66,9 +66,14 @@ pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
             let mut sy: f32 = this.sy;
 
             unsafe { TransformRect(&mut x, &mut y, &mut sx, &mut sy) };
-            gl_scissor(x as i32, vpSize.y - (y + sy) as i32, sx as i32, sy as i32);
+            glcheck!(gl::Scissor(
+                x as i32,
+                vpSize.y - (y + sy) as i32,
+                sx as i32,
+                sy as i32
+            ));
         }
-        None => gl_disable(gl::SCISSOR_TEST),
+        None => glcheck!(gl::Disable(gl::SCISSOR_TEST)),
     }
 }
 

@@ -170,7 +170,7 @@ pub struct Physics {
     integration_parameters: rp::IntegrationParameters,
     physics_pipeline: rp::PhysicsPipeline,
     query_pipeline: rp::QueryPipeline,
-    broad_phase: rp::BroadPhase,
+    broad_phase: rp::BroadPhaseMultiSap,
     impulse_joints: rp::ImpulseJointSet,
     multibody_joints: rp::MultibodyJointSet,
     ccd_solver: rp::CCDSolver,
@@ -192,7 +192,7 @@ impl Physics {
             integration_parameters: rp::IntegrationParameters::default(),
             physics_pipeline: rp::PhysicsPipeline::new(),
             query_pipeline: rp::QueryPipeline::new(),
-            broad_phase: rp::BroadPhase::new(),
+            broad_phase: rp::BroadPhaseMultiSap::new(),
             impulse_joints: rp::ImpulseJointSet::new(),
             multibody_joints: rp::MultibodyJointSet::new(),
             ccd_solver: rp::CCDSolver::new(),
@@ -252,8 +252,7 @@ impl Physics {
             &physics_hooks,
             &event_handler,
         );
-        self.query_pipeline
-            .update(&world.rigid_bodies, &world.colliders);
+        self.query_pipeline.update(&world.colliders);
         for (_, rb) in world.rigid_bodies.iter_mut() {
             rb.reset_forces(false);
             rb.reset_torques(false);
@@ -340,9 +339,10 @@ impl Physics {
             if let Some(collider) = world.colliders.get(handle) {
                 if let Some(parent_rb) = RigidBody::linked_with_collider_mut(collider) {
                     result.body = parent_rb;
-                    result.pos = Position::from_na_point(&ray.point_at(intersection.toi));
+                    result.pos =
+                        Position::from_na_point(&ray.point_at(intersection.time_of_impact));
                     result.norm = Vec3::from_na(&intersection.normal);
-                    result.t = intersection.toi as f32;
+                    result.t = intersection.time_of_impact as f32;
                 }
             }
         }
@@ -420,7 +420,7 @@ impl Physics {
     pub fn draw_wireframes(&mut self, eye: &Position) {
         let world = self.world.as_ref();
         self.debug_renderer.render(
-            &mut RapierDebugRenderer{eye: *eye},
+            &mut RapierDebugRenderer { eye: *eye },
             &world.rigid_bodies,
             &world.colliders,
             &self.impulse_joints,

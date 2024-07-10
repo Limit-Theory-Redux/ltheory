@@ -121,7 +121,7 @@ function Application:onFrame()
 
         if InputInstance:isPressed(Bindings.ToggleFullscreen) then
             GameState.render.fullscreen = not GameState.render.fullscreen
-            WindowInstance:setFullscreen(GameState.render.fullscreen)
+            WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
         end
 
         if InputInstance:isPressed(Bindings.Reload) then

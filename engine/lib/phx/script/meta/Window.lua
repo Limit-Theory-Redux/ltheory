@@ -121,14 +121,6 @@ function Window:hasDecorations() end
 ---@param decorations boolean
 function Window:setDecorations(decorations) end
 
--- Is the window transparent?
----@return boolean
-function Window:isTransparent() end
-
--- Should the window be transparent?
----@param transparent boolean
-function Window:setTransparent(transparent) end
-
 -- Is the window focused?
 ---@return boolean
 function Window:isFocused() end
@@ -138,9 +130,8 @@ function Window:isFocused() end
 function Window:setFocused(focused) end
 
 ---@param fs boolean
-function Window:setFullscreen(fs) end
-
-function Window:toggleFullscreen() end
+---@param exclusive boolean
+function Window:setFullscreen(fs, exclusive) end
 
 -- The window's scale factor.
 -- 
