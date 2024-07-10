@@ -919,8 +919,9 @@ fn render_glyph(
 
     if bg_color.is_opaque() {
         // draw selection background
+        let width = (glyph.advance.ceil() as u32).max(glyph_width);
         for y in line_range.clone() {
-            for x in glyph_x..glyph_x + glyph_width {
+            for x in glyph_x..glyph_x + width {
                 let idx = y * image_width + x;
 
                 buffer[idx as usize].blend_with(bg_color);
@@ -942,8 +943,7 @@ fn render_glyph(
                         let alpha = color_u8_to_f32(glyph_image.data[i]);
                         let color = color.with_alpha(alpha);
 
-                        // TODO: blend?
-                        buffer[idx as usize] = color;
+                        buffer[idx as usize].blend_with(&color);
                     }
 
                     i += 1;
@@ -960,13 +960,14 @@ fn render_glyph(
                         let y = glyph_y + pixel_y as u32;
                         let idx = y * glyph_width + x;
 
-                        // TODO: blend?
-                        buffer[idx as usize] = Color::new(
+                        let color = Color::new(
                             color_u8_to_f32(pixel[0]),
                             color_u8_to_f32(pixel[1]),
                             color_u8_to_f32(pixel[2]),
                             color_u8_to_f32(pixel[3]),
                         );
+
+                        buffer[idx as usize].blend_with(&color);
                     }
                 }
             }
