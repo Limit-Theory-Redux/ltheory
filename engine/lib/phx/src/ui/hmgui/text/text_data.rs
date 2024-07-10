@@ -312,7 +312,10 @@ impl TextData {
     }
 
     fn build_cursor_rect(&mut self, layout: &Layout<Color>, widget_height: u32) {
-        let cursor_position = self.selection.cursor_position();
+        let cursor_position = match &self.selection {
+            TextSelection::Cursor(pos) => *pos,
+            TextSelection::Selection(range) => range.end,
+        };
         let cursor = Cursor::from_position(&layout, cursor_position, false);
         let line = cursor.path.line(&layout).expect("Cannot get cursor line");
         let metrics = line.metrics();
