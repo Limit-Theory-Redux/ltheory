@@ -62,7 +62,9 @@ impl ApplicationHandler for MainLoop {
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _: WindowId, event: WindowEvent) {
-        let engine = self.engine.as_mut().unwrap();
+        let Some(engine) = self.engine.as_mut() else {
+            return;
+        };
 
         // If exit_app is true, then exit the event loop.
         if engine.exit_app {
@@ -231,17 +233,23 @@ impl ApplicationHandler for MainLoop {
     fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, _: DeviceEvent) {}
 
     fn resumed(&mut self, _: &ActiveEventLoop) {
-        let engine = self.engine.as_mut().unwrap();
+        let Some(engine) = self.engine.as_mut() else {
+            return;
+        };
         engine.window.state = Some(WindowState::Resumed);
     }
 
     fn suspended(&mut self, _: &ActiveEventLoop) {
-        let engine = self.engine.as_mut().unwrap();
+        let Some(engine) = self.engine.as_mut() else {
+            return;
+        };
         engine.window.state = Some(WindowState::Suspended);
     }
 
     fn about_to_wait(&mut self, _: &ActiveEventLoop) {
-        let engine = self.engine.as_mut().unwrap();
+        let Some(engine) = self.engine.as_mut() else {
+            return;
+        };
 
         // Load all gamepad events
         engine.input.update_gamepad(|state| state.update());
@@ -258,9 +266,11 @@ impl ApplicationHandler for MainLoop {
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {
-        debug!("Stopping main loop!");
+        let Some(engine) = self.engine.as_mut() else {
+            return;
+        };
 
-        let engine = self.engine.as_mut().unwrap();
+        debug!("Stopping main loop!");
         engine.call_lua_func("AppClose");
     }
 
