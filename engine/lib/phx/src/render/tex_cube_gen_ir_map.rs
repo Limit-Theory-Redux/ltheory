@@ -119,7 +119,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
         MemFree(sampleBuffer as *const _);
         Tex2D_Free(sampleTex);
     }
-    Shader_Stop(shader);
+    Shader_Stop(&*shader);
     TexCube_SetMagFilter(&mut *result, TexFilter_Linear);
     TexCube_SetMinFilter(&mut *result, TexFilter_LinearMipLinear);
     result

@@ -71,7 +71,7 @@ impl UIRendererLayer {
                     panel_id_opt = panel.next;
                 }
 
-                Shader_Stop(panel_shader as *mut _);
+                Shader_Stop(panel_shader);
             }
 
             let mut image_id_opt = self.image_id;
