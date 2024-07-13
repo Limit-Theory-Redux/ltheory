@@ -177,9 +177,7 @@ impl Font {
             FontData {
                 name: name.into(),
                 handle,
-                shader: RefCell::new(unsafe {
-                    Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/text"))
-                }),
+                shader: RefCell::new(Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/text"))),
                 glyphs: Default::default(),
             }
             .into(),

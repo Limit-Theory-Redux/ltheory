@@ -14,17 +14,17 @@ use crate::system::*;
 pub struct Shader {
     _refCount: u32,
     name: String,
-    vs: u32,
-    fs: u32,
-    program: u32,
-    texIndex: u32,
+    vs: gl::types::GLuint,
+    fs: gl::types::GLuint,
+    program: gl::types::GLuint,
+    texIndex: gl::types::GLenum,
     auto_vars: Vec<ShaderAutoVar>,
 }
 
 struct ShaderAutoVar {
     type_name: String,
     name: String,
-    index: i32,
+    index: gl::types::GLint,
 }
 
 const INCLUDE_PATH: &str = "include/";
@@ -83,7 +83,7 @@ fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
 }
 
 fn CreateGLProgram(vs: gl::types::GLuint, fs: gl::types::GLuint) -> gl::types::GLuint {
-    let this: u32 = glcheck!(gl::CreateProgram());
+    let this = glcheck!(gl::CreateProgram());
     glcheck!(gl::AttachShader(this, vs));
     glcheck!(gl::AttachShader(this, fs));
 
@@ -135,8 +135,8 @@ fn glsl_load(name: &str, this: &mut Shader) -> String {
         }
     }
 
-    let rawCode = Resource::load_string(ResourceType::Shader, name);
-    let code = rawCode.replace("\r\n", "\n");
+    let raw_code = Resource::load_string(ResourceType::Shader, name);
+    let code = raw_code.replace("\r\n", "\n");
     let c_code = glsl_preprocess(&code, this);
 
     /* BUG : Disable GLSL caching until preprocessor cache works. */
@@ -228,7 +228,7 @@ fn shader_create(vs: &str, fs: &str) -> Box<Shader> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_Load(
+pub extern "C" fn Shader_Load(
     vName: *const libc::c_char,
     fName: *const libc::c_char,
 ) -> Box<Shader> {
@@ -328,9 +328,11 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_Stop(_: &Shader) {
+pub extern "C" fn Shader_Stop(_: &Shader) {
     glcheck!(gl::UseProgram(0));
-    current = std::ptr::null_mut();
+    unsafe {
+        current = std::ptr::null_mut();
+    }
 }
 
 #[no_mangle]

@@ -6,7 +6,6 @@ local ShaderState
 do -- C Definitions
     ffi.cdef [[
     ShaderState* ShaderState_Create         (Shader*);
-    void         ShaderState_Acquire        (ShaderState*);
     void         ShaderState_Free           (ShaderState*);
     ShaderState* ShaderState_FromShaderLoad (cstr vertName, cstr fragName);
     void         ShaderState_SetFloat       (ShaderState*, cstr, float);
@@ -27,7 +26,6 @@ end
 do -- Global Symbol Table
     ShaderState = {
         Create         = libphx.ShaderState_Create,
-        Acquire        = libphx.ShaderState_Acquire,
         Free           = libphx.ShaderState_Free,
         FromShaderLoad = libphx.ShaderState_FromShaderLoad,
         SetFloat       = libphx.ShaderState_SetFloat,
@@ -53,7 +51,6 @@ do -- Metatype for class instances
     local mt = {
         __index = {
             managed    = function(self) return ffi.gc(self, libphx.ShaderState_Free) end,
-            acquire    = libphx.ShaderState_Acquire,
             free       = libphx.ShaderState_Free,
             setFloat   = libphx.ShaderState_SetFloat,
             setFloat2  = libphx.ShaderState_SetFloat2,

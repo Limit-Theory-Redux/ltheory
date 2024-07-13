@@ -21,13 +21,9 @@ pub struct UIRenderer {
 impl UIRenderer {
     pub fn new() -> UIRenderer {
         UIRenderer {
-            panel_shader: unsafe { Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/panel")) },
-            image_shader: unsafe {
-                Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/simple_image"))
-            },
-            rect_shader: unsafe {
-                Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/simple_rect"))
-            },
+            panel_shader: Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/panel")),
+            image_shader: Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/simple_image")),
+            rect_shader: Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/simple_rect")),
             ..Default::default()
         }
     }
