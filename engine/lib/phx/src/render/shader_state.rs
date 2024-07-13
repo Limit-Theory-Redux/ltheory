@@ -1,203 +1,168 @@
 use super::*;
 use crate::math::*;
+use internal::ConvertIntoString;
 
 pub struct ShaderState {
     shader: *mut Shader,
     elems: Vec<(i32, ShaderVarData)>,
 }
 
-#[no_mangle]
-pub extern "C" fn ShaderState_Create(shader: &mut Shader) -> Box<ShaderState> {
-    Box::new(ShaderState {
-        shader: {
-            Shader_Acquire(shader);
-            shader as *mut _
-        },
-        elems: Vec::new(),
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_Free(this: Box<ShaderState>) {
-    for (_, data) in this.elems.iter() {
-        match data {
-            ShaderVarData::Tex1D(t) => unsafe {
-                Tex1D_Free(*t);
-            },
-            ShaderVarData::Tex2D(t) => unsafe {
-                Tex2D_Free(*t);
-            },
-            ShaderVarData::Tex3D(t) => unsafe {
-                Tex3D_Free(*t);
-            },
-            ShaderVarData::TexCube(t) => unsafe {
-                TexCube_Free(*t);
-            },
-            _ => {}
+impl Drop for ShaderState {
+    fn drop(&mut self) {
+        for (_, data) in self.elems.iter() {
+            match data {
+                ShaderVarData::Tex1D(t) => unsafe {
+                    Tex1D_Free(*t);
+                },
+                ShaderVarData::Tex2D(t) => unsafe {
+                    Tex2D_Free(*t);
+                },
+                ShaderVarData::Tex3D(t) => unsafe {
+                    Tex3D_Free(*t);
+                },
+                ShaderVarData::TexCube(t) => unsafe {
+                    TexCube_Free(*t);
+                },
+                _ => {}
+            }
         }
-    }
-    unsafe {
-        Shader_Free(this.shader);
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_FromShaderLoad(
-    vertName: *const libc::c_char,
-    fragName: *const libc::c_char,
-) -> Box<ShaderState> {
-    let mut shader = Shader_Load(vertName, fragName);
-    ShaderState_Create(shader.as_mut())
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_SetFloat(this: &mut ShaderState, name: *const libc::c_char, x: f32) {
-    this.elems.push((
-        unsafe { Shader_GetVariable(&mut *this.shader, name) },
-        ShaderVarData::Float(x),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_SetFloat2(
-    this: &mut ShaderState,
-    name: *const libc::c_char,
-    x: f32,
-    y: f32,
-) {
-    this.elems.push((
-        unsafe { Shader_GetVariable(&mut *this.shader, name) },
-        ShaderVarData::Float2(vec2(x, y)),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_SetFloat3(
-    this: &mut ShaderState,
-    name: *const libc::c_char,
-    x: f32,
-    y: f32,
-    z: f32,
-) {
-    this.elems.push((
-        unsafe { Shader_GetVariable(&mut *this.shader, name) },
-        ShaderVarData::Float3(vec3(x, y, z)),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_SetFloat4(
-    this: &mut ShaderState,
-    name: *const libc::c_char,
-    x: f32,
-    y: f32,
-    z: f32,
-    w: f32,
-) {
-    this.elems.push((
-        unsafe { Shader_GetVariable(&mut *this.shader, name) },
-        ShaderVarData::Float4(vec4(x, y, z, w)),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_SetInt(this: &mut ShaderState, name: *const libc::c_char, x: i32) {
-    this.elems.push((
-        unsafe { Shader_GetVariable(&mut *this.shader, name) },
-        ShaderVarData::Int(x),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_SetMatrix(
-    this: &mut ShaderState,
-    name: *const libc::c_char,
-    x: &Matrix,
-) {
-    this.elems.push((
-        unsafe { Shader_GetVariable(&mut *this.shader, name) },
-        ShaderVarData::Matrix(*x),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_SetTex1D(
-    this: &mut ShaderState,
-    name: *const libc::c_char,
-    x: &mut Tex1D,
-) {
-    Tex1D_Acquire(x);
-    this.elems.push((
-        unsafe { Shader_GetVariable(&mut *this.shader, name) },
-        ShaderVarData::Tex1D(x),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_SetTex2D(
-    this: &mut ShaderState,
-    name: *const libc::c_char,
-    x: &mut Tex2D,
-) {
-    Tex2D_Acquire(x);
-    this.elems.push((
-        unsafe { Shader_GetVariable(&mut *this.shader, name) },
-        ShaderVarData::Tex2D(x),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_SetTex3D(
-    this: &mut ShaderState,
-    name: *const libc::c_char,
-    x: &mut Tex3D,
-) {
-    Tex3D_Acquire(x);
-    this.elems.push((
-        unsafe { Shader_GetVariable(&mut *this.shader, name) },
-        ShaderVarData::Tex3D(x),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_SetTexCube(
-    this: &mut ShaderState,
-    name: *const libc::c_char,
-    x: &mut TexCube,
-) {
-    TexCube_Acquire(x);
-    this.elems.push((
-        unsafe { Shader_GetVariable(&mut *this.shader, name) },
-        ShaderVarData::TexCube(x),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderState_Start(this: &mut ShaderState) {
-    unsafe {
-        Shader_Start(&mut *this.shader);
-    }
-
-    for (index, data) in this.elems.iter() {
-        match data {
-            ShaderVarData::Float(v) => glcheck!(gl::Uniform1f(*index, *v)),
-            ShaderVarData::Float2(v) => glcheck!(gl::Uniform2f(*index, v.x, v.y)),
-            ShaderVarData::Float3(v) => glcheck!(gl::Uniform3f(*index, v.x, v.y, v.z)),
-            ShaderVarData::Float4(v) => glcheck!(gl::Uniform4f(*index, v.x, v.y, v.z, v.w)),
-            ShaderVarData::Int(v) => glcheck!(gl::Uniform1i(*index, *v)),
-            ShaderVarData::Int2(v) => glcheck!(gl::Uniform2i(*index, v.x, v.y)),
-            ShaderVarData::Int3(v) => glcheck!(gl::Uniform3i(*index, v.x, v.y, v.z)),
-            ShaderVarData::Int4(v) => glcheck!(gl::Uniform4i(*index, v.x, v.y, v.z, v.w)),
-            ShaderVarData::Matrix(m) => Shader_ISetMatrix(*index, &m),
-            ShaderVarData::Tex1D(t) => unsafe { Shader_ISetTex1D(*index, &mut **t) },
-            ShaderVarData::Tex2D(t) => unsafe { Shader_ISetTex2D(*index, &mut **t) },
-            ShaderVarData::Tex3D(t) => unsafe { Shader_ISetTex3D(*index, &mut **t) },
-            ShaderVarData::TexCube(t) => unsafe { Shader_ISetTexCube(*index, &mut **t) },
+        unsafe {
+            Shader_Free(self.shader);
         }
     }
 }
 
-#[no_mangle]
-pub extern "C" fn ShaderState_Stop(this: &mut ShaderState) {
-    Shader_Stop(unsafe { &*this.shader });
+impl ShaderState {
+    fn shader_get_variable(&self, name: &str) -> i32 {
+        let c_name = std::ffi::CString::new(name).unwrap();
+        unsafe { Shader_GetVariable(&mut *self.shader, c_name.as_ptr()) }
+    }
+}
+
+#[luajit_ffi_gen::luajit_ffi]
+impl ShaderState {
+    pub fn create(shader: &mut Shader) -> ShaderState {
+        ShaderState {
+            shader: {
+                Shader_Acquire(shader);
+                shader as *mut _
+            },
+            elems: Vec::new(),
+        }
+    }
+
+    pub fn from_shader_load(vert_name: &str, frag_name: &str) -> ShaderState {
+        let c_vert_name = std::ffi::CString::new(vert_name).unwrap();
+        let c_frag_name = std::ffi::CString::new(frag_name).unwrap();
+        let shader = Box::into_raw(Shader_Load(c_vert_name.as_ptr(), c_frag_name.as_ptr()));
+        let shader_state = Self::create(unsafe { &mut *shader });
+        unsafe { Shader_Free(shader) };
+        shader_state
+    }
+
+    pub fn set_float(&mut self, name: &str, x: f32) {
+        self.elems
+            .push((self.shader_get_variable(name), ShaderVarData::Float(x)));
+    }
+
+    pub fn set_float2(&mut self, name: &str, x: f32, y: f32) {
+        self.elems.push((
+            self.shader_get_variable(name),
+            ShaderVarData::Float2(vec2(x, y)),
+        ));
+    }
+
+    pub fn set_float3(&mut self, name: &str, x: f32, y: f32, z: f32) {
+        self.elems.push((
+            self.shader_get_variable(name),
+            ShaderVarData::Float3(vec3(x, y, z)),
+        ));
+    }
+
+    pub fn set_float4(&mut self, name: &str, x: f32, y: f32, z: f32, w: f32) {
+        self.elems.push((
+            self.shader_get_variable(name),
+            ShaderVarData::Float4(vec4(x, y, z, w)),
+        ));
+    }
+
+    pub fn set_int(&mut self, name: &str, x: i32) {
+        self.elems
+            .push((self.shader_get_variable(name), ShaderVarData::Int(x)));
+    }
+
+    pub fn set_int2(&mut self, name: &str, x: i32, y: i32) {
+        self.elems.push((
+            self.shader_get_variable(name),
+            ShaderVarData::Int2(ivec2(x, y)),
+        ));
+    }
+
+    pub fn set_int3(&mut self, name: &str, x: i32, y: i32, z: i32) {
+        self.elems.push((
+            self.shader_get_variable(name),
+            ShaderVarData::Int3(ivec3(x, y, z)),
+        ));
+    }
+
+    pub fn set_int4(&mut self, name: &str, x: i32, y: i32, z: i32, w: i32) {
+        self.elems.push((
+            self.shader_get_variable(name),
+            ShaderVarData::Int4(ivec4(x, y, z, w)),
+        ));
+    }
+
+    pub fn set_matrix(&mut self, name: &str, m: &Matrix) {
+        self.elems
+            .push((self.shader_get_variable(name), ShaderVarData::Matrix(*m)));
+    }
+
+    pub fn set_tex1d(&mut self, name: &str, t: &mut Tex1D) {
+        self.elems
+            .push((self.shader_get_variable(name), ShaderVarData::Tex1D(t)));
+    }
+
+    pub fn set_tex2d(&mut self, name: &str, t: &mut Tex2D) {
+        self.elems
+            .push((self.shader_get_variable(name), ShaderVarData::Tex2D(t)));
+    }
+
+    pub fn set_tex3d(&mut self, name: &str, t: &mut Tex3D) {
+        self.elems
+            .push((self.shader_get_variable(name), ShaderVarData::Tex3D(t)));
+    }
+
+    pub fn set_tex_cube(&mut self, name: &str, t: &mut TexCube) {
+        self.elems
+            .push((self.shader_get_variable(name), ShaderVarData::TexCube(t)));
+    }
+
+    pub fn start(&mut self) {
+        unsafe {
+            Shader_Start(&mut *self.shader);
+        }
+
+        // Apply uniforms.
+        for (index, data) in self.elems.iter() {
+            match data {
+                ShaderVarData::Float(v) => glcheck!(gl::Uniform1f(*index, *v)),
+                ShaderVarData::Float2(v) => glcheck!(gl::Uniform2f(*index, v.x, v.y)),
+                ShaderVarData::Float3(v) => glcheck!(gl::Uniform3f(*index, v.x, v.y, v.z)),
+                ShaderVarData::Float4(v) => glcheck!(gl::Uniform4f(*index, v.x, v.y, v.z, v.w)),
+                ShaderVarData::Int(v) => glcheck!(gl::Uniform1i(*index, *v)),
+                ShaderVarData::Int2(v) => glcheck!(gl::Uniform2i(*index, v.x, v.y)),
+                ShaderVarData::Int3(v) => glcheck!(gl::Uniform3i(*index, v.x, v.y, v.z)),
+                ShaderVarData::Int4(v) => glcheck!(gl::Uniform4i(*index, v.x, v.y, v.z, v.w)),
+                ShaderVarData::Matrix(m) => Shader_ISetMatrix(*index, &m),
+                ShaderVarData::Tex1D(t) => unsafe { Shader_ISetTex1D(*index, &mut **t) },
+                ShaderVarData::Tex2D(t) => unsafe { Shader_ISetTex2D(*index, &mut **t) },
+                ShaderVarData::Tex3D(t) => unsafe { Shader_ISetTex3D(*index, &mut **t) },
+                ShaderVarData::TexCube(t) => unsafe { Shader_ISetTexCube(*index, &mut **t) },
+            }
+        }
+    }
+
+    pub fn stop(&mut self) {
+        Shader_Stop(unsafe { &*self.shader });
+    }
 }
