@@ -5,7 +5,6 @@ local ShaderVar
 
 do -- C Definitions
     ffi.cdef [[
-    void* ShaderVar_Get         (cstr, ShaderVarType);
     void  ShaderVar_PushFloat   (cstr, float);
     void  ShaderVar_PushFloat2  (cstr, float, float);
     void  ShaderVar_PushFloat3  (cstr, float, float, float);
@@ -22,7 +21,6 @@ end
 
 do -- Global Symbol Table
     ShaderVar = {
-        Get         = libphx.ShaderVar_Get,
         PushFloat   = libphx.ShaderVar_PushFloat,
         PushFloat2  = libphx.ShaderVar_PushFloat2,
         PushFloat3  = libphx.ShaderVar_PushFloat3,

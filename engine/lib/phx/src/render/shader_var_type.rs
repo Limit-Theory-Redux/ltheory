@@ -100,26 +100,22 @@ impl ShaderVarType {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn ShaderVarType_FromStr(name: *const libc::c_char) -> ShaderVarType {
+pub fn ShaderVarType_FromStr(name: *const libc::c_char) -> ShaderVarType {
     ShaderVarType::from_str(&name.as_str())
 }
 
-#[no_mangle]
-pub extern "C" fn ShaderVarType_GetGLSLName(this: ShaderVarType) -> *const libc::c_char {
+pub fn ShaderVarType_GetGLSLName(this: ShaderVarType) -> *const libc::c_char {
     ShaderVarType::get_glsl_name(this)
         .map(|name| static_string!(name))
         .unwrap_or(std::ptr::null())
 }
 
-#[no_mangle]
-pub extern "C" fn ShaderVarType_GetName(this: ShaderVarType) -> *const libc::c_char {
+pub fn ShaderVarType_GetName(this: ShaderVarType) -> *const libc::c_char {
     ShaderVarType::get_name(this)
         .map(|name| static_string!(name))
         .unwrap_or(std::ptr::null())
 }
 
-#[no_mangle]
-pub extern "C" fn ShaderVarType_GetSize(this: ShaderVarType) -> i32 {
+pub fn ShaderVarType_GetSize(this: ShaderVarType) -> i32 {
     ShaderVarType::get_size(this)
 }

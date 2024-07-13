@@ -22,7 +22,6 @@ do -- Basic Typedefs
     typedef uint8          PointClassification;
     typedef uint8          PolygonClassification;
     typedef int32          ResourceType;
-    typedef int32          ShaderVarType;
     typedef int32          SocketType;
     typedef uint8          SoundState;
     typedef int32          State;
