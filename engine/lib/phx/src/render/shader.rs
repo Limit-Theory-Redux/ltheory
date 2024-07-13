@@ -19,10 +19,10 @@ pub struct Shader {
     pub fs: u32,
     pub program: u32,
     pub texIndex: u32,
-    pub vars: Vec<ShaderVar>,
+    vars: Vec<ShaderVar>,
 }
 
-pub struct ShaderVar {
+struct ShaderVar {
     pub type_0: ShaderVarType,
     pub name: String,
     pub index: i32,
@@ -301,87 +301,45 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
     current = this;
     this.texIndex = 1;
 
-    /* Fetch & bind automatic variables from the shader var stack. */
-    let mut i: i32 = 0;
-    while i < this.vars.len() as i32 {
-        let var = &mut this.vars[i as usize];
-
-        if !((*var).index < 0) {
-            // TODO: investigate why pinning is needed here
-            let c_name = static_string!((*var).name.as_str());
-            let pValue = ShaderVar_Get(c_name, (*var).type_0);
-
-            if pValue.is_null() {
-                panic!(
-                    "Shader_Start: Shader variable stack does not contain variable <{}>",
-                    (*var).name,
-                );
-            }
-
-            match (*var).type_0.value() {
-                1 => {
-                    let value: f32 = *(pValue as *mut f32);
-                    glcheck!(gl::Uniform1f((*var).index, value));
-                }
-                2 => {
-                    let value_0 = *(pValue as *mut Vec2);
-                    glcheck!(gl::Uniform2f((*var).index, value_0.x, value_0.y));
-                }
-                3 => {
-                    let value_1: Vec3 = *(pValue as *mut Vec3);
-                    glcheck!(gl::Uniform3f((*var).index, value_1.x, value_1.y, value_1.z));
-                }
-                4 => {
-                    let value_2: Vec4 = *(pValue as *mut Vec4);
-                    glcheck!(gl::Uniform4f(
-                        (*var).index,
-                        value_2.x,
-                        value_2.y,
-                        value_2.z,
-                        value_2.w
-                    ));
-                }
-                5 => {
-                    let value_3: i32 = *(pValue as *mut i32);
-                    glcheck!(gl::Uniform1i((*var).index, value_3));
-                }
-                6 => {
-                    let value_4: IVec2 = *(pValue as *mut IVec2);
-                    glcheck!(gl::Uniform2i((*var).index, value_4.x, value_4.y));
-                }
-                7 => {
-                    let value_5: IVec3 = *(pValue as *mut IVec3);
-                    glcheck!(gl::Uniform3i((*var).index, value_5.x, value_5.y, value_5.z));
-                }
-                8 => {
-                    let value_6: IVec4 = *(pValue as *mut IVec4);
-                    glcheck!(gl::Uniform4i(
-                        (*var).index,
-                        value_6.x,
-                        value_6.y,
-                        value_6.z,
-                        value_6.w
-                    ));
-                }
-                9 => {
-                    Shader_ISetMatrix((*var).index, &mut **(pValue as *mut *mut Matrix));
-                }
-                10 => {
-                    Shader_ISetTex1D((*var).index, &mut **(pValue as *mut *mut Tex1D));
-                }
-                11 => {
-                    Shader_ISetTex2D((*var).index, &mut **(pValue as *mut *mut Tex2D));
-                }
-                12 => {
-                    Shader_ISetTex3D((*var).index, &mut **(pValue as *mut *mut Tex3D));
-                }
-                13 => {
-                    Shader_ISetTexCube((*var).index, &mut **(pValue as *mut *mut TexCube));
-                }
-                _ => {}
-            }
+    // Fetch and bind automatic variables from the shader var stack.
+    for var in this.vars.iter() {
+        if var.index == -1 {
+            continue;
         }
-        i += 1;
+
+        let Some(shader_var) = shader_var::ShaderVar::get(var.name.as_str()) else {
+            warn!(
+                "Shader_Start: Shader variable stack does not contain variable <{}>",
+                var.name,
+            );
+            continue;
+        };
+
+        if shader_var.get_glsl_type()
+            != ShaderVarType::get_glsl_name(var.type_0).unwrap_or_default()
+        {
+            warn!("Attempting to get stack of type <{:?}> for shader variable <{:?}> when existing stack has type <{:?}>",
+            ShaderVarType::get_glsl_name(var.type_0).unwrap_or_default(),
+            var.name,
+            shader_var.get_glsl_type()
+            )
+        }
+
+        match shader_var {
+            ShaderVarData::Float(v) => glcheck!(gl::Uniform1f(var.index, v)),
+            ShaderVarData::Float2(v) => glcheck!(gl::Uniform2f(var.index, v.x, v.y)),
+            ShaderVarData::Float3(v) => glcheck!(gl::Uniform3f(var.index, v.x, v.y, v.z)),
+            ShaderVarData::Float4(v) => glcheck!(gl::Uniform4f(var.index, v.x, v.y, v.z, v.w)),
+            ShaderVarData::Int(v) => glcheck!(gl::Uniform1i(var.index, v)),
+            ShaderVarData::Int2(v) => glcheck!(gl::Uniform2i(var.index, v.x, v.y)),
+            ShaderVarData::Int3(v) => glcheck!(gl::Uniform3i(var.index, v.x, v.y, v.z)),
+            ShaderVarData::Int4(v) => glcheck!(gl::Uniform4i(var.index, v.x, v.y, v.z, v.w)),
+            ShaderVarData::Matrix(m) => Shader_ISetMatrix(var.index, &m),
+            ShaderVarData::Tex1D(t) => Shader_ISetTex1D(var.index, &mut *t),
+            ShaderVarData::Tex2D(t) => Shader_ISetTex2D(var.index, &mut *t),
+            ShaderVarData::Tex3D(t) => Shader_ISetTex3D(var.index, &mut *t),
+            ShaderVarData::TexCube(t) => Shader_ISetTexCube(var.index, &mut *t),
+        }
     }
 
     Profiler_End();
@@ -506,42 +464,42 @@ pub extern "C" fn Shader_ISetInt(index: i32, value: i32) {
 }
 
 #[no_mangle]
-pub extern "C" fn Shader_SetMatrix(name: *const libc::c_char, value: &mut Matrix) {
+pub extern "C" fn Shader_SetMatrix(name: *const libc::c_char, value: &Matrix) {
     glcheck!(gl::UniformMatrix4fv(
         GetUniformIndex(current.as_mut(), name),
         1,
         gl::FALSE,
-        value as *mut Matrix as *mut f32,
+        value as *const Matrix as *const f32,
     ));
 }
 
 #[no_mangle]
-pub extern "C" fn Shader_SetMatrixT(name: *const libc::c_char, value: &mut Matrix) {
+pub extern "C" fn Shader_SetMatrixT(name: *const libc::c_char, value: &Matrix) {
     glcheck!(gl::UniformMatrix4fv(
         GetUniformIndex(current.as_mut(), name),
         1,
         gl::TRUE,
-        value as *mut Matrix as *mut f32,
+        value as *const Matrix as *const f32,
     ));
 }
 
 #[no_mangle]
-pub extern "C" fn Shader_ISetMatrix(index: i32, value: &mut Matrix) {
+pub extern "C" fn Shader_ISetMatrix(index: i32, value: &Matrix) {
     glcheck!(gl::UniformMatrix4fv(
         index,
         1,
         gl::FALSE,
-        value as *mut Matrix as *mut f32
+        value as *const Matrix as *const f32
     ));
 }
 
 #[no_mangle]
-pub extern "C" fn Shader_ISetMatrixT(index: i32, value: &mut Matrix) {
+pub extern "C" fn Shader_ISetMatrixT(index: i32, value: &Matrix) {
     glcheck!(gl::UniformMatrix4fv(
         index,
         1,
         gl::TRUE,
-        value as *mut Matrix as *mut f32
+        value as *const Matrix as *const f32
     ));
 }
 

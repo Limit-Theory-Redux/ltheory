@@ -47,7 +47,6 @@ impl Engine {
             }
 
             Metric_Reset();
-            ShaderVar_Init();
         }
 
         // Unsafe is required for FFI and JIT libs
