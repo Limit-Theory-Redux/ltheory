@@ -11,7 +11,6 @@ use internal::ConvertIntoString;
 use crate::common::*;
 use crate::input::*;
 use crate::logging::init_log;
-use crate::render::*;
 use crate::rf::*;
 use crate::system::*;
 use crate::ui::hmgui::HmGui;

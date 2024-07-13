@@ -11,14 +11,13 @@ use crate::math::*;
 use crate::system::*;
 
 #[derive(Default)]
-#[repr(C)]
 pub struct Shader {
-    pub _refCount: u32,
-    pub name: String,
-    pub vs: u32,
-    pub fs: u32,
-    pub program: u32,
-    pub texIndex: u32,
+    _refCount: u32,
+    name: String,
+    vs: u32,
+    fs: u32,
+    program: u32,
+    texIndex: u32,
     auto_vars: Vec<ShaderAutoVar>,
 }
 
@@ -37,7 +36,7 @@ static mut current: *mut Shader = std::ptr::null_mut();
 
 static mut CACHE: *mut HashMap<String, String> = std::ptr::null_mut();
 
-extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const libc::c_char) -> i32 {
+fn GetUniformIndex(this: Option<&mut Shader>, name: *const libc::c_char) -> i32 {
     if this.is_none() {
         panic!("GetUniformIndex: No shader is bound");
     }
@@ -45,12 +44,11 @@ extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const libc::c_ch
     index
 }
 
-unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
+fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
     let this = glcheck!(gl::CreateShader(type_0));
     let c_src = CString::new(src).unwrap();
 
-    let mut srcs: [*const libc::c_char; 2] = [versionString, c_src.as_ptr()];
-
+    let mut srcs: [*const libc::c_char; 2] = unsafe { [versionString, c_src.as_ptr()] };
     glcheck!(gl::ShaderSource(
         this,
         2,
@@ -190,7 +188,7 @@ fn parse_autovar(val: &str, this: &mut Shader) {
 
 fn Shader_BindVariables(this: &mut Shader) {
     for var in this.auto_vars.iter_mut() {
-        let c_str = CString::new(var.name.clone()).unwrap();
+        let c_str = CString::new(var.name.as_str()).unwrap();
         var.index = glcheck!(gl::GetUniformLocation(this.program, c_str.as_ptr()));
         if var.index < 0 {
             warn!("Shader_BindVariables: Automatic shader variable <{}> does not exist in shader <{}>",
@@ -209,7 +207,7 @@ pub unsafe extern "C" fn Shader_Create(
     shader_create(&vs.as_str(), &fs.as_str())
 }
 
-pub unsafe fn shader_create(vs: &str, fs: &str) -> Box<Shader> {
+fn shader_create(vs: &str, fs: &str) -> Box<Shader> {
     let mut this = Box::new(Shader::default());
 
     this._refCount = 1;
