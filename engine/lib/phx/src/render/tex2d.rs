@@ -200,60 +200,6 @@ pub unsafe extern "C" fn Tex2D_Clone(this: &mut Tex2D) -> *mut Tex2D {
 }
 
 #[no_mangle]
-pub extern "C" fn Tex2D_Draw(this: &mut Tex2D, x: f32, y: f32, sx: f32, sy: f32) {
-    glcheck!(gl::Enable(gl::TEXTURE_2D));
-    glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-
-    unsafe {
-        gl::Begin(gl::QUADS);
-        gl::TexCoord2f(0.0f32, 0.0f32);
-        gl::Vertex2f(x, y);
-        gl::TexCoord2f(0.0f32, 1.0f32);
-        gl::Vertex2f(x, y + sy);
-        gl::TexCoord2f(1.0f32, 1.0f32);
-        gl::Vertex2f(x + sx, y + sy);
-        gl::TexCoord2f(1.0f32, 0.0f32);
-        gl::Vertex2f(x + sx, y);
-    }
-    glcheck!(gl::End());
-
-    glcheck!(gl::Disable(gl::TEXTURE_2D));
-}
-
-#[no_mangle]
-pub extern "C" fn Tex2D_DrawEx(
-    this: &mut Tex2D,
-    x0: f32,
-    y0: f32,
-    x1: f32,
-    y1: f32,
-    u0: f32,
-    v0: f32,
-    u1: f32,
-    v1: f32,
-) {
-    unsafe { Metric_AddDrawImm(1, 2, 4) };
-
-    glcheck!(gl::Enable(gl::TEXTURE_2D));
-    glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-
-    unsafe {
-        gl::Begin(gl::QUADS);
-        gl::TexCoord2f(u0, v0);
-        gl::Vertex2f(x0, y0);
-        gl::TexCoord2f(u0, v1);
-        gl::Vertex2f(x0, y1);
-        gl::TexCoord2f(u1, v1);
-        gl::Vertex2f(x1, y1);
-        gl::TexCoord2f(u1, v0);
-        gl::Vertex2f(x1, y0);
-    }
-    glcheck!(gl::End());
-
-    glcheck!(gl::Disable(gl::TEXTURE_2D));
-}
-
-#[no_mangle]
 pub extern "C" fn Tex2D_GenMipmap(this: &mut Tex2D) {
     glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
     glcheck!(gl::GenerateMipmap(gl::TEXTURE_2D));
