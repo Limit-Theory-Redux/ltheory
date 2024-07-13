@@ -23,6 +23,8 @@ impl UIRendererLayer {
     pub fn draw(
         &self,
         panel_shader: &mut Shader,
+        image_shader: &mut Shader,
+        rect_shader: &mut Shader,
         layers: &Vec<UIRendererLayer>,
         images: &Vec<UIRendererImage>,
         panels: &Vec<UIRendererPanel>,
@@ -78,13 +80,11 @@ impl UIRendererLayer {
             while let Some(image_id) = image_id_opt {
                 let image = &images[*image_id];
 
-                Tex2D_Draw(
-                    &mut *image.image,
-                    image.pos.x,
-                    image.pos.y,
-                    image.size.x,
-                    image.size.y,
-                );
+                Shader_Start(image_shader);
+                Shader_ResetTexIndex();
+                Shader_SetTex2D(c_str!("image"), &mut *image.image);
+                Draw_Rect(image.pos.x, image.pos.y, image.size.x, image.size.y);
+                Shader_Stop(image_shader);
                 image_id_opt = image.next;
             }
 
@@ -92,13 +92,22 @@ impl UIRendererLayer {
             while let Some(rect_id) = rect_id_opt {
                 let rect = &rects[*rect_id];
 
-                Draw_Color(rect.color.r, rect.color.g, rect.color.b, rect.color.a);
+                Shader_Start(rect_shader);
+                Shader_SetFloat4(
+                    c_str!("color"),
+                    rect.color.r,
+                    rect.color.g,
+                    rect.color.b,
+                    rect.color.a,
+                );
 
                 if let Some(s) = rect.outline {
                     Draw_Border(s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
                 } else {
                     Draw_Rect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
                 }
+
+                Shader_Stop(rect_shader);
 
                 rect_id_opt = rect.next;
             }
@@ -116,7 +125,16 @@ impl UIRendererLayer {
             while let Some(layer_id) = layer_id_opt {
                 let layer = &layers[*layer_id];
 
-                layer.draw(panel_shader, layers, images, panels, rects, texts);
+                layer.draw(
+                    panel_shader,
+                    image_shader,
+                    rect_shader,
+                    layers,
+                    images,
+                    panels,
+                    rects,
+                    texts,
+                );
 
                 layer_id_opt = layer.next;
             }

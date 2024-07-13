@@ -6,6 +6,8 @@ use crate::render::*;
 #[derive(Default)]
 pub struct UIRenderer {
     panel_shader: Box<Shader>,
+    image_shader: Box<Shader>,
+    rect_shader: Box<Shader>,
 
     current_layer_id: Option<UIRendererLayerId>,
 
@@ -20,6 +22,12 @@ impl UIRenderer {
     pub fn new() -> UIRenderer {
         UIRenderer {
             panel_shader: unsafe { Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/panel")) },
+            image_shader: unsafe {
+                Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/simple_image"))
+            },
+            rect_shader: unsafe {
+                Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/simple_rect"))
+            },
             ..Default::default()
         }
     }
@@ -49,6 +57,8 @@ impl UIRenderer {
         if let Some(root) = self.layers.first() {
             root.draw(
                 &mut self.panel_shader,
+                &mut self.image_shader,
+                &mut self.rect_shader,
                 &self.layers,
                 &self.images,
                 &self.panels,

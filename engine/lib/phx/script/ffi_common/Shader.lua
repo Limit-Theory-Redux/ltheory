@@ -15,6 +15,7 @@ do -- C Definitions
     uint         Shader_GetHandle     (Shader*);
     int          Shader_GetVariable   (Shader*, cstr);
     bool         Shader_HasVariable   (Shader*, cstr);
+    void         Shader_ResetTexIndex ();
     void         Shader_ClearCache    ();
     void         Shader_SetFloat      (cstr, float);
     void         Shader_SetFloat2     (cstr, float, float);
@@ -53,6 +54,7 @@ do -- Global Symbol Table
         GetHandle     = libphx.Shader_GetHandle,
         GetVariable   = libphx.Shader_GetVariable,
         HasVariable   = libphx.Shader_HasVariable,
+        ResetTexIndex = libphx.Shader_ResetTexIndex,
         ClearCache    = libphx.Shader_ClearCache,
         SetFloat      = libphx.Shader_SetFloat,
         SetFloat2     = libphx.Shader_SetFloat2,
