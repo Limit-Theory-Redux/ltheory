@@ -19,13 +19,13 @@ pub struct Shader {
     pub fs: u32,
     pub program: u32,
     pub texIndex: u32,
-    vars: Vec<ShaderVar>,
+    auto_vars: Vec<ShaderAutoVar>,
 }
 
-struct ShaderVar {
-    pub type_0: ShaderVarType,
-    pub name: String,
-    pub index: i32,
+struct ShaderAutoVar {
+    type_name: String,
+    name: String,
+    index: i32,
 }
 
 const INCLUDE_PATH: &str = "include/";
@@ -84,7 +84,7 @@ unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
     this
 }
 
-extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
+fn CreateGLProgram(vs: gl::types::GLuint, fs: gl::types::GLuint) -> gl::types::GLuint {
     let this: u32 = glcheck!(gl::CreateProgram());
     glcheck!(gl::AttachShader(this, vs));
     glcheck!(gl::AttachShader(this, fs));
@@ -175,45 +175,29 @@ fn parse_include(val: &str, this: &mut Shader) -> String {
 
 fn parse_autovar(val: &str, this: &mut Shader) {
     let line_tokens: Vec<_> = val.split(" ").collect();
-
     if line_tokens.len() == 2 {
         let var_type = line_tokens[0];
         let var_name = line_tokens[1];
-        let var = ShaderVar {
-            type_0: ShaderVarType::from_str(var_type),
+        this.auto_vars.push(ShaderAutoVar {
+            type_name: var_type.into(),
             name: var_name.into(),
             index: -1,
-        };
-
-        if var.type_0 == ShaderVarType::UNKNOWN {
-            panic!(
-                "GLSL_Preprocess: Unknown shader variable type <{var_type}> in autovar directive:\n  {val}"
-            );
-        }
-
-        this.vars.push(var);
+        });
     } else {
-        panic!("GLSL_Preprocess: Failed to parse autovar directive:\n  {val}");
+        warn!("GLSL_Preprocess: Failed to parse autovar directive:\n  {val}");
     }
 }
 
-extern "C" fn Shader_BindVariables(this: &mut Shader) {
-    let mut i: i32 = 0;
-
-    while i < this.vars.len() as i32 {
-        let var = &mut this.vars[i as usize];
-        let c_name = static_string!((*var).name.as_str());
-
-        (*var).index = glcheck!(gl::GetUniformLocation(this.program, c_name));
-
-        if (*var).index < 0 {
+fn Shader_BindVariables(this: &mut Shader) {
+    for var in this.auto_vars.iter_mut() {
+        let c_str = CString::new(var.name.clone()).unwrap();
+        var.index = glcheck!(gl::GetUniformLocation(this.program, c_str.as_ptr()));
+        if var.index < 0 {
             warn!("Shader_BindVariables: Automatic shader variable <{}> does not exist in shader <{}>",
                 var.name,
                 this.name,
             );
         }
-
-        i += 1;
     }
 }
 
@@ -229,7 +213,7 @@ pub unsafe fn shader_create(vs: &str, fs: &str) -> Box<Shader> {
     let mut this = Box::new(Shader::default());
 
     this._refCount = 1;
-    this.vars = Vec::new();
+    this.auto_vars = Vec::new();
 
     let vs = glsl_preprocess(&vs.replace("\r\n", "\n"), this.as_mut());
     let fs = glsl_preprocess(&fs.replace("\r\n", "\n"), this.as_mut());
@@ -253,7 +237,7 @@ pub unsafe extern "C" fn Shader_Load(
     let mut this = Box::new(Shader::default());
 
     this._refCount = 1;
-    this.vars = Vec::new();
+    this.auto_vars = Vec::new();
 
     let vs = glsl_load(&vName.as_str(), this.as_mut());
     let fs = glsl_load(&fName.as_str(), this.as_mut());
@@ -302,12 +286,12 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
     this.texIndex = 1;
 
     // Fetch and bind automatic variables from the shader var stack.
-    for var in this.vars.iter() {
+    for var in this.auto_vars.iter() {
         if var.index == -1 {
             continue;
         }
 
-        let Some(shader_var) = shader_var::ShaderVar::get(var.name.as_str()) else {
+        let Some(shader_var) = ShaderVar::get(var.name.as_str()) else {
             warn!(
                 "Shader_Start: Shader variable stack does not contain variable <{}>",
                 var.name,
@@ -315,14 +299,14 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
             continue;
         };
 
-        if shader_var.get_glsl_type()
-            != ShaderVarType::get_glsl_name(var.type_0).unwrap_or_default()
-        {
-            warn!("Attempting to get stack of type <{:?}> for shader variable <{:?}> when existing stack has type <{:?}>",
-            ShaderVarType::get_glsl_name(var.type_0).unwrap_or_default(),
-            var.name,
-            shader_var.get_glsl_type()
-            )
+        if shader_var.get_glsl_type() != var.type_name {
+            warn!(
+                "Attempting to get stack of type <{:?}> for shader variable <{:?}> when existing stack has type <{:?}>",
+                var.type_name,
+                var.name,
+                shader_var.get_glsl_type(),
+            );
+            continue;
         }
 
         match shader_var {
@@ -369,7 +353,7 @@ pub extern "C" fn Shader_GetHandle(this: &mut Shader) -> u32 {
 
 #[no_mangle]
 pub extern "C" fn Shader_GetVariable(this: &mut Shader, name: *const libc::c_char) -> i32 {
-    let index: i32 = glcheck!(gl::GetUniformLocation(this.program, name));
+    let index = glcheck!(gl::GetUniformLocation(this.program, name));
     if index == -1 {
         panic!(
             "Shader_GetVariable: Shader <{}> has no variable <{}>",
