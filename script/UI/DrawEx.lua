@@ -243,6 +243,15 @@ function DrawEx.PopAlpha()
     alphaStack:pop()
 end
 
+function DrawEx.SimpleRect(x, y, sx, sy, color)
+    local shader = Cache.Shader('ui', 'ui/simple_rect')
+    local alpha = alphaStack:last() or 1
+    shader:start()
+    Shader.SetFloat4('color', color.r, color.g, color.b, color.a * alpha)
+    Draw.Rect(x, y, sx, sy)
+    shader:stop()
+end
+
 function DrawEx.Rect(x, y, sx, sy, color)
     local x, y, sx, sy = padOffCenter(padBox, x, y, sx, sy)
     local shader = Cache.Shader('ui', 'ui/box')

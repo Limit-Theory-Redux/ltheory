@@ -241,7 +241,7 @@ impl Font {
             Profiler_End();
         }
     }
-    
+
     pub fn get_line_height(&self) -> i32 {
         let font_data = self.0.as_ref();
 
