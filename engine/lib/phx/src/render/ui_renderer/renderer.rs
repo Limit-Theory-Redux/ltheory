@@ -21,7 +21,7 @@ impl UIRenderer {
         UIRenderer {
             panel_shader: Shader::load("vertex/ui", "fragment/ui/panel"),
             image_shader: Shader::load("vertex/ui", "fragment/ui/simple_image"),
-            rect_shader: Shader::load("vertex/ui", "fragment/ui/simple_rect"),
+            rect_shader: Shader::load("vertex/ui", "fragment/ui/simple_color"),
             current_layer_id: None,
             layers: Vec::new(),
             images: Vec::new(),

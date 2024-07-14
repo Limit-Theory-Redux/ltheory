@@ -1,5 +1,4 @@
 use super::*;
-use crate::common::*;
 use crate::math::*;
 use crate::render::*;
 
@@ -57,11 +56,11 @@ impl UIRendererLayer {
                     let sx = panel.size.x + 2.0 * pad;
                     let sy = panel.size.y + 2.0 * pad;
 
-                    Shader_SetFloat(c_str!("innerAlpha"), panel.inner_alpha);
-                    Shader_SetFloat(c_str!("bevel"), panel.bevel);
-                    Shader_SetFloat2(c_str!("size"), sx, sy);
-                    Shader_SetFloat4(
-                        c_str!("color"),
+                    Shader::set_float("innerAlpha", panel.inner_alpha);
+                    Shader::set_float("bevel", panel.bevel);
+                    Shader::set_float2("size", sx, sy);
+                    Shader::set_float4(
+                        "color",
                         panel.color.r,
                         panel.color.g,
                         panel.color.b,
@@ -73,18 +72,18 @@ impl UIRendererLayer {
                     panel_id_opt = panel.next;
                 }
 
-                Shader_Stop(panel_shader);
+                panel_shader.stop();
             }
 
             let mut image_id_opt = self.image_id;
             while let Some(image_id) = image_id_opt {
                 let image = &images[*image_id];
 
-                Shader_Start(image_shader);
-                Shader_ResetTexIndex();
-                Shader_SetTex2D(c_str!("image"), &mut *image.image);
+                image_shader.start();
+                Shader::reset_tex_index();
+                Shader::set_tex2d("image", &mut *image.image);
                 Draw_Rect(image.pos.x, image.pos.y, image.size.x, image.size.y);
-                Shader_Stop(image_shader);
+                image_shader.stop();
                 image_id_opt = image.next;
             }
 
@@ -92,9 +91,9 @@ impl UIRendererLayer {
             while let Some(rect_id) = rect_id_opt {
                 let rect = &rects[*rect_id];
 
-                Shader_Start(rect_shader);
-                Shader_SetFloat4(
-                    c_str!("color"),
+                rect_shader.start();
+                Shader::set_float4(
+                    "color",
                     rect.color.r,
                     rect.color.g,
                     rect.color.b,
@@ -107,7 +106,7 @@ impl UIRendererLayer {
                     Draw_Rect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
                 }
 
-                Shader_Stop(rect_shader);
+                rect_shader.stop();
 
                 rect_id_opt = rect.next;
             }
