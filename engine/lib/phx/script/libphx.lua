@@ -58,7 +58,6 @@ do -- Opaque Structs
     typedef struct RNG          {} RNG;
     typedef struct RmGui        {} RmGui;
     typedef struct SDF          {} SDF;
-    typedef struct Shader       {} Shader;
     typedef struct Socket       {} Socket;
     typedef struct Tex1D        {} Tex1D;
     typedef struct Tex2D        {} Tex2D;
@@ -83,7 +82,6 @@ do -- Opaque Structs
     'RNG',
     'RmGui',
     'SDF',
-    'Shader',
     'Socket',
     'Tex1D',
     'Tex2D',

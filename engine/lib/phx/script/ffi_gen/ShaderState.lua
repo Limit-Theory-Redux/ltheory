@@ -17,8 +17,8 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void         ShaderState_Free           (ShaderState*);
-            ShaderState* ShaderState_Create         (Shader* shader);
-            ShaderState* ShaderState_FromShaderLoad (cstr vertName, cstr fragName);
+            ShaderState* ShaderState_Create         (Shader const* shader);
+            ShaderState* ShaderState_FromShaderLoad (cstr vsName, cstr fsName);
             void         ShaderState_SetFloat       (ShaderState*, cstr name, float x);
             void         ShaderState_SetFloat2      (ShaderState*, cstr name, float x, float y);
             void         ShaderState_SetFloat3      (ShaderState*, cstr name, float x, float y, float z);

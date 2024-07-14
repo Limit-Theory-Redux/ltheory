@@ -7,10 +7,10 @@ ShaderState = {}
 ---@return ShaderState
 function ShaderState.Create(shader) end
 
----@param vertName string
----@param fragName string
+---@param vsName string
+---@param fsName string
 ---@return ShaderState
-function ShaderState.FromShaderLoad(vertName, fragName) end
+function ShaderState.FromShaderLoad(vsName, fsName) end
 
 ---@param name string
 ---@param x number

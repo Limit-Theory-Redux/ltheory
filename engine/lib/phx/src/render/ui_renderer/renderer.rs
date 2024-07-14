@@ -1,13 +1,11 @@
 use super::*;
-use crate::common::c_str;
 use crate::math::*;
 use crate::render::*;
 
-#[derive(Default)]
 pub struct UIRenderer {
-    panel_shader: Box<Shader>,
-    image_shader: Box<Shader>,
-    rect_shader: Box<Shader>,
+    panel_shader: Shader,
+    image_shader: Shader,
+    rect_shader: Shader,
 
     current_layer_id: Option<UIRendererLayerId>,
 
@@ -21,15 +19,20 @@ pub struct UIRenderer {
 impl UIRenderer {
     pub fn new() -> UIRenderer {
         UIRenderer {
-            panel_shader: Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/panel")),
-            image_shader: Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/simple_image")),
-            rect_shader: Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/simple_rect")),
-            ..Default::default()
+            panel_shader: Shader::load("vertex/ui", "fragment/ui/panel"),
+            image_shader: Shader::load("vertex/ui", "fragment/ui/simple_image"),
+            rect_shader: Shader::load("vertex/ui", "fragment/ui/simple_rect"),
+            current_layer_id: None,
+            layers: Vec::new(),
+            images: Vec::new(),
+            panels: Vec::new(),
+            rects: Vec::new(),
+            texts: Vec::new(),
         }
     }
 
     pub fn begin(&mut self) {
-        self.current_layer_id = Default::default();
+        self.current_layer_id = None;
 
         self.layers.clear();
         self.images.clear();

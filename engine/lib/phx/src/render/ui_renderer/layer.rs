@@ -43,10 +43,10 @@ impl UIRendererLayer {
             }
 
             if self.panel_id.is_some() {
-                Shader_Start(panel_shader);
+                panel_shader.start();
 
                 let pad: f32 = 64.0;
-                Shader_SetFloat(c_str!("padding"), pad);
+                Shader::set_float("padding", pad);
 
                 let mut panel_id_opt = self.panel_id;
                 while let Some(panel_id) = panel_id_opt {
