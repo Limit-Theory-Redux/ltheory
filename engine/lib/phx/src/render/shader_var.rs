@@ -1,194 +1,147 @@
 use std::collections::HashMap;
-use std::ffi::CStr;
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use internal::*;
 
 use super::*;
+use crate::logging::*;
 use crate::math::*;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct VarStack {
-    pub type_0: ShaderVarType,
-    pub size: i32,
-    pub capacity: i32,
-    pub elemSize: i32,
-    pub data: *mut libc::c_void,
+#[derive(Clone)]
+pub enum ShaderVarData {
+    Float(f32),
+    Float2(Vec2),
+    Float3(Vec3),
+    Float4(Vec4),
+    Int(i32),
+    Int2(IVec2),
+    Int3(IVec3),
+    Int4(IVec4),
+    Matrix(Matrix),
+    Tex1D(*mut Tex1D),
+    Tex2D(*mut Tex2D),
+    Tex3D(*mut Tex3D),
+    TexCube(*mut TexCube),
 }
 
-static mut VAR_MAP: *mut HashMap<String, VarStack> = std::ptr::null_mut();
+// Trust me, it's fine.
+unsafe impl Send for ShaderVarData {}
 
-#[inline]
-unsafe extern "C" fn ShaderVar_GetStack(
-    var: *const libc::c_char,
-    type_0: ShaderVarType,
-) -> *mut VarStack {
-    let stack = (*VAR_MAP).get_mut(var.as_str());
-    if stack.is_none() {
-        if type_0 == ShaderVarType::UNKNOWN {
-            return std::ptr::null_mut();
-        }
-        let varStack = VarStack {
-            type_0: type_0,
-            size: 0,
-            capacity: 4,
-            elemSize: ShaderVarType_GetSize(type_0),
-            data: MemAlloc((4 * ShaderVarType_GetSize(type_0)) as usize),
-        };
-        (*VAR_MAP).entry(var.as_string()).or_insert(varStack)
-    } else {
-        let this = stack.unwrap();
-
-        if type_0 != ShaderVarType::UNKNOWN && (*this).type_0 != type_0 {
-            panic!("ShaderVar_GetStack: Attempting to get stack of type <{:?}> for shader variable <{:?}> when existing stack has type <{:?}>",
-                ShaderVarType::get_name(type_0),
-                CStr::from_ptr(var),
-                ShaderVarType::get_name((*this).type_0),
-            );
-        }
-        this
-    }
-}
-
-#[inline]
-unsafe extern "C" fn ShaderVar_Push(
-    var: *const libc::c_char,
-    type_0: ShaderVarType,
-    value: *const libc::c_void,
-) {
-    let this: *mut VarStack = ShaderVar_GetStack(var, type_0);
-    if (*this).size == (*this).capacity {
-        (*this).capacity *= 2;
-        (*this).data = MemRealloc((*this).data, ((*this).capacity * (*this).elemSize) as usize);
-    }
-    MemCpy(
-        ((*this).data as *mut libc::c_char).offset(((*this).size * (*this).elemSize) as isize)
-            as *mut _,
-        value,
-        (*this).elemSize as usize,
-    );
-    (*this).size += 1;
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderVar_Init() {
-    unsafe {
-        let varMap = Box::new(HashMap::with_capacity(16));
-        VAR_MAP = Box::into_raw(varMap);
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn ShaderVar_Free() {
-    unsafe {
-        if !VAR_MAP.is_null() {
-            // TODO: Loop through map and MemFree all VarStack data stacks
-            (*VAR_MAP).clear();
-            let _varMap = Box::from(VAR_MAP);
-            VAR_MAP = std::ptr::null_mut();
+impl ShaderVarData {
+    pub fn get_glsl_type(&self) -> &str {
+        match self {
+            ShaderVarData::Float(_) => "float",
+            ShaderVarData::Float2(_) => "vec2",
+            ShaderVarData::Float3(_) => "vec3",
+            ShaderVarData::Float4(_) => "vec4",
+            ShaderVarData::Int(_) => "int",
+            ShaderVarData::Int2(_) => "ivec2",
+            ShaderVarData::Int3(_) => "ivec3",
+            ShaderVarData::Int4(_) => "ivec4",
+            ShaderVarData::Matrix(_) => "mat4",
+            ShaderVarData::Tex1D(_) => "sampler1D",
+            ShaderVarData::Tex2D(_) => "sampler2D",
+            ShaderVarData::Tex3D(_) => "sampler3D",
+            ShaderVarData::TexCube(_) => "samplerCube",
         }
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_Get(
-    name: *const libc::c_char,
-    type_0: ShaderVarType,
-) -> *mut libc::c_void {
-    let this = ShaderVar_GetStack(name, ShaderVarType::UNKNOWN);
+pub struct ShaderVar {
+    var_map: HashMap<String, Vec<ShaderVarData>>,
+}
 
-    if this.is_null() || (*this).size == 0 {
-        return std::ptr::null_mut();
+impl ShaderVar {
+    fn inst() -> MutexGuard<'static, ShaderVar> {
+        static INST: OnceLock<Mutex<ShaderVar>> = OnceLock::new();
+        INST.get_or_init(|| {
+            Mutex::new(ShaderVar {
+                var_map: HashMap::with_capacity(16),
+            })
+        })
+        .lock()
+        .unwrap()
     }
 
-    if type_0 != ShaderVarType::UNKNOWN && (*this).type_0 != type_0 {
-        panic!("ShaderVar_Get: Attempting to get variable <{:?}> with type <{:?}:{}> when existing stack has type <{:?}:{}>",
-        CStr::from_ptr(name),
-            ShaderVarType::get_name(type_0),
-            type_0,
-            ShaderVarType::get_name((*this).type_0),
-            (*this).type_0,
-        );
+    /// Get the last element of the variable stack for this name, or None if it doesn't exist.
+    pub fn get(name: &str) -> Option<ShaderVarData> {
+        Self::inst()
+            .var_map
+            .get(name)
+            .and_then(|stack| stack.last())
+            .cloned()
     }
 
-    ((*this).data as *mut libc::c_char).offset(((*this).elemSize * ((*this).size - 1)) as isize)
-        as *mut _
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushFloat(name: *const libc::c_char, x: f32) {
-    ShaderVar_Push(name, 0x1.into(), &x as *const f32 as *const _);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushFloat2(name: *const libc::c_char, x: f32, y: f32) {
-    let mut value = Vec2::new(x, y);
-    ShaderVar_Push(name, 0x2.into(), &mut value as *mut Vec2 as *const _);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushFloat3(name: *const libc::c_char, x: f32, y: f32, z: f32) {
-    let mut value = Vec3::new(x, y, z);
-    ShaderVar_Push(name, 0x3.into(), &mut value as *mut Vec3 as *const _);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushFloat4(
-    name: *const libc::c_char,
-    x: f32,
-    y: f32,
-    z: f32,
-    w: f32,
-) {
-    let mut value: Vec4 = Vec4::new(x, y, z, w);
-    ShaderVar_Push(name, 0x4.into(), &mut value as *mut Vec4 as *const _);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushInt(name: *const libc::c_char, x: i32) {
-    let mut value: i32 = x;
-    ShaderVar_Push(name, 0x5.into(), &mut value as *mut i32 as *const _);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushMatrix(name: *const libc::c_char, x: *mut Matrix) {
-    ShaderVar_Push(name, 0x9.into(), &x as *const *mut Matrix as *const _);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushTex1D(name: *const libc::c_char, x: *mut Tex1D) {
-    ShaderVar_Push(name, 0xa.into(), &x as *const *mut Tex1D as *const _);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushTex2D(name: *const libc::c_char, x: *mut Tex2D) {
-    ShaderVar_Push(name, 0xb.into(), &x as *const *mut Tex2D as *const _);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushTex3D(name: *const libc::c_char, x: *mut Tex3D) {
-    ShaderVar_Push(name, 0xc.into(), &x as *const *mut Tex3D as *const _);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushTexCube(name: *const libc::c_char, x: *mut TexCube) {
-    ShaderVar_Push(name, 0xd.into(), &x as *const *mut TexCube as *const _);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ShaderVar_Pop(name: *const libc::c_char) {
-    let this: *mut VarStack = ShaderVar_GetStack(name, ShaderVarType::UNKNOWN);
-    if this.is_null() {
-        panic!(
-            "ShaderVar_Pop: Attempting to pop nonexistent stack <{:?}>",
-            CStr::from_ptr(name),
-        );
+    /// Push an element to the variable stack for this name.
+    fn push(name: &str, data: ShaderVarData) {
+        let mut this = Self::inst();
+        let stack = this.var_map.entry(name.into()).or_default();
+        stack.push(data);
     }
-    if (*this).size == 0 {
-        panic!(
-            "ShaderVar_Pop: Attempting to pop empty stack <{:?}>",
-            CStr::from_ptr(name)
-        );
+}
+
+#[luajit_ffi_gen::luajit_ffi]
+impl ShaderVar {
+    pub fn push_float(name: &str, x: f32) {
+        Self::push(name, ShaderVarData::Float(x));
     }
-    (*this).size -= 1;
+
+    pub fn push_float2(name: &str, x: f32, y: f32) {
+        Self::push(name, ShaderVarData::Float2(vec2(x, y)));
+    }
+
+    pub fn push_float3(name: &str, x: f32, y: f32, z: f32) {
+        Self::push(name, ShaderVarData::Float3(vec3(x, y, z)));
+    }
+
+    pub fn push_float4(name: &str, x: f32, y: f32, z: f32, w: f32) {
+        Self::push(name, ShaderVarData::Float4(vec4(x, y, z, w)));
+    }
+
+    pub fn push_int(name: &str, x: i32) {
+        Self::push(name, ShaderVarData::Int(x));
+    }
+
+    pub fn push_int2(name: &str, x: i32, y: i32) {
+        Self::push(name, ShaderVarData::Int2(ivec2(x, y)));
+    }
+
+    pub fn push_int3(name: &str, x: i32, y: i32, z: i32) {
+        Self::push(name, ShaderVarData::Int3(ivec3(x, y, z)));
+    }
+
+    pub fn push_int4(name: &str, x: i32, y: i32, z: i32, w: i32) {
+        Self::push(name, ShaderVarData::Int4(ivec4(x, y, z, w)));
+    }
+
+    pub fn push_matrix(name: &str, m: &Matrix) {
+        Self::push(name, ShaderVarData::Matrix(*m));
+    }
+
+    pub fn push_tex1d(name: &str, t: &mut Tex1D) {
+        Self::push(name, ShaderVarData::Tex1D(t));
+    }
+
+    pub fn push_tex2d(name: &str, t: &mut Tex2D) {
+        Self::push(name, ShaderVarData::Tex2D(t));
+    }
+
+    pub fn push_tex3d(name: &str, t: &mut Tex3D) {
+        Self::push(name, ShaderVarData::Tex3D(t));
+    }
+
+    pub fn push_tex_cube(name: &str, t: &mut TexCube) {
+        Self::push(name, ShaderVarData::TexCube(t));
+    }
+
+    pub fn pop(name: &str) {
+        let mut this = Self::inst();
+        if let Some(stack) = this.var_map.get_mut(name) {
+            if stack.pop().is_none() {
+                warn!("Attempting to pop empty stack <{:?}>", name);
+            }
+        } else {
+            warn!("Attempting to pop nonexisting stack <{:?}>", name);
+        }
+    }
 }

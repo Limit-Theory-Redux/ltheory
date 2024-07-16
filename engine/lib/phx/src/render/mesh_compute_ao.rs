@@ -1,7 +1,6 @@
 use internal::*;
 
 use super::*;
-use crate::common::*;
 use crate::math::*;
 
 #[no_mangle]
@@ -92,22 +91,24 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: &mut Mesh, radius: f32) {
     // TODO: Store shader properly
     static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
-        shader = Box::into_raw(Shader_Load(
-            c_str!("vertex/identity"),
-            c_str!("fragment/compute/occlusion"),
-        ));
+        shader = Box::into_raw(Box::new(Shader::load(
+            "vertex/identity",
+            "fragment/compute/occlusion",
+        )));
     }
     RenderState_PushAllDefaults();
     RenderTarget_PushTex2D(&mut *texOutput);
-    Shader_Start(&mut *shader);
-    Shader_SetInt(c_str!("sDim"), sDim);
-    Shader_SetFloat(c_str!("radius"), radius);
-    Shader_SetTex2D(c_str!("sPointBuffer"), &mut *texSPoints);
-    Shader_SetTex2D(c_str!("sNormalBuffer"), &mut *texSNormals);
-    Shader_SetTex2D(c_str!("vPointBuffer"), &mut *texVPoints);
-    Shader_SetTex2D(c_str!("vNormalBuffer"), &mut *texVNormals);
+
+    (*shader).start();
+    Shader::set_int("sDim", sDim);
+    Shader::set_float("radius", radius);
+    Shader::set_tex2d("sPointBuffer", &mut *texSPoints);
+    Shader::set_tex2d("sNormalBuffer", &mut *texSNormals);
+    Shader::set_tex2d("vPointBuffer", &mut *texVPoints);
+    Shader::set_tex2d("vNormalBuffer", &mut *texVNormals);
     Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
-    Shader_Stop(&*shader);
+    (*shader).stop();
+
     RenderTarget_Pop();
     RenderState_PopAll();
     let result: *mut f32 = MemNewArray!(f32, (vDim * vDim));
@@ -150,24 +151,29 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: &mut Mesh, sdf: *mut Tex3D,
         DataFormat_Float,
     );
     MemFree(pointBuffer as *const _);
+
     // TODO: Store shader properly.
     static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
-        shader = Box::into_raw(Shader_Load(
-            c_str!("vertex/identity"),
-            c_str!("fragment/compute/occlusion_sdf"),
-        ));
+        shader = Box::into_raw(Box::new(Shader::load(
+            "vertex/identity",
+            "fragment/compute/occlusion_sdf",
+        )));
     }
+
     RenderState_PushAllDefaults();
     RenderTarget_PushTex2D(&mut *texOutput);
-    Shader_Start(&mut *shader);
-    Shader_SetFloat(c_str!("radius"), radius);
-    Shader_SetTex2D(c_str!("points"), &mut *texPoints);
-    Shader_SetTex3D(c_str!("sdf"), &mut *sdf);
+
+    (*shader).start();
+    Shader::set_float("radius", radius);
+    Shader::set_tex2d("points", &mut *texPoints);
+    Shader::set_tex3d("sdf", &mut *sdf);
     Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
-    Shader_Stop(&*shader);
+    (*shader).stop();
+
     RenderTarget_Pop();
     RenderState_PopAll();
+
     let result: *mut f32 = MemNewArray!(f32, (vDim * vDim));
     Tex2D_GetData(
         &mut *texOutput,

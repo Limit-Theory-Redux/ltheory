@@ -28,7 +28,6 @@ local function generateNebulaLightTransport(rng, res, starDir)
             -- ss:setFloat3('starDir', starDir.x, starDir.y, starDir.z)
             ss:setTexCube('src', buffSrc)
             buffDst:generate(ss)
-            ss:free()
             buffSrc, buffDst = buffDst, buffSrc
         end
 
@@ -40,7 +39,6 @@ local function generateNebulaLightTransport(rng, res, starDir)
             ss:setFloat4('rot', rot.x, rot.y, rot.z, rot.w)
             ss:setTexCube('src', buffSrc)
             buffDst:generate(ss)
-            ss:free()
             buffSrc, buffDst = buffDst, buffSrc
         end
     end

@@ -32,7 +32,7 @@ impl std::fmt::Debug for Font {
 struct FontData {
     name: String,
     handle: FT_Face,
-    shader: RefCell<Box<Shader>>,
+    shader: RefCell<Shader>,
     glyphs: HashMap<u32, Glyph>,
 }
 
@@ -177,9 +177,7 @@ impl Font {
             FontData {
                 name: name.into(),
                 handle,
-                shader: RefCell::new(unsafe {
-                    Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/text"))
-                }),
+                shader: RefCell::new(Shader::load("vertex/ui", "fragment/ui/text")),
                 glyphs: Default::default(),
             }
             .into(),
@@ -196,9 +194,10 @@ impl Font {
 
         unsafe {
             RenderState_PushBlendMode(1);
-            Shader_Start(&mut *self.0.as_ref().shader.borrow_mut());
-            Shader_SetFloat4(c_str!("color"), color.r, color.g, color.b, color.a);
         }
+
+        self.0.as_ref().shader.borrow_mut().start();
+        Shader::set_float4("color", color.r, color.g, color.b, color.a);
 
         for c in text.chars() {
             let code_point = c as u32;
@@ -220,10 +219,8 @@ impl Font {
                 let xs: f32 = (*glyph).sx as f32;
                 let ys: f32 = (*glyph).sy as f32;
 
-                unsafe {
-                    Shader_ResetTexIndex();
-                    Shader_SetTex2D(c_str!("glyph"), &mut *glyph.tex);
-                }
+                Shader::reset_tex_index();
+                Shader::set_tex2d("glyph", unsafe { &mut *glyph.tex });
 
                 Draw_RectEx(x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
 
@@ -234,8 +231,8 @@ impl Font {
             }
         }
 
+        self.0.as_ref().shader.borrow().stop();
         unsafe {
-            Shader_Stop(&*self.0.as_ref().shader.borrow());
             RenderState_PopBlendMode();
 
             Profiler_End();

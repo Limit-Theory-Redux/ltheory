@@ -83,7 +83,6 @@ function GenUtil.ShaderToTexCube(res, fmt, fragShader, args)
     self:genMipmap()
     self:setMagFilter(TexFilter.Linear)
     self:setMinFilter(TexFilter.LinearMipLinear)
-    state:free()
     Profiler.End()
     return self
 end
