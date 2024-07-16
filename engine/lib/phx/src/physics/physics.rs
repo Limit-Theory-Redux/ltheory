@@ -489,14 +489,8 @@ impl rp::DebugRenderBackend for RapierDebugRenderer {
     ) {
         let Color { r, g, b, a } = Color::from_hsl(color[0], color[1], color[2], color[3]);
 
+        Shader::set_float4("color", r, g, b, a);
         unsafe {
-            Shader_SetFloat4(
-                CString::new("color").unwrap().as_c_str().as_ptr(),
-                r,
-                g,
-                b,
-                a,
-            );
             Draw_Line3(
                 &Position::from_na_point(&start).relative_to(self.eye),
                 &Position::from_na_point(&end).relative_to(self.eye),

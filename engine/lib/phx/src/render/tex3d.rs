@@ -110,29 +110,6 @@ pub unsafe extern "C" fn Tex3D_PushLevel(this: &mut Tex3D, layer: i32, level: i3
 }
 
 #[no_mangle]
-pub extern "C" fn Tex3D_Draw(this: &mut Tex3D, layer: i32, x: f32, y: f32, xs: f32, ys: f32) {
-    let r: f32 = (layer + 1) as f32 / (this.size.z + 1) as f32;
-
-    glcheck!(gl::Enable(gl::TEXTURE_3D));
-    glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
-
-    unsafe {
-        gl::Begin(gl::QUADS);
-        gl::TexCoord3f(0.0f32, 0.0f32, r);
-        gl::Vertex2f(x, y);
-        gl::TexCoord3f(0.0f32, 1.0f32, r);
-        gl::Vertex2f(x, y + ys);
-        gl::TexCoord3f(1.0f32, 1.0f32, r);
-        gl::Vertex2f(x + xs, y + ys);
-        gl::TexCoord3f(1.0f32, 0.0f32, r);
-        gl::Vertex2f(x + xs, y);
-    }
-    glcheck!(gl::End());
-
-    glcheck!(gl::Disable(gl::TEXTURE_3D));
-}
-
-#[no_mangle]
 pub extern "C" fn Tex3D_GenMipmap(this: &mut Tex3D) {
     glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
     glcheck!(gl::GenerateMipmap(gl::TEXTURE_3D));

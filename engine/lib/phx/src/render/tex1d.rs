@@ -84,25 +84,6 @@ pub unsafe extern "C" fn Tex1D_Free(this: *mut Tex1D) {
 }
 
 #[no_mangle]
-pub extern "C" fn Tex1D_Draw(this: &mut Tex1D, x: f32, y: f32, xs: f32, ys: f32) {
-    glcheck!(gl::Enable(gl::TEXTURE_1D));
-    glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-
-    unsafe {
-        gl::Begin(gl::QUADS);
-        gl::TexCoord1f(0.0f32);
-        gl::Vertex2f(x, y);
-        gl::Vertex2f(x, y + ys);
-        gl::TexCoord1f(1.0f32);
-        gl::Vertex2f(x + xs, y + ys);
-        gl::Vertex2f(x + xs, y);
-    }
-    glcheck!(gl::End());
-
-    glcheck!(gl::Disable(gl::TEXTURE_1D));
-}
-
-#[no_mangle]
 pub extern "C" fn Tex1D_GenMipmap(this: &mut Tex1D) {
     glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
     glcheck!(gl::GenerateMipmap(gl::TEXTURE_1D));

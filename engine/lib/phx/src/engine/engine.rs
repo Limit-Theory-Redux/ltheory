@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::path::PathBuf;
 
 use glam::*;
@@ -11,7 +12,7 @@ use internal::ConvertIntoString;
 use crate::common::*;
 use crate::input::*;
 use crate::logging::init_log;
-use crate::render::*;
+use crate::rf::*;
 use crate::system::*;
 use crate::ui::hmgui::HmGui;
 use crate::window::*;
@@ -26,7 +27,13 @@ pub struct Engine {
     pub hmgui: HmGui,
     pub input: Input,
     pub exit_app: bool,
-    pub lua: Lua,
+    pub lua: Rf<Lua>,
+}
+
+// This thread local variable contains a ref counted instance of the current Lua VM.
+// This is used by the panic hook to tell the Lua VM to generate backtrace.
+thread_local! {
+    static CURRENT_LUA_CTX: RefCell<Option<Rf<Lua>>> = RefCell::new(None);
 }
 
 impl Engine {
@@ -40,11 +47,46 @@ impl Engine {
             }
 
             Metric_Reset();
-            ShaderVar_Init();
         }
 
         // Unsafe is required for FFI and JIT libs
-        let lua = unsafe { Lua::unsafe_new() };
+        let lua = Rf::new(unsafe { Lua::unsafe_new() });
+
+        std::panic::set_hook(Box::new(|panic_info| {
+            error!(
+                "panic occurred in engine code! backtrace:\n{}",
+                std::backtrace::Backtrace::force_capture()
+            );
+
+            let location = if let Some(location) = panic_info.location() {
+                format!("{}:{}", location.file(), location.line(),)
+            } else {
+                "<unknown>".to_string()
+            };
+
+            let panic_message = if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+                format!("panic occurred at {location} - {s:?}")
+            } else {
+                format!("panic occurred at {location}")
+            };
+
+            CURRENT_LUA_CTX.with_borrow(|v| {
+                if let Some(ctx) = v {
+                    let lua = ctx.as_ref();
+                    let handle_error_func: Function = lua
+                        .globals()
+                        .get("HandleEngineError")
+                        .expect("Unknown function HandleEngineError");
+                    if let Err(e) = handle_error_func.call::<_, ()>(panic_message) {
+                        trace!("{}", e);
+                    }
+                } else {
+                    error!("No Lua VM context, cannot get Lua backtrace.")
+                }
+            });
+
+            std::process::exit(1);
+        }));
 
         // Create window.
         let window = Window::default();
@@ -67,14 +109,19 @@ impl Engine {
         }
     }
 
-    pub fn call_lua_func(&self, func_name: &str) {
-        let globals = self.lua.globals();
-        let app_frame_func: Function = globals
+    pub fn call_lua(&self, func_name: &str) -> Result<(), mlua::Error> {
+        CURRENT_LUA_CTX.with_borrow_mut(|v| *v = Some(self.lua.clone()));
+
+        let lua = self.lua.as_ref();
+        let lua_func: Function = lua
+            .globals()
             .get(func_name)
             .expect(format!("Unknown function {}", func_name).as_str());
-        if let Err(e) = app_frame_func.call::<_, ()>(()) {
-            trace!("{}", e);
-        }
+        let result = lua_func.call::<_, ()>(());
+
+        CURRENT_LUA_CTX.with_borrow_mut(|v| *v = None);
+
+        result
     }
 
     // Apply user changes, and then detect changes to the window and update the winit window accordingly.

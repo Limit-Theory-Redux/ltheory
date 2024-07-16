@@ -32,7 +32,7 @@ pub struct HmGui {
 impl HmGui {
     pub fn new(scale_factor: f64) -> Self {
         Self {
-            renderer: Default::default(),
+            renderer: UIRenderer::new(),
             screen_size: Default::default(),
             scale_factor,
             layers: vec![],

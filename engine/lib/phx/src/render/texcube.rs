@@ -1,7 +1,6 @@
 use internal::*;
 
 use super::*;
-use crate::common::*;
 use crate::math::*;
 use crate::system::*;
 
@@ -341,43 +340,43 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
     GLMatrix_Push();
     GLMatrix_Clear();
     RenderState_PushAllDefaults();
-    ShaderState_Start(state);
+    state.start();
 
     for i in 0..6 {
         let face: Face = kFaces[i as usize];
         let size: i32 = this.size;
-        let fSize: f32 = this.size as f32;
+        let size_f: f32 = this.size as f32;
 
         RenderTarget_Push(size, size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(0.0f32, 0.0f32, 0.0f32, 1.0f32);
-        Shader_SetFloat3(c_str!("cubeLook"), face.look.x, face.look.y, face.look.z);
-        Shader_SetFloat3(c_str!("cubeUp"), face.up.x, face.up.y, face.up.z);
-        Shader_SetFloat(c_str!("cubeSize"), fSize);
+        Shader::set_float3("cubeLook", face.look.x, face.look.y, face.look.z);
+        Shader::set_float3("cubeUp", face.up.x, face.up.y, face.up.z);
+        Shader::set_float("cubeSize", size_f);
 
         let mut j: i32 = 1;
-        let mut jobSize: i32 = 1;
+        let mut job_size: i32 = 1;
         while j <= size {
             let time: TimeStamp = TimeStamp::now();
-            ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, jobSize as f32);
-            Draw_Rect(0.0f32, 0.0f32, fSize, fSize);
+            ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
+            Draw_Rect(0.0f32, 0.0f32, size_f, size_f);
             Draw_Flush();
             ClipRect_Pop();
 
-            j += jobSize;
+            j += job_size;
             let elapsed = time.get_elapsed();
 
-            jobSize = f64::max(
+            job_size = f64::max(
                 1.0,
-                f64::floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64) as i32 as f64,
+                f64::floor(0.25f64 * job_size as f64 / elapsed + 0.5f64) as i32 as f64,
             ) as i32;
-            jobSize = i32::min(jobSize, size - j + 1);
+            job_size = i32::min(job_size, size - j + 1);
         }
 
         RenderTarget_Pop();
     }
 
-    ShaderState_Stop(state);
+    state.stop();
     RenderState_PopAll();
     GLMatrix_ModeP();
     GLMatrix_Pop();

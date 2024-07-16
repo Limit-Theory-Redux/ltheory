@@ -25,38 +25,38 @@ impl ApplicationHandler for MainLoop {
             self.engine = Some(Engine::new(event_loop));
             let engine = self.engine.as_mut().unwrap();
 
-            let globals = engine.lua.globals();
+            // Set engine pointer.
+            {
+                let lua = engine.lua.as_ref();
+                let globals = lua.globals();
 
-            globals.set("__debug__", cfg!(debug_assertions)).unwrap();
-            globals.set("__embedded__", true).unwrap();
-            globals.set("__checklevel__", 0 as u64).unwrap();
+                globals.set("__debug__", cfg!(debug_assertions)).unwrap();
+                globals.set("__embedded__", true).unwrap();
+                globals.set("__checklevel__", 0 as u64).unwrap();
 
-            if !self.app_name.is_empty() {
-                globals.set("__app__", self.app_name.clone()).unwrap();
+                if !self.app_name.is_empty() {
+                    globals.set("__app__", self.app_name.clone()).unwrap();
+                }
+
+                lua.load(&*self.entry_point_path)
+                    .exec()
+                    .unwrap_or_else(|e| {
+                        panic!("Error executing the entry point script: {}", e);
+                    });
+
+                let set_engine_func: Function = globals.get("SetEngine").unwrap();
+                set_engine_func
+                    .call::<_, ()>(engine as *const Engine as usize)
+                    .unwrap_or_else(|e| {
+                        panic!("Error calling SetEngine: {}", e);
+                    });
             }
 
-            engine
-                .lua
-                .load(&*self.entry_point_path)
-                .exec()
-                .unwrap_or_else(|e| {
-                    panic!("Error executing the entry point script: {}", e);
-                });
-
-            let set_engine_func: Function = globals.get("SetEngine").unwrap();
-            set_engine_func
-                .call::<_, ()>(engine as *const Engine as usize)
-                .unwrap_or_else(|e| {
-                    panic!("Error calling SetEngine: {}", e);
-                });
-
-            let init_system_func: Function = globals.get("InitSystem").unwrap();
-            init_system_func.call::<_, ()>(()).unwrap_or_else(|e| {
+            engine.call_lua("InitSystem").unwrap_or_else(|e| {
                 panic!("Error calling InitSystem: {}", e);
             });
 
-            let app_init_func: Function = globals.get("AppInit").unwrap();
-            app_init_func.call::<_, ()>(()).unwrap_or_else(|e| {
+            engine.call_lua("AppInit").unwrap_or_else(|e| {
                 panic!("Error calling AppInit: {}", e);
             });
         }
@@ -263,7 +263,9 @@ impl ApplicationHandler for MainLoop {
         engine.input.update_gamepad(|state| state.update());
 
         // Let Lua script perform frame operations
-        engine.call_lua_func("AppFrame");
+        engine.call_lua("AppFrame").unwrap_or_else(|e| {
+            panic!("Error calling AppInit: {}", e);
+        });
 
         // Apply window changes made by a script
         engine.changed_window();
@@ -279,7 +281,9 @@ impl ApplicationHandler for MainLoop {
         };
 
         debug!("Stopping main loop!");
-        engine.call_lua_func("AppClose");
+        engine.call_lua("AppClose").unwrap_or_else(|e| {
+            panic!("Error calling AppInit: {}", e);
+        });
     }
 
     fn memory_warning(&mut self, _: &ActiveEventLoop) {}

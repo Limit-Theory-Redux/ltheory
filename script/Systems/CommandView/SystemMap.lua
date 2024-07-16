@@ -12,11 +12,9 @@ SystemMap.focusable = true
 SystemMap:setPadUniform(0)
 
 function SystemMap:onDraw(state)
-    Draw.Color(0.1, 0.11, 0.12, 1)
     local x, y, sx, sy = self:getRectGlobal()
-    Draw.Rect(x, y, sx, sy)
+    UI.DrawEx.SimpleRect(x, y, sx, sy, Color(0.1, 0.11, 0.12, 1))
 
-    Draw.Color(0, 1, 0, 1)
     local hx, hy = sx / 2, sy / 2
     local dx, dy = GameState.player.currentMapSystemPos.x + hx, GameState.player.currentMapSystemPos.y + hy
 
@@ -26,7 +24,6 @@ function SystemMap:onDraw(state)
         b = 1.0,
         a = 0.1,
     }
-
     local best = nil
     local bestDist = math.huge
     local mp = InputInstance:mouse():position()
@@ -55,15 +52,15 @@ function SystemMap:onDraw(state)
             local p = e:getPos()
             local x = p.x - dx
             local y = p.z - dy
+            local pointSize = 3.0
+            local pointColor = Color(1, 1, 1, 1)
             x = self.x + x * GameState.player.currentMapSystemZoom + hx
             y = self.y + y * GameState.player.currentMapSystemZoom + hy
-            Draw.PointSize(3.0)
 
             if e:hasActions() then
                 --Log.Debug("Action: %s", e:getName())
                 if GameState.player.currentShip == e then
-                    Draw.PointSize(5.0)
-                    Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
+                    pointSize = 5.0
                     if playerTarget then
                         local tp = playerTarget:getPos()
                         local tx = tp.x - dx
@@ -78,7 +75,7 @@ function SystemMap:onDraw(state)
                         --Log.Debug("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
                         if string.match(Config:getObjectInfo("object_types", e:getType()), "Ship") and e.usesBoost then
                             -- Draw the dot for ships that are aces larger than regular ships
-                            Draw.PointSize(5.0)
+                            pointSize = 5.0
                         end
 
                         -- from HUD.lua
@@ -87,7 +84,7 @@ function SystemMap:onDraw(state)
                         if e:hasAttackable() and e:isAttackable() then disp = e:getDisposition(playerShip) end
                         -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
                         local c = Disposition.GetColor(disp)
-                        Draw.Color(c.r, c.g, c.b, c.a) -- some other object that suddenly has no actions
+                        pointColor = Color(c.r, c.g, c.b, c.a) -- some other object that suddenly has no actions
 
                         local focusedTarget = e:getTarget()
                         if focusedTarget then
@@ -106,13 +103,13 @@ function SystemMap:onDraw(state)
                             end
                         end
                     else
-                        Draw.Color(1.0, 1.0, 1.0, 1.0) -- some other object that suddenly has no actions
+                        pointColor = Color(1.0, 1.0, 1.0, 1.0) -- some other object that suddenly has no actions
                     end
                 end
             else
-                Draw.Color(0.4, 0.4, 0.4, 1.0) -- planet, asteroid, station
+                pointColor = Color(0.4, 0.4, 0.4, 1.0) -- planet, asteroid, station
             end
-            Draw.Point(x, y)
+            UI.DrawEx.Point(x, y, pointSize, pointColor)
 
             if e:hasFlows() and not e:isDestroyed() then
                 -- from HUD.lua

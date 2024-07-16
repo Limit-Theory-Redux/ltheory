@@ -8,7 +8,9 @@ use std::rc::Rc;
 ///    cargo +nightly r --target=x86_64-unknown-linux-gnu -Zbuild-std -Zbuild-std-features=core/debug_refcell
 ///
 /// to see original borrowing place on panic.
-/// Change target if you are not on Linux.
+///
+/// Change target if you are not on Linux. See https://doc.rust-lang.org/nightly/rustc/platform-support.html
+/// for the list of all possible targets.
 #[derive(Default, PartialEq, Eq)]
 #[must_use]
 pub struct Rf<T>(Rc<RefCell<T>>);

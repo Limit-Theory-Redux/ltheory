@@ -40,7 +40,7 @@ impl Write for MessageCleaner {
 pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
     // Use either RUST_LOG environment variable or 'info' log level directives
     let filter_layer = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("debug"))
+        .or_else(|_| EnvFilter::try_new("debug,symphonia=error"))
         .expect("Cannot create log env filter layer");
     let registry = tracing_subscriber::registry().with(filter_layer);
 
@@ -59,7 +59,8 @@ pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
 
         if console_log {
             let console_output_layer = tracing_subscriber::fmt::layer()
-                .with_ansi(true)
+                .without_time()
+                .with_level(false)
                 .with_target(false);
 
             registry
@@ -78,7 +79,8 @@ pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
     } else {
         if console_log {
             let console_output_layer = tracing_subscriber::fmt::layer()
-                .with_ansi(true)
+                .without_time()
+                .with_level(false)
                 .with_target(false);
 
             registry

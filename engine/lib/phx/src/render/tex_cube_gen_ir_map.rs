@@ -1,7 +1,6 @@
 use internal::*;
 
 use super::*;
-use crate::common::*;
 use crate::math::*;
 
 #[no_mangle]
@@ -36,10 +35,10 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
     // TODO: Store the shader somewhere and use the Box correctly.
     static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
-        shader = Box::into_raw(Shader_Load(
-            c_str!("vertex/identity"),
-            c_str!("fragment/compute/irmap"),
-        ));
+        shader = Box::into_raw(Box::new(Shader::load(
+            "vertex/identity",
+            "fragment/compute/irmap",
+        )));
     }
     let face: [CubeFace; 6] = [
         CubeFace_PX,
@@ -72,7 +71,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
         levels += 1;
         i_0 /= 2;
     }
-    Shader_Start(&mut *shader);
+
+    (*shader).start();
     let mut level: i32 = 0;
     while size > 1 {
         size /= 2;
@@ -98,11 +98,11 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
         );
         let mut angle: f32 = level as f32 / (levels - 1) as f32;
         angle = angle * angle;
-        Shader_ResetTexIndex();
-        Shader_SetFloat(c_str!("angle"), angle);
-        Shader_SetTexCube(c_str!("src"), this);
-        Shader_SetTex2D(c_str!("sampleBuffer"), &mut *sampleTex);
-        Shader_SetInt(c_str!("samples"), sampleCount);
+        Shader::reset_tex_index();
+        Shader::set_float("angle", angle);
+        Shader::set_tex_cube("src", this);
+        Shader::set_tex2d("sampleBuffer", &mut *sampleTex);
+        Shader::set_int("samples", sampleCount);
         let mut i_2: i32 = 0;
         while i_2 < 6 {
             let thisFace: CubeFace = face[i_2 as usize];
@@ -110,8 +110,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
             let thisUp: Vec3 = up[i_2 as usize];
             RenderTarget_Push(size, size);
             RenderTarget_BindTexCubeLevel(&mut *result, thisFace, level);
-            Shader_SetFloat3(c_str!("cubeLook"), thisLook.x, thisLook.y, thisLook.z);
-            Shader_SetFloat3(c_str!("cubeUp"), thisUp.x, thisUp.y, thisUp.z);
+            Shader::set_float3("cubeLook", thisLook.x, thisLook.y, thisLook.z);
+            Shader::set_float3("cubeUp", thisUp.x, thisUp.y, thisUp.z);
             Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
             RenderTarget_Pop();
             i_2 += 1;
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
         MemFree(sampleBuffer as *const _);
         Tex2D_Free(sampleTex);
     }
-    Shader_Stop(shader);
+    (*shader).stop();
     TexCube_SetMagFilter(&mut *result, TexFilter_Linear);
     TexCube_SetMinFilter(&mut *result, TexFilter_LinearMipLinear);
     result
