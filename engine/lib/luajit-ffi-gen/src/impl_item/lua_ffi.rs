@@ -71,6 +71,7 @@ impl ImplInfo {
                 method
                     .doc
                     .iter()
+                    .filter(|d| d.is_empty() || &d[0..1] != "@")
                     .for_each(|d| ffi_gen.add_class_definition(format!("-- {d}")));
 
                 // Add method signature documentation
@@ -103,6 +104,13 @@ impl ImplInfo {
                         ));
                     }
                 }
+
+                // Add user defined Lua LSP directives
+                method
+                    .doc
+                    .iter()
+                    .filter(|d| !d.is_empty() && &d[0..1] == "@")
+                    .for_each(|d| ffi_gen.add_class_definition(format!("---{d}")));
 
                 if method.self_param.is_some() {
                     ffi_gen.add_class_definition(format!(

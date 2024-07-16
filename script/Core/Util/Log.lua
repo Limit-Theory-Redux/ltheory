@@ -6,22 +6,22 @@ local Log = {}
 
 -- Lowlevel tracing information
 function Log.Trace(...)
-    Logger.Trace(format("[LUA] %s", format(...)))
+    Logger.Trace(format("[lua] %s", format(...)))
 end
 
 -- General information
 function Log.Debug(...)
-    Logger.Debug(format("[LUA] %s", format(...)))
+    Logger.Debug(format("[lua] %s", format(...)))
 end
 
 -- General information
 function Log.Info(...)
-    Logger.Info(format("[LUA] %s", format(...)))
+    Logger.Info(format("[lua] %s", format(...)))
 end
 
 -- Recoverable issue
 function Log.Warn(...)
-    Logger.Warn(format("[LUA] %s", format(...)))
+    Logger.Warn(format("[lua] %s", format(...)))
 end
 
 -- Hard error (non-recoverable)
@@ -30,7 +30,7 @@ function Log.Error(...)
     local app = '\x1B[0m'
     local msg = format(...)
 
-    Logger.Error(format("[LUA] %s", msg))
+    Logger.Error(format("[lua] %s", msg))
 
     error(pre .. msg .. app)
 end

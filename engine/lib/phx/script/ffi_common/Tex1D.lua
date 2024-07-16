@@ -8,7 +8,6 @@ do -- C Definitions
     Tex1D*    Tex1D_Create       (int size, TexFormat);
     void      Tex1D_Acquire      (Tex1D*);
     void      Tex1D_Free         (Tex1D*);
-    void      Tex1D_Draw         (Tex1D*, float x, float y, float xs, float ys);
     void      Tex1D_GenMipmap    (Tex1D*);
     void      Tex1D_GetData      (Tex1D*, void*, PixelFormat, DataFormat);
     Bytes*    Tex1D_GetDataBytes (Tex1D*, PixelFormat, DataFormat);
@@ -29,7 +28,6 @@ do -- Global Symbol Table
         Create       = libphx.Tex1D_Create,
         Acquire      = libphx.Tex1D_Acquire,
         Free         = libphx.Tex1D_Free,
-        Draw         = libphx.Tex1D_Draw,
         GenMipmap    = libphx.Tex1D_GenMipmap,
         GetData      = libphx.Tex1D_GetData,
         GetDataBytes = libphx.Tex1D_GetDataBytes,
@@ -55,7 +53,6 @@ do -- Metatype for class instances
             managed      = function(self) return ffi.gc(self, libphx.Tex1D_Free) end,
             acquire      = libphx.Tex1D_Acquire,
             free         = libphx.Tex1D_Free,
-            draw         = libphx.Tex1D_Draw,
             genMipmap    = libphx.Tex1D_GenMipmap,
             getData      = libphx.Tex1D_GetData,
             getDataBytes = libphx.Tex1D_GetDataBytes,

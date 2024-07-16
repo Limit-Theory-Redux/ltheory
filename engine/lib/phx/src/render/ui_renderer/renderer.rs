@@ -2,20 +2,37 @@ use super::*;
 use crate::math::*;
 use crate::render::*;
 
-#[derive(Clone, Default)]
 pub struct UIRenderer {
-    current_layer_id: Option<UIRendererLayerId>,
-    pub(super) layers: Vec<UIRendererLayer>,
+    panel_shader: Shader,
+    image_shader: Shader,
+    rect_shader: Shader,
 
-    pub(super) images: Vec<UIRendererImage>,
-    pub(super) panels: Vec<UIRendererPanel>,
-    pub(super) rects: Vec<UIRendererRect>,
-    pub(super) texts: Vec<UIRendererText>,
+    current_layer_id: Option<UIRendererLayerId>,
+
+    layers: Vec<UIRendererLayer>,
+    images: Vec<UIRendererImage>,
+    panels: Vec<UIRendererPanel>,
+    rects: Vec<UIRendererRect>,
+    texts: Vec<UIRendererText>,
 }
 
 impl UIRenderer {
+    pub fn new() -> UIRenderer {
+        UIRenderer {
+            panel_shader: Shader::load("vertex/ui", "fragment/ui/panel"),
+            image_shader: Shader::load("vertex/ui", "fragment/ui/simple_image"),
+            rect_shader: Shader::load("vertex/ui", "fragment/ui/simple_color"),
+            current_layer_id: None,
+            layers: Vec::new(),
+            images: Vec::new(),
+            panels: Vec::new(),
+            rects: Vec::new(),
+            texts: Vec::new(),
+        }
+    }
+
     pub fn begin(&mut self) {
-        self.current_layer_id = Default::default();
+        self.current_layer_id = None;
 
         self.layers.clear();
         self.images.clear();
@@ -33,11 +50,20 @@ impl UIRenderer {
         self.end_layer();
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&mut self) {
         unsafe { RenderState_PushBlendMode(1) };
 
         if let Some(root) = self.layers.first() {
-            root.draw(self);
+            root.draw(
+                &mut self.panel_shader,
+                &mut self.image_shader,
+                &mut self.rect_shader,
+                &self.layers,
+                &self.images,
+                &self.panels,
+                &self.rects,
+                &self.texts,
+            );
         } else {
             unreachable!("No layers defined");
         }

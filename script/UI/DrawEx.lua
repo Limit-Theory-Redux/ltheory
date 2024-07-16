@@ -243,6 +243,15 @@ function DrawEx.PopAlpha()
     alphaStack:pop()
 end
 
+function DrawEx.SimpleRect(x, y, sx, sy, color)
+    local shader = Cache.Shader('ui', 'ui/simple_rect')
+    local alpha = alphaStack:last() or 1
+    shader:start()
+    Shader.SetFloat4('color', color.r, color.g, color.b, color.a * alpha)
+    Draw.Rect(x, y, sx, sy)
+    shader:stop()
+end
+
 function DrawEx.Rect(x, y, sx, sy, color)
     local x, y, sx, sy = padOffCenter(padBox, x, y, sx, sy)
     local shader = Cache.Shader('ui', 'ui/box')
@@ -347,14 +356,12 @@ local function drawText(font, text, size, x, y, sx, sy, cr, cg, cb, ca, alignX, 
     local ay = alignY or 1.0
     local font = Cache.Font(font, size)
     local bound = font:getSize(text)
-    local shader = Cache.Shader('ui', 'ui/text')
     local alpha = alphaStack:last() or 1
-    shader:start()
-    Shader.SetFloat4('color', cr, cg, cb, ca * alpha)
-    font:drawShaded(text,
+    font:draw(text,
         x + ax * (sx - bound.z) - bound.x,
-        y + ay * (sy - bound.w) + bound.w)
-    shader:stop()
+        y + ay * (sy - bound.w) + bound.w,
+        Color(cr, cg, cb, ca * alpha)
+    )
 end
 
 function DrawEx.TextAdditive(...)

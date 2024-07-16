@@ -215,8 +215,7 @@ function Application:onFrame()
                 Metric.Get(Metric.Immediate),
                 Metric.Get(Metric.FBOSwap))
             BlendMode.Push(BlendMode.Alpha)
-            Draw.Color(0.1, 0.1, 0.1, 0.5)
-            Draw.Rect(0, self.resY - 20, self.resX, self.resY)
+            UI.DrawEx.SimpleRect(0, self.resY - 20, self.resX, self.resY, Color(0.1, 0.1, 0.1, 0.5))
             self.profilerFont:draw(s, 10, self.resY - 5, Color(1, 1, 1, 1))
 
             local y = self.resY - 5

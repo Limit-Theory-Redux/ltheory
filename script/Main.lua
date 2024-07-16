@@ -15,6 +15,7 @@ WindowInstance = {}
 Gui = {}
 
 require('Init')
+local ErrorHandler = require('Core.Util.ErrorHandler')
 
 function SetEngine(engine)
     Log.Debug("SetEngine")
@@ -125,4 +126,8 @@ function InitSystem()
             GlobalRestrict.Off()
         end
     end)
+end
+
+function HandleEngineError(err)
+    ErrorHandler(err)
 end

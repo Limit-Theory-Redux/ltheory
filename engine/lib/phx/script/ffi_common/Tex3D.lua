@@ -11,7 +11,6 @@ do -- C Definitions
     void      Tex3D_Pop          (Tex3D*);
     void      Tex3D_Push         (Tex3D*, int layer);
     void      Tex3D_PushLevel    (Tex3D*, int layer, int level);
-    void      Tex3D_Draw         (Tex3D* self, int layer, float x, float y, float xs, float ys);
     void      Tex3D_GenMipmap    (Tex3D*);
     void      Tex3D_GetData      (Tex3D*, void*, PixelFormat, DataFormat);
     Bytes*    Tex3D_GetDataBytes (Tex3D*, PixelFormat, DataFormat);
@@ -35,7 +34,6 @@ do -- Global Symbol Table
         Pop          = libphx.Tex3D_Pop,
         Push         = libphx.Tex3D_Push,
         PushLevel    = libphx.Tex3D_PushLevel,
-        Draw         = libphx.Tex3D_Draw,
         GenMipmap    = libphx.Tex3D_GenMipmap,
         GetData      = libphx.Tex3D_GetData,
         GetDataBytes = libphx.Tex3D_GetDataBytes,
@@ -64,7 +62,6 @@ do -- Metatype for class instances
             pop          = libphx.Tex3D_Pop,
             push         = libphx.Tex3D_Push,
             pushLevel    = libphx.Tex3D_PushLevel,
-            draw         = libphx.Tex3D_Draw,
             genMipmap    = libphx.Tex3D_GenMipmap,
             getData      = libphx.Tex3D_GetData,
             getDataBytes = libphx.Tex3D_GetDataBytes,

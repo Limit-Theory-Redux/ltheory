@@ -15,8 +15,6 @@ do -- C Definitions
     void      Tex2D_PushLevel     (Tex2D*, int level);
     void      Tex2D_Clear         (Tex2D*, float r, float g, float b, float a);
     Tex2D*    Tex2D_Clone         (Tex2D*);
-    void      Tex2D_Draw          (Tex2D*, float x, float y, float sx, float sy);
-    void      Tex2D_DrawEx        (Tex2D*, float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1);
     void      Tex2D_GenMipmap     (Tex2D*);
     void      Tex2D_GetData       (Tex2D*, void*, PixelFormat, DataFormat);
     Bytes*    Tex2D_GetDataBytes  (Tex2D*, PixelFormat, DataFormat);
@@ -48,8 +46,6 @@ do -- Global Symbol Table
         PushLevel     = libphx.Tex2D_PushLevel,
         Clear         = libphx.Tex2D_Clear,
         Clone         = libphx.Tex2D_Clone,
-        Draw          = libphx.Tex2D_Draw,
-        DrawEx        = libphx.Tex2D_DrawEx,
         GenMipmap     = libphx.Tex2D_GenMipmap,
         GetData       = libphx.Tex2D_GetData,
         GetDataBytes  = libphx.Tex2D_GetDataBytes,
@@ -84,8 +80,6 @@ do -- Metatype for class instances
             pushLevel     = libphx.Tex2D_PushLevel,
             clear         = libphx.Tex2D_Clear,
             clone         = libphx.Tex2D_Clone,
-            draw          = libphx.Tex2D_Draw,
-            drawEx        = libphx.Tex2D_DrawEx,
             genMipmap     = libphx.Tex2D_GenMipmap,
             getData       = libphx.Tex2D_GetData,
             getDataBytes  = libphx.Tex2D_GetDataBytes,

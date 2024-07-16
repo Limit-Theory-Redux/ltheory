@@ -59,10 +59,7 @@ end
 
 function DebugControl:onDraw(focus, active)
     if false then -- Underlay
-        local a = UI.DrawEx.GetAlpha()
-        Draw.Color(0.1, 0.1, 0.1, a)
-        Draw.Rect(self.x, self.y, self.sx, self.sy)
-        Draw.Color(1, 1, 1, 1)
+        UI.DrawEx.SimpleRect(self.x, self.y, self.sx, self.sy, Color(0.1, 0.1, 0.1, 1.0))
     end
 
     local camera = self.gameView.camera

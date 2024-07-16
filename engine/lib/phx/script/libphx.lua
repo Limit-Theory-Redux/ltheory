@@ -22,7 +22,6 @@ do -- Basic Typedefs
     typedef uint8          PointClassification;
     typedef uint8          PolygonClassification;
     typedef int32          ResourceType;
-    typedef int32          ShaderVarType;
     typedef int32          SocketType;
     typedef uint8          SoundState;
     typedef int32          State;
@@ -59,8 +58,6 @@ do -- Opaque Structs
     typedef struct RNG          {} RNG;
     typedef struct RmGui        {} RmGui;
     typedef struct SDF          {} SDF;
-    typedef struct Shader       {} Shader;
-    typedef struct ShaderState  {} ShaderState;
     typedef struct Socket       {} Socket;
     typedef struct Tex1D        {} Tex1D;
     typedef struct Tex2D        {} Tex2D;
@@ -85,8 +82,6 @@ do -- Opaque Structs
     'RNG',
     'RmGui',
     'SDF',
-    'Shader',
-    'ShaderState',
     'Socket',
     'Tex1D',
     'Tex2D',
