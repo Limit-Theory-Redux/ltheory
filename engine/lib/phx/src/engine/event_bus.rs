@@ -1,6 +1,11 @@
-use std::collections::{BinaryHeap, HashMap};
+use mlua::{Function, Table};
+use std::{
+    collections::{BinaryHeap, HashMap},
+    sync::atomic::{AtomicI32, Ordering},
+};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
+use tracing::trace;
 
 use internal::ConvertIntoString;
 
@@ -28,10 +33,16 @@ pub enum EventPayload {
 }
 
 #[derive(Debug, Clone)]
+pub struct Subscriber {
+    tunnel_id: i32,
+}
+
+#[derive(Debug, Clone)]
 pub struct Event {
     pub name: String,
     pub priority: i16,
     pub update_pass: UpdatePass,
+    pub subscribers: Vec<Subscriber>,
     // pub callback: fn(Vec<EventPayload>),
     // pub payloads: Vec<EventPayload>,
 }
@@ -60,6 +71,7 @@ impl PartialOrd for EventItem {
 pub struct EventBus {
     events: HashMap<String, Event>,
     update_pass_map: HashMap<UpdatePass, BinaryHeap<EventItem>>,
+    next_tunnel_id: AtomicI32,
 }
 
 impl EventBus {
@@ -67,6 +79,7 @@ impl EventBus {
         Self {
             events: HashMap::new(),
             update_pass_map: HashMap::new(),
+            next_tunnel_id: AtomicI32::new(0),
         }
     }
 }
@@ -87,6 +100,7 @@ impl EventBus {
             name: event_name.clone(),
             priority,
             update_pass: update_pass.clone(),
+            subscribers: vec![],
             // callback,
             // payloads,
         };
@@ -138,17 +152,29 @@ impl EventBus {
         if let Some(event_heap) = self.update_pass_map.get(&update_pass) {
             //println!("Found {} events for {:?}", event_heap.len(), update_pass);
             let events: Vec<_> = event_heap.clone().into_sorted_vec();
+
+            let globals = engine.lua.globals();
+            let event_tunnels: Table = globals.get("EventTunnels").expect("Unknown table");
+
             for event_item in events {
                 if let Some(event) = self.events.get(&event_item.name) {
+                    for subscriber in &event.subscribers {
+                        let id = subscriber.tunnel_id;
+
+                        let tunnel_func: Function = event_tunnels
+                            .get(id)
+                            .expect(&format!("Unknown tunnel {} with id: ", id));
+                        if let Err(e) = tunnel_func.call::<_, ()>(()) {
+                            trace!("{}", e);
+                        }
+                    }
+
                     // (event.callback)(event.payloads.clone());
-                    //println!("Dispatched event: {}", event.name.clone());
-                    engine.call_lua_func("EventTest")
+                    // println!("Dispatched event: {}", event.name.clone());
                 } else {
                     panic!("Event not found: {}", event_item.name);
                 }
             }
-        } else {
-            println!("No events found for {:?}", self.update_pass_map.len());
         }
     }
 
@@ -158,13 +184,47 @@ impl EventBus {
         }
     }
 
+    pub fn subscribe(&mut self, event_name: String) -> i32 {
+        let tunnel_id = self.next_tunnel_id.fetch_add(1, Ordering::SeqCst);
+
+        for (_update_pass, event_heap) in &self.update_pass_map {
+            let events: Vec<_> = event_heap.clone().into_sorted_vec();
+            for event_item in events {
+                if let Some(event) = self.events.get_mut(&event_item.name) {
+                    if &event_item.name == &event_name {
+                        event.subscribers.push(Subscriber { tunnel_id });
+                    }
+                }
+            }
+        }
+
+        println!(
+            "Subscribed to event '{}' with tunnel_id {}",
+            event_name, tunnel_id
+        );
+        tunnel_id
+    }
+
+    pub fn unsubscribe(&mut self, tunnel_id: i32) {
+        for event in self.events.values_mut() {
+            event
+                .subscribers
+                .retain(|subscriber| subscriber.tunnel_id != tunnel_id);
+        }
+
+        println!(
+            "Unsubscribed from event and closed tunnel with id: {}",
+            tunnel_id
+        );
+    }
+
     pub fn print_update_pass_map(&self) {
         println!("Current state of update_pass_map:");
         for (update_pass, event_heap) in &self.update_pass_map {
             println!("{:?}", update_pass);
             let events: Vec<_> = event_heap.clone().into_sorted_vec();
             for event_item in events {
-                if let Some(event) = self.events.get(&event_item.name) {
+                if let Some(_event) = self.events.get(&event_item.name) {
                     println!("  {:?}", event_item);
                 }
             }

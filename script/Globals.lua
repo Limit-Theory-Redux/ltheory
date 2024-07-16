@@ -13,5 +13,6 @@ UIComponent = {}
 -- Application
 AppInit = {}
 AppFrame = {}
+EventTunnels = {}
 AppClose = {}
 LimitTheoryRedux = {}

@@ -25,6 +25,13 @@ function SetEngine(engine)
     EngineInstance = ffi.cast('Engine*', engine)
 
     EventBusInstance = EngineInstance:eventBus()
+
+    local tunnelId = EventBusInstance:subscribe("PreSim")
+    EventTunnels[tunnelId] = function() print("Hey this works!", tunnelId) end
+
+    local tunnelId2 = EventBusInstance:subscribe("PostFrame")
+    EventTunnels[tunnelId2] = function() print("Hey this works!", tunnelId2) end
+
     InputInstance = EngineInstance:input()
     WindowInstance = EngineInstance:window()
     Gui = EngineInstance:hmGui()

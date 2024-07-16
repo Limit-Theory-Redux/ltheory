@@ -18,5 +18,12 @@ function EventBus:dispatch(updatePass, engine) end
 ---@param engine Engine
 function EventBus:dispatchAll(engine) end
 
+---@param eventName string
+---@return integer
+function EventBus:subscribe(eventName) end
+
+---@param tunnelId integer
+function EventBus:unsubscribe(tunnelId) end
+
 function EventBus:printUpdatePassMap() end
 
