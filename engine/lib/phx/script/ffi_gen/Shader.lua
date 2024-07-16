@@ -26,7 +26,6 @@ function Loader.defineType()
             bool         Shader_HasVariable   (Shader const*, cstr name);
             void         Shader_Start         (Shader*);
             void         Shader_Stop          (Shader const*);
-            void         Shader_ClearCache    ();
             void         Shader_ResetTexIndex ();
             void         Shader_SetFloat      (cstr name, float value);
             void         Shader_ISetFloat     (int index, float value);
@@ -69,7 +68,6 @@ function Loader.defineType()
                 local instance = libphx.Shader_Load(...)
                 return Core.ManagedObject(instance, libphx.Shader_Free)
             end,
-            ClearCache    = libphx.Shader_ClearCache,
             ResetTexIndex = libphx.Shader_ResetTexIndex,
             SetFloat      = libphx.Shader_SetFloat,
             ISetFloat     = libphx.Shader_ISetFloat,
