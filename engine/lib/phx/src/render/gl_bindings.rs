@@ -16,6 +16,8 @@ pub mod gl {
 macro_rules! glcheck {
     ($s:stmt) => {{
         let result = unsafe { $s };
+        // Uncomment this to enable GL checks.
+        /*
         if cfg!(debug_assertions) {
             let err = unsafe { gl::GetError() };
             if err != gl::NO_ERROR {
@@ -28,6 +30,7 @@ macro_rules! glcheck {
                 );
             }
         }
+        */
         result
     }};
 }
