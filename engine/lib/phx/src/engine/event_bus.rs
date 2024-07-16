@@ -85,7 +85,8 @@ impl EventBus {
 
     // todo event action queue & manual dispatching
     pub fn dispatch(&self, update_pass: UpdatePass, engine: &Engine) {
-        let globals: Table = engine.lua.globals();
+        let lua = engine.lua.as_ref();
+        let globals = lua.globals();
         let event_tunnels: Table = globals.get("EventTunnels").expect("Unknown table");
 
         if let Some(event_heap) = self.update_pass_map.get(&update_pass) {
