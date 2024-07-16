@@ -43,7 +43,6 @@ pub struct Event {
     pub priority: i16,
     pub update_pass: UpdatePass,
     pub subscribers: Vec<Subscriber>,
-    // pub callback: fn(Vec<EventPayload>),
     // pub payloads: Vec<EventPayload>,
 }
 
@@ -91,7 +90,6 @@ impl EventBus {
         event_name: String,
         priority: Option<i16>,
         update_pass: UpdatePass,
-        // callback: fn(Vec<EventPayload>),
         // payloads: Vec<EventPayload>,
     ) {
         let priority = priority.unwrap_or(0);
@@ -101,7 +99,6 @@ impl EventBus {
             priority,
             update_pass: update_pass.clone(),
             subscribers: vec![],
-            // callback,
             // payloads,
         };
 
@@ -144,6 +141,7 @@ impl EventBus {
         }
     }
 
+    // todo event action queue & manual dispatching
     pub fn dispatch(&self, update_pass: UpdatePass, engine: &Engine) {
         //println!("Dispatching for {:?}", update_pass);
         // Print the whole map to verify its state before dispatch
@@ -246,42 +244,36 @@ impl EventBus {
 //         "Event1".to_string(),
 //         Some(1),
 //         UpdatePass::PreSim,
-//         example_event_callback,
 //         vec!["Event1".to_string(), "Event1.1".to_string()],
 //     );
 //     event_bus.register(
 //         "Event2".to_string(),
 //         Some(2),
 //         UpdatePass::PreSim,
-//         example_event_callback,
 //         vec!["Event2".to_string()],
 //     );
 //     event_bus.register(
 //         "Event3".to_string(),
 //         None,
 //         UpdatePass::PostFrame,
-//         example_event_callback,
 //         vec!["Event3".to_string()],
 //     );
 //     event_bus.register(
 //         "Event4".to_string(),
 //         Some(1),
 //         UpdatePass::PostSim,
-//         example_event_callback,
 //         vec!["Event4".to_string()],
 //     );
 //     event_bus.register(
 //         "Event5".to_string(),
 //         Some(5),
 //         UpdatePass::PostSim,
-//         example_event_callback,
 //         vec!["Event5".to_string()],
 //     );
 //     event_bus.register(
 //         "Event6".to_string(),
 //         Some(2),
 //         UpdatePass::PostSim,
-//         example_event_callback,
 //         vec!["Event6".to_string()],
 //     );
 //
