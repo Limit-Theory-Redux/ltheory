@@ -121,7 +121,11 @@ function Application:onFrame()
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onDraw')
     WindowInstance:beginDraw()
-    self:onDraw()
+
+    --* should they subscribe to onframe themselves?
+    GameState.render.uiCanvas:draw(self.resX, self.resY)
+    Gui:draw()
+
     Profiler.End()
 
     Profiler.SetValue('gcmem', GC.GetMemory())

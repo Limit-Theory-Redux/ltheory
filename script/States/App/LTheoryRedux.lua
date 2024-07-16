@@ -50,12 +50,6 @@ function LimitTheoryRedux:onUpdate(dt)
     GameState.render.uiCanvas:update(dt)
 end
 
----@diagnostic disable-next-line: duplicate-set-field
-function LimitTheoryRedux:onDraw()
-    GameState.render.uiCanvas:draw(self.resX, self.resY)
-    Gui:draw()
-end
-
 function LimitTheoryRedux:initMainMenu(isAppInit)
     GameState:SetState(Enums.GameStates.MainMenu)
 
