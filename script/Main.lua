@@ -14,8 +14,6 @@ WindowInstance = {}
 ---@type HmGui
 Gui = {}
 
-EventTest = function() end
-
 require('Init')
 
 function SetEngine(engine)
