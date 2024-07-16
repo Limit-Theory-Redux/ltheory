@@ -59,7 +59,8 @@ pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
 
         if console_log {
             let console_output_layer = tracing_subscriber::fmt::layer()
-                .with_ansi(true)
+                .without_time()
+                .with_level(false)
                 .with_target(false);
 
             registry
@@ -78,7 +79,8 @@ pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
     } else {
         if console_log {
             let console_output_layer = tracing_subscriber::fmt::layer()
-                .with_ansi(true)
+                .without_time()
+                .with_level(false)
                 .with_target(false);
 
             registry
