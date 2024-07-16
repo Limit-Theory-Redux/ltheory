@@ -59,7 +59,7 @@ mod tests {
             }
         }
 
-        (HmGui::new(), Default::default())
+        (HmGui::new(1.0), Default::default())
     }
 
     fn check_widget(widget: &Ref<'_, HmGuiWidget>, expected: &WidgetCheck) {
