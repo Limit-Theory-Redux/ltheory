@@ -637,13 +637,21 @@ impl TextData {
             );
 
             if input.is_pressed(Button::MouseLeft) && !input.is_keyboard_shift_down() {
-                if cursor.text_end < self.text.len() {
-                    self.selection.set_cursor(cursor.text_start);
+                let pos = if cursor.text_end < self.text.len() {
+                    cursor.text_start
                 } else {
-                    self.selection.set_cursor(cursor.text_end);
-                }
+                    cursor.text_end
+                };
+
+                self.selection.set_cursor(pos);
             } else {
-                self.selection.set_end(cursor.text_end);
+                let end_pos = if self.selection.is_forward() {
+                    cursor.text_end
+                } else {
+                    cursor.text_start
+                };
+
+                self.selection.set_end(end_pos);
             }
 
             self.mouse_pos = mouse_pos;
@@ -664,7 +672,7 @@ impl TextData {
                         match &self.selection {
                             TextSelection::Cursor(pos) => self.selection.set_cursor(*pos - 1),
                             TextSelection::Selection(range) => {
-                                if range.start < range.end {
+                                if range.start <= range.end {
                                     self.selection.set_cursor(range.start);
                                 } else {
                                     self.selection.set_cursor(range.end);
@@ -672,6 +680,10 @@ impl TextData {
                             }
                         }
                     }
+
+                    selection_changed = true;
+                } else if self.selection.is_selection() {
+                    self.selection.set_cursor(0);
 
                     selection_changed = true;
                 }
@@ -692,6 +704,10 @@ impl TextData {
                             }
                         }
                     }
+
+                    selection_changed = true;
+                } else if self.selection.is_selection() {
+                    self.selection.set_cursor(self.text.len());
 
                     selection_changed = true;
                 }

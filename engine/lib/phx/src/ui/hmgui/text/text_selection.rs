@@ -32,6 +32,10 @@ impl TextSelection {
         matches!(self, Self::Cursor(_))
     }
 
+    pub fn is_selection(&self) -> bool {
+        matches!(self, Self::Selection(_))
+    }
+
     /// Returns cursor position or end position of the selection.
     pub fn cursor_position(&self) -> usize {
         self.end()
@@ -56,12 +60,26 @@ impl TextSelection {
         }
     }
 
+    pub fn is_forward(&self) -> bool {
+        match self {
+            Self::Cursor(_) => true,
+            Self::Selection(range) => range.start <= range.end,
+        }
+    }
+
+    pub fn is_backward(&self) -> bool {
+        match self {
+            Self::Cursor(_) => true,
+            Self::Selection(range) => range.start > range.end,
+        }
+    }
+
     /// Create a new text selection where start is always >= end.
     pub fn normalized(&self) -> Self {
         match self {
             Self::Cursor(pos) => Self::Cursor(*pos),
             Self::Selection(range) => {
-                if range.start < range.end {
+                if range.start <= range.end {
                     Self::Selection(range.clone())
                 } else {
                     Self::Selection(Range {
