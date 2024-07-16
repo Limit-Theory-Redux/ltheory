@@ -33,23 +33,6 @@ function LimitTheoryRedux:onInit()
     self:initMainMenu(true)
 end
 
------@param dt integer
------@diagnostic disable-next-line: duplicate-set-field
---function LimitTheoryRedux:onInput()
---    GameState.render.uiCanvas:input()
---end
-
----@param dt integer
----@diagnostic disable-next-line: duplicate-set-field
-function LimitTheoryRedux:onUpdate(dt)
-    if not GameState.player.humanPlayer:getRoot().update then
-        return
-    end
-
-    GameState.player.humanPlayer:getRoot():update(dt)
-    GameState.render.uiCanvas:update(dt)
-end
-
 function LimitTheoryRedux:initMainMenu(isAppInit)
     GameState:SetState(Enums.GameStates.MainMenu)
 

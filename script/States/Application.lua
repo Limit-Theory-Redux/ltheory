@@ -27,8 +27,6 @@ function Application:onUpdate(dt) end
 
 function Application:onExit() end
 
-function Application:onInput() end
-
 function Application:quit()
     EngineInstance:exit()
 end
@@ -99,7 +97,31 @@ function Application:onPreFrame()
     end
 
     Profiler.SetValue('gcmem', GC.GetMemory())
-    Profiler.Begin('Frame')
+    Profiler.Begin('App.onPreFrame')
+
+    self.timeScale = 1.0
+    self.doScreenshot = false
+
+    if GameState.paused then
+        self.timeScale = 0.0
+    else
+        self.timeScale = 1.0
+    end
+
+    if InputInstance:isDown(Bindings.TimeAccel) then
+        self.timeScale = GameState.debug.timeAccelFactor
+    end
+
+    local now = TimeStamp.Now()
+    self.dt = self.lastUpdate:getDifference(now)
+    self.lastUpdate = now
+    local timeScaledDt = self.timeScale * self.dt
+
+    --* system & canvas should probably subscribe to onPreFrame themselves
+    if GameState.player.humanPlayer:getRoot().update then
+        GameState.player.humanPlayer:getRoot():update(timeScaledDt)
+        GameState.render.uiCanvas:update(timeScaledDt)
+    end
 
     do
         Profiler.SetValue('gcmem', GC.GetMemory())
@@ -115,39 +137,19 @@ function Application:onPreFrame()
         end
         Profiler.End()
     end
+    Profiler.End()
 end
 
 function Application:onFrame()
     Profiler.SetValue('gcmem', GC.GetMemory())
-    Profiler.Begin('App.onDraw')
+    Profiler.Begin('App.onFrame')
+
     WindowInstance:beginDraw()
 
     --* should they subscribe to onframe themselves?
     GameState.render.uiCanvas:draw(self.resX, self.resY)
     Gui:draw()
 
-    Profiler.End()
-
-    Profiler.SetValue('gcmem', GC.GetMemory())
-    Profiler.Begin('App.onUpdate')
-
-    self.timeScale = 1.0
-    self.doScreenshot = false
-
-    if GameState.paused then --* moved to onUpdate so onInput can set pause/unpause without a crash
-        self.timeScale = 0.0
-    else
-        self.timeScale = 1.0
-    end
-
-    if InputInstance:isDown(Bindings.TimeAccel) then
-        self.timeScale = GameState.debug.timeAccelFactor
-    end
-
-    local now = TimeStamp.Now()
-    self.dt = self.lastUpdate:getDifference(now)
-    self.lastUpdate = now
-    self:onUpdate(self.timeScale * self.dt)
     Profiler.End()
 
     UI.DrawEx.TextAdditive(
@@ -225,19 +227,19 @@ function Application:onFrame()
             BlendMode.Pop()
         end
     end
-
-    do -- End Draw
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.SwapBuffers')
-        WindowInstance:endDraw()
-        Profiler.End()
-    end
-
     Profiler.End()
     Profiler.LoopMarker()
 end
 
-function Application:onPostFrame() end
+function Application:onPostFrame()
+    do -- End Draw
+        Profiler.SetValue('gcmem', GC.GetMemory())
+        Profiler.Begin('App.onPostFrame')
+        WindowInstance:endDraw()
+        Profiler.End()
+    end
+end
+
 function Application:onFrameInterpolation() end
 function Application:onPreInput() end
 
