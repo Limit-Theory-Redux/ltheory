@@ -14,11 +14,6 @@ function Font.Load(name, size) end
 ---@param color Color
 function Font:draw(text, x, y, color) end
 
----@param text string
----@param x number
----@param y number
-function Font:drawShaded(text, x, y) end
-
 ---@return integer
 function Font:getLineHeight() end
 

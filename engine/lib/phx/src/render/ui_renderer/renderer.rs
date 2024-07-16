@@ -1,19 +1,37 @@
 use super::*;
+use crate::common::c_str;
 use crate::math::*;
 use crate::render::*;
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct UIRenderer {
-    current_layer_id: Option<UIRendererLayerId>,
-    pub(super) layers: Vec<UIRendererLayer>,
+    panel_shader: Box<Shader>,
+    image_shader: Box<Shader>,
+    rect_shader: Box<Shader>,
 
-    pub(super) images: Vec<UIRendererImage>,
-    pub(super) panels: Vec<UIRendererPanel>,
-    pub(super) rects: Vec<UIRendererRect>,
-    pub(super) texts: Vec<UIRendererText>,
+    current_layer_id: Option<UIRendererLayerId>,
+
+    layers: Vec<UIRendererLayer>,
+    images: Vec<UIRendererImage>,
+    panels: Vec<UIRendererPanel>,
+    rects: Vec<UIRendererRect>,
+    texts: Vec<UIRendererText>,
 }
 
 impl UIRenderer {
+    pub fn new() -> UIRenderer {
+        UIRenderer {
+            panel_shader: unsafe { Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/panel")) },
+            image_shader: unsafe {
+                Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/simple_image"))
+            },
+            rect_shader: unsafe {
+                Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/simple_rect"))
+            },
+            ..Default::default()
+        }
+    }
+
     pub fn begin(&mut self) {
         self.current_layer_id = Default::default();
 
@@ -33,11 +51,20 @@ impl UIRenderer {
         self.end_layer();
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&mut self) {
         unsafe { RenderState_PushBlendMode(1) };
 
         if let Some(root) = self.layers.first() {
-            root.draw(self);
+            root.draw(
+                &mut self.panel_shader,
+                &mut self.image_shader,
+                &mut self.rect_shader,
+                &self.layers,
+                &self.images,
+                &self.panels,
+                &self.rects,
+                &self.texts,
+            );
         } else {
             unreachable!("No layers defined");
         }

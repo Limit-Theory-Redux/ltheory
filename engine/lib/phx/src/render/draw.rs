@@ -307,6 +307,20 @@ pub extern "C" fn Draw_Quad3(p1: &Vec3, p2: &Vec3, p3: &Vec3, p4: &Vec3) {
 
 #[no_mangle]
 pub extern "C" fn Draw_Rect(x1: f32, y1: f32, xs: f32, ys: f32) {
+    Draw_RectEx(x1, y1, xs, ys, 0.0, 0.0, 1.0, 1.0);
+}
+
+#[no_mangle]
+pub extern "C" fn Draw_RectEx(
+    x1: f32,
+    y1: f32,
+    xs: f32,
+    ys: f32,
+    u0: f32,
+    v0: f32,
+    u1: f32,
+    v1: f32,
+) {
     let x2: f32 = x1 + xs;
     let y2: f32 = y1 + ys;
 
@@ -314,13 +328,13 @@ pub extern "C" fn Draw_Rect(x1: f32, y1: f32, xs: f32, ys: f32) {
 
     unsafe {
         gl::Begin(gl::QUADS);
-        gl::TexCoord2f(0.0f32, 0.0f32);
+        gl::TexCoord2f(u0, v0);
         gl::Vertex2f(x1, y1);
-        gl::TexCoord2f(0.0f32, 1.0f32);
+        gl::TexCoord2f(u0, v1);
         gl::Vertex2f(x1, y2);
-        gl::TexCoord2f(1.0f32, 1.0f32);
+        gl::TexCoord2f(u1, v1);
         gl::Vertex2f(x2, y2);
-        gl::TexCoord2f(1.0f32, 0.0f32);
+        gl::TexCoord2f(u1, v0);
         gl::Vertex2f(x2, y1);
     }
     glcheck!(gl::End());

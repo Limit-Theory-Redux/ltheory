@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -19,7 +20,7 @@ use internal::*;
 const K_GAMMA: f32 = 1.8;
 const K_RCP_GAMMA: f32 = 1.0 / K_GAMMA;
 
-#[derive(Clone, Default, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct Font(Rf<FontData>);
 
 impl std::fmt::Debug for Font {
@@ -28,21 +29,11 @@ impl std::fmt::Debug for Font {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
 struct FontData {
     name: String,
     handle: FT_Face,
+    shader: RefCell<Box<Shader>>,
     glyphs: HashMap<u32, Glyph>,
-}
-
-impl Default for FontData {
-    fn default() -> Self {
-        Self {
-            name: Default::default(),
-            handle: std::ptr::null_mut(),
-            glyphs: Default::default(),
-        }
-    }
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -186,6 +177,9 @@ impl Font {
             FontData {
                 name: name.into(),
                 handle,
+                shader: RefCell::new(unsafe {
+                    Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/text"))
+                }),
                 glyphs: Default::default(),
             }
             .into(),
@@ -202,7 +196,8 @@ impl Font {
 
         unsafe {
             RenderState_PushBlendMode(1);
-            Draw_Color(color.r, color.g, color.b, color.a);
+            Shader_Start(&mut *self.0.as_ref().shader.borrow_mut());
+            Shader_SetFloat4(c_str!("color"), color.r, color.g, color.b, color.a);
         }
 
         for c in text.chars() {
@@ -211,6 +206,7 @@ impl Font {
             self.get_glyph(code_point);
 
             let mut font_data = self.0.as_mut();
+
             let face = font_data.handle;
             let glyph = font_data.glyphs.get_mut(&code_point);
 
@@ -221,20 +217,15 @@ impl Font {
 
                 let x0: f32 = x + glyph.x0 as f32;
                 let y0: f32 = y + glyph.y0 as f32;
-                let x1: f32 = x + glyph.x1 as f32;
-                let y1: f32 = y + glyph.y1 as f32;
+                let xs: f32 = (*glyph).sx as f32;
+                let ys: f32 = (*glyph).sy as f32;
 
-                Tex2D_DrawEx(
-                    unsafe { &mut *glyph.tex },
-                    x0,
-                    y0,
-                    x1,
-                    y1,
-                    0.0,
-                    0.0,
-                    1.0,
-                    1.0,
-                );
+                unsafe {
+                    Shader_ResetTexIndex();
+                    Shader_SetTex2D(c_str!("glyph"), &mut *glyph.tex);
+                }
+
+                Draw_RectEx(x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
 
                 x += glyph.advance as f32;
                 glyph_last = glyph.index;
@@ -244,65 +235,11 @@ impl Font {
         }
 
         unsafe {
-            Draw_Color(1.0, 1.0, 1.0, 1.0);
+            Shader_Stop(&*self.0.as_ref().shader.borrow());
             RenderState_PopBlendMode();
 
             Profiler_End();
         }
-    }
-
-    pub fn draw_shaded(&self, text: &str, mut x: f32, mut y: f32) {
-        unsafe { Profiler_Begin(c_str!("Font_DrawShaded")) };
-
-        let mut glyph_last: i32 = 0;
-
-        x = f64::floor(x as f64) as f32;
-        y = f64::floor(y as f64) as f32;
-
-        for c in text.chars() {
-            let code_point = c as u32;
-
-            self.get_glyph(code_point);
-
-            let mut font_data = self.0.as_mut();
-            let face = font_data.handle;
-            let glyph = font_data.glyphs.get_mut(&code_point);
-
-            if let Some(glyph) = glyph {
-                if glyph_last != 0 {
-                    x += self.get_kerning(face, glyph_last, glyph.index) as f32;
-                }
-
-                let x0: f32 = x + (*glyph).x0 as f32;
-                let y0: f32 = y + (*glyph).y0 as f32;
-                let x1: f32 = x + (*glyph).x1 as f32;
-                let y1: f32 = y + (*glyph).y1 as f32;
-
-                unsafe {
-                    Shader_ResetTexIndex();
-                    Shader_SetTex2D(c_str!("glyph"), &mut *glyph.tex);
-                }
-
-                Tex2D_DrawEx(
-                    unsafe { &mut *glyph.tex },
-                    x0,
-                    y0,
-                    x1,
-                    y1,
-                    0.0,
-                    0.0,
-                    1.0,
-                    1.0,
-                );
-
-                x += glyph.advance as f32;
-                glyph_last = glyph.index;
-            } else {
-                glyph_last = 0;
-            }
-        }
-
-        unsafe { Profiler_End() };
     }
 
     pub fn get_line_height(&self) -> i32 {

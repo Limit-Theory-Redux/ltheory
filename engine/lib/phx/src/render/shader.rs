@@ -388,7 +388,7 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_Stop(_s: *mut Shader) {
+pub unsafe extern "C" fn Shader_Stop(_: &Shader) {
     glcheck!(gl::UseProgram(0));
     current = std::ptr::null_mut();
 }
@@ -657,4 +657,8 @@ pub unsafe extern "C" fn Shader_ISetTexCube(index: i32, value: &mut TexCube) {
         TexCube_GetHandle(value)
     ));
     glcheck!(gl::ActiveTexture(gl::TEXTURE0));
+}
+
+pub fn get_current_program() -> Option<gl::types::GLuint> {
+    unsafe { current.as_ref().map(|r| r.program) }
 }

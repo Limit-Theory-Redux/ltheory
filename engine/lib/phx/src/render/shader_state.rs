@@ -336,5 +336,5 @@ pub unsafe extern "C" fn ShaderState_Start(this: &mut ShaderState) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Stop(this: &mut ShaderState) {
-    Shader_Stop(this.shader);
+    Shader_Stop(&*this.shader);
 }

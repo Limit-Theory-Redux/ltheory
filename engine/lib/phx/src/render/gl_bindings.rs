@@ -8,8 +8,6 @@ pub mod gl {
             INVALID_OPERATION => "GL_INVALID_OPERATION",
             INVALID_FRAMEBUFFER_OPERATION => "GL_INVALID_FRAMEBUFFER_OPERATION",
             OUT_OF_MEMORY => "GL_OUT_OF_MEMORY",
-            STACK_UNDERFLOW => "GL_STACK_UNDERFLOW",
-            STACK_OVERFLOW => "GL_STACK_OVERFLOW",
             _ => "unknown error",
         }
     }

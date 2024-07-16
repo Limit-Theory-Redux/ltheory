@@ -1,10 +1,9 @@
-use glam::Vec2;
-
+use super::*;
 use crate::common::*;
 use crate::math::*;
 use crate::render::*;
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct UIRendererLayer {
     pub parent: Option<UIRendererLayerId>,
     pub next: Option<UIRendererLayerId>,
@@ -21,7 +20,17 @@ pub struct UIRendererLayer {
 }
 
 impl UIRendererLayer {
-    pub fn draw(&self, renderer: &UIRenderer) {
+    pub fn draw(
+        &self,
+        panel_shader: &mut Shader,
+        image_shader: &mut Shader,
+        rect_shader: &mut Shader,
+        layers: &Vec<UIRendererLayer>,
+        images: &Vec<UIRendererImage>,
+        panels: &Vec<UIRendererPanel>,
+        rects: &Vec<UIRendererRect>,
+        texts: &Vec<UIRendererText>,
+    ) {
         unsafe {
             if self.clip {
                 // extend clip area by 1 pixel to avoid border overlapping
@@ -34,24 +43,14 @@ impl UIRendererLayer {
             }
 
             if self.panel_id.is_some() {
-                // TODO: Store the shader in the UI renderer and use a Rf/Box to manage its memory.
-                static mut SHADER: *mut Shader = std::ptr::null_mut();
-
-                if SHADER.is_null() {
-                    SHADER = Box::into_raw(Shader_Load(
-                        c_str!("vertex/ui"),
-                        c_str!("fragment/ui/panel"),
-                    ));
-                }
-
-                Shader_Start(&mut *SHADER);
+                Shader_Start(panel_shader);
 
                 let pad: f32 = 64.0;
                 Shader_SetFloat(c_str!("padding"), pad);
 
                 let mut panel_id_opt = self.panel_id;
                 while let Some(panel_id) = panel_id_opt {
-                    let panel = &renderer.panels[*panel_id];
+                    let panel = &panels[*panel_id];
 
                     let x = panel.pos.x - pad;
                     let y = panel.pos.y - pad;
@@ -74,28 +73,33 @@ impl UIRendererLayer {
                     panel_id_opt = panel.next;
                 }
 
-                Shader_Stop(SHADER);
+                Shader_Stop(panel_shader);
             }
 
             let mut image_id_opt = self.image_id;
             while let Some(image_id) = image_id_opt {
-                let image = &renderer.images[*image_id];
+                let image = &images[*image_id];
 
-                Tex2D_Draw(
-                    &mut *image.image,
-                    image.pos.x,
-                    image.pos.y,
-                    image.size.x,
-                    image.size.y,
-                );
+                Shader_Start(image_shader);
+                Shader_ResetTexIndex();
+                Shader_SetTex2D(c_str!("image"), &mut *image.image);
+                Draw_Rect(image.pos.x, image.pos.y, image.size.x, image.size.y);
+                Shader_Stop(image_shader);
                 image_id_opt = image.next;
             }
 
             let mut rect_id_opt = self.rect_id;
             while let Some(rect_id) = rect_id_opt {
-                let rect = &renderer.rects[*rect_id];
+                let rect = &rects[*rect_id];
 
-                Draw_Color(rect.color.r, rect.color.g, rect.color.b, rect.color.a);
+                Shader_Start(rect_shader);
+                Shader_SetFloat4(
+                    c_str!("color"),
+                    rect.color.r,
+                    rect.color.g,
+                    rect.color.b,
+                    rect.color.a,
+                );
 
                 if let Some(s) = rect.outline {
                     Draw_Border(s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
@@ -103,12 +107,14 @@ impl UIRendererLayer {
                     Draw_Rect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
                 }
 
+                Shader_Stop(rect_shader);
+
                 rect_id_opt = rect.next;
             }
 
             let mut text_id_opt = self.text_id;
             while let Some(text_id) = text_id_opt {
-                let text = &renderer.texts[*text_id];
+                let text = &texts[*text_id];
 
                 (&*text.font).draw(&text.text, text.pos.x, text.pos.y, &text.color);
 
@@ -117,9 +123,18 @@ impl UIRendererLayer {
 
             let mut layer_id_opt = self.children;
             while let Some(layer_id) = layer_id_opt {
-                let layer = &renderer.layers[*layer_id];
+                let layer = &layers[*layer_id];
 
-                layer.draw(renderer);
+                layer.draw(
+                    panel_shader,
+                    image_shader,
+                    rect_shader,
+                    layers,
+                    images,
+                    panels,
+                    rects,
+                    texts,
+                );
 
                 layer_id_opt = layer.next;
             }

@@ -107,7 +107,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: &mut Mesh, radius: f32) {
     Shader_SetTex2D(c_str!("vPointBuffer"), &mut *texVPoints);
     Shader_SetTex2D(c_str!("vNormalBuffer"), &mut *texVNormals);
     Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
-    Shader_Stop(shader);
+    Shader_Stop(&*shader);
     RenderTarget_Pop();
     RenderState_PopAll();
     let result: *mut f32 = MemNewArray!(f32, (vDim * vDim));
@@ -165,7 +165,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: &mut Mesh, sdf: *mut Tex3D,
     Shader_SetTex2D(c_str!("points"), &mut *texPoints);
     Shader_SetTex3D(c_str!("sdf"), &mut *sdf);
     Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
-    Shader_Stop(shader);
+    Shader_Stop(&*shader);
     RenderTarget_Pop();
     RenderState_PopAll();
     let result: *mut f32 = MemNewArray!(f32, (vDim * vDim));
