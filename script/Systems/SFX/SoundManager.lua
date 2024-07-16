@@ -10,11 +10,17 @@ function SoundManager:init()
     for _, soundGroup in pairs(Enums.SoundGroups) do
         self.groups[soundGroup] = {}
     end
+
+    self:registerEvents()
+end
+
+function SoundManager:registerEvents()
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostFrame), self, self.onPostFrame)
 end
 
 function SoundManager:canSoundPlay(soundGroup)
     if (not self.groups[soundGroup] or
-        #self.groups[soundGroup] < Enums.SoundGroupLimits[soundGroup]) and
+            #self.groups[soundGroup] < Enums.SoundGroupLimits[soundGroup]) and
         GameState.audio.soundEnabled then
         return true
     end
@@ -69,7 +75,7 @@ function SoundManager:getSoundsPlaying(soundGroup)
     return nil
 end
 
-function SoundManager:update(dt)
+function SoundManager:onPostFrame(dt)
     -- Clean up finished sounds.
     if self.lastClean:getElapsed() > CLEAN_EVERY_S then
         local instanceCount = 0
@@ -95,7 +101,7 @@ function SoundManager:update(dt)
     if audio:listenerPos():distanceSquared(audio:originPos()) > (UPDATE_DIST * UPDATE_DIST) then
         local newOrigin = audio:listenerPos()
         audio:setOriginPos(newOrigin)
-        
+
         -- Update all playing sounds.
         for _, soundGroup in ipairs(self.groups) do
             for _, soundInstance in ipairs(soundGroup) do

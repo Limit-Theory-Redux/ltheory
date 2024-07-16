@@ -75,16 +75,16 @@ function Application:appInit()
 end
 
 function Application:registerEvents()
-    EventBusInstance:subscribe("PreSim", self, self.onPreSim)
-    EventBusInstance:subscribe("Sim", self, self.onSim)
-    EventBusInstance:subscribe("PostSim", self, self.onPostSim)
-    EventBusInstance:subscribe("PreFrame", self, self.onPreFrame)
-    EventBusInstance:subscribe("Frame", self, self.onFrame)
-    EventBusInstance:subscribe("PostFrame", self, self.onPostFrame)
-    EventBusInstance:subscribe("FrameInterpolation", self, self.onFrameInterpolation)
-    EventBusInstance:subscribe("PreInput", self, self.onPreInput)
-    EventBusInstance:subscribe("Input", self, self.onInput)
-    EventBusInstance:subscribe("PostInput", self, self.onPostInput)
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreSim), self, self.onPreSim)
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Sim), self, self.onSim)
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostSim), self, self.onPostSim)
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreFrame), self, self.onPreFrame)
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Frame), self, self.onFrame)
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostFrame), self, self.onPostFrame)
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.FrameInterpolation), self, self.onFrameInterpolation)
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreInput), self, self.onPreInput)
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Input), self, self.onInput)
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostInput), self, self.onPostInput)
 end
 
 function Application:onPreSim() end

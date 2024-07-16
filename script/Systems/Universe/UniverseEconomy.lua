@@ -16,6 +16,10 @@ function UniverseEconomy:init()
     self.nextUpdate = 0
 end
 
+function UniverseEconomy:registerEvents()
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostSim), self, self.onPostSim)
+end
+
 local function addSystemGenerics(system)
     -- Add system-wide AI director
     system.tradeAI = Entities.Player("AI Trade Player")
@@ -209,7 +213,7 @@ local function addEscorts(system)
     end
 end
 
-function UniverseEconomy:onUpdate(dt)
+function UniverseEconomy:onPostSim(dt)
     self.econDelta = self.econDelta + dt
     -- High Attention
     for _, system in ipairs(self.systems.highAttention) do

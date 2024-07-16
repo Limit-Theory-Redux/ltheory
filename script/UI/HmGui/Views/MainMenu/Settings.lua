@@ -17,11 +17,11 @@ function SettingsView:onViewClose(isPageClose) end
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
 local settingsCategory = 1
-local settingsCategoryNames = { { "GENERAL",   "General"   },
-                                { "AUDIO",     "Audio"     },
-                                { "GRAPHICS",  "Graphics"  },
-                                { "INTERFACE", "Interface" },
-                                { "KEYBINDS",  "Keybinds"  } }
+local settingsCategoryNames = { { "GENERAL", "General" },
+    { "AUDIO",     "Audio" },
+    { "GRAPHICS",  "Graphics" },
+    { "INTERFACE", "Interface" },
+    { "KEYBINDS",  "Keybinds" } }
 
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
@@ -142,7 +142,7 @@ local function settingsAudio()
                                 currentValue = function() return GameState.audio.soundEnabled end, -- send value back to component
                                 callback = function(v)
                                     GameState.audio.soundEnabled = v;
-                                    MusicPlayer:SetGlobalVolume();
+                                    MusicPlayer:setGlobalVolume();
                                 end -- get value change from component
                             },
                             UIComponent.Slider {
@@ -156,7 +156,7 @@ local function settingsAudio()
                                 minValue = 0,
                                 maxValue = 1,
                                 currentValue = GameState.audio.musicVolume,
-                                callback = function(v) MusicPlayer:SetVolume(v) end
+                                callback = function(v) MusicPlayer:setVolume(v) end
                             }
                         }
                     }
@@ -216,7 +216,8 @@ local function settingsGraphics()
                                 currentValue = function() return GameState.render.fullscreen end, -- send value back to component
                                 callback = function(v)
                                     GameState.render.fullscreen = v;
-                                    WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
+                                    WindowInstance:setFullscreen(GameState.render.fullscreen,
+                                        GameState.render.fullscreenExclusive);
                                 end -- get value change from component
                             },
                             UIComponent.Switch {
@@ -228,7 +229,8 @@ local function settingsGraphics()
                                 currentValue = function() return GameState.render.fullscreenExclusive end, -- send value back to component
                                 callback = function(v)
                                     GameState.render.fullscreenExclusive = v;
-                                    WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
+                                    WindowInstance:setFullscreen(GameState.render.fullscreen,
+                                        GameState.render.fullscreenExclusive);
                                 end -- get value change from component
                             },
                             UIComponent.Slider {

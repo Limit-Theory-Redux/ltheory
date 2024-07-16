@@ -88,13 +88,13 @@ end
 function LimitTheoryRedux:SoundOn()
     GameState.audio.soundEnabled = true
     --Log.Debug("LimitTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
-    MusicPlayer:SetVolume(MusicPlayer.lastVolume)
+    MusicPlayer:setVolume(MusicPlayer.lastVolume)
 end
 
 function LimitTheoryRedux:SoundOff()
     GameState.audio.soundEnabled = false
     --Log.Debug("LimitTheoryRedux:SoundOff: volume set to 0")
-    MusicPlayer:SetVolume(0)
+    MusicPlayer:setVolume(0)
 end
 
 function LimitTheoryRedux:ToggleFullscreen()
@@ -404,8 +404,8 @@ function LimitTheoryRedux:createStarSystem()
 
     if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         -- TODO: replace with gamestate event system
-        Log.Debug("LimitTheoryRedux: PlayAmbient")
-        MusicPlayer:PlayAmbient()
+        Log.Debug("LimitTheoryRedux: playAmbient")
+        MusicPlayer:playAmbient()
 
         DebugControl.ltheory = self
         self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)

@@ -133,8 +133,8 @@ function Test:createStarSystem()
 
     if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         -- TODO: replace with gamestate event system
-        Log.Debug("LimitTheoryRedux: PlayAmbient")
-        MusicPlayer:PlayAmbient()
+        Log.Debug("LimitTheoryRedux: playAmbient")
+        MusicPlayer:playAmbient()
 
         DebugControl.ltheory = self
         self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)

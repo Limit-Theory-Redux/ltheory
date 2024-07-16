@@ -17,10 +17,15 @@ function MusicPlayer:Init()
 
     self.lastVolume = self.volume
 
-    self:LoadMusic()
+    self:loadMusic()
+    self:registerEvents()
 end
 
-function MusicPlayer:SetVolume(volume, fadeMS)
+function MusicPlayer:registerEvents()
+    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreFrame), self, self.onPreFrame)
+end
+
+function MusicPlayer:setVolume(volume, fadeMS)
     if volume == self.volume then
         return
     end
@@ -33,24 +38,24 @@ function MusicPlayer:SetVolume(volume, fadeMS)
     end
 
     for _, soundObject in ipairs(self.trackList) do
-        -- Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, volume)
-        soundObject:SetVolume(volume, fadeMS)
+        -- Log.Debug("MusicPlayer:setVolume: volume for '%s' set to %s", soundObject.name, volume)
+        soundObject:setVolume(volume, fadeMS)
     end
 end
 
-function MusicPlayer:SetGlobalVolume()
+function MusicPlayer:setGlobalVolume()
     local actualVolume = GameState.audio.musicVolume
     if not GameState.audio.soundEnabled then
         actualVolume = 0
     end
 
     for _, soundObject in ipairs(self.trackList) do
-        -- Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, actualVolume)
-        soundObject:SetVolume(actualVolume, 0)
+        -- Log.Debug("MusicPlayer:setVolume: volume for '%s' set to %s", soundObject.name, actualVolume)
+        soundObject:setVolume(actualVolume, 0)
     end
 end
 
-function MusicPlayer:OnUpdate(dt)
+function MusicPlayer:onPreFrame(dt)
     if GameState.audio.musicVolume ~= self.volume then
         self.volume = GameState.audio.musicVolume
     end
@@ -75,28 +80,28 @@ function MusicPlayer:OnUpdate(dt)
     end
 end
 
-function MusicPlayer:PlayAmbient()
+function MusicPlayer:playAmbient()
     -- Queue all tracks except Main Menu track
-    MusicPlayer:ClearQueue()
+    MusicPlayer:clearQueue()
 
     for index, soundObject in ipairs(self.trackList) do
         if not string.match(soundObject.name, Config.audio.general.mainMenu) then
             -- ignore main menu
             -- replace this with music types later
-            -- Log.Debug("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)
-            MusicPlayer:QueueTrack(soundObject, false)
+            -- Log.Debug("MusicPlayer:playAmbient: queueTrack(false) for '%s'", soundObject.name)
+            MusicPlayer:queueTrack(soundObject, false)
         end
     end
 
     -- Randomly select a track loaded to the queue and start playing it
     local trackNum = RNG.FromTime():getInt(1, #self.queue)
-    MusicPlayer:StartTrack(self.queue[trackNum])
+    MusicPlayer:startTrack(self.queue[trackNum])
 end
 
-function MusicPlayer:QueueTrack(query, clearQueue)
+function MusicPlayer:queueTrack(query, clearQueue)
     -- Add a track to the queue (possibly deleting all queued tracks first)
     -- Note: This just adds tracks to the queue; it doesn't start playing any of them
-    local track = self:FindTrack(query)
+    local track = self:findTrack(query)
 
     if not track then
         Log.Warn("No track found for query")
@@ -104,7 +109,7 @@ function MusicPlayer:QueueTrack(query, clearQueue)
     end
 
     if clearQueue then
-        MusicPlayer:ClearQueue()
+        MusicPlayer:clearQueue()
     end
 
     table.insert(self.queue, track)
@@ -113,9 +118,9 @@ function MusicPlayer:QueueTrack(query, clearQueue)
     return track
 end
 
-function MusicPlayer:ClearQueue()
+function MusicPlayer:clearQueue()
     if #self.queue > 0 then
-        -- Log.Debug("MusicPlayer:ClearQueue: clearing entire queue")
+        -- Log.Debug("MusicPlayer:clearQueue: clearing entire queue")
         self.queue = {}
         if self.currentlyPlaying then
             self.currentlyPlaying:Stop()
@@ -124,7 +129,7 @@ function MusicPlayer:ClearQueue()
     end
 end
 
-function MusicPlayer:ClearQueueTrack(query)
+function MusicPlayer:clearQueueTrack(query)
     if #self.queue > 0 then
         if self.currentlyPlaying and self.currentlyPlaying == query then
             self.currentlyPlaying:Stop()
@@ -132,7 +137,7 @@ function MusicPlayer:ClearQueueTrack(query)
         end
         for i, track in ipairs(self.queue) do
             if track == query then
-                -- Log.Debug("MusicPlayer:ClearQueueTrack: clearing queued track '%s'", query.name)
+                -- Log.Debug("MusicPlayer:clearQueueTrack: clearing queued track '%s'", query.name)
                 table.remove(self.queue, i)
                 break
             end
@@ -140,27 +145,27 @@ function MusicPlayer:ClearQueueTrack(query)
     end
 end
 
-function MusicPlayer:StartTrack(query, fadeInMS)
-    local track = self:FindTrack(query)
+function MusicPlayer:startTrack(query, fadeInMS)
+    local track = self:findTrack(query)
     if self.currentlyPlaying ~= track then
-        -- Log.Debug("MusicPlayer:StartTrack: playing track '%s' with volume %s", track.name, self.volume)
+        -- Log.Debug("MusicPlayer:startTrack: playing track '%s' with volume %s", track.name, self.volume)
         track:Rewind()
         track:Play(self.volume, fadeInMS)
         self.currentlyPlaying = track
     end
 end
 
-function MusicPlayer:StopTrack(query)
-    local track = self:FindTrack(query)
+function MusicPlayer:stopTrack(query)
+    local track = self:findTrack(query)
     if track and self.currentlyPlaying == track then
-        -- Log.Debug("MusicPlayer:StopTrack: stopping track '%s'", track.name)
+        -- Log.Debug("MusicPlayer:stopTrack: stopping track '%s'", track.name)
         track:Pause()
         track:Rewind()
         self.currentlyPlaying = nil
     end
 end
 
-function MusicPlayer:FindTrack(query)
+function MusicPlayer:findTrack(query)
     for _, soundObject in pairs(self.trackList) do
         if type(query) == "string" then
             if string.find(soundObject.name, query) then
@@ -174,7 +179,7 @@ function MusicPlayer:FindTrack(query)
     return nil
 end
 
-function MusicPlayer:LoadMusic()
+function MusicPlayer:loadMusic()
     for _, fname in ipairs(io.listdirex(Config.paths.soundAmbiance)) do
         local path = Config.paths.soundAmbiance .. fname
         local fileUnsupported = false
