@@ -556,6 +556,7 @@ fn create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> gl::types:
     glcheck!(gl::BindAttribLocation(this, 0, c_str!("vertex_position")));
     glcheck!(gl::BindAttribLocation(this, 1, c_str!("vertex_normal")));
     glcheck!(gl::BindAttribLocation(this, 2, c_str!("vertex_uv")));
+    glcheck!(gl::BindAttribLocation(this, 3, c_str!("vertex_color")));
 
     glcheck!(gl::LinkProgram(this));
 
