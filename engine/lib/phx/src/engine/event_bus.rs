@@ -85,12 +85,12 @@ impl EventBus {
 
     // todo event action queue & manual dispatching
     pub fn dispatch(&self, update_pass: UpdatePass, engine: &Engine) {
+        let globals = engine.lua.globals();
+        let event_tunnels = globals.get("EventTunnels").expect("Unknown table");
+
         if let Some(event_heap) = self.update_pass_map.get(&update_pass) {
             let mut events: Vec<_> = event_heap.iter().collect();
             events.sort_by(|a, b| a.priority.cmp(&b.priority)); // Sort events without cloning
-
-            let globals = engine.lua.globals();
-            let event_tunnels: Table = globals.get("EventTunnels").expect("Unknown table");
 
             for event_item in events {
                 if let Some(event) = self.events.get(&event_item.name) {
@@ -211,6 +211,24 @@ impl EventBus {
             "Unsubscribed from event and closed tunnel with id: {}",
             tunnel_id
         );
+    }
+
+    pub fn send(&self, event_name: String, entity_id: i32) {
+        if let Some(event) = self.events.get(&event_name) {
+            // dispatch event with entity_id payload
+            for subscriber in &event.subscribers {
+                if subscriber.entity_id == Some(entity_id) {
+                    let id = subscriber.tunnel_id;
+
+                    // let tunnel_func: Function = event_tunnels
+                    //     .get(id)
+                    //     .expect(&format!("Unknown tunnel with id: {}", id));
+                    // if let Err(e) = tunnel_func.call::<_, ()>(()) {
+                    //     trace!("{}", e);
+                    // }
+                }
+            }
+        }
     }
 
     pub fn print_update_pass_map(&self) {

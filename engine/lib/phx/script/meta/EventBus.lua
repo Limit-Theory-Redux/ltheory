@@ -19,5 +19,9 @@ function EventBus:subscribe(eventName, entityId) end
 ---@param tunnelId integer
 function EventBus:unsubscribe(tunnelId) end
 
+---@param eventName string
+---@param entityId integer
+function EventBus:send(eventName, entityId) end
+
 function EventBus:printUpdatePassMap() end
 
