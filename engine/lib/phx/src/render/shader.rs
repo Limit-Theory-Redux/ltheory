@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -16,7 +15,6 @@ use crate::system::*;
 const INCLUDE_PATH: &str = "include/";
 
 static mut CURRENT: *mut Shader = std::ptr::null_mut();
-static mut CACHE: *mut HashMap<String, GLSLCode> = std::ptr::null_mut();
 
 #[derive(Clone)]
 pub struct Shader {
@@ -55,24 +53,7 @@ impl Drop for ShaderShared {
 
 impl GLSLCode {
     fn load(name: &str) -> GLSLCode {
-        unsafe {
-            if CACHE.is_null() {
-                let cache = Box::new(HashMap::with_capacity(16));
-                CACHE = Box::into_raw(cache);
-            }
-
-            let cached = (*CACHE).get(name).cloned();
-            if cached.is_some() {
-                return cached.unwrap();
-            }
-        }
-
-        let code = Self::preprocess(&Resource::load_string(ResourceType::Shader, name));
-
-        // Disable GLSL caching until preprocessor cache works.
-        //(*CACHE).insert(name.to_string(), c_code.clone());
-
-        code
+        Self::preprocess(&Resource::load_string(ResourceType::Shader, name))
     }
 
     fn preprocess(code: &str) -> GLSLCode {
@@ -325,13 +306,6 @@ impl Shader {
     }
 
     pub fn clear_cache() {
-        unsafe {
-            if !CACHE.is_null() {
-                (*CACHE).clear();
-                let _cache = Box::from(CACHE);
-                CACHE = std::ptr::null_mut();
-            }
-        }
     }
 
     pub fn reset_tex_index() {
