@@ -102,29 +102,29 @@ impl ShaderState {
     }
 
     pub fn set_tex1d(&mut self, name: &str, t: &mut Tex1D) {
-        Tex1D_Acquire(t);
         if let Some(index) = self.shader.get_uniform_index(name) {
+            Tex1D_Acquire(t);
             self.elems.push((index, ShaderVarData::Tex1D(t)));
         }
     }
 
     pub fn set_tex2d(&mut self, name: &str, t: &mut Tex2D) {
-        Tex2D_Acquire(t);
         if let Some(index) = self.shader.get_uniform_index(name) {
+            Tex2D_Acquire(t);
             self.elems.push((index, ShaderVarData::Tex2D(t)));
         }
     }
 
     pub fn set_tex3d(&mut self, name: &str, t: &mut Tex3D) {
-        Tex3D_Acquire(t);
         if let Some(index) = self.shader.get_uniform_index(name) {
+            Tex3D_Acquire(t);
             self.elems.push((index, ShaderVarData::Tex3D(t)));
         }
     }
 
     pub fn set_tex_cube(&mut self, name: &str, t: &mut TexCube) {
-        TexCube_Acquire(t);
         if let Some(index) = self.shader.get_uniform_index(name) {
+            TexCube_Acquire(t);
             self.elems.push((index, ShaderVarData::TexCube(t)));
         }
     }

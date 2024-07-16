@@ -305,9 +305,6 @@ impl Shader {
         Self::set_current(None);
     }
 
-    pub fn clear_cache() {
-    }
-
     pub fn reset_tex_index() {
         *Self::get_current_checked()
             .shared

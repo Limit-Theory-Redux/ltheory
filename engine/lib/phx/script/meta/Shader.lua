@@ -34,8 +34,6 @@ function Shader:start() end
 
 function Shader:stop() end
 
-function Shader.ClearCache() end
-
 function Shader.ResetTexIndex() end
 
 ---@param name string
