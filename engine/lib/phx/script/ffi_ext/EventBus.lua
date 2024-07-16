@@ -2,6 +2,7 @@ local libphx = require('libphx').lib
 
 function onDef_EventBus_t(t, mt)
     -- todo add LS definitions
+    -- todo should also return a handler
     mt.__index.subscribe = function(self, eventName, ctxTable, callback)
         local tunnelId = libphx.EventBus_Subscribe(self, eventName)
         EventTunnels[tunnelId] = function() callback(ctxTable) end
