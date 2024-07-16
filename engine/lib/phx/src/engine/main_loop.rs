@@ -256,6 +256,7 @@ impl ApplicationHandler for MainLoop {
 
         // Let Lua script perform frame operations
         engine.call_lua_func("AppFrame");
+        engine.event_bus.dispatch_all(&engine); // Todo: handle lua function calls via events instead of AppFrame
 
         // Apply window changes made by a script
         engine.changed_window();

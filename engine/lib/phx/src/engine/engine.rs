@@ -1,6 +1,7 @@
 use glam::*;
 use mlua::{Function, Lua};
 use std::path::PathBuf;
+use strum::IntoEnumIterator;
 use tracing::*;
 use winit::dpi::*;
 use winit::event_loop::*;
@@ -15,7 +16,9 @@ use crate::system::*;
 use crate::ui::hmgui::HmGui;
 use crate::window::*;
 
+use super::EventBus;
 use super::MainLoop;
+use super::UpdatePass;
 
 pub struct Engine {
     pub init_time: TimeStamp,
@@ -26,6 +29,7 @@ pub struct Engine {
     pub input: Input,
     pub exit_app: bool,
     pub lua: Lua,
+    pub event_bus: EventBus,
 }
 
 impl Engine {
@@ -54,6 +58,26 @@ impl Engine {
         winit_window.resume();
         let scale_factor = window.scale_factor();
 
+        let mut event_bus = EventBus::new();
+
+        // Create an event for every update pass and set it at a high priority
+        for update_pass in UpdatePass::iter() {
+            event_bus.register(
+                format!("{:?}", update_pass.clone()),
+                Some(32767),
+                update_pass.clone(),
+            );
+        }
+
+        event_bus.register(format!("MyFavoriteEvent"), Some(100), UpdatePass::PreFrame);
+        event_bus.register(
+            format!("MyLeastFavoriteEvent"),
+            Some(0),
+            UpdatePass::PreFrame,
+        );
+
+        event_bus.print_update_pass_map();
+
         Self {
             init_time: TimeStamp::now(),
             window,
@@ -63,6 +87,7 @@ impl Engine {
             input: Default::default(),
             exit_app: false,
             lua,
+            event_bus,
         }
     }
 
@@ -322,6 +347,11 @@ impl Engine {
 
     pub fn input(&mut self) -> &mut Input {
         &mut self.input
+    }
+
+    #[bind(name = "EventBus")]
+    pub fn event_bus(&mut self) -> &mut EventBus {
+        &mut self.event_bus
     }
 
     #[bind(name = "HmGui")]

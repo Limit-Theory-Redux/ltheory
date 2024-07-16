@@ -44,6 +44,8 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 winit = "0.30"
 walkdir = "2.4"
+strum = "0.26"
+strum_macros = "0.26"
 
 [build-dependencies]
 gl_generator = "0.14"

@@ -5,12 +5,16 @@ package.path = package.path .. ';./script/?.ffi.lua'
 
 ---@type Engine
 EngineInstance = {}
+---@type EventBus
+EventBusInstance = {}
 ---@type Input
 InputInstance = {}
 ---@type Window
 WindowInstance = {}
 ---@type HmGui
 Gui = {}
+
+EventTest = function() end
 
 require('Init')
 
@@ -20,6 +24,7 @@ function SetEngine(engine)
     ---@type Engine
     EngineInstance = ffi.cast('Engine*', engine)
 
+    EventBusInstance = EngineInstance:eventBus()
     InputInstance = EngineInstance:input()
     WindowInstance = EngineInstance:window()
     Gui = EngineInstance:hmGui()
