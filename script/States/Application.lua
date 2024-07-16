@@ -36,6 +36,8 @@ end
 -- Application Template --------------------------------------------------------
 
 function Application:appInit()
+    self:registerEvents()
+
     self.resX, self.resY = self:getDefaultSize()
 
     WindowInstance:setTitle(self:getTitle())
@@ -70,6 +72,10 @@ function Application:appInit()
     self.profiling = false
     self.toggleProfiler = false
     self.showBackgroundModeHints = true
+end
+
+function Application:registerEvents()
+    EventBusInstance:subscribe("Frame", self, self.onFrame)
 end
 
 function Application:onFrame()
