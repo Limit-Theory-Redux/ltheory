@@ -33,11 +33,11 @@ function LimitTheoryRedux:onInit()
     self:initMainMenu(true)
 end
 
----@param dt integer
----@diagnostic disable-next-line: duplicate-set-field
-function LimitTheoryRedux:onInput()
-    GameState.render.uiCanvas:input()
-end
+-----@param dt integer
+-----@diagnostic disable-next-line: duplicate-set-field
+--function LimitTheoryRedux:onInput()
+--    GameState.render.uiCanvas:input()
+--end
 
 ---@param dt integer
 ---@diagnostic disable-next-line: duplicate-set-field

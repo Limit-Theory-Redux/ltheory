@@ -299,7 +299,9 @@ function Application:onInput()
         self.showBackgroundModeHints = not self.showBackgroundModeHints
     end
 
-    self:onInput()
+    --! why is this needed for the game to render and update lol
+    GameState.render.uiCanvas:input()
+
     Profiler.End()
 end
 
