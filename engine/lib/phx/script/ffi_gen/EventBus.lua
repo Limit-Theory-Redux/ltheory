@@ -19,9 +19,7 @@ function Loader.defineType()
             void EventBus_Free               (EventBus*);
             void EventBus_Register           (EventBus*, cstr eventName, int16 const* priority, UpdatePass* updatePass);
             void EventBus_Unregister         (EventBus*, cstr eventName);
-            void EventBus_Dispatch           (EventBus const*, UpdatePass* updatePass, Engine const* engine);
-            void EventBus_DispatchAll        (EventBus const*, Engine const* engine);
-            int  EventBus_Subscribe          (EventBus*, cstr eventName);
+            int  EventBus_Subscribe          (EventBus*, cstr eventName, int const* entityId);
             void EventBus_Unsubscribe        (EventBus*, int tunnelId);
             void EventBus_PrintUpdatePassMap (EventBus const*);
         ]]
@@ -40,8 +38,6 @@ function Loader.defineType()
             __index = {
                 register           = libphx.EventBus_Register,
                 unregister         = libphx.EventBus_Unregister,
-                dispatch           = libphx.EventBus_Dispatch,
-                dispatchAll        = libphx.EventBus_DispatchAll,
                 subscribe          = libphx.EventBus_Subscribe,
                 unsubscribe        = libphx.EventBus_Unsubscribe,
                 printUpdatePassMap = libphx.EventBus_PrintUpdatePassMap,

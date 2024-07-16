@@ -35,6 +35,7 @@ pub enum EventPayload {
 #[derive(Debug, Clone)]
 pub struct Subscriber {
     tunnel_id: i32,
+    entity_id: Option<i32>,
 }
 
 #[derive(Debug, Clone)]
@@ -76,9 +77,43 @@ pub struct EventBus {
 impl EventBus {
     pub fn new() -> Self {
         Self {
-            events: HashMap::new(),
-            update_pass_map: HashMap::new(),
             next_tunnel_id: AtomicI32::new(0),
+            update_pass_map: HashMap::new(),
+            events: HashMap::new(),
+        }
+    }
+
+    // todo event action queue & manual dispatching
+    pub fn dispatch(&self, update_pass: UpdatePass, engine: &Engine) {
+        if let Some(event_heap) = self.update_pass_map.get(&update_pass) {
+            let mut events: Vec<_> = event_heap.iter().collect();
+            events.sort_by(|a, b| a.priority.cmp(&b.priority)); // Sort events without cloning
+
+            let globals = engine.lua.globals();
+            let event_tunnels: Table = globals.get("EventTunnels").expect("Unknown table");
+
+            for event_item in events {
+                if let Some(event) = self.events.get(&event_item.name) {
+                    for subscriber in &event.subscribers {
+                        let id = subscriber.tunnel_id;
+
+                        let tunnel_func: Function = event_tunnels
+                            .get(id)
+                            .expect(&format!("Unknown tunnel with id: {}", id));
+                        if let Err(e) = tunnel_func.call::<_, ()>(()) {
+                            trace!("{}", e);
+                        }
+                    }
+                } else {
+                    panic!("Event not found: {}", event_item.name);
+                }
+            }
+        }
+    }
+
+    pub fn dispatch_all(&self, engine: &Engine) {
+        for update_pass in UpdatePass::iter() {
+            self.dispatch(update_pass, &engine);
         }
     }
 }
@@ -141,57 +176,18 @@ impl EventBus {
         }
     }
 
-    // todo event action queue & manual dispatching
-    pub fn dispatch(&self, update_pass: UpdatePass, engine: &Engine) {
-        //println!("Dispatching for {:?}", update_pass);
-        // Print the whole map to verify its state before dispatch
-        //self.print_update_pass_map();
-
-        if let Some(event_heap) = self.update_pass_map.get(&update_pass) {
-            //println!("Found {} events for {:?}", event_heap.len(), update_pass);
-            let events: Vec<_> = event_heap.clone().into_sorted_vec();
-
-            let globals = engine.lua.globals();
-            let event_tunnels: Table = globals.get("EventTunnels").expect("Unknown table");
-
-            for event_item in events {
-                if let Some(event) = self.events.get(&event_item.name) {
-                    for subscriber in &event.subscribers {
-                        let id = subscriber.tunnel_id;
-
-                        let tunnel_func: Function = event_tunnels
-                            .get(id)
-                            .expect(&format!("Unknown tunnel {} with id: ", id));
-                        if let Err(e) = tunnel_func.call::<_, ()>(()) {
-                            // todo add delta time arguments
-                            trace!("{}", e);
-                        }
-                    }
-
-                    // (event.callback)(event.payloads.clone());
-                    // println!("Dispatched event: {}", event.name.clone());
-                } else {
-                    panic!("Event not found: {}", event_item.name);
-                }
-            }
-        }
-    }
-
-    pub fn dispatch_all(&self, engine: &Engine) {
-        for update_pass in UpdatePass::iter() {
-            self.dispatch(update_pass, &engine);
-        }
-    }
-
-    pub fn subscribe(&mut self, event_name: String) -> i32 {
+    pub fn subscribe(&mut self, event_name: String, entity_id: Option<i32>) -> i32 {
         let tunnel_id = self.next_tunnel_id.fetch_add(1, Ordering::SeqCst);
 
-        for (_update_pass, event_heap) in &self.update_pass_map {
-            let events: Vec<_> = event_heap.clone().into_sorted_vec();
-            for event_item in events {
+        for event_heap in self.update_pass_map.values() {
+            for event_item in event_heap.iter() {
                 if let Some(event) = self.events.get_mut(&event_item.name) {
-                    if &event_item.name == &event_name {
-                        event.subscribers.push(Subscriber { tunnel_id });
+                    if event_item.name == event_name {
+                        let subscriber = Subscriber {
+                            tunnel_id,
+                            entity_id,
+                        };
+                        event.subscribers.push(subscriber);
                     }
                 }
             }
