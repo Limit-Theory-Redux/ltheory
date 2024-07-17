@@ -1,6 +1,6 @@
 use mlua::{Function, Table};
 use std::{
-    collections::{BinaryHeap, HashMap},
+    collections::{hash_map::Entry, BinaryHeap, HashMap},
     sync::atomic::{AtomicI32, Ordering},
 };
 use strum::IntoEnumIterator;
@@ -138,31 +138,42 @@ impl EventBus {
             // payloads,
         };
 
-        self.events.insert(event_name.clone(), event);
-        let event_item = EventItem {
-            priority,
-            name: event_name.clone(),
-        };
+        match self.events.entry(event_name.clone()) {
+            Entry::Occupied(_) => {
+                println!(
+                    "Warning: You are trying to register an Event '{}' that already exists - Aborting!",
+                    event_name
+                );
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(event);
 
-        self.update_pass_map
-            .entry(update_pass)
-            .or_insert_with(|| {
-                println!("Inserting new BinaryHeap for {:?}", update_pass);
-                BinaryHeap::new()
-            })
-            .push(event_item.clone());
+                let event_item = EventItem {
+                    priority,
+                    name: event_name.clone(),
+                };
 
-        // Verify the event_heap immediately after insertion
-        if let Some(event_heap) = self.update_pass_map.get(&update_pass) {
-            let events: Vec<_> = event_heap.clone().into_sorted_vec();
-            println!(
-                "Event heap size after registration for {:?}: {}",
-                update_pass,
-                event_heap.len()
-            );
-            for event_item in events {
-                if let Some(event) = self.events.get(&event_item.name) {
-                    println!("Registered event: {}", event.name.clone());
+                self.update_pass_map
+                    .entry(update_pass)
+                    .or_insert_with(|| {
+                        println!("Inserting new BinaryHeap for {:?}", update_pass);
+                        BinaryHeap::new()
+                    })
+                    .push(event_item.clone());
+
+                // Verify the event_heap immediately after insertion
+                if let Some(event_heap) = self.update_pass_map.get(&update_pass) {
+                    let events: Vec<_> = event_heap.clone().into_sorted_vec();
+                    println!(
+                        "Event heap size after registration for {:?}: {}",
+                        update_pass,
+                        event_heap.len()
+                    );
+                    for event_item in events {
+                        if let Some(event) = self.events.get(&event_item.name) {
+                            println!("Registered event: {}", event.name.clone());
+                        }
+                    }
                 }
             }
         }
@@ -220,6 +231,7 @@ impl EventBus {
             for subscriber in &event.subscribers {
                 if subscriber.entity_id == Some(entity_id) {
                     let id = subscriber.tunnel_id;
+                    //* instead of calling function here, add to event queue or to next tick and then consume this event */
 
                     // let tunnel_func: Function = event_tunnels
                     //     .get(id)
