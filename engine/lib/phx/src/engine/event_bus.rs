@@ -11,8 +11,6 @@ use tracing::trace;
 
 use internal::ConvertIntoString;
 
-use super::Engine;
-
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
 pub enum UpdatePass {
