@@ -67,11 +67,18 @@ impl ImplInfo {
             .iter()
             .filter(|method| method.bind_args.gen_lua_ffi())
             .for_each(|method| {
+                let (directives, docs): (_, Vec<_>) = method.doc.iter().partition(|d| {
+                    if d.len() > 1 {
+                        let mut chars = d.chars();
+
+                        chars.next().unwrap() == '@' && chars.next().unwrap().is_alphabetic()
+                    } else {
+                        false
+                    }
+                });
+
                 // Add user defined method documentation
-                method
-                    .doc
-                    .iter()
-                    .filter(|d| d.is_empty() || &d[0..1] != "@")
+                docs.into_iter()
                     .for_each(|d| ffi_gen.add_class_definition(format!("-- {d}")));
 
                 // Add method signature documentation
@@ -106,10 +113,8 @@ impl ImplInfo {
                 }
 
                 // Add user defined Lua LSP directives
-                method
-                    .doc
-                    .iter()
-                    .filter(|d| !d.is_empty() && &d[0..1] == "@")
+                directives
+                    .into_iter()
                     .for_each(|d| ffi_gen.add_class_definition(format!("---{d}")));
 
                 if method.self_param.is_some() {
