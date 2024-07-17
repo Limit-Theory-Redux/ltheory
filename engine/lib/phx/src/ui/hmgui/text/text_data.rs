@@ -14,22 +14,9 @@ use crate::render::{
 };
 
 use super::text_render::render_glyph;
-use super::{TextAlignment, TextContext, TextCursorRect, TextSelection, TextStyle};
-
-#[derive(Clone, PartialEq)]
-struct SectionStyle {
-    range: Range<usize>,
-    style: TextStyle,
-}
-
-impl SectionStyle {
-    fn new(start: usize, end: usize, style: &TextStyle) -> Self {
-        Self {
-            range: Range { start, end },
-            style: style.clone(),
-        }
-    }
-}
+use super::{
+    TextAlignment, TextContext, TextCursorRect, TextSectionStyle, TextSelection, TextStyle,
+};
 
 /// Text string, styling and layouting parameters.
 #[derive(Clone, PartialEq)]
@@ -37,7 +24,7 @@ pub struct TextData {
     text: String,
     text_changed: bool,
     default_style: TextStyle,
-    section_styles: Vec<SectionStyle>,
+    section_style: TextSectionStyle,
     alignment: Alignment,
     multiline: bool,
     selection: TextSelection,
@@ -72,7 +59,7 @@ impl TextData {
             text,
             text_changed: false,
             default_style: default_style.clone(),
-            section_styles: Default::default(),
+            section_style: Default::default(),
             alignment: alignment.into(),
             multiline,
             selection: TextSelection::new(),
@@ -89,9 +76,7 @@ impl TextData {
 
     /// Set style of the text section beginning at 'start_pos' position and up to 'end_pos'.
     pub fn set_section_style(&mut self, start_pos: usize, end_pos: usize, style: &TextStyle) {
-        // TODO: manage sections overlapping properly to avoid uncontrollable map growth
-        self.section_styles
-            .push(SectionStyle::new(start_pos, end_pos, style));
+        self.section_style.add(start_pos, end_pos, style);
     }
 
     /// Sets cursor position in a text before character at position `pos`.
@@ -159,8 +144,8 @@ impl TextData {
             false
         };
 
-        updated |= if self.section_styles != text_data.section_styles {
-            self.section_styles = text_data.section_styles.clone();
+        updated |= if self.section_style != text_data.section_style {
+            self.section_style = text_data.section_style.clone();
             true
         } else {
             false
@@ -189,11 +174,7 @@ impl TextData {
 
         self.default_style.apply_default(&mut builder);
 
-        for section_style in &self.section_styles {
-            section_style
-                .style
-                .apply_to_section(&mut builder, &section_style.range);
-        }
+        self.section_style.apply(&mut builder);
 
         let mut layout: Layout<Color> = builder.build();
 
@@ -233,11 +214,7 @@ impl TextData {
 
         self.default_style.apply_default(&mut builder);
 
-        for section_style in &self.section_styles {
-            section_style
-                .style
-                .apply_to_section(&mut builder, &section_style.range);
-        }
+        self.section_style.apply(&mut builder);
 
         // Build the builder into a Layout
         let mut layout: Layout<Color> = builder.build();
@@ -388,7 +365,7 @@ impl TextData {
 
                     added += typed_text.len();
 
-                    if !self.section_styles.is_empty() {
+                    if !self.section_style.is_empty() {
                         change = Some((*pos, 0, added));
                     }
 
@@ -404,7 +381,7 @@ impl TextData {
                     self.text.replace_range(start..end, &typed_text);
                     self.selection = TextSelection::Cursor(start + typed_text.len());
 
-                    if !self.section_styles.is_empty() {
+                    if !self.section_style.is_empty() {
                         change = Some((start, end - start, typed_text.len()));
                     }
                 }
@@ -430,7 +407,7 @@ impl TextData {
                                 self.text.remove(*pos);
                                 self.text_changed = true;
 
-                                if !self.section_styles.is_empty() {
+                                if !self.section_style.is_empty() {
                                     change = Some((*pos, 1, 0));
                                 }
                             }
@@ -439,7 +416,7 @@ impl TextData {
                                 self.text.remove(*pos);
                                 self.text_changed = true;
 
-                                if !self.section_styles.is_empty() {
+                                if !self.section_style.is_empty() {
                                     change = Some((*pos, 1, 0));
                                 }
                             }
@@ -461,7 +438,7 @@ impl TextData {
                             self.selection = TextSelection::Cursor(start);
                             self.text_changed = true;
 
-                            if !self.section_styles.is_empty() {
+                            if !self.section_style.is_empty() {
                                 change = Some((start, end - start, 0));
                             }
                         }
@@ -470,113 +447,8 @@ impl TextData {
             }
         }
 
-        if let Some(change) = change {
-            self.update_section_styles(change);
-        }
-    }
-
-    fn update_section_styles(&mut self, (pos, removed, added): (usize, usize, usize)) {
-        if self.section_styles.is_empty() {
-            return;
-        }
-
-        if removed == 0 {
-            debug_assert!(added > 0, "No changes made");
-
-            // text was inserted -> expand corresponding style sections
-            for section_style in &mut self.section_styles {
-                if section_style.range.start >= pos {
-                    section_style.range.start += added;
-                }
-
-                if section_style.range.end > pos {
-                    section_style.range.end += added;
-                }
-            }
-        } else {
-            let (offset, inc) = if added == 0 {
-                // selected text was removed -> remove and update corresponding sections
-                (removed, false)
-            } else {
-                // selected text was replaced with another one -> remove and update influenced sections
-                if removed > added {
-                    (removed - added, false)
-                } else {
-                    (added - removed, true)
-                }
-            };
-
-            let removed_start = pos;
-            let removed_end = pos + removed;
-            let mut section_styles = vec![];
-
-            while let Some(mut section_style) = self.section_styles.pop() {
-                if section_style.range.end <= removed_start {
-                    // section is before removed selection -> keep it
-                    //               [------------]  removed selection
-                    //  [--------]                   section
-                    //  [--------]                   result
-
-                    section_styles.push(section_style);
-                } else if section_style.range.start < removed_start {
-                    if section_style.range.end <= removed_end {
-                        //        [------------]  removed selection
-                        //  [-----.--]            section
-                        //  [-----]               result
-
-                        section_style.range.end = removed_start;
-                        section_styles.push(section_style);
-                    } else {
-                        //       [------------]     removed selection
-                        //  [----.------------.--]  section
-                        //  [------]                result
-
-                        if inc {
-                            section_style.range.end += offset;
-                        } else {
-                            section_style.range.end -= offset;
-                        }
-
-                        section_styles.push(section_style);
-                    }
-                } else if section_style.range.start <= removed_end {
-                    if section_style.range.end > removed_end {
-                        //  [------------]     removed selection
-                        //         [-----.--]  section
-                        //  [--]               result
-
-                        section_style.range.start = removed_start;
-
-                        if inc {
-                            section_style.range.end += offset;
-                        } else {
-                            section_style.range.end -= offset;
-                        }
-
-                        section_styles.push(section_style);
-                    }
-
-                    //  [------------]  removed selection
-                    //     [-----]      section
-                    //                  result
-                } else {
-                    //  [------------]              removed selection
-                    //                  [--------]  section
-                    //  [--------]                  result
-
-                    if inc {
-                        section_style.range.start += offset;
-                        section_style.range.end += offset;
-                    } else {
-                        section_style.range.start -= offset;
-                        section_style.range.end -= offset;
-                    }
-
-                    section_styles.push(section_style);
-                }
-            }
-
-            self.section_styles = section_styles;
+        if let Some((pos, removed, added)) = change {
+            self.section_style.update(pos, removed, added);
         }
     }
 
