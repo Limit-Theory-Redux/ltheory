@@ -74,6 +74,7 @@ pub struct EventBus {
     events: HashMap<String, Event>,
     update_pass_map: HashMap<UpdatePass, BinaryHeap<MessageRequest>>,
     next_tunnel_id: AtomicU32,
+    max_priority_locked: bool,
 }
 
 impl EventBus {
@@ -82,7 +83,12 @@ impl EventBus {
             next_tunnel_id: AtomicU32::new(0),
             update_pass_map: HashMap::new(),
             events: HashMap::new(),
+            max_priority_locked: false,
         }
+    }
+
+    pub fn lock_max_priority(&mut self) {
+        self.max_priority_locked = true;
     }
 
     pub fn dispatch(&mut self, update_pass: UpdatePass, lua: &mut Ref<Lua>) {
@@ -148,6 +154,12 @@ impl EventBus {
         with_update_pass_message: bool,
     ) {
         let priority = priority.unwrap_or(0);
+
+        if self.max_priority_locked {
+            if priority == u16::MAX {
+                panic!("Trying to register event at locked priority");
+            }
+        }
 
         let event = Event {
             name: event_name.clone(),

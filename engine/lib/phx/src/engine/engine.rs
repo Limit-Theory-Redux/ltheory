@@ -112,6 +112,9 @@ impl Engine {
             );
         }
 
+        // lock maximum priority u16::MAX
+        event_bus.lock_max_priority();
+
         event_bus.register(
             format!("MyFavoriteEvent"),
             Some(100),
