@@ -14,16 +14,26 @@ use internal::ConvertIntoString;
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
 pub enum UpdatePass {
-    PreSim,             // Before physics update
-    Sim,                // Physics update
-    PostSim,            // After physics update
-    PreFrame,           // Before frame render
-    Frame,              // Frame render
-    PostFrame,          // After frame render
-    FrameInterpolation, // Frame interpolation
-    PreInput,           // Before input handling
-    Input,              // Input handling
-    PostInput,          // After input handling
+    // Before physics update
+    PreSim,
+    // Physics update
+    Sim,
+    // After physics update
+    PostSim,
+    // Before frame render
+    PreFrame,
+    // Frame render
+    Frame,
+    // After frame render
+    PostFrame,
+    // Frame interpolation
+    FrameInterpolation,
+    // Before input handling
+    PreInput,
+    // Input handling
+    Input,
+    // After input handling
+    PostInput,
 }
 
 #[derive(Debug, Clone)]
@@ -99,11 +109,10 @@ impl EventBus {
 
         if let Some(message_heap) = self.update_pass_map.get_mut(&update_pass) {
             let mut message_requests: Vec<_> = message_heap.drain().collect();
-            message_requests.sort_by(|a, b| b.priority.cmp(&a.priority));
 
-            for message_request in &mut message_requests {
+            for message_request in message_requests.iter_mut() {
                 if let Some(event) = self.events.get(&message_request.name) {
-                    for subscriber in &event.subscribers {
+                    for subscriber in event.subscribers.iter() {
                         let id = subscriber.tunnel_id;
 
                         if !message_request.completed && !message_request.stay_alive {
@@ -149,7 +158,8 @@ impl EventBus {
     pub fn register(
         &mut self,
         event_name: String,
-        priority: Option<u16>, //* how do i handle Options via ffi? It requires a uint16 const pointer */
+        // default priority 0
+        priority: Option<u16>,
         update_pass: UpdatePass, //* how do i make the update pass enum work nicely for the lua side? Since the enum is a lua number on lua side.*/
         with_update_pass_message: bool,
     ) {
@@ -197,13 +207,12 @@ impl EventBus {
 
                     // Verify the message_heap immediately after insertion
                     if let Some(message_heap) = self.update_pass_map.get(&update_pass) {
-                        let message_requests: Vec<_> = message_heap.clone().into_sorted_vec();
                         println!(
                             "Event heap size after registration for {:?}: {}",
                             update_pass,
                             message_heap.len()
                         );
-                        for message_request in message_requests {
+                        for message_request in message_heap.iter() {
                             if let Some(event) = self.events.get(&message_request.name) {
                                 println!("Registered event: {}", event.name.clone());
                             }

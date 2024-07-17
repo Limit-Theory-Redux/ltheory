@@ -123,7 +123,7 @@ impl Engine {
         );
         event_bus.register(
             format!("MyLeastFavoriteEvent"),
-            Some(0),
+            None,
             UpdatePass::PreFrame,
             false,
         );
@@ -132,6 +132,8 @@ impl Engine {
 
         event_bus.send(format!("MyFavoriteEvent"), 0);
         event_bus.send(format!("MyLeastFavoriteEvent"), 0);
+
+        event_bus.print_update_pass_map();
 
         Self {
             init_time: TimeStamp::now(),
