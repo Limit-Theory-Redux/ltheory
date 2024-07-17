@@ -218,7 +218,7 @@ impl TextData {
         text_ctx: &mut TextContext,
         width: f32,
         scale_factor: f32,
-        widget_pos: Vec2,
+        mut widget_pos: Vec2,
         input: Option<&Input>,
         editable: bool,
         focused: bool,
@@ -257,9 +257,17 @@ impl TextData {
         layout.break_all_lines(max_advance, self.alignment);
 
         let mut selection_changed = false;
-        if focused {
+        if focused && !self.text.is_empty() {
             if let Some(input) = input {
-                selection_changed = self.process_text_selection(&layout, widget_pos, input);
+                widget_pos.x += self.padding;
+
+                selection_changed = self.selection.update(
+                    &layout,
+                    widget_pos,
+                    input,
+                    self.text.len(),
+                    &mut self.mouse_pos,
+                );
             }
         }
 
@@ -617,220 +625,6 @@ impl TextData {
 
             self.section_styles = section_styles;
         }
-    }
-
-    fn process_text_selection(
-        &mut self,
-        layout: &Layout<Color>,
-        widget_pos: Vec2,
-        input: &Input,
-    ) -> bool {
-        let mut selection_changed = false;
-        let mouse_pos = input.mouse().position();
-
-        if (input.is_pressed(Button::MouseLeft)
-            || input.is_down(Button::MouseLeft)
-            || input.is_released(Button::MouseLeft))
-            && self.mouse_pos != mouse_pos
-        {
-            let widget_mouse_pos = mouse_pos - widget_pos;
-            let cursor = Cursor::from_point(
-                layout,
-                widget_mouse_pos.x - self.padding,
-                widget_mouse_pos.y,
-            );
-
-            if input.is_pressed(Button::MouseLeft) && !input.is_keyboard_shift_down() {
-                let pos = if cursor.text_end < self.text.len() {
-                    cursor.text_start
-                } else {
-                    cursor.text_end
-                };
-
-                self.selection.set_cursor(pos);
-            } else {
-                let end_pos = if self.selection.is_forward() {
-                    cursor.text_end
-                } else {
-                    cursor.text_start
-                };
-
-                self.selection.set_end(end_pos);
-            }
-
-            self.mouse_pos = mouse_pos;
-
-            selection_changed = true;
-        } else if !self.text.is_empty() {
-            if input.is_keyboard_ctrl_down() && input.is_pressed(Button::KeyboardA) {
-                self.selection.set_start(0);
-                self.selection.set_end(self.text.len());
-
-                selection_changed = true;
-            } else if input.is_pressed(Button::KeyboardLeft) {
-                let cursor_position = self.selection.cursor_position();
-                if cursor_position > 0 {
-                    if input.is_keyboard_shift_down() {
-                        self.selection.set_end(cursor_position - 1);
-                    } else {
-                        match &self.selection {
-                            TextSelection::Cursor(pos) => self.selection.set_cursor(*pos - 1),
-                            TextSelection::Selection(range) => {
-                                if range.start <= range.end {
-                                    self.selection.set_cursor(range.start);
-                                } else {
-                                    self.selection.set_cursor(range.end);
-                                }
-                            }
-                        }
-                    }
-
-                    selection_changed = true;
-                } else if self.selection.is_selection() {
-                    self.selection.set_cursor(0);
-
-                    selection_changed = true;
-                }
-            } else if input.is_pressed(Button::KeyboardRight) {
-                let cursor_position = self.selection.cursor_position();
-                if cursor_position < self.text.len() {
-                    if input.is_keyboard_shift_down() {
-                        self.selection.set_end(cursor_position + 1);
-                    } else {
-                        match &self.selection {
-                            TextSelection::Cursor(pos) => self.selection.set_cursor(*pos + 1),
-                            TextSelection::Selection(range) => {
-                                if range.start < range.end {
-                                    self.selection.set_cursor(range.end);
-                                } else {
-                                    self.selection.set_cursor(range.start);
-                                }
-                            }
-                        }
-                    }
-
-                    selection_changed = true;
-                } else if self.selection.is_selection() {
-                    self.selection.set_cursor(self.text.len());
-
-                    selection_changed = true;
-                }
-            } else if input.is_pressed(Button::KeyboardUp) {
-                let cursor_position = self.selection.cursor_position();
-                let cursor = Cursor::from_position(layout, cursor_position, false);
-                let line = cursor.path.line(layout).expect("Cannot get cursor line");
-                let line_text_range = line.text_range();
-
-                // if there is previous line
-                let cursor_position = if line_text_range.start > 0 {
-                    let line_cursor_offset = cursor_position - line_text_range.start;
-                    let cursor = Cursor::from_position(layout, line_text_range.start - 1, false);
-                    let line = cursor.path.line(layout).expect("Cannot get cursor line");
-                    let line_text_range = line.text_range();
-                    let mut cursor_position = line_text_range.start + line_cursor_offset;
-
-                    if cursor_position >= line_text_range.end {
-                        cursor_position = line_text_range.end - 1;
-                    }
-
-                    cursor_position
-                } else {
-                    0
-                };
-
-                if input.is_keyboard_shift_down() {
-                    self.selection.set_end(cursor_position);
-                } else {
-                    self.selection.set_cursor(cursor_position);
-                }
-
-                selection_changed = true;
-            } else if input.is_pressed(Button::KeyboardDown) {
-                let cursor_position = self.selection.cursor_position();
-                let cursor = Cursor::from_position(layout, cursor_position, false);
-                let line = cursor.path.line(layout).expect("Cannot get cursor line");
-                let line_text_range = line.text_range();
-
-                // if there is next line
-                let cursor_position = if line_text_range.end + 1 < self.text.len() {
-                    let line_cursor_offset = cursor_position - line_text_range.start;
-                    let cursor = Cursor::from_position(layout, line_text_range.end + 1, false);
-                    let line = cursor.path.line(layout).expect("Cannot get cursor line");
-                    let line_text_range = line.text_range();
-                    let mut cursor_position = line_text_range.start + line_cursor_offset;
-
-                    if cursor_position >= line_text_range.end {
-                        cursor_position = line_text_range.end - 1;
-                    }
-
-                    cursor_position
-                } else {
-                    self.text.len()
-                };
-
-                if input.is_keyboard_shift_down() {
-                    self.selection.set_end(cursor_position);
-                } else {
-                    self.selection.set_cursor(cursor_position);
-                }
-
-                selection_changed = true;
-            } else if input.is_pressed(Button::KeyboardHome) {
-                if input.is_keyboard_ctrl_down() {
-                    // till the beginning of the text
-                    if input.is_keyboard_shift_down() {
-                        self.selection.set_end(0);
-                    } else {
-                        self.selection.set_cursor(0);
-                    }
-                } else {
-                    // till the beginning of the current line
-                    let cursor =
-                        Cursor::from_position(layout, self.selection.cursor_position(), false);
-                    let line = cursor.path.line(layout).expect("Cannot get cursor line");
-                    let line_range = line.text_range();
-
-                    if input.is_keyboard_shift_down() {
-                        self.selection.set_end(line_range.start);
-                    } else {
-                        self.selection.set_cursor(line_range.start);
-                    }
-                }
-
-                selection_changed = true;
-            } else if input.is_pressed(Button::KeyboardEnd) {
-                if input.is_keyboard_ctrl_down() {
-                    // till the end of the text
-                    if input.is_keyboard_shift_down() {
-                        self.selection.set_end(self.text.len());
-                    } else {
-                        self.selection.set_cursor(self.text.len());
-                    }
-                } else {
-                    // till the end of the current line
-                    let cursor =
-                        Cursor::from_position(layout, self.selection.cursor_position(), false);
-                    let line = cursor.path.line(layout).expect("Cannot get cursor line");
-                    let line_range = line.text_range();
-
-                    let cursor_position = if line_range.end == self.text.len() {
-                        line_range.end
-                    } else {
-                        line_range.end - 1
-                    };
-
-                    if input.is_keyboard_shift_down() {
-                        self.selection.set_end(cursor_position);
-                    } else {
-                        self.selection.set_cursor(cursor_position);
-                    }
-                }
-
-                selection_changed = true;
-            }
-        }
-
-        selection_changed
     }
 
     fn render_glyph_run(
