@@ -61,15 +61,15 @@ impl TextData {
         alignment: TextAlignment,
         multiline: bool,
     ) -> Self {
-        let (text, text_changed) = if multiline {
-            (text.into(), false)
+        let text = if multiline {
+            text.into()
         } else {
-            (text.replace(&['\n', '\r'], " "), true)
+            text.replace(&['\n', '\r'], " ")
         };
 
         Self {
             text,
-            text_changed,
+            text_changed: false,
             default_style: default_style.clone(),
             section_styles: Default::default(),
             alignment: alignment.into(),
@@ -142,6 +142,10 @@ impl TextData {
 
     pub fn cursor_rect_size(&self) -> Vec2 {
         self.cursor_rect_size
+    }
+
+    pub fn selection(&self) -> &TextSelection {
+        &self.selection
     }
 
     pub(super) fn update(&mut self, text_data: &TextData) -> bool {
