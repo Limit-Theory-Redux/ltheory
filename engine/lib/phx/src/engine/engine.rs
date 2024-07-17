@@ -108,17 +108,27 @@ impl Engine {
                 format!("{:?}", update_pass.clone()),
                 Some(u16::MAX),
                 update_pass.clone(),
+                true,
             );
         }
 
-        event_bus.register(format!("MyFavoriteEvent"), Some(100), UpdatePass::PreFrame);
+        event_bus.register(
+            format!("MyFavoriteEvent"),
+            Some(100),
+            UpdatePass::PreFrame,
+            false,
+        );
         event_bus.register(
             format!("MyLeastFavoriteEvent"),
             Some(0),
             UpdatePass::PreFrame,
+            false,
         );
 
         event_bus.print_update_pass_map();
+
+        event_bus.send(format!("MyFavoriteEvent"), 0);
+        event_bus.send(format!("MyLeastFavoriteEvent"), 0);
 
         Self {
             init_time: TimeStamp::now(),

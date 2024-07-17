@@ -6,7 +6,8 @@ EventBus = {}
 ---@param eventName string
 ---@param priority integer
 ---@param updatePass UpdatePass
-function EventBus:register(eventName, priority, updatePass) end
+---@param withUpdatePassMessage boolean
+function EventBus:register(eventName, priority, updatePass, withUpdatePassMessage) end
 
 ---@param eventName string
 function EventBus:unregister(eventName) end
