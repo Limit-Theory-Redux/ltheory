@@ -2,6 +2,7 @@ mod text_alignment;
 mod text_context;
 mod text_cursor_rect;
 mod text_data;
+mod text_render;
 mod text_selection;
 mod text_style;
 mod text_view;
