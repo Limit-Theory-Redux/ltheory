@@ -55,7 +55,7 @@ impl TextCursorRect {
 
         self.size = Vec2::new(3.0, (line_range.end - line_range.start) as f32);
 
-        if text_len > 0 {
+        if text_len == 0 {
             self.pos = Vec2::new(padding, 0.0);
             return;
         }
