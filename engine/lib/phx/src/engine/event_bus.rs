@@ -1,7 +1,7 @@
 use mlua::{Function, Table};
 use std::{
     collections::{hash_map::Entry, BinaryHeap, HashMap},
-    sync::atomic::{AtomicI32, Ordering},
+    sync::atomic::{AtomicU32, Ordering},
 };
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -34,26 +34,27 @@ pub enum EventPayload {
 
 #[derive(Debug, Clone)]
 pub struct Subscriber {
-    tunnel_id: i32,
-    entity_id: Option<i32>,
+    tunnel_id: u32,
+    entity_id: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Event {
     pub name: String,
-    pub priority: i16,
+    pub priority: u16,
     pub update_pass: UpdatePass,
     pub subscribers: Vec<Subscriber>,
     // pub payloads: Vec<EventPayload>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-struct EventItem {
-    priority: i16,
+struct MessageRequest {
+    priority: u16,
     name: String,
+    stay_alive: bool,
 }
 
-impl Ord for EventItem {
+impl Ord for MessageRequest {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         other
             .priority
@@ -62,7 +63,7 @@ impl Ord for EventItem {
     }
 }
 
-impl PartialOrd for EventItem {
+impl PartialOrd for MessageRequest {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
@@ -70,21 +71,21 @@ impl PartialOrd for EventItem {
 
 pub struct EventBus {
     events: HashMap<String, Event>,
-    update_pass_map: HashMap<UpdatePass, BinaryHeap<EventItem>>,
-    next_tunnel_id: AtomicI32,
+    update_pass_map: HashMap<UpdatePass, BinaryHeap<MessageRequest>>,
+    next_tunnel_id: AtomicU32,
 }
 
 impl EventBus {
     pub fn new() -> Self {
         Self {
-            next_tunnel_id: AtomicI32::new(0),
+            next_tunnel_id: AtomicU32::new(0),
             update_pass_map: HashMap::new(),
             events: HashMap::new(),
         }
     }
 
-    // todo event action queue & manual dispatching
     pub fn dispatch(&self, update_pass: UpdatePass, engine: &Engine) {
+        //* Do i really need to get the engine ref, can we handle lua states differently? */
         let lua = engine.lua.as_ref();
         let globals = lua.globals();
         let event_tunnels: Table = globals.get("EventTunnels").expect("Unknown table");
@@ -93,8 +94,8 @@ impl EventBus {
             let mut events: Vec<_> = event_heap.iter().collect();
             events.sort_by(|a, b| a.priority.cmp(&b.priority)); // Sort events without cloning
 
-            for event_item in events {
-                if let Some(event) = self.events.get(&event_item.name) {
+            for message_request in events {
+                if let Some(event) = self.events.get(&message_request.name) {
                     for subscriber in &event.subscribers {
                         let id = subscriber.tunnel_id;
 
@@ -106,9 +107,12 @@ impl EventBus {
                         }
                     }
                 } else {
-                    panic!("Event not found: {}", event_item.name);
+                    panic!("Event not found: {}", message_request.name);
                 }
             }
+
+            //* Consume/Retain MessageRequests if stay_alive = false */
+            //* What is the best way? Self is not mutable here. */
         }
     }
 
@@ -124,7 +128,7 @@ impl EventBus {
     pub fn register(
         &mut self,
         event_name: String,
-        priority: Option<i16>,
+        priority: Option<u16>, //* how do i handle Options via ffi? It requires a uint16 const pointer */
         update_pass: UpdatePass,
         // payloads: Vec<EventPayload>,
     ) {
@@ -148,9 +152,10 @@ impl EventBus {
             Entry::Vacant(entry) => {
                 entry.insert(event);
 
-                let event_item = EventItem {
+                let event_item = MessageRequest {
                     priority,
                     name: event_name.clone(),
+                    stay_alive: true,
                 };
 
                 self.update_pass_map
@@ -188,7 +193,9 @@ impl EventBus {
         }
     }
 
-    pub fn subscribe(&mut self, event_name: String, entity_id: Option<i32>) -> i32 {
+    pub fn subscribe(&mut self, event_name: String, entity_id: Option<u32>) -> u32 {
+        //* should return handler instead of u32 */
+        //* how do i handle Options via ffi? It requires a uint16 const pointer */
         let tunnel_id = self.next_tunnel_id.fetch_add(1, Ordering::SeqCst);
 
         for event_heap in self.update_pass_map.values() {
@@ -212,7 +219,7 @@ impl EventBus {
         tunnel_id
     }
 
-    pub fn unsubscribe(&mut self, tunnel_id: i32) {
+    pub fn unsubscribe(&mut self, tunnel_id: u32) {
         for event in self.events.values_mut() {
             event
                 .subscribers
@@ -225,20 +232,46 @@ impl EventBus {
         );
     }
 
-    pub fn send(&self, event_name: String, entity_id: i32) {
+    pub fn send(
+        &mut self,
+        event_name: String,
+        entity_id: u32,
+        //* Add payload here later */
+    ) {
         if let Some(event) = self.events.get(&event_name) {
-            // dispatch event with entity_id payload
+            // Dispatch event with entity_id payload
             for subscriber in &event.subscribers {
                 if subscriber.entity_id == Some(entity_id) {
                     let id = subscriber.tunnel_id;
-                    //* instead of calling function here, add to event queue or to next tick and then consume this event */
 
-                    // let tunnel_func: Function = event_tunnels
-                    //     .get(id)
-                    //     .expect(&format!("Unknown tunnel with id: {}", id));
-                    // if let Err(e) = tunnel_func.call::<_, ()>(()) {
-                    //     trace!("{}", e);
-                    // }
+                    let message_request = MessageRequest {
+                        priority: event.priority,
+                        name: event_name.clone(),
+                        stay_alive: false, // item will be consumed on dispatch
+                    };
+
+                    self.update_pass_map
+                        .entry(event.update_pass)
+                        .or_insert_with(|| {
+                            println!("Inserting new BinaryHeap for {:?}", event.update_pass);
+                            BinaryHeap::new()
+                        })
+                        .push(message_request.clone());
+
+                    // Verify the event_heap immediately after insertion
+                    if let Some(event_heap) = self.update_pass_map.get(&event.update_pass) {
+                        let events: Vec<_> = event_heap.clone().into_sorted_vec();
+                        println!(
+                            "Event heap size after registration for {:?}: {}",
+                            event.update_pass,
+                            event_heap.len()
+                        );
+                        for message_request in events {
+                            if let Some(event) = self.events.get(&message_request.name) {
+                                println!("Registered event: {}", event.name.clone());
+                            }
+                        }
+                    }
                 }
             }
         }

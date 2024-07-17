@@ -16,13 +16,13 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void EventBus_Free               (EventBus*);
-            void EventBus_Register           (EventBus*, cstr eventName, int16 const* priority, UpdatePass* updatePass);
-            void EventBus_Unregister         (EventBus*, cstr eventName);
-            int  EventBus_Subscribe          (EventBus*, cstr eventName, int const* entityId);
-            void EventBus_Unsubscribe        (EventBus*, int tunnelId);
-            void EventBus_Send               (EventBus const*, cstr eventName, int entityId);
-            void EventBus_PrintUpdatePassMap (EventBus const*);
+            void   EventBus_Free               (EventBus*);
+            void   EventBus_Register           (EventBus*, cstr eventName, uint16 const* priority, UpdatePass* updatePass);
+            void   EventBus_Unregister         (EventBus*, cstr eventName);
+            uint32 EventBus_Subscribe          (EventBus*, cstr eventName, uint32 const* entityId);
+            void   EventBus_Unsubscribe        (EventBus*, uint32 tunnelId);
+            void   EventBus_Send               (EventBus*, cstr eventName, uint32 entityId);
+            void   EventBus_PrintUpdatePassMap (EventBus const*);
         ]]
     end
 

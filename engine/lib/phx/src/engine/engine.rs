@@ -106,7 +106,7 @@ impl Engine {
         for update_pass in UpdatePass::iter() {
             event_bus.register(
                 format!("{:?}", update_pass.clone()),
-                Some(i16::MAX),
+                Some(u16::MAX),
                 update_pass.clone(),
             );
         }
