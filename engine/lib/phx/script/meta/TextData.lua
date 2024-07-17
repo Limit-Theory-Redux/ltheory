@@ -6,10 +6,11 @@ TextData = {}
 ---@param text string
 ---@param defaultStyle TextStyle
 ---@param cursorColor Color
+---@param selectionColor Color
 ---@param alignment TextAlignment
 ---@param multiline boolean
 ---@return TextData
-function TextData.Create(text, defaultStyle, cursorColor, alignment, multiline) end
+function TextData.Create(text, defaultStyle, cursorColor, selectionColor, alignment, multiline) end
 
 ---@return string
 function TextData:text() end

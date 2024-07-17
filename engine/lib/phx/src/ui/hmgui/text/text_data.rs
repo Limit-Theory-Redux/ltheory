@@ -58,6 +58,7 @@ impl TextData {
         text: &str,
         default_style: &TextStyle,
         cursor_color: &Color,
+        selection_color: &Color,
         alignment: TextAlignment,
         multiline: bool,
     ) -> Self {
@@ -75,7 +76,7 @@ impl TextData {
             alignment: alignment.into(),
             multiline,
             selection: TextSelection::new(),
-            selection_color: Color::new(0.2, 0.2, 0.7, 0.8),
+            selection_color: selection_color.clone(),
             mouse_pos: Vec2::new(-1.0, -1.0),
             cursor_rect: TextCursorRect::new(cursor_color),
             padding: 5.0,

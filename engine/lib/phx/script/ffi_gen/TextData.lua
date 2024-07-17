@@ -17,7 +17,7 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void      TextData_Free              (TextData*);
-            TextData* TextData_Create            (cstr text, TextStyle const* defaultStyle, Color const* cursorColor, TextAlignment alignment, bool multiline);
+            TextData* TextData_Create            (cstr text, TextStyle const* defaultStyle, Color const* cursorColor, Color const* selectionColor, TextAlignment alignment, bool multiline);
             cstr      TextData_Text              (TextData const*);
             void      TextData_SetSectionStyle   (TextData*, uint64 startPos, uint64 endPos, TextStyle const* style);
             void      TextData_SetCursorPos      (TextData*, uint64 pos);

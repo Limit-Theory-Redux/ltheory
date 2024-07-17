@@ -228,7 +228,8 @@ local function buildTextData(args)
     end
 
     local cursorColor = Color(1, 1, 1, 1)
-    local textData = TextData.Create(text, buildStyle(args.style, true), cursorColor,
+    local selectionColor = Color(0.2, 0.2, 0.7, 0.8)
+    local textData = TextData.Create(text, buildStyle(args.style, true), cursorColor, selectionColor,
         args.alignment or TextAlignment.Start, multiline)
 
     for _, section in ipairs(sections) do
