@@ -198,18 +198,12 @@ impl EventBus {
         //* how do i handle Options via ffi? It requires a uint16 const pointer */
         let tunnel_id = self.next_tunnel_id.fetch_add(1, Ordering::SeqCst);
 
-        for event_heap in self.update_pass_map.values() {
-            for event_item in event_heap.iter() {
-                if let Some(event) = self.events.get_mut(&event_item.name) {
-                    if event_item.name == event_name {
-                        let subscriber = Subscriber {
-                            tunnel_id,
-                            entity_id,
-                        };
-                        event.subscribers.push(subscriber);
-                    }
-                }
-            }
+        if let Some(event) = self.events.get_mut(&event_name) {
+            let subscriber = Subscriber {
+                tunnel_id,
+                entity_id,
+            };
+            event.subscribers.push(subscriber);
         }
 
         println!(
@@ -257,21 +251,6 @@ impl EventBus {
                             BinaryHeap::new()
                         })
                         .push(message_request.clone());
-
-                    // Verify the event_heap immediately after insertion
-                    if let Some(event_heap) = self.update_pass_map.get(&event.update_pass) {
-                        let events: Vec<_> = event_heap.clone().into_sorted_vec();
-                        println!(
-                            "Event heap size after registration for {:?}: {}",
-                            event.update_pass,
-                            event_heap.len()
-                        );
-                        for message_request in events {
-                            if let Some(event) = self.events.get(&message_request.name) {
-                                println!("Registered event: {}", event.name.clone());
-                            }
-                        }
-                    }
                 }
             }
         }

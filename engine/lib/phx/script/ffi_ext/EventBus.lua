@@ -7,10 +7,11 @@ function onDef_EventBus_t(t, mt)
         local entityId = ctxTable.getGuid and ctxTable.getGuid()
         local tunnelId = libphx.EventBus_Subscribe(self, eventName, entityId)
         EventTunnels[tunnelId] = function() callback(ctxTable) end
+        return tunnelId
     end
 
     mt.__index.unsubscribe = function(self, tunnelId)
-        local tunnelId = libphx.EventBus_Unubscribe(self, tunnelId)
+        libphx.EventBus_Unsubscribe(self, tunnelId)
         EventTunnels[tunnelId] = nil
     end
 end
