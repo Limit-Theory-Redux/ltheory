@@ -83,6 +83,8 @@ function Application:registerEvents()
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreInput), self, self.onPreInput)
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Input), self, self.onInput)
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostInput), self, self.onPostInput)
+    EventBusInstance:subscribe("MyFavoriteEvent", nil, function() print("receivedMyFavorite") end)
+    EventBusInstance:subscribe("MyLeastFavoriteEvent", nil, function() print("receivedMyLeastFavorite") end)
 end
 
 function Application:onPreSim() end
