@@ -338,14 +338,14 @@ impl HmGuiWidget {
                         let data = hmgui.data_mut(self.hash);
                         let text_view =
                             data.text_view.as_mut().expect("Text view data was not set");
-                        let cursor_size = text_view.data().cursor_rect_size();
+                        let cursor_rect = text_view.data().cursor_rect();
+                        let cursor_size = cursor_rect.size();
 
                         if cursor_size.x > 0.0 && cursor_size.y > 0.0 {
-                            let cursor_pos = self.inner_pos + text_view.data().cursor_rect_pos();
+                            let cursor_pos = self.inner_pos + cursor_rect.pos();
+                            let color = cursor_rect.color();
 
-                            hmgui
-                                .renderer
-                                .rect(cursor_pos, cursor_size, Color::WHITE, None);
+                            hmgui.renderer.rect(cursor_pos, cursor_size, color, None);
                         }
                     }
                 }

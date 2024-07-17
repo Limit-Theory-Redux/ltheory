@@ -14,7 +14,7 @@ use crate::render::{
     Color, DataFormat_Float, PixelFormat_RGBA, Tex2D, Tex2D_Create, Tex2D_SetData, TexFormat_RGBA8,
 };
 
-use super::{TextAlignment, TextContext, TextSelection, TextStyle};
+use super::{TextAlignment, TextContext, TextCursorRect, TextSelection, TextStyle};
 
 #[derive(Clone, PartialEq)]
 struct SectionStyle {
@@ -43,8 +43,7 @@ pub struct TextData {
     selection: TextSelection,
     selection_color: Color,
     mouse_pos: Vec2,
-    cursor_rect_pos: Vec2,
-    cursor_rect_size: Vec2,
+    cursor_rect: TextCursorRect,
 
     // Horizontal padding around the output image
     // TODO: workaround. For some reason zeno crate (used by swash) shifts placement.left
@@ -58,6 +57,7 @@ impl TextData {
     pub fn new(
         text: &str,
         default_style: &TextStyle,
+        cursor_color: &Color,
         alignment: TextAlignment,
         multiline: bool,
     ) -> Self {
@@ -77,8 +77,7 @@ impl TextData {
             selection: TextSelection::new(),
             selection_color: Color::new(0.2, 0.2, 0.7, 0.8),
             mouse_pos: Vec2::new(-1.0, -1.0),
-            cursor_rect_pos: Vec2::ZERO,
-            cursor_rect_size: Vec2::ZERO,
+            cursor_rect: TextCursorRect::new(cursor_color),
             padding: 5.0,
         }
     }
@@ -136,12 +135,8 @@ impl TextData {
         self.text_changed = false;
     }
 
-    pub fn cursor_rect_pos(&self) -> Vec2 {
-        self.cursor_rect_pos
-    }
-
-    pub fn cursor_rect_size(&self) -> Vec2 {
-        self.cursor_rect_size
+    pub fn cursor_rect(&self) -> &TextCursorRect {
+        &self.cursor_rect
     }
 
     pub fn selection(&self) -> &TextSelection {
@@ -309,11 +304,19 @@ impl TextData {
 
         // calculate cursor rect
         if (self.text_changed || selection_changed) && editable && focused {
-            if cursor_at_eol && selection_end != self.text.len() {
-                self.build_cursor_rect(&layout, height, selection_end - 1);
+            let cursor_position = if cursor_at_eol && selection_end != self.text.len() {
+                selection_end - 1
             } else {
-                self.build_cursor_rect(&layout, height, selection_end);
-            }
+                selection_end
+            };
+
+            self.cursor_rect.build(
+                &layout,
+                height,
+                cursor_position,
+                self.padding,
+                self.text.len(),
+            );
         }
 
         // Create texture
@@ -329,57 +332,6 @@ impl TextData {
 
             tex
         }
-    }
-
-    fn build_cursor_rect(
-        &mut self,
-        layout: &Layout<Color>,
-        widget_height: u32,
-        cursor_position: usize,
-    ) {
-        let cursor = Cursor::from_position(&layout, cursor_position, false);
-        let line = cursor.path.line(&layout).expect("Cannot get cursor line");
-        let metrics = line.metrics();
-        let line_start = (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor();
-        let line_range = Range {
-            start: line_start as u32,
-            end: u32::min(
-                (metrics.baseline + metrics.descent + metrics.leading * 0.5).floor() as u32,
-                widget_height,
-            ),
-        };
-
-        self.cursor_rect_size = Vec2::new(3.0, (line_range.end - line_range.start) as f32);
-
-        if self.text.is_empty() {
-            self.cursor_rect_pos = Vec2::new(self.padding, 0.0);
-            return;
-        }
-
-        let cluster = cursor
-            .path
-            .cluster(&layout)
-            .expect("Cannot get cursor cluster");
-        let mut cursor_at_end = cursor_position >= self.text.len();
-        let glyph = cluster.glyphs().next().or_else(|| {
-            // this can happen for special symbols (i.e. new line)
-            cursor_at_end = true;
-            line.glyph_runs()
-                .last()
-                .map(|glyph_run| glyph_run.glyphs().last())
-                .flatten()
-        });
-
-        self.cursor_rect_pos = if let Some(glyph) = glyph {
-            let pos_offset = if cursor_at_end { 0.0 } else { glyph.advance };
-
-            Vec2::new(
-                cursor.offset + glyph.x + self.padding - pos_offset,
-                line_start + glyph.y,
-            )
-        } else {
-            Vec2::new(self.padding, line_start)
-        };
     }
 
     fn process_text_edit(&mut self, input: &Input, clipboard: &mut String) {

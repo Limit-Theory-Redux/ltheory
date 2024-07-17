@@ -227,9 +227,9 @@ local function buildTextData(args)
         multiline = args.multiline
     end
 
-    -- TODO: replace all `\n` in text with spaces if not multiline?
-
-    local textData = TextData.Create(text, buildStyle(args.style, true), args.alignment or TextAlignment.Start, multiline)
+    local cursorColor = Color(1, 1, 1, 1)
+    local textData = TextData.Create(text, buildStyle(args.style, true), cursorColor,
+        args.alignment or TextAlignment.Start, multiline)
 
     for _, section in ipairs(sections) do
         textData:setSectionStyle(section.startPos, section.endPos, section.style)

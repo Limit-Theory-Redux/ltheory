@@ -5,10 +5,11 @@ TextData = {}
 
 ---@param text string
 ---@param defaultStyle TextStyle
+---@param cursorColor Color
 ---@param alignment TextAlignment
 ---@param multiline boolean
 ---@return TextData
-function TextData.Create(text, defaultStyle, alignment, multiline) end
+function TextData.Create(text, defaultStyle, cursorColor, alignment, multiline) end
 
 ---@return string
 function TextData:text() end
