@@ -15,6 +15,7 @@ function EventBus:unregister(eventName) end
 ---@param eventName string
 ---@param entityId integer
 ---@return integer
+---@overload fun(self: table, eventName: string, ctxTable: table|nil, callbackFunc: function): integer
 function EventBus:subscribe(eventName, entityId) end
 
 ---@param tunnelId integer

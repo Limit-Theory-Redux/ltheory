@@ -238,6 +238,7 @@ impl EventBus {
         }
     }
 
+    /// @overload fun(self: table, eventName: string, ctxTable: table|nil, callbackFunc: function): integer
     pub fn subscribe(&mut self, event_name: String, entity_id: Option<u32>) -> u32 {
         //* should return handler instead of u32 */
         //* how do i handle Options via ffi? It requires a uint16 const pointer */
