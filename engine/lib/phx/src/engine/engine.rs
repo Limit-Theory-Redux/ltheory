@@ -105,9 +105,9 @@ impl Engine {
         // Create an event for every update pass and set it at a high priority
         for update_pass in UpdatePass::iter() {
             event_bus.register(
-                format!("{:?}", update_pass.clone()),
+                format!("{:?}", update_pass),
                 Some(u16::MAX),
-                update_pass.clone(),
+                update_pass,
                 true,
             );
         }
@@ -118,13 +118,13 @@ impl Engine {
         event_bus.register(
             format!("MyFavoriteEvent"),
             Some(100),
-            UpdatePass::PreFrame,
+            UpdatePass::default(),
             false,
         );
         event_bus.register(
             format!("MyLeastFavoriteEvent"),
-            None,
-            UpdatePass::PreFrame,
+            Some(0),
+            UpdatePass::default(),
             false,
         );
 

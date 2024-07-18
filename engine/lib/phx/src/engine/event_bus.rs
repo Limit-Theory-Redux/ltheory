@@ -36,6 +36,12 @@ pub enum UpdatePass {
     PostInput,
 }
 
+impl Default for UpdatePass {
+    fn default() -> Self {
+        UpdatePass::PreFrame
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum EventPayload {
     Text(String),
@@ -158,11 +164,11 @@ impl EventBus {
     pub fn register(
         &mut self,
         event_name: String,
-        // default priority 0
         priority: Option<u16>,
         update_pass: UpdatePass, //* how do i make the update pass enum work nicely for the lua side? Since the enum is a lua number on lua side.*/
         with_update_pass_message: bool,
     ) {
+        // default priority 0
         let priority = priority.unwrap_or(0);
 
         if self.max_priority_locked {
@@ -299,12 +305,11 @@ impl EventBus {
 
     pub fn print_update_pass_map(&self) {
         println!("Current state of update_pass_map:");
-        for (update_pass, event_heap) in &self.update_pass_map {
+        for (update_pass, event_heap) in self.update_pass_map.iter() {
             println!("{:?}", update_pass);
-            let message_requests: Vec<_> = event_heap.clone().into_sorted_vec();
-            for message_request in message_requests {
+            for message_request in event_heap.iter() {
                 if let Some(_event) = self.events.get(&message_request.name) {
-                    println!("  {:?}", message_request);
+                    println!(" - {:?}", message_request);
                 }
             }
         }
