@@ -238,7 +238,7 @@ impl TextData {
                     &layout,
                     widget_pos,
                     input,
-                    self.text.len(),
+                    &self.text,
                     &mut self.mouse_pos,
                 );
             }
@@ -249,7 +249,6 @@ impl TextData {
         let height = layout.height().ceil() as u32;
         let mut buffer = vec![Color::TRANSPARENT; (width * height) as usize];
         let mut glyph_idx = 0;
-        let mut cursor_at_eol = false;
         let selection_end = self.selection.end();
 
         // Iterate over laid out lines
@@ -262,8 +261,6 @@ impl TextData {
                     height,
                 ),
             };
-
-            cursor_at_eol |= line.text_range().end == selection_end;
 
             // Iterate over GlyphRun's within each line
             for glyph_run in line.glyph_runs() {
@@ -282,16 +279,10 @@ impl TextData {
 
         // calculate cursor rect
         if (self.text_changed || selection_changed) && editable && focused {
-            let cursor_position = if cursor_at_eol && selection_end != self.text.len() {
-                selection_end - 1
-            } else {
-                selection_end
-            };
-
             self.cursor_rect.build(
                 &layout,
                 height,
-                cursor_position,
+                selection_end,
                 self.padding,
                 self.text.len(),
             );

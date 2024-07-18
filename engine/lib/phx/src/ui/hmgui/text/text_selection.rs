@@ -6,6 +6,8 @@ use parley::{layout::Cursor, Layout};
 use crate::input::{Button, Input};
 use crate::render::Color;
 
+const NEWLINE_SEPARATORS: &[char] = &['\n', '\r'];
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum TextSelection {
     /// No real selection, only cursor position.
@@ -170,19 +172,17 @@ impl TextSelection {
         layout: &Layout<Color>,
         widget_pos: Vec2,
         input: &Input,
-        text_len: usize,
+        text: &str,
         mouse_pos: &mut Vec2,
     ) -> bool {
         let cur_mouse_pos = input.mouse().position();
 
-        if (input.is_pressed(Button::MouseLeft)
-            || input.is_down(Button::MouseLeft)
-            || input.is_released(Button::MouseLeft))
+        if (input.is_pressed(Button::MouseLeft) || input.is_down(Button::MouseLeft))
             && *mouse_pos != cur_mouse_pos
         {
             let widget_mouse_pos = cur_mouse_pos - widget_pos;
 
-            self.on_mouse(layout, widget_mouse_pos, input, text_len);
+            self.on_mouse(layout, widget_mouse_pos, input, text);
 
             *mouse_pos = cur_mouse_pos;
 
@@ -192,7 +192,7 @@ impl TextSelection {
         // Ctrl+A - select all text
         if input.is_keyboard_ctrl_down() && input.is_pressed(Button::KeyboardA) {
             self.set_start(0);
-            self.set_end(text_len);
+            self.set_end(text.len());
             return true;
         }
 
@@ -201,26 +201,26 @@ impl TextSelection {
         }
 
         if input.is_pressed(Button::KeyboardRight) {
-            return self.on_kb_right(input, text_len);
+            return self.on_kb_right(input, text);
         }
 
         if input.is_pressed(Button::KeyboardUp) {
-            self.on_kb_up(layout, input);
+            self.on_kb_up(input, text);
             return true;
         }
 
         if input.is_pressed(Button::KeyboardDown) {
-            self.on_kb_down(layout, input, text_len);
+            self.on_kb_down(input, text);
             return true;
         }
 
         if input.is_pressed(Button::KeyboardHome) {
-            self.on_kb_home(layout, input);
+            self.on_kb_home(input, text);
             return true;
         }
 
         if input.is_pressed(Button::KeyboardEnd) {
-            self.on_kb_end(layout, input, text_len);
+            self.on_kb_end(input, text);
             return true;
         }
 
@@ -232,26 +232,24 @@ impl TextSelection {
         layout: &Layout<Color>,
         widget_mouse_pos: Vec2,
         input: &Input,
-        text_len: usize,
+        text: &str,
     ) {
         let cursor = Cursor::from_point(layout, widget_mouse_pos.x, widget_mouse_pos.y);
 
-        if input.is_pressed(Button::MouseLeft) && !input.is_keyboard_shift_down() {
-            let pos = if cursor.text_end < text_len {
-                cursor.text_start
-            } else {
-                cursor.text_end
-            };
-
-            self.set_cursor(pos);
+        let pos = if self.is_forward() && cursor.text_end >= text.len() {
+            cursor.text_end
         } else {
-            let end_pos = if self.is_forward() {
-                cursor.text_end
-            } else {
-                cursor.text_start
-            };
+            cursor.text_start
+        };
 
-            self.set_end(end_pos);
+        if input.is_pressed(Button::MouseLeft) {
+            if input.is_keyboard_shift_down() {
+                self.set_end(pos);
+            } else {
+                self.set_cursor(pos);
+            }
+        } else {
+            self.set_end(pos);
         }
     }
 
@@ -283,9 +281,9 @@ impl TextSelection {
         false
     }
 
-    fn on_kb_right(&mut self, input: &Input, text_len: usize) -> bool {
+    fn on_kb_right(&mut self, input: &Input, text: &str) -> bool {
         let cursor_position = self.cursor_position();
-        if cursor_position < text_len {
+        if cursor_position < text.len() {
             if input.is_keyboard_shift_down() {
                 self.set_end(cursor_position + 1);
             } else {
@@ -304,74 +302,63 @@ impl TextSelection {
         }
 
         if self.is_selection() {
-            self.set_cursor(text_len);
+            self.set_cursor(text.len());
             return true;
         }
 
         false
     }
 
-    fn on_kb_up(&mut self, layout: &Layout<Color>, input: &Input) {
-        let cursor_position = self.cursor_position();
-        let cursor = Cursor::from_position(layout, cursor_position, false);
-        let line = cursor.path.line(layout).expect("Cannot get cursor line");
-        let line_text_range = line.text_range();
+    fn on_kb_up(&mut self, input: &Input, text: &str) {
+        let line_end = find_prev_char_pos(text, self.end(), NEWLINE_SEPARATORS);
+        let line_start = find_prev_char_pos(text, line_end.saturating_sub(1), NEWLINE_SEPARATORS);
 
-        // if there is previous line
-        let cursor_position = if line_text_range.start > 0 {
-            let line_cursor_offset = cursor_position - line_text_range.start;
-            let cursor = Cursor::from_position(layout, line_text_range.start - 1, false);
-            let line = cursor.path.line(layout).expect("Cannot get cursor line");
-            let line_text_range = line.text_range();
-            let mut cursor_position = line_text_range.start + line_cursor_offset;
+        let pos = if line_start < line_end {
+            let offset = self.end() - line_end;
+            let pos = line_start + offset.min(line_end - line_start);
 
-            if cursor_position >= line_text_range.end {
-                cursor_position = line_text_range.end - 1;
+            if pos == line_end {
+                pos - 1
+            } else {
+                pos
             }
-
-            cursor_position
         } else {
             0
         };
 
         if input.is_keyboard_shift_down() {
-            self.set_end(cursor_position);
+            self.set_end(pos);
         } else {
-            self.set_cursor(cursor_position);
+            self.set_cursor(pos);
         }
     }
 
-    fn on_kb_down(&mut self, layout: &Layout<Color>, input: &Input, text_len: usize) {
-        let cursor_position = self.cursor_position();
-        let cursor = Cursor::from_position(layout, cursor_position, false);
-        let line = cursor.path.line(layout).expect("Cannot get cursor line");
-        let line_text_range = line.text_range();
+    fn on_kb_down(&mut self, input: &Input, text: &str) {
+        let line_start = find_next_char_pos(text, self.end(), NEWLINE_SEPARATORS) + 1;
+        let line_end = find_next_char_pos(text, line_start + 1, NEWLINE_SEPARATORS);
 
-        // if there is next line
-        let cursor_position = if line_text_range.end + 1 < text_len {
-            let line_cursor_offset = cursor_position - line_text_range.start;
-            let cursor = Cursor::from_position(layout, line_text_range.end + 1, false);
-            let line = cursor.path.line(layout).expect("Cannot get cursor line");
-            let line_text_range = line.text_range();
-            let mut cursor_position = line_text_range.start + line_cursor_offset;
+        let pos = if line_start < line_end {
+            let cur_line_start = find_prev_char_pos(text, self.end(), NEWLINE_SEPARATORS);
+            let offset = self.end() - cur_line_start;
+            let pos = line_start + offset.min(line_end - line_start);
 
-            if cursor_position >= line_text_range.end {
-                cursor_position = line_text_range.end - 1;
+            if pos == line_end {
+                pos - 1
+            } else {
+                pos
             }
-
-            cursor_position
         } else {
-            text_len
+            text.len()
         };
 
         if input.is_keyboard_shift_down() {
-            self.set_end(cursor_position);
+            self.set_end(pos);
         } else {
-            self.set_cursor(cursor_position);
+            self.set_cursor(pos);
         }
     }
 
-    fn on_kb_home(&mut self, layout: &Layout<Color>, input: &Input) {
+    fn on_kb_home(&mut self, input: &Input, text: &str) {
         if input.is_keyboard_ctrl_down() {
             // till the beginning of the text
             if input.is_keyboard_shift_down() {
@@ -380,39 +367,7 @@ impl TextSelection {
                 self.set_cursor(0);
             }
         } else {
-            // till the beginning of the current line
-            let cursor = Cursor::from_position(layout, self.cursor_position(), false);
-            let line = cursor.path.line(layout).expect("Cannot get cursor line");
-            let line_range = line.text_range();
-
-            if input.is_keyboard_shift_down() {
-                self.set_end(line_range.start);
-            } else {
-                self.set_cursor(line_range.start);
-            }
-        }
-    }
-
-    fn on_kb_end(&mut self, layout: &Layout<Color>, input: &Input, text_len: usize) {
-        if input.is_keyboard_ctrl_down() {
-            // till the end of the text
-            if input.is_keyboard_shift_down() {
-                self.set_end(text_len);
-            } else {
-                self.set_cursor(text_len);
-            }
-        } else {
-            // till the end of the current line
-            let cursor = Cursor::from_position(layout, self.cursor_position(), false);
-            let line = cursor.path.line(layout).expect("Cannot get cursor line");
-            let line_range = line.text_range();
-
-            // decrease by 1 if it's not the last line to avoid moving cursor to the start of the next line
-            let cursor_position = if line_range.end == text_len {
-                line_range.end
-            } else {
-                line_range.end - 1
-            };
+            let cursor_position = find_prev_char_pos(text, self.end(), NEWLINE_SEPARATORS);
 
             if input.is_keyboard_shift_down() {
                 self.set_end(cursor_position);
@@ -421,4 +376,52 @@ impl TextSelection {
             }
         }
     }
+
+    fn on_kb_end(&mut self, input: &Input, text: &str) {
+        if input.is_keyboard_ctrl_down() {
+            // till the end of the text
+            if input.is_keyboard_shift_down() {
+                self.set_end(text.len());
+            } else {
+                self.set_cursor(text.len());
+            }
+        } else {
+            let cursor_position = find_next_char_pos(text, self.end(), NEWLINE_SEPARATORS);
+
+            if input.is_keyboard_shift_down() {
+                self.set_end(cursor_position);
+            } else {
+                self.set_cursor(cursor_position);
+            }
+        }
+    }
+}
+
+fn find_prev_char_pos(text: &str, pos: usize, chars: &[char]) -> usize {
+    text[..pos]
+        .chars()
+        .rev()
+        .enumerate()
+        .find_map(|(i, c)| {
+            if chars.contains(&c) {
+                Some(pos - i)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(0)
+}
+
+fn find_next_char_pos(text: &str, pos: usize, chars: &[char]) -> usize {
+    text.chars()
+        .skip(pos)
+        .enumerate()
+        .find_map(|(i, c)| {
+            if chars.contains(&c) {
+                Some(pos + i)
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| text.len())
 }
