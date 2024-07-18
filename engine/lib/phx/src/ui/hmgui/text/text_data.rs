@@ -305,10 +305,11 @@ impl TextData {
 
     fn process_text_edit(&mut self, input: &Input, clipboard: &mut String) {
         // remove backspace, del and new line characters from the text input
+        // TODO: remove all non-printable characters
         let chars_to_remove: &[char] = if self.multiline {
-            &['\u{7f}', '\u{8}']
+            &['\u{1b}', '\u{7f}', '\u{8}']
         } else {
-            &['\u{7f}', '\u{8}', '\n', '\r']
+            &['\u{1b}', '\u{7f}', '\u{8}', '\n', '\r']
         };
         let mut typed_text = if !input.is_keyboard_alt_down() && !input.is_keyboard_ctrl_down() {
             input
