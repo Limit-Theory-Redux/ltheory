@@ -31,6 +31,18 @@ function Application:quit()
     EngineInstance:exit()
 end
 
+function Application:eventLoop()
+    local nextEvent = EventBusInstance:getNextEvent()
+    while nextEvent ~= nil do
+        -- print("[" .. tostring(UpdatePass.ToString(nextEvent:getUpdatePass())) .. "]")
+        -- print("- Type: " .. tostring(EventType.ToString(nextEvent:getEventType())))
+        -- print("- Tunnel Id: " .. tostring(nextEvent:getTunnelId()))
+
+        EventTunnels[nextEvent:getTunnelId()]()
+        nextEvent = EventBusInstance:getNextEvent()
+    end
+end
+
 -- Application Template --------------------------------------------------------
 
 function Application:appInit()
@@ -84,7 +96,13 @@ function Application:registerEvents()
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Input), self, self.onInput)
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostInput), self, self.onPostInput)
     EventBusInstance:subscribe("MyFavoriteEvent", nil, function() print("receivedMyFavorite") end)
-    EventBusInstance:subscribe("MyLeastFavoriteEvent", nil, function() print("receivedMyLeastFavorite") end)
+    EventBusInstance:subscribe("MyLeastFavoriteEvent", nil,
+        function()
+            print("receivedMyLeastFavorite")
+            EventBusInstance:printUpdatePassMap()
+        end)
+
+    --EventBusInstance:register("MyEvent", nil, UpdatePass.PostFrame, false)
 end
 
 function Application:onPreSim() end

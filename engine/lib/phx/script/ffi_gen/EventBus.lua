@@ -16,13 +16,14 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void   EventBus_Free               (EventBus*);
-            void   EventBus_Register           (EventBus*, cstr eventName, uint16 const* priority, UpdatePass* updatePass, bool withUpdatePassMessage);
-            void   EventBus_Unregister         (EventBus*, cstr eventName);
-            uint32 EventBus_Subscribe          (EventBus*, cstr eventName, uint32 const* entityId);
-            void   EventBus_Unsubscribe        (EventBus*, uint32 tunnelId);
-            void   EventBus_Send               (EventBus*, cstr eventName, uint32 entityId);
-            void   EventBus_PrintUpdatePassMap (EventBus const*);
+            void             EventBus_Free               (EventBus*);
+            void             EventBus_Register           (EventBus*, cstr eventName, uint16 const* priority, UpdatePass updatePass, bool withUpdatePassMessage);
+            void             EventBus_Unregister         (EventBus*, cstr eventName);
+            uint32           EventBus_Subscribe          (EventBus*, cstr eventName, uint32 const* entityId);
+            void             EventBus_Unsubscribe        (EventBus*, uint32 tunnelId);
+            void             EventBus_Send               (EventBus*, cstr eventName, uint32 entityId);
+            EventData const* EventBus_GetNextEvent       (EventBus*);
+            void             EventBus_PrintUpdatePassMap (EventBus const*);
         ]]
     end
 
@@ -42,6 +43,7 @@ function Loader.defineType()
                 subscribe          = libphx.EventBus_Subscribe,
                 unsubscribe        = libphx.EventBus_Unsubscribe,
                 send               = libphx.EventBus_Send,
+                getNextEvent       = libphx.EventBus_GetNextEvent,
                 printUpdatePassMap = libphx.EventBus_PrintUpdatePassMap,
             },
         }

@@ -117,8 +117,8 @@ function InitSystem()
             Core.Call(appState.appInit, appState)
         end
 
-        AppFrame = function()
-            Core.Call(appState.onFrame, appState)
+        AppEventLoop = function()
+            Core.Call(appState.eventLoop, appState)
         end
 
         AppClose = function()

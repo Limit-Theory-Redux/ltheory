@@ -256,8 +256,11 @@ impl ApplicationHandler for MainLoop {
 
         // Let Lua script perform frame operations
         // Dispatch engine events
-        let lua = engine.lua.as_ref();
-        engine.event_bus.dispatch_all(lua);
+        //let lua = engine.lua.as_ref();
+        //engine.event_bus.dispatch_all(lua);
+        engine.call_lua("AppEventLoop").unwrap_or_else(|e| {
+            panic!("Error calling AppEventLoop: {}", e);
+        });
 
         // Apply window changes made by a script
         engine.changed_window();
