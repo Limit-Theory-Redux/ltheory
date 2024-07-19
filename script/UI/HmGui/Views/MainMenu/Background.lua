@@ -77,6 +77,9 @@ local backgroundGrid = UILayout.Grid {
             margin = { 0, 0 },
             widthInLayout = getLayoutContainerWidthPercentage,
             layoutType = GuiLayoutType.Vertical,
+            color = {
+                background = Color(0, 0, 0, 0.3)
+            },
             contents = {
                 UIComponent.Container {
                     visible = getMenuVisible,
@@ -86,9 +89,7 @@ local backgroundGrid = UILayout.Grid {
                     margin = { 0, 0 },
                     layoutType = GuiLayoutType.Vertical,
                     heightInLayout = 2 / 10,
-                    color = {
-                        background = Color(0, 0, 0, 0.3)
-                    },
+
                     contents = {
                         UIComponent.Text {
                             text = "SCREENSAVER",
@@ -104,9 +105,7 @@ local backgroundGrid = UILayout.Grid {
                     margin = { 0, 0 },
                     layoutType = GuiLayoutType.Vertical,
                     heightInLayout = 7 / 10,
-                    color = {
-                        background = Color(0, 0, 0, 0.3)
-                    },
+
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Toggle Clock",
@@ -132,9 +131,7 @@ local backgroundGrid = UILayout.Grid {
                     margin = { 0, 0 },
                     heightInLayout = 1 / 10,
                     layoutType = GuiLayoutType.Vertical,
-                    color = {
-                        background = Color(0, 0, 0, 0.3)
-                    },
+
                     contents = {
                         UIComponent.Text {
                             text = Config.gameVersion,
