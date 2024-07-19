@@ -25,8 +25,6 @@ local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
 end
 
-local boldGreenStyle = { font = { weight = 600 }, brush = Color(0, 1, 0, 1) }
-
 local creditsGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
@@ -107,17 +105,21 @@ local creditsGrid = UILayout.Grid {
                     multiline = false,
                     align = { AlignHorizontal.Center, AlignVertical.Center },
                 },
-                UIComponent.TextView {
-                    text = {
-                        { "Limit Theory author:", boldGreenStyle }, " Josh Parnell\n",
-                        { "Scripters:",           boldGreenStyle }, "\n - Flatfingers\n - IllustrisJack\n",
-                        { "Engine developers:", boldGreenStyle }, "\n - dga\n - Haron",
+                UIComponent.ScrollArea {
+                    color = {
+                        background = Color(0, 0, 0, 0.3)
                     },
-                    style = { font = { size = 16 } },
-                    backgroundColor = Color(0.7, 0.7, 0.7, 0.2),
-                    width = 400,
-                    height = 400,
-                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+                    childrenAlign = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+                    padding = { 50, 50 },
+                    margin = { 0, 0 },
+                    layoutType = GuiLayoutType.Vertical,
+                    contents = {
+                        UIComponent.TextView {
+                            text = Config.credits:formatted(),
+                            style = { font = { size = 16 } },
+                        }
+                    }
                 }
             }
         }

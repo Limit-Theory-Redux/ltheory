@@ -43,7 +43,7 @@ function Application:eventLoop()
         -- print("- Type: " .. tostring(EventType.ToString(nextEvent:getEventType())))
         -- print("- Tunnel Id: " .. tostring(nextEvent:getTunnelId()))
 
-        EventTunnels[nextEvent:getTunnelId()]()
+        EventTunnels[nextEvent:getTunnelId()](nextEvent)
         nextEvent = EventBusInstance:getNextEvent()
     end
 end

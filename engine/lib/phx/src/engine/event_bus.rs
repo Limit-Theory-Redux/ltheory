@@ -40,7 +40,7 @@ impl Default for UpdatePass {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(repr = "u8")]
+#[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum EventPriority {
     Lowest = 0,

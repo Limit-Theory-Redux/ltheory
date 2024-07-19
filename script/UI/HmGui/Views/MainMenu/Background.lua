@@ -66,6 +66,7 @@ local function toggleClock()
 end
 
 local backgroundGrid = UILayout.Grid {
+    visible = getMenuVisible,
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
     margin = { 0, 0 },
