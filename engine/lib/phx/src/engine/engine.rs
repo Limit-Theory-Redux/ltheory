@@ -413,7 +413,6 @@ impl Engine {
         &mut self.input
     }
 
-    #[bind(name = "EventBus")]
     pub fn event_bus(&mut self) -> &mut EventBus {
         &mut self.event_bus
     }
