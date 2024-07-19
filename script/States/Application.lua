@@ -32,6 +32,11 @@ function Application:quit()
 end
 
 function Application:eventLoop()
+    if EventBusInstance:isReady() and not self.eventsRegistered then
+        self:registerEvents()
+        self.eventsRegistered = true
+    end
+
     local nextEvent = EventBusInstance:getNextEvent()
     while nextEvent ~= nil do
         -- print("[" .. tostring(UpdatePass.ToString(nextEvent:getUpdatePass())) .. "]")
@@ -46,8 +51,7 @@ end
 -- Application Template --------------------------------------------------------
 
 function Application:appInit()
-    self:registerEvents()
-
+    self.eventsRegistered = false
     self.resX, self.resY = self:getDefaultSize()
 
     WindowInstance:setTitle(self:getTitle())
@@ -95,14 +99,8 @@ function Application:registerEvents()
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreInput), self, self.onPreInput)
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Input), self, self.onInput)
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostInput), self, self.onPostInput)
-    EventBusInstance:subscribe("MyFavoriteEvent", nil, function() print("receivedMyFavorite") end)
-    EventBusInstance:subscribe("MyLeastFavoriteEvent", nil,
-        function()
-            print("receivedMyLeastFavorite")
-            EventBusInstance:printUpdatePassMap()
-        end)
 
-    --EventBusInstance:register("MyEvent", nil, UpdatePass.PostFrame, false)
+    -- EventBusInstance:register("MyCustomEvent", EventPriority.Medium, UpdatePass.PreFrame, false)
 end
 
 function Application:onPreSim() end

@@ -1,11 +1,13 @@
 use std::{
-    collections::{hash_map::Entry, BTreeSet, BinaryHeap, HashMap},
+    collections::{hash_map::Entry, BinaryHeap, HashMap},
     sync::atomic::{AtomicU32, Ordering},
 };
+
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 use internal::ConvertIntoString;
+use tracing::{info, warn};
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
@@ -38,6 +40,27 @@ impl Default for UpdatePass {
     }
 }
 
+#[luajit_ffi_gen::luajit_ffi(repr = "u16")]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum EventPriority {
+    Low = 0,
+    Medium = 32000,
+    High = 64000,
+    Max = 65535,
+}
+
+impl Ord for EventPriority {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (*self as u16).cmp(&(*other as u16))
+    }
+}
+
+impl PartialOrd for EventPriority {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum EventPayload {
     Text(String),
@@ -54,7 +77,7 @@ pub struct Subscriber {
 #[derive(Debug, Clone)]
 pub struct Event {
     pub name: String,
-    pub priority: u16,
+    pub priority: EventPriority,
     pub update_pass: UpdatePass,
     pub subscribers: Vec<Subscriber>,
     pub processed_subscribers: Vec<usize>,
@@ -105,11 +128,28 @@ impl EventData {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-struct MessageRequest {
-    id: u32,
-    priority: u16,
+struct MessageRequestCache {
+    update_pass: UpdatePass,
+    priority: EventPriority,
     event_name: String,
     stay_alive: bool,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct MessageRequest {
+    priority: EventPriority,
+    event_name: String,
+    stay_alive: bool,
+}
+
+impl From<MessageRequestCache> for MessageRequest {
+    fn from(cache: MessageRequestCache) -> Self {
+        MessageRequest {
+            priority: cache.priority,
+            event_name: cache.event_name,
+            stay_alive: cache.stay_alive,
+        }
+    }
 }
 
 impl Ord for MessageRequest {
@@ -130,11 +170,9 @@ impl PartialOrd for MessageRequest {
 pub struct EventBus {
     events: HashMap<String, Event>,
     update_pass_map: HashMap<UpdatePass, BinaryHeap<MessageRequest>>,
-    cached_stay_alive_requests: Vec<MessageRequest>,
+    cached_requests: Vec<MessageRequestCache>,
     next_subscriber_id: AtomicU32,
-    next_message_id: AtomicU32,
     next_tunnel_id: AtomicU32,
-    message_ids: BTreeSet<u32>,
     max_priority_locked: bool,
     current_update_pass: Option<UpdatePass>,
     current_message_request: Option<MessageRequest>,
@@ -145,11 +183,9 @@ impl EventBus {
         Self {
             events: HashMap::new(),
             update_pass_map: HashMap::new(),
-            cached_stay_alive_requests: vec![],
+            cached_requests: vec![],
             next_subscriber_id: AtomicU32::new(0),
-            next_message_id: AtomicU32::new(0),
             next_tunnel_id: AtomicU32::new(0),
-            message_ids: BTreeSet::new(),
             max_priority_locked: false,
             current_update_pass: Some(UpdatePass::PreSim),
             current_message_request: None,
@@ -174,36 +210,24 @@ impl EventBus {
             panic!("error while pushing subscriber");
         }
     }
-
-    fn get_unique_message_id(&mut self) -> u32 {
-        if let Some(&id) = self.message_ids.iter().next() {
-            self.message_ids.remove(&id);
-            id
-        } else {
-            self.next_message_id.fetch_add(1, Ordering::SeqCst)
-        }
-    }
-
-    fn release_unique_message_id(&mut self, id: u32) {
-        self.message_ids.insert(id);
-    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl EventBus {
+    pub fn is_ready(&self) -> bool {
+        self.max_priority_locked
+    }
+
     pub fn register(
         &mut self,
         event_name: String,
-        priority: Option<u16>,
-        update_pass: UpdatePass, //* how do i make the update pass enum work nicely for the lua side? Since the enum is a lua number on lua side.*/
+        priority: EventPriority,
+        update_pass: UpdatePass,
         with_update_pass_message: bool,
     ) {
-        // default priority 0
-        let priority = priority.unwrap_or(0);
-
         if self.max_priority_locked {
-            if priority == u16::MAX {
-                panic!("Trying to register event at locked priority");
+            if priority == EventPriority::Max {
+                panic!("Trying to register event at maximum priority which is locked.");
             }
         }
 
@@ -217,44 +241,23 @@ impl EventBus {
 
         match self.events.entry(event_name.clone()) {
             Entry::Occupied(_) => {
-                println!(
-                    "Warning: You are trying to register an Event '{}' that already exists - Aborting!",
+                warn!(
+                    "You are trying to register an Event '{}' that already exists - Aborting!",
                     event_name
                 );
             }
             Entry::Vacant(entry) => {
                 entry.insert(event);
 
-                if with_update_pass_message {
-                    let message_request = MessageRequest {
-                        id: self.get_unique_message_id(),
-                        priority,
-                        event_name: event_name.clone(),
-                        stay_alive: with_update_pass_message,
-                    };
+                let message_request = MessageRequestCache {
+                    update_pass,
+                    priority: priority,
+                    event_name: event_name.clone(),
+                    stay_alive: with_update_pass_message, // item will be consumed on dispatch
+                };
 
-                    self.update_pass_map
-                        .entry(update_pass)
-                        .or_insert_with(|| {
-                            println!("Inserting new BinaryHeap for {:?}", update_pass);
-                            BinaryHeap::new()
-                        })
-                        .push(message_request);
-
-                    // Verify the message_vec immediately after insertion
-                    if let Some(message_heap) = self.update_pass_map.get(&update_pass) {
-                        println!(
-                            "Heap size after registration for {:?}: {}",
-                            update_pass,
-                            message_heap.len()
-                        );
-                        for message_request in message_heap.iter() {
-                            if let Some(event) = self.events.get(&message_request.event_name) {
-                                println!("Registered event: {}", event.name.clone());
-                            }
-                        }
-                    }
-                }
+                // Add the message request in the next tick
+                self.cached_requests.push(message_request);
             }
         }
     }
@@ -263,7 +266,7 @@ impl EventBus {
         if let Some(event) = self.events.remove(event_name) {
             if let Some(message_heap) = self.update_pass_map.get_mut(&event.update_pass) {
                 message_heap.retain(|e| e.event_name != event_name);
-                println!("Unregistered event: {}", event.name.clone());
+                info!("Unregistered event: {}", event.name.clone());
             }
         }
     }
@@ -271,14 +274,13 @@ impl EventBus {
     /// @overload fun(self: table, eventName: string, ctxTable: table|nil, callbackFunc: function): integer
     pub fn subscribe(&mut self, event_name: String, entity_id: Option<u32>) -> u32 {
         //* should return handler instead of u32 */
-        //* how do i handle Options via ffi? It requires a uint16 const pointer */
         let tunnel_id = self.next_tunnel_id.fetch_add(1, Ordering::SeqCst);
 
-        if let Some(event) = self.events.get_mut(&event_name) {
+        if let Some(_event) = self.events.get_mut(&event_name) {
             self.add_subscriber(&event_name, tunnel_id, entity_id)
         }
 
-        println!(
+        info!(
             "Subscribed to event '{}' with tunnel_id {}",
             event_name, tunnel_id
         );
@@ -292,7 +294,7 @@ impl EventBus {
                 .retain(|subscriber| subscriber.tunnel_id != tunnel_id);
         }
 
-        println!(
+        info!(
             "Unsubscribed from event and closed tunnel with id: {}",
             tunnel_id
         );
@@ -302,28 +304,25 @@ impl EventBus {
         &mut self,
         event_name: String,
         entity_id: u32,
-        // Add payload here later
+        update_pass: UpdatePass, // Add payload here later
     ) {
         // Temporarily remove the event from the HashMap to avoid borrowing issues
         if let Some(event) = self.events.remove(&event_name) {
             // Find the subscriber with the matching entity_id
-            if let Some(subscriber) = event
+            if let Some(_subscriber) = event
                 .subscribers
                 .iter()
                 .find(|s| s.entity_id == Some(entity_id))
             {
-                let message_request = MessageRequest {
-                    id: self.get_unique_message_id(),
+                let message_request = MessageRequestCache {
+                    update_pass,
                     priority: event.priority,
                     event_name: event_name.clone(),
                     stay_alive: false, // item will be consumed on dispatch
                 };
 
-                // Add the message request to the update_pass_map
-                self.update_pass_map
-                    .entry(event.update_pass)
-                    .or_insert_with(BinaryHeap::new)
-                    .push(message_request);
+                // Add the message request in the next tick
+                self.cached_requests.push(message_request);
             }
 
             // Insert the event back into the HashMap
@@ -337,12 +336,15 @@ impl EventBus {
         while let Some(update_pass) = self.current_update_pass {
             if let Some(queue) = self.update_pass_map.get_mut(&update_pass) {
                 if let Some(message_request) = queue.peek().cloned() {
+                    // info!("{:?}", message_request);
                     self.current_message_request = Some(message_request.clone());
 
                     if let Some(event) = self.events.get_mut(&message_request.event_name) {
                         event.subscribers.sort_by(|a, b| a.id.cmp(&b.id));
 
+                        //binfo!(" - {:?}", event.subscribers);
                         if let Some(subscriber) = event.get_next_subscriber() {
+                            // info!("   - {:?}", subscriber);
                             let event_data = EventData {
                                 update_pass: update_pass,
                                 event_type: EventType::SomeType,
@@ -355,16 +357,18 @@ impl EventBus {
 
                             return unsafe { EVENT_DATA_STORAGE.as_ref() };
                         } else {
+                            if message_request.stay_alive {
+                                let message_request_cache = MessageRequestCache {
+                                    update_pass: update_pass,
+                                    priority: message_request.priority,
+                                    event_name: message_request.event_name.clone(),
+                                    stay_alive: message_request.stay_alive,
+                                };
+                                self.cached_requests.push(message_request_cache);
+                            }
                             // No more subscribers to process, clear queue
                             event.reset_processed_subscribers();
                             queue.clear();
-
-                            if message_request.stay_alive {
-                                self.cached_stay_alive_requests
-                                    .push(message_request.clone());
-                            } else {
-                                self.release_unique_message_id(message_request.id);
-                            }
                         }
                     }
                 }
@@ -376,38 +380,42 @@ impl EventBus {
                 iter.next()
             };
 
-            //tracing::info!(
+            //info!(
             //    "Finished UpdatePass: {:?} - Next UpdatePass: {:?}",
             //    self.current_update_pass,
             //    next_update_pass
             //);
 
             self.current_update_pass = next_update_pass;
+        }
+        // Reinsert stay-alive
+        for message_request_cache in self.cached_requests.drain(..) {
+            let message_request: MessageRequest = message_request_cache.clone().into();
 
-            // Reinsert stay-alive
-            for message_request in self.cached_stay_alive_requests.drain(..) {
-                self.update_pass_map
-                    .entry(update_pass)
-                    .or_insert_with(BinaryHeap::new)
-                    .push(message_request);
-            }
+            self.update_pass_map
+                .entry(message_request_cache.update_pass)
+                .or_insert_with(BinaryHeap::new)
+                .push(message_request);
         }
         self.current_update_pass = Some(UpdatePass::PreSim);
         None
     }
 
     pub fn print_update_pass_map(&self) {
-        println!("Current state of update_pass_map:");
+        info!("Current state of update_pass_map:");
 
         // Create a sorted vector of UpdatePass keys based on the enum order
-        let mut sorted_keys: Vec<_> = UpdatePass::iter().collect();
+        let sorted_keys: Vec<_> = UpdatePass::iter().collect();
 
         for update_pass in sorted_keys {
-            if let Some(event_heap) = self.update_pass_map.get(&update_pass) {
-                println!("{:?}", update_pass);
-                for message_request in event_heap.iter() {
+            if let Some(message_heap) = self.update_pass_map.get(&update_pass) {
+                info!("{:?}", update_pass);
+                let mut messages: Vec<_> = message_heap.iter().cloned().collect();
+                messages.sort();
+
+                for message_request in messages {
                     if let Some(_event) = self.events.get(&message_request.event_name) {
-                        println!(" - {:?}", message_request);
+                        info!(" - {:?}", message_request);
                     }
                 }
             }

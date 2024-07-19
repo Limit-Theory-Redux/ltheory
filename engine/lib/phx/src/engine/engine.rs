@@ -108,7 +108,7 @@ impl Engine {
         for update_pass in UpdatePass::iter() {
             event_bus.register(
                 format!("{:?}", update_pass),
-                Some(u16::MAX),
+                super::EventPriority::Max,
                 update_pass,
                 true,
             );
@@ -117,25 +117,18 @@ impl Engine {
         // lock maximum priority u16::MAX
         event_bus.lock_max_priority();
 
-        event_bus.register(
-            format!("MyFavoriteEvent"),
-            Some(100),
-            UpdatePass::default(),
-            false,
-        );
-        event_bus.register(
-            format!("MyLeastFavoriteEvent"),
-            Some(0),
-            UpdatePass::default(),
-            false,
-        );
-
-        event_bus.print_update_pass_map();
-
-        event_bus.send(format!("MyFavoriteEvent"), 0);
-        event_bus.send(format!("MyLeastFavoriteEvent"), 0);
-
-        event_bus.print_update_pass_map();
+        // event_bus.register(
+        //     format!("MyFavoriteEvent"),
+        //     super::EventPriority::Low,
+        //     UpdatePass::default(),
+        //     false,
+        // );
+        // event_bus.register(
+        //     format!("MyLeastFavoriteEvent"),
+        //     super::EventPriority::Low,
+        //     UpdatePass::default(),
+        //     false,
+        // );
 
         Self {
             init_time: TimeStamp::now(),

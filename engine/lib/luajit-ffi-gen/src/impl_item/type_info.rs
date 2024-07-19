@@ -61,6 +61,7 @@ const COPY_TYPES: &[&str] = &[
     "TextAlignment",
     "UpdatePass",
     "EventType",
+    "EventPriority",
 ];
 
 #[derive(Debug)]
