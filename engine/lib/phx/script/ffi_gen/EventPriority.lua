@@ -3,7 +3,7 @@ local Loader = {}
 
 function Loader.declareType()
     ffi.cdef [[
-        typedef uint16 EventPriority;
+        typedef uint8 EventPriority;
     ]]
 
     return 2, 'EventPriority'
@@ -16,9 +16,13 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            EventPriority EventPriority_Lowest;
+            EventPriority EventPriority_VeryLow;
             EventPriority EventPriority_Low;
             EventPriority EventPriority_Medium;
             EventPriority EventPriority_High;
+            EventPriority EventPriority_Higher;
+            EventPriority EventPriority_VeryHigh;
             EventPriority EventPriority_Max;
 
             cstr          EventPriority_ToString(EventPriority);
@@ -27,9 +31,13 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         EventPriority = {
+            Lowest   = libphx.EventPriority_Lowest,
+            VeryLow  = libphx.EventPriority_VeryLow,
             Low      = libphx.EventPriority_Low,
             Medium   = libphx.EventPriority_Medium,
             High     = libphx.EventPriority_High,
+            Higher   = libphx.EventPriority_Higher,
+            VeryHigh = libphx.EventPriority_VeryHigh,
             Max      = libphx.EventPriority_Max,
 
             ToString = libphx.EventPriority_ToString,

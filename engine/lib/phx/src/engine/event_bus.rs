@@ -40,18 +40,22 @@ impl Default for UpdatePass {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(repr = "u16")]
+#[luajit_ffi_gen::luajit_ffi(repr = "u8")]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum EventPriority {
-    Low = 0,
-    Medium = 32000,
-    High = 64000,
-    Max = 65535,
+    Lowest = 0,
+    VeryLow = 1,
+    Low = 2,
+    Medium = 3,
+    High = 4,
+    Higher = 5,
+    VeryHigh = 6,
+    Max = 255,
 }
 
 impl Ord for EventPriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        (*self as u16).cmp(&(*other as u16))
+        (*self as u8).cmp(&(*other as u8))
     }
 }
 
