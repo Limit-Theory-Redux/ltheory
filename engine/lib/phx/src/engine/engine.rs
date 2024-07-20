@@ -65,7 +65,9 @@ impl Engine {
             };
 
             let panic_message = if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
-                format!("panic occurred at {location} - {s:?}")
+                format!("panic occurred at {location} - {s}")
+            } else if let Some(s) = panic_info.payload().downcast_ref::<String>() {
+                format!("panic occurred at {location} - {}", s.as_str())
             } else {
                 format!("panic occurred at {location}")
             };
@@ -81,7 +83,7 @@ impl Engine {
                         trace!("{}", e);
                     }
                 } else {
-                    error!("No Lua VM context, cannot get Lua backtrace.")
+                    error!("No Lua VM context, cannot get Lua backtrace.\n{panic_message}");
                 }
             });
 
