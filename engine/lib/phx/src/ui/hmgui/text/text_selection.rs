@@ -54,22 +54,18 @@ impl TextSelection {
         self.end()
     }
 
-    pub fn get_forward_range(&self) -> Range<usize> {
-        match self {
-            Self::Cursor(pos) => Range {
-                start: *pos,
-                end: *pos,
-            },
-            Self::Selection(range) => {
-                if range.start <= range.end {
-                    range.clone()
-                } else {
-                    Range {
-                        start: range.end,
-                        end: range.start,
-                    }
-                }
+    pub fn get_forward_range(&self) -> Option<Range<usize>> {
+        if let Self::Selection(range) = self {
+            if range.start <= range.end {
+                Some(range.clone())
+            } else {
+                Some(Range {
+                    start: range.end,
+                    end: range.start,
+                })
             }
+        } else {
+            None
         }
     }
 

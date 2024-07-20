@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 use parley::layout::Glyph;
 use swash::scale::{image::Content, Render, Scaler, Source, StrikeWith};
 use swash::zeno::{Format, Vector};
@@ -10,12 +8,10 @@ pub(super) fn render_glyph(
     buffer: &mut [Color],
     scaler: &mut Scaler,
     color: &Color,
-    bg_color: &Color,
     glyph: &Glyph,
     glyph_x: f32,
     glyph_y: f32,
     image_width: u32,
-    line_range: &Range<u32>,
 ) {
     // Compute the fractional offset
     // You'll likely want to quantize this in a real renderer
@@ -43,18 +39,6 @@ pub(super) fn render_glyph(
     let glyph_height = glyph_image.placement.height;
     let glyph_x = (glyph_x.floor() as i32 + glyph_image.placement.left) as u32;
     let glyph_y = (glyph_y.floor() as i32 - glyph_image.placement.top) as u32;
-
-    if bg_color.is_opaque() {
-        // draw selection background
-        let width = (glyph.advance.ceil() as u32).max(glyph_width);
-        for y in line_range.clone() {
-            for x in glyph_x..glyph_x + width {
-                let idx = y * image_width + x;
-
-                buffer[idx as usize].blend_with(bg_color);
-            }
-        }
-    }
 
     match glyph_image.content {
         Content::Mask => {

@@ -1,7 +1,6 @@
-use std::ops::Range;
-
 use glam::Vec2;
 use parley::layout::{Alignment, GlyphRun};
+use parley::style::StyleProperty;
 use parley::Layout;
 use swash::scale::ScaleContext;
 use swash::FontRef;
@@ -254,9 +253,6 @@ impl TextData {
             }
         }
 
-        self.set_scale_factor(scale_factor);
-        self.update_text_layout(text_ctx, width);
-
         let mut selection_changed = false;
         if focused && !self.text.is_empty() {
             if let Some(input) = input {
@@ -269,39 +265,27 @@ impl TextData {
                     &self.text,
                     &mut self.mouse_pos,
                 );
+
+                if selection_changed {
+                    self.invalidate();
+                }
             }
         }
+
+        self.set_scale_factor(scale_factor);
+        self.update_text_layout(text_ctx, width);
 
         // Create buffer to render into
         let width = (self.layout.width().ceil() + self.padding * 2.0) as u32;
         let height = self.layout.height().ceil() as u32;
         let mut buffer = vec![Color::TRANSPARENT; (width * height) as usize];
         let selection_end = self.selection.end();
-        let is_selection = focused && !self.selection.is_cursor();
 
         // Iterate over laid out lines
         for line in self.layout.lines() {
-            let metrics = line.metrics();
-            let mut char_idx = line.text_range().start;
-            let line_range = Range {
-                start: (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor() as u32,
-                end: u32::min(
-                    (metrics.baseline + metrics.descent + metrics.leading * 0.5).floor() as u32,
-                    height,
-                ),
-            };
-
             // Iterate over GlyphRun's within each line
             for glyph_run in line.glyph_runs() {
-                self.render_glyph_run(
-                    &mut text_ctx.scale,
-                    &glyph_run,
-                    &mut buffer,
-                    width,
-                    &mut char_idx,
-                    &line_range,
-                    is_selection,
-                );
+                self.render_glyph_run(&mut text_ctx.scale, &glyph_run, &mut buffer, width);
             }
         }
 
@@ -343,6 +327,10 @@ impl TextData {
             self.default_style.apply_default(&mut builder);
 
             self.section_style.apply(&mut builder);
+
+            if let Some(range) = self.selection.get_forward_range() {
+                builder.push(&StyleProperty::Brush(self.selection_color.clone()), range);
+            }
 
             // Build the builder into a Layout
             builder.build_into(&mut self.layout);
@@ -517,12 +505,7 @@ impl TextData {
         glyph_run: &GlyphRun<Color>,
         buffer: &mut [Color],
         image_width: u32,
-        char_idx: &mut usize,
-        line_range: &Range<u32>,
-        is_selection: bool,
     ) {
-        let selection_range = self.selection.get_forward_range();
-
         // Resolve properties of the GlyphRun
         let mut run_x = glyph_run.offset();
         let run_y = glyph_run.baseline();
@@ -556,28 +539,15 @@ impl TextData {
 
             run_x += glyph.advance;
 
-            let bg_color = if is_selection
-                && selection_range.start <= *char_idx
-                && *char_idx < selection_range.end
-            {
-                &self.selection_color
-            } else {
-                &Color::TRANSPARENT
-            };
-
             render_glyph(
                 buffer,
                 &mut scaler,
                 &color,
-                bg_color,
                 &glyph,
                 glyph_x,
                 glyph_y,
                 image_width,
-                line_range,
             );
-
-            *char_idx += 1;
         }
     }
 }
