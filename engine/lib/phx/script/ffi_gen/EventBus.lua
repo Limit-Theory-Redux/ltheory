@@ -22,7 +22,6 @@ function Loader.defineType()
             void             EventBus_Unregister         (EventBus*, cstr eventName);
             uint32           EventBus_Subscribe          (EventBus*, cstr eventName, uint32 const* entityId);
             void             EventBus_Unsubscribe        (EventBus*, uint32 tunnelId);
-            void             EventBus_Send               (EventBus*, cstr eventName, uint32 entityId, UpdatePass updatePass);
             EventData const* EventBus_GetNextEvent       (EventBus*);
             void             EventBus_PrintUpdatePassMap (EventBus const*);
         ]]
@@ -44,7 +43,6 @@ function Loader.defineType()
                 unregister         = libphx.EventBus_Unregister,
                 subscribe          = libphx.EventBus_Subscribe,
                 unsubscribe        = libphx.EventBus_Unsubscribe,
-                send               = libphx.EventBus_Send,
                 getNextEvent       = libphx.EventBus_GetNextEvent,
                 printUpdatePassMap = libphx.EventBus_PrintUpdatePassMap,
             },
