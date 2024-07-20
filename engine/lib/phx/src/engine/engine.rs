@@ -117,19 +117,6 @@ impl Engine {
         // lock maximum priority u16::MAX
         event_bus.lock_max_priority();
 
-        // event_bus.register(
-        //     format!("MyFavoriteEvent"),
-        //     super::EventPriority::Low,
-        //     UpdatePass::default(),
-        //     false,
-        // );
-        // event_bus.register(
-        //     format!("MyLeastFavoriteEvent"),
-        //     super::EventPriority::Low,
-        //     UpdatePass::default(),
-        //     false,
-        // );
-
         Self {
             init_time: TimeStamp::now(),
             window,
