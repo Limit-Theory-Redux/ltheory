@@ -577,7 +577,7 @@ function BSPTest:onDraw()
         buffer = format('Nodes: %i', sphereProf.nodes)
         gen.font:draw(buffer,
             2.0 * padding, line,
-            1, 1, 1, 1
+            Color(1, 1, 1, 1)
         )
         line = line - (size + padding)
 
@@ -591,7 +591,7 @@ function BSPTest:onDraw()
         buffer = format('Leaves: %i', sphereProf.leaves)
         gen.font:draw(buffer,
             2.0 * padding, line,
-            1, 1, 1, 1
+            Color(1, 1, 1, 1)
         )
         line = line - (size + padding)
 
@@ -599,7 +599,7 @@ function BSPTest:onDraw()
         buffer = format('Triangles: %i', sphereProf.triangles)
         gen.font:draw(buffer,
             2.0 * padding, line,
-            1, 1, 1, 1
+            Color(1, 1, 1, 1)
         )
         line = line - (size + padding)
 
