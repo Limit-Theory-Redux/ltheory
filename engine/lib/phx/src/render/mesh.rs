@@ -331,18 +331,9 @@ pub extern "C" fn Mesh_Draw(this: &mut Mesh) {
 
 #[no_mangle]
 pub extern "C" fn Mesh_DrawNormals(this: &mut Mesh, scale: f32) {
-    unsafe {
-        gl::Begin(gl::LINES);
-        for v in this.vertex.iter() {
-            gl::Vertex3f((*v).p.x, (*v).p.y, (*v).p.z);
-            gl::Vertex3f(
-                (*v).p.x + scale * (*v).n.x,
-                (*v).p.y + scale * (*v).n.y,
-                (*v).p.z + scale * (*v).n.z,
-            );
-        }
+    for v in &this.vertex {
+        Draw::line3(&v.p, &(v.p + scale * v.n));
     }
-    glcheck!(gl::End());
 }
 
 #[no_mangle]

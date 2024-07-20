@@ -1,486 +1,469 @@
-use super::gl;
+use std::sync::{Mutex, MutexGuard, OnceLock};
+
 use super::*;
-use crate::logging::warn;
 use crate::math::*;
 use crate::system::*;
+use crate::logging::*;
 
-/* TODO JP : Replace all immediates with static VBO/IBOs & glDraw*. */
+pub struct Draw {
+    alpha_stack: Vec<f32>,
+    color: Color,
 
-const MAX_STACK_DEPTH: usize = 16;
-
-static mut alphaStack: [f32; MAX_STACK_DEPTH] = [0.; MAX_STACK_DEPTH];
-static mut alphaIndex: i32 = -1;
-static mut color: Color = Color::WHITE;
-
-#[no_mangle]
-pub unsafe extern "C" fn Draw_PushAlpha(a: f32) {
-    if alphaIndex + 1 >= 16 {
-        panic!("Draw_PushAlpha: Maximum alpha stack depth exceeded");
-    }
-
-    let prevAlpha: f32 = if alphaIndex >= 0 {
-        alphaStack[alphaIndex as usize]
-    } else {
-        1.0f32
-    };
-    let alpha: f32 = a * prevAlpha;
-
-    alphaIndex += 1;
-    alphaStack[alphaIndex as usize] = alpha;
-
-    glcheck!(gl::Color4f(color.r, color.g, color.b, color.a * alpha));
+    pb: PrimitiveBuilder,
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Draw_PopAlpha() {
-    if alphaIndex < 0 {
-        panic!("Draw_PopAlpha Attempting to pop an empty alpha stack");
+impl Draw {
+    fn inst() -> MutexGuard<'static, Draw> {
+        static INST: OnceLock<Mutex<Draw>> = OnceLock::new();
+        INST.get_or_init(|| {
+            Mutex::new(Draw {
+                alpha_stack: vec![],
+                color: Color::WHITE,
+                pb: PrimitiveBuilder::new(),
+            })
+        })
+        .lock()
+        .unwrap()
     }
 
-    alphaIndex -= 1;
-    let alpha: f32 = if alphaIndex >= 0 {
-        alphaStack[alphaIndex as usize]
-    } else {
-        1.0f32
-    };
-
-    glcheck!(gl::Color4f(color.r, color.g, color.b, color.a * alpha));
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_Axes(pos: &Vec3, x: &Vec3, y: &Vec3, z: &Vec3, scale: f32, _alpha: f32) {
-    let left: Vec3 = *pos + (*x) * scale;
-    let up: Vec3 = *pos + (*y) * scale;
-    let forward: Vec3 = *pos + (*z) * scale;
-
-    unsafe {
-        gl::Begin(gl::LINES);
-        gl::Color4f(1.0f32, 0.25f32, 0.25f32, _alpha);
-        gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
-        gl::Vertex3f(left.x, left.y, left.z);
-        gl::Color4f(0.25f32, 1.0f32, 0.25f32, _alpha);
-        gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
-        gl::Vertex3f(up.x, up.y, up.z);
-        gl::Color4f(0.25f32, 0.25f32, 1.0f32, _alpha);
-        gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
-        gl::Vertex3f(forward.x, forward.y, forward.z);
+    fn spherical(r: f32, yaw: f32, pitch: f32) -> Vec3 {
+        Vec3::new(
+            (r as f64 * f64::sin(pitch as f64) * f64::cos(yaw as f64)) as f32,
+            (r as f64 * f64::cos(pitch as f64)) as f32,
+            (r as f64 * f64::sin(pitch as f64) * f64::sin(yaw as f64)) as f32,
+        )
     }
-    glcheck!(gl::End());
+}
 
-    unsafe {
-        gl::Begin(gl::POINTS);
-        gl::Color4f(1.0f32, 1.0f32, 1.0f32, _alpha);
-        gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
+#[luajit_ffi_gen::luajit_ffi]
+impl Draw {
+    pub fn clear(r: f32, g: f32, b: f32, a: f32) {
+        let status = unsafe { gl::CheckFramebufferStatus(gl::FRAMEBUFFER) };
+        if status != gl::FRAMEBUFFER_COMPLETE {
+            warn!(
+                "Framebuffer is incomplete, skipping clear. Status[{status}]: {}",
+                framebuffer_status_to_str(status)
+            );
+        } else {
+            glcheck!(gl::ClearColor(r, g, b, a));
+            glcheck!(gl::Clear(gl::COLOR_BUFFER_BIT));
+        };
     }
-    glcheck!(gl::End());
-}
 
-#[no_mangle]
-pub extern "C" fn Draw_Border(s: f32, x: f32, y: f32, w: f32, h: f32) {
-    Draw_Rect(x, y, w, s);
-    Draw_Rect(x, y + h - s, w, s);
-    Draw_Rect(x, y + s, s, h - 2.0f32 * s);
-    Draw_Rect(x + w - s, y + s, s, h - 2.0f32 * s);
-}
+    pub fn clear_depth(d: f32) {
+        glcheck!(gl::ClearDepth(d as f64));
+        glcheck!(gl::Clear(gl::DEPTH_BUFFER_BIT));
+    }
 
-#[no_mangle]
-pub extern "C" fn Draw_Box3(this: &Box3) {
-    unsafe { Metric_AddDrawImm(6, 12, 24) };
+    pub fn color(r: f32, g: f32, b: f32, a: f32) {
+        let mut this = Self::inst();
 
-    unsafe {
-        gl::Begin(gl::QUADS);
+        let alpha = if this.alpha_stack.is_empty() {
+            1.0
+        } else {
+            this.alpha_stack[this.alpha_stack.len() - 1]
+        };
+
+        this.color = Color::new(r, g, b, a);
+        this.pb.color4(r, g, b, a * alpha);
+    }
+
+    pub fn flush() {
+        unsafe { Metric_Inc(0x6) };
+        glcheck!(gl::Finish());
+    }
+
+    pub fn push_alpha(a: f32) {
+        let mut this = Self::inst();
+
+        let prev_alpha = if this.alpha_stack.is_empty() {
+            1.0
+        } else {
+            this.alpha_stack[this.alpha_stack.len() - 1]
+        };
+
+        let alpha = a * prev_alpha;
+        this.alpha_stack.push(alpha);
+
+        let mut color = this.color;
+        color.a *= alpha;
+        this.pb.color4(color.r, color.g, color.b, color.a);
+    }
+
+    pub fn pop_alpha() {
+        let mut this = Self::inst();
+
+        if this.alpha_stack.is_empty() {
+            panic!("attempting to pop an empty alpha stack");
+        }
+
+        this.alpha_stack.pop();
+        let alpha: f32 = if this.alpha_stack.is_empty() {
+            1.0
+        } else {
+            this.alpha_stack[this.alpha_stack.len() - 1]
+        };
+
+        let mut color = this.color;
+        color.a *= alpha;
+        this.pb.color4(color.r, color.g, color.b, color.a);
+    }
+
+    pub fn line_width(width: f32) {
+        glcheck!(gl::LineWidth(width));
+    }
+
+    pub fn point_size(size: f32) {
+        glcheck!(gl::PointSize(size));
+    }
+
+    pub fn axes(pos: &Vec3, x: &Vec3, y: &Vec3, z: &Vec3, scale: f32, alpha: f32) {
+        let left: Vec3 = *pos + (*x) * scale;
+        let up: Vec3 = *pos + (*y) * scale;
+        let forward: Vec3 = *pos + (*z) * scale;
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        this.pb.color4(1.0, 0.25, 0.25, alpha);
+        this.pb.vertex3(pos.x, pos.y, pos.z);
+        this.pb.vertex3(left.x, left.y, left.z);
+        this.pb.color4(0.25, 1.0, 0.25, alpha);
+        this.pb.vertex3(pos.x, pos.y, pos.z);
+        this.pb.vertex3(up.x, up.y, up.z);
+        this.pb.color4(0.25, 0.25, 1.0, alpha);
+        this.pb.vertex3(pos.x, pos.y, pos.z);
+        this.pb.vertex3(forward.x, forward.y, forward.z);
+        this.pb.end();
+
+        this.pb.begin(PrimitiveType::Points);
+        this.pb.color4(1.0, 1.0, 1.0, alpha);
+        this.pb.vertex3(pos.x, pos.y, pos.z);
+        this.pb.end();
+    }
+
+    pub fn border(s: f32, x: f32, y: f32, w: f32, h: f32) {
+        Draw::rect(x, y, w, s);
+        Draw::rect(x, y + h - s, w, s);
+        Draw::rect(x, y + s, s, h - 2.0f32 * s);
+        Draw::rect(x + w - s, y + s, s, h - 2.0f32 * s);
+    }
+
+    pub fn box3(b: &Box3) {
+        unsafe { Metric_AddDrawImm(6, 12, 24) };
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Quads);
 
         /* Left. */
-        gl::Vertex3f(this.lower.x, this.lower.y, this.lower.z);
-        gl::Vertex3f(this.lower.x, this.lower.y, this.upper.z);
-        gl::Vertex3f(this.lower.x, this.upper.y, this.upper.z);
-        gl::Vertex3f(this.lower.x, this.upper.y, this.lower.z);
+        this.pb.vertex3(b.lower.x, b.lower.y, b.lower.z);
+        this.pb.vertex3(b.lower.x, b.lower.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.lower.z);
 
         /* Right. */
-        gl::Vertex3f(this.upper.x, this.lower.y, this.lower.z);
-        gl::Vertex3f(this.upper.x, this.upper.y, this.lower.z);
-        gl::Vertex3f(this.upper.x, this.upper.y, this.upper.z);
-        gl::Vertex3f(this.upper.x, this.lower.y, this.upper.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.upper.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.upper.z);
 
         /* Front. */
-        gl::Vertex3f(this.lower.x, this.lower.y, this.upper.z);
-        gl::Vertex3f(this.upper.x, this.lower.y, this.upper.z);
-        gl::Vertex3f(this.upper.x, this.upper.y, this.upper.z);
-        gl::Vertex3f(this.lower.x, this.upper.y, this.upper.z);
+        this.pb.vertex3(b.lower.x, b.lower.y, b.upper.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.upper.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.upper.z);
 
         /* Back. */
-        gl::Vertex3f(this.lower.x, this.lower.y, this.lower.z);
-        gl::Vertex3f(this.lower.x, this.upper.y, this.lower.z);
-        gl::Vertex3f(this.upper.x, this.upper.y, this.lower.z);
-        gl::Vertex3f(this.upper.x, this.lower.y, this.lower.z);
+        this.pb.vertex3(b.lower.x, b.lower.y, b.lower.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.lower.z);
 
         /* Top. */
-        gl::Vertex3f(this.lower.x, this.upper.y, this.lower.z);
-        gl::Vertex3f(this.lower.x, this.upper.y, this.upper.z);
-        gl::Vertex3f(this.upper.x, this.upper.y, this.upper.z);
-        gl::Vertex3f(this.upper.x, this.upper.y, this.lower.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.lower.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.upper.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.upper.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.lower.z);
 
         /* Bottom. */
-        gl::Vertex3f(this.lower.x, this.lower.y, this.lower.z);
-        gl::Vertex3f(this.upper.x, this.lower.y, this.lower.z);
-        gl::Vertex3f(this.upper.x, this.lower.y, this.upper.z);
-        gl::Vertex3f(this.lower.x, this.lower.y, this.upper.z);
+        this.pb.vertex3(b.lower.x, b.lower.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.lower.y, b.upper.z);
+
+        this.pb.end();
     }
 
-    glcheck!(gl::End());
-}
+    pub fn line(x1: f32, y1: f32, x2: f32, y2: f32) {
+        let mut this = Self::inst();
 
-#[no_mangle]
-pub extern "C" fn Draw_Clear(r: f32, g: f32, b: f32, a: f32) {
-    let status = glcheck!(gl::CheckFramebufferStatus(gl::FRAMEBUFFER));
-    if status != gl::FRAMEBUFFER_COMPLETE {
-        warn!(
-            "Framebuffer is incomplete, skipping clear. Status[{status}]: {}",
-            framebuffer_status_to_str(status)
-        );
-    } else {
-        glcheck!(gl::ClearColor(r, g, b, a));
-        glcheck!(gl::Clear(gl::COLOR_BUFFER_BIT));
-    };
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_ClearDepth(d: f32) {
-    glcheck!(gl::ClearDepth(d as f64));
-    glcheck!(gl::Clear(gl::DEPTH_BUFFER_BIT));
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Draw_Color(r: f32, g: f32, b: f32, a: f32) {
-    let alpha: f32 = if alphaIndex >= 0 {
-        alphaStack[alphaIndex as usize]
-    } else {
-        1.0f32
-    };
-    color = Color::new(r, g, b, a);
-
-    glcheck!(gl::Color4f(r, g, b, a * alpha));
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_Flush() {
-    unsafe { Metric_Inc(0x6) };
-    glcheck!(gl::Finish());
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_Line(x1: f32, y1: f32, x2: f32, y2: f32) {
-    unsafe {
-        gl::Begin(gl::LINES);
-        gl::Vertex2f(x1, y1);
-        gl::Vertex2f(x2, y2);
+        this.pb.begin(PrimitiveType::Lines);
+        this.pb.vertex2(x1, y1);
+        this.pb.vertex2(x2, y2);
+        this.pb.end();
     }
-    glcheck!(gl::End());
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn Draw_Line3(p1: &Vec3, p2: &Vec3) {
-    unsafe {
-        gl::Begin(gl::LINES);
-        gl::Vertex3f(p1.x, p1.y, p1.z);
-        gl::Vertex3f(p2.x, p2.y, p2.z);
+    pub fn line3(p1: &Vec3, p2: &Vec3) {
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        this.pb.vertex3(p1.x, p1.y, p1.z);
+        this.pb.vertex3(p2.x, p2.y, p2.z);
+        this.pb.end();
     }
-    glcheck!(gl::End());
-}
 
-#[no_mangle]
-pub extern "C" fn Draw_LineWidth(width: f32) {
-    glcheck!(gl::LineWidth(width));
-}
+    pub fn plane(p: &Vec3, n: &Vec3, scale: f32) {
+        let mut e1: Vec3 = if f64::abs(n.x as f64) < 0.7f64 {
+            Vec3::X
+        } else {
+            Vec3::Y
+        };
+        e1 = Vec3_Reject(e1, *n).normalize();
+        let e2: Vec3 = Vec3::cross(*n, e1);
 
-#[no_mangle]
-pub extern "C" fn Draw_Plane(p: &Vec3, n: &Vec3, scale: f32) {
-    let mut e1: Vec3 = if f64::abs(n.x as f64) < 0.7f64 {
-        Vec3::X
-    } else {
-        Vec3::Y
-    };
-    e1 = Vec3_Reject(e1, *n).normalize();
-    let e2: Vec3 = Vec3::cross(*n, e1);
+        let p0: Vec3 = *p + (e1 * -scale) + (e2 * -scale);
+        let p1: Vec3 = *p + (e1 * scale) + (e2 * -scale);
+        let p2: Vec3 = *p + (e1 * scale) + (e2 * scale);
+        let p3: Vec3 = *p + (e1 * -scale) + (e2 * scale);
 
-    let p0: Vec3 = *p + (e1 * -scale) + (e2 * -scale);
-    let p1: Vec3 = *p + (e1 * scale) + (e2 * -scale);
-    let p2: Vec3 = *p + (e1 * scale) + (e2 * scale);
-    let p3: Vec3 = *p + (e1 * -scale) + (e2 * scale);
+        unsafe { Metric_AddDrawImm(1, 2, 4) };
 
-    unsafe { Metric_AddDrawImm(1, 2, 4) };
+        let mut this = Self::inst();
 
-    unsafe {
-        gl::Begin(gl::QUADS);
-        gl::Vertex3f(p0.x, p0.y, p0.z);
-        gl::Vertex3f(p1.x, p1.y, p1.z);
-        gl::Vertex3f(p2.x, p2.y, p2.z);
-        gl::Vertex3f(p3.x, p3.y, p3.z);
+        this.pb.begin(PrimitiveType::Quads);
+        this.pb.vertex3(p0.x, p0.y, p0.z);
+        this.pb.vertex3(p1.x, p1.y, p1.z);
+        this.pb.vertex3(p2.x, p2.y, p2.z);
+        this.pb.vertex3(p3.x, p3.y, p3.z);
+        this.pb.end();
     }
-    glcheck!(gl::End());
-}
 
-#[no_mangle]
-pub extern "C" fn Draw_Point(x: f32, y: f32) {
-    unsafe {
-        gl::Begin(gl::POINTS);
-        gl::Vertex2f(x, y);
+    pub fn point(x: f32, y: f32) {
+        let mut this = Self::inst();
+        this.pb.begin(PrimitiveType::Points);
+        this.pb.vertex2(x, y);
+        this.pb.end();
     }
-    glcheck!(gl::End());
-}
 
-#[no_mangle]
-pub extern "C" fn Draw_Point3(x: f32, y: f32, z: f32) {
-    unsafe {
-        gl::Begin(gl::POINTS);
-        gl::Vertex3f(x, y, z);
+    pub fn point3(x: f32, y: f32, z: f32) {
+        let mut this = Self::inst();
+        this.pb.begin(PrimitiveType::Points);
+        this.pb.vertex3(x, y, z);
+        this.pb.end();
     }
-    glcheck!(gl::End());
-}
 
-#[no_mangle]
-pub extern "C" fn Draw_PointSize(size: f32) {
-    glcheck!(gl::PointSize(size));
+    pub fn quad(p1: &Vec2, p2: &Vec2, p3: &Vec2, p4: &Vec2) {
+        unsafe { Metric_AddDrawImm(1, 2, 4) };
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Quads);
+        this.pb.texcoord2(0.0, 0.0);
+        this.pb.vertex2(p1.x, p1.y);
+        this.pb.texcoord2(0.0, 1.0);
+        this.pb.vertex2(p2.x, p2.y);
+        this.pb.texcoord2(1.0, 1.0);
+        this.pb.vertex2(p3.x, p3.y);
+        this.pb.texcoord2(1.0, 0.0);
+        this.pb.vertex2(p4.x, p4.y);
+        this.pb.end();
+    }
+
+    pub fn quad3(p1: &Vec3, p2: &Vec3, p3: &Vec3, p4: &Vec3) {
+        unsafe { Metric_AddDrawImm(1, 2, 4) };
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Quads);
+        this.pb.texcoord2(0.0, 0.0);
+        this.pb.vertex3(p1.x, p1.y, p1.z);
+        this.pb.texcoord2(0.0, 1.0);
+        this.pb.vertex3(p2.x, p2.y, p2.z);
+        this.pb.texcoord2(1.0, 1.0);
+        this.pb.vertex3(p3.x, p3.y, p3.z);
+        this.pb.texcoord2(1.0, 0.0);
+        this.pb.vertex3(p4.x, p4.y, p4.z);
+        this.pb.end();
+    }
+
+    pub fn rect(x1: f32, y1: f32, xs: f32, ys: f32) {
+        Self::rect_ex(x1, y1, xs, ys, 0.0, 0.0, 1.0, 1.0);
+    }
+
+    pub fn rect_ex(
+        x1: f32,
+        y1: f32,
+        xs: f32,
+        ys: f32,
+        u1: f32,
+        v1: f32,
+        u2: f32,
+        v2: f32,
+    ) {
+        let x2: f32 = x1 + xs;
+        let y2: f32 = y1 + ys;
+
+        unsafe { Metric_AddDrawImm(1, 2, 4) };
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Quads);
+        this.pb.texcoord2(u1, v1);
+        this.pb.vertex2(x1, y1);
+        this.pb.texcoord2(u1, v2);
+        this.pb.vertex2(x1, y2);
+        this.pb.texcoord2(u2, v2);
+        this.pb.vertex2(x2, y2);
+        this.pb.texcoord2(u2, v1);
+        this.pb.vertex2(x2, y1);
+        this.pb.end();
+    }
+
+    pub fn smooth_points(_enable: bool) {
+        // TODO: Create rounded points.
+    }
+
+    /* TODO JP : Lazy creation of VBO / IBO & glDraw instead of immediate. */
+    pub fn sphere(p: &Vec3, r: f32) {
+        let res: usize = 7;
+        let f_res: f32 = res as f32;
+
+        let mut this = Self::inst();
+
+        // First Row
+        unsafe { Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32) };
+
+        let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
+        let phi: f32 = 1.0f32 / f_res * std::f32::consts::PI;
+        let tc: Vec3 = *p + Self::spherical(r, 0.0f32, 0.0f32);
+
+        this.pb.begin(PrimitiveType::Triangles);
+        for i_theta in 0..res {
+            let theta: f32 = i_theta as f32 / f_res * std::f32::consts::TAU;
+            let br: Vec3 = *p + Self::spherical(r, last_theta, phi);
+            let bl: Vec3 = *p + Self::spherical(r, theta, phi);
+
+            this.pb.vertex3(br.x, br.y, br.z);
+            this.pb.vertex3(tc.x, tc.y, tc.z);
+            this.pb.vertex3(bl.x, bl.y, bl.z);
+
+            last_theta = theta;
+        }
+        this.pb.end();
+
+        // Middle Rows
+        unsafe {
+            Metric_AddDrawImm(
+                res.wrapping_sub(2) as i32,
+                2_usize.wrapping_mul(res.wrapping_sub(2)) as i32,
+                4_usize.wrapping_mul(res.wrapping_sub(2)) as i32,
+            )
+        };
+
+        let mut last_phi: f32 = 1.0f32 / f_res * std::f32::consts::PI;
+        let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
+
+        this.pb.begin(PrimitiveType::Quads);
+        for iPhi in 2..res {
+            let phi: f32 = iPhi as f32 / f_res * std::f32::consts::PI;
+            for i_theta in 0..res {
+                let theta: f32 = i_theta as f32 / f_res * std::f32::consts::TAU;
+                let br: Vec3 = *p + Self::spherical(r, last_theta, phi);
+                let tr: Vec3 = *p + Self::spherical(r, last_theta, last_phi);
+                let tl: Vec3 = *p + Self::spherical(r, theta, last_phi);
+                let bl: Vec3 = *p + Self::spherical(r, theta, phi);
+
+                this.pb.vertex3(br.x, br.y, br.z);
+                this.pb.vertex3(tr.x, tr.y, tr.z);
+                this.pb.vertex3(tl.x, tl.y, tl.z);
+                this.pb.vertex3(bl.x, bl.y, bl.z);
+
+                last_theta = theta;
+            }
+            last_phi = phi;
+        }
+        this.pb.end();
+
+        // Bottom Row
+        unsafe { Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32) };
+
+        let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
+        let phi: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::PI;
+        let bc: Vec3 = *p + Self::spherical(r, 0.0f32, std::f32::consts::PI);
+
+        this.pb.begin(PrimitiveType::Triangles);
+        for i_theta in 0..res {
+            let theta: f32 = i_theta as f32 / f_res * std::f32::consts::TAU;
+            let tr: Vec3 = *p + Self::spherical(r, last_theta, phi);
+            let tl: Vec3 = *p + Self::spherical(r, theta, phi);
+
+            this.pb.vertex3(tr.x, tr.y, tr.z);
+            this.pb.vertex3(tl.x, tl.y, tl.z);
+            this.pb.vertex3(bc.x, bc.y, bc.z);
+
+            last_theta = theta;
+        }
+        this.pb.end();
+    }
+
+    pub fn tri(v1: &Vec2, v2: &Vec2, v3: &Vec2) {
+        unsafe { Metric_AddDrawImm(1, 1, 3) };
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Triangles);
+        this.pb.texcoord2(0.0, 0.0);
+        this.pb.vertex2(v1.x, v1.y);
+        this.pb.texcoord2(0.0, 1.0);
+        this.pb.vertex2(v2.x, v2.y);
+        this.pb.texcoord2(1.0, 1.0);
+        this.pb.vertex2(v3.x, v3.y);
+        this.pb.end();
+    }
+
+    pub fn tri3(v1: &Vec3, v2: &Vec3, v3: &Vec3) {
+        unsafe { Metric_AddDrawImm(1, 1, 3) };
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Triangles);
+        this.pb.texcoord2(0.0, 0.0);
+        this.pb.vertex3(v1.x, v1.y, v1.z);
+        this.pb.texcoord2(0.0, 1.0);
+        this.pb.vertex3(v2.x, v2.y, v2.z);
+        this.pb.texcoord2(1.0, 1.0);
+        this.pb.vertex3(v3.x, v3.y, v3.z);
+        this.pb.end();
+    }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Poly(points: *const Vec2, count: i32) {
     Metric_AddDrawImm(1, count - 2, count);
 
-    gl::Begin(gl::POLYGON);
+    let mut this = Draw::inst();
+
+    this.pb.begin(PrimitiveType::Polygon);
     for i in 0..(count as isize) {
-        gl::Vertex2f((*points.offset(i)).x, (*points.offset(i)).y);
+        let p = &*points.offset(i);
+        this.pb.vertex2(p.x, p.y);
     }
-    glcheck!(gl::End());
+    this.pb.end();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Poly3(points: *const Vec3, count: i32) {
     Metric_AddDrawImm(1, count - 2, count);
 
-    gl::Begin(gl::POLYGON);
+    let mut this = Draw::inst();
+
+    this.pb.begin(PrimitiveType::Polygon);
     for i in 0..(count as isize) {
-        gl::Vertex3f(
-            (*points.offset(i)).x,
-            (*points.offset(i)).y,
-            (*points.offset(i)).z,
-        );
+        let p = &*points.offset(i);
+        this.pb.vertex3(p.x, p.y, p.z);
     }
-    glcheck!(gl::End());
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_Quad(p1: &Vec2, p2: &Vec2, p3: &Vec2, p4: &Vec2) {
-    unsafe { Metric_AddDrawImm(1, 2, 4) };
-
-    unsafe {
-        gl::Begin(gl::QUADS);
-        gl::TexCoord2f(0.0f32, 0.0f32);
-        gl::Vertex2f((*p1).x, (*p1).y);
-        gl::TexCoord2f(0.0f32, 1.0f32);
-        gl::Vertex2f((*p2).x, (*p2).y);
-        gl::TexCoord2f(1.0f32, 1.0f32);
-        gl::Vertex2f((*p3).x, (*p3).y);
-        gl::TexCoord2f(1.0f32, 0.0f32);
-        gl::Vertex2f((*p4).x, (*p4).y);
-    }
-    glcheck!(gl::End());
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_Quad3(p1: &Vec3, p2: &Vec3, p3: &Vec3, p4: &Vec3) {
-    unsafe { Metric_AddDrawImm(1, 2, 4) };
-
-    unsafe {
-        gl::Begin(gl::QUADS);
-        gl::TexCoord2f(0.0f32, 0.0f32);
-        gl::Vertex3f((*p1).x, (*p1).y, (*p1).z);
-        gl::TexCoord2f(0.0f32, 1.0f32);
-        gl::Vertex3f((*p2).x, (*p2).y, (*p2).z);
-        gl::TexCoord2f(1.0f32, 1.0f32);
-        gl::Vertex3f((*p3).x, (*p3).y, (*p3).z);
-        gl::TexCoord2f(1.0f32, 0.0f32);
-        gl::Vertex3f((*p4).x, (*p4).y, (*p4).z);
-    }
-    glcheck!(gl::End());
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_Rect(x1: f32, y1: f32, xs: f32, ys: f32) {
-    Draw_RectEx(x1, y1, xs, ys, 0.0, 0.0, 1.0, 1.0);
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_RectEx(
-    x1: f32,
-    y1: f32,
-    xs: f32,
-    ys: f32,
-    u0: f32,
-    v0: f32,
-    u1: f32,
-    v1: f32,
-) {
-    let x2: f32 = x1 + xs;
-    let y2: f32 = y1 + ys;
-
-    unsafe { Metric_AddDrawImm(1, 2, 4) };
-
-    unsafe {
-        gl::Begin(gl::QUADS);
-        gl::TexCoord2f(u0, v0);
-        gl::Vertex2f(x1, y1);
-        gl::TexCoord2f(u0, v1);
-        gl::Vertex2f(x1, y2);
-        gl::TexCoord2f(u1, v1);
-        gl::Vertex2f(x2, y2);
-        gl::TexCoord2f(u1, v0);
-        gl::Vertex2f(x2, y1);
-    }
-    glcheck!(gl::End());
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_SmoothLines(enabled: bool) {
-    if enabled {
-        glcheck!(gl::Enable(gl::LINE_SMOOTH));
-        glcheck!(gl::Hint(gl::LINE_SMOOTH_HINT, gl::NICEST));
-    } else {
-        glcheck!(gl::Disable(gl::LINE_SMOOTH));
-        glcheck!(gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST));
-    };
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_SmoothPoints(enabled: bool) {
-    if enabled {
-        glcheck!(gl::Enable(gl::POINT_SMOOTH));
-        glcheck!(gl::Hint(gl::POINT_SMOOTH_HINT, gl::NICEST));
-    } else {
-        glcheck!(gl::Disable(gl::POINT_SMOOTH));
-        glcheck!(gl::Hint(gl::POINT_SMOOTH_HINT, gl::FASTEST));
-    };
-}
-
-#[inline]
-fn Spherical(r: f32, yaw: f32, pitch: f32) -> Vec3 {
-    Vec3::new(
-        (r as f64 * f64::sin(pitch as f64) * f64::cos(yaw as f64)) as f32,
-        (r as f64 * f64::cos(pitch as f64)) as f32,
-        (r as f64 * f64::sin(pitch as f64) * f64::sin(yaw as f64)) as f32,
-    )
-}
-
-/* TODO JP : Lazy creation of VBO / IBO & glDraw instead of immediate. */
-#[no_mangle]
-pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
-    let res: usize = 7;
-    let fRes: f32 = res as f32;
-
-    // First Row
-    Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32);
-
-    let mut lastTheta: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
-    let phi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
-    let tc: Vec3 = *p + Spherical(r, 0.0f32, 0.0f32);
-
-    gl::Begin(gl::TRIANGLES);
-    for iTheta in 0..res {
-        let theta: f32 = iTheta as f32 / fRes * std::f32::consts::TAU;
-        let br: Vec3 = *p + Spherical(r, lastTheta, phi);
-        let bl: Vec3 = *p + Spherical(r, theta, phi);
-
-        gl::Vertex3f(br.x, br.y, br.z);
-        gl::Vertex3f(tc.x, tc.y, tc.z);
-        gl::Vertex3f(bl.x, bl.y, bl.z);
-
-        lastTheta = theta;
-    }
-    glcheck!(gl::End());
-
-    // Middle Rows
-    Metric_AddDrawImm(
-        res.wrapping_sub(2) as i32,
-        2_usize.wrapping_mul(res.wrapping_sub(2)) as i32,
-        4_usize.wrapping_mul(res.wrapping_sub(2)) as i32,
-    );
-
-    let mut lastPhi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
-    let mut lastTheta: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
-
-    gl::Begin(gl::QUADS);
-    for iPhi in 2..res {
-        let phi: f32 = iPhi as f32 / fRes * std::f32::consts::PI;
-        for iTheta in 0..res {
-            let theta: f32 = iTheta as f32 / fRes * std::f32::consts::TAU;
-            let br: Vec3 = *p + Spherical(r, lastTheta, phi);
-            let tr: Vec3 = *p + Spherical(r, lastTheta, lastPhi);
-            let tl: Vec3 = *p + Spherical(r, theta, lastPhi);
-            let bl: Vec3 = *p + Spherical(r, theta, phi);
-
-            gl::Vertex3f(br.x, br.y, br.z);
-            gl::Vertex3f(tr.x, tr.y, tr.z);
-            gl::Vertex3f(tl.x, tl.y, tl.z);
-            gl::Vertex3f(bl.x, bl.y, bl.z);
-
-            lastTheta = theta;
-        }
-        lastPhi = phi;
-    }
-    glcheck!(gl::End());
-
-    // Bottom Row
-    Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32);
-
-    let mut lastTheta: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
-    let phi: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::PI;
-    let bc: Vec3 = *p + Spherical(r, 0.0f32, std::f32::consts::PI);
-
-    gl::Begin(gl::TRIANGLES);
-    for iTheta in 0..res {
-        let theta: f32 = iTheta as f32 / fRes * std::f32::consts::TAU;
-        let tr: Vec3 = *p + Spherical(r, lastTheta, phi);
-        let tl: Vec3 = *p + Spherical(r, theta, phi);
-
-        gl::Vertex3f(tr.x, tr.y, tr.z);
-        gl::Vertex3f(tl.x, tl.y, tl.z);
-        gl::Vertex3f(bc.x, bc.y, bc.z);
-
-        lastTheta = theta;
-    }
-    glcheck!(gl::End());
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_Tri(v1: &Vec2, v2: &Vec2, v3: &Vec2) {
-    unsafe { Metric_AddDrawImm(1, 1, 3) };
-
-    unsafe {
-        gl::Begin(gl::TRIANGLES);
-        gl::TexCoord2f(0.0f32, 0.0f32);
-        gl::Vertex2f((*v1).x, (*v1).y);
-        gl::TexCoord2f(0.0f32, 1.0f32);
-        gl::Vertex2f((*v2).x, (*v2).y);
-        gl::TexCoord2f(1.0f32, 1.0f32);
-        gl::Vertex2f((*v3).x, (*v3).y);
-    }
-    glcheck!(gl::End());
-}
-
-#[no_mangle]
-pub extern "C" fn Draw_Tri3(v1: &Vec3, v2: &Vec3, v3: &Vec3) {
-    unsafe { Metric_AddDrawImm(1, 1, 3) };
-
-    unsafe {
-        gl::Begin(gl::TRIANGLES);
-        gl::TexCoord2f(0.0f32, 0.0f32);
-        gl::Vertex3f((*v1).x, (*v1).y, (*v1).z);
-        gl::TexCoord2f(0.0f32, 1.0f32);
-        gl::Vertex3f((*v2).x, (*v2).y, (*v2).z);
-        gl::TexCoord2f(1.0f32, 1.0f32);
-        gl::Vertex3f((*v3).x, (*v3).y, (*v3).z);
-    }
-    glcheck!(gl::End());
+    this.pb.end();
 }
 
 fn framebuffer_status_to_str(status: gl::types::GLenum) -> &'static str {
