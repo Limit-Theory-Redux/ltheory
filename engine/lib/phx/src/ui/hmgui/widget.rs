@@ -283,7 +283,7 @@ impl HmGuiWidget {
                     self.inner_size.x,
                     scale_factor,
                     self.inner_pos,
-                    Some(input),
+                    input,
                     focused,
                     &mut clipboard,
                 );

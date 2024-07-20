@@ -33,6 +33,7 @@ pub struct TextData {
     mouse_pos: Vec2,
     cursor_rect: TextCursorRect,
     scale_factor: f32,
+    max_advance: f32,
 
     // Horizontal padding around the output image
     // TODO: workaround. For some reason zeno crate (used by swash) shifts placement.left
@@ -89,6 +90,7 @@ impl TextData {
             mouse_pos: Vec2::new(-1.0, -1.0),
             cursor_rect: TextCursorRect::new(cursor_color),
             scale_factor: 1.0,
+            max_advance: 0.0,
 
             padding: 5.0,
 
@@ -177,12 +179,19 @@ impl TextData {
         &self.selection
     }
 
+    pub fn set_max_advance(&mut self, max_advance: f32) {
+        if self.max_advance != max_advance {
+            self.max_advance = max_advance;
+            self.invalidate_layout();
+        }
+    }
+
     pub fn invalidate_layout(&mut self) {
         self.rebuild_layout = true;
         self.rebuild_line_breaks = true;
     }
 
-    pub(super) fn update(&mut self, text_data: &TextData) -> bool {
+    pub(super) fn update(&mut self, text_data: &TextData) {
         let mut updated = if self.text != text_data.text {
             self.text = text_data.text.clone();
             true
@@ -211,7 +220,9 @@ impl TextData {
             false
         };
 
-        updated
+        if updated {
+            self.invalidate_layout();
+        }
     }
 
     pub fn calculate_rect(
@@ -225,7 +236,7 @@ impl TextData {
         }
 
         self.set_scale_factor(scale_factor);
-        self.update_text_layout(text_ctx, 0.0);
+        self.update_text_layout(text_ctx);
 
         let width = self.layout.width().ceil() + self.padding * 2.0;
         let height = self.layout.height().ceil();
@@ -242,38 +253,38 @@ impl TextData {
         width: f32,
         scale_factor: f32,
         mut widget_pos: Vec2,
-        input: Option<&Input>,
+        input: &Input,
         editable: bool,
         focused: bool,
         clipboard: &mut String,
     ) -> *mut Tex2D {
         if editable && focused {
-            if let Some(input) = input {
-                self.process_text_edit(input, clipboard);
-            }
+            self.process_text_edit(input, clipboard);
         }
 
         let mut selection_changed = false;
         if focused && !self.text.is_empty() {
-            if let Some(input) = input {
-                widget_pos.x += self.padding;
+            widget_pos.x += self.padding;
 
-                selection_changed = self.selection.update(
-                    &self.layout,
-                    widget_pos,
-                    input,
-                    &self.text,
-                    &mut self.mouse_pos,
-                );
+            selection_changed = self.selection.update(
+                &self.layout,
+                widget_pos,
+                input,
+                &self.text,
+                &mut self.mouse_pos,
+            );
 
-                if selection_changed {
-                    self.invalidate_layout();
-                }
+            if selection_changed {
+                self.invalidate_layout();
             }
         }
 
         self.set_scale_factor(scale_factor);
-        self.update_text_layout(text_ctx, width);
+        self.set_max_advance(width);
+
+        if !self.update_text_layout(text_ctx) {
+            return std::ptr::null_mut();
+        }
 
         // Create buffer to render into
         let width = (self.layout.width().ceil() + self.padding * 2.0) as u32;
@@ -315,7 +326,7 @@ impl TextData {
         }
     }
 
-    fn update_text_layout(&mut self, text_ctx: &mut TextContext, width: f32) {
+    fn update_text_layout(&mut self, text_ctx: &mut TextContext) -> bool {
         if self.rebuild_layout {
             self.rebuild_layout = false;
 
@@ -339,8 +350,8 @@ impl TextData {
                 self.rebuild_line_breaks = false;
 
                 // The width for line wrapping
-                let max_advance = if self.multiline && width > 0.0 {
-                    Some(width * self.scale_factor)
+                let max_advance = if self.multiline && self.max_advance > 0.0 {
+                    Some(self.max_advance * self.scale_factor)
                 } else {
                     None
                 };
@@ -348,6 +359,10 @@ impl TextData {
                 // Perform layout (including bidi resolution and shaping) with alignment
                 self.layout.break_all_lines(max_advance, self.alignment);
             }
+
+            true
+        } else {
+            false
         }
     }
 
