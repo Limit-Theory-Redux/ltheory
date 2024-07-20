@@ -1,9 +1,11 @@
 use std::ops::Range;
 
 use glam::Vec2;
-use parley::{layout::Cursor, Layout};
+use parley::layout::Cursor;
 
 use crate::render::Color;
+
+use super::TextLayout;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TextCursorRect {
@@ -35,7 +37,7 @@ impl TextCursorRect {
 
     pub fn build(
         &mut self,
-        layout: &Layout<Color>,
+        layout: &TextLayout,
         widget_height: u32,
         cursor_position: usize,
         padding: f32,

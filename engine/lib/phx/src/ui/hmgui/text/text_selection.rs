@@ -1,10 +1,11 @@
 use std::ops::Range;
 
 use glam::Vec2;
-use parley::{layout::Cursor, Layout};
+use parley::layout::Cursor;
 
 use crate::input::{Button, Input};
-use crate::render::Color;
+
+use super::TextLayout;
 
 const NEWLINE_SEPARATORS: &[char] = &['\n', '\r'];
 
@@ -20,6 +21,10 @@ pub enum TextSelection {
 impl TextSelection {
     pub fn new() -> Self {
         Self::Cursor(0)
+    }
+
+    pub fn selection(start: usize, end: usize) -> Self {
+        Self::Selection(Range { start, end })
     }
 
     pub fn start(&self) -> usize {
@@ -49,7 +54,7 @@ impl TextSelection {
         self.end()
     }
 
-    pub fn range(&self) -> Range<usize> {
+    pub fn get_forward_range(&self) -> Range<usize> {
         match self {
             Self::Cursor(pos) => Range {
                 start: *pos,
@@ -90,10 +95,7 @@ impl TextSelection {
                 if range.start <= range.end {
                     Self::Selection(range.clone())
                 } else {
-                    Self::Selection(Range {
-                        start: range.end,
-                        end: range.start,
-                    })
+                    Self::selection(range.end, range.start)
                 }
             }
         }
@@ -112,10 +114,7 @@ impl TextSelection {
                 if range.start == end_pos {
                     Self::Cursor(range.start)
                 } else {
-                    Self::Selection(Range {
-                        start: range.start,
-                        end: end_pos,
-                    })
+                    Self::selection(range.start, end_pos)
                 }
             }
         };
@@ -130,10 +129,7 @@ impl TextSelection {
                 if start_pos == range.end {
                     Self::Cursor(start_pos)
                 } else {
-                    Self::Selection(Range {
-                        start: start_pos,
-                        end: range.end,
-                    })
+                    Self::selection(start_pos, range.end)
                 }
             }
         };
@@ -148,20 +144,14 @@ impl TextSelection {
                 if *pos == end_pos {
                     Self::Cursor(*pos)
                 } else {
-                    Self::Selection(Range {
-                        start: *pos,
-                        end: end_pos,
-                    })
+                    Self::selection(*pos, end_pos)
                 }
             }
             Self::Selection(range) => {
                 if range.start == end_pos {
                     Self::Cursor(end_pos)
                 } else {
-                    Self::Selection(Range {
-                        start: range.start,
-                        end: end_pos,
-                    })
+                    Self::selection(range.start, end_pos)
                 }
             }
         };
@@ -169,7 +159,7 @@ impl TextSelection {
 
     pub fn update(
         &mut self,
-        layout: &Layout<Color>,
+        layout: &TextLayout,
         widget_pos: Vec2,
         input: &Input,
         text: &str,
@@ -227,13 +217,7 @@ impl TextSelection {
         false
     }
 
-    fn on_mouse(
-        &mut self,
-        layout: &Layout<Color>,
-        widget_mouse_pos: Vec2,
-        input: &Input,
-        text: &str,
-    ) {
+    fn on_mouse(&mut self, layout: &TextLayout, widget_mouse_pos: Vec2, input: &Input, text: &str) {
         let cursor = Cursor::from_point(layout, widget_mouse_pos.x, widget_mouse_pos.y);
 
         let pos = if self.is_forward() && cursor.text_end >= text.len() {

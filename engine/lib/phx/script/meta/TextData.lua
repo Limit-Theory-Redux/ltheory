@@ -15,6 +15,18 @@ function TextData.Create(text, defaultStyle, cursorColor, selectionColor, alignm
 ---@return string
 function TextData:text() end
 
+---@param text string
+function TextData:setText(text) end
+
+---@param scaleFactor number
+function TextData:setScaleFactor(scaleFactor) end
+
+---@return boolean
+function TextData:isMultiline() end
+
+---@param multiline boolean
+function TextData:setMultiline(multiline) end
+
 -- Set style of the text section beginning at 'start_pos' position and up to 'end_pos'.
 ---@param startPos integer
 ---@param endPos integer

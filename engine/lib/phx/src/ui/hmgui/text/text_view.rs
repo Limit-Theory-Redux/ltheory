@@ -28,6 +28,10 @@ impl TextView {
         &self.data
     }
 
+    pub fn data_mut(&mut self) -> &mut TextData {
+        &mut self.data
+    }
+
     pub fn set_data(&mut self, text_data: &TextData) {
         // TODO: process input in text data
 

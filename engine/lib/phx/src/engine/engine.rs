@@ -54,7 +54,7 @@ impl Engine {
 
         std::panic::set_hook(Box::new(|panic_info| {
             error!(
-                "panic occurred in engine code! backtrace:\n{}",
+                "Panic occurred in engine code!\nMessage: {panic_info}\nBacktrace:\n{}",
                 std::backtrace::Backtrace::force_capture()
             );
 

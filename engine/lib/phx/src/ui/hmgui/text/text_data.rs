@@ -18,8 +18,10 @@ use super::{
     TextAlignment, TextContext, TextCursorRect, TextSectionStyle, TextSelection, TextStyle,
 };
 
+pub type TextLayout = Layout<Color>;
+
 /// Text string, styling and layouting parameters.
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct TextData {
     text: String,
     text_changed: bool,
@@ -31,11 +33,32 @@ pub struct TextData {
     selection_color: Color,
     mouse_pos: Vec2,
     cursor_rect: TextCursorRect,
+    scale_factor: f32,
 
     // Horizontal padding around the output image
     // TODO: workaround. For some reason zeno crate (used by swash) shifts placement.left
     // by several pixels to the left that makes position coordinate negative in some cases
     padding: f32,
+
+    rebuild_layout: bool,
+    rebuild_line_breaks: bool,
+    layout: TextLayout,
+}
+
+impl PartialEq for TextData {
+    fn eq(&self, other: &Self) -> bool {
+        self.text == other.text
+            && self.text_changed == other.text_changed
+            && self.default_style == other.default_style
+            && self.section_style == other.section_style
+            && self.alignment == other.alignment
+            && self.multiline == other.multiline
+            && self.selection == other.selection
+            && self.selection_color == other.selection_color
+            && self.mouse_pos == other.mouse_pos
+            && self.cursor_rect == other.cursor_rect
+            && self.padding == other.padding
+    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -66,7 +89,13 @@ impl TextData {
             selection_color: selection_color.clone(),
             mouse_pos: Vec2::new(-1.0, -1.0),
             cursor_rect: TextCursorRect::new(cursor_color),
+            scale_factor: 1.0,
+
             padding: 5.0,
+
+            rebuild_layout: true,
+            rebuild_line_breaks: true,
+            layout: TextLayout::new(),
         }
     }
 
@@ -74,9 +103,32 @@ impl TextData {
         &self.text
     }
 
+    pub fn set_text(&mut self, text: &str) {
+        if self.text != text {
+            self.text = text.into();
+            self.invalidate();
+        }
+    }
+
+    pub fn set_scale_factor(&mut self, scale_factor: f32) {
+        if self.scale_factor != scale_factor {
+            self.scale_factor = scale_factor;
+            self.invalidate();
+        }
+    }
+
+    pub fn is_multiline(&self) -> bool {
+        self.multiline
+    }
+
+    pub fn set_multiline(&mut self, multiline: bool) {
+        self.multiline = multiline;
+    }
+
     /// Set style of the text section beginning at 'start_pos' position and up to 'end_pos'.
     pub fn set_section_style(&mut self, start_pos: usize, end_pos: usize, style: &TextStyle) {
         self.section_style.add(start_pos, end_pos, style);
+        self.invalidate();
     }
 
     /// Sets cursor position in a text before character at position `pos`.
@@ -85,7 +137,11 @@ impl TextData {
         // pos == self.text.len() to select last symbol
         assert!(pos <= self.text.len());
 
-        self.selection = TextSelection::Cursor(pos);
+        let selection = TextSelection::Cursor(pos);
+        if self.selection != selection {
+            self.selection = selection;
+            self.invalidate();
+        }
     }
 
     pub fn set_selection_color(&mut self, color: &Color) {
@@ -97,22 +153,15 @@ impl TextData {
         assert!(start_pos <= self.text.len());
         assert!(end_pos <= self.text.len());
 
-        self.selection = TextSelection::Selection(Range {
-            start: start_pos,
-            end: end_pos,
-        });
+        let selection = TextSelection::selection(start_pos, end_pos);
+        if self.selection != selection {
+            self.selection = selection;
+            self.invalidate();
+        }
     }
 }
 
 impl TextData {
-    pub fn set_text(&mut self, text: &str) {
-        self.text = text.into();
-    }
-
-    pub fn is_multiline(&self) -> bool {
-        self.multiline
-    }
-
     pub fn is_text_changed(&self) -> bool {
         self.text_changed
     }
@@ -127,6 +176,11 @@ impl TextData {
 
     pub fn selection(&self) -> &TextSelection {
         &self.selection
+    }
+
+    pub fn invalidate(&mut self) {
+        self.rebuild_layout = true;
+        self.rebuild_line_breaks = true;
     }
 
     pub(super) fn update(&mut self, text_data: &TextData) -> bool {
@@ -161,28 +215,21 @@ impl TextData {
         updated
     }
 
-    pub fn calculate_rect(&self, text_ctx: &mut TextContext, scale_factor: f32) -> Option<Vec2> {
+    pub fn calculate_rect(
+        &mut self,
+        text_ctx: &mut TextContext,
+        scale_factor: f32,
+    ) -> Option<Vec2> {
         if self.multiline {
             // size of the multiline text should be specified explicitly
             return None;
         }
 
-        let mut builder =
-            text_ctx
-                .layout
-                .ranged_builder(&mut text_ctx.font, &self.text, scale_factor);
+        self.set_scale_factor(scale_factor);
+        self.update_text_layout(text_ctx, 0.0);
 
-        self.default_style.apply_default(&mut builder);
-
-        self.section_style.apply(&mut builder);
-
-        let mut layout: Layout<Color> = builder.build();
-
-        // Perform layout (including bidi resolution and shaping) with alignment
-        layout.break_all_lines(None, self.alignment);
-
-        let width = layout.width().ceil() + self.padding * 2.0;
-        let height = layout.height().ceil();
+        let width = self.layout.width().ceil() + self.padding * 2.0;
+        let height = self.layout.height().ceil();
 
         Some(Vec2::new(width, height))
     }
@@ -207,27 +254,8 @@ impl TextData {
             }
         }
 
-        let mut builder =
-            text_ctx
-                .layout
-                .ranged_builder(&mut text_ctx.font, &self.text, scale_factor);
-
-        self.default_style.apply_default(&mut builder);
-
-        self.section_style.apply(&mut builder);
-
-        // Build the builder into a Layout
-        let mut layout: Layout<Color> = builder.build();
-
-        // The width for line wrapping
-        let max_advance = if self.multiline && width > 0.0 {
-            Some(width * scale_factor)
-        } else {
-            None
-        };
-
-        // Perform layout (including bidi resolution and shaping) with alignment
-        layout.break_all_lines(max_advance, self.alignment);
+        self.set_scale_factor(scale_factor);
+        self.update_text_layout(text_ctx, width);
 
         let mut selection_changed = false;
         if focused && !self.text.is_empty() {
@@ -235,7 +263,7 @@ impl TextData {
                 widget_pos.x += self.padding;
 
                 selection_changed = self.selection.update(
-                    &layout,
+                    &self.layout,
                     widget_pos,
                     input,
                     &self.text,
@@ -245,14 +273,14 @@ impl TextData {
         }
 
         // Create buffer to render into
-        let width = (layout.width().ceil() + self.padding * 2.0) as u32;
-        let height = layout.height().ceil() as u32;
+        let width = (self.layout.width().ceil() + self.padding * 2.0) as u32;
+        let height = self.layout.height().ceil() as u32;
         let mut buffer = vec![Color::TRANSPARENT; (width * height) as usize];
         let selection_end = self.selection.end();
         let is_selection = focused && !self.selection.is_cursor();
 
         // Iterate over laid out lines
-        for line in layout.lines() {
+        for line in self.layout.lines() {
             let metrics = line.metrics();
             let mut char_idx = line.text_range().start;
             let line_range = Range {
@@ -280,7 +308,7 @@ impl TextData {
         // calculate cursor rect
         if (self.text_changed || selection_changed) && editable && focused {
             self.cursor_rect.build(
-                &layout,
+                &self.layout,
                 height,
                 selection_end,
                 self.padding,
@@ -303,7 +331,41 @@ impl TextData {
         }
     }
 
+    fn update_text_layout(&mut self, text_ctx: &mut TextContext, width: f32) {
+        if self.rebuild_layout {
+            self.rebuild_layout = false;
+
+            let mut builder =
+                text_ctx
+                    .layout
+                    .ranged_builder(&mut text_ctx.font, &self.text, self.scale_factor);
+
+            self.default_style.apply_default(&mut builder);
+
+            self.section_style.apply(&mut builder);
+
+            // Build the builder into a Layout
+            builder.build_into(&mut self.layout);
+
+            if self.rebuild_line_breaks {
+                self.rebuild_line_breaks = false;
+
+                // The width for line wrapping
+                let max_advance = if self.multiline && width > 0.0 {
+                    Some(width * self.scale_factor)
+                } else {
+                    None
+                };
+
+                // Perform layout (including bidi resolution and shaping) with alignment
+                self.layout.break_all_lines(max_advance, self.alignment);
+            }
+        }
+    }
+
     fn process_text_edit(&mut self, input: &Input, clipboard: &mut String) {
+        let mut text_changed = false;
+
         // remove backspace, del and new line characters from the text input
         // TODO: remove all non-printable characters
         let chars_to_remove: &[char] = if self.multiline {
@@ -379,7 +441,7 @@ impl TextData {
                 }
             }
 
-            self.text_changed = true;
+            text_changed = true;
         } else {
             let cutToClipboard =
                 input.is_keyboard_ctrl_down() && input.is_pressed(Button::KeyboardX);
@@ -397,7 +459,7 @@ impl TextData {
                             if *pos > 0 {
                                 *pos -= 1;
                                 self.text.remove(*pos);
-                                self.text_changed = true;
+                                text_changed = true;
 
                                 if !self.section_style.is_empty() {
                                     change = Some((*pos, 1, 0));
@@ -406,7 +468,7 @@ impl TextData {
                         } else if input.is_pressed(Button::KeyboardDelete) {
                             if *pos < self.text.len() {
                                 self.text.remove(*pos);
-                                self.text_changed = true;
+                                text_changed = true;
 
                                 if !self.section_style.is_empty() {
                                     change = Some((*pos, 1, 0));
@@ -428,7 +490,7 @@ impl TextData {
                         if !copyToClipboard {
                             self.text.replace_range(start..end, "");
                             self.selection = TextSelection::Cursor(start);
-                            self.text_changed = true;
+                            text_changed = true;
 
                             if !self.section_style.is_empty() {
                                 change = Some((start, end - start, 0));
@@ -442,6 +504,11 @@ impl TextData {
         if let Some((pos, removed, added)) = change {
             self.section_style.update(pos, removed, added);
         }
+
+        if text_changed {
+            self.text_changed = true;
+            self.invalidate();
+        }
     }
 
     fn render_glyph_run(
@@ -454,7 +521,7 @@ impl TextData {
         line_range: &Range<u32>,
         is_selection: bool,
     ) {
-        let selection_range = self.selection.range();
+        let selection_range = self.selection.get_forward_range();
 
         // Resolve properties of the GlyphRun
         let mut run_x = glyph_run.offset();

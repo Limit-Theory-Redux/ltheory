@@ -19,6 +19,10 @@ function Loader.defineType()
             void      TextData_Free              (TextData*);
             TextData* TextData_Create            (cstr text, TextStyle const* defaultStyle, Color const* cursorColor, Color const* selectionColor, TextAlignment alignment, bool multiline);
             cstr      TextData_Text              (TextData const*);
+            void      TextData_SetText           (TextData*, cstr text);
+            void      TextData_SetScaleFactor    (TextData*, float scaleFactor);
+            bool      TextData_IsMultiline       (TextData const*);
+            void      TextData_SetMultiline      (TextData*, bool multiline);
             void      TextData_SetSectionStyle   (TextData*, uint64 startPos, uint64 endPos, TextStyle const* style);
             void      TextData_SetCursorPos      (TextData*, uint64 pos);
             void      TextData_SetSelectionColor (TextData*, Color const* color);
@@ -43,6 +47,10 @@ function Loader.defineType()
         local mt = {
             __index = {
                 text              = libphx.TextData_Text,
+                setText           = libphx.TextData_SetText,
+                setScaleFactor    = libphx.TextData_SetScaleFactor,
+                isMultiline       = libphx.TextData_IsMultiline,
+                setMultiline      = libphx.TextData_SetMultiline,
                 setSectionStyle   = libphx.TextData_SetSectionStyle,
                 setCursorPos      = libphx.TextData_SetCursorPos,
                 setSelectionColor = libphx.TextData_SetSelectionColor,

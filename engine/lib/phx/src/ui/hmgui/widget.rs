@@ -222,7 +222,7 @@ impl HmGuiWidget {
                     let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
 
                     let size = text_view
-                        .data()
+                        .data_mut()
                         .calculate_rect(text_ctx.borrow_mut(), scale_factor);
 
                     if let Some(size) = size {
