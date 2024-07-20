@@ -7,7 +7,7 @@ function onDef_EventBus_t(t, mt)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
 
         if entityId then
-            entityIdPtr = ffi.new("uint32[1]")
+            entityIdPtr = ffi.new("uint64[1]") -- convert to pointer since we use rust option
             entityIdPtr[0] = entityId
         end
         local tunnelId = libphx.EventBus_Subscribe(self, eventName, entityIdPtr)
@@ -18,5 +18,10 @@ function onDef_EventBus_t(t, mt)
     mt.__index.unsubscribe = function(self, tunnelId)
         libphx.EventBus_Unsubscribe(self, tunnelId)
         EventTunnels[tunnelId] = nil
+    end
+
+    mt.__index.send = function(self, eventName, ctxTable)
+        local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
+        libphx.EventBus_Send(self, eventName, entityId)
     end
 end

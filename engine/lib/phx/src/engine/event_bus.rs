@@ -75,7 +75,7 @@ pub enum EventPayload {
 pub struct Subscriber {
     id: u32,
     tunnel_id: u32,
-    entity_id: Option<u32>,
+    entity_id: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -137,6 +137,7 @@ struct MessageRequestCache {
     priority: EventPriority,
     event_name: String,
     stay_alive: bool,
+    for_entity_id: Option<u64>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -144,6 +145,7 @@ struct MessageRequest {
     priority: EventPriority,
     event_name: String,
     stay_alive: bool,
+    for_entity_id: Option<u64>,
 }
 
 impl From<MessageRequestCache> for MessageRequest {
@@ -152,6 +154,7 @@ impl From<MessageRequestCache> for MessageRequest {
             priority: cache.priority,
             event_name: cache.event_name,
             stay_alive: cache.stay_alive,
+            for_entity_id: cache.for_entity_id,
         }
     }
 }
@@ -184,10 +187,14 @@ enum EventBusOperation {
     Subscribe {
         event_name: String,
         tunnel_id: u32,
-        entity_id: Option<u32>,
+        entity_id: Option<u64>,
     },
     Unsubscribe {
         tunnel_id: u32,
+    },
+    Send {
+        event_name: String,
+        entity_id: u64,
     },
 }
 
@@ -223,7 +230,7 @@ impl EventBus {
         self.max_priority_locked = true;
     }
 
-    pub fn add_subscriber(&mut self, event_name: &str, tunnel_id: u32, entity_id: Option<u32>) {
+    pub fn add_subscriber(&mut self, event_name: &str, tunnel_id: u32, entity_id: Option<u64>) {
         let subscriber_id = self.next_subscriber_id.fetch_add(1, Ordering::SeqCst);
         let subscriber = Subscriber {
             id: subscriber_id,
@@ -283,16 +290,18 @@ impl EventBus {
                         Entry::Vacant(entry) => {
                             entry.insert(event);
 
-                            let message_request = MessageRequestCache {
-                                update_pass,
-                                priority,
-                                event_name: event_name.clone(),
-                                stay_alive: with_update_pass_message,
-                            };
+                            if with_update_pass_message {
+                                let message_request = MessageRequestCache {
+                                    update_pass,
+                                    priority,
+                                    event_name: event_name.clone(),
+                                    stay_alive: with_update_pass_message,
+                                    for_entity_id: None,
+                                };
 
+                                self.cached_requests.push(message_request);
+                            }
                             info!("Registered event: {}", event_name);
-
-                            self.cached_requests.push(message_request);
                         }
                     }
                 }
@@ -330,6 +339,22 @@ impl EventBus {
                         tunnel_id
                     );
                 }
+                EventBusOperation::Send {
+                    event_name,
+                    entity_id,
+                } => {
+                    if let Some(event) = self.events.get(&event_name) {
+                        let message_request = MessageRequestCache {
+                            update_pass: event.update_pass,
+                            priority: event.priority,
+                            event_name: event.name.clone(),
+                            stay_alive: false,
+                            for_entity_id: Some(entity_id),
+                        };
+
+                        self.cached_requests.push(message_request);
+                    }
+                }
             }
         }
     }
@@ -362,7 +387,7 @@ impl EventBus {
     }
 
     /// @overload fun(self: table, eventName: string, ctxTable: table|nil, callbackFunc: function): integer
-    pub fn subscribe(&mut self, event_name: String, entity_id: Option<u32>) -> u32 {
+    pub fn subscribe(&mut self, event_name: String, entity_id: Option<u64>) -> u32 {
         let tunnel_id = self.next_tunnel_id.fetch_add(1, Ordering::SeqCst);
         self.operation_queue
             .push_back(EventBusOperation::Subscribe {
@@ -376,6 +401,14 @@ impl EventBus {
     pub fn unsubscribe(&mut self, tunnel_id: u32) {
         self.operation_queue
             .push_back(EventBusOperation::Unsubscribe { tunnel_id });
+    }
+
+    /// @overload fun(self: table, eventName: string, ctxTable: table|nil)
+    pub fn send(&mut self, event_name: String, entity_id: u64) {
+        self.operation_queue.push_back(EventBusOperation::Send {
+            event_name,
+            entity_id,
+        })
     }
 
     pub fn get_next_event(&mut self) -> Option<&EventData> {
@@ -393,6 +426,7 @@ impl EventBus {
                                 priority: message_request.priority,
                                 event_name: message_request.event_name.clone(),
                                 stay_alive: message_request.stay_alive,
+                                for_entity_id: message_request.for_entity_id,
                             };
                             self.cached_requests.push(message_request_cache);
                         }
@@ -404,17 +438,21 @@ impl EventBus {
                         event.subscribers.sort_by(|a, b| a.id.cmp(&b.id));
 
                         if let Some(subscriber) = event.get_next_subscriber() {
-                            let event_data = EventData {
-                                update_pass,
-                                event_type: EventType::SomeType,
-                                tunnel_id: subscriber.tunnel_id,
-                            };
+                            if message_request.stay_alive
+                                || message_request.for_entity_id == subscriber.entity_id
+                            {
+                                let event_data = EventData {
+                                    update_pass,
+                                    event_type: EventType::SomeType,
+                                    tunnel_id: subscriber.tunnel_id,
+                                };
 
-                            unsafe {
-                                EVENT_DATA_STORAGE = Some(event_data);
+                                unsafe {
+                                    EVENT_DATA_STORAGE = Some(event_data);
+                                }
+
+                                return unsafe { EVENT_DATA_STORAGE.as_ref() };
                             }
-
-                            return unsafe { EVENT_DATA_STORAGE.as_ref() };
                         } else {
                             event.reset_processed_subscribers();
                             queue.pop();

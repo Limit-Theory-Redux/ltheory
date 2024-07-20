@@ -99,10 +99,12 @@ function Application:registerEvents()
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreInput), self, self.onPreInput)
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Input), self, self.onInput)
     EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostInput), self, self.onPostInput)
-    EventBusInstance:register("MyCustomEvent", EventPriority.Medium, UpdatePass.PreFrame, false)
 
-    EventBusInstance:subscribe("MyCustomEvent", { getGuid = function() return 0 end },
+    local fakeEntity = { getGuid = function() return 0 end }
+    EventBusInstance:register("MyCustomEvent", EventPriority.Medium, UpdatePass.PreFrame, false)
+    EventBusInstance:subscribe("MyCustomEvent", fakeEntity,
         function() Log.Debug("\x1b[31mGot my event\x1b[0m") end)
+    EventBusInstance:send("MyCustomEvent", fakeEntity)
 end
 
 function Application:onPreSim() end
