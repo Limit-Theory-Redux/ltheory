@@ -105,14 +105,14 @@ impl TextData {
     pub fn set_text(&mut self, text: &str) {
         if self.text != text {
             self.text = text.into();
-            self.invalidate();
+            self.invalidate_layout();
         }
     }
 
     pub fn set_scale_factor(&mut self, scale_factor: f32) {
         if self.scale_factor != scale_factor {
             self.scale_factor = scale_factor;
-            self.invalidate();
+            self.invalidate_layout();
         }
     }
 
@@ -127,7 +127,7 @@ impl TextData {
     /// Set style of the text section beginning at 'start_pos' position and up to 'end_pos'.
     pub fn set_section_style(&mut self, start_pos: usize, end_pos: usize, style: &TextStyle) {
         self.section_style.add(start_pos, end_pos, style);
-        self.invalidate();
+        self.invalidate_layout();
     }
 
     /// Sets cursor position in a text before character at position `pos`.
@@ -139,7 +139,7 @@ impl TextData {
         let selection = TextSelection::Cursor(pos);
         if self.selection != selection {
             self.selection = selection;
-            self.invalidate();
+            self.invalidate_layout();
         }
     }
 
@@ -155,7 +155,7 @@ impl TextData {
         let selection = TextSelection::selection(start_pos, end_pos);
         if self.selection != selection {
             self.selection = selection;
-            self.invalidate();
+            self.invalidate_layout();
         }
     }
 }
@@ -177,7 +177,7 @@ impl TextData {
         &self.selection
     }
 
-    pub fn invalidate(&mut self) {
+    pub fn invalidate_layout(&mut self) {
         self.rebuild_layout = true;
         self.rebuild_line_breaks = true;
     }
@@ -267,7 +267,7 @@ impl TextData {
                 );
 
                 if selection_changed {
-                    self.invalidate();
+                    self.invalidate_layout();
                 }
             }
         }
@@ -495,7 +495,7 @@ impl TextData {
 
         if text_changed {
             self.text_changed = true;
-            self.invalidate();
+            self.invalidate_layout();
         }
     }
 
