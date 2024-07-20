@@ -150,19 +150,22 @@ function Application:onFrame()
         --     GameState.paused = true
         -- end
 
-        if InputInstance:isPressed(Bindings.ToggleWireframe) then
-            GameState.debug.physics.drawWireframes = not GameState.debug.physics.drawWireframes
+        if not Gui:hasActiveInput() then
+            if InputInstance:isPressed(Bindings.ToggleWireframe) then
+                GameState.debug.physics.drawWireframes = not GameState.debug.physics.drawWireframes
+            end
+
+            if InputInstance:isPressed(Bindings.ToggleMetrics) then
+                GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
+            end
+
+            if MainMenu.inBackgroundMode and InputInstance:isPressed(Bindings.ToggleHUD) then
+                self.showBackgroundModeHints = not self.showBackgroundModeHints
+            end
+
+            self:onInput()
         end
 
-        if InputInstance:isPressed(Bindings.ToggleMetrics) then
-            GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
-        end
-
-        if MainMenu.inBackgroundMode and InputInstance:isPressed(Bindings.ToggleHUD) then
-            self.showBackgroundModeHints = not self.showBackgroundModeHints
-        end
-
-        self:onInput()
         Profiler.End()
     end
 
