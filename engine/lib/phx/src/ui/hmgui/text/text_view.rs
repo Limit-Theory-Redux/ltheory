@@ -29,8 +29,6 @@ impl TextView {
     }
 
     pub fn set_data(&mut self, text_data: &TextData) {
-        // TODO: process input in text data
-
         self.data.update(text_data);
     }
 

@@ -250,15 +250,10 @@ impl TextSelection {
                     }
                 }
             }
-            return true;
+            true
+        } else {
+            false
         }
-
-        if self.is_selection() {
-            self.set_cursor(0);
-            return true;
-        }
-
-        false
     }
 
     fn on_kb_right(&mut self, input: &Input, text: &str) -> bool {
@@ -278,15 +273,10 @@ impl TextSelection {
                     }
                 }
             }
-            return true;
+            true
+        } else {
+            false
         }
-
-        if self.is_selection() {
-            self.set_cursor(text.len());
-            return true;
-        }
-
-        false
     }
 
     fn on_kb_up(&mut self, input: &Input, text: &str) {
