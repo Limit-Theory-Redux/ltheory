@@ -306,7 +306,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
                 (*face).iP += if (*face).iP < 0 {
                     positions.len() as i32
                 } else {
-                    i32::MAX
+                    -1
                 };
                 if (*face).iP < 0 || (*face).iP >= positions.len() as i32 {
                     Obj_Fatal("Face vertex index is out of range in .obj data", &mut s);
@@ -317,7 +317,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
                     (*face).iN += if (*face).iN < 0 {
                         normals.len() as i32
                     } else {
-                        i32::MAX
+                        -1
                     };
                     if (*face).iN < 0 || (*face).iN >= normals.len() as i32 {
                         Obj_Fatal("Face normal index is out of range in .obj data", &mut s);
@@ -329,7 +329,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
                     (*face).iUV += if (*face).iUV < 0 {
                         uvs.len() as i32
                     } else {
-                        i32::MAX
+                        -1
                     };
                     if (*face).iUV < 0 || (*face).iUV >= uvs.len() as i32 {
                         Obj_Fatal("Face UV index is out of range in .obj data", &mut s);
