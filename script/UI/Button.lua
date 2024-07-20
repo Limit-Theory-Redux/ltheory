@@ -13,13 +13,12 @@ local defaultText = ' '
 local defaultOnClick = function(self, state) end
 
 function Button:onDraw(focus, active)
-    self:applyColor(focus, active, Config.ui.color.border)
     local textCol = focus == self
         and Config.ui.color.textNormalFocused
         or Config.ui.color.textNormal
 
     local x, y, sx, sy = self:getRectGlobal()
-    Draw.Rect(x, y, sx, sy)
+    UI.DrawEx.SimpleRect(x, y, sx, sy, self:getColor(focus, active, Config.ui.color.border))
 
     -- Center without considering descenders
     local font  = Config.ui.font.normal
@@ -27,7 +26,7 @@ function Button:onDraw(focus, active)
     font:draw(self.text,
         x - bound.x + (sx - bound.z) / 2,
         y - bound.y + (sy + bound.y) / 2,
-        textCol.r, textCol.g, textCol.b, textCol.a)
+        Color(textCol.r, textCol.g, textCol.b, textCol.a))
 end
 
 function Button:setText(text)

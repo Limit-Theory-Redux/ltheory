@@ -26,10 +26,6 @@ function onDef_Color_t(t, mt)
         return 0.2126 * self.r + 0.7152 * self.g + 0.0722 * self.b
     end
 
-    mt.__index.set = function(self, alpha)
-        Draw.Color(self.r, self.g, self.b, alpha or self.a)
-    end
-
     mt.__index.toVec3 = function(self)
         return Vec3f(self.r, self.g, self.b)
     end

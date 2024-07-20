@@ -221,7 +221,7 @@ end
 
 function Test:onUpdate(dt)
     Profiler.Begin('Gui:update')
-    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY)
     -- Gui:image(self.bg)
     self:showSimple()
     -- self:showMetrics()

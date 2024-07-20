@@ -357,40 +357,35 @@ function CoordTest:onDraw()
 
     ShaderVar.PushMatrix('mView', self.mView)
     ShaderVar.PushMatrix('mProj', self.mProj)
-    ShaderVar.PushFloat3('eye', self.pos.x, self.pos.y, self.pos.z)
+    ShaderVar.PushFloat3('eye', 0, 0, 0)
     self.renderer:start(self.resX, self.resY, 1)
+
+    local shader = Cache.Shader("wvp", "simple_color")
 
     do -- Draw
         --Ship.Render()
 
-        GLMatrix.ModeWV()
-        GLMatrix.Push()
-        GLMatrix.Load(self.mView)
-        GLMatrix.ModeP()
-        GLMatrix.Push()
-        GLMatrix.Load(self.mProj)
+        shader:start()
 
         -- Origin
-        Draw.Color(1, 1, 1, 1)
+        Shader.SetFloat4("color", 1, 1, 1, 1)
         Draw.Sphere(Vec3f(0, 0, 0), 2)
 
         -- Positive Z
         RenderState.PushWireframe(false)
-        Draw.Color(0, 0, 1, 1)
+        Shader.SetFloat4("color", 0, 0, 1, 1)
         Draw.Sphere(Vec3f(0, 0, 10), 2)
         RenderState.PopWireframe()
 
         -- Negative Z
         RenderState.PushWireframe(true)
+        Shader.SetFloat4("color", 1, 1, 1, 1)
         Draw.Sphere(Vec3f(0, 0, -10), 2)
         RenderState.PopWireframe()
 
         Draw.Axes(Vec3f(0, 0, 0), Vec3f(1, 0, 0), Vec3f(0, 1, 0), Vec3f(0, 0, 1), 10, 1)
 
-        GLMatrix.ModeP()
-        GLMatrix.Pop()
-        GLMatrix.ModeWV()
-        GLMatrix.Pop()
+        shader:stop()
     end
 
     self.renderer:stop()

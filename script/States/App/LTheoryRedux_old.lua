@@ -283,7 +283,7 @@ function LimitTheoryRedux:onUpdate(dt)
     end
 
     -- Decide which game controls screens (if any) to display on top of the canvas
-    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY)
 
     if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
         LimitTheoryRedux:showGameLogo()

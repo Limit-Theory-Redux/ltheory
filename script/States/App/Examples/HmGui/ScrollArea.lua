@@ -49,7 +49,7 @@ function Test:onUpdate(dt)
     Profiler.Begin('Gui:update')
 
     Gui:setProperty(GuiProperties.BackgroundColor, Color(0, 0, 0, 1))
-    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY)
     self:scrollArea()
     Gui:endGui(InputInstance)
 

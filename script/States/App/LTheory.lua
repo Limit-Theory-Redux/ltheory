@@ -111,7 +111,7 @@ function LTheory:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
 
-    Gui:beginGui(self.resX, self.resY, InputInstance) -- required for Gui:draw() to work without crashing
+    Gui:beginGui(self.resX, self.resY) -- required for Gui:draw() to work without crashing
     Gui:endGui(InputInstance)
 end
 
