@@ -65,12 +65,6 @@ impl PartialOrd for EventPriority {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum EventPayload {
-    Text(String),
-    Number(i32),
-}
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Subscriber {
     id: u32,
@@ -368,30 +362,32 @@ impl EventBus {
 
     pub fn register(
         &mut self,
-        event_name: String,
+        event_name: &str,
         priority: EventPriority,
         update_pass: UpdatePass,
         with_update_pass_message: bool,
     ) {
         self.operation_queue.push_back(EventBusOperation::Register {
-            event_name,
+            event_name: event_name.to_string(),
             priority,
             update_pass,
             with_update_pass_message,
         });
     }
 
-    pub fn unregister(&mut self, event_name: String) {
+    pub fn unregister(&mut self, event_name: &str) {
         self.operation_queue
-            .push_back(EventBusOperation::Unregister { event_name });
+            .push_back(EventBusOperation::Unregister {
+                event_name: event_name.to_string(),
+            });
     }
 
     /// @overload fun(self: table, eventName: string, ctxTable: table|nil, callbackFunc: function): integer
-    pub fn subscribe(&mut self, event_name: String, entity_id: Option<u64>) -> u32 {
+    pub fn subscribe(&mut self, event_name: &str, entity_id: Option<u64>) -> u32 {
         let tunnel_id = self.next_tunnel_id.fetch_add(1, Ordering::SeqCst);
         self.operation_queue
             .push_back(EventBusOperation::Subscribe {
-                event_name,
+                event_name: event_name.to_string(),
                 tunnel_id,
                 entity_id,
             });
@@ -404,9 +400,9 @@ impl EventBus {
     }
 
     /// @overload fun(self: table, eventName: string, ctxTable: table|nil)
-    pub fn send(&mut self, event_name: String, entity_id: u64) {
+    pub fn send(&mut self, event_name: &str, entity_id: u64) {
         self.operation_queue.push_back(EventBusOperation::Send {
-            event_name,
+            event_name: event_name.to_string(),
             entity_id,
         })
     }

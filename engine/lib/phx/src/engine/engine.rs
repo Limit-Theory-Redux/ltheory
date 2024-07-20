@@ -107,7 +107,7 @@ impl Engine {
         // Create an event for every update pass and set it at a high priority
         for update_pass in UpdatePass::iter() {
             event_bus.register(
-                format!("{:?}", update_pass),
+                format!("{:?}", update_pass).as_str(),
                 super::EventPriority::Max,
                 update_pass,
                 true,
