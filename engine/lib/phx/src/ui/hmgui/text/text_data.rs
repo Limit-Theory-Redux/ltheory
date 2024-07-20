@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use glam::Vec2;
-use parley::layout::{Alignment, Cursor, GlyphRun};
+use parley::layout::{Alignment, GlyphRun};
 use parley::Layout;
 use swash::scale::ScaleContext;
 use swash::FontRef;
@@ -248,12 +248,13 @@ impl TextData {
         let width = (layout.width().ceil() + self.padding * 2.0) as u32;
         let height = layout.height().ceil() as u32;
         let mut buffer = vec![Color::TRANSPARENT; (width * height) as usize];
-        let mut glyph_idx = 0;
         let selection_end = self.selection.end();
+        let is_selection = focused && !self.selection.is_cursor();
 
         // Iterate over laid out lines
         for line in layout.lines() {
             let metrics = line.metrics();
+            let mut char_idx = line.text_range().start;
             let line_range = Range {
                 start: (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor() as u32,
                 end: u32::min(
@@ -266,13 +267,12 @@ impl TextData {
             for glyph_run in line.glyph_runs() {
                 self.render_glyph_run(
                     &mut text_ctx.scale,
-                    &layout,
                     &glyph_run,
                     &mut buffer,
                     width,
-                    &mut glyph_idx,
+                    &mut char_idx,
                     &line_range,
-                    focused,
+                    is_selection,
                 );
             }
         }
@@ -447,15 +447,13 @@ impl TextData {
     fn render_glyph_run(
         &self,
         context: &mut ScaleContext,
-        layout: &Layout<Color>,
         glyph_run: &GlyphRun<Color>,
         buffer: &mut [Color],
         image_width: u32,
-        glyph_idx: &mut usize,
+        char_idx: &mut usize,
         line_range: &Range<u32>,
-        focused: bool,
+        is_selection: bool,
     ) {
-        let is_selection = focused && !self.selection.is_cursor();
         let selection_range = self.selection.range();
 
         // Resolve properties of the GlyphRun
@@ -491,12 +489,10 @@ impl TextData {
 
             run_x += glyph.advance;
 
-            let cursor = Cursor::from_point(layout, glyph_x, glyph_y);
-            let is_selected = is_selection
-                && selection_range.start < cursor.text_end
-                && cursor.text_start < selection_range.end;
-
-            let bg_color = if is_selected {
+            let bg_color = if is_selection
+                && selection_range.start <= *char_idx
+                && *char_idx < selection_range.end
+            {
                 &self.selection_color
             } else {
                 &Color::TRANSPARENT
@@ -514,7 +510,7 @@ impl TextData {
                 line_range,
             );
 
-            *glyph_idx += 1;
+            *char_idx += 1;
         }
     }
 }
