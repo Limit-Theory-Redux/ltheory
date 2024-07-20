@@ -168,7 +168,7 @@ impl TextSelection {
         {
             let widget_mouse_pos = cur_mouse_pos - widget_pos;
 
-            self.on_mouse(layout, widget_mouse_pos, input, text);
+            self.on_mouse(layout, widget_mouse_pos, input, text.len());
 
             *mouse_pos = cur_mouse_pos;
 
@@ -213,23 +213,34 @@ impl TextSelection {
         false
     }
 
-    fn on_mouse(&mut self, layout: &TextLayout, widget_mouse_pos: Vec2, input: &Input, text: &str) {
+    fn on_mouse(
+        &mut self,
+        layout: &TextLayout,
+        widget_mouse_pos: Vec2,
+        input: &Input,
+        text_len: usize,
+    ) {
         let cursor = Cursor::from_point(layout, widget_mouse_pos.x, widget_mouse_pos.y);
-
-        let pos = if self.is_forward() && cursor.text_end >= text.len() {
-            cursor.text_end
-        } else {
-            cursor.text_start
-        };
 
         if input.is_pressed(Button::MouseLeft) {
             if input.is_keyboard_shift_down() {
-                self.set_end(pos);
+                if self.is_forward() && cursor.text_end >= text_len {
+                    self.set_end(cursor.text_end);
+                } else {
+                    self.set_end(cursor.text_start);
+                }
+            } else if cursor.text_end >= text_len {
+                self.set_cursor(cursor.text_end);
             } else {
-                self.set_cursor(pos);
+                self.set_cursor(cursor.text_start);
             }
+        } else if self.is_forward() && cursor.text_end >= text_len {
+            // TODO: there is a problem with condition above -
+            // it keeps either 1 or 2 last symbols unselected depending on
+            // if >= or > comparison is used
+            self.set_end(cursor.text_end);
         } else {
-            self.set_end(pos);
+            self.set_end(cursor.text_start);
         }
     }
 
