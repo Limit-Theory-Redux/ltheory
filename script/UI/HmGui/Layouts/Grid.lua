@@ -16,6 +16,7 @@ local meta = {
 ---@field contents table<UIComponent>
 ---@field widthInLayout number
 ---@field heightInLayout number
+---@field color UIGridColors
 ---@field showGrid boolean
 
 ---@class UILayoutGrid: UILayout
@@ -29,7 +30,11 @@ local meta = {
 ---@field contents table<UIComponent>
 ---@field widthInLayout number
 ---@field heightInLayout number
+---@field color UIGridColors
 ---@field showGrid boolean|nil
+
+---@class UIGridColors
+---@field background Color|nil
 
 ---returns a grid layout object
 ---@param args UILayoutGridConstructor
@@ -49,6 +54,9 @@ function Grid:new(args)
         contents = args.contents,
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
+        color = {
+            background = args.color and args.color.background
+        },
         showGrid = args.showGrid or function() return GameState.debug.metricsEnabled end,
         showGridColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4)
     }
@@ -58,6 +66,10 @@ function Grid:new(args)
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
         Gui:setPadding(self.state.padding()[1], self.state.padding()[2])
         Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
+
+        if self.state.color().background then
+            Gui:setBackgroundColor(self.state.color().background)
+        end
 
         local contentCount = #self.state.contents()
 

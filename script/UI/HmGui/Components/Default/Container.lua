@@ -22,7 +22,7 @@ local meta = {
 ---@field margin { marginX: number, marginY: number }|nil
 ---@field spacing number
 ---@field layoutType GuiLayoutType
----@field color UIComponentButtonColors
+---@field color UIComponentContainerColors
 ---@field render fun(self: UIComponentContainer)
 ---@field contents table
 ---@field showContainer boolean
@@ -39,7 +39,7 @@ local meta = {
 ---@field margin { marginX: number, marginY: number }|nil
 ---@field spacing number
 ---@field layoutType GuiLayoutType
----@field color UIComponentButtonColors
+---@field color UIComponentContainerColors
 ---@field contents table
 ---@field showContainer boolean
 

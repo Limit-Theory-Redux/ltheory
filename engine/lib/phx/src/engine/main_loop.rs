@@ -254,9 +254,10 @@ impl ApplicationHandler for MainLoop {
         // Load all gamepad events
         engine.input.update_gamepad(|state| state.update());
 
-        // Let Lua script perform frame operations
-        engine.call_lua("AppFrame").unwrap_or_else(|e| {
-            panic!("Error calling AppInit: {}", e);
+        // Tick operations
+        // Dispatch engine events
+        engine.call_lua("AppEventLoop").unwrap_or_else(|e| {
+            panic!("Error calling AppEventLoop: {}", e);
         });
 
         // Apply window changes made by a script

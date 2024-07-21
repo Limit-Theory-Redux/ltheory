@@ -16,17 +16,18 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void    Engine_Free       (Engine*);
-            Window* Engine_Window     (Engine*);
-            Input*  Engine_Input      (Engine*);
-            HmGui*  Engine_HmGui      (Engine*);
-            void    Engine_Abort      ();
-            int     Engine_GetBits    ();
-            double  Engine_GetTime    (Engine const*);
-            cstr    Engine_GetVersion ();
-            void    Engine_Exit       (Engine*);
-            void    Engine_Terminate  ();
-            void    Engine_Update     ();
+            void      Engine_Free       (Engine*);
+            Window*   Engine_Window     (Engine*);
+            Input*    Engine_Input      (Engine*);
+            EventBus* Engine_EventBus   (Engine*);
+            HmGui*    Engine_HmGui      (Engine*);
+            void      Engine_Abort      ();
+            int       Engine_GetBits    ();
+            double    Engine_GetTime    (Engine const*);
+            cstr      Engine_GetVersion ();
+            void      Engine_Exit       (Engine*);
+            void      Engine_Terminate  ();
+            void      Engine_Update     ();
         ]]
     end
 
@@ -47,11 +48,12 @@ function Loader.defineType()
         local t  = ffi.typeof('Engine')
         local mt = {
             __index = {
-                window  = libphx.Engine_Window,
-                input   = libphx.Engine_Input,
-                hmGui   = libphx.Engine_HmGui,
-                getTime = libphx.Engine_GetTime,
-                exit    = libphx.Engine_Exit,
+                window   = libphx.Engine_Window,
+                input    = libphx.Engine_Input,
+                eventBus = libphx.Engine_EventBus,
+                hmGui    = libphx.Engine_HmGui,
+                getTime  = libphx.Engine_GetTime,
+                exit     = libphx.Engine_Exit,
             },
         }
 

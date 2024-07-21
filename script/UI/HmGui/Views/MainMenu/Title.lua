@@ -85,18 +85,18 @@ function TitleView:onViewOpen(isPageOpen)
         GameState:SetState(Enums.GameStates.Splashscreen)
 
         if GameState.audio.soundEnabled then
-            MusicPlayer:SetVolume(GameState.audio.musicVolume) --todo: fix all casing errors
+            MusicPlayer:setVolume(GameState.audio.musicVolume) --todo: fix all casing errors
         else
-            MusicPlayer:SetVolume(0)                           --todo: fix all casing errors
+            MusicPlayer:setVolume(0)                           --todo: fix all casing errors
         end
-        MusicPlayer:QueueTrack(GameState.audio.menuTheme, true)
+        MusicPlayer:queueTrack(GameState.audio.menuTheme, true)
         timeOpened = TimeStamp.Now()
     end
 end
 
 function TitleView:onViewClose(isPageClose)
     if isPageClose then
-        MusicPlayer:ClearQueue()
+        MusicPlayer:clearQueue()
     end
 end
 

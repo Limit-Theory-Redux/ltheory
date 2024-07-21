@@ -9,6 +9,9 @@ function Engine:window() end
 ---@return Input
 function Engine:input() end
 
+---@return EventBus
+function Engine:eventBus() end
+
 ---@return HmGui
 function Engine:hmGui() end
 

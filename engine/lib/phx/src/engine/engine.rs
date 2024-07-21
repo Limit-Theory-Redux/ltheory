@@ -16,6 +16,7 @@ use crate::system::*;
 use crate::ui::hmgui::HmGui;
 use crate::window::*;
 
+use super::EventBus;
 use super::MainLoop;
 
 pub struct Engine {
@@ -26,6 +27,7 @@ pub struct Engine {
     pub hmgui: HmGui,
     pub input: Input,
     pub exit_app: bool,
+    pub event_bus: EventBus,
     pub lua: Rf<Lua>,
 }
 
@@ -107,6 +109,7 @@ impl Engine {
             input: Default::default(),
             exit_app: false,
             lua,
+            event_bus: EventBus::new(),
         }
     }
 
@@ -371,6 +374,10 @@ impl Engine {
 
     pub fn input(&mut self) -> &mut Input {
         &mut self.input
+    }
+
+    pub fn event_bus(&mut self) -> &mut EventBus {
+        &mut self.event_bus
     }
 
     #[bind(name = "HmGui")]

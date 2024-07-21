@@ -106,8 +106,8 @@ function MainMenu:Open()
         self:OnInit()
     end
 
-    Log.Debug("MainMenu:Open: QueueTrack(true)")
-    mainMenuMusic = MusicPlayer:QueueTrack(GameState.audio.menuTheme, true)
+    Log.Debug("MainMenu:Open: queueTrack(true)")
+    mainMenuMusic = MusicPlayer:queueTrack(GameState.audio.menuTheme, true)
 
     Log.Debug("Opening Main Menu.")
 end
@@ -116,7 +116,7 @@ function MainMenu:Close(keepState)
     self.enabled = false
     self.keepState = keepState
 
-    MusicPlayer:StopTrack(mainMenuMusic)
+    MusicPlayer:stopTrack(mainMenuMusic)
 
     Log.Debug("Closing Main Menu.")
 end
