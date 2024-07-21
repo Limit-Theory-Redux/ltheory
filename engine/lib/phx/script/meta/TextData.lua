@@ -2,7 +2,8 @@
 
 -- Text information used in the [`TextView`] component.
 -- Use `Gui:textView(textData, editable)` to add text view element to the gui hierarchy.
--- To retrieve changes of the editable text made by user, use `Gui:getTextViewChanges(textData)`.
+-- To retrieve changes of the editable text made by user, use `Gui:getTextViewChanges(textData)`
+-- and `textData:text()` functions.
 ---@class TextData
 TextData = {}
 

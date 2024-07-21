@@ -4,7 +4,7 @@ use super::MethodInfo;
 
 /// Parsed data of the `impl` block
 pub struct ImplInfo {
-    /// Enum type documentation strings
+    /// Impl documentation strings.
     pub doc: Vec<String>,
     /// Original `impl` source code (with removed `bind` attributes.
     pub source: TokenStream,
