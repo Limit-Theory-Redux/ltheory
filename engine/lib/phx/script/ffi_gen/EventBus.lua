@@ -17,14 +17,13 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void             EventBus_Free               (EventBus*);
-            bool             EventBus_IsReady            (EventBus const*);
-            void             EventBus_Register           (EventBus*, cstr eventName, EventPriority priority, UpdatePass updatePass, bool withUpdatePassMessage);
+            void             EventBus_Register           (EventBus*, cstr eventName, EventPriority priority, FrameStage frameStage, bool withFrameStageMessage);
             void             EventBus_Unregister         (EventBus*, cstr eventName);
             uint32           EventBus_Subscribe          (EventBus*, cstr eventName, uint64 const* entityId);
             void             EventBus_Unsubscribe        (EventBus*, uint32 tunnelId);
             void             EventBus_Send               (EventBus*, cstr eventName, uint64 entityId);
             EventData const* EventBus_GetNextEvent       (EventBus*);
-            void             EventBus_PrintUpdatePassMap (EventBus const*);
+            void             EventBus_PrintFrameStageMap (EventBus const*);
         ]]
     end
 
@@ -39,14 +38,13 @@ function Loader.defineType()
         local t  = ffi.typeof('EventBus')
         local mt = {
             __index = {
-                isReady            = libphx.EventBus_IsReady,
                 register           = libphx.EventBus_Register,
                 unregister         = libphx.EventBus_Unregister,
                 subscribe          = libphx.EventBus_Subscribe,
                 unsubscribe        = libphx.EventBus_Unsubscribe,
                 send               = libphx.EventBus_Send,
                 getNextEvent       = libphx.EventBus_GetNextEvent,
-                printUpdatePassMap = libphx.EventBus_PrintUpdatePassMap,
+                printFrameStageMap = libphx.EventBus_PrintFrameStageMap,
             },
         }
 

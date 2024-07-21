@@ -3,14 +3,11 @@
 ---@class EventBus
 EventBus = {}
 
----@return boolean
-function EventBus:isReady() end
-
 ---@param eventName string
 ---@param priority EventPriority
----@param updatePass UpdatePass
----@param withUpdatePassMessage boolean
-function EventBus:register(eventName, priority, updatePass, withUpdatePassMessage) end
+---@param frameStage FrameStage
+---@param withFrameStageMessage boolean
+function EventBus:register(eventName, priority, frameStage, withFrameStageMessage) end
 
 ---@param eventName string
 function EventBus:unregister(eventName) end
@@ -32,5 +29,5 @@ function EventBus:send(eventName, entityId) end
 ---@return EventData
 function EventBus:getNextEvent() end
 
-function EventBus:printUpdatePassMap() end
+function EventBus:printFrameStageMap() end
 

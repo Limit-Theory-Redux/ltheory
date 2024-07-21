@@ -22,7 +22,7 @@ function MusicPlayer:Init()
 end
 
 function MusicPlayer:registerEvents()
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreFrame), self, self.onPreFrame)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreRender), self, self.onPreRender)
 end
 
 function MusicPlayer:setVolume(volume, fadeMS)
@@ -55,7 +55,7 @@ function MusicPlayer:setGlobalVolume()
     end
 end
 
-function MusicPlayer:onPreFrame(dt)
+function MusicPlayer:onPreRender(dt)
     if GameState.audio.musicVolume ~= self.volume then
         self.volume = GameState.audio.musicVolume
     end

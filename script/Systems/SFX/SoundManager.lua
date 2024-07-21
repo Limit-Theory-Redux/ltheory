@@ -15,7 +15,7 @@ function SoundManager:init()
 end
 
 function SoundManager:registerEvents()
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostFrame), self, self.onPostFrame)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostRender), self, self.onPostRender)
 end
 
 function SoundManager:canSoundPlay(soundGroup)
@@ -75,7 +75,7 @@ function SoundManager:getSoundsPlaying(soundGroup)
     return nil
 end
 
-function SoundManager:onPostFrame(dt)
+function SoundManager:onPostRender(dt)
     -- Clean up finished sounds.
     if self.lastClean:getElapsed() > CLEAN_EVERY_S then
         local instanceCount = 0

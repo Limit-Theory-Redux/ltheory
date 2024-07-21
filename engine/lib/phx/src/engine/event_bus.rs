@@ -11,7 +11,7 @@ use tracing::{info, warn};
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
-pub enum UpdatePass {
+pub enum FrameStage {
     // Before physics update
     PreSim,
     // Physics update
@@ -19,13 +19,11 @@ pub enum UpdatePass {
     // After physics update
     PostSim,
     // Before frame render
-    PreFrame,
+    PreRender,
     // Frame render
-    Frame,
+    Render,
     // After frame render
-    PostFrame,
-    // Frame interpolation
-    FrameInterpolation,
+    PostRender,
     // Before input handling
     PreInput,
     // Input handling
@@ -34,9 +32,9 @@ pub enum UpdatePass {
     PostInput,
 }
 
-impl Default for UpdatePass {
+impl Default for FrameStage {
     fn default() -> Self {
-        UpdatePass::PreFrame
+        FrameStage::PreRender
     }
 }
 
@@ -76,7 +74,7 @@ pub struct Subscriber {
 pub struct Event {
     pub name: String,
     pub priority: EventPriority,
-    pub update_pass: UpdatePass,
+    pub frame_stage: FrameStage,
     pub subscribers: Vec<Subscriber>,
     pub processed_subscribers: Vec<usize>,
 }
@@ -105,29 +103,24 @@ pub enum EventType {
 
 #[derive(Debug, Clone)]
 pub struct EventData {
-    pub update_pass: UpdatePass,
-    pub event_type: EventType,
+    pub frame_stage: FrameStage,
     pub tunnel_id: u32,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl EventData {
-    pub fn get_update_pass(&self) -> UpdatePass {
-        self.update_pass
+    pub fn get_frame_stage(&self) -> FrameStage {
+        self.frame_stage
     }
 
     pub fn get_tunnel_id(&self) -> u32 {
         self.tunnel_id
     }
-
-    pub fn get_event_type(&self) -> EventType {
-        self.event_type
-    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct MessageRequestCache {
-    update_pass: UpdatePass,
+    frame_stage: FrameStage,
     priority: EventPriority,
     event_name: String,
     stay_alive: bool,
@@ -172,8 +165,8 @@ enum EventBusOperation {
     Register {
         event_name: String,
         priority: EventPriority,
-        update_pass: UpdatePass,
-        with_update_pass_message: bool,
+        frame_stage: FrameStage,
+        with_frame_stage_message: bool,
     },
     Unregister {
         event_name: String,
@@ -195,33 +188,52 @@ enum EventBusOperation {
 pub struct EventBus {
     events: HashMap<String, Event>,
     operation_queue: VecDeque<EventBusOperation>,
-    update_pass_map: HashMap<UpdatePass, BinaryHeap<MessageRequest>>,
+    frame_stage_map: HashMap<FrameStage, BinaryHeap<MessageRequest>>,
     cached_requests: Vec<MessageRequestCache>,
     next_subscriber_id: AtomicU32,
     next_tunnel_id: AtomicU32,
-    max_priority_locked: bool,
-    current_update_pass: Option<UpdatePass>,
+    current_frame_stage: Option<FrameStage>,
     current_message_request: Option<MessageRequest>,
 }
 
 impl EventBus {
     pub fn new() -> Self {
+        let mut events: HashMap<String, Event> = HashMap::new();
+        let mut cached_requests: Vec<MessageRequestCache> = Vec::new();
+
+        // Create an event for every frame stage and set it at max priority
+        for frame_stage in FrameStage::iter() {
+            let event_name = format!("{:?}", frame_stage);
+            let frame_stage_event = Event {
+                name: event_name.clone(),
+                priority: EventPriority::Max,
+                frame_stage,
+                subscribers: vec![],
+                processed_subscribers: vec![],
+            };
+
+            let message_request = MessageRequestCache {
+                frame_stage,
+                priority: EventPriority::Max,
+                event_name: event_name.clone(),
+                stay_alive: true,
+                for_entity_id: None,
+            };
+
+            events.insert(event_name, frame_stage_event);
+            cached_requests.push(message_request);
+        }
+
         Self {
-            events: HashMap::new(),
-            operation_queue: VecDeque::from(vec![]),
-            update_pass_map: HashMap::new(),
-            cached_requests: vec![],
+            events,
+            operation_queue: VecDeque::new(),
+            frame_stage_map: HashMap::new(),
+            cached_requests,
             next_subscriber_id: AtomicU32::new(0),
             next_tunnel_id: AtomicU32::new(0),
-            max_priority_locked: false,
-            current_update_pass: Some(UpdatePass::PreSim),
+            current_frame_stage: Some(FrameStage::PreSim),
             current_message_request: None,
         }
-    }
-
-    pub fn lock_max_priority(&mut self) {
-        self.process_operations();
-        self.max_priority_locked = true;
     }
 
     pub fn add_subscriber(&mut self, event_name: &str, tunnel_id: u32, entity_id: Option<u64>) {
@@ -241,13 +253,13 @@ impl EventBus {
 
     fn reinsert_stay_alive_requests(&mut self) {
         for message_request_cache in self.cached_requests.drain(..) {
-            let update_pass = message_request_cache.update_pass;
+            let frame_stage = message_request_cache.frame_stage;
             let message_request: MessageRequest = message_request_cache.into();
 
             // info!("Reinsert event: {}", message_request.event_name);
 
-            self.update_pass_map
-                .entry(update_pass)
+            self.frame_stage_map
+                .entry(frame_stage)
                 .or_insert_with(BinaryHeap::new)
                 .push(message_request);
         }
@@ -259,17 +271,13 @@ impl EventBus {
                 EventBusOperation::Register {
                     event_name,
                     priority,
-                    update_pass,
-                    with_update_pass_message,
+                    frame_stage,
+                    with_frame_stage_message,
                 } => {
-                    if self.max_priority_locked && priority == EventPriority::Max {
-                        panic!("Trying to register event at maximum priority which is locked.");
-                    }
-
                     let event = Event {
                         name: event_name.clone(),
                         priority,
-                        update_pass,
+                        frame_stage,
                         subscribers: vec![],
                         processed_subscribers: vec![],
                     };
@@ -284,12 +292,12 @@ impl EventBus {
                         Entry::Vacant(entry) => {
                             entry.insert(event);
 
-                            if with_update_pass_message {
+                            if with_frame_stage_message {
                                 let message_request = MessageRequestCache {
-                                    update_pass,
+                                    frame_stage,
                                     priority,
                                     event_name: event_name.clone(),
-                                    stay_alive: with_update_pass_message,
+                                    stay_alive: with_frame_stage_message,
                                     for_entity_id: None,
                                 };
 
@@ -301,7 +309,7 @@ impl EventBus {
                 }
                 EventBusOperation::Unregister { event_name } => {
                     if let Some(event) = self.events.remove(&event_name) {
-                        if let Some(message_heap) = self.update_pass_map.get_mut(&event.update_pass)
+                        if let Some(message_heap) = self.frame_stage_map.get_mut(&event.frame_stage)
                         {
                             message_heap.retain(|e| e.event_name != event_name);
                             info!("Unregistered event: {}", event.name);
@@ -339,7 +347,7 @@ impl EventBus {
                 } => {
                     if let Some(event) = self.events.get(&event_name) {
                         let message_request = MessageRequestCache {
-                            update_pass: event.update_pass,
+                            frame_stage: event.frame_stage,
                             priority: event.priority,
                             event_name: event.name.clone(),
                             stay_alive: false,
@@ -356,22 +364,22 @@ impl EventBus {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl EventBus {
-    pub fn is_ready(&self) -> bool {
-        self.max_priority_locked
-    }
-
     pub fn register(
         &mut self,
         event_name: &str,
         priority: EventPriority,
-        update_pass: UpdatePass,
-        with_update_pass_message: bool,
+        frame_stage: FrameStage,
+        with_frame_stage_message: bool,
     ) {
+        if priority == EventPriority::Max {
+            panic!("Trying to register event at maximum priority which is locked.");
+        }
+
         self.operation_queue.push_back(EventBusOperation::Register {
             event_name: event_name.to_string(),
             priority,
-            update_pass,
-            with_update_pass_message,
+            frame_stage,
+            with_frame_stage_message,
         });
     }
 
@@ -410,15 +418,15 @@ impl EventBus {
     pub fn get_next_event(&mut self) -> Option<&EventData> {
         static mut EVENT_DATA_STORAGE: Option<EventData> = None;
 
-        while let Some(update_pass) = self.current_update_pass {
-            if let Some(queue) = self.update_pass_map.get_mut(&update_pass) {
+        while let Some(frame_stage) = self.current_frame_stage {
+            if let Some(queue) = self.frame_stage_map.get_mut(&frame_stage) {
                 if self.current_message_request.is_none() {
                     if let Some(message_request) = queue.peek().cloned() {
                         self.current_message_request = Some(message_request.clone());
 
                         if message_request.stay_alive {
                             let message_request_cache = MessageRequestCache {
-                                update_pass,
+                                frame_stage,
                                 priority: message_request.priority,
                                 event_name: message_request.event_name.clone(),
                                 stay_alive: message_request.stay_alive,
@@ -438,8 +446,7 @@ impl EventBus {
                                 || message_request.for_entity_id == subscriber.entity_id
                             {
                                 let event_data = EventData {
-                                    update_pass,
-                                    event_type: EventType::SomeType,
+                                    frame_stage,
                                     tunnel_id: subscriber.tunnel_id,
                                 };
 
@@ -458,30 +465,30 @@ impl EventBus {
                 }
             }
 
-            let next_update_pass = {
-                let mut iter = UpdatePass::iter().skip_while(|&pass| pass != update_pass);
+            let next_frame_stage = {
+                let mut iter = FrameStage::iter().skip_while(|&pass| pass != frame_stage);
                 iter.next();
                 iter.next()
             };
 
-            self.current_update_pass = next_update_pass;
+            self.current_frame_stage = next_frame_stage;
         }
 
         self.process_operations();
         self.reinsert_stay_alive_requests();
-        self.current_update_pass = Some(UpdatePass::PreSim);
+        self.current_frame_stage = Some(FrameStage::PreSim);
         None
     }
 
-    pub fn print_update_pass_map(&self) {
-        info!("Current state of update_pass_map:");
+    pub fn print_frame_stage_map(&self) {
+        info!("Current state of frame_stage_map:");
 
-        // Create a sorted vector of UpdatePass keys based on the enum order
-        let sorted_keys: Vec<_> = UpdatePass::iter().collect();
+        // Create a sorted vector of FrameStage keys based on the enum order
+        let sorted_keys: Vec<_> = FrameStage::iter().collect();
 
-        for update_pass in sorted_keys {
-            if let Some(message_heap) = self.update_pass_map.get(&update_pass) {
-                info!("{:?}", update_pass);
+        for frame_stage in sorted_keys {
+            if let Some(message_heap) = self.frame_stage_map.get(&frame_stage) {
+                info!("{:?}", frame_stage);
                 let mut messages: Vec<_> = message_heap.iter().cloned().collect();
                 messages.sort();
 

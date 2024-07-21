@@ -17,9 +17,8 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void       EventData_Free          (EventData*);
-            UpdatePass EventData_GetUpdatePass (EventData const*);
+            FrameStage EventData_GetFrameStage (EventData const*);
             uint32     EventData_GetTunnelId   (EventData const*);
-            EventType  EventData_GetEventType  (EventData const*);
         ]]
     end
 
@@ -34,9 +33,8 @@ function Loader.defineType()
         local t  = ffi.typeof('EventData')
         local mt = {
             __index = {
-                getUpdatePass = libphx.EventData_GetUpdatePass,
+                getFrameStage = libphx.EventData_GetFrameStage,
                 getTunnelId   = libphx.EventData_GetTunnelId,
-                getEventType  = libphx.EventData_GetEventType,
             },
         }
 

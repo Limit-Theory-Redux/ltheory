@@ -15,8 +15,8 @@ function UIRouter:__init()
 end
 
 function UIRouter:registerEvents()
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Input), self, self.input)
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Frame), self, self.update)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Input), self, self.input)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Render), self, self.update)
 end
 
 -- routing the input loop through to the views
@@ -37,7 +37,7 @@ function UIRouter:update(dt)
     Gui:beginGui(GameState.render.resX, GameState.render.resY)
     Profiler.Begin('UIRouter.Update')
     if self.currentPage then
-        self.currentPage:update(dt)
+        self.currentPage:update(dt) --! should get delta time from the event, but event bus does not support payloads currently
     end
     Profiler.End()
     Gui:endGui(InputInstance)

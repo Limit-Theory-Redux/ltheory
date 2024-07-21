@@ -32,15 +32,14 @@ function Application:quit()
 end
 
 function Application:eventLoop()
-    if EventBusInstance:isReady() and not self.eventsRegistered then
+    if not self.eventsRegistered then
         self:registerEvents()
         self.eventsRegistered = true
     end
 
     local nextEvent = EventBusInstance:getNextEvent()
     while nextEvent ~= nil do
-        --print("[" .. tostring(UpdatePass.ToString(nextEvent:getUpdatePass())) .. "]")
-        --print("- Type: " .. tostring(EventType.ToString(nextEvent:getEventType())))
+        --print("[" .. tostring(Render.ToString(nextEvent:getRender())) .. "]")
         --print("- Tunnel Id: " .. tostring(nextEvent:getTunnelId()))
 
         EventTunnels[nextEvent:getTunnelId()](nextEvent)
@@ -89,19 +88,18 @@ function Application:appInit()
 end
 
 function Application:registerEvents()
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreSim), self, self.onPreSim)
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Sim), self, self.onSim)
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostSim), self, self.onPostSim)
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreFrame), self, self.onPreFrame)
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Frame), self, self.onFrame)
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostFrame), self, self.onPostFrame)
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.FrameInterpolation), self, self.onFrameInterpolation)
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PreInput), self, self.onPreInput)
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.Input), self, self.onInput)
-    EventBusInstance:subscribe(UpdatePass.ToString(UpdatePass.PostInput), self, self.onPostInput)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreSim), self, self.onPreSim)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Sim), self, self.onSim)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostSim), self, self.onPostSim)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreRender), self, self.onPreRender)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Render), self, self.onRender)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostRender), self, self.onPostRender)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreInput), self, self.onPreInput)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Input), self, self.onInput)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostInput), self, self.onPostInput)
 
     local fakeEntity = { getGuid = function() return 0 end }
-    EventBusInstance:register("MyCustomEvent", EventPriority.Medium, UpdatePass.PreFrame, false)
+    EventBusInstance:register("MyCustomEvent", EventPriority.Medium, FrameStage.PreRender, false)
     EventBusInstance:subscribe("MyCustomEvent", fakeEntity,
         function() Log.Debug("\x1b[31mGot my event\x1b[0m") end)
     EventBusInstance:send("MyCustomEvent", fakeEntity)
@@ -111,7 +109,7 @@ function Application:onPreSim() end
 function Application:onSim() end
 function Application:onPostSim() end
 
-function Application:onPreFrame()
+function Application:onPreRender()
     if self.toggleProfiler then
         self.toggleProfiler = false
         self.profiling = not self.profiling
@@ -119,7 +117,7 @@ function Application:onPreFrame()
     end
 
     Profiler.SetValue('gcmem', GC.GetMemory())
-    Profiler.Begin('App.onPreFrame')
+    Profiler.Begin('App.onPreRender')
 
     self.timeScale = 1.0
     self.doScreenshot = false
@@ -139,7 +137,7 @@ function Application:onPreFrame()
     self.lastUpdate = now
     local timeScaledDt = self.timeScale * self.dt
 
-    --* system & canvas should probably subscribe to onPreFrame themselves
+    --* system & canvas should probably subscribe to onPreRender themselves
     if GameState.player.humanPlayer:getRoot().update then
         GameState.player.humanPlayer:getRoot():update(timeScaledDt)
         GameState.render.uiCanvas:update(timeScaledDt)
@@ -162,13 +160,13 @@ function Application:onPreFrame()
     Profiler.End()
 end
 
-function Application:onFrame()
+function Application:onRender()
     Profiler.SetValue('gcmem', GC.GetMemory())
-    Profiler.Begin('App.onFrame')
+    Profiler.Begin('App.onRender')
 
     WindowInstance:beginDraw()
 
-    --* should they subscribe to onframe themselves?
+    --* should they subscribe to onRender themselves?
     GameState.render.uiCanvas:draw(self.resX, self.resY)
     Gui:draw()
 
@@ -252,16 +250,15 @@ function Application:onFrame()
     Profiler.LoopMarker()
 end
 
-function Application:onPostFrame()
+function Application:onPostRender()
     do -- End Draw
         Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.onPostFrame')
+        Profiler.Begin('App.onPostRender')
         WindowInstance:endDraw()
         Profiler.End()
     end
 end
 
-function Application:onFrameInterpolation() end
 function Application:onPreInput() end
 
 function Application:onInput()
@@ -315,7 +312,7 @@ function Application:onInput()
     -- end
 
     if InputInstance:isPressed(Bindings.ToggleWireframe) then
-        GameState.debug.physics.drawWireframes = not GameState.debug.physics.drawWireframes
+        GameState.debug.physics.drawWireframe = not GameState.debug.physics.drawWireframe
     end
 
     if InputInstance:isPressed(Bindings.ToggleMetrics) then

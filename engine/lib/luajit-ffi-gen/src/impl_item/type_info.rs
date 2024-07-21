@@ -59,7 +59,7 @@ const COPY_TYPES: &[&str] = &[
     "LayoutType",
     "HmGuiStyleId",
     "TextAlignment",
-    "UpdatePass",
+    "FrameStage",
     "EventType",
     "EventPriority",
 ];
