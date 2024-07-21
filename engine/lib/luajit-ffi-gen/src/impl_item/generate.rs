@@ -79,7 +79,7 @@ impl ImplInfo {
             quote! {}
         } else {
             let ret = method.ret.as_ref().unwrap();
-            let ty_token = wrap_ret_type(&self.name, &ret, false);
+            let ty_token = wrap_ret_type(&self.name, ret, false);
 
             quote! { -> #ty_token }
         };
@@ -127,17 +127,15 @@ fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
                 } else {
                     quote! { *const #ty_ident }
                 }
+            } else if ty.is_mutable {
+                // Mutable is always with reference
+                quote! { &mut #ty_ident }
+            } else if ty.is_reference {
+                quote! { &#ty_ident }
+            } else if TypeInfo::is_copyable(ty_name) {
+                quote! { #ty_ident }
             } else {
-                if ty.is_mutable {
-                    // Mutable is always with reference
-                    quote! { &mut #ty_ident }
-                } else if ty.is_reference {
-                    quote! { &#ty_ident }
-                } else if TypeInfo::is_copyable(&ty_name) {
-                    quote! { #ty_ident }
-                } else {
-                    quote! { Box<#ty_ident> }
-                }
+                quote! { Box<#ty_ident> }
             }
         }
         _ => {
@@ -172,7 +170,7 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo, never_box: bool) -> TokenStream
             } else {
                 format_ident!("{ty_name}")
             };
-            let is_copyable = TypeInfo::is_copyable(&ty_name) || TypeInfo::is_copyable(self_name);
+            let is_copyable = TypeInfo::is_copyable(ty_name) || TypeInfo::is_copyable(self_name);
 
             if ty.is_option {
                 if ty.is_mutable {
@@ -232,7 +230,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 }
                 TypeVariant::CString => quote! { #name_accessor.as_cstring() },
                 TypeVariant::Custom(custom_ty) => {
-                    if param.ty.is_boxed || TypeInfo::is_copyable(&custom_ty) {
+                    if param.ty.is_boxed || TypeInfo::is_copyable(custom_ty) {
                         quote! { #name_accessor }
                     } else if param.ty.is_reference {
                         if param.ty.is_option {
@@ -311,7 +309,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 } else {
                     format_ident!("{custom_ty}")
                 };
-                let is_copyable = TypeInfo::is_copyable(&custom_ty)
+                let is_copyable = TypeInfo::is_copyable(custom_ty)
                     || TypeInfo::is_copyable(&self_ident.to_string());
 
                 if ty.is_option && !ty.is_reference {

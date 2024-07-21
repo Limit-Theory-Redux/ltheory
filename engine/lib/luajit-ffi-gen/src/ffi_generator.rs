@@ -126,13 +126,13 @@ impl FfiGenerator {
         }
 
         let data = std::fs::read_to_string(&target_ffi_file)
-            .expect(&format!("Cannot load {target_ffi_file:?} FFI data file"));
+            .unwrap_or_else(|| panic!("Cannot load {target_ffi_file:?} FFI data file"));
 
         let res: Self = serde_json::from_str(&data)
-            .expect(&format!("Cannot parse {target_ffi_file:?} FFI data file"));
+            .unwrap_or_else(|| panic!("Cannot parse {target_ffi_file:?} FFI data file"));
 
         std::fs::remove_file(&target_ffi_file)
-            .expect(&format!("Cannot remove {target_ffi_file:?} FFI data file"));
+            .unwrap_or_else(|| panic!("Cannot remove {target_ffi_file:?} FFI data file"));
 
         assert_eq!(res.module_name, module_name);
 
@@ -142,17 +142,17 @@ impl FfiGenerator {
     /// Serialize generator into the `json` file in the `target/ffi` folder.
     pub fn save(&self) {
         let data = serde_json::to_string(self)
-            .expect(&format!("Cannot serialize {} data", self.module_name));
+            .unwrap_or_else(|| panic!("Cannot serialize {} data", self.module_name));
 
         let target_ffi_dir = Self::ffi_dir();
 
         std::fs::create_dir_all(&target_ffi_dir)
-            .expect(&format!("Cannot create {target_ffi_dir:?} folder"));
+            .unwrap_or_else(|| panic!("Cannot create {target_ffi_dir:?} folder"));
 
         let target_ffi_file = Self::ffi_file(&self.module_name);
 
         std::fs::write(&target_ffi_file, data)
-            .expect(&format!("Cannot save {target_ffi_file:?} FFI data file"));
+            .unwrap_or_else(|| panic!("Cannot save {target_ffi_file:?} FFI data file"));
     }
 
     fn ffi_dir() -> PathBuf {
@@ -177,7 +177,7 @@ impl FfiGenerator {
 
         let cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
-        let ffi_gen_dir_path = cargo_manifest_dir.join(&ffi_gen_dir);
+        let ffi_gen_dir_path = cargo_manifest_dir.join(ffi_gen_dir);
         assert!(
             ffi_gen_dir_path.exists(),
             "FFI directory '{}' doesn't exist",
@@ -185,10 +185,12 @@ impl FfiGenerator {
         );
 
         let ffi_module_path = ffi_gen_dir_path.join(format!("{}.lua", self.module_name));
-        let mut module_file = File::create(&ffi_module_path).expect(&format!(
-            "Cannot create file: {ffi_module_path:?}\nCurrent folder: {:?}",
-            std::env::current_dir()
-        ));
+        let mut module_file = File::create(&ffi_module_path).unwrap_or_else(|| {
+            panic!(
+                "Cannot create file: {ffi_module_path:?}\nCurrent folder: {:?}",
+                std::env::current_dir()
+            )
+        });
 
         let mut module = String::new();
 
@@ -348,7 +350,7 @@ impl FfiGenerator {
         writeln!(&mut module, "return Loader").unwrap();
 
         if cfg!(windows) {
-            module = module.replace("\n", "\r\n");
+            module = module.replace('\n', "\r\n");
         }
 
         module_file.write_all(module.as_bytes()).unwrap();
@@ -356,7 +358,7 @@ impl FfiGenerator {
         if !self.class_definitions.is_empty() {
             let ffi_meta_dir = from_env_or_default(LUAJIT_FFI_META_DIR_ENV, LUAJIT_FFI_META_DIR);
 
-            let ffi_meta_dir_path = cargo_manifest_dir.join(&ffi_meta_dir);
+            let ffi_meta_dir_path = cargo_manifest_dir.join(ffi_meta_dir);
             assert!(
                 ffi_meta_dir_path.exists(),
                 "Meta directory '{}' doesn't exist",
@@ -364,10 +366,12 @@ impl FfiGenerator {
             );
 
             let ffi_meta_def_path = ffi_meta_dir_path.join(format!("{}.lua", self.module_name));
-            let mut meta_def_file = File::create(&ffi_meta_def_path).expect(&format!(
-                "Cannot create file: {ffi_meta_def_path:?}\nCurrent folder: {:?}",
-                std::env::current_dir()
-            ));
+            let mut meta_def_file = File::create(&ffi_meta_def_path).unwrap_or_else(|| {
+                panic!(
+                    "Cannot create file: {ffi_meta_def_path:?}\nCurrent folder: {:?}",
+                    std::env::current_dir()
+                )
+            });
 
             let mut meta_def = String::new();
 
@@ -377,7 +381,7 @@ impl FfiGenerator {
                 .for_each(|def| writeln!(&mut meta_def, "{def}").unwrap());
 
             if cfg!(windows) {
-                meta_def = meta_def.replace("\n", "\r\n");
+                meta_def = meta_def.replace('\n', "\r\n");
             }
 
             meta_def_file.write_all(meta_def.as_bytes()).unwrap();
