@@ -125,14 +125,17 @@ impl FfiGenerator {
             return Self::new(module_name);
         }
 
-        let data = std::fs::read_to_string(&target_ffi_file)
-            .unwrap_or_else(|| panic!("Cannot load {target_ffi_file:?} FFI data file"));
+        let data = std::fs::read_to_string(&target_ffi_file).unwrap_or_else(|err| {
+            panic!("Cannot load {target_ffi_file:?} FFI data file. Error: {err}")
+        });
 
-        let res: Self = serde_json::from_str(&data)
-            .unwrap_or_else(|| panic!("Cannot parse {target_ffi_file:?} FFI data file"));
+        let res: Self = serde_json::from_str(&data).unwrap_or_else(|err| {
+            panic!("Cannot parse {target_ffi_file:?} FFI data file. Error: {err}")
+        });
 
-        std::fs::remove_file(&target_ffi_file)
-            .unwrap_or_else(|| panic!("Cannot remove {target_ffi_file:?} FFI data file"));
+        std::fs::remove_file(&target_ffi_file).unwrap_or_else(|err| {
+            panic!("Cannot remove {target_ffi_file:?} FFI data file. Error: {err}")
+        });
 
         assert_eq!(res.module_name, module_name);
 
@@ -141,18 +144,20 @@ impl FfiGenerator {
 
     /// Serialize generator into the `json` file in the `target/ffi` folder.
     pub fn save(&self) {
-        let data = serde_json::to_string(self)
-            .unwrap_or_else(|| panic!("Cannot serialize {} data", self.module_name));
+        let data = serde_json::to_string(self).unwrap_or_else(|err| {
+            panic!("Cannot serialize {} data. Error: {err}", self.module_name)
+        });
 
         let target_ffi_dir = Self::ffi_dir();
 
         std::fs::create_dir_all(&target_ffi_dir)
-            .unwrap_or_else(|| panic!("Cannot create {target_ffi_dir:?} folder"));
+            .unwrap_or_else(|err| panic!("Cannot create {target_ffi_dir:?} folder. Error: {err}"));
 
         let target_ffi_file = Self::ffi_file(&self.module_name);
 
-        std::fs::write(&target_ffi_file, data)
-            .unwrap_or_else(|| panic!("Cannot save {target_ffi_file:?} FFI data file"));
+        std::fs::write(&target_ffi_file, data).unwrap_or_else(|err| {
+            panic!("Cannot save {target_ffi_file:?} FFI data file. Error: {err}")
+        });
     }
 
     fn ffi_dir() -> PathBuf {
@@ -185,9 +190,9 @@ impl FfiGenerator {
         );
 
         let ffi_module_path = ffi_gen_dir_path.join(format!("{}.lua", self.module_name));
-        let mut module_file = File::create(&ffi_module_path).unwrap_or_else(|| {
+        let mut module_file = File::create(&ffi_module_path).unwrap_or_else(|err| {
             panic!(
-                "Cannot create file: {ffi_module_path:?}\nCurrent folder: {:?}",
+                "Cannot create file: {ffi_module_path:?}\nCurrent folder: {:?}\nError: {err}",
                 std::env::current_dir()
             )
         });
@@ -366,9 +371,9 @@ impl FfiGenerator {
             );
 
             let ffi_meta_def_path = ffi_meta_dir_path.join(format!("{}.lua", self.module_name));
-            let mut meta_def_file = File::create(&ffi_meta_def_path).unwrap_or_else(|| {
+            let mut meta_def_file = File::create(&ffi_meta_def_path).unwrap_or_else(|err| {
                 panic!(
-                    "Cannot create file: {ffi_meta_def_path:?}\nCurrent folder: {:?}",
+                    "Cannot create file: {ffi_meta_def_path:?}\nCurrent folder: {:?}\nError: {err}",
                     std::env::current_dir()
                 )
             });
