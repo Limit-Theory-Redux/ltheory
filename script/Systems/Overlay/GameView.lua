@@ -65,8 +65,9 @@ function GameView:draw(focus, active)
             shader:start()
             for i, v in ipairs(lights) do
                 -- TODO : Batching
+                local renderPos = v.pos:relativeTo(eye)
+                Shader.SetFloat3('lightPos', renderPos.x, renderPos.y, renderPos.z)
                 Shader.SetFloat3('lightColor', v.color.x, v.color.y, v.color.z)
-                Shader.SetFloat3('lightPos', v.pos.x, v.pos.y + 5, v.pos.z)
                 Shader.SetTex2D('texDepth', self.renderer.zBufferL)
                 Shader.SetTex2D('texNormalMat', self.renderer.buffer1)
                 Draw.Rect(-1, -1, 2, 2)

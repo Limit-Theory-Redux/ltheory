@@ -87,7 +87,7 @@ function Hidden:onDraw(focus, active)
     local x, y = self:getPosGlobal()
 
     -- Header background
-    Config.ui.color.border:set()
+--    Config.ui.color.border:set()
     Draw.Rect(x, y, self.sx, self.padMinY)
 
     -- Header title

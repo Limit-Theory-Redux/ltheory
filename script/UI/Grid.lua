@@ -168,7 +168,7 @@ function Grid:onDrawDebug(focus, active)
         Draw.Rect(x + cellX, y + cellY, cellSX, cellSY)
     end
     rng:free()
-    Config.ui.color.debugRect:set()
+--    Config.ui.color.debugRect:set()
 
     Container.onDrawDebugChildren(self, focus, active)
 end

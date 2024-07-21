@@ -9,7 +9,7 @@ Stretch.desiredSY = 0
 
 function Stretch:onDraw(focus, active)
     if self.fillColor then
-        self.fillColor:set()
+--        self.fillColor:set()
         Draw.Rect(self:getRectGlobal())
     end
 end

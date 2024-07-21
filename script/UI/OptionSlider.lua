@@ -67,7 +67,7 @@ function OptionSlider:onDraw(focus, active)
     local a1 = padLeft + Vec2f(0, -tri2)
     local b1 = padLeft + Vec2f(tri2, -triSize)
     local c1 = padLeft + Vec2f(tri2, 0)
-    self:applyColor(focus, active, Config.ui.color.fill)
+    self:getColor(focus, active, Config.ui.color.fill)
     Draw.Tri(a, b, c);
     Draw.Tri(a1, b1, c1);
 

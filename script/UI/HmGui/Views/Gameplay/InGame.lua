@@ -15,6 +15,11 @@ function InGame:onInput()
         UIRouter:getCurrentPage():setView("Paused")
     elseif InputInstance:isPressed(Bindings.SystemMap) then
         UIRouter:getCurrentPage():setView("System_Map")
+    elseif InputInstance:isPressed(Bindings.ToggleLights) then
+        -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
+        -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
+        GameState.render.thrusterLights = not GameState.render.thrusterLights
+        GameState.render.pulseLights    = not GameState.render.pulseLights
     elseif InputInstance:isPressed(Bindings.CameraFirstPerson) then
         if GameState.player.currentCamera ~= Enums.CameraMode.FirstPerson then
             GameState.render.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
