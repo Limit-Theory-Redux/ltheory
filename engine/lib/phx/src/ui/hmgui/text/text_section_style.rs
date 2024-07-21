@@ -6,6 +6,7 @@ use crate::render::Color;
 
 use super::TextStyle;
 
+/// Style of text section.
 #[derive(Clone, PartialEq)]
 struct SectionStyle {
     range: Range<usize>,
@@ -21,6 +22,7 @@ impl SectionStyle {
     }
 }
 
+/// Collection of the text section styles.
 #[derive(Default, Clone, PartialEq)]
 pub struct TextSectionStyle {
     section_styles: Vec<SectionStyle>,
@@ -36,6 +38,7 @@ impl TextSectionStyle {
             .push(SectionStyle::new(start, end, style));
     }
 
+    /// Apply text sections styling to the text layout builder.
     pub fn apply<'a>(&'a self, builder: &mut RangedBuilder<'a, Color, &str>) {
         for section_style in &self.section_styles {
             section_style
@@ -44,6 +47,7 @@ impl TextSectionStyle {
         }
     }
 
+    /// Update text styling sections based on removed and added text chunks at a specific position in a text.
     pub fn update(&mut self, pos: usize, removed: usize, added: usize) {
         if self.section_styles.is_empty() {
             return;

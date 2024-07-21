@@ -5,6 +5,7 @@ use crate::render::{Tex2D, Tex2D_Free};
 
 use super::{TextContext, TextData};
 
+/// Contains text data and rendered text texture.
 pub struct TextView {
     data: TextData,
     editable: bool,
@@ -36,6 +37,8 @@ impl TextView {
         self.editable
     }
 
+    /// In case of text changes, updates user text data with the view one.
+    /// Removes `text_changed` flag.
     pub fn update_source(&mut self, text_data: &mut TextData) -> bool {
         debug_assert!(self.editable);
 
@@ -51,6 +54,8 @@ impl TextView {
         }
     }
 
+    /// Use user input to update text, selection and cursor position.
+    /// Rerender text texture if any changes happened.
     pub fn update(
         &mut self,
         text_ctx: &mut TextContext,
@@ -72,8 +77,8 @@ impl TextView {
             clipboard,
         );
 
-        if tex != std::ptr::null_mut() {
-            if self.tex != std::ptr::null_mut() {
+        if !tex.is_null() {
+            if !self.tex.is_null() {
                 unsafe { Tex2D_Free(self.tex) };
             }
 

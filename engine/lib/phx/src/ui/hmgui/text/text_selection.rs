@@ -9,6 +9,7 @@ use super::TextLayout;
 
 const NEWLINE_SEPARATORS: &[char] = &['\n', '\r'];
 
+/// Text selection range or simple cursor position in a text.
 #[derive(Clone, Debug, PartialEq)]
 pub enum TextSelection {
     /// No real selection, only cursor position.
@@ -23,6 +24,7 @@ impl TextSelection {
         Self::Cursor(0)
     }
 
+    /// Create text selection variant based on start and end positions.
     pub fn selection(start: usize, end: usize) -> Self {
         Self::Selection(Range { start, end })
     }
@@ -54,6 +56,7 @@ impl TextSelection {
         self.end()
     }
 
+    /// Returns selection range in correct order (start < end) or None if it is cursor.
     pub fn get_forward_range(&self) -> Option<Range<usize>> {
         if let Self::Selection(range) = self {
             if range.start <= range.end {
@@ -69,6 +72,7 @@ impl TextSelection {
         }
     }
 
+    /// Returns if selection start < end or true for the cursor.
     pub fn is_forward(&self) -> bool {
         match self {
             Self::Cursor(_) => true,
@@ -76,6 +80,7 @@ impl TextSelection {
         }
     }
 
+    /// Returns if selection start > end or true for the cursor.
     pub fn is_backward(&self) -> bool {
         match self {
             Self::Cursor(_) => true,
@@ -83,7 +88,7 @@ impl TextSelection {
         }
     }
 
-    /// Create a new text selection where start is always >= end.
+    /// Creates a new text selection where start is always >= end.
     pub fn normalized(&self) -> Self {
         match self {
             Self::Cursor(pos) => Self::Cursor(*pos),
@@ -97,6 +102,7 @@ impl TextSelection {
         }
     }
 
+    /// Make self a cursor.
     pub fn set_cursor(&mut self, pos: usize) {
         *self = Self::Cursor(pos);
     }
@@ -153,6 +159,7 @@ impl TextSelection {
         };
     }
 
+    /// Use user input (keyboard and mouse) to update cursor position.
     pub fn update(
         &mut self,
         layout: &TextLayout,
@@ -225,13 +232,19 @@ impl TextSelection {
         if input.is_pressed(Button::MouseLeft) {
             if input.is_keyboard_shift_down() {
                 if self.is_forward() && cursor.text_end >= text_len {
+                    // to allow last text symbol to be selected
                     self.set_end(cursor.text_end);
                 } else {
+                    // this is needed to avoid jumping cursor to the start of the next line
+                    // while Shift+clicking outside of the non-last line
                     self.set_end(cursor.text_start);
                 }
             } else if cursor.text_end >= text_len {
+                // to allow last text symbol to be selected
                 self.set_cursor(cursor.text_end);
             } else {
+                // this is needed to avoid jumping cursor to the start of the next line
+                // while clicking outside of the non-last line
                 self.set_cursor(cursor.text_start);
             }
         } else if self.is_forward() && cursor.text_end >= text_len {
@@ -240,6 +253,8 @@ impl TextSelection {
             // if >= or > comparison is used
             self.set_end(cursor.text_end);
         } else {
+            // this is needed to avoid jumping cursor to the start of the next line
+            // while dragging mouse outside of the non-last line
             self.set_end(cursor.text_start);
         }
     }
@@ -250,16 +265,17 @@ impl TextSelection {
             if input.is_keyboard_shift_down() {
                 self.set_end(cursor_position - 1);
             } else {
-                match &self {
-                    TextSelection::Cursor(pos) => self.set_cursor(*pos - 1),
+                let pos = match &self {
+                    TextSelection::Cursor(pos) => *pos - 1,
                     TextSelection::Selection(range) => {
                         if range.start < range.end {
-                            self.set_cursor(range.start);
+                            range.start
                         } else {
-                            self.set_cursor(range.end);
+                            range.end
                         }
                     }
-                }
+                };
+                self.set_cursor(pos);
             }
             true
         } else {
@@ -273,16 +289,17 @@ impl TextSelection {
             if input.is_keyboard_shift_down() {
                 self.set_end(cursor_position + 1);
             } else {
-                match &self {
-                    TextSelection::Cursor(pos) => self.set_cursor(*pos + 1),
+                let pos = match &self {
+                    TextSelection::Cursor(pos) => *pos + 1,
                     TextSelection::Selection(range) => {
                         if range.start < range.end {
-                            self.set_cursor(range.end);
+                            range.end
                         } else {
-                            self.set_cursor(range.start);
+                            range.start
                         }
                     }
-                }
+                };
+                self.set_cursor(pos);
             }
             true
         } else {
@@ -378,6 +395,9 @@ impl TextSelection {
     }
 }
 
+/// Search for the index of the previous character in the text
+/// that is in the `chars` list, starting at the position `pos`.
+/// Can be used for example for searching the end of the previous line or start of the word.
 fn find_prev_char_pos(text: &str, pos: usize, chars: &[char]) -> usize {
     text[..pos]
         .chars()
@@ -393,6 +413,9 @@ fn find_prev_char_pos(text: &str, pos: usize, chars: &[char]) -> usize {
         .unwrap_or(0)
 }
 
+/// Search for the index of the next character in the text
+/// that is in the `chars` list, starting at the position `pos`.
+/// Can be used for example for searching the end of the current line or end of the word.
 fn find_next_char_pos(text: &str, pos: usize, chars: &[char]) -> usize {
     text.chars()
         .skip(pos)

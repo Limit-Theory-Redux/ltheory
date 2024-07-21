@@ -7,6 +7,7 @@ use crate::render::Color;
 
 use super::TextLayout;
 
+/// Rectangular area that represents cursor current position in text editing.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TextCursorRect {
     pos: Vec2,
@@ -35,6 +36,7 @@ impl TextCursorRect {
         self.color
     }
 
+    /// Rebuild cursor rect based on it's position in the text layout.
     pub fn build(
         &mut self,
         layout: &TextLayout,
@@ -46,7 +48,9 @@ impl TextCursorRect {
         let cursor = Cursor::from_position(&layout, cursor_position, false);
         let line = cursor.path.line(&layout).expect("Cannot get cursor line");
         let metrics = line.metrics();
+        // vertical line start
         let line_start = (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor();
+        // vertical line range
         let line_range = Range {
             start: line_start as u32,
             end: u32::min(

@@ -61,7 +61,9 @@ pub(super) fn render_glyph(
                 }
             }
         }
-        Content::SubpixelMask => unimplemented!(),
+        Content::SubpixelMask => {
+            unimplemented!("Subpixel mask format is not implemented for the text rendering")
+        }
         Content::Color => {
             let row_size = glyph_width as usize * 4;
             for (pixel_y, row) in glyph_image.data.chunks_exact(row_size).enumerate() {

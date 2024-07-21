@@ -61,6 +61,9 @@ impl PartialEq for TextData {
     }
 }
 
+/// Text information used in the [`TextView`] component.
+/// Use `Gui:textView(textData, editable)` to add text view element to the gui hierarchy.
+/// To retrieve changes of the editable text made by user, use `Gui:getTextViewChanges(textData)`.
 #[luajit_ffi_gen::luajit_ffi]
 impl TextData {
     #[bind(name = "Create")]
@@ -136,7 +139,11 @@ impl TextData {
     /// If pos >= text size then cursor is placed after the latest text character.
     pub fn set_cursor_pos(&mut self, pos: usize) {
         // pos == self.text.len() to select last symbol
-        assert!(pos <= self.text.len());
+        assert!(
+            pos <= self.text.len(),
+            "Cursor position is outside of the text range: {pos} > {}",
+            self.text.len()
+        );
 
         let selection = TextSelection::Cursor(pos);
         if self.selection != selection {

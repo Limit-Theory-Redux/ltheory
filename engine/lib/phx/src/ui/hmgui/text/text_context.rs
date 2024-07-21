@@ -6,6 +6,7 @@ use swash::scale::ScaleContext;
 
 use crate::render::Color;
 
+/// Persistent per application cache of text related information: fonts, layout and scale contexts.
 #[derive(Default)]
 pub struct TextContext {
     pub font: FontContext,

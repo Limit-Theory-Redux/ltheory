@@ -91,13 +91,13 @@ local creditsGrid = UILayout.Grid {
             }
         },
         UIComponent.Container {
-            layoutType = GuiLayoutType.Vertical,
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
             padding = { 0, 0 },
             margin = { 50, 50 },
             spacing = 10,
             widthInLayout = getRemainingWidthPercentage,
+            layoutType = GuiLayoutType.Vertical,
             contents = {
                 UIComponent.TextView {
                     text = "Credits",
@@ -109,7 +109,6 @@ local creditsGrid = UILayout.Grid {
                         background = Color(0, 0, 0, 0.3)
                     },
                     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-                    -- childrenAlign = { AlignHorizontal.Stretch, AlignVertical.Stretch },
                     padding = { 50, 50 },
                     margin = { 0, 0 },
                     layoutType = GuiLayoutType.Vertical,

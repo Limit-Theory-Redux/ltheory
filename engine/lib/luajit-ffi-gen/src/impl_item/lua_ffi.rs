@@ -59,6 +59,10 @@ impl ImplInfo {
     fn write_class_defs(&self, ffi_gen: &mut FfiGenerator, module_name: &str) {
         if !ffi_gen.has_class_definitions() {
             ffi_gen.add_class_definition(format!("---@meta\n"));
+
+            self.doc
+                .iter()
+                .for_each(|d| ffi_gen.add_class_definition(format!("-- {d}")));
             ffi_gen.add_class_definition(format!("---@class {module_name}"));
             ffi_gen.add_class_definition(format!("{module_name} = {{}}\n"));
         }
