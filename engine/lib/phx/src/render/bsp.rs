@@ -833,7 +833,8 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                 let v = &mut (*polygon).inner.vertices;
                 let mut vPrev: Vec3 = v[(v.len() - 1) as usize];
 
-                #[allow(clippy::needless_range_loop)] // Cannot convert into `for_each` because of break instruction
+                #[allow(clippy::needless_range_loop)]
+                // Cannot convert into `for_each` because of break instruction
                 for j in 0..v.len() {
                     let vCur: Vec3 = v[j];
                     let edge: Vec3 = vCur - vPrev;
@@ -1298,10 +1299,9 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
         if nodeRef.index != 0 {
             for i in 0..(this.nodes.len() as i32) {
                 let nodeToCheck: &mut BSPNode = &mut this.nodes[i as usize];
-                if (*nodeToCheck).child[BACK_INDEX as usize].index == nodeRef.index {
-                    newNode.index = i;
-                    break;
-                } else if (*nodeToCheck).child[FRONT_INDEX as usize].index == nodeRef.index {
+                if (*nodeToCheck).child[BACK_INDEX as usize].index == nodeRef.index
+                    || (*nodeToCheck).child[FRONT_INDEX as usize].index == nodeRef.index
+                {
                     newNode.index = i;
                     break;
                 }

@@ -193,6 +193,7 @@ impl RigidBody {
 
     /// Links a RigidBody to a Rapier Collider, which we can later retrieve
     /// using linked_with_collider and linked_with_collider_mut.
+    #[allow(clippy::borrowed_box)]
     pub(crate) fn encode_as_user_data(rb: &Box<RigidBody>) -> u128 {
         // TODO: Replace this with an arena index into the PhysicsWorld.
         &**rb as *const RigidBody as *mut RigidBody as u128
