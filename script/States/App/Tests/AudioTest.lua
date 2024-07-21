@@ -139,7 +139,12 @@ end
 
 function AudioTest:onDraw()
     BlendMode.PushAlpha()
+
     Draw.Clear(0.1, 0.1, 0.1, 1.0)
+
+    local shader = Cache.Shader('ui', 'simple_color')
+    shader:start()
+
     for i = 1, #self.emitters do
         Draw.Color(1, 1, 1, 1)
         local e = self.emitters[i]
@@ -147,7 +152,7 @@ function AudioTest:onDraw()
         e.tex:draw(e.x - 96, e.y - 96, 192, 192)
         local d = Vec3f(e.x, 0, e.y):distance(self.pos)
         local c = Vec3f():lerp(Vec3f(1.0, 0.0, 0.2), exp(-max(0, d / 128 - 1.0)))
-        Draw.Color(c.x, c.y, c.z, 1)
+        Shader.SetFloat4("color", c.x, c.y, c.z, 1)
         Draw.Border(8, e.x - 96, e.y - 96, 192, 192)
     end
 
@@ -156,12 +161,15 @@ function AudioTest:onDraw()
     for i = 1, #self.particles do
         local p = self.particles[i]
         local alpha = p.life / 5
-        Draw.Color(0.25, 1.0, 0.25, alpha * 0.8)
+        Shader.SetFloat4("color", 0.25, 1.0, 0.25, alpha * 0.8)
         Draw.Point(p.x, p.y)
     end
 
-    Draw.Color(0.1, 0.6, 1.0, 1.0)
+    Shader.SetFloat4("color", 0.1, 0.6, 1.0, 1.0)
     Draw.Rect(self.pos.x - 4, self.pos.z - 4, 8, 8)
+
+    shader:stop()
+
     BlendMode.Pop()
 end
 
@@ -202,7 +210,7 @@ function AudioTest:onUpdate(dt)
         end
     end
 
-    self.audio:setListenerPos(Vec3f(self.resX / 2, 0, self.resY / 2))
+    self.audio:setListenerPos(Position(self.resX / 2, 0, self.resY / 2))
     self.audio:setListenerRot(Quat(0, 0, 0, 1))
 
     --[[

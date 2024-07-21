@@ -21,6 +21,9 @@ struct Cli {
     /// Specify if console log should be shown
     #[arg(short, long, default_value_t = true)]
     console_log: bool,
+    /// Specify if console should disable colors
+    #[arg(short, long, default_value_t = false)]
+    no_color: bool,
     /// Log will be written into the log file if log_dir is specified
     #[arg(short, long)]
     log_dir: Option<String>,
@@ -61,6 +64,10 @@ pub fn main() {
     let log_dir = CString::new(log_dir_str)
         .expect("Failed to convert log_dir argument into CString.")
         .into_raw();
+
+    if cli.no_color {
+        std::env::set_var("NO_COLOR", "1");
+    }
 
     unsafe {
         Engine_Entry(

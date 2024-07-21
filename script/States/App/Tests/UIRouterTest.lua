@@ -55,7 +55,7 @@ function Test:onUpdate(dt)
     SoundManager:update(dt)
     MusicPlayer:OnUpdate(dt) --todo fix casing
 
-    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY)
     UIRouter:update(dt)
     Gui:endGui(InputInstance)
 end

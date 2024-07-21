@@ -6,6 +6,7 @@ local TestEcon = require('States.Application')
 local Production = require('Systems.Economy.Production')
 local Item = require('Systems.Economy.Item')
 local SystemMap = require('Systems.CommandView.SystemMap')
+local System = require('GameObjects.Entities.StarSystem')
 
 local rng = RNG.FromTime()
 --local rng = RNG.Create(10) -- for when the same seed is needed
@@ -44,7 +45,7 @@ end
 function TestEcon:onInit()
     -- Generate new universe for economic testing
     self.canvas = UI.Canvas()
-    self.system = Entities.Test.System(rng:get64())
+    self.system = System(rng:get64())
     GameState.world.currentSystem = self.system
 
     -- Add system-wide AI director (but don't insert into system's list of players)
@@ -70,7 +71,7 @@ function TestEcon:onInit()
 
     -- Add a planet at the origin
     planet = self.system:spawnPlanet(false)
-    planet:setPos(Vec3f(0, 0, 0)) -- move planet to origin
+    planet:setPos(Position(0, 0, 0)) -- move planet to origin
 
     -- Add Asteroid Field (and Asteroid) objects
     for i = 1, kFields do self.system:spawnAsteroidField(kFieldCount, false) end

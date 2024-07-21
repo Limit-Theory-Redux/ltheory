@@ -6,7 +6,7 @@ local BSPDebug
 do -- C Definitions
     ffi.cdef [[
     BSPNodeRef BSPDebug_GetNode                     (BSP*, BSPNodeRef, BSPNodeRel);
-    void       BSPDebug_DrawNode                    (BSP*, BSPNodeRef);
+    void       BSPDebug_DrawNode                    (BSP*, BSPNodeRef, Color const* color);
     void       BSPDebug_DrawNodeSplit               (BSP*, BSPNodeRef);
     void       BSPDebug_DrawLineSegment             (BSP*, LineSegment*);
     void       BSPDebug_DrawSphere                  (BSP*, Sphere*);

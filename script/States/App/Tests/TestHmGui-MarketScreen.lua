@@ -879,7 +879,7 @@ function Test:onUpdate(dt)
     if InputInstance:isPressed(Button.KeyboardEscape) then
         drawExitMenu = not drawExitMenu
     end
-    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY)
     if drawExitMenu then
         Gui:beginStackContainer()
         self:showCtrlMenu()
