@@ -187,6 +187,6 @@ impl From<Color> for Vec4 {
 }
 
 #[inline]
-fn check_range(v: f32){
+fn check_range(v: f32) {
     assert!((0.0..=1.0).contains(&v));
 }

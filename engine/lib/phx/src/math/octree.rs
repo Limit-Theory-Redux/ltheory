@@ -180,7 +180,7 @@ unsafe extern "C" fn Octree_Insert(this: &mut Octree, box_0: Box3, id: u32) {
     this.elems = elem;
 }
 
-unsafe extern "C" fn Octree_AddDepth(this: &mut Octree, box_0: Box3, id: u32, depth: i32) {
+unsafe extern "C" fn Octree_AddDepth(this: &mut Octree, box_0: Box3, id: u32) {
     let L: *const Vec3 = &mut this.box_0.lower;
     let U: *const Vec3 = &mut this.box_0.upper;
     let C: Vec3 = this.box_0.center();
@@ -304,7 +304,6 @@ unsafe extern "C" fn Octree_AddDepth(this: &mut Octree, box_0: Box3, id: u32, de
             &mut *this.child[lastIntersection as usize],
             Box3::intersection(box_0, childBound[lastIntersection as usize]),
             id,
-            depth + 1,
         );
         return;
     }
@@ -313,7 +312,7 @@ unsafe extern "C" fn Octree_AddDepth(this: &mut Octree, box_0: Box3, id: u32, de
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Add(this: &mut Octree, box_0: Box3, id: u32) {
-    Octree_AddDepth(this, box_0, id, 0);
+    Octree_AddDepth(this, box_0, id);
 }
 
 #[no_mangle]

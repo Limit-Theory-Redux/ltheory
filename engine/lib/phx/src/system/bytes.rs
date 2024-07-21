@@ -17,7 +17,7 @@ pub struct Bytes {
 }
 
 impl Bytes {
-    fn to_slice(&self) -> &[u8] {
+    fn as_slice(&self) -> &[u8] {
         return unsafe {
             std::slice::from_raw_parts(&self.data as *const i8 as *const u8, self.size as usize)
         };
@@ -92,7 +92,7 @@ pub extern "C" fn Bytes_GetSize(this: &mut Bytes) -> u32 {
 
 #[no_mangle]
 pub extern "C" fn Bytes_Compress(bytes: &mut Bytes) -> *mut Bytes {
-    let input = bytes.to_slice();
+    let input = bytes.as_slice();
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
     if let Err(e) = encoder.write_all(input) {
@@ -106,7 +106,7 @@ pub extern "C" fn Bytes_Compress(bytes: &mut Bytes) -> *mut Bytes {
 
 #[no_mangle]
 pub extern "C" fn Bytes_Decompress(bytes: &mut Bytes) -> *mut Bytes {
-    let input = bytes.to_slice();
+    let input = bytes.as_slice();
 
     let mut decoder = ZlibDecoder::new(Vec::new());
     if let Err(e) = decoder.write_all(input) {
@@ -361,5 +361,5 @@ pub unsafe extern "C" fn Bytes_Save(this: &Bytes, path: *const libc::c_char) {
             CStr::from_ptr(path)
         )
     });
-    let _ = file.file.write_all(this.to_slice());
+    let _ = file.file.write_all(this.as_slice());
 }

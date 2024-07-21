@@ -16,8 +16,8 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void InputDeviceId_Free     (InputDeviceId*);
-            cstr InputDeviceId_ToString (InputDeviceId const*);
+            void InputDeviceId_Free      (InputDeviceId*);
+            cstr InputDeviceId_GetString (InputDeviceId const*);
         ]]
     end
 
@@ -31,9 +31,9 @@ function Loader.defineType()
     do -- Metatype for class instances
         local t  = ffi.typeof('InputDeviceId')
         local mt = {
-            __tostring = function(self) return ffi.string(libphx.InputDeviceId_ToString(self)) end,
+            __tostring = function(self) return ffi.string(libphx.InputDeviceId_GetString(self)) end,
             __index = {
-                toString = libphx.InputDeviceId_ToString,
+                getString = libphx.InputDeviceId_GetString,
             },
         }
 

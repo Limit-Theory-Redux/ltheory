@@ -4,5 +4,5 @@
 InputDeviceId = {}
 
 ---@return string
-function InputDeviceId:toString() end
+function InputDeviceId:getString() end
 

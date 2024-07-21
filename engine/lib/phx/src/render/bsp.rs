@@ -832,6 +832,8 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
                 let v = &mut (*polygon).inner.vertices;
                 let mut vPrev: Vec3 = v[(v.len() - 1) as usize];
+
+                #[allow(clippy::needless_range_loop)] // Cannot convert into `for_each` because of break instruction
                 for j in 0..v.len() {
                     let vCur: Vec3 = v[j];
                     let edge: Vec3 = vCur - vPrev;

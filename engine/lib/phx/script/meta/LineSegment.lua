@@ -11,5 +11,5 @@ function LineSegment:toRay(out) end
 function LineSegment.FromRay(ray, out) end
 
 ---@return string
-function LineSegment:toString() end
+function LineSegment:getString() end
 

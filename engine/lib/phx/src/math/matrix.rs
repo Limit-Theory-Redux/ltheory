@@ -208,11 +208,11 @@ pub extern "C" fn Matrix_MulBox(this: &Matrix, out: &mut Box3, in_0: &Box3) {
 
     out.lower = this.transform_point3(corners[0]);
     out.upper = out.lower;
-    for i in 1..8 {
-        let result = this.transform_point3(corners[i]);
+    corners.iter().skip(1).for_each(|corner| {
+        let result = this.transform_point3(*corner);
         out.lower = Vec3::min(out.lower, result);
         out.upper = Vec3::max(out.upper, result);
-    }
+    });
 }
 
 #[no_mangle]
