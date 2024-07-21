@@ -19,8 +19,8 @@ fn main() {
     let mut file = File::create(Path::new(&dest).join("bindings.rs")).unwrap();
     Registry::new(
         Api::Gl,
-        (2, 1),
-        Profile::Compatibility,
+        (3, 3),
+        Profile::Core,
         Fallbacks::All,
         [
             "GL_ARB_seamless_cubemap_per_texture",

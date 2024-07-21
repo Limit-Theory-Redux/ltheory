@@ -1151,7 +1151,8 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 [[package]]
 name = "glutin"
 version = "0.32.0"
-source = "git+https://github.com/dgavedissian/glutin?rev=4ca4190bd67a2a8c0bbe3a3304e529effe6172a8#4ca4190bd67a2a8c0bbe3a3304e529effe6172a8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2491aa3090f682ddd920b184491844440fdd14379c7eef8f5bc10ef7fb3242fd"
 dependencies = [
  "bitflags 2.5.0",
  "cfg_aliases 0.2.1",
@@ -1175,7 +1176,8 @@ dependencies = [
 [[package]]
 name = "glutin-winit"
 version = "0.5.0"
-source = "git+https://github.com/dgavedissian/glutin?rev=4ca4190bd67a2a8c0bbe3a3304e529effe6172a8#4ca4190bd67a2a8c0bbe3a3304e529effe6172a8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85edca7075f8fc728f28cb8fbb111a96c3b89e930574369e3e9c27eb75d3788f"
 dependencies = [
  "cfg_aliases 0.2.1",
  "glutin",
@@ -1186,7 +1188,8 @@ dependencies = [
 [[package]]
 name = "glutin_egl_sys"
 version = "0.7.0"
-source = "git+https://github.com/dgavedissian/glutin?rev=4ca4190bd67a2a8c0bbe3a3304e529effe6172a8#4ca4190bd67a2a8c0bbe3a3304e529effe6172a8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cae99fff4d2850dbe6fb8c1fa8e4fead5525bab715beaacfccf3fb994e01c827"
 dependencies = [
  "gl_generator",
  "windows-sys 0.52.0",
@@ -1195,7 +1198,8 @@ dependencies = [
 [[package]]
 name = "glutin_glx_sys"
 version = "0.6.0"
-source = "git+https://github.com/dgavedissian/glutin?rev=4ca4190bd67a2a8c0bbe3a3304e529effe6172a8#4ca4190bd67a2a8c0bbe3a3304e529effe6172a8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c2b2d3918e76e18e08796b55eb64e8fe6ec67d5a6b2e2a7e2edce224ad24c63"
 dependencies = [
  "gl_generator",
  "x11-dl",
@@ -1204,7 +1208,8 @@ dependencies = [
 [[package]]
 name = "glutin_wgl_sys"
 version = "0.6.0"
-source = "git+https://github.com/dgavedissian/glutin?rev=4ca4190bd67a2a8c0bbe3a3304e529effe6172a8#4ca4190bd67a2a8c0bbe3a3304e529effe6172a8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a4e1951bbd9434a81aa496fe59ccc2235af3820d27b85f9314e279609211e2c"
 dependencies = [
  "gl_generator",
 ]
