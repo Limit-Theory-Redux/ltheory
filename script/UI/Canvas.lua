@@ -181,21 +181,22 @@ function Canvas:draw(sx, sy)
         BlendMode.Push(BlendMode.Alpha)
         if self.drawDebug then
             -- Don't use wireframe! (it's not pixel-perfect)
---            Config.ui.color.debugRect:set()
+            UI.DrawEx.SimpleShaderStart(Config.ui.color.debugRect)
             self:onDrawDebugChildren(s.focus, s.active)
+            UI.DrawEx.SimpleShaderStop()
         end
 
         if self.drawFocus then
             if s.focus then
-                Draw.Color(1.0, 0.0, 0.0, 0.1)
+                UI.DrawEx.SimpleShaderStart(Color(1.0, 0.0, 0.0, 0.1))
                 Draw.Rect(s.focus:getRectGlobal())
+                UI.DrawEx.SimpleShaderStop()
             end
         end
         BlendMode.Pop()
         self.drawTime = self.timer:getElapsed()
     end
 
-    Draw.Color(1.0, 1.0, 1.0, 1.0)
     Profiler.End()
 end
 

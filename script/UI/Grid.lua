@@ -164,13 +164,15 @@ function Grid:onDrawDebug(focus, active)
         for j = 1, col - 1 do cellX = cellX + self.colInfo[j].width + 2 * self.padCellX end
         for j = 1, row - 1 do cellY = cellY + self.rowInfo[j].height + 2 * self.padCellY end
 
-        Draw.Color(rng:getUniform(), rng:getUniform(), rng:getUniform(), 0.1)
+        UI.DrawEx.SimpleShaderStart(Color(rng:getUniform(), rng:getUniform(), rng:getUniform(), 0.1))
         Draw.Rect(x + cellX, y + cellY, cellSX, cellSY)
+        UI.DrawEx.SimpleShaderStop()
     end
     rng:free()
---    Config.ui.color.debugRect:set()
 
+    UI.DrawEx.SimpleShaderStart(Config.ui.color.debugRect)
     Container.onDrawDebugChildren(self, focus, active)
+    UI.DrawEx.SimpleShaderStop()
 end
 
 function Grid:setRows(rows)
