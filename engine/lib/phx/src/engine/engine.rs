@@ -100,8 +100,6 @@ impl Engine {
         winit_window.resume();
         let scale_factor = window.scale_factor();
 
-        let event_bus = EventBus::new();
-
         Self {
             init_time: TimeStamp::now(),
             window,
@@ -111,7 +109,7 @@ impl Engine {
             input: Default::default(),
             exit_app: false,
             lua,
-            event_bus,
+            event_bus: EventBus::new(),
         }
     }
 
