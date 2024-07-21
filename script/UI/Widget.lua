@@ -297,21 +297,21 @@ function Widget:drawText(font, text, bound, color)
     font:draw(text,
         self.originX + self.x + self.padMinX + self.alignX * (self.sx - self.padSumX - bound.z) - bound.x,
         self.originY + self.y + self.padMinY + self.alignY * (self.sy - self.padSumY + bound.y) - bound.y,
-        color.r, color.g, color.b, color.a)
+        Color(color.r, color.g, color.b, color.a))
 end
 
 function Widget:drawTextRect(font, text, bound, color, alignX, alignY, x, y, sx, sy)
     font:draw(text,
         x + alignX * (sx - bound.z) - bound.x,
         y + alignY * (sy + bound.y) - bound.y,
-        color.r, color.g, color.b, color.a)
+        Color(color.r, color.g, color.b, color.a))
 end
 
 function Widget:drawTextRectCentered(font, text, bound, color, x, y, sx, sy)
     font:draw(text,
         x + 0.5 * (sx - bound.z) - bound.x,
         y + 0.5 * (sy + bound.y) - bound.y,
-        color.r, color.g, color.b, color.a)
+        Color(color.r, color.g, color.b, color.a))
 end
 
 function Widget:findInHierarchy(predicate, filter)

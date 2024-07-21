@@ -181,7 +181,7 @@ function Canvas:draw(sx, sy)
         BlendMode.Push(BlendMode.Alpha)
         if self.drawDebug then
             -- Don't use wireframe! (it's not pixel-perfect)
-            Config.ui.color.debugRect:set()
+--            Config.ui.color.debugRect:set()
             self:onDrawDebugChildren(s.focus, s.active)
         end
 

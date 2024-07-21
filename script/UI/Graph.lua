@@ -96,7 +96,7 @@ function Graph:onDraw(focus, active)
     local x, y, sx, sy = self:getRectGlobal()
 
     do -- Draw Border
-        self:applyColor(focus, active, Config.ui.color.border)
+        self:getColor(focus, active, Config.ui.color.border)
         Draw.Border(self.padMinX, x, y, sx, sy)
     end
 
@@ -115,7 +115,7 @@ function Graph:onDraw(focus, active)
         GLMatrix.Scale(1, -(sy / usableSY), 1)
 
         do -- Draw Bars
-            Config.ui.color.focused:set(0.25)
+--            Config.ui.color.focused:set(0.25)
             local fx = ix
             for i = 1, #self.values do
                 local fy = dydv * (self.values:get(i) - vMin)
@@ -126,7 +126,7 @@ function Graph:onDraw(focus, active)
 
         do -- Draw Lines
             Draw.LineWidth(1.0)
-            Config.ui.color.focused:set()
+--            Config.ui.color.focused:set()
             local xLast = ix
             local fx = xLast + barTotal
             local yLast = dydv * (self.values:get(1) - vMin)
@@ -158,7 +158,7 @@ function Graph:onDraw(focus, active)
         end
 
         do -- Highlight Head
-            Config.ui.color.focused:set()
+--            Config.ui.color.focused:set()
             Draw.Rect(
                 ix + (self.head - 1) * barTotal,
                 0, barSX, dydv * (self.values:get(self.head) - vMin))
@@ -185,7 +185,7 @@ function Graph:onDraw(focus, active)
             font:draw(ruler.label,
                 ix + isx - bound.x - bound.z,
                 y + sy - ruler.y + bound.w,
-                1.0, 1.0, 1.0, 0.25)
+                Color(1.0, 1.0, 1.0, 0.25))
         end
     end
 
@@ -200,14 +200,14 @@ function Graph:onDraw(focus, active)
         font:draw(text,
             x + sx - textPad - bound.x - bound.z,
             y + textPad + bound.w,
-            color.r, color.g, color.b, color.a)
+            Color(color.r, color.g, color.b, color.a))
 
         text = string.format('%.1f', self.rangeMin.value)
         bound = font:getSize(text)
         font:draw(text,
             x + sx - textPad - bound.x - bound.z,
             y + sy - textPad,
-            color.r, color.g, color.b, color.a)
+            Color(color.r, color.g, color.b, color.a))
     end
 end
 

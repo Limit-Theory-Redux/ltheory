@@ -31,14 +31,14 @@ function Checkbox:onDraw(focus, active)
     -- Background
     local boxX = x + self.padSumX / 2
     local boxY = y + (sy - self.dimBox) / 2
-    self:applyColor(focus, active, Config.ui.color.border)
+    self:getColor(focus, active, Config.ui.color.border)
     Draw.Rect(boxX, boxY, self.dimBox, self.dimBox)
 
     -- Checkmark
     if self.checked then
         local fillX = boxX + (self.dimBox - self.dimFill) / 2
         local fillY = boxY + (self.dimBox - self.dimFill) / 2
-        Config.ui.color.fill:set()
+--        Config.ui.color.fill:set()
         Draw.Rect(fillX, fillY, self.dimFill, self.dimFill)
     end
 end

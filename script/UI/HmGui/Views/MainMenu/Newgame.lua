@@ -74,6 +74,19 @@ local function newGame(seed)
     UIRouter:setCurrentPage("Loading_Screen")
 end
 
+local function gameProgressBar()
+    GameState.world.currentUniverse.progressBar = UIComponent.ProgressBar {
+        size = ResponsiveSize(750, 40),
+        margin = { 0, 40 },
+        minValue = 1,
+        maxValue = 100,
+        currentValue = 0,
+    }
+
+    return GameState.world.currentUniverse.progressBar
+end
+
+
 local newgameGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
@@ -159,51 +172,61 @@ local newgameGrid = UILayout.Grid {
                                 UIComponent.Text {
                                     text = "Nebula Brightness",
                                     size = 24,
+                                    margin = { 0, 18 },
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Asteroid Fields",
                                     size = 24,
+                                    margin = { 0, 18 },
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Asteroids Per Field",
                                     size = 24,
+                                    margin = { 0, 18 },
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Planets",
                                     size = 24,
+                                    margin = { 0, 18 },
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Stations",
                                     size = 24,
+                                    margin = { 0, 18 },
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "AI Players",
                                     size = 24,
+                                    margin = { 0, 18 },
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "EconNPCs",
                                     size = 24,
+                                    margin = { 0, 18 },
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "EscortNPCs",
                                     size = 24,
+                                    margin = { 0, 18 },
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Ship Size",
                                     size = 24,
+                                    margin = { 0, 18 },
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 },
                                 UIComponent.Text {
                                     text = "Unique Ships",
                                     size = 24,
+                                    margin = { 0, 18 },
                                     align = { AlignHorizontal.Left, AlignVertical.Center }
                                 }
                             }
@@ -333,21 +356,6 @@ local newgameGrid = UILayout.Grid {
                                     currentValue = function() return GameState.gen.nEscortNPCs end,
                                     callback = function(v) GameState.gen.nEscortNPCs = v end
                                 },
-                                --                              UIComponent.Slider {
-                                --                                  size = ResponsiveSize(300, 20),
-                                --                                  margin = { 0, 18 },
-                                --                                  align = { AlignHorizontal.Center, AlignVertical.Center },
-                                --                                  sound = Config.audio.sounds.click,
-                                --                                  toolTip = function()
-                                --                                      return
-                                --                                      "Size class of the player's ship."
-                                --                                  end,
-                                --                                  increment = 1,
-                                --                                  minValue = 1,
-                                --                                  maxValue = Enums.ShipHulls.VeryLarge,
-                                --                                  currentValue = function() return GameState.gen.shipHull end,
-                                --                                  callback = function(v) GameState.player.shipHull = v end
-                                --                              },
                                 UIComponent.Dropdown {
                                     width = 300,
                                     height = 20,
@@ -381,13 +389,13 @@ local newgameGrid = UILayout.Grid {
                 },
                 UIComponent.Button {
                     title = "Start New Game",
-                    align = { AlignHorizontal.Center, AlignVertical.Center },
                     margin = { 0, 10 },
                     size = ResponsiveSize(300, 60),
                     font = { name = "Unageo-Medium", size = 24 },
                     toolTip = function() return "Press to start a new game with a random seed." end,
                     callback = function() newGame(rng:get64()) end,
-                }
+                },
+                gameProgressBar
             }
         }
     }

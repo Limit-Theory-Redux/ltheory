@@ -107,10 +107,10 @@ function Collapsible:onDraw(focus, active)
     local a, b, c
 
     if self.expanded then
-        Config.ui.color.border:set()
+--        Config.ui.color.border:set()
         Draw.Rect(x, y, sx, self.padMinY)
 
-        self:applyColor(focus, active, Config.ui.color.border)
+        self:getColor(focus, active, Config.ui.color.border)
         Draw.Rect(x, y + self.padMinY, self.padMinX, sy - self.padSumY)
         Draw.Rect(x, y + sy - self.padMaxY, min(12, sx), self.padMaxY)
 
@@ -119,7 +119,7 @@ function Collapsible:onDraw(focus, active)
         c = tp + Vec2f(ts, -ts)
     else
         -- Header Only
-        Config.ui.color.border:set()
+--        Config.ui.color.border:set()
         Draw.Rect(x, y, sx, self.padMinY)
 
         local r2 = sqrt(2)
@@ -130,7 +130,7 @@ function Collapsible:onDraw(focus, active)
     end
 
     -- Collapsed Indicator
-    self:applyColor(focus, active, Config.ui.color.fill)
+    self:getColor(focus, active, Config.ui.color.fill)
     Draw.Tri(a, b, c);
 
     -- Header Title
