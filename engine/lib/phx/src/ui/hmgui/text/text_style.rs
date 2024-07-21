@@ -1,18 +1,20 @@
+use std::ops::Range;
+
 use indexmap::IndexMap;
-use parley::{
-    context::RangedBuilder,
-    style::{FontStack, FontStretch, FontStyle, FontWeight, StyleProperty},
-};
+use parley::context::RangedBuilder;
+use parley::style::{FontStack, FontStretch, FontStyle, FontWeight, StyleProperty};
 
 use internal::ConvertIntoString;
 
 use crate::render::Color;
 
+/// Collection of the text properties.
 #[derive(Default, Clone, PartialEq)]
 pub struct TextStyle {
     style_properties: IndexMap<TextStylePropertyId, TextStyleProperty>,
 }
 
+/// Contains collection of different text styling properties.
 #[luajit_ffi_gen::luajit_ffi]
 impl TextStyle {
     #[bind(name = "Create")]
@@ -167,20 +169,21 @@ impl TextStyle {
 }
 
 impl TextStyle {
+    /// Apply default text styling to the text layout builder.
     pub fn apply_default<'a>(&'a self, builder: &mut RangedBuilder<'a, Color, &str>) {
         for (_, property) in &self.style_properties {
             builder.push_default(&property.as_parley());
         }
     }
 
+    /// Apply text styling to the range of text into the text layout builder.
     pub fn apply_to_section<'a>(
         &'a self,
         builder: &mut RangedBuilder<'a, Color, &str>,
-        start: usize,
-        end: usize,
+        range: &Range<usize>,
     ) {
         for (_, property) in &self.style_properties {
-            builder.push(&property.as_parley(), start..end);
+            builder.push(&property.as_parley(), range.start..range.end);
         }
     }
 }
@@ -210,8 +213,8 @@ enum TextStylePropertyId {
     LetterSpacing,
 }
 
-/// Properties that define a style.
-/// Lifetimeless equivalent of [`parley::style::StyleProperty`] enum.
+/// Properties that define a text style.
+/// Equivalent of [`parley::style::StyleProperty`] enum without lifetime parameter.
 #[derive(Clone, PartialEq, Debug)]
 enum TextStyleProperty {
     FontFamily(String),

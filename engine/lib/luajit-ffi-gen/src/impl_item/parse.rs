@@ -4,17 +4,21 @@ use syn::spanned::Spanned;
 use syn::{Attribute, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Type};
 
 use crate::args::BindArgs;
-use crate::util::{get_meta_name, get_path_last_name, get_path_last_name_with_generics};
+use crate::util::{
+    get_meta_name, get_path_last_name, get_path_last_name_with_generics, parse_doc_attrs,
+};
 
 use super::*;
 
 impl ImplInfo {
     pub fn parse(mut item: ItemImpl, attrs: &[Attribute]) -> Result<Self> {
+        let doc = parse_doc_attrs(attrs)?;
         let name = get_impl_self_name(&item.self_ty)?;
         let methods = parse_methods(&mut item.items)?;
         let source = quote! { #(#attrs)* #item };
 
         let impl_info = ImplInfo {
+            doc,
             source,
             name,
             methods,

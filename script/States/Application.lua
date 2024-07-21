@@ -311,16 +311,18 @@ function Application:onInput()
     --     GameState.paused = true
     -- end
 
-    if InputInstance:isPressed(Bindings.ToggleWireframe) then
-        GameState.debug.physics.drawWireframe = not GameState.debug.physics.drawWireframe
-    end
+    if not Gui:hasActiveInput() then
+        if InputInstance:isPressed(Bindings.ToggleWireframe) then
+            GameState.debug.physics.drawWireframe = not GameState.debug.physics.drawWireframe
+        end
 
-    if InputInstance:isPressed(Bindings.ToggleMetrics) then
-        GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
-    end
+        if InputInstance:isPressed(Bindings.ToggleMetrics) then
+            GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
+        end
 
-    if MainMenu.inBackgroundMode and InputInstance:isPressed(Bindings.ToggleHUD) then
-        self.showBackgroundModeHints = not self.showBackgroundModeHints
+        if MainMenu.inBackgroundMode and InputInstance:isPressed(Bindings.ToggleHUD) then
+            self.showBackgroundModeHints = not self.showBackgroundModeHints
+        end
     end
 
     --! why is this needed for the game to render and update lol

@@ -1,5 +1,8 @@
-use mlua::Function;
 use std::path::PathBuf;
+
+use glam::*;
+use mlua::Function;
+use tracing::*;
 use winit::application::ApplicationHandler;
 use winit::event::{self, *};
 use winit::event_loop::ActiveEventLoop;
@@ -8,8 +11,6 @@ use winit::window::WindowId;
 
 use super::Engine;
 use crate::window::*;
-use glam::*;
-use tracing::*;
 
 pub struct MainLoop {
     pub engine: Option<Engine>,
@@ -95,6 +96,13 @@ impl ApplicationHandler for MainLoop {
                             event.state == ElementState::Pressed,
                         )
                     });
+                }
+                if let Some(text) = event.text {
+                    let time = engine.get_time();
+
+                    engine
+                        .input
+                        .update_keyboard(device_id, |state| state.set_text(text.as_str(), time));
                 }
             }
             WindowEvent::CursorMoved {

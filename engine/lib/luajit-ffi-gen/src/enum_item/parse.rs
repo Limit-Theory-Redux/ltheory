@@ -4,7 +4,7 @@ use syn::parse::Result;
 use syn::spanned::Spanned;
 use syn::{Attribute, Error, Expr, ExprLit, Fields, ItemEnum, Lit, Variant};
 
-use crate::util::{get_meta_name, get_path_last_name};
+use crate::util::parse_doc_attrs;
 
 use super::variants_info::VariantsInfo;
 use super::*;
@@ -81,18 +81,4 @@ fn parse_variants(
 
         Ok(VariantsInfo::Value(values))
     }
-}
-
-fn parse_doc_attrs(attrs: &[Attribute]) -> Result<Vec<String>> {
-    let mut docs = vec![];
-
-    for attr in attrs {
-        if get_path_last_name(attr.meta.path())? == "doc" {
-            if let Some(doc_text) = get_meta_name(&attr.meta) {
-                docs.push(doc_text);
-            }
-        }
-    }
-
-    Ok(docs)
 }

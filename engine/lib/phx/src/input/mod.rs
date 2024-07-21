@@ -260,6 +260,12 @@ impl Input {
             || keyboard.is_pressed(KeyboardButton::AltRight)
     }
 
+    pub fn is_keyboard_alt_down(&self) -> bool {
+        let keyboard = self.keyboard();
+
+        keyboard.is_down(KeyboardButton::AltLeft) || keyboard.is_down(KeyboardButton::AltRight)
+    }
+
     pub fn is_keyboard_ctrl_pressed(&self) -> bool {
         let keyboard = self.keyboard();
 
@@ -267,10 +273,23 @@ impl Input {
             || keyboard.is_pressed(KeyboardButton::ControlRight)
     }
 
+    pub fn is_keyboard_ctrl_down(&self) -> bool {
+        let keyboard = self.keyboard();
+
+        keyboard.is_down(KeyboardButton::ControlLeft)
+            || keyboard.is_down(KeyboardButton::ControlRight)
+    }
+
     pub fn is_keyboard_shift_pressed(&self) -> bool {
         let keyboard = self.keyboard();
 
         keyboard.is_pressed(KeyboardButton::ShiftLeft)
             || keyboard.is_pressed(KeyboardButton::ShiftRight)
+    }
+
+    pub fn is_keyboard_shift_down(&self) -> bool {
+        let keyboard = self.keyboard();
+
+        keyboard.is_down(KeyboardButton::ShiftLeft) || keyboard.is_down(KeyboardButton::ShiftRight)
     }
 }

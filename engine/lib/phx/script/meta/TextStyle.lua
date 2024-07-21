@@ -1,5 +1,6 @@
 ---@meta
 
+-- Contains collection of different text styling properties.
 ---@class TextStyle
 TextStyle = {}
 

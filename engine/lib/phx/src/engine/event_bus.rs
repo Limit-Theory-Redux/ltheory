@@ -1,7 +1,5 @@
-use std::{
-    collections::{hash_map::Entry, BinaryHeap, HashMap, VecDeque},
-    sync::atomic::{AtomicU32, Ordering},
-};
+use std::collections::{hash_map::Entry, BinaryHeap, HashMap, VecDeque};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;

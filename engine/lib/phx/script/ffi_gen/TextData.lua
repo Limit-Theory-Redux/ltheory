@@ -16,15 +16,23 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void      TextData_Free            (TextData*);
-            TextData* TextData_Create          (cstr text, TextStyle const* defaultStyle, TextAlignment alignment, bool multiline);
-            void      TextData_SetSectionStyle (TextData*, uint64 startPos, uint64 endPos, TextStyle const* style);
+            void      TextData_Free              (TextData*);
+            TextData* TextData_Create            (cstr text, TextStyle const* defaultStyle, Color const* cursorColor, Color const* selectionColor, TextAlignment alignment, bool multiline);
+            cstr      TextData_Text              (TextData const*);
+            void      TextData_SetText           (TextData*, cstr text);
+            void      TextData_SetScaleFactor    (TextData*, float scaleFactor);
+            bool      TextData_IsMultiline       (TextData const*);
+            void      TextData_SetMultiline      (TextData*, bool multiline);
+            void      TextData_SetSectionStyle   (TextData*, uint64 startPos, uint64 endPos, TextStyle const* style);
+            void      TextData_SetCursorPos      (TextData*, uint64 pos);
+            void      TextData_SetSelectionColor (TextData*, Color const* color);
+            void      TextData_SetSelection      (TextData*, uint64 startPos, uint64 endPos);
         ]]
     end
 
     do -- Global Symbol Table
         TextData = {
-            Create          = function(...)
+            Create            = function(...)
                 local instance = libphx.TextData_Create(...)
                 return Core.ManagedObject(instance, libphx.TextData_Free)
             end,
@@ -38,7 +46,15 @@ function Loader.defineType()
         local t  = ffi.typeof('TextData')
         local mt = {
             __index = {
-                setSectionStyle = libphx.TextData_SetSectionStyle,
+                text              = libphx.TextData_Text,
+                setText           = libphx.TextData_SetText,
+                setScaleFactor    = libphx.TextData_SetScaleFactor,
+                isMultiline       = libphx.TextData_IsMultiline,
+                setMultiline      = libphx.TextData_SetMultiline,
+                setSectionStyle   = libphx.TextData_SetSectionStyle,
+                setCursorPos      = libphx.TextData_SetCursorPos,
+                setSelectionColor = libphx.TextData_SetSelectionColor,
+                setSelection      = libphx.TextData_SetSelection,
             },
         }
 

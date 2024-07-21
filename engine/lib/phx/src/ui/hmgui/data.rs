@@ -1,6 +1,6 @@
 use glam::Vec2;
 
-use crate::render::TextView;
+use super::TextView;
 
 /// Persistent data storage used for the widget scrolling.
 pub struct HmGuiData {

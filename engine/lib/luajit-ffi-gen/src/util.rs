@@ -1,5 +1,21 @@
 use syn::spanned::Spanned;
-use syn::{Error, Expr, ExprLit, GenericArgument, Lit, Meta, Path, PathArguments, Result, Type};
+use syn::{
+    Attribute, Error, Expr, ExprLit, GenericArgument, Lit, Meta, Path, PathArguments, Result, Type,
+};
+
+pub fn parse_doc_attrs(attrs: &[Attribute]) -> Result<Vec<String>> {
+    let mut docs = vec![];
+
+    for attr in attrs {
+        if get_path_last_name(attr.meta.path())? == "doc" {
+            if let Some(doc_text) = get_meta_name(&attr.meta) {
+                docs.push(doc_text);
+            }
+        }
+    }
+
+    Ok(docs)
+}
 
 pub fn get_path_last_name(path: &Path) -> Result<String> {
     let (name, generics) = get_path_last_name_with_generics(path)?;
