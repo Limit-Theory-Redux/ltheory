@@ -428,7 +428,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
                 let mut t: f32 = 0.;
                 //if (Intersect_RayTriangle_Barycentric(ray, triangle, tEpsilon, &t)) {
-                if Intersect_RayTriangle_Moller1(&mut ray, triangle, &mut t) {
+                if Intersect_RayTriangle_Moller1(&ray, triangle, &mut t) {
                     //if (Intersect_RayTriangle_Moller2(ray, triangle, &t)) {
                     //if (Intersect_RayTriangle_Badouel(ray, triangle, tEpsilon, &t)) {
                     if !hit || t < *tHit {
@@ -470,14 +470,14 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     lineSegment: &LineSegment,
     pHit: &mut Vec3,
 ) -> bool {
-    let mut ray: Ray = Ray {
+    let ray: Ray = Ray {
         p: lineSegment.p0,
         dir: lineSegment.p1.as_dvec3() - lineSegment.p0.as_dvec3(),
         tMin: 0.0,
         tMax: 1.0,
     };
     let mut t: f32 = 0.;
-    if BSP_IntersectRay(this, &mut ray, &mut t) {
+    if BSP_IntersectRay(this, &ray, &mut t) {
         let mut positionHit = Position::ZERO;
         Ray_GetPoint(&ray, t as f64, &mut positionHit);
         *pHit = positionHit.as_vec3();
@@ -573,7 +573,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
 // const LEAF_TRIANGLE_COUNT: i32 = 12;
 
 #[no_mangle]
-pub static PolygonFlag_None: PolygonFlag = (0 << 0) as PolygonFlag;
+pub static PolygonFlag_None: PolygonFlag = 0 as PolygonFlag;
 
 #[no_mangle]
 pub static PolygonFlag_InvalidFaceSplit: PolygonFlag = (1 << 0) as PolygonFlag;
@@ -692,7 +692,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                         n: Vec3::ZERO,
                         d: 0.,
                     };
-                    Polygon_ToPlane(&mut (*polygon).inner, &mut plane);
+                    Polygon_ToPlane(&(*polygon).inner, &mut plane);
                     let score: f32 = BSPBuild_ScoreSplitPlane(nodeData, plane, k);
 
                     if score < bestScore {
@@ -765,7 +765,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                         n: Vec3::ZERO,
                         d: 0.,
                     };
-                    Polygon_ToPlane(&mut (*polygon).inner, &mut polygonPlane);
+                    Polygon_ToPlane(&(*polygon).inner, &mut polygonPlane);
 
                     let mut plane: Plane = Plane {
                         n: Vec3::ZERO,
@@ -775,7 +775,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     plane.d = Vec3::dot(plane.n, mid);
 
                     /* TODO : Proper scoring? */
-                    if Plane_ClassifyPolygon(&mut plane, &mut (*polygon).inner)
+                    if Plane_ClassifyPolygon(&plane, &(*polygon).inner)
                         == PolygonClassification::Straddling
                     {
                         splitFound = true;
@@ -828,7 +828,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     },
                     d: 0.,
                 };
-                Polygon_ToPlane(&mut (*polygon).inner, &mut polygonPlane);
+                Polygon_ToPlane(&(*polygon).inner, &mut polygonPlane);
 
                 let v = &mut (*polygon).inner.vertices;
                 let mut vPrev: Vec3 = v[(v.len() - 1) as usize];
@@ -956,7 +956,11 @@ unsafe extern "C" fn BSPBuild_CreateNode(
         }
         (*bsp).triangleCount += (*nodeData).triangleCount;
 
-        (*node).polygons = (*nodeData).polygons.clone();
+        #[allow(clippy::assigning_clones)] // Applying Clippy suggestion makes code panic here
+        {
+            (*node).polygons = (*nodeData).polygons.clone();
+        }
+
         return node;
     }
 
@@ -983,7 +987,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     frontNodeData.depth = ((*nodeData).depth as i32 + 1) as u16;
 
     for polygon in (*nodeData).polygons.iter_mut() {
-        let classification = Plane_ClassifyPolygon(&mut splitPlane, &polygon.inner);
+        let classification = Plane_ClassifyPolygon(&splitPlane, &polygon.inner);
         match classification {
             PolygonClassification::Coplanar => {
                 (*polygon).flags =
@@ -1018,8 +1022,8 @@ unsafe extern "C" fn BSPBuild_CreateNode(
                     &mut backPart.inner,
                     &mut frontPart.inner,
                 );
-                BSPBuild_AppendPolygon(&mut backNodeData, &mut backPart);
-                BSPBuild_AppendPolygon(&mut frontNodeData, &mut frontPart);
+                BSPBuild_AppendPolygon(&mut backNodeData, &backPart);
+                BSPBuild_AppendPolygon(&mut frontNodeData, &frontPart);
 
                 (*polygon).inner.vertices.clear();
             }
@@ -1196,7 +1200,7 @@ pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
 
     nodeData.polygons.reserve(nodeData.triangleCount as usize);
     for i in (0..indexLen).step_by(3) {
-        let i0: i32 = *indexData.offset((i + 0) as isize);
+        let i0: i32 = *indexData.offset(i as isize);
         let i1: i32 = *indexData.offset((i + 1) as isize);
         let i2: i32 = *indexData.offset((i + 2) as isize);
         let v0: Vec3 = (*vertexData.offset(i0 as isize)).p;
@@ -1398,14 +1402,14 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
         /* Plane */
         let origin: Vec3 = Vec3::new(0., 0., 0.);
         let t: f32 = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
-        let mut closestPoint = origin - ((*node).plane.n * t);
+        let closestPoint = origin - ((*node).plane.n * t);
         RenderState_PushWireframe(false);
         (*SHADER).start();
         Shader::set_float4("color", 0.3f32, 0.5f32, 0.3f32, 0.4f32);
         Draw_Plane(&closestPoint, &(*node).plane.n, 2.0f32);
         Shader::set_float4("color", 0.5f32, 0.3f32, 0.3f32, 0.4f32);
-        let mut neg: Vec3 = (*node).plane.n * -1.0f32;
-        Draw_Plane(&mut closestPoint, &mut neg, 2.0f32);
+        let neg: Vec3 = (*node).plane.n * -1.0f32;
+        Draw_Plane(&closestPoint, &neg, 2.0f32);
         (*SHADER).stop();
         RenderState_PopWireframe();
     } else {
@@ -1481,11 +1485,11 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere
     if BSP_IntersectSphere(this, sphere, &mut pHit) {
         RenderState_PushWireframe(false);
         Shader::set_float4("color", 1.0f32, 0.0f32, 0.0f32, 0.3f32);
-        Draw_Sphere(&mut sphere.p, sphere.r);
+        Draw_Sphere(&sphere.p, sphere.r);
         RenderState_PopWireframe();
 
         Shader::set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
-        Draw_Sphere(&mut sphere.p, sphere.r);
+        Draw_Sphere(&sphere.p, sphere.r);
 
         RenderState_PushDepthTest(false);
         Draw_PointSize(8.0f32);
@@ -1494,11 +1498,11 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere
     } else {
         RenderState_PushWireframe(false);
         Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.3f32);
-        Draw_Sphere(&mut sphere.p, sphere.r);
+        Draw_Sphere(&sphere.p, sphere.r);
         RenderState_PopWireframe();
 
         Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
-        Draw_Sphere(&mut sphere.p, sphere.r);
+        Draw_Sphere(&sphere.p, sphere.r);
     };
     (*SHADER).stop();
 }

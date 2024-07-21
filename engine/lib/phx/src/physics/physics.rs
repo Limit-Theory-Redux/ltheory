@@ -288,7 +288,7 @@ impl Physics {
                 .colliders
                 .get(contact_pair.collider2)
                 .and_then(RigidBody::linked_with_collider_mut);
-            if !c1_parent.is_some() || !c2_parent.is_some() {
+            if c1_parent.is_none() || c2_parent.is_none() {
                 continue;
             }
 
@@ -300,7 +300,7 @@ impl Physics {
 
         iterator.body0 = std::ptr::null_mut();
         iterator.body1 = std::ptr::null_mut();
-        return false;
+        false
     }
 
     #[bind(out_param = true)]

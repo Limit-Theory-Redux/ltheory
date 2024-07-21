@@ -261,7 +261,7 @@ impl RigidBody {
             let parent_transform = parent_rb.position();
             parent_transform * transform
         } else {
-            self.rigid_body.as_ref().position().clone()
+            *self.rigid_body.as_ref().position()
         }
     }
 
@@ -359,7 +359,7 @@ impl RigidBody {
     ///
     /// This function assumes that `self` is not already a child.
     pub fn attach(&mut self, child: &mut RigidBody, pos: &Vec3, rot: &Quat) {
-        if self as *mut _ == child as *mut _ {
+        if std::ptr::eq(self, child) {
             panic!("Cannot attach object to itself!");
         }
 
@@ -416,7 +416,7 @@ impl RigidBody {
         }
 
         // Convert current transform to world coordinates.
-        let parent_transform = self.rigid_body.as_ref().position().clone();
+        let parent_transform = *self.rigid_body.as_ref().position();
 
         // Compute the combined transform, then update the rigid body
         // transform of the child so it's in the right place once it's
@@ -471,7 +471,7 @@ impl RigidBody {
 
         // Get AABB of the main collider.
         let mut aabb = w.get(*collider_handle).compute_aabb();
-        let parent_transform = w.get(*collider_handle).position().clone();
+        let parent_transform = *w.get(*collider_handle).position();
 
         // Incorporate the AABBs of any children.
         for child in self.children.iter() {

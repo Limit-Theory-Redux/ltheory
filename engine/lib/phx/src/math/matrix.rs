@@ -34,7 +34,7 @@ impl MatrixExtensions for Matrix {
 
 #[no_mangle]
 pub extern "C" fn Matrix_Clone(this: &Matrix) -> Box<Matrix> {
-    Box::new(this.clone())
+    Box::new(*this)
 }
 
 #[no_mangle]

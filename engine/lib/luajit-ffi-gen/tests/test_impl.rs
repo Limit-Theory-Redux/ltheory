@@ -75,6 +75,7 @@ impl MyStruct {
         self.val_data = val;
     }
 
+    #[allow(clippy::boxed_local)] // Box is needed for testing
     pub fn take_boxed_data(&mut self, val: Box<Data>) {
         self.val_data = *val;
     }

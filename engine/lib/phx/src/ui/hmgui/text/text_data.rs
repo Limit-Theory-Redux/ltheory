@@ -476,14 +476,13 @@ impl TextData {
                                     change = Some((*pos, 1, 0));
                                 }
                             }
-                        } else if input.is_pressed(Button::KeyboardDelete) {
-                            if *pos < self.text.len() {
-                                self.text.remove(*pos);
-                                text_changed = true;
+                        } else if input.is_pressed(Button::KeyboardDelete) && *pos < self.text.len()
+                        {
+                            self.text.remove(*pos);
+                            text_changed = true;
 
-                                if !self.section_style.is_empty() {
-                                    change = Some((*pos, 1, 0));
-                                }
+                            if !self.section_style.is_empty() {
+                                change = Some((*pos, 1, 0));
                             }
                         }
                     }

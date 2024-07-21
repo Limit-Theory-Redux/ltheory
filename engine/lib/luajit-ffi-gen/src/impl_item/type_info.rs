@@ -203,10 +203,7 @@ pub enum TypeVariant {
 
 impl TypeVariant {
     pub fn is_string(&self) -> bool {
-        match self {
-            Self::Str | Self::String | Self::CString => true,
-            _ => false,
-        }
+        matches!(self, Self::Str | Self::String | Self::CString)
     }
 
     pub fn from_str(type_name: &str) -> Option<Self> {

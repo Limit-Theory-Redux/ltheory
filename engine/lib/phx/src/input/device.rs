@@ -21,6 +21,6 @@ impl InputDevice {
 
         self.id.hash(&mut hasher);
 
-        format!("{} ({:?})", self.ty.to_string(), hasher.finish())
+        format!("{} ({:?})", self.ty, hasher.finish())
     }
 }

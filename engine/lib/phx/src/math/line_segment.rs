@@ -22,6 +22,6 @@ impl LineSegment {
 
     #[bind(role = "to_string")]
     pub fn to_string(&self) -> String {
-        format!("p0:{} p1:{}", self.p0.to_string(), self.p1.to_string())
+        format!("p0:{} p1:{}", self.p0, self.p1)
     }
 }

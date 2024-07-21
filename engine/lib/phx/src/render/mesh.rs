@@ -82,8 +82,8 @@ pub unsafe extern "C" fn Mesh_Create() -> Box<Mesh> {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Clone(other: &mut Mesh) -> Box<Mesh> {
     let mut this: Box<Mesh> = Mesh_Create();
-    this.index = other.index.clone();
-    this.vertex = other.vertex.clone();
+    this.index.clone_from(&other.index);
+    this.vertex.clone_from(&other.vertex);
     this
 }
 
@@ -104,9 +104,9 @@ pub extern "C" fn Mesh_Acquire(this: &mut Mesh) {
 pub extern "C" fn Mesh_Free(mut this: Box<Mesh>) {
     this._refCount = (this._refCount).wrapping_sub(1);
 
-    if this._refCount <= 0 && this.vbo != 0 {
-        glcheck!(gl::DeleteBuffers(1, &mut this.vbo));
-        glcheck!(gl::DeleteBuffers(1, &mut this.ibo));
+    if this._refCount == 0 && this.vbo != 0 {
+        glcheck!(gl::DeleteBuffers(1, &this.vbo));
+        glcheck!(gl::DeleteBuffers(1, &this.ibo));
     }
 }
 
@@ -177,7 +177,7 @@ pub extern "C" fn Mesh_AddIndex(this: &mut Mesh, newIndex: i32) {
 pub unsafe extern "C" fn Mesh_AddMesh(this: &mut Mesh, other: &mut Mesh) {
     let indexOffset: i32 = this.vertex.len() as i32;
     for i in 0..other.vertex.len() {
-        Mesh_AddVertexRaw(this, &mut other.vertex[i]);
+        Mesh_AddVertexRaw(this, &other.vertex[i]);
     }
     for i in 0..other.index.len() {
         Mesh_AddIndex(this, other.index[i] + indexOffset);

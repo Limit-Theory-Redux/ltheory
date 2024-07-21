@@ -59,10 +59,12 @@ pub fn get_meta_name(meta: &Meta) -> Option<String> {
         return None;
     };
 
-    if let Expr::Lit(ExprLit { lit, .. }) = &doc_text.value {
-        if let Lit::Str(lit_str) = lit {
-            return Some(lit_str.value().trim().to_string());
-        }
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Str(lit_str),
+        ..
+    }) = &doc_text.value
+    {
+        return Some(lit_str.value().trim().to_string());
     }
 
     None

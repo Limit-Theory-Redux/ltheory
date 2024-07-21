@@ -8,7 +8,7 @@ use internal::ConvertIntoString;
 use tracing::{info, warn};
 
 #[luajit_ffi_gen::luajit_ffi]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
 pub enum FrameStage {
     // Before physics update
     PreSim,
@@ -17,6 +17,7 @@ pub enum FrameStage {
     // After physics update
     PostSim,
     // Before frame render
+    #[default]
     PreRender,
     // Frame render
     Render,
@@ -28,12 +29,6 @@ pub enum FrameStage {
     Input,
     // After input handling
     PostInput,
-}
-
-impl Default for FrameStage {
-    fn default() -> Self {
-        FrameStage::PreRender
-    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -258,7 +253,7 @@ impl EventBus {
 
             self.frame_stage_map
                 .entry(frame_stage)
-                .or_insert_with(BinaryHeap::new)
+                .or_default()
                 .push(message_request);
         }
     }

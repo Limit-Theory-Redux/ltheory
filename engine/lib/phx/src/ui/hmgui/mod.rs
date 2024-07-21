@@ -14,7 +14,7 @@ use internal::*;
 pub use self::image::*;
 pub use alignment::*;
 pub use container::*;
-pub(self) use data::*;
+use data::*;
 pub use focus_type::*;
 pub use gui::*;
 pub use layer::*;
@@ -52,10 +52,12 @@ mod tests {
             if !RESOURCES_INITIALIZED {
                 let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../");
 
-                std::env::set_current_dir(&path).expect(&format!(
-                    "Cannot set current directory to: {}",
-                    path.display(),
-                ));
+                std::env::set_current_dir(&path).unwrap_or_else(|err| {
+                    panic!(
+                        "Cannot set current directory to: {}. Error: {err}",
+                        path.display()
+                    )
+                });
 
                 RESOURCES_INITIALIZED = true;
             }

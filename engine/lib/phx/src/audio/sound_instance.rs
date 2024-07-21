@@ -153,7 +153,7 @@ impl SoundInstance {
         self.emitter_info
             .as_ref()
             .map(|emitter_info| emitter_info.position)
-            .unwrap_or(Position::default())
+            .unwrap_or_default()
     }
 
     pub fn emitter_distance(&self, listener_pos: &Position) -> f32 {

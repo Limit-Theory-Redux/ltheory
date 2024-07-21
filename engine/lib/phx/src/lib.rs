@@ -2,6 +2,7 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::explicit_auto_deref)]
+#![allow(clippy::new_without_default)]
 
 pub mod audio;
 pub mod common;

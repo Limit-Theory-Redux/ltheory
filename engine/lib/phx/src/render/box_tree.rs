@@ -60,7 +60,7 @@ pub unsafe extern "C" fn BoxTree_FromMesh(mesh: &mut Mesh) -> *mut BoxTree {
     let vertexData: *const Vertex = Mesh_GetVertexData(mesh);
 
     for i in (0..indexCount).step_by(3) {
-        let v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let v0: *const Vertex = vertexData.offset(*indexData.offset((i) as isize) as isize);
         let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
         let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         let box3: Box3 = Box3::new(
@@ -219,10 +219,10 @@ unsafe extern "C" fn BoxTree_DrawNode(this: &mut Node, maxDepth: i32) {
     }
     if !(this.sub[0]).is_null() || !(this.sub[1]).is_null() {
         Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
-        Draw_Box3(&mut this.box3);
+        Draw_Box3(&this.box3);
     } else {
         Draw_Color(0.0f32, 1.0f32, 0.0f32, 1.0f32);
-        Draw_Box3(&mut this.box3);
+        Draw_Box3(&this.box3);
     }
     if !(this.sub[0]).is_null() {
         BoxTree_DrawNode(&mut *this.sub[0], maxDepth - 1);

@@ -161,12 +161,10 @@ impl HmGuiContainer {
             } else {
                 self.calculate_children_layout::<true, false>(hmgui, input, pos, size, extra_size)
             }
+        } else if widget_vstretch {
+            self.calculate_children_layout::<false, true>(hmgui, input, pos, size, extra_size)
         } else {
-            if widget_vstretch {
-                self.calculate_children_layout::<false, true>(hmgui, input, pos, size, extra_size)
-            } else {
-                self.calculate_children_layout::<false, false>(hmgui, input, pos, size, extra_size)
-            }
+            self.calculate_children_layout::<false, false>(hmgui, input, pos, size, extra_size)
         };
 
         children_size + self.padding_lower + self.padding_upper
