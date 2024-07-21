@@ -194,3 +194,18 @@ Gui:setFixedWidth(25)
 
 Gui:endContainer()
 ```
+
+## Text editing
+
+HmGui provides text view component that can be single or multiline, and editable or read-only.
+
+Text view accepts text data object that contains all information about text, its styling, cursor position and selection.
+
+Example:
+```lua
+Gui:textView(textData, true)
+
+if Gui:hasFocus() and Gui:getTextViewChanges(textData) then
+    print(textData.text())
+end
+```
