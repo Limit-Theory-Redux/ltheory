@@ -3,6 +3,7 @@
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::explicit_auto_deref)]
 #![allow(clippy::new_without_default)]
+#![allow(clippy::module_inception)] // Allow nested module with the same name as parent
 
 pub mod audio;
 pub mod common;
