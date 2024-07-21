@@ -394,11 +394,11 @@ impl TextData {
             "".into()
         };
 
-        let insertFromClipboard = input.is_keyboard_ctrl_down()
+        let insert_from_clipboard = input.is_keyboard_ctrl_down()
             && input.is_pressed(Button::KeyboardV)
             || input.is_keyboard_shift_down() && input.is_pressed(Button::KeyboardInsert);
 
-        if typed_text.is_empty() && insertFromClipboard {
+        if typed_text.is_empty() && insert_from_clipboard {
             typed_text = clipboard.replace(chars_to_remove, "");
         }
 
@@ -454,15 +454,15 @@ impl TextData {
 
             text_changed = true;
         } else {
-            let cutToClipboard =
+            let cut_to_clipboard =
                 input.is_keyboard_ctrl_down() && input.is_pressed(Button::KeyboardX);
-            let copyToClipboard =
+            let copy_to_clipboard =
                 input.is_keyboard_ctrl_down() && input.is_pressed(Button::KeyboardC);
 
             if input.is_pressed(Button::KeyboardBackspace)
                 || input.is_pressed(Button::KeyboardDelete)
-                || cutToClipboard
-                || copyToClipboard
+                || cut_to_clipboard
+                || copy_to_clipboard
             {
                 match &mut self.selection {
                     TextSelection::Cursor(pos) => {
@@ -494,11 +494,11 @@ impl TextData {
                             (range.end, range.start)
                         };
 
-                        if cutToClipboard || copyToClipboard {
+                        if cut_to_clipboard || copy_to_clipboard {
                             *clipboard = self.text[start..end].into();
                         }
 
-                        if !copyToClipboard {
+                        if !copy_to_clipboard {
                             self.text.replace_range(start..end, "");
                             self.selection = TextSelection::Cursor(start);
                             text_changed = true;

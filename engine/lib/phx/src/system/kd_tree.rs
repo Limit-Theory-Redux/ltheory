@@ -6,7 +6,7 @@ use internal::*;
 use crate::math::*;
 use crate::render::*;
 
-const kMaxLeafSize: i32 = 64;
+const K_MAX_LEAF_SIZE: i32 = 64;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -27,7 +27,7 @@ pub struct Node {
 
 unsafe fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mut KDTree {
     let this = MemNew!(KDTree);
-    if boxCount <= kMaxLeafSize {
+    if boxCount <= K_MAX_LEAF_SIZE {
         (*this).box_0 = *boxes.offset(0);
         (*this).back = std::ptr::null_mut();
         (*this).front = std::ptr::null_mut();

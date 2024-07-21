@@ -25,85 +25,85 @@ use tracing::error;
 
 pub type Error = u32;
 
-const Error_None: Error = 0x00000000;
+const ERROR_NONE: Error = 0x00000000;
 
-const Error_Null: Error = 0x00000001;
-const Error_Invalid: Error = 0x00000002;
-const Error_Overflow: Error = 0x00000004;
-const Error_Underflow: Error = 0x00000008;
-const Error_Empty: Error = 0x00000010;
-const Error_NaN: Error = 0x00000020;
-const Error_Degenerate: Error = 0x00000040;
-const Error_BadCount: Error = 0x00000080;
+const ERROR_NULL: Error = 0x00000001;
+const ERROR_INVALID: Error = 0x00000002;
+const ERROR_OVERFLOW: Error = 0x00000004;
+const ERROR_UNDERFLOW: Error = 0x00000008;
+const ERROR_EMPTY: Error = 0x00000010;
+const ERROR_NA_N: Error = 0x00000020;
+const ERROR_DEGENERATE: Error = 0x00000040;
+const ERROR_BAD_COUNT: Error = 0x00000080;
 
-const Error_Input: Error = 0x00000100;
-const Error_Intermediate: Error = 0x00000200;
-const Error_Output: Error = 0x00000400;
+const ERROR_INPUT: Error = 0x00000100;
+const ERROR_INTERMEDIATE: Error = 0x00000200;
+const ERROR_OUTPUT: Error = 0x00000400;
 
-const Error_Stack: Error = 0x00010000;
-const Error_Heap: Error = 0x00020000;
-const Error_Buffer: Error = 0x00040000;
-const Error_Path: Error = 0x00080000;
-const Error_Index: Error = 0x00100000;
-const Error_Vertex: Error = 0x00200000;
-const Error_VertPos: Error = 0x00400000;
-const Error_VertNorm: Error = 0x00800000;
-const Error_VertUV: Error = 0x01000000;
+const ERROR_STACK: Error = 0x00010000;
+const ERROR_HEAP: Error = 0x00020000;
+const ERROR_BUFFER: Error = 0x00040000;
+const ERROR_PATH: Error = 0x00080000;
+const ERROR_INDEX: Error = 0x00100000;
+const ERROR_VERTEX: Error = 0x00200000;
+const ERROR_VERT_POS: Error = 0x00400000;
+const ERROR_VERT_NORM: Error = 0x00800000;
+const ERROR_VERT_UV: Error = 0x01000000;
 
 #[no_mangle]
 pub extern "C" fn Error_Print(e: Error) {
-    if e == Error_None {
+    if e == ERROR_NONE {
         error!("None!");
         return;
     }
 
-    let err_source = if e & Error_Stack != 0 {
+    let err_source = if e & ERROR_STACK != 0 {
         "Stack "
-    } else if e & Error_Heap != 0 {
+    } else if e & ERROR_HEAP != 0 {
         "Heap "
-    } else if e & Error_Buffer != 0 {
+    } else if e & ERROR_BUFFER != 0 {
         "Buffer "
-    } else if e & Error_Path != 0 {
+    } else if e & ERROR_PATH != 0 {
         "Path "
-    } else if e & Error_Index != 0 {
+    } else if e & ERROR_INDEX != 0 {
         "Index "
-    } else if e & Error_Vertex != 0 {
+    } else if e & ERROR_VERTEX != 0 {
         "Vertex "
-    } else if e & Error_VertPos != 0 {
+    } else if e & ERROR_VERT_POS != 0 {
         "Vertex Position "
-    } else if e & Error_VertNorm != 0 {
+    } else if e & ERROR_VERT_NORM != 0 {
         "Vertex Normal "
-    } else if e & Error_VertUV != 0 {
+    } else if e & ERROR_VERT_UV != 0 {
         "Vertex UV "
     } else {
         ""
     };
 
-    let err_type = if e & Error_Input != 0 {
+    let err_type = if e & ERROR_INPUT != 0 {
         "Input "
-    } else if e & Error_Intermediate != 0 {
+    } else if e & ERROR_INTERMEDIATE != 0 {
         "Intermediate Value "
-    } else if e & Error_Output != 0 {
+    } else if e & ERROR_OUTPUT != 0 {
         "Output "
     } else {
         ""
     };
 
-    let err_value = if e & Error_Null != 0 {
+    let err_value = if e & ERROR_NULL != 0 {
         "NULL"
-    } else if e & Error_Invalid != 0 {
+    } else if e & ERROR_INVALID != 0 {
         "Invalid"
-    } else if e & Error_Overflow != 0 {
+    } else if e & ERROR_OVERFLOW != 0 {
         "Overflow"
-    } else if e & Error_Underflow != 0 {
+    } else if e & ERROR_UNDERFLOW != 0 {
         "Underflow"
-    } else if e & Error_Empty != 0 {
+    } else if e & ERROR_EMPTY != 0 {
         "Empty"
-    } else if e & Error_NaN != 0 {
+    } else if e & ERROR_NA_N != 0 {
         "NaN"
-    } else if e & Error_Degenerate != 0 {
+    } else if e & ERROR_DEGENERATE != 0 {
         "Degenerate"
-    } else if e & Error_BadCount != 0 {
+    } else if e & ERROR_BAD_COUNT != 0 {
         "Incorrect Count"
     } else {
         ""

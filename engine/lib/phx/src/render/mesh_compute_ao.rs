@@ -89,9 +89,9 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: &mut Mesh, radius: f32) {
     MemFree(normalBuffer as *const _);
     let texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
     // TODO: Store shader properly
-    static mut shader: *mut Shader = std::ptr::null_mut();
-    if shader.is_null() {
-        shader = Box::into_raw(Box::new(Shader::load(
+    static mut SHADER: *mut Shader = std::ptr::null_mut();
+    if SHADER.is_null() {
+        SHADER = Box::into_raw(Box::new(Shader::load(
             "vertex/identity",
             "fragment/compute/occlusion",
         )));
@@ -99,7 +99,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: &mut Mesh, radius: f32) {
     RenderState_PushAllDefaults();
     RenderTarget_PushTex2D(&mut *texOutput);
 
-    (*shader).start();
+    (*SHADER).start();
     Shader::set_int("sDim", sDim);
     Shader::set_float("radius", radius);
     Shader::set_tex2d("sPointBuffer", &mut *texSPoints);
@@ -107,7 +107,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: &mut Mesh, radius: f32) {
     Shader::set_tex2d("vPointBuffer", &mut *texVPoints);
     Shader::set_tex2d("vNormalBuffer", &mut *texVNormals);
     Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
-    (*shader).stop();
+    (*SHADER).stop();
 
     RenderTarget_Pop();
     RenderState_PopAll();
@@ -153,9 +153,9 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: &mut Mesh, sdf: *mut Tex3D,
     MemFree(pointBuffer as *const _);
 
     // TODO: Store shader properly.
-    static mut shader: *mut Shader = std::ptr::null_mut();
-    if shader.is_null() {
-        shader = Box::into_raw(Box::new(Shader::load(
+    static mut SHADER: *mut Shader = std::ptr::null_mut();
+    if SHADER.is_null() {
+        SHADER = Box::into_raw(Box::new(Shader::load(
             "vertex/identity",
             "fragment/compute/occlusion_sdf",
         )));
@@ -164,12 +164,12 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: &mut Mesh, sdf: *mut Tex3D,
     RenderState_PushAllDefaults();
     RenderTarget_PushTex2D(&mut *texOutput);
 
-    (*shader).start();
+    (*SHADER).start();
     Shader::set_float("radius", radius);
     Shader::set_tex2d("points", &mut *texPoints);
     Shader::set_tex3d("sdf", &mut *sdf);
     Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
-    (*shader).stop();
+    (*SHADER).stop();
 
     RenderTarget_Pop();
     RenderState_PopAll();

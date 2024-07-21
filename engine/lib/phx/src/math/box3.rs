@@ -81,17 +81,17 @@ impl Box3 {
     pub fn intersects_ray(&self, ro: Vec3, rdi: Vec3) -> bool {
         let mut t1: f64 = (rdi.x * (self.lower.x - ro.x)) as f64;
         let mut t2: f64 = (rdi.x * (self.upper.x - ro.x)) as f64;
-        let mut tMin: f64 = f64::min(t1, t2);
-        let mut tMax: f64 = f64::max(t1, t2);
+        let mut t_min: f64 = f64::min(t1, t2);
+        let mut t_max: f64 = f64::max(t1, t2);
         t1 = (rdi.y * (self.lower.y - ro.y)) as f64;
         t2 = (rdi.y * (self.upper.y - ro.y)) as f64;
-        tMin = f64::max(tMin, f64::min(t1, t2));
-        tMax = f64::min(tMax, f64::max(t1, t2));
+        t_min = f64::max(t_min, f64::min(t1, t2));
+        t_max = f64::min(t_max, f64::max(t1, t2));
         t1 = (rdi.z * (self.lower.z - ro.z)) as f64;
         t2 = (rdi.z * (self.upper.z - ro.z)) as f64;
-        tMin = f64::max(tMin, f64::min(t1, t2));
-        tMax = f64::min(tMax, f64::max(t1, t2));
-        tMax >= tMin && tMax > 0.0
+        t_min = f64::max(t_min, f64::min(t1, t2));
+        t_max = f64::min(t_max, f64::max(t1, t2));
+        t_max >= t_min && t_max > 0.0
     }
 
     pub fn intersects_box(a: Box3, b: Box3) -> bool {

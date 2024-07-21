@@ -1,3 +1,5 @@
+#![allow(non_snake_case)] // TODO: remove this and fix all warnings
+
 mod bit;
 mod box3;
 mod clip_rect;

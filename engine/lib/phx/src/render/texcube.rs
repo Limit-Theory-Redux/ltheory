@@ -21,7 +21,7 @@ pub struct Face {
     pub up: Vec3,
 }
 
-static mut kFaces: [Face; 6] = [
+static mut K_FACES: [Face; 6] = [
     Face {
         face: CubeFace_PX,
         look: Vec3::X,
@@ -178,7 +178,7 @@ pub extern "C" fn TexCube_Acquire(this: &mut TexCube) {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Clear(this: &mut TexCube, r: f32, g: f32, b: f32, a: f32) {
     for i in 0..6 {
-        let face: Face = kFaces[i as usize];
+        let face: Face = K_FACES[i as usize];
 
         RenderTarget_Push((*this).size, (*this).size);
         RenderTarget_BindTexCube(this, face.face);
@@ -256,7 +256,7 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
         }
 
         glcheck!(gl::TexImage2D(
-            kFaces[i as usize].face as gl::types::GLenum,
+            K_FACES[i as usize].face as gl::types::GLenum,
             0,
             (*this).format,
             (*this).size,
@@ -343,7 +343,7 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
     state.start();
 
     for i in 0..6 {
-        let face: Face = kFaces[i as usize];
+        let face: Face = K_FACES[i as usize];
         let size: i32 = this.size;
         let size_f: f32 = this.size as f32;
 
@@ -469,7 +469,7 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
             as *mut libc::c_uchar;
 
     for i in 0..6 {
-        let face: CubeFace = kFaces[i as usize].face;
+        let face: CubeFace = K_FACES[i as usize].face;
         let face_path = format!("{}{}.png", path.as_str(), K_FACE_EXT[i as usize]);
 
         glcheck!(gl::GetTexImage(

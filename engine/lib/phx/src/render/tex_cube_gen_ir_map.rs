@@ -33,9 +33,9 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
     TexCube_GenMipmap(&mut *result);
     MemFree(buffer);
     // TODO: Store the shader somewhere and use the Box correctly.
-    static mut shader: *mut Shader = std::ptr::null_mut();
-    if shader.is_null() {
-        shader = Box::into_raw(Box::new(Shader::load(
+    static mut SHADER: *mut Shader = std::ptr::null_mut();
+    if SHADER.is_null() {
+        SHADER = Box::into_raw(Box::new(Shader::load(
             "vertex/identity",
             "fragment/compute/irmap",
         )));
@@ -72,7 +72,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
         i_0 /= 2;
     }
 
-    (*shader).start();
+    (*SHADER).start();
     let mut level: i32 = 0;
     while size > 1 {
         size /= 2;
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
         MemFree(sampleBuffer as *const _);
         Tex2D_Free(sampleTex);
     }
-    (*shader).stop();
+    (*SHADER).stop();
     TexCube_SetMagFilter(&mut *result, TexFilter_Linear);
     TexCube_SetMinFilter(&mut *result, TexFilter_LinearMipLinear);
     result

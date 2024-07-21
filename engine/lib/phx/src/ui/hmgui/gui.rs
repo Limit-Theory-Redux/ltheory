@@ -175,7 +175,7 @@ impl HmGui {
         self.layers.clear();
         self.screen_size = Vec2::new(sx, sy);
 
-        self.beginLayer();
+        self.begin_layer();
     }
 
     /// Finish GUI declaration, calculate hierarchy widgets sizes and layout.
@@ -183,7 +183,7 @@ impl HmGui {
     pub fn end_gui(&mut self, input: &Input) {
         unsafe { Profiler_Begin(c_str!("HmGui_End")) };
 
-        self.endLayer();
+        self.end_layer();
         assert_eq!(
             self.layer_index, UNDEFINED_LAYER_INDEX,
             "At least one beginLayer scope was not closed"
@@ -264,7 +264,7 @@ impl HmGui {
     /// Position of the layer (top/left corner) will be [0, 0] and size will be a size of the screen set in [`HmGui::begin_gui`].
     /// All new elements will be added to this new layer.
     /// Each layer has its own separate layout system.
-    pub fn beginLayer(&mut self) {
+    pub fn begin_layer(&mut self) {
         let layer_index = self.layers.len();
         let layer = HmGuiLayer::new_fixed(self.layer_index, Vec2::ZERO, self.screen_size);
 
@@ -276,7 +276,7 @@ impl HmGui {
     /// The size of new layer will bw up to the screen borders.
     /// All new elements will be added to this new layer.
     /// Each layer has its own separate layout system.
-    pub fn beginLayerAtPos(&mut self, pos: Vec2) {
+    pub fn begin_layer_at_pos(&mut self, pos: Vec2) {
         let layer_index = self.layers.len();
         // TODO: process situation when position is outside of the screen.
         let layer = HmGuiLayer::new_fixed(self.layer_index, pos, self.screen_size - pos);
@@ -289,7 +289,7 @@ impl HmGui {
     /// Position and size of the new layer will be calculated after layouting of the previous layer.
     /// All new elements will be added to this new layer.
     /// Each layer has its own separate layout system.
-    pub fn beginLayerBelow(&mut self) {
+    pub fn begin_layer_below(&mut self) {
         let hash = self.last().as_ref().hash;
 
         let layer_index = self.layers.len();
@@ -300,7 +300,7 @@ impl HmGui {
     }
 
     /// Close current layer and return to the previous one.
-    pub fn endLayer(&mut self) {
+    pub fn end_layer(&mut self) {
         assert_ne!(
             self.layer_index, UNDEFINED_LAYER_INDEX,
             "Unmatched endLayer scope"

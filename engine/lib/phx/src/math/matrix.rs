@@ -120,12 +120,17 @@ pub extern "C" fn Matrix_LookUp(pos: &Vec3, look: &Vec3, up: &Vec3) -> Box<Matri
 }
 
 #[no_mangle]
-pub extern "C" fn Matrix_Perspective(degreesFovy: f32, aspect: f32, N: f32, F: f32) -> Box<Matrix> {
+pub extern "C" fn Matrix_Perspective(
+    degrees_fovy: f32,
+    aspect: f32,
+    n: f32,
+    f: f32,
+) -> Box<Matrix> {
     Box::new(Matrix::perspective_rh_gl(
-        f32::to_radians(degreesFovy),
+        f32::to_radians(degrees_fovy),
         aspect,
-        N,
-        F,
+        n,
+        f,
     ))
 }
 
