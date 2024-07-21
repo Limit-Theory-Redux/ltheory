@@ -22,7 +22,7 @@ pub use text::*;
 pub use text_line::*;
 pub use widget::*;
 
-pub(self) const IDENT: &str = "  ";
+const IDENT: &str = "  ";
 
 // TODO fix tests for win and mac
 #[cfg(target_os = "linux")]

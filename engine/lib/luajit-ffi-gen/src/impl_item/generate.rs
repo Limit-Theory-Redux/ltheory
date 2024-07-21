@@ -89,7 +89,7 @@ impl ImplInfo {
 
         quote! {
             #[no_mangle]
-            pub extern "C" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
+            pub unsafe extern "C" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
                 tracing::trace!("Calling: {}", #func_ident_str);
 
                 #func_body
@@ -229,12 +229,12 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     } else {
                         quote! { #name_accessor.as_string() }
                     }
-                },
+                }
                 TypeVariant::CString => quote! { #name_accessor.as_cstring() },
                 TypeVariant::Custom(custom_ty) => {
                     if param.ty.is_boxed || TypeInfo::is_copyable(&custom_ty) {
                         quote! { #name_accessor }
-                    } else if param.ty.is_reference  {
+                    } else if param.ty.is_reference {
                         if param.ty.is_option {
                             quote! { &#name_accessor }
                         } else {
@@ -243,7 +243,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     } else {
                         quote! { *#name_accessor }
                     }
-                },
+                }
                 _ => {
                     if param.ty.is_mutable {
                         quote! { &mut #name_accessor }
@@ -256,7 +256,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
             };
 
             if param.ty.is_option {
-                quote! {if #name_ident != std::ptr::null_mut() { unsafe { Some(#param_item) } } else { None }}
+                quote! {if !#name_ident.is_null() { unsafe { Some(#param_item) } } else { None }}
             } else {
                 param_item
             }

@@ -48,12 +48,12 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
 }
 
 #[no_mangle]
-pub extern "C" fn Ray_ToLineSegment(this: &Ray, line_segment: &mut LineSegment) {
+pub unsafe extern "C" fn Ray_ToLineSegment(this: &Ray, line_segment: &mut LineSegment) {
     Ray_GetPoint(this, this.tMin, &mut line_segment.p0);
     Ray_GetPoint(this, this.tMax, &mut line_segment.p1);
 }
 
 #[no_mangle]
-pub extern "C" fn Ray_FromLineSegment(line_segment: &LineSegment, this: &mut Ray) {
+pub unsafe extern "C" fn Ray_FromLineSegment(line_segment: &LineSegment, this: &mut Ray) {
     LineSegment_ToRay(line_segment, this);
 }

@@ -91,7 +91,7 @@ impl TextView {
 
 impl Drop for TextView {
     fn drop(&mut self) {
-        if self.tex != std::ptr::null_mut() {
+        if !self.tex.is_null() {
             unsafe { Tex2D_Free(self.tex) };
         }
     }

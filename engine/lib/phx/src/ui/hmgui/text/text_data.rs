@@ -89,8 +89,8 @@ impl TextData {
             section_style: Default::default(),
             alignment: alignment.into(),
             multiline,
-            selection: TextSelection::new(),
-            selection_color: selection_color.clone(),
+            selection: TextSelection::default(),
+            selection_color: *selection_color,
             mouse_pos: Vec2::new(-1.0, -1.0),
             cursor_rect: TextCursorRect::new(cursor_color),
             scale_factor: 1.0,
@@ -348,7 +348,7 @@ impl TextData {
             self.section_style.apply(&mut builder);
 
             if let Some(range) = self.selection.get_forward_range() {
-                builder.push(&StyleProperty::Brush(self.selection_color.clone()), range);
+                builder.push(&StyleProperty::Brush(self.selection_color), range);
             }
 
             // Build the builder into a Layout

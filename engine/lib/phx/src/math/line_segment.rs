@@ -17,7 +17,7 @@ impl LineSegment {
     }
 
     pub fn from_ray(ray: &Ray, out: &mut LineSegment) {
-        Ray_ToLineSegment(ray, out);
+        unsafe { Ray_ToLineSegment(ray, out) };
     }
 
     #[bind(role = "to_string")]
