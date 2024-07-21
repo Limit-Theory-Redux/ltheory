@@ -138,7 +138,7 @@ function Application:onPreRender()
     local timeScaledDt = self.timeScale * self.dt
 
     --* system & canvas should probably subscribe to onPreRender themselves
-    if GameState.player.humanPlayer:getRoot().update then
+    if GameState.player.humanPlayer and GameState.player.humanPlayer:getRoot().update then
         GameState.player.humanPlayer:getRoot():update(timeScaledDt)
         GameState.render.uiCanvas:update(timeScaledDt)
     end
@@ -167,8 +167,10 @@ function Application:onRender()
     WindowInstance:beginDraw()
 
     --* should they subscribe to onRender themselves?
-    GameState.render.uiCanvas:draw(self.resX, self.resY)
-    Gui:draw()
+    if GameState.render.uiCanvas ~= nil then
+        GameState.render.uiCanvas:draw(self.resX, self.resY)
+        Gui:draw()
+    end
 
     Profiler.End()
 
@@ -326,7 +328,9 @@ function Application:onInput()
     end
 
     --! why is this needed for the game to render and update lol
-    GameState.render.uiCanvas:input()
+    if GameState.render.uiCanvas ~= nil then
+        GameState.render.uiCanvas:input()
+    end
 
     Profiler.End()
 end
