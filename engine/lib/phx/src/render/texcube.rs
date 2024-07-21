@@ -191,9 +191,9 @@ pub unsafe extern "C" fn TexCube_Clear(this: &mut TexCube, r: f32, g: f32, b: f3
 pub unsafe extern "C" fn TexCube_Free(this: *mut TexCube) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0
+        (*this)._refCount == 0
     } {
-        glcheck!(gl::DeleteTextures(1, &mut (*this).handle));
+        glcheck!(gl::DeleteTextures(1, &(*this).handle));
         MemFree(this as *const _);
     }
 }
@@ -278,7 +278,7 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
 }
 
 #[no_mangle]
-pub extern "C" fn TexCube_GetData(
+pub unsafe extern "C" fn TexCube_GetData(
     this: &mut TexCube,
     data: *mut libc::c_void,
     face: CubeFace,
@@ -392,7 +392,7 @@ pub extern "C" fn TexCube_GenMipmap(this: &mut TexCube) {
 }
 
 #[no_mangle]
-pub extern "C" fn TexCube_SetData(
+pub unsafe extern "C" fn TexCube_SetData(
     this: &mut TexCube,
     data: *const libc::c_void,
     face: CubeFace,

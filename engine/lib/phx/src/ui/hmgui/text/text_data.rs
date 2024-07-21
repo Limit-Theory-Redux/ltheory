@@ -79,7 +79,7 @@ impl TextData {
         let text = if multiline {
             text.into()
         } else {
-            text.replace(&['\n', '\r'], " ")
+            text.replace(['\n', '\r'], " ")
         };
 
         Self {
@@ -201,7 +201,7 @@ impl TextData {
 
     pub(super) fn update(&mut self, text_data: &TextData) {
         let mut updated = if self.text != text_data.text {
-            self.text = text_data.text.clone();
+            self.text.clone_from(&text_data.text);
             true
         } else {
             false

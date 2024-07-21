@@ -26,7 +26,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: &mut Mesh, radius: f32) {
     );
     let mut i: i32 = 0;
     while i < indexCount {
-        let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let v1: *const Vertex = vertexData.offset(*indexData.offset((i) as isize) as isize);
         let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
         let v3: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         let mut normal: Vec3 = Vec3::cross((*v3).p - (*v1).p, (*v2).p - (*v1).p);

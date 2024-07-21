@@ -74,7 +74,7 @@ pub unsafe extern "C" fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindo
     (*this).sx = sx;
     (*this).sy = sy;
     (*this).isWindow = isWindow;
-    Viewport_Set(&mut *this);
+    Viewport_Set(&*this);
 }
 
 #[no_mangle]
@@ -84,6 +84,6 @@ pub unsafe extern "C" fn Viewport_Pop() {
     }
     VP_INDEX -= 1;
     if VP_INDEX >= 0 {
-        Viewport_Set(&mut *VP.as_mut_ptr().offset(VP_INDEX as isize));
+        Viewport_Set(&*VP.as_mut_ptr().offset(VP_INDEX as isize));
     }
 }

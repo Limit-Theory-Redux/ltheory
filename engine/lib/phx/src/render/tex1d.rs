@@ -76,9 +76,9 @@ pub extern "C" fn Tex1D_Acquire(this: &mut Tex1D) {
 pub unsafe extern "C" fn Tex1D_Free(this: *mut Tex1D) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0
+        (*this)._refCount == 0
     } {
-        glcheck!(gl::DeleteTextures(1, &mut (*this).handle));
+        glcheck!(gl::DeleteTextures(1, &(*this).handle));
         MemFree(this as *const _);
     }
 }
@@ -96,7 +96,7 @@ pub extern "C" fn Tex1D_GetFormat(this: &mut Tex1D) -> TexFormat {
 }
 
 #[no_mangle]
-pub extern "C" fn Tex1D_GetData(
+pub unsafe extern "C" fn Tex1D_GetData(
     this: &mut Tex1D,
     data: *mut libc::c_void,
     pf: PixelFormat,
@@ -137,7 +137,7 @@ pub extern "C" fn Tex1D_GetSize(this: &mut Tex1D) -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn Tex1D_SetData(
+pub unsafe extern "C" fn Tex1D_SetData(
     this: &mut Tex1D,
     data: *const libc::c_void,
     pf: PixelFormat,

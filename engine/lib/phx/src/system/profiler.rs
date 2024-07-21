@@ -214,7 +214,7 @@ pub unsafe extern "C" fn Profiler_LoopMarker() {
     while i < THIS.scopeList.len() as i32 {
         let scope: &mut Scope = &mut *THIS.scopeList[i as usize];
         if (*scope).frame as f64 > 0.0f64 {
-            (*scope).total = (*scope).total + (*scope).frame;
+            (*scope).total += (*scope).frame;
             let frame: f64 = (*scope).frame as f64;
             (*scope).min = f64::min((*scope).min, frame);
             (*scope).max = f64::max((*scope).max, frame);

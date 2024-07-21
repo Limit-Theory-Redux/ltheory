@@ -88,7 +88,7 @@ pub unsafe extern "C" fn KDTree_FromMesh(mesh: &mut Mesh) -> *mut KDTree {
     let boxes: *mut Box3 = MemNewArray!(Box3, boxCount);
 
     for i in (0..indexCount).step_by(3) {
-        let v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let v0: *const Vertex = vertexData.offset(*indexData.offset((i) as isize) as isize);
         let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
         let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         *boxes.offset((i / 3) as isize) = Box3::new(
@@ -152,7 +152,7 @@ pub unsafe extern "C" fn KDTree_Draw(this: &mut KDTree, maxDepth: i32) {
         return;
     }
     Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
-    Draw_Box3(&mut this.box_0);
+    Draw_Box3(&this.box_0);
     if !(this.back).is_null() {
         KDTree_Draw(&mut *this.back, maxDepth - 1);
     }

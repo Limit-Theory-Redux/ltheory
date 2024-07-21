@@ -15,4 +15,4 @@ pub struct TextContext {
 }
 
 // TODO: use [`std::cell::LazyCell`] when it's stabilized in Rust 1.80 on July 25
-pub static TEXT_CTX: Lazy<Mutex<TextContext>> = Lazy::new(|| Default::default());
+pub static TEXT_CTX: Lazy<Mutex<TextContext>> = Lazy::new(Default::default);

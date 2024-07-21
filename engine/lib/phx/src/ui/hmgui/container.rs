@@ -396,7 +396,7 @@ impl HmGuiContainer {
     #[allow(dead_code)]
     #[rustfmt::skip]
     pub(crate) fn dump(&self, ident: usize) {
-        let ident_str = format!("{}", IDENT.repeat(ident));
+        let ident_str = IDENT.repeat(ident).to_string();
 
         println!("{ident_str}- layout:         {:?}", self.layout);
         println!("{ident_str}- children_align: {:?}", self.children_alignment);

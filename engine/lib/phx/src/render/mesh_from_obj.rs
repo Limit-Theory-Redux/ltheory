@@ -182,7 +182,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
 
         let token_str = token.as_ptr().as_string();
 
-        if token_str == "" {
+        if token_str.is_empty() {
             if s.cursor >= s.endOfData {
                 break;
             }
@@ -338,7 +338,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
                 }
 
                 vertexCount += 1;
-                Mesh_AddVertexRaw(&mut *mesh, &mut vertex);
+                Mesh_AddVertexRaw(&mut *mesh, &vertex);
             }
 
             if indexCount >= i32::MAX - vertexIndicesCount {

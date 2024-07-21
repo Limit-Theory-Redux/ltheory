@@ -96,7 +96,7 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
     ));
     glcheck!(gl::DeleteFramebuffers(
         1,
-        &mut (*FBO_STACK.as_mut_ptr().offset(FBO_INDEX as isize)).handle,
+        &(*FBO_STACK.as_mut_ptr().offset(FBO_INDEX as isize)).handle,
     ));
 
     FBO_INDEX -= 1;

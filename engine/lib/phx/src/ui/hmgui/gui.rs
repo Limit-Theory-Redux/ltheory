@@ -127,7 +127,7 @@ impl HmGui {
     /// Get persistent mutable data of the widget by its hash.
     /// Add new data entry if it doesn't exist.
     pub fn data_mut(&mut self, widget_hash: u64) -> &mut HmGuiData {
-        self.data.entry(widget_hash).or_insert(HmGuiData::default())
+        self.data.entry(widget_hash).or_default()
     }
 
     /// Calculate if mouse is over the widget. Recursively iterate over container widgets.
@@ -428,8 +428,8 @@ impl HmGui {
     pub fn text(&mut self, text: &str, font: &Font, color: &Color) {
         let item = HmGuiText {
             text: text.into(),
-            font: font.clone().into(),
-            color: color.clone(),
+            font: font.clone(),
+            color: *color,
         };
         let widget_rf = self.init_widget(WidgetItem::Text(item));
         let _ = widget_rf.as_mut();

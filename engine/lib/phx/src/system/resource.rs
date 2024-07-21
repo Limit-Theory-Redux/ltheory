@@ -102,8 +102,10 @@ fn resolve_opt(ty: ResourceType, name: &str) -> Option<String> {
 }
 
 fn resolve(ty: ResourceType, name: &str) -> String {
-    resolve_opt(ty, name).expect(&format!(
-        "Resource resolve: Failed to find {ty:?} <{name}>. Current directory: {:?}",
-        std::env::current_dir(),
-    ))
+    resolve_opt(ty, name).unwrap_or_else(|| {
+        panic!(
+            "Resource resolve: Failed to find {ty:?} <{name}>. Current directory: {:?}",
+            std::env::current_dir(),
+        )
+    })
 }
