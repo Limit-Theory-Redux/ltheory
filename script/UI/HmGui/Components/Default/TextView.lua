@@ -10,6 +10,7 @@ local meta = {
 ---@class UIComponentTextView: UIComponent
 ---@field visible boolean
 ---@field textData TextData
+---@field editable boolean
 ---@field backgroundColor Color
 ---@field widthInLayout number
 ---@field heightInLayout number
@@ -25,6 +26,7 @@ local meta = {
 ---@class UIComponentTextViewConstructor
 ---@field visible boolean
 ---@field text string|table<table<string, UIComponentTextViewStyle>|string>
+---@field editable boolean
 ---@field alignment TextAlignment
 ---@field style UIComponentTextViewStyle Default text style
 ---@field multiline boolean|true
@@ -38,6 +40,7 @@ local meta = {
 ---@field height number
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field showContainer boolean
+---@field callback fun(self: UIComponentTextViewConstructor)
 
 ---@class UIComponentTextViewSection
 ---@field text string
@@ -47,6 +50,8 @@ local meta = {
 ---@field font UIComponentTextViewFont
 ---@field locale string|nil
 ---@field brush Color
+---@field selectionBrush Color
+---@field cursorBrush Color
 ---@field lineHeight number
 ---@field wordSpacing number
 ---@field letterSpacing number
@@ -219,14 +224,15 @@ local function buildTextData(args)
         text = section_text
     end
 
-    local multiline = true
+    local multiline = false
     if args.multiline ~= nil then
         multiline = args.multiline
     end
 
-    -- TODO: replace all `\n` in text with spaces if not multiline?
-
-    local textData = TextData.Create(text, buildStyle(args.style, true), args.alignment or TextAlignment.Start, multiline)
+    local cursorColor = args.style.selectionBrush or Color(1, 1, 1, 1)
+    local selectionColor = args.style.cursorBrush or Color(0.2, 0.2, 0.7, 0.8)
+    local textData = TextData.Create(text, buildStyle(args.style, true), cursorColor, selectionColor,
+        args.alignment or TextAlignment.Start, multiline)
 
     for _, section in ipairs(sections) do
         textData:setSectionStyle(section.startPos, section.endPos, section.style)
@@ -247,6 +253,7 @@ function TextView:new(args)
     newTextView.state = UICore.ComponentState {
         visible = args.visible,
         textData = buildTextData(args),
+        editable = args.editable or false,
         borderWidth = args.borderWidth or 0,
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
@@ -257,7 +264,8 @@ function TextView:new(args)
         height = args.height,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         showContainer = args.showContainer or function() return GameState.debug.metricsEnabled end,
-        showContainerColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4)
+        showContainerColor = Color((math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, (math.random() + math.random(50, 99)) / 100, .4),
+        callback = args.callback,
     }
 
     newTextView.render = function(self)
@@ -265,7 +273,7 @@ function TextView:new(args)
             return
         end
 
-        Gui:textView(self.state.textData())
+        Gui:textView(self.state.textData(), self.state.editable())
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 
         if self.state.backgroundColor then Gui:setBackgroundColor(self.state.backgroundColor()) end
@@ -281,6 +289,15 @@ function TextView:new(args)
 
         if self.state.width then Gui:setFixedWidth(self.state.width()) end
         if self.state.height then Gui:setFixedHeight(self.state.height()) end
+
+        local mouseOver = Gui:isMouseOver(FocusType.Mouse)
+        if InputInstance:isPressed(Button.MouseLeft) then
+            Gui:setFocus(mouseOver)
+        end
+
+        if self.state.callback and Gui:hasFocus() and Gui:getTextViewChanges(self.state.textData()) then
+            self.state:callback()
+        end
     end
 
     return newTextView

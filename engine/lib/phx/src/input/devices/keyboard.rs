@@ -446,10 +446,15 @@ pub enum KeyboardButton {
     F35,
 }
 
+const TYPING_DELAY_SEC: f64 = 0.2;
+
 #[derive(Default)]
 pub struct KeyboardState {
     control_state: ControlState,
     button_state: ButtonState<{ KeyboardButton::SIZE }>,
+    /// Entered text. Usually a single character.
+    text: String,
+    text_time: f64,
 }
 
 impl KeyboardState {
@@ -463,10 +468,21 @@ impl KeyboardState {
 
     pub fn reset(&mut self) {
         self.button_state.reset();
+        self.text.clear();
     }
 
     pub fn update(&mut self, button: KeyboardButton, pressed: bool) -> bool {
         self.button_state.update(button as usize, pressed) && self.control_state.update()
+    }
+
+    pub fn set_text(&mut self, text: &str, time: f64) -> bool {
+        if time - self.text_time > TYPING_DELAY_SEC {
+            self.text = text.into();
+            self.text_time = time;
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -503,5 +519,10 @@ impl KeyboardState {
         } else {
             0.0
         }
+    }
+
+    /// Text entered in the current frame. Usually a single symbol.
+    pub fn text(&self) -> &str {
+        &self.text
     }
 }

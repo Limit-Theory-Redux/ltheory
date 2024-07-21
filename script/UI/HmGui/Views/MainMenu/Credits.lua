@@ -102,7 +102,6 @@ local creditsGrid = UILayout.Grid {
                 UIComponent.TextView {
                     text = "Credits",
                     style = { font = { size = 25, weight = 600 } },
-                    multiline = false,
                     align = { AlignHorizontal.Center, AlignVertical.Center },
                 },
                 UIComponent.ScrollArea {
@@ -110,7 +109,6 @@ local creditsGrid = UILayout.Grid {
                         background = Color(0, 0, 0, 0.3)
                     },
                     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-                    childrenAlign = { AlignHorizontal.Stretch, AlignVertical.Stretch },
                     padding = { 50, 50 },
                     margin = { 0, 0 },
                     layoutType = GuiLayoutType.Vertical,
@@ -118,6 +116,8 @@ local creditsGrid = UILayout.Grid {
                         UIComponent.TextView {
                             text = Config.credits:formatted(),
                             style = { font = { size = 16 } },
+                            multiline = true,
+                            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
                         }
                     }
                 }

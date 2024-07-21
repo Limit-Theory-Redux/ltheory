@@ -119,7 +119,7 @@ impl Color {
     }
 
     /// Blends two colors proportionally to their alpha parameters
-    pub fn blend(&self, other: Color) -> Color {
+    pub fn blend(&self, other: &Color) -> Color {
         let t1 = self.a / (self.a + other.a);
         let t2 = other.a / (self.a + other.a);
 
@@ -133,7 +133,7 @@ impl Color {
 
     /// Blends current color with the given one
     /// proportionally to their alpha parameters
-    pub fn blend_with(&mut self, other: Color) {
+    pub fn blend_with(&mut self, other: &Color) {
         *self = self.blend(other);
     }
 
