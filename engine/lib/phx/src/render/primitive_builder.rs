@@ -172,27 +172,27 @@ impl PrimitiveBuilder {
         self.texcoords.push(self.current_texcoord);
         self.colors.push(self.current_color);
 
-        // If this is a quad list, and we've just inserted the 4th vertex, we now need to generate the 2nd triangle of the quad.
+        // If this is a quad list, and we've just inserted the 4th vertex (in a group of 6), we can automatically generate the 2nd triangle of the quad.
         //
         // A---B
         // | \ |
         // D---C
         //
-        // To build a triangle list after inserting D, we now need to re-insert A, then C.
-        if self.positions.len() % 4 == 0 && self.primitive == PrimitiveType::Quads {
+        // To build a triangle list after inserting D, we now need to re-insert C, then A
+        if self.positions.len() % 6 == 4 && self.primitive == PrimitiveType::Quads {
             let last_idx = self.positions.len() - 1;
-
-            // Insert C
-            self.positions.push(self.positions[last_idx - 1]);
-            self.normals.push(self.normals[last_idx - 1]);
-            self.texcoords.push(self.texcoords[last_idx - 1]);
-            self.colors.push(self.colors[last_idx - 1]);
 
             // Insert A
             self.positions.push(self.positions[last_idx - 3]);
             self.normals.push(self.normals[last_idx - 3]);
             self.texcoords.push(self.texcoords[last_idx - 3]);
             self.colors.push(self.colors[last_idx - 3]);
+
+            // Insert C
+            self.positions.push(self.positions[last_idx - 1]);
+            self.normals.push(self.normals[last_idx - 1]);
+            self.texcoords.push(self.texcoords[last_idx - 1]);
+            self.colors.push(self.colors[last_idx - 1]);
         }
     }
 
