@@ -7,8 +7,9 @@ use crate::system::*;
 
 pub struct Mesh {
     pub _refCount: u32,
-    pub vbo: u32,
-    pub ibo: u32,
+    pub vbo: gl::types::GLuint,
+    pub ibo: gl::types::GLuint,
+    pub vao: gl::types::GLuint,
     pub version: u64,
     pub versionBuffers: u64,
     pub versionInfo: u64,
@@ -67,6 +68,7 @@ pub unsafe extern "C" fn Mesh_Create() -> Box<Mesh> {
         _refCount: 0,
         vbo: 0,
         ibo: 0,
+        vao: 0,
         version: 1,
         versionBuffers: 0,
         versionInfo: 0,
@@ -259,40 +261,43 @@ pub extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
             gl::STATIC_DRAW,
         ));
 
+        glcheck!(gl::GenVertexArrays(1, &mut this.vao));
+        glcheck!(gl::BindVertexArray(this.vao));
+
+        glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
+        glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
+        glcheck!(gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+            offset_of!(Vertex, p) as *const _,
+        ));
+        glcheck!(gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+            offset_of!(Vertex, n) as *const _,
+        ));
+        glcheck!(gl::VertexAttribPointer(
+            2,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+            offset_of!(Vertex, uv) as *const _,
+        ));
+
         this.versionBuffers = this.version;
     }
 
-    glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
-    glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
-
+    glcheck!(gl::BindVertexArray(this.vao));
     glcheck!(gl::EnableVertexAttribArray(0));
     glcheck!(gl::EnableVertexAttribArray(1));
     glcheck!(gl::EnableVertexAttribArray(2));
-
-    glcheck!(gl::VertexAttribPointer(
-        0,
-        3,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, p) as *const _,
-    ));
-    glcheck!(gl::VertexAttribPointer(
-        1,
-        3,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, n) as *const _,
-    ));
-    glcheck!(gl::VertexAttribPointer(
-        2,
-        2,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, uv) as *const _,
-    ));
 }
 
 #[no_mangle]
@@ -318,8 +323,7 @@ pub extern "C" fn Mesh_DrawUnbind(_this: &mut Mesh) {
     glcheck!(gl::DisableVertexAttribArray(0));
     glcheck!(gl::DisableVertexAttribArray(1));
     glcheck!(gl::DisableVertexAttribArray(2));
-    glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, 0));
-    glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0));
+    glcheck!(gl::BindVertexArray(0));
 }
 
 #[no_mangle]
