@@ -1,6 +1,8 @@
 #version 450
 
-varying vec2 uv;
+in vec2 uv;
+out vec4 outColor;
+
 uniform float time;
 uniform vec2 mouse;
 uniform vec2 res;
@@ -174,5 +176,5 @@ void main () {
   vec2 uvp = 2.0 * (uv * res + vec2(dx, dy)) / res  - 1.0;
   Ray ray = { eye, normalize(1.5 * look + uvp.x * right + uvp.y * up), -1 };
   vec4 c = gather(ray, offset);
-  gl_FragColor = c;
+  outColor = c;
 }

@@ -1,4 +1,5 @@
-varying vec2 uv;
+in vec2 uv;
+out vec4 outColor;
 
 uniform sampler2D src;
 uniform int mode;
@@ -15,7 +16,7 @@ vec2 saturate(vec2 x) {
 }
 
 void main() {
-  vec4 final = texture2D(src, uv);
+  vec4 final = texture(src, uv);
   vec4 cMin = final; 
   vec4 cMax = final; 
 
@@ -25,7 +26,7 @@ void main() {
       vec2 offset = vec2(float(x), float(y));
       vec2 coord = uv + offset / size;
       if (coord.x >= 0.0 && coord.x <= 1.0 && coord.y >= 0.0 && coord.y <= 1.0) {
-        vec4 c = texture2D(src, coord);
+        vec4 c = texture(src, coord);
         vec2 v = vec2(variance);
         float l = lum(c.xyz);
         // v *= saturate(vec2(1.0 - l, l));
@@ -38,5 +39,5 @@ void main() {
     }
   }}
 
-  gl_FragColor = vec4(mode == 0 ? cMin : cMax);
+  outColor = vec4(mode == 0 ? cMin : cMax);
 }

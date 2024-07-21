@@ -75,9 +75,9 @@ vec4 generate(vec3 dir) {
       float t = magic(p);
       t = exp(-t * t);
       vec3 wave = vec3(
-        texture1D(lutR, t).x,
-        texture1D(lutG, t).x,
-        texture1D(lutB, t).x);
+        texture(lutR, t).x,
+        texture(lutG, t).x,
+        texture(lutB, t).x);
       wave *= sqrt(wave);
 
       const float k = 6.0;
@@ -109,5 +109,5 @@ vec4 generate(vec3 dir) {
 
 void main() {
   vec3 dir = cubeMapDir(uv);
-  gl_FragColor = generate(dir);
+  outColor = generate(dir);
 }

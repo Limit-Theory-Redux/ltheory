@@ -13,5 +13,5 @@ void main() {
   alpha += 0.3 * exp(-max(0.0, d - 0.5));
   alpha += 0.4 * exp(-pow(0.6 * d, 0.9));
   vec3 c = 0.7 * color.xyz;
-  gl_FragColor = alpha * color.w * vec4(c.xyz, 1.0);
+  outColor = alpha * color.w * vec4(c.xyz, 1.0);
 }

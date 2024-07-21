@@ -57,9 +57,11 @@ pub unsafe extern "C" fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindo
 
     // Set up the ortho projection matrix for UI elements.
     let ortho_proj = if this.isWindow {
-        Matrix::from_translation(vec3(-1.0, 1.0, 0.0)) * Matrix::from_scale(vec3(2.0f32 / this.sx as f32, -2.0f32 / this.sy as f32, 1.0))
+        Matrix::from_translation(vec3(-1.0, 1.0, 0.0))
+            * Matrix::from_scale(vec3(2.0f32 / this.sx as f32, -2.0f32 / this.sy as f32, 1.0))
     } else {
-        Matrix::from_translation(vec3(-1.0, -1.0, 0.0)) * Matrix::from_scale(vec3(2.0f32 / this.sx as f32, 2.0f32 / this.sy as f32, 1.0))
+        Matrix::from_translation(vec3(-1.0, -1.0, 0.0))
+            * Matrix::from_scale(vec3(2.0f32 / this.sx as f32, 2.0f32 / this.sy as f32, 1.0))
     };
     ShaderVar::push_matrix("mProjUI", &ortho_proj);
     ShaderVar::push_matrix("mWorldViewUI", &Matrix::IDENTITY);
@@ -79,6 +81,11 @@ pub unsafe extern "C" fn Viewport_Pop() {
     vpIndex -= 1;
     if vpIndex >= 0 {
         let viewport = &vp[vpIndex as usize];
-        glcheck!(gl::Viewport(viewport.x, viewport.y, viewport.sx, viewport.sy));
+        glcheck!(gl::Viewport(
+            viewport.x,
+            viewport.y,
+            viewport.sx,
+            viewport.sy
+        ));
     }
 }

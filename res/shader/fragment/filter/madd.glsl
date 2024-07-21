@@ -1,9 +1,10 @@
-varying vec2 uv;
+in vec2 uv;
+out vec4 outColor;
 
 uniform sampler2D src;
 uniform vec4 add;
 uniform vec4 mult;
 
 void main() {
-  gl_FragColor = mult * texture2D(src, uv) + add;
+  outColor = mult * texture(src, uv) + add;
 }

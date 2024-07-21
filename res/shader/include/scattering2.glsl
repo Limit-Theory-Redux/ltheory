@@ -24,13 +24,13 @@ vec2 rsi(vec3 ro, vec3 rd, float sr) {
 
 float getClouds(vec3 p, float h, float dist) {
   float base = 0.0;
-  base = texture3D(cloudNoise, 1.7 * p.xyz + vec3(355)).x;
-  base = max(base, texture3D(cloudNoise, 3.9 * p.xyz + vec3(1.333)).x);
+  base = texture(cloudNoise, 1.7 * p.xyz + vec3(355)).x;
+  base = max(base, texture(cloudNoise, 3.9 * p.xyz + vec3(1.333)).x);
   base = 1.0 - exp(-pow2(1.5 * max(0.0, base - 0.3)));
-  float thresh = texture3D(cloudNoise, 11.0 * p.yxz + vec3(113)).x;
+  float thresh = texture(cloudNoise, 11.0 * p.yxz + vec3(113)).x;
   float s2 = 0;
-  s2 = texture3D(cloudNoise, 12.77 * p.xyz + vec3(113)).x;
-  s2 += texture3D(cloudNoise, 128.0 * p.zyx + vec3(999.0)).x;
+  s2 = texture(cloudNoise, 12.77 * p.xyz + vec3(113)).x;
+  s2 += texture(cloudNoise, 128.0 * p.zyx + vec3(999.0)).x;
   s2 = pow4(s2);
   base = pow4(4.0 * base);
   float hMask = 1.0;

@@ -363,7 +363,11 @@ impl PrimitiveBuilder {
         if self.colors_dim.is_some() {
             glcheck!(gl::EnableVertexAttribArray(3));
         }
-        glcheck!(gl::DrawArrays(self.primitive.to_gl(), 0, self.positions.len() as gl::types::GLsizei));
+        glcheck!(gl::DrawArrays(
+            self.primitive.to_gl(),
+            0,
+            self.positions.len() as gl::types::GLsizei
+        ));
         glcheck!(gl::BindVertexArray(0));
 
         // Create data for next draw call.

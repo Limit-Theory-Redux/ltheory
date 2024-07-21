@@ -34,8 +34,8 @@ void main() {
   }
 
   /* Output frag color. */ {
-    gl_FragColor.xyz = c;
-    gl_FragColor.w = 1.0;
+    outColor.xyz = c;
+    outColor.w = 1.0;
   }
 }
 

@@ -12,5 +12,5 @@ void main() {
   p.xy = mix(viewport.xy, viewport.zw, 0.5 + 0.5 * p.xy);
   p.z = 0.0;
   p.w = 1.0;
-  gl_Position = gl_ProjectionMatrix * (gl_ModelViewMatrix * p);
+  gl_Position = mProj * (mView * (mWorld * p));
 }

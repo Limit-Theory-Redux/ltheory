@@ -14,7 +14,7 @@ void main() {
     float r = -brushSize * log(1.0 - noise(uvn + 1337.0 * brushSeed + float(i)));
     vec2 dir = r * vec2(cos(t), sin(t));
     float w = 1.0;
-    c += w * texture2D(canvas, uv + dir / canvasSize).xyz;
+    c += w * texture(canvas, uv + dir / canvasSize).xyz;
     tw += w;
   }
   BRUSH_OUTPUT(mix(canvasColor, c / tw, a));

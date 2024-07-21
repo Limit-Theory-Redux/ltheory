@@ -1,9 +1,9 @@
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use super::*;
+use crate::logging::*;
 use crate::math::*;
 use crate::system::*;
-use crate::logging::*;
 
 pub struct Draw {
     alpha_stack: Vec<f32>,
@@ -291,16 +291,7 @@ impl Draw {
         Self::rect_ex(x1, y1, xs, ys, 0.0, 0.0, 1.0, 1.0);
     }
 
-    pub fn rect_ex(
-        x1: f32,
-        y1: f32,
-        xs: f32,
-        ys: f32,
-        u1: f32,
-        v1: f32,
-        u2: f32,
-        v2: f32,
-    ) {
+    pub fn rect_ex(x1: f32, y1: f32, xs: f32, ys: f32, u1: f32, v1: f32, u2: f32, v2: f32) {
         let x2: f32 = x1 + xs;
         let y2: f32 = y1 + ys;
 

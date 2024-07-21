@@ -1,5 +1,8 @@
 #include math
 
+out vec4 outGBuffer1;
+out vec4 outGBuffer2;
+
 const float Material_SIZE       = 4.0;
 
 const float Material_Diffuse = 0.0 / Material_SIZE;
@@ -19,25 +22,25 @@ vec3 decodeNormal(vec2 n) {
 }
 
 void setAlbedo(vec3 a) {
-  gl_FragData[0].xyz = a;
+  outColor.xyz = a;
 }
 
 void setAlpha(float alpha) {
-  gl_FragData[0].w = alpha;
+  outColor.w = alpha;
 }
 
 void setDepth() {
-  gl_FragData[2].x = length(pos - eye);
+  outGBuffer2.x = length(pos - eye);
 }
 
 void setNormal(vec3 n) {
-  gl_FragData[1].xy = encodeNormal(n);
+  outGBuffer1.xy = encodeNormal(n);
 }
 
 void setRoughness(float roughness) {
-  gl_FragData[1].z = roughness;
+  outGBuffer1.z = roughness;
 }
 
 void setMaterial(float m) {
-  gl_FragData[1].w = m;
+  outGBuffer1.w = m;
 }

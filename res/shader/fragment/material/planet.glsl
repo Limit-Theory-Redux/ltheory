@@ -48,7 +48,7 @@ float visibility(
   float tw = 0.0;
   for (float i = 0.0; i < samples; ++i) {
     vec3 sp = normalize(mix(p, toStar, radius * (i + 1.0) / samples));
-    float h = heightFn(textureCube(map, sp).x, octaves, roughness);
+    float h = heightFn(texture(map, sp).x, octaves, roughness);
     float rh = h - (offset + (length(sp) - 1.0));
     v += exp(-strength * heightMult * max(0.0, rh));
   }
@@ -63,7 +63,7 @@ void main() {
   float NL = dot(N, L);
   float light = mix(exp(-max(0.0, pow(1.0 - NL, 4.0))), 1.0, 0.01);
 
-  vec4 map = textureCube(surface, vertPos);
+  vec4 map = texture(surface, vertPos);
   float dist = length((pos - eye) / rPlanet);
   float h1 = heightFn(map.x, 9, 0.70);
   float h2 = heightFn(map.x, 3, 0.20);

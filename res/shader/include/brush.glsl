@@ -12,8 +12,8 @@ uniform vec3 brushColor;
 uniform vec2 brushOrigin;
 
 #define BRUSH_BEGIN                                                            \
-  vec3 canvasColor = texture2D(canvas, uv).xyz;                                \
+  vec3 canvasColor = texture(canvas, uv).xyz;                                \
   vec2 p = canvasSize * uv;                                                    \
   float r = length(brushOrigin - p) / brushSize;                               \
 
-#define BRUSH_OUTPUT(x) gl_FragColor = vec4((x).xyz, 1.0);
+#define BRUSH_OUTPUT(x) outColor = vec4((x).xyz, 1.0);

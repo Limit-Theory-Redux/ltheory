@@ -206,7 +206,7 @@ impl WinitWindow {
 
         let gl_display = gl_config.display();
         let context_attributes = ContextAttributesBuilder::new()
-            .with_context_api(ContextApi::OpenGl(Some(Version::new(2, 1))))
+            .with_context_api(ContextApi::OpenGl(Some(Version::new(3, 3))))
             .with_profile(GlProfile::Compatibility)
             .build(
                 winit_window

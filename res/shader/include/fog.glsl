@@ -7,7 +7,7 @@ float getFog() {
 }
 
 vec3 getFogColor(vec3 V) {
-  return textureCubeLod(irMap, V, 3.0).xyz;
+  return textureLod(irMap, V, 3.0).xyz;
 }
 
 vec3 applyFog(vec3 c, vec3 V) {

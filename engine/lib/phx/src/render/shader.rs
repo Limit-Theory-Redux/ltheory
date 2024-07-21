@@ -509,9 +509,7 @@ impl Shader {
 fn create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> u32 {
     let this = glcheck!(gl::CreateShader(shader_type));
 
-    let version_string = c_str!(
-        "#version 120\n#define texture2DLod texture2D\n#define textureCubeLod textureCube\n"
-    );
+    let version_string = c_str!("#version 140\n");
     let shader_source = CString::new(src).expect("Shader source must be utf-8");
     let mut srcs: [*const libc::c_char; 2] = [version_string, shader_source.as_ptr()];
     glcheck!(gl::ShaderSource(
@@ -538,8 +536,10 @@ fn create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> u32 {
             info_log.as_mut_ptr() as *mut i8,
         ));
 
+        warn!("Shader:\n{src}");
+
         panic!(
-            "CreateGLShader: Failed to compile shader[{length}]:\n{}",
+            "CreateGLShader: Failed to compile shader [{length}]:\n{}",
             String::from_utf8(info_log).unwrap()
         );
     }
