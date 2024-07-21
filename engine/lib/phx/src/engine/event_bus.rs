@@ -321,7 +321,7 @@ impl EventBus {
                     tunnel_id,
                     entity_id,
                 } => {
-                    if let Some(event) = self.events.get_mut(&event_name) {
+                    if let Some(_event) = self.events.get_mut(&event_name) {
                         self.add_subscriber(&event_name, tunnel_id, entity_id);
                         info!(
                             "Subscribed to event '{}' with tunnel_id {}",
