@@ -333,12 +333,6 @@ pub extern "C" fn TexCube_GetSize(this: &mut TexCube) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut ShaderState) {
-    GLMatrix_ModeP();
-    GLMatrix_Push();
-    GLMatrix_Clear();
-    GLMatrix_ModeWV();
-    GLMatrix_Push();
-    GLMatrix_Clear();
     RenderState_PushAllDefaults();
     state.start();
 
@@ -378,10 +372,6 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
 
     state.stop();
     RenderState_PopAll();
-    GLMatrix_ModeP();
-    GLMatrix_Pop();
-    GLMatrix_ModeWV();
-    GLMatrix_Pop();
 }
 
 #[no_mangle]
