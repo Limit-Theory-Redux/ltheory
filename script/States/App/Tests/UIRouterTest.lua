@@ -55,7 +55,7 @@ function Test:onUpdate(dt)
     SoundManager:update(dt)
     MusicPlayer:OnUpdate(dt) --todo fix casing
 
-    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY)
     UIRouter:update(dt)
     Gui:endGui(InputInstance)
 end
@@ -133,8 +133,8 @@ function Test:createStarSystem()
 
     if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         -- TODO: replace with gamestate event system
-        Log.Debug("LimitTheoryRedux: PlayAmbient")
-        MusicPlayer:PlayAmbient()
+        Log.Debug("LimitTheoryRedux: playAmbient")
+        MusicPlayer:playAmbient()
 
         DebugControl.ltheory = self
         self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)

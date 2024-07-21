@@ -61,11 +61,6 @@ function Universe:_clean() --! this needs a fix: this stays in memory instead of
     Log.Debug("-------------------------------------------------------------")
 end
 
----@param dt integer
-function Universe:onUpdate(dt)
-    UniverseEconomy:onUpdate(dt)
-end
-
 ---@param withEconomy boolean
 ---@return StarSystem
 function Universe:createStarSystem(withEconomy)

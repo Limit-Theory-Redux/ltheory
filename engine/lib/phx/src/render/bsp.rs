@@ -1321,30 +1321,57 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawNode(this: &mut BSP, nodeRef: BSPNodeRef) {
+pub unsafe extern "C" fn BSPDebug_DrawNode(this: &mut BSP, nodeRef: BSPNodeRef, color: &Color) {
     // Assert(nodeRef.index);
+
+    // TODO: Store shader properly
+    static mut shader: *mut Shader = std::ptr::null_mut();
+    if shader.is_null() {
+        shader = Box::into_raw(Box::new(Shader::load(
+            "vertex/wvp",
+            "fragment/simple_color",
+        )));
+    }
 
     if nodeRef.index > 0 {
         BSPDebug_DrawNode(
             this,
             this.nodes[nodeRef.index as usize].child[BackIndex as usize],
+            color,
         );
         BSPDebug_DrawNode(
             this,
             this.nodes[nodeRef.index as usize].child[FrontIndex as usize],
+            color,
         );
     } else {
+        (*shader).start();
+        Shader::set_float4("color", color.r, color.g, color.b, color.a);
         let leafIndex = -nodeRef.index;
         for i in 0..nodeRef.triangleCount {
-            let triangle: *mut Triangle = &mut this.triangles[leafIndex as usize + i as usize];
-            Draw_Poly3(((*triangle).vertices).as_mut_ptr(), 3);
+            let triangle: &Triangle = &this.triangles[leafIndex as usize + i as usize];
+            Draw_Tri3(
+                &triangle.vertices[0],
+                &triangle.vertices[1],
+                &triangle.vertices[2],
+            );
         }
+        (*shader).stop();
     };
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNodeRef) {
     // Assert(nodeRef.index);
+
+    // TODO: Store shader properly
+    static mut shader: *mut Shader = std::ptr::null_mut();
+    if shader.is_null() {
+        shader = Box::into_raw(Box::new(Shader::load(
+            "vertex/wvp",
+            "fragment/simple_color",
+        )));
+    }
 
     RenderState_PushBlendMode(1);
     RenderState_PushCullFace(1);
@@ -1355,34 +1382,43 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
         let node: *const BSPNode = &this.nodes[nodeRef.index as usize] as *const _;
 
         /* Back */
-        Draw_Color(0.5f32, 0.3f32, 0.3f32, 0.4f32);
-        BSPDebug_DrawNode(this, (*node).child[BackIndex as usize]);
+        BSPDebug_DrawNode(
+            this,
+            (*node).child[BackIndex as usize],
+            &Color::new(0.5, 0.3, 0.3, 0.4),
+        );
 
         /* Front */
-        Draw_Color(0.3f32, 0.5f32, 0.3f32, 0.4f32);
-        BSPDebug_DrawNode(this, (*node).child[FrontIndex as usize]);
+        BSPDebug_DrawNode(
+            this,
+            (*node).child[FrontIndex as usize],
+            &Color::new(0.3, 0.5, 0.3, 0.4),
+        );
 
         /* Plane */
         let origin: Vec3 = Vec3::new(0., 0., 0.);
         let t: f32 = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
         let mut closestPoint = origin - ((*node).plane.n * t);
         RenderState_PushWireframe(false);
-        Draw_Color(0.3f32, 0.5f32, 0.3f32, 0.4f32);
+        (*shader).start();
+        Shader::set_float4("color", 0.3f32, 0.5f32, 0.3f32, 0.4f32);
         Draw_Plane(&closestPoint, &(*node).plane.n, 2.0f32);
-        Draw_Color(0.5f32, 0.3f32, 0.3f32, 0.4f32);
+        Shader::set_float4("color", 0.5f32, 0.3f32, 0.3f32, 0.4f32);
         let mut neg: Vec3 = (*node).plane.n * -1.0f32;
         Draw_Plane(&mut closestPoint, &mut neg, 2.0f32);
+        (*shader).stop();
         RenderState_PopWireframe();
     } else {
         /* Leaf */
-        Draw_Color(0.5f32, 0.5f32, 0.3f32, 0.4f32);
-        BSPDebug_DrawNode(this, nodeRef);
+        BSPDebug_DrawNode(this, nodeRef, &Color::new(0.5, 0.5, 0.3, 0.4));
     }
 
     RenderState_PopWireframe();
     RenderState_PopDepthTest();
     RenderState_PopCullFace();
     RenderState_PopBlendMode();
+
+    (*shader).stop();
 }
 
 #[no_mangle]
@@ -1392,14 +1428,25 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
     eye: &Position,
 ) {
     let mut pHit = Vec3::ZERO;
+
+    // TODO: Store shader properly
+    static mut shader: *mut Shader = std::ptr::null_mut();
+    if shader.is_null() {
+        shader = Box::into_raw(Box::new(Shader::load(
+            "vertex/wvp",
+            "fragment/simple_color",
+        )));
+    }
+
+    (*shader).start();
     if BSP_IntersectLineSegment(bsp, lineSegment, &mut pHit) {
-        Draw_Color(0.0f32, 1.0f32, 0.0f32, 0.1f32);
+        Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.1f32);
         Draw_Line3(
             &(*lineSegment).p0.relative_to(*eye),
             &Position::from_vec(pHit).relative_to(*eye),
         );
 
-        Draw_Color(1.0f32, 0.0f32, 0.0f32, 1.0f32);
+        Shader::set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
         Draw_Line3(
             &Position::from_vec(pHit).relative_to(*eye),
             &(*lineSegment).p1.relative_to(*eye),
@@ -1408,24 +1455,36 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
         Draw_PointSize(5.0f32);
         Draw_Point3(pHit.x, pHit.y, pHit.z);
     } else {
-        Draw_Color(0.0f32, 1.0f32, 0.0f32, 1.0f32);
+        Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
         Draw_Line3(
             &(*lineSegment).p0.relative_to(*eye),
             &(*lineSegment).p1.relative_to(*eye),
         );
     };
+    (*shader).stop();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere) {
     let mut pHit = Vec3::ZERO;
+
+    // TODO: Store shader properly
+    static mut shader: *mut Shader = std::ptr::null_mut();
+    if shader.is_null() {
+        shader = Box::into_raw(Box::new(Shader::load(
+            "vertex/wvp",
+            "fragment/simple_color",
+        )));
+    }
+
+    (*shader).start();
     if BSP_IntersectSphere(this, sphere, &mut pHit) {
         RenderState_PushWireframe(false);
-        Draw_Color(1.0f32, 0.0f32, 0.0f32, 0.3f32);
+        Shader::set_float4("color", 1.0f32, 0.0f32, 0.0f32, 0.3f32);
         Draw_Sphere(&mut sphere.p, sphere.r);
         RenderState_PopWireframe();
 
-        Draw_Color(1.0f32, 0.0f32, 0.0f32, 1.0f32);
+        Shader::set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
         Draw_Sphere(&mut sphere.p, sphere.r);
 
         RenderState_PushDepthTest(false);
@@ -1434,13 +1493,14 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere
         RenderState_PopDepthTest();
     } else {
         RenderState_PushWireframe(false);
-        Draw_Color(0.0f32, 1.0f32, 0.0f32, 0.3f32);
+        Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.3f32);
         Draw_Sphere(&mut sphere.p, sphere.r);
         RenderState_PopWireframe();
 
-        Draw_Color(0.0f32, 1.0f32, 0.0f32, 1.0f32);
+        Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
         Draw_Sphere(&mut sphere.p, sphere.r);
     };
+    (*shader).stop();
 }
 
 // static void BSPDebug_PrintProfilingData (BSP* self, BSPDebug_IntersectionData* data, double totalTime) {

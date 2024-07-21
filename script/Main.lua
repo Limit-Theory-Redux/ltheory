@@ -5,6 +5,8 @@ package.path = package.path .. ';./script/?.ffi.lua'
 
 ---@type Engine
 EngineInstance = {}
+---@type EventBus
+EventBusInstance = {}
 ---@type Input
 InputInstance = {}
 ---@type Window
@@ -21,6 +23,7 @@ function SetEngine(engine)
     ---@type Engine
     EngineInstance = ffi.cast('Engine*', engine)
 
+    EventBusInstance = EngineInstance:eventBus()
     InputInstance = EngineInstance:input()
     WindowInstance = EngineInstance:window()
     Gui = EngineInstance:hmGui()
@@ -114,8 +117,8 @@ function InitSystem()
             Core.Call(appState.appInit, appState)
         end
 
-        AppFrame = function()
-            Core.Call(appState.onFrame, appState)
+        AppEventLoop = function()
+            Core.Call(appState.eventLoop, appState)
         end
 
         AppClose = function()

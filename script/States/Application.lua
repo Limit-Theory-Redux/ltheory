@@ -27,15 +27,30 @@ function Application:onUpdate(dt) end
 
 function Application:onExit() end
 
-function Application:onInput() end
-
 function Application:quit()
     EngineInstance:exit()
+end
+
+function Application:eventLoop()
+    if not self.eventsRegistered then
+        self:registerEvents()
+        self.eventsRegistered = true
+    end
+
+    local nextEvent = EventBusInstance:getNextEvent()
+    while nextEvent ~= nil do
+        --print("[" .. tostring(Render.ToString(nextEvent:getRender())) .. "]")
+        --print("- Tunnel Id: " .. tostring(nextEvent:getTunnelId()))
+
+        EventTunnels[nextEvent:getTunnelId()](nextEvent)
+        nextEvent = EventBusInstance:getNextEvent()
+    end
 end
 
 -- Application Template --------------------------------------------------------
 
 function Application:appInit()
+    self.eventsRegistered = false
     self.resX, self.resY = self:getDefaultSize()
 
     WindowInstance:setTitle(self:getTitle())
@@ -72,7 +87,29 @@ function Application:appInit()
     self.showBackgroundModeHints = true
 end
 
-function Application:onFrame()
+function Application:registerEvents()
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreSim), self, self.onPreSim)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Sim), self, self.onSim)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostSim), self, self.onPostSim)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreRender), self, self.onPreRender)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Render), self, self.onRender)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostRender), self, self.onPostRender)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreInput), self, self.onPreInput)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Input), self, self.onInput)
+    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostInput), self, self.onPostInput)
+
+    local fakeEntity = { getGuid = function() return 0 end }
+    EventBusInstance:register("MyCustomEvent", EventPriority.Medium, FrameStage.PreRender, false)
+    EventBusInstance:subscribe("MyCustomEvent", fakeEntity,
+        function() Log.Debug("\x1b[31mGot my event\x1b[0m") end)
+    EventBusInstance:send("MyCustomEvent", fakeEntity)
+end
+
+function Application:onPreSim() end
+function Application:onSim() end
+function Application:onPostSim() end
+
+function Application:onPreRender()
     if self.toggleProfiler then
         self.toggleProfiler = false
         self.profiling = not self.profiling
@@ -80,7 +117,31 @@ function Application:onFrame()
     end
 
     Profiler.SetValue('gcmem', GC.GetMemory())
-    Profiler.Begin('Frame')
+    Profiler.Begin('App.onPreRender')
+
+    self.timeScale = 1.0
+    self.doScreenshot = false
+
+    if GameState.paused then
+        self.timeScale = 0.0
+    else
+        self.timeScale = 1.0
+    end
+
+    if InputInstance:isDown(Bindings.TimeAccel) then
+        self.timeScale = GameState.debug.timeAccelFactor
+    end
+
+    local now = TimeStamp.Now()
+    self.dt = self.lastUpdate:getDifference(now)
+    self.lastUpdate = now
+    local timeScaledDt = self.timeScale * self.dt
+
+    --* system & canvas should probably subscribe to onPreRender themselves
+    if GameState.player.humanPlayer:getRoot().update then
+        GameState.player.humanPlayer:getRoot():update(timeScaledDt)
+        GameState.render.uiCanvas:update(timeScaledDt)
+    end
 
     do
         Profiler.SetValue('gcmem', GC.GetMemory())
@@ -96,107 +157,20 @@ function Application:onFrame()
         end
         Profiler.End()
     end
+    Profiler.End()
+end
 
-    local timeScale = 1.0
-    local doScreenshot = false
+function Application:onRender()
+    Profiler.SetValue('gcmem', GC.GetMemory())
+    Profiler.Begin('App.onRender')
 
-    do
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.onInput')
+    WindowInstance:beginDraw()
 
-        -- Immediately quit game without saving
-        if InputInstance:isKeyboardAltPressed() and InputInstance:isPressed(Button.KeyboardQ) then self:quit() end
-        if InputInstance:isPressed(Bindings.Exit) then self:quit() end
+    --* should they subscribe to onRender themselves?
+    GameState.render.uiCanvas:draw(self.resX, self.resY)
+    Gui:draw()
 
-        if InputInstance:isPressed(Bindings.ToggleProfiler) then
-            self.toggleProfiler = true
-        end
-
-        if InputInstance:isPressed(Bindings.Screenshot) then
-            doScreenshot = true
-            if Settings.exists('render.superSample') then
-                self.prevSS = Settings.get('render.superSample')
-            end
-        end
-
-        if InputInstance:isPressed(Bindings.ToggleFullscreen) then
-            GameState.render.fullscreen = not GameState.render.fullscreen
-            WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
-        end
-
-        if InputInstance:isPressed(Bindings.Reload) then
-            Profiler.Begin('Engine.Reload')
-            Cache.Clear()
-            SendEvent('Engine.Reload')
-            Preload.Run()
-            Profiler.End()
-        end
-
-        if InputInstance:isPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
-            if GameState.paused then
-                GameState.paused = false
-                if not GameState.panelActive and not GameState.debug.instantJobs then
-                    InputInstance:setCursorVisible(false)
-                end
-            else
-                GameState.paused = true
-                InputInstance:setCursorVisible(true)
-            end
-        end
-
-        -- Preserving this in case we need to be able to automatically pause on window exit again
-        -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
-        -- if InputInstance:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
-        --     GameState.paused = true
-        -- end
-
-        if not Gui:hasActiveInput() then
-            if InputInstance:isPressed(Bindings.ToggleWireframe) then
-                GameState.debug.physics.drawWireframes = not GameState.debug.physics.drawWireframes
-            end
-
-            if InputInstance:isPressed(Bindings.ToggleMetrics) then
-                GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
-            end
-
-            if MainMenu.inBackgroundMode and InputInstance:isPressed(Bindings.ToggleHUD) then
-                self.showBackgroundModeHints = not self.showBackgroundModeHints
-            end
-
-            self:onInput()
-        end
-
-        Profiler.End()
-    end
-
-    do
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.onUpdate')
-
-        if GameState.paused then --* moved to onUpdate so onInput can set pause/unpause without a crash
-            timeScale = 0.0
-        else
-            timeScale = 1.0
-        end
-
-        if InputInstance:isDown(Bindings.TimeAccel) then
-            timeScale = GameState.debug.timeAccelFactor
-        end
-
-        local now = TimeStamp.Now()
-        self.dt = self.lastUpdate:getDifference(now)
-        self.lastUpdate = now
-        self:onUpdate(timeScale * self.dt)
-        Profiler.End()
-    end
-
-    do
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.onDraw')
-        WindowInstance:beginDraw()
-        self:onDraw()
-        Profiler.End()
-    end
+    Profiler.End()
 
     UI.DrawEx.TextAdditive(
         'Unageo-Medium',
@@ -240,7 +214,7 @@ function Application:onFrame()
     end
 
     -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
-    if doScreenshot then
+    if self.doScreenshot then
         -- Settings.set('render.superSample', 2) -- turn on mild supersampling
         ScreenCap()
         if self.prevSS then
@@ -272,17 +246,90 @@ function Application:onFrame()
             BlendMode.Pop()
         end
     end
-
-    do -- End Draw
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.SwapBuffers')
-        WindowInstance:endDraw()
-        Profiler.End()
-    end
-
     Profiler.End()
     Profiler.LoopMarker()
 end
+
+function Application:onPostRender()
+    do -- End Draw
+        Profiler.SetValue('gcmem', GC.GetMemory())
+        Profiler.Begin('App.onPostRender')
+        WindowInstance:endDraw()
+        Profiler.End()
+    end
+end
+
+function Application:onPreInput() end
+
+function Application:onInput()
+    Profiler.SetValue('gcmem', GC.GetMemory())
+    Profiler.Begin('App.onInput')
+
+    -- Immediately quit game without saving
+    if InputInstance:isKeyboardAltPressed() and InputInstance:isPressed(Button.KeyboardQ) then self:quit() end
+    if InputInstance:isPressed(Bindings.Exit) then self:quit() end
+
+    if InputInstance:isPressed(Bindings.ToggleProfiler) then
+        self.toggleProfiler = true
+    end
+
+    if InputInstance:isPressed(Bindings.Screenshot) then
+        self.doScreenshot = true
+        if Settings.exists('render.superSample') then
+            self.prevSS = Settings.get('render.superSample')
+        end
+    end
+
+    if InputInstance:isPressed(Bindings.ToggleFullscreen) then
+        GameState.render.fullscreen = not GameState.render.fullscreen
+        WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
+    end
+
+    if InputInstance:isPressed(Bindings.Reload) then
+        Profiler.Begin('Engine.Reload')
+        Cache.Clear()
+        SendEvent('Engine.Reload')
+        Preload.Run()
+        Profiler.End()
+    end
+
+    if InputInstance:isPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
+        if GameState.paused then
+            GameState.paused = false
+            if not GameState.panelActive and not GameState.debug.instantJobs then
+                InputInstance:setCursorVisible(false)
+            end
+        else
+            GameState.paused = true
+            InputInstance:setCursorVisible(true)
+        end
+    end
+
+    -- Preserving this in case we need to be able to automatically pause on window exit again
+    -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
+    -- if InputInstance:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
+    --     GameState.paused = true
+    -- end
+
+    if InputInstance:isPressed(Bindings.ToggleWireframe) then
+        GameState.debug.physics.drawWireframe = not GameState.debug.physics.drawWireframe
+    end
+
+    if InputInstance:isPressed(Bindings.ToggleMetrics) then
+        GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
+    end
+
+    if MainMenu.inBackgroundMode and InputInstance:isPressed(Bindings.ToggleHUD) then
+        self.showBackgroundModeHints = not self.showBackgroundModeHints
+    end
+
+    --! why is this needed for the game to render and update lol
+    GameState.render.uiCanvas:input()
+
+    Profiler.End()
+end
+
+function Application:onPostInput() end
 
 function Application:doExit()
     if self.profiling then Profiler.Disable() end

@@ -86,6 +86,9 @@ local newgameGrid = UILayout.Grid {
             margin = { 0, 0 },
             widthInLayout = getLayoutContainerWidthPercentage,
             layoutType = GuiLayoutType.Vertical,
+            color = {
+                background = Color(0, 0, 0, 0.3)
+            },
             contents = {
                 UIComponent.Container {
                     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
@@ -94,9 +97,6 @@ local newgameGrid = UILayout.Grid {
                     margin = { 0, 0 },
                     layoutType = GuiLayoutType.Vertical,
                     heightInLayout = 2 / 10,
-                    color = {
-                        background = Color(0, 0, 0, 0.3)
-                    },
                     contents = {
                         UIComponent.Text {
                             text = "NEW GAME",
@@ -111,9 +111,6 @@ local newgameGrid = UILayout.Grid {
                     margin = { 0, 0 },
                     layoutType = GuiLayoutType.Vertical,
                     heightInLayout = 7 / 10,
-                    color = {
-                        background = Color(0, 0, 0, 0.3)
-                    },
                     contents = {
                         UIComponent.Button_MainMenu {
                             title = "Back",
@@ -131,9 +128,6 @@ local newgameGrid = UILayout.Grid {
                     margin = { 0, 0 },
                     heightInLayout = 1 / 10,
                     layoutType = GuiLayoutType.Vertical,
-                    color = {
-                        background = Color(0, 0, 0, 0.3)
-                    },
                     contents = {
                         UIComponent.Text {
                             text = Config.gameVersion,
@@ -339,21 +333,21 @@ local newgameGrid = UILayout.Grid {
                                     currentValue = function() return GameState.gen.nEscortNPCs end,
                                     callback = function(v) GameState.gen.nEscortNPCs = v end
                                 },
---                              UIComponent.Slider {
---                                  size = ResponsiveSize(300, 20),
---                                  margin = { 0, 18 },
---                                  align = { AlignHorizontal.Center, AlignVertical.Center },
---                                  sound = Config.audio.sounds.click,
---                                  toolTip = function()
---                                      return
---                                      "Size class of the player's ship."
---                                  end,
---                                  increment = 1,
---                                  minValue = 1,
---                                  maxValue = Enums.ShipHulls.VeryLarge,
---                                  currentValue = function() return GameState.gen.shipHull end,
---                                  callback = function(v) GameState.player.shipHull = v end
---                              },
+                                --                              UIComponent.Slider {
+                                --                                  size = ResponsiveSize(300, 20),
+                                --                                  margin = { 0, 18 },
+                                --                                  align = { AlignHorizontal.Center, AlignVertical.Center },
+                                --                                  sound = Config.audio.sounds.click,
+                                --                                  toolTip = function()
+                                --                                      return
+                                --                                      "Size class of the player's ship."
+                                --                                  end,
+                                --                                  increment = 1,
+                                --                                  minValue = 1,
+                                --                                  maxValue = Enums.ShipHulls.VeryLarge,
+                                --                                  currentValue = function() return GameState.gen.shipHull end,
+                                --                                  callback = function(v) GameState.player.shipHull = v end
+                                --                              },
                                 UIComponent.Dropdown {
                                     width = 300,
                                     height = 20,

@@ -272,14 +272,19 @@ end
 ----------------------------------------------------------------------------]]
 --
 
-function Widget:applyColor(focus, active, normalColor, alpha)
+function Widget:getColor(focus, active, normalColor, alpha)
+    local color
     if active == self then
-        Config.ui.color.active:set(alpha)
+        color = Config.ui.color.active
     elseif focus == self then
-        Config.ui.color.focused:set(alpha)
+        color = Config.ui.color.focused
     else
-        normalColor:set(alpha)
+        color = normalColor
     end
+    if alpha ~= nil then
+        color.a = alpha
+    end
+    return color
 end
 
 function Widget:containsPoint(x, y)

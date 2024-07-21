@@ -33,38 +33,6 @@ function LimitTheoryRedux:onInit()
     self:initMainMenu(true)
 end
 
----@param dt integer
----@diagnostic disable-next-line: duplicate-set-field
-function LimitTheoryRedux:onInput()
-    GameState.render.uiCanvas:input()
-    UIRouter:input()
-end
-
----@param dt integer
----@diagnostic disable-next-line: duplicate-set-field
-function LimitTheoryRedux:onUpdate(dt)
-    if not GameState.player.humanPlayer:getRoot().update then
-        return
-    end
-
-    GameState.player.humanPlayer:getRoot():update(dt)
-
-    Universe:onUpdate(dt)
-    SoundManager:update(dt)
-    MusicPlayer:OnUpdate(dt) --todo fix casing
-
-    GameState.render.uiCanvas:update(dt)
-    Gui:beginGui(self.resX, self.resY)
-    UIRouter:update(dt)
-    Gui:endGui(InputInstance)
-end
-
----@diagnostic disable-next-line: duplicate-set-field
-function LimitTheoryRedux:onDraw()
-    GameState.render.uiCanvas:draw(self.resX, self.resY)
-    Gui:draw()
-end
-
 function LimitTheoryRedux:initMainMenu(isAppInit)
     GameState:SetState(Enums.GameStates.MainMenu)
 
@@ -110,13 +78,13 @@ end
 function LimitTheoryRedux:soundOn()
     GameState.audio.soundEnabled = true
     --Log.Debug("LimitTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
-    MusicPlayer:SetVolume(MusicPlayer.lastVolume)
+    MusicPlayer:setVolume(MusicPlayer.lastVolume)
 end
 
 function LimitTheoryRedux:soundOff()
     GameState.audio.soundEnabled = false
     --Log.Debug("LimitTheoryRedux:SoundOff: volume set to 0")
-    MusicPlayer:SetVolume(0)
+    MusicPlayer:setVolume(0)
 end
 
 --* any operations we want to do before exiting the game

@@ -58,11 +58,11 @@ local function DrawMesh(mesh, cullMode, depthMode, alphaMode)
     RenderState.PushCullFace(cullMode)
     RenderState.PushDepthTest(depthMode)
 
-    Draw.Color(0.2, 0.2, 0.2, alphaMode)
+    Shader.SetFloat4("color", 0.2, 0.2, 0.2, alphaMode)
     mesh:draw()
 
     RenderState.PushWireframe(true)
-    Draw.Color(1.0, 1.0, 1.0, 0.1)
+    Shader.SetFloat4("color", 1.0, 1.0, 1.0, 0.1)
     mesh:draw()
     RenderState.PopWireframe()
 
@@ -322,25 +322,22 @@ function BSPTest:onDraw()
     local obj = State.obj
     local bsp = State.bsp
 
+    local shader = Cache.Shader('vp', 'simple_color')
+
     do -- Preamble
         Draw.Clear(0.1, 0.1, 0.1, 1.0)
         Draw.ClearDepth(1)
 
-        GLMatrix.ModeP()
-        GLMatrix.PushClear()
-        GLMatrix.Perspective(60, Viewport.GetAspect(), 0.1, 10000.0)
+        ShaderVar.PushMatrix("mProj", Matrix.Perspective(60, Viewport.GetAspect(), 0.1, 10000.0))
 
-        GLMatrix.ModeWV()
-        GLMatrix.Push()
-
-        local cameraP_Euc = Vec3d()
+        local cameraP_Euc = Vec3f()
         cameraP_Euc.x     = gen.cameraP.x * sin(gen.cameraP.z) * cos(gen.cameraP.y)
         cameraP_Euc.y     = gen.cameraP.x * cos(gen.cameraP.z)
         cameraP_Euc.z     = gen.cameraP.x * sin(gen.cameraP.z) * sin(gen.cameraP.y)
 
-        local origin      = Vec3d()
-        local up          = Vec3d(0.0, 1.0, 0.0)
-        GLMatrix.LookAt(cameraP_Euc, origin, up)
+        local origin      = Vec3f(0.0, 0.0, 0.0)
+        local up          = Vec3f(0.0, 1.0, 0.0)
+        ShaderVar.PushMatrix("mView", Matrix.LookAt(cameraP_Euc, origin, up))
 
         RenderState.PushBlendMode(BlendMode.Alpha)
         RenderState.PushDepthTest(true)
@@ -365,19 +362,23 @@ function BSPTest:onDraw()
 
         --No test, draw mesh
         if bsp.testNumber == 1 then
+            shader:start()
+
             local zero = Vec3f()
             local p
-            Draw.Color(1.0, 0.0, 0.0, 1.0)
+            Shader.SetFloat4("color", 1.0, 0.0, 0.0, 1.0)
             p = Vec3f(1.0, 0.0, 0.0)
             Draw.Line3(zero, p)
-            Draw.Color(0.0, 1.0, 0.0, 1.0)
+            Shader.SetFloat4("color", 0.0, 1.0, 0.0, 1.0)
             p = Vec3f(0.0, 1.0, 0.0)
             Draw.Line3(zero, p)
-            Draw.Color(0.0, 0.0, 1.0, 1.0)
+            Shader.SetFloat4("color", 0.0, 0.0, 1.0, 1.0)
             p = Vec3f(0.0, 0.0, 1.0)
             Draw.Line3(zero, p)
 
             DrawMesh(obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
+
+            shader:stop()
 
             if InputInstance:isPressed(Button.KeyboardRight) then
                 leafIndex = leafIndex + 1
@@ -391,8 +392,7 @@ function BSPTest:onDraw()
             RenderState.PushWireframe(false)
             RenderState.PushDepthTest(false)
             RenderState.PushCullFace(CullFace.None)
-            Draw.Color(1, 1, 1, 0.75)
-            BSPDebug.DrawNode(bsp.bsp, leafNodeRef)
+            BSPDebug.DrawNode(bsp.bsp, leafNodeRef, Color(1, 1, 1, 0.75))
             RenderState.PopCullFace()
             RenderState.PopDepthTest()
             RenderState.PopWireframe()
@@ -419,7 +419,9 @@ function BSPTest:onDraw()
         -- TEST : Test random line segments against the BSP tree
         if bsp.testNumber == 3 then
             if not gen.depthMode then
+                shader:start()
                 DrawMesh(obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
+                shader:stop()
             end
 
             if InputInstance:isPressed(Button.KeyboardRight) then bsp.seed = bsp.seed + 1 end
@@ -447,20 +449,26 @@ function BSPTest:onDraw()
             rng:free()
 
             if gen.depthMode then
+                shader:start()
                 DrawMesh(obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
+                shader:stop()
             end
         end
 
         -- TEST : Check a single line segment (like a known false negative)
         if bsp.testNumber == 4 then
             if not gen.depthMode then
+                shader:start()
                 DrawMesh(obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
+                shader:stop()
             end
 
             BSPDebug.DrawLineSegment(bsp.bsp, obj.testLineSegment)
 
             if gen.depthMode then
+                shader:start()
                 DrawMesh(obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
+                shader.stop()
             end
         end
 
@@ -491,13 +499,17 @@ function BSPTest:onDraw()
             if InputInstance:isPressed(Button.KeyboardPageUp) then mul = mul + 1 end
             --RAY_INTERSECTION_EPSILON = mul * PLANE_THICKNESS_EPSILON
 
+            shader:start()
+
             RenderState.PushWireframe(false)
-            Draw.Color(0.2, 0.2, 0.2, 1.0)
+            Shader.SetFloat4("color", 0.2, 0.2, 0.2, 1.0)
             obj.mesh:draw()
             RenderState.PopWireframe()
 
-            Draw.Color(1.0, 1.0, 1.0, 0.1)
+            Shader.SetFloat4("color", 1.0, 1.0, 1.0, 0.1)
             obj.mesh:draw()
+
+            shader:stop()
 
             local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or math.random())
             local sphere = ffi.new('Sphere')
@@ -561,6 +573,7 @@ function BSPTest:onDraw()
 
         local res = Vec2i()
         Viewport.GetSize(res)
+        -- TODO: Replace this ortho matrix with a shader auto var for UI elements.
         GLMatrix.Translate(-1.0, 1.0, 0.0)
         GLMatrix.Scale(2.0 / res.x, -2.0 / res.y, 1.0)
 
@@ -577,7 +590,7 @@ function BSPTest:onDraw()
         buffer = format('Nodes: %i', sphereProf.nodes)
         gen.font:draw(buffer,
             2.0 * padding, line,
-            1, 1, 1, 1
+            Color(1, 1, 1, 1)
         )
         line = line - (size + padding)
 
@@ -591,7 +604,7 @@ function BSPTest:onDraw()
         buffer = format('Leaves: %i', sphereProf.leaves)
         gen.font:draw(buffer,
             2.0 * padding, line,
-            1, 1, 1, 1
+            Color(1, 1, 1, 1)
         )
         line = line - (size + padding)
 
@@ -599,7 +612,7 @@ function BSPTest:onDraw()
         buffer = format('Triangles: %i', sphereProf.triangles)
         gen.font:draw(buffer,
             2.0 * padding, line,
-            1, 1, 1, 1
+            Color(1, 1, 1, 1)
         )
         line = line - (size + padding)
 
@@ -624,10 +637,8 @@ function BSPTest:onDraw()
     RenderState.PopDepthTest()
     RenderState.PopBlendMode()
 
-    GLMatrix.ModeWV()
-    GLMatrix.Pop()
-    GLMatrix.ModeP()
-    GLMatrix.Pop()
+    ShaderVar.Pop("mView")
+    ShaderVar.Pop("mProj")
 end
 
 function BSPTest:onExit()
@@ -638,7 +649,6 @@ function BSPTest:onExit()
 
     obj.mesh:free()
     bsp.bsp:free()
-    gen.font:free()
 end
 
 return BSPTest

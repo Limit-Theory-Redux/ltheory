@@ -18,8 +18,8 @@ function LoadingScreen:onPageOpen()
 
     GameState:SetState(Enums.GameStates.LoadingScreen)
 
-    Log.Debug("LimitTheoryRedux: PlayAmbient")
-    MusicPlayer:PlayAmbient()
+    Log.Debug("LimitTheoryRedux: playAmbient")
+    MusicPlayer:playAmbient()
 
     -- create star system from universe with economy
     --* replace with proper loading mechanism (async) at some point

@@ -63,7 +63,7 @@ function Test:showTodo()
 end
 
 function Test:onUpdate(dt)
-    Gui:beginGui(self.resX, self.resY, InputInstance)
+    Gui:beginGui(self.resX, self.resY)
     Gui:image(self.bg)
     self:showTodo()
     Gui:endGui(InputInstance)
