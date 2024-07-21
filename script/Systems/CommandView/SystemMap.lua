@@ -157,7 +157,6 @@ function SystemMap:onDraw(state)
         --]]
         end
     end
-    Draw.Color(1, 1, 1, 1)
     Draw.SmoothPoints(false)
     BlendMode.Pop()
 
