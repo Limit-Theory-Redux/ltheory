@@ -334,7 +334,6 @@ pub extern "C" fn TexCube_GetSize(this: &mut TexCube) -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut ShaderState) {
     RenderState_PushAllDefaults();
-    state.start();
 
     for i in 0..6 {
         let face: Face = kFaces[i as usize];
@@ -344,6 +343,8 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
         RenderTarget_Push(size, size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(0.0f32, 0.0f32, 0.0f32, 1.0f32);
+        
+        state.start();
         Shader::set_float3("cubeLook", face.look.x, face.look.y, face.look.z);
         Shader::set_float3("cubeUp", face.up.x, face.up.y, face.up.z);
         Shader::set_float("cubeSize", size_f);
@@ -353,7 +354,7 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
         while j <= size {
             let time: TimeStamp = TimeStamp::now();
             ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
-            Draw_Rect(0.0f32, 0.0f32, size_f, size_f);
+            Draw::rect(0.0f32, 0.0f32, size_f, size_f);
             Draw_Flush();
             ClipRect_Pop();
 
@@ -366,11 +367,12 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
             ) as i32;
             job_size = i32::min(job_size, size - j + 1);
         }
+        
+        state.stop();
 
         RenderTarget_Pop();
     }
 
-    state.stop();
     RenderState_PopAll();
 }
 
