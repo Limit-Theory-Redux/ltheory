@@ -1,3 +1,5 @@
+#version 330
+
 #include math
 #include noise
 

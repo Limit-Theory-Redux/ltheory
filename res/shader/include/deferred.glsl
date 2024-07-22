@@ -1,7 +1,7 @@
 #include math
 
-out vec4 outGBuffer1;
-out vec4 outGBuffer2;
+layout(location = 1) out vec4 outGBuffer1;
+layout(location = 2) out vec4 outGBuffer2;
 
 const float Material_SIZE       = 4.0;
 

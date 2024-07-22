@@ -7,7 +7,7 @@ in vec3 vertNormal;
 in vec3 vertPos;
 in float flogz;
 
-out vec4 outColor;
+layout (location = 0) out vec4 outColor;
 
 uniform vec3 eye;
 uniform mat4 mWorldIT;

@@ -509,13 +509,11 @@ impl Shader {
 fn create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> u32 {
     let this = glcheck!(gl::CreateShader(shader_type));
 
-    let version_string = c_str!("#version 140\n");
-    let shader_source = CString::new(src).expect("Shader source must be utf-8");
-    let mut srcs: [*const libc::c_char; 2] = [version_string, shader_source.as_ptr()];
+    let src_cstr = CString::new(src).expect("Shader source must be utf-8");
     glcheck!(gl::ShaderSource(
         this,
-        2,
-        srcs.as_mut_ptr() as *const *const gl::types::GLchar,
+        1,
+        &src_cstr.as_ptr(),
         std::ptr::null(),
     ));
     glcheck!(gl::CompileShader(this));
