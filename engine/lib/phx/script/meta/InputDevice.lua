@@ -8,5 +8,5 @@ InputDevice = {}
 function InputDevice:equal(other) end
 
 ---@return string
-function InputDevice:getString() end
+function InputDevice:toString() end
 

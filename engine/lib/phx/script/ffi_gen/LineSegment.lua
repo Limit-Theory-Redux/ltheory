@@ -12,16 +12,16 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void LineSegment_Free      (LineSegment*);
-            void LineSegment_ToRay     (LineSegment const*, Ray* out);
-            void LineSegment_FromRay   (Ray const* ray, LineSegment* out);
-            cstr LineSegment_GetString (LineSegment const*);
+            void LineSegment_Free     (LineSegment*);
+            void LineSegment_ToRay    (LineSegment const*, Ray* out);
+            void LineSegment_FromRay  (Ray const* ray, LineSegment* out);
+            cstr LineSegment_ToString (LineSegment const*);
         ]]
     end
 
     do -- Global Symbol Table
         LineSegment = {
-            FromRay   = libphx.LineSegment_FromRay,
+            FromRay  = libphx.LineSegment_FromRay,
         }
 
         local mt = {
@@ -35,11 +35,11 @@ function Loader.defineType()
     do -- Metatype for class instances
         local t  = ffi.typeof('LineSegment')
         local mt = {
-            __tostring = function(self) return ffi.string(libphx.LineSegment_GetString(self)) end,
+            __tostring = function(self) return ffi.string(libphx.LineSegment_ToString(self)) end,
             __index = {
-                clone     = function(x) return LineSegment_t(x) end,
-                toRay     = libphx.LineSegment_ToRay,
-                getString = libphx.LineSegment_GetString,
+                clone    = function(x) return LineSegment_t(x) end,
+                toRay    = libphx.LineSegment_ToRay,
+                toString = libphx.LineSegment_ToString,
             },
         }
 
