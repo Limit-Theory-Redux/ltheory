@@ -145,8 +145,8 @@ impl Draw {
     pub fn border(s: f32, x: f32, y: f32, w: f32, h: f32) {
         Draw::rect(x, y, w, s);
         Draw::rect(x, y + h - s, w, s);
-        Draw::rect(x, y + s, s, h - 2.0f32 * s);
-        Draw::rect(x + w - s, y + s, s, h - 2.0f32 * s);
+        Draw::rect(x, y + s, s, h - 2.0 * s);
+        Draw::rect(x + w - s, y + s, s, h - 2.0 * s);
     }
 
     pub fn box3(b: &Box3) {
@@ -214,7 +214,8 @@ impl Draw {
     }
 
     pub fn plane(p: &Vec3, n: &Vec3, scale: f32) {
-        let mut e1: Vec3 = if f64::abs(n.x as f64) < 0.7f64 {
+        const THRESHOLD: f32 = 0.7;
+        let mut e1: Vec3 = if f32::abs(n.x) < THRESHOLD {
             Vec3::X
         } else {
             Vec3::Y
@@ -326,8 +327,8 @@ impl Draw {
         unsafe { Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32) };
 
         let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
-        let phi: f32 = 1.0f32 / f_res * std::f32::consts::PI;
-        let tc: Vec3 = *p + Self::spherical(r, 0.0f32, 0.0f32);
+        let phi: f32 = 1.0 / f_res * std::f32::consts::PI;
+        let tc: Vec3 = *p + Self::spherical(r, 0.0, 0.0);
 
         this.pb.begin(PrimitiveType::Triangles);
         for i_theta in 0..res {
@@ -352,7 +353,7 @@ impl Draw {
             )
         };
 
-        let mut last_phi: f32 = 1.0f32 / f_res * std::f32::consts::PI;
+        let mut last_phi: f32 = 1.0 / f_res * std::f32::consts::PI;
         let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
 
         this.pb.begin(PrimitiveType::Quads);
@@ -381,7 +382,7 @@ impl Draw {
 
         let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
         let phi: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::PI;
-        let bc: Vec3 = *p + Self::spherical(r, 0.0f32, std::f32::consts::PI);
+        let bc: Vec3 = *p + Self::spherical(r, 0.0, std::f32::consts::PI);
 
         this.pb.begin(PrimitiveType::Triangles);
         for i_theta in 0..res {

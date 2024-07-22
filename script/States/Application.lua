@@ -97,12 +97,6 @@ function Application:registerEvents()
     EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreInput), self, self.onPreInput)
     EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Input), self, self.onInput)
     EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostInput), self, self.onPostInput)
-
-    local fakeEntity = { getGuid = function() return 0 end }
-    EventBusInstance:register("MyCustomEvent", EventPriority.Medium, FrameStage.PreRender, false)
-    EventBusInstance:subscribe("MyCustomEvent", fakeEntity,
-        function() Log.Debug("\x1b[31mGot my event\x1b[0m") end)
-    EventBusInstance:send("MyCustomEvent", fakeEntity)
 end
 
 function Application:onPreSim() end
