@@ -186,6 +186,7 @@ pub struct EventBus {
     next_subscriber_id: AtomicU32,
     next_tunnel_id: AtomicU32,
     current_frame_stage: Option<FrameStage>,
+    current_event: Option<Event>,
     current_message_request: Option<MessageRequest>,
 }
 
@@ -225,6 +226,7 @@ impl EventBus {
             next_subscriber_id: AtomicU32::new(0),
             next_tunnel_id: AtomicU32::new(0),
             current_frame_stage: Some(FrameStage::PreSim),
+            current_event: None,
             current_message_request: None,
         }
     }
@@ -239,6 +241,7 @@ impl EventBus {
 
         if let Some(event) = self.events.get_mut(event_name) {
             event.subscribers.push(subscriber);
+            event.subscribers.sort_by(|a, b| a.id.cmp(&b.id));
         } else {
             panic!("error while pushing subscriber");
         }
@@ -411,13 +414,29 @@ impl EventBus {
     pub fn get_next_event(&mut self) -> Option<&EventData> {
         static mut EVENT_DATA_STORAGE: Option<EventData> = None;
 
-        while let Some(frame_stage) = self.current_frame_stage {
-            if let Some(queue) = self.frame_stage_map.get_mut(&frame_stage) {
-                if self.current_message_request.is_none() {
-                    if let Some(message_request) = queue.peek().cloned() {
-                        self.current_message_request = Some(message_request.clone());
+        //info!("Entering get_next_event");
 
+        if self.current_frame_stage.is_none() {
+            self.current_frame_stage = Some(FrameStage::PreSim);
+            //info!("Initializing current_frame_stage to PreSim");
+        }
+
+        while let Some(frame_stage) = self.current_frame_stage {
+            //info!("Processing frame stage: {:?}", frame_stage);
+
+            if let Some(queue) = self.frame_stage_map.get_mut(&frame_stage) {
+                //info!("Queue found for frame stage, length: {}", queue.len());
+
+                if self.current_message_request.is_none() {
+                    self.current_message_request = queue.pop();
+
+                    if let Some(message_request) = &self.current_message_request {
+                        //info!(
+                        //    "Popped new message request: {:?}",
+                        //    message_request.event_name
+                        //);
                         if message_request.stay_alive {
+                            //info!("Caching stay_alive message request");
                             let message_request_cache = MessageRequestCache {
                                 frame_stage,
                                 priority: message_request.priority,
@@ -427,14 +446,23 @@ impl EventBus {
                             };
                             self.cached_requests.push(message_request_cache);
                         }
+                    } else {
+                        //info!("No more message requests in queue");
                     }
                 }
 
                 if let Some(ref message_request) = self.current_message_request {
-                    if let Some(event) = self.events.get_mut(&message_request.event_name) {
-                        event.subscribers.sort_by(|a, b| a.id.cmp(&b.id));
-
+                    if self.current_event.is_none() {
+                        self.current_event =
+                            self.events.get_mut(&message_request.event_name).cloned();
+                        //info!(
+                        //    "Retrieved event for message request: {:?}",
+                        //    message_request.event_name
+                        //);
+                    }
+                    if let Some(event) = &mut self.current_event {
                         if let Some(subscriber) = event.get_next_subscriber() {
+                            //info!("Found next subscriber for event");
                             if message_request.stay_alive
                                 || message_request.for_entity_id == subscriber.entity_id
                             {
@@ -447,29 +475,52 @@ impl EventBus {
                                     EVENT_DATA_STORAGE = Some(event_data);
                                 }
 
+                                //info!(
+                                //    "Returning event data for frame stage {:?}, tunnel_id {:?}",
+                                //    frame_stage, subscriber.tunnel_id
+                                //);
                                 return unsafe { EVENT_DATA_STORAGE.as_ref() };
                             }
                         } else {
+                            //info!("No more subscribers for current event");
                             event.reset_processed_subscribers();
-                            queue.pop();
+                            self.current_event = None;
                             self.current_message_request = None;
                         }
                     }
                 }
+
+                if self.current_message_request.is_none() && queue.is_empty() {
+                    //info!(
+                    //    "No more message requests and queue is empty, moving to next frame stage"
+                    //);
+                    let next_frame_stage = {
+                        let mut iter = FrameStage::iter().skip_while(|&pass| pass != frame_stage);
+                        iter.next();
+                        iter.next()
+                    };
+                    self.current_frame_stage = next_frame_stage;
+                    //info!("Next frame stage set to {:?}", self.current_frame_stage);
+                }
+            } else {
+                //info!("No queue for current frame stage, moving to next");
+                let next_frame_stage = {
+                    let mut iter = FrameStage::iter().skip_while(|&pass| pass != frame_stage);
+                    iter.next();
+                    iter.next()
+                };
+                self.current_frame_stage = next_frame_stage;
+                //info!("Next frame stage set to {:?}", self.current_frame_stage);
             }
-
-            let next_frame_stage = {
-                let mut iter = FrameStage::iter().skip_while(|&pass| pass != frame_stage);
-                iter.next();
-                iter.next()
-            };
-
-            self.current_frame_stage = next_frame_stage;
         }
 
+        //info!("All frame stages processed");
         self.process_operations();
+        //info!("Operations processed");
         self.reinsert_stay_alive_requests();
+        //info!("Stay-alive requests reinserted");
         self.current_frame_stage = Some(FrameStage::PreSim);
+        //info!("Frame stage reset to PreSim");
         None
     }
 
