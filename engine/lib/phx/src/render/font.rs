@@ -222,7 +222,7 @@ impl Font {
                 Shader::reset_tex_index();
                 Shader::set_tex2d("glyph", unsafe { &mut *glyph.tex });
 
-                Draw_RectEx(x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
+                Draw::rect_ex(x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
 
                 x += glyph.advance as f32;
                 glyph_last = glyph.index;

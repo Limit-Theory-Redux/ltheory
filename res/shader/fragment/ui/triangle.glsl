@@ -42,5 +42,5 @@ void main() {
   alpha += 0.8 * fill;
   alpha += 0.3 * glow;
 
-  gl_FragColor = alpha * color.w * vec4(2.0 * color.xyz, 1.0);
+  outColor = alpha * color.w * vec4(2.0 * color.xyz, 1.0);
 }

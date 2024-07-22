@@ -43,5 +43,5 @@ void main() {
   float n = fSmoothNoiseT(p + seed * vec3(2.0, 3.0, 5.0), octaves, smoothness);
   n = exp(-pow2(4.0 * (n - 0.5)));
   float d = n;
-  gl_FragColor.x = n;
+  outColor.x = n;
 }

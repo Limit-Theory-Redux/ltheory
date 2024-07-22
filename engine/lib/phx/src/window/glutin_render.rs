@@ -58,12 +58,9 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
     glcheck!(gl::Enable(gl::TEXTURE_CUBE_MAP_SEAMLESS));
     glcheck!(gl::Disable(gl::LINE_SMOOTH));
     glcheck!(gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST));
-    glcheck!(gl::LineWidth(2.0f32));
-
-    glcheck!(gl::MatrixMode(gl::PROJECTION));
-    glcheck!(gl::LoadIdentity());
-    glcheck!(gl::MatrixMode(gl::MODELVIEW));
-    glcheck!(gl::LoadIdentity());
+    if cfg!(not(target_os = "macos")) {
+        glcheck!(gl::LineWidth(2.0f32));
+    }
 
     unsafe { RenderState_PushAllDefaults() };
 }

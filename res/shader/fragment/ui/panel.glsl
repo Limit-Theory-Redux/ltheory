@@ -39,5 +39,5 @@ void main() {
   c += 0.3 * vec3(0.1, 0.5, 1.0) * exp(-8.0 * length(uv - vec2(0.5, 0.0)));
   c = mix(c, vec3(0.005, 0.005, 0.005), 1.0 - exp(-2.0 * max(0.0, d)));
 
-  gl_FragColor = vec4(c, mult);
+  outColor = vec4(c, mult);
 }

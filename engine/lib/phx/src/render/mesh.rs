@@ -7,8 +7,9 @@ use crate::system::*;
 
 pub struct Mesh {
     pub _refCount: u32,
-    pub vbo: u32,
-    pub ibo: u32,
+    pub vbo: gl::types::GLuint,
+    pub ibo: gl::types::GLuint,
+    pub vao: gl::types::GLuint,
     pub version: u64,
     pub versionBuffers: u64,
     pub versionInfo: u64,
@@ -67,6 +68,7 @@ pub unsafe extern "C" fn Mesh_Create() -> Box<Mesh> {
         _refCount: 0,
         vbo: 0,
         ibo: 0,
+        vao: 0,
         version: 1,
         versionBuffers: 0,
         versionInfo: 0,
@@ -105,6 +107,7 @@ pub extern "C" fn Mesh_Free(mut this: Box<Mesh>) {
     this._refCount = (this._refCount).wrapping_sub(1);
 
     if this._refCount == 0 && this.vbo != 0 {
+        glcheck!(gl::DeleteVertexArrays(1, &this.vao));
         glcheck!(gl::DeleteBuffers(1, &this.vbo));
         glcheck!(gl::DeleteBuffers(1, &this.ibo));
     }
@@ -227,8 +230,10 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(this: &mut Mesh, vertex: *const Verte
 pub extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
     /* Release cached GL buffers if the mesh has changed since we built them. */
     if this.vbo != 0 && this.version != this.versionBuffers {
+        glcheck!(gl::DeleteVertexArrays(1, &this.vao));
         glcheck!(gl::DeleteBuffers(1, &this.vbo));
         glcheck!(gl::DeleteBuffers(1, &this.ibo));
+        this.vao = 0;
         this.vbo = 0;
         this.ibo = 0;
     }
@@ -259,40 +264,43 @@ pub extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
             gl::STATIC_DRAW,
         ));
 
+        glcheck!(gl::GenVertexArrays(1, &mut this.vao));
+        glcheck!(gl::BindVertexArray(this.vao));
+
+        glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
+        glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
+        glcheck!(gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+            offset_of!(Vertex, p) as *const _,
+        ));
+        glcheck!(gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+            offset_of!(Vertex, n) as *const _,
+        ));
+        glcheck!(gl::VertexAttribPointer(
+            2,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+            offset_of!(Vertex, uv) as *const _,
+        ));
+
         this.versionBuffers = this.version;
     }
 
-    glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
-    glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
-
+    glcheck!(gl::BindVertexArray(this.vao));
     glcheck!(gl::EnableVertexAttribArray(0));
     glcheck!(gl::EnableVertexAttribArray(1));
     glcheck!(gl::EnableVertexAttribArray(2));
-
-    glcheck!(gl::VertexAttribPointer(
-        0,
-        3,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, p) as *const _,
-    ));
-    glcheck!(gl::VertexAttribPointer(
-        1,
-        3,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, n) as *const _,
-    ));
-    glcheck!(gl::VertexAttribPointer(
-        2,
-        2,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, uv) as *const _,
-    ));
 }
 
 #[no_mangle]
@@ -318,8 +326,7 @@ pub extern "C" fn Mesh_DrawUnbind(_this: &mut Mesh) {
     glcheck!(gl::DisableVertexAttribArray(0));
     glcheck!(gl::DisableVertexAttribArray(1));
     glcheck!(gl::DisableVertexAttribArray(2));
-    glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, 0));
-    glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0));
+    glcheck!(gl::BindVertexArray(0));
 }
 
 #[no_mangle]
@@ -331,18 +338,9 @@ pub extern "C" fn Mesh_Draw(this: &mut Mesh) {
 
 #[no_mangle]
 pub extern "C" fn Mesh_DrawNormals(this: &mut Mesh, scale: f32) {
-    unsafe {
-        gl::Begin(gl::LINES);
-        for v in this.vertex.iter() {
-            gl::Vertex3f((*v).p.x, (*v).p.y, (*v).p.z);
-            gl::Vertex3f(
-                (*v).p.x + scale * (*v).n.x,
-                (*v).p.y + scale * (*v).n.y,
-                (*v).p.z + scale * (*v).n.z,
-            );
-        }
+    for v in &this.vertex {
+        Draw::line3(&v.p, &(v.p + scale * v.n));
     }
-    glcheck!(gl::End());
 }
 
 #[no_mangle]

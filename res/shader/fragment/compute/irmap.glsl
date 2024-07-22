@@ -1,4 +1,7 @@
-varying vec2 uv;
+#version 330
+
+in vec2 uv;
+out vec4 outColor;
 
 uniform vec3 cubeLook;
 uniform vec3 cubeUp;
@@ -27,7 +30,7 @@ void main() {
 
   for (int i = 0; i < samples; ++i) {
     float u = float(i + 1) / float(samples + 1);
-    vec2 sample = texture2DLod(sampleBuffer, vec2(u, 0.5), 0.0).xy;
+    vec2 sample = textureLod(sampleBuffer, vec2(u, 0.5), 0.0).xy;
     float pitch = sample.x;
     float yaw = sample.y;
     vec3 L =
@@ -37,10 +40,10 @@ void main() {
 
     float w = 1.0 / dot(N, L);
     w = 1;
-    c += w * textureCubeLod(src, L, 0.0);
+    c += w * textureLod(src, L, 0.0);
     tw += w;
   }
 
-  gl_FragColor = c / tw;
-  gl_FragColor.w = 1;
+  outColor = c / tw;
+  outColor.w = 1;
 }

@@ -1,5 +1,5 @@
 use super::{gl, *};
-use crate::math::IVec2;
+use crate::math::*;
 
 /* TODO : This is a low-level mechanism and probably not for use outside of
  *        RenderTarget. Should likely be folded into RenderTarget. */
@@ -23,28 +23,6 @@ static mut VP: [VP; 16] = [VP {
     isWindow: false,
 }; 16];
 
-extern "C" fn Viewport_Set(this: &VP) {
-    glcheck!(gl::Viewport(this.x, this.y, this.sx, this.sy));
-    glcheck!(gl::MatrixMode(gl::PROJECTION));
-    glcheck!(gl::LoadIdentity());
-
-    if this.isWindow {
-        glcheck!(gl::Translatef(-1.0f32, 1.0f32, 0.0f32));
-        glcheck!(gl::Scalef(
-            2.0f32 / this.sx as f32,
-            -2.0f32 / this.sy as f32,
-            1.0f32
-        ));
-    } else {
-        glcheck!(gl::Translatef(-1.0f32, -1.0f32, 0.0f32));
-        glcheck!(gl::Scalef(
-            2.0f32 / this.sx as f32,
-            2.0f32 / this.sy as f32,
-            1.0f32
-        ));
-    };
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn Viewport_GetAspect() -> f32 {
     if VP_INDEX < 0 {
@@ -67,14 +45,28 @@ pub unsafe extern "C" fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindo
     if VP_INDEX + 1 >= 16 {
         panic!("Viewport_Push: Maximum viewport stack depth exceeded");
     }
+
     VP_INDEX += 1;
-    let this: *mut VP = VP.as_mut_ptr().offset(VP_INDEX as isize);
-    (*this).x = x;
-    (*this).y = y;
-    (*this).sx = sx;
-    (*this).sy = sy;
-    (*this).isWindow = isWindow;
-    Viewport_Set(&*this);
+
+    let this: &mut VP = &mut VP[VP_INDEX as usize];
+    this.x = x;
+    this.y = y;
+    this.sx = sx;
+    this.sy = sy;
+    this.isWindow = isWindow;
+
+    // Set up the ortho projection matrix for UI elements.
+    let ortho_proj = if this.isWindow {
+        Matrix::from_translation(vec3(-1.0, 1.0, 0.0))
+            * Matrix::from_scale(vec3(2.0f32 / this.sx as f32, -2.0f32 / this.sy as f32, 1.0))
+    } else {
+        Matrix::from_translation(vec3(-1.0, -1.0, 0.0))
+            * Matrix::from_scale(vec3(2.0f32 / this.sx as f32, 2.0f32 / this.sy as f32, 1.0))
+    };
+    ShaderVar::push_matrix("mProjUI", &ortho_proj);
+    ShaderVar::push_matrix("mWorldViewUI", &Matrix::IDENTITY);
+
+    glcheck!(gl::Viewport(this.x, this.y, this.sx, this.sy));
 }
 
 #[no_mangle]
@@ -82,8 +74,18 @@ pub unsafe extern "C" fn Viewport_Pop() {
     if VP_INDEX < 0 {
         panic!("Viewport_Pop: Viewport stack is empty");
     }
+
+    ShaderVar::pop("mWorldViewUI");
+    ShaderVar::pop("mProjUI");
+
     VP_INDEX -= 1;
     if VP_INDEX >= 0 {
-        Viewport_Set(&*VP.as_mut_ptr().offset(VP_INDEX as isize));
+        let viewport = &VP[VP_INDEX as usize];
+        glcheck!(gl::Viewport(
+            viewport.x,
+            viewport.y,
+            viewport.sx,
+            viewport.sy
+        ));
     }
 }

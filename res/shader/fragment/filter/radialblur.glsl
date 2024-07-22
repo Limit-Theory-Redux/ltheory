@@ -10,7 +10,7 @@ const float k = 1.0;
 const float a = 0.005;
 
 void main() {
-  vec3 cc = texture2D(src, uv).xyz;
+  vec3 cc = texture(src, uv).xyz;
   vec3 c = cc;
 
   vec3 tw = vec3(1.0);
@@ -23,7 +23,7 @@ void main() {
   for (int i = 0; i < 32; ++i) {
     w *= 0.9;
     uvp += a * dir;
-    c += w * texture2D(src, uvp).xyz;
+    c += w * texture(src, uvp).xyz;
     tw += w;
   }
   c /= tw;
@@ -39,5 +39,5 @@ void main() {
   // c = mix(c, vec3(lum(c)), f1);
 
   c = mix(cc, c, strength);
-  gl_FragColor = vec4(c, 1.0);
+  outColor = vec4(c, 1.0);
 }

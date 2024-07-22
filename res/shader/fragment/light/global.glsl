@@ -8,8 +8,8 @@
 #autovar samplerCube envMap
 #autovar vec3 eye
 
-varying vec3 worldOrigin;
-varying vec3 worldDir;
+in vec3 worldOrigin;
+in vec3 worldDir;
 
 uniform vec3 lightColor;
 uniform vec3 lightPos;
@@ -22,8 +22,8 @@ float roughnessToLOD (float r) {
 }
 
 void main () {
-  vec4 normalMat = texture2D(texNormalMat, uv);
-  float depth = texture2D(texDepth, uv).x;
+  vec4 normalMat = texture(texNormalMat, uv);
+  float depth = texture(texDepth, uv).x;
   vec3 N = decodeNormal(normalMat.xy);
   float rough = normalMat.z;
   float mat = normalMat.w;
@@ -34,14 +34,14 @@ void main () {
   vec3 light = vec3(0.0);
 
   if (mat == Material_Diffuse) {
-    light += linear(textureCubeLod(irMap, N, 8.0).xyz);
+    light += linear(textureLod(irMap, N, 8.0).xyz);
   }
 
   else if (mat == Material_Metal) {
     #ifdef HIGHQ
-      light += linear(textureCubeLod(irMap, R, roughnessToLOD(rough)).xyz);
+      light += linear(textureLod(irMap, R, roughnessToLOD(rough)).xyz);
     #else
-      light += linear(textureCube(envMap, R).xyz);
+      light += linear(texture(envMap, R).xyz);
     #endif
   }
 
@@ -49,5 +49,5 @@ void main () {
     light += vec3(1.0);
   }
 
-  gl_FragData[0] = vec4(light, 1.0);
+  outColor = vec4(light, 1.0);
 }

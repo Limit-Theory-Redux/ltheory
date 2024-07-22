@@ -25,7 +25,7 @@ float glossToLOD(float gloss) {
 void main() {
   vec3 N = normalize(normal);
   vec3 uvw = sqrt(scale / 32.0) * abs(vertPos.xyz);
-  vec3 diff = texture2D(texDiffuseUV, uv).xyz;
+  vec3 diff = texture(texDiffuseUV, uv).xyz;
 
 #if 1
   diff *= mix(vec3(1.0 - edgeDarkness), vec3(1.0), exp(-sqrt(1024.0 * length(N - normal)));
@@ -58,20 +58,20 @@ void main() {
   gloss = mix(gloss, 0.0, paint);
 #endif
 
-  vec4 paint = texture2D(texPaintUV, uv);
+  vec4 paint = texture(texPaintUV, uv);
 
   float u = uv.x;
   const float K = 5.0;
   vec3 c = diff;
   c = mix(c, paint.xyz, paint.w);
   #ifdef HIGHQ
-    c *= textureCubeLod(irMap, R, glossToLOD(gloss)).xyz;
+    c *= textureLod(irMap, R, glossToLOD(gloss)).xyz;
   #else
-    c *= textureCube(envMap, R).xyz;
+    c *= texture(envMap, R).xyz;
   #endif
   // c *= u;
   c *= K;
-  c = mix(c, textureCubeLod(envMap, V, 4.0).xyz, getFog());
+  c = mix(c, textureLod(envMap, V, 4.0).xyz, getFog());
   float lod = glossToLOD(gloss);
 
   FRAGMENT_CORRECT_DEPTH;

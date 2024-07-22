@@ -39,10 +39,10 @@ float magic(vec3 p) {
 
 void main() {
   vec3 dir = cubeMapDir(uv);
-  vec4 radiance = textureCube(src, dir);
+  vec4 radiance = texture(src, dir);
   dir = quatMul(rot, dir);
   float od = magic(dir);
   radiance.xyz *= exp(-od / normalize(0.0001 + radiance.xyz));
   radiance.w += od;
-  gl_FragColor = radiance;
+  outColor = radiance;
 }

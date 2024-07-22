@@ -509,15 +509,11 @@ impl Shader {
 fn create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> u32 {
     let this = glcheck!(gl::CreateShader(shader_type));
 
-    let version_string = c_str!(
-        "#version 120\n#define texture2DLod texture2D\n#define textureCubeLod textureCube\n"
-    );
-    let shader_source = CString::new(src).expect("Shader source must be utf-8");
-    let mut srcs: [*const libc::c_char; 2] = [version_string, shader_source.as_ptr()];
+    let src_cstr = CString::new(src).expect("Shader source must be utf-8");
     glcheck!(gl::ShaderSource(
         this,
-        2,
-        srcs.as_mut_ptr() as *const *const gl::types::GLchar,
+        1,
+        &src_cstr.as_ptr(),
         std::ptr::null(),
     ));
     glcheck!(gl::CompileShader(this));
@@ -538,8 +534,10 @@ fn create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> u32 {
             info_log.as_mut_ptr() as *mut i8,
         ));
 
+        warn!("Shader:\n{src}");
+
         panic!(
-            "CreateGLShader: Failed to compile shader[{length}]:\n{}",
+            "CreateGLShader: Failed to compile shader [{length}]:\n{}",
             String::from_utf8(info_log).unwrap()
         );
     }
@@ -556,6 +554,7 @@ fn create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> gl::types:
     glcheck!(gl::BindAttribLocation(this, 0, c_str!("vertex_position")));
     glcheck!(gl::BindAttribLocation(this, 1, c_str!("vertex_normal")));
     glcheck!(gl::BindAttribLocation(this, 2, c_str!("vertex_uv")));
+    glcheck!(gl::BindAttribLocation(this, 3, c_str!("vertex_color")));
 
     glcheck!(gl::LinkProgram(this));
 

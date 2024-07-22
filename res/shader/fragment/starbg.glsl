@@ -11,7 +11,7 @@ void main() {
   float a = 0.0;
   // float fog = getFoginess(farPlane);
   float fog = 0.0;
-  vec4 bg = linear(textureCube(envMap, vertPos));
+  vec4 bg = linear(texture(envMap, vertPos));
   vec3 c = vertNormal;
   c *= mix(vec3(1.0), bg.xyz, 0.5);
   a += 0.5 * exp(-9.0 * sqrt(r));

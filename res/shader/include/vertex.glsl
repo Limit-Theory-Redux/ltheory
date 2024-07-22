@@ -1,16 +1,16 @@
 #include common
 
-attribute vec3 vertex_position;
-attribute vec3 vertex_normal;
-attribute vec2 vertex_uv;
-attribute vec3 vertex_color;
+in vec3 vertex_position;
+in vec3 vertex_normal;
+in vec2 vertex_uv;
+in vec3 vertex_color;
 
-varying vec2 uv;
-varying vec3 pos;
-varying vec3 normal;
-varying vec3 vertNormal;
-varying vec3 vertPos;
-varying float flogz;
+out vec2 uv;
+out vec3 pos;
+out vec3 normal;
+out vec3 vertNormal;
+out vec3 vertPos;
+out float flogz;
 
 uniform vec3 eye;
 uniform mat4 mWorld;
