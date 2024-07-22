@@ -243,13 +243,22 @@ function DrawEx.PopAlpha()
     alphaStack:pop()
 end
 
-function DrawEx.SimpleRect(x, y, sx, sy, color)
+function DrawEx.SimpleShaderStart(color)
     local shader = Cache.Shader('ui', 'simple_color')
     local alpha = alphaStack:last() or 1
     shader:start()
     Shader.SetFloat4('color', color.r, color.g, color.b, color.a * alpha)
+end
+
+function DrawEx.SimpleShaderStop()
+    local shader = Cache.Shader('ui', 'simple_color')
+    shader:start()
+end
+
+function DrawEx.SimpleRect(x, y, sx, sy, color)
+    DrawEx.SimpleShaderStart(color)
     Draw.Rect(x, y, sx, sy)
-    shader:stop()
+    DrawEx.SimpleShaderStop()
 end
 
 function DrawEx.Rect(x, y, sx, sy, color)

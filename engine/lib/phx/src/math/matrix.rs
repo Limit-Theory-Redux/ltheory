@@ -34,7 +34,7 @@ impl MatrixExtensions for Matrix {
 
 #[no_mangle]
 pub extern "C" fn Matrix_Clone(this: &Matrix) -> Box<Matrix> {
-    Box::new(this.clone())
+    Box::new(*this)
 }
 
 #[no_mangle]
@@ -120,12 +120,17 @@ pub extern "C" fn Matrix_LookUp(pos: &Vec3, look: &Vec3, up: &Vec3) -> Box<Matri
 }
 
 #[no_mangle]
-pub extern "C" fn Matrix_Perspective(degreesFovy: f32, aspect: f32, N: f32, F: f32) -> Box<Matrix> {
+pub extern "C" fn Matrix_Perspective(
+    degrees_fovy: f32,
+    aspect: f32,
+    n: f32,
+    f: f32,
+) -> Box<Matrix> {
     Box::new(Matrix::perspective_rh_gl(
-        f32::to_radians(degreesFovy),
+        f32::to_radians(degrees_fovy),
         aspect,
-        N,
-        F,
+        n,
+        f,
     ))
 }
 
@@ -203,11 +208,11 @@ pub extern "C" fn Matrix_MulBox(this: &Matrix, out: &mut Box3, in_0: &Box3) {
 
     out.lower = this.transform_point3(corners[0]);
     out.upper = out.lower;
-    for i in 1..8 {
-        let result = this.transform_point3(corners[i]);
+    corners.iter().skip(1).for_each(|corner| {
+        let result = this.transform_point3(*corner);
         out.lower = Vec3::min(out.lower, result);
         out.upper = Vec3::max(out.upper, result);
-    }
+    });
 }
 
 #[no_mangle]

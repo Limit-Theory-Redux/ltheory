@@ -11,9 +11,9 @@ void main() {
   for (int x = -radius; x <= radius; ++x) {
     vec2 offset = vec2(float(x), float(y));
     float w = exp(-dot(offset, offset) / (sigma * sigma));
-    c += w * texture2D(src, uv + offset / size);
+    c += w * texture(src, uv + offset / size);
     tw += w;
   }
 
-  gl_FragColor = c / tw;
+  outColor = c / tw;
 }

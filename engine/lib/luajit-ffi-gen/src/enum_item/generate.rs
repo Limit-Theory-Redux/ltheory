@@ -90,9 +90,9 @@ impl EnumInfo {
                 }
             }
 
-            impl ToString for #self_ident {
-                fn to_string(&self) -> String {
-                    format!("{:?}", self)
+            impl std::fmt::Display for #self_ident {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                  write!(f, "{:?}", self)
                 }
             }
 

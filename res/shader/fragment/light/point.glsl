@@ -5,8 +5,8 @@
 
 #autovar vec3 eye
 
-varying vec3 worldOrigin;
-varying vec3 worldDir;
+in vec3 worldOrigin;
+in vec3 worldDir;
 
 uniform vec3 lightColor;
 uniform vec3 lightPos;
@@ -18,8 +18,8 @@ const float kMinDistance = 0.0001;
 const float kPointLightMult = 16.0;
 
 void main () {
-  vec4 normalMat = texture2D(texNormalMat, uv);
-  float depth = texture2D(texDepth, uv).x;
+  vec4 normalMat = texture(texNormalMat, uv);
+  float depth = texture(texDepth, uv).x;
   vec3 N = decodeNormal(normalMat.xy);
   float rough = normalMat.z;
   float mat = normalMat.w;
@@ -42,5 +42,5 @@ void main () {
 
   light *= kPointLightMult;
 
-  gl_FragData[0] = vec4(light, 1.0);
+  outColor = vec4(light, 1.0);
 }

@@ -1034,6 +1034,21 @@ function HUD:drawTacticalMap(a)
     end
 end
 
+function HUD:drawDynamicLightsFlag(a)
+    local cx, cy = self.sx / 2, self.sy / 2
+    local fontsize = 14
+
+    if GameState.render.pulseLights then
+        UI.DrawEx.Circle(cx - 90, self.sy - 30, 9, Config.ui.color.meterBarLight, true)
+        HUD:drawHudText("UbuntuBold", fontsize + 2, cx - 97, self.sy - 38,
+            "L", Config.ui.color.borderBright)
+    else
+        UI.DrawEx.Ring(cx - 90, self.sy - 30, 10, Config.ui.color.meterBarLight, false)
+        HUD:drawHudText("Ubuntu", fontsize, cx - 96, self.sy - 37,
+            "L", Config.ui.color.meterBarLight)
+    end
+end
+
 local function getPosObject(def)
     local object = {}
     object.c = def.c
@@ -1785,6 +1800,7 @@ function HUD:onDraw(focus, active)
             self:drawPowerDistro(self.enabled)
             self:drawSensors(self.enabled)
             self:drawTacticalMap(self.enabled)
+            self:drawDynamicLightsFlag(self.enabled)
             self:drawPlayerSystemIntegrity(self.enabled)
             self:drawTargetSystemIntegrity(self.enabled)
             self:drawTargets(self.enabled)

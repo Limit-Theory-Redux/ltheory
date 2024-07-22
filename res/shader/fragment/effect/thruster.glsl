@@ -18,6 +18,6 @@ void main() {
   a *= mix(1.0, 1.5, variation);
   // a *= 1.0 - getFoginess(length(position - eye));
   a *= 2.0;
-  gl_FragColor = vec4(alpha * a * color, 1.0);
+  outColor = vec4(alpha * a * color, 1.0);
   FRAGMENT_CORRECT_DEPTH;
 }

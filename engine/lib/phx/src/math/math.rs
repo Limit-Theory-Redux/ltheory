@@ -67,10 +67,10 @@ pub extern "C" fn Float_Validate(x: f64) -> Error {
         3
     };
     match classification {
-        2 => return 0x4 as Error,
-        5 => return 0x8 as Error,
-        1 => return 0x20 as Error,
-        3 | 4 => return 0 as Error,
+        2 => 0x4 as Error,
+        5 => 0x8 as Error,
+        1 => 0x20 as Error,
+        3 | 4 => 0 as Error,
         _ => {
             panic!("Float_Validate: Unhandled case: {classification}");
         }

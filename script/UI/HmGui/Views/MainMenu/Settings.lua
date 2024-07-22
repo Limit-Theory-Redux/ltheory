@@ -119,11 +119,13 @@ local function settingsAudio()
                             UIComponent.Text {
                                 text = "Global Audio",
                                 size = 24,
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             },
                             UIComponent.Text {
                                 text = "Music Volume",
                                 size = 24,
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             }
                         }
@@ -188,16 +190,19 @@ local function settingsGraphics()
                             UIComponent.Text {
                                 text = "Fullscreen",
                                 size = 24,
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             },
                             UIComponent.Text {
                                 text = "Enable Exclusive Fullscreen",
                                 size = 24,
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             },
                             UIComponent.Text {
                                 text = "Supersampling",
                                 size = 24,
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             }
                         }
@@ -278,16 +283,19 @@ local function settingsInterface()
                             UIComponent.Text {
                                 text = "Cursor Style",
                                 size = 24,
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             },
                             UIComponent.Text {
                                 text = "HUD Display Style",
                                 size = 24,
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             },
                             UIComponent.Text {
                                 text = "UI Scale",
                                 size = 24,
+                                margin = { 0, 14 },
                                 align = { AlignHorizontal.Left, AlignVertical.Center }
                             }
                         }

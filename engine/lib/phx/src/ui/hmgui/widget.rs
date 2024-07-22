@@ -209,7 +209,7 @@ impl HmGuiWidget {
                 self.min_size = self.calculate_min_size();
             }
             WidgetItem::TextView(image) => {
-                if image.image != std::ptr::null_mut() {
+                if !image.image.is_null() {
                     let image_ref = unsafe { &*image.image };
 
                     self.inner_min_size =
@@ -268,7 +268,7 @@ impl HmGuiWidget {
                 data.pos = self.pos;
             }
             WidgetItem::TextView(image) => {
-                let mut clipboard = hmgui.clipboard().get_text().unwrap_or(String::new());
+                let mut clipboard = hmgui.clipboard().get_text().unwrap_or_default();
                 let scale_factor = hmgui.scale_factor() as f32;
                 let data = hmgui.data_mut(self.hash);
                 let text_view = data.text_view.as_mut().expect("Text view data was not set");
@@ -365,7 +365,7 @@ impl HmGuiWidget {
     #[allow(dead_code)]
     #[rustfmt::skip]
     pub(crate) fn dump(&self, title: &str, ident: usize) {
-        let ident_str = format!("{}", IDENT.repeat(ident));
+        let ident_str = IDENT.repeat(ident).to_string();
 
         println!("{ident_str}=== {title} ===");
         println!("{ident_str}{}:", self.item.name());
@@ -390,7 +390,7 @@ impl HmGuiWidget {
             WidgetItem::Container(item) => item.dump(ident + 1),
             WidgetItem::Text(item) => item.dump(ident + 1),
             WidgetItem::Rect => {
-                let ident_str = format!("{}", crate::ui::hmgui::IDENT.repeat(ident+1));
+                let ident_str = crate::ui::hmgui::IDENT.repeat(ident+1).to_string();
 
                 println!("{ident_str}- rect");
             },

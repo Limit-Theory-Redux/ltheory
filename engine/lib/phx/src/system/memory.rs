@@ -34,7 +34,7 @@ pub unsafe extern "C" fn Memory_MemMove(
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Realloc(
     ptr: *mut libc::c_void,
-    newSize: usize,
+    new_size: usize,
 ) -> *mut libc::c_void {
-    libc::realloc(ptr, newSize)
+    libc::realloc(ptr, new_size)
 }

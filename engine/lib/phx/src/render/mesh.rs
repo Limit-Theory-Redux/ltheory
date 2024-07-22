@@ -7,8 +7,9 @@ use crate::system::*;
 
 pub struct Mesh {
     pub _refCount: u32,
-    pub vbo: u32,
-    pub ibo: u32,
+    pub vbo: gl::types::GLuint,
+    pub ibo: gl::types::GLuint,
+    pub vao: gl::types::GLuint,
     pub version: u64,
     pub versionBuffers: u64,
     pub versionInfo: u64,
@@ -67,6 +68,7 @@ pub unsafe extern "C" fn Mesh_Create() -> Box<Mesh> {
         _refCount: 0,
         vbo: 0,
         ibo: 0,
+        vao: 0,
         version: 1,
         versionBuffers: 0,
         versionInfo: 0,
@@ -82,8 +84,8 @@ pub unsafe extern "C" fn Mesh_Create() -> Box<Mesh> {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Clone(other: &mut Mesh) -> Box<Mesh> {
     let mut this: Box<Mesh> = Mesh_Create();
-    this.index = other.index.clone();
-    this.vertex = other.vertex.clone();
+    this.index.clone_from(&other.index);
+    this.vertex.clone_from(&other.vertex);
     this
 }
 
@@ -104,9 +106,10 @@ pub extern "C" fn Mesh_Acquire(this: &mut Mesh) {
 pub extern "C" fn Mesh_Free(mut this: Box<Mesh>) {
     this._refCount = (this._refCount).wrapping_sub(1);
 
-    if this._refCount <= 0 && this.vbo != 0 {
-        glcheck!(gl::DeleteBuffers(1, &mut this.vbo));
-        glcheck!(gl::DeleteBuffers(1, &mut this.ibo));
+    if this._refCount == 0 && this.vbo != 0 {
+        glcheck!(gl::DeleteVertexArrays(1, &this.vao));
+        glcheck!(gl::DeleteBuffers(1, &this.vbo));
+        glcheck!(gl::DeleteBuffers(1, &this.ibo));
     }
 }
 
@@ -177,7 +180,7 @@ pub extern "C" fn Mesh_AddIndex(this: &mut Mesh, newIndex: i32) {
 pub unsafe extern "C" fn Mesh_AddMesh(this: &mut Mesh, other: &mut Mesh) {
     let indexOffset: i32 = this.vertex.len() as i32;
     for i in 0..other.vertex.len() {
-        Mesh_AddVertexRaw(this, &mut other.vertex[i]);
+        Mesh_AddVertexRaw(this, &other.vertex[i]);
     }
     for i in 0..other.index.len() {
         Mesh_AddIndex(this, other.index[i] + indexOffset);
@@ -227,8 +230,10 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(this: &mut Mesh, vertex: *const Verte
 pub extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
     /* Release cached GL buffers if the mesh has changed since we built them. */
     if this.vbo != 0 && this.version != this.versionBuffers {
-        glcheck!(gl::DeleteBuffers(1, &mut this.vbo));
-        glcheck!(gl::DeleteBuffers(1, &mut this.ibo));
+        glcheck!(gl::DeleteVertexArrays(1, &this.vao));
+        glcheck!(gl::DeleteBuffers(1, &this.vbo));
+        glcheck!(gl::DeleteBuffers(1, &this.ibo));
+        this.vao = 0;
         this.vbo = 0;
         this.ibo = 0;
     }
@@ -259,40 +264,43 @@ pub extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
             gl::STATIC_DRAW,
         ));
 
+        glcheck!(gl::GenVertexArrays(1, &mut this.vao));
+        glcheck!(gl::BindVertexArray(this.vao));
+
+        glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
+        glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
+        glcheck!(gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+            offset_of!(Vertex, p) as *const _,
+        ));
+        glcheck!(gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+            offset_of!(Vertex, n) as *const _,
+        ));
+        glcheck!(gl::VertexAttribPointer(
+            2,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+            offset_of!(Vertex, uv) as *const _,
+        ));
+
         this.versionBuffers = this.version;
     }
 
-    glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
-    glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
-
+    glcheck!(gl::BindVertexArray(this.vao));
     glcheck!(gl::EnableVertexAttribArray(0));
     glcheck!(gl::EnableVertexAttribArray(1));
     glcheck!(gl::EnableVertexAttribArray(2));
-
-    glcheck!(gl::VertexAttribPointer(
-        0,
-        3,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, p) as *const _,
-    ));
-    glcheck!(gl::VertexAttribPointer(
-        1,
-        3,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, n) as *const _,
-    ));
-    glcheck!(gl::VertexAttribPointer(
-        2,
-        2,
-        gl::FLOAT,
-        gl::FALSE,
-        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, uv) as *const _,
-    ));
 }
 
 #[no_mangle]
@@ -318,8 +326,7 @@ pub extern "C" fn Mesh_DrawUnbind(_this: &mut Mesh) {
     glcheck!(gl::DisableVertexAttribArray(0));
     glcheck!(gl::DisableVertexAttribArray(1));
     glcheck!(gl::DisableVertexAttribArray(2));
-    glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, 0));
-    glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0));
+    glcheck!(gl::BindVertexArray(0));
 }
 
 #[no_mangle]
@@ -331,18 +338,9 @@ pub extern "C" fn Mesh_Draw(this: &mut Mesh) {
 
 #[no_mangle]
 pub extern "C" fn Mesh_DrawNormals(this: &mut Mesh, scale: f32) {
-    unsafe {
-        gl::Begin(gl::LINES);
-        for v in this.vertex.iter() {
-            gl::Vertex3f((*v).p.x, (*v).p.y, (*v).p.z);
-            gl::Vertex3f(
-                (*v).p.x + scale * (*v).n.x,
-                (*v).p.y + scale * (*v).n.y,
-                (*v).p.z + scale * (*v).n.z,
-            );
-        }
+    for v in &this.vertex {
+        Draw::line3(&v.p, &(v.p + scale * v.n));
     }
-    glcheck!(gl::End());
 }
 
 #[no_mangle]
@@ -395,7 +393,7 @@ pub unsafe extern "C" fn Mesh_Validate(this: &mut Mesh) -> Error {
 
     let mut i: i32 = 0;
     while i < indexLen {
-        let i0: i32 = *indexData.offset((i + 0) as isize);
+        let i0: i32 = *indexData.offset((i) as isize);
         let i1: i32 = *indexData.offset((i + 1) as isize);
         let i2: i32 = *indexData.offset((i + 2) as isize);
         let mut triangle: Triangle = Triangle {
@@ -404,7 +402,7 @@ pub unsafe extern "C" fn Mesh_Validate(this: &mut Mesh) -> Error {
         triangle.vertices[0] = (*vertexData.offset(i0 as isize)).p;
         triangle.vertices[1] = (*vertexData.offset(i1 as isize)).p;
         triangle.vertices[2] = (*vertexData.offset(i2 as isize)).p;
-        let e = Triangle_Validate(&mut triangle);
+        let e = Triangle_Validate(&triangle);
         if e != 0 {
             return 0x400000 | e;
         }
@@ -554,7 +552,7 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(this: &mut Mesh) {
     }
 
     for i in (0..this.index.len()).step_by(3) {
-        let v1 = &mut this.vertex[this.index[i + 0] as usize] as *mut Vertex;
+        let v1 = &mut this.vertex[this.index[i] as usize] as *mut Vertex;
         let v2 = &mut this.vertex[this.index[i + 1] as usize] as *mut Vertex;
         let v3 = &mut this.vertex[this.index[i + 2] as usize] as *mut Vertex;
         let e1: Vec3 = (*v2).p - (*v1).p;
@@ -581,7 +579,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(this: &mut Mesh, minDot: f32) {
 
     for i in (0..this.index.len()).step_by(3) {
         let index: [*mut i32; 3] = [
-            &mut this.index[i + 0] as *mut i32,
+            &mut this.index[i] as *mut i32,
             &mut this.index[i + 1] as *mut i32,
             &mut this.index[i + 2] as *mut i32,
         ];

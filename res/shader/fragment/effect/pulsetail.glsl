@@ -20,6 +20,6 @@ void main() {
   a *= 4.0;
   vec3 c = color;
   c *= c / avg(c);
-  gl_FragColor = vec4(a * alpha * c, 1.0);
+  outColor = vec4(a * alpha * c, 1.0);
   FRAGMENT_CORRECT_DEPTH;
 }

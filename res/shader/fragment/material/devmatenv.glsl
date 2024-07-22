@@ -27,12 +27,12 @@ void main() {
   float gloss = 0.5 + 0.5 * alpha;
   c = mix(c, sqrt(c) * vec3(1.0, 1.5, 2.0), alpha);
 
-  c *= 3.0 * textureCubeLod(irMap, R, glossToLOD(gloss)).xyz;
+  c *= 3.0 * textureLod(irMap, R, glossToLOD(gloss)).xyz;
   c *= uv.x;
 
   float f = 0.2;
 
   c = max(c, vec3(0.0, 0.0, 0.0));
-  gl_FragColor = vec4(c, 1.0);
+  outColor = vec4(c, 1.0);
   FRAGMENT_CORRECT_DEPTH;
 }

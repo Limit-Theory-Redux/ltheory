@@ -18,8 +18,8 @@ impl Sound {
 impl Sound {
     #[bind(name = "Load")]
     pub fn new(path: &str, is_looping: bool) -> Self {
-        let mut sound_data =
-            StaticSoundData::from_file(path).expect(&format!("Cannot load sound: {path}"));
+        let mut sound_data = StaticSoundData::from_file(path)
+            .unwrap_or_else(|err| panic!("Cannot load sound: {path}. Error: {err}"));
 
         if is_looping {
             // Loop over whole audio

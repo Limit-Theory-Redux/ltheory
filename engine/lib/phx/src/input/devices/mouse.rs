@@ -22,28 +22,28 @@ pub enum MouseControl {
 
 impl MouseControl {
     pub fn is_button(&self) -> bool {
-        match self {
+        matches!(
+            self,
             Self::Left
-            | Self::Middle
-            | Self::Right
-            | Self::Forward
-            | Self::Back
-            | Self::X1
-            | Self::X2 => true,
-            _ => false,
-        }
+                | Self::Middle
+                | Self::Right
+                | Self::Forward
+                | Self::Back
+                | Self::X1
+                | Self::X2
+        )
     }
 
     pub fn is_axis(&self) -> bool {
-        match self {
+        matches!(
+            self,
             Self::DeltaX
-            | Self::DeltaY
-            | Self::ScrollX
-            | Self::ScrollY
-            | Self::ScrollPixelX
-            | Self::ScrollPixelY => true,
-            _ => false,
-        }
+                | Self::DeltaY
+                | Self::ScrollX
+                | Self::ScrollY
+                | Self::ScrollPixelX
+                | Self::ScrollPixelY
+        )
     }
 }
 

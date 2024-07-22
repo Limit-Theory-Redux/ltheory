@@ -17,11 +17,11 @@ impl LineSegment {
     }
 
     pub fn from_ray(ray: &Ray, out: &mut LineSegment) {
-        Ray_ToLineSegment(ray, out);
+        unsafe { Ray_ToLineSegment(ray, out) };
     }
 
     #[bind(role = "to_string")]
-    pub fn to_string(&self) -> String {
-        format!("p0:{} p1:{}", self.p0.to_string(), self.p1.to_string())
+    pub fn get_string(&self) -> String {
+        format!("p0:{} p1:{}", self.p0, self.p1)
     }
 }

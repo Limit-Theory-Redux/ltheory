@@ -8,23 +8,23 @@ use std::ffi::CStr;
 pub type Signal = i32;
 pub type SignalHandler = extern "C" fn(Signal) -> ();
 
-pub const Signal_Int: Signal = libc::SIGINT;
-pub const Signal_Ill: Signal = libc::SIGILL;
-pub const Signal_Fpe: Signal = libc::SIGFPE;
-pub const Signal_Segv: Signal = libc::SIGSEGV;
-pub const Signal_Term: Signal = libc::SIGTERM;
-pub const Signal_Abrt: Signal = libc::SIGABRT;
+pub const SIGNAL_INT: Signal = libc::SIGINT;
+pub const SIGNAL_ILL: Signal = libc::SIGILL;
+pub const SIGNAL_FPE: Signal = libc::SIGFPE;
+pub const SIGNAL_SEGV: Signal = libc::SIGSEGV;
+pub const SIGNAL_TERM: Signal = libc::SIGTERM;
+pub const SIGNAL_ABRT: Signal = libc::SIGABRT;
 
-static mut ignoreDefault: bool = false;
-static mut handlerDefault: Option<HashMap<Signal, SignalHandler>> = None;
-static mut handlerTable: Option<HashMap<Signal, Vec<SignalHandler>>> = None;
+static mut IGNORE_DEFAULT: bool = false;
+static mut HANDLER_DEFAULT: Option<HashMap<Signal, SignalHandler>> = None;
+static mut HANDLER_TABLE: Option<HashMap<Signal, Vec<SignalHandler>>> = None;
 
 fn HandlerDefault(signal: Signal) -> SignalHandler {
-    unsafe { *handlerDefault.as_ref().unwrap().get(&signal).unwrap() }
+    unsafe { *HANDLER_DEFAULT.as_ref().unwrap().get(&signal).unwrap() }
 }
 
 fn HandlerTable<'a>(signal: Signal) -> &'a mut Vec<SignalHandler> {
-    unsafe { handlerTable.as_mut().unwrap().get_mut(&signal).unwrap() }
+    unsafe { HANDLER_TABLE.as_mut().unwrap().get_mut(&signal).unwrap() }
 }
 
 fn Signal(signal: Signal, handler: SignalHandler) -> SignalHandler {
@@ -42,19 +42,19 @@ extern "C" fn Signal_Handler(sig: Signal) {
         );
 
         /* Re-install default handlers. */
-        Signal(Signal_Int, HandlerDefault(Signal_Int));
-        Signal(Signal_Ill, HandlerDefault(Signal_Ill));
-        Signal(Signal_Fpe, HandlerDefault(Signal_Fpe));
-        Signal(Signal_Segv, HandlerDefault(Signal_Segv));
-        Signal(Signal_Term, HandlerDefault(Signal_Term));
-        Signal(Signal_Abrt, HandlerDefault(Signal_Abrt));
+        Signal(SIGNAL_INT, HandlerDefault(SIGNAL_INT));
+        Signal(SIGNAL_ILL, HandlerDefault(SIGNAL_ILL));
+        Signal(SIGNAL_FPE, HandlerDefault(SIGNAL_FPE));
+        Signal(SIGNAL_SEGV, HandlerDefault(SIGNAL_SEGV));
+        Signal(SIGNAL_TERM, HandlerDefault(SIGNAL_TERM));
+        Signal(SIGNAL_ABRT, HandlerDefault(SIGNAL_ABRT));
 
         /* Call custom handlers. */
         for handler in HandlerTable(sig).iter() {
             handler(sig);
         }
-        if ignoreDefault {
-            ignoreDefault = false;
+        if IGNORE_DEFAULT {
+            IGNORE_DEFAULT = false;
             return;
         }
 
@@ -65,32 +65,32 @@ extern "C" fn Signal_Handler(sig: Signal) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Signal_Init() {
-    handlerDefault = Some(HashMap::from([
-        (Signal_Int, Signal(Signal_Int, Signal_Handler)),
-        (Signal_Ill, Signal(Signal_Ill, Signal_Handler)),
-        (Signal_Fpe, Signal(Signal_Fpe, Signal_Handler)),
-        (Signal_Segv, Signal(Signal_Segv, Signal_Handler)),
-        (Signal_Term, Signal(Signal_Term, Signal_Handler)),
-        (Signal_Abrt, Signal(Signal_Abrt, Signal_Handler)),
+    HANDLER_DEFAULT = Some(HashMap::from([
+        (SIGNAL_INT, Signal(SIGNAL_INT, Signal_Handler)),
+        (SIGNAL_ILL, Signal(SIGNAL_ILL, Signal_Handler)),
+        (SIGNAL_FPE, Signal(SIGNAL_FPE, Signal_Handler)),
+        (SIGNAL_SEGV, Signal(SIGNAL_SEGV, Signal_Handler)),
+        (SIGNAL_TERM, Signal(SIGNAL_TERM, Signal_Handler)),
+        (SIGNAL_ABRT, Signal(SIGNAL_ABRT, Signal_Handler)),
     ]));
-    handlerTable = Some(HashMap::from([
-        (Signal_Int, Vec::new()),
-        (Signal_Ill, Vec::new()),
-        (Signal_Fpe, Vec::new()),
-        (Signal_Segv, Vec::new()),
-        (Signal_Term, Vec::new()),
-        (Signal_Abrt, Vec::new()),
+    HANDLER_TABLE = Some(HashMap::from([
+        (SIGNAL_INT, Vec::new()),
+        (SIGNAL_ILL, Vec::new()),
+        (SIGNAL_FPE, Vec::new()),
+        (SIGNAL_SEGV, Vec::new()),
+        (SIGNAL_TERM, Vec::new()),
+        (SIGNAL_ABRT, Vec::new()),
     ]));
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Signal_Free() {
-    Signal(Signal_Int, HandlerDefault(Signal_Int));
-    Signal(Signal_Ill, HandlerDefault(Signal_Ill));
-    Signal(Signal_Fpe, HandlerDefault(Signal_Fpe));
-    Signal(Signal_Segv, HandlerDefault(Signal_Segv));
-    Signal(Signal_Term, HandlerDefault(Signal_Term));
-    Signal(Signal_Abrt, HandlerDefault(Signal_Abrt));
+    Signal(SIGNAL_INT, HandlerDefault(SIGNAL_INT));
+    Signal(SIGNAL_ILL, HandlerDefault(SIGNAL_ILL));
+    Signal(SIGNAL_FPE, HandlerDefault(SIGNAL_FPE));
+    Signal(SIGNAL_SEGV, HandlerDefault(SIGNAL_SEGV));
+    Signal(SIGNAL_TERM, HandlerDefault(SIGNAL_TERM));
+    Signal(SIGNAL_ABRT, HandlerDefault(SIGNAL_ABRT));
 }
 
 #[no_mangle]
@@ -100,12 +100,12 @@ pub unsafe extern "C" fn Signal_AddHandler(sig: Signal, handler: SignalHandler) 
 
 #[no_mangle]
 pub unsafe extern "C" fn Signal_AddHandlerAll(handler: SignalHandler) {
-    Signal_AddHandler(Signal_Int, handler);
-    Signal_AddHandler(Signal_Ill, handler);
-    Signal_AddHandler(Signal_Fpe, handler);
-    Signal_AddHandler(Signal_Segv, handler);
-    Signal_AddHandler(Signal_Term, handler);
-    Signal_AddHandler(Signal_Abrt, handler);
+    Signal_AddHandler(SIGNAL_INT, handler);
+    Signal_AddHandler(SIGNAL_ILL, handler);
+    Signal_AddHandler(SIGNAL_FPE, handler);
+    Signal_AddHandler(SIGNAL_SEGV, handler);
+    Signal_AddHandler(SIGNAL_TERM, handler);
+    Signal_AddHandler(SIGNAL_ABRT, handler);
 }
 
 #[no_mangle]
@@ -123,12 +123,12 @@ pub unsafe extern "C" fn Signal_RemoveHandler(sig: Signal, handler: SignalHandle
 
 #[no_mangle]
 pub unsafe extern "C" fn Signal_RemoveHandlerAll(handler: SignalHandler) {
-    Signal_RemoveHandler(Signal_Int, handler);
-    Signal_RemoveHandler(Signal_Ill, handler);
-    Signal_RemoveHandler(Signal_Fpe, handler);
-    Signal_RemoveHandler(Signal_Segv, handler);
-    Signal_RemoveHandler(Signal_Term, handler);
-    Signal_RemoveHandler(Signal_Abrt, handler);
+    Signal_RemoveHandler(SIGNAL_INT, handler);
+    Signal_RemoveHandler(SIGNAL_ILL, handler);
+    Signal_RemoveHandler(SIGNAL_FPE, handler);
+    Signal_RemoveHandler(SIGNAL_SEGV, handler);
+    Signal_RemoveHandler(SIGNAL_TERM, handler);
+    Signal_RemoveHandler(SIGNAL_ABRT, handler);
 }
 
 #[no_mangle]
@@ -138,12 +138,12 @@ pub extern "C" fn Signal_ToString(this: Signal) -> *const libc::c_char {
 
 pub fn signal_to_string(this: Signal) -> String {
     match this {
-        Signal_Int => "Interrupt",
-        Signal_Ill => "Illegal Instruction",
-        Signal_Fpe => "FP Exception",
-        Signal_Segv => "Memory Access Violation",
-        Signal_Term => "Terminate",
-        Signal_Abrt => "Abort",
+        SIGNAL_INT => "Interrupt",
+        SIGNAL_ILL => "Illegal Instruction",
+        SIGNAL_FPE => "FP Exception",
+        SIGNAL_SEGV => "Memory Access Violation",
+        SIGNAL_TERM => "Terminate",
+        SIGNAL_ABRT => "Abort",
         _ => "<unknown signal>",
     }
     .into()
@@ -151,5 +151,5 @@ pub fn signal_to_string(this: Signal) -> String {
 
 #[no_mangle]
 pub unsafe extern "C" fn Signal_IgnoreDefault() {
-    ignoreDefault = true;
+    IGNORE_DEFAULT = true;
 }

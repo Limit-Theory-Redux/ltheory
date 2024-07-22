@@ -21,7 +21,7 @@ void main() {
   c *= 8.0 * c;
   c *= (1.0 + c.x * c.x * vec3(1.0, 3.0, 5.0));
   float rough = saturate(c.x * c.x);
-  vec3 env = textureCubeLod(envMap, R, 0.0).xyz;
+  vec3 env = textureLod(envMap, R, 0.0).xyz;
   c = sqrt(c * env * env);
   c = applyFog(c, V);
 

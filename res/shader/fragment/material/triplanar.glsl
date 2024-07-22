@@ -1,5 +1,3 @@
-#extension GL_ARB_shader_texture_lod : require
-
 #include fragment
 #include gamma
 #include texturing
@@ -32,8 +30,8 @@ void main() {
   vec3 R = normalize(reflect(V, N));
   vec3 H = normalize(V - R);
 
-  vec3 env = textureCubeLod(envMap, R, mix(4.0, 0.0, spec)).xyz;
+  vec3 env = textureLod(envMap, R, mix(4.0, 0.0, spec)).xyz;
   c *= env;
-  gl_FragColor = vec4(c, 1.0);
+  outColor = vec4(c, 1.0);
   FRAGMENT_CORRECT_DEPTH;
 }

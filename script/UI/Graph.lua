@@ -96,8 +96,9 @@ function Graph:onDraw(focus, active)
     local x, y, sx, sy = self:getRectGlobal()
 
     do -- Draw Border
-        self:applyColor(focus, active, Config.ui.color.border)
+        UI.DrawEx.SimpleShaderStart(self:getColor(focus, active, Config.ui.color.border))
         Draw.Border(self.padMinX, x, y, sx, sy)
+        UI.DrawEx.SimpleShaderStop()
     end
 
     local ix, iy, isx, isy = self:getRectPadGlobal()
@@ -109,24 +110,24 @@ function Graph:onDraw(focus, active)
         local vMin     = self.rangeMin.value
         local dydv     = usableSY / range
 
-        GLMatrix.ModeWV()
-        GLMatrix.Push()
-        GLMatrix.Translate(0, y + sy - self.padMaxY, 0)
-        GLMatrix.Scale(1, -(sy / usableSY), 1)
+        ShaderVar.PushMatrix("mWorldViewUI", Matrix.Translation(0, y + sy - self.padMaxY, 0) * Matrix.Scaling(1, -(sy / usableSY), 1))
 
         do -- Draw Bars
-            Config.ui.color.focused:set(0.25)
+            local color = Config.ui.color.focused
+            color.a = 0.25
+            UI.DrawEx.SimpleShaderStart(color)
             local fx = ix
             for i = 1, #self.values do
                 local fy = dydv * (self.values:get(i) - vMin)
                 Draw.Rect(fx, 0, barSX, fy)
                 fx = fx + barTotal
             end
+            UI.DrawEx.SimpleShaderStop()
         end
 
         do -- Draw Lines
             Draw.LineWidth(1.0)
-            Config.ui.color.focused:set()
+            UI.DrawEx.SimpleShaderStart(Config.ui.color.focused)
             local xLast = ix
             local fx = xLast + barTotal
             local yLast = dydv * (self.values:get(1) - vMin)
@@ -149,8 +150,9 @@ function Graph:onDraw(focus, active)
                 for j = 1, #self.rulers do
                     local ruler = self.rulers[j]
                     if value >= ruler.value then
-                        Draw.Color(ruler.color.x, ruler.color.y, ruler.color.z, 1)
+                        UI.DrawEx.SimpleShaderStart(Color(ruler.color.x, ruler.color.y, ruler.color.z, 1))
                         Draw.Rect(fx - 2, dydv * (ruler.value - vMin) - 2, 4, 4)
+                        UI.DrawEx.SimpleShaderStop()
                     end
                 end
                 fx = fx + barTotal
@@ -158,10 +160,11 @@ function Graph:onDraw(focus, active)
         end
 
         do -- Highlight Head
-            Config.ui.color.focused:set()
+            UI.DrawEx.SimpleShaderStart(Config.ui.color.focused)
             Draw.Rect(
                 ix + (self.head - 1) * barTotal,
                 0, barSX, dydv * (self.values:get(self.head) - vMin))
+            UI.DrawEx.SimpleShaderStop()
         end
 
         do -- Draw Rulers
@@ -169,12 +172,13 @@ function Graph:onDraw(focus, active)
                 local ruler = self.rulers[i]
                 local fy = dydv * (ruler.value - vMin)
                 ruler.y = fy
-                Draw.Color(ruler.color.x, ruler.color.y, ruler.color.z, 0.75)
+                UI.DrawEx.SimpleShaderStart(Color(ruler.color.x, ruler.color.y, ruler.color.z, 0.75))
                 Draw.Line(ix, fy, ix + isx, fy)
+                UI.DrawEx.SimpleShaderStop()
             end
         end
 
-        GLMatrix.Pop()
+        ShaderVar.Pop("mWorldViewUI")
     end
 
     do -- Draw Ruler Labels
@@ -185,7 +189,7 @@ function Graph:onDraw(focus, active)
             font:draw(ruler.label,
                 ix + isx - bound.x - bound.z,
                 y + sy - ruler.y + bound.w,
-                1.0, 1.0, 1.0, 0.25)
+                Color(1.0, 1.0, 1.0, 0.25))
         end
     end
 
@@ -200,14 +204,14 @@ function Graph:onDraw(focus, active)
         font:draw(text,
             x + sx - textPad - bound.x - bound.z,
             y + textPad + bound.w,
-            color.r, color.g, color.b, color.a)
+            Color(color.r, color.g, color.b, color.a))
 
         text = string.format('%.1f', self.rangeMin.value)
         bound = font:getSize(text)
         font:draw(text,
             x + sx - textPad - bound.x - bound.z,
             y + sy - textPad,
-            color.r, color.g, color.b, color.a)
+            Color(color.r, color.g, color.b, color.a))
     end
 end
 

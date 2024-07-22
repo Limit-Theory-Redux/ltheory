@@ -110,6 +110,7 @@ GameState.player = {
 
 GameState.world = {
     -- TODO: World related states here later (system state, ai, economy etc)
+    currentUniverse = nil,
     currentSystem = nil,
 }
 

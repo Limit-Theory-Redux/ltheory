@@ -1,4 +1,8 @@
-varying vec2 uv;
+#version 330
+
+in vec2 uv;
+
+out vec4 outColor;
 
 uniform int sDim;
 uniform float radius;
@@ -8,8 +12,8 @@ uniform sampler2D vPointBuffer;
 uniform sampler2D vNormalBuffer;
 
 void main() {
-  vec3 p = texture2D(vPointBuffer, uv).xyz;
-  vec3 n = texture2D(vNormalBuffer, uv).xyz;
+  vec3 p = texture(vPointBuffer, uv).xyz;
+  vec3 n = texture(vNormalBuffer, uv).xyz;
 
   float total = 0.0;
   for (int y = 0; y < sDim; ++y) {
@@ -17,8 +21,8 @@ void main() {
     for (int x = 0; x < sDim; ++x) {
       float u = (float(x) + 0.5) / float(sDim);
 
-      vec4 sp = texture2D(sPointBuffer, vec2(u, v));
-      vec4 sn = texture2D(sNormalBuffer, vec2(u, v));
+      vec4 sp = texture(sPointBuffer, vec2(u, v));
+      vec4 sn = texture(sNormalBuffer, vec2(u, v));
       float area = sp.w;
 
       vec3 r = sp.xyz - p;
@@ -33,5 +37,5 @@ void main() {
     }
   }
 
-  gl_FragColor.x = exp(-2.0 * sqrt(total));
+  outColor.x = exp(-2.0 * sqrt(total));
 }

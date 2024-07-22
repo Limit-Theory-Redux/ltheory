@@ -50,7 +50,7 @@ pub extern "C" fn LodMesh_Acquire(this: &mut LodMesh) {
 pub unsafe extern "C" fn LodMesh_Free(this: *mut LodMesh) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0
+        (*this)._refCount == 0
     } {
         let mut e: *mut LodMeshEntry = (*this).head;
         while !e.is_null() {

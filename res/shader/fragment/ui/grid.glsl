@@ -46,5 +46,5 @@ void main() {
   mult += 1.0 * exp(-sqrt(max(0.0, scale1.y * abs(uvp.y + 1.0) - 1.00)));
 #endif
 
-  gl_FragColor = c * mult;
+  outColor = c * mult;
 }

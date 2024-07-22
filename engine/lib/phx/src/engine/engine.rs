@@ -34,7 +34,7 @@ pub struct Engine {
 // This thread local variable contains a ref counted instance of the current Lua VM.
 // This is used by the panic hook to tell the Lua VM to generate backtrace.
 thread_local! {
-    static CURRENT_LUA_CTX: RefCell<Option<Rf<Lua>>> = RefCell::new(None);
+    static CURRENT_LUA_CTX: RefCell<Option<Rf<Lua>>> = const { RefCell::new(None) };
 }
 
 impl Engine {
@@ -96,7 +96,7 @@ impl Engine {
         let cache = CachedWindow {
             window: window.clone(),
         };
-        let mut winit_window = WinitWindow::new(&event_loop, &window);
+        let mut winit_window = WinitWindow::new(event_loop, &window);
         winit_window.resume();
         let scale_factor = window.scale_factor();
 
@@ -120,7 +120,7 @@ impl Engine {
         let lua_func: Function = lua
             .globals()
             .get(func_name)
-            .expect(format!("Unknown function {}", func_name).as_str());
+            .unwrap_or_else(|err| panic!("Unknown function {}. Error: {err}", func_name));
         let result = lua_func.call::<_, ()>(());
 
         CURRENT_LUA_CTX.with_borrow_mut(|v| *v = None);
@@ -211,7 +211,7 @@ impl Engine {
         }
 
         if self.window.cursor.grab_mode != self.cache.window.cursor.grab_mode {
-            attempt_grab(&self.winit_window.window(), self.window.cursor.grab_mode);
+            attempt_grab(self.winit_window.window(), self.window.cursor.grab_mode);
         }
 
         if self.window.cursor.visible != self.cache.window.cursor.visible {

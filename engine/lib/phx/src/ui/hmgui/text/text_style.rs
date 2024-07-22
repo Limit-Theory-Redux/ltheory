@@ -107,7 +107,7 @@ impl TextStyle {
     pub fn set_underline_brush(&mut self, color: Option<&Color>) {
         self.style_properties.insert(
             TextStylePropertyId::UnderlineBrush,
-            TextStyleProperty::UnderlineBrush(color.map(|c| *c)),
+            TextStyleProperty::UnderlineBrush(color.copied()),
         );
     }
 
@@ -139,7 +139,7 @@ impl TextStyle {
     pub fn set_strikethrough_brush(&mut self, color: Option<&Color>) {
         self.style_properties.insert(
             TextStylePropertyId::StrikethroughBrush,
-            TextStyleProperty::StrikethroughBrush(color.map(|c| *c)),
+            TextStyleProperty::StrikethroughBrush(color.copied()),
         );
     }
 
@@ -240,7 +240,7 @@ enum TextStyleProperty {
 }
 
 impl TextStyleProperty {
-    fn as_parley<'a>(&'a self) -> StyleProperty<'a, Color> {
+    fn as_parley(&self) -> StyleProperty<Color> {
         match self {
             Self::FontFamily(family) => {
                 StyleProperty::FontStack(FontStack::Source(family.as_str()))

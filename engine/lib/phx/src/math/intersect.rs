@@ -290,31 +290,31 @@ pub unsafe extern "C" fn Intersect_LineSegmentPlane(
     plane: &Plane,
     pHit: &mut Position,
 ) -> bool {
-    let mut ray: Ray = Ray {
+    let ray: Ray = Ray {
         p: (*lineSegment).p0,
         dir: (*lineSegment).p1.as_dvec3() - (*lineSegment).p0.as_dvec3(),
         tMin: 0.0,
         tMax: 1.0,
     };
 
-    Intersect_RayPlane(&mut ray, plane, pHit)
+    Intersect_RayPlane(&ray, plane, pHit)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_RectRect(a: *const Vec4, b: *const Vec4) -> bool {
-    let mut a2: Vec4 = Vec4::new(
+    let a2: Vec4 = Vec4::new(
         (*a).x + f32::min((*a).z, 0.0f32),
         (*a).y + f32::min((*a).w, 0.0f32),
         f32::abs((*a).z),
         f32::abs((*a).w),
     );
-    let mut b2: Vec4 = Vec4::new(
+    let b2: Vec4 = Vec4::new(
         (*b).x + f32::min((*b).z, 0.0f32),
         (*b).y + f32::min((*b).w, 0.0f32),
         f32::abs((*b).z),
         f32::abs((*b).w),
     );
-    Intersect_RectRectFast(&mut a2, &mut b2)
+    Intersect_RectRectFast(&a2, &b2)
 }
 
 #[no_mangle]

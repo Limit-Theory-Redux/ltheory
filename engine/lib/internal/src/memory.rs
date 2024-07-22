@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![allow(clippy::missing_safety_doc)] // This file will be removed after refactoring
 
 #[inline]
 pub unsafe extern "C" fn MemAlloc(size: usize) -> *mut libc::c_void {

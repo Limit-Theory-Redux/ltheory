@@ -8,8 +8,8 @@
 uniform vec3 axis;
 uniform vec2 size;
 
-varying float opacity;
-varying vec3 attrib;
+out float opacity;
+out vec3 attrib;
 
 const float kWrapDistance = 1024.0;
 

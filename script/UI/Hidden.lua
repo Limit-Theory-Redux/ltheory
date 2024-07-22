@@ -87,8 +87,9 @@ function Hidden:onDraw(focus, active)
     local x, y = self:getPosGlobal()
 
     -- Header background
-    Config.ui.color.border:set()
+    UI.DrawEx.SimpleShaderStart(Config.ui.color.border)
     Draw.Rect(x, y, self.sx, self.padMinY)
+    UI.DrawEx.SimpleShaderStop()
 
     -- Header title
     local font  = Config.ui.font.title

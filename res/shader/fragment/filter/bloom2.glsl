@@ -11,8 +11,8 @@ vec3 normalum (vec3 x) {
 }
 
 void main() {
-  vec3 c1 = texture2D(src, uv).xyz;
-  vec4 c2w = texture2D(srcBlur, uv);
+  vec3 c1 = texture(src, uv).xyz;
+  vec4 c2w = texture(srcBlur, uv);
   vec3 c2 = c2w.xyz;
   float w = c2w.w;
   
@@ -25,5 +25,5 @@ void main() {
   vec3 dark = sqrt(c1 * c2);
   c = mix(c, dark, 0.1);
   c += 0.25 * strength * mix(normalum(c2), normalum(vec3(0.1, 0.3, 1.0)), 0.4) * pow(lum(c2), 1.5);
-  gl_FragColor = vec4(c, 1.0);
+  outColor = vec4(c, 1.0);
 }

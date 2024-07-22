@@ -41,7 +41,7 @@ float magic(vec3 p) {
 
 void main() {
   vec3 dir = cubeMapDir(uv);
-  vec4 radiance = textureCube(src, dir);
+  vec4 radiance = texture(src, dir);
   dir = normalize(quatMul(rot, dir));
   float emit = magic(dir);
   float d = sqrt(max(0.0, 1.0 - dot(dir, vec3(1, 0, 0))));
@@ -55,5 +55,5 @@ void main() {
   // mult += 0.5 * emit;
   mult *= scatter;
   radiance.xyz += mult * (1.0 - exp(-exp(0.2 * color) * color));
-  gl_FragColor = radiance;
+  outColor = radiance;
 }

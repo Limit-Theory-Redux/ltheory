@@ -21,7 +21,7 @@ pub struct Face {
     pub up: Vec3,
 }
 
-static mut kFaces: [Face; 6] = [
+static mut K_FACES: [Face; 6] = [
     Face {
         face: CubeFace_PX,
         look: Vec3::X,
@@ -178,7 +178,7 @@ pub extern "C" fn TexCube_Acquire(this: &mut TexCube) {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Clear(this: &mut TexCube, r: f32, g: f32, b: f32, a: f32) {
     for i in 0..6 {
-        let face: Face = kFaces[i as usize];
+        let face: Face = K_FACES[i as usize];
 
         RenderTarget_Push((*this).size, (*this).size);
         RenderTarget_BindTexCube(this, face.face);
@@ -191,9 +191,9 @@ pub unsafe extern "C" fn TexCube_Clear(this: &mut TexCube, r: f32, g: f32, b: f3
 pub unsafe extern "C" fn TexCube_Free(this: *mut TexCube) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0
+        (*this)._refCount == 0
     } {
-        glcheck!(gl::DeleteTextures(1, &mut (*this).handle));
+        glcheck!(gl::DeleteTextures(1, &(*this).handle));
         MemFree(this as *const _);
     }
 }
@@ -256,7 +256,7 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
         }
 
         glcheck!(gl::TexImage2D(
-            kFaces[i as usize].face as gl::types::GLenum,
+            K_FACES[i as usize].face as gl::types::GLenum,
             0,
             (*this).format,
             (*this).size,
@@ -278,7 +278,7 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
 }
 
 #[no_mangle]
-pub extern "C" fn TexCube_GetData(
+pub unsafe extern "C" fn TexCube_GetData(
     this: &mut TexCube,
     data: *mut libc::c_void,
     face: CubeFace,
@@ -333,23 +333,18 @@ pub extern "C" fn TexCube_GetSize(this: &mut TexCube) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut ShaderState) {
-    GLMatrix_ModeP();
-    GLMatrix_Push();
-    GLMatrix_Clear();
-    GLMatrix_ModeWV();
-    GLMatrix_Push();
-    GLMatrix_Clear();
     RenderState_PushAllDefaults();
-    state.start();
 
     for i in 0..6 {
-        let face: Face = kFaces[i as usize];
+        let face: Face = K_FACES[i as usize];
         let size: i32 = this.size;
         let size_f: f32 = this.size as f32;
 
         RenderTarget_Push(size, size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(0.0f32, 0.0f32, 0.0f32, 1.0f32);
+
+        state.start();
         Shader::set_float3("cubeLook", face.look.x, face.look.y, face.look.z);
         Shader::set_float3("cubeUp", face.up.x, face.up.y, face.up.z);
         Shader::set_float("cubeSize", size_f);
@@ -359,7 +354,7 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
         while j <= size {
             let time: TimeStamp = TimeStamp::now();
             ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
-            Draw_Rect(0.0f32, 0.0f32, size_f, size_f);
+            Draw::rect(0.0f32, 0.0f32, size_f, size_f);
             Draw_Flush();
             ClipRect_Pop();
 
@@ -373,15 +368,12 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
             job_size = i32::min(job_size, size - j + 1);
         }
 
+        state.stop();
+
         RenderTarget_Pop();
     }
 
-    state.stop();
     RenderState_PopAll();
-    GLMatrix_ModeP();
-    GLMatrix_Pop();
-    GLMatrix_ModeWV();
-    GLMatrix_Pop();
 }
 
 #[no_mangle]
@@ -392,7 +384,7 @@ pub extern "C" fn TexCube_GenMipmap(this: &mut TexCube) {
 }
 
 #[no_mangle]
-pub extern "C" fn TexCube_SetData(
+pub unsafe extern "C" fn TexCube_SetData(
     this: &mut TexCube,
     data: *const libc::c_void,
     face: CubeFace,
@@ -469,7 +461,7 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
             as *mut libc::c_uchar;
 
     for i in 0..6 {
-        let face: CubeFace = kFaces[i as usize].face;
+        let face: CubeFace = K_FACES[i as usize].face;
         let face_path = format!("{}{}.png", path.as_str(), K_FACE_EXT[i as usize]);
 
         glcheck!(gl::GetTexImage(

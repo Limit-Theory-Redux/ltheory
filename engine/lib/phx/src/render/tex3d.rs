@@ -87,9 +87,9 @@ pub extern "C" fn Tex3D_Acquire(this: &mut Tex3D) {
 pub unsafe extern "C" fn Tex3D_Free(this: *mut Tex3D) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0
+        (*this)._refCount == 0
     } {
-        glcheck!(gl::DeleteTextures(1, &mut (*this).handle));
+        glcheck!(gl::DeleteTextures(1, &(*this).handle));
         MemFree(this as *const _);
     }
 }
@@ -117,7 +117,7 @@ pub extern "C" fn Tex3D_GenMipmap(this: &mut Tex3D) {
 }
 
 #[no_mangle]
-pub extern "C" fn Tex3D_GetData(
+pub unsafe extern "C" fn Tex3D_GetData(
     this: &mut Tex3D,
     data: *mut libc::c_void,
     pf: PixelFormat,
@@ -179,7 +179,7 @@ pub extern "C" fn Tex3D_GetSizeLevel(this: &mut Tex3D, out: &mut IVec3, level: i
 }
 
 #[no_mangle]
-pub extern "C" fn Tex3D_SetData(
+pub unsafe extern "C" fn Tex3D_SetData(
     this: &mut Tex3D,
     data: *const libc::c_void,
     pf: PixelFormat,

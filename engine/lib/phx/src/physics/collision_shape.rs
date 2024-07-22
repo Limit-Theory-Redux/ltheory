@@ -7,11 +7,11 @@ use rapier3d_f64::prelude::{self as rp, ColliderBuilder};
 pub type CollisionGroup = u32;
 pub type CollisionMask = u32;
 
-pub const CollisionGroup_Null: CollisionGroup = 0 << 0;
-pub const CollisionGroup_Default: CollisionGroup = 1 << 0;
+pub const COLLISION_GROUP_NULL: CollisionGroup = 0;
+pub const COLLISION_GROUP_DEFAULT: CollisionGroup = 1;
 
-pub const CollisionMask_Null: CollisionMask = 0 << 0;
-pub const CollisionMask_All: CollisionMask = !CollisionGroup_Null;
+pub const COLLISION_MASK_NULL: CollisionMask = 0;
+pub const COLLISION_MASK_ALL: CollisionMask = !COLLISION_GROUP_NULL;
 
 #[derive(Clone)]
 pub enum CollisionShapeType {
@@ -149,8 +149,8 @@ impl CollisionShape {
 
     fn convert_indices(mesh: &Mesh) -> Vec<[u32; 3]> {
         let mesh_indices = &mesh.index[..mesh.index.len() - (mesh.index.len() % 3)];
-        let mut indices: Vec<[u32; 3]> = Vec::new();
-        indices.reserve(mesh_indices.len() / 3);
+        let mut indices: Vec<[u32; 3]> = Vec::with_capacity(mesh_indices.len() / 3);
+
         for i in 0..mesh_indices.len() / 3 {
             indices.push([
                 mesh_indices[i * 3] as u32,

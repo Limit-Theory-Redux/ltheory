@@ -10,8 +10,12 @@ Image:setStretch(0, 0)
 local default
 
 function Image:onDraw(focus, active)
-    Draw.Color(1, 1, 1, 1)
-    self.tex:draw(self:getRectGlobal())
+    local shader = Cache.Shader('ui', 'simple_image')
+    shader:start()
+    Shader.SetTex2D("image", self.tex)
+    local x, y, sx, sy = self:getRectGlobal()
+    Draw.Rect(x, y, sx, sy)
+    shader:stop()
 end
 
 function Image:setTex(tex)

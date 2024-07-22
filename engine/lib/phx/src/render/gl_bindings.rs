@@ -1,3 +1,6 @@
+#![allow(clippy::missing_transmute_annotations)] // disable clippy warnings in the generated bindings.rs file
+#![allow(clippy::unused_unit)]
+
 pub mod gl {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 

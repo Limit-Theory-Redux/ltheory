@@ -50,7 +50,7 @@ impl GlState {
             let surface = unsafe {
                 config
                     .display()
-                    .create_window_surface(config, &attrs)
+                    .create_window_surface(config, attrs)
                     .unwrap()
             };
 
@@ -206,8 +206,8 @@ impl WinitWindow {
 
         let gl_display = gl_config.display();
         let context_attributes = ContextAttributesBuilder::new()
-            .with_context_api(ContextApi::OpenGl(Some(Version::new(2, 1))))
-            .with_profile(GlProfile::Compatibility)
+            .with_context_api(ContextApi::OpenGl(Some(Version::new(3, 3))))
+            .with_profile(GlProfile::Core)
             .build(
                 winit_window
                     .window_handle()

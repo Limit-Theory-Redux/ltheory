@@ -40,5 +40,5 @@ vec4 generate(vec3 dir) {
 
 void main() {
   vec3 dir = cubeMapDir(uv);
-  gl_FragColor = generate(dir);
+  outColor = generate(dir);
 }

@@ -113,9 +113,9 @@ impl TypeInfo {
         match &self.variant {
             TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
                 if self.is_mutable {
-                    format!("char*")
+                    "char*".to_string()
                 } else {
-                    format!("cstr")
+                    "cstr".to_string()
                 }
             }
             TypeVariant::Custom(ty_name) => {
@@ -133,17 +133,15 @@ impl TypeInfo {
                     } else {
                         format!("{ffi_ty_name} const*")
                     }
+                } else if self.is_mutable {
+                    // Mutable is always with reference
+                    format!("{ffi_ty_name}*")
+                } else if self.is_reference {
+                    format!("{ffi_ty_name} const*")
+                } else if TypeInfo::is_copyable(ty_name) {
+                    ffi_ty_name.to_string()
                 } else {
-                    if self.is_mutable {
-                        // Mutable is always with reference
-                        format!("{ffi_ty_name}*")
-                    } else if self.is_reference {
-                        format!("{ffi_ty_name} const*")
-                    } else if TypeInfo::is_copyable(&ty_name) {
-                        format!("{ffi_ty_name}")
-                    } else {
-                        format!("{ffi_ty_name}*")
-                    }
+                    format!("{ffi_ty_name}*")
                 }
             }
             _ => {
@@ -161,7 +159,7 @@ impl TypeInfo {
                     format!("{ty_ident}*")
                 } else {
                     // We don't care if there is reference on the numeric type - just accept it by value
-                    format!("{ty_ident}")
+                    ty_ident.to_string()
                 }
             }
         }
@@ -205,10 +203,7 @@ pub enum TypeVariant {
 
 impl TypeVariant {
     pub fn is_string(&self) -> bool {
-        match self {
-            Self::Str | Self::String | Self::CString => true,
-            _ => false,
-        }
+        matches!(self, Self::Str | Self::String | Self::CString)
     }
 
     pub fn from_str(type_name: &str) -> Option<Self> {

@@ -20,23 +20,31 @@ pub struct MethodInfo {
 
 impl MethodInfo {
     pub fn as_ffi_name(&self) -> String {
-        self.bind_args
-            .name()
-            .unwrap_or_else(|| snake_to_camel_case(&self.name, true))
+        if self.bind_args.is_to_string() {
+            "ToString".to_string()
+        } else {
+            self.bind_args
+                .name()
+                .unwrap_or_else(|| snake_to_camel_case(&self.name, true))
+        }
     }
 
     pub fn as_ffi_var(&self) -> String {
-        self.bind_args
-            .name()
-            .map(|name| {
-                if let Some(c) = name.get(..1) {
-                    // First character of the FFI variable should be lowercase
-                    format!("{}{}", c.to_lowercase(), name.get(1..).unwrap_or(""))
-                } else {
-                    name
-                }
-            })
-            .unwrap_or_else(|| snake_to_camel_case(&self.name, false))
+        if self.bind_args.is_to_string() {
+            "toString".to_string()
+        } else {
+            self.bind_args
+                .name()
+                .map(|name| {
+                    if let Some(c) = name.get(..1) {
+                        // First character of the FFI variable should be lowercase
+                        format!("{}{}", c.to_lowercase(), name.get(1..).unwrap_or(""))
+                    } else {
+                        name
+                    }
+                })
+                .unwrap_or_else(|| snake_to_camel_case(&self.name, false))
+        }
     }
 }
 

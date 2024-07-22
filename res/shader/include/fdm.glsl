@@ -24,8 +24,8 @@ vec4 sampleFDMTexture(sampler2D sampler, vec2 uv) {
   float freqHi = pow(2.0, ceil(log2(frequency)));
   float freqLo = freqHi * 0.5;
   return mix(
-    texture2D(sampler, uv * freqLo),
-    texture2D(sampler, uv * freqHi),
+    texture(sampler, uv * freqLo),
+    texture(sampler, uv * freqHi),
     frequency / freqLo - 1.0);
 }
 

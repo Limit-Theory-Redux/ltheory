@@ -20,7 +20,7 @@ void main() {
   c *= radians(360.0);
   c *= uv.x;
   c *= c;
-  // c *= textureCubeLod(envMap, N, 9.0).xyz;
+  // c *= textureLod(envMap, N, 9.0).xyz;
   // c = applyFog(c, V);
 
   FRAGMENT_CORRECT_DEPTH;

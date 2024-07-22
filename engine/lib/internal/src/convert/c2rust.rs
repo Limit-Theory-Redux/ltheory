@@ -4,7 +4,7 @@ use crate::ConvertIntoString;
 
 impl ConvertIntoString for *const libc::c_char {
     fn as_str(&self) -> &str {
-        if *self == std::ptr::null() {
+        if self.is_null() {
             return "<null>";
         }
 

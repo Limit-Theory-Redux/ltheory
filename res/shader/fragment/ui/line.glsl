@@ -34,5 +34,5 @@ void main() {
     /* decrease opacity toward end of line */
     alpha *= exp(-2.0 * (1.0 - t));
   }
-  gl_FragColor = alpha * color.w * vec4(c, 1.0);
+  outColor = alpha * color.w * vec4(c, 1.0);
 }
