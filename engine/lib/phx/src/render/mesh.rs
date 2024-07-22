@@ -107,8 +107,9 @@ pub extern "C" fn Mesh_Free(mut this: Box<Mesh>) {
     this._refCount = (this._refCount).wrapping_sub(1);
 
     if this._refCount <= 0 && this.vbo != 0 {
-        glcheck!(gl::DeleteBuffers(1, &mut this.vbo));
-        glcheck!(gl::DeleteBuffers(1, &mut this.ibo));
+        glcheck!(gl::DeleteVertexArrays(1, &this.vao));
+        glcheck!(gl::DeleteBuffers(1, &this.vbo));
+        glcheck!(gl::DeleteBuffers(1, &this.ibo));
     }
 }
 
@@ -229,8 +230,10 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(this: &mut Mesh, vertex: *const Verte
 pub extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
     /* Release cached GL buffers if the mesh has changed since we built them. */
     if this.vbo != 0 && this.version != this.versionBuffers {
-        glcheck!(gl::DeleteBuffers(1, &mut this.vbo));
-        glcheck!(gl::DeleteBuffers(1, &mut this.ibo));
+        glcheck!(gl::DeleteVertexArrays(1, &this.vao));
+        glcheck!(gl::DeleteBuffers(1, &this.vbo));
+        glcheck!(gl::DeleteBuffers(1, &this.ibo));
+        this.vao = 0;
         this.vbo = 0;
         this.ibo = 0;
     }
