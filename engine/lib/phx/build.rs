@@ -23,10 +23,7 @@ fn main() {
         Profile::Core,
         Fallbacks::All,
         [
-            "GL_ARB_seamless_cubemap_per_texture",
-            "GL_ARB_texture_rg",
             "GL_EXT_texture_filter_anisotropic",
-            "GL_ARB_framebuffer_object",
             "GL_ARB_texture_mirror_clamp_to_edge",
         ],
     )
