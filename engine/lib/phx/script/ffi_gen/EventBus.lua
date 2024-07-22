@@ -17,6 +17,8 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void             EventBus_Free               (EventBus*);
+            double           EventBus_GetTimeScale       (EventBus const*);
+            void             EventBus_SetTimeScale       (EventBus*, double scaleFactor);
             void             EventBus_Register           (EventBus*, cstr eventName, EventPriority priority, FrameStage frameStage, bool withFrameStageMessage);
             void             EventBus_Unregister         (EventBus*, cstr eventName);
             uint32           EventBus_Subscribe          (EventBus*, cstr eventName, uint64 const* entityId);
@@ -38,6 +40,8 @@ function Loader.defineType()
         local t  = ffi.typeof('EventBus')
         local mt = {
             __index = {
+                getTimeScale       = libphx.EventBus_GetTimeScale,
+                setTimeScale       = libphx.EventBus_SetTimeScale,
                 register           = libphx.EventBus_Register,
                 unregister         = libphx.EventBus_Unregister,
                 subscribe          = libphx.EventBus_Subscribe,

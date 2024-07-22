@@ -99,11 +99,11 @@ function Application:registerEvents()
     EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostInput), self, self.onPostInput)
 end
 
-function Application:onPreSim() end
-function Application:onSim() end
-function Application:onPostSim() end
+function Application:onPreSim(data) end
+function Application:onSim(data) end
+function Application:onPostSim(data) end
 
-function Application:onPreRender()
+function Application:onPreRender(data)
     if self.toggleProfiler then
         self.toggleProfiler = false
         self.profiling = not self.profiling
@@ -126,10 +126,11 @@ function Application:onPreRender()
         self.timeScale = GameState.debug.timeAccelFactor
     end
 
-    local now = TimeStamp.Now()
-    self.dt = self.lastUpdate:getDifference(now)
-    self.lastUpdate = now
-    local timeScaledDt = self.timeScale * self.dt
+    if self.timeScale ~= EventBusInstance:getTimeScale() then
+        EventBusInstance:setTimeScale(self.timeScale)
+    end
+
+    local timeScaledDt = data:getDeltaTime()
 
     --* system & canvas should probably subscribe to onPreRender themselves
     if GameState.player.humanPlayer and GameState.player.humanPlayer:getRoot().update then
@@ -154,7 +155,7 @@ function Application:onPreRender()
     Profiler.End()
 end
 
-function Application:onRender()
+function Application:onRender(data)
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onRender')
 
@@ -246,7 +247,7 @@ function Application:onRender()
     Profiler.LoopMarker()
 end
 
-function Application:onPostRender()
+function Application:onPostRender(data)
     do -- End Draw
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onPostRender')
@@ -255,9 +256,9 @@ function Application:onPostRender()
     end
 end
 
-function Application:onPreInput() end
+function Application:onPreInput(data) end
 
-function Application:onInput()
+function Application:onInput(data)
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onInput')
 
@@ -329,7 +330,7 @@ function Application:onInput()
     Profiler.End()
 end
 
-function Application:onPostInput() end
+function Application:onPostInput(data) end
 
 function Application:doExit()
     if self.profiling then Profiler.Disable() end

@@ -7,6 +7,8 @@ use strum_macros::EnumIter;
 use internal::ConvertIntoString;
 use tracing::{info, warn};
 
+use crate::system::TimeStamp;
+
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
 pub enum FrameStage {
@@ -88,26 +90,48 @@ impl Event {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi]
-#[derive(Debug, Clone, Copy)]
-pub enum EventType {
-    SomeType,
-}
-
 #[derive(Debug, Clone)]
 pub struct EventData {
+    pub delta_time: f64,
     pub frame_stage: FrameStage,
     pub tunnel_id: u32,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl EventData {
+    pub fn get_delta_time(&self) -> f64 {
+        self.delta_time
+    }
+
     pub fn get_frame_stage(&self) -> FrameStage {
         self.frame_stage
     }
 
     pub fn get_tunnel_id(&self) -> u32 {
         self.tunnel_id
+    }
+}
+
+struct FrameTimer {
+    last_update: HashMap<FrameStage, TimeStamp>,
+}
+
+impl FrameTimer {
+    pub fn new() -> Self {
+        let mut last_update = HashMap::new();
+        let now = TimeStamp::now();
+        for stage in FrameStage::iter() {
+            last_update.insert(stage, now);
+        }
+        FrameTimer { last_update }
+    }
+
+    pub fn update(&mut self, stage: FrameStage) -> f64 {
+        let now = TimeStamp::now();
+        let last_time = self.last_update.get(&stage).cloned().unwrap_or(now);
+        let delta = last_time.get_elapsed();
+        self.last_update.insert(stage, now);
+        delta
     }
 }
 
@@ -176,15 +200,22 @@ enum EventBusOperation {
         event_name: String,
         entity_id: u64,
     },
+    SetTimeScale {
+        scale_factor: f64,
+    },
 }
 
 pub struct EventBus {
+    delta_time: f64,
+    frame_timer: FrameTimer,
+    frame_time_scale: f64,
     events: HashMap<String, Event>,
     operation_queue: VecDeque<EventBusOperation>,
     frame_stage_map: HashMap<FrameStage, BinaryHeap<MessageRequest>>,
     cached_requests: Vec<MessageRequestCache>,
     next_subscriber_id: AtomicU32,
     next_tunnel_id: AtomicU32,
+    last_frame_stage: Option<FrameStage>,
     current_frame_stage: Option<FrameStage>,
     current_event: Option<Event>,
     current_message_request: Option<MessageRequest>,
@@ -219,12 +250,16 @@ impl EventBus {
         }
 
         Self {
+            delta_time: 0.0,
+            frame_timer: FrameTimer::new(),
+            frame_time_scale: 1.0,
             events,
             operation_queue: VecDeque::new(),
             frame_stage_map: HashMap::new(),
             cached_requests,
             next_subscriber_id: AtomicU32::new(0),
             next_tunnel_id: AtomicU32::new(0),
+            last_frame_stage: None,
             current_frame_stage: Some(FrameStage::PreSim),
             current_event: None,
             current_message_request: None,
@@ -353,6 +388,9 @@ impl EventBus {
                         self.cached_requests.push(message_request);
                     }
                 }
+                EventBusOperation::SetTimeScale { scale_factor } => {
+                    self.frame_time_scale = scale_factor;
+                }
             }
         }
     }
@@ -360,6 +398,15 @@ impl EventBus {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl EventBus {
+    pub fn get_time_scale(&self) -> f64 {
+        self.frame_time_scale
+    }
+
+    pub fn set_time_scale(&mut self, scale_factor: f64) {
+        self.operation_queue
+            .push_front(EventBusOperation::SetTimeScale { scale_factor });
+    }
+
     pub fn register(
         &mut self,
         event_name: &str,
@@ -421,6 +468,13 @@ impl EventBus {
             //info!("Initializing current_frame_stage to PreSim");
         }
 
+        if self.current_frame_stage != self.last_frame_stage {
+            if let Some(frame_stage) = self.current_frame_stage {
+                self.delta_time = self.frame_timer.update(frame_stage) * self.frame_time_scale;
+                self.last_frame_stage = self.current_frame_stage;
+            }
+        }
+
         while let Some(frame_stage) = self.current_frame_stage {
             //info!("Processing frame stage: {:?}", frame_stage);
 
@@ -467,6 +521,7 @@ impl EventBus {
                                 || message_request.for_entity_id == subscriber.entity_id
                             {
                                 let event_data = EventData {
+                                    delta_time: self.delta_time,
                                     frame_stage,
                                     tunnel_id: subscriber.tunnel_id,
                                 };

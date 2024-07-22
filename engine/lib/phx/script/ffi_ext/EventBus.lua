@@ -11,7 +11,7 @@ function onDef_EventBus_t(t, mt)
             entityIdPtr[0] = entityId
         end
         local tunnelId = libphx.EventBus_Subscribe(self, eventName, entityIdPtr)
-        EventTunnels[tunnelId] = function() callback(ctxTable) end
+        EventTunnels[tunnelId] = function(...) callback(ctxTable, ...) end
         return tunnelId
     end
 

@@ -3,6 +3,9 @@
 ---@class EventData
 EventData = {}
 
+---@return number
+function EventData:getDeltaTime() end
+
 ---@return FrameStage
 function EventData:getFrameStage() end
 

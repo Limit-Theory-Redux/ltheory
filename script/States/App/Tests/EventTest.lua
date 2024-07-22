@@ -32,15 +32,15 @@ function EventTest:onInit()
     end)
 
     EventBusInstance:register("MyCustomEventHigh", EventPriority.High, FrameStage.PreRender, false)
-    EventBusInstance:subscribe("MyCustomEventHigh", fakeEntity, function() Log.Debug("Received MyCustomEventHigh") end)
+    EventBusInstance:subscribe("MyCustomEventHigh", fakeEntity, function(data) Log.Debug("Received MyCustomEventHigh") end)
     EventBusInstance:send("MyCustomEventHigh", fakeEntity)
 
     EventBusInstance:register("MyCustomEventMedium", EventPriority.Medium, FrameStage.PreRender, false)
-    EventBusInstance:subscribe("MyCustomEventMedium", fakeEntity, function() Log.Debug("Received MyCustomEventMedium") end)
+    EventBusInstance:subscribe("MyCustomEventMedium", fakeEntity, function(data) Log.Debug("Received MyCustomEventMedium") end)
     EventBusInstance:send("MyCustomEventMedium", fakeEntity)
 
     EventBusInstance:register("MyCustomEventLow", EventPriority.Low, FrameStage.PreRender, false)
-    EventBusInstance:subscribe("MyCustomEventLow", fakeEntity, function() Log.Debug("Received MyCustomEventLow") end)
+    EventBusInstance:subscribe("MyCustomEventLow", fakeEntity, function(data) Log.Debug("Received MyCustomEventLow") end)
     EventBusInstance:send("MyCustomEventLow", fakeEntity)
 end
 

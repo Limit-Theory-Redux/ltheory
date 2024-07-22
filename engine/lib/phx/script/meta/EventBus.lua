@@ -3,6 +3,12 @@
 ---@class EventBus
 EventBus = {}
 
+---@return number
+function EventBus:getTimeScale() end
+
+---@param scaleFactor number
+function EventBus:setTimeScale(scaleFactor) end
+
 ---@param eventName string
 ---@param priority EventPriority
 ---@param frameStage FrameStage
