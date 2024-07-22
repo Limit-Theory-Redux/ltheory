@@ -44,7 +44,7 @@ pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
         .expect("Cannot create log env filter layer");
     let registry = tracing_subscriber::registry().with(filter_layer);
 
-    let guard = if !log_dir.is_empty() {
+    if !log_dir.is_empty() {
         // Create a log files in the specified directory with the 'ltr' prefix
         let file_appender = tracing_appender::rolling::daily(log_dir, "ltr");
         // Remove ASCII coloring commands from the message (used to color text in the console) before writing it to the file
@@ -90,7 +90,5 @@ pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
         }
 
         None
-    };
-
-    guard
+    }
 }

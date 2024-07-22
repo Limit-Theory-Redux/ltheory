@@ -82,8 +82,8 @@ pub unsafe extern "C" fn Mesh_Create() -> Box<Mesh> {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Clone(other: &mut Mesh) -> Box<Mesh> {
     let mut this: Box<Mesh> = Mesh_Create();
-    this.index = other.index.clone();
-    this.vertex = other.vertex.clone();
+    this.index.clone_from(&other.index);
+    this.vertex.clone_from(&other.vertex);
     this
 }
 
@@ -104,9 +104,9 @@ pub extern "C" fn Mesh_Acquire(this: &mut Mesh) {
 pub extern "C" fn Mesh_Free(mut this: Box<Mesh>) {
     this._refCount = (this._refCount).wrapping_sub(1);
 
-    if this._refCount <= 0 && this.vbo != 0 {
-        glcheck!(gl::DeleteBuffers(1, &mut this.vbo));
-        glcheck!(gl::DeleteBuffers(1, &mut this.ibo));
+    if this._refCount == 0 && this.vbo != 0 {
+        glcheck!(gl::DeleteBuffers(1, &this.vbo));
+        glcheck!(gl::DeleteBuffers(1, &this.ibo));
     }
 }
 
@@ -177,7 +177,7 @@ pub extern "C" fn Mesh_AddIndex(this: &mut Mesh, newIndex: i32) {
 pub unsafe extern "C" fn Mesh_AddMesh(this: &mut Mesh, other: &mut Mesh) {
     let indexOffset: i32 = this.vertex.len() as i32;
     for i in 0..other.vertex.len() {
-        Mesh_AddVertexRaw(this, &mut other.vertex[i]);
+        Mesh_AddVertexRaw(this, &other.vertex[i]);
     }
     for i in 0..other.index.len() {
         Mesh_AddIndex(this, other.index[i] + indexOffset);
@@ -227,8 +227,8 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(this: &mut Mesh, vertex: *const Verte
 pub extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
     /* Release cached GL buffers if the mesh has changed since we built them. */
     if this.vbo != 0 && this.version != this.versionBuffers {
-        glcheck!(gl::DeleteBuffers(1, &mut this.vbo));
-        glcheck!(gl::DeleteBuffers(1, &mut this.ibo));
+        glcheck!(gl::DeleteBuffers(1, &this.vbo));
+        glcheck!(gl::DeleteBuffers(1, &this.ibo));
         this.vbo = 0;
         this.ibo = 0;
     }
@@ -395,7 +395,7 @@ pub unsafe extern "C" fn Mesh_Validate(this: &mut Mesh) -> Error {
 
     let mut i: i32 = 0;
     while i < indexLen {
-        let i0: i32 = *indexData.offset((i + 0) as isize);
+        let i0: i32 = *indexData.offset((i) as isize);
         let i1: i32 = *indexData.offset((i + 1) as isize);
         let i2: i32 = *indexData.offset((i + 2) as isize);
         let mut triangle: Triangle = Triangle {
@@ -404,7 +404,7 @@ pub unsafe extern "C" fn Mesh_Validate(this: &mut Mesh) -> Error {
         triangle.vertices[0] = (*vertexData.offset(i0 as isize)).p;
         triangle.vertices[1] = (*vertexData.offset(i1 as isize)).p;
         triangle.vertices[2] = (*vertexData.offset(i2 as isize)).p;
-        let e = Triangle_Validate(&mut triangle);
+        let e = Triangle_Validate(&triangle);
         if e != 0 {
             return 0x400000 | e;
         }
@@ -554,7 +554,7 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(this: &mut Mesh) {
     }
 
     for i in (0..this.index.len()).step_by(3) {
-        let v1 = &mut this.vertex[this.index[i + 0] as usize] as *mut Vertex;
+        let v1 = &mut this.vertex[this.index[i] as usize] as *mut Vertex;
         let v2 = &mut this.vertex[this.index[i + 1] as usize] as *mut Vertex;
         let v3 = &mut this.vertex[this.index[i + 2] as usize] as *mut Vertex;
         let e1: Vec3 = (*v2).p - (*v1).p;
@@ -581,7 +581,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(this: &mut Mesh, minDot: f32) {
 
     for i in (0..this.index.len()).step_by(3) {
         let index: [*mut i32; 3] = [
-            &mut this.index[i + 0] as *mut i32,
+            &mut this.index[i] as *mut i32,
             &mut this.index[i + 1] as *mut i32,
             &mut this.index[i + 2] as *mut i32,
         ];

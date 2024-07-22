@@ -16,7 +16,7 @@ pub struct Box0 {
     pub b: Vec3,
 }
 
-static mut kFaceOrigin: [Vec3; 6] = [
+static mut K_FACE_ORIGIN: [Vec3; 6] = [
     Vec3::new(-1.0f32, -1.0f32, 1.0f32),
     Vec3::new(-1.0f32, -1.0f32, -1.0f32),
     Vec3::new(1.0f32, -1.0f32, -1.0f32),
@@ -25,7 +25,7 @@ static mut kFaceOrigin: [Vec3; 6] = [
     Vec3::new(-1.0f32, -1.0f32, -1.0f32),
 ];
 
-static mut kFaceU: [Vec3; 6] = [
+static mut K_FACE_U: [Vec3; 6] = [
     Vec3::new(2.0f32, 0.0f32, 0.0f32),
     Vec3::new(0.0f32, 2.0f32, 0.0f32),
     Vec3::new(0.0f32, 2.0f32, 0.0f32),
@@ -34,7 +34,7 @@ static mut kFaceU: [Vec3; 6] = [
     Vec3::new(2.0f32, 0.0f32, 0.0f32),
 ];
 
-static mut kFaceV: [Vec3; 6] = [
+static mut K_FACE_V: [Vec3; 6] = [
     Vec3::new(0.0f32, 2.0f32, 0.0f32),
     Vec3::new(2.0f32, 0.0f32, 0.0f32),
     Vec3::new(0.0f32, 0.0f32, 2.0f32),
@@ -81,9 +81,9 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(this: &mut BoxMesh, res: i32) -> Box<Me
         let rot: Box<Matrix> = Matrix_YawPitchRoll((*box3).r.x, (*box3).r.y, (*box3).r.z);
 
         for face in 0..6 {
-            let o: Vec3 = kFaceOrigin[face as usize];
-            let du: Vec3 = kFaceU[face as usize];
-            let dv: Vec3 = kFaceV[face as usize];
+            let o: Vec3 = K_FACE_ORIGIN[face as usize];
+            let du: Vec3 = K_FACE_U[face as usize];
+            let dv: Vec3 = K_FACE_V[face as usize];
             let n: Vec3 = Vec3::cross(du, dv).normalize();
 
             for iu in 0..res {

@@ -62,7 +62,7 @@ pub(crate) enum RapierWrapper<H: RapierHandle> {
 }
 
 impl<H: RapierHandle> RapierWrapper<H> {
-    pub(crate) fn as_ref<'a>(&'a self) -> RefOrBorrow<'a, H::Object> {
+    pub(crate) fn as_ref(&self) -> RefOrBorrow<'_, H::Object> {
         match self {
             RapierWrapper::Removed(t) => RefOrBorrow::Borrow(t),
             RapierWrapper::Added(handle, world) => {
@@ -71,7 +71,7 @@ impl<H: RapierHandle> RapierWrapper<H> {
         }
     }
 
-    pub(crate) fn as_mut<'a>(&'a mut self) -> RefMutOrBorrow<'a, H::Object> {
+    pub(crate) fn as_mut(&mut self) -> RefMutOrBorrow<'_, H::Object> {
         match self {
             RapierWrapper::Removed(t) => RefMutOrBorrow::Borrow(t),
             RapierWrapper::Added(handle, world) => {

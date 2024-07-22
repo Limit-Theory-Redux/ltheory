@@ -1,5 +1,9 @@
-#![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::unnecessary_cast)]
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::explicit_auto_deref)]
+#![allow(clippy::new_without_default)]
+#![allow(clippy::module_inception)] // Allow nested module with the same name as parent
 
 pub mod audio;
 pub mod common;

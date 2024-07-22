@@ -60,9 +60,9 @@ impl Font {
 
     fn get_glyph(&self, code_point: u32) {
         let mut font_data = self.0.as_mut();
+        let face: FT_Face = font_data.handle;
 
-        if !font_data.glyphs.contains_key(&code_point) {
-            let face: FT_Face = font_data.handle;
+        if let std::collections::hash_map::Entry::Vacant(e) = font_data.glyphs.entry(code_point) {
             let glyph_index = unsafe { FT_Get_Char_Index(face, code_point as FT_ULong) };
 
             if glyph_index == 0 {
@@ -127,7 +127,7 @@ impl Font {
             }
 
             /* Add to glyph cache. */
-            font_data.glyphs.insert(code_point, glyph);
+            e.insert(glyph);
         }
     }
 

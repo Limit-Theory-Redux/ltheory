@@ -21,16 +21,16 @@ pub struct ClipRectTransform {
     pub sx: f32,
     pub sy: f32,
 }
-static mut transform: [ClipRectTransform; 128] = [ClipRectTransform {
+static mut TRANSFORM: [ClipRectTransform; 128] = [ClipRectTransform {
     tx: 0.,
     ty: 0.,
     sx: 0.,
     sy: 0.,
 }; 128];
 
-static mut transformIndex: i32 = -1;
+static mut TRANSFORM_INDEX: i32 = -1;
 
-static mut rect: [ClipRect; 128] = [ClipRect {
+static mut RECT: [ClipRect; 128] = [ClipRect {
     x: 0.,
     y: 0.,
     sx: 0.,
@@ -38,12 +38,12 @@ static mut rect: [ClipRect; 128] = [ClipRect {
     enabled: false,
 }; 128];
 
-static mut rectIndex: i32 = -1;
+static mut RECT_INDEX: i32 = -1;
 
 #[inline]
 unsafe extern "C" fn TransformRect(x: &mut f32, y: &mut f32, sx: &mut f32, sy: &mut f32) {
-    if transformIndex >= 0 {
-        let curr: *mut ClipRectTransform = transform.as_mut_ptr().offset(transformIndex as isize);
+    if TRANSFORM_INDEX >= 0 {
+        let curr: *mut ClipRectTransform = TRANSFORM.as_mut_ptr().offset(TRANSFORM_INDEX as isize);
         *x = (*curr).sx * *x + (*curr).tx;
         *y = (*curr).sy * *y + (*curr).ty;
         *sx *= (*curr).sx;
@@ -79,11 +79,11 @@ pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32) {
-    if rectIndex + 1 >= MAX_STACK_DEPTH {
+    if RECT_INDEX + 1 >= MAX_STACK_DEPTH {
         panic!("ClipRect_Push: Maximum stack depth exceeded");
     }
-    rectIndex += 1;
-    let curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
+    RECT_INDEX += 1;
+    let curr: *mut ClipRect = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
     (*curr).x = x;
     (*curr).y = y;
     (*curr).sx = sx;
@@ -94,8 +94,8 @@ pub unsafe extern "C" fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32) {
-    let curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
-    if rectIndex >= 0 && (*curr).enabled as i32 != 0 {
+    let curr: *mut ClipRect = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
+    if RECT_INDEX >= 0 && (*curr).enabled as i32 != 0 {
         let maxX: f32 = x + sx;
         let maxY: f32 = y + sy;
         let x = f32::max(x, (*curr).x);
@@ -114,40 +114,40 @@ pub unsafe extern "C" fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32)
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushDisabled() {
-    if rectIndex + 1 >= MAX_STACK_DEPTH {
+    if RECT_INDEX + 1 >= MAX_STACK_DEPTH {
         panic!("ClipRect_Push: Maximum stack depth exceeded");
     }
 
-    rectIndex += 1;
-    let curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
+    RECT_INDEX += 1;
+    let curr: *mut ClipRect = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
     (*curr).enabled = false;
     ClipRect_Activate(Some(&mut *curr));
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushTransform(tx: f32, ty: f32, sx: f32, sy: f32) {
-    if transformIndex + 1 >= MAX_STACK_DEPTH {
+    if TRANSFORM_INDEX + 1 >= MAX_STACK_DEPTH {
         panic!("ClipRect_PushTransform: Maximum stack depth exceeded");
     }
-    transformIndex += 1;
-    let curr: *mut ClipRectTransform = transform.as_mut_ptr().offset(transformIndex as isize);
+    TRANSFORM_INDEX += 1;
+    let curr: *mut ClipRectTransform = TRANSFORM.as_mut_ptr().offset(TRANSFORM_INDEX as isize);
     (*curr).tx = tx;
     (*curr).ty = ty;
     (*curr).sx = sx;
     (*curr).sy = sy;
-    if rectIndex >= 0 {
-        ClipRect_Activate(Some(&mut *rect.as_mut_ptr().offset(rectIndex as isize)));
+    if RECT_INDEX >= 0 {
+        ClipRect_Activate(Some(&mut *RECT.as_mut_ptr().offset(RECT_INDEX as isize)));
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Pop() {
-    if rectIndex < 0 {
+    if RECT_INDEX < 0 {
         panic!("ClipRect_Pop: Attempting to pop an empty stack");
     }
-    rectIndex -= 1;
-    ClipRect_Activate(if rectIndex >= 0 {
-        Some(&mut *rect.as_mut_ptr().offset(rectIndex as isize))
+    RECT_INDEX -= 1;
+    ClipRect_Activate(if RECT_INDEX >= 0 {
+        Some(&mut *RECT.as_mut_ptr().offset(RECT_INDEX as isize))
     } else {
         None
     });
@@ -155,11 +155,11 @@ pub unsafe extern "C" fn ClipRect_Pop() {
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PopTransform() {
-    if transformIndex < 0 {
+    if TRANSFORM_INDEX < 0 {
         panic!("ClipRect_PopTransform: Attempting to pop an empty stack");
     }
-    transformIndex -= 1;
-    if rectIndex >= 0 {
-        ClipRect_Activate(Some(&mut *rect.as_mut_ptr().offset(rectIndex as isize)));
+    TRANSFORM_INDEX -= 1;
+    if RECT_INDEX >= 0 {
+        ClipRect_Activate(Some(&mut *RECT.as_mut_ptr().offset(RECT_INDEX as isize)));
     }
 }

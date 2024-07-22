@@ -96,7 +96,8 @@ impl Parse for ImplAttrArgs {
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        format!("expected attribute parameter value: name, opaque, clone, lua_ffi"),
+                        "expected attribute parameter value: name, opaque, clone, lua_ffi"
+                            .to_string(),
                     ));
                 }
             }

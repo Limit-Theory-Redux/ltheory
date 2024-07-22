@@ -161,12 +161,10 @@ impl HmGuiContainer {
             } else {
                 self.calculate_children_layout::<true, false>(hmgui, input, pos, size, extra_size)
             }
+        } else if widget_vstretch {
+            self.calculate_children_layout::<false, true>(hmgui, input, pos, size, extra_size)
         } else {
-            if widget_vstretch {
-                self.calculate_children_layout::<false, true>(hmgui, input, pos, size, extra_size)
-            } else {
-                self.calculate_children_layout::<false, false>(hmgui, input, pos, size, extra_size)
-            }
+            self.calculate_children_layout::<false, false>(hmgui, input, pos, size, extra_size)
         };
 
         children_size + self.padding_lower + self.padding_upper
@@ -396,7 +394,7 @@ impl HmGuiContainer {
     #[allow(dead_code)]
     #[rustfmt::skip]
     pub(crate) fn dump(&self, ident: usize) {
-        let ident_str = format!("{}", IDENT.repeat(ident));
+        let ident_str = IDENT.repeat(ident).to_string();
 
         println!("{ident_str}- layout:         {:?}", self.layout);
         println!("{ident_str}- children_align: {:?}", self.children_alignment);

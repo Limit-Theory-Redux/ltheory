@@ -79,7 +79,7 @@ impl ImplInfo {
             quote! {}
         } else {
             let ret = method.ret.as_ref().unwrap();
-            let ty_token = wrap_ret_type(&self.name, &ret, false);
+            let ty_token = wrap_ret_type(&self.name, ret, false);
 
             quote! { -> #ty_token }
         };
@@ -89,7 +89,7 @@ impl ImplInfo {
 
         quote! {
             #[no_mangle]
-            pub extern "C" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
+            pub unsafe extern "C" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
                 tracing::trace!("Calling: {}", #func_ident_str);
 
                 #func_body
@@ -127,17 +127,15 @@ fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
                 } else {
                     quote! { *const #ty_ident }
                 }
+            } else if ty.is_mutable {
+                // Mutable is always with reference
+                quote! { &mut #ty_ident }
+            } else if ty.is_reference {
+                quote! { &#ty_ident }
+            } else if TypeInfo::is_copyable(ty_name) {
+                quote! { #ty_ident }
             } else {
-                if ty.is_mutable {
-                    // Mutable is always with reference
-                    quote! { &mut #ty_ident }
-                } else if ty.is_reference {
-                    quote! { &#ty_ident }
-                } else if TypeInfo::is_copyable(&ty_name) {
-                    quote! { #ty_ident }
-                } else {
-                    quote! { Box<#ty_ident> }
-                }
+                quote! { Box<#ty_ident> }
             }
         }
         _ => {
@@ -172,7 +170,7 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo, never_box: bool) -> TokenStream
             } else {
                 format_ident!("{ty_name}")
             };
-            let is_copyable = TypeInfo::is_copyable(&ty_name) || TypeInfo::is_copyable(self_name);
+            let is_copyable = TypeInfo::is_copyable(ty_name) || TypeInfo::is_copyable(self_name);
 
             if ty.is_option {
                 if ty.is_mutable {
@@ -229,12 +227,12 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     } else {
                         quote! { #name_accessor.as_string() }
                     }
-                },
+                }
                 TypeVariant::CString => quote! { #name_accessor.as_cstring() },
                 TypeVariant::Custom(custom_ty) => {
-                    if param.ty.is_boxed || TypeInfo::is_copyable(&custom_ty) {
+                    if param.ty.is_boxed || TypeInfo::is_copyable(custom_ty) {
                         quote! { #name_accessor }
-                    } else if param.ty.is_reference  {
+                    } else if param.ty.is_reference {
                         if param.ty.is_option {
                             quote! { &#name_accessor }
                         } else {
@@ -243,7 +241,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     } else {
                         quote! { *#name_accessor }
                     }
-                },
+                }
                 _ => {
                     if param.ty.is_mutable {
                         quote! { &mut #name_accessor }
@@ -256,7 +254,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
             };
 
             if param.ty.is_option {
-                quote! {if #name_ident != std::ptr::null_mut() { unsafe { Some(#param_item) } } else { None }}
+                quote! {if !#name_ident.is_null() { unsafe { Some(#param_item) } } else { None }}
             } else {
                 param_item
             }
@@ -311,7 +309,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 } else {
                     format_ident!("{custom_ty}")
                 };
-                let is_copyable = TypeInfo::is_copyable(&custom_ty)
+                let is_copyable = TypeInfo::is_copyable(custom_ty)
                     || TypeInfo::is_copyable(&self_ident.to_string());
 
                 if ty.is_option && !ty.is_reference {

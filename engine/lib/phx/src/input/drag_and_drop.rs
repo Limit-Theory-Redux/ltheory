@@ -41,17 +41,11 @@ impl DragAndDropState {
 #[luajit_ffi_gen::luajit_ffi]
 impl DragAndDropState {
     pub fn get_dropped_file(&self) -> Option<&str> {
-        self.dropped_file
-            .as_ref()
-            .map(|file| file.to_str())
-            .flatten()
+        self.dropped_file.as_ref().and_then(|file| file.to_str())
     }
 
     pub fn get_hovered_file(&self) -> Option<&str> {
-        self.hovered_file
-            .as_ref()
-            .map(|file| file.to_str())
-            .flatten()
+        self.hovered_file.as_ref().and_then(|file| file.to_str())
     }
 
     pub fn if_hovered_file_cancelled(&self) -> bool {

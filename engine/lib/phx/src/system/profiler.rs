@@ -31,7 +31,7 @@ pub struct Profiler {
     pub start: TimeStamp,
 }
 
-static mut this: Profiler = Profiler {
+static mut THIS: Profiler = Profiler {
     map: std::ptr::null_mut(),
     stackIndex: 0,
     stack: [std::ptr::null_mut(); 128],
@@ -39,7 +39,7 @@ static mut this: Profiler = Profiler {
     start: TimeStamp::zero(),
 };
 
-static mut profiling: bool = false;
+static mut PROFILING: bool = false;
 
 unsafe extern "C" fn Scope_Create(name: *const libc::c_char) -> *mut Scope {
     let scope = MemNew!(Scope);
@@ -52,7 +52,7 @@ unsafe extern "C" fn Scope_Create(name: *const libc::c_char) -> *mut Scope {
     (*scope).var = 0.0f64;
     (*scope).min = 1e30f64;
     (*scope).max = -1e30f64;
-    this.scopeList.push(scope);
+    THIS.scopeList.push(scope);
     scope
 }
 
@@ -62,12 +62,12 @@ unsafe extern "C" fn Scope_Free(scope: *mut Scope) {
 }
 
 unsafe extern "C" fn Profiler_GetScope(name: *const libc::c_char) -> *mut Scope {
-    let mut scope: *mut Scope = HashMap_GetRaw(this.map, name as usize as u64) as *mut Scope;
+    let mut scope: *mut Scope = HashMap_GetRaw(THIS.map, name as usize as u64) as *mut Scope;
     if !scope.is_null() {
         return scope;
     }
     scope = Scope_Create(name);
-    HashMap_SetRaw(this.map, name as usize as u64, scope as *mut _);
+    HashMap_SetRaw(THIS.map, name as usize as u64, scope as *mut _);
     scope
 }
 
@@ -79,37 +79,37 @@ extern "C" fn Profiler_SignalHandler(_: Signal) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Enable() {
-    profiling = true;
-    this.map = HashMap_Create(
+    PROFILING = true;
+    THIS.map = HashMap_Create(
         std::mem::size_of::<*mut libc::c_void>() as libc::c_ulong as u32,
         (2 * 1024) as u32,
     );
-    this.scopeList = Vec::new();
-    this.scopeList.reserve(1024);
-    this.stackIndex = -1;
-    this.start = TimeStamp::now();
+    THIS.scopeList = Vec::new();
+    THIS.scopeList.reserve(1024);
+    THIS.stackIndex = -1;
+    THIS.start = TimeStamp::now();
     Profiler_Begin(c_str!("[Root]"));
     Signal_AddHandlerAll(Profiler_SignalHandler);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Disable() {
-    if this.stackIndex != 0 {
+    if THIS.stackIndex != 0 {
         panic!("Profiler_Disable: Cannot stop profiler from within a profiled section");
     }
     Profiler_End();
 
-    let total = this.start.get_elapsed();
-    let total_ms: f64 = this.start.get_elapsed_ms();
+    let total = THIS.start.get_elapsed();
+    let total_ms: f64 = THIS.start.get_elapsed_ms();
     let mut i = 0;
-    while i < this.scopeList.len() {
-        let scope: &mut Scope = &mut *this.scopeList[i];
+    while i < THIS.scopeList.len() {
+        let scope: &mut Scope = &mut *THIS.scopeList[i];
         (*scope).var /= (*scope).count - 1.0f64;
         (*scope).var = f64::sqrt((*scope).var);
         i += 1;
     }
 
-    this.scopeList.sort_by(|pa: &*mut Scope, pb: &*mut Scope| {
+    THIS.scopeList.sort_by(|pa: &*mut Scope, pb: &*mut Scope| {
         let (a, b) = (&**pa, &**pb);
 
         if b.total < a.total {
@@ -127,8 +127,8 @@ pub unsafe extern "C" fn Profiler_Disable() {
 
     let mut cumulative = 0.0;
     let mut i = 0;
-    while i < this.scopeList.len() {
-        let scope = &mut *this.scopeList[i];
+    while i < THIS.scopeList.len() {
+        let scope = &mut *THIS.scopeList[i];
         let scopeTotal = (*scope).total as f64;
 
         cumulative += scopeTotal;
@@ -153,51 +153,51 @@ pub unsafe extern "C" fn Profiler_Disable() {
 
     info!("-------------------------------------------------------------------------------------------------------");
 
-    for scope in this.scopeList.iter() {
+    for scope in THIS.scopeList.iter() {
         Scope_Free(*scope);
     }
-    HashMap_Free(this.map);
-    profiling = false;
+    HashMap_Free(THIS.map);
+    PROFILING = false;
     Signal_RemoveHandlerAll(Profiler_SignalHandler);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Begin(name: *const libc::c_char) {
-    if !profiling {
+    if !PROFILING {
         return;
     }
-    if this.stackIndex + 1 >= 128 {
+    if THIS.stackIndex + 1 >= 128 {
         Profiler_Backtrace();
         warn!("Profiler_Begin: Maximum stack depth exceeded");
         return;
     }
     let now = TimeStamp::now();
-    if this.stackIndex >= 0 {
-        let prev: *mut Scope = this.stack[this.stackIndex as usize];
+    if THIS.stackIndex >= 0 {
+        let prev: *mut Scope = THIS.stack[THIS.stackIndex as usize];
         (*prev).frame += (*prev).last.get_difference(&now);
         (*prev).last = now;
     }
-    this.stackIndex += 1;
+    THIS.stackIndex += 1;
     let curr: *mut Scope = Profiler_GetScope(name);
-    this.stack[this.stackIndex as usize] = curr;
+    THIS.stack[THIS.stackIndex as usize] = curr;
     (*curr).last = now;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_End() {
-    if !profiling {
+    if !PROFILING {
         return;
     }
-    if this.stackIndex < 0 {
+    if THIS.stackIndex < 0 {
         Profiler_Backtrace();
         panic!("Profiler_End: Attempting to pop an empty stack");
     }
     let now = TimeStamp::now();
-    let prev: *mut Scope = this.stack[this.stackIndex as usize];
+    let prev: *mut Scope = THIS.stack[THIS.stackIndex as usize];
     (*prev).frame += (*prev).last.get_difference(&now);
-    this.stackIndex -= 1;
-    if this.stackIndex >= 0 {
-        let curr: *mut Scope = this.stack[this.stackIndex as usize];
+    THIS.stackIndex -= 1;
+    if THIS.stackIndex >= 0 {
+        let curr: *mut Scope = THIS.stack[THIS.stackIndex as usize];
         (*curr).last = now;
     }
 }
@@ -207,14 +207,14 @@ pub extern "C" fn Profiler_SetValue(_name: *const libc::c_char, _value: i32) {}
 
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_LoopMarker() {
-    if !profiling {
+    if !PROFILING {
         return;
     }
     let mut i: i32 = 0;
-    while i < this.scopeList.len() as i32 {
-        let scope: &mut Scope = &mut *this.scopeList[i as usize];
+    while i < THIS.scopeList.len() as i32 {
+        let scope: &mut Scope = &mut *THIS.scopeList[i as usize];
         if (*scope).frame as f64 > 0.0f64 {
-            (*scope).total = (*scope).total + (*scope).frame;
+            (*scope).total += (*scope).frame;
             let frame: f64 = (*scope).frame as f64;
             (*scope).min = f64::min((*scope).min, frame);
             (*scope).max = f64::max((*scope).max, frame);
@@ -231,19 +231,19 @@ pub unsafe extern "C" fn Profiler_LoopMarker() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Backtrace() {
-    if !profiling {
+    if !PROFILING {
         return;
     }
 
     info!("PHX Profiler Backtrace:");
 
     let mut i: i32 = 0;
-    while i <= this.stackIndex {
-        let index: i32 = this.stackIndex - i;
+    while i <= THIS.stackIndex {
+        let index: i32 = THIS.stackIndex - i;
 
         info!(
             "  [{index}] {:?}",
-            CStr::from_ptr((*this.stack[index as usize]).name)
+            CStr::from_ptr((*THIS.stack[index as usize]).name)
         );
 
         i += 1;

@@ -1,3 +1,5 @@
+#![allow(non_upper_case_globals)] // TODO: fix this
+
 use super::*;
 
 pub type BlendMode = i32;

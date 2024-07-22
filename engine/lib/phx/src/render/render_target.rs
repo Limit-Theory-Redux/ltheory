@@ -13,9 +13,9 @@ pub struct FBO {
     pub depth: bool,
 }
 
-static mut fboIndex: i32 = -1;
+static mut FBO_INDEX: i32 = -1;
 
-static mut fboStack: [FBO; 16] = [FBO {
+static mut FBO_STACK: [FBO; 16] = [FBO {
     handle: 0,
     colorIndex: 0,
     sx: 0,
@@ -25,30 +25,30 @@ static mut fboStack: [FBO; 16] = [FBO {
 
 #[inline]
 unsafe extern "C" fn GetActive() -> *mut FBO {
-    fboStack.as_mut_ptr().offset(fboIndex as isize)
+    FBO_STACK.as_mut_ptr().offset(FBO_INDEX as isize)
 }
 
 #[inline]
 unsafe extern "C" fn SetDrawBuffers(count: i32) {
-    static mut bufs: [gl::types::GLenum; 4] = [
+    static mut BUFS: [gl::types::GLenum; 4] = [
         gl::COLOR_ATTACHMENT0 as _,
         gl::COLOR_ATTACHMENT1 as _,
         gl::COLOR_ATTACHMENT2 as _,
         gl::COLOR_ATTACHMENT3 as _,
     ];
 
-    glcheck!(gl::DrawBuffers(count, bufs.as_ptr()));
+    glcheck!(gl::DrawBuffers(count, BUFS.as_ptr()));
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_Push(sx: i32, sy: i32) {
     Profiler_Begin(c_str!("RenderTarget_Push"));
 
-    if fboIndex + 1 >= 16 {
+    if FBO_INDEX + 1 >= 16 {
         panic!("RenderTarget_Push: Maximum stack depth exceeded");
     }
 
-    fboIndex += 1;
+    FBO_INDEX += 1;
 
     let this: *mut FBO = GetActive();
     (*this).handle = 0;
@@ -71,7 +71,7 @@ pub unsafe extern "C" fn RenderTarget_Push(sx: i32, sy: i32) {
 pub unsafe extern "C" fn RenderTarget_Pop() {
     Profiler_Begin(c_str!("RenderTarget_Pop"));
 
-    if fboIndex < 0 {
+    if FBO_INDEX < 0 {
         panic!("RenderTarget_Pop: Attempting to pop an empty stack");
     }
 
@@ -96,14 +96,14 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
     ));
     glcheck!(gl::DeleteFramebuffers(
         1,
-        &mut (*fboStack.as_mut_ptr().offset(fboIndex as isize)).handle,
+        &(*FBO_STACK.as_mut_ptr().offset(FBO_INDEX as isize)).handle,
     ));
 
-    fboIndex -= 1;
+    FBO_INDEX -= 1;
 
     Metric_Inc(0x7);
 
-    if fboIndex >= 0 {
+    if FBO_INDEX >= 0 {
         glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, (*GetActive()).handle));
     } else {
         glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));

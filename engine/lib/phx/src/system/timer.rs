@@ -6,13 +6,19 @@ pub struct Timer {
     pub value: SystemTime,
 }
 
+impl Default for Timer {
+    fn default() -> Self {
+        Self {
+            value: SystemTime::now(),
+        }
+    }
+}
+
 #[luajit_ffi_gen::luajit_ffi]
 impl Timer {
     #[bind(name = "Create")]
     pub fn new() -> Self {
-        Self {
-            value: SystemTime::now(),
-        }
+        Self::default()
     }
 
     pub fn get_and_reset(&mut self) -> f64 {

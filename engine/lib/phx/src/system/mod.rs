@@ -1,3 +1,5 @@
+#![allow(non_snake_case)] // TODO: remove this and fix all warnings
+
 mod bytes;
 mod directory;
 mod file;

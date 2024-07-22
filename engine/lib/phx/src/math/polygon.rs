@@ -71,10 +71,10 @@ unsafe extern "C" fn Polygon_SplitImpl(
     }
 
     let mut a: Vec3 = *(*polygon).vertices.last().unwrap();
-    let mut aSide = Plane_ClassifyPoint(&splitPlane, &mut a);
+    let mut aSide = Plane_ClassifyPoint(&splitPlane, &a);
     for j in 0..((*polygon).vertices.len() as i32) {
-        let mut b: Vec3 = (*polygon).vertices[j as usize];
-        let bSide = Plane_ClassifyPoint(&splitPlane, &mut b);
+        let b: Vec3 = (*polygon).vertices[j as usize];
+        let bSide = Plane_ClassifyPoint(&splitPlane, &b);
 
         if bSide == PointClassification::InFront {
             if aSide == PointClassification::Behind {

@@ -122,9 +122,8 @@ impl Parse for BindArgs {
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        format!(
-                            "expected bind attribute parameter: name, role, lua_ffi, out_param"
-                        ),
+                        "expected bind attribute parameter: name, role, lua_ffi, out_param"
+                            .to_string(),
                     ))
                 }
             }

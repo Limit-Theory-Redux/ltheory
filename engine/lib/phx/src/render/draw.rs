@@ -8,43 +8,43 @@ use crate::system::*;
 
 const MAX_STACK_DEPTH: usize = 16;
 
-static mut alphaStack: [f32; MAX_STACK_DEPTH] = [0.; MAX_STACK_DEPTH];
-static mut alphaIndex: i32 = -1;
-static mut color: Color = Color::WHITE;
+static mut ALPHA_STACK: [f32; MAX_STACK_DEPTH] = [0.; MAX_STACK_DEPTH];
+static mut ALPHA_INDEX: i32 = -1;
+static mut COLOR: Color = Color::WHITE;
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PushAlpha(a: f32) {
-    if alphaIndex + 1 >= 16 {
+    if ALPHA_INDEX + 1 >= 16 {
         panic!("Draw_PushAlpha: Maximum alpha stack depth exceeded");
     }
 
-    let prevAlpha: f32 = if alphaIndex >= 0 {
-        alphaStack[alphaIndex as usize]
+    let prevAlpha: f32 = if ALPHA_INDEX >= 0 {
+        ALPHA_STACK[ALPHA_INDEX as usize]
     } else {
         1.0f32
     };
     let alpha: f32 = a * prevAlpha;
 
-    alphaIndex += 1;
-    alphaStack[alphaIndex as usize] = alpha;
+    ALPHA_INDEX += 1;
+    ALPHA_STACK[ALPHA_INDEX as usize] = alpha;
 
-    glcheck!(gl::Color4f(color.r, color.g, color.b, color.a * alpha));
+    glcheck!(gl::Color4f(COLOR.r, COLOR.g, COLOR.b, COLOR.a * alpha));
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PopAlpha() {
-    if alphaIndex < 0 {
+    if ALPHA_INDEX < 0 {
         panic!("Draw_PopAlpha Attempting to pop an empty alpha stack");
     }
 
-    alphaIndex -= 1;
-    let alpha: f32 = if alphaIndex >= 0 {
-        alphaStack[alphaIndex as usize]
+    ALPHA_INDEX -= 1;
+    let alpha: f32 = if ALPHA_INDEX >= 0 {
+        ALPHA_STACK[ALPHA_INDEX as usize]
     } else {
         1.0f32
     };
 
-    glcheck!(gl::Color4f(color.r, color.g, color.b, color.a * alpha));
+    glcheck!(gl::Color4f(COLOR.r, COLOR.g, COLOR.b, COLOR.a * alpha));
 }
 
 #[no_mangle]
@@ -152,12 +152,12 @@ pub extern "C" fn Draw_ClearDepth(d: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Color(r: f32, g: f32, b: f32, a: f32) {
-    let alpha: f32 = if alphaIndex >= 0 {
-        alphaStack[alphaIndex as usize]
+    let alpha: f32 = if ALPHA_INDEX >= 0 {
+        ALPHA_STACK[ALPHA_INDEX as usize]
     } else {
         1.0f32
     };
-    color = Color::new(r, g, b, a);
+    COLOR = Color::new(r, g, b, a);
 
     glcheck!(gl::Color4f(r, g, b, a * alpha));
 }

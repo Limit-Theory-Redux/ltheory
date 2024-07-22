@@ -330,12 +330,12 @@ pub static BSPNodeRel_Back: BSPNodeRel = 1 as BSPNodeRel;
 #[no_mangle]
 pub static BSPNodeRel_Front: BSPNodeRel = 2 as BSPNodeRel;
 
-const BackIndex: i32 = 0;
-const FrontIndex: i32 = 1;
-static mut RootNodeIndex: i32 = 1;
-static mut EmptyLeafIndex: i32 = 1;
+const BACK_INDEX: i32 = 0;
+const FRONT_INDEX: i32 = 1;
+static mut ROOT_NODE_INDEX: i32 = 1;
+static mut EMPTY_LEAF_INDEX: i32 = 1;
 
-pub static mut rayStack: Vec<DelayRay> = Vec::new();
+pub static mut RAY_STACK: Vec<DelayRay> = Vec::new();
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectRay(
@@ -394,7 +394,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         tMax: ray.tMax as f32,
                         depth,
                     };
-                    rayStack.push(d);
+                    RAY_STACK.push(d);
 
                     ray.tMax = max as f64;
                 }
@@ -409,7 +409,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         tMax: ray.tMax as f32,
                         depth,
                     };
-                    rayStack.push(d);
+                    RAY_STACK.push(d);
                 } else {
                     /* Ray outside of thick plane */
                 }
@@ -428,7 +428,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
                 let mut t: f32 = 0.;
                 //if (Intersect_RayTriangle_Barycentric(ray, triangle, tEpsilon, &t)) {
-                if Intersect_RayTriangle_Moller1(&mut ray, triangle, &mut t) {
+                if Intersect_RayTriangle_Moller1(&ray, triangle, &mut t) {
                     //if (Intersect_RayTriangle_Moller2(ray, triangle, &t)) {
                     //if (Intersect_RayTriangle_Badouel(ray, triangle, tEpsilon, &t)) {
                     if !hit || t < *tHit {
@@ -443,11 +443,11 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 break;
             }
 
-            if rayStack.is_empty() {
+            if RAY_STACK.is_empty() {
                 break;
             }
 
-            let d = rayStack.pop().unwrap();
+            let d = RAY_STACK.pop().unwrap();
             nodeRef = d.nodeRef;
             ray.tMin = d.tMin as f64;
             ray.tMax = d.tMax as f64;
@@ -455,7 +455,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
         }
     }
 
-    rayStack.clear();
+    RAY_STACK.clear();
     // BSP_PROFILE (
     //     self->profilingData.ray.count++;
     //     self->profilingData.ray.depth += maxDepth;
@@ -470,14 +470,14 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     lineSegment: &LineSegment,
     pHit: &mut Vec3,
 ) -> bool {
-    let mut ray: Ray = Ray {
+    let ray: Ray = Ray {
         p: lineSegment.p0,
         dir: lineSegment.p1.as_dvec3() - lineSegment.p0.as_dvec3(),
         tMin: 0.0,
         tMax: 1.0,
     };
     let mut t: f32 = 0.;
-    if BSP_IntersectRay(this, &mut ray, &mut t) {
+    if BSP_IntersectRay(this, &ray, &mut t) {
         let mut positionHit = Position::ZERO;
         Ray_GetPoint(&ray, t as f64, &mut positionHit);
         *pHit = positionHit.as_vec3();
@@ -513,18 +513,18 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
             let dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p) - (*node).plane.d;
             if dist as f64 > (*sphere).r as f64 + 2.0f64 * 1e-4f64 {
                 /* Entirely in front half-space */
-                nodeRef = (*node).child[FrontIndex as usize];
+                nodeRef = (*node).child[FRONT_INDEX as usize];
             } else if (dist as f64) < -((*sphere).r as f64 + 2.0f64 * 1e-4f64) {
                 /* Entirely in back half-space */
-                nodeRef = (*node).child[BackIndex as usize];
+                nodeRef = (*node).child[BACK_INDEX as usize];
             } else {
                 /* Straddling the thick plane */
                 let d: Delay = Delay {
-                    nodeRef: (*node).child[BackIndex as usize],
+                    nodeRef: (*node).child[BACK_INDEX as usize],
                     depth,
                 };
                 nodeStack.push(d);
-                nodeRef = (*node).child[FrontIndex as usize];
+                nodeRef = (*node).child[FRONT_INDEX as usize];
             }
 
             depth += 1;
@@ -573,7 +573,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
 // const LEAF_TRIANGLE_COUNT: i32 = 12;
 
 #[no_mangle]
-pub static PolygonFlag_None: PolygonFlag = (0 << 0) as PolygonFlag;
+pub static PolygonFlag_None: PolygonFlag = 0 as PolygonFlag;
 
 #[no_mangle]
 pub static PolygonFlag_InvalidFaceSplit: PolygonFlag = (1 << 0) as PolygonFlag;
@@ -692,7 +692,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                         n: Vec3::ZERO,
                         d: 0.,
                     };
-                    Polygon_ToPlane(&mut (*polygon).inner, &mut plane);
+                    Polygon_ToPlane(&(*polygon).inner, &mut plane);
                     let score: f32 = BSPBuild_ScoreSplitPlane(nodeData, plane, k);
 
                     if score < bestScore {
@@ -765,7 +765,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                         n: Vec3::ZERO,
                         d: 0.,
                     };
-                    Polygon_ToPlane(&mut (*polygon).inner, &mut polygonPlane);
+                    Polygon_ToPlane(&(*polygon).inner, &mut polygonPlane);
 
                     let mut plane: Plane = Plane {
                         n: Vec3::ZERO,
@@ -775,7 +775,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     plane.d = Vec3::dot(plane.n, mid);
 
                     /* TODO : Proper scoring? */
-                    if Plane_ClassifyPolygon(&mut plane, &mut (*polygon).inner)
+                    if Plane_ClassifyPolygon(&plane, &(*polygon).inner)
                         == PolygonClassification::Straddling
                     {
                         splitFound = true;
@@ -828,10 +828,13 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     },
                     d: 0.,
                 };
-                Polygon_ToPlane(&mut (*polygon).inner, &mut polygonPlane);
+                Polygon_ToPlane(&(*polygon).inner, &mut polygonPlane);
 
                 let v = &mut (*polygon).inner.vertices;
                 let mut vPrev: Vec3 = v[(v.len() - 1) as usize];
+
+                #[allow(clippy::needless_range_loop)]
+                // Cannot convert into `for_each` because of break instruction
                 for j in 0..v.len() {
                     let vCur: Vec3 = v[j];
                     let edge: Vec3 = vCur - vPrev;
@@ -956,7 +959,11 @@ unsafe extern "C" fn BSPBuild_CreateNode(
         }
         (*bsp).triangleCount += (*nodeData).triangleCount;
 
-        (*node).polygons = (*nodeData).polygons.clone();
+        #[allow(clippy::assigning_clones)] // Applying Clippy suggestion makes code panic here
+        {
+            (*node).polygons = (*nodeData).polygons.clone();
+        }
+
         return node;
     }
 
@@ -983,7 +990,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     frontNodeData.depth = ((*nodeData).depth as i32 + 1) as u16;
 
     for polygon in (*nodeData).polygons.iter_mut() {
-        let classification = Plane_ClassifyPolygon(&mut splitPlane, &polygon.inner);
+        let classification = Plane_ClassifyPolygon(&splitPlane, &polygon.inner);
         match classification {
             PolygonClassification::Coplanar => {
                 (*polygon).flags =
@@ -1018,8 +1025,8 @@ unsafe extern "C" fn BSPBuild_CreateNode(
                     &mut backPart.inner,
                     &mut frontPart.inner,
                 );
-                BSPBuild_AppendPolygon(&mut backNodeData, &mut backPart);
-                BSPBuild_AppendPolygon(&mut frontNodeData, &mut frontPart);
+                BSPBuild_AppendPolygon(&mut backNodeData, &backPart);
+                BSPBuild_AppendPolygon(&mut frontNodeData, &frontPart);
 
                 (*polygon).inner.vertices.clear();
             }
@@ -1028,8 +1035,8 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     (*nodeData).polygons.clear();
 
     (*node).plane = splitPlane;
-    (*node).child[BackIndex as usize] = BSPBuild_CreateNode(bsp, &mut backNodeData);
-    (*node).child[FrontIndex as usize] = BSPBuild_CreateNode(bsp, &mut frontNodeData);
+    (*node).child[BACK_INDEX as usize] = BSPBuild_CreateNode(bsp, &mut backNodeData);
+    (*node).child[FRONT_INDEX as usize] = BSPBuild_CreateNode(bsp, &mut frontNodeData);
 
     // CHECK2 (
     //     node->child[BackIndex] ->parent = node;
@@ -1043,8 +1050,8 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
     this: &mut BSP,
     buildNode: *mut BSPBuildNode,
 ) -> BSPNodeRef {
-    if !((*buildNode).child[BackIndex as usize]).is_null()
-        || !((*buildNode).child[FrontIndex as usize]).is_null()
+    if !((*buildNode).child[BACK_INDEX as usize]).is_null()
+        || !((*buildNode).child[FRONT_INDEX as usize]).is_null()
     {
         /* Node */
         // Assert(ArrayList_GetSize(self->nodes) < ArrayList_GetCapacity(self->nodes));
@@ -1064,10 +1071,10 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
         let node = this.nodes.last_mut().unwrap() as *mut BSPNode;
 
         (*node).plane = (*buildNode).plane;
-        (*node).child[BackIndex as usize] =
-            BSPBuild_OptimizeTree(this, (*buildNode).child[BackIndex as usize]);
-        (*node).child[FrontIndex as usize] =
-            BSPBuild_OptimizeTree(this, (*buildNode).child[FrontIndex as usize]);
+        (*node).child[BACK_INDEX as usize] =
+            BSPBuild_OptimizeTree(this, (*buildNode).child[BACK_INDEX as usize]);
+        (*node).child[FRONT_INDEX as usize] =
+            BSPBuild_OptimizeTree(this, (*buildNode).child[FRONT_INDEX as usize]);
 
         let result: BSPNodeRef = BSPNodeRef {
             index: nodeIndex,
@@ -1100,11 +1107,11 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
 }
 
 unsafe extern "C" fn BSPBuild_FreeNode(node: *mut BSPBuildNode) {
-    if !((*node).child[BackIndex as usize]).is_null()
-        || !((*node).child[FrontIndex as usize]).is_null()
+    if !((*node).child[BACK_INDEX as usize]).is_null()
+        || !((*node).child[FRONT_INDEX as usize]).is_null()
     {
-        BSPBuild_FreeNode((*node).child[BackIndex as usize]);
-        BSPBuild_FreeNode((*node).child[FrontIndex as usize]);
+        BSPBuild_FreeNode((*node).child[BACK_INDEX as usize]);
+        BSPBuild_FreeNode((*node).child[FRONT_INDEX as usize]);
     }
     MemDelete!(node);
 }
@@ -1196,7 +1203,7 @@ pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
 
     nodeData.polygons.reserve(nodeData.triangleCount as usize);
     for i in (0..indexLen).step_by(3) {
-        let i0: i32 = *indexData.offset((i + 0) as isize);
+        let i0: i32 = *indexData.offset(i as isize);
         let i1: i32 = *indexData.offset((i + 1) as isize);
         let i2: i32 = *indexData.offset((i + 2) as isize);
         let v0: Vec3 = (*vertexData.offset(i0 as isize)).p;
@@ -1230,7 +1237,7 @@ pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
         .reserve((bspBuild.triangleCount + 2) as usize);
     (*this).triangles.push(nullLeaf);
     (*this).triangles.push(nullLeaf);
-    (*this).emptyLeaf.index = -EmptyLeafIndex;
+    (*this).emptyLeaf.index = -EMPTY_LEAF_INDEX;
     (*this).emptyLeaf.triangleCount = 0;
 
     let nullNode: BSPNode = BSPNode {
@@ -1292,10 +1299,9 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
         if nodeRef.index != 0 {
             for i in 0..(this.nodes.len() as i32) {
                 let nodeToCheck: &mut BSPNode = &mut this.nodes[i as usize];
-                if (*nodeToCheck).child[BackIndex as usize].index == nodeRef.index {
-                    newNode.index = i;
-                    break;
-                } else if (*nodeToCheck).child[FrontIndex as usize].index == nodeRef.index {
+                if (*nodeToCheck).child[BACK_INDEX as usize].index == nodeRef.index
+                    || (*nodeToCheck).child[FRONT_INDEX as usize].index == nodeRef.index
+                {
                     newNode.index = i;
                     break;
                 }
@@ -1303,11 +1309,11 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
         }
     } else if relationship == BSPNodeRel_Back {
         if !node.is_null() {
-            newNode = (*node).child[BackIndex as usize];
+            newNode = (*node).child[BACK_INDEX as usize];
         }
     } else if relationship == BSPNodeRel_Front {
         if !node.is_null() {
-            newNode = (*node).child[FrontIndex as usize];
+            newNode = (*node).child[FRONT_INDEX as usize];
         }
     } else {
         panic!("BSPDebug_GetNode: Unhandled case: {}", relationship as i32,)
@@ -1325,9 +1331,9 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(this: &mut BSP, nodeRef: BSPNodeRef, 
     // Assert(nodeRef.index);
 
     // TODO: Store shader properly
-    static mut shader: *mut Shader = std::ptr::null_mut();
-    if shader.is_null() {
-        shader = Box::into_raw(Box::new(Shader::load(
+    static mut SHADER: *mut Shader = std::ptr::null_mut();
+    if SHADER.is_null() {
+        SHADER = Box::into_raw(Box::new(Shader::load(
             "vertex/wvp",
             "fragment/simple_color",
         )));
@@ -1336,16 +1342,16 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(this: &mut BSP, nodeRef: BSPNodeRef, 
     if nodeRef.index > 0 {
         BSPDebug_DrawNode(
             this,
-            this.nodes[nodeRef.index as usize].child[BackIndex as usize],
+            this.nodes[nodeRef.index as usize].child[BACK_INDEX as usize],
             color,
         );
         BSPDebug_DrawNode(
             this,
-            this.nodes[nodeRef.index as usize].child[FrontIndex as usize],
+            this.nodes[nodeRef.index as usize].child[FRONT_INDEX as usize],
             color,
         );
     } else {
-        (*shader).start();
+        (*SHADER).start();
         Shader::set_float4("color", color.r, color.g, color.b, color.a);
         let leafIndex = -nodeRef.index;
         for i in 0..nodeRef.triangleCount {
@@ -1356,7 +1362,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(this: &mut BSP, nodeRef: BSPNodeRef, 
                 &triangle.vertices[2],
             );
         }
-        (*shader).stop();
+        (*SHADER).stop();
     };
 }
 
@@ -1365,9 +1371,9 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
     // Assert(nodeRef.index);
 
     // TODO: Store shader properly
-    static mut shader: *mut Shader = std::ptr::null_mut();
-    if shader.is_null() {
-        shader = Box::into_raw(Box::new(Shader::load(
+    static mut SHADER: *mut Shader = std::ptr::null_mut();
+    if SHADER.is_null() {
+        SHADER = Box::into_raw(Box::new(Shader::load(
             "vertex/wvp",
             "fragment/simple_color",
         )));
@@ -1384,29 +1390,29 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
         /* Back */
         BSPDebug_DrawNode(
             this,
-            (*node).child[BackIndex as usize],
+            (*node).child[BACK_INDEX as usize],
             &Color::new(0.5, 0.3, 0.3, 0.4),
         );
 
         /* Front */
         BSPDebug_DrawNode(
             this,
-            (*node).child[FrontIndex as usize],
+            (*node).child[FRONT_INDEX as usize],
             &Color::new(0.3, 0.5, 0.3, 0.4),
         );
 
         /* Plane */
         let origin: Vec3 = Vec3::new(0., 0., 0.);
         let t: f32 = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
-        let mut closestPoint = origin - ((*node).plane.n * t);
+        let closestPoint = origin - ((*node).plane.n * t);
         RenderState_PushWireframe(false);
-        (*shader).start();
+        (*SHADER).start();
         Shader::set_float4("color", 0.3f32, 0.5f32, 0.3f32, 0.4f32);
         Draw_Plane(&closestPoint, &(*node).plane.n, 2.0f32);
         Shader::set_float4("color", 0.5f32, 0.3f32, 0.3f32, 0.4f32);
-        let mut neg: Vec3 = (*node).plane.n * -1.0f32;
-        Draw_Plane(&mut closestPoint, &mut neg, 2.0f32);
-        (*shader).stop();
+        let neg: Vec3 = (*node).plane.n * -1.0f32;
+        Draw_Plane(&closestPoint, &neg, 2.0f32);
+        (*SHADER).stop();
         RenderState_PopWireframe();
     } else {
         /* Leaf */
@@ -1418,7 +1424,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
     RenderState_PopCullFace();
     RenderState_PopBlendMode();
 
-    (*shader).stop();
+    (*SHADER).stop();
 }
 
 #[no_mangle]
@@ -1430,15 +1436,15 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
     let mut pHit = Vec3::ZERO;
 
     // TODO: Store shader properly
-    static mut shader: *mut Shader = std::ptr::null_mut();
-    if shader.is_null() {
-        shader = Box::into_raw(Box::new(Shader::load(
+    static mut SHADER: *mut Shader = std::ptr::null_mut();
+    if SHADER.is_null() {
+        SHADER = Box::into_raw(Box::new(Shader::load(
             "vertex/wvp",
             "fragment/simple_color",
         )));
     }
 
-    (*shader).start();
+    (*SHADER).start();
     if BSP_IntersectLineSegment(bsp, lineSegment, &mut pHit) {
         Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.1f32);
         Draw_Line3(
@@ -1461,7 +1467,7 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
             &(*lineSegment).p1.relative_to(*eye),
         );
     };
-    (*shader).stop();
+    (*SHADER).stop();
 }
 
 #[no_mangle]
@@ -1469,23 +1475,23 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere
     let mut pHit = Vec3::ZERO;
 
     // TODO: Store shader properly
-    static mut shader: *mut Shader = std::ptr::null_mut();
-    if shader.is_null() {
-        shader = Box::into_raw(Box::new(Shader::load(
+    static mut SHADER: *mut Shader = std::ptr::null_mut();
+    if SHADER.is_null() {
+        SHADER = Box::into_raw(Box::new(Shader::load(
             "vertex/wvp",
             "fragment/simple_color",
         )));
     }
 
-    (*shader).start();
+    (*SHADER).start();
     if BSP_IntersectSphere(this, sphere, &mut pHit) {
         RenderState_PushWireframe(false);
         Shader::set_float4("color", 1.0f32, 0.0f32, 0.0f32, 0.3f32);
-        Draw_Sphere(&mut sphere.p, sphere.r);
+        Draw_Sphere(&sphere.p, sphere.r);
         RenderState_PopWireframe();
 
         Shader::set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
-        Draw_Sphere(&mut sphere.p, sphere.r);
+        Draw_Sphere(&sphere.p, sphere.r);
 
         RenderState_PushDepthTest(false);
         Draw_PointSize(8.0f32);
@@ -1494,13 +1500,13 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere
     } else {
         RenderState_PushWireframe(false);
         Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.3f32);
-        Draw_Sphere(&mut sphere.p, sphere.r);
+        Draw_Sphere(&sphere.p, sphere.r);
         RenderState_PopWireframe();
 
         Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
-        Draw_Sphere(&mut sphere.p, sphere.r);
+        Draw_Sphere(&sphere.p, sphere.r);
     };
-    (*shader).stop();
+    (*SHADER).stop();
 }
 
 // static void BSPDebug_PrintProfilingData (BSP* self, BSPDebug_IntersectionData* data, double totalTime) {
@@ -1568,18 +1574,18 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
             let dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p) - (*node).plane.d;
             if dist as f64 > (*sphere).r as f64 + 2.0f64 * 1e-4f64 {
                 /* Entirely in front half-space */
-                nodeRef = (*node).child[FrontIndex as usize];
+                nodeRef = (*node).child[FRONT_INDEX as usize];
             } else if (dist as f64) < -((*sphere).r as f64 + 2.0f64 * 1e-4f64) {
                 /* Entirely in back half-space */
-                nodeRef = (*node).child[BackIndex as usize];
+                nodeRef = (*node).child[BACK_INDEX as usize];
             } else {
                 /* Straddling the thick plane */
                 let d: Delay = Delay {
-                    nodeRef: (*node).child[BackIndex as usize],
+                    nodeRef: (*node).child[BACK_INDEX as usize],
                     depth,
                 };
                 nodeStack.push(d);
-                nodeRef = (*node).child[FrontIndex as usize];
+                nodeRef = (*node).child[FRONT_INDEX as usize];
             }
 
             depth += 1;
@@ -1648,7 +1654,7 @@ pub unsafe extern "C" fn BSPDebug_GetLeaf(this: &mut BSP, leafIndex: i32) -> BSP
         }
     }
     BSPNodeRef {
-        index: RootNodeIndex,
+        index: ROOT_NODE_INDEX,
         triangleCount: 0 as u8,
     }
 }

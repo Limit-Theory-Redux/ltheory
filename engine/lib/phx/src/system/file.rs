@@ -12,7 +12,7 @@ pub struct File {
 
 #[no_mangle]
 pub extern "C" fn File_Exists(path: *const libc::c_char) -> bool {
-    file_exists(&path.as_str())
+    file_exists(path.as_str())
 }
 
 pub fn file_exists(path: &str) -> bool {
@@ -66,13 +66,13 @@ pub extern "C" fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes {
 
 #[no_mangle]
 pub extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc::c_char {
-    file_read_cstr(&path.as_str())
+    file_read_cstr(path.as_str())
         .map(|val| static_string!(val))
         .unwrap_or(std::ptr::null())
 }
 
 pub fn file_read_cstr(path: &str) -> Option<String> {
-    fs::read_to_string(path).ok().map(|data| data.into())
+    fs::read_to_string(path).ok()
 }
 
 #[no_mangle]
@@ -108,7 +108,7 @@ pub extern "C" fn File_WriteStr(this: &mut File, data: *const libc::c_char) {
 #[no_mangle]
 pub extern "C" fn File_ReadU8(this: &mut File) -> u8 {
     let mut buf = [0u8; std::mem::size_of::<u8>()];
-    if let Ok(_) = this.file.read_exact(&mut buf) {
+    if this.file.read_exact(&mut buf).is_ok() {
         u8::from_le_bytes(buf)
     } else {
         0
@@ -118,7 +118,7 @@ pub extern "C" fn File_ReadU8(this: &mut File) -> u8 {
 #[no_mangle]
 pub extern "C" fn File_ReadU16(this: &mut File) -> u16 {
     let mut buf = [0u8; std::mem::size_of::<u16>()];
-    if let Ok(_) = this.file.read_exact(&mut buf) {
+    if this.file.read_exact(&mut buf).is_ok() {
         u16::from_le_bytes(buf)
     } else {
         0
@@ -128,7 +128,7 @@ pub extern "C" fn File_ReadU16(this: &mut File) -> u16 {
 #[no_mangle]
 pub extern "C" fn File_ReadU32(this: &mut File) -> u32 {
     let mut buf = [0u8; std::mem::size_of::<u32>()];
-    if let Ok(_) = this.file.read_exact(&mut buf) {
+    if this.file.read_exact(&mut buf).is_ok() {
         u32::from_le_bytes(buf)
     } else {
         0
@@ -138,7 +138,7 @@ pub extern "C" fn File_ReadU32(this: &mut File) -> u32 {
 #[no_mangle]
 pub extern "C" fn File_ReadU64(this: &mut File) -> u64 {
     let mut buf = [0u8; std::mem::size_of::<u64>()];
-    if let Ok(_) = this.file.read_exact(&mut buf) {
+    if this.file.read_exact(&mut buf).is_ok() {
         u64::from_le_bytes(buf)
     } else {
         0
@@ -148,7 +148,7 @@ pub extern "C" fn File_ReadU64(this: &mut File) -> u64 {
 #[no_mangle]
 pub extern "C" fn File_ReadI8(this: &mut File) -> i8 {
     let mut buf = [0u8; std::mem::size_of::<i8>()];
-    if let Ok(_) = this.file.read_exact(&mut buf) {
+    if this.file.read_exact(&mut buf).is_ok() {
         i8::from_le_bytes(buf)
     } else {
         0
@@ -158,7 +158,7 @@ pub extern "C" fn File_ReadI8(this: &mut File) -> i8 {
 #[no_mangle]
 pub extern "C" fn File_ReadI16(this: &mut File) -> i16 {
     let mut buf = [0u8; std::mem::size_of::<i16>()];
-    if let Ok(_) = this.file.read_exact(&mut buf) {
+    if this.file.read_exact(&mut buf).is_ok() {
         i16::from_le_bytes(buf)
     } else {
         0
@@ -168,7 +168,7 @@ pub extern "C" fn File_ReadI16(this: &mut File) -> i16 {
 #[no_mangle]
 pub extern "C" fn File_ReadI32(this: &mut File) -> i32 {
     let mut buf = [0u8; std::mem::size_of::<i32>()];
-    if let Ok(_) = this.file.read_exact(&mut buf) {
+    if this.file.read_exact(&mut buf).is_ok() {
         i32::from_le_bytes(buf)
     } else {
         0
@@ -178,7 +178,7 @@ pub extern "C" fn File_ReadI32(this: &mut File) -> i32 {
 #[no_mangle]
 pub extern "C" fn File_ReadI64(this: &mut File) -> i64 {
     let mut buf = [0u8; std::mem::size_of::<i64>()];
-    if let Ok(_) = this.file.read_exact(&mut buf) {
+    if this.file.read_exact(&mut buf).is_ok() {
         i64::from_le_bytes(buf)
     } else {
         0
@@ -188,7 +188,7 @@ pub extern "C" fn File_ReadI64(this: &mut File) -> i64 {
 #[no_mangle]
 pub extern "C" fn File_ReadF32(this: &mut File) -> f32 {
     let mut buf = [0u8; std::mem::size_of::<f32>()];
-    if let Ok(_) = this.file.read_exact(&mut buf) {
+    if this.file.read_exact(&mut buf).is_ok() {
         f32::from_le_bytes(buf)
     } else {
         0.0
@@ -198,7 +198,7 @@ pub extern "C" fn File_ReadF32(this: &mut File) -> f32 {
 #[no_mangle]
 pub extern "C" fn File_ReadF64(this: &mut File) -> f64 {
     let mut buf = [0u8; std::mem::size_of::<f64>()];
-    if let Ok(_) = this.file.read_exact(&mut buf) {
+    if this.file.read_exact(&mut buf).is_ok() {
         f64::from_le_bytes(buf)
     } else {
         0.0

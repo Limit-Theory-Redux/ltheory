@@ -46,28 +46,28 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
     plane: *const Plane,
     polygon: *const Polygon,
 ) -> PolygonClassification {
-    let mut numInFront: i32 = 0;
-    let mut numBehind: i32 = 0;
+    let mut num_in_front: i32 = 0;
+    let mut num_behind: i32 = 0;
     for i in 0..(*polygon).vertices.len() {
         match Plane_ClassifyPoint(plane, &(*polygon).vertices[i]) {
             PointClassification::InFront => {
-                numInFront += 1;
+                num_in_front += 1;
             }
             PointClassification::Behind => {
-                numBehind += 1;
+                num_behind += 1;
             }
             PointClassification::Coplanar => {}
         }
 
         // TODO : This early out may not make as much sense if the BSP stops cutting triangles.
-        if numInFront != 0 && numBehind != 0 {
+        if num_in_front != 0 && num_behind != 0 {
             return PolygonClassification::Straddling;
         }
     }
 
-    if numInFront != 0 {
+    if num_in_front != 0 {
         PolygonClassification::InFront
-    } else if numBehind != 0 {
+    } else if num_behind != 0 {
         PolygonClassification::Behind
     } else {
         PolygonClassification::Coplanar

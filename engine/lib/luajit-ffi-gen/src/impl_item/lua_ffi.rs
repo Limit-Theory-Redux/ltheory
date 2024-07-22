@@ -58,7 +58,7 @@ impl ImplInfo {
 
     fn write_class_defs(&self, ffi_gen: &mut FfiGenerator, module_name: &str) {
         if !ffi_gen.has_class_definitions() {
-            ffi_gen.add_class_definition(format!("---@meta\n"));
+            ffi_gen.add_class_definition("---@meta\n".to_string());
 
             self.doc
                 .iter()
@@ -97,7 +97,7 @@ impl ImplInfo {
                 let mut params: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| format!("{}", param.as_ffi_name()))
+                    .map(|param| param.as_ffi_name().to_string())
                     .collect();
 
                 if let Some(ret) = &method.ret {
@@ -206,7 +206,7 @@ impl ImplInfo {
                     let ret_ffi = ret.as_c_ffi_string(module_name);
                     let ret_param = match &ret.variant {
                         TypeVariant::Custom(ty_name) => {
-                            if !TypeInfo::is_copyable(&ty_name) && !ret.is_boxed && !ret.is_option && !ret.is_reference {
+                            if !TypeInfo::is_copyable(ty_name) && !ret.is_boxed && !ret.is_option && !ret.is_reference {
                                 // If we have a non-copyable type that's not boxed, optional or a ref,
                                 // we don't need to return it as a pointer as it's already a pointer.
                                 format!("{} out", ret_ffi)

@@ -3,6 +3,7 @@ use glam::Vec2;
 use super::TextView;
 
 /// Persistent data storage used for the widget scrolling.
+#[derive(Default)]
 pub struct HmGuiData {
     /// Scrolling offset.
     pub offset: Vec2,
@@ -18,16 +19,4 @@ pub struct HmGuiData {
 
     /// Text view data. Only for the text view widgets.
     pub text_view: Option<TextView>,
-}
-
-impl Default for HmGuiData {
-    fn default() -> Self {
-        Self {
-            offset: Default::default(),
-            min_size: Default::default(),
-            size: Default::default(),
-            pos: Default::default(),
-            text_view: Default::default(),
-        }
-    }
 }

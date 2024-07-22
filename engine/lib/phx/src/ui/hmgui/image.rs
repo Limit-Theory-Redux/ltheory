@@ -43,7 +43,7 @@ impl HmGuiImage {
     // For testing.
     #[allow(dead_code)]
     pub(crate) fn dump(&self, ident: usize) {
-        let ident_str = format!("{}", crate::ui::hmgui::IDENT.repeat(ident));
+        let ident_str = crate::ui::hmgui::IDENT.repeat(ident).to_string();
 
         println!("{ident_str}- image: {:?}", self.image);
     }

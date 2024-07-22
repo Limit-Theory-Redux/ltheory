@@ -19,11 +19,13 @@ pub enum TextSelection {
     Selection(Range<usize>),
 }
 
-impl TextSelection {
-    pub fn new() -> Self {
+impl Default for TextSelection {
+    fn default() -> Self {
         Self::Cursor(0)
     }
+}
 
+impl TextSelection {
     /// Create text selection variant based on start and end positions.
     pub fn selection(start: usize, end: usize) -> Self {
         Self::Selection(Range { start, end })
@@ -427,5 +429,5 @@ fn find_next_char_pos(text: &str, pos: usize, chars: &[char]) -> usize {
                 None
             }
         })
-        .unwrap_or_else(|| text.len())
+        .unwrap_or(text.len())
 }

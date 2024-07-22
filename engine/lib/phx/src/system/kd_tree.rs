@@ -6,7 +6,7 @@ use internal::*;
 use crate::math::*;
 use crate::render::*;
 
-const kMaxLeafSize: i32 = 64;
+const K_MAX_LEAF_SIZE: i32 = 64;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -27,7 +27,7 @@ pub struct Node {
 
 unsafe fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mut KDTree {
     let this = MemNew!(KDTree);
-    if boxCount <= kMaxLeafSize {
+    if boxCount <= K_MAX_LEAF_SIZE {
         (*this).box_0 = *boxes.offset(0);
         (*this).back = std::ptr::null_mut();
         (*this).front = std::ptr::null_mut();
@@ -88,7 +88,7 @@ pub unsafe extern "C" fn KDTree_FromMesh(mesh: &mut Mesh) -> *mut KDTree {
     let boxes: *mut Box3 = MemNewArray!(Box3, boxCount);
 
     for i in (0..indexCount).step_by(3) {
-        let v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let v0: *const Vertex = vertexData.offset(*indexData.offset((i) as isize) as isize);
         let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
         let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         *boxes.offset((i / 3) as isize) = Box3::new(
@@ -152,7 +152,7 @@ pub unsafe extern "C" fn KDTree_Draw(this: &mut KDTree, maxDepth: i32) {
         return;
     }
     Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
-    Draw_Box3(&mut this.box_0);
+    Draw_Box3(&this.box_0);
     if !(this.back).is_null() {
         KDTree_Draw(&mut *this.back, maxDepth - 1);
     }

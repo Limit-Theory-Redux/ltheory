@@ -117,9 +117,7 @@ impl Parse for EnumAttrArgs {
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        format!(
-                            "expected attribute parameter value: name, repr, start_index, lua_ffi, with_impl"
-                        ),
+                        "expected attribute parameter value: name, repr, start_index, lua_ffi, with_impl".to_string(),
                     ));
                 }
             }
