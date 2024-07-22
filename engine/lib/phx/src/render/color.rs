@@ -49,34 +49,34 @@ impl Color {
     };
 
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
-        assert!(0.0 <= r && r <= 1.0);
-        assert!(0.0 <= g && g <= 1.0);
-        assert!(0.0 <= b && b <= 1.0);
-        assert!(0.0 <= a && a <= 1.0);
+        check_range(r);
+        check_range(g);
+        check_range(b);
+        check_range(a);
 
         Self { r, g, b, a }
     }
 
     pub fn with_red(self, r: f32) -> Self {
-        assert!(0.0 <= r && r <= 1.0);
+        check_range(r);
 
         Self { r, ..self }
     }
 
     pub fn with_green(self, g: f32) -> Self {
-        assert!(0.0 <= g && g <= 1.0);
+        check_range(g);
 
         Self { g, ..self }
     }
 
     pub fn with_blue(self, b: f32) -> Self {
-        assert!(0.0 <= b && b <= 1.0);
+        check_range(b);
 
         Self { b, ..self }
     }
 
     pub fn with_alpha(self, a: f32) -> Self {
-        assert!(0.0 <= a && a <= 1.0);
+        check_range(a);
 
         Self { a, ..self }
     }
@@ -184,4 +184,9 @@ impl From<Color> for Vec4 {
     fn from(v: Color) -> Self {
         Self::new(v.r, v.g, v.b, v.a)
     }
+}
+
+#[inline]
+fn check_range(v: f32) {
+    assert!((0.0..=1.0).contains(&v));
 }

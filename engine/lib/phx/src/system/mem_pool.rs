@@ -23,7 +23,7 @@ unsafe extern "C" fn MemPool_Grow(this: &mut MemPool) {
     ) as *mut *mut libc::c_void;
     let newBlock: *mut libc::c_void =
         MemAlloc((this.cellSize).wrapping_mul(this.blockSize) as usize);
-    let ref mut fresh1 = *(this.blocks).offset(newBlockIndex as isize);
+    let fresh1 = &mut (*(this.blocks).offset(newBlockIndex as isize));
     *fresh1 = newBlock;
     let mut prev: *mut *mut libc::c_void = &mut this.freeList;
     let mut pCurr: *mut libc::c_char = newBlock as *mut libc::c_char;
@@ -99,7 +99,7 @@ pub unsafe extern "C" fn MemPool_Clear(this: &mut MemPool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Dealloc(this: &mut MemPool, ptr: *mut libc::c_void) {
-    let ref mut fresh2 = *(ptr as *mut *mut libc::c_void);
+    let fresh2 = &mut (*(ptr as *mut *mut libc::c_void));
     *fresh2 = this.freeList;
     this.freeList = ptr;
     this.size = (this.size).wrapping_sub(1);

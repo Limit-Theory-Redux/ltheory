@@ -59,10 +59,7 @@ impl Directory {
 
     pub fn get_current() -> Option<String> {
         match env::current_dir() {
-            Ok(path) => match path.to_str() {
-                Some(path_str) => Some(path_str.into()),
-                None => None,
-            },
+            Ok(path) => path.to_str().map(|path_str| path_str.into()),
             Err(err) => {
                 error!("Cannot get current directory. Error: {err}");
                 None
@@ -74,7 +71,7 @@ impl Directory {
         if let Some(proj_dirs) = ProjectDirs::from("", org, app) {
             let path = proj_dirs.data_dir();
 
-            if let Err(err) = std::fs::create_dir_all(&path) {
+            if let Err(err) = std::fs::create_dir_all(path) {
                 error!("Cannot create project dir: {path:?}. Error: {err}");
                 None
             } else if let Some(path_str) = path.to_str() {

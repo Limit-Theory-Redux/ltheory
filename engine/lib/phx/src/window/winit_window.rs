@@ -50,7 +50,7 @@ impl GlState {
             let surface = unsafe {
                 config
                     .display()
-                    .create_window_surface(config, &attrs)
+                    .create_window_surface(config, attrs)
                     .unwrap()
             };
 

@@ -39,15 +39,15 @@ impl Draw {
 impl Draw {
     pub fn clear(r: f32, g: f32, b: f32, a: f32) {
         let status = unsafe { gl::CheckFramebufferStatus(gl::FRAMEBUFFER) };
-        if status != gl::FRAMEBUFFER_COMPLETE {
+        if status == gl::FRAMEBUFFER_COMPLETE {
+            glcheck!(gl::ClearColor(r, g, b, a));
+            glcheck!(gl::Clear(gl::COLOR_BUFFER_BIT));
+        } else {
             warn!(
                 "Framebuffer is incomplete, skipping clear. Status[{status}]: {}",
                 framebuffer_status_to_str(status)
             );
-        } else {
-            glcheck!(gl::ClearColor(r, g, b, a));
-            glcheck!(gl::Clear(gl::COLOR_BUFFER_BIT));
-        };
+        }
     }
 
     pub fn clear_depth(d: f32) {

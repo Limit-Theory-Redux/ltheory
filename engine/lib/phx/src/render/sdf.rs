@@ -147,7 +147,7 @@ pub unsafe extern "C" fn SDF_ToMesh(this: &mut Sdf) -> Box<Mesh> {
                         let i1: i32 = edgeTable[i as usize][1];
                         let v0: *const Cell = v[i0 as usize];
                         let v1: *const Cell = v[i1 as usize];
-                        if !(((*v0).value > 0.0f32) as i32 == ((*v1).value > 0.0f32) as i32) {
+                        if ((*v0).value > 0.0f32) as i32 != ((*v1).value > 0.0f32) as i32 {
                             let t: f32 =
                                 Saturate(((*v0).value / ((*v0).value - (*v1).value)) as f64) as f32;
                             offset += vp[i0 as usize].lerp(vp[i1 as usize], t);

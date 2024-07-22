@@ -146,9 +146,9 @@ pub extern "C" fn Tex2D_Acquire(this: &mut Tex2D) {
 pub unsafe extern "C" fn Tex2D_Free(this: *mut Tex2D) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0
+        (*this)._refCount == 0
     } {
-        glcheck!(gl::DeleteTextures(1, &mut (*this).handle));
+        glcheck!(gl::DeleteTextures(1, &(*this).handle));
         MemFree(this as *const _);
     }
 }
@@ -207,7 +207,7 @@ pub extern "C" fn Tex2D_GenMipmap(this: &mut Tex2D) {
 }
 
 #[no_mangle]
-pub extern "C" fn Tex2D_GetData(
+pub unsafe extern "C" fn Tex2D_GetData(
     this: &mut Tex2D,
     data: *mut libc::c_void,
     pf: PixelFormat,
@@ -322,7 +322,7 @@ pub extern "C" fn Tex2D_SetAnisotropy(this: &mut Tex2D, factor: f32) {
 }
 
 #[no_mangle]
-pub extern "C" fn Tex2D_SetData(
+pub unsafe extern "C" fn Tex2D_SetData(
     this: &mut Tex2D,
     data: *const libc::c_void,
     pf: PixelFormat,

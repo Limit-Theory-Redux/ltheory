@@ -80,7 +80,7 @@ impl GLSLCode {
     }
 
     fn parse_autovar(val: &str, auto_vars: &mut Vec<ShaderAutoVar>) {
-        let line_tokens: Vec<_> = val.split(" ").collect();
+        let line_tokens: Vec<_> = val.split(' ').collect();
         if line_tokens.len() == 2 {
             let var_type = line_tokens[0];
             let var_name = line_tokens[1];

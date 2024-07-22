@@ -17,7 +17,7 @@ pub struct Bytes {
 }
 
 impl Bytes {
-    fn to_slice(&self) -> &[u8] {
+    fn as_slice(&self) -> &[u8] {
         return unsafe {
             std::slice::from_raw_parts(&self.data as *const i8 as *const u8, self.size as usize)
         };
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn Bytes_Create(size: u32) -> *mut Bytes {
 }
 
 #[no_mangle]
-pub extern "C" fn Bytes_FromData(data: *const libc::c_void, len: u32) -> *mut Bytes {
+pub unsafe extern "C" fn Bytes_FromData(data: *const libc::c_void, len: u32) -> *mut Bytes {
     unsafe {
         let this: *mut Bytes = Bytes_Create(len);
         Bytes_Write(&mut *this, data, len);
@@ -58,11 +58,11 @@ pub fn Bytes_FromVec(data: Vec<u8>) -> *mut Bytes {
 }
 
 pub fn Bytes_FromSlice(data: &[u8]) -> *mut Bytes {
-    Bytes_FromData(data.as_ptr() as *const _, data.len() as u32)
+    unsafe { Bytes_FromData(data.as_ptr() as *const _, data.len() as u32) }
 }
 
 #[no_mangle]
-pub extern "C" fn Bytes_Load(path: *const libc::c_char) -> *mut Bytes {
+pub unsafe extern "C" fn Bytes_Load(path: *const libc::c_char) -> *mut Bytes {
     let this: *mut Bytes = File_ReadBytes(path);
     if this.is_null() {
         unsafe {
@@ -92,7 +92,7 @@ pub extern "C" fn Bytes_GetSize(this: &mut Bytes) -> u32 {
 
 #[no_mangle]
 pub extern "C" fn Bytes_Compress(bytes: &mut Bytes) -> *mut Bytes {
-    let input = bytes.to_slice();
+    let input = bytes.as_slice();
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
     if let Err(e) = encoder.write_all(input) {
@@ -101,12 +101,12 @@ pub extern "C" fn Bytes_Compress(bytes: &mut Bytes) -> *mut Bytes {
 
     /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
     let result = encoder.finish().unwrap();
-    Bytes_FromData(result.as_ptr() as *const _, result.len() as u32)
+    unsafe { Bytes_FromData(result.as_ptr() as *const _, result.len() as u32) }
 }
 
 #[no_mangle]
 pub extern "C" fn Bytes_Decompress(bytes: &mut Bytes) -> *mut Bytes {
-    let input = bytes.to_slice();
+    let input = bytes.as_slice();
 
     let mut decoder = ZlibDecoder::new(Vec::new());
     if let Err(e) = decoder.write_all(input) {
@@ -115,7 +115,7 @@ pub extern "C" fn Bytes_Decompress(bytes: &mut Bytes) -> *mut Bytes {
 
     /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
     let result = decoder.finish().unwrap();
-    Bytes_FromData(result.as_ptr() as *const _, result.len() as u32)
+    unsafe { Bytes_FromData(result.as_ptr() as *const _, result.len() as u32) }
 }
 
 #[no_mangle]
@@ -354,12 +354,12 @@ pub unsafe extern "C" fn Bytes_Print(this: &Bytes) {
 }
 
 #[no_mangle]
-pub extern "C" fn Bytes_Save(this: &Bytes, path: *const libc::c_char) {
+pub unsafe extern "C" fn Bytes_Save(this: &Bytes, path: *const libc::c_char) {
     let mut file = File_Create(path).unwrap_or_else(|| unsafe {
         panic!(
             "Bytes_Save: Failed to open file '{:?}' for writing",
             CStr::from_ptr(path)
         )
     });
-    let _ = file.file.write_all(this.to_slice());
+    let _ = file.file.write_all(this.as_slice());
 }

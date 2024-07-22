@@ -59,10 +59,12 @@ pub fn get_meta_name(meta: &Meta) -> Option<String> {
         return None;
     };
 
-    if let Expr::Lit(ExprLit { lit, .. }) = &doc_text.value {
-        if let Lit::Str(lit_str) = lit {
-            return Some(format!("{}", lit_str.value().trim()));
-        }
+    if let Expr::Lit(ExprLit {
+        lit: Lit::Str(lit_str),
+        ..
+    }) = &doc_text.value
+    {
+        return Some(lit_str.value().trim().to_string());
     }
 
     None
@@ -82,7 +84,7 @@ pub fn snake_to_camel_case(s: &str, first_upper: bool) -> String {
         if c == '_' {
             // Skip underscores
             to_upper = true;
-        } else if c.is_digit(10) {
+        } else if c.is_ascii_digit() {
             res.push(c);
             // First letter after numbers should be uppercase
             to_upper = true;
@@ -106,7 +108,7 @@ pub fn camel_to_snake_case(s: &str, to_upper: bool) -> String {
         if c == '_' {
             res.push(c);
             need_underscore = false;
-        } else if c.is_digit(10) {
+        } else if c.is_ascii_digit() {
             res.push(c);
             need_underscore = true;
         } else if c.is_uppercase() {

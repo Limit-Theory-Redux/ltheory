@@ -35,7 +35,7 @@ fn gen_class_definitions(
     module_name: &str,
     variants_info: &[(&[String], &str, u64)],
 ) {
-    ffi_gen.add_class_definition(format!("---@meta\n"));
+    ffi_gen.add_class_definition("---@meta\n".to_string());
 
     doc.iter()
         .for_each(|d| ffi_gen.add_class_definition(format!("-- {d}")));

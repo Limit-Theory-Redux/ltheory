@@ -58,7 +58,7 @@ pub unsafe extern "C" fn Octree_FromMesh(mesh: &mut Mesh) -> *mut Octree {
     let vertexData: *const Vertex = Mesh_GetVertexData(mesh);
     let mut i: i32 = 0;
     while i < indexCount {
-        let v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let v0: *const Vertex = vertexData.offset(*indexData.offset(i as isize) as isize);
         let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
         let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         let box_0: Box3 = Box3::new(
@@ -180,7 +180,7 @@ unsafe extern "C" fn Octree_Insert(this: &mut Octree, box_0: Box3, id: u32) {
     this.elems = elem;
 }
 
-unsafe extern "C" fn Octree_AddDepth(this: &mut Octree, box_0: Box3, id: u32, depth: i32) {
+unsafe extern "C" fn Octree_AddDepth(this: &mut Octree, box_0: Box3, id: u32) {
     let L: *const Vec3 = &mut this.box_0.lower;
     let U: *const Vec3 = &mut this.box_0.upper;
     let C: Vec3 = this.box_0.center();
@@ -304,7 +304,6 @@ unsafe extern "C" fn Octree_AddDepth(this: &mut Octree, box_0: Box3, id: u32, de
             &mut *this.child[lastIntersection as usize],
             Box3::intersection(box_0, childBound[lastIntersection as usize]),
             id,
-            depth + 1,
         );
         return;
     }
@@ -313,17 +312,17 @@ unsafe extern "C" fn Octree_AddDepth(this: &mut Octree, box_0: Box3, id: u32, de
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Add(this: &mut Octree, box_0: Box3, id: u32) {
-    Octree_AddDepth(this, box_0, id, 0);
+    Octree_AddDepth(this, box_0, id);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Draw(this: &mut Octree) {
     Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
-    Draw_Box3(&mut this.box_0);
+    Draw_Box3(&this.box_0);
     Draw_Color(0.0f32, 1.0f32, 0.0f32, 1.0f32);
     let mut elem: *mut Node = this.elems;
     while !elem.is_null() {
-        Draw_Box3(&mut (*elem).box_0);
+        Draw_Box3(&(*elem).box_0);
         elem = (*elem).next;
     }
     let mut i: i32 = 0;

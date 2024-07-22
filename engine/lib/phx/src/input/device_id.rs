@@ -22,7 +22,7 @@ impl From<GamepadId> for InputDeviceId {
 #[luajit_ffi_gen::luajit_ffi]
 impl InputDeviceId {
     #[bind(role = "to_string")]
-    pub fn to_string(&self) -> String {
+    pub fn get_string(&self) -> String {
         format!("{self:?}")
     }
 }

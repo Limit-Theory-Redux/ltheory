@@ -20,7 +20,7 @@ pub static CubeFace_PZ: CubeFace = gl::TEXTURE_CUBE_MAP_POSITIVE_Z as CubeFace;
 #[no_mangle]
 pub static CubeFace_NZ: CubeFace = gl::TEXTURE_CUBE_MAP_NEGATIVE_Z as CubeFace;
 
-static mut kFaces: [CubeFace; 6] = [
+static mut K_FACES: [CubeFace; 6] = [
     CubeFace_PX,
     CubeFace_NX,
     CubeFace_PY,
@@ -31,5 +31,5 @@ static mut kFaces: [CubeFace; 6] = [
 
 #[no_mangle]
 pub unsafe extern "C" fn CubeFace_Get(index: i32) -> CubeFace {
-    kFaces[index as usize]
+    K_FACES[index as usize]
 }

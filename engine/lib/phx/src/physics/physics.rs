@@ -288,7 +288,7 @@ impl Physics {
                 .colliders
                 .get(contact_pair.collider2)
                 .and_then(RigidBody::linked_with_collider_mut);
-            if !c1_parent.is_some() || !c2_parent.is_some() {
+            if c1_parent.is_none() || c2_parent.is_none() {
                 continue;
             }
 
@@ -300,7 +300,7 @@ impl Physics {
 
         iterator.body0 = std::ptr::null_mut();
         iterator.body1 = std::ptr::null_mut();
-        return false;
+        false
     }
 
     #[bind(out_param = true)]
@@ -362,11 +362,11 @@ impl Physics {
             Quat::IDENTITY,
         );
         unsafe {
-            static mut storage: Option<Box<[*mut RigidBody]>> = None;
-            storage = Some(result.into_boxed_slice());
+            static mut STORAGE: Option<Box<[*mut RigidBody]>> = None;
+            STORAGE = Some(result.into_boxed_slice());
             ShapeCastResult {
-                hits: storage.as_ref().unwrap().as_ptr(),
-                hits_len: storage.as_ref().unwrap().len() as u32,
+                hits: STORAGE.as_ref().unwrap().as_ptr(),
+                hits_len: STORAGE.as_ref().unwrap().len() as u32,
             }
         }
     }
@@ -384,11 +384,11 @@ impl Physics {
             *rot,
         );
         unsafe {
-            static mut storage: Option<Box<[*mut RigidBody]>> = None;
-            storage = Some(result.into_boxed_slice());
+            static mut STORAGE: Option<Box<[*mut RigidBody]>> = None;
+            STORAGE = Some(result.into_boxed_slice());
             ShapeCastResult {
-                hits: storage.as_ref().unwrap().as_ptr(),
-                hits_len: storage.as_ref().unwrap().len() as u32,
+                hits: STORAGE.as_ref().unwrap().as_ptr(),
+                hits_len: STORAGE.as_ref().unwrap().len() as u32,
             }
         }
     }

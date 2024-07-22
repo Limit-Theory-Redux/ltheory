@@ -20,7 +20,7 @@ impl TextCursorRect {
         Self {
             pos: Default::default(),
             size: Default::default(),
-            color: color.clone(),
+            color: *color,
         }
     }
 
@@ -45,8 +45,8 @@ impl TextCursorRect {
         padding: f32,
         text_len: usize,
     ) {
-        let cursor = Cursor::from_position(&layout, cursor_position, false);
-        let line = cursor.path.line(&layout).expect("Cannot get cursor line");
+        let cursor = Cursor::from_position(layout, cursor_position, false);
+        let line = cursor.path.line(layout).expect("Cannot get cursor line");
         let metrics = line.metrics();
         // vertical line start
         let line_start = (metrics.baseline - metrics.ascent - metrics.leading * 0.5).floor();
@@ -68,7 +68,7 @@ impl TextCursorRect {
 
         let cluster = cursor
             .path
-            .cluster(&layout)
+            .cluster(layout)
             .expect("Cannot get cursor cluster");
         let mut cursor_at_end = cursor_position >= text_len;
         let glyph = cluster.glyphs().next().or_else(|| {
@@ -76,8 +76,7 @@ impl TextCursorRect {
             cursor_at_end = true;
             line.glyph_runs()
                 .last()
-                .map(|glyph_run| glyph_run.glyphs().last())
-                .flatten()
+                .and_then(|glyph_run| glyph_run.glyphs().last())
         });
 
         self.pos = if let Some(glyph) = glyph {

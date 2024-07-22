@@ -1,3 +1,5 @@
+#![allow(non_upper_case_globals)] // TODO: fix this
+
 use super::*;
 
 static mut wireframe: [bool; 16] = [false; 16];
@@ -44,6 +46,7 @@ extern "C" fn RenderState_SetBlendMode(mode: BlendMode) {
     }
 }
 
+#[allow(unused_variables, unreachable_patterns)] // TODO: fix this
 #[inline]
 extern "C" fn RenderState_SetCullFace(mode: CullFace) {
     match mode {

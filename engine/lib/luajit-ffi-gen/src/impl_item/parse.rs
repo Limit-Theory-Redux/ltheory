@@ -180,7 +180,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                 if type_info.is_result {
                     return Err(Error::new(
                         type_path.span(),
-                        format!("nested result is not supported"),
+                        "nested result is not supported".to_string(),
                     ));
                 }
 
@@ -213,9 +213,8 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                 if counter > 1 {
                     return Err(Error::new(
                         type_path.span(),
-                        format!(
-                            "a type can't be nested within more than one of: Box, Option, Result."
-                        ),
+                        "a type can't be nested within more than one of: Box, Option, Result."
+                            .to_string(),
                     ));
                 }
 
@@ -271,7 +270,7 @@ fn parse_ret_ty(ret_ty: &ReturnType) -> Result<Option<TypeInfo>> {
     match ret_ty {
         ReturnType::Default => Ok(None),
         ReturnType::Type(_, ty) => {
-            let type_info = parse_type(&ty)?;
+            let type_info = parse_type(ty)?;
 
             Ok(Some(type_info))
         }

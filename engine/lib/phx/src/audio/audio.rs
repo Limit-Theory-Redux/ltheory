@@ -85,9 +85,7 @@ impl Audio {
             .play(sound_data_clone)
             .expect("Cannot play sound");
 
-        let sound_instance = SoundInstance::new(sound_handle, init_volume, None);
-
-        sound_instance
+        SoundInstance::new(sound_handle, init_volume, None)
     }
 
     pub fn play_3d(
@@ -126,13 +124,11 @@ impl Audio {
             .play(sound_data_clone)
             .expect("Cannot play sound");
 
-        let sound_instance = SoundInstance::new(
+        SoundInstance::new(
             sound_handle,
             init_volume,
             Some((emitter_handle, init_pos, self.audio_origin)),
-        );
-
-        sound_instance
+        )
     }
 
     pub fn set_listener_pos(&mut self, pos: &Position) {
