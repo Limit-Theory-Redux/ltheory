@@ -23,7 +23,7 @@ function MusicPlayer:init()
 end
 
 function MusicPlayer:registerEvents()
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreRender), self, self.onPreRender)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.PreRender), self, self.onPreRender)
 end
 
 function MusicPlayer:setVolume(volume, fadeMS)

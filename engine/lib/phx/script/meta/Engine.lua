@@ -9,7 +9,7 @@ function Engine:window() end
 ---@return Input
 function Engine:input() end
 
----@return EventBus
+---@return EventBusImpl
 function Engine:eventBus() end
 
 ---@return HmGui

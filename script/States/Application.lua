@@ -37,13 +37,13 @@ function Application:eventLoop()
         self.eventsRegistered = true
     end
 
-    local nextEvent = EventBusInstance:getNextEvent()
+    local nextEvent = EventBus:getNextEvent()
     while nextEvent ~= nil do
         --print("[" .. tostring(Render.ToString(nextEvent:getRender())) .. "]")
         --print("- Tunnel Id: " .. tostring(nextEvent:getTunnelId()))
 
         EventTunnels[nextEvent:getTunnelId()](nextEvent)
-        nextEvent = EventBusInstance:getNextEvent()
+        nextEvent = EventBus:getNextEvent()
     end
 end
 
@@ -88,15 +88,15 @@ function Application:appInit()
 end
 
 function Application:registerEvents()
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreSim), self, self.onPreSim)
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Sim), self, self.onSim)
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostSim), self, self.onPostSim)
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreRender), self, self.onPreRender)
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Render), self, self.onRender)
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostRender), self, self.onPostRender)
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PreInput), self, self.onPreInput)
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Input), self, self.onInput)
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.PostInput), self, self.onPostInput)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.PreSim), self, self.onPreSim)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.Sim), self, self.onSim)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.PostSim), self, self.onPostSim)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.PreRender), self, self.onPreRender)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.Render), self, self.onRender)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.PostRender), self, self.onPostRender)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.PreInput), self, self.onPreInput)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.Input), self, self.onInput)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.PostInput), self, self.onPostInput)
 end
 
 function Application:onPreSim(data) end
@@ -126,8 +126,8 @@ function Application:onPreRender(data)
         self.timeScale = GameState.debug.timeAccelFactor
     end
 
-    if self.timeScale ~= EventBusInstance:getTimeScale() then
-        EventBusInstance:setTimeScale(self.timeScale)
+    if self.timeScale ~= EventBus:getTimeScale() then
+        EventBus:setTimeScale(self.timeScale)
     end
 
     local timeScaledDt = data:getDeltaTime()

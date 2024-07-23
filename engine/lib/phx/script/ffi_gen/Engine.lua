@@ -16,18 +16,18 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void      Engine_Free       (Engine*);
-            Window*   Engine_Window     (Engine*);
-            Input*    Engine_Input      (Engine*);
-            EventBus* Engine_EventBus   (Engine*);
-            HmGui*    Engine_HmGui      (Engine*);
-            void      Engine_Abort      ();
-            int       Engine_GetBits    ();
-            double    Engine_GetTime    (Engine const*);
-            cstr      Engine_GetVersion ();
-            void      Engine_Exit       (Engine*);
-            void      Engine_Terminate  ();
-            void      Engine_Update     ();
+            void          Engine_Free       (Engine*);
+            Window*       Engine_Window     (Engine*);
+            Input*        Engine_Input      (Engine*);
+            EventBusImpl* Engine_EventBus   (Engine*);
+            HmGui*        Engine_HmGui      (Engine*);
+            void          Engine_Abort      ();
+            int           Engine_GetBits    ();
+            double        Engine_GetTime    (Engine const*);
+            cstr          Engine_GetVersion ();
+            void          Engine_Exit       (Engine*);
+            void          Engine_Terminate  ();
+            void          Engine_Update     ();
         ]]
     end
 

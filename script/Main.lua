@@ -5,8 +5,8 @@ package.path = package.path .. ';./script/?.ffi.lua'
 
 ---@type Engine
 EngineInstance = {}
----@type EventBus
-EventBusInstance = {}
+---@type EventBusImpl
+EventBus = {}
 ---@type Input
 InputInstance = {}
 ---@type Window
@@ -23,7 +23,7 @@ function SetEngine(engine)
     ---@type Engine
     EngineInstance = ffi.cast('Engine*', engine)
 
-    EventBusInstance = EngineInstance:eventBus()
+    EventBus = EngineInstance:eventBus()
     InputInstance = EngineInstance:input()
     WindowInstance = EngineInstance:window()
     Gui = EngineInstance:hmGui()
