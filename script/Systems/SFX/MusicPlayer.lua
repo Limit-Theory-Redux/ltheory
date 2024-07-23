@@ -3,11 +3,12 @@ local MusicPlayer = class(function(self) end)
 local MusicObject = require("Types.MusicObject")
 local rng = RNG.FromTime()
 
-function MusicPlayer:Init()
+function MusicPlayer:init()
     self.trackList = {}
     self.queue = {}
     self.currentlyPlaying = nil
     self.currentTrackNum = 0
+    self.loadList = {}
 
     if GameState.audio.soundEnabled then
         self.volume = GameState.audio.musicVolume
@@ -17,7 +18,7 @@ function MusicPlayer:Init()
 
     self.lastVolume = self.volume
 
-    self:loadMusic()
+    self:findMusic()
     self:registerEvents()
 end
 
@@ -76,7 +77,7 @@ function MusicPlayer:onPreRender(dt)
         self.currentlyPlaying = track -- randomly pick one of the queued tracks
         self.currentTrackNum = trackNum
         -- Log.Debug("*** MusicPlayer:OnUpdate: playing tracknum %d '%s' with volume %s", trackNum, track.name, self.volume)
-        self.currentlyPlaying:Play(self.volume, 2000)
+        self.currentlyPlaying:play(self.volume, 2000)
     end
 end
 
@@ -123,7 +124,7 @@ function MusicPlayer:clearQueue()
         -- Log.Debug("MusicPlayer:clearQueue: clearing entire queue")
         self.queue = {}
         if self.currentlyPlaying then
-            self.currentlyPlaying:Stop()
+            self.currentlyPlaying:stop()
             self.currentlyPlaying = nil
         end
     end
@@ -132,7 +133,7 @@ end
 function MusicPlayer:clearQueueTrack(query)
     if #self.queue > 0 then
         if self.currentlyPlaying and self.currentlyPlaying == query then
-            self.currentlyPlaying:Stop()
+            self.currentlyPlaying:stop()
             self.currentlyPlaying = nil
         end
         for i, track in ipairs(self.queue) do
@@ -150,7 +151,7 @@ function MusicPlayer:startTrack(query, fadeInMS)
     if self.currentlyPlaying ~= track then
         -- Log.Debug("MusicPlayer:startTrack: playing track '%s' with volume %s", track.name, self.volume)
         track:Rewind()
-        track:Play(self.volume, fadeInMS)
+        track:play(self.volume, fadeInMS)
         self.currentlyPlaying = track
     end
 end
@@ -179,7 +180,7 @@ function MusicPlayer:findTrack(query)
     return nil
 end
 
-function MusicPlayer:loadMusic()
+function MusicPlayer:findMusic()
     for _, fname in ipairs(io.listdirex(Config.paths.soundAmbiance)) do
         local path = Config.paths.soundAmbiance .. fname
         local fileUnsupported = false
@@ -198,42 +199,47 @@ function MusicPlayer:loadMusic()
         end
 
         if not fileUnsupported then
-            local newMusicObject
-            if string.find(path, Config.audio.general.mainMenu) then
-                newMusicObject = MusicObject:Create {
-                    name = fname,
-                    path = path,
-                    volume = self.volume,
-                    isLooping = true
-                }
-            else
-                newMusicObject = MusicObject:Create {
-                    name = fname,
-                    path = path,
-                    volume = self.volume,
-                    isLooping = false
-                }
-            end
+            self.loadList[fname] = path
 
-            --Log.Debug("VOLUME: " .. self.volume)
-            if newMusicObject then
-                table.insert(self.trackList, newMusicObject)
+            -- Generate Enums
+            if not Enums.SoundtrackNames then Enums.SoundtrackNames = {} end
+            table.insert(Enums.SoundtrackNames, fname)
 
-                -- Generate Enums
-                if not Enums.SoundtrackNames then Enums.SoundtrackNames = {} end
-                table.insert(Enums.SoundtrackNames, newMusicObject.name)
-
-                if not Enums.SoundtrackCount then Enums.SoundtrackCount = 0 end
-                Enums.SoundtrackCount = Enums.SoundtrackCount + 1
-            end
+            if not Enums.SoundtrackCount then Enums.SoundtrackCount = 0 end
+            Enums.SoundtrackCount = Enums.SoundtrackCount + 1
         end
     end
+end
 
-    Log.Info("Load Music: ")
+function MusicPlayer:loadMusic()
+    for fname, path in pairs(self.loadList) do
+        local newMusicObject
+        if string.find(path, Config.audio.general.mainMenu) then
+            newMusicObject = MusicObject:create {
+                name = fname,
+                path = path,
+                volume = self.volume,
+                isLooping = true
+            }
+        else
+            newMusicObject = MusicObject:create {
+                name = fname,
+                path = path,
+                volume = self.volume,
+                isLooping = false
+            }
+        end
+
+        table.insert(self.trackList, newMusicObject)
+    end
+
+    Log.Info("Loaded Music: ")
     for index, soundObject in ipairs(self.trackList) do
         Log.Info("[" .. index .. "] " .. soundObject.name .. " (path: " ..
             tostring(soundObject.sound:getPath()) .. ")")
     end
+
+    self.loadList = {}
 end
 
 return MusicPlayer

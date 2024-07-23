@@ -108,7 +108,7 @@ function Button:new(args)
         if buttonClicked then
             -- hardcoding the sound
             if Config.audio.sounds.click then
-                Config.audio.sounds.click:Play(1.0)
+                Config.audio.sounds.click:play(1.0)
             end
 
             self.state.callback()

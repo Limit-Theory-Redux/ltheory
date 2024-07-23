@@ -121,7 +121,7 @@ function AudioTest:onInput()
             self.lastFireTime = TimeStamp.Now()
 
             if Config.audio.sounds.pulseFire then
-                local instance = Config.audio.sounds.pulseFire:Play(1.0, self.pos)
+                local instance = Config.audio.sounds.pulseFire:play(1.0, self.pos)
                 instance:setEmitterPos(self.pos)
                 print(instance)
             end

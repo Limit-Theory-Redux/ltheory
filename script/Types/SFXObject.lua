@@ -4,7 +4,7 @@ local SoundManager = require "Systems.SFX.SoundManager"
 local SFXObject = {}
 SFXObject.__index = SFXObject
 
-function SFXObject:Create(arg)
+function SFXObject:create(arg)
     if not arg.name or not arg.path or not arg.volume then
         Log.Warn("Cannot create SFXObject")
         return
@@ -21,7 +21,7 @@ function SFXObject:Create(arg)
     return object
 end
 
-function SFXObject:Play(volume, pos)
+function SFXObject:play(volume, pos)
     if self.last_created:getElapsed() > 0.05 then
         local vol = volume or self.volume
 

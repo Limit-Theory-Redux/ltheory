@@ -33,7 +33,7 @@ function Entity:addProjectile(source)
 
     -- *** TEMP: Audio FX test START ***
     if Config.audio.sounds.pulseFire then
-        Config.audio.sounds.pulseFire:Play(1.0, source:getPos())
+        Config.audio.sounds.pulseFire:play(1.0, source:getPos())
     end
     -- *** TEMP: Audio FX test END ***
 

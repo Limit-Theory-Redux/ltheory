@@ -141,7 +141,7 @@ function Checkbox:new(args)
 
         if triggered then
             if self.state.sound then
-                self.state.sound():Play(1.0)
+                self.state.sound():play(1.0)
             end
 
             self.state.callback(self.state.checked)

@@ -148,7 +148,7 @@ function Switch:new(args)
             self.state.currentValue = function() return not valueState end
 
             if self.state.sound then
-                self.state.sound():Play(1.0)
+                self.state.sound():play(1.0)
             end
 
             self.state.callback(self.state.currentValue())

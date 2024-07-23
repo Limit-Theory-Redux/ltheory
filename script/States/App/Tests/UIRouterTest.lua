@@ -19,7 +19,7 @@ function Test:onInit()
     DebugControl.ltheory = self
 
     SoundManager:init()
-    MusicPlayer:Init() --todo: fix all casing errors
+    MusicPlayer:init()
 
     -- Read user-defined values and update game variables
     InitFiles:readUserInits()

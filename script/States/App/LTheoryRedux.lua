@@ -15,8 +15,7 @@ local DebugControl = require('Systems.Controls.Controls.DebugControl')
 function LimitTheoryRedux:onInit()
     DebugControl.ltheory = self
 
-    SoundManager:init()
-    MusicPlayer:Init() --todo: fix all casing errors
+    MusicPlayer:init()
 
     -- Read user-defined values and update game variables
     InitFiles:readUserInits()
@@ -29,6 +28,9 @@ function LimitTheoryRedux:onInit()
     -- Set the default game control cursor
     -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
     WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+
+    SoundManager:init()
+    MusicPlayer:loadMusic()
 
     self:initMainMenu(true)
 end

@@ -4,7 +4,7 @@ local SoundManager = require "Systems.SFX.SoundManager"
 local MusicObject = {}
 MusicObject.__index = MusicObject
 
-function MusicObject:Create(arg)
+function MusicObject:create(arg)
     if not arg.name or not arg.path or not arg.volume then
         Log.Warn("Cannot create MusicObject")
         return
@@ -21,7 +21,7 @@ function MusicObject:Create(arg)
     return object
 end
 
-function MusicObject:Play(volume, fadeInMS)
+function MusicObject:play(volume, fadeInMS)
     local vol = volume or self.volume
 
     local soundGroup = Enums.SoundGroups.Music
@@ -39,7 +39,7 @@ function MusicObject:Play(volume, fadeInMS)
     end
 end
 
-function MusicObject:Stop()
+function MusicObject:stop()
     if self.instance then
         self.instance:stop()
         self.instance = nil

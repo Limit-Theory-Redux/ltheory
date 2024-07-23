@@ -34,7 +34,7 @@ function LimitTheoryRedux:onInit()
     SoundManager:init()
 
     -- Load Soundtracks before config
-    MusicPlayer:Init()
+    MusicPlayer:init()
 
     -- Read user-defined values and update game variables
     InitFiles:readUserInits()
