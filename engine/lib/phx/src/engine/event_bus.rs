@@ -33,31 +33,6 @@ pub enum FrameStage {
     PostInput,
 }
 
-#[luajit_ffi_gen::luajit_ffi]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum EventPriority {
-    Lowest = 0,
-    VeryLow = 1,
-    Low = 2,
-    Medium = 3,
-    High = 4,
-    Higher = 5,
-    VeryHigh = 6,
-    Max = 255,
-}
-
-impl Ord for EventPriority {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        (*self as u8).cmp(&(*other as u8))
-    }
-}
-
-impl PartialOrd for EventPriority {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Subscriber {
     id: u32,
@@ -68,7 +43,7 @@ pub struct Subscriber {
 #[derive(Debug, Clone)]
 pub struct Event {
     pub name: String,
-    pub priority: EventPriority,
+    pub priority: i32,
     pub frame_stage: FrameStage,
     pub subscribers: Vec<Subscriber>,
     pub processed_subscribers: Vec<usize>,
@@ -112,6 +87,36 @@ impl EventData {
     }
 }
 
+#[luajit_ffi_gen::luajit_ffi]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum EventPriority {
+    Lowest,
+    VeryLow,
+    Low,
+    BelowDefault,
+    Default,
+    AboveDefault,
+    High,
+    VeryHigh,
+    Highest,
+}
+
+impl From<EventPriority> for i32 {
+    fn from(priority: EventPriority) -> Self {
+        match priority {
+            EventPriority::Lowest => i32::MIN,
+            EventPriority::VeryLow => -1000000000,
+            EventPriority::Low => -500000000,
+            EventPriority::BelowDefault => -100000000,
+            EventPriority::Default => 0,
+            EventPriority::AboveDefault => 100000000,
+            EventPriority::High => 500000000,
+            EventPriority::VeryHigh => 1000000000,
+            EventPriority::Highest => i32::MAX,
+        }
+    }
+}
+
 struct FrameTimer {
     last_update: HashMap<FrameStage, TimeStamp>,
 }
@@ -138,7 +143,7 @@ impl FrameTimer {
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct MessageRequestCache {
     frame_stage: FrameStage,
-    priority: EventPriority,
+    priority: i32,
     event_name: String,
     stay_alive: bool,
     for_entity_id: Option<u64>,
@@ -146,7 +151,7 @@ struct MessageRequestCache {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct MessageRequest {
-    priority: EventPriority,
+    priority: i32,
     event_name: String,
     stay_alive: bool,
     for_entity_id: Option<u64>,
@@ -165,9 +170,9 @@ impl From<MessageRequestCache> for MessageRequest {
 
 impl Ord for MessageRequest {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other
-            .priority
-            .cmp(&self.priority)
+        // Higher priority comes first
+        self.priority
+            .cmp(&other.priority)
             .then_with(|| self.event_name.cmp(&other.event_name))
     }
 }
@@ -181,7 +186,7 @@ impl PartialOrd for MessageRequest {
 enum EventBusOperation {
     Register {
         event_name: String,
-        priority: EventPriority,
+        priority: i32,
         frame_stage: FrameStage,
         with_frame_stage_message: bool,
     },
@@ -231,7 +236,7 @@ impl EventBus {
             let event_name = format!("{:?}", frame_stage);
             let frame_stage_event = Event {
                 name: event_name.clone(),
-                priority: EventPriority::Max,
+                priority: i32::MAX,
                 frame_stage,
                 subscribers: vec![],
                 processed_subscribers: vec![],
@@ -239,7 +244,7 @@ impl EventBus {
 
             let message_request = MessageRequestCache {
                 frame_stage,
-                priority: EventPriority::Max,
+                priority: i32::MAX,
                 event_name: event_name.clone(),
                 stay_alive: true,
                 for_entity_id: None,
@@ -414,8 +419,10 @@ impl EventBus {
         frame_stage: FrameStage,
         with_frame_stage_message: bool,
     ) {
-        if priority == EventPriority::Max {
-            panic!("Trying to register event at maximum priority which is locked.");
+        let priority: i32 = priority.into();
+
+        if priority == i32::MAX {
+            panic!("Trying to register event at highest priority which is reserved for frame stage events.");
         }
 
         self.operation_queue.push_back(EventBusOperation::Register {

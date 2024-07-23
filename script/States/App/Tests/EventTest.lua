@@ -31,17 +31,22 @@ function EventTest:onInit()
         end
     end)
 
-    EventBusInstance:register("MyCustomEventHigh", EventPriority.High, FrameStage.PreRender, false)
-    EventBusInstance:subscribe("MyCustomEventHigh", fakeEntity, function(data) Log.Debug("Received MyCustomEventHigh") end)
-    EventBusInstance:send("MyCustomEventHigh", fakeEntity)
-
-    EventBusInstance:register("MyCustomEventMedium", EventPriority.Medium, FrameStage.PreRender, false)
-    EventBusInstance:subscribe("MyCustomEventMedium", fakeEntity, function(data) Log.Debug("Received MyCustomEventMedium") end)
-    EventBusInstance:send("MyCustomEventMedium", fakeEntity)
-
-    EventBusInstance:register("MyCustomEventLow", EventPriority.Low, FrameStage.PreRender, false)
-    EventBusInstance:subscribe("MyCustomEventLow", fakeEntity, function(data) Log.Debug("Received MyCustomEventLow") end)
-    EventBusInstance:send("MyCustomEventLow", fakeEntity)
+    for _, frameStage in pairs(FrameStage) do
+        if type(frameStage) ~= "cdata" then                                             -- prevent ToString
+            for _, priority in pairs(EventPriority) do
+                if priority ~= EventPriority.Highest and type(priority) ~= "cdata" then -- prevent ToString and Highest Priority(reserved)
+                    local frameStageName = tostring(FrameStage.ToString(frameStage))
+                    frameStageName = frameStageName:gsub('"', '')
+                    local priorityName = tostring(EventPriority.ToString(priority))
+                    priorityName = priorityName:gsub('"', '')
+                    local eventName = "MyCustomEvent" .. frameStageName .. priorityName
+                    EventBusInstance:register(eventName, priority, frameStage, false)
+                    EventBusInstance:subscribe(eventName, fakeEntity, function(data) Log.Debug("Received " .. eventName) end)
+                    EventBusInstance:send(eventName, fakeEntity)
+                end
+            end
+        end
+    end
 end
 
 function EventTest:onPreRender() end

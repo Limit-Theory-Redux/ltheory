@@ -19,11 +19,12 @@ function Loader.defineType()
             EventPriority EventPriority_Lowest;
             EventPriority EventPriority_VeryLow;
             EventPriority EventPriority_Low;
-            EventPriority EventPriority_Medium;
+            EventPriority EventPriority_BelowDefault;
+            EventPriority EventPriority_Default;
+            EventPriority EventPriority_AboveDefault;
             EventPriority EventPriority_High;
-            EventPriority EventPriority_Higher;
             EventPriority EventPriority_VeryHigh;
-            EventPriority EventPriority_Max;
+            EventPriority EventPriority_Highest;
 
             cstr          EventPriority_ToString(EventPriority);
         ]]
@@ -31,16 +32,17 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         EventPriority = {
-            Lowest   = libphx.EventPriority_Lowest,
-            VeryLow  = libphx.EventPriority_VeryLow,
-            Low      = libphx.EventPriority_Low,
-            Medium   = libphx.EventPriority_Medium,
-            High     = libphx.EventPriority_High,
-            Higher   = libphx.EventPriority_Higher,
-            VeryHigh = libphx.EventPriority_VeryHigh,
-            Max      = libphx.EventPriority_Max,
+            Lowest       = libphx.EventPriority_Lowest,
+            VeryLow      = libphx.EventPriority_VeryLow,
+            Low          = libphx.EventPriority_Low,
+            BelowDefault = libphx.EventPriority_BelowDefault,
+            Default      = libphx.EventPriority_Default,
+            AboveDefault = libphx.EventPriority_AboveDefault,
+            High         = libphx.EventPriority_High,
+            VeryHigh     = libphx.EventPriority_VeryHigh,
+            Highest      = libphx.EventPriority_Highest,
 
-            ToString = libphx.EventPriority_ToString,
+            ToString     = libphx.EventPriority_ToString,
         }
 
         if onDef_EventPriority then onDef_EventPriority(EventPriority, mt) end
