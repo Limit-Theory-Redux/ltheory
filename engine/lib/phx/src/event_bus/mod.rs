@@ -2,156 +2,20 @@ use std::collections::{hash_map::Entry, BinaryHeap, HashMap, VecDeque};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
-
 use internal::ConvertIntoString;
 use tracing::{info, warn};
 
-use crate::system::TimeStamp;
+use event_data::*;
+use event::*;
+use frame_stage::*;
+use frame_timer::*;
+use message_request::*;
 
-#[luajit_ffi_gen::luajit_ffi]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
-pub enum FrameStage {
-    // Before physics update
-    PreSim,
-    // Physics update
-    Sim,
-    // After physics update
-    PostSim,
-    // Before frame render
-    #[default]
-    PreRender,
-    // Frame render
-    Render,
-    // After frame render
-    PostRender,
-    // Before input handling
-    PreInput,
-    // Input handling
-    Input,
-    // After input handling
-    PostInput,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Subscriber {
-    id: u32,
-    tunnel_id: u32,
-    entity_id: Option<u64>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Event {
-    pub name: String,
-    pub priority: i32,
-    pub frame_stage: FrameStage,
-    pub subscribers: Vec<Subscriber>,
-    pub processed_subscribers: Vec<usize>,
-}
-
-impl Event {
-    fn get_next_subscriber(&mut self) -> Option<&Subscriber> {
-        for i in 0..self.subscribers.len() {
-            if !self.processed_subscribers.contains(&i) {
-                self.processed_subscribers.push(i);
-                return self.subscribers.get(i);
-            }
-        }
-        None
-    }
-
-    fn reset_processed_subscribers(&mut self) {
-        self.processed_subscribers.clear();
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct EventData {
-    pub delta_time: f64,
-    pub frame_stage: FrameStage,
-    pub tunnel_id: u32,
-}
-
-#[luajit_ffi_gen::luajit_ffi]
-impl EventData {
-    pub fn get_delta_time(&self) -> f64 {
-        self.delta_time
-    }
-
-    pub fn get_frame_stage(&self) -> FrameStage {
-        self.frame_stage
-    }
-
-    pub fn get_tunnel_id(&self) -> u32 {
-        self.tunnel_id
-    }
-}
-
-struct FrameTimer {
-    last_update: HashMap<FrameStage, TimeStamp>,
-}
-
-impl FrameTimer {
-    pub fn new() -> Self {
-        let mut last_update = HashMap::new();
-        let now = TimeStamp::now();
-        for stage in FrameStage::iter() {
-            last_update.insert(stage, now);
-        }
-        FrameTimer { last_update }
-    }
-
-    pub fn update(&mut self, stage: FrameStage) -> f64 {
-        let now = TimeStamp::now();
-        let last_time = self.last_update.get(&stage).cloned().unwrap_or(now);
-        let delta = last_time.get_elapsed();
-        self.last_update.insert(stage, now);
-        delta
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-struct MessageRequestCache {
-    frame_stage: FrameStage,
-    priority: i32,
-    event_name: String,
-    stay_alive: bool,
-    for_entity_id: Option<u64>,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-struct MessageRequest {
-    priority: i32,
-    event_name: String,
-    stay_alive: bool,
-    for_entity_id: Option<u64>,
-}
-
-impl From<MessageRequestCache> for MessageRequest {
-    fn from(cache: MessageRequestCache) -> Self {
-        MessageRequest {
-            priority: cache.priority,
-            event_name: cache.event_name,
-            stay_alive: cache.stay_alive,
-            for_entity_id: cache.for_entity_id,
-        }
-    }
-}
-
-impl Ord for MessageRequest {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        // Higher priority comes first
-        self.priority
-            .cmp(&other.priority)
-            .then_with(|| self.event_name.cmp(&other.event_name))
-    }
-}
-
-impl PartialOrd for MessageRequest {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
+mod event_data;
+mod event;
+mod frame_stage;
+mod frame_timer;
+mod message_request;
 
 enum EventBusOperation {
     Register {
