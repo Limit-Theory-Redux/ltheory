@@ -87,36 +87,6 @@ impl EventData {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum EventPriority {
-    Lowest,
-    VeryLow,
-    Low,
-    BelowDefault,
-    Default,
-    AboveDefault,
-    High,
-    VeryHigh,
-    Highest,
-}
-
-impl From<EventPriority> for i32 {
-    fn from(priority: EventPriority) -> Self {
-        match priority {
-            EventPriority::Lowest => i32::MIN,
-            EventPriority::VeryLow => -1000000000,
-            EventPriority::Low => -500000000,
-            EventPriority::BelowDefault => -100000000,
-            EventPriority::Default => 0,
-            EventPriority::AboveDefault => 100000000,
-            EventPriority::High => 500000000,
-            EventPriority::VeryHigh => 1000000000,
-            EventPriority::Highest => i32::MAX,
-        }
-    }
-}
-
 struct FrameTimer {
     last_update: HashMap<FrameStage, TimeStamp>,
 }
@@ -415,12 +385,10 @@ impl EventBus {
     pub fn register(
         &mut self,
         event_name: &str,
-        priority: EventPriority,
+        priority: i32,
         frame_stage: FrameStage,
         with_frame_stage_message: bool,
     ) {
-        let priority: i32 = priority.into();
-
         if priority == i32::MAX {
             panic!("Trying to register event at highest priority which is reserved for frame stage events.");
         }

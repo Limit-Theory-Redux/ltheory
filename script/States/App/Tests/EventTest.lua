@@ -32,13 +32,11 @@ function EventTest:onInit()
     end)
 
     for _, frameStage in pairs(FrameStage) do
-        if type(frameStage) ~= "cdata" then                                             -- prevent ToString
-            for _, priority in pairs(EventPriority) do
-                if priority ~= EventPriority.Highest and type(priority) ~= "cdata" then -- prevent ToString and Highest Priority(reserved)
+        if type(frameStage) ~= "cdata" then                                                   -- prevent ToString
+            for priorityName, priority in pairs(Enums.EventPriority) do
+                if priority ~= Enums.EventPriority.Highest and type(priority) ~= "cdata" then -- prevent ToString and Highest Priority(reserved)
                     local frameStageName = tostring(FrameStage.ToString(frameStage))
                     frameStageName = frameStageName:gsub('"', '')
-                    local priorityName = tostring(EventPriority.ToString(priority))
-                    priorityName = priorityName:gsub('"', '')
                     local eventName = "MyCustomEvent" .. frameStageName .. priorityName
                     EventBusInstance:register(eventName, priority, frameStage, false)
                     EventBusInstance:subscribe(eventName, fakeEntity, function(data) Log.Debug("Received " .. eventName) end)
