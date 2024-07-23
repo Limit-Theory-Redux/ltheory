@@ -60,8 +60,6 @@ const COPY_TYPES: &[&str] = &[
     "HmGuiStyleId",
     "TextAlignment",
     "FrameStage",
-    "EventType",
-    "EventPriority",
 ];
 
 #[derive(Debug)]
