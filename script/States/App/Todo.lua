@@ -66,7 +66,7 @@ function Test:onUpdate(dt)
     Gui:beginGui(self.resX, self.resY)
     Gui:image(self.bg)
     self:showTodo()
-    Gui:endGui(Input)
+    Gui:endGui()
 end
 
 function Test:onDraw()

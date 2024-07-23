@@ -226,7 +226,7 @@ function Test:onUpdate(dt)
     self:showSimple()
     -- self:showMetrics()
     self:showTodo()
-    Gui:endGui(Input)
+    Gui:endGui()
     Profiler.End()
 end
 

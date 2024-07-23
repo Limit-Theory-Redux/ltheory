@@ -888,7 +888,7 @@ function Test:onUpdate(dt)
         -- self:showMetrics()
         self:showMenuDrop()
     end
-    Gui:endGui(Input)
+    Gui:endGui()
     Profiler.End()
 end
 

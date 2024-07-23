@@ -252,7 +252,7 @@ function LTheory:onUpdate(dt)
     end
 
     Gui:endContainer()
-    Gui:endGui(Input)
+    Gui:endGui()
 end
 
 function LTheory:onDraw()

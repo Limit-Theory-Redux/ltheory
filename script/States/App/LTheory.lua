@@ -112,7 +112,7 @@ function LTheory:onUpdate(dt)
     self.canvas:update(dt)
 
     Gui:beginGui(self.resX, self.resY) -- required for Gui:draw() to work without crashing
-    Gui:endGui(Input)
+    Gui:endGui()
 end
 
 function LTheory:onDraw()

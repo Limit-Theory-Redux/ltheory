@@ -311,7 +311,7 @@ function LimitTheoryRedux:onUpdate(dt)
     if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         LimitTheoryRedux:showShipCreationHint()
     end
-    Gui:endGui(Input)
+    Gui:endGui()
 
     -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
     if Input:isPressed(Bindings.NewBackground) and MainMenu.currentMode == Enums.MenuMode.MainMenu then

@@ -57,7 +57,7 @@ function Test:onUpdate(dt)
 
     Gui:beginGui(self.resX, self.resY)
     UIRouter:update(dt)
-    Gui:endGui(Input)
+    Gui:endGui()
 end
 
 function Test:onDraw()

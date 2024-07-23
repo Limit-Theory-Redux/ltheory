@@ -625,7 +625,7 @@ function Test:onUpdate(dt)
     else
         self:showMarketOverlay()
     end
-    Gui:endGui(Input)
+    Gui:endGui()
     Profiler.End()
 end
 
