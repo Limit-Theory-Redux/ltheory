@@ -340,7 +340,7 @@ impl Engine {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi]
+#[luajit_ffi_gen::luajit_ffi(name = "EngineImpl")]
 impl Engine {
     #[bind(lua_ffi = false)]
     pub fn entry(entry_point: &str, app_name: &str, console_log: bool, log_dir: &str) {
@@ -392,14 +392,6 @@ impl Engine {
     pub fn hmgui(&mut self) -> &mut HmGui {
         &mut self.hmgui
     }
-
-    // TODO: convert ShaderVar and Signal into the proper Rust types
-    // pub fn free() {
-    //     unsafe {
-    //         ShaderVar_ee();
-    //         Signal_Free();
-    //     }
-    // }
 
     pub fn abort() {
         std::process::abort();

@@ -28,7 +28,7 @@ function Application:onUpdate(dt) end
 function Application:onExit() end
 
 function Application:quit()
-    EngineInstance:exit()
+    Engine:exit()
 end
 
 function Application:eventLoop()

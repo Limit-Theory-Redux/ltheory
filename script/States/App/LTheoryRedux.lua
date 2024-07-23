@@ -96,7 +96,7 @@ function LimitTheoryRedux:exit()
     -- Write player-specific game variables to preserve them across gameplay sessions
     InitFiles:writeUserInits()
 
-    EngineInstance:exit()
+    Engine:exit()
 end
 
 return LimitTheoryRedux
