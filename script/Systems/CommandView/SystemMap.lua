@@ -26,7 +26,7 @@ function SystemMap:onDraw(state)
     }
     local best = nil
     local bestDist = math.huge
-    local mp = InputInstance:mouse():position()
+    local mp = Input:mouse():position()
 
     -- If an object is target locked in flight view (via HUD), give it focus in the System Map
     local playerShip = GameState.player.currentShip
@@ -160,7 +160,7 @@ function SystemMap:onDraw(state)
     Draw.SmoothPoints(false)
     BlendMode.Pop()
 
-    if InputInstance:isDown(Button.MouseLeft) then
+    if Input:isDown(Button.MouseLeft) then
         self.focus = best
         -- Set focused-on object in the System Map as the player ship's current target
         if GameState.player.currentShip ~= nil and GameState.player.currentShip ~= self.focus then
@@ -300,22 +300,22 @@ function SystemMap:onInput(state)
             self.lastDt -- temp fix for -> see NOTE above
     end
 
-    if InputInstance:getValue(Button.KeyboardShiftLeft) == 1 then
+    if Input:getValue(Button.KeyboardShiftLeft) == 1 then
         GameState.player.currentMapSystemPan = GameState.player.currentMapSystemPan * 2
     end
 
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
-        exp(GameState.ui.mapSystemZoomSpeed * InputInstance:mouse():scroll().y)
+        exp(GameState.ui.mapSystemZoomSpeed * Input:mouse():scroll().y)
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
         exp(GameState.ui.mapSystemZoomSpeed *
-            (InputInstance:getValue(Button.KeyboardP) - InputInstance:getValue(Button.KeyboardO)))
+            (Input:getValue(Button.KeyboardP) - Input:getValue(Button.KeyboardO)))
 
     GameState.player.currentMapSystemPos.x = GameState.player.currentMapSystemPos.x +
         GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
-            InputInstance:getValue(Button.KeyboardD) - InputInstance:getValue(Button.KeyboardA))
+            Input:getValue(Button.KeyboardD) - Input:getValue(Button.KeyboardA))
     GameState.player.currentMapSystemPos.y = GameState.player.currentMapSystemPos.y +
         GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
-            InputInstance:getValue(Button.KeyboardS) - InputInstance:getValue(Button.KeyboardW))
+            Input:getValue(Button.KeyboardS) - Input:getValue(Button.KeyboardW))
 end
 
 function SystemMap.Create(system)

@@ -55,9 +55,9 @@ end
 function StationTest:onInput()
     self.canvas:input()
 
-    if InputInstance:isKeyboardShiftPressed() and InputInstance:isPressed(Button.KeyboardB) then
+    if Input:isKeyboardShiftPressed() and Input:isPressed(Button.KeyboardB) then
         self:newSystem()
-    elseif InputInstance:isPressed(Button.KeyboardB) then
+    elseif Input:isPressed(Button.KeyboardB) then
         self:spawnStation()
     end
 end
@@ -66,7 +66,7 @@ function StationTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
     Gui:beginGui(self.resX, self.resY)
-    Gui:endGui(InputInstance)
+    Gui:endGui(Input)
 end
 
 function StationTest:onDraw()

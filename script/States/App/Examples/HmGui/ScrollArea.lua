@@ -36,7 +36,7 @@ function Test:scrollArea()
     Gui:endContainer()
     Gui:setBorderWidth(3);
 
-    Gui:endScrollArea(InputInstance)
+    Gui:endScrollArea(Input)
     Gui:setBorderWidth(3);
     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Expand)
 
@@ -51,7 +51,7 @@ function Test:onUpdate(dt)
     Gui:setProperty(GuiProperties.BackgroundColor, Color(0, 0, 0, 1))
     Gui:beginGui(self.resX, self.resY)
     self:scrollArea()
-    Gui:endGui(InputInstance)
+    Gui:endGui(Input)
 
     Profiler.End()
 end

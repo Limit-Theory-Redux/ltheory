@@ -167,14 +167,14 @@ function GenTex2D:onInit()
 end
 
 function GenTex2D:onUpdate(dt)
-    if InputInstance:isDown(Button.KeyboardControlLeft) and InputInstance:isPressed(Button.KeyboardW) then self:quit() end
-    if InputInstance:isPressed(Button.KeyboardSpace) then self:onGenerate() end
-    if InputInstance:isDown(Button.MouseLeft) then
-        local dp = InputInstance:mouse():delta()
+    if Input:isDown(Button.KeyboardControlLeft) and Input:isPressed(Button.KeyboardW) then self:quit() end
+    if Input:isPressed(Button.KeyboardSpace) then self:onGenerate() end
+    if Input:isDown(Button.MouseLeft) then
+        local dp = Input:mouse():delta()
         self.panX = self.panX + dp.x / self.zoom
         self.panY = self.panY + dp.y / self.zoom
     end
-    self.zoomT = self.zoomT * exp(0.1 * InputInstance:getValue(Button.MouseScrollY))
+    self.zoomT = self.zoomT * exp(0.1 * Input:getValue(Button.MouseScrollY))
     self.zoom = Math.Lerp(self.zoom, self.zoomT, 1.0 - exp(-16.0 * dt))
 end
 

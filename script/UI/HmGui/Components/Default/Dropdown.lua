@@ -160,7 +160,7 @@ function Dropdown:new(args)
 
         -- show/hide dropdown list if either text area or dropdown button was clicked
         local dropdownClicked = (isMouseOverText or isMouseOverButton) and
-            InputInstance:mouse():isPressed(MouseControl.Left)
+            Input:mouse():isPressed(MouseControl.Left)
         if dropdownClicked then
             if self.state.sound then
                 self.state.sound():play(1.0)
@@ -181,7 +181,7 @@ function Dropdown:new(args)
 
             -- hide drop down list if user clicked outside list itself
             local clickedOutside = not isMouseOverText and not isMouseOverButton and not isMouseOverMainContainer
-                and not Gui:isMouseOver(FocusType.Mouse) and InputInstance:mouse():isPressed(MouseControl.Left)
+                and not Gui:isMouseOver(FocusType.Mouse) and Input:mouse():isPressed(MouseControl.Left)
             if clickedOutside then
                 self.isDroppedDown = false
             end

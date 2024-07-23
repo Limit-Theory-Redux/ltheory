@@ -122,7 +122,7 @@ function Application:onPreRender(data)
         self.timeScale = 1.0
     end
 
-    if InputInstance:isDown(Bindings.TimeAccel) then
+    if Input:isDown(Bindings.TimeAccel) then
         self.timeScale = GameState.debug.timeAccelFactor
     end
 
@@ -265,26 +265,26 @@ function Application:onInput(data)
     Profiler.Begin('App.onInput')
 
     -- Immediately quit game without saving
-    if InputInstance:isKeyboardAltPressed() and InputInstance:isPressed(Button.KeyboardQ) then self:quit() end
-    if InputInstance:isPressed(Bindings.Exit) then self:quit() end
+    if Input:isKeyboardAltPressed() and Input:isPressed(Button.KeyboardQ) then self:quit() end
+    if Input:isPressed(Bindings.Exit) then self:quit() end
 
-    if InputInstance:isPressed(Bindings.ToggleProfiler) then
+    if Input:isPressed(Bindings.ToggleProfiler) then
         self.toggleProfiler = true
     end
 
-    if InputInstance:isPressed(Bindings.Screenshot) then
+    if Input:isPressed(Bindings.Screenshot) then
         self.doScreenshot = true
         if Settings.exists('render.superSample') then
             self.prevSS = Settings.get('render.superSample')
         end
     end
 
-    if InputInstance:isPressed(Bindings.ToggleFullscreen) then
+    if Input:isPressed(Bindings.ToggleFullscreen) then
         GameState.render.fullscreen = not GameState.render.fullscreen
         WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
     end
 
-    if InputInstance:isPressed(Bindings.Reload) then
+    if Input:isPressed(Bindings.Reload) then
         Profiler.Begin('Engine.Reload')
         Cache.Clear()
         SendEvent('Engine.Reload')
@@ -292,34 +292,34 @@ function Application:onInput(data)
         Profiler.End()
     end
 
-    if InputInstance:isPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
+    if Input:isPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
         if GameState.paused then
             GameState.paused = false
             if not GameState.panelActive and not GameState.debug.instantJobs then
-                InputInstance:setCursorVisible(false)
+                Input:setCursorVisible(false)
             end
         else
             GameState.paused = true
-            InputInstance:setCursorVisible(true)
+            Input:setCursorVisible(true)
         end
     end
 
     -- Preserving this in case we need to be able to automatically pause on window exit again
     -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
-    -- if InputInstance:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
+    -- if Input:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
     --     GameState.paused = true
     -- end
 
     if not Gui:hasActiveInput() then
-        if InputInstance:isPressed(Bindings.ToggleWireframe) then
+        if Input:isPressed(Bindings.ToggleWireframe) then
             GameState.debug.physics.drawWireframe = not GameState.debug.physics.drawWireframe
         end
 
-        if InputInstance:isPressed(Bindings.ToggleMetrics) then
+        if Input:isPressed(Bindings.ToggleMetrics) then
             GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
         end
 
-        if MainMenu.inBackgroundMode and InputInstance:isPressed(Bindings.ToggleHUD) then
+        if MainMenu.inBackgroundMode and Input:isPressed(Bindings.ToggleHUD) then
             self.showBackgroundModeHints = not self.showBackgroundModeHints
         end
     end

@@ -18,7 +18,7 @@ function Loader.defineType()
         ffi.cdef [[
             void          EngineImpl_Free       (EngineImpl*);
             Window*       EngineImpl_Window     (EngineImpl*);
-            Input*        EngineImpl_Input      (EngineImpl*);
+            InputImpl*    EngineImpl_Input      (EngineImpl*);
             EventBusImpl* EngineImpl_EventBus   (EngineImpl*);
             HmGui*        EngineImpl_HmGui      (EngineImpl*);
             void          EngineImpl_Abort      ();

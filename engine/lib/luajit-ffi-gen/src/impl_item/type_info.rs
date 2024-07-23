@@ -17,6 +17,7 @@ const RUST_TO_LUA_TYPE_MAP: &[(&str, &str)] = &[
     ("LayoutType", "GuiLayoutType"),
     ("Engine", "EngineImpl"),
     ("EventBus", "EventBusImpl"),
+    ("Input", "InputImpl"),
 ];
 
 // TODO: find out different way to mark types as copyable

@@ -132,7 +132,7 @@ impl Input {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi]
+#[luajit_ffi_gen::luajit_ffi(name = "InputImpl")]
 impl Input {
     pub fn keyboard(&self) -> &KeyboardState {
         &self.keyboard_state

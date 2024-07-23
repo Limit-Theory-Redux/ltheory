@@ -13,7 +13,7 @@ local isInvisibleColor = Color(.4, 1, .4, 1)
 local checkBoxActive = false
 
 function Main:onInput()
-    if InputInstance:isPressed(Button.KeyboardF) then
+    if Input:isPressed(Button.KeyboardF) then
         isVisible = not isVisible
     end
 end

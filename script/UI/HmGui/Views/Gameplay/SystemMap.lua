@@ -11,9 +11,9 @@ local Bindings = require('States.ApplicationBindings')
 local systemMap = nil
 
 function SystemMap:onInput()
-    if InputInstance:isPressed(Bindings.SystemMap) then
+    if Input:isPressed(Bindings.SystemMap) then
         UIRouter:getCurrentPage():setView("In_Game")
-    elseif InputInstance:isPressed(Bindings.AutoNav) then
+    elseif Input:isPressed(Bindings.AutoNav) then
         if GameState.player.currentShip then
             if not GameState.player.autonavActive then
                 local target = GameState.player.currentShip:getTarget()
@@ -41,7 +41,7 @@ function SystemMap:onViewOpen(isPageOpen)
     systemMap = Systems.CommandView.SystemMap(GameState.world.currentSystem)
     GameState.render.uiCanvas:remove(GameState.render.gameView)
     GameState.render.uiCanvas:add(systemMap)
-    InputInstance:setCursorVisible(true)
+    Input:setCursorVisible(true)
     Log.Debug("Draw System View")
 end
 
@@ -49,7 +49,7 @@ function SystemMap:onViewClose(isPageClose)
     GameState.render.uiCanvas:remove(systemMap)
     GameState.render.uiCanvas:add(GameState.render.gameView)
     systemMap = nil -- reset
-    InputInstance:setCursorVisible(false)
+    Input:setCursorVisible(false)
     Log.Debug("Draw Game View")
 end
 

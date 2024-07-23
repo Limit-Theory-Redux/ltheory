@@ -18,7 +18,7 @@ function Loader.defineType()
         ffi.cdef [[
             void  HmGui_Free                           (HmGui*);
             void  HmGui_BeginGui                       (HmGui*, float sx, float sy);
-            void  HmGui_EndGui                         (HmGui*, Input const* input);
+            void  HmGui_EndGui                         (HmGui*, InputImpl const* input);
             void  HmGui_Draw                           (HmGui*);
             void  HmGui_BeginLayer                     (HmGui*);
             void  HmGui_BeginLayerAtPos                (HmGui*, Vec2f pos);

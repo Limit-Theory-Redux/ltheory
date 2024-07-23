@@ -117,7 +117,7 @@ function BattleTest:onUpdate(dt)
     self.canvas:update(dt)
     SoundManager:update(dt)
     Gui:beginGui(self.resX, self.resY)
-    Gui:endGui(InputInstance)
+    Gui:endGui(Input)
 end
 
 function BattleTest:onDraw()

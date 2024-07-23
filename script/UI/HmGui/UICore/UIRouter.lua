@@ -40,7 +40,7 @@ function UIRouter:update(dt)
         self.currentPage:update(dt) --! should get delta time from the event, but event bus does not support payloads currently
     end
     Profiler.End()
-    Gui:endGui(InputInstance)
+    Gui:endGui(Input)
 end
 
 -- sets current page

@@ -27,7 +27,7 @@ function DockControl:onInput(state)
         Log.Debug("*** Undocking (manual)!")
         self.player:getControlling():pushAction(Actions.Undock())
         self.gameView:setCameraMode(GameState.player.lastCamera)
-        InputInstance:setCursorVisible(false)
+        Input:setCursorVisible(false)
     end
 
     self.camera:push()

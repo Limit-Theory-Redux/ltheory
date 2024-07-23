@@ -143,7 +143,7 @@ function ListSelector:new(args)
             end
 
             -- save selection if it was clicked
-            local elementClicked = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
+            local elementClicked = isMouseOver and Input:mouse():isPressed(MouseControl.Left)
             if elementClicked then
                 self.selectionChanged = self.state.selectedIndex ~= i
                 self.state.selectedIndex = i

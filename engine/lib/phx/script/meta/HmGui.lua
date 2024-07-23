@@ -9,7 +9,7 @@ HmGui = {}
 function HmGui:beginGui(sx, sy) end
 
 -- Finish GUI declaration, calculate hierarchy widgets sizes and layout.
----@param input Input
+---@param input InputImpl
 function HmGui:endGui(input) end
 
 -- Pass information about widgets to the renderer and draw them.

@@ -1641,30 +1641,30 @@ function HUD:onInput(state)
         -- camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
         -- HUD control: Select a weapon group
-        if InputInstance:isPressed(Button.KeyboardKey1) and GameState.player.weaponGroup ~= 1 then
+        if Input:isPressed(Button.KeyboardKey1) and GameState.player.weaponGroup ~= 1 then
             GameState.player.weaponGroup = 1
-        elseif InputInstance:isPressed(Button.KeyboardKey2) and GameState.player.weaponGroup ~= 2 then
+        elseif Input:isPressed(Button.KeyboardKey2) and GameState.player.weaponGroup ~= 2 then
             GameState.player.weaponGroup = 2
-        elseif InputInstance:isPressed(Button.KeyboardKey3) and GameState.player.weaponGroup ~= 3 then
+        elseif Input:isPressed(Button.KeyboardKey3) and GameState.player.weaponGroup ~= 3 then
             GameState.player.weaponGroup = 3
-        elseif InputInstance:isPressed(Button.KeyboardKey4) and GameState.player.weaponGroup ~= 4 then
+        elseif Input:isPressed(Button.KeyboardKey4) and GameState.player.weaponGroup ~= 4 then
             GameState.player.weaponGroup = 4
-        elseif InputInstance:isPressed(Button.KeyboardKey5) and GameState.player.weaponGroup ~= 5 then
+        elseif Input:isPressed(Button.KeyboardKey5) and GameState.player.weaponGroup ~= 5 then
             GameState.player.weaponGroup = 5
-        elseif InputInstance:isPressed(Button.KeyboardKey6) and GameState.player.weaponGroup ~= 6 then
+        elseif Input:isPressed(Button.KeyboardKey6) and GameState.player.weaponGroup ~= 6 then
             GameState.player.weaponGroup = 6
-        elseif InputInstance:isPressed(Button.KeyboardKey7) and GameState.player.weaponGroup ~= 7 then
+        elseif Input:isPressed(Button.KeyboardKey7) and GameState.player.weaponGroup ~= 7 then
             GameState.player.weaponGroup = 7
-        elseif InputInstance:isPressed(Button.KeyboardKey8) and GameState.player.weaponGroup ~= 8 then
+        elseif Input:isPressed(Button.KeyboardKey8) and GameState.player.weaponGroup ~= 8 then
             GameState.player.weaponGroup = 8
         end
 
         -- HUD control: Select a tactical map range (close, normal, distant)
-        if InputInstance:isPressed(Button.KeyboardNumpad1) then
+        if Input:isPressed(Button.KeyboardNumpad1) then
             GameState.ui.tacMapRange = 1
-        elseif InputInstance:isPressed(Button.KeyboardNumpad2) then
+        elseif Input:isPressed(Button.KeyboardNumpad2) then
             GameState.ui.tacMapRange = 2
-        elseif InputInstance:isPressed(Button.KeyboardNumpad3) then
+        elseif Input:isPressed(Button.KeyboardNumpad3) then
             GameState.ui.tacMapRange = 3
         end
 
@@ -1694,14 +1694,14 @@ end
 
 function HUD:onUpdate(state)
     if not GameState.paused then
-        if InputInstance:isPressed(Bindings.ToggleHUD) then
+        if Input:isPressed(Bindings.ToggleHUD) then
             GameState.ui.hudStyle = GameState.ui.hudStyle + 1
             if GameState.ui.hudStyle > Enums.HudStyles.Tight then
                 GameState.ui.hudStyle = Enums.HudStyles.None
             end
         end
 
-        if InputInstance:isPressed(Bindings.ToggleSensors) then
+        if Input:isPressed(Bindings.ToggleSensors) then
             GameState.ui.sensorsDisplayed = not GameState.ui.sensorsDisplayed
         end
 
@@ -1848,7 +1848,7 @@ function HUD:onEnable()
     -- Set the mouse position when the Flight mode HUD is activated to the center of the game window
     GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.Confined)
     local size = GameState.render.gameWindow:size()
-    InputInstance:setCursorPosition(size.x / 2, size.y / 2)
+    Input:setCursorPosition(size.x / 2, size.y / 2)
     GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.None)
 end
 

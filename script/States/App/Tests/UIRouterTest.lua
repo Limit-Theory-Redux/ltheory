@@ -57,7 +57,7 @@ function Test:onUpdate(dt)
 
     Gui:beginGui(self.resX, self.resY)
     UIRouter:update(dt)
-    Gui:endGui(InputInstance)
+    Gui:endGui(Input)
 end
 
 function Test:onDraw()
@@ -144,7 +144,7 @@ function Test:createStarSystem()
             :add(self.gameView
                 :add(Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
 
-        InputInstance:setCursorVisible(true)
+        Input:setCursorVisible(true)
     else
         -- Insert the game view into the application canvas to make it visible
         self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)

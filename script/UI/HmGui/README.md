@@ -65,7 +65,7 @@ end
 function AppState:onUpdate(dt)
     Gui:beginGui(self.resX, self.resY)
     UIRouter:update(dt)
-    Gui:endGui(InputInstance)
+    Gui:endGui(Input)
 end
 ```
 

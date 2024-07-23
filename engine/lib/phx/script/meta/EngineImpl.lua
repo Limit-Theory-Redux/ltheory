@@ -6,7 +6,7 @@ EngineImpl = {}
 ---@return Window
 function EngineImpl:window() end
 
----@return Input
+---@return InputImpl
 function EngineImpl:input() end
 
 ---@return EventBusImpl

@@ -12,7 +12,7 @@ function ShipCreation:onInput()
     ---@type Universe
     local Universe = require("Systems.Universe.Universe")
 
-    if InputInstance:isPressed(Button.KeyboardB) then
+    if Input:isPressed(Button.KeyboardB) then
         if GameState.player.currentShip then
             GameState.player.currentShip:delete() --todo: this needs a fix, ships stay around
         end
@@ -28,7 +28,7 @@ function ShipCreation:onInput()
         }
 
         GameState.player.currentShip = Universe:createShip(GameState.world.currentSystem, nil, shipObject)
-    elseif InputInstance:isPressed(Button.KeyboardF) then
+    elseif Input:isPressed(Button.KeyboardF) then
         -- Insert the game view into the application canvas to make it visible
         GameState.render.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)
 
@@ -80,7 +80,7 @@ function ShipCreation:onViewOpen(isPageOpen)
         :add(GameState.render.gameView
             :add(Systems.Controls.Controls.GenTestControl(GameState.render.gameView, GameState.player.humanPlayer)))
 
-    InputInstance:setCursorVisible(true)
+    Input:setCursorVisible(true)
 end
 
 function ShipCreation:onViewClose(isPageClose) end

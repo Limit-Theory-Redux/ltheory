@@ -119,7 +119,7 @@ function Control.GamepadAxis:getIconPath()
 end
 
 function Control.GamepadAxis:getRaw()
-    return InputInstance:getValue(self.axis)
+    return Input:getValue(self.axis)
 end
 
 Control.GamepadButton = subclass(ControlT, function(self, button)
@@ -132,7 +132,7 @@ function Control.GamepadButton:getIconPath()
 end
 
 function Control.GamepadButton:getRaw()
-    return InputInstance:getValue(self.button)
+    return Input:getValue(self.button)
 end
 
 Control.GamepadButtonPressed = subclass(ControlT, function(self, button)
@@ -145,7 +145,7 @@ function Control.GamepadButtonPressed:getIconPath()
 end
 
 function Control.GamepadButtonPressed:getRaw()
-    return InputInstance:isPressed(self.button) and 1.0 or 0.0
+    return Input:isPressed(self.button) and 1.0 or 0.0
 end
 
 Control.GamepadButtonReleased = subclass(ControlT, function(self, button)
@@ -158,7 +158,7 @@ function Control.GamepadButtonReleased:getIconPath()
 end
 
 function Control.GamepadButtonReleased:getRaw()
-    return InputInstance:isReleased(self.button) and 1.0 or 0.0
+    return Input:isReleased(self.button) and 1.0 or 0.0
 end
 
 Control.Key = subclass(ControlT, function(self, key)
@@ -167,7 +167,7 @@ Control.Key = subclass(ControlT, function(self, key)
 end)
 
 function Control.Key:getRaw()
-    return InputInstance:getValue(self.key)
+    return Input:getValue(self.key)
 end
 
 Control.Alt    = function() return Control.Or(Control.Key(Button.KeyboardAltLeft), Control.Key(Button.KeyboardAltRight)) end
@@ -181,13 +181,13 @@ Control.MouseY = subclass(ControlT, function(self) end)
 
 function Control.MouseX:getRaw()
     local c = Camera.get()
-    local m = InputInstance:mouse():position().x
+    local m = Input:mouse():position().x
     return Math.Clamp(2.0 * (m - c.x) / c.sx - 1.0, -1.0, 1.0)
 end
 
 function Control.MouseY:getRaw()
     local c = Camera.get()
-    local m = InputInstance:mouse():position().y
+    local m = Input:mouse():position().y
     return Math.Clamp(2.0 * (m - c.y) / c.sy - 1.0, -1.0, 1.0)
 end
 
@@ -199,12 +199,12 @@ Control.MouseDX = subclass(ControlT, function(self) end)
 Control.MouseDY = subclass(ControlT, function(self) end)
 
 function Control.MouseDX:getRaw()
-    local md = InputInstance:mouse():delta()
+    local md = Input:mouse():delta()
     return md.x
 end
 
 function Control.MouseDY:getRaw()
-    local md = InputInstance:mouse():delta()
+    local md = Input:mouse():delta()
     return md.y
 end
 
@@ -213,7 +213,7 @@ Control.MouseButton = subclass(ControlT, function(self, button)
 end)
 
 function Control.MouseButton:getRaw()
-    return InputInstance:getValue(self.button)
+    return Input:getValue(self.button)
 end
 
 Control.MouseWheel = subclass(ControlT, function(self) end)
@@ -224,7 +224,7 @@ NOTE:   In reality, this is a delta.
 NOTE:   Yes, this has already caused problems in the form of dt-dependence
 --]]
 function Control.MouseWheel:getRaw()
-    return InputInstance:getValue(Button.MouseScrollY)
+    return Input:getValue(Button.MouseScrollY)
 end
 
 Control.Null = subclass(ControlT, function(self) end)

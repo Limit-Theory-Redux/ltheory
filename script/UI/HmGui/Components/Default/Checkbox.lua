@@ -103,7 +103,7 @@ function Checkbox:new(args)
             Gui:setBackgroundColor(self.state.color().background)
         end
 
-        local triggered = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
+        local triggered = isMouseOver and Input:mouse():isPressed(MouseControl.Left)
         if triggered then
             self.state.checked = not self.state.checked
         end

@@ -11,28 +11,28 @@ local Bindings = require('States.ApplicationBindings')
 local Actions = requireAll('GameObjects.Actions')
 
 function InGame:onInput()
-    if InputInstance:isPressed(Bindings.Escape) and GameState.player.currentShip and not GameState.player.currentShip:isDestroyed() then
+    if Input:isPressed(Bindings.Escape) and GameState.player.currentShip and not GameState.player.currentShip:isDestroyed() then
         UIRouter:getCurrentPage():setView("Paused")
-    elseif InputInstance:isPressed(Bindings.SystemMap) then
+    elseif Input:isPressed(Bindings.SystemMap) then
         UIRouter:getCurrentPage():setView("System_Map")
-    elseif InputInstance:isPressed(Bindings.ToggleLights) then
+    elseif Input:isPressed(Bindings.ToggleLights) then
         -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
         -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
         GameState.render.thrusterLights = not GameState.render.thrusterLights
         GameState.render.pulseLights    = not GameState.render.pulseLights
-    elseif InputInstance:isPressed(Bindings.CameraFirstPerson) then
+    elseif Input:isPressed(Bindings.CameraFirstPerson) then
         if GameState.player.currentCamera ~= Enums.CameraMode.FirstPerson then
             GameState.render.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
         end
-    elseif InputInstance:isPressed(Bindings.CameraChase) then
+    elseif Input:isPressed(Bindings.CameraChase) then
         if GameState.player.currentCamera ~= Enums.CameraMode.Chase then
             GameState.render.gameView:setCameraMode(Enums.CameraMode.Chase)
         end
-    elseif InputInstance:isPressed(Bindings.CameraOrbit) then
+    elseif Input:isPressed(Bindings.CameraOrbit) then
         -- if GameState.player.currentCamera ~= Enums.CameraMode.Orbit then
         --     self.gameView:setCameraMode(Enums.CameraMode.Orbit)
         -- end
-    elseif InputInstance:isPressed(Bindings.AutoNav) then
+    elseif Input:isPressed(Bindings.AutoNav) then
         if GameState.player.currentShip then
             if not GameState.player.autonavActive then
                 local target = GameState.player.currentShip:getTarget()

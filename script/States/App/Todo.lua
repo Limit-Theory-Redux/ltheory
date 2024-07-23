@@ -57,7 +57,7 @@ function Test:showTodo()
     Gui:beginWindow("HmGui Todo List")
     Gui:beginScroll(512)
     todo:show()
-    Gui:endScroll(InputInstance)
+    Gui:endScroll(Input)
     Gui:endWindow()
     Gui:setAlign(0.5, 0.5)
 end
@@ -66,7 +66,7 @@ function Test:onUpdate(dt)
     Gui:beginGui(self.resX, self.resY)
     Gui:image(self.bg)
     self:showTodo()
-    Gui:endGui(InputInstance)
+    Gui:endGui(Input)
 end
 
 function Test:onDraw()

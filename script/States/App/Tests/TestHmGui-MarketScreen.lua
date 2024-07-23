@@ -392,7 +392,7 @@ function Test:showMenuDropInner()
         Gui:textEx(Cache.Font('Exo2', 14), 'Textiles', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Unit Prefabs', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Utility', 1.0, 1.0, 1.0, 1.0)
-        Gui:endScroll(InputInstance)
+        Gui:endScroll(Input)
         Gui:endContainer()
         Gui:endContainer()
         Gui:endContainer() -- end Commodity Window Panel
@@ -553,7 +553,7 @@ function Test:showMenuDropInner()
         Gui:endContainer()
         Gui:setStretch(1.0, 0.0)
         Gui:setAlign(0.0, 0.0)
-        Gui:endScroll(InputInstance)
+        Gui:endScroll(Input)
         Gui:endContainer()
         -- Gui:setStretch(0.95, 0.95)
         -- Gui:setAlign(1.0, 0.05)
@@ -683,7 +683,7 @@ function Test:showMenuDropInner()
         Gui:textEx(Cache.Font('Exo2', 14), 'Textiles', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Unit Prefabs', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Utility', 1.0, 1.0, 1.0, 1.0)
-        Gui:endScroll(InputInstance)
+        Gui:endScroll(Input)
         Gui:endContainer()
         Gui:endContainer()
         Gui:endContainer() -- end Commodity Window Panel
@@ -808,7 +808,7 @@ function Test:showMenuDropInner()
         Gui:textEx(Cache.Font('Exo2', 14), 'Textiles', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Unit Prefabs', 1.0, 1.0, 1.0, 1.0)
         Gui:textEx(Cache.Font('Exo2', 14), 'Utility', 1.0, 1.0, 1.0, 1.0)
-        Gui:endScroll(InputInstance)
+        Gui:endScroll(Input)
         Gui:endContainer()
         Gui:endContainer()
         Gui:endContainer() -- end Commodity Window Panel
@@ -822,17 +822,17 @@ function Test:showMenuDropInner()
         Gui:beginScroll(200)
         Gui:checkbox("Thing1", true)
         Gui:checkbox("Thing2", false)
-        Gui:endScroll(InputInstance)        -- end Data/Intel Screen
+        Gui:endScroll(Input)        -- end Data/Intel Screen
     elseif station_options_market == 3 then -- Exchange Orders Screen
         Gui:beginScroll(200)
         Gui:button("Parnellite")
         Gui:button("Glorboscite")
         Gui:button("Lonsdaleite")
         Gui:button("Ketracel White")
-        Gui:endScroll(InputInstance)        -- end Exchange Orders Screen
+        Gui:endScroll(Input)        -- end Exchange Orders Screen
     elseif station_options_market == 4 then -- Blank Screen
         Gui:beginScroll(200)
-        Gui:endScroll(InputInstance)        -- end Blank Screen
+        Gui:endScroll(Input)        -- end Blank Screen
     end
     Gui:endContainer()
     Gui:setStretch(1.0, 1.0)
@@ -876,7 +876,7 @@ end
 
 function Test:onUpdate(dt)
     Profiler.Begin('Gui:update')
-    if InputInstance:isPressed(Button.KeyboardEscape) then
+    if Input:isPressed(Button.KeyboardEscape) then
         drawExitMenu = not drawExitMenu
     end
     Gui:beginGui(self.resX, self.resY)
@@ -888,7 +888,7 @@ function Test:onUpdate(dt)
         -- self:showMetrics()
         self:showMenuDrop()
     end
-    Gui:endGui(InputInstance)
+    Gui:endGui(Input)
     Profiler.End()
 end
 

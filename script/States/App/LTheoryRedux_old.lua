@@ -111,22 +111,22 @@ function LimitTheoryRedux:onInput()
     self.canvas:input()
 
     if GameState:GetCurrentState() == Enums.GameStates.InGame and GameState.player.currentControl == Enums.ControlModes.Ship then
-        if InputInstance:isPressed(Bindings.CameraFirstPerson) then
+        if Input:isPressed(Bindings.CameraFirstPerson) then
             if GameState.player.currentCamera ~= Enums.CameraMode.FirstPerson then
                 self.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
             end
-        elseif InputInstance:isPressed(Bindings.CameraChase) then
+        elseif Input:isPressed(Bindings.CameraChase) then
             if GameState.player.currentCamera ~= Enums.CameraMode.Chase then
                 self.gameView:setCameraMode(Enums.CameraMode.Chase)
             end
-        elseif InputInstance:isPressed(Bindings.CameraOrbit) then
+        elseif Input:isPressed(Bindings.CameraOrbit) then
             -- if GameState.player.currentCamera ~= Enums.CameraMode.Orbit then
             --     self.gameView:setCameraMode(Enums.CameraMode.Orbit)
             -- end
         end
     elseif GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         --! i see all of this as a temporary feature addition - this should all be handled by a proper system later. ~ Jack
-        if InputInstance:isPressed(Button.KeyboardB) then
+        if Input:isPressed(Button.KeyboardB) then
             if GameState.player.currentShip then
                 GameState.player.currentShip:delete()
             end
@@ -144,7 +144,7 @@ function LimitTheoryRedux:onInput()
             GameState.player.currentShip = Universe:CreateShip(GameState.world.currentSystem, nil, shipObject)
         end
 
-        if InputInstance:isPressed(Button.KeyboardF) then
+        if Input:isPressed(Button.KeyboardF) then
             -- Insert the game view into the application canvas to make it visible
             self.gameView = Systems.Overlay.GameView(self.player, self.audio)
             GameState.render.gameView = self.gameView
@@ -168,7 +168,7 @@ function LimitTheoryRedux:onDraw()
             self.canvas:remove(self.gameView)
             self.canvas:add(smap)
             bSMapAdded = true
-            InputInstance:setCursorVisible(true)
+            Input:setCursorVisible(true)
             Log.Debug("Draw System View")
         end
     else
@@ -177,7 +177,7 @@ function LimitTheoryRedux:onDraw()
             self.canvas:add(self.gameView)
             bSMapAdded = false
             smap = nil
-            InputInstance:setCursorVisible(false)
+            Input:setCursorVisible(false)
             Log.Debug("Draw Game View")
         end
     end
@@ -218,9 +218,9 @@ function LimitTheoryRedux:onUpdate(dt)
     end
 
     -- Manage game control screens
-    if MainMenu.currentMode ~= Enums.MenuMode.Splashscreen and InputInstance:isPressed(Bindings.Escape) then
+    if MainMenu.currentMode ~= Enums.MenuMode.Splashscreen and Input:isPressed(Bindings.Escape) then
         MainMenu:SetBackgroundMode(false)
-        InputInstance:setCursorVisible(true)
+        Input:setCursorVisible(true)
         if GameState:GetCurrentState() == Enums.GameStates.MainMenu then
             MainMenu:SetMenuMode(Enums.MenuMode.MainMenu) -- show Main Menu
         else
@@ -231,7 +231,7 @@ function LimitTheoryRedux:onUpdate(dt)
                 MainMenu:SetMenuMode(Enums.MenuMode.Dialog) -- show Flight Mode dialog
             elseif MainMenu.currentMode == Enums.MenuMode.Dialog and not MainMenu.seedDialogDisplayed then
                 MainMenu.dialogDisplayed = not MainMenu.dialogDisplayed
-                InputInstance:setCursorVisible(MainMenu.dialogDisplayed)
+                Input:setCursorVisible(MainMenu.dialogDisplayed)
 
                 if MainMenu.dialogDisplayed then
                     GameState:Pause()
@@ -244,7 +244,7 @@ function LimitTheoryRedux:onUpdate(dt)
     end
 
     -- If player pressed the "System Map" key in Flight Mode, toggle the system map's visibility
-    if InputInstance:isPressed(Bindings.SystemMap) and MainMenu.currentMode == Enums.MenuMode.Dialog then
+    if Input:isPressed(Bindings.SystemMap) and MainMenu.currentMode == Enums.MenuMode.Dialog then
         bShowSystemMap = not bShowSystemMap
         if smap == nil then
             smap = Systems.CommandView.SystemMap(GameState.world.currentSystem)
@@ -252,7 +252,7 @@ function LimitTheoryRedux:onUpdate(dt)
     end
 
     -- If in flight mode, engage autopilot
-    if InputInstance:isPressed(Bindings.AutoNav) and MainMenu.currentMode == Enums.MenuMode.Dialog then
+    if Input:isPressed(Bindings.AutoNav) and MainMenu.currentMode == Enums.MenuMode.Dialog then
         if playerShip ~= nil then
             local target = playerShip:getTarget()
             if target == nil then target = self.focus end
@@ -270,14 +270,14 @@ function LimitTheoryRedux:onUpdate(dt)
 
     -- Disengage autopilot (require a 1-second delay, otherwise keypress turns autopilot on then off instantly)
     if GameState.player.playerMoving then
-        if InputInstance:isPressed(Bindings.AutoNav) and Config.getCurrentTimestamp() - GameState.player.autonavTimestamp > 1 then
+        if Input:isPressed(Bindings.AutoNav) and Config.getCurrentTimestamp() - GameState.player.autonavTimestamp > 1 then
             GameState.player.playerMoving = false
         end
     end
 
     -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
     -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
-    if InputInstance:isPressed(Bindings.ToggleLights) and MainMenu.currentMode == Enums.MenuMode.Dialog then
+    if Input:isPressed(Bindings.ToggleLights) and MainMenu.currentMode == Enums.MenuMode.Dialog then
         GameState.render.thrusterLights = not GameState.render.thrusterLights
         GameState.render.pulseLights    = not GameState.render.pulseLights
     end
@@ -311,10 +311,10 @@ function LimitTheoryRedux:onUpdate(dt)
     if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         LimitTheoryRedux:showShipCreationHint()
     end
-    Gui:endGui(InputInstance)
+    Gui:endGui(Input)
 
     -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
-    if InputInstance:isPressed(Bindings.NewBackground) and MainMenu.currentMode == Enums.MenuMode.MainMenu then
+    if Input:isPressed(Bindings.NewBackground) and MainMenu.currentMode == Enums.MenuMode.MainMenu then
         LimitTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu)
     end
 
@@ -323,7 +323,7 @@ function LimitTheoryRedux:onUpdate(dt)
     -- preserving it temporarily in case we want it back for some reason
     -- NOTE 2: This is currently the only place that calls LimitTheoryRedux:toggleSound(), so it might also be
     -- a candidate for deletion if we do decide to yank the key-based audio toggle
-    -- if InputInstance:isPressed(Bindings.ToggleSound) then
+    -- if Input:isPressed(Bindings.ToggleSound) then
     -- LimitTheoryRedux:toggleSound()
     -- end
 end
@@ -415,7 +415,7 @@ function LimitTheoryRedux:createStarSystem()
             :add(self.gameView
                 :add(Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
 
-        InputInstance:setCursorVisible(true)
+        Input:setCursorVisible(true)
     else
         -- Insert the game view into the application canvas to make it visible
         self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)

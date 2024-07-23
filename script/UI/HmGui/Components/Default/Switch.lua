@@ -142,7 +142,7 @@ function Switch:new(args)
 
         Gui:endContainer()
 
-        local switchClicked = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
+        local switchClicked = isMouseOver and Input:mouse():isPressed(MouseControl.Left)
         if switchClicked then
             local valueState = self.state.currentValue()
             self.state.currentValue = function() return not valueState end

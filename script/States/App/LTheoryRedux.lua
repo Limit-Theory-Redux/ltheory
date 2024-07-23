@@ -60,7 +60,7 @@ function LimitTheoryRedux:initMainMenu(isAppInit)
         UIRouter:addPage(UIPageLoadingScreen)
         UIRouter:addPage(UIPageGameplay)
     end
-    InputInstance:setCursorVisible(true)
+    Input:setCursorVisible(true)
     UIRouter:setCurrentPage("Main_Menu")
 end
 
