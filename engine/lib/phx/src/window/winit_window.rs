@@ -222,8 +222,6 @@ impl WinitWindow {
                 .expect("failed to create context")
         };
 
-        winit_window.set_visible(true);
-
         // Do not set the grab mode on window creation if it's none, this can fail on mobile
         if window.cursor.grab_mode != CursorGrabMode::None {
             attempt_grab(&winit_window, window.cursor.grab_mode);
