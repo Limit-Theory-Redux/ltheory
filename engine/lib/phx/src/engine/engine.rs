@@ -19,6 +19,9 @@ use crate::window::*;
 
 use super::{EventBus, MainLoop};
 
+#[cfg(windows)]
+use winit::platform::windows::EventLoopBuilderExtWindows;
+
 pub struct Engine {
     pub init_time: TimeStamp,
     pub window: Window,
@@ -359,7 +362,12 @@ impl Engine {
             }
         }
 
-        let event_loop = EventLoop::new().expect("Failed to build event loop");
+        let event_loop = if cfg!(windows) {
+            EventLoop::builder().with_any_thread(true).build()
+        } else {
+            EventLoop::builder().build()
+        }
+        .expect("Failed to build event loop");
         let mut app_state = MainLoop {
             engine: None,
             app_name,
