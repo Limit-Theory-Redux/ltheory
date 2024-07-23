@@ -222,10 +222,12 @@ function Application:onRender(data)
 
     do -- Metrics display
         if GameState.debug.metricsEnabled then
+            local dt = data:getDeltaTime()
+
             local s = string.format(
                 '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',
-                1000.0 * self.dt,
-                1.0 / self.dt,
+                1000.0 * dt,
+                1.0 / dt,
                 GC.GetMemory() / 1000.0,
                 Metric.Get(Metric.TrisDrawn) / 1000,
                 Metric.Get(Metric.DrawCalls),
