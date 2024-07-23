@@ -221,7 +221,7 @@ local function settingsGraphics()
                                 currentValue = function() return GameState.render.fullscreen end, -- send value back to component
                                 callback = function(v)
                                     GameState.render.fullscreen = v;
-                                    WindowInstance:setFullscreen(GameState.render.fullscreen,
+                                    Window:setFullscreen(GameState.render.fullscreen,
                                         GameState.render.fullscreenExclusive);
                                 end -- get value change from component
                             },
@@ -234,7 +234,7 @@ local function settingsGraphics()
                                 currentValue = function() return GameState.render.fullscreenExclusive end, -- send value back to component
                                 callback = function(v)
                                     GameState.render.fullscreenExclusive = v;
-                                    WindowInstance:setFullscreen(GameState.render.fullscreen,
+                                    Window:setFullscreen(GameState.render.fullscreen,
                                         GameState.render.fullscreenExclusive);
                                 end -- get value change from component
                             },

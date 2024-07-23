@@ -53,16 +53,16 @@ function Application:appInit()
     self.eventsRegistered = false
     self.resX, self.resY = self:getDefaultSize()
 
-    WindowInstance:setTitle(self:getTitle())
-    WindowInstance:setCenteredPosition()
-    WindowInstance:setSize(self.resX, self.resY)
+    Window:setTitle(self:getTitle())
+    Window:setCenteredPosition()
+    Window:setSize(self.resX, self.resY)
 
     self.audio = Audio.Create()
     GameState.audio.manager = self.audio
 
-    GameState.render.gameWindow = WindowInstance
+    GameState.render.gameWindow = Window
 
-    WindowInstance:setPresentMode(GameState.render.presentMode)
+    Window:setPresentMode(GameState.render.presentMode)
 
     if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
@@ -78,9 +78,9 @@ function Application:appInit()
     if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
     if Config.jit.verbose then Jit.StartVerbose() end
 
-    WindowInstance:cursor():setGrabMode(CursorGrabMode.Confined)
-    WindowInstance:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
-    WindowInstance:cursor():setGrabMode(CursorGrabMode.None)
+    Window:cursor():setGrabMode(CursorGrabMode.Confined)
+    Window:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
+    Window:cursor():setGrabMode(CursorGrabMode.None)
 
     self.profiling = false
     self.toggleProfiler = false
@@ -141,8 +141,8 @@ function Application:onPreRender(data)
     do
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onResize')
-        local size = WindowInstance:size()
-        WindowInstance:cursor():setGrabMode(CursorGrabMode.None)
+        local size = Window:size()
+        Window:cursor():setGrabMode(CursorGrabMode.None)
         if size.x ~= self.resX or size.y ~= self.resY then
             self.resX = size.x
             self.resY = size.y
@@ -159,7 +159,7 @@ function Application:onRender(data)
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onRender')
 
-    WindowInstance:beginDraw()
+    Window:beginDraw()
 
     --* should they subscribe to onRender themselves?
     if GameState.render.uiCanvas ~= nil then
@@ -253,7 +253,7 @@ function Application:onPostRender(data)
     do -- End Draw
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onPostRender')
-        WindowInstance:endDraw()
+        Window:endDraw()
         Profiler.End()
     end
 end
@@ -281,7 +281,7 @@ function Application:onInput(data)
 
     if Input:isPressed(Bindings.ToggleFullscreen) then
         GameState.render.fullscreen = not GameState.render.fullscreen
-        WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
+        Window:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
     end
 
     if Input:isPressed(Bindings.Reload) then
@@ -343,7 +343,7 @@ function Application:doExit()
 
     do -- Exit
         self:onExit()
-        -- WindowInstance:free()
+        -- Window:free()
     end
 end
 

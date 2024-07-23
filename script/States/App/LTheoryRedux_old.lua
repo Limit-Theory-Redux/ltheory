@@ -46,13 +46,13 @@ function LimitTheoryRedux:onInit()
     MainMenu:Open()
 
     --* Game initializations *--
-    WindowInstance:setSize(GameState.render.resX, GameState.render.resY)
-    WindowInstance:setCenteredPosition()
+    Window:setSize(GameState.render.resX, GameState.render.resY)
+    Window:setCenteredPosition()
     LimitTheoryRedux:SetFullscreen(GameState.render.fullscreen)
 
     -- Set the default game control cursor
-    -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
-    WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+    -- TODO: Window:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
+    Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
 
     self.player = Entities.Player(GameState.player.humanPlayerName)
     GameState.player.humanPlayer = self.player
@@ -70,10 +70,10 @@ end
 
 function LimitTheoryRedux:setCursor(cursorStyle, cursorX, cursorY)
     -- Set the game control cursor
-    -- TODO: WindowInstance:cursor().setIcon(cursorStyle)
+    -- TODO: Window:cursor().setIcon(cursorStyle)
 
     if cursorX and cursorY then
-        WindowInstance:setCursorPosition(Vec2f(cursorX, cursorY))
+        Window:setCursorPosition(Vec2f(cursorX, cursorY))
     end
 end
 
@@ -99,12 +99,12 @@ end
 
 function LimitTheoryRedux:ToggleFullscreen()
     GameState.render.fullscreen = not GameState.render.fullscreen
-    WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
+    Window:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
 end
 
 function LimitTheoryRedux:SetFullscreen(fullscreen)
     GameState.render.fullscreen = fullscreen
-    WindowInstance:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
+    Window:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
 end
 
 function LimitTheoryRedux:onInput()

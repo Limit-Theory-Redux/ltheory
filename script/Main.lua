@@ -9,8 +9,8 @@ Engine = {}
 EventBus = {}
 ---@type InputImpl
 Input = {}
----@type Window
-WindowInstance = {}
+---@type WindowImpl
+Window = {}
 ---@type HmGui
 Gui = {}
 
@@ -25,7 +25,7 @@ function SetEngine(engine)
 
     EventBus = Engine:eventBus()
     Input = Engine:input()
-    WindowInstance = Engine:window()
+    Window = Engine:window()
     Gui = Engine:hmGui()
 end
 

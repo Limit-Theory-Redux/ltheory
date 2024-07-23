@@ -3,7 +3,7 @@
 ---@class EngineImpl
 EngineImpl = {}
 
----@return Window
+---@return WindowImpl
 function EngineImpl:window() end
 
 ---@return InputImpl

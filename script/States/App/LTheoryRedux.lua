@@ -21,13 +21,13 @@ function LimitTheoryRedux:onInit()
     InitFiles:readUserInits()
 
     --* Game initializations *--
-    WindowInstance:setSize(GameState.render.resX, GameState.render.resY)
-    WindowInstance:setCenteredPosition()
+    Window:setSize(GameState.render.resX, GameState.render.resY)
+    Window:setCenteredPosition()
     --self:setFullscreen(GameState.render.fullscreen)
 
     -- Set the default game control cursor
-    -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
-    WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+    -- TODO: Window:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
+    Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
 
     SoundManager:init()
     MusicPlayer:loadMusic()
