@@ -16,8 +16,9 @@ use crate::rf::*;
 use crate::system::*;
 use crate::ui::hmgui::HmGui;
 use crate::window::*;
+use crate::event_bus::*;
 
-use super::{EventBus, MainLoop};
+use super::MainLoop;
 
 pub struct Engine {
     pub init_time: TimeStamp,
