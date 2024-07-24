@@ -13,8 +13,6 @@ use crate::system::*;
 
 const INCLUDE_PATH: &str = "include/";
 
-static mut CURRENT: *mut Shader = std::ptr::null_mut();
-
 #[derive(Clone)]
 pub struct Shader {
     shared: Rf<ShaderShared>,
@@ -163,24 +161,6 @@ impl Shader {
                 )
             }
         }
-    }
-
-    fn set_current(current: Option<&Shader>) {
-        unsafe {
-            if !CURRENT.is_null() {
-                // Free the existing current shader if it exists by converting it back into the box immediately dropping it.
-                let _ = Box::from_raw(CURRENT);
-            }
-            CURRENT = current.map_or(std::ptr::null_mut(), |r| Box::into_raw(Box::new(r.clone())))
-        }
-    }
-
-    fn get_current() -> Option<&'static mut Shader> {
-        unsafe { CURRENT.as_mut() }
-    }
-
-    fn get_current_checked() -> &'static mut Shader {
-        Self::get_current().expect("No shader is bound")
     }
 
     pub fn set_uniform(&mut self, name: &str, data: ShaderVarData) {
@@ -450,9 +430,7 @@ impl Shader {
         unsafe {
             Profiler_Begin(c_str!("Shader_Start"));
         }
-
-        Self::set_current(Some(self));
-
+        
         let s = &mut *self.shared.as_mut();
 
         glcheck!(gl::UseProgram(s.program));
@@ -499,7 +477,6 @@ impl Shader {
 
     pub fn stop(&self) {
         glcheck!(gl::UseProgram(0));
-        Self::set_current(None);
     }
 }
 
@@ -578,8 +555,4 @@ fn create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> gl::types:
     }
 
     this
-}
-
-pub fn get_current_program() -> Option<gl::types::GLuint> {
-    Shader::get_current().map(|s| s.handle())
 }
