@@ -305,7 +305,7 @@ function CoordTest:onInit()
     self.mViewInv = Matrix.Identity()
     self.mProjInv = Matrix.Identity()
 
-    self.renderer = Renderer()
+    self.renderer = RenderPipeline()
 end
 
 function CoordTest:onUpdate(dt)

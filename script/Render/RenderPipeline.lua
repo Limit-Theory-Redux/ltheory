@@ -2,7 +2,7 @@ local Cache = require('Render.Cache')
 
 -- TODO JP : Refactor all of this monolithic nonsense into RenderPass objects.
 
-local Renderer = class(function(self)
+local RenderPipeline = class(function(self)
     self.ds = 4
 end)
 
@@ -43,7 +43,7 @@ local function createBuffer(sx, sy, format)
     return self
 end
 
-function Renderer:aberration(strength)
+function RenderPipeline:aberration(strength)
     Draw.Color(1, 1, 1, 1)
     local shader = Cache.Shader('ui', 'filter/aberration')
     self.buffer1:pushLevel(self.level)
@@ -57,7 +57,7 @@ function Renderer:aberration(strength)
     self:swap()
 end
 
-function Renderer:applyFilter(frag, onSetVars)
+function RenderPipeline:applyFilter(frag, onSetVars)
     local shader = Cache.Shader('ui', 'filter/' .. frag)
     self.buffer1:pushLevel(self.level)
     shader:start()
@@ -70,7 +70,7 @@ function Renderer:applyFilter(frag, onSetVars)
     self:swap()
 end
 
-function Renderer:bloom(radius)
+function RenderPipeline:bloom(radius)
     Draw.Color(1, 1, 1, 1)
     local width = radius * 0.2
     local A = self.dsBuffer0
@@ -102,7 +102,7 @@ function Renderer:bloom(radius)
     end
 end
 
-function Renderer:blur(dst, src, dx, dy, radius, variance)
+function RenderPipeline:blur(dst, src, dx, dy, radius, variance)
     local shader = Cache.Shader('ui', 'filter/blur')
     local size = src:getSize()
     dst:push()
@@ -117,7 +117,7 @@ function Renderer:blur(dst, src, dx, dy, radius, variance)
     dst:pop()
 end
 
-function Renderer:colorGrade(curve1, curve2)
+function RenderPipeline:colorGrade(curve1, curve2)
     local shader = Cache.Shader('ui', 'filter/colorgrade')
     self.buffer1:pushLevel(self.level)
     shader:start()
@@ -131,7 +131,7 @@ function Renderer:colorGrade(curve1, curve2)
     self:swap()
 end
 
-function Renderer:free()
+function RenderPipeline:free()
     if self.buffer0 then
         self.buffer0:free()
         self.buffer1:free()
@@ -143,7 +143,7 @@ function Renderer:free()
     end
 end
 
-function Renderer:present(x, y, sx, sy, useMips)
+function RenderPipeline:present(x, y, sx, sy, useMips)
     RenderState.PushAllDefaults()
 
     local shader = Cache.Shader('ui', 'filter/identity')
@@ -163,7 +163,7 @@ function Renderer:present(x, y, sx, sy, useMips)
     RenderState.PopAll()
 end
 
-function Renderer:presentAll(x, y, sx, sy)
+function RenderPipeline:presentAll(x, y, sx, sy)
     RenderState.PushAllDefaults()
 
     local shader = Cache.Shader('ui', 'filter/identity')
@@ -188,7 +188,7 @@ function Renderer:presentAll(x, y, sx, sy)
     RenderState.PopAll()
 end
 
-function Renderer:sharpen(radius, sigma, strength)
+function RenderPipeline:sharpen(radius, sigma, strength)
     Draw.Color(1, 1, 1, 1)
 
     do -- Blur
@@ -219,7 +219,7 @@ function Renderer:sharpen(radius, sigma, strength)
     self:swap()
 end
 
-function Renderer:start(resX, resY, ss)
+function RenderPipeline:start(resX, resY, ss)
     local ss = ss or 1
     local sx, sy = ss * resX, ss * resY
     if self.sx ~= sx or self.sy ~= sy or self.ss ~= ss then
@@ -263,7 +263,7 @@ function Renderer:start(resX, resY, ss)
     RenderState.PushDepthTest(true)
 end
 
-function Renderer:startAlpha(mode)
+function RenderPipeline:startAlpha(mode)
     RenderTarget.Push(self.sx, self.sy)
     RenderTarget.BindTex2D(self.buffer0)
     RenderTarget.BindTex2D(self.zBuffer)
@@ -274,7 +274,7 @@ function Renderer:startAlpha(mode)
     RenderState.PushDepthWritable(false)
 end
 
-function Renderer:startPostEffects()
+function RenderPipeline:startPostEffects()
     -- TODO: Skip this by setting to 1 in settings above.
     -- Radeon cards seem to white screen otherwise
     if self.ss > 1 then
@@ -300,7 +300,7 @@ function Renderer:startPostEffects()
     end
 end
 
-function Renderer:startUI()
+function RenderPipeline:startUI()
     RenderTarget.Push(self.sx, self.sy)
     RenderTarget.BindTex2D(self.buffer1)
     RenderTarget.BindTex2D(self.zBuffer)
@@ -311,14 +311,14 @@ function Renderer:startUI()
     RenderState.PushDepthWritable(false)
 end
 
-function Renderer:stop()
+function RenderPipeline:stop()
     BlendMode.Pop()
     CullFace.Pop()
     RenderState.PopDepthTest()
     RenderTarget.Pop()
 end
 
-function Renderer:stopAlpha()
+function RenderPipeline:stopAlpha()
     BlendMode.Pop()
     CullFace.Pop()
     RenderState.PopDepthTest()
@@ -326,7 +326,7 @@ function Renderer:stopAlpha()
     RenderTarget.Pop()
 end
 
-function Renderer:stopUI()
+function RenderPipeline:stopUI()
     self.buffer1:pop()
     BlendMode.Pop()
     CullFace.Pop()
@@ -347,11 +347,11 @@ function Renderer:stopUI()
     BlendMode.Pop()
 end
 
-function Renderer:swap()
+function RenderPipeline:swap()
     self.buffer0, self.buffer1 = self.buffer1, self.buffer0
 end
 
-function Renderer:tonemap()
+function RenderPipeline:tonemap()
     local shader = Cache.Shader('ui', 'filter/tonemap')
     self.buffer1:pushLevel(self.level)
     shader:start()
@@ -365,7 +365,7 @@ function Renderer:tonemap()
     self:swap()
 end
 
-function Renderer:vignette()
+function RenderPipeline:vignette()
     local strength = Settings.get('postfx.vignette.strength') or 0.5
     local hardness = Settings.get('postfx.vignette.hardness') or 8.0
     local shader = Cache.Shader('ui', 'filter/vignette')
@@ -381,4 +381,4 @@ function Renderer:vignette()
     self:swap()
 end
 
-return Renderer
+return RenderPipeline

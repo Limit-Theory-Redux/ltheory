@@ -297,7 +297,7 @@ function GameView.Create(player, audioInstance)
 
     local self = setmetatable({
         player            = player,
-        renderer          = Renderer(),
+        renderer          = RenderPipeline(),
         cameraFirstPerson = Systems.Camera.CameraFirstPerson(),
         cameraChase       = Systems.Camera.CameraChase(),
         cameraOrbit       = Systems.Camera.CameraOrbit(),
