@@ -3,13 +3,13 @@ package.path = package.path .. ';./script/?.lua'
 package.path = package.path .. ';./script/?.ext.lua'
 package.path = package.path .. ';./script/?.ffi.lua'
 
----@type EngineImpl
+---@type Engine
 Engine = {}
----@type EventBusImpl
+---@type EventBus
 EventBus = {}
----@type InputImpl
+---@type Input
 Input = {}
----@type WindowImpl
+---@type Window
 Window = {}
 ---@type HmGui
 Gui = {}
@@ -21,7 +21,7 @@ function SetEngine(engine)
     Log.Debug("SetEngine")
 
     ---@type Engine
-    Engine = ffi.cast('EngineImpl*', engine)
+    Engine = ffi.cast('Engine*', engine)
 
     EventBus = Engine:eventBus()
     Input = Engine:input()

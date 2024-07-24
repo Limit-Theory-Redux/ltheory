@@ -354,7 +354,7 @@ impl Engine {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(name = "EngineImpl")]
+#[luajit_ffi_gen::luajit_ffi]
 impl Engine {
     #[bind(lua_ffi = false)]
     pub fn entry(entry_point: &str, app_name: &str, console_log: bool, log_dir: &str) {
