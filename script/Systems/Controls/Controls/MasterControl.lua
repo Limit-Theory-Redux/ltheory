@@ -86,7 +86,7 @@ function MasterControl:onInput(state)
             if self.panel:isEnabled() then
                 -- Log.Debug("Panel enabled")
                 GameState.panelActive = true -- TODO: find where MasterControl handle is exposed and use mc:isEnabled()
-                InputInstance:setCursorVisible(true)
+                Input:setCursorVisible(true)
             else
                 -- Log.Debug("Panel disabled")
                 GameState.panelActive = false
@@ -97,7 +97,7 @@ function MasterControl:onInput(state)
                         local control = self.activeControlSet.controls[i]
                         if control.name == GameState.player.currentControl then
                             self:activateControl(control)
-                            InputInstance:setCursorVisible(false)
+                            Input:setCursorVisible(false)
                             break
                         end
                     end
@@ -139,7 +139,7 @@ function MasterControl:activateControl(controlDef)
         if controlDef.name == Enums.ControlModes.Ship then
             self.panel:disable()
             GameState.panelActive = false
-            InputInstance:setCursorVisible(false)
+            Input:setCursorVisible(false)
         end
         return
     end
@@ -157,7 +157,7 @@ function MasterControl:activateControl(controlDef)
         if self.activeControlDef.name == Enums.ControlModes.Ship then
             self.panel:disable()
             GameState.panelActive = false
-            InputInstance:setCursorVisible(false)
+            Input:setCursorVisible(false)
             Log.Debug("*** Switching to Flight mode")
         elseif self.activeControlDef.name == Enums.ControlModes.Background then
             Log.Debug("*** Switching to Background mode")
@@ -168,7 +168,7 @@ function MasterControl:activateControl(controlDef)
         elseif self.activeControlDef.name == Enums.ControlModes.Undock then
             self.panel:enable()
             GameState.panelActive = true
-            InputInstance:setCursorVisible(true)
+            Input:setCursorVisible(true)
             Log.Debug("*** Docking (manual)!")
         end
 
@@ -230,7 +230,7 @@ function MasterControl.Create(gameView, player)
                         Log.Debug("*** Undocking (icon)!")
                         GameState.player.currentShip:getParent():removeDocked(GameState.player.currentShip)
                         self.gameView:setCameraMode(GameState.player.lastCamera)
-                        InputInstance:setCursorVisible(false)
+                        Input:setCursorVisible(false)
                     end
                 end
             end):setSize(barHeight, barHeight):setAlignX(0.5)

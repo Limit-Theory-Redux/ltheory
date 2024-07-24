@@ -127,7 +127,7 @@ function RadioGroup:new(args)
             end
 
             -- save selection if it was clicked
-            local triggered = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
+            local triggered = isMouseOver and Input:mouse():isPressed(MouseControl.Left)
             if triggered then
                 self.selectionChanged = self.state.selectedIndex ~= i
                 self.state.selectedIndex = i
@@ -170,7 +170,7 @@ function RadioGroup:new(args)
 
         if self.selectionChanged then
             if self.state.sound then
-                self.state.sound():Play(1.0)
+                self.state.sound():play(1.0)
             end
 
             self.state.callback(self.state.selectedIndex)

@@ -110,10 +110,10 @@ function Button:new(args)
 
         self.state.toolTip():render()
 
-        local buttonClicked = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
+        local buttonClicked = isMouseOver and Input:mouse():isPressed(MouseControl.Left)
         if buttonClicked then
             if self.state.sound then
-                self.state.sound():Play(1.0)
+                self.state.sound():play(1.0)
             end
 
             self.state.callback()

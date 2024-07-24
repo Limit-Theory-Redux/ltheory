@@ -15,8 +15,8 @@ function UIRouter:__init()
 end
 
 function UIRouter:registerEvents()
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Input), self, self.input)
-    EventBusInstance:subscribe(FrameStage.ToString(FrameStage.Render), self, self.update)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.Input), self, self.input)
+    EventBus:subscribe(FrameStage.ToString(FrameStage.Render), self, self.update)
 end
 
 -- routing the input loop through to the views
@@ -40,7 +40,7 @@ function UIRouter:update(dt)
         self.currentPage:update(dt) --! should get delta time from the event, but event bus does not support payloads currently
     end
     Profiler.End()
-    Gui:endGui(InputInstance)
+    Gui:endGui()
 end
 
 -- sets current page

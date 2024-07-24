@@ -13,7 +13,7 @@ local Bindings = require('States.ApplicationBindings')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 function Paused:onInput()
-    if InputInstance:isPressed(Bindings.Escape) then
+    if Input:isPressed(Bindings.Escape) then
         UIRouter:getCurrentPage():setView("In_Game")
     end
 end
@@ -22,14 +22,14 @@ function Paused:onUpdate(dt) end
 
 function Paused:onViewOpen(isPageOpen)
     GameState:Pause()
-    InputInstance:setCursorVisible(true)
+    Input:setCursorVisible(true)
 end
 
 function Paused:onViewClose(isPageClose)
     GameState:Unpause()
 
     if not isPageClose then
-        InputInstance:setCursorVisible(false)
+        Input:setCursorVisible(false)
     end
 end
 

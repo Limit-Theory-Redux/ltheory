@@ -19,18 +19,18 @@ end
 local minDistance = 50 -- pixel
 
 function BackgroundView:onInput()
-    local mousePos = InputInstance:mouse():position()
+    local mousePos = Input:mouse():position()
 
     if distance(mousePos.x, mousePos.y, lastMousePos.x, lastMousePos.y) > minDistance then
         lastMoved = TimeStamp.Now()
         lastMousePos = mousePos
         menuVisible = true
-        InputInstance:setCursorVisible(true)
+        Input:setCursorVisible(true)
     end
 
     if lastMoved:getElapsed() >= 5 then
         menuVisible = false
-        InputInstance:setCursorVisible(false)
+        Input:setCursorVisible(false)
     end
 end
 
@@ -42,7 +42,7 @@ end
 
 function BackgroundView:onViewClose(isPageClose)
     menuVisible = true
-    InputInstance:setCursorVisible(true) -- reset
+    Input:setCursorVisible(true) -- reset
 end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system

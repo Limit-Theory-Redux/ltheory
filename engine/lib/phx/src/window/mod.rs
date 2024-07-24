@@ -158,7 +158,7 @@ impl Default for Window {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi]
+#[luajit_ffi_gen::luajit_ffi(name = "WindowImpl")]
 impl Window {
     pub fn begin_draw(&self) {
         let size = self.size();

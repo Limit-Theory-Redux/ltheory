@@ -184,16 +184,16 @@ function ScrollArea:new(args)
 
         if hScroll or vScroll then
             local isMouseOver = Gui:isMouseOver(FocusType.Scroll)
-            local scroll = InputInstance:mouse():scroll()
+            local scroll = Input:mouse():scroll()
 
             -- swap scroll values for horizontal scrolling
-            if InputInstance:keyboard():isDown(KeyboardButton.ShiftLeft) then
+            if Input:keyboard():isDown(KeyboardButton.ShiftLeft) then
                 scroll = Vec2f(scroll.y, scroll.x)
             end
 
             local fadeScale = 1
             if self.state.scrollbarFading() then
-                local mouseDelata = InputInstance:mouse():delta()
+                local mouseDelata = Input:mouse():delta()
                 if isMouseOver and
                     (math.abs(scroll.x) > 0.3 or math.abs(scroll.y) > 0.3 or
                         math.abs(mouseDelata.x) > 0.5 or math.abs(mouseDelata.y) > 0.5)

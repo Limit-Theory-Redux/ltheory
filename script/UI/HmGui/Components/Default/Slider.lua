@@ -120,7 +120,7 @@ function Slider:new(args)
 
         -- check mouse interaction
         local isMouseOverSlider = Gui:isMouseOver(FocusType.Mouse)
-        local sliderHeld = isMouseOverSlider and InputInstance:mouse():isDown(MouseControl.Left)
+        local sliderHeld = isMouseOverSlider and Input:mouse():isDown(MouseControl.Left)
 
         -- slider stack
         Gui:beginStackContainer()
@@ -148,7 +148,7 @@ function Slider:new(args)
 
         if sliderHeld then
             -- calculate relative mouse position
-            local relativeMousePositionX = InputInstance:mouse():position().x -
+            local relativeMousePositionX = Input:mouse():position().x -
                 (containerPos.x + self.state.padding()[1])
 
             -- clamp the relative position to be within the container bounds
@@ -180,7 +180,7 @@ function Slider:new(args)
                 self.state.currentValue = function() return newOuterValue end
 
                 if self.state.sound then
-                    self.state.sound():Play(1.0)
+                    self.state.sound():play(1.0)
                 end
             end
 

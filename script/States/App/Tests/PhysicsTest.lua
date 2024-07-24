@@ -152,15 +152,15 @@ function LTheory:onInput()
 
     if compoundTest then
         local asteroids = List()
-        if InputInstance:isDown(Button.KeyboardControlLeft) then asteroids:append(self.asteroid1) end
-        if InputInstance:isDown(Button.KeyboardShiftLeft) then asteroids:append(self.asteroid2) end
+        if Input:isDown(Button.KeyboardControlLeft) then asteroids:append(self.asteroid1) end
+        if Input:isDown(Button.KeyboardShiftLeft) then asteroids:append(self.asteroid2) end
 
         local ship = self.player:getControlling()
         for i = 1, #asteroids do
             local asteroid = asteroids[i]
 
             -- Attach/detach
-            if InputInstance:isPressed(Button.KeyboardEnter) then
+            if Input:isPressed(Button.KeyboardEnter) then
                 local parent = asteroid:getParentBody()
                 if parent == nil then
                     self.system:removeChild(asteroid)
@@ -172,23 +172,23 @@ function LTheory:onInput()
             end
 
             -- Scale
-            if InputInstance:isPressed(Button.KeyboardMinus) then
+            if Input:isPressed(Button.KeyboardMinus) then
                 local scale = asteroid:getScale()
                 if scale > 1 then asteroid:setScale(scale - 1) end
             end
-            if InputInstance:isPressed(Button.KeyboardEqual) then
+            if Input:isPressed(Button.KeyboardEqual) then
                 local scale = asteroid:getScale()
                 asteroid:setScale(scale + 1)
             end
 
             -- Position
             local pos = Position(0, 0, 0)
-            if InputInstance:isPressed(Button.KeyboardI) then pos.z = pos.z - 1 end
-            if InputInstance:isPressed(Button.KeyboardK) then pos.z = pos.z + 1 end
-            if InputInstance:isPressed(Button.KeyboardL) then pos.x = pos.x + 1 end
-            if InputInstance:isPressed(Button.KeyboardJ) then pos.x = pos.x - 1 end
-            if InputInstance:isPressed(Button.KeyboardO) then pos.y = pos.y + 1 end
-            if InputInstance:isPressed(Button.KeyboardU) then pos.y = pos.y - 1 end
+            if Input:isPressed(Button.KeyboardI) then pos.z = pos.z - 1 end
+            if Input:isPressed(Button.KeyboardK) then pos.z = pos.z + 1 end
+            if Input:isPressed(Button.KeyboardL) then pos.x = pos.x + 1 end
+            if Input:isPressed(Button.KeyboardJ) then pos.x = pos.x - 1 end
+            if Input:isPressed(Button.KeyboardO) then pos.y = pos.y + 1 end
+            if Input:isPressed(Button.KeyboardU) then pos.y = pos.y - 1 end
             local parent = asteroid:getParentBody()
             if parent == nil then
                 asteroid:setPos(pos + asteroid:getPos());
@@ -197,12 +197,12 @@ function LTheory:onInput()
             end
 
             local ypr = Vec3f(0, 0, 0)
-            if InputInstance:isPressed(Button.KeyboardT) then ypr.y = ypr.y - math.pi / 10 end
-            if InputInstance:isPressed(Button.KeyboardG) then ypr.y = ypr.y + math.pi / 10 end
-            if InputInstance:isPressed(Button.KeyboardH) then ypr.z = ypr.z - math.pi / 10 end
-            if InputInstance:isPressed(Button.KeyboardF) then ypr.z = ypr.z + math.pi / 10 end
-            if InputInstance:isPressed(Button.KeyboardY) then ypr.x = ypr.x - math.pi / 10 end
-            if InputInstance:isPressed(Button.KeyboardR) then ypr.x = ypr.x + math.pi / 10 end
+            if Input:isPressed(Button.KeyboardT) then ypr.y = ypr.y - math.pi / 10 end
+            if Input:isPressed(Button.KeyboardG) then ypr.y = ypr.y + math.pi / 10 end
+            if Input:isPressed(Button.KeyboardH) then ypr.z = ypr.z - math.pi / 10 end
+            if Input:isPressed(Button.KeyboardF) then ypr.z = ypr.z + math.pi / 10 end
+            if Input:isPressed(Button.KeyboardY) then ypr.x = ypr.x - math.pi / 10 end
+            if Input:isPressed(Button.KeyboardR) then ypr.x = ypr.x + math.pi / 10 end
             local mat = Matrix.YawPitchRoll(ypr.y, ypr.x, ypr.z)
             local rot = mat:toQuat()
             mat:free()
@@ -252,7 +252,7 @@ function LTheory:onUpdate(dt)
     end
 
     Gui:endContainer()
-    Gui:endGui(InputInstance)
+    Gui:endGui()
 end
 
 function LTheory:onDraw()

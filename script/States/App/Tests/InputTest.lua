@@ -8,17 +8,17 @@ end
 function InputTest:onUpdate(dt)
     --[[ NOTE : Low Level API Usage Style 1 - Direct State Queries
   for i = 1, 512 do
-    if InputInstance:isPressed(i)  then Log.Debug('Pressed  - %s', ffi.string(libphx.Button_ToString(i))) end
-    if InputInstance:isReleased(i) then Log.Debug('Released - %s', ffi.string(libphx.Button_ToString(i))) end
+    if Input:isPressed(i)  then Log.Debug('Pressed  - %s', ffi.string(libphx.Button_ToString(i))) end
+    if Input:isReleased(i) then Log.Debug('Released - %s', ffi.string(libphx.Button_ToString(i))) end
   end
   --]]
 
     ---[[ NOTE : Low Level API Usage Style 2 - Event Queue
     local self = InputTest
-    self.eventCount = InputInstance:getEventCount()
-    for i = 1, InputInstance:getEventCount() do
+    self.eventCount = Input:getEventCount()
+    for i = 1, Input:getEventCount() do
         local event = InputEvent()
-        InputInstance:getNextEvent(event)
+        Input:getNextEvent(event)
         if event.deviceType == InputDeviceType.Gamepad and
             (Bit.Has32(event.state, State.Pressed) or
                 Bit.Has32(event.state, State.Released))

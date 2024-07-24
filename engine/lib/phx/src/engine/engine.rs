@@ -37,6 +37,22 @@ thread_local! {
     static CURRENT_LUA_CTX: RefCell<Option<Rf<Lua>>> = const { RefCell::new(None) };
 }
 
+#[cfg(target_os = "windows")]
+fn build_event_loop() -> EventLoop<()> {
+    use winit::platform::windows::EventLoopBuilderExtWindows;
+    EventLoop::builder()
+        .with_any_thread(true)
+        .build()
+        .expect("Failed to build event loop")
+}
+
+#[cfg(not(target_os = "windows"))]
+fn build_event_loop() -> EventLoop<()> {
+    EventLoop::builder()
+        .build()
+        .expect("Failed to build event loop")
+}
+
 impl Engine {
     pub fn new(event_loop: &ActiveEventLoop) -> Self {
         unsafe {
@@ -337,7 +353,7 @@ impl Engine {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi]
+#[luajit_ffi_gen::luajit_ffi(name = "EngineImpl")]
 impl Engine {
     #[bind(lua_ffi = false)]
     pub fn entry(entry_point: &str, app_name: &str, console_log: bool, log_dir: &str) {
@@ -359,13 +375,12 @@ impl Engine {
             }
         }
 
-        let event_loop = EventLoop::new().expect("Failed to build event loop");
         let mut app_state = MainLoop {
             engine: None,
             app_name,
             entry_point_path,
         };
-        let _ = event_loop.run_app(&mut app_state);
+        let _ = build_event_loop().run_app(&mut app_state);
     }
 
     pub fn window(&mut self) -> &mut Window {
@@ -384,14 +399,6 @@ impl Engine {
     pub fn hmgui(&mut self) -> &mut HmGui {
         &mut self.hmgui
     }
-
-    // TODO: convert ShaderVar and Signal into the proper Rust types
-    // pub fn free() {
-    //     unsafe {
-    //         ShaderVar_ee();
-    //         Signal_Free();
-    //     }
-    // }
 
     pub fn abort() {
         std::process::abort();

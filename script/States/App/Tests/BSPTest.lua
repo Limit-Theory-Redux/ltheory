@@ -290,20 +290,20 @@ function BSPTest:onUpdate(dt)
     local bsp = State.bsp
 
     do -- Input
-        if InputInstance:isPressed(Button.KeyboardKey1) then bsp.testNumber = 1 end
-        if InputInstance:isPressed(Button.KeyboardKey2) then bsp.testNumber = 2 end
-        if InputInstance:isPressed(Button.KeyboardKey3) then bsp.testNumber = 3 end
-        if InputInstance:isPressed(Button.KeyboardKey4) then bsp.testNumber = 4 end
-        if InputInstance:isPressed(Button.KeyboardKey5) then bsp.testNumber = 5 end
-        if InputInstance:isPressed(Button.KeyboardKey6) then bsp.testNumber = 6 end
+        if Input:isPressed(Button.KeyboardKey1) then bsp.testNumber = 1 end
+        if Input:isPressed(Button.KeyboardKey2) then bsp.testNumber = 2 end
+        if Input:isPressed(Button.KeyboardKey3) then bsp.testNumber = 3 end
+        if Input:isPressed(Button.KeyboardKey4) then bsp.testNumber = 4 end
+        if Input:isPressed(Button.KeyboardKey5) then bsp.testNumber = 5 end
+        if Input:isPressed(Button.KeyboardKey6) then bsp.testNumber = 6 end
 
-        if InputInstance:isPressed(Button.KeyboardF1) then gen.alphaMode = List.getNext(alphaModes, gen.alphaMode) end
-        if InputInstance:isPressed(Button.KeyboardF2) then gen.cullMode = List.getNext(cullModes, gen.cullMode) end
-        if InputInstance:isPressed(Button.KeyboardF3) then gen.depthMode = List.getNext(depthModes, gen.depthMode) end
-        if InputInstance:isPressed(Button.KeyboardF4) then gen.viewMode = List.getNext(viewModes, gen.viewMode) end
+        if Input:isPressed(Button.KeyboardF1) then gen.alphaMode = List.getNext(alphaModes, gen.alphaMode) end
+        if Input:isPressed(Button.KeyboardF2) then gen.cullMode = List.getNext(cullModes, gen.cullMode) end
+        if Input:isPressed(Button.KeyboardF3) then gen.depthMode = List.getNext(depthModes, gen.depthMode) end
+        if Input:isPressed(Button.KeyboardF4) then gen.viewMode = List.getNext(viewModes, gen.viewMode) end
 
-        if InputInstance:isDown(Button.MouseLeft) then
-            local mouseDelta = InputInstance:mouse():delta()
+        if Input:isDown(Button.MouseLeft) then
+            local mouseDelta = Input:mouse():delta()
             gen.cameraP.y = gen.cameraP.y + 0.005 * mouseDelta.x
 
             local epsilon = 0.0001
@@ -311,7 +311,7 @@ function BSPTest:onUpdate(dt)
             gen.cameraP.z = Math.Clamp(gen.cameraP.z, epsilon, math.pi - epsilon)
         end
 
-        gen.cameraP.x = gen.cameraP.x * (1 - .05 * InputInstance:getValue(Button.MouseScrollY))
+        gen.cameraP.x = gen.cameraP.x * (1 - .05 * Input:getValue(Button.MouseScrollY))
         gen.cameraP.x = Math.Clamp(gen.cameraP.x, 0.2, 2000.0)
     end
 end
@@ -380,11 +380,11 @@ function BSPTest:onDraw()
 
             shader:stop()
 
-            if InputInstance:isPressed(Button.KeyboardRight) then
+            if Input:isPressed(Button.KeyboardRight) then
                 leafIndex = leafIndex + 1
                 leafNodeRef = BSPDebug.GetLeaf(bsp.bsp, leafIndex)
             end
-            if InputInstance:isPressed(Button.KeyboardLeft) then
+            if Input:isPressed(Button.KeyboardLeft) then
                 leafIndex = leafIndex - 1
                 leafNodeRef = BSPDebug.GetLeaf(bsp.bsp, leafIndex)
             end
@@ -424,13 +424,13 @@ function BSPTest:onDraw()
                 shader:stop()
             end
 
-            if InputInstance:isPressed(Button.KeyboardRight) then bsp.seed = bsp.seed + 1 end
-            if InputInstance:isPressed(Button.KeyboardLeft) then bsp.seed = bsp.seed - 1 end
-            if InputInstance:isPressed(Button.KeyboardUp) then bsp.seed = 0 end
+            if Input:isPressed(Button.KeyboardRight) then bsp.seed = bsp.seed + 1 end
+            if Input:isPressed(Button.KeyboardLeft) then bsp.seed = bsp.seed - 1 end
+            if Input:isPressed(Button.KeyboardUp) then bsp.seed = 0 end
 
             local mul = 11
-            if InputInstance:isPressed(Button.KeyboardPageDown) then mul = mul - 1 end
-            if InputInstance:isPressed(Button.KeyboardPageUp) then mul = mul + 1 end
+            if Input:isPressed(Button.KeyboardPageDown) then mul = mul - 1 end
+            if Input:isPressed(Button.KeyboardPageUp) then mul = mul + 1 end
             --RAY_INTERSECTION_EPSILON = mul * PLANE_THICKNESS_EPSILON
 
             local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or math.random())
@@ -475,9 +475,9 @@ function BSPTest:onDraw()
         -- TEST : Test random sphere against the BSP tree
         if bsp.testNumber == 5 then
             local previousSeed = bsp.seed
-            if InputInstance:isPressed(Button.KeyboardRight) then bsp.seed = bsp.seed + 1 end
-            if InputInstance:isPressed(Button.KeyboardLeft) then bsp.seed = bsp.seed - 1 end
-            if InputInstance:isPressed(Button.KeyboardUp) then bsp.seed = 0 end
+            if Input:isPressed(Button.KeyboardRight) then bsp.seed = bsp.seed + 1 end
+            if Input:isPressed(Button.KeyboardLeft) then bsp.seed = bsp.seed - 1 end
+            if Input:isPressed(Button.KeyboardUp) then bsp.seed = 0 end
 
             if bsp.seed ~= previousSeed then
                 sphereProf.triangleTests_size = 0
@@ -495,8 +495,8 @@ function BSPTest:onDraw()
             end
 
             local mul = 11
-            if InputInstance:isPressed(Button.KeyboardPageDown) then mul = mul - 1 end
-            if InputInstance:isPressed(Button.KeyboardPageUp) then mul = mul + 1 end
+            if Input:isPressed(Button.KeyboardPageDown) then mul = mul - 1 end
+            if Input:isPressed(Button.KeyboardPageUp) then mul = mul + 1 end
             --RAY_INTERSECTION_EPSILON = mul * PLANE_THICKNESS_EPSILON
 
             shader:start()
@@ -539,13 +539,13 @@ function BSPTest:onDraw()
             if bsp.curNode.index == 0 then
                 bsp.curNode = BSPDebug.GetNode(bsp.bsp, bsp.curNode, BSPNodeRel.Parent)
             end
-            if InputInstance:isPressed(Button.KeyboardUp) then
+            if Input:isPressed(Button.KeyboardUp) then
                 bsp.curNode = BSPDebug.GetNode(bsp.bsp, bsp.curNode, BSPNodeRel.Parent)
             end
-            if InputInstance:isPressed(Button.KeyboardLeft) then
+            if Input:isPressed(Button.KeyboardLeft) then
                 bsp.curNode = BSPDebug.GetNode(bsp.bsp, bsp.curNode, BSPNodeRel.Back)
             end
-            if InputInstance:isPressed(Button.KeyboardRight) then
+            if Input:isPressed(Button.KeyboardRight) then
                 bsp.curNode = BSPDebug.GetNode(bsp.bsp, bsp.curNode, BSPNodeRel.Front)
             end
 

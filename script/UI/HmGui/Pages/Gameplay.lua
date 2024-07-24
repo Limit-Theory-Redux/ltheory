@@ -24,7 +24,7 @@ function Gameplay:onInput() end
 function Gameplay:onUpdate(dt)
     if not deathTextVisible and GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
         deathTextVisible = true
-        InputInstance:setCursorVisible(true)
+        Input:setCursorVisible(true)
     end
 end
 

@@ -15,20 +15,22 @@ local DebugControl = require('Systems.Controls.Controls.DebugControl')
 function LimitTheoryRedux:onInit()
     DebugControl.ltheory = self
 
-    SoundManager:init()
-    MusicPlayer:Init() --todo: fix all casing errors
+    MusicPlayer:init()
 
     -- Read user-defined values and update game variables
     InitFiles:readUserInits()
 
     --* Game initializations *--
-    WindowInstance:setSize(GameState.render.resX, GameState.render.resY)
-    WindowInstance:setCenteredPosition()
+    Window:setSize(GameState.render.resX, GameState.render.resY)
+    Window:setCenteredPosition()
     --self:setFullscreen(GameState.render.fullscreen)
 
     -- Set the default game control cursor
-    -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
-    WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+    -- TODO: Window:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
+    Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+
+    SoundManager:init()
+    MusicPlayer:loadMusic()
 
     self:initMainMenu(true)
 end
@@ -58,7 +60,7 @@ function LimitTheoryRedux:initMainMenu(isAppInit)
         UIRouter:addPage(UIPageLoadingScreen)
         UIRouter:addPage(UIPageGameplay)
     end
-    InputInstance:setCursorVisible(true)
+    Input:setCursorVisible(true)
     UIRouter:setCurrentPage("Main_Menu")
 end
 
@@ -94,7 +96,7 @@ function LimitTheoryRedux:exit()
     -- Write player-specific game variables to preserve them across gameplay sessions
     InitFiles:writeUserInits()
 
-    EngineInstance:exit()
+    Engine:exit()
 end
 
 return LimitTheoryRedux

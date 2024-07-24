@@ -34,7 +34,7 @@ function DebugControl:onInput(state)
     local camera = self.gameView.camera
     camera:push()
 
-    if Bindings.ToggleDebugWindow and InputInstance:isReleased(Bindings.ToggleDebugWindow) then
+    if Bindings.ToggleDebugWindow and Input:isReleased(Bindings.ToggleDebugWindow) then
         if not self.debugWindow:isEnabled() then
             self.debugWindow:setEnabled(true)
             if state.modalFocus then
@@ -48,7 +48,7 @@ function DebugControl:onInput(state)
         end
     end
 
-    if Bindings.InspectWidget and InputInstance:isPressed(Bindings.InspectWidget) then
+    if Bindings.InspectWidget and Input:isPressed(Bindings.InspectWidget) then
         if state.focus then
             self:createWidgetInspector(state.focus)
         end
@@ -69,7 +69,7 @@ function DebugControl:onDraw(focus, active)
         local ray = camera:mouseToRay(1e7)
         local hit, t = world:raycast(ray)
         self.hit = hit
-        if InputInstance:isPressed(Button.MouseLeft) then
+        if Input:isPressed(Button.MouseLeft) then
             self.target = self.hit
         end
     end

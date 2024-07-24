@@ -22,7 +22,7 @@ local CreditsView = require("UI.HmGui.Views.MainMenu.Credits")
 MainMenu:addViewToPage(CreditsView)
 
 function MainMenu:onInput()
-    if InputInstance:isPressed(Button.MouseRight) then
+    if Input:isPressed(Button.MouseRight) then
         ---@type UIView|nil
         local lastView = MainMenu:getLastView()
         local currentView = MainMenu:getCurrentView()

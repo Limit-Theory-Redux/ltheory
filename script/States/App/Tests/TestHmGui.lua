@@ -181,7 +181,7 @@ function Test:showSimple()
             Gui:text(line)
         end
         Gui:popStyle(2)
-        Gui:endScroll(InputInstance)
+        Gui:endScroll(Input)
     end
     Gui:endContainer()
     Gui:endWindow()
@@ -201,7 +201,7 @@ function Test:showTodoInner()
         end
         Gui:endContainer()
     end
-    Gui:endScroll(InputInstance)
+    Gui:endScroll(Input)
 end
 
 function Test:showTodo()
@@ -226,7 +226,7 @@ function Test:onUpdate(dt)
     self:showSimple()
     -- self:showMetrics()
     self:showTodo()
-    Gui:endGui(InputInstance)
+    Gui:endGui()
     Profiler.End()
 end
 

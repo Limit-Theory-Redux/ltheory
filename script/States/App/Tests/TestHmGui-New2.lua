@@ -490,7 +490,7 @@ function Test:showMarketOverlayData()
             --            for i = 1, #listCommodities do
             --                Gui:textEx(Cache.Font("Exo2", 14), listCommodities[i], 1.0, 1.0, 1.0, 1.0)
             --            end
-            --            Gui:endScroll(InputInstance)
+            --            Gui:endScroll(Input)
             --            Gui:endWindow()
             Gui:endContainer() -- end Commodities search list subpanel
 
@@ -616,7 +616,7 @@ end
 
 function Test:onUpdate(dt)
     Profiler.Begin('Gui:update')
-    if InputInstance:isPressed(Button.KeyboardEscape) then
+    if Input:isPressed(Button.KeyboardEscape) then
         drawExitMenu = true
     end
     Gui:beginGui(self.resX, self.resY)
@@ -625,7 +625,7 @@ function Test:onUpdate(dt)
     else
         self:showMarketOverlay()
     end
-    Gui:endGui(InputInstance)
+    Gui:endGui()
     Profiler.End()
 end
 

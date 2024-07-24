@@ -1,4 +1,10 @@
+local libphx = require('libphx').lib
+
 function onDef_HmGui_t(t, mt)
+    mt.__index.endGui = function(self)
+        libphx.HmGui_EndGui(self, Input)
+    end
+
     mt.__index.beginWindow = function(self, name)
         Gui:beginStackContainer()
         Gui:beginVerticalContainer()

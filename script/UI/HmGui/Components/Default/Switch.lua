@@ -142,13 +142,13 @@ function Switch:new(args)
 
         Gui:endContainer()
 
-        local switchClicked = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
+        local switchClicked = isMouseOver and Input:mouse():isPressed(MouseControl.Left)
         if switchClicked then
             local valueState = self.state.currentValue()
             self.state.currentValue = function() return not valueState end
 
             if self.state.sound then
-                self.state.sound():Play(1.0)
+                self.state.sound():play(1.0)
             end
 
             self.state.callback(self.state.currentValue())

@@ -104,11 +104,11 @@ function Button:new(args)
 
         Gui:endContainer()
 
-        local buttonClicked = isMouseOver and InputInstance:mouse():isPressed(MouseControl.Left)
+        local buttonClicked = isMouseOver and Input:mouse():isPressed(MouseControl.Left)
         if buttonClicked then
             -- hardcoding the sound
             if Config.audio.sounds.click then
-                Config.audio.sounds.click:Play(1.0)
+                Config.audio.sounds.click:play(1.0)
             end
 
             self.state.callback()

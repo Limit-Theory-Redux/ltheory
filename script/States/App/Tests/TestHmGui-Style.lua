@@ -33,7 +33,7 @@ function Test:onUpdate(dt)
     Profiler.Begin('Gui:update')
     Gui:beginGui(self.resX, self.resY)
     self:showElements()
-    Gui:endGui(InputInstance)
+    Gui:endGui()
     Profiler.End()
 end
 

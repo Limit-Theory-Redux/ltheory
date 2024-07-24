@@ -91,8 +91,8 @@ function LTheory:onInit()
         :add(self.gameView
             :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player)))
 
-    -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
-    WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+    -- TODO: Window:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
+    Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
 
     MainMenu:SetMenuMode(Enums.MenuMode.Dialog)
 end
@@ -104,7 +104,7 @@ end
 function LTheory:onUpdate(dt)
     -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
     -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
-    if InputInstance:isPressed(Bindings.ToggleLights) then
+    if Input:isPressed(Bindings.ToggleLights) then
         GameState.render.pulseLights = not GameState.render.pulseLights
     end
 
@@ -112,7 +112,7 @@ function LTheory:onUpdate(dt)
     self.canvas:update(dt)
 
     Gui:beginGui(self.resX, self.resY) -- required for Gui:draw() to work without crashing
-    Gui:endGui(InputInstance)
+    Gui:endGui()
 end
 
 function LTheory:onDraw()

@@ -172,7 +172,7 @@ end
 function Benchmark:onInput()
     self.canvas:input()
 
-    if InputInstance:isPressed(Button.KeyboardEscape) then
+    if Input:isPressed(Button.KeyboardEscape) then
         self:quit()
     end
 end
@@ -181,7 +181,7 @@ function Benchmark:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
     Gui:beginGui(self.resX, self.resY)
-    Gui:endGui(InputInstance)
+    Gui:endGui()
 end
 
 function Benchmark:onDraw()

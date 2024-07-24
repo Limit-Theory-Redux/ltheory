@@ -291,7 +291,7 @@ function TextView:new(args)
         if self.state.height then Gui:setFixedHeight(self.state.height()) end
 
         local mouseOver = Gui:isMouseOver(FocusType.Mouse)
-        if InputInstance:isPressed(Button.MouseLeft) then
+        if Input:isPressed(Button.MouseLeft) then
             Gui:setFocus(mouseOver)
         end
 

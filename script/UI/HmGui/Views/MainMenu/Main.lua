@@ -21,7 +21,7 @@ local minDistance = 50 -- pixel
 local timeTillBackground = 20
 
 function MainView:onInput()
-    local mousePos = InputInstance:mouse():position()
+    local mousePos = Input:mouse():position()
 
     if distance(mousePos.x, mousePos.y, lastMousePos.x, lastMousePos.y) > minDistance then
         lastMoved = TimeStamp.Now()
