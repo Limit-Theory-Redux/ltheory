@@ -19,9 +19,6 @@ use crate::window::*;
 
 use super::{EventBus, MainLoop};
 
-#[cfg(windows)]
-use winit::platform::windows::EventLoopBuilderExtWindows;
-
 pub struct Engine {
     pub init_time: TimeStamp,
     pub window: Window,
@@ -38,6 +35,22 @@ pub struct Engine {
 // This is used by the panic hook to tell the Lua VM to generate backtrace.
 thread_local! {
     static CURRENT_LUA_CTX: RefCell<Option<Rf<Lua>>> = const { RefCell::new(None) };
+}
+
+#[cfg(target_os = "windows")]
+fn build_event_loop() -> EventLoop<()> {
+    use winit::platform::windows::EventLoopBuilderExtWindows;
+    EventLoop::builder()
+        .with_any_thread(true)
+        .build()
+        .expect("Failed to build event loop")
+}
+
+#[cfg(not(target_os = "windows"))]
+fn build_event_loop() -> EventLoop<()> {
+    EventLoop::builder()
+        .build()
+        .expect("Failed to build event loop")
 }
 
 impl Engine {
@@ -362,18 +375,12 @@ impl Engine {
             }
         }
 
-        let event_loop = if cfg!(windows) {
-            EventLoop::builder().with_any_thread(true).build()
-        } else {
-            EventLoop::builder().build()
-        }
-        .expect("Failed to build event loop");
         let mut app_state = MainLoop {
             engine: None,
             app_name,
             entry_point_path,
         };
-        let _ = event_loop.run_app(&mut app_state);
+        let _ = build_event_loop().run_app(&mut app_state);
     }
 
     pub fn window(&mut self) -> &mut Window {

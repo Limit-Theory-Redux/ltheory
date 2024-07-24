@@ -260,7 +260,12 @@ impl ApplicationHandler for MainLoop {
         };
 
         // If the window is hidden, we can now show it.
-        if !engine.winit_window.window().is_visible().unwrap_or_default() {
+        if !engine
+            .winit_window
+            .window()
+            .is_visible()
+            .unwrap_or_default()
+        {
             engine.winit_window.window().set_visible(true);
         }
 
