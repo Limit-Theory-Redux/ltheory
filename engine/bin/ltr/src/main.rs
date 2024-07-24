@@ -34,7 +34,7 @@ struct Cli {
 #[cfg_attr(not(windows), link(name = "phx", kind = "dylib"))]
 #[cfg_attr(windows, link(name = "phx.dll", kind = "dylib"))]
 extern "C" {
-    fn EngineImpl_Entry(
+    fn Engine_Entry(
         entry_point: *const libc::c_char,
         app_name: *const libc::c_char,
         console_log: bool,
@@ -70,7 +70,7 @@ pub fn main() {
     }
 
     unsafe {
-        EngineImpl_Entry(
+        Engine_Entry(
             entry_point as *const libc::c_char,
             app_name as *const libc::c_char,
             cli.console_log,

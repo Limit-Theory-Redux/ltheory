@@ -235,7 +235,7 @@ impl EventBus {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(name = "EventBusImpl")]
+#[luajit_ffi_gen::luajit_ffi]
 impl EventBus {
     pub fn get_time_scale(&self) -> f64 {
         self.frame_time_scale

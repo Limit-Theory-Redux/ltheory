@@ -22,16 +22,11 @@ function Namespace.Inject(dst, dstName, src, srcName)
     keySource[dst] = keySource[dst] or {}
     for k, v in pairs(src) do
         if type(v) ~= 'boolean' then
-            if rawget(dst, k) then
-                if keySource[dst][k] then
-                    Log.Warn('%s.%s is shadowing %s.%s in %s', srcName, k, keySource[dst][k], k, dstName)
-                else
-                    Log.Warn('%s.%s is shadowing %s in %s', srcName, k, k, dstName)
-                end
+            -- We don't allow shadowing. If the type is there already, leave it.
+            if not rawget(dst, k) then
+                keySource[dst][k] = srcName
+                rawset(dst, k, v)
             end
-
-            keySource[dst][k] = srcName
-            rawset(dst, k, v)
         end
     end
 end
