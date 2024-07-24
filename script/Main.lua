@@ -3,25 +3,12 @@ package.path = package.path .. ';./script/?.lua'
 package.path = package.path .. ';./script/?.ext.lua'
 package.path = package.path .. ';./script/?.ffi.lua'
 
----@type Engine
-Engine = {}
----@type EventBus
-EventBus = {}
----@type Input
-Input = {}
----@type Window
-Window = {}
----@type HmGui
-Gui = {}
-
 require('Init')
 local ErrorHandler = require('Core.Util.ErrorHandler')
 
 function SetEngine(engine)
-    Log.Debug("SetEngine")
-
-    ---@type Engine
     Engine = ffi.cast('Engine*', engine)
+    ---@cast Engine Engine
 
     EventBus = Engine:eventBus()
     Input = Engine:input()
@@ -30,8 +17,6 @@ function SetEngine(engine)
 end
 
 function InitSystem()
-    Log.Debug("InitSystem")
-
     Core.Call(function()
         local app = __app__ or 'LTheoryRedux'
 
