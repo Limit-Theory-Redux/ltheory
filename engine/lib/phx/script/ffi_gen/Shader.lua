@@ -24,37 +24,37 @@ function Loader.defineType()
             uint32       Shader_GetHandle     (Shader const*);
             int          Shader_GetVariable   (Shader const*, cstr name);
             bool         Shader_HasVariable   (Shader const*, cstr name);
+            void         Shader_ResetTexIndex (Shader*);
+            void         Shader_SetFloat      (Shader*, cstr name, float value);
+            void         Shader_ISetFloat     (Shader*, int index, float value);
+            void         Shader_SetFloat2     (Shader*, cstr name, float x, float y);
+            void         Shader_ISetFloat2    (Shader*, int index, float x, float y);
+            void         Shader_SetFloat3     (Shader*, cstr name, float x, float y, float z);
+            void         Shader_ISetFloat3    (Shader*, int index, float x, float y, float z);
+            void         Shader_SetFloat4     (Shader*, cstr name, float x, float y, float z, float w);
+            void         Shader_ISetFloat4    (Shader*, int index, float x, float y, float z, float w);
+            void         Shader_SetInt        (Shader*, cstr name, int value);
+            void         Shader_ISetInt       (Shader*, int index, int value);
+            void         Shader_SetInt2       (Shader*, cstr name, int x, int y);
+            void         Shader_ISetInt2      (Shader*, int index, int x, int y);
+            void         Shader_SetInt3       (Shader*, cstr name, int x, int y, int z);
+            void         Shader_ISetInt3      (Shader*, int index, int x, int y, int z);
+            void         Shader_SetInt4       (Shader*, cstr name, int x, int y, int z, int w);
+            void         Shader_ISetInt4      (Shader*, int index, int x, int y, int z, int w);
+            void         Shader_SetMatrix     (Shader*, cstr name, Matrix const* value);
+            void         Shader_ISetMatrix    (Shader*, int index, Matrix const* value);
+            void         Shader_SetMatrixT    (Shader*, cstr name, Matrix const* value);
+            void         Shader_ISetMatrixT   (Shader*, int index, Matrix const* value);
+            void         Shader_SetTex1D      (Shader*, cstr name, Tex1D* value);
+            void         Shader_ISetTex1D     (Shader*, int index, Tex1D* value);
+            void         Shader_SetTex2D      (Shader*, cstr name, Tex2D* value);
+            void         Shader_ISetTex2D     (Shader*, int index, Tex2D* value);
+            void         Shader_SetTex3D      (Shader*, cstr name, Tex3D* value);
+            void         Shader_ISetTex3D     (Shader*, int index, Tex3D* value);
+            void         Shader_SetTexCube    (Shader*, cstr name, TexCube* value);
+            void         Shader_ISetTexCube   (Shader*, int index, TexCube* value);
             void         Shader_Start         (Shader*);
             void         Shader_Stop          (Shader const*);
-            void         Shader_ResetTexIndex ();
-            void         Shader_SetFloat      (cstr name, float value);
-            void         Shader_ISetFloat     (int index, float value);
-            void         Shader_SetFloat2     (cstr name, float x, float y);
-            void         Shader_ISetFloat2    (int index, float x, float y);
-            void         Shader_SetFloat3     (cstr name, float x, float y, float z);
-            void         Shader_ISetFloat3    (int index, float x, float y, float z);
-            void         Shader_SetFloat4     (cstr name, float x, float y, float z, float w);
-            void         Shader_ISetFloat4    (int index, float x, float y, float z, float w);
-            void         Shader_SetInt        (cstr name, int value);
-            void         Shader_ISetInt       (int index, int value);
-            void         Shader_SetInt2       (cstr name, int x, int y);
-            void         Shader_ISetInt2      (int index, int x, int y);
-            void         Shader_SetInt3       (cstr name, int x, int y, int z);
-            void         Shader_ISetInt3      (int index, int x, int y, int z);
-            void         Shader_SetInt4       (cstr name, int x, int y, int z, int w);
-            void         Shader_ISetInt4      (int index, int x, int y, int z, int w);
-            void         Shader_SetMatrix     (cstr name, Matrix const* value);
-            void         Shader_ISetMatrix    (int index, Matrix const* value);
-            void         Shader_SetMatrixT    (cstr name, Matrix const* value);
-            void         Shader_ISetMatrixT   (int index, Matrix const* value);
-            void         Shader_SetTex1D      (cstr name, Tex1D* value);
-            void         Shader_ISetTex1D     (int index, Tex1D* value);
-            void         Shader_SetTex2D      (cstr name, Tex2D* value);
-            void         Shader_ISetTex2D     (int index, Tex2D* value);
-            void         Shader_SetTex3D      (cstr name, Tex3D* value);
-            void         Shader_ISetTex3D     (int index, Tex3D* value);
-            void         Shader_SetTexCube    (cstr name, TexCube* value);
-            void         Shader_ISetTexCube   (int index, TexCube* value);
         ]]
     end
 
@@ -68,35 +68,6 @@ function Loader.defineType()
                 local instance = libphx.Shader_Load(...)
                 return Core.ManagedObject(instance, libphx.Shader_Free)
             end,
-            ResetTexIndex = libphx.Shader_ResetTexIndex,
-            SetFloat      = libphx.Shader_SetFloat,
-            ISetFloat     = libphx.Shader_ISetFloat,
-            SetFloat2     = libphx.Shader_SetFloat2,
-            ISetFloat2    = libphx.Shader_ISetFloat2,
-            SetFloat3     = libphx.Shader_SetFloat3,
-            ISetFloat3    = libphx.Shader_ISetFloat3,
-            SetFloat4     = libphx.Shader_SetFloat4,
-            ISetFloat4    = libphx.Shader_ISetFloat4,
-            SetInt        = libphx.Shader_SetInt,
-            ISetInt       = libphx.Shader_ISetInt,
-            SetInt2       = libphx.Shader_SetInt2,
-            ISetInt2      = libphx.Shader_ISetInt2,
-            SetInt3       = libphx.Shader_SetInt3,
-            ISetInt3      = libphx.Shader_ISetInt3,
-            SetInt4       = libphx.Shader_SetInt4,
-            ISetInt4      = libphx.Shader_ISetInt4,
-            SetMatrix     = libphx.Shader_SetMatrix,
-            ISetMatrix    = libphx.Shader_ISetMatrix,
-            SetMatrixT    = libphx.Shader_SetMatrixT,
-            ISetMatrixT   = libphx.Shader_ISetMatrixT,
-            SetTex1D      = libphx.Shader_SetTex1D,
-            ISetTex1D     = libphx.Shader_ISetTex1D,
-            SetTex2D      = libphx.Shader_SetTex2D,
-            ISetTex2D     = libphx.Shader_ISetTex2D,
-            SetTex3D      = libphx.Shader_SetTex3D,
-            ISetTex3D     = libphx.Shader_ISetTex3D,
-            SetTexCube    = libphx.Shader_SetTexCube,
-            ISetTexCube   = libphx.Shader_ISetTexCube,
         }
 
         if onDef_Shader then onDef_Shader(Shader, mt) end
@@ -118,6 +89,35 @@ function Loader.defineType()
                 getHandle     = libphx.Shader_GetHandle,
                 getVariable   = libphx.Shader_GetVariable,
                 hasVariable   = libphx.Shader_HasVariable,
+                resetTexIndex = libphx.Shader_ResetTexIndex,
+                setFloat      = libphx.Shader_SetFloat,
+                iSetFloat     = libphx.Shader_ISetFloat,
+                setFloat2     = libphx.Shader_SetFloat2,
+                iSetFloat2    = libphx.Shader_ISetFloat2,
+                setFloat3     = libphx.Shader_SetFloat3,
+                iSetFloat3    = libphx.Shader_ISetFloat3,
+                setFloat4     = libphx.Shader_SetFloat4,
+                iSetFloat4    = libphx.Shader_ISetFloat4,
+                setInt        = libphx.Shader_SetInt,
+                iSetInt       = libphx.Shader_ISetInt,
+                setInt2       = libphx.Shader_SetInt2,
+                iSetInt2      = libphx.Shader_ISetInt2,
+                setInt3       = libphx.Shader_SetInt3,
+                iSetInt3      = libphx.Shader_ISetInt3,
+                setInt4       = libphx.Shader_SetInt4,
+                iSetInt4      = libphx.Shader_ISetInt4,
+                setMatrix     = libphx.Shader_SetMatrix,
+                iSetMatrix    = libphx.Shader_ISetMatrix,
+                setMatrixT    = libphx.Shader_SetMatrixT,
+                iSetMatrixT   = libphx.Shader_ISetMatrixT,
+                setTex1D      = libphx.Shader_SetTex1D,
+                iSetTex1D     = libphx.Shader_ISetTex1D,
+                setTex2D      = libphx.Shader_SetTex2D,
+                iSetTex2D     = libphx.Shader_ISetTex2D,
+                setTex3D      = libphx.Shader_SetTex3D,
+                iSetTex3D     = libphx.Shader_ISetTex3D,
+                setTexCube    = libphx.Shader_SetTexCube,
+                iSetTexCube   = libphx.Shader_ISetTexCube,
                 start         = libphx.Shader_Start,
                 stop          = libphx.Shader_Stop,
             },
