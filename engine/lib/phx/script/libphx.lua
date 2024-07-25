@@ -9,7 +9,6 @@ do -- Basic Typedefs
     typedef int32          CollisionGroup;
     typedef int32          CollisionMask;
     typedef int32          CubeFace;
-    typedef int32          CullFace;
     typedef uint8          CursorControl;
     typedef int32          DataFormat;
     typedef uint32         Error;

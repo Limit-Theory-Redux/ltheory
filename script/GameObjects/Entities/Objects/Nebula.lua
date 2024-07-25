@@ -16,11 +16,11 @@ function Nebula:render(state)
     if state.mode == BlendMode.Disabled then
         RenderState.PushDepthWritable(false)
         local shader = Cache.Shader('farplane', 'skybox')
-        CullFace.Push(CullFace.None)
+        RenderState.PushCullFace(CullFace.None)
         shader:start()
         Draw.Box3(Box3f(-1, -1, -1, 1, 1, 1))
         shader:stop()
-        CullFace.Pop()
+        RenderState.PopCullFace()
         RenderState.PopDepthWritable()
     elseif state.mode == BlendMode.Additive then
         local shader = Cache.Shader('farplane', 'starbg')

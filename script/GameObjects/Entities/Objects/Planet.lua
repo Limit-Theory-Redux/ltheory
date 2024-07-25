@@ -134,7 +134,7 @@ function Planet:render(state)
         self.mesh:draw()
         shader:stop()
     elseif state.mode == BlendMode.Alpha then
-        CullFace.Push(CullFace.Back)
+        RenderState.PushCullFace(CullFace.Back)
         BlendMode.Push(BlendMode.PreMultAlpha)
         local shader = Cache.Shader('wvp', 'material/atmosphere')
         shader:start()
@@ -157,7 +157,7 @@ function Planet:render(state)
         self.meshAtmo:draw()
         shader:stop()
         BlendMode.Pop()
-        CullFace.Pop()
+        RenderState.PopCullFace()
     end
 end
 

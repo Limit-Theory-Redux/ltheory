@@ -259,7 +259,7 @@ function RenderPipeline:start(resX, resY, ss)
     Draw.ClearDepth(1)
     Draw.Color(1, 1, 1, 1)
     BlendMode.Push(BlendMode.Disabled)
-    CullFace.Push(Settings.get('render.cullface') and CullFace.Back or CullFace.None)
+    RenderState.PushCullFace(Settings.get('render.cullface') and CullFace.Back or CullFace.None)
     RenderState.PushDepthTest(true)
 end
 
@@ -269,7 +269,7 @@ function RenderPipeline:startAlpha(mode)
     RenderTarget.BindTex2D(self.zBuffer)
 
     BlendMode.Push(mode)
-    CullFace.Push(CullFace.None)
+    RenderState.PushCullFace(CullFace.None)
     RenderState.PushDepthTest(true)
     RenderState.PushDepthWritable(false)
 end
@@ -306,21 +306,21 @@ function RenderPipeline:startUI()
     RenderTarget.BindTex2D(self.zBuffer)
     Draw.Clear(0, 0, 0, 0)
     BlendMode.Push(BlendMode.Alpha)
-    CullFace.Push(CullFace.None)
+    RenderState.PushCullFace(CullFace.None)
     RenderState.PushDepthTest(false)
     RenderState.PushDepthWritable(false)
 end
 
 function RenderPipeline:stop()
     BlendMode.Pop()
-    CullFace.Pop()
+    RenderState.PopCullFace()
     RenderState.PopDepthTest()
     RenderTarget.Pop()
 end
 
 function RenderPipeline:stopAlpha()
     BlendMode.Pop()
-    CullFace.Pop()
+    RenderState.PopCullFace()
     RenderState.PopDepthTest()
     RenderState.PopDepthWritable()
     RenderTarget.Pop()
@@ -329,7 +329,7 @@ end
 function RenderPipeline:stopUI()
     self.buffer1:pop()
     BlendMode.Pop()
-    CullFace.Pop()
+    RenderState.PopCullFace()
     RenderState.PopDepthTest()
     RenderState.PopDepthWritable()
 

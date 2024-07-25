@@ -7,6 +7,7 @@ local vs = Resource.LoadString(ResourceType.Shader, 'vertex/ui')
 
 -- Main generating fragment shader
 local fs = [[
+#version 330
 
 #include fragment
 #include noise

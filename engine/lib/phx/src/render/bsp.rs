@@ -1380,7 +1380,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
     }
 
     RenderState_PushBlendMode(1);
-    RenderState_PushCullFace(1);
+    RenderState_PushCullFace(CullFace::Back);
     RenderState_PushDepthTest(true);
     RenderState_PushWireframe(true);
 
