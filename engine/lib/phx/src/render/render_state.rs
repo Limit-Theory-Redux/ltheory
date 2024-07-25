@@ -5,10 +5,10 @@ use super::*;
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Default, Debug, Copy, Clone)]
 pub enum BlendMode {
-    Additive,
-    Alpha,
     #[default]
     Disabled,
+    Additive,
+    Alpha,
     PreMultAlpha,
 }
 

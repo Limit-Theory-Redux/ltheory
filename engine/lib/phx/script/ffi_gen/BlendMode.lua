@@ -16,9 +16,9 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            BlendMode BlendMode_Disabled;
             BlendMode BlendMode_Additive;
             BlendMode BlendMode_Alpha;
-            BlendMode BlendMode_Disabled;
             BlendMode BlendMode_PreMultAlpha;
 
             cstr      BlendMode_ToString(BlendMode);
@@ -27,9 +27,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         BlendMode = {
+            Disabled     = libphx.BlendMode_Disabled,
             Additive     = libphx.BlendMode_Additive,
             Alpha        = libphx.BlendMode_Alpha,
-            Disabled     = libphx.BlendMode_Disabled,
             PreMultAlpha = libphx.BlendMode_PreMultAlpha,
 
             ToString     = libphx.BlendMode_ToString,

@@ -2,9 +2,9 @@
 
 ---@enum BlendMode
 BlendMode = {
-    Additive = 0,
-    Alpha = 1,
-    Disabled = 2,
+    Disabled = 0,
+    Additive = 1,
+    Alpha = 2,
     PreMultAlpha = 3,
 }
 
