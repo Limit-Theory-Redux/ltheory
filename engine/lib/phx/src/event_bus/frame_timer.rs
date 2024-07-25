@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use strum::IntoEnumIterator;
 
-use crate::system::TimeStamp;
 use super::FrameStage;
+use crate::system::TimeStamp;
 
 pub struct FrameTimer {
     pub(crate) last_update: HashMap<FrameStage, TimeStamp>,

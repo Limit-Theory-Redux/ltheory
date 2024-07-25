@@ -177,9 +177,7 @@ impl WinitWindow {
 
         window_attributes = window_attributes.with_title(window.title.as_str());
 
-        let template = ConfigTemplateBuilder::new()
-            .with_alpha_size(8)
-            .with_transparency(cfg!(cgl_backend));
+        let template = ConfigTemplateBuilder::new().with_alpha_size(8);
         let display_builder = DisplayBuilder::new().with_window_attributes(Some(window_attributes));
         let (winit_window, gl_config) = display_builder
             .build(event_loop, template, |configs| {
