@@ -53,6 +53,8 @@ fn main() {
         println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/deps");
     }
 
+    println!("cargo::rustc-check-cfg=cfg(cgl_backend)");
+
     // If we don't specify rerun-if-changed, then Cargo will always rerun build.rs, causing phx to always be rebuild.
     //
     // Here, we just specify build.rs as the file that should be used to guide if phx's build script needs to be re-run.
