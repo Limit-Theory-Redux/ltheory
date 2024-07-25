@@ -1,18 +1,18 @@
 use std::collections::{hash_map::Entry, BinaryHeap, HashMap, VecDeque};
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use strum::IntoEnumIterator;
 use internal::ConvertIntoString;
+use strum::IntoEnumIterator;
 use tracing::{info, warn};
 
-use event_data::*;
 use event::*;
+use event_data::*;
 use frame_stage::*;
 use frame_timer::*;
 use message_request::*;
 
-mod event_data;
 mod event;
+mod event_data;
 mod frame_stage;
 mod frame_timer;
 mod message_request;

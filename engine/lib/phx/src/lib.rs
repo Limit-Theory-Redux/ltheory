@@ -8,8 +8,8 @@
 pub mod audio;
 pub mod common;
 pub mod engine;
-pub mod event_bus;
 pub mod error;
+pub mod event_bus;
 pub mod input;
 pub mod logging;
 pub mod math;
