@@ -193,7 +193,7 @@ impl Font {
         y = f64::floor(y as f64) as f32;
 
         unsafe {
-            RenderState_PushBlendMode(1);
+            RenderState_PushBlendMode(BlendMode::Alpha);
         }
 
         self.0.as_ref().shader.borrow_mut().start();

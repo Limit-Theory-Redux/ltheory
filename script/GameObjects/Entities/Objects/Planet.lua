@@ -135,7 +135,7 @@ function Planet:render(state)
         shader:stop()
     elseif state.mode == BlendMode.Alpha then
         RenderState.PushCullFace(CullFace.Back)
-        BlendMode.Push(BlendMode.PreMultAlpha)
+        RenderState.PushBlendMode(BlendMode.PreMultAlpha)
         local shader = Cache.Shader('wvp', 'material/atmosphere')
         shader:start()
         do -- TODO : Scale the atmosphere mesh in shader...
@@ -156,7 +156,7 @@ function Planet:render(state)
         shader:setFloat3('starColor', 1.0, 0.5, 0.1)
         self.meshAtmo:draw()
         shader:stop()
-        BlendMode.Pop()
+        RenderState.PopBlendMode()
         RenderState.PopCullFace()
     end
 end

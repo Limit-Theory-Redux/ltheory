@@ -138,7 +138,7 @@ function AudioTest:onInput()
 end
 
 function AudioTest:onDraw()
-    BlendMode.PushAlpha()
+    RenderState.PushBlendMode(BlendMode.Alpha)
 
     Draw.Clear(0.1, 0.1, 0.1, 1.0)
 
@@ -170,7 +170,7 @@ function AudioTest:onDraw()
 
     shader:stop()
 
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function AudioTest:onUpdate(dt)

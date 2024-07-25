@@ -234,7 +234,7 @@ impl HmGui {
         unsafe {
             Profiler_Begin(c_str!("HmGui_Draw"));
 
-            RenderState_PushBlendMode(1);
+            RenderState_PushBlendMode(BlendMode::Alpha);
         }
 
         self.renderer.begin();

@@ -60,7 +60,7 @@ function GameView:draw(focus, active)
         do -- Local lighting (TODO: performance issues?)
             Profiler.Begin('Render.Lighting.Local')
             self.renderer.buffer2:push()
-            BlendMode.PushAdditive()
+            RenderState.PushBlendMode(BlendMode.Additive)
             local shader = Cache.Shader('worldray', 'light/point')
             shader:start()
             for i, v in ipairs(lights) do
@@ -73,7 +73,7 @@ function GameView:draw(focus, active)
                 Draw.Rect(-1, -1, 2, 2)
             end
             shader:stop()
-            BlendMode.Pop()
+            RenderState.PopBlendMode()
             self.renderer.buffer2:pop()
             Profiler.End()
         end

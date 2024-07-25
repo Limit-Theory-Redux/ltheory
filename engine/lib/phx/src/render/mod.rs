@@ -1,6 +1,5 @@
 #![allow(non_snake_case)] // TODO: remove this and fix all warnings
 
-mod blend_mode;
 mod box_mesh;
 mod box_tree;
 mod bsp;
@@ -37,7 +36,6 @@ mod texcube;
 mod ui_renderer;
 mod viewport;
 
-pub use blend_mode::*;
 pub use box_mesh::*;
 pub use box_tree::*;
 pub use bsp::*;

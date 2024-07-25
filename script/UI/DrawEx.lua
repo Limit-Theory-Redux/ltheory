@@ -28,14 +28,14 @@ function DrawEx.Circle(x, y, r, color)
     local x, y, sx, sy = padAndCenter(padCircle, x, y, r, r)
     local shader = Cache.Shader('ui', 'ui/circle')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat('radius', r)
     shader:setFloat2('size', sx, sy)
     shader:setFloat4('color', color.r, color.g, color.b, color.a * alpha)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.Cross(x, y, r, color)
@@ -51,27 +51,27 @@ function DrawEx.Grid(x, y, sx, sy, c)
     local x, y, sx, sy = padOffCenter(padPanel, x, y, sx, sy)
     local shader = Cache.Shader('ui', 'ui/grid')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat2('size', sx, sy)
     shader:setFloat4('color', c.r, c.g, c.b, c.a * alpha)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.Hex(x, y, r, c)
     local x, y, sx, sy = padAndCenter(padRing, x, y, r, r)
     local shader = Cache.Shader('ui', 'ui/hex')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat('radius', r)
     shader:setFloat2('size', sx, sy)
     shader:setFloat4('color', c.r, c.g, c.b, c.a * alpha)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.Hologram(mesh, x, y, sx, sy, color, radius, yaw, pitch)
@@ -81,7 +81,7 @@ function DrawEx.Hologram(mesh, x, y, sx, sy, color, radius, yaw, pitch)
     local mProj = Matrix.Perspective(70, sx / sy, 0.1, 1e6)
     local shader = Cache.Shader('ui3D', 'ui/hologram')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setMatrix('mView', mView)
     shader:setMatrix('mProj', mProj)
@@ -91,7 +91,7 @@ function DrawEx.Hologram(mesh, x, y, sx, sy, color, radius, yaw, pitch)
     shader:setFloat4('viewport', x, y, x + sx, y + sy)
     mesh:draw()
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
     mView:free()
     mProj:free()
 end
@@ -101,13 +101,13 @@ function DrawEx.Icon(icon, x, y, sx, sy, color)
     local x, y, sx, sy = padAndCenter(0, x, y, sx, sy)
     local shader = Cache.Shader('ui', 'ui/icon')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat4('color', color.r, color.g, color.b, color.a * alpha)
     shader:setTex2D('icon', icon)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.Line(x1, y1, x2, y2, color, fade)
@@ -121,7 +121,7 @@ function DrawEx.Line(x1, y1, x2, y2, color, fade)
     local sy = yMax - yMin
     local shader = Cache.Shader('ui', 'ui/line')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat2('origin', xMin, yMin)
     shader:setFloat2('size', sx, sy)
@@ -131,7 +131,7 @@ function DrawEx.Line(x1, y1, x2, y2, color, fade)
     shader:setInt('fade', fadeval)
     Draw.Rect(xMin, yMin, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.Meter(x, y, sx, sy, color, spacing, total, level, overcharge, overchargeColor, direction)
@@ -184,7 +184,7 @@ function DrawEx.Panel(x, y, sx, sy, color, innerAlpha)
     local alpha = alphaStack:last() or 1
     local x, y, sx, sy = padOffCenter(padPanel, x, y, sx, sy)
     local shader = Cache.Shader('ui', 'ui/panel')
-    BlendMode.PushAlpha()
+    RenderState.PushBlendMode(BlendMode.Alpha)
     shader:start()
     shader:setFloat('padding', padPanel)
     shader:setFloat('innerAlpha', innerAlpha * alpha)
@@ -192,47 +192,47 @@ function DrawEx.Panel(x, y, sx, sy, color, innerAlpha)
     shader:setFloat4('color', color.r, color.g, color.b, color.a * alpha)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.PanelGlow(x, y, sx, sy, color)
     local x, y, sx, sy = padOffCenter(padPanel, x, y, sx, sy)
     local shader = Cache.Shader('ui', 'ui/panelglow')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat('padding', padPanel)
     shader:setFloat2('size', sx, sy)
     shader:setFloat4('color', color.r, color.g, color.b, color.a * alpha)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.Point(x, y, r, color)
     local x, y, sx, sy = padAndCenter(padPoint, x, y, r, r)
     local shader = Cache.Shader('ui', 'ui/point') -- previously used 'ui/circle-old' shader
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAlpha()
+    RenderState.PushBlendMode(BlendMode.Alpha)
     shader:start()
     shader:setFloat2('size', sx, sy)
     shader:setFloat4('color', color.r, color.g, color.b, color.a * alpha)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.PointGlow(x, y, r, color)
     local x, y, sx, sy = padAndCenter(padPoint, x, y, r, r)
     local shader = Cache.Shader('ui', 'ui/point') -- previously used 'ui/circle-old' shader
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat2('size', sx, sy)
     shader:setFloat4('color', color.r, color.g, color.b, color.a * alpha)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.PushAlpha(a)
@@ -265,13 +265,13 @@ function DrawEx.Rect(x, y, sx, sy, color)
     local x, y, sx, sy = padOffCenter(padBox, x, y, sx, sy)
     local shader = Cache.Shader('ui', 'ui/box')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat2('size', sx, sy)
     shader:setFloat4('color', color.r, color.g, color.b, color.a * alpha)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.RectOutline(x, y, sx, sy, color)
@@ -291,9 +291,9 @@ function DrawEx.Ring(x, y, r, c, glow)
     local shader = Cache.Shader('ui', 'ui/ring')
     local alpha = alphaStack:last() or 1
     if glow then
-        BlendMode.PushAdditive()
+        RenderState.PushBlendMode(BlendMode.Additive)
     else
-        BlendMode.PushAlpha()
+        RenderState.PushBlendMode(BlendMode.Alpha)
     end
     shader:start()
     shader:setFloat('radius', r)
@@ -302,7 +302,7 @@ function DrawEx.Ring(x, y, r, c, glow)
     shader:setInt('glow', glowval)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.RingDim(x, y, r, c)
@@ -310,7 +310,7 @@ function DrawEx.RingDim(x, y, r, c)
     local x, y, sx, sy = padAndCenter(padRing, x, y, r, r)
     local shader = Cache.Shader('ui', 'ui/ringdim')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat('radius', r)
     shader:setFloat2('size', sx, sy)
@@ -318,7 +318,7 @@ function DrawEx.RingDim(x, y, r, c)
     shader:setInt('glow', 1)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.Tri(x1, y1, x2, y2, x3, y3, color)
@@ -328,7 +328,7 @@ function DrawEx.Tri(x1, y1, x2, y2, x3, y3, color)
     local yMax = max(y1, max(y2, y3)) + padTri
     local shader = Cache.Shader('ui', 'ui/triangle')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat2('p1', x1, y1)
     shader:setFloat2('p2', x2, y2)
@@ -336,7 +336,7 @@ function DrawEx.Tri(x1, y1, x2, y2, x3, y3, color)
     shader:setFloat4('color', color.r, color.g, color.b, color.a * alpha)
     Draw.Rect(xMin, yMin, xMax - xMin, yMax - yMin)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.TriV(p1, p2, p3, color)
@@ -347,7 +347,7 @@ function DrawEx.Wedge(x, y, r1, r2, to, tw, c, a)
     local x, y, sx, sy = padAndCenter(padWedge, x, y, 2.0 * r2, 2.0 * r2)
     local shader = Cache.Shader('ui', 'ui/wedge')
     local alpha = alphaStack:last() or 1
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     shader:start()
     shader:setFloat('r1', r1)
     shader:setFloat('r2', r2)
@@ -357,7 +357,7 @@ function DrawEx.Wedge(x, y, r1, r2, to, tw, c, a)
     shader:setFloat4('color', c.r, c.g, c.b, (a or c.a) * alpha)
     Draw.Rect(x, y, sx, sy)
     shader:stop()
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 local function drawText(font, text, size, x, y, sx, sy, cr, cg, cb, ca, alignX, alignY)
@@ -374,15 +374,15 @@ local function drawText(font, text, size, x, y, sx, sy, cr, cg, cb, ca, alignX, 
 end
 
 function DrawEx.TextAdditive(...)
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     drawText(...)
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 function DrawEx.TextAlpha(...)
-    BlendMode.PushAlpha()
+    RenderState.PushBlendMode(BlendMode.Alpha)
     drawText(...)
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 return DrawEx
