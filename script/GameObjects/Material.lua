@@ -82,9 +82,9 @@ function Material:reload()
 end
 
 function Material:setState(e, eye)
-    if self.imWorld then Shader.ISetMatrix(self.imWorld, e:getToWorldMatrix(eye)) end
-    if self.imWorldIT then Shader.ISetMatrixT(self.imWorldIT, e:getToLocalMatrix(eye)) end
-    if self.iScale then Shader.ISetFloat(self.iScale, e:getScale()) end
+    if self.imWorld then self.state:shader():iSetMatrix(self.imWorld, e:getToWorldMatrix(eye)) end
+    if self.imWorldIT then self.state:shader():iSetMatrixT(self.imWorldIT, e:getToLocalMatrix(eye)) end
+    if self.iScale then self.state:shader():iSetFloat(self.iScale, e:getScale()) end
 end
 
 function Material:start()

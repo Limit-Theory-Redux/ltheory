@@ -49,8 +49,8 @@ function GameView:draw(focus, active)
             Draw.Clear(0, 0, 0, 0)
             local shader = Cache.Shader('worldray', 'light/global')
             shader:start()
-            Shader.SetTex2D('texDepth', self.renderer.zBufferL)
-            Shader.SetTex2D('texNormalMat', self.renderer.buffer1)
+            shader:setTex2D('texDepth', self.renderer.zBufferL)
+            shader:setTex2D('texNormalMat', self.renderer.buffer1)
             Draw.Rect(-1, -1, 2, 2)
             shader:stop()
             self.renderer.buffer2:pop()
@@ -66,10 +66,10 @@ function GameView:draw(focus, active)
             for i, v in ipairs(lights) do
                 -- TODO : Batching
                 local renderPos = v.pos:relativeTo(eye)
-                Shader.SetFloat3('lightPos', renderPos.x, renderPos.y, renderPos.z)
-                Shader.SetFloat3('lightColor', v.color.x, v.color.y, v.color.z)
-                Shader.SetTex2D('texDepth', self.renderer.zBufferL)
-                Shader.SetTex2D('texNormalMat', self.renderer.buffer1)
+                shader:setFloat3('lightPos', renderPos.x, renderPos.y, renderPos.z)
+                shader:setFloat3('lightColor', v.color.x, v.color.y, v.color.z)
+                shader:setTex2D('texDepth', self.renderer.zBufferL)
+                shader:setTex2D('texNormalMat', self.renderer.buffer1)
                 Draw.Rect(-1, -1, 2, 2)
             end
             shader:stop()
@@ -83,9 +83,9 @@ function GameView:draw(focus, active)
             self.renderer.buffer1:push()
             local shader = Cache.Shader('worldray', 'light/composite')
             shader:start()
-            Shader.SetTex2D('texAlbedo', self.renderer.buffer0)
-            Shader.SetTex2D('texDepth', self.renderer.zBufferL)
-            Shader.SetTex2D('texLighting', self.renderer.buffer2)
+            shader:setTex2D('texAlbedo', self.renderer.buffer0)
+            shader:setTex2D('texDepth', self.renderer.zBufferL)
+            shader:setTex2D('texLighting', self.renderer.buffer2)
             Draw.Rect(-1, -1, 2, 2)
             shader:stop()
             self.renderer.buffer1:pop()
@@ -118,22 +118,22 @@ function GameView:draw(focus, active)
             local mat = Material.DebugColorA()
             mat:start()
             if GameState.debug.physics.drawBoundingBoxesLocal then
-                Shader.SetFloat4('color', 0, 0, 1, 0.5)
+                shader:setFloat4('color', 0, 0, 1, 0.5)
                 system.physics:drawBoundingBoxesLocal()
             end
             if GameState.debug.physics.drawBoundingBoxesWorld then
-                Shader.SetMatrix('mWorld', Matrix.Identity())
-                Shader.SetMatrixT('mWorldIT', Matrix.Identity())
-                Shader.SetFloat('scale', 1)
-                Shader.SetFloat4('color', 1, 0, 0, 0.5)
+                shader:setMatrix('mWorld', Matrix.Identity())
+                shader:setMatrixT('mWorldIT', Matrix.Identity())
+                shader:setFloat('scale', 1)
+                shader:setFloat4('color', 1, 0, 0, 0.5)
                 system.physics:drawBoundingBoxesWorld()
             end
             if GameState.debug.physics.drawWireframes then
-                Shader.SetMatrix('mWorld', Matrix.Identity())
-                Shader.SetMatrixT('mWorldIT', Matrix.Identity())
-                Shader.SetFloat('scale', 1)
+                shader:setMatrix('mWorld', Matrix.Identity())
+                shader:setMatrixT('mWorldIT', Matrix.Identity())
+                shader:setFloat('scale', 1)
                 -- drawWireframes will set the 'color' shader variable.
-                system.physics:drawWireframes(eye)
+                system.physics:drawWireframes(mat.state.shader(), eye)
             end
             mat:stop()
         end
@@ -173,12 +173,12 @@ function GameView:draw(focus, active)
         if Settings.get('postfx.tonemap.enable') then self.renderer:tonemap() end
         if Settings.get('postfx.aberration.enable') then
             self.renderer:applyFilter('aberration', function()
-                Shader.SetFloat('strength', Settings.get('postfx.aberration.strength'))
+                shader:setFloat('strength', Settings.get('postfx.aberration.strength'))
             end)
         end
         if Settings.get('postfx.radialblur.enable') then
             self.renderer:applyFilter('radialblur', function()
-                Shader.SetFloat('strength', Settings.get('postfx.radialblur.strength'))
+                shader:setFloat('strength', Settings.get('postfx.radialblur.strength'))
             end)
         end
         if Settings.get('postfx.sharpen.enable') then

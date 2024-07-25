@@ -152,7 +152,7 @@ function AudioTest:onDraw()
         e.tex:draw(e.x - 96, e.y - 96, 192, 192)
         local d = Vec3f(e.x, 0, e.y):distance(self.pos)
         local c = Vec3f():lerp(Vec3f(1.0, 0.0, 0.2), exp(-max(0, d / 128 - 1.0)))
-        Shader.SetFloat4("color", c.x, c.y, c.z, 1)
+        shader:setFloat4("color", c.x, c.y, c.z, 1)
         Draw.Border(8, e.x - 96, e.y - 96, 192, 192)
     end
 
@@ -161,11 +161,11 @@ function AudioTest:onDraw()
     for i = 1, #self.particles do
         local p = self.particles[i]
         local alpha = p.life / 5
-        Shader.SetFloat4("color", 0.25, 1.0, 0.25, alpha * 0.8)
+        shader:setFloat4("color", 0.25, 1.0, 0.25, alpha * 0.8)
         Draw.Point(p.x, p.y)
     end
 
-    Shader.SetFloat4("color", 0.1, 0.6, 1.0, 1.0)
+    shader:setFloat4("color", 0.1, 0.6, 1.0, 1.0)
     Draw.Rect(self.pos.x - 4, self.pos.z - 4, 8, 8)
 
     shader:stop()

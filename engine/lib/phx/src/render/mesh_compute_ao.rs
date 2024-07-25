@@ -100,12 +100,12 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: &mut Mesh, radius: f32) {
     RenderTarget_PushTex2D(&mut *texOutput);
 
     (*SHADER).start();
-    Shader::set_int("sDim", sDim);
-    Shader::set_float("radius", radius);
-    Shader::set_tex2d("sPointBuffer", &mut *texSPoints);
-    Shader::set_tex2d("sNormalBuffer", &mut *texSNormals);
-    Shader::set_tex2d("vPointBuffer", &mut *texVPoints);
-    Shader::set_tex2d("vNormalBuffer", &mut *texVNormals);
+    (*SHADER).set_int("sDim", sDim);
+    (*SHADER).set_float("radius", radius);
+    (*SHADER).set_tex2d("sPointBuffer", &mut *texSPoints);
+    (*SHADER).set_tex2d("sNormalBuffer", &mut *texSNormals);
+    (*SHADER).set_tex2d("vPointBuffer", &mut *texVPoints);
+    (*SHADER).set_tex2d("vNormalBuffer", &mut *texVNormals);
     Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
     (*SHADER).stop();
 
@@ -165,9 +165,9 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: &mut Mesh, sdf: *mut Tex3D,
     RenderTarget_PushTex2D(&mut *texOutput);
 
     (*SHADER).start();
-    Shader::set_float("radius", radius);
-    Shader::set_tex2d("points", &mut *texPoints);
-    Shader::set_tex3d("sdf", &mut *sdf);
+    (*SHADER).set_float("radius", radius);
+    (*SHADER).set_tex2d("points", &mut *texPoints);
+    (*SHADER).set_tex3d("sdf", &mut *sdf);
     Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
     (*SHADER).stop();
 

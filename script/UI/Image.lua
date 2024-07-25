@@ -12,7 +12,7 @@ local default
 function Image:onDraw(focus, active)
     local shader = Cache.Shader('ui', 'simple_image')
     shader:start()
-    Shader.SetTex2D("image", self.tex)
+    shader:setTex2D("image", self.tex)
     local x, y, sx, sy = self:getRectGlobal()
     Draw.Rect(x, y, sx, sy)
     shader:stop()

@@ -430,10 +430,11 @@ impl Shader {
         unsafe {
             Profiler_Begin(c_str!("Shader_Start"));
         }
-        
+
         let s = &mut *self.shared.as_mut();
 
         glcheck!(gl::UseProgram(s.program));
+        s.is_bound = true;
 
         // Reset the tex index counter.
         s.tex_index = 0;
@@ -476,6 +477,7 @@ impl Shader {
     }
 
     pub fn stop(&self) {
+        self.shared.as_mut().is_bound = false;
         glcheck!(gl::UseProgram(0));
     }
 }

@@ -34,6 +34,7 @@ function Loader.defineType()
             void         ShaderState_SetTexCube     (ShaderState*, cstr name, TexCube* t);
             void         ShaderState_Start          (ShaderState*);
             void         ShaderState_Stop           (ShaderState*);
+            Shader*      ShaderState_Shader         (ShaderState*);
         ]]
     end
 
@@ -72,6 +73,7 @@ function Loader.defineType()
                 setTexCube = libphx.ShaderState_SetTexCube,
                 start      = libphx.ShaderState_Start,
                 stop       = libphx.ShaderState_Stop,
+                shader     = libphx.ShaderState_Shader,
             },
         }
 

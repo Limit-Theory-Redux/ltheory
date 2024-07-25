@@ -31,7 +31,7 @@ function Loader.defineType()
             bool     Physics_BoxOverlap             (Physics const*, Vec3f const* pos, Quat const* rot, Vec3f const* halfExtents);
             void     Physics_DrawBoundingBoxesLocal (Physics const*);
             void     Physics_DrawBoundingBoxesWorld (Physics const*);
-            void     Physics_DrawWireframes         (Physics*, Position const* eye);
+            void     Physics_DrawWireframes         (Physics*, Shader* shader, Position const* eye);
         ]]
     end
 

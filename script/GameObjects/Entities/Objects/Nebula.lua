@@ -25,9 +25,9 @@ function Nebula:render(state)
     elseif state.mode == BlendMode.Additive then
         local shader = Cache.Shader('farplane', 'starbg')
         shader:start()
-        Shader.SetFloat('brightnessScale', 0.15)
-        Shader.SetTexCube('irMap', self.irMap)
-        Shader.SetTexCube('envMap', self.envMap)
+        shader:setFloat('brightnessScale', 0.15)
+        shader:setTexCube('irMap', self.irMap)
+        shader:setTexCube('envMap', self.envMap)
         self.stars:draw()
         shader:stop()
     end

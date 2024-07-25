@@ -1352,7 +1352,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(this: &mut BSP, nodeRef: BSPNodeRef, 
         );
     } else {
         (*SHADER).start();
-        Shader::set_float4("color", color.r, color.g, color.b, color.a);
+        (*SHADER).set_float4("color", color.r, color.g, color.b, color.a);
         let leafIndex = -nodeRef.index;
         for i in 0..nodeRef.triangleCount {
             let triangle: &Triangle = &this.triangles[leafIndex as usize + i as usize];
@@ -1407,9 +1407,9 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
         let closestPoint = origin - ((*node).plane.n * t);
         RenderState_PushWireframe(false);
         (*SHADER).start();
-        Shader::set_float4("color", 0.3f32, 0.5f32, 0.3f32, 0.4f32);
+        (*SHADER).set_float4("color", 0.3f32, 0.5f32, 0.3f32, 0.4f32);
         Draw_Plane(&closestPoint, &(*node).plane.n, 2.0f32);
-        Shader::set_float4("color", 0.5f32, 0.3f32, 0.3f32, 0.4f32);
+        (*SHADER).set_float4("color", 0.5f32, 0.3f32, 0.3f32, 0.4f32);
         let neg: Vec3 = (*node).plane.n * -1.0f32;
         Draw_Plane(&closestPoint, &neg, 2.0f32);
         (*SHADER).stop();
@@ -1446,13 +1446,13 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
 
     (*SHADER).start();
     if BSP_IntersectLineSegment(bsp, lineSegment, &mut pHit) {
-        Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.1f32);
+        (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.1f32);
         Draw_Line3(
             &(*lineSegment).p0.relative_to(*eye),
             &Position::from_vec(pHit).relative_to(*eye),
         );
 
-        Shader::set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
+        (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
         Draw_Line3(
             &Position::from_vec(pHit).relative_to(*eye),
             &(*lineSegment).p1.relative_to(*eye),
@@ -1461,7 +1461,7 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
         Draw_PointSize(5.0f32);
         Draw_Point3(pHit.x, pHit.y, pHit.z);
     } else {
-        Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
+        (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
         Draw_Line3(
             &(*lineSegment).p0.relative_to(*eye),
             &(*lineSegment).p1.relative_to(*eye),
@@ -1486,11 +1486,11 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere
     (*SHADER).start();
     if BSP_IntersectSphere(this, sphere, &mut pHit) {
         RenderState_PushWireframe(false);
-        Shader::set_float4("color", 1.0f32, 0.0f32, 0.0f32, 0.3f32);
+        (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 0.3f32);
         Draw_Sphere(&sphere.p, sphere.r);
         RenderState_PopWireframe();
 
-        Shader::set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
+        (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
         Draw_Sphere(&sphere.p, sphere.r);
 
         RenderState_PushDepthTest(false);
@@ -1499,11 +1499,11 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere
         RenderState_PopDepthTest();
     } else {
         RenderState_PushWireframe(false);
-        Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.3f32);
+        (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.3f32);
         Draw_Sphere(&sphere.p, sphere.r);
         RenderState_PopWireframe();
 
-        Shader::set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
+        (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
         Draw_Sphere(&sphere.p, sphere.r);
     };
     (*SHADER).stop();

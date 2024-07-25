@@ -54,15 +54,15 @@ local function Assert(condition)
     if not condition then error() end
 end
 
-local function DrawMesh(mesh, cullMode, depthMode, alphaMode)
+local function DrawMesh(shader, mesh, cullMode, depthMode, alphaMode)
     RenderState.PushCullFace(cullMode)
     RenderState.PushDepthTest(depthMode)
 
-    Shader.SetFloat4("color", 0.2, 0.2, 0.2, alphaMode)
+    shader:setFloat4("color", 0.2, 0.2, 0.2, alphaMode)
     mesh:draw()
 
     RenderState.PushWireframe(true)
-    Shader.SetFloat4("color", 1.0, 1.0, 1.0, 0.1)
+    shader:setFloat4("color", 1.0, 1.0, 1.0, 0.1)
     mesh:draw()
     RenderState.PopWireframe()
 
@@ -366,17 +366,17 @@ function BSPTest:onDraw()
 
             local zero = Vec3f()
             local p
-            Shader.SetFloat4("color", 1.0, 0.0, 0.0, 1.0)
+            shader:setFloat4("color", 1.0, 0.0, 0.0, 1.0)
             p = Vec3f(1.0, 0.0, 0.0)
             Draw.Line3(zero, p)
-            Shader.SetFloat4("color", 0.0, 1.0, 0.0, 1.0)
+            shader:setFloat4("color", 0.0, 1.0, 0.0, 1.0)
             p = Vec3f(0.0, 1.0, 0.0)
             Draw.Line3(zero, p)
-            Shader.SetFloat4("color", 0.0, 0.0, 1.0, 1.0)
+            shader:setFloat4("color", 0.0, 0.0, 1.0, 1.0)
             p = Vec3f(0.0, 0.0, 1.0)
             Draw.Line3(zero, p)
 
-            DrawMesh(obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
+            DrawMesh(shader, obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
 
             shader:stop()
 
@@ -420,7 +420,7 @@ function BSPTest:onDraw()
         if bsp.testNumber == 3 then
             if not gen.depthMode then
                 shader:start()
-                DrawMesh(obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
+                DrawMesh(shader, obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
                 shader:stop()
             end
 
@@ -450,7 +450,7 @@ function BSPTest:onDraw()
 
             if gen.depthMode then
                 shader:start()
-                DrawMesh(obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
+                DrawMesh(shader, obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
                 shader:stop()
             end
         end
@@ -459,7 +459,7 @@ function BSPTest:onDraw()
         if bsp.testNumber == 4 then
             if not gen.depthMode then
                 shader:start()
-                DrawMesh(obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
+                DrawMesh(shader, obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
                 shader:stop()
             end
 
@@ -467,7 +467,7 @@ function BSPTest:onDraw()
 
             if gen.depthMode then
                 shader:start()
-                DrawMesh(obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
+                DrawMesh(shader, obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
                 shader.stop()
             end
         end
@@ -502,11 +502,11 @@ function BSPTest:onDraw()
             shader:start()
 
             RenderState.PushWireframe(false)
-            Shader.SetFloat4("color", 0.2, 0.2, 0.2, 1.0)
+            shader:setFloat4("color", 0.2, 0.2, 0.2, 1.0)
             obj.mesh:draw()
             RenderState.PopWireframe()
 
-            Shader.SetFloat4("color", 1.0, 1.0, 1.0, 0.1)
+            shader:setFloat4("color", 1.0, 1.0, 1.0, 0.1)
             obj.mesh:draw()
 
             shader:stop()

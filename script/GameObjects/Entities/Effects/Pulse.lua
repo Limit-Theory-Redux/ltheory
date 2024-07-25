@@ -63,17 +63,17 @@ function Pulse.Render(projectiles, state)
                 local proj  = projectiles[i]
                 local pulse = proj.effect
                 if proj then
-                    Shader.SetFloat3('color', proj.pColorR,
+                    shader:setFloat3('color', proj.pColorR,
                         proj.pColorG,
                         proj.pColorB)
                 else
-                    Shader.SetFloat3('color', Config.game.pulseColorBodyR,
+                    shader:setFloat3('color', Config.game.pulseColorBodyR,
                         Config.game.pulseColorBodyG,
                         Config.game.pulseColorBodyB)
                 end
-                Shader.ISetFloat(cacheHead.size, 16)
-                Shader.ISetFloat(cacheHead.alpha, pulse.life / pulse.lifeMax)
-                Shader.ISetMatrix(cacheHead.mWorld, pulse.matrix)
+                shader:iSetFloat(cacheHead.size, 16)
+                shader:iSetFloat(cacheHead.alpha, pulse.life / pulse.lifeMax)
+                shader:iSetMatrix(cacheHead.mWorld, pulse.matrix)
                 meshHead:drawBound()
             end
             meshHead:drawUnbind()
@@ -90,18 +90,18 @@ function Pulse.Render(projectiles, state)
                 local proj  = projectiles[i]
                 local pulse = proj.effect
                 if proj then
-                    Shader.SetFloat3('color', proj.pColorR,
+                    shader:setFloat3('color', proj.pColorR,
                         proj.pColorG,
                         proj.pColorB)
                 else
-                    Shader.SetFloat3('color', Config.game.pulseColorBodyR,
+                    shader:setFloat3('color', Config.game.pulseColorBodyR,
                         Config.game.pulseColorBodyG,
                         Config.game.pulseColorBodyB)
                 end
-                Shader.ISetFloat(cacheTail.alpha, pulse.life / pulse.lifeMax)
-                Shader.ISetFloat2(cacheTail.size, 16, min(Config.gen.compTurretPulseStats.size, 1.5 * pulse.dist))
-                Shader.ISetFloat3(cacheTail.axis, pulse.dir.x, pulse.dir.y, pulse.dir.z)
-                Shader.ISetMatrix(cacheTail.mWorld, pulse.matrix)
+                shader:iSetFloat(cacheTail.alpha, pulse.life / pulse.lifeMax)
+                shader:iSetFloat2(cacheTail.size, 16, min(Config.gen.compTurretPulseStats.size, 1.5 * pulse.dist))
+                shader:iSetFloat3(cacheTail.axis, pulse.dir.x, pulse.dir.y, pulse.dir.z)
+                shader:iSetMatrix(cacheTail.mWorld, pulse.matrix)
                 meshTail:drawBound()
             end
             meshTail:drawUnbind()

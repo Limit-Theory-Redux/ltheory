@@ -197,17 +197,22 @@ impl Font {
         }
 
         self.0.as_ref().shader.borrow_mut().start();
-        Shader::set_float4("color", color.r, color.g, color.b, color.a);
+        self.0
+            .as_ref()
+            .shader
+            .borrow_mut()
+            .set_float4("color", color.r, color.g, color.b, color.a);
 
         for c in text.chars() {
             let code_point = c as u32;
 
             self.get_glyph(code_point);
 
-            let mut font_data = self.0.as_mut();
+            let font_data = self.0.as_ref();
 
             let face = font_data.handle;
-            let glyph = font_data.glyphs.get_mut(&code_point);
+            let glyph = font_data.glyphs.get(&code_point);
+            let mut shader = font_data.shader.borrow_mut();
 
             if let Some(glyph) = glyph {
                 if glyph_last != 0 {
@@ -219,8 +224,8 @@ impl Font {
                 let xs: f32 = (*glyph).sx as f32;
                 let ys: f32 = (*glyph).sy as f32;
 
-                Shader::reset_tex_index();
-                Shader::set_tex2d("glyph", unsafe { &mut *glyph.tex });
+                shader.reset_tex_index();
+                shader.set_tex2d("glyph", unsafe { &mut *glyph.tex });
 
                 Draw::rect_ex(x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
 
