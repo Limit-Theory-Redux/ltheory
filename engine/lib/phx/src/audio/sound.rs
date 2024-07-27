@@ -1,5 +1,4 @@
 use internal::ConvertIntoString;
-
 use kira::sound::static_sound::StaticSoundData;
 use kira::sound::{EndPosition, PlaybackPosition, Region};
 

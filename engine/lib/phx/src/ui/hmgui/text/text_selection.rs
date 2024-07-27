@@ -3,9 +3,8 @@ use std::ops::Range;
 use glam::Vec2;
 use parley::layout::Cursor;
 
-use crate::input::{Button, Input};
-
 use super::TextLayout;
+use crate::input::{Button, Input};
 
 const NEWLINE_SEPARATORS: &[char] = &['\n', '\r'];
 

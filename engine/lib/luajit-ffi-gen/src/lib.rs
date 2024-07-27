@@ -5,13 +5,12 @@ mod impl_item;
 mod parse;
 mod util;
 
-use crate::args::EnumAttrArgs;
-use crate::args::ImplAttrArgs;
-use crate::parse::Item;
-
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
+
+use crate::args::{EnumAttrArgs, ImplAttrArgs};
+use crate::parse::Item;
 
 pub(crate) const IDENT: &str = "    ";
 

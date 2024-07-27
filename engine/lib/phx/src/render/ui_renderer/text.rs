@@ -1,8 +1,7 @@
 use glam::Vec2;
 
-use crate::render::{Color, Font};
-
 use super::UIRendererTextId;
+use crate::render::{Color, Font};
 
 #[derive(Clone)]
 pub struct UIRendererText {

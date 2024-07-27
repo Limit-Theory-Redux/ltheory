@@ -1,5 +1,6 @@
 use parley::layout::Glyph;
-use swash::scale::{image::Content, Render, Scaler, Source, StrikeWith};
+use swash::scale::image::Content;
+use swash::scale::{Render, Scaler, Source, StrikeWith};
 use swash::zeno::{Format, Vector};
 
 use crate::render::Color;

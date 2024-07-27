@@ -1,10 +1,9 @@
 use std::ops::Range;
 
 use indexmap::IndexMap;
+use internal::ConvertIntoString;
 use parley::context::RangedBuilder;
 use parley::style::{FontStack, FontStretch, FontStyle, FontWeight, StyleProperty};
-
-use internal::ConvertIntoString;
 
 use crate::render::Color;
 

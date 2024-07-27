@@ -1,9 +1,9 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-use crate::{args::EnumAttrArgs, util::camel_to_snake_case};
-
 use super::EnumInfo;
+use crate::args::EnumAttrArgs;
+use crate::util::camel_to_snake_case;
 
 impl EnumInfo {
     /// Generate C API and Lua FFI.

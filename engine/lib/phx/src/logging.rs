@@ -1,10 +1,11 @@
 use std::io::Write;
 
 use regex::Regex;
-use tracing_appender::{non_blocking::WorkerGuard, rolling::RollingFileAppender};
-use tracing_subscriber::{prelude::*, EnvFilter};
-
 pub use tracing::{error, info, warn};
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_appender::rolling::RollingFileAppender;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::EnvFilter;
 
 /// Clean messages from coloring ASCII instructions before writing to the file.
 struct MessageCleaner {

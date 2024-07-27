@@ -1,8 +1,6 @@
 use proc_macro2::Ident;
-use syn::{
-    parse::{Parse, ParseStream},
-    Error, ExprLit, Result, Token,
-};
+use syn::parse::{Parse, ParseStream};
+use syn::{Error, ExprLit, Result, Token};
 
 /// Parse `key = value` pairs of the attribute arguments.
 pub struct Arg {

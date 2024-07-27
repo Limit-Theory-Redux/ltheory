@@ -1,12 +1,10 @@
 #![allow(unused_imports, dead_code)]
-use gl_generator::{Api, Fallbacks, GlobalGenerator, Profile, Registry};
-
-use std::env;
-use std::fs;
 use std::fs::File;
 use std::io::Cursor;
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::{env, fs};
+
+use gl_generator::{Api, Fallbacks, GlobalGenerator, Profile, Registry};
 
 fn main() {
     let phx_version = env::var("PHX_VERSION").unwrap_or_else(|_| "0.0.0".to_string());

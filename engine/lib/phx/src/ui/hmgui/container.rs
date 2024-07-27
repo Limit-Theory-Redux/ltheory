@@ -2,10 +2,9 @@ use std::cell::RefMut;
 
 use glam::Vec2;
 
+use super::*;
 use crate::input::Input;
 use crate::rf::Rf;
-
-use super::*;
 
 /// Container element layout type.
 #[luajit_ffi_gen::luajit_ffi(name = "GuiLayoutType")]

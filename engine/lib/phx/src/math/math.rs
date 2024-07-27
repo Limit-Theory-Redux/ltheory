@@ -1,9 +1,8 @@
-use crate::error::Error;
-
 // Re-export glam types.
 pub use glam::{dvec2, dvec3, dvec4, DVec2, DVec3, DVec4};
-pub use glam::{ivec2, ivec3, ivec4, IVec2, IVec3, IVec4};
-pub use glam::{vec2, vec3, vec4, Vec2, Vec3, Vec4};
+pub use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4, IVec2, IVec3, IVec4, Vec2, Vec3, Vec4};
+
+use crate::error::Error;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

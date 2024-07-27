@@ -2,11 +2,10 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Ident;
 
-use crate::args::ImplAttrArgs;
-
 use super::method_info::*;
 use super::type_info::*;
 use super::ImplInfo;
+use crate::args::ImplAttrArgs;
 
 impl ImplInfo {
     /// Generate C API and Lua FFI.

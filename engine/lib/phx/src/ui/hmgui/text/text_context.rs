@@ -1,4 +1,4 @@
-use std::sync::{Mutex, LazyLock};
+use std::sync::{LazyLock, Mutex};
 
 use parley::{FontContext, LayoutContext};
 use swash::scale::ScaleContext;

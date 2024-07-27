@@ -1,8 +1,7 @@
+pub use glam::{Mat3, Mat4};
 use tracing::info;
 
 use crate::math::*;
-
-pub use glam::{Mat3, Mat4};
 
 // glam::Mat4 is a column-major matrix.
 pub type Matrix = Mat4;

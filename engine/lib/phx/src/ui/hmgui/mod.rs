@@ -9,18 +9,18 @@ mod text;
 mod text_line;
 mod widget;
 
-use internal::*;
-
-pub use self::image::*;
 pub use alignment::*;
 pub use container::*;
 use data::*;
 pub use focus_type::*;
 pub use gui::*;
+use internal::*;
 pub use layer::*;
 pub use text::*;
 pub use text_line::*;
 pub use widget::*;
+
+pub use self::image::*;
 
 const IDENT: &str = "  ";
 
@@ -33,9 +33,8 @@ mod tests {
 
     use glam::Vec2;
 
-    use crate::input::Input;
-
     use super::*;
+    use crate::input::Input;
 
     static mut RESOURCES_INITIALIZED: bool = false;
 
