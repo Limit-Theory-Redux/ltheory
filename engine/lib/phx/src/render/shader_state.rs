@@ -134,11 +134,15 @@ impl ShaderState {
 
         // Apply uniforms.
         for (index, data) in self.elems.iter() {
-            Shader::index_set_uniform(*index, data);
+            self.shader.index_set_uniform(*index, data.clone());
         }
     }
 
     pub fn stop(&mut self) {
         self.shader.stop();
+    }
+
+    pub fn shader(&mut self) -> &mut Shader {
+        &mut self.shader
     }
 }

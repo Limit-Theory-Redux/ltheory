@@ -80,3 +80,6 @@ function ShaderState:start() end
 
 function ShaderState:stop() end
 
+---@return Shader
+function ShaderState:shader() end
+

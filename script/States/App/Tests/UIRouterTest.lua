@@ -14,7 +14,7 @@ local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local useRenderer = false
 
 function Test:onInit()
-    self.renderer = Renderer()
+    self.renderer = RenderPipeline()
 
     DebugControl.ltheory = self
 

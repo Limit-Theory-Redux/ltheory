@@ -4,12 +4,10 @@ local jit = require('jit')
 local libphx = {}
 do -- Basic Typedefs
   ffi.cdef [[
-    typedef int32          BlendMode;
     typedef uint8          BSPNodeRel;
     typedef int32          CollisionGroup;
     typedef int32          CollisionMask;
     typedef int32          CubeFace;
-    typedef int32          CullFace;
     typedef uint8          CursorControl;
     typedef int32          DataFormat;
     typedef uint32         Error;

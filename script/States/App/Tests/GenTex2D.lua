@@ -7,6 +7,7 @@ local vs = Resource.LoadString(ResourceType.Shader, 'vertex/ui')
 
 -- Main generating fragment shader
 local fs = [[
+#version 330
 
 #include fragment
 #include noise
@@ -43,9 +44,9 @@ void main() {
 
 function GenTex2D:onSetShaderVars()
     -- Set shader variables here
-    Shader.SetFloat('seed', rng:getUniformRange(0, 1000.0))
-    Shader.SetFloat2('size', kTexSize, kTexSize)
-    Shader.SetFloat('borderThreshold', 0.01)
+    self.genShader:setFloat('seed', rng:getUniformRange(0, 1000.0))
+    self.genShader:setFloat2('size', kTexSize, kTexSize)
+    self.genShader:setFloat('borderThreshold', 0.01)
 end
 
 function GenTex2D:onGenerate()

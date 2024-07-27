@@ -42,7 +42,7 @@ function SystemMap:onDraw(state)
         self.focus = playerTarget
     end
 
-    BlendMode.PushAlpha()
+    RenderState.PushBlendMode(BlendMode.Alpha)
     Draw.SmoothPoints(true)
     --Log.Debug("------------------------------")
     for _, e in self.system:iterChildren() do
@@ -158,7 +158,7 @@ function SystemMap:onDraw(state)
         end
     end
     Draw.SmoothPoints(false)
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 
     if Input:isDown(Button.MouseLeft) then
         self.focus = best

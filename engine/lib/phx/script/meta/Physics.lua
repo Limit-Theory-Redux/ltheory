@@ -71,6 +71,7 @@ function Physics:drawBoundingBoxesLocal() end
 
 function Physics:drawBoundingBoxesWorld() end
 
+---@param shader Shader
 ---@param eye Position
-function Physics:drawWireframes(eye) end
+function Physics:drawWireframes(shader, eye) end
 

@@ -64,7 +64,7 @@ local todo = {
 
 function Test:onInit()
     -- self.bg = Tex2D.Load('./screenshot/wp2.png')
-    self.renderer = Renderer()
+    self.renderer = RenderPipeline()
 end
 
 function Test:onInput() end

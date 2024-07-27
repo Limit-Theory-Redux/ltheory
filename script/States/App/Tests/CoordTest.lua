@@ -305,7 +305,7 @@ function CoordTest:onInit()
     self.mViewInv = Matrix.Identity()
     self.mProjInv = Matrix.Identity()
 
-    self.renderer = Renderer()
+    self.renderer = RenderPipeline()
 end
 
 function CoordTest:onUpdate(dt)
@@ -368,18 +368,18 @@ function CoordTest:onDraw()
         shader:start()
 
         -- Origin
-        Shader.SetFloat4("color", 1, 1, 1, 1)
+        shader:setFloat4("color", 1, 1, 1, 1)
         Draw.Sphere(Vec3f(0, 0, 0), 2)
 
         -- Positive Z
         RenderState.PushWireframe(false)
-        Shader.SetFloat4("color", 0, 0, 1, 1)
+        shader:setFloat4("color", 0, 0, 1, 1)
         Draw.Sphere(Vec3f(0, 0, 10), 2)
         RenderState.PopWireframe()
 
         -- Negative Z
         RenderState.PushWireframe(true)
-        Shader.SetFloat4("color", 1, 1, 1, 1)
+        shader:setFloat4("color", 1, 1, 1, 1)
         Draw.Sphere(Vec3f(0, 0, -10), 2)
         RenderState.PopWireframe()
 

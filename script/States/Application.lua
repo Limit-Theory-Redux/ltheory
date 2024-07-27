@@ -233,7 +233,7 @@ function Application:onRender(data)
                 Metric.Get(Metric.DrawCalls),
                 Metric.Get(Metric.Immediate),
                 Metric.Get(Metric.FBOSwap))
-            BlendMode.Push(BlendMode.Alpha)
+            RenderState.PushBlendMode(BlendMode.Alpha)
             UI.DrawEx.SimpleRect(0, self.resY - 20, self.resX, self.resY, Color(0.1, 0.1, 0.1, 0.5))
             self.profilerFont:draw(s, 10, self.resY - 5, Color(1, 1, 1, 1))
 
@@ -242,7 +242,7 @@ function Application:onRender(data)
                 self.profilerFont:draw('>> PROFILER ACTIVE <<', self.resX - 128, y, Color(1, 0, 0.15, 1))
                 y = y - 12
             end
-            BlendMode.Pop()
+            RenderState.PopBlendMode()
         end
     end
     Profiler.End()

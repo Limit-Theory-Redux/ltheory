@@ -51,7 +51,7 @@ impl UIRenderer {
     }
 
     pub fn draw(&mut self) {
-        unsafe { RenderState_PushBlendMode(1) };
+        unsafe { RenderState_PushBlendMode(BlendMode::Alpha) };
 
         if let Some(root) = self.layers.first() {
             root.draw(

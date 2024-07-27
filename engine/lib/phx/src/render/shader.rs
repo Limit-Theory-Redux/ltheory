@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::collections::HashSet;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -14,8 +13,6 @@ use crate::system::*;
 
 const INCLUDE_PATH: &str = "include/";
 
-static mut CURRENT: *mut Shader = std::ptr::null_mut();
-
 #[derive(Clone)]
 pub struct Shader {
     shared: Rf<ShaderShared>,
@@ -26,8 +23,16 @@ struct ShaderShared {
     vs: gl::types::GLuint,
     fs: gl::types::GLuint,
     program: gl::types::GLuint,
-    tex_index: RefCell<gl::types::GLenum>,
     auto_vars: Vec<ShaderAutoVar>,
+
+    is_bound: bool,
+    tex_index: gl::types::GLenum,
+    pending_uniforms: Vec<SetUniformOp>,
+}
+
+struct SetUniformOp {
+    index: gl::types::GLint,
+    data: ShaderVarData,
 }
 
 #[derive(Clone, Default)]
@@ -121,8 +126,10 @@ impl Shader {
                 vs,
                 fs,
                 program,
-                tex_index: RefCell::new(0),
                 auto_vars,
+                tex_index: 0,
+                is_bound: false,
+                pending_uniforms: vec![],
             }),
         };
         shader.bind_auto_variables();
@@ -156,53 +163,85 @@ impl Shader {
         }
     }
 
+    pub fn set_uniform(&mut self, name: &str, data: ShaderVarData) {
+        if let Some(index) = self.get_uniform_index(name) {
+            self.index_set_uniform(index, data);
+        }
+    }
+
+    pub fn index_set_uniform(&mut self, index: i32, data: ShaderVarData) {
+        self.shared.as_mut().index_set_uniform(index, data);
+    }
+}
+
+impl ShaderShared {
     // Increments the current texture index and returns the next free one.
     fn next_tex_index(&mut self) -> gl::types::GLenum {
-        let s = self.shared.as_ref();
-        let tex_index = &mut *s.tex_index.borrow_mut();
-        *tex_index += 1;
-        *tex_index
+        self.tex_index += 1;
+        self.tex_index
     }
 
-    fn set_current(current: Option<&Shader>) {
-        unsafe {
-            if !CURRENT.is_null() {
-                // Free the existing current shader if it exists by converting it back into the box immediately dropping it.
-                let _ = Box::from_raw(CURRENT);
-            }
-            CURRENT = current.map_or(std::ptr::null_mut(), |r| Box::into_raw(Box::new(r.clone())))
+    pub fn index_set_uniform(&mut self, index: i32, data: ShaderVarData) {
+        if self.is_bound {
+            self.apply_uniform(index, &data);
+        } else {
+            self.pending_uniforms.push(SetUniformOp { index, data });
         }
     }
 
-    fn get_current() -> Option<&'static mut Shader> {
-        unsafe { CURRENT.as_mut() }
-    }
-
-    fn get_current_checked() -> &'static mut Shader {
-        Self::get_current().expect("No shader is bound")
-    }
-
-    pub fn set_uniform(name: &str, data: &ShaderVarData) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_uniform(index, data);
-        }
-    }
-
-    pub fn index_set_uniform(index: i32, data: &ShaderVarData) {
-        match *data {
-            ShaderVarData::Float(v) => glcheck!(gl::Uniform1f(index, v)),
+    pub fn apply_uniform(&mut self, index: i32, data: &ShaderVarData) {
+        match data {
+            ShaderVarData::Float(v) => glcheck!(gl::Uniform1f(index, *v)),
             ShaderVarData::Float2(v) => glcheck!(gl::Uniform2f(index, v.x, v.y)),
             ShaderVarData::Float3(v) => glcheck!(gl::Uniform3f(index, v.x, v.y, v.z)),
             ShaderVarData::Float4(v) => glcheck!(gl::Uniform4f(index, v.x, v.y, v.z, v.w)),
-            ShaderVarData::Int(v) => glcheck!(gl::Uniform1i(index, v)),
+            ShaderVarData::Int(v) => glcheck!(gl::Uniform1i(index, *v)),
             ShaderVarData::Int2(v) => glcheck!(gl::Uniform2i(index, v.x, v.y)),
             ShaderVarData::Int3(v) => glcheck!(gl::Uniform3i(index, v.x, v.y, v.z)),
             ShaderVarData::Int4(v) => glcheck!(gl::Uniform4i(index, v.x, v.y, v.z, v.w)),
-            ShaderVarData::Matrix(m) => Self::index_set_matrix(index, &m),
-            ShaderVarData::Tex1D(t) => Self::index_set_tex1d(index, unsafe { &mut *t }),
-            ShaderVarData::Tex2D(t) => Self::index_set_tex2d(index, unsafe { &mut *t }),
-            ShaderVarData::Tex3D(t) => Self::index_set_tex3d(index, unsafe { &mut *t }),
-            ShaderVarData::TexCube(t) => Self::index_set_tex_cube(index, unsafe { &mut *t }),
+            ShaderVarData::Matrix(m) => {
+                glcheck!(gl::UniformMatrix4fv(
+                    index,
+                    1,
+                    gl::FALSE,
+                    m as *const Matrix as *const f32
+                ));
+            }
+            ShaderVarData::Tex1D(t) => {
+                let tex_index = self.next_tex_index();
+
+                glcheck!(gl::Uniform1i(index, tex_index as i32));
+                glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
+                glcheck!(gl::BindTexture(gl::TEXTURE_1D, Tex1D_GetHandle(&mut **t)));
+                glcheck!(gl::ActiveTexture(gl::TEXTURE0));
+            }
+            ShaderVarData::Tex2D(t) => {
+                let tex_index = self.next_tex_index();
+
+                glcheck!(gl::Uniform1i(index, tex_index as i32));
+                glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
+                glcheck!(gl::BindTexture(gl::TEXTURE_2D, Tex2D_GetHandle(&mut **t)));
+                glcheck!(gl::ActiveTexture(gl::TEXTURE0));
+            }
+            ShaderVarData::Tex3D(t) => {
+                let tex_index = self.next_tex_index();
+
+                glcheck!(gl::Uniform1i(index, tex_index as i32));
+                glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
+                glcheck!(gl::BindTexture(gl::TEXTURE_3D, Tex3D_GetHandle(&mut **t)));
+                glcheck!(gl::ActiveTexture(gl::TEXTURE0));
+            }
+            ShaderVarData::TexCube(t) => {
+                let tex_index = self.next_tex_index();
+
+                glcheck!(gl::Uniform1i(index, tex_index as i32));
+                glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
+                glcheck!(gl::BindTexture(
+                    gl::TEXTURE_CUBE_MAP,
+                    TexCube_GetHandle(&mut **t)
+                ));
+                glcheck!(gl::ActiveTexture(gl::TEXTURE0));
+            }
         }
     }
 }
@@ -255,44 +294,181 @@ impl Shader {
         self.get_uniform_index(name).is_some()
     }
 
+    pub fn reset_tex_index(&mut self) {
+        self.shared.as_mut().tex_index = 0;
+    }
+
+    pub fn set_float(&mut self, name: &str, value: f32) {
+        self.set_uniform(name, ShaderVarData::Float(value));
+    }
+
+    #[bind(name = "ISetFloat")]
+    pub fn index_set_float(&mut self, index: i32, value: f32) {
+        self.index_set_uniform(index, ShaderVarData::Float(value));
+    }
+
+    pub fn set_float2(&mut self, name: &str, x: f32, y: f32) {
+        self.set_uniform(name, ShaderVarData::Float2(vec2(x, y)));
+    }
+
+    #[bind(name = "ISetFloat2")]
+    pub fn index_set_float2(&mut self, index: i32, x: f32, y: f32) {
+        self.index_set_uniform(index, ShaderVarData::Float2(vec2(x, y)));
+    }
+
+    pub fn set_float3(&mut self, name: &str, x: f32, y: f32, z: f32) {
+        self.set_uniform(name, ShaderVarData::Float3(vec3(x, y, z)));
+    }
+
+    #[bind(name = "ISetFloat3")]
+    pub fn index_set_float3(&mut self, index: i32, x: f32, y: f32, z: f32) {
+        self.index_set_uniform(index, ShaderVarData::Float3(vec3(x, y, z)));
+    }
+
+    pub fn set_float4(&mut self, name: &str, x: f32, y: f32, z: f32, w: f32) {
+        self.set_uniform(name, ShaderVarData::Float4(vec4(x, y, z, w)));
+    }
+
+    #[bind(name = "ISetFloat4")]
+    pub fn index_set_float4(&mut self, index: i32, x: f32, y: f32, z: f32, w: f32) {
+        self.index_set_uniform(index, ShaderVarData::Float4(vec4(x, y, z, w)));
+    }
+
+    pub fn set_int(&mut self, name: &str, value: i32) {
+        self.set_uniform(name, ShaderVarData::Int(value));
+    }
+
+    #[bind(name = "ISetInt")]
+    pub fn index_set_int(&mut self, index: i32, value: i32) {
+        self.index_set_uniform(index, ShaderVarData::Int(value));
+    }
+
+    pub fn set_int2(&mut self, name: &str, x: i32, y: i32) {
+        self.set_uniform(name, ShaderVarData::Int2(ivec2(x, y)));
+    }
+
+    #[bind(name = "ISetInt2")]
+    pub fn index_set_int2(&mut self, index: i32, x: i32, y: i32) {
+        self.index_set_uniform(index, ShaderVarData::Int2(ivec2(x, y)));
+    }
+
+    pub fn set_int3(&mut self, name: &str, x: i32, y: i32, z: i32) {
+        self.set_uniform(name, ShaderVarData::Int3(ivec3(x, y, z)));
+    }
+
+    #[bind(name = "ISetInt3")]
+    pub fn index_set_int3(&mut self, index: i32, x: i32, y: i32, z: i32) {
+        self.index_set_uniform(index, ShaderVarData::Int3(ivec3(x, y, z)));
+    }
+
+    pub fn set_int4(&mut self, name: &str, x: i32, y: i32, z: i32, w: i32) {
+        self.set_uniform(name, ShaderVarData::Int4(ivec4(x, y, z, w)));
+    }
+
+    #[bind(name = "ISetInt4")]
+    pub fn index_set_int4(&mut self, index: i32, x: i32, y: i32, z: i32, w: i32) {
+        self.index_set_uniform(index, ShaderVarData::Int4(ivec4(x, y, z, w)));
+    }
+
+    pub fn set_matrix(&mut self, name: &str, value: &Matrix) {
+        self.set_uniform(name, ShaderVarData::Matrix(*value));
+    }
+
+    #[bind(name = "ISetMatrix")]
+    pub fn index_set_matrix(&mut self, index: i32, value: &Matrix) {
+        self.index_set_uniform(index, ShaderVarData::Matrix(*value));
+    }
+
+    #[bind(name = "SetMatrixT")]
+    pub fn set_matrix_transpose(&mut self, name: &str, value: &Matrix) {
+        self.set_uniform(name, ShaderVarData::Matrix(value.transpose()));
+    }
+
+    #[bind(name = "ISetMatrixT")]
+    pub fn index_set_matrix_transpose(&mut self, index: i32, value: &Matrix) {
+        self.index_set_uniform(index, ShaderVarData::Matrix(value.transpose()));
+    }
+
+    pub fn set_tex1d(&mut self, name: &str, value: &mut Tex1D) {
+        self.set_uniform(name, ShaderVarData::Tex1D(value as *mut _));
+    }
+
+    #[bind(name = "ISetTex1D")]
+    pub fn index_set_tex1d(&mut self, index: i32, value: &mut Tex1D) {
+        self.index_set_uniform(index, ShaderVarData::Tex1D(value as *mut _));
+    }
+
+    pub fn set_tex2d(&mut self, name: &str, value: &mut Tex2D) {
+        self.set_uniform(name, ShaderVarData::Tex2D(value as *mut _));
+    }
+
+    #[bind(name = "ISetTex2D")]
+    pub fn index_set_tex2d(&mut self, index: i32, value: &mut Tex2D) {
+        self.index_set_uniform(index, ShaderVarData::Tex2D(value as *mut _));
+    }
+
+    pub fn set_tex3d(&mut self, name: &str, value: &mut Tex3D) {
+        self.set_uniform(name, ShaderVarData::Tex3D(value as *mut _));
+    }
+
+    #[bind(name = "ISetTex3D")]
+    pub fn index_set_tex3d(&mut self, index: i32, value: &mut Tex3D) {
+        self.index_set_uniform(index, ShaderVarData::Tex3D(value as *mut _));
+    }
+
+    pub fn set_tex_cube(&mut self, name: &str, value: &mut TexCube) {
+        self.set_uniform(name, ShaderVarData::TexCube(value as *mut _));
+    }
+
+    #[bind(name = "ISetTexCube")]
+    pub fn index_set_tex_cube(&mut self, index: i32, value: &mut TexCube) {
+        self.index_set_uniform(index, ShaderVarData::TexCube(value as *mut _));
+    }
+
     // Singleton based shader functions - Old API.
     pub fn start(&mut self) {
         unsafe {
             Profiler_Begin(c_str!("Shader_Start"));
         }
 
-        Self::set_current(Some(self));
+        let s = &mut *self.shared.as_mut();
 
-        glcheck!(gl::UseProgram(self.shared.as_ref().program));
+        glcheck!(gl::UseProgram(s.program));
+        s.is_bound = true;
 
         // Reset the tex index counter.
-        *self.shared.as_mut().tex_index.borrow_mut() = 0;
+        s.tex_index = 0;
+
+        // Apply pending uniforms.
+        for p in std::mem::take(&mut s.pending_uniforms) {
+            s.apply_uniform(p.index, &p.data);
+        }
 
         // Fetch and bind automatic variables from the shader var stack.
-        for var in self.shared.as_ref().auto_vars.iter() {
-            if var.index == -1 {
+        for i in 0..s.auto_vars.len() {
+            if s.auto_vars[i].index == -1 {
                 continue;
             }
 
-            let Some(shader_var) = ShaderVar::get(var.name.as_str()) else {
+            let Some(shader_var) = ShaderVar::get(s.auto_vars[i].name.as_str()) else {
                 warn!(
                     "Shader variable stack does not contain variable <{}>",
-                    var.name,
+                    s.auto_vars[i].name,
                 );
                 continue;
             };
 
-            if shader_var.get_glsl_type() != var.type_name {
+            if shader_var.get_glsl_type() != s.auto_vars[i].type_name {
                 warn!(
                     "Attempting to get stack of type <{}> for shader variable <{}> when existing stack has type <{}>",
-                    var.type_name,
-                    var.name,
+                    s.auto_vars[i].type_name,
+                    s.auto_vars[i].name,
                     shader_var.get_glsl_type(),
                 );
                 continue;
             }
 
-            Self::index_set_uniform(var.index, &shader_var);
+            s.index_set_uniform(s.auto_vars[i].index, shader_var);
         }
 
         unsafe {
@@ -301,208 +477,8 @@ impl Shader {
     }
 
     pub fn stop(&self) {
+        self.shared.as_mut().is_bound = false;
         glcheck!(gl::UseProgram(0));
-        Self::set_current(None);
-    }
-
-    pub fn reset_tex_index() {
-        *Self::get_current_checked()
-            .shared
-            .as_ref()
-            .tex_index
-            .borrow_mut() = 0;
-    }
-
-    pub fn set_float(name: &str, value: f32) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_float(index, value);
-        }
-    }
-
-    #[bind(name = "ISetFloat")]
-    pub fn index_set_float(index: i32, value: f32) {
-        glcheck!(gl::Uniform1f(index, value));
-    }
-
-    pub fn set_float2(name: &str, x: f32, y: f32) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_float2(index, x, y);
-        }
-    }
-
-    #[bind(name = "ISetFloat2")]
-    pub fn index_set_float2(index: i32, x: f32, y: f32) {
-        glcheck!(gl::Uniform2f(index, x, y));
-    }
-
-    pub fn set_float3(name: &str, x: f32, y: f32, z: f32) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_float3(index, x, y, z);
-        }
-    }
-
-    #[bind(name = "ISetFloat3")]
-    pub fn index_set_float3(index: i32, x: f32, y: f32, z: f32) {
-        glcheck!(gl::Uniform3f(index, x, y, z));
-    }
-
-    pub fn set_float4(name: &str, x: f32, y: f32, z: f32, w: f32) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_float4(index, x, y, z, w);
-        }
-    }
-
-    #[bind(name = "ISetFloat4")]
-    pub fn index_set_float4(index: i32, x: f32, y: f32, z: f32, w: f32) {
-        glcheck!(gl::Uniform4f(index, x, y, z, w));
-    }
-
-    pub fn set_int(name: &str, value: i32) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_int(index, value);
-        }
-    }
-
-    #[bind(name = "ISetInt")]
-    pub fn index_set_int(index: i32, value: i32) {
-        glcheck!(gl::Uniform1i(index, value));
-    }
-
-    pub fn set_int2(name: &str, x: i32, y: i32) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_int2(index, x, y);
-        }
-    }
-
-    #[bind(name = "ISetInt2")]
-    pub fn index_set_int2(index: i32, x: i32, y: i32) {
-        glcheck!(gl::Uniform2i(index, x, y));
-    }
-
-    pub fn set_int3(name: &str, x: i32, y: i32, z: i32) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_int3(index, x, y, z);
-        }
-    }
-
-    #[bind(name = "ISetInt3")]
-    pub fn index_set_int3(index: i32, x: i32, y: i32, z: i32) {
-        glcheck!(gl::Uniform3i(index, x, y, z));
-    }
-
-    pub fn set_int4(name: &str, x: i32, y: i32, z: i32, w: i32) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_int4(index, x, y, z, w);
-        }
-    }
-
-    #[bind(name = "ISetInt4")]
-    pub fn index_set_int4(index: i32, x: i32, y: i32, z: i32, w: i32) {
-        glcheck!(gl::Uniform4i(index, x, y, z, w));
-    }
-
-    pub fn set_matrix(name: &str, value: &Matrix) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_matrix(index, value);
-        }
-    }
-
-    #[bind(name = "ISetMatrix")]
-    pub fn index_set_matrix(index: i32, value: &Matrix) {
-        glcheck!(gl::UniformMatrix4fv(
-            index,
-            1,
-            gl::FALSE,
-            value as *const Matrix as *const f32
-        ));
-    }
-
-    #[bind(name = "SetMatrixT")]
-    pub fn set_matrix_transpose(name: &str, value: &Matrix) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_matrix_transpose(index, value);
-        }
-    }
-
-    #[bind(name = "ISetMatrixT")]
-    pub fn index_set_matrix_transpose(index: i32, value: &Matrix) {
-        glcheck!(gl::UniformMatrix4fv(
-            index,
-            1,
-            gl::TRUE,
-            value as *const Matrix as *const f32
-        ));
-    }
-
-    pub fn set_tex1d(name: &str, value: &mut Tex1D) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_tex1d(index, value);
-        }
-    }
-
-    #[bind(name = "ISetTex1D")]
-    pub fn index_set_tex1d(index: i32, value: &mut Tex1D) {
-        let s = Self::get_current_checked();
-
-        let tex_index = s.next_tex_index();
-        glcheck!(gl::Uniform1i(index, tex_index as i32));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, Tex1D_GetHandle(value)));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0));
-    }
-
-    pub fn set_tex2d(name: &str, value: &mut Tex2D) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_tex2d(index, value);
-        }
-    }
-
-    #[bind(name = "ISetTex2D")]
-    pub fn index_set_tex2d(index: i32, value: &mut Tex2D) {
-        let s = Self::get_current_checked();
-
-        let tex_index = s.next_tex_index();
-        glcheck!(gl::Uniform1i(index, tex_index as i32));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, Tex2D_GetHandle(value)));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0));
-    }
-
-    pub fn set_tex3d(name: &str, value: &mut Tex3D) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_tex3d(index, value);
-        }
-    }
-
-    #[bind(name = "ISetTex3D")]
-    pub fn index_set_tex3d(index: i32, value: &mut Tex3D) {
-        let s = Self::get_current_checked();
-
-        let tex_index = s.next_tex_index();
-        glcheck!(gl::Uniform1i(index, tex_index as i32));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, Tex3D_GetHandle(value)));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0));
-    }
-
-    pub fn set_tex_cube(name: &str, value: &mut TexCube) {
-        if let Some(index) = Self::get_current_checked().get_uniform_index(name) {
-            Self::index_set_tex_cube(index, value);
-        }
-    }
-
-    #[bind(name = "ISetTexCube")]
-    pub fn index_set_tex_cube(index: i32, value: &mut TexCube) {
-        let s = Self::get_current_checked();
-
-        let tex_index = s.next_tex_index();
-        glcheck!(gl::Uniform1i(index, tex_index as i32));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-        glcheck!(gl::BindTexture(
-            gl::TEXTURE_CUBE_MAP,
-            TexCube_GetHandle(value)
-        ));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0));
     }
 }
 
@@ -581,8 +557,4 @@ fn create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> gl::types:
     }
 
     this
-}
-
-pub fn get_current_program() -> Option<gl::types::GLuint> {
-    Shader::get_current().map(|s| s.handle())
 }

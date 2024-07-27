@@ -1,6 +1,5 @@
-use std::sync::Mutex;
+use std::sync::{Mutex, LazyLock};
 
-use once_cell::sync::Lazy;
 use parley::{FontContext, LayoutContext};
 use swash::scale::ScaleContext;
 
@@ -14,5 +13,4 @@ pub struct TextContext {
     pub scale: ScaleContext,
 }
 
-// TODO: use [`std::cell::LazyCell`] when it's stabilized in Rust 1.80 on July 25
-pub static TEXT_CTX: Lazy<Mutex<TextContext>> = Lazy::new(Default::default);
+pub static TEXT_CTX: LazyLock<Mutex<TextContext>> = LazyLock::new(Default::default);
