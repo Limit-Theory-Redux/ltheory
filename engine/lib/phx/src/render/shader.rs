@@ -440,7 +440,7 @@ impl Shader {
         s.tex_index = 0;
 
         // Apply pending uniforms.
-        for p in std::mem::replace(&mut s.pending_uniforms, vec![]) {
+        for p in std::mem::take(&mut s.pending_uniforms) {
             s.apply_uniform(p.index, &p.data);
         }
 
