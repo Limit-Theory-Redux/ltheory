@@ -1,5 +1,4 @@
-use image::io::Reader as ImageReader;
-use image::{DynamicImage, GenericImageView};
+use image::{DynamicImage, GenericImageView, ImageReader};
 use internal::*;
 
 #[no_mangle]
