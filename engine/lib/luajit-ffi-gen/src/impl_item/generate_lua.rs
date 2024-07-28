@@ -176,7 +176,7 @@ impl ImplInfo {
                     "void".len()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    ret.as_c_ffi_string(module_name).len()
+                    ret.as_ffi(module_name).c.len()
                 };
 
                 max_ret_len = std::cmp::max(max_ret_len, len);
@@ -207,7 +207,7 @@ impl ImplInfo {
                     "void".into()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    ret.as_c_ffi_string(module_name)
+                    ret.as_ffi(module_name).c
                 };
 
                 let mut params_str: Vec<_> = method
@@ -218,7 +218,7 @@ impl ImplInfo {
 
                 if method.bind_args.gen_out_param() && method.ret.is_some() {
                     let ret = method.ret.as_ref().unwrap();
-                    let ret_ffi = ret.as_c_ffi_string(module_name);
+                    let ret_ffi = ret.as_ffi(module_name).c;
                     let ret_param = match &ret.variant {
                         TypeVariant::Custom(_) => {
                             if !ret.is_copyable(&self.name) && ret.wrapper != TypeWrapper::Box && ret.wrapper != TypeWrapper::Option && !ret.is_reference {
@@ -264,14 +264,14 @@ impl ImplInfo {
     fn get_c_ffi_param(&self, module_name: &str, param: &ParamInfo) -> Vec<String> {
         let mut params = vec![format!(
             "{} {}",
-            param.ty.as_c_ffi_string(module_name),
+            param.ty.as_ffi(module_name).c,
             param.as_ffi_name()
         )];
 
         if param.ty.wrapper == TypeWrapper::Slice {
             params.push(format!(
                 "{} {}_size",
-                TypeVariant::U32.as_c_ffi_string(),
+                TypeVariant::U32.as_ffi().c,
                 param.as_ffi_name()
             ))
         }

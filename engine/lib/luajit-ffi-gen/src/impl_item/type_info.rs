@@ -87,6 +87,23 @@ pub struct TypeInfo {
     pub variant: TypeVariant,
 }
 
+#[derive(Debug)]
+pub struct FFIType {
+    /// Rust FFI type i.e. &mut T
+    pub rust: String,
+    /// C FFI type i.e. T*
+    pub c: String,
+}
+
+impl FFIType {
+    pub fn new<R: Into<String>, C: Into<String>>(rust: R, c: C) -> Self {
+        Self {
+            rust: rust.into(),
+            c: c.into(),
+        }
+    }
+}
+
 impl TypeInfo {
     pub fn is_self(&self) -> bool {
         if let TypeVariant::Custom(ty) = &self.variant {
@@ -125,150 +142,76 @@ impl TypeInfo {
         }
     }
 
-    pub fn as_rust_ffi_string(&self, self_name: &str) -> String {
+    pub fn as_ffi(&self, self_name: &str) -> FFIType {
         match &self.variant {
             TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
                 if self.is_mutable {
-                    format!("*mut libc::c_char")
+                    FFIType::new(format!("*mut libc::c_char"), "char*")
                 } else {
-                    format!("*const libc::c_char")
+                    FFIType::new("*const libc::c_char", "cstr")
                 }
             }
             TypeVariant::Custom(ty_name) => {
                 let ty_name = if self.is_self() { self_name } else { ty_name };
 
-                match self.wrapper {
-                    TypeWrapper::Option => {
-                        // Options are always pointers to the custom type.
-                        if self.is_mutable {
-                            format!("*mut {ty_name}")
-                        } else {
-                            format!("*const {ty_name}")
-                        }
-                    }
-                    TypeWrapper::Slice => {
-                        // Slices are always pointers to the custom type.
-                        if self.is_mutable {
-                            format!("*mut {ty_name}")
-                        } else {
-                            format!("*const {ty_name}")
-                        }
-                    }
-                    _ => {
-                        if self.is_mutable {
-                            // Mutable is always with reference
-                            format!("&mut {ty_name}")
-                        } else if self.is_reference {
-                            format!("&{ty_name}")
-                        } else if self.is_copyable(self_name) {
-                            format!("{ty_name}")
-                        } else {
-                            format!("Box<{ty_name}>")
-                        }
-                    }
-                }
-            }
-            _ => {
-                let ty_ident = self.variant.as_rust_ffi_string();
-
-                match self.wrapper {
-                    TypeWrapper::Option => {
-                        // Options are always pointers to the primitive type.
-                        if self.is_mutable {
-                            format!("*mut {ty_ident}")
-                        } else {
-                            format!("*const {ty_ident}")
-                        }
-                    }
-                    TypeWrapper::Slice => {
-                        // Slices are always pointers to the primitive type.
-                        if self.is_mutable {
-                            format!("*mut {ty_ident}")
-                        } else {
-                            format!("*const {ty_ident}")
-                        }
-                    }
-                    _ => {
-                        if self.is_mutable {
-                            // Mutable is always with reference
-                            format!("&mut {ty_ident}")
-                        } else {
-                            // We don't care if there is reference on the numeric type - just accept it by value
-                            ty_ident
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn as_c_ffi_string(&self, self_name: &str) -> String {
-        // These types should be the C equivalent of the result of `gen_wrapper_type` in `generate_rust.rs`.
-        match &self.variant {
-            TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
-                if self.is_mutable {
-                    "char*".to_string()
-                } else {
-                    "cstr".to_string()
-                }
-            }
-            TypeVariant::Custom(ty_name) => {
-                let ty_ident = if self.is_self() { self_name } else { ty_name };
-
                 let ffi_ty_name = RUST_TO_LUA_TYPE_MAP
                     .iter()
                     .find(|(r_ty, _)| *r_ty == ty_name)
                     .map(|(_, l_ty)| l_ty.to_string())
-                    .unwrap_or(ty_ident.to_string());
+                    .unwrap_or(ty_name.to_string());
 
-                if self.wrapper == TypeWrapper::Option {
-                    // Options are always pointers to the custom type.
-                    if self.is_mutable {
-                        format!("{ffi_ty_name}*")
-                    } else {
-                        format!("{ffi_ty_name} const*")
+                match self.wrapper {
+                    TypeWrapper::Option | TypeWrapper::Slice => {
+                        // Options and slices are always pointers to the primitive type.
+                        if self.is_mutable {
+                            FFIType::new(format!("*mut {ty_name}"), format!("{ffi_ty_name}*"))
+                        } else {
+                            FFIType::new(
+                                format!("*const {ty_name}"),
+                                format!("{ffi_ty_name} const*"),
+                            )
+                        }
                     }
-                } else if self.wrapper == TypeWrapper::Slice {
-                    // Slices are always pointers to the custom type.
-                    if self.is_mutable {
-                        format!("{ffi_ty_name}*")
-                    } else {
-                        format!("{ffi_ty_name} const*")
+                    _ => {
+                        if self.is_mutable {
+                            // Mutable is always with reference
+                            FFIType::new(format!("&mut {ty_name}"), format!("{ffi_ty_name}*"))
+                        } else if self.is_reference {
+                            FFIType::new(format!("&{ty_name}"), format!("{ffi_ty_name} const*"))
+                        } else if self.is_copyable(self_name) {
+                            FFIType::new(ty_name, ffi_ty_name)
+                        } else {
+                            FFIType::new(format!("Box<{ty_name}>"), format!("{ffi_ty_name}*"))
+                        }
                     }
-                } else if self.is_mutable {
-                    // Mutable is always with reference
-                    format!("{ffi_ty_name}*")
-                } else if self.is_reference {
-                    format!("{ffi_ty_name} const*")
-                } else if self.is_copyable(self_name) {
-                    ffi_ty_name.to_string()
-                } else {
-                    format!("{ffi_ty_name}*")
                 }
             }
             _ => {
-                let ty_ident = self.variant.as_c_ffi_string();
+                let ffy_ty_name = self.variant.as_ffi();
+                let rust_ty_name = ffy_ty_name.rust;
+                let c_ty_name = ffy_ty_name.c;
 
-                if self.wrapper == TypeWrapper::Option {
-                    // Options are always pointers to the custom type.
-                    if self.is_mutable {
-                        format!("{ty_ident}*")
-                    } else {
-                        format!("{ty_ident} const*")
+                match self.wrapper {
+                    TypeWrapper::Option | TypeWrapper::Slice => {
+                        // Options and slices are always pointers to the primitive type.
+                        if self.is_mutable {
+                            FFIType::new(format!("*mut {rust_ty_name}"), format!("{c_ty_name}*"))
+                        } else {
+                            FFIType::new(
+                                format!("*const {rust_ty_name}"),
+                                format!("{c_ty_name} const*"),
+                            )
+                        }
                     }
-                } else if self.wrapper == TypeWrapper::Slice {
-                    // Slices are always pointers to the custom type.
-                    if self.is_mutable {
-                        format!("{ty_ident}*")
-                    } else {
-                        format!("{ty_ident} const*")
+                    _ => {
+                        if self.is_mutable {
+                            // Mutable is always with reference
+                            FFIType::new(format!("&mut {rust_ty_name}"), format!("{c_ty_name}*"))
+                        } else {
+                            // We don't care if there is reference on the numeric type - just accept it by value
+                            FFIType::new(rust_ty_name, c_ty_name)
+                        }
                     }
-                } else if self.is_mutable {
-                    // Mutable is always with reference
-                    format!("{ty_ident}*")
-                } else {
-                    // We don't care if there is reference on the numeric type - just accept it by value
-                    ty_ident.to_string()
                 }
             }
         }
@@ -339,48 +282,26 @@ impl TypeVariant {
         Some(res)
     }
 
-    pub fn as_rust_ffi_string(&self) -> String {
+    pub fn as_ffi(&self) -> FFIType {
         match self {
-            Self::Bool => "bool",
-            Self::I8 => "i8",
-            Self::U8 => "u8",
-            Self::I16 => "i16",
-            Self::U16 => "u16",
-            Self::I32 => "i32",
-            Self::U32 => "u32",
-            Self::I64 => "i64",
-            Self::U64 => "u64",
-            Self::ISize => "isize",
-            Self::USize => "usize",
-            Self::F32 => "f32",
-            Self::F64 => "f64",
-            Self::Str => "str",
-            Self::String => "String",
-            Self::CString => "CString",
-            Self::Custom(val) => return val.clone(),
+            Self::Bool => FFIType::new("bool", "bool"),
+            Self::I8 => FFIType::new("i8", "int8"),
+            Self::U8 => FFIType::new("u8", "uint8"),
+            Self::I16 => FFIType::new("i16", "int16"),
+            Self::U16 => FFIType::new("u16", "uint16"),
+            Self::I32 => FFIType::new("i32", "int"),
+            Self::U32 => FFIType::new("u32", "uint32"),
+            Self::I64 => FFIType::new("i64", "int64"),
+            Self::U64 => FFIType::new("u64", "uint64"),
+            Self::ISize => FFIType::new("isize", "int64"),
+            Self::USize => FFIType::new("usize", "uint64"),
+            Self::F32 => FFIType::new("f32", "float"),
+            Self::F64 => FFIType::new("f64", "double"),
+            Self::Str => FFIType::new("str", "cstr"),
+            Self::String => FFIType::new("String", "cstr"),
+            Self::CString => FFIType::new("CString", "cstr"),
+            Self::Custom(val) => FFIType::new(val.clone(), val),
         }
-        .into()
-    }
-
-    pub fn as_c_ffi_string(&self) -> String {
-        match self {
-            Self::Bool => "bool",
-            Self::I8 => "int8",
-            Self::U8 => "uint8",
-            Self::I16 => "int16",
-            Self::U16 => "uint16",
-            Self::I32 => "int",
-            Self::U32 => "uint32",
-            Self::I64 => "int64",
-            Self::U64 => "uint64",
-            Self::ISize => "int64",
-            Self::USize => "uint64",
-            Self::F32 => "float",
-            Self::F64 => "double",
-            Self::Str | Self::String | Self::CString => "cstr",
-            Self::Custom(val) => return val.clone(),
-        }
-        .into()
     }
 
     pub fn as_lua_ffi_string(&self) -> String {

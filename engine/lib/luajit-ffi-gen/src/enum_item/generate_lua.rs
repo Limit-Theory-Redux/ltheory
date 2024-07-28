@@ -13,7 +13,7 @@ impl EnumInfo {
 
         let mut ffi_gen = FFIGenerator::new(&module_name);
 
-        ffi_gen.set_type_decl_struct(enum_repr_ty.as_c_ffi_string());
+        ffi_gen.set_type_decl_struct(enum_repr_ty.as_ffi().c);
 
         gen_class_definitions(&mut ffi_gen, &self.doc, &module_name, &variants_info);
         gen_c_definitions(&mut ffi_gen, &module_name, &variants_info);

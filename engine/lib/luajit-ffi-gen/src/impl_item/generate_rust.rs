@@ -90,7 +90,7 @@ impl ImplInfo {
     // Note: We return a list of token streams here, because a single parameter can generate multiple parameters in the wrapper function.
     fn gen_wrapper_param(&self, param: &ParamInfo) -> Vec<TokenStream> {
         let param_name_ident = format_ident!("{}", param.name);
-        let param_type = param.ty.as_rust_ffi_string(&self.name);
+        let param_type = param.ty.as_ffi(&self.name).rust;
         let param_type_tokens: TokenStream =
             param_type.parse().expect("Unable to parse Rust FFI type");
 
@@ -190,7 +190,7 @@ impl ImplInfo {
                 }
                 _ => {
                     if ty.wrapper == TypeWrapper::Option {
-                        let type_ident = format_ident!("{}", ty.variant.as_rust_ffi_string());
+                        let type_ident = format_ident!("{}", ty.variant.as_ffi().rust);
 
                         self.gen_buffered_ret(&type_ident)
                     } else {
@@ -245,7 +245,7 @@ impl ImplInfo {
                 }
             }
             _ => {
-                let ty_ident = format_ident!("{}", ty.variant.as_rust_ffi_string());
+                let ty_ident = format_ident!("{}", ty.variant.as_ffi().rust);
 
                 if ty.wrapper == TypeWrapper::Option {
                     quote! { *const #ty_ident }
