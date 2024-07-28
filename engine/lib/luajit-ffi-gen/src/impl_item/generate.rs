@@ -102,7 +102,13 @@ fn wrap_param(self_name: &str, param: &ParamInfo) -> TokenStream {
     let param_name_ident = format_ident!("{}", param.name);
     let param_type_token = wrap_type(self_name, &param.ty);
 
-    quote! { #param_name_ident: #param_type_token }
+    // If this is a slice, we need to additionally generate a "size" parameter.
+    if param.ty.wrapper == TypeWrapper::Slice {
+        let slice_size_param_ident = format_ident!("{}_size", param.name);
+        quote! { #param_name_ident: #param_type_token, #slice_size_param_ident: u32 }
+    } else {
+        quote! { #param_name_ident: #param_type_token }
+    }
 }
 
 // Generates the Rust type used in the generated extern "C" wrapper function.
@@ -122,45 +128,76 @@ fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
                 format_ident!("{ty_name}")
             };
 
-            if ty.wrapper == TypeWrapper::Option {
-                if ty.is_mutable {
-                    quote! { *mut #ty_ident }
-                } else {
-                    quote! { *const #ty_ident }
+            match ty.wrapper {
+                TypeWrapper::Option => {
+                    // Options are always pointers to the custom type.
+                    if ty.is_mutable {
+                        quote! { *mut #ty_ident }
+                    } else {
+                        quote! { *const #ty_ident }
+                    }
+                },
+                TypeWrapper::Slice => {
+                    // Slices are always pointers to the custom type.
+                    if ty.is_mutable {
+                        quote! { *mut #ty_ident }
+                    } else {
+                        quote! { *const #ty_ident }
+                    }
+                },
+                _ => {
+                    if ty.is_mutable {
+                        // Mutable is always with reference
+                        quote! { &mut #ty_ident }
+                    } else if ty.is_reference {
+                        quote! { &#ty_ident }
+                    } else if TypeInfo::is_copyable(ty_name) {
+                        quote! { #ty_ident }
+                    } else {
+                        quote! { Box<#ty_ident> }
+                    }
                 }
-            } else if ty.is_mutable {
-                // Mutable is always with reference
-                quote! { &mut #ty_ident }
-            } else if ty.is_reference {
-                quote! { &#ty_ident }
-            } else if TypeInfo::is_copyable(ty_name) {
-                quote! { #ty_ident }
-            } else {
-                quote! { Box<#ty_ident> }
             }
         }
         _ => {
             let ty_ident = format_ident!("{}", ty.variant.as_string());
 
-            if ty.wrapper == TypeWrapper::Option {
-                // All options are sent by pointer
-                if ty.is_mutable {
-                    quote! { *mut #ty_ident }
-                } else {
-                    quote! { *const #ty_ident }
+            match ty.wrapper {
+                TypeWrapper::Option => {
+                    // Options are always pointers to the primitive type.
+                    if ty.is_mutable {
+                        quote! { *mut #ty_ident }
+                    } else {
+                        quote! { *const #ty_ident }
+                    }
+                },
+                TypeWrapper::Slice => {
+                    // Slices are always pointers to the primitive type.
+                    if ty.is_mutable {
+                        quote! { *mut #ty_ident }
+                    } else {
+                        quote! { *const #ty_ident }
+                    }
+                },
+                _ => {
+                    if ty.is_mutable {
+                        // Mutable is always with reference
+                        quote! { &mut #ty_ident }
+                    } else {
+                        // We don't care if there is reference on the numeric type - just accept it by value
+                        quote! { #ty_ident }
+                    }
                 }
-            } else if ty.is_mutable {
-                // Mutable is always with reference
-                quote! { &mut #ty_ident }
-            } else {
-                // We don't care if there is reference on the numeric type - just accept it by value
-                quote! { #ty_ident }
             }
         }
     }
 }
 
 fn wrap_ret_type(self_name: &str, ty: &TypeInfo, never_box: bool) -> TokenStream {
+    if ty.wrapper == TypeWrapper::Slice {
+        panic!("returning a slice is not supported");
+    }
+    
     match &ty.variant {
         TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
             quote! { *const libc::c_char }
@@ -231,7 +268,14 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 }
                 TypeVariant::CString => quote! { #name_accessor.as_cstring() },
                 TypeVariant::Custom(custom_ty) => {
-                    if param.ty.wrapper == TypeWrapper::Box || TypeInfo::is_copyable(custom_ty) {
+                    if param.ty.wrapper == TypeWrapper::Slice {
+                        let slice_size_param_ident = format_ident!("{}_size", param.name);
+                        if param.ty.is_mutable {
+                            quote! { std::slice::from_raw_parts_mut(#name_accessor, #slice_size_param_ident as usize) }
+                        } else {
+                            quote! { std::slice::from_raw_parts(#name_accessor, #slice_size_param_ident as usize) }
+                        }
+                    } else if param.ty.wrapper == TypeWrapper::Box || TypeInfo::is_copyable(custom_ty) {
                         quote! { #name_accessor }
                     } else if param.ty.is_reference {
                         if param.ty.wrapper == TypeWrapper::Option {
@@ -244,7 +288,14 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     }
                 }
                 _ => {
-                    if param.ty.is_mutable {
+                    if param.ty.wrapper == TypeWrapper::Slice {
+                        let slice_size_param_ident = format_ident!("{}_size", param.name);
+                        if param.ty.is_mutable {
+                            quote! { std::slice::from_raw_parts_mut(#name_accessor, #slice_size_param_ident as usize) }
+                        } else {
+                            quote! { std::slice::from_raw_parts(#name_accessor, #slice_size_param_ident as usize) }
+                        }
+                    } else if param.ty.is_mutable {
                         quote! { &mut #name_accessor }
                     } else if param.ty.is_reference {
                         quote! { &#name_accessor }

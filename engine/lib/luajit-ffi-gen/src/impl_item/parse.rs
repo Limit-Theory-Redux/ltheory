@@ -249,10 +249,24 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
             type_info.is_mutable = type_ref.mutability.is_some();
 
             Ok(type_info)
-        }
+        },
+        Type::Slice(type_slice) => {
+            let mut type_info = parse_type(&type_slice.elem)?;
+
+            if type_info.wrapper != TypeWrapper::None {
+                return Err(Error::new(
+                    ty.span(),
+                    "a slice can only contain a bare type",
+                ));
+            }
+
+            type_info.wrapper = TypeWrapper::Slice;
+
+            Ok(type_info)
+        },
         _ => Err(Error::new(
             ty.span(),
-            "expected a type, reference to type or mutable reference to type",
+            format!("expected a type, reference to type or mutable reference to type, got {:?}", ty),
         )),
     }
 }

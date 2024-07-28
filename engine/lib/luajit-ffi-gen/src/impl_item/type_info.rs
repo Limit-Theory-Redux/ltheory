@@ -70,6 +70,8 @@ pub enum TypeWrapper {
     Option,
     /// Boxed type: Box<T>
     Box,
+    /// Slice type: [T]
+    Slice,
 }
 
 #[derive(Debug)]
@@ -132,6 +134,14 @@ impl TypeInfo {
                     .unwrap_or(ty_ident.to_string());
 
                 if self.wrapper == TypeWrapper::Option {
+                    // Options are always pointers to the custom type.
+                    if self.is_mutable {
+                        format!("{ffi_ty_name}*")
+                    } else {
+                        format!("{ffi_ty_name} const*")
+                    }
+                } else if self.wrapper == TypeWrapper::Slice {
+                    // Slices are always pointers to the custom type.
                     if self.is_mutable {
                         format!("{ffi_ty_name}*")
                     } else {
@@ -152,7 +162,14 @@ impl TypeInfo {
                 let ty_ident = self.variant.as_c_ffi_string();
 
                 if self.wrapper == TypeWrapper::Option {
-                    // All options are sent by pointer
+                    // Options are always pointers to the custom type.
+                    if self.is_mutable {
+                        format!("{ty_ident}*")
+                    } else {
+                        format!("{ty_ident} const*")
+                    }
+                } else if self.wrapper == TypeWrapper::Slice {
+                    // Slices are always pointers to the custom type.
                     if self.is_mutable {
                         format!("{ty_ident}*")
                     } else {

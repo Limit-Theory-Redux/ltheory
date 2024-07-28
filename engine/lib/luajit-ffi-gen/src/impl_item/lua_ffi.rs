@@ -1,4 +1,4 @@
-use super::{ImplInfo, TypeInfo, TypeVariant, TypeWrapper};
+use super::{ImplInfo, TypeInfo, TypeVariant, TypeWrapper, ParamInfo};
 use crate::args::ImplAttrArgs;
 use crate::ffi_generator::FfiGenerator;
 use crate::IDENT;
@@ -93,12 +93,25 @@ impl ImplInfo {
                         param.as_ffi_name(),
                         param.ty.as_lua_ffi_string(module_name)
                     ));
+                    if param.ty.wrapper == TypeWrapper::Slice {
+                        ffi_gen.add_class_definition(format!(
+                            "---@param {}_size {}",
+                            param.as_ffi_name(),
+                            TypeVariant::U32.as_lua_ffi_string()
+                        ));
+                    }
                 });
 
                 let mut params: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| param.as_ffi_name().to_string())
+                    .flat_map(|param| {
+                        let mut params = vec![param.as_ffi_name().to_string()];
+                        if param.ty.wrapper == TypeWrapper::Slice {
+                            params.push(format!("{}_size", param.as_ffi_name().to_string()))
+                        }
+                        params
+                    })
                     .collect();
 
                 if let Some(ret) = &method.ret {
@@ -148,7 +161,7 @@ impl ImplInfo {
             ffi_gen.add_c_definition("");
         }
 
-        // Tof managed we add 'void Free' method
+        // For managed types, we add 'void Free' method
         let mut max_method_name_len = if is_managed { "void".len() } else { 0 };
         let mut max_self_method_name_len = max_method_name_len;
         let mut max_ret_len = if is_managed { "Free".len() } else { 0 };
@@ -199,7 +212,7 @@ impl ImplInfo {
                 let mut params_str: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| format!("{} {}", param.ty.as_c_ffi_string(module_name), param.as_ffi_name()))
+                    .map(|param| self.gen_ffi_param(module_name, param))
                     .collect();
 
                 if method.bind_args.gen_out_param() && method.ret.is_some() {
@@ -245,6 +258,18 @@ impl ImplInfo {
 
         // Return max len of the method names (all and self only) to avoid recalculation in the next step
         (max_method_name_len, max_self_method_name_len)
+    }
+
+    fn gen_ffi_param(
+        &self,
+        module_name: &str,
+        param: &ParamInfo,
+    ) -> String {
+        if param.ty.wrapper == TypeWrapper::Slice {
+            format!("{} {}, u32 {}_size",  param.ty.as_c_ffi_string(module_name), param.as_ffi_name(), param.as_ffi_name())
+        } else {
+            format!("{} {}", param.ty.as_c_ffi_string(module_name), param.as_ffi_name())
+        }
     }
 
     fn write_global_sym_table(
