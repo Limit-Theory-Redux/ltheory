@@ -76,13 +76,14 @@ pub enum TypeWrapper {
 
 #[derive(Debug)]
 pub struct TypeInfo {
-    pub wrapper: TypeWrapper,
     /// Reference type: &T
     pub is_reference: bool,
     /// Mutable reference type: &mut T
     pub is_mutable: bool,
     /// Result type. Can be used only in the return position
     pub is_result: bool,
+
+    pub wrapper: TypeWrapper,
     pub variant: TypeVariant,
 }
 

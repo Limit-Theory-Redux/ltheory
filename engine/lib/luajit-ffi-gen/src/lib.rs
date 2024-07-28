@@ -35,12 +35,12 @@ pub fn luajit_ffi(attr_args: TokenStream, input: TokenStream) -> TokenStream {
         Item::Impl(item_info) => {
             let args = parse_macro_input!(attr_args as ImplAttrArgs);
 
-            item_info.generate(args)
+            item_info.generate(&args)
         }
         Item::Enum(enum_info) => {
             let args = parse_macro_input!(attr_args as EnumAttrArgs);
 
-            enum_info.generate(args)
+            enum_info.generate(&args)
         }
     };
 

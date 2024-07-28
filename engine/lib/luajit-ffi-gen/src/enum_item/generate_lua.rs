@@ -1,6 +1,6 @@
 use super::EnumInfo;
 use crate::args::EnumAttrArgs;
-use crate::ffi_generator::FfiGenerator;
+use crate::ffi_generator::FFIGenerator;
 use crate::impl_item::TypeVariant;
 use crate::IDENT;
 
@@ -11,7 +11,7 @@ impl EnumInfo {
         let enum_repr_ty = TypeVariant::from_str(repr_type).unwrap_or(TypeVariant::U32);
         let variants_info = self.variants.get_info(attr_args.start_index());
 
-        let mut ffi_gen = FfiGenerator::new(&module_name);
+        let mut ffi_gen = FFIGenerator::new(&module_name);
 
         ffi_gen.set_type_decl_struct(enum_repr_ty.as_c_ffi_string());
 
@@ -30,7 +30,7 @@ impl EnumInfo {
 }
 
 fn gen_class_definitions(
-    ffi_gen: &mut FfiGenerator,
+    ffi_gen: &mut FFIGenerator,
     doc: &[String],
     module_name: &str,
     variants_info: &[(&[String], &str, u64)],
@@ -53,7 +53,7 @@ fn gen_class_definitions(
 }
 
 fn gen_c_definitions(
-    ffi_gen: &mut FfiGenerator,
+    ffi_gen: &mut FFIGenerator,
     module_name: &str,
     variants_info: &[(&[String], &str, u64)],
 ) {
@@ -75,7 +75,7 @@ fn gen_c_definitions(
 }
 
 fn gen_global_symbol_table(
-    ffi_gen: &mut FfiGenerator,
+    ffi_gen: &mut FFIGenerator,
     module_name: &str,
     variants_info: &[(&[String], &str, u64)],
 ) {

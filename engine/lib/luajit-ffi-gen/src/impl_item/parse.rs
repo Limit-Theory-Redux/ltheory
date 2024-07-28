@@ -179,7 +179,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                 if type_info.is_result {
                     return Err(Error::new(
                         type_path.span(),
-                        "nested result is not supported".to_string(),
+                        "nested Result is not supported".to_string(),
                     ));
                 }
 
@@ -249,7 +249,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
             type_info.is_mutable = type_ref.mutability.is_some();
 
             Ok(type_info)
-        },
+        }
         Type::Slice(type_slice) => {
             let mut type_info = parse_type(&type_slice.elem)?;
 
@@ -263,10 +263,13 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
             type_info.wrapper = TypeWrapper::Slice;
 
             Ok(type_info)
-        },
+        }
         _ => Err(Error::new(
             ty.span(),
-            format!("expected a type, reference to type or mutable reference to type, got {:?}", ty),
+            format!(
+                "expected a type, reference to type or mutable reference to type, got {:?}",
+                ty
+            ),
         )),
     }
 }
@@ -276,6 +279,10 @@ fn parse_ret_ty(ret_ty: &ReturnType) -> Result<Option<TypeInfo>> {
         ReturnType::Default => Ok(None),
         ReturnType::Type(_, ty) => {
             let type_info = parse_type(ty)?;
+
+            if type_info.wrapper == TypeWrapper::Slice {
+                return Err(Error::new(ty.span(), "returning a slice is not supported"));
+            }
 
             Ok(Some(type_info))
         }

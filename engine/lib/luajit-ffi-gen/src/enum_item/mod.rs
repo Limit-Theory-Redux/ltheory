@@ -1,6 +1,7 @@
 mod enum_info;
 mod generate;
-mod lua_ffi;
+mod generate_lua;
+mod generate_rust;
 mod parse;
 mod variants_info;
 

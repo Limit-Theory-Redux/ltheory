@@ -1,13 +1,13 @@
-use super::{ImplInfo, TypeInfo, TypeVariant, TypeWrapper, ParamInfo};
+use super::{ImplInfo, ParamInfo, TypeInfo, TypeVariant, TypeWrapper};
 use crate::args::ImplAttrArgs;
-use crate::ffi_generator::FfiGenerator;
+use crate::ffi_generator::FFIGenerator;
 use crate::IDENT;
 
 impl ImplInfo {
     /// Generate Lua FFI file
     pub fn generate_ffi(&self, attr_args: &ImplAttrArgs) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
-        let mut ffi_gen = FfiGenerator::load(&module_name);
+        let mut ffi_gen = FFIGenerator::load(&module_name);
         let is_managed = self.is_managed();
 
         // Generate metatype section only if there is at least one method with `self` parameter,
@@ -57,7 +57,7 @@ impl ImplInfo {
         ffi_gen.generate();
     }
 
-    fn write_class_defs(&self, ffi_gen: &mut FfiGenerator, module_name: &str) {
+    fn write_class_defs(&self, ffi_gen: &mut FFIGenerator, module_name: &str) {
         if !ffi_gen.has_class_definitions() {
             ffi_gen.add_class_definition("---@meta\n".to_string());
 
@@ -153,7 +153,7 @@ impl ImplInfo {
 
     fn write_c_defs(
         &self,
-        ffi_gen: &mut FfiGenerator,
+        ffi_gen: &mut FFIGenerator,
         module_name: &str,
         is_managed: bool,
     ) -> (usize, usize) {
@@ -260,21 +260,26 @@ impl ImplInfo {
         (max_method_name_len, max_self_method_name_len)
     }
 
-    fn gen_ffi_param(
-        &self,
-        module_name: &str,
-        param: &ParamInfo,
-    ) -> String {
+    fn gen_ffi_param(&self, module_name: &str, param: &ParamInfo) -> String {
         if param.ty.wrapper == TypeWrapper::Slice {
-            format!("{} {}, u32 {}_size",  param.ty.as_c_ffi_string(module_name), param.as_ffi_name(), param.as_ffi_name())
+            format!(
+                "{} {}, u32 {}_size",
+                param.ty.as_c_ffi_string(module_name),
+                param.as_ffi_name(),
+                param.as_ffi_name()
+            )
         } else {
-            format!("{} {}", param.ty.as_c_ffi_string(module_name), param.as_ffi_name())
+            format!(
+                "{} {}",
+                param.ty.as_c_ffi_string(module_name),
+                param.as_ffi_name()
+            )
         }
     }
 
     fn write_global_sym_table(
         &self,
-        ffi_gen: &mut FfiGenerator,
+        ffi_gen: &mut FFIGenerator,
         module_name: &str,
         max_method_name_len: usize,
     ) {
@@ -298,7 +303,7 @@ impl ImplInfo {
 
     fn write_metatype(
         &self,
-        ffi_gen: &mut FfiGenerator,
+        ffi_gen: &mut FFIGenerator,
         module_name: &str,
         max_self_method_name_len: usize,
         attr_args: &ImplAttrArgs,

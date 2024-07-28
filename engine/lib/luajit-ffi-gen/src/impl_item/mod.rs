@@ -1,6 +1,7 @@
 mod generate;
+mod generate_lua;
+mod generate_rust;
 mod impl_info;
-mod lua_ffi;
 mod method_info;
 mod parse;
 mod type_info;

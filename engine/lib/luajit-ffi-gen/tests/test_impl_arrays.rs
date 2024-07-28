@@ -29,7 +29,7 @@ impl TestStructArrays {
             out[i] = self.val_array_primitive[i];
         }
     }
-    
+
     pub fn set_custom_array(&mut self, data: &[Data]) {
         self.val_array_custom = data.to_vec();
     }
@@ -70,4 +70,3 @@ fn test_custom_array() {
         assert_eq!(data, new_data);
     }
 }
-
