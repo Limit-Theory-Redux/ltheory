@@ -30,145 +30,145 @@ function Shader:getVariable(name) end
 ---@return boolean
 function Shader:hasVariable(name) end
 
+function Shader:resetTexIndex() end
+
+---@param name string
+---@param value number
+function Shader:setFloat(name, value) end
+
+---@param index integer
+---@param value number
+function Shader:iSetFloat(index, value) end
+
+---@param name string
+---@param x number
+---@param y number
+function Shader:setFloat2(name, x, y) end
+
+---@param index integer
+---@param x number
+---@param y number
+function Shader:iSetFloat2(index, x, y) end
+
+---@param name string
+---@param x number
+---@param y number
+---@param z number
+function Shader:setFloat3(name, x, y, z) end
+
+---@param index integer
+---@param x number
+---@param y number
+---@param z number
+function Shader:iSetFloat3(index, x, y, z) end
+
+---@param name string
+---@param x number
+---@param y number
+---@param z number
+---@param w number
+function Shader:setFloat4(name, x, y, z, w) end
+
+---@param index integer
+---@param x number
+---@param y number
+---@param z number
+---@param w number
+function Shader:iSetFloat4(index, x, y, z, w) end
+
+---@param name string
+---@param value integer
+function Shader:setInt(name, value) end
+
+---@param index integer
+---@param value integer
+function Shader:iSetInt(index, value) end
+
+---@param name string
+---@param x integer
+---@param y integer
+function Shader:setInt2(name, x, y) end
+
+---@param index integer
+---@param x integer
+---@param y integer
+function Shader:iSetInt2(index, x, y) end
+
+---@param name string
+---@param x integer
+---@param y integer
+---@param z integer
+function Shader:setInt3(name, x, y, z) end
+
+---@param index integer
+---@param x integer
+---@param y integer
+---@param z integer
+function Shader:iSetInt3(index, x, y, z) end
+
+---@param name string
+---@param x integer
+---@param y integer
+---@param z integer
+---@param w integer
+function Shader:setInt4(name, x, y, z, w) end
+
+---@param index integer
+---@param x integer
+---@param y integer
+---@param z integer
+---@param w integer
+function Shader:iSetInt4(index, x, y, z, w) end
+
+---@param name string
+---@param value Matrix
+function Shader:setMatrix(name, value) end
+
+---@param index integer
+---@param value Matrix
+function Shader:iSetMatrix(index, value) end
+
+---@param name string
+---@param value Matrix
+function Shader:setMatrixT(name, value) end
+
+---@param index integer
+---@param value Matrix
+function Shader:iSetMatrixT(index, value) end
+
+---@param name string
+---@param value Tex1D
+function Shader:setTex1D(name, value) end
+
+---@param index integer
+---@param value Tex1D
+function Shader:iSetTex1D(index, value) end
+
+---@param name string
+---@param value Tex2D
+function Shader:setTex2D(name, value) end
+
+---@param index integer
+---@param value Tex2D
+function Shader:iSetTex2D(index, value) end
+
+---@param name string
+---@param value Tex3D
+function Shader:setTex3D(name, value) end
+
+---@param index integer
+---@param value Tex3D
+function Shader:iSetTex3D(index, value) end
+
+---@param name string
+---@param value TexCube
+function Shader:setTexCube(name, value) end
+
+---@param index integer
+---@param value TexCube
+function Shader:iSetTexCube(index, value) end
+
 function Shader:start() end
 
 function Shader:stop() end
-
-function Shader.ResetTexIndex() end
-
----@param name string
----@param value number
-function Shader.SetFloat(name, value) end
-
----@param index integer
----@param value number
-function Shader.ISetFloat(index, value) end
-
----@param name string
----@param x number
----@param y number
-function Shader.SetFloat2(name, x, y) end
-
----@param index integer
----@param x number
----@param y number
-function Shader.ISetFloat2(index, x, y) end
-
----@param name string
----@param x number
----@param y number
----@param z number
-function Shader.SetFloat3(name, x, y, z) end
-
----@param index integer
----@param x number
----@param y number
----@param z number
-function Shader.ISetFloat3(index, x, y, z) end
-
----@param name string
----@param x number
----@param y number
----@param z number
----@param w number
-function Shader.SetFloat4(name, x, y, z, w) end
-
----@param index integer
----@param x number
----@param y number
----@param z number
----@param w number
-function Shader.ISetFloat4(index, x, y, z, w) end
-
----@param name string
----@param value integer
-function Shader.SetInt(name, value) end
-
----@param index integer
----@param value integer
-function Shader.ISetInt(index, value) end
-
----@param name string
----@param x integer
----@param y integer
-function Shader.SetInt2(name, x, y) end
-
----@param index integer
----@param x integer
----@param y integer
-function Shader.ISetInt2(index, x, y) end
-
----@param name string
----@param x integer
----@param y integer
----@param z integer
-function Shader.SetInt3(name, x, y, z) end
-
----@param index integer
----@param x integer
----@param y integer
----@param z integer
-function Shader.ISetInt3(index, x, y, z) end
-
----@param name string
----@param x integer
----@param y integer
----@param z integer
----@param w integer
-function Shader.SetInt4(name, x, y, z, w) end
-
----@param index integer
----@param x integer
----@param y integer
----@param z integer
----@param w integer
-function Shader.ISetInt4(index, x, y, z, w) end
-
----@param name string
----@param value Matrix
-function Shader.SetMatrix(name, value) end
-
----@param index integer
----@param value Matrix
-function Shader.ISetMatrix(index, value) end
-
----@param name string
----@param value Matrix
-function Shader.SetMatrixT(name, value) end
-
----@param index integer
----@param value Matrix
-function Shader.ISetMatrixT(index, value) end
-
----@param name string
----@param value Tex1D
-function Shader.SetTex1D(name, value) end
-
----@param index integer
----@param value Tex1D
-function Shader.ISetTex1D(index, value) end
-
----@param name string
----@param value Tex2D
-function Shader.SetTex2D(name, value) end
-
----@param index integer
----@param value Tex2D
-function Shader.ISetTex2D(index, value) end
-
----@param name string
----@param value Tex3D
-function Shader.SetTex3D(name, value) end
-
----@param index integer
----@param value Tex3D
-function Shader.ISetTex3D(index, value) end
-
----@param name string
----@param value TexCube
-function Shader.SetTexCube(name, value) end
-
----@param index integer
----@param value TexCube
-function Shader.ISetTexCube(index, value) end
 

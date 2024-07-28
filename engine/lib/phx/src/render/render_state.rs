@@ -2,6 +2,25 @@
 
 use super::*;
 
+#[luajit_ffi_gen::luajit_ffi]
+#[derive(Default, Debug, Copy, Clone)]
+pub enum BlendMode {
+    #[default]
+    Disabled,
+    Additive,
+    Alpha,
+    PreMultAlpha,
+}
+
+#[luajit_ffi_gen::luajit_ffi]
+#[derive(Default, Debug, Copy, Clone)]
+pub enum CullFace {
+    #[default]
+    None,
+    Back,
+    Front,
+}
+
 static mut wireframe: [bool; 16] = [false; 16];
 
 static mut wireframeIndex: i32 = -1;
@@ -12,9 +31,9 @@ static mut depthTestIndex: i32 = -1;
 
 static mut blendModeIndex: i32 = -1;
 
-static mut blendMode: [BlendMode; 16] = [0; 16];
+static mut blendMode: [BlendMode; 16] = [BlendMode::Additive; 16];
 
-static mut cullFace: [CullFace; 16] = [0; 16];
+static mut cullFace: [CullFace; 16] = [CullFace::None; 16];
 
 static mut cullFaceIndex: i32 = -1;
 
@@ -25,10 +44,10 @@ static mut depthWritableIndex: i32 = -1;
 #[inline]
 extern "C" fn RenderState_SetBlendMode(mode: BlendMode) {
     match mode {
-        BlendMode_Additive => {
+        BlendMode::Additive => {
             glcheck!(gl::BlendFuncSeparate(gl::ONE, gl::ONE, gl::ONE, gl::ONE));
         }
-        BlendMode_Alpha => {
+        BlendMode::Alpha => {
             glcheck!(gl::BlendFuncSeparate(
                 gl::SRC_ALPHA,
                 gl::ONE_MINUS_SRC_ALPHA,
@@ -36,32 +55,29 @@ extern "C" fn RenderState_SetBlendMode(mode: BlendMode) {
                 gl::ONE_MINUS_SRC_ALPHA,
             ));
         }
-        BlendMode_PreMultAlpha => {
+        BlendMode::PreMultAlpha => {
             glcheck!(gl::BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA));
         }
-        BlendMode_Disabled => {
+        BlendMode::Disabled => {
             glcheck!(gl::BlendFunc(gl::ONE, gl::ZERO));
         }
-        _ => {}
     }
 }
 
-#[allow(unused_variables, unreachable_patterns)] // TODO: fix this
 #[inline]
 extern "C" fn RenderState_SetCullFace(mode: CullFace) {
     match mode {
-        CullFace_None => {
+        CullFace::None => {
             glcheck!(gl::Disable(gl::CULL_FACE));
         }
-        CullFace_Back => {
+        CullFace::Back => {
             glcheck!(gl::Enable(gl::CULL_FACE));
             glcheck!(gl::CullFace(gl::BACK));
         }
-        CullFace_Front => {
+        CullFace::Front => {
             glcheck!(gl::Enable(gl::CULL_FACE));
             glcheck!(gl::CullFace(gl::FRONT));
         }
-        _ => {}
     }
 }
 
@@ -90,8 +106,8 @@ extern "C" fn RenderState_SetWireframe(enabled: bool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushAllDefaults() {
-    RenderState_PushBlendMode(2);
-    RenderState_PushCullFace(0);
+    RenderState_PushBlendMode(BlendMode::Disabled);
+    RenderState_PushCullFace(CullFace::None);
     RenderState_PushDepthTest(false);
     RenderState_PushDepthWritable(true);
     RenderState_PushWireframe(false);

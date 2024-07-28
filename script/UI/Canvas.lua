@@ -167,18 +167,18 @@ function Canvas:draw(sx, sy)
     do -- Draw
         self.timer:reset()
         if self.enabled > 0 then
-            BlendMode.Push(BlendMode.Alpha)
+            RenderState.PushBlendMode(BlendMode.Alpha)
             Draw.PushAlpha(self.enabled)
             DrawEx.PushAlpha(self.enabled)
             for i = 1, #self.children do self.children[i]:draw(s.focus, s.active) end
             DrawEx.PopAlpha()
             Draw.PopAlpha()
-            BlendMode.Pop()
+            RenderState.PopBlendMode()
         end
     end
 
     do -- Debugging
-        BlendMode.Push(BlendMode.Alpha)
+        RenderState.PushBlendMode(BlendMode.Alpha)
         if self.drawDebug then
             -- Don't use wireframe! (it's not pixel-perfect)
             UI.DrawEx.SimpleShaderStart(Config.ui.color.debugRect)
@@ -193,7 +193,7 @@ function Canvas:draw(sx, sy)
                 UI.DrawEx.SimpleShaderStop()
             end
         end
-        BlendMode.Pop()
+        RenderState.PopBlendMode()
         self.drawTime = self.timer:getElapsed()
     end
 

@@ -644,7 +644,7 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
     }
 
     if !((*self_1).lineList).is_null() {
-        RenderState_PushBlendMode(0);
+        RenderState_PushBlendMode(BlendMode::Additive);
         // TODO: Store shader properly
         static mut shader: *mut Shader = std::ptr::null_mut();
         if shader.is_null() {
@@ -805,7 +805,7 @@ pub unsafe extern "C" fn ImGui_End() {
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Draw() {
-    RenderState_PushBlendMode(1);
+    RenderState_PushBlendMode(BlendMode::Alpha);
     Draw_LineWidth(1.0f32);
     ImGui_DrawLayer(this.layerLast);
     RenderState_PopBlendMode();

@@ -98,11 +98,11 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
         );
         let mut angle: f32 = level as f32 / (levels - 1) as f32;
         angle = angle * angle;
-        Shader::reset_tex_index();
-        Shader::set_float("angle", angle);
-        Shader::set_tex_cube("src", this);
-        Shader::set_tex2d("sampleBuffer", &mut *sampleTex);
-        Shader::set_int("samples", sampleCount);
+        (*SHADER).reset_tex_index();
+        (*SHADER).set_float("angle", angle);
+        (*SHADER).set_tex_cube("src", this);
+        (*SHADER).set_tex2d("sampleBuffer", &mut *sampleTex);
+        (*SHADER).set_int("samples", sampleCount);
         let mut i_2: i32 = 0;
         while i_2 < 6 {
             let thisFace: CubeFace = face[i_2 as usize];
@@ -110,8 +110,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
             let thisUp: Vec3 = up[i_2 as usize];
             RenderTarget_Push(size, size);
             RenderTarget_BindTexCubeLevel(&mut *result, thisFace, level);
-            Shader::set_float3("cubeLook", thisLook.x, thisLook.y, thisLook.z);
-            Shader::set_float3("cubeUp", thisUp.x, thisUp.y, thisUp.z);
+            (*SHADER).set_float3("cubeLook", thisLook.x, thisLook.y, thisLook.z);
+            (*SHADER).set_float3("cubeUp", thisUp.x, thisUp.y, thisUp.z);
             Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
             RenderTarget_Pop();
             i_2 += 1;

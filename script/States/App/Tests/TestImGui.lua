@@ -28,7 +28,7 @@ function Test:onInit()
         { desc = "cache invalidation",         value = false },
     }
 
-    self.renderer = Renderer()
+    self.renderer = RenderPipeline()
 end
 
 function Test:onInput()

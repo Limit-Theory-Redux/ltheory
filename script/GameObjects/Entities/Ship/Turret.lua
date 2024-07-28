@@ -148,13 +148,13 @@ end
 function Turret:render(state)
     if state.mode == BlendMode.Additive then
         shader:start()
-        Shader.ISetFloat3(varCache.color, 1.0, 1.3, 2.0)
+        shader:iSetFloat3(varCache.color, 1.0, 1.3, 2.0)
         mesh:drawBind()
         -- TODO : Should this check be done first?
         if self.heat > 1e-3 then
-            Shader.ISetFloat(varCache.size, 8)
-            Shader.ISetFloat(varCache.alpha, 2.0 * self.heat)
-            Shader.ISetMatrix(varCache.mWorld, self:getToWorldMatrix(state.eye))
+            shader:iSetFloat(varCache.size, 8)
+            shader:iSetFloat(varCache.alpha, 2.0 * self.heat)
+            shader:iSetMatrix(varCache.mWorld, self:getToWorldMatrix(state.eye))
             mesh:drawBound()
         end
         mesh:drawUnbind()

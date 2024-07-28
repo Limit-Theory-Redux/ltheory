@@ -344,10 +344,11 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(0.0f32, 0.0f32, 0.0f32, 1.0f32);
 
+        state.shader().set_float3("cubeLook", face.look.x, face.look.y, face.look.z);
+        state.shader().set_float3("cubeUp", face.up.x, face.up.y, face.up.z);
+        state.shader().set_float("cubeSize", size_f);
+
         state.start();
-        Shader::set_float3("cubeLook", face.look.x, face.look.y, face.look.z);
-        Shader::set_float3("cubeUp", face.up.x, face.up.y, face.up.z);
-        Shader::set_float("cubeSize", size_f);
 
         let mut j: i32 = 1;
         let mut job_size: i32 = 1;
@@ -355,7 +356,7 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
             let time: TimeStamp = TimeStamp::now();
             ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
             Draw::rect(0.0f32, 0.0f32, size_f, size_f);
-            Draw_Flush();
+            Draw::flush();
             ClipRect_Pop();
 
             j += job_size;

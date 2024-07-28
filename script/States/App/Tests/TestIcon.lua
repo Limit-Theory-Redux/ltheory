@@ -23,7 +23,7 @@ function Test:onUpdate(dt) end
 
 function Test:onDraw()
     Draw.Clear(0.1, 0.1, 0.1, 1.0)
-    BlendMode.PushAdditive()
+    RenderState.PushBlendMode(BlendMode.Additive)
     local y = 16
     local size = 16
     for i = 1, 6 do
@@ -31,7 +31,7 @@ function Test:onDraw()
         y = y + size + 4
         size = size * 2
     end
-    BlendMode.Pop()
+    RenderState.PopBlendMode()
 end
 
 return Test

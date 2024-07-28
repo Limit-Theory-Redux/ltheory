@@ -11,7 +11,7 @@ local station_options_config = 1
 local station_options_occupy = 1
 
 function Test:onInit()
-    self.renderer = Renderer()
+    self.renderer = RenderPipeline()
 end
 
 function Test:onInput() end

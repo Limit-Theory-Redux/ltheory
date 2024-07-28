@@ -5,7 +5,7 @@ local useRenderer = true
 
 
 function Test:onInit()
-    self.renderer = Renderer()
+    self.renderer = RenderPipeline()
     self.fading = true
 end
 

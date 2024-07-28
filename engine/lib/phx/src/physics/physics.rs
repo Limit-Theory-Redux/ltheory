@@ -417,10 +417,10 @@ impl Physics {
 
     pub fn draw_bounding_boxes_world(&self) {}
 
-    pub fn draw_wireframes(&mut self, eye: &Position) {
+    pub fn draw_wireframes(&mut self, shader: &mut Shader, eye: &Position) {
         let world = self.world.as_ref();
         self.debug_renderer.render(
-            &mut RapierDebugRenderer { eye: *eye },
+            &mut RapierDebugRenderer { shader, eye: *eye },
             &world.rigid_bodies,
             &world.colliders,
             &self.impulse_joints,
@@ -475,11 +475,12 @@ impl Physics {
     }
 }
 
-struct RapierDebugRenderer {
+struct RapierDebugRenderer<'a> {
+    shader: &'a mut Shader,
     eye: Position,
 }
 
-impl rp::DebugRenderBackend for RapierDebugRenderer {
+impl<'a> rp::DebugRenderBackend for RapierDebugRenderer<'a> {
     fn draw_line(
         &mut self,
         object: rp::DebugRenderObject<'_>,
@@ -489,7 +490,7 @@ impl rp::DebugRenderBackend for RapierDebugRenderer {
     ) {
         let Color { r, g, b, a } = Color::from_hsl(color[0], color[1], color[2], color[3]);
 
-        Shader::set_float4("color", r, g, b, a);
+        self.shader.set_float4("color", r, g, b, a);
         unsafe {
             Draw_Line3(
                 &Position::from_na_point(&start).relative_to(self.eye),
