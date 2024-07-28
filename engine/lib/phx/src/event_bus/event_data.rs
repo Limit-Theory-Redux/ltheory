@@ -1,10 +1,11 @@
-use super::FrameStage;
+use super::{EventPayload, FrameStage};
 
 #[derive(Debug, Clone)]
 pub struct EventData {
     pub delta_time: f64,
     pub frame_stage: FrameStage,
     pub tunnel_id: u32,
+    pub payload: Option<EventPayload>,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
