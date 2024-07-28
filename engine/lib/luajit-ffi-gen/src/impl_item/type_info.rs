@@ -116,7 +116,7 @@ impl TypeInfo {
     }
 
     pub fn as_c_ffi_string(&self, self_name: &str) -> String {
-        // These types should be the C equivalent of the result of `wrap_type` in `generate.rs`.
+        // These types should be the C equivalent of the result of `gen_wrapper_type` in `generate_rust.rs`.
         match &self.variant {
             TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
                 if self.is_mutable {
@@ -228,7 +228,7 @@ impl TypeVariant {
         matches!(self, Self::Str | Self::String | Self::CString)
     }
 
-    pub fn from_str(type_name: &str) -> Option<Self> {
+    pub fn from_rust_ffi_str(type_name: &str) -> Option<Self> {
         let res = match type_name {
             "bool" => Self::Bool,
             "i8" => Self::I8,
@@ -252,7 +252,7 @@ impl TypeVariant {
         Some(res)
     }
 
-    pub fn as_string(&self) -> String {
+    pub fn as_rust_ffi_string(&self) -> String {
         match self {
             Self::Bool => "bool",
             Self::I8 => "i8",

@@ -193,7 +193,7 @@ impl ImplInfo {
                 }
                 _ => {
                     if ty.wrapper == TypeWrapper::Option {
-                        let type_ident = format_ident!("{}", ty.variant.as_string());
+                        let type_ident = format_ident!("{}", ty.variant.as_rust_ffi_string());
 
                         self.gen_buffered_ret(&type_ident)
                     } else {
@@ -265,7 +265,7 @@ impl ImplInfo {
                 }
             }
             _ => {
-                let ty_ident = format_ident!("{}", ty.variant.as_string());
+                let ty_ident = format_ident!("{}", ty.variant.as_rust_ffi_string());
 
                 match ty.wrapper {
                     TypeWrapper::Option => {
@@ -325,7 +325,7 @@ impl ImplInfo {
                 }
             }
             _ => {
-                let ty_ident = format_ident!("{}", ty.variant.as_string());
+                let ty_ident = format_ident!("{}", ty.variant.as_rust_ffi_string());
 
                 if ty.wrapper == TypeWrapper::Option {
                     quote! { *const #ty_ident }

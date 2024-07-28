@@ -15,7 +15,7 @@ impl ImplInfo {
 
         // Generate Lua FFI files if enabled.
         if attr_args.gen_lua_ffi() {
-            self.generate_ffi(&attr_args);
+            self.gen_lua_ffi(&attr_args);
         }
 
         quote! {

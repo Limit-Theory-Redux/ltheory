@@ -5,8 +5,9 @@ use crate::IDENT;
 
 impl ImplInfo {
     /// Generate Lua FFI file
-    pub fn generate_ffi(&self, attr_args: &ImplAttrArgs) {
+    pub fn gen_lua_ffi(&self, attr_args: &ImplAttrArgs) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
+
         let mut ffi_gen = FFIGenerator::load(&module_name);
         let is_managed = self.is_managed();
 

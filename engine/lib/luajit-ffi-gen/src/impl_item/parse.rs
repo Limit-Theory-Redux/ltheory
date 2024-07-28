@@ -220,7 +220,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                 return Ok(type_info);
             }
 
-            let variant = TypeVariant::from_str(&type_name);
+            let variant = TypeVariant::from_rust_ffi_str(&type_name);
             let res = if let Some(variant) = variant {
                 TypeInfo {
                     wrapper: TypeWrapper::None,
