@@ -26,8 +26,8 @@ function InitSystem()
 
         dofile('./script/Config/Version.lua')
 
-        if Config.gameVersion ~= "0.0.0" and Config.gameVersion ~= Engine.GetVersion() then
-            Log.Error("Engine and script version mismatch. Engine: %s. Script: %s.", Engine.GetVersion(),
+        if Config.gameVersion ~= "0.0.0" and Config.gameVersion ~= Core.FFI.Engine.GetVersion() then
+            Log.Error("Engine and script version mismatch. Engine: %s. Script: %s.", Core.FFI.Engine.GetVersion(),
                 Config.gameVersion)
         end
 
