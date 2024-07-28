@@ -160,31 +160,26 @@ impl ImplInfo {
                     }
                 }
                 TypeVariant::CString => quote! { static_cstring!(__res__) },
-                TypeVariant::Custom(custom_ty) => {
-                    let type_ident = if ty.is_self() {
-                        self_ident.clone()
-                    } else {
-                        format_ident!("{custom_ty}")
-                    };
-                    let is_copyable = TypeInfo::is_copyable(custom_ty)
-                        || TypeInfo::is_copyable(&self_ident.to_string());
+                TypeVariant::Custom(ty_name) => {
+                    let ty_name = if ty.is_self() { &self.name } else { ty_name };
+                    let ty_ident = format_ident!("{ty_name}");
 
                     if ty.wrapper == TypeWrapper::Option && !ty.is_reference {
-                        if is_copyable {
+                        if ty.is_copyable(&self.name) {
                             quote! { &__res__ }
                         } else {
-                            self.gen_buffered_ret(&type_ident)
+                            self.gen_buffered_ret(&ty_ident)
                         }
-                    } else if is_copyable || method.bind_args.gen_out_param() {
+                    } else if ty.is_copyable(&self.name) || method.bind_args.gen_out_param() {
                         if ty.is_reference {
                             quote! { *__res__ }
                         } else {
                             quote! { __res__ }
                         }
                     } else if ty.is_mutable {
-                        quote! { __res__ as *mut #type_ident }
+                        quote! { __res__ as *mut #ty_ident }
                     } else if ty.is_reference {
-                        quote! { __res__ as *const #type_ident }
+                        quote! { __res__ as *const #ty_ident }
                     } else if ty.wrapper != TypeWrapper::Box {
                         quote! { __res__.into() }
                     } else {
@@ -256,7 +251,7 @@ impl ImplInfo {
                             quote! { &mut #ty_ident }
                         } else if ty.is_reference {
                             quote! { &#ty_ident }
-                        } else if TypeInfo::is_copyable(ty_name) {
+                        } else if ty.is_copyable(&self.name) {
                             quote! { #ty_ident }
                         } else {
                             quote! { Box<#ty_ident> }
@@ -306,7 +301,6 @@ impl ImplInfo {
             TypeVariant::Custom(ty_name) => {
                 let ty_name = if ty.is_self() { &self.name } else { ty_name };
                 let ty_ident = format_ident!("{ty_name}");
-                let is_copyable = TypeInfo::is_copyable(ty_name.as_str());
 
                 if ty.wrapper == TypeWrapper::Option {
                     if ty.is_mutable {
@@ -314,7 +308,9 @@ impl ImplInfo {
                     } else {
                         quote! { *const #ty_ident }
                     }
-                } else if (is_copyable && ty.wrapper != TypeWrapper::Box) || never_box {
+                } else if (ty.is_copyable(&self.name) && ty.wrapper != TypeWrapper::Box)
+                    || never_box
+                {
                     quote! { #ty_ident }
                 } else if ty.is_mutable {
                     quote! { *mut #ty_ident }
@@ -355,7 +351,7 @@ impl ImplInfo {
                 }
             }
             TypeVariant::CString => quote! { #name_accessor.as_cstring() },
-            TypeVariant::Custom(custom_ty) => {
+            TypeVariant::Custom(_) => {
                 if param.ty.wrapper == TypeWrapper::Slice {
                     let slice_size_param_ident = format_ident!("{}_size", param.name);
                     if param.ty.is_mutable {
@@ -363,7 +359,7 @@ impl ImplInfo {
                     } else {
                         quote! { std::slice::from_raw_parts(#name_accessor, #slice_size_param_ident as usize) }
                     }
-                } else if param.ty.wrapper == TypeWrapper::Box || TypeInfo::is_copyable(custom_ty) {
+                } else if param.ty.wrapper == TypeWrapper::Box || param.ty.is_copyable(&self.name) {
                     quote! { #name_accessor }
                 } else if param.ty.is_reference {
                     if param.ty.wrapper == TypeWrapper::Option {

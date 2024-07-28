@@ -1,4 +1,4 @@
-use super::{ImplInfo, ParamInfo, TypeInfo, TypeVariant, TypeWrapper};
+use super::{ImplInfo, ParamInfo, TypeVariant, TypeWrapper};
 use crate::args::ImplAttrArgs;
 use crate::ffi_generator::FFIGenerator;
 use crate::IDENT;
@@ -213,15 +213,15 @@ impl ImplInfo {
                 let mut params_str: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| self.gen_ffi_param(module_name, param))
+                    .flat_map(|param| self.get_c_ffi_param(module_name, param))
                     .collect();
 
                 if method.bind_args.gen_out_param() && method.ret.is_some() {
                     let ret = method.ret.as_ref().unwrap();
                     let ret_ffi = ret.as_c_ffi_string(module_name);
                     let ret_param = match &ret.variant {
-                        TypeVariant::Custom(ty_name) => {
-                            if !TypeInfo::is_copyable(ty_name) && ret.wrapper != TypeWrapper::Box && ret.wrapper != TypeWrapper::Option && !ret.is_reference {
+                        TypeVariant::Custom(_) => {
+                            if !ret.is_copyable(&self.name) && ret.wrapper != TypeWrapper::Box && ret.wrapper != TypeWrapper::Option && !ret.is_reference {
                                 // If we have a non-copyable type that's not boxed, optional or a ref,
                                 // we don't need to return it as a pointer as it's already a pointer.
                                 format!("{} out", ret_ffi)
@@ -261,21 +261,22 @@ impl ImplInfo {
         (max_method_name_len, max_self_method_name_len)
     }
 
-    fn gen_ffi_param(&self, module_name: &str, param: &ParamInfo) -> String {
+    fn get_c_ffi_param(&self, module_name: &str, param: &ParamInfo) -> Vec<String> {
+        let mut params = vec![format!(
+            "{} {}",
+            param.ty.as_c_ffi_string(module_name),
+            param.as_ffi_name()
+        )];
+
         if param.ty.wrapper == TypeWrapper::Slice {
-            format!(
-                "{} {}, u32 {}_size",
-                param.ty.as_c_ffi_string(module_name),
-                param.as_ffi_name(),
+            params.push(format!(
+                "{} {}_size",
+                TypeVariant::U32.as_c_ffi_string(),
                 param.as_ffi_name()
-            )
-        } else {
-            format!(
-                "{} {}",
-                param.ty.as_c_ffi_string(module_name),
-                param.as_ffi_name()
-            )
+            ))
         }
+
+        params
     }
 
     fn write_global_sym_table(

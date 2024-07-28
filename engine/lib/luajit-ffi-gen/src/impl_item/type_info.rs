@@ -98,8 +98,18 @@ impl TypeInfo {
         false
     }
 
-    pub fn is_copyable(ty: &str) -> bool {
-        COPY_TYPES.contains(&ty)
+    pub fn is_copyable(&self, self_name: &str) -> bool {
+        match &self.variant {
+            TypeVariant::Custom(ty_name) => {
+                let ty_name = if ty_name == "Self" {
+                    self_name
+                } else {
+                    ty_name
+                };
+                COPY_TYPES.contains(&ty_name)
+            }
+            _ => true,
+        }
     }
 
     pub fn get_managed_type(&self) -> Option<&str> {
@@ -153,7 +163,7 @@ impl TypeInfo {
                     format!("{ffi_ty_name}*")
                 } else if self.is_reference {
                     format!("{ffi_ty_name} const*")
-                } else if TypeInfo::is_copyable(ty_name) {
+                } else if self.is_copyable(self_name) {
                     ffi_ty_name.to_string()
                 } else {
                     format!("{ffi_ty_name}*")
