@@ -90,9 +90,11 @@ impl ImplInfo {
     // Note: We return a list of token streams here, because a single parameter can generate multiple parameters in the wrapper function.
     fn gen_wrapper_param(&self, param: &ParamInfo) -> Vec<TokenStream> {
         let param_name_ident = format_ident!("{}", param.name);
-        let param_type_token = self.gen_wrapper_type(&param.ty);
+        let param_type = param.ty.as_rust_ffi_string(&self.name);
+        let param_type_tokens: TokenStream =
+            param_type.parse().expect("Unable to parse Rust FFI type");
 
-        let mut tokens = vec![quote! { #param_name_ident: #param_type_token }];
+        let mut tokens = vec![quote! { #param_name_ident: #param_type_tokens }];
 
         // If this is a slice, we need to additionally generate a "size" parameter.
         if param.ty.wrapper == TypeWrapper::Slice {
@@ -211,84 +213,6 @@ impl ImplInfo {
         } else {
             quote! {
                 #accessor_token(#(#param_tokens),*);
-            }
-        }
-    }
-
-    fn gen_wrapper_type(&self, ty: &TypeInfo) -> TokenStream {
-        match &ty.variant {
-            TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
-                if ty.is_mutable {
-                    quote! { *mut libc::c_char }
-                } else {
-                    quote! { *const libc::c_char }
-                }
-            }
-            TypeVariant::Custom(ty_name) => {
-                let ty_name = if ty.is_self() { &self.name } else { ty_name };
-                let ty_ident = format_ident!("{ty_name}");
-
-                match ty.wrapper {
-                    TypeWrapper::Option => {
-                        // Options are always pointers to the custom type.
-                        if ty.is_mutable {
-                            quote! { *mut #ty_ident }
-                        } else {
-                            quote! { *const #ty_ident }
-                        }
-                    }
-                    TypeWrapper::Slice => {
-                        // Slices are always pointers to the custom type.
-                        if ty.is_mutable {
-                            quote! { *mut #ty_ident }
-                        } else {
-                            quote! { *const #ty_ident }
-                        }
-                    }
-                    _ => {
-                        if ty.is_mutable {
-                            // Mutable is always with reference
-                            quote! { &mut #ty_ident }
-                        } else if ty.is_reference {
-                            quote! { &#ty_ident }
-                        } else if ty.is_copyable(&self.name) {
-                            quote! { #ty_ident }
-                        } else {
-                            quote! { Box<#ty_ident> }
-                        }
-                    }
-                }
-            }
-            _ => {
-                let ty_ident = format_ident!("{}", ty.variant.as_rust_ffi_string());
-
-                match ty.wrapper {
-                    TypeWrapper::Option => {
-                        // Options are always pointers to the primitive type.
-                        if ty.is_mutable {
-                            quote! { *mut #ty_ident }
-                        } else {
-                            quote! { *const #ty_ident }
-                        }
-                    }
-                    TypeWrapper::Slice => {
-                        // Slices are always pointers to the primitive type.
-                        if ty.is_mutable {
-                            quote! { *mut #ty_ident }
-                        } else {
-                            quote! { *const #ty_ident }
-                        }
-                    }
-                    _ => {
-                        if ty.is_mutable {
-                            // Mutable is always with reference
-                            quote! { &mut #ty_ident }
-                        } else {
-                            // We don't care if there is reference on the numeric type - just accept it by value
-                            quote! { #ty_ident }
-                        }
-                    }
-                }
             }
         }
     }

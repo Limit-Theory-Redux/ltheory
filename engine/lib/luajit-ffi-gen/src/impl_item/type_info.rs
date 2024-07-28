@@ -125,6 +125,83 @@ impl TypeInfo {
         }
     }
 
+    pub fn as_rust_ffi_string(&self, self_name: &str) -> String {
+        match &self.variant {
+            TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
+                if self.is_mutable {
+                    format!("*mut libc::c_char")
+                } else {
+                    format!("*const libc::c_char")
+                }
+            }
+            TypeVariant::Custom(ty_name) => {
+                let ty_name = if self.is_self() { self_name } else { ty_name };
+
+                match self.wrapper {
+                    TypeWrapper::Option => {
+                        // Options are always pointers to the custom type.
+                        if self.is_mutable {
+                            format!("*mut {ty_name}")
+                        } else {
+                            format!("*const {ty_name}")
+                        }
+                    }
+                    TypeWrapper::Slice => {
+                        // Slices are always pointers to the custom type.
+                        if self.is_mutable {
+                            format!("*mut {ty_name}")
+                        } else {
+                            format!("*const {ty_name}")
+                        }
+                    }
+                    _ => {
+                        if self.is_mutable {
+                            // Mutable is always with reference
+                            format!("&mut {ty_name}")
+                        } else if self.is_reference {
+                            format!("&{ty_name}")
+                        } else if self.is_copyable(self_name) {
+                            format!("{ty_name}")
+                        } else {
+                            format!("Box<{ty_name}>")
+                        }
+                    }
+                }
+            }
+            _ => {
+                let ty_ident = self.variant.as_rust_ffi_string();
+
+                match self.wrapper {
+                    TypeWrapper::Option => {
+                        // Options are always pointers to the primitive type.
+                        if self.is_mutable {
+                            format!("*mut {ty_ident}")
+                        } else {
+                            format!("*const {ty_ident}")
+                        }
+                    }
+                    TypeWrapper::Slice => {
+                        // Slices are always pointers to the primitive type.
+                        if self.is_mutable {
+                            format!("*mut {ty_ident}")
+                        } else {
+                            format!("*const {ty_ident}")
+                        }
+                    }
+                    _ => {
+                        if self.is_mutable {
+                            // Mutable is always with reference
+                            format!("&mut {ty_ident}")
+                        } else {
+                            // We don't care if there is reference on the numeric type - just accept it by value
+                            ty_ident
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn as_c_ffi_string(&self, self_name: &str) -> String {
         // These types should be the C equivalent of the result of `gen_wrapper_type` in `generate_rust.rs`.
         match &self.variant {
