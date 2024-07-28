@@ -62,19 +62,25 @@ const COPY_TYPES: &[&str] = &[
     "FrameStage",
 ];
 
+#[derive(Debug, PartialEq)]
+pub enum TypeWrapper {
+    /// Base type T, no wrapper.
+    None,
+    /// Option type: Option<T>, Option<&T>, Option<&mut T>
+    Option,
+    /// Boxed type: Box<T>
+    Box,
+}
+
 #[derive(Debug)]
 pub struct TypeInfo {
-    /// Result type. Can be used only in the return position
-    pub is_result: bool,
-    /// Option type: Option<T>, Option<&T>, Option<&mut T>
-    /// Option<Option<T>> is not supported
-    pub is_option: bool,
+    pub wrapper: TypeWrapper,
     /// Reference type: &T
     pub is_reference: bool,
-    /// Boxed type: Box<T>
-    pub is_boxed: bool,
     /// Mutable reference type: &mut T
     pub is_mutable: bool,
+    /// Result type. Can be used only in the return position
+    pub is_result: bool,
     pub variant: TypeVariant,
 }
 
@@ -125,7 +131,7 @@ impl TypeInfo {
                     .map(|(_, l_ty)| l_ty.to_string())
                     .unwrap_or(ty_ident.to_string());
 
-                if self.is_option {
+                if self.wrapper == TypeWrapper::Option {
                     if self.is_mutable {
                         format!("{ffi_ty_name}*")
                     } else {
@@ -145,7 +151,7 @@ impl TypeInfo {
             _ => {
                 let ty_ident = self.variant.as_c_ffi_string();
 
-                if self.is_option {
+                if self.wrapper == TypeWrapper::Option {
                     // All options are sent by pointer
                     if self.is_mutable {
                         format!("{ty_ident}*")

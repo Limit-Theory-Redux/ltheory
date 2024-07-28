@@ -136,7 +136,7 @@ fn parse_params<'a>(
                 if ty.is_result {
                     return Err(Error::new(
                         pat_type.ty.span(),
-                        "result as input parameter is not supported",
+                        "Result<T> as an input parameter is not supported",
                     ));
                 }
 
@@ -199,28 +199,22 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
 
                 let mut type_info = parse_type(&generics[0])?;
 
-                let mut counter = 0;
-                if type_info.is_option {
-                    counter += 1;
-                }
-                if type_info.is_result {
-                    counter += 1;
-                }
-                if type_info.is_boxed {
-                    counter += 1;
-                }
-                if counter > 1 {
+                if type_info.wrapper != TypeWrapper::None {
                     return Err(Error::new(
                         type_path.span(),
-                        "a type can't be nested within more than one of: Box, Option, Result."
-                            .to_string(),
+                        "an Option or Box can only contain a bare type",
                     ));
                 }
 
                 if type_name == "Option" {
-                    type_info.is_option = true;
+                    type_info.wrapper = TypeWrapper::Option;
+                } else if type_name == "Box" {
+                    type_info.wrapper = TypeWrapper::Box;
                 } else {
-                    type_info.is_boxed = true;
+                    return Err(Error::new(
+                        type_path.span(),
+                        format!("unknown type wrapper {}", type_name),
+                    ));
                 }
 
                 return Ok(type_info);
@@ -229,20 +223,18 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
             let variant = TypeVariant::from_str(&type_name);
             let res = if let Some(variant) = variant {
                 TypeInfo {
-                    is_result: false,
-                    is_option: false,
+                    wrapper: TypeWrapper::None,
                     is_reference: false,
                     is_mutable: false,
-                    is_boxed: false,
+                    is_result: false,
                     variant,
                 }
             } else {
                 TypeInfo {
-                    is_result: false,
-                    is_option: false,
+                    wrapper: TypeWrapper::None,
                     is_reference: false,
                     is_mutable: false,
-                    is_boxed: false,
+                    is_result: false,
                     // TODO: are we going to support full path to type? I.e. std::path::PathBuf
                     variant: TypeVariant::Custom(type_name),
                 }

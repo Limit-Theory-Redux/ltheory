@@ -1,4 +1,4 @@
-use super::{ImplInfo, TypeInfo, TypeVariant};
+use super::{ImplInfo, TypeInfo, TypeVariant, TypeWrapper};
 use crate::args::ImplAttrArgs;
 use crate::ffi_generator::FfiGenerator;
 use crate::IDENT;
@@ -207,7 +207,7 @@ impl ImplInfo {
                     let ret_ffi = ret.as_c_ffi_string(module_name);
                     let ret_param = match &ret.variant {
                         TypeVariant::Custom(ty_name) => {
-                            if !TypeInfo::is_copyable(ty_name) && !ret.is_boxed && !ret.is_option && !ret.is_reference {
+                            if !TypeInfo::is_copyable(ty_name) && ret.wrapper != TypeWrapper::Box && ret.wrapper != TypeWrapper::Option && !ret.is_reference {
                                 // If we have a non-copyable type that's not boxed, optional or a ref,
                                 // we don't need to return it as a pointer as it's already a pointer.
                                 format!("{} out", ret_ffi)

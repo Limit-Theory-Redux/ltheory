@@ -97,6 +97,7 @@ impl ImplInfo {
     }
 }
 
+// Generates a function parameter used in the generated extern "C" wrapper function.
 fn wrap_param(self_name: &str, param: &ParamInfo) -> TokenStream {
     let param_name_ident = format_ident!("{}", param.name);
     let param_type_token = wrap_type(self_name, &param.ty);
@@ -104,6 +105,7 @@ fn wrap_param(self_name: &str, param: &ParamInfo) -> TokenStream {
     quote! { #param_name_ident: #param_type_token }
 }
 
+// Generates the Rust type used in the generated extern "C" wrapper function.
 fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
     match &ty.variant {
         TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
@@ -120,7 +122,7 @@ fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
                 format_ident!("{ty_name}")
             };
 
-            if ty.is_option {
+            if ty.wrapper == TypeWrapper::Option {
                 if ty.is_mutable {
                     quote! { *mut #ty_ident }
                 } else {
@@ -140,7 +142,7 @@ fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
         _ => {
             let ty_ident = format_ident!("{}", ty.variant.as_string());
 
-            if ty.is_option {
+            if ty.wrapper == TypeWrapper::Option {
                 // All options are sent by pointer
                 if ty.is_mutable {
                     quote! { *mut #ty_ident }
@@ -171,13 +173,13 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo, never_box: bool) -> TokenStream
             };
             let is_copyable = TypeInfo::is_copyable(ty_name) || TypeInfo::is_copyable(self_name);
 
-            if ty.is_option {
+            if ty.wrapper == TypeWrapper::Option {
                 if ty.is_mutable {
                     quote! { *mut #ty_ident }
                 } else {
                     quote! { *const #ty_ident }
                 }
-            } else if (is_copyable && !ty.is_boxed) || never_box {
+            } else if (is_copyable && ty.wrapper != TypeWrapper::Box) || never_box {
                 quote! { #ty_ident }
             } else if ty.is_mutable {
                 quote! { *mut #ty_ident }
@@ -190,7 +192,7 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo, never_box: bool) -> TokenStream
         _ => {
             let ty_ident = format_ident!("{}", ty.variant.as_string());
 
-            if ty.is_option {
+            if ty.wrapper == TypeWrapper::Option {
                 quote! { *const #ty_ident }
             } else {
                 quote! { #ty_ident }
@@ -212,7 +214,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         .iter()
         .map(|param| {
             let name_ident = format_ident!("{}", param.name);
-            let name_accessor = if param.ty.is_option && !param.ty.variant.is_string() {
+            let name_accessor = if param.ty.wrapper == TypeWrapper::Option && !param.ty.variant.is_string() {
                 quote! { (*#name_ident) }
             } else {
                 quote! { #name_ident }
@@ -229,10 +231,10 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 }
                 TypeVariant::CString => quote! { #name_accessor.as_cstring() },
                 TypeVariant::Custom(custom_ty) => {
-                    if param.ty.is_boxed || TypeInfo::is_copyable(custom_ty) {
+                    if param.ty.wrapper == TypeWrapper::Box || TypeInfo::is_copyable(custom_ty) {
                         quote! { #name_accessor }
                     } else if param.ty.is_reference {
-                        if param.ty.is_option {
+                        if param.ty.wrapper == TypeWrapper::Option {
                             quote! { &#name_accessor }
                         } else {
                             quote! { #name_accessor }
@@ -252,7 +254,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 }
             };
 
-            if param.ty.is_option {
+            if param.ty.wrapper == TypeWrapper::Option {
                 quote! {if !#name_ident.is_null() { unsafe { Some(#param_item) } } else { None }}
             } else {
                 param_item
@@ -276,7 +278,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
             quote! { let __res__ = #accessor_token(#(#param_tokens),*); }
         };
 
-        let method_call = if ty.is_option {
+        let method_call = if ty.wrapper == TypeWrapper::Option {
             if ty.is_mutable {
                 quote! {
                     #method_call
@@ -311,7 +313,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 let is_copyable = TypeInfo::is_copyable(custom_ty)
                     || TypeInfo::is_copyable(&self_ident.to_string());
 
-                if ty.is_option && !ty.is_reference {
+                if ty.wrapper == TypeWrapper::Option && !ty.is_reference {
                     if is_copyable {
                         quote! { &__res__ }
                     } else {
@@ -327,14 +329,14 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     quote! { __res__ as *mut #type_ident }
                 } else if ty.is_reference {
                     quote! { __res__ as *const #type_ident }
-                } else if !ty.is_boxed {
+                } else if ty.wrapper != TypeWrapper::Box {
                     quote! { __res__.into() }
                 } else {
                     quote! { __res__ }
                 }
             }
             _ => {
-                if ty.is_option {
+                if ty.wrapper == TypeWrapper::Option {
                     let type_ident = format_ident!("{}", ty.variant.as_string());
 
                     gen_buffered_ret(&type_ident)
