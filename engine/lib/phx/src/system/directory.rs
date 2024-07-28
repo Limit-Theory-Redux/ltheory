@@ -2,7 +2,6 @@ use std::io::ErrorKind;
 use std::{env, fs};
 
 use directories::ProjectDirs;
-use internal::ConvertIntoString;
 use tracing::error;
 
 #[repr(C)]

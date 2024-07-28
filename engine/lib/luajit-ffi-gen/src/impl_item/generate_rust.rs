@@ -114,11 +114,19 @@ impl ImplInfo {
         };
 
         // Generate tokens to convert the parameters from the extern interface to the impl interface.
+        let mut use_convert_into_string = false;
         let param_tokens: Vec<_> = method
             .params
             .iter()
-            .map(|param| self.gen_wrapper_param_to_impl(param))
+            .map(|param| self.gen_wrapper_param_to_impl(param, &mut use_convert_into_string))
             .collect();
+
+        // If we ended up using the ConvertIntoString trait, make sure to bring it into scope.
+        let prelude = if use_convert_into_string {
+            quote! { use ::internal::ConvertIntoString; }
+        } else {
+            quote! {}
+        };
 
         if let Some(ty) = &method.ret {
             let method_call = if ty.is_result {
@@ -201,17 +209,20 @@ impl ImplInfo {
 
             if method.bind_args.gen_out_param() {
                 quote! {
+                    #prelude
                     #method_call
                     *out = #return_item;
                 }
             } else {
                 quote! {
+                    #prelude
                     #method_call
                     #return_item
                 }
             }
         } else {
             quote! {
+                #prelude
                 #accessor_token(#(#param_tokens),*);
             }
         }
@@ -256,7 +267,11 @@ impl ImplInfo {
         }
     }
 
-    fn gen_wrapper_param_to_impl(&self, param: &ParamInfo) -> TokenStream {
+    fn gen_wrapper_param_to_impl(
+        &self,
+        param: &ParamInfo,
+        use_convert_into_string: &mut bool,
+    ) -> TokenStream {
         let name_ident = format_ident!("{}", param.name);
         let name_accessor =
             if param.ty.wrapper == TypeWrapper::Option && !param.ty.variant.is_string() {
@@ -266,15 +281,22 @@ impl ImplInfo {
             };
 
         let param_item = match &param.ty.variant {
-            TypeVariant::Str => quote! { #name_accessor.as_str() },
+            TypeVariant::Str => {
+                *use_convert_into_string = true;
+                quote! { #name_accessor.as_str() }
+            }
             TypeVariant::String => {
+                *use_convert_into_string = true;
                 if param.ty.is_reference {
                     quote! { &#name_accessor.as_string() }
                 } else {
                     quote! { #name_accessor.as_string() }
                 }
             }
-            TypeVariant::CString => quote! { #name_accessor.as_cstring() },
+            TypeVariant::CString => {
+                *use_convert_into_string = true;
+                quote! { #name_accessor.as_cstring() }
+            }
             TypeVariant::Custom(_) => {
                 if param.ty.wrapper == TypeWrapper::Slice {
                     let slice_size_param_ident = format_ident!("{}_size", param.name);

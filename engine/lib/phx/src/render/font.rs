@@ -4,7 +4,6 @@ use std::ffi::{CStr, CString};
 use std::ptr::addr_of_mut;
 
 use freetype_sys::*;
-use internal::*;
 
 use super::*;
 use crate::common::*;
