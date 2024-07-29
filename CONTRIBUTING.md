@@ -135,3 +135,7 @@ As we use the `cargo` ecosystem, if you're iterating on engine code, it might be
 This will essentially run `cargo build && ./target/debug/ltr` in one step. You can pass `--release` to `cargo run` to enable optimizations. If you'd like to launch with a specific script, you can pass it as an argument to `cargo run`:
 
 - `cargo run -- <script name without extension>`
+
+## Formatting
+
+Engine code uses `cargo +nightly fmt` to format its code. If you get a linting error in CI, you'll need to run this first to ensure your changes are formatted correctly. The script `./format.sh` is provided for convenience.

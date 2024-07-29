@@ -21,8 +21,11 @@ jobs:
     name: Run linters
     runs-on: ubuntu-latest
     steps:
-    - name: Format check
-    - run: cargo fmt --check
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Format check
+        run: cargo +nightly fmt --check
 
   gen-build-version:
     needs: run-linters
