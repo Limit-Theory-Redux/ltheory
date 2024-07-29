@@ -1,8 +1,8 @@
+use super::EnumInfo;
+use crate::args::EnumAttrArgs;
 use crate::ffi_generator::FfiGenerator;
 use crate::impl_item::TypeVariant;
-use crate::{args::EnumAttrArgs, IDENT};
-
-use super::EnumInfo;
+use crate::IDENT;
 
 impl EnumInfo {
     /// Generate Lua FFI file

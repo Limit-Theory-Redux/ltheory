@@ -1,6 +1,7 @@
+use internal::ConvertIntoString;
+
 use super::*;
 use crate::math::*;
-use internal::ConvertIntoString;
 
 pub struct ShaderState {
     shader: Shader,

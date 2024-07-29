@@ -7,9 +7,8 @@ use kira::spatial::scene::{SpatialSceneHandle, SpatialSceneSettings};
 use kira::tween::{Easing, Tween};
 use kira::StartTime;
 
-use crate::math::*;
-
 use super::{Sound, SoundInstance};
+use crate::math::*;
 
 const DEFAULT_COMMAND_CAPACITY: usize = 1024;
 

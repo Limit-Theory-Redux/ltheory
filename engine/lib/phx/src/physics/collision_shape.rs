@@ -1,8 +1,8 @@
+use rapier3d_f64::prelude::{self as rp, nalgebra as na, ColliderBuilder};
+
 use crate::math::{Box3, Vec3};
 use crate::physics::*;
 use crate::render::*;
-use rapier3d_f64::prelude::nalgebra as na;
-use rapier3d_f64::prelude::{self as rp, ColliderBuilder};
 
 pub type CollisionGroup = u32;
 pub type CollisionMask = u32;

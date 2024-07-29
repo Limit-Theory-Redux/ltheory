@@ -5,12 +5,13 @@ mod rect;
 mod renderer;
 mod text;
 
-use self::image::*;
 use layer::*;
 use panel::*;
 use rect::*;
 pub use renderer::*;
 use text::*;
+
+use self::image::*;
 
 macro_rules! def_id {
     ($name:ident) => {

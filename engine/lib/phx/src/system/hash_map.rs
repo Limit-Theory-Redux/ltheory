@@ -1,7 +1,7 @@
-use super::*;
-
 use internal::*;
 use libc;
+
+use super::*;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

@@ -1,6 +1,5 @@
 use std::collections::HashSet;
-use std::ffi::CStr;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 
 use internal::*;
 

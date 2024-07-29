@@ -1,6 +1,7 @@
-use crate::{args::ImplAttrArgs, ffi_generator::FfiGenerator, IDENT};
-
 use super::{ImplInfo, TypeInfo, TypeVariant};
+use crate::args::ImplAttrArgs;
+use crate::ffi_generator::FfiGenerator;
+use crate::IDENT;
 
 impl ImplInfo {
     /// Generate Lua FFI file

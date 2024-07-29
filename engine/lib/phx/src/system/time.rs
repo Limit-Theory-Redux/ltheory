@@ -1,6 +1,6 @@
-use chrono::{DateTime, Datelike, Local, TimeZone, Timelike, Utc};
-
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use chrono::{DateTime, Datelike, Local, TimeZone, Timelike, Utc};
 
 #[derive(Copy, Clone)]
 #[repr(C)]

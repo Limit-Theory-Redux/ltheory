@@ -11,6 +11,7 @@ mod winit_window;
 
 pub use cursor::*;
 pub use glutin_render::*;
+use internal::ConvertIntoString;
 pub use monitor_selection::*;
 pub use present_mode::*;
 pub use window_mode::*;
@@ -19,8 +20,6 @@ pub use window_resize_constraints::*;
 pub use window_resolution::*;
 pub use winit_converters::*;
 pub use winit_window::*;
-
-use internal::ConvertIntoString;
 
 use crate::math::*;
 use crate::render::*;

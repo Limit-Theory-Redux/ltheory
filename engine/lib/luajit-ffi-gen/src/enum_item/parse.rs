@@ -4,10 +4,9 @@ use syn::parse::Result;
 use syn::spanned::Spanned;
 use syn::{Attribute, Error, Expr, ExprLit, Fields, ItemEnum, Lit, Variant};
 
-use crate::util::parse_doc_attrs;
-
 use super::variants_info::VariantsInfo;
 use super::*;
+use crate::util::parse_doc_attrs;
 
 impl EnumInfo {
     pub fn parse(item: ItemEnum, attrs: &[Attribute]) -> Result<Self> {

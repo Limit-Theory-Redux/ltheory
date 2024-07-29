@@ -2,9 +2,8 @@ use std::ops::Range;
 
 use parley::context::RangedBuilder;
 
-use crate::render::Color;
-
 use super::TextStyle;
+use crate::render::Color;
 
 /// Style of text section.
 #[derive(Clone, PartialEq)]

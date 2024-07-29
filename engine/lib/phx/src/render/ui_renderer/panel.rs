@@ -1,8 +1,7 @@
 use glam::Vec2;
 
-use crate::render::Color;
-
 use super::UIRendererPanelId;
+use crate::render::Color;
 
 #[derive(Clone)]
 pub struct UIRendererPanel {

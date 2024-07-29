@@ -3,12 +3,11 @@ use syn::parse::{Error, Parse, Result};
 use syn::spanned::Spanned;
 use syn::{Attribute, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Type};
 
+use super::*;
 use crate::args::BindArgs;
 use crate::util::{
     get_meta_name, get_path_last_name, get_path_last_name_with_generics, parse_doc_attrs,
 };
-
-use super::*;
 
 impl ImplInfo {
     pub fn parse(mut item: ItemImpl, attrs: &[Attribute]) -> Result<Self> {

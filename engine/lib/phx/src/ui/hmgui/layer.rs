@@ -1,8 +1,8 @@
 use glam::Vec2;
 
-use crate::{rf::Rf, system::Hash_FNV64_Init};
-
 use super::{HmGuiWidget, WidgetItem};
+use crate::rf::Rf;
+use crate::system::Hash_FNV64_Init;
 
 pub const UNDEFINED_LAYER_INDEX: usize = 0xFFFFFFFF;
 

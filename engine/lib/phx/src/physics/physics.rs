@@ -1,13 +1,15 @@
 #![allow(unused)]
 
+use std::ffi::{CStr, CString};
+
+use rapier3d_f64::parry::query::RayCast;
+use rapier3d_f64::prelude as rp;
+use rapier3d_f64::prelude::nalgebra as na;
+
 use crate::math::*;
 use crate::physics::*;
 use crate::render::*;
 use crate::rf::Rf;
-use rapier3d_f64::parry::query::RayCast;
-use rapier3d_f64::prelude as rp;
-use rapier3d_f64::prelude::nalgebra as na;
-use std::ffi::{CStr, CString};
 
 #[repr(C)]
 pub struct Collision {

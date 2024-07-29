@@ -3,13 +3,12 @@ use std::collections::HashMap;
 use arboard::Clipboard;
 use glam::*;
 
+use super::*;
 use crate::common::*;
 use crate::input::*;
 use crate::render::*;
 use crate::rf::Rf;
 use crate::system::*;
-
-use super::*;
 
 pub struct HmGui {
     pub(super) renderer: UIRenderer,

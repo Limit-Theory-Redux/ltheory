@@ -1,8 +1,7 @@
 use glam::Vec2;
 
-use crate::render::Tex2D;
-
 use super::UIRendererImageId;
+use crate::render::Tex2D;
 
 #[derive(Clone)]
 pub struct UIRendererImage {

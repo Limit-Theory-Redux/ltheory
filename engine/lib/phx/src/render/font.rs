@@ -1,17 +1,16 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ffi::CStr;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::ptr::addr_of_mut;
+
+use freetype_sys::*;
+use internal::*;
 
 use super::*;
 use crate::common::*;
 use crate::math::*;
 use crate::rf::Rf;
 use crate::system::{Profiler_Begin, Profiler_End, ResourceType, Resource_GetPath};
-
-use freetype_sys::*;
-use internal::*;
 
 /* TODO : Re-implement UTF-8 support */
 /* TODO : Atlas instead of individual textures. */
