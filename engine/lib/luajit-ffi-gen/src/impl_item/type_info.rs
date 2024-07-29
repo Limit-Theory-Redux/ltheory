@@ -70,7 +70,7 @@ pub enum TypeWrapper {
     Option,
     /// Boxed type: Box<T>
     Box,
-    /// Slice type: [T]
+    /// Slice type: &[T], &mut [T]
     Slice,
 }
 
@@ -146,7 +146,7 @@ impl TypeInfo {
         match &self.variant {
             TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
                 if self.is_mutable {
-                    FFIType::new(format!("*mut libc::c_char"), "char*")
+                    FFIType::new("*mut libc::c_char", "char*")
                 } else {
                     FFIType::new("*const libc::c_char", "cstr")
                 }

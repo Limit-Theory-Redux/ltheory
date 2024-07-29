@@ -107,9 +107,10 @@ impl ImplInfo {
                     .params
                     .iter()
                     .flat_map(|param| {
-                        let mut params = vec![param.as_ffi_name().to_string()];
+                        let ffi_name = param.as_ffi_name();
+                        let mut params = vec![ffi_name.clone()];
                         if param.ty.wrapper == TypeWrapper::Slice {
-                            params.push(format!("{}_size", param.as_ffi_name().to_string()))
+                            params.push(format!("{}_size", ffi_name))
                         }
                         params
                     })

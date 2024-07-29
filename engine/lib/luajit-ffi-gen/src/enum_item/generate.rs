@@ -30,11 +30,11 @@ impl EnumInfo {
         let repr_type_ident = format_ident!("{repr_type}");
 
         // Generate Rust FFI code.
-        let ffi_source = self.generate_rust_ffi(&repr_type_ident, attr_args);
+        let ffi_source = self.gen_rust_ffi(&repr_type_ident, attr_args);
 
         // Generate Lua FFI files if enabled.
         if attr_args.gen_lua_ffi() {
-            self.generate_ffi(&attr_args, &repr_type);
+            self.gen_lua_ffi(attr_args, &repr_type);
         }
 
         // TODO: generate repr type binding for Lua

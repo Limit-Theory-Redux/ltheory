@@ -6,7 +6,7 @@ use crate::IDENT;
 
 impl EnumInfo {
     /// Generate Lua FFI file
-    pub fn generate_ffi(&self, attr_args: &EnumAttrArgs, repr_type: &str) {
+    pub fn gen_lua_ffi(&self, attr_args: &EnumAttrArgs, repr_type: &str) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
         let enum_repr_ty = TypeVariant::from_rust_ffi_str(repr_type).unwrap_or(TypeVariant::U32);
         let variants_info = self.variants.get_info(attr_args.start_index());

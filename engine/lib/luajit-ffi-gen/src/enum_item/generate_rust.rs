@@ -7,7 +7,7 @@ use crate::args::EnumAttrArgs;
 use crate::util::camel_to_snake_case;
 
 impl EnumInfo {
-    pub fn generate_rust_ffi(
+    pub fn gen_rust_ffi(
         &self,
         repr_type_ident: &Ident,
         attr_args: &EnumAttrArgs,
