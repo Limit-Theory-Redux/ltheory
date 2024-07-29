@@ -305,6 +305,15 @@ impl ImplInfo {
                     } else {
                         quote! { std::slice::from_raw_parts(#name_accessor, #slice_size_param_ident as usize) }
                     }
+                } else if let TypeWrapper::Array(size) = param.ty.wrapper {
+                    // For arrays, we assume the input array is the correct size.
+                    if param.ty.is_mutable {
+                        quote! { std::slice::from_raw_parts_mut(#name_accessor, #size).try_into().unwrap() }
+                    } else if param.ty.is_reference {
+                        quote! { std::slice::from_raw_parts(#name_accessor, #size).try_into().unwrap() }
+                    } else {
+                        quote! { std::slice::from_raw_parts(#name_accessor, #size).to_owned().try_into().unwrap() }
+                    }
                 } else if param.ty.wrapper == TypeWrapper::Box || param.ty.is_copyable(&self.name) {
                     quote! { #name_accessor }
                 } else if param.ty.is_reference {
@@ -324,6 +333,13 @@ impl ImplInfo {
                         quote! { std::slice::from_raw_parts_mut(#name_accessor, #slice_size_param_ident as usize) }
                     } else {
                         quote! { std::slice::from_raw_parts(#name_accessor, #slice_size_param_ident as usize) }
+                    }
+                } else if let TypeWrapper::Array(size) = param.ty.wrapper {
+                    // For arrays, we assume the input array is the correct size.
+                    if param.ty.is_mutable {
+                        quote! { std::slice::from_raw_parts_mut(#name_accessor, #size).try_into().unwrap() }
+                    } else {
+                        quote! { std::slice::from_raw_parts(#name_accessor, #size).try_into().unwrap() }
                     }
                 } else if param.ty.is_mutable {
                     quote! { &mut #name_accessor }

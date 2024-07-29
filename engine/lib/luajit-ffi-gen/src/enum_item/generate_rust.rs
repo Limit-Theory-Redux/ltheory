@@ -7,11 +7,7 @@ use crate::args::EnumAttrArgs;
 use crate::util::camel_to_snake_case;
 
 impl EnumInfo {
-    pub fn gen_rust_ffi(
-        &self,
-        repr_type_ident: &Ident,
-        attr_args: &EnumAttrArgs,
-    ) -> TokenStream {
+    pub fn gen_rust_ffi(&self, repr_type_ident: &Ident, attr_args: &EnumAttrArgs) -> TokenStream {
         let self_ident = format_ident!("{}", self.name);
 
         let variant_pairs = self.variants.get_info(attr_args.start_index());

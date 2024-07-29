@@ -72,6 +72,8 @@ pub enum TypeWrapper {
     Box,
     /// Slice type: &[T], &mut [T]
     Slice,
+    /// Array type: [T; N], &[T; N], &mut [T; N]
+    Array(usize),
 }
 
 #[derive(Debug)]
@@ -161,8 +163,8 @@ impl TypeInfo {
                     .unwrap_or(ty_name.to_string());
 
                 match self.wrapper {
-                    TypeWrapper::Option | TypeWrapper::Slice => {
-                        // Options and slices are always pointers to the primitive type.
+                    TypeWrapper::Option | TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                        // Options, slices and arrays are always pointers to the struct.
                         if self.is_mutable {
                             FFIType::new(format!("*mut {ty_name}"), format!("{ffi_ty_name}*"))
                         } else {
@@ -192,7 +194,7 @@ impl TypeInfo {
                 let c_ty_name = ffy_ty_name.c;
 
                 match self.wrapper {
-                    TypeWrapper::Option | TypeWrapper::Slice => {
+                    TypeWrapper::Option | TypeWrapper::Slice | TypeWrapper::Array(_) => {
                         // Options and slices are always pointers to the primitive type.
                         if self.is_mutable {
                             FFIType::new(format!("*mut {rust_ty_name}"), format!("{c_ty_name}*"))

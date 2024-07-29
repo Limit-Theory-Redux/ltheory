@@ -1,7 +1,7 @@
 use quote::quote;
 use syn::parse::{Error, Parse, Result};
 use syn::spanned::Spanned;
-use syn::{Attribute, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Type};
+use syn::{Attribute, Expr, FnArg, ImplItem, ItemImpl, Lit, Pat, ReturnType, Type};
 
 use super::*;
 use crate::args::BindArgs;
@@ -261,6 +261,34 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
             }
 
             type_info.wrapper = TypeWrapper::Slice;
+
+            Ok(type_info)
+        }
+        Type::Array(type_array) => {
+            let mut type_info = parse_type(&type_array.elem)?;
+
+            if type_info.wrapper != TypeWrapper::None {
+                return Err(Error::new(
+                    ty.span(),
+                    "an array can only contain a bare type",
+                ));
+            }
+
+            type_info.wrapper = if let Expr::Lit(lit) = &type_array.len {
+                if let Lit::Int(value) = &lit.lit {
+                    TypeWrapper::Array(value.base10_parse::<usize>()?)
+                } else {
+                    return Err(Error::new(
+                        ty.span(),
+                        "an array length can only be a literal integer",
+                    ));
+                }
+            } else {
+                return Err(Error::new(
+                    ty.span(),
+                    "an array length can only be a literal",
+                ));
+            };
 
             Ok(type_info)
         }
