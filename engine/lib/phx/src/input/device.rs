@@ -1,5 +1,5 @@
-use std::hash::Hasher;
-use std::{collections::hash_map::DefaultHasher, hash::Hash};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 use super::{InputDeviceId, InputDeviceType};
 

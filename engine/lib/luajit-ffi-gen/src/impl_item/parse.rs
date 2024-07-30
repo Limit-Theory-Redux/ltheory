@@ -1,14 +1,13 @@
 use quote::quote;
 use syn::parse::{Error, Parse, Result};
 use syn::spanned::Spanned;
-use syn::{Attribute, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Type};
+use syn::{Attribute, Expr, FnArg, ImplItem, ItemImpl, Lit, Pat, ReturnType, Type};
 
+use super::*;
 use crate::args::BindArgs;
 use crate::util::{
     get_meta_name, get_path_last_name, get_path_last_name_with_generics, parse_doc_attrs,
 };
-
-use super::*;
 
 impl ImplInfo {
     pub fn parse(mut item: ItemImpl, attrs: &[Attribute]) -> Result<Self> {
@@ -137,7 +136,7 @@ fn parse_params<'a>(
                 if ty.is_result {
                     return Err(Error::new(
                         pat_type.ty.span(),
-                        "result as input parameter is not supported",
+                        "Result<T> as an input parameter is not supported",
                     ));
                 }
 
@@ -180,7 +179,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                 if type_info.is_result {
                     return Err(Error::new(
                         type_path.span(),
-                        "nested result is not supported".to_string(),
+                        "nested Result is not supported".to_string(),
                     ));
                 }
 
@@ -200,50 +199,42 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
 
                 let mut type_info = parse_type(&generics[0])?;
 
-                let mut counter = 0;
-                if type_info.is_option {
-                    counter += 1;
-                }
-                if type_info.is_result {
-                    counter += 1;
-                }
-                if type_info.is_boxed {
-                    counter += 1;
-                }
-                if counter > 1 {
+                if type_info.wrapper != TypeWrapper::None {
                     return Err(Error::new(
                         type_path.span(),
-                        "a type can't be nested within more than one of: Box, Option, Result."
-                            .to_string(),
+                        "an Option or Box can only contain a bare type",
                     ));
                 }
 
                 if type_name == "Option" {
-                    type_info.is_option = true;
+                    type_info.wrapper = TypeWrapper::Option;
+                } else if type_name == "Box" {
+                    type_info.wrapper = TypeWrapper::Box;
                 } else {
-                    type_info.is_boxed = true;
+                    return Err(Error::new(
+                        type_path.span(),
+                        format!("unknown type wrapper {}", type_name),
+                    ));
                 }
 
                 return Ok(type_info);
             }
 
-            let variant = TypeVariant::from_str(&type_name);
+            let variant = TypeVariant::from_rust_ffi_str(&type_name);
             let res = if let Some(variant) = variant {
                 TypeInfo {
-                    is_result: false,
-                    is_option: false,
+                    wrapper: TypeWrapper::None,
                     is_reference: false,
                     is_mutable: false,
-                    is_boxed: false,
+                    is_result: false,
                     variant,
                 }
             } else {
                 TypeInfo {
-                    is_result: false,
-                    is_option: false,
+                    wrapper: TypeWrapper::None,
                     is_reference: false,
                     is_mutable: false,
-                    is_boxed: false,
+                    is_result: false,
                     // TODO: are we going to support full path to type? I.e. std::path::PathBuf
                     variant: TypeVariant::Custom(type_name),
                 }
@@ -259,9 +250,54 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
 
             Ok(type_info)
         }
+        Type::Slice(type_slice) => {
+            let mut type_info = parse_type(&type_slice.elem)?;
+
+            if type_info.wrapper != TypeWrapper::None {
+                return Err(Error::new(
+                    ty.span(),
+                    "a slice can only contain a bare type",
+                ));
+            }
+
+            type_info.wrapper = TypeWrapper::Slice;
+
+            Ok(type_info)
+        }
+        Type::Array(type_array) => {
+            let mut type_info = parse_type(&type_array.elem)?;
+
+            if type_info.wrapper != TypeWrapper::None {
+                return Err(Error::new(
+                    ty.span(),
+                    "an array can only contain a bare type",
+                ));
+            }
+
+            type_info.wrapper = if let Expr::Lit(lit) = &type_array.len {
+                if let Lit::Int(value) = &lit.lit {
+                    TypeWrapper::Array(value.base10_parse::<usize>()?)
+                } else {
+                    return Err(Error::new(
+                        ty.span(),
+                        "an array length can only be a literal integer",
+                    ));
+                }
+            } else {
+                return Err(Error::new(
+                    ty.span(),
+                    "an array length can only be a literal",
+                ));
+            };
+
+            Ok(type_info)
+        }
         _ => Err(Error::new(
             ty.span(),
-            "expected a type, reference to type or mutable reference to type",
+            format!(
+                "expected a type, reference to type or mutable reference to type, got {:?}",
+                ty
+            ),
         )),
     }
 }
@@ -271,6 +307,10 @@ fn parse_ret_ty(ret_ty: &ReturnType) -> Result<Option<TypeInfo>> {
         ReturnType::Default => Ok(None),
         ReturnType::Type(_, ty) => {
             let type_info = parse_type(ty)?;
+
+            if type_info.wrapper == TypeWrapper::Slice {
+                return Err(Error::new(ty.span(), "returning a slice is not supported"));
+            }
 
             Ok(Some(type_info))
         }

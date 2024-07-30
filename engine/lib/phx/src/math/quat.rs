@@ -1,7 +1,7 @@
+pub use glam::Quat;
+
 use crate::error::Error;
 use crate::math::*;
-
-pub use glam::Quat;
 
 pub trait QuatExtensions {
     fn canonicalize(&self) -> Quat;

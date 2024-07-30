@@ -1,5 +1,3 @@
-use internal::ConvertIntoString;
-
 use super::{EventPayloadTable, EventPayloadType};
 
 #[derive(Debug, Clone, PartialEq)]

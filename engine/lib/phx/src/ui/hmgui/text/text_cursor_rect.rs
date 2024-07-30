@@ -3,9 +3,8 @@ use std::ops::Range;
 use glam::Vec2;
 use parley::layout::Cursor;
 
-use crate::render::Color;
-
 use super::TextLayout;
+use crate::render::Color;
 
 /// Rectangular area that represents cursor current position in text editing.
 #[derive(Debug, Clone, PartialEq)]

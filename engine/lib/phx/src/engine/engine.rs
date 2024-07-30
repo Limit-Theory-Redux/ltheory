@@ -7,8 +7,7 @@ use tracing::*;
 use winit::dpi::*;
 use winit::event_loop::*;
 
-use internal::ConvertIntoString;
-
+use super::MainLoop;
 use crate::common::*;
 use crate::event_bus::*;
 use crate::input::*;
@@ -17,8 +16,6 @@ use crate::rf::*;
 use crate::system::*;
 use crate::ui::hmgui::HmGui;
 use crate::window::*;
-
-use super::MainLoop;
 
 pub struct Engine {
     pub init_time: TimeStamp,

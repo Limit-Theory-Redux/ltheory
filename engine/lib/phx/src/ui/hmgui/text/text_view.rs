@@ -1,9 +1,8 @@
 use glam::Vec2;
 
+use super::{TextContext, TextData};
 use crate::input::Input;
 use crate::render::{Tex2D, Tex2D_Free};
-
-use super::{TextContext, TextData};
 
 /// Contains text data and rendered text texture.
 pub struct TextView {

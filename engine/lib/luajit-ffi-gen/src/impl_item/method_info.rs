@@ -1,6 +1,6 @@
-use crate::{args::BindArgs, util::snake_to_camel_case};
-
 use super::TypeInfo;
+use crate::args::BindArgs;
+use crate::util::snake_to_camel_case;
 
 /// `Impl` method information
 pub struct MethodInfo {

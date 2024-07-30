@@ -11,10 +11,8 @@ use glutin::surface::{GlSurface, Surface, SurfaceAttributes, WindowSurface};
 use glutin_winit::{DisplayBuilder, GlWindow};
 use raw_window_handle::HasWindowHandle;
 use tracing::{debug, error, info, warn};
-use winit::{
-    dpi::{LogicalSize, PhysicalPosition},
-    monitor::MonitorHandle,
-};
+use winit::dpi::{LogicalSize, PhysicalPosition};
+use winit::monitor::MonitorHandle;
 
 use super::{
     glutin_render, CursorGrabMode, PresentMode, Window, WindowMode, WindowPosition,

@@ -1,7 +1,5 @@
 use std::path::PathBuf;
 
-use internal::*;
-
 use super::*;
 
 const RESOURCE_EXTENSION_INFO: &[(&str, &[&str])] = &[

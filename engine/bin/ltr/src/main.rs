@@ -1,5 +1,6 @@
-use clap::Parser;
 use std::ffi::CString;
+
+use clap::Parser;
 
 #[cfg(target_os = "windows")]
 #[no_mangle]

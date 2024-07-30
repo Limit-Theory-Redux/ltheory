@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use internal::ConvertIntoString;
-
 use super::EventPayload;
 
 #[derive(Debug, Clone, Default, PartialEq)]

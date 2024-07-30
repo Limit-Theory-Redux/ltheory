@@ -1,8 +1,7 @@
 use glam::Vec2;
 
-use crate::render::Tex2D;
-
 use super::HmGui;
+use crate::render::Tex2D;
 
 #[derive(Default, Clone, Copy, PartialEq)]
 pub enum HmGuiImageLayout {

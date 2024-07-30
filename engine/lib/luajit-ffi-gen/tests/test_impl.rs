@@ -1,7 +1,5 @@
 use luajit_ffi_gen::luajit_ffi;
 
-use internal::ConvertIntoString;
-
 #[derive(Default, Clone)]
 pub struct Data {
     pub val: u32,

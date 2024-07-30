@@ -1,7 +1,7 @@
-use crate::input::{KeyboardButton, MouseControl};
 use winit::keyboard::KeyCode as WinitKeyCode;
 
 use super::{CursorIcon, WindowTheme};
+use crate::input::{KeyboardButton, MouseControl};
 
 pub fn convert_keycode(keycode: WinitKeyCode) -> KeyboardButton {
     match keycode {

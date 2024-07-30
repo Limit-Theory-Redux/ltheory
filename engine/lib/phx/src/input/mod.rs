@@ -19,10 +19,9 @@ pub use device_id::*;
 pub use device_type::*;
 pub use devices::*;
 pub use drag_and_drop::*;
+use gilrs::GamepadId;
 pub use system_event::*;
 pub use user_change::*;
-
-use gilrs::GamepadId;
 use winit::event::DeviceId;
 
 use crate::system::TimeStamp;

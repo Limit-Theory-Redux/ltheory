@@ -1,7 +1,9 @@
-name: Build Binaries (Pull Request)
+name: Release
 
 on:
-  pull_request:
+  push:
+    branches:
+      - main
     paths-ignore:
     - '**/README.md'
     - '**/CONTRIBUTING.md'
@@ -12,6 +14,10 @@ on:
     - '**/.gitignore'
     - '**/.gitattributes'
     - '**/.editorconfig'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -38,16 +44,11 @@ jobs:
           echo "SHA_SHORT=$CALCULATED_SHA" >> $GITHUB_ENV
       - name: Confirm git commit SHA output
         run: echo $SHA_SHORT
-      - name: Extract branch name
-        shell: bash
-        run: |
-          BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-          echo "BRANCH=${BRANCH_NAME/\//\\\/}" >> $GITHUB_ENV
       - name: Confirm nightly build name
         id: build_name
         run: |
-          echo ${NEXT_VERSION}-${BRANCH}-${SHA_SHORT}
-          echo build="${NEXT_VERSION}-${BRANCH}-${SHA_SHORT}" >> $GITHUB_OUTPUT
+          echo $NEXT_VERSION-$SHA_SHORT
+          echo build=$NEXT_VERSION-$SHA_SHORT >> $GITHUB_OUTPUT
 
   build-windows:
     needs: gen-build-version
@@ -145,3 +146,60 @@ jobs:
             ${{github.workspace}}/script/*
             ${{github.workspace}}/LICENSE
             ${{github.workspace}}/README.md
+
+  release:
+    name: New release
+    needs:
+      - gen-build-version
+      - build-windows
+      - build-macos
+      - build-linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+      - name: Inspect directory after downloading artifacts
+        run: ls -alFR
+      - name: Zip artifacts
+        run: for dir in $(ls); do cd $dir && zip ../$dir.zip ./* -r && cd ..; done
+      - name: echo repo
+        run: echo ${{github.repository}}
+      - name: Get latest release ID
+        uses: octokit/request-action@v2.x
+        id: get_latest_release
+        with:
+          route: GET /repos/${{github.repository}}/releases/tags/latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Delete latest release
+        uses: octokit/request-action@v2.x
+        with:
+          route: DELETE /repos/${{github.repository}}/releases/{release_id}
+          release_id: ${{ fromJson(steps.get_latest_release.outputs.data).id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Delete 'latest' tag ref
+        uses: octokit/request-action@v2.x
+        with:
+          route: DELETE /repos/${{github.repository}}/git/refs/tags/latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Re-create 'latest' tag with the current SHA
+        uses: octokit/request-action@v2.x
+        with:
+          route: POST /repos/${{github.repository}}/git/refs
+          ref: refs/tags/latest
+          sha: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: "Nightly ${{ needs.gen-build-version.outputs.build }}"
+          body: "Build log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          tag_name: latest
+          draft: false
+          prerelease: true
+          files: ./*.zip

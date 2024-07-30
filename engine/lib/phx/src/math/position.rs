@@ -1,5 +1,6 @@
-use super::*;
 use core::ops::*;
+
+use super::*;
 
 /// Create a position.
 #[inline(always)]

@@ -1,5 +1,6 @@
 use std::env;
 use std::path::Path;
+
 use winres::WindowsResource;
 
 fn main() {

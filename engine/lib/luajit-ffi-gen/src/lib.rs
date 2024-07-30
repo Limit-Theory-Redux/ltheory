@@ -5,13 +5,12 @@ mod impl_item;
 mod parse;
 mod util;
 
-use crate::args::EnumAttrArgs;
-use crate::args::ImplAttrArgs;
-use crate::parse::Item;
-
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
+
+use crate::args::{EnumAttrArgs, ImplAttrArgs};
+use crate::parse::Item;
 
 pub(crate) const IDENT: &str = "    ";
 
@@ -36,12 +35,12 @@ pub fn luajit_ffi(attr_args: TokenStream, input: TokenStream) -> TokenStream {
         Item::Impl(item_info) => {
             let args = parse_macro_input!(attr_args as ImplAttrArgs);
 
-            item_info.generate(args)
+            item_info.generate(&args)
         }
         Item::Enum(enum_info) => {
             let args = parse_macro_input!(attr_args as EnumAttrArgs);
 
-            enum_info.generate(args)
+            enum_info.generate(&args)
         }
     };
 

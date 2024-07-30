@@ -1,4 +1,3 @@
-use internal::ConvertIntoString;
 use tracing::{debug, error, info, trace, warn};
 
 pub struct Logger;

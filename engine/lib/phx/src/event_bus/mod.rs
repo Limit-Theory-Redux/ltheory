@@ -7,12 +7,9 @@ mod payload;
 mod payload_table;
 mod payload_type;
 
-use std::collections::{hash_map::Entry, HashMap, VecDeque};
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicU32, Ordering};
-
-use internal::ConvertIntoString;
-use strum::IntoEnumIterator;
-use tracing::{info, warn};
 
 use event::*;
 use event_data::*;
@@ -22,6 +19,8 @@ use message_request::*;
 use payload::*;
 use payload_table::*;
 use payload_type::*;
+use strum::IntoEnumIterator;
+use tracing::{info, warn};
 
 enum EventBusOperation {
     Register {

@@ -4,8 +4,6 @@ use indexmap::IndexMap;
 use parley::context::RangedBuilder;
 use parley::style::{FontStack, FontStretch, FontStyle, FontWeight, StyleProperty};
 
-use internal::ConvertIntoString;
-
 use crate::render::Color;
 
 /// Collection of the text properties.

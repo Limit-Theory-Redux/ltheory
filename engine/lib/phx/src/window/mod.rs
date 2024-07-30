@@ -20,8 +20,6 @@ pub use window_resolution::*;
 pub use winit_converters::*;
 pub use winit_window::*;
 
-use internal::ConvertIntoString;
-
 use crate::math::*;
 use crate::render::*;
 

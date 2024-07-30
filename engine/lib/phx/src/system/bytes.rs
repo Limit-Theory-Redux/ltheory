@@ -1,12 +1,12 @@
 use std::ffi::CStr;
 use std::io::Write;
 
-use super::*;
-
 use flate2::write::{ZlibDecoder, ZlibEncoder};
 use flate2::Compression;
 use internal::*;
 use tracing::info;
+
+use super::*;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

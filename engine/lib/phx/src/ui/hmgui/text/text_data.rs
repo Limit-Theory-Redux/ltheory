@@ -5,16 +5,13 @@ use parley::Layout;
 use swash::scale::ScaleContext;
 use swash::FontRef;
 
-use internal::ConvertIntoString;
-
-use crate::input::{Button, Input};
-use crate::render::{
-    Color, DataFormat_Float, PixelFormat_RGBA, Tex2D, Tex2D_Create, Tex2D_SetData, TexFormat_RGBA8,
-};
-
 use super::text_render::render_glyph;
 use super::{
     TextAlignment, TextContext, TextCursorRect, TextSectionStyle, TextSelection, TextStyle,
+};
+use crate::input::{Button, Input};
+use crate::render::{
+    Color, DataFormat_Float, PixelFormat_RGBA, Tex2D, Tex2D_Create, Tex2D_SetData, TexFormat_RGBA8,
 };
 
 pub type TextLayout = Layout<Color>;
