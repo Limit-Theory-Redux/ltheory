@@ -101,7 +101,7 @@ impl ImplInfo {
                             ffi_gen.add_class_definition(format!(
                                 "---@param {}_size {}",
                                 param.as_ffi_name(),
-                                TypeVariant::U32.as_lua_ffi_string()
+                                TypeVariant::USize.as_lua_ffi_string()
                             ));
                         }
                         _ => {}
@@ -283,7 +283,7 @@ impl ImplInfo {
         match &param.ty.wrapper {
             TypeWrapper::Slice | TypeWrapper::Array(_) => params.push(format!(
                 "{} {}_size",
-                TypeVariant::U32.as_ffi().c,
+                TypeVariant::USize.as_ffi().c,
                 param.as_ffi_name()
             )),
             _ => {}
