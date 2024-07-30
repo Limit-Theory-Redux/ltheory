@@ -1,7 +1,7 @@
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EventPayloadType {
-    /// Lua object pointer to communicate inside scripts only
+    /// Lua object pointer/index to communicate inside scripts only
     Lua,
 
     Bool,

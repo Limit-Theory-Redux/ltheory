@@ -2,7 +2,7 @@
 
 ---@enum EventPayloadType
 EventPayloadType = {
-    -- Lua object pointer to communicate inside scripts only
+    -- Lua object pointer/index to communicate inside scripts only
     Lua = 0,
     Bool = 1,
     I8 = 2,

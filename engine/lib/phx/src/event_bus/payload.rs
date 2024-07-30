@@ -2,7 +2,7 @@ use super::{EventPayloadTable, EventPayloadType};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum EventPayload {
-    /// Lua object pointer to communicate inside scripts only
+    /// Lua object pointer/index to communicate inside scripts only
     Lua(u64),
 
     Bool(bool),
