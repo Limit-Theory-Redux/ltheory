@@ -38,7 +38,7 @@ impl TypeDecl {
 
 /// Lua FFI module generator. Used also to transfer information between `enum`` (and potentially `struct``) and `impl` attribute usages.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FfiGenerator {
+pub struct FFIGenerator {
     module_name: String,
     type_decl: TypeDecl,
     class_definitions: Vec<String>,
@@ -50,7 +50,7 @@ pub struct FfiGenerator {
 }
 
 /// Initialization
-impl FfiGenerator {
+impl FFIGenerator {
     /// Create generator for module.
     pub fn new(module_name: &str) -> Self {
         Self {
@@ -115,7 +115,7 @@ impl FfiGenerator {
 }
 
 /// Serialization and deserialization
-impl FfiGenerator {
+impl FFIGenerator {
     /// Deserialize generator from the `json` file in the `target/ffi` folder
     /// or create default one if file doesn't exist.
     pub fn load(module_name: &str) -> Self {
@@ -171,7 +171,7 @@ impl FfiGenerator {
 }
 
 /// Generation
-impl FfiGenerator {
+impl FFIGenerator {
     /// Generates Lua FFI file.
     /// It contains the Loader object with 2 functions: `declareType()` and `defineType()`.
     /// Former registers type C declaration, either opaque or transparent, and returns type's id (0 - manual type, 1 - opaque, 2 -transparent)

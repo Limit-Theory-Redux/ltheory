@@ -1,8 +1,6 @@
 use std::collections::HashSet;
 use std::ffi::{CStr, CString};
 
-use internal::*;
-
 use super::*;
 use crate::common::*;
 use crate::logging::warn;

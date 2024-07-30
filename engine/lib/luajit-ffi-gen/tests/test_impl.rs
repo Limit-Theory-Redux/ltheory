@@ -1,4 +1,3 @@
-use internal::ConvertIntoString;
 use luajit_ffi_gen::luajit_ffi;
 
 #[derive(Default, Clone)]

@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 
 use glam::*;
-use internal::ConvertIntoString;
 use mlua::{Function, Lua};
 use tracing::*;
 use winit::dpi::*;

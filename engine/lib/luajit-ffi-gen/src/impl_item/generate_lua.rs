@@ -1,13 +1,14 @@
-use super::{ImplInfo, TypeInfo, TypeVariant};
+use super::{ImplInfo, ParamInfo, TypeVariant, TypeWrapper};
 use crate::args::ImplAttrArgs;
-use crate::ffi_generator::FfiGenerator;
+use crate::ffi_generator::FFIGenerator;
 use crate::IDENT;
 
 impl ImplInfo {
     /// Generate Lua FFI file
-    pub fn generate_ffi(&self, attr_args: &ImplAttrArgs) {
+    pub fn gen_lua_ffi(&self, attr_args: &ImplAttrArgs) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
-        let mut ffi_gen = FfiGenerator::load(&module_name);
+
+        let mut ffi_gen = FFIGenerator::load(&module_name);
         let is_managed = self.is_managed();
 
         // Generate metatype section only if there is at least one method with `self` parameter,
@@ -57,7 +58,7 @@ impl ImplInfo {
         ffi_gen.generate();
     }
 
-    fn write_class_defs(&self, ffi_gen: &mut FfiGenerator, module_name: &str) {
+    fn write_class_defs(&self, ffi_gen: &mut FFIGenerator, module_name: &str) {
         if !ffi_gen.has_class_definitions() {
             ffi_gen.add_class_definition("---@meta\n".to_string());
 
@@ -93,12 +94,36 @@ impl ImplInfo {
                         param.as_ffi_name(),
                         param.ty.as_lua_ffi_string(module_name)
                     ));
+
+                    // If this is a slice or array, we need to additionally generate a "size" parameter.
+                    match &param.ty.wrapper {
+                        TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                            ffi_gen.add_class_definition(format!(
+                                "---@param {}_size {}",
+                                param.as_ffi_name(),
+                                TypeVariant::USize.as_lua_ffi_string()
+                            ));
+                        }
+                        _ => {}
+                    }
                 });
 
                 let mut params: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| param.as_ffi_name().to_string())
+                    .flat_map(|param| {
+                        let ffi_name = param.as_ffi_name();
+                        let mut params = vec![ffi_name.clone()];
+
+                        // If this is a slice or array, we need to additionally generate a "size" parameter.
+                        match &param.ty.wrapper {
+                            TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                                params.push(format!("{}_size", ffi_name))
+                            }
+                            _ => {}
+                        }
+                        params
+                    })
                     .collect();
 
                 if let Some(ret) = &method.ret {
@@ -140,7 +165,7 @@ impl ImplInfo {
 
     fn write_c_defs(
         &self,
-        ffi_gen: &mut FfiGenerator,
+        ffi_gen: &mut FFIGenerator,
         module_name: &str,
         is_managed: bool,
     ) -> (usize, usize) {
@@ -148,7 +173,7 @@ impl ImplInfo {
             ffi_gen.add_c_definition("");
         }
 
-        // Tof managed we add 'void Free' method
+        // For managed types, we add 'void Free' method
         let mut max_method_name_len = if is_managed { "void".len() } else { 0 };
         let mut max_self_method_name_len = max_method_name_len;
         let mut max_ret_len = if is_managed { "Free".len() } else { 0 };
@@ -162,7 +187,7 @@ impl ImplInfo {
                     "void".len()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    ret.as_c_ffi_string(module_name).len()
+                    ret.as_ffi(module_name).c.len()
                 };
 
                 max_ret_len = std::cmp::max(max_ret_len, len);
@@ -193,21 +218,21 @@ impl ImplInfo {
                     "void".into()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    ret.as_c_ffi_string(module_name)
+                    ret.as_ffi(module_name).c
                 };
 
                 let mut params_str: Vec<_> = method
                     .params
                     .iter()
-                    .map(|param| format!("{} {}", param.ty.as_c_ffi_string(module_name), param.as_ffi_name()))
+                    .flat_map(|param| self.get_c_ffi_param(module_name, param))
                     .collect();
 
                 if method.bind_args.gen_out_param() && method.ret.is_some() {
                     let ret = method.ret.as_ref().unwrap();
-                    let ret_ffi = ret.as_c_ffi_string(module_name);
+                    let ret_ffi = ret.as_ffi(module_name).c;
                     let ret_param = match &ret.variant {
-                        TypeVariant::Custom(ty_name) => {
-                            if !TypeInfo::is_copyable(ty_name) && !ret.is_boxed && !ret.is_option && !ret.is_reference {
+                        TypeVariant::Custom(_) => {
+                            if !ret.is_copyable(&self.name) && ret.wrapper != TypeWrapper::Box && ret.wrapper != TypeWrapper::Option && !ret.is_reference {
                                 // If we have a non-copyable type that's not boxed, optional or a ref,
                                 // we don't need to return it as a pointer as it's already a pointer.
                                 format!("{} out", ret_ffi)
@@ -247,9 +272,29 @@ impl ImplInfo {
         (max_method_name_len, max_self_method_name_len)
     }
 
+    fn get_c_ffi_param(&self, module_name: &str, param: &ParamInfo) -> Vec<String> {
+        let mut params = vec![format!(
+            "{} {}",
+            param.ty.as_ffi(module_name).c,
+            param.as_ffi_name()
+        )];
+
+        // If this is a slice or array, we need to additionally generate a "size" parameter.
+        match &param.ty.wrapper {
+            TypeWrapper::Slice | TypeWrapper::Array(_) => params.push(format!(
+                "{} {}_size",
+                TypeVariant::USize.as_ffi().c,
+                param.as_ffi_name()
+            )),
+            _ => {}
+        }
+
+        params
+    }
+
     fn write_global_sym_table(
         &self,
-        ffi_gen: &mut FfiGenerator,
+        ffi_gen: &mut FFIGenerator,
         module_name: &str,
         max_method_name_len: usize,
     ) {
@@ -273,7 +318,7 @@ impl ImplInfo {
 
     fn write_metatype(
         &self,
-        ffi_gen: &mut FfiGenerator,
+        ffi_gen: &mut FFIGenerator,
         module_name: &str,
         max_self_method_name_len: usize,
         attr_args: &ImplAttrArgs,

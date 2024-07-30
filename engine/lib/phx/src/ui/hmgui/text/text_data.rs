@@ -1,5 +1,4 @@
 use glam::Vec2;
-use internal::ConvertIntoString;
 use parley::layout::{Alignment, GlyphRun};
 use parley::style::StyleProperty;
 use parley::Layout;

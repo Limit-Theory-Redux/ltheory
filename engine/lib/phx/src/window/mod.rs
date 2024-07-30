@@ -11,7 +11,6 @@ mod winit_window;
 
 pub use cursor::*;
 pub use glutin_render::*;
-use internal::ConvertIntoString;
 pub use monitor_selection::*;
 pub use present_mode::*;
 pub use window_mode::*;

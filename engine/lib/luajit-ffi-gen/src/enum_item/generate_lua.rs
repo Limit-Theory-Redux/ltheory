@@ -1,19 +1,19 @@
 use super::EnumInfo;
 use crate::args::EnumAttrArgs;
-use crate::ffi_generator::FfiGenerator;
+use crate::ffi_generator::FFIGenerator;
 use crate::impl_item::TypeVariant;
 use crate::IDENT;
 
 impl EnumInfo {
     /// Generate Lua FFI file
-    pub fn generate_ffi(&self, attr_args: &EnumAttrArgs, repr_type: &str) {
+    pub fn gen_lua_ffi(&self, attr_args: &EnumAttrArgs, repr_type: &str) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
-        let enum_repr_ty = TypeVariant::from_str(repr_type).unwrap_or(TypeVariant::U32);
+        let enum_repr_ty = TypeVariant::from_rust_ffi_str(repr_type).unwrap_or(TypeVariant::U32);
         let variants_info = self.variants.get_info(attr_args.start_index());
 
-        let mut ffi_gen = FfiGenerator::new(&module_name);
+        let mut ffi_gen = FFIGenerator::new(&module_name);
 
-        ffi_gen.set_type_decl_struct(enum_repr_ty.as_c_ffi_string());
+        ffi_gen.set_type_decl_struct(enum_repr_ty.as_ffi().c);
 
         gen_class_definitions(&mut ffi_gen, &self.doc, &module_name, &variants_info);
         gen_c_definitions(&mut ffi_gen, &module_name, &variants_info);
@@ -30,7 +30,7 @@ impl EnumInfo {
 }
 
 fn gen_class_definitions(
-    ffi_gen: &mut FfiGenerator,
+    ffi_gen: &mut FFIGenerator,
     doc: &[String],
     module_name: &str,
     variants_info: &[(&[String], &str, u64)],
@@ -53,7 +53,7 @@ fn gen_class_definitions(
 }
 
 fn gen_c_definitions(
-    ffi_gen: &mut FfiGenerator,
+    ffi_gen: &mut FFIGenerator,
     module_name: &str,
     variants_info: &[(&[String], &str, u64)],
 ) {
@@ -75,7 +75,7 @@ fn gen_c_definitions(
 }
 
 fn gen_global_symbol_table(
-    ffi_gen: &mut FfiGenerator,
+    ffi_gen: &mut FFIGenerator,
     module_name: &str,
     variants_info: &[(&[String], &str, u64)],
 ) {
