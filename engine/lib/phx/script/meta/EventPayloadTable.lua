@@ -14,7 +14,7 @@ function EventPayloadTable:len() end
 function EventPayloadTable:contains(name) end
 
 ---@param name string
----@return EventPayload
+---@return EventPayload|nil
 function EventPayloadTable:get(name) end
 
 ---@param name string

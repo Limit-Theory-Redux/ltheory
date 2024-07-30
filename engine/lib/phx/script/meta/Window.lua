@@ -144,13 +144,13 @@ function Window:scaleFactor() end
 -- Returns `None` if the cursor is outside the window area.
 -- 
 -- See [`WindowResolution`] for an explanation about logical/physical sizes.
----@return Vec2f
+---@return Vec2f|nil
 function Window:cursorPosition() end
 
 -- Set the cursor position in this window in logical pixels.
 -- 
 -- See [`WindowResolution`] for an explanation about logical/physical sizes.
----@param position Vec2f
+---@param position Vec2f|nil
 function Window:setCursorPosition(position) end
 
 -- The cursor position in this window in physical pixels.
@@ -158,12 +158,12 @@ function Window:setCursorPosition(position) end
 -- Returns `None` if the cursor is outside the window area.
 -- 
 -- See [`WindowResolution`] for an explanation about logical/physical sizes.
----@return Vec2f
+---@return Vec2f|nil
 function Window:physicalCursorPosition() end
 
 -- Set the cursor position in this window in physical pixels.
 -- 
 -- See [`WindowResolution`] for an explanation about logical/physical sizes.
----@param position Vec2d
+---@param position Vec2d|nil
 function Window:setPhysicalCursorPosition(position) end
 

@@ -19,7 +19,7 @@ function EventBus:register(eventName, priority, frameStage, withFrameStageMessag
 function EventBus:unregister(eventName) end
 
 ---@param eventName string
----@param entityId integer
+---@param entityId integer|nil
 ---@return integer
 ---@overload fun(self: table, eventName: string, ctxTable: table|nil, callbackFunc: function): integer
 function EventBus:subscribe(eventName, entityId) end
@@ -29,11 +29,11 @@ function EventBus:unsubscribe(tunnelId) end
 
 ---@param eventName string
 ---@param entityId integer
----@param payload EventPayload
+---@param payload EventPayload|nil
 ---@overload fun(self: table, eventName: string, ctxTable: table|nil)
 function EventBus:send(eventName, entityId, payload) end
 
----@return EventData
+---@return EventData|nil
 function EventBus:getNextEvent() end
 
 function EventBus:printFrameStageMap() end
