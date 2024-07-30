@@ -96,10 +96,13 @@ impl ImplInfo {
 
         let mut tokens = vec![quote! { #param_name_ident: #param_type_tokens }];
 
-        // If this is a slice, we need to additionally generate a "size" parameter.
-        if param.ty.wrapper == TypeWrapper::Slice {
-            let slice_size_param_ident = format_ident!("{}_size", param.name);
-            tokens.push(quote! { #slice_size_param_ident: u32 });
+        // If this is a slice or array, we need to additionally generate a "size" parameter.
+        match &param.ty.wrapper {
+            TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                let slice_size_param_ident = format_ident!("{}_size", param.name);
+                tokens.push(quote! { #slice_size_param_ident: u32 });
+            }
+            _ => {}
         }
 
         tokens
@@ -306,13 +309,26 @@ impl ImplInfo {
                         quote! { std::slice::from_raw_parts(#name_accessor, #slice_size_param_ident as usize) }
                     }
                 } else if let TypeWrapper::Array(size) = param.ty.wrapper {
-                    // For arrays, we assume the input array is the correct size.
+                    let slice_size_param_ident = format_ident!("{}_size", param.name);
                     if param.ty.is_mutable {
-                        quote! { std::slice::from_raw_parts_mut(#name_accessor, #size).try_into().unwrap() }
+                        quote! {
+                            std::slice::from_raw_parts_mut(#name_accessor, #slice_size_param_ident as usize)
+                                .try_into()
+                                .unwrap_or_else(|_| panic!("expected an array of {} elements, got {}", #size, #slice_size_param_ident))
+                        }
                     } else if param.ty.is_reference {
-                        quote! { std::slice::from_raw_parts(#name_accessor, #size).try_into().unwrap() }
+                        quote! {
+                            std::slice::from_raw_parts(#name_accessor, #slice_size_param_ident as usize)
+                                .try_into()
+                                .unwrap_or_else(|_| panic!("expected an array of {} elements, got {}", #size, #slice_size_param_ident))
+                        }
                     } else {
-                        quote! { std::slice::from_raw_parts(#name_accessor, #size).to_owned().try_into().unwrap() }
+                        quote! {
+                            std::slice::from_raw_parts(#name_accessor, #slice_size_param_ident as usize)
+                                .to_owned()
+                                .try_into()
+                                .unwrap_or_else(|_| panic!("expected an array of {} elements, got {}", #size, #slice_size_param_ident))
+                        }
                     }
                 } else if param.ty.wrapper == TypeWrapper::Box || param.ty.is_copyable(&self.name) {
                     quote! { #name_accessor }
@@ -335,11 +351,19 @@ impl ImplInfo {
                         quote! { std::slice::from_raw_parts(#name_accessor, #slice_size_param_ident as usize) }
                     }
                 } else if let TypeWrapper::Array(size) = param.ty.wrapper {
-                    // For arrays, we assume the input array is the correct size.
+                    let slice_size_param_ident = format_ident!("{}_size", param.name);
                     if param.ty.is_mutable {
-                        quote! { std::slice::from_raw_parts_mut(#name_accessor, #size).try_into().unwrap() }
+                        quote! {
+                            std::slice::from_raw_parts_mut(#name_accessor, #slice_size_param_ident as usize)
+                                .try_into()
+                                .unwrap_or_else(|_| panic!("expected an array of {} elements, got {}", #size, #slice_size_param_ident))
+                        }
                     } else {
-                        quote! { std::slice::from_raw_parts(#name_accessor, #size).try_into().unwrap() }
+                        quote! {
+                            std::slice::from_raw_parts(#name_accessor, #slice_size_param_ident as usize)
+                                .try_into()
+                                .unwrap_or_else(|_| panic!("expected an array of {} elements, got {}", #size, #slice_size_param_ident))
+                        }
                     }
                 } else if param.ty.is_mutable {
                     quote! { &mut #name_accessor }
@@ -352,7 +376,7 @@ impl ImplInfo {
         };
 
         if param.ty.wrapper == TypeWrapper::Option {
-            quote! {if !#name_ident.is_null() { unsafe { Some(#param_item) } } else { None }}
+            quote! { if !#name_ident.is_null() { unsafe { Some(#param_item) } } else { None } }
         } else {
             param_item
         }

@@ -5,7 +5,7 @@ use super::ImplInfo;
 use crate::args::ImplAttrArgs;
 
 impl ImplInfo {
-    // Entry point for `impl` blocks.
+    /// Entry point for `impl` blocks.
     pub fn generate(&self, attr_args: &ImplAttrArgs) -> TokenStream {
         // Original impl source code (with removed `bind` attributes)
         let source = &self.source;

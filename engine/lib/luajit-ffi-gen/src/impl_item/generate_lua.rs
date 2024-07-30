@@ -94,12 +94,17 @@ impl ImplInfo {
                         param.as_ffi_name(),
                         param.ty.as_lua_ffi_string(module_name)
                     ));
-                    if param.ty.wrapper == TypeWrapper::Slice {
-                        ffi_gen.add_class_definition(format!(
-                            "---@param {}_size {}",
-                            param.as_ffi_name(),
-                            TypeVariant::U32.as_lua_ffi_string()
-                        ));
+
+                    // If this is a slice or array, we need to additionally generate a "size" parameter.
+                    match &param.ty.wrapper {
+                        TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                            ffi_gen.add_class_definition(format!(
+                                "---@param {}_size {}",
+                                param.as_ffi_name(),
+                                TypeVariant::U32.as_lua_ffi_string()
+                            ));
+                        }
+                        _ => {}
                     }
                 });
 
@@ -109,8 +114,13 @@ impl ImplInfo {
                     .flat_map(|param| {
                         let ffi_name = param.as_ffi_name();
                         let mut params = vec![ffi_name.clone()];
-                        if param.ty.wrapper == TypeWrapper::Slice {
-                            params.push(format!("{}_size", ffi_name))
+
+                        // If this is a slice or array, we need to additionally generate a "size" parameter.
+                        match &param.ty.wrapper {
+                            TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                                params.push(format!("{}_size", ffi_name))
+                            }
+                            _ => {}
                         }
                         params
                     })
@@ -269,12 +279,14 @@ impl ImplInfo {
             param.as_ffi_name()
         )];
 
-        if param.ty.wrapper == TypeWrapper::Slice {
-            params.push(format!(
+        // If this is a slice or array, we need to additionally generate a "size" parameter.
+        match &param.ty.wrapper {
+            TypeWrapper::Slice | TypeWrapper::Array(_) => params.push(format!(
                 "{} {}_size",
                 TypeVariant::U32.as_ffi().c,
                 param.as_ffi_name()
-            ))
+            )),
+            _ => {}
         }
 
         params

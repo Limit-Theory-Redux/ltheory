@@ -5,7 +5,7 @@ use super::EnumInfo;
 use crate::args::EnumAttrArgs;
 
 impl EnumInfo {
-    // Entry point for `enum` blocks.
+    /// Entry point for `enum` blocks.
     pub fn generate(&self, attr_args: &EnumAttrArgs) -> TokenStream {
         // Original enum source code
         let source = &self.source;

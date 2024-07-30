@@ -89,11 +89,11 @@ fn test_primitive_array() {
         assert_eq!(data, ts.val_array_primitive);
         TestStructArrays_GetPrimitiveSlice(&mut ts, data_read.as_mut_ptr(), data_read.len() as u32);
         assert_eq!(data, data_read);
-        TestStructArrays_MovePrimitiveArray(&mut ts, data_array.as_ptr());
+        TestStructArrays_MovePrimitiveArray(&mut ts, data_array.as_ptr(), 3);
         assert_eq!(data_array.as_slice(), ts.val_array_primitive);
-        TestStructArrays_SetPrimitiveArray(&mut ts, data_array2.as_ptr());
+        TestStructArrays_SetPrimitiveArray(&mut ts, data_array2.as_ptr(), 3);
         assert_eq!(data_array2.as_slice(), ts.val_array_primitive);
-        TestStructArrays_GetPrimitiveArray(&mut ts, data_array_read.as_mut_ptr());
+        TestStructArrays_GetPrimitiveArray(&mut ts, data_array_read.as_mut_ptr(), 3);
         assert_eq!(data_array2, data_array_read);
     }
 }
@@ -114,11 +114,72 @@ fn test_custom_array() {
         assert_eq!(data, ts.val_array_custom);
         TestStructArrays_GetCustomSlice(&mut ts, data_read.as_mut_ptr(), data_read.len() as u32);
         assert_eq!(data, data_read);
-        TestStructArrays_MoveCustomArray(&mut ts, data_array.as_ptr());
+        TestStructArrays_MoveCustomArray(&mut ts, data_array.as_ptr(), 3);
         assert_eq!(data_array.as_slice(), ts.val_array_custom);
-        TestStructArrays_SetCustomArray(&mut ts, data_array2.as_ptr());
+        TestStructArrays_SetCustomArray(&mut ts, data_array2.as_ptr(), 3);
         assert_eq!(data_array2.as_slice(), ts.val_array_custom);
-        TestStructArrays_GetCustomArray(&mut ts, data_array_read.as_mut_ptr());
+        TestStructArrays_GetCustomArray(&mut ts, data_array_read.as_mut_ptr(), 3);
         assert_eq!(data_array2, data_array_read);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_move_primitive_array_should_panic() {
+    let mut ts = TestStructArrays::default();
+    let data = vec![0.0; 3];
+    unsafe {
+        TestStructArrays_MovePrimitiveArray(&mut ts, data.as_ptr(), 2);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_ref_primitive_array_should_panic() {
+    let mut ts = TestStructArrays::default();
+    let data = vec![0.0; 3];
+    unsafe {
+        TestStructArrays_SetPrimitiveArray(&mut ts, data.as_ptr(), 4);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_mut_ref_primitive_array_should_panic() {
+    let mut ts = TestStructArrays::default();
+    let mut data = vec![0.0; 3];
+    unsafe {
+        TestStructArrays_GetPrimitiveArray(&mut ts, data.as_mut_ptr(), 5);
+    }
+}
+
+
+#[test]
+#[should_panic]
+fn test_move_custom_array_should_panic() {
+    let mut ts = TestStructArrays::default();
+    let data = vec![Data::new(0), Data::new(0), Data::new(0)];
+    unsafe {
+        TestStructArrays_MoveCustomArray(&mut ts, data.as_ptr(), 2);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_ref_custom_array_should_panic() {
+    let mut ts = TestStructArrays::default();
+    let data = vec![Data::new(0), Data::new(0), Data::new(0)];
+    unsafe {
+        TestStructArrays_SetCustomArray(&mut ts, data.as_ptr(), 4);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_mut_ref_custom_array_should_panic() {
+    let mut ts = TestStructArrays::default();
+    let mut data = vec![Data::new(0), Data::new(0), Data::new(0)];
+    unsafe {
+        TestStructArrays_GetCustomArray(&mut ts, data.as_mut_ptr(), 5);
     }
 }
