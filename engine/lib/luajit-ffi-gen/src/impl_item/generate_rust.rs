@@ -306,11 +306,13 @@ impl ImplInfo {
                     if param.ty.is_mutable {
                         quote! {{
                             assert!(!#name_accessor.is_null(), "array pointer is null");
+                            assert!(#size_param_ident > 0, "array length must be greater than 0");
                             std::slice::from_raw_parts_mut(#name_accessor, #size_param_ident)
                         }}
                     } else {
                         quote! {{
                             assert!(!#name_accessor.is_null(), "array pointer is null");
+                            assert!(#size_param_ident > 0, "array length must be greater than 0");
                             std::slice::from_raw_parts(#name_accessor, #size_param_ident)
                         }}
                     }
@@ -353,11 +355,13 @@ impl ImplInfo {
                     if param.ty.is_mutable {
                         quote! {{
                             assert!(!#name_accessor.is_null(), "array pointer is null");
+                            assert!(#size_param_ident > 0, "array length must be greater than 0");
                             std::slice::from_raw_parts_mut(#name_accessor, #size_param_ident)
                         }}
                     } else {
                         quote! {{
                             assert!(!#name_accessor.is_null(), "array pointer is null");
+                            assert!(#size_param_ident > 0, "array length must be greater than 0");
                             std::slice::from_raw_parts(#name_accessor, #size_param_ident)
                         }}
                     }

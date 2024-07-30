@@ -140,7 +140,26 @@ fn test_custom_array() {
 
 #[test]
 #[should_panic]
-fn test_null_check_should_panic() {
+fn test_null_slice_should_panic() {
+    let mut ts = ArraysTest::default();
+    unsafe {
+        ArraysTest_SetPrimitiveSlice(&mut ts, std::ptr::null(), 3);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_zero_length_slice_should_panic() {
+    let mut ts = ArraysTest::default();
+    let data = vec![0.0; 3];
+    unsafe {
+        ArraysTest_SetPrimitiveSlice(&mut ts, data.as_ptr(), 0);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_null_array_should_panic() {
     let mut ts = ArraysTest::default();
     unsafe {
         ArraysTest_MovePrimitiveArray(&mut ts, std::ptr::null(), 3);
