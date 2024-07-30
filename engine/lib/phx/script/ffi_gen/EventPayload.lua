@@ -45,6 +45,7 @@ function Loader.defineType()
             cstr                     EventPayload_AsString   (EventPayload const*);
             EventPayload*            EventPayload_FromTable  (EventPayloadTable* value);
             EventPayloadTable const* EventPayload_AsTable    (EventPayload const*);
+            EventPayloadType         EventPayload_GetType    (EventPayload const*);
         ]]
     end
 
@@ -130,6 +131,7 @@ function Loader.defineType()
                 asF64    = libphx.EventPayload_AsF64,
                 asString = libphx.EventPayload_AsString,
                 asTable  = libphx.EventPayload_AsTable,
+                getType  = libphx.EventPayload_GetType,
             },
         }
 

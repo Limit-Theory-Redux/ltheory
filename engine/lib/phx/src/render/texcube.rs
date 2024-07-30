@@ -344,8 +344,12 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(0.0f32, 0.0f32, 0.0f32, 1.0f32);
 
-        state.shader().set_float3("cubeLook", face.look.x, face.look.y, face.look.z);
-        state.shader().set_float3("cubeUp", face.up.x, face.up.y, face.up.z);
+        state
+            .shader()
+            .set_float3("cubeLook", face.look.x, face.look.y, face.look.z);
+        state
+            .shader()
+            .set_float3("cubeUp", face.up.x, face.up.y, face.up.z);
         state.shader().set_float("cubeSize", size_f);
 
         state.start();

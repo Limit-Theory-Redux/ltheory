@@ -21,4 +21,8 @@ impl EventData {
     pub fn get_tunnel_id(&self) -> u32 {
         self.tunnel_id
     }
+
+    pub fn get_payload(&self) -> Option<&EventPayload> {
+        self.payload.as_ref()
+    }
 }

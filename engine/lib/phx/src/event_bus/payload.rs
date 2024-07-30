@@ -1,8 +1,8 @@
 use internal::ConvertIntoString;
 
-use super::EventPayloadTable;
+use super::{EventPayloadTable, EventPayloadType};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EventPayload {
     /// Lua object pointer to communicate inside scripts only
     Lua(u64),
@@ -190,6 +190,25 @@ impl EventPayload {
             Some(value.as_ref())
         } else {
             None
+        }
+    }
+
+    pub fn get_type(&self) -> EventPayloadType {
+        match self {
+            EventPayload::Lua(_) => EventPayloadType::Lua,
+            EventPayload::Bool(_) => EventPayloadType::Bool,
+            EventPayload::I8(_) => EventPayloadType::I8,
+            EventPayload::U8(_) => EventPayloadType::U8,
+            EventPayload::I16(_) => EventPayloadType::I16,
+            EventPayload::U16(_) => EventPayloadType::U16,
+            EventPayload::I32(_) => EventPayloadType::I32,
+            EventPayload::U32(_) => EventPayloadType::U32,
+            EventPayload::I64(_) => EventPayloadType::I64,
+            EventPayload::U64(_) => EventPayloadType::U64,
+            EventPayload::F32(_) => EventPayloadType::F32,
+            EventPayload::F64(_) => EventPayloadType::F64,
+            EventPayload::String(_) => EventPayloadType::String,
+            EventPayload::Table(_) => EventPayloadType::Table,
         }
     }
 }

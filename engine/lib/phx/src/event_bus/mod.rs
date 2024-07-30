@@ -5,8 +5,9 @@ mod frame_timer;
 mod message_request;
 mod payload;
 mod payload_table;
+mod payload_type;
 
-use std::collections::{hash_map::Entry, BinaryHeap, HashMap, VecDeque};
+use std::collections::{hash_map::Entry, HashMap, VecDeque};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use internal::ConvertIntoString;
@@ -20,6 +21,7 @@ use frame_timer::*;
 use message_request::*;
 use payload::*;
 use payload_table::*;
+use payload_type::*;
 
 enum EventBusOperation {
     Register {
@@ -42,6 +44,7 @@ enum EventBusOperation {
     Send {
         event_name: String,
         entity_id: u64,
+        payload: Option<EventPayload>,
     },
     SetTimeScale {
         scale_factor: f64,
@@ -54,7 +57,7 @@ pub struct EventBus {
     frame_time_scale: f64,
     events: HashMap<String, Event>,
     operation_queue: VecDeque<EventBusOperation>,
-    frame_stage_map: HashMap<FrameStage, BinaryHeap<MessageRequest>>,
+    frame_stage_map: HashMap<FrameStage, Vec<MessageRequest>>,
     cached_requests: Vec<MessageRequestCache>,
     next_subscriber_id: AtomicU32,
     next_tunnel_id: AtomicU32,
@@ -86,6 +89,7 @@ impl EventBus {
                 event_name: event_name.clone(),
                 stay_alive: true,
                 for_entity_id: None,
+                payload: None,
             };
 
             events.insert(event_name, frame_stage_event);
@@ -173,6 +177,7 @@ impl EventBus {
                                     event_name: event_name.clone(),
                                     stay_alive: with_frame_stage_message,
                                     for_entity_id: None,
+                                    payload: None,
                                 };
 
                                 self.cached_requests.push(message_request);
@@ -218,6 +223,7 @@ impl EventBus {
                 EventBusOperation::Send {
                     event_name,
                     entity_id,
+                    payload,
                 } => {
                     if let Some(event) = self.events.get(&event_name) {
                         let message_request = MessageRequestCache {
@@ -226,6 +232,7 @@ impl EventBus {
                             event_name: event.name.clone(),
                             stay_alive: false,
                             for_entity_id: Some(entity_id),
+                            payload,
                         };
 
                         self.cached_requests.push(message_request);
@@ -294,10 +301,11 @@ impl EventBus {
     }
 
     /// @overload fun(self: table, eventName: string, ctxTable: table|nil)
-    pub fn send(&mut self, event_name: &str, entity_id: u64) {
+    pub fn send(&mut self, event_name: &str, entity_id: u64, payload: Option<&EventPayload>) {
         self.operation_queue.push_back(EventBusOperation::Send {
             event_name: event_name.to_string(),
             entity_id,
+            payload: payload.cloned(),
         })
     }
 
@@ -340,6 +348,7 @@ impl EventBus {
                                 event_name: message_request.event_name.clone(),
                                 stay_alive: message_request.stay_alive,
                                 for_entity_id: message_request.for_entity_id,
+                                payload: message_request.payload.clone(),
                             };
                             self.cached_requests.push(message_request_cache);
                         }
@@ -432,10 +441,8 @@ impl EventBus {
         for frame_stage in sorted_keys {
             if let Some(message_heap) = self.frame_stage_map.get(&frame_stage) {
                 info!("{:?}", frame_stage);
-                let mut messages: Vec<_> = message_heap.iter().cloned().collect();
-                messages.sort();
 
-                for message_request in messages {
+                for message_request in message_heap {
                     if let Some(_event) = self.events.get(&message_request.event_name) {
                         info!(" - {:?}", message_request);
                     }

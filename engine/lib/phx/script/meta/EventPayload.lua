@@ -101,3 +101,6 @@ function EventPayload.FromTable(value) end
 ---@return EventPayloadTable
 function EventPayload:asTable() end
 
+---@return EventPayloadType
+function EventPayload:getType() end
+
