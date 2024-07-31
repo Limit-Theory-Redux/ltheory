@@ -18,33 +18,33 @@ function Loader.defineType()
         ffi.cdef [[
             void                     EventPayload_Free       (EventPayload*);
             EventPayload*            EventPayload_FromLua    (uint64 value);
-            uint64 const*            EventPayload_AsLua      (EventPayload const*);
+            uint64                   EventPayload_GetLua     (EventPayload const*);
             EventPayload*            EventPayload_FromBool   (bool value);
-            bool const*              EventPayload_AsBool     (EventPayload const*);
+            bool                     EventPayload_GetBool    (EventPayload const*);
             EventPayload*            EventPayload_FromI8     (int8 value);
-            int8 const*              EventPayload_AsI8       (EventPayload const*);
+            int8                     EventPayload_GetI8      (EventPayload const*);
             EventPayload*            EventPayload_FromU8     (uint8 value);
-            uint8 const*             EventPayload_AsU8       (EventPayload const*);
+            uint8                    EventPayload_GetU8      (EventPayload const*);
             EventPayload*            EventPayload_FromI16    (int16 value);
-            int16 const*             EventPayload_AsI16      (EventPayload const*);
+            int16                    EventPayload_GetI16     (EventPayload const*);
             EventPayload*            EventPayload_FromU16    (uint16 value);
-            uint16 const*            EventPayload_AsU16      (EventPayload const*);
+            uint16                   EventPayload_GetU16     (EventPayload const*);
             EventPayload*            EventPayload_FromI32    (int value);
-            int const*               EventPayload_AsI32      (EventPayload const*);
+            int                      EventPayload_GetI32     (EventPayload const*);
             EventPayload*            EventPayload_FromU32    (uint32 value);
-            uint32 const*            EventPayload_AsU32      (EventPayload const*);
+            uint32                   EventPayload_GetU32     (EventPayload const*);
             EventPayload*            EventPayload_FromI64    (int64 value);
-            int64 const*             EventPayload_AsI64      (EventPayload const*);
+            int64                    EventPayload_GetI64     (EventPayload const*);
             EventPayload*            EventPayload_FromU64    (uint64 value);
-            uint64 const*            EventPayload_AsU64      (EventPayload const*);
+            uint64                   EventPayload_GetU64     (EventPayload const*);
             EventPayload*            EventPayload_FromF32    (float value);
-            float const*             EventPayload_AsF32      (EventPayload const*);
+            float                    EventPayload_GetF32     (EventPayload const*);
             EventPayload*            EventPayload_FromF64    (double value);
-            double const*            EventPayload_AsF64      (EventPayload const*);
+            double                   EventPayload_GetF64     (EventPayload const*);
             EventPayload*            EventPayload_FromString (cstr value);
-            cstr                     EventPayload_AsString   (EventPayload const*);
+            cstr                     EventPayload_GetString  (EventPayload const*);
             EventPayload*            EventPayload_FromTable  (EventPayloadTable* value);
-            EventPayloadTable const* EventPayload_AsTable    (EventPayload const*);
+            EventPayloadTable const* EventPayload_GetTable   (EventPayload const*);
             EventPayloadType         EventPayload_GetType    (EventPayload const*);
         ]]
     end
@@ -117,21 +117,21 @@ function Loader.defineType()
         local t  = ffi.typeof('EventPayload')
         local mt = {
             __index = {
-                asLua    = libphx.EventPayload_AsLua,
-                asBool   = libphx.EventPayload_AsBool,
-                asI8     = libphx.EventPayload_AsI8,
-                asU8     = libphx.EventPayload_AsU8,
-                asI16    = libphx.EventPayload_AsI16,
-                asU16    = libphx.EventPayload_AsU16,
-                asI32    = libphx.EventPayload_AsI32,
-                asU32    = libphx.EventPayload_AsU32,
-                asI64    = libphx.EventPayload_AsI64,
-                asU64    = libphx.EventPayload_AsU64,
-                asF32    = libphx.EventPayload_AsF32,
-                asF64    = libphx.EventPayload_AsF64,
-                asString = libphx.EventPayload_AsString,
-                asTable  = libphx.EventPayload_AsTable,
-                getType  = libphx.EventPayload_GetType,
+                getLua    = libphx.EventPayload_GetLua,
+                getBool   = libphx.EventPayload_GetBool,
+                getI8     = libphx.EventPayload_GetI8,
+                getU8     = libphx.EventPayload_GetU8,
+                getI16    = libphx.EventPayload_GetI16,
+                getU16    = libphx.EventPayload_GetU16,
+                getI32    = libphx.EventPayload_GetI32,
+                getU32    = libphx.EventPayload_GetU32,
+                getI64    = libphx.EventPayload_GetI64,
+                getU64    = libphx.EventPayload_GetU64,
+                getF32    = libphx.EventPayload_GetF32,
+                getF64    = libphx.EventPayload_GetF64,
+                getString = libphx.EventPayload_GetString,
+                getTable  = libphx.EventPayload_GetTable,
+                getType   = libphx.EventPayload_GetType,
             },
         }
 
