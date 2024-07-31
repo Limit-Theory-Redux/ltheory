@@ -30,7 +30,7 @@ function EventBus:unsubscribe(tunnelId) end
 ---@param eventName string
 ---@param entityId integer
 ---@param payload EventPayload
----@overload fun(self: table, eventName: string, ctxTable: table|nil)
+---@overload fun(self: table, eventName: string, ctxTable: table|nil, payload: EventPayload|nil)
 function EventBus:send(eventName, entityId, payload) end
 
 ---@return EventData
