@@ -27,168 +27,154 @@ impl EventPayload {
         Self::Lua(value)
     }
 
-    pub fn as_lua(&self) -> Option<u64> {
-        if let Self::Lua(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_lua(&self) -> u64 {
+        let Self::Lua(value) = self else {
+            self.type_panic("Lua");
+        };
+        *value
     }
 
     pub fn from_bool(value: bool) -> Self {
         Self::Bool(value)
     }
 
-    pub fn as_bool(&self) -> Option<bool> {
-        if let Self::Bool(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_bool(&self) -> bool {
+        let Self::Bool(value) = self else {
+            self.type_panic("Bool");
+        };
+        *value
     }
 
     pub fn from_i8(value: i8) -> Self {
         Self::I8(value)
     }
 
-    pub fn as_i8(&self) -> Option<i8> {
-        if let Self::I8(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_i8(&self) -> i8 {
+        let Self::I8(value) = self else {
+            self.type_panic("I8");
+        };
+        *value
     }
 
     pub fn from_u8(value: u8) -> Self {
         Self::U8(value)
     }
 
-    pub fn as_u8(&self) -> Option<u8> {
-        if let Self::U8(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_u8(&self) -> u8 {
+        let Self::U8(value) = self else {
+            self.type_panic("U8");
+        };
+        *value
     }
 
     pub fn from_i16(value: i16) -> Self {
         Self::I16(value)
     }
 
-    pub fn as_i16(&self) -> Option<i16> {
-        if let Self::I16(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_i16(&self) -> i16 {
+        let Self::I16(value) = self else {
+            self.type_panic("I16");
+        };
+        *value
     }
 
     pub fn from_u16(value: u16) -> Self {
         Self::U16(value)
     }
 
-    pub fn as_u16(&self) -> Option<u16> {
-        if let Self::U16(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_u16(&self) -> u16 {
+        let Self::U16(value) = self else {
+            self.type_panic("U16");
+        };
+        *value
     }
 
     pub fn from_i32(value: i32) -> Self {
         Self::I32(value)
     }
 
-    pub fn as_i32(&self) -> Option<i32> {
-        if let Self::I32(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_i32(&self) -> i32 {
+        let Self::I32(value) = self else {
+            self.type_panic("I32");
+        };
+        *value
     }
 
     pub fn from_u32(value: u32) -> Self {
         Self::U32(value)
     }
 
-    pub fn as_u32(&self) -> Option<u32> {
-        if let Self::U32(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_u32(&self) -> u32 {
+        let Self::U32(value) = self else {
+            self.type_panic("U32");
+        };
+        *value
     }
 
     pub fn from_i64(value: i64) -> Self {
         Self::I64(value)
     }
 
-    pub fn as_i64(&self) -> Option<i64> {
-        if let Self::I64(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_i64(&self) -> i64 {
+        let Self::I64(value) = self else {
+            self.type_panic("I64");
+        };
+        *value
     }
 
     pub fn from_u64(value: u64) -> Self {
         Self::U64(value)
     }
 
-    pub fn as_u64(&self) -> Option<u64> {
-        if let Self::U64(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_u64(&self) -> u64 {
+        let Self::U64(value) = self else {
+            self.type_panic("U64");
+        };
+        *value
     }
 
     pub fn from_f32(value: f32) -> Self {
         Self::F32(value)
     }
 
-    pub fn as_f32(&self) -> Option<f32> {
-        if let Self::F32(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_f32(&self) -> f32 {
+        let Self::F32(value) = self else {
+            self.type_panic("F32");
+        };
+        *value
     }
 
     pub fn from_f64(value: f64) -> Self {
         Self::F64(value)
     }
 
-    pub fn as_f64(&self) -> Option<f64> {
-        if let Self::F64(value) = self {
-            Some(*value)
-        } else {
-            None
-        }
+    pub fn get_f64(&self) -> f64 {
+        let Self::F64(value) = self else {
+            self.type_panic("F64");
+        };
+        *value
     }
 
     pub fn from_string(value: &str) -> Self {
         Self::String(value.into())
     }
 
-    pub fn as_string(&self) -> Option<&str> {
-        if let Self::String(value) = self {
-            Some(value.as_str())
-        } else {
-            None
-        }
+    pub fn get_string(&self) -> &str {
+        let Self::String(value) = self else {
+            self.type_panic("String");
+        };
+        value.as_str()
     }
 
     pub fn from_table(value: EventPayloadTable) -> Self {
         Self::Table(Box::new(value))
     }
 
-    pub fn as_table(&self) -> Option<&EventPayloadTable> {
-        if let Self::Table(value) = self {
-            Some(value.as_ref())
-        } else {
-            None
-        }
+    pub fn get_table(&self) -> &EventPayloadTable {
+        let Self::Table(value) = self else {
+            self.type_panic("Table");
+        };
+        value.as_ref()
     }
 
     pub fn get_type(&self) -> EventPayloadType {
@@ -208,5 +194,15 @@ impl EventPayload {
             EventPayload::String(_) => EventPayloadType::String,
             EventPayload::Table(_) => EventPayloadType::Table,
         }
+    }
+}
+
+impl EventPayload {
+    #[inline]
+    fn type_panic(&self, expected: &str) -> ! {
+        panic!(
+            "Cannot get {expected} type from payload of type {:?}",
+            self.get_type()
+        );
     }
 }
