@@ -19,6 +19,7 @@ function Loader.defineType()
             void                EventPayloadTable_Free     (EventPayloadTable*);
             EventPayloadTable*  EventPayloadTable_Create   ();
             uint64              EventPayloadTable_Len      (EventPayloadTable const*);
+            bool                EventPayloadTable_IsEmpty  (EventPayloadTable const*);
             bool                EventPayloadTable_Contains (EventPayloadTable const*, cstr name);
             EventPayload const* EventPayloadTable_Get      (EventPayloadTable const*, cstr name);
             void                EventPayloadTable_Add      (EventPayloadTable*, cstr name, EventPayload* value);
@@ -43,6 +44,7 @@ function Loader.defineType()
         local mt = {
             __index = {
                 len      = libphx.EventPayloadTable_Len,
+                isEmpty  = libphx.EventPayloadTable_IsEmpty,
                 contains = libphx.EventPayloadTable_Contains,
                 get      = libphx.EventPayloadTable_Get,
                 add      = libphx.EventPayloadTable_Add,

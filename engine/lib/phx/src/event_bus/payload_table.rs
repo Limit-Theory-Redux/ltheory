@@ -20,6 +20,10 @@ impl EventPayloadTable {
         self.table.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.table.is_empty()
+    }
+
     pub fn contains(&self, name: &str) -> bool {
         self.table.contains_key(name)
     }
