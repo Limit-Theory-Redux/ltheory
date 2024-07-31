@@ -16,10 +16,11 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void       EventData_Free          (EventData*);
-            double     EventData_GetDeltaTime  (EventData const*);
-            FrameStage EventData_GetFrameStage (EventData const*);
-            uint32     EventData_GetTunnelId   (EventData const*);
+            void                EventData_Free          (EventData*);
+            double              EventData_GetDeltaTime  (EventData const*);
+            FrameStage          EventData_GetFrameStage (EventData const*);
+            uint32              EventData_GetTunnelId   (EventData const*);
+            EventPayload const* EventData_GetPayload    (EventData const*);
         ]]
     end
 
@@ -37,6 +38,7 @@ function Loader.defineType()
                 getDeltaTime  = libphx.EventData_GetDeltaTime,
                 getFrameStage = libphx.EventData_GetFrameStage,
                 getTunnelId   = libphx.EventData_GetTunnelId,
+                getPayload    = libphx.EventData_GetPayload,
             },
         }
 

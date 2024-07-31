@@ -23,7 +23,7 @@ function Loader.defineType()
             void             EventBus_Unregister         (EventBus*, cstr eventName);
             uint32           EventBus_Subscribe          (EventBus*, cstr eventName, uint64 const* entityId);
             void             EventBus_Unsubscribe        (EventBus*, uint32 tunnelId);
-            void             EventBus_Send               (EventBus*, cstr eventName, uint64 entityId);
+            void             EventBus_Send               (EventBus*, cstr eventName, uint64 entityId, EventPayload const* payload);
             EventData const* EventBus_GetNextEvent       (EventBus*);
             void             EventBus_PrintFrameStageMap (EventBus const*);
         ]]

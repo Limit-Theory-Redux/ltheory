@@ -1,6 +1,6 @@
 use super::FrameStage;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Subscriber {
     pub(crate) id: u32,
     pub(crate) tunnel_id: u32,
