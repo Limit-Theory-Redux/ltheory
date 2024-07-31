@@ -90,9 +90,14 @@ impl ImplInfo {
                 // Add method signature documentation
                 method.params.iter().for_each(|param| {
                     ffi_gen.add_class_definition(format!(
-                        "---@param {} {}",
+                        "---@param {} {}{}",
                         param.as_ffi_name(),
-                        param.ty.as_lua_ffi_string(module_name)
+                        param.ty.as_lua_ffi_string(module_name),
+                        if param.ty.wrapper == TypeWrapper::Option {
+                            "|nil"
+                        } else {
+                            ""
+                        }
                     ));
 
                     // If this is a slice or array, we need to additionally generate a "size" parameter.
@@ -136,8 +141,13 @@ impl ImplInfo {
                         params.push("result".into());
                     } else {
                         ffi_gen.add_class_definition(format!(
-                            "---@return {}",
-                            ret.as_lua_ffi_string(module_name)
+                            "---@return {}{}",
+                            ret.as_lua_ffi_string(module_name),
+                            if ret.wrapper == TypeWrapper::Option {
+                                "|nil"
+                            } else {
+                                ""
+                            }
                         ));
                     }
                 }

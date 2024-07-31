@@ -7,11 +7,11 @@ GamepadState = {}
 function GamepadState:gamepadsCount() end
 
 ---@param index integer
----@return GamepadId
+---@return GamepadId|nil
 function GamepadState:gamepadId(index) end
 
 ---@param gamepadId GamepadId
----@return string
+---@return string|nil
 function GamepadState:gamepadName(gamepadId) end
 
 ---@param axis GamepadAxis

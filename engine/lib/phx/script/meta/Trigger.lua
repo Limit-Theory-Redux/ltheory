@@ -22,7 +22,7 @@ function Trigger:getContentsCount() end
 
 -- Will only include the parent object when a compound is within the trigger.
 ---@param i integer
----@return RigidBody
+---@return RigidBody|nil
 function Trigger:getContents(i) end
 
 ---@param mask integer
@@ -40,6 +40,6 @@ function Trigger:getPos(result) end
 ---@param result Position [out]
 function Trigger:getPosLocal(result) end
 
----@return RigidBody
+---@return RigidBody|nil
 function Trigger:getParent() end
 

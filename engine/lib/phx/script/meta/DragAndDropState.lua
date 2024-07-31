@@ -3,10 +3,10 @@
 ---@class DragAndDropState
 DragAndDropState = {}
 
----@return string
+---@return string|nil
 function DragAndDropState:getDroppedFile() end
 
----@return string
+---@return string|nil
 function DragAndDropState:getHoveredFile() end
 
 ---@return boolean
