@@ -3,7 +3,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use strum::IntoEnumIterator;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 use super::{
     Event, EventData, EventPayload, FrameStage, FrameTimer, MessageRequest, MessageRequestCache,
@@ -56,8 +56,8 @@ pub struct EventBus {
 
 impl EventBus {
     pub fn new() -> Self {
-        let mut events: HashMap<String, Event> = HashMap::new();
-        let mut cached_requests: Vec<MessageRequestCache> = Vec::new();
+        let mut events = HashMap::new();
+        let mut cached_requests = Vec::new();
 
         // Create an event for every frame stage and set it at max priority
         for frame_stage in FrameStage::iter() {
@@ -70,17 +70,20 @@ impl EventBus {
                 processed_subscribers: vec![],
             };
 
-            let message_request = MessageRequestCache {
-                frame_stage,
+            let request = MessageRequest {
                 priority: i32::MAX,
                 event_name: event_name.clone(),
                 stay_alive: true,
                 for_entity_id: None,
                 payload: None,
             };
+            let cached_request = MessageRequestCache {
+                frame_stage,
+                request,
+            };
 
             events.insert(event_name, frame_stage_event);
-            cached_requests.push(message_request);
+            cached_requests.push(cached_request);
         }
 
         Self {
@@ -108,20 +111,20 @@ impl EventBus {
             entity_id,
         };
 
-        if let Some(event) = self.events.get_mut(event_name) {
-            event.subscribers.push(subscriber);
-            event.subscribers.sort_by(|a, b| a.id.cmp(&b.id));
-        } else {
+        let Some(event) = self.events.get_mut(event_name) else {
             panic!("error while pushing subscriber");
-        }
+        };
+
+        event.subscribers.push(subscriber);
+        event.subscribers.sort_by(|a, b| a.id.cmp(&b.id));
     }
 
     fn reinsert_stay_alive_requests(&mut self) {
         for message_request_cache in self.cached_requests.drain(..) {
             let frame_stage = message_request_cache.frame_stage;
-            let message_request: MessageRequest = message_request_cache.into();
+            let message_request = message_request_cache.into();
 
-            // info!("Reinsert event: {}", message_request.event_name);
+            // debug!("Reinsert event: {}", message_request.event_name);
 
             self.frame_stage_map
                 .entry(frame_stage)
@@ -149,27 +152,28 @@ impl EventBus {
 
                     match self.events.entry(event_name.clone()) {
                         Entry::Occupied(_) => {
-                            warn!(
-                                "You are trying to register an Event '{}' that already exists - Aborting!",
-                                event_name
-                            );
+                            // TODO: panic?
+                            warn!("You are trying to register an Event '{event_name}' that already exists - Aborting!");
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(event);
 
                             if with_frame_stage_message {
-                                let message_request = MessageRequestCache {
-                                    frame_stage,
+                                let request = MessageRequest {
                                     priority,
                                     event_name: event_name.clone(),
                                     stay_alive: with_frame_stage_message,
                                     for_entity_id: None,
                                     payload: None,
                                 };
+                                let cached_request = MessageRequestCache {
+                                    frame_stage,
+                                    request,
+                                };
 
-                                self.cached_requests.push(message_request);
+                                self.cached_requests.push(cached_request);
                             }
-                            info!("Registered event: {}", event_name);
+                            debug!("Registered event: {event_name}");
                         }
                     }
                 }
@@ -178,7 +182,7 @@ impl EventBus {
                         if let Some(message_heap) = self.frame_stage_map.get_mut(&event.frame_stage)
                         {
                             message_heap.retain(|e| e.event_name != event_name);
-                            info!("Unregistered event: {}", event.name);
+                            debug!("Unregistered event: {}", event.name);
                         }
                     }
                 }
@@ -189,10 +193,7 @@ impl EventBus {
                 } => {
                     if let Some(_event) = self.events.get_mut(&event_name) {
                         self.add_subscriber(&event_name, tunnel_id, entity_id);
-                        info!(
-                            "Subscribed to event '{}' with tunnel_id {}",
-                            event_name, tunnel_id
-                        );
+                        debug!("Subscribed to event '{event_name}' with tunnel_id {tunnel_id}");
                     }
                 }
                 EventBusOperation::Unsubscribe { tunnel_id } => {
@@ -201,11 +202,7 @@ impl EventBus {
                             .subscribers
                             .retain(|subscriber| subscriber.tunnel_id != tunnel_id);
                     }
-
-                    info!(
-                        "Unsubscribed from event and closed tunnel with id: {}",
-                        tunnel_id
-                    );
+                    debug!("Unsubscribed from event and closed tunnel with id: {tunnel_id}");
                 }
                 EventBusOperation::Send {
                     event_name,
@@ -213,16 +210,20 @@ impl EventBus {
                     payload,
                 } => {
                     if let Some(event) = self.events.get(&event_name) {
-                        let message_request = MessageRequestCache {
-                            frame_stage: event.frame_stage,
+                        let request = MessageRequest {
                             priority: event.priority,
                             event_name: event.name.clone(),
                             stay_alive: false,
                             for_entity_id: Some(entity_id),
                             payload,
                         };
+                        let cached_request = MessageRequestCache {
+                            frame_stage: event.frame_stage,
+                            request,
+                        };
 
-                        self.cached_requests.push(message_request);
+                        self.cached_requests.push(cached_request);
+                        debug!("Event '{event_name}' with entity_id {entity_id} was sent");
                     }
                 }
                 EventBusOperation::SetTimeScale { scale_factor } => {
@@ -251,9 +252,7 @@ impl EventBus {
         frame_stage: FrameStage,
         with_frame_stage_message: bool,
     ) {
-        if priority == i32::MAX {
-            panic!("Trying to register event at highest priority which is reserved for frame stage events.");
-        }
+        assert_ne!(priority, i32::MAX, "Trying to register event at highest priority which is reserved for frame stage events.");
 
         self.operation_queue.push_back(EventBusOperation::Register {
             event_name: event_name.to_string(),
@@ -299,11 +298,11 @@ impl EventBus {
     pub fn get_next_event(&mut self) -> Option<&EventData> {
         static mut EVENT_DATA_STORAGE: Option<EventData> = None;
 
-        //info!("Entering get_next_event");
+        //debug!("Entering get_next_event");
 
         if self.current_frame_stage.is_none() {
             self.current_frame_stage = Some(FrameStage::PreSim);
-            //info!("Initializing current_frame_stage to PreSim");
+            //debug!("Initializing current_frame_stage to PreSim");
         }
 
         if self.current_frame_stage != self.last_frame_stage {
@@ -314,48 +313,44 @@ impl EventBus {
         }
 
         while let Some(frame_stage) = self.current_frame_stage {
-            //info!("Processing frame stage: {:?}", frame_stage);
+            //debug!("Processing frame stage: {frame_stage:?}");
 
             if let Some(queue) = self.frame_stage_map.get_mut(&frame_stage) {
-                //info!("Queue found for frame stage, length: {}", queue.len());
+                //debug!("Queue found for frame stage, length: {}", queue.len());
 
                 if self.current_message_request.is_none() {
                     self.current_message_request = queue.pop();
 
                     if let Some(message_request) = &self.current_message_request {
-                        //info!(
+                        //debug!(
                         //    "Popped new message request: {:?}",
                         //    message_request.event_name
                         //);
                         if message_request.stay_alive {
-                            //info!("Caching stay_alive message request");
+                            //debug!("Caching stay_alive message request");
                             let message_request_cache = MessageRequestCache {
                                 frame_stage,
-                                priority: message_request.priority,
-                                event_name: message_request.event_name.clone(),
-                                stay_alive: message_request.stay_alive,
-                                for_entity_id: message_request.for_entity_id,
-                                payload: message_request.payload.clone(),
+                                request: message_request.clone(),
                             };
                             self.cached_requests.push(message_request_cache);
                         }
                     } else {
-                        //info!("No more message requests in queue");
+                        //debug!("No more message requests in queue");
                     }
                 }
 
-                if let Some(ref message_request) = self.current_message_request {
+                if let Some(message_request) = &self.current_message_request {
                     if self.current_event.is_none() {
                         self.current_event =
                             self.events.get_mut(&message_request.event_name).cloned();
-                        //info!(
+                        //debug!(
                         //    "Retrieved event for message request: {:?}",
                         //    message_request.event_name
                         //);
                     }
                     if let Some(event) = &mut self.current_event {
                         if let Some(subscriber) = event.get_next_subscriber() {
-                            //info!("Found next subscriber for event");
+                            //debug!("Found next subscriber for event");
                             if message_request.stay_alive
                                 || message_request.for_entity_id == subscriber.entity_id
                             {
@@ -366,18 +361,18 @@ impl EventBus {
                                     payload: None,
                                 };
 
+                                //debug!(
+                                //    "Returning event data for frame stage {frame_stage:?}, tunnel_id {:?}",
+                                //    subscriber.tunnel_id
+                                //);
+
                                 unsafe {
                                     EVENT_DATA_STORAGE = Some(event_data);
+                                    return EVENT_DATA_STORAGE.as_ref();
                                 }
-
-                                //info!(
-                                //    "Returning event data for frame stage {:?}, tunnel_id {:?}",
-                                //    frame_stage, subscriber.tunnel_id
-                                //);
-                                return unsafe { EVENT_DATA_STORAGE.as_ref() };
                             }
                         } else {
-                            //info!("No more subscribers for current event");
+                            //debug!("No more subscribers for current event");
                             event.reset_processed_subscribers();
                             self.current_event = None;
                             self.current_message_request = None;
@@ -386,7 +381,7 @@ impl EventBus {
                 }
 
                 if self.current_message_request.is_none() && queue.is_empty() {
-                    //info!(
+                    //debug!(
                     //    "No more message requests and queue is empty, moving to next frame stage"
                     //);
                     let next_frame_stage = {
@@ -395,43 +390,43 @@ impl EventBus {
                         iter.next()
                     };
                     self.current_frame_stage = next_frame_stage;
-                    //info!("Next frame stage set to {:?}", self.current_frame_stage);
+                    //debug!("Next frame stage set to {:?}", self.current_frame_stage);
                 }
             } else {
-                //info!("No queue for current frame stage, moving to next");
+                //debug!("No queue for current frame stage, moving to next");
                 let next_frame_stage = {
                     let mut iter = FrameStage::iter().skip_while(|&pass| pass != frame_stage);
                     iter.next();
                     iter.next()
                 };
                 self.current_frame_stage = next_frame_stage;
-                //info!("Next frame stage set to {:?}", self.current_frame_stage);
+                //debug!("Next frame stage set to {:?}", self.current_frame_stage);
             }
         }
 
-        //info!("All frame stages processed");
+        //debug!("All frame stages processed");
         self.process_operations();
-        //info!("Operations processed");
+        //debug!("Operations processed");
         self.reinsert_stay_alive_requests();
-        //info!("Stay-alive requests reinserted");
+        //debug!("Stay-alive requests reinserted");
         self.current_frame_stage = Some(FrameStage::PreSim);
-        //info!("Frame stage reset to PreSim");
+        //debug!("Frame stage reset to PreSim");
         None
     }
 
     pub fn print_frame_stage_map(&self) {
-        info!("Current state of frame_stage_map:");
+        debug!("Current state of frame_stage_map:");
 
         // Create a sorted vector of FrameStage keys based on the enum order
         let sorted_keys: Vec<_> = FrameStage::iter().collect();
 
         for frame_stage in sorted_keys {
-            if let Some(message_heap) = self.frame_stage_map.get(&frame_stage) {
-                info!("{:?}", frame_stage);
+            if let Some(message_requests) = self.frame_stage_map.get(&frame_stage) {
+                debug!("  {frame_stage:?}");
 
-                for message_request in message_heap {
+                for message_request in message_requests {
                     if let Some(_event) = self.events.get(&message_request.event_name) {
-                        info!(" - {:?}", message_request);
+                        debug!("   - {message_request:?}");
                     }
                 }
             }
