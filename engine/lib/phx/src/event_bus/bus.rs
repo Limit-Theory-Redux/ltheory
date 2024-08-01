@@ -278,7 +278,7 @@ impl EventBus {
             .push_back(EventBusOperation::Unsubscribe { tunnel_id });
     }
 
-    /// @overload fun(self: table, eventName: string, ctxTable: table|nil)
+    /// @overload fun(self: table, eventName: string, ctxTable: table|nil, payload: EventPayload|nil)
     pub fn send(&mut self, event_name: &str, entity_id: u64, payload: Option<&EventPayload>) {
         self.operation_queue.push_back(EventBusOperation::Send {
             event_name: event_name.to_string(),
