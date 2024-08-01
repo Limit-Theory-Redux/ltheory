@@ -279,12 +279,12 @@ impl EventBus {
             self.prev_frame_stage = self.current_frame_stage;
         }
 
-        let frame_stage = self.current_frame_stage;
-
         loop {
-            //debug!("Processing frame stage: {frame_stage:?}");
+            //debug!("Processing frame stage: {:?}", self.current_frame_stage);
 
-            if let Some(message_requests) = self.frame_stage_requests.get_mut(&frame_stage) {
+            if let Some(message_requests) =
+                self.frame_stage_requests.get_mut(&self.current_frame_stage)
+            {
                 //debug!("Queue found for frame stage, length: {}", queue.len());
 
                 if self.current_message_request.is_none() {
@@ -298,7 +298,7 @@ impl EventBus {
                         if message_request.stay_alive {
                             //debug!("Caching stay_alive message request");
                             self.cached_requests
-                                .push((frame_stage, message_request.clone()));
+                                .push((self.current_frame_stage, message_request.clone()));
                         }
                     } else {
                         //debug!("No more message requests in queue");
@@ -322,7 +322,7 @@ impl EventBus {
                             {
                                 let event_data = EventData {
                                     delta_time: self.delta_time,
-                                    frame_stage,
+                                    frame_stage: self.current_frame_stage,
                                     tunnel_id: subscriber.tunnel_id(),
                                     payload: None,
                                 };

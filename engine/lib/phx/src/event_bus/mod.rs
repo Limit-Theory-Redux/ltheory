@@ -16,4 +16,4 @@ use frame_timer::*;
 pub use payload::*;
 pub use payload_table::*;
 pub use payload_type::*;
-pub use subscriber::*;
+use subscriber::*;
