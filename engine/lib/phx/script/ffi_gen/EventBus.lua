@@ -47,7 +47,10 @@ function Loader.defineType()
                 subscribe          = libphx.EventBus_Subscribe,
                 unsubscribe        = libphx.EventBus_Unsubscribe,
                 send               = libphx.EventBus_Send,
-                getNextEvent       = libphx.EventBus_GetNextEvent,
+                getNextEvent       = function(...)
+                    local instance = libphx.EventBus_GetNextEvent(...)
+                    return Core.ManagedObject(instance, libphx.EventData_Free)
+                end,
                 printFrameStageMap = libphx.EventBus_PrintFrameStageMap,
             },
         }

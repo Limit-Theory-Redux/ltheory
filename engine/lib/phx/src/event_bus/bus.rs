@@ -287,9 +287,7 @@ impl EventBus {
         })
     }
 
-    pub fn get_next_event(&mut self) -> Option<&EventData> {
-        static mut EVENT_DATA_STORAGE: Option<EventData> = None;
-
+    pub fn get_next_event(&mut self) -> Option<EventData> {
         //debug!("Entering get_next_event");
 
         if self.current_frame_stage.is_none() {
@@ -354,10 +352,7 @@ impl EventBus {
                                 //    subscriber.tunnel_id
                                 //);
 
-                                unsafe {
-                                    EVENT_DATA_STORAGE = Some(event_data);
-                                    return EVENT_DATA_STORAGE.as_ref();
-                                }
+                                return Some(event_data);
                             }
                         } else {
                             //debug!("No more subscribers for current event");
