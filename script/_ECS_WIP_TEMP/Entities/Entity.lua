@@ -3,6 +3,7 @@ require("Iterator")
 -- General Purpose Entity Object
 ---@class Entity
 local Entity = Class(function(self)
+    ---@cast self Entity
     self:addGuid()
     self:addComponents()
 end)
@@ -11,8 +12,19 @@ function Entity:addGuid()
     self.guid = Guid.Create()
 end
 
+---@return integer
 function Entity:getGuid()
     return self.guid
+end
+
+---@param archetype ComponentArchetype
+function Entity:setArchetype(archetype)
+    self.archetype = archetype
+end
+
+---@return ComponentArchetype
+function Entity:getArchetype()
+    return self.archetype
 end
 
 function Entity:addComponents()
