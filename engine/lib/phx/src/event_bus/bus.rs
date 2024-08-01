@@ -5,10 +5,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use strum::IntoEnumIterator;
 use tracing::{debug, warn};
 
-use super::{
-    Event, EventData, EventPayload, FrameStage, FrameTimer, MessageRequest, MessageRequestCache,
-    Subscriber,
-};
+use super::{Event, EventData, EventPayload, FrameStage, FrameTimer, Subscriber};
 
 enum EventBusOperation {
     Register {
@@ -38,14 +35,23 @@ enum EventBusOperation {
     },
 }
 
+#[derive(Debug, Clone, PartialEq)]
+struct MessageRequest {
+    priority: i32,
+    event_name: String,
+    stay_alive: bool,
+    for_entity_id: Option<u64>,
+    payload: Option<EventPayload>,
+}
+
 pub struct EventBus {
     delta_time: f64,
     frame_timer: FrameTimer,
     frame_time_scale: f64,
     events: HashMap<String, Event>,
     operation_queue: VecDeque<EventBusOperation>,
-    frame_stage_map: HashMap<FrameStage, Vec<MessageRequest>>,
-    cached_requests: Vec<MessageRequestCache>,
+    frame_stage_requests: HashMap<FrameStage, Vec<MessageRequest>>,
+    cached_requests: Vec<(FrameStage, MessageRequest)>,
     next_subscriber_id: AtomicU32,
     next_tunnel_id: AtomicU32,
     last_frame_stage: Option<FrameStage>,
@@ -62,7 +68,7 @@ impl EventBus {
         // Create an event for every frame stage and set it at max priority
         for frame_stage in FrameStage::iter() {
             let event_name = format!("{:?}", frame_stage);
-            let frame_stage_event = Event {
+            let event = Event {
                 name: event_name.clone(),
                 priority: i32::MAX,
                 frame_stage,
@@ -70,20 +76,16 @@ impl EventBus {
                 processed_subscribers: vec![],
             };
 
-            let request = MessageRequest {
+            let message_request = MessageRequest {
                 priority: i32::MAX,
                 event_name: event_name.clone(),
                 stay_alive: true,
                 for_entity_id: None,
                 payload: None,
             };
-            let cached_request = MessageRequestCache {
-                frame_stage,
-                request,
-            };
 
-            events.insert(event_name, frame_stage_event);
-            cached_requests.push(cached_request);
+            events.insert(event_name, event);
+            cached_requests.push((frame_stage, message_request));
         }
 
         Self {
@@ -92,7 +94,7 @@ impl EventBus {
             frame_time_scale: 1.0,
             events,
             operation_queue: VecDeque::new(),
-            frame_stage_map: HashMap::new(),
+            frame_stage_requests: HashMap::new(),
             cached_requests,
             next_subscriber_id: AtomicU32::new(0),
             next_tunnel_id: AtomicU32::new(0),
@@ -103,7 +105,10 @@ impl EventBus {
         }
     }
 
-    pub fn add_subscriber(&mut self, event_name: &str, tunnel_id: u32, entity_id: Option<u64>) {
+    fn add_subscriber(&mut self, event_name: &str, tunnel_id: u32, entity_id: Option<u64>) {
+        let Some(event) = self.events.get_mut(event_name) else {
+            panic!("error while pushing subscriber");
+        };
         let subscriber_id = self.next_subscriber_id.fetch_add(1, Ordering::SeqCst);
         let subscriber = Subscriber {
             id: subscriber_id,
@@ -111,22 +116,15 @@ impl EventBus {
             entity_id,
         };
 
-        let Some(event) = self.events.get_mut(event_name) else {
-            panic!("error while pushing subscriber");
-        };
-
         event.subscribers.push(subscriber);
         event.subscribers.sort_by(|a, b| a.id.cmp(&b.id));
     }
 
     fn reinsert_stay_alive_requests(&mut self) {
-        for message_request_cache in self.cached_requests.drain(..) {
-            let frame_stage = message_request_cache.frame_stage;
-            let message_request = message_request_cache.into();
-
+        for (frame_stage, message_request) in self.cached_requests.drain(..) {
             // debug!("Reinsert event: {}", message_request.event_name);
 
-            self.frame_stage_map
+            self.frame_stage_requests
                 .entry(frame_stage)
                 .or_default()
                 .push(message_request);
@@ -142,36 +140,32 @@ impl EventBus {
                     frame_stage,
                     with_frame_stage_message,
                 } => {
-                    let event = Event {
-                        name: event_name.clone(),
-                        priority,
-                        frame_stage,
-                        subscribers: vec![],
-                        processed_subscribers: vec![],
-                    };
-
                     match self.events.entry(event_name.clone()) {
                         Entry::Occupied(_) => {
                             // TODO: panic?
                             warn!("You are trying to register an Event '{event_name}' that already exists - Aborting!");
                         }
                         Entry::Vacant(entry) => {
+                            let event = Event {
+                                name: event_name.clone(),
+                                priority,
+                                frame_stage,
+                                subscribers: vec![],
+                                processed_subscribers: vec![],
+                            };
+
                             entry.insert(event);
 
                             if with_frame_stage_message {
-                                let request = MessageRequest {
+                                let message_request = MessageRequest {
                                     priority,
                                     event_name: event_name.clone(),
                                     stay_alive: with_frame_stage_message,
                                     for_entity_id: None,
                                     payload: None,
                                 };
-                                let cached_request = MessageRequestCache {
-                                    frame_stage,
-                                    request,
-                                };
 
-                                self.cached_requests.push(cached_request);
+                                self.cached_requests.push((frame_stage, message_request));
                             }
                             debug!("Registered event: {event_name}");
                         }
@@ -179,9 +173,10 @@ impl EventBus {
                 }
                 EventBusOperation::Unregister { event_name } => {
                     if let Some(event) = self.events.remove(&event_name) {
-                        if let Some(message_heap) = self.frame_stage_map.get_mut(&event.frame_stage)
+                        if let Some(message_requests) =
+                            self.frame_stage_requests.get_mut(&event.frame_stage)
                         {
-                            message_heap.retain(|e| e.event_name != event_name);
+                            message_requests.retain(|e| e.event_name != event_name);
                             debug!("Unregistered event: {}", event.name);
                         }
                     }
@@ -191,7 +186,7 @@ impl EventBus {
                     tunnel_id,
                     entity_id,
                 } => {
-                    if let Some(_event) = self.events.get_mut(&event_name) {
+                    if self.events.contains_key(&event_name) {
                         self.add_subscriber(&event_name, tunnel_id, entity_id);
                         debug!("Subscribed to event '{event_name}' with tunnel_id {tunnel_id}");
                     }
@@ -210,19 +205,16 @@ impl EventBus {
                     payload,
                 } => {
                     if let Some(event) = self.events.get(&event_name) {
-                        let request = MessageRequest {
+                        let message_request = MessageRequest {
                             priority: event.priority,
                             event_name: event.name.clone(),
                             stay_alive: false,
                             for_entity_id: Some(entity_id),
                             payload,
                         };
-                        let cached_request = MessageRequestCache {
-                            frame_stage: event.frame_stage,
-                            request,
-                        };
 
-                        self.cached_requests.push(cached_request);
+                        self.cached_requests
+                            .push((event.frame_stage, message_request));
                         debug!("Event '{event_name}' with entity_id {entity_id} was sent");
                     }
                 }
@@ -315,11 +307,11 @@ impl EventBus {
         while let Some(frame_stage) = self.current_frame_stage {
             //debug!("Processing frame stage: {frame_stage:?}");
 
-            if let Some(queue) = self.frame_stage_map.get_mut(&frame_stage) {
+            if let Some(message_requests) = self.frame_stage_requests.get_mut(&frame_stage) {
                 //debug!("Queue found for frame stage, length: {}", queue.len());
 
                 if self.current_message_request.is_none() {
-                    self.current_message_request = queue.pop();
+                    self.current_message_request = message_requests.pop();
 
                     if let Some(message_request) = &self.current_message_request {
                         //debug!(
@@ -328,11 +320,8 @@ impl EventBus {
                         //);
                         if message_request.stay_alive {
                             //debug!("Caching stay_alive message request");
-                            let message_request_cache = MessageRequestCache {
-                                frame_stage,
-                                request: message_request.clone(),
-                            };
-                            self.cached_requests.push(message_request_cache);
+                            self.cached_requests
+                                .push((frame_stage, message_request.clone()));
                         }
                     } else {
                         //debug!("No more message requests in queue");
@@ -341,8 +330,7 @@ impl EventBus {
 
                 if let Some(message_request) = &self.current_message_request {
                     if self.current_event.is_none() {
-                        self.current_event =
-                            self.events.get_mut(&message_request.event_name).cloned();
+                        self.current_event = self.events.get(&message_request.event_name).cloned();
                         //debug!(
                         //    "Retrieved event for message request: {:?}",
                         //    message_request.event_name
@@ -380,7 +368,7 @@ impl EventBus {
                     }
                 }
 
-                if self.current_message_request.is_none() && queue.is_empty() {
+                if self.current_message_request.is_none() && message_requests.is_empty() {
                     //debug!(
                     //    "No more message requests and queue is empty, moving to next frame stage"
                     //);
@@ -421,7 +409,7 @@ impl EventBus {
         let sorted_keys: Vec<_> = FrameStage::iter().collect();
 
         for frame_stage in sorted_keys {
-            if let Some(message_requests) = self.frame_stage_map.get(&frame_stage) {
+            if let Some(message_requests) = self.frame_stage_requests.get(&frame_stage) {
                 debug!("  {frame_stage:?}");
 
                 for message_request in message_requests {
