@@ -34,7 +34,7 @@ impl Event {
 
     pub fn add_subscriber(&mut self, subscriber: Subscriber) {
         self.subscribers.push(subscriber);
-        self.subscribers.sort_by(|a, b| a.id().cmp(&b.id()));
+        self.subscribers.sort_by_key(|a| a.id());
     }
 
     pub fn remove_subscriber(&mut self, tunnel_id: u32) {
