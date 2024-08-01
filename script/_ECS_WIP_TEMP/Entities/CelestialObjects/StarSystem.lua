@@ -1,6 +1,7 @@
-local Entity = require("Entities.Entity")
+local GlobalStorage = require("Systems.GlobalStorage")
 
 -- Entities
+local Entity = require("Entities.Entity")
 local Star = require("Entities.CelestialObjects.Star")
 local Planet = require("Entities.CelestialObjects.Planet")
 local Asteroid = require("Entities.CelestialObjects.Asteroid")
@@ -20,16 +21,15 @@ local Words = require('Systems.Gen.Words')
 local StarSystem = Subclass(Entity, function(self, seed)
     ---@cast self StarSystem
 
-    -- RandomNumberGeneratorComponent
-    local rngComponentIndex = self:addComponent(RandomNumberGeneratorComponent(seed, true))
-    local rngComponent = self:getComponent(rngComponentIndex)
-    ---@cast rngComponent RandomNumberGeneratorComponent
+    -- Set Entity Archetype
+    self:setArchetype(Enums.EntityArchetype.StarSystemEntity)
 
+    -- RandomNumberGeneratorComponent
+    local _, rngComponent = self:addComponent(RandomNumberGeneratorComponent(seed, true))
+    ---@cast rngComponent RandomNumberGeneratorComponent
     -- Name Component
     local starSystemName = Words.getCoolName(rngComponent:getRNG())
     self:addComponent(NameComponent(starSystemName))
-    -- Type Component
-    self:addComponent(TypeComponent(Enums.EntityType.StarSystem))
     -- Economy Component
     self:addComponent(EconomyComponent()) --todo
     -- PlayerList Component
@@ -37,19 +37,21 @@ local StarSystem = Subclass(Entity, function(self, seed)
     --todo: include projectiles
 
     -- Hierarchy/Children Component
-    local hierarchyComponentIndex = self:addComponent(HierarchyComponent(self))
-    local hierarchyComponent = self:getComponent(hierarchyComponentIndex)
-    ---@cast hierarchyComponent HierarchyComponent
+    local _, hierarchyComponent = self:addComponent(HierarchyComponent(self))
+    ---@cast hierarchyComponent EntityHierarchyComponent
 
     -- Add Children
     local star = Star(seed)
-    hierarchyComponent:addChild(star)
-    local planet = Planet(seed)
-    hierarchyComponent:addChild(planet)
-    local asteroid = Asteroid(seed)
-    hierarchyComponent:addChild(asteroid)
+    GlobalStorage:storeEntity(star)
+    hierarchyComponent:addChild({ id = star:getGuid(), archetype = star:getArchetype() })
 
-    self:registerEventHandlers()
+    local planet = Planet(seed)
+    GlobalStorage:storeEntity(planet)
+    hierarchyComponent:addChild({ id = planet:getGuid(), archetype = planet:getArchetype() })
+
+    local asteroid = Asteroid(seed)
+    GlobalStorage:storeEntity(asteroid)
+    hierarchyComponent:addChild({ id = planet:getGuid(), archetype = planet:getArchetype() })
 end)
 
 return StarSystem

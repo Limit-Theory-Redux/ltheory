@@ -8,6 +8,14 @@
 ---@class ComponentArchetypeStorage
 ---@field [integer] Component
 
+---@class EntityInfo
+---@field id integer
+---@field archetype EntityArchetype
+
+---@class ComponentInfo
+---@field id integer
+---@field archetype ComponentArchetype
+
 ---@class GlobalStorage
 local GlobalStorage = Class(function(self)
     ---@cast self GlobalStorage
@@ -71,32 +79,30 @@ function GlobalStorage:dropComponent(archetype, componentId)
     return false
 end
 
----@param archetype EntityArchetype
----@param entityId integer
+---@param entityInfo EntityInfo
 ---@return Entity|nil
-function GlobalStorage:getEntity(archetype, entityId)
+function GlobalStorage:getEntity(entityInfo)
     ---@type EntityArchetypeStorage
-    local archetypeStorage = self.entities[archetype]
+    local archetypeStorage = self.entities[entityInfo.archetype]
 
     if not archetypeStorage then
-        Log.Error("Did not provide a valid archetype for entity: " .. entityId)
+        Log.Error("Did not provide a valid archetype for entity: " .. entityInfo.id)
     end
 
-    return archetypeStorage[entityId]
+    return archetypeStorage[entityInfo.id]
 end
 
----@param archetype ComponentArchetype
----@param componentId integer
+---@param componentInfo ComponentInfo
 ---@return Component|nil
-function GlobalStorage:getComponentData(archetype, componentId)
+function GlobalStorage:getComponentData(componentInfo)
     ---@type ComponentArchetypeStorage
-    local archetypeStorage = self.components[archetype]
+    local archetypeStorage = self.components[componentInfo.archetype]
 
     if not archetypeStorage then
-        Log.Error("Did not provide a valid archetype for component: " .. componentId)
+        Log.Error("Did not provide a valid archetype for component: " .. componentInfo.id)
     end
 
-    return archetypeStorage[componentId]
+    return archetypeStorage[componentInfo.id]
 end
 
 return GlobalStorage
