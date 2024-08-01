@@ -1,4 +1,4 @@
-local SoundManager = class(function(self) end)
+local SoundManager = Class(function(self) end)
 
 local CLEAN_EVERY_S = 2
 local UPDATE_DIST = 100000.0

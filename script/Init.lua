@@ -54,8 +54,8 @@ Core.Struct = requireAll('Core.Structures')
 Core.Util = requireAll('Core.Util')
 Core.Util.Namespace.Inline(Core.Util, 'Core.Util')
 Namespace.Inline(Core.Struct, 'Core.Struct')
-Core.Events = requireAll('Systems.Events')
-Namespace.Inline(Core.Events, 'Systems.Events')
+Core.Events = requireAll('Systems.Events')      --* to be replaced by Rust event bus
+Namespace.Inline(Core.Events, 'Systems.Events') --* to be replaced by Rust event bus
 
 
 ---- Load in FFI

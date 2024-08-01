@@ -3,7 +3,7 @@ local SoundManager = require('Systems.SFX.SoundManager')
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local InitFiles = require('Systems.Files.InitFiles')
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
-local UIPageMainMenu = require('script.UI.HmGui.Pages.MainMenu')
+local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
 local UIPageLoadingScreen = require('UI.HmGui.Pages.LoadingScreen')
 local UIPageGameplay = require('UI.HmGui.Pages.Gameplay')
 

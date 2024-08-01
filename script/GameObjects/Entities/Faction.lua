@@ -1,6 +1,6 @@
 local Entity = require('GameObjects.Entity')
 
-local Faction = subclass(Entity, function(self, def)
+local Faction = Subclass(Entity, function(self, def)
     self:setName(def.name)
     self:setType(Enums.EntityType.Faction)
     self:setFactionType(def.type)
