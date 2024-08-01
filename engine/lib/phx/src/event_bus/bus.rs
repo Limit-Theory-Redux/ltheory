@@ -68,13 +68,7 @@ impl EventBus {
         // Create an event for every frame stage and set it at max priority
         for frame_stage in FrameStage::iter() {
             let event_name = format!("{:?}", frame_stage);
-            let event = Event {
-                name: event_name.clone(),
-                priority: i32::MAX,
-                frame_stage,
-                subscribers: vec![],
-                processed_subscribers: vec![],
-            };
+            let event = Event::new(event_name.clone(), i32::MAX, frame_stage);
 
             let message_request = MessageRequest {
                 priority: i32::MAX,
@@ -110,14 +104,9 @@ impl EventBus {
             panic!("error while pushing subscriber");
         };
         let subscriber_id = self.next_subscriber_id.fetch_add(1, Ordering::SeqCst);
-        let subscriber = Subscriber {
-            id: subscriber_id,
-            tunnel_id,
-            entity_id,
-        };
+        let subscriber = Subscriber::new(subscriber_id, tunnel_id, entity_id);
 
-        event.subscribers.push(subscriber);
-        event.subscribers.sort_by(|a, b| a.id.cmp(&b.id));
+        event.add_subscriber(subscriber);
     }
 
     fn reinsert_stay_alive_requests(&mut self) {
@@ -146,13 +135,7 @@ impl EventBus {
                             warn!("You are trying to register an Event '{event_name}' that already exists - Aborting!");
                         }
                         Entry::Vacant(entry) => {
-                            let event = Event {
-                                name: event_name.clone(),
-                                priority,
-                                frame_stage,
-                                subscribers: vec![],
-                                processed_subscribers: vec![],
-                            };
+                            let event = Event::new(event_name.clone(), priority, frame_stage);
 
                             entry.insert(event);
 
@@ -174,10 +157,10 @@ impl EventBus {
                 EventBusOperation::Unregister { event_name } => {
                     if let Some(event) = self.events.remove(&event_name) {
                         if let Some(message_requests) =
-                            self.frame_stage_requests.get_mut(&event.frame_stage)
+                            self.frame_stage_requests.get_mut(&event.frame_stage())
                         {
                             message_requests.retain(|e| e.event_name != event_name);
-                            debug!("Unregistered event: {}", event.name);
+                            debug!("Unregistered event: {}", event.name());
                         }
                     }
                 }
@@ -192,11 +175,9 @@ impl EventBus {
                     }
                 }
                 EventBusOperation::Unsubscribe { tunnel_id } => {
-                    for event in self.events.values_mut() {
-                        event
-                            .subscribers
-                            .retain(|subscriber| subscriber.tunnel_id != tunnel_id);
-                    }
+                    self.events
+                        .values_mut()
+                        .for_each(|event| event.remove_subscriber(tunnel_id));
                     debug!("Unsubscribed from event and closed tunnel with id: {tunnel_id}");
                 }
                 EventBusOperation::Send {
@@ -206,15 +187,15 @@ impl EventBus {
                 } => {
                     if let Some(event) = self.events.get(&event_name) {
                         let message_request = MessageRequest {
-                            priority: event.priority,
-                            event_name: event.name.clone(),
+                            priority: event.priority(),
+                            event_name: event.name().into(),
                             stay_alive: false,
                             for_entity_id: Some(entity_id),
                             payload,
                         };
 
                         self.cached_requests
-                            .push((event.frame_stage, message_request));
+                            .push((event.frame_stage(), message_request));
                         debug!("Event '{event_name}' with entity_id {entity_id} was sent");
                     }
                 }
@@ -326,6 +307,7 @@ impl EventBus {
 
                 if let Some(message_request) = &self.current_message_request {
                     if self.current_event.is_none() {
+                        // TODO: try to use reference with lifetime instead of cloning
                         self.current_event = self.events.get(&message_request.event_name).cloned();
                         //debug!(
                         //    "Retrieved event for message request: {:?}",
@@ -333,15 +315,15 @@ impl EventBus {
                         //);
                     }
                     if let Some(event) = &mut self.current_event {
-                        if let Some(subscriber) = event.get_next_subscriber() {
+                        if let Some(subscriber) = event.next_subscriber() {
                             //debug!("Found next subscriber for event");
                             if message_request.stay_alive
-                                || message_request.for_entity_id == subscriber.entity_id
+                                || message_request.for_entity_id == subscriber.entity_id()
                             {
                                 let event_data = EventData {
                                     delta_time: self.delta_time,
                                     frame_stage,
-                                    tunnel_id: subscriber.tunnel_id,
+                                    tunnel_id: subscriber.tunnel_id(),
                                     payload: None,
                                 };
 
@@ -354,7 +336,6 @@ impl EventBus {
                             }
                         } else {
                             //debug!("No more subscribers for current event");
-                            event.reset_processed_subscribers();
                             self.current_event = None;
                             self.current_message_request = None;
                         }
