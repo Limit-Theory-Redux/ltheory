@@ -54,8 +54,8 @@ pub struct EventBus {
     cached_requests: Vec<(FrameStage, MessageRequest)>,
     next_subscriber_id: AtomicU32,
     next_tunnel_id: AtomicU32,
-    last_frame_stage: Option<FrameStage>,
-    current_frame_stage: Option<FrameStage>,
+    prev_frame_stage: FrameStage,
+    current_frame_stage: FrameStage,
     current_event: Option<Event>,
     current_message_request: Option<MessageRequest>,
 }
@@ -98,8 +98,8 @@ impl EventBus {
             cached_requests,
             next_subscriber_id: AtomicU32::new(0),
             next_tunnel_id: AtomicU32::new(0),
-            last_frame_stage: None,
-            current_frame_stage: Some(FrameStage::PreSim),
+            prev_frame_stage: FrameStage::last(), // to trigger delta time recalculation of the first stage for the new frame
+            current_frame_stage: FrameStage::first(),
             current_event: None,
             current_message_request: None,
         }
@@ -287,22 +287,20 @@ impl EventBus {
         })
     }
 
+    /// Iterates over events of the frame.
+    /// Returns `None`/`nil` when there are no more events.
     pub fn get_next_event(&mut self) -> Option<EventData> {
         //debug!("Entering get_next_event");
 
-        if self.current_frame_stage.is_none() {
-            self.current_frame_stage = Some(FrameStage::PreSim);
-            //debug!("Initializing current_frame_stage to PreSim");
+        if self.current_frame_stage != self.prev_frame_stage {
+            self.delta_time =
+                self.frame_timer.update(self.current_frame_stage) * self.frame_time_scale;
+            self.prev_frame_stage = self.current_frame_stage;
         }
 
-        if self.current_frame_stage != self.last_frame_stage {
-            if let Some(frame_stage) = self.current_frame_stage {
-                self.delta_time = self.frame_timer.update(frame_stage) * self.frame_time_scale;
-                self.last_frame_stage = self.current_frame_stage;
-            }
-        }
+        let frame_stage = self.current_frame_stage;
 
-        while let Some(frame_stage) = self.current_frame_stage {
+        loop {
             //debug!("Processing frame stage: {frame_stage:?}");
 
             if let Some(message_requests) = self.frame_stage_requests.get_mut(&frame_stage) {
@@ -367,23 +365,23 @@ impl EventBus {
                     //debug!(
                     //    "No more message requests and queue is empty, moving to next frame stage"
                     //);
-                    let next_frame_stage = {
-                        let mut iter = FrameStage::iter().skip_while(|&pass| pass != frame_stage);
-                        iter.next();
-                        iter.next()
-                    };
-                    self.current_frame_stage = next_frame_stage;
-                    //debug!("Next frame stage set to {:?}", self.current_frame_stage);
+                    if let Some(next_frame_stage) = self.current_frame_stage.next() {
+                        self.current_frame_stage = next_frame_stage;
+                        //debug!("Next frame stage set to {next_frame_stage:?}");
+                    } else {
+                        // this was the last stage - finish events processing by returning None
+                        break;
+                    }
                 }
             } else {
                 //debug!("No queue for current frame stage, moving to next");
-                let next_frame_stage = {
-                    let mut iter = FrameStage::iter().skip_while(|&pass| pass != frame_stage);
-                    iter.next();
-                    iter.next()
-                };
-                self.current_frame_stage = next_frame_stage;
-                //debug!("Next frame stage set to {:?}", self.current_frame_stage);
+                if let Some(next_frame_stage) = self.current_frame_stage.next() {
+                    self.current_frame_stage = next_frame_stage;
+                    //debug!("Next frame stage set to {next_frame_stage:?}");
+                } else {
+                    // this was the last stage - finish events processing by returning None
+                    break;
+                }
             }
         }
 
@@ -392,7 +390,7 @@ impl EventBus {
         //debug!("Operations processed");
         self.reinsert_stay_alive_requests();
         //debug!("Stay-alive requests reinserted");
-        self.current_frame_stage = Some(FrameStage::PreSim);
+        self.current_frame_stage = FrameStage::first();
         //debug!("Frame stage reset to PreSim");
         None
     }
@@ -401,9 +399,7 @@ impl EventBus {
         debug!("Current state of frame_stage_map:");
 
         // Create a sorted vector of FrameStage keys based on the enum order
-        let sorted_keys: Vec<_> = FrameStage::iter().collect();
-
-        for frame_stage in sorted_keys {
+        for frame_stage in FrameStage::iter() {
             if let Some(message_requests) = self.frame_stage_requests.get(&frame_stage) {
                 debug!("  {frame_stage:?}");
 

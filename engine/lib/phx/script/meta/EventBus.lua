@@ -33,6 +33,8 @@ function EventBus:unsubscribe(tunnelId) end
 ---@overload fun(self: table, eventName: string, ctxTable: table|nil, payload: EventPayload|nil)
 function EventBus:send(eventName, entityId, payload) end
 
+-- Iterates over events of the frame.
+-- Returns `None`/`nil` when there are no more events.
 ---@return EventData|nil
 function EventBus:getNextEvent() end
 
