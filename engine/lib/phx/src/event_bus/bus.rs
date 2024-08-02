@@ -56,7 +56,6 @@ pub struct EventBus {
     next_tunnel_id: AtomicU32,
     prev_frame_stage: FrameStage,
     current_frame_stage: FrameStage,
-    current_event: Option<Event>,
     current_message_request: Option<MessageRequest>,
 }
 
@@ -94,7 +93,6 @@ impl EventBus {
             next_tunnel_id: AtomicU32::new(0),
             prev_frame_stage: FrameStage::last(), // to trigger delta time recalculation of the first stage for the new frame
             current_frame_stage: FrameStage::first(),
-            current_event: None,
             current_message_request: None,
         }
     }
@@ -306,15 +304,13 @@ impl EventBus {
                 }
 
                 if let Some(message_request) = &self.current_message_request {
-                    if self.current_event.is_none() {
-                        // TODO: try to use reference with lifetime instead of cloning
-                        self.current_event = self.events.get(&message_request.event_name).cloned();
-                        //debug!(
-                        //    "Retrieved event for message request: {:?}",
-                        //    message_request.event_name
-                        //);
-                    }
-                    if let Some(event) = &mut self.current_event {
+                    //debug!(
+                    //    "Retrieved event for message request: {:?}",
+                    //    message_request.event_name
+                    //);
+
+                    let current_event = self.events.get_mut(&message_request.event_name);
+                    if let Some(event) = current_event {
                         if let Some(subscriber) = event.next_subscriber() {
                             //debug!("Found next subscriber for event");
                             if message_request.stay_alive
@@ -336,7 +332,6 @@ impl EventBus {
                             }
                         } else {
                             //debug!("No more subscribers for current event");
-                            self.current_event = None;
                             self.current_message_request = None;
                         }
                     }
