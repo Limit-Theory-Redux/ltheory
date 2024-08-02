@@ -4,6 +4,7 @@ local SpaceshipEntity = require("Entities.Constructs.Spaceship")
 
 -- Systems
 local GlobalStorage = require("Systems.GlobalStorage")
+local UniverseEconomy = require("Systems.Economy.UniverseEconomy")
 
 ---@class Universe
 local Universe = Class(function(self, seed)
@@ -24,6 +25,18 @@ function Universe:init(seed)
     self.economy = UniverseEconomy:init()
 end
 
+function Universe:getStarSystems()
+    return self.starSystems
+end
+
+function Universe:getPlayers()
+    return self.players
+end
+
+function Universe:getFactions()
+    return self.factions
+end
+
 ---@param withEconomy boolean
 ---@return integer EntityInfo
 function Universe:createStarSystem(withEconomy)
@@ -38,7 +51,8 @@ function Universe:createStarSystem(withEconomy)
     -- Store the entity in the GlobalStorage
     GlobalStorage:storeEntity(systemEntity)
 
-    --todo: Economy
+    -- Add System Generics
+    UniverseEconomy:addSystemGenerics(systemEntity)
 
     return systemEntityInfo
 end
@@ -68,3 +82,5 @@ function Universe:createShip(systemId, pos, constructor)
     ---@cast systemHierarchyComponent EntityHierarchyComponent
     systemHierarchyComponent:addChild(spaceship:getEntityInfo())
 end
+
+return Universe
