@@ -6,6 +6,7 @@
 ---@enum EventType
 EventType = {
     ResourceLoadingResult = 0,
+    -- Specifies number of engine event types
     EngineEventTypesCount = 1,
 }
 
