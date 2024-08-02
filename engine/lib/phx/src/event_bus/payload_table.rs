@@ -35,8 +35,4 @@ impl EventPayloadTable {
     pub fn add(&mut self, name: &str, value: EventPayload) {
         self.table.insert(name.into(), value);
     }
-
-    pub fn remove(&mut self, name: &str) {
-        self.table.remove(name);
-    }
 }

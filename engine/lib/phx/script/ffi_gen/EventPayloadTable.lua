@@ -23,7 +23,6 @@ function Loader.defineType()
             bool                EventPayloadTable_Contains (EventPayloadTable const*, cstr name);
             EventPayload const* EventPayloadTable_Get      (EventPayloadTable const*, cstr name);
             void                EventPayloadTable_Add      (EventPayloadTable*, cstr name, EventPayload* value);
-            void                EventPayloadTable_Remove   (EventPayloadTable*, cstr name);
         ]]
     end
 
@@ -48,7 +47,6 @@ function Loader.defineType()
                 contains = libphx.EventPayloadTable_Contains,
                 get      = libphx.EventPayloadTable_Get,
                 add      = libphx.EventPayloadTable_Add,
-                remove   = libphx.EventPayloadTable_Remove,
             },
         }
 

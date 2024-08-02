@@ -45,4 +45,60 @@ impl FrameStage {
             Self::PostInput => None,
         }
     }
+
+    pub fn index(&self) -> u8 {
+        *self as u8
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::event_bus::FrameStage;
+
+    #[test]
+    fn test_frame_stage_first() {
+        assert_eq!(FrameStage::first(), FrameStage::PreSim);
+    }
+
+    #[test]
+    fn test_frame_stage_last() {
+        assert_eq!(FrameStage::last(), FrameStage::PostInput);
+    }
+
+    #[test]
+    fn test_frame_stage_order() {
+        assert_eq!(FrameStage::PreSim.index() + 1, FrameStage::Sim.index());
+        assert_eq!(FrameStage::Sim.index() + 1, FrameStage::PostSim.index());
+        assert_eq!(
+            FrameStage::PostSim.index() + 1,
+            FrameStage::PreRender.index()
+        );
+        assert_eq!(
+            FrameStage::PreRender.index() + 1,
+            FrameStage::Render.index()
+        );
+        assert_eq!(
+            FrameStage::Render.index() + 1,
+            FrameStage::PostRender.index()
+        );
+        assert_eq!(
+            FrameStage::PostRender.index() + 1,
+            FrameStage::PreInput.index()
+        );
+        assert_eq!(FrameStage::PreInput.index() + 1, FrameStage::Input.index());
+        assert_eq!(FrameStage::Input.index() + 1, FrameStage::PostInput.index());
+    }
+
+    #[test]
+    fn test_frame_stage_next() {
+        assert_eq!(FrameStage::PreSim.next(), Some(FrameStage::Sim));
+        assert_eq!(FrameStage::Sim.next(), Some(FrameStage::PostSim));
+        assert_eq!(FrameStage::PostSim.next(), Some(FrameStage::PreRender));
+        assert_eq!(FrameStage::PreRender.next(), Some(FrameStage::Render));
+        assert_eq!(FrameStage::Render.next(), Some(FrameStage::PostRender));
+        assert_eq!(FrameStage::PostRender.next(), Some(FrameStage::PreInput));
+        assert_eq!(FrameStage::PreInput.next(), Some(FrameStage::Input));
+        assert_eq!(FrameStage::Input.next(), Some(FrameStage::PostInput));
+        assert_eq!(FrameStage::PostInput.next(), None);
+    }
 }

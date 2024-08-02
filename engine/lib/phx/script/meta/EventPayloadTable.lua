@@ -24,6 +24,3 @@ function EventPayloadTable:get(name) end
 ---@param value EventPayload
 function EventPayloadTable:add(name, value) end
 
----@param name string
-function EventPayloadTable:remove(name) end
-
