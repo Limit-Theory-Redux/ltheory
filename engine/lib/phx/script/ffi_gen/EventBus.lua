@@ -19,7 +19,7 @@ function Loader.defineType()
             void             EventBus_Free               (EventBus*);
             double           EventBus_GetTimeScale       (EventBus const*);
             void             EventBus_SetTimeScale       (EventBus*, double scaleFactor);
-            void             EventBus_Register           (EventBus*, uint16 eventId, int priority, FrameStage frameStage, bool withFrameStageMessage);
+            void             EventBus_Register           (EventBus*, uint16 eventId, cstr eventName, int priority, FrameStage frameStage, bool withFrameStageMessage);
             void             EventBus_Unregister         (EventBus*, uint16 eventId);
             uint32           EventBus_Subscribe          (EventBus*, uint16 eventId, uint64 const* entityId);
             void             EventBus_Unsubscribe        (EventBus*, uint32 tunnelId);

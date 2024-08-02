@@ -10,6 +10,7 @@ use super::{Event, EventData, EventId, EventPayload, FrameStage, FrameTimer, Sub
 enum EventBusOperation {
     Register {
         event_id: EventId,
+        event_name: String,
         priority: i32,
         frame_stage: FrameStage,
         with_frame_stage_message: bool,
@@ -123,6 +124,7 @@ impl EventBus {
             match operation {
                 EventBusOperation::Register {
                     event_id,
+                    event_name,
                     priority,
                     frame_stage,
                     with_frame_stage_message,
@@ -130,10 +132,10 @@ impl EventBus {
                     match self.events.entry(event_id) {
                         Entry::Occupied(_) => {
                             // TODO: panic?
-                            warn!("You are trying to register an Event '{event_id}' that already exists - Aborting!");
+                            warn!("You are trying to register an Event '{event_name}':{event_id} that already exists - Aborting!");
                         }
                         Entry::Vacant(entry) => {
-                            let event = Event::new(event_id, priority, frame_stage);
+                            let event = Event::new(event_id, &event_name, priority, frame_stage);
 
                             entry.insert(event);
 
@@ -148,13 +150,11 @@ impl EventBus {
 
                                 self.cached_requests.push((frame_stage, message_request));
                             }
-                            debug!("Registered event: {event_id}");
+                            debug!("Registered event: '{event_name}':{event_id}");
                         }
                     }
                 }
-                EventBusOperation::Unregister {
-                    event_id,
-                } => {
+                EventBusOperation::Unregister { event_id } => {
                     if let Some(event) = self.events.remove(&event_id) {
                         if let Some(message_requests) =
                             self.frame_stage_requests.get_mut(&event.frame_stage())
@@ -169,9 +169,10 @@ impl EventBus {
                     tunnel_id,
                     entity_id,
                 } => {
-                    if self.events.contains_key(&event_id) {
+                    if let Some(event) = self.events.get(&event_id) {
+                        let event_name = event.name().to_string();
                         self.add_subscriber(event_id, tunnel_id, entity_id);
-                        debug!("Subscribed to event {event_id} with tunnel_id {tunnel_id}");
+                        debug!("Subscribed to event '{event_name}':{event_id} with tunnel_id {tunnel_id}");
                     }
                 }
                 EventBusOperation::Unsubscribe { tunnel_id } => {
@@ -196,7 +197,10 @@ impl EventBus {
 
                         self.cached_requests
                             .push((event.frame_stage(), message_request));
-                        debug!("Event '{event_id}' with entity_id {entity_id} was sent");
+                        debug!(
+                            "Event '{}':{event_id} with entity_id {entity_id} was sent",
+                            event.name()
+                        );
                     }
                 }
                 EventBusOperation::SetTimeScale { scale_factor } => {
@@ -221,6 +225,7 @@ impl EventBus {
     pub fn register(
         &mut self,
         event_id: u16,
+        event_name: &str,
         priority: i32,
         frame_stage: FrameStage,
         with_frame_stage_message: bool,
@@ -229,6 +234,7 @@ impl EventBus {
 
         self.operation_queue.push_back(EventBusOperation::Register {
             event_id,
+            event_name: event_name.into(),
             priority,
             frame_stage,
             with_frame_stage_message,

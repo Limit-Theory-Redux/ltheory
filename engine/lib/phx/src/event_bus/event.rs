@@ -3,6 +3,7 @@ use super::{EventId, FrameStage, Subscriber};
 #[derive(Debug, Clone)]
 pub struct Event {
     id: EventId,
+    name: String,
     priority: i32,
     frame_stage: FrameStage,
     subscribers: Vec<Subscriber>,
@@ -10,9 +11,10 @@ pub struct Event {
 }
 
 impl Event {
-    pub fn new(id: EventId, priority: i32, frame_stage: FrameStage) -> Self {
+    pub fn new(id: EventId, name: &str, priority: i32, frame_stage: FrameStage) -> Self {
         Self {
             id,
+            name: name.into(),
             priority,
             frame_stage,
             subscribers: vec![],
@@ -22,6 +24,10 @@ impl Event {
 
     pub fn id(&self) -> EventId {
         self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn priority(&self) -> i32 {
