@@ -12,9 +12,9 @@ local TypeComponent = require("Components.EntityType")
 ---@field seed integer|nil
 
 ---@class SpaceStation: Entity
----@overload fun(self: table, name: string, ownerId: integer, hullType: SpaceShipHullType, seed: integer|nil): SpaceStation subclass interal
----@overload fun(name: string, ownerId: integer, hullType: SpaceShipHullType, seed: integer|nil): SpaceStation subclass external
-local SpaceStation = Subclass(Entity, function(self, name, ownerId, hullType, seed)
+---@overload fun(self: table, name: string, hullType: SpaceShipHullType, seed: integer|nil): SpaceStation subclass interal
+---@overload fun(name: string, hullType: SpaceShipHullType, seed: integer|nil): SpaceStation subclass external
+local SpaceStation = Subclass(Entity, function(self, name, hullType, seed)
     ---@cast self SpaceStation
 
     -- Name Component
