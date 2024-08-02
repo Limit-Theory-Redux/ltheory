@@ -5,20 +5,20 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use strum::IntoEnumIterator;
 use tracing::{debug, warn};
 
-use super::{Event, EventData, EventPayload, FrameStage, FrameTimer, Subscriber};
+use super::{Event, EventData, EventId, EventPayload, FrameStage, FrameTimer, Subscriber};
 
 enum EventBusOperation {
     Register {
-        event_name: String,
+        event_id: EventId,
         priority: i32,
         frame_stage: FrameStage,
         with_frame_stage_message: bool,
     },
     Unregister {
-        event_name: String,
+        event_id: EventId,
     },
     Subscribe {
-        event_name: String,
+        event_id: EventId,
         tunnel_id: u32,
         entity_id: Option<u64>,
     },
@@ -26,7 +26,7 @@ enum EventBusOperation {
         tunnel_id: u32,
     },
     Send {
-        event_name: String,
+        event_id: EventId,
         entity_id: u64,
         payload: Option<EventPayload>,
     },
@@ -38,7 +38,7 @@ enum EventBusOperation {
 #[derive(Debug, Clone, PartialEq)]
 struct MessageRequest {
     priority: i32,
-    event_name: String,
+    event_id: EventId,
     stay_alive: bool,
     for_entity_id: Option<u64>,
     payload: Option<EventPayload>,
@@ -48,7 +48,7 @@ pub struct EventBus {
     delta_time: f64,
     frame_timer: FrameTimer,
     frame_time_scale: f64,
-    events: HashMap<String, Event>,
+    events: HashMap<EventId, Event>,
     operation_queue: VecDeque<EventBusOperation>,
     frame_stage_requests: HashMap<FrameStage, Vec<MessageRequest>>,
     cached_requests: Vec<(FrameStage, MessageRequest)>,
@@ -61,25 +61,25 @@ pub struct EventBus {
 
 impl EventBus {
     pub fn new() -> Self {
-        let mut events = HashMap::new();
-        let mut cached_requests = Vec::new();
+        let events = HashMap::new();
+        let cached_requests = Vec::new();
 
         // Create an event for every frame stage and set it at max priority
-        for frame_stage in FrameStage::iter() {
-            let event_name = format!("{:?}", frame_stage);
-            let event = Event::new(event_name.clone(), i32::MAX, frame_stage);
+        // for frame_stage in FrameStage::iter() {
+        //     let event_name = format!("{:?}", frame_stage);
+        //     let event = Event::new(event_name.clone(), i32::MAX, frame_stage);
 
-            let message_request = MessageRequest {
-                priority: i32::MAX,
-                event_name: event_name.clone(),
-                stay_alive: true,
-                for_entity_id: None,
-                payload: None,
-            };
+        //     let message_request = MessageRequest {
+        //         priority: i32::MAX,
+        //         event_id: event_name.clone(),
+        //         stay_alive: true,
+        //         for_entity_id: None,
+        //         payload: None,
+        //     };
 
-            events.insert(event_name, event);
-            cached_requests.push((frame_stage, message_request));
-        }
+        //     events.insert(event_name, event);
+        //     cached_requests.push((frame_stage, message_request));
+        // }
 
         Self {
             delta_time: 0.0,
@@ -97,8 +97,8 @@ impl EventBus {
         }
     }
 
-    fn add_subscriber(&mut self, event_name: &str, tunnel_id: u32, entity_id: Option<u64>) {
-        let Some(event) = self.events.get_mut(event_name) else {
+    fn add_subscriber(&mut self, event_id: EventId, tunnel_id: u32, entity_id: Option<u64>) {
+        let Some(event) = self.events.get_mut(&event_id) else {
             panic!("error while pushing subscriber");
         };
         let subscriber_id = self.next_subscriber_id.fetch_add(1, Ordering::SeqCst);
@@ -122,7 +122,7 @@ impl EventBus {
         while let Some(operation) = self.operation_queue.pop_front() {
             match operation {
                 EventBusOperation::Register {
-                    event_name,
+                    event_id: event_name,
                     priority,
                     frame_stage,
                     with_frame_stage_message,
@@ -140,7 +140,7 @@ impl EventBus {
                             if with_frame_stage_message {
                                 let message_request = MessageRequest {
                                     priority,
-                                    event_name: event_name.clone(),
+                                    event_id: event_name.clone(),
                                     stay_alive: with_frame_stage_message,
                                     for_entity_id: None,
                                     payload: None,
@@ -152,24 +152,26 @@ impl EventBus {
                         }
                     }
                 }
-                EventBusOperation::Unregister { event_name } => {
+                EventBusOperation::Unregister {
+                    event_id: event_name,
+                } => {
                     if let Some(event) = self.events.remove(&event_name) {
                         if let Some(message_requests) =
                             self.frame_stage_requests.get_mut(&event.frame_stage())
                         {
-                            message_requests.retain(|e| e.event_name != event_name);
-                            debug!("Unregistered event: {}", event.name());
+                            message_requests.retain(|e| e.event_id != event_name);
+                            debug!("Unregistered event: {}", event.id());
                         }
                     }
                 }
                 EventBusOperation::Subscribe {
-                    event_name,
+                    event_id,
                     tunnel_id,
                     entity_id,
                 } => {
-                    if self.events.contains_key(&event_name) {
-                        self.add_subscriber(&event_name, tunnel_id, entity_id);
-                        debug!("Subscribed to event '{event_name}' with tunnel_id {tunnel_id}");
+                    if self.events.contains_key(&event_id) {
+                        self.add_subscriber(event_id, tunnel_id, entity_id);
+                        debug!("Subscribed to event {event_id} with tunnel_id {tunnel_id}");
                     }
                 }
                 EventBusOperation::Unsubscribe { tunnel_id } => {
@@ -179,14 +181,14 @@ impl EventBus {
                     debug!("Unsubscribed from event and closed tunnel with id: {tunnel_id}");
                 }
                 EventBusOperation::Send {
-                    event_name,
+                    event_id,
                     entity_id,
                     payload,
                 } => {
-                    if let Some(event) = self.events.get(&event_name) {
+                    if let Some(event) = self.events.get(&event_id) {
                         let message_request = MessageRequest {
                             priority: event.priority(),
-                            event_name: event.name().into(),
+                            event_id: event.id(),
                             stay_alive: false,
                             for_entity_id: Some(entity_id),
                             payload,
@@ -194,7 +196,7 @@ impl EventBus {
 
                         self.cached_requests
                             .push((event.frame_stage(), message_request));
-                        debug!("Event '{event_name}' with entity_id {entity_id} was sent");
+                        debug!("Event '{event_id}' with entity_id {entity_id} was sent");
                     }
                 }
                 EventBusOperation::SetTimeScale { scale_factor } => {
@@ -218,7 +220,7 @@ impl EventBus {
 
     pub fn register(
         &mut self,
-        event_name: &str,
+        event_id: u16,
         priority: i32,
         frame_stage: FrameStage,
         with_frame_stage_message: bool,
@@ -226,26 +228,24 @@ impl EventBus {
         assert_ne!(priority, i32::MAX, "Trying to register event at highest priority which is reserved for frame stage events.");
 
         self.operation_queue.push_back(EventBusOperation::Register {
-            event_name: event_name.to_string(),
+            event_id,
             priority,
             frame_stage,
             with_frame_stage_message,
         });
     }
 
-    pub fn unregister(&mut self, event_name: &str) {
+    pub fn unregister(&mut self, event_id: u16) {
         self.operation_queue
-            .push_back(EventBusOperation::Unregister {
-                event_name: event_name.to_string(),
-            });
+            .push_back(EventBusOperation::Unregister { event_id });
     }
 
     /// @overload fun(self: table, eventName: string, ctxTable: table|nil, callbackFunc: function): integer
-    pub fn subscribe(&mut self, event_name: &str, entity_id: Option<u64>) -> u32 {
+    pub fn subscribe(&mut self, event_id: u16, entity_id: Option<u64>) -> u32 {
         let tunnel_id = self.next_tunnel_id.fetch_add(1, Ordering::SeqCst);
         self.operation_queue
             .push_back(EventBusOperation::Subscribe {
-                event_name: event_name.to_string(),
+                event_id,
                 tunnel_id,
                 entity_id,
             });
@@ -258,9 +258,9 @@ impl EventBus {
     }
 
     /// @overload fun(self: table, eventName: string, ctxTable: table|nil, payload: EventPayload|nil)
-    pub fn send(&mut self, event_name: &str, entity_id: u64, payload: Option<&EventPayload>) {
+    pub fn send(&mut self, event_id: u16, entity_id: u64, payload: Option<&EventPayload>) {
         self.operation_queue.push_back(EventBusOperation::Send {
-            event_name: event_name.to_string(),
+            event_id,
             entity_id,
             payload: payload.cloned(),
         })
@@ -309,7 +309,7 @@ impl EventBus {
                     //    message_request.event_name
                     //);
 
-                    let current_event = self.events.get_mut(&message_request.event_name);
+                    let current_event = self.events.get_mut(&message_request.event_id);
                     if let Some(event) = current_event {
                         if let Some(subscriber) = event.next_subscriber() {
                             //debug!("Found next subscriber for event");
@@ -380,7 +380,7 @@ impl EventBus {
                 debug!("  {frame_stage:?}");
 
                 for message_request in message_requests {
-                    if let Some(_event) = self.events.get(&message_request.event_name) {
+                    if let Some(_event) = self.events.get(&message_request.event_id) {
                         debug!("   - {message_request:?}");
                     }
                 }
