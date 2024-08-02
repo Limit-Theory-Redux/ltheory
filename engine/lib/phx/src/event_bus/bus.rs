@@ -122,25 +122,25 @@ impl EventBus {
         while let Some(operation) = self.operation_queue.pop_front() {
             match operation {
                 EventBusOperation::Register {
-                    event_id: event_name,
+                    event_id,
                     priority,
                     frame_stage,
                     with_frame_stage_message,
                 } => {
-                    match self.events.entry(event_name.clone()) {
+                    match self.events.entry(event_id) {
                         Entry::Occupied(_) => {
                             // TODO: panic?
-                            warn!("You are trying to register an Event '{event_name}' that already exists - Aborting!");
+                            warn!("You are trying to register an Event '{event_id}' that already exists - Aborting!");
                         }
                         Entry::Vacant(entry) => {
-                            let event = Event::new(event_name.clone(), priority, frame_stage);
+                            let event = Event::new(event_id, priority, frame_stage);
 
                             entry.insert(event);
 
                             if with_frame_stage_message {
                                 let message_request = MessageRequest {
                                     priority,
-                                    event_id: event_name.clone(),
+                                    event_id,
                                     stay_alive: with_frame_stage_message,
                                     for_entity_id: None,
                                     payload: None,
@@ -148,18 +148,18 @@ impl EventBus {
 
                                 self.cached_requests.push((frame_stage, message_request));
                             }
-                            debug!("Registered event: {event_name}");
+                            debug!("Registered event: {event_id}");
                         }
                     }
                 }
                 EventBusOperation::Unregister {
-                    event_id: event_name,
+                    event_id,
                 } => {
-                    if let Some(event) = self.events.remove(&event_name) {
+                    if let Some(event) = self.events.remove(&event_id) {
                         if let Some(message_requests) =
                             self.frame_stage_requests.get_mut(&event.frame_stage())
                         {
-                            message_requests.retain(|e| e.event_id != event_name);
+                            message_requests.retain(|e| e.event_id != event_id);
                             debug!("Unregistered event: {}", event.id());
                         }
                     }
