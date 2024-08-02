@@ -63,13 +63,12 @@ impl EventBus {
         let events = HashMap::new();
         let cached_requests = Vec::new();
 
-        // Create an event for every frame stage and set it at max priority
+        // Create an event for every frame stage
         // for frame_stage in FrameStage::iter() {
         //     let event_name = format!("{:?}", frame_stage);
         //     let event = Event::new(event_name.clone(), i32::MAX, frame_stage);
 
         //     let message_request = MessageRequest {
-        //         priority: i32::MAX,
         //         event_id: event_name.clone(),
         //         stay_alive: true,
         //         for_entity_id: None,
@@ -221,12 +220,9 @@ impl EventBus {
         &mut self,
         event_id: u16,
         event_name: &str,
-        priority: i32,
         frame_stage: FrameStage,
         with_frame_stage_message: bool,
     ) {
-        assert_ne!(priority, i32::MAX, "Trying to register event at highest priority which is reserved for frame stage events.");
-
         self.operation_queue.push_back(EventBusOperation::Register {
             event_id,
             event_name: event_name.into(),
