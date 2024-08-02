@@ -316,7 +316,7 @@ impl EventBus {
                                     delta_time: self.delta_time,
                                     frame_stage: self.current_frame_stage,
                                     tunnel_id: subscriber.tunnel_id(),
-                                    payload: None,
+                                    payload: message_request.payload.clone(),
                                 };
 
                                 //debug!(
