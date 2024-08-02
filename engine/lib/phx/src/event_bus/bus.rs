@@ -11,7 +11,6 @@ enum EventBusOperation {
     Register {
         event_id: EventId,
         event_name: String,
-        priority: i32,
         frame_stage: FrameStage,
         with_frame_stage_message: bool,
     },
@@ -38,7 +37,6 @@ enum EventBusOperation {
 
 #[derive(Debug, Clone, PartialEq)]
 struct MessageRequest {
-    priority: i32,
     event_id: EventId,
     stay_alive: bool,
     for_entity_id: Option<u64>,
@@ -125,7 +123,6 @@ impl EventBus {
                 EventBusOperation::Register {
                     event_id,
                     event_name,
-                    priority,
                     frame_stage,
                     with_frame_stage_message,
                 } => {
@@ -135,13 +132,12 @@ impl EventBus {
                             warn!("You are trying to register an Event '{event_name}':{event_id} that already exists - Aborting!");
                         }
                         Entry::Vacant(entry) => {
-                            let event = Event::new(event_id, &event_name, priority, frame_stage);
+                            let event = Event::new(event_id, &event_name, frame_stage);
 
                             entry.insert(event);
 
                             if with_frame_stage_message {
                                 let message_request = MessageRequest {
-                                    priority,
                                     event_id,
                                     stay_alive: with_frame_stage_message,
                                     for_entity_id: None,
@@ -188,7 +184,6 @@ impl EventBus {
                 } => {
                     if let Some(event) = self.events.get(&event_id) {
                         let message_request = MessageRequest {
-                            priority: event.priority(),
                             event_id: event.id(),
                             stay_alive: false,
                             for_entity_id: Some(entity_id),
@@ -235,7 +230,6 @@ impl EventBus {
         self.operation_queue.push_back(EventBusOperation::Register {
             event_id,
             event_name: event_name.into(),
-            priority,
             frame_stage,
             with_frame_stage_message,
         });

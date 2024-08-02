@@ -4,18 +4,16 @@ use super::{EventId, FrameStage, Subscriber};
 pub struct Event {
     id: EventId,
     name: String,
-    priority: i32,
     frame_stage: FrameStage,
     subscribers: Vec<Subscriber>,
     next_index: usize,
 }
 
 impl Event {
-    pub fn new(id: EventId, name: &str, priority: i32, frame_stage: FrameStage) -> Self {
+    pub fn new(id: EventId, name: &str, frame_stage: FrameStage) -> Self {
         Self {
             id,
             name: name.into(),
-            priority,
             frame_stage,
             subscribers: vec![],
             next_index: 0,
@@ -28,10 +26,6 @@ impl Event {
 
     pub fn name(&self) -> &str {
         &self.name
-    }
-
-    pub fn priority(&self) -> i32 {
-        self.priority
     }
 
     pub fn frame_stage(&self) -> FrameStage {
