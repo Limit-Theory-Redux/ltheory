@@ -2,10 +2,26 @@ use super::{EventPayload, FrameStage, TunnelId};
 
 #[derive(Debug, Clone)]
 pub struct EventData {
-    pub(super) delta_time: f64,
-    pub(super) frame_stage: FrameStage,
-    pub(super) tunnel_id: TunnelId,
-    pub(super) payload: Option<EventPayload>,
+    delta_time: f64,
+    frame_stage: FrameStage,
+    tunnel_id: TunnelId,
+    payload: Option<EventPayload>,
+}
+
+impl EventData {
+    pub fn new(
+        delta_time: f64,
+        frame_stage: FrameStage,
+        tunnel_id: TunnelId,
+        payload: Option<EventPayload>,
+    ) -> Self {
+        Self {
+            delta_time,
+            frame_stage,
+            tunnel_id,
+            payload,
+        }
+    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]

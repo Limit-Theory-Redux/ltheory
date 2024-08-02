@@ -318,12 +318,12 @@ impl EventBus {
                             if message_request.stay_alive
                                 || message_request.for_entity_id == subscriber.entity_id()
                             {
-                                let event_data = EventData {
-                                    delta_time: self.delta_time,
-                                    frame_stage: self.current_frame_stage,
-                                    tunnel_id: subscriber.tunnel_id(),
-                                    payload: message_request.payload.clone(),
-                                };
+                                let event_data = EventData::new(
+                                    self.delta_time,
+                                    self.current_frame_stage,
+                                    subscriber.tunnel_id(),
+                                    message_request.payload.clone(),
+                                );
 
                                 //debug!(
                                 //    "Returning event data for frame stage {frame_stage:?}, tunnel_id {:?}",
