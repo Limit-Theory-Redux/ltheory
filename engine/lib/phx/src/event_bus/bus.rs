@@ -5,7 +5,11 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use strum::IntoEnumIterator;
 use tracing::{debug, warn};
 
-use super::{Event, EventData, EventId, EventPayload, FrameStage, FrameTimer, Subscriber};
+use super::{Event, EventData, EventPayload, FrameStage, FrameTimer, Subscriber};
+
+pub type EventId = u16;
+pub type EntityId = u64;
+pub type TunnelId = u32;
 
 enum EventBusOperation {
     Register {
@@ -19,15 +23,15 @@ enum EventBusOperation {
     },
     Subscribe {
         event_id: EventId,
-        tunnel_id: u32,
-        entity_id: Option<u64>,
+        tunnel_id: TunnelId,
+        entity_id: Option<EntityId>,
     },
     Unsubscribe {
-        tunnel_id: u32,
+        tunnel_id: TunnelId,
     },
     Send {
         event_id: EventId,
-        entity_id: u64,
+        entity_id: EntityId,
         payload: Option<EventPayload>,
     },
     SetTimeScale {
@@ -39,7 +43,7 @@ enum EventBusOperation {
 struct MessageRequest {
     event_id: EventId,
     stay_alive: bool,
-    for_entity_id: Option<u64>,
+    for_entity_id: Option<EntityId>,
     payload: Option<EventPayload>,
 }
 
@@ -51,7 +55,6 @@ pub struct EventBus {
     operation_queue: VecDeque<EventBusOperation>,
     frame_stage_requests: HashMap<FrameStage, Vec<MessageRequest>>,
     cached_requests: Vec<(FrameStage, MessageRequest)>,
-    next_subscriber_id: AtomicU32,
     next_tunnel_id: AtomicU32,
     prev_frame_stage: FrameStage,
     current_frame_stage: FrameStage,
@@ -87,7 +90,6 @@ impl EventBus {
             operation_queue: VecDeque::new(),
             frame_stage_requests: HashMap::new(),
             cached_requests,
-            next_subscriber_id: AtomicU32::new(0),
             next_tunnel_id: AtomicU32::new(0),
             prev_frame_stage: FrameStage::last(), // to trigger delta time recalculation of the first stage for the new frame
             current_frame_stage: FrameStage::first(),
@@ -95,13 +97,17 @@ impl EventBus {
         }
     }
 
-    fn add_subscriber(&mut self, event_id: EventId, tunnel_id: u32, entity_id: Option<u64>) {
+    fn add_subscriber(
+        &mut self,
+        event_id: EventId,
+        tunnel_id: TunnelId,
+        entity_id: Option<EntityId>,
+    ) {
         let Some(event) = self.events.get_mut(&event_id) else {
             panic!("error while pushing subscriber");
         };
-        let subscriber_id = self.next_subscriber_id.fetch_add(1, Ordering::SeqCst);
-        let subscriber = Subscriber::new(subscriber_id, tunnel_id, entity_id);
 
+        let subscriber = Subscriber::new(tunnel_id, entity_id);
         event.add_subscriber(subscriber);
     }
 

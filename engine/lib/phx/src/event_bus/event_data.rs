@@ -1,10 +1,10 @@
-use super::{EventPayload, FrameStage};
+use super::{EventPayload, FrameStage, TunnelId};
 
 #[derive(Debug, Clone)]
 pub struct EventData {
     pub(super) delta_time: f64,
     pub(super) frame_stage: FrameStage,
-    pub(super) tunnel_id: u32,
+    pub(super) tunnel_id: TunnelId,
     pub(super) payload: Option<EventPayload>,
 }
 

@@ -1,10 +1,9 @@
-// NOTE: Should be the same as in EventType 'repr' parameter and event id in the buf interface
-pub type EventId = u16;
+use super::EventId;
 
 /// List of the event types used in the engine.
 /// In Lua scripts should be used as an event id.
 /// To extend it in Lua scripts call `EventType.AddEventTypes({"MyEventType1", "MyEventType2"})` function.
-// NOTE: Use for event id same type as in 'repr' parameter below.
+// NOTE: Use same type in 'repr' as in EventId.
 #[luajit_ffi_gen::luajit_ffi(repr = "u16")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventType {

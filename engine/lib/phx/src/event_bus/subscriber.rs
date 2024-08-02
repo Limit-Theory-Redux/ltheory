@@ -1,28 +1,24 @@
+use super::{EntityId, TunnelId};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Subscriber {
-    id: u32,
-    tunnel_id: u32,
-    entity_id: Option<u64>,
+    tunnel_id: TunnelId,
+    entity_id: Option<EntityId>,
 }
 
 impl Subscriber {
-    pub fn new(id: u32, tunnel_id: u32, entity_id: Option<u64>) -> Self {
+    pub fn new(tunnel_id: TunnelId, entity_id: Option<EntityId>) -> Self {
         Self {
-            id,
             tunnel_id,
             entity_id,
         }
     }
 
-    pub fn id(&self) -> u32 {
-        self.id
-    }
-
-    pub fn tunnel_id(&self) -> u32 {
+    pub fn tunnel_id(&self) -> TunnelId {
         self.tunnel_id
     }
 
-    pub fn entity_id(&self) -> Option<u64> {
+    pub fn entity_id(&self) -> Option<EntityId> {
         self.entity_id
     }
 }
