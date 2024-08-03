@@ -166,6 +166,52 @@ impl MyStruct {
     pub fn get_boxed_copyable(&self) -> Box<WindowPos> {
         Box::new(self.val_copyable)
     }
+
+    pub fn get_opt_copyable(&self) -> Option<WindowPos> {
+        Some(self.val_copyable)
+    }
+
+    pub fn set_opt_str(&mut self, val: Option<&str>) {
+        if let Some(val) = val {
+            self.val_str = val.to_string();
+        }
+    }
+
+    pub fn set_opt_string(&mut self, val: Option<String>) {
+        if let Some(val) = val {
+            self.val_str = val;
+        }
+    }
+
+    pub fn set_opt_string_ref(&mut self, val: Option<&String>) {
+        if let Some(val) = val {
+            self.val_str = val.clone();
+        }
+    }
+
+    pub fn get_opt_str(&self) -> Option<&str> {
+        if self.val_str.len() > 0 {
+            Some(self.val_str.as_str())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_opt_string(&self) -> Option<String> {
+        if self.val_str.len() > 0 {
+            Some(self.val_str.clone())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_opt_string_ref(&self) -> Option<&String> {
+        if self.val_str.len() > 0 {
+            Some(&self.val_str)
+        } else {
+            None
+        }
+    }
 }
 
 #[test]
@@ -190,7 +236,7 @@ fn test_functions() {
 
         My_Struct_SetData(&mut ms2, &Data::new(2));
         assert_eq!(My_Struct_GetData(&ms2).val, 2);
-        assert_eq!((*My_Struct_GetOptData(&ms2)).val, 2);
+        assert_eq!((My_Struct_GetOptData(&ms2)).unwrap().val, 2);
 
         My_Struct_TakeData(&mut ms2, Box::new(Data::new(4)));
         let mut returned_data = Data::new(0);
@@ -225,6 +271,40 @@ fn test_copyable_param() {
         let mut copyable_result = WindowPos::default();
         My_Struct_GetCopyableViaOutParam(&ms, &mut copyable_result);
         assert_eq!(copyable_result.val, 11);
+    }
+}
+
+#[test]
+fn test_optional_strings() {
+    let mut td = MyStruct::default();
+
+    let str_data1 = std::ffi::CString::new("hello").unwrap();
+    let str_data2 = std::ffi::CString::new("world").unwrap();
+    let str_data3 = std::ffi::CString::new("test").unwrap();
+
+    use internal::ConvertIntoString;
+    
+    unsafe {
+        let data = My_Struct_GetOptStr(&td);
+        assert_eq!(data, std::ptr::null());
+        
+        My_Struct_SetOptStr(&mut td, str_data1.as_ptr());
+        assert_eq!(td.val_str, str_data1.to_str().unwrap());
+        
+        let data = My_Struct_GetOptStr(&mut td);
+        assert_eq!(td.val_str, data.as_str());
+        
+        My_Struct_SetOptString(&mut td, str_data2.as_ptr());
+        assert_eq!(td.val_str, str_data2.to_str().unwrap());
+        
+        let data = My_Struct_GetOptString(&mut td);
+        assert_eq!(td.val_str, data.as_str());
+        
+        My_Struct_SetOptStringRef(&mut td, str_data3.as_ptr());
+        assert_eq!(td.val_str, str_data3.to_str().unwrap());
+        
+        let data = My_Struct_GetOptString(&mut td);
+        assert_eq!(td.val_str, data.as_str());
     }
 }
 
