@@ -243,24 +243,21 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
                                 || last_segment.ident == "FnOnce"
                                 || last_segment.ident == "FnMut"
                             {
-                                match &last_segment.arguments {
-                                    PathArguments::Parenthesized(p) => {
-                                        let mut args = vec![];
-                                        for input in &p.inputs {
-                                            args.push(parse_type(input, generic_types)?);
-                                        }
-
-                                        let ret = parse_ret_type(&p.output)?.map(|ty| Box::new(ty));
-
-                                        return Ok(TypeInfo {
-                                            is_reference: false,
-                                            is_mutable: false,
-                                            is_result: false,
-                                            wrapper: TypeWrapper::None,
-                                            variant: TypeVariant::Function { args, ret },
-                                        });
+                                if let PathArguments::Parenthesized(p) = &last_segment.arguments {
+                                    let mut args = vec![];
+                                    for input in &p.inputs {
+                                        args.push(parse_type(input, generic_types)?);
                                     }
-                                    _ => {}
+
+                                    let ret = parse_ret_type(&p.output)?.map(Box::new);
+
+                                    return Ok(TypeInfo {
+                                        is_reference: false,
+                                        is_mutable: false,
+                                        is_result: false,
+                                        wrapper: TypeWrapper::None,
+                                        variant: TypeVariant::Function { args, ret },
+                                    });
                                 }
                             }
                         }
@@ -356,7 +353,7 @@ fn parse_ret_type(ret_ty: &ReturnType) -> Result<Option<TypeInfo>> {
         ReturnType::Type(_, ty) => {
             // If `ty` is a Type::Tuple { ..., elems: [] }, then this is returning ()
             if let Type::Tuple(tuple) = &**ty {
-                if tuple.elems.len() == 0 {
+                if tuple.elems.is_empty() {
                     return Ok(None);
                 }
             }

@@ -350,7 +350,7 @@ impl ImplInfo {
                 if let Some(ty) = ret.as_ref() {
                     let ret_expr = self.gen_wrapper_name_from_ffi(
                         &"ret".to_string(),
-                        &**ty,
+                        ty,
                         use_convert_into_string,
                     );
                     quote! {
@@ -380,6 +380,9 @@ impl ImplInfo {
             }
             TypeVariant::String => {
                 *use_convert_into_string = true;
+
+                // It's clearer to have it split in this way, rather than collapsing the else block below.
+                #[allow(clippy::collapsible_else_if)]
                 if ty.is_reference {
                     if ty.wrapper == TypeWrapper::Option {
                         quote! { if #name_accessor.is_null() { None } else { Some(#name_accessor.as_string()) }.as_ref() }
@@ -449,9 +452,7 @@ impl ImplInfo {
                         // We need to promote Option<&T> to Option<T> if ty is neither a reference or mutable.
                         quote! { #name_accessor.copied() }
                     }
-                } else if ty.is_copyable(&self.name) {
-                    quote! { #name_accessor }
-                } else if ty.is_reference {
+                } else if ty.is_copyable(&self.name) || ty.is_reference {
                     quote! { #name_accessor }
                 } else {
                     quote! { *#name_accessor }
