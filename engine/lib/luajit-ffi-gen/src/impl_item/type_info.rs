@@ -290,6 +290,10 @@ pub enum TypeVariant {
     String,
     CString,
     Custom(String),
+    Function {
+        args: Vec<TypeInfo>,
+        ret: Option<Box<TypeInfo>>,
+    },
 }
 
 impl TypeVariant {
@@ -340,6 +344,40 @@ impl TypeVariant {
             Self::String => FFIType::new("String", "cstr"),
             Self::CString => FFIType::new("CString", "cstr"),
             Self::Custom(val) => FFIType::new(val.clone(), val),
+            Self::Function { args, ret } => {
+                let self_name = "Self";
+
+                let args = args
+                    .iter()
+                    .flat_map(|arg| {
+                        let mut args = vec![arg.as_ffi(self_name)];
+
+                        match &arg.wrapper {
+                            TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                                args.push(TypeVariant::USize.as_ffi())
+                            }
+                            _ => {}
+                        }
+
+                        args
+                    })
+                    .reduce(|acc, next| {
+                        FFIType::new(
+                            format!("{}, {}", acc.rust, next.rust),
+                            format!("{}, {}", acc.c, next.c),
+                        )
+                    })
+                    .unwrap_or(FFIType::new("", ""));
+
+                let ret = ret
+                    .as_ref()
+                    .map_or(FFIType::new("()", "void"), |ret| ret.as_ffi(self_name));
+
+                FFIType::new(
+                    format!("extern fn({}) -> {}", args.rust, ret.rust),
+                    format!("{} (*)({})", ret.c, args.c),
+                )
+            }
         }
     }
 
@@ -359,6 +397,7 @@ impl TypeVariant {
             Self::F32 | Self::F64 => "number",
             Self::Str | Self::String | Self::CString => "string",
             Self::Custom(val) => return val.clone(),
+            Self::Function { .. } => "function",
         }
         .into()
     }

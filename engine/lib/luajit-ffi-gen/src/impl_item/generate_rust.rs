@@ -326,6 +326,49 @@ impl ImplInfo {
         let name_accessor = quote! { #name_ident };
 
         match &ty.variant {
+            TypeVariant::Function { args, ret } => {
+                // Assign a name for each argument.
+                let args: Vec<_> = args
+                    .iter()
+                    .enumerate()
+                    .map(|(index, ty)| (format!("arg{}", index), ty))
+                    .collect();
+
+                // Generate the tokens for the argument list.
+                let arg_tokens: Vec<_> = args
+                    .iter()
+                    .map(|(name, _)| format_ident!("{}", name))
+                    .collect();
+
+                // Convert the Rust expressions to FFI.
+                let mut prelude: Vec<TokenStream> = vec![];
+                let param_tokens: Vec<_> = args
+                    .iter()
+                    .map(|(name, ty)| self.gen_wrapper_name_to_ffi(name, ty, &mut prelude))
+                    .collect();
+
+                if let Some(ty) = ret.as_ref() {
+                    let ret_expr = self.gen_wrapper_name_from_ffi(
+                        &"ret".to_string(),
+                        &**ty,
+                        use_convert_into_string,
+                    );
+                    quote! {
+                        |#(#arg_tokens),*| {
+                            #(#prelude);*
+                            let ret = #name_accessor(#(#param_tokens),*);
+                            #ret_expr
+                        }
+                    }
+                } else {
+                    quote! {
+                        |#(#arg_tokens),*| {
+                            #(#prelude);*
+                            #name_accessor(#(#param_tokens),*)
+                        }
+                    }
+                }
+            }
             TypeVariant::Str => {
                 *use_convert_into_string = true;
                 let str_expr = quote! { #name_accessor.as_str() };
@@ -461,12 +504,71 @@ impl ImplInfo {
                     quote! { #name_accessor }
                 }
             }
-        };
+        }
+    }
 
-        if param.ty.wrapper == TypeWrapper::Option {
-            quote! { if !#name_ident.is_null() { unsafe { Some(#param_item) } } else { None } }
-        } else {
-            param_item
+    /// This generates the code to turn a Rust type into an FFI type.
+    ///
+    /// Note that unlike gen_wrapper_body's return value conversion code, this does not worry about
+    /// ownership as it leaves the FFI boundary because gen_wrapper_name_to_ffi is only used by
+    /// callbacks right now, and callbacks don't need to worry about ownership of references because
+    /// the callback's scope matches the scope of the borrows.
+    fn gen_wrapper_name_to_ffi(
+        &self,
+        name: &String,
+        ty: &TypeInfo,
+        prelude: &mut Vec<TokenStream>,
+    ) -> TokenStream {
+        let name_ident = format_ident!("{}", name);
+        match &ty.variant {
+            TypeVariant::Str | TypeVariant::String => {
+                prelude.push(
+                    quote! { let #name_ident = std::ffi::CString::new(#name_ident).unwrap(); },
+                );
+                quote! { #name_ident.as_ptr() }
+            }
+            TypeVariant::CString => quote! { #name_ident.as_ptr() },
+            // structs and primitives are handled in the same way.
+            _ => {
+                if ty.wrapper == TypeWrapper::Slice {
+                    if ty.is_mutable {
+                        quote! { #name_ident.as_mut_ptr(), #name_ident.len() }
+                    } else {
+                        quote! { #name_ident.as_ptr(), #name_ident.len() }
+                    }
+                } else if let TypeWrapper::Array(_) = ty.wrapper {
+                    if ty.is_mutable {
+                        quote! { #name_ident.as_mut_ptr(), #name_ident.len() }
+                    } else {
+                        quote! { #name_ident.as_ptr(), #name_ident.len() }
+                    }
+                } else if ty.wrapper == TypeWrapper::Option {
+                    if !ty.is_reference {
+                        // If it's passed by value, then we need to convert it to a reference.
+                        quote! { #name_ident.as_ref() }
+                    } else {
+                        // If it's a reference or pass by move, then pass it directly.
+                        quote! { #name_ident }
+                    }
+                } else if ty.is_copyable(&self.name) {
+                    if ty.is_reference && !ty.is_mutable {
+                        // If it's a reference, we need to convert it to a value.
+                        quote! { *#name_ident }
+                    } else {
+                        // If it's copyable, then pass it directly.
+                        quote! { #name_ident }
+                    }
+                } else if (ty.is_mutable || ty.is_reference) && ty.wrapper == TypeWrapper::None {
+                    // A reference type that may or may not be wrapped by Option can be passed directly.
+                    quote! { #name_ident }
+                } else if ty.wrapper != TypeWrapper::Box {
+                    // If it's not a box type, and non-copyable, we need to convert it into a Box<T>.
+                    quote! { #name_ident.into() }
+                } else {
+                    // Pass it through directly.
+                    quote! { #name_ident }
+                }
+            }
         }
     }
 
