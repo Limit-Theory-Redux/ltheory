@@ -19,6 +19,7 @@ const RUST_TO_LUA_TYPE_MAP: &[(&str, &str)] = &[
 
 // TODO: find out different way to mark types as copyable
 const COPY_TYPES: &[&str] = &[
+    "CopyableData", // used in luajit-ffi-gen tests.
     "IVec2",
     "UVec2",
     "DVec2",
