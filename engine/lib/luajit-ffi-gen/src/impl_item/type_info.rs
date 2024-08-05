@@ -75,7 +75,7 @@ enum TypeRef {
 }
 
 #[derive(Debug, PartialEq)]
-enum TypeInfo {
+pub enum TypeInfo {
     // T, &T, &mut T
     Plain {
         is_ref: TypeRef,
@@ -113,53 +113,28 @@ enum TypeInfo {
     },
 }
 
-#[derive(Debug)]
-pub struct FFIType {
-    /// Rust FFI type i.e. &mut T
-    pub rust: String,
-    /// C FFI type i.e. T*
-    pub c: String,
-}
-
-impl FFIType {
-    pub fn new<R: Into<String>, C: Into<String>>(rust: R, c: C) -> Self {
-        Self {
-            rust: rust.into(),
-            c: c.into(),
-        }
-    }
-
-    pub fn to_tuple(self) -> (String, String) {
-        (self.rust, self.c)
-    }
-}
-
 impl TypeInfo {
-    pub fn as_ffi(&self, self_name: &str) -> FFIType {
+    pub fn as_ffi(&self, self_name: &str) -> (String, String) {
         match self {
             Self::Plain { is_ref, ty } => match ty {
                 TypeVariant::Str | TypeVariant::String => {
                     if *is_ref == TypeRef::MutableReference {
-                        FFIType::new("*mut libc::c_char", "char*")
+                        ("*mut libc::c_char".into(), "char*".into())
                     } else {
-                        FFIType::new("*const libc::c_char", "cstr")
+                        ("*const libc::c_char".into(), "cstr".into())
                     }
                 }
                 _ => {
-                    let (rust_ty_name, c_ty_name) = ty.as_ffi().to_tuple();
+                    let (rust_ty_name, c_ty_name) = ty.as_ffi();
                     match is_ref {
                         TypeRef::MutableReference => {
-                            FFIType::new(format!("&mut {rust_ty_name}"), format!("{c_ty_name}*"))
+                            (format!("&mut {rust_ty_name}"), format!("{c_ty_name}*"))
                         }
                         TypeRef::Reference => {
-                            FFIType::new(format!("&{rust_ty_name}"), format!("{c_ty_name} const*"))
+                            (format!("&{rust_ty_name}"), format!("{c_ty_name} const*"))
                         }
-                        TypeRef::Value if ty.is_copyable(self_name) => {
-                            FFIType::new(rust_ty_name, c_ty_name)
-                        }
-                        TypeRef::Value => {
-                            FFIType::new(format!("Box<{rust_ty_name}>"), format!("{c_ty_name}*"))
-                        }
+                        TypeRef::Value if ty.is_copyable(self_name) => (rust_ty_name, c_ty_name),
+                        TypeRef::Value => (format!("Box<{rust_ty_name}>"), format!("{c_ty_name}*")),
                     }
                 }
             },
@@ -167,24 +142,24 @@ impl TypeInfo {
                 match inner_ty {
                     TypeVariant::Str | TypeVariant::String => {
                         if *is_ref == TypeRef::MutableReference {
-                            FFIType::new("*mut libc::c_char", "char*")
+                            ("*mut libc::c_char".into(), "char*".into())
                         } else {
-                            FFIType::new("*const libc::c_char", "cstr")
+                            ("*const libc::c_char".into(), "cstr".into())
                         }
                     }
                     _ => {
-                        let (rust_ty_name, c_ty_name) = inner_ty.as_ffi().to_tuple();
+                        let (rust_ty_name, c_ty_name) = inner_ty.as_ffi();
                         // Both Option<T> and Option<&T> is passed by reference as Option<&T>
                         // which gets coerced to T const* by the Rust compiler.
                         //
                         // When we return an Option<T> from a Rust function, we pin the data
                         // to a static instance.
                         match is_ref {
-                            TypeRef::MutableReference => FFIType::new(
+                            TypeRef::MutableReference => (
                                 format!("Option<&mut {rust_ty_name}>"),
                                 format!("{c_ty_name}*"),
                             ),
-                            TypeRef::Reference | TypeRef::Value => FFIType::new(
+                            TypeRef::Reference | TypeRef::Value => (
                                 format!("Option<&{rust_ty_name}>"),
                                 format!("{c_ty_name} const*"),
                             ),
@@ -194,19 +169,19 @@ impl TypeInfo {
             }
             Self::Box { is_ref, inner_ty } => {
                 // TODO: Old code didn't seem to handle references to boxes. Is that even supported?
-                let (rust_ty_name, c_ty_name) = inner_ty.as_ffi().to_tuple();
-                FFIType::new(format!("Box<{rust_ty_name}>"), format!("{c_ty_name}*"))
+                let (rust_ty_name, c_ty_name) = inner_ty.as_ffi();
+                (format!("Box<{rust_ty_name}>"), format!("{c_ty_name}*"))
             }
             Self::Slice { is_ref, elem_ty }
             | Self::Array {
                 is_ref, elem_ty, ..
             } => {
                 // Slices and arrays are always pointers to the inner type.
-                let (rust_ty_name, c_ty_name) = elem_ty.as_ffi().to_tuple();
+                let (rust_ty_name, c_ty_name) = elem_ty.as_ffi();
                 if *is_ref == TypeRef::MutableReference {
-                    FFIType::new(format!("*mut {rust_ty_name}"), format!("{c_ty_name}*"))
+                    (format!("*mut {rust_ty_name}"), format!("{c_ty_name}*"))
                 } else {
-                    FFIType::new(
+                    (
                         format!("*const {rust_ty_name}"),
                         format!("{c_ty_name} const*"),
                     )
@@ -230,25 +205,25 @@ impl TypeInfo {
                         args
                     })
                     .reduce(|acc, next| {
-                        FFIType::new(
-                            format!("{}, {}", acc.rust, next.rust),
-                            format!("{}, {}", acc.c, next.c),
+                        (
+                            format!("{}, {}", acc.0, next.0),
+                            format!("{}, {}", acc.1, next.1),
                         )
                     })
-                    .unwrap_or(FFIType::new("", ""));
+                    .unwrap_or(("".into(), "".into()));
 
                 let ret_ty = ret_ty
                     .as_ref()
-                    .map_or(FFIType::new("()", "void"), |ret| ret.as_ffi(self_name));
+                    .map_or(("()".into(), "void".into()), |ret| ret.as_ffi(self_name));
 
-                FFIType::new(
-                    format!("extern fn({}) -> {}", args.rust, ret_ty.rust),
-                    format!("{} (*)({})", ret_ty.c, args.c),
+                (
+                    format!("extern fn({}) -> {}", args.0, ret_ty.0),
+                    format!("{} (*)({})", ret_ty.1, args.1),
                 )
             }
             Self::Result { inner } => {
                 // TODO.
-                FFIType::new("", "")
+                ("".into(), "".into())
             }
         }
     }
@@ -351,24 +326,24 @@ impl TypeVariant {
         Some(res)
     }
 
-    pub fn as_ffi(&self) -> FFIType {
+    pub fn as_ffi(&self) -> (String, String) {
         match self {
-            Self::Bool => FFIType::new("bool", "bool"),
-            Self::I8 => FFIType::new("i8", "int8"),
-            Self::U8 => FFIType::new("u8", "uint8"),
-            Self::I16 => FFIType::new("i16", "int16"),
-            Self::U16 => FFIType::new("u16", "uint16"),
-            Self::I32 => FFIType::new("i32", "int"),
-            Self::U32 => FFIType::new("u32", "uint32"),
-            Self::I64 => FFIType::new("i64", "int64"),
-            Self::U64 => FFIType::new("u64", "uint64"),
-            Self::ISize => FFIType::new("isize", "int64"),
-            Self::USize => FFIType::new("usize", "uint64"),
-            Self::F32 => FFIType::new("f32", "float"),
-            Self::F64 => FFIType::new("f64", "double"),
-            Self::Str => FFIType::new("str", "cstr"),
-            Self::String => FFIType::new("String", "cstr"),
-            Self::Custom(val) => FFIType::new(val.clone(), val),
+            Self::Bool => ("bool".into(), "bool".into()),
+            Self::I8 => ("i8".into(), "int8".into()),
+            Self::U8 => ("u8".into(), "uint8".into()),
+            Self::I16 => ("i16".into(), "int16".into()),
+            Self::U16 => ("u16".into(), "uint16".into()),
+            Self::I32 => ("i32".into(), "int".into()),
+            Self::U32 => ("u32".into(), "uint32".into()),
+            Self::I64 => ("i64".into(), "int64".into()),
+            Self::U64 => ("u64".into(), "uint64".into()),
+            Self::ISize => ("isize".into(), "int64".into()),
+            Self::USize => ("usize".into(), "uint64".into()),
+            Self::F32 => ("f32".into(), "float".into()),
+            Self::F64 => ("f64".into(), "double".into()),
+            Self::Str => ("str".into(), "cstr".into()),
+            Self::String => ("String".into(), "cstr".into()),
+            Self::Custom(val) => (val.clone(), val.clone()),
         }
     }
 
@@ -395,7 +370,6 @@ impl TypeVariant {
                     .map(|(_, l_ty)| *l_ty)
                     .unwrap_or(ty_name)
             }
-            // Self::Function { .. } => "function",
         }
         .into()
     }
