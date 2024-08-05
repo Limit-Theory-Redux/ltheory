@@ -6,9 +6,9 @@ use crate::IDENT;
 impl ImplInfo {
     /// Generate Lua FFI file
     pub fn gen_lua_ffi(&self, attr_args: &ImplAttrArgs) {
-        let module_name = attr_args.name().unwrap_or(self.name.clone());
+        let module_name = attr_args.name().unwrap_or(self.name.as_ref());
 
-        let mut ffi_gen = FFIGenerator::load(&module_name);
+        let mut ffi_gen = FFIGenerator::load(module_name);
         let is_managed = self.is_managed();
 
         // Generate metatype section only if there is at least one method with `self` parameter,
@@ -23,14 +23,14 @@ impl ImplInfo {
         }
 
         // Class definition
-        self.write_class_defs(&mut ffi_gen, &module_name);
+        self.write_class_defs(&mut ffi_gen, module_name);
 
         // C Definitions
         let (max_method_name_len, max_self_method_name_len) =
-            self.write_c_defs(&mut ffi_gen, &module_name, is_managed);
+            self.write_c_defs(&mut ffi_gen, module_name, is_managed);
 
         // Global Symbol Table
-        self.write_global_sym_table(&mut ffi_gen, &module_name, max_method_name_len);
+        self.write_global_sym_table(&mut ffi_gen, module_name, max_method_name_len);
 
         if gen_metatype && attr_args.is_clone() {
             ffi_gen.set_mt_clone();
@@ -49,13 +49,13 @@ impl ImplInfo {
 
             self.write_metatype(
                 &mut ffi_gen,
-                &module_name,
+                module_name,
                 max_self_method_name_len,
                 attr_args,
             );
         }
 
-        ffi_gen.generate();
+        ffi_gen.generate(attr_args.gen_dir(), attr_args.meta_dir());
     }
 
     fn write_class_defs(&self, ffi_gen: &mut FFIGenerator, module_name: &str) {

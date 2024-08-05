@@ -9,13 +9,13 @@ use crate::args::ImplAttrArgs;
 
 impl ImplInfo {
     pub fn gen_rust_ffi(&self, attr_args: &ImplAttrArgs) -> TokenStream {
-        let module_name = attr_args.name().unwrap_or(self.name.clone());
+        let module_name = attr_args.name().unwrap_or(self.name.as_ref());
 
         // extern "C" wrapper functions
         let method_tokens: Vec<_> = self
             .methods
             .iter()
-            .map(|method| self.gen_wrapper_fn(&module_name, method))
+            .map(|method| self.gen_wrapper_fn(module_name, method))
             .collect();
 
         // Free wrapper function, if the type is managed.

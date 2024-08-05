@@ -7,17 +7,17 @@ use crate::IDENT;
 impl EnumInfo {
     /// Generate Lua FFI file
     pub fn gen_lua_ffi(&self, attr_args: &EnumAttrArgs, repr_type: &str) {
-        let module_name = attr_args.name().unwrap_or(self.name.clone());
+        let module_name = attr_args.name().unwrap_or(self.name.as_str());
         let enum_repr_ty = TypeVariant::from_rust_ffi_str(repr_type).unwrap_or(TypeVariant::U32);
         let variants_info = self.variants.get_info(attr_args.start_index());
 
-        let mut ffi_gen = FFIGenerator::new(&module_name);
+        let mut ffi_gen = FFIGenerator::new(module_name);
 
         ffi_gen.set_type_decl_struct(enum_repr_ty.as_ffi().c);
 
-        gen_class_definitions(&mut ffi_gen, &self.doc, &module_name, &variants_info);
-        gen_c_definitions(&mut ffi_gen, &module_name, &variants_info);
-        gen_global_symbol_table(&mut ffi_gen, &module_name, &variants_info);
+        gen_class_definitions(&mut ffi_gen, &self.doc, module_name, &variants_info);
+        gen_c_definitions(&mut ffi_gen, module_name, &variants_info);
+        gen_global_symbol_table(&mut ffi_gen, module_name, &variants_info);
 
         if attr_args.with_impl() {
             ffi_gen.save();
@@ -25,7 +25,7 @@ impl EnumInfo {
             return;
         }
 
-        ffi_gen.generate();
+        ffi_gen.generate(attr_args.gen_dir(), attr_args.meta_dir());
     }
 }
 

@@ -9,8 +9,7 @@ pub struct CallbackTest {
     val_noncopyable: Vec<Data>,
 }
 
-// NOTE: remove 'lua_ffi' parameter to see generated Lua file. Do not commit it!!!
-#[luajit_ffi(lua_ffi = false)]
+#[luajit_ffi(gen_dir = "./tests/out/ffi_gen", meta_dir = "./tests/out/ffi_meta")]
 impl CallbackTest {
     pub fn nth_primitive<F: FnOnce(f32) -> ()>(&self, index: usize, callback: F) {
         callback(self.val_primitives[index]);
@@ -131,7 +130,7 @@ impl CallbackTest {
 
 #[test]
 fn test_primitives() {
-    let mut ts = CallbackTest::default();
+    let mut t = CallbackTest::default();
 
     static mut VALUE: f32 = 0.0;
 
@@ -170,40 +169,40 @@ fn test_primitives() {
     }
 
     unsafe {
-        CallbackTest_InsertPrimitive(&mut ts, add_1);
-        CallbackTest_InsertPrimitive(&mut ts, add_2);
+        CallbackTest_InsertPrimitive(&mut t, add_1);
+        CallbackTest_InsertPrimitive(&mut t, add_2);
 
-        CallbackTest_NthPrimitive(&ts, 0, get_value);
+        CallbackTest_NthPrimitive(&t, 0, get_value);
         assert_eq!(VALUE, 1.0);
-        CallbackTest_NthPrimitive(&ts, 1, get_value);
+        CallbackTest_NthPrimitive(&t, 1, get_value);
         assert_eq!(VALUE, 2.0);
 
-        CallbackTest_NthPrimitiveRef(&mut ts, 0, get_value);
+        CallbackTest_NthPrimitiveRef(&mut t, 0, get_value);
         assert_eq!(VALUE, 1.0);
 
-        CallbackTest_NthPrimitiveMut(&mut ts, 0, mutate_value);
-        CallbackTest_NthPrimitive(&ts, 0, get_value);
+        CallbackTest_NthPrimitiveMut(&mut t, 0, mutate_value);
+        CallbackTest_NthPrimitive(&t, 0, get_value);
         assert_eq!(VALUE, 4.0);
 
-        CallbackTest_NthPrimitiveValOpt(&ts, 1, get_value_opt);
+        CallbackTest_NthPrimitiveValOpt(&t, 1, get_value_opt);
         assert_eq!(VALUE, 2.0);
-        CallbackTest_NthPrimitiveValOpt(&ts, 5, get_value_opt);
+        CallbackTest_NthPrimitiveValOpt(&t, 5, get_value_opt);
         assert_eq!(VALUE, -1.0);
 
-        CallbackTest_NthPrimitiveMutOpt(&mut ts, 1, mutate_value_if_present);
-        CallbackTest_NthPrimitiveRefOpt(&mut ts, 1, get_value_opt);
+        CallbackTest_NthPrimitiveMutOpt(&mut t, 1, mutate_value_if_present);
+        CallbackTest_NthPrimitiveRefOpt(&mut t, 1, get_value_opt);
         assert_eq!(VALUE, 4.0);
-        CallbackTest_NthPrimitiveRefOpt(&mut ts, 5, get_value_opt);
+        CallbackTest_NthPrimitiveRefOpt(&mut t, 5, get_value_opt);
         assert_eq!(VALUE, -1.0);
 
         // We're just expecting this to not crash.
-        CallbackTest_NthPrimitiveMutOpt(&mut ts, 5, mutate_value_if_present);
+        CallbackTest_NthPrimitiveMutOpt(&mut t, 5, mutate_value_if_present);
     }
 }
 
 #[test]
 fn test_noncopyable() {
-    let mut ts = CallbackTest::default();
+    let mut t = CallbackTest::default();
 
     static mut VALUE: Data = Data::new(0);
 
@@ -248,40 +247,40 @@ fn test_noncopyable() {
     }
 
     unsafe {
-        CallbackTest_InsertNoncopyable(&mut ts, add_1);
-        CallbackTest_InsertNoncopyable(&mut ts, add_2);
+        CallbackTest_InsertNoncopyable(&mut t, add_1);
+        CallbackTest_InsertNoncopyable(&mut t, add_2);
 
-        CallbackTest_NthNoncopyable(&ts, 0, get_value);
+        CallbackTest_NthNoncopyable(&t, 0, get_value);
         assert_eq!(VALUE, Data::new(1));
-        CallbackTest_NthNoncopyable(&ts, 1, get_value);
+        CallbackTest_NthNoncopyable(&t, 1, get_value);
         assert_eq!(VALUE, Data::new(2));
 
-        CallbackTest_NthNoncopyableRef(&mut ts, 0, get_value_ref);
+        CallbackTest_NthNoncopyableRef(&mut t, 0, get_value_ref);
         assert_eq!(VALUE, Data::new(1));
 
-        CallbackTest_NthNoncopyableMut(&mut ts, 0, mutate_value);
-        CallbackTest_NthNoncopyable(&ts, 0, get_value);
+        CallbackTest_NthNoncopyableMut(&mut t, 0, mutate_value);
+        CallbackTest_NthNoncopyable(&t, 0, get_value);
         assert_eq!(VALUE, Data::new(4));
 
-        CallbackTest_NthNoncopyableValOpt(&ts, 1, get_value_opt);
+        CallbackTest_NthNoncopyableValOpt(&t, 1, get_value_opt);
         assert_eq!(VALUE, Data::new(2));
-        CallbackTest_NthNoncopyableValOpt(&ts, 5, get_value_opt);
+        CallbackTest_NthNoncopyableValOpt(&t, 5, get_value_opt);
         assert_eq!(VALUE, Data::new(1024));
 
-        CallbackTest_NthNoncopyableMutOpt(&mut ts, 1, mutate_value_if_present);
-        CallbackTest_NthNoncopyableRefOpt(&mut ts, 1, get_value_opt);
+        CallbackTest_NthNoncopyableMutOpt(&mut t, 1, mutate_value_if_present);
+        CallbackTest_NthNoncopyableRefOpt(&mut t, 1, get_value_opt);
         assert_eq!(VALUE, Data::new(4));
-        CallbackTest_NthNoncopyableRefOpt(&mut ts, 5, get_value_opt);
+        CallbackTest_NthNoncopyableRefOpt(&mut t, 5, get_value_opt);
         assert_eq!(VALUE, Data::new(1024));
 
         // We're just expecting this to not crash.
-        CallbackTest_NthNoncopyableMutOpt(&mut ts, 5, mutate_value_if_present);
+        CallbackTest_NthNoncopyableMutOpt(&mut t, 5, mutate_value_if_present);
     }
 }
 
 #[test]
 fn test_primitive_arrays() {
-    let mut ts = CallbackTest::default();
+    let mut t = CallbackTest::default();
 
     static mut OUT: Vec<f32> = vec![];
 
@@ -300,19 +299,19 @@ fn test_primitive_arrays() {
     }
 
     unsafe {
-        ts.val_primitives = vec![1.0, 2.0, 3.0];
+        t.val_primitives = vec![1.0, 2.0, 3.0];
 
-        CallbackTest_ReadPrimitiveArray(&ts, get_values);
-        assert_eq!(ts.val_primitives, OUT);
+        CallbackTest_ReadPrimitiveArray(&t, get_values);
+        assert_eq!(t.val_primitives, OUT);
 
-        CallbackTest_LockPrimitiveArray(&mut ts, double_values);
-        assert_eq!(ts.val_primitives, vec![2.0, 4.0, 6.0]);
+        CallbackTest_LockPrimitiveArray(&mut t, double_values);
+        assert_eq!(t.val_primitives, vec![2.0, 4.0, 6.0]);
     }
 }
 
 #[test]
 fn test_noncopyable_arrays() {
-    let mut ts = CallbackTest::default();
+    let mut t = CallbackTest::default();
 
     static mut OUT: Vec<Data> = vec![];
 
@@ -331,14 +330,14 @@ fn test_noncopyable_arrays() {
     }
 
     unsafe {
-        ts.val_noncopyable = vec![Data::new(1), Data::new(2), Data::new(3)];
+        t.val_noncopyable = vec![Data::new(1), Data::new(2), Data::new(3)];
 
-        CallbackTest_ReadNoncopyableArray(&ts, get_values);
-        assert_eq!(ts.val_noncopyable, OUT);
+        CallbackTest_ReadNoncopyableArray(&t, get_values);
+        assert_eq!(t.val_noncopyable, OUT);
 
-        CallbackTest_LockNoncopyableArray(&mut ts, double_values);
+        CallbackTest_LockNoncopyableArray(&mut t, double_values);
         assert_eq!(
-            ts.val_noncopyable,
+            t.val_noncopyable,
             vec![Data::new(2), Data::new(4), Data::new(6)]
         );
     }
@@ -374,7 +373,7 @@ fn test_strings() {
 
 #[test]
 fn test_edge_cases() {
-    let mut ts = CallbackTest::default();
+    let mut t = CallbackTest::default();
 
     extern "C" fn combine_and_replace(in_prim: f32, in_noncopyable: Option<&Data>) -> f32 {
         in_prim + in_noncopyable.cloned().unwrap_or(Data::new(10)).val as f32
@@ -385,14 +384,14 @@ fn test_edge_cases() {
     }
 
     unsafe {
-        ts.val_primitives = vec![0.0, 2.0];
-        ts.val_noncopyable = vec![Data::new(5)];
+        t.val_primitives = vec![0.0, 2.0];
+        t.val_noncopyable = vec![Data::new(5)];
 
-        CallbackTest_GetMultipleAndReplace(&mut ts, 0, combine_and_replace);
-        assert_eq!(ts.val_primitives[0], 5.0);
+        CallbackTest_GetMultipleAndReplace(&mut t, 0, combine_and_replace);
+        assert_eq!(t.val_primitives[0], 5.0);
 
-        CallbackTest_GetMultipleAndReplace(&mut ts, 1, combine_and_replace);
-        assert_eq!(ts.val_primitives[1], 12.0);
+        CallbackTest_GetMultipleAndReplace(&mut t, 1, combine_and_replace);
+        assert_eq!(t.val_primitives[1], 12.0);
 
         let result = CallbackTest_Passthrough(4, square_value);
         assert_eq!(4 * 4, result);

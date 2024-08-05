@@ -3,8 +3,17 @@ use luajit_ffi_gen::luajit_ffi;
 mod helpers;
 use helpers::*;
 
+pub struct SomeStruct;
+
+#[luajit_ffi(
+    name = "Renamed_Struct",
+    gen_dir = "./tests/out/ffi_gen",
+    meta_dir = "./tests/out/ffi_meta"
+)]
+impl SomeStruct {}
+
 #[derive(Default)]
-pub struct MyStruct {
+pub struct ImplTest {
     val_u32: u32,
     val_f32: f32,
     val_str: String,
@@ -12,11 +21,13 @@ pub struct MyStruct {
     val_copyable: CopyableData,
 }
 
-// NOTE: remove 'lua_ffi' parameter to see generated Lua file. Do not commit it!!!
-#[luajit_ffi(name = "My_Struct", lua_ffi = false)]
-impl MyStruct {
+#[luajit_ffi(gen_dir = "./tests/out/ffi_gen", meta_dir = "./tests/out/ffi_meta")]
+impl ImplTest {
     pub fn func1(&self) {}
     pub fn func2(&mut self) {}
+
+    // Some functions we want to be private to Rust, but exposed to Lua.
+    fn private_func1(&self) {}
 
     #[bind(name = "FUNC3")]
     pub fn func3() {}
@@ -196,95 +207,98 @@ impl MyStruct {
 
 #[test]
 fn test_functions() {
-    let ms = MyStruct::default();
-    let mut ms2 = MyStruct::default();
+    let t = ImplTest::default();
+    let mut t2 = ImplTest::default();
 
-    ms.func1();
-    ms2.func2();
-    MyStruct::func3();
+    t.func1();
+    t2.func2();
+    ImplTest::func3();
 
     unsafe {
-        My_Struct_Func1(&ms);
-        My_Struct_Func2(&mut ms2);
-        My_Struct_FUNC3();
+        ImplTest_Func1(&t);
+        ImplTest_Func2(&mut t2);
+        ImplTest_PrivateFunc1(&t);
+        ImplTest_FUNC3();
 
-        My_Struct_SetU32(&mut ms2, 33);
-        assert_eq!(My_Struct_GetU32(&ms2), 33);
+        ImplTest_SetU32(&mut t2, 33);
+        assert_eq!(ImplTest_GetU32(&t2), 33);
 
-        My_Struct_SetF32(&mut ms2, 33.0);
-        assert_eq!(My_Struct_GetF32(&ms2), 33.0);
+        ImplTest_SetF32(&mut t2, 33.0);
+        assert_eq!(ImplTest_GetF32(&t2), 33.0);
 
-        My_Struct_SetData(&mut ms2, &Data::new(2));
-        assert_eq!(My_Struct_GetData(&ms2).val, 2);
-        assert_eq!((My_Struct_GetOptData(&ms2)).unwrap().val, 2);
+        ImplTest_SetData(&mut t2, &Data::new(2));
+        assert_eq!(ImplTest_GetData(&t2).val, 2);
+        assert_eq!((ImplTest_GetOptData(&t2)).unwrap().val, 2);
 
-        My_Struct_TakeData(&mut ms2, Box::new(Data::new(4)));
+        ImplTest_TakeData(&mut t2, Box::new(Data::new(4)));
         let mut returned_data = Data::new(0);
-        My_Struct_GetDataViaOutParam(&ms2, &mut returned_data);
+        ImplTest_GetDataViaOutParam(&t2, &mut returned_data);
         assert_eq!(returned_data.val, 4);
 
-        My_Struct_TakeBoxedData(&mut ms2, Box::new(Data::new(6)));
-        assert_eq!(My_Struct_GetBoxedData(&ms2).val, 6);
+        ImplTest_TakeBoxedData(&mut t2, Box::new(Data::new(6)));
+        assert_eq!(ImplTest_GetBoxedData(&t2).val, 6);
 
-        let val = My_Struct_RetResVal();
+        let val = ImplTest_RetResVal();
         assert_eq!(val, 42);
     }
 }
 
 #[test]
 fn test_copyable_param() {
-    let mut ms = MyStruct::default();
+    let mut t = ImplTest::default();
 
     unsafe {
-        My_Struct_SetCopyable(&mut ms, CopyableData::new(5));
-        assert_eq!(ms.val_copyable.val, 5);
+        ImplTest_SetCopyable(&mut t, CopyableData::new(5));
+        assert_eq!(t.val_copyable.val, 5);
 
         let copyable_data = CopyableData::new(7);
-        My_Struct_SetCopyableByRef(&mut ms, &copyable_data);
-        assert_eq!(My_Struct_GetCopyable(&ms).val, 7);
+        ImplTest_SetCopyableByRef(&mut t, &copyable_data);
+        assert_eq!(ImplTest_GetCopyable(&t).val, 7);
 
         let mut copyable_data2 = CopyableData::new(9);
-        My_Struct_SetCopyableByMutRef(&mut ms, &mut copyable_data2);
-        assert_eq!(My_Struct_GetBoxedCopyable(&ms).val, 9);
+        ImplTest_SetCopyableByMutRef(&mut t, &mut copyable_data2);
+        assert_eq!(ImplTest_GetBoxedCopyable(&t).val, 9);
 
-        My_Struct_SetCopyable(&mut ms, CopyableData::new(11));
+        ImplTest_SetCopyable(&mut t, CopyableData::new(11));
         let mut copyable_result = CopyableData::default();
-        My_Struct_GetCopyableViaOutParam(&ms, &mut copyable_result);
+        ImplTest_GetCopyableViaOutParam(&t, &mut copyable_result);
         assert_eq!(copyable_result.val, 11);
     }
 }
 
 #[test]
 fn test_optional_strings() {
-    let mut td = MyStruct::default();
+    use std::ffi::CString;
 
-    let str_data1 = std::ffi::CString::new("hello").unwrap();
-    let str_data2 = std::ffi::CString::new("world").unwrap();
-    let str_data3 = std::ffi::CString::new("test").unwrap();
+    let mut t = ImplTest::default();
+
+    let str_data1 = CString::new("hello").unwrap();
+    let str_data2 = CString::new("world").unwrap();
+    let str_data3 = CString::new("test").unwrap();
 
     use internal::ConvertIntoString;
 
     unsafe {
-        let data = My_Struct_GetOptStr(&td);
+        let data = ImplTest_GetOptStr(&t);
         assert_eq!(data, std::ptr::null());
 
-        My_Struct_SetOptStr(&mut td, str_data1.as_ptr());
-        assert_eq!(td.val_str, str_data1.to_str().unwrap());
+        ImplTest_SetOptStr(&mut t, str_data1.as_ptr());
+        assert_eq!(t.val_str, str_data1.to_str().unwrap());
 
-        let data = My_Struct_GetOptStr(&mut td);
-        assert_eq!(td.val_str, data.as_str());
+        let data = ImplTest_GetOptStr(&mut t);
+        assert_eq!(t.val_str, data.as_str());
 
-        My_Struct_SetOptString(&mut td, str_data2.as_ptr());
-        assert_eq!(td.val_str, str_data2.to_str().unwrap());
+        ImplTest_SetOptString(&mut t, str_data2.as_ptr());
+        assert_eq!(t.val_str, str_data2.to_str().unwrap());
 
-        let data = My_Struct_GetOptString(&mut td);
-        assert_eq!(td.val_str, data.as_str());
+        let data = ImplTest_GetOptString(&mut t);
+        assert_eq!(t.val_str, data.as_str());
 
-        My_Struct_SetOptStringRef(&mut td, str_data3.as_ptr());
-        assert_eq!(td.val_str, str_data3.to_str().unwrap());
+        ImplTest_SetOptStringRef(&mut t, str_data3.as_ptr());
+        assert_eq!(t.val_str, str_data3.to_str().unwrap());
 
-        let data = My_Struct_GetOptString(&mut td);
-        assert_eq!(td.val_str, data.as_str());
+        let data = ImplTest_GetOptString(&mut t);
+        assert_eq!(t.val_str, data.as_str());
     }
 }
 
@@ -292,6 +306,6 @@ fn test_optional_strings() {
 #[should_panic]
 fn test_impl_return_error() {
     unsafe {
-        My_Struct_RetResErr();
+        ImplTest_RetResErr();
     }
 }

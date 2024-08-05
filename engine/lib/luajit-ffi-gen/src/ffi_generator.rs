@@ -177,8 +177,11 @@ impl FFIGenerator {
     /// Former registers type C declaration, either opaque or transparent, and returns type's id (0 - manual type, 1 - opaque, 2 -transparent)
     /// and type name.
     /// Latter does overall type registration: c function declarations, symbol table registration, etc.
-    pub fn generate(&self) {
-        let ffi_gen_dir = from_env_or_default(LUAJIT_FFI_GEN_DIR_ENV, LUAJIT_FFI_GEN_DIR);
+    pub fn generate(&self, gen_dir_override: Option<&str>, meta_dir_override: Option<&str>) {
+        let ffi_gen_dir = from_env_or_default(
+            LUAJIT_FFI_GEN_DIR_ENV,
+            gen_dir_override.unwrap_or(LUAJIT_FFI_GEN_DIR),
+        );
 
         let cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
@@ -361,7 +364,10 @@ impl FFIGenerator {
         module_file.write_all(module.as_bytes()).unwrap();
 
         if !self.class_definitions.is_empty() {
-            let ffi_meta_dir = from_env_or_default(LUAJIT_FFI_META_DIR_ENV, LUAJIT_FFI_META_DIR);
+            let ffi_meta_dir = from_env_or_default(
+                LUAJIT_FFI_META_DIR_ENV,
+                meta_dir_override.unwrap_or(LUAJIT_FFI_META_DIR),
+            );
 
             let ffi_meta_dir_path = cargo_manifest_dir.join(ffi_meta_dir);
             assert!(
