@@ -1,7 +1,7 @@
 local libphx = require('libphx').lib
 
 function onDef_EventBus_t(t, mt)
-    -- todo should return a handler
+    -- TODO: should return a handler
     mt.__index.subscribe = function(self, eventName, ctxTable, callback)
         local entityIdPtr = nil
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
@@ -27,5 +27,11 @@ function onDef_EventBus_t(t, mt)
 
     mt.__index.dispatch = function(self, eventName, payload)
         libphx.EventBus_Send(self, eventName, nil, payload)
+    end
+
+    mt.__index.nextEvent = function(self)
+        local eventData = libphx.EventBus_NextEvent(self)
+        -- TODO: convert payload into actual value/table
+        return eventData
     end
 end
