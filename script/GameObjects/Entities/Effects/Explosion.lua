@@ -2,7 +2,7 @@ local Entity = require('GameObjects.Entity')
 
 local rng = RNG.Create(50123)
 
-local Explosion = subclass(Entity, function(self, pos, age)
+local Explosion = Subclass(Entity, function(self, pos, age)
     self.age = 0
     self.pos = pos
     self.seed = rng:getUniform()

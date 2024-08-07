@@ -7,7 +7,7 @@ local material
 local meshJet
 local rng = RNG.FromTime()
 
-local Thruster = subclass(Entity, function(self, parentShip)
+local Thruster = Subclass(Entity, function(self, parentShip)
     if not mesh then
         local parentHullSize = parentShip:getHull()
         if parentHullSize == Enums.ShipHulls.Solo then
@@ -52,12 +52,12 @@ end
 
 function Thruster:render(state)
     if state.mode == BlendMode.Additive then
---[[
+        --[[
 -- This test (added to improve performance?) needs to be rethought as it is causing a crash when any ship -- player or NPC -- is destroyed.
         if self.parent:getOwner():getControlling() == GameState.player.currentShip and GameState.player.currentCamera == Enums.CameraMode.FirstPerson then
             return
         end
-]]--
+]] --
 
         local a = math.abs(self.activation)
         if a < 1e-3 then return end

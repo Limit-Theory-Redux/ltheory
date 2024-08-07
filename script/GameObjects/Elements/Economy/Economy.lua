@@ -11,7 +11,7 @@ local updateRates = {
     [4] = 2  -- Patrolling
 }
 
-local Economy = class(function(self, parent)
+local Economy = Class(function(self, parent)
     self.parent = parent
     self.factories = {}
     self.flows = {}

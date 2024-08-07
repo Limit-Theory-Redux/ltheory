@@ -68,6 +68,7 @@ Enums.ShipHullRoles = {
     }
 }
 
+---@enum SpaceShipHullType
 Enums.StationHulls = {
     Small  = 1,
     Medium = 2,

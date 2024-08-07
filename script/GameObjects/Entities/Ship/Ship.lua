@@ -50,7 +50,7 @@ local function wasDamaged(self, event)
     end
 end
 
-local Ship = subclass(Entity, function(self, proto, hull)
+local Ship = Subclass(Entity, function(self, proto, hull)
     Log.Debug("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
     -- TODO : This will create a duplicate BSP because proto & RigidBody do not
     -- share the same BSP cache. Need unified cache.
