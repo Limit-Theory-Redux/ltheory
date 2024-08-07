@@ -134,7 +134,7 @@ impl EventBus {
                     tunnel_id,
                     entity_id,
                 } => {
-                    if self.events.get(&event_id).is_some() {
+                    if self.events.contains_key(&event_id) {
                         self.add_subscriber(event_id, tunnel_id, entity_id);
                     }
                 }
