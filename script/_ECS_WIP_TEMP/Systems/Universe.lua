@@ -1,12 +1,13 @@
 -- Entities
-local StarSystemEntity = require("Entities.CelestialObjects.StarSystem")
-local SpaceshipEntity = require("Entities.Constructs.Spaceship")
+local StarSystemEntity = require("_ECS_WIP_TEMP.Entities.CelestialObjects.StarSystem") --!temp path
+local SpaceshipEntity = require("_ECS_WIP_TEMP.Entities.Constructs.Spaceship")         --!temp path
 
 -- Systems
-local GlobalStorage = require("Systems.GlobalStorage")
-local UniverseEconomy = require("Systems.Economy.UniverseEconomy")
+local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage")             --!temp path
+local UniverseEconomy = require("_ECS_WIP_TEMP.Systems.Economy.UniverseEconomy") --!temp path
 
 ---@class Universe
+---@overload fun(seed: integer)
 local Universe = Class(function(self, seed)
     ---@cast self Universe
     self:init(seed)
@@ -66,7 +67,7 @@ function Universe:createShip(systemId, pos, constructor)
         constructor.seed or self.universeRng:get64())
 
     -- Get spaceship transform component and set position
-    local spaceshipTransformComponent = spaceship:findComponentByName("Transform")
+    local _, spaceshipTransformComponent = spaceship:findComponentsByArchetype(Enums.ComponentArchetype.Transform)
     ---@cast spaceshipTransformComponent TransformComponent
     spaceshipTransformComponent:setPosition(pos)
 
@@ -78,7 +79,7 @@ function Universe:createShip(systemId, pos, constructor)
     ---@cast systemEntity StarSystem
 
     -- Get star system hierarchy component & add spaceship as a child
-    local systemHierarchyComponent = systemEntity:findComponentByName("Hierarchy")
+    local _, systemHierarchyComponent = systemEntity:findComponentsByArchetype(Enums.ComponentArchetype.HierarchyComponent)
     ---@cast systemHierarchyComponent EntityHierarchyComponent
     systemHierarchyComponent:addChild(spaceship:getEntityInfo())
 end

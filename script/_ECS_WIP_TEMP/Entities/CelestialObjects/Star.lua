@@ -1,9 +1,9 @@
-local Entity = require("_ECS_WIP_TEMP.Entity")
+local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 
 -- Components
-local RandomNumberGeneratorComponent = require("_ECS_WIP_TEMP.Components.RandomNumberGenerator")
-local NameComponent = require("_ECS_WIP_TEMP.Components.EntityName")
-local TypeComponent = require("_ECS_WIP_TEMP.Components.EntityType")
+local RandomNumberGeneratorComponent = require("_ECS_WIP_TEMP.Components.Core.RandomNumberGenerator") --!temp path
+local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")                             --!temp path
+local TypeComponent = require("_ECS_WIP_TEMP.Components.Core.EntityType")                             --!temp path
 
 ---@class Star: Entity
 ---@overload fun(self: table, seed: integer): Star subclass interal
@@ -11,15 +11,13 @@ local TypeComponent = require("_ECS_WIP_TEMP.Components.EntityType")
 local Star = Subclass(Entity, function(self, seed)
     ---@cast self Star
 
-    -- RandomNumberGeneratorComponent
-    local rngComponentIndex = self:addComponent(RandomNumberGeneratorComponent(seed, true))
-    local rngComponent = self:getComponent(rngComponentIndex)
-    ---@cast rngComponent RandomNumberGeneratorComponent
+    -- Set Entity Archetype
+    self:setArchetype(Enums.EntityArchetype.StarEntity)
 
     -- Name Component
     self:addComponent(NameComponent())
     -- Type Component
-    self:addComponent(TypeComponent(Enums.EntityType.Star))
+    self:addComponent(TypeComponent())
 end)
 
 return Star
