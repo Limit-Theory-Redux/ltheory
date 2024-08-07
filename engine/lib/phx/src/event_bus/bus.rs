@@ -47,6 +47,24 @@ struct MessageRequest {
     payload: Option<EventPayload>,
 }
 
+// impl MessageRequest {
+//     fn event_id(&self) -> u16 {
+//         self.event_id
+//     }
+
+//     fn stay_alive(&self) -> bool {
+//         self.stay_alive
+//     }
+
+//     fn for_entity_id(&self) -> Option<EntityId> {
+//         self.for_entity_id
+//     }
+
+//     fn payload(&self) -> Option<&EventPayload> {
+//         self.payload.as_ref()
+//     }
+// }
+
 pub struct EventBus {
     delta_time: f64,
     frame_timer: FrameTimer,
@@ -268,10 +286,19 @@ impl EventBus {
         })
     }
 
+    pub fn start_event_iteration(&mut self) {
+        self.process_operations();
+        // println!("Operations processed");
+        self.reinsert_stay_alive_requests();
+        // println!("Stay-alive requests reinserted");
+        self.current_frame_stage = FrameStage::first();
+        // println!("Frame stage reset to PreSim");
+    }
+
     /// Iterates over events of the frame.
     /// Returns `None`/`nil` when there are no more events.
-    pub fn get_next_event(&mut self) -> Option<EventData> {
-        //debug!("Entering get_next_event");
+    pub fn next_event(&mut self) -> Option<EventData> {
+        // println!("Entering get_next_event");
 
         if self.current_frame_stage != self.prev_frame_stage {
             self.delta_time =
@@ -280,41 +307,45 @@ impl EventBus {
         }
 
         loop {
-            //debug!("Processing frame stage: {:?}", self.current_frame_stage);
+            // println!("Processing frame stage: {:?}", self.current_frame_stage);
 
             if let Some(message_requests) =
                 self.frame_stage_requests.get_mut(&self.current_frame_stage)
             {
-                //debug!("Queue found for frame stage, length: {}", queue.len());
+                // println!(
+                //     "Queue found for frame stage, length: {}",
+                //     message_requests.len()
+                // );
 
                 if self.current_message_request.is_none() {
                     self.current_message_request = message_requests.pop();
 
                     if let Some(message_request) = &self.current_message_request {
-                        //debug!(
-                        //    "Popped new message request: {:?}",
-                        //    message_request.event_name
-                        //);
+                        // println!(
+                        //     "Popped new message request: {:?}",
+                        //     message_request.event_id()
+                        // );
                         if message_request.stay_alive {
-                            //debug!("Caching stay_alive message request");
+                            // println!("Caching stay_alive message request");
                             self.cached_requests
                                 .push((self.current_frame_stage, message_request.clone()));
                         }
                     } else {
-                        //debug!("No more message requests in queue");
+                        // println!("No more message requests in queue");
                     }
                 }
 
                 if let Some(message_request) = &self.current_message_request {
-                    //debug!(
-                    //    "Retrieved event for message request: {:?}",
-                    //    message_request.event_name
-                    //);
+                    // println!(
+                    //     "Retrieved event for message request: {:?}",
+                    //     message_request.event_id()
+                    // );
 
                     let current_event = self.events.get_mut(&message_request.event_id);
                     if let Some(event) = current_event {
+                        let frame_stage = event.frame_stage();
                         if let Some(subscriber) = event.next_subscriber() {
-                            //debug!("Found next subscriber for event");
+                            // println!("Found next subscriber for event");
                             if message_request.stay_alive
                                 || message_request.for_entity_id == subscriber.entity_id()
                             {
@@ -325,51 +356,45 @@ impl EventBus {
                                     message_request.payload.clone(),
                                 );
 
-                                //debug!(
+                                // println!(
                                 //    "Returning event data for frame stage {frame_stage:?}, tunnel_id {:?}",
-                                //    subscriber.tunnel_id
-                                //);
+                                //    subscriber.tunnel_id()
+                                // );
 
                                 return Some(event_data);
                             }
                         } else {
-                            //debug!("No more subscribers for current event");
+                            // println!("No more subscribers for current event");
                             self.current_message_request = None;
                         }
                     }
                 }
 
                 if self.current_message_request.is_none() && message_requests.is_empty() {
-                    //debug!(
-                    //    "No more message requests and queue is empty, moving to next frame stage"
-                    //);
+                    // println!(
+                    //     "No more message requests and queue is empty, moving to next frame stage"
+                    // );
                     if let Some(next_frame_stage) = self.current_frame_stage.next() {
                         self.current_frame_stage = next_frame_stage;
-                        //debug!("Next frame stage set to {next_frame_stage:?}");
+                        // println!("Next frame stage set to {next_frame_stage:?}");
                     } else {
-                        // this was the last stage - finish events processing by returning None
+                        // println!("the last stage - finish events processing by returning None");
                         break;
                     }
                 }
             } else {
-                //debug!("No queue for current frame stage, moving to next");
+                // println!("No queue for current frame stage, moving to next");
                 if let Some(next_frame_stage) = self.current_frame_stage.next() {
                     self.current_frame_stage = next_frame_stage;
-                    //debug!("Next frame stage set to {next_frame_stage:?}");
+                    // println!("Next frame stage set to {next_frame_stage:?}");
                 } else {
-                    // this was the last stage - finish events processing by returning None
+                    // println!("the last stage - finish events processing by returning None");
                     break;
                 }
             }
         }
 
-        //debug!("All frame stages processed");
-        self.process_operations();
-        //debug!("Operations processed");
-        self.reinsert_stay_alive_requests();
-        //debug!("Stay-alive requests reinserted");
-        self.current_frame_stage = FrameStage::first();
-        //debug!("Frame stage reset to PreSim");
+        // println!("All frame stages processed");
         None
     }
 
@@ -388,5 +413,117 @@ impl EventBus {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{EntityId, EventBus, EventId, TunnelId};
+    use crate::event_bus::{EventPayload, FrameStage};
+
+    fn test_event_bus(
+        events: &[(EventId, FrameStage)],
+        subscribes: &[(EventId, Option<EntityId>)],
+        sends: &[(EventId, EntityId, Option<EventPayload>)],
+        expected: &[(FrameStage, TunnelId, Option<EventPayload>)],
+    ) {
+        let mut event_bus = EventBus::new();
+
+        events.iter().for_each(|e| {
+            let event_name = format!("TestEvent{}", e.0);
+            event_bus.register(e.0, &event_name, e.1, false);
+        });
+
+        let tunnel_ids: Vec<_> = subscribes
+            .iter()
+            .map(|s| event_bus.subscribe(s.0, s.1))
+            .collect();
+
+        sends
+            .iter()
+            .for_each(|s| event_bus.send(s.0, s.1, s.2.as_ref()));
+
+        event_bus.start_event_iteration();
+
+        expected.iter().enumerate().for_each(|(i, e)| {
+            let event = event_bus
+                .next_event()
+                .unwrap_or_else(|| panic!("Event {i} was not sent"));
+
+            assert!(tunnel_ids.contains(&e.1), "Unexpected tunnel id: {}", e.1);
+            assert_eq!(event.frame_stage(), e.0, "Frame stage");
+            assert_eq!(event.tunnel_id(), e.1, "Tunnel id");
+            assert_eq!(event.payload(), e.2.as_ref(), "Payload");
+        });
+
+        let next_event = event_bus.next_event();
+        assert!(
+            next_event.is_none(),
+            "There are more events than expected. Next event: {next_event:?}"
+        );
+    }
+
+    #[test]
+    fn test_event_bus_one_event_one_subscriber() {
+        test_event_bus(
+            &[(0, FrameStage::first())],
+            &[(0, Some(0))],
+            &[(0, 0, None)],
+            &[(FrameStage::first(), 0, None)],
+        );
+    }
+
+    #[test]
+    fn test_event_bus_one_event_two_subscribers() {
+        test_event_bus(
+            &[(0, FrameStage::first())],
+            &[(0, Some(0)), (0, Some(0))],
+            &[(0, 0, None)],
+            &[
+                (FrameStage::first(), 0, None),
+                (FrameStage::first(), 1, None),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_event_bus_two_events_two_subscribers_two_stages() {
+        test_event_bus(
+            &[(0, FrameStage::first()), (1, FrameStage::last())],
+            &[(0, Some(0)), (1, Some(1))],
+            &[(0, 0, None), (1, 1, None)],
+            &[
+                (FrameStage::first(), 0, None),
+                (FrameStage::last(), 1, None),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_event_bus_one_event_two_subscribers_payload() {
+        test_event_bus(
+            &[(0, FrameStage::first())],
+            &[(0, Some(0)), (0, Some(0))],
+            &[(0, 0, Some(EventPayload::U16(42)))],
+            &[
+                (FrameStage::first(), 0, Some(EventPayload::U16(42))),
+                (FrameStage::first(), 1, Some(EventPayload::U16(42))),
+            ],
+        );
+    }
+
+    #[test]
+    #[ignore = "missing events"]
+    fn test_event_bus_one_event_two_subscribers_two_entities() {
+        test_event_bus(
+            &[(0, FrameStage::first())],
+            &[(0, Some(0)), (0, None)],
+            &[(0, 0, Some(EventPayload::Bool(true))), (0, 1, None)],
+            &[
+                (FrameStage::first(), 0, Some(EventPayload::Bool(true))),
+                (FrameStage::first(), 0, Some(EventPayload::Bool(true))),
+                (FrameStage::first(), 1, None),
+            ],
+        );
     }
 }
