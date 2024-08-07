@@ -17,7 +17,6 @@ enum EventBusOperation {
         event_id: EventId,
         event_name: String,
         frame_stage: FrameStage,
-        with_frame_stage_message: bool,
     },
     Unregister {
         event_id: EventId,
@@ -43,7 +42,6 @@ enum EventBusOperation {
 #[derive(Debug, Clone, PartialEq)]
 struct MessageRequest {
     event_id: EventId,
-    stay_alive: bool,
     for_entity_id: Option<EntityId>,
     payload: Option<EventPayload>,
 }
@@ -135,7 +133,6 @@ impl EventBus {
                     event_id,
                     event_name,
                     frame_stage,
-                    with_frame_stage_message,
                 } => {
                     match self.events.entry(event_id) {
                         Entry::Occupied(_) => {
@@ -146,17 +143,6 @@ impl EventBus {
                             let event = Event::new(event_id, &event_name, frame_stage);
 
                             entry.insert(event);
-
-                            if with_frame_stage_message {
-                                let message_request = MessageRequest {
-                                    event_id,
-                                    stay_alive: with_frame_stage_message,
-                                    for_entity_id: None,
-                                    payload: None,
-                                };
-
-                                self.cached_requests.push((frame_stage, message_request));
-                            }
                         }
                     }
                 }
@@ -195,7 +181,6 @@ impl EventBus {
                     if let Some(event) = self.events.get(&event_id) {
                         let message_request = MessageRequest {
                             event_id: event.id(),
-                            stay_alive: false,
                             for_entity_id: entity_id,
                             payload,
                         };
@@ -225,18 +210,11 @@ impl EventBus {
             .push_front(EventBusOperation::SetTimeScale { scale_factor });
     }
 
-    pub fn register(
-        &mut self,
-        event_id: u16,
-        event_name: &str,
-        frame_stage: FrameStage,
-        with_frame_stage_message: bool,
-    ) {
+    pub fn register(&mut self, event_id: u16, event_name: &str, frame_stage: FrameStage) {
         self.operation_queue.push_back(EventBusOperation::Register {
             event_id,
             event_name: event_name.into(),
             frame_stage,
-            with_frame_stage_message,
         });
     }
 
@@ -306,14 +284,9 @@ impl EventBus {
 
                     if let Some(message_request) = &self.current_message_request {
                         println!(
-                            "      Popped new message request. Event id {:?}, entity id: {:?}, stay alive: {}",
-                            message_request.event_id, message_request.for_entity_id, message_request.stay_alive
+                            "      Popped new message request. Event id {:?}, entity id: {:?}",
+                            message_request.event_id, message_request.for_entity_id
                         );
-                        if message_request.stay_alive {
-                            println!("        Caching stay_alive message request");
-                            self.cached_requests
-                                .push((self.current_frame_stage, message_request.clone()));
-                        }
                     } else {
                         println!("      No more message requests in queue");
                     }
@@ -321,8 +294,8 @@ impl EventBus {
 
                 if let Some(message_request) = &self.current_message_request {
                     println!(
-                        "      Retrieved event for message request. Event id: {:?}, entity id: {:?}, stay alive: {}",
-                        message_request.event_id, message_request.for_entity_id, message_request.stay_alive
+                        "      Retrieved event for message request. Event id: {:?}, entity id: {:?}",
+                        message_request.event_id, message_request.for_entity_id
                     );
 
                     let current_event = self.events.get_mut(&message_request.event_id);
@@ -330,9 +303,7 @@ impl EventBus {
                         let frame_stage = event.frame_stage();
                         if let Some(subscriber) = event.next_subscriber() {
                             println!("        Found next subscriber for event. Tunnel id: {}, entity id: {:?}", subscriber.tunnel_id(), subscriber.entity_id());
-                            if message_request.stay_alive
-                                || message_request.for_entity_id == subscriber.entity_id()
-                            {
+                            if message_request.for_entity_id == subscriber.entity_id() {
                                 let event_data = EventData::new(
                                     self.delta_time,
                                     self.current_frame_stage,
@@ -417,7 +388,7 @@ mod tests {
 
         events.iter().for_each(|e| {
             let event_name = format!("TestEvent{}", e.0);
-            event_bus.register(e.0, &event_name, e.1, false);
+            event_bus.register(e.0, &event_name, e.1);
         });
 
         let tunnel_ids: Vec<_> = subscribes

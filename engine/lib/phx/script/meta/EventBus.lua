@@ -12,8 +12,7 @@ function EventBus:setTimeScale(scaleFactor) end
 ---@param eventId integer
 ---@param eventName string
 ---@param frameStage FrameStage
----@param withFrameStageMessage boolean
-function EventBus:register(eventId, eventName, frameStage, withFrameStageMessage) end
+function EventBus:register(eventId, eventName, frameStage) end
 
 ---@param eventId integer
 function EventBus:unregister(eventId) end
