@@ -32,7 +32,7 @@ enum EventBusOperation {
     },
     Send {
         event_id: EventId,
-        entity_id: EntityId,
+        entity_id: Option<EntityId>,
         payload: Option<EventPayload>,
     },
     SetTimeScale {
@@ -196,7 +196,7 @@ impl EventBus {
                         let message_request = MessageRequest {
                             event_id: event.id(),
                             stay_alive: false,
-                            for_entity_id: Some(entity_id),
+                            for_entity_id: entity_id,
                             payload,
                         };
 
@@ -263,7 +263,7 @@ impl EventBus {
     }
 
     /// @overload fun(self: table, eventName: string, ctxTable: table|nil, payload: EventPayload|nil)
-    pub fn send(&mut self, event_id: u16, entity_id: u64, payload: Option<&EventPayload>) {
+    pub fn send(&mut self, event_id: u16, entity_id: Option<u64>, payload: Option<&EventPayload>) {
         self.operation_queue.push_back(EventBusOperation::Send {
             event_id,
             entity_id,
@@ -331,7 +331,6 @@ impl EventBus {
                         if let Some(subscriber) = event.next_subscriber() {
                             println!("        Found next subscriber for event. Tunnel id: {}, entity id: {:?}", subscriber.tunnel_id(), subscriber.entity_id());
                             if message_request.stay_alive
-                                || subscriber.entity_id().is_none()
                                 || message_request.for_entity_id == subscriber.entity_id()
                             {
                                 let event_data = EventData::new(
@@ -411,7 +410,7 @@ mod tests {
     fn test_event_bus(
         events: &[(EventId, FrameStage)],
         subscribes: &[(EventId, Option<EntityId>)],
-        sends: &[(EventId, EntityId, Option<EventPayload>)],
+        sends: &[(EventId, Option<EntityId>, Option<EventPayload>)],
         expected: &[(FrameStage, TunnelId, Option<EventPayload>)],
     ) {
         let mut event_bus = EventBus::new();
@@ -458,7 +457,7 @@ mod tests {
             // one subscriber
             &[(0, Some(0))],
             // send event once
-            &[(0, 0, None)],
+            &[(0, Some(0), None)],
             // subscriber receives an event message
             &[(FrameStage::first(), 0, None)],
         );
@@ -472,7 +471,7 @@ mod tests {
             // two subscribers
             &[(0, Some(0)), (0, Some(0))],
             // send event once
-            &[(0, 0, None)],
+            &[(0, Some(0), None)],
             // each subscriber receive an event message
             &[
                 (FrameStage::first(), 0, None),
@@ -489,7 +488,7 @@ mod tests {
             // two subscribers
             &[(0, Some(0)), (1, Some(1))],
             // send each event once
-            &[(0, 0, None), (1, 1, None)],
+            &[(0, Some(0), None), (1, Some(1), None)],
             // each subscriber receive its own event message
             &[
                 (FrameStage::first(), 0, None),
@@ -506,7 +505,7 @@ mod tests {
             // two subscribers
             &[(0, Some(0)), (0, Some(0))],
             // send event with payload
-            &[(0, 0, Some(EventPayload::U16(42)))],
+            &[(0, Some(0), Some(EventPayload::U16(42)))],
             // each subscriber receive an event message with the same payload
             &[
                 (FrameStage::first(), 0, Some(EventPayload::U16(42))),
@@ -520,13 +519,29 @@ mod tests {
         test_event_bus(
             // one event
             &[(0, FrameStage::first())],
-            // two subscribers: one for a specific entity, another for all
+            // two subscribers: one for a specific entity, another for global events
             &[(0, Some(0)), (0, None)],
-            // send event twice: first with payload, second without
-            &[(0, 0, Some(EventPayload::Bool(true))), (0, 1, None)],
+            // send event twice: first with entity id, second without (global event)
+            &[(0, Some(0), None), (0, None, None)],
             // first subscriber receives one event message with specific entity, second receives two event messages for all entities
             &[
-                (FrameStage::first(), 0, Some(EventPayload::Bool(true))),
+                (FrameStage::first(), 0, None),
+                (FrameStage::first(), 1, None),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_event_bus_one_event_two_subscribers_global() {
+        test_event_bus(
+            // one event
+            &[(0, FrameStage::first())],
+            // two subscribers: one for a specific entity, another for global events
+            &[(0, Some(0)), (0, None)],
+            // send event twice: first with entity id, second without (global event)
+            &[(0, None, Some(EventPayload::Bool(true))), (0, None, None)],
+            // first subscriber doesn't receive any event messages, second receive two
+            &[
                 (FrameStage::first(), 1, Some(EventPayload::Bool(true))),
                 (FrameStage::first(), 1, None),
             ],

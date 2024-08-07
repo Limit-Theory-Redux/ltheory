@@ -22,6 +22,10 @@ function onDef_EventBus_t(t, mt)
 
     mt.__index.send = function(self, eventName, ctxTable)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
-        libphx.EventBus_Send(self, eventName, entityId)
+        libphx.EventBus_Send(self, eventName, entityId, nil)
+    end
+
+    mt.__index.dispatch = function(self, eventName)
+        libphx.EventBus_Send(self, eventName, nil, nil)
     end
 end
