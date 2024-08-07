@@ -24,12 +24,16 @@ pub enum FrameStage {
 }
 
 impl FrameStage {
-    pub fn first() -> Self {
+    pub const fn first() -> Self {
         Self::PreSim
     }
 
-    pub fn last() -> Self {
+    pub const fn last() -> Self {
         Self::PostInput
+    }
+
+    pub const fn len() -> usize {
+        Self::last().index() + 1
     }
 
     pub fn next(&self) -> Option<Self> {
@@ -46,7 +50,7 @@ impl FrameStage {
         }
     }
 
-    pub fn index(&self) -> usize {
+    pub const fn index(&self) -> usize {
         *self as usize
     }
 }

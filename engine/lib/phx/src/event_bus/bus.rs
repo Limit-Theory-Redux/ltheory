@@ -52,8 +52,8 @@ pub struct EventBus {
     frame_time_scale: f64,
     events: HashMap<EventId, Event>,
     operation_queue: VecDeque<EventBusOperation>,
-    frame_stage_requests: HashMap<FrameStage, Vec<MessageRequest>>,
-    cached_requests: HashMap<FrameStage, Vec<MessageRequest>>,
+    frame_stage_requests: Vec<Vec<MessageRequest>>,
+    cached_requests: Vec<Vec<MessageRequest>>,
     next_tunnel_id: AtomicU32,
     prev_frame_stage: FrameStage,
     current_frame_stage: FrameStage,
@@ -87,8 +87,8 @@ impl EventBus {
             frame_time_scale: 1.0,
             events: HashMap::new(),
             operation_queue: VecDeque::new(),
-            frame_stage_requests: HashMap::new(),
-            cached_requests: HashMap::new(),
+            frame_stage_requests: vec![Default::default(); FrameStage::len()],
+            cached_requests: vec![Default::default(); FrameStage::len()],
             next_tunnel_id: AtomicU32::new(0),
             prev_frame_stage: FrameStage::last(), // to trigger delta time recalculation of the first stage for the new frame
             current_frame_stage: FrameStage::first(),
@@ -134,8 +134,9 @@ impl EventBus {
                 }
                 EventBusOperation::Unregister { event_id } => {
                     if let Some(event) = self.events.remove(&event_id) {
-                        if let Some(message_requests) =
-                            self.frame_stage_requests.get_mut(&event.frame_stage())
+                        if let Some(message_requests) = self
+                            .frame_stage_requests
+                            .get_mut(event.frame_stage().index())
                         {
                             message_requests.retain(|e| e.event_id != event_id);
                         }
@@ -172,9 +173,7 @@ impl EventBus {
                         };
 
                         // NOTE: we insert requests in reverse order so later processing will pop them in the correct one
-                        self.cached_requests
-                            .entry(event.frame_stage())
-                            .or_default()
+                        self.cached_requests[event.frame_stage().index()]
                             .insert(0, message_request);
                         println!("    Event: {}", event.name());
                     }
@@ -185,14 +184,6 @@ impl EventBus {
             }
         }
         println!("Operations processed");
-    }
-
-    fn transfer_cached_requests(&mut self) {
-        println!("Transfer cached requests");
-        for (frame_stage, message_requests) in self.cached_requests.drain() {
-            self.frame_stage_requests.insert(frame_stage, message_requests);
-        }
-        println!("Cached requests were transferred");
     }
 }
 
@@ -248,12 +239,15 @@ impl EventBus {
 
     pub fn start_event_iteration(&mut self) {
         assert!(
-            self.frame_stage_requests.is_empty(),
+            self.frame_stage_requests.iter().all(|m| m.is_empty()),
             "All events of the previous frame should be processed"
         );
 
         self.process_operations();
-        self.transfer_cached_requests();
+
+        std::mem::swap(&mut self.frame_stage_requests, &mut self.cached_requests);
+        println!("Cached requests were transferred");
+
         self.current_frame_stage = FrameStage::first();
         println!("Frame stage reset to PreSim");
     }
@@ -272,8 +266,9 @@ impl EventBus {
         loop {
             println!("  Processing frame stage: {:?}", self.current_frame_stage);
 
-            if let Some(message_requests) =
-                self.frame_stage_requests.get_mut(&self.current_frame_stage)
+            if let Some(message_requests) = self
+                .frame_stage_requests
+                .get_mut(self.current_frame_stage.index())
             {
                 println!(
                     "    Queue found for frame stage, length: {}",
@@ -362,7 +357,7 @@ impl EventBus {
 
         // Create a sorted vector of FrameStage keys based on the enum order
         for frame_stage in FrameStage::iter() {
-            if let Some(message_requests) = self.frame_stage_requests.get(&frame_stage) {
+            if let Some(message_requests) = self.frame_stage_requests.get(frame_stage.index()) {
                 println!("  {frame_stage:?}");
 
                 for message_request in message_requests {
