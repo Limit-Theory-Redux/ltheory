@@ -53,7 +53,7 @@ pub struct EventBus {
     events: HashMap<EventId, Event>,
     operation_queue: VecDeque<EventBusOperation>,
     frame_stage_requests: HashMap<FrameStage, Vec<MessageRequest>>,
-    cached_requests: Vec<(FrameStage, MessageRequest)>,
+    cached_requests: HashMap<FrameStage, Vec<MessageRequest>>,
     next_tunnel_id: AtomicU32,
     prev_frame_stage: FrameStage,
     current_frame_stage: FrameStage,
@@ -62,8 +62,8 @@ pub struct EventBus {
 
 impl EventBus {
     pub fn new() -> Self {
-        let events = HashMap::new();
-        let cached_requests = Vec::new();
+        // let events = HashMap::new();
+        // let cached_requests = HashMap::new();
 
         // Create an event for every frame stage
         // for frame_stage in FrameStage::iter() {
@@ -85,10 +85,10 @@ impl EventBus {
             delta_time: 0.0,
             frame_timer: FrameTimer::new(),
             frame_time_scale: 1.0,
-            events,
+            events: HashMap::new(),
             operation_queue: VecDeque::new(),
             frame_stage_requests: HashMap::new(),
-            cached_requests,
+            cached_requests: HashMap::new(),
             next_tunnel_id: AtomicU32::new(0),
             prev_frame_stage: FrameStage::last(), // to trigger delta time recalculation of the first stage for the new frame
             current_frame_stage: FrameStage::first(),
@@ -108,20 +108,6 @@ impl EventBus {
 
         let subscriber = Subscriber::new(tunnel_id, entity_id);
         event.add_subscriber(subscriber);
-    }
-
-    fn reinsert_stay_alive_requests(&mut self) {
-        println!("Reinsert stay-alive requests");
-        // NOTE: we reinsert requests in reverse order so later processing will pop them in correct one
-        while let Some((frame_stage, message_request)) = self.cached_requests.pop() {
-            println!("  {frame_stage:?}: {message_request:?}");
-
-            self.frame_stage_requests
-                .entry(frame_stage)
-                .or_default()
-                .push(message_request);
-        }
-        println!("Stay-alive requests reinserted");
     }
 
     fn process_operations(&mut self) {
@@ -185,8 +171,11 @@ impl EventBus {
                             payload,
                         };
 
+                        // NOTE: we insert requests in reverse order so later processing will pop them in the correct one
                         self.cached_requests
-                            .push((event.frame_stage(), message_request));
+                            .entry(event.frame_stage())
+                            .or_default()
+                            .insert(0, message_request);
                         println!("    Event: {}", event.name());
                     }
                 }
@@ -196,6 +185,14 @@ impl EventBus {
             }
         }
         println!("Operations processed");
+    }
+
+    fn transfer_cached_requests(&mut self) {
+        println!("Transfer cached requests");
+        for (frame_stage, message_requests) in self.cached_requests.drain() {
+            self.frame_stage_requests.insert(frame_stage, message_requests);
+        }
+        println!("Cached requests were transferred");
     }
 }
 
@@ -250,8 +247,13 @@ impl EventBus {
     }
 
     pub fn start_event_iteration(&mut self) {
+        assert!(
+            self.frame_stage_requests.is_empty(),
+            "All events of the previous frame should be processed"
+        );
+
         self.process_operations();
-        self.reinsert_stay_alive_requests();
+        self.transfer_cached_requests();
         self.current_frame_stage = FrameStage::first();
         println!("Frame stage reset to PreSim");
     }

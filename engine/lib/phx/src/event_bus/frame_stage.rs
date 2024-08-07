@@ -46,8 +46,8 @@ impl FrameStage {
         }
     }
 
-    pub fn index(&self) -> u8 {
-        *self as u8
+    pub fn index(&self) -> usize {
+        *self as usize
     }
 }
 
