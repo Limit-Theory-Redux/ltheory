@@ -5,24 +5,24 @@ local iteration = 0
 function EventTest:onInit()
     local fakeEntity = { getGuid = function() return 0 end }
 
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PreSim), fakeEntity, function() Log.Debug("onPreSim") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.Sim), fakeEntity, function() Log.Debug("onSim") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostSim), fakeEntity, function() Log.Debug("onPostSim") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PreRender), fakeEntity, function() Log.Debug("onPreRender") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.Render), fakeEntity, function() Log.Debug("onRender") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostRender), fakeEntity, function() Log.Debug("onPostRender") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PreInput), fakeEntity, function() Log.Debug("onPreInput") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.Input), fakeEntity, function() Log.Debug("onInput") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostInput), fakeEntity, function() Log.Debug("onPostInput") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PreSim), fakeEntity, function() Log.Debug("onPreSim2") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.Sim), fakeEntity, function() Log.Debug("onSim2") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostSim), fakeEntity, function() Log.Debug("onPostSim2") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PreRender), fakeEntity, function() Log.Debug("onPreRender2") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.Render), fakeEntity, function() Log.Debug("onRender2") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostRender), fakeEntity, function() Log.Debug("onPostRender2") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PreInput), fakeEntity, function() Log.Debug("onPreInput2") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.Input), fakeEntity, function() Log.Debug("onInput2") end)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostInput), fakeEntity, function()
+    EventBus:subscribe(EventType.PreSim, fakeEntity, function() Log.Debug("onPreSim") end)
+    EventBus:subscribe(EventType.Sim, fakeEntity, function() Log.Debug("onSim") end)
+    EventBus:subscribe(EventType.PostSim, fakeEntity, function() Log.Debug("onPostSim") end)
+    EventBus:subscribe(EventType.PreRender, fakeEntity, function() Log.Debug("onPreRender") end)
+    EventBus:subscribe(EventType.Render, fakeEntity, function() Log.Debug("onRender") end)
+    EventBus:subscribe(EventType.PostRender, fakeEntity, function() Log.Debug("onPostRender") end)
+    EventBus:subscribe(EventType.PreInput, fakeEntity, function() Log.Debug("onPreInput") end)
+    EventBus:subscribe(EventType.Input, fakeEntity, function() Log.Debug("onInput") end)
+    EventBus:subscribe(EventType.PostInput, fakeEntity, function() Log.Debug("onPostInput") end)
+    EventBus:subscribe(EventType.PreSim, fakeEntity, function() Log.Debug("onPreSim2") end)
+    EventBus:subscribe(EventType.Sim, fakeEntity, function() Log.Debug("onSim2") end)
+    EventBus:subscribe(EventType.PostSim, fakeEntity, function() Log.Debug("onPostSim2") end)
+    EventBus:subscribe(EventType.PreRender, fakeEntity, function() Log.Debug("onPreRender2") end)
+    EventBus:subscribe(EventType.Render, fakeEntity, function() Log.Debug("onRender2") end)
+    EventBus:subscribe(EventType.PostRender, fakeEntity, function() Log.Debug("onPostRender2") end)
+    EventBus:subscribe(EventType.PreInput, fakeEntity, function() Log.Debug("onPreInput2") end)
+    EventBus:subscribe(EventType.Input, fakeEntity, function() Log.Debug("onInput2") end)
+    EventBus:subscribe(EventType.PostInput, fakeEntity, function()
         Log.Debug("onPostInput2")
         Log.Debug("========")
         iteration = iteration + 1
@@ -31,19 +31,8 @@ function EventTest:onInit()
         end
     end)
 
-    for _, frameStage in pairs(FrameStage) do
-        if type(frameStage) ~= "cdata" then -- prevent ToString
-            for priorityName, priority in pairs(Enums.EventPriority) do
-                if priority ~= Enums.EventPriority.Highest then
-                    local frameStageName = tostring(FrameStage.ToString(frameStage))
-                    frameStageName = frameStageName:gsub('"', '')
-                    local eventName = "MyCustomEvent" .. frameStageName .. priorityName
-                    EventBus:register(eventName, priority, frameStage, false)
-                    EventBus:subscribe(eventName, fakeEntity, function(data) Log.Debug("Received " .. eventName) end)
-                    EventBus:send(eventName, fakeEntity)
-                end
-            end
-        end
+    for eventType = 0, EventType.EngineEventTypesCount - 1 do
+        EventBus:send(eventType, fakeEntity)
     end
 end
 

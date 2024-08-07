@@ -7,7 +7,25 @@ use super::EventId;
 #[luajit_ffi_gen::luajit_ffi(repr = "u16")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventType {
-    ResourceLoadingResult,
+    // Before physics update event
+    PreSim,
+    // Physics update event
+    Sim,
+    // After physics update event
+    PostSim,
+    // Before frame render event
+    PreRender,
+    // Frame render event
+    Render,
+    // After frame render event
+    PostRender,
+    // Before input handling event
+    PreInput,
+    // Input handling event
+    Input,
+    // After input handling event
+    PostInput,
+
     /// Specifies number of engine event types
     EngineEventTypesCount, // !!! SHOULD BE THE LAST ENUM VARIANT !!!
 }

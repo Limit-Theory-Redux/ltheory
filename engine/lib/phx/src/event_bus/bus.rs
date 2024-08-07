@@ -195,7 +195,7 @@ impl EventBus {
             .push(EventBusOperation::Unregister { event_id });
     }
 
-    /// @overload fun(self: table, eventName: string, ctxTable: table|nil, callbackFunc: function): integer
+    /// @overload fun(self: table, eventType: integer, ctxTable: table|nil, callbackFunc: function): integer
     pub fn subscribe(&mut self, event_id: u16, entity_id: Option<u64>) -> u32 {
         let tunnel_id = self.next_tunnel_id.fetch_add(1, Ordering::SeqCst);
         self.operations.push(EventBusOperation::Subscribe {
@@ -211,7 +211,7 @@ impl EventBus {
             .push(EventBusOperation::Unsubscribe { tunnel_id });
     }
 
-    /// @overload fun(self: table, eventName: string, ctxTable: table|nil, payload: EventPayload|nil)
+    /// @overload fun(self: table, eventType: integer, ctxTable: table|nil, payload: EventPayload|nil)
     pub fn send(&mut self, event_id: u16, entity_id: Option<u64>, payload: Option<&EventPayload>) {
         self.operations.push(EventBusOperation::Send {
             event_id,

@@ -20,7 +20,7 @@ function EventBus:unregister(eventId) end
 ---@param eventId integer
 ---@param entityId integer|nil
 ---@return integer
----@overload fun(self: table, eventName: string, ctxTable: table|nil, callbackFunc: function): integer
+---@overload fun(self: table, eventType: integer, ctxTable: table|nil, callbackFunc: function): integer
 function EventBus:subscribe(eventId, entityId) end
 
 ---@param tunnelId integer
@@ -29,7 +29,7 @@ function EventBus:unsubscribe(tunnelId) end
 ---@param eventId integer
 ---@param entityId integer|nil
 ---@param payload EventPayload|nil
----@overload fun(self: table, eventName: string, ctxTable: table|nil, payload: EventPayload|nil)
+---@overload fun(self: table, eventType: integer, ctxTable: table|nil, payload: EventPayload|nil)
 function EventBus:send(eventId, entityId, payload) end
 
 function EventBus:startEventIteration() end
