@@ -1,5 +1,5 @@
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use strum::IntoEnumIterator;
@@ -51,7 +51,7 @@ pub struct EventBus {
     frame_timer: FrameTimer,
     frame_time_scale: f64,
     events: HashMap<EventId, Event>,
-    operation_queue: VecDeque<EventBusOperation>,
+    operations: Vec<EventBusOperation>,
     frame_stage_requests: Vec<Vec<MessageRequest>>,
     cached_requests: Vec<Vec<MessageRequest>>,
     next_tunnel_id: AtomicU32,
@@ -62,31 +62,12 @@ pub struct EventBus {
 
 impl EventBus {
     pub fn new() -> Self {
-        // let events = HashMap::new();
-        // let cached_requests = HashMap::new();
-
-        // Create an event for every frame stage
-        // for frame_stage in FrameStage::iter() {
-        //     let event_name = format!("{:?}", frame_stage);
-        //     let event = Event::new(event_name.clone(), i32::MAX, frame_stage);
-
-        //     let message_request = MessageRequest {
-        //         event_id: event_name.clone(),
-        //         stay_alive: true,
-        //         for_entity_id: None,
-        //         payload: None,
-        //     };
-
-        //     events.insert(event_name, event);
-        //     cached_requests.push((frame_stage, message_request));
-        // }
-
         Self {
             delta_time: 0.0,
             frame_timer: FrameTimer::new(),
             frame_time_scale: 1.0,
             events: HashMap::new(),
-            operation_queue: VecDeque::new(),
+            operations: vec![],
             frame_stage_requests: vec![Default::default(); FrameStage::len()],
             cached_requests: vec![Default::default(); FrameStage::len()],
             next_tunnel_id: AtomicU32::new(0),
@@ -112,7 +93,11 @@ impl EventBus {
 
     fn process_operations(&mut self) {
         println!("Process operations");
-        while let Some(operation) = self.operation_queue.pop_front() {
+
+        let mut operations = vec![];
+        std::mem::swap(&mut operations, &mut self.operations);
+
+        for operation in operations.drain(..) {
             println!("  {operation:?}");
             match operation {
                 EventBusOperation::Register {
@@ -194,12 +179,13 @@ impl EventBus {
     }
 
     pub fn set_time_scale(&mut self, scale_factor: f64) {
-        self.operation_queue
-            .push_front(EventBusOperation::SetTimeScale { scale_factor });
+        // TODO: use additional variable instead of operation?
+        self.operations
+            .insert(0, EventBusOperation::SetTimeScale { scale_factor });
     }
 
     pub fn register(&mut self, event_id: u16, event_name: &str, frame_stage: FrameStage) {
-        self.operation_queue.push_back(EventBusOperation::Register {
+        self.operations.push(EventBusOperation::Register {
             event_id,
             event_name: event_name.into(),
             frame_stage,
@@ -207,30 +193,29 @@ impl EventBus {
     }
 
     pub fn unregister(&mut self, event_id: u16) {
-        self.operation_queue
-            .push_back(EventBusOperation::Unregister { event_id });
+        self.operations
+            .push(EventBusOperation::Unregister { event_id });
     }
 
     /// @overload fun(self: table, eventName: string, ctxTable: table|nil, callbackFunc: function): integer
     pub fn subscribe(&mut self, event_id: u16, entity_id: Option<u64>) -> u32 {
         let tunnel_id = self.next_tunnel_id.fetch_add(1, Ordering::SeqCst);
-        self.operation_queue
-            .push_back(EventBusOperation::Subscribe {
-                event_id,
-                tunnel_id,
-                entity_id,
-            });
+        self.operations.push(EventBusOperation::Subscribe {
+            event_id,
+            tunnel_id,
+            entity_id,
+        });
         tunnel_id
     }
 
     pub fn unsubscribe(&mut self, tunnel_id: u32) {
-        self.operation_queue
-            .push_back(EventBusOperation::Unsubscribe { tunnel_id });
+        self.operations
+            .push(EventBusOperation::Unsubscribe { tunnel_id });
     }
 
     /// @overload fun(self: table, eventName: string, ctxTable: table|nil, payload: EventPayload|nil)
     pub fn send(&mut self, event_id: u16, entity_id: Option<u64>, payload: Option<&EventPayload>) {
-        self.operation_queue.push_back(EventBusOperation::Send {
+        self.operations.push(EventBusOperation::Send {
             event_id,
             entity_id,
             payload: payload.cloned(),
