@@ -37,13 +37,15 @@ function Application:eventLoop()
         self.eventsRegistered = true
     end
 
-    local nextEvent = EventBus:getNextEvent()
-    while nextEvent ~= nil do
-        --print("[" .. tostring(Render.ToString(nextEvent:getRender())) .. "]")
-        --print("- Tunnel Id: " .. tostring(nextEvent:getTunnelId()))
+    EventBus:startEventIteration()
 
-        EventTunnels[nextEvent:getTunnelId()](nextEvent)
-        nextEvent = EventBus:getNextEvent()
+    local eventData = EventBus:nextEvent()
+    while eventData ~= nil do
+        --print("[" .. tostring(Render.ToString(eventData:getRender())) .. "]")
+        --print("- Tunnel Id: " .. tostring(eventData:tunnelId()))
+
+        EventTunnels[eventData:tunnelId()](eventData)
+        eventData = EventBus:nextEvent()
     end
 end
 

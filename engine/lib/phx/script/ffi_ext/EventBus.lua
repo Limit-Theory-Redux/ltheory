@@ -20,12 +20,12 @@ function onDef_EventBus_t(t, mt)
         EventTunnels[tunnelId] = nil
     end
 
-    mt.__index.send = function(self, eventName, ctxTable)
+    mt.__index.send = function(self, eventName, ctxTable, payload)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
-        libphx.EventBus_Send(self, eventName, entityId, nil)
+        libphx.EventBus_Send(self, eventName, entityId, payload)
     end
 
-    mt.__index.dispatch = function(self, eventName)
-        libphx.EventBus_Send(self, eventName, nil, nil)
+    mt.__index.dispatch = function(self, eventName, payload)
+        libphx.EventBus_Send(self, eventName, nil, payload)
     end
 end

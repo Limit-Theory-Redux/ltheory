@@ -83,22 +83,22 @@ impl EventBus {
         tunnel_id: TunnelId,
         entity_id: Option<EntityId>,
     ) {
-        let Some(event) = self.events.get_mut(&event_id) else {
-            panic!("error while pushing subscriber");
-        };
-
+        let event = self
+            .events
+            .get_mut(&event_id)
+            .expect("error while adding subscriber");
         let subscriber = Subscriber::new(tunnel_id, entity_id);
         event.add_subscriber(subscriber);
     }
 
     fn process_operations(&mut self) {
-        println!("Process operations");
+        // println!("Process operations");
 
         let mut operations = vec![];
         std::mem::swap(&mut operations, &mut self.operations);
 
         for operation in operations.drain(..) {
-            println!("  {operation:?}");
+            // println!("  {operation:?}");
             match operation {
                 EventBusOperation::Register {
                     event_id,
@@ -134,10 +134,8 @@ impl EventBus {
                     tunnel_id,
                     entity_id,
                 } => {
-                    if let Some(event) = self.events.get(&event_id) {
-                        let event_name = event.name().to_string();
+                    if self.events.get(&event_id).is_some() {
                         self.add_subscriber(event_id, tunnel_id, entity_id);
-                        println!("    Subscribed to event: {event_name}");
                     }
                 }
                 EventBusOperation::Unsubscribe { tunnel_id } => {
@@ -160,7 +158,7 @@ impl EventBus {
                         // NOTE: we insert requests in reverse order so later processing will pop them in the correct one
                         self.cached_requests[event.frame_stage().index()]
                             .insert(0, message_request);
-                        println!("    Event: {}", event.name());
+                        // println!("    Event: {}", event.name());
                     }
                 }
                 EventBusOperation::SetTimeScale { scale_factor } => {
@@ -168,7 +166,7 @@ impl EventBus {
                 }
             }
         }
-        println!("Operations processed");
+        // println!("Operations processed");
     }
 }
 
@@ -231,16 +229,16 @@ impl EventBus {
         self.process_operations();
 
         std::mem::swap(&mut self.frame_stage_requests, &mut self.cached_requests);
-        println!("Cached requests were transferred");
+        // println!("Cached requests were transferred");
 
         self.current_frame_stage = FrameStage::first();
-        println!("Frame stage reset to PreSim");
+        // println!("Frame stage reset to PreSim");
     }
 
     /// Iterates over events of the frame.
     /// Returns `None`/`nil` when there are no more events.
     pub fn next_event(&mut self) -> Option<EventData> {
-        println!("Entering next_event");
+        // println!("Entering next_event");
 
         if self.current_frame_stage != self.prev_frame_stage {
             self.delta_time =
@@ -249,42 +247,42 @@ impl EventBus {
         }
 
         loop {
-            println!("  Processing frame stage: {:?}", self.current_frame_stage);
+            // println!("  Processing frame stage: {:?}", self.current_frame_stage);
 
             if let Some(message_requests) = self
                 .frame_stage_requests
                 .get_mut(self.current_frame_stage.index())
             {
-                println!(
-                    "    Queue found for frame stage, length: {}",
-                    message_requests.len()
-                );
+                // println!(
+                //     "    Queue found for frame stage, length: {}",
+                //     message_requests.len()
+                // );
 
                 if self.current_message_request.is_none() {
                     // NOTE: pop will return messages in correct order because they were inserted in reverse one in reinsert_stay_alive_requests method
                     self.current_message_request = message_requests.pop();
 
-                    if let Some(message_request) = &self.current_message_request {
-                        println!(
-                            "      Popped new message request. Event id {:?}, entity id: {:?}",
-                            message_request.event_id, message_request.for_entity_id
-                        );
-                    } else {
-                        println!("      No more message requests in queue");
-                    }
+                    // if let Some(message_request) = &self.current_message_request {
+                    //     println!(
+                    //         "      Popped new message request. Event id {:?}, entity id: {:?}",
+                    //         message_request.event_id, message_request.for_entity_id
+                    //     );
+                    // } else {
+                    //     println!("      No more message requests in queue");
+                    // }
                 }
 
                 if let Some(message_request) = &self.current_message_request {
-                    println!(
-                        "      Retrieved event for message request. Event id: {:?}, entity id: {:?}",
-                        message_request.event_id, message_request.for_entity_id
-                    );
+                    // println!(
+                    //     "      Retrieved event for message request. Event id: {:?}, entity id: {:?}",
+                    //     message_request.event_id, message_request.for_entity_id
+                    // );
 
                     let current_event = self.events.get_mut(&message_request.event_id);
                     if let Some(event) = current_event {
-                        let frame_stage = event.frame_stage();
+                        // let frame_stage = event.frame_stage();
                         if let Some(subscriber) = event.next_subscriber() {
-                            println!("        Found next subscriber for event. Tunnel id: {}, entity id: {:?}", subscriber.tunnel_id(), subscriber.entity_id());
+                            // println!("        Found next subscriber for event. Tunnel id: {}, entity id: {:?}", subscriber.tunnel_id(), subscriber.entity_id());
                             if message_request.for_entity_id == subscriber.entity_id() {
                                 let event_data = EventData::new(
                                     self.delta_time,
@@ -293,47 +291,47 @@ impl EventBus {
                                     message_request.payload.clone(),
                                 );
 
-                                println!(
-                                   "          => Returning event data for frame stage {frame_stage:?}, tunnel_id {:?}",
-                                   subscriber.tunnel_id()
-                                );
+                                // println!(
+                                //    "          => Returning event data for frame stage {frame_stage:?}, tunnel_id {:?}",
+                                //    subscriber.tunnel_id()
+                                // );
 
                                 return Some(event_data);
                             }
                         } else {
-                            println!("        No more subscribers for current event");
+                            // println!("        No more subscribers for current event");
                             self.current_message_request = None;
                         }
                     }
                 }
 
                 if self.current_message_request.is_none() && message_requests.is_empty() {
-                    println!(
-                        "    No more message requests and queue is empty, moving to next frame stage"
-                    );
+                    // println!(
+                    //     "    No more message requests and queue is empty, moving to next frame stage"
+                    // );
                     if let Some(next_frame_stage) = self.current_frame_stage.next() {
                         self.current_frame_stage = next_frame_stage;
-                        println!("      Next frame stage set to {next_frame_stage:?}");
+                        // println!("      Next frame stage set to {next_frame_stage:?}");
                     } else {
-                        println!(
-                            "      The last stage - finish events processing by returning None"
-                        );
+                        // println!(
+                        //     "      The last stage - finish events processing by returning None"
+                        // );
                         break;
                     }
                 }
             } else {
-                println!("    No queue for current frame stage, moving to next");
+                // println!("    No queue for current frame stage, moving to next");
                 if let Some(next_frame_stage) = self.current_frame_stage.next() {
                     self.current_frame_stage = next_frame_stage;
-                    println!("      Next frame stage set to {next_frame_stage:?}");
+                    // println!("      Next frame stage set to {next_frame_stage:?}");
                 } else {
-                    println!("      The last stage - finish events processing by returning None");
+                    // println!("      The last stage - finish events processing by returning None");
                     break;
                 }
             }
         }
 
-        println!("All frame stages processed");
+        // println!("All frame stages processed");
         None
     }
 
