@@ -1,7 +1,7 @@
 use super::{EventId, FrameStage, Subscriber, TunnelId};
 
 #[derive(Debug, Clone)]
-pub struct Event {
+pub struct EventMessage {
     id: EventId,
     name: String,
     frame_stage: FrameStage,
@@ -9,7 +9,7 @@ pub struct Event {
     next_index: usize,
 }
 
-impl Event {
+impl EventMessage {
     pub fn new(id: EventId, name: &str, frame_stage: FrameStage) -> Self {
         Self {
             id,

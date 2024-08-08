@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use strum::IntoEnumIterator;
 use tracing::warn;
 
-use super::{Event, EventData, EventPayload, FrameStage, FrameTimer, Subscriber};
+use super::{EventData, EventMessage, EventPayload, FrameStage, FrameTimer, Subscriber};
 
 pub type EventId = u16;
 pub type EntityId = u64;
@@ -51,7 +51,7 @@ pub struct EventBus {
     delta_time: f64,
     frame_timer: FrameTimer,
     frame_time_scale: f64,
-    events: HashMap<EventId, Event>,
+    event_messages: HashMap<EventId, EventMessage>,
     operations: Vec<EventBusOperation>,
     frame_stage_requests: Vec<Vec<MessageRequest>>,
     cached_requests: Vec<Vec<MessageRequest>>,
@@ -63,7 +63,7 @@ pub struct EventBus {
 
 impl EventBus {
     pub fn new() -> Self {
-        let mut events = HashMap::new();
+        let mut event_messages = HashMap::new();
         let mut cached_requests: Vec<Vec<MessageRequest>> =
             vec![Default::default(); FrameStage::len()];
 
@@ -71,7 +71,7 @@ impl EventBus {
         for frame_stage in FrameStage::iter() {
             let event_type = &frame_stage.as_event_type();
             let event_id = event_type.index();
-            let event = Event::new(event_id, &event_type.to_string(), frame_stage);
+            let event_message = EventMessage::new(event_id, &event_type.to_string(), frame_stage);
 
             let message_request = MessageRequest {
                 event_id,
@@ -80,7 +80,7 @@ impl EventBus {
                 payload: None,
             };
 
-            events.insert(event_id, event);
+            event_messages.insert(event_id, event_message);
             cached_requests[frame_stage.index()].push(message_request);
         }
 
@@ -88,7 +88,7 @@ impl EventBus {
             delta_time: 0.0,
             frame_timer: FrameTimer::new(),
             frame_time_scale: 1.0,
-            events,
+            event_messages,
             operations: vec![],
             frame_stage_requests: vec![Default::default(); FrameStage::len()],
             cached_requests,
@@ -106,7 +106,7 @@ impl EventBus {
         entity_id: Option<EntityId>,
     ) {
         let event = self
-            .events
+            .event_messages
             .get_mut(&event_id)
             .expect("error while adding subscriber");
         let subscriber = Subscriber::new(tunnel_id, entity_id);
@@ -127,20 +127,21 @@ impl EventBus {
                     event_name,
                     frame_stage,
                 } => {
-                    match self.events.entry(event_id) {
+                    match self.event_messages.entry(event_id) {
                         Entry::Occupied(_) => {
                             // TODO: panic?
                             warn!("You are trying to register an Event '{event_name}':{event_id} that already exists - Aborting!");
                         }
                         Entry::Vacant(entry) => {
-                            let event = Event::new(event_id, &event_name, frame_stage);
+                            let event_message =
+                                EventMessage::new(event_id, &event_name, frame_stage);
 
-                            entry.insert(event);
+                            entry.insert(event_message);
                         }
                     }
                 }
                 EventBusOperation::Unregister { event_id } => {
-                    if let Some(event) = self.events.remove(&event_id) {
+                    if let Some(event) = self.event_messages.remove(&event_id) {
                         if let Some(message_requests) = self
                             .frame_stage_requests
                             .get_mut(event.frame_stage().index())
@@ -156,12 +157,12 @@ impl EventBus {
                     tunnel_id,
                     entity_id,
                 } => {
-                    if self.events.contains_key(&event_id) {
+                    if self.event_messages.contains_key(&event_id) {
                         self.add_subscriber(event_id, tunnel_id, entity_id);
                     }
                 }
                 EventBusOperation::Unsubscribe { tunnel_id } => {
-                    self.events
+                    self.event_messages
                         .values_mut()
                         .for_each(|event| event.remove_subscriber(tunnel_id));
                 }
@@ -170,7 +171,7 @@ impl EventBus {
                     entity_id,
                     payload,
                 } => {
-                    if let Some(event) = self.events.get(&event_id) {
+                    if let Some(event) = self.event_messages.get(&event_id) {
                         let message_request = MessageRequest {
                             event_id: event.id(),
                             keep_alive: false,
@@ -307,7 +308,7 @@ impl EventBus {
                     //     message_request.event_id, message_request.for_entity_id
                     // );
 
-                    let current_event = self.events.get_mut(&message_request.event_id);
+                    let current_event = self.event_messages.get_mut(&message_request.event_id);
                     if let Some(event) = current_event {
                         // let frame_stage = event.frame_stage();
                         if let Some(subscriber) = event.next_subscriber() {
@@ -375,7 +376,7 @@ impl EventBus {
                 println!("  {frame_stage:?}");
 
                 for message_request in message_requests {
-                    if let Some(_event) = self.events.get(&message_request.event_id) {
+                    if let Some(_event) = self.event_messages.get(&message_request.event_id) {
                         println!("   - {message_request:?}");
                     }
                 }
