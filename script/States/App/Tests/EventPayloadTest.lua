@@ -17,11 +17,13 @@ local function TableToString(tbl, indent)
             toprint = toprint .. k .. " = "
         end
         if (type(v) == "number") then
-            toprint = toprint .. v .. ",\r\n"
+            toprint = toprint .. v .. "/number,\r\n"
         elseif (type(v) == "string") then
-            toprint = toprint .. v .. ",\r\n"
+            toprint = toprint .. v .. "/string,\r\n"
         elseif (type(v) == "table") then
             toprint = toprint .. TableToString(v, indent + 2) .. ",\r\n"
+        elseif (type(v) == "boolean") then
+            toprint = toprint .. tostring(v) .. "/boolean,\r\n"
         else
             toprint = toprint .. "\"" .. tostring(v) .. "\",\r\n"
         end
