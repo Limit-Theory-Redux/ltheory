@@ -2,26 +2,28 @@ use strum_macros::EnumIter;
 
 use super::EventType;
 
+/// Frame stages in order they are processed.
+/// Events can be registered for each stage that will be dispatched in order they ere sent.
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
 pub enum FrameStage {
-    // Before physics update
+    /// Before physics update
     PreSim,
-    // Physics update
+    /// Physics update
     Sim,
-    // After physics update
+    /// After physics update
     PostSim,
-    // Before frame render
+    /// Before frame render
     PreRender,
-    // Frame render
+    /// Frame render
     Render,
-    // After frame render
+    /// After frame render
     PostRender,
-    // Before input handling
+    /// Before input handling
     PreInput,
-    // Input handling
+    /// Input handling
     Input,
-    // After input handling
+    /// After input handling
     PostInput,
 }
 
