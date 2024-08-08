@@ -105,7 +105,7 @@ function PayloadTableToValue(payloadTable)
         local name = payloadTable:getName(index)
         local payload = payloadTable:getPayload(index)
 
-        result[name] = PayloadToValue(payload)
+        result[tostring(name)] = PayloadToValue(payload)
     end
     return result
 end
