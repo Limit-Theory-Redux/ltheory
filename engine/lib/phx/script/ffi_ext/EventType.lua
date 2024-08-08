@@ -9,7 +9,7 @@ function onDef_EventType(t, mt)
             return
         end
 
-        local nextFreeId = EventType.NextFreeId or EventType.EngineEventTypesCount + 1
+        local nextFreeId = EventType.NextFreeId or EventType.EngineEventTypesCount
 
         for _, newType in ipairs(newTypes) do
             if EventType[newType] == nil then

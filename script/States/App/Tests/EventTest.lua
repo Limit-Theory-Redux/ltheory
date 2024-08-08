@@ -31,9 +31,16 @@ function EventTest:onInit()
         end
     end)
 
+    EventType.AddEventTypes({ "TestEvent" })
+
+    EventBus:register(EventType.TestEvent, "TestEvent", FrameStage.Render)
+    EventBus:subscribe(EventType.TestEvent, fakeEntity, function() Log.Debug("TestEvent") end)
+
     for eventType = 0, EventType.EngineEventTypesCount - 1 do
         EventBus:send(eventType, fakeEntity)
     end
+
+    EventBus:send(EventType.TestEvent, fakeEntity)
 end
 
 function EventTest:onPreRender() end
