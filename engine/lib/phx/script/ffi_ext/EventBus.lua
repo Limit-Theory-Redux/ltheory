@@ -4,6 +4,11 @@ local ToValuePtr, ValueToPayload, PayloadToValue
 
 function onDef_EventBus_t(t, mt)
     -- TODO: should return a handler
+    mt.__index.register = function(self, event, eventName, frameStage, rustPayload)
+        local rustPayload = rustPayload == nil or rustPayload
+        libphx.EventBus_Register(self, event, eventName, frameStage, rustPayload)
+    end
+
     mt.__index.subscribe = function(self, event, ctxTable, callback)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
         local entityIdPtr = ToValuePtr(entityId, "uint64")
@@ -21,11 +26,13 @@ function onDef_EventBus_t(t, mt)
     mt.__index.send = function(self, event, ctxTable, payload)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
         local entityIdPtr = ToValuePtr(entityId, "uint64")
-        libphx.EventBus_Send(self, event, entityIdPtr, ValueToPayload(payload))
+        local rustPayload = EventBus:hasRustPayload(event)
+        libphx.EventBus_Send(self, event, entityIdPtr, ValueToPayload(payload, rustPayload))
     end
 
     mt.__index.dispatch = function(self, event, payload)
-        libphx.EventBus_Send(self, event, nil, ValueToPayload(payload))
+        local rustPayload = EventBus:hasRustPayload(event)
+        libphx.EventBus_Send(self, event, nil, ValueToPayload(payload, rustPayload))
     end
 
     mt.__index.nextEvent = function(self)
@@ -58,7 +65,7 @@ end
 function ValueToPayloadTable(value)
     local result = EventPayloadTable.Create()
     for name, payload in pairs(value) do
-        local payload = ValueToPayload(payload)
+        local payload = ValueToPayload(payload, true)
         if payload ~= nil then
             result:add(name, payload)
         end
@@ -68,32 +75,37 @@ end
 
 -- Convert Lua value into payload
 ---@param value any
+---@param rustPayload boolean
 ---@return EventPayload|nil
-function ValueToPayload(value)
-    -- TODO: process Lua only payload
-    if type(value) == "nil" then
-        return nil
-    end
-    if type(value) == "boolean" then
-        return EventPayload.FromBool(value)
-    end
-    if type(value) == "integer" then
-        return EventPayload.FromI64(value) -- TODO: can we distinguish other integer types?
-    end
-    if type(value) == "number" then
-        return EventPayload.FromF64(value) -- TODO: can we distinguish other numeric types?
-    end
-    if type(value) == "string" then
-        return EventPayload.FromString(value)
-    end
-    if type(value) == "string" then
-        return EventPayload.FromString(value)
-    end
-    if type(value) == "table" then
-        return EventPayload.FromTable(ValueToPayloadTable(value))
-    end
+function ValueToPayload(value, rustPayload)
+    if rustPayload then
+        if type(value) == "nil" then
+            return nil
+        end
+        if type(value) == "boolean" then
+            return EventPayload.FromBool(value)
+        end
+        if type(value) == "integer" then
+            return EventPayload.FromI64(value) -- TODO: can we distinguish other integer types?
+        end
+        if type(value) == "number" then
+            return EventPayload.FromF64(value) -- TODO: can we distinguish other numeric types?
+        end
+        if type(value) == "string" then
+            return EventPayload.FromString(value)
+        end
+        if type(value) == "string" then
+            return EventPayload.FromString(value)
+        end
+        if type(value) == "table" then
+            return EventPayload.FromTable(ValueToPayloadTable(value))
+        end
 
-    Log.Error("Unsupported payload type: " .. tostring(type(value)) .. ". Value: " .. tostring(value))
+        Log.Error("Unsupported payload type: " .. tostring(type(value)) .. ". Value: " .. tostring(value))
+    else
+        -- TODO: process Lua only payload
+        return EventPayload.FromLua(0)
+    end
 end
 
 -- Convert payload table into Lua one.

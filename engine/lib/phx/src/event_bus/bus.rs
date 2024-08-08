@@ -17,6 +17,7 @@ enum EventBusOperation {
         event_id: EventId,
         event_name: String,
         frame_stage: FrameStage,
+        rust_payload: bool,
     },
     Unregister {
         event_id: EventId,
@@ -71,7 +72,8 @@ impl EventBus {
         for frame_stage in FrameStage::iter() {
             let event_type = &frame_stage.as_event_type();
             let event_id = event_type.index();
-            let event_message = EventMessage::new(event_id, &event_type.to_string(), frame_stage);
+            let event_message =
+                EventMessage::new(event_id, &event_type.to_string(), frame_stage, false);
 
             let message_request = MessageRequest {
                 event_id,
@@ -126,6 +128,7 @@ impl EventBus {
                     event_id,
                     event_name,
                     frame_stage,
+                    rust_payload,
                 } => {
                     match self.event_messages.entry(event_id) {
                         Entry::Occupied(_) => {
@@ -134,7 +137,7 @@ impl EventBus {
                         }
                         Entry::Vacant(entry) => {
                             let event_message =
-                                EventMessage::new(event_id, &event_name, frame_stage);
+                                EventMessage::new(event_id, &event_name, frame_stage, rust_payload);
 
                             entry.insert(event_message);
                         }
@@ -206,11 +209,26 @@ impl EventBus {
             .insert(0, EventBusOperation::SetTimeScale { scale_factor });
     }
 
-    pub fn register(&mut self, event_id: u16, event_name: &str, frame_stage: FrameStage) {
+    pub fn has_rust_payload(&self, event_id: u16) -> bool {
+        let event_message = self
+            .event_messages
+            .get(&event_id)
+            .unwrap_or_else(|| panic!("Unknown event: {event_id}"));
+        event_message.has_rust_payload()
+    }
+
+    pub fn register(
+        &mut self,
+        event_id: u16,
+        event_name: &str,
+        frame_stage: FrameStage,
+        rust_payload: bool,
+    ) {
         self.operations.push(EventBusOperation::Register {
             event_id,
             event_name: event_name.into(),
             frame_stage,
+            rust_payload,
         });
     }
 
@@ -402,7 +420,7 @@ mod tests {
         events.iter().for_each(|(event_id, frame_stage)| {
             let event_id = *event_id + event_id_offset;
             let event_name = format!("TestEvent{event_id}");
-            event_bus.register(event_id, &event_name, *frame_stage);
+            event_bus.register(event_id, &event_name, *frame_stage, true);
         });
 
         let tunnel_ids: Vec<_> = subscribes

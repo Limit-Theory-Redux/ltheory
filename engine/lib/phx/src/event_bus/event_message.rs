@@ -7,16 +7,18 @@ pub struct EventMessage {
     frame_stage: FrameStage,
     subscribers: Vec<Subscriber>,
     next_index: usize,
+    rust_payload: bool,
 }
 
 impl EventMessage {
-    pub fn new(id: EventId, name: &str, frame_stage: FrameStage) -> Self {
+    pub fn new(id: EventId, name: &str, frame_stage: FrameStage, rust_payload: bool) -> Self {
         Self {
             id,
             name: name.into(),
             frame_stage,
             subscribers: vec![],
             next_index: 0,
+            rust_payload,
         }
     }
 
@@ -49,5 +51,9 @@ impl EventMessage {
             self.next_index = 0;
         }
         result
+    }
+
+    pub fn has_rust_payload(&self) -> bool {
+        self.rust_payload
     }
 }

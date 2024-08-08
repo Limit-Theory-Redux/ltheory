@@ -10,9 +10,14 @@ function EventBus:getTimeScale() end
 function EventBus:setTimeScale(scaleFactor) end
 
 ---@param eventId integer
+---@return boolean
+function EventBus:hasRustPayload(eventId) end
+
+---@param eventId integer
 ---@param eventName string
 ---@param frameStage FrameStage
-function EventBus:register(eventId, eventName, frameStage) end
+---@param rustPayload boolean
+function EventBus:register(eventId, eventName, frameStage, rustPayload) end
 
 ---@param eventId integer
 function EventBus:unregister(eventId) end
