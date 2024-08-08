@@ -1,5 +1,7 @@
 use strum_macros::EnumIter;
 
+use super::EventType;
+
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
 pub enum FrameStage {
@@ -52,6 +54,20 @@ impl FrameStage {
 
     pub const fn index(&self) -> usize {
         *self as usize
+    }
+
+    pub fn as_event_type(&self) -> EventType {
+        match self {
+            Self::PreSim => EventType::PreSim,
+            Self::Sim => EventType::Sim,
+            Self::PostSim => EventType::PostSim,
+            Self::PreRender => EventType::PreRender,
+            Self::Render => EventType::Render,
+            Self::PostRender => EventType::PostRender,
+            Self::PreInput => EventType::PreInput,
+            Self::Input => EventType::Input,
+            Self::PostInput => EventType::PostInput,
+        }
     }
 }
 

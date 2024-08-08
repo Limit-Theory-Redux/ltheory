@@ -42,6 +42,7 @@ enum EventBusOperation {
 #[derive(Debug, Clone, PartialEq)]
 struct MessageRequest {
     event_id: EventId,
+    keep_alive: bool,
     for_entity_id: Option<EntityId>,
     payload: Option<EventPayload>,
 }
@@ -62,14 +63,35 @@ pub struct EventBus {
 
 impl EventBus {
     pub fn new() -> Self {
+        let mut events = HashMap::new();
+        let mut cached_requests: Vec<Vec<MessageRequest>> =
+            vec![Default::default(); FrameStage::len()];
+
+        // Create an event for every frame stage
+        for frame_stage in FrameStage::iter() {
+            let event_type = &frame_stage.as_event_type();
+            let event_id = event_type.index();
+            let event = Event::new(event_id, &event_type.to_string(), frame_stage);
+
+            let message_request = MessageRequest {
+                event_id,
+                keep_alive: true,
+                for_entity_id: None,
+                payload: None,
+            };
+
+            events.insert(event_id, event);
+            cached_requests[frame_stage.index()].push(message_request);
+        }
+
         Self {
             delta_time: 0.0,
             frame_timer: FrameTimer::new(),
             frame_time_scale: 1.0,
-            events: HashMap::new(),
+            events,
             operations: vec![],
             frame_stage_requests: vec![Default::default(); FrameStage::len()],
-            cached_requests: vec![Default::default(); FrameStage::len()],
+            cached_requests,
             next_tunnel_id: AtomicU32::new(0),
             prev_frame_stage: FrameStage::last(), // to trigger delta time recalculation of the first stage for the new frame
             current_frame_stage: FrameStage::first(),
@@ -151,6 +173,7 @@ impl EventBus {
                     if let Some(event) = self.events.get(&event_id) {
                         let message_request = MessageRequest {
                             event_id: event.id(),
+                            keep_alive: false,
                             for_entity_id: entity_id,
                             payload,
                         };
@@ -262,14 +285,20 @@ impl EventBus {
                     // NOTE: pop will return messages in correct order because they were inserted in reverse one in reinsert_stay_alive_requests method
                     self.current_message_request = message_requests.pop();
 
-                    // if let Some(message_request) = &self.current_message_request {
-                    //     println!(
-                    //         "      Popped new message request. Event id {:?}, entity id: {:?}",
-                    //         message_request.event_id, message_request.for_entity_id
-                    //     );
-                    // } else {
-                    //     println!("      No more message requests in queue");
-                    // }
+                    if let Some(message_request) = &self.current_message_request {
+                        // println!(
+                        //     "      Popped new message request. Event id {:?}, entity id: {:?}",
+                        //     message_request.event_id, message_request.for_entity_id
+                        // );
+
+                        if message_request.keep_alive {
+                            // println!("        Caching keep_alive message request");
+                            self.cached_requests[self.current_frame_stage.index()]
+                                .push(message_request.clone());
+                        }
+                    } else {
+                        // println!("      No more message requests in queue");
+                    }
                 }
 
                 if let Some(message_request) = &self.current_message_request {
@@ -283,7 +312,9 @@ impl EventBus {
                         // let frame_stage = event.frame_stage();
                         if let Some(subscriber) = event.next_subscriber() {
                             // println!("        Found next subscriber for event. Tunnel id: {}, entity id: {:?}", subscriber.tunnel_id(), subscriber.entity_id());
-                            if message_request.for_entity_id == subscriber.entity_id() {
+                            if message_request.keep_alive
+                                || message_request.for_entity_id == subscriber.entity_id()
+                            {
                                 let event_data = EventData::new(
                                     self.delta_time,
                                     self.current_frame_stage,
@@ -356,7 +387,7 @@ impl EventBus {
 #[cfg(test)]
 mod tests {
     use super::{EntityId, EventBus, EventId, TunnelId};
-    use crate::event_bus::{EventPayload, FrameStage};
+    use crate::event_bus::{EventPayload, EventType, FrameStage};
 
     fn test_event_bus(
         events: &[(EventId, FrameStage)],
@@ -365,33 +396,43 @@ mod tests {
         expected: &[(FrameStage, TunnelId, Option<EventPayload>)],
     ) {
         let mut event_bus = EventBus::new();
+        let event_id_offset = EventType::EngineEventTypesCount.index();
 
-        events.iter().for_each(|e| {
-            let event_name = format!("TestEvent{}", e.0);
-            event_bus.register(e.0, &event_name, e.1);
+        events.iter().for_each(|(event_id, frame_stage)| {
+            let event_id = *event_id + event_id_offset;
+            let event_name = format!("TestEvent{event_id}");
+            event_bus.register(event_id, &event_name, *frame_stage);
         });
 
         let tunnel_ids: Vec<_> = subscribes
             .iter()
-            .map(|s| event_bus.subscribe(s.0, s.1))
+            .map(|(event_id, entity_id)| {
+                event_bus.subscribe(*event_id + event_id_offset, *entity_id)
+            })
             .collect();
 
-        sends
-            .iter()
-            .for_each(|s| event_bus.send(s.0, s.1, s.2.as_ref()));
+        sends.iter().for_each(|(event_id, entity_id, payload)| {
+            event_bus.send(*event_id + event_id_offset, *entity_id, payload.as_ref())
+        });
 
         event_bus.start_event_iteration();
 
-        expected.iter().enumerate().for_each(|(i, e)| {
-            let event = event_bus
-                .next_event()
-                .unwrap_or_else(|| panic!("Event {i} was not sent"));
+        expected
+            .iter()
+            .enumerate()
+            .for_each(|(i, (frame_stage, tunnel_id, payload))| {
+                let event = event_bus
+                    .next_event()
+                    .unwrap_or_else(|| panic!("Event {i} was not sent"));
 
-            assert!(tunnel_ids.contains(&e.1), "Unexpected tunnel id: {}", e.1);
-            assert_eq!(event.frame_stage(), e.0, "Frame stage");
-            assert_eq!(event.tunnel_id(), e.1, "Tunnel id");
-            assert_eq!(event.payload(), e.2.as_ref(), "Payload");
-        });
+                assert!(
+                    tunnel_ids.contains(tunnel_id),
+                    "[{i}] Unexpected tunnel id: {tunnel_id}"
+                );
+                assert_eq!(event.frame_stage(), *frame_stage, "[{i}] Frame stage");
+                assert_eq!(event.tunnel_id(), *tunnel_id, "[{i}] Tunnel id");
+                assert_eq!(event.payload(), payload.as_ref(), "[{i}] Payload");
+            });
 
         let next_event = event_bus.next_event();
         assert!(
