@@ -28,7 +28,7 @@ function Entity:addExplodable()
 
     self.explosionSize = 64
 
-    self:register(Event.Destroyed, explode)
+    self:register(OldEvent.Destroyed, explode)
 end
 
 function Entity:hasExplodable()

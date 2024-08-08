@@ -478,8 +478,8 @@ end
 function Entity:addBlackMarketTrader()
     assert(not self.blackMarketTrader)
     self.blackMarketTrader = BlackMarketTrader(self)
-    self:register(Event.Debug, Entity.debugBlackMarketTrader)
-    self:register(Event.Update, Entity.updateBlackMarketTrader)
+    self:register(OldEvent.Debug, Entity.debugBlackMarketTrader)
+    self:register(OldEvent.Update, Entity.updateBlackMarketTrader)
 
     return self.blackMarketTrader
 end
@@ -522,8 +522,8 @@ end
 
 function Entity:removeBlackMarketTrader()
     assert(self.blackMarketTrader)
-    self:unregister(Event.Debug, Entity.debugBlackMarketTrader)
-    self:unregister(Event.Update, Entity.updateBlackMarketTrader)
+    self:unregister(OldEvent.Debug, Entity.debugBlackMarketTrader)
+    self:unregister(OldEvent.Update, Entity.updateBlackMarketTrader)
     self.blackMarketTrader = nil
 end
 

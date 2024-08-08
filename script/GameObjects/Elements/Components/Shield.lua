@@ -42,8 +42,8 @@ local Shield      = subclass(Entity, function(self)
     self.colorR       = Config.gen.compShieldStats.colorR
     self.colorG       = Config.gen.compShieldStats.colorG
     self.colorB       = Config.gen.compShieldStats.colorB
-    --Log.Debug("Register: Shield type = %s, handler = %s", Event.Update, self.updateShield)
-    self:register(Event.Update, self.updateShield)
+    --Log.Debug("Register: Shield type = %s, handler = %s", OldEvent.Update, self.updateShield)
+    self:register(OldEvent.Update, self.updateShield)
 end)
 
 ---@return SocketType.Shield
@@ -143,7 +143,7 @@ function Shield:setStrength(value, max, rate)
     self.reviveRate = rate
 end
 
----@param state Event
+---@param state OldEvent
 function Shield:updateShield(state)
     if not self:getParent():isDestroyed() then
         local oldStrength = self.strengthCurr

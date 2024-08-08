@@ -60,8 +60,8 @@ local Drone = subclass(Entity, function(self)
     self.cooldown     = 0
     self.heat         = 0
 
-    --Log.Debug("Register: Drone name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateDrone)
-    self:register(Event.Update, self.updateDrone)
+    --Log.Debug("Register: Drone name = %s, type = %s, handler = %s", self.name, OldEvent.Update, self.updateDrone)
+    self:register(OldEvent.Update, self.updateDrone)
 end)
 
 function Drone:getSocketType()

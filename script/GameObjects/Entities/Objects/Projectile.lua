@@ -22,8 +22,8 @@ function Entity:addProjectiles()
     self.projectiles = {}
     self.pcount = 0
 
-    self:register(Event.Update, Entity.updateProjectiles)
-    self:register(Event.Update, Entity.updateProjectilesPost)
+    self:register(OldEvent.Update, Entity.updateProjectiles)
+    self:register(OldEvent.Update, Entity.updateProjectilesPost)
 end
 
 function Entity:addProjectile(source)

@@ -35,8 +35,8 @@ local Capacitor   = subclass(Entity, function(self)
     self.chargeCurr = Config.gen.compCapacitorStats.chargeCurr
     self.chargeMax  = Config.gen.compCapacitorStats.chargeMax
     self.chargeRate = Config.gen.compCapacitorStats.chargeRate
-    --Log.Debug("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCapacitor)
-    self:register(Event.Update, self.updateCapacitor)
+    --Log.Debug("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, OldEvent.Update, self.updateCapacitor)
+    self:register(OldEvent.Update, self.updateCapacitor)
 end)
 
 function Capacitor:getSocketType()

@@ -25,8 +25,8 @@ local Sensor      = subclass(Entity, function(self)
     self.mappingRange = Config.gen.compSensorStats.mappingRange
     self.scanDetail   = Config.gen.compSensorStats.scanDetail
     self.scanSpeed    = Config.gen.compSensorStats.scanSpeed
-    --Log.Debug("Register: Sensor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateSensor)
-    self:register(Event.Update, self.updateSensor)
+    --Log.Debug("Register: Sensor name = '%s', type = %s, handler = %s", self.name, OldEvent.Update, self.updateSensor)
+    self:register(OldEvent.Update, self.updateSensor)
 end)
 
 function Sensor:getSocketType()

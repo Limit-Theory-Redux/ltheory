@@ -154,8 +154,8 @@ end
 function Entity:addEconomy()
     assert(not self.economy)
     self.economy = Economy(self)
-    self:register(Event.Debug, Entity.debugEconomy)
-    --self:register(Event.Update, Entity.updateEconomy)
+    self:register(OldEvent.Debug, Entity.debugEconomy)
+    --self:register(OldEvent.Update, Entity.updateEconomy)
 end
 
 function Entity:debugEconomy(state)

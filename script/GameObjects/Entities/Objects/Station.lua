@@ -206,8 +206,8 @@ local Station = subclass(Entity, function(self, seed, hull)
     self.lastClearDamageTime = 0
     self.timer = 0
     self.stationPatrolJobs = 0
-    self:register(Event.Update, Entity.updateStation)
-    self:register(Event.Damaged, wasDamaged)
+    self:register(OldEvent.Update, Entity.updateStation)
+    self:register(OldEvent.Damaged, wasDamaged)
 end)
 
 function Station:undockAndAttack(target)

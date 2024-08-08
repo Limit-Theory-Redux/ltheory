@@ -57,8 +57,8 @@ local Turret = subclass(Entity, function(self)
     self.heat       = 0
     self.cooldown   = 0
 
-    --Log.Debug("Register: Turret name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateTurret)
-    self:register(Event.Update, self.updateTurret)
+    --Log.Debug("Register: Turret name = %s, type = %s, handler = %s", self.name, OldEvent.Update, self.updateTurret)
+    self:register(OldEvent.Update, self.updateTurret)
 end)
 
 function Turret:getSocketType()
@@ -142,7 +142,7 @@ function Turret:fire()
     self.heat = self.heat + 1
 
     -- Event to parent
-    self:getParent():send(Event.FiredTurret(self, projectile, effect))
+    self:getParent():send(OldEvent.FiredTurret(self, projectile, effect))
 end
 
 function Turret:render(state)

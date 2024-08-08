@@ -19,14 +19,14 @@ function Entity:addChild(child)
     if child.parent then child.parent:removeChild(child) end
     insert(self.children, child)
     child.parent = self
-    self:send(Event.ChildAdded(child))
-    child:send(Event.AddedToParent(self))
+    self:send(OldEvent.ChildAdded(child))
+    child:send(OldEvent.AddedToParent(self))
 end
 
 function Entity:addChildren()
     assert(not self.children)
     self.children = {}
-    self:register(Event.Broadcast, broadcast)
+    self:register(OldEvent.Broadcast, broadcast)
 end
 
 function Entity:getChildren()
@@ -84,12 +84,12 @@ function Entity:removeChild(child)
     end
 
     child.parent = nil
-    self:send(Event.ChildRemoved(child))
-    child:send(Event.RemovedFromParent(self))
+    self:send(OldEvent.ChildRemoved(child))
+    child:send(OldEvent.RemovedFromParent(self))
 
     -- this make sure that a child is also removed from the root / system if it has a different parent than the system e.g. ship docked at station
     if parent then
-        self:send(Event.ChildRemoved(child))
-        child:send(Event.RemovedFromParent(self))
+        self:send(OldEvent.ChildRemoved(child))
+        child:send(OldEvent.RemovedFromParent(self))
     end
 end

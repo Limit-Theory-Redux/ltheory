@@ -6,7 +6,7 @@ function Entity:addVisibleLodMesh(mesh, material)
     assert(material)
     self.mesh = mesh
     self.material = material
-    self:register(Event.Render, Entity.renderVisibleLodMesh)
+    self:register(OldEvent.Render, Entity.renderVisibleLodMesh)
 end
 
 function Entity:renderVisibleLodMesh(state)

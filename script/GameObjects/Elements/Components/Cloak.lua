@@ -23,8 +23,8 @@ local Cloak       = subclass(Entity, function(self)
     self.rating     = Config.gen.compCloakStats.rating
     self.draw       = Config.gen.compCloakStats.draw
     self.active     = false
-    --Log.Debug("Register: Cloak name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCloak)
-    self:register(Event.Update, self.updateCloak)
+    --Log.Debug("Register: Cloak name = '%s', type = %s, handler = %s", self.name, OldEvent.Update, self.updateCloak)
+    self:register(OldEvent.Update, self.updateCloak)
 end)
 
 function Cloak:getSocketType()

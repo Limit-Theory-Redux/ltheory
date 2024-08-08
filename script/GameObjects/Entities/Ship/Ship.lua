@@ -117,9 +117,9 @@ local Ship = subclass(Entity, function(self, proto, hull)
     local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
 
     -- Events
-    self:register(Event.Damaged, wasDamaged)
-    self:register(Event.FiredTurret, self.turretFired)
-    self:register(Event.Collision, self.onCollision)
+    self:register(OldEvent.Damaged, wasDamaged)
+    self:register(OldEvent.FiredTurret, self.turretFired)
+    self:register(OldEvent.Collision, self.onCollision)
 end)
 
 function Ship:turretFired(event)

@@ -26,7 +26,7 @@ function GameView:draw(focus, active)
     do -- Opaque Pass
         Profiler.Begin('Render.Opaque')
         self.renderer:start(self.sx, self.sy, ss)
-        system:render(Event.Render(BlendMode.Disabled, eye)) -- significant performance point with ss
+        system:render(OldEvent.Render(BlendMode.Disabled, eye)) -- significant performance point with ss
         self.renderer:stop()
         Profiler.End()
     end
@@ -100,7 +100,7 @@ function GameView:draw(focus, active)
     if true then -- Alpha (Additive) Pass
         Profiler.Begin('Render.Additive')
         self.renderer:startAlpha(BlendMode.Additive)
-        system:render(Event.Render(BlendMode.Additive, eye)) -- significant performance point
+        system:render(OldEvent.Render(BlendMode.Additive, eye)) -- significant performance point
         self.renderer:stopAlpha()
         Profiler.End()
     end
@@ -108,11 +108,11 @@ function GameView:draw(focus, active)
     if true then -- Alpha Pass
         Profiler.Begin('Render.AlphaDebug')
         self.renderer:startAlpha(BlendMode.Alpha)
-        system:render(Event.Render(BlendMode.Alpha, eye))
+        system:render(OldEvent.Render(BlendMode.Alpha, eye))
 
         -- TODO : This should be moved into a render pass
         if GameState.debug.physics.drawBoundingBoxesLocal or
-        GameState.debug.physics.drawBoundingBoxesWorld or
+            GameState.debug.physics.drawBoundingBoxesWorld or
             GameState.debug.physics.drawWireframes
         then
             local mat = Material.DebugColorA()

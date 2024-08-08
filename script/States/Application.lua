@@ -132,7 +132,7 @@ function Application:onPreRender(data)
         EventBus:setTimeScale(self.timeScale)
     end
 
-    local timeScaledDt = data:getDeltaTime()
+    local timeScaledDt = data:deltaTime()
 
     --* system & canvas should probably subscribe to onPreRender themselves
     if GameState.player.humanPlayer and GameState.player.humanPlayer:getRoot().update then

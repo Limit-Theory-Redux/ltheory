@@ -24,8 +24,8 @@ local Computer    = subclass(Entity, function(self)
     self.mappingSpeed = Config.gen.compComputerStats.mappingSpeed
     self.lockCount    = Config.gen.compComputerStats.lockCount
     self.lockStrength = Config.gen.compComputerStats.lockStrength
-    --Log.Debug("Register: Computer name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateComputer)
-    self:register(Event.Update, self.updateComputer)
+    --Log.Debug("Register: Computer name = '%s', type = %s, handler = %s", self.name, OldEvent.Update, self.updateComputer)
+    self:register(OldEvent.Update, self.updateComputer)
 end)
 
 function Computer:getSocketType()

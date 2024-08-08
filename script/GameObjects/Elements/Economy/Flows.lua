@@ -12,7 +12,7 @@ local Entity = require('GameObjects.Entity')
 function Entity:addFlows()
     assert(not self.flows)
     self.flows = {}
-    self:register(Event.Debug, Entity.debugFlows)
+    self:register(OldEvent.Debug, Entity.debugFlows)
 end
 
 function Entity:debugFlows(state)
