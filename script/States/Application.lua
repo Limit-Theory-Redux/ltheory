@@ -39,13 +39,13 @@ function Application:eventLoop()
 
     EventBus:startEventIteration()
 
-    local eventData = EventBus:nextEvent()
+    local eventData, payload = EventBus:nextEvent()
     while eventData ~= nil do
         --print("[" .. tostring(Render.ToString(eventData:getRender())) .. "]")
         --print("- Tunnel Id: " .. tostring(eventData:tunnelId()))
 
-        EventTunnels[eventData:tunnelId()](eventData)
-        eventData = EventBus:nextEvent()
+        EventTunnels[eventData:tunnelId()](eventData, payload)
+        eventData, payload = EventBus:nextEvent()
     end
 end
 

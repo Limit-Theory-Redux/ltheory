@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 use super::EventPayload;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct EventPayloadTable {
-    table: HashMap<String, EventPayload>,
+    table: IndexMap<String, EventPayload>,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -28,8 +28,12 @@ impl EventPayloadTable {
         self.table.contains_key(name)
     }
 
-    pub fn get(&self, name: &str) -> Option<&EventPayload> {
-        self.table.get(name)
+    pub fn get_name(&self, index: usize) -> Option<&str> {
+        self.table.get_index(index).map(|(name, _)| name.as_str())
+    }
+
+    pub fn get_payload(&self, index: usize) -> Option<&EventPayload> {
+        self.table.get_index(index).map(|(_, payload)| payload)
     }
 
     pub fn add(&mut self, name: &str, value: EventPayload) {

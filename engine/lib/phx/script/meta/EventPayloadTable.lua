@@ -16,9 +16,13 @@ function EventPayloadTable:isEmpty() end
 ---@return boolean
 function EventPayloadTable:contains(name) end
 
----@param name string
+---@param index integer
+---@return string|nil
+function EventPayloadTable:getName(index) end
+
+---@param index integer
 ---@return EventPayload|nil
-function EventPayloadTable:get(name) end
+function EventPayloadTable:getPayload(index) end
 
 ---@param name string
 ---@param value EventPayload
