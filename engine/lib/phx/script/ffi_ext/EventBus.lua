@@ -4,11 +4,11 @@ local ToValuePtr, ValueToPayload, PayloadToValue
 
 function onDef_EventBus_t(t, mt)
     -- TODO: should return a handler
-    mt.__index.subscribe = function(self, eventType, ctxTable, callback)
+    mt.__index.subscribe = function(self, event, ctxTable, callback)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
         local entityIdPtr = ToValuePtr(entityId, "uint64")
 
-        local tunnelId = libphx.EventBus_Subscribe(self, eventType, entityIdPtr)
+        local tunnelId = libphx.EventBus_Subscribe(self, event, entityIdPtr)
         EventTunnels[tunnelId] = function(...) callback(ctxTable, ...) end
         return tunnelId
     end
@@ -18,14 +18,14 @@ function onDef_EventBus_t(t, mt)
         EventTunnels[tunnelId] = nil
     end
 
-    mt.__index.send = function(self, eventType, ctxTable, payload)
+    mt.__index.send = function(self, event, ctxTable, payload)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
         local entityIdPtr = ToValuePtr(entityId, "uint64")
-        libphx.EventBus_Send(self, eventType, entityIdPtr, ValueToPayload(payload))
+        libphx.EventBus_Send(self, event, entityIdPtr, ValueToPayload(payload))
     end
 
-    mt.__index.dispatch = function(self, eventType, payload)
-        libphx.EventBus_Send(self, eventType, nil, ValueToPayload(payload))
+    mt.__index.dispatch = function(self, event, payload)
+        libphx.EventBus_Send(self, event, nil, ValueToPayload(payload))
     end
 
     mt.__index.nextEvent = function(self)

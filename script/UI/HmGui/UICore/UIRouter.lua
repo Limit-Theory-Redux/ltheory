@@ -15,8 +15,8 @@ function UIRouter:__init()
 end
 
 function UIRouter:registerEvents()
-    EventBus:subscribe(EventType.Input, self, self.input)
-    EventBus:subscribe(EventType.Render, self, self.update)
+    EventBus:subscribe(Event.Input, self, self.input)
+    EventBus:subscribe(Event.Render, self, self.update)
 end
 
 -- routing the input loop through to the views

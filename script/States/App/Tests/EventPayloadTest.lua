@@ -35,24 +35,24 @@ end
 function EventPayloadTest:onInit()
     local fakeEntity = { getGuid = function() return 0 end }
 
-    EventType.AddEventTypes({ "TestEvent", "ExitEvent" })
+    Event.AddEvents({ "TestEvent", "ExitEvent" })
 
-    EventBus:register(EventType.TestEvent, "TestEvent", FrameStage.Render)
-    EventBus:register(EventType.ExitEvent, "ExitEvent", FrameStage.PostInput)
+    EventBus:register(Event.TestEvent, "TestEvent", FrameStage.Render)
+    EventBus:register(Event.ExitEvent, "ExitEvent", FrameStage.PostInput)
 
-    EventBus:subscribe(EventType.TestEvent, fakeEntity, function(self, eventData, payload)
+    EventBus:subscribe(Event.TestEvent, fakeEntity, function(self, eventData, payload)
         Log.Debug("TestEvent: " .. TableToString(payload) .. "/" .. tostring(type(payload)))
     end)
-    EventBus:subscribe(EventType.ExitEvent, fakeEntity, function()
+    EventBus:subscribe(Event.ExitEvent, fakeEntity, function()
         Log.Debug("ExitEvent")
         os.exit()
     end)
 
-    EventBus:send(EventType.TestEvent, fakeEntity, false)
-    EventBus:send(EventType.TestEvent, fakeEntity, 1)
-    EventBus:send(EventType.TestEvent, fakeEntity, 2.0)
-    EventBus:send(EventType.TestEvent, fakeEntity, "TestPayload1")
-    EventBus:send(EventType.TestEvent, fakeEntity, {
+    EventBus:send(Event.TestEvent, fakeEntity, false)
+    EventBus:send(Event.TestEvent, fakeEntity, 1)
+    EventBus:send(Event.TestEvent, fakeEntity, 2.0)
+    EventBus:send(Event.TestEvent, fakeEntity, "TestPayload1")
+    EventBus:send(Event.TestEvent, fakeEntity, {
         boolVal = true,
         intVal = 3,
         floatVal = 4.0,
@@ -65,7 +65,7 @@ function EventPayloadTest:onInit()
         }
     })
 
-    EventBus:send(EventType.ExitEvent, fakeEntity)
+    EventBus:send(Event.ExitEvent, fakeEntity)
 end
 
 function EventPayloadTest:onPreRender() end

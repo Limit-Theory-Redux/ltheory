@@ -1,6 +1,6 @@
 use strum_macros::EnumIter;
 
-use super::EventType;
+use super::Event;
 
 /// Frame stages in order they are processed.
 /// Events can be registered for each stage that will be dispatched in order they ere sent.
@@ -58,17 +58,17 @@ impl FrameStage {
         *self as usize
     }
 
-    pub fn as_event_type(&self) -> EventType {
+    pub fn as_event_type(&self) -> Event {
         match self {
-            Self::PreSim => EventType::PreSim,
-            Self::Sim => EventType::Sim,
-            Self::PostSim => EventType::PostSim,
-            Self::PreRender => EventType::PreRender,
-            Self::Render => EventType::Render,
-            Self::PostRender => EventType::PostRender,
-            Self::PreInput => EventType::PreInput,
-            Self::Input => EventType::Input,
-            Self::PostInput => EventType::PostInput,
+            Self::PreSim => Event::PreSim,
+            Self::Sim => Event::Sim,
+            Self::PostSim => Event::PostSim,
+            Self::PreRender => Event::PreRender,
+            Self::Render => Event::Render,
+            Self::PostRender => Event::PostRender,
+            Self::PreInput => Event::PreInput,
+            Self::Input => Event::Input,
+            Self::PostInput => Event::PostInput,
         }
     }
 }

@@ -388,7 +388,7 @@ impl EventBus {
 #[cfg(test)]
 mod tests {
     use super::{EntityId, EventBus, EventId, TunnelId};
-    use crate::event_bus::{EventPayload, EventType, FrameStage};
+    use crate::event_bus::{Event, EventPayload, FrameStage};
 
     fn test_event_bus(
         events: &[(EventId, FrameStage)],
@@ -397,7 +397,7 @@ mod tests {
         expected: &[(FrameStage, TunnelId, Option<EventPayload>)],
     ) {
         let mut event_bus = EventBus::new();
-        let event_id_offset = EventType::EngineEventTypesCount.index();
+        let event_id_offset = Event::EngineEventsCount.index();
 
         events.iter().for_each(|(event_id, frame_stage)| {
             let event_id = *event_id + event_id_offset;

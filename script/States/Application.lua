@@ -90,15 +90,15 @@ function Application:appInit()
 end
 
 function Application:registerEvents()
-    EventBus:subscribe(EventType.PreSim, self, self.onPreSim)
-    EventBus:subscribe(EventType.Sim, self, self.onSim)
-    EventBus:subscribe(EventType.PostSim, self, self.onPostSim)
-    EventBus:subscribe(EventType.PreRender, self, self.onPreRender)
-    EventBus:subscribe(EventType.Render, self, self.onRender)
-    EventBus:subscribe(EventType.PostRender, self, self.onPostRender)
-    EventBus:subscribe(EventType.PreInput, self, self.onPreInput)
-    EventBus:subscribe(EventType.Input, self, self.onInput)
-    EventBus:subscribe(EventType.PostInput, self, self.onPostInput)
+    EventBus:subscribe(Event.PreSim, self, self.onPreSim)
+    EventBus:subscribe(Event.Sim, self, self.onSim)
+    EventBus:subscribe(Event.PostSim, self, self.onPostSim)
+    EventBus:subscribe(Event.PreRender, self, self.onPreRender)
+    EventBus:subscribe(Event.Render, self, self.onRender)
+    EventBus:subscribe(Event.PostRender, self, self.onPostRender)
+    EventBus:subscribe(Event.PreInput, self, self.onPreInput)
+    EventBus:subscribe(Event.Input, self, self.onInput)
+    EventBus:subscribe(Event.PostInput, self, self.onPostInput)
 end
 
 function Application:onPreSim(data) end
