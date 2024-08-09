@@ -199,6 +199,7 @@ impl EventBus {
         frame_stage: FrameStage,
         rust_payload: bool,
     ) {
+        // NOTE: we register event immediately instead of via operation to make `has_rust_payload` method work properly
         match self.event_messages.entry(event_id) {
             Entry::Occupied(_) => {
                 // TODO: panic?

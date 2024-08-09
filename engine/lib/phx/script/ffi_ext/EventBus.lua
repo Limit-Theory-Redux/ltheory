@@ -1,11 +1,21 @@
 local libphx = require('libphx').lib
 
-local ToValuePtr, ValueToPayload, PayloadToValue
+local ValueToPayload, PayloadToValue
+
+function ToValuePtr(value, type)
+    local valuePtr = nil
+    if value then
+        valuePtr = ffi.new(type .. "[1]") -- convert to pointer since we use rust option
+        valuePtr[0] = value
+    end
+    return valuePtr
+end
 
 function onDef_EventBus_t(t, mt)
     -- TODO: should return a handler
     mt.__index.register = function(self, event, eventName, frameStage, rustPayload)
         local rustPayload = rustPayload == nil or rustPayload
+        Log.Debug("Rust payload: " .. tostring(rustPayload))
         libphx.EventBus_Register(self, event, eventName, frameStage, rustPayload)
     end
 
@@ -50,13 +60,11 @@ function onDef_EventBus_t(t, mt)
     end
 end
 
-function ToValuePtr(value, type)
-    local valuePtr = nil
-    if value then
-        valuePtr = ffi.new(type .. "[1]") -- convert to pointer since we use rust option
-        valuePtr[0] = value
-    end
-    return valuePtr
+function onDef_EventBus(t, mt)
+    local EventBus = t
+
+    t.PayloadCache = {}
+    t.NextPayloadCacheIndex = 1 -- TODO: reusable indices/cache slots
 end
 
 -- Convert Lua table into payload one
