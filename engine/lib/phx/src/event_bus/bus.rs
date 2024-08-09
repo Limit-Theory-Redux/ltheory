@@ -13,12 +13,6 @@ pub type TunnelId = u32;
 
 #[derive(Debug, Clone)]
 enum EventBusOperation {
-    Register {
-        event_id: EventId,
-        event_name: String,
-        frame_stage: FrameStage,
-        rust_payload: bool,
-    },
     Unregister {
         event_id: EventId,
     },
@@ -124,25 +118,6 @@ impl EventBus {
         for operation in operations.drain(..) {
             // println!("  {operation:?}");
             match operation {
-                EventBusOperation::Register {
-                    event_id,
-                    event_name,
-                    frame_stage,
-                    rust_payload,
-                } => {
-                    match self.event_messages.entry(event_id) {
-                        Entry::Occupied(_) => {
-                            // TODO: panic?
-                            warn!("You are trying to register an Event '{event_name}':{event_id} that already exists - Aborting!");
-                        }
-                        Entry::Vacant(entry) => {
-                            let event_message =
-                                EventMessage::new(event_id, &event_name, frame_stage, rust_payload);
-
-                            entry.insert(event_message);
-                        }
-                    }
-                }
                 EventBusOperation::Unregister { event_id } => {
                     if let Some(event) = self.event_messages.remove(&event_id) {
                         if let Some(message_requests) = self
@@ -224,12 +199,18 @@ impl EventBus {
         frame_stage: FrameStage,
         rust_payload: bool,
     ) {
-        self.operations.push(EventBusOperation::Register {
-            event_id,
-            event_name: event_name.into(),
-            frame_stage,
-            rust_payload,
-        });
+        match self.event_messages.entry(event_id) {
+            Entry::Occupied(_) => {
+                // TODO: panic?
+                warn!("You are trying to register an Event '{event_name}':{event_id} that already exists - Aborting!");
+            }
+            Entry::Vacant(entry) => {
+                let event_message =
+                    EventMessage::new(event_id, &event_name, frame_stage, rust_payload);
+
+                entry.insert(event_message);
+            }
+        }
     }
 
     pub fn unregister(&mut self, event_id: u16) {

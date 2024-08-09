@@ -132,6 +132,8 @@ function PayloadToValue(payload)
     local payloadType = payload:getType()
     if payloadType == EventPayloadType.Lua then
         -- TODO: implement
+        Log.Warn("Lua event payload type is not supported yet")
+        return nil
     end
     if payloadType == EventPayloadType.Bool then return payload:getBool() end
     if payloadType == EventPayloadType.I8 then return payload:getI8() end
