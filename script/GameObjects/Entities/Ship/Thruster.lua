@@ -40,10 +40,10 @@ local Thruster = subclass(Entity, function(self, parentShip)
     self.boostT = 0
     self.time = rng:getUniformRange(0, 1000)
 
-    --Log.Debug("Register: Thruster type = %s, handler = %s", Event.Render, self.render)
-    self:register(Event.Render, self.render)
-    --Log.Debug("Register: Thruster type = %s, handler = %s", Event.Update, self.update)
-    self:register(Event.Update, self.update)
+    --Log.Debug("Register: Thruster type = %s, handler = %s", OldEvent.Render, self.render)
+    self:register(OldEvent.Render, self.render)
+    --Log.Debug("Register: Thruster type = %s, handler = %s", OldEvent.Update, self.update)
+    self:register(OldEvent.Update, self.update)
 end)
 
 function Thruster:getSocketType()
@@ -52,12 +52,12 @@ end
 
 function Thruster:render(state)
     if state.mode == BlendMode.Additive then
---[[
+        --[[
 -- This test (added to improve performance?) needs to be rethought as it is causing a crash when any ship -- player or NPC -- is destroyed.
         if self.parent:getOwner():getControlling() == GameState.player.currentShip and GameState.player.currentCamera == Enums.CameraMode.FirstPerson then
             return
         end
-]]--
+]] --
 
         local a = math.abs(self.activation)
         if a < 1e-3 then return end

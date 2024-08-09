@@ -3,7 +3,7 @@ local Entity = require('GameObjects.Entity')
 function Entity:addClaimable()
     assert(not self.claims)
     self.claims = {}
-    --self:register(Event.Update, Entity.updateClaims)
+    --self:register(OldEvent.Update, Entity.updateClaims)
 end
 
 function Entity:addClaim(claimer)

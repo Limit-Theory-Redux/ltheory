@@ -18,8 +18,8 @@ function Entity:addTrigger(halfExtents)
     assert(not self.trigger)
     self.trigger = Trigger.CreateBox(halfExtents)
 
-    self:register(Event.AddedToParent, onAddedToParent)
-    self:register(Event.RemovedFromParent, onRemovedFromParent)
+    self:register(OldEvent.AddedToParent, onAddedToParent)
+    self:register(OldEvent.RemovedFromParent, onRemovedFromParent)
 end
 
 -- TODO : Deal with naming conflicts

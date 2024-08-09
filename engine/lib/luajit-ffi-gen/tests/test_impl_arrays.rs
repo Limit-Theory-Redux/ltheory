@@ -27,9 +27,8 @@ impl ArraysTest {
     }
 
     pub fn get_primitive_slice(&self, out: &mut [f32]) {
-        for i in 0..std::cmp::min(out.len(), self.val_array_primitive.len()) {
-            out[i] = self.val_array_primitive[i];
-        }
+        let len = std::cmp::min(out.len(), self.val_array_primitive.len());
+        out[..len].copy_from_slice(&self.val_array_primitive[..len]);
     }
 
     pub fn set_custom_slice(&mut self, data: &[Data]) {
@@ -37,9 +36,8 @@ impl ArraysTest {
     }
 
     pub fn get_custom_slice(&self, out: &mut [Data]) {
-        for i in 0..std::cmp::min(out.len(), self.val_array_custom.len()) {
-            out[i] = self.val_array_custom[i].clone();
-        }
+        let len = std::cmp::min(out.len(), self.val_array_custom.len());
+        out[..len].clone_from_slice(&self.val_array_custom[..len]);
     }
 
     // Arrays.
@@ -53,9 +51,8 @@ impl ArraysTest {
     }
 
     pub fn get_primitive_array(&self, out: &mut [f32; 3]) {
-        for i in 0..std::cmp::min(out.len(), self.val_array_primitive.len()) {
-            out[i] = self.val_array_primitive[i];
-        }
+        let len = std::cmp::min(out.len(), self.val_array_primitive.len());
+        out[..len].copy_from_slice(&self.val_array_primitive[..len]);
     }
 
     pub fn move_custom_array(&mut self, data: [Data; 3]) {
@@ -67,12 +64,13 @@ impl ArraysTest {
     }
 
     pub fn get_custom_array(&self, out: &mut [Data; 3]) {
-        for i in 0..std::cmp::min(out.len(), self.val_array_custom.len()) {
-            out[i] = self.val_array_custom[i].clone();
-        }
+        let len = std::cmp::min(out.len(), self.val_array_custom.len());
+        out[..len].clone_from_slice(&self.val_array_custom[..len]);
     }
 }
 
+/// # Safety
+/// this is a test
 #[no_mangle]
 pub unsafe extern "C" fn ArraysTest_GetPrimitiveArrays2(
     this: &ArraysTest,
@@ -102,13 +100,13 @@ fn test_primitive_array() {
     unsafe {
         ArraysTest_SetPrimitiveSlice(&mut ts, data.as_ptr(), data.len());
         assert_eq!(data, ts.val_array_primitive);
-        ArraysTest_GetPrimitiveSlice(&mut ts, data_read.as_mut_ptr(), data_read.len());
+        ArraysTest_GetPrimitiveSlice(&ts, data_read.as_mut_ptr(), data_read.len());
         assert_eq!(data, data_read);
         ArraysTest_MovePrimitiveArray(&mut ts, data_array.as_ptr(), 3);
         assert_eq!(data_array.as_slice(), ts.val_array_primitive);
         ArraysTest_SetPrimitiveArray(&mut ts, data_array2.as_ptr(), 3);
         assert_eq!(data_array2.as_slice(), ts.val_array_primitive);
-        ArraysTest_GetPrimitiveArray(&mut ts, data_array_read.as_mut_ptr(), 3);
+        ArraysTest_GetPrimitiveArray(&ts, data_array_read.as_mut_ptr(), 3);
         assert_eq!(data_array2, data_array_read);
     }
 }
@@ -127,13 +125,13 @@ fn test_custom_array() {
     unsafe {
         ArraysTest_SetCustomSlice(&mut ts, data.as_ptr(), data.len());
         assert_eq!(data, ts.val_array_custom);
-        ArraysTest_GetCustomSlice(&mut ts, data_read.as_mut_ptr(), data_read.len());
+        ArraysTest_GetCustomSlice(&ts, data_read.as_mut_ptr(), data_read.len());
         assert_eq!(data, data_read);
         ArraysTest_MoveCustomArray(&mut ts, data_array.as_ptr(), 3);
         assert_eq!(data_array.as_slice(), ts.val_array_custom);
         ArraysTest_SetCustomArray(&mut ts, data_array2.as_ptr(), 3);
         assert_eq!(data_array2.as_slice(), ts.val_array_custom);
-        ArraysTest_GetCustomArray(&mut ts, data_array_read.as_mut_ptr(), 3);
+        ArraysTest_GetCustomArray(&ts, data_array_read.as_mut_ptr(), 3);
         assert_eq!(data_array2, data_array_read);
     }
 }
@@ -151,7 +149,7 @@ fn test_null_slice_should_panic() {
 #[should_panic]
 fn test_zero_length_slice_should_panic() {
     let mut ts = ArraysTest::default();
-    let data = vec![0.0; 3];
+    let data = [0.0; 3];
     unsafe {
         ArraysTest_SetPrimitiveSlice(&mut ts, data.as_ptr(), 0);
     }
@@ -170,7 +168,7 @@ fn test_null_array_should_panic() {
 #[should_panic]
 fn test_move_primitive_array_should_panic() {
     let mut ts = ArraysTest::default();
-    let data = vec![0.0; 3];
+    let data = [0.0; 3];
     unsafe {
         ArraysTest_MovePrimitiveArray(&mut ts, data.as_ptr(), 2);
     }
@@ -180,7 +178,7 @@ fn test_move_primitive_array_should_panic() {
 #[should_panic]
 fn test_ref_primitive_array_should_panic() {
     let mut ts = ArraysTest::default();
-    let data = vec![0.0; 3];
+    let data = [0.0; 3];
     unsafe {
         ArraysTest_SetPrimitiveArray(&mut ts, data.as_ptr(), 4);
     }
@@ -189,10 +187,10 @@ fn test_ref_primitive_array_should_panic() {
 #[test]
 #[should_panic]
 fn test_mut_ref_primitive_array_should_panic() {
-    let mut ts = ArraysTest::default();
-    let mut data = vec![0.0; 3];
+    let ts = ArraysTest::default();
+    let mut data = [0.0; 3];
     unsafe {
-        ArraysTest_GetPrimitiveArray(&mut ts, data.as_mut_ptr(), 5);
+        ArraysTest_GetPrimitiveArray(&ts, data.as_mut_ptr(), 5);
     }
 }
 
@@ -200,7 +198,7 @@ fn test_mut_ref_primitive_array_should_panic() {
 #[should_panic]
 fn test_move_custom_array_should_panic() {
     let mut ts = ArraysTest::default();
-    let data = vec![Data::new(0), Data::new(0), Data::new(0)];
+    let data = [Data::new(0), Data::new(0), Data::new(0)];
     unsafe {
         ArraysTest_MoveCustomArray(&mut ts, data.as_ptr(), 2);
     }
@@ -210,7 +208,7 @@ fn test_move_custom_array_should_panic() {
 #[should_panic]
 fn test_ref_custom_array_should_panic() {
     let mut ts = ArraysTest::default();
-    let data = vec![Data::new(0), Data::new(0), Data::new(0)];
+    let data = [Data::new(0), Data::new(0), Data::new(0)];
     unsafe {
         ArraysTest_SetCustomArray(&mut ts, data.as_ptr(), 4);
     }
@@ -219,9 +217,9 @@ fn test_ref_custom_array_should_panic() {
 #[test]
 #[should_panic]
 fn test_mut_ref_custom_array_should_panic() {
-    let mut ts = ArraysTest::default();
-    let mut data = vec![Data::new(0), Data::new(0), Data::new(0)];
+    let ts = ArraysTest::default();
+    let mut data = [Data::new(0), Data::new(0), Data::new(0)];
     unsafe {
-        ArraysTest_GetCustomArray(&mut ts, data.as_mut_ptr(), 5);
+        ArraysTest_GetCustomArray(&ts, data.as_mut_ptr(), 5);
     }
 }

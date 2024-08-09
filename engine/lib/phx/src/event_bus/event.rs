@@ -1,33 +1,37 @@
-use super::FrameStage;
+use super::EventId;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Subscriber {
-    pub(crate) id: u32,
-    pub(crate) tunnel_id: u32,
-    pub(crate) entity_id: Option<u64>,
-}
+/// List of the events used in the engine.
+/// In Lua scripts it should be used as an event id.
+/// To extend it in Lua, call `Event.AddEvents({"MyEvent1", "MyEvent2"})` function.
+// NOTE: Use same type in 'repr' as in EventId.
+#[luajit_ffi_gen::luajit_ffi(repr = "u16")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Event {
+    /// Before physics update event
+    PreSim,
+    /// Physics update event
+    Sim,
+    /// After physics update event
+    PostSim,
+    /// Before frame render event
+    PreRender,
+    /// Frame render event
+    Render,
+    /// After frame render event
+    PostRender,
+    /// Before input handling event
+    PreInput,
+    /// Input handling event
+    Input,
+    /// After input handling event
+    PostInput,
 
-#[derive(Debug, Clone)]
-pub struct Event {
-    pub name: String,
-    pub priority: i32,
-    pub frame_stage: FrameStage,
-    pub subscribers: Vec<Subscriber>,
-    pub processed_subscribers: Vec<usize>,
+    /// Specifies number of engine event types
+    EngineEventsCount, // !!! SHOULD BE THE LAST ENUM VARIANT !!!
 }
 
 impl Event {
-    pub fn get_next_subscriber(&mut self) -> Option<&Subscriber> {
-        for i in 0..self.subscribers.len() {
-            if !self.processed_subscribers.contains(&i) {
-                self.processed_subscribers.push(i);
-                return self.subscribers.get(i);
-            }
-        }
-        None
-    }
-
-    pub fn reset_processed_subscribers(&mut self) {
-        self.processed_subscribers.clear();
+    pub fn index(&self) -> EventId {
+        *self as EventId
     }
 }

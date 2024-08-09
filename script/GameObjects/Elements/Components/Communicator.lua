@@ -21,8 +21,8 @@ local Communicator = subclass(Entity, function(self)
     self.healthCurr = Config.gen.compCommunicatorStats.healthCurr
     self.healthMax  = Config.gen.compCommunicatorStats.healthMax
     self.rating     = Config.gen.compCommunicatorStats.rating
-    --printf("Register: Communicator name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCommunicator)
-    self:register(Event.Update, self.updateCommunicator)
+    --printf("Register: Communicator name = '%s', type = %s, handler = %s", self.name, OldEvent.Update, self.updateCommunicator)
+    self:register(OldEvent.Update, self.updateCommunicator)
 end)
 
 function Communicator:getSocketType()

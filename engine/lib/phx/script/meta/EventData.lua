@@ -4,14 +4,14 @@
 EventData = {}
 
 ---@return number
-function EventData:getDeltaTime() end
+function EventData:deltaTime() end
 
 ---@return FrameStage
-function EventData:getFrameStage() end
+function EventData:frameStage() end
 
 ---@return integer
-function EventData:getTunnelId() end
+function EventData:tunnelId() end
 
 ---@return EventPayload|nil
-function EventData:getPayload() end
+function EventData:payload() end
 

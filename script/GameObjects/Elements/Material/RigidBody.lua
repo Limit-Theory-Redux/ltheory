@@ -44,8 +44,8 @@ function Entity:addRigidBody(isCollider, collisionMesh, colliderType)
         self.body = RigidBody.CreateSphereFromMesh(collisionMesh)
     end
 
-    self:register(Event.AddedToParent, onAddedToParent)
-    self:register(Event.RemovedFromParent, onRemovedFromParent)
+    self:register(OldEvent.AddedToParent, onAddedToParent)
+    self:register(OldEvent.RemovedFromParent, onRemovedFromParent)
 end
 
 function Entity:applyForce(force)

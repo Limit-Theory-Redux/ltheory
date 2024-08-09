@@ -16,11 +16,11 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void                EventData_Free          (EventData*);
-            double              EventData_GetDeltaTime  (EventData const*);
-            FrameStage          EventData_GetFrameStage (EventData const*);
-            uint32              EventData_GetTunnelId   (EventData const*);
-            EventPayload const* EventData_GetPayload    (EventData const*);
+            void                EventData_Free       (EventData*);
+            double              EventData_DeltaTime  (EventData const*);
+            FrameStage          EventData_FrameStage (EventData const*);
+            uint32              EventData_TunnelId   (EventData const*);
+            EventPayload const* EventData_Payload    (EventData const*);
         ]]
     end
 
@@ -35,10 +35,10 @@ function Loader.defineType()
         local t  = ffi.typeof('EventData')
         local mt = {
             __index = {
-                getDeltaTime  = libphx.EventData_GetDeltaTime,
-                getFrameStage = libphx.EventData_GetFrameStage,
-                getTunnelId   = libphx.EventData_GetTunnelId,
-                getPayload    = libphx.EventData_GetPayload,
+                deltaTime  = libphx.EventData_DeltaTime,
+                frameStage = libphx.EventData_FrameStage,
+                tunnelId   = libphx.EventData_TunnelId,
+                payload    = libphx.EventData_Payload,
             },
         }
 

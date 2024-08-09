@@ -6,16 +6,13 @@ use super::FrameStage;
 use crate::system::TimeStamp;
 
 pub struct FrameTimer {
-    pub(crate) last_update: HashMap<FrameStage, TimeStamp>,
+    last_update: HashMap<FrameStage, TimeStamp>,
 }
 
 impl FrameTimer {
     pub fn new() -> Self {
-        let mut last_update = HashMap::new();
         let now = TimeStamp::now();
-        for stage in FrameStage::iter() {
-            last_update.insert(stage, now);
-        }
+        let last_update = FrameStage::iter().map(|stage| (stage, now)).collect();
         FrameTimer { last_update }
     }
 

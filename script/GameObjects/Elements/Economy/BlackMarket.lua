@@ -93,8 +93,8 @@ end
 function Entity:addBlackMarket()
     assert(not self.blackMarket)
     self.blackMarket = BlackMarket()
-    self:register(Event.Debug, Entity.debugBlackMarket)
-    self:register(Event.Update, Entity.updateBlackMarket)
+    self:register(OldEvent.Debug, Entity.debugBlackMarket)
+    self:register(OldEvent.Update, Entity.updateBlackMarket)
 end
 
 function Entity:debugBlackMarket(state)
@@ -122,8 +122,8 @@ end
 
 function Entity:removeMarket()
     assert(self.blackMarket)
-    self:unregister(Event.Debug, Entity.debugMarket)
-    self:unregister(Event.Update, Entity.updateMarket)
+    self:unregister(OldEvent.Debug, Entity.debugMarket)
+    self:unregister(OldEvent.Update, Entity.updateMarket)
     self.blackMarket = nil
 end
 

@@ -7,32 +7,32 @@ function Entity:addVisibleMesh(mesh, material)
     self.mesh = mesh
     self.material = material
     self:setRenderVisibleMesh(true)
-    self:register(Event.Update, Entity.handleMeshCulling)
+    self:register(OldEvent.Update, Entity.handleMeshCulling)
 end
 
 function Entity:setRenderVisibleMesh(enabled, cullingLock)
     self.cullingLock = cullingLock
     if enabled and not self.visibleMesh then
-        self:register(Event.Render, Entity.renderVisibleMesh)
+        self:register(OldEvent.Render, Entity.renderVisibleMesh)
 
         -- also show children
         if self.children and #self.children > 0 then
             for _, l_Child in ipairs(self.children) do
                 if not l_Child.visibleMesh then
-                    l_Child:register(Event.Render, l_Child.renderVisibleMesh)
+                    l_Child:register(OldEvent.Render, l_Child.renderVisibleMesh)
                     l_Child.visibleMesh = true
                 end
             end
         end
         self.visibleMesh = true
     elseif not enabled and self.visibleMesh then
-        self:unregister(Event.Render, Entity.renderVisibleMesh)
+        self:unregister(OldEvent.Render, Entity.renderVisibleMesh)
 
         -- also hide children
         if self.children and #self.children > 0 then
             for _, l_Child in ipairs(self.children) do
                 if l_Child.visibleMesh then
-                    l_Child:unregister(Event.Render, l_Child.renderVisibleMesh)
+                    l_Child:unregister(OldEvent.Render, l_Child.renderVisibleMesh)
                     l_Child.visibleMesh = false
                 end
             end

@@ -3,8 +3,8 @@ local Entity = require('GameObjects.Entity')
 function Entity:addActions()
     assert(not self.actions)
     self.actions = {}
-    self:register(Event.Debug, Entity.debugActions)
-    self:register(Event.Update, Entity.updateActions)
+    self:register(OldEvent.Debug, Entity.debugActions)
+    self:register(OldEvent.Update, Entity.updateActions)
 end
 
 function Entity:clearActions()

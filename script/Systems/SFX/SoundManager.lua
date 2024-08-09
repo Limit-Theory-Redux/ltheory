@@ -15,7 +15,7 @@ function SoundManager:init()
 end
 
 function SoundManager:registerEvents()
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostRender), self, self.onPostRender)
+    EventBus:subscribe(Event.PostRender, self, self.onPostRender)
 end
 
 function SoundManager:canSoundPlay(soundGroup)

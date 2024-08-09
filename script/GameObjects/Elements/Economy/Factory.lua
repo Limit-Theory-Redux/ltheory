@@ -212,8 +212,8 @@ end
 function Entity:addFactory()
     assert(not self.factory)
     self.factory = Factory(self)
-    self:register(Event.Update, Entity.updateFactory)
-    self:register(Event.Debug, Entity.debugFactory)
+    self:register(OldEvent.Update, Entity.updateFactory)
+    self:register(OldEvent.Debug, Entity.debugFactory)
 end
 
 function Entity:addProduction(type)
@@ -241,8 +241,8 @@ end
 
 function Entity:removeFactory()
     assert(self.factory)
-    self:unregister(Event.Update, Entity.updateFactory)
-    self:unregister(Event.Debug, Entity.debugFactory)
+    self:unregister(OldEvent.Update, Entity.updateFactory)
+    self:unregister(OldEvent.Debug, Entity.debugFactory)
     self.factory = nil
 end
 

@@ -19,7 +19,7 @@ end
 function Entity:register(eventType, handler)
     if not self.handlers[eventType] then self.handlers[eventType] = {} end
     insert(self.handlers[eventType], handler)
-    --if eventType == Event.Debug then
+    --if eventType == OldEvent.Debug then
     --Log.Debug("Entity:register() - '%s' eventType = %s, handler = %s", self:getName(), eventType, handler)
     --end
 end
@@ -27,7 +27,7 @@ end
 function Entity:send(event)
     if self.handlers[event.type] then
         for i, v in ipairs(self.handlers[event.type]) do
-            --if event.type == Event.Debug then
+            --if event.type == OldEvent.Debug then
             --Log.Debug("Entity:send() - '%s' eventType = %s, context = %s", self:getName(), event.type, event.context)
             --end
             v(self, event)
@@ -35,7 +35,7 @@ function Entity:send(event)
     end
 
     -- Respond to the contents of a broadcasted message if applicable
-    if event.type == Event.Broadcast then
+    if event.type == OldEvent.Broadcast then
         self:send(event.event)
     end
 end

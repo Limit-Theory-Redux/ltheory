@@ -28,7 +28,7 @@ function Entity:addDockable()
     assert(not self.dockable)
     self.dockable = true
     self.bannedShips = {}
-    self:register(Event.Destroyed, destroyed)
+    self:register(OldEvent.Destroyed, destroyed)
 end
 
 function Entity:addDocked(e)

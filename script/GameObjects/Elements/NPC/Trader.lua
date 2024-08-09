@@ -506,8 +506,8 @@ end
 function Entity:addTrader()
     assert(not self.trader)
     self.trader = Trader(self)
-    self:register(Event.Debug, Entity.debugTrader)
-    self:register(Event.Update, Entity.updateTrader)
+    self:register(OldEvent.Debug, Entity.debugTrader)
+    self:register(OldEvent.Update, Entity.updateTrader)
 
     return self.trader
 end
@@ -550,8 +550,8 @@ end
 
 function Entity:removeTrader()
     assert(self.trader)
-    self:unregister(Event.Debug, Entity.debugTrader)
-    self:unregister(Event.Update, Entity.updateTrader)
+    self:unregister(OldEvent.Debug, Entity.debugTrader)
+    self:unregister(OldEvent.Update, Entity.updateTrader)
     self.trader = nil
 end
 

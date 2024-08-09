@@ -57,8 +57,8 @@ local Bay = subclass(Entity, function(self)
     self.cooldown   = 0
     self.heat       = 0
 
-    --Log.Debug("Register: Bay name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateBay)
-    self:register(Event.Update, self.updateBay)
+    --Log.Debug("Register: Bay name = %s, type = %s, handler = %s", self.name, OldEvent.Update, self.updateBay)
+    self:register(OldEvent.Update, self.updateBay)
 end)
 
 function Bay:getSocketType()
