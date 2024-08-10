@@ -65,7 +65,7 @@ const COPY_TYPES: &[&str] = &[
 ];
 
 #[derive(Debug, PartialEq)]
-enum TypeRef {
+pub enum TypeRef {
     // A value T
     Value,
     // A reference such as &T

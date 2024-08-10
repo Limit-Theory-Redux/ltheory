@@ -150,7 +150,7 @@ fn parse_params<'a>(
                 let name = get_arg_name(&pat_type.pat)?;
                 let ty = parse_type(&pat_type.ty, &generic_types)?;
 
-                if ty.is_result {
+                if let TypeInfo::Result { .. } = &ty {
                     return Err(Error::new(
                         pat_type.ty.span(),
                         "Result<T> as an input parameter is not supported",
@@ -191,50 +191,61 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
                     ));
                 }
 
-                let mut type_info = parse_type(&generics[0], generic_types)?;
+                let type_info = parse_type(&generics[0], generic_types)?;
 
-                if type_info.is_result {
+                if let TypeInfo::Result { .. } = &type_info {
                     return Err(Error::new(
                         type_path.span(),
                         "nested Result is not supported".to_string(),
                     ));
                 }
 
-                type_info.is_result = true;
-
-                return Ok(type_info);
+                return Ok(TypeInfo::Result {
+                    inner: Box::new(type_info),
+                });
             } else if type_name == "Option" || type_name == "Box" {
                 if generics.len() != 1 {
                     return Err(Error::new(
                         type_path.span(),
                         format!(
-                            "expected an Option with 1 generic argument but was {}",
+                            "expected an Option or Box with 1 generic argument but was {}",
                             generics.len()
                         ),
                     ));
                 }
 
-                let mut type_info = parse_type(&generics[0], generic_types)?;
-
-                if type_info.wrapper != TypeWrapper::None {
-                    return Err(Error::new(
-                        type_path.span(),
-                        "an Option or Box can only contain a bare type",
-                    ));
-                }
-
                 if type_name == "Option" {
-                    type_info.wrapper = TypeWrapper::Option;
+                    if let TypeInfo::Plain { is_ref, ty } = parse_type(&generics[0], generic_types)?
+                    {
+                        return Ok(TypeInfo::Option {
+                            is_ref,
+                            inner_ty: ty,
+                        });
+                    } else {
+                        return Err(Error::new(
+                            type_path.span(),
+                            "an Option can only contain a plain type",
+                        ));
+                    }
                 } else if type_name == "Box" {
-                    type_info.wrapper = TypeWrapper::Box;
+                    if let TypeInfo::Plain { is_ref, ty } = parse_type(&generics[0], generic_types)?
+                    {
+                        return Ok(TypeInfo::Box {
+                            is_ref,
+                            inner_ty: ty,
+                        });
+                    } else {
+                        return Err(Error::new(
+                            type_path.span(),
+                            "an Option can only contain a plain type",
+                        ));
+                    }
                 } else {
                     return Err(Error::new(
                         type_path.span(),
                         format!("unknown type wrapper {}", type_name),
                     ));
                 }
-
-                return Ok(type_info);
             } else if let Some(type_params) = generic_types.get(&type_name) {
                 if type_params.len() == 1 {
                     if let TypeParamBound::Trait(trait_bound) = &type_params[0] {
@@ -243,77 +254,77 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
                 }
             }
 
-            let variant = TypeVariant::from_rust_ffi_str(&type_name);
-            let res = if let Some(variant) = variant {
-                TypeInfo {
-                    wrapper: TypeWrapper::None,
-                    is_reference: false,
-                    is_mutable: false,
-                    is_result: false,
-                    variant,
-                }
-            } else {
-                TypeInfo {
-                    wrapper: TypeWrapper::None,
-                    is_reference: false,
-                    is_mutable: false,
-                    is_result: false,
-                    // TODO: are we going to support full path to type? I.e. std::path::PathBuf
-                    variant: TypeVariant::Custom(type_name),
-                }
-            };
-
-            Ok(res)
+            Ok(TypeInfo::Plain {
+                is_ref: TypeRef::Value,
+                ty: TypeVariant::from_rust_ffi_str(&type_name)
+                    .unwrap_or(TypeVariant::Custom(type_name)),
+            })
         }
         Type::Reference(type_ref) => {
             let mut type_info = parse_type(&type_ref.elem, generic_types)?;
 
-            type_info.is_reference = true;
-            type_info.is_mutable = type_ref.mutability.is_some();
+            match &mut type_info {
+                TypeInfo::Plain { is_ref, .. }
+                | TypeInfo::Slice { is_ref, .. }
+                | TypeInfo::Array { is_ref, .. } => {
+                    *is_ref = if type_ref.mutability.is_some() {
+                        TypeRef::MutableReference
+                    } else {
+                        TypeRef::Reference
+                    };
+                }
+                _ => {
+                    return Err(Error::new(
+                        ty.span(),
+                        "Cannot take a reference to this type",
+                    ));
+                }
+            }
 
             Ok(type_info)
         }
         Type::Slice(type_slice) => {
-            let mut type_info = parse_type(&type_slice.elem, generic_types)?;
-
-            if type_info.wrapper != TypeWrapper::None {
-                return Err(Error::new(
-                    ty.span(),
-                    "a slice can only contain a bare type",
-                ));
-            }
-
-            type_info.wrapper = TypeWrapper::Slice;
-
-            Ok(type_info)
-        }
-        Type::Array(type_array) => {
-            let mut type_info = parse_type(&type_array.elem, generic_types)?;
-
-            if type_info.wrapper != TypeWrapper::None {
-                return Err(Error::new(
-                    ty.span(),
-                    "an array can only contain a bare type",
-                ));
-            }
-
-            type_info.wrapper = if let Expr::Lit(lit) = &type_array.len {
-                if let Lit::Int(value) = &lit.lit {
-                    TypeWrapper::Array(value.base10_parse::<usize>()?)
-                } else {
-                    return Err(Error::new(
-                        ty.span(),
-                        "an array length can only be a literal integer",
-                    ));
-                }
+            if let TypeInfo::Plain { is_ref, ty } = parse_type(&type_slice.elem, generic_types)? {
+                return Ok(TypeInfo::Slice {
+                    is_ref,
+                    elem_ty: ty,
+                });
             } else {
                 return Err(Error::new(
+                    type_slice.span(),
+                    "a slice can only contain a plain type",
+                ));
+            }
+        }
+        Type::Array(type_array) => {
+            if let Expr::Lit(lit) = &type_array.len {
+                if let Lit::Int(value) = &lit.lit {
+                    if let TypeInfo::Plain { is_ref, ty } =
+                        parse_type(&type_array.elem, generic_types)?
+                    {
+                        Ok(TypeInfo::Array {
+                            is_ref,
+                            elem_ty: ty,
+                            length: value.base10_parse::<usize>()?,
+                        })
+                    } else {
+                        Err(Error::new(
+                            type_array.span(),
+                            "an array can only contain a plain type",
+                        ))
+                    }
+                } else {
+                    Err(Error::new(
+                        ty.span(),
+                        "an array length can only be a literal integer",
+                    ))
+                }
+            } else {
+                Err(Error::new(
                     ty.span(),
                     "an array length can only be a literal",
-                ));
-            };
-
-            Ok(type_info)
+                ))
+            }
         }
         Type::ImplTrait(impl_trait) => {
             if let TypeParamBound::Trait(trait_bound) = &impl_trait.bounds[0] {
@@ -350,15 +361,9 @@ fn parse_trait_bound(
                     args.push(parse_type(input, generic_types)?);
                 }
 
-                let ret = parse_ret_type(&p.output)?.map(Box::new);
+                let ret_ty = parse_ret_type(&p.output)?.map(Box::new);
 
-                Ok(TypeInfo {
-                    is_reference: false,
-                    is_mutable: false,
-                    is_result: false,
-                    wrapper: TypeWrapper::None,
-                    variant: TypeVariant::Function { args, ret },
-                })
+                Ok(TypeInfo::Function { args, ret_ty })
             } else {
                 Err(Error::new(
                     trait_bound.span(),
@@ -392,7 +397,7 @@ fn parse_ret_type(ret_ty: &ReturnType) -> Result<Option<TypeInfo>> {
 
             let type_info = parse_type(ty, &HashMap::new())?;
 
-            if type_info.wrapper == TypeWrapper::Slice {
+            if let TypeInfo::Slice { .. } = &type_info {
                 return Err(Error::new(ty.span(), "returning a slice is not supported"));
             }
 
