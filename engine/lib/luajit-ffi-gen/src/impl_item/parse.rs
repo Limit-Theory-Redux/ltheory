@@ -117,9 +117,9 @@ fn parse_method_attrs(attrs: &mut Vec<Attribute>) -> Result<(Vec<String>, BindAr
     }
 }
 
-fn parse_params<'a, 'b>(
+fn parse_params<'a>(
     params: impl Iterator<Item = &'a FnArg>,
-    generics: impl Iterator<Item = &'b TypeParam>,
+    generics: impl Iterator<Item = &'a TypeParam>,
 ) -> Result<(Option<SelfType>, Vec<ParamInfo>)> {
     let mut self_param_info = None;
     let mut params_info = vec![];
@@ -265,7 +265,7 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
                 }
             }
 
-            let variant: Option<TypeVariant> = TypeVariant::from_rust_ffi_str(&type_name);
+            let variant = TypeVariant::from_rust_ffi_str(&type_name);
             let res = if let Some(variant) = variant {
                 TypeInfo {
                     wrapper: TypeWrapper::None,

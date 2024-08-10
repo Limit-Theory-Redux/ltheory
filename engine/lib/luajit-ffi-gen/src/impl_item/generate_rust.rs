@@ -80,7 +80,7 @@ impl ImplInfo {
         quote! {
             #[no_mangle]
             pub unsafe extern "C" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
-                // tracing::trace!("Calling: {}", #func_name);
+                tracing::trace!("Calling: {}", #func_name);
 
                 #func_body
             }
@@ -341,7 +341,7 @@ impl ImplInfo {
                     .collect();
 
                 // Convert the Rust expressions to FFI.
-                let mut prelude: Vec<TokenStream> = vec![];
+                let mut prelude = vec![];
                 let param_tokens: Vec<_> = args
                     .iter()
                     .map(|(name, ty)| self.gen_wrapper_name_to_ffi(name, ty, &mut prelude))
