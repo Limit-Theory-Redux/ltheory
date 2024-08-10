@@ -4,8 +4,8 @@ use quote::quote;
 use syn::parse::{Error, Parse, Result};
 use syn::spanned::Spanned;
 use syn::{
-    Attribute, Expr, FnArg, ImplItem, ItemImpl, Lit, Pat, PathArguments, ReturnType, Type,
-    TypeParam, TypeParamBound,
+    Attribute, Expr, FnArg, ImplItem, ItemImpl, Lit, Pat, PathArguments, ReturnType, TraitBound,
+    Type, TypeParam, TypeParamBound,
 };
 
 use super::*;
@@ -237,30 +237,8 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
                 return Ok(type_info);
             } else if let Some(type_params) = generic_types.get(&type_name) {
                 if type_params.len() == 1 {
-                    if let TypeParamBound::Trait(param_trait) = &type_params[0] {
-                        if let Some(last_segment) = param_trait.path.segments.last() {
-                            if last_segment.ident == "Fn"
-                                || last_segment.ident == "FnOnce"
-                                || last_segment.ident == "FnMut"
-                            {
-                                if let PathArguments::Parenthesized(p) = &last_segment.arguments {
-                                    let mut args = vec![];
-                                    for input in &p.inputs {
-                                        args.push(parse_type(input, generic_types)?);
-                                    }
-
-                                    let ret = parse_ret_type(&p.output)?.map(Box::new);
-
-                                    return Ok(TypeInfo {
-                                        is_reference: false,
-                                        is_mutable: false,
-                                        is_result: false,
-                                        wrapper: TypeWrapper::None,
-                                        variant: TypeVariant::Function { args, ret },
-                                    });
-                                }
-                            }
-                        }
+                    if let TypeParamBound::Trait(trait_bound) = &type_params[0] {
+                        return parse_trait_bound(trait_bound, generic_types);
                     }
                 }
             }
@@ -337,6 +315,16 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
 
             Ok(type_info)
         }
+        Type::ImplTrait(impl_trait) => {
+            if let TypeParamBound::Trait(trait_bound) = &impl_trait.bounds[0] {
+                parse_trait_bound(trait_bound, generic_types)
+            } else {
+                Err(Error::new(
+                    ty.span(),
+                    "unexpected type param, expected trait bound",
+                ))
+            }
+        }
         _ => Err(Error::new(
             ty.span(),
             format!(
@@ -344,6 +332,50 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
                 ty
             ),
         )),
+    }
+}
+
+fn parse_trait_bound(
+    trait_bound: &TraitBound,
+    generic_types: &HashMap<String, Vec<TypeParamBound>>,
+) -> Result<TypeInfo> {
+    if let Some(last_segment) = trait_bound.path.segments.last() {
+        if last_segment.ident == "Fn"
+            || last_segment.ident == "FnOnce"
+            || last_segment.ident == "FnMut"
+        {
+            if let PathArguments::Parenthesized(p) = &last_segment.arguments {
+                let mut args = vec![];
+                for input in &p.inputs {
+                    args.push(parse_type(input, generic_types)?);
+                }
+
+                let ret = parse_ret_type(&p.output)?.map(Box::new);
+
+                Ok(TypeInfo {
+                    is_reference: false,
+                    is_mutable: false,
+                    is_result: false,
+                    wrapper: TypeWrapper::None,
+                    variant: TypeVariant::Function { args, ret },
+                })
+            } else {
+                Err(Error::new(
+                    trait_bound.span(),
+                    "expected parenthesized path arguments for FnOnce/Fn/FnMut trait bound",
+                ))
+            }
+        } else {
+            Err(Error::new(
+                trait_bound.span(),
+                format!("unhandled trait bound {}", last_segment.ident),
+            ))
+        }
+    } else {
+        Err(Error::new(
+            trait_bound.span(),
+            "expected trait bound to have at least one path segment",
+        ))
     }
 }
 

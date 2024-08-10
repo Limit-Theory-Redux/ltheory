@@ -16,7 +16,8 @@ impl CallbackTest {
         callback(self.val_primitives[index]);
     }
 
-    pub fn nth_primitive_ref<F: FnOnce(&f32) -> ()>(&self, index: usize, callback: F) {
+    // Note: -> () is optional in the Fn type, so lets omit it here.
+    pub fn nth_primitive_ref<F: FnOnce(&f32)>(&self, index: usize, callback: F) {
         callback(&self.val_primitives[index]);
     }
 
@@ -114,16 +115,16 @@ impl CallbackTest {
 
     // Edge cases.
 
-    pub fn get_multiple_and_replace<F: FnOnce(f32, Option<&Data>) -> f32>(
+    pub fn get_multiple_and_replace(
         &mut self,
         index: usize,
-        callback: F,
+        callback: impl FnOnce(f32, Option<&Data>) -> f32,
     ) {
         let result = callback(self.val_primitives[index], self.val_noncopyable.get(index));
         self.val_primitives[index] = result;
     }
 
-    pub fn passthrough<F: FnOnce(u32) -> u32>(input: u32, callback: F) -> u32 {
+    pub fn passthrough<F: Fn(u32) -> u32>(input: u32, callback: F) -> u32 {
         callback(input)
     }
 }
