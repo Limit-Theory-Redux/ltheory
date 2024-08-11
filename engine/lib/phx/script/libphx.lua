@@ -51,7 +51,6 @@ do -- Opaque Structs
     typedef struct LodMesh      {} LodMesh;
     typedef struct MemPool      {} MemPool;
     typedef struct MemStack     {} MemStack;
-    typedef struct Mesh         {} Mesh;
     typedef struct Octree       {} Octree;
     typedef struct RNG          {} RNG;
     typedef struct RmGui        {} RmGui;
@@ -75,7 +74,6 @@ do -- Opaque Structs
     'LodMesh',
     'MemPool',
     'MemStack',
-    'Mesh',
     'Octree',
     'RNG',
     'RmGui',

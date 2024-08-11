@@ -21,15 +21,16 @@ local function createUVMap(mesh, res)
     local self = Mesh.Create()
 
     do
-        local indices = mesh:getIndexData()
-        local vertices = mesh:getVertexData()
-
-        do -- Copy all tris into new mesh without sharing any vertices
-            for i = 0, mesh:getIndexCount() - 1 do
-                self:addVertexRaw(vertices + indices[i])
-                self:addIndex(i)
-            end
-        end
+        mesh:lockVertexData(function(vertices, vertexCount)
+            mesh:lockIndexData(function(indices, indexCount)
+                do -- Copy all tris into new mesh without sharing any vertices
+                    for i = 0, indexCount - 1 do
+                        self:addVertexRaw(vertices + indices[i])
+                        self:addIndex(i)
+                    end
+                end
+            end)
+        end)
     end
 
     local tris = List()
@@ -37,65 +38,66 @@ local function createUVMap(mesh, res)
     local totalSX = 0
     local totalSY = 0
 
-    local indices = self:getIndexData()
-    local vertices = self:getVertexData()
+    self:lockVertexData(function(vertices, vertexCount)
+        self:lockIndexData(function(indices, indexCount)
+            do -- Build tri list with oriented local UVs
+                for i = 0, indexCount - 1, 3 do
+                    local i1 = indices[i + 0]
+                    local i2 = indices[i + 1]
+                    local i3 = indices[i + 2]
+                    local v1 = vertices + i1
+                    local v2 = vertices + i2
+                    local v3 = vertices + i3
+                    local e1 = Vec3f(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z)
+                    local e2 = Vec3f(v3.x - v2.x, v3.y - v2.y, v3.z - v2.z)
+                    local e3 = Vec3f(v1.x - v3.x, v1.y - v3.y, v1.z - v3.z)
+                    local area = 0.5 * e1:cross(e2):length()
+                    totalArea = totalArea + area
 
-    do -- Build tri list with oriented local UVs
-        for i = 0, self:getIndexCount() - 1, 3 do
-            local i1 = indices[i + 0]
-            local i2 = indices[i + 1]
-            local i3 = indices[i + 2]
-            local v1 = vertices + i1
-            local v2 = vertices + i2
-            local v3 = vertices + i3
-            local e1 = Vec3f(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z)
-            local e2 = Vec3f(v3.x - v2.x, v3.y - v2.y, v3.z - v2.z)
-            local e3 = Vec3f(v1.x - v3.x, v1.y - v3.y, v1.z - v3.z)
-            local area = 0.5 * e1:cross(e2):length()
-            totalArea = totalArea + area
+                    local l1 = e1:length()
+                    local l2 = e2:length()
+                    local l3 = e3:length()
+                    local maxLen = max(l1, max(l2, l3))
+                    if l1 == maxLen then
+                        --
+                    elseif l2 == maxLen then
+                        e1, e2, e3 = e2, e3, e1
+                        l1, l2, l3 = l2, l3, l1
+                        i1, i2, i3 = i2, i3, i1
+                    else
+                        e1, e2, e3 = e3, e1, e2
+                        l1, l2, l3 = l3, l1, l2
+                        i1, i2, i3 = i3, i1, i2
+                    end
 
-            local l1 = e1:length()
-            local l2 = e2:length()
-            local l3 = e3:length()
-            local maxLen = max(l1, max(l2, l3))
-            if l1 == maxLen then
-                --
-            elseif l2 == maxLen then
-                e1, e2, e3 = e2, e3, e1
-                l1, l2, l3 = l2, l3, l1
-                i1, i2, i3 = i2, i3, i1
-            else
-                e1, e2, e3 = e3, e1, e2
-                l1, l2, l3 = l3, l1, l2
-                i1, i2, i3 = i3, i1, i2
+                    local e1n = e1:scale(1.0 / l1)
+                    local perp = e2:reject(e1n):normalize()
+
+                    local v3u = e2:dot(perp)
+                    local v3v = -e3:dot(e1n)
+
+                    assert(v3v < l1)
+                    assert(v3u < l1)
+                    assert(v3u > 0)
+                    assert(v3v > 0)
+
+                    local tri = {
+                        sx = v3u,
+                        sy = l1,
+                        oy = v3v,
+                        i1 = i1,
+                        i2 = i2,
+                        i3 = i3,
+                        area = area,
+                    }
+                    tris:add(tri)
+
+                    totalSX = totalSX + tri.sx
+                    totalSY = totalSY + tri.sy
+                end
             end
-
-            local e1n = e1:scale(1.0 / l1)
-            local perp = e2:reject(e1n):normalize()
-
-            local v3u = e2:dot(perp)
-            local v3v = -e3:dot(e1n)
-
-            assert(v3v < l1)
-            assert(v3u < l1)
-            assert(v3u > 0)
-            assert(v3v > 0)
-
-            local tri = {
-                sx = v3u,
-                sy = l1,
-                oy = v3v,
-                i1 = i1,
-                i2 = i2,
-                i3 = i3,
-                area = area,
-            }
-            tris:add(tri)
-
-            totalSX = totalSX + tri.sx
-            totalSY = totalSY + tri.sy
-        end
-    end
+        end)
+    end)
 
     local texelScale = 4.0 * res / sqrt(((totalSX + #tris) * (totalSY + #tris)) / #tris)
     do -- Transform to texel space

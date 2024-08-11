@@ -8,7 +8,7 @@ function Nebula:forceLoad()
     local rng = RNG.Create(self.seed + 0xC0104FULL):managed()
     self.envMap = Gen.Generator.Get('Nebula', rng)(rng, Config.gen.nebulaRes, self.starDir):managed()
     self.irMap = self.envMap:genIRMap(256):managed()
-    self.stars = Gen.Starfield(rng, Config.gen.nStars(rng)):managed()
+    self.stars = Gen.Starfield(rng, Config.gen.nStars(rng))
 end
 
 function Nebula:render(state)

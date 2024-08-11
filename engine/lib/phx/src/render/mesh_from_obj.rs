@@ -145,7 +145,7 @@ unsafe extern "C" fn ConsumeCharacter(character: libc::c_char, s: *mut ParseStat
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
+pub unsafe extern "C" fn Mesh_FromObjImpl(bytes: *const libc::c_char) -> Box<Mesh> {
     let bytesSize: i32 = bytes.as_str().len() as i32;
 
     let mut s: ParseState = ParseState {
@@ -348,16 +348,16 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
                 );
             }
 
-            let vertices: *mut Vertex = Mesh_GetVertexData(&mut *mesh);
-            let verticesLen: i32 = Mesh_GetVertexCount(&mut *mesh);
-            for i in 0..vertexIndicesCount {
-                for j in (i + 1)..vertexIndicesCount {
-                    let p1: Vec3 =
-                        (*vertices.offset((verticesLen - vertexIndicesCount + i) as isize)).p;
-                    let p2: Vec3 =
-                        (*vertices.offset((verticesLen - vertexIndicesCount + j) as isize)).p;
-                    if p1 == p2 {
-                        Obj_Fatal(".obj data contains a degenerate polygon.", &mut s);
+            {
+                let vertices = mesh.get_vertex_data();
+                let verticesLen: i32 = Mesh_GetVertexCount(&*mesh);
+                for i in 0..vertexIndicesCount {
+                    for j in (i + 1)..vertexIndicesCount {
+                        let p1 = vertices[(verticesLen - vertexIndicesCount + i) as usize].p;
+                        let p2 = vertices[(verticesLen - vertexIndicesCount + j) as usize].p;
+                        if p1 == p2 {
+                            Obj_Fatal(".obj data contains a degenerate polygon.", &mut s);
+                        }
                     }
                 }
             }

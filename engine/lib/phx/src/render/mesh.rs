@@ -1,21 +1,29 @@
+use std::cell::{Ref, RefMut};
+
+use internal::*;
 use memoffset::offset_of;
 
 use super::*;
 use crate::error::Error;
 use crate::math::*;
+use crate::rf::Rf;
 use crate::system::*;
 
+#[derive(Clone)]
 pub struct Mesh {
-    pub _refCount: u32,
-    pub vbo: gl::types::GLuint,
-    pub ibo: gl::types::GLuint,
-    pub vao: gl::types::GLuint,
-    pub version: u64,
-    pub versionBuffers: u64,
-    pub versionInfo: u64,
-    pub info: Computed,
-    pub index: Vec<i32>,
-    pub vertex: Vec<Vertex>,
+    shared: Rf<MeshShared>,
+}
+
+struct MeshShared {
+    vbo: gl::types::GLuint,
+    ibo: gl::types::GLuint,
+    vao: gl::types::GLuint,
+    version: u64,
+    version_buffers: u64,
+    versionInfo: u64,
+    info: Computed,
+    index: Vec<i32>,
+    vertex: Vec<Vertex>,
 }
 
 #[derive(Copy, Clone, Default)]
@@ -31,584 +39,831 @@ pub struct Computed {
     pub radius: f32,
 }
 
-#[inline]
-extern "C" fn Vec2_Validate(v: Vec2) -> Error {
-    let mut e = 0 as Error;
-    e |= Float_Validatef(v.x);
-    e |= Float_Validatef(v.y);
-    e
-}
-
-extern "C" fn Mesh_UpdateInfo(this: &mut Mesh) {
-    if this.versionInfo == this.version {
-        return;
-    }
-
-    this.info.bound.lower = Vec3::new(f32::MAX, f32::MAX, f32::MAX);
-    this.info.bound.upper = Vec3::new(f32::MIN, f32::MIN, f32::MIN);
-    for v in this.vertex.iter() {
-        this.info.bound.add((*v).p);
-    }
-
-    let center: Vec3 = this.info.bound.center();
-    let mut r2: f64 = 0.0f64;
-    for v in this.vertex.iter() {
-        let dx: f64 = ((*v).p.x - center.x) as f64;
-        let dy: f64 = ((*v).p.y - center.y) as f64;
-        let dz: f64 = ((*v).p.z - center.z) as f64;
-        r2 = f64::max(r2, dx * dx + dy * dy + dz * dz);
-    }
-    this.info.radius = f64::sqrt(r2) as f32;
-    this.versionInfo = this.version;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_Create() -> Box<Mesh> {
-    Box::new(Mesh {
-        _refCount: 0,
-        vbo: 0,
-        ibo: 0,
-        vao: 0,
-        version: 1,
-        versionBuffers: 0,
-        versionInfo: 0,
-        info: Computed {
-            bound: Box3::default(),
-            radius: 0.0,
-        },
-        vertex: Vec::new(),
-        index: Vec::new(),
-    })
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_Clone(other: &mut Mesh) -> Box<Mesh> {
-    let mut this: Box<Mesh> = Mesh_Create();
-    this.index.clone_from(&other.index);
-    this.vertex.clone_from(&other.vertex);
-    this
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_Load(name: *const libc::c_char) -> Box<Mesh> {
-    let mut bytes = Resource_LoadBytes(ResourceType::Mesh, name);
-    let this = Mesh_FromBytes(bytes.as_mut());
-    Bytes_Free(Box::leak(bytes)); // TODO: potential memory problem. Refactor mesh to get rid of unsafe
-    this
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_Acquire(this: &mut Mesh) {
-    this._refCount = (this._refCount).wrapping_add(1);
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_Free(mut this: Box<Mesh>) {
-    this._refCount = (this._refCount).wrapping_sub(1);
-
-    if this._refCount == 0 && this.vbo != 0 {
-        glcheck!(gl::DeleteVertexArrays(1, &this.vao));
-        glcheck!(gl::DeleteBuffers(1, &this.vbo));
-        glcheck!(gl::DeleteBuffers(1, &this.ibo));
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_ToBytes(mesh: &mut Mesh) -> *mut Bytes {
-    let vertexCount: i32 = Mesh_GetVertexCount(mesh);
-    let indexCount: i32 = Mesh_GetIndexCount(mesh);
-    let size: u32 = 2_usize
-        .wrapping_mul(std::mem::size_of::<i32>())
-        .wrapping_add((vertexCount as usize).wrapping_mul(std::mem::size_of::<Vertex>()))
-        .wrapping_add((indexCount as usize).wrapping_mul(std::mem::size_of::<i32>()))
-        as u32;
-    let this: *mut Bytes = Bytes_Create(size);
-    Bytes_WriteI32(&mut *this, vertexCount);
-    Bytes_WriteI32(&mut *this, indexCount);
-    Bytes_Write(
-        &mut *this,
-        (*mesh).vertex.as_ptr() as *const _,
-        (vertexCount as usize).wrapping_mul(std::mem::size_of::<Vertex>()) as u32,
-    );
-    Bytes_Write(
-        &mut *this,
-        (*mesh).index.as_ptr() as *const _,
-        (indexCount as usize).wrapping_mul(std::mem::size_of::<i32>()) as u32,
-    );
-    this
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_FromBytes(buf: &mut Bytes) -> Box<Mesh> {
-    let mut this = Mesh_Create();
-    let vertexCount: i32 = Bytes_ReadI32(buf);
-    let indexCount: i32 = Bytes_ReadI32(buf);
-
-    Mesh_ReserveVertexData(this.as_mut(), vertexCount);
-    Mesh_ReserveIndexData(this.as_mut(), indexCount);
-
-    (*this)
-        .vertex
-        .resize(vertexCount as usize, Vertex::default());
-    (*this).index.resize(indexCount as usize, 0);
-    Bytes_Read(
-        buf,
-        (*this).vertex.as_mut_ptr() as *mut _,
-        (vertexCount as usize).wrapping_mul(std::mem::size_of::<Vertex>()) as u32,
-    );
-    Bytes_Read(
-        buf,
-        (*this).index.as_mut_ptr() as *mut _,
-        (indexCount as usize).wrapping_mul(std::mem::size_of::<i32>()) as u32,
-    );
-
-    this
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_FromSDF(sdf: &mut Sdf) -> Box<Mesh> {
-    SDF_ToMesh(sdf)
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_AddIndex(this: &mut Mesh, newIndex: i32) {
-    this.index.push(newIndex);
-    this.version += 1;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_AddMesh(this: &mut Mesh, other: &mut Mesh) {
-    let indexOffset: i32 = this.vertex.len() as i32;
-    for i in 0..other.vertex.len() {
-        Mesh_AddVertexRaw(this, &other.vertex[i]);
-    }
-    for i in 0..other.index.len() {
-        Mesh_AddIndex(this, other.index[i] + indexOffset);
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_AddQuad(this: &mut Mesh, i1: i32, i2: i32, i3: i32, i4: i32) {
-    Mesh_AddTri(this, i1, i2, i3);
-    Mesh_AddTri(this, i1, i3, i4);
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_AddTri(this: &mut Mesh, i1: i32, i2: i32, i3: i32) {
-    Mesh_AddIndex(this, i1);
-    Mesh_AddIndex(this, i2);
-    Mesh_AddIndex(this, i3);
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_AddVertex(
-    this: &mut Mesh,
-    px: f32,
-    py: f32,
-    pz: f32,
-    nx: f32,
-    ny: f32,
-    nz: f32,
-    u: f32,
-    v: f32,
-) {
-    this.vertex.push(Vertex {
-        p: Vec3::new(px, py, pz),
-        n: Vec3::new(nx, ny, nz),
-        uv: Vec2::new(u, v),
-    });
-    this.version += 1;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_AddVertexRaw(this: &mut Mesh, vertex: *const Vertex) {
-    this.vertex.push(*vertex);
-    this.version += 1;
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
-    /* Release cached GL buffers if the mesh has changed since we built them. */
-    if this.vbo != 0 && this.version != this.versionBuffers {
-        glcheck!(gl::DeleteVertexArrays(1, &this.vao));
-        glcheck!(gl::DeleteBuffers(1, &this.vbo));
-        glcheck!(gl::DeleteBuffers(1, &this.ibo));
-        this.vao = 0;
-        this.vbo = 0;
-        this.ibo = 0;
-    }
-
-    /* Generate cached GL buffers for fast drawing. */
-    if this.vbo == 0 {
-        glcheck!(gl::GenBuffers(1, &mut this.vbo));
-        glcheck!(gl::GenBuffers(1, &mut this.ibo));
-        glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
-        glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
-        glcheck!(gl::BufferData(
-            gl::ARRAY_BUFFER,
-            (this.vertex.len() as i32 as usize).wrapping_mul(std::mem::size_of::<Vertex>())
-                as gl::types::GLsizeiptr,
-            this.vertex.as_ptr() as *const _,
-            gl::STATIC_DRAW,
-        ));
-
-        /* TODO : 16-bit index optimization */
-        /* TODO : Check if 8-bit indices are supported by hardware. IIRC they
-         *        weren't last time I checked. */
-
-        glcheck!(gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (this.index.len() as i32 as usize).wrapping_mul(std::mem::size_of::<i32>())
-                as gl::types::GLsizeiptr,
-            this.index.as_ptr() as *const _,
-            gl::STATIC_DRAW,
-        ));
-
-        glcheck!(gl::GenVertexArrays(1, &mut this.vao));
-        glcheck!(gl::BindVertexArray(this.vao));
-
-        glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
-        glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
-        glcheck!(gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-            offset_of!(Vertex, p) as *const _,
-        ));
-        glcheck!(gl::VertexAttribPointer(
-            1,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-            offset_of!(Vertex, n) as *const _,
-        ));
-        glcheck!(gl::VertexAttribPointer(
-            2,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-            offset_of!(Vertex, uv) as *const _,
-        ));
-
-        this.versionBuffers = this.version;
-    }
-
-    glcheck!(gl::BindVertexArray(this.vao));
-    glcheck!(gl::EnableVertexAttribArray(0));
-    glcheck!(gl::EnableVertexAttribArray(1));
-    glcheck!(gl::EnableVertexAttribArray(2));
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_DrawBound(this: &mut Mesh) {
-    unsafe {
-        Metric_AddDraw(
-            this.index.len() as i32 / 3,
-            this.index.len() as i32 / 3,
-            this.vertex.len() as i32,
-        )
-    };
-
-    glcheck!(gl::DrawElements(
-        gl::TRIANGLES,
-        this.index.len() as i32,
-        gl::UNSIGNED_INT,
-        std::ptr::null(),
-    ));
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_DrawUnbind(_this: &mut Mesh) {
-    glcheck!(gl::DisableVertexAttribArray(0));
-    glcheck!(gl::DisableVertexAttribArray(1));
-    glcheck!(gl::DisableVertexAttribArray(2));
-    glcheck!(gl::BindVertexArray(0));
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_Draw(this: &mut Mesh) {
-    Mesh_DrawBind(this);
-    Mesh_DrawBound(this);
-    Mesh_DrawUnbind(this);
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_DrawNormals(this: &mut Mesh, scale: f32) {
-    for v in &this.vertex {
-        Draw::line3(&v.p, &(v.p + scale * v.n));
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_GetBound(this: &mut Mesh, out: &mut Box3) {
-    Mesh_UpdateInfo(this);
-    *out = this.info.bound;
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_GetCenter(this: &mut Mesh, out: &mut Vec3) {
-    Mesh_UpdateInfo(this);
-    *out = this.info.bound.center();
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_GetIndexCount(this: &mut Mesh) -> i32 {
-    this.index.len() as i32
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_GetIndexData(this: &mut Mesh) -> *mut i32 {
-    this.index.as_mut_ptr()
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_GetRadius(this: &mut Mesh) -> f32 {
-    Mesh_UpdateInfo(this);
-    this.info.radius
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_GetVersion(this: &mut Mesh) -> u64 {
-    this.version
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_IncVersion(this: &mut Mesh) {
-    this.version += 1;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_Validate(this: &mut Mesh) -> Error {
-    let indexLen: i32 = Mesh_GetIndexCount(this);
-    let indexData: *mut i32 = Mesh_GetIndexData(this);
-    let vertexData: *mut Vertex = Mesh_GetVertexData(this);
-
-    if indexLen % 3 != 0 {
-        return (0x100000 | 0x80) as Error;
-    }
-
-    let mut i: i32 = 0;
-    while i < indexLen {
-        let i0: i32 = *indexData.offset((i) as isize);
-        let i1: i32 = *indexData.offset((i + 1) as isize);
-        let i2: i32 = *indexData.offset((i + 2) as isize);
-        let mut triangle: Triangle = Triangle {
-            vertices: [Vec3::ZERO; 3],
-        };
-        triangle.vertices[0] = (*vertexData.offset(i0 as isize)).p;
-        triangle.vertices[1] = (*vertexData.offset(i1 as isize)).p;
-        triangle.vertices[2] = (*vertexData.offset(i2 as isize)).p;
-        let e = Triangle_Validate(&triangle);
-        if e != 0 {
-            return 0x400000 | e;
+impl MeshShared {
+    fn update_info(&mut self) {
+        if self.versionInfo == self.version {
+            return;
         }
-        i += 3;
-    }
 
-    for v in this.vertex.iter() {
-        let mut e_0 = Vec3_Validate((*v).p);
-        if e_0 != 0 {
-            return 0x400000 | e_0;
+        self.info.bound.lower = Vec3::new(f32::MAX, f32::MAX, f32::MAX);
+        self.info.bound.upper = Vec3::new(f32::MIN, f32::MIN, f32::MIN);
+        for v in self.vertex.iter() {
+            self.info.bound.add(v.p);
         }
-        e_0 = Vec3_Validate((*v).n);
-        if e_0 != 0 {
-            return 0x800000 | e_0;
+
+        let center: Vec3 = self.info.bound.center();
+        let mut r2: f64 = 0.0f64;
+        for v in self.vertex.iter() {
+            let dx: f64 = (v.p.x - center.x) as f64;
+            let dy: f64 = (v.p.y - center.y) as f64;
+            let dz: f64 = (v.p.z - center.z) as f64;
+            r2 = f64::max(r2, dx * dx + dy * dy + dz * dz);
         }
-        e_0 = Vec2_Validate((*v).uv);
-        if e_0 != 0 {
-            return 0x1000000 | e_0;
+        self.info.radius = f64::sqrt(r2) as f32;
+        self.versionInfo = self.version;
+    }
+}
+
+impl Drop for MeshShared {
+    fn drop(&mut self) {
+        if self.vbo != 0 {
+            glcheck!(gl::DeleteVertexArrays(1, &self.vao));
+            glcheck!(gl::DeleteBuffers(1, &self.vbo));
+            glcheck!(gl::DeleteBuffers(1, &self.ibo));
         }
     }
-
-    0 as Error
 }
 
-#[no_mangle]
-pub extern "C" fn Mesh_GetVertex(this: &mut Mesh, index: i32) -> *mut Vertex {
-    &mut this.vertex[index as usize]
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_GetVertexCount(this: &mut Mesh) -> i32 {
-    this.vertex.len() as i32
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_GetVertexData(this: &mut Mesh) -> *mut Vertex {
-    this.vertex.as_mut_ptr()
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_ReserveIndexData(this: &mut Mesh, capacity: i32) {
-    this.index.reserve(capacity as usize);
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_ReserveVertexData(this: &mut Mesh, capacity: i32) {
-    this.vertex.reserve(capacity as usize)
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_Center(this: &mut Mesh) -> &mut Mesh {
-    let mut c = Vec3::ZERO;
-
-    Mesh_GetCenter(this, &mut c);
-    Mesh_Translate(this, -c.x, -c.y, -c.z);
-
-    this
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_Invert(this: &mut Mesh) -> &mut Mesh {
-    for i in (0..this.index.len()).step_by(3) {
-        this.index.swap(i + 1, i + 2);
-    }
-    this.version += 1;
-
-    this
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_RotateX(this: &mut Mesh, rads: f32) -> &mut Mesh {
-    let matrix = Matrix_RotationX(rads);
-
-    Mesh_Transform(this, matrix.as_ref());
-
-    this
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_RotateY(this: &mut Mesh, rads: f32) -> &mut Mesh {
-    let matrix = Matrix_RotationY(rads);
-    Mesh_Transform(this, matrix.as_ref());
-    this
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_RotateZ(this: &mut Mesh, rads: f32) -> &mut Mesh {
-    let matrix = Matrix_RotationZ(rads);
-    Mesh_Transform(this, matrix.as_ref());
-    this
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_RotateYPR(
-    this: &mut Mesh,
-    yaw: f32,
-    pitch: f32,
-    roll: f32,
-) -> &mut Mesh {
-    let matrix = Matrix_YawPitchRoll(yaw, pitch, roll);
-    Mesh_Transform(this, matrix.as_ref());
-    this
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_Scale(this: &mut Mesh, x: f32, y: f32, z: f32) -> &mut Mesh {
-    for v in this.vertex.iter_mut() {
-        (*v).p.x *= x;
-        (*v).p.y *= y;
-        (*v).p.z *= z;
-    }
-    this.version += 1;
-    this
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_ScaleUniform(this: &mut Mesh, s: f32) -> &mut Mesh {
-    Mesh_Scale(this, s, s, s);
-    this
-}
-
-#[no_mangle]
-pub extern "C" fn Mesh_Translate(this: &mut Mesh, x: f32, y: f32, z: f32) -> &mut Mesh {
-    for v in this.vertex.iter_mut() {
-        (*v).p.x += x;
-        (*v).p.y += y;
-        (*v).p.z += z;
-    }
-    this.version += 1;
-    this
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_Transform<'a>(this: &'a mut Mesh, matrix: &Matrix) -> &'a mut Mesh {
-    for v in this.vertex.iter_mut() {
-        let prev_p = v.p;
-        Matrix_MulPoint(matrix, &mut v.p, prev_p.x, prev_p.y, prev_p.z);
-    }
-    this.version += 1;
-    this
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_ComputeNormals(this: &mut Mesh) {
-    for v in this.vertex.iter_mut() {
-        v.n = Vec3::ZERO;
+impl Mesh {
+    pub fn get_vertex_data(&self) -> Ref<[Vertex]> {
+        Ref::map(self.shared.as_ref(), |shared| shared.vertex.as_slice())
     }
 
-    for i in (0..this.index.len()).step_by(3) {
-        let v1 = &mut this.vertex[this.index[i] as usize] as *mut Vertex;
-        let v2 = &mut this.vertex[this.index[i + 1] as usize] as *mut Vertex;
-        let v3 = &mut this.vertex[this.index[i + 2] as usize] as *mut Vertex;
-        let e1: Vec3 = (*v2).p - (*v1).p;
-        let e2: Vec3 = (*v3).p - (*v2).p;
-        let en: Vec3 = Vec3::cross(e1, e2);
-
-        (*v1).n += en;
-        (*v2).n += en;
-        (*v3).n += en;
+    pub fn get_vertex_data_mut(&mut self) -> RefMut<[Vertex]> {
+        RefMut::map(self.shared.as_mut(), |shared| shared.vertex.as_mut_slice())
     }
 
-    for v in this.vertex.iter_mut() {
-        (*v).n = (*v).n.normalize();
+    pub fn get_index_data(&self) -> Ref<[i32]> {
+        Ref::map(self.shared.as_ref(), |shared| shared.index.as_slice())
     }
 
-    this.version += 1;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Mesh_SplitNormals(this: &mut Mesh, minDot: f32) {
-    for v in this.vertex.iter_mut() {
-        (*v).n = Vec3::ZERO;
+    pub fn get_index_data_mut(&mut self) -> RefMut<[i32]> {
+        RefMut::map(self.shared.as_mut(), |shared| shared.index.as_mut_slice())
     }
 
-    for i in (0..this.index.len()).step_by(3) {
-        let index: [*mut i32; 3] = [
-            &mut this.index[i] as *mut i32,
-            &mut this.index[i + 1] as *mut i32,
-            &mut this.index[i + 2] as *mut i32,
-        ];
-        let v: [*mut Vertex; 3] = [
-            &mut this.vertex[*index[0] as usize] as *mut Vertex,
-            &mut this.vertex[*index[1] as usize] as *mut Vertex,
-            &mut this.vertex[*index[2] as usize] as *mut Vertex,
-        ];
-        let face: Vec3 = Vec3::cross((*v[1]).p - (*v[0]).p, (*v[2]).p - (*v[0]).p);
-
-        for j in 0..3 {
-            let cn: &mut Vec3 = &mut this.vertex[*index[j as usize] as usize].n;
-            if (*cn).length_squared() > 0.0f32 {
-                let cDot: f32 = Vec3::dot(face.normalize(), (*cn).normalize());
-                if cDot < minDot {
-                    let mut nv = this.vertex[*index[j as usize] as usize];
-                    nv.n = face;
-                    this.vertex.push(nv);
-                    *index[j as usize] = this.vertex.len() as i32 - 1;
-                } else {
-                    (*cn) += face;
+    fn add_plane(&mut self, origin: Vec3, du: Vec3, dv: Vec3, res_u: i32, res_v: i32) {
+        let n: Vec3 = Vec3::cross(du, dv).normalize();
+        for iu in 0..res_u {
+            let u: f32 = iu as f32 / (res_u - 1) as f32;
+            for iv in 0..res_v {
+                let v: f32 = iv as f32 / (res_v - 1) as f32;
+                let p: Vec3 = origin + du * u + dv * v;
+                if iu != 0 && iv != 0 {
+                    let vc = self.get_vertex_count();
+                    self.add_quad(vc, vc - res_v, vc - res_v - 1, vc - 1);
                 }
-            } else {
-                (*cn) += face;
+                self.add_vertex(p.x, p.y, p.z, n.x, n.y, n.z, u, v);
             }
         }
     }
+}
 
-    for v in this.vertex.iter_mut() {
-        (*v).n = (*v).n.normalize();
+#[luajit_ffi_gen::luajit_ffi]
+impl Mesh {
+    #[bind(name = "Create")]
+    pub fn new() -> Mesh {
+        Mesh {
+            shared: Rf::new(MeshShared {
+                vbo: 0,
+                ibo: 0,
+                vao: 0,
+                version: 1,
+                version_buffers: 0,
+                versionInfo: 0,
+                info: Computed {
+                    bound: Box3::default(),
+                    radius: 0.0,
+                },
+                vertex: Vec::new(),
+                index: Vec::new(),
+            }),
+        }
+    }
+
+    #[bind(name = "Clone")]
+    pub fn acquire(&self) -> Mesh {
+        self.clone()
+    }
+
+    pub fn load(name: &str) -> Mesh {
+        Self::from_bytes(&mut Resource::load_bytes(ResourceType::Mesh, name))
+    }
+
+    #[bind(name = "ToBytes")]
+    pub fn as_bytes(&self) -> Bytes {
+        let this = self.shared.as_ref();
+
+        let vertex_count = this.vertex.len();
+        let index_count = this.index.len();
+
+        let size = 2 * std::mem::size_of::<i32>()
+            + (vertex_count * std::mem::size_of::<Vertex>())
+            + (index_count * std::mem::size_of::<i32>());
+
+        unsafe {
+            let bytes = &mut *Bytes_Create(size as u32);
+            Bytes_WriteI32(bytes, vertex_count as i32);
+            Bytes_WriteI32(bytes, index_count as i32);
+            Bytes_Write(
+                bytes,
+                this.vertex.as_ptr() as *const _,
+                (vertex_count * std::mem::size_of::<Vertex>()) as u32,
+            );
+            Bytes_Write(
+                bytes,
+                this.index.as_ptr() as *const _,
+                (index_count * std::mem::size_of::<i32>()) as u32,
+            );
+            *bytes // todo: this leaks memory
+        }
+    }
+
+    pub fn from_bytes(buf: &mut Bytes) -> Mesh {
+        let mut mesh = Mesh::new();
+
+        let vertex_count: i32 = unsafe { Bytes_ReadI32(buf) };
+        let index_count: i32 = unsafe { Bytes_ReadI32(buf) };
+
+        mesh.reserve_vertex_data(vertex_count);
+        mesh.reserve_index_data(index_count);
+
+        {
+            let this = &mut *mesh.shared.as_mut();
+
+            this.vertex.resize(vertex_count as usize, Vertex::default());
+            this.index.resize(index_count as usize, 0);
+
+            unsafe {
+                Bytes_Read(
+                    buf,
+                    this.vertex.as_mut_ptr() as *mut _,
+                    ((vertex_count as usize) * std::mem::size_of::<Vertex>()) as u32,
+                );
+                Bytes_Read(
+                    buf,
+                    this.index.as_mut_ptr() as *mut _,
+                    ((index_count as usize) * std::mem::size_of::<i32>()) as u32,
+                );
+            }
+        }
+
+        mesh
+    }
+
+    // #[bind(name = "FromSDF")]
+    // pub fn from_sdf(sdf: &mut Sdf) -> Mesh {
+    //     *unsafe { SDF_ToMesh(sdf) }
+    // }
+
+    pub fn from_obj(bytes: &str) -> Mesh {
+        // TODO: Replace this with obj loader library
+        let cstr = std::ffi::CString::new(bytes).unwrap();
+        *unsafe { super::mesh_from_obj::Mesh_FromObjImpl(cstr.as_ptr()) }
+    }
+
+    #[bind(name = "Box")]
+    pub fn new_box(res: i32) -> Mesh {
+        let origin: [Vec3; 6] = [
+            Vec3::new(-1.0f32, -1.0f32, 1.0f32),
+            Vec3::new(-1.0f32, -1.0f32, -1.0f32),
+            Vec3::new(1.0f32, -1.0f32, -1.0f32),
+            Vec3::new(-1.0f32, -1.0f32, -1.0f32),
+            Vec3::new(-1.0f32, 1.0f32, -1.0f32),
+            Vec3::new(-1.0f32, -1.0f32, -1.0f32),
+        ];
+        let du: [Vec3; 6] = [
+            Vec3::new(2.0f32, 0.0f32, 0.0f32),
+            Vec3::new(0.0f32, 2.0f32, 0.0f32),
+            Vec3::new(0.0f32, 2.0f32, 0.0f32),
+            Vec3::new(0.0f32, 0.0f32, 2.0f32),
+            Vec3::new(0.0f32, 0.0f32, 2.0f32),
+            Vec3::new(2.0f32, 0.0f32, 0.0f32),
+        ];
+        let dv: [Vec3; 6] = [
+            Vec3::new(0.0f32, 2.0f32, 0.0f32),
+            Vec3::new(2.0f32, 0.0f32, 0.0f32),
+            Vec3::new(0.0f32, 0.0f32, 2.0f32),
+            Vec3::new(0.0f32, 2.0f32, 0.0f32),
+            Vec3::new(2.0f32, 0.0f32, 0.0f32),
+            Vec3::new(0.0f32, 0.0f32, 2.0f32),
+        ];
+
+        let mut this = Self::new();
+        for i in 0..6 {
+            this.add_plane(origin[i as usize], du[i as usize], dv[i as usize], res, res);
+        }
+        this
+    }
+
+    #[bind(name = "BoxSphere")]
+    pub fn new_box_sphere(res: i32) -> Mesh {
+        let mut this: Mesh = Mesh::new_box(res);
+
+        // Normalize all points.
+        {
+            let mut vertex_data = this.get_vertex_data_mut();
+            for v in vertex_data.iter_mut() {
+                v.p = v.p.normalize();
+            }
+        }
+
+        this
+    }
+
+    #[bind(name = "Plane")]
+    pub fn new_plane(origin: Vec3, du: Vec3, dv: Vec3, res_u: i32, res_v: i32) -> Mesh {
+        let mut this = Mesh::new();
+        this.add_plane(origin, du, dv, res_u, res_v);
+        this
+    }
+
+    pub fn add_index(&mut self, new_index: i32) {
+        self.shared.as_mut().index.push(new_index);
+        self.shared.as_mut().version += 1;
+    }
+
+    pub fn add_mesh(&mut self, other: &Mesh) {
+        let index_offset: i32 = self.shared.as_ref().vertex.len() as i32;
+        for i in 0..other.shared.as_ref().vertex.len() {
+            self.add_vertex_raw(&other.shared.as_ref().vertex[i]);
+        }
+        for i in 0..other.shared.as_ref().index.len() {
+            self.add_index(other.shared.as_ref().index[i] + index_offset);
+        }
+    }
+
+    pub fn add_quad(&mut self, i1: i32, i2: i32, i3: i32, i4: i32) {
+        self.add_tri(i1, i2, i3);
+        self.add_tri(i1, i3, i4);
+    }
+
+    pub fn add_tri(&mut self, i1: i32, i2: i32, i3: i32) {
+        self.add_index(i1);
+        self.add_index(i2);
+        self.add_index(i3);
+    }
+
+    pub fn add_vertex(
+        &mut self,
+        px: f32,
+        py: f32,
+        pz: f32,
+        nx: f32,
+        ny: f32,
+        nz: f32,
+        u: f32,
+        v: f32,
+    ) {
+        self.shared.as_mut().vertex.push(Vertex {
+            p: Vec3::new(px, py, pz),
+            n: Vec3::new(nx, ny, nz),
+            uv: Vec2::new(u, v),
+        });
+        self.shared.as_mut().version += 1;
+    }
+
+    pub fn add_vertex_raw(&mut self, vertex: &Vertex) {
+        self.shared.as_mut().vertex.push(*vertex);
+        self.shared.as_mut().version += 1;
+    }
+
+    pub fn draw_bind(&mut self) {
+        let this = &mut *self.shared.as_mut();
+
+        /* Release cached GL buffers if the mesh has changed since we built them. */
+        if this.vbo != 0 && this.version != this.version_buffers {
+            glcheck!(gl::DeleteVertexArrays(1, &this.vao));
+            glcheck!(gl::DeleteBuffers(1, &this.vbo));
+            glcheck!(gl::DeleteBuffers(1, &this.ibo));
+            this.vao = 0;
+            this.vbo = 0;
+            this.ibo = 0;
+        }
+
+        /* Generate cached GL buffers for fast drawing. */
+        if this.vbo == 0 {
+            glcheck!(gl::GenBuffers(1, &mut this.vbo));
+            glcheck!(gl::GenBuffers(1, &mut this.ibo));
+            glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
+            glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
+            glcheck!(gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (this.vertex.len() as i32 as usize).wrapping_mul(std::mem::size_of::<Vertex>())
+                    as gl::types::GLsizeiptr,
+                this.vertex.as_ptr() as *const _,
+                gl::STATIC_DRAW,
+            ));
+
+            /* TODO : 16-bit index optimization */
+            /* TODO : Check if 8-bit indices are supported by hardware. IIRC they
+             *        weren't last time I checked. */
+
+            glcheck!(gl::BufferData(
+                gl::ELEMENT_ARRAY_BUFFER,
+                (this.index.len() as i32 as usize).wrapping_mul(std::mem::size_of::<i32>())
+                    as gl::types::GLsizeiptr,
+                this.index.as_ptr() as *const _,
+                gl::STATIC_DRAW,
+            ));
+
+            glcheck!(gl::GenVertexArrays(1, &mut this.vao));
+            glcheck!(gl::BindVertexArray(this.vao));
+
+            glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
+            glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
+            glcheck!(gl::VertexAttribPointer(
+                0,
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+                offset_of!(Vertex, p) as *const _,
+            ));
+            glcheck!(gl::VertexAttribPointer(
+                1,
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+                offset_of!(Vertex, n) as *const _,
+            ));
+            glcheck!(gl::VertexAttribPointer(
+                2,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+                offset_of!(Vertex, uv) as *const _,
+            ));
+
+            this.version_buffers = this.version;
+        }
+
+        glcheck!(gl::BindVertexArray(this.vao));
+        glcheck!(gl::EnableVertexAttribArray(0));
+        glcheck!(gl::EnableVertexAttribArray(1));
+        glcheck!(gl::EnableVertexAttribArray(2));
+    }
+
+    pub fn draw_bound(&self) {
+        let this = self.shared.as_ref();
+
+        unsafe {
+            Metric_AddDraw(
+                this.index.len() as i32 / 3,
+                this.index.len() as i32 / 3,
+                this.vertex.len() as i32,
+            )
+        };
+
+        glcheck!(gl::DrawElements(
+            gl::TRIANGLES,
+            this.index.len() as i32,
+            gl::UNSIGNED_INT,
+            std::ptr::null(),
+        ));
+    }
+
+    pub fn draw_unbind(&self) {
+        glcheck!(gl::DisableVertexAttribArray(0));
+        glcheck!(gl::DisableVertexAttribArray(1));
+        glcheck!(gl::DisableVertexAttribArray(2));
+        glcheck!(gl::BindVertexArray(0));
+    }
+
+    pub fn draw(&mut self) {
+        self.draw_bind();
+        self.draw_bound();
+        self.draw_unbind();
+    }
+
+    pub fn draw_normals(&self, scale: f32) {
+        for v in &self.shared.as_ref().vertex {
+            Draw::line3(&v.p, &(v.p + scale * v.n));
+        }
+    }
+
+    pub fn get_bound(&mut self, out: &mut Box3) {
+        self.shared.as_mut().update_info();
+        *out = self.shared.as_ref().info.bound;
+    }
+
+    pub fn get_center(&mut self, out: &mut Vec3) {
+        self.shared.as_mut().update_info();
+        *out = self.shared.as_ref().info.bound.center();
+    }
+
+    pub fn get_index_count(&self) -> i32 {
+        self.shared.as_ref().index.len() as i32
+    }
+
+    #[bind(name = "LockIndexData")]
+    pub fn lock_index_data_mut(&mut self, f: impl FnOnce(&mut [i32])) {
+        f(self.shared.as_mut().index.as_mut_slice());
+    }
+
+    pub fn get_radius(&mut self) -> f32 {
+        self.shared.as_mut().update_info();
+        self.shared.as_ref().info.radius
+    }
+
+    pub fn get_version(&self) -> u64 {
+        self.shared.as_ref().version
+    }
+
+    pub fn inc_version(&mut self) {
+        self.shared.as_mut().version += 1;
+    }
+
+    // TODO: Make `Error` an enum.
+    pub fn validate(&self) -> u32 {
+        let this = self.shared.as_ref();
+
+        let index_len = this.index.len();
+        if index_len % 3 != 0 {
+            // return Error_Index | Error_BadCount;
+            return (0x100000 | 0x80) as Error;
+        }
+
+        for i in (0..index_len).step_by(3) {
+            let i0 = this.index[i] as usize;
+            let i1 = this.index[i + 1] as usize;
+            let i2 = this.index[i + 2] as usize;
+            let triangle: Triangle = Triangle {
+                vertices: [this.vertex[i0].p, this.vertex[i1].p, this.vertex[i2].p],
+            };
+            let e = unsafe { Triangle_Validate(&triangle) };
+            if e != 0 {
+                return 0x400000 | e;
+            }
+        }
+
+        for v in this.vertex.iter() {
+            let e = Vec3_Validate(v.p);
+            if e != 0 {
+                return 0x400000 | e;
+            }
+            let e = Vec3_Validate(v.n);
+            if e != 0 {
+                return 0x800000 | e;
+            }
+            let e = Vec2_Validate(v.uv);
+            if e != 0 {
+                return 0x1000000 | e;
+            }
+        }
+
+        0 as Error
+    }
+
+    pub unsafe fn get_vertex(&mut self, index: i32) -> &mut Vertex {
+        let ptr = &mut self.shared.as_mut().vertex[index as usize] as *mut _;
+        &mut *ptr
+    }
+
+    pub fn get_vertex_count(&self) -> i32 {
+        self.shared.as_ref().vertex.len() as i32
+    }
+
+    #[bind(name = "LockVertexData")]
+    pub fn lock_vertex_data_mut(&mut self, f: impl FnOnce(&mut [Vertex])) {
+        f(self.shared.as_mut().vertex.as_mut_slice());
+    }
+
+    pub fn reserve_index_data(&mut self, capacity: i32) {
+        self.shared.as_mut().index.reserve(capacity as usize);
+    }
+
+    pub fn reserve_vertex_data(&mut self, capacity: i32) {
+        self.shared.as_mut().vertex.reserve(capacity as usize)
+    }
+
+    pub fn center(&mut self) -> &mut Mesh {
+        let mut c = Vec3::ZERO;
+        self.get_center(&mut c);
+        self.translate(-c.x, -c.y, -c.z);
+        self
+    }
+
+    pub fn invert(&mut self) -> &mut Mesh {
+        {
+            let this = &mut *self.shared.as_mut();
+            for i in (0..this.index.len()).step_by(3) {
+                this.index.swap(i + 1, i + 2);
+            }
+            this.version += 1;
+        }
+
+        self
+    }
+
+    pub fn rotate_x(&mut self, rads: f32) -> &mut Mesh {
+        let matrix = Matrix_RotationX(rads);
+        self.transform(matrix.as_ref());
+        self
+    }
+
+    pub fn rotate_y(&mut self, rads: f32) -> &mut Mesh {
+        let matrix = Matrix_RotationY(rads);
+        self.transform(matrix.as_ref());
+        self
+    }
+
+    pub fn rotate_z(&mut self, rads: f32) -> &mut Mesh {
+        let matrix = Matrix_RotationZ(rads);
+        self.transform(matrix.as_ref());
+        self
+    }
+
+    #[bind(name = "RotateYPR")]
+    pub fn rotate_ypr(&mut self, yaw: f32, pitch: f32, roll: f32) -> &mut Mesh {
+        let matrix = Matrix_YawPitchRoll(yaw, pitch, roll);
+        self.transform(matrix.as_ref());
+        self
+    }
+
+    pub fn scale(&mut self, x: f32, y: f32, z: f32) -> &mut Mesh {
+        {
+            let mut this = self.shared.as_mut();
+
+            for v in &mut this.vertex {
+                v.p.x *= x;
+                v.p.y *= y;
+                v.p.z *= z;
+            }
+            this.version += 1;
+        }
+
+        self
+    }
+
+    pub fn scale_uniform(&mut self, s: f32) -> &mut Mesh {
+        self.scale(s, s, s)
+    }
+
+    pub fn translate(&mut self, x: f32, y: f32, z: f32) -> &mut Mesh {
+        {
+            let mut this = self.shared.as_mut();
+
+            for v in &mut this.vertex {
+                v.p.x += x;
+                v.p.y += y;
+                v.p.z += z;
+            }
+            this.version += 1;
+        }
+
+        self
+    }
+
+    pub fn transform(&mut self, matrix: &Matrix) {
+        let mut this = self.shared.as_mut();
+
+        for v in &mut this.vertex {
+            v.p = matrix.transform_point3(v.p);
+        }
+        this.version += 1;
+    }
+
+    pub fn compute_normals(&mut self) {
+        let this = &mut *self.shared.as_mut();
+
+        for v in &mut this.vertex {
+            v.n = Vec3::ZERO;
+        }
+
+        for i in (0..this.index.len()).step_by(3) {
+            let v1 = this.vertex[this.index[i] as usize].p;
+            let v2 = this.vertex[this.index[i + 1] as usize].p;
+            let v3 = this.vertex[this.index[i + 2] as usize].p;
+            let e1: Vec3 = v2 - v1;
+            let e2: Vec3 = v3 - v2;
+            let en: Vec3 = Vec3::cross(e1, e2);
+
+            this.vertex[this.index[i] as usize].n += en;
+            this.vertex[this.index[i + 1] as usize].n += en;
+            this.vertex[this.index[i + 2] as usize].n += en;
+        }
+
+        for v in &mut this.vertex {
+            v.n = v.n.normalize();
+        }
+
+        this.version += 1;
+    }
+
+    pub fn split_normals(&mut self, min_dot: f32) {
+        let this = &mut *self.shared.as_mut();
+
+        for v in &mut this.vertex {
+            v.n = Vec3::ZERO;
+        }
+
+        for i in (0..this.index.len()).step_by(3) {
+            let index_range: &mut [i32] = &mut this.index[i..=i + 2];
+            let face: Vec3 = Vec3::cross(
+                this.vertex[index_range[1] as usize].p - this.vertex[index_range[0] as usize].p,
+                this.vertex[index_range[2] as usize].p - this.vertex[index_range[0] as usize].p,
+            );
+
+            for index in index_range {
+                let cn = &mut this.vertex[*index as usize].n;
+                if cn.length_squared() > 0.0 {
+                    let c_dot = Vec3::dot(face.normalize(), cn.normalize());
+                    if c_dot < min_dot {
+                        let mut nv = this.vertex[*index as usize];
+                        nv.n = face;
+                        this.vertex.push(nv);
+                        *index = this.vertex.len() as i32 - 1;
+                    } else {
+                        *cn += face;
+                    }
+                } else {
+                    *cn += face;
+                }
+            }
+        }
+
+        for v in &mut this.vertex {
+            v.n = v.n.normalize();
+        }
+    }
+
+    #[bind(name = "ComputeAO")]
+    pub unsafe fn compute_ao(&mut self, radius: f32) {
+        let this = &mut *self.shared.as_mut();
+
+        let s_dim = f64::ceil(f64::sqrt((this.index.len() / 3) as f64)) as i32;
+        let v_dim = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
+        let surfels = s_dim * s_dim;
+        let vertices = v_dim * v_dim;
+        let buf_size = i32::max(surfels, vertices);
+
+        let point_buffer: *mut Vec4 = MemNewArray!(Vec4, buf_size);
+        let normal_buffer: *mut Vec4 = MemNewArray!(Vec4, buf_size);
+        MemZero(
+            point_buffer as *mut _,
+            (std::mem::size_of::<Vec4>()).wrapping_mul(buf_size as usize),
+        );
+        MemZero(
+            normal_buffer as *mut _,
+            (std::mem::size_of::<Vec4>()).wrapping_mul(buf_size as usize),
+        );
+
+        for i in (0..this.index.len()).step_by(3) {
+            let v1 = &this.vertex[this.index[i] as usize];
+            let v2 = &this.vertex[this.index[i + 1] as usize];
+            let v3 = &this.vertex[this.index[i + 2] as usize];
+            let mut normal: Vec3 = Vec3::cross(v3.p - v1.p, v2.p - v1.p);
+            let length: f32 = normal.length();
+            let area: f32 = 0.5f32 * length / std::f32::consts::PI;
+            if f64::abs(length as f64) > 1e-6f64 {
+                normal /= length;
+            } else {
+                normal = Vec3::X;
+            }
+            let center: Vec3 = (v1.p + v2.p + v3.p) / 3.0f32;
+            *point_buffer.add(i / 3) = Vec4::new(center.x, center.y, center.z, area);
+            *normal_buffer.add(i / 3) = Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
+        }
+
+        let tex_spoints = Tex2D_Create(s_dim, s_dim, TexFormat_RGBA32F);
+        let tex_snormals = Tex2D_Create(s_dim, s_dim, TexFormat_RGBA32F);
+        Tex2D_SetData(
+            &mut *tex_spoints,
+            point_buffer as *const _,
+            PixelFormat_RGBA,
+            DataFormat_Float,
+        );
+        Tex2D_SetData(
+            &mut *tex_snormals,
+            normal_buffer as *const _,
+            PixelFormat_RGBA,
+            DataFormat_Float,
+        );
+
+        MemZero(
+            point_buffer as *mut _,
+            (std::mem::size_of::<Vec4>()).wrapping_mul(buf_size as usize),
+        );
+        MemZero(
+            normal_buffer as *mut _,
+            (std::mem::size_of::<Vec4>()).wrapping_mul(buf_size as usize),
+        );
+        for i in 0..this.vertex.len() {
+            let v = &this.vertex[i];
+            *point_buffer.add(i) = Vec4::new(v.p.x, v.p.y, v.p.z, 0.0);
+            *normal_buffer.add(i) = Vec4::new(v.n.x, v.n.y, v.n.z, 0.0);
+        }
+
+        let tex_vpoints = Tex2D_Create(v_dim, v_dim, TexFormat_RGBA32F);
+        let tex_vnormals = Tex2D_Create(v_dim, v_dim, TexFormat_RGBA32F);
+        Tex2D_SetData(
+            &mut *tex_vpoints,
+            point_buffer as *const _,
+            PixelFormat_RGBA,
+            DataFormat_Float,
+        );
+        Tex2D_SetData(
+            &mut *tex_vnormals,
+            normal_buffer as *const _,
+            PixelFormat_RGBA,
+            DataFormat_Float,
+        );
+        MemFree(point_buffer as *const _);
+        MemFree(normal_buffer as *const _);
+
+        let tex_output = Tex2D_Create(v_dim, v_dim, TexFormat_R32F);
+        // TODO: Store shader properly
+        static mut SHADER: *mut Shader = std::ptr::null_mut();
+        if SHADER.is_null() {
+            SHADER = Box::into_raw(Box::new(Shader::load(
+                "vertex/identity",
+                "fragment/compute/occlusion",
+            )));
+        }
+        RenderState_PushAllDefaults();
+        RenderTarget_PushTex2D(&mut *tex_output);
+
+        (*SHADER).start();
+        (*SHADER).set_int("sDim", s_dim);
+        (*SHADER).set_float("radius", radius);
+        (*SHADER).set_tex2d("sPointBuffer", &mut *tex_spoints);
+        (*SHADER).set_tex2d("sNormalBuffer", &mut *tex_snormals);
+        (*SHADER).set_tex2d("vPointBuffer", &mut *tex_vpoints);
+        (*SHADER).set_tex2d("vNormalBuffer", &mut *tex_vnormals);
+        Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
+        (*SHADER).stop();
+
+        RenderTarget_Pop();
+        RenderState_PopAll();
+        let result: *mut f32 = MemNewArray!(f32, (v_dim * v_dim));
+        Tex2D_GetData(
+            &mut *tex_output,
+            result as *mut _,
+            PixelFormat_Red,
+            DataFormat_Float,
+        );
+
+        for i in 0..this.vertex.len() {
+            this.vertex[i].uv.x = *result.add(i);
+        }
+
+        MemFree(result as *const _);
+        Tex2D_Free(&mut *tex_output);
+        Tex2D_Free(&mut *tex_spoints);
+        Tex2D_Free(&mut *tex_snormals);
+        Tex2D_Free(&mut *tex_vpoints);
+        Tex2D_Free(&mut *tex_vnormals);
+    }
+
+    pub unsafe fn compute_occlusion(&mut self, sdf: &mut Tex3D, radius: f32) {
+        let this = &mut *self.shared.as_mut();
+
+        let v_dim: i32 = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
+        let tex_points = Tex2D_Create(v_dim, v_dim, TexFormat_RGBA32F);
+        let tex_output = Tex2D_Create(v_dim, v_dim, TexFormat_R32F);
+
+        let point_buffer: *mut Vec3 = MemNewArray!(Vec3, (v_dim * v_dim));
+
+        for i in 0..this.vertex.len() {
+            *point_buffer.add(i) = this.vertex[i].p;
+        }
+
+        Tex2D_SetData(
+            &mut *tex_points,
+            point_buffer as *const _,
+            PixelFormat_RGB,
+            DataFormat_Float,
+        );
+        MemFree(point_buffer as *const _);
+
+        // TODO: Store shader properly.
+        static mut SHADER: *mut Shader = std::ptr::null_mut();
+        if SHADER.is_null() {
+            SHADER = Box::into_raw(Box::new(Shader::load(
+                "vertex/identity",
+                "fragment/compute/occlusion_sdf",
+            )));
+        }
+
+        RenderState_PushAllDefaults();
+        RenderTarget_PushTex2D(&mut *tex_output);
+
+        (*SHADER).start();
+        (*SHADER).set_float("radius", radius);
+        (*SHADER).set_tex2d("points", &mut *tex_points);
+        (*SHADER).set_tex3d("sdf", &mut *sdf);
+        Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
+        (*SHADER).stop();
+
+        RenderTarget_Pop();
+        RenderState_PopAll();
+
+        let result: *mut f32 = MemNewArray!(f32, (v_dim * v_dim));
+        Tex2D_GetData(
+            &mut *tex_output,
+            result as *mut _,
+            PixelFormat_Red,
+            DataFormat_Float,
+        );
+
+        for i in 0..this.vertex.len() {
+            this.vertex[i].uv.x = *result.add(i);
+        }
+
+        MemFree(result as *const _);
+        Tex2D_Free(&mut *tex_points);
+        Tex2D_Free(&mut *tex_output);
     }
 }
