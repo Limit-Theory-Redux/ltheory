@@ -298,10 +298,6 @@ pub enum TypeVariant {
 }
 
 impl TypeVariant {
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::Str | Self::String | Self::CString)
-    }
-
     pub fn from_rust_ffi_str(type_name: &str) -> Option<Self> {
         let res = match type_name {
             "bool" => Self::Bool,
