@@ -1,15 +1,7 @@
 use luajit_ffi_gen::luajit_ffi;
 
-#[derive(Default, Clone, PartialEq, Debug)]
-pub struct Data {
-    pub val: u32,
-}
-
-impl Data {
-    fn new(val: u32) -> Data {
-        Data { val }
-    }
-}
+mod helpers;
+use helpers::*;
 
 #[derive(Default)]
 pub struct ArraysTest {

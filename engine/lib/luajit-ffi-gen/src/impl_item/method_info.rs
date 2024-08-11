@@ -54,6 +54,7 @@ pub struct SelfType {
     pub is_mutable: bool,
 }
 
+#[derive(Debug)]
 pub struct ParamInfo {
     pub name: String,
     pub ty: TypeInfo,
