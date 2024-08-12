@@ -31,3 +31,6 @@ EventPayloadType = {
     Table = 25,
 }
 
+---@return boolean
+function EventPayloadType:isArray() end
+

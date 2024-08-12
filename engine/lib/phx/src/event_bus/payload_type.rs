@@ -1,4 +1,4 @@
-#[luajit_ffi_gen::luajit_ffi]
+#[luajit_ffi_gen::luajit_ffi(with_impl = true)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EventPayloadType {
     /// Lua object pointer/index to communicate inside scripts only
@@ -31,4 +31,25 @@ pub enum EventPayloadType {
     StringArray,
 
     Table,
+}
+
+#[luajit_ffi_gen::luajit_ffi]
+impl EventPayloadType {
+    pub fn is_array(&self) -> bool {
+        matches!(
+            self,
+            Self::BoolArray
+                | Self::I8Array
+                | Self::U8Array
+                | Self::I16Array
+                | Self::U16Array
+                | Self::I32Array
+                | Self::U32Array
+                | Self::I64Array
+                | Self::U64Array
+                | Self::F32Array
+                | Self::F64Array
+                | Self::StringArray
+        )
+    }
 }

@@ -321,7 +321,7 @@ impl EventPayload {
             self.type_panic("StringArray");
         };
 
-        value.iter().for_each(|v| f(&v));
+        value.iter().for_each(|v| f(v));
     }
 
     pub fn from_table(value: EventPayloadTable) -> Self {

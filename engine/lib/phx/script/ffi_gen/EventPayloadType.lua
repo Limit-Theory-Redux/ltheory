@@ -44,6 +44,9 @@ function Loader.defineType()
             EventPayloadType EventPayloadType_Table;
 
             cstr             EventPayloadType_ToString(EventPayloadType);
+
+            void EventPayloadType_Free    (EventPayloadType*);
+            bool EventPayloadType_IsArray (EventPayloadType const*);
         ]]
     end
 
@@ -77,10 +80,23 @@ function Loader.defineType()
             Table       = libphx.EventPayloadType_Table,
 
             ToString    = libphx.EventPayloadType_ToString,
+
         }
 
         if onDef_EventPayloadType then onDef_EventPayloadType(EventPayloadType, mt) end
         EventPayloadType = setmetatable(EventPayloadType, mt)
+    end
+
+    do -- Metatype for class instances
+        local t  = ffi.typeof('EventPayloadType')
+        local mt = {
+            __index = {
+                isArray = libphx.EventPayloadType_IsArray,
+            },
+        }
+
+        if onDef_EventPayloadType_t then onDef_EventPayloadType_t(t, mt) end
+        EventPayloadType_t = ffi.metatype(t, mt)
     end
 
     return EventPayloadType
