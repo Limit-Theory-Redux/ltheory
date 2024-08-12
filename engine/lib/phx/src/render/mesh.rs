@@ -1,7 +1,9 @@
 use std::cell::{Ref, RefMut};
+use std::io::BufReader;
 
 use internal::*;
 use memoffset::offset_of;
+use tobj::LoadError;
 
 use super::*;
 use crate::error::Error;
@@ -206,9 +208,55 @@ impl Mesh {
     // }
 
     pub fn from_obj(bytes: &str) -> Mesh {
-        // TODO: Replace this with obj loader library
-        let cstr = std::ffi::CString::new(bytes).unwrap();
-        *unsafe { super::mesh_from_obj::Mesh_FromObjImpl(cstr.as_ptr()) }
+        let (models, _) = tobj::load_obj_buf(
+            &mut BufReader::new(bytes.as_bytes()),
+            &tobj::GPU_LOAD_OPTIONS,
+            |_| Err(LoadError::OpenFileFailed),
+        )
+        .expect("Failed to OBJ load file");
+
+        let mut mesh = Mesh::new();
+
+        // All models in the OBJ file are flattened into a single Mesh.
+        let mut start_index = 0;
+        for m in &models {
+            let model_mesh = &m.mesh;
+
+            // Load vertex data.
+            let num_vertices = model_mesh.positions.len() / 3;
+            for v in 0..num_vertices {
+                let mut vertex: Vertex = Vertex {
+                    p: Vec3::new(
+                        model_mesh.positions[3 * v],
+                        model_mesh.positions[3 * v + 1],
+                        model_mesh.positions[3 * v + 2],
+                    ),
+                    n: Vec3::ZERO,
+                    uv: Vec2::ZERO,
+                };
+
+                if !model_mesh.normals.is_empty() {
+                    vertex.n.x = model_mesh.normals[3 * v];
+                    vertex.n.y = model_mesh.normals[3 * v + 1];
+                    vertex.n.z = model_mesh.normals[3 * v + 2];
+                }
+
+                if !model_mesh.texcoords.is_empty() {
+                    vertex.uv.x = model_mesh.texcoords[2 * v];
+                    vertex.uv.y = model_mesh.texcoords[2 * v + 1];
+                }
+
+                mesh.add_vertex_raw(&vertex);
+            }
+
+            // Load index data.
+            for i in &model_mesh.indices {
+                mesh.add_index(start_index + *i as i32);
+            }
+            start_index += model_mesh.indices.len() as i32;
+        }
+
+        mesh
     }
 
     #[bind(name = "Box")]

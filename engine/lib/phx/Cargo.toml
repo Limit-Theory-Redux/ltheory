@@ -47,6 +47,7 @@ winit = "0.30"
 walkdir = "2.4"
 strum = "0.26"
 strum_macros = "0.26"
+tobj = "4.0"
 
 [build-dependencies]
 gl_generator = "0.14"
