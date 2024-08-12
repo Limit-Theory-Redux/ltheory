@@ -1,10 +1,8 @@
 local libphx = require('libphx').lib
 local Converter = require('Core.Util.Converter')
-local EventPayloadConverter = require "Types.EventPayloadConverter"
+local EventPayloadConverter = require "Core.Util.EventPayloadConverter"
 
 function onDef_EventBus_t(t, mt)
-    local EventBus = t
-
     -- TODO: should return a handler
     mt.__index.register = function(self, event, eventName, frameStage, rustPayload)
         local rustPayload = rustPayload == nil or rustPayload

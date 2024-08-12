@@ -1,5 +1,3 @@
-local Converter = require('Core.Util.Converter')
-
 ---@class EventPayloadConverter
 local EventPayloadConverter = {
     Cache = {},
