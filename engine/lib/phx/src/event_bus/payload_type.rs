@@ -17,5 +17,18 @@ pub enum EventPayloadType {
     F64,
     String,
 
+    BoolArray,
+    I8Array,
+    U8Array,
+    I16Array,
+    U16Array,
+    I32Array,
+    U32Array,
+    I64Array,
+    U64Array,
+    F32Array,
+    F64Array,
+    StringArray,
+
     Table,
 }

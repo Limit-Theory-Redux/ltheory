@@ -18,6 +18,19 @@ pub enum EventPayload {
     F64(f64),
     String(String),
 
+    BoolArray(Vec<bool>),
+    I8Array(Vec<i8>),
+    U8Array(Vec<u8>),
+    I16Array(Vec<i16>),
+    U16Array(Vec<u16>),
+    I32Array(Vec<i32>),
+    U32Array(Vec<u32>),
+    I64Array(Vec<i64>),
+    U64Array(Vec<u64>),
+    F32Array(Vec<f32>),
+    F64Array(Vec<f64>),
+    StringArray(Vec<String>),
+
     Table(Box<EventPayloadTable>),
 }
 
@@ -166,6 +179,151 @@ impl EventPayload {
         value.as_str()
     }
 
+    pub fn from_bool_array(value: &[bool]) -> Self {
+        Self::BoolArray(value.into())
+    }
+
+    pub fn for_each_bool(&self, f: impl Fn(bool)) {
+        let Self::BoolArray(value) = self else {
+            self.type_panic("BoolArray");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    pub fn from_i8_array(value: &[i8]) -> Self {
+        Self::I8Array(value.into())
+    }
+
+    pub fn for_each_i8(&self, f: impl Fn(i8)) {
+        let Self::I8Array(value) = self else {
+            self.type_panic("I8Array");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    pub fn from_u8_array(value: &[u8]) -> Self {
+        Self::U8Array(value.into())
+    }
+
+    pub fn for_each_u8(&self, f: impl Fn(u8)) {
+        let Self::U8Array(value) = self else {
+            self.type_panic("U8Array");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    pub fn from_i16_array(value: &[i16]) -> Self {
+        Self::I16Array(value.into())
+    }
+
+    pub fn for_each_i16(&self, f: impl Fn(i16)) {
+        let Self::I16Array(value) = self else {
+            self.type_panic("I16Array");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    pub fn from_u16_array(value: &[u16]) -> Self {
+        Self::U16Array(value.into())
+    }
+
+    pub fn for_each_u16(&self, f: impl Fn(u16)) {
+        let Self::U16Array(value) = self else {
+            self.type_panic("U16Array");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    pub fn from_i32_array(value: &[i32]) -> Self {
+        Self::I32Array(value.into())
+    }
+
+    pub fn for_each_i32(&self, f: impl Fn(i32)) {
+        let Self::I32Array(value) = self else {
+            self.type_panic("I32Array");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    pub fn from_u32_array(value: &[u32]) -> Self {
+        Self::U32Array(value.into())
+    }
+
+    pub fn for_each_u32(&self, f: impl Fn(u32)) {
+        let Self::U32Array(value) = self else {
+            self.type_panic("U32Array");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    pub fn from_i64_array(value: &[i64]) -> Self {
+        Self::I64Array(value.into())
+    }
+
+    pub fn for_each_i64(&self, f: impl Fn(i64)) {
+        let Self::I64Array(value) = self else {
+            self.type_panic("I64Array");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    pub fn from_u64_array(value: &[u64]) -> Self {
+        Self::U64Array(value.into())
+    }
+
+    pub fn for_each_u64(&self, f: impl Fn(u64)) {
+        let Self::U64Array(value) = self else {
+            self.type_panic("U64Array");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    pub fn from_f32_array(value: &[f32]) -> Self {
+        Self::F32Array(value.into())
+    }
+
+    pub fn for_each_f32(&self, f: impl Fn(f32)) {
+        let Self::F32Array(value) = self else {
+            self.type_panic("F32Array");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    pub fn from_f64_array(value: &[f64]) -> Self {
+        Self::F64Array(value.into())
+    }
+
+    pub fn for_each_f64(&self, f: impl Fn(f64)) {
+        let Self::F64Array(value) = self else {
+            self.type_panic("F64Array");
+        };
+
+        value.iter().for_each(|v| f(*v));
+    }
+
+    // TODO: uncomment when luajit_gen_ffi supports array/slices of strings properly
+    // pub fn from_string_array(value: &[&str]) -> Self {
+    //     Self::StringArray(value.iter().map(|v| v.to_string()).collect())
+    // }
+
+    pub fn for_each_string(&self, f: impl Fn(&str)) {
+        let Self::StringArray(value) = self else {
+            self.type_panic("StringArray");
+        };
+
+        value.iter().for_each(|v| f(&v));
+    }
+
     pub fn from_table(value: EventPayloadTable) -> Self {
         Self::Table(Box::new(value))
     }
@@ -179,20 +337,32 @@ impl EventPayload {
 
     pub fn get_type(&self) -> EventPayloadType {
         match self {
-            EventPayload::Lua(_) => EventPayloadType::Lua,
-            EventPayload::Bool(_) => EventPayloadType::Bool,
-            EventPayload::I8(_) => EventPayloadType::I8,
-            EventPayload::U8(_) => EventPayloadType::U8,
-            EventPayload::I16(_) => EventPayloadType::I16,
-            EventPayload::U16(_) => EventPayloadType::U16,
-            EventPayload::I32(_) => EventPayloadType::I32,
-            EventPayload::U32(_) => EventPayloadType::U32,
-            EventPayload::I64(_) => EventPayloadType::I64,
-            EventPayload::U64(_) => EventPayloadType::U64,
-            EventPayload::F32(_) => EventPayloadType::F32,
-            EventPayload::F64(_) => EventPayloadType::F64,
-            EventPayload::String(_) => EventPayloadType::String,
-            EventPayload::Table(_) => EventPayloadType::Table,
+            Self::Lua(_) => EventPayloadType::Lua,
+            Self::Bool(_) => EventPayloadType::Bool,
+            Self::I8(_) => EventPayloadType::I8,
+            Self::U8(_) => EventPayloadType::U8,
+            Self::I16(_) => EventPayloadType::I16,
+            Self::U16(_) => EventPayloadType::U16,
+            Self::I32(_) => EventPayloadType::I32,
+            Self::U32(_) => EventPayloadType::U32,
+            Self::I64(_) => EventPayloadType::I64,
+            Self::U64(_) => EventPayloadType::U64,
+            Self::F32(_) => EventPayloadType::F32,
+            Self::F64(_) => EventPayloadType::F64,
+            Self::String(_) => EventPayloadType::String,
+            Self::BoolArray(_) => EventPayloadType::BoolArray,
+            Self::I8Array(_) => EventPayloadType::I8Array,
+            Self::U8Array(_) => EventPayloadType::U8Array,
+            Self::I16Array(_) => EventPayloadType::I16Array,
+            Self::U16Array(_) => EventPayloadType::U16Array,
+            Self::I32Array(_) => EventPayloadType::I32Array,
+            Self::U32Array(_) => EventPayloadType::U32Array,
+            Self::I64Array(_) => EventPayloadType::I64Array,
+            Self::U64Array(_) => EventPayloadType::U64Array,
+            Self::F32Array(_) => EventPayloadType::F32Array,
+            Self::F64Array(_) => EventPayloadType::F64Array,
+            Self::StringArray(_) => EventPayloadType::StringArray,
+            Self::Table(_) => EventPayloadType::Table,
         }
     }
 }
