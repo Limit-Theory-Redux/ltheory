@@ -339,16 +339,17 @@ Glossary:
 
 List of allowed types in the input parameter position.
 
-| Rust type                    | extern "C" interface     | C type    |
-| ---------------------------- | ------------------------ | --------- |
-| By value (NT) (not working!) | Box\<NT>                 | NT*       |
-| By value (CT)                | CT                       | CT        |
-| Immutable reference (&NT)    | &NT                      | NT const* |
-| Immutable reference (&CT)    | CT                       | CT        |
-| Mutable reference (&mut T)   | &mut T                   | T*        |
-| String, &str                 | \*const/mut libc::c_char | cstr      |
-| Option\<T>                   | \*const/mut T            | T*        |
-| Option\<String, str>         | \*const/mut libc::c_char | cstr      |
+| Rust type                    | extern "C" interface       | C type            |
+| ---------------------------- | -------------------------- | ----------------- |
+| By value (NT) (not working!) | Box\<NT>                   | NT*               |
+| By value (CT)                | CT                         | CT                |
+| Immutable reference (&NT)    | &NT                        | NT const*         |
+| Immutable reference (&CT)    | CT                         | CT                |
+| Mutable reference (&mut T)   | &mut T                     | T*                |
+| String, &str                 | \*const/mut libc::c_char   | cstr              |
+| Option\<T>                   | \*const/mut T              | T*                |
+| Option\<String, str>         | \*const/mut libc::c_char   | cstr              |
+| trait FnOnce/Fn/FnMut        | extern fn(T1, T2, ..) -> R | R (*)(T1, T2, ..) |
 
 ###  Return position
 
@@ -404,6 +405,10 @@ Returned as a **\*mut T**, and **None** is interpreted as **NULL** pointer.
 ### Result
 
 Accepted only in the return position. Panics on error.
+
+### Function objects
+
+When the Rust code expects a FnOnce/Fn/FnMut trait object, the generated C API expects a function pointer. We then wrap that function pointer in a Rust closure which converts each argument from the Rust type to the C type, then invokes the C function pointer. The return type from the C function pointer is then converted back to the Rust equivalent type, if required.
 
 ## Lua definition files
 

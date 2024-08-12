@@ -19,6 +19,7 @@ const RUST_TO_LUA_TYPE_MAP: &[(&str, &str)] = &[
 
 // TODO: find out different way to mark types as copyable
 const COPY_TYPES: &[&str] = &[
+    "CopyableData", // used in luajit-ffi-gen tests.
     "IVec2",
     "UVec2",
     "DVec2",
@@ -164,13 +165,31 @@ impl TypeInfo {
                     .unwrap_or(ty_name.to_string());
 
                 match self.wrapper {
-                    TypeWrapper::Option | TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                    TypeWrapper::Slice | TypeWrapper::Array(_) => {
                         // Options, slices and arrays are always pointers to the struct.
                         if self.is_mutable {
                             FFIType::new(format!("*mut {ty_name}"), format!("{ffi_ty_name}*"))
                         } else {
                             FFIType::new(
                                 format!("*const {ty_name}"),
+                                format!("{ffi_ty_name} const*"),
+                            )
+                        }
+                    }
+                    TypeWrapper::Option => {
+                        if self.is_mutable {
+                            FFIType::new(
+                                format!("Option<&mut {ty_name}>"),
+                                format!("{ffi_ty_name}*"),
+                            )
+                        } else {
+                            // Both Option<T> and Option<&T> is passed by reference as Option<&T>
+                            // which gets coerced to T const* by the Rust compiler.
+                            //
+                            // When we return an Option<T> from a Rust function, we pin the data
+                            // to a static instance.
+                            FFIType::new(
+                                format!("Option<&{ty_name}>"),
                                 format!("{ffi_ty_name} const*"),
                             )
                         }
@@ -195,13 +214,31 @@ impl TypeInfo {
                 let c_ty_name = ffy_ty_name.c;
 
                 match self.wrapper {
-                    TypeWrapper::Option | TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                    TypeWrapper::Slice | TypeWrapper::Array(_) => {
                         // Options and slices are always pointers to the primitive type.
                         if self.is_mutable {
                             FFIType::new(format!("*mut {rust_ty_name}"), format!("{c_ty_name}*"))
                         } else {
                             FFIType::new(
                                 format!("*const {rust_ty_name}"),
+                                format!("{c_ty_name} const*"),
+                            )
+                        }
+                    }
+                    TypeWrapper::Option => {
+                        if self.is_mutable {
+                            FFIType::new(
+                                format!("Option<&mut {rust_ty_name}>"),
+                                format!("{c_ty_name}*"),
+                            )
+                        } else {
+                            // Both Option<T> and Option<&T> is passed by reference as Option<&T>
+                            // which gets coerced to T const* by the Rust compiler.
+                            //
+                            // When we return an Option<T> from a Rust function, we pin the data
+                            // to a static instance.
+                            FFIType::new(
+                                format!("Option<&{rust_ty_name}>"),
                                 format!("{c_ty_name} const*"),
                             )
                         }
@@ -235,7 +272,7 @@ impl TypeInfo {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TypeVariant {
     Bool,
     I8,
@@ -254,13 +291,13 @@ pub enum TypeVariant {
     String,
     CString,
     Custom(String),
+    Function {
+        args: Vec<TypeInfo>,
+        ret: Option<Box<TypeInfo>>,
+    },
 }
 
 impl TypeVariant {
-    pub fn is_string(&self) -> bool {
-        matches!(self, Self::Str | Self::String | Self::CString)
-    }
-
     pub fn from_rust_ffi_str(type_name: &str) -> Option<Self> {
         let res = match type_name {
             "bool" => Self::Bool,
@@ -304,6 +341,40 @@ impl TypeVariant {
             Self::String => FFIType::new("String", "cstr"),
             Self::CString => FFIType::new("CString", "cstr"),
             Self::Custom(val) => FFIType::new(val.clone(), val),
+            Self::Function { args, ret } => {
+                let self_name = "Self";
+
+                let args = args
+                    .iter()
+                    .flat_map(|arg| {
+                        let mut args = vec![arg.as_ffi(self_name)];
+
+                        match &arg.wrapper {
+                            TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                                args.push(TypeVariant::USize.as_ffi())
+                            }
+                            _ => {}
+                        }
+
+                        args
+                    })
+                    .reduce(|acc, next| {
+                        FFIType::new(
+                            format!("{}, {}", acc.rust, next.rust),
+                            format!("{}, {}", acc.c, next.c),
+                        )
+                    })
+                    .unwrap_or(FFIType::new("", ""));
+
+                let ret = ret
+                    .as_ref()
+                    .map_or(FFIType::new("()", "void"), |ret| ret.as_ffi(self_name));
+
+                FFIType::new(
+                    format!("extern fn({}) -> {}", args.rust, ret.rust),
+                    format!("{} (*)({})", ret.c, args.c),
+                )
+            }
         }
     }
 
@@ -323,6 +394,7 @@ impl TypeVariant {
             Self::F32 | Self::F64 => "number",
             Self::Str | Self::String | Self::CString => "string",
             Self::Custom(val) => return val.clone(),
+            Self::Function { .. } => "function",
         }
         .into()
     }

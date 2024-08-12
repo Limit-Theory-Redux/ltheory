@@ -1,7 +1,12 @@
+use std::collections::HashMap;
+
 use quote::quote;
 use syn::parse::{Error, Parse, Result};
 use syn::spanned::Spanned;
-use syn::{Attribute, Expr, FnArg, ImplItem, ItemImpl, Lit, Pat, ReturnType, Type};
+use syn::{
+    Attribute, Expr, FnArg, ImplItem, ItemImpl, Lit, Pat, PathArguments, ReturnType, TraitBound,
+    Type, TypeParam, TypeParamBound,
+};
 
 use super::*;
 use crate::args::BindArgs;
@@ -44,7 +49,10 @@ fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
 
     for item in items {
         if let ImplItem::Fn(fn_item) = item {
-            let (self_param, params) = parse_params(fn_item.sig.inputs.iter())?;
+            let (self_param, params) = parse_params(
+                fn_item.sig.inputs.iter(),
+                fn_item.sig.generics.type_params(),
+            )?;
             let (doc, bind_args) = parse_method_attrs(&mut fn_item.attrs)?;
 
             methods.push(MethodInfo {
@@ -53,7 +61,7 @@ fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
                 name: format!("{}", fn_item.sig.ident),
                 self_param,
                 params,
-                ret: parse_ret_ty(&fn_item.sig.output)?,
+                ret: parse_ret_type(&fn_item.sig.output)?,
             });
         }
     }
@@ -111,9 +119,18 @@ fn parse_method_attrs(attrs: &mut Vec<Attribute>) -> Result<(Vec<String>, BindAr
 
 fn parse_params<'a>(
     params: impl Iterator<Item = &'a FnArg>,
+    generics: impl Iterator<Item = &'a TypeParam>,
 ) -> Result<(Option<SelfType>, Vec<ParamInfo>)> {
     let mut self_param_info = None;
     let mut params_info = vec![];
+
+    let mut generic_types: HashMap<String, Vec<TypeParamBound>> = HashMap::new();
+    for param in generics {
+        generic_types.insert(
+            param.ident.to_string(),
+            param.bounds.iter().cloned().collect(),
+        );
+    }
 
     for param in params {
         match param {
@@ -131,7 +148,7 @@ fn parse_params<'a>(
             }
             FnArg::Typed(pat_type) => {
                 let name = get_arg_name(&pat_type.pat)?;
-                let ty = parse_type(&pat_type.ty)?;
+                let ty = parse_type(&pat_type.ty, &generic_types)?;
 
                 if ty.is_result {
                     return Err(Error::new(
@@ -158,7 +175,7 @@ fn get_arg_name(pat: &Pat) -> Result<String> {
     Err(Error::new(pat.span(), "expected a method argument name"))
 }
 
-fn parse_type(ty: &Type) -> Result<TypeInfo> {
+fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -> Result<TypeInfo> {
     match ty {
         Type::Path(type_path) => {
             let (type_name, generics) = get_path_last_name_with_generics(&type_path.path)?;
@@ -174,7 +191,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                     ));
                 }
 
-                let mut type_info = parse_type(&generics[0])?;
+                let mut type_info = parse_type(&generics[0], generic_types)?;
 
                 if type_info.is_result {
                     return Err(Error::new(
@@ -197,7 +214,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                     ));
                 }
 
-                let mut type_info = parse_type(&generics[0])?;
+                let mut type_info = parse_type(&generics[0], generic_types)?;
 
                 if type_info.wrapper != TypeWrapper::None {
                     return Err(Error::new(
@@ -218,6 +235,12 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                 }
 
                 return Ok(type_info);
+            } else if let Some(type_params) = generic_types.get(&type_name) {
+                if type_params.len() == 1 {
+                    if let TypeParamBound::Trait(trait_bound) = &type_params[0] {
+                        return parse_trait_bound(trait_bound, generic_types);
+                    }
+                }
             }
 
             let variant = TypeVariant::from_rust_ffi_str(&type_name);
@@ -243,7 +266,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
             Ok(res)
         }
         Type::Reference(type_ref) => {
-            let mut type_info = parse_type(&type_ref.elem)?;
+            let mut type_info = parse_type(&type_ref.elem, generic_types)?;
 
             type_info.is_reference = true;
             type_info.is_mutable = type_ref.mutability.is_some();
@@ -251,7 +274,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
             Ok(type_info)
         }
         Type::Slice(type_slice) => {
-            let mut type_info = parse_type(&type_slice.elem)?;
+            let mut type_info = parse_type(&type_slice.elem, generic_types)?;
 
             if type_info.wrapper != TypeWrapper::None {
                 return Err(Error::new(
@@ -265,7 +288,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
             Ok(type_info)
         }
         Type::Array(type_array) => {
-            let mut type_info = parse_type(&type_array.elem)?;
+            let mut type_info = parse_type(&type_array.elem, generic_types)?;
 
             if type_info.wrapper != TypeWrapper::None {
                 return Err(Error::new(
@@ -292,6 +315,16 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
 
             Ok(type_info)
         }
+        Type::ImplTrait(impl_trait) => {
+            if let TypeParamBound::Trait(trait_bound) = &impl_trait.bounds[0] {
+                parse_trait_bound(trait_bound, generic_types)
+            } else {
+                Err(Error::new(
+                    ty.span(),
+                    "unexpected type param, expected trait bound",
+                ))
+            }
+        }
         _ => Err(Error::new(
             ty.span(),
             format!(
@@ -302,11 +335,62 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
     }
 }
 
-fn parse_ret_ty(ret_ty: &ReturnType) -> Result<Option<TypeInfo>> {
+fn parse_trait_bound(
+    trait_bound: &TraitBound,
+    generic_types: &HashMap<String, Vec<TypeParamBound>>,
+) -> Result<TypeInfo> {
+    if let Some(last_segment) = trait_bound.path.segments.last() {
+        if last_segment.ident == "Fn"
+            || last_segment.ident == "FnOnce"
+            || last_segment.ident == "FnMut"
+        {
+            if let PathArguments::Parenthesized(p) = &last_segment.arguments {
+                let mut args = vec![];
+                for input in &p.inputs {
+                    args.push(parse_type(input, generic_types)?);
+                }
+
+                let ret = parse_ret_type(&p.output)?.map(Box::new);
+
+                Ok(TypeInfo {
+                    is_reference: false,
+                    is_mutable: false,
+                    is_result: false,
+                    wrapper: TypeWrapper::None,
+                    variant: TypeVariant::Function { args, ret },
+                })
+            } else {
+                Err(Error::new(
+                    trait_bound.span(),
+                    "expected parenthesized path arguments for FnOnce/Fn/FnMut trait bound",
+                ))
+            }
+        } else {
+            Err(Error::new(
+                trait_bound.span(),
+                format!("unhandled trait bound {}", last_segment.ident),
+            ))
+        }
+    } else {
+        Err(Error::new(
+            trait_bound.span(),
+            "expected trait bound to have at least one path segment",
+        ))
+    }
+}
+
+fn parse_ret_type(ret_ty: &ReturnType) -> Result<Option<TypeInfo>> {
     match ret_ty {
         ReturnType::Default => Ok(None),
         ReturnType::Type(_, ty) => {
-            let type_info = parse_type(ty)?;
+            // If `ty` is a Type::Tuple { ..., elems: [] }, then this is returning ()
+            if let Type::Tuple(tuple) = &**ty {
+                if tuple.elems.is_empty() {
+                    return Ok(None);
+                }
+            }
+
+            let type_info = parse_type(ty, &HashMap::new())?;
 
             if type_info.wrapper == TypeWrapper::Slice {
                 return Err(Error::new(ty.span(), "returning a slice is not supported"));

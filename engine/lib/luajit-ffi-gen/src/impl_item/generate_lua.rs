@@ -283,6 +283,12 @@ impl ImplInfo {
     }
 
     fn get_c_ffi_param(&self, module_name: &str, param: &ParamInfo) -> Vec<String> {
+        if let TypeVariant::Function { .. } = &param.ty.variant {
+            // Function pointers in C have the param name inside the type signature, just get
+            // the type without the name.
+            return vec![param.ty.as_ffi(module_name).c];
+        }
+
         let mut params = vec![format!(
             "{} {}",
             param.ty.as_ffi(module_name).c,
