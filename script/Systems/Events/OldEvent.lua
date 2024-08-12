@@ -1,3 +1,5 @@
+-- Old event class. Will be removed in ECS refactoring
+---@deprecated
 local OldEvent = {}
 
 function OldEvent.AddedToParent(parent)
