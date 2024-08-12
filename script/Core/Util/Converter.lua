@@ -1,5 +1,14 @@
 local Converter = {}
 
+function Converter.ToValuePtr(value, type)
+    local valuePtr = nil
+    if value then
+        valuePtr = ffi.new(type .. "[1]") -- convert to pointer since we use rust option
+        valuePtr[0] = value
+    end
+    return valuePtr
+end
+
 function Converter.TableToString(tbl, indent)
     if type(tbl) ~= "table" then
         return tostring(tbl)

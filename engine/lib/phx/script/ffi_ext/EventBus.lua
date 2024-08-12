@@ -1,14 +1,6 @@
 local libphx = require('libphx').lib
+local Converter = require('Core.Util.Converter')
 local EventPayloadConverter = require "Types.EventPayloadConverter"
-
-function ToValuePtr(value, type)
-    local valuePtr = nil
-    if value then
-        valuePtr = ffi.new(type .. "[1]") -- convert to pointer since we use rust option
-        valuePtr[0] = value
-    end
-    return valuePtr
-end
 
 function onDef_EventBus_t(t, mt)
     local EventBus = t
@@ -22,7 +14,7 @@ function onDef_EventBus_t(t, mt)
 
     mt.__index.subscribe = function(self, event, ctxTable, callback)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
-        local entityIdPtr = ToValuePtr(entityId, "uint64")
+        local entityIdPtr = Converter.ToValuePtr(entityId, "uint64")
 
         local tunnelId = libphx.EventBus_Subscribe(self, event, entityIdPtr)
         EventTunnels[tunnelId] = function(...) callback(ctxTable, ...) end
@@ -36,7 +28,7 @@ function onDef_EventBus_t(t, mt)
 
     mt.__index.send = function(self, event, ctxTable, payload)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
-        local entityIdPtr = ToValuePtr(entityId, "uint64")
+        local entityIdPtr = Converter.ToValuePtr(entityId, "uint64")
         local rustPayload = self:hasRustPayload(event)
         libphx.EventBus_Send(self, event, entityIdPtr, EventPayloadConverter:valueToPayload(payload, rustPayload))
     end
