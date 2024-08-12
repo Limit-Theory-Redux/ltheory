@@ -291,7 +291,7 @@ function System:beginRender()
 end
 
 function System:render(state)
-    self:send(Event.Broadcast(state))
+    self:send(OldEvent.Broadcast(state))
     self:renderProjectiles(state)
     self.dust:render(state)
     self.nebula:render(state)
@@ -307,7 +307,7 @@ end
 function System:update(dt)
     if not GameState.paused then
         -- pre-physics update
-        local event = Event.Update(dt)
+        local event = OldEvent.Update(dt)
         Profiler.Begin('AI Update')
         if self.aiPlayers and #self.aiPlayers > 0 then
             for _, player in ipairs(self.aiPlayers) do player:send(event) end
@@ -317,7 +317,7 @@ function System:update(dt)
 
         -- self:send(event) -- unnecessary extra event?
         Profiler.Begin('Broadcast Update')
-        self:send(Event.Broadcast(event))
+        self:send(OldEvent.Broadcast(event))
         Profiler.End()
 
         Profiler.Begin('Physics Update')
@@ -328,16 +328,16 @@ function System:update(dt)
             local entity2 = Entity.fromRigidBody(collision.body1)
 
             if entity1 and entity2 then
-                entity1:send(Event.Collision(collision, entity2))
-                entity2:send(Event.Collision(collision, entity1))
+                entity1:send(OldEvent.Collision(collision, entity2))
+                entity2:send(OldEvent.Collision(collision, entity1))
             end
             --print('', collision.index, collision.body0, collision.body1)
         end
         Profiler.End()
 
         -- post-physics update
-        event = Event.UpdatePost(dt)
-        self:send(Event.Broadcast(event))
+        event = OldEvent.UpdatePost(dt)
+        self:send(OldEvent.Broadcast(event))
         self:send(event)
     end
 end
@@ -722,8 +722,8 @@ local function addStationComponents(station, hullSize)
         station:plug(inventory)
     end
     if station.countInventory > 0 then
-        --Log.Debug("SYSTEM(station): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
-        station:register(Event.Debug, Entity.mgrInventoryDebug)
+        --Log.Debug("SYSTEM(station): registering Inventory OldEvent.Debug, handler = %s", Entity.mgrInventoryDebug)
+        station:register(OldEvent.Debug, Entity.mgrInventoryDebug)
     end
 
     -- Add as many sensors as there are sensor plugs for
@@ -1050,8 +1050,8 @@ function System:spawnShip(hullSize, player)
         ship:plug(inventory)
     end
     if ship.countInventory > 0 then
-        --Log.Debug("SYSTEM(ship): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
-        ship:register(Event.Debug, Entity.mgrInventoryDebug)
+        --Log.Debug("SYSTEM(ship): registering Inventory OldEvent.Debug, handler = %s", Entity.mgrInventoryDebug)
+        ship:register(OldEvent.Debug, Entity.mgrInventoryDebug)
     end
 
     -- Add as many sensors as there are sensor plugs for

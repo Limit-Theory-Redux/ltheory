@@ -46,8 +46,8 @@ end
 function Entity:addYield(item, size)
     assert(not self.yield)
     self.yield = Yield(item, size)
-    self:register(Event.Debug, Entity.debugYield)
-    self:register(Event.Update, Entity.updateYield)
+    self:register(OldEvent.Debug, Entity.debugYield)
+    self:register(OldEvent.Update, Entity.updateYield)
 end
 
 function Entity:debugYield(state)

@@ -131,7 +131,7 @@ end
 
 function TestEcon:showStatus()
     -- Display statuses of players and assets
-    self.system:register(Event.Debug, function(system, state)
+    self.system:register(OldEvent.Debug, function(system, state)
         local ctx = state.context
         ctx:text("AI Players:")
         for i, v in ipairs(system.players) do

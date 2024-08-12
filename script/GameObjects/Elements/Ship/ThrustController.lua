@@ -104,8 +104,8 @@ end
 function Entity:addThrustController()
     assert(not self.thrustController)
     self.thrustController = ThrustController()
-    self:register(Event.Update, Entity.updateThrustController)
-    self:register(Event.Destroyed, killThrust)
+    self:register(OldEvent.Update, Entity.updateThrustController)
+    self:register(OldEvent.Destroyed, killThrust)
 end
 
 function Entity:getThrustController()

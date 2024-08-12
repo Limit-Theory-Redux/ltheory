@@ -17,7 +17,7 @@ function UniverseEconomy:init()
 end
 
 function UniverseEconomy:registerEvents()
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostSim), self, self.onPostSim)
+    EventBus:subscribe(Event.PostSim, self, self.onPostSim)
 end
 
 local function addSystemGenerics(system)

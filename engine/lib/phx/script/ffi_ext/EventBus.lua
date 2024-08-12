@@ -1,16 +1,20 @@
 local libphx = require('libphx').lib
+local Converter = require('Core.Util.Converter')
+local EventPayloadConverter = require "Core.Util.EventPayloadConverter"
 
 function onDef_EventBus_t(t, mt)
-    -- todo should return a handler
-    mt.__index.subscribe = function(self, eventName, ctxTable, callback)
-        local entityIdPtr = nil
-        local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
+    -- TODO: should return a handler
+    mt.__index.register = function(self, event, eventName, frameStage, rustPayload)
+        local rustPayload = rustPayload == nil or rustPayload
+        -- Log.Debug("Rust payload: " .. tostring(rustPayload))
+        libphx.EventBus_Register(self, event, eventName, frameStage, rustPayload)
+    end
 
-        if entityId then
-            entityIdPtr = ffi.new("uint64[1]") -- convert to pointer since we use rust option
-            entityIdPtr[0] = entityId
-        end
-        local tunnelId = libphx.EventBus_Subscribe(self, eventName, entityIdPtr)
+    mt.__index.subscribe = function(self, event, ctxTable, callback)
+        local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
+        local entityIdPtr = Converter.ToValuePtr(entityId, "uint64")
+
+        local tunnelId = libphx.EventBus_Subscribe(self, event, entityIdPtr)
         EventTunnels[tunnelId] = function(...) callback(ctxTable, ...) end
         return tunnelId
     end
@@ -20,8 +24,29 @@ function onDef_EventBus_t(t, mt)
         EventTunnels[tunnelId] = nil
     end
 
-    mt.__index.send = function(self, eventName, ctxTable)
+    mt.__index.send = function(self, event, ctxTable, payload)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
-        libphx.EventBus_Send(self, eventName, entityId)
+        local entityIdPtr = Converter.ToValuePtr(entityId, "uint64")
+        local rustPayload = self:hasRustPayload(event)
+        libphx.EventBus_Send(self, event, entityIdPtr, EventPayloadConverter:valueToPayload(payload, rustPayload))
+    end
+
+    mt.__index.dispatch = function(self, event, payload)
+        local rustPayload = self:hasRustPayload(event)
+        libphx.EventBus_Send(self, event, nil, EventPayloadConverter:valueToPayload(payload, rustPayload))
+    end
+
+    mt.__index.nextEvent = function(self)
+        local eventData = libphx.EventBus_NextEvent(self)
+        if eventData == nil then
+            return nil, nil
+        end
+
+        local payload = eventData:payload()
+        local payloadValue = nil
+        if payload ~= nil then
+            payloadValue = EventPayloadConverter:payloadToValue(payload)
+        end
+        return eventData, payloadValue
     end
 end

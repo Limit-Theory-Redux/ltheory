@@ -141,7 +141,7 @@ function SystemMap:onDraw(state)
                 bestDist = d
                 best = e
             end
-        --[[
+            --[[
         else
             -- Non-object entities (e.g., zones)
             Log.Debug("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
@@ -182,7 +182,7 @@ function SystemMap:onDraw(state)
         dbg:text("Lights: " .. #GameState.world.currentSystem.lightList)
         -- dbg:text("Lights: " .. #self.system.lightList)
         dbg:undent()
-        self.system:send(Event.Debug(dbg))
+        self.system:send(OldEvent.Debug(dbg))
         dbg:undent()
 
         if self.focus then
@@ -278,7 +278,7 @@ function SystemMap:onDraw(state)
                 end
                 dbg:text(objemit, objval)
             end
-            self.focus:send(Event.Debug(dbg))
+            self.focus:send(OldEvent.Debug(dbg))
             dbg:undent()
         end
     end

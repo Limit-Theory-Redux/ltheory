@@ -18,7 +18,7 @@ function Entity:applyDamage(amount, source)
 
     --Log.Debug("hit on '%s' from '%s' for %s damage", thisShipName, attackingShipName, amount)
 
-    self:send(Event.Damaged(amount, source))
+    self:send(OldEvent.Damaged(amount, source))
 
     -- Apply damage first to shields (if any), then armor (if any), then hull
     if shieldRemaining > 0 then
@@ -50,7 +50,7 @@ function Entity:applyDamage(amount, source)
         Log.Debug("%s destroyed by %s!", thisShipName, attackingShipName)
 
         -- Unregister debug events for the destroyed entity
-        self:unregister(Event.Debug, Entity.mgrInventoryDebug)
+        self:unregister(OldEvent.Debug, Entity.mgrInventoryDebug)
 
         -- TODO: process the formerly "isAlive()" entity's assets, including credits and cargo
         -- TODO: notify nearby ships that entity has been destroyed
@@ -79,7 +79,7 @@ function Entity:applyDamage(amount, source)
             end
         end
 
-        self:send(Event.Destroyed(source))
+        self:send(OldEvent.Destroyed(source))
 
         -- Remove economic capabilities
         -- TODO: What happens to the inventory items and credits held by the factory and trader?

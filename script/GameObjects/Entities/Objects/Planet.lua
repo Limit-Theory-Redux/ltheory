@@ -110,7 +110,7 @@ local Planet = subclass(Entity, function(self, seed)
 
     self:setDrag(10, 10) -- fix planet in place
 
-    self:register(Event.Render, self.render)
+    self:register(OldEvent.Render, self.render)
 end)
 
 function Planet:render(state)

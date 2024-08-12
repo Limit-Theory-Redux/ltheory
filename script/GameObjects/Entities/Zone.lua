@@ -8,7 +8,7 @@ local Zone = subclass(Entity, function(self, name)
     self.threatReductionUpdateTime = 10
     self.dt = 0
     self:addChildren()
-    self:register(Event.Update, self.updateZone)
+    self:register(OldEvent.Update, self.updateZone)
 end)
 
 function Zone:add(e)

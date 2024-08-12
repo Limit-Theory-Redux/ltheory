@@ -93,8 +93,8 @@ end
 function Entity:addMarket()
     assert(not self.market)
     self.market = Market()
-    self:register(Event.Debug, Entity.debugMarket)
-    self:register(Event.Update, Entity.updateMarket)
+    self:register(OldEvent.Debug, Entity.debugMarket)
+    self:register(OldEvent.Update, Entity.updateMarket)
 end
 
 function Entity:debugMarket(state)
@@ -122,8 +122,8 @@ end
 
 function Entity:removeMarket()
     assert(self.market)
-    self:unregister(Event.Debug, Entity.debugMarket)
-    self:unregister(Event.Update, Entity.updateMarket)
+    self:unregister(OldEvent.Debug, Entity.debugMarket)
+    self:unregister(OldEvent.Update, Entity.updateMarket)
     self.market = nil
 end
 

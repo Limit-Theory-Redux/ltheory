@@ -37,13 +37,15 @@ function Application:eventLoop()
         self.eventsRegistered = true
     end
 
-    local nextEvent = EventBus:getNextEvent()
-    while nextEvent ~= nil do
-        --print("[" .. tostring(Render.ToString(nextEvent:getRender())) .. "]")
-        --print("- Tunnel Id: " .. tostring(nextEvent:getTunnelId()))
+    EventBus:startEventIteration()
 
-        EventTunnels[nextEvent:getTunnelId()](nextEvent)
-        nextEvent = EventBus:getNextEvent()
+    local eventData, payload = EventBus:nextEvent()
+    while eventData ~= nil do
+        --print("[" .. tostring(Render.ToString(eventData:getRender())) .. "]")
+        --print("- Tunnel Id: " .. tostring(eventData:tunnelId()))
+
+        EventTunnels[eventData:tunnelId()](eventData, payload)
+        eventData, payload = EventBus:nextEvent()
     end
 end
 
@@ -88,15 +90,15 @@ function Application:appInit()
 end
 
 function Application:registerEvents()
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PreSim), self, self.onPreSim)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.Sim), self, self.onSim)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostSim), self, self.onPostSim)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PreRender), self, self.onPreRender)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.Render), self, self.onRender)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostRender), self, self.onPostRender)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PreInput), self, self.onPreInput)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.Input), self, self.onInput)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostInput), self, self.onPostInput)
+    EventBus:subscribe(Event.PreSim, self, self.onPreSim)
+    EventBus:subscribe(Event.Sim, self, self.onSim)
+    EventBus:subscribe(Event.PostSim, self, self.onPostSim)
+    EventBus:subscribe(Event.PreRender, self, self.onPreRender)
+    EventBus:subscribe(Event.Render, self, self.onRender)
+    EventBus:subscribe(Event.PostRender, self, self.onPostRender)
+    EventBus:subscribe(Event.PreInput, self, self.onPreInput)
+    EventBus:subscribe(Event.Input, self, self.onInput)
+    EventBus:subscribe(Event.PostInput, self, self.onPostInput)
 end
 
 function Application:onPreSim(data) end
@@ -130,7 +132,7 @@ function Application:onPreRender(data)
         EventBus:setTimeScale(self.timeScale)
     end
 
-    local timeScaledDt = data:getDeltaTime()
+    local timeScaledDt = data:deltaTime()
 
     --* system & canvas should probably subscribe to onPreRender themselves
     if GameState.player.humanPlayer and GameState.player.humanPlayer:getRoot().update then

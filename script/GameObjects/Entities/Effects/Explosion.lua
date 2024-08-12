@@ -7,8 +7,8 @@ local Explosion = subclass(Entity, function(self, pos, age)
     self.pos = pos
     self.seed = rng:getUniform()
 
-    self:register(Event.Render, self.render)
-    self:register(Event.Update, self.update)
+    self:register(OldEvent.Render, self.render)
+    self:register(OldEvent.Update, self.update)
 end)
 
 local cache
