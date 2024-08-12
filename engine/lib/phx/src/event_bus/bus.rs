@@ -207,7 +207,7 @@ impl EventBus {
             }
             Entry::Vacant(entry) => {
                 let event_message =
-                    EventMessage::new(event_id, &event_name, frame_stage, rust_payload);
+                    EventMessage::new(event_id, event_name, frame_stage, rust_payload);
 
                 entry.insert(event_message);
             }
