@@ -38,7 +38,7 @@ impl Resource {
         let path = resolve(ty, name);
 
         match std::fs::read(&path) {
-            Ok(bytes) => unsafe { *Bytes_FromVec(bytes) }, // todo: this leaks memory
+            Ok(bytes) => Bytes::from_vec(bytes),
             Err(err) => panic!("Cannot read file: {path}. Error: {err}"),
         }
     }

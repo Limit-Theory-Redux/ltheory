@@ -231,12 +231,12 @@ pub unsafe extern "C" fn Tex2D_GetDataBytes(
     this: &mut Tex2D,
     pf: PixelFormat,
     df: DataFormat,
-) -> *mut Bytes {
+) -> Box<Bytes> {
     let mut size: i32 = this.size.x * this.size.y;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
 
-    let data: *mut Bytes = Bytes_Create(size as u32);
+    let mut data = Bytes_Create(size as u32);
     Tex2D_GetData(this, Bytes_GetData(&mut *data), pf, df);
     Bytes_Rewind(&mut *data);
 

@@ -139,12 +139,12 @@ pub unsafe extern "C" fn Tex3D_GetDataBytes(
     this: &mut Tex3D,
     pf: PixelFormat,
     df: DataFormat,
-) -> *mut Bytes {
+) -> Box<Bytes> {
     let mut size: i32 = this.size.x * this.size.y * this.size.z;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
 
-    let data: *mut Bytes = Bytes_Create(size as u32);
+    let mut data = Bytes_Create(size as u32);
     Tex3D_GetData(this, Bytes_GetData(&mut *data), pf, df);
     Bytes_Rewind(&mut *data);
 

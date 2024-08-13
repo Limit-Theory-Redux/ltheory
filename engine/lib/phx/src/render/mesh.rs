@@ -142,7 +142,7 @@ impl Mesh {
     }
 
     #[bind(name = "ToBytes")]
-    pub fn as_bytes(&self) -> Bytes {
+    pub fn to_bytes(&self) -> Bytes {
         let this = self.shared.as_ref();
 
         let vertex_count = this.vertex.len();
@@ -152,29 +152,19 @@ impl Mesh {
             + (vertex_count * std::mem::size_of::<Vertex>())
             + (index_count * std::mem::size_of::<i32>());
 
-        unsafe {
-            let bytes = &mut *Bytes_Create(size as u32);
-            Bytes_WriteI32(bytes, vertex_count as i32);
-            Bytes_WriteI32(bytes, index_count as i32);
-            Bytes_Write(
-                bytes,
-                this.vertex.as_ptr() as *const _,
-                (vertex_count * std::mem::size_of::<Vertex>()) as u32,
-            );
-            Bytes_Write(
-                bytes,
-                this.index.as_ptr() as *const _,
-                (index_count * std::mem::size_of::<i32>()) as u32,
-            );
-            *bytes // todo: this leaks memory
-        }
+        let mut bytes = Bytes::new_with_capacity(size);
+        bytes.write_i32(vertex_count as i32);
+        bytes.write_i32(index_count as i32);
+        bytes.write(this.vertex.as_slice());
+        bytes.write(this.index.as_slice());
+        bytes
     }
 
     pub fn from_bytes(buf: &mut Bytes) -> Mesh {
         let mut mesh = Mesh::new();
 
-        let vertex_count: i32 = unsafe { Bytes_ReadI32(buf) };
-        let index_count: i32 = unsafe { Bytes_ReadI32(buf) };
+        let vertex_count = buf.read_i32();
+        let index_count = buf.read_i32();
 
         mesh.reserve_vertex_data(vertex_count);
         mesh.reserve_index_data(index_count);
@@ -185,18 +175,8 @@ impl Mesh {
             this.vertex.resize(vertex_count as usize, Vertex::default());
             this.index.resize(index_count as usize, 0);
 
-            unsafe {
-                Bytes_Read(
-                    buf,
-                    this.vertex.as_mut_ptr() as *mut _,
-                    ((vertex_count as usize) * std::mem::size_of::<Vertex>()) as u32,
-                );
-                Bytes_Read(
-                    buf,
-                    this.index.as_mut_ptr() as *mut _,
-                    ((index_count as usize) * std::mem::size_of::<i32>()) as u32,
-                );
-            }
+            buf.read(this.vertex.as_mut_slice());
+            buf.read(this.index.as_mut_slice());
         }
 
         mesh

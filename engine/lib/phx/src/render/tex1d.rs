@@ -118,9 +118,9 @@ pub unsafe extern "C" fn Tex1D_GetDataBytes(
     this: &mut Tex1D,
     pf: PixelFormat,
     df: DataFormat,
-) -> *mut Bytes {
+) -> Box<Bytes> {
     let size: i32 = this.size * DataFormat_GetSize(df) * PixelFormat_Components(pf);
-    let data: *mut Bytes = Bytes_Create(size as u32);
+    let mut data = Bytes_Create(size as u32);
     Tex1D_GetData(this, Bytes_GetData(&mut *data), pf, df);
     Bytes_Rewind(&mut *data);
     data

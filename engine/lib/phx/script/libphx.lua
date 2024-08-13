@@ -42,7 +42,6 @@ do -- Opaque Structs
     typedef struct BSP          {} BSP;
     typedef struct BoxMesh      {} BoxMesh;
     typedef struct BoxTree      {} BoxTree;
-    typedef struct Bytes        {} Bytes;
     typedef struct File         {} File;
     typedef struct HashGrid     {} HashGrid;
     typedef struct HashGridElem {} HashGridElem;
@@ -66,7 +65,6 @@ do -- Opaque Structs
     'BSP',
     'BoxMesh',
     'BoxTree',
-    'Bytes',
     'File',
     'HashGrid',
     'HashGridElem',
