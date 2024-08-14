@@ -47,7 +47,6 @@ do -- Opaque Structs
     typedef struct HashGridElem {} HashGridElem;
     typedef struct InputBinding {} InputBinding;
     typedef struct KDTree       {} KDTree;
-    typedef struct LodMesh      {} LodMesh;
     typedef struct MemPool      {} MemPool;
     typedef struct MemStack     {} MemStack;
     typedef struct Octree       {} Octree;
@@ -69,7 +68,6 @@ do -- Opaque Structs
     'HashGrid',
     'HashGridElem',
     'KDTree',
-    'LodMesh',
     'MemPool',
     'MemStack',
     'Octree',

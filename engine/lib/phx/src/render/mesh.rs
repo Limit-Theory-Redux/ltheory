@@ -132,8 +132,9 @@ impl Mesh {
         }
     }
 
+    // This simply forwards calls from Lua to the Clone trait.
     #[bind(name = "Clone")]
-    pub fn acquire(&self) -> Mesh {
+    fn clone_impl(&self) -> Mesh {
         self.clone()
     }
 
