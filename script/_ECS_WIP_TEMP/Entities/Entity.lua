@@ -46,7 +46,7 @@ end
 ---@return Component
 function Entity:addComponent(component)
     insert(self.components, { id = component:getGuid(), archetype = component:getArchetype() })
-    GlobalStorage.storeComponent(component)
+    GlobalStorage:storeComponent(component)
     return #self.components, component
 end
 
@@ -54,7 +54,7 @@ end
 ---@return boolean wasSuccessful
 function Entity:removeComponent(componentInfoIndex)
     local componentInfo = remove(self.components, componentInfoIndex)
-    return GlobalStorage.dropComponent(componentInfo.archetype, componentInfo.id)
+    return GlobalStorage:dropComponent(componentInfo.archetype, componentInfo.id)
 end
 
 ---@param archetype ComponentArchetype
@@ -65,7 +65,7 @@ function Entity:findComponentsByArchetype(archetype)
     ---@param componentInfo ComponentInfo
     for index, componentInfo in ipairs(self.components) do
         if componentInfo.archetype == archetype then
-            local component = GlobalStorage.getComponentData(componentInfo)
+            local component = GlobalStorage:getComponentData(componentInfo)
             insert(queryResults, component)
         end
     end
@@ -77,7 +77,7 @@ end
 function Entity:findComponentByName(query)
     local queryResults = {}
     for index, componentInfo in ipairs(self.components) do
-        local component = GlobalStorage.getComponentData(componentInfo)
+        local component = GlobalStorage:getComponentData(componentInfo)
         local componentName = component and component:getComponentName()
         if componentName and string.match(componentName, query) then
             insert(queryResults, component)
@@ -99,7 +99,7 @@ end
 function Entity:iterComponents()
     local components = {}
     for index, componentInfo in ipairs(self.components) do
-        local component = GlobalStorage.getComponentData(componentInfo)
+        local component = GlobalStorage:getComponentData(componentInfo)
         insert(components, component)
     end
     return Iterator(components)

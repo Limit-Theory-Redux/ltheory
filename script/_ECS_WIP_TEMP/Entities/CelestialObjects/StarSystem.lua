@@ -40,15 +40,15 @@ local StarSystem = Subclass(Entity, function(self, seed)
 
     -- Add Children
     --local star = Star(seed)
-    --GlobalStorage.storeEntity(star)
+    --GlobalStorage:storeEntity(star)
     --hierarchyComponent:addChild({ id = star:getGuid(), archetype = star:getArchetype() })
     --
     --local planet = Planet(seed)
-    --GlobalStorage.storeEntity(planet)
+    --GlobalStorage:storeEntity(planet)
     --hierarchyComponent:addChild({ id = planet:getGuid(), archetype = planet:getArchetype() })
     --
     --local asteroid = Asteroid(seed)
-    --GlobalStorage.storeEntity(asteroid)
+    --GlobalStorage:storeEntity(asteroid)
     --hierarchyComponent:addChild({ id = planet:getGuid(), archetype = planet:getArchetype() })
 end)
 
