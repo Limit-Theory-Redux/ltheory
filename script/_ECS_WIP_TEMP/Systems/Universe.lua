@@ -3,7 +3,7 @@ local StarSystemEntity = require("_ECS_WIP_TEMP.Entities.CelestialObjects.StarSy
 local SpaceshipEntity = require("_ECS_WIP_TEMP.Entities.Constructs.Spaceship")         --!temp path
 
 -- Systems
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage")             --!temp path
+--local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
 local UniverseEconomy = require("_ECS_WIP_TEMP.Systems.Economy.UniverseEconomy") --!temp path
 
 ---@class Universe
@@ -23,7 +23,7 @@ function Universe:init(seed)
     self.starSystems = {}
     self.players = {}
     self.factions = {}
-    self.economy = UniverseEconomy:init()
+    self.economy = UniverseEconomy(self.universeRng)
 end
 
 function Universe:getStarSystems()
@@ -50,10 +50,10 @@ function Universe:createStarSystem(withEconomy)
     insert(self.starSystems, systemEntityInfo)
 
     -- Store the entity in the GlobalStorage
-    GlobalStorage:storeEntity(systemEntity)
+    GameState.globalStorage:storeEntity(systemEntity) --!temp fix
 
     -- Add System Generics
-    UniverseEconomy:addSystemGenerics(systemEntity)
+    self.economy:addSystemGenerics(systemEntity)
 
     return systemEntityInfo
 end
@@ -72,10 +72,10 @@ function Universe:createShip(systemId, pos, constructor)
     spaceshipTransformComponent:setPosition(pos)
 
     -- Add spaceship entity to global storage
-    GlobalStorage:storeEntity(spaceship)
+    GameState.globalStorage:storeEntity(spaceship) --!temp fix
 
     -- Get star system entity from storage
-    local systemEntity = GlobalStorage:getEntity({ archetype = Enums.EntityArchetype.StarSystemEntity, id = systemId })
+    local systemEntity = GameState.globalStorage:getEntity({ archetype = Enums.EntityArchetype.StarSystemEntity, id = systemId }) --!temp fix
     ---@cast systemEntity StarSystem
 
     -- Get star system hierarchy component & add spaceship as a child

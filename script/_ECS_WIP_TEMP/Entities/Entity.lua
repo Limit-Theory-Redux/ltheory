@@ -1,4 +1,4 @@
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
+--local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
 
 ---@class Entity
 ---@field components table<ComponentInfo>
@@ -46,7 +46,7 @@ end
 ---@return Component
 function Entity:addComponent(component)
     insert(self.components, { id = component:getGuid(), archetype = component:getArchetype() })
-    GlobalStorage:storeComponent(component)
+    GameState.globalStorage:storeComponent(component) --!temp fix
     return #self.components, component
 end
 
@@ -54,7 +54,7 @@ end
 ---@return boolean wasSuccessful
 function Entity:removeComponent(componentInfoIndex)
     local componentInfo = remove(self.components, componentInfoIndex)
-    return GlobalStorage:dropComponent(componentInfo.archetype, componentInfo.id)
+    return GameState.globalStorage:dropComponent(componentInfo.archetype, componentInfo.id) --!temp fix
 end
 
 ---@param archetype ComponentArchetype
@@ -65,7 +65,7 @@ function Entity:findComponentsByArchetype(archetype)
     ---@param componentInfo ComponentInfo
     for index, componentInfo in ipairs(self.components) do
         if componentInfo.archetype == archetype then
-            local component = GlobalStorage:getComponentData(componentInfo)
+            local component = GameState.globalStorage:getComponentData(componentInfo) --!temp fix
             insert(queryResults, component)
         end
     end
@@ -77,7 +77,7 @@ end
 function Entity:findComponentByName(query)
     local queryResults = {}
     for index, componentInfo in ipairs(self.components) do
-        local component = GlobalStorage:getComponentData(componentInfo)
+        local component = GameState.globalStorage:getComponentData(componentInfo) --!temp fix
         local componentName = component and component:getComponentName()
         if componentName and string.match(componentName, query) then
             insert(queryResults, component)
@@ -99,7 +99,7 @@ end
 function Entity:iterComponents()
     local components = {}
     for index, componentInfo in ipairs(self.components) do
-        local component = GlobalStorage:getComponentData(componentInfo)
+        local component = GameState.globalStorage:getComponentData(componentInfo) --!temp fix
         insert(components, component)
     end
     return Iterator(components)

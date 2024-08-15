@@ -6,7 +6,10 @@ local EntityComponentSystemTest = require('States.Application')
 ---@diagnostic disable-next-line: duplicate-set-field
 function EntityComponentSystemTest:onInit()
     ---@type GlobalStorage
-    self.globalStorage = GlobalStorage() --* decide where to store this later
+    GameState.globalStorage = GlobalStorage() --!temp fix globalStorage
+    --self.globalStorage = GlobalStorage() --* decide where to store this later
+    -- Mark as initialized
+    self.initialized = true
     ---@type Universe
     self.universe = Universe(0)          --* decide where to store this later
 
@@ -15,7 +18,7 @@ function EntityComponentSystemTest:onInit()
 
     ---@param archetype EntityArchetype
     ---@param entities table<Entity>
-    for archetype, entities in ipairs(GlobalStorage:getEntities()) do
+    for archetype, entities in ipairs(GameState.globalStorage:getEntities()) do --!temp fix globalStorage
         ---@param entity Entity
         for _, entity in pairs(entities) do
             local nameComponent = entity:findComponentByName("Name")
@@ -24,8 +27,8 @@ function EntityComponentSystemTest:onInit()
 
             for component in entity:iterComponents() do
                 if component:getComponentName() ~= "NameComponent" then
-                    print(" - " .. component:getComponentName())
-                end
+                     print(" - " .. component:getComponentName())
+               end
             end
         end
     end

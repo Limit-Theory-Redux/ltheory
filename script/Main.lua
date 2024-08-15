@@ -19,7 +19,6 @@ end
 function InitSystem()
     Core.Call(function()
         local app = __app__ or 'LTheoryRedux'
-
         Log.Debug("Application name: %s", app)
 
         GlobalRestrict.On()
@@ -59,8 +58,8 @@ function InitSystem()
         Namespace.LoadInline('UI.HmGui.Views')
         Namespace.LoadInline('UI.HmGui.Pages') -- needs to be loaded in correct order
         Namespace.Load('UI')
-        Namespace.LoadInline('Systems')
-        Namespace.LoadInline('GameObjects')
+        --Namespace.LoadInline('Systems')
+        --Namespace.LoadInline('GameObjects')
 
         jit.opt.start(
             format('maxtrace=%d', Config.jit.tune.maxTrace),

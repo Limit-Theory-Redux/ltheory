@@ -2,7 +2,7 @@
 local SpaceStationEntity = require("_ECS_WIP_TEMP.Entities.Constructs.SpaceStation") --!temp path
 
 -- Systems
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
+--local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
 
 -- Utils
 local Words = require("_ECS_WIP_TEMP.Systems.Generators.Words") --!temp path
@@ -37,17 +37,17 @@ function UniverseEconomy:addSystemGenerics(system)
     -- Create Space Station Entity
     local solarStationEntity = SpaceStationEntity(Words.getCoolName(systemRNG), Enums.StationHulls.Small, systemRNG:get64())
     -- Store Entity
-    GlobalStorage:storeEntity(solarStationEntity)
+    GameState.globalStorage:storeEntity(solarStationEntity) --!temp fix
 
     -- Create Space Station Entity
     local siliconStationEntity = SpaceStationEntity(Words.getCoolName(systemRNG), Enums.StationHulls.Small, systemRNG:get64())
     -- Store Entity
-    GlobalStorage:storeEntity(siliconStationEntity)
+    GameState.globalStorage:storeEntity(siliconStationEntity) --!temp fix
 
     -- Create Space Station Entity
     local recyclerStationEntity = SpaceStationEntity(Words.getCoolName(systemRNG), Enums.StationHulls.Small, systemRNG:get64())
     -- Store Entity
-    GlobalStorage:storeEntity(recyclerStationEntity)
+    GameState.globalStorage:storeEntity(recyclerStationEntity) --!temp fix
 end
 
 return UniverseEconomy
