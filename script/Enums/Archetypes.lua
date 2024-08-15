@@ -32,7 +32,9 @@ Enums.ComponentArchetype = {
     HierarchyComponent = 3,
     RandomNumberGeneratorComponent = 4,
     TransformComponent = 5,
-    PlayerListComponent = 6
+    PlayerListComponent = 6,
+    MeshComponent = 7,
+    MaterialComponent = 8
     -- ...
 }
 
