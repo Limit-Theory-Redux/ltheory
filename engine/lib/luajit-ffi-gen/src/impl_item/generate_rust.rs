@@ -90,15 +90,15 @@ impl ImplInfo {
     // Note: We return a list of token streams here, because a single parameter can generate multiple parameters in the wrapper function.
     fn gen_wrapper_param(&self, param: &ParamInfo) -> Vec<TokenStream> {
         let name_ident = format_ident!("{}", param.name);
-        let param_type = param.ty.as_ffi(&self.name).rust;
+        let param_type = param.ty.as_ffi(&self.name).0;
         let param_type_tokens: TokenStream =
             param_type.parse().expect("Unable to parse Rust FFI type");
 
         let mut tokens = vec![quote! { #name_ident: #param_type_tokens }];
 
         // If this is a slice or array, we need to additionally generate a "size" parameter.
-        match &param.ty.wrapper {
-            TypeWrapper::Slice | TypeWrapper::Array(_) => {
+        match &param.ty {
+            TypeInfo::Slice { .. } | TypeInfo::Array { .. } => {
                 let size_param_ident = format_ident!("{}_size", param.name);
                 tokens.push(quote! { #size_param_ident: usize });
             }
@@ -134,7 +134,7 @@ impl ImplInfo {
         };
 
         if let Some(ty) = &method.ret {
-            let method_call = if ty.is_result {
+            let method_call = if let TypeInfo::Result { .. } = ty {
                 let method_call_str = format!("{}::{}", self_ident, method.name);
 
                 quote! {
@@ -149,98 +149,112 @@ impl ImplInfo {
                 quote! { let __res__ = #accessor_token(#(#param_tokens),*); }
             };
 
-            let return_item = match &ty.variant {
-                TypeVariant::Str => {
-                    let maybe_unwrap = if ty.wrapper == TypeWrapper::Option {
-                        if ty.is_mutable {
-                            quote! { let Some(__res__) = __res__ else { return std::ptr::null_mut(); }; }
-                        } else {
-                            quote! { let Some(__res__) = __res__ else { return std::ptr::null(); }; }
-                        }
-                    } else {
-                        quote! {}
-                    };
+            let ty = if let TypeInfo::Result { inner } = ty {
+                &**inner
+            } else {
+                ty
+            };
 
-                    quote! {
-                        #maybe_unwrap
-                        internal::static_string!(__res__)
-                    }
-                }
-                TypeVariant::String => {
-                    let maybe_unwrap = if ty.wrapper == TypeWrapper::Option {
-                        if ty.is_mutable {
-                            quote! { let Some(__res__) = __res__ else { return std::ptr::null_mut(); }; }
-                        } else {
-                            quote! { let Some(__res__) = __res__ else { return std::ptr::null(); }; }
-                        }
-                    } else {
-                        quote! {}
-                    };
-
-                    if ty.is_reference {
+            let return_item = match ty {
+                TypeInfo::Plain { is_ref, ty } => match ty {
+                    TypeVariant::Str => {
                         quote! {
-                            #maybe_unwrap
-                            internal::static_string!(__res__.as_str())
-                        }
-                    } else {
-                        quote! {
-                            #maybe_unwrap
                             internal::static_string!(__res__)
                         }
                     }
-                }
-                TypeVariant::CString => {
-                    let maybe_unwrap = if ty.wrapper == TypeWrapper::Option {
-                        if ty.is_mutable {
+                    TypeVariant::String => {
+                        if *is_ref != TypeRef::Value {
+                            quote! {
+                                internal::static_string!(__res__.as_str())
+                            }
+                        } else {
+                            quote! {
+                                internal::static_string!(__res__)
+                            }
+                        }
+                    }
+                    TypeVariant::Custom(_) => {
+                        if ty.is_copyable(&self.name) || method.bind_args.gen_out_param() {
+                            if is_ref.is_reference() {
+                                quote! { *__res__ }
+                            } else {
+                                quote! { __res__ }
+                            }
+                        } else if is_ref.is_reference() {
+                            quote! { __res__ }
+                        } else {
+                            quote! { __res__.into() }
+                        }
+                    }
+                    _ => {
+                        quote! { __res__ }
+                    }
+                },
+                TypeInfo::Option {
+                    is_ref,
+                    inner_ty: ty,
+                } => match ty {
+                    TypeVariant::Str => {
+                        let unwrap = if *is_ref == TypeRef::MutableReference {
                             quote! { let Some(__res__) = __res__ else { return std::ptr::null_mut(); }; }
                         } else {
                             quote! { let Some(__res__) = __res__ else { return std::ptr::null(); }; }
+                        };
+
+                        quote! {
+                            #unwrap
+                            internal::static_string!(__res__)
                         }
-                    } else {
-                        quote! {}
-                    };
-
-                    quote! {
-                        #maybe_unwrap
-                        internal::static_cstring!(__res__)
                     }
-                }
-                TypeVariant::Custom(ty_name) => {
-                    let ty_name = if ty.is_self() { &self.name } else { ty_name };
-                    let ty_ident = format_ident!("{ty_name}");
+                    TypeVariant::String => {
+                        let unwrap = if *is_ref == TypeRef::MutableReference {
+                            quote! { let Some(__res__) = __res__ else { return std::ptr::null_mut(); }; }
+                        } else {
+                            quote! { let Some(__res__) = __res__ else { return std::ptr::null(); }; }
+                        };
 
-                    if ty.wrapper == TypeWrapper::Option {
-                        if ty.is_reference || ty.is_mutable {
+                        if is_ref.is_reference() {
+                            quote! {
+                                #unwrap
+                                internal::static_string!(__res__.as_str())
+                            }
+                        } else {
+                            quote! {
+                                #unwrap
+                                internal::static_string!(__res__)
+                            }
+                        }
+                    }
+                    TypeVariant::Custom(ty_name) => {
+                        let ty_name = if ty.is_self() { &self.name } else { ty_name };
+                        let ty_ident = format_ident!("{ty_name}");
+
+                        if is_ref.is_reference() {
                             quote! { __res__ }
                         } else {
                             self.gen_buffered_ret(&ty_ident)
                         }
-                    } else if ty.is_copyable(&self.name) || method.bind_args.gen_out_param() {
-                        if ty.is_reference {
-                            quote! { *__res__ }
-                        } else {
-                            quote! { __res__ }
-                        }
-                    } else if ty.is_mutable || ty.is_reference {
-                        quote! { __res__ }
-                    } else if ty.wrapper != TypeWrapper::Box {
-                        quote! { __res__.into() }
-                    } else {
-                        quote! { __res__ }
                     }
-                }
-                _ => {
-                    if ty.wrapper == TypeWrapper::Option {
-                        if ty.is_reference || ty.is_mutable {
+                    _ => {
+                        if is_ref.is_reference() {
                             quote! { __res__ }
                         } else {
-                            let type_ident = format_ident!("{}", ty.variant.as_ffi().rust);
+                            let ty_ident = format_ident!("{}", ty.as_ffi().0);
 
-                            self.gen_buffered_ret(&type_ident)
+                            self.gen_buffered_ret(&ty_ident)
                         }
-                    } else {
+                    }
+                },
+                TypeInfo::Box { inner_ty: ty } => match ty {
+                    TypeVariant::Str | TypeVariant::String => {
+                        panic!("Boxed strings are not supported.")
+                    }
+                    _ => {
                         quote! { __res__ }
                     }
+                },
+                _ => {
+                    panic!("Returning a slice, array or function is not supported.")
                 }
             };
 
@@ -266,56 +280,89 @@ impl ImplInfo {
     }
 
     fn gen_wrapper_return_type(&self, ty: &TypeInfo, never_box: bool) -> TokenStream {
-        match &ty.variant {
-            TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
-                quote! { *const libc::c_char }
-            }
-            TypeVariant::Custom(ty_name) => {
-                let ty_name = if ty.is_self() { &self.name } else { ty_name };
-                let ty_ident = format_ident!("{ty_name}");
+        match ty {
+            TypeInfo::Plain { is_ref, ty } => match ty {
+                TypeVariant::Str | TypeVariant::String => {
+                    quote! { *const libc::c_char }
+                }
+                TypeVariant::Custom(ty_name) => {
+                    let ty_name = if ty.is_self() { &self.name } else { ty_name };
+                    let ty_ident = format_ident!("{ty_name}");
 
-                if ty.wrapper == TypeWrapper::Option {
-                    if ty.is_mutable {
-                        quote! { Option<&mut #ty_ident> }
-                    } else if ty.is_reference {
-                        quote! { Option<&#ty_ident> }
+                    if ty.is_copyable(&self.name) || never_box {
+                        quote! { #ty_ident }
                     } else {
-                        // We pin an instance of Option<T> using gen_buffered_ret, so ensure the
-                        // right lifetime is used here.
-                        quote! { Option<&'static #ty_ident> }
+                        match is_ref {
+                            TypeRef::MutableReference => quote! { &mut #ty_ident },
+                            TypeRef::Reference => quote! { &#ty_ident },
+                            TypeRef::Value => quote! { Box<#ty_ident> },
+                        }
                     }
-                } else if (ty.is_copyable(&self.name) && ty.wrapper != TypeWrapper::Box)
-                    || never_box
-                {
+                }
+                _ => {
+                    let ty_ident = format_ident!("{}", ty.as_ffi().0);
+
                     quote! { #ty_ident }
-                } else if ty.is_mutable {
-                    quote! { &mut #ty_ident }
-                } else if ty.is_reference {
-                    quote! { &#ty_ident }
-                } else {
+                }
+            },
+            TypeInfo::Option {
+                is_ref,
+                inner_ty: ty,
+            } => {
+                match ty {
+                    TypeVariant::Str | TypeVariant::String => {
+                        quote! { *const libc::c_char }
+                    }
+                    TypeVariant::Custom(ty_name) => {
+                        let ty_name = if ty.is_self() { &self.name } else { ty_name };
+                        let ty_ident = format_ident!("{ty_name}");
+
+                        match is_ref {
+                            TypeRef::MutableReference => quote! { Option<&mut #ty_ident> },
+                            TypeRef::Reference => quote! { Option<&#ty_ident> },
+                            TypeRef::Value => {
+                                // We pin an instance of Option<T> using gen_buffered_ret, so ensure the
+                                // right lifetime is used here.
+                                quote! { Option<&'static #ty_ident> }
+                            }
+                        }
+                    }
+                    _ => {
+                        let ty_ident = format_ident!("{}", ty.as_ffi().0);
+
+                        match is_ref {
+                            TypeRef::MutableReference => quote! { Option<&mut #ty_ident> },
+                            TypeRef::Reference => quote! { Option<&#ty_ident> },
+                            TypeRef::Value => {
+                                // We pin an instance of Option<T> using gen_buffered_ret, so ensure the
+                                // right lifetime is used here.
+                                quote! { Option<&'static #ty_ident> }
+                            }
+                        }
+                    }
+                }
+            }
+            TypeInfo::Box { inner_ty: ty } => match ty {
+                TypeVariant::Str | TypeVariant::String => {
+                    panic!("Boxed strings are not supported.")
+                }
+                TypeVariant::Custom(ty_name) => {
+                    let ty_name = if ty.is_self() { &self.name } else { ty_name };
+                    let ty_ident = format_ident!("{ty_name}");
+
                     quote! { Box<#ty_ident> }
                 }
-            }
-            _ => {
-                let ty_ident = format_ident!("{}", ty.variant.as_ffi().rust);
+                _ => {
+                    let ty_ident = format_ident!("{}", ty.as_ffi().0);
 
-                if ty.wrapper == TypeWrapper::Option {
-                    if ty.is_mutable {
-                        quote! { Option<&mut #ty_ident> }
-                    } else if ty.is_reference {
-                        quote! { Option<&#ty_ident> }
-                    } else {
-                        // We pin an instance of Option<T> using gen_buffered_ret, so ensure the
-                        // right lifetime is used here.
-                        quote! { Option<&'static #ty_ident> }
-                    }
-                } else {
-                    quote! { #ty_ident }
+                    quote! { Box<#ty_ident> }
                 }
-            }
+            },
+            _ => panic!("Returning a slice, array or function is not supported."),
         }
     }
 
+    /// This generates the code to turn a named object of an FFI type into a Rust type.
     fn gen_wrapper_name_from_ffi(
         &self,
         name: &String,
@@ -325,8 +372,8 @@ impl ImplInfo {
         let name_ident = format_ident!("{}", name);
         let name_accessor = quote! { #name_ident };
 
-        match &ty.variant {
-            TypeVariant::Function { args, ret } => {
+        match ty {
+            TypeInfo::Function { args, ret_ty } => {
                 // Assign a name for each argument.
                 let args: Vec<_> = args
                     .iter()
@@ -347,7 +394,7 @@ impl ImplInfo {
                     .map(|(name, ty)| self.gen_wrapper_name_to_ffi(name, ty, &mut prelude))
                     .collect();
 
-                if let Some(ty) = ret.as_ref() {
+                if let Some(ty) = ret_ty.as_ref() {
                     let ret_expr = self.gen_wrapper_name_from_ffi(
                         &"ret".to_string(),
                         ty,
@@ -369,47 +416,78 @@ impl ImplInfo {
                     }
                 }
             }
-            TypeVariant::Str => {
-                *use_convert_into_string = true;
-                let str_expr = quote! { #name_accessor.as_str() };
-                if ty.wrapper == TypeWrapper::Option {
-                    quote! { if #name_accessor.is_null() { None } else { Some(#str_expr)} }
-                } else {
-                    str_expr
-                }
-            }
-            TypeVariant::String => {
-                *use_convert_into_string = true;
-
-                // It's clearer to have it split in this way, rather than collapsing the else block below.
-                #[allow(clippy::collapsible_else_if)]
-                if ty.is_reference {
-                    if ty.wrapper == TypeWrapper::Option {
-                        quote! { if #name_accessor.is_null() { None } else { Some(#name_accessor.as_string()) }.as_ref() }
-                    } else {
-                        quote! { &#name_accessor.as_string() }
+            TypeInfo::Plain { is_ref, ty } => {
+                match ty {
+                    TypeVariant::Str => {
+                        *use_convert_into_string = true;
+                        quote! { #name_accessor.as_str() }
                     }
-                } else {
-                    if ty.wrapper == TypeWrapper::Option {
-                        quote! { if #name_accessor.is_null() { None } else { Some(#name_accessor.as_string()) } }
-                    } else {
-                        quote! { #name_accessor.as_string() }
+                    TypeVariant::String => {
+                        *use_convert_into_string = true;
+                        if is_ref.is_reference() {
+                            quote! { &#name_accessor.as_string() }
+                        } else {
+                            quote! { #name_accessor.as_string() }
+                        }
+                    }
+                    TypeVariant::Custom(_) => {
+                        if ty.is_copyable(&self.name) || is_ref.is_reference() {
+                            quote! { #name_accessor }
+                        } else {
+                            quote! { *#name_accessor }
+                        }
+                    }
+                    _ => {
+                        if is_ref.is_reference() {
+                            // Primitives passed by reference are received in FFI by value, so convert them
+                            // back into a reference.
+                            quote! { &#name_accessor }
+                        } else {
+                            quote! { #name_accessor }
+                        }
                     }
                 }
             }
-            TypeVariant::CString => {
-                *use_convert_into_string = true;
-                let cstring_expr = quote! { #name_accessor.as_cstring() };
-                if ty.wrapper == TypeWrapper::Option {
-                    quote! { if #name_accessor.is_null() { None } else { Some(#cstring_expr)} }
-                } else {
-                    cstring_expr
+            TypeInfo::Option {
+                is_ref,
+                inner_ty: ty,
+            } => {
+                match ty {
+                    TypeVariant::Str => {
+                        *use_convert_into_string = true;
+                        quote! { if #name_accessor.is_null() { None } else { Some(#name_accessor.as_str())} }
+                    }
+                    TypeVariant::String => {
+                        *use_convert_into_string = true;
+                        if is_ref.is_reference() {
+                            quote! { if #name_accessor.is_null() { None } else { Some(#name_accessor.as_string()) }.as_ref() }
+                        } else {
+                            quote! { if #name_accessor.is_null() { None } else { Some(#name_accessor.as_string()) } }
+                        }
+                    }
+                    _ => {
+                        if is_ref.is_reference() {
+                            quote! { #name_accessor }
+                        } else {
+                            // We need to promote Option<&T> to Option<T> if ty is neither a reference or mutable.
+                            quote! { #name_accessor.cloned() }
+                        }
+                    }
                 }
             }
-            TypeVariant::Custom(_) => {
-                if ty.wrapper == TypeWrapper::Slice {
+            TypeInfo::Box { .. } => {
+                quote! { #name_accessor }
+            }
+            TypeInfo::Slice {
+                is_ref,
+                elem_ty: ty,
+            } => match ty {
+                TypeVariant::Str | TypeVariant::String => {
+                    panic!("Strings in slices are not supported yet.");
+                }
+                _ => {
                     let size_param_ident = format_ident!("{}_size", name);
-                    if ty.is_mutable {
+                    if *is_ref == TypeRef::MutableReference {
                         quote! {{
                             assert!(!#name_accessor.is_null(), "array pointer is null");
                             assert!(#size_param_ident > 0, "array length must be greater than 0");
@@ -422,93 +500,62 @@ impl ImplInfo {
                             std::slice::from_raw_parts(#name_accessor, #size_param_ident)
                         }}
                     }
-                } else if let TypeWrapper::Array(size) = ty.wrapper {
-                    let size_param_ident = format_ident!("{}_size", name);
-                    if ty.is_mutable {
-                        quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert_eq!(#size_param_ident, #size, "incorrect number of elements for array");
-                            std::slice::from_raw_parts_mut(#name_accessor, #size).try_into().unwrap()
-                        }}
-                    } else if ty.is_reference {
-                        quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert_eq!(#size_param_ident, #size, "incorrect number of elements for array");
-                            std::slice::from_raw_parts(#name_accessor, #size).try_into().unwrap()
-                        }}
-                    } else {
-                        quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert_eq!(#size_param_ident, #size, "incorrect number of elements for array");
-                            std::slice::from_raw_parts(#name_accessor, #size).to_owned().try_into().unwrap()
-                        }}
+                }
+            },
+            TypeInfo::Array {
+                is_ref,
+                elem_ty: ty,
+                length,
+            } => {
+                match ty {
+                    TypeVariant::Str | TypeVariant::String => {
+                        panic!("Strings in slices are not supported yet.");
                     }
-                } else if ty.wrapper == TypeWrapper::Box {
-                    quote! { #name_accessor }
-                } else if ty.wrapper == TypeWrapper::Option {
-                    if ty.is_reference || ty.is_mutable {
-                        quote! { #name_accessor }
-                    } else {
-                        // We need to promote Option<&T> to Option<T> if ty is neither a reference or mutable.
-                        quote! { #name_accessor.cloned() }
-                    }
-                } else if ty.is_copyable(&self.name) || ty.is_reference {
-                    quote! { #name_accessor }
-                } else {
-                    quote! { *#name_accessor }
+                    _ => {
+                        // TypeVariant::Custom(_) => {
+                        let size_param_ident = format_ident!("{}_size", name);
+                        match is_ref {
+                            TypeRef::MutableReference => quote! {{
+                                assert!(!#name_accessor.is_null(), "array pointer is null");
+                                assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
+                                std::slice::from_raw_parts_mut(#name_accessor, #length).try_into().unwrap()
+                            }},
+                            TypeRef::Reference => quote! {{
+                                assert!(!#name_accessor.is_null(), "array pointer is null");
+                                assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
+                                std::slice::from_raw_parts(#name_accessor, #length).try_into().unwrap()
+                            }},
+                            TypeRef::Value => quote! {{
+                                assert!(!#name_accessor.is_null(), "array pointer is null");
+                                assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
+                                std::slice::from_raw_parts(#name_accessor, #length).to_owned().try_into().unwrap()
+                            }},
+                        }
+                    } // _ => {
+                      //     let size_param_ident = format_ident!("{}_size", name);
+                      //     if *is_ref == TypeRef::MutableReference {
+                      //         quote! {{
+                      //             assert!(!#name_accessor.is_null(), "array pointer is null");
+                      //             assert!(#size_param_ident > 0, "array length must be greater than 0");
+                      //             std::slice::from_raw_parts_mut(#name_accessor, #size_param_ident)
+                      //         }}
+                      //     } else {
+                      //         quote! {{
+                      //             assert!(!#name_accessor.is_null(), "array pointer is null");
+                      //             assert!(#size_param_ident > 0, "array length must be greater than 0");
+                      //             std::slice::from_raw_parts(#name_accessor, #size_param_ident)
+                      //         }}
+                      //     }
+                      // }
                 }
             }
-            _ => {
-                if ty.wrapper == TypeWrapper::Slice {
-                    let size_param_ident = format_ident!("{}_size", name);
-                    if ty.is_mutable {
-                        quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert!(#size_param_ident > 0, "array length must be greater than 0");
-                            std::slice::from_raw_parts_mut(#name_accessor, #size_param_ident)
-                        }}
-                    } else {
-                        quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert!(#size_param_ident > 0, "array length must be greater than 0");
-                            std::slice::from_raw_parts(#name_accessor, #size_param_ident)
-                        }}
-                    }
-                } else if let TypeWrapper::Array(size) = ty.wrapper {
-                    let size_param_ident = format_ident!("{}_size", name);
-                    if ty.is_mutable {
-                        quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert_eq!(#size_param_ident, #size, "incorrect number of elements for array");
-                            std::slice::from_raw_parts_mut(#name_accessor, #size).try_into().unwrap()
-                        }}
-                    } else {
-                        quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert_eq!(#size_param_ident, #size, "incorrect number of elements for array");
-                            std::slice::from_raw_parts(#name_accessor, #size).try_into().unwrap()
-                        }}
-                    }
-                } else if ty.wrapper == TypeWrapper::Option {
-                    if ty.is_mutable || ty.is_reference {
-                        quote! { #name_accessor }
-                    } else {
-                        // We need to promote Option<&T> to Option<T> if ty is neither a
-                        // reference or mutable.
-                        quote! { #name_accessor.cloned() }
-                    }
-                } else if ty.is_reference {
-                    // Primitives passed by reference are received in FFI by value, so convert them
-                    // back into a reference.
-                    quote! { &#name_accessor }
-                } else {
-                    quote! { #name_accessor }
-                }
+            TypeInfo::Result { .. } => {
+                panic!("Result can only be used in the return position.")
             }
         }
     }
 
-    /// This generates the code to turn a Rust type into an FFI type.
+    /// This generates the code to turn a named object of a Rust type into an FFI type.
     ///
     /// Note that unlike gen_wrapper_body's return value conversion code, this does not worry about
     /// ownership as it leaves the FFI boundary because gen_wrapper_name_to_ffi is only used by
@@ -521,55 +568,81 @@ impl ImplInfo {
         prelude: &mut Vec<TokenStream>,
     ) -> TokenStream {
         let name_ident = format_ident!("{}", name);
-        match &ty.variant {
-            TypeVariant::Str | TypeVariant::String => {
-                prelude.push(
-                    quote! { let #name_ident = std::ffi::CString::new(#name_ident).unwrap(); },
-                );
-                quote! { #name_ident.as_ptr() }
-            }
-            TypeVariant::CString => quote! { #name_ident.as_ptr() },
-            // structs and primitives are handled in the same way.
-            _ => {
-                if ty.wrapper == TypeWrapper::Slice {
-                    if ty.is_mutable {
-                        quote! { #name_ident.as_mut_ptr(), #name_ident.len() }
-                    } else {
-                        quote! { #name_ident.as_ptr(), #name_ident.len() }
+        match ty {
+            TypeInfo::Plain { is_ref, ty } => {
+                match ty {
+                    TypeVariant::Str | TypeVariant::String => {
+                        prelude.push(
+                            quote! { let #name_ident = std::ffi::CString::new(#name_ident).unwrap(); },
+                        );
+                        quote! { #name_ident.as_ptr() }
                     }
-                } else if let TypeWrapper::Array(_) = ty.wrapper {
-                    if ty.is_mutable {
-                        quote! { #name_ident.as_mut_ptr(), #name_ident.len() }
-                    } else {
-                        quote! { #name_ident.as_ptr(), #name_ident.len() }
+                    _ => {
+                        if ty.is_copyable(&self.name) {
+                            if *is_ref == TypeRef::Reference {
+                                // If it's a reference, we need to convert it to a value.
+                                quote! { *#name_ident }
+                            } else {
+                                // If it's copyable, then pass it directly.
+                                quote! { #name_ident }
+                            }
+                        } else if is_ref.is_reference() {
+                            // A reference type can be passed directly
+                            quote! { #name_ident }
+                        } else {
+                            // If it's not a box type, and non-copyable, we need to convert it into a Box<T>.
+                            quote! { #name_ident.into() }
+                        }
                     }
-                } else if ty.wrapper == TypeWrapper::Option {
-                    if !ty.is_reference {
-                        // If it's passed by value, then we need to convert it to a reference.
-                        quote! { #name_ident.as_ref() }
-                    } else {
-                        // If it's a reference or pass by move, then pass it directly.
-                        quote! { #name_ident }
-                    }
-                } else if ty.is_copyable(&self.name) {
-                    if ty.is_reference && !ty.is_mutable {
-                        // If it's a reference, we need to convert it to a value.
-                        quote! { *#name_ident }
-                    } else {
-                        // If it's copyable, then pass it directly.
-                        quote! { #name_ident }
-                    }
-                } else if (ty.is_mutable || ty.is_reference) && ty.wrapper == TypeWrapper::None {
-                    // A reference type that may or may not be wrapped by Option can be passed directly.
-                    quote! { #name_ident }
-                } else if ty.wrapper != TypeWrapper::Box {
-                    // If it's not a box type, and non-copyable, we need to convert it into a Box<T>.
-                    quote! { #name_ident.into() }
-                } else {
-                    // Pass it through directly.
-                    quote! { #name_ident }
                 }
             }
+            TypeInfo::Option {
+                is_ref,
+                inner_ty: ty,
+            } => {
+                match ty {
+                    TypeVariant::Str | TypeVariant::String => {
+                        prelude.push(
+                            quote! { let #name_ident = std::ffi::CString::new(#name_ident).unwrap(); },
+                        );
+                        quote! { #name_ident.as_ptr() }
+                    }
+                    _ => {
+                        if *is_ref == TypeRef::Value {
+                            // If it's passed by value, then we need to convert it to a reference.
+                            quote! { #name_ident.as_ref() }
+                        } else {
+                            // If it's a reference, then pass it directly.
+                            quote! { #name_ident }
+                        }
+                    }
+                }
+            }
+            TypeInfo::Box { .. } => {
+                quote! { #name_ident }
+            }
+            TypeInfo::Slice {
+                is_ref,
+                elem_ty: ty,
+            }
+            | TypeInfo::Array {
+                is_ref,
+                elem_ty: ty,
+                ..
+            } => match ty {
+                TypeVariant::Str | TypeVariant::String => {
+                    panic!("Slice/Array of strings not implemented.")
+                }
+                _ => {
+                    if *is_ref == TypeRef::MutableReference {
+                        quote! { #name_ident.as_mut_ptr(), #name_ident.len() }
+                    } else {
+                        quote! { #name_ident.as_ptr(), #name_ident.len() }
+                    }
+                }
+            },
+            TypeInfo::Function { .. } => panic!("Cannot convert a function type to FFI"),
+            TypeInfo::Result { .. } => panic!("Cannot convert a result type to FFI"),
         }
     }
 

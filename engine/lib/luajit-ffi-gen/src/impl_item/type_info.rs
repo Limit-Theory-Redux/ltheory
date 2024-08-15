@@ -74,6 +74,12 @@ pub enum TypeRef {
     MutableReference,
 }
 
+impl TypeRef {
+    pub fn is_reference(&self) -> bool {
+        *self != Self::Value
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum TypeInfo {
     // T, &T, &mut T
@@ -86,9 +92,8 @@ pub enum TypeInfo {
         is_ref: TypeRef,
         inner_ty: TypeVariant,
     },
-    // Box<T>, &Box<T>, &mut Box<T> - TODO: Do we want to support refs with boxes?
+    // Box<T>
     Box {
-        is_ref: TypeRef,
         inner_ty: TypeVariant,
     },
     // &[T], &mut [T]
@@ -167,8 +172,7 @@ impl TypeInfo {
                     }
                 }
             }
-            Self::Box { is_ref, inner_ty } => {
-                // TODO: Old code didn't seem to handle references to boxes. Is that even supported?
+            Self::Box { inner_ty } => {
                 let (rust_ty_name, c_ty_name) = inner_ty.as_ffi();
                 (format!("Box<{rust_ty_name}>"), format!("{c_ty_name}*"))
             }
@@ -221,7 +225,7 @@ impl TypeInfo {
                     format!("{} (*)({})", ret_ty.1, args.1),
                 )
             }
-            Self::Result { inner } => {
+            Self::Result { .. } => {
                 // TODO.
                 ("".into(), "".into())
             }

@@ -230,10 +230,13 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
                 } else if type_name == "Box" {
                     if let TypeInfo::Plain { is_ref, ty } = parse_type(&generics[0], generic_types)?
                     {
-                        return Ok(TypeInfo::Box {
-                            is_ref,
-                            inner_ty: ty,
-                        });
+                        if is_ref != TypeRef::Value {
+                            return Err(Error::new(
+                                type_path.span(),
+                                "a boxed type cannot contain a reference",
+                            ));
+                        }
+                        return Ok(TypeInfo::Box { inner_ty: ty });
                     } else {
                         return Err(Error::new(
                             type_path.span(),
