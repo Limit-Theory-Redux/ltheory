@@ -62,7 +62,6 @@ function EventPayloadConverter:valueToPayload(value, rustPayload)
             -- end
         end
 
-
         if type(value) == "table" then
             return EventPayload.FromTable(self:valueToPayloadTable(value))
         end
