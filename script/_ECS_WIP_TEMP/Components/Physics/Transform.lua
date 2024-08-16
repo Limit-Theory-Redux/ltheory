@@ -6,7 +6,6 @@ local Component = require('Component')
 ---@field scale Vec3f
 
 ---@class TransformComponent: Component
----@overload fun(name: string): TransformComponent subclass external
 local TransformComponent = Subclass(Component, function(self)
     ---@cast self TransformComponent
     self:setComponentName("PhysicsTransform")

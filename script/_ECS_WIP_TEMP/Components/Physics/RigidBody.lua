@@ -1,7 +1,6 @@
 local Component = require('Component')
 
 ---@class RigidBodyComponent: Component
----@overload fun(name: string): RigidBodyComponent subclass external
 local RigidBodyComponent = Subclass(Component, function(self)
     ---@cast self RigidBodyComponent
     self:setComponentName("PhysicsRigidBody")
