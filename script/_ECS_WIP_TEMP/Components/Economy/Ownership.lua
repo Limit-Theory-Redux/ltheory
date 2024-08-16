@@ -4,7 +4,7 @@ local Component = require('Component')
 ---@overload fun(playerId: integer|nil): Ownership subclass external
 local Ownership = Subclass(Component, function(self, playerId)
     ---@cast self Ownership
-    self:setComponentName("Ownership")
+    self:setComponentName("EconomyOwnership")
     self:setOwner(playerId)
 end)
 

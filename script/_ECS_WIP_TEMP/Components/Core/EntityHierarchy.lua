@@ -5,7 +5,7 @@ local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp pat
 ---@overload fun(parentEntity: Entity|nil): EntityHierarchyComponent subclass external
 local EntityHierarchyComponent = Subclass(Component, function(self, parentEntity)
     ---@cast self EntityHierarchyComponent
-    self:setComponentName("Hierarchy")
+    self:setComponentName("EntityHierarchy")
 
     -- Set Component Archetype
     self:setArchetype(Enums.ComponentArchetype.HierarchyComponent)

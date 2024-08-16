@@ -2,7 +2,6 @@ local Entity = require("_ECS_WIP_TEMP.Entity")
 
 -- Components
 local NameComponent = require("_ECS_WIP_TEMP.Components.EntityName")
-local TypeComponent = require("_ECS_WIP_TEMP.Components.EntityType")
 local PlayerBankAccount = require("script._ECS_WIP_TEMP.Components.Economy.PlayerBankAccount")
 
 ---@class Player: Entity

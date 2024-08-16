@@ -9,7 +9,7 @@ local Component = require('Component')
 ---@overload fun(name: string): TransformComponent subclass external
 local TransformComponent = Subclass(Component, function(self)
     ---@cast self TransformComponent
-    self:setComponentName("Transform")
+    self:setComponentName("PhysicsTransform")
 
     -- Set Component Archetype
     self:setArchetype(Enums.ComponentArchetype.Transform)

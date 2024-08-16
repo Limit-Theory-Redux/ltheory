@@ -4,7 +4,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component') --!temp path
 ---@overload fun(): PlayerList subclass external
 local PlayerList = Subclass(Component, function(self)
     ---@cast self PlayerList
-    self:setComponentName("PlayerList")
+    self:setComponentName("EconomyPlayerList")
 
     -- Set Component Archetype
     self:setArchetype(Enums.ComponentArchetype.PlayerListComponent)

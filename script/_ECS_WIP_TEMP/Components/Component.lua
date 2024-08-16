@@ -7,6 +7,7 @@ local Component = Class(function(self)
     self:addEvents()
 end)
 
+--- Naming Convention: ComponentCategory .. ComponentName; e.g. PhysicsRigidBody
 ---@param name string
 function Component:setComponentName(name)
     if not name or type(name) ~= "string" then
