@@ -4,7 +4,6 @@ local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 local RandomNumberGeneratorComponent = require("_ECS_WIP_TEMP.Components.Core.RandomNumberGenerator") --!temp path
 local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")                             --!temp path
 local TransformComponent = require("_ECS_WIP_TEMP.Components.Physics.Transform")
-local TypeComponent = require("_ECS_WIP_TEMP.Components.Core.EntityType")                             --!temp path
 
 ---@class Asteroid: Entity
 ---@overload fun(self: table, seed: integer): Asteroid subclass interal
