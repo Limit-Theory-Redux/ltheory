@@ -1,11 +1,10 @@
 local Component = require("_ECS_WIP_TEMP.Components.Component") --!temp path
 
 ---@class RandomNumberGeneratorComponent: Component
----@overload fun(self: table, seed: integer|nil, isManaged: boolean) subclass internal
+---@overload fun(self: RandomNumberGeneratorComponent, seed: integer|nil, isManaged: boolean) subclass internal
 ---@overload fun(seed: integer|nil, isManaged: boolean): RandomNumberGeneratorComponent subclass external
 ---@return RandomNumberGeneratorComponent
 local RandomNumberGeneratorComponent = Subclass(Component, function(self, seed, isManaged)
-    ---@cast self RandomNumberGeneratorComponent
     self:setComponentName("RandomNumberGenerator")
 
     -- Set Component Archetype

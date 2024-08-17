@@ -5,10 +5,9 @@ local RandomNumberGeneratorComponent = require("_ECS_WIP_TEMP.Components.Core.Ra
 local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")                             --!temp path
 
 ---@class Star: Entity
----@overload fun(self: table, seed: integer): Star subclass interal
+---@overload fun(self: Star, seed: integer): Star subclass interal
 ---@overload fun(seed: integer): Star subclass external
 local Star = Subclass(Entity, function(self, seed)
-    ---@cast self Star
 
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.StarEntity)

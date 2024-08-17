@@ -14,9 +14,7 @@ local RenderingTest = require('States.Application')
 ---@param transformB TransformComponent
 local setArbValVec3f = function(shaderState, uniformInt, transfromA, transformB)
     local val = transfromA:getScale() + transformB:getScale()
-    print(shaderState:shader():getVariable("color"))
     shaderState:shader():iSetFloat3(uniformInt, val.x, val.y, val.z)
-    print(shaderState:shader():getVariable("color"))
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field

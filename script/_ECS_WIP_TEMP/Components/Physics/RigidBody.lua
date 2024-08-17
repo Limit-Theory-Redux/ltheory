@@ -1,8 +1,9 @@
 local Component = require('Component')
 
 ---@class RigidBodyComponent: Component
+---@overload fun(self:RigidBodyComponent): RigidBodyComponent subclass internal
+---@overload fun(): RigidBodyComponent subclass external
 local RigidBodyComponent = Subclass(Component, function(self)
-    ---@cast self RigidBodyComponent
     self:setComponentName("PhysicsRigidBody")
 
     -- Set Component Archetype

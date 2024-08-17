@@ -6,10 +6,9 @@ local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")       
 local TransformComponent = require("_ECS_WIP_TEMP.Components.Physics.Transform")
 
 ---@class Asteroid: Entity
----@overload fun(self: table, seed: integer): Asteroid subclass interal
+---@overload fun(self: Asteroid, seed: integer): Asteroid subclass interal
 ---@overload fun(seed: integer): Asteroid subclass external
 local Asteroid = Subclass(Entity, function(self, seed)
-    ---@cast self Asteroid
 
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.AsteroidEntity)

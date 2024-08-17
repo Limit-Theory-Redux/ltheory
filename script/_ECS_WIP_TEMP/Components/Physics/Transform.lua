@@ -6,8 +6,9 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@field scale Vec3f
 
 ---@class TransformComponent: Component
+---@overload fun(self:TransformComponent): TransformComponent subclass internal
+---@overload fun(): TransformComponent subclass external
 local TransformComponent = Subclass(Component, function(self)
-    ---@cast self TransformComponent
     self:setComponentName("PhysicsTransform")
 
     -- Set Component Archetype
