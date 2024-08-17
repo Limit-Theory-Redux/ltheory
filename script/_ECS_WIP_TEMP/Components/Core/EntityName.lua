@@ -14,12 +14,7 @@ end)
 
 ---@param name string
 function NameComponent:setName(name)
-    if not name or type(name) ~= "string" then
-        Log.Warn("Did not provide a valid string name for name component")
-        return
-    end
-
-    self.name = name
+    self.name = name or "Undefined"
 end
 
 ---@return string

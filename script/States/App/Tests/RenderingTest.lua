@@ -12,26 +12,28 @@ local RenderingTest = require('States.Application')
 ---@param uniformInt integer
 ---@param args table
 local setArbValVec3f = function(shaderState, uniformInt, transfromA, transformB)
-    print(shaderState, uniformInt, transfromA:getScale(), transformB:getScale())
+    print(shaderState, uniformInt, transfromA, transformB)
     local val = transfromA:getScale() + transformB:getScale()
     shaderState:shader():iSetFloat3(uniformInt, val.x, val.y, val.z)
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function RenderingTest:onInit()
-    ---@type GlobalStorage
-    GlobalStorage:initStorage();
     -- Mark as initialized
     self.initialized = true
 
+    local rng = RNG.Create(0):managed()
+
     -- Spawn a Asteroid A
-    local A = Asteroid(RNG.Create(0):managed():get64())
+    local A = Asteroid(rng:get64())
     ---@type TransformComponent
     local A_Transform = A:findComponentByName("PhysicsTransform")
     -- Spawn a Asteroid B
-    local B = Asteroid(RNG.Create(0):managed():get64())
+    local B = Asteroid(rng:get64())
     ---@type TransformComponent
     local B_Transform = B:findComponentByName("PhysicsTransform")
+
+    print(A, B, A_Transform, B_Transform)
 
     ---@type Material
     local mat = Material('pulse', 'billboard/axis', 'effect/pulsetail')

@@ -23,6 +23,14 @@ end
 ---@param archetype EntityArchetype
 function Entity:setArchetype(archetype)
     self.archetype = archetype
+
+    local mt = getmetatable(self)
+    if mt then
+        mt.__tostring = function()
+            return format("%s(%s)", Enums.EntityArchetype:getName(self.archetype), tostring(self:getGuid()))
+        end
+        setmetatable(self, mt)
+    end
 end
 
 ---@return EntityArchetype
