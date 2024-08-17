@@ -12,7 +12,6 @@ local RenderingTest = require('States.Application')
 ---@param uniformInt integer
 ---@param args table
 local setArbValVec3f = function(shaderState, uniformInt, transfromA, transformB)
-    print(shaderState, uniformInt, transfromA, transformB)
     local val = transfromA:getScale() + transformB:getScale()
     shaderState:shader():iSetFloat3(uniformInt, val.x, val.y, val.z)
 end
@@ -28,10 +27,12 @@ function RenderingTest:onInit()
     local A = Asteroid(rng:get64())
     ---@type TransformComponent
     local A_Transform = A:findComponentByName("PhysicsTransform")
+    --Log.Warn("Asteroid A Entity: " .. Inspect(A) .. "\nTransform Component: " .. Inspect(A_Transform) .. "\n\n")
     -- Spawn a Asteroid B
     local B = Asteroid(rng:get64())
     ---@type TransformComponent
     local B_Transform = B:findComponentByName("PhysicsTransform")
+    --Log.Warn("Asteroid B Entity: " .. Inspect(B) .. "\nTransform Component: " .. Inspect(B_Transform))
 
     print(A, B, A_Transform, B_Transform)
 
@@ -43,27 +44,6 @@ function RenderingTest:onInit()
     --Log.Warn(Inspect(mat))
     if autoShaderVar then autoShaderVar:render(mat.shaderState, A_Transform, B_Transform) end
     Log.Warn("Material Added AutoShaderVar Debug: " .. Inspect(mat))
-
-    --[[
-    ---@param archetype EntityArchetype
-    ---@param entities table<Entity>
-    for archetype, entities in ipairs(GlobalStorage:getEntities()) do --!temp fix globalStorage
-        ---@param entity Entity
-        for _, entity in pairs(entities) do
-            local nameComponent = entity:findComponentByName("Name")
-            ---@cast nameComponent NameComponent
-            print(nameComponent:getName() .. " (" .. Enums.EntityArchetype:getName(archetype) .. ")")
-
-            for component in entity:iterComponents() do
-                if component:getComponentName() ~= "NameComponent" then
-                     print(" - " .. component:getComponentName())
-               end
-            end
-        end
-    end
-    --]]
-
-    --Log.Warn(Inspect(GlobalStorage))
 end
 
 return RenderingTest
