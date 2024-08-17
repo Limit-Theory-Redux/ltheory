@@ -239,7 +239,7 @@ impl ImplInfo {
                         if is_ref.is_reference() {
                             quote! { __res__ }
                         } else {
-                            let ty_ident = format_ident!("{}", ty.as_ffi().0);
+                            let ty_ident = format_ident!("{}", ty.as_ffi(&self.name).0);
 
                             self.gen_buffered_ret(&ty_ident)
                         }
@@ -254,7 +254,10 @@ impl ImplInfo {
                     }
                 },
                 _ => {
-                    panic!("Returning a slice, array or function is not supported.")
+                    panic!(
+                        "Returning a slice, array or function is not supported. {:?}",
+                        ty
+                    )
                 }
             };
 
@@ -280,6 +283,12 @@ impl ImplInfo {
     }
 
     fn gen_wrapper_return_type(&self, ty: &TypeInfo, never_box: bool) -> TokenStream {
+        let ty = if let TypeInfo::Result { inner } = ty {
+            &**inner
+        } else {
+            ty
+        };
+
         match ty {
             TypeInfo::Plain { is_ref, ty } => match ty {
                 TypeVariant::Str | TypeVariant::String => {
@@ -300,7 +309,7 @@ impl ImplInfo {
                     }
                 }
                 _ => {
-                    let ty_ident = format_ident!("{}", ty.as_ffi().0);
+                    let ty_ident = format_ident!("{}", ty.as_ffi(&self.name).0);
 
                     quote! { #ty_ident }
                 }
@@ -328,7 +337,7 @@ impl ImplInfo {
                         }
                     }
                     _ => {
-                        let ty_ident = format_ident!("{}", ty.as_ffi().0);
+                        let ty_ident = format_ident!("{}", ty.as_ffi(&self.name).0);
 
                         match is_ref {
                             TypeRef::MutableReference => quote! { Option<&mut #ty_ident> },
@@ -353,12 +362,15 @@ impl ImplInfo {
                     quote! { Box<#ty_ident> }
                 }
                 _ => {
-                    let ty_ident = format_ident!("{}", ty.as_ffi().0);
+                    let ty_ident = format_ident!("{}", ty.as_ffi(&self.name).0);
 
                     quote! { Box<#ty_ident> }
                 }
             },
-            _ => panic!("Returning a slice, array or function is not supported."),
+            _ => panic!(
+                "Returning a slice, array or function is not supported. {:?}",
+                ty
+            ),
         }
     }
 

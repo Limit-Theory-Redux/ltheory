@@ -1,4 +1,4 @@
-use super::{ImplInfo, ParamInfo, TypeVariant, TypeWrapper};
+use super::{ImplInfo, ParamInfo, TypeInfo, TypeRef, TypeVariant};
 use crate::args::ImplAttrArgs;
 use crate::ffi_generator::FFIGenerator;
 use crate::IDENT;
@@ -93,7 +93,13 @@ impl ImplInfo {
                         "---@param {} {}{}",
                         param.as_ffi_name(),
                         param.ty.as_lua_ffi_string(module_name),
-                        if param.ty.wrapper == TypeWrapper::Option {
+                        if let TypeInfo::Option { .. } =
+                            if let TypeInfo::Result { inner } = &param.ty {
+                                inner
+                            } else {
+                                &param.ty
+                            }
+                        {
                             "|nil"
                         } else {
                             ""
@@ -101,12 +107,12 @@ impl ImplInfo {
                     ));
 
                     // If this is a slice or array, we need to additionally generate a "size" parameter.
-                    match &param.ty.wrapper {
-                        TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                    match &param.ty {
+                        TypeInfo::Slice { .. } | TypeInfo::Array { .. } => {
                             ffi_gen.add_class_definition(format!(
                                 "---@param {}_size {}",
                                 param.as_ffi_name(),
-                                TypeVariant::USize.as_lua_ffi_string()
+                                TypeVariant::USize.as_lua_ffi_string(module_name)
                             ));
                         }
                         _ => {}
@@ -121,8 +127,8 @@ impl ImplInfo {
                         let mut params = vec![ffi_name.clone()];
 
                         // If this is a slice or array, we need to additionally generate a "size" parameter.
-                        match &param.ty.wrapper {
-                            TypeWrapper::Slice | TypeWrapper::Array(_) => {
+                        match &param.ty {
+                            TypeInfo::Slice { .. } | TypeInfo::Array { .. } => {
                                 params.push(format!("{}_size", ffi_name))
                             }
                             _ => {}
@@ -143,7 +149,12 @@ impl ImplInfo {
                         ffi_gen.add_class_definition(format!(
                             "---@return {}{}",
                             ret.as_lua_ffi_string(module_name),
-                            if ret.wrapper == TypeWrapper::Option {
+                            if let TypeInfo::Option { .. } = if let TypeInfo::Result { inner } = ret
+                            {
+                                inner
+                            } else {
+                                ret
+                            } {
                                 "|nil"
                             } else {
                                 ""
@@ -197,7 +208,7 @@ impl ImplInfo {
                     "void".len()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    ret.as_ffi(module_name).c.len()
+                    ret.as_ffi(module_name).1.len()
                 };
 
                 max_ret_len = std::cmp::max(max_ret_len, len);
@@ -228,7 +239,7 @@ impl ImplInfo {
                     "void".into()
                 } else {
                     let ret = method.ret.as_ref().unwrap();
-                    ret.as_ffi(module_name).c
+                    ret.as_ffi(module_name).1
                 };
 
                 let mut params_str: Vec<_> = method
@@ -239,17 +250,24 @@ impl ImplInfo {
 
                 if method.bind_args.gen_out_param() && method.ret.is_some() {
                     let ret = method.ret.as_ref().unwrap();
-                    let ret_ffi = ret.as_ffi(module_name).c;
-                    let ret_param = match &ret.variant {
-                        TypeVariant::Custom(_) => {
-                            if !ret.is_copyable(&self.name) && ret.wrapper != TypeWrapper::Box && ret.wrapper != TypeWrapper::Option && !ret.is_reference {
-                                // If we have a non-copyable type that's not boxed, optional or a ref,
-                                // we don't need to return it as a pointer as it's already a pointer.
-                                format!("{} out", ret_ffi)
-                            } else {
-                                format!("{}* out", ret_ffi)
+                    let ret_ffi = ret.as_ffi(module_name).1;
+                    let ret_param = match &ret {
+                        TypeInfo::Plain { is_ref, ty } => {
+                            match ty {
+                                TypeVariant::Custom(_) => {
+                                    if !ty.is_copyable(&self.name) && *is_ref == TypeRef::Value {
+                                        // If we have a non-copyable type that's not boxed, optional or a ref,
+                                        // we don't need to return it as a pointer as it's already a pointer.
+                                        format!("{} out", ret_ffi)
+                                    } else {
+                                        format!("{}* out", ret_ffi)
+                                    }
+                                },
+                                _ => {
+                                    format!("{}* out", ret_ffi)
+                                }
                             }
-                        },
+                        }
                         _ => {
                             format!("{}* out", ret_ffi)
                         }
@@ -283,23 +301,23 @@ impl ImplInfo {
     }
 
     fn get_c_ffi_param(&self, module_name: &str, param: &ParamInfo) -> Vec<String> {
-        if let TypeVariant::Function { .. } = &param.ty.variant {
+        if let TypeInfo::Function { .. } = &param.ty {
             // Function pointers in C have the param name inside the type signature, just get
             // the type without the name.
-            return vec![param.ty.as_ffi(module_name).c];
+            return vec![param.ty.as_ffi(module_name).1];
         }
 
         let mut params = vec![format!(
             "{} {}",
-            param.ty.as_ffi(module_name).c,
+            param.ty.as_ffi(module_name).1,
             param.as_ffi_name()
         )];
 
         // If this is a slice or array, we need to additionally generate a "size" parameter.
-        match &param.ty.wrapper {
-            TypeWrapper::Slice | TypeWrapper::Array(_) => params.push(format!(
+        match &param.ty {
+            TypeInfo::Slice { .. } | TypeInfo::Array { .. } => params.push(format!(
                 "{} {}_size",
-                TypeVariant::USize.as_ffi().c,
+                TypeVariant::USize.as_ffi(module_name).1,
                 param.as_ffi_name()
             )),
             _ => {}
@@ -376,19 +394,36 @@ fn write_method_map<F: FnMut(String)>(
     mut writer: F,
 ) {
     // TODO: refactor these nested ifs
+    // Here, we want to package the return type in ffi.gc if we're returning a managed type by value.
     let gc_type = if !method.bind_args.gen_out_param() {
         if let Some(ret) = &method.ret {
-            if !ret.is_reference {
-                ret.get_managed_type().map(|gc_type| {
+            let ret_custom = match ret {
+                TypeInfo::Plain { is_ref, ty } => {
+                    if *is_ref == TypeRef::Value {
+                        Some(ty)
+                    } else {
+                        None
+                    }
+                }
+                TypeInfo::Option { is_ref, inner_ty } => {
+                    if *is_ref == TypeRef::Value {
+                        Some(inner_ty)
+                    } else {
+                        None
+                    }
+                }
+                TypeInfo::Box { inner_ty } => Some(inner_ty),
+                _ => None,
+            };
+            ret_custom
+                .and_then(|ty| ty.get_managed_type())
+                .map(|gc_type| {
                     if gc_type == "Self" {
                         module_name
                     } else {
                         gc_type
                     }
                 })
-            } else {
-                None
-            }
         } else {
             None
         }

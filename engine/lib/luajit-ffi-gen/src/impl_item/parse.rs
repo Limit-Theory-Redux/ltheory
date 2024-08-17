@@ -288,15 +288,15 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
         }
         Type::Slice(type_slice) => {
             if let TypeInfo::Plain { is_ref, ty } = parse_type(&type_slice.elem, generic_types)? {
-                return Ok(TypeInfo::Slice {
+                Ok(TypeInfo::Slice {
                     is_ref,
                     elem_ty: ty,
-                });
+                })
             } else {
-                return Err(Error::new(
+                Err(Error::new(
                     type_slice.span(),
                     "a slice can only contain a plain type",
-                ));
+                ))
             }
         }
         Type::Array(type_array) => {
