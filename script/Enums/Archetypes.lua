@@ -17,7 +17,7 @@ Enums.EntityArchetype = {
 
 local entityArchetypeNames = {}
 for k, v in pairs(Enums.EntityArchetype) do
-    insert(entityArchetypeNames, v, k)
+    entityArchetypeNames[v] = k
 end
 
 ---@param archetype EntityArchetype
@@ -41,7 +41,7 @@ Enums.ComponentArchetype = {
 
 local componentArchetypeNames = {}
 for k, v in pairs(Enums.ComponentArchetype) do
-    insert(componentArchetypeNames, v, k)
+    componentArchetypeNames[v] = k
 end
 
 ---@param archetype EntityArchetype
