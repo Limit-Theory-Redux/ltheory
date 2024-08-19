@@ -173,21 +173,13 @@ impl ImplInfo {
                             }
                         }
                     }
-                    TypeVariant::Custom(_) => {
-                        if ty.is_copyable(&self.name) || method.bind_args.gen_out_param() {
-                            if is_ref.is_reference() {
-                                quote! { *__res__ }
-                            } else {
-                                quote! { __res__ }
-                            }
-                        } else if is_ref.is_reference() {
-                            quote! { __res__ }
-                        } else {
-                            quote! { __res__.into() }
-                        }
-                    }
                     _ => {
-                        quote! { __res__ }
+                        // If it's a managed type by value, we need to box it when returning.
+                        if !ty.is_copyable(&self.name) && *is_ref == TypeRef::Value {
+                            quote! { __res__.into() }
+                        } else {
+                            quote! { __res__ }
+                        }
                     }
                 },
                 TypeInfo::Option {
@@ -294,24 +286,17 @@ impl ImplInfo {
                 TypeVariant::Str | TypeVariant::String => {
                     quote! { *const libc::c_char }
                 }
-                TypeVariant::Custom(ty_name) => {
-                    let ty_name = if ty.is_self() { &self.name } else { ty_name };
-                    let ty_ident = format_ident!("{ty_name}");
-
-                    if ty.is_copyable(&self.name) || never_box {
-                        quote! { #ty_ident }
-                    } else {
-                        match is_ref {
-                            TypeRef::MutableReference => quote! { &mut #ty_ident },
-                            TypeRef::Reference => quote! { &#ty_ident },
-                            TypeRef::Value => quote! { Box<#ty_ident> },
-                        }
-                    }
-                }
                 _ => {
                     let ty_ident = format_ident!("{}", ty.as_ffi(&self.name).0);
 
-                    quote! { #ty_ident }
+                    match is_ref {
+                        TypeRef::MutableReference => quote! { &mut #ty_ident },
+                        TypeRef::Reference => quote! { &#ty_ident },
+                        TypeRef::Value if ty.is_copyable(&self.name) || never_box => {
+                            quote! { #ty_ident }
+                        }
+                        TypeRef::Value => quote! { Box<#ty_ident> },
+                    }
                 }
             },
             TypeInfo::Option {
@@ -321,20 +306,6 @@ impl ImplInfo {
                 match ty {
                     TypeVariant::Str | TypeVariant::String => {
                         quote! { *const libc::c_char }
-                    }
-                    TypeVariant::Custom(ty_name) => {
-                        let ty_name = if ty.is_self() { &self.name } else { ty_name };
-                        let ty_ident = format_ident!("{ty_name}");
-
-                        match is_ref {
-                            TypeRef::MutableReference => quote! { Option<&mut #ty_ident> },
-                            TypeRef::Reference => quote! { Option<&#ty_ident> },
-                            TypeRef::Value => {
-                                // We pin an instance of Option<T> using gen_buffered_ret, so ensure the
-                                // right lifetime is used here.
-                                quote! { Option<&'static #ty_ident> }
-                            }
-                        }
                     }
                     _ => {
                         let ty_ident = format_ident!("{}", ty.as_ffi(&self.name).0);
@@ -518,49 +489,31 @@ impl ImplInfo {
                 is_ref,
                 elem_ty: ty,
                 length,
-            } => {
-                match ty {
-                    TypeVariant::Str | TypeVariant::String => {
-                        panic!("Strings in slices are not supported yet.");
-                    }
-                    _ => {
-                        // TypeVariant::Custom(_) => {
-                        let size_param_ident = format_ident!("{}_size", name);
-                        match is_ref {
-                            TypeRef::MutableReference => quote! {{
-                                assert!(!#name_accessor.is_null(), "array pointer is null");
-                                assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
-                                std::slice::from_raw_parts_mut(#name_accessor, #length).try_into().unwrap()
-                            }},
-                            TypeRef::Reference => quote! {{
-                                assert!(!#name_accessor.is_null(), "array pointer is null");
-                                assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
-                                std::slice::from_raw_parts(#name_accessor, #length).try_into().unwrap()
-                            }},
-                            TypeRef::Value => quote! {{
-                                assert!(!#name_accessor.is_null(), "array pointer is null");
-                                assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
-                                std::slice::from_raw_parts(#name_accessor, #length).to_owned().try_into().unwrap()
-                            }},
-                        }
-                    } // _ => {
-                      //     let size_param_ident = format_ident!("{}_size", name);
-                      //     if *is_ref == TypeRef::MutableReference {
-                      //         quote! {{
-                      //             assert!(!#name_accessor.is_null(), "array pointer is null");
-                      //             assert!(#size_param_ident > 0, "array length must be greater than 0");
-                      //             std::slice::from_raw_parts_mut(#name_accessor, #size_param_ident)
-                      //         }}
-                      //     } else {
-                      //         quote! {{
-                      //             assert!(!#name_accessor.is_null(), "array pointer is null");
-                      //             assert!(#size_param_ident > 0, "array length must be greater than 0");
-                      //             std::slice::from_raw_parts(#name_accessor, #size_param_ident)
-                      //         }}
-                      //     }
-                      // }
+            } => match ty {
+                TypeVariant::Str | TypeVariant::String => {
+                    panic!("Strings in slices are not supported yet.");
                 }
-            }
+                _ => {
+                    let size_param_ident = format_ident!("{}_size", name);
+                    match is_ref {
+                        TypeRef::MutableReference => quote! {{
+                            assert!(!#name_accessor.is_null(), "array pointer is null");
+                            assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
+                            std::slice::from_raw_parts_mut(#name_accessor, #length).try_into().unwrap()
+                        }},
+                        TypeRef::Reference => quote! {{
+                            assert!(!#name_accessor.is_null(), "array pointer is null");
+                            assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
+                            std::slice::from_raw_parts(#name_accessor, #length).try_into().unwrap()
+                        }},
+                        TypeRef::Value => quote! {{
+                            assert!(!#name_accessor.is_null(), "array pointer is null");
+                            assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
+                            std::slice::from_raw_parts(#name_accessor, #length).to_owned().try_into().unwrap()
+                        }},
+                    }
+                }
+            },
             TypeInfo::Result { .. } => {
                 panic!("Result can only be used in the return position.")
             }
@@ -590,20 +543,11 @@ impl ImplInfo {
                         quote! { #name_ident.as_ptr() }
                     }
                     _ => {
-                        if ty.is_copyable(&self.name) {
-                            if *is_ref == TypeRef::Reference {
-                                // If it's a reference, we need to convert it to a value.
-                                quote! { *#name_ident }
-                            } else {
-                                // If it's copyable, then pass it directly.
-                                quote! { #name_ident }
-                            }
-                        } else if is_ref.is_reference() {
-                            // A reference type can be passed directly
-                            quote! { #name_ident }
-                        } else {
-                            // If it's not a box type, and non-copyable, we need to convert it into a Box<T>.
+                        // If it's a managed type by value, we need to box it when returning.
+                        if !ty.is_copyable(&self.name) && *is_ref == TypeRef::Value {
                             quote! { #name_ident.into() }
+                        } else {
+                            quote! { #name_ident }
                         }
                     }
                 }

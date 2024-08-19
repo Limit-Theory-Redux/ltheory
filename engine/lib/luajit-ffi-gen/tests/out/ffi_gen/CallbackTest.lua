@@ -18,7 +18,7 @@ function Loader.defineType()
         ffi.cdef [[
             void   CallbackTest_Free                  (CallbackTest*);
             void   CallbackTest_NthPrimitive          (CallbackTest const*, uint64 index, void (*)(float));
-            void   CallbackTest_NthPrimitiveRef       (CallbackTest const*, uint64 index, void (*)(float));
+            void   CallbackTest_NthPrimitiveRef       (CallbackTest const*, uint64 index, void (*)(float const*));
             void   CallbackTest_NthPrimitiveMut       (CallbackTest*, uint64 index, void (*)(float*));
             void   CallbackTest_NthPrimitiveValOpt    (CallbackTest const*, uint64 index, void (*)(float const*));
             void   CallbackTest_NthPrimitiveRefOpt    (CallbackTest const*, uint64 index, void (*)(float const*));

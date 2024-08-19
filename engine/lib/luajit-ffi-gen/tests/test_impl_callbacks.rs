@@ -153,6 +153,12 @@ fn test_primitives() {
         }
     }
 
+    extern "C" fn get_value_ref(v: &f32) {
+        unsafe {
+            VALUE = *v;
+        }
+    }
+
     extern "C" fn get_value_opt(v: Option<&f32>) {
         unsafe {
             if let Some(v) = v {
@@ -182,7 +188,7 @@ fn test_primitives() {
         CallbackTest_NthPrimitive(&t, 1, get_value);
         assert_eq!(VALUE, 2.0);
 
-        CallbackTest_NthPrimitiveRef(&mut t, 0, get_value);
+        CallbackTest_NthPrimitiveRef(&mut t, 0, get_value_ref);
         assert_eq!(VALUE, 1.0);
 
         CallbackTest_NthPrimitiveMut(&mut t, 0, mutate_value);

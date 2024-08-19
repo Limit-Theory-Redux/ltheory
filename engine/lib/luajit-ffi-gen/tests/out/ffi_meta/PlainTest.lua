@@ -23,6 +23,12 @@ function PlainTest:setF32Ref(val) end
 ---@return number
 function PlainTest:getF32() end
 
+---@return integer
+function PlainTest:getU32Ref() end
+
+---@return integer
+function PlainTest:getU32Mut() end
+
 ---@param val ManagedData
 function PlainTest:setManaged(val) end
 

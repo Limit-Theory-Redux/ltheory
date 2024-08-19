@@ -129,7 +129,7 @@ impl TypeInfo {
                         ("*const libc::c_char".into(), "cstr".into())
                     }
                 }
-                TypeVariant::Custom(_) => {
+                _ => {
                     let (rust_ty_name, c_ty_name) = ty.as_ffi(self_name);
                     match is_ref {
                         TypeRef::MutableReference => {
@@ -140,16 +140,6 @@ impl TypeInfo {
                         }
                         TypeRef::Value if ty.is_copyable(self_name) => (rust_ty_name, c_ty_name),
                         TypeRef::Value => (format!("Box<{rust_ty_name}>"), format!("{c_ty_name}*")),
-                    }
-                }
-                _ => {
-                    let (rust_ty_name, c_ty_name) = ty.as_ffi(self_name);
-                    match is_ref {
-                        TypeRef::MutableReference => {
-                            (format!("&mut {rust_ty_name}"), format!("{c_ty_name}*"))
-                        }
-                        // We don't care if there is reference on the numeric type - just accept it by value.
-                        _ => (rust_ty_name, c_ty_name),
                     }
                 }
             },

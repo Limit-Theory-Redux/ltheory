@@ -51,6 +51,14 @@ impl PlainTest {
         self.val_f32
     }
 
+    pub fn get_u32_ref(&self) -> &u32 {
+        &self.val_u32
+    }
+
+    pub fn get_u32_mut(&mut self) -> &mut u32 {
+        &mut self.val_u32
+    }
+
     // Managed custom type.
 
     pub fn set_managed(&mut self, val: ManagedData) {
@@ -167,7 +175,16 @@ fn test_primitives() {
         PlainTest_SetU32(&mut t, 33);
         assert_eq!(PlainTest_GetU32(&t), 33);
 
-        PlainTest_SetF32Ref(&mut t, 33.0);
+        PlainTest_SetU32(&mut t, 44);
+        assert_eq!(*PlainTest_GetU32Ref(&t), 44);
+
+        {
+            let inner_ref = PlainTest_GetU32Mut(&mut t);
+            *inner_ref = 55;
+        }
+        assert_eq!(PlainTest_GetU32(&t), 55);
+
+        PlainTest_SetF32Ref(&mut t, &33.0);
         assert_eq!(PlainTest_GetF32(&t), 33.0);
     }
 }
@@ -220,10 +237,9 @@ fn test_copyable() {
         PlainTest_GetCopyableViaOutParam(&t, &mut result);
         assert_eq!(result.val, 11);
 
-        // TODO: &mut Copyable should return a ref so we can mutate the internals.
-        // let inner_ref = PlainTest_GetCopyableMut(&mut t);
-        // inner_ref.val = 13;
-        // assert_eq!(t.val_copyable.val, 13);
+        let inner_ref = PlainTest_GetCopyableMut(&mut t);
+        inner_ref.val = 13;
+        assert_eq!(t.val_copyable.val, 13);
     }
 }
 

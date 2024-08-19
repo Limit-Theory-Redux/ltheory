@@ -23,8 +23,10 @@ function Loader.defineType()
             void                PlainTest_FUNC3                  ();
             void                PlainTest_SetU32                 (PlainTest*, uint32 val);
             uint32              PlainTest_GetU32                 (PlainTest const*);
-            void                PlainTest_SetF32Ref              (PlainTest*, float val);
+            void                PlainTest_SetF32Ref              (PlainTest*, float const* val);
             float               PlainTest_GetF32                 (PlainTest const*);
+            uint32 const*       PlainTest_GetU32Ref              (PlainTest const*);
+            uint32*             PlainTest_GetU32Mut              (PlainTest*);
             void                PlainTest_SetManaged             (PlainTest*, ManagedData* val);
             void                PlainTest_SetManagedRef          (PlainTest*, ManagedData const* val);
             void                PlainTest_SetManagedMut          (PlainTest*, ManagedData* val);
@@ -68,6 +70,8 @@ function Loader.defineType()
                 getU32                 = libphx.PlainTest_GetU32,
                 setF32Ref              = libphx.PlainTest_SetF32Ref,
                 getF32                 = libphx.PlainTest_GetF32,
+                getU32Ref              = libphx.PlainTest_GetU32Ref,
+                getU32Mut              = libphx.PlainTest_GetU32Mut,
                 setManaged             = libphx.PlainTest_SetManaged,
                 setManagedRef          = libphx.PlainTest_SetManagedRef,
                 setManagedMut          = libphx.PlainTest_SetManagedMut,
