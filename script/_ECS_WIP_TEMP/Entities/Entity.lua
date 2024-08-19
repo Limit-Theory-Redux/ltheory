@@ -1,4 +1,4 @@
-local GlobalStorage = require("Systems.GlobalStorage")
+local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
 
 ---@class Entity
 ---@field components table<ComponentInfo>
@@ -73,26 +73,36 @@ function Entity:findComponentsByArchetype(archetype)
 end
 
 ---@param query string
----@return Component
+---@return Component|nil
 function Entity:findComponentByName(query)
     local queryResults = {}
     for index, componentInfo in ipairs(self.components) do
         local component = GlobalStorage:getComponentData(componentInfo)
         local componentName = component and component:getComponentName()
-        if componentName and string.find(componentName, query) then
-            insert(queryResults, index)
+        if componentName and string.match(componentName, query) then
+            insert(queryResults, component)
         end
     end
 
-    if queryResults > 1 then
+    if #queryResults > 1 then
         Log.Error("Found more than one component for your query. Please be more specific.")
     end
+
     return queryResults[1]
 end
 
 ---@return ComponentInfo
 function Entity:getComponentInfo(componentInfoIndex)
     return self.components[componentInfoIndex]
+end
+
+function Entity:iterComponents()
+    local components = {}
+    for index, componentInfo in ipairs(self.components) do
+        local component = GlobalStorage:getComponentData(componentInfo)
+        insert(components, component)
+    end
+    return Iterator(components)
 end
 
 function Entity:destroy() --todo: introduce proper clean up mechanism

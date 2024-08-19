@@ -10,6 +10,10 @@ local Component = require('Component')
 local TransformComponent = Subclass(Component, function(self)
     ---@cast self TransformComponent
     self:setComponentName("Transform")
+
+    -- Set Component Archetype
+    self:setArchetype(Enums.ComponentArchetype.Transform)
+
     self:setTransform({
         position = Vec3f(0, 0, 0),
         rotation = Vec3f(0, 0, 0),

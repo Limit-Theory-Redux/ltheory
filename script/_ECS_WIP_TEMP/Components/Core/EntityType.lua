@@ -1,10 +1,14 @@
-local Component = require('Component')
+local Component = require('_ECS_WIP_TEMP.Components.Component') --!temp path
 
 ---@class TypeComponent: Component
 ---@overload fun(type: EntityType): TypeComponent subclass external
 local TypeComponent = Subclass(Component, function(self, type)
     ---@cast self TypeComponent
     self:setComponentName("Type")
+
+    -- Set Component Archetype
+    self:setArchetype(Enums.ComponentArchetype.TypeComponent)
+
     self:setType(type)
 end)
 

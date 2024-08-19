@@ -1,4 +1,4 @@
-local Component = require("GameObjects.Component")
+local Component = require("_ECS_WIP_TEMP.Components.Component") --!temp path
 
 ---@class RandomNumberGeneratorComponent: Component
 ---@overload fun(self: table, seed: integer|nil, isManaged: boolean) subclass internal
@@ -7,6 +7,9 @@ local Component = require("GameObjects.Component")
 local RandomNumberGeneratorComponent = Subclass(Component, function(self, seed, isManaged)
     ---@cast self RandomNumberGeneratorComponent
     self:setComponentName("RandomNumberGenerator")
+
+    -- Set Component Archetype
+    self:setArchetype(Enums.ComponentArchetype.RandomNumberGeneratorComponent)
 
     if isManaged then
         self:addManagedRNG(seed)

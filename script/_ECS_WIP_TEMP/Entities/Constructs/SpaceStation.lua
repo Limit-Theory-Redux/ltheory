@@ -1,9 +1,12 @@
-local Entity = require("Entity")
+local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 
 -- Components
-local RandomNumberGeneratorComponent = require("Components.RandomNumberGenerator")
-local NameComponent = require("Components.EntityName")
-local TypeComponent = require("Components.EntityType")
+local RandomNumberGeneratorComponent = require("_ECS_WIP_TEMP.Components.Core.RandomNumberGenerator") --!temp path
+local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")                             --!temp path
+local TypeComponent = require("_ECS_WIP_TEMP.Components.Core.EntityType")                             --!temp path
+
+-- Utils
+local Words = require("_ECS_WIP_TEMP.Systems.Generators.Words") --!temp path
 
 ---@class SpaceStationConstructor
 ---@field name string
@@ -17,10 +20,17 @@ local TypeComponent = require("Components.EntityType")
 local SpaceStation = Subclass(Entity, function(self, name, hullType, seed)
     ---@cast self SpaceStation
 
+    -- Set Entity Archetype
+    self:setArchetype(Enums.EntityArchetype.SpaceStationEntity)
+
+    -- RandomNumberGeneratorComponent
+    local _, rngComponent = self:addComponent(RandomNumberGeneratorComponent(seed, true))
+    ---@cast rngComponent RandomNumberGeneratorComponent
     -- Name Component
-    self:addComponent(NameComponent(name))
+    local genName = Words.getCoolName(rngComponent:getRNG())
+    self:addComponent(NameComponent(genName))
     -- Type Component
-    self:addComponent(TypeComponent(Enums.EntityType.SpaceStation))
+    self:addComponent(TypeComponent())
 end)
 
 return SpaceStation
