@@ -17,9 +17,9 @@ function CameraSystem:registerVars()
 end
 
 function CameraSystem:registerEvents()
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PreRender), self, self.onPreRender)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.Render), self, self.onRender)
-    EventBus:subscribe(FrameStage.ToString(FrameStage.PostRender), self, self.onPostRender)
+    EventBus:subscribe(Event.PreRender, self, self.onPreRender)
+    EventBus:subscribe(Event.Render, self, self.onRender)
+    EventBus:subscribe(Event.PostRender, self, self.onPostRender)
 end
 
 function CameraSystem:onPreRender()
