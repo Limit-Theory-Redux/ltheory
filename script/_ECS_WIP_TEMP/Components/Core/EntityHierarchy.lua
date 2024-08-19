@@ -43,7 +43,7 @@ function EntityHierarchyComponent:findChildrenOfArchetype(archetype)
     ---@param childEntityInfo EntityInfo
     for _, childEntityInfo in ipairs(self.hierarchy.children) do
         if childEntityInfo.archetype == archetype then
-            local component = GlobalStorage.getEntity(childEntityInfo)
+            local component = GlobalStorage:getEntity(childEntityInfo)
             insert(queryResults, component)
         end
     end
@@ -56,7 +56,7 @@ function EntityHierarchyComponent:iterChildren()
 
     ---@param childEntityInfo EntityInfo
     for _, childEntityInfo in ipairs(self.hierarchy.children) do
-        local entity = GlobalStorage.getEntity(childEntityInfo)
+        local entity = GlobalStorage:getEntity(childEntityInfo)
         insert(entities, entity)
     end
     return Iterator(entities)
@@ -69,7 +69,7 @@ end
 
 ---@return Entity|nil
 function EntityHierarchyComponent:getParent()
-    return GlobalStorage.getEntity(self.hierarchy.parent)
+    return GlobalStorage:getEntity(self.hierarchy.parent)
 end
 
 return EntityHierarchyComponent

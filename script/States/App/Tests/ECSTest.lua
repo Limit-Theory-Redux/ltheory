@@ -6,7 +6,7 @@ local EntityComponentSystemTest = require('States.Application')
 ---@diagnostic disable-next-line: duplicate-set-field
 function EntityComponentSystemTest:onInit()
     ---@type GlobalStorage
-    GlobalStorage.initStorage();
+    GlobalStorage:initStorage();
     --self.globalStorage = GlobalStorage() --* decide where to store this later
     -- Mark as initialized
     self.initialized = true
@@ -18,7 +18,7 @@ function EntityComponentSystemTest:onInit()
 
     ---@param archetype EntityArchetype
     ---@param entities table<Entity>
-    for archetype, entities in ipairs(GlobalStorage.getEntities()) do --!temp fix globalStorage
+    for archetype, entities in ipairs(GlobalStorage:getEntities()) do --!temp fix globalStorage
         ---@param entity Entity
         for _, entity in pairs(entities) do
             local nameComponent = entity:findComponentByName("Name")
@@ -32,6 +32,7 @@ function EntityComponentSystemTest:onInit()
             end
         end
     end
+    Log.Warn(Inspect(GlobalStorage))
 end
 
 return EntityComponentSystemTest

@@ -50,7 +50,7 @@ function Universe:createStarSystem(withEconomy)
     insert(self.starSystems, systemEntityInfo)
 
     -- Store the entity in the GlobalStorage
-    GlobalStorage.storeEntity(systemEntity)
+    GlobalStorage:storeEntity(systemEntity)
 
     -- Add System Generics
     self.economy:addSystemGenerics(systemEntity)
@@ -72,10 +72,10 @@ function Universe:createShip(systemId, pos, constructor)
     spaceshipTransformComponent:setPosition(pos)
 
     -- Add spaceship entity to global storage
-    GlobalStorage.storeEntity(spaceship)
+    GlobalStorage:storeEntity(spaceship)
 
     -- Get star system entity from storage
-    local systemEntity = GlobalStorage.getEntity({ archetype = Enums.EntityArchetype.StarSystemEntity, id = systemId })
+    local systemEntity = GlobalStorage:getEntity({ archetype = Enums.EntityArchetype.StarSystemEntity, id = systemId })
     ---@cast systemEntity StarSystem
 
     -- Get star system hierarchy component & add spaceship as a child

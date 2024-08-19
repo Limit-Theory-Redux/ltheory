@@ -37,17 +37,17 @@ function UniverseEconomy:addSystemGenerics(system)
     -- Create Space Station Entity
     local solarStationEntity = SpaceStationEntity(Words.getCoolName(systemRNG), Enums.StationHulls.Small, systemRNG:get64())
     -- Store Entity
-    GlobalStorage.storeEntity(solarStationEntity)
+    GlobalStorage:storeEntity(solarStationEntity)
 
     -- Create Space Station Entity
     local siliconStationEntity = SpaceStationEntity(Words.getCoolName(systemRNG), Enums.StationHulls.Small, systemRNG:get64())
     -- Store Entity
-    GlobalStorage.storeEntity(siliconStationEntity)
+    GlobalStorage:storeEntity(siliconStationEntity)
 
     -- Create Space Station Entity
     local recyclerStationEntity = SpaceStationEntity(Words.getCoolName(systemRNG), Enums.StationHulls.Small, systemRNG:get64())
     -- Store Entity
-    GlobalStorage.storeEntity(recyclerStationEntity)
+    GlobalStorage:storeEntity(recyclerStationEntity)
 end
 
 return UniverseEconomy
