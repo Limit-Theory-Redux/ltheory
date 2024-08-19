@@ -13,8 +13,16 @@
 			"name": "Engine Scripts"
 		},
 		{
+			"path": "../engine/lib/phx/src",
+			"name": "Engine Src"
+		},
+		{
 			"path": "../script",
 			"name": "LTR Scripts"
+		},
+		{
+			"path": "../",
+			"name": "full"
 		}
 	],
 	"settings": {
@@ -30,7 +38,7 @@
 			"--preview"
 		],
 		"editor.codeActionsOnSave": {
-			"source.fixAll.eslint": true
+			"source.fixAll.eslint": "explicit"
 		},
 		"eslint.format.enable": true,
 		"Lua.completion.callSnippet": "Disable",
