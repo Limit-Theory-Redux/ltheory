@@ -236,11 +236,17 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
                                 "a boxed type cannot contain a reference",
                             ));
                         }
+                        if ty == TypeVariant::Str || ty == TypeVariant::String {
+                            return Err(Error::new(
+                                type_path.span(),
+                                "a boxed type cannot contain a string",
+                            ));
+                        }
                         return Ok(TypeInfo::Box { inner_ty: ty });
                     } else {
                         return Err(Error::new(
                             type_path.span(),
-                            "an Option can only contain a plain type",
+                            "a Box can only contain a plain type",
                         ));
                     }
                 } else {

@@ -331,8 +331,8 @@ cargo expand -p luajit-ffi-gen --test test_impl
 Following table shows representation of Rust types in the generated code.
 
 Glossary:
-1. **CT** - copyable type.
-2. **NT** - non-copyable type.
+1. **CT** - copyable type (including primitives).
+2. **MT** - managed type.
 3. **T** - any type.
 
 ###  Input position
@@ -341,10 +341,9 @@ List of allowed types in the input parameter position.
 
 | Rust type                    | extern "C" interface       | C type            |
 | ---------------------------- | -------------------------- | ----------------- |
-| By value (NT) (not working!) | Box\<NT>                   | NT*               |
+| By value (MT) (not working!) | Box\<MT>                   | MT*               |
 | By value (CT)                | CT                         | CT                |
-| Immutable reference (&NT)    | &NT                        | NT const*         |
-| Immutable reference (&CT)    | CT                         | CT                |
+| Immutable reference (&T)     | &T                         | T const*          |
 | Mutable reference (&mut T)   | &mut T                     | T*                |
 | String, &str                 | \*const/mut libc::c_char   | cstr              |
 | Option\<T>                   | \*const/mut T              | T*                |
@@ -384,7 +383,7 @@ In the return position **Self** is boxed: Box\<T>.
 
 ### Basic and copy types
 
-Basic (bool, i32, u64, f32, etc.) and copy types (defined in **COPY_TYPES** map) are sent as is via the C API.
+Basic (bool, i32, u64, f32, etc.) and copy types (defined in **COPY_TYPES** map) are sent as-is via the C API.
 
 ### Strings
 
