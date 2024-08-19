@@ -13,7 +13,7 @@ local CameraSystem = Class(function(self)
 end)
 
 function CameraSystem:registerVars()
-    self.profiler = QuickProfiler("CameraSystem", false)
+    self.profiler = QuickProfiler("CameraSystem", false, false)
 end
 
 function CameraSystem:registerEvents()
