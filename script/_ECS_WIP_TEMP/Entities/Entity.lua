@@ -80,6 +80,23 @@ function Entity:findComponentsByArchetype(archetype)
     return #queryResults, queryResults
 end
 
+---@param archetype ComponentArchetype
+---@return table<Component>
+function Entity:findComponentByArchetype(archetype)
+    local queryResults = {}
+    ---@param componentInfo ComponentInfo
+    for index, componentInfo in ipairs(self.components) do
+        if componentInfo.archetype == archetype then
+            local component = GlobalStorage:getComponentData(componentInfo)
+            insert(queryResults, component)
+        end
+    end
+    if #queryResults > 1 then
+        Log.Error("Found more than one component for your query. Please be more specific.")
+    end
+    return queryResults[1]
+end
+
 ---@param query string
 ---@return Component|nil
 function Entity:findComponentByName(query)

@@ -8,7 +8,6 @@ local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")       
 ---@overload fun(self: Planet, seed: integer): Planet subclass interal
 ---@overload fun(seed: integer): Planet subclass external
 local Planet = Subclass(Entity, function(self, seed)
-
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.PlanetEntity)
 

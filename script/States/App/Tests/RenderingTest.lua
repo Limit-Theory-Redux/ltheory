@@ -1,8 +1,13 @@
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage")          --!temp path
-local Universe = require("_ECS_WIP_TEMP.Systems.Universe")                    --!temp path
+-- Entities
+local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")            --!temp path
+local Asteroid = require("_ECS_WIP_TEMP.Entities.CelestialObjects.Asteroid") --!temp path
+-- Systems
+local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage")         --!temp path
+local Universe = require("_ECS_WIP_TEMP.Systems.Universe")                   --!temp path
+local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem")
+-- Utilities
 local Material = require("_ECS_WIP_TEMP.Shared.Rendering.Material")           --!temp path
 local AutoShaderVar = require("_ECS_WIP_TEMP.Shared.Rendering.AutoShaderVar") --!temp path
-local Asteroid = require("_ECS_WIP_TEMP.Entities.CelestialObjects.Asteroid")  --!temp path
 local Log = require("Core.Util.Log")
 local Inspect = require("Core.Util.Inspect")
 
@@ -21,6 +26,10 @@ end
 function RenderingTest:onInit()
     -- Mark as initialized
     self.initialized = true
+
+    -- Spawn CameraEntity
+    local camera = Camera()
+    GlobalStorage:storeEntity(camera)
 
     local rng = RNG.Create(0):managed()
 
