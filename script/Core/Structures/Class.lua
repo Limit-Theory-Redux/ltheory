@@ -31,7 +31,7 @@ function Class(ctor)
         __call = function(T, ...)
             local self = {}
             setmetatable(self, cls)
-            if ctor then ctor(T, ...) end
+            if ctor then ctor(self, ...) end
             return self
         end
     })
@@ -45,7 +45,7 @@ function Subclass(base, ctor)
         __call = function(T, ...)
             local self = base()
             setmetatable(self, cls)
-            if ctor then ctor(T, ...) end
+            if ctor then ctor(self, ...) end
             return self
         end,
         __index = base,
