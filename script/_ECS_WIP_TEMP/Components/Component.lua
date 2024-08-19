@@ -7,6 +7,8 @@ local Component = Class(function(self)
     self:addEvents()
 end)
 
+--* should we generate component names from the archetype like we do for entities?
+
 --- Naming Convention: ComponentCategory .. ComponentName; e.g. PhysicsRigidBody
 ---@param name string
 function Component:setComponentName(name)
@@ -16,6 +18,14 @@ function Component:setComponentName(name)
     end
 
     self.componentName = name .. "Component"
+
+    local mt = getmetatable(self)
+    if mt then
+        mt.__tostring = function()
+            return format("%s(%s)", self.componentName or "Unnamed", tostring(self:getGuid()))
+        end
+        setmetatable(self, mt)
+    end
 end
 
 ---@return string|nil
