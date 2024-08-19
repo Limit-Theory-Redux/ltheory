@@ -1,5 +1,5 @@
 local Component = require('_ECS_WIP_TEMP.Components.Component')      --!temp path
---local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
+local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
 
 ---@class EntityHierarchyComponent: Component
 ---@overload fun(parentEntity: Entity|nil): EntityHierarchyComponent subclass external
@@ -43,7 +43,7 @@ function EntityHierarchyComponent:findChildrenOfArchetype(archetype)
     ---@param childEntityInfo EntityInfo
     for _, childEntityInfo in ipairs(self.hierarchy.children) do
         if childEntityInfo.archetype == archetype then
-            local component = GameState.globalStorage:getEntity(childEntityInfo) --!temp fix
+            local component = GlobalStorage.getEntity(childEntityInfo)
             insert(queryResults, component)
         end
     end
@@ -56,7 +56,7 @@ function EntityHierarchyComponent:iterChildren()
 
     ---@param childEntityInfo EntityInfo
     for _, childEntityInfo in ipairs(self.hierarchy.children) do
-        local entity = GameState.globalStorage:getEntity(childEntityInfo) --!temp fix
+        local entity = GlobalStorage.getEntity(childEntityInfo)
         insert(entities, entity)
     end
     return Iterator(entities)
@@ -69,7 +69,7 @@ end
 
 ---@return Entity|nil
 function EntityHierarchyComponent:getParent()
-    return GameState.globalStorage:getEntity(self.hierarchy.parent) --!temp fix
+    return GlobalStorage.getEntity(self.hierarchy.parent)
 end
 
 return EntityHierarchyComponent

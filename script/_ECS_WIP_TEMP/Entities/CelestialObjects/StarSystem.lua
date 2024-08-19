@@ -1,4 +1,4 @@
---local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
+local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
 
 -- Entities
 local Entity = require("_ECS_WIP_TEMP.Entities.Entity")                      --!temp path
@@ -40,15 +40,15 @@ local StarSystem = Subclass(Entity, function(self, seed)
 
     -- Add Children
     --local star = Star(seed)
-    --GameState.globalStorage:storeEntity(star) --!temp fix
+    --GlobalStorage.storeEntity(star)
     --hierarchyComponent:addChild({ id = star:getGuid(), archetype = star:getArchetype() })
     --
     --local planet = Planet(seed)
-    --GameState.globalStorage:storeEntity(planet) --!temp fix
+    --GlobalStorage.storeEntity(planet)
     --hierarchyComponent:addChild({ id = planet:getGuid(), archetype = planet:getArchetype() })
     --
     --local asteroid = Asteroid(seed)
-    --GameState.globalStorage:storeEntity(asteroid) --!temp fix
+    --GlobalStorage.storeEntity(asteroid)
     --hierarchyComponent:addChild({ id = planet:getGuid(), archetype = planet:getArchetype() })
 end)
 
