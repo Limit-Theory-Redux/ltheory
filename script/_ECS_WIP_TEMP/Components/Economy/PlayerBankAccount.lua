@@ -10,9 +10,9 @@ local Component = require('Component')
 ---@field timestamp TimeStamp
 
 ---@class PlayerBankAccount: Component
+---@overload fun(self: PlayerBankAccount, initialBalance: number): PlayerBankAccount subclass internal
 ---@overload fun(initialBalance: number): PlayerBankAccount subclass external
 local PlayerBankAccount = Subclass(Component, function(self, initialBalance)
-    ---@cast self PlayerBankAccount
     self:setComponentName("EconomyPlayerBankAccount")
     self:addPlayerBankAccount(initialBalance)
 

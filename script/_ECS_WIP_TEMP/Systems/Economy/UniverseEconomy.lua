@@ -8,8 +8,9 @@ local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp pat
 local Words = require("_ECS_WIP_TEMP.Systems.Generators.Words") --!temp path
 
 ---@class UniverseEconomy
+---@overload fun(self: UniverseEconomy, seed: integer) class internal
+---@overload fun(seed: integer) class external
 local UniverseEconomy = Class(function(self, seed)
-    ---@cast self UniverseEconomy
     self:init(seed)
 end)
 

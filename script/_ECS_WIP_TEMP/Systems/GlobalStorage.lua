@@ -18,6 +18,8 @@
 ---@field archetype ComponentArchetype
 
 ---@class GlobalStorage
+---@overload fun(self: GlobalStorage): GlobalStorage class internal
+---@overload fun(): GlobalStorage class external
 local GlobalStorage = Class(function(self)
     -- Ensure initialization only happens once
     if self.initialized then
@@ -25,7 +27,6 @@ local GlobalStorage = Class(function(self)
         return
     end
 
-    ---@cast self GlobalStorage
     self:initStorage()
 
     -- Mark as initialized

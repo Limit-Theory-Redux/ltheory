@@ -7,8 +7,9 @@
 ---@param uniformName string
 ---@param callbackFn function
 ---@class AutoShaderVar
+---@overload fun(self: AutoShaderVar, uniformName: string, callbackFn: function): AutoShaderVar class internal
+---@overload fun(uniformName: string, callbackFn: function): AutoShaderVar class external
 local AutoShaderVar = Class(function(self, uniformName, callbackFn)
-    ---@cast self AutoShaderVar
     self.uniformName = uniformName
     -- self.params = params
     self.uniformInt = -1 -- -1 = unset

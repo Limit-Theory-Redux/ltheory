@@ -4,9 +4,9 @@ local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp pat
 ---@field components table<ComponentInfo>
 
 -- General Purpose Entity Object
+---@param self Entity
 ---@class Entity
 local Entity = Class(function(self)
-    ---@cast self Entity
     self:addGuid()
     self:addComponents()
 end)

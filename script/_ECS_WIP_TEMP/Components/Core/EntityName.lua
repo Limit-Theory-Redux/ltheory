@@ -1,9 +1,9 @@
 local Component = require('_ECS_WIP_TEMP.Components.Component') --!temp path
 
 ---@class NameComponent: Component
+---@overload fun(self: NameComponent, name: string): NameComponent subclass internal
 ---@overload fun(name: string): NameComponent subclass external
 local NameComponent = Subclass(Component, function(self, name)
-    ---@cast self NameComponent
     self:setComponentName("EntityName")
 
     -- Set Component Archetype

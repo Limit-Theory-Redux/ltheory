@@ -11,10 +11,9 @@ local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")       
 ---@field seed integer|nil
 
 ---@class Spaceship: Entity
----@overload fun(self: table, name: string, ownerId: integer, hullType: SpaceshipHullType, seed: integer|nil): Spaceship subclass interal
+---@overload fun(self: Spaceship, name: string, ownerId: integer, hullType: SpaceshipHullType, seed: integer|nil): Spaceship subclass interal
 ---@overload fun(name: string, ownerId: integer, hullType: SpaceshipHullType, seed: integer|nil): Spaceship subclass external
 local Spaceship = Subclass(Entity, function(self, name, ownerId, hullType, seed)
-    ---@cast self Spaceship
 
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.SpaceshipEntity)

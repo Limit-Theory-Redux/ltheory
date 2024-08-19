@@ -16,9 +16,9 @@ local PlayerListComponent = require("_ECS_WIP_TEMP.Components.Economy.PlayerList
 local Words = require('Systems.Gen.Words')
 
 ---@class StarSystem: Entity
----@overload fun(seed: integer)
+---@overload fun(self: StarSystem, seed: integer): StarSystem subclass internal
+---@overload fun(seed: integer): StarSystem subclass external
 local StarSystem = Subclass(Entity, function(self, seed)
-    ---@cast self StarSystem
 
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.StarSystemEntity)

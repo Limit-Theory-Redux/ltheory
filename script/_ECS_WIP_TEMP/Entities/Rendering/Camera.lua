@@ -4,10 +4,9 @@ local RigidBody = require("Components.Physics.RigidBody")
 local Transform = require("Components.Physics.Transform")
 
 ---@class Camera: Entity
----@overload fun(self: table, name: string) subclass interal
+---@overload fun(self: Camera, name: string) subclass interal
 ---@overload fun(name: string) subclass external
 local Camera = Subclass(Entity, function(self, name)
-    ---@cast self Camera
 
     self:setArchetype(Enums.EntityArchetype.Camera)
 

@@ -1,5 +1,5 @@
----@enum TextureTypes
-Enums.TextureTypes = {
+---@enum TextureType
+Enums.TextureType = {
     Tex1D = 1,
     Tex2D = 2,
     Tex3D = 3,

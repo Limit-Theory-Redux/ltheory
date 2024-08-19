@@ -9,12 +9,14 @@ local Texture = require("_ECS_WIP_TEMP.Shared.Rendering.Texture") --!temp path
 ---@field shaderState ShaderState
 ---@field autoShaderVars table<AutoShaderVar>
 
+---@param self Material
 ---@param materialName string
 ---@param vertexName string
 ---@param fragmentName string
 ---@class Material
+---@overload fun(self: Material, materialName: string, vertexName: string, fragmentName: string): Material class internal
+---@overload fun(materialName: string, vertexName: string, fragmentName: string): Material class external
 local Material = Class(function(self, materialName, vertexName, fragmentName)
-    ---@cast self Material
     self.materialName = materialName
     self.vertexName = vertexName
     self.fragmentName = fragmentName
