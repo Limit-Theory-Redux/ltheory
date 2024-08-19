@@ -24,20 +24,20 @@ function Loader.defineType()
             void   CallbackTest_NthPrimitiveRefOpt    (CallbackTest const*, uint64 index, void (*)(float const*));
             void   CallbackTest_NthPrimitiveMutOpt    (CallbackTest*, uint64 index, void (*)(float*));
             void   CallbackTest_InsertPrimitive       (CallbackTest*, float (*)());
-            void   CallbackTest_NthNoncopyable        (CallbackTest const*, uint64 index, void (*)(Data*));
-            void   CallbackTest_NthNoncopyableRef     (CallbackTest const*, uint64 index, void (*)(Data const*));
-            void   CallbackTest_NthNoncopyableMut     (CallbackTest*, uint64 index, void (*)(Data*));
-            void   CallbackTest_NthNoncopyableValOpt  (CallbackTest const*, uint64 index, void (*)(Data const*));
-            void   CallbackTest_NthNoncopyableRefOpt  (CallbackTest const*, uint64 index, void (*)(Data const*));
-            void   CallbackTest_NthNoncopyableMutOpt  (CallbackTest*, uint64 index, void (*)(Data*));
-            void   CallbackTest_InsertNoncopyable     (CallbackTest*, Data* (*)());
+            void   CallbackTest_NthManaged            (CallbackTest const*, uint64 index, void (*)(ManagedData*));
+            void   CallbackTest_NthManagedRef         (CallbackTest const*, uint64 index, void (*)(ManagedData const*));
+            void   CallbackTest_NthManagedMut         (CallbackTest*, uint64 index, void (*)(ManagedData*));
+            void   CallbackTest_NthManagedValOpt      (CallbackTest const*, uint64 index, void (*)(ManagedData const*));
+            void   CallbackTest_NthManagedRefOpt      (CallbackTest const*, uint64 index, void (*)(ManagedData const*));
+            void   CallbackTest_NthManagedMutOpt      (CallbackTest*, uint64 index, void (*)(ManagedData*));
+            void   CallbackTest_InsertManaged         (CallbackTest*, ManagedData* (*)());
             void   CallbackTest_ReadPrimitiveArray    (CallbackTest const*, void (*)(float const*, uint64));
             void   CallbackTest_LockPrimitiveArray    (CallbackTest*, void (*)(float*, uint64));
-            void   CallbackTest_ReadNoncopyableArray  (CallbackTest const*, void (*)(Data const*, uint64));
-            void   CallbackTest_LockNoncopyableArray  (CallbackTest*, void (*)(Data*, uint64));
+            void   CallbackTest_ReadManagedArray      (CallbackTest const*, void (*)(ManagedData const*, uint64));
+            void   CallbackTest_LockManagedArray      (CallbackTest*, void (*)(ManagedData*, uint64));
             cstr   CallbackTest_TransformString       (cstr s, cstr (*)(cstr));
             cstr   CallbackTest_TransformStr          (cstr s, cstr (*)(cstr));
-            void   CallbackTest_GetMultipleAndReplace (CallbackTest*, uint64 index, float (*)(float, Data const*));
+            void   CallbackTest_GetMultipleAndReplace (CallbackTest*, uint64 index, float (*)(float, ManagedData const*));
             uint32 CallbackTest_Passthrough           (uint32 input, uint32 (*)(uint32));
         ]]
     end
@@ -64,17 +64,17 @@ function Loader.defineType()
                 nthPrimitiveRefOpt    = libphx.CallbackTest_NthPrimitiveRefOpt,
                 nthPrimitiveMutOpt    = libphx.CallbackTest_NthPrimitiveMutOpt,
                 insertPrimitive       = libphx.CallbackTest_InsertPrimitive,
-                nthNoncopyable        = libphx.CallbackTest_NthNoncopyable,
-                nthNoncopyableRef     = libphx.CallbackTest_NthNoncopyableRef,
-                nthNoncopyableMut     = libphx.CallbackTest_NthNoncopyableMut,
-                nthNoncopyableValOpt  = libphx.CallbackTest_NthNoncopyableValOpt,
-                nthNoncopyableRefOpt  = libphx.CallbackTest_NthNoncopyableRefOpt,
-                nthNoncopyableMutOpt  = libphx.CallbackTest_NthNoncopyableMutOpt,
-                insertNoncopyable     = libphx.CallbackTest_InsertNoncopyable,
+                nthManaged            = libphx.CallbackTest_NthManaged,
+                nthManagedRef         = libphx.CallbackTest_NthManagedRef,
+                nthManagedMut         = libphx.CallbackTest_NthManagedMut,
+                nthManagedValOpt      = libphx.CallbackTest_NthManagedValOpt,
+                nthManagedRefOpt      = libphx.CallbackTest_NthManagedRefOpt,
+                nthManagedMutOpt      = libphx.CallbackTest_NthManagedMutOpt,
+                insertManaged         = libphx.CallbackTest_InsertManaged,
                 readPrimitiveArray    = libphx.CallbackTest_ReadPrimitiveArray,
                 lockPrimitiveArray    = libphx.CallbackTest_LockPrimitiveArray,
-                readNoncopyableArray  = libphx.CallbackTest_ReadNoncopyableArray,
-                lockNoncopyableArray  = libphx.CallbackTest_LockNoncopyableArray,
+                readManagedArray      = libphx.CallbackTest_ReadManagedArray,
+                lockManagedArray      = libphx.CallbackTest_LockManagedArray,
                 getMultipleAndReplace = libphx.CallbackTest_GetMultipleAndReplace,
             },
         }

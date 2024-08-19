@@ -1,12 +1,13 @@
 use luajit_ffi_gen::luajit_ffi;
 
+#[allow(dead_code)]
 mod helpers;
 use helpers::*;
 
 #[derive(Default)]
 pub struct CallbackTest {
     val_primitives: Vec<f32>,
-    val_noncopyable: Vec<Data>,
+    val_managed: Vec<ManagedData>,
 }
 
 #[luajit_ffi(gen_dir = "./tests/out/ffi_gen", meta_dir = "./tests/out/ffi_meta")]
@@ -44,44 +45,48 @@ impl CallbackTest {
         self.val_primitives.push(callback());
     }
 
-    pub fn nth_noncopyable<F: FnOnce(Data) -> ()>(&self, index: usize, callback: F) {
-        callback(self.val_noncopyable[index].clone());
+    pub fn nth_managed<F: FnOnce(ManagedData) -> ()>(&self, index: usize, callback: F) {
+        callback(self.val_managed[index].clone());
     }
 
-    pub fn nth_noncopyable_ref<F: FnOnce(&Data) -> ()>(&self, index: usize, callback: F) {
-        callback(&self.val_noncopyable[index]);
+    pub fn nth_managed_ref<F: FnOnce(&ManagedData) -> ()>(&self, index: usize, callback: F) {
+        callback(&self.val_managed[index]);
     }
 
-    pub fn nth_noncopyable_mut<F: FnOnce(&mut Data) -> ()>(&mut self, index: usize, callback: F) {
-        callback(&mut self.val_noncopyable[index]);
-    }
-
-    pub fn nth_noncopyable_val_opt<F: FnOnce(Option<Data>) -> ()>(
-        &self,
-        index: usize,
-        callback: F,
-    ) {
-        callback(self.val_noncopyable.get(index).cloned());
-    }
-
-    pub fn nth_noncopyable_ref_opt<F: FnOnce(Option<&Data>) -> ()>(
-        &self,
-        index: usize,
-        callback: F,
-    ) {
-        callback(self.val_noncopyable.get(index));
-    }
-
-    pub fn nth_noncopyable_mut_opt<F: FnOnce(Option<&mut Data>) -> ()>(
+    pub fn nth_managed_mut<F: FnOnce(&mut ManagedData) -> ()>(
         &mut self,
         index: usize,
         callback: F,
     ) {
-        callback(self.val_noncopyable.get_mut(index));
+        callback(&mut self.val_managed[index]);
     }
 
-    pub fn insert_noncopyable<F: FnOnce() -> Data>(&mut self, callback: F) {
-        self.val_noncopyable.push(callback());
+    pub fn nth_managed_val_opt<F: FnOnce(Option<ManagedData>) -> ()>(
+        &self,
+        index: usize,
+        callback: F,
+    ) {
+        callback(self.val_managed.get(index).cloned());
+    }
+
+    pub fn nth_managed_ref_opt<F: FnOnce(Option<&ManagedData>) -> ()>(
+        &self,
+        index: usize,
+        callback: F,
+    ) {
+        callback(self.val_managed.get(index));
+    }
+
+    pub fn nth_managed_mut_opt<F: FnOnce(Option<&mut ManagedData>) -> ()>(
+        &mut self,
+        index: usize,
+        callback: F,
+    ) {
+        callback(self.val_managed.get_mut(index));
+    }
+
+    pub fn insert_managed<F: FnOnce() -> ManagedData>(&mut self, callback: F) {
+        self.val_managed.push(callback());
     }
 
     // Arrays.
@@ -94,12 +99,12 @@ impl CallbackTest {
         callback(self.val_primitives.as_mut_slice());
     }
 
-    pub fn read_noncopyable_array<F: FnOnce(&[Data]) -> ()>(&self, callback: F) {
-        callback(self.val_noncopyable.as_slice());
+    pub fn read_managed_array<F: FnOnce(&[ManagedData]) -> ()>(&self, callback: F) {
+        callback(self.val_managed.as_slice());
     }
 
-    pub fn lock_noncopyable_array<F: FnOnce(&mut [Data]) -> ()>(&mut self, callback: F) {
-        callback(self.val_noncopyable.as_mut_slice());
+    pub fn lock_managed_array<F: FnOnce(&mut [ManagedData]) -> ()>(&mut self, callback: F) {
+        callback(self.val_managed.as_mut_slice());
     }
 
     // Strings.
@@ -117,9 +122,9 @@ impl CallbackTest {
     pub fn get_multiple_and_replace(
         &mut self,
         index: usize,
-        callback: impl FnOnce(f32, Option<&Data>) -> f32,
+        callback: impl FnOnce(f32, Option<&ManagedData>) -> f32,
     ) {
-        let result = callback(self.val_primitives[index], self.val_noncopyable.get(index));
+        let result = callback(self.val_primitives[index], self.val_managed.get(index));
         self.val_primitives[index] = result;
     }
 
@@ -201,80 +206,80 @@ fn test_primitives() {
 }
 
 #[test]
-fn test_noncopyable() {
+fn test_managed() {
     let mut t = CallbackTest::default();
 
-    static mut VALUE: Data = Data::new(0);
+    static mut VALUE: ManagedData = ManagedData::new(0);
 
-    extern "C" fn add_1() -> Box<Data> {
-        Box::new(Data::new(1))
+    extern "C" fn add_1() -> Box<ManagedData> {
+        Box::new(ManagedData::new(1))
     }
 
-    extern "C" fn add_2() -> Box<Data> {
-        Box::new(Data::new(2))
+    extern "C" fn add_2() -> Box<ManagedData> {
+        Box::new(ManagedData::new(2))
     }
 
-    extern "C" fn get_value(v: Box<Data>) {
+    extern "C" fn get_value(v: Box<ManagedData>) {
         unsafe {
             VALUE = *v;
         }
     }
 
-    extern "C" fn get_value_opt(v: Option<&Data>) {
+    extern "C" fn get_value_opt(v: Option<&ManagedData>) {
         unsafe {
             if let Some(v) = v {
                 VALUE = v.clone();
             } else {
-                VALUE = Data::new(1024);
+                VALUE = ManagedData::new(1024);
             }
         }
     }
 
-    extern "C" fn get_value_ref(v: &Data) {
+    extern "C" fn get_value_ref(v: &ManagedData) {
         unsafe {
             VALUE = v.clone();
         }
     }
 
-    extern "C" fn mutate_value(v: &mut Data) {
-        *v = Data::new(4);
+    extern "C" fn mutate_value(v: &mut ManagedData) {
+        *v = ManagedData::new(4);
     }
 
-    extern "C" fn mutate_value_if_present(v: Option<&mut Data>) {
+    extern "C" fn mutate_value_if_present(v: Option<&mut ManagedData>) {
         if let Some(v) = v {
-            *v = Data::new(4);
+            *v = ManagedData::new(4);
         }
     }
 
     unsafe {
-        CallbackTest_InsertNoncopyable(&mut t, add_1);
-        CallbackTest_InsertNoncopyable(&mut t, add_2);
+        CallbackTest_InsertManaged(&mut t, add_1);
+        CallbackTest_InsertManaged(&mut t, add_2);
 
-        CallbackTest_NthNoncopyable(&t, 0, get_value);
-        assert_eq!(VALUE, Data::new(1));
-        CallbackTest_NthNoncopyable(&t, 1, get_value);
-        assert_eq!(VALUE, Data::new(2));
+        CallbackTest_NthManaged(&t, 0, get_value);
+        assert_eq!(VALUE, ManagedData::new(1));
+        CallbackTest_NthManaged(&t, 1, get_value);
+        assert_eq!(VALUE, ManagedData::new(2));
 
-        CallbackTest_NthNoncopyableRef(&mut t, 0, get_value_ref);
-        assert_eq!(VALUE, Data::new(1));
+        CallbackTest_NthManagedRef(&mut t, 0, get_value_ref);
+        assert_eq!(VALUE, ManagedData::new(1));
 
-        CallbackTest_NthNoncopyableMut(&mut t, 0, mutate_value);
-        CallbackTest_NthNoncopyable(&t, 0, get_value);
-        assert_eq!(VALUE, Data::new(4));
+        CallbackTest_NthManagedMut(&mut t, 0, mutate_value);
+        CallbackTest_NthManaged(&t, 0, get_value);
+        assert_eq!(VALUE, ManagedData::new(4));
 
-        CallbackTest_NthNoncopyableValOpt(&t, 1, get_value_opt);
-        assert_eq!(VALUE, Data::new(2));
-        CallbackTest_NthNoncopyableValOpt(&t, 5, get_value_opt);
-        assert_eq!(VALUE, Data::new(1024));
+        CallbackTest_NthManagedValOpt(&t, 1, get_value_opt);
+        assert_eq!(VALUE, ManagedData::new(2));
+        CallbackTest_NthManagedValOpt(&t, 5, get_value_opt);
+        assert_eq!(VALUE, ManagedData::new(1024));
 
-        CallbackTest_NthNoncopyableMutOpt(&mut t, 1, mutate_value_if_present);
-        CallbackTest_NthNoncopyableRefOpt(&mut t, 1, get_value_opt);
-        assert_eq!(VALUE, Data::new(4));
-        CallbackTest_NthNoncopyableRefOpt(&mut t, 5, get_value_opt);
-        assert_eq!(VALUE, Data::new(1024));
+        CallbackTest_NthManagedMutOpt(&mut t, 1, mutate_value_if_present);
+        CallbackTest_NthManagedRefOpt(&mut t, 1, get_value_opt);
+        assert_eq!(VALUE, ManagedData::new(4));
+        CallbackTest_NthManagedRefOpt(&mut t, 5, get_value_opt);
+        assert_eq!(VALUE, ManagedData::new(1024));
 
         // We're just expecting this to not crash.
-        CallbackTest_NthNoncopyableMutOpt(&mut t, 5, mutate_value_if_present);
+        CallbackTest_NthManagedMutOpt(&mut t, 5, mutate_value_if_present);
     }
 }
 
@@ -310,18 +315,18 @@ fn test_primitive_arrays() {
 }
 
 #[test]
-fn test_noncopyable_arrays() {
+fn test_managed_arrays() {
     let mut t = CallbackTest::default();
 
-    static mut OUT: Vec<Data> = vec![];
+    static mut OUT: Vec<ManagedData> = vec![];
 
-    extern "C" fn get_values(data: *const Data, len: usize) {
+    extern "C" fn get_values(data: *const ManagedData, len: usize) {
         unsafe {
             OUT = std::slice::from_raw_parts(data, len).to_vec();
         }
     }
 
-    extern "C" fn double_values(data: *mut Data, len: usize) {
+    extern "C" fn double_values(data: *mut ManagedData, len: usize) {
         unsafe {
             for v in std::slice::from_raw_parts_mut(data, len) {
                 v.val *= 2;
@@ -330,15 +335,23 @@ fn test_noncopyable_arrays() {
     }
 
     unsafe {
-        t.val_noncopyable = vec![Data::new(1), Data::new(2), Data::new(3)];
+        t.val_managed = vec![
+            ManagedData::new(1),
+            ManagedData::new(2),
+            ManagedData::new(3),
+        ];
 
-        CallbackTest_ReadNoncopyableArray(&t, get_values);
-        assert_eq!(t.val_noncopyable, OUT);
+        CallbackTest_ReadManagedArray(&t, get_values);
+        assert_eq!(t.val_managed, OUT);
 
-        CallbackTest_LockNoncopyableArray(&mut t, double_values);
+        CallbackTest_LockManagedArray(&mut t, double_values);
         assert_eq!(
-            t.val_noncopyable,
-            vec![Data::new(2), Data::new(4), Data::new(6)]
+            t.val_managed,
+            vec![
+                ManagedData::new(2),
+                ManagedData::new(4),
+                ManagedData::new(6)
+            ]
         );
     }
 }
@@ -375,8 +388,8 @@ fn test_strings() {
 fn test_edge_cases() {
     let mut t = CallbackTest::default();
 
-    extern "C" fn combine_and_replace(in_prim: f32, in_noncopyable: Option<&Data>) -> f32 {
-        in_prim + in_noncopyable.cloned().unwrap_or(Data::new(10)).val as f32
+    extern "C" fn combine_and_replace(in_prim: f32, in_managed: Option<&ManagedData>) -> f32 {
+        in_prim + in_managed.cloned().unwrap_or(ManagedData::new(10)).val as f32
     }
 
     extern "C" fn square_value(input: u32) -> u32 {
@@ -385,7 +398,7 @@ fn test_edge_cases() {
 
     unsafe {
         t.val_primitives = vec![0.0, 2.0];
-        t.val_noncopyable = vec![Data::new(5)];
+        t.val_managed = vec![ManagedData::new(5)];
 
         CallbackTest_GetMultipleAndReplace(&mut t, 0, combine_and_replace);
         assert_eq!(t.val_primitives[0], 5.0);

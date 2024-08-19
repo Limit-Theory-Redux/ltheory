@@ -3,43 +3,43 @@
 ---@class ArraysTest
 ArraysTest = {}
 
----@param data number
+---@param data integer
 ---@param data_size integer
 function ArraysTest:setPrimitiveSlice(data, data_size) end
 
----@param out number
+---@param out integer
 ---@param out_size integer
 function ArraysTest:getPrimitiveSlice(out, out_size) end
 
----@param data Data
+---@param data ManagedData
 ---@param data_size integer
-function ArraysTest:setCustomSlice(data, data_size) end
+function ArraysTest:setManagedSlice(data, data_size) end
 
----@param out Data
+---@param out ManagedData
 ---@param out_size integer
-function ArraysTest:getCustomSlice(out, out_size) end
+function ArraysTest:getManagedSlice(out, out_size) end
 
----@param data number
+---@param data integer
 ---@param data_size integer
 function ArraysTest:movePrimitiveArray(data, data_size) end
 
----@param data number
+---@param data integer
 ---@param data_size integer
 function ArraysTest:setPrimitiveArray(data, data_size) end
 
----@param out number
+---@param out integer
 ---@param out_size integer
 function ArraysTest:getPrimitiveArray(out, out_size) end
 
----@param data Data
+---@param data ManagedData
 ---@param data_size integer
-function ArraysTest:moveCustomArray(data, data_size) end
+function ArraysTest:moveManagedArray(data, data_size) end
 
----@param data Data
+---@param data ManagedData
 ---@param data_size integer
-function ArraysTest:setCustomArray(data, data_size) end
+function ArraysTest:setManagedArray(data, data_size) end
 
----@param out Data
+---@param out ManagedData
 ---@param out_size integer
-function ArraysTest:getCustomArray(out, out_size) end
+function ArraysTest:getManagedArray(out, out_size) end
 

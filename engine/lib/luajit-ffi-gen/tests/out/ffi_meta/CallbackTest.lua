@@ -32,30 +32,30 @@ function CallbackTest:insertPrimitive(callback) end
 
 ---@param index integer
 ---@param callback function
-function CallbackTest:nthNoncopyable(index, callback) end
+function CallbackTest:nthManaged(index, callback) end
 
 ---@param index integer
 ---@param callback function
-function CallbackTest:nthNoncopyableRef(index, callback) end
+function CallbackTest:nthManagedRef(index, callback) end
 
 ---@param index integer
 ---@param callback function
-function CallbackTest:nthNoncopyableMut(index, callback) end
+function CallbackTest:nthManagedMut(index, callback) end
 
 ---@param index integer
 ---@param callback function
-function CallbackTest:nthNoncopyableValOpt(index, callback) end
+function CallbackTest:nthManagedValOpt(index, callback) end
 
 ---@param index integer
 ---@param callback function
-function CallbackTest:nthNoncopyableRefOpt(index, callback) end
+function CallbackTest:nthManagedRefOpt(index, callback) end
 
 ---@param index integer
 ---@param callback function
-function CallbackTest:nthNoncopyableMutOpt(index, callback) end
+function CallbackTest:nthManagedMutOpt(index, callback) end
 
 ---@param callback function
-function CallbackTest:insertNoncopyable(callback) end
+function CallbackTest:insertManaged(callback) end
 
 ---@param callback function
 function CallbackTest:readPrimitiveArray(callback) end
@@ -64,10 +64,10 @@ function CallbackTest:readPrimitiveArray(callback) end
 function CallbackTest:lockPrimitiveArray(callback) end
 
 ---@param callback function
-function CallbackTest:readNoncopyableArray(callback) end
+function CallbackTest:readManagedArray(callback) end
 
 ---@param callback function
-function CallbackTest:lockNoncopyableArray(callback) end
+function CallbackTest:lockManagedArray(callback) end
 
 ---@param s string
 ---@param callback function

@@ -450,7 +450,7 @@ impl ImplInfo {
                         quote! { #name_accessor }
                     } else {
                         // We need to promote Option<&T> to Option<T> if ty is neither a reference or mutable.
-                        quote! { #name_accessor.copied() }
+                        quote! { #name_accessor.cloned() }
                     }
                 } else if ty.is_copyable(&self.name) || ty.is_reference {
                     quote! { #name_accessor }
@@ -495,7 +495,7 @@ impl ImplInfo {
                     } else {
                         // We need to promote Option<&T> to Option<T> if ty is neither a
                         // reference or mutable.
-                        quote! { #name_accessor.copied() }
+                        quote! { #name_accessor.cloned() }
                     }
                 } else if ty.is_reference {
                     // Primitives passed by reference are received in FFI by value, so convert them

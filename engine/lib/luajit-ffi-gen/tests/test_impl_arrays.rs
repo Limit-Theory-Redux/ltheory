@@ -1,63 +1,76 @@
 use luajit_ffi_gen::luajit_ffi;
 
+#[allow(dead_code)]
 mod helpers;
 use helpers::*;
 
 #[derive(Default)]
 pub struct ArraysTest {
-    val_array_primitive: Vec<f32>,
-    val_array_custom: Vec<Data>,
+    val_array_primitive: Vec<u32>,
+    val_array_managed: Vec<ManagedData>,
 }
 
 #[luajit_ffi(gen_dir = "./tests/out/ffi_gen", meta_dir = "./tests/out/ffi_meta")]
 impl ArraysTest {
-    // Slices.
+    // Primitive slices.
 
-    pub fn set_primitive_slice(&mut self, data: &[f32]) {
+    pub fn set_primitive_slice(&mut self, data: &[u32]) {
         self.val_array_primitive = data.to_vec();
     }
 
-    pub fn get_primitive_slice(&self, out: &mut [f32]) {
+    pub fn get_primitive_slice(&self, out: &mut [u32]) {
         let len = std::cmp::min(out.len(), self.val_array_primitive.len());
         out[..len].copy_from_slice(&self.val_array_primitive[..len]);
     }
 
-    pub fn set_custom_slice(&mut self, data: &[Data]) {
-        self.val_array_custom = data.to_vec();
+    // Managed custom slices.
+
+    pub fn set_managed_slice(&mut self, data: &[ManagedData]) {
+        self.val_array_managed = data.to_vec();
     }
 
-    pub fn get_custom_slice(&self, out: &mut [Data]) {
-        let len = std::cmp::min(out.len(), self.val_array_custom.len());
-        out[..len].clone_from_slice(&self.val_array_custom[..len]);
+    pub fn get_managed_slice(&self, out: &mut [ManagedData]) {
+        let len = std::cmp::min(out.len(), self.val_array_managed.len());
+        out[..len].clone_from_slice(&self.val_array_managed[..len]);
     }
 
-    // Arrays.
+    // Copyable custom slices.
 
-    pub fn move_primitive_array(&mut self, data: [f32; 3]) {
+    // String slices.
+
+    // Primitive arrays.
+
+    pub fn move_primitive_array(&mut self, data: [u32; 3]) {
         self.val_array_primitive = data.to_vec();
     }
 
-    pub fn set_primitive_array(&mut self, data: &[f32; 3]) {
+    pub fn set_primitive_array(&mut self, data: &[u32; 3]) {
         self.val_array_primitive = data.to_vec();
     }
 
-    pub fn get_primitive_array(&self, out: &mut [f32; 3]) {
+    pub fn get_primitive_array(&self, out: &mut [u32; 3]) {
         let len = std::cmp::min(out.len(), self.val_array_primitive.len());
         out[..len].copy_from_slice(&self.val_array_primitive[..len]);
     }
 
-    pub fn move_custom_array(&mut self, data: [Data; 3]) {
-        self.val_array_custom = data.to_vec();
+    // Managed custom arrays.
+
+    pub fn move_managed_array(&mut self, data: [ManagedData; 3]) {
+        self.val_array_managed = data.to_vec();
     }
 
-    pub fn set_custom_array(&mut self, data: &[Data; 3]) {
-        self.val_array_custom = data.to_vec();
+    pub fn set_managed_array(&mut self, data: &[ManagedData; 3]) {
+        self.val_array_managed = data.to_vec();
     }
 
-    pub fn get_custom_array(&self, out: &mut [Data; 3]) {
-        let len = std::cmp::min(out.len(), self.val_array_custom.len());
-        out[..len].clone_from_slice(&self.val_array_custom[..len]);
+    pub fn get_managed_array(&self, out: &mut [ManagedData; 3]) {
+        let len = std::cmp::min(out.len(), self.val_array_managed.len());
+        out[..len].clone_from_slice(&self.val_array_managed[..len]);
     }
+
+    // Copyable custom arrays.
+
+    // String arrays.
 }
 
 /// # Safety
@@ -65,7 +78,7 @@ impl ArraysTest {
 #[no_mangle]
 pub unsafe extern "C" fn ArraysTest_GetPrimitiveArrays2(
     this: &ArraysTest,
-    out: *mut f32,
+    out: *mut u32,
     out_size: usize,
 ) {
     this.get_primitive_array({
@@ -81,12 +94,12 @@ pub unsafe extern "C" fn ArraysTest_GetPrimitiveArrays2(
 fn test_primitive_array() {
     let mut t = ArraysTest::default();
 
-    let data = vec![1.0, 2.0, 3.0];
-    let mut data_read = vec![0.0; 3];
+    let data = vec![1, 2, 3];
+    let mut data_read = vec![0; 3];
 
-    let data_array = [3.0, 4.0, 5.0];
-    let data_array2 = [6.0, 7.0, 8.0];
-    let mut data_array_read = [0.0; 3];
+    let data_array = [3, 4, 5];
+    let data_array2 = [6, 7, 8];
+    let mut data_array_read = [0; 3];
 
     unsafe {
         ArraysTest_SetPrimitiveSlice(&mut t, data.as_ptr(), data.len());
@@ -103,26 +116,42 @@ fn test_primitive_array() {
 }
 
 #[test]
-fn test_custom_array() {
+fn test_managed_array() {
     let mut t = ArraysTest::default();
 
-    let data = vec![Data::new(3), Data::new(4), Data::new(5)];
-    let mut data_read = vec![Data::new(0); 3];
+    let data = vec![
+        ManagedData::new(3),
+        ManagedData::new(4),
+        ManagedData::new(5),
+    ];
+    let mut data_read = vec![ManagedData::new(0); 3];
 
-    let data_array = [Data::new(3), Data::new(4), Data::new(5)];
-    let data_array2 = [Data::new(6), Data::new(7), Data::new(8)];
-    let mut data_array_read = [Data::new(0), Data::new(0), Data::new(0)];
+    let data_array = [
+        ManagedData::new(3),
+        ManagedData::new(4),
+        ManagedData::new(5),
+    ];
+    let data_array2 = [
+        ManagedData::new(6),
+        ManagedData::new(7),
+        ManagedData::new(8),
+    ];
+    let mut data_array_read = [
+        ManagedData::new(0),
+        ManagedData::new(0),
+        ManagedData::new(0),
+    ];
 
     unsafe {
-        ArraysTest_SetCustomSlice(&mut t, data.as_ptr(), data.len());
-        assert_eq!(data, t.val_array_custom);
-        ArraysTest_GetCustomSlice(&t, data_read.as_mut_ptr(), data_read.len());
+        ArraysTest_SetManagedSlice(&mut t, data.as_ptr(), data.len());
+        assert_eq!(data, t.val_array_managed);
+        ArraysTest_GetManagedSlice(&t, data_read.as_mut_ptr(), data_read.len());
         assert_eq!(data, data_read);
-        ArraysTest_MoveCustomArray(&mut t, data_array.as_ptr(), 3);
-        assert_eq!(data_array.as_slice(), t.val_array_custom);
-        ArraysTest_SetCustomArray(&mut t, data_array2.as_ptr(), 3);
-        assert_eq!(data_array2.as_slice(), t.val_array_custom);
-        ArraysTest_GetCustomArray(&t, data_array_read.as_mut_ptr(), 3);
+        ArraysTest_MoveManagedArray(&mut t, data_array.as_ptr(), 3);
+        assert_eq!(data_array.as_slice(), t.val_array_managed);
+        ArraysTest_SetManagedArray(&mut t, data_array2.as_ptr(), 3);
+        assert_eq!(data_array2.as_slice(), t.val_array_managed);
+        ArraysTest_GetManagedArray(&t, data_array_read.as_mut_ptr(), 3);
         assert_eq!(data_array2, data_array_read);
     }
 }
@@ -140,7 +169,7 @@ fn test_null_slice_should_panic() {
 #[should_panic]
 fn test_zero_length_slice_should_panic() {
     let mut t = ArraysTest::default();
-    let data = [0.0; 3];
+    let data = [0; 3];
     unsafe {
         ArraysTest_SetPrimitiveSlice(&mut t, data.as_ptr(), 0);
     }
@@ -159,7 +188,7 @@ fn test_null_array_should_panic() {
 #[should_panic]
 fn test_move_primitive_array_should_panic() {
     let mut t = ArraysTest::default();
-    let data = [0.0; 3];
+    let data = [0; 3];
     unsafe {
         ArraysTest_MovePrimitiveArray(&mut t, data.as_ptr(), 2);
     }
@@ -169,7 +198,7 @@ fn test_move_primitive_array_should_panic() {
 #[should_panic]
 fn test_ref_primitive_array_should_panic() {
     let mut t = ArraysTest::default();
-    let data = [0.0; 3];
+    let data = [0; 3];
     unsafe {
         ArraysTest_SetPrimitiveArray(&mut t, data.as_ptr(), 4);
     }
@@ -179,7 +208,7 @@ fn test_ref_primitive_array_should_panic() {
 #[should_panic]
 fn test_mut_ref_primitive_array_should_panic() {
     let t = ArraysTest::default();
-    let mut data = [0.0; 3];
+    let mut data = [0; 3];
     unsafe {
         ArraysTest_GetPrimitiveArray(&t, data.as_mut_ptr(), 5);
     }
@@ -187,30 +216,42 @@ fn test_mut_ref_primitive_array_should_panic() {
 
 #[test]
 #[should_panic]
-fn test_move_custom_array_should_panic() {
+fn test_move_managed_array_should_panic() {
     let mut t = ArraysTest::default();
-    let data = [Data::new(0), Data::new(0), Data::new(0)];
+    let data = [
+        ManagedData::new(0),
+        ManagedData::new(0),
+        ManagedData::new(0),
+    ];
     unsafe {
-        ArraysTest_MoveCustomArray(&mut t, data.as_ptr(), 2);
+        ArraysTest_MoveManagedArray(&mut t, data.as_ptr(), 2);
     }
 }
 
 #[test]
 #[should_panic]
-fn test_ref_custom_array_should_panic() {
+fn test_ref_managed_array_should_panic() {
     let mut t = ArraysTest::default();
-    let data = [Data::new(0), Data::new(0), Data::new(0)];
+    let data = [
+        ManagedData::new(0),
+        ManagedData::new(0),
+        ManagedData::new(0),
+    ];
     unsafe {
-        ArraysTest_SetCustomArray(&mut t, data.as_ptr(), 4);
+        ArraysTest_SetManagedArray(&mut t, data.as_ptr(), 4);
     }
 }
 
 #[test]
 #[should_panic]
-fn test_mut_ref_custom_array_should_panic() {
+fn test_mut_ref_managed_array_should_panic() {
     let t = ArraysTest::default();
-    let mut data = [Data::new(0), Data::new(0), Data::new(0)];
+    let mut data = [
+        ManagedData::new(0),
+        ManagedData::new(0),
+        ManagedData::new(0),
+    ];
     unsafe {
-        ArraysTest_GetCustomArray(&t, data.as_mut_ptr(), 5);
+        ArraysTest_GetManagedArray(&t, data.as_mut_ptr(), 5);
     }
 }
