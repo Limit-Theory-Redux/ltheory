@@ -11,6 +11,7 @@ Enums.EntityArchetype = {
     SpaceshipEntity = 7,
     EffectEntity = 8,
     PlayerEntity = 9,
+    CameraEntity = 10,
     -- ...
 }
 
