@@ -21,7 +21,7 @@ function Component:setComponentName(name)
 
     local mt = getmetatable(self)
     if mt then
-        mt.__tostring = function()
+        mt.__tostring = function(self)
             return format("%s(%s)", self.componentName or "Unnamed", tostring(self:getGuid()))
         end
         setmetatable(self, mt)

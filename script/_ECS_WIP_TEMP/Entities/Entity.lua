@@ -26,7 +26,7 @@ function Entity:setArchetype(archetype)
 
     local mt = getmetatable(self)
     if mt then
-        mt.__tostring = function()
+        mt.__tostring = function(self)
             return format("%s(%s)", Enums.EntityArchetype:getName(self.archetype), tostring(self:getGuid()))
         end
         setmetatable(self, mt)
