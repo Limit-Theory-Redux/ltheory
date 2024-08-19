@@ -2,6 +2,7 @@
 ---@class Component
 local Component = Class(function(self)
     ---@cast self Component
+    self:addGuid()
     self.componentName = nil
     self:addEvents()
 end)
@@ -24,6 +25,25 @@ function Component:getComponentName()
     end
 
     return self.componentName
+end
+
+function Component:addGuid()
+    self.guid = Guid.Create()
+end
+
+---@return integer
+function Component:getGuid()
+    return self.guid
+end
+
+---@param archetype ComponentArchetype
+function Component:setArchetype(archetype)
+    self.archetype = archetype
+end
+
+---@return ComponentArchetype
+function Component:getArchetype()
+    return self.archetype
 end
 
 function Component:addEvents()
