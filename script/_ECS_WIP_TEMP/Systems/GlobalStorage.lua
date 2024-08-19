@@ -39,10 +39,12 @@ function GlobalStorage:initStorage()
 
     for _, archetype in pairs(Enums.EntityArchetype) do
         self.entities[archetype] = {}
+        SetLengthMetamethod(self.entities[archetype])
     end
 
     for _, archetype in pairs(Enums.ComponentArchetype) do
         self.components[archetype] = {}
+        SetLengthMetamethod(self.components[archetype])
     end
 
     Log.Info("Initialized GlobalStorage")
@@ -116,6 +118,22 @@ function GlobalStorage:getComponentData(componentInfo)
     end
 
     return archetypeStorage[componentInfo.id]
+end
+
+---@param archetype EntityArchetype
+---@return Iterator<Entity>|nil
+function GlobalStorage:getEntitiesFromArchetype(archetype)
+    if self.entities[archetype] then
+        return self.entities[archetype]
+    end
+end
+
+---@param archetype ComponentArchetype
+---@return Iterator<Entity>|nil
+function GlobalStorage:getComponentsFromArchetype(archetype)
+    if self.components[archetype] then
+        return self.components[archetype]
+    end
 end
 
 -- if you for some reason want all entities, should only be used for debugging

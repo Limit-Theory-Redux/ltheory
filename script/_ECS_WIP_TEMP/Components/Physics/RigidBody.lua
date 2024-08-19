@@ -1,4 +1,4 @@
-local Component = require('Component')
+local Component = require('_ECS_WIP_TEMP.Components.Component')
 
 ---@class RigidBodyComponent: Component
 ---@overload fun(self:RigidBodyComponent): RigidBodyComponent subclass internal
@@ -7,7 +7,7 @@ local RigidBodyComponent = Subclass(Component, function(self)
     self:setComponentName("PhysicsRigidBody")
 
     -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.Transform)
+    self:setArchetype(Enums.ComponentArchetype.RigidBodyComponent)
 
     self:addRigidBody()
 end)

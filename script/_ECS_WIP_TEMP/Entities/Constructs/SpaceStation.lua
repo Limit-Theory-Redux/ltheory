@@ -17,7 +17,6 @@ local Words = require("_ECS_WIP_TEMP.Systems.Generators.Words") --!temp path
 ---@overload fun(self: SpaceStation, name: string, hullType: SpaceShipHullType, seed: integer|nil): SpaceStation subclass interal
 ---@overload fun(name: string, hullType: SpaceShipHullType, seed: integer|nil): SpaceStation subclass external
 local SpaceStation = Subclass(Entity, function(self, name, hullType, seed)
-
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.SpaceStationEntity)
 

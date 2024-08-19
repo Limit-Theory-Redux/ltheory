@@ -19,7 +19,6 @@ local Words = require('Systems.Gen.Words')
 ---@overload fun(self: StarSystem, seed: integer): StarSystem subclass internal
 ---@overload fun(seed: integer): StarSystem subclass external
 local StarSystem = Subclass(Entity, function(self, seed)
-
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.StarSystemEntity)
 

@@ -35,7 +35,9 @@ Enums.ComponentArchetype = {
     TransformComponent = 5,
     PlayerListComponent = 6,
     MeshComponent = 7,
-    MaterialComponent = 8
+    MaterialComponent = 8,
+    RigidBodyComponent = 9,
+    CameraDataComponent = 10,
     -- ...
 }
 
