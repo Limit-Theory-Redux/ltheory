@@ -9,7 +9,6 @@ local Asteroid = require("_ECS_WIP_TEMP.Entities.CelestialObjects.Asteroid") --!
 -- Components
 local RandomNumberGeneratorComponent = require("_ECS_WIP_TEMP.Components.Core.RandomNumberGenerator") --!temp path
 local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")                             --!temp path
-local TypeComponent = require("_ECS_WIP_TEMP.Components.Core.EntityType")                             --!temp path
 local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarchy")                   --!temp path
 local PlayerListComponent = require("_ECS_WIP_TEMP.Components.Economy.PlayerList")                    --!temp path
 

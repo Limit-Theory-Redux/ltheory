@@ -3,7 +3,6 @@ local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 -- Components
 local RandomNumberGeneratorComponent = require("_ECS_WIP_TEMP.Components.Core.RandomNumberGenerator") --!temp path
 local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")                             --!temp path
-local TypeComponent = require("_ECS_WIP_TEMP.Components.Core.EntityType")                             --!temp path
 
 ---@class Asteroid: Entity
 ---@overload fun(self: table, seed: integer): Asteroid subclass interal
@@ -16,8 +15,6 @@ local Asteroid = Subclass(Entity, function(self, seed)
 
     -- Name Component
     self:addComponent(NameComponent())
-    -- Type Component
-    self:addComponent(TypeComponent())
 end)
 
 return Asteroid

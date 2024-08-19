@@ -13,7 +13,7 @@ local Component = require('Component')
 ---@overload fun(initialBalance: number): PlayerBankAccount subclass external
 local PlayerBankAccount = Subclass(Component, function(self, initialBalance)
     ---@cast self PlayerBankAccount
-    self:setComponentName("PlayerBankAccount")
+    self:setComponentName("EconomyPlayerBankAccount")
     self:addPlayerBankAccount(initialBalance)
 
     self:registerEventHandler("BankAccount:AddTransaction", self.addTransaction)

@@ -4,7 +4,7 @@ local Component = require('Component')
 ---@overload fun(effect: Effect): EffectComponent subclass external
 local EffectComponent = Subclass(Component, function(self, effect)
     ---@cast self EffectComponent
-    self:setComponentName("Effect")
+    self:setComponentName("RenderingEffect")
 end)
 
 return EffectComponent

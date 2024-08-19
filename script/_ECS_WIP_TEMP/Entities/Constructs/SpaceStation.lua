@@ -3,7 +3,6 @@ local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 -- Components
 local RandomNumberGeneratorComponent = require("_ECS_WIP_TEMP.Components.Core.RandomNumberGenerator") --!temp path
 local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")                             --!temp path
-local TypeComponent = require("_ECS_WIP_TEMP.Components.Core.EntityType")                             --!temp path
 
 -- Utils
 local Words = require("_ECS_WIP_TEMP.Systems.Generators.Words") --!temp path
@@ -29,8 +28,6 @@ local SpaceStation = Subclass(Entity, function(self, name, hullType, seed)
     -- Name Component
     local genName = Words.getCoolName(rngComponent:getRNG())
     self:addComponent(NameComponent(genName))
-    -- Type Component
-    self:addComponent(TypeComponent())
 end)
 
 return SpaceStation
