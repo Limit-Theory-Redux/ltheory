@@ -8,6 +8,7 @@ use helpers::*;
 pub struct ArraysTest {
     val_array_primitive: Vec<u32>,
     val_array_managed: Vec<ManagedData>,
+    val_array_copyable: Vec<CopyableData>,
 }
 
 #[luajit_ffi(gen_dir = "./tests/out/ffi_gen", meta_dir = "./tests/out/ffi_meta")]
@@ -35,6 +36,16 @@ impl ArraysTest {
     }
 
     // Copyable custom slices.
+
+    pub fn set_copyable_slice(&mut self, data: &[CopyableData]) {
+        self.val_array_copyable = data.to_vec();
+    }
+
+    pub fn get_copyable_slice(&self, out: &mut [CopyableData]) {
+        let len = std::cmp::min(out.len(), self.val_array_copyable.len());
+        out[..len].clone_from_slice(&self.val_array_copyable[..len]);
+    }
+
 
     // String slices.
 
@@ -69,6 +80,19 @@ impl ArraysTest {
     }
 
     // Copyable custom arrays.
+
+    pub fn move_copyable_array(&mut self, data: [CopyableData; 3]) {
+        self.val_array_copyable = data.to_vec();
+    }
+
+    pub fn set_copyable_array(&mut self, data: &[CopyableData; 3]) {
+        self.val_array_copyable = data.to_vec();
+    }
+
+    pub fn get_copyable_array(&self, out: &mut [CopyableData; 3]) {
+        let len = std::cmp::min(out.len(), self.val_array_copyable.len());
+        out[..len].clone_from_slice(&self.val_array_copyable[..len]);
+    }
 
     // String arrays.
 }
@@ -152,6 +176,47 @@ fn test_managed_array() {
         ArraysTest_SetManagedArray(&mut t, data_array2.as_ptr(), 3);
         assert_eq!(data_array2.as_slice(), t.val_array_managed);
         ArraysTest_GetManagedArray(&t, data_array_read.as_mut_ptr(), 3);
+        assert_eq!(data_array2, data_array_read);
+    }
+}
+
+#[test]
+fn test_copyable_array() {
+    let mut t = ArraysTest::default();
+
+    let data = vec![
+        CopyableData::new(3),
+        CopyableData::new(4),
+        CopyableData::new(5),
+    ];
+    let mut data_read = vec![CopyableData::new(0); 3];
+
+    let data_array = [
+        CopyableData::new(3),
+        CopyableData::new(4),
+        CopyableData::new(5),
+    ];
+    let data_array2 = [
+        CopyableData::new(6),
+        CopyableData::new(7),
+        CopyableData::new(8),
+    ];
+    let mut data_array_read = [
+        CopyableData::new(0),
+        CopyableData::new(0),
+        CopyableData::new(0),
+    ];
+
+    unsafe {
+        ArraysTest_SetCopyableSlice(&mut t, data.as_ptr(), data.len());
+        assert_eq!(data, t.val_array_copyable);
+        ArraysTest_GetCopyableSlice(&t, data_read.as_mut_ptr(), data_read.len());
+        assert_eq!(data, data_read);
+        ArraysTest_MoveCopyableArray(&mut t, data_array.as_ptr(), 3);
+        assert_eq!(data_array.as_slice(), t.val_array_copyable);
+        ArraysTest_SetCopyableArray(&mut t, data_array2.as_ptr(), 3);
+        assert_eq!(data_array2.as_slice(), t.val_array_copyable);
+        ArraysTest_GetCopyableArray(&t, data_array_read.as_mut_ptr(), 3);
         assert_eq!(data_array2, data_array_read);
     }
 }
@@ -253,5 +318,48 @@ fn test_mut_ref_managed_array_should_panic() {
     ];
     unsafe {
         ArraysTest_GetManagedArray(&t, data.as_mut_ptr(), 5);
+    }
+}
+
+
+#[test]
+#[should_panic]
+fn test_move_copyable_array_should_panic() {
+    let mut t = ArraysTest::default();
+    let data = [
+        CopyableData::new(0),
+        CopyableData::new(0),
+        CopyableData::new(0),
+    ];
+    unsafe {
+        ArraysTest_MoveCopyableArray(&mut t, data.as_ptr(), 2);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_ref_copyable_array_should_panic() {
+    let mut t = ArraysTest::default();
+    let data = [
+        CopyableData::new(0),
+        CopyableData::new(0),
+        CopyableData::new(0),
+    ];
+    unsafe {
+        ArraysTest_SetCopyableArray(&mut t, data.as_ptr(), 4);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_mut_ref_copyable_array_should_panic() {
+    let t = ArraysTest::default();
+    let mut data = [
+        CopyableData::new(0),
+        CopyableData::new(0),
+        CopyableData::new(0),
+    ];
+    unsafe {
+        ArraysTest_GetCopyableArray(&t, data.as_mut_ptr(), 5);
     }
 }

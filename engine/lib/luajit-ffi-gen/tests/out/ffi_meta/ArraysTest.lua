@@ -19,6 +19,14 @@ function ArraysTest:setManagedSlice(data, data_size) end
 ---@param out_size integer
 function ArraysTest:getManagedSlice(out, out_size) end
 
+---@param data CopyableData
+---@param data_size integer
+function ArraysTest:setCopyableSlice(data, data_size) end
+
+---@param out CopyableData
+---@param out_size integer
+function ArraysTest:getCopyableSlice(out, out_size) end
+
 ---@param data integer
 ---@param data_size integer
 function ArraysTest:movePrimitiveArray(data, data_size) end
@@ -42,4 +50,16 @@ function ArraysTest:setManagedArray(data, data_size) end
 ---@param out ManagedData
 ---@param out_size integer
 function ArraysTest:getManagedArray(out, out_size) end
+
+---@param data CopyableData
+---@param data_size integer
+function ArraysTest:moveCopyableArray(data, data_size) end
+
+---@param data CopyableData
+---@param data_size integer
+function ArraysTest:setCopyableArray(data, data_size) end
+
+---@param out CopyableData
+---@param out_size integer
+function ArraysTest:getCopyableArray(out, out_size) end
 
