@@ -4,7 +4,7 @@ local SocketType = require('GameObjects.Entities.Ship.SocketType')
 -- temp settings
 local outOfRangeCancel = 30
 
-local Attack = subclass(Action, function(self, target)
+local Attack = Subclass(Action, function(self, target)
     self.target = target
 end)
 

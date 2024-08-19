@@ -4,7 +4,7 @@ local Actions = requireAll('GameObjects.Actions')
 local Words = require('Systems.Gen.Words')
 local rng = RNG.FromTime()
 
-local UniverseEconomy = class(function(self) end)
+local UniverseEconomy = Class(function(self) end)
 
 function UniverseEconomy:init()
     self.systems = {

@@ -1,6 +1,6 @@
 local Action = require('GameObjects.Action')
 
-local Wait = subclass(Action, function(self, duration)
+local Wait = Subclass(Action, function(self, duration)
     self.duration = duration
     self.t = 0
 end)

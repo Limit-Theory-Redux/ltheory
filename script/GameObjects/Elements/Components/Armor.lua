@@ -1,7 +1,7 @@
 local Entity = require('GameObjects.Entity')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
-local Armor = subclass(Entity, function(self)
+local Armor = Subclass(Entity, function(self)
     self.name       = Config.gen.compArmorStats.name
     self.healthCurr = Config.gen.compArmorStats.healthCurr
     self.healthMax  = Config.gen.compArmorStats.healthMax

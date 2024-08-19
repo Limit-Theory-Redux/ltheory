@@ -1,6 +1,6 @@
 local Action = require('GameObjects.Action')
 
-local Job = subclass(Action, function(self) end)
+local Job = Subclass(Action, function(self) end)
 
 function Job:clone()
     assert(false, 'NYI @ Job.clone')
