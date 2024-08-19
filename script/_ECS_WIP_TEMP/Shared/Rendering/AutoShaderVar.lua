@@ -10,7 +10,7 @@
 local AutoShaderVar = Class(function(self, uniformName, renderFn)
     ---@cast self AutoShaderVar
     self.uniformName = uniformName
---    self.params = params
+    -- self.params = params
     self.uniformInt = -1 -- -1 = unset
     self.renderFn = renderFn
 end)
@@ -22,9 +22,8 @@ end
 
 --!temp NOT FINAL IMPLEMENTATION, FOR TESTING
 ---@param shaderState ShaderState
----@param args table
-function AutoShaderVar:render(shaderState, args) 
-    self.renderFn(shaderState, self.uniformInt, args)
+function AutoShaderVar:render(shaderState, ...)
+    self.renderFn(shaderState, self.uniformInt, ...)
 end
 
 return AutoShaderVar
