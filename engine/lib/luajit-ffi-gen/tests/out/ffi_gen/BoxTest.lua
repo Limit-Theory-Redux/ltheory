@@ -16,9 +16,13 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void         BoxTest_Free       (BoxTest*);
-            void         BoxTest_SetManaged (BoxTest*, ManagedData* val);
-            ManagedData* BoxTest_GetManaged (BoxTest const*);
+            void          BoxTest_Free         (BoxTest*);
+            void          BoxTest_SetPrimitive (BoxTest*, uint32* val);
+            uint32*       BoxTest_GetPrimitive (BoxTest const*);
+            void          BoxTest_SetManaged   (BoxTest*, ManagedData* val);
+            ManagedData*  BoxTest_GetManaged   (BoxTest const*);
+            void          BoxTest_SetCopyable  (BoxTest*, CopyableData* val);
+            CopyableData* BoxTest_GetCopyable  (BoxTest const*);
         ]]
     end
 
@@ -33,11 +37,15 @@ function Loader.defineType()
         local t  = ffi.typeof('BoxTest')
         local mt = {
             __index = {
-                setManaged = libphx.BoxTest_SetManaged,
-                getManaged = function(...)
+                setPrimitive = libphx.BoxTest_SetPrimitive,
+                getPrimitive = libphx.BoxTest_GetPrimitive,
+                setManaged   = libphx.BoxTest_SetManaged,
+                getManaged   = function(...)
                     local instance = libphx.BoxTest_GetManaged(...)
                     return Core.ManagedObject(instance, libphx.ManagedData_Free)
                 end,
+                setCopyable  = libphx.BoxTest_SetCopyable,
+                getCopyable  = libphx.BoxTest_GetCopyable,
             },
         }
 
