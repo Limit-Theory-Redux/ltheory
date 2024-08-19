@@ -10,10 +10,13 @@ local RenderingTest = require('States.Application')
 
 ---@param shaderState ShaderState
 ---@param uniformInt integer
----@param args table
+---@param transfromA TransformComponent
+---@param transformB TransformComponent
 local setArbValVec3f = function(shaderState, uniformInt, transfromA, transformB)
     local val = transfromA:getScale() + transformB:getScale()
+    print(shaderState:shader():getVariable("color"))
     shaderState:shader():iSetFloat3(uniformInt, val.x, val.y, val.z)
+    print(shaderState:shader():getVariable("color"))
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
@@ -28,6 +31,7 @@ function RenderingTest:onInit()
     ---@type TransformComponent
     local A_Transform = A:findComponentByName("PhysicsTransform")
     --Log.Warn("Asteroid A Entity: " .. Inspect(A) .. "\nTransform Component: " .. Inspect(A_Transform) .. "\n\n")
+
     -- Spawn a Asteroid B
     local B = Asteroid(rng:get64())
     ---@type TransformComponent
@@ -38,12 +42,8 @@ function RenderingTest:onInit()
 
     ---@type Material
     local mat = Material('pulse', 'billboard/axis', 'effect/pulsetail')
-    Log.Warn("Material Init Debug: " .. Inspect(mat))
     local autoShaderVar = mat:addAutoShaderVar("color", setArbValVec3f)
-    --Log.Warn("Material Added AutoShaderVar Debug")
-    --Log.Warn(Inspect(mat))
-    if autoShaderVar then autoShaderVar:render(mat.shaderState, A_Transform, B_Transform) end
-    Log.Warn("Material Added AutoShaderVar Debug: " .. Inspect(mat))
+    if autoShaderVar then autoShaderVar:setShaderVar(mat.shaderState, A_Transform, B_Transform) end
 end
 
 return RenderingTest
