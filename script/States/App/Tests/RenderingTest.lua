@@ -4,6 +4,7 @@ local Asteroid = require("_ECS_WIP_TEMP.Entities.CelestialObjects.Asteroid") --!
 -- Systems
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage")         --!temp path
 local Universe = require("_ECS_WIP_TEMP.Systems.Universe")                   --!temp path
+---@type CameraSystem
 local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem")
 -- Utilities
 local Material = require("_ECS_WIP_TEMP.Shared.Rendering.Material")           --!temp path
@@ -29,7 +30,8 @@ function RenderingTest:onInit()
 
     -- Spawn CameraEntity
     local camera = Camera()
-    GlobalStorage:storeEntity(camera)
+    local entityInfo = GlobalStorage:storeEntity(camera)
+    CameraSystem:selectCamera(entityInfo)
 
     local rng = RNG.Create(0):managed()
 

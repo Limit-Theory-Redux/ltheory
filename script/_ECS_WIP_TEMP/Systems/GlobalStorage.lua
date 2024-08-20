@@ -51,11 +51,13 @@ function GlobalStorage:initStorage()
 end
 
 ---@param entity Entity
+---@return EntityInfo
 function GlobalStorage:storeEntity(entity)
     if not entity:getArchetype() or not self.entities[entity:getArchetype()] then
         Log.Error("Did not provide a valid archetype for entity: " .. tostring(entity:getGuid()))
     end
     self.entities[entity:getArchetype()][entity:getGuid()] = entity
+    return { id = entity:getGuid(), archetype = entity:getArchetype() }
 end
 
 ---@param archetype EntityArchetype
