@@ -18,11 +18,11 @@ end)
 function CameraSystem:registerVars()
     self.profiler = QuickProfiler("CameraSystem", false, false)
     ---@type Camera|nil
-    self.selectedCamera = nil
+    self.currentCamera = nil
     ---@type CameraDataComponent|nil
-    self.selectedCameraData = nil
+    self.currentCameraData = nil
     ---@type TransformComponent|nil
-    self.selectedCameraTransform = nil
+    self.currentCameraTransform = nil
 end
 
 ---@private
@@ -34,28 +34,28 @@ end
 
 ---@private
 function CameraSystem:onPreRender()
-    if self.selectedCamera and not self.selectedCameraData then
-        self.selectedCameraData = self.selectedCamera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
-        self.selectedCameraTransform = self.selectedCamera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
+    if self.currentCamera and not self.currentCameraData then
+        self.currentCameraData = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
+        self.currentCameraTransform = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
     end
 end
 
 ---@private
 function CameraSystem:onRender()
-    if self.selectedCamera and self.selectedCameraData then
-        self:beginCameraDraw(self.selectedCameraData)
+    if self.currentCamera and self.currentCameraData then
+        self:beginCameraDraw(self.currentCameraData)
     end
 end
 
 ---@private
 function CameraSystem:onPostRender()
-    if self.selectedCamera and self.selectedCameraData then
+    if self.currentCamera and self.currentCameraData then
         self:endDraw()
     end
 end
 
 ---@param entityInfo EntityInfo
-function CameraSystem:selectCamera(entityInfo)
+function CameraSystem:setCamera(entityInfo)
     self.cameras = GlobalStorage:getEntitiesFromArchetype(Enums.EntityArchetype.CameraEntity)
 
     if not self.cameras then
@@ -65,8 +65,8 @@ function CameraSystem:selectCamera(entityInfo)
     local camera = self.cameras[entityInfo.id]
 
     if camera then
-        self.selectedCamera = camera
-        self.selectedCameraData = nil -- reset
+        self.currentCamera = camera
+        self.currentCameraData = nil -- reset
     end
 end
 

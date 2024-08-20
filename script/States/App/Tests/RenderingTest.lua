@@ -31,7 +31,7 @@ function RenderingTest:onInit()
     -- Spawn CameraEntity
     local camera = Camera()
     local entityInfo = GlobalStorage:storeEntity(camera)
-    CameraSystem:selectCamera(entityInfo)
+    CameraSystem:setCamera(entityInfo)
 
     local rng = RNG.Create(0):managed()
 
