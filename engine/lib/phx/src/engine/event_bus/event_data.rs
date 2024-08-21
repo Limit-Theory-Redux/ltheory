@@ -1,4 +1,5 @@
-use super::{EventPayload, FrameStage, TunnelId};
+use super::{FrameStage, TunnelId};
+use crate::engine::EventPayload;
 
 #[derive(Debug, Clone)]
 pub struct EventData {
