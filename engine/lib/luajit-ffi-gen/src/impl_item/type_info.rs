@@ -185,10 +185,15 @@ impl TypeInfo {
                 if *is_ref == TypeRef::MutableReference {
                     (format!("*mut {rust_ty_name}"), format!("{c_ty_name}*"))
                 } else {
-                    (
-                        format!("*const {rust_ty_name}"),
-                        format!("{c_ty_name} const*"),
-                    )
+                    match elem_ty {
+                        TypeVariant::Str | TypeVariant::String => {
+                            ("*const *const libc::c_char".into(), "cstr*".into())
+                        }
+                        _ => (
+                            format!("*const {rust_ty_name}"),
+                            format!("{c_ty_name} const*"),
+                        ),
+                    }
                 }
             }
             Self::Function { args, ret_ty } => {

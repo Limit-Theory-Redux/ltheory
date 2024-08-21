@@ -117,17 +117,23 @@ impl ImplInfo {
         };
 
         // Generate tokens to convert the parameters from the extern interface to the impl interface.
+        let mut prelude = vec![];
         let mut use_convert_into_string = false;
         let param_tokens: Vec<_> = method
             .params
             .iter()
             .map(|param| {
-                self.gen_wrapper_name_from_ffi(&param.name, &param.ty, &mut use_convert_into_string)
+                self.gen_wrapper_name_from_ffi(
+                    &param.name,
+                    &param.ty,
+                    &mut use_convert_into_string,
+                    &mut prelude,
+                )
             })
             .collect();
 
         // If we ended up using the ConvertIntoString trait, make sure to bring it into scope.
-        let prelude = if use_convert_into_string {
+        let use_convert_to_string = if use_convert_into_string {
             quote! { use ::internal::ConvertIntoString; }
         } else {
             quote! {}
@@ -255,20 +261,23 @@ impl ImplInfo {
 
             if method.bind_args.gen_out_param() {
                 quote! {
-                    #prelude
+                    #use_convert_to_string
+                    #(#prelude);*
                     #method_call
                     *out = #return_item;
                 }
             } else {
                 quote! {
-                    #prelude
+                    #use_convert_to_string
+                    #(#prelude);*
                     #method_call
                     #return_item
                 }
             }
         } else {
             quote! {
-                #prelude
+                #use_convert_to_string
+                #(#prelude);*
                 #accessor_token(#(#param_tokens),*);
             }
         }
@@ -351,6 +360,7 @@ impl ImplInfo {
         name: &String,
         ty: &TypeInfo,
         use_convert_into_string: &mut bool,
+        prelude: &mut Vec<TokenStream>,
     ) -> TokenStream {
         let name_ident = format_ident!("{}", name);
         let name_accessor = quote! { #name_ident };
@@ -378,15 +388,18 @@ impl ImplInfo {
                     .collect();
 
                 if let Some(ty) = ret_ty.as_ref() {
+                    let mut ret_prelude = vec![];
                     let ret_expr = self.gen_wrapper_name_from_ffi(
                         &"ret".to_string(),
                         ty,
                         use_convert_into_string,
+                        &mut ret_prelude,
                     );
                     quote! {
                         |#(#arg_tokens),*| {
                             #(#prelude);*
                             let ret = #name_accessor(#(#param_tokens),*);
+                            #(#ret_prelude);*
                             #ret_expr
                         }
                     }
@@ -464,56 +477,87 @@ impl ImplInfo {
             TypeInfo::Slice {
                 is_ref,
                 elem_ty: ty,
-            } => match ty {
-                TypeVariant::Str | TypeVariant::String => {
-                    panic!("Strings in slices are not supported yet.");
-                }
-                _ => {
-                    let size_param_ident = format_ident!("{}_size", name);
-                    if *is_ref == TypeRef::MutableReference {
-                        quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert!(#size_param_ident > 0, "array length must be greater than 0");
-                            std::slice::from_raw_parts_mut(#name_accessor, #size_param_ident)
-                        }}
-                    } else {
-                        quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert!(#size_param_ident > 0, "array length must be greater than 0");
-                            std::slice::from_raw_parts(#name_accessor, #size_param_ident)
-                        }}
+            } => {
+                let size_param_ident = format_ident!("{}_size", name);
+
+                prelude.push(quote! {
+                    assert!(!#name_accessor.is_null(), "array pointer is null");
+                    assert!(#size_param_ident > 0, "array length must be greater than 0");
+                });
+
+                match ty {
+                    TypeVariant::Str | TypeVariant::String => {
+                        assert!(*is_ref != TypeRef::MutableReference);
+                        *use_convert_into_string = true;
+                        let ptr_conversion = match ty {
+                            TypeVariant::Str => quote! { ptr.as_str() },
+                            TypeVariant::String => quote! { ptr.as_string() },
+                            _ => panic!("Unhandled pointer conversion."),
+                        };
+                        prelude.push(quote! {
+                            let #name_accessor: Vec<_> = std::slice::from_raw_parts(#name_accessor, #size_param_ident).iter().map(|ptr| #ptr_conversion).collect();
+                        });
+                        quote! { #name_accessor.as_slice() }
+                    }
+                    _ => {
+                        if *is_ref == TypeRef::MutableReference {
+                            quote! {
+                                std::slice::from_raw_parts_mut(#name_accessor, #size_param_ident)
+                            }
+                        } else {
+                            quote! {
+                                std::slice::from_raw_parts(#name_accessor, #size_param_ident)
+                            }
+                        }
                     }
                 }
-            },
+            }
             TypeInfo::Array {
                 is_ref,
                 elem_ty: ty,
                 length,
-            } => match ty {
-                TypeVariant::Str | TypeVariant::String => {
-                    panic!("Strings in slices are not supported yet.");
-                }
-                _ => {
-                    let size_param_ident = format_ident!("{}_size", name);
-                    match is_ref {
-                        TypeRef::MutableReference => quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
-                            std::slice::from_raw_parts_mut(#name_accessor, #length).try_into().unwrap()
-                        }},
-                        TypeRef::Reference => quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
-                            std::slice::from_raw_parts(#name_accessor, #length).try_into().unwrap()
-                        }},
-                        TypeRef::Value => quote! {{
-                            assert!(!#name_accessor.is_null(), "array pointer is null");
-                            assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
-                            std::slice::from_raw_parts(#name_accessor, #length).to_owned().try_into().unwrap()
-                        }},
+            } => {
+                let size_param_ident = format_ident!("{}_size", name);
+
+                prelude.push(quote! {
+                    assert!(!#name_accessor.is_null(), "array pointer is null");
+                    assert_eq!(#size_param_ident, #length, "incorrect number of elements for array");
+                });
+
+                match ty {
+                    TypeVariant::Str | TypeVariant::String => {
+                        *use_convert_into_string = true;
+                        let ptr_conversion = match ty {
+                            TypeVariant::Str => quote! { ptr.as_str() },
+                            TypeVariant::String => quote! { ptr.as_string() },
+                            _ => panic!("Unhandled pointer conversion."),
+                        };
+                        prelude.push(quote! {
+                            let #name_accessor: Vec<_> = std::slice::from_raw_parts(#name_accessor, #size_param_ident).iter().map(|ptr| #ptr_conversion).collect();
+                        });
+                        match is_ref {
+                            TypeRef::MutableReference => {
+                                panic!("Mutable ref to an array of strings is not supported.")
+                            }
+                            TypeRef::Reference => {
+                                quote! { #name_accessor.as_slice().try_into().unwrap() }
+                            }
+                            TypeRef::Value => quote! { #name_accessor.try_into().unwrap() },
+                        }
                     }
+                    _ => match is_ref {
+                        TypeRef::MutableReference => quote! {
+                            std::slice::from_raw_parts_mut(#name_accessor, #length).try_into().unwrap()
+                        },
+                        TypeRef::Reference => quote! {
+                            std::slice::from_raw_parts(#name_accessor, #length).try_into().unwrap()
+                        },
+                        TypeRef::Value => quote! {
+                            std::slice::from_raw_parts(#name_accessor, #length).to_owned().try_into().unwrap()
+                        },
+                    },
                 }
-            },
+            }
             TypeInfo::Result { .. } => {
                 panic!("Result can only be used in the return position.")
             }

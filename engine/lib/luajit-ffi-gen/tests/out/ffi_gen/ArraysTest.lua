@@ -23,6 +23,8 @@ function Loader.defineType()
             void ArraysTest_GetManagedSlice    (ArraysTest const*, ManagedData* out, uint64 out_size);
             void ArraysTest_SetCopyableSlice   (ArraysTest*, CopyableData const* data, uint64 data_size);
             void ArraysTest_GetCopyableSlice   (ArraysTest const*, CopyableData* out, uint64 out_size);
+            void ArraysTest_SetStrSlice        (ArraysTest*, cstr* data, uint64 data_size);
+            void ArraysTest_SetStringSlice     (ArraysTest*, cstr* data, uint64 data_size);
             void ArraysTest_MovePrimitiveArray (ArraysTest*, uint32 const* data, uint64 data_size);
             void ArraysTest_SetPrimitiveArray  (ArraysTest*, uint32 const* data, uint64 data_size);
             void ArraysTest_GetPrimitiveArray  (ArraysTest const*, uint32* out, uint64 out_size);
@@ -32,6 +34,10 @@ function Loader.defineType()
             void ArraysTest_MoveCopyableArray  (ArraysTest*, CopyableData const* data, uint64 data_size);
             void ArraysTest_SetCopyableArray   (ArraysTest*, CopyableData const* data, uint64 data_size);
             void ArraysTest_GetCopyableArray   (ArraysTest const*, CopyableData* out, uint64 out_size);
+            void ArraysTest_MoveStrArray       (ArraysTest*, cstr* data, uint64 data_size);
+            void ArraysTest_SetStrArray        (ArraysTest*, cstr* data, uint64 data_size);
+            void ArraysTest_MoveStringArray    (ArraysTest*, cstr* data, uint64 data_size);
+            void ArraysTest_SetStringArray     (ArraysTest*, cstr* data, uint64 data_size);
         ]]
     end
 
@@ -52,6 +58,8 @@ function Loader.defineType()
                 getManagedSlice    = libphx.ArraysTest_GetManagedSlice,
                 setCopyableSlice   = libphx.ArraysTest_SetCopyableSlice,
                 getCopyableSlice   = libphx.ArraysTest_GetCopyableSlice,
+                setStrSlice        = libphx.ArraysTest_SetStrSlice,
+                setStringSlice     = libphx.ArraysTest_SetStringSlice,
                 movePrimitiveArray = libphx.ArraysTest_MovePrimitiveArray,
                 setPrimitiveArray  = libphx.ArraysTest_SetPrimitiveArray,
                 getPrimitiveArray  = libphx.ArraysTest_GetPrimitiveArray,
@@ -61,6 +69,10 @@ function Loader.defineType()
                 moveCopyableArray  = libphx.ArraysTest_MoveCopyableArray,
                 setCopyableArray   = libphx.ArraysTest_SetCopyableArray,
                 getCopyableArray   = libphx.ArraysTest_GetCopyableArray,
+                moveStrArray       = libphx.ArraysTest_MoveStrArray,
+                setStrArray        = libphx.ArraysTest_SetStrArray,
+                moveStringArray    = libphx.ArraysTest_MoveStringArray,
+                setStringArray     = libphx.ArraysTest_SetStringArray,
             },
         }
 

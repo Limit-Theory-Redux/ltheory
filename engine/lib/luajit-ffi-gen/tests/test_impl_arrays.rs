@@ -9,6 +9,7 @@ pub struct ArraysTest {
     val_array_primitive: Vec<u32>,
     val_array_managed: Vec<ManagedData>,
     val_array_copyable: Vec<CopyableData>,
+    val_array_string: Vec<String>,
 }
 
 #[luajit_ffi(gen_dir = "./tests/out/ffi_gen", meta_dir = "./tests/out/ffi_meta")]
@@ -46,8 +47,17 @@ impl ArraysTest {
         out[..len].clone_from_slice(&self.val_array_copyable[..len]);
     }
 
-
     // String slices.
+
+    pub fn set_str_slice(&mut self, data: &[&str]) {
+        self.val_array_string = data.iter().map(|s| s.to_string()).collect();
+    }
+
+    pub fn set_string_slice(&mut self, data: &[String]) {
+        self.val_array_string = data.to_vec();
+    }
+
+    // &mut [String] is not supported.
 
     // Primitive arrays.
 
@@ -95,23 +105,24 @@ impl ArraysTest {
     }
 
     // String arrays.
-}
 
-/// # Safety
-/// this is a test
-#[no_mangle]
-pub unsafe extern "C" fn ArraysTest_GetPrimitiveArrays2(
-    this: &ArraysTest,
-    out: *mut u32,
-    out_size: usize,
-) {
-    this.get_primitive_array({
-        assert!(out.is_null());
-        assert_eq!(out_size, 3, "incorrect number of elements for array");
-        std::slice::from_raw_parts_mut(out, 3usize)
-            .try_into()
-            .unwrap()
-    });
+    pub fn move_str_array(&mut self, data: [&str; 3]) {
+        self.val_array_string = data.iter().map(|s| s.to_string()).collect();
+    }
+
+    pub fn set_str_array(&mut self, data: &[&str; 3]) {
+        self.val_array_string = data.iter().map(|s| s.to_string()).collect();
+    }
+
+    pub fn move_string_array(&mut self, data: [String; 3]) {
+        self.val_array_string = data.to_vec();
+    }
+
+    pub fn set_string_array(&mut self, data: &[String; 3]) {
+        self.val_array_string = data.to_vec();
+    }
+
+    // &mut [String; N] is not supported.
 }
 
 #[test]
@@ -222,6 +233,48 @@ fn test_copyable_array() {
 }
 
 #[test]
+fn test_string_array() {
+    use std::ffi::CString;
+
+    let mut t = ArraysTest::default();
+
+    let data1_str = ["hello", "world", "foo"];
+    let data1_cstr = [
+        CString::new("hello").unwrap(),
+        CString::new("world").unwrap(),
+        CString::new("foo").unwrap(),
+    ];
+    let data1_ptrs: Vec<_> = data1_cstr.iter().map(|cstr| cstr.as_ptr()).collect();
+    let data2_str = ["test", "test2", "test3"];
+    let data2_cstr = [
+        CString::new("test").unwrap(),
+        CString::new("test2").unwrap(),
+        CString::new("test3").unwrap(),
+    ];
+    let data2_ptrs: Vec<_> = data2_cstr.iter().map(|cstr| cstr.as_ptr()).collect();
+
+    unsafe {
+        ArraysTest_SetStrSlice(&mut t, data1_ptrs.as_ptr(), data1_ptrs.len());
+        assert_eq!(data1_str.as_slice(), t.val_array_string.as_slice());
+        ArraysTest_SetStringSlice(&mut t, data2_ptrs.as_ptr(), data2_ptrs.len());
+        assert_eq!(data2_str.as_slice(), t.val_array_string.as_slice());
+        t.val_array_string.clear();
+
+        ArraysTest_MoveStrArray(&mut t, data1_ptrs.as_ptr(), data1_ptrs.len());
+        assert_eq!(data1_str.as_slice(), t.val_array_string.as_slice());
+        ArraysTest_MoveStringArray(&mut t, data2_ptrs.as_ptr(), data2_ptrs.len());
+        assert_eq!(data2_str.as_slice(), t.val_array_string.as_slice());
+        t.val_array_string.clear();
+
+        ArraysTest_SetStrArray(&mut t, data1_ptrs.as_ptr(), data1_ptrs.len());
+        assert_eq!(data1_str.as_slice(), t.val_array_string.as_slice());
+        ArraysTest_SetStringArray(&mut t, data2_ptrs.as_ptr(), data2_ptrs.len());
+        assert_eq!(data2_str.as_slice(), t.val_array_string.as_slice());
+        t.val_array_string.clear();
+    }
+}
+
+#[test]
 #[should_panic]
 fn test_null_slice_should_panic() {
     let mut t = ArraysTest::default();
@@ -251,7 +304,7 @@ fn test_null_array_should_panic() {
 
 #[test]
 #[should_panic]
-fn test_move_primitive_array_should_panic() {
+fn test_move_primitive_array_wrong_size_should_panic() {
     let mut t = ArraysTest::default();
     let data = [0; 3];
     unsafe {
@@ -261,7 +314,7 @@ fn test_move_primitive_array_should_panic() {
 
 #[test]
 #[should_panic]
-fn test_ref_primitive_array_should_panic() {
+fn test_ref_primitive_array_wrong_size_should_panic() {
     let mut t = ArraysTest::default();
     let data = [0; 3];
     unsafe {
@@ -271,7 +324,7 @@ fn test_ref_primitive_array_should_panic() {
 
 #[test]
 #[should_panic]
-fn test_mut_ref_primitive_array_should_panic() {
+fn test_mut_ref_primitive_array_wrong_size_should_panic() {
     let t = ArraysTest::default();
     let mut data = [0; 3];
     unsafe {
@@ -281,7 +334,7 @@ fn test_mut_ref_primitive_array_should_panic() {
 
 #[test]
 #[should_panic]
-fn test_move_managed_array_should_panic() {
+fn test_move_managed_array_wrong_size_should_panic() {
     let mut t = ArraysTest::default();
     let data = [
         ManagedData::new(0),
@@ -295,7 +348,7 @@ fn test_move_managed_array_should_panic() {
 
 #[test]
 #[should_panic]
-fn test_ref_managed_array_should_panic() {
+fn test_ref_managed_array_wrong_size_should_panic() {
     let mut t = ArraysTest::default();
     let data = [
         ManagedData::new(0),
@@ -309,7 +362,7 @@ fn test_ref_managed_array_should_panic() {
 
 #[test]
 #[should_panic]
-fn test_mut_ref_managed_array_should_panic() {
+fn test_mut_ref_managed_array_wrong_size_should_panic() {
     let t = ArraysTest::default();
     let mut data = [
         ManagedData::new(0),
@@ -321,10 +374,9 @@ fn test_mut_ref_managed_array_should_panic() {
     }
 }
 
-
 #[test]
 #[should_panic]
-fn test_move_copyable_array_should_panic() {
+fn test_move_copyable_array_wrong_size_should_panic() {
     let mut t = ArraysTest::default();
     let data = [
         CopyableData::new(0),
@@ -338,7 +390,7 @@ fn test_move_copyable_array_should_panic() {
 
 #[test]
 #[should_panic]
-fn test_ref_copyable_array_should_panic() {
+fn test_ref_copyable_array_wrong_size_should_panic() {
     let mut t = ArraysTest::default();
     let data = [
         CopyableData::new(0),
@@ -352,7 +404,7 @@ fn test_ref_copyable_array_should_panic() {
 
 #[test]
 #[should_panic]
-fn test_mut_ref_copyable_array_should_panic() {
+fn test_mut_ref_copyable_array_wrong_size_should_panic() {
     let t = ArraysTest::default();
     let mut data = [
         CopyableData::new(0),
@@ -361,5 +413,45 @@ fn test_mut_ref_copyable_array_should_panic() {
     ];
     unsafe {
         ArraysTest_GetCopyableArray(&t, data.as_mut_ptr(), 5);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_move_str_array_wrong_size_should_panic() {
+    let mut t = ArraysTest::default();
+    let data = [std::ptr::null(), std::ptr::null(), std::ptr::null()];
+    unsafe {
+        ArraysTest_MoveStrArray(&mut t, data.as_ptr(), 2);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_move_string_array_wrong_size_should_panic() {
+    let mut t = ArraysTest::default();
+    let data = [std::ptr::null(), std::ptr::null(), std::ptr::null()];
+    unsafe {
+        ArraysTest_MoveStringArray(&mut t, data.as_ptr(), 4);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_set_str_array_wrong_size_should_panic() {
+    let mut t = ArraysTest::default();
+    let data = [std::ptr::null(), std::ptr::null(), std::ptr::null()];
+    unsafe {
+        ArraysTest_SetStrArray(&mut t, data.as_ptr(), 2);
+    }
+}
+
+#[test]
+#[should_panic]
+fn test_set_string_array_wrong_size_should_panic() {
+    let mut t = ArraysTest::default();
+    let data = [std::ptr::null(), std::ptr::null(), std::ptr::null()];
+    unsafe {
+        ArraysTest_SetStringArray(&mut t, data.as_ptr(), 4);
     }
 }
