@@ -237,24 +237,34 @@ impl TypeInfo {
         }
     }
 
-    pub fn as_lua_ffi_string(&self, self_name: &str) -> String {
-        if let Self::Function { .. } = self {
-            "function".to_string()
-        } else {
-            self.get_inner_type()
-                .map_or("".to_string(), |tv| tv.as_lua_ffi_string(self_name))
-        }
-    }
-
-    pub fn get_inner_type(&self) -> Option<&TypeVariant> {
+    // This returns the annotation type supported by LLS as per
+    // https://luals.github.io/wiki/annotations/#documenting-types
+    pub fn get_luals_annotation(&self, self_name: &str) -> String {
         match self {
-            Self::Plain { ty, .. }
-            | Self::Option { inner_ty: ty, .. }
-            | Self::Box { inner_ty: ty, .. }
-            | Self::Slice { elem_ty: ty, .. }
-            | Self::Array { elem_ty: ty, .. } => Some(ty),
-            Self::Function { .. } => None,
-            Self::Result { inner } => inner.get_inner_type(),
+            Self::Function { args, ret_ty } => {
+                let args = args
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, ty)| {
+                        format!("arg{}: {}", idx + 1, ty.get_luals_annotation(self_name))
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                let ret_ty = ret_ty.as_ref().map_or("nil".to_string(), |ret_ty| {
+                    ret_ty.get_luals_annotation(self_name)
+                });
+                
+                format!("fun({args}): {ret_ty}")
+            }
+            Self::Plain { ty, .. } | Self::Box { inner_ty: ty, .. } => {
+                ty.get_luals_annotation(self_name)
+            }
+            Self::Option { inner_ty: ty, .. } => format!("{}?", ty.get_luals_annotation(self_name)),
+            Self::Slice { elem_ty: ty, .. } | Self::Array { elem_ty: ty, .. } => {
+                format!("{}[]", ty.get_luals_annotation(self_name))
+            }
+            Self::Result { inner } => inner.get_luals_annotation(self_name),
         }
     }
 }
@@ -373,7 +383,9 @@ impl TypeVariant {
         }
     }
 
-    pub fn as_lua_ffi_string(&self, self_name: &str) -> String {
+    // This returns the annotation type supported by LLS as per
+    // https://luals.github.io/wiki/annotations/#documenting-types
+    pub fn get_luals_annotation(&self, self_name: &str) -> String {
         match self {
             Self::Bool => "boolean",
             Self::I8

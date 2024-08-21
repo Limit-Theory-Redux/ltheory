@@ -27,7 +27,7 @@ function TextStyle:setFontItalic(italic) end
 ---@param weight number
 function TextStyle:setFontWeight(weight) end
 
----@param locale string|nil
+---@param locale string?
 function TextStyle:setLocale(locale) end
 
 -- Brush for rendering text.
@@ -47,7 +47,7 @@ function TextStyle:setUnderlineOffset(offset) end
 function TextStyle:setUnderlineSize(size) end
 
 -- Brush for rendering the underline decoration.
----@param color Color|nil
+---@param color Color?
 function TextStyle:setUnderlineBrush(color) end
 
 -- Strikethrough decoration.
@@ -63,7 +63,7 @@ function TextStyle:setStrikethroughOffset(offset) end
 function TextStyle:setStrikethroughSize(size) end
 
 -- Brush for rendering the strikethrough decoration.
----@param color Color|nil
+---@param color Color?
 function TextStyle:setStrikethroughBrush(color) end
 
 -- Line height multiplier.

@@ -4,10 +4,10 @@
 Directory = {}
 
 ---@param path string
----@return Directory|nil
+---@return Directory?
 function Directory.Open(path) end
 
----@return string|nil
+---@return string?
 function Directory:getNext() end
 
 ---@param cwd string
@@ -18,12 +18,12 @@ function Directory.Change(cwd) end
 ---@return boolean
 function Directory.Create(path) end
 
----@return string|nil
+---@return string?
 function Directory.GetCurrent() end
 
 ---@param org string
 ---@param app string
----@return string|nil
+---@return string?
 function Directory.GetPrefPath(org, app) end
 
 ---@param path string

@@ -9,7 +9,7 @@ function ResultTest.ResultPrimitive() end
 ---@return integer
 function ResultTest.ResultErr() end
 
----@return integer|nil
+---@return integer?
 function ResultTest.ResultOption() end
 
 ---@return string

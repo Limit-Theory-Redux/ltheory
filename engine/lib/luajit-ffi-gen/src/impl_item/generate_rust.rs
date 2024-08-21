@@ -371,7 +371,7 @@ impl ImplInfo {
                 let args: Vec<_> = args
                     .iter()
                     .enumerate()
-                    .map(|(index, ty)| (format!("arg{}", index), ty))
+                    .map(|(index, ty)| (format!("arg{}", index + 1), ty))
                     .collect();
 
                 // Generate the tokens for the argument list.

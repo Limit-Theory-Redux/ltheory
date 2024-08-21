@@ -90,20 +90,9 @@ impl ImplInfo {
                 // Add method signature documentation
                 method.params.iter().for_each(|param| {
                     ffi_gen.add_class_definition(format!(
-                        "---@param {} {}{}",
+                        "---@param {} {}",
                         param.as_ffi_name(),
-                        param.ty.as_lua_ffi_string(module_name),
-                        if let TypeInfo::Option { .. } =
-                            if let TypeInfo::Result { inner } = &param.ty {
-                                inner
-                            } else {
-                                &param.ty
-                            }
-                        {
-                            "|nil"
-                        } else {
-                            ""
-                        }
+                        param.ty.get_luals_annotation(module_name)
                     ));
 
                     // If this is a slice or array, we need to additionally generate a "size" parameter.
@@ -112,7 +101,7 @@ impl ImplInfo {
                             ffi_gen.add_class_definition(format!(
                                 "---@param {}_size {}",
                                 param.as_ffi_name(),
-                                TypeVariant::USize.as_lua_ffi_string(module_name)
+                                TypeVariant::USize.get_luals_annotation(module_name)
                             ));
                         }
                         _ => {}
@@ -141,24 +130,14 @@ impl ImplInfo {
                     if method.bind_args.gen_out_param() {
                         ffi_gen.add_class_definition(format!(
                             "---@param result {} [out]",
-                            ret.as_lua_ffi_string(module_name)
+                            ret.get_luals_annotation(module_name)
                         ));
 
                         params.push("result".into());
                     } else {
                         ffi_gen.add_class_definition(format!(
-                            "---@return {}{}",
-                            ret.as_lua_ffi_string(module_name),
-                            if let TypeInfo::Option { .. } = if let TypeInfo::Result { inner } = ret
-                            {
-                                inner
-                            } else {
-                                ret
-                            } {
-                                "|nil"
-                            } else {
-                                ""
-                            }
+                            "---@return {}",
+                            ret.get_luals_annotation(module_name)
                         ));
                     }
                 }
