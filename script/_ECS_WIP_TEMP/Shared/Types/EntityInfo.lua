@@ -1,11 +1,16 @@
 local EntityInfo = {}
 EntityInfo.__index = EntityInfo
 
+---@class Type
+---@field EntityInfo integer
+
+local typeInt = Enums.Type:createType("EntityInfo")
+
 local sharedMeta = {
     __index = EntityInfo,
-    __type = Enums.Type.EntityInfo,
+    __type = typeInt,
     __tostring = function(self)
-        return Enums.Type:getName(Enums.Type.EntityInfo)
+        return Enums.Type:getName(typeInt)
     end
 }
 

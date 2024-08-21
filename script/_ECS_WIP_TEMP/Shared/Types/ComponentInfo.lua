@@ -1,11 +1,16 @@
 local ComponentInfo = {}
 ComponentInfo.__index = ComponentInfo
 
+---@class Type
+---@field ComponentInfo integer
+
+local typeInt = Enums.Type:createType("ComponentInfo")
+
 local sharedMeta = {
     __index = ComponentInfo,
-    __type = Enums.Type.ComponentInfo,
+    __type = typeInt,
     __tostring = function(self)
-        return Enums.Type:getName(Enums.Type.ComponentInfo)
+        return Enums.Type:getName(typeInt)
     end
 }
 
