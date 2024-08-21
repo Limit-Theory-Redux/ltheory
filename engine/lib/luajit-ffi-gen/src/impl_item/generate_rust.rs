@@ -319,10 +319,10 @@ impl ImplInfo {
                                 // We pin an instance of Option<T> using gen_buffered_ret to encode
                                 // None, so ensure the right lifetime is used here.
                                 quote! { Option<&'static #ty_ident> }
-                            },
+                            }
                             TypeRef::Value => {
                                 quote! { Option<Box<#ty_ident>> }
-                            },
+                            }
                         }
                     }
                 }

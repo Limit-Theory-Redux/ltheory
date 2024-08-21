@@ -260,7 +260,7 @@ impl TypeInfo {
                 let ret_ty = ret_ty.as_ref().map_or("nil".to_string(), |ret_ty| {
                     ret_ty.get_luals_annotation(self_name)
                 });
-                
+
                 format!("fun({args}): {ret_ty}")
             }
             Self::Plain { ty, .. } | Self::Box { inner_ty: ty, .. } => {
