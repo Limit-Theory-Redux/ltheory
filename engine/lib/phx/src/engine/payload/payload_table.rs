@@ -1,14 +1,14 @@
 use indexmap::IndexMap;
 
-use super::EventPayload;
+use super::Payload;
 
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct EventPayloadTable {
-    table: IndexMap<String, EventPayload>,
+pub struct PayloadTable {
+    table: IndexMap<String, Payload>,
 }
 
 #[luajit_ffi_gen::luajit_ffi]
-impl EventPayloadTable {
+impl PayloadTable {
     #[bind(name = "Create")]
     pub fn new() -> Self {
         Self {
@@ -32,11 +32,11 @@ impl EventPayloadTable {
         self.table.get_index(index).map(|(name, _)| name.as_str())
     }
 
-    pub fn get_payload(&self, index: usize) -> Option<&EventPayload> {
+    pub fn get_payload(&self, index: usize) -> Option<&Payload> {
         self.table.get_index(index).map(|(_, payload)| payload)
     }
 
-    pub fn add(&mut self, name: &str, value: EventPayload) {
+    pub fn add(&mut self, name: &str, value: Payload) {
         self.table.insert(name.into(), value);
     }
 }

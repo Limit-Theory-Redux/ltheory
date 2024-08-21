@@ -1,7 +1,7 @@
-local EventPayloadTest = require('States.Application')
+local PayloadTest = require('States.Application')
 local Converter = require('Core.Util.Converter')
 
-function EventPayloadTest:onInit()
+function PayloadTest:onInit()
     local fakeEntity = { getGuid = function() return 0 end }
 
     Event.AddEvents({ "TestEvent", "TestEventLuaPayload", "ExitEvent" })
@@ -57,10 +57,10 @@ function EventPayloadTest:onInit()
     EventBus:send(Event.ExitEvent, fakeEntity)
 end
 
-function EventPayloadTest:onPreRender() end
+function PayloadTest:onPreRender() end
 
-function EventPayloadTest:onRender() end
+function PayloadTest:onRender() end
 
-function EventPayloadTest:onPostRender() end
+function PayloadTest:onPostRender() end
 
-return EventPayloadTest
+return PayloadTest

@@ -1,6 +1,6 @@
 local libphx = require('libphx').lib
 local Converter = require('Core.Util.Converter')
-local EventPayloadConverter = require "Core.Util.EventPayloadConverter"
+local PayloadConverter = require "Core.Util.PayloadConverter"
 
 function onDef_EventBus_t(t, mt)
     -- TODO: should return a handler
@@ -28,12 +28,12 @@ function onDef_EventBus_t(t, mt)
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
         local entityIdPtr = Converter.ToValuePtr(entityId, "uint64")
         local rustPayload = self:hasRustPayload(event)
-        libphx.EventBus_Send(self, event, entityIdPtr, EventPayloadConverter:valueToPayload(payload, rustPayload))
+        libphx.EventBus_Send(self, event, entityIdPtr, PayloadConverter:valueToPayload(payload, rustPayload))
     end
 
     mt.__index.dispatch = function(self, event, payload)
         local rustPayload = self:hasRustPayload(event)
-        libphx.EventBus_Send(self, event, nil, EventPayloadConverter:valueToPayload(payload, rustPayload))
+        libphx.EventBus_Send(self, event, nil, PayloadConverter:valueToPayload(payload, rustPayload))
     end
 
     mt.__index.nextEvent = function(self)
@@ -45,7 +45,7 @@ function onDef_EventBus_t(t, mt)
         local payload = eventData:payload()
         local payloadValue = nil
         if payload ~= nil then
-            payloadValue = EventPayloadConverter:payloadToValue(payload)
+            payloadValue = PayloadConverter:payloadToValue(payload)
         end
         return eventData, payloadValue
     end
