@@ -5,7 +5,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use strum::IntoEnumIterator;
 use tracing::warn;
 
-use super::{EventData, EventMessage, EventPayload, FrameStage, FrameTimer, Subscriber};
+use super::{EventData, EventMessage, FrameStage, FrameTimer, Subscriber};
+use crate::engine::EventPayload;
 
 pub type EventId = u16;
 pub type EntityId = u64;
