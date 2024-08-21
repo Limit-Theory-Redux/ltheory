@@ -113,10 +113,10 @@ function TypeTest:onInit()
     local customTypesHitWithoutJIT = (customTypesAverageTimeWithoutJIT - noTypesAverageTimeWithoutJIT) / noTypesAverageTimeWithoutJIT * 100
 
     -- Log the results with the average times and their differences
-    Log.Debug(format("With JIT: Custom Types: %.10f ms | No Types: %.10f ms | Custom Types Performance Hit: %.4f",
-        customTypesAverageTimeWithJIT, noTypesAverageTimeWithJIT, customTypesHitWithJIT) .. "%%")
-    Log.Debug(format("Without JIT: Custom Types: %.10f ms | No Types: %.10f ms | Custom Types Performance Hit: %.4f",
-        customTypesAverageTimeWithoutJIT, noTypesAverageTimeWithoutJIT, customTypesHitWithoutJIT) .. "%%")
+    Log.Debug("With JIT: Custom Types: %.10f ms | No Types: %.10f ms | Custom Types Performance Hit: %.4f %%",
+        customTypesAverageTimeWithJIT, noTypesAverageTimeWithJIT, customTypesHitWithJIT)
+    Log.Debug("Without JIT: Custom Types: %.10f ms | No Types: %.10f ms | Custom Types Performance Hit: %.4f %%",
+        customTypesAverageTimeWithoutJIT, noTypesAverageTimeWithoutJIT, customTypesHitWithoutJIT)
 
     self:quit()
 end
