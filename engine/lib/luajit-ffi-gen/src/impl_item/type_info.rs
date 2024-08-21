@@ -61,7 +61,7 @@ const COPY_TYPES: &[&str] = &[
     "HmGuiStyleId",
     "TextAlignment",
     "FrameStage",
-    "EventPayloadType",
+    "PayloadType",
 ];
 
 #[derive(Debug, PartialEq)]
