@@ -182,6 +182,11 @@ function EventPayload.FromF64Array(value, value_size) end
 ---@param f function
 function EventPayload:forEachF64(f) end
 
+---@param value string
+---@param value_size integer
+---@return EventPayload
+function EventPayload.FromStringArray(value, value_size) end
+
 ---@param f function
 function EventPayload:forEachString(f) end
 
