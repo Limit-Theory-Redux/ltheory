@@ -1,13 +1,9 @@
 -- Constructed Types
 local typeCounter = 0
+local typeNames = {}
 
 ---@class Type
 Enums.Type = {}
-
-local typeNames = {}
-for k, v in pairs(Enums.Type) do
-    typeNames[v] = k
-end
 
 ---@param typeInt integer
 ---@return string
@@ -19,6 +15,7 @@ end
 ---@return integer TypeInt
 function Enums.Type:createType(name)
     typeCounter = typeCounter + 1
+    typeNames[typeCounter] = name
     Enums.Type[name] = typeCounter
     return typeCounter
 end

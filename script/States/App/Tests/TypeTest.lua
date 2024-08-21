@@ -17,10 +17,21 @@ end
 ---@diagnostic disable-next-line: duplicate-set-field
 function TypeTest:onInit()
     -- Make sure vanilla type still works
-    print(type(), type(0), type(""), type(true), type(function() end))
+    Log.Debug("Vanilla types: %s|%s|%s|%s|%s", type(), type(0), type(""), type(true), type(function() end))
+
+    -- FFI type checking example
+    local timestamp = TimeStamp.Now()
+    Log.Debug("FFI type: %s | isValid: %s", timestamp, ffi.istype("TimeStamp", timestamp))
+    if not ffi.istype("TimeStamp", timestamp) then Log.Error("FFI Type not found") end
+
+    -- Custom type checking example
+    local entityInfo = EntityInfo { id = 0, archetype = 0 }
+    Log.Debug("Custom type: %s | typeInt: %s", entityInfo, type(entityInfo))
+    if type(entityInfo) ~= Enums.Type.EntityInfo then Log.Error("Custom Type not found") end
 
     local testRuns = 50000
-    collectgarbage("stop") -- Stop garbage collection
+    collectgarbage("stop")    -- Stop garbage collection
+    collectgarbage("collect") -- Do one collection run
 
     -- Warm-up Custom Types
     --* Probably does not really do anything but well
