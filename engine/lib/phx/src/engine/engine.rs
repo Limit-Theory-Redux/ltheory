@@ -7,9 +7,8 @@ use tracing::*;
 use winit::dpi::*;
 use winit::event_loop::*;
 
-use super::MainLoop;
+use super::{EventBus, MainLoop};
 use crate::common::*;
-use crate::event_bus::*;
 use crate::input::*;
 use crate::logging::init_log;
 use crate::rf::*;

@@ -388,7 +388,8 @@ impl EventBus {
 #[cfg(test)]
 mod tests {
     use super::{EntityId, EventBus, EventId, TunnelId};
-    use crate::event_bus::{Event, EventPayload, FrameStage};
+    use crate::engine::event_bus::FrameStage;
+    use crate::engine::{Event, EventPayload};
 
     fn test_event_bus(
         events: &[(EventId, FrameStage)],
