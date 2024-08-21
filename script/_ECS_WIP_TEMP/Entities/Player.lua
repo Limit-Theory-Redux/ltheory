@@ -5,7 +5,7 @@ local NameComponent = require("_ECS_WIP_TEMP.Components.EntityName")
 local PlayerBankAccount = require("_ECS_WIP_TEMP.Components.Economy.PlayerBankAccount")
 
 ---@class Player: Entity
----@overload fun(self: Player, name: string, isAiPlayer: boolean) subclass interal
+---@overload fun(self: Player, name: string, isAiPlayer: boolean) subclass internal
 ---@overload fun(name: string, isAiPlayer: boolean) subclass external
 local Player = Subclass(Entity, function(self, name, isAiPlayer)
     -- Name Component

@@ -5,7 +5,7 @@ local Transform = require("_ECS_WIP_TEMP.Components.Physics.Transform")     --!t
 local CameraData = require("_ECS_WIP_TEMP.Components.Rendering.CameraData") --!temp path
 
 ---@class Camera: Entity
----@overload fun(self: Camera): Camera subclass interal
+---@overload fun(self: Camera): Camera subclass internal
 ---@overload fun(): Camera subclass external
 local Camera = Subclass(Entity, function(self)
     self:setArchetype(Enums.EntityArchetype.CameraEntity)

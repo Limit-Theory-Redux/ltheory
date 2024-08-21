@@ -10,7 +10,7 @@ local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarch
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 
 ---@class MoonEntity: Entity
----@overload fun(self: MoonEntity, seed: integer): MoonEntity subclass interal
+---@overload fun(self: MoonEntity, seed: integer): MoonEntity subclass internal
 ---@overload fun(seed: integer): MoonEntity subclass external
 local MoonEntity = Subclass(Entity, function(self, seed)
     -- Set Entity Archetype

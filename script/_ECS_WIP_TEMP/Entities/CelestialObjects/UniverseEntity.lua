@@ -9,7 +9,7 @@ local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarch
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 
 ---@class UniverseEntity: Entity
----@overload fun(self: UniverseEntity, seed: integer): UniverseEntity subclass interal
+---@overload fun(self: UniverseEntity, seed: integer): UniverseEntity subclass internal
 ---@overload fun(seed: integer): UniverseEntity subclass external
 local UniverseEntity = Subclass(Entity, function(self, seed)
     -- Set Entity Archetype

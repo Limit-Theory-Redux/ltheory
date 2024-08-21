@@ -10,7 +10,7 @@ local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarch
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 
 ---@class AsteroidBeltEntity: Entity
----@overload fun(self: AsteroidBeltEntity, seed: integer): AsteroidBeltEntity subclass interal
+---@overload fun(self: AsteroidBeltEntity, seed: integer): AsteroidBeltEntity subclass internal
 ---@overload fun(seed: integer): AsteroidBeltEntity subclass external
 local AsteroidBeltEntity = Subclass(Entity, function(self, seed)
     -- Set Entity Archetype
