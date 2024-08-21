@@ -1,16 +1,18 @@
-local Component = require('_ECS_WIP_TEMP.Components.Component')      --!temp path
+local Component = require('_ECS_WIP_TEMP.Components.Component') --!temp path
+
+-- Systems
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
 
 ---@class EntityHierarchyComponent: Component
----@overload fun(self: EntityHierarchyComponent, parentEnttiy: Entity|nil) : EntityHierarchyComponent subclass internal
----@overload fun(parentEntity: Entity|nil): EntityHierarchyComponent subclass external
-local EntityHierarchyComponent = Subclass(Component, function(self, parentEntity)
+---@overload fun(self: EntityHierarchyComponent, parentEnttiy: EntityInfo|nil) : EntityHierarchyComponent subclass internal
+---@overload fun(parentEntity: EntityInfo|nil): EntityHierarchyComponent subclass external
+local EntityHierarchyComponent = Subclass(Component, function(self, parentEntityInfo)
     self:setComponentName("EntityHierarchy")
 
     -- Set Component Archetype
     self:setArchetype(Enums.ComponentArchetype.HierarchyComponent)
 
-    self:addHierarchy(parentEntity)
+    self:addHierarchy(parentEntityInfo)
 end)
 
 ---@param parentEntityInfo EntityInfo|nil

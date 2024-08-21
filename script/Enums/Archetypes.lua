@@ -1,7 +1,7 @@
 -- Archetypes
 
 ---@enum EntityArchetype
-Enums.EntityArchetype = {
+Enums.EntityArchetype = { --* reorder these later
     StarSystemEntity = 1,
     StarEntity = 2,
     PlanetEntity = 3,
@@ -12,6 +12,7 @@ Enums.EntityArchetype = {
     EffectEntity = 8,
     PlayerEntity = 9,
     CameraEntity = 10,
+    UniverseEntity = 11,
     -- ...
 }
 
@@ -27,17 +28,18 @@ function Enums.EntityArchetype:getName(archetype)
 end
 
 ---@enum ComponentArchetype
-Enums.ComponentArchetype = {
+Enums.ComponentArchetype = { --* reorder these later
     NameComponent = 1,
     TypeComponent = 2,
     HierarchyComponent = 3,
-    RandomNumberGeneratorComponent = 4,
+    RNGComponent = 4,
     TransformComponent = 5,
     PlayerListComponent = 6,
     MeshComponent = 7,
     MaterialComponent = 8,
     RigidBodyComponent = 9,
     CameraDataComponent = 10,
+    SeedComponent = 11,
     -- ...
 }
 

@@ -9,10 +9,10 @@ local RigidBodyComponent = Subclass(Component, function(self)
     -- Set Component Archetype
     self:setArchetype(Enums.ComponentArchetype.RigidBodyComponent)
 
-    self:addRigidBody()
+    self:init()
 end)
 
-function RigidBodyComponent:addRigidBody()
+function RigidBodyComponent:init()
     self.rigidBody = nil
 end
 

@@ -9,13 +9,9 @@
 ---@class ComponentArchetypeStorage
 ---@field [integer] Component
 
----@class EntityInfo
----@field id integer
----@field archetype EntityArchetype
-
----@class ComponentInfo
----@field id integer
----@field archetype ComponentArchetype
+--- Types
+local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
+local ComponentInfo = require("_ECS_WIP_TEMP.Shared.Types.ComponentInfo")
 
 ---@class GlobalStorage
 ---@overload fun(self: GlobalStorage): GlobalStorage class internal
@@ -57,7 +53,7 @@ function GlobalStorage:storeEntity(entity)
         Log.Error("Did not provide a valid archetype for entity: " .. tostring(entity:getGuid()))
     end
     self.entities[entity:getArchetype()][entity:getGuid()] = entity
-    return { id = entity:getGuid(), archetype = entity:getArchetype() }
+    return EntityInfo { id = entity:getGuid(), archetype = entity:getArchetype() }
 end
 
 ---@param archetype EntityArchetype
@@ -75,11 +71,13 @@ function GlobalStorage:dropEntity(archetype, entityId)
 end
 
 ---@param component Component
+---@return ComponentInfo
 function GlobalStorage:storeComponent(component)
     if not component:getArchetype() or not self.components[component:getArchetype()] then
         Log.Error("Did not provide a valid archetype for component: " .. tostring(component:getGuid()))
     end
     self.components[component:getArchetype()][component:getGuid()] = component
+    return ComponentInfo { id = component:getGuid(), archetype = component:getArchetype() }
 end
 
 ---@param archetype ComponentArchetype
