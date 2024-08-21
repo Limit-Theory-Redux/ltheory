@@ -23,10 +23,10 @@ function Loader.defineType()
             uint32 const*       OptionTest_GetPrimitive    (OptionTest const*);
             uint32 const*       OptionTest_GetPrimitiveRef (OptionTest const*);
             uint32*             OptionTest_GetPrimitiveMut (OptionTest*);
-            void                OptionTest_SetManaged      (OptionTest*, ManagedData const* val);
+            void                OptionTest_SetManaged      (OptionTest*, ManagedData* val);
             void                OptionTest_SetManagedRef   (OptionTest*, ManagedData const* val);
             void                OptionTest_SetManagedMut   (OptionTest*, ManagedData* val);
-            ManagedData const*  OptionTest_GetManaged      (OptionTest const*);
+            ManagedData*        OptionTest_GetManaged      (OptionTest const*);
             ManagedData const*  OptionTest_GetManagedRef   (OptionTest const*);
             ManagedData*        OptionTest_GetManagedMut   (OptionTest*);
             void                OptionTest_SetCopyable     (OptionTest*, CopyableData const* val);

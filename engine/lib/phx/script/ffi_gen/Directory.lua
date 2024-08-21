@@ -16,14 +16,14 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void             Directory_Free        (Directory*);
-            Directory const* Directory_Open        (cstr path);
-            cstr             Directory_GetNext     (Directory*);
-            bool             Directory_Change      (cstr cwd);
-            bool             Directory_Create      (cstr path);
-            cstr             Directory_GetCurrent  ();
-            cstr             Directory_GetPrefPath (cstr org, cstr app);
-            bool             Directory_Remove      (cstr path);
+            void       Directory_Free        (Directory*);
+            Directory* Directory_Open        (cstr path);
+            cstr       Directory_GetNext     (Directory*);
+            bool       Directory_Change      (cstr cwd);
+            bool       Directory_Create      (cstr path);
+            cstr       Directory_GetCurrent  ();
+            cstr       Directory_GetPrefPath (cstr org, cstr app);
+            bool       Directory_Remove      (cstr path);
         ]]
     end
 

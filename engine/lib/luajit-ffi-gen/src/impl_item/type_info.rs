@@ -154,19 +154,25 @@ impl TypeInfo {
                     }
                     _ => {
                         let (rust_ty_name, c_ty_name) = inner_ty.as_ffi(self_name);
-                        // Both Option<T> and Option<&T> is passed by reference as Option<&T>
-                        // which gets coerced to T const* by the Rust compiler.
-                        //
-                        // When we return an Option<T> from a Rust function, we pin the data
-                        // to a static instance.
+                        // When we return an Option<T> from a Rust function where T is copyable,
+                        // we pin the data to a static instance and return a pointer so we can
+                        // encode None properly.
                         match is_ref {
                             TypeRef::MutableReference => (
                                 format!("Option<&mut {rust_ty_name}>"),
                                 format!("{c_ty_name}*"),
                             ),
-                            TypeRef::Reference | TypeRef::Value => (
+                            TypeRef::Reference => (
                                 format!("Option<&{rust_ty_name}>"),
                                 format!("{c_ty_name} const*"),
+                            ),
+                            TypeRef::Value if inner_ty.is_copyable(self_name) => (
+                                format!("Option<&{rust_ty_name}>"),
+                                format!("{c_ty_name} const*"),
+                            ),
+                            TypeRef::Value => (
+                                format!("Option<Box<{rust_ty_name}>>"),
+                                format!("{c_ty_name}*"),
                             ),
                         }
                     }

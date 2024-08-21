@@ -243,11 +243,11 @@ fn test_custom_managed() {
         OptionTest_SetManaged(&mut t, None);
         assert_eq!(OptionTest_GetManaged(&t), None);
 
-        let tmp = Some(ManagedData::new(33));
-        OptionTest_SetManaged(&mut t, tmp.as_ref());
+        let tmp = Some(Box::new(ManagedData::new(33)));
+        OptionTest_SetManaged(&mut t, tmp);
         assert_eq!(
-            OptionTest_GetManaged(&t).cloned(),
-            Some(ManagedData::new(33))
+            OptionTest_GetManaged(&t),
+            Some(Box::new(ManagedData::new(33)))
         );
         assert_eq!(t.val_managed.val, 33);
 

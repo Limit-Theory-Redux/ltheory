@@ -231,7 +231,17 @@ fn test_managed() {
         }
     }
 
-    extern "C" fn get_value_opt(v: Option<&ManagedData>) {
+    extern "C" fn get_value_opt(v: Option<Box<ManagedData>>) {
+        unsafe {
+            if let Some(v) = v {
+                VALUE = *v;
+            } else {
+                VALUE = ManagedData::new(1024);
+            }
+        }
+    }
+
+    extern "C" fn get_value_ref_opt(v: Option<&ManagedData>) {
         unsafe {
             if let Some(v) = v {
                 VALUE = v.clone();
@@ -279,9 +289,9 @@ fn test_managed() {
         assert_eq!(VALUE, ManagedData::new(1024));
 
         CallbackTest_NthManagedMutOpt(&mut t, 1, mutate_value_if_present);
-        CallbackTest_NthManagedRefOpt(&mut t, 1, get_value_opt);
+        CallbackTest_NthManagedRefOpt(&mut t, 1, get_value_ref_opt);
         assert_eq!(VALUE, ManagedData::new(4));
-        CallbackTest_NthManagedRefOpt(&mut t, 5, get_value_opt);
+        CallbackTest_NthManagedRefOpt(&mut t, 5, get_value_ref_opt);
         assert_eq!(VALUE, ManagedData::new(1024));
 
         // We're just expecting this to not crash.

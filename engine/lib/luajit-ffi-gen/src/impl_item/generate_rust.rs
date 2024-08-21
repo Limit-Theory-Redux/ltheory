@@ -223,23 +223,16 @@ impl ImplInfo {
                             }
                         }
                     }
-                    TypeVariant::Custom(ty_name) => {
-                        let ty_name = if ty.is_self() { &self.name } else { ty_name };
-                        let ty_ident = format_ident!("{ty_name}");
-
-                        if is_ref.is_reference() {
-                            quote! { __res__ }
-                        } else {
-                            self.gen_buffered_ret(&ty_ident)
-                        }
-                    }
                     _ => {
                         if is_ref.is_reference() {
                             quote! { __res__ }
-                        } else {
+                        } else if ty.is_copyable(&self.name) {
                             let ty_ident = format_ident!("{}", ty.as_ffi(&self.name).0);
 
                             self.gen_buffered_ret(&ty_ident)
+                        } else {
+                            // Option<T> -> Option<Box<T>>.
+                            quote! { __res__.map(Box::new) }
                         }
                     }
                 },
@@ -322,11 +315,14 @@ impl ImplInfo {
                         match is_ref {
                             TypeRef::MutableReference => quote! { Option<&mut #ty_ident> },
                             TypeRef::Reference => quote! { Option<&#ty_ident> },
-                            TypeRef::Value => {
-                                // We pin an instance of Option<T> using gen_buffered_ret, so ensure the
-                                // right lifetime is used here.
+                            TypeRef::Value if ty.is_copyable(&self.name) => {
+                                // We pin an instance of Option<T> using gen_buffered_ret to encode
+                                // None, so ensure the right lifetime is used here.
                                 quote! { Option<&'static #ty_ident> }
-                            }
+                            },
+                            TypeRef::Value => {
+                                quote! { Option<Box<#ty_ident>> }
+                            },
                         }
                     }
                 }
@@ -464,9 +460,12 @@ impl ImplInfo {
                     _ => {
                         if is_ref.is_reference() {
                             quote! { #name_accessor }
-                        } else {
-                            // We need to promote Option<&T> to Option<T> if ty is neither a reference or mutable.
+                        } else if ty.is_copyable(&self.name) {
+                            // We need to promote Option<&T> to Option<T> if ty is copyable and it's passed by value
                             quote! { #name_accessor.cloned() }
+                        } else {
+                            // Option<Box<T>> -> Option<T>
+                            quote! { #name_accessor.map(|inner| *inner) }
                         }
                     }
                 }
@@ -608,12 +607,16 @@ impl ImplInfo {
                         quote! { #name_ident.as_ptr() }
                     }
                     _ => {
-                        if *is_ref == TypeRef::Value {
-                            // If it's passed by value, then we need to convert it to a reference.
-                            quote! { #name_ident.as_ref() }
-                        } else {
+                        if is_ref.is_reference() {
                             // If it's a reference, then pass it directly.
                             quote! { #name_ident }
+                        } else if ty.is_copyable(&self.name) {
+                            // If it's passed by value and is copyable, then we need to convert it
+                            // to a reference.
+                            quote! { #name_ident.as_ref() }
+                        } else {
+                            // We need to wrap it in a Box when transferring ownership to the callback.
+                            quote! { #name_ident.map(Box::new) }
                         }
                     }
                 }

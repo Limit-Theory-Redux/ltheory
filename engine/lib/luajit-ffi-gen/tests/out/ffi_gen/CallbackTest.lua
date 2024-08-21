@@ -27,7 +27,7 @@ function Loader.defineType()
             void   CallbackTest_NthManaged            (CallbackTest const*, uint64 index, void (*)(ManagedData*));
             void   CallbackTest_NthManagedRef         (CallbackTest const*, uint64 index, void (*)(ManagedData const*));
             void   CallbackTest_NthManagedMut         (CallbackTest*, uint64 index, void (*)(ManagedData*));
-            void   CallbackTest_NthManagedValOpt      (CallbackTest const*, uint64 index, void (*)(ManagedData const*));
+            void   CallbackTest_NthManagedValOpt      (CallbackTest const*, uint64 index, void (*)(ManagedData*));
             void   CallbackTest_NthManagedRefOpt      (CallbackTest const*, uint64 index, void (*)(ManagedData const*));
             void   CallbackTest_NthManagedMutOpt      (CallbackTest*, uint64 index, void (*)(ManagedData*));
             void   CallbackTest_InsertManaged         (CallbackTest*, ManagedData* (*)());
