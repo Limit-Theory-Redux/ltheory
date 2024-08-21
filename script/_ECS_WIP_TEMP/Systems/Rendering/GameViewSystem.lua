@@ -3,7 +3,7 @@
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
 
 -- Utilities
-local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Performance.QuickProfiler")
+local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler")
 
 ---@class GameViewSystem
 ---@overload fun(self: GameViewSystem) class internal

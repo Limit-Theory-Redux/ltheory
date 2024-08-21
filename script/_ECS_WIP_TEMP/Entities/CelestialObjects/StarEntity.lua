@@ -1,9 +1,13 @@
 local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 
 -- Components
-local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")          --!temp path
-local SeedComponent = require("_ECS_WIP_TEMP.Components.Generation.SeedComponent") --!temp path
-local TransformComponent = require("_ECS_WIP_TEMP.Components.Physics.Transform")   --!temp path
+local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")           --!temp path
+local SeedComponent = require("_ECS_WIP_TEMP.Components.Generation.SeedComponent")  --!temp path
+local TransformComponent = require("_ECS_WIP_TEMP.Components.Physics.Transform")    --!temp path
+local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarchy") --!temp path
+
+-- Types
+local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 
 ---@class StarEntity: Entity
 ---@overload fun(self: StarEntity, seed: integer): StarEntity subclass interal
@@ -20,6 +24,12 @@ local StarEntity = Subclass(Entity, function(self, seed)
 
     -- Transform Component
     self:addComponent(TransformComponent())
+
+    -- Hierarchy/Children Component
+    self:addComponent(HierarchyComponent(EntityInfo {
+        id = self:getGuid(),
+        archetype = self:getArchetype()
+    }))
 end)
 
 return StarEntity

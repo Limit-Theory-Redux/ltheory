@@ -1,5 +1,5 @@
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage")            --!temp path
-local UniverseSystem = require("_ECS_WIP_TEMP.Systems.Universe.UniverseSystem") --!temp path
+local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage")                              --!temp path
+local UniverseSystem = require("_ECS_WIP_TEMP.Systems.CelestialObjects.UniverseGenerationSystem") --!temp path
 
 local EntityComponentSystemTest = require('States.Application')
 

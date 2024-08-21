@@ -44,7 +44,7 @@ local UIRouter = require('UI.HmGui.UICore.UIRouter')
 After you import the UI Router you need to import all pages that you want to use. Then you can set the view you want to display directly on the page, in this case "Main". After this is sorted you can add the page to the router and tell it to render the added page.
 ```lua
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
-local UIPageExample = require('script.UI.HmGui.Pages.Example')
+local UIPageExample = require('UI.HmGui.Pages.Example')
 
 function AppState:onInit()
     -- set initial view

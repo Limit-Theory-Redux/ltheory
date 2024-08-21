@@ -13,6 +13,8 @@ Enums.EntityArchetype = { --* reorder these later
     PlayerEntity = 9,
     CameraEntity = 10,
     UniverseEntity = 11,
+    AsteroidBeltEntity = 12,
+    AsteroidRingEntity = 13
     -- ...
 }
 

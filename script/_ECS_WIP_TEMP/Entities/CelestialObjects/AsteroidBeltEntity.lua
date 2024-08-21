@@ -1,6 +1,3 @@
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
-
--- Entities
 local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 
 -- Components
@@ -12,15 +9,12 @@ local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarch
 -- Types
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 
--- Utils
-local Words = require('Systems.Gen.Words')
-
----@class StarSystemEntity: Entity
----@overload fun(self: StarSystemEntity, seed: integer): StarSystemEntity subclass internal
----@overload fun(seed: integer): StarSystemEntity subclass external
-local StarSystemEntity = Subclass(Entity, function(self, seed)
+---@class AsteroidBeltEntity: Entity
+---@overload fun(self: AsteroidBeltEntity, seed: integer): AsteroidBeltEntity subclass interal
+---@overload fun(seed: integer): AsteroidBeltEntity subclass external
+local AsteroidBeltEntity = Subclass(Entity, function(self, seed)
     -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.StarSystemEntity)
+    self:setArchetype(Enums.EntityArchetype.AsteroidBeltEntity)
 
     -- Name Component
     self:addComponent(NameComponent())
@@ -38,4 +32,4 @@ local StarSystemEntity = Subclass(Entity, function(self, seed)
     }))
 end)
 
-return StarSystemEntity
+return AsteroidBeltEntity

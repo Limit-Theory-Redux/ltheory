@@ -1,14 +1,18 @@
 local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 
 -- Components
-local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")          --!temp path
-local SeedComponent = require("_ECS_WIP_TEMP.Components.Generation.SeedComponent") --!temp path
-local TransformComponent = require("_ECS_WIP_TEMP.Components.Physics.Transform")   --!temp path
+local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")           --!temp path
+local SeedComponent = require("_ECS_WIP_TEMP.Components.Generation.SeedComponent")  --!temp path
+local TransformComponent = require("_ECS_WIP_TEMP.Components.Physics.Transform")    --!temp path
+local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarchy") --!temp path
 
----@class Asteroid: Entity
----@overload fun(self: Asteroid, seed: integer): Asteroid subclass interal
----@overload fun(seed: integer): Asteroid subclass external
-local Asteroid = Subclass(Entity, function(self, seed)
+-- Types
+local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
+
+---@class AsteroidEntity: Entity
+---@overload fun(self: AsteroidEntity, seed: integer): AsteroidEntity subclass interal
+---@overload fun(seed: integer): AsteroidEntity subclass external
+local AsteroidEntity = Subclass(Entity, function(self, seed)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.AsteroidEntity)
 
@@ -20,6 +24,12 @@ local Asteroid = Subclass(Entity, function(self, seed)
 
     -- Transform Component
     self:addComponent(TransformComponent())
+
+    -- Hierarchy/Children Component
+    self:addComponent(HierarchyComponent(EntityInfo {
+        id = self:getGuid(),
+        archetype = self:getArchetype()
+    }))
 end)
 
-return Asteroid
+return AsteroidEntity
