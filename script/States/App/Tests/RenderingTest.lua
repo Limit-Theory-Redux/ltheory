@@ -3,7 +3,6 @@ local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")            --!
 local Asteroid = require("_ECS_WIP_TEMP.Entities.CelestialObjects.Asteroid") --!temp path
 -- Systems
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage")         --!temp path
-local Universe = require("_ECS_WIP_TEMP.Systems.Universe")                   --!temp path
 ---@type CameraSystem
 local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem")
 -- Utilities
@@ -36,23 +35,23 @@ function RenderingTest:onInit()
     local rng = RNG.Create(0):managed()
 
     -- Spawn a Asteroid A
-    local A = Asteroid(rng:get64())
-    ---@type TransformComponent
-    local A_Transform = A:findComponentByName("PhysicsTransform")
+    local a = Asteroid(rng:get64())
+    local aTransform = a:findComponentByName("PhysicsTransform")
+    ---@cast aTransform TransformComponent
     --Log.Warn("Asteroid A Entity: " .. Inspect(A) .. "\nTransform Component: " .. Inspect(A_Transform) .. "\n\n")
 
     -- Spawn a Asteroid B
-    local B = Asteroid(rng:get64())
-    ---@type TransformComponent
-    local B_Transform = B:findComponentByName("PhysicsTransform")
+    local b = Asteroid(rng:get64())
+    local bTransform = b:findComponentByName("PhysicsTransform")
+    ---@cast bTransform TransformComponent
     --Log.Warn("Asteroid B Entity: " .. Inspect(B) .. "\nTransform Component: " .. Inspect(B_Transform))
 
-    print(A, B, A_Transform, B_Transform)
+    print(a, b, aTransform, bTransform)
 
     ---@type Material
     local mat = Material('pulse', 'billboard/axis', 'effect/pulsetail')
     local autoShaderVar = mat:addAutoShaderVar("color", setArbValVec3f)
-    if autoShaderVar then autoShaderVar:setShaderVar(mat.shaderState, A_Transform, B_Transform) end
+    if autoShaderVar then autoShaderVar:setShaderVar(mat.shaderState, aTransform, bTransform) end
 end
 
 return RenderingTest
