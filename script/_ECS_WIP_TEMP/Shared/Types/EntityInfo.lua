@@ -1,7 +1,14 @@
 local EntityInfo = {}
 EntityInfo.__index = EntityInfo
 
--- Meta table for the EntityInfo class
+local sharedMeta = {
+    __index = EntityInfo,
+    __type = Enums.Type.EntityInfo,
+    __tostring = function(self)
+        return Enums.Type:getName(Enums.Type.EntityInfo)
+    end
+}
+
 local classMeta = {
     __call = function(cls, ...)
         return cls:new(...)
@@ -21,27 +28,17 @@ local classMeta = {
 ---@return EntityInfo|nil
 function EntityInfo:new(args)
     if not args.id or not args.archetype then
-        return
+        return nil
     end
 
-    local newEntityInfo = setmetatable({}, {
-        __index = self,
-        __type = Enums.Type.EntityInfo,
-        __tostring = function(self)
-            local mt = getmetatable(self)
-            local typeName = Enums.Type:getName(mt.__type)
-            return typeName
-        end
-    })
-    newEntityInfo.id = args.id
-    newEntityInfo.archetype = args.archetype
+    local newEntityInfo = setmetatable({
+        id = args.id,
+        archetype = args.archetype,
+    }, sharedMeta)
 
     return newEntityInfo
 end
 
 setmetatable(EntityInfo, classMeta)
-
----@type EntityInfoConstructor
-EntityInfo = EntityInfo
 
 return EntityInfo
