@@ -40,7 +40,6 @@ end
 do -- Opaque Structs
   ffi.cdef [[
     typedef struct BSP          {} BSP;
-    typedef struct BoxMesh      {} BoxMesh;
     typedef struct BoxTree      {} BoxTree;
     typedef struct File         {} File;
     typedef struct HashGrid     {} HashGrid;
@@ -62,7 +61,6 @@ do -- Opaque Structs
 
   libphx.Opaques = {
     'BSP',
-    'BoxMesh',
     'BoxTree',
     'File',
     'HashGrid',
