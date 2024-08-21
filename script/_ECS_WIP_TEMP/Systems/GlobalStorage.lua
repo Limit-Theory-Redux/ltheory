@@ -121,7 +121,7 @@ function GlobalStorage:getComponentData(componentInfo)
 end
 
 ---@param archetype EntityArchetype
----@return Iterator<Entity>|nil
+---@return table<Entity>|nil
 function GlobalStorage:getEntitiesFromArchetype(archetype)
     if self.entities[archetype] then
         return self.entities[archetype]
@@ -129,7 +129,7 @@ function GlobalStorage:getEntitiesFromArchetype(archetype)
 end
 
 ---@param archetype ComponentArchetype
----@return Iterator<Entity>|nil
+---@return table<Entity>|nil
 function GlobalStorage:getComponentsFromArchetype(archetype)
     if self.components[archetype] then
         return self.components[archetype]

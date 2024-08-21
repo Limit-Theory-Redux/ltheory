@@ -5,8 +5,10 @@ local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 
 -- Components
 local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")           --!temp path
-local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarchy") --!temp path
+local SeedComponent = require("_ECS_WIP_TEMP.Components.Generation.SeedComponent")  --!temp path
+local TransformComponent = require("_ECS_WIP_TEMP.Components.Physics.Transform")    --!temp path
 local PlayerListComponent = require("_ECS_WIP_TEMP.Components.Economy.PlayerList")  --!temp path
+local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarchy") --!temp path
 
 -- Types
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
@@ -14,15 +16,22 @@ local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 -- Utils
 local Words = require('Systems.Gen.Words')
 
----@class StarSystem: Entity
----@overload fun(self: StarSystem, seed: integer): StarSystem subclass internal
----@overload fun(seed: integer): StarSystem subclass external
-local StarSystem = Subclass(Entity, function(self, seed)
+---@class StarSystemEntity: Entity
+---@overload fun(self: StarSystemEntity, seed: integer): StarSystemEntity subclass internal
+---@overload fun(seed: integer): StarSystemEntity subclass external
+local StarSystemEntity = Subclass(Entity, function(self, seed)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.StarSystemEntity)
 
     -- Name Component
     self:addComponent(NameComponent())
+
+    -- Seed Component
+    self:addComponent(SeedComponent(seed))
+
+    -- Transform Component
+    self:addComponent(TransformComponent())
+
     -- PlayerList Component
     self:addComponent(PlayerListComponent())
     --todo: include projectiles
@@ -34,4 +43,4 @@ local StarSystem = Subclass(Entity, function(self, seed)
     }))
 end)
 
-return StarSystem
+return StarSystemEntity

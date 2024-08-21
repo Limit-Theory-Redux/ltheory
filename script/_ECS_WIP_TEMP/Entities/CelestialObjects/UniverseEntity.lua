@@ -2,9 +2,8 @@ local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 
 -- Components
 local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")           --!temp path
-local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarchy") --!temp path
 local SeedComponent = require("_ECS_WIP_TEMP.Components.Generation.SeedComponent")  --!temp path
-local RNGComponent = require("_ECS_WIP_TEMP.Components.Generation.RNGComponent")    --!temp path
+local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarchy") --!temp path
 
 -- Types
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
@@ -21,9 +20,6 @@ local UniverseEntity = Subclass(Entity, function(self, seed)
 
     -- Seed Component
     self:addComponent(SeedComponent(seed))
-
-    -- Random Number Generator Component
-    self:addComponent(RNGComponent(seed))
 
     -- Hierarchy/Children Component
     self:addComponent(HierarchyComponent(EntityInfo {
