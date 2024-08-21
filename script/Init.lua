@@ -48,6 +48,7 @@ require('Core.Util.RequireAll')
 
 ---- Finish Requiring all Lua Built-In Class Extensions
 require('Core.LuaExtensions.TableEx')
+require('Core.LuaExtensions.TypeEx')
 
 ---- Now handle loading Util and Structures into Core and Global Namespace
 Core.Struct = requireAll('Core.Structures')
