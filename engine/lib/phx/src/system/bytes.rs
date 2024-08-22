@@ -11,18 +11,6 @@ pub struct Bytes {
 }
 
 impl Bytes {
-    // fn as_slice(&self) -> &[u8] {
-    //     return unsafe {
-    //         std::slice::from_raw_parts(&self.data as *const i8 as *const u8, self.size as usize)
-    //     };
-    // }
-
-    // #[allow(dead_code)]
-    // fn to_slice_mut(&mut self) -> &mut [u8] {
-    //     return unsafe {
-    //         std::slice::from_raw_parts_mut(&mut self.data as *mut i8 as *mut u8, self.size as usize)
-    //     };
-    // }
     pub fn from_vec(data: Vec<u8>) -> Bytes {
         Bytes {
             cursor: Cursor::new(data),
@@ -37,6 +25,14 @@ impl Bytes {
     /// WARNING: This only works if T is plain-old-data i.e. has no pointers!
     pub fn write<T>(&mut self, data: &[T]) {
         self.write_bytes(unsafe { std::mem::transmute::<&[T], &[u8]>(data) });
+    }
+
+    pub fn as_mut_ptr(&mut self) -> *mut u8 {
+        self.cursor.get_mut().as_mut_ptr()
+    }
+
+    pub fn as_ptr(&self) -> *const u8 {
+        self.cursor.get_ref().as_ptr()
     }
 }
 
@@ -212,5 +208,5 @@ impl Bytes {
 
 #[no_mangle]
 pub extern "C" fn Bytes_GetData(this: &mut Bytes) -> *mut libc::c_void {
-    this.cursor.get_mut().as_mut_ptr() as *mut _
+    this.as_mut_ptr() as *mut _
 }
