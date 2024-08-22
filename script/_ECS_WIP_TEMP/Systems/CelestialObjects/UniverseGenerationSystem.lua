@@ -52,6 +52,7 @@ function UniverseGenerationSystem:createUniverse(seed)
         -- Generate constructs
         -- * currently spawned as a child of star system
         -- * idea could be that you´d have some kind of gravity well zone which adds / removes them while traveling
+        -- todo: spawn in a seperate system via economy
         self:generateConstructs(starSystem, starSystemRNG)
 
         -- Add star system to universe

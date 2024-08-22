@@ -14,7 +14,9 @@ Enums.EntityArchetype = { --* reorder these later
     CameraEntity = 10,
     UniverseEntity = 11,
     AsteroidBeltEntity = 12,
-    AsteroidRingEntity = 13
+    AsteroidRingEntity = 13,
+    ZoneEntity = 14,
+    TriggerEntity = 15,
     -- ...
 }
 
@@ -42,6 +44,7 @@ Enums.ComponentArchetype = { --* reorder these later
     RigidBodyComponent = 9,
     CameraDataComponent = 10,
     SeedComponent = 11,
+    ShapeComponent = 12,
     -- ...
 }
 
