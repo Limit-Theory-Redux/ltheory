@@ -62,6 +62,11 @@ const COPY_TYPES: &[&str] = &[
     "TextAlignment",
     "FrameStage",
     "EventPayloadType",
+    "TexFormat",
+    "TexFilter",
+    "TexWrapMode",
+    "PixelFormat",
+    "DataFormat",
 ];
 
 #[derive(Debug, PartialEq)]
