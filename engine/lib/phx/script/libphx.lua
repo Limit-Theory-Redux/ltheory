@@ -53,7 +53,6 @@ do -- Opaque Structs
     typedef struct RmGui        {} RmGui;
     typedef struct SDF          {} SDF;
     typedef struct Socket       {} Socket;
-    typedef struct Tex1D        {} Tex1D;
     typedef struct Tex2D        {} Tex2D;
     typedef struct Tex3D        {} Tex3D;
     typedef struct TexCube      {} TexCube;
@@ -73,7 +72,6 @@ do -- Opaque Structs
     'RmGui',
     'SDF',
     'Socket',
-    'Tex1D',
     'Tex2D',
     'Tex3D',
     'TexCube',
