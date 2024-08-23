@@ -31,7 +31,7 @@ function RigidBody.CreateTrimeshFromMesh(mesh) end
 
 -- Return a reference to the parent rigid body, that we can guarantee
 -- has a lifetime as long as self.
----@return RigidBody|nil
+---@return RigidBody?
 function RigidBody:getParentBody() end
 
 ---@param force Vec3f

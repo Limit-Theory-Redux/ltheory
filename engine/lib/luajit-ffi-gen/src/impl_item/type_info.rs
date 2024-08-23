@@ -65,214 +65,217 @@ const COPY_TYPES: &[&str] = &[
 ];
 
 #[derive(Debug, PartialEq)]
-pub enum TypeWrapper {
-    /// Base type T, no wrapper.
-    None,
-    /// Option type: Option<T>, Option<&T>, Option<&mut T>
-    Option,
-    /// Boxed type: Box<T>
-    Box,
-    /// Slice type: &[T], &mut [T]
-    Slice,
-    /// Array type: [T; N], &[T; N], &mut [T; N]
-    Array(usize),
+pub enum TypeRef {
+    // A value T
+    Value,
+    // A reference such as &T
+    Reference,
+    // A mutable reference such as &mut T.
+    MutableReference,
 }
 
-#[derive(Debug)]
-pub struct TypeInfo {
-    /// Reference type: &T
-    pub is_reference: bool,
-    /// Mutable reference type: &mut T
-    pub is_mutable: bool,
-    /// Result type. Can be used only in the return position
-    pub is_result: bool,
-
-    pub wrapper: TypeWrapper,
-    pub variant: TypeVariant,
-}
-
-#[derive(Debug)]
-pub struct FFIType {
-    /// Rust FFI type i.e. &mut T
-    pub rust: String,
-    /// C FFI type i.e. T*
-    pub c: String,
-}
-
-impl FFIType {
-    pub fn new<R: Into<String>, C: Into<String>>(rust: R, c: C) -> Self {
-        Self {
-            rust: rust.into(),
-            c: c.into(),
-        }
+impl TypeRef {
+    pub fn is_reference(&self) -> bool {
+        *self != Self::Value
     }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum TypeInfo {
+    // T, &T, &mut T
+    Plain {
+        is_ref: TypeRef,
+        ty: TypeVariant,
+    },
+    // Option<T>, Option<&T>, Option<&mut T>
+    Option {
+        is_ref: TypeRef,
+        inner_ty: TypeVariant,
+    },
+    // Box<T>
+    Box {
+        inner_ty: TypeVariant,
+    },
+    // &[T], &mut [T]
+    Slice {
+        is_ref: TypeRef,
+        elem_ty: TypeVariant,
+    },
+    // [T; N], &[T; N], &mut [T; N]
+    Array {
+        is_ref: TypeRef,
+        elem_ty: TypeVariant,
+        length: usize,
+    },
+    // Fn/FnMut/FnOnce(args) -> R
+    Function {
+        args: Vec<TypeInfo>,
+        ret_ty: Option<Box<TypeInfo>>,
+    },
+    // Result<T>, only valid in the return position
+    Result {
+        inner: Box<TypeInfo>,
+    },
 }
 
 impl TypeInfo {
-    pub fn is_self(&self) -> bool {
-        if let TypeVariant::Custom(ty) = &self.variant {
-            if ty == "Self" {
-                return true;
-            }
-        }
-
-        false
-    }
-
-    pub fn is_copyable(&self, self_name: &str) -> bool {
-        match &self.variant {
-            TypeVariant::Custom(ty_name) => {
-                let ty_name = if ty_name == "Self" {
-                    self_name
-                } else {
-                    ty_name
-                };
-                COPY_TYPES.contains(&ty_name)
-            }
-            _ => true,
-        }
-    }
-
-    pub fn get_managed_type(&self) -> Option<&str> {
-        match &self.variant {
-            TypeVariant::Custom(ty_name) => {
-                if !COPY_TYPES.contains(&ty_name.as_str()) {
-                    Some(ty_name.as_str())
-                } else {
-                    None
-                }
-            }
-            _ => None,
-        }
-    }
-
-    pub fn as_ffi(&self, self_name: &str) -> FFIType {
-        match &self.variant {
-            TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
-                if self.is_mutable {
-                    FFIType::new("*mut libc::c_char", "char*")
-                } else {
-                    FFIType::new("*const libc::c_char", "cstr")
-                }
-            }
-            TypeVariant::Custom(ty_name) => {
-                let ty_name = if self.is_self() { self_name } else { ty_name };
-
-                let ffi_ty_name = RUST_TO_LUA_TYPE_MAP
-                    .iter()
-                    .find(|(r_ty, _)| *r_ty == ty_name)
-                    .map(|(_, l_ty)| l_ty.to_string())
-                    .unwrap_or(ty_name.to_string());
-
-                match self.wrapper {
-                    TypeWrapper::Slice | TypeWrapper::Array(_) => {
-                        // Options, slices and arrays are always pointers to the struct.
-                        if self.is_mutable {
-                            FFIType::new(format!("*mut {ty_name}"), format!("{ffi_ty_name}*"))
-                        } else {
-                            FFIType::new(
-                                format!("*const {ty_name}"),
-                                format!("{ffi_ty_name} const*"),
-                            )
-                        }
+    pub fn as_ffi(&self, self_name: &str) -> (String, String) {
+        match self {
+            Self::Plain { is_ref, ty } => match ty {
+                TypeVariant::Str | TypeVariant::String => {
+                    if *is_ref == TypeRef::MutableReference {
+                        ("*mut libc::c_char".into(), "char*".into())
+                    } else {
+                        ("*const libc::c_char".into(), "cstr".into())
                     }
-                    TypeWrapper::Option => {
-                        if self.is_mutable {
-                            FFIType::new(
-                                format!("Option<&mut {ty_name}>"),
-                                format!("{ffi_ty_name}*"),
-                            )
+                }
+                _ => {
+                    let (rust_ty_name, c_ty_name) = ty.as_ffi(self_name);
+                    match is_ref {
+                        TypeRef::MutableReference => {
+                            (format!("&mut {rust_ty_name}"), format!("{c_ty_name}*"))
+                        }
+                        TypeRef::Reference => {
+                            (format!("&{rust_ty_name}"), format!("{c_ty_name} const*"))
+                        }
+                        TypeRef::Value if ty.is_copyable(self_name) => (rust_ty_name, c_ty_name),
+                        TypeRef::Value => (format!("Box<{rust_ty_name}>"), format!("{c_ty_name}*")),
+                    }
+                }
+            },
+            Self::Option { is_ref, inner_ty } => {
+                match inner_ty {
+                    TypeVariant::Str | TypeVariant::String => {
+                        if *is_ref == TypeRef::MutableReference {
+                            ("*mut libc::c_char".into(), "char*".into())
                         } else {
-                            // Both Option<T> and Option<&T> is passed by reference as Option<&T>
-                            // which gets coerced to T const* by the Rust compiler.
-                            //
-                            // When we return an Option<T> from a Rust function, we pin the data
-                            // to a static instance.
-                            FFIType::new(
-                                format!("Option<&{ty_name}>"),
-                                format!("{ffi_ty_name} const*"),
-                            )
+                            ("*const libc::c_char".into(), "cstr".into())
                         }
                     }
                     _ => {
-                        if self.is_mutable {
-                            // Mutable is always with reference
-                            FFIType::new(format!("&mut {ty_name}"), format!("{ffi_ty_name}*"))
-                        } else if self.is_reference {
-                            FFIType::new(format!("&{ty_name}"), format!("{ffi_ty_name} const*"))
-                        } else if self.is_copyable(self_name) {
-                            FFIType::new(ty_name, ffi_ty_name)
-                        } else {
-                            FFIType::new(format!("Box<{ty_name}>"), format!("{ffi_ty_name}*"))
-                        }
-                    }
-                }
-            }
-            _ => {
-                let ffy_ty_name = self.variant.as_ffi();
-                let rust_ty_name = ffy_ty_name.rust;
-                let c_ty_name = ffy_ty_name.c;
-
-                match self.wrapper {
-                    TypeWrapper::Slice | TypeWrapper::Array(_) => {
-                        // Options and slices are always pointers to the primitive type.
-                        if self.is_mutable {
-                            FFIType::new(format!("*mut {rust_ty_name}"), format!("{c_ty_name}*"))
-                        } else {
-                            FFIType::new(
-                                format!("*const {rust_ty_name}"),
-                                format!("{c_ty_name} const*"),
-                            )
-                        }
-                    }
-                    TypeWrapper::Option => {
-                        if self.is_mutable {
-                            FFIType::new(
+                        let (rust_ty_name, c_ty_name) = inner_ty.as_ffi(self_name);
+                        // When we return an Option<T> from a Rust function where T is copyable,
+                        // we pin the data to a static instance and return a pointer so we can
+                        // encode None properly.
+                        match is_ref {
+                            TypeRef::MutableReference => (
                                 format!("Option<&mut {rust_ty_name}>"),
                                 format!("{c_ty_name}*"),
-                            )
-                        } else {
-                            // Both Option<T> and Option<&T> is passed by reference as Option<&T>
-                            // which gets coerced to T const* by the Rust compiler.
-                            //
-                            // When we return an Option<T> from a Rust function, we pin the data
-                            // to a static instance.
-                            FFIType::new(
+                            ),
+                            TypeRef::Reference => (
                                 format!("Option<&{rust_ty_name}>"),
                                 format!("{c_ty_name} const*"),
-                            )
-                        }
-                    }
-                    _ => {
-                        if self.is_mutable {
-                            // Mutable is always with reference
-                            FFIType::new(format!("&mut {rust_ty_name}"), format!("{c_ty_name}*"))
-                        } else {
-                            // We don't care if there is reference on the numeric type - just accept it by value
-                            FFIType::new(rust_ty_name, c_ty_name)
+                            ),
+                            TypeRef::Value if inner_ty.is_copyable(self_name) => (
+                                format!("Option<&{rust_ty_name}>"),
+                                format!("{c_ty_name} const*"),
+                            ),
+                            TypeRef::Value => (
+                                format!("Option<Box<{rust_ty_name}>>"),
+                                format!("{c_ty_name}*"),
+                            ),
                         }
                     }
                 }
             }
+            Self::Box { inner_ty } => {
+                let (rust_ty_name, c_ty_name) = inner_ty.as_ffi(self_name);
+                (format!("Box<{rust_ty_name}>"), format!("{c_ty_name}*"))
+            }
+            Self::Slice { is_ref, elem_ty }
+            | Self::Array {
+                is_ref, elem_ty, ..
+            } => {
+                // Slices and arrays are always pointers to the inner type.
+                let (rust_ty_name, c_ty_name) = elem_ty.as_ffi(self_name);
+                if *is_ref == TypeRef::MutableReference {
+                    (format!("*mut {rust_ty_name}"), format!("{c_ty_name}*"))
+                } else {
+                    match elem_ty {
+                        TypeVariant::Str | TypeVariant::String => {
+                            ("*const *const libc::c_char".into(), "cstr*".into())
+                        }
+                        _ => (
+                            format!("*const {rust_ty_name}"),
+                            format!("{c_ty_name} const*"),
+                        ),
+                    }
+                }
+            }
+            Self::Function { args, ret_ty } => {
+                let self_name = "Self";
+
+                let args = args
+                    .iter()
+                    .flat_map(|arg| {
+                        let mut args = vec![arg.as_ffi(self_name)];
+
+                        match arg {
+                            Self::Slice { .. } | Self::Array { .. } => {
+                                args.push(TypeVariant::USize.as_ffi(self_name))
+                            }
+                            _ => {}
+                        }
+
+                        args
+                    })
+                    .reduce(|acc, next| {
+                        (
+                            format!("{}, {}", acc.0, next.0),
+                            format!("{}, {}", acc.1, next.1),
+                        )
+                    })
+                    .unwrap_or(("".into(), "".into()));
+
+                let ret_ty = ret_ty
+                    .as_ref()
+                    .map_or(("()".into(), "void".into()), |ret| ret.as_ffi(self_name));
+
+                (
+                    format!("extern fn({}) -> {}", args.0, ret_ty.0),
+                    format!("{} (*)({})", ret_ty.1, args.1),
+                )
+            }
+            Self::Result { inner } => {
+                // Result's just get unwrapped, so return the inner type.
+                inner.as_ffi(self_name)
+            }
         }
     }
 
-    pub fn as_lua_ffi_string(&self, self_name: &str) -> String {
-        if let TypeVariant::Custom(ty_name) = &self.variant {
-            let ty_ident = if self.is_self() { self_name } else { ty_name };
+    // This returns the annotation type supported by LLS as per
+    // https://luals.github.io/wiki/annotations/#documenting-types
+    pub fn get_luals_annotation(&self, self_name: &str) -> String {
+        match self {
+            Self::Function { args, ret_ty } => {
+                let args = args
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, ty)| {
+                        format!("arg{}: {}", idx + 1, ty.get_luals_annotation(self_name))
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
 
-            RUST_TO_LUA_TYPE_MAP
-                .iter()
-                .find(|(r_ty, _)| *r_ty == ty_name)
-                .map(|(_, l_ty)| l_ty.to_string())
-                .unwrap_or(ty_ident.to_string())
-        } else {
-            self.variant.as_lua_ffi_string()
+                let ret_ty = ret_ty.as_ref().map_or("nil".to_string(), |ret_ty| {
+                    ret_ty.get_luals_annotation(self_name)
+                });
+
+                format!("fun({args}): {ret_ty}")
+            }
+            Self::Plain { ty, .. } | Self::Box { inner_ty: ty, .. } => {
+                ty.get_luals_annotation(self_name)
+            }
+            Self::Option { inner_ty: ty, .. } => format!("{}?", ty.get_luals_annotation(self_name)),
+            Self::Slice { elem_ty: ty, .. } | Self::Array { elem_ty: ty, .. } => {
+                format!("{}[]", ty.get_luals_annotation(self_name))
+            }
+            Self::Result { inner } => inner.get_luals_annotation(self_name),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TypeVariant {
     Bool,
     I8,
@@ -289,15 +292,47 @@ pub enum TypeVariant {
     F64,
     Str,
     String,
-    CString,
     Custom(String),
-    Function {
-        args: Vec<TypeInfo>,
-        ret: Option<Box<TypeInfo>>,
-    },
 }
 
 impl TypeVariant {
+    pub fn is_self(&self) -> bool {
+        if let TypeVariant::Custom(ty) = self {
+            if ty == "Self" {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn is_copyable(&self, self_name: &str) -> bool {
+        match self {
+            TypeVariant::Custom(ty_name) => {
+                let ty_name = if ty_name == "Self" {
+                    self_name
+                } else {
+                    ty_name
+                };
+                COPY_TYPES.contains(&ty_name)
+            }
+            _ => true,
+        }
+    }
+
+    pub fn get_managed_type(&self) -> Option<&str> {
+        match self {
+            TypeVariant::Custom(ty_name) => {
+                if !COPY_TYPES.contains(&ty_name.as_str()) {
+                    Some(ty_name.as_str())
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
     pub fn from_rust_ffi_str(type_name: &str) -> Option<Self> {
         let res = match type_name {
             "bool" => Self::Bool,
@@ -315,70 +350,48 @@ impl TypeVariant {
             "f64" => Self::F64,
             "str" => Self::Str,
             "String" => Self::String,
-            "CString" => Self::CString,
             _ => return None,
         };
 
         Some(res)
     }
 
-    pub fn as_ffi(&self) -> FFIType {
+    pub fn as_ffi(&self, self_name: &str) -> (String, String) {
         match self {
-            Self::Bool => FFIType::new("bool", "bool"),
-            Self::I8 => FFIType::new("i8", "int8"),
-            Self::U8 => FFIType::new("u8", "uint8"),
-            Self::I16 => FFIType::new("i16", "int16"),
-            Self::U16 => FFIType::new("u16", "uint16"),
-            Self::I32 => FFIType::new("i32", "int"),
-            Self::U32 => FFIType::new("u32", "uint32"),
-            Self::I64 => FFIType::new("i64", "int64"),
-            Self::U64 => FFIType::new("u64", "uint64"),
-            Self::ISize => FFIType::new("isize", "int64"),
-            Self::USize => FFIType::new("usize", "uint64"),
-            Self::F32 => FFIType::new("f32", "float"),
-            Self::F64 => FFIType::new("f64", "double"),
-            Self::Str => FFIType::new("str", "cstr"),
-            Self::String => FFIType::new("String", "cstr"),
-            Self::CString => FFIType::new("CString", "cstr"),
-            Self::Custom(val) => FFIType::new(val.clone(), val),
-            Self::Function { args, ret } => {
-                let self_name = "Self";
-
-                let args = args
+            Self::Bool => ("bool".into(), "bool".into()),
+            Self::I8 => ("i8".into(), "int8".into()),
+            Self::U8 => ("u8".into(), "uint8".into()),
+            Self::I16 => ("i16".into(), "int16".into()),
+            Self::U16 => ("u16".into(), "uint16".into()),
+            Self::I32 => ("i32".into(), "int".into()),
+            Self::U32 => ("u32".into(), "uint32".into()),
+            Self::I64 => ("i64".into(), "int64".into()),
+            Self::U64 => ("u64".into(), "uint64".into()),
+            Self::ISize => ("isize".into(), "int64".into()),
+            Self::USize => ("usize".into(), "uint64".into()),
+            Self::F32 => ("f32".into(), "float".into()),
+            Self::F64 => ("f64".into(), "double".into()),
+            Self::Str => ("str".into(), "cstr".into()),
+            Self::String => ("String".into(), "cstr".into()),
+            Self::Custom(ty_name) => {
+                let ty_name = if self.is_self() {
+                    self_name
+                } else {
+                    ty_name.as_str()
+                };
+                let ffi_ty_name = RUST_TO_LUA_TYPE_MAP
                     .iter()
-                    .flat_map(|arg| {
-                        let mut args = vec![arg.as_ffi(self_name)];
-
-                        match &arg.wrapper {
-                            TypeWrapper::Slice | TypeWrapper::Array(_) => {
-                                args.push(TypeVariant::USize.as_ffi())
-                            }
-                            _ => {}
-                        }
-
-                        args
-                    })
-                    .reduce(|acc, next| {
-                        FFIType::new(
-                            format!("{}, {}", acc.rust, next.rust),
-                            format!("{}, {}", acc.c, next.c),
-                        )
-                    })
-                    .unwrap_or(FFIType::new("", ""));
-
-                let ret = ret
-                    .as_ref()
-                    .map_or(FFIType::new("()", "void"), |ret| ret.as_ffi(self_name));
-
-                FFIType::new(
-                    format!("extern fn({}) -> {}", args.rust, ret.rust),
-                    format!("{} (*)({})", ret.c, args.c),
-                )
+                    .find(|(r_ty, _)| *r_ty == ty_name)
+                    .map(|(_, l_ty)| *l_ty)
+                    .unwrap_or(ty_name);
+                (ty_name.to_string(), ffi_ty_name.to_string())
             }
         }
     }
 
-    pub fn as_lua_ffi_string(&self) -> String {
+    // This returns the annotation type supported by LLS as per
+    // https://luals.github.io/wiki/annotations/#documenting-types
+    pub fn get_luals_annotation(&self, self_name: &str) -> String {
         match self {
             Self::Bool => "boolean",
             Self::I8
@@ -392,9 +405,15 @@ impl TypeVariant {
             | Self::ISize
             | Self::USize => "integer",
             Self::F32 | Self::F64 => "number",
-            Self::Str | Self::String | Self::CString => "string",
-            Self::Custom(val) => return val.clone(),
-            Self::Function { .. } => "function",
+            Self::Str | Self::String => "string",
+            Self::Custom(ty_name) => {
+                let ty_name = if self.is_self() { self_name } else { ty_name };
+                RUST_TO_LUA_TYPE_MAP
+                    .iter()
+                    .find(|(r_ty, _)| *r_ty == ty_name)
+                    .map(|(_, l_ty)| *l_ty)
+                    .unwrap_or(ty_name)
+            }
         }
         .into()
     }

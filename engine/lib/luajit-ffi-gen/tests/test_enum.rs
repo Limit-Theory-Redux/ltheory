@@ -1,25 +1,34 @@
 use luajit_ffi_gen::luajit_ffi;
 
-#[luajit_ffi(name = "My_Enum1", start_index = 3, lua_ffi = false)]
+#[luajit_ffi(
+    name = "My_Enum1",
+    start_index = 3,
+    gen_dir = "./tests/out/ffi_gen",
+    meta_dir = "./tests/out/ffi_meta"
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MyEnum1 {
     Var1,
     Var2,
 }
 
-#[luajit_ffi(repr = "u32", lua_ffi = false)]
+#[luajit_ffi(
+    repr = "u32",
+    gen_dir = "./tests/out/ffi_gen",
+    meta_dir = "./tests/out/ffi_meta"
+)]
 #[derive(Debug)]
 pub enum MyEnum2 {
     Var1 = 1,
     Var2 = 3,
 }
 
-pub struct MyStruct1 {
+pub struct EnumTest {
     my_enum: MyEnum1,
 }
 
-#[luajit_ffi(name = "My_Struct1", lua_ffi = false)]
-impl MyStruct1 {
+#[luajit_ffi(gen_dir = "./tests/out/ffi_gen", meta_dir = "./tests/out/ffi_meta")]
+impl EnumTest {
     pub fn new(my_enum: &MyEnum1) -> Self {
         Self { my_enum: *my_enum }
     }
@@ -41,7 +50,7 @@ fn test_enum_value() {
 
 #[test]
 fn test_enum_in_struct() {
-    let s = MyStruct1::new(&MyEnum1::Var1);
+    let s = EnumTest::new(&MyEnum1::Var1);
 
     assert_eq!(s.get(), MyEnum1::Var1);
 }

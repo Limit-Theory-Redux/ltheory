@@ -25,7 +25,6 @@ impl EnumInfo {
             } else {
                 "u8"
             }
-            .into()
         };
         let repr_type_ident = format_ident!("{repr_type}");
 
@@ -34,7 +33,7 @@ impl EnumInfo {
 
         // Generate Lua FFI files if enabled.
         if attr_args.gen_lua_ffi() {
-            self.gen_lua_ffi(attr_args, &repr_type);
+            self.gen_lua_ffi(attr_args, repr_type);
         }
 
         // TODO: generate repr type binding for Lua
