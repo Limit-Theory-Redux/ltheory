@@ -41,6 +41,47 @@ impl Tex1DShared {
     }
 }
 
+impl Tex1D {
+    pub fn get_data<T: Clone + Default>(&self, pf: PixelFormat, df: DataFormat) -> Vec<T> {
+        let this = self.shared.as_ref();
+
+        let mut size: i32 = this.size;
+        size *= DataFormat_GetSize(df);
+        size *= PixelFormat_Components(pf);
+        size /= std::mem::size_of::<T>() as i32;
+
+        let mut data = vec![T::default(); size as usize];
+        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
+        glcheck!(gl::GetTexImage(
+            gl::TEXTURE_1D,
+            0,
+            pf as gl::types::GLenum,
+            df as gl::types::GLenum,
+            data.as_mut_ptr() as *mut _,
+        ));
+        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+
+        data
+    }
+
+    pub fn set_data<T>(&mut self, data: &[T], pf: PixelFormat, df: DataFormat) {
+        let this = self.shared.as_ref();
+
+        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
+        glcheck!(gl::TexImage1D(
+            gl::TEXTURE_1D,
+            0,
+            this.format,
+            this.size,
+            0,
+            pf as gl::types::GLenum,
+            df as gl::types::GLenum,
+            data.as_ptr() as *const _,
+        ));
+        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+    }
+}
+
 #[luajit_ffi_gen::luajit_ffi]
 impl Tex1D {
     #[bind(name = "Create")]
@@ -103,21 +144,7 @@ impl Tex1D {
     }
 
     pub fn get_data_bytes(&mut self, pf: PixelFormat, df: DataFormat) -> Bytes {
-        let this = self.shared.as_ref();
-
-        let size = this.size * DataFormat_GetSize(df) * PixelFormat_Components(pf);
-        let mut data = vec![0u8; size as usize];
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::GetTexImage(
-            gl::TEXTURE_1D,
-            0,
-            pf as gl::types::GLenum,
-            df as gl::types::GLenum,
-            data.as_mut_ptr() as *mut _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
-
-        Bytes::from_vec(data)
+        Bytes::from_vec(self.get_data(pf, df))
     }
 
     pub fn get_handle(&self) -> u32 {
@@ -131,20 +158,7 @@ impl Tex1D {
     }
 
     pub fn set_data_bytes(&mut self, data: &Bytes, pf: PixelFormat, df: DataFormat) {
-        let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::TexImage1D(
-            gl::TEXTURE_1D,
-            0,
-            this.format,
-            this.size,
-            0,
-            pf as gl::types::GLenum,
-            df as gl::types::GLenum,
-            data.as_ptr() as *const _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+        self.set_data(data.as_slice(), pf, df);
     }
 
     pub fn set_mag_filter(&mut self, filter: TexFilter) {
