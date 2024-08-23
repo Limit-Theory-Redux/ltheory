@@ -233,10 +233,7 @@ impl ShaderShared {
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(
-                    gl::TEXTURE_CUBE_MAP,
-                    TexCube_GetHandle(&mut **t)
-                ));
+                glcheck!(gl::BindTexture(gl::TEXTURE_CUBE_MAP, t.get_handle(),));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0));
             }
         }
@@ -414,12 +411,12 @@ impl Shader {
     }
 
     pub fn set_tex_cube(&mut self, name: &str, value: &mut TexCube) {
-        self.set_uniform(name, ShaderVarData::TexCube(value as *mut _));
+        self.set_uniform(name, ShaderVarData::TexCube(value.clone()));
     }
 
     #[bind(name = "ISetTexCube")]
     pub fn index_set_tex_cube(&mut self, index: i32, value: &mut TexCube) {
-        self.index_set_uniform(index, ShaderVarData::TexCube(value as *mut _));
+        self.index_set_uniform(index, ShaderVarData::TexCube(value.clone()));
     }
 
     // Singleton based shader functions - Old API.

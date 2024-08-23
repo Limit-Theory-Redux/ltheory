@@ -53,7 +53,6 @@ do -- Opaque Structs
     typedef struct RmGui        {} RmGui;
     typedef struct SDF          {} SDF;
     typedef struct Socket       {} Socket;
-    typedef struct TexCube      {} TexCube;
   ]]
 
   libphx.Opaques = {
@@ -70,7 +69,6 @@ do -- Opaque Structs
     'RmGui',
     'SDF',
     'Socket',
-    'TexCube',
   }
 end
 

@@ -6,19 +6,6 @@ pub struct ShaderState {
     elems: Vec<(i32, ShaderVarData)>,
 }
 
-impl Drop for ShaderState {
-    fn drop(&mut self) {
-        for (_, data) in self.elems.iter() {
-            match data {
-                ShaderVarData::TexCube(t) => unsafe {
-                    TexCube_Free(*t);
-                },
-                _ => {}
-            }
-        }
-    }
-}
-
 #[luajit_ffi_gen::luajit_ffi]
 impl ShaderState {
     #[bind(name = "Create")]
@@ -111,8 +98,7 @@ impl ShaderState {
 
     pub fn set_tex_cube(&mut self, name: &str, t: &mut TexCube) {
         if let Some(index) = self.shader.get_uniform_index(name) {
-            TexCube_Acquire(t);
-            self.elems.push((index, ShaderVarData::TexCube(t)));
+            self.elems.push((index, ShaderVarData::TexCube(t.clone())));
         }
     }
 

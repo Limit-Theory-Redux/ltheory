@@ -6,8 +6,8 @@ end)
 function Nebula:forceLoad()
     if self.envMap then return end
     local rng = RNG.Create(self.seed + 0xC0104FULL):managed()
-    self.envMap = Gen.Generator.Get('Nebula', rng)(rng, Config.gen.nebulaRes, self.starDir):managed()
-    self.irMap = self.envMap:genIRMap(256):managed()
+    self.envMap = Gen.Generator.Get('Nebula', rng)(rng, Config.gen.nebulaRes, self.starDir)
+    self.irMap = self.envMap:genIRMap(256)
     self.stars = Gen.Starfield(rng, Config.gen.nStars(rng))
 end
 

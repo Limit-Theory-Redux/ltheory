@@ -179,16 +179,12 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(tex: &Tex3D, layer: i32, le
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTexCube(this: &mut TexCube, face: CubeFace) {
+pub unsafe extern "C" fn RenderTarget_BindTexCube(this: &TexCube, face: CubeFace) {
     RenderTarget_BindTexCubeLevel(this, face, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
-    tex: &mut TexCube,
-    face: CubeFace,
-    level: i32,
-) {
+pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(tex: &TexCube, face: CubeFace, level: i32) {
     let this: *mut FBO = GetActive();
     if (*this).colorIndex >= 4 {
         panic!("RenderTarget_BindTexCubeLevel: Max color attachments exceeded");

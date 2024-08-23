@@ -43,7 +43,7 @@ local Planet = subclass(Entity, function(self, seed)
         freq = 4 + rng:getExp(),
         power = 1 + 0.5 * rng:getExp(),
         coef = (rng:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize()
-    }):managed()
+    })
 
     self.cloudLevel     = rng:getUniformRange(-0.2, 0.15)
     self.oceanLevel     = rng:getUniform() ^ 1.5
