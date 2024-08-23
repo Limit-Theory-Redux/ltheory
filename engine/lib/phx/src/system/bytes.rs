@@ -34,6 +34,14 @@ impl Bytes {
     pub fn as_ptr(&self) -> *const u8 {
         self.cursor.get_ref().as_ptr()
     }
+
+    pub fn as_mut_slice(&mut self) -> &mut [u8] {
+        self.cursor.get_mut().as_mut_slice()
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        self.cursor.get_ref().as_slice()
+    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]

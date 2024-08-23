@@ -24,7 +24,7 @@ function Loader.defineType()
             Bytes*    Tex1D_GetDataBytes (Tex1D*, PixelFormat pf, DataFormat df);
             uint32    Tex1D_GetHandle    (Tex1D const*);
             uint32    Tex1D_GetSize      (Tex1D const*);
-            void      Tex1D_SetDataBytes (Tex1D*, Bytes* data, PixelFormat pf, DataFormat df);
+            void      Tex1D_SetDataBytes (Tex1D*, Bytes const* data, PixelFormat pf, DataFormat df);
             void      Tex1D_SetMagFilter (Tex1D*, TexFilter filter);
             void      Tex1D_SetMinFilter (Tex1D*, TexFilter filter);
             void      Tex1D_SetTexel     (Tex1D*, int x, float r, float g, float b, float a);

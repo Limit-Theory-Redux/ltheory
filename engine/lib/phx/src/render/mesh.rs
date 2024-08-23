@@ -1,7 +1,6 @@
 use std::cell::{Ref, RefMut};
 use std::io::BufReader;
 
-use internal::*;
 use memoffset::offset_of;
 use tobj::LoadError;
 
@@ -712,22 +711,14 @@ impl Mesh {
     pub unsafe fn compute_ao(&mut self, radius: f32) {
         let this = &mut *self.shared.as_mut();
 
-        let s_dim = f64::ceil(f64::sqrt((this.index.len() / 3) as f64)) as i32;
-        let v_dim = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
+        let s_dim = f64::ceil(f64::sqrt((this.index.len() / 3) as f64)) as usize;
+        let v_dim = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as usize;
         let surfels = s_dim * s_dim;
         let vertices = v_dim * v_dim;
-        let buf_size = i32::max(surfels, vertices);
+        let buf_size = usize::max(surfels, vertices);
 
-        let point_buffer: *mut Vec4 = MemNewArray!(Vec4, buf_size);
-        let normal_buffer: *mut Vec4 = MemNewArray!(Vec4, buf_size);
-        MemZero(
-            point_buffer as *mut _,
-            (std::mem::size_of::<Vec4>()).wrapping_mul(buf_size as usize),
-        );
-        MemZero(
-            normal_buffer as *mut _,
-            (std::mem::size_of::<Vec4>()).wrapping_mul(buf_size as usize),
-        );
+        let mut point_buffer = vec![Vec4::ZERO; buf_size];
+        let mut normal_buffer = vec![Vec4::ZERO; buf_size];
 
         for i in (0..this.index.len()).step_by(3) {
             let v1 = &this.vertex[this.index[i] as usize];
@@ -742,57 +733,32 @@ impl Mesh {
                 normal = Vec3::X;
             }
             let center: Vec3 = (v1.p + v2.p + v3.p) / 3.0f32;
-            *point_buffer.add(i / 3) = Vec4::new(center.x, center.y, center.z, area);
-            *normal_buffer.add(i / 3) = Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
+            point_buffer[i / 3] = Vec4::new(center.x, center.y, center.z, area);
+            normal_buffer[i / 3] = Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
         }
 
-        let tex_spoints = Tex2D_Create(s_dim, s_dim, TexFormat_RGBA32F);
-        let tex_snormals = Tex2D_Create(s_dim, s_dim, TexFormat_RGBA32F);
-        Tex2D_SetData(
-            &mut *tex_spoints,
-            point_buffer as *const _,
-            PixelFormat_RGBA,
-            DataFormat_Float,
-        );
-        Tex2D_SetData(
-            &mut *tex_snormals,
-            normal_buffer as *const _,
-            PixelFormat_RGBA,
-            DataFormat_Float,
-        );
+        let mut tex_spoints = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat_RGBA32F);
+        let mut tex_snormals = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat_RGBA32F);
+        tex_spoints.set_data(&point_buffer, PixelFormat_RGBA, DataFormat_Float);
+        tex_snormals.set_data(&normal_buffer, PixelFormat_RGBA, DataFormat_Float);
 
-        MemZero(
-            point_buffer as *mut _,
-            (std::mem::size_of::<Vec4>()).wrapping_mul(buf_size as usize),
-        );
-        MemZero(
-            normal_buffer as *mut _,
-            (std::mem::size_of::<Vec4>()).wrapping_mul(buf_size as usize),
-        );
+        point_buffer.clear();
+        point_buffer.resize(buf_size as usize, Vec4::ZERO);
+        normal_buffer.clear();
+        normal_buffer.resize(buf_size as usize, Vec4::ZERO);
         for i in 0..this.vertex.len() {
             let v = &this.vertex[i];
-            *point_buffer.add(i) = Vec4::new(v.p.x, v.p.y, v.p.z, 0.0);
-            *normal_buffer.add(i) = Vec4::new(v.n.x, v.n.y, v.n.z, 0.0);
+            point_buffer[i] = Vec4::new(v.p.x, v.p.y, v.p.z, 0.0);
+            normal_buffer[i] = Vec4::new(v.n.x, v.n.y, v.n.z, 0.0);
         }
 
-        let tex_vpoints = Tex2D_Create(v_dim, v_dim, TexFormat_RGBA32F);
-        let tex_vnormals = Tex2D_Create(v_dim, v_dim, TexFormat_RGBA32F);
-        Tex2D_SetData(
-            &mut *tex_vpoints,
-            point_buffer as *const _,
-            PixelFormat_RGBA,
-            DataFormat_Float,
-        );
-        Tex2D_SetData(
-            &mut *tex_vnormals,
-            normal_buffer as *const _,
-            PixelFormat_RGBA,
-            DataFormat_Float,
-        );
-        MemFree(point_buffer as *const _);
-        MemFree(normal_buffer as *const _);
+        let mut tex_vpoints = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_RGBA32F);
+        let mut tex_vnormals = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_RGBA32F);
+        tex_vpoints.set_data(&point_buffer, PixelFormat_RGBA, DataFormat_Float);
+        tex_vnormals.set_data(&normal_buffer, PixelFormat_RGBA, DataFormat_Float);
 
-        let tex_output = Tex2D_Create(v_dim, v_dim, TexFormat_R32F);
+        let tex_output = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_R32F);
+
         // TODO: Store shader properly
         static mut SHADER: *mut Shader = std::ptr::null_mut();
         if SHADER.is_null() {
@@ -801,61 +767,42 @@ impl Mesh {
                 "fragment/compute/occlusion",
             )));
         }
+
         RenderState_PushAllDefaults();
-        RenderTarget_PushTex2D(&mut *tex_output);
+        RenderTarget_PushTex2D(&tex_output);
 
         (*SHADER).start();
-        (*SHADER).set_int("sDim", s_dim);
+        (*SHADER).set_int("sDim", s_dim as i32);
         (*SHADER).set_float("radius", radius);
-        (*SHADER).set_tex2d("sPointBuffer", &mut *tex_spoints);
-        (*SHADER).set_tex2d("sNormalBuffer", &mut *tex_snormals);
-        (*SHADER).set_tex2d("vPointBuffer", &mut *tex_vpoints);
-        (*SHADER).set_tex2d("vNormalBuffer", &mut *tex_vnormals);
+        (*SHADER).set_tex2d("sPointBuffer", &tex_spoints);
+        (*SHADER).set_tex2d("sNormalBuffer", &tex_snormals);
+        (*SHADER).set_tex2d("vPointBuffer", &tex_vpoints);
+        (*SHADER).set_tex2d("vNormalBuffer", &tex_vnormals);
         Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
         (*SHADER).stop();
 
         RenderTarget_Pop();
         RenderState_PopAll();
-        let result: *mut f32 = MemNewArray!(f32, (v_dim * v_dim));
-        Tex2D_GetData(
-            &mut *tex_output,
-            result as *mut _,
-            PixelFormat_Red,
-            DataFormat_Float,
-        );
 
+        let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
         for i in 0..this.vertex.len() {
-            this.vertex[i].uv.x = *result.add(i);
+            this.vertex[i].uv.x = result[i];
         }
-
-        MemFree(result as *const _);
-        Tex2D_Free(&mut *tex_output);
-        Tex2D_Free(&mut *tex_spoints);
-        Tex2D_Free(&mut *tex_snormals);
-        Tex2D_Free(&mut *tex_vpoints);
-        Tex2D_Free(&mut *tex_vnormals);
     }
 
     pub unsafe fn compute_occlusion(&mut self, sdf: &mut Tex3D, radius: f32) {
         let this = &mut *self.shared.as_mut();
 
         let v_dim: i32 = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
-        let tex_points = Tex2D_Create(v_dim, v_dim, TexFormat_RGBA32F);
-        let tex_output = Tex2D_Create(v_dim, v_dim, TexFormat_R32F);
+        let mut tex_points = Tex2D::new(v_dim, v_dim, TexFormat_RGBA32F);
+        let tex_output = Tex2D::new(v_dim, v_dim, TexFormat_R32F);
 
-        let point_buffer: *mut Vec3 = MemNewArray!(Vec3, (v_dim * v_dim));
-
+        let mut point_buffer = vec![Vec3::ZERO; (v_dim * v_dim) as usize];
         for i in 0..this.vertex.len() {
-            *point_buffer.add(i) = this.vertex[i].p;
+            point_buffer[i] = this.vertex[i].p;
         }
 
-        Tex2D_SetData(
-            &mut *tex_points,
-            point_buffer as *const _,
-            PixelFormat_RGB,
-            DataFormat_Float,
-        );
-        MemFree(point_buffer as *const _);
+        tex_points.set_data(&point_buffer, PixelFormat_RGB, DataFormat_Float);
 
         // TODO: Store shader properly.
         static mut SHADER: *mut Shader = std::ptr::null_mut();
@@ -867,32 +814,22 @@ impl Mesh {
         }
 
         RenderState_PushAllDefaults();
-        RenderTarget_PushTex2D(&mut *tex_output);
+        RenderTarget_PushTex2D(&tex_output);
 
         (*SHADER).start();
         (*SHADER).set_float("radius", radius);
-        (*SHADER).set_tex2d("points", &mut *tex_points);
-        (*SHADER).set_tex3d("sdf", &mut *sdf);
-        Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
+        (*SHADER).set_tex2d("points", &tex_points);
+        (*SHADER).set_tex3d("sdf", sdf);
+        Draw::rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
         (*SHADER).stop();
 
         RenderTarget_Pop();
         RenderState_PopAll();
 
-        let result: *mut f32 = MemNewArray!(f32, (v_dim * v_dim));
-        Tex2D_GetData(
-            &mut *tex_output,
-            result as *mut _,
-            PixelFormat_Red,
-            DataFormat_Float,
-        );
+        let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
 
         for i in 0..this.vertex.len() {
-            this.vertex[i].uv.x = *result.add(i);
+            this.vertex[i].uv.x = result[i];
         }
-
-        MemFree(result as *const _);
-        Tex2D_Free(&mut *tex_points);
-        Tex2D_Free(&mut *tex_output);
     }
 }

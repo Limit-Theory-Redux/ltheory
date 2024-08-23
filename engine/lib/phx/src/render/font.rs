@@ -34,10 +34,10 @@ struct FontData {
     glyphs: HashMap<u32, Glyph>,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct Glyph {
     pub index: i32,
-    pub tex: *mut Tex2D,
+    pub tex: Tex2D,
     pub x0: i32,
     pub y0: i32,
     pub x1: i32,
@@ -80,16 +80,16 @@ impl Font {
 
             let face_glyph = unsafe { &mut *(*face).glyph };
             let bitmap = &mut face_glyph.bitmap;
-            let mut p_bitmap = (*bitmap).buffer;
+            let mut p_bitmap = bitmap.buffer;
 
             /* Create a new glyph and fill out metrics. */
             let x0 = face_glyph.bitmap_left;
             let y0 = -face_glyph.bitmap_top;
-            let sx = (*bitmap).width as i32;
-            let sy = (*bitmap).rows as i32;
+            let sx = bitmap.width as i32;
+            let sy = bitmap.rows as i32;
             let mut glyph = Glyph {
                 index: glyph_index as _,
-                tex: std::ptr::null_mut(),
+                tex: Tex2D::new(sx, sy, TexFormat_RGBA8),
                 x0,
                 y0,
                 sx,
@@ -110,19 +110,13 @@ impl Font {
                     buffer.push(Vec4::new(1.0, 1.0, 1.0, a));
                 }
 
-                p_bitmap = unsafe { p_bitmap.offset((*bitmap).pitch as isize) };
+                p_bitmap = unsafe { p_bitmap.offset(bitmap.pitch as isize) };
             }
 
             /* Upload to texture. */
-            unsafe {
-                glyph.tex = Tex2D_Create(glyph.sx, glyph.sy, TexFormat_RGBA8);
-                Tex2D_SetData(
-                    &mut *glyph.tex,
-                    buffer.as_ptr() as _,
-                    PixelFormat_RGBA,
-                    DataFormat_Float,
-                );
-            }
+            glyph
+                .tex
+                .set_data(buffer.as_slice(), PixelFormat_RGBA, DataFormat_Float);
 
             /* Add to glyph cache. */
             e.insert(glyph);
@@ -219,11 +213,11 @@ impl Font {
 
                 let x0: f32 = x + glyph.x0 as f32;
                 let y0: f32 = y + glyph.y0 as f32;
-                let xs: f32 = (*glyph).sx as f32;
-                let ys: f32 = (*glyph).sy as f32;
+                let xs: f32 = glyph.sx as f32;
+                let ys: f32 = glyph.sy as f32;
 
                 shader.reset_tex_index();
-                shader.set_tex2d("glyph", unsafe { &mut *glyph.tex });
+                shader.set_tex2d("glyph", &glyph.tex);
 
                 Draw::rect_ex(x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
 

@@ -1,3 +1,4 @@
+use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 use internal::*;
 
 use super::*;
@@ -204,70 +205,51 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
     glcheck!(gl::GenTextures(1, &mut (*this).handle));
     glcheck!(gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle));
 
-    let mut components: i32 = 0;
-    let mut dataLayout: i32 = 0;
-
     for i in 0..6 {
         let face_path = format!("{}{}.jpg", path.as_str(), K_FACE_EXT[i as usize]);
-        let mut sx: i32 = 0;
-        let mut sy: i32 = 0;
-        let mut lcomponents: i32 = 0;
-        let data: *mut libc::c_uchar =
-            tex2d_load_raw(&face_path, &mut sx, &mut sy, &mut lcomponents);
 
-        if data.is_null() {
-            panic!("TexCube_Load failed to load cubemap face from '{face_path}'",);
-        }
+        let reader = ImageReader::open(&face_path).unwrap_or_else(|_| {
+            panic!("Failed to load cubemap face from '{face_path}', unable to open file")
+        });
+        let img = reader.decode().unwrap_or_else(|_| {
+            panic!("Failed to load cubemap face from '{face_path}', decode failed")
+        });
+        let (width, height) = img.dimensions();
 
-        if sx != sy {
-            panic!("TexCube_Load loaded cubemap face is not square");
+        let (format, data_format, buffer) = match img {
+            DynamicImage::ImageRgba8(buf) => (gl::RGBA, TexFormat_RGBA8, buf.into_raw()),
+            DynamicImage::ImageRgb8(buf) => (gl::RGB, TexFormat_RGB8, buf.into_raw()),
+            _ => panic!("Failed to load cubemap face from '{face_path}', unsupported image format"),
+        };
+
+        if width != height {
+            panic!("Loaded cubemap face is not square");
         }
 
         if i != 0 {
-            if sx != (*this).size || sy != (*this).size {
-                panic!("TexCube_Load loaded cubemap faces have different resolutions");
+            if width != (*this).size as u32 || height != (*this).size as u32 {
+                panic!("Cubemap face {i} has a different resolution");
             }
 
-            if lcomponents != components {
-                panic!("TexCube_Load loaded cubemap faces have different number of components");
+            if (*this).format != data_format {
+                panic!("Cubemap face {i} has a different number of components");
             }
         } else {
-            components = lcomponents;
-            (*this).size = sx;
-            (*this).format = if components == 4 {
-                TexFormat_RGBA8
-            } else if components == 3 {
-                TexFormat_RGB8
-            } else if components == 2 {
-                TexFormat_RG8
-            } else {
-                TexFormat_R8
-            };
-
-            dataLayout = if components == 4 {
-                gl::RGBA
-            } else if components == 3 {
-                gl::RGB
-            } else if components == 2 {
-                gl::RG
-            } else {
-                gl::RED
-            } as i32;
+            (*this).size = width as i32;
+            (*this).format = data_format;
         }
 
         glcheck!(gl::TexImage2D(
             K_FACES[i as usize].face as gl::types::GLenum,
             0,
-            (*this).format,
+            (*this).format as gl::types::GLint,
             (*this).size,
             (*this).size,
             0,
-            dataLayout as gl::types::GLenum,
+            format,
             gl::UNSIGNED_BYTE,
-            data as *const _,
+            buffer.as_ptr() as *const _,
         ));
-
-        MemFree(data as *const _);
     }
 
     TexCube_InitParameters();
@@ -461,10 +443,7 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
 
     glcheck!(gl::BindTexture(gl::TEXTURE_CUBE_MAP, this.handle));
 
-    let buffer: *mut libc::c_uchar =
-        MemAlloc((std::mem::size_of::<libc::c_uchar>()).wrapping_mul((4 * size * size) as usize))
-            as *mut libc::c_uchar;
-
+    let mut image_buffer: ImageBuffer<Rgba<u8>, _> = ImageBuffer::new(size as u32, size as u32);
     for i in 0..6 {
         let face: CubeFace = K_FACES[i as usize].face;
         let face_path = format!("{}{}.png", path.as_str(), K_FACE_EXT[i as usize]);
@@ -472,15 +451,13 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
         glcheck!(gl::GetTexImage(
             face as gl::types::GLenum,
             level,
-            gl::RGBA,
+            gl::RGBA8,
             gl::UNSIGNED_BYTE,
-            buffer as *mut _,
+            image_buffer.as_mut_ptr() as *mut _,
         ));
 
-        tex2d_save_png(&face_path, size, size, 4, buffer);
+        let _ = image_buffer.save(face_path);
     }
-
-    MemFree(buffer as *const _);
 
     glcheck!(gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0));
 }

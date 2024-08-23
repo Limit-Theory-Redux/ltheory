@@ -105,8 +105,8 @@ impl Tex1D {
     pub fn get_data_bytes(&mut self, pf: PixelFormat, df: DataFormat) -> Bytes {
         let this = self.shared.as_ref();
 
-        let mut data =
-            vec![0u8; (this.size * DataFormat_GetSize(df) * PixelFormat_Components(pf)) as usize];
+        let size = this.size * DataFormat_GetSize(df) * PixelFormat_Components(pf);
+        let mut data = vec![0u8; size as usize];
         glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
         glcheck!(gl::GetTexImage(
             gl::TEXTURE_1D,
@@ -130,7 +130,7 @@ impl Tex1D {
         this.size as u32
     }
 
-    pub fn set_data_bytes(&mut self, data: Bytes, pf: PixelFormat, df: DataFormat) {
+    pub fn set_data_bytes(&mut self, data: &Bytes, pf: PixelFormat, df: DataFormat) {
         let this = self.shared.as_ref();
 
         glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));

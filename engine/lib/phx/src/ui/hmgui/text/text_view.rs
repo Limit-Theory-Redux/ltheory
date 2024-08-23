@@ -2,13 +2,13 @@ use glam::Vec2;
 
 use super::{TextContext, TextData};
 use crate::input::Input;
-use crate::render::{Tex2D, Tex2D_Free};
+use crate::render::Tex2D;
 
 /// Contains text data and rendered text texture.
 pub struct TextView {
     data: TextData,
     editable: bool,
-    tex: *mut Tex2D,
+    tex: Option<Tex2D>,
 }
 
 impl TextView {
@@ -16,7 +16,7 @@ impl TextView {
         Self {
             data: data.clone(),
             editable,
-            tex: std::ptr::null_mut(),
+            tex: None,
         }
     }
 
@@ -64,7 +64,7 @@ impl TextView {
         input: &Input,
         focused: bool,
         clipboard: &mut String,
-    ) -> *mut Tex2D {
+    ) -> Option<&Tex2D> {
         let tex = self.data.render(
             text_ctx,
             width,
@@ -76,22 +76,10 @@ impl TextView {
             clipboard,
         );
 
-        if !tex.is_null() {
-            if !self.tex.is_null() {
-                unsafe { Tex2D_Free(self.tex) };
-            }
-
+        if tex.is_some() {
             self.tex = tex;
         }
 
-        self.tex
-    }
-}
-
-impl Drop for TextView {
-    fn drop(&mut self) {
-        if !self.tex.is_null() {
-            unsafe { Tex2D_Free(self.tex) };
-        }
+        self.tex.as_ref()
     }
 }

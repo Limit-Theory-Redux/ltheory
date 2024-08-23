@@ -26,7 +26,7 @@ impl LayoutType {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct HmGuiContainer {
     pub children: Vec<Rf<HmGuiWidget>>,
 

@@ -47,7 +47,7 @@ function Loader.defineType()
             void         Shader_ISetMatrixT   (Shader*, int index, Matrix const* value);
             void         Shader_SetTex1D      (Shader*, cstr name, Tex1D* value);
             void         Shader_ISetTex1D     (Shader*, int index, Tex1D* value);
-            void         Shader_SetTex2D      (Shader*, cstr name, Tex2D* value);
+            void         Shader_SetTex2D      (Shader*, cstr name, Tex2D const* value);
             void         Shader_ISetTex2D     (Shader*, int index, Tex2D* value);
             void         Shader_SetTex3D      (Shader*, cstr name, Tex3D* value);
             void         Shader_ISetTex3D     (Shader*, int index, Tex3D* value);

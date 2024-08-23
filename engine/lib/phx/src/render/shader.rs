@@ -217,7 +217,7 @@ impl ShaderShared {
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(gl::TEXTURE_2D, Tex2D_GetHandle(&mut **t)));
+                glcheck!(gl::BindTexture(gl::TEXTURE_2D, t.get_handle()));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0));
             }
             ShaderVarData::Tex3D(t) => {
@@ -395,13 +395,13 @@ impl Shader {
         self.index_set_uniform(index, ShaderVarData::Tex1D(value.clone()));
     }
 
-    pub fn set_tex2d(&mut self, name: &str, value: &mut Tex2D) {
-        self.set_uniform(name, ShaderVarData::Tex2D(value as *mut _));
+    pub fn set_tex2d(&mut self, name: &str, value: &Tex2D) {
+        self.set_uniform(name, ShaderVarData::Tex2D(value.clone()));
     }
 
     #[bind(name = "ISetTex2D")]
     pub fn index_set_tex2d(&mut self, index: i32, value: &mut Tex2D) {
-        self.index_set_uniform(index, ShaderVarData::Tex2D(value as *mut _));
+        self.index_set_uniform(index, ShaderVarData::Tex2D(value.clone()));
     }
 
     pub fn set_tex3d(&mut self, name: &str, value: &mut Tex3D) {

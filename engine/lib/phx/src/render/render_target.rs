@@ -1,6 +1,6 @@
 use super::*;
 use crate::common::*;
-use crate::math::{IVec2, IVec3};
+use crate::math::IVec3;
 use crate::system::*;
 
 #[derive(Copy, Clone)]
@@ -115,12 +115,12 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex2D(this: &mut Tex2D) {
+pub unsafe extern "C" fn RenderTarget_BindTex2D(this: &Tex2D) {
     RenderTarget_BindTex2DLevel(this, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: &mut Tex2D, level: i32) {
+pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: &Tex2D, level: i32) {
     let this: *mut FBO = GetActive();
     let handle: u32 = Tex2D_GetHandle(tex);
 
@@ -208,14 +208,13 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex2D(this: &mut Tex2D) {
+pub unsafe extern "C" fn RenderTarget_PushTex2D(this: &Tex2D) {
     RenderTarget_PushTex2DLevel(this, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(this: &mut Tex2D, level: i32) {
-    let mut size: IVec2 = IVec2::ZERO;
-    Tex2D_GetSizeLevel(this, &mut size, level);
+pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(this: &Tex2D, level: i32) {
+    let size = this.get_size_level(level);
     RenderTarget_Push(size.x, size.y);
     RenderTarget_BindTex2DLevel(this, level);
 }
