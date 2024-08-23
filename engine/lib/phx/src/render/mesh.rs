@@ -792,8 +792,8 @@ impl Mesh {
         }
 
         let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
-        for i in 0..this.vertex.len() {
-            this.vertex[i].uv.x = result[i];
+        for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
+            this.vertex[i].uv.x = *result_uv_value;
         }
     }
 
@@ -805,8 +805,8 @@ impl Mesh {
         let tex_output = Tex2D::new(v_dim, v_dim, TexFormat_R32F);
 
         let mut point_buffer = vec![Vec3::ZERO; (v_dim * v_dim) as usize];
-        for i in 0..this.vertex.len() {
-            point_buffer[i] = this.vertex[i].p;
+        for (i, point) in point_buffer.iter_mut().enumerate().take(this.vertex.len()) {
+            *point = this.vertex[i].p;
         }
 
         tex_points.set_data(&point_buffer, PixelFormat_RGB, DataFormat_Float);
@@ -841,8 +841,8 @@ impl Mesh {
         }
 
         let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
-        for i in 0..this.vertex.len() {
-            this.vertex[i].uv.x = result[i];
+        for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
+            this.vertex[i].uv.x = *result_uv_value;
         }
     }
 }
