@@ -55,7 +55,7 @@ impl Tex2D {
     pub fn get_data<T: Clone + Default>(&self, pf: PixelFormat, df: DataFormat) -> Vec<T> {
         let this = self.shared.as_ref();
 
-        let mut size: i32 = this.size.x * this.size.y;
+        let mut size = this.size.x * this.size.y;
         size *= DataFormat_GetSize(df);
         size *= PixelFormat_Components(pf);
         size /= std::mem::size_of::<T>() as i32;

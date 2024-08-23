@@ -708,7 +708,7 @@ impl Mesh {
     }
 
     #[bind(name = "ComputeAO")]
-    pub unsafe fn compute_ao(&mut self, radius: f32) {
+    pub fn compute_ao(&mut self, radius: f32) {
         let this = &mut *self.shared.as_mut();
 
         let s_dim = f64::ceil(f64::sqrt((this.index.len() / 3) as f64)) as usize;
@@ -760,29 +760,36 @@ impl Mesh {
         let tex_output = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_R32F);
 
         // TODO: Store shader properly
-        static mut SHADER: *mut Shader = std::ptr::null_mut();
-        if SHADER.is_null() {
-            SHADER = Box::into_raw(Box::new(Shader::load(
-                "vertex/identity",
-                "fragment/compute/occlusion",
-            )));
+        let shader = unsafe {
+            static mut SHADER: *mut Shader = std::ptr::null_mut();
+            if SHADER.is_null() {
+                SHADER = Box::into_raw(Box::new(Shader::load(
+                    "vertex/identity",
+                    "fragment/compute/occlusion",
+                )));
+            }
+            &mut *SHADER
+        };
+
+        unsafe {
+            RenderState_PushAllDefaults();
+            RenderTarget_PushTex2D(&tex_output);
         }
 
-        RenderState_PushAllDefaults();
-        RenderTarget_PushTex2D(&tex_output);
+        shader.start();
+        shader.set_int("sDim", s_dim as i32);
+        shader.set_float("radius", radius);
+        shader.set_tex2d("sPointBuffer", &tex_spoints);
+        shader.set_tex2d("sNormalBuffer", &tex_snormals);
+        shader.set_tex2d("vPointBuffer", &tex_vpoints);
+        shader.set_tex2d("vNormalBuffer", &tex_vnormals);
+        Draw::rect(-1.0, -1.0, 2.0, 2.0);
+        shader.stop();
 
-        (*SHADER).start();
-        (*SHADER).set_int("sDim", s_dim as i32);
-        (*SHADER).set_float("radius", radius);
-        (*SHADER).set_tex2d("sPointBuffer", &tex_spoints);
-        (*SHADER).set_tex2d("sNormalBuffer", &tex_snormals);
-        (*SHADER).set_tex2d("vPointBuffer", &tex_vpoints);
-        (*SHADER).set_tex2d("vNormalBuffer", &tex_vnormals);
-        Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
-        (*SHADER).stop();
-
-        RenderTarget_Pop();
-        RenderState_PopAll();
+        unsafe {
+            RenderTarget_Pop();
+            RenderState_PopAll();
+        }
 
         let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
         for i in 0..this.vertex.len() {
@@ -790,7 +797,7 @@ impl Mesh {
         }
     }
 
-    pub unsafe fn compute_occlusion(&mut self, sdf: &mut Tex3D, radius: f32) {
+    pub fn compute_occlusion(&mut self, sdf: &mut Tex3D, radius: f32) {
         let this = &mut *self.shared.as_mut();
 
         let v_dim: i32 = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
@@ -805,29 +812,35 @@ impl Mesh {
         tex_points.set_data(&point_buffer, PixelFormat_RGB, DataFormat_Float);
 
         // TODO: Store shader properly.
-        static mut SHADER: *mut Shader = std::ptr::null_mut();
-        if SHADER.is_null() {
-            SHADER = Box::into_raw(Box::new(Shader::load(
-                "vertex/identity",
-                "fragment/compute/occlusion_sdf",
-            )));
+        let shader = unsafe {
+            static mut SHADER: *mut Shader = std::ptr::null_mut();
+            if SHADER.is_null() {
+                SHADER = Box::into_raw(Box::new(Shader::load(
+                    "vertex/identity",
+                    "fragment/compute/occlusion_sdf",
+                )));
+            }
+            &mut *SHADER
+        };
+
+        unsafe {
+            RenderState_PushAllDefaults();
+            RenderTarget_PushTex2D(&tex_output);
         }
 
-        RenderState_PushAllDefaults();
-        RenderTarget_PushTex2D(&tex_output);
+        shader.start();
+        shader.set_float("radius", radius);
+        shader.set_tex2d("points", &tex_points);
+        shader.set_tex3d("sdf", sdf);
+        Draw::rect(-1.0, -1.0, 2.0, 2.0);
+        shader.stop();
 
-        (*SHADER).start();
-        (*SHADER).set_float("radius", radius);
-        (*SHADER).set_tex2d("points", &tex_points);
-        (*SHADER).set_tex3d("sdf", sdf);
-        Draw::rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
-        (*SHADER).stop();
-
-        RenderTarget_Pop();
-        RenderState_PopAll();
+        unsafe {
+            RenderTarget_Pop();
+            RenderState_PopAll();
+        }
 
         let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
-
         for i in 0..this.vertex.len() {
             this.vertex[i].uv.x = result[i];
         }
