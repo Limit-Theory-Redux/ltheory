@@ -22,7 +22,6 @@ local function generateAsteroid(seed)
         local mesh = field:toMesh()
         field:free()
         mesh:computeOcclusion(density, 0.1)
-        density:free()
         mesh:center()
         self:add(mesh, dMin, dMax)
 

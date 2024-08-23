@@ -225,7 +225,7 @@ impl ShaderShared {
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(gl::TEXTURE_3D, Tex3D_GetHandle(&mut **t)));
+                glcheck!(gl::BindTexture(gl::TEXTURE_3D, t.get_handle()));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0));
             }
             ShaderVarData::TexCube(t) => {
@@ -405,12 +405,12 @@ impl Shader {
     }
 
     pub fn set_tex3d(&mut self, name: &str, value: &mut Tex3D) {
-        self.set_uniform(name, ShaderVarData::Tex3D(value as *mut _));
+        self.set_uniform(name, ShaderVarData::Tex3D(value.clone()));
     }
 
     #[bind(name = "ISetTex3D")]
     pub fn index_set_tex3d(&mut self, index: i32, value: &mut Tex3D) {
-        self.index_set_uniform(index, ShaderVarData::Tex3D(value as *mut _));
+        self.index_set_uniform(index, ShaderVarData::Tex3D(value.clone()));
     }
 
     pub fn set_tex_cube(&mut self, name: &str, value: &mut TexCube) {

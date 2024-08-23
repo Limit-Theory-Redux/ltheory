@@ -18,7 +18,7 @@ pub enum ShaderVarData {
     Matrix(Matrix),
     Tex1D(Tex1D),
     Tex2D(Tex2D),
-    Tex3D(*mut Tex3D),
+    Tex3D(Tex3D),
     TexCube(*mut TexCube),
 }
 
@@ -125,7 +125,7 @@ impl ShaderVar {
     }
 
     pub fn push_tex3d(name: &str, t: &mut Tex3D) {
-        Self::push(name, ShaderVarData::Tex3D(t));
+        Self::push(name, ShaderVarData::Tex3D(t.clone()));
     }
 
     pub fn push_tex_cube(name: &str, t: &mut TexCube) {

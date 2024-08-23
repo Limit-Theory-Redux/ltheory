@@ -10,9 +10,6 @@ impl Drop for ShaderState {
     fn drop(&mut self) {
         for (_, data) in self.elems.iter() {
             match data {
-                ShaderVarData::Tex3D(t) => unsafe {
-                    Tex3D_Free(*t);
-                },
                 ShaderVarData::TexCube(t) => unsafe {
                     TexCube_Free(*t);
                 },
@@ -108,8 +105,7 @@ impl ShaderState {
 
     pub fn set_tex3d(&mut self, name: &str, t: &mut Tex3D) {
         if let Some(index) = self.shader.get_uniform_index(name) {
-            Tex3D_Acquire(t);
-            self.elems.push((index, ShaderVarData::Tex3D(t)));
+            self.elems.push((index, ShaderVarData::Tex3D(t.clone())));
         }
     }
 
