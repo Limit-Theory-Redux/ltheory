@@ -9,22 +9,21 @@ local Texture = require("_ECS_WIP_TEMP.Shared.Rendering.Texture") --!temp path
 ---@field shaderState ShaderState
 ---@field autoShaderVars table<AutoShaderVar>
 
----@param self Material
----@param materialName string
----@param vertexName string
----@param fragmentName string
 ---@class Material
----@overload fun(self: Material, materialName: string, vertexName: string, fragmentName: string): Material class internal
----@overload fun(materialName: string, vertexName: string, fragmentName: string): Material class external
-local Material = Class(function(self, materialName, vertexName, fragmentName)
-    self.materialName = materialName
-    self.vertexName = vertexName
-    self.fragmentName = fragmentName
+---@overload fun(self: Material): Material class internal
+---@overload fun(): Material class external
+local Material = Class(function(self)
     self.textures = {}
     self.autoShaderVars = {}
+end)
+
+function Material:initialize(vertexName, fragmentName)
+    self.vertexName = vertexName
+    self.fragmentName = fragmentName
+    --TODO: Replace use of Cache.Shader
     local shader = Cache.Shader(vertexName, fragmentName)
     self.shaderState = ShaderState.Create(shader)
-end)
+end
 
 ---@param uniformName string
 ---@param renderFn function
@@ -43,7 +42,7 @@ end
 
 ---@param textureName string
 ---@param tex Tex
----@param textureType TextureTypes
+---@param textureType TextureType
 function Material:addTexture(textureName, tex, textureType) 
     local texture = Texture(textureName, tex, textureType)
     insert(self.textures, texture)

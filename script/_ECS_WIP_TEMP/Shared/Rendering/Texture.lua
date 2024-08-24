@@ -14,8 +14,8 @@ local Texture = Class(function(self, textureName, tex, textureType)
     self.textureName = textureName
     self.tex = tex
     self.textureType = textureType
-    self.tex:acquire(tex)
-    self.tex:setTextureState()
+    self.tex:acquire()
+    self:setTextureState()
 end)
 
 function Texture:setTextureState()

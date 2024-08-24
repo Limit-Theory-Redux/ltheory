@@ -21,10 +21,11 @@ function AutoShaderVar:setUniformInt(uniformInt)
     self.uniformInt = uniformInt
 end
 
---!temp NOT FINAL IMPLEMENTATION, FOR TESTING
+---@param renderState RenderState
 ---@param shaderState ShaderState
-function AutoShaderVar:setShaderVar(shaderState, ...)
-    self.callbackFn(shaderState, self.uniformInt, ...)
+---@param entity Entity
+function AutoShaderVar:updateShaderVar(renderState, shaderState, entity)
+    self.callbackFn(renderState, shaderState, self.uniformInt, entity)
 end
 
 return AutoShaderVar
