@@ -1,17 +1,14 @@
 --todo: render white screen
 -- Systems
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
-local RenderState = require("_ECS_WIP_TEMP.Shared.Rendering.RenderState")
 
 -- Utilities
 local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler") --!temp path
 
----@class GameViewSystem
-
----@class GameViewSystem
----@overload fun(self: GameViewSystem) class internal
+---@class RenderCoreSystem
+---@overload fun(self: RenderCoreSystem) class internal
 ---@overload fun() class external
-local GameViewSystem = Class(function(self)
+local RenderCoreSystem = Class(function(self)
     ---@diagnostic disable-next-line: invisible
     self:registerVars()
     ---@diagnostic disable-next-line: invisible
@@ -19,35 +16,40 @@ local GameViewSystem = Class(function(self)
 end)
 
 ---@private
-function GameViewSystem:registerVars()
-    self.profiler = QuickProfiler("GameViewSystem", false, false)
+function RenderCoreSystem:registerVars()
+    self.profiler = QuickProfiler("RenderCoreSystem", false, false)
 end
 
 ---@private
-function GameViewSystem:registerEvents()
+function RenderCoreSystem:registerEvents()
     EventBus:subscribe(Event.PreRender, self, self.onPreRender)
     EventBus:subscribe(Event.Render, self, self.onRender)
     EventBus:subscribe(Event.PostRender, self, self.onPostRender)
 end
 
+function RenderCoreSystem:onPreRender(data)
+    --[[
 
-function GameViewSystem:onPreRender(data)
+    ]]--
+
+    -- Set Rendering to Defaults for onRender
+    --TODO: Unclear if this is necessary
+    ClipRect.PushDisabled()
+    RenderState.PushAllDefaults()
 
 end
 
-function GameViewSystem:onRender(data)
+function RenderCoreSystem:onRender(data)
     --[[
         
     ]]--
-    RenderState.cameraEye = self.activeCamera.transform:getPosition()
     
-
 end
 
-function GameViewSystem:onPostRender(data)
+function RenderCoreSystem:onPostRender(data)
     --[[
         
     ]]--
 end
 
-return GameViewSystem()
+return RenderCoreSystem()

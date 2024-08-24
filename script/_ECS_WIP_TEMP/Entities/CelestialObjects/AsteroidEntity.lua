@@ -3,6 +3,7 @@ local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 -- Components
 local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")           --!temp path
 local SeedComponent = require("_ECS_WIP_TEMP.Components.Generation.SeedComponent")  --!temp path
+local RigidBodyComponent = require("_ECS_WIP_TEMP.Components.Physics.RigidBody")    --!temp path
 local TransformComponent = require("_ECS_WIP_TEMP.Components.Physics.Transform")    --!temp path
 local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarchy") --!temp path
 
@@ -24,6 +25,9 @@ local AsteroidEntity = Subclass(Entity, function(self, seed)
 
     -- Transform Component
     self:addComponent(TransformComponent())
+
+    -- RigidBody Component
+    self:addComponent(RigidBodyComponent())
 
     -- Hierarchy/Children Component
     self:addComponent(HierarchyComponent(EntityInfo {

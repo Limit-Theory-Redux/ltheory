@@ -1,5 +1,6 @@
 -- Systems
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
+local RenderState = require("_ECS_WIP_TEMP.Shared.Rendering.RenderState")
 
 -- Utilities
 local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler")
@@ -253,13 +254,12 @@ end
 --     self.mProjInv = self.mProj:inverse()
 -- end
 --
--- function CameraSystem:setViewport(x, y, sx, sy)
---     self.x = x
---     self.y = y
---     self.sx = sx
---     self.sy = sy
--- end
---
+
+---Deprecated function. Only ever set never used.
+---@deprecated
+function CameraSystem:setViewport(x, y, sx, sy) end
+
+
 -- function CameraSystem:warp() end
 
 return CameraSystem()
