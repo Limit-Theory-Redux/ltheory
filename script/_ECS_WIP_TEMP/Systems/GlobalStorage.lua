@@ -19,7 +19,7 @@ local ComponentInfo = require("_ECS_WIP_TEMP.Shared.Types.ComponentInfo")
 local GlobalStorage = Class(function(self)
     -- Ensure initialization only happens once
     if self.initialized then
-        Log.Err("You are trying to reinitialize the GlobalStorage, this should not happen.")
+        Log.Error("You are trying to reinitialize the GlobalStorage, this should not happen.")
         return
     end
 
@@ -61,6 +61,7 @@ end
 ---@return boolean wasSuccessful
 function GlobalStorage:dropEntity(archetype, entityId)
     local entity = self.entities[archetype][entityId]
+    ---@cast entity Entity
 
     if entity then
         --entity:destroy() --* how will we clean up?
@@ -85,6 +86,7 @@ end
 ---@return boolean wasSuccessful
 function GlobalStorage:dropComponent(archetype, componentId)
     local component = self.components[archetype][componentId]
+    ---@cast component Component 
 
     if component then
         --component:destroy() --* how will we clean up?
