@@ -13,6 +13,8 @@ local AsteroidEntity = require("_ECS_WIP_TEMP.Entities.CelestialObjects.Asteroid
 local SpaceStationEntity = require("_ECS_WIP_TEMP.Entities.Constructs.SpaceStationEntity")
 local SpaceshipEntity = require("_ECS_WIP_TEMP.Entities.Constructs.SpaceshipEntity")
 
+local ZoneEntity = require("_ECS_WIP_TEMP.Entities.Spatial.ZoneEntity")
+
 -- Utilities
 local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler")
 
@@ -71,6 +73,14 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
     local star = StarEntity(starSeed)
     local starRNG = RNG.Create(starSeed):managed()
     local starEntityInfo = GlobalStorage:storeEntity(star)
+
+    -- Add star area
+    local starZone = ZoneEntity()
+    ---@type SpatialShapeComponent
+    local starZoneShapeComponent = starZone:findComponentByArchetype(Enums.ComponentArchetype.ShapeComponent)
+    starZoneShapeComponent:setShape(Enums.ZoneShape.Sphere)
+    starZoneShapeComponent:setRadius(1.7952e13) --* Hardcode to solar system radius for now
+
     self:addChildEntity(starSystem, starEntityInfo)
 
     -- Generate planets

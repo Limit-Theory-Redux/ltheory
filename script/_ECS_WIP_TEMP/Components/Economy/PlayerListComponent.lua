@@ -1,9 +1,9 @@
 local Component = require('_ECS_WIP_TEMP.Components.Component') --!temp path
 
----@class PlayerList: Component
+---@class PlayerListComponent: Component
 ---@overload fun(self: PlayerList): PlayerList subclass internal
 ---@overload fun(): PlayerList subclass external
-local PlayerList = Subclass(Component, function(self)
+local PlayerListComponent = Subclass(Component, function(self)
     self:setComponentName("EconomyPlayerList")
 
     -- Set Component Archetype
@@ -12,18 +12,18 @@ local PlayerList = Subclass(Component, function(self)
     self:addPlayerList()
 end)
 
-function PlayerList:addPlayerList()
+function PlayerListComponent:addPlayerList()
     self.players = {}
 end
 
 ---@return table<Player>
-function PlayerList:getPlayerList()
+function PlayerListComponent:getPlayerList()
     return self.players
 end
 
 ---@return integer
-function PlayerList:getPlayerCount()
+function PlayerListComponent:getPlayerCount()
     return #self.players
 end
 
-return PlayerList
+return PlayerListComponent

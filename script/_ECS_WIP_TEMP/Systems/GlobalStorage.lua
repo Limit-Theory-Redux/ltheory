@@ -131,7 +131,7 @@ function GlobalStorage:getEntitiesFromArchetype(archetype)
 end
 
 ---@param archetype ComponentArchetype
----@return table<Entity>|nil
+---@return table<Component>|nil
 function GlobalStorage:getComponentsFromArchetype(archetype)
     if self.components[archetype] then
         return self.components[archetype]

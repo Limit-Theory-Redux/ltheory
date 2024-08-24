@@ -1,4 +1,4 @@
-local Component = require('Component')
+local Component = require("_ECS_WIP_TEMP.Components.Component")
 
 ---@class BankAccount
 ---@field balance integer current account balance
