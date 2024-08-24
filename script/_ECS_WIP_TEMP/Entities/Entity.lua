@@ -9,6 +9,7 @@ local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp pat
 local Entity = Class(function(self)
     self:addGuid()
     self:addComponents()
+    self:Enable()
 end)
 
 function Entity:addGuid()
@@ -18,6 +19,21 @@ end
 ---@return integer
 function Entity:getGuid()
     return self.guid
+end
+
+---Enables Entity
+function Entity:Enable()
+    self.enabled = true
+end
+
+---Disables Entity
+function Entity:Disable()
+    self.enabled = false
+end
+
+---@return boolean # If Entity is Enabled
+function Entity:isEnabled()
+    return self.enabled
 end
 
 ---@param archetype EntityArchetype
