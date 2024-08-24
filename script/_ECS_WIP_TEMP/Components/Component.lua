@@ -61,6 +61,10 @@ function Component:addEvents()
     self.events = {}
 end
 
+function Component:removeEvent(eventName)
+    self.events[eventName] = nil
+end
+
 ---@return table
 function Component:getEvents()
     return self.events
