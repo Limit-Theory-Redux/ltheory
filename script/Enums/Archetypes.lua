@@ -39,12 +39,11 @@ Enums.ComponentArchetype = { --* reorder these later
     RNGComponent = 4,
     TransformComponent = 5,
     PlayerListComponent = 6,
-    MeshComponent = 7,
-    MaterialComponent = 8,
-    RigidBodyComponent = 9,
-    CameraDataComponent = 10,
-    SeedComponent = 11,
-    ShapeComponent = 12,
+    RenderComponent = 7,
+    RigidBodyComponent = 8,
+    CameraDataComponent = 9,
+    SeedComponent = 10,
+    ShapeComponent = 11,
     -- ...
 }
 
