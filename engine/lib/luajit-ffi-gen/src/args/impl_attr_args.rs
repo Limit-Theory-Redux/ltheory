@@ -10,6 +10,8 @@ pub struct ImplAttrArgs {
     opaque: bool,
     clone: bool,
     lua_ffi: bool,
+    gen_dir: Option<String>,
+    meta_dir: Option<String>,
 }
 
 impl Default for ImplAttrArgs {
@@ -19,6 +21,8 @@ impl Default for ImplAttrArgs {
             opaque: true,
             clone: false,
             lua_ffi: true,
+            gen_dir: None,
+            meta_dir: None,
         }
     }
 }
@@ -26,8 +30,8 @@ impl Default for ImplAttrArgs {
 impl ImplAttrArgs {
     /// If exists returns the name of the module used in C Api and Lua FFI,
     /// otherwise Rust type name is used.
-    pub fn name(&self) -> Option<String> {
-        self.name.clone()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
     }
 
     /// If true then typedef is generated for the module.
@@ -43,6 +47,16 @@ impl ImplAttrArgs {
     /// Specify if Lua FFI file should be generated or only C API.
     pub fn gen_lua_ffi(&self) -> bool {
         self.lua_ffi
+    }
+
+    /// Overrides the Lua ffi_gen directory.
+    pub fn gen_dir(&self) -> Option<&str> {
+        self.gen_dir.as_deref()
+    }
+
+    /// Overrides the Lua ffi_meta directory.
+    pub fn meta_dir(&self) -> Option<&str> {
+        self.meta_dir.as_deref()
     }
 }
 
@@ -93,10 +107,30 @@ impl Parse for ImplAttrArgs {
                         ));
                     }
                 }
+                "gen_dir" => {
+                    if let Lit::Str(val) = &param.value.lit {
+                        res.gen_dir = Some(val.value());
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'gen_dir' attribute parameter as string literal",
+                        ));
+                    }
+                }
+                "meta_dir" => {
+                    if let Lit::Str(val) = &param.value.lit {
+                        res.meta_dir = Some(val.value());
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'meta_dir' attribute parameter as string literal",
+                        ));
+                    }
+                }
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        "expected attribute parameter value: name, opaque, clone, lua_ffi"
+                        "expected attribute parameter value: name, opaque, clone, lua_ffi, gen_dir, meta_dir"
                             .to_string(),
                     ));
                 }

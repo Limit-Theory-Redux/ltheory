@@ -1,6 +1,5 @@
 use super::*;
 use crate::common::*;
-use crate::math::{IVec2, IVec3};
 use crate::system::*;
 
 #[derive(Copy, Clone)]
@@ -115,12 +114,12 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex2D(this: &mut Tex2D) {
+pub unsafe extern "C" fn RenderTarget_BindTex2D(this: &Tex2D) {
     RenderTarget_BindTex2DLevel(this, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: &mut Tex2D, level: i32) {
+pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: &Tex2D, level: i32) {
     let this: *mut FBO = GetActive();
     let handle: u32 = Tex2D_GetHandle(tex);
 
@@ -155,12 +154,12 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: &mut Tex2D, level: i32
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex3D(this: &mut Tex3D, layer: i32) {
+pub unsafe extern "C" fn RenderTarget_BindTex3D(this: &Tex3D, layer: i32) {
     RenderTarget_BindTex3DLevel(this, layer, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(tex: &mut Tex3D, layer: i32, level: i32) {
+pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(tex: &Tex3D, layer: i32, level: i32) {
     let this: *mut FBO = GetActive();
     if (*this).colorIndex >= 4 {
         panic!("RenderTarget_BindTex3D: Max color attachments exceeded");
@@ -180,16 +179,12 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(tex: &mut Tex3D, layer: i32
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTexCube(this: &mut TexCube, face: CubeFace) {
+pub unsafe extern "C" fn RenderTarget_BindTexCube(this: &TexCube, face: CubeFace) {
     RenderTarget_BindTexCubeLevel(this, face, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
-    tex: &mut TexCube,
-    face: CubeFace,
-    level: i32,
-) {
+pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(tex: &TexCube, face: CubeFace, level: i32) {
     let this: *mut FBO = GetActive();
     if (*this).colorIndex >= 4 {
         panic!("RenderTarget_BindTexCubeLevel: Max color attachments exceeded");
@@ -208,27 +203,25 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex2D(this: &mut Tex2D) {
+pub unsafe extern "C" fn RenderTarget_PushTex2D(this: &Tex2D) {
     RenderTarget_PushTex2DLevel(this, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(this: &mut Tex2D, level: i32) {
-    let mut size: IVec2 = IVec2::ZERO;
-    Tex2D_GetSizeLevel(this, &mut size, level);
+pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(this: &Tex2D, level: i32) {
+    let size = this.get_size_level(level);
     RenderTarget_Push(size.x, size.y);
     RenderTarget_BindTex2DLevel(this, level);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex3D(this: &mut Tex3D, layer: i32) {
+pub unsafe extern "C" fn RenderTarget_PushTex3D(this: &Tex3D, layer: i32) {
     RenderTarget_PushTex3DLevel(this, layer, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex3DLevel(this: &mut Tex3D, layer: i32, level: i32) {
-    let mut size: IVec3 = IVec3 { x: 0, y: 0, z: 0 };
-    Tex3D_GetSizeLevel(this, &mut size, level);
+pub unsafe extern "C" fn RenderTarget_PushTex3DLevel(this: &Tex3D, layer: i32, level: i32) {
+    let size = this.get_size_level(level);
     RenderTarget_Push(size.x, size.y);
     RenderTarget_BindTex3DLevel(this, layer, level);
 }

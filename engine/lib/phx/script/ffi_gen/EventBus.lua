@@ -16,18 +16,18 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void             EventBus_Free                (EventBus*);
-            double           EventBus_GetTimeScale        (EventBus const*);
-            void             EventBus_SetTimeScale        (EventBus*, double scaleFactor);
-            bool             EventBus_HasRustPayload      (EventBus const*, uint16 eventId);
-            void             EventBus_Register            (EventBus*, uint16 eventId, cstr eventName, FrameStage frameStage, bool rustPayload);
-            void             EventBus_Unregister          (EventBus*, uint16 eventId);
-            uint32           EventBus_Subscribe           (EventBus*, uint16 eventId, uint64 const* entityId);
-            void             EventBus_Unsubscribe         (EventBus*, uint32 tunnelId);
-            void             EventBus_Send                (EventBus*, uint16 eventId, uint64 const* entityId, Payload const* payload);
-            void             EventBus_StartEventIteration (EventBus*);
-            EventData const* EventBus_NextEvent           (EventBus*);
-            void             EventBus_PrintFrameStageMap  (EventBus const*);
+            void       EventBus_Free                (EventBus*);
+            double     EventBus_GetTimeScale        (EventBus const*);
+            void       EventBus_SetTimeScale        (EventBus*, double scaleFactor);
+            bool       EventBus_HasRustPayload      (EventBus const*, uint16 eventId);
+            void       EventBus_Register            (EventBus*, uint16 eventId, cstr eventName, FrameStage frameStage, bool rustPayload);
+            void       EventBus_Unregister          (EventBus*, uint16 eventId);
+            uint32     EventBus_Subscribe           (EventBus*, uint16 eventId, uint64 const* entityId);
+            void       EventBus_Unsubscribe         (EventBus*, uint32 tunnelId);
+            void       EventBus_Send                (EventBus*, uint16 eventId, uint64 const* entityId, Payload const* payload);
+            void       EventBus_StartEventIteration (EventBus*);
+            EventData* EventBus_NextEvent           (EventBus*);
+            void       EventBus_PrintFrameStageMap  (EventBus const*);
         ]]
     end
 

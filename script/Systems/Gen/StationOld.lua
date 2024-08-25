@@ -42,19 +42,19 @@ end
 
 function GenMesh:finalize(res)
     local mesh   = self.boxMesh:getMesh(res)
-    local vCount = mesh:getVertexCount()
-    local vData  = mesh:getVertexData()
-
-    for i = 0, vCount - 1 do
-        local p = Vec3f(vData[i].px, vData[i].py, vData[i].pz)
-        local dp = Vec3f(0, 0, 0)
-        for j = 1, #self.warps do
-            dp:iadd(self.warps[j](p))
+    
+    mesh:lockVertexData(function(vData, vCount)
+        for i = 0, vCount - 1 do
+            local p = Vec3f(vData[i].px, vData[i].py, vData[i].pz)
+            local dp = Vec3f(0, 0, 0)
+            for j = 1, #self.warps do
+                dp:iadd(self.warps[j](p))
+            end
+            vData[i].px = p.x + dp.x
+            vData[i].py = p.y + dp.y
+            vData[i].pz = p.z + dp.z
         end
-        vData[i].px = p.x + dp.x
-        vData[i].py = p.y + dp.y
-        vData[i].pz = p.z + dp.z
-    end
+    end)
 
     mesh:splitNormals(0.99)
     mesh:computeAO(0.3 * mesh:getRadius())

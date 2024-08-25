@@ -311,10 +311,9 @@ impl Payload {
         value.iter().for_each(|v| f(*v));
     }
 
-    // TODO: uncomment when luajit_gen_ffi supports array/slices of strings properly
-    // pub fn from_string_array(value: &[&str]) -> Self {
-    //     Self::StringArray(value.iter().map(|v| v.to_string()).collect())
-    // }
+    pub fn from_string_array(value: &[&str]) -> Self {
+        Self::StringArray(value.iter().map(|v| v.to_string()).collect())
+    }
 
     pub fn for_each_string(&self, f: impl Fn(&str)) {
         let Self::StringArray(value) = self else {

@@ -53,20 +53,20 @@ pub unsafe extern "C" fn Octree_FromMesh(mesh: &mut Mesh) -> *mut Octree {
     };
     Mesh_GetBound(mesh, &mut meshBox);
     let this: *mut Octree = Octree_Create(meshBox);
-    let indexCount: i32 = Mesh_GetIndexCount(mesh);
-    let indexData: *const i32 = Mesh_GetIndexData(mesh);
-    let vertexData: *const Vertex = Mesh_GetVertexData(mesh);
-    let mut i: i32 = 0;
-    while i < indexCount {
-        let v0: *const Vertex = vertexData.offset(*indexData.offset(i as isize) as isize);
-        let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
-        let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
+
+    let index_data = mesh.get_index_data();
+    let vertex_data = mesh.get_vertex_data();
+
+    for i in (0..index_data.len()).step_by(3) {
+        let v0 = &vertex_data[index_data[i] as usize];
+        let v1 = &vertex_data[index_data[i + 1] as usize];
+        let v2 = &vertex_data[index_data[i + 2] as usize];
         let box_0: Box3 = Box3::new(
-            Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
-            Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
+            Vec3::min(v0.p, Vec3::min(v1.p, v2.p)),
+            Vec3::max(v0.p, Vec3::max(v1.p, v2.p)),
         );
+
         Octree_Add(&mut *this, box_0, (i / 3) as u32);
-        i += 3;
     }
     this
 }

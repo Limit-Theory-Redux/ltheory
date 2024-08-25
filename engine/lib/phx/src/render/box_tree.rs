@@ -55,17 +55,16 @@ pub unsafe extern "C" fn BoxTree_Free(this: *mut BoxTree) {
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_FromMesh(mesh: &mut Mesh) -> *mut BoxTree {
     let this: *mut BoxTree = BoxTree_Create();
-    let indexCount: i32 = Mesh_GetIndexCount(mesh);
-    let indexData: *const i32 = Mesh_GetIndexData(mesh);
-    let vertexData: *const Vertex = Mesh_GetVertexData(mesh);
+    let index_data = mesh.get_index_data();
+    let vertex_data = mesh.get_vertex_data();
 
-    for i in (0..indexCount).step_by(3) {
-        let v0: *const Vertex = vertexData.offset(*indexData.offset((i) as isize) as isize);
-        let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
-        let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
+    for i in (0..index_data.len()).step_by(3) {
+        let v0 = &vertex_data[index_data[i] as usize];
+        let v1 = &vertex_data[index_data[i + 1] as usize];
+        let v2 = &vertex_data[index_data[i + 2] as usize];
         let box3: Box3 = Box3::new(
-            Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
-            Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
+            Vec3::min(v0.p, Vec3::min(v1.p, v2.p)),
+            Vec3::max(v0.p, Vec3::max(v1.p, v2.p)),
         );
         BoxTree_Add(&mut *this, box3, std::ptr::null_mut());
     }

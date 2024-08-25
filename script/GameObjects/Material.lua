@@ -32,17 +32,14 @@ function Material.Create(name, diffuse, normal, spec)
     self.state = nil
 
     if diffuse then
-        self.texDiffuse:acquire()
         setTextureState(diffuse)
     end
 
     if normal then
-        self.texNormal:acquire()
         setTextureState(normal)
     end
 
     if spec then
-        self.texSpec:acquire()
         setTextureState(spec)
     end
 
@@ -52,15 +49,14 @@ function Material.Create(name, diffuse, normal, spec)
 end
 
 function Material:free()
-    if self.texDiffuse then self.texDiffuse:free() end
-    if self.texNormal then self.texNormal:free() end
-    if self.texSpec then self.texSpec:free() end
-    self.state:free()
+    self.texDiffuse = nil
+    self.texNormal = nil
+    self.texSpec = nil
+    self.state = nil
     remove(allMaterials, self)
 end
 
 function Material:reload()
-    if self.state then self.state:free() end
     local shader = Cache.Shader('wvp', self.name)
     self.state = ShaderState.Create(shader)
 

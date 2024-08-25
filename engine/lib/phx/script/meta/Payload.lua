@@ -94,95 +94,100 @@ function Payload.FromString(value) end
 ---@return string
 function Payload:getString() end
 
----@param value boolean
+---@param value boolean[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromBoolArray(value, value_size) end
 
----@param f function
+---@param f fun(arg1: boolean): nil
 function Payload:forEachBool(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromI8Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function Payload:forEachI8(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromU8Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function Payload:forEachU8(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromI16Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function Payload:forEachI16(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromU16Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function Payload:forEachU16(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromI32Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function Payload:forEachI32(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromU32Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function Payload:forEachU32(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromI64Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function Payload:forEachI64(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromU64Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function Payload:forEachU64(f) end
 
----@param value number
+---@param value number[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromF32Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: number): nil
 function Payload:forEachF32(f) end
 
----@param value number
+---@param value number[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromF64Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: number): nil
 function Payload:forEachF64(f) end
 
----@param f function
+---@param value string[]
+---@param value_size integer
+---@return Payload
+function Payload.FromStringArray(value, value_size) end
+
+---@param f fun(arg1: string): nil
 function Payload:forEachString(f) end
 
 ---@param value PayloadTable

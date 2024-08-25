@@ -88,7 +88,7 @@ impl CollisionShape {
 
     pub fn new_box_from_mesh(mesh: &mut Mesh) -> CollisionShape {
         let mut bounds = Box3::default();
-        Mesh_GetBound(mesh, &mut bounds);
+        mesh.get_bound(&mut bounds);
         Self::new(
             1.0,
             CollisionShapeType::Box {
@@ -109,7 +109,7 @@ impl CollisionShape {
         Self::new(
             1.0,
             CollisionShapeType::Sphere {
-                radius: Mesh_GetRadius(mesh),
+                radius: mesh.get_radius(),
             },
         )
     }
@@ -144,11 +144,15 @@ impl CollisionShape {
     }
 
     fn convert_vertices(mesh: &Mesh) -> Vec<na::Point3<rp::Real>> {
-        mesh.vertex.iter().map(|v| v.p.to_na_point()).collect()
+        mesh.get_vertex_data()
+            .iter()
+            .map(|v| v.p.to_na_point())
+            .collect()
     }
 
     fn convert_indices(mesh: &Mesh) -> Vec<[u32; 3]> {
-        let mesh_indices = &mesh.index[..mesh.index.len() - (mesh.index.len() % 3)];
+        let mesh_indices = mesh.get_index_data();
+        let mesh_indices = &mesh_indices[..mesh_indices.len() - (mesh_indices.len() % 3)];
         let mut indices: Vec<[u32; 3]> = Vec::with_capacity(mesh_indices.len() / 3);
 
         for i in 0..mesh_indices.len() / 3 {

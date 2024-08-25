@@ -1,97 +1,69 @@
-use internal::*;
-
 use super::*;
-
-/* --- LodMesh -----------------------------------------------------------------
- *
- *   A basic container for abstracting LOD rendering behavior. LodMesh consists
- *   of any number of (Mesh, distMin, distMax) tuples. Drawing a requires
- *   passing a *distance squared* argument that is used to determine which
- *   component(s) of the LodMesh to draw.
- *
- *   This type is REFERENCE-COUNTED. See ../doc/RefCounted.txt for details.
- *
- * -------------------------------------------------------------------------- */
+use crate::rf::Rf;
 
 /* TODO : Merge meshes into single IBO/VBO so that we can skip all the rebinds
  *        (profiling shows that they are a huge perf drain in the rendering
  *         pipeline) */
 
-#[derive(Copy, Clone)]
-#[repr(C)]
+/// A basic container for abstracting LOD rendering behavior. LodMesh consists of any number of (Mesh,
+/// distMin, distMax) tuples. Drawing a requires passing a *distance squared* argument that is used to
+/// determine which component(s) of the LodMesh to draw.
+///
+/// This object is cheap to clone, as the underlying data structure is reference counted.
+#[derive(Clone)]
 pub struct LodMesh {
-    pub _refCount: u32,
-    pub head: *mut LodMeshEntry,
+    lod_levels: Rf<Vec<LodMeshEntry>>,
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct LodMeshEntry {
-    pub next: *mut LodMeshEntry,
-    pub mesh: *mut Mesh,
-    pub dMin: f32,
-    pub dMax: f32,
+struct LodMeshEntry {
+    mesh: Mesh,
+    distance_squared_min: f32,
+    distance_squared_max: f32,
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
-    let this = MemNew!(LodMesh);
-    (*this)._refCount = 1;
-    (*this).head = std::ptr::null_mut();
-    this
-}
-
-#[no_mangle]
-pub extern "C" fn LodMesh_Acquire(this: &mut LodMesh) {
-    this._refCount = (this._refCount).wrapping_add(1);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn LodMesh_Free(this: *mut LodMesh) {
-    if !this.is_null() && {
-        (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount == 0
-    } {
-        let mut e: *mut LodMeshEntry = (*this).head;
-        while !e.is_null() {
-            let next: *mut LodMeshEntry = (*e).next;
-            Mesh_Free(Box::from_raw((*e).mesh));
-            MemFree(e as *const _);
-            e = next;
+#[luajit_ffi_gen::luajit_ffi]
+impl LodMesh {
+    #[bind(name = "Create")]
+    pub fn new() -> LodMesh {
+        LodMesh {
+            lod_levels: Rf::new(Vec::new()),
         }
-        MemFree(this as *const _);
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn LodMesh_Add(this: &mut LodMesh, mesh: *mut Mesh, dMin: f32, dMax: f32) {
-    let e = MemNew!(LodMeshEntry);
-    (*e).mesh = mesh;
-    (*e).dMin = dMin * dMin;
-    (*e).dMax = dMax * dMax;
-    (*e).next = this.head;
-    this.head = e;
-}
+    // This simply forwards calls from Lua to the Clone trait.
+    #[bind(name = "Clone")]
+    fn clone_impl(&self) -> LodMesh {
+        self.clone()
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn LodMesh_Draw(this: &mut LodMesh, d2: f32) {
-    let mut e: *mut LodMeshEntry = this.head;
-    while !e.is_null() {
-        if (*e).dMin <= d2 && d2 <= (*e).dMax {
-            Mesh_Draw(&mut *(*e).mesh);
+    pub fn add(&mut self, mesh: Mesh, distance_min: f32, distance_max: f32) {
+        self.lod_levels.as_mut().push(LodMeshEntry {
+            mesh,
+            distance_squared_min: distance_min * distance_min,
+            distance_squared_max: distance_max * distance_max,
+        });
+    }
+
+    pub fn draw(&mut self, distance_squared: f32) {
+        for level in &mut *self.lod_levels.as_mut() {
+            if level.distance_squared_min <= distance_squared
+                && distance_squared <= level.distance_squared_max
+            {
+                level.mesh.draw();
+                break;
+            }
         }
-        e = (*e).next;
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn LodMesh_Get(this: &mut LodMesh, d2: f32) -> *mut Mesh {
-    let mut e: *mut LodMeshEntry = this.head;
-    while !e.is_null() {
-        if (*e).dMin <= d2 && d2 <= (*e).dMax {
-            return (*e).mesh;
+    pub fn get(&mut self, distance_squared: f32) -> Option<Mesh> {
+        for level in &mut *self.lod_levels.as_mut() {
+            if level.distance_squared_min <= distance_squared
+                && distance_squared <= level.distance_squared_max
+            {
+                return Some(level.mesh.clone());
+            }
         }
-        e = (*e).next;
+
+        None
     }
-    std::ptr::null_mut()
 }

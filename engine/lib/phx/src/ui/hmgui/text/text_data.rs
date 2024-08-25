@@ -10,9 +10,7 @@ use super::{
     TextAlignment, TextContext, TextCursorRect, TextSectionStyle, TextSelection, TextStyle,
 };
 use crate::input::{Button, Input};
-use crate::render::{
-    Color, DataFormat_Float, PixelFormat_RGBA, Tex2D, Tex2D_Create, Tex2D_SetData, TexFormat_RGBA8,
-};
+use crate::render::{Color, DataFormat_Float, PixelFormat_RGBA, Tex2D, TexFormat_RGBA8};
 
 pub type TextLayout = Layout<Color>;
 
@@ -262,7 +260,7 @@ impl TextData {
         editable: bool,
         focused: bool,
         clipboard: &mut String,
-    ) -> *mut Tex2D {
+    ) -> Option<Tex2D> {
         if editable && focused {
             self.process_text_edit(input, clipboard);
         }
@@ -288,7 +286,7 @@ impl TextData {
         self.set_max_advance(width);
 
         if !self.update_text_layout(text_ctx) {
-            return std::ptr::null_mut();
+            return None;
         }
 
         // Create buffer to render into
@@ -317,18 +315,9 @@ impl TextData {
         }
 
         // Create texture
-        unsafe {
-            let tex = Tex2D_Create(width as i32, height as i32, TexFormat_RGBA8);
-
-            Tex2D_SetData(
-                &mut *tex,
-                buffer.as_ptr() as _,
-                PixelFormat_RGBA,
-                DataFormat_Float,
-            );
-
-            tex
-        }
+        let mut tex = Tex2D::new(width as i32, height as i32, TexFormat_RGBA8);
+        tex.set_data(&buffer, PixelFormat_RGBA, DataFormat_Float);
+        Some(tex)
     }
 
     fn update_text_layout(&mut self, text_ctx: &mut TextContext) -> bool {

@@ -17,11 +17,11 @@ function PayloadTable:isEmpty() end
 function PayloadTable:contains(name) end
 
 ---@param index integer
----@return string|nil
+---@return string?
 function PayloadTable:getName(index) end
 
 ---@param index integer
----@return Payload|nil
+---@return Payload?
 function PayloadTable:getPayload(index) end
 
 ---@param name string

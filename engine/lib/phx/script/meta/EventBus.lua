@@ -23,7 +23,7 @@ function EventBus:register(eventId, eventName, frameStage, rustPayload) end
 function EventBus:unregister(eventId) end
 
 ---@param eventId integer
----@param entityId integer|nil
+---@param entityId integer?
 ---@return integer
 ---@overload fun(self: table, eventType: integer, ctxTable: table|nil, callbackFunc: function): integer
 function EventBus:subscribe(eventId, entityId) end
@@ -32,8 +32,8 @@ function EventBus:subscribe(eventId, entityId) end
 function EventBus:unsubscribe(tunnelId) end
 
 ---@param eventId integer
----@param entityId integer|nil
----@param payload Payload|nil
+---@param entityId integer?
+---@param payload Payload?
 ---@overload fun(self: table, eventType: integer, ctxTable: table|nil, payload: Payload|nil)
 function EventBus:send(eventId, entityId, payload) end
 
@@ -41,7 +41,7 @@ function EventBus:startEventIteration() end
 
 -- Iterates over events of the frame.
 -- Returns `None`/`nil` when there are no more events.
----@return EventData|nil
+---@return EventData?
 function EventBus:nextEvent() end
 
 function EventBus:printFrameStageMap() end

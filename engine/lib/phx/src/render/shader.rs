@@ -209,7 +209,7 @@ impl ShaderShared {
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(gl::TEXTURE_1D, Tex1D_GetHandle(&mut **t)));
+                glcheck!(gl::BindTexture(gl::TEXTURE_1D, t.get_handle()));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0));
             }
             ShaderVarData::Tex2D(t) => {
@@ -217,7 +217,7 @@ impl ShaderShared {
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(gl::TEXTURE_2D, Tex2D_GetHandle(&mut **t)));
+                glcheck!(gl::BindTexture(gl::TEXTURE_2D, t.get_handle()));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0));
             }
             ShaderVarData::Tex3D(t) => {
@@ -225,7 +225,7 @@ impl ShaderShared {
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(gl::TEXTURE_3D, Tex3D_GetHandle(&mut **t)));
+                glcheck!(gl::BindTexture(gl::TEXTURE_3D, t.get_handle()));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0));
             }
             ShaderVarData::TexCube(t) => {
@@ -233,10 +233,7 @@ impl ShaderShared {
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(
-                    gl::TEXTURE_CUBE_MAP,
-                    TexCube_GetHandle(&mut **t)
-                ));
+                glcheck!(gl::BindTexture(gl::TEXTURE_CUBE_MAP, t.get_handle(),));
                 glcheck!(gl::ActiveTexture(gl::TEXTURE0));
             }
         }
@@ -387,39 +384,39 @@ impl Shader {
     }
 
     pub fn set_tex1d(&mut self, name: &str, value: &mut Tex1D) {
-        self.set_uniform(name, ShaderVarData::Tex1D(value as *mut _));
+        self.set_uniform(name, ShaderVarData::Tex1D(value.clone()));
     }
 
     #[bind(name = "ISetTex1D")]
     pub fn index_set_tex1d(&mut self, index: i32, value: &mut Tex1D) {
-        self.index_set_uniform(index, ShaderVarData::Tex1D(value as *mut _));
+        self.index_set_uniform(index, ShaderVarData::Tex1D(value.clone()));
     }
 
-    pub fn set_tex2d(&mut self, name: &str, value: &mut Tex2D) {
-        self.set_uniform(name, ShaderVarData::Tex2D(value as *mut _));
+    pub fn set_tex2d(&mut self, name: &str, value: &Tex2D) {
+        self.set_uniform(name, ShaderVarData::Tex2D(value.clone()));
     }
 
     #[bind(name = "ISetTex2D")]
     pub fn index_set_tex2d(&mut self, index: i32, value: &mut Tex2D) {
-        self.index_set_uniform(index, ShaderVarData::Tex2D(value as *mut _));
+        self.index_set_uniform(index, ShaderVarData::Tex2D(value.clone()));
     }
 
     pub fn set_tex3d(&mut self, name: &str, value: &mut Tex3D) {
-        self.set_uniform(name, ShaderVarData::Tex3D(value as *mut _));
+        self.set_uniform(name, ShaderVarData::Tex3D(value.clone()));
     }
 
     #[bind(name = "ISetTex3D")]
     pub fn index_set_tex3d(&mut self, index: i32, value: &mut Tex3D) {
-        self.index_set_uniform(index, ShaderVarData::Tex3D(value as *mut _));
+        self.index_set_uniform(index, ShaderVarData::Tex3D(value.clone()));
     }
 
     pub fn set_tex_cube(&mut self, name: &str, value: &mut TexCube) {
-        self.set_uniform(name, ShaderVarData::TexCube(value as *mut _));
+        self.set_uniform(name, ShaderVarData::TexCube(value.clone()));
     }
 
     #[bind(name = "ISetTexCube")]
     pub fn index_set_tex_cube(&mut self, index: i32, value: &mut TexCube) {
-        self.index_set_uniform(index, ShaderVarData::TexCube(value as *mut _));
+        self.index_set_uniform(index, ShaderVarData::TexCube(value.clone()));
     }
 
     // Singleton based shader functions - Old API.

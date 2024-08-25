@@ -11,6 +11,8 @@ pub struct EnumAttrArgs {
     start_index: Option<u64>,
     lua_ffi: bool,
     with_impl: bool,
+    gen_dir: Option<String>,
+    meta_dir: Option<String>,
 }
 
 impl Default for EnumAttrArgs {
@@ -21,6 +23,8 @@ impl Default for EnumAttrArgs {
             start_index: None,
             lua_ffi: true,
             with_impl: false,
+            gen_dir: None,
+            meta_dir: None,
         }
     }
 }
@@ -28,14 +32,14 @@ impl Default for EnumAttrArgs {
 impl EnumAttrArgs {
     /// If exists returns the name of the module used in C Api and Lua FFI,
     /// otherwise Rust type name is used.
-    pub fn name(&self) -> Option<String> {
-        self.name.clone()
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
     }
 
     /// Specify what type will be used in `#[repr(...)]` attribute that will be added to the enum definition.
     /// If not set then type will be deducted from the maximal discriminant: u8, u16, u32 or u64.
-    pub fn repr(&self) -> Option<String> {
-        self.repr.clone()
+    pub fn repr(&self) -> Option<&str> {
+        self.repr.as_deref()
     }
 
     /// Set starting index for discriminant values. Ignored if enum already has discriminants. Default: 0.
@@ -54,6 +58,16 @@ impl EnumAttrArgs {
     /// and then generate complete FFI file.
     pub fn with_impl(&self) -> bool {
         self.with_impl
+    }
+
+    /// Overrides the Lua ffi_gen directory.
+    pub fn gen_dir(&self) -> Option<&str> {
+        self.gen_dir.as_deref()
+    }
+
+    /// Overrides the Lua ffi_meta directory.
+    pub fn meta_dir(&self) -> Option<&str> {
+        self.meta_dir.as_deref()
     }
 }
 
@@ -114,10 +128,30 @@ impl Parse for EnumAttrArgs {
                         ));
                     }
                 }
+                "gen_dir" => {
+                    if let Lit::Str(val) = &param.value.lit {
+                        res.gen_dir = Some(val.value());
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'gen_dir' attribute parameter as string literal",
+                        ));
+                    }
+                }
+                "meta_dir" => {
+                    if let Lit::Str(val) = &param.value.lit {
+                        res.meta_dir = Some(val.value());
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'meta_dir' attribute parameter as string literal",
+                        ));
+                    }
+                }
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        "expected attribute parameter value: name, repr, start_index, lua_ffi, with_impl".to_string(),
+                        "expected attribute parameter value: name, repr, start_index, lua_ffi, with_impl, gen_dir, meta_dir".to_string(),
                     ));
                 }
             }

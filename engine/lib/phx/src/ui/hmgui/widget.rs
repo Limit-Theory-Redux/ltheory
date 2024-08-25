@@ -7,14 +7,15 @@ use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, 
 use crate::input::Input;
 use crate::render::Color;
 use crate::rf::Rf;
+use crate::ui::hmgui::HmGuiImageLayout;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub enum WidgetItem {
     Container(HmGuiContainer),
     Text(HmGuiText),
     Rect,
     Image(HmGuiImage),
-    TextView(HmGuiImage),
+    TextView(Option<HmGuiImage>),
 }
 
 impl WidgetItem {
@@ -51,7 +52,7 @@ impl Length {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct HmGuiWidget {
     pub parent: Option<Rf<HmGuiWidget>>,
 
@@ -207,11 +208,8 @@ impl HmGuiWidget {
                 self.min_size = self.calculate_min_size();
             }
             WidgetItem::TextView(image) => {
-                if !image.image.is_null() {
-                    let image_ref = unsafe { &*image.image };
-
-                    self.inner_min_size =
-                        Vec2::new(image_ref.size.x as f32, image_ref.size.y as f32);
+                if image.is_some() {
+                    self.inner_min_size = image.as_ref().unwrap().image.get_size().as_vec2();
                 } else {
                     let scale_factor = hmgui.scale_factor() as f32;
                     let data = hmgui.data_mut(self.hash);
@@ -276,15 +274,20 @@ impl HmGuiWidget {
                 // Check if this can be solved.
                 let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
 
-                image.image = text_view.update(
-                    text_ctx.borrow_mut(),
-                    self.inner_size.x,
-                    scale_factor,
-                    self.inner_pos,
-                    input,
-                    focused,
-                    &mut clipboard,
-                );
+                *image = text_view
+                    .update(
+                        text_ctx.borrow_mut(),
+                        self.inner_size.x,
+                        scale_factor,
+                        self.inner_pos,
+                        input,
+                        focused,
+                        &mut clipboard,
+                    )
+                    .map(|tex_ref| HmGuiImage {
+                        image: tex_ref.clone(),
+                        layout: HmGuiImageLayout::TopLeft,
+                    });
 
                 if !clipboard.is_empty() {
                     if let Err(err) = hmgui.clipboard().set_text(clipboard) {
@@ -329,6 +332,10 @@ impl HmGuiWidget {
                     image.draw(hmgui, pos, size);
                 }
                 WidgetItem::TextView(image) => {
+                    let image = image
+                        .as_ref()
+                        .expect("Expected TextView to have a valid image.");
+
                     image.draw(hmgui, pos, size);
 
                     if hmgui.in_focus(self) {
@@ -392,7 +399,11 @@ impl HmGuiWidget {
 
                 println!("{ident_str}- rect");
             },
-            WidgetItem::Image(item) | WidgetItem::TextView(item) => item.dump(ident + 1),
+            WidgetItem::Image(item) => item.dump(ident + 1),
+            WidgetItem::TextView(item) => match item {
+                Some(item) => item.dump(ident + 1),
+                None => println!("{ident_str}- image: None")
+            },
         }
     }
 }
