@@ -6,6 +6,9 @@
 /out/
 /target/
 
+# Logs
+/logs/
+
 # IDEs
 .idea/
 .vs/
