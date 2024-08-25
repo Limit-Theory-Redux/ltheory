@@ -6,7 +6,7 @@ local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")       
 local SeedComponent = require("_ECS_WIP_TEMP.Components.Generation.SeedComponent")        --!temp path
 local TransformComponent = require("_ECS_WIP_TEMP.Components.Physics.TransformComponent") --!temp path
 local MassComponent = require("_ECS_WIP_TEMP.Components.Physics.MassComponent")           --!temp path
-local RigidBodyComponent = require("_ECS_WIP_TEMP.Components.Physics.RigidBody")          --!temp path
+local RigidBodyComponent = require("_ECS_WIP_TEMP.Components.Physics.RigidBodyComponent")          --!temp path
 local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarchy")       --!temp path
 
 -- Types

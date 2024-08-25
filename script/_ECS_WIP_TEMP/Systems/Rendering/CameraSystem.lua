@@ -68,17 +68,19 @@ function CameraSystem:setCamera(entityInfo)
     if camera then
         self.currentCamera = camera
         self.currentCameraData = nil -- reset
+        self.currentCameraTransform = nil -- reset
     end
 end
 
 ---@param cdt CameraDataComponent
-function CameraSystem:beginCameraDraw(cdt)
+---@param ct TransformComponent
+function CameraSystem:beginCameraDraw(cdt, t)
     -- self:refreshMatrices()
     ShaderVar.PushMatrix('mView', cdt:getView())
     ShaderVar.PushMatrix('mViewInv', cdt:getViewInverse())
     ShaderVar.PushMatrix('mProj', cdt:getProjection())
     ShaderVar.PushMatrix('mProjInv', cdt:getProjectionInverse())
-    ShaderVar.PushFloat3('eye', 0.0, 0.0, 0.0)
+    ShaderVar.PushFloat3('eye', t:getPosition())
 end
 
 function CameraSystem:endDraw()
