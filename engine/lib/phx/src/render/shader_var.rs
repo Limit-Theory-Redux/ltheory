@@ -16,10 +16,10 @@ pub enum ShaderVarData {
     Int3(IVec3),
     Int4(IVec4),
     Matrix(Matrix),
-    Tex1D(*mut Tex1D),
-    Tex2D(*mut Tex2D),
-    Tex3D(*mut Tex3D),
-    TexCube(*mut TexCube),
+    Tex1D(Tex1D),
+    Tex2D(Tex2D),
+    Tex3D(Tex3D),
+    TexCube(TexCube),
 }
 
 // Trust me, it's fine.
@@ -117,19 +117,19 @@ impl ShaderVar {
     }
 
     pub fn push_tex1d(name: &str, t: &mut Tex1D) {
-        Self::push(name, ShaderVarData::Tex1D(t));
+        Self::push(name, ShaderVarData::Tex1D(t.clone()));
     }
 
     pub fn push_tex2d(name: &str, t: &mut Tex2D) {
-        Self::push(name, ShaderVarData::Tex2D(t));
+        Self::push(name, ShaderVarData::Tex2D(t.clone()));
     }
 
     pub fn push_tex3d(name: &str, t: &mut Tex3D) {
-        Self::push(name, ShaderVarData::Tex3D(t));
+        Self::push(name, ShaderVarData::Tex3D(t.clone()));
     }
 
     pub fn push_tex_cube(name: &str, t: &mut TexCube) {
-        Self::push(name, ShaderVarData::TexCube(t));
+        Self::push(name, ShaderVarData::TexCube(t.clone()));
     }
 
     pub fn pop(name: &str) {

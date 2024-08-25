@@ -40,51 +40,35 @@ end
 do -- Opaque Structs
   ffi.cdef [[
     typedef struct BSP          {} BSP;
-    typedef struct BoxMesh      {} BoxMesh;
     typedef struct BoxTree      {} BoxTree;
-    typedef struct Bytes        {} Bytes;
     typedef struct File         {} File;
     typedef struct HashGrid     {} HashGrid;
     typedef struct HashGridElem {} HashGridElem;
     typedef struct InputBinding {} InputBinding;
     typedef struct KDTree       {} KDTree;
-    typedef struct LodMesh      {} LodMesh;
     typedef struct MemPool      {} MemPool;
     typedef struct MemStack     {} MemStack;
-    typedef struct Mesh         {} Mesh;
     typedef struct Octree       {} Octree;
     typedef struct RNG          {} RNG;
     typedef struct RmGui        {} RmGui;
     typedef struct SDF          {} SDF;
     typedef struct Socket       {} Socket;
-    typedef struct Tex1D        {} Tex1D;
-    typedef struct Tex2D        {} Tex2D;
-    typedef struct Tex3D        {} Tex3D;
-    typedef struct TexCube      {} TexCube;
   ]]
 
   libphx.Opaques = {
     'BSP',
-    'BoxMesh',
     'BoxTree',
-    'Bytes',
     'File',
     'HashGrid',
     'HashGridElem',
     'KDTree',
-    'LodMesh',
     'MemPool',
     'MemStack',
-    'Mesh',
     'Octree',
     'RNG',
     'RmGui',
     'SDF',
     'Socket',
-    'Tex1D',
-    'Tex2D',
-    'Tex3D',
-    'TexCube',
   }
 end
 

@@ -8,7 +8,7 @@ function Dust:forceLoad()
     local rng = RNG.FromTime():managed()
 
     do -- Dust clouds mesh
-        local mesh = Mesh.Create():managed()
+        local mesh = Mesh.Create()
         for i = 1, Config.gen.nDustClouds do
             local p = rng:getVec3(-kFleckDistance, kFleckDistance)
             mesh:addVertex(p.x, p.y, p.z, 0, 0, 1, -1, -1)
@@ -22,7 +22,7 @@ function Dust:forceLoad()
     end
 
     do -- Dust fleck mesh
-        local mesh = Mesh.Create():managed()
+        local mesh = Mesh.Create()
         for i = 1, Config.gen.nDustFlecks do
             local p = rng:getVec3(-kFleckDistance, kFleckDistance)
             mesh:addVertex(p.x, p.y, p.z, 0, 0, 1, -1, 0)

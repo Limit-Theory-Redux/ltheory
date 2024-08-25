@@ -38,9 +38,6 @@ local function generateNebulaIFS(rng, res, starDir)
     self:setMagFilter(TexFilter.Linear)
     self:setMinFilter(TexFilter.LinearMipLinear)
 
-    lutR:free()
-    lutG:free()
-    lutB:free()
     Profiler.End()
     return self
 end

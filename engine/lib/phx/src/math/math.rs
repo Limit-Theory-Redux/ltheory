@@ -79,6 +79,14 @@ pub extern "C" fn Float_Validate(x: f64) -> Error {
 }
 
 #[inline]
+pub extern "C" fn Vec2_Validate(v: Vec2) -> Error {
+    let mut e = 0 as Error;
+    e |= Float_Validatef(v.x);
+    e |= Float_Validatef(v.y);
+    e
+}
+
+#[inline]
 pub extern "C" fn Vec3_Validate(v: Vec3) -> Error {
     let mut e = 0 as Error;
     e |= Float_Validatef(v.x);

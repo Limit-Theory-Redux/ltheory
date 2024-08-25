@@ -10,7 +10,7 @@ pub struct Sdf {
     pub data: *mut Cell,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[repr(C)]
 pub struct Cell {
     pub value: f32,
@@ -35,17 +35,12 @@ pub unsafe extern "C" fn SDF_Create(sx: i32, sy: i32, sz: i32) -> *mut Sdf {
 #[no_mangle]
 pub unsafe extern "C" fn SDF_FromTex3D(tex: &mut Tex3D) -> *mut Sdf {
     let this = MemNew!(Sdf);
-    Tex3D_GetSize(tex, &mut (*this).size);
-    (*this).data = MemAlloc(
-        (std::mem::size_of::<Cell>())
-            .wrapping_mul(((*this).size.x * (*this).size.y * (*this).size.z) as usize),
-    ) as *mut Cell;
-    Tex3D_GetData(
-        tex,
-        (*this).data as *mut _,
-        PixelFormat_RGBA,
-        DataFormat_Float,
-    );
+    (*this).size = tex.get_size();
+    let size =
+        std::mem::size_of::<Cell>() * ((*this).size.x * (*this).size.y * (*this).size.z) as usize;
+    (*this).data = MemAlloc(size) as *mut Cell;
+    let tex_data: Vec<Cell> = tex.get_data(PixelFormat_RGBA, DataFormat_Float);
+    MemCpy((*this).data as *mut _, tex_data.as_ptr() as *const _, size);
     this
 }
 

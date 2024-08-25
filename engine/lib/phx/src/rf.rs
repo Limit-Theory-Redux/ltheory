@@ -11,7 +11,7 @@ use std::rc::Rc;
 ///
 /// Change target if you are not on Linux. See https://doc.rust-lang.org/nightly/rustc/platform-support.html
 /// for the list of all possible targets.
-#[derive(Default, PartialEq, Eq)]
+#[derive(Default, Debug, PartialEq, Eq)]
 #[must_use]
 pub struct Rf<T>(Rc<RefCell<T>>);
 
