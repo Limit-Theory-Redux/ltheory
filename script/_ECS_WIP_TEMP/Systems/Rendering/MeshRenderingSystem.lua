@@ -1,3 +1,4 @@
+--[[
 function renderAllEntities()
     renderState = RenderState(eye, ..)
     for entity in entities
@@ -8,3 +9,4 @@ function renderAllEntities()
       rc.drawMesh()
     end
   end
+  --]]
