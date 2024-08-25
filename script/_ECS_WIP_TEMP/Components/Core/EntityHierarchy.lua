@@ -4,7 +4,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component') --!temp path
 local EntityInfo = require('_ECS_WIP_TEMP.Shared.Types.EntityInfo')
 
 -- Systems
-local GlobalStorage = require('_ECS_WIP_TEMP.Systems.GlobalStorage') --!temp path
+local GlobalStorage = require('_ECS_WIP_TEMP.Systems.Storage.GlobalStorage') --!temp path
 
 ---@class EntityHierarchyComponent: Component
 ---@overload fun(self: EntityHierarchyComponent, parentEntity: EntityInfo|nil) : EntityHierarchyComponent subclass internal

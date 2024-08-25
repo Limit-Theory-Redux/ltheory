@@ -1,6 +1,6 @@
 --todo: render white screen
 -- Systems
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage") --!temp path
+local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
 
 -- Utilities
 local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler") --!temp path
@@ -43,9 +43,10 @@ function RenderCoreSystem:onRender(data)
     RenderState.PushAllDefaults()
 
     -- Reset Camera Camera:draw
+    -- Nebula? start?
 
     -- < Opaque Pass > --
-
+    -- Render BlendMode.Disabled
 
     -- < Lighting > --
         -- < Global Lighting > --
@@ -57,9 +58,12 @@ function RenderCoreSystem:onRender(data)
     
 
     -- < Alpha (Additive Pass) > --
-
+    -- Render BlendMode.Additive
 
     -- < Alpha Pass > --
+    -- Render BlendMode.Alpha
+
+    -- StarSystem Stop()
 
 end
 

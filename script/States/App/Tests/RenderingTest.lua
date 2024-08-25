@@ -2,7 +2,7 @@
 local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")                  --!temp path
 local Asteroid = require("_ECS_WIP_TEMP.Entities.CelestialObjects.AsteroidEntity") --!temp path
 -- Systems
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.GlobalStorage")               --!temp path
+local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage")               --!temp path
 ---@type CameraSystem
 local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem")
 -- Utilities
