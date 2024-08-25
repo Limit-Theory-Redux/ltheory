@@ -31,19 +31,36 @@ function RenderCoreSystem:onPreRender(data)
     --[[
 
     ]]--
-
-    -- Set Rendering to Defaults for onRender
-    --TODO: Unclear if this is necessary
-    ClipRect.PushDisabled()
-    RenderState.PushAllDefaults()
-
+    -- LightList = AllEntitiesWithComponent(LightComponent)
 end
 
 function RenderCoreSystem:onRender(data)
     --[[
         
     ]]--
+    -- Reset RenderState and ClipRect at Start of Render
+    ClipRect.PushDisabled()
+    RenderState.PushAllDefaults()
+
+    -- Reset Camera Camera:draw
+
+    -- < Opaque Pass > --
+
+
+    -- < Lighting > --
+        -- < Global Lighting > --
+        -- Use Cached World Light Material ?
+        -- < Local Lighting > --
+        -- Use Cached Light Material
+        -- < Aldebo & accumulated light buffer > --
+        -- Use Cached Light Material 
     
+
+    -- < Alpha (Additive Pass) > --
+
+
+    -- < Alpha Pass > --
+
 end
 
 function RenderCoreSystem:onPostRender(data)
