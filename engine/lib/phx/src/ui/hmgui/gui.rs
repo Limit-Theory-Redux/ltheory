@@ -436,11 +436,6 @@ impl HmGui {
 
     /// Add multiline styled text element.
     pub fn text_view(&mut self, text_data: &mut TextData, editable: bool) {
-        // let image_item = HmGuiImage {
-        //     image: std::ptr::null_mut(),
-        //     layout: HmGuiImageLayout::TopLeft,
-        // };
-
         let widget_rf = self.init_widget(WidgetItem::TextView(None));
         let widget = widget_rf.as_mut();
 

@@ -141,7 +141,6 @@ impl Mesh {
         Self::from_bytes(&mut Resource::load_bytes(ResourceType::Mesh, name))
     }
 
-    #[bind(name = "ToBytes")]
     pub fn to_bytes(&self) -> Bytes {
         let this = self.shared.as_ref();
 
@@ -181,11 +180,6 @@ impl Mesh {
 
         mesh
     }
-
-    // #[bind(name = "FromSDF")]
-    // pub fn from_sdf(sdf: &mut Sdf) -> Mesh {
-    //     *unsafe { SDF_ToMesh(sdf) }
-    // }
 
     pub fn from_obj(bytes: &str) -> Mesh {
         let (models, _) = tobj::load_obj_buf(

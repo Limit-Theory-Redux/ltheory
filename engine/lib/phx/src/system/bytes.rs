@@ -213,8 +213,3 @@ impl Bytes {
         let _ = self.cursor.write_f64::<LittleEndian>(value);
     }
 }
-
-#[no_mangle]
-pub extern "C" fn Bytes_GetData(this: &mut Bytes) -> *mut libc::c_void {
-    this.as_mut_ptr() as *mut _
-}
