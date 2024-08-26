@@ -1,3 +1,4 @@
+local Material = require("_ECS_WIP_TEMP.Shared.Rendering.Material")
 local MaterialDefinition = {}
 MaterialDefinition.__index = MaterialDefinition
 
@@ -21,16 +22,18 @@ local classMeta = {
 }
 
 ---@class MaterialDefinition
----@field vertex string
----@field fragment string
+---@field name string
+---@field vs_name string
+---@field fs_name string
 ---@field blendMode BlendMode
 ---@field textures table<Texture>
 ---@field autoShaderVars table<AutoShaderVar>
 ---@field constShaderVars table<ConstShaderVar>
 
 ---@class MaterialDefinitionConstructor
----@field vertex string
----@field fragment string
+---@field name string
+---@field vs_name string
+---@field fs_name string
 ---@field blendMode BlendMode
 ---@field textures table<TextureInfo>|nil
 ---@field autoShaderVars table<ShaderVarInfo>|nil
@@ -51,25 +54,38 @@ local classMeta = {
 ---@param args MaterialDefinitionConstructor
 ---@return MaterialDefinition|nil
 function MaterialDefinition:new(args)
-    if not args.vertex or not args.fragment or not args.blendMode then
+    if not args.name then
+        Log.Warn("No name Set for MaterialDefinition")
+        return nil
+    elseif Material[args.name] then
+        Log.Warn("Attempting to Recreate Material: " .. args.name)
+        return Material[args.name]
+    end
+
+    if not args.vs_name or not args.fs_name or not args.blendMode then
+        Log.Warn("vs_name, fs_name, or blendMode missing for MaterialDefinition: " .. args.name)
         return nil
     end
-    
-    -- Not required arguments
-    if not args.textures then args.textures = {} end
-    if not args.autoShaderVars then args.autoShaderVars = {} end
-    if not args.constShaderVars then args.constShaderVars = {} end
 
-    local newMaterialDefinition = setmetatable({
-        vertex = args.vertex,
-        fragment = args.fragment,
-        blendMode = args.blendMode,
-        textures = args.textures,
-        autoShaderVars = args.autoShaderVars,
-        constShaderVars = args.constShaderVars
-    }, sharedMeta)
+    -- Create newMaterial
+    local newMaterial = Material(args.vs_name, args.fs_name, args.blendMode)
+    -- Set Textures
+    if not args.textures then
+        newMaterial:addTextures(args.textures)
+    end
+    -- Set AutoShaderVars
+    if not args.autoShaderVars then 
+        newMaterial:addAutoShaderVars(args.autoShaderVars)
+    end
+    -- Set ConstShaderVars
+    if not args.constShaderVars then
+        newMaterial:addConstShaderVars(args.constShaderVars)
+    end
 
-    return newMaterialDefinition
+    MaterialDefinition[args.name] = newMaterial
+    setmetatable(MaterialDefinition[args.name], sharedMeta)
+
+    return MaterialDefinition[args.name]
 end
 
 setmetatable(MaterialDefinition, classMeta)

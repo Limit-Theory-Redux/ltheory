@@ -3,29 +3,30 @@ local ConstShaderVar = require("_ECS_WIP_TEMP.Shared.Rendering.ConstShaderVar") 
 local Texture = require("_ECS_WIP_TEMP.Shared.Rendering.Texture") --!temp path
 
 ---@class Material
----@field vertex string -- 'res/shader/vertex/'
----@field fragment string -- 'res/shader/fragment/'
+---@field vs string -- 'res/shader/vertex/'
+---@field fs string -- 'res/shader/fragment/'
 ---@field blendMode BlendMode
 ---@field textures table<Texture>
 ---@field shaderState ShaderState
 ---@field autoShaderVars table<AutoShaderVar>
 ---@field constShaderVars table<ConstShaderVar>
+---@field staticShaderVars table<ConstShaderVar>
 
 ---@class Material
----@overload fun(self: Material, materialDefinition: MaterialDefinition|nil): Material class internal
----@overload fun(materialDefinition: MaterialDefinition|nil): Material class external
-local Material = Class(function(self, materialDefinition)
-    if materialDefinition then
-        self.vertex = materialDefinition.vertex
-        self.fragment = materialDefinition.fragment
-        self.blendMode = materialDefinition.blendMode
-        local shader = Cache.Shader(self.vertexName, self.fragmentName)
-        self.shaderState = ShaderState.Create(shader)
+---@overload fun(self: Material, vs_name: string, fs_name: string, blendMode: BlendMode): Material class internal
+---@overload fun(vs_name: string, fs_name: string, blendMode: BlendMode): Material class external
+local Material = Class(function(self, vs_name, fs_name, blendMode)
+    self.vs = vs_name
+    self.fs = fs_name
+    self.blendMode = blendMode
+    self.textures = {}
+    self.autoShaderVars = {}
+    self.constShaderVars = {}
+    self.staticShaderVars = {}
 
-        self:addTextures(materialDefinition.textures)
-        self:addAutoShaderVars(materialDefinition.autoShaderVars)
-        self:addConstShaderVars(materialDefinition.constShaderVars)
-    end
+    -- Create Shader and ShaderState
+    local shader = Cache.Shader(self.vs, self.fs)
+    self.shaderState = ShaderState.Create(shader)
 end)
 
 ---@param textures table<TextureInfo>
@@ -37,20 +38,32 @@ function Material:addTextures(textures)
     end
 end
 
-function Material:addAutoShaderVars(autoShaderVars)
-    for _, autoShaderVar in ipairs(autoShaderVars) do
-        local shaderVar = AutoShaderVar(autoShaderVar.uniformName, autoShaderVar.uniformType, autoShaderVar.callbackFn)
-        shaderVar:setUniformInt(self.shaderState:shader())
-        insert(self.autoShaderVars, shaderVar)
+---@param shaderVars table<ShaderVarInfo>
+function Material:addAutoShaderVars(shaderVars)
+    for _, shaderVarInfo in ipairs(shaderVars) do
+        local autoShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.callbackFn)
+        autoShaderVar:setUniformInt(self.shaderState:shader())
+        insert(self.autoShaderVars, autoShaderVar)
     end
 end
 
-function Material:addConstShaderVars(constShaderVars)
-    for _, constShaderVar in ipairs(constShaderVars) do
-        local shaderVar = ConstShaderVar(constShaderVar.uniformName, constShaderVar.uniformType, constShaderVar.callbackFn)
-        shaderVar:setUniformInt(self.shaderState:shader())
-        insert(self.constShaderVars, shaderVar)
+---@param shaderVars table<ShaderVarInfo>
+function Material:addConstShaderVars(shaderVars)
+    for _, shaderVarInfo in ipairs(shaderVars) do
+        local constShaderVar = ConstShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.callbackFn)
+        constShaderVar:setUniformInt(self.shaderState:shader())
+        insert(self.constShaderVars, constShaderVar)
     end
+end
+
+---@param uniformName string
+---@param uniformType UniformType
+---@param uniformValues ffi.ct*[]
+function Material:addStaticShaderVar(uniformName, uniformType, uniformValues)
+    local staticShaderVar = ConstShaderVar(uniformName, uniformType)
+    staticShaderVar:setUniformInt(self.shaderState:shader())
+    staticShaderVar:setUniformValues(uniformValues)
+    insert(self.staticShaderVars, staticShaderVar)
 end
 
 function Material:reload()
@@ -70,6 +83,7 @@ function Material:reload()
     end
 end
 
+---@return ConstShaderVar constShaderVars All ConstShaderVars with unset values
 function Material:getUnsetConstShaderVars() 
     local shaderVars = {}
     for _, shaderVar in ipairs(self.constShaderVars) do
@@ -92,7 +106,16 @@ function Material:setAllShaderVars(renderState, entity)
     for _, shaderVar in ipairs(self.constShaderVars) do
         shaderVar:setShaderVar(shader)
     end
+end
 
+---@return Material ClonedMaterial
+function Material:Clone() 
+    local cloneMaterial = Material(self.vs, self.fs, self.blendMode)
+    cloneMaterial.textures = self.textures
+    cloneMaterial.autoShaderVars = self.autoShaderVars
+    cloneMaterial.constShaderVars = self.constShaderVars
+
+    return cloneMaterial
 end
 
 ---@return ShaderState

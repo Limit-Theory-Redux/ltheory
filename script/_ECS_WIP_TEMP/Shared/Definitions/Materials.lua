@@ -1,30 +1,11 @@
 -- Types --
 local MaterialDefinition = require("_ECS_WIP_TEMP.Shared.Types.MaterialDefinition")
-local Material = require("_ECS_WIP_TEMP.Shared.Rendering.Material")
-local Texture = require("_ECS_WIP_TEMP.Shared.Rendering.Texture")
-local AutoShaderVar = require("_ECS_WIP_TEMP.Shared.Rendering.AutoShaderVar")
-local ConstShaderVar = require("_ECS_WIP_TEMP.Shared.Rendering.ConstShaderVar")
 
 -- Definitions --
 local ShaderVarFuncs = require("_ECS_WIP_TEMP.Shared.Definitions.ShaderVars")
 
-
-local Materials = {}
-
-local materialDefinitions = {
-    [BlendMode.Disabled] = {},
-    [BlendMode.Additive] = {},
-    [BlendMode.Alpha] = {},
-    [BlendMode.PreMultAlpha] = {}
-}
-
----@param blendMode integer
----@param materialName string
-function Materials.getMaterial(blendMode, materialName)
-    return Material(materialDefinitions[blendMode][materialName])
-end
-
-materialDefinitions[BlendMode.Disabled].Asteroid = MaterialDefinition{
+MaterialDefinition{
+    name = "Asteroid",
     vertex = "wvp",
     fragment = "material/asteroid",
     blendMode = BlendMode.Disabled,
@@ -38,7 +19,8 @@ materialDefinitions[BlendMode.Disabled].Asteroid = MaterialDefinition{
     }
 }
 
-materialDefinitions[BlendMode.Disabled].Metal = MaterialDefinition{
+MaterialDefinition{
+    name = "Metal",
     vertex = "wvp",
     fragment = "material/metal",
     blendMode = BlendMode.Disabled,
@@ -53,5 +35,3 @@ materialDefinitions[BlendMode.Disabled].Metal = MaterialDefinition{
         { uniformName = "scale", uniformType = Enums.UniformType.Float, callbackFn = ShaderVarFuncs.scaleFunc}
     }
 }
-
-return Materials()

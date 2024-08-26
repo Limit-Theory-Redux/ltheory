@@ -1,21 +1,26 @@
 local UniformFuncs = require("_ECS_WIP_TEMP.Shared.Definitions.UniformFuncs")
 ---@class ConstShaderVar
 ---@field uniformName string
----@field uniformInt integer
+---@field uniformInt integer|nil
 ---@field uniformType UniformType
----@field uniformValues ffi.ct*[]
----@field callbackFn function
+---@field uniformValues ffi.ct*[]|nil
+---@field callbackFn function|nil
 
 ---@class ConstShaderVar
----@overload fun(self: ConstShaderVar, uniformName: string, uniformType: UniformType, callbackFn: function): ConstShaderVar class internal
----@overload fun(uniformName: string, uniformType: UniformType, callbackFn: function): ConstShaderVar class external
-local ConstShaderVar = Class(function(self, uniformName, uniformType, callbackFn)
+---@overload fun(self: ConstShaderVar, uniformName: string, uniformType: UniformType): ConstShaderVar class internal
+---@overload fun(uniformName: string, uniformType: UniformType): ConstShaderVar class external
+local ConstShaderVar = Class(function(self, uniformName, uniformType)
     self.uniformName = uniformName
     self.uniformInt = nil
     self.uniformType = uniformType
     self.uniformValues = nil
-    self.callbackFn = callbackFn
+    self.callbackFn = nil
 end)
+
+---@param callbackFn function
+function ConstShaderVar:setCallbackFn(callbackFn)
+    self.callbackFn = callbackFn
+end
 
 ---@param shader Shader
 function ConstShaderVar:setUniformInt(shader)
@@ -34,8 +39,13 @@ function ConstShaderVar:hasUniformValues()
     return true
 end
 
+---@param values ffi.ct*[]
+function ConstShaderVar:setUniformValues(values)
+    self.uniformValues = values
+end
+
 ---@param entity Entity
-function ConstShaderVar:setUniformValues(entity)
+function ConstShaderVar:setUniformValuesFromEntity(entity)
     self.uniformValues = self.callbackFn(entity)
 end
 
