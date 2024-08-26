@@ -6,8 +6,8 @@ local ShaderVarFuncs = require("_ECS_WIP_TEMP.Shared.Definitions.ShaderVars")
 
 MaterialDefinition{
     name = "Asteroid",
-    vertex = "wvp",
-    fragment = "material/asteroid",
+    vs_name = "wvp",
+    fs_name = "material/asteroid",
     blendMode = BlendMode.Disabled,
     textures = {
         { texName = "texDiffuse", tex = Cache.Texture('rock'), texType = Enums.UniformType.Tex2D, texSettings = nil }
@@ -21,8 +21,8 @@ MaterialDefinition{
 
 MaterialDefinition{
     name = "Metal",
-    vertex = "wvp",
-    fragment = "material/metal",
+    vs_name = "wvp",
+    fs_name = "material/metal",
     blendMode = BlendMode.Disabled,
     textures = {
         { texName = "texDiffuse", tex = Cache.Texture('metal/01_d'), texType = Enums.UniformType.Tex2D, texSettings = nil },
