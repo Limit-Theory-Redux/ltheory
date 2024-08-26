@@ -53,10 +53,16 @@ end
 ---@param shaderState ShaderState
 function Texture:setTextureToShaderState(shaderState)
     local setTex = {
-        [Enums.UniformType.Tex1D] = shaderState:setTex1D(self.texName, self.tex),
-        [Enums.UniformType.Tex2D] = shaderState:setTex2D(self.texName, self.tex),
-        [Enums.UniformType.Tex2D] = shaderState:setTex3D(self.texName, self.tex),
-        [Enums.UniformType.Tex2D] = shaderState:setTexCube(self.texName, self.tex)
+        [Enums.UniformType.Tex1D] = function()
+            shaderState:setTex1D(self.texName, self.tex) end,
+        [Enums.UniformType.Tex2D] = function()
+            shaderState:setTex2D(self.texName, self.tex) end,
+        [Enums.UniformType.Tex3D] = function()
+            shaderState:setTex3D(self.texName, self.tex) end,
+        [Enums.UniformType.TexCube] = function()
+            shaderState:setTexCube(self.texName, self.tex) end
     }
+    setTex[self.texType]()
 end
+
 return Texture
