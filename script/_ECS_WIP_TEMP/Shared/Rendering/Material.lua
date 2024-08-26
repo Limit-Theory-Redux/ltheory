@@ -1,51 +1,98 @@
 local AutoShaderVar = require("_ECS_WIP_TEMP.Shared.Rendering.AutoShaderVar") --!temp path
+local ConstShaderVar = require("_ECS_WIP_TEMP.Shared.Rendering.ConstShaderVar") --!temp path
 local Texture = require("_ECS_WIP_TEMP.Shared.Rendering.Texture") --!temp path
 
 ---@class Material
----@field materialName string -- Might use for Specific Material Cache?
----@field vertexName string -- 'res/shader/vertex/'
----@field fragmentName string -- 'res/shader/fragment/'
+---@field vertex string -- 'res/shader/vertex/'
+---@field fragment string -- 'res/shader/fragment/'
+---@field blendMode BlendMode
 ---@field textures table<Texture>
 ---@field shaderState ShaderState
 ---@field autoShaderVars table<AutoShaderVar>
+---@field constShaderVars table<ConstShaderVar>
 
 ---@class Material
----@overload fun(self: Material): Material class internal
----@overload fun(): Material class external
-local Material = Class(function(self)
-    self.textures = {}
-    self.autoShaderVars = {}
+---@overload fun(self: Material, materialDefinition: MaterialDefinition|nil): Material class internal
+---@overload fun(materialDefinition: MaterialDefinition|nil): Material class external
+local Material = Class(function(self, materialDefinition)
+    if materialDefinition then
+        self.vertex = materialDefinition.vertex
+        self.fragment = materialDefinition.fragment
+        self.blendMode = materialDefinition.blendMode
+        local shader = Cache.Shader(self.vertexName, self.fragmentName)
+        self.shaderState = ShaderState.Create(shader)
+
+        self:addTextures(materialDefinition.textures)
+        self:addAutoShaderVars(materialDefinition.autoShaderVars)
+        self:addConstShaderVars(materialDefinition.constShaderVars)
+    end
 end)
 
-function Material:initialize(vertexName, fragmentName)
-    self.vertexName = vertexName
-    self.fragmentName = fragmentName
-    --TODO: Replace use of Cache.Shader
-    local shader = Cache.Shader(vertexName, fragmentName)
-    self.shaderState = ShaderState.Create(shader)
-end
-
----@param uniformName string
----@param renderFn function
----@return AutoShaderVar|nil
-function Material:addAutoShaderVar(uniformName, renderFn)
-    if self.shaderState:shader():hasVariable(uniformName) then
-        local autoShaderVar = AutoShaderVar(uniformName, renderFn)
-        autoShaderVar:setUniformInt(self.shaderState:shader():getVariable(uniformName))
-        insert(self.autoShaderVars, autoShaderVar)
-        return autoShaderVar
-    else 
-        Log.Error("Shader " .. self.materialName .. ", vertex/" .. self.vertexName .. ", fragment/" .. self.fragmentName .. ": Does not have uniform: " .. uniformName)
+---@param textures table<TextureInfo>
+function Material:addTextures(textures)
+    for _, texture in ipairs(textures) do
+        local tex = Texture(texture.texName, texture.tex, texture.texType, texture.texSetting)
+        tex:setTextureToShaderState(self.shaderState)
+        insert(self.textures, tex)
     end
-    return nil
 end
 
----@param textureName string
----@param tex Tex
----@param textureType TextureType
-function Material:addTexture(textureName, tex, textureType) 
-    local texture = Texture(textureName, tex, textureType)
-    insert(self.textures, texture)
+function Material:addAutoShaderVars(autoShaderVars)
+    for _, autoShaderVar in ipairs(autoShaderVars) do
+        local shaderVar = AutoShaderVar(autoShaderVar.uniformName, autoShaderVar.uniformType, autoShaderVar.callbackFn)
+        shaderVar:setUniformInt(self.shaderState:shader())
+        insert(self.autoShaderVars, shaderVar)
+    end
+end
+
+function Material:addConstShaderVars(constShaderVars)
+    for _, constShaderVar in ipairs(constShaderVars) do
+        local shaderVar = ConstShaderVar(constShaderVar.uniformName, constShaderVar.uniformType, constShaderVar.callbackFn)
+        shaderVar:setUniformInt(self.shaderState:shader())
+        insert(self.constShaderVars, shaderVar)
+    end
+end
+
+function Material:reload()
+    if self.shaderState then self.shaderState:free() end
+    local shader = Cache.Shader(self.vertex, self.fragment)
+    self.shaderState = ShaderState.Create(shader)
+
+    for _, texture in ipairs(self.textures) do
+        texture:setTextureToShaderState(self.shaderState)
+    end
+    for _, shaderVar in ipairs(self.autoShaderVars) do
+        shaderVar:setUniformInt(shader)
+    end
+    for _, shaderVar in ipairs(self.constShaderVars) do
+        shaderVar:setUniformInt(shader)
+        shaderVar:resetUniformValues()
+    end
+end
+
+function Material:getUnsetConstShaderVars() 
+    local shaderVars = {}
+    for _, shaderVar in ipairs(self.constShaderVars) do
+        if not shaderVar:hasUniformValues() then insert(shaderVars, shaderVar) end
+    end
+    return shaderVars
+end
+
+function Material:setAllConstUniformValues(entity)
+    for _, shaderVar in ipairs(self.constShaderVars) do
+        shaderVar:setUniformValues(entity)
+    end
+end
+
+function Material:setAllShaderVars(renderState, entity)
+    local shader = self.shaderState:shader()
+    for _, shaderVar in ipairs(self.autoShaderVars) do
+        shaderVar:setShaderVar(renderState, shader, entity)
+    end
+    for _, shaderVar in ipairs(self.constShaderVars) do
+        shaderVar:setShaderVar(shader)
+    end
+
 end
 
 ---@return ShaderState
@@ -54,28 +101,13 @@ function Material:getShaderState()
 end
 
 ---@return string
-function Material:getMaterialName()
-    return self.materialName
+function Material:getVertex()
+    return self.vertex
 end
 
 ---@return string
-function Material:getVertexName()
-    return self.vertexName
-end
-
----@return string
-function Material:getFragmentName()
-    return self.fragmentName
-end
-
----@return table<AutoShaderVar>
-function Material:getAllAutoShaderVars()
-    return self.autoShaderVars
-end
-
----@return table<Texture>
-function Material:getAllTextures()
-    return self.textures
+function Material:getFragment()
+    return self.fragment
 end
 
 return Material
