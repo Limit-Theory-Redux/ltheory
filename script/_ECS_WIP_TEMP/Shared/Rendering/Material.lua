@@ -106,15 +106,17 @@ function Material:setAllShaderVars(renderState, entity)
     for _, shaderVar in ipairs(self.constShaderVars) do
         shaderVar:setShaderVar(shader)
     end
+    for _, shaderVar in ipairs(self.staticShaderVars) do
+        shaderVar:setShaderVar(shader)
+    end
 end
 
 ---@return Material ClonedMaterial
-function Material:Clone() 
+function Material:clone() 
     local cloneMaterial = Material(self.vs, self.fs, self.blendMode)
     cloneMaterial.textures = self.textures
     cloneMaterial.autoShaderVars = self.autoShaderVars
     cloneMaterial.constShaderVars = self.constShaderVars
-
     return cloneMaterial
 end
 

@@ -1,4 +1,5 @@
 local Material = require("_ECS_WIP_TEMP.Shared.Rendering.Material")
+local Materials = require("_ECS_WIP_TEMP.Shared.Rendering.Materials")
 local MaterialDefinition = {}
 MaterialDefinition.__index = MaterialDefinition
 
@@ -70,22 +71,33 @@ function MaterialDefinition:new(args)
     -- Create newMaterial
     local newMaterial = Material(args.vs_name, args.fs_name, args.blendMode)
     -- Set Textures
-    if not args.textures then
+    if args.textures then
         newMaterial:addTextures(args.textures)
     end
     -- Set AutoShaderVars
-    if not args.autoShaderVars then 
+    if args.autoShaderVars then 
         newMaterial:addAutoShaderVars(args.autoShaderVars)
     end
     -- Set ConstShaderVars
-    if not args.constShaderVars then
+    if args.constShaderVars then
         newMaterial:addConstShaderVars(args.constShaderVars)
     end
 
-    MaterialDefinition[args.name] = newMaterial
-    setmetatable(MaterialDefinition[args.name], sharedMeta)
+    -- Add New Material to Materials Registery
+    Materials:new(args.name, newMaterial)
 
-    return MaterialDefinition[args.name]
+    -- TODO: Unclear if needed
+    -- sets newMaterialDefinition and returns it
+    local newMaterialDefinition = setmetatable({
+        name = args.name,
+        vs_name = args.vs_name,
+        fs_name = args.fs_name,
+        blendMode = args.blendMode,
+        textures = args.textures,
+        autoShaderVars = args.autoShaderVars,
+        constShaderVars = args.constShaderVars
+    }, sharedMeta)
+    return newMaterialDefinition
 end
 
 setmetatable(MaterialDefinition, classMeta)
