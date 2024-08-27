@@ -1,3 +1,5 @@
+pub type JobId = usize;
+
 pub enum WorkerInData<T> {
     Ping,
     Data(T),
