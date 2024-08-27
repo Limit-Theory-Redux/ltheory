@@ -1,4 +1,4 @@
-local UniformFuncs = require("_ECS_WIP_TEMP.Shared.Definitions.UniformFuncs")
+local UniformFuncs = require("_ECS_WIP_TEMP.Shared.Rendering.UniformFuncs")
 ---@class AutoShaderVar
 ---@field uniformName string
 ---@field uniformInt integer
@@ -22,7 +22,7 @@ function AutoShaderVar:setUniformInt(shader)
         self.uniformInt = shader:getVariable(self.uniformName)
         return true
     else
-        Log.Error("Shader " .. tostring(shader) .. ": Does not have uniform: " .. uniformName)
+        Log.Error("Shader " .. tostring(shader) .. ": Does not have uniform: " .. self.uniformName)
         return false
     end
 end
@@ -36,7 +36,7 @@ function AutoShaderVar:setShaderVar(renderState, shader, entity)
         self:setUniformInt(shader)
     end
     local val = self.callbackFn(renderState, entity)
-    UniformFuncs[self.uniformType].func(shader, self.uniformInt, val)
+    UniformFuncs[self.uniformType](shader, self.uniformInt, val)
 end
 
 return AutoShaderVar

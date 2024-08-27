@@ -1,3 +1,4 @@
+local UniformFuncs = require("_ECS_WIP_TEMP.Shared.Rendering.UniformFuncs")
 local UniformFunc = {}
 UniformFunc.__index = UniformFunc
 
@@ -21,46 +22,27 @@ local classMeta = {
 }
 
 ---@class UniformFunc
----@field type UniformType
+---@field funcType UniformType
 ---@field func function 
 
 ---@class UniformFuncConstructor
----@field type UniformType
----@field paramLen integer
----@field paramTypes ffi.ct*[]
+---@field funcType UniformType
 ---@field func function
 
 ---@private
 ---@param args UniformFuncConstructor
 ---@return UniformFunc|nil
 function UniformFunc:new(args)
-    if not args.type or not args.func then
+    if not args.funcType or not args.func then
         return nil
     end
-
-    -- Type checks parameters going into Uniform Function
-    local func = {
-        __call = function(shader, uniformInt, ...) 
-            if #{...} ~= args.paramLen then
-                Log.Error("Incorrect number of Parameters for Function: " .. args.type)
-            end
-            for i,v in ipairs(...) do
-                if ~ffi.istype(args.paramTypes[i],v) then
-                    Log.Error("Incorrect parameter type for Function: " .. args.type .. 
-                        "\n Expected: " .. args.paramTypes[i] .. ", Given: " .. v)
-                end
-            end
-            args.func(shader, uniformInt, ...)
-        end
-    }
+    
+    UniformFuncs:new(args.funcType, args.func)
 
     local newUniformFunc = setmetatable({
-        type = args.type,
-        func = func,
+        funcType = args.funcType,
+        func = args.func,
     }, sharedMeta)
-    
-
-
     return newUniformFunc
 end
 

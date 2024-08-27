@@ -1,4 +1,4 @@
-local UniformFuncs = require("_ECS_WIP_TEMP.Shared.Definitions.UniformFuncs")
+local UniformFuncs = require("_ECS_WIP_TEMP.Shared.Rendering.UniformFuncs")
 ---@class ConstShaderVar
 ---@field uniformName string
 ---@field uniformInt integer|nil
