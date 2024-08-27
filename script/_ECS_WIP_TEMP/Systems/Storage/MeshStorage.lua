@@ -71,7 +71,7 @@ function MeshStorage:getMesh(meshType, seed)
             tostring(meshType) .. ", seed:".. tostring(seed))
     end
 
-    return MeshStorage.meshes[meshType][seed]
+    return self.meshes[meshType][seed]
 end
 
 --!DEBUG - To get all Meshes from Storage, only for debug

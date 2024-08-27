@@ -1,5 +1,5 @@
 -- Generator Utilities
-local GenUtil = require('Systems.Gen.GenUtil')
+local GenUtil = require('_ECS_WIP_TEMP.Systems.Generators.Mesh.Util.GenUtil')
 
 -- Utilities
 local QuickProfiler = require('_ECS_WIP_TEMP.Shared.Tools.QuickProfiler')
