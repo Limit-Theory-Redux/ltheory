@@ -3,7 +3,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@class Transform
 ---@field position Position
 ---@field rotation Quat
----@field scale Vec3f
+---@field scale number
 
 ---@class TransformComponent: Component
 ---@overload fun(self:TransformComponent): TransformComponent subclass internal
@@ -15,9 +15,9 @@ local TransformComponent = Subclass(Component, function(self)
     self:setArchetype(Enums.ComponentArchetype.TransformComponent)
 
     self:setTransform({
-        position = Vec3f(0, 0, 0),
-        rotation = Vec3f(0, 0, 0),
-        scale = Vec3f(1, 1, 1)
+        position = Position(),
+        rotation = Quat(),
+        scale = 1.0
     })
 end)
 
@@ -51,12 +51,12 @@ function TransformComponent:getRotation()
     return self.transform.rotation
 end
 
----@param scale Vec3f
+---@param scale number
 function TransformComponent:setScale(scale)
     self.transform.scale = scale
 end
 
----@return Vec3f
+---@return number
 function TransformComponent:getScale()
     return self.transform.scale
 end
