@@ -18,7 +18,8 @@ Enums.EntityArchetype = { --* reorder these later
     ZoneEntity = 14,
     TriggerEntity = 15,
     ItemEntity = 16,
-    OrderEntity = 17
+    OrderEntity = 17,
+    BoxEntity = 18,
     -- ...
 }
 

@@ -1,13 +1,20 @@
 -- Entities
-local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")                  --!temp path
-local Asteroid = require("_ECS_WIP_TEMP.Entities.CelestialObjects.AsteroidEntity") --!temp path
+local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")                   --!temp path
+local Asteroid = require("_ECS_WIP_TEMP.Entities.CelestialObjects.AsteroidEntity")  --!temp path
+local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity")  --!temp path
+-- Storage
+local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage")        --!temp path
+local MeshStorage = require("_ECS_WIP_TEMP.Systems.Storage.MeshStorage")            --!temp path
 -- Systems
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage")               --!temp path
 ---@type CameraSystem
-local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem")
+local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem")        --!temp path
+-- Generators
+local AsteroidMesh = require("_ECS_WIP_TEMP.Systems.Generators.Mesh.CelestialObjects.AsteroidMesh")
+local Boxes = require("_ECS_WIP_TEMP.Systems.Generators.Mesh.ShapeLib.Boxes")
+
+-- Rendering
+local renderState = require("_ECS_WIP_TEMP.Shared.Rendering.RenderState")
 -- Utilities
-local Material = require("_ECS_WIP_TEMP.Shared.Rendering.Material")           --!temp path
-local AutoShaderVar = require("_ECS_WIP_TEMP.Shared.Rendering.AutoShaderVar") --!temp path
 local Log = require("Core.Util.Log")
 local Inspect = require("Core.Util.Inspect")
 
@@ -22,6 +29,10 @@ function RenderingTest:onInit()
     self.profilerFont = Font.Load('NovaMono', 20)
     self.profiling = true
 
+    -- Initialize Materials --
+    require("_ECS_WIP_TEMP.Shared.Definitions.MaterialDefs")
+    require("_ECS_WIP_TEMP.Shared.Definitions.UniformFuncDefs")
+
     -- Set GameState --
     GameState:SetState(Enums.GameStates.InGame)
 
@@ -29,20 +40,21 @@ function RenderingTest:onInit()
     local camera = Camera()
     local entityInfo = GlobalStorage:storeEntity(camera)
 
-    -- Testing Materials
-    local Materials = requireAll("_ECS_WIP_TEMP.Shared.Materials")
-    local AsteroidMaterial = Materials.AsteroidMaterial()
-    Log.Warn(Inspect(AsteroidMaterial))
-
     CameraSystem:setCamera(entityInfo)
 
-    local rng = RNG.Create(0):managed()
-
-    -- Spawn a Asteroid
-    local a = Asteroid(rng:get64())
-    GlobalStorage:storeEntity(a)
-    local rb = a:findComponentByName("PhysicsRigidBody")
-    --rb:setRigidBody(RigidBody())
+    -- Create First RNG for Scene
+    self.rng = RNG.Create(0):managed()
+    
+    -- Generate RandomBox
+    self.boxes = Boxes.RandomBox(self.rng)
+    self.boxMesh = Boxes.BoxesToMesh(self.boxes, 1, 1, false)
+    -- Get Box Entity and Components
+    self.boxEntity = BoxEntity()
+    self.boxRend = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RenderComponent)
+    self.boxRB = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RigidBodyComponent)
+    -- Set RigidBody
+    self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(self.boxMesh))
+    self.boxRB:getRigidBody():setPos(Position(0, 0, 0))
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
@@ -100,39 +112,27 @@ function RenderingTest:onRender(data)
     -- Start Window Draw()
     Window:beginDraw()
 
-    -- Calling uiCanvas Draw
-    --TODO: Should subscribe to onRender instead
-    if GameState.render.uiCanvas ~= nil then
-        GameState.render.uiCanvas:draw(self.resX, self.resY)
-        Gui:draw()
+    -- < TEST RENDER > --
+
+    do -- Push Defaults
+        ClipRect.PushDisabled()
+        RenderState.PushAllDefaults()
     end
 
-    do -- Metrics display
-        if true then
-            local dt = data:deltaTime()
-
-            local s = string.format(
-                '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',
-                1000.0 * dt,
-                1.0 / dt,
-                GC.GetMemory() / 1000.0,
-                Metric.Get(Metric.TrisDrawn) / 1000,
-                Metric.Get(Metric.DrawCalls),
-                Metric.Get(Metric.Immediate),
-                Metric.Get(Metric.FBOSwap))
-            RenderState.PushBlendMode(BlendMode.Alpha)
-            UI.DrawEx.SimpleRect(0, self.resY - 30, self.resX, self.resY, Color(0.1, 0.1, 0.1, 0.5))
-            self.profilerFont:draw(s, 10, self.resY - 5, Color(1, 1, 1, 1))
-
-            local y = self.resY - 5
-            if self.profiling then
-                self.profilerFont:draw('>> PROFILER ACTIVE <<', self.resX - 128, y, Color(1, 0, 0.15, 1))
-                y = y - 12
-            end
-            RenderState.PopBlendMode()
-        end
+    do -- Set Camera
+        CameraSystem:lookAt(Vec3f(0, 0, 0))
+        CameraSystem:setProjection(self.resX,self.resY)
+        renderState:setCameraEye(CameraSystem.currentCameraTransform:getPosition())
+        CameraSystem:beginCameraDraw(CameraSystem.currentCameraData, CameraSystem.currentCameraTransform)
     end
 
+    -- < What To Render Goes Here > --
+
+    do -- Cleanup
+        CameraSystem:endDraw()
+        RenderState.PopAll()
+        ClipRect.Pop()
+    end
     -- Stop onRender Profiler
     Profiler.End()
     Profiler.LoopMarker()

@@ -1,6 +1,5 @@
 -- Systems
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
-local RenderState = require("_ECS_WIP_TEMP.Shared.Rendering.RenderState")
 
 -- Utilities
 local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler")
@@ -29,8 +28,9 @@ end
 ---@private
 function CameraSystem:registerEvents()
     EventBus:subscribe(Event.PreRender, self, self.onPreRender)
-    EventBus:subscribe(Event.Render, self, self.onRender)
-    EventBus:subscribe(Event.PostRender, self, self.onPostRender)
+    --TODO: Disabled Camera Render/PostRender Subscriptions. ShaderVar's must be set by Camera at start of Render
+    --EventBus:subscribe(Event.Render, self, self.onRender)
+    --EventBus:subscribe(Event.PostRender, self, self.onPostRender)
 end
 
 ---@private
@@ -43,8 +43,8 @@ end
 
 ---@private
 function CameraSystem:onRender()
-    if self.currentCamera and self.currentCameraData then
-        self:beginCameraDraw(self.currentCameraData)
+    if self.currentCamera and self.currentCameraData and self.currentCameraTransform then
+        self:beginCameraDraw(self.currentCameraData, self.currentCameraTransform)
     end
 end
 
@@ -72,15 +72,17 @@ function CameraSystem:setCamera(entityInfo)
     end
 end
 
+--TODO: Figure out if "eye" is supposed to be Camera Position, or always {0,0,0}
 ---@param cdt CameraDataComponent
----@param ct TransformComponent
+---@param t TransformComponent
 function CameraSystem:beginCameraDraw(cdt, t)
-    -- self:refreshMatrices()
+    --self:refreshMatrices()
     ShaderVar.PushMatrix('mView', cdt:getView())
     ShaderVar.PushMatrix('mViewInv', cdt:getViewInverse())
     ShaderVar.PushMatrix('mProj', cdt:getProjection())
     ShaderVar.PushMatrix('mProjInv', cdt:getProjectionInverse())
-    ShaderVar.PushFloat3('eye', t:getPosition())
+    local pos = t:getPosition()
+    ShaderVar.PushFloat3('eye', 0.0, 0.0, 0.0)
 end
 
 function CameraSystem:endDraw()
@@ -89,6 +91,33 @@ function CameraSystem:endDraw()
     ShaderVar.Pop('mProj')
     ShaderVar.Pop('mProjInv')
     ShaderVar.Pop('eye')
+end
+
+--[[
+TODO: lookAt and setProjection are hacky Test Solutions. Better Implementation Needed.
+]]
+function CameraSystem:lookAt(target)
+    self.currentCameraData.view:free()
+    self.currentCameraData.viewInverse:free()
+    local pos = self.currentCameraTransform:getPosition()
+    local mView = Matrix.LookAt(Vec3f(pos.x,pos.y,pos.z), target, Vec3f(0,1,0))
+    self.currentCameraData:setView(mView:inverse())
+    self.currentCameraData:setViewInverse(mView)
+    --Log.Warn("mView Matrix Lookat" .. tostring(mView))
+end
+
+function CameraSystem:setProjection(resX, resY)
+    self.currentCameraData.projection:free()
+    self.currentCameraData.projectionInverse:free()
+    local mProj = Matrix.Perspective(
+        Config.render.camera.fov,
+        resX/resY,
+        Config.render.camera.zNear,
+        Config.render.camera.zFar
+    )
+    self.currentCameraData:setProjection(mProj)
+    self.currentCameraData:setProjectionInverse(mProj:inverse())
+    --Log.Warn("mView Matrix setProjection" .. tostring(mProj))
 end
 
 -- function CameraSystem:lerpFrom(pos, rot)
