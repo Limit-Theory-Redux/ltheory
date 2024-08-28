@@ -22,7 +22,7 @@ end
 -- Convert Lua value into payload
 ---@param value any
 ---@param rustPayload boolean
----@return Payload|nil
+---@return Payload?
 function PayloadConverter:valueToPayload(value, rustPayload)
     if rustPayload then
         if type(value) == "nil" then
@@ -91,7 +91,7 @@ function PayloadConverter:tablePayloadToValue(payloadTable)
 end
 
 -- Convert payload into the lua value.
----@param payload Payload|nil
+---@param payload Payload?
 function PayloadConverter:payloadToValue(payload)
     if payload == nil then
         return nil
