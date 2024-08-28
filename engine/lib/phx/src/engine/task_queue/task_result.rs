@@ -4,11 +4,11 @@ use crate::engine::Payload;
 pub struct TaskResult {
     worker_id: WorkerId,
     task_id: TaskId,
-    data: Payload,
+    data: Box<Payload>,
 }
 
 impl TaskResult {
-    pub fn new(worker_id: WorkerId, task_id: TaskId, data: Payload) -> Self {
+    pub fn new(worker_id: WorkerId, task_id: TaskId, data: Box<Payload>) -> Self {
         Self {
             worker_id,
             task_id,
@@ -28,6 +28,6 @@ impl TaskResult {
     }
 
     pub fn data(&self) -> &Payload {
-        &self.data
+        self.data.as_ref()
     }
 }

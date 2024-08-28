@@ -10,7 +10,7 @@ use super::{TaskResult, Worker, WorkerId, WorkerInData, WorkerOutData, WorkerThr
 use crate::engine::Payload;
 
 pub struct TaskQueue {
-    lua_workers: HashMap<WorkerId, WorkerThread<Payload, Payload>>,
+    lua_workers: HashMap<WorkerId, WorkerThread<Payload, Box<Payload>>>,
     echo_worker: WorkerThread<String, String>,
 }
 
@@ -53,7 +53,14 @@ impl TaskQueue {
                         let data = match in_data {
                             WorkerInData::Ping => WorkerOutData::Pong,
                             WorkerInData::Data(task_id, data) => {
-                                let out_data = run_func.call(data)?;
+                                let boxed_data = Box::new(data);
+
+                                let boxed_out_data: usize =
+                                    run_func.call(Box::leak(boxed_data) as *mut Payload as usize)?;
+
+                                let out_data =
+                                    unsafe { Box::from_raw(boxed_out_data as *mut Payload) };
+
                                 WorkerOutData::Data(task_id, out_data)
                             }
                             WorkerInData::Stop => break,
