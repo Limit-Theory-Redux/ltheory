@@ -4,12 +4,13 @@ use std::time::Duration;
 
 use tracing::error;
 
-use super::{TaskQueueError, WorkerInData, WorkerOutData};
+use super::{TaskId, TaskQueueError, WorkerInData, WorkerOutData};
 
 pub struct WorkerThread<IN, OUT> {
     in_sender: Sender<WorkerInData<IN>>,
     out_receiver: Receiver<WorkerOutData<OUT>>,
     handle: Option<JoinHandle<Result<(), TaskQueueError>>>,
+    tasks_in_progress: usize,
 }
 
 impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
@@ -30,6 +31,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
             in_sender,
             out_receiver,
             handle: Some(handle),
+            tasks_in_progress: 0,
         }
     }
 
@@ -49,7 +51,9 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
                     Ok(in_data) => {
                         let data = match in_data {
                             WorkerInData::Ping => WorkerOutData::Pong,
-                            WorkerInData::Data(data) => WorkerOutData::Data(f(data)),
+                            WorkerInData::Data(task_id, data) => {
+                                WorkerOutData::Data(task_id, f(data))
+                            }
                             WorkerInData::Stop => break,
                         };
 
@@ -76,20 +80,38 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
             in_sender,
             out_receiver,
             handle: Some(handle),
+            tasks_in_progress: 0,
         }
     }
 
-    pub fn send(&self, data: IN) -> Result<(), TaskQueueError> {
-        self.in_sender.send(WorkerInData::Data(data)).map_err(|_| {
-            TaskQueueError::ThreadError("Cannot send data to the worker thread".into())
-        })
+    pub fn tasks_in_progress(&self) -> usize {
+        self.tasks_in_progress
     }
 
-    pub fn recv(&self) -> Result<Option<OUT>, TaskQueueError> {
+    pub fn stop(&self) -> Result<(), TaskQueueError> {
+        self.in_sender
+            .send(WorkerInData::Stop)
+            .map_err(|_| TaskQueueError::ThreadError("Cannot stop worker thread".into()))
+    }
+
+    pub fn send(&mut self, task_id: TaskId, data: IN) -> Result<(), TaskQueueError> {
+        self.in_sender
+            .send(WorkerInData::Data(task_id, data))
+            .map_err(|_| {
+                TaskQueueError::ThreadError("Cannot send data to the worker thread".into())
+            })?;
+        self.tasks_in_progress += 1;
+        Ok(())
+    }
+
+    pub fn recv(&mut self) -> Result<Option<(TaskId, OUT)>, TaskQueueError> {
         match self.out_receiver.recv_timeout(Duration::from_millis(500)) {
             Ok(out_data) => match out_data {
                 WorkerOutData::Pong => Ok(None),
-                WorkerOutData::Data(data) => Ok(Some(data)),
+                WorkerOutData::Data(task_id, data) => {
+                    self.tasks_in_progress -= 1;
+                    Ok(Some((task_id, data)))
+                }
             },
             Err(err) => match err {
                 RecvTimeoutError::Timeout => Ok(None),

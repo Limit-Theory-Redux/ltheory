@@ -1,12 +1,12 @@
-pub type JobId = usize;
+pub type TaskId = usize;
 
 pub enum WorkerInData<T> {
     Ping,
-    Data(T),
+    Data(TaskId, T),
     Stop,
 }
 
 pub enum WorkerOutData<T> {
     Pong,
-    Data(T),
+    Data(TaskId, T),
 }
