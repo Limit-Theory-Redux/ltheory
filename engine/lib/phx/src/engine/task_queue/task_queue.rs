@@ -106,17 +106,18 @@ impl TaskQueue {
         }
     }
 
-    pub fn send_task(&mut self, worker_id: u8, task_id: usize, data: Payload) -> bool {
+    pub fn send_task(&mut self, worker_id: u8, data: Payload) -> Option<usize> {
         if let Some(worker) = self.lua_workers.get_mut(&worker_id) {
-            if let Err(err) = worker.send(task_id, data) {
-                error!("Cannot send task to worker {worker_id}. Error: {err}");
-                false
-            } else {
-                true
+            match worker.send(data) {
+                Ok(task_id) => Some(task_id),
+                Err(err) => {
+                    error!("Cannot send task to worker {worker_id}. Error: {err}");
+                    None
+                }
             }
         } else {
             error!("Unknown worker: {worker_id}");
-            false
+            None
         }
     }
 
@@ -136,7 +137,7 @@ impl TaskQueue {
     }
 
     pub fn send_echo(&mut self, data: &str) -> bool {
-        if let Err(err) = self.echo_worker.send(0, data.into()) {
+        if let Err(err) = self.echo_worker.send(data.into()) {
             error!("Cannot send message to the echo worker. Error: {err}");
             false
         } else {

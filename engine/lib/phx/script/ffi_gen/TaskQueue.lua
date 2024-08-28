@@ -20,7 +20,7 @@ function Loader.defineType()
             bool          TaskQueue_StartWorker     (TaskQueue*, uint8 workerId, cstr scriptPath);
             bool          TaskQueue_StopWorker      (TaskQueue const*, uint8 workerId);
             uint64 const* TaskQueue_TasksInProgress (TaskQueue const*, uint8 workerId);
-            bool          TaskQueue_SendTask        (TaskQueue*, uint8 workerId, uint64 taskId, Payload* data);
+            uint64 const* TaskQueue_SendTask        (TaskQueue*, uint8 workerId, Payload* data);
             TaskResult*   TaskQueue_NextTaskResult  (TaskQueue*, uint8 workerId);
             bool          TaskQueue_SendEcho        (TaskQueue*, cstr data);
             cstr          TaskQueue_GetEcho         (TaskQueue*);

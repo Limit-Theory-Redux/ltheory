@@ -17,10 +17,9 @@ function TaskQueue:stopWorker(workerId) end
 function TaskQueue:tasksInProgress(workerId) end
 
 ---@param workerId integer
----@param taskId integer
 ---@param data Payload
----@return boolean
-function TaskQueue:sendTask(workerId, taskId, data) end
+---@return integer?
+function TaskQueue:sendTask(workerId, data) end
 
 ---@param workerId integer
 ---@return TaskResult?

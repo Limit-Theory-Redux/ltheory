@@ -10,6 +10,7 @@ pub struct WorkerThread<IN, OUT> {
     in_sender: Sender<WorkerInData<IN>>,
     out_receiver: Receiver<WorkerOutData<OUT>>,
     handle: Option<JoinHandle<Result<(), TaskQueueError>>>,
+    next_task_id: TaskId,
     tasks_in_progress: usize,
 }
 
@@ -31,6 +32,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
             in_sender,
             out_receiver,
             handle: Some(handle),
+            next_task_id: 0,
             tasks_in_progress: 0,
         }
     }
@@ -80,6 +82,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
             in_sender,
             out_receiver,
             handle: Some(handle),
+            next_task_id: 0,
             tasks_in_progress: 0,
         }
     }
@@ -94,14 +97,20 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
             .map_err(|_| TaskQueueError::ThreadError("Cannot stop worker thread".into()))
     }
 
-    pub fn send(&mut self, task_id: TaskId, data: IN) -> Result<(), TaskQueueError> {
+    pub fn send(&mut self, data: IN) -> Result<TaskId, TaskQueueError> {
+        let task_id = self.next_task_id;
+
         self.in_sender
             .send(WorkerInData::Data(task_id, data))
             .map_err(|_| {
                 TaskQueueError::ThreadError("Cannot send data to the worker thread".into())
             })?;
+
         self.tasks_in_progress += 1;
-        Ok(())
+
+        self.next_task_id += 1;
+
+        Ok(task_id)
     }
 
     pub fn recv(&mut self) -> Result<Option<(TaskId, OUT)>, TaskQueueError> {
