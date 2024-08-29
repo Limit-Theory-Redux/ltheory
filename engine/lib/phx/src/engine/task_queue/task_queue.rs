@@ -53,11 +53,14 @@ impl TaskQueue {
                         let data = match in_data {
                             WorkerInData::Ping => WorkerOutData::Pong,
                             WorkerInData::Data(task_id, data) => {
+                                // put data on the heap
                                 let boxed_data = Box::new(data);
 
+                                // send data pointer to the Lua script and transfer ownership
                                 let boxed_out_data: usize =
                                     run_func.call(Box::leak(boxed_data) as *mut Payload as usize)?;
 
+                                // transfer ownership of the payload from the script to the engine in form of boxed data
                                 let out_data =
                                     unsafe { Box::from_raw(boxed_out_data as *mut Payload) };
 
