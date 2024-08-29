@@ -13,9 +13,18 @@ function WorkerFunction.Create(f)
     local PayloadConverter = require("Core.Util.PayloadConverter")
 
     return function(payload)
-        local managedPayload = Core.ManagedObject(payload, libphx.Payload_Free)
+        -- convert integer to the payload pointer sent from the Rust side
+        local payloadPtr = ffi.cast("Payload*", payload)
+        -- register payload in GC to avoid memory leaks
+        local managedPayload = Core.ManagedObject(payloadPtr, libphx.Payload_Free)
         local result = f(PayloadConverter:payloadToValue(managedPayload))
-        return ffi.gc(PayloadConverter:valueToPayload(result, true), nil)
+        local outPayloadPtr = PayloadConverter:valueToPayload(result, true)
+        -- 'forget' about payload before sending it to the Rust
+        ffi.gc(outPayloadPtr, nil)
+        -- cast payload pointer to number to be sent to Rust
+        local outPayload = ffi.cast("uint64_t", outPayloadPtr)
+        Log.Debug("Out payload: " .. tostring(outPayload) .. ":" .. tostring(type(outPayload)))
+        return outPayload
     end
 end
 
