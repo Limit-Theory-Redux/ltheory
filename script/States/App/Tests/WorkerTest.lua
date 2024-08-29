@@ -2,7 +2,7 @@ local WorkerTest = require('States.Application')
 
 function WorkerTest:onInit()
     Worker.AddWorkers({ "TestWorker" })
-    if TaskQueue:startWorker(Worker.TestWorker, "TestWorker", "script/States/App/Tests/WorkerFunction.lua") == false then
+    if TaskQueue:startWorker(Worker.TestWorker, "TestWorker", "script/States/App/Tests/TestWorkerFunction.lua") == false then
         Log.Error("Cannot start worker")
     end
     local expectedTaskId = TaskQueue:sendTask(Worker.TestWorker, "TestPayload")

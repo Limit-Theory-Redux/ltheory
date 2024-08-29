@@ -1,6 +1,3 @@
-local libphx = require('libphx').lib
-local PayloadConverter = require("Core.Util.PayloadConverter")
-
 local WorkerFunction = {}
 
 -- Wrap worker function in another one with payload FFI GC management.
@@ -11,6 +8,9 @@ function WorkerFunction.Create(f)
         Log.Error("expected worker function")
         return nil
     end
+
+    local libphx = require('libphx').lib
+    local PayloadConverter = require("Core.Util.PayloadConverter")
 
     return function(payload)
         local managedPayload = Core.ManagedObject(payload, libphx.Payload_Free)
