@@ -4,7 +4,7 @@ use crate::engine::Payload;
 pub struct TaskResult {
     worker_id: WorkerId,
     task_id: TaskId,
-    data: Box<Payload>,
+    payload: Box<Payload>,
 }
 
 impl TaskResult {
@@ -12,7 +12,7 @@ impl TaskResult {
         Self {
             worker_id,
             task_id,
-            data,
+            payload: data,
         }
     }
 }
@@ -27,7 +27,7 @@ impl TaskResult {
         self.task_id
     }
 
-    pub fn data(&self) -> &Payload {
-        self.data.as_ref()
+    pub fn payload(&self) -> &Payload {
+        self.payload.as_ref()
     }
 }

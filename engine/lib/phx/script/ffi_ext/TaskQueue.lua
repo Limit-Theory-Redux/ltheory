@@ -1,22 +1,17 @@
 local libphx = require('libphx').lib
-local PayloadConverter = require "Core.Util.PayloadConverter"
 
-function onDef_TaskQueue(t, mt)
-    local TaskQueue = t
+function onDef_TaskQueue_t(t, mt)
+    mt.__index.sendTask = function(self, workerId, data)
+        return libphx.TaskQueue_SendTask(self, workerId, PayloadConverter:valueToPayload(data, true))
+    end
 
-    -- Wrap worker function in another one with payload FFI GC management.
-    ---@param f fun(any): any Payload function
-    ---@return (fun(ffi.cdata*): ffi.cdata*)? -- Worker function wrapped in function with FFI Payload data management
-    t.MakeWorkerFunction = function(f)
-        if type(f) ~= 'function' then
-            Log.Error("expected worker function")
-            return nil
+    mt.__index.nextTaskResult = function(self, workerId)
+        local taskResult = libphx.TaskQueue_NextTaskResult(self, workerId)
+        if taskResult ~= nil then
+            local payloadValue = PayloadConverter:payloadToValue(taskResult:payload())
+
+            return taskResult:taskId(), payloadValue
         end
-
-        return function(payload)
-            local managedPayload = Core.ManagedObject(payload, libphx.Payload_Free)
-            local result = f(PayloadConverter:payloadToValue(managedPayload))
-            return ffi.gc(PayloadConverter:valueToPayload(result, true), nil)
-        end
+        return nil, nil
     end
 end

@@ -4,9 +4,10 @@
 TaskQueue = {}
 
 ---@param workerId integer
+---@param workerName string
 ---@param scriptPath string
 ---@return boolean
-function TaskQueue:startWorker(workerId, scriptPath) end
+function TaskQueue:startWorker(workerId, workerName, scriptPath) end
 
 ---@param workerId integer
 ---@return boolean

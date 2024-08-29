@@ -1,5 +1,3 @@
-local libphx = require('libphx').lib
-
 function onDef_Worker(t, mt)
     local Worker = t
 

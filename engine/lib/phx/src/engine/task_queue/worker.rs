@@ -1,5 +1,7 @@
 pub type WorkerId = u8;
 
+#[luajit_ffi_gen::luajit_ffi]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Worker {
     /// Example worker that replicates input value into the output
     Echo,

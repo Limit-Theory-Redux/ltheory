@@ -4,7 +4,7 @@ use std::sync::mpsc::RecvTimeoutError;
 use std::time::Duration;
 
 use mlua::{Function, Lua};
-use tracing::error;
+use tracing::{error, info};
 
 use super::{TaskResult, Worker, WorkerId, WorkerInData, WorkerOutData, WorkerThread};
 use crate::engine::Payload;
@@ -18,14 +18,16 @@ impl TaskQueue {
     pub fn new() -> Self {
         Self {
             lua_workers: HashMap::new(),
-            echo_worker: WorkerThread::new_native(|data| data),
+            echo_worker: WorkerThread::new_native("Echo", |data| data),
         }
     }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl TaskQueue {
-    pub fn start_worker(&mut self, worker_id: u8, script_path: &str) -> bool {
+    pub fn start_worker(&mut self, worker_id: u8, worker_name: &str, script_path: &str) -> bool {
+        info!("Starting worker: {worker_name:?}");
+
         if self.lua_workers.contains_key(&worker_id) {
             error!("Worker with id {worker_id} already exists");
             return false;
@@ -33,17 +35,21 @@ impl TaskQueue {
 
         let script_path = PathBuf::from(script_path);
         if !script_path.exists() {
-            error!("Script path doesn't exist: {}", script_path.display());
+            error!(
+                "Script path doesn't exist: {}. Current directory: {:?}",
+                script_path.display(),
+                std::env::current_dir()
+            );
             return false;
         }
 
-        let worker_thread = WorkerThread::new(move |in_receiver, out_sender| {
+        let worker_thread = WorkerThread::new(worker_name, move |in_receiver, out_sender| {
             let lua = unsafe { Lua::unsafe_new() };
 
             lua.load(script_path).exec()?;
 
             let globals = lua.globals();
-            let run_func: Function = globals.get("run")?;
+            let run_func: Function = globals.get("Run")?;
 
             loop {
                 let res: Result<WorkerInData<Payload>, _> =
@@ -84,6 +90,8 @@ impl TaskQueue {
         });
 
         self.lua_workers.insert(worker_id, worker_thread);
+
+        info!("Worker: {worker_name:?} started");
 
         true
     }

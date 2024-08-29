@@ -1,5 +1,3 @@
-local libphx = require('libphx').lib
-
 function onDef_Event(t, mt)
     local Event = t
 

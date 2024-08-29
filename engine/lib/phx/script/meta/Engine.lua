@@ -12,6 +12,9 @@ function Engine:input() end
 ---@return EventBus
 function Engine:eventBus() end
 
+---@return TaskQueue
+function Engine:taskQueue() end
+
 ---@return HmGui
 function Engine:hmGui() end
 

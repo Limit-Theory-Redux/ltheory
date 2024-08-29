@@ -2,11 +2,12 @@ use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use tracing::error;
+use tracing::{error, info};
 
 use super::{TaskId, TaskQueueError, WorkerInData, WorkerOutData};
 
 pub struct WorkerThread<IN, OUT> {
+    name: String,
     in_sender: Sender<WorkerInData<IN>>,
     out_receiver: Receiver<WorkerOutData<OUT>>,
     handle: Option<JoinHandle<Result<(), TaskQueueError>>>,
@@ -15,7 +16,7 @@ pub struct WorkerThread<IN, OUT> {
 }
 
 impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
-    pub fn new<F>(f: F) -> Self
+    pub fn new<F>(name: &str, f: F) -> Self
     where
         F: FnOnce(
             Receiver<WorkerInData<IN>>,
@@ -23,12 +24,26 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
         ) -> Result<(), TaskQueueError>,
         F: Send + 'static,
     {
+        let worker_name = name.to_string();
         let (in_sender, in_receiver) = channel();
         let (out_sender, out_receiver) = channel();
 
-        let handle = thread::spawn(move || f(in_receiver, out_sender));
+        let handle = thread::spawn(move || {
+            info!("Starting worker thread: {worker_name:?}");
+
+            let res = f(in_receiver, out_sender);
+
+            if let Err(err) = &res {
+                error!("Failed to start worker thread: {worker_name:?}. Error: {err}");
+            } else {
+                info!("Worker thread {worker_name:?} started");
+            }
+
+            res
+        });
 
         Self {
+            name: name.into(),
             in_sender,
             out_receiver,
             handle: Some(handle),
@@ -37,15 +52,18 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
         }
     }
 
-    pub fn new_native<F>(f: F) -> Self
+    pub fn new_native<F>(name: &str, f: F) -> Self
     where
         F: Fn(IN) -> OUT,
         F: Send + 'static,
     {
+        let worker_name = name.to_string();
         let (in_sender, in_receiver) = channel();
         let (out_sender, out_receiver) = channel();
 
         let handle = thread::spawn(move || {
+            info!("Starting worker thread: {worker_name:?}");
+
             loop {
                 let res: Result<WorkerInData<IN>, _> =
                     in_receiver.recv_timeout(Duration::from_millis(500));
@@ -56,29 +74,35 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
                             WorkerInData::Data(task_id, data) => {
                                 WorkerOutData::Data(task_id, f(data))
                             }
-                            WorkerInData::Stop => break,
+                            WorkerInData::Stop => {
+                                info!("Worker {worker_name:?} was stopped");
+                                break;
+                            }
                         };
 
                         if out_sender.send(data).is_err() {
-                            return Err(TaskQueueError::ThreadError(
-                                "Cannot send data to the worker".into(),
-                            ));
+                            return Err(TaskQueueError::ThreadError(format!(
+                                "Cannot send data to the worker {worker_name:?}"
+                            )));
                         }
                     }
                     Err(err) => match err {
                         RecvTimeoutError::Timeout => continue,
                         RecvTimeoutError::Disconnected => {
-                            return Err(TaskQueueError::ThreadError(
-                                "Worker is disconnected".into(),
-                            ))
+                            return Err(TaskQueueError::ThreadError(format!(
+                                "Worker {worker_name:?} is disconnected"
+                            )))
                         }
                     },
                 }
             }
+
+            info!("Worker thread {worker_name:?} started");
             Ok(())
         });
 
         Self {
+            name: name.into(),
             in_sender,
             out_receiver,
             handle: Some(handle),
@@ -92,9 +116,9 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
     }
 
     pub fn stop(&self) -> Result<(), TaskQueueError> {
-        self.in_sender
-            .send(WorkerInData::Stop)
-            .map_err(|_| TaskQueueError::ThreadError("Cannot stop worker thread".into()))
+        self.in_sender.send(WorkerInData::Stop).map_err(|_| {
+            TaskQueueError::ThreadError(format!("Cannot stop worker thread: {:?}", self.name))
+        })
     }
 
     pub fn send(&mut self, data: IN) -> Result<TaskId, TaskQueueError> {
@@ -103,7 +127,10 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
         self.in_sender
             .send(WorkerInData::Data(task_id, data))
             .map_err(|_| {
-                TaskQueueError::ThreadError("Cannot send data to the worker thread".into())
+                TaskQueueError::ThreadError(format!(
+                    "Cannot send data to the worker thread: {:?}",
+                    self.name
+                ))
             })?;
 
         self.tasks_in_progress += 1;
@@ -124,9 +151,10 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
             },
             Err(err) => match err {
                 RecvTimeoutError::Timeout => Ok(None),
-                RecvTimeoutError::Disconnected => Err(TaskQueueError::ThreadError(
-                    "Worker thread is disconnected".into(),
-                )),
+                RecvTimeoutError::Disconnected => Err(TaskQueueError::ThreadError(format!(
+                    "Worker thread {:?} is disconnected",
+                    self.name
+                ))),
             },
         }
     }
@@ -138,17 +166,20 @@ impl<IN, OUT> Drop for WorkerThread<IN, OUT> {
             // TODO: check leftover data in the out receiver
 
             if self.in_sender.send(WorkerInData::Stop).is_err() {
-                error!("Cannot stop thread");
+                error!("Cannot stop worker thread: {:?}", self.name);
             }
 
             match handle.join() {
                 Ok(res) => {
                     if let Err(err) = res {
-                        error!("Worker thread failed. Error: {err}");
+                        error!("Worker thread {:?} failed. Error: {err}", self.name);
                     }
                 }
                 Err(err) => {
-                    error!("Cannot finish worker thread properly. Error: {err:?}");
+                    error!(
+                        "Cannot finish worker thread {:?} properly. Error: {err:?}",
+                        self.name
+                    );
                 }
             }
         }

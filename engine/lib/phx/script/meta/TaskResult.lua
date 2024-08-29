@@ -10,5 +10,5 @@ function TaskResult:workerId() end
 function TaskResult:taskId() end
 
 ---@return Payload
-function TaskResult:data() end
+function TaskResult:payload() end
 
