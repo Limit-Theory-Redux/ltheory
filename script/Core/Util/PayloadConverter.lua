@@ -113,7 +113,7 @@ function PayloadConverter:payloadToValue(payload)
     if payloadType == PayloadType.U64 then return payload:getU64() end
     if payloadType == PayloadType.F32 then return payload:getF32() end
     if payloadType == PayloadType.F64 then return payload:getF64() end
-    if payloadType == PayloadType.String then return tostring(payload:getString()) end
+    if payloadType == PayloadType.String then return ffi.string(payload:getString()) end
     if payloadType == PayloadType.Table then return self:tablePayloadToValue(payload:getTable()) end
 
     -- array types
@@ -168,7 +168,7 @@ function PayloadConverter:payloadToValue(payload)
     end
     if payloadType == PayloadType.StringArray then
         payload:forEachString(function(value)
-            insert(result, tostring(value))
+            insert(result, ffi.string(value))
         end)
         return result
     end
