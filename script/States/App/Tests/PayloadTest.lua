@@ -28,7 +28,7 @@ function PayloadTest:onInit()
     EventBus:send(Event.TestEvent, fakeEntity, { false, true, false })
     EventBus:send(Event.TestEvent, fakeEntity, { 1, 2, 3 })
     EventBus:send(Event.TestEvent, fakeEntity, { 4.0, 5.0, 6.0, 7.0 })
-    -- EventBus:send(Event.TestEvent, fakeEntity, {"TestPayload1", "TestPayload2"})
+    EventBus:send(Event.TestEvent, fakeEntity, { "TestPayload1", "TestPayload2" })
     EventBus:send(Event.TestEvent, fakeEntity, {
         boolVal = true,
         intVal = 3,

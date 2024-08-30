@@ -55,11 +55,10 @@ function PayloadConverter:valueToPayload(value, rustPayload)
                 local array = ffi.new("double[?]", #value, value)
                 return Payload.FromF64Array(array, #value) -- TODO: can we distinguish other numeric types?
             end
-            -- TODO: implement when luajit_gen_ffi supports string array/slice parameters
-            -- if type(value[1]) == "string" then
-            --     local array = ffi.new("cstr[?]", #value, value)
-            --     return Payload.FromStringArray(array, #value)
-            -- end
+            if type(value[1]) == "string" then
+                local array = ffi.new("cstr[?]", #value, value)
+                return Payload.FromStringArray(array, #value)
+            end
         end
 
         if type(value) == "table" then
