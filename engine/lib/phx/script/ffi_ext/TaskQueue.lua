@@ -2,7 +2,8 @@ local libphx = require('libphx').lib
 
 function onDef_TaskQueue_t(t, mt)
     mt.__index.sendTask = function(self, workerId, data)
-        return libphx.TaskQueue_SendTask(self, workerId, PayloadConverter:valueToPayload(data, true))
+        local taskIdPtr = libphx.TaskQueue_SendTask(self, workerId, PayloadConverter:valueToPayload(data, true))
+        return taskIdPtr[1]
     end
 
     mt.__index.nextTaskResult = function(self, workerId)
