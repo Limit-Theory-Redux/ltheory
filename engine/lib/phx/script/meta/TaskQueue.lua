@@ -14,6 +14,12 @@ function TaskQueue:startWorker(workerId, workerName, scriptPath) end
 function TaskQueue:stopWorker(workerId) end
 
 ---@param workerId integer
+---@return boolean
+function TaskQueue:isWorkerFinished(workerId) end
+
+function TaskQueue:stopAllWorkers() end
+
+---@param workerId integer
 ---@return integer?
 function TaskQueue:tasksInProgress(workerId) end
 
