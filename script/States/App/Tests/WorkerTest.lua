@@ -15,8 +15,8 @@ function WorkerTest:onInit()
     --     taskId, payload = TaskQueue:nextTaskResult(Worker.TestWorker)
     -- end
 
-    assert(expectedTaskId == taskId)
-    assert(payload == "TestPayload")
+    assert(payload == "TestPayload", "Expected 'TestPayload' but was '" .. payload .. "'")
+    assert(expectedTaskId == taskId, "Expected " .. tostring(expectedTaskId) .. " but was " .. tostring(taskId))
 end
 
 function WorkerTest:onPreRender() end

@@ -22,8 +22,7 @@ function WorkerFunction.Create(f)
         -- 'forget' about payload before sending it to the Rust
         ffi.gc(outPayloadPtr, nil)
         -- cast payload pointer to number to be sent to Rust
-        local outPayload = ffi.cast("uint64_t", outPayloadPtr)
-        Log.Debug("Out payload: " .. tostring(outPayload) .. ":" .. tostring(type(outPayload)))
+        local outPayload = tonumber(ffi.cast("uintptr_t", outPayloadPtr))
         return outPayload
     end
 end
