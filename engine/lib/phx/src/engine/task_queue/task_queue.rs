@@ -145,7 +145,7 @@ impl TaskQueue {
             .stop()
             .unwrap_or_else(|err| error!("Cannot stop echo worker. Error: {err}"));
 
-        for (_, worker) in &self.lua_workers {
+        for worker in self.lua_workers.values() {
             worker.stop().unwrap_or_else(|err| {
                 error!("Cannot stop worker: {}. Error: {err}", worker.name())
             });

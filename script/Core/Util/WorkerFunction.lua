@@ -2,7 +2,7 @@ local WorkerFunction = {}
 
 -- Wrap worker function in another one with payload FFI GC management.
 ---@param f fun(any): any Payload function
----@return (fun(ffi.cdata*): ffi.cdata*)? -- Worker function wrapped in function with FFI Payload data management
+---@return (fun(number): number?)? -- Worker function wrapped in function with FFI Payload data management
 function WorkerFunction.Create(f)
     if type(f) ~= 'function' then
         Log.Error("expected worker function")
