@@ -50,7 +50,7 @@ function RenderingTest:onInit()
     -- Get Box Entity and Components
     self.boxEntity = BoxEntity()
     self.boxRend = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RenderComponent)
-    Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
+    -- Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
     self.boxRB = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RigidBodyComponent)
     -- Set RigidBody
     self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(self.boxMesh))

@@ -50,8 +50,9 @@ end
 ---@param shaderVars table<ShaderVarInfo>
 function Material:addConstShaderVars(shaderVars)
     for _, shaderVarInfo in ipairs(shaderVars) do
-        local constShaderVar = ConstShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.callbackFn)
+        local constShaderVar = ConstShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, true)
         constShaderVar:setUniformInt(self.shaderState:shader())
+        constShaderVar:setCallbackFn(shaderVarInfo.callbackFn)
         insert(self.constShaderVars, constShaderVar)
     end
 end
@@ -59,7 +60,7 @@ end
 ---@param uniformName string
 ---@param uniformType UniformType
 function Material:addStaticShaderVar(uniformName, uniformType, callbackFn)
-    local staticShaderVar = ConstShaderVar(uniformName, uniformType)
+    local staticShaderVar = ConstShaderVar(uniformName, uniformType, false)
     staticShaderVar:setUniformInt(self.shaderState:shader())
     staticShaderVar:setCallbackFn(callbackFn)
     insert(self.staticShaderVars, staticShaderVar)
