@@ -1,16 +1,12 @@
 -- Entities
 local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")                   --!temp path
-local Asteroid = require("_ECS_WIP_TEMP.Entities.CelestialObjects.AsteroidEntity")  --!temp path
 local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity")  --!temp path
 -- Storage
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage")        --!temp path
-local MeshStorage = require("_ECS_WIP_TEMP.Systems.Storage.MeshStorage")            --!temp path
 -- Systems
 ---@type CameraSystem
 local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem")        --!temp path
 -- Generators
-local AsteroidMesh = require("_ECS_WIP_TEMP.Systems.Generators.Mesh.CelestialObjects.AsteroidMesh")
-local Boxes = require("_ECS_WIP_TEMP.Systems.Generators.Mesh.ShapeLib.Boxes")
 
 -- Rendering
 local renderState = require("_ECS_WIP_TEMP.Shared.Rendering.RenderState")
@@ -28,6 +24,8 @@ function RenderingTest:onInit()
     -- Set App Settings --
     self.profilerFont = Font.Load('NovaMono', 20)
     self.profiling = true
+    
+    self.renderer = RenderPipeline()
 
     -- Initialize Materials --
     require("_ECS_WIP_TEMP.Shared.Definitions.MaterialDefs")
@@ -41,29 +39,29 @@ function RenderingTest:onInit()
     local entityInfo = GlobalStorage:storeEntity(camera)
 
     CameraSystem:setCamera(entityInfo)
+    CameraSystem.currentCameraTransform:setPosition(Position(0,0,0))
+    CameraSystem.currentCameraTransform:setRotation(Quat.Identity())
 
     -- Create First RNG for Scene
-    self.rng = RNG.Create(0):managed()
+    -- local rng = RNG.Create(0):managed()
     
-    -- Generate RandomBox
-    self.boxes = Boxes.RandomBox(self.rng)
-    self.boxMesh = Boxes.BoxesToMesh(self.boxes, 1, 1, false)
+    -- Generate Box Mesh
+    self.boxMesh = Mesh.Box(7)
     -- Get Box Entity and Components
     self.boxEntity = BoxEntity()
     self.boxRend = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RenderComponent)
+    Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
     self.boxRB = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RigidBodyComponent)
     -- Set RigidBody
     self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(self.boxMesh))
-    self.boxRB:getRigidBody():setPos(Position(0, 0, 0))
+    self.boxRB:getRigidBody():setPos(Position(0, 0, -5))
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function RenderingTest:onPreRender(data)
     -- Initialize Profiler
     Profiler.Enable()
-    --[[
-        < Toggle Profiling >
-    ]]--
+
     -- Start onPreRender Profiler
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onPreRender')
@@ -75,7 +73,6 @@ function RenderingTest:onPreRender(data)
     if self.timeScale ~= EventBus:getTimeScale() then
         EventBus:setTimeScale(self.timeScale)
     end
-
     -- Get Delta Time
     local timeScaledDt = data:deltaTime()
 
@@ -83,8 +80,7 @@ function RenderingTest:onPreRender(data)
         < Previously where Player and UI Canvas Updates were Called
     ]]--
 
-    -- Handle App Resizing
-    do
+    do -- Handle App Resizing
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onResize')
         local size = Window:size()
@@ -112,27 +108,54 @@ function RenderingTest:onRender(data)
     -- Start Window Draw()
     Window:beginDraw()
 
+    -- Originally in Canvas:draw
+    --RenderState.PushBlendMode(BlendMode.Alpha)
+    --Draw.PushAlpha(2)
+    --DrawEx.PushAlpha(2)
+
     -- < TEST RENDER > --
+    ClipRect.PushDisabled()
+    RenderState.PushAllDefaults()
 
-    do -- Push Defaults
-        ClipRect.PushDisabled()
-        RenderState.PushAllDefaults()
-    end
+    CameraSystem:updateViewMatrix()
+    CameraSystem:updateProjectionMatrix(self.resX,self.resY)
 
-    do -- Set Camera
-        CameraSystem:lookAt(Vec3f(0, 0, 0))
-        CameraSystem:setProjection(self.resX,self.resY)
-        renderState:setCameraEye(CameraSystem.currentCameraTransform:getPosition())
-        CameraSystem:beginCameraDraw(CameraSystem.currentCameraData, CameraSystem.currentCameraTransform)
-    end
+    renderState:setCameraEye(CameraSystem.currentCameraTransform:getPosition())
+    CameraSystem:beginCameraDraw(CameraSystem.currentCameraData, CameraSystem.currentCameraTransform)
 
-    -- < What To Render Goes Here > --
+    self.renderer:start(self.resX, self.resY)
 
-    do -- Cleanup
-        CameraSystem:endDraw()
-        RenderState.PopAll()
-        ClipRect.Pop()
-    end
+    local boxMat = self.boxRend:getMaterial(BlendMode.Disabled)
+    boxMat.shaderState:start()
+    boxMat:setAllShaderVars(renderState, self.boxEntity)
+    self.boxMesh:draw()
+    boxMat.shaderState:stop()
+
+    self.renderer:stop()
+
+    CameraSystem:endDraw()
+
+    -- From GameView - Composited UI Pass
+    --[[
+    local ss = 1
+    Viewport.Push(0, 0, ss * self.resX, ss * self.resY, true)
+    ClipRect.PushTransform(0, 0, ss, ss)
+    ShaderVar.PushMatrix("mWorldViewUI", Matrix.Scaling(ss, ss, 1.0))
+
+    ShaderVar.Pop("mWorldViewUI")
+    ClipRect.PopTransform()
+    Viewport.Pop()
+    --]]
+    self.renderer:present(0, 0, self.resX, self.resY, false)
+
+    RenderState.PopAll()
+    ClipRect.Pop()
+
+    -- Originally in Canvas:draw
+    -- DrawEx.PopAlpha()
+    -- Draw.PopAlpha()
+    -- RenderState.PopBlendMode()
+
     -- Stop onRender Profiler
     Profiler.End()
     Profiler.LoopMarker()

@@ -16,7 +16,7 @@ local TransformComponent = Subclass(Component, function(self)
 
     self:setTransform({
         position = Position(),
-        rotation = Quat(),
+        rotation = Quat.Identity(),
         scale = 1.0
     })
 end)

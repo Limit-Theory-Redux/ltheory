@@ -21,7 +21,7 @@ end)
 function RenderComponent:setMaterials(materials)
     self.materials = {}
     for _, v in pairs(materials) do
-        self.materials[v.blendMode] = v()
+        self.materials[v.blendMode] = v
     end
 end
 

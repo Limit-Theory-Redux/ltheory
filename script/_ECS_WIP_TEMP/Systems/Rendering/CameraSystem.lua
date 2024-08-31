@@ -67,21 +67,18 @@ function CameraSystem:setCamera(entityInfo)
 
     if camera then
         self.currentCamera = camera
-        self.currentCameraData = nil -- reset
-        self.currentCameraTransform = nil -- reset
+        self.currentCameraData = camera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
+        self.currentCameraTransform = camera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
     end
 end
 
---TODO: Figure out if "eye" is supposed to be Camera Position, or always {0,0,0}
 ---@param cdt CameraDataComponent
----@param t TransformComponent
 function CameraSystem:beginCameraDraw(cdt, t)
     --self:refreshMatrices()
     ShaderVar.PushMatrix('mView', cdt:getView())
     ShaderVar.PushMatrix('mViewInv', cdt:getViewInverse())
     ShaderVar.PushMatrix('mProj', cdt:getProjection())
     ShaderVar.PushMatrix('mProjInv', cdt:getProjectionInverse())
-    local pos = t:getPosition()
     ShaderVar.PushFloat3('eye', 0.0, 0.0, 0.0)
 end
 
@@ -93,20 +90,21 @@ function CameraSystem:endDraw()
     ShaderVar.Pop('eye')
 end
 
---[[
-TODO: lookAt and setProjection are hacky Test Solutions. Better Implementation Needed.
-]]
-function CameraSystem:lookAt(target)
+function CameraSystem:resetMatrices()
     self.currentCameraData.view:free()
     self.currentCameraData.viewInverse:free()
-    local pos = self.currentCameraTransform:getPosition()
-    local mView = Matrix.LookAt(Vec3f(pos.x,pos.y,pos.z), target, Vec3f(0,1,0))
-    self.currentCameraData:setView(mView:inverse())
-    self.currentCameraData:setViewInverse(mView)
-    --Log.Warn("mView Matrix Lookat" .. tostring(mView))
+    self.currentCameraData.projection:free()
+    self.currentCameraData.projectionInverse:free()
 end
 
-function CameraSystem:setProjection(resX, resY)
+function CameraSystem:updateViewMatrix()
+    local mView = Matrix.FromPosRot(Vec3f.Identity(), self.currentCameraTransform:getRotation())
+    -- View matrix has the "position" at (0,0,0), as all world matrices are offset by self.pos.
+    self.currentCameraData:setViewInverse(mView)
+    self.currentCameraData:setView(mView:inverse())
+end
+
+function CameraSystem:updateProjectionMatrix(resX, resY)
     self.currentCameraData.projection:free()
     self.currentCameraData.projectionInverse:free()
     local mProj = Matrix.Perspective(
