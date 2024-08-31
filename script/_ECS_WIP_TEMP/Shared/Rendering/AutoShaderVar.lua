@@ -35,8 +35,7 @@ function AutoShaderVar:setShaderVar(renderState, shader, entity)
         Log.Warn("Uniform " .. self.uniformName .. " int not set before updateShaderVar")
         self:setUniformInt(shader)
     end
-    local val = self.callbackFn(renderState, entity)
-    UniformFuncs[self.uniformType](shader, self.uniformInt, val)
+    UniformFuncs[self.uniformType](shader, self.uniformInt, self.callbackFn(renderState, entity))
 end
 
 return AutoShaderVar

@@ -58,11 +58,10 @@ end
 
 ---@param uniformName string
 ---@param uniformType UniformType
----@param uniformValues ffi.ct*[]
-function Material:addStaticShaderVar(uniformName, uniformType, uniformValues)
+function Material:addStaticShaderVar(uniformName, uniformType, callbackFn)
     local staticShaderVar = ConstShaderVar(uniformName, uniformType)
     staticShaderVar:setUniformInt(self.shaderState:shader())
-    staticShaderVar:setUniformValues(uniformValues)
+    staticShaderVar:setCallbackFn(callbackFn)
     insert(self.staticShaderVars, staticShaderVar)
 end
 
