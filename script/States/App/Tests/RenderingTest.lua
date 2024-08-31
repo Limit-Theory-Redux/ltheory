@@ -113,8 +113,11 @@ function RenderingTest:onRender(data)
     --Draw.PushAlpha(2)
     --DrawEx.PushAlpha(2)
 
+    Draw.Clear(0, 0, 0, 1)
+    Draw.ClearDepth(1)
+
     -- < TEST RENDER > --
-    ClipRect.PushDisabled()
+    -- ClipRect.PushDisabled()
     RenderState.PushAllDefaults()
 
     CameraSystem:updateViewMatrix()
@@ -123,7 +126,7 @@ function RenderingTest:onRender(data)
     renderState:setCameraEye(CameraSystem.currentCameraTransform:getPosition())
     CameraSystem:beginCameraDraw(CameraSystem.currentCameraData, CameraSystem.currentCameraTransform)
 
-    self.renderer:start(self.resX, self.resY)
+    -- self.renderer:start(self.resX, self.resY)
 
     local boxMat = self.boxRend:getMaterial(BlendMode.Disabled)
     boxMat.shaderState:start()
@@ -131,7 +134,7 @@ function RenderingTest:onRender(data)
     self.boxMesh:draw()
     boxMat.shaderState:stop()
 
-    self.renderer:stop()
+    -- self.renderer:stop()
 
     CameraSystem:endDraw()
 
@@ -146,10 +149,10 @@ function RenderingTest:onRender(data)
     ClipRect.PopTransform()
     Viewport.Pop()
     --]]
-    self.renderer:present(0, 0, self.resX, self.resY, false)
+    -- self.renderer:presentAll(0, 0, self.resX, self.resY, false)
 
     RenderState.PopAll()
-    ClipRect.Pop()
+    -- ClipRect.Pop()
 
     -- Originally in Canvas:draw
     -- DrawEx.PopAlpha()
