@@ -117,7 +117,7 @@ function RenderingTest:onRender(data)
     Draw.ClearDepth(1)
 
     -- < TEST RENDER > --
-    -- ClipRect.PushDisabled()
+    ClipRect.PushDisabled()
     RenderState.PushAllDefaults()
 
     CameraSystem:updateViewMatrix()
@@ -152,7 +152,7 @@ function RenderingTest:onRender(data)
     -- self.renderer:presentAll(0, 0, self.resX, self.resY, false)
 
     RenderState.PopAll()
-    -- ClipRect.Pop()
+    ClipRect.Pop()
 
     -- Originally in Canvas:draw
     -- DrawEx.PopAlpha()
