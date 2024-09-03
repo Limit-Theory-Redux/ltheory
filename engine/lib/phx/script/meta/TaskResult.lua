@@ -9,6 +9,9 @@ function TaskResult:workerId() end
 ---@return integer
 function TaskResult:taskId() end
 
----@return Payload
+---@return Payload?
 function TaskResult:payload() end
+
+---@return string?
+function TaskResult:error() end
 

@@ -14,9 +14,9 @@ function WorkerFunction.Create(f)
 
     return function(payload)
         -- convert integer to the payload pointer sent from the Rust side
-        local payloadPtr = ffi.cast("Payload*", payload)
+        local inPayloadPtr = ffi.cast("Payload*", payload)
         -- register payload in GC to avoid memory leaks
-        local managedPayload = Core.ManagedObject(payloadPtr, libphx.Payload_Free)
+        local managedPayload = Core.ManagedObject(inPayloadPtr, libphx.Payload_Free)
         local result = f(PayloadConverter:payloadToValue(managedPayload))
         local outPayloadPtr = PayloadConverter:valueToPayload(result, true)
         -- 'forget' about payload before sending it to the Rust

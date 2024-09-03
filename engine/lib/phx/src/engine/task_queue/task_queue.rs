@@ -7,7 +7,7 @@ use mlua::{Function, Lua};
 use tracing::{debug, error};
 
 use super::{TaskResult, Worker, WorkerId, WorkerInData, WorkerOutData, WorkerThread};
-use crate::engine::Payload;
+use crate::engine::{Payload, PayloadType};
 
 pub struct TaskQueue {
     lua_workers: HashMap<WorkerId, WorkerThread<Payload, Box<Payload>>>,
@@ -169,6 +169,11 @@ impl TaskQueue {
     }
 
     pub fn send_task(&mut self, worker_id: u8, data: Payload) -> Option<usize> {
+        if data.get_type() == PayloadType::Lua {
+            error!("Cannot send cached Lua payload to the worker");
+            return None;
+        }
+
         if let Some(worker) = self.lua_workers.get_mut(&worker_id) {
             match worker.send(data) {
                 Ok(task_id) => {
@@ -190,11 +195,20 @@ impl TaskQueue {
         if let Some(worker) = self.lua_workers.get_mut(&worker_id) {
             match worker.recv() {
                 Ok(res) => res.map(|(task_id, data)| {
-                    debug!(
-                        "Received task {task_id} result for worker {:?}",
-                        worker.name()
-                    );
-                    TaskResult::new(worker_id, task_id, data)
+                    if data.get_type() == PayloadType::Lua {
+                        error!("Cannot receive cached Lua payload from the worker");
+                        TaskResult::new_error(
+                            worker_id,
+                            task_id,
+                            "Cannot receive cached Lua payload from the worker",
+                        )
+                    } else {
+                        debug!(
+                            "Received task {task_id} result for worker {:?}",
+                            worker.name()
+                        );
+                        TaskResult::new(worker_id, task_id, data)
+                    }
                 }),
                 Err(err) => {
                     error!("Cannot send task to worker {worker_id}. Error: {err}");

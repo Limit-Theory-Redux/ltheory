@@ -20,6 +20,7 @@ function Loader.defineType()
             uint8          TaskResult_WorkerId (TaskResult const*);
             uint64         TaskResult_TaskId   (TaskResult const*);
             Payload const* TaskResult_Payload  (TaskResult const*);
+            cstr           TaskResult_Error    (TaskResult const*);
         ]]
     end
 
@@ -37,6 +38,7 @@ function Loader.defineType()
                 workerId = libphx.TaskResult_WorkerId,
                 taskId   = libphx.TaskResult_TaskId,
                 payload  = libphx.TaskResult_Payload,
+                error    = libphx.TaskResult_Error,
             },
         }
 

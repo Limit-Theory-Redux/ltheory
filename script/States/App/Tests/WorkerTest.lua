@@ -18,7 +18,7 @@ function WorkerTest:onInit()
     end
 
     assert(expectedTaskId == taskId, "Expected " .. tostring(expectedTaskId) .. " but was " .. tostring(taskId))
-    assert(payload == "TestPayload", "Expected 'TestPayload' but was '" .. payload .. "'")
+    assert(payload == "TestPayload_OUT", "Expected 'TestPayload_OUT' but was '" .. payload .. "'")
 
     TaskQueue:stopAllWorkers()
 

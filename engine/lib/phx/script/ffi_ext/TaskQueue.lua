@@ -9,9 +9,12 @@ function onDef_TaskQueue_t(t, mt)
     mt.__index.nextTaskResult = function(self, workerId)
         local taskResult = libphx.TaskQueue_NextTaskResult(self, workerId)
         if taskResult ~= nil then
-            local payloadValue = PayloadConverter:payloadToValue(taskResult:payload())
-
-            return taskResult:taskId(), payloadValue
+            local payload = taskResult:payload()
+            if payload ~= nil then
+                local payloadValue = PayloadConverter:payloadToValue(payload)
+                return taskResult:taskId(), payloadValue
+            end
+            return taskResult:taskId(), taskResult:error()
         end
         return nil, nil
     end

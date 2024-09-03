@@ -6,5 +6,5 @@ require('Init')
 local WorkerFunction = require("Core.Util.WorkerFunction")
 
 Run = WorkerFunction.Create(function(payload)
-    return payload
+    return tostring(payload) .. "_OUT"
 end)
