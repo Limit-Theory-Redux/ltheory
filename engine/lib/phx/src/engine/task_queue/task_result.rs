@@ -32,7 +32,7 @@ impl TaskResult {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl TaskResult {
-    pub fn worker_id(&self) -> u8 {
+    pub fn worker_id(&self) -> u16 {
         self.worker_id
     }
 

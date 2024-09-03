@@ -1,6 +1,6 @@
-pub type WorkerId = u8;
+pub type WorkerId = u16;
 
-#[luajit_ffi_gen::luajit_ffi]
+#[luajit_ffi_gen::luajit_ffi(repr = "u16")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Worker {
     /// Example worker that replicates input value into the output

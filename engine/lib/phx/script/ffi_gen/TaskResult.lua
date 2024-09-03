@@ -17,7 +17,7 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void           TaskResult_Free     (TaskResult*);
-            uint8          TaskResult_WorkerId (TaskResult const*);
+            uint16         TaskResult_WorkerId (TaskResult const*);
             uint64         TaskResult_TaskId   (TaskResult const*);
             Payload const* TaskResult_Payload  (TaskResult const*);
             cstr           TaskResult_Error    (TaskResult const*);

@@ -67,6 +67,7 @@ const COPY_TYPES: &[&str] = &[
     "TexWrapMode",
     "PixelFormat",
     "DataFormat",
+    "Worker",
 ];
 
 #[derive(Debug, PartialEq)]

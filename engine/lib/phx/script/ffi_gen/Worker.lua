@@ -3,7 +3,7 @@ local Loader = {}
 
 function Loader.declareType()
     ffi.cdef [[
-        typedef uint8 Worker;
+        typedef uint16 Worker;
     ]]
 
     return 2, 'Worker'

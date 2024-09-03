@@ -31,7 +31,7 @@ impl TaskQueue {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl TaskQueue {
-    pub fn start_worker(&mut self, worker_id: u8, worker_name: &str, script_path: &str) -> bool {
+    pub fn start_worker(&mut self, worker_id: u16, worker_name: &str, script_path: &str) -> bool {
         debug!("Starting worker: {worker_name:?}");
 
         if self.lua_workers.contains_key(&worker_id) {
@@ -110,7 +110,7 @@ impl TaskQueue {
         true
     }
 
-    pub fn stop_worker(&self, worker_id: u8) -> bool {
+    pub fn stop_worker(&self, worker_id: u16) -> bool {
         if let Some(worker) = self.lua_workers.get(&worker_id) {
             if let Err(err) = worker.stop() {
                 error!("Cannot stop worker {worker_id}. Error: {err}");
@@ -124,7 +124,7 @@ impl TaskQueue {
         }
     }
 
-    pub fn is_worker_finished(&self, worker_id: u8) -> bool {
+    pub fn is_worker_finished(&self, worker_id: u16) -> bool {
         if let Some(worker) = Worker::from_worker_id(worker_id) {
             match worker {
                 Worker::Echo => self.echo_worker.is_finished(),
@@ -154,7 +154,7 @@ impl TaskQueue {
         debug!("All workers were stopped");
     }
 
-    pub fn tasks_in_progress(&self, worker_id: u8) -> Option<usize> {
+    pub fn tasks_in_progress(&self, worker_id: u16) -> Option<usize> {
         if let Some(worker) = Worker::from_worker_id(worker_id) {
             match worker {
                 Worker::Echo => Some(self.echo_worker.tasks_in_progress()),
@@ -168,7 +168,7 @@ impl TaskQueue {
         }
     }
 
-    pub fn send_task(&mut self, worker_id: u8, data: Payload) -> Option<usize> {
+    pub fn send_task(&mut self, worker_id: u16, data: Payload) -> Option<usize> {
         if data.get_type() == PayloadType::Lua {
             error!("Cannot send cached Lua payload to the worker");
             return None;
@@ -191,7 +191,7 @@ impl TaskQueue {
         }
     }
 
-    pub fn next_task_result(&mut self, worker_id: u8) -> Option<TaskResult> {
+    pub fn next_task_result(&mut self, worker_id: u16) -> Option<TaskResult> {
         if let Some(worker) = self.lua_workers.get_mut(&worker_id) {
             match worker.recv() {
                 Ok(res) => res.map(|(task_id, data)| {

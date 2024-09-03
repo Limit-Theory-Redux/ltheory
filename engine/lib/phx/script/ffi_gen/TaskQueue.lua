@@ -17,13 +17,13 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void          TaskQueue_Free             (TaskQueue*);
-            bool          TaskQueue_StartWorker      (TaskQueue*, uint8 workerId, cstr workerName, cstr scriptPath);
-            bool          TaskQueue_StopWorker       (TaskQueue const*, uint8 workerId);
-            bool          TaskQueue_IsWorkerFinished (TaskQueue const*, uint8 workerId);
+            bool          TaskQueue_StartWorker      (TaskQueue*, uint16 workerId, cstr workerName, cstr scriptPath);
+            bool          TaskQueue_StopWorker       (TaskQueue const*, uint16 workerId);
+            bool          TaskQueue_IsWorkerFinished (TaskQueue const*, uint16 workerId);
             void          TaskQueue_StopAllWorkers   (TaskQueue const*);
-            uint64 const* TaskQueue_TasksInProgress  (TaskQueue const*, uint8 workerId);
-            uint64 const* TaskQueue_SendTask         (TaskQueue*, uint8 workerId, Payload* data);
-            TaskResult*   TaskQueue_NextTaskResult   (TaskQueue*, uint8 workerId);
+            uint64 const* TaskQueue_TasksInProgress  (TaskQueue const*, uint16 workerId);
+            uint64 const* TaskQueue_SendTask         (TaskQueue*, uint16 workerId, Payload* data);
+            TaskResult*   TaskQueue_NextTaskResult   (TaskQueue*, uint16 workerId);
             bool          TaskQueue_SendEcho         (TaskQueue*, cstr data);
             cstr          TaskQueue_GetEcho          (TaskQueue*);
         ]]
