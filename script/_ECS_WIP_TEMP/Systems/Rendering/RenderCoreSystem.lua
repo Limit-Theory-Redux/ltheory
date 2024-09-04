@@ -187,22 +187,28 @@ function RenderCoreSystem:registerEvents()
 end
 
 function RenderCoreSystem:onPreRender(data)
-    -- TODO: Use 'data' or a global 'RenderState' to set proper superSampleRate, resX, resY
-    -- Can this be in PreRender or must SuperSampleRate, Resolution, and all that be set in Render?
-    --[[
+    -- Can the Changes to SSR/DSR and Resolution be done in PreRender?
+    -- How do we communicate SuperSampleRate/DownSampleRate changes to RenderCoreSystem?
     local ssr = data.ssr or self.settings.superSampleRate
-    local ssResX, ssResY = ssr * data.resX, ssr * data.resY
+    -- local dsr = self.settings.downSampleRate
+    local ssResX, ssResY = ssr * Window:size().x, ssr * Window:size().y
+    local dsResX, dsResY = dsr * Window:size().x, dsr * Window:size().y
     if self.ssResX ~= ssResX or self.ssResY ~= ssResY or self.ssr ~= ssr then
         self.ssResX = ssResX
         self.ssResY = ssResY
+        self.dsResX = dsResX
+        self.dsResY = dsResY
         self.settings.superSampleRate = ssr
-        self.resX = data.resX
-        self.resY = data.resY
+        --self.settings.downSampleRate = dsr -- Only if we add the option to change DSR
+        self.resX = Window:size().x
+        self.resY = Window:size().y
 
         -- Buffers must be reinitialized when SuperSampleRate/DownSampleRate is changed.
         self:initializeBuffers()
-    ]]--
+    end
+
     -- < Prepare Buffers for Primary Render Pass > --
+    -- Is there a better place to put this?
     self.buffers[Enums.BufferName.buffer0]:setMipRange(0, 0)
     self.buffers[Enums.BufferName.buffer1]:setMipRange(0, 0)
     self.buffers[Enums.BufferName.buffer2]:setMipRange(0, 0)
@@ -222,6 +228,9 @@ function RenderCoreSystem:onPreRender(data)
 end
 
 function RenderCoreSystem:onRender(data)
+    -- Begin Drawing Window
+    Window:beginDraw()
+
     -- Reset RenderState and ClipRect at Start of Render
     ClipRect.PushDisabled()
     RenderState.PushAllDefaults()
@@ -230,7 +239,7 @@ function RenderCoreSystem:onRender(data)
         -- Add Camera Stack?
         -- Should we remove updateViewMatrix/updateProjectionMatrix and use a RefreshMatrices to do this?
         CameraSystem:updateViewMatrix()
-        CameraSystem:updateProjectionMatrix(self.resX,self.resY)
+        CameraSystem:updateProjectionMatrix(self.resX,self.resY) -- Do we use ssRes or res?
         CameraSystem:beginDraw() -- Push Camera ShaderVars
         --[[Original Order for Camera 
             In GameView:
@@ -301,12 +310,12 @@ function RenderCoreSystem:onRender(data)
 
     do -- < PostFX and Draw Rendered Frame to Screen > --
         if self.settings.showBuffers then
-            -- self:presentAll(x,y,sx,sy)
             -- < PresentAll Buffers / RenderPipeline.presentAll(...) > --
+            self:presentAll(Window:position().x , Window:position().y, self.resX, self.resY)
         else
             -- < PostFX Pass > --
-            -- self:present(x,y,sx,sy,false)
             -- < Present Frame / Present buffer0 / RenderPipeline.present(...) > -
+            self:present(Window:position().x , Window:position().y, self.resX, self.resY, false)
         end
     end
 
@@ -316,9 +325,7 @@ function RenderCoreSystem:onRender(data)
 end
 
 function RenderCoreSystem:onPostRender(data)
-    --[[
-        
-    ]]--
+    Window:endDraw()
 end
 
 function RenderCoreSystem:renderInOrder(blendMode)
@@ -346,16 +353,15 @@ function RenderCoreSystem:renderInOrder(blendMode)
 end
 
 ---Update the screen with any rendering performed since the previous call
----@param x integer x position of screen?
----@param y integer y position of screen?
----@param sx integer SuperSampleRate * Resolution?
----@param sy integer SuperSampleRate * Resolution?
+---@param x integer Window x Position
+---@param y integer Window y Position
+---@param sx integer Window Size X
+---@param sy integer Window Size Y
 ---@param useMips boolean Use MipMap Rendering
 function RenderCoreSystem:present(x, y, sx, sy, useMips)
     --[[
         Directly from RenderPipeline.
         Do we ever use MipMap for Rendering?
-        Need Clarity on where x/y/sx/sy should be coming from. Window? SuperSampled Resolution?
     ]]--
     RenderState.PushAllDefaults()
 
@@ -377,10 +383,10 @@ function RenderCoreSystem:present(x, y, sx, sy, useMips)
 end
 
 ---Update the screen with deferred rendering buffers, 1 in each quadrant of the screen.
----@param x integer x position of screen?
----@param y integer y position of screen?
----@param sx integer SuperSampleRate * Resolution?
----@param sy integer SuperSampleRate * Resolution?
+---@param x integer Window x Position
+---@param y integer Window y Position
+---@param sx integer Window Size X
+---@param sy integer Window Size Y
 function RenderCoreSystem:presentAll(x, y, sx, sy)
     RenderState.PushAllDefaults()
 
