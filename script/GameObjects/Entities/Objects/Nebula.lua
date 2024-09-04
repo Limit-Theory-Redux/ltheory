@@ -1,4 +1,4 @@
-local Nebula = class(function(self, seed, starDir)
+local Nebula = Class(function(self, seed, starDir)
     self.seed = seed
     self.starDir = starDir
 end)

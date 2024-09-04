@@ -1,7 +1,7 @@
 local Camera = require('Systems.Camera.Camera')
 local Control = {}
 
-local ControlT = class(function(self)
+local ControlT = Class(function(self)
     self.mult = 1.0
     self.expn = 1.0
     self.bias = 0.0
@@ -73,7 +73,7 @@ end
 TODO:   Integrate disabled devices by implementing :isActive and dropping
         inactive devices from consideration in And/Or.
 --]]
-Control.And = subclass(ControlT, function(self, ...)
+Control.And = Subclass(ControlT, function(self, ...)
     if not ... then error() end
     self.controls = { ... }
 end)
@@ -84,7 +84,7 @@ function Control.And:getRaw()
     return value
 end
 
-Control.Delta = subclass(ControlT, function(self, control)
+Control.Delta = Subclass(ControlT, function(self, control)
     self.control = control
     self.last = control:get()
 end)
@@ -110,7 +110,7 @@ function Control.Delta:getRaw()
     return curr - last
 end
 
-Control.GamepadAxis = subclass(ControlT, function(self, axis)
+Control.GamepadAxis = Subclass(ControlT, function(self, axis)
     self.axis = axis
 end)
 
@@ -122,7 +122,7 @@ function Control.GamepadAxis:getRaw()
     return Input:getValue(self.axis)
 end
 
-Control.GamepadButton = subclass(ControlT, function(self, button)
+Control.GamepadButton = Subclass(ControlT, function(self, button)
     if not button then error() end
     self.button = button
 end)
@@ -135,7 +135,7 @@ function Control.GamepadButton:getRaw()
     return Input:getValue(self.button)
 end
 
-Control.GamepadButtonPressed = subclass(ControlT, function(self, button)
+Control.GamepadButtonPressed = Subclass(ControlT, function(self, button)
     if not button then error() end
     self.button = button
 end)
@@ -148,7 +148,7 @@ function Control.GamepadButtonPressed:getRaw()
     return Input:isPressed(self.button) and 1.0 or 0.0
 end
 
-Control.GamepadButtonReleased = subclass(ControlT, function(self, button)
+Control.GamepadButtonReleased = Subclass(ControlT, function(self, button)
     if not button then error() end
     self.button = button
 end)
@@ -161,7 +161,7 @@ function Control.GamepadButtonReleased:getRaw()
     return Input:isReleased(self.button) and 1.0 or 0.0
 end
 
-Control.Key = subclass(ControlT, function(self, key)
+Control.Key = Subclass(ControlT, function(self, key)
     if not key then error() end
     self.key = key
 end)
@@ -171,13 +171,17 @@ function Control.Key:getRaw()
 end
 
 Control.Alt    = function() return Control.Or(Control.Key(Button.KeyboardAltLeft), Control.Key(Button.KeyboardAltRight)) end
-Control.Ctrl   = function() return Control.Or(Control.Key(Button.KeyboardControlLeft),
-        Control.Key(Button.KeyboardControlRight)) end
-Control.Shift  = function() return Control.Or(Control.Key(Button.KeyboardShiftLeft),
-        Control.Key(Button.KeyboardShiftRight)) end
+Control.Ctrl   = function()
+    return Control.Or(Control.Key(Button.KeyboardControlLeft),
+        Control.Key(Button.KeyboardControlRight))
+end
+Control.Shift  = function()
+    return Control.Or(Control.Key(Button.KeyboardShiftLeft),
+        Control.Key(Button.KeyboardShiftRight))
+end
 
-Control.MouseX = subclass(ControlT, function(self) end)
-Control.MouseY = subclass(ControlT, function(self) end)
+Control.MouseX = Subclass(ControlT, function(self) end)
+Control.MouseY = Subclass(ControlT, function(self) end)
 
 function Control.MouseX:getRaw()
     local c = Camera.get()
@@ -195,8 +199,8 @@ end
 TODO:   Really a delta. Unify with MouseX/Y + think about out how 'mouse
         relative to center' best fits into this architecture.
 --]]
-Control.MouseDX = subclass(ControlT, function(self) end)
-Control.MouseDY = subclass(ControlT, function(self) end)
+Control.MouseDX = Subclass(ControlT, function(self) end)
+Control.MouseDY = Subclass(ControlT, function(self) end)
 
 function Control.MouseDX:getRaw()
     local md = Input:mouse():delta()
@@ -208,7 +212,7 @@ function Control.MouseDY:getRaw()
     return md.y
 end
 
-Control.MouseButton = subclass(ControlT, function(self, button)
+Control.MouseButton = Subclass(ControlT, function(self, button)
     self.button = button
 end)
 
@@ -216,7 +220,7 @@ function Control.MouseButton:getRaw()
     return Input:getValue(self.button)
 end
 
-Control.MouseWheel = subclass(ControlT, function(self) end)
+Control.MouseWheel = Subclass(ControlT, function(self) end)
 
 --[[
 TODO:   Unlike other signals, this won't be clamped to [-1, 1]. Problem?
@@ -227,13 +231,13 @@ function Control.MouseWheel:getRaw()
     return Input:getValue(Button.MouseScrollY)
 end
 
-Control.Null = subclass(ControlT, function(self) end)
+Control.Null = Subclass(ControlT, function(self) end)
 
 function Control.Null:getRaw()
     return 0
 end
 
-Control.Pair = subclass(ControlT, function(self, pos, neg)
+Control.Pair = Subclass(ControlT, function(self, pos, neg)
     self.pos = pos
     self.neg = neg
 end)
@@ -242,7 +246,7 @@ function Control.Pair:getRaw()
     return self.pos:get() - self.neg:get()
 end
 
-Control.Or = subclass(ControlT, function(self, ...)
+Control.Or = Subclass(ControlT, function(self, ...)
     self.controls = { ... }
 end)
 

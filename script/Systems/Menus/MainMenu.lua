@@ -1,4 +1,4 @@
-local MainMenu = class(function(self) end)
+local MainMenu = Class(function(self) end)
 
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local Bindings = require('States.ApplicationBindings')
