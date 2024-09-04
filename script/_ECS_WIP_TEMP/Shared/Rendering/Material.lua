@@ -68,7 +68,7 @@ end
 
 function Material:reload()
     if self.shaderState then self.shaderState:free() end
-    local shader = Cache.Shader(self.vertex, self.fragment)
+    local shader = Cache.Shader(self.vs, self.fs)
     self.shaderState = ShaderState.Create(shader)
 
     for _, texture in ipairs(self.textures) do
@@ -83,25 +83,13 @@ function Material:reload()
     end
 end
 
----@return ConstShaderVar constShaderVars All ConstShaderVars with unset values
-function Material:getUnsetConstShaderVars() 
-    local shaderVars = {}
-    for _, shaderVar in ipairs(self.constShaderVars) do
-        if not shaderVar:hasUniformValues() then insert(shaderVars, shaderVar) end
-    end
-    return shaderVars
-end
-
-function Material:setAllConstUniformValues(entity)
-    for _, shaderVar in ipairs(self.constShaderVars) do
-        shaderVar:setUniformValues(entity)
-    end
-end
-
-function Material:setAllShaderVars(renderState, entity)
+---Set Uniform Values for Materials Shader
+---@param eye Position Camera Position
+---@param entity Entity
+function Material:setAllShaderVars(eye, entity)
     local shader = self.shaderState:shader()
     for _, shaderVar in ipairs(self.autoShaderVars) do
-        shaderVar:setShaderVar(renderState, shader, entity)
+        shaderVar:setShaderVar(eye, shader, entity)
     end
     for _, shaderVar in ipairs(self.constShaderVars) do
         shaderVar:setShaderVar(shader)
@@ -127,12 +115,12 @@ end
 
 ---@return string
 function Material:getVertex()
-    return self.vertex
+    return self.vs
 end
 
 ---@return string
 function Material:getFragment()
-    return self.fragment
+    return self.fs
 end
 
 return Material

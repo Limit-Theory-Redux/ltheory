@@ -43,16 +43,16 @@ end
 
 ---@private
 function CameraSystem:onRender()
-    if self.currentCamera and self.currentCameraData and self.currentCameraTransform then
-        self:beginDraw(self.currentCameraData, self.currentCameraTransform)
-    end
+    -- if self.currentCamera and self.currentCameraData and self.currentCameraTransform then
+    --     self:beginDraw(self.currentCameraData, self.currentCameraTransform)
+    -- end
 end
 
 ---@private
 function CameraSystem:onPostRender()
-    if self.currentCamera and self.currentCameraData then
-        self:endDraw()
-    end
+    -- if self.currentCamera and self.currentCameraData then
+    --     self:endDraw()
+    -- end
 end
 
 ---@param entityInfo EntityInfo
@@ -70,6 +70,15 @@ function CameraSystem:setCamera(entityInfo)
         self.currentCameraData = camera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
         self.currentCameraTransform = camera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
     end
+end
+
+---Get Current Camera 'Eye'/Position
+---@return Position
+function CameraSystem:getCurrentCameraEye()
+    if not self.currentCamera then
+        Log.Error("Attempted to getCameraEye() with no current Camera set.")
+    end
+    return self.currentCameraTransform:getPosition()
 end
 
 function CameraSystem:beginDraw()

@@ -1,16 +1,16 @@
 local ShaderVarFuncs = {}
 
-ShaderVarFuncs.mWorldFunc = function(renderState, entity)
+ShaderVarFuncs.mWorldFunc = function(eye, entity)
     local rb = entity:findComponentByArchetype(Enums.ComponentArchetype.RigidBodyComponent):getRigidBody()
-    return rb:getToWorldMatrix(renderState:getCameraEye())
+    return rb:getToWorldMatrix(eye)
 end
 
-ShaderVarFuncs.mWorldITFunc = function(renderState, entity)
+ShaderVarFuncs.mWorldITFunc = function(eye, entity)
     local rb = entity:findComponentByArchetype(Enums.ComponentArchetype.RigidBodyComponent):getRigidBody()
-    return rb:getToLocalMatrix(renderState:getCameraEye())
+    return rb:getToLocalMatrix(eye)
 end
 
-ShaderVarFuncs.scaleFunc = function(renderState, entity)
+ShaderVarFuncs.scaleFunc = function(eye, entity)
     local rb = entity:findComponentByArchetype(Enums.ComponentArchetype.RigidBodyComponent):getRigidBody()
     return rb:getScale()
 end

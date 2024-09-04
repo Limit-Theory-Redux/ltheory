@@ -6,7 +6,6 @@ local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler") --!tem
 -- Rendering
 local RenderingPass = require("_ECS_WIP_TEMP.Systems.Rendering.RenderingPass") --!temp path
 local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem") --!temp path
-local renderState = require("_ECS_WIP_TEMP.Shared.Rendering.RenderState")
 
 ---@class Buffer : Tex2D
 
@@ -232,15 +231,13 @@ function RenderCoreSystem:onRender(data)
         -- Should we remove updateViewMatrix/updateProjectionMatrix and use a RefreshMatrices to do this?
         CameraSystem:updateViewMatrix()
         CameraSystem:updateProjectionMatrix(self.resX,self.resY)
-        -- renderState Conflicts with "RenderState" used by FFI. Different Name? Or could different method work?
-        renderState:setCameraEye(CameraSystem.currentCameraTransform:getPosition()) -- TODO: have CameraSystem do this.
         CameraSystem:beginDraw() -- Push Camera ShaderVars
         --[[Original Order for Camera 
             In GameView:
                 local x, y, sx, sy = self:getRectGlobal()
                 self.camera:setViewport(x, y, sx, sy) -- just sets those vars
                 self.camera:beginDraw()
-                eye = self.camera.pos -- Equivalent to renderState.setCameraEye()
+                eye = self.camera.pos 
             In Camera:beginDraw()
                 camera:push()
                 camera:refreshMatrixes

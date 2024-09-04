@@ -8,8 +8,6 @@ local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage")    
 local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem")        --!temp path
 -- Generators
 
--- Rendering
-local renderState = require("_ECS_WIP_TEMP.Shared.Rendering.RenderState")
 -- Utilities
 local Log = require("Core.Util.Log")
 local Inspect = require("Core.Util.Inspect")
@@ -126,14 +124,14 @@ function RenderingTest:onRender(data)
     CameraSystem:updateViewMatrix()
     CameraSystem:updateProjectionMatrix(self.resX,self.resY)
 
-    renderState:setCameraEye(CameraSystem.currentCameraTransform:getPosition())
+    local camEye = CameraSystem:getCurrentCameraEye()
     CameraSystem:beginDraw(CameraSystem.currentCameraData, CameraSystem.currentCameraTransform)
 
     -- self.renderer:start(self.resX, self.resY)
 
     local boxMat = self.boxRend:getMaterial(BlendMode.Disabled)
     boxMat.shaderState:start()
-    boxMat:setAllShaderVars(renderState, self.boxEntity)
+    boxMat:setAllShaderVars(camEye, self.boxEntity)
     self.boxMesh:draw()
     boxMat.shaderState:stop()
 

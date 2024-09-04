@@ -27,15 +27,15 @@ function AutoShaderVar:setUniformInt(shader)
     end
 end
 
----@param renderState RenderState
+---@param eye Position Camera Position
 ---@param shader Shader
 ---@param entity Entity
-function AutoShaderVar:setShaderVar(renderState, shader, entity)
+function AutoShaderVar:setShaderVar(eye, shader, entity)
     if not self.uniformInt then
         Log.Warn("Uniform " .. self.uniformName .. " int not set before updateShaderVar")
         self:setUniformInt(shader)
     end
-    UniformFuncs[self.uniformType](shader, self.uniformInt, self.callbackFn(renderState, entity))
+    UniformFuncs[self.uniformType](shader, self.uniformInt, self.callbackFn(eye, entity))
 end
 
 return AutoShaderVar
