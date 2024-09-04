@@ -9,6 +9,9 @@ use tracing::{debug, error};
 use super::{TaskResult, Worker, WorkerId, WorkerInData, WorkerOutData, WorkerThread};
 use crate::engine::{Payload, PayloadType};
 
+/// Task queue is a worker threads manager.
+/// It can be used to start either custom Lua scripts in a separate threads or predefined engine workers.
+/// When started workers can accept tasks and return their results.
 pub struct TaskQueue {
     lua_workers: HashMap<WorkerId, WorkerThread<Payload, Box<Payload>>>,
     echo_worker: WorkerThread<String, String>,
@@ -29,8 +32,12 @@ impl TaskQueue {
     }
 }
 
+/// Task queue is a worker threads manager.
+/// It can be used to start either custom Lua scripts in a separate threads or predefined engine workers.
+/// When started workers can accept tasks and return their results.
 #[luajit_ffi_gen::luajit_ffi]
 impl TaskQueue {
+    /// Start Lua worker with provided script file.
     pub fn start_worker(&mut self, worker_id: u16, worker_name: &str, script_path: &str) -> bool {
         debug!("Starting worker: {worker_name:?}");
 
@@ -110,8 +117,9 @@ impl TaskQueue {
         true
     }
 
-    pub fn stop_worker(&self, worker_id: u16) -> bool {
-        if let Some(worker) = self.lua_workers.get(&worker_id) {
+    /// Stop Lua worker and remove it from the queue.
+    pub fn stop_worker(&mut self, worker_id: u16) -> bool {
+        if let Some(worker) = self.lua_workers.remove(&worker_id) {
             if let Err(err) = worker.stop() {
                 error!("Cannot stop worker {worker_id}. Error: {err}");
                 false
@@ -124,36 +132,20 @@ impl TaskQueue {
         }
     }
 
-    pub fn is_worker_finished(&self, worker_id: u16) -> bool {
-        if let Some(worker) = Worker::from_worker_id(worker_id) {
-            match worker {
-                Worker::Echo => self.echo_worker.is_finished(),
-                Worker::EngineWorkersCount => unreachable!(),
-            }
-        } else if let Some(worker) = self.lua_workers.get(&worker_id) {
-            worker.is_finished()
-        } else {
-            error!("Unknown worker: {worker_id}");
-            true
-        }
-    }
+    /// Stop all Lua workers and remove them from the queue.
+    pub fn stop_all_workers(&mut self) {
+        debug!("Stopping all Lua workers");
 
-    pub fn stop_all_workers(&self) {
-        debug!("Stopping all workers");
-
-        self.echo_worker
-            .stop()
-            .unwrap_or_else(|err| error!("Cannot stop echo worker. Error: {err}"));
-
-        for worker in self.lua_workers.values() {
+        for (_, worker) in self.lua_workers.drain() {
             worker.stop().unwrap_or_else(|err| {
                 error!("Cannot stop worker: {}. Error: {err}", worker.name())
             });
         }
 
-        debug!("All workers were stopped");
+        debug!("All Lua workers were stopped");
     }
 
+    /// Returns number of tasks the worker is busy with.
     pub fn tasks_in_progress(&self, worker_id: u16) -> Option<usize> {
         if let Some(worker) = Worker::from_worker_id(worker_id) {
             match worker {
@@ -168,6 +160,7 @@ impl TaskQueue {
         }
     }
 
+    /// Send a task to the Lua worker.
     pub fn send_task(&mut self, worker_id: u16, data: Payload) -> Option<usize> {
         if data.get_type() == PayloadType::Lua {
             error!("Cannot send cached Lua payload to the worker");
@@ -191,6 +184,7 @@ impl TaskQueue {
         }
     }
 
+    /// Returns next result of the finished worker task if any.
     pub fn next_task_result(&mut self, worker_id: u16) -> Option<TaskResult> {
         if let Some(worker) = self.lua_workers.get_mut(&worker_id) {
             match worker.recv() {
@@ -221,6 +215,7 @@ impl TaskQueue {
         }
     }
 
+    /// Send a message to the echo worker.
     pub fn send_echo(&mut self, data: &str) -> bool {
         if let Err(err) = self.echo_worker.send(data.into()) {
             error!("Cannot send message to the echo worker. Error: {err}");
@@ -230,6 +225,7 @@ impl TaskQueue {
         }
     }
 
+    /// Get a response from the echo worker.
     pub fn get_echo(&mut self) -> Option<String> {
         match self.echo_worker.recv() {
             Ok(res) => res.map(|(_, data)| data),

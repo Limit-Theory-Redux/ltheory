@@ -16,16 +16,15 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void          TaskQueue_Free             (TaskQueue*);
-            bool          TaskQueue_StartWorker      (TaskQueue*, uint16 workerId, cstr workerName, cstr scriptPath);
-            bool          TaskQueue_StopWorker       (TaskQueue const*, uint16 workerId);
-            bool          TaskQueue_IsWorkerFinished (TaskQueue const*, uint16 workerId);
-            void          TaskQueue_StopAllWorkers   (TaskQueue const*);
-            uint64 const* TaskQueue_TasksInProgress  (TaskQueue const*, uint16 workerId);
-            uint64 const* TaskQueue_SendTask         (TaskQueue*, uint16 workerId, Payload* data);
-            TaskResult*   TaskQueue_NextTaskResult   (TaskQueue*, uint16 workerId);
-            bool          TaskQueue_SendEcho         (TaskQueue*, cstr data);
-            cstr          TaskQueue_GetEcho          (TaskQueue*);
+            void          TaskQueue_Free            (TaskQueue*);
+            bool          TaskQueue_StartWorker     (TaskQueue*, uint16 workerId, cstr workerName, cstr scriptPath);
+            bool          TaskQueue_StopWorker      (TaskQueue*, uint16 workerId);
+            void          TaskQueue_StopAllWorkers  (TaskQueue*);
+            uint64 const* TaskQueue_TasksInProgress (TaskQueue const*, uint16 workerId);
+            uint64 const* TaskQueue_SendTask        (TaskQueue*, uint16 workerId, Payload* data);
+            TaskResult*   TaskQueue_NextTaskResult  (TaskQueue*, uint16 workerId);
+            bool          TaskQueue_SendEcho        (TaskQueue*, cstr data);
+            cstr          TaskQueue_GetEcho         (TaskQueue*);
         ]]
     end
 
@@ -40,18 +39,17 @@ function Loader.defineType()
         local t  = ffi.typeof('TaskQueue')
         local mt = {
             __index = {
-                startWorker      = libphx.TaskQueue_StartWorker,
-                stopWorker       = libphx.TaskQueue_StopWorker,
-                isWorkerFinished = libphx.TaskQueue_IsWorkerFinished,
-                stopAllWorkers   = libphx.TaskQueue_StopAllWorkers,
-                tasksInProgress  = libphx.TaskQueue_TasksInProgress,
-                sendTask         = libphx.TaskQueue_SendTask,
-                nextTaskResult   = function(...)
+                startWorker     = libphx.TaskQueue_StartWorker,
+                stopWorker      = libphx.TaskQueue_StopWorker,
+                stopAllWorkers  = libphx.TaskQueue_StopAllWorkers,
+                tasksInProgress = libphx.TaskQueue_TasksInProgress,
+                sendTask        = libphx.TaskQueue_SendTask,
+                nextTaskResult  = function(...)
                     local instance = libphx.TaskQueue_NextTaskResult(...)
                     return Core.ManagedObject(instance, libphx.TaskResult_Free)
                 end,
-                sendEcho         = libphx.TaskQueue_SendEcho,
-                getEcho          = libphx.TaskQueue_GetEcho,
+                sendEcho        = libphx.TaskQueue_SendEcho,
+                getEcho         = libphx.TaskQueue_GetEcho,
             },
         }
 

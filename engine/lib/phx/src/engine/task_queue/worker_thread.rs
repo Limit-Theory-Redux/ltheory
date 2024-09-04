@@ -2,7 +2,7 @@ use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use super::{TaskId, TaskQueueError, WorkerInData, WorkerOutData};
 
@@ -129,7 +129,12 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
 
     pub fn stop(&self) -> Result<(), TaskQueueError> {
         if let Some(handle) = &self.handle {
+            if self.tasks_in_progress > 0 {
+                warn!("Worker {:?} still has {} task(s) in progress", self.name, self.tasks_in_progress);
+            }
             if !handle.is_finished() {
+                // TODO: what to do with a hanging thread?
+                debug!("Send stop signal to {:?} worker", self.name);
                 return self.in_sender.send(WorkerInData::Stop).map_err(|_| {
                     TaskQueueError::ThreadError(format!(
                         "Cannot stop worker thread: {:?}",
@@ -192,6 +197,7 @@ impl<IN, OUT> Drop for WorkerThread<IN, OUT> {
                     error!("Cannot stop worker thread: {:?}", self.name);
                 }
 
+                // TODO: what to do with a hanging thread?
                 match handle.join() {
                     Ok(res) => {
                         if let Err(err) = res {
