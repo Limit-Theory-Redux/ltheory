@@ -44,7 +44,7 @@ end
 ---@private
 function CameraSystem:onRender()
     if self.currentCamera and self.currentCameraData and self.currentCameraTransform then
-        self:beginCameraDraw(self.currentCameraData, self.currentCameraTransform)
+        self:beginDraw(self.currentCameraData, self.currentCameraTransform)
     end
 end
 
@@ -72,13 +72,21 @@ function CameraSystem:setCamera(entityInfo)
     end
 end
 
----@param cdt CameraDataComponent
-function CameraSystem:beginCameraDraw(cdt, t)
+function CameraSystem:beginDraw()
+    if not self.currentCameraData then
+        if not self.currentCamera then
+            Log.Error("No Current Camera Set During Render")
+        end
+        Log.Warn("Current Camera Data Not Set Prior to Render")
+        self.currentCameraData = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
+        self.currentCameraTransform = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
+    end
+    local camData = self.currentCameraData
     --self:refreshMatrices()
-    ShaderVar.PushMatrix('mView', cdt:getView())
-    ShaderVar.PushMatrix('mViewInv', cdt:getViewInverse())
-    ShaderVar.PushMatrix('mProj', cdt:getProjection())
-    ShaderVar.PushMatrix('mProjInv', cdt:getProjectionInverse())
+    ShaderVar.PushMatrix('mView', camData:getView())
+    ShaderVar.PushMatrix('mViewInv', camData:getViewInverse())
+    ShaderVar.PushMatrix('mProj', camData:getProjection())
+    ShaderVar.PushMatrix('mProjInv', camData:getProjectionInverse())
     ShaderVar.PushFloat3('eye', 0.0, 0.0, 0.0)
 end
 

@@ -1,6 +1,6 @@
 -- Entities
 local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")                   --!temp path
-local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity")  --!temp path
+local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity")                 --!temp path
 -- Storage
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage")        --!temp path
 -- Systems
@@ -55,6 +55,7 @@ function RenderingTest:onInit()
     -- Set RigidBody
     self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(self.boxMesh))
     self.boxRB:getRigidBody():setPos(Position(0, 0, -5))
+    self.position = 0.0
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
@@ -75,6 +76,8 @@ function RenderingTest:onPreRender(data)
     end
     -- Get Delta Time
     local timeScaledDt = data:deltaTime()
+    self.position = self.position + 1*timeScaledDt
+    self.boxRB:getRigidBody():setPos(Position(self.position, self.position, -5))
 
     --[[
         < Previously where Player and UI Canvas Updates were Called
@@ -124,7 +127,7 @@ function RenderingTest:onRender(data)
     CameraSystem:updateProjectionMatrix(self.resX,self.resY)
 
     renderState:setCameraEye(CameraSystem.currentCameraTransform:getPosition())
-    CameraSystem:beginCameraDraw(CameraSystem.currentCameraData, CameraSystem.currentCameraTransform)
+    CameraSystem:beginDraw(CameraSystem.currentCameraData, CameraSystem.currentCameraTransform)
 
     -- self.renderer:start(self.resX, self.resY)
 

@@ -12,23 +12,29 @@ Enums.MeshType = {
     Asteroid = 8,
 }
 
---[[
----@enum MaterialType 
-Enums.MaterialType = {
-    Debug = 1,
-    Asteroid = 2,
-    -- ...
+---@enum BufferName
+Enums.BufferName = {
+    -- Primary Buffers
+    buffer0 = 0,    -- Src Buffer
+    buffer1 = 1,    -- Alpha/Normals/UI Buffer
+    buffer2 = 2,    -- Lighting Buffer
+    -- Depth Buffers
+    zBuffer = 3,    -- Primary Depth Buffer
+    zBufferL = 4,   -- Lighting Depth Buffer
+    -- Downsample Buffers
+    dsBuffer0 = 5,  -- Primary Downsample Buffer
+    dsBuffer1 = 6   -- Secondary Downsample Buffer
 }
-
-
----@enum TextureType
-Enums.TextureType = {
-    Tex1D = 1,
-    Tex2D = 2,
-    Tex3D = 3,
-    TexCube = 4,
+---@enum RenderingPassName
+Enums.RenderingPasses = {
+    Skybox = 0,
+    Opaque = 1,
+    Lighting = 2,
+    Additive = 3,
+    Alpha = 4,
+    Debug = 5,
+    UI = 6
 }
---]]
 
 ---@enum UniformType
 Enums.UniformType = {
