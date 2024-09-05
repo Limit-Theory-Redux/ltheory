@@ -30,19 +30,19 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
         let (in_sender, in_receiver) = channel();
         let (out_sender, out_receiver) = channel();
 
-        let handle = thread::spawn(move || {
-            debug!("Starting worker thread: {worker_name:?}");
+        debug!("Starting worker thread: {name:?}");
 
+        let handle = thread::spawn(move || {
             let res = f(in_receiver, out_sender);
 
             if let Err(err) = &res {
-                error!("Failed to start worker thread: {worker_name:?}. Error: {err}");
-            } else {
-                debug!("Worker thread {worker_name:?} started");
+                error!("Failed to execute task in the worker {worker_name:?}. Error: {err}");
             }
 
             res
         });
+
+        debug!("Worker thread {name:?} was successfully started");
 
         Self {
             name: name.into(),
@@ -61,12 +61,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
         F: Send + 'static,
     {
         let worker_name = name.to_string();
-        let (in_sender, in_receiver) = channel();
-        let (out_sender, out_receiver) = channel();
-
-        let handle = thread::spawn(move || {
-            debug!("Starting worker thread: {worker_name:?}");
-
+        Self::new(name, move |in_receiver, out_sender| {
             loop {
                 let res: Result<WorkerInData<IN>, _> =
                     in_receiver.recv_timeout(Duration::from_millis(500));
@@ -75,7 +70,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
                         let data = match in_data {
                             WorkerInData::Ping => WorkerOutData::Pong,
                             WorkerInData::Data(task_id, data) => {
-                                debug!("Worker {worker_name} received[{task_id}]"); //: {data:?}");
+                                debug!("Worker {worker_name} received task {task_id}");
                                 WorkerOutData::Data(task_id, f(data))
                             }
                             WorkerInData::Stop => {
@@ -100,19 +95,8 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
                     },
                 }
             }
-
-            debug!("Worker thread {worker_name:?} started");
             Ok(())
-        });
-
-        Self {
-            name: name.into(),
-            in_sender,
-            out_receiver,
-            handle: Some(handle),
-            next_task_id: 0,
-            tasks_in_progress: 0,
-        }
+        })
     }
 
     pub fn name(&self) -> &str {
@@ -138,7 +122,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
                 warn!("Worker {:?} still has {} task(s) in progress", self.name, self.tasks_in_progress);
             }
             if !handle.is_finished() {
-                // TODO: what to do with a hanging thread?
+                // TODO: what to do with the hanging thread?
                 debug!("Send stop signal to {:?} worker", self.name);
                 return self.in_sender.send(WorkerInData::Stop).map_err(|_| {
                     TaskQueueError::ThreadError(format!(
