@@ -40,6 +40,7 @@ raw-window-handle = "0.6"
 regex = "1.8"
 rodio = "0.17"
 serde_yaml = "0.9"
+thiserror = "1.0"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

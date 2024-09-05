@@ -12,6 +12,6 @@ function EventData:frameStage() end
 ---@return integer
 function EventData:tunnelId() end
 
----@return EventPayload?
+---@return Payload?
 function EventData:payload() end
 

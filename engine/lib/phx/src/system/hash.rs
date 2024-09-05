@@ -147,7 +147,7 @@ const PRIME64_5: u64 = 2870177450012600261;
 
 fn XXH64_round(mut acc: u64, val: u64) -> u64 {
     acc = acc.wrapping_add(val.wrapping_mul(PRIME64_2));
-    acc = acc << 31 | acc >> (64 - 31);
+    acc = acc.rotate_left(31);
     acc = acc.wrapping_mul(PRIME64_1);
     acc
 }
@@ -182,10 +182,11 @@ pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64
                 break;
             }
         }
-        let mut hash = (v1 << 1 | v1 >> (64 - 1))
-            .wrapping_add(v2 << 7 | v2 >> (64 - 7))
-            .wrapping_add(v3 << 12 | v3 >> (64 - 12))
-            .wrapping_add(v4 << 18 | v4 >> (64 - 18));
+        let mut hash = v1
+            .rotate_left(1)
+            .wrapping_add(v2.rotate_left(7))
+            .wrapping_add(v3.rotate_left(12))
+            .wrapping_add(v4.rotate_left(18));
         hash = XXH64_mergeRound(hash, v1);
         hash = XXH64_mergeRound(hash, v2);
         hash = XXH64_mergeRound(hash, v3);
@@ -199,7 +200,8 @@ pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64
     while p.offset(8) <= end {
         let k1: u64 = XXH64_round(0, *(p as *const u64));
         hash ^= k1;
-        hash = (hash << 27 | hash >> (64 - 27))
+        hash = hash
+            .rotate_left(27)
             .wrapping_mul(PRIME64_1)
             .wrapping_add(PRIME64_4);
         p = p.offset(8);
@@ -207,7 +209,8 @@ pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64
 
     if p.offset(4) <= end {
         hash ^= (*(p as *mut u32) as u64).wrapping_mul(PRIME64_1);
-        hash = (hash << 23 | hash >> (64 - 23))
+        hash = hash
+            .rotate_left(23)
             .wrapping_mul(PRIME64_2)
             .wrapping_add(PRIME64_3);
         p = p.offset(4);
@@ -215,7 +218,7 @@ pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64
 
     while p < end {
         hash ^= (*p as u64).wrapping_mul(PRIME64_5);
-        hash = (hash << 11 | hash >> (64 - 11_i32)).wrapping_mul(PRIME64_1);
+        hash = hash.rotate_left(11).wrapping_mul(PRIME64_1);
         p = p.offset(1);
     }
 

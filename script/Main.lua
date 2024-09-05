@@ -11,6 +11,7 @@ function SetEngine(engine)
     ---@cast Engine Engine
 
     EventBus = Engine:eventBus()
+    TaskQueue = Engine:taskQueue()
     Input = Engine:input()
     Window = Engine:window()
     Gui = Engine:hmGui()

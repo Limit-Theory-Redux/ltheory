@@ -1,7 +1,7 @@
 ---@meta
 
----@enum EventPayloadType
-EventPayloadType = {
+---@enum PayloadType
+PayloadType = {
     -- Lua object pointer/index to communicate inside scripts only
     Lua = 0,
     Bool = 1,
