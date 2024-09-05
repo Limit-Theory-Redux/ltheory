@@ -72,7 +72,7 @@ impl EnumInfo {
             pub const #enum_size_ident: usize = #enum_size;
 
             #to_string_mangle
-            pub extern "C" fn #to_string_c_ident(this: #self_ident) -> *const libc::c_char {
+            pub extern "C-unwind" fn #to_string_c_ident(this: #self_ident) -> *const libc::c_char {
                 let res = this.to_string();
 
                 internal::static_string!(res)

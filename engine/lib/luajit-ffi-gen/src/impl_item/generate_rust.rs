@@ -11,7 +11,7 @@ impl ImplInfo {
     pub fn gen_rust_ffi(&self, attr_args: &ImplAttrArgs) -> TokenStream {
         let module_name = attr_args.name().unwrap_or(self.name.as_ref());
 
-        // extern "C" wrapper functions
+        // extern "C-unwind" wrapper functions
         let method_tokens: Vec<_> = self
             .methods
             .iter()
@@ -25,7 +25,7 @@ impl ImplInfo {
 
             quote! {
                 #[no_mangle]
-                pub extern "C" fn #free_method_ident(_: Box<#module_ident>) {}
+                pub extern "C-unwind" fn #free_method_ident(_: Box<#module_ident>) {}
             }
         } else {
             quote! {}
@@ -79,7 +79,7 @@ impl ImplInfo {
 
         quote! {
             #[no_mangle]
-            pub unsafe extern "C" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
+            pub unsafe extern "C-unwind" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
                 tracing::trace!("Calling: {}", #func_name);
 
                 #func_body
