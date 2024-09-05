@@ -1,5 +1,6 @@
 local PayloadTest = require('States.Application')
 local Converter = require('Core.Util.Converter')
+local PayloadConverter = require('Core.Util.PayloadConverter')
 
 function PayloadTest:onInit()
     local fakeEntity = { getGuid = function() return 0 end }
@@ -53,6 +54,7 @@ function PayloadTest:onInit()
             strVal = "TestPayload5",
         }
     })
+    EventBus:send(Event.TestEvent, fakeEntity, PayloadConverter:valueToPayload("TestExplicitPayload", true))
 
     EventBus:send(Event.ExitEvent, fakeEntity)
 end

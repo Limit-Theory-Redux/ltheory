@@ -65,6 +65,11 @@ function PayloadConverter:valueToPayload(value, rustPayload)
             return Payload.FromTable(self:valueToPayloadTable(value))
         end
 
+        -- TODO: ffi.istype(Payload, value)
+        if tostring(ffi.typeof(value)) == "ctype<struct Payload *>" then
+            return value
+        end
+
         Log.Error("Unsupported payload type: " .. tostring(type(value)) .. ". Value: " .. tostring(value))
     else
         -- process Lua only payload
