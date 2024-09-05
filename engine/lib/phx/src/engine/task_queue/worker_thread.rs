@@ -213,13 +213,15 @@ impl<IN, OUT> Drop for WorkerThread<IN, OUT> {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::{WorkerThread, RECEIVE_TIMEOUT};
 
     #[test]
     fn test_worker_new_native() {
         let mut worker: WorkerThread<String, String> =
             WorkerThread::new_native("TestWorker", |in_data| {
-                std::thread::sleep(RECEIVE_TIMEOUT);
+                std::thread::sleep(Duration::from_millis(300));
                 in_data
             });
 
