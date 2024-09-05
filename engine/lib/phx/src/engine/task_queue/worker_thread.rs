@@ -6,6 +6,8 @@ use tracing::{debug, error, warn};
 
 use super::{TaskId, TaskQueueError, WorkerInData, WorkerOutData};
 
+const RECEIVE_TIMEOUT: Duration = Duration::from_millis(500);
+
 /// Worker thread template.
 pub struct WorkerThread<IN, OUT> {
     name: String,
@@ -63,8 +65,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
         let worker_name = name.to_string();
         Self::new(name, move |in_receiver, out_sender| {
             loop {
-                let res: Result<WorkerInData<IN>, _> =
-                    in_receiver.recv_timeout(Duration::from_millis(500));
+                let res: Result<_, _> = in_receiver.recv_timeout(RECEIVE_TIMEOUT);
                 match res {
                     Ok(in_data) => {
                         let data = match in_data {
@@ -162,7 +163,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
 
     /// Get result from the worker thread if any.
     pub fn recv(&mut self) -> Result<Option<(TaskId, OUT)>, TaskQueueError> {
-        match self.out_receiver.recv_timeout(Duration::from_millis(500)) {
+        match self.out_receiver.recv_timeout(RECEIVE_TIMEOUT) {
             Ok(out_data) => match out_data {
                 WorkerOutData::Pong => Ok(None),
                 WorkerOutData::Data(task_id, data) => {
@@ -212,15 +213,13 @@ impl<IN, OUT> Drop for WorkerThread<IN, OUT> {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
-    use super::WorkerThread;
+    use super::{WorkerThread, RECEIVE_TIMEOUT};
 
     #[test]
     fn test_worker_new_native() {
         let mut worker: WorkerThread<String, String> =
             WorkerThread::new_native("TestWorker", |in_data| {
-                std::thread::sleep(Duration::from_millis(500));
+                std::thread::sleep(RECEIVE_TIMEOUT);
                 in_data
             });
 
@@ -240,7 +239,7 @@ mod tests {
 
         worker.stop().expect("Cannot stop worker");
 
-        std::thread::sleep(Duration::from_millis(500));
+        std::thread::sleep(RECEIVE_TIMEOUT);
 
         assert!(worker.is_finished());
     }
