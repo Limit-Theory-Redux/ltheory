@@ -16,20 +16,21 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void           PayloadTable_Free       (PayloadTable*);
-            PayloadTable*  PayloadTable_Create     ();
-            uint64         PayloadTable_Len        (PayloadTable const*);
-            bool           PayloadTable_IsEmpty    (PayloadTable const*);
-            bool           PayloadTable_Contains   (PayloadTable const*, cstr name);
-            cstr           PayloadTable_GetName    (PayloadTable const*, uint64 index);
-            Payload const* PayloadTable_GetPayload (PayloadTable const*, uint64 index);
-            void           PayloadTable_Add        (PayloadTable*, cstr name, Payload* value);
+            void           PayloadTable_Free             (PayloadTable*);
+            PayloadTable*  PayloadTable_Create           ();
+            uint64         PayloadTable_Len              (PayloadTable const*);
+            bool           PayloadTable_IsEmpty          (PayloadTable const*);
+            bool           PayloadTable_Contains         (PayloadTable const*, cstr name);
+            cstr           PayloadTable_GetName          (PayloadTable const*, uint64 index);
+            Payload const* PayloadTable_GetPayload       (PayloadTable const*, uint64 index);
+            Payload const* PayloadTable_GetPayloadByName (PayloadTable const*, cstr name);
+            void           PayloadTable_Add              (PayloadTable*, cstr name, Payload* value);
         ]]
     end
 
     do -- Global Symbol Table
         PayloadTable = {
-            Create     = function(...)
+            Create           = function(...)
                 local instance = libphx.PayloadTable_Create(...)
                 return Core.ManagedObject(instance, libphx.PayloadTable_Free)
             end,
@@ -43,12 +44,13 @@ function Loader.defineType()
         local t  = ffi.typeof('PayloadTable')
         local mt = {
             __index = {
-                len        = libphx.PayloadTable_Len,
-                isEmpty    = libphx.PayloadTable_IsEmpty,
-                contains   = libphx.PayloadTable_Contains,
-                getName    = libphx.PayloadTable_GetName,
-                getPayload = libphx.PayloadTable_GetPayload,
-                add        = libphx.PayloadTable_Add,
+                len              = libphx.PayloadTable_Len,
+                isEmpty          = libphx.PayloadTable_IsEmpty,
+                contains         = libphx.PayloadTable_Contains,
+                getName          = libphx.PayloadTable_GetName,
+                getPayload       = libphx.PayloadTable_GetPayload,
+                getPayloadByName = libphx.PayloadTable_GetPayloadByName,
+                add              = libphx.PayloadTable_Add,
             },
         }
 

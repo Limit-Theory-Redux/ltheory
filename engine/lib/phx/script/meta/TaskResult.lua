@@ -1,5 +1,7 @@
 ---@meta
 
+-- Task result information.
+-- Result data can be either payload on success or error message on fail.
 ---@class TaskResult
 TaskResult = {}
 

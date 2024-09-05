@@ -1,5 +1,6 @@
 ---@meta
 
+-- Payload value.
 ---@class Payload
 Payload = {}
 

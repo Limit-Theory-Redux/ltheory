@@ -1,5 +1,6 @@
 use super::{PayloadTable, PayloadType};
 
+/// Payload value.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Payload {
     /// Lua object pointer/index to communicate inside scripts only
@@ -34,6 +35,7 @@ pub enum Payload {
     Table(Box<PayloadTable>),
 }
 
+/// Payload value.
 #[luajit_ffi_gen::luajit_ffi]
 impl Payload {
     pub fn from_lua(value: u64) -> Self {

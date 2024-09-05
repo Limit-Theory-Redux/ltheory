@@ -6,6 +6,7 @@ use tracing::{debug, error, warn};
 
 use super::{TaskId, TaskQueueError, WorkerInData, WorkerOutData};
 
+/// Worker thread template.
 pub struct WorkerThread<IN, OUT> {
     name: String,
     in_sender: Sender<WorkerInData<IN>>,
@@ -16,6 +17,7 @@ pub struct WorkerThread<IN, OUT> {
 }
 
 impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
+    /// Creates custom worker thread.
     pub fn new<F>(name: &str, f: F) -> Self
     where
         F: FnOnce(
@@ -52,6 +54,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
         }
     }
 
+    /// Create function based native worker thread.
     pub fn new_native<F>(name: &str, f: F) -> Self
     where
         F: Fn(IN) -> OUT,
@@ -120,6 +123,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
         self.tasks_in_progress
     }
 
+    /// Checks if the associated worker thread has finished running its main function.
     pub fn is_finished(&self) -> bool {
         self.handle
             .as_ref()
@@ -127,6 +131,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
             .unwrap_or(true)
     }
 
+    /// Send stop signal to the worker thread.
     pub fn stop(&self) -> Result<(), TaskQueueError> {
         if let Some(handle) = &self.handle {
             if self.tasks_in_progress > 0 {
@@ -148,6 +153,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
         Ok(())
     }
 
+    /// Send a task to the worker thread.
     pub fn send(&mut self, data: IN) -> Result<TaskId, TaskQueueError> {
         let task_id = self.next_task_id;
 
@@ -167,6 +173,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> WorkerThread<IN, OUT> {
         Ok(task_id)
     }
 
+    /// Get result from the worker thread if any.
     pub fn recv(&mut self) -> Result<Option<(TaskId, OUT)>, TaskQueueError> {
         match self.out_receiver.recv_timeout(Duration::from_millis(500)) {
             Ok(out_data) => match out_data {

@@ -1,5 +1,7 @@
 pub type WorkerId = u16;
 
+/// Types of workers.
+/// Can be extended on the Lua side.
 #[luajit_ffi_gen::luajit_ffi(repr = "u16")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Worker {
