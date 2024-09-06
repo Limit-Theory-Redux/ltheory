@@ -18,6 +18,7 @@ luajit-ffi-gen.workspace = true
 # external crates
 arboard = "3.4"
 chrono = "0.4"
+crossbeam = "0.8"
 directories = "5.0"
 flate2 = "1.0"
 freetype-sys = "0.20"

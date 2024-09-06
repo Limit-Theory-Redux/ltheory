@@ -2468,6 +2468,7 @@ dependencies = [
  "arboard",
  "byteorder",
  "chrono",
+ "crossbeam",
  "directories",
  "flate2",
  "freetype-sys",
