@@ -1,10 +1,10 @@
-pub type WorkerId = u16;
+pub type WorkerIndex = u16;
 
 /// Types of workers.
 /// Can be extended on the Lua side.
 #[luajit_ffi_gen::luajit_ffi(repr = "u16")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Worker {
+pub enum WorkerId {
     /// Example worker that replicates input value into the output
     Echo,
 
@@ -12,9 +12,9 @@ pub enum Worker {
     EngineWorkersCount, // !!! SHOULD BE THE LAST ENUM VARIANT !!!
 }
 
-impl Worker {
-    pub fn from_worker_id(id: WorkerId) -> Option<Self> {
-        if id == Self::Echo as WorkerId {
+impl WorkerId {
+    pub fn from_worker_id(id: WorkerIndex) -> Option<Self> {
+        if id == Self::Echo as WorkerIndex {
             Some(Self::Echo)
         } else {
             None

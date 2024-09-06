@@ -6,14 +6,14 @@ use std::time::Duration;
 use mlua::{Function, Lua};
 use tracing::{debug, error};
 
-use super::{TaskResult, Worker, WorkerId, WorkerInData, WorkerOutData, WorkerThread};
+use super::{TaskResult, WorkerId, WorkerInData, WorkerIndex, WorkerOutData, WorkerThread};
 use crate::engine::{Payload, PayloadType};
 
 /// Task queue is a worker threads manager.
 /// It can be used to start either custom Lua scripts in a separate threads or predefined engine workers.
 /// When started workers can accept tasks and return their results.
 pub struct TaskQueue {
-    lua_workers: HashMap<WorkerId, WorkerThread<Payload, Box<Payload>>>,
+    lua_workers: HashMap<WorkerIndex, WorkerThread<Payload, Box<Payload>>>,
     echo_worker: WorkerThread<String, String>,
 }
 
@@ -147,10 +147,10 @@ impl TaskQueue {
 
     /// Returns number of tasks the worker is busy with.
     pub fn tasks_in_progress(&self, worker_id: u16) -> Option<usize> {
-        if let Some(worker) = Worker::from_worker_id(worker_id) {
+        if let Some(worker) = WorkerId::from_worker_id(worker_id) {
             match worker {
-                Worker::Echo => Some(self.echo_worker.tasks_in_progress()),
-                Worker::EngineWorkersCount => unreachable!(),
+                WorkerId::Echo => Some(self.echo_worker.tasks_in_progress()),
+                WorkerId::EngineWorkersCount => unreachable!(),
             }
         } else if let Some(worker) = self.lua_workers.get(&worker_id) {
             Some(worker.tasks_in_progress())

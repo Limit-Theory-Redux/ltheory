@@ -1,5 +1,5 @@
-function onDef_Worker(t, mt)
-    local Worker = t
+function onDef_WorkerId(t, mt)
+    local WorkerId = t
 
     -- Add new worker types to the Worker table.
     -- Fail if worker already exists.
@@ -10,17 +10,17 @@ function onDef_Worker(t, mt)
             return
         end
 
-        local nextFreeId = Worker.NextFreeId or Worker.EngineWorkersCount
+        local nextFreeId = WorkerId.NextFreeId or WorkerId.EngineWorkersCount
 
         for _, newWorker in ipairs(newWorkers) do
-            if Worker[newWorker] == nil then
-                Worker[newWorker] = nextFreeId
+            if WorkerId[newWorker] == nil then
+                WorkerId[newWorker] = nextFreeId
                 nextFreeId = nextFreeId + 1
             else
                 Log.Error("worker '" .. newWorker .. "' already exists")
             end
         end
 
-        Worker.NextFreeId = nextFreeId
+        WorkerId.NextFreeId = nextFreeId
     end
 end

@@ -3,18 +3,18 @@ local WorkerTest = require('States.Application')
 function WorkerTest:onInit()
     Log.Info("WorkerTest:onInit: Start")
 
-    Worker.AddWorkers({ "TestWorker" })
-    if TaskQueue:startWorker(Worker.TestWorker, "TestWorker", "script/States/App/Tests/TestWorkerFunction.lua") == false then
+    WorkerId.AddWorkers({ "TestWorker" })
+    if TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/TestWorkerFunction.lua") == false then
         Log.Error("Cannot start worker")
     end
-    local expectedTaskId = TaskQueue:sendTask(Worker.TestWorker, "TestPayload")
+    local expectedTaskId = TaskQueue:sendTask(WorkerId.TestWorker, "TestPayload")
     if expectedTaskId == nil then
         Log.Error("Cannot send task")
     end
 
-    local taskId, payload = TaskQueue:nextTaskResult(Worker.TestWorker)
+    local taskId, payload = TaskQueue:nextTaskResult(WorkerId.TestWorker)
     while taskId == nil do
-        taskId, payload = TaskQueue:nextTaskResult(Worker.TestWorker)
+        taskId, payload = TaskQueue:nextTaskResult(WorkerId.TestWorker)
     end
 
     assert(expectedTaskId == taskId, "Expected " .. tostring(expectedTaskId) .. " but was " .. tostring(taskId))
