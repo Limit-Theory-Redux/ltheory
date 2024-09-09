@@ -1,10 +1,10 @@
-use std::thread::{self, JoinHandle};
+use std::sync::Arc;
 use std::time::Duration;
 
 use crossbeam::channel::{unbounded, Receiver, RecvTimeoutError, Sender};
-use tracing::{debug, error, warn};
+use tracing::debug;
 
-use super::{TaskId, TaskQueueError, WorkerInData, WorkerOutData, WorkerThread};
+use super::{TaskId, TaskQueueError, WorkerInData, WorkerInstance, WorkerOutData};
 
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(500);
 
@@ -14,57 +14,53 @@ pub struct Worker<IN, OUT> {
     next_task_id: TaskId,
     tasks_in_progress: usize,
 
-    instances: Vec<WorkerThread<IN, OUT>>,
+    instances: Vec<WorkerInstance>,
 
     in_sender: Sender<WorkerInData<IN>>,
     out_receiver: Receiver<WorkerOutData<OUT>>,
-    handle: Option<JoinHandle<Result<(), TaskQueueError>>>,
 }
 
 impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
-    /// Creates custom worker thread.
+    /// Creates custom worker.
     pub fn new<F>(name: &str, instances_count: usize, f: F) -> Self
     where
-        F: FnOnce(
-            Receiver<WorkerInData<IN>>,
-            Sender<WorkerOutData<OUT>>,
-        ) -> Result<(), TaskQueueError>,
-        F: Send + 'static,
+        F: Fn(Receiver<WorkerInData<IN>>, Sender<WorkerOutData<OUT>>) -> Result<(), TaskQueueError>,
+        F: Send + Sync + 'static, // TODO: check if Sync is really needed
     {
-        let worker_name = name.to_string();
         let (in_sender, in_receiver) = unbounded();
         let (out_sender, out_receiver) = unbounded();
 
-        debug!("Starting worker thread: {name:?}");
+        debug!("Starting worker: {name:?}");
 
-        let handle = thread::spawn(move || {
-            let res = f(in_receiver, out_sender);
+        let mut instances = Vec::with_capacity(instances_count);
 
-            if let Err(err) = &res {
-                error!("Failed to execute task in the worker {worker_name:?}. Error: {err}");
-            }
+        let f_arc = Arc::new(f);
 
-            res
-        });
+        for _ in 0..instances_count {
+            let instance =
+                WorkerInstance::new(in_receiver.clone(), out_sender.clone(), f_arc.clone());
 
-        debug!("Worker thread {name:?} was successfully started");
+            instances.push(instance);
+        }
+
+        debug!("Worker {name:?} was successfully started");
 
         Self {
             name: name.into(),
             next_task_id: 0,
             tasks_in_progress: 0,
-            instances: vec![],
+            instances,
+
             in_sender,
             out_receiver,
-            handle: Some(handle),
         }
     }
 
-    /// Create function based native worker thread.
+    /// Create function based native worker.
     pub fn new_native<F>(name: &str, instances_count: usize, f: F) -> Self
     where
         F: Fn(IN) -> OUT,
-        F: Send + 'static,
+        F: Send + Sync + 'static,
     {
         let worker_name = name.to_string();
         Self::new(name, instances_count, move |in_receiver, out_sender| {
@@ -114,33 +110,16 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
 
     /// Checks if the associated worker thread has finished running its main function.
     pub fn is_finished(&self) -> bool {
-        self.handle
-            .as_ref()
-            .map(|h| h.is_finished())
-            .unwrap_or(true)
+        self.instances.iter().all(|instance| instance.is_finished())
     }
 
     /// Send stop signal to the worker thread.
     pub fn stop(&self) -> Result<(), TaskQueueError> {
-        if let Some(handle) = &self.handle {
-            if self.tasks_in_progress > 0 {
-                warn!(
-                    "Worker {:?} still has {} task(s) in progress",
-                    self.name, self.tasks_in_progress
-                );
-            }
-            if !handle.is_finished() {
-                // TODO: what to do with the hanging thread?
-                debug!("Send stop signal to {:?} worker", self.name);
-                return self.in_sender.send(WorkerInData::Stop).map_err(|_| {
-                    TaskQueueError::ThreadError(format!(
-                        "Cannot stop worker thread: {:?}",
-                        self.name
-                    ))
-                });
-            }
-        } else {
-            debug!("Worker {:?} is already stopped", self.name);
+        // send stop signal as many times as there are instances, so each instance receives one
+        for _ in 0..self.instances.len() {
+            self.in_sender
+                .send(WorkerInData::Stop)
+                .map_err(|_| TaskQueueError::ThreadError("Cannot send stop message".into()))?;
         }
         Ok(())
     }
@@ -153,7 +132,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
             .send(WorkerInData::Data(task_id, data))
             .map_err(|_| {
                 TaskQueueError::ThreadError(format!(
-                    "Cannot send data to the worker thread: {:?}",
+                    "Cannot send data to the worker: {:?}",
                     self.name
                 ))
             })?;
@@ -186,35 +165,6 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
     }
 }
 
-impl<IN, OUT> Drop for Worker<IN, OUT> {
-    fn drop(&mut self) {
-        if let Some(handle) = self.handle.take() {
-            if !handle.is_finished() {
-                // TODO: check leftover data in the out receiver
-
-                if self.in_sender.send(WorkerInData::Stop).is_err() {
-                    error!("Cannot stop worker thread: {:?}", self.name);
-                }
-
-                // TODO: what to do with a hanging thread?
-                match handle.join() {
-                    Ok(res) => {
-                        if let Err(err) = res {
-                            error!("Worker thread {:?} failed. Error: {err}", self.name);
-                        }
-                    }
-                    Err(err) => {
-                        error!(
-                            "Cannot finish worker thread {:?} properly. Error: {err:?}",
-                            self.name
-                        );
-                    }
-                }
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
@@ -223,11 +173,10 @@ mod tests {
 
     #[test]
     fn test_worker_new_native() {
-        let mut worker: Worker<String, String> =
-            Worker::new_native("TestWorker", 1, |in_data| {
-                std::thread::sleep(Duration::from_millis(300));
-                in_data
-            });
+        let mut worker: Worker<String, String> = Worker::new_native("TestWorker", 1, |in_data| {
+            std::thread::sleep(Duration::from_millis(300));
+            in_data
+        });
 
         assert_eq!("TestWorker", worker.name());
 

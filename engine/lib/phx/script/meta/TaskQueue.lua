@@ -10,8 +10,9 @@ TaskQueue = {}
 ---@param workerId integer
 ---@param workerName string
 ---@param scriptPath string
+---@param instancesCount integer
 ---@return boolean
-function TaskQueue:startWorker(workerId, workerName, scriptPath) end
+function TaskQueue:startWorker(workerId, workerName, scriptPath, instancesCount) end
 
 -- Stop Lua worker and remove it from the queue.
 ---@param workerId integer

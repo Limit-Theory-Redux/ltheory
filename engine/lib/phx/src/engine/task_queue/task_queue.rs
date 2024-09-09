@@ -1,20 +1,20 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::mpsc::RecvTimeoutError;
 use std::time::Duration;
 
+use crossbeam::channel::RecvTimeoutError;
 use mlua::{Function, Lua};
 use tracing::{debug, error};
 
-use super::{TaskResult, WorkerId, WorkerInData, WorkerIndex, WorkerOutData, WorkerThread};
+use super::{TaskResult, Worker, WorkerId, WorkerInData, WorkerIndex, WorkerOutData};
 use crate::engine::{Payload, PayloadType};
 
 /// Task queue is a worker threads manager.
 /// It can be used to start either custom Lua scripts in a separate threads or predefined engine workers.
 /// When started workers can accept tasks and return their results.
 pub struct TaskQueue {
-    lua_workers: HashMap<WorkerIndex, WorkerThread<Payload, Box<Payload>>>,
-    echo_worker: WorkerThread<String, String>,
+    lua_workers: HashMap<WorkerIndex, Worker<Payload, Box<Payload>>>,
+    echo_worker: Worker<String, String>,
 }
 
 impl Drop for TaskQueue {
@@ -27,7 +27,7 @@ impl TaskQueue {
     pub fn new() -> Self {
         Self {
             lua_workers: HashMap::new(),
-            echo_worker: WorkerThread::new_native("Echo", |data| data),
+            echo_worker: Worker::new_native("Echo", 1, |data| data),
         }
     }
 }
@@ -38,7 +38,13 @@ impl TaskQueue {
 #[luajit_ffi_gen::luajit_ffi]
 impl TaskQueue {
     /// Start Lua worker with provided script file.
-    pub fn start_worker(&mut self, worker_id: u16, worker_name: &str, script_path: &str) -> bool {
+    pub fn start_worker(
+        &mut self,
+        worker_id: u16,
+        worker_name: &str,
+        script_path: &str,
+        instances_count: usize,
+    ) -> bool {
         debug!("Starting worker: {worker_name:?}");
 
         if self.lua_workers.contains_key(&worker_id) {
@@ -57,58 +63,64 @@ impl TaskQueue {
         }
 
         let worker_name_copy = worker_name.to_string();
-        let worker_thread = WorkerThread::new(worker_name, move |in_receiver, out_sender| {
-            let lua = unsafe { Lua::unsafe_new() };
+        let worker_thread = Worker::new(
+            worker_name,
+            instances_count,
+            move |in_receiver, out_sender| {
+                let lua = unsafe { Lua::unsafe_new() };
 
-            lua.load(script_path).exec()?;
+                lua.load(script_path.as_path()).exec()?;
 
-            let globals = lua.globals();
-            let run_func: Function = globals.get("Run")?;
+                let globals = lua.globals();
+                let run_func: Function = globals.get("Run")?;
 
-            loop {
-                let res: Result<WorkerInData<Payload>, _> =
-                    in_receiver.recv_timeout(Duration::from_millis(500));
-                match res {
-                    Ok(in_data) => {
-                        let data = match in_data {
-                            WorkerInData::Ping => WorkerOutData::Pong,
-                            WorkerInData::Data(task_id, data) => {
-                                debug!("Worker {worker_name_copy} received[{task_id}]: {data:?}");
+                loop {
+                    let res: Result<WorkerInData<Payload>, _> =
+                        in_receiver.recv_timeout(Duration::from_millis(500));
+                    match res {
+                        Ok(in_data) => {
+                            let data = match in_data {
+                                WorkerInData::Ping => WorkerOutData::Pong,
+                                WorkerInData::Data(task_id, data) => {
+                                    debug!(
+                                        "Worker {worker_name_copy} received[{task_id}]: {data:?}"
+                                    );
 
-                                // put data on the heap
-                                let boxed_data = Box::new(data);
+                                    // put data on the heap
+                                    let boxed_data = Box::new(data);
 
-                                // send data pointer to the Lua script and transfer ownership
-                                // receive a pointer to the response payload in form of integer
-                                let boxed_out_data: usize =
-                                    run_func.call(Box::leak(boxed_data) as *mut Payload as usize)?;
+                                    // send data pointer to the Lua script and transfer ownership
+                                    // receive a pointer to the response payload in form of integer
+                                    let boxed_out_data: usize = run_func
+                                        .call(Box::leak(boxed_data) as *mut Payload as usize)?;
 
-                                // transfer ownership of the payload from the script to the engine in form of boxed data
-                                let out_data =
-                                    unsafe { Box::from_raw(boxed_out_data as *mut Payload) };
+                                    // transfer ownership of the payload from the script to the engine in form of boxed data
+                                    let out_data =
+                                        unsafe { Box::from_raw(boxed_out_data as *mut Payload) };
 
-                                WorkerOutData::Data(task_id, out_data)
-                            }
-                            WorkerInData::Stop => {
-                                debug!("Worker {worker_name_copy:?} was stopped");
+                                    WorkerOutData::Data(task_id, out_data)
+                                }
+                                WorkerInData::Stop => {
+                                    debug!("Worker {worker_name_copy:?} was stopped");
+                                    break;
+                                }
+                            };
+
+                            if out_sender.send(data).is_err() {
+                                error!("Cannot send response. Worker: {worker_name_copy}");
                                 break;
                             }
-                        };
-
-                        if out_sender.send(data).is_err() {
-                            error!("Cannot send response. Worker: {worker_name_copy}");
-                            break;
                         }
+                        Err(err) => match err {
+                            RecvTimeoutError::Timeout => continue,
+                            RecvTimeoutError::Disconnected => break,
+                        },
                     }
-                    Err(err) => match err {
-                        RecvTimeoutError::Timeout => continue,
-                        RecvTimeoutError::Disconnected => break,
-                    },
                 }
-            }
 
-            Ok(())
-        });
+                Ok(())
+            },
+        );
 
         self.lua_workers.insert(worker_id, worker_thread);
 

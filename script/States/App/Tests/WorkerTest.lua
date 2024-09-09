@@ -4,7 +4,7 @@ function WorkerTest:onInit()
     Log.Info("WorkerTest:onInit: Start")
 
     WorkerId.AddWorkers({ "TestWorker" })
-    if TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/TestWorkerFunction.lua") == false then
+    if TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/TestWorkerFunction.lua", 1) == false then
         Log.Error("Cannot start worker")
     end
     local expectedTaskId = TaskQueue:sendTask(WorkerId.TestWorker, "TestPayload")
