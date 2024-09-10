@@ -20,7 +20,9 @@ function Loader.defineType()
             bool          TaskQueue_StartWorker     (TaskQueue*, uint16 workerId, cstr workerName, cstr scriptPath, uint64 instancesCount);
             bool          TaskQueue_StopWorker      (TaskQueue*, uint16 workerId);
             void          TaskQueue_StopAllWorkers  (TaskQueue*);
+            uint64 const* TaskQueue_TasksWaiting    (TaskQueue const*, uint16 workerId);
             uint64 const* TaskQueue_TasksInProgress (TaskQueue const*, uint16 workerId);
+            uint64 const* TaskQueue_TasksReady      (TaskQueue const*, uint16 workerId);
             uint64 const* TaskQueue_SendTask        (TaskQueue*, uint16 workerId, Payload* data);
             TaskResult*   TaskQueue_NextTaskResult  (TaskQueue*, uint16 workerId);
             bool          TaskQueue_SendEcho        (TaskQueue*, cstr data);
@@ -42,7 +44,9 @@ function Loader.defineType()
                 startWorker     = libphx.TaskQueue_StartWorker,
                 stopWorker      = libphx.TaskQueue_StopWorker,
                 stopAllWorkers  = libphx.TaskQueue_StopAllWorkers,
+                tasksWaiting    = libphx.TaskQueue_TasksWaiting,
                 tasksInProgress = libphx.TaskQueue_TasksInProgress,
+                tasksReady      = libphx.TaskQueue_TasksReady,
                 sendTask        = libphx.TaskQueue_SendTask,
                 nextTaskResult  = function(...)
                     local instance = libphx.TaskQueue_NextTaskResult(...)

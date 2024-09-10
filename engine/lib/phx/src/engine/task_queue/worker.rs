@@ -12,7 +12,7 @@ const RECEIVE_TIMEOUT: Duration = Duration::from_millis(500);
 pub struct Worker<IN, OUT> {
     name: String,
     next_task_id: TaskId,
-    tasks_in_progress: usize,
+    tasks_in_work: usize,
 
     instances: Vec<WorkerInstance>,
 
@@ -52,7 +52,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
         Self {
             name: name.into(),
             next_task_id: 0,
-            tasks_in_progress: 0,
+            tasks_in_work: 0,
             instances,
 
             in_sender,
@@ -104,12 +104,24 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
         })
     }
 
+    #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    #[inline]
+    pub fn tasks_waiting(&self)->usize{
+        self.in_sender.len()
+    }
+
+    #[inline]
     pub fn tasks_in_progress(&self) -> usize {
-        self.tasks_in_progress
+        self.tasks_in_work - self.tasks_waiting() - self.tasks_ready()
+    }
+
+    #[inline]
+    pub fn tasks_ready(&self)->usize{
+        self.out_receiver.len()
     }
 
     /// Checks if the associated worker thread has finished running its main function.
@@ -141,7 +153,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
                 ))
             })?;
 
-        self.tasks_in_progress += 1;
+        self.tasks_in_work += 1;
 
         self.next_task_id += 1;
 
@@ -154,7 +166,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
             Ok(out_data) => match out_data {
                 WorkerOutData::Pong => Ok(None),
                 WorkerOutData::Data(task_id, data) => {
-                    self.tasks_in_progress -= 1;
+                    self.tasks_in_work -= 1;
                     Ok(Some((task_id, data)))
                 }
             },

@@ -22,10 +22,20 @@ function TaskQueue:stopWorker(workerId) end
 -- Stop all Lua workers and remove them from the queue.
 function TaskQueue:stopAllWorkers() end
 
+-- Returns number of tasks waiting to be processed by the worker.
+---@param workerId integer
+---@return integer?
+function TaskQueue:tasksWaiting(workerId) end
+
 -- Returns number of tasks the worker is busy with.
 ---@param workerId integer
 ---@return integer?
 function TaskQueue:tasksInProgress(workerId) end
+
+-- Returns number of tasks finished by the worker and whose results can be retrieved.
+---@param workerId integer
+---@return integer?
+function TaskQueue:tasksReady(workerId) end
 
 -- Send a task to the Lua worker.
 ---@param workerId integer

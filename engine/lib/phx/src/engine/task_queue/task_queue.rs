@@ -157,6 +157,21 @@ impl TaskQueue {
         debug!("All Lua workers were stopped");
     }
 
+    /// Returns number of tasks waiting to be processed by the worker.
+    pub fn tasks_waiting(&self, worker_id: u16) -> Option<usize> {
+        if let Some(worker) = WorkerId::from_worker_id(worker_id) {
+            match worker {
+                WorkerId::Echo => Some(self.echo_worker.tasks_waiting()),
+                WorkerId::EngineWorkersCount => unreachable!(),
+            }
+        } else if let Some(worker) = self.lua_workers.get(&worker_id) {
+            Some(worker.tasks_waiting())
+        } else {
+            error!("Unknown worker: {worker_id}");
+            None
+        }
+    }
+
     /// Returns number of tasks the worker is busy with.
     pub fn tasks_in_progress(&self, worker_id: u16) -> Option<usize> {
         if let Some(worker) = WorkerId::from_worker_id(worker_id) {
@@ -166,6 +181,21 @@ impl TaskQueue {
             }
         } else if let Some(worker) = self.lua_workers.get(&worker_id) {
             Some(worker.tasks_in_progress())
+        } else {
+            error!("Unknown worker: {worker_id}");
+            None
+        }
+    }
+
+    /// Returns number of tasks finished by the worker and whose results can be retrieved.
+    pub fn tasks_ready(&self, worker_id: u16) -> Option<usize> {
+        if let Some(worker) = WorkerId::from_worker_id(worker_id) {
+            match worker {
+                WorkerId::Echo => Some(self.echo_worker.tasks_ready()),
+                WorkerId::EngineWorkersCount => unreachable!(),
+            }
+        } else if let Some(worker) = self.lua_workers.get(&worker_id) {
+            Some(worker.tasks_ready())
         } else {
             error!("Unknown worker: {worker_id}");
             None
