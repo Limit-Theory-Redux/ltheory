@@ -52,5 +52,8 @@ strum_macros = "0.26"
 tobj = "4.0"
 byteorder = "1.5"
 
+[dev-dependencies]
+test-log = "0.2"
+
 [build-dependencies]
 gl_generator = "0.14"

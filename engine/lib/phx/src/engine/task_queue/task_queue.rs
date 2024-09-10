@@ -6,7 +6,10 @@ use crossbeam::channel::RecvTimeoutError;
 use mlua::{Function, Lua};
 use tracing::{debug, error};
 
-use super::{TaskResult, Worker, WorkerId, WorkerInData, WorkerIndex, WorkerOutData};
+use super::{
+    TaskQueueError, TaskResult, Worker, WorkerBase, WorkerId, WorkerInData, WorkerIndex,
+    WorkerOutData,
+};
 use crate::engine::{Payload, PayloadType};
 
 /// Task queue is a worker threads manager.
@@ -30,6 +33,24 @@ impl TaskQueue {
             echo_worker: Worker::new_native("Echo", 1, |data| data),
         }
     }
+
+    fn process_worker<F, R>(&self, worker_id: WorkerIndex, f: F) -> Result<R, TaskQueueError>
+    where
+        F: FnOnce(&dyn WorkerBase) -> Result<R, TaskQueueError>,
+    {
+        if let Some(worker) = WorkerId::from_worker_id(worker_id) {
+            match worker {
+                WorkerId::Echo => f(&self.echo_worker),
+                WorkerId::EngineWorkersCount => unreachable!(),
+            }
+        } else if let Some(worker) = self.lua_workers.get(&worker_id) {
+            f(worker)
+        } else {
+            Err(TaskQueueError::ThreadError(format!(
+                "Unknown worker: {worker_id}"
+            )))
+        }
+    }
 }
 
 /// Task queue is a worker threads manager.
@@ -45,8 +66,6 @@ impl TaskQueue {
         script_path: &str,
         instances_count: usize,
     ) -> bool {
-        debug!("Starting worker: {worker_name:?}");
-
         if self.lua_workers.contains_key(&worker_id) {
             error!("Worker with id {worker_id} already exists");
             return false;
@@ -67,6 +86,8 @@ impl TaskQueue {
             worker_name,
             instances_count,
             move |in_receiver, out_sender| {
+                debug!("Starting Lua worker: {worker_name_copy:?}");
+
                 let lua = unsafe { Lua::unsafe_new() };
 
                 lua.load(script_path.as_path()).exec()?;
@@ -101,7 +122,7 @@ impl TaskQueue {
                                     WorkerOutData::Data(task_id, out_data)
                                 }
                                 WorkerInData::Stop => {
-                                    debug!("Worker {worker_name_copy:?} was stopped");
+                                    debug!("Worker {worker_name_copy:?} received stop signal");
                                     break;
                                 }
                             };
@@ -118,29 +139,25 @@ impl TaskQueue {
                     }
                 }
 
+                debug!("Lua worker {worker_name_copy:?} stopped");
+
                 Ok(())
             },
         );
 
         self.lua_workers.insert(worker_id, worker_thread);
 
-        debug!("Worker: {worker_name:?} started");
-
         true
     }
 
     /// Stop Lua worker and remove it from the queue.
     pub fn stop_worker(&mut self, worker_id: u16) -> bool {
-        if let Some(worker) = self.lua_workers.remove(&worker_id) {
-            if let Err(err) = worker.stop() {
-                error!("Cannot stop worker {worker_id}. Error: {err}");
+        match self.process_worker(worker_id, |worker| worker.stop()) {
+            Ok(_) => true,
+            Err(err) => {
+                error!("{err}");
                 false
-            } else {
-                true
             }
-        } else {
-            error!("Unknown worker: {worker_id}");
-            false
         }
     }
 
@@ -148,9 +165,13 @@ impl TaskQueue {
     pub fn stop_all_workers(&mut self) {
         debug!("Stopping all Lua workers");
 
+        self.echo_worker.stop().unwrap_or_else(|err| {
+            error!("Cannot stop Echo worker. {err}");
+        });
+
         for (_, worker) in self.lua_workers.drain() {
             worker.stop().unwrap_or_else(|err| {
-                error!("Cannot stop worker: {}. Error: {err}", worker.name())
+                error!("Cannot stop worker: {}. {err}", worker.name());
             });
         }
 
@@ -159,61 +180,45 @@ impl TaskQueue {
 
     /// Returns number of tasks that were sent to the worker and whose results are not retrieved yet.
     pub fn tasks_in_work(&self, worker_id: u16) -> Option<usize> {
-        if let Some(worker) = WorkerId::from_worker_id(worker_id) {
-            match worker {
-                WorkerId::Echo => Some(self.echo_worker.tasks_in_work()),
-                WorkerId::EngineWorkersCount => unreachable!(),
+        match self.process_worker(worker_id, |worker| Ok(worker.tasks_in_work())) {
+            Ok(res) => Some(res),
+            Err(err) => {
+                error!("{err}");
+                None
             }
-        } else if let Some(worker) = self.lua_workers.get(&worker_id) {
-            Some(worker.tasks_in_work())
-        } else {
-            error!("Unknown worker: {worker_id}");
-            None
         }
     }
 
     /// Returns number of tasks waiting to be processed by the worker.
     pub fn tasks_waiting(&self, worker_id: u16) -> Option<usize> {
-        if let Some(worker) = WorkerId::from_worker_id(worker_id) {
-            match worker {
-                WorkerId::Echo => Some(self.echo_worker.tasks_waiting()),
-                WorkerId::EngineWorkersCount => unreachable!(),
+        match self.process_worker(worker_id, |worker| Ok(worker.tasks_waiting())) {
+            Ok(res) => Some(res),
+            Err(err) => {
+                error!("{err}");
+                None
             }
-        } else if let Some(worker) = self.lua_workers.get(&worker_id) {
-            Some(worker.tasks_waiting())
-        } else {
-            error!("Unknown worker: {worker_id}");
-            None
         }
     }
 
     /// Returns number of tasks the worker is busy with.
     pub fn tasks_in_progress(&self, worker_id: u16) -> Option<usize> {
-        if let Some(worker) = WorkerId::from_worker_id(worker_id) {
-            match worker {
-                WorkerId::Echo => Some(self.echo_worker.tasks_in_progress()),
-                WorkerId::EngineWorkersCount => unreachable!(),
+        match self.process_worker(worker_id, |worker| Ok(worker.tasks_in_progress())) {
+            Ok(res) => Some(res),
+            Err(err) => {
+                error!("{err}");
+                None
             }
-        } else if let Some(worker) = self.lua_workers.get(&worker_id) {
-            Some(worker.tasks_in_progress())
-        } else {
-            error!("Unknown worker: {worker_id}");
-            None
         }
     }
 
     /// Returns number of tasks finished by the worker and whose results can be retrieved.
     pub fn tasks_ready(&self, worker_id: u16) -> Option<usize> {
-        if let Some(worker) = WorkerId::from_worker_id(worker_id) {
-            match worker {
-                WorkerId::Echo => Some(self.echo_worker.tasks_ready()),
-                WorkerId::EngineWorkersCount => unreachable!(),
+        match self.process_worker(worker_id, |worker| Ok(worker.tasks_ready())) {
+            Ok(res) => Some(res),
+            Err(err) => {
+                error!("{err}");
+                None
             }
-        } else if let Some(worker) = self.lua_workers.get(&worker_id) {
-            Some(worker.tasks_ready())
-        } else {
-            error!("Unknown worker: {worker_id}");
-            None
         }
     }
 
@@ -231,7 +236,7 @@ impl TaskQueue {
                     Some(task_id)
                 }
                 Err(err) => {
-                    error!("Cannot send task to worker {worker_id}. Error: {err}");
+                    error!("Cannot send task to worker {worker_id}. {err}");
                     None
                 }
             }
@@ -262,7 +267,7 @@ impl TaskQueue {
                     }
                 }),
                 Err(err) => {
-                    error!("Cannot send task to worker {worker_id}. Error: {err}");
+                    error!("Cannot send task to worker {worker_id}. {err}");
                     None
                 }
             }
@@ -275,7 +280,7 @@ impl TaskQueue {
     /// Send a message to the echo worker.
     pub fn send_echo(&mut self, data: &str) -> bool {
         if let Err(err) = self.echo_worker.send(data.into()) {
-            error!("Cannot send message to the echo worker. Error: {err}");
+            error!("Cannot send message to the echo worker. {err}");
             false
         } else {
             true
@@ -287,7 +292,7 @@ impl TaskQueue {
         match self.echo_worker.recv() {
             Ok(res) => res.map(|(_, data)| data),
             Err(err) => {
-                error!("Cannot get echo message. Error: {err}");
+                error!("Cannot get echo message. {err}");
                 None
             }
         }
