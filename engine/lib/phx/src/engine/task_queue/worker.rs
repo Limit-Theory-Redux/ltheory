@@ -110,6 +110,12 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
     }
 
     #[inline]
+    pub fn tasks_in_work(&self) -> usize {
+        self.tasks_in_work
+    }
+
+
+    #[inline]
     pub fn tasks_waiting(&self)->usize{
         self.in_sender.len()
     }

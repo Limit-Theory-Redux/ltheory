@@ -157,6 +157,21 @@ impl TaskQueue {
         debug!("All Lua workers were stopped");
     }
 
+    /// Returns number of tasks that were sent to the worker and whose results are not retrieved yet.
+    pub fn tasks_in_work(&self, worker_id: u16) -> Option<usize> {
+        if let Some(worker) = WorkerId::from_worker_id(worker_id) {
+            match worker {
+                WorkerId::Echo => Some(self.echo_worker.tasks_in_work()),
+                WorkerId::EngineWorkersCount => unreachable!(),
+            }
+        } else if let Some(worker) = self.lua_workers.get(&worker_id) {
+            Some(worker.tasks_in_work())
+        } else {
+            error!("Unknown worker: {worker_id}");
+            None
+        }
+    }
+
     /// Returns number of tasks waiting to be processed by the worker.
     pub fn tasks_waiting(&self, worker_id: u16) -> Option<usize> {
         if let Some(worker) = WorkerId::from_worker_id(worker_id) {
