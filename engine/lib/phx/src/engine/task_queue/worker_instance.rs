@@ -73,39 +73,3 @@ impl Drop for WorkerInstance {
         }
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use std::time::Duration;
-
-//     use super::{WorkerInstance, RECEIVE_TIMEOUT};
-
-//     #[test]
-//     fn test_worker_new_native() {
-//         let mut worker: WorkerInstance<String, String> =
-//             WorkerInstance::new_native("TestWorker", |in_data| {
-//                 std::thread::sleep(Duration::from_millis(300));
-//                 in_data
-//             });
-
-//         assert_eq!("TestWorker", worker.name());
-
-//         let task_id = worker.send("TestData".into()).expect("Cannot send task");
-
-//         assert_eq!(1, worker.tasks_in_progress());
-
-//         let (result_task_id, result_data) = worker
-//             .recv()
-//             .expect("Cannot receive task result")
-//             .expect("Task result is not ready");
-
-//         assert_eq!(task_id, result_task_id, "Task id is different");
-//         assert_eq!("TestData", result_data, "Task result data");
-
-//         worker.stop().expect("Cannot stop worker");
-
-//         std::thread::sleep(RECEIVE_TIMEOUT);
-
-//         assert!(worker.is_finished());
-//     }
-// }
