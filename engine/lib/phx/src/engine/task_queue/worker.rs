@@ -36,9 +36,13 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
 
         let f_arc = Arc::new(f);
 
-        for _ in 0..instances_count {
-            let instance =
-                WorkerInstance::new(in_receiver.clone(), out_sender.clone(), f_arc.clone());
+        for instance_id in 0..instances_count {
+            let instance = WorkerInstance::new(
+                instance_id,
+                in_receiver.clone(),
+                out_sender.clone(),
+                f_arc.clone(),
+            );
 
             instances.push(instance);
         }

@@ -8,12 +8,14 @@ use super::{TaskQueueError, WorkerInData, WorkerOutData};
 
 /// Worker instance template.
 pub struct WorkerInstance {
+    id: usize,
     handle: Option<JoinHandle<Result<(), TaskQueueError>>>,
 }
 
 impl WorkerInstance {
     /// Creates custom worker instance.
     pub fn new<F, IN, OUT>(
+        id: usize,
         in_receiver: Receiver<WorkerInData<IN>>,
         out_sender: Sender<WorkerOutData<OUT>>,
         f: Arc<F>,
@@ -28,13 +30,14 @@ impl WorkerInstance {
             let res = f(in_receiver, out_sender);
 
             if let Err(err) = &res {
-                error!("Failed to execute task in the worker instance. Error: {err}");
+                error!("Failed to execute task in the worker instance {id}. Error: {err}");
             }
 
             res
         });
 
         Self {
+            id,
             handle: Some(handle),
         }
     }
@@ -56,11 +59,14 @@ impl Drop for WorkerInstance {
                 match handle.join() {
                     Ok(res) => {
                         if let Err(err) = res {
-                            error!("Worker instance failed on drop. Error: {err}");
+                            error!("Worker instance {} failed on drop. Error: {err}", self.id);
                         }
                     }
                     Err(err) => {
-                        error!("Cannot finish worker instance properly. Error: {err:?}");
+                        error!(
+                            "Cannot finish worker instance {} properly. Error: {err:?}",
+                            self.id
+                        );
                     }
                 }
             }
