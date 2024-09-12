@@ -1,5 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use phx::engine::Worker;
+use phx::system::TimeStamp;
+
+const TASK_RESULT_TIMEOUT_MS: f64 = 500.0;
 
 pub fn worker_benchmark(c: &mut Criterion) {
     c.bench_function("worker 4 1000", |b| {
@@ -23,7 +26,8 @@ fn run_worker(instances_count: usize, messages_count: usize) {
 
     // println!("Tasks in progress: {task_ids:?}");
 
-    while !task_ids.is_empty() {
+    let start = TimeStamp::now();
+    while !task_ids.is_empty() && start.get_elapsed_ms() < TASK_RESULT_TIMEOUT_MS {
         let task_result = worker.recv().expect("Cannot receive a message");
         if let Some((task_id, _)) = task_result {
             task_ids.retain(|&id| id != task_id);
