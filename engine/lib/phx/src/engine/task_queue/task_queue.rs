@@ -86,7 +86,7 @@ impl TaskQueue {
             worker_name,
             instances_count,
             move |in_receiver, out_sender| {
-                debug!("Starting Lua worker: {worker_name_copy:?}");
+                debug!("Starting instance of Lua worker: {worker_name_copy:?}");
 
                 let lua = unsafe { Lua::unsafe_new() };
 
@@ -103,9 +103,9 @@ impl TaskQueue {
                             let data = match in_data {
                                 WorkerInData::Ping => WorkerOutData::Pong,
                                 WorkerInData::Data(task_id, data) => {
-                                    debug!(
-                                        "Worker {worker_name_copy} received[{task_id}]: {data:?}"
-                                    );
+                                    // debug!(
+                                    //     "Worker {worker_name_copy} received[{task_id}]: {data:?}"
+                                    // );
 
                                     // put data on the heap
                                     let boxed_data = Box::new(data);
@@ -139,7 +139,7 @@ impl TaskQueue {
                     }
                 }
 
-                debug!("Lua worker {worker_name_copy:?} stopped");
+                debug!("Lua worker {worker_name_copy:?} instance stopped");
 
                 Ok(())
             },
@@ -232,7 +232,7 @@ impl TaskQueue {
         if let Some(worker) = self.lua_workers.get_mut(&worker_id) {
             match worker.send(data) {
                 Ok(task_id) => {
-                    debug!("Task {task_id} sent to worker {:?}", worker.name());
+                    // debug!("Task {task_id} sent to worker {:?}", worker.name());
                     Some(task_id)
                 }
                 Err(err) => {
@@ -259,10 +259,10 @@ impl TaskQueue {
                             "Cannot receive cached Lua payload from the worker",
                         )
                     } else {
-                        debug!(
-                            "Received task {task_id} result for worker {:?}",
-                            worker.name()
-                        );
+                        // debug!(
+                        //     "Received task {task_id} result for worker {:?}",
+                        //     worker.name()
+                        // );
                         TaskResult::new(worker_id, task_id, data)
                     }
                 }),
