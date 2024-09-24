@@ -29,6 +29,7 @@ function WorkerBench:onInit()
         local taskId, _ = TaskQueue:nextTaskResult(WorkerId.TestWorker)
         if taskId ~= nil then
             table.remove(taskIds, tonumber(taskId))
+            Log.Debug("Received: " .. tostring(taskId) .. ". Left: " .. tostring(#taskIds))
         end
     end
 
