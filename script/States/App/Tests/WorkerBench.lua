@@ -1,5 +1,18 @@
 local WorkerBench = require('States.Application')
 
+local function removeElement(t, value)
+    for i, v in ipairs(t) do
+        if v == value then
+            table.remove(t, i)
+            return
+        end
+    end
+    for i, v in ipairs(t) do
+        print(tostring(i) .. ": " .. tostring(v))
+    end
+    Log.Error("Cannot find table value " .. tostring(value))
+end
+
 function WorkerBench:onInit()
     Log.Info("WorkerBench:onInit: Start")
 
@@ -20,7 +33,8 @@ function WorkerBench:onInit()
         if taskId == nil then
             Log.Error("Cannot send task " .. i)
         end
-        table.insert(taskIds, tonumber(taskId), taskId)
+        table.insert(taskIds, taskId)
+        -- Log.Debug("New task: " .. tostring(taskId))
     end
 
     Log.Debug("Messages sent: " .. #taskIds)
@@ -28,7 +42,9 @@ function WorkerBench:onInit()
     while #taskIds > 0 do
         local taskId, _ = TaskQueue:nextTaskResult(WorkerId.TestWorker)
         if taskId ~= nil then
-            table.remove(taskIds, tonumber(taskId))
+            -- Log.Debug("Received: " .. tostring(taskId))
+            removeElement(taskIds, taskId)
+            -- Log.Debug("Left: " .. tostring(#taskIds))
         end
     end
 
