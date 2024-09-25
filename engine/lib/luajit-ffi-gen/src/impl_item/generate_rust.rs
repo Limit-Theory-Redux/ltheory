@@ -651,6 +651,14 @@ impl ImplInfo {
 
     fn gen_buffered_ret(&self, type_ident: &Ident) -> TokenStream {
         quote! {
+            // TODO: use thread_local
+            // {
+            //     use std::borrow::Borrow;
+            //     thread_local! { static __BUFFER__: std::cell::RefCell<Option<#type_ident>> = Default::default(); }
+            //     __BUFFER__.replace(__res__);
+            //     __BUFFER__.with_borrow(|buf| buf.borrow().as_ref())
+            // }
+
             unsafe {
                 static mut __BUFFER__: Option<#type_ident> = None;
                 __BUFFER__ = __res__;
