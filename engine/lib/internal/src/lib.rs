@@ -8,10 +8,9 @@ pub use memory::*;
 macro_rules! static_cstring {
     ($str:expr) => {
         {
-            use std::borrow::Borrow;
             thread_local! { static STRING_BUF: std::cell::RefCell<Option<std::ffi::CString>> = Default::default(); }
             STRING_BUF.replace(Some($str));
-            STRING_BUF.with_borrow(|buf| buf.borrow().as_ref().unwrap().as_ptr())
+            STRING_BUF.with_borrow(|buf| buf.as_ref().unwrap().as_ptr())
         }
     };
 }
