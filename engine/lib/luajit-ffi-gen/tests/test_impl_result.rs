@@ -34,7 +34,7 @@ fn test_result() {
         assert_eq!(val, 42);
 
         let val = ResultTest_ResultOption();
-        assert_eq!(val.cloned(), Some(42));
+        assert_eq!(val.as_ref().cloned(), Some(42));
 
         let val = ResultTest_ResultString();
         assert_eq!(val.as_str(), "hello");
