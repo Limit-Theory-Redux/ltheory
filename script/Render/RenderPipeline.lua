@@ -133,13 +133,13 @@ end
 
 function RenderPipeline:free()
     if self.buffer0 then
-        self.buffer0:free()
-        self.buffer1:free()
-        self.buffer2:free()
-        self.dsBuffer0:free()
-        self.dsBuffer1:free()
-        self.zBuffer:free()
-        self.zBufferL:free()
+        self.buffer0 = nil
+        self.buffer1 = nil
+        self.buffer2 = nil
+        self.dsBuffer0 = nil
+        self.dsBuffer1 = nil
+        self.zBuffer = nil
+        self.zBufferL = nil
     end
 end
 
