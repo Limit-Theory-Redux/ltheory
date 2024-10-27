@@ -80,20 +80,19 @@ unsafe fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mut KDTree {
 
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_FromMesh(mesh: &mut Mesh) -> *mut KDTree {
-    let indexCount: i32 = Mesh_GetIndexCount(mesh);
-    let indexData: *const i32 = Mesh_GetIndexData(mesh);
-    let vertexData: *const Vertex = Mesh_GetVertexData(mesh);
+    let index_data = mesh.get_index_data();
+    let vertex_data = mesh.get_vertex_data();
 
-    let boxCount: i32 = indexCount / 3;
+    let boxCount: i32 = index_data.len() as i32 / 3;
     let boxes: *mut Box3 = MemNewArray!(Box3, boxCount);
 
-    for i in (0..indexCount).step_by(3) {
-        let v0: *const Vertex = vertexData.offset(*indexData.offset((i) as isize) as isize);
-        let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
-        let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
-        *boxes.offset((i / 3) as isize) = Box3::new(
-            Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
-            Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
+    for i in (0..index_data.len()).step_by(3) {
+        let v0 = &vertex_data[index_data[i] as usize];
+        let v1 = &vertex_data[index_data[i + 1] as usize];
+        let v2 = &vertex_data[index_data[i + 2] as usize];
+        *boxes.add(i / 3) = Box3::new(
+            Vec3::min(v0.p, Vec3::min(v1.p, v2.p)),
+            Vec3::max(v0.p, Vec3::max(v1.p, v2.p)),
         );
     }
 

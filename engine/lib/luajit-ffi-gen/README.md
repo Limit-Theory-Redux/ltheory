@@ -331,41 +331,46 @@ cargo expand -p luajit-ffi-gen --test test_impl
 Following table shows representation of Rust types in the generated code.
 
 Glossary:
-1. **CT** - copyable type.
-2. **NT** - non-copyable type.
+1. **CT** - copyable type (including primitives).
+2. **MT** - managed type.
 3. **T** - any type.
 
-###  Input position
+### Input position
 
 List of allowed types in the input parameter position.
 
-| Rust type                    | extern "C" interface       | C type            |
-| ---------------------------- | -------------------------- | ----------------- |
-| By value (NT) (not working!) | Box\<NT>                   | NT*               |
-| By value (CT)                | CT                         | CT                |
-| Immutable reference (&NT)    | &NT                        | NT const*         |
-| Immutable reference (&CT)    | CT                         | CT                |
-| Mutable reference (&mut T)   | &mut T                     | T*                |
-| String, &str                 | \*const/mut libc::c_char   | cstr              |
-| Option\<T>                   | \*const/mut T              | T*                |
-| Option\<String, str>         | \*const/mut libc::c_char   | cstr              |
-| trait FnOnce/Fn/FnMut        | extern fn(T1, T2, ..) -> R | R (*)(T1, T2, ..) |
+| Rust type                      | extern "C" interface       | C type            |
+| ------------------------------ | -------------------------- | ----------------- |
+| By value (MT) (not working!)   | Box\<MT>                   | MT*               |
+| By value (CT)                  | CT                         | CT                |
+| Immutable reference (&T)       | &T                         | T const*          |
+| Mutable reference (&mut T)     | &mut T                     | T*                |
+| String, &str                   | \*const/mut libc::c_char   | cstr              |
+| Option\<MT>                    | Option\<Box\<MT>>          | MT*               |
+| Option\<CT>                    | Option\<&CT>               | CT const*         |
+| Option\<String>, Option\<&str> | \*const libc::c_char       | cstr              |
+| &[T]                           | \*const T, usize           | T const *, uint64 |
+| &mut [T]                       | \*mut T, usize             | T*, uint64        |
+| &[T; N]                        | \*const T, usize           | T const *, uint64 |
+| [T; N], &mut [T; N]            | \*mut T, usize             | T*, uint64        |
+| trait FnOnce/Fn/FnMut          | extern fn(T1, T2, ..) -> R | R (*)(T1, T2, ..) |
 
-###  Return position
+### Return position
 
 List of allowed types in the return parameter position.
 
-| Rust type                | extern "C" interface | C type   | Buffered |
-| ------------------------ | -------------------- | -------- | -------- |
-| By value (CT)            | CT                   | CT       |          |
-| By value (NT)            | Box\<NT>             | NT*      |          |
-| &T                       | \*const T            | T const* |          |
-| &mut T                   | \*T                  | T*       |          |
-| String, &str             | \*const libc::c_char | cstr     | yes      |
-| Option\<T>               | \*const T            | T const* | yes      |
-| Option\<String, &str>    | \*const libc::c_char | cstr     | yes      |
-| Result\<..., E>          | [1], panic on error  | [1]      | [1]      |
-| Result\<Option\<...>, E> | [2], panic on error  | [2]      | [2]      |
+| Rust type                     | extern "C" interface | C type    | Buffered |
+| ----------------------------- | -------------------- | --------- | -------- |
+| By value (MT)                 | Box\<MT>             | MT*       |          |
+| By value (CT)                 | CT                   | CT        |          |
+| &T                            | \*const T            | T const*  |          |
+| &mut T                        | \*T                  | T*        |          |
+| String, &str                  | \*const libc::c_char | cstr      | yes      |
+| Option\<MT>                   | Option\<Box\<MT>>    | MT*       |          |
+| Option\<CT>                   | Option\<&'static CT> | CT const* | yes      |
+| Option\<String>, Option<&str> | \*const libc::c_char | cstr      | yes      |
+| Result\<..., E>               | [1], panic on error  | [1]       | [1]      |
+| Result\<Option\<...>, E>      | [2], panic on error  | [2]       | [2]      |
 
 [1] - same as for standalone by value variants.
 [2] - same as for standalone Option variants.
@@ -384,7 +389,7 @@ In the return position **Self** is boxed: Box\<T>.
 
 ### Basic and copy types
 
-Basic (bool, i32, u64, f32, etc.) and copy types (defined in **COPY_TYPES** map) are sent as is via the C API.
+Basic (bool, i32, u64, f32, etc.) and copy types (defined in **COPY_TYPES** map) are sent as-is via the C API.
 
 ### Strings
 
@@ -400,7 +405,7 @@ User types in method parameters position are sent by reference or mutable refere
 
 ### Option
 
-Returned as a **\*mut T**, and **None** is interpreted as **NULL** pointer.
+Returned as a **\*mut T**, and **None** is interpreted as **NULL** pointer. For copyable types, we pin the result in a static and return a reference to it.
 
 ### Result
 

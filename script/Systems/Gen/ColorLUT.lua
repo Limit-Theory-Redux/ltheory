@@ -53,7 +53,6 @@ local function GenerateColorLUT(rng, iterations, variation, rough)
         end
 
         self:setDataBytes(bytes, PixelFormat.RGB, DataFormat.Float)
-        bytes:free()
     end
 
     return self

@@ -18,13 +18,13 @@ function Input:gamepad() end
 ---@return DragAndDropState
 function Input:dragAndDrop() end
 
----@return InputDevice|nil
+---@return InputDevice?
 function Input:activeDevice() end
 
----@return InputDeviceType|nil
+---@return InputDeviceType?
 function Input:activeDeviceType() end
 
----@return InputDeviceId|nil
+---@return InputDeviceId?
 function Input:activeDeviceId() end
 
 ---@param visible boolean

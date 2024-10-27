@@ -6,28 +6,6 @@ pub struct ShaderState {
     elems: Vec<(i32, ShaderVarData)>,
 }
 
-impl Drop for ShaderState {
-    fn drop(&mut self) {
-        for (_, data) in self.elems.iter() {
-            match data {
-                ShaderVarData::Tex1D(t) => unsafe {
-                    Tex1D_Free(*t);
-                },
-                ShaderVarData::Tex2D(t) => unsafe {
-                    Tex2D_Free(*t);
-                },
-                ShaderVarData::Tex3D(t) => unsafe {
-                    Tex3D_Free(*t);
-                },
-                ShaderVarData::TexCube(t) => unsafe {
-                    TexCube_Free(*t);
-                },
-                _ => {}
-            }
-        }
-    }
-}
-
 #[luajit_ffi_gen::luajit_ffi]
 impl ShaderState {
     #[bind(name = "Create")]
@@ -102,29 +80,25 @@ impl ShaderState {
 
     pub fn set_tex1d(&mut self, name: &str, t: &mut Tex1D) {
         if let Some(index) = self.shader.get_uniform_index(name) {
-            Tex1D_Acquire(t);
-            self.elems.push((index, ShaderVarData::Tex1D(t)));
+            self.elems.push((index, ShaderVarData::Tex1D(t.clone())));
         }
     }
 
     pub fn set_tex2d(&mut self, name: &str, t: &mut Tex2D) {
         if let Some(index) = self.shader.get_uniform_index(name) {
-            Tex2D_Acquire(t);
-            self.elems.push((index, ShaderVarData::Tex2D(t)));
+            self.elems.push((index, ShaderVarData::Tex2D(t.clone())));
         }
     }
 
     pub fn set_tex3d(&mut self, name: &str, t: &mut Tex3D) {
         if let Some(index) = self.shader.get_uniform_index(name) {
-            Tex3D_Acquire(t);
-            self.elems.push((index, ShaderVarData::Tex3D(t)));
+            self.elems.push((index, ShaderVarData::Tex3D(t.clone())));
         }
     }
 
     pub fn set_tex_cube(&mut self, name: &str, t: &mut TexCube) {
         if let Some(index) = self.shader.get_uniform_index(name) {
-            TexCube_Acquire(t);
-            self.elems.push((index, ShaderVarData::TexCube(t)));
+            self.elems.push((index, ShaderVarData::TexCube(t.clone())));
         }
     }
 

@@ -11,21 +11,20 @@ pub enum HmGuiImageLayout {
     TopLeft,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct HmGuiImage {
-    pub image: *mut Tex2D,
+    pub image: Tex2D,
     pub layout: HmGuiImageLayout,
 }
 
 impl HmGuiImage {
     pub fn draw(&self, hmgui: &mut HmGui, mut pos: Vec2, size: Vec2) {
-        debug_assert_ne!(self.image, std::ptr::null_mut(), "Image pointer is null");
+        let image = self.image.clone();
 
         if self.layout == HmGuiImageLayout::Fit {
-            hmgui.renderer.image(self.image, pos, size);
+            hmgui.renderer.image(image, pos, size);
         } else {
-            let tex = unsafe { &*self.image };
-            let tex_size = Vec2::new(tex.size.x as f32, tex.size.y as f32);
+            let tex_size = image.get_size().as_vec2();
 
             hmgui.renderer.begin_layer(pos, size, true);
 
@@ -33,7 +32,7 @@ impl HmGuiImage {
                 pos += (size - tex_size) / 2.0;
             }
 
-            hmgui.renderer.image(self.image, pos, tex_size);
+            hmgui.renderer.image(image, pos, tex_size);
 
             hmgui.renderer.end_layer();
         }

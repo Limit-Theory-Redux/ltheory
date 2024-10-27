@@ -1183,9 +1183,8 @@ pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
 
     let this = MemNewZero!(BSP);
 
-    let indexLen: i32 = Mesh_GetIndexCount(mesh);
-    let indexData: *mut i32 = Mesh_GetIndexData(mesh);
-    let vertexData: *mut Vertex = Mesh_GetVertexData(mesh);
+    let index_data = mesh.get_index_data();
+    let vertex_data = mesh.get_vertex_data();
 
     /* TODO : Implement some form of soft abort when the incoming mesh is bad. */
     // CHECK2 (
@@ -1198,17 +1197,17 @@ pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
         triangleCount: 0,
         depth: 0,
     };
-    nodeData.triangleCount = indexLen / 3;
-    nodeData.validPolygonCount = indexLen / 3;
+    nodeData.triangleCount = index_data.len() as i32 / 3;
+    nodeData.validPolygonCount = index_data.len() as i32 / 3;
 
     nodeData.polygons.reserve(nodeData.triangleCount as usize);
-    for i in (0..indexLen).step_by(3) {
-        let i0: i32 = *indexData.offset(i as isize);
-        let i1: i32 = *indexData.offset((i + 1) as isize);
-        let i2: i32 = *indexData.offset((i + 2) as isize);
-        let v0: Vec3 = (*vertexData.offset(i0 as isize)).p;
-        let v1: Vec3 = (*vertexData.offset(i1 as isize)).p;
-        let v2: Vec3 = (*vertexData.offset(i2 as isize)).p;
+    for i in (0..index_data.len()).step_by(3) {
+        let i0 = index_data[i];
+        let i1 = index_data[i + 1];
+        let i2 = index_data[i + 2];
+        let v0 = vertex_data[i0 as usize].p;
+        let v1 = vertex_data[i1 as usize].p;
+        let v2 = vertex_data[i2 as usize].p;
 
         nodeData.polygons.push(PolygonEx {
             inner: Polygon {

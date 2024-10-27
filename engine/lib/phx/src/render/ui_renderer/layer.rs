@@ -81,7 +81,7 @@ impl UIRendererLayer {
 
                 image_shader.start();
                 image_shader.reset_tex_index();
-                image_shader.set_tex2d("image", &mut *image.image);
+                image_shader.set_tex2d("image", &image.image);
                 Draw_Rect(image.pos.x, image.pos.y, image.size.x, image.size.y);
                 image_shader.stop();
                 image_id_opt = image.next;

@@ -14,7 +14,7 @@ local ShipType = Class(function(self, seed, generator, hull)
 
     local rng           = RNG.Create(seed)
     self.seed           = seed
-    self.mesh           = generator(seed, hull, Config.gen.shipRes):managed()
+    self.mesh           = generator(seed, hull, Config.gen.shipRes)
     self.bsp            = BSP.Create(self.mesh):managed()
     self.scale          = scale
 

@@ -53,7 +53,7 @@ end
 
 local Station = Subclass(Entity, function(self, seed, hull)
     local rng = RNG.Create(seed)
-    local mesh = Gen.StationOld(seed):managed()
+    local mesh = Gen.StationOld(seed)
     local bsp = BSP.Create(mesh):managed()
     self:addRigidBody(true, mesh, Enums.ColliderType.ConvexDecomposition)
     self:addVisibleMesh(mesh, Material.Metal())

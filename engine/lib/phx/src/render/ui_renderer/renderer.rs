@@ -102,7 +102,7 @@ impl UIRenderer {
         }
     }
 
-    pub fn image(&mut self, image: *mut Tex2D, pos: Vec2, size: Vec2) {
+    pub fn image(&mut self, image: Tex2D, pos: Vec2, size: Vec2) {
         if let Some(current_layer_id) = self.current_layer_id {
             let next = self.layers[*current_layer_id].image_id;
             let item = UIRendererImage {

@@ -57,11 +57,10 @@ pub extern "C" fn File_Close(_: Option<Box<File>>) {
 }
 
 #[no_mangle]
-pub extern "C" fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes {
-    match fs::read(path.as_str()) {
-        Ok(bytes) => Bytes_FromVec(bytes),
-        _ => std::ptr::null_mut(),
-    }
+pub extern "C" fn File_ReadBytes(path: *const libc::c_char) -> Option<Box<Bytes>> {
+    fs::read(path.as_str())
+        .ok()
+        .map(|v| Box::new(Bytes::from_vec(v)))
 }
 
 #[no_mangle]

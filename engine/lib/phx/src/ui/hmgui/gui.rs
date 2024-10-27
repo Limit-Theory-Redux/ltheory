@@ -413,7 +413,7 @@ impl HmGui {
 
     pub fn image(&mut self, image: &mut Tex2D) {
         let image_item = HmGuiImage {
-            image,
+            image: image.clone(),
             layout: HmGuiImageLayout::Fit,
         };
 
@@ -436,12 +436,7 @@ impl HmGui {
 
     /// Add multiline styled text element.
     pub fn text_view(&mut self, text_data: &mut TextData, editable: bool) {
-        let image_item = HmGuiImage {
-            image: std::ptr::null_mut(),
-            layout: HmGuiImageLayout::TopLeft,
-        };
-
-        let widget_rf = self.init_widget(WidgetItem::TextView(image_item));
+        let widget_rf = self.init_widget(WidgetItem::TextView(None));
         let widget = widget_rf.as_mut();
 
         let data = self.data_mut(widget.hash);

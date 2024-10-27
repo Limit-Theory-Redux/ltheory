@@ -43,7 +43,6 @@ local function generateNebulaLightTransport(rng, res, starDir)
         end
     end
 
-    buffDst:free()
     buffSrc:setMinFilter(TexFilter.LinearMipLinear)
     buffSrc:genMipmap()
     Profiler.End()

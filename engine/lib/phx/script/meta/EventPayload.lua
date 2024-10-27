@@ -94,95 +94,100 @@ function EventPayload.FromString(value) end
 ---@return string
 function EventPayload:getString() end
 
----@param value boolean
+---@param value boolean[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromBoolArray(value, value_size) end
 
----@param f function
+---@param f fun(arg1: boolean): nil
 function EventPayload:forEachBool(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromI8Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function EventPayload:forEachI8(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromU8Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function EventPayload:forEachU8(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromI16Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function EventPayload:forEachI16(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromU16Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function EventPayload:forEachU16(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromI32Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function EventPayload:forEachI32(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromU32Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function EventPayload:forEachU32(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromI64Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function EventPayload:forEachI64(f) end
 
----@param value integer
+---@param value integer[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromU64Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: integer): nil
 function EventPayload:forEachU64(f) end
 
----@param value number
+---@param value number[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromF32Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: number): nil
 function EventPayload:forEachF32(f) end
 
----@param value number
+---@param value number[]
 ---@param value_size integer
 ---@return EventPayload
 function EventPayload.FromF64Array(value, value_size) end
 
----@param f function
+---@param f fun(arg1: number): nil
 function EventPayload:forEachF64(f) end
 
----@param f function
+---@param value string[]
+---@param value_size integer
+---@return EventPayload
+function EventPayload.FromStringArray(value, value_size) end
+
+---@param f fun(arg1: string): nil
 function EventPayload:forEachString(f) end
 
 ---@param value EventPayloadTable
