@@ -41,7 +41,10 @@ fn main() {
     // OUT_DIR is set to <src>/target/<cfg>/build/ltr-<hash>/out, so we need to move up 3
     // directories from there.
     let dir = env::var("OUT_DIR").unwrap();
-    println!("cargo::rustc-link-search={}", Path::new(&dir).join("../../..").display());
+    println!(
+        "cargo::rustc-link-search={}",
+        Path::new(&dir).join("../../..").display()
+    );
 
     // If we don't specify rerun-if-changed, then Cargo will always rerun build.rs, causing phx to
     // always be rebuilt.
