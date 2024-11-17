@@ -15,7 +15,7 @@ struct ShapeCacheKey {
 impl ShapeCacheKey {
     fn new(mesh: MeshCacheKey, scale: f32) -> ShapeCacheKey {
         ShapeCacheKey {
-            mesh: mesh,
+            mesh,
             scale: scale.to_bits(),
         }
     }

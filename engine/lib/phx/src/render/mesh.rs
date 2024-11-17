@@ -137,7 +137,7 @@ impl Mesh {
                 vbo: 0,
                 ibo: 0,
                 vao: 0,
-                uuid: uuid,
+                uuid,
                 version: 1,
                 version_buffers: 0,
                 version_info: 0,
