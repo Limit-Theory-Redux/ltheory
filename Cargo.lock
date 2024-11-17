@@ -2502,6 +2502,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "swash",
+ "thiserror",
  "tobj",
  "tracing",
  "tracing-appender",
