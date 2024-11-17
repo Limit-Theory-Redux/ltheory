@@ -6,7 +6,7 @@
 
   Example:
 
-    local Ship = class(function (self, name, hp)
+    local Ship = Class(function (self, name, hp)
       self.name = name
       self.health = hp
       self.healthMax = hp
@@ -15,7 +15,7 @@
     function Ship:addHangar (unit) assert(false, "No hangar!") end
     function Ship:getHangar () return {} end
 
-    local Carrier = subclass(Ship, function (self)
+    local Carrier = Subclass(Ship, function (self)
       self.hanger = {}
     end)
 
@@ -24,7 +24,7 @@
 ----------------------------------------------------------------------------]]
 --
 
-function class(ctor)
+function Class(ctor)
     local cls = {}
     cls.__index = cls
     setmetatable(cls, {
@@ -38,7 +38,7 @@ function class(ctor)
     return cls
 end
 
-function subclass(base, ctor)
+function Subclass(base, ctor)
     local cls = {}
     cls.__index = cls
     setmetatable(cls, {

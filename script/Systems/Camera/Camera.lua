@@ -1,4 +1,4 @@
-local Camera = class(function(self)
+local Camera = Class(function(self)
     self.x         = 0
     self.y         = 0
     self.sx        = 1
@@ -158,7 +158,7 @@ function Camera:ndcToRay(ndc, length)
     -- NOTE: We now need to test inputs to normalize() to prevent near-zero inputs
     local dir = self.mViewInv:mulDir(vs_dir)
     if dir:length() >= 0.00000001 then
-       dir = dir:normalize()
+        dir = dir:normalize()
     end
 
     return Ray(ws.x, ws.y, ws.z, dir.x, dir.y, dir.z, 0, length)
