@@ -21,9 +21,9 @@ function Loader.defineType()
             RigidBody* RigidBody_CreateBoxFromMesh                 (Mesh* mesh);
             RigidBody* RigidBody_CreateSphere                      ();
             RigidBody* RigidBody_CreateSphereFromMesh              (Mesh* mesh);
-            RigidBody* RigidBody_CreateConvexHullFromMesh          (Mesh const* mesh);
-            RigidBody* RigidBody_CreateConvexDecompositionFromMesh (Mesh const* mesh);
-            RigidBody* RigidBody_CreateTrimeshFromMesh             (Mesh const* mesh);
+            RigidBody* RigidBody_CreateConvexHullFromMesh          (Mesh* mesh);
+            RigidBody* RigidBody_CreateConvexDecompositionFromMesh (Mesh* mesh);
+            RigidBody* RigidBody_CreateTrimeshFromMesh             (Mesh* mesh);
             RigidBody* RigidBody_GetParentBody                     (RigidBody const*);
             void       RigidBody_ApplyForce                        (RigidBody*, Vec3f const* force);
             void       RigidBody_ApplyTorque                       (RigidBody*, Vec3f const* torque);
