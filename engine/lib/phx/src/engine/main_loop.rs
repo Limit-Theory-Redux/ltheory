@@ -46,7 +46,7 @@ impl ApplicationHandler for MainLoop {
 
                 let set_engine_func: Function = globals.get("SetEngine").unwrap();
                 set_engine_func
-                    .call::<_, ()>(engine as *const Engine as usize)
+                    .call::<()>(engine as *const Engine as usize)
                     .unwrap_or_else(|e| {
                         panic!("Error calling SetEngine: {}", e);
                     });

@@ -1,4 +1,4 @@
-use super::{TaskId, WorkerId};
+use super::{TaskId, WorkerIndex};
 use crate::engine::Payload;
 
 /// Task execution result data: payload on success or error message otherwise.
@@ -9,14 +9,14 @@ enum TaskResultData {
 
 /// Task result information.
 pub struct TaskResult {
-    worker_id: WorkerId,
+    worker_id: WorkerIndex,
     task_id: TaskId,
     data: TaskResultData,
 }
 
 impl TaskResult {
     /// Create a success result.
-    pub fn new(worker_id: WorkerId, task_id: TaskId, payload: Box<Payload>) -> Self {
+    pub fn new(worker_id: WorkerIndex, task_id: TaskId, payload: Box<Payload>) -> Self {
         Self {
             worker_id,
             task_id,
@@ -25,7 +25,7 @@ impl TaskResult {
     }
 
     /// Create an error result.
-    pub fn new_error(worker_id: WorkerId, task_id: TaskId, msg: &str) -> Self {
+    pub fn new_error(worker_id: WorkerIndex, task_id: TaskId, msg: &str) -> Self {
         Self {
             worker_id,
             task_id,
