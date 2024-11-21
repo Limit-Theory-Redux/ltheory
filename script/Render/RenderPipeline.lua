@@ -131,18 +131,6 @@ function RenderPipeline:colorGrade(curve1, curve2)
     self:swap()
 end
 
-function RenderPipeline:free()
-    if self.buffer0 then
-        self.buffer0 = nil
-        self.buffer1 = nil
-        self.buffer2 = nil
-        self.dsBuffer0 = nil
-        self.dsBuffer1 = nil
-        self.zBuffer = nil
-        self.zBufferL = nil
-    end
-end
-
 function RenderPipeline:present(x, y, sx, sy, useMips)
     RenderState.PushAllDefaults()
 
@@ -228,8 +216,6 @@ function RenderPipeline:start(resX, resY, ss)
         self.ss = ss
         self.resX = resX
         self.resY = resY
-
-        if self.buffer0 then self:free() end
 
         self.buffer0 = createBuffer(sx, sy, colorFormat)
         self.buffer1 = createBuffer(sx, sy, colorFormat)
