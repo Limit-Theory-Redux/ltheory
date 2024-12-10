@@ -13,7 +13,8 @@ local MarketplaceComponent = Subclass(Component, function(self)
 end)
 
 function MarketplaceComponent:init()
-    self.wares = {}
+    self.bids = {}
+    self.asks = {}
 end
 
 ---@param timestamp TimeStamp
@@ -57,58 +58,34 @@ function MarketplaceComponent:getTax()
 end
 
 ---@param entityInfo EntityInfo
----@param itemType string
-function MarketplaceComponent:addBid(entityInfo, itemType)
-    if not self.wares[itemType] then
-        self.wares[itemType] = {
-            bids = {},
-            asks = {}
-        }
-    end
-    self.wares[itemType].bids[entityInfo.id] = entityInfo
+function MarketplaceComponent:addBid(entityInfo)
+    self.bids[entityInfo.id] = entityInfo
 end
 
 ---@param entityInfo EntityInfo
----@param itemType string
-function MarketplaceComponent:addAsk(entityInfo, itemType)
-    if not self.wares[itemType] then
-        self.wares[itemType] = {
-            bids = {},
-            asks = {}
-        }
-    end
-    self.wares[itemType].asks[entityInfo.id] = entityInfo
+function MarketplaceComponent:addAsk(entityInfo)
+    self.asks[entityInfo.id] = entityInfo
 end
 
 ---@param entityInfo EntityInfo
----@param itemType string
 ---@return boolean success
-function MarketplaceComponent:removeBid(entityInfo, itemType)
-    if not self.wares[itemType] then
+function MarketplaceComponent:removeBid(entityInfo)
+    if not self.bids[entityInfo.id] then
         return false
     end
 
-    if not self.wares[itemType].bids[entityInfo.id] then
-        return false
-    end
-
-    self.wares[itemType].bids[entityInfo.id] = nil
+    self.bids[entityInfo.id] = nil
     return true
 end
 
 ---@param entityInfo EntityInfo
----@param itemType string
 ---@return boolean success
-function MarketplaceComponent:removeAsk(entityInfo, itemType)
-    if not self.wares[itemType] then
+function MarketplaceComponent:removeAsk(entityInfo)
+    if not self.asks[entityInfo.id] then
         return false
     end
 
-    if not self.wares[itemType].asks[entityInfo.id] then
-        return false
-    end
-
-    self.wares[itemType].asks[entityInfo.id] = nil
+    self.asks[entityInfo.id] = nil
     return true
 end
 

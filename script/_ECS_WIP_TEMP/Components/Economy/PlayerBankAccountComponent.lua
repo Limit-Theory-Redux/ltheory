@@ -14,6 +14,10 @@ local Component = require("_ECS_WIP_TEMP.Components.Component")
 ---@overload fun(initialBalance: number): PlayerBankAccount subclass external
 local PlayerBankAccount = Subclass(Component, function(self, initialBalance)
     self:setComponentName("EconomyPlayerBankAccount")
+
+    -- Set Component Archetype
+    self:setArchetype(Enums.ComponentArchetype.PlayerBankAccount)
+
     self:addPlayerBankAccount(initialBalance)
 
     self:registerEventHandler("BankAccount:AddTransaction", self.addTransaction)

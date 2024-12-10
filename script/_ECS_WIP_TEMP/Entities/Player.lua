@@ -1,13 +1,16 @@
-local Entity = require("_ECS_WIP_TEMP.Entity")
+local Entity = require("_ECS_WIP_TEMP.Entities.Entity")
 
 -- Components
-local NameComponent = require("_ECS_WIP_TEMP.Components.EntityName")
-local PlayerBankAccount = require("_ECS_WIP_TEMP.Components.Economy.PlayerBankAccount")
+local NameComponent = require("_ECS_WIP_TEMP.Components.Core.EntityName")
+local PlayerBankAccount = require("_ECS_WIP_TEMP.Components.Economy.PlayerBankAccountComponent")
 
 ---@class Player: Entity
 ---@overload fun(self: Player, name: string, isAiPlayer: boolean) subclass internal
 ---@overload fun(name: string, isAiPlayer: boolean) subclass external
 local Player = Subclass(Entity, function(self, name, isAiPlayer)
+    -- Set Entity Archetype
+    self:setArchetype(Enums.EntityArchetype.PlayerEntity)
+
     -- Name Component
     self:addComponent(NameComponent(name))
 
@@ -16,7 +19,7 @@ local Player = Subclass(Entity, function(self, name, isAiPlayer)
     self:addComponent(PlayerBankAccount(startCredits))
 
     -- AI Component
-    self:addComponent()
+    --self:addComponent()
 end)
 
 return Player

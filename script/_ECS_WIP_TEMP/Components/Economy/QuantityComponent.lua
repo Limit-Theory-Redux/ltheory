@@ -1,8 +1,8 @@
 local Component = require('_ECS_WIP_TEMP.Components.Component')
 
 ---@class QuantityComponent: Component
----@overload fun(self: QuantityComponent, quantity: number): QuantityComponent subclass internal
----@overload fun(quantity: number): QuantityComponent subclass external
+---@overload fun(self: QuantityComponent, quantity: number|nil): QuantityComponent subclass internal
+---@overload fun(quantity: number|nil): QuantityComponent subclass external
 local QuantityComponent = Subclass(Component, function(self, quantity)
     self:setComponentName("EconomyQuantity")
 

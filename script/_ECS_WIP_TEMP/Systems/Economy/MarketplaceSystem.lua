@@ -39,8 +39,10 @@ function MarketplaceSystem:onPreRender()
 
     if marketplaces and #marketplaces > 0 then
         ---@param marketplace MarketplaceComponent
-        for index, marketplace in ipairs(marketplaces) do
-            if not marketplace:getTrader() then
+        for index, marketplace in IteratorIndexed(marketplaces) do
+            local traderEntityInfo = marketplace:getTrader()
+
+            if not traderEntityInfo then
                 goto skipMarketplace
             end
 
@@ -53,11 +55,19 @@ function MarketplaceSystem:onPreRender()
             end
 
             -- update
-            if now:getDifference(nextUpdate) > 0 then
+            if now:getDifference(nextUpdate) <= 0 then
+                nextUpdate = TimeStamp.GetFuture(self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
+                marketplace:setNextUpdate(nextUpdate)
                 --[[ Todo
                     - Update orders
                     - Update item flow
                 ]]
+                local trader = GlobalStorage:getEntity(traderEntityInfo)
+                print(traderEntityInfo, trader)
+
+                if trader then
+                    print(trader:findComponentByArchetype(Enums.ComponentArchetype.NameComponent):getName())
+                end
             end
 
             :: skipMarketplace ::

@@ -5,6 +5,11 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@overload fun(playerId: integer|nil): OrderStatusComponent subclass external
 local OrderStatusComponent = Subclass(Component, function(self)
     self:setComponentName("EconomyOrderStatus")
+
+    -- Set Component Archetype
+    self:setArchetype(Enums.ComponentArchetype.OrderStatusComponent)
+
+    self:setStatus(Enums.OrderStatus.Created)
 end)
 
 ---@param status OrderStatus

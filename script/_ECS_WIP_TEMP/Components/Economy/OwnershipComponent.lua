@@ -5,6 +5,10 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@overload fun(playerId: integer|nil): OwnershipComponent subclass external
 local OwnershipComponent = Subclass(Component, function(self, playerId)
     self:setComponentName("EconomyOwnership")
+
+    -- Set Component Archetype
+    self:setArchetype(Enums.ComponentArchetype.OwnershipComponent)
+
     self:setOwner(playerId)
 end)
 
