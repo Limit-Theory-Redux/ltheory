@@ -1,5 +1,6 @@
 ---@class Items
 local Items = {}
+---@private
 Items.__index = Items
 
 ---@param name string
@@ -15,4 +16,5 @@ function Items:new(name, itemGroup)
     return self[name]
 end
 
+---@return Items
 return Items
