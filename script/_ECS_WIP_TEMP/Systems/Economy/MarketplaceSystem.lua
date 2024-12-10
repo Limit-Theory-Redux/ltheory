@@ -59,7 +59,7 @@ function MarketplaceSystem:onPreRender()
 
             -- update
             if now:getDifference(nextUpdate) > 0 then
-                -- trader handles transaction
+                -- trader handles transaction (trader stats?)
             end
 
             :: skipMarketplace ::

@@ -57,6 +57,16 @@ function Component:getArchetype()
     return self.archetype
 end
 
+---@param entity EntityInfo
+function Component:setEntity(entity)
+    self.entity = entity
+end
+
+---@return EntityInfo
+function Component:getEntity()
+    return self.entity
+end
+
 function Component:addEvents()
     self.events = {}
 end

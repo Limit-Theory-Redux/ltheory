@@ -23,10 +23,12 @@ local classMeta = {
 ---@class ComponentInfo
 ---@field id integer
 ---@field archetype ComponentArchetype
+---@field entity EntityInfo
 
 ---@class ComponentInfoConstructor
 ---@field id integer
 ---@field archetype ComponentArchetype
+---@field entity EntityInfo
 
 ---@private
 ---@param args ComponentInfoConstructor
@@ -39,6 +41,7 @@ function ComponentInfo:new(args)
     local newComponentInfo = setmetatable({
         id = args.id,
         archetype = args.archetype,
+        entity = args.entity
     }, sharedMeta)
 
     return newComponentInfo

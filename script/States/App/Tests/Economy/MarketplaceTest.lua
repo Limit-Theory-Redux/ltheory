@@ -66,4 +66,5 @@ function MarketplaceTest:printInventory(parentEntity, component)
         end
     end
 end
+
 return MarketplaceTest

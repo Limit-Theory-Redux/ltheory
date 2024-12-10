@@ -1,5 +1,10 @@
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
 
+---@type EntityInfo
+local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
+---@type ComponentInfo
+local ComponentInfo = require("_ECS_WIP_TEMP.Shared.Types.ComponentInfo")
+
 ---@class Entity
 ---@field components table<ComponentInfo>
 
@@ -56,7 +61,7 @@ end
 
 ---@return EntityInfo
 function Entity:getEntityInfo()
-    return { archetype = self.archetype, id = self.guid }
+    return EntityInfo { archetype = self.archetype, id = self.guid }
 end
 
 function Entity:addComponents()
@@ -69,7 +74,8 @@ end
 ---@return integer componentInfoIndex
 ---@return Component
 function Entity:addComponent(component)
-    insert(self.components, { id = component:getGuid(), archetype = component:getArchetype() })
+    component:setEntity(self:getEntityInfo())
+    insert(self.components, ComponentInfo { id = component:getGuid(), archetype = component:getArchetype(), entity = self:getEntityInfo() })
     GlobalStorage:storeComponent(component)
     return #self.components, component
 end

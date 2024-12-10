@@ -78,7 +78,7 @@ function GlobalStorage:storeComponent(component)
         Log.Error("Did not provide a valid archetype for component: " .. tostring(component:getGuid()))
     end
     self.components[component:getArchetype()][component:getGuid()] = component
-    return ComponentInfo { id = component:getGuid(), archetype = component:getArchetype() }
+    return ComponentInfo { id = component:getGuid(), archetype = component:getArchetype(), entity = component:getEntity() }
 end
 
 ---@param archetype ComponentArchetype
@@ -86,7 +86,7 @@ end
 ---@return boolean wasSuccessful
 function GlobalStorage:dropComponent(archetype, componentId)
     local component = self.components[archetype][componentId]
-    ---@cast component Component 
+    ---@cast component Component
 
     if component then
         --component:destroy() --* how will we clean up?
