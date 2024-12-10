@@ -42,12 +42,16 @@ impl TimeStamp {
 
     /// Get difference between 2 timestamps in double seconds.
     pub fn get_difference(&self, end_time: &TimeStamp) -> f64 {
-        let difference = end_time
-            .value
-            .duration_since(self.value)
-            .expect("Cannot get timestamp difference");
-
-        difference.as_secs_f64()
+        match end_time.value.duration_since(self.value) {
+            Ok(difference) => difference.as_secs_f64(),
+            Err(_e) => {
+                let difference = self
+                    .value
+                    .duration_since(end_time.value)
+                    .expect("Time overflow");
+                -difference.as_secs_f64()
+            }
+        }
     }
 
     /// Number of seconds elapsed since this timestamp.
