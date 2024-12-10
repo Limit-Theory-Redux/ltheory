@@ -1,6 +1,6 @@
-local AutoShaderVar = require("_ECS_WIP_TEMP.Shared.Rendering.AutoShaderVar") --!temp path
+local AutoShaderVar = require("_ECS_WIP_TEMP.Shared.Rendering.AutoShaderVar")   --!temp path
 local ConstShaderVar = require("_ECS_WIP_TEMP.Shared.Rendering.ConstShaderVar") --!temp path
-local Texture = require("_ECS_WIP_TEMP.Shared.Rendering.Texture") --!temp path
+local Texture = require("_ECS_WIP_TEMP.Shared.Rendering.Texture")               --!temp path
 
 ---@class Material
 ---@field vs string -- 'res/shader/vertex/'
@@ -100,7 +100,7 @@ function Material:setAllShaderVars(eye, entity)
 end
 
 ---@return Material ClonedMaterial
-function Material:clone() 
+function Material:clone()
     local cloneMaterial = Material(self.vs, self.fs, self.blendMode)
     cloneMaterial.textures = self.textures
     cloneMaterial.autoShaderVars = self.autoShaderVars

@@ -3,10 +3,10 @@
 Going off of old Material.lua we have to use :setTex2D on the shaderState which requires a string comparison. Shouldn't we be able to set w/ an int?
 Other Places like Dust.lua creates a local Tex2D and uses setTex2D on the Shader
 
-Where should we use Shader vs. ShaderState, why would can't we store uniformInt for ShaderState? 
+Where should we use Shader vs. ShaderState, why would can't we store uniformInt for ShaderState?
 Isn't ShaderState just a copy of Shader w/ extra info?
 Aren't we reusing shaders anyways?
-]]--
+]] --
 ---@class TextureSetting
 ---@field magFilter TexFilter
 ---@field minFilter TexFilter
@@ -38,7 +38,6 @@ local Texture = Class(function(self, texName, tex, texType, texSettings)
     else
         self.texSettings = texSettings
     end
-    self.tex:acquire()
     self:setTextureState()
 end)
 
@@ -54,13 +53,17 @@ end
 function Texture:setTextureToShaderState(shaderState)
     local setTex = {
         [Enums.UniformType.Tex1D] = function()
-            shaderState:setTex1D(self.texName, self.tex) end,
+            shaderState:setTex1D(self.texName, self.tex)
+        end,
         [Enums.UniformType.Tex2D] = function()
-            shaderState:setTex2D(self.texName, self.tex) end,
+            shaderState:setTex2D(self.texName, self.tex)
+        end,
         [Enums.UniformType.Tex3D] = function()
-            shaderState:setTex3D(self.texName, self.tex) end,
+            shaderState:setTex3D(self.texName, self.tex)
+        end,
         [Enums.UniformType.TexCube] = function()
-            shaderState:setTexCube(self.texName, self.tex) end
+            shaderState:setTexCube(self.texName, self.tex)
+        end
     }
     setTex[self.texType]()
 end

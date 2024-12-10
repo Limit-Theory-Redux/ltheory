@@ -3,7 +3,7 @@ local MaterialDefinition = require("_ECS_WIP_TEMP.Shared.Types.MaterialDefinitio
 -- Definitions --
 local ShaderVarFuncs = require("_ECS_WIP_TEMP.Shared.Definitions.ShaderVarFuncs")
 
-MaterialDefinition{
+MaterialDefinition {
     name = "Asteroid",
     vs_name = "wvp",
     fs_name = "material/asteroid",
@@ -12,36 +12,36 @@ MaterialDefinition{
         { texName = "texDiffuse", tex = Cache.Texture('rock'), texType = Enums.UniformType.Tex2D, texSettings = nil }
     },
     autoShaderVars = {
-        { uniformName = "mWorld", uniformType = Enums.UniformType.Matrix, callbackFn = ShaderVarFuncs.mWorldFunc},
-        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc},
-        { uniformName = "scale", uniformType = Enums.UniformType.Float, callbackFn = ShaderVarFuncs.scaleFunc}
+        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  callbackFn = ShaderVarFuncs.mWorldFunc },
+        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc },
+        { uniformName = "scale",    uniformType = Enums.UniformType.Float,   callbackFn = ShaderVarFuncs.scaleFunc }
     }
 }
 
-MaterialDefinition{
+MaterialDefinition {
     name = "Metal",
     vs_name = "wvp",
     fs_name = "material/metal",
     blendMode = BlendMode.Disabled,
     textures = {
         { texName = "texDiffuse", tex = Cache.Texture('metal/01_d'), texType = Enums.UniformType.Tex2D, texSettings = nil },
-        { texName = "texNormal", tex = Cache.Texture('metal/01_n'), texType = Enums.UniformType.Tex2D, texSettings = nil },
-        { texName = "texSpec", tex = Cache.Texture('metal/01_s'), texType = Enums.UniformType.Tex2D, texSettings = nil }
+        { texName = "texNormal",  tex = Cache.Texture('metal/01_n'), texType = Enums.UniformType.Tex2D, texSettings = nil },
+        { texName = "texSpec",    tex = Cache.Texture('metal/01_s'), texType = Enums.UniformType.Tex2D, texSettings = nil }
     },
     autoShaderVars = {
-        { uniformName = "mWorld", uniformType = Enums.UniformType.Matrix, callbackFn = ShaderVarFuncs.mWorldFunc},
-        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc},
-        { uniformName = "scale", uniformType = Enums.UniformType.Float, callbackFn = ShaderVarFuncs.scaleFunc}
+        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  callbackFn = ShaderVarFuncs.mWorldFunc },
+        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc },
+        { uniformName = "scale",    uniformType = Enums.UniformType.Float,   callbackFn = ShaderVarFuncs.scaleFunc }
     }
 }
 
-MaterialDefinition{
+MaterialDefinition {
     name = "DebugColor",
     vs_name = "wvp",
     fs_name = "material/solidcolor",
     blendMode = BlendMode.Disabled,
     autoShaderVars = {
-        { uniformName = "mWorld", uniformType = Enums.UniformType.Matrix, callbackFn = ShaderVarFuncs.mWorldFunc},
-        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc},
+        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  callbackFn = ShaderVarFuncs.mWorldFunc },
+        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc },
     }
 }
