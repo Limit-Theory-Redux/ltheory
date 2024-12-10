@@ -11,7 +11,7 @@ local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarch
 
 -- Types
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
-local Materials = require("_ECS_WIP_TEMP.Shared.Rendering.Materials")
+local Materials = require("script._ECS_WIP_TEMP.Shared.Registries.Materials")
 
 ---@class AsteroidEntity: Entity
 ---@overload fun(self: AsteroidEntity, seed: integer): AsteroidEntity subclass internal
@@ -30,11 +30,10 @@ local AsteroidEntity = Subclass(Entity, function(self, seed)
     self:addComponent(TransformComponent())
 
     -- Mass Component
-    --TODO: Causes Error: "Error: Did not provide a valid archetype for component: 9ULL"
-    -- self:addComponent(MassComponent())
+    self:addComponent(MassComponent())
 
     -- Render Component
-    self:addComponent(RenderComponent({Materials.Asteroid}, Enums.MeshType.Asteroid))
+    self:addComponent(RenderComponent({ Materials.Asteroid }, Enums.MeshType.Asteroid))
 
     -- RigidBody Component
     self:addComponent(RigidBodyComponent())

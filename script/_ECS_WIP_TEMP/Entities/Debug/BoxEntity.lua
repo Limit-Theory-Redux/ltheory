@@ -8,7 +8,7 @@ local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarch
 
 -- Types
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
-local Materials = require("_ECS_WIP_TEMP.Shared.Rendering.Materials")
+local Materials = require("script._ECS_WIP_TEMP.Shared.Registries.Materials")
 
 ---@class BoxEntity: Entity
 ---@overload fun(self: BoxEntity): BoxEntity subclass internal
@@ -23,7 +23,7 @@ local BoxEntity = Subclass(Entity, function(self)
     -- Render Component
     local boxMaterial = Materials.DebugColor() ---@type Material
     boxMaterial:addStaticShaderVar("color", Enums.UniformType.Float3, function() return 0.0, 1.0, 1.0 end)
-    self:addComponent(RenderComponent({boxMaterial}, Enums.MeshType.Box))
+    self:addComponent(RenderComponent({ boxMaterial }, Enums.MeshType.Box))
 
     -- RigidBody Component
     self:addComponent(RigidBodyComponent())

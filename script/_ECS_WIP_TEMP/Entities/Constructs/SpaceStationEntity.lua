@@ -6,6 +6,7 @@ local SeedComponent = require("_ECS_WIP_TEMP.Components.Generation.SeedComponent
 local TransformComponent = require("_ECS_WIP_TEMP.Components.Physics.TransformComponent")     --!temp path
 local MassComponent = require("_ECS_WIP_TEMP.Components.Physics.MassComponent")               --!temp path
 local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarchy")           --!temp path
+local InventoryComponent = require("_ECS_WIP_TEMP.Components.Economy.InventoryComponent")     --!temp path
 local MarketplaceComponent = require("_ECS_WIP_TEMP.Components.Economy.MarketplaceComponent") --!temp path
 
 -- Types
@@ -35,6 +36,9 @@ local SpaceStationEntity = Subclass(Entity, function(self, seed)
         id = self:getGuid(),
         archetype = self:getArchetype()
     }))
+
+    -- Inventory Component
+    self:addComponent(InventoryComponent())
 
     -- Marketplace Component
     self:addComponent(MarketplaceComponent())

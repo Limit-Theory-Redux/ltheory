@@ -1,4 +1,5 @@
 -- Types --
+---@type MaterialDefinition
 local MaterialDefinition = require("_ECS_WIP_TEMP.Shared.Types.MaterialDefinition")
 -- Definitions --
 local ShaderVarFuncs = require("_ECS_WIP_TEMP.Shared.Definitions.ShaderVarFuncs")

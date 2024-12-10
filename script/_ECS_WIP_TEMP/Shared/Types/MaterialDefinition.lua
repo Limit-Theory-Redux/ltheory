@@ -1,5 +1,6 @@
 local Material = require("_ECS_WIP_TEMP.Shared.Rendering.Material")
-local Materials = require("_ECS_WIP_TEMP.Shared.Rendering.Materials")
+local Materials = require("_ECS_WIP_TEMP.Shared.Registries.Materials")
+
 local MaterialDefinition = {}
 MaterialDefinition.__index = MaterialDefinition
 
@@ -75,7 +76,7 @@ function MaterialDefinition:new(args)
         newMaterial:addTextures(args.textures)
     end
     -- Set AutoShaderVars
-    if args.autoShaderVars then 
+    if args.autoShaderVars then
         newMaterial:addAutoShaderVars(args.autoShaderVars)
     end
     -- Set ConstShaderVars
@@ -83,10 +84,6 @@ function MaterialDefinition:new(args)
         newMaterial:addConstShaderVars(args.constShaderVars)
     end
 
-    -- Add New Material to Materials Registery
-    Materials:new(args.name, newMaterial)
-
-    -- TODO: Unclear if needed
     -- sets newMaterialDefinition and returns it
     local newMaterialDefinition = setmetatable({
         name = args.name,
@@ -97,6 +94,10 @@ function MaterialDefinition:new(args)
         autoShaderVars = args.autoShaderVars,
         constShaderVars = args.constShaderVars
     }, sharedMeta)
+
+    -- Add New Material to Materials Registery
+    Materials:new(args.name, newMaterialDefinition)
+
     return newMaterialDefinition
 end
 

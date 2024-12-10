@@ -50,6 +50,9 @@ Enums.ComponentArchetype = { --* reorder these later
     SeedComponent = 12,
     ShapeComponent = 13,
     MarketplaceComponent = 14,
+    MassComponent = 15,
+    InventoryComponent = 16,
+    QuantityComponent = 17
     -- ...
 }
 
