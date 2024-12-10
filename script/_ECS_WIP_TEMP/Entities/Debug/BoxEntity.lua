@@ -22,7 +22,7 @@ local BoxEntity = Subclass(Entity, function(self)
 
     -- Render Component
     local boxMaterial = Materials.DebugColor() ---@type Material
-    boxMaterial:addStaticShaderVar("color", Enums.UniformType.Float3, function() return 0.0, 1.0, 1.0 end)
+    boxMaterial:addStaticShaderVar("color", Enums.UniformType.Float3, function() return 1.0, 0.0, 1.0 end)
     self:addComponent(RenderComponent({ boxMaterial }, Enums.MeshType.Box))
 
     -- RigidBody Component

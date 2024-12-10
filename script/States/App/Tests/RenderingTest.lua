@@ -1,11 +1,11 @@
 -- Entities
-local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")                   --!temp path
-local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity")                 --!temp path
+local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")            --!temp path
+local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity")          --!temp path
 -- Storage
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage")        --!temp path
+local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
 -- Systems
 ---@type CameraSystem
-local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem")        --!temp path
+local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem") --!temp path
 -- Generators
 
 -- Utilities
@@ -22,7 +22,7 @@ function RenderingTest:onInit()
     -- Set App Settings --
     self.profilerFont = Font.Load('NovaMono', 20)
     self.profiling = true
-    
+
     self.renderer = RenderPipeline()
 
     -- Initialize Materials --
@@ -37,23 +37,25 @@ function RenderingTest:onInit()
     local entityInfo = GlobalStorage:storeEntity(camera)
 
     CameraSystem:setCamera(entityInfo)
-    CameraSystem.currentCameraTransform:setPosition(Position(0,0,0))
+    CameraSystem.currentCameraTransform:setPosition(Position(0, 0, 0))
     CameraSystem.currentCameraTransform:setRotation(Quat.Identity())
 
     -- Create First RNG for Scene
     -- local rng = RNG.Create(0):managed()
-    
+
     -- Generate Box Mesh
     self.boxMesh = Mesh.Box(7)
     -- Get Box Entity and Components
     self.boxEntity = BoxEntity()
     self.boxRend = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RenderComponent)
     -- Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
+    ---@type RigidBodyComponent
     self.boxRB = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RigidBodyComponent)
     -- Set RigidBody
     self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(self.boxMesh))
     self.boxRB:getRigidBody():setPos(Position(0, 0, -5))
-    self.position = 0.0
+
+    self.rotationQuaternion = Quat(0, 0, 0, 1) -- Identity quaternion
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
@@ -72,14 +74,39 @@ function RenderingTest:onPreRender(data)
     if self.timeScale ~= EventBus:getTimeScale() then
         EventBus:setTimeScale(self.timeScale)
     end
+
     -- Get Delta Time
     local timeScaledDt = data:deltaTime()
-    self.position = self.position + 1*timeScaledDt
-    self.boxRB:getRigidBody():setPos(Position(self.position, self.position, -5))
+
+    -- Define the rotation axis
+    local rotationAxis = Vec3f(1, 1, 1)
+
+    -- Manually compute the rotation quaternion for the incremental rotation
+    --! Since Quat.FromAxisAngle && Quat.SetRotLocal do not work as intended
+    -- TODO: Fix
+    -- Probably a small refactor where passing a precreated Quat is not necessary would be nice to
+    -- e.g. local quat = Quat.FromAxisAngle(x, x)
+    local angle = math.rad(10) * timeScaledDt
+    local halfAngle = angle / 2
+    local sinHalfAngle = math.sin(halfAngle)
+    local cosHalfAngle = math.cos(halfAngle)
+    local rotateByQuaternion = Quat(
+        rotationAxis.x * sinHalfAngle,
+        rotationAxis.y * sinHalfAngle,
+        rotationAxis.z * sinHalfAngle,
+        cosHalfAngle
+    )
+
+    -- Update the accumulated rotation quaternion
+    self.rotationQuaternion = self.rotationQuaternion * rotateByQuaternion
+
+    -- Apply the combined rotation to the rigid body
+    -- Shouldnt setRotLocal do this?
+    self.boxRB:getRigidBody():setRot(self.rotationQuaternion)
 
     --[[
         < Previously where Player and UI Canvas Updates were Called
-    ]]--
+    ]] --
 
     do -- Handle App Resizing
         Profiler.SetValue('gcmem', GC.GetMemory())
@@ -122,7 +149,7 @@ function RenderingTest:onRender(data)
     RenderState.PushAllDefaults()
 
     CameraSystem:updateViewMatrix()
-    CameraSystem:updateProjectionMatrix(self.resX,self.resY)
+    CameraSystem:updateProjectionMatrix(self.resX, self.resY)
 
     local camEye = CameraSystem:getCurrentCameraEye()
     CameraSystem:beginDraw(CameraSystem.currentCameraData, CameraSystem.currentCameraTransform)
