@@ -29,7 +29,7 @@ function ConstShaderVar:setUniformInt(shader)
         self.uniformInt = shader:getVariable(self.uniformName)
         return true
     else
-        Log.Error("Shader " .. shader .. ": Does not have uniform: " .. uniformName)
+        Log.Error("Shader " .. tostring(shader) .. ": Does not have uniform: " .. self.uniformName)
         return false
     end
 end
