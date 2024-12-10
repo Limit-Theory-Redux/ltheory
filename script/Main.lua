@@ -82,6 +82,10 @@ function InitSystem()
         -- io.output(logG)
         -- io.write(Inspect(_G))
         -- io.close(logG)
+
+        -- check for / and replace with . to allow for subdirectory calls (e.g. ECS/UniverseCreationTest)
+        if app:find("/") then app:gsub("/", ".") end
+
         local foundState, state = pcall(require, 'States.App.' .. app)
         local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
 
