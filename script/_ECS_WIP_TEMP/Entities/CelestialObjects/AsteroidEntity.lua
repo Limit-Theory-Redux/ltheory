@@ -11,7 +11,7 @@ local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarch
 
 -- Types
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
-local Materials = require("script._ECS_WIP_TEMP.Shared.Registries.Materials")
+local Materials = require("_ECS_WIP_TEMP.Shared.Registries.Materials")
 
 ---@class AsteroidEntity: Entity
 ---@overload fun(self: AsteroidEntity, seed: integer): AsteroidEntity subclass internal

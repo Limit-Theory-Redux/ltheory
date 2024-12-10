@@ -22,7 +22,7 @@ function AutoShaderVar:setUniformInt(shader)
         self.uniformInt = shader:getVariable(self.uniformName)
         return true
     else
-        Log.Error("Shader " .. tostring(shader) .. ": Does not have uniform: " .. self.uniformName)
+        Log.Warn("Shader " .. tostring(shader) .. ": Does not have uniform: " .. self.uniformName)
         return false
     end
 end
@@ -34,6 +34,11 @@ function AutoShaderVar:setShaderVar(eye, shader, entity)
     if not self.uniformInt then
         Log.Warn("Uniform " .. self.uniformName .. " int not set before updateShaderVar")
         self:setUniformInt(shader)
+    end
+
+    -- ignore var if uniform is nil
+    if not self.uniformInt then
+        return
     end
     UniformFuncs[self.uniformType](shader, self.uniformInt, self.callbackFn(eye, entity))
 end

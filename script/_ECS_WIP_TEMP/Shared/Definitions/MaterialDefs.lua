@@ -42,7 +42,6 @@ MaterialDefinition {
     fs_name = "material/solidcolor",
     blendMode = BlendMode.Disabled,
     autoShaderVars = {
-        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  callbackFn = ShaderVarFuncs.mWorldFunc },
-        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc },
+        { uniformName = "mWorld", uniformType = Enums.UniformType.Matrix, callbackFn = ShaderVarFuncs.mWorldFunc },
     }
 }
