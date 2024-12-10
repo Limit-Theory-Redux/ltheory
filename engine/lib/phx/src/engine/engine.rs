@@ -94,7 +94,7 @@ impl Engine {
                         .globals()
                         .get("HandleEngineError")
                         .expect("Unknown function HandleEngineError");
-                    if let Err(e) = handle_error_func.call::<_, ()>(panic_message) {
+                    if let Err(e) = handle_error_func.call::<()>(panic_message) {
                         trace!("{}", e);
                     }
                 } else {
@@ -135,7 +135,7 @@ impl Engine {
             .globals()
             .get(func_name)
             .unwrap_or_else(|err| panic!("Unknown function {}. Error: {err}", func_name));
-        let result = lua_func.call::<_, ()>(());
+        let result = lua_func.call::<()>(());
 
         CURRENT_LUA_CTX.with_borrow_mut(|v| *v = None);
 

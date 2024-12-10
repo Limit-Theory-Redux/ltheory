@@ -1,5 +1,6 @@
 use std::cell::{Ref, RefMut};
 use std::io::BufReader;
+use std::time::SystemTime;
 
 use memoffset::offset_of;
 use tobj::LoadError;
@@ -19,13 +20,17 @@ struct MeshShared {
     vbo: gl::types::GLuint,
     ibo: gl::types::GLuint,
     vao: gl::types::GLuint,
+    uuid: u64,
     version: u64,
     version_buffers: u64,
-    versionInfo: u64,
+    version_info: u64,
     info: Computed,
     index: Vec<i32>,
     vertex: Vec<Vertex>,
 }
+
+#[derive(PartialEq, Eq, Hash, Debug, Copy, Clone)]
+pub struct MeshCacheKey(u128);
 
 #[derive(Copy, Clone, Default)]
 #[repr(C)]
@@ -42,7 +47,7 @@ pub struct Computed {
 
 impl MeshShared {
     fn update_info(&mut self) {
-        if self.versionInfo == self.version {
+        if self.version_info == self.version {
             return;
         }
 
@@ -61,7 +66,11 @@ impl MeshShared {
             r2 = f64::max(r2, dx * dx + dy * dy + dz * dz);
         }
         self.info.radius = f64::sqrt(r2) as f32;
-        self.versionInfo = self.version;
+        self.version_info = self.version;
+    }
+
+    pub fn get_cache_key(&self) -> MeshCacheKey {
+        MeshCacheKey(((self.uuid as u128) << 64) | self.version as u128)
     }
 }
 
@@ -76,6 +85,10 @@ impl Drop for MeshShared {
 }
 
 impl Mesh {
+    pub fn get_cache_key(&self) -> MeshCacheKey {
+        self.shared.as_ref().get_cache_key()
+    }
+
     pub fn get_vertex_data(&self) -> Ref<[Vertex]> {
         Ref::map(self.shared.as_ref(), |shared| shared.vertex.as_slice())
     }
@@ -113,14 +126,21 @@ impl Mesh {
 impl Mesh {
     #[bind(name = "Create")]
     pub fn new() -> Mesh {
+        // Take the first 64 bits of the nanoseconds since unix epoch as a UUID. 2^63 nanoseconds
+        // is 300 years, so we wont ever have any wraparounds of UUIDs.
+        let uuid = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .expect("Time cannot be before Unix epoch")
+            .as_nanos() as u64;
         Mesh {
             shared: Rf::new(MeshShared {
                 vbo: 0,
                 ibo: 0,
                 vao: 0,
+                uuid,
                 version: 1,
                 version_buffers: 0,
-                versionInfo: 0,
+                version_info: 0,
                 info: Computed {
                     bound: Box3::default(),
                     radius: 0.0,
