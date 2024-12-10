@@ -31,12 +31,7 @@ end
 
 function MarketplaceSystem:onPreRender()
     self.profiler:start()
-    --[[ Todo
-    - Get marketplaces (x)
-    - Check if marketplace has trader assigned (x)
-    - Update offers
-    - Update item flow
-    ]]
+
     local marketplaces = GlobalStorage:getComponentsFromArchetype(Enums.ComponentArchetype.MarketplaceComponent)
     ---@cast marketplaces table<MarketplaceComponent>
 
@@ -59,7 +54,10 @@ function MarketplaceSystem:onPreRender()
 
             -- update
             if now:getDifference(nextUpdate) > 0 then
-                -- trader handles transaction (trader stats?)
+                --[[ Todo
+                    - Update orders
+                    - Update item flow
+                ]]
             end
 
             :: skipMarketplace ::

@@ -84,6 +84,9 @@ function MaterialDefinition:new(args)
         newMaterial:addConstShaderVars(args.constShaderVars)
     end
 
+    -- Add New Material to Materials Registery
+    Materials:new(args.name, newMaterial)
+
     -- sets newMaterialDefinition and returns it
     local newMaterialDefinition = setmetatable({
         name = args.name,
@@ -94,9 +97,6 @@ function MaterialDefinition:new(args)
         autoShaderVars = args.autoShaderVars,
         constShaderVars = args.constShaderVars
     }, sharedMeta)
-
-    -- Add New Material to Materials Registery
-    Materials:new(args.name, newMaterialDefinition)
 
     return newMaterialDefinition
 end

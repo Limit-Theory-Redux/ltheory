@@ -24,6 +24,8 @@ local OrderEntity = Subclass(Entity, function(self)
 
     -- Expiry Component
     self:addComponent(ExpiryComponent())
+
+    --todo: add owner/issuer
 end)
 
 return OrderEntity
