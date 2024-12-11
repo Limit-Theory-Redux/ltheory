@@ -166,9 +166,7 @@ function Entity:destroy()
         for component in self:iterComponents() do
             local success = GlobalStorage:dropComponent(component.archetype, component.guid)
 
-            if success then
-                return true
-            else
+            if not success then
                 noFail = false
             end
         end
