@@ -2,6 +2,7 @@
                   Message logging functions.
 ----------------------------------------------------------------------------]]
 --
+---@class Log
 local Log = {}
 
 -- Lowlevel tracing information

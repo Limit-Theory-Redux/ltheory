@@ -4,7 +4,7 @@ local Actions = requireAll('GameObjects.Actions')
 local Jobs = requireAll('GameObjects.Jobs')
 
 ---@class Universe
-local Universe = class(function(self) end)
+local Universe = Class(function(self) end)
 
 local firstRun = true
 
@@ -22,13 +22,13 @@ function Universe:init(seed)
     self.universeSeed = seed
     self.universeRng = RNG.Create(seed):managed()
     self.systems = {}
-    self.players = {}   --* system or universe layer?
-    self.aiPlayers = {} --* system or universe layer?
-    self.factions = {}  --* system or universe layer?
+    self.players = {}                                                           --* system or universe layer?
+    self.aiPlayers = {}                                                         --* system or universe layer?
+    self.factions = {}                                                          --* system or universe layer?
     self.economy = UniverseEconomy:init()
     self.objectsTotal = GameState.gen.nEconNPCs + GameState.gen.nEscortNPCs + 2 -- total number of universe objects to create
-    self.objectsCurrent = 0 -- number of universe objects created so far
-    self.progressBar = nil -- ref to the LoadGame/NewGame progress bar for this universe
+    self.objectsCurrent = 0                                                     -- number of universe objects created so far
+    self.progressBar = nil                                                      -- ref to the LoadGame/NewGame progress bar for this universe
     firstRun = false
 end
 
@@ -190,7 +190,7 @@ end
 ---increment the number of objects created in the universe by one and update the LoadGame/NewGame progress bar
 function Universe:incrementObjects()
     self.objectsCurrent = self.objectsCurrent + 1
-printf("Current count of universe objects = %d out of total objects = %d", self.objectsCurrent, self.objectsTotal)
+    printf("Current count of universe objects = %d out of total objects = %d", self.objectsCurrent, self.objectsTotal)
 
     if self.progressBar then
         self.progressBar.currentValue = self.objectsCurrent
