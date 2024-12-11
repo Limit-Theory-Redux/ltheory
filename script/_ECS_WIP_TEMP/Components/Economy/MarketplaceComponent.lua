@@ -14,7 +14,9 @@ end)
 
 function MarketplaceComponent:init()
     self.bids = {}
+    SetLengthMetamethod(self.bids)
     self.asks = {}
+    SetLengthMetamethod(self.asks)
 end
 
 ---@param timestamp TimeStamp
@@ -87,6 +89,16 @@ function MarketplaceComponent:removeAsk(entityInfo)
 
     self.asks[entityInfo.id] = nil
     return true
+end
+
+---@return table<EntityInfo>
+function MarketplaceComponent:getBids()
+    return self.bids
+end
+
+---@return table<EntityInfo>
+function MarketplaceComponent:getAsks()
+    return self.asks
 end
 
 return MarketplaceComponent

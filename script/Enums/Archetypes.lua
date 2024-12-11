@@ -56,7 +56,9 @@ Enums.ComponentArchetype = { --* reorder these later
     OwnershipComponent = 18,
     OrderStatusComponent = 19,
     ExpiryComponent = 20,
-    PlayerBankAccount = 21
+    PlayerBankAccount = 21,
+    PriceComponent = 22,
+    ItemTypeComponent = 23
     -- ...
 }
 

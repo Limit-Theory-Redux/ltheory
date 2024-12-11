@@ -14,29 +14,34 @@ end)
 
 function InventoryComponent:init()
     self.items = {}
+    SetLengthMetamethod(self.items)
 end
 
 function InventoryComponent:getInventory()
     return self.items
 end
 
-function InventoryComponent:put(itemEntityInfo)
-    if self.items[itemEntityInfo.archetype] then
-        self.items[itemEntityInfo.archetype][itemEntityInfo.id] = itemEntityInfo
-        return true
-    elseif not self.items[itemEntityInfo.archetype] then
-        self.items[itemEntityInfo.archetype] = {}
-        self.items[itemEntityInfo.archetype][itemEntityInfo.id] = itemEntityInfo
-        return true
+function InventoryComponent:addItem(type, itemEntityInfo)
+    if not self.items[type] then
+        self.items[type] = {}
     end
-    return false
+    self.items[type][itemEntityInfo.id] = itemEntityInfo
 end
 
-function InventoryComponent:take(itemEntityInfo)
-    if self.items[itemEntityInfo.archetype] and self.items[itemEntityInfo.archetype][itemEntityInfo.id] then
-        return self.items[itemEntityInfo.archetype][itemEntityInfo.id]
+function InventoryComponent:removeItem(type, id)
+    if self.items[type] and self.items[type][id] then
+        local removed = self.items[type][id]
+        self.items[type][id] = nil
+        if next(self.items[type]) == nil then
+            self.items[type] = nil
+        end
+        return removed
     end
-    return false
+    return nil
+end
+
+function InventoryComponent:getItemsOfType(type)
+    return self.items[type] or {}
 end
 
 return InventoryComponent

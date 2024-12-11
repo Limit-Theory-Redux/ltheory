@@ -21,6 +21,8 @@ local classMeta = {
 }
 
 ---@class ItemDefinition
+---@field id integer
+---@field group string
 ---@field name string
 ---@field mass number
 ---@field energy number

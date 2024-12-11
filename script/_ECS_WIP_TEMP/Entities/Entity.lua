@@ -152,8 +152,56 @@ function Entity:iterComponents()
     return Iterator(components)
 end
 
-function Entity:destroy() --todo: introduce proper clean up mechanism
-    --todo
+-- does not handle clearing from GlobalStorage
+function Entity:clearComponents()
+    self.components = {}
+end
+
+---@return boolean success
+function Entity:destroy()
+    local success = GlobalStorage:dropEntity(self.archetype, self.guid)
+
+    if success then
+        local noFail = true
+        for component in self:iterComponents() do
+            local success = GlobalStorage:dropComponent(component.archetype, component.guid)
+
+            if success then
+                return true
+            else
+                noFail = false
+            end
+        end
+
+        if noFail then
+            self:clearComponents()
+            self = nil
+            return true
+        end
+    end
+    -- revert
+    GlobalStorage:storeEntity(self)
+
+    for component in self:iterComponents() do
+        GlobalStorage:storeComponent(component)
+    end
+    return false
+end
+
+function Entity:clone()
+    local clone = ShallowClone(self)
+    clone:addGuid()
+    clone:clearComponents()
+
+    for component in self:iterComponents() do
+        local clonedComponent = DeepClone(component)
+        clonedComponent:addGuid()
+        clone:addComponent(clonedComponent)
+    end
+
+    local cloneEntityInfo = GlobalStorage:storeEntity(clone)
+
+    return clone, cloneEntityInfo
 end
 
 return Entity
