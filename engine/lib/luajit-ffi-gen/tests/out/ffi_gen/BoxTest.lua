@@ -40,9 +40,9 @@ function Loader.defineType()
                 setPrimitive = libphx.BoxTest_SetPrimitive,
                 getPrimitive = libphx.BoxTest_GetPrimitive,
                 setManaged   = libphx.BoxTest_SetManaged,
-                getManaged   = function(...)
-                    local instance = libphx.BoxTest_GetManaged(...)
-                    return Core.ManagedObject(instance, libphx.ManagedData_Free)
+                getManaged   = function(self)
+                    local _instance = libphx.BoxTest_GetManaged(self)
+                    return Core.ManagedObject(_instance, libphx.ManagedData_Free)
                 end,
                 setCopyable  = libphx.BoxTest_SetCopyable,
                 getCopyable  = libphx.BoxTest_GetCopyable,

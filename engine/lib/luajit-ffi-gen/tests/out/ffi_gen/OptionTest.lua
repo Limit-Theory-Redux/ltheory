@@ -64,9 +64,9 @@ function Loader.defineType()
                 setManaged      = libphx.OptionTest_SetManaged,
                 setManagedRef   = libphx.OptionTest_SetManagedRef,
                 setManagedMut   = libphx.OptionTest_SetManagedMut,
-                getManaged      = function(...)
-                    local instance = libphx.OptionTest_GetManaged(...)
-                    return Core.ManagedObject(instance, libphx.ManagedData_Free)
+                getManaged      = function(self)
+                    local _instance = libphx.OptionTest_GetManaged(self)
+                    return Core.ManagedObject(_instance, libphx.ManagedData_Free)
                 end,
                 getManagedRef   = libphx.OptionTest_GetManagedRef,
                 getManagedMut   = libphx.OptionTest_GetManagedMut,

@@ -325,9 +325,8 @@ impl Payload {
         value.iter().for_each(|v| f(v));
     }
 
-    pub fn from_table(value: &PayloadTable) -> Self {
-        // TODO: send table by value - fix FFI
-        Self::Table(Box::new(value.clone()))
+    pub fn from_table(value: PayloadTable) -> Self {
+        Self::Table(Box::new(value))
     }
 
     pub fn get_table(&self) -> &PayloadTable {

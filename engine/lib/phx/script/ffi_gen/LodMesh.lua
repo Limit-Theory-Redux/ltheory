@@ -27,9 +27,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         LodMesh = {
-            Create = function(...)
-                local instance = libphx.LodMesh_Create(...)
-                return Core.ManagedObject(instance, libphx.LodMesh_Free)
+            Create = function()
+                local _instance = libphx.LodMesh_Create()
+                return Core.ManagedObject(_instance, libphx.LodMesh_Free)
             end,
         }
 
@@ -41,15 +41,18 @@ function Loader.defineType()
         local t  = ffi.typeof('LodMesh')
         local mt = {
             __index = {
-                clone = function(...)
-                    local instance = libphx.LodMesh_Clone(...)
-                    return Core.ManagedObject(instance, libphx.LodMesh_Free)
+                clone = function(self)
+                    local _instance = libphx.LodMesh_Clone(self)
+                    return Core.ManagedObject(_instance, libphx.LodMesh_Free)
                 end,
-                add   = libphx.LodMesh_Add,
+                add   = function(self, mesh, distanceMin, distanceMax)
+                    local mesh = ffi.gc(mesh, nil)
+                    libphx.LodMesh_Add(self, mesh, distanceMin, distanceMax)
+                end,
                 draw  = libphx.LodMesh_Draw,
-                get   = function(...)
-                    local instance = libphx.LodMesh_Get(...)
-                    return Core.ManagedObject(instance, libphx.Mesh_Free)
+                get   = function(self, distanceSquared)
+                    local _instance = libphx.LodMesh_Get(self, distanceSquared)
+                    return Core.ManagedObject(_instance, libphx.Mesh_Free)
                 end,
             },
         }

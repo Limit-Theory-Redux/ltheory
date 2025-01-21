@@ -49,10 +49,13 @@ function Loader.defineType()
                 tasksWaiting    = libphx.TaskQueue_TasksWaiting,
                 tasksInProgress = libphx.TaskQueue_TasksInProgress,
                 tasksReady      = libphx.TaskQueue_TasksReady,
-                sendTask        = libphx.TaskQueue_SendTask,
-                nextTaskResult  = function(...)
-                    local instance = libphx.TaskQueue_NextTaskResult(...)
-                    return Core.ManagedObject(instance, libphx.TaskResult_Free)
+                sendTask        = function(self, workerId, data)
+                    local data = ffi.gc(data, nil)
+                    return libphx.TaskQueue_SendTask(self, workerId, data)
+                end,
+                nextTaskResult  = function(self, workerId)
+                    local _instance = libphx.TaskQueue_NextTaskResult(self, workerId)
+                    return Core.ManagedObject(_instance, libphx.TaskResult_Free)
                 end,
                 sendEcho        = libphx.TaskQueue_SendEcho,
                 getEcho         = libphx.TaskQueue_GetEcho,

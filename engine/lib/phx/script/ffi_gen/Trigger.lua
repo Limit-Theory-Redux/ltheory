@@ -34,9 +34,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Trigger = {
-            CreateBox        = function(...)
-                local instance = libphx.Trigger_CreateBox(...)
-                return Core.ManagedObject(instance, libphx.Trigger_Free)
+            CreateBox        = function(halfExtents)
+                local _instance = libphx.Trigger_CreateBox(halfExtents)
+                return Core.ManagedObject(_instance, libphx.Trigger_Free)
             end,
         }
 

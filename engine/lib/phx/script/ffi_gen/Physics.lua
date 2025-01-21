@@ -37,9 +37,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Physics = {
-            Create                 = function(...)
-                local instance = libphx.Physics_Create(...)
-                return Core.ManagedObject(instance, libphx.Physics_Free)
+            Create                 = function()
+                local _instance = libphx.Physics_Create()
+                return Core.ManagedObject(_instance, libphx.Physics_Free)
             end,
         }
 

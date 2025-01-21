@@ -23,9 +23,9 @@ function Loader.defineType()
         Resource = {
             Exists     = libphx.Resource_Exists,
             GetPath    = libphx.Resource_GetPath,
-            LoadBytes  = function(...)
-                local instance = libphx.Resource_LoadBytes(...)
-                return Core.ManagedObject(instance, libphx.Bytes_Free)
+            LoadBytes  = function(ty, name)
+                local _instance = libphx.Resource_LoadBytes(ty, name)
+                return Core.ManagedObject(_instance, libphx.Bytes_Free)
             end,
             LoadString = libphx.Resource_LoadString,
         }

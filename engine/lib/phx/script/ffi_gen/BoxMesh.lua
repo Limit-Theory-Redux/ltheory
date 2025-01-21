@@ -25,9 +25,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         BoxMesh = {
-            Create  = function(...)
-                local instance = libphx.BoxMesh_Create(...)
-                return Core.ManagedObject(instance, libphx.BoxMesh_Free)
+            Create  = function()
+                local _instance = libphx.BoxMesh_Create()
+                return Core.ManagedObject(_instance, libphx.BoxMesh_Free)
             end,
         }
 
@@ -40,9 +40,9 @@ function Loader.defineType()
         local mt = {
             __index = {
                 add     = libphx.BoxMesh_Add,
-                getMesh = function(...)
-                    local instance = libphx.BoxMesh_GetMesh(...)
-                    return Core.ManagedObject(instance, libphx.Mesh_Free)
+                getMesh = function(self, res)
+                    local _instance = libphx.BoxMesh_GetMesh(self, res)
+                    return Core.ManagedObject(_instance, libphx.Mesh_Free)
                 end,
             },
         }

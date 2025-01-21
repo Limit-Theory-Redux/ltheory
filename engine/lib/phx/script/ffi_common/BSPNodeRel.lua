@@ -5,17 +5,17 @@ local BSPNodeRel
 
 do -- C Definitions
     ffi.cdef [[
-    BSPNodeRel BSPNodeRel_Parent;
-    BSPNodeRel BSPNodeRel_Back;
-    BSPNodeRel BSPNodeRel_Front;
+    BSPNodeRel BSP_NODE_REL_PARENT;
+    BSPNodeRel BSP_NODE_REL_BACK;
+    BSPNodeRel BSP_NODE_REL_FRONT;
   ]]
 end
 
 do -- Global Symbol Table
     BSPNodeRel = {
-        Parent = libphx.BSPNodeRel_Parent,
-        Back   = libphx.BSPNodeRel_Back,
-        Front  = libphx.BSPNodeRel_Front,
+        Parent = libphx.BSP_NODE_REL_PARENT,
+        Back   = libphx.BSP_NODE_REL_BACK,
+        Front  = libphx.BSP_NODE_REL_FRONT,
     }
 
     if onDef_BSPNodeRel then onDef_BSPNodeRel(BSPNodeRel, mt) end

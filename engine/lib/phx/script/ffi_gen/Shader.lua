@@ -60,13 +60,13 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Shader = {
-            Create        = function(...)
-                local instance = libphx.Shader_Create(...)
-                return Core.ManagedObject(instance, libphx.Shader_Free)
+            Create        = function(vs, fs)
+                local _instance = libphx.Shader_Create(vs, fs)
+                return Core.ManagedObject(_instance, libphx.Shader_Free)
             end,
-            Load          = function(...)
-                local instance = libphx.Shader_Load(...)
-                return Core.ManagedObject(instance, libphx.Shader_Free)
+            Load          = function(vsName, fsName)
+                local _instance = libphx.Shader_Load(vsName, fsName)
+                return Core.ManagedObject(_instance, libphx.Shader_Free)
             end,
         }
 
@@ -78,13 +78,13 @@ function Loader.defineType()
         local t  = ffi.typeof('Shader')
         local mt = {
             __index = {
-                clone         = function(...)
-                    local instance = libphx.Shader_Clone(...)
-                    return Core.ManagedObject(instance, libphx.Shader_Free)
+                clone         = function(self)
+                    local _instance = libphx.Shader_Clone(self)
+                    return Core.ManagedObject(_instance, libphx.Shader_Free)
                 end,
-                toShaderState = function(...)
-                    local instance = libphx.Shader_ToShaderState(...)
-                    return Core.ManagedObject(instance, libphx.ShaderState_Free)
+                toShaderState = function(self)
+                    local _instance = libphx.Shader_ToShaderState(self)
+                    return Core.ManagedObject(_instance, libphx.ShaderState_Free)
                 end,
                 getHandle     = libphx.Shader_GetHandle,
                 getVariable   = libphx.Shader_GetVariable,

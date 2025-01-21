@@ -24,9 +24,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         InstantTime = {
-            Now           = function(...)
-                local instance = libphx.InstantTime_Now(...)
-                return Core.ManagedObject(instance, libphx.InstantTime_Free)
+            Now           = function()
+                local _instance = libphx.InstantTime_Now()
+                return Core.ManagedObject(_instance, libphx.InstantTime_Free)
             end,
         }
 

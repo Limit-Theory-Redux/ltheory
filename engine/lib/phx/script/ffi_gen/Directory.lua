@@ -29,9 +29,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Directory = {
-            Open        = function(...)
-                local instance = libphx.Directory_Open(...)
-                return Core.ManagedObject(instance, libphx.Directory_Free)
+            Open        = function(path)
+                local _instance = libphx.Directory_Open(path)
+                return Core.ManagedObject(_instance, libphx.Directory_Free)
             end,
             Change      = libphx.Directory_Change,
             Create      = libphx.Directory_Create,

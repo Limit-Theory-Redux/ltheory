@@ -24,15 +24,15 @@ function Loader.defineType()
             cstr           PayloadTable_GetName          (PayloadTable const*, uint64 index);
             Payload const* PayloadTable_GetPayload       (PayloadTable const*, uint64 index);
             Payload const* PayloadTable_GetPayloadByName (PayloadTable const*, cstr name);
-            void           PayloadTable_Add              (PayloadTable*, cstr name, Payload const* value);
+            void           PayloadTable_Add              (PayloadTable*, cstr name, Payload* value);
         ]]
     end
 
     do -- Global Symbol Table
         PayloadTable = {
-            Create           = function(...)
-                local instance = libphx.PayloadTable_Create(...)
-                return Core.ManagedObject(instance, libphx.PayloadTable_Free)
+            Create           = function()
+                local _instance = libphx.PayloadTable_Create()
+                return Core.ManagedObject(_instance, libphx.PayloadTable_Free)
             end,
         }
 
@@ -50,7 +50,10 @@ function Loader.defineType()
                 getName          = libphx.PayloadTable_GetName,
                 getPayload       = libphx.PayloadTable_GetPayload,
                 getPayloadByName = libphx.PayloadTable_GetPayloadByName,
-                add              = libphx.PayloadTable_Add,
+                add              = function(self, name, value)
+                    local value = ffi.gc(value, nil)
+                    libphx.PayloadTable_Add(self, name, value)
+                end,
             },
         }
 

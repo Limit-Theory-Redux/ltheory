@@ -45,17 +45,17 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Tex2D = {
-            Create        = function(...)
-                local instance = libphx.Tex2D_Create(...)
-                return Core.ManagedObject(instance, libphx.Tex2D_Free)
+            Create        = function(sx, sy, format)
+                local _instance = libphx.Tex2D_Create(sx, sy, format)
+                return Core.ManagedObject(_instance, libphx.Tex2D_Free)
             end,
-            Load          = function(...)
-                local instance = libphx.Tex2D_Load(...)
-                return Core.ManagedObject(instance, libphx.Tex2D_Free)
+            Load          = function(name)
+                local _instance = libphx.Tex2D_Load(name)
+                return Core.ManagedObject(_instance, libphx.Tex2D_Free)
             end,
-            ScreenCapture = function(...)
-                local instance = libphx.Tex2D_ScreenCapture(...)
-                return Core.ManagedObject(instance, libphx.Tex2D_Free)
+            ScreenCapture = function()
+                local _instance = libphx.Tex2D_ScreenCapture()
+                return Core.ManagedObject(_instance, libphx.Tex2D_Free)
             end,
         }
 
@@ -67,23 +67,23 @@ function Loader.defineType()
         local t  = ffi.typeof('Tex2D')
         local mt = {
             __index = {
-                clone         = function(...)
-                    local instance = libphx.Tex2D_Clone(...)
-                    return Core.ManagedObject(instance, libphx.Tex2D_Free)
+                clone         = function(self)
+                    local _instance = libphx.Tex2D_Clone(self)
+                    return Core.ManagedObject(_instance, libphx.Tex2D_Free)
                 end,
                 save          = libphx.Tex2D_Save,
                 pop           = libphx.Tex2D_Pop,
                 push          = libphx.Tex2D_Push,
                 pushLevel     = libphx.Tex2D_PushLevel,
                 clear         = libphx.Tex2D_Clear,
-                deepClone     = function(...)
-                    local instance = libphx.Tex2D_DeepClone(...)
-                    return Core.ManagedObject(instance, libphx.Tex2D_Free)
+                deepClone     = function(self)
+                    local _instance = libphx.Tex2D_DeepClone(self)
+                    return Core.ManagedObject(_instance, libphx.Tex2D_Free)
                 end,
                 genMipmap     = libphx.Tex2D_GenMipmap,
-                getDataBytes  = function(...)
-                    local instance = libphx.Tex2D_GetDataBytes(...)
-                    return Core.ManagedObject(instance, libphx.Bytes_Free)
+                getDataBytes  = function(self, pf, df)
+                    local _instance = libphx.Tex2D_GetDataBytes(self, pf, df)
+                    return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
                 getFormat     = libphx.Tex2D_GetFormat,
                 getHandle     = libphx.Tex2D_GetHandle,

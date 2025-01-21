@@ -67,7 +67,7 @@ function Loader.defineType()
             void                Payload_ForEachF64      (Payload const*, void (*)(double));
             Payload*            Payload_FromStringArray (cstr* value, uint64 value_size);
             void                Payload_ForEachString   (Payload const*, void (*)(cstr));
-            Payload*            Payload_FromTable       (PayloadTable const* value);
+            Payload*            Payload_FromTable       (PayloadTable* value);
             PayloadTable const* Payload_GetTable        (Payload const*);
             PayloadType         Payload_GetType         (Payload const*);
         ]]
@@ -75,109 +75,110 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Payload = {
-            FromLua         = function(...)
-                local instance = libphx.Payload_FromLua(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromLua         = function(value)
+                local _instance = libphx.Payload_FromLua(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromBool        = function(...)
-                local instance = libphx.Payload_FromBool(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromBool        = function(value)
+                local _instance = libphx.Payload_FromBool(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromI8          = function(...)
-                local instance = libphx.Payload_FromI8(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromI8          = function(value)
+                local _instance = libphx.Payload_FromI8(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromU8          = function(...)
-                local instance = libphx.Payload_FromU8(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromU8          = function(value)
+                local _instance = libphx.Payload_FromU8(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromI16         = function(...)
-                local instance = libphx.Payload_FromI16(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromI16         = function(value)
+                local _instance = libphx.Payload_FromI16(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromU16         = function(...)
-                local instance = libphx.Payload_FromU16(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromU16         = function(value)
+                local _instance = libphx.Payload_FromU16(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromI32         = function(...)
-                local instance = libphx.Payload_FromI32(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromI32         = function(value)
+                local _instance = libphx.Payload_FromI32(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromU32         = function(...)
-                local instance = libphx.Payload_FromU32(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromU32         = function(value)
+                local _instance = libphx.Payload_FromU32(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromI64         = function(...)
-                local instance = libphx.Payload_FromI64(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromI64         = function(value)
+                local _instance = libphx.Payload_FromI64(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromU64         = function(...)
-                local instance = libphx.Payload_FromU64(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromU64         = function(value)
+                local _instance = libphx.Payload_FromU64(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromF32         = function(...)
-                local instance = libphx.Payload_FromF32(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromF32         = function(value)
+                local _instance = libphx.Payload_FromF32(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromF64         = function(...)
-                local instance = libphx.Payload_FromF64(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromF64         = function(value)
+                local _instance = libphx.Payload_FromF64(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromString      = function(...)
-                local instance = libphx.Payload_FromString(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromString      = function(value)
+                local _instance = libphx.Payload_FromString(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromBoolArray   = function(...)
-                local instance = libphx.Payload_FromBoolArray(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromBoolArray   = function(value)
+                local _instance = libphx.Payload_FromBoolArray(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromI8Array     = function(...)
-                local instance = libphx.Payload_FromI8Array(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromI8Array     = function(value)
+                local _instance = libphx.Payload_FromI8Array(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromU8Array     = function(...)
-                local instance = libphx.Payload_FromU8Array(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromU8Array     = function(value)
+                local _instance = libphx.Payload_FromU8Array(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromI16Array    = function(...)
-                local instance = libphx.Payload_FromI16Array(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromI16Array    = function(value)
+                local _instance = libphx.Payload_FromI16Array(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromU16Array    = function(...)
-                local instance = libphx.Payload_FromU16Array(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromU16Array    = function(value)
+                local _instance = libphx.Payload_FromU16Array(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromI32Array    = function(...)
-                local instance = libphx.Payload_FromI32Array(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromI32Array    = function(value)
+                local _instance = libphx.Payload_FromI32Array(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromU32Array    = function(...)
-                local instance = libphx.Payload_FromU32Array(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromU32Array    = function(value)
+                local _instance = libphx.Payload_FromU32Array(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromI64Array    = function(...)
-                local instance = libphx.Payload_FromI64Array(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromI64Array    = function(value)
+                local _instance = libphx.Payload_FromI64Array(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromU64Array    = function(...)
-                local instance = libphx.Payload_FromU64Array(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromU64Array    = function(value)
+                local _instance = libphx.Payload_FromU64Array(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromF32Array    = function(...)
-                local instance = libphx.Payload_FromF32Array(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromF32Array    = function(value)
+                local _instance = libphx.Payload_FromF32Array(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromF64Array    = function(...)
-                local instance = libphx.Payload_FromF64Array(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromF64Array    = function(value)
+                local _instance = libphx.Payload_FromF64Array(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromStringArray = function(...)
-                local instance = libphx.Payload_FromStringArray(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromStringArray = function(value)
+                local _instance = libphx.Payload_FromStringArray(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
-            FromTable       = function(...)
-                local instance = libphx.Payload_FromTable(...)
-                return Core.ManagedObject(instance, libphx.Payload_Free)
+            FromTable       = function(value)
+                local value = ffi.gc(value, nil)
+                local _instance = libphx.Payload_FromTable(value)
+                return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
         }
 

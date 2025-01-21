@@ -40,13 +40,13 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         ShaderState = {
-            Create         = function(...)
-                local instance = libphx.ShaderState_Create(...)
-                return Core.ManagedObject(instance, libphx.ShaderState_Free)
+            Create         = function(shader)
+                local _instance = libphx.ShaderState_Create(shader)
+                return Core.ManagedObject(_instance, libphx.ShaderState_Free)
             end,
-            FromShaderLoad = function(...)
-                local instance = libphx.ShaderState_FromShaderLoad(...)
-                return Core.ManagedObject(instance, libphx.ShaderState_Free)
+            FromShaderLoad = function(vsName, fsName)
+                local _instance = libphx.ShaderState_FromShaderLoad(vsName, fsName)
+                return Core.ManagedObject(_instance, libphx.ShaderState_Free)
             end,
         }
 

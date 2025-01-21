@@ -26,9 +26,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Timer = {
-            Create      = function(...)
-                local instance = libphx.Timer_Create(...)
-                return Core.ManagedObject(instance, libphx.Timer_Free)
+            Create      = function()
+                local _instance = libphx.Timer_Create()
+                return Core.ManagedObject(_instance, libphx.Timer_Free)
             end,
         }
 
