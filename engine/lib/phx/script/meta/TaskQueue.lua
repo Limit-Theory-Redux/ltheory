@@ -46,6 +46,7 @@ function TaskQueue:tasksReady(workerId) end
 ---@param workerId integer
 ---@param data Payload
 ---@return integer?
+---@overload fun(workerId: integer, data: Payload|boolean|integer|number|string): integer?
 function TaskQueue:sendTask(workerId, data) end
 
 -- Returns next result of the finished worker task if any.

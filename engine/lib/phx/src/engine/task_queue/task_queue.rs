@@ -223,6 +223,7 @@ impl TaskQueue {
     }
 
     /// Send a task to the Lua worker.
+    /// @overload fun(workerId: integer, data: Payload|boolean|integer|number|string): integer?
     pub fn send_task(&mut self, worker_id: u16, data: Payload) -> Option<usize> {
         if data.get_type() == PayloadType::Lua {
             error!("Cannot send cached Lua payload to the worker");
