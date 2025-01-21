@@ -54,7 +54,8 @@ impl PayloadTable {
     }
 
     /// Add new element to the table.
-    pub fn add(&mut self, name: &str, value: Payload) {
-        self.table.insert(name.into(), value);
+    pub fn add(&mut self, name: &str, value: &Payload) {
+        // TODO: send table by value - fix FFI
+        self.table.insert(name.into(), value.clone());
     }
 }

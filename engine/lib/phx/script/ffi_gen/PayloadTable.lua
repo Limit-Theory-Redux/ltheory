@@ -24,7 +24,7 @@ function Loader.defineType()
             cstr           PayloadTable_GetName          (PayloadTable const*, uint64 index);
             Payload const* PayloadTable_GetPayload       (PayloadTable const*, uint64 index);
             Payload const* PayloadTable_GetPayloadByName (PayloadTable const*, cstr name);
-            void           PayloadTable_Add              (PayloadTable*, cstr name, Payload* value);
+            void           PayloadTable_Add              (PayloadTable*, cstr name, Payload const* value);
         ]]
     end
 

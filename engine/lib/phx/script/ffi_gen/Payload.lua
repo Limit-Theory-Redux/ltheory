@@ -67,7 +67,7 @@ function Loader.defineType()
             void                Payload_ForEachF64      (Payload const*, void (*)(double));
             Payload*            Payload_FromStringArray (cstr* value, uint64 value_size);
             void                Payload_ForEachString   (Payload const*, void (*)(cstr));
-            Payload*            Payload_FromTable       (PayloadTable* value);
+            Payload*            Payload_FromTable       (PayloadTable const* value);
             PayloadTable const* Payload_GetTable        (Payload const*);
             PayloadType         Payload_GetType         (Payload const*);
         ]]
