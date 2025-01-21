@@ -6,6 +6,8 @@ local InventorySystem = require("_ECS_WIP_TEMP.Systems.Economy.InventorySystem")
 local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler")
 local Helper = require("_ECS_WIP_TEMP.Shared.Helpers.MarketplaceSystemHelper")
 
+local Items = require("_ECS_WIP_TEMP.Shared.Registries.Items")
+
 ---@class MarketplaceSystem
 ---@overload fun(self: MarketplaceSystem): MarketplaceSystem class internal
 ---@overload fun(): MarketplaceSystem class external
@@ -87,15 +89,15 @@ end
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.ItemTypeComponent)
-            ---@cast bidItemTypeCmp ItemTypeComponent
+            local bidItemTypeCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.OrderItemTypeComponent)
+            ---@cast bidItemTypeCmp OrderItemTypeComponent
             local bidPriceCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.PriceComponent)
             ---@cast bidPriceCmp PriceComponent
             local bidQuantityCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
             ---@cast bidQuantityCmp QuantityComponent
 
-            local askItemTypeCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.ItemTypeComponent)
-            ---@cast askItemTypeCmp ItemTypeComponent
+            local askItemTypeCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.OrderItemTypeComponent)
+            ---@cast askItemTypeCmp OrderItemTypeComponent
             local askPriceCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.PriceComponent)
             ---@cast askPriceCmp PriceComponent
             local askQuantityCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
@@ -117,9 +119,10 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 
             Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)
 
-            -- Verify Bank Account
-
             if bidItemType == askItemType and bidPrice >= askPrice then
+                -- todo: reserve items here, put trade into trade queue for performance control
+                -- todo: verify bank account in trade
+
                 -- Calculate trade quantity
                 local tradeQuantity = math.min(bidQuantity, askQuantity)
 
@@ -132,7 +135,9 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                         GlobalStorage:getEntity(item):destroy() --! temp destroy
                     end
 
-                    Log.Debug("[Transaction] Trader 1 %s (%d) -> Trader 2 for price %d credits", bidItemType, tradeQuantity, bidPrice)
+                    Log.Debug("[Transaction] Trader 1 %s (%d) -> Trader 2 for price %d credits", Items:getDefinition(bidItemType).name,
+                        tradeQuantity,
+                        bidPrice)
 
                     -- Update the inventory quantities
                     bidQuantity = bidQuantity - tradeQuantity

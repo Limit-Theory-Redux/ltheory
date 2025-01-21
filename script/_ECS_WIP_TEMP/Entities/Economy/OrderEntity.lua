@@ -1,12 +1,12 @@
 local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path
 
 -- Components
-local OwnershipComponent = require("_ECS_WIP_TEMP.Components.Economy.OwnershipComponent")     --!temp path
-local ItemTypeComponent = require("_ECS_WIP_TEMP.Components.Economy.ItemTypeComponent")       --!temp path
-local QuantityComponent = require("_ECS_WIP_TEMP.Components.Economy.QuantityComponent")       --!temp path
-local PriceComponent = require("_ECS_WIP_TEMP.Components.Economy.PriceComponent")             --!temp path
-local OrderStatusComponent = require("_ECS_WIP_TEMP.Components.Economy.OrderStatusComponent") --!temp path
-local ExpiryComponent = require("_ECS_WIP_TEMP.Components.Economy.ExpiryComponent")           --!temp path
+local OwnershipComponent = require("_ECS_WIP_TEMP.Components.Economy.OwnershipComponent")         --!temp path
+local OrderItemTypeComponent = require("_ECS_WIP_TEMP.Components.Economy.OrderItemTypeComponent") --!temp path
+local QuantityComponent = require("_ECS_WIP_TEMP.Components.Economy.QuantityComponent")           --!temp path
+local PriceComponent = require("_ECS_WIP_TEMP.Components.Economy.PriceComponent")                 --!temp path
+local OrderStatusComponent = require("_ECS_WIP_TEMP.Components.Economy.OrderStatusComponent")     --!temp path
+local ExpiryComponent = require("_ECS_WIP_TEMP.Components.Economy.ExpiryComponent")               --!temp path
 
 ---@class OrderEntity: Entity
 ---@overload fun(self: OrderEntity, issuerId: number, itemType: integer, quantity: number, price: number, expiresAt: TimeStamp|nil): OrderEntity subclass internal
@@ -19,7 +19,7 @@ local OrderEntity = Subclass(Entity, function(self, issuerId, itemType, quantity
     self:addComponent(OwnershipComponent(issuerId))
 
     -- ItemType Component
-    self:addComponent(ItemTypeComponent(itemType))
+    self:addComponent(OrderItemTypeComponent(itemType))
 
     -- Quantity Component
     self:addComponent(QuantityComponent(quantity))
