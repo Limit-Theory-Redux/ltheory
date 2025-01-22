@@ -59,7 +59,7 @@ function Loader.defineType()
                 save         = libphx.TexCube_Save,
                 saveLevel    = libphx.TexCube_SaveLevel,
                 getDataBytes = function(self, face, level, pf, df)
-                    local face = ffi.gc(face, nil)
+                    ffi.gc(face, nil)
                     local _instance = libphx.TexCube_GetDataBytes(self, face, level, pf, df)
                     return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
@@ -69,7 +69,7 @@ function Loader.defineType()
                 generate     = libphx.TexCube_Generate,
                 genMipmap    = libphx.TexCube_GenMipmap,
                 setDataBytes = function(self, data, face, level, pf, df)
-                    local face = ffi.gc(face, nil)
+                    ffi.gc(face, nil)
                     libphx.TexCube_SetDataBytes(self, data, face, level, pf, df)
                 end,
                 setMagFilter = libphx.TexCube_SetMagFilter,

@@ -4,6 +4,8 @@ mod memory;
 pub use convert::*;
 pub use memory::*;
 
+/// Store C string in the static thread local storage.
+/// Maine use case - sending strings from Rust to Lua.
 #[macro_export]
 macro_rules! static_cstring {
     ($str:expr) => {
@@ -15,6 +17,8 @@ macro_rules! static_cstring {
     };
 }
 
+/// Convert Rust string to C one and store it in the static thread local storage.
+/// Maine use case - sending strings from Rust to Lua.
 #[macro_export]
 macro_rules! static_string {
     ($str:expr) => {

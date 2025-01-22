@@ -46,7 +46,7 @@ function Loader.defineType()
                     return Core.ManagedObject(_instance, libphx.LodMesh_Free)
                 end,
                 add   = function(self, mesh, distanceMin, distanceMax)
-                    local mesh = ffi.gc(mesh, nil)
+                    ffi.gc(mesh, nil)
                     libphx.LodMesh_Add(self, mesh, distanceMin, distanceMax)
                 end,
                 draw  = libphx.LodMesh_Draw,

@@ -176,7 +176,7 @@ function Loader.defineType()
                 return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,
             FromTable       = function(value)
-                local value = ffi.gc(value, nil)
+                ffi.gc(value, nil)
                 local _instance = libphx.Payload_FromTable(value)
                 return Core.ManagedObject(_instance, libphx.Payload_Free)
             end,

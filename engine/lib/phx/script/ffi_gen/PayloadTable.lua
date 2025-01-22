@@ -51,7 +51,7 @@ function Loader.defineType()
                 getPayload       = libphx.PayloadTable_GetPayload,
                 getPayloadByName = libphx.PayloadTable_GetPayloadByName,
                 add              = function(self, name, value)
-                    local value = ffi.gc(value, nil)
+                    ffi.gc(value, nil)
                     libphx.PayloadTable_Add(self, name, value)
                 end,
             },

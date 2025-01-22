@@ -437,7 +437,7 @@ fn write_method_map<F: FnMut(String)>(
 
         // remove non-copyable arguments sent by value from Lua GC
         for arg in value_args {
-            writer(format!("{ident}{IDENT}local {arg} = ffi.gc({arg}, nil)"));
+            writer(format!("{ident}{IDENT}ffi.gc({arg}, nil)"));
         }
 
         writer(format!(
@@ -453,7 +453,7 @@ fn write_method_map<F: FnMut(String)>(
 
         // remove non-copyable arguments sent by value from Lua GC
         for arg in value_args {
-            writer(format!("{ident}{IDENT}local {arg} = ffi.gc({arg}, nil)"));
+            writer(format!("{ident}{IDENT}ffi.gc({arg}, nil)"));
         }
 
         if method.ret.is_some() {

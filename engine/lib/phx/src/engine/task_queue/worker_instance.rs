@@ -6,7 +6,7 @@ use tracing::{debug, error};
 
 use super::{TaskQueueError, WorkerInData, WorkerOutData};
 
-/// Worker instance template.
+/// Custeom worker instance template.
 pub struct WorkerInstance {
     id: usize,
     worker_name: String,

@@ -73,7 +73,7 @@ function Loader.defineType()
                 getU32Ref              = libphx.PlainTest_GetU32Ref,
                 getU32Mut              = libphx.PlainTest_GetU32Mut,
                 setManaged             = function(self, val)
-                    local val = ffi.gc(val, nil)
+                    ffi.gc(val, nil)
                     libphx.PlainTest_SetManaged(self, val)
                 end,
                 setManagedRef          = libphx.PlainTest_SetManagedRef,

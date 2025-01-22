@@ -50,7 +50,7 @@ function Loader.defineType()
                 tasksInProgress = libphx.TaskQueue_TasksInProgress,
                 tasksReady      = libphx.TaskQueue_TasksReady,
                 sendTask        = function(self, workerId, data)
-                    local data = ffi.gc(data, nil)
+                    ffi.gc(data, nil)
                     return libphx.TaskQueue_SendTask(self, workerId, data)
                 end,
                 nextTaskResult  = function(self, workerId)
