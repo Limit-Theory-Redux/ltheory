@@ -22,18 +22,12 @@ function EventBus:register(eventId, eventName, frameStage, rustPayload) end
 ---@param eventId integer
 function EventBus:unregister(eventId) end
 
----@param eventId integer
----@param entityId integer?
----@return integer
 ---@overload fun(self: table, eventType: integer, ctxTable: table|nil, callbackFunc: function): integer
 function EventBus:subscribe(eventId, entityId) end
 
 ---@param tunnelId integer
 function EventBus:unsubscribe(tunnelId) end
 
----@param eventId integer
----@param entityId integer?
----@param payload Payload?
 ---@overload fun(self: table, eventType: integer, ctxTable: table|nil, payload: Payload|nil)
 function EventBus:send(eventId, entityId, payload) end
 

@@ -43,9 +43,6 @@ function TaskQueue:tasksInProgress(workerId) end
 function TaskQueue:tasksReady(workerId) end
 
 -- Send a task to the Lua worker.
----@param workerId integer
----@param data Payload
----@return integer?
 ---@overload fun(workerId: integer, data: Payload|boolean|integer|number|string): integer?
 function TaskQueue:sendTask(workerId, data) end
 

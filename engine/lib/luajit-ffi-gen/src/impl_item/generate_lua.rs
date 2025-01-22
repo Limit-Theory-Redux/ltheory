@@ -87,27 +87,7 @@ impl ImplInfo {
                 docs.into_iter()
                     .for_each(|d| ffi_gen.add_class_definition(format!("-- {d}")));
 
-                // Add method signature documentation
-                method.params.iter().for_each(|param| {
-                    ffi_gen.add_class_definition(format!(
-                        "---@param {} {}",
-                        param.as_ffi_name(),
-                        param.ty.get_luals_annotation(module_name)
-                    ));
-
-                    // If this is a slice or array, we need to additionally generate a "size" parameter.
-                    match &param.ty {
-                        TypeInfo::Slice { .. } | TypeInfo::Array { .. } => {
-                            ffi_gen.add_class_definition(format!(
-                                "---@param {}_size {}",
-                                param.as_ffi_name(),
-                                TypeVariant::USize.get_luals_annotation(module_name)
-                            ));
-                        }
-                        _ => {}
-                    }
-                });
-
+                let has_overload = directives.iter().any(|d| d.contains("@overload"));
                 let mut params: Vec<_> = method
                     .params
                     .iter()
@@ -126,19 +106,42 @@ impl ImplInfo {
                     })
                     .collect();
 
-                if let Some(ret) = &method.ret {
-                    if method.bind_args.gen_out_param() {
+                if !has_overload {
+                    // Add method signature documentation
+                    method.params.iter().for_each(|param| {
                         ffi_gen.add_class_definition(format!(
-                            "---@param result {} [out]",
-                            ret.get_luals_annotation(module_name)
+                            "---@param {} {}",
+                            param.as_ffi_name(),
+                            param.ty.get_luals_annotation(module_name)
                         ));
 
-                        params.push("result".into());
-                    } else {
-                        ffi_gen.add_class_definition(format!(
-                            "---@return {}",
-                            ret.get_luals_annotation(module_name)
-                        ));
+                        // If this is a slice or array, we need to additionally generate a "size" parameter.
+                        match &param.ty {
+                            TypeInfo::Slice { .. } | TypeInfo::Array { .. } => {
+                                ffi_gen.add_class_definition(format!(
+                                    "---@param {}_size {}",
+                                    param.as_ffi_name(),
+                                    TypeVariant::USize.get_luals_annotation(module_name)
+                                ));
+                            }
+                            _ => {}
+                        }
+                    });
+
+                    if let Some(ret) = &method.ret {
+                        if method.bind_args.gen_out_param() {
+                            ffi_gen.add_class_definition(format!(
+                                "---@param result {} [out]",
+                                ret.get_luals_annotation(module_name)
+                            ));
+
+                            params.push("result".into());
+                        } else {
+                            ffi_gen.add_class_definition(format!(
+                                "---@return {}",
+                                ret.get_luals_annotation(module_name)
+                            ));
+                        }
                     }
                 }
 
