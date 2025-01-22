@@ -10,6 +10,8 @@ function WorkerBench:onInit()
     Profiler.Enable()
     Profiler.Begin('WorkerBench')
 
+    ---@class WorkerId
+    ---@field TestWorker integer Enum for the TestWorker worker
     WorkerId.AddWorkers({ "TestWorker" })
 
     TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/TestWorkerFunction.lua", instancesCount)

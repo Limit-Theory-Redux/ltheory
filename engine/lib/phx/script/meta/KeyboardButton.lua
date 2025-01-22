@@ -1,6 +1,200 @@
 ---@meta
 
----@enum KeyboardButton
+---@class KeyboardButton
+---@field Backquote integer <kbd>`</kbd> on a US keyboard. This is also called a backtick or grave. This is the <kbd>半角</kbd>/<kbd>全角</kbd>/<kbd>漢字</kbd> (hankaku/zenkaku/kanji) key on Japanese keyboards
+---@field Backslash integer Used for both the US <kbd>\\</kbd> (on the 101-key layout) and also for the key located between the <kbd>"</kbd> and <kbd>Enter</kbd> keys on row C of the 102-, 104- and 106-key layouts. Labeled <kbd>#</kbd> on a UK (102) keyboard.
+---@field BracketLeft integer <kbd>[</kbd> on a US keyboard.
+---@field BracketRight integer <kbd>]</kbd> on a US keyboard.
+---@field Comma integer <kbd>,</kbd> on a US keyboard.
+---@field Key0 integer <kbd>0</kbd> on a US keyboard.
+---@field Key1 integer <kbd>1</kbd> on a US keyboard.
+---@field Key2 integer <kbd>2</kbd> on a US keyboard.
+---@field Key3 integer <kbd>3</kbd> on a US keyboard.
+---@field Key4 integer <kbd>4</kbd> on a US keyboard.
+---@field Key5 integer <kbd>5</kbd> on a US keyboard.
+---@field Key6 integer <kbd>6</kbd> on a US keyboard.
+---@field Key7 integer <kbd>7</kbd> on a US keyboard.
+---@field Key8 integer <kbd>8</kbd> on a US keyboard.
+---@field Key9 integer <kbd>9</kbd> on a US keyboard.
+---@field Equal integer <kbd>=</kbd> on a US keyboard.
+---@field IntlBackslash integer Located between the left <kbd>Shift</kbd> and <kbd>Z</kbd> keys. Labeled <kbd>\\</kbd> on a UK keyboard.
+---@field IntlRo integer Located between the <kbd>/</kbd> and right <kbd>Shift</kbd> keys. Labeled <kbd>\\</kbd> (ro) on a Japanese keyboard.
+---@field IntlYen integer Located between the <kbd>=</kbd> and <kbd>Backspace</kbd> keys. Labeled <kbd>¥</kbd> (yen) on a Japanese keyboard. <kbd>\\</kbd> on a Russian keyboard.
+---@field A integer <kbd>a</kbd> on a US keyboard. Labeled <kbd>q</kbd> on an AZERTY (e.g., French) keyboard.
+---@field B integer <kbd>b</kbd> on a US keyboard.
+---@field C integer <kbd>c</kbd> on a US keyboard.
+---@field D integer <kbd>d</kbd> on a US keyboard.
+---@field E integer <kbd>e</kbd> on a US keyboard.
+---@field F integer <kbd>f</kbd> on a US keyboard.
+---@field G integer <kbd>g</kbd> on a US keyboard.
+---@field H integer <kbd>h</kbd> on a US keyboard.
+---@field I integer <kbd>i</kbd> on a US keyboard.
+---@field J integer <kbd>j</kbd> on a US keyboard.
+---@field K integer <kbd>k</kbd> on a US keyboard.
+---@field L integer <kbd>l</kbd> on a US keyboard.
+---@field M integer <kbd>m</kbd> on a US keyboard.
+---@field N integer <kbd>n</kbd> on a US keyboard.
+---@field O integer <kbd>o</kbd> on a US keyboard.
+---@field P integer <kbd>p</kbd> on a US keyboard.
+---@field Q integer <kbd>q</kbd> on a US keyboard. Labeled <kbd>a</kbd> on an AZERTY (e.g., French) keyboard.
+---@field R integer <kbd>r</kbd> on a US keyboard.
+---@field S integer <kbd>s</kbd> on a US keyboard.
+---@field T integer <kbd>t</kbd> on a US keyboard.
+---@field U integer <kbd>u</kbd> on a US keyboard.
+---@field V integer <kbd>v</kbd> on a US keyboard.
+---@field W integer <kbd>w</kbd> on a US keyboard. Labeled <kbd>z</kbd> on an AZERTY (e.g., French) keyboard.
+---@field X integer <kbd>x</kbd> on a US keyboard.
+---@field Y integer <kbd>y</kbd> on a US keyboard. Labeled <kbd>z</kbd> on a QWERTZ (e.g., German) keyboard.
+---@field Z integer <kbd>z</kbd> on a US keyboard. Labeled <kbd>w</kbd> on an AZERTY (e.g., French) keyboard, and <kbd>y</kbd> on a QWERTZ (e.g., German) keyboard.
+---@field Minus integer <kbd>-</kbd> on a US keyboard.
+---@field Period integer <kbd>.</kbd> on a US keyboard.
+---@field Quote integer <kbd>'</kbd> on a US keyboard.
+---@field Semicolon integer <kbd>;</kbd> on a US keyboard.
+---@field Slash integer <kbd>/</kbd> on a US keyboard.
+---@field AltLeft integer <kbd>Alt</kbd>, <kbd>Option</kbd>, or <kbd>⌥</kbd>.
+---@field AltRight integer <kbd>Alt</kbd>, <kbd>Option</kbd>, or <kbd>⌥</kbd>. This is labeled <kbd>AltGr</kbd> on many keyboard layouts.
+---@field Backspace integer <kbd>Backspace</kbd> or <kbd>⌫</kbd>. Labeled <kbd>Delete</kbd> on Apple keyboards.
+---@field CapsLock integer <kbd>CapsLock</kbd> or <kbd>⇪</kbd>
+---@field ContextMenu integer The application context menu key, which is typically found between the right <kbd>Super</kbd> key and the right <kbd>Control</kbd> key.
+---@field ControlLeft integer <kbd>Control</kbd> or <kbd>⌃</kbd>
+---@field ControlRight integer <kbd>Control</kbd> or <kbd>⌃</kbd>
+---@field Enter integer <kbd>Enter</kbd> or <kbd>↵</kbd>. Labeled <kbd>Return</kbd> on Apple keyboards.
+---@field SuperLeft integer The Windows, <kbd>⌘</kbd>, <kbd>Command</kbd>, or other OS symbol key.
+---@field SuperRight integer The Windows, <kbd>⌘</kbd>, <kbd>Command</kbd>, or other OS symbol key.
+---@field ShiftLeft integer <kbd>Shift</kbd> or <kbd>⇧</kbd>
+---@field ShiftRight integer <kbd>Shift</kbd> or <kbd>⇧</kbd>
+---@field Space integer <kbd> </kbd> (space)
+---@field Tab integer <kbd>Tab</kbd> or <kbd>⇥</kbd>
+---@field Convert integer Japanese: <kbd>変</kbd> (henkan)
+---@field KanaMode integer Japanese: <kbd>カタカナ</kbd>/<kbd>ひらがな</kbd>/<kbd>ローマ字</kbd> (katakana/hiragana/romaji)
+---@field Lang1 integer Korean: HangulMode <kbd>한/영</kbd> (han/yeong)  Japanese (Mac keyboard): <kbd>か</kbd> (kana)
+---@field Lang2 integer Korean: Hanja <kbd>한</kbd> (hanja)  Japanese (Mac keyboard): <kbd>英</kbd> (eisu)
+---@field Lang3 integer Japanese (word-processing keyboard): Katakana
+---@field Lang4 integer Japanese (word-processing keyboard): Hiragana
+---@field Lang5 integer Japanese (word-processing keyboard): Zenkaku/Hankaku
+---@field NonConvert integer Japanese: <kbd>無変換</kbd> (muhenkan)
+---@field Delete integer <kbd>⌦</kbd>. The forward delete key. Note that on Apple keyboards, the key labelled <kbd>Delete</kbd> on the main part of the keyboard is encoded as [`Backspace`].  [`Backspace`]: Self::Backspace
+---@field End integer <kbd>Page Down</kbd>, <kbd>End</kbd>, or <kbd>↘</kbd>
+---@field Help integer <kbd>Help</kbd>. Not present on standard PC keyboards.
+---@field Home integer <kbd>Home</kbd> or <kbd>↖</kbd>
+---@field Insert integer <kbd>Insert</kbd> or <kbd>Ins</kbd>. Not present on Apple keyboards.
+---@field PageDown integer <kbd>Page Down</kbd>, <kbd>PgDn</kbd>, or <kbd>⇟</kbd>
+---@field PageUp integer <kbd>Page Up</kbd>, <kbd>PgUp</kbd>, or <kbd>⇞</kbd>
+---@field Down integer <kbd>↓</kbd>
+---@field Left integer <kbd>←</kbd>
+---@field Right integer <kbd>→</kbd>
+---@field Up integer <kbd>↑</kbd>
+---@field NumLock integer On the Mac, this is used for the numpad <kbd>Clear</kbd> key.
+---@field Numpad0 integer <kbd>0 Ins</kbd> on a keyboard. <kbd>0</kbd> on a phone or remote control
+---@field Numpad1 integer <kbd>1 End</kbd> on a keyboard. <kbd>1</kbd> or <kbd>1 QZ</kbd> on a phone or remote control
+---@field Numpad2 integer <kbd>2 ↓</kbd> on a keyboard. <kbd>2 ABC</kbd> on a phone or remote control
+---@field Numpad3 integer <kbd>3 PgDn</kbd> on a keyboard. <kbd>3 DEF</kbd> on a phone or remote control
+---@field Numpad4 integer <kbd>4 ←</kbd> on a keyboard. <kbd>4 GHI</kbd> on a phone or remote control
+---@field Numpad5 integer <kbd>5</kbd> on a keyboard. <kbd>5 JKL</kbd> on a phone or remote control
+---@field Numpad6 integer <kbd>6 →</kbd> on a keyboard. <kbd>6 MNO</kbd> on a phone or remote control
+---@field Numpad7 integer <kbd>7 Home</kbd> on a keyboard. <kbd>7 PQRS</kbd> or <kbd>7 PRS</kbd> on a phone or remote control
+---@field Numpad8 integer <kbd>8 ↑</kbd> on a keyboard. <kbd>8 TUV</kbd> on a phone or remote control
+---@field Numpad9 integer <kbd>9 PgUp</kbd> on a keyboard. <kbd>9 WXYZ</kbd> or <kbd>9 WXY</kbd> on a phone or remote control
+---@field NumpadAdd integer <kbd>+</kbd>
+---@field NumpadBackspace integer Found on the Microsoft Natural Keyboard.
+---@field NumpadClear integer <kbd>C</kbd> or <kbd>A</kbd> (All Clear). Also for use with numpads that have a <kbd>Clear</kbd> key that is separate from the <kbd>NumLock</kbd> key. On the Mac, the numpad <kbd>Clear</kbd> key is encoded as [`NumLock`].  [`NumLock`]: Self::NumLock
+---@field NumpadClearEntry integer <kbd>C</kbd> (Clear Entry)
+---@field NumpadComma integer <kbd>,</kbd> (thousands separator). For locales where the thousands separator is a "." (e.g., Brazil), this key may generate a <kbd>.</kbd>.
+---@field NumpadDecimal integer <kbd>. Del</kbd>. For locales where the decimal separator is "," (e.g., Brazil), this key may generate a <kbd>,</kbd>.
+---@field NumpadDivide integer <kbd>/</kbd>
+---@field NumpadEnter integer 
+---@field NumpadEqual integer <kbd>=</kbd>
+---@field NumpadHash integer <kbd>#</kbd> on a phone or remote control device. This key is typically found below the <kbd>9</kbd> key and to the right of the <kbd>0</kbd> key.
+---@field NumpadMemoryAdd integer <kbd>M</kbd> Add current entry to the value stored in memory.
+---@field NumpadMemoryClear integer <kbd>M</kbd> Clear the value stored in memory.
+---@field NumpadMemoryRecall integer <kbd>M</kbd> Replace the current entry with the value stored in memory.
+---@field NumpadMemoryStore integer <kbd>M</kbd> Replace the value stored in memory with the current entry.
+---@field NumpadMemorySubtract integer <kbd>M</kbd> Subtract current entry from the value stored in memory.
+---@field NumpadMultiply integer <kbd>*</kbd> on a keyboard. For use with numpads that provide mathematical operations (<kbd>+</kbd>, <kbd>-</kbd> <kbd>*</kbd> and <kbd>/</kbd>).  Use `NumpadStar` for the <kbd>*</kbd> key on phones and remote controls.
+---@field NumpadParenLeft integer <kbd>(</kbd> Found on the Microsoft Natural Keyboard.
+---@field NumpadParenRight integer <kbd>)</kbd> Found on the Microsoft Natural Keyboard.
+---@field NumpadStar integer <kbd>*</kbd> on a phone or remote control device.  This key is typically found below the <kbd>7</kbd> key and to the left of the <kbd>0</kbd> key.  Use <kbd>"NumpadMultiply"</kbd> for the <kbd>*</kbd> key on numeric keypads.
+---@field NumpadSubtract integer <kbd>-</kbd>
+---@field Escape integer <kbd>Esc</kbd> or <kbd>⎋</kbd>
+---@field Fn integer <kbd>Fn</kbd> This is typically a hardware key that does not generate a separate code.
+---@field FnLock integer <kbd>FLock</kbd> or <kbd>FnLock</kbd>. Function Lock key. Found on the Microsoft Natural Keyboard.
+---@field PrintScreen integer <kbd>PrtScr SysRq</kbd> or <kbd>Print Screen</kbd>
+---@field ScrollLock integer <kbd>Scroll Lock</kbd>
+---@field Pause integer <kbd>Pause Break</kbd>
+---@field BrowserBack integer Some laptops place this key to the left of the <kbd>↑</kbd> key.  This also the "back" button (triangle) on Android.
+---@field BrowserFavorites integer 
+---@field BrowserForward integer Some laptops place this key to the right of the <kbd>↑</kbd> key.
+---@field BrowserHome integer The "home" button on Android.
+---@field BrowserRefresh integer 
+---@field BrowserSearch integer 
+---@field BrowserStop integer 
+---@field Eject integer <kbd>Eject</kbd> or <kbd>⏏</kbd>. This key is placed in the function section on some Apple keyboards.
+---@field LaunchApp1 integer Sometimes labelled <kbd>My Computer</kbd> on the keyboard
+---@field LaunchApp2 integer Sometimes labelled <kbd>Calculator</kbd> on the keyboard
+---@field LaunchMail integer 
+---@field MediaPlayPause integer 
+---@field MediaSelect integer 
+---@field MediaStop integer 
+---@field MediaTrackNext integer 
+---@field MediaTrackPrevious integer 
+---@field Power integer This key is placed in the function section on some Apple keyboards, replacing the <kbd>Eject</kbd> key.
+---@field Sleep integer 
+---@field AudioVolumeDown integer 
+---@field AudioVolumeMute integer 
+---@field AudioVolumeUp integer 
+---@field WakeUp integer 
+---@field Meta integer 
+---@field Hyper integer 
+---@field Turbo integer 
+---@field Abort integer 
+---@field Resume integer 
+---@field Suspend integer 
+---@field Again integer Found on Sun’s USB keyboard.
+---@field Copy integer Found on Sun’s USB keyboard.
+---@field Cut integer Found on Sun’s USB keyboard.
+---@field Find integer Found on Sun’s USB keyboard.
+---@field Open integer Found on Sun’s USB keyboard.
+---@field Paste integer Found on Sun’s USB keyboard.
+---@field Props integer Found on Sun’s USB keyboard.
+---@field Select integer Found on Sun’s USB keyboard.
+---@field Undo integer Found on Sun’s USB keyboard.
+---@field Hiragana integer Use for dedicated <kbd>ひらがな</kbd> key found on some Japanese word processing keyboards.
+---@field Katakana integer Use for dedicated <kbd>カタカナ</kbd> key found on some Japanese word processing keyboards.
+---@field F1 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F2 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F3 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F4 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F5 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F6 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F7 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F8 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F9 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F10 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F11 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F12 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F13 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F14 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F15 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F16 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F17 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F18 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F19 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F20 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F21 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F22 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F23 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F24 integer General-purpose function key. Usually found at the top of the keyboard.
+---@field F25 integer General-purpose function key.
+---@field F26 integer General-purpose function key.
+---@field F27 integer General-purpose function key.
+---@field F28 integer General-purpose function key.
+---@field F29 integer General-purpose function key.
+---@field F30 integer General-purpose function key.
+---@field F31 integer General-purpose function key.
+---@field F32 integer General-purpose function key.
+---@field F33 integer General-purpose function key.
+---@field F34 integer General-purpose function key.
+---@field F35 integer General-purpose function key.
 KeyboardButton = {
     -- <kbd>`</kbd> on a US keyboard. This is also called a backtick or grave.
     -- This is the <kbd>半角</kbd>/<kbd>全角</kbd>/<kbd>漢字</kbd>

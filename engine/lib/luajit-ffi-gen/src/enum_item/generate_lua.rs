@@ -39,7 +39,11 @@ fn gen_class_definitions(
 
     doc.iter()
         .for_each(|d| ffi_gen.add_class_definition(format!("-- {d}")));
-    ffi_gen.add_class_definition(format!("---@enum {module_name}"));
+    ffi_gen.add_class_definition(format!("---@class {module_name}"));
+
+    variants_info.iter().for_each(|(docs, name, _)| {
+        ffi_gen.add_class_definition(format!("---@field {name} integer {}", docs.join(" ")));
+    });
 
     ffi_gen.add_class_definition(format!("{module_name} = {{"));
 
