@@ -146,12 +146,14 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                     -- Update or remove the bid and ask orders
                     if bidQuantity == 0 then
                         marketplace:removeBid(bid:getEntityInfo())
+                        bid:destroy()
                     else
                         bid:setQuantity(bidQuantity)
                     end
 
                     if askQuantity == 0 then
                         marketplace:removeAsk(ask:getEntityInfo())
+                        ask:destroy()
                     else
                         ask:setQuantity(askQuantity)
                     end

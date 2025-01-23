@@ -1,13 +1,13 @@
 ---@class GlobalStorage
----@field entities table<EntityArchetypeStorage>
----@field components table<ComponentArchetypeStorage>
+---@field entities table<EntityStorage>
+---@field components table<ComponentStorage>
 ---@field initialized boolean
 
----@class EntityArchetypeStorage
----@field [integer] Entity
+---@class EntityStorage
+---@field [EntityArchetype] Entity
 
----@class ComponentArchetypeStorage
----@field [integer] Component
+---@class ComponentStorage
+---@field [EntityArchetype] Component
 
 --- Types
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
@@ -64,7 +64,6 @@ function GlobalStorage:dropEntity(archetype, entityId)
     ---@cast entity Entity
 
     if entity then
-        --entity:destroy() --* how will we clean up?
         self.entities[archetype][entityId] = nil
         return true
     end
@@ -89,7 +88,6 @@ function GlobalStorage:dropComponent(archetype, componentId)
     ---@cast component Component
 
     if component then
-        --component:destroy() --* how will we clean up?
         self.components[archetype][componentId] = nil
         return true
     end
@@ -99,7 +97,7 @@ end
 ---@param entityInfo EntityInfo
 ---@return Entity|nil
 function GlobalStorage:getEntity(entityInfo)
-    ---@type EntityArchetypeStorage
+    ---@type EntityStorage
     local archetypeStorage = self.entities[entityInfo.archetype]
 
     if not archetypeStorage then
@@ -112,7 +110,7 @@ end
 ---@param componentInfo ComponentInfo
 ---@return Component|nil
 function GlobalStorage:getComponentData(componentInfo)
-    ---@type ComponentArchetypeStorage
+    ---@type ComponentStorage
     local archetypeStorage = self.components[componentInfo.archetype]
 
     if not archetypeStorage then
@@ -146,6 +144,26 @@ end
 -- if you for some reason want all components, should only be used for debugging
 function GlobalStorage:getComponents()
     return self.components
+end
+
+function GlobalStorage:getEntityCount()
+    local count = 0
+    for _, archetype in pairs(self.entities) do
+        count = count + #archetype
+    end
+    return count
+end
+
+function GlobalStorage:getComponentCount()
+    local count = 0
+    for _, archetype in pairs(self.components) do
+        count = count + #archetype
+    end
+    return count
+end
+
+function GlobalStorage:clear()
+    self:initStorage()
 end
 
 return GlobalStorage()
