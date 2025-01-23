@@ -1,8 +1,9 @@
 -- Entities
 local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")            --!temp path
 local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity")          --!temp path
--- Storage
+-- Storage & Registries
 local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
+local Materials = require("_ECS_WIP_TEMP.Shared.Registries.Materials")
 -- Systems
 ---@type CameraSystem
 local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem") --!temp path
@@ -46,7 +47,9 @@ function RenderingTest:onInit()
     -- Generate Box Mesh
     self.boxMesh = Mesh.Box(7)
     -- Get Box Entity and Components
-    self.boxEntity = BoxEntity()
+    local boxMaterial = Materials.DebugColor() ---@type Material
+    boxMaterial:addStaticShaderVar("color", Enums.UniformType.Float3, function() return 1.0, 0.0, 1.0 end)
+    self.boxEntity = BoxEntity(boxMaterial)
     self.boxRend = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RenderComponent)
     -- Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
     ---@type RigidBodyComponent

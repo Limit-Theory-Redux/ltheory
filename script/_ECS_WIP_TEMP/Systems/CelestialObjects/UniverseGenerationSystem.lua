@@ -65,6 +65,7 @@ function UniverseGenerationSystem:createUniverse(seed)
     return universeEntityInfo
 end
 
+---@private
 ---@param starSystem StarSystemEntity
 ---@param rng RandomNumberGenerator
 function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng)
@@ -116,6 +117,7 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
     end
 end
 
+---@private
 ---@param planet PlanetEntity
 ---@param rng RandomNumberGenerator
 function UniverseGenerationSystem:generatePlanetaryFeatures(planet, rng)
@@ -148,6 +150,7 @@ function UniverseGenerationSystem:generatePlanetaryFeatures(planet, rng)
     end
 end
 
+---@private
 ---@param starSystem StarSystemEntity
 ---@param rng RandomNumberGenerator
 function UniverseGenerationSystem:generateConstructs(starSystem, rng)
@@ -170,6 +173,7 @@ function UniverseGenerationSystem:generateConstructs(starSystem, rng)
     end
 end
 
+---@private
 function UniverseGenerationSystem:addChildEntity(parentEntity, childEntityInfo)
     local hierarchyComponent = parentEntity:findComponentByArchetype(Enums.ComponentArchetype.HierarchyComponent)
     hierarchyComponent:addChild(childEntityInfo)
