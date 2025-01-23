@@ -68,4 +68,45 @@ function InventorySystem:put(inventory, itemId, items)
     end
 end
 
+---@param item ItemEntity
+---@param owner Player
+---@param amount integer
+---@return boolean success
+function InventorySystem:lockItemQuantity(item, owner, amount)
+    local quantityComponent = item:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+    ---@cast quantityComponent QuantityComponent
+
+    if amount > quantityComponent:getQuantity() then
+        Log.Warn("Trying to reserve more than available quantity")
+        return false
+    end
+
+    self.lockedQuantity = self.lockedQuantity or {}
+    self.lockedQuantity[owner] = (self.lockedQuantity[owner] or 0) + amount
+    quantityComponent:setLockedQuantity(owner, amount)
+    return true
+end
+
+---@param item ItemEntity
+---@param owner Player
+---@param amount integer|nil
+---@return boolean success
+function InventorySystem:unlockItemQuantity(item, owner, amount)
+    local quantityComponent = item:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+    ---@cast quantityComponent QuantityComponent
+
+    if not quantityComponent:getLockedQuantity() then
+        Log.Warn("Trying to unlock quantity without locking it first")
+        return false
+    end
+
+    if not quantityComponent:getLockedQuantity(owner) then
+        Log.Warn("No locked quantity for this owner")
+        return false
+    end
+
+    quantityComponent:unlockQuantity(owner, amount)
+    return true
+end
+
 return InventorySystem()
