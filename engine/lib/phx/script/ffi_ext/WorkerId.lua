@@ -2,8 +2,8 @@ function onDef_WorkerId(t, mt)
     local WorkerId = t
 
     ---@class WorkerId
-    ---@field AddWorkers fun(workers: table<string>) Add new worker types to the Worker table. Fail if worker already exists.
-    t.AddWorkers = function(newWorkers)
+    ---@field Register fun(workers: table<string>) Register a new worker types to the WorkerId table. Fail if worker already exists.
+    t.Register = function(newWorkers)
         if type(newWorkers) ~= 'table' then
             Log.Error("new workers should be in a table")
             return

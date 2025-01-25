@@ -43,7 +43,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
     pub fn new<F>(name: &str, instances_count: usize, f: F) -> Self
     where
         F: Fn(Receiver<WorkerInData<IN>>, Sender<WorkerOutData<OUT>>) -> Result<(), TaskQueueError>,
-        F: Send + Sync + 'static, // TODO: check if Sync is really needed
+        F: Send + Sync + 'static,
     {
         let (in_sender, in_receiver) = unbounded();
         let (out_sender, out_receiver) = unbounded();

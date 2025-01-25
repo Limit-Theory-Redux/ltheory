@@ -12,7 +12,7 @@ function WorkerBench:onInit()
 
     ---@class WorkerId
     ---@field TestWorker integer Enum for the TestWorker worker
-    WorkerId.AddWorkers({ "TestWorker" })
+    WorkerId.Register({ "TestWorker" })
 
     TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/TestWorkerFunction.lua", instancesCount)
 

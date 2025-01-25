@@ -26,7 +26,7 @@ impl WorkerInstance {
         IN: Send + 'static,
         OUT: Send + 'static,
         F: Fn(Receiver<WorkerInData<IN>>, Sender<WorkerOutData<OUT>>) -> Result<(), TaskQueueError>,
-        F: Send + Sync + 'static, // TODO: check if Sync is really needed
+        F: Send + Sync + 'static,
     {
         let worker_name_copy = worker_name.to_string();
         let handle = thread::spawn(move || {
