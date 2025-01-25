@@ -5,7 +5,7 @@ pub use convert::*;
 pub use memory::*;
 
 /// Store C string in the static thread local storage.
-/// Maine use case - sending strings from Rust to Lua.
+/// Main use case - sending strings from Rust to Lua.
 #[macro_export]
 macro_rules! static_cstring {
     ($str:expr) => {
