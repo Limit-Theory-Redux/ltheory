@@ -16,11 +16,11 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void                EventData_Free       (EventData*);
-            double              EventData_DeltaTime  (EventData const*);
-            FrameStage          EventData_FrameStage (EventData const*);
-            uint32              EventData_TunnelId   (EventData const*);
-            EventPayload const* EventData_Payload    (EventData const*);
+            void           EventData_Free       (EventData*);
+            double         EventData_DeltaTime  (EventData const*);
+            FrameStage     EventData_FrameStage (EventData const*);
+            uint32         EventData_TunnelId   (EventData const*);
+            Payload const* EventData_Payload    (EventData const*);
         ]]
     end
 

@@ -7,9 +7,8 @@ use tracing::*;
 use winit::dpi::*;
 use winit::event_loop::*;
 
-use super::MainLoop;
+use super::{EventBus, MainLoop, TaskQueue};
 use crate::common::*;
-use crate::event_bus::*;
 use crate::input::*;
 use crate::logging::init_log;
 use crate::rf::*;
@@ -26,6 +25,7 @@ pub struct Engine {
     pub input: Input,
     pub exit_app: bool,
     pub event_bus: EventBus,
+    pub task_queue: TaskQueue,
     pub lua: Rf<Lua>,
 }
 
@@ -122,8 +122,9 @@ impl Engine {
             hmgui: HmGui::new(scale_factor),
             input: Default::default(),
             exit_app: false,
-            lua,
             event_bus: EventBus::new(),
+            task_queue: TaskQueue::new(),
+            lua,
         }
     }
 
@@ -391,6 +392,10 @@ impl Engine {
 
     pub fn event_bus(&mut self) -> &mut EventBus {
         &mut self.event_bus
+    }
+
+    pub fn task_queue(&mut self) -> &mut TaskQueue {
+        &mut self.task_queue
     }
 
     #[bind(name = "HmGui")]

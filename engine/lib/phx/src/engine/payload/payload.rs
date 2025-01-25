@@ -1,7 +1,8 @@
-use super::{EventPayloadTable, EventPayloadType};
+use super::{PayloadTable, PayloadType};
 
+/// Payload value.
 #[derive(Debug, Clone, PartialEq)]
-pub enum EventPayload {
+pub enum Payload {
     /// Lua object pointer/index to communicate inside scripts only
     Lua(u64),
 
@@ -31,11 +32,12 @@ pub enum EventPayload {
     F64Array(Vec<f64>),
     StringArray(Vec<String>),
 
-    Table(Box<EventPayloadTable>),
+    Table(Box<PayloadTable>),
 }
 
+/// Payload value.
 #[luajit_ffi_gen::luajit_ffi]
-impl EventPayload {
+impl Payload {
     pub fn from_lua(value: u64) -> Self {
         Self::Lua(value)
     }
@@ -323,50 +325,50 @@ impl EventPayload {
         value.iter().for_each(|v| f(v));
     }
 
-    pub fn from_table(value: EventPayloadTable) -> Self {
+    pub fn from_table(value: PayloadTable) -> Self {
         Self::Table(Box::new(value))
     }
 
-    pub fn get_table(&self) -> &EventPayloadTable {
+    pub fn get_table(&self) -> &PayloadTable {
         let Self::Table(value) = self else {
             self.type_panic("Table");
         };
         value.as_ref()
     }
 
-    pub fn get_type(&self) -> EventPayloadType {
+    pub fn get_type(&self) -> PayloadType {
         match self {
-            Self::Lua(_) => EventPayloadType::Lua,
-            Self::Bool(_) => EventPayloadType::Bool,
-            Self::I8(_) => EventPayloadType::I8,
-            Self::U8(_) => EventPayloadType::U8,
-            Self::I16(_) => EventPayloadType::I16,
-            Self::U16(_) => EventPayloadType::U16,
-            Self::I32(_) => EventPayloadType::I32,
-            Self::U32(_) => EventPayloadType::U32,
-            Self::I64(_) => EventPayloadType::I64,
-            Self::U64(_) => EventPayloadType::U64,
-            Self::F32(_) => EventPayloadType::F32,
-            Self::F64(_) => EventPayloadType::F64,
-            Self::String(_) => EventPayloadType::String,
-            Self::BoolArray(_) => EventPayloadType::BoolArray,
-            Self::I8Array(_) => EventPayloadType::I8Array,
-            Self::U8Array(_) => EventPayloadType::U8Array,
-            Self::I16Array(_) => EventPayloadType::I16Array,
-            Self::U16Array(_) => EventPayloadType::U16Array,
-            Self::I32Array(_) => EventPayloadType::I32Array,
-            Self::U32Array(_) => EventPayloadType::U32Array,
-            Self::I64Array(_) => EventPayloadType::I64Array,
-            Self::U64Array(_) => EventPayloadType::U64Array,
-            Self::F32Array(_) => EventPayloadType::F32Array,
-            Self::F64Array(_) => EventPayloadType::F64Array,
-            Self::StringArray(_) => EventPayloadType::StringArray,
-            Self::Table(_) => EventPayloadType::Table,
+            Self::Lua(_) => PayloadType::Lua,
+            Self::Bool(_) => PayloadType::Bool,
+            Self::I8(_) => PayloadType::I8,
+            Self::U8(_) => PayloadType::U8,
+            Self::I16(_) => PayloadType::I16,
+            Self::U16(_) => PayloadType::U16,
+            Self::I32(_) => PayloadType::I32,
+            Self::U32(_) => PayloadType::U32,
+            Self::I64(_) => PayloadType::I64,
+            Self::U64(_) => PayloadType::U64,
+            Self::F32(_) => PayloadType::F32,
+            Self::F64(_) => PayloadType::F64,
+            Self::String(_) => PayloadType::String,
+            Self::BoolArray(_) => PayloadType::BoolArray,
+            Self::I8Array(_) => PayloadType::I8Array,
+            Self::U8Array(_) => PayloadType::U8Array,
+            Self::I16Array(_) => PayloadType::I16Array,
+            Self::U16Array(_) => PayloadType::U16Array,
+            Self::I32Array(_) => PayloadType::I32Array,
+            Self::U32Array(_) => PayloadType::U32Array,
+            Self::I64Array(_) => PayloadType::I64Array,
+            Self::U64Array(_) => PayloadType::U64Array,
+            Self::F32Array(_) => PayloadType::F32Array,
+            Self::F64Array(_) => PayloadType::F64Array,
+            Self::StringArray(_) => PayloadType::StringArray,
+            Self::Table(_) => PayloadType::Table,
         }
     }
 }
 
-impl EventPayload {
+impl Payload {
     #[inline]
     fn type_panic(&self, expected: &str) -> ! {
         panic!(

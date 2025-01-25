@@ -5,7 +5,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use strum::IntoEnumIterator;
 use tracing::warn;
 
-use super::{EventData, EventMessage, EventPayload, FrameStage, FrameTimer, Subscriber};
+use super::{EventData, EventMessage, FrameStage, FrameTimer, Subscriber};
+use crate::engine::Payload;
 
 pub type EventId = u16;
 pub type EntityId = u64;
@@ -27,7 +28,7 @@ enum EventBusOperation {
     Send {
         event_id: EventId,
         entity_id: Option<EntityId>,
-        payload: Option<EventPayload>,
+        payload: Option<Payload>,
     },
     SetTimeScale {
         scale_factor: f64,
@@ -39,7 +40,7 @@ struct MessageRequest {
     event_id: EventId,
     keep_alive: bool,
     for_entity_id: Option<EntityId>,
-    payload: Option<EventPayload>,
+    payload: Option<Payload>,
 }
 
 pub struct EventBus {
@@ -235,8 +236,8 @@ impl EventBus {
             .push(EventBusOperation::Unsubscribe { tunnel_id });
     }
 
-    /// @overload fun(self: table, eventType: integer, ctxTable: table|nil, payload: EventPayload|nil)
-    pub fn send(&mut self, event_id: u16, entity_id: Option<u64>, payload: Option<&EventPayload>) {
+    /// @overload fun(self: table, eventType: integer, ctxTable: table|nil, payload: Payload|nil)
+    pub fn send(&mut self, event_id: u16, entity_id: Option<u64>, payload: Option<&Payload>) {
         self.operations.push(EventBusOperation::Send {
             event_id,
             entity_id,
@@ -388,13 +389,14 @@ impl EventBus {
 #[cfg(test)]
 mod tests {
     use super::{EntityId, EventBus, EventId, TunnelId};
-    use crate::event_bus::{Event, EventPayload, FrameStage};
+    use crate::engine::event_bus::FrameStage;
+    use crate::engine::{Event, Payload};
 
     fn test_event_bus(
         events: &[(EventId, FrameStage)],
         subscribes: &[(EventId, Option<EntityId>)],
-        sends: &[(EventId, Option<EntityId>, Option<EventPayload>)],
-        expected: &[(FrameStage, TunnelId, Option<EventPayload>)],
+        sends: &[(EventId, Option<EntityId>, Option<Payload>)],
+        expected: &[(FrameStage, TunnelId, Option<Payload>)],
     ) {
         let mut event_bus = EventBus::new();
         let event_id_offset = Event::EngineEventsCount.index();
@@ -498,11 +500,11 @@ mod tests {
             // two subscribers
             &[(0, Some(0)), (0, Some(0))],
             // send event with payload
-            &[(0, Some(0), Some(EventPayload::U16(42)))],
+            &[(0, Some(0), Some(Payload::U16(42)))],
             // each subscriber receive an event message with the same payload
             &[
-                (FrameStage::first(), 0, Some(EventPayload::U16(42))),
-                (FrameStage::first(), 1, Some(EventPayload::U16(42))),
+                (FrameStage::first(), 0, Some(Payload::U16(42))),
+                (FrameStage::first(), 1, Some(Payload::U16(42))),
             ],
         );
     }
@@ -532,10 +534,10 @@ mod tests {
             // two subscribers: one for a specific entity, another for global events
             &[(0, Some(0)), (0, None)],
             // send event twice: first with entity id, second without (global event)
-            &[(0, None, Some(EventPayload::Bool(true))), (0, None, None)],
+            &[(0, None, Some(Payload::Bool(true))), (0, None, None)],
             // first subscriber doesn't receive any event messages, second receive two
             &[
-                (FrameStage::first(), 1, Some(EventPayload::Bool(true))),
+                (FrameStage::first(), 1, Some(Payload::Bool(true))),
                 (FrameStage::first(), 1, None),
             ],
         );

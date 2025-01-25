@@ -75,7 +75,7 @@ impl FrameStage {
 
 #[cfg(test)]
 mod tests {
-    use crate::event_bus::FrameStage;
+    use crate::engine::event_bus::FrameStage;
 
     #[test]
     fn test_frame_stage_first() {
