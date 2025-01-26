@@ -14,7 +14,7 @@ function WorkerBench:onInit()
     ---@field TestWorker integer Enum for the TestWorker worker
     WorkerId.Register({ "TestWorker" })
 
-    TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/TestWorkerFunction.lua", instancesCount)
+    TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/Workers/TestWorkerFunction.lua", instancesCount)
 
     for i = 1, messagesCount do
         local taskId = TaskQueue:sendTask(WorkerId.TestWorker, "TestPayload")

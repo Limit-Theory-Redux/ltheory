@@ -7,8 +7,8 @@ function WorkerTest:onInit()
     ---@field TestWorker2 integer Enum for the second TestWorker worker
     WorkerId.Register({ "TestWorker", "TestWorker2" })
 
-    TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/TestWorkerFunction.lua", 1)
-    TaskQueue:startWorker(WorkerId.TestWorker2, "TestWorker2", "script/States/App/Tests/TestWorkerFunction2.lua", 1)
+    TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/Workers/TestWorkerFunction.lua", 1)
+    TaskQueue:startWorker(WorkerId.TestWorker2, "TestWorker2", "script/States/App/Tests/Workers/TestWorkerFunction2.lua", 1)
 
     -- Simple test
     local expectedTaskId = TaskQueue:sendTask(WorkerId.TestWorker, "TestPayload")
