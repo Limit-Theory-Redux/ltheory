@@ -35,6 +35,7 @@ fn gen_class_definitions(
     module_name: &str,
     variants_info: &[(&[String], &str, u64)],
 ) {
+    ffi_gen.add_class_definition("-- AUTO GENERATED. DO NOT MODIFY!".to_string());
     ffi_gen.add_class_definition("---@meta\n".to_string());
 
     doc.iter()

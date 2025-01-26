@@ -1,3 +1,4 @@
+-- AUTO GENERATED. DO NOT MODIFY!
 -- WindowMode ------------------------------------------------------------------
 local Loader = {}
 

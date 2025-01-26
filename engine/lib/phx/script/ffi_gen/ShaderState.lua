@@ -1,3 +1,4 @@
+-- AUTO GENERATED. DO NOT MODIFY!
 -- ShaderState -----------------------------------------------------------------
 local Loader = {}
 

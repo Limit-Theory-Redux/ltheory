@@ -1,3 +1,4 @@
+-- AUTO GENERATED. DO NOT MODIFY!
 ---@meta
 
 -- Defines if and how the [`Cursor`] is grabbed by a [`Window`].
