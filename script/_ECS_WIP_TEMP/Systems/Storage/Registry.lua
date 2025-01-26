@@ -1,7 +1,6 @@
 ---@class Registry
 ---@field entities table<EntityStorage>
 ---@field components table<ComponentStorage>
----@field initialized boolean
 
 ---@class EntityStorage
 ---@field [EntityArchetype] Entity
@@ -17,19 +16,10 @@ local ComponentInfo = require("_ECS_WIP_TEMP.Shared.Types.ComponentInfo")
 ---@overload fun(self: Registry): Registry class internal
 ---@overload fun(): Registry class external
 local Registry = Class(function(self)
-    -- Ensure initialization only happens once
-    if self.initialized then
-        Log.Error("You are trying to reinitialize the Registry, this should not happen.")
-        return
-    end
-
-    self:initStorage()
-
-    -- Mark as initialized
-    self.initialized = true
+    self:clear()
 end)
 
-function Registry:initStorage()
+function Registry:clear()
     self.entities = {}
     self.components = {}
 
@@ -160,10 +150,6 @@ function Registry:getComponentCount()
         count = count + #archetype
     end
     return count
-end
-
-function Registry:clear()
-    self:initStorage()
 end
 
 return Registry()
