@@ -1,3 +1,4 @@
+-- AUTO GENERATED. DO NOT MODIFY!
 -- My_Enum1 --------------------------------------------------------------------
 local Loader = {}
 

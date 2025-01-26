@@ -60,6 +60,7 @@ impl ImplInfo {
 
     fn write_class_defs(&self, ffi_gen: &mut FFIGenerator, module_name: &str) {
         if !ffi_gen.has_class_definitions() {
+            ffi_gen.add_class_definition("-- AUTO GENERATED. DO NOT MODIFY!".to_string());
             ffi_gen.add_class_definition("---@meta\n".to_string());
 
             self.doc
