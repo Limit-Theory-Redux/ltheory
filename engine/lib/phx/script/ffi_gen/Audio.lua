@@ -33,9 +33,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Audio = {
-            Create         = function(...)
-                local instance = libphx.Audio_Create(...)
-                return Core.ManagedObject(instance, libphx.Audio_Free)
+            Create         = function()
+                local _instance = libphx.Audio_Create()
+                return Core.ManagedObject(_instance, libphx.Audio_Free)
             end,
         }
 
@@ -47,20 +47,20 @@ function Loader.defineType()
         local t  = ffi.typeof('Audio')
         local mt = {
             __index = {
-                play           = function(...)
-                    local instance = libphx.Audio_Play(...)
-                    return Core.ManagedObject(instance, libphx.SoundInstance_Free)
+                play           = function(self, sound, initVolume, fadeMillis)
+                    local _instance = libphx.Audio_Play(self, sound, initVolume, fadeMillis)
+                    return Core.ManagedObject(_instance, libphx.SoundInstance_Free)
                 end,
-                play3D         = function(...)
-                    local instance = libphx.Audio_Play3D(...)
-                    return Core.ManagedObject(instance, libphx.SoundInstance_Free)
+                play3D         = function(self, sound, initVolume, fadeMillis, initPos, minDistance, maxDistance)
+                    local _instance = libphx.Audio_Play3D(self, sound, initVolume, fadeMillis, initPos, minDistance, maxDistance)
+                    return Core.ManagedObject(_instance, libphx.SoundInstance_Free)
                 end,
                 setListenerPos = libphx.Audio_SetListenerPos,
                 listenerPos    = libphx.Audio_ListenerPos,
                 setListenerRot = libphx.Audio_SetListenerRot,
-                listenerRot    = function(...)
-                    local instance = libphx.Audio_ListenerRot(...)
-                    return Core.ManagedObject(instance, libphx.Quat_Free)
+                listenerRot    = function(self)
+                    local _instance = libphx.Audio_ListenerRot(self)
+                    return Core.ManagedObject(_instance, libphx.Quat_Free)
                 end,
                 setOriginPos   = libphx.Audio_SetOriginPos,
                 originPos      = libphx.Audio_OriginPos,

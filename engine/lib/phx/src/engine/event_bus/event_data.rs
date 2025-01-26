@@ -1,11 +1,12 @@
-use super::{EventPayload, FrameStage, TunnelId};
+use super::{FrameStage, TunnelId};
+use crate::engine::Payload;
 
 #[derive(Debug, Clone)]
 pub struct EventData {
     delta_time: f64,
     frame_stage: FrameStage,
     tunnel_id: TunnelId,
-    payload: Option<EventPayload>,
+    payload: Option<Payload>,
 }
 
 impl EventData {
@@ -13,7 +14,7 @@ impl EventData {
         delta_time: f64,
         frame_stage: FrameStage,
         tunnel_id: TunnelId,
-        payload: Option<EventPayload>,
+        payload: Option<Payload>,
     ) -> Self {
         Self {
             delta_time,
@@ -38,7 +39,7 @@ impl EventData {
         self.tunnel_id
     }
 
-    pub fn payload(&self) -> Option<&EventPayload> {
+    pub fn payload(&self) -> Option<&Payload> {
         self.payload.as_ref()
     }
 }

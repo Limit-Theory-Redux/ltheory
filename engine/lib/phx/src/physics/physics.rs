@@ -482,7 +482,7 @@ struct RapierDebugRenderer<'a> {
     eye: Position,
 }
 
-impl<'a> rp::DebugRenderBackend for RapierDebugRenderer<'a> {
+impl rp::DebugRenderBackend for RapierDebugRenderer<'_> {
     fn draw_line(
         &mut self,
         object: rp::DebugRenderObject<'_>,

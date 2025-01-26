@@ -37,13 +37,13 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         TexCube = {
-            Create       = function(...)
-                local instance = libphx.TexCube_Create(...)
-                return Core.ManagedObject(instance, libphx.TexCube_Free)
+            Create       = function(size, format)
+                local _instance = libphx.TexCube_Create(size, format)
+                return Core.ManagedObject(_instance, libphx.TexCube_Free)
             end,
-            Load         = function(...)
-                local instance = libphx.TexCube_Load(...)
-                return Core.ManagedObject(instance, libphx.TexCube_Free)
+            Load         = function(path)
+                local _instance = libphx.TexCube_Load(path)
+                return Core.ManagedObject(_instance, libphx.TexCube_Free)
             end,
         }
 
@@ -58,21 +58,25 @@ function Loader.defineType()
                 clear        = libphx.TexCube_Clear,
                 save         = libphx.TexCube_Save,
                 saveLevel    = libphx.TexCube_SaveLevel,
-                getDataBytes = function(...)
-                    local instance = libphx.TexCube_GetDataBytes(...)
-                    return Core.ManagedObject(instance, libphx.Bytes_Free)
+                getDataBytes = function(self, face, level, pf, df)
+                    ffi.gc(face, nil)
+                    local _instance = libphx.TexCube_GetDataBytes(self, face, level, pf, df)
+                    return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
                 getFormat    = libphx.TexCube_GetFormat,
                 getHandle    = libphx.TexCube_GetHandle,
                 getSize      = libphx.TexCube_GetSize,
                 generate     = libphx.TexCube_Generate,
                 genMipmap    = libphx.TexCube_GenMipmap,
-                setDataBytes = libphx.TexCube_SetDataBytes,
+                setDataBytes = function(self, data, face, level, pf, df)
+                    ffi.gc(face, nil)
+                    libphx.TexCube_SetDataBytes(self, data, face, level, pf, df)
+                end,
                 setMagFilter = libphx.TexCube_SetMagFilter,
                 setMinFilter = libphx.TexCube_SetMinFilter,
-                genIRMap     = function(...)
-                    local instance = libphx.TexCube_GenIRMap(...)
-                    return Core.ManagedObject(instance, libphx.TexCube_Free)
+                genIRMap     = function(self, sampleCount)
+                    local _instance = libphx.TexCube_GenIRMap(self, sampleCount)
+                    return Core.ManagedObject(_instance, libphx.TexCube_Free)
                 end,
             },
         }

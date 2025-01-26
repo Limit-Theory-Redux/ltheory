@@ -87,27 +87,7 @@ impl ImplInfo {
                 docs.into_iter()
                     .for_each(|d| ffi_gen.add_class_definition(format!("-- {d}")));
 
-                // Add method signature documentation
-                method.params.iter().for_each(|param| {
-                    ffi_gen.add_class_definition(format!(
-                        "---@param {} {}",
-                        param.as_ffi_name(),
-                        param.ty.get_luals_annotation(module_name)
-                    ));
-
-                    // If this is a slice or array, we need to additionally generate a "size" parameter.
-                    match &param.ty {
-                        TypeInfo::Slice { .. } | TypeInfo::Array { .. } => {
-                            ffi_gen.add_class_definition(format!(
-                                "---@param {}_size {}",
-                                param.as_ffi_name(),
-                                TypeVariant::USize.get_luals_annotation(module_name)
-                            ));
-                        }
-                        _ => {}
-                    }
-                });
-
+                let has_overload = directives.iter().any(|d| d.contains("@overload"));
                 let mut params: Vec<_> = method
                     .params
                     .iter()
@@ -126,19 +106,42 @@ impl ImplInfo {
                     })
                     .collect();
 
-                if let Some(ret) = &method.ret {
-                    if method.bind_args.gen_out_param() {
+                if !has_overload {
+                    // Add method signature documentation
+                    method.params.iter().for_each(|param| {
                         ffi_gen.add_class_definition(format!(
-                            "---@param result {} [out]",
-                            ret.get_luals_annotation(module_name)
+                            "---@param {} {}",
+                            param.as_ffi_name(),
+                            param.ty.get_luals_annotation(module_name)
                         ));
 
-                        params.push("result".into());
-                    } else {
-                        ffi_gen.add_class_definition(format!(
-                            "---@return {}",
-                            ret.get_luals_annotation(module_name)
-                        ));
+                        // If this is a slice or array, we need to additionally generate a "size" parameter.
+                        match &param.ty {
+                            TypeInfo::Slice { .. } | TypeInfo::Array { .. } => {
+                                ffi_gen.add_class_definition(format!(
+                                    "---@param {}_size {}",
+                                    param.as_ffi_name(),
+                                    TypeVariant::USize.get_luals_annotation(module_name)
+                                ));
+                            }
+                            _ => {}
+                        }
+                    });
+
+                    if let Some(ret) = &method.ret {
+                        if method.bind_args.gen_out_param() {
+                            ffi_gen.add_class_definition(format!(
+                                "---@param result {} [out]",
+                                ret.get_luals_annotation(module_name)
+                            ));
+
+                            params.push("result".into());
+                        } else {
+                            ffi_gen.add_class_definition(format!(
+                                "---@return {}",
+                                ret.get_luals_annotation(module_name)
+                            ));
+                        }
                     }
                 }
 
@@ -372,6 +375,25 @@ fn write_method_map<F: FnMut(String)>(
     module_name: &str,
     mut writer: F,
 ) {
+    let mut args = vec![];
+    // list of the non-copyable arguments sent by value, to be removed from Lua GC
+    let mut value_args = vec![];
+
+    if method.self_param.is_some() {
+        args.push("self".to_string());
+    }
+
+    method.params.iter().for_each(|param_info| {
+        args.push(param_info.as_ffi_name());
+        if let TypeInfo::Plain { is_ref, ty } = &param_info.ty {
+            if *is_ref == TypeRef::Value && !ty.is_copyable(module_name) {
+                value_args.push(param_info.as_ffi_name());
+            }
+        };
+    });
+
+    let args_str = args.join(", ");
+
     // TODO: refactor these nested ifs
     // Here, we want to package the return type in ffi.gc if we're returning a managed type by value.
     let gc_type = if !method.bind_args.gen_out_param() {
@@ -411,14 +433,41 @@ fn write_method_map<F: FnMut(String)>(
     };
 
     if let Some(gc_type) = gc_type {
-        writer(format!("{ident}{mapped_method} = function(...)"));
+        writer(format!("{ident}{mapped_method} = function({args_str})"));
+
+        // remove non-copyable arguments sent by value from Lua GC
+        for arg in value_args {
+            writer(format!("{ident}{IDENT}ffi.gc({arg}, nil)"));
+        }
+
         writer(format!(
-            "{ident}{IDENT}local instance = libphx.{module_name}_{}(...)",
+            "{ident}{IDENT}local _instance = libphx.{module_name}_{}({args_str})",
             method.as_ffi_name(),
         ));
         writer(format!(
-            "{ident}{IDENT}return Core.ManagedObject(instance, libphx.{gc_type}_Free)"
+            "{ident}{IDENT}return Core.ManagedObject(_instance, libphx.{gc_type}_Free)"
         ));
+        writer(format!("{ident}end,"));
+    } else if !value_args.is_empty() {
+        writer(format!("{ident}{mapped_method} = function({args_str})"));
+
+        // remove non-copyable arguments sent by value from Lua GC
+        for arg in value_args {
+            writer(format!("{ident}{IDENT}ffi.gc({arg}, nil)"));
+        }
+
+        if method.ret.is_some() {
+            writer(format!(
+                "{ident}{IDENT}return libphx.{module_name}_{}({args_str})",
+                method.as_ffi_name(),
+            ));
+        } else {
+            writer(format!(
+                "{ident}{IDENT}libphx.{module_name}_{}({args_str})",
+                method.as_ffi_name(),
+            ));
+        }
+
         writer(format!("{ident}end,"));
     } else {
         writer(format!(

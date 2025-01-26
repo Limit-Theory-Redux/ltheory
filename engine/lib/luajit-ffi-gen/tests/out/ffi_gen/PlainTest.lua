@@ -72,12 +72,15 @@ function Loader.defineType()
                 getF32                 = libphx.PlainTest_GetF32,
                 getU32Ref              = libphx.PlainTest_GetU32Ref,
                 getU32Mut              = libphx.PlainTest_GetU32Mut,
-                setManaged             = libphx.PlainTest_SetManaged,
+                setManaged             = function(self, val)
+                    ffi.gc(val, nil)
+                    libphx.PlainTest_SetManaged(self, val)
+                end,
                 setManagedRef          = libphx.PlainTest_SetManagedRef,
                 setManagedMut          = libphx.PlainTest_SetManagedMut,
-                getManaged             = function(...)
-                    local instance = libphx.PlainTest_GetManaged(...)
-                    return Core.ManagedObject(instance, libphx.ManagedData_Free)
+                getManaged             = function(self)
+                    local _instance = libphx.PlainTest_GetManaged(self)
+                    return Core.ManagedObject(_instance, libphx.ManagedData_Free)
                 end,
                 getManagedViaOutParam  = libphx.PlainTest_GetManagedViaOutParam,
                 getManagedRef          = libphx.PlainTest_GetManagedRef,

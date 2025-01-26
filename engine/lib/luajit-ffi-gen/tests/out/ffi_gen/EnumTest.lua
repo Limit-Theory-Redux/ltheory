@@ -24,9 +24,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         EnumTest = {
-            New  = function(...)
-                local instance = libphx.EnumTest_New(...)
-                return Core.ManagedObject(instance, libphx.EnumTest_Free)
+            New  = function(myEnum)
+                local _instance = libphx.EnumTest_New(myEnum)
+                return Core.ManagedObject(_instance, libphx.EnumTest_Free)
             end,
         }
 
@@ -38,9 +38,9 @@ function Loader.defineType()
         local t  = ffi.typeof('EnumTest')
         local mt = {
             __index = {
-                get  = function(...)
-                    local instance = libphx.EnumTest_Get(...)
-                    return Core.ManagedObject(instance, libphx.MyEnum1_Free)
+                get  = function(self)
+                    local _instance = libphx.EnumTest_Get(self)
+                    return Core.ManagedObject(_instance, libphx.MyEnum1_Free)
                 end,
             },
         }

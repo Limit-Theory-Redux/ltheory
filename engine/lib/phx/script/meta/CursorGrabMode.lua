@@ -9,7 +9,10 @@
 -- - **`iOS/Android`** don't have cursors.
 -- 
 -- Since `Windows` and `macOS` have different [`CursorGrabMode`] support, we first try to set the grab mode that was asked for. If it doesn't work then use the alternate grab mode.
----@enum CursorGrabMode
+---@class CursorGrabMode
+---@field None integer The cursor can freely leave the window.
+---@field Confined integer The cursor is confined to the window area.
+---@field Locked integer The cursor is locked inside the window area to a certain position.
 CursorGrabMode = {
     -- The cursor can freely leave the window.
     None = 0,

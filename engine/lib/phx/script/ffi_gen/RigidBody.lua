@@ -67,33 +67,33 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         RigidBody = {
-            CreateBox                         = function(...)
-                local instance = libphx.RigidBody_CreateBox(...)
-                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            CreateBox                         = function()
+                local _instance = libphx.RigidBody_CreateBox()
+                return Core.ManagedObject(_instance, libphx.RigidBody_Free)
             end,
-            CreateBoxFromMesh                 = function(...)
-                local instance = libphx.RigidBody_CreateBoxFromMesh(...)
-                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            CreateBoxFromMesh                 = function(mesh)
+                local _instance = libphx.RigidBody_CreateBoxFromMesh(mesh)
+                return Core.ManagedObject(_instance, libphx.RigidBody_Free)
             end,
-            CreateSphere                      = function(...)
-                local instance = libphx.RigidBody_CreateSphere(...)
-                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            CreateSphere                      = function()
+                local _instance = libphx.RigidBody_CreateSphere()
+                return Core.ManagedObject(_instance, libphx.RigidBody_Free)
             end,
-            CreateSphereFromMesh              = function(...)
-                local instance = libphx.RigidBody_CreateSphereFromMesh(...)
-                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            CreateSphereFromMesh              = function(mesh)
+                local _instance = libphx.RigidBody_CreateSphereFromMesh(mesh)
+                return Core.ManagedObject(_instance, libphx.RigidBody_Free)
             end,
-            CreateConvexHullFromMesh          = function(...)
-                local instance = libphx.RigidBody_CreateConvexHullFromMesh(...)
-                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            CreateConvexHullFromMesh          = function(mesh)
+                local _instance = libphx.RigidBody_CreateConvexHullFromMesh(mesh)
+                return Core.ManagedObject(_instance, libphx.RigidBody_Free)
             end,
-            CreateConvexDecompositionFromMesh = function(...)
-                local instance = libphx.RigidBody_CreateConvexDecompositionFromMesh(...)
-                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            CreateConvexDecompositionFromMesh = function(mesh)
+                local _instance = libphx.RigidBody_CreateConvexDecompositionFromMesh(mesh)
+                return Core.ManagedObject(_instance, libphx.RigidBody_Free)
             end,
-            CreateTrimeshFromMesh             = function(...)
-                local instance = libphx.RigidBody_CreateTrimeshFromMesh(...)
-                return Core.ManagedObject(instance, libphx.RigidBody_Free)
+            CreateTrimeshFromMesh             = function(mesh)
+                local _instance = libphx.RigidBody_CreateTrimeshFromMesh(mesh)
+                return Core.ManagedObject(_instance, libphx.RigidBody_Free)
             end,
         }
 
@@ -117,13 +117,13 @@ function Loader.defineType()
                 getBoundingRadius           = libphx.RigidBody_GetBoundingRadius,
                 getBoundingRadiusCompound   = libphx.RigidBody_GetBoundingRadiusCompound,
                 getSpeed                    = libphx.RigidBody_GetSpeed,
-                getToWorldMatrix            = function(...)
-                    local instance = libphx.RigidBody_GetToWorldMatrix(...)
-                    return Core.ManagedObject(instance, libphx.Matrix_Free)
+                getToWorldMatrix            = function(self, cameraPos)
+                    local _instance = libphx.RigidBody_GetToWorldMatrix(self, cameraPos)
+                    return Core.ManagedObject(_instance, libphx.Matrix_Free)
                 end,
-                getToLocalMatrix            = function(...)
-                    local instance = libphx.RigidBody_GetToLocalMatrix(...)
-                    return Core.ManagedObject(instance, libphx.Matrix_Free)
+                getToLocalMatrix            = function(self, cameraPos)
+                    local _instance = libphx.RigidBody_GetToLocalMatrix(self, cameraPos)
+                    return Core.ManagedObject(_instance, libphx.Matrix_Free)
                 end,
                 getVelocity                 = libphx.RigidBody_GetVelocity,
                 getVelocityA                = libphx.RigidBody_GetVelocityA,

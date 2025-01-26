@@ -25,9 +25,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Sound = {
-            Load        = function(...)
-                local instance = libphx.Sound_Load(...)
-                return Core.ManagedObject(instance, libphx.Sound_Free)
+            Load        = function(path, isLooping)
+                local _instance = libphx.Sound_Load(path, isLooping)
+                return Core.ManagedObject(_instance, libphx.Sound_Free)
             end,
         }
 

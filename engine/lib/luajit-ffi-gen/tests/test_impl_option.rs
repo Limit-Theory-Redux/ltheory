@@ -200,11 +200,11 @@ fn test_primitives() {
 
     unsafe {
         OptionTest_SetPrimitive(&mut t, None);
-        assert_eq!(OptionTest_GetPrimitive(&t), None);
+        assert_eq!(OptionTest_GetPrimitive(&t).as_ref(), None);
 
         let tmp = Some(33);
         OptionTest_SetPrimitive(&mut t, tmp.as_ref());
-        assert_eq!(OptionTest_GetPrimitive(&t).cloned(), Some(33));
+        assert_eq!(OptionTest_GetPrimitive(&t).as_ref().cloned(), Some(33));
         assert_eq!(t.val_primitive, 33);
 
         OptionTest_SetPrimitiveRef(&mut t, None);
@@ -294,12 +294,12 @@ fn test_custom_copyable() {
 
     unsafe {
         OptionTest_SetCopyable(&mut t, None);
-        assert_eq!(OptionTest_GetCopyable(&t), None);
+        assert_eq!(OptionTest_GetCopyable(&t).as_ref(), None);
 
         let tmp = Some(CopyableData::new(33));
         OptionTest_SetCopyable(&mut t, tmp.as_ref());
         assert_eq!(
-            OptionTest_GetCopyable(&t).cloned(),
+            OptionTest_GetCopyable(&t).as_ref().cloned(),
             Some(CopyableData::new(33))
         );
         assert_eq!(t.val_copyable.val, 33);

@@ -316,9 +316,10 @@ impl ImplInfo {
                             TypeRef::MutableReference => quote! { Option<&mut #ty_ident> },
                             TypeRef::Reference => quote! { Option<&#ty_ident> },
                             TypeRef::Value if ty.is_copyable(&self.name) => {
-                                // We pin an instance of Option<T> using gen_buffered_ret to encode
-                                // None, so ensure the right lifetime is used here.
-                                quote! { Option<&'static #ty_ident> }
+                                // We pin a thread-local instance of Option<T> using
+                                // gen_buffered_ret to encode None, so instead we
+                                // return a pointer.
+                                quote! { *const #ty_ident }
                             }
                             TypeRef::Value => {
                                 quote! { Option<Box<#ty_ident>> }
@@ -652,9 +653,12 @@ impl ImplInfo {
     fn gen_buffered_ret(&self, type_ident: &Ident) -> TokenStream {
         quote! {
             unsafe {
-                static mut __BUFFER__: Option<#type_ident> = None;
-                __BUFFER__ = __res__;
-                __BUFFER__.as_ref()
+                thread_local! { static __BUFFER__: std::cell::RefCell<Option<#type_ident>> = Default::default(); }
+                __BUFFER__.replace(__res__);
+                __BUFFER__.with_borrow(|buf| match buf.as_ref() {
+                    Some(val) => val as *const _,
+                    None => std::ptr::null(),
+                })
             }
         }
     }

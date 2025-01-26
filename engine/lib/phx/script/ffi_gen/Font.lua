@@ -27,9 +27,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Font = {
-            Load          = function(...)
-                local instance = libphx.Font_Load(...)
-                return Core.ManagedObject(instance, libphx.Font_Free)
+            Load          = function(name, size)
+                local _instance = libphx.Font_Load(name, size)
+                return Core.ManagedObject(_instance, libphx.Font_Free)
             end,
         }
 

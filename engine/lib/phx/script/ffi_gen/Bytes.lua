@@ -57,21 +57,21 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Bytes = {
-            Create             = function(...)
-                local instance = libphx.Bytes_Create(...)
-                return Core.ManagedObject(instance, libphx.Bytes_Free)
+            Create             = function(size)
+                local _instance = libphx.Bytes_Create(size)
+                return Core.ManagedObject(_instance, libphx.Bytes_Free)
             end,
-            CreateWithCapacity = function(...)
-                local instance = libphx.Bytes_CreateWithCapacity(...)
-                return Core.ManagedObject(instance, libphx.Bytes_Free)
+            CreateWithCapacity = function(capacity)
+                local _instance = libphx.Bytes_CreateWithCapacity(capacity)
+                return Core.ManagedObject(_instance, libphx.Bytes_Free)
             end,
-            FromData           = function(...)
-                local instance = libphx.Bytes_FromData(...)
-                return Core.ManagedObject(instance, libphx.Bytes_Free)
+            FromData           = function(data)
+                local _instance = libphx.Bytes_FromData(data)
+                return Core.ManagedObject(_instance, libphx.Bytes_Free)
             end,
-            Load               = function(...)
-                local instance = libphx.Bytes_Load(...)
-                return Core.ManagedObject(instance, libphx.Bytes_Free)
+            Load               = function(path)
+                local _instance = libphx.Bytes_Load(path)
+                return Core.ManagedObject(_instance, libphx.Bytes_Free)
             end,
         }
 
@@ -85,13 +85,13 @@ function Loader.defineType()
             __index = {
                 getSize    = libphx.Bytes_GetSize,
                 isEmpty    = libphx.Bytes_IsEmpty,
-                compress   = function(...)
-                    local instance = libphx.Bytes_Compress(...)
-                    return Core.ManagedObject(instance, libphx.Bytes_Free)
+                compress   = function(self)
+                    local _instance = libphx.Bytes_Compress(self)
+                    return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
-                decompress = function(...)
-                    local instance = libphx.Bytes_Decompress(...)
-                    return Core.ManagedObject(instance, libphx.Bytes_Free)
+                decompress = function(self)
+                    local _instance = libphx.Bytes_Decompress(self)
+                    return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
                 save       = libphx.Bytes_Save,
                 getCursor  = libphx.Bytes_GetCursor,

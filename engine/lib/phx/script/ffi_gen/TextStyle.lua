@@ -41,9 +41,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         TextStyle = {
-            Create                 = function(...)
-                local instance = libphx.TextStyle_Create(...)
-                return Core.ManagedObject(instance, libphx.TextStyle_Free)
+            Create                 = function()
+                local _instance = libphx.TextStyle_Create()
+                return Core.ManagedObject(_instance, libphx.TextStyle_Free)
             end,
         }
 

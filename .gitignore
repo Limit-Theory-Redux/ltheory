@@ -5,6 +5,7 @@
 /screenshot/
 /out/
 /target/
+/expand.rs
 
 # Logs
 /logs/
