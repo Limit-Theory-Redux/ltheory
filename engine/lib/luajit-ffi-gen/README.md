@@ -367,7 +367,7 @@ List of allowed types in the return parameter position.
 | &mut T                        | \*T                  | T*        |          |
 | String, &str                  | \*const libc::c_char | cstr      | yes      |
 | Option\<MT>                   | Option\<Box\<MT>>    | MT*       |          |
-| Option\<CT>                   | Option\<&'static CT> | CT const* | yes      |
+| Option\<CT>                   | \*const CT           | CT const* | yes      |
 | Option\<String>, Option<&str> | \*const libc::c_char | cstr      | yes      |
 | Result\<..., E>               | [1], panic on error  | [1]       | [1]      |
 | Result\<Option\<...>, E>      | [2], panic on error  | [2]       | [2]      |

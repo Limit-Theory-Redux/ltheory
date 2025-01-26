@@ -1,6 +1,32 @@
 ---@meta
 
----@enum PayloadType
+---@class PayloadType
+---@field Lua integer Lua object pointer/index to communicate inside scripts only
+---@field Bool integer 
+---@field I8 integer 
+---@field U8 integer 
+---@field I16 integer 
+---@field U16 integer 
+---@field I32 integer 
+---@field U32 integer 
+---@field I64 integer 
+---@field U64 integer 
+---@field F32 integer 
+---@field F64 integer 
+---@field String integer 
+---@field BoolArray integer 
+---@field I8Array integer 
+---@field U8Array integer 
+---@field I16Array integer 
+---@field U16Array integer 
+---@field I32Array integer 
+---@field U32Array integer 
+---@field I64Array integer 
+---@field U64Array integer 
+---@field F32Array integer 
+---@field F64Array integer 
+---@field StringArray integer 
+---@field Table integer 
 PayloadType = {
     -- Lua object pointer/index to communicate inside scripts only
     Lua = 0,

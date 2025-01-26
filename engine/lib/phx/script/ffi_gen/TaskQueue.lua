@@ -17,10 +17,13 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void          TaskQueue_Free            (TaskQueue*);
-            bool          TaskQueue_StartWorker     (TaskQueue*, uint16 workerId, cstr workerName, cstr scriptPath);
+            bool          TaskQueue_StartWorker     (TaskQueue*, uint16 workerId, cstr workerName, cstr scriptPath, uint64 instancesCount);
             bool          TaskQueue_StopWorker      (TaskQueue*, uint16 workerId);
             void          TaskQueue_StopAllWorkers  (TaskQueue*);
+            uint64 const* TaskQueue_TasksInWork     (TaskQueue const*, uint16 workerId);
+            uint64 const* TaskQueue_TasksWaiting    (TaskQueue const*, uint16 workerId);
             uint64 const* TaskQueue_TasksInProgress (TaskQueue const*, uint16 workerId);
+            uint64 const* TaskQueue_TasksReady      (TaskQueue const*, uint16 workerId);
             uint64 const* TaskQueue_SendTask        (TaskQueue*, uint16 workerId, Payload* data);
             TaskResult*   TaskQueue_NextTaskResult  (TaskQueue*, uint16 workerId);
             bool          TaskQueue_SendEcho        (TaskQueue*, cstr data);
@@ -42,11 +45,17 @@ function Loader.defineType()
                 startWorker     = libphx.TaskQueue_StartWorker,
                 stopWorker      = libphx.TaskQueue_StopWorker,
                 stopAllWorkers  = libphx.TaskQueue_StopAllWorkers,
+                tasksInWork     = libphx.TaskQueue_TasksInWork,
+                tasksWaiting    = libphx.TaskQueue_TasksWaiting,
                 tasksInProgress = libphx.TaskQueue_TasksInProgress,
-                sendTask        = libphx.TaskQueue_SendTask,
-                nextTaskResult  = function(...)
-                    local instance = libphx.TaskQueue_NextTaskResult(...)
-                    return Core.ManagedObject(instance, libphx.TaskResult_Free)
+                tasksReady      = libphx.TaskQueue_TasksReady,
+                sendTask        = function(self, workerId, data)
+                    ffi.gc(data, nil)
+                    return libphx.TaskQueue_SendTask(self, workerId, data)
+                end,
+                nextTaskResult  = function(self, workerId)
+                    local _instance = libphx.TaskQueue_NextTaskResult(self, workerId)
+                    return Core.ManagedObject(_instance, libphx.TaskResult_Free)
                 end,
                 sendEcho        = libphx.TaskQueue_SendEcho,
                 getEcho         = libphx.TaskQueue_GetEcho,

@@ -36,9 +36,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Tex3D = {
-            Create       = function(...)
-                local instance = libphx.Tex3D_Create(...)
-                return Core.ManagedObject(instance, libphx.Tex3D_Free)
+            Create       = function(sx, sy, sz, format)
+                local _instance = libphx.Tex3D_Create(sx, sy, sz, format)
+                return Core.ManagedObject(_instance, libphx.Tex3D_Free)
             end,
         }
 
@@ -54,9 +54,9 @@ function Loader.defineType()
                 push         = libphx.Tex3D_Push,
                 pushLevel    = libphx.Tex3D_PushLevel,
                 genMipmap    = libphx.Tex3D_GenMipmap,
-                getDataBytes = function(...)
-                    local instance = libphx.Tex3D_GetDataBytes(...)
-                    return Core.ManagedObject(instance, libphx.Bytes_Free)
+                getDataBytes = function(self, pf, df)
+                    local _instance = libphx.Tex3D_GetDataBytes(self, pf, df)
+                    return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
                 getFormat    = libphx.Tex3D_GetFormat,
                 getHandle    = libphx.Tex3D_GetHandle,

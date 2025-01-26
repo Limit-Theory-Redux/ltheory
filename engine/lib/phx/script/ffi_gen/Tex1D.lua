@@ -34,9 +34,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Tex1D = {
-            Create       = function(...)
-                local instance = libphx.Tex1D_Create(...)
-                return Core.ManagedObject(instance, libphx.Tex1D_Free)
+            Create       = function(size, format)
+                local _instance = libphx.Tex1D_Create(size, format)
+                return Core.ManagedObject(_instance, libphx.Tex1D_Free)
             end,
         }
 
@@ -48,15 +48,15 @@ function Loader.defineType()
         local t  = ffi.typeof('Tex1D')
         local mt = {
             __index = {
-                clone        = function(...)
-                    local instance = libphx.Tex1D_Clone(...)
-                    return Core.ManagedObject(instance, libphx.Tex1D_Free)
+                clone        = function(self)
+                    local _instance = libphx.Tex1D_Clone(self)
+                    return Core.ManagedObject(_instance, libphx.Tex1D_Free)
                 end,
                 genMipmap    = libphx.Tex1D_GenMipmap,
                 getFormat    = libphx.Tex1D_GetFormat,
-                getDataBytes = function(...)
-                    local instance = libphx.Tex1D_GetDataBytes(...)
-                    return Core.ManagedObject(instance, libphx.Bytes_Free)
+                getDataBytes = function(self, pf, df)
+                    local _instance = libphx.Tex1D_GetDataBytes(self, pf, df)
+                    return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
                 getHandle    = libphx.Tex1D_GetHandle,
                 getSize      = libphx.Tex1D_GetSize,

@@ -89,7 +89,7 @@ function PayloadConverter:tablePayloadToValue(payloadTable)
         local name = payloadTable:getName(index)
         local payload = payloadTable:getPayload(index)
 
-        result[tostring(name)] = self:payloadToValue(payload)
+        result[ffi.string(name)] = self:payloadToValue(payload)
     end
     return result
 end

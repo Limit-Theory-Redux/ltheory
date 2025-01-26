@@ -10,8 +10,9 @@ TaskQueue = {}
 ---@param workerId integer
 ---@param workerName string
 ---@param scriptPath string
+---@param instancesCount integer
 ---@return boolean
-function TaskQueue:startWorker(workerId, workerName, scriptPath) end
+function TaskQueue:startWorker(workerId, workerName, scriptPath, instancesCount) end
 
 -- Stop Lua worker and remove it from the queue.
 ---@param workerId integer
@@ -21,15 +22,28 @@ function TaskQueue:stopWorker(workerId) end
 -- Stop all Lua workers and remove them from the queue.
 function TaskQueue:stopAllWorkers() end
 
+-- Returns number of tasks that were sent to the worker and whose results are not retrieved yet.
+---@param workerId integer
+---@return integer?
+function TaskQueue:tasksInWork(workerId) end
+
+-- Returns number of tasks waiting to be processed by the worker.
+---@param workerId integer
+---@return integer?
+function TaskQueue:tasksWaiting(workerId) end
+
 -- Returns number of tasks the worker is busy with.
 ---@param workerId integer
 ---@return integer?
 function TaskQueue:tasksInProgress(workerId) end
 
--- Send a task to the Lua worker.
+-- Returns number of tasks finished by the worker and whose results can be retrieved.
 ---@param workerId integer
----@param data Payload
 ---@return integer?
+function TaskQueue:tasksReady(workerId) end
+
+-- Send a task to the Lua worker.
+---@overload fun(workerId: integer, data: Payload|boolean|integer|number|string): integer?
 function TaskQueue:sendTask(workerId, data) end
 
 -- Returns next result of the finished worker task if any.

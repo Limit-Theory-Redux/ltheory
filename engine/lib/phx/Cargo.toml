@@ -8,7 +8,8 @@ license.workspace = true
 edition.workspace = true
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]
+bench = true
 
 [dependencies]
 # workspace crates
@@ -18,6 +19,7 @@ luajit-ffi-gen.workspace = true
 # external crates
 arboard = "3.4"
 chrono = "0.4"
+crossbeam = "0.8"
 directories = "5.0"
 flate2 = "1.0"
 freetype-sys = "0.20"
@@ -30,7 +32,7 @@ indexmap = "2.0"
 kira = { version = "0.9", features = ["symphonia", "cpal", "serde"] }
 libc = "0.2"
 memoffset = "0.9"
-mlua = { version = "0.10", features = ["luajit52", "vendored"] }
+mlua = { version = "0.10", features = ["luajit52", "vendored", "error-send"] }
 parley = "0.1"
 swash = "0.1"
 rapier3d-f64 = { version = "0.22", features = ["simd-stable", "debug-render"] }
@@ -50,5 +52,13 @@ strum_macros = "0.26"
 tobj = "4.0"
 byteorder = "1.5"
 
+[dev-dependencies]
+test-log = "0.2"
+criterion = "0.5"
+
 [build-dependencies]
 gl_generator = "0.14"
+
+[[bench]]
+name = "worker"
+harness = false

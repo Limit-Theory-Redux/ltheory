@@ -1,6 +1,6 @@
 local libphx = require('libphx').lib
 local Converter = require('Core.Util.Converter')
-local PayloadConverter = require "Core.Util.PayloadConverter"
+local PayloadConverter = require('Core.Util.PayloadConverter')
 
 function onDef_EventBus_t(t, mt)
     -- TODO: should return a handler

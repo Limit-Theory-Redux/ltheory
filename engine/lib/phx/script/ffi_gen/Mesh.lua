@@ -69,33 +69,33 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Mesh = {
-            Create            = function(...)
-                local instance = libphx.Mesh_Create(...)
-                return Core.ManagedObject(instance, libphx.Mesh_Free)
+            Create            = function()
+                local _instance = libphx.Mesh_Create()
+                return Core.ManagedObject(_instance, libphx.Mesh_Free)
             end,
-            Load              = function(...)
-                local instance = libphx.Mesh_Load(...)
-                return Core.ManagedObject(instance, libphx.Mesh_Free)
+            Load              = function(name)
+                local _instance = libphx.Mesh_Load(name)
+                return Core.ManagedObject(_instance, libphx.Mesh_Free)
             end,
-            FromBytes         = function(...)
-                local instance = libphx.Mesh_FromBytes(...)
-                return Core.ManagedObject(instance, libphx.Mesh_Free)
+            FromBytes         = function(buf)
+                local _instance = libphx.Mesh_FromBytes(buf)
+                return Core.ManagedObject(_instance, libphx.Mesh_Free)
             end,
-            FromObj           = function(...)
-                local instance = libphx.Mesh_FromObj(...)
-                return Core.ManagedObject(instance, libphx.Mesh_Free)
+            FromObj           = function(bytes)
+                local _instance = libphx.Mesh_FromObj(bytes)
+                return Core.ManagedObject(_instance, libphx.Mesh_Free)
             end,
-            Box               = function(...)
-                local instance = libphx.Mesh_Box(...)
-                return Core.ManagedObject(instance, libphx.Mesh_Free)
+            Box               = function(res)
+                local _instance = libphx.Mesh_Box(res)
+                return Core.ManagedObject(_instance, libphx.Mesh_Free)
             end,
-            BoxSphere         = function(...)
-                local instance = libphx.Mesh_BoxSphere(...)
-                return Core.ManagedObject(instance, libphx.Mesh_Free)
+            BoxSphere         = function(res)
+                local _instance = libphx.Mesh_BoxSphere(res)
+                return Core.ManagedObject(_instance, libphx.Mesh_Free)
             end,
-            Plane             = function(...)
-                local instance = libphx.Mesh_Plane(...)
-                return Core.ManagedObject(instance, libphx.Mesh_Free)
+            Plane             = function(origin, du, dv, resU, resV)
+                local _instance = libphx.Mesh_Plane(origin, du, dv, resU, resV)
+                return Core.ManagedObject(_instance, libphx.Mesh_Free)
             end,
         }
 
@@ -107,13 +107,13 @@ function Loader.defineType()
         local t  = ffi.typeof('Mesh')
         local mt = {
             __index = {
-                clone             = function(...)
-                    local instance = libphx.Mesh_Clone(...)
-                    return Core.ManagedObject(instance, libphx.Mesh_Free)
+                clone             = function(self)
+                    local _instance = libphx.Mesh_Clone(self)
+                    return Core.ManagedObject(_instance, libphx.Mesh_Free)
                 end,
-                toBytes           = function(...)
-                    local instance = libphx.Mesh_ToBytes(...)
-                    return Core.ManagedObject(instance, libphx.Bytes_Free)
+                toBytes           = function(self)
+                    local _instance = libphx.Mesh_ToBytes(self)
+                    return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
                 addIndex          = libphx.Mesh_AddIndex,
                 addMesh           = libphx.Mesh_AddMesh,

@@ -1,6 +1,7 @@
 ---@meta
 
----@enum SystemEvent
+---@class SystemEvent
+---@field Exit integer 
 SystemEvent = {
     Exit = 0,
 }

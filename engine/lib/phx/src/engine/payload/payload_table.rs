@@ -3,7 +3,7 @@ use indexmap::IndexMap;
 use super::Payload;
 
 /// Collection of named payloads.
-/// Elements ordered by insertion order.
+/// Elements are ordered by insertion time.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PayloadTable {
     table: IndexMap<String, Payload>,

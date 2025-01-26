@@ -5,7 +5,9 @@
 -- - Scroll: use to control mouse over scroll area
 -- 
 -- Two types to avoid collision between scrolling and mouse over element check.
----@enum FocusType
+---@class FocusType
+---@field Mouse integer 
+---@field Scroll integer 
 FocusType = {
     Mouse = 0,
     Scroll = 1,

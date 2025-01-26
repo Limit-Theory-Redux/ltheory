@@ -32,9 +32,9 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         TextData = {
-            Create            = function(...)
-                local instance = libphx.TextData_Create(...)
-                return Core.ManagedObject(instance, libphx.TextData_Free)
+            Create            = function(text, defaultStyle, cursorColor, selectionColor, alignment, multiline)
+                local _instance = libphx.TextData_Create(text, defaultStyle, cursorColor, selectionColor, alignment, multiline)
+                return Core.ManagedObject(_instance, libphx.TextData_Free)
             end,
         }
 

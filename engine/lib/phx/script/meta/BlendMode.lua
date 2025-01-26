@@ -1,6 +1,10 @@
 ---@meta
 
----@enum BlendMode
+---@class BlendMode
+---@field Disabled integer 
+---@field Additive integer 
+---@field Alpha integer 
+---@field PreMultAlpha integer 
 BlendMode = {
     Disabled = 0,
     Additive = 1,

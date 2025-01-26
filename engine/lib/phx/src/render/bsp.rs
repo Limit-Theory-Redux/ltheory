@@ -322,13 +322,13 @@ pub struct Delay {
 }
 
 #[no_mangle]
-pub static BSPNodeRel_Parent: BSPNodeRel = 0 as BSPNodeRel;
+pub static BSP_NODE_REL_PARENT: BSPNodeRel = 0 as BSPNodeRel;
 
 #[no_mangle]
-pub static BSPNodeRel_Back: BSPNodeRel = 1 as BSPNodeRel;
+pub static BSP_NODE_REL_BACK: BSPNodeRel = 1 as BSPNodeRel;
 
 #[no_mangle]
-pub static BSPNodeRel_Front: BSPNodeRel = 2 as BSPNodeRel;
+pub static BSP_NODE_REL_FRONT: BSPNodeRel = 2 as BSPNodeRel;
 
 const BACK_INDEX: i32 = 0;
 const FRONT_INDEX: i32 = 1;
@@ -488,7 +488,7 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
 }
 
 #[no_mangle]
-pub static mut nodeStack: Vec<Delay> = Vec::new();
+pub static mut NODE_STACK: Vec<Delay> = Vec::new();
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectSphere(
@@ -523,7 +523,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                     nodeRef: (*node).child[BACK_INDEX as usize],
                     depth,
                 };
-                nodeStack.push(d);
+                NODE_STACK.push(d);
                 nodeRef = (*node).child[FRONT_INDEX as usize];
             }
 
@@ -550,17 +550,17 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                 break;
             }
 
-            if nodeStack.is_empty() {
+            if NODE_STACK.is_empty() {
                 break;
             }
 
-            let d = nodeStack.pop().unwrap();
+            let d = NODE_STACK.pop().unwrap();
             nodeRef = d.nodeRef;
             depth = d.depth;
         }
     }
 
-    nodeStack.clear();
+    NODE_STACK.clear();
     // BSP_PROFILE (
     //     self->profilingData.sphere.count++;
     //     self->profilingData.sphere.depth += maxDepth;
@@ -573,16 +573,16 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
 // const LEAF_TRIANGLE_COUNT: i32 = 12;
 
 #[no_mangle]
-pub static PolygonFlag_None: PolygonFlag = 0 as PolygonFlag;
+pub static POLYGON_FLAG_NONE: PolygonFlag = 0 as PolygonFlag;
 
 #[no_mangle]
-pub static PolygonFlag_InvalidFaceSplit: PolygonFlag = (1 << 0) as PolygonFlag;
+pub static POLYGON_FLAG_INVALID_FACE_SPLIT: PolygonFlag = (1 << 0) as PolygonFlag;
 
 #[no_mangle]
-pub static PolygonFlag_InvalidDecompose: PolygonFlag = (1 << 1) as PolygonFlag;
+pub static POLYGON_FLAG_INVALID_DECOMPOSE: PolygonFlag = (1 << 1) as PolygonFlag;
 
 #[no_mangle]
-pub static PolygonFlag_InvalidEdgeSplit: PolygonFlag = (1 << 2) as PolygonFlag;
+pub static POLYGON_FLAG_INVALID_EDGE_SPLIT: PolygonFlag = (1 << 2) as PolygonFlag;
 
 unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     nodeData: *mut BSPBuildNodeData,
@@ -687,7 +687,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
             while j < polygonsLen {
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
 
-                if (*polygon).flags as i32 & PolygonFlag_InvalidFaceSplit as i32 == 0 {
+                if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_FACE_SPLIT as i32 == 0 {
                     let mut plane: Plane = Plane {
                         n: Vec3::ZERO,
                         d: 0.,
@@ -710,8 +710,9 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
         }
 
         if !bestPolygon.is_null() {
-            (*bestPolygon).flags =
-                ((*bestPolygon).flags as i32 | PolygonFlag_InvalidFaceSplit as i32) as PolygonFlag;
+            (*bestPolygon).flags = ((*bestPolygon).flags as i32
+                | POLYGON_FLAG_INVALID_FACE_SPLIT as i32)
+                as PolygonFlag;
             // CHECK2(Polygon_GetCentroid((Polygon*) bestPolygon, &node->planeCenter);)
         }
     } else if polygonsLen > 0 {
@@ -751,7 +752,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                 (RNG_Get32(&mut *(*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
             for _ in 0..polygonsLen {
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
-                if (*polygon).flags as i32 & PolygonFlag_InvalidDecompose as i32 != 0 {
+                if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_DECOMPOSE as i32 != 0 {
                     continue;
                 }
 
@@ -790,7 +791,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                          * nothing stopping a triangle from being thinner than
                          * PLANE_THICKNESS_EPSILON. */
                         (*polygon).flags = ((*polygon).flags as i32
-                            | PolygonFlag_InvalidDecompose as i32)
+                            | POLYGON_FLAG_INVALID_DECOMPOSE as i32)
                             as PolygonFlag;
                     }
                     //if (--numToCheck == 0) break;
@@ -805,7 +806,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
             if splitFound {
                 (*bestPolygon).flags = ((*bestPolygon).flags as i32
-                    | PolygonFlag_InvalidDecompose as i32)
+                    | POLYGON_FLAG_INVALID_DECOMPOSE as i32)
                     as PolygonFlag;
             }
         }
@@ -816,7 +817,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                 (RNG_Get32(&mut *(*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
             for _ in 0..polygonsLen {
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
-                if (*polygon).flags as i32 & PolygonFlag_InvalidEdgeSplit as i32 != 0 {
+                if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_EDGE_SPLIT as i32 != 0 {
                     continue;
                 }
 
@@ -876,7 +877,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
             if splitFound {
                 (*bestPolygon).flags = ((*bestPolygon).flags as i32
-                    | PolygonFlag_InvalidEdgeSplit as i32)
+                    | POLYGON_FLAG_INVALID_EDGE_SPLIT as i32)
                     as PolygonFlag;
             }
         }
@@ -923,7 +924,7 @@ unsafe extern "C" fn BSPBuild_AppendPolygon(
 
     (*nodeData).triangleCount += (*polygon).inner.vertices.len() as i32 - 2;
     (*nodeData).validPolygonCount +=
-        ((*polygon).flags as i32 & PolygonFlag_InvalidFaceSplit as i32 == 0) as i32;
+        ((*polygon).flags as i32 & POLYGON_FLAG_INVALID_FACE_SPLIT as i32 == 0) as i32;
     (*nodeData).polygons.push((*polygon).clone())
 }
 
@@ -993,8 +994,9 @@ unsafe extern "C" fn BSPBuild_CreateNode(
         let classification = Plane_ClassifyPolygon(&splitPlane, &polygon.inner);
         match classification {
             PolygonClassification::Coplanar => {
-                (*polygon).flags =
-                    ((*polygon).flags as i32 | PolygonFlag_InvalidFaceSplit as i32) as PolygonFlag;
+                (*polygon).flags = ((*polygon).flags as i32
+                    | POLYGON_FLAG_INVALID_FACE_SPLIT as i32)
+                    as PolygonFlag;
             }
             PolygonClassification::Behind => {
                 BSPBuild_AppendPolygon(&mut backNodeData, polygon);
@@ -1294,7 +1296,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
         index: 0,
         triangleCount: 0,
     };
-    if relationship == BSPNodeRel_Parent {
+    if relationship == BSP_NODE_REL_PARENT {
         if nodeRef.index != 0 {
             for i in 0..(this.nodes.len() as i32) {
                 let nodeToCheck: &mut BSPNode = &mut this.nodes[i as usize];
@@ -1306,11 +1308,11 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
                 }
             }
         }
-    } else if relationship == BSPNodeRel_Back {
+    } else if relationship == BSP_NODE_REL_BACK {
         if !node.is_null() {
             newNode = (*node).child[BACK_INDEX as usize];
         }
-    } else if relationship == BSPNodeRel_Front {
+    } else if relationship == BSP_NODE_REL_FRONT {
         if !node.is_null() {
             newNode = (*node).child[FRONT_INDEX as usize];
         }
@@ -1583,7 +1585,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                     nodeRef: (*node).child[BACK_INDEX as usize],
                     depth,
                 };
-                nodeStack.push(d);
+                NODE_STACK.push(d);
                 nodeRef = (*node).child[FRONT_INDEX as usize];
             }
 
@@ -1618,17 +1620,17 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 break;
             }
 
-            if nodeStack.is_empty() {
+            if NODE_STACK.is_empty() {
                 break;
             }
 
-            let d: Delay = nodeStack.pop().unwrap();
+            let d: Delay = NODE_STACK.pop().unwrap();
             nodeRef = d.nodeRef;
             depth = d.depth;
         }
     }
 
-    nodeStack.clear();
+    NODE_STACK.clear();
 
     hit
 }
