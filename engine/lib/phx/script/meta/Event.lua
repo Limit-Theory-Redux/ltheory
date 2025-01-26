@@ -1,3 +1,4 @@
+-- AUTO GENERATED. DO NOT MODIFY!
 ---@meta
 
 -- List of the events used in the engine.

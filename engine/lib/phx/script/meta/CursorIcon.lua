@@ -1,3 +1,4 @@
+-- AUTO GENERATED. DO NOT MODIFY!
 ---@meta
 
 -- The icon to display for a [`Window`](crate::window::Window)'s [`Cursor`](crate::window::Cursor).

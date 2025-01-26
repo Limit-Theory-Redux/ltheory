@@ -1,3 +1,4 @@
+-- AUTO GENERATED. DO NOT MODIFY!
 ---@meta
 
 -- Frame stages in order they are processed.

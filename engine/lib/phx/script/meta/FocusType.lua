@@ -1,3 +1,4 @@
+-- AUTO GENERATED. DO NOT MODIFY!
 ---@meta
 
 -- Specify the purpose of mouse over check:

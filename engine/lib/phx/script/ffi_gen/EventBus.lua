@@ -1,3 +1,4 @@
+-- AUTO GENERATED. DO NOT MODIFY!
 -- EventBus --------------------------------------------------------------------
 local Loader = {}
 

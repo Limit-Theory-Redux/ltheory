@@ -205,6 +205,7 @@ impl FFIGenerator {
         let mut module = String::new();
 
         // Header
+        writeln!(&mut module, "-- AUTO GENERATED. DO NOT MODIFY!").unwrap();
         writeln!(
             &mut module,
             "-- {} {:-<2$}",
