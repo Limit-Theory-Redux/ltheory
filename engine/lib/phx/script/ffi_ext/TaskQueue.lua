@@ -2,10 +2,17 @@ local libphx = require('libphx').lib
 local PayloadConverter = require('Core.Util.PayloadConverter')
 
 function onDef_TaskQueue_t(t, mt)
-    mt.__index.startWorker = function(self, workerId, workerName, scriptPath, instancesCount)
+    mt.__index.startWorker = function(self, workerName, scriptPath, instancesCount)
+        -- TODO: fix this if possible
+        -- -@class WorkerId
+        -- -@field workerName integer
+        WorkerId.Register(workerName)
+
+        local workerId = WorkerId[workerName]
         if not libphx.TaskQueue_StartWorker(self, workerId, workerName, scriptPath, instancesCount) then
             Log.Error("Cannot start worker: " .. workerName)
         end
+        return workerId
     end
 
     mt.__index.sendTask = function(self, workerId, data)
