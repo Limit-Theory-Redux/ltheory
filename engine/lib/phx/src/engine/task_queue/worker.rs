@@ -40,6 +40,7 @@ pub struct Worker<IN, OUT> {
 
 impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
     /// Creates custom worker.
+    /// Runs function in a separate thread of each instance.
     pub fn new<F>(name: &str, instances_count: usize, f: F) -> Self
     where
         F: Fn(Receiver<WorkerInData<IN>>, Sender<WorkerOutData<OUT>>) -> Result<(), TaskQueueError>,
@@ -80,6 +81,8 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
     }
 
     /// Create function based native worker.
+    /// Wraps provided function in a loop and run it in a separate thread of each instance.
+    /// Reads data from the input stream, calls function with it,[Engine Workers](../engine/lib/phx/src/engine/task_queue/README.md) and sends result into the output stream.
     pub fn new_native<F>(name: &str, instances_count: usize, f: F) -> Self
     where
         F: Fn(IN) -> OUT,
