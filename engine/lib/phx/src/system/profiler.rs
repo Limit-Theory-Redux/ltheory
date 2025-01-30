@@ -59,8 +59,8 @@ impl Profiler {
 
     pub fn disable() {
         let mut profiler = THIS.lock().expect("Cannot lock profiler");
-        if !profiler.stack.is_empty() {
-            panic!("Profiler_Disable: Cannot stop profiler from within a profiled section");
+        if profiler.stack.len() > 1 {
+            panic!("Profiler_Disable: Cannot stop profiler from within a profiled section. Active scope(s): {:?}", profiler.stack);
         }
 
         Self::end_intern(&mut profiler);
