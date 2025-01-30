@@ -2,7 +2,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// Wrapper around Rust [`SystemTime`].
 /// For documentation see: https://doc.rust-lang.org/std/time/struct.SystemTime.html
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub struct TimeStamp {
     pub value: SystemTime,
