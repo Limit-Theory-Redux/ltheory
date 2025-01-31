@@ -421,9 +421,7 @@ impl Shader {
 
     // Singleton based shader functions - Old API.
     pub fn start(&mut self) {
-        unsafe {
-            Profiler_Begin(c_str!("Shader_Start"));
-        }
+        Profiler::begin("Shader_Start");
 
         let s = &mut *self.shared.as_mut();
 
@@ -465,9 +463,7 @@ impl Shader {
             s.index_set_uniform(s.auto_vars[i].index, shader_var);
         }
 
-        unsafe {
-            Profiler_End();
-        }
+        Profiler::end();
     }
 
     pub fn stop(&self) {

@@ -429,10 +429,10 @@ impl Engine {
     }
 
     pub fn update() {
+        Profiler::begin("Engine_Update");
         unsafe {
-            Profiler_Begin(c_str!("Engine_Update"));
             Metric_Reset();
-            Profiler_End();
         }
+        Profiler::end();
     }
 }

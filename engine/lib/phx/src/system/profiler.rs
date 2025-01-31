@@ -1,10 +1,13 @@
 use std::sync::{LazyLock, Mutex, MutexGuard};
 
+use cli_table::{Cell, Style, Table};
 use indexmap::IndexMap;
 use tracing::{info, warn};
 
 use super::{Signal, Signal_AddHandlerAll, TimeStamp};
 use crate::system::Signal_RemoveHandlerAll;
+
+const MAX_SCOPE_STACK_SIZE: usize = 128;
 
 #[derive(Debug, Clone, Default)]
 pub struct Scope {
@@ -38,13 +41,13 @@ pub struct Profiler {
     pub start: TimeStamp,
 }
 
-pub static THIS: LazyLock<Mutex<Profiler>> = LazyLock::new(Default::default);
+pub static PROFILER: LazyLock<Mutex<Profiler>> = LazyLock::new(Default::default);
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Profiler {
     pub fn enable() {
         {
-            let mut profiler = THIS.lock().expect("Cannot lock profiler");
+            let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
 
             profiler.is_enabled = true;
             profiler.scopes.clear();
@@ -58,9 +61,9 @@ impl Profiler {
     }
 
     pub fn disable() {
-        let mut profiler = THIS.lock().expect("Cannot lock profiler");
+        let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         if profiler.stack.len() > 1 {
-            panic!("Profiler_Disable: Cannot stop profiler from within a profiled section. Active scope(s): {:?}", profiler.stack);
+            panic!("Profiler::disable: Cannot stop profiler from within a profiled section. Active scope(s): {:?}", profiler.stack);
         }
 
         Self::end_intern(&mut profiler);
@@ -87,36 +90,42 @@ impl Profiler {
         info!("-- Measured timespan: {total_ms}ms");
 
         if !profiler.scopes.is_empty() {
-            info!("");
-            info!(
-                " Scope |  Cumul |    Scope |    Min |      Max |   Mean |   Var | Var/Mean | Name"
-            );
-            info!("-------|--------|----------|--------|----------|--------|-------|----------|---------------------------");
-
+            let mut table = vec![];
             let mut cumulative = 0.0;
 
             for (_, scope) in &profiler.scopes {
-                let scopeTotal = scope.total as f64;
+                let scope_total = scope.total as f64;
 
-                cumulative += scopeTotal;
+                cumulative += scope_total;
 
-                // if scopeTotal / total > 0.01 || scope.max > 0.01 {
-                info!(
-                    "{:5.1}% | {:5.0}% | {:6.0}ms | {:6.2} | {:8.2} | {:6.2} | {:5.2} | {:7.0}% | {:?}",
-                    100.0 * (scopeTotal / total),
-                    100.0 * (cumulative / total),
-                    1000.0 * scopeTotal,
-                    1000.0 * scope.min,
-                    1000.0 * scope.max,
-                    1000.0 * scope.mean,
-                    1000.0 * scope.var,
-                    100.0 * (scope.var / scope.mean),
-                    scope.name,
-                );
+                // if scope_total / total > 0.01 || scope.max > 0.01 {
+                table.push(vec![
+                    (100.0 * (scope_total / total)).cell(),
+                    (100.0 * (cumulative / total)).cell(),
+                    (1000.0 * scope_total).cell(),
+                    (1000.0 * scope.min).cell(),
+                    (1000.0 * scope.max).cell(),
+                    (1000.0 * scope.mean).cell(),
+                    (1000.0 * scope.var).cell(),
+                    (100.0 * (scope.var / scope.mean)).cell(),
+                    scope.name.clone().cell(),
+                ]);
                 // }
             }
 
-            info!("-------------------------------------------------------------------------------------------------------");
+            let table = table.table().title(vec![
+                "Cell %".cell().bold(true),
+                "Cumul %".cell().bold(true),
+                "Scope (ms)".cell().bold(true),
+                "Min".cell().bold(true),
+                "Max".cell().bold(true),
+                "Mean".cell().bold(true),
+                "Var".cell().bold(true),
+                "Var/Mean %".cell().bold(true),
+                "Name".cell().bold(true),
+            ]);
+
+            info!("\n{}", table.display().expect("No profiler table"));
 
             profiler.scopes.clear();
         }
@@ -127,23 +136,19 @@ impl Profiler {
     }
 
     pub fn begin(name: &str) {
-        let mut profiler = THIS.lock().expect("Cannot lock profiler");
+        let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         if !profiler.is_enabled {
             return;
         }
 
-        if profiler.stack.len() >= 128 {
+        if profiler.stack.len() >= MAX_SCOPE_STACK_SIZE {
             Self::backtrace_intern(&profiler);
-            warn!("Profiler_Begin: Maximum stack depth exceeded");
+            warn!("Profiler::begin: Maximum stack depth exceeded");
             return;
         }
 
         let now = TimeStamp::now();
-        let scope_name = profiler
-            .stack
-            .last()
-            .map(|name| name.clone())
-            .unwrap_or_default();
+        let scope_name = profiler.stack.last().cloned().unwrap_or_default();
         if !scope_name.is_empty() {
             let prev = profiler.scopes.get_mut(&scope_name).expect("Unknown scope");
 
@@ -161,7 +166,7 @@ impl Profiler {
     }
 
     pub fn end() {
-        let mut profiler = THIS.lock().expect("Cannot lock profiler");
+        let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         Self::end_intern(&mut profiler);
     }
 
@@ -170,7 +175,7 @@ impl Profiler {
     }
 
     pub fn loop_marker() {
-        let mut profiler = THIS.lock().expect("Cannot lock profiler");
+        let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         if !profiler.is_enabled {
             return;
         }
@@ -192,7 +197,7 @@ impl Profiler {
     }
 
     pub fn backtrace() {
-        let profiler = THIS.lock().expect("Cannot lock profiler");
+        let profiler = PROFILER.lock().expect("Cannot lock profiler");
         Self::backtrace_intern(&profiler);
     }
 }
@@ -208,11 +213,7 @@ impl Profiler {
             let scope = profiler.scopes.get_mut(&scope_name).expect("Unknown scope");
             scope.frame += scope.last.get_difference(&now);
 
-            let scope_name = profiler
-                .stack
-                .last()
-                .map(|name| name.clone())
-                .unwrap_or_default();
+            let scope_name = profiler.stack.last().cloned().unwrap_or_default();
 
             if !scope_name.is_empty() {
                 let scope = profiler.scopes.get_mut(&scope_name).expect("Unknown scope");
@@ -220,7 +221,7 @@ impl Profiler {
             }
         } else {
             Self::backtrace_intern(profiler);
-            panic!("Profiler_End: Attempting to pop an empty stack");
+            panic!("Profiler::end: Attempting to pop an empty stack");
         }
     }
 
@@ -242,16 +243,6 @@ impl Profiler {
             });
     }
 }
-
-// unsafe extern "C" fn Profiler_GetScope(name: *const libc::c_char) -> *mut Scope {
-//     let mut scope: *mut Scope = HashMap_GetRaw(THIS.map, name as usize as u64) as *mut Scope;
-//     if !scope.is_null() {
-//         return scope;
-//     }
-//     scope = Scope_Create(name);
-//     HashMap_SetRaw(THIS.map, name as usize as u64, scope as *mut _);
-//     scope
-// }
 
 extern "C" fn Profiler_SignalHandler(_: Signal) {
     Profiler::backtrace();

@@ -170,7 +170,7 @@ pub unsafe extern "C" fn HashGrid_Update(
     elem: *mut HashGridElem,
     box_0: *const Box3,
 ) {
-    Profiler_Begin(c_str!("HashGrid_Update"));
+    Profiler::begin("HashGrid_Update");
     let lower: [i32; 3] = [
         HashGrid_ToLocal(this, (*box_0).lower.x),
         HashGrid_ToLocal(this, (*box_0).lower.y),
@@ -190,7 +190,7 @@ pub unsafe extern "C" fn HashGrid_Update(
         && lower[2] == (*elem).lower[2]
         && upper[2] == (*elem).upper[2]
     {
-        Profiler_End();
+        Profiler::end();
         return;
     }
 
@@ -274,7 +274,7 @@ pub unsafe extern "C" fn HashGrid_Update(
     (*elem).upper[1] = upper[1];
     (*elem).upper[2] = upper[2];
 
-    Profiler_End();
+    Profiler::end();
 }
 
 #[no_mangle]
