@@ -45,6 +45,7 @@ pub static PROFILER: LazyLock<Mutex<Profiler>> = LazyLock::new(Default::default)
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Profiler {
+    /// Enables profiling and initializes the profiler state
     pub fn enable() {
         {
             let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
@@ -60,6 +61,7 @@ impl Profiler {
         unsafe { Signal_AddHandlerAll(Profiler_SignalHandler) };
     }
 
+    /// Disables profiling and processes results
     pub fn disable() {
         let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         if profiler.stack.len() > 1 {
@@ -135,6 +137,7 @@ impl Profiler {
         unsafe { Signal_RemoveHandlerAll(Profiler_SignalHandler) };
     }
 
+    /// Starts a new profiling scope
     pub fn begin(name: &str) {
         let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         if !profiler.is_enabled {
@@ -165,6 +168,7 @@ impl Profiler {
         profiler.stack.push(name.into());
     }
 
+    /// Ends the current profiling scope
     pub fn end() {
         let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         Self::end_intern(&mut profiler);
@@ -174,6 +178,7 @@ impl Profiler {
         // empty
     }
 
+    /// Records frame timing for each active scope
     pub fn loop_marker() {
         let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         if !profiler.is_enabled {
@@ -181,7 +186,7 @@ impl Profiler {
         }
 
         for (_, scope) in &mut profiler.scopes {
-            if scope.frame as f64 > 0.0 {
+            if scope.frame > 0.0 {
                 scope.total += scope.frame;
                 let frame = scope.frame;
                 scope.min = f64::min(scope.min, frame);
@@ -196,6 +201,7 @@ impl Profiler {
         }
     }
 
+    /// Prints backtrace of active scopes
     pub fn backtrace() {
         let profiler = PROFILER.lock().expect("Cannot lock profiler");
         Self::backtrace_intern(&profiler);
