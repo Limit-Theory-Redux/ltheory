@@ -3,18 +3,14 @@ local WorkerTest = require('States.Application')
 function WorkerTest:onInit()
     Log.Info("WorkerTest:onInit: Start")
 
-    ---@class WorkerId
-    ---@field TestWorker2 integer Enum for the second TestWorker worker
-    WorkerId.Register({ "TestWorker", "TestWorker2" })
-
-    TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/TestWorkerFunction.lua", 1)
-    TaskQueue:startWorker(WorkerId.TestWorker2, "TestWorker2", "script/States/App/Tests/TestWorkerFunction2.lua", 1)
+    local workerId1 = TaskQueue:startWorker("TestWorker", "script/States/App/Tests/TestWorkerFunction.lua", 1)
+    local workerId2 = TaskQueue:startWorker("TestWorker2", "script/States/App/Tests/TestWorkerFunction2.lua", 1)
 
     -- Simple test
-    local expectedTaskId = TaskQueue:sendTask(WorkerId.TestWorker, "TestPayload")
-    local taskId, payload = TaskQueue:nextTaskResult(WorkerId.TestWorker)
+    local expectedTaskId = TaskQueue:sendTask(workerId1, "TestPayload")
+    local taskId, payload = TaskQueue:nextTaskResult(workerId1)
     while taskId == nil do
-        taskId, payload = TaskQueue:nextTaskResult(WorkerId.TestWorker)
+        taskId, payload = TaskQueue:nextTaskResult(workerId1)
     end
 
     assert(expectedTaskId == taskId, "Expected " .. tostring(expectedTaskId) .. " but was " .. tostring(taskId))
@@ -33,10 +29,10 @@ function WorkerTest:onInit()
             strVal = "TestPayload3",
         }
     }
-    local expectedTaskId = TaskQueue:sendTask(WorkerId.TestWorker2, expectedPayload)
-    local taskId, payload = TaskQueue:nextTaskResult(WorkerId.TestWorker2)
+    local expectedTaskId = TaskQueue:sendTask(workerId2, expectedPayload)
+    local taskId, payload = TaskQueue:nextTaskResult(workerId2)
     while taskId == nil do
-        taskId, payload = TaskQueue:nextTaskResult(WorkerId.TestWorker2)
+        taskId, payload = TaskQueue:nextTaskResult(workerId2)
     end
 
     assert(expectedTaskId == taskId, "Expected " .. tostring(expectedTaskId) .. " but was " .. tostring(taskId))
