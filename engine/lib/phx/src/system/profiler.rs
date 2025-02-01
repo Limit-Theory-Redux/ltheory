@@ -33,15 +33,40 @@ impl Scope {
     }
 }
 
+/// The Profiler tracks timing information for different code scopes
+///
+/// The Profiler provides a signal handler that can be used to track
+/// backtraces of active profiling scopes when certain signals occur
+///
+/// # Usage:
+/// - Use `Profiler::begin()` and `Profiler::end()` to create and close scopes
+/// - Call `loop_marker()` periodically within loops to record timing data
+/// - Profiler automatically tracks metrics like total time, frame variance,
+///   min/max frame times for each scope
 #[derive(Debug, Clone, Default)]
 pub struct Profiler {
+    /// Whether profiling is currently enabled
     pub is_enabled: bool,
+
+    /// Map of named scopes tracking their performance metrics.
+    /// Each scope records total time, frame times, count,
+    /// mean, variance, min and max frame durations
     pub scopes: IndexMap<String, Scope>,
+
+    /// Stack of active scopes in call hierarchy
     pub stack: Vec<String>,
+
+    /// Timestamp when profiler was started
     pub start: TimeStamp,
 }
 
 pub static PROFILER: LazyLock<Mutex<Profiler>> = LazyLock::new(Default::default);
+
+macro_rules! f {
+    ($f:literal, $v:expr) => {
+        format!($f, $v)
+    };
+}
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Profiler {
@@ -96,27 +121,27 @@ impl Profiler {
             let mut cumulative = 0.0;
 
             for (_, scope) in &profiler.scopes {
-                let scope_total = scope.total as f64;
+                let scope_total = scope.total;
 
                 cumulative += scope_total;
 
-                // if scope_total / total > 0.01 || scope.max > 0.01 {
-                table.push(vec![
-                    (100.0 * (scope_total / total)).cell(),
-                    (100.0 * (cumulative / total)).cell(),
-                    (1000.0 * scope_total).cell(),
-                    (1000.0 * scope.min).cell(),
-                    (1000.0 * scope.max).cell(),
-                    (1000.0 * scope.mean).cell(),
-                    (1000.0 * scope.var).cell(),
-                    (100.0 * (scope.var / scope.mean)).cell(),
-                    scope.name.clone().cell(),
-                ]);
-                // }
+                if scope_total / total > 0.01 || scope.max > 0.01 {
+                    table.push(vec![
+                        f!("{:5.1}", 100.0 * (scope_total / total)).cell(),
+                        f!("{:5.0}", 100.0 * (cumulative / total)).cell(),
+                        f!("{:6.0}", 1000.0 * scope_total).cell(),
+                        f!("{:6.2}", 1000.0 * scope.min).cell(),
+                        f!("{:8.2}", 1000.0 * scope.max).cell(),
+                        f!("{:6.2}", 1000.0 * scope.mean).cell(),
+                        f!("{:5.2}", 1000.0 * scope.var).cell(),
+                        f!("{:7.0}", 100.0 * (scope.var / scope.mean)).cell(),
+                        scope.name.clone().cell(),
+                    ]);
+                }
             }
 
             let table = table.table().title(vec![
-                "Cell %".cell().bold(true),
+                "Scope %".cell().bold(true),
                 "Cumul %".cell().bold(true),
                 "Scope (ms)".cell().bold(true),
                 "Min".cell().bold(true),

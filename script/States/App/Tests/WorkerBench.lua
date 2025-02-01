@@ -32,6 +32,7 @@ function WorkerBench:onInit()
     TaskQueue:stopAllWorkers()
 
     Profiler.End()
+    Profiler.LoopMarker()
     Profiler.Disable()
 
     Log.Info("WorkerBench:onInit: End")
