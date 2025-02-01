@@ -1,5 +1,5 @@
 -- Systems
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry") --!temp path
 
 -- Utilities
 local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler")
@@ -30,7 +30,7 @@ function InventorySystem:take(inventory, itemId, quantity)
     local remainingQuantity = quantity
 
     for id, itemEntityInfo in pairs(itemsOfType) do
-        local itemEntity = GlobalStorage:getEntity(itemEntityInfo)
+        local itemEntity = Registry:getEntity(itemEntityInfo)
         ---@cast itemEntity ItemEntity
         local quantityComponent = itemEntity:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
         ---@cast quantityComponent QuantityComponent

@@ -20,7 +20,7 @@ local classMeta = {
     end
 }
 
---- Getting an entity: `GlobalStorage:getEntity(entityInfo)`
+--- Getting an entity: `Registry:getEntity(entityInfo)`
 ---@class EntityInfo
 ---@field id integer
 ---@field archetype EntityArchetype

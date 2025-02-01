@@ -1,4 +1,4 @@
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage")         --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry")         --!temp path
 local MarketplaceSystem = require("_ECS_WIP_TEMP.Systems.Economy.MarketplaceSystem") --!temp path
 
 local PlayerEntity = require("_ECS_WIP_TEMP.Entities.Player")
@@ -15,8 +15,8 @@ local MarketplaceTest = require('States.Application')
 function MarketplaceTest:onInit()
     local trader = PlayerEntity("Trader Marketplace", true)
     local trader2 = PlayerEntity("Trader Marketplace 2", true)
-    local traderEntityInfo = GlobalStorage:storeEntity(trader)
-    local traderEntityInfo2 = GlobalStorage:storeEntity(trader2)
+    local traderEntityInfo = Registry:storeEntity(trader)
+    local traderEntityInfo2 = Registry:storeEntity(trader2)
 
     local station = SpaceStationEntity(0)
     local station2 = SpaceStationEntity(1)
@@ -27,16 +27,16 @@ function MarketplaceTest:onInit()
     local inventoryComponent2 = station2:findComponentByArchetype(Enums.ComponentArchetype.InventoryComponent)
 
     local creditItem = ItemEntity(Items.Virtual.Credit, 1e6)
-    local creditItemEntityInfo = GlobalStorage:storeEntity(creditItem)
+    local creditItemEntityInfo = Registry:storeEntity(creditItem)
     local goldItem = ItemEntity(Items.RefinedMaterials.Gold, 1000)
-    local goldItemEntityInfo = GlobalStorage:storeEntity(goldItem)
+    local goldItemEntityInfo = Registry:storeEntity(goldItem)
     inventoryComponent:addItem(Items.Virtual.Credit.id, creditItemEntityInfo)
     inventoryComponent:addItem(Items.RefinedMaterials.Gold.id, goldItemEntityInfo)
 
     local creditItem2 = ItemEntity(Items.Virtual.Credit, 1e6)
-    local creditItemEntityInfo2 = GlobalStorage:storeEntity(creditItem2)
+    local creditItemEntityInfo2 = Registry:storeEntity(creditItem2)
     local goldItem2 = ItemEntity(Items.RefinedMaterials.Gold, 1000)
-    local goldItemEntityInfo2 = GlobalStorage:storeEntity(goldItem2)
+    local goldItemEntityInfo2 = Registry:storeEntity(goldItem2)
     inventoryComponent2:addItem(Items.Virtual.Credit.id, creditItemEntityInfo2)
     inventoryComponent2:addItem(Items.RefinedMaterials.Gold.id, goldItemEntityInfo2)
 
@@ -50,10 +50,10 @@ function MarketplaceTest:onInit()
     local askOrder = OrderEntity(0, Items.RefinedMaterials.Gold.id, 50, 500)
     local askOrder2 = OrderEntity(1, Items.RefinedMaterials.Gold.id, 50, 500)
 
-    local bidOrderEntityInfo = GlobalStorage:storeEntity(bidOrder)
-    local bidOrderEntityInfo2 = GlobalStorage:storeEntity(bidOrder2)
-    local askOrderEntityInfo = GlobalStorage:storeEntity(askOrder)
-    local askOrderEntityInfo2 = GlobalStorage:storeEntity(askOrder2)
+    local bidOrderEntityInfo = Registry:storeEntity(bidOrder)
+    local bidOrderEntityInfo2 = Registry:storeEntity(bidOrder2)
+    local askOrderEntityInfo = Registry:storeEntity(askOrder)
+    local askOrderEntityInfo2 = Registry:storeEntity(askOrder2)
 
     marketplaceComponent:setTrader(traderEntityInfo)
     marketplaceComponent2:setTrader(traderEntityInfo2)
@@ -63,8 +63,8 @@ function MarketplaceTest:onInit()
     marketplaceComponent:addAsk(askOrderEntityInfo)
     marketplaceComponent2:addAsk(askOrderEntityInfo2)
 
-    GlobalStorage:storeEntity(station)
-    GlobalStorage:storeEntity(station2)
+    Registry:storeEntity(station)
+    Registry:storeEntity(station2)
 end
 
 return MarketplaceTest

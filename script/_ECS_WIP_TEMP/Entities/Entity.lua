@@ -1,4 +1,4 @@
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry") --!temp path
 
 ---@type EntityInfo
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
@@ -76,7 +76,7 @@ end
 function Entity:addComponent(component)
     component:setEntity(self:getEntityInfo())
     insert(self.components, ComponentInfo { id = component:getGuid(), archetype = component:getArchetype(), entity = self:getEntityInfo() })
-    GlobalStorage:storeComponent(component)
+    Registry:storeComponent(component)
     return #self.components, component
 end
 
@@ -84,7 +84,7 @@ end
 ---@return boolean wasSuccessful
 function Entity:removeComponent(componentInfoIndex)
     local componentInfo = remove(self.components, componentInfoIndex)
-    return GlobalStorage:dropComponent(componentInfo.archetype, componentInfo.id)
+    return Registry:dropComponent(componentInfo.archetype, componentInfo.id)
 end
 
 ---@param archetype ComponentArchetype
@@ -95,7 +95,7 @@ function Entity:findComponentsByArchetype(archetype)
     ---@param componentInfo ComponentInfo
     for index, componentInfo in ipairs(self.components) do
         if componentInfo.archetype == archetype then
-            local component = GlobalStorage:getComponentData(componentInfo)
+            local component = Registry:getComponentData(componentInfo)
             insert(queryResults, component)
         end
     end
@@ -109,7 +109,7 @@ function Entity:findComponentByArchetype(archetype)
     ---@param componentInfo ComponentInfo
     for index, componentInfo in ipairs(self.components) do
         if componentInfo.archetype == archetype then
-            local component = GlobalStorage:getComponentData(componentInfo)
+            local component = Registry:getComponentData(componentInfo)
             insert(queryResults, component)
         end
     end
@@ -124,7 +124,7 @@ end
 function Entity:findComponentByName(query)
     local queryResults = {}
     for index, componentInfo in ipairs(self.components) do
-        local component = GlobalStorage:getComponentData(componentInfo)
+        local component = Registry:getComponentData(componentInfo)
         local componentName = component and component:getComponentName()
         if componentName and string.match(componentName, query) then
             insert(queryResults, component)
@@ -146,25 +146,25 @@ end
 function Entity:iterComponents()
     local components = {}
     for index, componentInfo in ipairs(self.components) do
-        local component = GlobalStorage:getComponentData(componentInfo)
+        local component = Registry:getComponentData(componentInfo)
         insert(components, component)
     end
     return Iterator(components)
 end
 
--- does not handle clearing from GlobalStorage
+-- does not handle clearing from Registry
 function Entity:clearComponents()
     self.components = {}
 end
 
 ---@return boolean success
 function Entity:destroy()
-    local success = GlobalStorage:dropEntity(self.archetype, self.guid)
+    local success = Registry:dropEntity(self.archetype, self.guid)
 
     if success then
         local noFail = true
         for component in self:iterComponents() do
-            local success = GlobalStorage:dropComponent(component.archetype, component.guid)
+            local success = Registry:dropComponent(component.archetype, component.guid)
 
             if not success then
                 noFail = false
@@ -178,10 +178,10 @@ function Entity:destroy()
         end
     end
     -- revert
-    GlobalStorage:storeEntity(self)
+    Registry:storeEntity(self)
 
     for component in self:iterComponents() do
-        GlobalStorage:storeComponent(component)
+        Registry:storeComponent(component)
     end
     return false
 end
@@ -197,7 +197,7 @@ function Entity:clone()
         clone:addComponent(clonedComponent)
     end
 
-    local cloneEntityInfo = GlobalStorage:storeEntity(clone)
+    local cloneEntityInfo = Registry:storeEntity(clone)
 
     return clone, cloneEntityInfo
 end

@@ -1,5 +1,5 @@
 -- Systems
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry") --!temp path
 local InventorySystem = require("_ECS_WIP_TEMP.Systems.Economy.InventorySystem")
 
 -- Utilities
@@ -36,7 +36,7 @@ end
 function MarketplaceSystem:onPreRender()
     self.profiler:start()
 
-    local marketplaces = GlobalStorage:getComponentsFromArchetype(Enums.ComponentArchetype.MarketplaceComponent)
+    local marketplaces = Registry:getComponentsFromArchetype(Enums.ComponentArchetype.MarketplaceComponent)
     ---@cast marketplaces table<MarketplaceComponent>
 
     local now = TimeStamp.Now()
@@ -66,7 +66,7 @@ function MarketplaceSystem:onPreRender()
                     - Update orders
                     - Update item flow
                 ]]
-                local trader = GlobalStorage:getEntity(traderEntityInfo)
+                local trader = Registry:getEntity(traderEntityInfo)
 
                 if trader then
                     local bids = marketplace:getBids()
@@ -112,7 +112,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 
             -- Verify Inventory
             self.marketplaceParentInfo = marketplace:getEntity()
-            self.marketplaceParentEntity = GlobalStorage:getEntity(self.marketplaceParentInfo)
+            self.marketplaceParentEntity = Registry:getEntity(self.marketplaceParentInfo)
             ---@type InventoryComponent
             self.marketplaceInventoryCmp = self.marketplaceParentEntity:findComponentByArchetype(Enums.ComponentArchetype
                 .InventoryComponent)
@@ -132,7 +132,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                 if items then
                     -- Put traded items into the marketplace inventory (to simulate transfer)
                     for _, item in ipairs(items) do
-                        GlobalStorage:getEntity(item):destroy() --! temp destroy
+                        Registry:getEntity(item):destroy() --! temp destroy
                     end
 
                     Log.Debug("[Transaction] Trader 1 %s (%d) -> Trader 2 for price %d credits", Items:getDefinition(bidItemType).name,

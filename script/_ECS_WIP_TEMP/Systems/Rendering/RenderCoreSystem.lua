@@ -1,5 +1,5 @@
 -- Storage
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry") --!temp path
 local MeshStorage = require("_ECS_WIP_TEMP.Systems.Storage.MeshStorage") --!temp path
 -- Utilities
 local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler") --!temp path

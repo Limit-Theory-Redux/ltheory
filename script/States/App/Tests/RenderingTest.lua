@@ -2,7 +2,7 @@
 local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")            --!temp path
 local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity")          --!temp path
 -- Storage & Registries
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry") --!temp path
 local Materials = require("_ECS_WIP_TEMP.Shared.Registries.Materials")
 -- Systems
 ---@type CameraSystem
@@ -35,7 +35,7 @@ function RenderingTest:onInit()
 
     -- Spawn CameraEntity
     local camera = Camera()
-    local entityInfo = GlobalStorage:storeEntity(camera)
+    local entityInfo = Registry:storeEntity(camera)
 
     CameraSystem:setCamera(entityInfo)
     CameraSystem.currentCameraTransform:setPosition(Position(0, 0, 0))

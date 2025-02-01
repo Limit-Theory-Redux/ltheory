@@ -20,7 +20,7 @@ local classMeta = {
     end
 }
 
---- Getting a component: `GlobalStorage:getComponent(componentInfo)`
+--- Getting a component: `Registry:getComponent(componentInfo)`
 ---@class ComponentInfo
 ---@field id integer
 ---@field archetype ComponentArchetype

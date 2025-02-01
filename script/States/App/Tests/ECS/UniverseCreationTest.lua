@@ -1,4 +1,4 @@
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage")                              --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry")                              --!temp path
 local UniverseSystem = require("_ECS_WIP_TEMP.Systems.CelestialObjects.UniverseGenerationSystem") --!temp path
 
 local EntityComponentSystemTest = require('States.Application')
@@ -11,7 +11,7 @@ function EntityComponentSystemTest:onInit()
     UniverseSystem:createUniverse(0) -- test sameness
 
     -- Validate universes
-    local universes = GlobalStorage:getEntitiesFromArchetype(Enums.EntityArchetype.UniverseEntity)
+    local universes = Registry:getEntitiesFromArchetype(Enums.EntityArchetype.UniverseEntity)
 
     ---@param universe UniverseEntity
     for universe in Iterator(universes) do

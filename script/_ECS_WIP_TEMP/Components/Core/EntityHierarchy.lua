@@ -4,7 +4,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component') --!temp path
 local EntityInfo = require('_ECS_WIP_TEMP.Shared.Types.EntityInfo')
 
 -- Systems
-local GlobalStorage = require('_ECS_WIP_TEMP.Systems.Storage.GlobalStorage') --!temp path
+local Registry = require('_ECS_WIP_TEMP.Systems.Storage.Registry') --!temp path
 
 ---@class EntityHierarchyComponent: Component
 ---@overload fun(self: EntityHierarchyComponent, parentEntity: EntityInfo|nil) : EntityHierarchyComponent subclass internal
@@ -48,7 +48,7 @@ function EntityHierarchyComponent:findChildrenOfArchetype(archetype)
     ---@param childEntityInfo EntityInfo
     for _, childEntityInfo in ipairs(self.hierarchy.children) do
         if childEntityInfo.archetype == archetype then
-            local component = GlobalStorage:getEntity(childEntityInfo)
+            local component = Registry:getEntity(childEntityInfo)
             insert(queryResults, component)
         end
     end
@@ -61,7 +61,7 @@ function EntityHierarchyComponent:iterChildren()
 
     ---@param childEntityInfo EntityInfo
     for _, childEntityInfo in ipairs(self.hierarchy.children) do
-        local entity = GlobalStorage:getEntity(childEntityInfo)
+        local entity = Registry:getEntity(childEntityInfo)
         insert(entities, entity)
     end
     return Iterator(entities)
@@ -74,7 +74,7 @@ end
 
 ---@return Entity|nil
 function EntityHierarchyComponent:getParent()
-    return GlobalStorage:getEntity(self.hierarchy.parent)
+    return Registry:getEntity(self.hierarchy.parent)
 end
 
 return EntityHierarchyComponent

@@ -13,7 +13,7 @@ ECS is a design pattern that separates data (components) from behavior (systems)
 
 This separation ensures that data is not tied to behavior, enabling high modularity and reusability.
 
-In LTR all entities & components are stored in the GlobalStorage. This allows us to use one single access point to all relevant objects in the game. E.g. this also helps when you only want to access components of a specific type. You gain performance by not requesting all entities with all their components at once but rather accessing the components you want directly from the storage.
+In LTR all entities & components are stored in the Registry. This allows us to use one single access point to all relevant objects in the game. E.g. this also helps when you only want to access components of a specific type. You gain performance by not requesting all entities with all their components at once but rather accessing the components you want directly from the storage.
 
 ### Entities
 An entity is a unique identifier that acts as a container for components. It does not have any data or behavior on its own. Think of entities as empty shells that become meaningful when associated with components.
@@ -101,7 +101,7 @@ Lets have a deeper look at the marketplace system:
 
 ```lua
 -- Systems
-local GlobalStorage = require("Systems.Storage.GlobalStorage")
+local Registry = require("Systems.Storage.Registry")
 local InventorySystem = require("Systems.Economy.InventorySystem")
 
 -- Utilities
@@ -139,13 +139,13 @@ function MarketplaceSystem:registerEvents()
 end
 ```
 
-#### In this case we want to do operations in our PreRender engine event. We start out with defining a profiler, so we have metrics for later performance improvement. Since we want to work with marketplaces, we can access the GlobalStorage to get all components of the type "MarketplaceComponent", this way we don´t have to loop through all existing entities and ask them if they have that component.
+#### In this case we want to do operations in our PreRender engine event. We start out with defining a profiler, so we have metrics for later performance improvement. Since we want to work with marketplaces, we can access the Registry to get all components of the type "MarketplaceComponent", this way we don´t have to loop through all existing entities and ask them if they have that component.
 
 ```lua
 function MarketplaceSystem:onPreRender()
     self.profiler:start()
 
-    local marketplaces = GlobalStorage:getComponentsFromArchetype(Enums.ComponentArchetype.MarketplaceComponent)
+    local marketplaces = Registry:getComponentsFromArchetype(Enums.ComponentArchetype.MarketplaceComponent)
     ---@cast marketplaces table<MarketplaceComponent>
 ```
 
@@ -179,7 +179,7 @@ function MarketplaceSystem:onPreRender()
                     - Update orders
                     - Update item flow
                 ]]
-                local trader = GlobalStorage:getEntity(traderEntityInfo)
+                local trader = Registry:getEntity(traderEntityInfo)
 
                 if trader then
                     local bids = marketplace:getBids()
@@ -197,7 +197,7 @@ function MarketplaceSystem:onPreRender()
 end
 ```
 
-#### Here we process our trades. This works by iterating through all bids and asks and then finding the order components inside the OrderEntity of the asks / bids. This is another way of accessing components. They are not only available from the GlobalStorage but also directly from the entitiy. This allows for much flexibility when working with entities and components alike. We also cast the components with the language server type so we get autocomplete and all the useful LS stuff.
+#### Here we process our trades. This works by iterating through all bids and asks and then finding the order components inside the OrderEntity of the asks / bids. This is another way of accessing components. They are not only available from the Registry but also directly from the entitiy. This allows for much flexibility when working with entities and components alike. We also cast the components with the language server type so we get autocomplete and all the useful LS stuff.
 
 ```lua
 ---@param marketplace MarketplaceComponent
@@ -232,12 +232,12 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askQuantity = askQuantityCmp:getQuantity()
 ```
 
-#### Here we can see that we are getting the entity from a marketplace component. Entities hold data on which components are linked to it and components hold data on which entity they are linked to. `getEntity()` and `findComponentByArchetype()` / `findComponentByName()` will all provide the user with a EntityInfo/ComponentInfo object which can be used to query the GlobalStorage to gain access to the actual entity/component. An xInfo object contains the guid and archetype of an entity or component.
+#### Here we can see that we are getting the entity from a marketplace component. Entities hold data on which components are linked to it and components hold data on which entity they are linked to. `getEntity()` and `findComponentByArchetype()` / `findComponentByName()` will all provide the user with a EntityInfo/ComponentInfo object which can be used to query the Registry to gain access to the actual entity/component. An xInfo object contains the guid and archetype of an entity or component.
 
 ```lua
             -- Verify Inventory
             self.marketplaceParentInfo = marketplace:getEntity()
-            self.marketplaceParentEntity = GlobalStorage:getEntity(self.marketplaceParentInfo)
+            self.marketplaceParentEntity = Registry:getEntity(self.marketplaceParentInfo)
             ---@type InventoryComponent
             self.marketplaceInventoryCmp = self.marketplaceParentEntity:findComponentByArchetype(Enums.ComponentArchetype
                 .InventoryComponent)
@@ -265,7 +265,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                 if items then
                     -- Put traded items into the marketplace inventory (to simulate transfer)
                     for _, item in ipairs(items) do
-                        GlobalStorage:getEntity(item):destroy() --! temp destroy
+                        Registry:getEntity(item):destroy() --! temp destroy
                     end
 
                     Log.Debug("[Transaction] Trader 1 %s (%d) -> Trader 2 for price %d credits", Items:getDefinition(bidItemType).name,
@@ -277,7 +277,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                     askQuantity = askQuantity - tradeQuantity
 ```
 
-#### At the end of our transaction we destroy our OrderEntity for the bids and asks that are completed. The `destroy()` method is a basic entity method and leads to dropping the entity as a whole from the GlobalStorage and all components that are linked to it. It simply gets wiped out, this should be handled with care.
+#### At the end of our transaction we destroy our OrderEntity for the bids and asks that are completed. The `destroy()` method is a basic entity method and leads to dropping the entity as a whole from the Registry and all components that are linked to it. It simply gets wiped out, this should be handled with care.
 
 ```lua
                     -- Update or remove the bid and ask orders

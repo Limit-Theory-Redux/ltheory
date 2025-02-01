@@ -1,4 +1,4 @@
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry") --!temp path
 
 -- Entities
 local Entity = require("_ECS_WIP_TEMP.Entities.Entity") --!temp path

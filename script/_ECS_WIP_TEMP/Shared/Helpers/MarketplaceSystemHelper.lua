@@ -1,5 +1,5 @@
 -- Systems
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry") --!temp path
 
 ---@param bids table<EntityInfo>
 ---@param asks table<EntityInfo>
@@ -8,14 +8,14 @@ local function getOrderEntities(bids, asks)
     local bidEntities, askEntities = {}, {}
 
     for entityInfo in Iterator(bids) do
-        local entity = GlobalStorage:getEntity(entityInfo)
+        local entity = Registry:getEntity(entityInfo)
         if entity then
             insert(bidEntities, entity)
         end
     end
 
     for entityInfo in Iterator(asks) do
-        local entity = GlobalStorage:getEntity(entityInfo)
+        local entity = Registry:getEntity(entityInfo)
         if entity then
             insert(askEntities, entity)
         end
@@ -30,7 +30,7 @@ local function printInventory(parentEntity, component)
     Log.Debug("%s - Inventory", parentEntity)
     for itemTypes in Iterator(component:getInventory()) do
         for itemEntityInfo in Iterator(itemTypes) do
-            local itemEntity = GlobalStorage:getEntity(itemEntityInfo)
+            local itemEntity = Registry:getEntity(itemEntityInfo)
 
             if itemEntity then
                 ---@type NameComponent

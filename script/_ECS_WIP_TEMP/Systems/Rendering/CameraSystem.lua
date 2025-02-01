@@ -1,5 +1,5 @@
 -- Systems
-local GlobalStorage = require("_ECS_WIP_TEMP.Systems.Storage.GlobalStorage") --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry") --!temp path
 
 -- Utilities
 local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler")
@@ -57,7 +57,7 @@ end
 
 ---@param entityInfo EntityInfo
 function CameraSystem:setCamera(entityInfo)
-    self.cameras = GlobalStorage:getEntitiesFromArchetype(Enums.EntityArchetype.CameraEntity)
+    self.cameras = Registry:getEntitiesFromArchetype(Enums.EntityArchetype.CameraEntity)
 
     if not self.cameras then
         return
