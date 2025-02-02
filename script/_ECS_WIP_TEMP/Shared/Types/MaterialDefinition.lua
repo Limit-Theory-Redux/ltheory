@@ -1,46 +1,6 @@
 local Material = require("_ECS_WIP_TEMP.Shared.Rendering.Material")
 local Materials = require("_ECS_WIP_TEMP.Shared.Registries.Materials")
 
-local MaterialDefinition = {}
-MaterialDefinition.__index = MaterialDefinition
-
----@class Type
----@field MaterialDefinition integer
-
-local typeInt = Enums.Type:createType("MaterialDefinition")
-
-local sharedMeta = {
-    __index = MaterialDefinition,
-    __type = typeInt,
-    __tostring = function(self)
-        return Enums.Type:getName(typeInt)
-    end
-}
-
-local classMeta = {
-    __call = function(cls, ...)
-        return cls:new(...)
-    end
-}
-
----@class MaterialDefinition
----@field name string
----@field vs_name string
----@field fs_name string
----@field blendMode BlendMode
----@field textures table<Texture>
----@field autoShaderVars table<AutoShaderVar>
----@field constShaderVars table<ConstShaderVar>
-
----@class MaterialDefinitionConstructor
----@field name string
----@field vs_name string
----@field fs_name string
----@field blendMode BlendMode
----@field textures table<TextureInfo>|nil
----@field autoShaderVars table<ShaderVarInfo>|nil
----@field constShaderVars table<ShaderVarInfo>|nil
-
 ---@class TextureInfo
 ---@field texName string
 ---@field tex Tex
@@ -52,10 +12,27 @@ local classMeta = {
 ---@field uniformType UniformType
 ---@field callbackFn function
 
----@private
----@param args MaterialDefinitionConstructor
----@return MaterialDefinition|nil
-function MaterialDefinition:new(args)
+---@class MaterialDefinitionConstructor
+---@field name string
+---@field vs_name string
+---@field fs_name string
+---@field blendMode BlendMode
+---@field textures table<TextureInfo>|nil
+---@field autoShaderVars table<ShaderVarInfo>|nil
+---@field constShaderVars table<ShaderVarInfo>|nil
+
+---@class MaterialDefinition
+---@field name string
+---@field vs_name string
+---@field fs_name string
+---@field blendMode BlendMode
+---@field textures table<Texture>
+---@field autoShaderVars table<AutoShaderVar>
+---@field constShaderVars table<ConstShaderVar>
+---@overload fun(args: MaterialDefinitionConstructor): MaterialDefinition
+local MaterialDefinition = Class("MaterialDefinition")
+
+function MaterialDefinition.new(args)
     if not args.name then
         Log.Warn("No name Set for MaterialDefinition")
         return nil
@@ -64,12 +41,21 @@ function MaterialDefinition:new(args)
         return Material[args.name]
     end
 
-    if not args.vs_name or not args.fs_name or not args.blendMode then
-        Log.Warn("vs_name, fs_name, or blendMode missing for MaterialDefinition: " .. args.name)
+    if not args.vs_name then
+        Log.Warn("vs_name missing for MaterialDefinition: " .. args.name)
         return nil
     end
 
-    -- Create newMaterial
+    if not args.fs_name then
+        Log.Warn("fs_name missing for MaterialDefinition: " .. args.name)
+        return nil
+    end
+
+    if not args.blendMode then
+        Log.Warn("blendMode missing for MaterialDefinition: " .. args.name)
+        return nil
+    end
+
     local newMaterial = Material(args.vs_name, args.fs_name, args.blendMode)
     -- Set Textures
     if args.textures then
@@ -84,11 +70,10 @@ function MaterialDefinition:new(args)
         newMaterial:addConstShaderVars(args.constShaderVars)
     end
 
-    -- Add New Material to Materials Registery
+    -- Add new Material to Materials registry
     Materials:new(args.name, newMaterial)
 
-    -- sets newMaterialDefinition and returns it
-    local newMaterialDefinition = setmetatable({
+    return setmetatable({
         name = args.name,
         vs_name = args.vs_name,
         fs_name = args.fs_name,
@@ -96,11 +81,7 @@ function MaterialDefinition:new(args)
         textures = args.textures,
         autoShaderVars = args.autoShaderVars,
         constShaderVars = args.constShaderVars
-    }, sharedMeta)
-
-    return newMaterialDefinition
+    }, MaterialDefinition)
 end
-
-setmetatable(MaterialDefinition, classMeta)
 
 return MaterialDefinition

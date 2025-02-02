@@ -1,39 +1,12 @@
 local Items = require("_ECS_WIP_TEMP.Shared.Registries.Items")
 
-local ItemGroup = {}
-ItemGroup.__index = ItemGroup
-
----@class Type
----@field ItemGroup integer
-
-local typeInt = Enums.Type:createType("ItemGroup")
-
-local sharedMeta = {
-    __index = ItemGroup,
-    __type = typeInt,
-    __tostring = function(self)
-        return Enums.Type:getName(typeInt)
-    end
-}
-
-local classMeta = {
-    __call = function(cls, ...)
-        return cls:new(...)
-    end
-}
-
 ---@class ItemGroup
 ---@field name string
 ---@field items ItemDefinition[]
+---@overload fun(args: {name: string, items: ItemDefinition[]}): ItemGroup
+local ItemGroup = Class("ItemGroup")
 
----@class ItemGroupConstructor
----@field name string
----@field items ItemDefinition[]
-
----@private
----@param args ItemGroupConstructor
----@return ItemGroup|nil
-function ItemGroup:new(args)
+function ItemGroup.new(args)
     if not args.name then
         Log.Warn("No name set for ItemGroup")
         return nil
@@ -42,18 +15,15 @@ function ItemGroup:new(args)
         return Items[args.name]
     end
 
-    -- sets newItemGroup and returns it
-    local newItemGroup = setmetatable({
+    local self = setmetatable({
         name = args.name,
         items = args.items
-    }, sharedMeta)
+    }, ItemGroup)
 
     -- Add New ItemDef to Item Registery
-    Items:new(args.name, newItemGroup)
+    Items:new(args.name, self)
 
-    return newItemGroup
+    return self
 end
-
-setmetatable(ItemGroup, classMeta)
 
 return ItemGroup
