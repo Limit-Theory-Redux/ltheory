@@ -12,7 +12,7 @@ local thrustRollMax     = 2e7 * thrustMult
 
 --------------------------------------------------------------------------------
 
-local ThrustController  = Class("", function(self)
+local ThrustController = Class("ThrustController", function(self)
     self:clear()
 end)
 

@@ -20,7 +20,7 @@ local Bindings    = require('States.ApplicationBindings')
 local shared
 local rng         = RNG.FromTime()
 
-local Shield      = Subclass("", Entity, function(self)
+local Shield      = Subclass("Shield", Entity, function(self)
     -- All of this crap is completely worthless, but updateShield() will not be called without it
     if not shared then
         shared = {}

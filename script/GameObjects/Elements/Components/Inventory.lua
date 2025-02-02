@@ -5,7 +5,7 @@ local SocketType  = require('GameObjects.Entities.Ship.SocketType')
 local shared
 local rng         = RNG.FromTime()
 
-local Inventory   = Subclass("", Entity, function(self)
+local Inventory   = Subclass("Inventory", Entity, function(self)
     -- Required to be able to use plugs
     if not shared then
         shared = {}
