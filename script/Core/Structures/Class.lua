@@ -24,11 +24,24 @@
 ----------------------------------------------------------------------------]]
 --
 
+-- This function takes the class instance `self` and generates a string representation of it in
+-- the form: ClassName{field1: 0, field2: 0}.
+local function defaulttostring(self)
+    local result = {}
+    for key, value in pairs(self) do
+        local keyStr = tostring(key)
+        local valueStr = tostring(value)
+        table.insert(result, keyStr .. ": " .. valueStr)
+    end
+    return tostring(type(self)) .. "{" .. table.concat(result, ", ") .. "}"
+end
+
 function Class(name, ctor)
     -- Define the class.
     local cls = {}
     cls.__index = cls
     cls.__type = cls
+    cls.__tostring = defaulttostring
 
     -- Define the default constructor
     -- This just invokes ctor if it is not nil.
@@ -57,6 +70,7 @@ function Subclass(name, base, ctor)
     local cls = {}
     cls.__index = cls
     cls.__type = cls
+    cls.__tostring = defaulttostring
 
     -- Define the default constructor.
     -- This just invokes ctor on an instance of base() if it is not nil.
