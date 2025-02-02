@@ -1,3 +1,8 @@
+-- LTheoryRedux depends on these types being in the global namespace, so we import these for now.
+-- Once we've moved to the ECS, these LoadInline statements should become redundant.
+Namespace.LoadInline('Systems')
+Namespace.LoadInline('GameObjects')
+
 LimitTheoryRedux = require('States.Application')
 local SoundManager = require('Systems.SFX.SoundManager')
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
