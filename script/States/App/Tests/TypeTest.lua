@@ -27,7 +27,7 @@ function TypeTest:onInit()
     -- Custom type checking example
     local entityInfo = EntityInfo { id = 0, archetype = 0 }
     Log.Debug("Custom type: %s | type name: %s", entityInfo, type(entityInfo))
-    if type(entityInfo) ~= Enums.Type.EntityInfo then Log.Error("Custom Type not found") end
+    if type(entityInfo) ~= EntityInfo then Log.Error("Custom Type not found") end
 
     local testRuns = 50000
     collectgarbage("stop")    -- Stop garbage collection

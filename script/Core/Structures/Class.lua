@@ -30,14 +30,11 @@ function Class(name, ctor)
         ctor = name
         name = "Unknown"
     end
-
-    -- Define type.
-    local typeEnum = Enums.Type:createType(name)
     
     -- Define the class.
     local cls = {}
     cls.__index = cls
-    cls.__type = typeEnum
+    cls.__type = cls
 
     -- Define the default constructor
     -- This just invokes ctor if it is not nil.
@@ -54,7 +51,7 @@ function Class(name, ctor)
             return cls.new(...)
         end,
         __tostring = function()
-            return Enums.Type:getName(typeEnum)
+            return name
         end
     })
 
@@ -68,14 +65,11 @@ function Subclass(name, base, ctor)
         base = name
         name = "Unknown"
     end
-
-    -- Define type.
-    local typeEnum = Enums.Type:createType(name)
     
     -- Define the class.
     local cls = {}
     cls.__index = cls
-    cls.__type = typeEnum
+    cls.__type = cls
 
     -- Define the default constructor.
     -- This just invokes ctor on an instance of base() if it is not nil.
@@ -92,7 +86,7 @@ function Subclass(name, base, ctor)
             return cls.new(...)
         end,
         __tostring = function()
-            return Enums.Type:getName(typeEnum)
+            return name
         end,
         __index = base,
     })

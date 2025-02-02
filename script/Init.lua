@@ -50,9 +50,6 @@ require('Core.Util.RequireAll')
 require('Core.LuaExtensions.TableEx')
 require('Core.LuaExtensions.TypeEx')
 
----- Set up type system.
-require('Enums.Types')
-
 ---- Now handle loading Util and Structures into Core and Global Namespace
 Core.Struct = requireAll('Core.Structures')
 Core.Util = requireAll('Core.Util')
