@@ -1,4 +1,4 @@
-local DebugContext = Class(function(self, x, y)
+local DebugContext = Class("DebugContext", function(self, x, y)
     self.x = x
     self.y = y
 end)

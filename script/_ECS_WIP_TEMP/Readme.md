@@ -34,7 +34,7 @@ local QuantityComponent = require("Components.Economy.QuantityComponent")
 ---@class ItemEntity: Entity
 ---@overload fun(self: ItemEntity, definition: ItemDefinition, quantity: number): ItemEntity subclass internal
 ---@overload fun(definition: ItemDefinition, quantity: number): ItemEntity subclass external
-local ItemEntity = Subclass(Entity, function(self, definition, quantity)
+local ItemEntity = Subclass("ItemEntity", Entity, function(self, definition, quantity)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.ItemEntity)
 
@@ -68,7 +68,7 @@ local Component = require('Components.Component')
 ---@class NameComponent: Component
 ---@overload fun(self: NameComponent, name: string): NameComponent subclass internal
 ---@overload fun(name: string|nil): NameComponent subclass external
-local NameComponent = Subclass(Component, function(self, name)
+local NameComponent = Subclass("NameComponent", Component, function(self, name)
     self:setComponentName("EntityName")
 
     -- Set Component Archetype
@@ -113,7 +113,7 @@ local Items = require("Shared.Registries.Items")
 ---@class MarketplaceSystem
 ---@overload fun(self: MarketplaceSystem): MarketplaceSystem class internal
 ---@overload fun(): MarketplaceSystem class external
-local MarketplaceSystem = Class(function(self)
+local MarketplaceSystem = Class("MarketplaceSystem", function(self)
     ---@diagnostic disable-next-line: invisible
     self:registerVars()
     ---@diagnostic disable-next-line: invisible

@@ -8,7 +8,7 @@ local UniformFuncs = require("_ECS_WIP_TEMP.Shared.Rendering.UniformFuncs")
 ---@class AutoShaderVar
 ---@overload fun(self: AutoShaderVar, uniformName: string, uniformType: UniformType, callbackFn: function): AutoShaderVar class internal
 ---@overload fun(uniformName: string, uniformType: UniformType,  callbackFn: function): AutoShaderVar class external
-local AutoShaderVar = Class(function(self, uniformName, uniformType, callbackFn)
+local AutoShaderVar = Class("AutoShaderVar", function(self, uniformName, uniformType, callbackFn)
     self.uniformName = uniformName
     self.uniformInt = nil
     self.uniformType = uniformType

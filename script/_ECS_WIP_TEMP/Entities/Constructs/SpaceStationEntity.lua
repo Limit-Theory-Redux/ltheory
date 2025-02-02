@@ -15,7 +15,7 @@ local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 ---@class SpaceStationEntity: Entity
 ---@overload fun(self: SpaceStationEntity, seed: integer): SpaceStationEntity subclass internal
 ---@overload fun(seed: integer): SpaceStationEntity subclass external
-local SpaceStationEntity = Subclass(Entity, function(self, seed)
+local SpaceStationEntity = Subclass("SpaceStationEntity", Entity, function(self, seed)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.SpaceStationEntity)
 

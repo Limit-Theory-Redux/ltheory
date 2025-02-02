@@ -7,7 +7,7 @@ local Item = require('Systems.Economy.Item')
 -- NOTE: All the evaluations below are made from the perspective of what is most
 -- advantageous to _this trader_ (self).
 
-local BlackMarketTrader = Class(function(self, parent)
+local BlackMarketTrader = Class("BlackMarketTrader", function(self, parent)
     self.parent = parent
     self.elems = {}
 end)

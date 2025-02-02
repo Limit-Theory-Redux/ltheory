@@ -5,7 +5,7 @@ local rng = RNG.FromTime()
 -- TODO : Dock range should be specified by the dockable component
 local kDockRange = 2000 -- ships are getting "stuck" at 250
 
-local DockAt = Subclass(Action, function(self, target)
+local DockAt = Subclass("DockAt", Action, function(self, target)
     self.target = target
 end)
 

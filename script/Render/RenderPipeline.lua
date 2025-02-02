@@ -2,7 +2,7 @@ local Cache = require('Render.Cache')
 
 -- TODO JP : Refactor all of this monolithic nonsense into RenderPass objects.
 
-local RenderPipeline = Class(function(self)
+local RenderPipeline = Class("RenderPipeline", function(self)
     self.ds = 4
 end)
 

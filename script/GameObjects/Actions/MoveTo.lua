@@ -4,7 +4,7 @@ local Action = require('GameObjects.Action')
 local rng = RNG.FromTime()
 local timeUntilTravelDrive = 15 -- temporary local setting
 
-local MoveTo = Subclass(Action, function(self, target, range, useTravelDrive)
+local MoveTo = Subclass("MoveTo", Action, function(self, target, range, useTravelDrive)
     self.target = target
     self.range = range
     self.useTravelDrive = useTravelDrive

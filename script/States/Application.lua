@@ -1,7 +1,7 @@
 local Bindings = require('States.ApplicationBindings')
 local MainMenu = require('Systems.Menus.MainMenu')
 
-local Application = Class(function(self) end)
+local Application = Class("Application", function(self) end)
 
 -- Virtual ---------------------------------------------------------------------
 

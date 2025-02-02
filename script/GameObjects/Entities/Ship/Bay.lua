@@ -11,7 +11,7 @@ local shared
 local varCache
 local rng = RNG.FromTime()
 
-local Bay = Subclass(Entity, function(self)
+local Bay = Subclass("Bay", Entity, function(self)
     if not shared then
         shared = {}
         -- shared.mesh = Gen.ShipBasic.BaySingle(rng)

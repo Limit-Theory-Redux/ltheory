@@ -11,7 +11,7 @@ local ComponentInfo = require("_ECS_WIP_TEMP.Shared.Types.ComponentInfo")
 -- General Purpose Entity Object
 ---@param self Entity
 ---@class Entity
-local Entity = Class(function(self)
+local Entity = Class("Entity", function(self)
     self:addGuid()
     self:addComponents()
     self:Enable()

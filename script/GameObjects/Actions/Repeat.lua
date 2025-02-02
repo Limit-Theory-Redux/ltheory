@@ -1,6 +1,6 @@
 local Action = require('GameObjects.Action')
 
-local Repeat = Subclass(Action, function(self, actions)
+local Repeat = Subclass("Repeat", Action, function(self, actions)
     self.actions = actions
 end)
 

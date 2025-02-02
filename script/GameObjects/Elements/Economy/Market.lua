@@ -38,7 +38,7 @@ local function addOrder(type, self, actor, item, count, price)
     sort(orders, type.comparator)
 end
 
-local Market = Class(function(self)
+local Market = Class("Market", function(self)
     self.data = {}
     self.escrow = {}
 end)

@@ -11,7 +11,7 @@ local ExpiryComponent = require("_ECS_WIP_TEMP.Components.Economy.ExpiryComponen
 ---@class OrderEntity: Entity
 ---@overload fun(self: OrderEntity, issuerId: number, itemType: integer, quantity: number, price: number, expiresAt: TimeStamp|nil): OrderEntity subclass internal
 ---@overload fun(issuerId: number, itemType: integer, quantity: number, price: number, expiresAt: TimeStamp|nil): OrderEntity subclass external
-local OrderEntity = Subclass(Entity, function(self, issuerId, itemType, quantity, price, expiresAt)
+local OrderEntity = Subclass("OrderEntity", Entity, function(self, issuerId, itemType, quantity, price, expiresAt)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.OrderEntity)
 

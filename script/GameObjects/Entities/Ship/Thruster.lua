@@ -7,7 +7,7 @@ local material
 local meshJet
 local rng = RNG.FromTime()
 
-local Thruster = Subclass(Entity, function(self, parentShip)
+local Thruster = Subclass("Thruster", Entity, function(self, parentShip)
     if not mesh then
         local parentHullSize = parentShip:getHull()
         if parentHullSize == Enums.ShipHulls.Solo then

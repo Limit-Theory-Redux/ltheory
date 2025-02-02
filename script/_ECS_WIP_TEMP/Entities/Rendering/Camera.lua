@@ -7,7 +7,7 @@ local CameraData = require("_ECS_WIP_TEMP.Components.Rendering.CameraData")     
 ---@class Camera: Entity
 ---@overload fun(self: Camera): Camera subclass internal
 ---@overload fun(): Camera subclass external
-local Camera = Subclass(Entity, function(self)
+local Camera = Subclass("Camera", Entity, function(self)
     self:setArchetype(Enums.EntityArchetype.CameraEntity)
 
     -- PhysicsRigidBodyComponent

@@ -11,7 +11,7 @@ local shared
 local varCache
 local rng = RNG.FromTime()
 
-local Turret = Subclass(Entity, function(self)
+local Turret = Subclass("Turret", Entity, function(self)
     if not shared then
         shared = {}
         -- shared.mesh = Gen.ShipBasic.TurretSingle(rng)

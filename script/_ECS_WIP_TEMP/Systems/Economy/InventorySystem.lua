@@ -7,7 +7,7 @@ local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler")
 ---@class InventorySystem
 ---@overload fun(self: InventorySystem): InventorySystem class internal
 ---@overload fun(): InventorySystem class external
-local InventorySystem = Class(function(self)
+local InventorySystem = Class("InventorySystem", function(self)
     ---@diagnostic disable-next-line: invisible
     self:registerVars()
 end)

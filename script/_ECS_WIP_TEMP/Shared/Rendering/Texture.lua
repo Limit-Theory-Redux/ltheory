@@ -23,7 +23,7 @@ Aren't we reusing shaders anyways?
 ---@class Texture
 ---@overload fun(self: Texture, texName: string, tex: Tex, texType: UniformType, texSettings: TextureSetting|nil): Texture class internal
 ---@overload fun(texName: string, tex: Tex, texType: UniformType, texSettings: TextureSetting|nil): Texture class external
-local Texture = Class(function(self, texName, tex, texType, texSettings)
+local Texture = Class("Texture", function(self, texName, tex, texType, texSettings)
     self.texName = texName
     self.tex = tex
     self.texType = texType

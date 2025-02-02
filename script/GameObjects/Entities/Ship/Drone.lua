@@ -11,7 +11,7 @@ local shared
 local varCache
 local rng = RNG.FromTime()
 
-local Drone = Subclass(Entity, function(self)
+local Drone = Subclass("Drone", Entity, function(self)
     if not shared then
         shared = {}
         -- shared.mesh = Gen.ShipBasic.DroneSingle(rng)

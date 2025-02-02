@@ -3,7 +3,7 @@ local Player = require('GameObjects.Entities.Player')
 
 -- Temporary File until other systems are more fleshed out, to be merged into a general AI script that handles all the THINKING
 
-local CriminalThink = Subclass(Action, function(self)
+local CriminalThink = Subclass("CriminalThink", Action, function(self)
     self.timer = 0
     self.rng = RNG.FromTime()
 end)

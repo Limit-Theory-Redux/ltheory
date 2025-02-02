@@ -1,6 +1,6 @@
 -- General Purpose Component Object
 ---@class Component
-local Component = Class(function(self)
+local Component = Class("Component", function(self)
     ---@cast self Component
     self:addGuid()
     self.componentName = nil

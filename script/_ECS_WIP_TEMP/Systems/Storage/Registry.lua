@@ -15,7 +15,7 @@ local ComponentInfo = require("_ECS_WIP_TEMP.Shared.Types.ComponentInfo")
 ---@class Registry
 ---@overload fun(self: Registry): Registry class internal
 ---@overload fun(): Registry class external
-local Registry = Class(function(self)
+local Registry = Class("Registry", function(self)
     self:clear()
 end)
 

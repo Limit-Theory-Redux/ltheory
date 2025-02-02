@@ -8,7 +8,7 @@ local QuantityComponent = require("_ECS_WIP_TEMP.Components.Economy.QuantityComp
 ---@class ItemEntity: Entity
 ---@overload fun(self: ItemEntity, definition: ItemDefinition, quantity: number): ItemEntity subclass internal
 ---@overload fun(definition: ItemDefinition, quantity: number): ItemEntity subclass external
-local ItemEntity = Subclass(Entity, function(self, definition, quantity)
+local ItemEntity = Subclass("ItemEntity", Entity, function(self, definition, quantity)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.ItemEntity)
 

@@ -5,7 +5,7 @@ local SocketType  = require('GameObjects.Entities.Ship.SocketType')
 local shared
 local rng         = RNG.FromTime()
 
-local Cloak       = Subclass(Entity, function(self)
+local Cloak       = Subclass("", Entity, function(self)
     -- All of this crap is completely worthless, but updateCloak() will not be called without it
     if not shared then
         shared = {}

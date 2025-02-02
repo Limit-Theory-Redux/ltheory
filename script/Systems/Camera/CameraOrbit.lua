@@ -1,6 +1,6 @@
 local Camera = require('Systems.Camera.Camera')
 
-local CameraOrbit = Subclass(Camera, function(self)
+local CameraOrbit = Subclass("CameraOrbit", Camera, function(self)
     self.yaw      = -Math.Pi2
     self.yawT     = -Math.Pi2
     self.pitch    = Math.Pi6

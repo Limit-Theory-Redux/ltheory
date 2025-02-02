@@ -10,7 +10,7 @@ local Log = require("Core/Util/Log")
 ---@class MeshStorage
 ---@overload fun(self: MeshStorage): MeshStorage class internal
 ---@overload fun(): MeshStorage class external
-local MeshStorage = Class(function(self)
+local MeshStorage = Class("MeshStorage", function(self)
     if self.initialized then
         Log.Error("You are trying to reinitialize the MeshStorage, this should not happen.")
         return

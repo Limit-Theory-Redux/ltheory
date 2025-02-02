@@ -4,7 +4,7 @@ local Actions = requireAll('GameObjects.Actions')
 local Jobs = requireAll('GameObjects.Jobs')
 
 ---@class Universe
-local Universe = Class(function(self) end)
+local Universe = Class("Universe", function(self) end)
 
 local firstRun = true
 

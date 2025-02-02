@@ -14,7 +14,7 @@
 ---@class RenderingPass
 ---@overload fun(self: RenderingPass, bufferOrder: BufferName[], settings: RenderStateSettings, drawFunc: function|nil)   class internal
 ---@overload fun(bufferOrder: BufferName[], settings: RenderStateSettings, drawFunc: function | nil)  class external
-local RenderingPass = Class(function(self, bufferOrder, settings, drawFunc)
+local RenderingPass = Class("RenderingPass", function(self, bufferOrder, settings, drawFunc)
     ---@diagnostic disable-next-line: invisible
     self:registerVars(bufferOrder, settings, drawFunc)
 end)

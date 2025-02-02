@@ -1,5 +1,5 @@
 ---@class UIRouter
-local UIRouter = Class(function(self) end)
+local UIRouter = Class("UIRouter", function(self) end)
 
 function UIRouter:__init()
     ---@type table<UIPage>

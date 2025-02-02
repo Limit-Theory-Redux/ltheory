@@ -9,7 +9,7 @@ local Registry = require('_ECS_WIP_TEMP.Systems.Storage.Registry') --!temp path
 ---@class EntityHierarchyComponent: Component
 ---@overload fun(self: EntityHierarchyComponent, parentEntity: EntityInfo|nil) : EntityHierarchyComponent subclass internal
 ---@overload fun(parentEntity: EntityInfo|nil): EntityHierarchyComponent subclass external
-local EntityHierarchyComponent = Subclass(Component, function(self, parentEntityInfo)
+local EntityHierarchyComponent = Subclass("EntityHierarchyComponent", Component, function(self, parentEntityInfo)
     self:setComponentName("EntityHierarchy")
 
     -- Set Component Archetype

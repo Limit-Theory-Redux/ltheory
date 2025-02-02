@@ -51,7 +51,7 @@ local function wasDamaged(self, event)
     end
 end
 
-local Station = Subclass(Entity, function(self, seed, hull)
+local Station = Subclass("Station", Entity, function(self, seed, hull)
     local rng = RNG.Create(seed)
     local mesh = Gen.StationOld(seed)
     local bsp = BSP.Create(mesh):managed()

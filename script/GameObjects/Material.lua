@@ -5,7 +5,7 @@
 -- is a specific 'type' of metal
 -- NOTE : Really they're just nested ShaderStates.
 
-local Material = Class(function(self) end)
+local Material = Class("Material", function(self) end)
 
 local allMaterials = {}
 

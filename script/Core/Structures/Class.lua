@@ -25,12 +25,6 @@
 --
 
 function Class(name, ctor)
-    -- If this is called as Class(ctor), then name == ctor and ctor == nil
-    if ctor == nil then
-        ctor = name
-        name = "Unknown"
-    end
-    
     -- Define the class.
     local cls = {}
     cls.__index = cls
@@ -59,13 +53,6 @@ function Class(name, ctor)
 end
 
 function Subclass(name, base, ctor)
-    -- If this is called as Subclass(base, ctor), then name == base, base == ctor and ctor == nil
-    if ctor == nil then
-        ctor = base
-        base = name
-        name = "Unknown"
-    end
-    
     -- Define the class.
     local cls = {}
     cls.__index = cls

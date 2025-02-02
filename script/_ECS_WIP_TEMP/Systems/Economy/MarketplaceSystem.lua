@@ -11,7 +11,7 @@ local Items = require("_ECS_WIP_TEMP.Shared.Registries.Items")
 ---@class MarketplaceSystem
 ---@overload fun(self: MarketplaceSystem): MarketplaceSystem class internal
 ---@overload fun(): MarketplaceSystem class external
-local MarketplaceSystem = Class(function(self)
+local MarketplaceSystem = Class("MarketplaceSystem", function(self)
     ---@diagnostic disable-next-line: invisible
     self:registerVars()
     ---@diagnostic disable-next-line: invisible

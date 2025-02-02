@@ -3,7 +3,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@class ExpiryComponent: Component
 ---@overload fun(self: ExpiryComponent, expireAt: TimeStamp|nil): ExpiryComponent subclass internal
 ---@overload fun(expireAt: TimeStamp|nil): ExpiryComponent subclass external
-local ExpiryComponent = Subclass(Component, function(self, expireAt)
+local ExpiryComponent = Subclass("ExpiryComponent", Component, function(self, expireAt)
     self:setComponentName("EconomyExpiry")
 
     -- Set Component Archetype

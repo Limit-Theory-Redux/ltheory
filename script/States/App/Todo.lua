@@ -1,6 +1,6 @@
 local Test = require('States.Application')
 
-local Todo = Class(function(self, name, done)
+local Todo = Class("Todo", function(self, name, done)
     self.name = name
     self.children = {}
     self.done = done or false

@@ -55,7 +55,7 @@ end
 ---@class RenderCoreSystem
 ---@overload fun(self: RenderCoreSystem) class internal
 ---@overload fun() class external
-local RenderCoreSystem = Class(function(self)
+local RenderCoreSystem = Class("RenderCoreSystem", function(self)
     ---@diagnostic disable-next-line: invisible
     self:registerVars()
     ---@diagnostic disable-next-line: invisible

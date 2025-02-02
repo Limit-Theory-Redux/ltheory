@@ -21,7 +21,7 @@ local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler")
 ---@class UniverseGenerationSystem
 ---@overload fun(self: UniverseGenerationSystem): UniverseGenerationSystem class internal
 ---@overload fun(): UniverseGenerationSystem class external
-local UniverseGenerationSystem = Class(function(self)
+local UniverseGenerationSystem = Class("UniverseGenerationSystem", function(self)
     ---@diagnostic disable-next-line: invisible
     self:registerVars()
 end)

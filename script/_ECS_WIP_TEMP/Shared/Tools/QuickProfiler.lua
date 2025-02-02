@@ -1,7 +1,7 @@
 ---@class QuickProfiler
 ---@overload fun(self: QuickProfiler, name: string, enable: boolean, withMovingAverage: boolean|nil, disablePrints: boolean|nil): QuickProfiler class internal
 ---@overload fun(name: string, isEnabled: boolean, withMovingAverage: boolean|nil, disablePrints: boolean|nil): QuickProfiler class external
-local QuickProfiler = Class(function(self, name, enable, withMovingAverage, disablePrints)
+local QuickProfiler = Class("QuickProfiler", function(self, name, enable, withMovingAverage, disablePrints)
     ---@diagnostic disable-next-line: invisible
     self:init(name, enable, withMovingAverage, disablePrints)
 end)

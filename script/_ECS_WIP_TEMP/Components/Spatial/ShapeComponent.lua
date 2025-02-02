@@ -3,7 +3,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@class SpatialShapeComponent: Component
 ---@overload fun(self:SpatialShapeComponent): SpatialShapeComponent subclass internal
 ---@overload fun(): SpatialShapeComponent subclass external
-local SpatialShapeComponent = Subclass(Component, function(self)
+local SpatialShapeComponent = Subclass("SpatialShapeComponent", Component, function(self)
     self:setComponentName("Shape")
 
     -- Set Component Archetype

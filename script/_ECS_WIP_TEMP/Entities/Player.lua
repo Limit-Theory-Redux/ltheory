@@ -7,7 +7,7 @@ local PlayerBankAccount = require("_ECS_WIP_TEMP.Components.Economy.PlayerBankAc
 ---@class Player: Entity
 ---@overload fun(self: Player, name: string, isAiPlayer: boolean) subclass internal
 ---@overload fun(name: string, isAiPlayer: boolean) subclass external
-local Player = Subclass(Entity, function(self, name, isAiPlayer)
+local Player = Subclass("Player", Entity, function(self, name, isAiPlayer)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.PlayerEntity)
 

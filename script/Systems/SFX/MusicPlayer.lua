@@ -1,4 +1,4 @@
-local MusicPlayer = Class(function(self) end)
+local MusicPlayer = Class("MusicPlayer", function(self) end)
 
 local MusicObject = require("Types.MusicObject")
 local rng = RNG.FromTime()

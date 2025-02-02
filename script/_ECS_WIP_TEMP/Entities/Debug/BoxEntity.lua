@@ -12,7 +12,7 @@ local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 ---@class BoxEntity: Entity
 ---@overload fun(self: BoxEntity, material: Material): BoxEntity subclass internal
 ---@overload fun(material: Material): BoxEntity subclass external
-local BoxEntity = Subclass(Entity, function(self, material)
+local BoxEntity = Subclass("BoxEntity", Entity, function(self, material)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.BoxEntity)
 

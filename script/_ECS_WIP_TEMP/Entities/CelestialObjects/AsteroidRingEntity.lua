@@ -13,7 +13,7 @@ local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 ---@class AsteroidRingEntity: Entity
 ---@overload fun(self: AsteroidRingEntity, seed: integer): AsteroidRingEntity subclass internal
 ---@overload fun(seed: integer): AsteroidRingEntity subclass external
-local AsteroidRingEntity = Subclass(Entity, function(self, seed)
+local AsteroidRingEntity = Subclass("AsteroidRingEntity", Entity, function(self, seed)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.AsteroidRingEntity)
 

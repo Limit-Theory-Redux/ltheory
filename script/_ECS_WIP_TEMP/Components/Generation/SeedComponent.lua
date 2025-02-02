@@ -3,7 +3,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@class SeedComponent: Component
 ---@overload fun(self:SeedComponent, seed: integer): SeedComponent subclass internal
 ---@overload fun(seed: integer): SeedComponent subclass external
-local SeedComponent = Subclass(Component, function(self, seed)
+local SeedComponent = Subclass("SeedComponent", Component, function(self, seed)
     self:setComponentName("GenerationSeedComponent")
 
     -- Set Component Archetype

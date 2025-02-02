@@ -2,7 +2,7 @@ local Job = require('GameObjects.Job')
 local Flow = require('Systems.Economy.Flow')
 local Actions = requireAll('GameObjects.Actions')
 
-local Patrolling = Subclass(Job, function(self, base, system, patrolNodes)
+local Patrolling = Subclass("Patrolling", Job, function(self, base, system, patrolNodes)
     self.src = base
     self.jcount = 0
     self.system = base:getRoot()

@@ -3,7 +3,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component') --!temp
 ---@class RenderComponent: Component
 ---@overload fun(self: RenderComponent, materials: Material[], meshType: MeshType): RenderComponent subclass internal
 ---@overload fun(materials: Material[], meshType: MeshType): RenderComponent subclass external
-local RenderComponent = Subclass(Component, function(self, materials, meshType)
+local RenderComponent = Subclass("RenderComponent", Component, function(self, materials, meshType)
     self:setComponentName("RenderComponent")
 
     -- Set Component Archetype

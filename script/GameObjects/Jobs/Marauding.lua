@@ -2,7 +2,7 @@ local Job = require('GameObjects.Job')
 local Flow = require('Systems.Economy.Flow')
 local Actions = requireAll('GameObjects.Actions')
 
-local Marauding = Subclass(Job, function(self, base, system)
+local Marauding = Subclass("Marauding", Job, function(self, base, system)
     self.base = base
     self.jcount = 0
     self.maraudingArea = nil

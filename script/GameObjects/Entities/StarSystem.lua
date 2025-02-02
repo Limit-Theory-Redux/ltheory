@@ -13,7 +13,7 @@ local Words = require('Systems.Gen.Words')
 local HUD = require('Systems.Overlay.HUD')
 
 ---@class StarSystem: Entity
-local System = Subclass(Entity, function(self, seed)
+local System = Subclass("System", Entity, function(self, seed)
     ---@type RandomNumberGenerator
     self.rng = RNG.Create(seed):managed()
 

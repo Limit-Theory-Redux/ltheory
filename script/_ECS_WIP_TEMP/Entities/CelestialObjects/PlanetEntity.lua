@@ -13,7 +13,7 @@ local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 ---@class PlanetEntity: Entity
 ---@overload fun(self: PlanetEntity, seed: integer): PlanetEntity subclass internal
 ---@overload fun(seed: integer): PlanetEntity subclass external
-local PlanetEntity = Subclass(Entity, function(self, seed)
+local PlanetEntity = Subclass("PlanetEntity", Entity, function(self, seed)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.PlanetEntity)
 

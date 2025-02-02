@@ -1,6 +1,6 @@
 local id = 1
 
-local Entity = Class(function(self)
+local Entity = Class("Entity", function(self)
     self:addGuid()
     self.id = id
     self.handlers = {}

@@ -12,7 +12,7 @@ local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 ---@class ZoneEntity: Entity
 ---@overload fun(self: ZoneEntity): ZoneEntity subclass internal
 ---@overload fun(): ZoneEntity subclass external
-local ZoneEntity = Subclass(Entity, function(self)
+local ZoneEntity = Subclass("ZoneEntity", Entity, function(self)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.ZoneEntity)
 

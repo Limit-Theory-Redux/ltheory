@@ -2,7 +2,7 @@ local Flow = require('Systems.Economy.Flow')
 
 local all = {}
 
-local Production = Class(function(self, name)
+local Production = Class("Production", function(self, name)
     self.name = name
     self.inputs = {}
     self.outputs = {}

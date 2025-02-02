@@ -1,6 +1,6 @@
 local Action = require('GameObjects.Action')
 
-local Patrol = Subclass(Action, function(self, patrolNodes)
+local Patrol = Subclass("Patrol", Action, function(self, patrolNodes)
     self.patrolNodes = patrolNodes
     self.patrolCurrentNodeIndex = 1
     self.system = nil

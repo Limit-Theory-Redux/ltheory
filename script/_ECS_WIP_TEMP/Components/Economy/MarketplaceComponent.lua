@@ -3,7 +3,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@class MarketplaceComponent: Component
 ---@overload fun(self: MarketplaceComponent, playerId: integer|nil): MarketplaceComponent subclass internal
 ---@overload fun(playerId: integer|nil): MarketplaceComponent subclass external
-local MarketplaceComponent = Subclass(Component, function(self)
+local MarketplaceComponent = Subclass("MarketplaceComponent", Component, function(self)
     self:setComponentName("EconomyMarketplace")
 
     -- Set Component Archetype

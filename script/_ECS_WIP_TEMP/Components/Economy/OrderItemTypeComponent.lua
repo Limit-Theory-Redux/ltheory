@@ -5,7 +5,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@class OrderItemTypeComponent: Component
 ---@overload fun(self: OrderItemTypeComponent, type: integer): OrderItemTypeComponent subclass internal
 ---@overload fun(type: integer): OrderItemTypeComponent subclass external
-local OrderItemTypeComponent = Subclass(Component, function(self, type)
+local OrderItemTypeComponent = Subclass("OrderItemTypeComponent", Component, function(self, type)
     self:setComponentName("EconomyOrderItemType")
 
     -- Set Component Archetype

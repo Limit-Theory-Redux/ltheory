@@ -7,7 +7,7 @@ local QuickProfiler = require("_ECS_WIP_TEMP.Shared.Tools.QuickProfiler")
 ---@class CameraSystem
 ---@overload fun(self: CameraSystem) class internal
 ---@overload fun() class external
-local CameraSystem = Class(function(self)
+local CameraSystem = Class("CameraSystem", function(self)
     ---@diagnostic disable-next-line: invisible
     self:registerVars()
     ---@diagnostic disable-next-line: invisible

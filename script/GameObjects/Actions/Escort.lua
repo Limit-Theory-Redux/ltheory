@@ -1,6 +1,6 @@
 local Action = require('GameObjects.Action')
 
-local Escort = Subclass(Action, function(self, target, offset)
+local Escort = Subclass("Escort", Action, function(self, target, offset)
     self.target = target
     self.offset = offset
 end)

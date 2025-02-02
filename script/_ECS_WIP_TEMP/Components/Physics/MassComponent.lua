@@ -3,7 +3,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@class MassComponent: Component
 ---@overload fun(self:MassComponent, mass: number): MassComponent subclass internal
 ---@overload fun(mass: number): MassComponent subclass external
-local MassComponent = Subclass(Component, function(self, mass)
+local MassComponent = Subclass("MassComponent", Component, function(self, mass)
     self:setComponentName("PhysicsMass")
 
     -- Set Component Archetype

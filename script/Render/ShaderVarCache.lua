@@ -1,6 +1,6 @@
 -- TODO JP : Make better.
 
-local ShaderVarCache = Class(function(self, shader, vars)
+local ShaderVarCache = Class("ShaderVarCache", function(self, shader, vars)
     for i = 1, #vars do
         if shader:hasVariable(vars[i]) then
             self[vars[i]] = shader:getVariable(vars[i])

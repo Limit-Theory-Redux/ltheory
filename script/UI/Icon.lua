@@ -1,6 +1,6 @@
 -- NOTE : This is just a placeholder.
 
-local Icon = Class(function(self, onDraw)
+local Icon = Class("Icon", function(self, onDraw)
     self:setOnDraw(onDraw)
 end)
 

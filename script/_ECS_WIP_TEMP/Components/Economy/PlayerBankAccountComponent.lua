@@ -12,7 +12,7 @@ local Component = require("_ECS_WIP_TEMP.Components.Component")
 ---@class PlayerBankAccount: Component
 ---@overload fun(self: PlayerBankAccount, initialBalance: number): PlayerBankAccount subclass internal
 ---@overload fun(initialBalance: number): PlayerBankAccount subclass external
-local PlayerBankAccount = Subclass(Component, function(self, initialBalance)
+local PlayerBankAccount = Subclass("PlayerBankAccount", Component, function(self, initialBalance)
     self:setComponentName("EconomyPlayerBankAccount")
 
     -- Set Component Archetype

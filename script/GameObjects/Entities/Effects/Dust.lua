@@ -1,7 +1,7 @@
 local kFleckDistance = 1024
 local kCloudDistance = 1024
 
-local Dust = Class(function(self) end)
+local Dust = Class("Dust", function(self) end)
 
 function Dust:forceLoad()
     if self.clouds then return end

@@ -12,7 +12,7 @@ local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 ---@class TriggerEntity: Entity
 ---@overload fun(self: TriggerEntity): TriggerEntity subclass internal
 ---@overload fun(): TriggerEntity subclass external
-local TriggerEntity = Subclass(Entity, function(self)
+local TriggerEntity = Subclass("TriggerEntity", Entity, function(self)
     -- Set Entity Archetype
     self:setArchetype(Enums.EntityArchetype.TriggerEntity)
 

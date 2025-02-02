@@ -11,7 +11,7 @@ local function getMesh(seed)
     return cache[seed]
 end
 
-local Asteroid = Subclass(Entity, function(self, seed, scale)
+local Asteroid = Subclass("Asteroid", Entity, function(self, seed, scale)
     local mesh = getMesh(seed)
     self:addRigidBody(true, mesh:get(0), Enums.ColliderType.Trimesh)
     self:addVisibleLodMesh(mesh, Material.Rock())

@@ -9,7 +9,7 @@ local genColor = function(rng)
     return Vec3f(c.r, c.g, c.b)
 end
 
-local Planet = Subclass(Entity, function(self, seed)
+local Planet = Subclass("Planet", Entity, function(self, seed)
     local rng = RNG.Create(seed):managed()
 
     -- TODO: Improve planet size generation

@@ -10,7 +10,7 @@ local UniformFuncs = require("_ECS_WIP_TEMP.Shared.Rendering.UniformFuncs")
 ---@class ConstShaderVar
 ---@overload fun(self: ConstShaderVar, uniformName: string, uniformType: UniformType, requiresEntity: boolean): ConstShaderVar class internal
 ---@overload fun(uniformName: string, uniformType: UniformType, requiresEntity: boolean): ConstShaderVar class external
-local ConstShaderVar = Class(function(self, uniformName, uniformType, requiresEntity)
+local ConstShaderVar = Class("ConstShaderVar", function(self, uniformName, uniformType, requiresEntity)
     self.uniformName = uniformName
     self.uniformInt = nil
     self.uniformType = uniformType

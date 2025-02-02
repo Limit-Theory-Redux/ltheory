@@ -15,7 +15,7 @@ local Texture = require("_ECS_WIP_TEMP.Shared.Rendering.Texture")               
 ---@class Material
 ---@overload fun(self: Material, vs_name: string, fs_name: string, blendMode: BlendMode): Material class internal
 ---@overload fun(vs_name: string, fs_name: string, blendMode: BlendMode): Material class external
-local Material = Class(function(self, vs_name, fs_name, blendMode)
+local Material = Class("Material", function(self, vs_name, fs_name, blendMode)
     self.vs = vs_name
     self.fs = fs_name
     self.blendMode = blendMode

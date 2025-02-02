@@ -3,7 +3,7 @@ local Component = require('_ECS_WIP_TEMP.Components.Component')
 ---@class CameraDataComponent: Component
 ---@overload fun(self: CameraDataComponent): CameraDataComponent subclass internal
 ---@overload fun(): CameraDataComponent subclass external
-local CameraDataComponent = Subclass(Component, function(self)
+local CameraDataComponent = Subclass("CameraDataComponent", Component, function(self)
     ---@cast self CameraDataComponent
     self:setComponentName("RenderingCameraData")
 
