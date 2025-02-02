@@ -6,7 +6,7 @@
 
   Example:
 
-    local Ship = Class(function (self, name, hp)
+    local Ship = Class("Ship", function (self, name, hp)
       self.name = name
       self.health = hp
       self.healthMax = hp
@@ -15,7 +15,7 @@
     function Ship:addHangar (unit) assert(false, "No hangar!") end
     function Ship:getHangar () return {} end
 
-    local Carrier = Subclass(Ship, function (self)
+    local Carrier = Subclass("Carrier", Ship, function (self)
       self.hanger = {}
     end)
 
@@ -24,29 +24,75 @@
 ----------------------------------------------------------------------------]]
 --
 
-function Class(ctor)
+function Class(name, ctor)
+    -- If this is called as Class(ctor), then name == ctor and ctor == nil
+    if ctor == nil then
+        ctor = name
+        name = "Unknown"
+    end
+
+    -- Define type.
+    local typeEnum = Enums.Type:createType(name)
+    
+    -- Define the class.
     local cls = {}
     cls.__index = cls
+    cls.__type = typeEnum
+
+    -- Define the default constructor
+    -- This just invokes ctor if it is not nil.
+    function cls.new(...)
+        local self = {}
+        setmetatable(self, cls)
+        if ctor then ctor(self, ...) end
+        return self
+    end
+
+    -- Set up the class metatable.
     setmetatable(cls, {
         __call = function(T, ...)
-            local self = {}
-            setmetatable(self, cls)
-            if ctor then ctor(self, ...) end
-            return self
+            return cls.new(...)
+        end,
+        __tostring = function()
+            return Enums.Type:getName(typeEnum)
         end
     })
+
     return cls
 end
 
-function Subclass(base, ctor)
+function Subclass(name, base, ctor)
+    -- If this is called as Subclass(base, ctor), then name == base, base == ctor and ctor == nil
+    if ctor == nil then
+        ctor = base
+        base = name
+        name = "Unknown"
+    end
+
+    -- Define type.
+    local typeEnum = Enums.Type:createType(name)
+    
+    -- Define the class.
     local cls = {}
     cls.__index = cls
+    cls.__type = typeEnum
+
+    -- Define the default constructor.
+    -- This just invokes ctor on an instance of base() if it is not nil.
+    function cls.new(...)
+        local self = base()
+        setmetatable(self, cls)
+        if ctor then ctor(self, ...) end
+        return self
+    end
+
+    -- Set up the class metatable.
     setmetatable(cls, {
         __call = function(T, ...)
-            local self = base()
-            setmetatable(self, cls)
-            if ctor then ctor(self, ...) end
-            return self
+            return cls.new(...)
+        end,
+        __tostring = function()
+            return Enums.Type:getName(typeEnum)
         end,
         __index = base,
     })
