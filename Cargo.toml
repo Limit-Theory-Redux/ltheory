@@ -8,6 +8,9 @@ authors = ["Limit Theory Redux Team"]
 edition = "2021"
 license = "MIT/Apache-2.0"
 
+[workspace.lints.rust]
+unsafe_code = "deny"
+
 [workspace.dependencies]
 # workspace bin crates
 ltr = { path = "engine/bin/ltr" }

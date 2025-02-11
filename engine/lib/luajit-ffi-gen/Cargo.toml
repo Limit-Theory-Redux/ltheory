@@ -9,8 +9,8 @@ edition.workspace = true
 [lib]
 proc-macro = true
 
-[lints.rust]
-unsafe_code = "deny"
+[lints]
+workspace = true
 
 [dependencies]
 # workspace crates
