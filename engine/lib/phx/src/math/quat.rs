@@ -1,4 +1,6 @@
-pub use glam::Quat;
+#![allow(unsafe_code)] // TODO: remove
+
+use glam::{Mat3, Quat};
 
 use crate::error::Error;
 use crate::math::*;
@@ -12,13 +14,13 @@ pub trait QuatExtensions {
 
 impl QuatExtensions for Quat {
     fn canonicalize(&self) -> Quat {
-        let value: f32 = if !Float_ApproximatelyEqualf(self.w, 0.0) {
+        let value: f32 = if !approximately_equal(self.w, 0.0) {
             self.w
-        } else if !Float_ApproximatelyEqualf(self.z, 0.0) {
+        } else if !approximately_equal(self.z, 0.0) {
             self.z
-        } else if !Float_ApproximatelyEqualf(self.y, 0.0) {
+        } else if !approximately_equal(self.y, 0.0) {
             self.y
-        } else if !Float_ApproximatelyEqualf(self.x, 0.0) {
+        } else if !approximately_equal(self.x, 0.0) {
             self.x
         } else {
             0.0
@@ -119,10 +121,10 @@ pub extern "C" fn Quat_Equal(q: &Quat, p: &Quat) -> bool {
 pub extern "C" fn Quat_ApproximatelyEqual(q: &Quat, p: &Quat) -> bool {
     let cq = q.canonicalize();
     let cp = p.canonicalize();
-    Float_ApproximatelyEqualf(cq.x, cp.x)
-        && Float_ApproximatelyEqualf(cq.y, cp.y)
-        && Float_ApproximatelyEqualf(cq.z, cp.z)
-        && Float_ApproximatelyEqualf(cq.w, cp.w)
+    approximately_equal(cq.x, cp.x)
+        && approximately_equal(cq.y, cp.y)
+        && approximately_equal(cq.z, cp.z)
+        && approximately_equal(cq.w, cp.w)
 }
 
 #[no_mangle]

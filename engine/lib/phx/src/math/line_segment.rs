@@ -1,3 +1,5 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use crate::math::*;
 
 #[derive(Copy, Clone)]

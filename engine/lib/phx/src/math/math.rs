@@ -1,4 +1,5 @@
 #![allow(non_snake_case)] // TODO: remove this and fix all warnings
+#![allow(unsafe_code)] // TODO: remove
 
 // Re-export glam types.
 pub use glam::{
@@ -52,7 +53,7 @@ pub extern "C" fn Float_ApproximatelyEqual(x: f64, y: f64) -> bool {
 }
 
 #[inline]
-pub extern "C" fn Float_ApproximatelyEqualf(x: f32, y: f32) -> bool {
+pub fn approximately_equal(x: f32, y: f32) -> bool {
     f32::abs(x - y) < 1e-3
 }
 

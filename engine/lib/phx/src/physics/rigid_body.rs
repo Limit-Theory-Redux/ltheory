@@ -3,6 +3,7 @@
 use std::ptr::NonNull;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
+use glam::{Mat4, Quat};
 use rapier3d_f64::prelude as rp;
 use rapier3d_f64::prelude::nalgebra as na;
 
@@ -609,15 +610,16 @@ impl RigidBody {
     ///
     /// This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
     pub fn get_to_world_matrix(&self, camera_pos: &Position) -> Matrix {
-        Matrix::from_rp(&self.get_world_transform_unscaled(), camera_pos)
-            * Matrix::from_scale(Vec3::splat(self.get_scale()))
+        (*Matrix::from_rp(&self.get_world_transform_unscaled(), camera_pos)
+            * Mat4::from_scale(Vec3::splat(self.get_scale())))
+        .into()
     }
 
     /// Returns the world -> local matrix for this rigid body.
     ///
     /// This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
     pub fn get_to_local_matrix(&self, camera_pos: &Position) -> Matrix {
-        self.get_to_world_matrix(camera_pos).inverse()
+        self.get_to_world_matrix(camera_pos).inverse().into()
     }
 
     #[bind(out_param = true)]

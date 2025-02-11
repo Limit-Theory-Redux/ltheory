@@ -1,5 +1,3 @@
-#![allow(unsafe_code)] // TODO: remove
-
 mod bit;
 mod box3;
 mod clip_rect;

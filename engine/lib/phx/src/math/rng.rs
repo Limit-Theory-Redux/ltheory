@@ -1,5 +1,7 @@
 #![allow(non_snake_case)] // TODO: remove this and fix all warnings
+#![allow(unsafe_code)] // TODO: remove
 
+use glam::Quat;
 use internal::ConvertIntoString;
 
 use super::*;

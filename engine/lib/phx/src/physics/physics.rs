@@ -3,6 +3,7 @@
 
 use std::ffi::{CStr, CString};
 
+use glam::{Mat4, Quat};
 use rapier3d_f64::parry::query::RayCast;
 use rapier3d_f64::prelude as rp;
 use rapier3d_f64::prelude::nalgebra as na;
@@ -101,10 +102,11 @@ pub trait RapierMatrixInterop {
 
 impl RapierMatrixInterop for Matrix {
     fn from_rp(t: &rp::Isometry<rp::Real>, frame: &Position) -> Matrix {
-        Matrix::from_rotation_translation(
+        Mat4::from_rotation_translation(
             Quat::from_na(&t.rotation),
             Position::from_na(&t.translation.vector).relative_to(*frame),
         )
+        .into()
     }
 }
 
