@@ -1,3 +1,5 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use std::ptr::NonNull;
 
 use rapier3d_f64::prelude as rp;

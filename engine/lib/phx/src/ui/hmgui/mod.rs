@@ -46,6 +46,7 @@ mod tests {
     );
 
     fn init_test() -> (HmGui, Input) {
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
             if !RESOURCES_INITIALIZED {
                 let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../");

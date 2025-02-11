@@ -1,3 +1,5 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use std::ptr::NonNull;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 

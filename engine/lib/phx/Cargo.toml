@@ -11,6 +11,9 @@ edition.workspace = true
 crate-type = ["cdylib", "lib"]
 bench = true
 
+[lints.rust]
+unsafe_code = "deny"
+
 [dependencies]
 # workspace crates
 internal.workspace = true

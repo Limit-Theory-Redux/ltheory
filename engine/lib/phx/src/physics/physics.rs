@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![allow(unsafe_code)] // TODO: remove
 
 use std::ffi::{CStr, CString};
 

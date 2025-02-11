@@ -43,11 +43,11 @@ static mut RECT_INDEX: i32 = -1;
 #[inline]
 unsafe extern "C" fn TransformRect(x: &mut f32, y: &mut f32, sx: &mut f32, sy: &mut f32) {
     if TRANSFORM_INDEX >= 0 {
-        let curr: *mut ClipRectTransform = TRANSFORM.as_mut_ptr().offset(TRANSFORM_INDEX as isize);
-        *x = (*curr).sx * *x + (*curr).tx;
-        *y = (*curr).sy * *y + (*curr).ty;
-        *sx *= (*curr).sx;
-        *sy *= (*curr).sy;
+        let curr = &TRANSFORM[TRANSFORM_INDEX as usize];
+        *x = curr.sx * *x + curr.tx;
+        *y = curr.sy * *y + curr.ty;
+        *sx *= curr.sx;
+        *sy *= curr.sy;
     }
 }
 

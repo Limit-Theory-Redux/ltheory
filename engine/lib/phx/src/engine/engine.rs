@@ -52,6 +52,7 @@ fn build_event_loop() -> EventLoop<()> {
 
 impl Engine {
     pub fn new(event_loop: &ActiveEventLoop) -> Self {
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
             static mut FIRST_TIME: bool = true;
             Signal_Init();
@@ -64,6 +65,7 @@ impl Engine {
         }
 
         // Unsafe is required for FFI and JIT libs
+        #[allow(unsafe_code)] // TODO: remove
         let lua = Rf::new(unsafe { Lua::unsafe_new() });
 
         std::panic::set_hook(Box::new(|panic_info| {
@@ -429,6 +431,7 @@ impl Engine {
 
     pub fn update() {
         Profiler::begin("Engine_Update");
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
             Metric_Reset();
         }
