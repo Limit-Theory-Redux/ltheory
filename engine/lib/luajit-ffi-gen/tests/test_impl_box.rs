@@ -41,7 +41,7 @@ impl BoxTest {
     }
 
     pub fn get_copyable(&self) -> Box<CopyableData> {
-        Box::new(self.val_copyable.clone())
+        Box::new(self.val_copyable)
     }
 
     // Strings are not supported.

@@ -6,7 +6,6 @@ use std::ptr::addr_of_mut;
 use freetype_sys::*;
 
 use super::*;
-use crate::common::*;
 use crate::math::*;
 use crate::rf::Rf;
 use crate::system::{Profiler, ResourceType, Resource_GetPath};

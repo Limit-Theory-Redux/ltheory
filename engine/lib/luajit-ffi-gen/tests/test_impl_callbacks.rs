@@ -12,7 +12,7 @@ pub struct CallbackTest {
 
 #[luajit_ffi(gen_dir = "./tests/out/ffi_gen", meta_dir = "./tests/out/ffi_meta")]
 impl CallbackTest {
-    pub fn nth_primitive<F: FnOnce(f32) -> ()>(&self, index: usize, callback: F) {
+    pub fn nth_primitive<F: FnOnce(f32)>(&self, index: usize, callback: F) {
         callback(self.val_primitives[index]);
     }
 
@@ -21,19 +21,19 @@ impl CallbackTest {
         callback(&self.val_primitives[index]);
     }
 
-    pub fn nth_primitive_mut<F: FnOnce(&mut f32) -> ()>(&mut self, index: usize, callback: F) {
+    pub fn nth_primitive_mut<F: FnOnce(&mut f32)>(&mut self, index: usize, callback: F) {
         callback(&mut self.val_primitives[index]);
     }
 
-    pub fn nth_primitive_val_opt<F: FnOnce(Option<f32>) -> ()>(&self, index: usize, callback: F) {
+    pub fn nth_primitive_val_opt<F: FnOnce(Option<f32>)>(&self, index: usize, callback: F) {
         callback(self.val_primitives.get(index).cloned());
     }
 
-    pub fn nth_primitive_ref_opt<F: FnOnce(Option<&f32>) -> ()>(&self, index: usize, callback: F) {
+    pub fn nth_primitive_ref_opt<F: FnOnce(Option<&f32>)>(&self, index: usize, callback: F) {
         callback(self.val_primitives.get(index));
     }
 
-    pub fn nth_primitive_mut_opt<F: FnOnce(Option<&mut f32>) -> ()>(
+    pub fn nth_primitive_mut_opt<F: FnOnce(Option<&mut f32>)>(
         &mut self,
         index: usize,
         callback: F,
@@ -45,39 +45,27 @@ impl CallbackTest {
         self.val_primitives.push(callback());
     }
 
-    pub fn nth_managed<F: FnOnce(ManagedData) -> ()>(&self, index: usize, callback: F) {
+    pub fn nth_managed<F: FnOnce(ManagedData)>(&self, index: usize, callback: F) {
         callback(self.val_managed[index].clone());
     }
 
-    pub fn nth_managed_ref<F: FnOnce(&ManagedData) -> ()>(&self, index: usize, callback: F) {
+    pub fn nth_managed_ref<F: FnOnce(&ManagedData)>(&self, index: usize, callback: F) {
         callback(&self.val_managed[index]);
     }
 
-    pub fn nth_managed_mut<F: FnOnce(&mut ManagedData) -> ()>(
-        &mut self,
-        index: usize,
-        callback: F,
-    ) {
+    pub fn nth_managed_mut<F: FnOnce(&mut ManagedData)>(&mut self, index: usize, callback: F) {
         callback(&mut self.val_managed[index]);
     }
 
-    pub fn nth_managed_val_opt<F: FnOnce(Option<ManagedData>) -> ()>(
-        &self,
-        index: usize,
-        callback: F,
-    ) {
+    pub fn nth_managed_val_opt<F: FnOnce(Option<ManagedData>)>(&self, index: usize, callback: F) {
         callback(self.val_managed.get(index).cloned());
     }
 
-    pub fn nth_managed_ref_opt<F: FnOnce(Option<&ManagedData>) -> ()>(
-        &self,
-        index: usize,
-        callback: F,
-    ) {
+    pub fn nth_managed_ref_opt<F: FnOnce(Option<&ManagedData>)>(&self, index: usize, callback: F) {
         callback(self.val_managed.get(index));
     }
 
-    pub fn nth_managed_mut_opt<F: FnOnce(Option<&mut ManagedData>) -> ()>(
+    pub fn nth_managed_mut_opt<F: FnOnce(Option<&mut ManagedData>)>(
         &mut self,
         index: usize,
         callback: F,
@@ -91,19 +79,19 @@ impl CallbackTest {
 
     // Arrays.
 
-    pub fn read_primitive_array<F: FnOnce(&[f32]) -> ()>(&self, callback: F) {
+    pub fn read_primitive_array<F: FnOnce(&[f32])>(&self, callback: F) {
         callback(self.val_primitives.as_slice());
     }
 
-    pub fn lock_primitive_array<F: FnOnce(&mut [f32]) -> ()>(&mut self, callback: F) {
+    pub fn lock_primitive_array<F: FnOnce(&mut [f32])>(&mut self, callback: F) {
         callback(self.val_primitives.as_mut_slice());
     }
 
-    pub fn read_managed_array<F: FnOnce(&[ManagedData]) -> ()>(&self, callback: F) {
+    pub fn read_managed_array<F: FnOnce(&[ManagedData])>(&self, callback: F) {
         callback(self.val_managed.as_slice());
     }
 
-    pub fn lock_managed_array<F: FnOnce(&mut [ManagedData]) -> ()>(&mut self, callback: F) {
+    pub fn lock_managed_array<F: FnOnce(&mut [ManagedData])>(&mut self, callback: F) {
         callback(self.val_managed.as_mut_slice());
     }
 
@@ -188,7 +176,7 @@ fn test_primitives() {
         CallbackTest_NthPrimitive(&t, 1, get_value);
         assert_eq!(VALUE, 2.0);
 
-        CallbackTest_NthPrimitiveRef(&mut t, 0, get_value_ref);
+        CallbackTest_NthPrimitiveRef(&t, 0, get_value_ref);
         assert_eq!(VALUE, 1.0);
 
         CallbackTest_NthPrimitiveMut(&mut t, 0, mutate_value);
@@ -201,9 +189,9 @@ fn test_primitives() {
         assert_eq!(VALUE, -1.0);
 
         CallbackTest_NthPrimitiveMutOpt(&mut t, 1, mutate_value_if_present);
-        CallbackTest_NthPrimitiveRefOpt(&mut t, 1, get_value_opt);
+        CallbackTest_NthPrimitiveRefOpt(&t, 1, get_value_opt);
         assert_eq!(VALUE, 4.0);
-        CallbackTest_NthPrimitiveRefOpt(&mut t, 5, get_value_opt);
+        CallbackTest_NthPrimitiveRefOpt(&t, 5, get_value_opt);
         assert_eq!(VALUE, -1.0);
 
         // We're just expecting this to not crash.
@@ -276,7 +264,7 @@ fn test_managed() {
         CallbackTest_NthManaged(&t, 1, get_value);
         assert_eq!(VALUE, ManagedData::new(2));
 
-        CallbackTest_NthManagedRef(&mut t, 0, get_value_ref);
+        CallbackTest_NthManagedRef(&t, 0, get_value_ref);
         assert_eq!(VALUE, ManagedData::new(1));
 
         CallbackTest_NthManagedMut(&mut t, 0, mutate_value);
@@ -289,9 +277,9 @@ fn test_managed() {
         assert_eq!(VALUE, ManagedData::new(1024));
 
         CallbackTest_NthManagedMutOpt(&mut t, 1, mutate_value_if_present);
-        CallbackTest_NthManagedRefOpt(&mut t, 1, get_value_ref_opt);
+        CallbackTest_NthManagedRefOpt(&t, 1, get_value_ref_opt);
         assert_eq!(VALUE, ManagedData::new(4));
-        CallbackTest_NthManagedRefOpt(&mut t, 5, get_value_ref_opt);
+        CallbackTest_NthManagedRefOpt(&t, 5, get_value_ref_opt);
         assert_eq!(VALUE, ManagedData::new(1024));
 
         // We're just expecting this to not crash.
