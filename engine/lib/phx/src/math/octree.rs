@@ -47,12 +47,12 @@ pub unsafe extern "C" fn Octree_Free(this: *mut Octree) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_FromMesh(mesh: &mut Mesh) -> *mut Octree {
-    let mut meshBox: Box3 = Box3 {
+    let mut mesh_box: Box3 = Box3 {
         lower: Vec3::ZERO,
         upper: Vec3::ZERO,
     };
-    Mesh_GetBound(mesh, &mut meshBox);
-    let this: *mut Octree = Octree_Create(meshBox);
+    Mesh_GetBound(mesh, &mut mesh_box);
+    let this: *mut Octree = Octree_Create(mesh_box);
 
     let index_data = mesh.get_index_data();
     let vertex_data = mesh.get_vertex_data();
@@ -71,6 +71,7 @@ pub unsafe extern "C" fn Octree_FromMesh(mesh: &mut Mesh) -> *mut Octree {
     this
 }
 
+#[allow(non_snake_case)] // TODO: remove this and fix all warnings
 unsafe extern "C" fn Octree_GetAvgLoadImpl(this: &mut Octree, load: *mut f64, nodes: *mut f64) {
     *nodes += 1.0;
     let mut elem: *mut Node = this.elems;
@@ -134,6 +135,7 @@ pub unsafe extern "C" fn Octree_GetMemory(this: &mut Octree) -> i32 {
     memory
 }
 
+#[allow(non_snake_case)] // TODO: remove this and fix all warnings
 unsafe extern "C" fn Octree_IntersectRayImpl(this: &mut Octree, o: Vec3, di: Vec3) -> bool {
     if !this.box_0.intersects_ray(o, di) {
         return false;
@@ -165,13 +167,14 @@ pub unsafe extern "C" fn Octree_IntersectRay(
     rd: &Vec3,
 ) -> bool {
     let inv = Matrix_Inverse(matrix);
-    let mut invRo = Vec3::ZERO;
-    Matrix_MulPoint(inv.as_ref(), &mut invRo, ro.x, ro.y, ro.z);
-    let mut invRd = Vec3::ZERO;
-    Matrix_MulDir(inv.as_ref(), &mut invRd, rd.x, rd.y, rd.z);
-    Octree_IntersectRayImpl(this, invRo, invRd.recip())
+    let mut inv_ro = Vec3::ZERO;
+    Matrix_MulPoint(inv.as_ref(), &mut inv_ro, ro.x, ro.y, ro.z);
+    let mut inv_rd = Vec3::ZERO;
+    Matrix_MulDir(inv.as_ref(), &mut inv_rd, rd.x, rd.y, rd.z);
+    Octree_IntersectRayImpl(this, inv_ro, inv_rd.recip())
 }
 
+#[allow(non_snake_case)] // TODO: remove this and fix all warnings
 unsafe extern "C" fn Octree_Insert(this: &mut Octree, box_0: Box3, id: u32) {
     let elem = MemNew!(Node);
     (*elem).box_0 = box_0;
@@ -180,115 +183,116 @@ unsafe extern "C" fn Octree_Insert(this: &mut Octree, box_0: Box3, id: u32) {
     this.elems = elem;
 }
 
+#[allow(non_snake_case)] // TODO: remove this and fix all warnings
 unsafe extern "C" fn Octree_AddDepth(this: &mut Octree, box_0: Box3, id: u32) {
-    let L: *const Vec3 = &mut this.box_0.lower;
-    let U: *const Vec3 = &mut this.box_0.upper;
-    let C: Vec3 = this.box_0.center();
-    let childBound: [Box3; 8] = [
+    let l: *const Vec3 = &mut this.box_0.lower;
+    let u: *const Vec3 = &mut this.box_0.upper;
+    let c: Vec3 = this.box_0.center();
+    let child_bound: [Box3; 8] = [
         Box3 {
             lower: Vec3 {
-                x: (*L).x,
-                y: (*L).y,
-                z: (*L).z,
+                x: (*l).x,
+                y: (*l).y,
+                z: (*l).z,
             },
             upper: Vec3 {
-                x: C.x,
-                y: C.y,
-                z: C.z,
+                x: c.x,
+                y: c.y,
+                z: c.z,
             },
         },
         Box3 {
             lower: Vec3 {
-                x: C.x,
-                y: (*L).y,
-                z: (*L).z,
+                x: c.x,
+                y: (*l).y,
+                z: (*l).z,
             },
             upper: Vec3 {
-                x: (*U).x,
-                y: C.y,
-                z: C.z,
+                x: (*u).x,
+                y: c.y,
+                z: c.z,
             },
         },
         Box3 {
             lower: Vec3 {
-                x: (*L).x,
-                y: C.y,
-                z: (*L).z,
+                x: (*l).x,
+                y: c.y,
+                z: (*l).z,
             },
             upper: Vec3 {
-                x: C.x,
-                y: (*U).y,
-                z: C.z,
+                x: c.x,
+                y: (*u).y,
+                z: c.z,
             },
         },
         Box3 {
             lower: Vec3 {
-                x: C.x,
-                y: C.y,
-                z: (*L).z,
+                x: c.x,
+                y: c.y,
+                z: (*l).z,
             },
             upper: Vec3 {
-                x: (*U).x,
-                y: (*U).y,
-                z: C.z,
+                x: (*u).x,
+                y: (*u).y,
+                z: c.z,
             },
         },
         Box3 {
             lower: Vec3 {
-                x: (*L).x,
-                y: (*L).y,
-                z: C.z,
+                x: (*l).x,
+                y: (*l).y,
+                z: c.z,
             },
             upper: Vec3 {
-                x: C.x,
-                y: C.y,
-                z: (*U).z,
+                x: c.x,
+                y: c.y,
+                z: (*u).z,
             },
         },
         Box3 {
             lower: Vec3 {
-                x: C.x,
-                y: (*L).y,
-                z: C.z,
+                x: c.x,
+                y: (*l).y,
+                z: c.z,
             },
             upper: Vec3 {
-                x: (*U).x,
-                y: C.y,
-                z: (*U).z,
+                x: (*u).x,
+                y: c.y,
+                z: (*u).z,
             },
         },
         Box3 {
             lower: Vec3 {
-                x: (*L).x,
-                y: C.y,
-                z: C.z,
+                x: (*l).x,
+                y: c.y,
+                z: c.z,
             },
             upper: Vec3 {
-                x: C.x,
-                y: (*U).y,
-                z: (*U).z,
+                x: c.x,
+                y: (*u).y,
+                z: (*u).z,
             },
         },
         Box3 {
             lower: Vec3 {
-                x: C.x,
-                y: C.y,
-                z: C.z,
+                x: c.x,
+                y: c.y,
+                z: c.z,
             },
             upper: Vec3 {
-                x: (*U).x,
-                y: (*U).y,
-                z: (*U).z,
+                x: (*u).x,
+                y: (*u).y,
+                z: (*u).z,
             },
         },
     ];
     let mut intersections: i32 = 0;
-    let mut lastIntersection: i32 = 0;
+    let mut last_intersection: i32 = 0;
     let mut i: i32 = 0;
     while i < 8 {
-        if Box3::intersects_box(box_0, childBound[i as usize]) {
+        if Box3::intersects_box(box_0, child_bound[i as usize]) {
             intersections += 1;
-            lastIntersection = i;
+            last_intersection = i;
         }
         i += 1;
     }
@@ -296,13 +300,13 @@ unsafe extern "C" fn Octree_AddDepth(this: &mut Octree, box_0: Box3, id: u32) {
         return;
     }
     if intersections == 1 {
-        if (this.child[lastIntersection as usize]).is_null() {
-            this.child[lastIntersection as usize] =
-                Octree_Create(childBound[lastIntersection as usize]);
+        if (this.child[last_intersection as usize]).is_null() {
+            this.child[last_intersection as usize] =
+                Octree_Create(child_bound[last_intersection as usize]);
         }
         Octree_AddDepth(
-            &mut *this.child[lastIntersection as usize],
-            Box3::intersection(box_0, childBound[lastIntersection as usize]),
+            &mut *this.child[last_intersection as usize],
+            Box3::intersection(box_0, child_bound[last_intersection as usize]),
             id,
         );
         return;

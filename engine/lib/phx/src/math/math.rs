@@ -1,3 +1,5 @@
+#![allow(non_snake_case)] // TODO: remove this and fix all warnings
+
 // Re-export glam types.
 pub use glam::{
     dvec2, dvec3, dvec4, ivec2, ivec3, ivec4, vec2, vec3, vec4, DVec2, DVec3, DVec4, IVec2, IVec3,

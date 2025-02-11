@@ -40,6 +40,7 @@ static mut RECT: [ClipRect; 128] = [ClipRect {
 
 static mut RECT_INDEX: i32 = -1;
 
+#[allow(non_snake_case)] // TODO: remove this and fix all warnings
 #[inline]
 unsafe extern "C" fn TransformRect(x: &mut f32, y: &mut f32, sx: &mut f32, sy: &mut f32) {
     if TRANSFORM_INDEX >= 0 {
@@ -55,9 +56,9 @@ unsafe extern "C" fn TransformRect(x: &mut f32, y: &mut f32, sx: &mut f32, sy: &
 pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
     match this {
         Some(this) => {
-            let mut vpSize: IVec2 = IVec2::ZERO;
+            let mut vp_size: IVec2 = IVec2::ZERO;
 
-            unsafe { Viewport_GetSize(&mut vpSize) };
+            unsafe { Viewport_GetSize(&mut vp_size) };
             glcheck!(gl::Enable(gl::SCISSOR_TEST));
 
             let mut x: f32 = this.x;
@@ -68,7 +69,7 @@ pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
             unsafe { TransformRect(&mut x, &mut y, &mut sx, &mut sy) };
             glcheck!(gl::Scissor(
                 x as i32,
-                vpSize.y - (y + sy) as i32,
+                vp_size.y - (y + sy) as i32,
                 sx as i32,
                 sy as i32
             ));
@@ -96,16 +97,16 @@ pub unsafe extern "C" fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32) {
 pub unsafe extern "C" fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32) {
     let curr: *mut ClipRect = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
     if RECT_INDEX >= 0 && (*curr).enabled as i32 != 0 {
-        let maxX: f32 = x + sx;
-        let maxY: f32 = y + sy;
+        let max_x: f32 = x + sx;
+        let max_y: f32 = y + sy;
         let x = f32::max(x, (*curr).x);
         let y = f32::max(y, (*curr).y);
 
         ClipRect_Push(
             x,
             y,
-            f32::min(maxX, (*curr).x + (*curr).sx) - x,
-            f32::min(maxY, (*curr).y + (*curr).sy) - y,
+            f32::min(max_x, (*curr).x + (*curr).sx) - x,
+            f32::min(max_y, (*curr).y + (*curr).sy) - y,
         );
     } else {
         ClipRect_Push(x, y, sx, sy);

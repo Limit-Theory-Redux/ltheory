@@ -40,16 +40,16 @@ pub const SPHERE_INTERSECTION_EPSILON: f32 = 2.0f32 * PLANE_THICKNESS_EPSILON;
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_PointBox(src: &mut Matrix, dst: &mut Matrix) -> bool {
     let inv = Matrix_Inverse(dst);
-    let mut srcPt = Vec3::ZERO;
-    Matrix_GetPos(src, &mut srcPt);
-    let mut dstPt = Vec3::ZERO;
-    Matrix_MulPoint(inv.as_ref(), &mut dstPt, srcPt.x, srcPt.y, srcPt.z);
-    -1.0f32 < dstPt.x
-        && dstPt.x < 1.0f32
-        && -1.0f32 < dstPt.y
-        && dstPt.y < 1.0f32
-        && -1.0f32 < dstPt.z
-        && dstPt.z < 1.0f32
+    let mut src_pt = Vec3::ZERO;
+    Matrix_GetPos(src, &mut src_pt);
+    let mut dst_pt = Vec3::ZERO;
+    Matrix_MulPoint(inv.as_ref(), &mut dst_pt, src_pt.x, src_pt.y, src_pt.z);
+    -1.0f32 < dst_pt.x
+        && dst_pt.x < 1.0f32
+        && -1.0f32 < dst_pt.y
+        && dst_pt.y < 1.0f32
+        && -1.0f32 < dst_pt.z
+        && dst_pt.z < 1.0f32
 }
 
 #[no_mangle]
@@ -67,30 +67,35 @@ pub unsafe extern "C" fn Intersect_PointTriangle_Barycentric(p: &Vec3, tri: &Tri
     };
     Triangle_ToPlaneFast(tri, &mut plane);
 
-    let areaABC: f32 = Vec3::dot(plane.n, plane.n);
-    let areaPBC: f32 = Vec3::dot(plane.n, Vec3::cross(pv1, pv2));
-    let areaPCA: f32 = Vec3::dot(plane.n, Vec3::cross(pv2, pv0));
+    let area_abc: f32 = Vec3::dot(plane.n, plane.n);
+    let area_pbc: f32 = Vec3::dot(plane.n, Vec3::cross(pv1, pv2));
+    let area_pca: f32 = Vec3::dot(plane.n, Vec3::cross(pv2, pv0));
 
-    let A: f32 = areaPBC / areaABC;
-    let B: f32 = areaPCA / areaABC;
-    let C: f32 = 1.0f32 - A - B;
+    let a: f32 = area_pbc / area_abc;
+    let b: f32 = area_pca / area_abc;
+    let c: f32 = 1.0f32 - a - b;
 
     /* TODO : Need a proper epsilon */
-    let fuzzyMin: f32 = 0.0f32 - 0.01f32;
-    let fuzzyMax: f32 = 1.0f32 + 0.01f32;
+    let fuzzy_min: f32 = 0.0f32 - 0.01f32;
+    let fuzzy_max: f32 = 1.0f32 + 0.01f32;
 
-    A > fuzzyMin && A < fuzzyMax && B > fuzzyMin && B < fuzzyMax && C > fuzzyMin && C < fuzzyMax
+    a > fuzzy_min
+        && a < fuzzy_max
+        && b > fuzzy_min
+        && b < fuzzy_max
+        && c > fuzzy_min
+        && c < fuzzy_max
 }
 
 #[no_mangle]
-pub extern "C" fn Intersect_RayPlane(ray: &Ray, plane: &Plane, pHit: &mut Position) -> bool {
+pub extern "C" fn Intersect_RayPlane(ray: &Ray, plane: &Plane, p_hit: &mut Position) -> bool {
     /* TODO : Shouldn't we handle denom == 0? */
     let dist: f64 = (*plane).d as f64 - DVec3::dot((*plane).n.as_dvec3(), ray.p.v);
     let denom: f64 = DVec3::dot((*plane).n.as_dvec3(), ray.dir);
     let t: f64 = dist / denom;
 
-    if t >= ray.tMin && t <= ray.tMax {
-        *pHit = Position::from_dvec(ray.p.v + ray.dir * t);
+    if t >= ray.t_min && t <= ray.t_max {
+        *p_hit = Position::from_dvec(ray.p.v + ray.dir * t);
         true
     } else {
         false
@@ -101,8 +106,8 @@ pub extern "C" fn Intersect_RayPlane(ray: &Ray, plane: &Plane, pHit: &mut Positi
 pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
     ray: &Ray,
     tri: &Triangle,
-    tEpsilon: f32,
-    tHit: *mut f32,
+    t_epsilon: f32,
+    t_hit: *mut f32,
 ) -> bool {
     /* NOTE: Any scale factor on plane.n falls out of the calculation for t.
      * denom and dist are both off by the scale factor, but we don't need
@@ -119,7 +124,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
 
     if denom != 0.0f32 {
         let t: f32 = dist / denom;
-        if t > ray.tMin as f32 - tEpsilon && t < ray.tMax as f32 + tEpsilon {
+        if t > ray.t_min as f32 - t_epsilon && t < ray.t_max as f32 + t_epsilon {
             let v: &[Vec3; 3] = &tri.vertices;
             let mut pp = Position::ZERO;
             Ray_GetPoint(ray, t as f64, &mut pp);
@@ -129,25 +134,25 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
             let pv1: Vec3 = v[1] - p;
             let pv2: Vec3 = v[2] - p;
 
-            let areaABC: f32 = Vec3::dot(plane.n, plane.n);
-            let areaPBC: f32 = Vec3::dot(plane.n, Vec3::cross(pv1, pv2));
-            let areaPCA: f32 = Vec3::dot(plane.n, Vec3::cross(pv2, pv0));
+            let area_abc: f32 = Vec3::dot(plane.n, plane.n);
+            let area_pbc: f32 = Vec3::dot(plane.n, Vec3::cross(pv1, pv2));
+            let area_pca: f32 = Vec3::dot(plane.n, Vec3::cross(pv2, pv0));
 
-            let A: f32 = areaPBC / areaABC;
-            let B: f32 = areaPCA / areaABC;
-            let C: f32 = 1.0f32 - A - B;
+            let a: f32 = area_pbc / area_abc;
+            let b: f32 = area_pca / area_abc;
+            let c: f32 = 1.0f32 - a - b;
 
             /* TODO : Need a proper epsilon */
-            let fuzzyMin: f32 = 0.0f32 - 0.01f32;
-            let fuzzyMax: f32 = 1.0f32 + 0.01f32;
-            if A > fuzzyMin
-                && A < fuzzyMax
-                && B > fuzzyMin
-                && B < fuzzyMax
-                && C > fuzzyMin
-                && C < fuzzyMax
+            let fuzzy_min: f32 = 0.0f32 - 0.01f32;
+            let fuzzy_max: f32 = 1.0f32 + 0.01f32;
+            if a > fuzzy_min
+                && a < fuzzy_max
+                && b > fuzzy_min
+                && b < fuzzy_max
+                && c > fuzzy_min
+                && c < fuzzy_max
             {
-                *tHit = t;
+                *t_hit = t;
                 return true;
             }
         } else {
@@ -162,7 +167,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
 pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
     ray: &Ray,
     tri: &Triangle,
-    tHit: *mut f32,
+    t_hit: *mut f32,
 ) -> bool {
     /* Rewritten test sign of determinant; division is at the end. */
     let vt: &[Vec3; 3] = &tri.vertices;
@@ -227,7 +232,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
     let inv_det: f32 = 1.0f32 / det;
 
     /* Ray intersects; calculate t. */
-    *tHit = Vec3::dot(edge2, qvec) * inv_det;
+    *t_hit = Vec3::dot(edge2, qvec) * inv_det;
     true
 }
 
@@ -236,7 +241,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
 pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
     ray: &Ray,
     tri: &Triangle,
-    tHit: *mut f32,
+    t_hit: *mut f32,
 ) -> bool {
     let vt: &[Vec3; 3] = &tri.vertices;
 
@@ -261,12 +266,12 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
     let tvec: Vec3 = ray.p.as_vec3() - vt[0];
 
     /* TODO : Need a proper epsilon */
-    let fuzzyMin: f32 = 0.0f32 - 0.01f32;
-    let fuzzyMax: f32 = 1.0f32 + 0.01f32;
+    let fuzzy_min: f32 = 0.0f32 - 0.01f32;
+    let fuzzy_max: f32 = 1.0f32 + 0.01f32;
 
     /* Calculate U and test bounds. */
     let u: f32 = Vec3::dot(tvec, pvec) * inv_det;
-    if u < fuzzyMin || u > fuzzyMax {
+    if u < fuzzy_min || u > fuzzy_max {
         return false;
     }
 
@@ -275,29 +280,29 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
 
     /* Calculate V and test bounds. */
     let v: f32 = Vec3::dot(ray.dir.as_vec3(), qvec) * inv_det;
-    if v < fuzzyMin || u + v > fuzzyMax {
+    if v < fuzzy_min || u + v > fuzzy_max {
         return false;
     }
 
     /* Ray intersects; calculate t. */
-    *tHit = Vec3::dot(edge2, qvec) * inv_det;
+    *t_hit = Vec3::dot(edge2, qvec) * inv_det;
     true
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_LineSegmentPlane(
-    lineSegment: *const LineSegment,
+    line_segment: *const LineSegment,
     plane: &Plane,
-    pHit: &mut Position,
+    p_hit: &mut Position,
 ) -> bool {
     let ray: Ray = Ray {
-        p: (*lineSegment).p0,
-        dir: (*lineSegment).p1.as_dvec3() - (*lineSegment).p0.as_dvec3(),
-        tMin: 0.0,
-        tMax: 1.0,
+        p: (*line_segment).p0,
+        dir: (*line_segment).p1.as_dvec3() - (*line_segment).p0.as_dvec3(),
+        t_min: 0.0,
+        t_max: 1.0,
     };
 
-    Intersect_RayPlane(&ray, plane, pHit)
+    Intersect_RayPlane(&ray, plane, p_hit)
 }
 
 #[no_mangle]
@@ -327,7 +332,8 @@ pub unsafe extern "C" fn Intersect_RectRectFast(a: *const Vec4, b: *const Vec4) 
     result
 }
 
-/* Realtime Collision Detection, pp 141-142 */
+// Realtime Collision Detection, pp 141-142
+#[allow(non_snake_case)] // TODO: remove this and fix all warnings
 #[inline]
 unsafe fn ClosestPoint_PointToTriangle(p: *const Vec3, tri: &Triangle) -> Vec3 {
     let a: Vec3 = tri.vertices[0];
@@ -395,12 +401,12 @@ unsafe fn ClosestPoint_PointToTriangle(p: *const Vec3, tri: &Triangle) -> Vec3 {
 pub unsafe extern "C" fn Intersect_SphereTriangle(
     sphere: &Sphere,
     triangle: &Triangle,
-    pHit: &mut Vec3,
+    p_hit: &mut Vec3,
 ) -> bool {
-    let pClosest: Vec3 = ClosestPoint_PointToTriangle(&sphere.p, triangle);
-    let distSq: f32 = sphere.p.distance_squared(pClosest);
-    if distSq < sphere.r * sphere.r {
-        *pHit = pClosest;
+    let p_closest: Vec3 = ClosestPoint_PointToTriangle(&sphere.p, triangle);
+    let dist_sq: f32 = sphere.p.distance_squared(p_closest);
+    if dist_sq < sphere.r * sphere.r {
+        *p_hit = p_closest;
         return true;
     }
     false

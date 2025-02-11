@@ -310,12 +310,12 @@ impl Physics {
     pub fn ray_cast(&self, ray: &Ray) -> RayCastResult {
         let from = {
             let mut data = Position::ZERO;
-            Ray_GetPoint(ray, ray.tMin, &mut data);
+            Ray_GetPoint(ray, ray.t_min, &mut data);
             data.to_na_point()
         };
         let to = {
             let mut data = Position::ZERO;
-            Ray_GetPoint(ray, ray.tMax, &mut data);
+            Ray_GetPoint(ray, ray.t_max, &mut data);
             data.to_na_point()
         };
         let dir = to - from;

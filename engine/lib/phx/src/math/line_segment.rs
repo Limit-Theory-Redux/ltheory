@@ -12,8 +12,8 @@ impl LineSegment {
     pub fn to_ray(&self, out: &mut Ray) {
         out.p = self.p0;
         out.dir = self.p1.as_dvec3() - self.p0.as_dvec3();
-        out.tMin = 0.0;
-        out.tMax = 1.0;
+        out.t_min = 0.0;
+        out.t_max = 1.0;
     }
 
     pub fn from_ray(ray: &Ray, out: &mut LineSegment) {

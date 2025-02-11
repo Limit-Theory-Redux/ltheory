@@ -13,18 +13,26 @@ pub unsafe extern "C" fn Polygon_ToPlane(polygon: *const Polygon, out: *mut Plan
     let mut n: DVec3 = DVec3::ZERO;
     let mut centroid = DVec3::ZERO;
 
-    let vCurAsF32 = v[v.len() - 1];
-    let mut vCur = DVec3::new(vCurAsF32.x as f64, vCurAsF32.y as f64, vCurAsF32.z as f64);
+    let v_cur_as_f32 = v[v.len() - 1];
+    let mut v_cur = DVec3::new(
+        v_cur_as_f32.x as f64,
+        v_cur_as_f32.y as f64,
+        v_cur_as_f32.z as f64,
+    );
     let mut i: usize = 0;
     while i < v.len() {
-        let vPrev: DVec3 = vCur;
-        let vCurAsF32 = v[i];
-        vCur = DVec3::new(vCurAsF32.x as f64, vCurAsF32.y as f64, vCurAsF32.z as f64);
+        let v_prev: DVec3 = v_cur;
+        let v_cur_as_f32 = v[i];
+        v_cur = DVec3::new(
+            v_cur_as_f32.x as f64,
+            v_cur_as_f32.y as f64,
+            v_cur_as_f32.z as f64,
+        );
 
-        n.x += (vPrev.y - vCur.y) * (vPrev.z + vCur.z);
-        n.y += (vPrev.z - vCur.z) * (vPrev.x + vCur.x);
-        n.z += (vPrev.x - vCur.x) * (vPrev.y + vCur.y);
-        centroid += vCur;
+        n.x += (v_prev.y - v_cur.y) * (v_prev.z + v_cur.z);
+        n.y += (v_prev.z - v_cur.z) * (v_prev.x + v_cur.x);
+        n.z += (v_prev.x - v_cur.x) * (v_prev.y + v_cur.y);
+        centroid += v_cur;
         i += 1;
     }
     n = n.normalize();
@@ -59,10 +67,11 @@ pub unsafe extern "C" fn Polygon_ToPlaneFast(polygon: *const Polygon, out: *mut 
     // CHECK2(Assert(PointsInPlane(out, polygon)));
 }
 
+#[allow(non_snake_case)] // TODO: remove this and fix all warnings
 #[inline]
 unsafe extern "C" fn Polygon_SplitImpl(
     polygon: *const Polygon,
-    splitPlane: Plane,
+    split_plane: Plane,
     back: *mut Polygon,
     front: *mut Polygon,
 ) {
@@ -71,13 +80,13 @@ unsafe extern "C" fn Polygon_SplitImpl(
     }
 
     let mut a: Vec3 = *(*polygon).vertices.last().unwrap();
-    let mut aSide = Plane_ClassifyPoint(&splitPlane, &a);
+    let mut a_side = Plane_ClassifyPoint(&split_plane, &a);
     for j in 0..((*polygon).vertices.len() as i32) {
         let b: Vec3 = (*polygon).vertices[j as usize];
-        let bSide = Plane_ClassifyPoint(&splitPlane, &b);
+        let b_side = Plane_ClassifyPoint(&split_plane, &b);
 
-        if bSide == PointClassification::InFront {
-            if aSide == PointClassification::Behind {
+        if b_side == PointClassification::InFront {
+            if a_side == PointClassification::Behind {
                 let i = Vec3::ZERO;
                 // let _lineSegment: LineSegment = LineSegment { p0: b, p1: a };
                 (*front).vertices.push(i);
@@ -88,8 +97,8 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 // Assert(Plane_ClassifyPoint(&splitPlane, &i) == PointClassification_Coplanar);
             }
             (*front).vertices.push(b)
-        } else if bSide == PointClassification::Behind {
-            if aSide == PointClassification::InFront {
+        } else if b_side == PointClassification::Behind {
+            if a_side == PointClassification::InFront {
                 let i = Vec3::ZERO;
                 // let _lineSegment: LineSegment = LineSegment { p0: a, p1: b };
                 (*front).vertices.push(i);
@@ -98,45 +107,45 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 // let hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
                 // Assert(hit); UNUSED(hit);
                 // Assert(Plane_ClassifyPoint(&splitPlane, &i) == PointClassification_Coplanar);
-            } else if aSide == PointClassification::Coplanar {
+            } else if a_side == PointClassification::Coplanar {
                 (*back).vertices.push(a);
             }
             (*back).vertices.push(b);
         } else {
-            if aSide == PointClassification::Behind {
+            if a_side == PointClassification::Behind {
                 (*back).vertices.push(b);
             }
             (*front).vertices.push(b);
         }
 
         a = b;
-        aSide = bSide;
+        a_side = b_side;
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_SplitSafe(
     polygon: *const Polygon,
-    splitPlane: Plane,
+    split_plane: Plane,
     back: *mut Polygon,
     front: *mut Polygon,
 ) {
-    Polygon_SplitImpl(polygon, splitPlane, back, front);
+    Polygon_SplitImpl(polygon, split_plane, back, front);
 
     let polygons: [*mut Polygon; 2] = [front, back];
     let mut i: i32 = 0;
     while i < polygons.len() as i32 {
-        let polygonPart: *mut Polygon = polygons[i as usize];
-        let v: &Vec<Vec3> = &(*polygonPart).vertices;
+        let polygon_part: *mut Polygon = polygons[i as usize];
+        let v: &Vec<Vec3> = &(*polygon_part).vertices;
 
-        let mut vCur: Vec3 = v[v.len() - 1];
+        let mut v_cur: Vec3 = v[v.len() - 1];
         let mut l: usize = 0;
         while l < v.len() {
-            let vPrev: Vec3 = vCur;
-            vCur = v[l];
+            let v_prev: Vec3 = v_cur;
+            v_cur = v[l];
 
-            let edgeLen: f32 = vCur.distance(vPrev);
-            if (edgeLen as f64) < 0.75f64 * 1e-4f64 {
+            let edge_len: f32 = v_cur.distance(v_prev);
+            if (edge_len as f64) < 0.75f64 * 1e-4f64 {
                 (*back).vertices.clear();
                 (*front).vertices.clear();
                 for vertex in (*polygon).vertices.iter() {
@@ -154,11 +163,11 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_Split(
     polygon: *mut Polygon,
-    splitPlane: Plane,
+    split_plane: Plane,
     back: *mut Polygon,
     front: *mut Polygon,
 ) {
-    Polygon_SplitImpl(polygon, splitPlane, back, front);
+    Polygon_SplitImpl(polygon, split_plane, back, front);
 }
 
 #[no_mangle]
@@ -173,6 +182,7 @@ pub unsafe extern "C" fn Polygon_GetCentroid(polygon: *mut Polygon, out: *mut Ve
     *out = centroid;
 }
 
+#[allow(non_snake_case)] // TODO: remove this and fix all warnings
 pub fn Polygon_ConvexToTriangles(polygon: &Polygon, triangles: &mut Vec<Triangle>) {
     let v = &(*polygon).vertices;
     for i in 1..(v.len() - 1) {
@@ -186,14 +196,14 @@ pub fn Polygon_ConvexToTriangles(polygon: &Polygon, triangles: &mut Vec<Triangle
 pub unsafe extern "C" fn Polygon_Validate(polygon: *mut Polygon) -> Error {
     let v: &Vec<Vec3> = &(*polygon).vertices;
 
-    let mut vCur: Vec3 = v[v.len() - 1];
+    let mut v_cur: Vec3 = v[v.len() - 1];
     let mut i: usize = 0;
     while i < v.len() {
-        let vPrev: Vec3 = vCur;
-        vCur = v[i];
+        let v_prev: Vec3 = v_cur;
+        v_cur = v[i];
 
         // NaN or Inf
-        let e = Vec3_Validate(vCur);
+        let e = Vec3_Validate(v_cur);
         if e != 0 {
             return 0x400000 | e;
         }
@@ -201,7 +211,7 @@ pub unsafe extern "C" fn Polygon_Validate(polygon: *mut Polygon) -> Error {
         // Degenerate
         let mut j: usize = i + 1;
         while j < v.len() {
-            if vCur == v[j] {
+            if v_cur == v[j] {
                 return (0x400000 | 0x40) as Error;
             }
             j += 1;
@@ -209,8 +219,8 @@ pub unsafe extern "C" fn Polygon_Validate(polygon: *mut Polygon) -> Error {
 
         // Sliver
         /* TODO : See comment on slivers in Triangle_Validate */
-        let edgeLen = vCur.distance(vPrev);
-        if (edgeLen as f64) < 0.75f64 * 1e-4f64 {
+        let edge_len = v_cur.distance(v_prev);
+        if (edge_len as f64) < 0.75f64 * 1e-4f64 {
             return (0x400000 | 0x8) as Error;
         }
         i += 1;

@@ -375,9 +375,9 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 let planeBegin: f32 = t - tEpsilon;
                 let planeEnd: f32 = t + tEpsilon;
 
-                if planeBegin >= ray.tMax as f32 {
+                if planeBegin >= ray.t_max as f32 {
                     /* Entire ray lies on the near side */
-                } else if planeEnd <= ray.tMin as f32 {
+                } else if planeEnd <= ray.t_min as f32 {
                     /* Entire ray lies on one side */
                     earlyIndex = (t >= 0.0f32) as i32 ^ nearIndex;
                 } else {
@@ -385,18 +385,18 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                     earlyIndex = (t < 0.0f32) as i32 ^ nearIndex;
 
                     /* Don't let the ray 'creep past' tMin/tMax */
-                    let min: f32 = f32::max(planeBegin, ray.tMin as f32);
-                    let max: f32 = f32::min(planeEnd, ray.tMax as f32);
+                    let min: f32 = f32::max(planeBegin, ray.t_min as f32);
+                    let max: f32 = f32::min(planeEnd, ray.t_max as f32);
 
                     let d: DelayRay = DelayRay {
                         nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
                         tMin: min,
-                        tMax: ray.tMax as f32,
+                        tMax: ray.t_max as f32,
                         depth,
                     };
                     RAY_STACK.push(d);
 
-                    ray.tMax = max as f64;
+                    ray.t_max = max as f64;
                 }
             } else {
                 /* Ray parallel to plane. */
@@ -405,8 +405,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
                     let d: DelayRay = DelayRay {
                         nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
-                        tMin: ray.tMin as f32,
-                        tMax: ray.tMax as f32,
+                        tMin: ray.t_min as f32,
+                        tMax: ray.t_max as f32,
                         depth,
                     };
                     RAY_STACK.push(d);
@@ -449,8 +449,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
             let d = RAY_STACK.pop().unwrap();
             nodeRef = d.nodeRef;
-            ray.tMin = d.tMin as f64;
-            ray.tMax = d.tMax as f64;
+            ray.t_min = d.tMin as f64;
+            ray.t_max = d.tMax as f64;
             depth = d.depth;
         }
     }
@@ -473,8 +473,8 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     let ray: Ray = Ray {
         p: lineSegment.p0,
         dir: lineSegment.p1.as_dvec3() - lineSegment.p0.as_dvec3(),
-        tMin: 0.0,
-        tMax: 1.0,
+        t_min: 0.0,
+        t_max: 1.0,
     };
     let mut t: f32 = 0.;
     if BSP_IntersectRay(this, &ray, &mut t) {
