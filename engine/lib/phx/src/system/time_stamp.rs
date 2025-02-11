@@ -3,9 +3,16 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 /// Wrapper around Rust [`SystemTime`].
 /// For documentation see: https://doc.rust-lang.org/std/time/struct.SystemTime.html
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
 pub struct TimeStamp {
     pub value: SystemTime,
+}
+
+impl std::fmt::Debug for TimeStamp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let sec = self.to_seconds();
+        let ms = self.to_subsec_millis();
+        f.write_str(&format!("{sec}s {ms}ms"))
+    }
 }
 
 impl Default for TimeStamp {
@@ -94,6 +101,16 @@ impl TimeStamp {
             .expect("Cannot convert timestamp to seconds");
 
         difference.as_secs()
+    }
+
+    /// Returns the fractional part in whole milliseconds.
+    pub fn to_subsec_millis(&self) -> u32 {
+        let difference = self
+            .value
+            .duration_since(UNIX_EPOCH)
+            .expect("Cannot convert timestamp to seconds");
+
+        difference.subsec_millis()
     }
 }
 

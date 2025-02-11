@@ -4,7 +4,6 @@ use arboard::Clipboard;
 use glam::*;
 
 use super::*;
-use crate::common::*;
 use crate::input::*;
 use crate::render::*;
 use crate::rf::Rf;
@@ -180,7 +179,7 @@ impl HmGui {
     /// Finish GUI declaration, calculate hierarchy widgets sizes and layout.
     // TODO: do not calculate layout for the widgets that go out of the screen. If possible.
     pub fn end_gui(&mut self, input: &Input) {
-        unsafe { Profiler_Begin(c_str!("HmGui_End")) };
+        Profiler::begin("HmGui_End");
 
         self.end_layer();
         assert_eq!(
@@ -224,15 +223,15 @@ impl HmGui {
             self.check_mouse_over(root);
         }
 
-        unsafe { Profiler_End() };
+        Profiler::end();
     }
 
     /// Pass information about widgets to the renderer and draw them.
     // TODO: optimize - do not pass to the renderer widgets that are outside of the rendering region
     pub fn draw(&mut self) {
-        unsafe {
-            Profiler_Begin(c_str!("HmGui_Draw"));
+        Profiler::begin("HmGui_Draw");
 
+        unsafe {
             RenderState_PushBlendMode(BlendMode::Alpha);
         }
 
@@ -256,7 +255,7 @@ impl HmGui {
 
         self.renderer.draw();
 
-        unsafe { Profiler_End() };
+        Profiler::end();
     }
 
     /// Begin a whole screen new layer on top of the current one.

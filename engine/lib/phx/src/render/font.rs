@@ -9,7 +9,7 @@ use super::*;
 use crate::common::*;
 use crate::math::*;
 use crate::rf::Rf;
-use crate::system::{Profiler_Begin, Profiler_End, ResourceType, Resource_GetPath};
+use crate::system::{Profiler, ResourceType, Resource_GetPath};
 
 /* TODO : Re-implement UTF-8 support */
 /* TODO : Atlas instead of individual textures. */
@@ -177,7 +177,7 @@ impl Font {
     }
 
     pub fn draw(&self, text: &str, mut x: f32, mut y: f32, color: &Color) {
-        unsafe { Profiler_Begin(c_str!("Font_Draw")) };
+        Profiler::begin("Font_Draw");
 
         let mut glyph_last: i32 = 0;
 
@@ -231,9 +231,8 @@ impl Font {
         self.0.as_ref().shader.borrow().stop();
         unsafe {
             RenderState_PopBlendMode();
-
-            Profiler_End();
         }
+        Profiler::end();
     }
 
     pub fn get_line_height(&self) -> i32 {
@@ -243,7 +242,7 @@ impl Font {
     }
 
     pub fn get_size(&self, text: &str, out: &mut IVec4) {
-        unsafe { Profiler_Begin(c_str!("Font_GetSize")) };
+        Profiler::begin("Font_GetSize");
 
         let mut x: i32 = 0;
         let y: i32 = 0;
@@ -285,7 +284,7 @@ impl Font {
 
         *out = IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y);
 
-        unsafe { Profiler_End() };
+        Profiler::end();
     }
 
     /* NOTE : The height returned here is the maximal *ascender* height for the
@@ -300,7 +299,7 @@ impl Font {
      */
 
     pub fn get_size2(&self, text: &str) -> IVec2 {
-        unsafe { Profiler_Begin(c_str!("Font_GetSize2")) };
+        Profiler::begin("Font_GetSize2");
 
         let mut res = IVec2::ZERO;
         let mut glyph_last: i32 = 0;
@@ -327,7 +326,7 @@ impl Font {
             }
         }
 
-        unsafe { Profiler_End() };
+        Profiler::end();
 
         res
     }
