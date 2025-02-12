@@ -590,27 +590,27 @@ impl Mesh {
     }
 
     pub fn rotate_x(&mut self, rads: f32) -> &mut Mesh {
-        let matrix = Matrix_RotationX(rads);
-        self.transform(matrix.as_ref());
+        let matrix = Matrix::rotation_x(rads);
+        self.transform(&matrix);
         self
     }
 
     pub fn rotate_y(&mut self, rads: f32) -> &mut Mesh {
-        let matrix = Matrix_RotationY(rads);
-        self.transform(matrix.as_ref());
+        let matrix = Matrix::rotation_y(rads);
+        self.transform(&matrix);
         self
     }
 
     pub fn rotate_z(&mut self, rads: f32) -> &mut Mesh {
-        let matrix = Matrix_RotationZ(rads);
-        self.transform(matrix.as_ref());
+        let matrix = Matrix::rotation_z(rads);
+        self.transform(&matrix);
         self
     }
 
     #[bind(name = "RotateYPR")]
     pub fn rotate_ypr(&mut self, yaw: f32, pitch: f32, roll: f32) -> &mut Mesh {
-        let matrix = Matrix_YawPitchRoll(yaw, pitch, roll);
-        self.transform(matrix.as_ref());
+        let matrix = Matrix::yaw_pitch_roll(yaw, pitch, roll);
+        self.transform(&matrix);
         self
     }
 

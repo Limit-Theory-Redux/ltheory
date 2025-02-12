@@ -288,6 +288,7 @@ Under the hood proc macro on the `enum` block instead of generating ***.lua** sc
 ### luajit_ffi for `impl` block
 
 - **name** \[string, default = None]: set user defined name of the module
+- **typedef** \[string, default = None]: set user defined structure fields. Use '\n' to separate multiple fields. Example: float x;\nfloat y;\nfloat z;\nfloat w;
 - **opaque** \[bool, default = true]: generate **typedef** C API module structure definition
 - **clone** \[bool, default = false]: adds **__call** method to Global Symbol Table section and **clone** method to metatype section
 - **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API

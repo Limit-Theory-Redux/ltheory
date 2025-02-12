@@ -7,6 +7,7 @@ use super::arg::Arg;
 /// Arguments of the `luajit_ffi` attribute.
 pub struct ImplAttrArgs {
     name: Option<String>,
+    typedef: Option<String>,
     opaque: bool,
     clone: bool,
     lua_ffi: bool,
@@ -18,6 +19,7 @@ impl Default for ImplAttrArgs {
     fn default() -> Self {
         Self {
             name: None,
+            typedef: None,
             opaque: true,
             clone: false,
             lua_ffi: true,
@@ -32,6 +34,11 @@ impl ImplAttrArgs {
     /// otherwise Rust type name is used.
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    /// If exists returns the type definition in the generated Lua FFI.
+    pub fn typedef(&self) -> Option<&str> {
+        self.typedef.as_deref()
     }
 
     /// If true then typedef is generated for the module.
@@ -74,6 +81,19 @@ impl Parse for ImplAttrArgs {
                         return Err(Error::new(
                             param.value.span(),
                             "expected 'name' attribute parameter as string literal",
+                        ));
+                    }
+                }
+                "typedef" => {
+                    if let Lit::Str(val) = &param.value.lit {
+                        let typedef_str = val.value().trim().to_string();
+                        if !typedef_str.is_empty() {
+                            res.typedef = Some(typedef_str);
+                        }
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'typedef' attribute parameter as string literal",
                         ));
                     }
                 }
@@ -130,7 +150,7 @@ impl Parse for ImplAttrArgs {
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        "expected attribute parameter value: name, opaque, clone, lua_ffi, gen_dir, meta_dir"
+                        "expected attribute parameter value: name, typedef, opaque, clone, lua_ffi, gen_dir, meta_dir"
                             .to_string(),
                     ));
                 }

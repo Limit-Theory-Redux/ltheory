@@ -64,9 +64,9 @@ impl BoxMesh {
         mesh.reserve_index_data(12 * (res - 1) * (res - 1));
 
         for box3 in &self.elem {
-            let lower: Vec3 = Vec3::new(box3.b.x - 1.0, box3.b.y - 1.0, box3.b.z - 1.0);
-            let upper: Vec3 = Vec3::new(1.0 - box3.b.x, 1.0 - box3.b.y, 1.0 - box3.b.z);
-            let rot: Box<Matrix> = Matrix_YawPitchRoll(box3.r.x, box3.r.y, box3.r.z);
+            let lower = Vec3::new(box3.b.x - 1.0, box3.b.y - 1.0, box3.b.z - 1.0);
+            let upper = Vec3::new(1.0 - box3.b.x, 1.0 - box3.b.y, 1.0 - box3.b.z);
+            let rot = Matrix::yaw_pitch_roll(box3.r.x, box3.r.y, box3.r.z);
 
             for face in 0..6 {
                 let o = K_FACE_ORIGIN[face as usize];
@@ -77,14 +77,13 @@ impl BoxMesh {
                 for iu in 0..res {
                     let u: f32 = iu as f32 / (res - 1) as f32;
                     for iv in 0..res {
-                        let v: f32 = iv as f32 / (res - 1) as f32;
+                        let v = iv as f32 / (res - 1) as f32;
                         let mut p = o + (du * u) + (dv * v);
                         let clamped = Vec3::clamp(p, lower, upper);
                         let proj = p - clamped;
                         p = clamped + (proj.normalize() * box3.b);
                         p *= box3.s;
-                        let mut rp = Vec3::ZERO;
-                        Matrix_MulPoint(rot.as_ref(), &mut rp, p.x, p.y, p.z);
+                        let rp = rot.mul_point(&p);
                         p = rp + box3.p;
 
                         if iu != 0 && iv != 0 {

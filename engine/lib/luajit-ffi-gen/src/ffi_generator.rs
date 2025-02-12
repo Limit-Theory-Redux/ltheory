@@ -41,6 +41,7 @@ impl TypeDecl {
 pub struct FFIGenerator {
     module_name: String,
     type_decl: TypeDecl,
+    typedef: Option<String>,
     class_definitions: Vec<String>,
     c_definitions: Vec<String>,
     global_symbol_table: Vec<String>,
@@ -56,6 +57,7 @@ impl FFIGenerator {
         Self {
             module_name: module_name.into(),
             type_decl: Default::default(),
+            typedef: Default::default(),
             class_definitions: Default::default(),
             c_definitions: Default::default(),
             global_symbol_table: Default::default(),
@@ -67,6 +69,10 @@ impl FFIGenerator {
 
     pub fn set_type_decl_opaque(&mut self) {
         self.type_decl = TypeDecl::Opaque;
+    }
+
+    pub fn set_typedef(&mut self, typedef: &str) {
+        self.typedef = Some(typedef.into());
     }
 
     pub fn set_type_decl_struct(&mut self, ty: impl Into<String>) {
@@ -224,12 +230,27 @@ impl FFIGenerator {
             TypeDecl::NoDecl => {}
             TypeDecl::Opaque => {
                 writeln!(&mut module, "{IDENT}ffi.cdef [[").unwrap();
-                writeln!(
-                    &mut module,
-                    "{IDENT}{IDENT}typedef struct {0} {{}} {0};",
-                    self.module_name
-                )
-                .unwrap();
+
+                if let Some(typedef) = &self.typedef {
+                    writeln!(
+                        &mut module,
+                        "{IDENT}{IDENT}typedef struct {} {{",
+                        self.module_name
+                    )
+                    .unwrap();
+                    typedef.lines().for_each(|line| {
+                        writeln!(&mut module, "{IDENT}{IDENT}{IDENT}{}", line.trim()).unwrap();
+                    });
+                    writeln!(&mut module, "{IDENT}{IDENT}}} {};", self.module_name).unwrap();
+                } else {
+                    writeln!(
+                        &mut module,
+                        "{IDENT}{IDENT}typedef struct {0} {{}} {0};",
+                        self.module_name
+                    )
+                    .unwrap();
+                }
+
                 writeln!(&mut module, "{IDENT}]]\n").unwrap();
             }
             TypeDecl::Struct(ty) => {

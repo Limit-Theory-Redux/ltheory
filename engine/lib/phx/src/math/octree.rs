@@ -168,11 +168,9 @@ pub unsafe extern "C" fn Octree_IntersectRay(
     ro: &Vec3,
     rd: &Vec3,
 ) -> bool {
-    let inv = Matrix_Inverse(matrix);
-    let mut inv_ro = Vec3::ZERO;
-    Matrix_MulPoint(inv.as_ref(), &mut inv_ro, ro.x, ro.y, ro.z);
-    let mut inv_rd = Vec3::ZERO;
-    Matrix_MulDir(inv.as_ref(), &mut inv_rd, rd.x, rd.y, rd.z);
+    let inv = matrix.inverse();
+    let inv_ro = inv.mul_point(ro);
+    let inv_rd = inv.mul_dir(rd);
     Octree_IntersectRayImpl(this, inv_ro, inv_rd.recip())
 }
 

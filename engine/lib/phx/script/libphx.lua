@@ -3,7 +3,7 @@ local jit = require('jit')
 
 local libphx = {}
 do -- Basic Typedefs
-  ffi.cdef [[
+    ffi.cdef [[
     typedef uint8          BSPNodeRel;
     typedef int32          CollisionGroup;
     typedef int32          CollisionMask;
@@ -30,7 +30,7 @@ do -- Basic Typedefs
 end
 
 do -- Function Pointer Typedefs
-  ffi.cdef [[
+    ffi.cdef [[
     typedef void (*ValueForeach) (void* value, void* userData);
     typedef int  (*ThreadFn    ) (void* data);
     typedef int  (*ThreadPoolFn) (int threadIndex, int threadCount, void* data);
@@ -38,7 +38,7 @@ do -- Function Pointer Typedefs
 end
 
 do -- Opaque Structs
-  ffi.cdef [[
+    ffi.cdef [[
     typedef struct BSP          {} BSP;
     typedef struct BoxTree      {} BoxTree;
     typedef struct File         {} File;
@@ -55,25 +55,25 @@ do -- Opaque Structs
     typedef struct Socket       {} Socket;
   ]]
 
-  libphx.Opaques = {
-    'BSP',
-    'BoxTree',
-    'File',
-    'HashGrid',
-    'HashGridElem',
-    'KDTree',
-    'MemPool',
-    'MemStack',
-    'Octree',
-    'RNG',
-    'RmGui',
-    'SDF',
-    'Socket',
-  }
+    libphx.Opaques = {
+        'BSP',
+        'BoxTree',
+        'File',
+        'HashGrid',
+        'HashGridElem',
+        'KDTree',
+        'MemPool',
+        'MemStack',
+        'Octree',
+        'RNG',
+        'RmGui',
+        'SDF',
+        'Socket',
+    }
 end
 
 do -- Transparent Structs
-  ffi.cdef [[
+    ffi.cdef [[
     typedef struct BSPNodeRef {
       int32 index;
       uint8 triangleCount;
@@ -130,10 +130,6 @@ do -- Transparent Structs
       double p1y;
       double p1z;
     } LineSegment;
-
-    typedef struct Matrix {
-      float m[16];
-    } Matrix;
 
     typedef struct Plane {
       float nx;
@@ -306,45 +302,44 @@ do -- Transparent Structs
     } Position;
   ]]
 
-  libphx.Structs = {
-    'BSPNodeRef',
-    'Box3d',
-    'Box3f',
-    'Box3i',
-    'Collision',
-    'IntersectSphereProfiling',
-    'LineSegment',
-    'Matrix',
-    'Plane',
-    'Polygon',
-    'Quat',
-    'Ray',
-    'RayCastResult',
-    'ShapeCastResult',
-    'Sphere',
-    'Vec3f',
-    'Triangle',
-    'TriangleTest',
-    'Vec2d',
-    'Vec2f',
-    'Vec2i',
-    'Vec3d',
-    'Vec3i',
-    'Vec4d',
-    'Vec4f',
-    'Vec4i',
-    'Vertex',
-    'Color',
-    'Position',
-  }
+    libphx.Structs = {
+        'BSPNodeRef',
+        'Box3d',
+        'Box3f',
+        'Box3i',
+        'Collision',
+        'IntersectSphereProfiling',
+        'LineSegment',
+        'Plane',
+        'Polygon',
+        'Quat',
+        'Ray',
+        'RayCastResult',
+        'ShapeCastResult',
+        'Sphere',
+        'Vec3f',
+        'Triangle',
+        'TriangleTest',
+        'Vec2d',
+        'Vec2f',
+        'Vec2i',
+        'Vec3d',
+        'Vec3i',
+        'Vec4d',
+        'Vec4f',
+        'Vec4i',
+        'Vertex',
+        'Color',
+        'Position',
+    }
 end
 
 do -- Load Library
-  libphx.lib = ffi.C
-  -- local debug = __debug__ and 'd' or ''
-  -- local path = string.format('phx%s', debug)
-  -- libphx.lib = ffi.load(path, false)
-  -- assert(libphx.lib, 'Failed to load %s', path)
+    libphx.lib = ffi.C
+    -- local debug = __debug__ and 'd' or ''
+    -- local path = string.format('phx%s', debug)
+    -- libphx.lib = ffi.load(path, false)
+    -- assert(libphx.lib, 'Failed to load %s', path)
 end
 
 return libphx

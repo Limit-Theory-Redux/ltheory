@@ -22,6 +22,10 @@ impl ImplInfo {
             ffi_gen.set_type_decl_opaque();
         }
 
+        if let Some(typedef) = attr_args.typedef() {
+            ffi_gen.set_typedef(typedef);
+        }
+
         // Class definition
         self.write_class_defs(&mut ffi_gen, module_name);
 

@@ -41,17 +41,14 @@ pub const SPHERE_INTERSECTION_EPSILON: f32 = 2.0f32 * PLANE_THICKNESS_EPSILON;
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_PointBox(src: &mut Matrix, dst: &mut Matrix) -> bool {
-    let inv = Matrix_Inverse(dst);
-    let mut src_pt = Vec3::ZERO;
-    Matrix_GetPos(src, &mut src_pt);
-    let mut dst_pt = Vec3::ZERO;
-    Matrix_MulPoint(inv.as_ref(), &mut dst_pt, src_pt.x, src_pt.y, src_pt.z);
+    let dst_pt = dst.inverse().mul_point(&src.get_pos());
+
     -1.0f32 < dst_pt.x
-        && dst_pt.x < 1.0f32
-        && -1.0f32 < dst_pt.y
-        && dst_pt.y < 1.0f32
-        && -1.0f32 < dst_pt.z
-        && dst_pt.z < 1.0f32
+        && dst_pt.x < 1.0
+        && -1.0 < dst_pt.y
+        && dst_pt.y < 1.0
+        && -1.0 < dst_pt.z
+        && dst_pt.z < 1.0
 }
 
 #[no_mangle]
