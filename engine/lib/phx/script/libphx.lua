@@ -144,13 +144,6 @@ do -- Transparent Structs
       struct Vec3f* vertices_data;
     } Polygon;
 
-    typedef struct Quat {
-      float x;
-      float y;
-      float z;
-      float w;
-    } Quat;
-
     typedef struct Ray {
       double px;
       double py;
@@ -312,7 +305,6 @@ do -- Transparent Structs
         'LineSegment',
         'Plane',
         'Polygon',
-        'Quat',
         'Ray',
         'RayCastResult',
         'ShapeCastResult',

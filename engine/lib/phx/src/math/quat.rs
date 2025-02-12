@@ -1,239 +1,223 @@
-#![allow(unsafe_code)] // TODO: remove
+use glam::{Mat3, Vec3};
 
-use glam::{Mat3, Quat};
-
+use super::{approximately_equal, Float_Validate};
 use crate::error::Error;
-use crate::math::*;
 
-pub trait QuatExtensions {
-    fn canonicalize(&self) -> Quat;
-    fn get_axis_x(&self) -> Vec3;
-    fn get_axis_y(&self) -> Vec3;
-    fn get_axis_z(&self) -> Vec3;
-}
+#[derive(Clone, PartialEq)]
+#[repr(C)]
+pub struct Quat(glam::Quat);
 
-impl QuatExtensions for Quat {
-    fn canonicalize(&self) -> Quat {
-        let value: f32 = if !approximately_equal(self.w, 0.0) {
-            self.w
-        } else if !approximately_equal(self.z, 0.0) {
-            self.z
-        } else if !approximately_equal(self.y, 0.0) {
-            self.y
-        } else if !approximately_equal(self.x, 0.0) {
-            self.x
+impl Quat {
+    fn _canonicalize(&self) -> glam::Quat {
+        let value: f32 = if !approximately_equal(self.0.w, 0.0) {
+            self.0.w
+        } else if !approximately_equal(self.0.z, 0.0) {
+            self.0.z
+        } else if !approximately_equal(self.0.y, 0.0) {
+            self.0.y
+        } else if !approximately_equal(self.0.x, 0.0) {
+            self.0.x
         } else {
             0.0
         };
         if value < 0.0 {
-            -*self
+            -self.0
         } else {
-            *self
+            self.0
         }
     }
 
-    fn get_axis_x(&self) -> Vec3 {
+    fn _get_axis_x(&self) -> Vec3 {
         Vec3 {
-            x: 1.0 - 2.0 * (self.y * self.y + self.z * self.z),
-            y: 2.0 * (self.x * self.y + self.z * self.w),
-            z: 2.0 * (self.x * self.z - self.y * self.w),
+            x: 1.0 - 2.0 * (self.0.y * self.0.y + self.0.z * self.0.z),
+            y: 2.0 * (self.0.x * self.0.y + self.0.z * self.0.w),
+            z: 2.0 * (self.0.x * self.0.z - self.0.y * self.0.w),
         }
     }
 
-    fn get_axis_y(&self) -> Vec3 {
+    fn _get_axis_y(&self) -> Vec3 {
         Vec3 {
-            x: 2.0 * (self.x * self.y - self.z * self.w),
-            y: 1.0 - 2.0 * (self.x * self.x + self.z * self.z),
-            z: 2.0 * (self.y * self.z + self.x * self.w),
+            x: 2.0 * (self.0.x * self.0.y - self.0.z * self.0.w),
+            y: 1.0 - 2.0 * (self.0.x * self.0.x + self.0.z * self.0.z),
+            z: 2.0 * (self.0.y * self.0.z + self.0.x * self.0.w),
         }
     }
 
-    fn get_axis_z(&self) -> Vec3 {
+    fn _get_axis_z(&self) -> Vec3 {
         Vec3 {
-            x: 2.0 * (self.x * self.z + self.y * self.w),
-            y: 2.0 * (self.y * self.z - self.x * self.w),
-            z: 1.0 - 2.0 * (self.x * self.x + self.y * self.y),
+            x: 2.0 * (self.0.x * self.0.z + self.0.y * self.0.w),
+            y: 2.0 * (self.0.y * self.0.z - self.0.x * self.0.w),
+            z: 1.0 - 2.0 * (self.0.x * self.0.x + self.0.y * self.0.y),
         }
     }
 }
 
-#[no_mangle]
-pub extern "C" fn Quat_Create(x: f32, y: f32, z: f32, w: f32) -> Quat {
-    Quat { x, y, z, w }
+impl From<glam::Quat> for Quat {
+    fn from(value: glam::Quat) -> Self {
+        Self(value)
+    }
 }
 
-#[no_mangle]
-pub extern "C" fn Quat_GetAxisX(q: &Quat, out: &mut Vec3) {
-    *out = q.get_axis_x()
+impl std::ops::Deref for Quat {
+    type Target = glam::Quat;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
-#[no_mangle]
-pub extern "C" fn Quat_GetAxisY(q: &Quat, out: &mut Vec3) {
-    *out = q.get_axis_y()
-}
+#[luajit_ffi_gen::luajit_ffi(typedef = "float x;\nfloat y;\nfloat z;\nfloat w;")]
+impl Quat {
+    #[bind(name = "Create")]
+    pub fn new(x: f32, y: f32, z: f32, w: f32) -> Self {
+        Self(glam::Quat { x, y, z, w })
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_GetAxisZ(q: &Quat, out: &mut Vec3) {
-    *out = q.get_axis_z()
-}
+    pub fn get_axis_x(&self) -> Vec3 {
+        self._get_axis_x()
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_GetForward(q: &Quat, out: &mut Vec3) {
-    *out = -q.get_axis_z();
-}
+    pub fn get_axis_y(&self) -> Vec3 {
+        self._get_axis_y()
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_GetRight(q: &Quat, out: &mut Vec3) {
-    *out = q.get_axis_x();
-}
+    pub fn get_axis_z(&self) -> Vec3 {
+        self._get_axis_z()
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_GetUp(q: &Quat, out: &mut Vec3) {
-    *out = q.get_axis_y();
-}
+    pub fn get_forward(&self) -> Vec3 {
+        -self._get_axis_z()
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Identity(out: &mut Quat) {
-    *out = Quat::IDENTITY;
-}
+    pub fn get_right(&self) -> Vec3 {
+        self.get_axis_x()
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Canonicalize(q: &Quat, out: &mut Quat) {
-    *out = q.canonicalize();
-}
+    pub fn get_up(&self) -> Vec3 {
+        self._get_axis_y()
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_ICanonicalize(q: &mut Quat) {
-    *q = q.canonicalize();
-}
+    pub fn identity() -> Self {
+        Self(glam::Quat::IDENTITY)
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Dot(q: &Quat, p: &Quat) -> f32 {
-    q.dot(*p)
-}
+    pub fn canonicalize(&self) -> Self {
+        Self(self._canonicalize())
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Equal(q: &Quat, p: &Quat) -> bool {
-    q.canonicalize() == p.canonicalize()
-}
+    pub fn i_canonicalize(&mut self) {
+        self.0 = self._canonicalize();
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_ApproximatelyEqual(q: &Quat, p: &Quat) -> bool {
-    let cq = q.canonicalize();
-    let cp = p.canonicalize();
-    approximately_equal(cq.x, cp.x)
-        && approximately_equal(cq.y, cp.y)
-        && approximately_equal(cq.z, cp.z)
-        && approximately_equal(cq.w, cp.w)
-}
+    pub fn dot(&self, p: &Quat) -> f32 {
+        self.0.dot(p.0)
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Inverse(q: &Quat, out: &mut Quat) {
-    *out = q.normalize().inverse();
-}
+    pub fn equal(&self, p: &Quat) -> bool {
+        self._canonicalize() == p._canonicalize()
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_IInverse(q: &mut Quat) {
-    *q = q.normalize().inverse();
-}
+    pub fn approximately_equal(&self, p: &Quat) -> bool {
+        let cq = self._canonicalize();
+        let cp = p._canonicalize();
+        approximately_equal(cq.x, cp.x)
+            && approximately_equal(cq.y, cp.y)
+            && approximately_equal(cq.z, cp.z)
+            && approximately_equal(cq.w, cp.w)
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Lerp(q: &Quat, p: &Quat, t: f32, out: &mut Quat) {
-    *out = q.lerp(*p, t);
-}
+    pub fn inverse(&self) -> Self {
+        Self(self.0.normalize().inverse())
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_ILerp(q: &mut Quat, p: &Quat, t: f32) {
-    *q = q.lerp(*p, t);
-}
+    pub fn i_inverse(&mut self) {
+        self.0 = self.0.normalize().inverse();
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Mul(q: &Quat, p: &Quat, out: &mut Quat) {
-    *out = q.mul_quat(*p);
-}
+    pub fn lerp(&self, p: &Quat, t: f32) -> Self {
+        Self(self.0.lerp(p.0, t))
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_IMul(q: &mut Quat, p: &Quat) {
-    *q = q.mul_quat(*p);
-}
+    pub fn i_lerp(&mut self, p: &Quat, t: f32) {
+        self.0 = self.0.lerp(p.0, t);
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_MulV(q: &Quat, v: &Vec3, out: &mut Vec3) {
-    *out = q.mul_vec3(*v);
-}
+    pub fn mul(&self, p: &Quat) -> Self {
+        Self(self.0.mul_quat(p.0))
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Normalize(q: &Quat, out: &mut Quat) {
-    *out = q.normalize();
-}
+    pub fn i_mul(&mut self, p: &Quat) {
+        self.0 = self.0.mul_quat(p.0);
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_INormalize(q: &mut Quat) {
-    *q = q.normalize();
-}
+    pub fn mul_v(&self, v: &Vec3) -> Vec3 {
+        self.0.mul_vec3(*v)
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Scale(q: &Quat, scale: f32, out: &mut Quat) {
-    out.x = scale * q.x;
-    out.y = scale * q.y;
-    out.z = scale * q.z;
-    out.w = scale * q.w;
-}
+    pub fn normalize(&self) -> Self {
+        Self(self.0.normalize())
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_IScale(q: &mut Quat, scale: f32) {
-    q.x *= scale;
-    q.y *= scale;
-    q.z *= scale;
-    q.w *= scale;
-}
+    pub fn i_normalize(&mut self) {
+        self.0 = self.0.normalize();
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Slerp(q: &Quat, p: &Quat, t: f32, out: &mut Quat) {
-    *out = q.slerp(*p, t);
-}
+    pub fn scale(&self, scale: f32) -> Self {
+        Self::new(
+            scale * self.0.x,
+            scale * self.0.y,
+            scale * self.0.z,
+            scale * self.0.w,
+        )
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_ISlerp(q: &mut Quat, p: &Quat, t: f32) {
-    *q = q.slerp(*p, t);
-}
+    pub fn i_scale(&mut self, scale: f32) {
+        self.0.x *= scale;
+        self.0.y *= scale;
+        self.0.z *= scale;
+        self.0.w *= scale;
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_ToString(q: &Quat) -> *const libc::c_char {
-    internal::static_string!(q.to_string())
-}
+    pub fn slerp(&self, p: &Quat, t: f32) -> Self {
+        Self(self.0.slerp(p.0, t))
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_Validate(q: &Quat) -> Error {
-    let mut e = 0 as Error;
-    e |= Float_Validate(q.x as f64);
-    e |= Float_Validate(q.y as f64);
-    e |= Float_Validate(q.z as f64);
-    e |= Float_Validate(q.w as f64);
-    e
-}
+    pub fn i_slerp(&mut self, p: &Quat, t: f32) {
+        self.0 = self.0.slerp(p.0, t);
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_FromAxisAngle(axis: &Vec3, radians: f32, out: &mut Quat) {
-    *out = Quat::from_axis_angle(*axis, radians);
-}
+    #[bind(role = "to_string")]
+    pub fn get_string(&self) -> String {
+        self.0.to_string()
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3, out: &mut Quat) {
-    *out = Quat::from_mat3(&Mat3::from_cols(*x, *y, *z));
-}
+    pub fn validate(&self) -> Error {
+        let mut e = 0 as Error;
+        e |= Float_Validate(self.0.x as f64);
+        e |= Float_Validate(self.0.y as f64);
+        e |= Float_Validate(self.0.z as f64);
+        e |= Float_Validate(self.0.w as f64);
+        e
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_FromLookUp(look: &Vec3, up: &Vec3, out: &mut Quat) {
-    let z = (*look * -1.0).normalize();
-    let x = Vec3::cross(*up, z).normalize();
-    let y = Vec3::cross(z, x);
-    *out = Quat::from_mat3(&Mat3::from_cols(x, y, z));
-}
+    pub fn from_axis_angle(axis: &Vec3, radians: f32) -> Self {
+        Self(glam::Quat::from_axis_angle(*axis, radians))
+    }
 
-#[no_mangle]
-pub extern "C" fn Quat_FromRotateTo(from: &Vec3, to: &Vec3, out: &mut Quat) {
-    let axis = Vec3::cross(from.normalize(), to.normalize());
-    let angle = f32::asin(axis.length());
-    *out = Quat::from_axis_angle(axis, angle);
+    pub fn from_basis(x: &Vec3, y: &Vec3, z: &Vec3) -> Self {
+        Self(glam::Quat::from_mat3(&Mat3::from_cols(*x, *y, *z)))
+    }
+
+    pub fn from_look_up(look: &Vec3, up: &Vec3) -> Self {
+        let z = (*look * -1.0).normalize();
+        let x = Vec3::cross(*up, z).normalize();
+        let y = Vec3::cross(z, x);
+        Self(glam::Quat::from_mat3(&Mat3::from_cols(x, y, z)))
+    }
+
+    pub fn from_rotate_to(from: &Vec3, to: &Vec3) -> Self {
+        let axis = Vec3::cross(from.normalize(), to.normalize());
+        let angle = f32::asin(axis.length());
+        Self(glam::Quat::from_axis_angle(axis, angle))
+    }
 }

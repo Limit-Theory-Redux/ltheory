@@ -1,5 +1,3 @@
-#![allow(unsafe_code)] // TODO: remove
-
 use glam::{Mat3, Mat4, Quat, Vec3, Vec4};
 use tracing::info;
 

@@ -167,7 +167,7 @@ end
 
 function Entity:getRot()
     assert(self.body)
-    local rot = Quat()
+    local rot = Quat.Identity()
     self.body:getRot(rot)
     return rot
 end
