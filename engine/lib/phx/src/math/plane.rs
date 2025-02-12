@@ -1,5 +1,3 @@
-#![allow(unsafe_code)] // TODO: remove
-
 use super::*;
 use crate::error::Error;
 
@@ -27,71 +25,61 @@ pub enum PolygonClassification {
     Straddling = 4,
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Plane_ClassifyPoint(
-    plane: *const Plane,
-    p: *const Vec3,
-) -> PointClassification {
-    let _magnitude: f32 = f64::abs((1.0f32 - (*plane).n.length()) as f64) as f32;
-    let dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
-    if dist > PLANE_THICKNESS_EPSILON {
-        PointClassification::InFront
-    } else if dist < -PLANE_THICKNESS_EPSILON {
-        PointClassification::Behind
-    } else {
-        PointClassification::Coplanar
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Plane_ClassifyPolygon(
-    plane: *const Plane,
-    polygon: *const Polygon,
-) -> PolygonClassification {
-    let mut num_in_front: i32 = 0;
-    let mut num_behind: i32 = 0;
-    for i in 0..(*polygon).vertices.len() {
-        match Plane_ClassifyPoint(plane, &(*polygon).vertices[i]) {
-            PointClassification::InFront => {
-                num_in_front += 1;
-            }
-            PointClassification::Behind => {
-                num_behind += 1;
-            }
-            PointClassification::Coplanar => {}
-        }
-
-        // TODO : This early out may not make as much sense if the BSP stops cutting triangles.
-        if num_in_front != 0 && num_behind != 0 {
-            return PolygonClassification::Straddling;
+#[luajit_ffi_gen::luajit_ffi(typedef = "float nx;\nfloat ny;\nfloat nz;\nfloat d;")]
+impl Plane {
+    pub fn classify_point(&self, p: &Vec3) -> PointClassification {
+        // let _magnitude = f64::abs((1.0 - self.n.length()) as f64) as f32;
+        let dist = Vec3::dot(self.n, *p) - self.d;
+        if dist > PLANE_THICKNESS_EPSILON {
+            PointClassification::InFront
+        } else if dist < -PLANE_THICKNESS_EPSILON {
+            PointClassification::Behind
+        } else {
+            PointClassification::Coplanar
         }
     }
 
-    if num_in_front != 0 {
-        PolygonClassification::InFront
-    } else if num_behind != 0 {
-        PolygonClassification::Behind
-    } else {
-        PolygonClassification::Coplanar
+    pub fn classify_polygon(&self, polygon: &Polygon) -> PolygonClassification {
+        let mut num_in_front = 0;
+        let mut num_behind = 0;
+        for vertex in &polygon.vertices {
+            match self.classify_point(vertex) {
+                PointClassification::InFront => {
+                    num_in_front += 1;
+                }
+                PointClassification::Behind => {
+                    num_behind += 1;
+                }
+                PointClassification::Coplanar => {}
+            }
+
+            // TODO : This early out may not make as much sense if the BSP stops cutting triangles.
+            if num_in_front != 0 && num_behind != 0 {
+                return PolygonClassification::Straddling;
+            }
+        }
+
+        if num_in_front != 0 {
+            PolygonClassification::InFront
+        } else if num_behind != 0 {
+            PolygonClassification::Behind
+        } else {
+            PolygonClassification::Coplanar
+        }
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn Plane_Validate(plane: *const Plane) -> Error {
-    let mut e = 0 as Error;
+    pub fn validate(&self) -> Error {
+        let mut e = 0 as Error;
+        e |= Float_Validate(self.d as f64);
+        e |= Vec3_Validate(self.n);
+        e
+    }
 
-    e |= Float_Validate((*plane).d as f64);
-    e |= Vec3_Validate((*plane).n);
+    pub fn from_polygon(polygon: &Polygon) -> Self {
+        polygon.to_plane()
+    }
 
-    e
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Plane_FromPolygon(polygon: *const Polygon, plane: *mut Plane) {
-    Polygon_ToPlane(polygon, plane);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Plane_FromPolygonFast(polygon: *const Polygon, plane: *mut Plane) {
-    Polygon_ToPlaneFast(polygon, plane);
+    pub fn from_polygon_fast(polygon: &Polygon) -> Self {
+        polygon.to_plane_fast()
+    }
 }

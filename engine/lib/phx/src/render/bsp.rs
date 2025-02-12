@@ -597,7 +597,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     let mut numStraddling: i32 = 0;
 
     for polygon in (*nodeData).polygons.iter() {
-        match Plane_ClassifyPolygon(&plane, &polygon.inner) {
+        match plane.classify_polygon(&polygon.inner) {
             PolygonClassification::Coplanar | PolygonClassification::Behind => {
                 numBehind += 1;
             }
@@ -688,11 +688,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
 
                 if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_FACE_SPLIT as i32 == 0 {
-                    let mut plane: Plane = Plane {
-                        n: Vec3::ZERO,
-                        d: 0.,
-                    };
-                    Polygon_ToPlane(&(*polygon).inner, &mut plane);
+                    let plane: Plane = (*polygon).inner.to_plane();
                     let score: f32 = BSPBuild_ScoreSplitPlane(nodeData, plane, k);
 
                     if score < bestScore {
@@ -762,12 +758,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     let mid: Vec3 = Vec3::lerp(v[0], v[j], 0.5f32);
 
                     /* TODO : Maybe just save the plane with polygon while build so they're only calculated once? */
-                    let mut polygonPlane: Plane = Plane {
-                        n: Vec3::ZERO,
-                        d: 0.,
-                    };
-                    Polygon_ToPlane(&(*polygon).inner, &mut polygonPlane);
-
+                    let polygonPlane = (*polygon).inner.to_plane();
                     let mut plane: Plane = Plane {
                         n: Vec3::ZERO,
                         d: 0.,
@@ -776,7 +767,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     plane.d = Vec3::dot(plane.n, mid);
 
                     /* TODO : Proper scoring? */
-                    if Plane_ClassifyPolygon(&plane, &(*polygon).inner)
+                    if plane.classify_polygon(&(*polygon).inner)
                         == PolygonClassification::Straddling
                     {
                         splitFound = true;
@@ -821,16 +812,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     continue;
                 }
 
-                let mut polygonPlane: Plane = Plane {
-                    n: Vec3 {
-                        x: 0.,
-                        y: 0.,
-                        z: 0.,
-                    },
-                    d: 0.,
-                };
-                Polygon_ToPlane(&(*polygon).inner, &mut polygonPlane);
-
+                let polygonPlane = (*polygon).inner.to_plane();
                 let v = &mut (*polygon).inner.vertices;
                 let mut vPrev: Vec3 = v[(v.len() - 1) as usize];
 
@@ -991,7 +973,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     frontNodeData.depth = ((*nodeData).depth as i32 + 1) as u16;
 
     for polygon in (*nodeData).polygons.iter_mut() {
-        let classification = Plane_ClassifyPolygon(&splitPlane, &polygon.inner);
+        let classification = splitPlane.classify_polygon(&polygon.inner);
         match classification {
             PolygonClassification::Coplanar => {
                 (*polygon).flags = ((*polygon).flags as i32
@@ -1021,12 +1003,9 @@ unsafe extern "C" fn BSPBuild_CreateNode(
                 };
                 frontPart.flags = (*polygon).flags;
 
-                Polygon_SplitSafe(
-                    &polygon.inner,
-                    splitPlane,
-                    &mut backPart.inner,
-                    &mut frontPart.inner,
-                );
+                polygon
+                    .inner
+                    .split_safe(&splitPlane, &mut backPart.inner, &mut frontPart.inner);
                 BSPBuild_AppendPolygon(&mut backNodeData, &backPart);
                 BSPBuild_AppendPolygon(&mut frontNodeData, &frontPart);
 
@@ -1097,7 +1076,8 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
             //     ArrayList_GetSize(polygon->vertices) - 2
             //     <= ArrayList_GetCapacity(self->triangles)
             // );
-            Polygon_ConvexToTriangles(&(*polygon).inner, &mut this.triangles);
+            let mut triangles = (*polygon).inner.convex_to_triangles();
+            this.triangles.append(&mut triangles);
         }
 
         let leafLen: u8 = (this.triangles.len() - leafIndex) as u8;

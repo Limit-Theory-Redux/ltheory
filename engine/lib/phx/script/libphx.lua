@@ -131,19 +131,6 @@ do -- Transparent Structs
       double p1z;
     } LineSegment;
 
-    typedef struct Plane {
-      float nx;
-      float ny;
-      float nz;
-      float d;
-    } Plane;
-
-    typedef struct Polygon {
-      int32         vertices_size;
-      int32         vertices_capacity;
-      struct Vec3f* vertices_data;
-    } Polygon;
-
     typedef struct Ray {
       double px;
       double py;
@@ -303,8 +290,6 @@ do -- Transparent Structs
         'Collision',
         'IntersectSphereProfiling',
         'LineSegment',
-        'Plane',
-        'Polygon',
         'Ray',
         'RayCastResult',
         'ShapeCastResult',
