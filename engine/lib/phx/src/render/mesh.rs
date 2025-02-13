@@ -524,7 +524,7 @@ impl Mesh {
             let triangle: Triangle = Triangle {
                 vertices: [this.vertex[i0].p, this.vertex[i1].p, this.vertex[i2].p],
             };
-            let e = unsafe { Triangle_Validate(&triangle) };
+            let e = triangle.validate();
             if e != 0 {
                 return 0x400000 | e;
             }

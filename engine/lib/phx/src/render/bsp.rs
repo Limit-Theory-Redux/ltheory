@@ -250,12 +250,26 @@ pub struct IntersectSphereProfiling {
     pub triangleTests: Vec<TriangleTest>,
 }
 
+#[luajit_ffi_gen::luajit_ffi(typedef = "
+    int32                nodes;
+    int32                leaves;
+    int32                triangles;
+    int32                triangleTests_size;
+    int32                triangleTests_capacity;
+    struct TriangleTest* triangleTests_data;")]
+impl IntersectSphereProfiling {}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct TriangleTest {
     pub triangle: *mut Triangle,
     pub hit: bool,
 }
+
+#[luajit_ffi_gen::luajit_ffi(typedef = "
+    struct Triangle* triangle;
+    bool             hit;")]
+impl TriangleTest {}
 
 pub type BSPNodeRel = u8;
 
@@ -428,7 +442,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
                 let mut t: f32 = 0.;
                 //if (Intersect_RayTriangle_Barycentric(ray, triangle, tEpsilon, &t)) {
-                if Intersect_RayTriangle_Moller1(&ray, triangle, &mut t) {
+                if Intersect::ray_triangle_moller1(&ray, triangle, &mut t) {
                     //if (Intersect_RayTriangle_Moller2(ray, triangle, &t)) {
                     //if (Intersect_RayTriangle_Badouel(ray, triangle, tEpsilon, &t)) {
                     if !hit || t < *tHit {
@@ -478,9 +492,7 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     };
     let mut t: f32 = 0.;
     if BSP_IntersectRay(this, &ray, &mut t) {
-        let mut positionHit = Position::ZERO;
-        Ray_GetPoint(&ray, t as f64, &mut positionHit);
-        *pHit = positionHit.as_vec3();
+        *pHit = ray.get_point(t as f64).as_vec3();
         true
     } else {
         false

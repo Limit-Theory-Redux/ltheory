@@ -22,8 +22,8 @@ impl ImplInfo {
             ffi_gen.set_type_decl_opaque();
         }
 
-        if let Some(typedef) = attr_args.typedef() {
-            ffi_gen.set_typedef(typedef);
+        if !attr_args.typedef().is_empty() {
+            ffi_gen.set_typedef(attr_args.typedef(), attr_args.forward_decl());
         }
 
         // Class definition

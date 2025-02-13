@@ -1,5 +1,3 @@
-#![allow(unsafe_code)] // TODO: remove
-
 use super::*;
 
 #[derive(Copy, Clone)]
@@ -11,51 +9,52 @@ pub struct Ray {
     pub t_max: f64,
 }
 
-#[no_mangle]
-pub extern "C" fn Ray_GetPoint(this: &Ray, t: f64, out: &mut Position) {
-    *out = Position::from_dvec(this.p.v + this.dir * t);
-}
+#[luajit_ffi_gen::luajit_ffi(
+    clone = true,
+    typedef = "
+        double px;
+        double py;
+        double pz;
+        double dirx;
+        double diry;
+        double dirz;
+        double tMin;
+        double tMax;"
+)]
+impl Ray {
+    pub fn get_point(&self, t: f64) -> Position {
+        Position::from_dvec(self.p.v + self.dir * t)
+    }
 
-#[no_mangle]
-pub extern "C" fn Ray_IntersectPlane(this: &Ray, plane: &Plane, p_hit: &mut Position) -> bool {
-    Intersect_RayPlane(this, plane, p_hit)
-}
+    pub fn intersect_plane(&self, plane: &Plane, p_hit: &mut Position) -> bool {
+        Intersect::ray_plane(self, plane, p_hit)
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
-    this: &Ray,
-    tri: &Triangle,
-    t_epsilon: f32,
-    t_hit: &mut f32,
-) -> bool {
-    Intersect_RayTriangle_Barycentric(this, tri, t_epsilon, t_hit)
-}
+    pub fn intersect_triangle_barycentric(
+        &self,
+        tri: &Triangle,
+        t_epsilon: f32,
+        t_hit: &mut f32,
+    ) -> bool {
+        Intersect::ray_triangle_barycentric(self, tri, t_epsilon, t_hit)
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
-    this: &Ray,
-    tri: &Triangle,
-    t_hit: &mut f32,
-) -> bool {
-    Intersect_RayTriangle_Moller1(this, tri, t_hit)
-}
+    pub fn intersect_triangle_moller1(&self, tri: &Triangle, t_hit: &mut f32) -> bool {
+        Intersect::ray_triangle_moller1(self, tri, t_hit)
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
-    this: &Ray,
-    tri: &Triangle,
-    t_hit: &mut f32,
-) -> bool {
-    Intersect_RayTriangle_Moller2(this, tri, t_hit)
-}
+    pub fn intersect_triangle_moller2(&self, tri: &Triangle, t_hit: &mut f32) -> bool {
+        Intersect::ray_triangle_moller2(self, tri, t_hit)
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn Ray_ToLineSegment(this: &Ray, line_segment: &mut LineSegment) {
-    Ray_GetPoint(this, this.t_min, &mut line_segment.p0);
-    Ray_GetPoint(this, this.t_max, &mut line_segment.p1);
-}
+    pub fn to_line_segment(&self) -> LineSegment {
+        LineSegment {
+            p0: self.get_point(self.t_min),
+            p1: self.get_point(self.t_max),
+        }
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn Ray_FromLineSegment(line_segment: &LineSegment, this: &mut Ray) {
-    LineSegment_ToRay(line_segment, this);
+    pub fn from_line_segment(line_segment: &LineSegment) -> Self {
+        line_segment.to_ray()
+    }
 }

@@ -15,6 +15,15 @@ pub struct Position {
     pub v: DVec3,
 }
 
+#[luajit_ffi_gen::luajit_ffi(
+    clone = true,
+    typedef = "
+        double x;
+        double y;
+        double z;"
+)]
+impl Position {}
+
 impl Position {
     /// All zeroes, the origin.
     pub const ZERO: Self = Position::from_dvec(DVec3::ZERO);

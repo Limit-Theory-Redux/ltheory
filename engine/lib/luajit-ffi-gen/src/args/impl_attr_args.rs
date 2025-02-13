@@ -7,7 +7,8 @@ use super::arg::Arg;
 /// Arguments of the `luajit_ffi` attribute.
 pub struct ImplAttrArgs {
     name: Option<String>,
-    typedef: Option<String>,
+    forward_decl: String,
+    typedef: String,
     opaque: bool,
     clone: bool,
     lua_ffi: bool,
@@ -19,7 +20,8 @@ impl Default for ImplAttrArgs {
     fn default() -> Self {
         Self {
             name: None,
-            typedef: None,
+            forward_decl: Default::default(),
+            typedef: Default::default(),
             opaque: true,
             clone: false,
             lua_ffi: true,
@@ -36,9 +38,15 @@ impl ImplAttrArgs {
         self.name.as_deref()
     }
 
-    /// If exists returns the type definition in the generated Lua FFI.
-    pub fn typedef(&self) -> Option<&str> {
-        self.typedef.as_deref()
+    /// If not empty returns the comma separated list of types that should be declared before the current struct.
+    /// Used only when [`typedef`] argument specified.
+    pub fn forward_decl(&self) -> &str {
+        &self.forward_decl
+    }
+
+    /// If not empty returns the type definition in the generated Lua FFI.
+    pub fn typedef(&self) -> &str {
+        &self.typedef
     }
 
     /// If true then typedef is generated for the module.
@@ -84,12 +92,19 @@ impl Parse for ImplAttrArgs {
                         ));
                     }
                 }
+                "forward_decl" => {
+                    if let Lit::Str(val) = &param.value.lit {
+                        res.forward_decl = val.value().trim().into();
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'forward_decl' attribute parameter as string literal",
+                        ));
+                    }
+                }
                 "typedef" => {
                     if let Lit::Str(val) = &param.value.lit {
-                        let typedef_str = val.value().trim().to_string();
-                        if !typedef_str.is_empty() {
-                            res.typedef = Some(typedef_str);
-                        }
+                        res.typedef = val.value().trim().into();
                     } else {
                         return Err(Error::new(
                             param.value.span(),
@@ -150,7 +165,7 @@ impl Parse for ImplAttrArgs {
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        "expected attribute parameter value: name, typedef, opaque, clone, lua_ffi, gen_dir, meta_dir"
+                        "expected attribute parameter value: name, forward_decl, typedef, opaque, clone, lua_ffi, gen_dir, meta_dir"
                             .to_string(),
                     ));
                 }

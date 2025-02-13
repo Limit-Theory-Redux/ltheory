@@ -66,7 +66,11 @@ impl std::ops::Deref for Quat {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(typedef = "float x;\nfloat y;\nfloat z;\nfloat w;")]
+#[luajit_ffi_gen::luajit_ffi(typedef = "
+    float x;
+    float y;
+    float z;
+    float w;")]
 impl Quat {
     #[bind(name = "Create")]
     pub fn new(x: f32, y: f32, z: f32, w: f32) -> Self {

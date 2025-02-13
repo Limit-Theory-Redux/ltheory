@@ -21,6 +21,16 @@ pub struct Collision {
     body1: *mut RigidBody,
 }
 
+#[luajit_ffi_gen::luajit_ffi(
+    forward_decl = "RigidBody",
+    typedef = "
+        uint32     index;
+        uint32     count;
+        RigidBody* body0;
+        RigidBody* body1;"
+)]
+impl Collision {}
+
 #[repr(C)]
 pub struct RayCastResult {
     body: *mut RigidBody,
@@ -29,10 +39,27 @@ pub struct RayCastResult {
     t: f32,
 }
 
+#[luajit_ffi_gen::luajit_ffi(typedef = "
+    RigidBody* body;
+    float      normx;
+    float      normy;
+    float      normz;
+    double     posx;
+    double     posy;
+    double     posz;
+    float      t;")]
+impl RayCastResult {}
+
+#[repr(C)]
 pub struct ShapeCastResult {
     hits: *const *mut RigidBody,
     hits_len: u32,
 }
+
+#[luajit_ffi_gen::luajit_ffi(typedef = "
+    RigidBody** hits;
+    uint32      hits_len;")]
+impl ShapeCastResult {}
 
 impl ShapeCastResult {
     pub fn get_hits(&self) -> &[*mut RigidBody] {
@@ -310,16 +337,8 @@ impl Physics {
 
     #[bind(out_param = true)]
     pub fn ray_cast(&self, ray: &Ray) -> RayCastResult {
-        let from = {
-            let mut data = Position::ZERO;
-            Ray_GetPoint(ray, ray.t_min, &mut data);
-            data.to_na_point()
-        };
-        let to = {
-            let mut data = Position::ZERO;
-            Ray_GetPoint(ray, ray.t_max, &mut data);
-            data.to_na_point()
-        };
+        let from = ray.get_point(ray.t_min).to_na_point();
+        let to = ray.get_point(ray.t_max).to_na_point();
         let dir = to - from;
         let length = dir.norm();
 
