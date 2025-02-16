@@ -531,15 +531,15 @@ impl Mesh {
         }
 
         for v in this.vertex.iter() {
-            let e = Vec3_Validate(v.p);
+            let e = validate_vec3(v.p);
             if e != 0 {
                 return 0x400000 | e;
             }
-            let e = Vec3_Validate(v.n);
+            let e = validate_vec3(v.n);
             if e != 0 {
                 return 0x800000 | e;
             }
-            let e = Vec2_Validate(v.uv);
+            let e = validate_vec2(v.uv);
             if e != 0 {
                 return 0x1000000 | e;
             }

@@ -105,7 +105,7 @@ impl Polygon {
         let mut v_prev = v[v.len() - 1];
         for (i, v_cur) in v.iter().enumerate() {
             // NaN or Inf
-            let e = Vec3_Validate(*v_cur);
+            let e = validate_vec3(*v_cur);
             if e != 0 {
                 return 0x400000 | e;
             }

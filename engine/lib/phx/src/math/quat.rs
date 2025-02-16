@@ -1,6 +1,6 @@
 use glam::{Mat3, Vec3};
 
-use super::{approximately_equal, Float_Validate};
+use super::{approximately_equal, validate_f64};
 use crate::error::Error;
 
 #[derive(Clone, PartialEq)]
@@ -197,10 +197,10 @@ impl Quat {
 
     pub fn validate(&self) -> Error {
         let mut e = 0 as Error;
-        e |= Float_Validate(self.0.x as f64);
-        e |= Float_Validate(self.0.y as f64);
-        e |= Float_Validate(self.0.z as f64);
-        e |= Float_Validate(self.0.w as f64);
+        e |= validate_f64(self.0.x as f64);
+        e |= validate_f64(self.0.y as f64);
+        e |= validate_f64(self.0.z as f64);
+        e |= validate_f64(self.0.w as f64);
         e
     }
 

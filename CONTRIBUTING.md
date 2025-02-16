@@ -64,7 +64,7 @@ Once Homebrew is installed, open a **Terminal** window and run the following one
 
 ### Linux
 
-You should install Git, Cargo, Rust and LLVM using your distro's package manager. OpenGL, GLU and ALSA development libraries are also required.
+You should install Git, Cargo, Rust, GCC and LLVM using your distro's package manager. OpenGL, GLU and ALSA development libraries are also required.
 
 For example, if using Ubuntu 22.04, open a terminal and install the following packages:
 

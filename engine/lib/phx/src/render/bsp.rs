@@ -623,7 +623,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     }
 
     //k*numStraddling + (1.0f - k)*Abs(numInFront - numBehind);
-    Lerp(
+    lerp(
         f64::abs((numInFront - numBehind) as f64) as f64,
         numStraddling as f64,
         k as f64,
@@ -673,7 +673,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
     let maxDepth: f32 = 1000.0f32;
     let biasedDepth: f32 = (*nodeData).depth as f32 - 100.0f32;
     let t: f32 = f64::max((biasedDepth / maxDepth) as f64, 0.0f64) as f32;
-    let k: f32 = Lerp(0.85f64, 0.25f64, t as f64) as f32;
+    let k: f32 = lerp(0.85f64, 0.25f64, t as f64) as f32;
 
     let mut bestScore: f32 = f32::MAX;
     let mut bestPlane: Plane = Plane {

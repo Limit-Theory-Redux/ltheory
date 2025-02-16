@@ -74,8 +74,8 @@ impl Plane {
 
     pub fn validate(&self) -> Error {
         let mut e = 0 as Error;
-        e |= Float_Validate(self.d as f64);
-        e |= Vec3_Validate(self.n);
+        e |= validate_f64(self.d as f64);
+        e |= validate_vec3(self.n);
         e
     }
 

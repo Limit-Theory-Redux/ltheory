@@ -43,7 +43,7 @@ impl Triangle {
     pub fn validate(&self) -> Error {
         let v = &self.vertices;
         for vertex in v {
-            let e = Vec3_Validate(*vertex);
+            let e = validate_vec3(*vertex);
             if e != 0 {
                 return 0x400000 | e;
             }
