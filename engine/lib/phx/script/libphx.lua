@@ -48,7 +48,6 @@ do -- Opaque Structs
         typedef struct KDTree       {} KDTree;
         typedef struct MemPool      {} MemPool;
         typedef struct MemStack     {} MemStack;
-        typedef struct Octree       {} Octree;
         typedef struct RNG          {} RNG;
         typedef struct RmGui        {} RmGui;
         typedef struct SDF          {} SDF;
@@ -64,7 +63,6 @@ do -- Opaque Structs
         'KDTree',
         'MemPool',
         'MemStack',
-        'Octree',
         'RNG',
         'RmGui',
         'SDF',

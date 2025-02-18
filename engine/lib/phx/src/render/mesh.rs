@@ -475,6 +475,7 @@ impl Mesh {
         }
     }
 
+    // TODO: convert out to return
     pub fn get_bound(&mut self, out: &mut Box3) {
         self.shared.as_mut().update_info();
         *out = self.shared.as_ref().info.bound;
