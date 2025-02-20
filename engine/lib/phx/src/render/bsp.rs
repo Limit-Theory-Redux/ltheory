@@ -1255,7 +1255,6 @@ pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
     // #endif
 
     BSPBuild_FreeNode(bspBuild.rootNode);
-    RNG_Free(Some(bspBuild.rng));
 
     // Assert(ArrayList_GetSize(self->nodes)     == ArrayList_GetCapacity(self->nodes));
     // Assert(ArrayList_GetSize(self->triangles) == ArrayList_GetCapacity(self->triangles));

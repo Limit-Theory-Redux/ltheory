@@ -10,7 +10,7 @@ local genColor = function(rng)
 end
 
 local Planet = subclass(Entity, function(self, seed)
-    local rng = RNG.Create(seed):managed()
+    local rng = RNG.Create(seed)
 
     -- TODO: Improve planet size generation
     local planetSizeType = Config.gen.sizePlanet
