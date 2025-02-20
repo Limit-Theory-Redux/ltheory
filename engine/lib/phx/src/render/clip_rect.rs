@@ -1,7 +1,8 @@
 #![allow(unsafe_code)] // TODO: remove
 
-use super::*;
-use crate::render::*;
+use glam::IVec2;
+
+use crate::render::{gl, glcheck, Viewport_GetSize};
 
 const MAX_STACK_DEPTH: i32 = 128;
 
@@ -58,7 +59,7 @@ unsafe extern "C" fn TransformRect(x: &mut f32, y: &mut f32, sx: &mut f32, sy: &
 pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
     match this {
         Some(this) => {
-            let mut vp_size: IVec2 = IVec2::ZERO;
+            let mut vp_size = IVec2::ZERO;
 
             unsafe { Viewport_GetSize(&mut vp_size) };
             glcheck!(gl::Enable(gl::SCISSOR_TEST));

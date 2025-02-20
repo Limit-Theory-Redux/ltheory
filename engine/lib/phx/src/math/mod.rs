@@ -1,6 +1,5 @@
 mod bit;
 mod box3;
-mod clip_rect;
 mod intersect;
 mod line_segment;
 mod math;
@@ -16,7 +15,6 @@ mod triangle;
 
 pub use bit::*;
 pub use box3::*;
-pub use clip_rect::*;
 pub use intersect::*;
 pub use line_segment::*;
 pub use math::*;
