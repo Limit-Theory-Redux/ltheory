@@ -11,23 +11,23 @@ Quat = {}
 ---@return Quat
 function Quat.Create(x, y, z, w) end
 
----@return Vec3f
-function Quat:getAxisX() end
+---@param result Vec3f [out]
+function Quat:getAxisX(result) end
 
----@return Vec3f
-function Quat:getAxisY() end
+---@param result Vec3f [out]
+function Quat:getAxisY(result) end
 
----@return Vec3f
-function Quat:getAxisZ() end
+---@param result Vec3f [out]
+function Quat:getAxisZ(result) end
 
----@return Vec3f
-function Quat:getForward() end
+---@param result Vec3f [out]
+function Quat:getForward(result) end
 
----@return Vec3f
-function Quat:getRight() end
+---@param result Vec3f [out]
+function Quat:getRight(result) end
 
----@return Vec3f
-function Quat:getUp() end
+---@param result Vec3f [out]
+function Quat:getUp(result) end
 
 ---@return Quat
 function Quat.Identity() end
@@ -71,8 +71,8 @@ function Quat:mul(p) end
 function Quat:iMul(p) end
 
 ---@param v Vec3f
----@return Vec3f
-function Quat:mulV(v) end
+---@param result Vec3f [out]
+function Quat:mulV(v, result) end
 
 ---@return Quat
 function Quat:normalize() end

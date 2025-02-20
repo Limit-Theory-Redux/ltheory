@@ -24,12 +24,12 @@ function Loader.defineType()
         ffi.cdef [[
             void   Quat_Free               (Quat*);
             Quat*  Quat_Create             (float x, float y, float z, float w);
-            Vec3f  Quat_GetAxisX           (Quat const*);
-            Vec3f  Quat_GetAxisY           (Quat const*);
-            Vec3f  Quat_GetAxisZ           (Quat const*);
-            Vec3f  Quat_GetForward         (Quat const*);
-            Vec3f  Quat_GetRight           (Quat const*);
-            Vec3f  Quat_GetUp              (Quat const*);
+            void   Quat_GetAxisX           (Quat const*, Vec3f* out);
+            void   Quat_GetAxisY           (Quat const*, Vec3f* out);
+            void   Quat_GetAxisZ           (Quat const*, Vec3f* out);
+            void   Quat_GetForward         (Quat const*, Vec3f* out);
+            void   Quat_GetRight           (Quat const*, Vec3f* out);
+            void   Quat_GetUp              (Quat const*, Vec3f* out);
             Quat*  Quat_Identity           ();
             Quat*  Quat_Canonicalize       (Quat const*);
             void   Quat_ICanonicalize      (Quat*);
@@ -42,7 +42,7 @@ function Loader.defineType()
             void   Quat_ILerp              (Quat*, Quat const* p, float t);
             Quat*  Quat_Mul                (Quat const*, Quat const* p);
             void   Quat_IMul               (Quat*, Quat const* p);
-            Vec3f  Quat_MulV               (Quat const*, Vec3f const* v);
+            void   Quat_MulV               (Quat const*, Vec3f const* v, Vec3f* out);
             Quat*  Quat_Normalize          (Quat const*);
             void   Quat_INormalize         (Quat*);
             Quat*  Quat_Scale              (Quat const*, float scale);

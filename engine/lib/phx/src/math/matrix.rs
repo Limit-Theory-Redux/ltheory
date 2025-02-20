@@ -153,6 +153,7 @@ impl Matrix {
         )))
     }
 
+    #[bind(out_param = true)]
     pub fn mul_box(&self, in_0: &Box3) -> Box3 {
         let corners = [
             Vec3::new(in_0.lower.x, in_0.lower.y, in_0.lower.z),
@@ -179,34 +180,42 @@ impl Matrix {
         out
     }
 
+    #[bind(out_param = true)]
     pub fn mul_dir(&self, d: &Vec3) -> Vec3 {
         self.0.transform_vector3(*d)
     }
 
+    #[bind(out_param = true)]
     pub fn mul_point(&self, p: &Vec3) -> Vec3 {
         self.0.transform_point3(*p)
     }
 
+    #[bind(out_param = true)]
     pub fn mul_vec(&self, v: &Vec4) -> Vec4 {
         self.0.mul_vec4(*v)
     }
 
+    #[bind(out_param = true)]
     pub fn get_forward(&self) -> Vec3 {
         -self.0.z_axis.truncate()
     }
 
+    #[bind(out_param = true)]
     pub fn get_right(&self) -> Vec3 {
         self.0.x_axis.truncate()
     }
 
+    #[bind(out_param = true)]
     pub fn get_up(&self) -> Vec3 {
         self.0.y_axis.truncate()
     }
 
+    #[bind(out_param = true)]
     pub fn get_pos(&self) -> Vec3 {
         self.0.w_axis.truncate()
     }
 
+    #[bind(out_param = true)]
     pub fn get_row(&self, row: i32) -> Vec4 {
         self.0.row(row as usize)
     }

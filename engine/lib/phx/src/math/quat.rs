@@ -77,26 +77,32 @@ impl Quat {
         Self(glam::Quat { x, y, z, w })
     }
 
+    #[bind(out_param = true)]
     pub fn get_axis_x(&self) -> Vec3 {
         self._get_axis_x()
     }
 
+    #[bind(out_param = true)]
     pub fn get_axis_y(&self) -> Vec3 {
         self._get_axis_y()
     }
 
+    #[bind(out_param = true)]
     pub fn get_axis_z(&self) -> Vec3 {
         self._get_axis_z()
     }
 
+    #[bind(out_param = true)]
     pub fn get_forward(&self) -> Vec3 {
         -self._get_axis_z()
     }
 
+    #[bind(out_param = true)]
     pub fn get_right(&self) -> Vec3 {
         self.get_axis_x()
     }
 
+    #[bind(out_param = true)]
     pub fn get_up(&self) -> Vec3 {
         self._get_axis_y()
     }
@@ -154,6 +160,7 @@ impl Quat {
         self.0 = self.0.mul_quat(p.0);
     }
 
+    #[bind(out_param = true)]
     pub fn mul_v(&self, v: &Vec3) -> Vec3 {
         self.0.mul_vec3(*v)
     }

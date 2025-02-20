@@ -101,36 +101,36 @@ function Matrix.Translation(tx, ty, tz) end
 function Matrix.YawPitchRoll(yaw, pitch, roll) end
 
 ---@param in0 Box3f
----@return Box3f
-function Matrix:mulBox(in0) end
+---@param result Box3f [out]
+function Matrix:mulBox(in0, result) end
 
 ---@param d Vec3f
----@return Vec3f
-function Matrix:mulDir(d) end
+---@param result Vec3f [out]
+function Matrix:mulDir(d, result) end
 
 ---@param p Vec3f
----@return Vec3f
-function Matrix:mulPoint(p) end
+---@param result Vec3f [out]
+function Matrix:mulPoint(p, result) end
 
 ---@param v Vec4f
----@return Vec4f
-function Matrix:mulVec(v) end
+---@param result Vec4f [out]
+function Matrix:mulVec(v, result) end
 
----@return Vec3f
-function Matrix:getForward() end
+---@param result Vec3f [out]
+function Matrix:getForward(result) end
 
----@return Vec3f
-function Matrix:getRight() end
+---@param result Vec3f [out]
+function Matrix:getRight(result) end
 
----@return Vec3f
-function Matrix:getUp() end
+---@param result Vec3f [out]
+function Matrix:getUp(result) end
 
----@return Vec3f
-function Matrix:getPos() end
+---@param result Vec3f [out]
+function Matrix:getPos(result) end
 
 ---@param row integer
----@return Vec4f
-function Matrix:getRow(row) end
+---@param result Vec4f [out]
+function Matrix:getRow(row, result) end
 
 ---@param x Vec3f
 ---@param y Vec3f
