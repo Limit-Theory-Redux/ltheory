@@ -70,6 +70,8 @@ For example, if using Ubuntu 22.04, open a terminal and install the following pa
 
 - `sudo apt install -y git build-essential libgl1-mesa-dev libglu1-mesa-dev libasound2-dev cargo llvm-dev`
 
+Arch: `sudo pacman -Syu --needed base-devel llvm glibc`
+
 # Setting up
 
 With the above prerequisites installed, let's get the `libphx` engine set up and ready to run a Lua application. First, open a terminal window (**Git Bash** on Windows).
