@@ -276,7 +276,7 @@ pub type BSPNodeRel = u8;
 #[repr(C)]
 pub struct BSPBuild {
     pub rootNode: *mut BSPBuildNode,
-    pub rng: Box<Rng>,
+    pub rng: Rng,
     pub nodeCount: i32,
     pub leafCount: i32,
     pub triangleCount: i32,
@@ -689,8 +689,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
         numToCheck = i32::min(numToCheck, (*nodeData).validPolygonCount);
         let mut i: i32 = 0;
         while i < numToCheck {
-            let mut polygonIndex: i32 =
-                (RNG_Get32(&mut *(*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
+            let mut polygonIndex: i32 = (*bsp).rng.get32().wrapping_rem(polygonsLen as u32) as i32;
 
             /* OPTIMIZE: This search is duuuuuumb. Maybe We should swap invalid
              *           polygons to the end of the list so never have to search.
@@ -756,8 +755,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
         /* Try to split any polygons with more than 1 triangle */
         if !splitFound {
-            let mut polygonIndex: i32 =
-                (RNG_Get32(&mut *(*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
+            let mut polygonIndex: i32 = (*bsp).rng.get32().wrapping_rem(polygonsLen as u32) as i32;
             for _ in 0..polygonsLen {
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
                 if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_DECOMPOSE as i32 != 0 {
@@ -816,8 +814,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
         /* Try splitting along a polygon edge */
         if !splitFound {
-            let mut polygonIndex: i32 =
-                (RNG_Get32(&mut *(*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
+            let mut polygonIndex: i32 = (*bsp).rng.get32().wrapping_rem(polygonsLen as u32) as i32;
             for _ in 0..polygonsLen {
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
                 if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_EDGE_SPLIT as i32 != 0 {
@@ -1214,7 +1211,7 @@ pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
     /* Build */
     let mut bspBuild: BSPBuild = BSPBuild {
         rootNode: std::ptr::null_mut(),
-        rng: RNG_Create(1235),
+        rng: Rng::new(1235),
         nodeCount: 0,
         leafCount: 0,
         triangleCount: 0,
