@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use glam::Quat;
 use kira::manager::{AudioManager, AudioManagerSettings, Capacities};
 use kira::spatial::emitter::{EmitterDistances, EmitterSettings};
 use kira::spatial::listener::{ListenerHandle, ListenerSettings};

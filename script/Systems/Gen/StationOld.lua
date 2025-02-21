@@ -41,8 +41,8 @@ function GenMesh:ring(rng, h, r, spokes, th)
 end
 
 function GenMesh:finalize(res)
-    local mesh   = self.boxMesh:getMesh(res)
-    
+    local mesh = self.boxMesh:getMesh(res)
+
     mesh:lockVertexData(function(vData, vCount)
         for i = 0, vCount - 1 do
             local p = Vec3f(vData[i].px, vData[i].py, vData[i].pz)
@@ -86,7 +86,6 @@ local function generateStationOld(seed)
 
     local mesh = self:finalize(6)
     self.boxMesh:free()
-    rng:free()
     return mesh
 end
 

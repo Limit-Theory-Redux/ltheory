@@ -84,6 +84,10 @@ impl TypeRef {
     pub fn is_reference(&self) -> bool {
         *self != Self::Value
     }
+
+    pub fn is_mutable(&self) -> bool {
+        *self == Self::MutableReference
+    }
 }
 
 #[derive(Debug, PartialEq)]

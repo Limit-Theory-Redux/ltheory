@@ -1,3 +1,5 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use luajit_ffi_gen::luajit_ffi;
 
 #[allow(dead_code)]
@@ -114,20 +116,20 @@ impl OptionTest {
 
     pub fn set_copyable_ref(&mut self, val: Option<&CopyableData>) {
         if let Some(val) = val {
-            self.val_copyable = val.clone();
+            self.val_copyable = *val;
         }
     }
 
     pub fn set_copyable_mut(&mut self, val: Option<&mut CopyableData>) {
         if let Some(val) = val {
-            self.val_copyable = val.clone();
+            self.val_copyable = *val;
             *val = CopyableData::default();
         }
     }
 
     pub fn get_copyable(&self) -> Option<CopyableData> {
         if self.val_copyable.val > 0 {
-            Some(self.val_copyable.clone())
+            Some(self.val_copyable)
         } else {
             None
         }
@@ -170,7 +172,7 @@ impl OptionTest {
     }
 
     pub fn get_str(&self) -> Option<&str> {
-        if self.val_str.len() > 0 {
+        if !self.val_str.is_empty() {
             Some(self.val_str.as_str())
         } else {
             None
@@ -178,7 +180,7 @@ impl OptionTest {
     }
 
     pub fn get_string(&self) -> Option<String> {
-        if self.val_str.len() > 0 {
+        if !self.val_str.is_empty() {
             Some(self.val_str.clone())
         } else {
             None
@@ -186,7 +188,7 @@ impl OptionTest {
     }
 
     pub fn get_string_ref(&self) -> Option<&String> {
-        if self.val_str.len() > 0 {
+        if !self.val_str.is_empty() {
             Some(&self.val_str)
         } else {
             None
@@ -366,7 +368,7 @@ fn test_strings() {
         OptionTest_SetStr(&mut t, str_data1.as_ptr());
         assert_eq!(t.val_str, str_data1.to_str().unwrap());
 
-        let data = OptionTest_GetStr(&mut t);
+        let data = OptionTest_GetStr(&t);
         assert_eq!(t.val_str, data.as_str());
 
         OptionTest_SetString(&mut t, std::ptr::null());
@@ -375,7 +377,7 @@ fn test_strings() {
         OptionTest_SetString(&mut t, str_data2.as_ptr());
         assert_eq!(t.val_str, str_data2.to_str().unwrap());
 
-        let data = OptionTest_GetString(&mut t);
+        let data = OptionTest_GetString(&t);
         assert_eq!(t.val_str, data.as_str());
 
         OptionTest_SetStringRef(&mut t, std::ptr::null());
@@ -384,7 +386,7 @@ fn test_strings() {
         OptionTest_SetStringRef(&mut t, str_data3.as_ptr());
         assert_eq!(t.val_str, str_data3.to_str().unwrap());
 
-        let data = OptionTest_GetStringRef(&mut t);
+        let data = OptionTest_GetStringRef(&t);
         assert_eq!(t.val_str, data.as_str());
     }
 }

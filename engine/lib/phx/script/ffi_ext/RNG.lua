@@ -48,7 +48,7 @@ function onDef_RNG_t(t, mt)
         return v
     end
     mt.__index.getQuat   = function(self)
-        local q = Quat()
+        local q = Quat.Identity()
         libphx.RNG_GetQuat(self, q)
         return q
     end

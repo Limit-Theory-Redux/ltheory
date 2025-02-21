@@ -1,3 +1,5 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use luajit_ffi_gen::luajit_ffi;
 
 #[allow(dead_code)]

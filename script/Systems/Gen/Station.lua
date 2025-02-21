@@ -115,7 +115,6 @@ function Station.GenerateStation(seed)
     end
 
     -- finalize mesh
-    rng:free()
     return shape:finalize()
 end
 

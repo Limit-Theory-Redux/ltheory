@@ -431,7 +431,10 @@ impl ImplInfo {
                         }
                     }
                     _ => {
-                        if is_ref.is_reference() {
+                        if is_ref.is_reference()
+                            && !is_ref.is_mutable()
+                            && ty.is_copyable(&self.name)
+                        {
                             // Primitives passed by reference are received in FFI by value, so convert them
                             // back into a reference.
                             quote! { &#name_accessor }

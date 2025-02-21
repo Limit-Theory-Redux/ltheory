@@ -1,3 +1,5 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use luajit_ffi_gen::luajit_ffi;
 
 #[allow(dead_code)]
@@ -41,7 +43,7 @@ impl BoxTest {
     }
 
     pub fn get_copyable(&self) -> Box<CopyableData> {
-        Box::new(self.val_copyable.clone())
+        Box::new(self.val_copyable)
     }
 
     // Strings are not supported.

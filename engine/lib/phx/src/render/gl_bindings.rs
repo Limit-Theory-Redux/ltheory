@@ -18,6 +18,7 @@ pub mod gl {
 
 macro_rules! glcheck {
     ($s:stmt) => {{
+        #[allow(unsafe_code)] // TODO: remove
         let result = unsafe { $s };
         // Uncomment this to enable GL checks.
         /*

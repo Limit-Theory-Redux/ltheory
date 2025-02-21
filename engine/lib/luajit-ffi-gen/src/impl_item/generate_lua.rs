@@ -22,6 +22,10 @@ impl ImplInfo {
             ffi_gen.set_type_decl_opaque();
         }
 
+        if !attr_args.typedef().is_empty() {
+            ffi_gen.set_typedef(attr_args.typedef(), attr_args.forward_decl());
+        }
+
         // Class definition
         self.write_class_defs(&mut ffi_gen, module_name);
 

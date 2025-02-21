@@ -158,7 +158,7 @@ function Camera:ndcToRay(ndc, length)
     -- NOTE: We now need to test inputs to normalize() to prevent near-zero inputs
     local dir = self.mViewInv:mulDir(vs_dir)
     if dir:length() >= 0.00000001 then
-       dir = dir:normalize()
+        dir = dir:normalize()
     end
 
     return Ray(ws.x, ws.y, ws.z, dir.x, dir.y, dir.z, 0, length)
@@ -183,10 +183,10 @@ end
 --------------------------------------------------------------------------------
 
 function Camera:refreshMatrices()
-    self.mView:free()
-    self.mViewInv:free()
-    self.mProj:free()
-    self.mProjInv:free()
+    self.mView = nil
+    self.mViewInv = nil
+    self.mProj = nil
+    self.mProjInv = nil
 
     self.pos = self.posOffset + self.posT
     self.rot = self.rotOffset * self.rotT

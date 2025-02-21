@@ -52,7 +52,6 @@ local rng                 = RNG.FromTime()
 
 function LTheory:generate()
     if Config.gen.seedGlobal then
-        rng:free()
         rng = RNG.Create(Config.gen.seedGlobal)
     end
     self.seed = rng:get64()
@@ -128,10 +127,10 @@ end
 function LTheory:onInit()
     SoundManager:init()
 
-    GameState.render.uiCanvas = UI.Canvas()
+    GameState.render.uiCanvas                      = UI.Canvas()
 
-    self.player = Entities.Player()
-    GameState.player.humanPlayer = self.player
+    self.player                                    = Entities.Player()
+    GameState.player.humanPlayer                   = self.player
 
     GameState.debug.physics.drawBoundingBoxesLocal = false
     GameState.debug.physics.drawBoundingBoxesWorld = false
@@ -223,7 +222,8 @@ function LTheory:onUpdate(dt)
     local collision = Collision()
     local collisions = {}
     while (self.system.physics:getNextCollision(collision)) do
-        table.insert(collisions, string.format('Collision %d between %s and %s', collision.index, tostring(collision.body0), tostring(collision.body1)))
+        table.insert(collisions,
+            string.format('Collision %d between %s and %s', collision.index, tostring(collision.body0), tostring(collision.body1)))
     end
 
     Gui:beginGui(self.resX, self.resY)

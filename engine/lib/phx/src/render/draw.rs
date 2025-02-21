@@ -220,7 +220,7 @@ impl Draw {
         } else {
             Vec3::Y
         };
-        e1 = Vec3_Reject(e1, *n).normalize();
+        e1 = reject_vec3(e1, *n).normalize();
         let e2: Vec3 = Vec3::cross(*n, e1);
 
         let p0: Vec3 = *p + (e1 * -scale) + (e2 * -scale);

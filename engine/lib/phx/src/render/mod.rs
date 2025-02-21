@@ -1,8 +1,10 @@
 #![allow(non_snake_case)] // TODO: remove this and fix all warnings
+#![allow(unsafe_code)] // TODO: remove
 
 mod box_mesh;
 mod box_tree;
 mod bsp;
+mod clip_rect;
 mod color;
 mod cube_face;
 mod data_format;
@@ -32,6 +34,7 @@ mod viewport;
 pub use box_mesh::*;
 pub use box_tree::*;
 pub use bsp::*;
+pub use clip_rect::*;
 pub use color::*;
 pub use cube_face::*;
 pub use data_format::*;

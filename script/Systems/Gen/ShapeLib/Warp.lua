@@ -98,7 +98,7 @@ function Shape:rotate(dx, dy, dz)
     local rotMatrix = Matrix.YawPitchRoll(dx, dy, dz)
     for i = 1, #self.verts do
         local v = self.verts[i]
-        self.verts[i] = rotMatrix:mulPoint(v):toVec3d()
+        self.verts[i] = rotMatrix:mulPoint(v:toVec3f()):toVec3d()
     end
     return self
 end

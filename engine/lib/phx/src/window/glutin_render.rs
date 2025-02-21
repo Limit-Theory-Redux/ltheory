@@ -14,6 +14,7 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
     });
 
     let gl_get_string = |name: gl::types::GLenum| -> Option<String> {
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
             let s = gl::GetString(name);
             (!s.is_null()).then(|| CStr::from_ptr(s.cast()).to_string_lossy().to_string())
@@ -62,7 +63,10 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
         glcheck!(gl::LineWidth(2.0f32));
     }
 
-    unsafe { RenderState_PushAllDefaults() };
+    #[allow(unsafe_code)] // TODO: remove
+    unsafe {
+        RenderState_PushAllDefaults()
+    };
 }
 
 pub fn resize(width: i32, height: i32) {

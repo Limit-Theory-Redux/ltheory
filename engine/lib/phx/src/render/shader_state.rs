@@ -74,7 +74,7 @@ impl ShaderState {
 
     pub fn set_matrix(&mut self, name: &str, m: &Matrix) {
         if let Some(index) = self.shader.get_uniform_index(name) {
-            self.elems.push((index, ShaderVarData::Matrix(*m)));
+            self.elems.push((index, ShaderVarData::Matrix(m.clone())));
         }
     }
 

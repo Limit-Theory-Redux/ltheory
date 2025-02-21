@@ -9,7 +9,7 @@ Pulse:add(CType.Vec3f, 'dir')
 Pulse:add(CType.Float32, 'lifeMax')
 Pulse:add(CType.Float32, 'life')
 Pulse:add(CType.Float32, 'dist')
-Pulse:add(CType.Pointer(CType.Matrix), 'matrix')
+Pulse:add(CType.Matrix, 'matrix')
 
 local cacheHead
 local cacheTail
@@ -33,14 +33,13 @@ Pulse:setInitializer(function(self)
 end)
 
 Pulse:addOnDestruct(function(self)
-    self.matrix:free()
+    self.matrix = nil
     DecRef(self.source)
 end)
 
 Pulse:define()
 
 function Pulse:refreshMatrix(eye)
-    self.matrix:free()
     self.matrix = Matrix.LookUp(self.pos:relativeTo(eye), -self.dir, Math.OrthoVector(self.dir))
 end
 

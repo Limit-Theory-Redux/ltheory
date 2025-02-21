@@ -530,7 +530,7 @@ impl TexCube {
         ];
         let up: [Vec3; 6] = [Vec3::Y, Vec3::Y, Vec3::NEG_Z, Vec3::Z, Vec3::Y, Vec3::Y];
 
-        let mut rng: Box<Rng> = unsafe { RNG_FromTime() };
+        let mut rng = Rng::from_time();
         let mut levels = 0;
         let mut i = size;
         while i > 0 {
@@ -550,8 +550,8 @@ impl TexCube {
             let mut sample_tex = Tex2D::new(sample_count, 1, TexFormat_RG16F);
 
             for i in 0..sample_count {
-                let e1 = unsafe { RNG_GetUniform(rng.as_mut()) };
-                let e2 = unsafe { RNG_GetUniform(rng.as_mut()) };
+                let e1 = rng.get_uniform();
+                let e2 = rng.get_uniform();
                 let pitch = f64::atan2(ggx_width * f64::sqrt(e1), f64::sqrt(1.0f64 - e1));
                 let yaw = std::f64::consts::TAU * e2;
                 sample_buffer[i as usize] = Vec2::new(pitch as f32, yaw as f32);

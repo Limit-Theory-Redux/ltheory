@@ -168,7 +168,6 @@ function Grid:onDrawDebug(focus, active)
         Draw.Rect(x + cellX, y + cellY, cellSX, cellSY)
         UI.DrawEx.SimpleShaderStop()
     end
-    rng:free()
 
     UI.DrawEx.SimpleShaderStart(Config.ui.color.debugRect)
     Container.onDrawDebugChildren(self, focus, active)

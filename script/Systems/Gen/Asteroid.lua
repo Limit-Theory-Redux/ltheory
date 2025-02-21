@@ -30,7 +30,6 @@ local function generateAsteroid(seed)
         dMax = dMax * lac * sqrt(2.0)
     end
 
-    rng:free()
     Profiler.End()
     return self
 end

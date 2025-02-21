@@ -111,7 +111,10 @@ pub unsafe extern "C" fn Signal_AddHandlerAll(handler: SignalHandler) {
 #[no_mangle]
 pub unsafe extern "C" fn Signal_RemoveHandler(sig: Signal, handler: SignalHandler) {
     let handlers = HandlerTable(sig);
-    if let Some(pos) = handlers.iter().position(|f| *f == handler) {
+    if let Some(pos) = handlers
+        .iter()
+        .position(|f| std::ptr::fn_addr_eq(*f, handler))
+    {
         handlers.remove(pos);
     } else {
         panic!(

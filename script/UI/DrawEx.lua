@@ -92,8 +92,8 @@ function DrawEx.Hologram(mesh, x, y, sx, sy, color, radius, yaw, pitch)
     mesh:draw()
     shader:stop()
     RenderState.PopBlendMode()
-    mView:free()
-    mProj:free()
+    mView = nil
+    mProj = nil
 end
 
 function DrawEx.Icon(icon, x, y, sx, sy, color)

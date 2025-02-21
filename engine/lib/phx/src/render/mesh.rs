@@ -475,6 +475,7 @@ impl Mesh {
         }
     }
 
+    // TODO: convert out to return
     pub fn get_bound(&mut self, out: &mut Box3) {
         self.shared.as_mut().update_info();
         *out = self.shared.as_ref().info.bound;
@@ -524,22 +525,22 @@ impl Mesh {
             let triangle: Triangle = Triangle {
                 vertices: [this.vertex[i0].p, this.vertex[i1].p, this.vertex[i2].p],
             };
-            let e = unsafe { Triangle_Validate(&triangle) };
+            let e = triangle.validate();
             if e != 0 {
                 return 0x400000 | e;
             }
         }
 
         for v in this.vertex.iter() {
-            let e = Vec3_Validate(v.p);
+            let e = validate_vec3(v.p);
             if e != 0 {
                 return 0x400000 | e;
             }
-            let e = Vec3_Validate(v.n);
+            let e = validate_vec3(v.n);
             if e != 0 {
                 return 0x800000 | e;
             }
-            let e = Vec2_Validate(v.uv);
+            let e = validate_vec2(v.uv);
             if e != 0 {
                 return 0x1000000 | e;
             }
@@ -590,27 +591,27 @@ impl Mesh {
     }
 
     pub fn rotate_x(&mut self, rads: f32) -> &mut Mesh {
-        let matrix = Matrix_RotationX(rads);
-        self.transform(matrix.as_ref());
+        let matrix = Matrix::rotation_x(rads);
+        self.transform(&matrix);
         self
     }
 
     pub fn rotate_y(&mut self, rads: f32) -> &mut Mesh {
-        let matrix = Matrix_RotationY(rads);
-        self.transform(matrix.as_ref());
+        let matrix = Matrix::rotation_y(rads);
+        self.transform(&matrix);
         self
     }
 
     pub fn rotate_z(&mut self, rads: f32) -> &mut Mesh {
-        let matrix = Matrix_RotationZ(rads);
-        self.transform(matrix.as_ref());
+        let matrix = Matrix::rotation_z(rads);
+        self.transform(&matrix);
         self
     }
 
     #[bind(name = "RotateYPR")]
     pub fn rotate_ypr(&mut self, yaw: f32, pitch: f32, roll: f32) -> &mut Mesh {
-        let matrix = Matrix_YawPitchRoll(yaw, pitch, roll);
-        self.transform(matrix.as_ref());
+        let matrix = Matrix::yaw_pitch_roll(yaw, pitch, roll);
+        self.transform(&matrix);
         self
     }
 

@@ -45,6 +45,7 @@ impl GlState {
                 unreachable!()
             };
 
+            #[allow(unsafe_code)] // TODO: remove
             let surface = unsafe {
                 config
                     .display()
@@ -212,6 +213,7 @@ impl WinitWindow {
                     .map(|wh| wh.as_raw()),
             );
 
+        #[allow(unsafe_code)] // TODO: remove
         let gl_context = unsafe {
             gl_display
                 .create_context(&gl_config, &context_attributes)

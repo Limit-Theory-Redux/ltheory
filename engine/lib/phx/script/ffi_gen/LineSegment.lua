@@ -3,7 +3,18 @@
 local Loader = {}
 
 function Loader.declareType()
-    return 0, 'LineSegment'
+    ffi.cdef [[
+        typedef struct LineSegment {
+            double p0x;
+            double p0y;
+            double p0z;
+            double p1x;
+            double p1y;
+            double p1z;
+        } LineSegment;
+    ]]
+
+    return 1, 'LineSegment'
 end
 
 function Loader.defineType()
@@ -13,16 +24,19 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void LineSegment_Free     (LineSegment*);
-            void LineSegment_ToRay    (LineSegment const*, Ray* out);
-            void LineSegment_FromRay  (Ray const* ray, LineSegment* out);
-            cstr LineSegment_ToString (LineSegment const*);
+            void         LineSegment_Free     (LineSegment*);
+            Ray*         LineSegment_ToRay    (LineSegment const*);
+            LineSegment* LineSegment_FromRay  (Ray const* ray);
+            cstr         LineSegment_ToString (LineSegment const*);
         ]]
     end
 
     do -- Global Symbol Table
         LineSegment = {
-            FromRay  = libphx.LineSegment_FromRay,
+            FromRay  = function(ray)
+                local _instance = libphx.LineSegment_FromRay(ray)
+                return Core.ManagedObject(_instance, libphx.LineSegment_Free)
+            end,
         }
 
         local mt = {
@@ -39,7 +53,10 @@ function Loader.defineType()
             __tostring = function(self) return ffi.string(libphx.LineSegment_ToString(self)) end,
             __index = {
                 clone    = function(x) return LineSegment_t(x) end,
-                toRay    = libphx.LineSegment_ToRay,
+                toRay    = function(self)
+                    local _instance = libphx.LineSegment_ToRay(self)
+                    return Core.ManagedObject(_instance, libphx.Ray_Free)
+                end,
                 toString = libphx.LineSegment_ToString,
             },
         }
