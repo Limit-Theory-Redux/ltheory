@@ -10,14 +10,10 @@ function WorkerBench:onInit()
     Profiler.Enable()
     Profiler.Begin('WorkerBench')
 
-    ---@class WorkerId
-    ---@field TestWorker integer Enum for the TestWorker worker
-    WorkerId.Register({ "TestWorker" })
-
-    TaskQueue:startWorker(WorkerId.TestWorker, "TestWorker", "script/States/App/Tests/Workers/TestWorkerFunction.lua", instancesCount)
+    local workerId = TaskQueue:startWorker("TestWorker", "script/States/App/Tests/TestWorkerFunction.lua", instancesCount)
 
     for i = 1, messagesCount do
-        local taskId = TaskQueue:sendTask(WorkerId.TestWorker, "TestPayload")
+        local taskId = TaskQueue:sendTask(workerId, "TestPayload")
         table.insert(taskIds, taskId)
         -- Log.Debug("New task: " .. tostring(taskId))
     end
@@ -25,7 +21,7 @@ function WorkerBench:onInit()
     Log.Debug("Messages sent: " .. #taskIds)
 
     while #taskIds > 0 do
-        local taskId, _ = TaskQueue:nextTaskResult(WorkerId.TestWorker)
+        local taskId, _ = TaskQueue:nextTaskResult(workerId)
         if taskId ~= nil then
             -- Log.Debug("Received: " .. tostring(taskId))
             table.removeValue(taskIds, taskId)
@@ -36,6 +32,7 @@ function WorkerBench:onInit()
     TaskQueue:stopAllWorkers()
 
     Profiler.End()
+    Profiler.LoopMarker()
     Profiler.Disable()
 
     Log.Info("WorkerBench:onInit: End")

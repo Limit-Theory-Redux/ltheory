@@ -17,25 +17,26 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void       TimeStamp_Free          (TimeStamp*);
-            TimeStamp* TimeStamp_Now           ();
-            TimeStamp* TimeStamp_GetFuture     (double seconds);
-            double     TimeStamp_GetDifference (TimeStamp const*, TimeStamp const* endTime);
-            double     TimeStamp_GetElapsed    (TimeStamp const*);
-            double     TimeStamp_GetElapsedMs  (TimeStamp const*);
-            TimeStamp* TimeStamp_GetRelative   (TimeStamp const*, double seconds);
-            double     TimeStamp_ToDouble      (TimeStamp const*);
-            uint64     TimeStamp_ToSeconds     (TimeStamp const*);
+            void       TimeStamp_Free           (TimeStamp*);
+            TimeStamp* TimeStamp_Now            ();
+            TimeStamp* TimeStamp_GetFuture      (double seconds);
+            double     TimeStamp_GetDifference  (TimeStamp const*, TimeStamp const* endTime);
+            double     TimeStamp_GetElapsed     (TimeStamp const*);
+            double     TimeStamp_GetElapsedMs   (TimeStamp const*);
+            TimeStamp* TimeStamp_GetRelative    (TimeStamp const*, double seconds);
+            double     TimeStamp_ToDouble       (TimeStamp const*);
+            uint64     TimeStamp_ToSeconds      (TimeStamp const*);
+            uint32     TimeStamp_ToSubsecMillis (TimeStamp const*);
         ]]
     end
 
     do -- Global Symbol Table
         TimeStamp = {
-            Now           = function()
+            Now            = function()
                 local _instance = libphx.TimeStamp_Now()
                 return Core.ManagedObject(_instance, libphx.TimeStamp_Free)
             end,
-            GetFuture     = function(seconds)
+            GetFuture      = function(seconds)
                 local _instance = libphx.TimeStamp_GetFuture(seconds)
                 return Core.ManagedObject(_instance, libphx.TimeStamp_Free)
             end,
@@ -49,15 +50,16 @@ function Loader.defineType()
         local t  = ffi.typeof('TimeStamp')
         local mt = {
             __index = {
-                getDifference = libphx.TimeStamp_GetDifference,
-                getElapsed    = libphx.TimeStamp_GetElapsed,
-                getElapsedMs  = libphx.TimeStamp_GetElapsedMs,
-                getRelative   = function(self, seconds)
+                getDifference  = libphx.TimeStamp_GetDifference,
+                getElapsed     = libphx.TimeStamp_GetElapsed,
+                getElapsedMs   = libphx.TimeStamp_GetElapsedMs,
+                getRelative    = function(self, seconds)
                     local _instance = libphx.TimeStamp_GetRelative(self, seconds)
                     return Core.ManagedObject(_instance, libphx.TimeStamp_Free)
                 end,
-                toDouble      = libphx.TimeStamp_ToDouble,
-                toSeconds     = libphx.TimeStamp_ToSeconds,
+                toDouble       = libphx.TimeStamp_ToDouble,
+                toSeconds      = libphx.TimeStamp_ToSeconds,
+                toSubsecMillis = libphx.TimeStamp_ToSubsecMillis,
             },
         }
 

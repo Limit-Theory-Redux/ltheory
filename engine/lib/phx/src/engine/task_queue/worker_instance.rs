@@ -15,6 +15,7 @@ pub struct WorkerInstance {
 
 impl WorkerInstance {
     /// Creates custom worker instance.
+    /// Creates worker thread that calls provided function.
     pub fn new<F, IN, OUT>(
         id: usize,
         worker_name: &str,

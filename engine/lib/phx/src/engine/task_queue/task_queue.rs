@@ -59,6 +59,7 @@ impl TaskQueue {
 #[luajit_ffi_gen::luajit_ffi]
 impl TaskQueue {
     /// Start Lua worker with provided script file.
+    /// @overload fun(self: table, workerName: string, scriptPath: string, instancesCount: integer): integer
     pub fn start_worker(
         &mut self,
         worker_id: u16,

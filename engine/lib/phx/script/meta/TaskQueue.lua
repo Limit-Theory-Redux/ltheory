@@ -8,11 +8,7 @@
 TaskQueue = {}
 
 -- Start Lua worker with provided script file.
----@param workerId integer
----@param workerName string
----@param scriptPath string
----@param instancesCount integer
----@return boolean
+---@overload fun(self: table, workerName: string, scriptPath: string, instancesCount: integer): integer
 function TaskQueue:startWorker(workerId, workerName, scriptPath, instancesCount) end
 
 -- Stop Lua worker and remove it from the queue.

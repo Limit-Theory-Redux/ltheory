@@ -14,6 +14,7 @@
 .idea/
 .vs/
 .vscode/
+.zed/
 cmake-build-*/
 
 ## OS Junk files

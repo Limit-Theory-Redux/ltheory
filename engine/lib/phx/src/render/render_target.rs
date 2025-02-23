@@ -41,7 +41,7 @@ unsafe extern "C" fn SetDrawBuffers(count: i32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_Push(sx: i32, sy: i32) {
-    Profiler_Begin(c_str!("RenderTarget_Push"));
+    Profiler::begin("RenderTarget_Push");
 
     if FBO_INDEX + 1 >= 16 {
         panic!("RenderTarget_Push: Maximum stack depth exceeded");
@@ -63,12 +63,12 @@ pub unsafe extern "C" fn RenderTarget_Push(sx: i32, sy: i32) {
 
     Viewport_Push(0, 0, sx, sy, false);
 
-    Profiler_End();
+    Profiler::end();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_Pop() {
-    Profiler_Begin(c_str!("RenderTarget_Pop"));
+    Profiler::begin("RenderTarget_Pop");
 
     if FBO_INDEX < 0 {
         panic!("RenderTarget_Pop: Attempting to pop an empty stack");
@@ -110,7 +110,7 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
 
     Viewport_Pop();
 
-    Profiler_End();
+    Profiler::end();
 }
 
 #[no_mangle]
