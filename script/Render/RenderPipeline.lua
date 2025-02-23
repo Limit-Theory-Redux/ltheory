@@ -2,7 +2,7 @@ local Cache = require('Render.Cache')
 
 -- TODO JP : Refactor all of this monolithic nonsense into RenderPass objects.
 
-local RenderPipeline = class(function(self)
+local RenderPipeline = Class("RenderPipeline", function(self)
     self.ds = 4
 end)
 
@@ -160,15 +160,15 @@ function RenderPipeline:presentAll(x, y, sx, sy)
     shader:setTex2D("src", self.buffer0)
     Draw.Rect(x, y + sy / 2, sx / 2, -sy / 2)
 
-    Shader.ResetTexIndex()
+    shader:resetTexIndex()
     shader:setTex2D("src", self.buffer1)
     Draw.Rect(x + sx / 2, y + sy / 2, sx / 2, -sy / 2)
 
-    Shader.ResetTexIndex()
+    shader:resetTexIndex()
     shader:setTex2D("src", self.buffer2)
     Draw.Rect(x, y + sy, sx / 2, -sy / 2)
 
-    Shader.ResetTexIndex()
+    shader:resetTexIndex()
     shader:setTex2D("src", self.zBufferL)
     Draw.Rect(x + sx / 2, y + sy, sx / 2, -sy / 2)
 
