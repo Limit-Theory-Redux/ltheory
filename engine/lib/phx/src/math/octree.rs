@@ -216,9 +216,7 @@ impl Octree {
             elem = node.next.as_ref();
         }
         for child in self.child.iter_mut().flatten() {
-            unsafe {
-                Octree_Draw(child);
-            }
+            child.draw();
         }
     }
 }

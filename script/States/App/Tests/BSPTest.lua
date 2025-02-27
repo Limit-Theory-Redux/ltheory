@@ -277,7 +277,6 @@ function BSPTest:onInit()
         --bspTimer:free() bspTimer = 0
         --bspFile:close() bspFile = 0
 
-        rng:gree()
         BSPDebug.PrintSphereProfilingData(bsp.bsp, t)
     end
 end

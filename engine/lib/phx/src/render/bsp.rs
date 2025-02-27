@@ -441,10 +441,10 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 // BSP_PROFILE(self->profilingData.ray.triangles++;)
 
                 let mut t: f32 = 0.;
-                //if (Intersect_RayTriangle_Barycentric(ray, triangle, tEpsilon, &t)) {
+                // if (Intersect::ray_triangle_barycentric(ray, triangle, tEpsilon, &t)) {
                 if Intersect::ray_triangle_moller1(&ray, triangle, &mut t) {
-                    //if (Intersect_RayTriangle_Moller2(ray, triangle, &t)) {
-                    //if (Intersect_RayTriangle_Badouel(ray, triangle, tEpsilon, &t)) {
+                    // if (Intersect::ray_triangle_moller2(ray, triangle, &t)) {
+                    // if (Intersect::ray_triangle_badouel(ray, triangle, tEpsilon, &t)) {
                     if !hit || t < *tHit {
                         hit = true;
                         *tHit = t;
@@ -550,7 +550,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                 // BSP_PROFILE(self->profilingData.sphere.triangles++;)
 
                 let mut pHit2 = Vec3::ZERO;
-                if Intersect_SphereTriangle(sphere, triangle, &mut pHit2) {
+                if Intersect::sphere_triangle(sphere, triangle, &mut pHit2) {
                     hit = true;
                     *pHit = pHit2;
                     break;
@@ -1587,7 +1587,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 (*sphereProf).triangles += 1;
 
                 let mut pHit2 = Vec3::ZERO;
-                if Intersect_SphereTriangle(sphere, triangle, &mut pHit2) {
+                if Intersect::sphere_triangle(sphere, triangle, &mut pHit2) {
                     let t: TriangleTest = TriangleTest {
                         triangle,
                         hit: true,

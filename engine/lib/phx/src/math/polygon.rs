@@ -160,7 +160,7 @@ impl Polygon {
                     front.vertices.push(Vec3::ZERO);
                     back.vertices.push(Vec3::ZERO);
 
-                    // let hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
+                    // let hit: bool = Intersect::line_segment_plane(&mut lineSegment, &splitPlane, &mut i);
                     // Assert(hit); UNUSED(hit);
                     // Assert(Plane_ClassifyPoint(&splitPlane, &i) == PointClassification_Coplanar);
                 }
@@ -171,7 +171,7 @@ impl Polygon {
                     front.vertices.push(Vec3::ZERO);
                     back.vertices.push(Vec3::ZERO);
 
-                    // let hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
+                    // let hit: bool = Intersect::line_segment_plane(&mut lineSegment, &splitPlane, &mut i);
                     // Assert(hit); UNUSED(hit);
                     // Assert(Plane_ClassifyPoint(&splitPlane, &i) == PointClassification_Coplanar);
                 } else if a_side == PointClassification::Coplanar {
