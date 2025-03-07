@@ -6,6 +6,10 @@ authors.workspace = true
 license.workspace = true
 edition.workspace = true
 
+[features]
+# Enable FFI wrapper functions call logging
+log_ffi_calls = []
+
 [lib]
 proc-macro = true
 

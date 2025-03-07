@@ -77,10 +77,15 @@ impl ImplInfo {
         // Generate function body.
         let func_body = self.gen_wrapper_body(&self_ident, method);
 
+        #[cfg(feature = "log_ffi_calls")]
+        let ffi_call_log = quote! {tracing::trace!("Calling: {}", #func_name);};
+        #[cfg(not(feature = "log_ffi_calls"))]
+        let ffi_call_log = quote! {};
+
         quote! {
             #[no_mangle]
             pub unsafe extern "C-unwind" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
-                tracing::trace!("Calling: {}", #func_name);
+                #ffi_call_log
 
                 #func_body
             }
