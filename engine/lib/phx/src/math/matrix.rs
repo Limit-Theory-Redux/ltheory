@@ -24,6 +24,11 @@ impl std::ops::Deref for Matrix {
 
 #[luajit_ffi_gen::luajit_ffi(clone = true, typedef = "float m[16];")]
 impl Matrix {
+    #[bind(name = "Clone")]
+    pub fn clone_matrix(&self) -> Self {
+        self.clone()
+    }
+
     pub fn equal(&self, other: &Matrix) -> bool {
         self.0 == other.0
     }

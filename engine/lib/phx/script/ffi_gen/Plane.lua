@@ -43,6 +43,10 @@ function Loader.defineType()
             end,
         }
 
+        local mt = {
+            __call = function(t, ...) return Plane_t(...) end,
+        }
+
         if onDef_Plane then onDef_Plane(Plane, mt) end
         Plane = setmetatable(Plane, mt)
     end
@@ -51,6 +55,7 @@ function Loader.defineType()
         local t  = ffi.typeof('Plane')
         local mt = {
             __index = {
+                clone           = function(x) return Plane_t(x) end,
                 classifyPoint   = function(self, p)
                     local _instance = libphx.Plane_ClassifyPoint(self, p)
                     return Core.ManagedObject(_instance, libphx.PointClassification_Free)

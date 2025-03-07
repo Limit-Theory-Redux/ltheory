@@ -7,7 +7,7 @@ pub struct Triangle {
     pub vertices: [Vec3; 3],
 }
 
-#[luajit_ffi_gen::luajit_ffi(typedef = "Vec3f vertices[3];")]
+#[luajit_ffi_gen::luajit_ffi(clone = true, typedef = "Vec3f vertices[3];")]
 impl Triangle {
     pub fn to_plane(&self) -> Plane {
         let v = &self.vertices;

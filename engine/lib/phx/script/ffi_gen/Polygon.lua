@@ -34,6 +34,10 @@ function Loader.defineType()
     do -- Global Symbol Table
         Polygon = {}
 
+        local mt = {
+            __call = function(t, ...) return Polygon_t(...) end,
+        }
+
         if onDef_Polygon then onDef_Polygon(Polygon, mt) end
         Polygon = setmetatable(Polygon, mt)
     end
@@ -42,6 +46,7 @@ function Loader.defineType()
         local t  = ffi.typeof('Polygon')
         local mt = {
             __index = {
+                clone       = function(x) return Polygon_t(x) end,
                 toPlane     = function(self)
                     local _instance = libphx.Polygon_ToPlane(self)
                     return Core.ManagedObject(_instance, libphx.Plane_Free)

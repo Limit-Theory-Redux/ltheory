@@ -30,6 +30,10 @@ function Loader.defineType()
     do -- Global Symbol Table
         Triangle = {}
 
+        local mt = {
+            __call = function(t, ...) return Triangle_t(...) end,
+        }
+
         if onDef_Triangle then onDef_Triangle(Triangle, mt) end
         Triangle = setmetatable(Triangle, mt)
     end
@@ -38,6 +42,7 @@ function Loader.defineType()
         local t  = ffi.typeof('Triangle')
         local mt = {
             __index = {
+                clone       = function(x) return Triangle_t(x) end,
                 toPlane     = function(self)
                     local _instance = libphx.Triangle_ToPlane(self)
                     return Core.ManagedObject(_instance, libphx.Plane_Free)

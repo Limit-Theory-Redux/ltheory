@@ -25,11 +25,14 @@ pub enum PolygonClassification {
     Straddling = 4,
 }
 
-#[luajit_ffi_gen::luajit_ffi(typedef = "
-    float nx;
-    float ny;
-    float nz;
-    float d;")]
+#[luajit_ffi_gen::luajit_ffi(
+    clone = true,
+    typedef = "
+        float nx;
+        float ny;
+        float nz;
+        float d;"
+)]
 impl Plane {
     pub fn classify_point(&self, p: &Vec3) -> PointClassification {
         // let _magnitude = f64::abs((1.0 - self.n.length()) as f64) as f32;

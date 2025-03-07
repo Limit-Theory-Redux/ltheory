@@ -4,6 +4,9 @@
 ---@class Matrix
 Matrix = {}
 
+---@return Matrix
+function Matrix:clone() end
+
 ---@param other Matrix
 ---@return boolean
 function Matrix:equal(other) end

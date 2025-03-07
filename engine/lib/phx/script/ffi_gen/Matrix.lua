@@ -20,6 +20,7 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void    Matrix_Free               (Matrix*);
+            Matrix* Matrix_Clone              (Matrix const*);
             bool    Matrix_Equal              (Matrix const*, Matrix const* other);
             bool    Matrix_ApproximatelyEqual (Matrix const*, Matrix const* other);
             Matrix* Matrix_Inverse            (Matrix const*);
@@ -143,6 +144,10 @@ function Loader.defineType()
             __tostring = function(self) return ffi.string(libphx.Matrix_ToString(self)) end,
             __index = {
                 clone              = function(x) return Matrix_t(x) end,
+                clone              = function(self)
+                    local _instance = libphx.Matrix_Clone(self)
+                    return Core.ManagedObject(_instance, libphx.Matrix_Free)
+                end,
                 equal              = libphx.Matrix_Equal,
                 approximatelyEqual = libphx.Matrix_ApproximatelyEqual,
                 inverse            = function(self)

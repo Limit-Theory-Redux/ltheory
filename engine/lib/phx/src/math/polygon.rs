@@ -7,10 +7,13 @@ pub struct Polygon {
     pub vertices: Vec<Vec3>,
 }
 
-#[luajit_ffi_gen::luajit_ffi(typedef = "
-    int32         vertices_size;
-    int32         vertices_capacity;
-    struct Vec3f* vertices_data;")]
+#[luajit_ffi_gen::luajit_ffi(
+    clone = true,
+    typedef = "
+        int32         vertices_size;
+        int32         vertices_capacity;
+        struct Vec3f* vertices_data;"
+)]
 impl Polygon {
     pub fn to_plane(&self) -> Plane {
         let mut v_cur = self.vertices[self.vertices.len() - 1].as_dvec3();
