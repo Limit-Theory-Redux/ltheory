@@ -610,9 +610,9 @@ impl RigidBody {
     ///
     /// This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
     pub fn get_to_world_matrix(&self, camera_pos: &Position) -> Matrix {
-        (*Matrix::from_rp(&self.get_world_transform_unscaled(), camera_pos)
-            * Mat4::from_scale(Vec3::splat(self.get_scale())))
-        .into()
+        let m1 = Matrix::from_rp(&self.get_world_transform_unscaled(), camera_pos);
+        let m2 = Matrix::from(Mat4::from_scale(Vec3::splat(self.get_scale())));
+        m1.product(&m2)
     }
 
     /// Returns the world -> local matrix for this rigid body.

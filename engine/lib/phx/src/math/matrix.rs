@@ -14,11 +14,9 @@ impl From<Mat4> for Matrix {
     }
 }
 
-impl std::ops::Deref for Matrix {
-    type Target = Mat4;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl Matrix {
+    pub fn transform_point3(&self, rhs: Vec3) -> Vec3 {
+        self.0.transform_point3(rhs)
     }
 }
 
