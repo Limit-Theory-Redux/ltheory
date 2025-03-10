@@ -95,7 +95,6 @@ function LTheory:generate()
             local ship = self.system:spawnShip(Enums.ShipHulls.Solo, nil)
             local mat = Matrix.YawPitchRoll(0, 0, math.pi / 4)
             local rot = mat:toQuat()
-            mat:free()
             ship:setPos(Position(0, 40, -100))
             ship:setRot(rot)
             if boundingTest then
@@ -204,7 +203,6 @@ function LTheory:onInput()
             if Input:isPressed(Button.KeyboardR) then ypr.x = ypr.x + math.pi / 10 end
             local mat = Matrix.YawPitchRoll(ypr.y, ypr.x, ypr.z)
             local rot = mat:toQuat()
-            mat:free()
             local parent = asteroid:getParentBody()
             if parent == nil then
                 asteroid:setRot(rot * asteroid:getRot());
