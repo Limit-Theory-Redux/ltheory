@@ -30,7 +30,7 @@ impl WorkerInstance {
         F: Send + Sync + 'static,
     {
         let worker_name_copy = worker_name.to_string();
-        let handle = thread::spawn(move || {
+        let handle = thread::Builder::new().name(format!("LTR-{worker_name}")).spawn(move || {
             let res = f(in_receiver, out_sender);
 
             if let Err(err) = &res {
@@ -38,7 +38,7 @@ impl WorkerInstance {
             }
 
             res
-        });
+        }).unwrap_or_else(|_| panic!("Cannot spawn worker thread: {worker_name}"));
 
         Self {
             id,
