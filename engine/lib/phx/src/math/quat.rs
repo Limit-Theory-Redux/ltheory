@@ -9,7 +9,7 @@ pub struct Quat(glam::Quat);
 
 impl Quat {
     fn _canonicalize(&self) -> glam::Quat {
-        let value: f32 = if !approximately_equal(self.0.w, 0.0) {
+        let value = if !approximately_equal(self.0.w, 0.0) {
             self.0.w
         } else if !approximately_equal(self.0.z, 0.0) {
             self.0.z
@@ -207,7 +207,7 @@ impl Quat {
 
     pub fn validate(&self) -> Error {
         let mut e = 0 as Error;
-        e |= validate_f64(self.0.x as f64);
+        e |= validate_f64(self.0.x as f64); // TODO: what is the reason to cast to f64 if there is validatef for f32?
         e |= validate_f64(self.0.y as f64);
         e |= validate_f64(self.0.z as f64);
         e |= validate_f64(self.0.w as f64);

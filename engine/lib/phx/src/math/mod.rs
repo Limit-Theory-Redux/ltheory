@@ -76,6 +76,7 @@ pub fn validatef(x: f32) -> Error {
 
 #[inline]
 pub fn validate_f64(x: f64) -> Error {
+    // TODO: this condition is always false, what is the point in it? Bad conversion from C?
     let classification = if std::mem::size_of::<f64>() as libc::c_ulong
         == std::mem::size_of::<f32>() as libc::c_ulong
     {

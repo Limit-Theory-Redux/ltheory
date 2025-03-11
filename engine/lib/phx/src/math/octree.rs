@@ -137,7 +137,7 @@ impl Octree {
             upper: Vec3::ZERO,
         };
         mesh.get_bound(&mut mesh_box);
-        let mut this = Octree::new(mesh_box);
+        let mut this = Self::new(mesh_box);
 
         let index_data = mesh.get_index_data();
         let vertex_data = mesh.get_vertex_data();
@@ -190,7 +190,7 @@ impl Octree {
         memory
     }
 
-    pub fn intersect_ray(&self, matrix: &mut Matrix, ro: &Vec3, rd: &Vec3) -> bool {
+    pub fn intersect_ray(&self, matrix: &Matrix, ro: &Vec3, rd: &Vec3) -> bool {
         let inv = matrix.inverse();
         let inv_ro = inv.mul_point(ro);
         let inv_rd = inv.mul_dir(rd);

@@ -77,7 +77,7 @@ impl Plane {
 
     pub fn validate(&self) -> Error {
         let mut e = 0 as Error;
-        e |= validate_f64(self.d as f64);
+        e |= validate_f64(self.d as f64); // TODO: whay cast to f64? There is validatef method for f32
         e |= validate_vec3(self.n);
         e
     }

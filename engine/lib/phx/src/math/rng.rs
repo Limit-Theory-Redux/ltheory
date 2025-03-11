@@ -1,8 +1,10 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use glam::{Quat, Vec2, Vec3, Vec4};
+use glam::{Vec2, Vec3, Vec4};
 
 use crate::system::TimeStamp;
+
+use super::Quat;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -16,14 +18,14 @@ impl Rng {
     fn random_split_mix64(state: &mut u64) -> u64 {
         *state = (*state).wrapping_add(0x9e3779b97f4a7c15);
         let mut z = *state;
-        z = (z ^ z >> 30).wrapping_mul(0xbf58476d1ce4e5b9);
-        z = (z ^ z >> 27).wrapping_mul(0x94d049bb133111eb);
-        z ^ z >> 31
+        z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
+        z ^ (z >> 31)
     }
 
     #[inline]
     fn rotl(x: u64, k: i32) -> u64 {
-        x << k | x >> (64 - k)
+        (x << k) | (x >> (64 - k))
     }
 
     #[inline]
@@ -151,38 +153,40 @@ impl Rng {
         f64::cos(angle) * f64::sqrt(-2.0 * f64::ln(radius))
     }
 
-    pub fn get_axis2(&mut self, out: &mut Vec2) {
-        *out = Vec2::ZERO;
+    #[bind(out_param = true)]
+    pub fn get_axis2(&mut self) -> Vec2 {
         let axis = self.get_int(0, 3);
         match axis {
-            0 => out.x = 1.0,
-            1 => out.x = -1.0,
-            2 => out.y = 1.0,
-            3 => out.y = -1.0,
-            _ => {}
+            0 => Vec2::new(1.0, 0.0),
+            1 => Vec2::new(-1.0, 0.0),
+            2 => Vec2::new(0.0, 1.0),
+            3 => Vec2::new(0.0, -1.0),
+            _ => Vec2::ZERO,
         }
     }
 
-    pub fn get_axis3(&mut self, out: &mut Vec3) {
-        *out = Vec3::ZERO;
+    #[bind(out_param = true)]
+    pub fn get_axis3(&mut self) -> Vec3 {
         let axis = self.get_int(0, 5);
         match axis {
-            0 => out.x = 1.0,
-            1 => out.x = -1.0,
-            2 => out.y = 1.0,
-            3 => out.y = -1.0,
-            4 => out.z = 1.0,
-            5 => out.z = -1.0,
-            _ => {}
+            0 => Vec3::new(1.0, 0.0, 0.0),
+            1 => Vec3::new(-1.0, 0.0, 0.0),
+            2 => Vec3::new(0.0, 1.0, 0.0),
+            3 => Vec3::new(0.0, -1.0, 0.0),
+            4 => Vec3::new(0.0, 0.0, 1.0),
+            5 => Vec3::new(0.0, 0.0, -1.0),
+            _ => Vec3::ZERO,
         }
     }
 
-    pub fn get_dir2(&mut self, out: &mut Vec2) {
+    #[bind(out_param = true)]
+    pub fn get_dir2(&mut self) -> Vec2 {
         let angle = self.get_angle();
-        *out = Vec2::new(f64::cos(angle) as f32, f64::sin(angle) as f32);
+        Vec2::new(f64::cos(angle) as f32, f64::sin(angle) as f32)
     }
 
-    pub fn get_dir3(&mut self, out: &mut Vec3) {
+    #[bind(out_param = true)]
+    pub fn get_dir3(&mut self) -> Vec3 {
         loop {
             let x = 2.0 * self.get_uniform() - 1.0;
             let y = 2.0 * self.get_uniform() - 1.0;
@@ -190,22 +194,18 @@ impl Rng {
             let mut m2 = x * x + y * y + z * z;
             if m2 <= 1.0 && m2 > 1e-6 {
                 m2 = f64::sqrt(m2);
-                out.x = (x / m2) as f32;
-                out.y = (y / m2) as f32;
-                out.z = (z / m2) as f32;
-                return;
+                return Vec3::new((x / m2) as f32, (y / m2) as f32, (z / m2) as f32);
             }
         }
     }
 
-    pub fn get_disc(&mut self, out: &mut Vec2) {
+    #[bind(out_param = true)]
+    pub fn get_disc(&mut self) -> Vec2 {
         loop {
             let x = 2.0 * self.get_uniform() - 1.0;
             let y = 2.0 * self.get_uniform() - 1.0;
             if x * x + y * y <= 1.0 {
-                out.x = x as f32;
-                out.y = y as f32;
-                return;
+                return Vec2::new(x as f32, y as f32);
             }
         }
     }
@@ -218,49 +218,58 @@ impl Rng {
         }
     }
 
-    pub fn get_sphere(&mut self, out: &mut Vec3) {
+    #[bind(out_param = true)]
+    pub fn get_sphere(&mut self) -> Vec3 {
         loop {
             let x = 2.0 * self.get_uniform() - 1.0;
             let y = 2.0 * self.get_uniform() - 1.0;
             let z = 2.0 * self.get_uniform() - 1.0;
             if x * x + y * y + z * z <= 1.0 {
-                out.x = x as f32;
-                out.y = y as f32;
-                out.z = z as f32;
-                return;
+                return Vec3::new(x as f32, y as f32, z as f32);
             }
         }
     }
 
-    pub fn get_vec2(&mut self, out: &mut Vec2, lower: f64, upper: f64) {
-        out.x = self.get_uniform_range(lower, upper) as f32;
-        out.y = self.get_uniform_range(lower, upper) as f32;
+    #[bind(out_param = true)]
+    pub fn get_vec2(&mut self, lower: f64, upper: f64) -> Vec2 {
+        Vec2::new(
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+        )
     }
 
-    pub fn get_vec3(&mut self, out: &mut Vec3, lower: f64, upper: f64) {
-        out.x = self.get_uniform_range(lower, upper) as f32;
-        out.y = self.get_uniform_range(lower, upper) as f32;
-        out.z = self.get_uniform_range(lower, upper) as f32;
+    #[bind(out_param = true)]
+    pub fn get_vec3(&mut self, lower: f64, upper: f64) -> Vec3 {
+        Vec3::new(
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+        )
     }
 
-    pub fn get_vec4(&mut self, out: &mut Vec4, lower: f64, upper: f64) {
-        out.x = self.get_uniform_range(lower, upper) as f32;
-        out.y = self.get_uniform_range(lower, upper) as f32;
-        out.z = self.get_uniform_range(lower, upper) as f32;
-        out.w = self.get_uniform_range(lower, upper) as f32;
+    #[bind(out_param = true)]
+    pub fn get_vec4(&mut self, lower: f64, upper: f64) -> Vec4 {
+        Vec4::new(
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+        )
     }
 
-    pub fn get_quat(&mut self, out: &mut Quat) {
-        let mut p0 = Vec2::ZERO;
-        let mut p1 = Vec2::ZERO;
-        self.get_disc(&mut p0);
-        self.get_disc(&mut p1);
+    #[bind(out_param = true)]
+    pub fn get_quat(&mut self) -> Quat {
+        let p0 = self.get_disc();
+        let p1 = self.get_disc();
         let d0 = p0.length_squared() as f64;
         let d1 = p1.length_squared() as f64 + f64::EPSILON;
         let s = f64::sqrt((1.0f64 - d0) / d1);
-        out.x = p0.y;
-        out.y = (p1.x as f64 * s) as f32;
-        out.z = (p1.y as f64 * s) as f32;
-        out.w = p0.x;
+
+        Quat::new(
+            p0.y,
+            (p1.x as f64 * s) as f32,
+            (p1.y as f64 * s) as f32,
+            p0.x,
+        )
     }
 }

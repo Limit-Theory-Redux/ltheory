@@ -59,42 +59,42 @@ function RNG:getExp() end
 ---@return number
 function RNG:getGaussian() end
 
----@param out Vec2f
-function RNG:getAxis2(out) end
+---@param result Vec2f [out]
+function RNG:getAxis2(result) end
 
----@param out Vec3f
-function RNG:getAxis3(out) end
+---@param result Vec3f [out]
+function RNG:getAxis3(result) end
 
----@param out Vec2f
-function RNG:getDir2(out) end
+---@param result Vec2f [out]
+function RNG:getDir2(result) end
 
----@param out Vec3f
-function RNG:getDir3(out) end
+---@param result Vec3f [out]
+function RNG:getDir3(result) end
 
----@param out Vec2f
-function RNG:getDisc(out) end
+---@param result Vec2f [out]
+function RNG:getDisc(result) end
 
 ---@return number
 function RNG:getSign() end
 
----@param out Vec3f
-function RNG:getSphere(out) end
+---@param result Vec3f [out]
+function RNG:getSphere(result) end
 
----@param out Vec2f
 ---@param lower number
 ---@param upper number
-function RNG:getVec2(out, lower, upper) end
+---@param result Vec2f [out]
+function RNG:getVec2(lower, upper, result) end
 
----@param out Vec3f
 ---@param lower number
 ---@param upper number
-function RNG:getVec3(out, lower, upper) end
+---@param result Vec3f [out]
+function RNG:getVec3(lower, upper, result) end
 
----@param out Vec4f
 ---@param lower number
 ---@param upper number
-function RNG:getVec4(out, lower, upper) end
+---@param result Vec4f [out]
+function RNG:getVec4(lower, upper, result) end
 
----@param out Quat
-function RNG:getQuat(out) end
+---@param result Quat [out]
+function RNG:getQuat(result) end
 

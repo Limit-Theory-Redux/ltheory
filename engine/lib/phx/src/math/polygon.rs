@@ -71,6 +71,7 @@ impl Polygon {
             for v_cur in &polygon_part.vertices {
                 let edge_len = v_cur.distance(v_prev);
                 if edge_len < 0.75 * 1e-4 {
+                    // code was extracted outside of the for loop to prevent borrow checker error
                     split = true;
                     break 'exit;
                 }
@@ -94,13 +95,10 @@ impl Polygon {
 
     pub fn get_centroid(&mut self) -> Vec3 {
         let mut centroid = Vec3::ZERO;
-
         for v in &self.vertices {
             centroid += *v;
         }
-        centroid /= self.vertices.len() as f32;
-
-        centroid
+        centroid / self.vertices.len() as f32
     }
 
     pub fn validate(&mut self) -> Error {

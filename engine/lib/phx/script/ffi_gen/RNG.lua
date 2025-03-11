@@ -41,9 +41,9 @@ function Loader.defineType()
             void   RNG_GetDisc         (RNG*, Vec2f* out);
             double RNG_GetSign         (RNG*);
             void   RNG_GetSphere       (RNG*, Vec3f* out);
-            void   RNG_GetVec2         (RNG*, Vec2f* out, double lower, double upper);
-            void   RNG_GetVec3         (RNG*, Vec3f* out, double lower, double upper);
-            void   RNG_GetVec4         (RNG*, Vec4f* out, double lower, double upper);
+            void   RNG_GetVec2         (RNG*, double lower, double upper, Vec2f* out);
+            void   RNG_GetVec3         (RNG*, double lower, double upper, Vec3f* out);
+            void   RNG_GetVec4         (RNG*, double lower, double upper, Vec4f* out);
             void   RNG_GetQuat         (RNG*, Quat* out);
         ]]
     end
