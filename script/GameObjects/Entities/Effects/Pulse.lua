@@ -33,7 +33,6 @@ Pulse:setInitializer(function(self)
 end)
 
 Pulse:addOnDestruct(function(self)
-    self.matrix = nil
     DecRef(self.source)
 end)
 

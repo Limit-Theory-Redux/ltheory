@@ -142,8 +142,6 @@ function Planet:render(state)
             local mScale = Matrix.Scaling(1.5, 1.5, 1.5)
             local mWorld = self:getToWorldMatrix(state.eye):product(mScale)
             shader:setMatrix('mWorld', mWorld)
-            mScale = nil
-            mWorld = nil
         end
 
         shader:setMatrixT('mWorldIT', self:getToLocalMatrix(state.eye))
