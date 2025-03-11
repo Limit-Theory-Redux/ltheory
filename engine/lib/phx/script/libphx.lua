@@ -102,13 +102,6 @@ do -- Transparent Structs
             int upperz;
         } Box3i;
 
-        typedef struct Sphere {
-            float px;
-            float py;
-            float pz;
-            float r;
-        } Sphere;
-
         typedef struct Time {
             int second;
             int minute;
@@ -216,7 +209,6 @@ do -- Transparent Structs
         'Box3d',
         'Box3f',
         'Box3i',
-        'Sphere',
         'Vec2d',
         'Vec2f',
         'Vec2i',

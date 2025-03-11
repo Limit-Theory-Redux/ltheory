@@ -11,6 +11,7 @@ mod position;
 mod quat;
 mod ray;
 mod rng;
+mod sphere;
 mod triangle;
 
 pub use bit::*;
@@ -26,16 +27,10 @@ pub use position::*;
 pub use quat::*;
 pub use ray::*;
 pub use rng::*;
+pub use sphere::*;
 pub use triangle::*;
 
 use crate::error::Error;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Sphere {
-    pub p: Vec3,
-    pub r: f32,
-}
 
 #[inline]
 pub fn lerp(a: f64, b: f64, t: f64) -> f64 {
