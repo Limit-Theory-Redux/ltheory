@@ -2,9 +2,8 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 
 use glam::{Vec2, Vec3, Vec4};
 
-use crate::system::TimeStamp;
-
 use super::Quat;
+use crate::system::TimeStamp;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
