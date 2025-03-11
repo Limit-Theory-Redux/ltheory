@@ -183,11 +183,6 @@ end
 --------------------------------------------------------------------------------
 
 function Camera:refreshMatrices()
-    self.mView = nil
-    self.mViewInv = nil
-    self.mProj = nil
-    self.mProjInv = nil
-
     self.pos = self.posOffset + self.posT
     self.rot = self.rotOffset * self.rotT
 

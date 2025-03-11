@@ -167,7 +167,7 @@ end
 
 function Entity:getRot()
     assert(self.body)
-    local rot = Quat.Identity()
+    local rot = Quat()
     self.body:getRot(rot)
     return rot
 end
@@ -323,7 +323,7 @@ end
 
 function Entity:toLocal(pos)
     assert(self.body)
-    local toLocal = self:getToLocalMatrix()
+    local toLocal = self:getToLocalMatrix(pos)
     return toLocal:mulPoint(pos:toVec3f())
 end
 
