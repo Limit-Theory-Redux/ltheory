@@ -102,6 +102,7 @@ do -- Transparent Structs
             int upperz;
         } Box3i;
 
+        typedef struct RigidBody RigidBody;
         typedef struct Collision {
             uint32     index;
             uint32     count;
@@ -241,10 +242,6 @@ do -- Transparent Structs
             double z;
         } Position;
 
-        typedef struct Triangle {
-          Vec3f vertices[3];
-        } Triangle;
-
         typedef struct TriangleTest {
           struct Triangle* triangle;
           bool             hit;
@@ -272,7 +269,6 @@ do -- Transparent Structs
         'Vertex',
         'Color',
         'Position',
-        'Triangle',
         'TriangleTest',
     }
 end
