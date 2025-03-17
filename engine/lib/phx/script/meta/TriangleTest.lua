@@ -4,3 +4,6 @@
 ---@class TriangleTest
 TriangleTest = {}
 
+---@return TriangleTest
+function TriangleTest.Create() end
+

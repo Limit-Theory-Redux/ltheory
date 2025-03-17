@@ -9,7 +9,7 @@ local viewModes   = {
     { CullFace.Back, false },
 }
 
-local sphereProf  = IntersectSphereProfiling()
+local sphereProf  = IntersectSphereProfiling.Create()
 local leafIndex   = 0
 local leafNodeRef = BSPNodeRef()
 leafNodeRef.index = 1

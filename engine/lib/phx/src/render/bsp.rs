@@ -257,7 +257,17 @@ pub struct IntersectSphereProfiling {
     int32                triangleTests_size;
     int32                triangleTests_capacity;
     struct TriangleTest* triangleTests_data;")]
-impl IntersectSphereProfiling {}
+impl IntersectSphereProfiling {
+    #[bind(name = "Create")]
+    pub fn new() -> Self {
+        Self {
+            nodes: 0,
+            leaves: 0,
+            triangles: 0,
+            triangleTests: vec![],
+        }
+    }
+}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -269,7 +279,15 @@ pub struct TriangleTest {
 #[luajit_ffi_gen::luajit_ffi(typedef = "
     struct Triangle* triangle;
     bool             hit;")]
-impl TriangleTest {}
+impl TriangleTest {
+    #[bind(name = "Create")]
+    pub fn new() -> Self {
+        Self {
+            triangle: std::ptr::null_mut(),
+            hit: false,
+        }
+    }
+}
 
 pub type BSPNodeRel = u8;
 

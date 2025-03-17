@@ -217,7 +217,7 @@ function LTheory:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
 
-    local collision = Collision()
+    local collision = Collision.Create()
     local collisions = {}
     while (self.system.physics:getNextCollision(collision)) do
         table.insert(collisions,

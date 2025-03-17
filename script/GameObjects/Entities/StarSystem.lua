@@ -322,7 +322,7 @@ function System:update(dt)
 
         Profiler.Begin('Physics Update')
         self.physics:update(dt)
-        local collision = Collision()
+        local collision = Collision.Create()
         while (self.physics:getNextCollision(collision)) do
             local entity1 = Entity.fromRigidBody(collision.body0)
             local entity2 = Entity.fromRigidBody(collision.body1)

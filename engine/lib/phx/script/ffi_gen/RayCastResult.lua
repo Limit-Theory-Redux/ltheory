@@ -24,8 +24,20 @@ function Loader.defineType()
     local libphx = require('libphx').lib
     local RayCastResult
 
+    do -- C Definitions
+        ffi.cdef [[
+            void           RayCastResult_Free   (RayCastResult*);
+            RayCastResult* RayCastResult_Create ();
+        ]]
+    end
+
     do -- Global Symbol Table
-        RayCastResult = {}
+        RayCastResult = {
+            Create = function()
+                local _instance = libphx.RayCastResult_Create()
+                return Core.ManagedObject(_instance, libphx.RayCastResult_Free)
+            end,
+        }
 
         if onDef_RayCastResult then onDef_RayCastResult(RayCastResult, mt) end
         RayCastResult = setmetatable(RayCastResult, mt)

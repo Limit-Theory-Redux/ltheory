@@ -4,3 +4,6 @@
 ---@class Collision
 Collision = {}
 
+---@return Collision
+function Collision.Create() end
+

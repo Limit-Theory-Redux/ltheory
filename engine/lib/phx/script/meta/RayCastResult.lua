@@ -4,3 +4,6 @@
 ---@class RayCastResult
 RayCastResult = {}
 
+---@return RayCastResult
+function RayCastResult.Create() end
+

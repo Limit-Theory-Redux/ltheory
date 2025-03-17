@@ -4,3 +4,6 @@
 ---@class IntersectSphereProfiling
 IntersectSphereProfiling = {}
 
+---@return IntersectSphereProfiling
+function IntersectSphereProfiling.Create() end
+

@@ -2,17 +2,17 @@ local libphx = require('libphx').lib
 
 function onDef_Physics_t(t, mt)
     mt.__index.rayCast    = function(self, ray)
-        local r = RayCastResult()
+        local r = RayCastResult.Create()
         libphx.Physics_RayCast(self, ray, r)
         return r
     end
     mt.__index.sphereCast = function(self, sphere)
-        local r = ShapeCastResult()
+        local r = ShapeCastResult.Create()
         libphx.Physics_SphereCast(self, sphere, r)
         return r
     end
     mt.__index.boxCast    = function(self, pos, rot, halfExtents)
-        local r = ShapeCastResult()
+        local r = ShapeCastResult.Create()
         libphx.Physics_BoxCast(self, pos, rot, halfExtents, r)
         return r
     end

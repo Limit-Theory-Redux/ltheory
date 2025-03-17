@@ -4,3 +4,6 @@
 ---@class ShapeCastResult
 ShapeCastResult = {}
 
+---@return ShapeCastResult
+function ShapeCastResult.Create() end
+

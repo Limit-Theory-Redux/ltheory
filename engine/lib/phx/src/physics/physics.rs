@@ -29,7 +29,17 @@ pub struct Collision {
         RigidBody* body0;
         RigidBody* body1;"
 )]
-impl Collision {}
+impl Collision {
+    #[bind(name = "Create")]
+    pub fn new() -> Self {
+        Self {
+            index: 0,
+            count: 0,
+            body0: std::ptr::null_mut(),
+            body1: std::ptr::null_mut(),
+        }
+    }
+}
 
 #[repr(C)]
 pub struct RayCastResult {
@@ -48,7 +58,17 @@ pub struct RayCastResult {
     double     posy;
     double     posz;
     float      t;")]
-impl RayCastResult {}
+impl RayCastResult {
+    #[bind(name = "Create")]
+    pub fn new() -> Self {
+        Self {
+            body: std::ptr::null_mut(),
+            norm: Vec3::ZERO,
+            pos: Position { v: DVec3::ZERO },
+            t: 0.0,
+        }
+    }
+}
 
 #[repr(C)]
 pub struct ShapeCastResult {
@@ -59,7 +79,15 @@ pub struct ShapeCastResult {
 #[luajit_ffi_gen::luajit_ffi(typedef = "
     RigidBody** hits;
     uint32      hits_len;")]
-impl ShapeCastResult {}
+impl ShapeCastResult {
+    #[bind(name = "Create")]
+    pub fn new() -> Self {
+        Self {
+            hits: std::ptr::null_mut(),
+            hits_len: 0,
+        }
+    }
+}
 
 impl ShapeCastResult {
     pub fn get_hits(&self) -> &[*mut RigidBody] {

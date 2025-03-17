@@ -18,8 +18,20 @@ function Loader.defineType()
     local libphx = require('libphx').lib
     local TriangleTest
 
+    do -- C Definitions
+        ffi.cdef [[
+            void          TriangleTest_Free   (TriangleTest*);
+            TriangleTest* TriangleTest_Create ();
+        ]]
+    end
+
     do -- Global Symbol Table
-        TriangleTest = {}
+        TriangleTest = {
+            Create = function()
+                local _instance = libphx.TriangleTest_Create()
+                return Core.ManagedObject(_instance, libphx.TriangleTest_Free)
+            end,
+        }
 
         if onDef_TriangleTest then onDef_TriangleTest(TriangleTest, mt) end
         TriangleTest = setmetatable(TriangleTest, mt)

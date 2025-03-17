@@ -18,8 +18,20 @@ function Loader.defineType()
     local libphx = require('libphx').lib
     local ShapeCastResult
 
+    do -- C Definitions
+        ffi.cdef [[
+            void             ShapeCastResult_Free   (ShapeCastResult*);
+            ShapeCastResult* ShapeCastResult_Create ();
+        ]]
+    end
+
     do -- Global Symbol Table
-        ShapeCastResult = {}
+        ShapeCastResult = {
+            Create = function()
+                local _instance = libphx.ShapeCastResult_Create()
+                return Core.ManagedObject(_instance, libphx.ShapeCastResult_Free)
+            end,
+        }
 
         if onDef_ShapeCastResult then onDef_ShapeCastResult(ShapeCastResult, mt) end
         ShapeCastResult = setmetatable(ShapeCastResult, mt)
