@@ -250,43 +250,11 @@ pub struct IntersectSphereProfiling {
     pub triangleTests: Vec<TriangleTest>,
 }
 
-#[luajit_ffi_gen::luajit_ffi(typedef = "
-    int32                nodes;
-    int32                leaves;
-    int32                triangles;
-    int32                triangleTests_size;
-    int32                triangleTests_capacity;
-    struct TriangleTest* triangleTests_data;")]
-impl IntersectSphereProfiling {
-    #[bind(name = "Create")]
-    pub fn new() -> Self {
-        Self {
-            nodes: 0,
-            leaves: 0,
-            triangles: 0,
-            triangleTests: vec![],
-        }
-    }
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct TriangleTest {
     pub triangle: *mut Triangle,
     pub hit: bool,
-}
-
-#[luajit_ffi_gen::luajit_ffi(typedef = "
-    struct Triangle* triangle;
-    bool             hit;")]
-impl TriangleTest {
-    #[bind(name = "Create")]
-    pub fn new() -> Self {
-        Self {
-            triangle: std::ptr::null_mut(),
-            hit: false,
-        }
-    }
 }
 
 pub type BSPNodeRel = u8;

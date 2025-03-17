@@ -102,6 +102,38 @@ do -- Transparent Structs
             int upperz;
         } Box3i;
 
+        typedef struct Collision {
+            uint32     index;
+            uint32     count;
+            RigidBody* body0;
+            RigidBody* body1;
+        } Collision;
+
+        typedef struct IntersectSphereProfiling {
+            int32                nodes;
+            int32                leaves;
+            int32                triangles;
+            int32                triangleTests_size;
+            int32                triangleTests_capacity;
+            struct TriangleTest* triangleTests_data;
+        } IntersectSphereProfiling;
+
+        typedef struct RayCastResult {
+            RigidBody* body;
+            float      normx;
+            float      normy;
+            float      normz;
+            double     posx;
+            double     posy;
+            double     posz;
+            float      t;
+        } RayCastResult;
+
+        typedef struct ShapeCastResult {
+            RigidBody** hits;
+            uint32      hits_len;
+        } ShapeCastResult;
+
         typedef struct Time {
             int second;
             int minute;
@@ -202,6 +234,21 @@ do -- Transparent Structs
             float b;
             float a;
         } Color;
+
+        typedef struct Position {
+            double x;
+            double y;
+            double z;
+        } Position;
+
+        typedef struct Triangle {
+          Vec3f vertices[3];
+        } Triangle;
+
+        typedef struct TriangleTest {
+          struct Triangle* triangle;
+          bool             hit;
+        } TriangleTest;
     ]]
 
     libphx.Structs = {
@@ -209,6 +256,10 @@ do -- Transparent Structs
         'Box3d',
         'Box3f',
         'Box3i',
+        'Collision',
+        'IntersectSphereProfiling',
+        'RayCastResult',
+        'ShapeCastResult',
         'Vec2d',
         'Vec2f',
         'Vec2i',
@@ -220,6 +271,9 @@ do -- Transparent Structs
         'Vec4i',
         'Vertex',
         'Color',
+        'Position',
+        'Triangle',
+        'TriangleTest',
     }
 end
 

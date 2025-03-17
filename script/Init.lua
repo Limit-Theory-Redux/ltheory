@@ -79,33 +79,38 @@ do -- Basic Typedefs
     ]]
 end
 
-local function registerOpaqueType(name)
-    local wrapperName = format('Opaque_%s', name)
-    ffi.cdef(format('typedef %s %s;', name, wrapperName));
-    local type = Type.Create(wrapperName, true)
-    local ptr  = CType.Pointer(type)
-    Type.Alias(ptr.name, name)
-    CType[name] = ptr
-end
 
-local function registerStructType(name)
-    local type = Type.Create(name, true)
-    CType[name] = type
-end
+local genObjects, genFiles, genOpaques, genStructs = requireAllGenerated('ffi_gen')
 
 Core.FFI = {}
+Core.FFI.Ext = requireAll('ffi_ext')
 Core.FFI.Lib = require('libphx')
+
+Core.FFI.Base = requireAll('ffi_common')
+Namespace.Inline(Core.FFI.Base, 'Core.FFI.Base')
+Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Base, 'Core.FFI.Base')
+
+-- Load type definitions
+for k, v in pairs(genFiles) do
+    local obj = v.defineType()
+
+    genObjects[k] = obj
+end
+
+Core.FFI.Gen = genObjects
+Namespace.Inline(Core.FFI.Gen, 'Core.FFI.Gen')
+Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Gen, 'Core.FFI.Gen')
+
+for _, v in ipairs(genOpaques) do
+    table.insert(Core.FFI.Lib.Opaques, v)
+end
+
+for _, v in ipairs(genStructs) do
+    table.insert(Core.FFI.Lib.Structs, v)
+end
+
 Core.FFI.CFFI = requireAll('Core.CFFI')
 Namespace.Inline(Core.FFI.CFFI, 'Core.FFI.CFFI')
-
-for i = 1, #Core.FFI.Lib.Opaques do
-    registerOpaqueType(Core.FFI.Lib.Opaques[i])
-end
-
-for i = 1, #Core.FFI.Lib.Structs do
-    registerStructType(Core.FFI.Lib.Structs[i])
-end
-
 
 ---- Additional Lua Configurations (Not sure how any of it works will comment further later.)
 
@@ -150,40 +155,20 @@ for i = 1, #lua_typedefs do
     CType[dst] = Type.Get(src)
 end
 
-
-local genObjects, genFiles, genOpaques, genStructs = requireAllGenerated('ffi_gen')
-
---- Extensions and common objects
-
-Core.FFI.Ext = requireAll('ffi_ext')
-
-Core.FFI.Base = requireAll('ffi_common')
-Namespace.Inline(Core.FFI.Base, 'Core.FFI.Base')
-Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Base, 'Core.FFI.Base')
-
-
---- Generated objects
-
--- Load type definitions
-for k, v in pairs(genFiles) do
-    local obj = v.defineType()
-    if obj then
-        genObjects[k] = obj
-    end
+for i = 1, #Core.FFI.Lib.Opaques do
+    local name = Core.FFI.Lib.Opaques[i]
+    local wrapperName = format('Opaque_%s', name)
+    ffi.cdef(format('typedef %s %s;', name, wrapperName));
+    local type = Type.Create(wrapperName, true)
+    local ptr  = CType.Pointer(type)
+    Type.Alias(ptr.name, name)
+    CType[name] = ptr
 end
 
-Core.FFI.Gen = genObjects
-Namespace.Inline(Core.FFI.Gen, 'Core.FFI.Gen')
-Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Gen, 'Core.FFI.Gen')
-
-for _, name in ipairs(genOpaques) do
-    table.insert(Core.FFI.Lib.Opaques, name)
-    registerOpaqueType(name)
-end
-
-for _, name in ipairs(genStructs) do
-    table.insert(Core.FFI.Lib.Structs, name)
-    registerStructType(name)
+for i = 1, #Core.FFI.Lib.Structs do
+    local name = Core.FFI.Lib.Structs[i]
+    local type = Type.Create(name, true)
+    CType[name] = type
 end
 
 ---- Load Renderer into Global Space

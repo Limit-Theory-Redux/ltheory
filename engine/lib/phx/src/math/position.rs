@@ -15,15 +15,6 @@ pub struct Position {
     pub v: DVec3,
 }
 
-#[luajit_ffi_gen::luajit_ffi(
-    clone = true,
-    typedef = "
-        double x;
-        double y;
-        double z;"
-)]
-impl Position {}
-
 impl Position {
     /// All zeroes, the origin.
     pub const ZERO: Self = Position::from_dvec(DVec3::ZERO);
@@ -41,9 +32,7 @@ impl Position {
     pub fn from_vec(v: Vec3) -> Position {
         Position { v: v.as_dvec3() }
     }
-}
 
-impl Position {
     /// Returns this position relative to 'frame''s frame of reference.
     ///
     /// This is usually used to turn this world position into a 32-bit translation relative to a camera.

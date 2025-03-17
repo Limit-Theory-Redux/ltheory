@@ -21,26 +21,6 @@ pub struct Collision {
     body1: *mut RigidBody,
 }
 
-#[luajit_ffi_gen::luajit_ffi(
-    forward_decl = "RigidBody",
-    typedef = "
-        uint32     index;
-        uint32     count;
-        RigidBody* body0;
-        RigidBody* body1;"
-)]
-impl Collision {
-    #[bind(name = "Create")]
-    pub fn new() -> Self {
-        Self {
-            index: 0,
-            count: 0,
-            body0: std::ptr::null_mut(),
-            body1: std::ptr::null_mut(),
-        }
-    }
-}
-
 #[repr(C)]
 pub struct RayCastResult {
     body: *mut RigidBody,
@@ -49,44 +29,10 @@ pub struct RayCastResult {
     t: f32,
 }
 
-#[luajit_ffi_gen::luajit_ffi(typedef = "
-    RigidBody* body;
-    float      normx;
-    float      normy;
-    float      normz;
-    double     posx;
-    double     posy;
-    double     posz;
-    float      t;")]
-impl RayCastResult {
-    #[bind(name = "Create")]
-    pub fn new() -> Self {
-        Self {
-            body: std::ptr::null_mut(),
-            norm: Vec3::ZERO,
-            pos: Position { v: DVec3::ZERO },
-            t: 0.0,
-        }
-    }
-}
-
 #[repr(C)]
 pub struct ShapeCastResult {
     hits: *const *mut RigidBody,
     hits_len: u32,
-}
-
-#[luajit_ffi_gen::luajit_ffi(typedef = "
-    RigidBody** hits;
-    uint32      hits_len;")]
-impl ShapeCastResult {
-    #[bind(name = "Create")]
-    pub fn new() -> Self {
-        Self {
-            hits: std::ptr::null_mut(),
-            hits_len: 0,
-        }
-    }
 }
 
 impl ShapeCastResult {

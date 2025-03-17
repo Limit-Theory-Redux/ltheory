@@ -4,9 +4,7 @@ local Loader = {}
 
 function Loader.declareType()
     ffi.cdef [[
-        typedef struct Triangle {
-            Vec3f vertices[3];
-        } Triangle;
+        typedef struct Triangle {} Triangle;
     ]]
 
     return 1, 'Triangle'
