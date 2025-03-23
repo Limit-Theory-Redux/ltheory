@@ -42,7 +42,6 @@ do -- Opaque Structs
         typedef struct BSP          {} BSP;
         typedef struct BoxTree      {} BoxTree;
         typedef struct InputBinding {} InputBinding;
-        typedef struct KDTree       {} KDTree;
         typedef struct MemPool      {} MemPool;
         typedef struct MemStack     {} MemStack;
         typedef struct RmGui        {} RmGui;
@@ -53,7 +52,6 @@ do -- Opaque Structs
     libphx.Opaques = {
         'BSP',
         'BoxTree',
-        'KDTree',
         'MemPool',
         'MemStack',
         'RmGui',
