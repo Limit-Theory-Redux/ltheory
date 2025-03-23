@@ -338,15 +338,15 @@ function CoordTest:onDraw()
     ClipRect.PushDisabled()
     RenderState.PushAllDefaults()
 
-    self.mViewInv:free()
-    self.mView:free()
+    self.mViewInv = nil
+    self.mView = nil
     --self.mViewInv = Matrix.FromPosRot(self.pos, self.rot)
     --self.mView = self.mViewInv:inverse()
     self.mViewInv = Matrix.FromPosBasis(self.pos, self.x, self.y, self.z)
     self.mView = self.mViewInv:inverse()
 
-    self.mProj:free()
-    self.mProjInv:free()
+    self.mProj = nil
+    self.mProjInv = nil
     self.mProj = Matrix.Perspective(
         60,
         self.resX / self.resY,

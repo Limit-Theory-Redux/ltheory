@@ -161,12 +161,14 @@ impl Window {
     pub fn begin_draw(&self) {
         let size = self.size();
 
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
             Viewport_Push(0, 0, size.x as i32, size.y as i32, true);
         }
     }
 
     pub fn end_draw(&self) {
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
             Viewport_Pop();
         }

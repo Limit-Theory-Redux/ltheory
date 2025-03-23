@@ -84,6 +84,10 @@ impl TypeRef {
     pub fn is_reference(&self) -> bool {
         *self != Self::Value
     }
+
+    pub fn is_mutable(&self) -> bool {
+        *self == Self::MutableReference
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -125,6 +129,24 @@ pub enum TypeInfo {
 }
 
 impl TypeInfo {
+    #[cfg(feature = "assert_ffi_input")]
+    pub fn is_option(&self) -> bool {
+        matches!(self, Self::Option { .. })
+    }
+
+    #[cfg(feature = "assert_ffi_input")]
+    pub fn is_reference(&self) -> bool {
+        match self {
+            TypeInfo::Plain { is_ref, .. } => is_ref.is_reference(),
+            TypeInfo::Option { is_ref, .. } => is_ref.is_reference(),
+            TypeInfo::Box { .. } => false,
+            TypeInfo::Slice { is_ref, .. } => is_ref.is_reference(),
+            TypeInfo::Array { is_ref, .. } => is_ref.is_reference(),
+            TypeInfo::Function { .. } => false,
+            TypeInfo::Result { .. } => false,
+        }
+    }
+
     pub fn as_ffi(&self, self_name: &str) -> (String, String) {
         match self {
             Self::Plain { is_ref, ty } => match ty {

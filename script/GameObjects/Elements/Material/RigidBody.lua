@@ -131,7 +131,7 @@ end
 function Entity:getMinDistance(other)
     assert(self.body)
     assert(other.body)
-    return math.max(0.0, self.body:getDistance(other.body)
+    return math.max(0.0, self:getDistance(other.body)
         - self:getRadius()
         - other:getRadius())
 end
@@ -241,13 +241,13 @@ end
 
 function Entity:modPos(dp)
     assert(self.body)
-    local pos = self.body:getPos()
+    local pos = self:getPos()
     self.body:setPos(pos + dp)
 end
 
 function Entity:modPosLocal(dp)
     assert(self.body)
-    local pos = self.body:getPosLocal()
+    local pos = self:getPosLocal()
     self.body:setPosLocal(pos + dp)
 end
 
@@ -323,7 +323,7 @@ end
 
 function Entity:toLocal(pos)
     assert(self.body)
-    local toLocal = self:getToLocalMatrix()
+    local toLocal = self:getToLocalMatrix(pos)
     return toLocal:mulPoint(pos:toVec3f())
 end
 

@@ -104,12 +104,8 @@ function Shape:connect(other, otherPoly, myPoly)
 
     for i = 1, #other.verts do
         local v = other.verts[i]
-        other.verts[i] = trans:mulPoint(v):toVec3d()
+        other.verts[i] = trans:mulPoint(v:toVec3f()):toVec3d()
     end
-
-    sourceBasis:free()
-    targetBasis:free()
-    trans:free()
 
     self:add(other)
     return self
@@ -142,12 +138,9 @@ function Shape:attachJointToJoint(myJoint, joint)
 
     for i = 1, #self.verts do
         local v = self.verts[i]
-        self.verts[i] = trans:mulPoint(v):toVec3d()
+        self.verts[i] = trans:mulPoint(v:toVec3f()):toVec3d()
     end
 
-    sourceBasis:free()
-    targetBasis:free()
-    trans:free()
     return true
 end
 

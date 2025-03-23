@@ -113,7 +113,7 @@ impl ShaderVar {
     }
 
     pub fn push_matrix(name: &str, m: &Matrix) {
-        Self::push(name, ShaderVarData::Matrix(*m));
+        Self::push(name, ShaderVarData::Matrix(m.clone()));
     }
 
     pub fn push_tex1d(name: &str, t: &mut Tex1D) {

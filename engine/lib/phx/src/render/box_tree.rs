@@ -204,11 +204,9 @@ pub unsafe extern "C" fn BoxTree_IntersectRay(
     if (this.root).is_null() {
         return false;
     }
-    let inv = Matrix_Inverse(matrix);
-    let mut invRo = Vec3::ZERO;
-    Matrix_MulPoint(inv.as_ref(), &mut invRo, ro.x, ro.y, ro.z);
-    let mut invRd = Vec3::ZERO;
-    Matrix_MulDir(inv.as_ref(), &mut invRd, rd.x, rd.y, rd.z);
+    let inv = matrix.inverse();
+    let invRo = inv.mul_point(ro);
+    let invRd = inv.mul_dir(rd);
     Node_IntersectRay(&mut *this.root, invRo, invRd.recip())
 }
 

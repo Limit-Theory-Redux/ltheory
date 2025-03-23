@@ -5,7 +5,7 @@ local Dust = class(function(self) end)
 
 function Dust:forceLoad()
     if self.clouds then return end
-    local rng = RNG.FromTime():managed()
+    local rng = RNG.FromTime()
 
     do -- Dust clouds mesh
         local mesh = Mesh.Create()

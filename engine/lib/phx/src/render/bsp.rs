@@ -262,7 +262,7 @@ pub type BSPNodeRel = u8;
 #[repr(C)]
 pub struct BSPBuild {
     pub rootNode: *mut BSPBuildNode,
-    pub rng: Box<Rng>,
+    pub rng: Rng,
     pub nodeCount: i32,
     pub leafCount: i32,
     pub triangleCount: i32,
@@ -375,9 +375,9 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 let planeBegin: f32 = t - tEpsilon;
                 let planeEnd: f32 = t + tEpsilon;
 
-                if planeBegin >= ray.tMax as f32 {
+                if planeBegin >= ray.t_max as f32 {
                     /* Entire ray lies on the near side */
-                } else if planeEnd <= ray.tMin as f32 {
+                } else if planeEnd <= ray.t_min as f32 {
                     /* Entire ray lies on one side */
                     earlyIndex = (t >= 0.0f32) as i32 ^ nearIndex;
                 } else {
@@ -385,18 +385,18 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                     earlyIndex = (t < 0.0f32) as i32 ^ nearIndex;
 
                     /* Don't let the ray 'creep past' tMin/tMax */
-                    let min: f32 = f32::max(planeBegin, ray.tMin as f32);
-                    let max: f32 = f32::min(planeEnd, ray.tMax as f32);
+                    let min: f32 = f32::max(planeBegin, ray.t_min as f32);
+                    let max: f32 = f32::min(planeEnd, ray.t_max as f32);
 
                     let d: DelayRay = DelayRay {
                         nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
                         tMin: min,
-                        tMax: ray.tMax as f32,
+                        tMax: ray.t_max as f32,
                         depth,
                     };
                     RAY_STACK.push(d);
 
-                    ray.tMax = max as f64;
+                    ray.t_max = max as f64;
                 }
             } else {
                 /* Ray parallel to plane. */
@@ -405,8 +405,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
                     let d: DelayRay = DelayRay {
                         nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
-                        tMin: ray.tMin as f32,
-                        tMax: ray.tMax as f32,
+                        tMin: ray.t_min as f32,
+                        tMax: ray.t_max as f32,
                         depth,
                     };
                     RAY_STACK.push(d);
@@ -427,10 +427,10 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 // BSP_PROFILE(self->profilingData.ray.triangles++;)
 
                 let mut t: f32 = 0.;
-                //if (Intersect_RayTriangle_Barycentric(ray, triangle, tEpsilon, &t)) {
-                if Intersect_RayTriangle_Moller1(&ray, triangle, &mut t) {
-                    //if (Intersect_RayTriangle_Moller2(ray, triangle, &t)) {
-                    //if (Intersect_RayTriangle_Badouel(ray, triangle, tEpsilon, &t)) {
+                // if (Intersect::ray_triangle_barycentric(ray, triangle, tEpsilon, &t)) {
+                if Intersect::ray_triangle_moller1(&ray, triangle, &mut t) {
+                    // if (Intersect::ray_triangle_moller2(ray, triangle, &t)) {
+                    // if (Intersect::ray_triangle_badouel(ray, triangle, tEpsilon, &t)) {
                     if !hit || t < *tHit {
                         hit = true;
                         *tHit = t;
@@ -449,8 +449,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
             let d = RAY_STACK.pop().unwrap();
             nodeRef = d.nodeRef;
-            ray.tMin = d.tMin as f64;
-            ray.tMax = d.tMax as f64;
+            ray.t_min = d.tMin as f64;
+            ray.t_max = d.tMax as f64;
             depth = d.depth;
         }
     }
@@ -473,14 +473,12 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     let ray: Ray = Ray {
         p: lineSegment.p0,
         dir: lineSegment.p1.as_dvec3() - lineSegment.p0.as_dvec3(),
-        tMin: 0.0,
-        tMax: 1.0,
+        t_min: 0.0,
+        t_max: 1.0,
     };
     let mut t: f32 = 0.;
     if BSP_IntersectRay(this, &ray, &mut t) {
-        let mut positionHit = Position::ZERO;
-        Ray_GetPoint(&ray, t as f64, &mut positionHit);
-        *pHit = positionHit.as_vec3();
+        *pHit = ray.get_point(t as f64).as_vec3();
         true
     } else {
         false
@@ -538,7 +536,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                 // BSP_PROFILE(self->profilingData.sphere.triangles++;)
 
                 let mut pHit2 = Vec3::ZERO;
-                if Intersect_SphereTriangle(sphere, triangle, &mut pHit2) {
+                if Intersect::sphere_triangle(sphere, triangle, &mut pHit2) {
                     hit = true;
                     *pHit = pHit2;
                     break;
@@ -597,7 +595,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     let mut numStraddling: i32 = 0;
 
     for polygon in (*nodeData).polygons.iter() {
-        match Plane_ClassifyPolygon(&plane, &polygon.inner) {
+        match plane.classify_polygon(&polygon.inner) {
             PolygonClassification::Coplanar | PolygonClassification::Behind => {
                 numBehind += 1;
             }
@@ -611,7 +609,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     }
 
     //k*numStraddling + (1.0f - k)*Abs(numInFront - numBehind);
-    Lerp(
+    lerp(
         f64::abs((numInFront - numBehind) as f64) as f64,
         numStraddling as f64,
         k as f64,
@@ -661,7 +659,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
     let maxDepth: f32 = 1000.0f32;
     let biasedDepth: f32 = (*nodeData).depth as f32 - 100.0f32;
     let t: f32 = f64::max((biasedDepth / maxDepth) as f64, 0.0f64) as f32;
-    let k: f32 = Lerp(0.85f64, 0.25f64, t as f64) as f32;
+    let k: f32 = lerp(0.85f64, 0.25f64, t as f64) as f32;
 
     let mut bestScore: f32 = f32::MAX;
     let mut bestPlane: Plane = Plane {
@@ -677,8 +675,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
         numToCheck = i32::min(numToCheck, (*nodeData).validPolygonCount);
         let mut i: i32 = 0;
         while i < numToCheck {
-            let mut polygonIndex: i32 =
-                (RNG_Get32(&mut *(*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
+            let mut polygonIndex: i32 = (*bsp).rng.get32().wrapping_rem(polygonsLen as u32) as i32;
 
             /* OPTIMIZE: This search is duuuuuumb. Maybe We should swap invalid
              *           polygons to the end of the list so never have to search.
@@ -688,11 +685,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
 
                 if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_FACE_SPLIT as i32 == 0 {
-                    let mut plane: Plane = Plane {
-                        n: Vec3::ZERO,
-                        d: 0.,
-                    };
-                    Polygon_ToPlane(&(*polygon).inner, &mut plane);
+                    let plane: Plane = (*polygon).inner.to_plane();
                     let score: f32 = BSPBuild_ScoreSplitPlane(nodeData, plane, k);
 
                     if score < bestScore {
@@ -748,8 +741,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
         /* Try to split any polygons with more than 1 triangle */
         if !splitFound {
-            let mut polygonIndex: i32 =
-                (RNG_Get32(&mut *(*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
+            let mut polygonIndex: i32 = (*bsp).rng.get32().wrapping_rem(polygonsLen as u32) as i32;
             for _ in 0..polygonsLen {
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
                 if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_DECOMPOSE as i32 != 0 {
@@ -762,12 +754,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     let mid: Vec3 = Vec3::lerp(v[0], v[j], 0.5f32);
 
                     /* TODO : Maybe just save the plane with polygon while build so they're only calculated once? */
-                    let mut polygonPlane: Plane = Plane {
-                        n: Vec3::ZERO,
-                        d: 0.,
-                    };
-                    Polygon_ToPlane(&(*polygon).inner, &mut polygonPlane);
-
+                    let polygonPlane = (*polygon).inner.to_plane();
                     let mut plane: Plane = Plane {
                         n: Vec3::ZERO,
                         d: 0.,
@@ -776,7 +763,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     plane.d = Vec3::dot(plane.n, mid);
 
                     /* TODO : Proper scoring? */
-                    if Plane_ClassifyPolygon(&plane, &(*polygon).inner)
+                    if plane.classify_polygon(&(*polygon).inner)
                         == PolygonClassification::Straddling
                     {
                         splitFound = true;
@@ -813,24 +800,14 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
         /* Try splitting along a polygon edge */
         if !splitFound {
-            let mut polygonIndex: i32 =
-                (RNG_Get32(&mut *(*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
+            let mut polygonIndex: i32 = (*bsp).rng.get32().wrapping_rem(polygonsLen as u32) as i32;
             for _ in 0..polygonsLen {
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
                 if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_EDGE_SPLIT as i32 != 0 {
                     continue;
                 }
 
-                let mut polygonPlane: Plane = Plane {
-                    n: Vec3 {
-                        x: 0.,
-                        y: 0.,
-                        z: 0.,
-                    },
-                    d: 0.,
-                };
-                Polygon_ToPlane(&(*polygon).inner, &mut polygonPlane);
-
+                let polygonPlane = (*polygon).inner.to_plane();
                 let v = &mut (*polygon).inner.vertices;
                 let mut vPrev: Vec3 = v[(v.len() - 1) as usize];
 
@@ -991,7 +968,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     frontNodeData.depth = ((*nodeData).depth as i32 + 1) as u16;
 
     for polygon in (*nodeData).polygons.iter_mut() {
-        let classification = Plane_ClassifyPolygon(&splitPlane, &polygon.inner);
+        let classification = splitPlane.classify_polygon(&polygon.inner);
         match classification {
             PolygonClassification::Coplanar => {
                 (*polygon).flags = ((*polygon).flags as i32
@@ -1021,12 +998,9 @@ unsafe extern "C" fn BSPBuild_CreateNode(
                 };
                 frontPart.flags = (*polygon).flags;
 
-                Polygon_SplitSafe(
-                    &polygon.inner,
-                    splitPlane,
-                    &mut backPart.inner,
-                    &mut frontPart.inner,
-                );
+                polygon
+                    .inner
+                    .split_safe(&splitPlane, &mut backPart.inner, &mut frontPart.inner);
                 BSPBuild_AppendPolygon(&mut backNodeData, &backPart);
                 BSPBuild_AppendPolygon(&mut frontNodeData, &frontPart);
 
@@ -1097,7 +1071,8 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
             //     ArrayList_GetSize(polygon->vertices) - 2
             //     <= ArrayList_GetCapacity(self->triangles)
             // );
-            Polygon_ConvexToTriangles(&(*polygon).inner, &mut this.triangles);
+            let mut triangles = (*polygon).inner.convex_to_triangles();
+            this.triangles.append(&mut triangles);
         }
 
         let leafLen: u8 = (this.triangles.len() - leafIndex) as u8;
@@ -1222,7 +1197,7 @@ pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
     /* Build */
     let mut bspBuild: BSPBuild = BSPBuild {
         rootNode: std::ptr::null_mut(),
-        rng: RNG_Create(1235),
+        rng: Rng::new(1235),
         nodeCount: 0,
         leafCount: 0,
         triangleCount: 0,
@@ -1263,7 +1238,6 @@ pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
     // #endif
 
     BSPBuild_FreeNode(bspBuild.rootNode);
-    RNG_Free(Some(bspBuild.rng));
 
     // Assert(ArrayList_GetSize(self->nodes)     == ArrayList_GetCapacity(self->nodes));
     // Assert(ArrayList_GetSize(self->triangles) == ArrayList_GetCapacity(self->triangles));
@@ -1599,7 +1573,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 (*sphereProf).triangles += 1;
 
                 let mut pHit2 = Vec3::ZERO;
-                if Intersect_SphereTriangle(sphere, triangle, &mut pHit2) {
+                if Intersect::sphere_triangle(sphere, triangle, &mut pHit2) {
                     let t: TriangleTest = TriangleTest {
                         triangle,
                         hit: true,

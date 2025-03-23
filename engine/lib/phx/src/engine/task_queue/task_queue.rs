@@ -89,6 +89,7 @@ impl TaskQueue {
             move |in_receiver, out_sender| {
                 debug!("Starting instance of Lua worker: {worker_name_copy:?}");
 
+                #[allow(unsafe_code)] // TODO: remove
                 let lua = unsafe { Lua::unsafe_new() };
 
                 lua.load(script_path.as_path()).exec()?;
@@ -117,6 +118,7 @@ impl TaskQueue {
                                         .call(Box::leak(boxed_data) as *mut Payload as usize)?;
 
                                     // transfer ownership of the payload from the script to the engine in form of boxed data
+                                    #[allow(unsafe_code)] // TODO: remove
                                     let out_data =
                                         unsafe { Box::from_raw(boxed_out_data as *mut Payload) };
 

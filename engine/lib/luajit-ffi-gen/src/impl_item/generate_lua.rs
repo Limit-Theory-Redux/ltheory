@@ -22,6 +22,10 @@ impl ImplInfo {
             ffi_gen.set_type_decl_opaque();
         }
 
+        if !attr_args.typedef().is_empty() {
+            ffi_gen.set_typedef(attr_args.typedef(), attr_args.forward_decl());
+        }
+
         // Class definition
         self.write_class_defs(&mut ffi_gen, module_name);
 
@@ -380,8 +384,14 @@ fn write_method_map<F: FnMut(String)>(
     // list of the non-copyable arguments sent by value, to be removed from Lua GC
     let mut value_args = vec![];
 
+    #[cfg(feature = "assert_ffi_input")]
+    let mut nil_params = vec![];
+
     if method.self_param.is_some() {
         args.push("self".to_string());
+
+        #[cfg(feature = "assert_ffi_input")]
+        nil_params.push("self".to_string());
     }
 
     method.params.iter().for_each(|param_info| {
@@ -391,7 +401,16 @@ fn write_method_map<F: FnMut(String)>(
                 value_args.push(param_info.as_ffi_name());
             }
         };
+
+        #[cfg(feature = "assert_ffi_input")]
+        if !param_info.ty.is_option() && param_info.ty.is_reference() {
+            nil_params.push(param_info.as_ffi_name());
+        }
     });
+
+    if method.bind_args.gen_out_param() {
+        args.push("out".into());
+    }
 
     let args_str = args.join(", ");
 
@@ -436,6 +455,14 @@ fn write_method_map<F: FnMut(String)>(
     if let Some(gc_type) = gc_type {
         writer(format!("{ident}{mapped_method} = function({args_str})"));
 
+        #[cfg(feature = "assert_ffi_input")]
+        nil_params.iter().for_each(|param_name| {
+            writer(format!(
+                "{ident}{IDENT}assert({param_name}, '{module_name}.{}: {param_name} == nil')",
+                method.as_ffi_name(),
+            ))
+        });
+
         // remove non-copyable arguments sent by value from Lua GC
         for arg in value_args {
             writer(format!("{ident}{IDENT}ffi.gc({arg}, nil)"));
@@ -449,8 +476,18 @@ fn write_method_map<F: FnMut(String)>(
             "{ident}{IDENT}return Core.ManagedObject(_instance, libphx.{gc_type}_Free)"
         ));
         writer(format!("{ident}end,"));
-    } else if !value_args.is_empty() {
+        return;
+    }
+
+    if !value_args.is_empty() {
         writer(format!("{ident}{mapped_method} = function({args_str})"));
+
+        #[cfg(feature = "assert_ffi_input")]
+        nil_params.iter().for_each(|param_name| {
+            writer(format!(
+                "{ident}{IDENT}assert({param_name}, '{module_name}.{mapped_method}: {param_name} == nil')"
+            ))
+        });
 
         // remove non-copyable arguments sent by value from Lua GC
         for arg in value_args {
@@ -470,10 +507,38 @@ fn write_method_map<F: FnMut(String)>(
         }
 
         writer(format!("{ident}end,"));
-    } else {
-        writer(format!(
-            "{ident}{mapped_method} = libphx.{module_name}_{},",
-            method.as_ffi_name(),
-        ));
+        return;
     }
+
+    #[cfg(feature = "assert_ffi_input")]
+    if !nil_params.is_empty() {
+        writer(format!("{ident}{mapped_method} = function({args_str})"));
+
+        #[cfg(feature = "assert_ffi_input")]
+        nil_params.iter().for_each(|param_name| {
+            writer(format!(
+                "{ident}{IDENT}assert({param_name}, '{module_name}.{mapped_method}: {param_name} == nil')"
+            ))
+        });
+
+        if method.ret.is_some() && !method.bind_args.gen_out_param() {
+            writer(format!(
+                "{ident}{IDENT}return libphx.{module_name}_{}({args_str})",
+                method.as_ffi_name(),
+            ));
+        } else {
+            writer(format!(
+                "{ident}{IDENT}libphx.{module_name}_{}({args_str})",
+                method.as_ffi_name(),
+            ));
+        }
+
+        writer(format!("{ident}end,"));
+        return;
+    }
+
+    writer(format!(
+        "{ident}{mapped_method} = libphx.{module_name}_{},",
+        method.as_ffi_name(),
+    ));
 }

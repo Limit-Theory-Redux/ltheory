@@ -288,6 +288,15 @@ Under the hood proc macro on the `enum` block instead of generating ***.lua** sc
 ### luajit_ffi for `impl` block
 
 - **name** \[string, default = None]: set user defined name of the module
+- **forward_decl** \[string, default = ""]: set user defined list of comma separated type names that should be pre-declared before current type. Used only when **typedef** argument is set. See `Collision` type for example.
+- **typedef** \[string, default = ""]: set user defined structure fields. Use '\n' to separate multiple fields. Example:
+    ```
+    float x;
+    float y;
+    float z;
+    float w;
+    ```
+    Do not forget to add `#[repr(C)]` declaration to the structure to specify proper memory layout.
 - **opaque** \[bool, default = true]: generate **typedef** C API module structure definition
 - **clone** \[bool, default = false]: adds **__call** method to Global Symbol Table section and **clone** method to metatype section
 - **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API

@@ -77,10 +77,15 @@ impl ImplInfo {
         // Generate function body.
         let func_body = self.gen_wrapper_body(&self_ident, method);
 
+        #[cfg(feature = "log_ffi_calls")]
+        let ffi_call_log = quote! {tracing::trace!("Calling: {}", #func_name);};
+        #[cfg(not(feature = "log_ffi_calls"))]
+        let ffi_call_log = quote! {};
+
         quote! {
             #[no_mangle]
             pub unsafe extern "C-unwind" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
-                tracing::trace!("Calling: {}", #func_name);
+                #ffi_call_log
 
                 #func_body
             }
@@ -431,7 +436,10 @@ impl ImplInfo {
                         }
                     }
                     _ => {
-                        if is_ref.is_reference() {
+                        if is_ref.is_reference()
+                            && !is_ref.is_mutable()
+                            && ty.is_copyable(&self.name)
+                        {
                             // Primitives passed by reference are received in FFI by value, so convert them
                             // back into a reference.
                             quote! { &#name_accessor }

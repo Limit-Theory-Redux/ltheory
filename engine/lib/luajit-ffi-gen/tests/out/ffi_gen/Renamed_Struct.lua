@@ -11,11 +11,6 @@ function Loader.defineType()
     local libphx = require('libphx').lib
     local Renamed_Struct
 
-    do -- C Definitions
-        ffi.cdef [[
-        ]]
-    end
-
     do -- Global Symbol Table
         Renamed_Struct = {}
 

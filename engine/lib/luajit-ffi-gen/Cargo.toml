@@ -6,8 +6,17 @@ authors.workspace = true
 license.workspace = true
 edition.workspace = true
 
+[features]
+# Enable FFI wrapper functions call logging
+log_ffi_calls = []
+# Check FFI wrapper function input pointers for nil
+assert_ffi_input = []
+
 [lib]
 proc-macro = true
+
+[lints]
+workspace = true
 
 [dependencies]
 # workspace crates
