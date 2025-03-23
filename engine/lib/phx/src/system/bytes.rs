@@ -65,8 +65,7 @@ impl Bytes {
     }
 
     pub fn load(path: &str) -> Bytes {
-        let c_path = std::ffi::CString::new(path).unwrap();
-        *File_ReadBytes(c_path.as_ptr())
+        File::read_bytes(path)
             .unwrap_or_else(|| panic!("Bytes::load: Failed to read file '{path}'"))
     }
 
@@ -101,8 +100,7 @@ impl Bytes {
     }
 
     pub fn save(&self, path: &str) {
-        let c_path = std::ffi::CString::new(path).unwrap();
-        let mut file = File_Create(c_path.as_ptr())
+        let mut file = File::new(path)
             .unwrap_or_else(|| panic!("Bytes_Save: Failed to open file '{path}' for writing"));
         let _ = file.file.write_all(self.cursor.get_ref().as_slice());
     }
