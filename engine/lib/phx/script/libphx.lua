@@ -43,7 +43,6 @@ do -- Opaque Structs
         typedef struct BoxTree      {} BoxTree;
         typedef struct InputBinding {} InputBinding;
         typedef struct MemPool      {} MemPool;
-        typedef struct MemStack     {} MemStack;
         typedef struct RmGui        {} RmGui;
         typedef struct SDF          {} SDF;
         typedef struct Socket       {} Socket;
@@ -53,7 +52,6 @@ do -- Opaque Structs
         'BSP',
         'BoxTree',
         'MemPool',
-        'MemStack',
         'RmGui',
         'SDF',
         'Socket',
