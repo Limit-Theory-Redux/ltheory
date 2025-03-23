@@ -41,8 +41,6 @@ do -- Opaque Structs
     ffi.cdef [[
         typedef struct BSP          {} BSP;
         typedef struct BoxTree      {} BoxTree;
-        typedef struct HashGrid     {} HashGrid;
-        typedef struct HashGridElem {} HashGridElem;
         typedef struct InputBinding {} InputBinding;
         typedef struct KDTree       {} KDTree;
         typedef struct MemPool      {} MemPool;
@@ -55,8 +53,6 @@ do -- Opaque Structs
     libphx.Opaques = {
         'BSP',
         'BoxTree',
-        'HashGrid',
-        'HashGridElem',
         'KDTree',
         'MemPool',
         'MemStack',
