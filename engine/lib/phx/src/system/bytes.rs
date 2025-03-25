@@ -19,11 +19,13 @@ impl Bytes {
 
     /// WARNING: This only works if T is plain-old-data i.e. has no pointers!
     pub fn read<T>(&mut self, data: &mut [T]) {
+        #[allow(unsafe_code)] // TODO: refactor
         self.read_bytes(unsafe { std::mem::transmute::<&mut [T], &mut [u8]>(data) });
     }
 
     /// WARNING: This only works if T is plain-old-data i.e. has no pointers!
     pub fn write<T>(&mut self, data: &[T]) {
+        #[allow(unsafe_code)] // TODO: refactor
         self.write_bytes(unsafe { std::mem::transmute::<&[T], &[u8]>(data) });
     }
 

@@ -1,3 +1,6 @@
+#![allow(non_snake_case)] // TODO: remove this and fix all warnings
+#![allow(unsafe_code)] // TODO: refactor
+
 // Fowler–Noll–Vo
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV32(buf: *const libc::c_void, len: i32) -> u32 {

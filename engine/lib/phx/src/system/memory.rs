@@ -1,3 +1,6 @@
+#![allow(non_snake_case)] // TODO: remove this and fix all warnings
+#![allow(unsafe_code)] // TODO: refactor
+
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Alloc(size: usize) -> *mut libc::c_void {
     libc::malloc(size)

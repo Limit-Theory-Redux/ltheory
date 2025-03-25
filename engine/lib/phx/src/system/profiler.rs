@@ -4,8 +4,7 @@ use cli_table::{Cell, Style, Table};
 use indexmap::IndexMap;
 use tracing::{info, warn};
 
-use super::{Signal, Signal_AddHandlerAll, TimeStamp};
-use crate::system::Signal_RemoveHandlerAll;
+use super::{signal_add_handler_all, signal_remove_handler_all, Signal, TimeStamp};
 
 const MAX_SCOPE_STACK_SIZE: usize = 128;
 
@@ -75,7 +74,7 @@ impl Profiler {
 
         Self::begin("[Root]");
 
-        unsafe { Signal_AddHandlerAll(Profiler_SignalHandler) };
+        signal_add_handler_all(profiler_signal_handler);
     }
 
     /// Disables profiling and processes results
@@ -151,7 +150,7 @@ impl Profiler {
 
         profiler.is_enabled = false;
 
-        unsafe { Signal_RemoveHandlerAll(Profiler_SignalHandler) };
+        signal_remove_handler_all(profiler_signal_handler);
     }
 
     /// Starts a new profiling scope
@@ -267,6 +266,6 @@ impl Profiler {
     }
 }
 
-extern "C" fn Profiler_SignalHandler(_: Signal) {
+extern "C" fn profiler_signal_handler(_: Signal) {
     Profiler::backtrace();
 }
