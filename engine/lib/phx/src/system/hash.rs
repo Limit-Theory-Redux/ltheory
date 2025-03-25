@@ -77,7 +77,7 @@ pub unsafe extern "C" fn Hash_FNV64_Incremental(
 
 #[inline]
 extern "C" fn rotl32(x: u32, r: i8) -> u32 {
-    x << r as i32 | x >> (32 - r as i32)
+    (x << r as i32) | (x >> (32 - r as i32))
 }
 
 #[inline]

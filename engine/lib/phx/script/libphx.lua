@@ -13,7 +13,6 @@ do -- Basic Typedefs
         typedef uint32         Error;
         typedef uint64         GamepadId;
         typedef uchar          Key;
-        typedef int32          Metric;
         typedef int32          Modifier;
         typedef uint8          PhysicsType;
         typedef int32          PixelFormat;
