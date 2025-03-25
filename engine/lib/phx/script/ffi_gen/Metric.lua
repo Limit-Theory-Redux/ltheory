@@ -29,8 +29,8 @@ function Loader.defineType()
 
             cstr   Metric_ToString(Metric);
 
-            uint64 Metric_Get     (Metric this);
-            cstr   Metric_GetName (Metric this);
+            int  Metric_Get     (Metric this);
+            cstr Metric_GetName (Metric this);
         ]]
     end
 

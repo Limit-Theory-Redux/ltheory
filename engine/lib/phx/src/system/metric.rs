@@ -19,9 +19,9 @@ pub static VALUE_CURR: LazyLock<Mutex<[u64; Metric::SIZE as usize]>> =
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Metric {
-    pub fn get(this: Self) -> u64 {
+    pub fn get(this: Self) -> i32 {
         let value_curr = VALUE_CURR.lock().expect("Cannot lock metric values");
-        value_curr[this as usize]
+        value_curr[this as usize] as i32
     }
 
     pub fn get_name(this: Self) -> Option<&'static str> {
