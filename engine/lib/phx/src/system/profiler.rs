@@ -62,24 +62,16 @@ pub struct Profiler {
 
 pub static PROFILER: LazyLock<Mutex<Profiler>> = LazyLock::new(Default::default);
 
-macro_rules! f {
-    ($f:literal, $v:expr) => {
-        format!($f, $v)
-    };
-}
-
 #[luajit_ffi_gen::luajit_ffi]
 impl Profiler {
     /// Enables profiling and initializes the profiler state
     pub fn enable() {
-        {
-            let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
+        let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
 
-            profiler.is_enabled = true;
-            profiler.scopes.clear();
-            profiler.stack.clear();
-            profiler.start = TimeStamp::now();
-        }
+        profiler.is_enabled = true;
+        profiler.scopes.clear();
+        profiler.stack.clear();
+        profiler.start = TimeStamp::now();
 
         Self::begin("[Root]");
 
@@ -127,14 +119,14 @@ impl Profiler {
 
                 if scope_total / total > 0.01 || scope.max > 0.01 {
                     table.push(vec![
-                        f!("{:5.1}", 100.0 * (scope_total / total)).cell(),
-                        f!("{:5.0}", 100.0 * (cumulative / total)).cell(),
-                        f!("{:6.0}", 1000.0 * scope_total).cell(),
-                        f!("{:6.2}", 1000.0 * scope.min).cell(),
-                        f!("{:8.2}", 1000.0 * scope.max).cell(),
-                        f!("{:6.2}", 1000.0 * scope.mean).cell(),
-                        f!("{:5.2}", 1000.0 * scope.var).cell(),
-                        f!("{:7.0}", 100.0 * (scope.var / scope.mean)).cell(),
+                        format!("{:5.1}", 100.0 * (scope_total / total)).cell(),
+                        format!("{:5.0}", 100.0 * (cumulative / total)).cell(),
+                        format!("{:6.0}", 1000.0 * scope_total).cell(),
+                        format!("{:6.2}", 1000.0 * scope.min).cell(),
+                        format!("{:8.2}", 1000.0 * scope.max).cell(),
+                        format!("{:6.2}", 1000.0 * scope.mean).cell(),
+                        format!("{:5.2}", 1000.0 * scope.var).cell(),
+                        format!("{:7.0}", 100.0 * (scope.var / scope.mean)).cell(),
                         scope.name.clone().cell(),
                     ]);
                 }
@@ -252,7 +244,7 @@ impl Profiler {
             }
         } else {
             Self::backtrace_intern(profiler);
-            panic!("Profiler::end: Attempting to pop an empty stack");
+            panic!("Profiler::end: Attempting to pop an empty stack. Profiler::begin is missing.");
         }
     }
 
