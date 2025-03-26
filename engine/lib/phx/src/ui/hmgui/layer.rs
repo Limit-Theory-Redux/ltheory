@@ -1,8 +1,7 @@
 use glam::Vec2;
 
 use super::{HmGuiWidget, WidgetItem};
-use crate::rf::Rf;
-use crate::system::Hash_FNV64_Init;
+use crate::{rf::Rf, system::Hash};
 
 pub const UNDEFINED_LAYER_INDEX: usize = 0xFFFFFFFF;
 
@@ -36,7 +35,7 @@ impl HmGuiLayer {
     pub fn new_fixed(prev_index: usize, pos: Vec2, size: Vec2) -> Self {
         let mut widget = HmGuiWidget::new(None, WidgetItem::Container(Default::default()));
 
-        widget.hash = Hash_FNV64_Init();
+        widget.hash = Hash::fnv64_init();
 
         widget.pos = pos;
         widget.size = size;
@@ -59,7 +58,7 @@ impl HmGuiLayer {
     pub fn new_below(prev_index: usize, hash: u64) -> Self {
         let mut widget = HmGuiWidget::new(None, WidgetItem::Container(Default::default()));
 
-        widget.hash = Hash_FNV64_Init();
+        widget.hash = Hash::fnv64_init();
 
         let root = Rf::new(widget);
         let container = root.clone();

@@ -100,16 +100,10 @@ impl HmGui {
 
         let mut widget = HmGuiWidget::new(Some(parent_rf.clone()), item);
 
-        #[allow(unsafe_code)] // TODO: remove
-        {
-            widget.hash = unsafe {
-                Hash_FNV64_Incremental(
-                    parent_hash,
-                    &mut parent_container.children_hash as *mut u32 as *const _,
-                    std::mem::size_of::<u32>() as i32,
-                )
-            };
-        }
+        widget.hash = Hash::fnv64_incremental(
+            parent_hash,
+            parent_container.children_hash.to_le_bytes().as_slice(),
+        );
 
         let widget_rf = Rf::new(widget);
 
