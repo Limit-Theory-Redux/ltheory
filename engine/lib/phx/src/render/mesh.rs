@@ -440,13 +440,11 @@ impl Mesh {
     pub fn draw_bound(&self) {
         let this = self.shared.as_ref();
 
-        unsafe {
-            Metric_AddDraw(
-                this.index.len() as i32 / 3,
-                this.index.len() as i32 / 3,
-                this.vertex.len() as i32,
-            )
-        };
+        Metric::add_draw(
+            this.index.len() as u64 / 3,
+            this.index.len() as u64 / 3,
+            this.vertex.len() as u64,
+        );
 
         glcheck!(gl::DrawElements(
             gl::TRIANGLES,

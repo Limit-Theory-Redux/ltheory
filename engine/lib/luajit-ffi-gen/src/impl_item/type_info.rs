@@ -68,6 +68,7 @@ const COPY_TYPES: &[&str] = &[
     "PixelFormat",
     "DataFormat",
     "Worker",
+    "Metric",
 ];
 
 #[derive(Debug, PartialEq)]

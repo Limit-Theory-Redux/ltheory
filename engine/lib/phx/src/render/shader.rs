@@ -375,12 +375,12 @@ impl Shader {
 
     #[bind(name = "SetMatrixT")]
     pub fn set_matrix_transpose(&mut self, name: &str, value: &Matrix) {
-        self.set_uniform(name, ShaderVarData::Matrix(value.transpose().into()));
+        self.set_uniform(name, ShaderVarData::Matrix(value.transpose()));
     }
 
     #[bind(name = "ISetMatrixT")]
     pub fn index_set_matrix_transpose(&mut self, index: i32, value: &Matrix) {
-        self.index_set_uniform(index, ShaderVarData::Matrix(value.transpose().into()));
+        self.index_set_uniform(index, ShaderVarData::Matrix(value.transpose()));
     }
 
     pub fn set_tex1d(&mut self, name: &str, value: &mut Tex1D) {

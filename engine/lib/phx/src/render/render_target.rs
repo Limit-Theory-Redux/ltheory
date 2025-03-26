@@ -55,7 +55,7 @@ pub unsafe extern "C" fn RenderTarget_Push(sx: i32, sy: i32) {
     (*this).sy = sy;
     (*this).depth = false;
 
-    Metric_Inc(0x7);
+    Metric::FBOSwap.inc();
 
     glcheck!(gl::GenFramebuffers(1, &mut (*this).handle));
     glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, (*this).handle));
@@ -99,7 +99,7 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
 
     FBO_INDEX -= 1;
 
-    Metric_Inc(0x7);
+    Metric::FBOSwap.inc();
 
     if FBO_INDEX >= 0 {
         glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, (*GetActive()).handle));

@@ -1,255 +1,229 @@
 use std::fs;
 use std::io::{Read, Write};
 
-use internal::{static_string, ConvertIntoString};
+use tracing::{error, warn};
 
-use super::*;
+use super::Bytes;
 
-#[repr(C)]
 pub struct File {
     pub file: fs::File,
 }
 
-#[no_mangle]
-pub extern "C" fn File_Exists(path: *const libc::c_char) -> bool {
-    file_exists(path.as_str())
+macro_rules! read_type {
+    ($obj:expr, $t:ty) => {
+        let mut buf = [0u8; std::mem::size_of::<$t>()];
+        if let Err(err) = $obj.file.read_exact(&mut buf) {
+            error!("Cannot read from the file: {err}");
+            return <$t>::default();
+        }
+        return <$t>::from_le_bytes(buf);
+    };
 }
 
-pub fn file_exists(path: &str) -> bool {
-    match fs::metadata(path) {
-        Ok(metadata) => metadata.is_file(),
-        Err(_) => false,
-    }
+macro_rules! write_type {
+    ($obj:expr, $v:expr) => {
+        if let Err(err) = $obj.file.write($v.to_le_bytes().as_slice()) {
+            error!("Cannot write into a file: {err}");
+        }
+    };
 }
 
-#[no_mangle]
-pub extern "C" fn File_IsDir(path: *const libc::c_char) -> bool {
-    match fs::metadata(path.as_str()) {
-        Ok(metadata) => metadata.is_dir(),
-        Err(_) => false,
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn File_Create(path: *const libc::c_char) -> Option<Box<File>> {
-    let file = fs::File::options()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(path.as_str())
-        .ok()?;
-    Some(Box::new(File { file }))
-}
-
-#[no_mangle]
-pub extern "C" fn File_Open(path: *const libc::c_char) -> Option<Box<File>> {
-    let file = fs::File::options()
-        .create(true)
-        .append(true)
-        .open(path.as_str())
-        .ok()?;
-    Some(Box::new(File { file }))
-}
-
-#[no_mangle]
-pub extern "C" fn File_Close(_: Option<Box<File>>) {
-    // 'this' will get dropped here, as we're moving "Box<File>" into this function and it's falling out of scope.
-}
-
-#[no_mangle]
-pub extern "C" fn File_ReadBytes(path: *const libc::c_char) -> Option<Box<Bytes>> {
-    fs::read(path.as_str())
-        .ok()
-        .map(|v| Box::new(Bytes::from_vec(v)))
-}
-
-#[no_mangle]
-pub extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc::c_char {
-    file_read_cstr(path.as_str())
-        .map(|val| static_string!(val))
-        .unwrap_or(std::ptr::null())
-}
-
-pub fn file_read_cstr(path: &str) -> Option<String> {
-    fs::read_to_string(path).ok()
-}
-
-#[no_mangle]
-pub extern "C" fn File_Size(path: *const libc::c_char) -> i64 {
-    if let Ok(file) = fs::File::open(path.as_str()) {
-        if let Ok(metadata) = file.metadata() {
-            return metadata.len() as i64;
+#[luajit_ffi_gen::luajit_ffi]
+impl File {
+    pub fn exists(path: &str) -> bool {
+        match fs::metadata(path) {
+            Ok(metadata) => metadata.is_file(),
+            Err(err) => {
+                warn!("Cannot get '{path}' file metadata: {err}");
+                false
+            }
         }
     }
-    0
-}
 
-#[no_mangle]
-pub extern "C" fn File_Read(this: &mut File, data: *mut libc::c_void, len: u32) {
-    let buffer = unsafe { std::slice::from_raw_parts_mut(data as *mut u8, len as usize) };
-    let _ = this.file.read(buffer);
-}
-
-#[no_mangle]
-pub extern "C" fn File_Write(this: &mut File, data: *const libc::c_void, len: u32) {
-    let buffer = unsafe { std::slice::from_raw_parts(data as *mut u8, len as usize) };
-    let _ = this.file.write(buffer);
-}
-
-#[no_mangle]
-pub extern "C" fn File_WriteStr(this: &mut File, data: *const libc::c_char) {
-    let data_str = data.as_str();
-    let buffer = data_str.as_bytes();
-
-    let _ = this.file.write(buffer);
-}
-
-#[no_mangle]
-pub extern "C" fn File_ReadU8(this: &mut File) -> u8 {
-    let mut buf = [0u8; std::mem::size_of::<u8>()];
-    if this.file.read_exact(&mut buf).is_ok() {
-        u8::from_le_bytes(buf)
-    } else {
-        0
+    pub fn is_dir(path: &str) -> bool {
+        match fs::metadata(path) {
+            Ok(metadata) => metadata.is_dir(),
+            Err(err) => {
+                warn!("Cannot get '{path}' file metadata: {err}");
+                false
+            }
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn File_ReadU16(this: &mut File) -> u16 {
-    let mut buf = [0u8; std::mem::size_of::<u16>()];
-    if this.file.read_exact(&mut buf).is_ok() {
-        u16::from_le_bytes(buf)
-    } else {
-        0
+    #[bind(name = "Create")]
+    pub fn new(path: &str) -> Option<Self> {
+        match fs::File::options()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path)
+        {
+            Ok(file) => Some(Self { file }),
+            Err(err) => {
+                error!("Cannot create file '{path}': {err}");
+                None
+            }
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn File_ReadU32(this: &mut File) -> u32 {
-    let mut buf = [0u8; std::mem::size_of::<u32>()];
-    if this.file.read_exact(&mut buf).is_ok() {
-        u32::from_le_bytes(buf)
-    } else {
-        0
+    pub fn open(path: &str) -> Option<Self> {
+        match fs::File::options().create(true).append(true).open(path) {
+            Ok(file) => Some(Self { file }),
+            Err(err) => {
+                error!("Cannot open file '{path}': {err}");
+                None
+            }
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn File_ReadU64(this: &mut File) -> u64 {
-    let mut buf = [0u8; std::mem::size_of::<u64>()];
-    if this.file.read_exact(&mut buf).is_ok() {
-        u64::from_le_bytes(buf)
-    } else {
-        0
+    pub fn close(&self) -> bool {
+        if let Err(err) = self.file.sync_all() {
+            error!("Cannot cloase file: {err}");
+            return false;
+        }
+        // TODO: proper close?
+        true
     }
-}
 
-#[no_mangle]
-pub extern "C" fn File_ReadI8(this: &mut File) -> i8 {
-    let mut buf = [0u8; std::mem::size_of::<i8>()];
-    if this.file.read_exact(&mut buf).is_ok() {
-        i8::from_le_bytes(buf)
-    } else {
-        0
+    pub fn read_bytes(path: &str) -> Option<Bytes> {
+        match fs::read(path) {
+            Ok(data) => Some(Bytes::from_vec(data)),
+            Err(err) => {
+                error!("Cannot read bytes from file '{path}': {err}");
+                None
+            }
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn File_ReadI16(this: &mut File) -> i16 {
-    let mut buf = [0u8; std::mem::size_of::<i16>()];
-    if this.file.read_exact(&mut buf).is_ok() {
-        i16::from_le_bytes(buf)
-    } else {
-        0
+    pub fn read_cstr(path: &str) -> Option<String> {
+        match fs::read_to_string(path) {
+            Ok(s) => Some(s),
+            Err(err) => {
+                error!("Cannot read string from file '{path}': {err}");
+                None
+            }
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn File_ReadI32(this: &mut File) -> i32 {
-    let mut buf = [0u8; std::mem::size_of::<i32>()];
-    if this.file.read_exact(&mut buf).is_ok() {
-        i32::from_le_bytes(buf)
-    } else {
-        0
+    pub fn size(path: &str) -> Option<u64> {
+        match fs::metadata(path) {
+            Ok(metadata) => Some(metadata.len()),
+            Err(err) => {
+                warn!("Cannot get '{path}' file length: {err}");
+                None
+            }
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn File_ReadI64(this: &mut File) -> i64 {
-    let mut buf = [0u8; std::mem::size_of::<i64>()];
-    if this.file.read_exact(&mut buf).is_ok() {
-        i64::from_le_bytes(buf)
-    } else {
-        0
+    pub fn read(&mut self, data: &mut [u8]) -> Option<usize> {
+        match self.file.read(data) {
+            Ok(size) => Some(size),
+            Err(err) => {
+                error!("Cannot read data from file: {err}");
+                None
+            }
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn File_ReadF32(this: &mut File) -> f32 {
-    let mut buf = [0u8; std::mem::size_of::<f32>()];
-    if this.file.read_exact(&mut buf).is_ok() {
-        f32::from_le_bytes(buf)
-    } else {
-        0.0
+    pub fn write(&mut self, data: &[u8]) -> Option<usize> {
+        match self.file.write(data) {
+            Ok(size) => Some(size),
+            Err(err) => {
+                error!("Cannot write data to a file: {err}");
+                None
+            }
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn File_ReadF64(this: &mut File) -> f64 {
-    let mut buf = [0u8; std::mem::size_of::<f64>()];
-    if this.file.read_exact(&mut buf).is_ok() {
-        f64::from_le_bytes(buf)
-    } else {
-        0.0
+    pub fn write_str(&mut self, data: &str) -> Option<usize> {
+        let buffer = data.as_bytes();
+
+        match self.file.write(buffer) {
+            Ok(size) => Some(size), // TODO: return Option<usize>
+            Err(err) => {
+                error!("Cannot write string to a file: {err}");
+                None
+            }
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn File_WriteU8(this: &mut File, value: u8) {
-    let _ = this.file.write(value.to_le_bytes().as_slice());
-}
+    pub fn read_u8(&mut self) -> u8 {
+        read_type!(self, u8);
+    }
 
-#[no_mangle]
-pub extern "C" fn File_WriteU16(this: &mut File, value: u16) {
-    let _ = this.file.write(value.to_le_bytes().as_slice());
-}
+    pub fn read_u16(&mut self) -> u16 {
+        read_type!(self, u16);
+    }
 
-#[no_mangle]
-pub extern "C" fn File_WriteU32(this: &mut File, value: u32) {
-    let _ = this.file.write(value.to_le_bytes().as_slice());
-}
+    pub fn read_u32(&mut self) -> u32 {
+        read_type!(self, u32);
+    }
 
-#[no_mangle]
-pub extern "C" fn File_WriteU64(this: &mut File, value: u64) {
-    let _ = this.file.write(value.to_le_bytes().as_slice());
-}
+    pub fn read_u64(&mut self) -> u64 {
+        read_type!(self, u64);
+    }
 
-#[no_mangle]
-pub extern "C" fn File_WriteI8(this: &mut File, value: i8) {
-    let _ = this.file.write(value.to_le_bytes().as_slice());
-}
+    pub fn read_i8(&mut self) -> i8 {
+        read_type!(self, i8);
+    }
 
-#[no_mangle]
-pub extern "C" fn File_WriteI16(this: &mut File, value: i16) {
-    let _ = this.file.write(value.to_le_bytes().as_slice());
-}
+    pub fn read_i16(&mut self) -> i16 {
+        read_type!(self, i16);
+    }
 
-#[no_mangle]
-pub extern "C" fn File_WriteI32(this: &mut File, value: i32) {
-    let _ = this.file.write(value.to_le_bytes().as_slice());
-}
+    pub fn read_i32(&mut self) -> i32 {
+        read_type!(self, i32);
+    }
 
-#[no_mangle]
-pub extern "C" fn File_WriteI64(this: &mut File, value: i64) {
-    let _ = this.file.write(value.to_le_bytes().as_slice());
-}
+    pub fn read_i64(&mut self) -> i64 {
+        read_type!(self, i64);
+    }
 
-#[no_mangle]
-pub extern "C" fn File_WriteF32(this: &mut File, value: f32) {
-    let _ = this.file.write(value.to_le_bytes().as_slice());
-}
+    pub fn read_f32(&mut self) -> f32 {
+        read_type!(self, f32);
+    }
 
-#[no_mangle]
-pub extern "C" fn File_WriteF64(this: &mut File, value: f64) {
-    let _ = this.file.write(value.to_le_bytes().as_slice());
+    pub fn read_f64(&mut self) -> f64 {
+        read_type!(self, f64);
+    }
+
+    pub fn write_u8(&mut self, value: u8) {
+        write_type!(self, value);
+    }
+
+    pub fn write_u16(&mut self, value: u16) {
+        write_type!(self, value);
+    }
+
+    pub fn write_u32(&mut self, value: u32) {
+        write_type!(self, value);
+    }
+
+    pub fn write_u64(&mut self, value: u64) {
+        write_type!(self, value);
+    }
+
+    pub fn write_i8(&mut self, value: i8) {
+        write_type!(self, value);
+    }
+
+    pub fn write_i16(&mut self, value: i16) {
+        write_type!(self, value);
+    }
+
+    pub fn write_i32(&mut self, value: i32) {
+        write_type!(self, value);
+    }
+
+    pub fn write_64(&mut self, value: i64) {
+        write_type!(self, value);
+    }
+
+    pub fn write_f32(&mut self, value: f32) {
+        write_type!(self, value);
+    }
+
+    pub fn write_f64(&mut self, value: f64) {
+        write_type!(self, value);
+    }
 }

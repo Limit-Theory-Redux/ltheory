@@ -34,26 +34,21 @@ impl Directory {
     }
 
     pub fn change(cwd: &str) -> bool {
-        match env::set_current_dir(cwd) {
-            Ok(_) => true,
-            Err(err) => {
-                error!("Cannot change current directory. Error: {err}");
-                false
-            }
+        if let Err(err) = env::set_current_dir(cwd) {
+            error!("Cannot change current directory. Error: {err}");
+            return false;
         }
+        true
     }
 
     pub fn create(path: &str) -> bool {
-        match fs::create_dir(path) {
-            Ok(_) => true,
-            Err(err) => match err.kind() {
-                ErrorKind::AlreadyExists => true,
-                _ => {
-                    error!("Failed to create directory. Error: {err}");
-                    false
-                }
-            },
+        if let Err(err) = fs::create_dir(path) {
+            if err.kind() != ErrorKind::AlreadyExists {
+                error!("Failed to create directory. Error: {err}");
+                return false;
+            }
         }
+        true
     }
 
     pub fn get_current() -> Option<String> {
@@ -86,12 +81,10 @@ impl Directory {
     }
 
     pub fn remove(path: &str) -> bool {
-        match fs::remove_dir(path) {
-            Ok(_) => true,
-            Err(err) => {
-                error!("Cannot remove directory. Error: {err}");
-                false
-            }
+        if let Err(err) = fs::remove_dir(path) {
+            error!("Cannot remove directory. Error: {err}");
+            return false;
         }
+        true
     }
 }

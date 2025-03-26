@@ -69,7 +69,7 @@ impl Draw {
     }
 
     pub fn flush() {
-        unsafe { Metric_Inc(0x6) };
+        Metric::Flush.inc();
         glcheck!(gl::Finish());
     }
 
@@ -150,7 +150,7 @@ impl Draw {
     }
 
     pub fn box3(b: &Box3) {
-        unsafe { Metric_AddDrawImm(6, 12, 24) };
+        Metric::add_draw_imm(6, 12, 24);
 
         let mut this = Self::inst();
 
@@ -228,7 +228,7 @@ impl Draw {
         let p2: Vec3 = *p + (e1 * scale) + (e2 * scale);
         let p3: Vec3 = *p + (e1 * -scale) + (e2 * scale);
 
-        unsafe { Metric_AddDrawImm(1, 2, 4) };
+        Metric::add_draw_imm(1, 2, 4);
 
         let mut this = Self::inst();
 
@@ -255,7 +255,7 @@ impl Draw {
     }
 
     pub fn quad(p1: &Vec2, p2: &Vec2, p3: &Vec2, p4: &Vec2) {
-        unsafe { Metric_AddDrawImm(1, 2, 4) };
+        Metric::add_draw_imm(1, 2, 4);
 
         let mut this = Self::inst();
 
@@ -272,7 +272,7 @@ impl Draw {
     }
 
     pub fn quad3(p1: &Vec3, p2: &Vec3, p3: &Vec3, p4: &Vec3) {
-        unsafe { Metric_AddDrawImm(1, 2, 4) };
+        Metric::add_draw_imm(1, 2, 4);
 
         let mut this = Self::inst();
 
@@ -296,7 +296,7 @@ impl Draw {
         let x2: f32 = x1 + xs;
         let y2: f32 = y1 + ys;
 
-        unsafe { Metric_AddDrawImm(1, 2, 4) };
+        Metric::add_draw_imm(1, 2, 4);
 
         let mut this = Self::inst();
 
@@ -318,13 +318,13 @@ impl Draw {
 
     /* TODO JP : Lazy creation of VBO / IBO & glDraw instead of immediate. */
     pub fn sphere(p: &Vec3, r: f32) {
-        let res: usize = 7;
-        let f_res: f32 = res as f32;
+        let res = 7;
+        let f_res = res as f32;
 
         let mut this = Self::inst();
 
         // First Row
-        unsafe { Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32) };
+        Metric::add_draw_imm(res, res, res.wrapping_mul(3));
 
         let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
         let phi: f32 = 1.0 / f_res * std::f32::consts::PI;
@@ -345,13 +345,11 @@ impl Draw {
         this.pb.end();
 
         // Middle Rows
-        unsafe {
-            Metric_AddDrawImm(
-                res.wrapping_sub(2) as i32,
-                2_usize.wrapping_mul(res.wrapping_sub(2)) as i32,
-                4_usize.wrapping_mul(res.wrapping_sub(2)) as i32,
-            )
-        };
+        Metric::add_draw_imm(
+            res.wrapping_sub(2),
+            2u64.wrapping_mul(res.wrapping_sub(2)),
+            4u64.wrapping_mul(res.wrapping_sub(2)),
+        );
 
         let mut last_phi: f32 = 1.0 / f_res * std::f32::consts::PI;
         let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
@@ -378,7 +376,7 @@ impl Draw {
         this.pb.end();
 
         // Bottom Row
-        unsafe { Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32) };
+        Metric::add_draw_imm(res, res, res.wrapping_mul(3));
 
         let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
         let phi: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::PI;
@@ -400,7 +398,7 @@ impl Draw {
     }
 
     pub fn tri(v1: &Vec2, v2: &Vec2, v3: &Vec2) {
-        unsafe { Metric_AddDrawImm(1, 1, 3) };
+        Metric::add_draw_imm(1, 1, 3);
 
         let mut this = Self::inst();
 
@@ -415,7 +413,7 @@ impl Draw {
     }
 
     pub fn tri3(v1: &Vec3, v2: &Vec3, v3: &Vec3) {
-        unsafe { Metric_AddDrawImm(1, 1, 3) };
+        Metric::add_draw_imm(1, 1, 3);
 
         let mut this = Self::inst();
 
@@ -428,34 +426,34 @@ impl Draw {
         this.pb.vertex3(v3.x, v3.y, v3.z);
         this.pb.end();
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn Draw_Poly(points: *const Vec2, count: i32) {
-    Metric_AddDrawImm(1, count - 2, count);
+    pub fn poly(points: &[Vec2]) {
+        let count = points.len() as u64;
 
-    let mut this = Draw::inst();
+        Metric::add_draw_imm(1, count - 2, count);
 
-    this.pb.begin(PrimitiveType::Polygon);
-    for i in 0..(count as isize) {
-        let p = &*points.offset(i);
-        this.pb.vertex2(p.x, p.y);
+        let mut this = Draw::inst();
+
+        this.pb.begin(PrimitiveType::Polygon);
+        for p in points {
+            this.pb.vertex2(p.x, p.y);
+        }
+        this.pb.end();
     }
-    this.pb.end();
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn Draw_Poly3(points: *const Vec3, count: i32) {
-    Metric_AddDrawImm(1, count - 2, count);
+    pub fn poly3(points: &[Vec3]) {
+        let count = points.len() as u64;
 
-    let mut this = Draw::inst();
+        Metric::add_draw_imm(1, count - 2, count);
 
-    this.pb.begin(PrimitiveType::Polygon);
-    for i in 0..(count as isize) {
-        let p = &*points.offset(i);
-        this.pb.vertex3(p.x, p.y, p.z);
+        let mut this = Draw::inst();
+
+        this.pb.begin(PrimitiveType::Polygon);
+        for p in points {
+            this.pb.vertex3(p.x, p.y, p.z);
+        }
+        this.pb.end();
     }
-    this.pb.end();
 }
 
 fn framebuffer_status_to_str(status: gl::types::GLenum) -> &'static str {
