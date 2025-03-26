@@ -79,11 +79,10 @@ impl File {
     pub fn close(&self) -> bool {
         if let Err(err) = self.file.sync_all() {
             error!("Cannot cloase file: {err}");
-            false
-        } else {
-            // TODO: proper close?
-            true
+            return false;
         }
+        // TODO: proper close?
+        true
     }
 
     pub fn read_bytes(path: &str) -> Option<Bytes> {
@@ -106,35 +105,45 @@ impl File {
         }
     }
 
-    pub fn size(path: &str) -> i64 {
+    pub fn size(path: &str) -> Option<u64> {
         match fs::metadata(path) {
-            Ok(metadata) => metadata.len() as i64,
+            Ok(metadata) => Some(metadata.len()),
             Err(err) => {
                 warn!("Cannot get '{path}' file length: {err}");
-                0 // TODO: -1 or Option<u64>
+                None
             }
         }
     }
 
-    pub fn read(&mut self, data: &mut [u8]) {
-        if let Err(err) = self.file.read(data) {
-            error!("Cannot read data from file: {err}");
+    pub fn read(&mut self, data: &mut [u8]) -> Option<usize> {
+        match self.file.read(data) {
+            Ok(size) => Some(size),
+            Err(err) => {
+                error!("Cannot read data from file: {err}");
+                None
+            }
         }
     }
 
-    pub fn write(&mut self, data: &[u8]) {
+    pub fn write(&mut self, data: &[u8]) -> Option<usize> {
         match self.file.write(data) {
-            Ok(_size) => (), // TODO: return Option<usize>
-            Err(err) => error!("Cannot write data to a file: {err}"),
+            Ok(size) => Some(size),
+            Err(err) => {
+                error!("Cannot write data to a file: {err}");
+                None
+            }
         }
     }
 
-    pub fn write_str(&mut self, data: &str) {
+    pub fn write_str(&mut self, data: &str) -> Option<usize> {
         let buffer = data.as_bytes();
 
         match self.file.write(buffer) {
-            Ok(_size) => (), // TODO: return Option<usize>
-            Err(err) => error!("Cannot write string to a file: {err}"),
+            Ok(size) => Some(size), // TODO: return Option<usize>
+            Err(err) => {
+                error!("Cannot write string to a file: {err}");
+                None
+            }
         }
     }
 

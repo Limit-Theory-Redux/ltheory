@@ -32,18 +32,21 @@ function File.ReadBytes(path) end
 function File.ReadCstr(path) end
 
 ---@param path string
----@return integer
+---@return integer?
 function File.Size(path) end
 
 ---@param data integer[]
 ---@param data_size integer
+---@return integer?
 function File:read(data, data_size) end
 
 ---@param data integer[]
 ---@param data_size integer
+---@return integer?
 function File:write(data, data_size) end
 
 ---@param data string
+---@return integer?
 function File:writeStr(data) end
 
 ---@return integer

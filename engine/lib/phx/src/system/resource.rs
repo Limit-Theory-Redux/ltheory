@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::*;
+use super::{Bytes, ResourceType};
 
 const RESOURCE_EXTENSION_INFO: &[(&str, &[&str])] = &[
     ("font", &["ttf", "otf"]),                // ResourceType::Font

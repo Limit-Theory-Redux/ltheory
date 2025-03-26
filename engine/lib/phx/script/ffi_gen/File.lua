@@ -17,38 +17,38 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void   File_Free      (File*);
-            bool   File_Exists    (cstr path);
-            bool   File_IsDir     (cstr path);
-            File*  File_Create    (cstr path);
-            File*  File_Open      (cstr path);
-            bool   File_Close     (File const*);
-            Bytes* File_ReadBytes (cstr path);
-            cstr   File_ReadCstr  (cstr path);
-            int64  File_Size      (cstr path);
-            void   File_Read      (File*, uint8* data, uint64 data_size);
-            void   File_Write     (File*, uint8 const* data, uint64 data_size);
-            void   File_WriteStr  (File*, cstr data);
-            uint8  File_ReadU8    (File*);
-            uint16 File_ReadU16   (File*);
-            uint32 File_ReadU32   (File*);
-            uint64 File_ReadU64   (File*);
-            int8   File_ReadI8    (File*);
-            int16  File_ReadI16   (File*);
-            int    File_ReadI32   (File*);
-            int64  File_ReadI64   (File*);
-            float  File_ReadF32   (File*);
-            double File_ReadF64   (File*);
-            void   File_WriteU8   (File*, uint8 value);
-            void   File_WriteU16  (File*, uint16 value);
-            void   File_WriteU32  (File*, uint32 value);
-            void   File_WriteU64  (File*, uint64 value);
-            void   File_WriteI8   (File*, int8 value);
-            void   File_WriteI16  (File*, int16 value);
-            void   File_WriteI32  (File*, int value);
-            void   File_Write64   (File*, int64 value);
-            void   File_WriteF32  (File*, float value);
-            void   File_WriteF64  (File*, double value);
+            void          File_Free      (File*);
+            bool          File_Exists    (cstr path);
+            bool          File_IsDir     (cstr path);
+            File*         File_Create    (cstr path);
+            File*         File_Open      (cstr path);
+            bool          File_Close     (File const*);
+            Bytes*        File_ReadBytes (cstr path);
+            cstr          File_ReadCstr  (cstr path);
+            uint64 const* File_Size      (cstr path);
+            uint64 const* File_Read      (File*, uint8* data, uint64 data_size);
+            uint64 const* File_Write     (File*, uint8 const* data, uint64 data_size);
+            uint64 const* File_WriteStr  (File*, cstr data);
+            uint8         File_ReadU8    (File*);
+            uint16        File_ReadU16   (File*);
+            uint32        File_ReadU32   (File*);
+            uint64        File_ReadU64   (File*);
+            int8          File_ReadI8    (File*);
+            int16         File_ReadI16   (File*);
+            int           File_ReadI32   (File*);
+            int64         File_ReadI64   (File*);
+            float         File_ReadF32   (File*);
+            double        File_ReadF64   (File*);
+            void          File_WriteU8   (File*, uint8 value);
+            void          File_WriteU16  (File*, uint16 value);
+            void          File_WriteU32  (File*, uint32 value);
+            void          File_WriteU64  (File*, uint64 value);
+            void          File_WriteI8   (File*, int8 value);
+            void          File_WriteI16  (File*, int16 value);
+            void          File_WriteI32  (File*, int value);
+            void          File_Write64   (File*, int64 value);
+            void          File_WriteF32  (File*, float value);
+            void          File_WriteF64  (File*, double value);
         ]]
     end
 
