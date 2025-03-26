@@ -17,25 +17,18 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            InputDeviceType InputDeviceType_Cursor;
-            InputDeviceType InputDeviceType_Gamepad;
-            InputDeviceType InputDeviceType_Keyboard;
-            InputDeviceType InputDeviceType_Mouse;
-            InputDeviceType InputDeviceType_Touchpad;
-            InputDeviceType InputDeviceType_SystemEvent;
-
             cstr            InputDeviceType_ToString(InputDeviceType);
         ]]
     end
 
     do -- Global Symbol Table
         InputDeviceType = {
-            Cursor      = libphx.InputDeviceType_Cursor,
-            Gamepad     = libphx.InputDeviceType_Gamepad,
-            Keyboard    = libphx.InputDeviceType_Keyboard,
-            Mouse       = libphx.InputDeviceType_Mouse,
-            Touchpad    = libphx.InputDeviceType_Touchpad,
-            SystemEvent = libphx.InputDeviceType_SystemEvent,
+            Cursor      = 0,
+            Gamepad     = 1,
+            Keyboard    = 2,
+            Mouse       = 3,
+            Touchpad    = 4,
+            SystemEvent = 5,
 
             ToString    = libphx.InputDeviceType_ToString,
         }

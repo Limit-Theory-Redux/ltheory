@@ -17,21 +17,16 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            TextAlignment TextAlignment_Start;
-            TextAlignment TextAlignment_Middle;
-            TextAlignment TextAlignment_End;
-            TextAlignment TextAlignment_Justified;
-
             cstr          TextAlignment_ToString(TextAlignment);
         ]]
     end
 
     do -- Global Symbol Table
         TextAlignment = {
-            Start     = libphx.TextAlignment_Start,
-            Middle    = libphx.TextAlignment_Middle,
-            End       = libphx.TextAlignment_End,
-            Justified = libphx.TextAlignment_Justified,
+            Start     = 0,
+            Middle    = 1,
+            End       = 2,
+            Justified = 3,
 
             ToString  = libphx.TextAlignment_ToString,
         }

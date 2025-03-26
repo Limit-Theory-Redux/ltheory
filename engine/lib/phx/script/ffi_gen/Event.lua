@@ -17,33 +17,22 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            Event Event_PreSim;
-            Event Event_Sim;
-            Event Event_PostSim;
-            Event Event_PreRender;
-            Event Event_Render;
-            Event Event_PostRender;
-            Event Event_PreInput;
-            Event Event_Input;
-            Event Event_PostInput;
-            Event Event_EngineEventsCount;
-
             cstr  Event_ToString(Event);
         ]]
     end
 
     do -- Global Symbol Table
         Event = {
-            PreSim            = libphx.Event_PreSim,
-            Sim               = libphx.Event_Sim,
-            PostSim           = libphx.Event_PostSim,
-            PreRender         = libphx.Event_PreRender,
-            Render            = libphx.Event_Render,
-            PostRender        = libphx.Event_PostRender,
-            PreInput          = libphx.Event_PreInput,
-            Input             = libphx.Event_Input,
-            PostInput         = libphx.Event_PostInput,
-            EngineEventsCount = libphx.Event_EngineEventsCount,
+            PreSim            = 0,
+            Sim               = 1,
+            PostSim           = 2,
+            PreRender         = 3,
+            Render            = 4,
+            PostRender        = 5,
+            PreInput          = 6,
+            Input             = 7,
+            PostInput         = 8,
+            EngineEventsCount = 9,
 
             ToString          = libphx.Event_ToString,
         }

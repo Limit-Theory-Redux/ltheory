@@ -17,19 +17,15 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            CullFace CullFace_None;
-            CullFace CullFace_Back;
-            CullFace CullFace_Front;
-
             cstr     CullFace_ToString(CullFace);
         ]]
     end
 
     do -- Global Symbol Table
         CullFace = {
-            None     = libphx.CullFace_None,
-            Back     = libphx.CullFace_Back,
-            Front    = libphx.CullFace_Front,
+            None     = 0,
+            Back     = 1,
+            Front    = 2,
 
             ToString = libphx.CullFace_ToString,
         }

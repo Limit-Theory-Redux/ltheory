@@ -17,17 +17,14 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            WorkerId WorkerId_Echo;
-            WorkerId WorkerId_EngineWorkersCount;
-
             cstr     WorkerId_ToString(WorkerId);
         ]]
     end
 
     do -- Global Symbol Table
         WorkerId = {
-            Echo               = libphx.WorkerId_Echo,
-            EngineWorkersCount = libphx.WorkerId_EngineWorkersCount,
+            Echo               = 0,
+            EngineWorkersCount = 1,
 
             ToString           = libphx.WorkerId_ToString,
         }

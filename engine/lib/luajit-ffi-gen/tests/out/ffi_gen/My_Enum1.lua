@@ -17,17 +17,14 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            My_Enum1 My_Enum1_Var1;
-            My_Enum1 My_Enum1_Var2;
-
             cstr     My_Enum1_ToString(My_Enum1);
         ]]
     end
 
     do -- Global Symbol Table
         My_Enum1 = {
-            Var1     = libphx.My_Enum1_Var1,
-            Var2     = libphx.My_Enum1_Var2,
+            Var1     = 3,
+            Var2     = 4,
 
             ToString = libphx.My_Enum1_ToString,
         }

@@ -17,31 +17,21 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            FrameStage FrameStage_PreSim;
-            FrameStage FrameStage_Sim;
-            FrameStage FrameStage_PostSim;
-            FrameStage FrameStage_PreRender;
-            FrameStage FrameStage_Render;
-            FrameStage FrameStage_PostRender;
-            FrameStage FrameStage_PreInput;
-            FrameStage FrameStage_Input;
-            FrameStage FrameStage_PostInput;
-
             cstr       FrameStage_ToString(FrameStage);
         ]]
     end
 
     do -- Global Symbol Table
         FrameStage = {
-            PreSim     = libphx.FrameStage_PreSim,
-            Sim        = libphx.FrameStage_Sim,
-            PostSim    = libphx.FrameStage_PostSim,
-            PreRender  = libphx.FrameStage_PreRender,
-            Render     = libphx.FrameStage_Render,
-            PostRender = libphx.FrameStage_PostRender,
-            PreInput   = libphx.FrameStage_PreInput,
-            Input      = libphx.FrameStage_Input,
-            PostInput  = libphx.FrameStage_PostInput,
+            PreSim     = 0,
+            Sim        = 1,
+            PostSim    = 2,
+            PreRender  = 3,
+            Render     = 4,
+            PostRender = 5,
+            PreInput   = 6,
+            Input      = 7,
+            PostInput  = 8,
 
             ToString   = libphx.FrameStage_ToString,
         }

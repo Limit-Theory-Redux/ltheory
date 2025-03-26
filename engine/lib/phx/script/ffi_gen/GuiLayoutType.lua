@@ -17,19 +17,15 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            GuiLayoutType GuiLayoutType_Stack;
-            GuiLayoutType GuiLayoutType_Horizontal;
-            GuiLayoutType GuiLayoutType_Vertical;
-
             cstr          GuiLayoutType_ToString(GuiLayoutType);
         ]]
     end
 
     do -- Global Symbol Table
         GuiLayoutType = {
-            Stack      = libphx.GuiLayoutType_Stack,
-            Horizontal = libphx.GuiLayoutType_Horizontal,
-            Vertical   = libphx.GuiLayoutType_Vertical,
+            Stack      = 0,
+            Horizontal = 1,
+            Vertical   = 2,
 
             ToString   = libphx.GuiLayoutType_ToString,
         }

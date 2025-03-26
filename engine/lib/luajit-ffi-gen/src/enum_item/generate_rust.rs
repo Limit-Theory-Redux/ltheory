@@ -11,24 +11,6 @@ impl EnumInfo {
         let self_ident = format_ident!("{}", self.name);
 
         let variant_pairs = self.variants.get_info(attr_args.start_index());
-        let constant_items: Vec<_> = variant_pairs
-            .iter()
-            .map(|(_, variant_name, _)| {
-                let mangle_ident = if let Some(enum_name) = attr_args.name() {
-                    let export_name = format!("{enum_name}_{variant_name}");
-                    quote!(#[export_name = #export_name])
-                } else {
-                    quote!(#[no_mangle])
-                };
-                let const_ident = format_ident!("{}_{variant_name}", self.name);
-                let variant_ident = format_ident!("{variant_name}");
-
-                quote! {
-                    #mangle_ident
-                    pub static #const_ident: #repr_type_ident = #self_ident::#variant_ident.value();
-                }
-            })
-            .collect();
         let enum_size_ident = format_ident!("{}_COUNT", camel_to_snake_case(&self.name, true));
         let enum_size = variant_pairs.len();
         let value_items: Vec<_> = variant_pairs
@@ -66,8 +48,6 @@ impl EnumInfo {
                   write!(f, "{:?}", self)
                 }
             }
-
-            #(#constant_items)*
 
             pub const #enum_size_ident: usize = #enum_size;
 

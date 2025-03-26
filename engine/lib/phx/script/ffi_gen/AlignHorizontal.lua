@@ -17,25 +17,18 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            AlignHorizontal AlignHorizontal_Default;
-            AlignHorizontal AlignHorizontal_Center;
-            AlignHorizontal AlignHorizontal_Left;
-            AlignHorizontal AlignHorizontal_Right;
-            AlignHorizontal AlignHorizontal_Expand;
-            AlignHorizontal AlignHorizontal_Stretch;
-
             cstr            AlignHorizontal_ToString(AlignHorizontal);
         ]]
     end
 
     do -- Global Symbol Table
         AlignHorizontal = {
-            Default  = libphx.AlignHorizontal_Default,
-            Center   = libphx.AlignHorizontal_Center,
-            Left     = libphx.AlignHorizontal_Left,
-            Right    = libphx.AlignHorizontal_Right,
-            Expand   = libphx.AlignHorizontal_Expand,
-            Stretch  = libphx.AlignHorizontal_Stretch,
+            Default  = 0,
+            Center   = 1,
+            Left     = 2,
+            Right    = 3,
+            Expand   = 4,
+            Stretch  = 5,
 
             ToString = libphx.AlignHorizontal_ToString,
         }

@@ -17,51 +17,31 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            GamepadButton GamepadButton_South;
-            GamepadButton GamepadButton_East;
-            GamepadButton GamepadButton_North;
-            GamepadButton GamepadButton_West;
-            GamepadButton GamepadButton_C;
-            GamepadButton GamepadButton_Z;
-            GamepadButton GamepadButton_LeftTrigger;
-            GamepadButton GamepadButton_LeftTrigger2;
-            GamepadButton GamepadButton_RightTrigger;
-            GamepadButton GamepadButton_RightTrigger2;
-            GamepadButton GamepadButton_Select;
-            GamepadButton GamepadButton_Start;
-            GamepadButton GamepadButton_Mode;
-            GamepadButton GamepadButton_LeftThumb;
-            GamepadButton GamepadButton_RightThumb;
-            GamepadButton GamepadButton_DPadUp;
-            GamepadButton GamepadButton_DPadDown;
-            GamepadButton GamepadButton_DPadLeft;
-            GamepadButton GamepadButton_DPadRight;
-
             cstr          GamepadButton_ToString(GamepadButton);
         ]]
     end
 
     do -- Global Symbol Table
         GamepadButton = {
-            South         = libphx.GamepadButton_South,
-            East          = libphx.GamepadButton_East,
-            North         = libphx.GamepadButton_North,
-            West          = libphx.GamepadButton_West,
-            C             = libphx.GamepadButton_C,
-            Z             = libphx.GamepadButton_Z,
-            LeftTrigger   = libphx.GamepadButton_LeftTrigger,
-            LeftTrigger2  = libphx.GamepadButton_LeftTrigger2,
-            RightTrigger  = libphx.GamepadButton_RightTrigger,
-            RightTrigger2 = libphx.GamepadButton_RightTrigger2,
-            Select        = libphx.GamepadButton_Select,
-            Start         = libphx.GamepadButton_Start,
-            Mode          = libphx.GamepadButton_Mode,
-            LeftThumb     = libphx.GamepadButton_LeftThumb,
-            RightThumb    = libphx.GamepadButton_RightThumb,
-            DPadUp        = libphx.GamepadButton_DPadUp,
-            DPadDown      = libphx.GamepadButton_DPadDown,
-            DPadLeft      = libphx.GamepadButton_DPadLeft,
-            DPadRight     = libphx.GamepadButton_DPadRight,
+            South         = 0,
+            East          = 1,
+            North         = 2,
+            West          = 3,
+            C             = 4,
+            Z             = 5,
+            LeftTrigger   = 6,
+            LeftTrigger2  = 7,
+            RightTrigger  = 8,
+            RightTrigger2 = 9,
+            Select        = 10,
+            Start         = 11,
+            Mode          = 12,
+            LeftThumb     = 13,
+            RightThumb    = 14,
+            DPadUp        = 15,
+            DPadDown      = 16,
+            DPadLeft      = 17,
+            DPadRight     = 18,
 
             ToString      = libphx.GamepadButton_ToString,
         }
