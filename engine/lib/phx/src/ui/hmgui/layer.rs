@@ -1,7 +1,8 @@
 use glam::Vec2;
 
 use super::{HmGuiWidget, WidgetItem};
-use crate::{rf::Rf, system::Hash};
+use crate::rf::Rf;
+use crate::system::Hash;
 
 pub const UNDEFINED_LAYER_INDEX: usize = 0xFFFFFFFF;
 
