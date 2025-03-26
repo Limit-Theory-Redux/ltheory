@@ -17,17 +17,14 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            FocusType FocusType_Mouse;
-            FocusType FocusType_Scroll;
-
             cstr      FocusType_ToString(FocusType);
         ]]
     end
 
     do -- Global Symbol Table
         FocusType = {
-            Mouse    = libphx.FocusType_Mouse,
-            Scroll   = libphx.FocusType_Scroll,
+            Mouse    = 0,
+            Scroll   = 1,
 
             ToString = libphx.FocusType_ToString,
         }

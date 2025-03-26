@@ -17,19 +17,15 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            CursorGrabMode CursorGrabMode_None;
-            CursorGrabMode CursorGrabMode_Confined;
-            CursorGrabMode CursorGrabMode_Locked;
-
             cstr           CursorGrabMode_ToString(CursorGrabMode);
         ]]
     end
 
     do -- Global Symbol Table
         CursorGrabMode = {
-            None     = libphx.CursorGrabMode_None,
-            Confined = libphx.CursorGrabMode_Confined,
-            Locked   = libphx.CursorGrabMode_Locked,
+            None     = 0,
+            Confined = 1,
+            Locked   = 2,
 
             ToString = libphx.CursorGrabMode_ToString,
         }

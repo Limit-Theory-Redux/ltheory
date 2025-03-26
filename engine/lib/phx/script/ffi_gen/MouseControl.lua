@@ -17,39 +17,25 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            MouseControl MouseControl_Left;
-            MouseControl MouseControl_Middle;
-            MouseControl MouseControl_Right;
-            MouseControl MouseControl_Forward;
-            MouseControl MouseControl_Back;
-            MouseControl MouseControl_X1;
-            MouseControl MouseControl_X2;
-            MouseControl MouseControl_DeltaX;
-            MouseControl MouseControl_DeltaY;
-            MouseControl MouseControl_ScrollX;
-            MouseControl MouseControl_ScrollY;
-            MouseControl MouseControl_ScrollPixelX;
-            MouseControl MouseControl_ScrollPixelY;
-
             cstr         MouseControl_ToString(MouseControl);
         ]]
     end
 
     do -- Global Symbol Table
         MouseControl = {
-            Left         = libphx.MouseControl_Left,
-            Middle       = libphx.MouseControl_Middle,
-            Right        = libphx.MouseControl_Right,
-            Forward      = libphx.MouseControl_Forward,
-            Back         = libphx.MouseControl_Back,
-            X1           = libphx.MouseControl_X1,
-            X2           = libphx.MouseControl_X2,
-            DeltaX       = libphx.MouseControl_DeltaX,
-            DeltaY       = libphx.MouseControl_DeltaY,
-            ScrollX      = libphx.MouseControl_ScrollX,
-            ScrollY      = libphx.MouseControl_ScrollY,
-            ScrollPixelX = libphx.MouseControl_ScrollPixelX,
-            ScrollPixelY = libphx.MouseControl_ScrollPixelY,
+            Left         = 0,
+            Middle       = 1,
+            Right        = 2,
+            Forward      = 3,
+            Back         = 4,
+            X1           = 5,
+            X2           = 6,
+            DeltaX       = 7,
+            DeltaY       = 8,
+            ScrollX      = 9,
+            ScrollY      = 10,
+            ScrollPixelX = 11,
+            ScrollPixelY = 12,
 
             ToString     = libphx.MouseControl_ToString,
         }

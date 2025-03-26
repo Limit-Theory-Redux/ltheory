@@ -17,35 +17,23 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            ResourceType ResourceType_Font;
-            ResourceType ResourceType_Mesh;
-            ResourceType ResourceType_Script;
-            ResourceType ResourceType_Shader;
-            ResourceType ResourceType_Sound;
-            ResourceType ResourceType_Tex1D;
-            ResourceType ResourceType_Tex2D;
-            ResourceType ResourceType_Tex3D;
-            ResourceType ResourceType_TexCube;
-            ResourceType ResourceType_Theme;
-            ResourceType ResourceType_Other;
-
             cstr         ResourceType_ToString(ResourceType);
         ]]
     end
 
     do -- Global Symbol Table
         ResourceType = {
-            Font     = libphx.ResourceType_Font,
-            Mesh     = libphx.ResourceType_Mesh,
-            Script   = libphx.ResourceType_Script,
-            Shader   = libphx.ResourceType_Shader,
-            Sound    = libphx.ResourceType_Sound,
-            Tex1D    = libphx.ResourceType_Tex1D,
-            Tex2D    = libphx.ResourceType_Tex2D,
-            Tex3D    = libphx.ResourceType_Tex3D,
-            TexCube  = libphx.ResourceType_TexCube,
-            Theme    = libphx.ResourceType_Theme,
-            Other    = libphx.ResourceType_Other,
+            Font     = 0,
+            Mesh     = 1,
+            Script   = 2,
+            Shader   = 3,
+            Sound    = 4,
+            Tex1D    = 5,
+            Tex2D    = 6,
+            Tex3D    = 7,
+            TexCube  = 8,
+            Theme    = 9,
+            Other    = 10,
 
             ToString = libphx.ResourceType_ToString,
         }
