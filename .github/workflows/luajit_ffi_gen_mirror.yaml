@@ -1,0 +1,73 @@
+name: Mirror Module Repository
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "engine/lib/luajit-ffi-gen/**"
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    env:
+      MODULE_PATH: engine/lib/luajit-ffi-gen
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Split and Push Module
+        env:
+          MIRROR_REPO_TOKEN: ${{ secrets.FFI_GEN_MIRROR_TOKEN }}
+          MAIN_REPO: ${{ github.repository }}
+        run: |
+          # Split the subtree to extract only module history
+          git subtree split --prefix=${{ env.MODULE_PATH }} -b temp-branch
+
+          # Check out the temp branch
+          git checkout temp-branch
+
+          # Create or update CONTRIBUTING.md file
+          cat > CONTRIBUTING.md << 'EOL'
+          # Contributing
+
+          ⚠️ **IMPORTANT**: This repository is a read-only mirror of the luajit-ffi-gen module from the Limit Theory Redux monorepo.
+
+          ## Do Not:
+          - Open issues here
+          - Submit pull requests here
+          - Push directly to this repository
+
+          ## Instead:
+          All contributions should be made to the main repository at:
+          https://github.com/${MAIN_REPO}
+
+          ### How to contribute
+          1. Clone the main repository: `git clone https://github.com/${MAIN_REPO}.git`
+          2. Make your changes in the module directory: `${MODULE_PATH}/`
+          3. Submit your PR to the main repository
+
+          Thank you for your understanding and cooperation!
+          EOL
+
+          # Replace environment variables in the CONTRIBUTING.md file
+          sed -i "s|\${MAIN_REPO}|${MAIN_REPO}|g" CONTRIBUTING.md
+          sed -i "s|\${MODULE_PATH}|${{ env.MODULE_PATH }}|g" CONTRIBUTING.md
+
+          # Add the CONTRIBUTING.md file
+          git add CONTRIBUTING.md
+          git commit -m "Update CONTRIBUTING.md for mirror repository" || echo "No changes to CONTRIBUTING.md"
+
+          # Push to mirror repository
+          git push https://x-access-token:${MIRROR_REPO_TOKEN}@github.com/${{ vars.FFI_GEN_MIRROR_REPO }}.git temp-branch:main --force
+
+          # Clean up
+          git checkout main
+          git branch -D temp-branch
