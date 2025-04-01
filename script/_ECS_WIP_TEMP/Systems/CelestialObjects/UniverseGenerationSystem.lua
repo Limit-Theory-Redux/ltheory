@@ -37,7 +37,7 @@ function UniverseGenerationSystem:createUniverse(seed)
     self.profiler:start()
     -- Construct universe entity
     local universe = UniverseEntity(seed)
-    local universeRNG = RNG.Create(seed):managed()
+    local universeRNG = RNG.Create(seed)
     local universeEntityInfo = Registry:storeEntity(universe)
 
     -- Generate star systems
@@ -45,7 +45,7 @@ function UniverseGenerationSystem:createUniverse(seed)
     for i = 1, numStarSystems do
         local starSystemSeed = universeRNG:get64()
         local starSystem = StarSystemEntity(starSystemSeed)
-        local starSystemRNG = RNG.Create(starSystemSeed):managed()
+        local starSystemRNG = RNG.Create(starSystemSeed)
         local starSystemEntityInfo = Registry:storeEntity(starSystem)
 
         -- Generate star and celestial bodies
@@ -72,7 +72,7 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
     -- Generate star
     local starSeed = rng:get64()
     local star = StarEntity(starSeed)
-    local starRNG = RNG.Create(starSeed):managed()
+    local starRNG = RNG.Create(starSeed)
     local starEntityInfo = Registry:storeEntity(star)
 
     -- Add star area
@@ -89,7 +89,7 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
     for i = 1, numPlanets do
         local planetSeed = rng:get64()
         local planet = PlanetEntity(planetSeed)
-        local planetSystemRNG = RNG.Create(planetSeed):managed()
+        local planetSystemRNG = RNG.Create(planetSeed)
         local planetEntityInfo = Registry:storeEntity(planet)
         self:addChildEntity(star, planetEntityInfo)
 
@@ -103,7 +103,7 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
         local beltSeed = starRNG:get64()
         local asteroidBelt = AsteroidBeltEntity(beltSeed)
         local asteroidBeltEntityInfo = Registry:storeEntity(asteroidBelt)
-        local asteroidBeltRNG = RNG.Create(starSeed):managed()
+        local asteroidBeltRNG = RNG.Create(starSeed)
         self:addChildEntity(star, asteroidBeltEntityInfo)
 
         -- Add individual asteroids to the belt
@@ -135,7 +135,7 @@ function UniverseGenerationSystem:generatePlanetaryFeatures(planet, rng)
     for i = 1, numAsteroidRings do
         local ringSeed = rng:get64()
         local asteroidRing = AsteroidRingEntity(ringSeed)
-        local asteroidRingRNG = RNG.Create(ringSeed):managed()
+        local asteroidRingRNG = RNG.Create(ringSeed)
         local asteroidRingEntityInfo = Registry:storeEntity(asteroidRing)
         self:addChildEntity(planet, asteroidRingEntityInfo)
 

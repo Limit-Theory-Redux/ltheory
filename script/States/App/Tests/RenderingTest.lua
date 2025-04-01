@@ -1,8 +1,8 @@
 -- Entities
-local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")            --!temp path
-local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity")          --!temp path
+local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")   --!temp path
+local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity") --!temp path
 -- Storage & Registries
-local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry") --!temp path
+local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry")  --!temp path
 local Materials = require("_ECS_WIP_TEMP.Shared.Registries.Materials")
 -- Systems
 ---@type CameraSystem
@@ -42,7 +42,7 @@ function RenderingTest:onInit()
     CameraSystem.currentCameraTransform:setRotation(Quat.Identity())
 
     -- Create First RNG for Scene
-    -- local rng = RNG.Create(0):managed()
+    -- local rng = RNG.Create(0)
 
     -- Generate Box Mesh
     self.boxMesh = Mesh.Box(7)

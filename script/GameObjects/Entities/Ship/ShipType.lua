@@ -15,7 +15,7 @@ local ShipType = Class("ShipType", function(self, seed, generator, hull)
     local rng           = RNG.Create(seed)
     self.seed           = seed
     self.mesh           = generator(seed, hull, Config.gen.shipRes)
-    self.bsp            = BSP.Create(self.mesh):managed()
+    self.bsp            = BSP.Create(self.mesh)
     self.scale          = scale
 
     -- Get the maximum number of components of each type for the provided hull size
