@@ -37,6 +37,8 @@ function Loader.defineType()
             void Draw_Sphere       (Vec3f const* p, float r);
             void Draw_Tri          (Vec2f const* v1, Vec2f const* v2, Vec2f const* v3);
             void Draw_Tri3         (Vec3f const* v1, Vec3f const* v2, Vec3f const* v3);
+            void Draw_Poly         (Vec2f const* points, uint64 points_size);
+            void Draw_Poly3        (Vec3f const* points, uint64 points_size);
         ]]
     end
 
@@ -66,6 +68,8 @@ function Loader.defineType()
             Sphere       = libphx.Draw_Sphere,
             Tri          = libphx.Draw_Tri,
             Tri3         = libphx.Draw_Tri3,
+            Poly         = libphx.Draw_Poly,
+            Poly3        = libphx.Draw_Poly3,
         }
 
         if onDef_Draw then onDef_Draw(Draw, mt) end

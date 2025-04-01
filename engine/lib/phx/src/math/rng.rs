@@ -33,7 +33,7 @@ impl Rng {
         let mut s1 = state[1];
         let result = s0.wrapping_add(s1);
         s1 ^= s0;
-        state[0] = Self::rotl(s0, 55) ^ s1 ^ s1 << 14;
+        state[0] = Self::rotl(s0, 55) ^ s1 ^ (s1 << 14);
         state[1] = Self::rotl(s1, 36);
         result
     }

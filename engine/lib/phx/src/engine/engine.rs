@@ -52,17 +52,7 @@ fn build_event_loop() -> EventLoop<()> {
 
 impl Engine {
     pub fn new(event_loop: &ActiveEventLoop) -> Self {
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            static mut FIRST_TIME: bool = true;
-            Signal_Init();
-
-            if FIRST_TIME {
-                FIRST_TIME = false;
-            }
-
-            Metric_Reset();
-        }
+        Metric::reset();
 
         // Unsafe is required for FFI and JIT libs
         #[allow(unsafe_code)] // TODO: remove
@@ -431,10 +421,7 @@ impl Engine {
 
     pub fn update() {
         Profiler::begin("Engine_Update");
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            Metric_Reset();
-        }
+        Metric::reset();
         Profiler::end();
     }
 }

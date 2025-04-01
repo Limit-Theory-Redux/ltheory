@@ -119,3 +119,11 @@ function Draw.Tri(v1, v2, v3) end
 ---@param v3 Vec3f
 function Draw.Tri3(v1, v2, v3) end
 
+---@param points Vec2f[]
+---@param points_size integer
+function Draw.Poly(points, points_size) end
+
+---@param points Vec3f[]
+---@param points_size integer
+function Draw.Poly3(points, points_size) end
+

@@ -13,7 +13,6 @@ do -- Basic Typedefs
         typedef uint32         Error;
         typedef uint64         GamepadId;
         typedef uchar          Key;
-        typedef int32          Metric;
         typedef int32          Modifier;
         typedef uint8          PhysicsType;
         typedef int32          PixelFormat;
@@ -41,13 +40,8 @@ do -- Opaque Structs
     ffi.cdef [[
         typedef struct BSP          {} BSP;
         typedef struct BoxTree      {} BoxTree;
-        typedef struct File         {} File;
-        typedef struct HashGrid     {} HashGrid;
-        typedef struct HashGridElem {} HashGridElem;
         typedef struct InputBinding {} InputBinding;
-        typedef struct KDTree       {} KDTree;
         typedef struct MemPool      {} MemPool;
-        typedef struct MemStack     {} MemStack;
         typedef struct RmGui        {} RmGui;
         typedef struct SDF          {} SDF;
         typedef struct Socket       {} Socket;
@@ -56,12 +50,7 @@ do -- Opaque Structs
     libphx.Opaques = {
         'BSP',
         'BoxTree',
-        'File',
-        'HashGrid',
-        'HashGridElem',
-        'KDTree',
         'MemPool',
-        'MemStack',
         'RmGui',
         'SDF',
         'Socket',
