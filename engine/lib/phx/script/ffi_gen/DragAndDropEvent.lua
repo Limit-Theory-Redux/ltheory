@@ -17,19 +17,15 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            DragAndDropEvent DragAndDropEvent_DroppedFile;
-            DragAndDropEvent DragAndDropEvent_HoveredFile;
-            DragAndDropEvent DragAndDropEvent_HoveredFileCancelled;
-
             cstr             DragAndDropEvent_ToString(DragAndDropEvent);
         ]]
     end
 
     do -- Global Symbol Table
         DragAndDropEvent = {
-            DroppedFile          = libphx.DragAndDropEvent_DroppedFile,
-            HoveredFile          = libphx.DragAndDropEvent_HoveredFile,
-            HoveredFileCancelled = libphx.DragAndDropEvent_HoveredFileCancelled,
+            DroppedFile          = 0,
+            HoveredFile          = 1,
+            HoveredFileCancelled = 2,
 
             ToString             = libphx.DragAndDropEvent_ToString,
         }

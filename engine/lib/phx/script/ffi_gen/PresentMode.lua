@@ -17,17 +17,14 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            PresentMode PresentMode_Vsync;
-            PresentMode PresentMode_NoVsync;
-
             cstr        PresentMode_ToString(PresentMode);
         ]]
     end
 
     do -- Global Symbol Table
         PresentMode = {
-            Vsync    = libphx.PresentMode_Vsync,
-            NoVsync  = libphx.PresentMode_NoVsync,
+            Vsync    = 0,
+            NoVsync  = 1,
 
             ToString = libphx.PresentMode_ToString,
         }
