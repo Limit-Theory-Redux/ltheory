@@ -1,7 +1,9 @@
-use internal::ConvertIntoString;
+use std::hash::{DefaultHasher, Hash, Hasher};
 
-use super::*;
-use crate::system::*;
+use glam::{Vec2, Vec3, Vec4};
+
+use super::Quat;
+use crate::system::TimeStamp;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -10,300 +12,263 @@ pub struct Rng {
     pub state: [u64; 2],
 }
 
-#[inline]
-unsafe extern "C" fn Random_SplitMix64(state: *mut u64) -> u64 {
-    *state = (*state as u64).wrapping_add(0x9e3779b97f4a7c15);
-    let mut z: u64 = *state;
-    z = (z ^ z >> 30_i32).wrapping_mul(0xbf58476d1ce4e5b9);
-    z = (z ^ z >> 27_i32).wrapping_mul(0x94d049bb133111eb);
-    z ^ z >> 31
-}
-
-#[inline]
-extern "C" fn rotl(x: u64, k: i32) -> u64 {
-    x << k | x >> (64 - k)
-}
-
-#[inline]
-unsafe extern "C" fn Random_Xoroshiro128(state0: *mut u64, state1: *mut u64) -> u64 {
-    let s0: u64 = *state0;
-    let mut s1: u64 = *state1;
-    let result: u64 = s0.wrapping_add(s1);
-    s1 ^= s0;
-    *state0 = rotl(s0, 55) ^ s1 ^ s1 << 14;
-    *state1 = rotl(s1, 36);
-    result
-}
-
-#[inline]
-unsafe extern "C" fn RNG_Next64(this: &mut Rng) -> u64 {
-    Random_Xoroshiro128(
-        &mut *(this.state).as_mut_ptr().offset(0),
-        &mut *(this.state).as_mut_ptr().offset(1),
-    )
-}
-
-#[inline]
-unsafe extern "C" fn RNG_Next32(this: &mut Rng) -> u32 {
-    (RNG_Next64(this) & 0xffffffff) as u32
-}
-
-#[inline]
-unsafe extern "C" fn RNG_Init(this: &mut Rng) {
-    let mut seed: u64 = this.seed;
-    let mut i: i32 = 0;
-    while i < 64 {
-        seed = Random_SplitMix64(&mut seed);
-        i += 1;
+impl Rng {
+    #[inline]
+    fn random_split_mix64(state: &mut u64) -> u64 {
+        *state = (*state).wrapping_add(0x9e3779b97f4a7c15);
+        let mut z = *state;
+        z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
+        z ^ (z >> 31)
     }
-    this.state[0] = Random_SplitMix64(&mut seed);
-    this.state[1] = Random_SplitMix64(&mut seed);
-    let mut i_0: i32 = 0;
-    while i_0 < 64 {
-        RNG_Next64(this);
-        i_0 += 1;
+
+    #[inline]
+    fn rotl(x: u64, k: i32) -> u64 {
+        (x << k) | (x >> (64 - k))
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn RNG_Create(seed: u64) -> Box<Rng> {
-    let mut this = Box::new(Rng {
-        seed,
-        state: [0u64; 2],
-    });
-    RNG_Init(this.as_mut());
-    this
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_FromStr(s: *const libc::c_char) -> Box<Rng> {
-    RNG_Create(Hash_XX64(s as *const _, s.as_str().len() as i32, 0))
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_FromTime() -> Box<Rng> {
-    RNG_Create(TimeStamp::now().to_seconds())
-}
-
-#[no_mangle]
-pub extern "C" fn RNG_Free(_: Option<Box<Rng>>) {}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_Rewind(this: &mut Rng) {
-    RNG_Init(this);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_Chance(this: &mut Rng, probability: f64) -> bool {
-    RNG_GetUniform(this) < probability
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_Get31(this: &mut Rng) -> i32 {
-    let mut i: u32 = RNG_Next32(this) & 0x7fffffff;
-    *(&mut i as *mut u32 as *mut i32)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_Get32(this: &mut Rng) -> u32 {
-    RNG_Next32(this)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_Get64(this: &mut Rng) -> u64 {
-    RNG_Next64(this)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetAngle(this: &mut Rng) -> f64 {
-    std::f64::consts::TAU * RNG_GetUniform(this)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetInt(this: &mut Rng, lower: i32, upper: i32) -> i32 {
-    let t: f64 = RNG_GetUniform(this);
-    f64::round(lower as f64 + t * upper.wrapping_sub(lower) as f64) as i32
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetRNG(this: &mut Rng) -> Box<Rng> {
-    RNG_Create(RNG_Get64(this))
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetUniform(this: &mut Rng) -> f64 {
-    RNG_Next32(this) as f64 * f64::exp2(-32.0)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetUniformRange(this: &mut Rng, lower: f64, upper: f64) -> f64 {
-    let t: f64 = RNG_Next32(this) as f64 * f64::exp2(-32.0);
-    lower + t * (upper - lower)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetErlang(this: &mut Rng, k: i32) -> f64 {
-    let mut sum: f64 = 0.0f64;
-    let mut i: i32 = 0;
-    while i < k {
-        sum += RNG_GetExp(this);
-        i += 1;
+    #[inline]
+    fn random_xoroshiro128(state: &mut [u64; 2]) -> u64 {
+        let s0 = state[0];
+        let mut s1 = state[1];
+        let result = s0.wrapping_add(s1);
+        s1 ^= s0;
+        state[0] = Self::rotl(s0, 55) ^ s1 ^ (s1 << 14);
+        state[1] = Self::rotl(s1, 36);
+        result
     }
-    sum / k as f64
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetExp(this: &mut Rng) -> f64 {
-    -f64::ln(f64::max(1.0f64 - RNG_GetUniform(this), f64::EPSILON))
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetGaussian(this: &mut Rng) -> f64 {
-    let angle: f64 = RNG_GetAngle(this);
-    let radius: f64 = 1.0f64 - RNG_GetUniform(this);
-    f64::cos(angle) * f64::sqrt(-2.0f64 * f64::ln(radius))
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetAxis2(this: &mut Rng, out: *mut Vec2) {
-    *out = Vec2::ZERO;
-    let axis: i32 = RNG_GetInt(this, 0, 3);
-    match axis {
-        0 => {
-            (*out).x = 1.0f32;
-        }
-        1 => {
-            (*out).x = -1.0f32;
-        }
-        2 => {
-            (*out).y = 1.0f32;
-        }
-        3 => {
-            (*out).y = -1.0f32;
-        }
-        _ => {}
+    #[inline]
+    fn next64(&mut self) -> u64 {
+        Self::random_xoroshiro128(&mut self.state)
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetAxis3(this: &mut Rng, out: &mut Vec3) {
-    *out = Vec3::ZERO;
-    let axis: i32 = RNG_GetInt(this, 0, 5);
-    match axis {
-        0 => {
-            out.x = 1.0f32;
-        }
-        1 => {
-            out.x = -1.0f32;
-        }
-        2 => {
-            out.y = 1.0f32;
-        }
-        3 => {
-            out.y = -1.0f32;
-        }
-        4 => {
-            out.z = 1.0f32;
-        }
-        5 => {
-            out.z = -1.0f32;
-        }
-        _ => {}
+    #[inline]
+    fn next32(&mut self) -> u32 {
+        (self.next64() & 0xffffffff) as u32
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetDir2(this: &mut Rng, out: *mut Vec2) {
-    let angle: f64 = RNG_GetAngle(this);
-    *out = Vec2::new(f64::cos(angle) as f32, f64::sin(angle) as f32);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetDir3(this: &mut Rng, out: *mut Vec3) {
-    loop {
-        let x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let z: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let mut m2: f64 = x * x + y * y + z * z;
-        if m2 <= 1.0f64 && m2 > 1e-6f64 {
-            m2 = f64::sqrt(m2);
-            (*out).x = (x / m2) as f32;
-            (*out).y = (y / m2) as f32;
-            (*out).z = (z / m2) as f32;
-            return;
+    #[inline]
+    fn init(&mut self) {
+        let mut seed: u64 = self.seed;
+        let mut i = 0;
+        while i < 64 {
+            seed = Self::random_split_mix64(&mut seed);
+            i += 1;
+        }
+        self.state[0] = Self::random_split_mix64(&mut seed);
+        self.state[1] = Self::random_split_mix64(&mut seed);
+        let mut i_0: i32 = 0;
+        while i_0 < 64 {
+            self.next64();
+            i_0 += 1;
         }
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetDisc(this: &mut Rng, out: *mut Vec2) {
-    loop {
-        let x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        if x * x + y * y <= 1.0f64 {
-            (*out).x = x as f32;
-            (*out).y = y as f32;
-            return;
+#[luajit_ffi_gen::luajit_ffi(name = "RNG")]
+impl Rng {
+    #[bind(name = "Create")]
+    pub fn new(seed: u64) -> Self {
+        let mut this = Self {
+            seed,
+            state: [0; 2],
+        };
+        this.init();
+        this
+    }
+
+    #[bind(name = "FromStr")]
+    pub fn from_string(s: &str) -> Self {
+        let mut hasher = DefaultHasher::new();
+        s.hash(&mut hasher);
+        Self::new(hasher.finish()) //unsafe { Hash_XX64(s as *const _, s.as_str().len() as i32, 0) };
+    }
+
+    pub fn from_time() -> Self {
+        Self::new(TimeStamp::now().to_seconds())
+    }
+
+    pub fn rewind(&mut self) {
+        self.init();
+    }
+
+    pub fn chance(&mut self, probability: f64) -> bool {
+        self.get_uniform() < probability
+    }
+
+    pub fn get31(&mut self) -> i32 {
+        (self.next32() & 0x7fffffff) as i32
+    }
+
+    pub fn get32(&mut self) -> u32 {
+        self.next32()
+    }
+
+    pub fn get64(&mut self) -> u64 {
+        self.next64()
+    }
+
+    pub fn get_angle(&mut self) -> f64 {
+        std::f64::consts::TAU * self.get_uniform()
+    }
+
+    pub fn get_int(&mut self, lower: i32, upper: i32) -> i32 {
+        let t = self.get_uniform();
+        f64::round(lower as f64 + t * upper.wrapping_sub(lower) as f64) as i32
+    }
+
+    #[bind(name = "GetRNG")]
+    pub fn get_rng(&mut self) -> Self {
+        Self::new(self.get64())
+    }
+
+    pub fn get_uniform(&mut self) -> f64 {
+        self.next32() as f64 * f64::exp2(-32.0)
+    }
+
+    pub fn get_uniform_range(&mut self, lower: f64, upper: f64) -> f64 {
+        let t = self.next32() as f64 * f64::exp2(-32.0);
+        lower + t * (upper - lower)
+    }
+
+    pub fn get_erlang(&mut self, k: i32) -> f64 {
+        let mut sum = 0.0;
+        let mut i = 0;
+        while i < k {
+            sum += self.get_exp();
+            i += 1;
+        }
+        sum / k as f64
+    }
+
+    pub fn get_exp(&mut self) -> f64 {
+        -f64::ln(f64::max(1.0f64 - self.get_uniform(), f64::EPSILON))
+    }
+
+    pub fn get_gaussian(&mut self) -> f64 {
+        let angle = self.get_angle();
+        let radius = 1.0 - self.get_uniform();
+        f64::cos(angle) * f64::sqrt(-2.0 * f64::ln(radius))
+    }
+
+    #[bind(out_param = true)]
+    pub fn get_axis2(&mut self) -> Vec2 {
+        let axis = self.get_int(0, 3);
+        match axis {
+            0 => Vec2::new(1.0, 0.0),
+            1 => Vec2::new(-1.0, 0.0),
+            2 => Vec2::new(0.0, 1.0),
+            3 => Vec2::new(0.0, -1.0),
+            _ => Vec2::ZERO,
         }
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetSign(this: &mut Rng) -> f64 {
-    if RNG_GetUniform(this) > 0.5f64 {
-        1.0f64
-    } else {
-        -1.0f64
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetSphere(this: &mut Rng, out: *mut Vec3) {
-    loop {
-        let x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let z: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        if x * x + y * y + z * z <= 1.0f64 {
-            (*out).x = x as f32;
-            (*out).y = y as f32;
-            (*out).z = z as f32;
-            return;
+    #[bind(out_param = true)]
+    pub fn get_axis3(&mut self) -> Vec3 {
+        let axis = self.get_int(0, 5);
+        match axis {
+            0 => Vec3::new(1.0, 0.0, 0.0),
+            1 => Vec3::new(-1.0, 0.0, 0.0),
+            2 => Vec3::new(0.0, 1.0, 0.0),
+            3 => Vec3::new(0.0, -1.0, 0.0),
+            4 => Vec3::new(0.0, 0.0, 1.0),
+            5 => Vec3::new(0.0, 0.0, -1.0),
+            _ => Vec3::ZERO,
         }
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetVec2(this: &mut Rng, out: *mut Vec2, lower: f64, upper: f64) {
-    (*out).x = RNG_GetUniformRange(this, lower, upper) as f32;
-    (*out).y = RNG_GetUniformRange(this, lower, upper) as f32;
-}
+    #[bind(out_param = true)]
+    pub fn get_dir2(&mut self) -> Vec2 {
+        let angle = self.get_angle();
+        Vec2::new(f64::cos(angle) as f32, f64::sin(angle) as f32)
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetVec3(this: &mut Rng, out: *mut Vec3, lower: f64, upper: f64) {
-    (*out).x = RNG_GetUniformRange(this, lower, upper) as f32;
-    (*out).y = RNG_GetUniformRange(this, lower, upper) as f32;
-    (*out).z = RNG_GetUniformRange(this, lower, upper) as f32;
-}
+    #[bind(out_param = true)]
+    pub fn get_dir3(&mut self) -> Vec3 {
+        loop {
+            let x = 2.0 * self.get_uniform() - 1.0;
+            let y = 2.0 * self.get_uniform() - 1.0;
+            let z = 2.0 * self.get_uniform() - 1.0;
+            let mut m2 = x * x + y * y + z * z;
+            if m2 <= 1.0 && m2 > 1e-6 {
+                m2 = f64::sqrt(m2);
+                return Vec3::new((x / m2) as f32, (y / m2) as f32, (z / m2) as f32);
+            }
+        }
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetVec4(this: &mut Rng, out: *mut Vec4, lower: f64, upper: f64) {
-    (*out).x = RNG_GetUniformRange(this, lower, upper) as f32;
-    (*out).y = RNG_GetUniformRange(this, lower, upper) as f32;
-    (*out).z = RNG_GetUniformRange(this, lower, upper) as f32;
-    (*out).w = RNG_GetUniformRange(this, lower, upper) as f32;
-}
+    #[bind(out_param = true)]
+    pub fn get_disc(&mut self) -> Vec2 {
+        loop {
+            let x = 2.0 * self.get_uniform() - 1.0;
+            let y = 2.0 * self.get_uniform() - 1.0;
+            if x * x + y * y <= 1.0 {
+                return Vec2::new(x as f32, y as f32);
+            }
+        }
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn RNG_GetQuat(this: &mut Rng, out: *mut Quat) {
-    let mut p0 = Vec2::ZERO;
-    let mut p1 = Vec2::ZERO;
-    RNG_GetDisc(this, &mut p0);
-    RNG_GetDisc(this, &mut p1);
-    let d0 = p0.length_squared() as f64;
-    let d1 = p1.length_squared() as f64 + f64::EPSILON;
-    let s = f64::sqrt((1.0f64 - d0) / d1);
-    (*out).x = p0.y;
-    (*out).y = (p1.x as f64 * s) as f32;
-    (*out).z = (p1.y as f64 * s) as f32;
-    (*out).w = p0.x;
+    pub fn get_sign(&mut self) -> f64 {
+        if self.get_uniform() > 0.5 {
+            1.0
+        } else {
+            -1.0
+        }
+    }
+
+    #[bind(out_param = true)]
+    pub fn get_sphere(&mut self) -> Vec3 {
+        loop {
+            let x = 2.0 * self.get_uniform() - 1.0;
+            let y = 2.0 * self.get_uniform() - 1.0;
+            let z = 2.0 * self.get_uniform() - 1.0;
+            if x * x + y * y + z * z <= 1.0 {
+                return Vec3::new(x as f32, y as f32, z as f32);
+            }
+        }
+    }
+
+    #[bind(out_param = true)]
+    pub fn get_vec2(&mut self, lower: f64, upper: f64) -> Vec2 {
+        Vec2::new(
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+        )
+    }
+
+    #[bind(out_param = true)]
+    pub fn get_vec3(&mut self, lower: f64, upper: f64) -> Vec3 {
+        Vec3::new(
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+        )
+    }
+
+    #[bind(out_param = true)]
+    pub fn get_vec4(&mut self, lower: f64, upper: f64) -> Vec4 {
+        Vec4::new(
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+            self.get_uniform_range(lower, upper) as f32,
+        )
+    }
+
+    #[bind(out_param = true)]
+    pub fn get_quat(&mut self) -> Quat {
+        let p0 = self.get_disc();
+        let p1 = self.get_disc();
+        let d0 = p0.length_squared() as f64;
+        let d1 = p1.length_squared() as f64 + f64::EPSILON;
+        let s = f64::sqrt((1.0f64 - d0) / d1);
+
+        Quat::new(
+            p0.y,
+            (p1.x as f64 * s) as f32,
+            (p1.y as f64 * s) as f32,
+            p0.x,
+        )
+    }
 }

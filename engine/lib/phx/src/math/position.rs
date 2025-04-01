@@ -32,9 +32,7 @@ impl Position {
     pub fn from_vec(v: Vec3) -> Position {
         Position { v: v.as_dvec3() }
     }
-}
 
-impl Position {
     /// Returns this position relative to 'frame''s frame of reference.
     ///
     /// This is usually used to turn this world position into a 32-bit translation relative to a camera.

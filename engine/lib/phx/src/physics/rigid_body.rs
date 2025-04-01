@@ -1,6 +1,9 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use std::ptr::NonNull;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
+use glam::Mat4;
 use rapier3d_f64::prelude as rp;
 use rapier3d_f64::prelude::nalgebra as na;
 
@@ -431,7 +434,7 @@ impl RigidBody {
         self.children.push(type_to_non_null(child));
         child.parent = Some(RigidBodyParent {
             rigid_body: type_to_non_null(self),
-            offset: na::Isometry3::from_parts(scaled_pos.to_na().into(), rot.to_na()),
+            offset: na::Isometry3::from_parts(scaled_pos.to_na().into(), (*rot).to_na()),
         });
 
         // Set this childs mass to a negligible value.
@@ -607,8 +610,9 @@ impl RigidBody {
     ///
     /// This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
     pub fn get_to_world_matrix(&self, camera_pos: &Position) -> Matrix {
-        Matrix::from_rp(&self.get_world_transform_unscaled(), camera_pos)
-            * Matrix::from_scale(Vec3::splat(self.get_scale()))
+        let m1 = Matrix::from_rp(&self.get_world_transform_unscaled(), camera_pos);
+        let m2 = Matrix::from(Mat4::from_scale(Vec3::splat(self.get_scale())));
+        m1.product(&m2)
     }
 
     /// Returns the world -> local matrix for this rigid body.
@@ -754,7 +758,7 @@ impl RigidBody {
         if let Some(parent) = &self.parent {
             Quat::from_na(&parent.offset.rotation)
         } else {
-            Quat::IDENTITY
+            Quat::identity()
         }
     }
 

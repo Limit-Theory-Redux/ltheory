@@ -41,6 +41,7 @@ impl TypeDecl {
 pub struct FFIGenerator {
     module_name: String,
     type_decl: TypeDecl,
+    typedef: Option<(String, String)>,
     class_definitions: Vec<String>,
     c_definitions: Vec<String>,
     global_symbol_table: Vec<String>,
@@ -56,6 +57,7 @@ impl FFIGenerator {
         Self {
             module_name: module_name.into(),
             type_decl: Default::default(),
+            typedef: Default::default(),
             class_definitions: Default::default(),
             c_definitions: Default::default(),
             global_symbol_table: Default::default(),
@@ -67,6 +69,10 @@ impl FFIGenerator {
 
     pub fn set_type_decl_opaque(&mut self) {
         self.type_decl = TypeDecl::Opaque;
+    }
+
+    pub fn set_typedef(&mut self, typedef: &str, forward_decl: &str) {
+        self.typedef = Some((typedef.into(), forward_decl.into()));
     }
 
     pub fn set_type_decl_struct(&mut self, ty: impl Into<String>) {
@@ -220,36 +226,55 @@ impl FFIGenerator {
         // Type declaration
         writeln!(&mut module, "function Loader.declareType()").unwrap();
 
-        match &self.type_decl {
-            TypeDecl::NoDecl => {}
-            TypeDecl::Opaque => {
-                writeln!(&mut module, "{IDENT}ffi.cdef [[").unwrap();
-                writeln!(
-                    &mut module,
-                    "{IDENT}{IDENT}typedef struct {0} {{}} {0};",
-                    self.module_name
-                )
-                .unwrap();
-                writeln!(&mut module, "{IDENT}]]\n").unwrap();
+        let id = if let Some((typedef, forward_decl)) = &self.typedef {
+            writeln!(&mut module, "{IDENT}ffi.cdef [[").unwrap();
+            forward_decl.split(',').for_each(|ty| {
+                let ty = ty.trim();
+                if !ty.is_empty() {
+                    writeln!(&mut module, "{IDENT}{IDENT}typedef struct {ty} {ty};").unwrap();
+                }
+            });
+            writeln!(
+                &mut module,
+                "{IDENT}{IDENT}typedef struct {} {{",
+                self.module_name
+            )
+            .unwrap();
+            typedef.lines().for_each(|line| {
+                writeln!(&mut module, "{IDENT}{IDENT}{IDENT}{}", line.trim()).unwrap();
+            });
+            writeln!(&mut module, "{IDENT}{IDENT}}} {};", self.module_name).unwrap();
+            writeln!(&mut module, "{IDENT}]]\n").unwrap();
+            TypeDecl::Opaque.id()
+        } else {
+            match &self.type_decl {
+                TypeDecl::NoDecl => {}
+                TypeDecl::Opaque => {
+                    writeln!(&mut module, "{IDENT}ffi.cdef [[").unwrap();
+
+                    writeln!(
+                        &mut module,
+                        "{IDENT}{IDENT}typedef struct {0} {{}} {0};",
+                        self.module_name
+                    )
+                    .unwrap();
+
+                    writeln!(&mut module, "{IDENT}]]\n").unwrap();
+                }
+                TypeDecl::Struct(ty) => {
+                    writeln!(&mut module, "{IDENT}ffi.cdef [[").unwrap();
+                    writeln!(
+                        &mut module,
+                        "{IDENT}{IDENT}typedef {ty} {};",
+                        self.module_name
+                    )
+                    .unwrap();
+                    writeln!(&mut module, "{IDENT}]]\n").unwrap();
+                }
             }
-            TypeDecl::Struct(ty) => {
-                writeln!(&mut module, "{IDENT}ffi.cdef [[").unwrap();
-                writeln!(
-                    &mut module,
-                    "{IDENT}{IDENT}typedef {ty} {};",
-                    self.module_name
-                )
-                .unwrap();
-                writeln!(&mut module, "{IDENT}]]\n").unwrap();
-            }
-        }
-        writeln!(
-            &mut module,
-            "{IDENT}return {}, '{}'",
-            self.type_decl.id(),
-            self.module_name
-        )
-        .unwrap();
+            self.type_decl.id()
+        };
+        writeln!(&mut module, "{IDENT}return {id}, '{}'", self.module_name).unwrap();
 
         writeln!(&mut module, "end\n").unwrap();
 
@@ -260,16 +285,18 @@ impl FFIGenerator {
         writeln!(&mut module, "{IDENT}local libphx = require('libphx').lib").unwrap();
         writeln!(&mut module, "{IDENT}local {}\n", self.module_name).unwrap();
 
-        // C Definitions
-        writeln!(&mut module, "{IDENT}do -- C Definitions").unwrap();
-        writeln!(&mut module, "{IDENT}{IDENT}ffi.cdef [[").unwrap();
+        if !self.c_definitions.is_empty() {
+            // C Definitions
+            writeln!(&mut module, "{IDENT}do -- C Definitions").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}ffi.cdef [[").unwrap();
 
-        self.c_definitions
-            .iter()
-            .for_each(|def| writeln!(&mut module, "{def}").unwrap());
+            self.c_definitions
+                .iter()
+                .for_each(|def| writeln!(&mut module, "{def}").unwrap());
 
-        writeln!(&mut module, "{IDENT}{IDENT}]]").unwrap();
-        writeln!(&mut module, "{IDENT}end\n").unwrap();
+            writeln!(&mut module, "{IDENT}{IDENT}]]").unwrap();
+            writeln!(&mut module, "{IDENT}end\n").unwrap();
+        }
 
         // Global Symbol Table
         writeln!(&mut module, "{IDENT}do -- Global Symbol Table").unwrap();

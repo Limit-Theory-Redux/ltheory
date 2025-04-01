@@ -224,7 +224,7 @@ function Application:onRender(data)
 
     do -- Metrics display
         if GameState.debug.metricsEnabled then
-            local dt = data:getDeltaTime()
+            local dt = data:deltaTime()
 
             local s = string.format(
                 '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',

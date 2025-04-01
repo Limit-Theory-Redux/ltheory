@@ -134,7 +134,7 @@ end
 
 function Benchmark:newSystem()
     self.seed = 1
-    self.rng = RNG.Create(self.seed):managed()
+    self.rng = RNG.Create(self.seed)
     self.planet = nil
     Log.Debug('Seed: %s', self.seed)
 

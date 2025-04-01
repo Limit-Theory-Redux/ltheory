@@ -52,7 +52,6 @@ local rng                 = RNG.FromTime()
 
 function LTheory:generate()
     if Config.gen.seedGlobal then
-        rng:free()
         rng = RNG.Create(Config.gen.seedGlobal)
     end
     self.seed = rng:get64()
@@ -96,7 +95,6 @@ function LTheory:generate()
             local ship = self.system:spawnShip(Enums.ShipHulls.Solo, nil)
             local mat = Matrix.YawPitchRoll(0, 0, math.pi / 4)
             local rot = mat:toQuat()
-            mat:free()
             ship:setPos(Position(0, 40, -100))
             ship:setRot(rot)
             if boundingTest then
@@ -128,10 +126,10 @@ end
 function LTheory:onInit()
     SoundManager:init()
 
-    GameState.render.uiCanvas = UI.Canvas()
+    GameState.render.uiCanvas                      = UI.Canvas()
 
-    self.player = Entities.Player()
-    GameState.player.humanPlayer = self.player
+    self.player                                    = Entities.Player()
+    GameState.player.humanPlayer                   = self.player
 
     GameState.debug.physics.drawBoundingBoxesLocal = false
     GameState.debug.physics.drawBoundingBoxesWorld = false
@@ -205,7 +203,6 @@ function LTheory:onInput()
             if Input:isPressed(Button.KeyboardR) then ypr.x = ypr.x + math.pi / 10 end
             local mat = Matrix.YawPitchRoll(ypr.y, ypr.x, ypr.z)
             local rot = mat:toQuat()
-            mat:free()
             local parent = asteroid:getParentBody()
             if parent == nil then
                 asteroid:setRot(rot * asteroid:getRot());
@@ -223,7 +220,8 @@ function LTheory:onUpdate(dt)
     local collision = Collision()
     local collisions = {}
     while (self.system.physics:getNextCollision(collision)) do
-        table.insert(collisions, string.format('Collision %d between %s and %s', collision.index, tostring(collision.body0), tostring(collision.body1)))
+        table.insert(collisions,
+            string.format('Collision %d between %s and %s', collision.index, tostring(collision.body0), tostring(collision.body1)))
     end
 
     Gui:beginGui(self.resX, self.resY)

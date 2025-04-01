@@ -365,12 +365,12 @@ impl Shader {
     }
 
     pub fn set_matrix(&mut self, name: &str, value: &Matrix) {
-        self.set_uniform(name, ShaderVarData::Matrix(*value));
+        self.set_uniform(name, ShaderVarData::Matrix(value.clone()));
     }
 
     #[bind(name = "ISetMatrix")]
     pub fn index_set_matrix(&mut self, index: i32, value: &Matrix) {
-        self.index_set_uniform(index, ShaderVarData::Matrix(*value));
+        self.index_set_uniform(index, ShaderVarData::Matrix(value.clone()));
     }
 
     #[bind(name = "SetMatrixT")]

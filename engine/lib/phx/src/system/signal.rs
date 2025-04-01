@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-use std::ffi::CStr;
-
-use internal::static_string;
+use std::sync::{LazyLock, Mutex};
 
 use crate::logging::warn;
 
@@ -16,43 +14,56 @@ pub const SIGNAL_TERM: Signal = libc::SIGTERM;
 pub const SIGNAL_ABRT: Signal = libc::SIGABRT;
 
 static mut IGNORE_DEFAULT: bool = false;
-static mut HANDLER_DEFAULT: Option<HashMap<Signal, SignalHandler>> = None;
-static mut HANDLER_TABLE: Option<HashMap<Signal, Vec<SignalHandler>>> = None;
+static HANDLER_DEFAULT: LazyLock<HashMap<Signal, SignalHandler>> = LazyLock::new(|| {
+    HashMap::from([
+        (SIGNAL_INT, signal(SIGNAL_INT, signal_handler)),
+        (SIGNAL_ILL, signal(SIGNAL_ILL, signal_handler)),
+        (SIGNAL_FPE, signal(SIGNAL_FPE, signal_handler)),
+        (SIGNAL_SEGV, signal(SIGNAL_SEGV, signal_handler)),
+        (SIGNAL_TERM, signal(SIGNAL_TERM, signal_handler)),
+        (SIGNAL_ABRT, signal(SIGNAL_ABRT, signal_handler)),
+    ])
+});
+static HANDLER_TABLE: LazyLock<Mutex<HashMap<Signal, Vec<SignalHandler>>>> = LazyLock::new(|| {
+    let m = HashMap::from([
+        (SIGNAL_INT, Vec::new()),
+        (SIGNAL_ILL, Vec::new()),
+        (SIGNAL_FPE, Vec::new()),
+        (SIGNAL_SEGV, Vec::new()),
+        (SIGNAL_TERM, Vec::new()),
+        (SIGNAL_ABRT, Vec::new()),
+    ]);
+    Mutex::new(m)
+});
 
-fn HandlerDefault(signal: Signal) -> SignalHandler {
-    unsafe { *HANDLER_DEFAULT.as_ref().unwrap().get(&signal).unwrap() }
+fn handler_default(signal: Signal) -> SignalHandler {
+    *HANDLER_DEFAULT.get(&signal).unwrap()
 }
 
-fn HandlerTable<'a>(signal: Signal) -> &'a mut Vec<SignalHandler> {
-    unsafe { HANDLER_TABLE.as_mut().unwrap().get_mut(&signal).unwrap() }
-}
-
-fn Signal(signal: Signal, handler: SignalHandler) -> SignalHandler {
+fn signal(signal: Signal, handler: SignalHandler) -> SignalHandler {
+    #[allow(unsafe_code)]
     unsafe {
         let ptr = libc::signal(signal, handler as *mut libc::c_void as libc::sighandler_t);
         std::mem::transmute::<libc::sighandler_t, SignalHandler>(ptr)
     }
 }
 
-extern "C" fn Signal_Handler(sig: Signal) {
-    unsafe {
-        warn!(
-            "Signal_Handler: Caught {:?}",
-            CStr::from_ptr(Signal_ToString(sig))
-        );
+extern "C" fn signal_handler(sig: Signal) {
+    warn!("Signal_Handler: Caught {:?}", signal_to_string(sig));
 
-        /* Re-install default handlers. */
-        Signal(SIGNAL_INT, HandlerDefault(SIGNAL_INT));
-        Signal(SIGNAL_ILL, HandlerDefault(SIGNAL_ILL));
-        Signal(SIGNAL_FPE, HandlerDefault(SIGNAL_FPE));
-        Signal(SIGNAL_SEGV, HandlerDefault(SIGNAL_SEGV));
-        Signal(SIGNAL_TERM, HandlerDefault(SIGNAL_TERM));
-        Signal(SIGNAL_ABRT, HandlerDefault(SIGNAL_ABRT));
+    signal_restore_default();
 
-        /* Call custom handlers. */
-        for handler in HandlerTable(sig).iter() {
+    /* Call custom handlers. */
+    {
+        let handler_table = HANDLER_TABLE.lock().unwrap();
+        let handlers = handler_table.get(&sig).unwrap();
+        for handler in handlers {
             handler(sig);
         }
+    }
+
+    #[allow(unsafe_code)] // TODO: refactor
+    unsafe {
         if IGNORE_DEFAULT {
             IGNORE_DEFAULT = false;
             return;
@@ -63,55 +74,37 @@ extern "C" fn Signal_Handler(sig: Signal) {
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Signal_Init() {
-    HANDLER_DEFAULT = Some(HashMap::from([
-        (SIGNAL_INT, Signal(SIGNAL_INT, Signal_Handler)),
-        (SIGNAL_ILL, Signal(SIGNAL_ILL, Signal_Handler)),
-        (SIGNAL_FPE, Signal(SIGNAL_FPE, Signal_Handler)),
-        (SIGNAL_SEGV, Signal(SIGNAL_SEGV, Signal_Handler)),
-        (SIGNAL_TERM, Signal(SIGNAL_TERM, Signal_Handler)),
-        (SIGNAL_ABRT, Signal(SIGNAL_ABRT, Signal_Handler)),
-    ]));
-    HANDLER_TABLE = Some(HashMap::from([
-        (SIGNAL_INT, Vec::new()),
-        (SIGNAL_ILL, Vec::new()),
-        (SIGNAL_FPE, Vec::new()),
-        (SIGNAL_SEGV, Vec::new()),
-        (SIGNAL_TERM, Vec::new()),
-        (SIGNAL_ABRT, Vec::new()),
-    ]));
+pub fn signal_restore_default() {
+    signal(SIGNAL_INT, handler_default(SIGNAL_INT));
+    signal(SIGNAL_ILL, handler_default(SIGNAL_ILL));
+    signal(SIGNAL_FPE, handler_default(SIGNAL_FPE));
+    signal(SIGNAL_SEGV, handler_default(SIGNAL_SEGV));
+    signal(SIGNAL_TERM, handler_default(SIGNAL_TERM));
+    signal(SIGNAL_ABRT, handler_default(SIGNAL_ABRT));
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Signal_Free() {
-    Signal(SIGNAL_INT, HandlerDefault(SIGNAL_INT));
-    Signal(SIGNAL_ILL, HandlerDefault(SIGNAL_ILL));
-    Signal(SIGNAL_FPE, HandlerDefault(SIGNAL_FPE));
-    Signal(SIGNAL_SEGV, HandlerDefault(SIGNAL_SEGV));
-    Signal(SIGNAL_TERM, HandlerDefault(SIGNAL_TERM));
-    Signal(SIGNAL_ABRT, HandlerDefault(SIGNAL_ABRT));
+pub fn signal_add_handler(sig: Signal, handler: SignalHandler) {
+    let mut handler_table = HANDLER_TABLE.lock().unwrap();
+    let handlers = handler_table.get_mut(&sig).unwrap();
+    handlers.push(handler);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Signal_AddHandler(sig: Signal, handler: SignalHandler) {
-    HandlerTable(sig).push(handler);
+pub fn signal_add_handler_all(handler: SignalHandler) {
+    signal_add_handler(SIGNAL_INT, handler);
+    signal_add_handler(SIGNAL_ILL, handler);
+    signal_add_handler(SIGNAL_FPE, handler);
+    signal_add_handler(SIGNAL_SEGV, handler);
+    signal_add_handler(SIGNAL_TERM, handler);
+    signal_add_handler(SIGNAL_ABRT, handler);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Signal_AddHandlerAll(handler: SignalHandler) {
-    Signal_AddHandler(SIGNAL_INT, handler);
-    Signal_AddHandler(SIGNAL_ILL, handler);
-    Signal_AddHandler(SIGNAL_FPE, handler);
-    Signal_AddHandler(SIGNAL_SEGV, handler);
-    Signal_AddHandler(SIGNAL_TERM, handler);
-    Signal_AddHandler(SIGNAL_ABRT, handler);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Signal_RemoveHandler(sig: Signal, handler: SignalHandler) {
-    let handlers = HandlerTable(sig);
-    if let Some(pos) = handlers.iter().position(|f| *f == handler) {
+pub fn signal_remove_handler(sig: Signal, handler: SignalHandler) {
+    let mut handler_table = HANDLER_TABLE.lock().unwrap();
+    let handlers = handler_table.get_mut(&sig).unwrap();
+    if let Some(pos) = handlers
+        .iter()
+        .position(|f| std::ptr::fn_addr_eq(*f, handler))
+    {
         handlers.remove(pos);
     } else {
         panic!(
@@ -121,19 +114,13 @@ pub unsafe extern "C" fn Signal_RemoveHandler(sig: Signal, handler: SignalHandle
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Signal_RemoveHandlerAll(handler: SignalHandler) {
-    Signal_RemoveHandler(SIGNAL_INT, handler);
-    Signal_RemoveHandler(SIGNAL_ILL, handler);
-    Signal_RemoveHandler(SIGNAL_FPE, handler);
-    Signal_RemoveHandler(SIGNAL_SEGV, handler);
-    Signal_RemoveHandler(SIGNAL_TERM, handler);
-    Signal_RemoveHandler(SIGNAL_ABRT, handler);
-}
-
-#[no_mangle]
-pub extern "C" fn Signal_ToString(this: Signal) -> *const libc::c_char {
-    static_string!(signal_to_string(this))
+pub fn signal_remove_handler_all(handler: SignalHandler) {
+    signal_remove_handler(SIGNAL_INT, handler);
+    signal_remove_handler(SIGNAL_ILL, handler);
+    signal_remove_handler(SIGNAL_FPE, handler);
+    signal_remove_handler(SIGNAL_SEGV, handler);
+    signal_remove_handler(SIGNAL_TERM, handler);
+    signal_remove_handler(SIGNAL_ABRT, handler);
 }
 
 pub fn signal_to_string(this: Signal) -> String {
@@ -149,7 +136,7 @@ pub fn signal_to_string(this: Signal) -> String {
     .into()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Signal_IgnoreDefault() {
+#[allow(unsafe_code)]
+pub unsafe extern "C" fn signal_ignore_default() {
     IGNORE_DEFAULT = true;
 }

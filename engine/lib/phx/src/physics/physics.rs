@@ -1,7 +1,9 @@
 #![allow(unused)]
+#![allow(unsafe_code)] // TODO: remove
 
 use std::ffi::{CStr, CString};
 
+use glam::Mat4;
 use rapier3d_f64::parry::query::RayCast;
 use rapier3d_f64::prelude as rp;
 use rapier3d_f64::prelude::nalgebra as na;
@@ -27,6 +29,7 @@ pub struct RayCastResult {
     t: f32,
 }
 
+#[repr(C)]
 pub struct ShapeCastResult {
     hits: *const *mut RigidBody,
     hits_len: u32,
@@ -90,7 +93,7 @@ impl NalgebraQuatInterop for Quat {
         ))
     }
     fn from_na(v: &na::UnitQuaternion<rp::Real>) -> Quat {
-        Quat_Create(v.i as f32, v.j as f32, v.k as f32, v.w as f32)
+        Quat::new(v.i as f32, v.j as f32, v.k as f32, v.w as f32)
     }
 }
 
@@ -100,10 +103,11 @@ pub trait RapierMatrixInterop {
 
 impl RapierMatrixInterop for Matrix {
     fn from_rp(t: &rp::Isometry<rp::Real>, frame: &Position) -> Matrix {
-        Matrix::from_rotation_translation(
-            Quat::from_na(&t.rotation),
+        Mat4::from_rotation_translation(
+            *Quat::from_na(&t.rotation),
             Position::from_na(&t.translation.vector).relative_to(*frame),
         )
+        .into()
     }
 }
 
@@ -307,16 +311,8 @@ impl Physics {
 
     #[bind(out_param = true)]
     pub fn ray_cast(&self, ray: &Ray) -> RayCastResult {
-        let from = {
-            let mut data = Position::ZERO;
-            Ray_GetPoint(ray, ray.tMin, &mut data);
-            data.to_na_point()
-        };
-        let to = {
-            let mut data = Position::ZERO;
-            Ray_GetPoint(ray, ray.tMax, &mut data);
-            data.to_na_point()
-        };
+        let from = ray.get_point(ray.t_min).to_na_point();
+        let to = ray.get_point(ray.t_max).to_na_point();
         let dir = to - from;
         let length = dir.norm();
 
@@ -361,7 +357,7 @@ impl Physics {
                 radius: sphere.r as rp::Real,
             },
             sphere.p,
-            Quat::IDENTITY,
+            &Quat::identity(),
         );
         unsafe {
             static mut STORAGE: Option<Box<[*mut RigidBody]>> = None;
@@ -383,7 +379,7 @@ impl Physics {
                 half_extents: half_extents.to_na(),
             },
             *pos,
-            *rot,
+            rot,
         );
         unsafe {
             static mut STORAGE: Option<Box<[*mut RigidBody]>> = None;
@@ -401,7 +397,7 @@ impl Physics {
                 radius: sphere.r as rp::Real,
             },
             sphere.p,
-            Quat::IDENTITY,
+            &Quat::identity(),
         )
     }
 
@@ -411,7 +407,7 @@ impl Physics {
                 half_extents: half_extents.to_na(),
             },
             *pos,
-            *rot,
+            rot,
         )
     }
 
@@ -435,7 +431,7 @@ impl Physics {
 impl Physics {
     /// Returns a list of all rigid bodies that are contained within the shape
     /// at the given position and rotation.
-    fn shape_cast(&self, shape: &dyn rp::Shape, pos: Vec3, rot: Quat) -> Vec<*mut RigidBody> {
+    fn shape_cast(&self, shape: &dyn rp::Shape, pos: Vec3, rot: &Quat) -> Vec<*mut RigidBody> {
         let rp_transform =
             rp::Isometry::from_parts(rp::Translation::from(pos.to_na()), rot.to_na());
         let world = self.world.as_ref();
@@ -461,7 +457,7 @@ impl Physics {
 
     /// Returns true if any rigid bodies are contained within the shape at the
     /// given position and rotation.
-    fn shape_overlap(&self, shape: &dyn rp::Shape, pos: Vec3, rot: Quat) -> bool {
+    fn shape_overlap(&self, shape: &dyn rp::Shape, pos: Vec3, rot: &Quat) -> bool {
         let rp_transform =
             rp::Isometry::from_parts(rp::Translation::from(pos.to_na()), rot.to_na());
         let world = self.world.as_ref();

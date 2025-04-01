@@ -4,7 +4,7 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use flate2::write::{ZlibDecoder, ZlibEncoder};
 use flate2::Compression;
 
-use super::*;
+use super::File;
 
 pub struct Bytes {
     cursor: Cursor<Vec<u8>>,
@@ -19,11 +19,13 @@ impl Bytes {
 
     /// WARNING: This only works if T is plain-old-data i.e. has no pointers!
     pub fn read<T>(&mut self, data: &mut [T]) {
+        #[allow(unsafe_code)] // TODO: refactor
         self.read_bytes(unsafe { std::mem::transmute::<&mut [T], &mut [u8]>(data) });
     }
 
     /// WARNING: This only works if T is plain-old-data i.e. has no pointers!
     pub fn write<T>(&mut self, data: &[T]) {
+        #[allow(unsafe_code)] // TODO: refactor
         self.write_bytes(unsafe { std::mem::transmute::<&[T], &[u8]>(data) });
     }
 
@@ -65,8 +67,7 @@ impl Bytes {
     }
 
     pub fn load(path: &str) -> Bytes {
-        let c_path = std::ffi::CString::new(path).unwrap();
-        *File_ReadBytes(c_path.as_ptr())
+        File::read_bytes(path)
             .unwrap_or_else(|| panic!("Bytes::load: Failed to read file '{path}'"))
     }
 
@@ -101,8 +102,7 @@ impl Bytes {
     }
 
     pub fn save(&self, path: &str) {
-        let c_path = std::ffi::CString::new(path).unwrap();
-        let mut file = File_Create(c_path.as_ptr())
+        let mut file = File::new(path)
             .unwrap_or_else(|| panic!("Bytes_Save: Failed to open file '{path}' for writing"));
         let _ = file.file.write_all(self.cursor.get_ref().as_slice());
     }

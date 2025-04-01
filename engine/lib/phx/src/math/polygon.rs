@@ -7,213 +7,187 @@ pub struct Polygon {
     pub vertices: Vec<Vec3>,
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Polygon_ToPlane(polygon: *const Polygon, out: *mut Plane) {
-    let v: &Vec<Vec3> = &(*polygon).vertices;
-    let mut n: DVec3 = DVec3::ZERO;
-    let mut centroid = DVec3::ZERO;
+#[luajit_ffi_gen::luajit_ffi(
+    clone = true,
+    typedef = "
+        int32         vertices_size;
+        int32         vertices_capacity;
+        struct Vec3f* vertices_data;"
+)]
+impl Polygon {
+    pub fn to_plane(&self) -> Plane {
+        let mut v_cur = self.vertices[self.vertices.len() - 1].as_dvec3();
 
-    let vCurAsF32 = v[v.len() - 1];
-    let mut vCur = DVec3::new(vCurAsF32.x as f64, vCurAsF32.y as f64, vCurAsF32.z as f64);
-    let mut i: usize = 0;
-    while i < v.len() {
-        let vPrev: DVec3 = vCur;
-        let vCurAsF32 = v[i];
-        vCur = DVec3::new(vCurAsF32.x as f64, vCurAsF32.y as f64, vCurAsF32.z as f64);
+        let mut n = DVec3::ZERO;
+        let mut centroid = DVec3::ZERO;
+        for v_cur_as_f32 in &self.vertices {
+            let v_prev = v_cur;
+            v_cur = v_cur_as_f32.as_dvec3();
 
-        n.x += (vPrev.y - vCur.y) * (vPrev.z + vCur.z);
-        n.y += (vPrev.z - vCur.z) * (vPrev.x + vCur.x);
-        n.z += (vPrev.x - vCur.x) * (vPrev.y + vCur.y);
-        centroid += vCur;
-        i += 1;
-    }
-    n = n.normalize();
-    centroid /= v.len() as f64;
+            n.x += (v_prev.y - v_cur.y) * (v_prev.z + v_cur.z);
+            n.y += (v_prev.z - v_cur.z) * (v_prev.x + v_cur.x);
+            n.z += (v_prev.x - v_cur.x) * (v_prev.y + v_cur.y);
+            centroid += v_cur;
+        }
+        n = n.normalize();
+        centroid /= self.vertices.len() as f64;
 
-    (*out).n = Vec3::new(n.x as f32, n.y as f32, n.z as f32);
-    (*out).d = DVec3::dot(centroid, n) as f32;
-
-    // CHECK2(Assert(PointsInPlane(out, polygon)));
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Polygon_ToPlaneFast(polygon: *const Polygon, out: *mut Plane) {
-    // NOTE: Doesn't normalize n and uses v[0] as the center.
-
-    let v: &Vec<Vec3> = &(*polygon).vertices;
-
-    let mut n: Vec3 = Vec3::new(0.0f32, 0., 0.);
-    let mut i: usize = v.len() - 1;
-    let mut j: usize = 0;
-    while j < v.len() {
-        n.x += (v[i].y - v[j].y) * (v[i].z + v[j].z);
-        n.y += (v[i].z - v[j].z) * (v[i].x + v[j].x);
-        n.z += (v[i].x - v[j].x) * (v[i].y + v[j].y);
-        i = j;
-        j += 1;
-    }
-
-    (*out).n = n;
-    (*out).d = Vec3::dot(v[0], n);
-
-    // CHECK2(Assert(PointsInPlane(out, polygon)));
-}
-
-#[inline]
-unsafe extern "C" fn Polygon_SplitImpl(
-    polygon: *const Polygon,
-    splitPlane: Plane,
-    back: *mut Polygon,
-    front: *mut Polygon,
-) {
-    if (*polygon).vertices.is_empty() {
-        return;
-    }
-
-    let mut a: Vec3 = *(*polygon).vertices.last().unwrap();
-    let mut aSide = Plane_ClassifyPoint(&splitPlane, &a);
-    for j in 0..((*polygon).vertices.len() as i32) {
-        let b: Vec3 = (*polygon).vertices[j as usize];
-        let bSide = Plane_ClassifyPoint(&splitPlane, &b);
-
-        if bSide == PointClassification::InFront {
-            if aSide == PointClassification::Behind {
-                let i = Vec3::ZERO;
-                // let _lineSegment: LineSegment = LineSegment { p0: b, p1: a };
-                (*front).vertices.push(i);
-                (*back).vertices.push(i);
-
-                // let hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
-                // Assert(hit); UNUSED(hit);
-                // Assert(Plane_ClassifyPoint(&splitPlane, &i) == PointClassification_Coplanar);
-            }
-            (*front).vertices.push(b)
-        } else if bSide == PointClassification::Behind {
-            if aSide == PointClassification::InFront {
-                let i = Vec3::ZERO;
-                // let _lineSegment: LineSegment = LineSegment { p0: a, p1: b };
-                (*front).vertices.push(i);
-                (*back).vertices.push(i);
-
-                // let hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
-                // Assert(hit); UNUSED(hit);
-                // Assert(Plane_ClassifyPoint(&splitPlane, &i) == PointClassification_Coplanar);
-            } else if aSide == PointClassification::Coplanar {
-                (*back).vertices.push(a);
-            }
-            (*back).vertices.push(b);
-        } else {
-            if aSide == PointClassification::Behind {
-                (*back).vertices.push(b);
-            }
-            (*front).vertices.push(b);
+        Plane {
+            n: n.as_vec3(),
+            d: centroid.dot(n) as f32,
         }
 
-        a = b;
-        aSide = bSide;
+        // CHECK2(Assert(PointsInPlane(out, polygon)));
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn Polygon_SplitSafe(
-    polygon: *const Polygon,
-    splitPlane: Plane,
-    back: *mut Polygon,
-    front: *mut Polygon,
-) {
-    Polygon_SplitImpl(polygon, splitPlane, back, front);
+    pub fn to_plane_fast(&self) -> Plane {
+        // NOTE: Doesn't normalize n and uses v[0] as the center.
 
-    let polygons: [*mut Polygon; 2] = [front, back];
-    let mut i: i32 = 0;
-    while i < polygons.len() as i32 {
-        let polygonPart: *mut Polygon = polygons[i as usize];
-        let v: &Vec<Vec3> = &(*polygonPart).vertices;
+        let v = &self.vertices;
 
-        let mut vCur: Vec3 = v[v.len() - 1];
-        let mut l: usize = 0;
-        while l < v.len() {
-            let vPrev: Vec3 = vCur;
-            vCur = v[l];
-
-            let edgeLen: f32 = vCur.distance(vPrev);
-            if (edgeLen as f64) < 0.75f64 * 1e-4f64 {
-                (*back).vertices.clear();
-                (*front).vertices.clear();
-                for vertex in (*polygon).vertices.iter() {
-                    (*back).vertices.push(*vertex);
-                    (*front).vertices.push(*vertex);
-                }
-                return;
-            }
-            l += 1;
-        }
-        i += 1;
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Polygon_Split(
-    polygon: *mut Polygon,
-    splitPlane: Plane,
-    back: *mut Polygon,
-    front: *mut Polygon,
-) {
-    Polygon_SplitImpl(polygon, splitPlane, back, front);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Polygon_GetCentroid(polygon: *mut Polygon, out: *mut Vec3) {
-    let mut centroid = Vec3::ZERO;
-
-    for v in (*polygon).vertices.iter() {
-        centroid += *v;
-    }
-    centroid /= (*polygon).vertices.len() as f32;
-
-    *out = centroid;
-}
-
-pub fn Polygon_ConvexToTriangles(polygon: &Polygon, triangles: &mut Vec<Triangle>) {
-    let v = &(*polygon).vertices;
-    for i in 1..(v.len() - 1) {
-        triangles.push(Triangle {
-            vertices: [v[0], v[i], v[i + 1]],
-        });
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Polygon_Validate(polygon: *mut Polygon) -> Error {
-    let v: &Vec<Vec3> = &(*polygon).vertices;
-
-    let mut vCur: Vec3 = v[v.len() - 1];
-    let mut i: usize = 0;
-    while i < v.len() {
-        let vPrev: Vec3 = vCur;
-        vCur = v[i];
-
-        // NaN or Inf
-        let e = Vec3_Validate(vCur);
-        if e != 0 {
-            return 0x400000 | e;
-        }
-
-        // Degenerate
-        let mut j: usize = i + 1;
+        let mut n = Vec3::ZERO;
+        let mut i = v.len() - 1;
+        let mut j = 0;
         while j < v.len() {
-            if vCur == v[j] {
-                return (0x400000 | 0x40) as Error;
-            }
+            n.x += (v[i].y - v[j].y) * (v[i].z + v[j].z);
+            n.y += (v[i].z - v[j].z) * (v[i].x + v[j].x);
+            n.z += (v[i].x - v[j].x) * (v[i].y + v[j].y);
+            i = j;
             j += 1;
         }
 
-        // Sliver
-        /* TODO : See comment on slivers in Triangle_Validate */
-        let edgeLen = vCur.distance(vPrev);
-        if (edgeLen as f64) < 0.75f64 * 1e-4f64 {
-            return (0x400000 | 0x8) as Error;
-        }
-        i += 1;
+        Plane { n, d: v[0].dot(n) }
+
+        // CHECK2(Assert(PointsInPlane(out, polygon)));
     }
-    0 as Error
+
+    pub fn split_safe(&self, split_plane: &Plane, back: &mut Polygon, front: &mut Polygon) {
+        self.split_impl(split_plane, back, front);
+
+        let mut split = false;
+        let polygons = [&*front, &*back];
+        'exit: for polygon_part in polygons {
+            let mut v_prev = polygon_part.vertices[polygon_part.vertices.len() - 1];
+            for v_cur in &polygon_part.vertices {
+                let edge_len = v_cur.distance(v_prev);
+                if edge_len < 0.75 * 1e-4 {
+                    // code was extracted outside of the for loop to prevent borrow checker error
+                    split = true;
+                    break 'exit;
+                }
+                v_prev = *v_cur;
+            }
+        }
+
+        if split {
+            front.vertices.clear();
+            back.vertices.clear();
+            for vertex in &self.vertices {
+                back.vertices.push(*vertex);
+                front.vertices.push(*vertex);
+            }
+        }
+    }
+
+    pub fn split(&mut self, split_plane: &Plane, back: &mut Polygon, front: &mut Polygon) {
+        self.split_impl(split_plane, back, front);
+    }
+
+    pub fn get_centroid(&mut self) -> Vec3 {
+        let mut centroid = Vec3::ZERO;
+        for v in &self.vertices {
+            centroid += *v;
+        }
+        centroid / self.vertices.len() as f32
+    }
+
+    pub fn validate(&mut self) -> Error {
+        let v = &self.vertices;
+        let mut v_prev = v[v.len() - 1];
+        for (i, v_cur) in v.iter().enumerate() {
+            // NaN or Inf
+            let e = validate_vec3(*v_cur);
+            if e != 0 {
+                return 0x400000 | e;
+            }
+
+            // Degenerate
+            let mut j = i + 1;
+            while j < v.len() {
+                if *v_cur == v[j] {
+                    return (0x400000 | 0x40) as Error;
+                }
+                j += 1;
+            }
+
+            // Sliver
+            /* TODO : See comment on slivers in Triangle_Validate */
+            let edge_len = v_cur.distance(v_prev);
+            if edge_len < 0.75 * 1e-4 {
+                return (0x400000 | 0x8) as Error;
+            }
+            v_prev = *v_cur;
+        }
+        0 as Error
+    }
+}
+
+impl Polygon {
+    pub fn convex_to_triangles(&self) -> Vec<Triangle> {
+        let mut triangles = vec![];
+        let v = &self.vertices;
+        for i in 1..(v.len() - 1) {
+            triangles.push(Triangle {
+                vertices: [v[0], v[i], v[i + 1]],
+            });
+        }
+        triangles
+    }
+
+    #[inline]
+    fn split_impl(&self, split_plane: &Plane, back: &mut Polygon, front: &mut Polygon) {
+        if self.vertices.is_empty() {
+            return;
+        }
+
+        let mut a = *self.vertices.last().unwrap();
+        let mut a_side = split_plane.classify_point(&a);
+        for b in &self.vertices {
+            let b_side = split_plane.classify_point(b);
+
+            if b_side == PointClassification::InFront {
+                if a_side == PointClassification::Behind {
+                    // let _lineSegment: LineSegment = LineSegment { p0: b, p1: a };
+                    front.vertices.push(Vec3::ZERO);
+                    back.vertices.push(Vec3::ZERO);
+
+                    // let hit: bool = Intersect::line_segment_plane(&mut lineSegment, &splitPlane, &mut i);
+                    // Assert(hit); UNUSED(hit);
+                    // Assert(Plane_ClassifyPoint(&splitPlane, &i) == PointClassification_Coplanar);
+                }
+                front.vertices.push(*b)
+            } else if b_side == PointClassification::Behind {
+                if a_side == PointClassification::InFront {
+                    // let _lineSegment: LineSegment = LineSegment { p0: a, p1: b };
+                    front.vertices.push(Vec3::ZERO);
+                    back.vertices.push(Vec3::ZERO);
+
+                    // let hit: bool = Intersect::line_segment_plane(&mut lineSegment, &splitPlane, &mut i);
+                    // Assert(hit); UNUSED(hit);
+                    // Assert(Plane_ClassifyPoint(&splitPlane, &i) == PointClassification_Coplanar);
+                } else if a_side == PointClassification::Coplanar {
+                    back.vertices.push(a);
+                }
+                back.vertices.push(*b);
+            } else {
+                if a_side == PointClassification::Behind {
+                    back.vertices.push(*b);
+                }
+                front.vertices.push(*b);
+            }
+
+            a = *b;
+            a_side = b_side;
+        }
+    }
 }

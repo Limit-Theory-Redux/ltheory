@@ -15,7 +15,7 @@ function SystemGenerator:addZone(zone)
 end
 
 function SystemGenerator:finalize()
-    self.rng:free()
+    self.rng = nil
     return self.system
 end
 

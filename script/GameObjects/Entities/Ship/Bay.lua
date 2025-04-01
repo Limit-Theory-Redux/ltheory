@@ -148,7 +148,7 @@ function Bay:render(state)
         if self.heat > 1e-3 then
             shader:iSetFloat(varCache.size, 8)
             shader:iSetFloat(varCache.alpha, 2.0 * self.heat)
-            shader:iSetMatrix(varCache.mWorld, self:getToWorldMatrix())
+            shader:iSetMatrix(varCache.mWorld, self:getToWorldMatrix(state.eye))
             mesh:drawBound()
         end
         mesh:drawUnbind()

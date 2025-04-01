@@ -17,21 +17,16 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            TouchpadAxis TouchpadAxis_X;
-            TouchpadAxis TouchpadAxis_Y;
-            TouchpadAxis TouchpadAxis_MagnifyDelta;
-            TouchpadAxis TouchpadAxis_RotateDelta;
-
             cstr         TouchpadAxis_ToString(TouchpadAxis);
         ]]
     end
 
     do -- Global Symbol Table
         TouchpadAxis = {
-            X            = libphx.TouchpadAxis_X,
-            Y            = libphx.TouchpadAxis_Y,
-            MagnifyDelta = libphx.TouchpadAxis_MagnifyDelta,
-            RotateDelta  = libphx.TouchpadAxis_RotateDelta,
+            X            = 0,
+            Y            = 1,
+            MagnifyDelta = 2,
+            RotateDelta  = 3,
 
             ToString     = libphx.TouchpadAxis_ToString,
         }

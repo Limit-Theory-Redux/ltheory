@@ -1,3 +1,5 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use luajit_ffi_gen::luajit_ffi;
 
 #[allow(dead_code)]
@@ -130,7 +132,7 @@ impl PlainTest {
     }
 
     pub fn set_string(&mut self, val: String) {
-        self.val_str = val.into();
+        self.val_str = val;
     }
 
     pub fn set_string_ref(&mut self, val: &String) {
@@ -263,19 +265,19 @@ fn test_strings() {
         PlainTest_SetStr(&mut t, str_data1.as_ptr());
         assert_eq!(t.val_str, str_data1.to_str().unwrap());
 
-        let data = PlainTest_GetStr(&mut t);
+        let data = PlainTest_GetStr(&t);
         assert_eq!(t.val_str, data.as_str());
 
         PlainTest_SetString(&mut t, str_data2.as_ptr());
         assert_eq!(t.val_str, str_data2.to_str().unwrap());
 
-        let data = PlainTest_GetString(&mut t);
+        let data = PlainTest_GetString(&t);
         assert_eq!(t.val_str, data.as_str());
 
         PlainTest_SetStringRef(&mut t, str_data3.as_ptr());
         assert_eq!(t.val_str, str_data3.to_str().unwrap());
 
-        let data = PlainTest_GetStringRef(&mut t);
+        let data = PlainTest_GetStringRef(&t);
         assert_eq!(t.val_str, data.as_str());
     }
 }

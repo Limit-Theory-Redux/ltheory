@@ -17,25 +17,18 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            GamepadAxis GamepadAxis_LeftStickX;
-            GamepadAxis GamepadAxis_LeftStickY;
-            GamepadAxis GamepadAxis_LeftZ;
-            GamepadAxis GamepadAxis_RightStickX;
-            GamepadAxis GamepadAxis_RightStickY;
-            GamepadAxis GamepadAxis_RightZ;
-
             cstr        GamepadAxis_ToString(GamepadAxis);
         ]]
     end
 
     do -- Global Symbol Table
         GamepadAxis = {
-            LeftStickX  = libphx.GamepadAxis_LeftStickX,
-            LeftStickY  = libphx.GamepadAxis_LeftStickY,
-            LeftZ       = libphx.GamepadAxis_LeftZ,
-            RightStickX = libphx.GamepadAxis_RightStickX,
-            RightStickY = libphx.GamepadAxis_RightStickY,
-            RightZ      = libphx.GamepadAxis_RightZ,
+            LeftStickX  = 0,
+            LeftStickY  = 1,
+            LeftZ       = 2,
+            RightStickX = 3,
+            RightStickY = 4,
+            RightZ      = 5,
 
             ToString    = libphx.GamepadAxis_ToString,
         }

@@ -253,7 +253,6 @@ function BSPTest:onInit()
         --bspTimer:free() bspTimer = 0
         --bspFile:close() bspFile = 0
 
-        rng:free()
         BSPDebug.PrintRayProfilingData(bsp.bsp, t)
     end
 
@@ -278,7 +277,6 @@ function BSPTest:onInit()
         --bspTimer:free() bspTimer = 0
         --bspFile:close() bspFile = 0
 
-        rng:gree()
         BSPDebug.PrintSphereProfilingData(bsp.bsp, t)
     end
 end
@@ -317,10 +315,10 @@ function BSPTest:onUpdate(dt)
 end
 
 function BSPTest:onDraw()
-    local s   = State
-    local gen = State.gen
-    local obj = State.obj
-    local bsp = State.bsp
+    local s      = State
+    local gen    = State.gen
+    local obj    = State.obj
+    local bsp    = State.bsp
 
     local shader = Cache.Shader('vp', 'simple_color')
 
@@ -446,8 +444,6 @@ function BSPTest:onDraw()
                 BSPDebug.DrawLineSegment(bsp.bsp, lineSegment)
             end
 
-            rng:free()
-
             if gen.depthMode then
                 shader:start()
                 DrawMesh(shader, obj.mesh, gen.cullMode, gen.depthMode, gen.alphaMode)
@@ -491,7 +487,6 @@ function BSPTest:onDraw()
                 sphere.px, sphere.py, sphere.pz = p.x, p.y, p.z
                 sphere.r = rng:getUniformRange(0.05, 0.30)
                 BSPDebug.GetIntersectSphereTriangles(bsp.bsp, sphere, sphereProf)
-                rng:free()
             end
 
             local mul = 11
@@ -517,7 +512,6 @@ function BSPTest:onDraw()
             sphere.px, sphere.py, sphere.pz = p.x, p.y, p.z
             sphere.r = rng:getUniformRange(0.05, 0.30)
             BSPDebug.DrawSphere(bsp.bsp, sphere)
-            rng:free()
 
             RenderState.PushWireframe(false)
             RenderState.PushDepthTest(false)
@@ -557,7 +551,6 @@ function BSPTest:onDraw()
             sphere.px, sphere.py, sphere.pz = p.x, p.y, p.z
             sphere.r = rng:getUniformRange(0.05, 0.30)
             BSPDebug.DrawSphere(bsp.bsp, sphere)
-            rng:free()
         end
 
         RenderState.PopDepthTest()

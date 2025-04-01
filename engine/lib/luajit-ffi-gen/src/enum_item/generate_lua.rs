@@ -16,7 +16,7 @@ impl EnumInfo {
         ffi_gen.set_type_decl_struct(enum_repr_ty.as_ffi(module_name).1);
 
         gen_class_definitions(&mut ffi_gen, &self.doc, module_name, &variants_info);
-        gen_c_definitions(&mut ffi_gen, module_name, &variants_info);
+        gen_c_definitions(&mut ffi_gen, module_name);
         gen_global_symbol_table(&mut ffi_gen, module_name, &variants_info);
 
         if attr_args.with_impl() {
@@ -58,21 +58,8 @@ fn gen_class_definitions(
     ffi_gen.add_class_definition("}\n");
 }
 
-fn gen_c_definitions(
-    ffi_gen: &mut FFIGenerator,
-    module_name: &str,
-    variants_info: &[(&[String], &str, u64)],
-) {
+fn gen_c_definitions(ffi_gen: &mut FFIGenerator, module_name: &str) {
     let max_ret_len = std::cmp::max("cstr".len(), module_name.len());
-
-    variants_info.iter().for_each(|(_, name, _)| {
-        ffi_gen.add_c_definition(format!(
-            "{IDENT}{IDENT}{IDENT}{module_name:<0$} {module_name}_{name};",
-            max_ret_len
-        ));
-    });
-
-    ffi_gen.add_c_definition("");
 
     ffi_gen.add_c_definition(format!(
         "{IDENT}{IDENT}{IDENT}{0:<1$} {module_name}_ToString({module_name});",
@@ -92,9 +79,9 @@ fn gen_global_symbol_table(
         .unwrap_or(0);
     let max_variant_len = std::cmp::max(max_variant_len, "ToString".len());
 
-    variants_info.iter().for_each(|(_, name, _)| {
+    variants_info.iter().for_each(|(_, name, id)| {
         ffi_gen.add_global_symbol(format!(
-            "{IDENT}{IDENT}{IDENT}{name:<0$} = libphx.{module_name}_{name},",
+            "{IDENT}{IDENT}{IDENT}{name:<0$} = {id},",
             max_variant_len
         ));
     });

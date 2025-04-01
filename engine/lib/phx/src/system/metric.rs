@@ -1,62 +1,72 @@
-use internal::MemZero;
+use std::sync::{LazyLock, Mutex};
 
-use crate::common::*;
-
-pub type Metric = i32;
-
-// TODO: figure out why we get an integer overflow in Metric_AddDraw for verts
-static mut VALUE_CURR: [i64; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
-
-#[no_mangle]
-pub unsafe extern "C" fn Metric_Get(this: Metric) -> i32 {
-    VALUE_CURR[this as usize] as i32
+#[luajit_ffi_gen::luajit_ffi(with_impl = true)]
+#[derive(Debug, Clone, Copy)]
+pub enum Metric {
+    None,
+    DrawCalls,
+    Immediate,
+    PolysDrawn,
+    TrisDrawn,
+    VertsDrawn,
+    Flush,
+    FBOSwap,
+    SIZE,
 }
 
-#[no_mangle]
-pub extern "C" fn Metric_GetName(this: Metric) -> *const libc::c_char {
-    match this {
-        1 => return c_str!("Draw Calls"),
-        2 => return c_str!("Draw Calls (Immediate)"),
-        3 => return c_str!("Polys"),
-        4 => return c_str!("Tris"),
-        5 => return c_str!("Vertices"),
-        6 => return c_str!("Pipeline Flushes"),
-        7 => return c_str!("Framebuffer Swaps"),
-        _ => {}
+pub static VALUE_CURR: LazyLock<Mutex<[u64; Metric::SIZE as usize]>> =
+    LazyLock::new(Default::default);
+
+#[luajit_ffi_gen::luajit_ffi]
+impl Metric {
+    pub fn get(this: Self) -> i32 {
+        let value_curr = VALUE_CURR.lock().expect("Cannot lock metric values");
+        value_curr[this as usize] as i32
     }
-    std::ptr::null()
+
+    pub fn get_name(this: Self) -> Option<&'static str> {
+        match this {
+            Self::DrawCalls => Some("Draw Calls"),
+            Self::Immediate => Some("Draw Calls (Immediate)"),
+            Self::PolysDrawn => Some("Polys"),
+            Self::TrisDrawn => Some("Tris"),
+            Self::VertsDrawn => Some("Vertices"),
+            Self::Flush => Some("Pipeline Flushes"),
+            Self::FBOSwap => Some("Framebuffer Swaps"),
+            _ => None,
+        }
+    }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Metric_AddDraw(polys: i32, tris: i32, verts: i32) {
-    VALUE_CURR[0x1] += 1;
-    VALUE_CURR[0x3] += polys as i64;
-    VALUE_CURR[0x4] += tris as i64;
-    VALUE_CURR[0x5] += verts as i64;
-}
+impl Metric {
+    pub fn add_draw(polys: u64, tris: u64, verts: u64) {
+        let mut value_curr = VALUE_CURR.lock().expect("Cannot lock metric values");
+        value_curr[Self::DrawCalls as usize] += 1;
+        value_curr[Self::PolysDrawn as usize] += polys as u64;
+        value_curr[Self::TrisDrawn as usize] += tris as u64;
+        value_curr[Self::VertsDrawn as usize] += verts as u64;
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn Metric_AddDrawImm(polys: i32, tris: i32, verts: i32) {
-    VALUE_CURR[0x2] += 1;
-    VALUE_CURR[0x3] += polys as i64;
-    VALUE_CURR[0x4] += tris as i64;
-    VALUE_CURR[0x5] += verts as i64;
-}
+    pub fn add_draw_imm(polys: u64, tris: u64, verts: u64) {
+        let mut value_curr = VALUE_CURR.lock().expect("Cannot lock metric values");
+        value_curr[Self::Immediate as usize] += 1;
+        value_curr[Self::PolysDrawn as usize] += polys as u64;
+        value_curr[Self::TrisDrawn as usize] += tris as u64;
+        value_curr[Self::VertsDrawn as usize] += verts as u64;
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn Metric_Inc(this: Metric) {
-    VALUE_CURR[this as usize] += 1;
-}
+    pub fn inc(self) {
+        let mut value_curr = VALUE_CURR.lock().expect("Cannot lock metric values");
+        value_curr[self as usize] += 1;
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn Metric_Mod(this: Metric, delta: i32) {
-    VALUE_CURR[this as usize] += delta as i64;
-}
+    pub fn inc_delta(self, delta: u64) {
+        let mut value_curr = VALUE_CURR.lock().expect("Cannot lock metric values");
+        value_curr[self as usize] += delta;
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn Metric_Reset() {
-    MemZero(
-        VALUE_CURR.as_mut_ptr() as *mut _,
-        std::mem::size_of::<[i32; 8]>(),
-    );
+    pub fn reset() {
+        let mut value_curr = VALUE_CURR.lock().expect("Cannot lock metric values");
+        value_curr.iter_mut().for_each(|v| *v = 0);
+    }
 }

@@ -183,11 +183,6 @@ end
 --------------------------------------------------------------------------------
 
 function Camera:refreshMatrices()
-    self.mView:free()
-    self.mViewInv:free()
-    self.mProj:free()
-    self.mProjInv:free()
-
     self.pos = self.posOffset + self.posT
     self.rot = self.rotOffset * self.rotT
 

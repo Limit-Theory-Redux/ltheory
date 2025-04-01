@@ -20,7 +20,7 @@ function Universe:init(seed)
     GameState.player.humanPlayer = Entities.Player(GameState.player.humanPlayerName)
 
     self.universeSeed = seed
-    self.universeRng = RNG.Create(seed):managed()
+    self.universeRng = RNG.Create(seed)
     self.systems = {}
     self.players = {}                                                           --* system or universe layer?
     self.aiPlayers = {}                                                         --* system or universe layer?

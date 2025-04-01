@@ -1,3 +1,6 @@
+#![allow(non_snake_case)] // TODO: remove this and fix all warnings
+#![allow(unsafe_code)] // TODO: refactor
+
 use internal::*;
 
 #[derive(Copy, Clone)]

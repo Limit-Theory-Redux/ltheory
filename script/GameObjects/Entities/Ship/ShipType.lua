@@ -133,8 +133,6 @@ local ShipType = Class("ShipType", function(self, seed, generator, hull)
             insert(self.sockets[SocketType.Turret], p * Vec3f(-1, 1, 1))
         end
     end
-
-    rng:free()
 end)
 
 -- TODO: change how this works and create a generalized code structure for creating ships as this is b***shit

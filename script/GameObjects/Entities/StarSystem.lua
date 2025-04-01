@@ -15,7 +15,7 @@ local HUD = require('Systems.Overlay.HUD')
 ---@class StarSystem: Entity
 local System = Subclass("System", Entity, function(self, seed)
     ---@type RandomNumberGenerator
-    self.rng = RNG.Create(seed):managed()
+    self.rng = RNG.Create(seed)
 
     self:setName(Words.getCoolName(self.rng))
     self:setType(Config:getObjectTypeByName("object_types", "Star System"))
