@@ -7,6 +7,10 @@ on:
       - "engine/lib/luajit-ffi-gen/**"
   workflow_dispatch:
 
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   mirror:
     runs-on: ubuntu-latest
