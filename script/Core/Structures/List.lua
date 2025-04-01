@@ -3,7 +3,7 @@
   Includes some useful generic algorithms for common linear list operations.
 ----------------------------------------------------------------------------]]
 --
-local List = class(function(self, ...)
+local List = Class("List", function(self, ...)
     local args = { ... }
     for i = 1, #args do
         self[i] = args[i]

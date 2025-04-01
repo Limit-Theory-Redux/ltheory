@@ -2,7 +2,7 @@
 
 use glam::IVec2;
 
-use crate::render::{gl, glcheck, Viewport_GetSize};
+use crate::render::{Viewport_GetSize, gl, glcheck};
 
 const MAX_STACK_DEPTH: i32 = 128;
 
