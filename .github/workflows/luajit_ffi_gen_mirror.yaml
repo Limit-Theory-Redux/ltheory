@@ -23,10 +23,18 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      # Set up SSH for secure authentication
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.MIRROR_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
       - name: Split and Push Module
         env:
-          MIRROR_REPO_TOKEN: ${{ secrets.FFI_GEN_MIRROR_TOKEN }}
           MAIN_REPO: ${{ github.repository }}
+          MIRROR_REPO: ${{ vars.FFI_GEN_MIRROR_REPO }}
         run: |
           # Split the subtree to extract only module history
           git subtree split --prefix=${{ env.MODULE_PATH }} -b temp-branch
@@ -65,8 +73,8 @@ jobs:
           git add CONTRIBUTING.md
           git commit -m "Update CONTRIBUTING.md for mirror repository" || echo "No changes to CONTRIBUTING.md"
 
-          # Push to mirror repository
-          git push https://x-access-token:${MIRROR_REPO_TOKEN}@github.com/${{ vars.FFI_GEN_MIRROR_REPO }}.git temp-branch:main --force
+          # Push to mirror repository using SSH instead of HTTPS
+          git push git@github.com:${MIRROR_REPO}.git temp-branch:main --force
 
           # Clean up
           git checkout main
