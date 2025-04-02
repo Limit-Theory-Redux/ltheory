@@ -1,6 +1,6 @@
 #![allow(unused)]
-#![allow(unsafe_code)] // TODO: remove
 
+use std::cell::RefCell;
 use std::ffi::{CStr, CString};
 
 use glam::Mat4;
@@ -33,12 +33,6 @@ pub struct RayCastResult {
 pub struct ShapeCastResult {
     hits: *const *mut RigidBody,
     hits_len: u32,
-}
-
-impl ShapeCastResult {
-    pub fn get_hits(&self) -> &[*mut RigidBody] {
-        unsafe { std::slice::from_raw_parts(self.hits, self.hits_len as usize) }
-    }
 }
 
 pub trait NalgebraVecInterop {
@@ -359,14 +353,13 @@ impl Physics {
             sphere.p,
             &Quat::identity(),
         );
-        unsafe {
-            static mut STORAGE: Option<Box<[*mut RigidBody]>> = None;
-            STORAGE = Some(result.into_boxed_slice());
-            ShapeCastResult {
-                hits: STORAGE.as_ref().unwrap().as_ptr(),
-                hits_len: STORAGE.as_ref().unwrap().len() as u32,
-            }
-        }
+
+        thread_local! { static STORAGE: RefCell<Option<Box<[*mut RigidBody]>>> = Default::default(); }
+        STORAGE.replace(Some(result.into_boxed_slice()));
+        STORAGE.with_borrow(|s| ShapeCastResult {
+            hits: s.as_ref().unwrap().as_ptr(),
+            hits_len: s.as_ref().unwrap().len() as u32,
+        })
     }
 
     /// Results are unsorted and will include child objects.
@@ -381,14 +374,13 @@ impl Physics {
             *pos,
             rot,
         );
-        unsafe {
-            static mut STORAGE: Option<Box<[*mut RigidBody]>> = None;
-            STORAGE = Some(result.into_boxed_slice());
-            ShapeCastResult {
-                hits: STORAGE.as_ref().unwrap().as_ptr(),
-                hits_len: STORAGE.as_ref().unwrap().len() as u32,
-            }
-        }
+
+        thread_local! { static STORAGE: RefCell<Option<Box<[*mut RigidBody]>>> = Default::default(); }
+        STORAGE.replace(Some(result.into_boxed_slice()));
+        STORAGE.with_borrow(|s| ShapeCastResult {
+            hits: s.as_ref().unwrap().as_ptr(),
+            hits_len: s.as_ref().unwrap().len() as u32,
+        })
     }
 
     pub fn sphere_overlap(&self, sphere: &Sphere) -> bool {
@@ -489,11 +481,9 @@ impl rp::DebugRenderBackend for RapierDebugRenderer<'_> {
         let Color { r, g, b, a } = Color::from_hsl(color[0], color[1], color[2], color[3]);
 
         self.shader.set_float4("color", r, g, b, a);
-        unsafe {
-            Draw_Line3(
-                &Position::from_na_point(&start).relative_to(self.eye),
-                &Position::from_na_point(&end).relative_to(self.eye),
-            );
-        }
+        Draw::line3(
+            &Position::from_na_point(&start).relative_to(self.eye),
+            &Position::from_na_point(&end).relative_to(self.eye),
+        );
     }
 }

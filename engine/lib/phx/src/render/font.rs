@@ -70,7 +70,7 @@ impl Font {
                 if FT_Load_Glyph(
                     face,
                     glyph_index,
-                    ((1 as libc::c_long) << 5 | (1 as libc::c_long) << 2) as FT_Int32,
+                    (((1 as libc::c_long) << 5) | ((1 as libc::c_long) << 2)) as FT_Int32,
                 ) != 0
                 {
                     return;
