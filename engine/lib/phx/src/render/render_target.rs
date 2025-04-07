@@ -101,10 +101,6 @@ impl FboStack {
         &mut self.stack[self.stack_depth - 1]
     }
 
-    // fn set_draw_buffers(&self, count: i32) {
-    //     glcheck!(gl::DrawBuffers(count, self.bufs.as_ptr()));
-    // }
-
     fn push(&mut self, sx: i32, sy: i32) {
         Profiler::begin("RenderTarget_Push");
 
@@ -200,7 +196,6 @@ impl FboStack {
                 level,
             ));
             fbo.colorIndex += 1;
-            // self.set_draw_buffers(fbo.colorIndex);
             glcheck!(gl::DrawBuffers(fbo.colorIndex, self.bufs.as_ptr()));
         } else {
             if fbo.depth {
@@ -238,7 +233,6 @@ impl FboStack {
             layer,
         ));
         fbo.colorIndex += 1;
-        // self.set_draw_buffers(fbo.colorIndex);
         glcheck!(gl::DrawBuffers(fbo.colorIndex, self.bufs.as_ptr()));
     }
 
@@ -261,7 +255,6 @@ impl FboStack {
             level,
         ));
         fbo.colorIndex += 1;
-        // self.set_draw_buffers(fbo.colorIndex);
         glcheck!(gl::DrawBuffers(fbo.colorIndex, self.bufs.as_ptr()));
     }
 

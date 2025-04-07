@@ -1,10 +1,6 @@
-#![allow(unused)]
-
 use std::cell::RefCell;
-use std::ffi::{CStr, CString};
 
 use glam::Mat4;
-use rapier3d_f64::parry::query::RayCast;
 use rapier3d_f64::prelude as rp;
 use rapier3d_f64::prelude::nalgebra as na;
 
@@ -473,7 +469,7 @@ struct RapierDebugRenderer<'a> {
 impl rp::DebugRenderBackend for RapierDebugRenderer<'_> {
     fn draw_line(
         &mut self,
-        object: rp::DebugRenderObject<'_>,
+        _object: rp::DebugRenderObject<'_>,
         start: rp::Point<rp::Real>,
         end: rp::Point<rp::Real>,
         color: [f32; 4],
