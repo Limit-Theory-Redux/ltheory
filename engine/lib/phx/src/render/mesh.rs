@@ -784,10 +784,8 @@ impl Mesh {
             &mut *SHADER
         };
 
-        unsafe {
-            RenderState_PushAllDefaults();
-            RenderTarget_PushTex2D(&tex_output);
-        }
+        unsafe { RenderState_PushAllDefaults() };
+        RenderTarget::push_tex2d(&tex_output);
 
         shader.start();
         shader.set_int("sDim", s_dim as i32);
@@ -799,10 +797,8 @@ impl Mesh {
         Draw::rect(-1.0, -1.0, 2.0, 2.0);
         shader.stop();
 
-        unsafe {
-            RenderTarget_Pop();
-            RenderState_PopAll();
-        }
+        RenderTarget::pop();
+        unsafe { RenderState_PopAll() };
 
         let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
@@ -836,10 +832,8 @@ impl Mesh {
             &mut *SHADER
         };
 
-        unsafe {
-            RenderState_PushAllDefaults();
-            RenderTarget_PushTex2D(&tex_output);
-        }
+        unsafe { RenderState_PushAllDefaults() };
+        RenderTarget::push_tex2d(&tex_output);
 
         shader.start();
         shader.set_float("radius", radius);
@@ -848,10 +842,8 @@ impl Mesh {
         Draw::rect(-1.0, -1.0, 2.0, 2.0);
         shader.stop();
 
-        unsafe {
-            RenderTarget_Pop();
-            RenderState_PopAll();
-        }
+        RenderTarget::pop();
+        unsafe { RenderState_PopAll() };
 
         let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {

@@ -139,21 +139,15 @@ impl Tex3D {
     }
 
     pub fn pop(&self) {
-        unsafe {
-            RenderTarget_Pop();
-        }
+        RenderTarget::pop();
     }
 
     pub fn push(&self, layer: i32) {
-        unsafe {
-            RenderTarget_PushTex3D(self, layer);
-        }
+        RenderTarget::push_tex3d(self, layer);
     }
 
     pub fn push_level(&self, layer: i32, level: i32) {
-        unsafe {
-            RenderTarget_PushTex3DLevel(self, layer, level);
-        }
+        RenderTarget::push_tex3d_level(self, layer, level);
     }
 
     pub fn gen_mipmap(&mut self) {

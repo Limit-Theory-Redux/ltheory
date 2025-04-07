@@ -189,9 +189,7 @@ impl Tex2D {
 
     pub fn screen_capture() -> Tex2D {
         let mut size: IVec2 = IVec2::ZERO;
-        unsafe {
-            Viewport_GetSize(&mut size);
-        }
+        unsafe { Viewport_GetSize(&mut size) };
 
         let mut buf = vec![0u32; (size.x * size.y) as usize];
         glcheck!(gl::ReadPixels(
@@ -259,35 +257,25 @@ impl Tex2D {
     }
 
     pub fn pop(&self) {
-        unsafe {
-            RenderTarget_Pop();
-        }
+        RenderTarget::pop();
     }
 
     pub fn push(&self) {
-        unsafe {
-            RenderTarget_PushTex2D(self);
-        }
+        RenderTarget::push_tex2d(self);
     }
 
     pub fn push_level(&mut self, level: i32) {
-        unsafe {
-            RenderTarget_PushTex2DLevel(self, level);
-        }
+        RenderTarget::push_tex2d_level(self, level);
     }
 
     pub fn clear(&mut self, r: f32, g: f32, b: f32, a: f32) {
-        unsafe {
-            RenderTarget_PushTex2D(self);
-            Draw::clear(r, g, b, a);
-            RenderTarget_Pop();
-        }
+        RenderTarget::push_tex2d(self);
+        Draw::clear(r, g, b, a);
+        RenderTarget::pop();
     }
 
     pub fn deep_clone(&mut self) -> Tex2D {
-        unsafe {
-            RenderTarget_PushTex2D(self);
-        }
+        RenderTarget::push_tex2d(self);
 
         let this = self.shared.as_ref();
 
@@ -311,9 +299,7 @@ impl Tex2D {
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
 
-        unsafe {
-            RenderTarget_Pop();
-        }
+        RenderTarget::pop();
 
         Tex2D {
             shared: Rf::new(clone),
