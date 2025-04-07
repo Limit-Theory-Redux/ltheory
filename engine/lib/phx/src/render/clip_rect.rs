@@ -4,7 +4,7 @@ use glam::IVec2;
 
 use crate::render::{gl, glcheck, Viewport_GetSize};
 
-const MAX_STACK_DEPTH: i32 = 128;
+const MAX_STACK_DEPTH: usize = 128;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -24,7 +24,7 @@ pub struct ClipRectTransform {
     pub sx: f32,
     pub sy: f32,
 }
-static mut TRANSFORM: [ClipRectTransform; 128] = [ClipRectTransform {
+static mut TRANSFORM: [ClipRectTransform; MAX_STACK_DEPTH] = [ClipRectTransform {
     tx: 0.,
     ty: 0.,
     sx: 0.,
@@ -33,7 +33,7 @@ static mut TRANSFORM: [ClipRectTransform; 128] = [ClipRectTransform {
 
 static mut TRANSFORM_INDEX: i32 = -1;
 
-static mut RECT: [ClipRect; 128] = [ClipRect {
+static mut RECT: [ClipRect; MAX_STACK_DEPTH] = [ClipRect {
     x: 0.,
     y: 0.,
     sx: 0.,
@@ -64,10 +64,10 @@ pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
             unsafe { Viewport_GetSize(&mut vp_size) };
             glcheck!(gl::Enable(gl::SCISSOR_TEST));
 
-            let mut x: f32 = this.x;
-            let mut y: f32 = this.y;
-            let mut sx: f32 = this.sx;
-            let mut sy: f32 = this.sy;
+            let mut x = this.x;
+            let mut y = this.y;
+            let mut sx = this.sx;
+            let mut sy = this.sy;
 
             unsafe { TransformRect(&mut x, &mut y, &mut sx, &mut sy) };
             glcheck!(gl::Scissor(
@@ -83,11 +83,11 @@ pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32) {
-    if RECT_INDEX + 1 >= MAX_STACK_DEPTH {
+    if RECT_INDEX + 1 >= MAX_STACK_DEPTH as i32 {
         panic!("ClipRect_Push: Maximum stack depth exceeded");
     }
     RECT_INDEX += 1;
-    let curr: *mut ClipRect = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
+    let curr = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
     (*curr).x = x;
     (*curr).y = y;
     (*curr).sx = sx;
@@ -98,10 +98,10 @@ pub unsafe extern "C" fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32) {
-    let curr: *mut ClipRect = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
+    let curr = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
     if RECT_INDEX >= 0 && (*curr).enabled as i32 != 0 {
-        let max_x: f32 = x + sx;
-        let max_y: f32 = y + sy;
+        let max_x = x + sx;
+        let max_y = y + sy;
         let x = f32::max(x, (*curr).x);
         let y = f32::max(y, (*curr).y);
 
@@ -118,23 +118,23 @@ pub unsafe extern "C" fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32)
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushDisabled() {
-    if RECT_INDEX + 1 >= MAX_STACK_DEPTH {
+    if RECT_INDEX + 1 >= MAX_STACK_DEPTH as i32 {
         panic!("ClipRect_Push: Maximum stack depth exceeded");
     }
 
     RECT_INDEX += 1;
-    let curr: *mut ClipRect = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
+    let curr = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
     (*curr).enabled = false;
     ClipRect_Activate(Some(&mut *curr));
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushTransform(tx: f32, ty: f32, sx: f32, sy: f32) {
-    if TRANSFORM_INDEX + 1 >= MAX_STACK_DEPTH {
+    if TRANSFORM_INDEX + 1 >= MAX_STACK_DEPTH as i32 {
         panic!("ClipRect_PushTransform: Maximum stack depth exceeded");
     }
     TRANSFORM_INDEX += 1;
-    let curr: *mut ClipRectTransform = TRANSFORM.as_mut_ptr().offset(TRANSFORM_INDEX as isize);
+    let curr = TRANSFORM.as_mut_ptr().offset(TRANSFORM_INDEX as isize);
     (*curr).tx = tx;
     (*curr).ty = ty;
     (*curr).sx = sx;

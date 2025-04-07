@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use internal::*;
 
 use super::*;
@@ -335,7 +337,7 @@ const FRONT_INDEX: i32 = 1;
 static mut ROOT_NODE_INDEX: i32 = 1;
 static mut EMPTY_LEAF_INDEX: i32 = 1;
 
-pub static mut RAY_STACK: Vec<DelayRay> = Vec::new();
+thread_local! { static RAY_STACK: RefCell<Vec<DelayRay>> = Default::default(); }
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectRay(
@@ -394,7 +396,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         tMax: ray.t_max as f32,
                         depth,
                     };
-                    RAY_STACK.push(d);
+                    RAY_STACK.with_borrow_mut(|rs| rs.push(d));
 
                     ray.t_max = max as f64;
                 }
@@ -409,7 +411,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         tMax: ray.t_max as f32,
                         depth,
                     };
-                    RAY_STACK.push(d);
+                    RAY_STACK.with_borrow_mut(|rs| rs.push(d));
                 } else {
                     /* Ray outside of thick plane */
                 }
@@ -443,19 +445,18 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 break;
             }
 
-            if RAY_STACK.is_empty() {
+            if let Some(d) = RAY_STACK.with_borrow_mut(|rs| rs.pop()) {
+                nodeRef = d.nodeRef;
+                ray.t_min = d.tMin as f64;
+                ray.t_max = d.tMax as f64;
+                depth = d.depth;
+            } else {
                 break;
             }
-
-            let d = RAY_STACK.pop().unwrap();
-            nodeRef = d.nodeRef;
-            ray.t_min = d.tMin as f64;
-            ray.t_max = d.tMax as f64;
-            depth = d.depth;
         }
     }
 
-    RAY_STACK.clear();
+    RAY_STACK.with_borrow_mut(|rs| rs.clear());
     // BSP_PROFILE (
     //     self->profilingData.ray.count++;
     //     self->profilingData.ray.depth += maxDepth;
@@ -485,8 +486,7 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     }
 }
 
-#[no_mangle]
-pub static mut NODE_STACK: Vec<Delay> = Vec::new();
+thread_local! { static NODE_STACK: RefCell<Vec<Delay>> = Default::default(); }
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectSphere(
@@ -521,7 +521,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                     nodeRef: (*node).child[BACK_INDEX as usize],
                     depth,
                 };
-                NODE_STACK.push(d);
+                NODE_STACK.with_borrow_mut(|ns| ns.push(d));
                 nodeRef = (*node).child[FRONT_INDEX as usize];
             }
 
@@ -548,17 +548,16 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                 break;
             }
 
-            if NODE_STACK.is_empty() {
+            if let Some(d) = NODE_STACK.with_borrow_mut(|ns| ns.pop()) {
+                nodeRef = d.nodeRef;
+                depth = d.depth;
+            } else {
                 break;
             }
-
-            let d = NODE_STACK.pop().unwrap();
-            nodeRef = d.nodeRef;
-            depth = d.depth;
         }
     }
 
-    NODE_STACK.clear();
+    NODE_STACK.with_borrow_mut(|ns| ns.clear());
     // BSP_PROFILE (
     //     self->profilingData.sphere.count++;
     //     self->profilingData.sphere.depth += maxDepth;
@@ -1559,7 +1558,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                     nodeRef: (*node).child[BACK_INDEX as usize],
                     depth,
                 };
-                NODE_STACK.push(d);
+                NODE_STACK.with_borrow_mut(|ns| ns.push(d));
                 nodeRef = (*node).child[FRONT_INDEX as usize];
             }
 
@@ -1594,17 +1593,16 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 break;
             }
 
-            if NODE_STACK.is_empty() {
+            if let Some(d) = NODE_STACK.with_borrow_mut(|ns| ns.pop()) {
+                nodeRef = d.nodeRef;
+                depth = d.depth;
+            } else {
                 break;
             }
-
-            let d: Delay = NODE_STACK.pop().unwrap();
-            nodeRef = d.nodeRef;
-            depth = d.depth;
         }
     }
 
-    NODE_STACK.clear();
+    NODE_STACK.with_borrow_mut(|ns| ns.clear());
 
     hit
 }
