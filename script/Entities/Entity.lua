@@ -102,7 +102,7 @@ function Entity:findComponentsByArchetype(archetype)
     return #queryResults, queryResults
 end
 
----@param archetype ComponentArchetype
+---@param archetype any
 ---@return table<Component>
 function Entity:findComponentByArchetype(archetype)
     local queryResults = {}

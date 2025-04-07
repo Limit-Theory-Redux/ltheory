@@ -12,9 +12,6 @@ local Registry = require('Systems.Storage.Registry')
 local EntityHierarchyComponent = Subclass("EntityHierarchyComponent", Component, function(self, parentEntityInfo)
     self:setComponentName("EntityHierarchy")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.HierarchyComponent)
-
     self:addHierarchy(parentEntityInfo)
 end)
 

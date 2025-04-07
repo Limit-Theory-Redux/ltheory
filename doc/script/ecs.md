@@ -60,7 +60,7 @@ Components are plain data structures that define the properties or state of an e
 
 They hold minimal game logic, only the most basic data related methods should be provided. Everything else should be defined in a system that handles the specific data.
 
-Here´s how you define a component from the component class:
+Here's how you define a component from the component class:
 
 ```lua
 local Component = require('Components.Component')
@@ -70,9 +70,6 @@ local Component = require('Components.Component')
 ---@overload fun(name: string|nil): NameComponent subclass external
 local NameComponent = Subclass("NameComponent", Component, function(self, name)
     self:setComponentName("EntityName")
-
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.NameComponent)
 
     self:setName(name)
 end)
@@ -145,7 +142,7 @@ end
 function MarketplaceSystem:onPreRender()
     self.profiler:start()
 
-    local marketplaces = Registry:getComponentsFromArchetype(Enums.ComponentArchetype.MarketplaceComponent)
+    local marketplaces = Registry:getComponentsFromArchetype(MarketplaceComponent)
     ---@cast marketplaces table<MarketplaceComponent>
 ```
 
@@ -206,18 +203,18 @@ end
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.OrderItemTypeComponent)
+            local bidItemTypeCmp = bid:findComponentByArchetype(OrderItemTypeComponent)
             ---@cast bidItemTypeCmp OrderItemTypeComponent
-            local bidPriceCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.PriceComponent)
+            local bidPriceCmp = bid:findComponentByArchetype(PriceComponent)
             ---@cast bidPriceCmp PriceComponent
-            local bidQuantityCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+            local bidQuantityCmp = bid:findComponentByArchetype(QuantityComponent)
             ---@cast bidQuantityCmp QuantityComponent
 
-            local askItemTypeCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.OrderItemTypeComponent)
+            local askItemTypeCmp = ask:findComponentByArchetype(OrderItemTypeComponent)
             ---@cast askItemTypeCmp OrderItemTypeComponent
-            local askPriceCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.PriceComponent)
+            local askPriceCmp = ask:findComponentByArchetype(PriceComponent)
             ---@cast askPriceCmp PriceComponent
-            local askQuantityCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+            local askQuantityCmp = ask:findComponentByArchetype(QuantityComponent)
             ---@cast askQuantityCmp QuantityComponent
 ```
 
@@ -239,8 +236,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             self.marketplaceParentInfo = marketplace:getEntity()
             self.marketplaceParentEntity = Registry:getEntity(self.marketplaceParentInfo)
             ---@type InventoryComponent
-            self.marketplaceInventoryCmp = self.marketplaceParentEntity:findComponentByArchetype(Enums.ComponentArchetype
-                .InventoryComponent)
+            self.marketplaceInventoryCmp = self.marketplaceParentEntity:findComponentByArchetype(InventoryComponent)
 ```
 
 #### Here we use helper which was defined in a seperate file. Sometimes we want some additional methods that don´t have to be part of the system itself for cleanliness. Helper files can be defined for that purpose.

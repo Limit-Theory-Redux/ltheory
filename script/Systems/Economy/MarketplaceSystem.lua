@@ -2,6 +2,13 @@
 local Registry = require("Systems.Storage.Registry")
 local InventorySystem = require("Systems.Economy.InventorySystem")
 
+-- Components
+local MarketplaceComponent = require("Components.Economy.MarketplaceComponent")
+local OrderItemTypeComponent = require("Components.Economy.OrderItemTypeComponent")
+local PriceComponent = require("Components.Economy.PriceComponent")
+local QuantityComponent = require("Components.Economy.QuantityComponent")
+local InventoryComponent = require("Components.Economy.InventoryComponent")
+
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local Helper = require("Shared.Helpers.MarketplaceSystemHelper")
@@ -36,7 +43,7 @@ end
 function MarketplaceSystem:onPreRender()
     self.profiler:start()
 
-    local marketplaces = Registry:getComponentsFromArchetype(Enums.ComponentArchetype.MarketplaceComponent)
+    local marketplaces = Registry:getComponentsFromArchetype(MarketplaceComponent)
     ---@cast marketplaces table<MarketplaceComponent>
 
     local now = TimeStamp.Now()
@@ -89,18 +96,18 @@ end
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.OrderItemTypeComponent)
+            local bidItemTypeCmp = bid:findComponentByArchetype(OrderItemTypeComponent)
             ---@cast bidItemTypeCmp OrderItemTypeComponent
-            local bidPriceCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.PriceComponent)
+            local bidPriceCmp = bid:findComponentByArchetype(PriceComponent)
             ---@cast bidPriceCmp PriceComponent
-            local bidQuantityCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+            local bidQuantityCmp = bid:findComponentByArchetype(QuantityComponent)
             ---@cast bidQuantityCmp QuantityComponent
 
-            local askItemTypeCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.OrderItemTypeComponent)
+            local askItemTypeCmp = ask:findComponentByArchetype(OrderItemTypeComponent)
             ---@cast askItemTypeCmp OrderItemTypeComponent
-            local askPriceCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.PriceComponent)
+            local askPriceCmp = ask:findComponentByArchetype(PriceComponent)
             ---@cast askPriceCmp PriceComponent
-            local askQuantityCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+            local askQuantityCmp = ask:findComponentByArchetype(QuantityComponent)
             ---@cast askQuantityCmp QuantityComponent
 
             local bidItemType = bidItemTypeCmp:getItemType()
@@ -114,8 +121,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             self.marketplaceParentInfo = marketplace:getEntity()
             self.marketplaceParentEntity = Registry:getEntity(self.marketplaceParentInfo)
             ---@type InventoryComponent
-            self.marketplaceInventoryCmp = self.marketplaceParentEntity:findComponentByArchetype(Enums.ComponentArchetype
-                .InventoryComponent)
+            self.marketplaceInventoryCmp = self.marketplaceParentEntity:findComponentByArchetype(InventoryComponent)
 
             Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)
 

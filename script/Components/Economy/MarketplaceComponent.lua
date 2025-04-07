@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local MarketplaceComponent = Subclass("MarketplaceComponent", Component, function(self)
     self:setComponentName("EconomyMarketplace")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.MarketplaceComponent)
-
     self:init()
 end)
 

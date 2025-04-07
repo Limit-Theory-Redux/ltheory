@@ -1,6 +1,10 @@
 -- Systems
 local Registry = require("Systems.Storage.Registry")
 
+-- Components
+local NameComponent = require("Components.Core.EntityName")
+local QuantityComponent = require("Components.Economy.QuantityComponent")
+
 ---@param bids table<EntityInfo>
 ---@param asks table<EntityInfo>
 ---@return table<OrderEntity> bids, table<OrderEntity> asks
@@ -34,9 +38,9 @@ local function printInventory(parentEntity, component)
 
             if itemEntity then
                 ---@type NameComponent
-                local nameComponent = itemEntity:findComponentByArchetype(Enums.ComponentArchetype.NameComponent)
+                local nameComponent = itemEntity:findComponentByArchetype(NameComponent)
                 ---@type QuantityComponent
-                local quantityComponent = itemEntity:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+                local quantityComponent = itemEntity:findComponentByArchetype(QuantityComponent)
 
                 Log.Debug(" ├─ %s(%d)", nameComponent:getName(), quantityComponent:getQuantity())
             end

@@ -1,13 +1,10 @@
-local Component = require('Components.Component') --!temp
+local Component = require('Components.Component')
 
 ---@class RenderComponent: Component
 ---@overload fun(self: RenderComponent, materials: Material[], meshType: MeshType): RenderComponent subclass internal
 ---@overload fun(materials: Material[], meshType: MeshType): RenderComponent subclass external
 local RenderComponent = Subclass("RenderComponent", Component, function(self, materials, meshType)
     self:setComponentName("RenderComponent")
-
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.RenderComponent)
 
     -- Set RenderComponent Data
     self:setMaterials(materials)

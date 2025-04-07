@@ -28,11 +28,6 @@ function Registry:clear()
         SetLengthMetamethod(self.entities[archetype])
     end
 
-    for _, archetype in pairs(Enums.ComponentArchetype) do
-        self.components[archetype] = {}
-        SetLengthMetamethod(self.components[archetype])
-    end
-
     Log.Info("Initialized Registry")
 end
 
@@ -63,25 +58,32 @@ end
 ---@param component Component
 ---@return ComponentInfo
 function Registry:storeComponent(component)
-    if not component:getArchetype() or not self.components[component:getArchetype()] then
-        Log.Error("Did not provide a valid archetype for component: " .. tostring(component:getGuid()))
+    -- Lazily initialize this component's storage.
+    local archetype = component:getArchetype()
+    if not self.components[archetype] then
+        self.components[archetype] = {}
+        SetLengthMetamethod(self.components[archetype])
     end
-    self.components[component:getArchetype()][component:getGuid()] = component
-    return ComponentInfo { id = component:getGuid(), archetype = component:getArchetype(), entity = component:getEntity() }
+    self.components[archetype][component:getGuid()] = component
+    return ComponentInfo { id = component:getGuid(), archetype = archetype, entity = component:getEntity() }
 end
 
----@param archetype ComponentArchetype
+---@param archetype any
 ---@param componentId integer
 ---@return boolean wasSuccessful
 function Registry:dropComponent(archetype, componentId)
+    if not self.components[archetype] then
+        return false
+    end
+
     local component = self.components[archetype][componentId]
     ---@cast component Component
-
-    if component then
-        self.components[archetype][componentId] = nil
-        return true
+    if not component then
+        return false
     end
-    return false
+    
+    self.components[archetype][componentId] = nil
+    return true
 end
 
 ---@param entityInfo EntityInfo

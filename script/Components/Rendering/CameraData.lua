@@ -7,9 +7,6 @@ local CameraDataComponent = Subclass("CameraDataComponent", Component, function(
     ---@cast self CameraDataComponent
     self:setComponentName("RenderingCameraData")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.CameraDataComponent)
-
     self:init()
 end)
 

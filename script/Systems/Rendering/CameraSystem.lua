@@ -36,8 +36,8 @@ end
 ---@private
 function CameraSystem:onPreRender()
     if self.currentCamera and not self.currentCameraData then
-        self.currentCameraData = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
-        self.currentCameraTransform = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
+        self.currentCameraData = self.currentCamera:findComponentByArchetype(CameraDataComponent)
+        self.currentCameraTransform = self.currentCamera:findComponentByArchetype(TransformComponent)
     end
 end
 
@@ -67,8 +67,8 @@ function CameraSystem:setCamera(entityInfo)
 
     if camera then
         self.currentCamera = camera
-        self.currentCameraData = camera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
-        self.currentCameraTransform = camera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
+        self.currentCameraData = camera:findComponentByArchetype(CameraDataComponent)
+        self.currentCameraTransform = camera:findComponentByArchetype(TransformComponent)
     end
 end
 
@@ -87,8 +87,8 @@ function CameraSystem:beginDraw()
             Log.Error("No Current Camera Set During Render")
         end
         Log.Warn("Current Camera Data Not Set Prior to Render")
-        self.currentCameraData = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
-        self.currentCameraTransform = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
+        self.currentCameraData = self.currentCamera:findComponentByArchetype(CameraDataComponent)
+        self.currentCameraTransform = self.currentCamera:findComponentByArchetype(TransformComponent)
     end
     local camData = self.currentCameraData
     ShaderVar.PushMatrix('mView', camData:getView())

@@ -37,11 +37,11 @@ function EntityComponentSystemTest:printHierarchy(rootEntity)
             local branch = depth > 0 and "├─ " or ""
 
             ---@type SeedComponent
-            local seedComponent = current:findComponentByArchetype(Enums.ComponentArchetype.SeedComponent)
+            local seedComponent = current:findComponentByArchetype(SeedComponent)
             Log.Debug("%s%s%s with seed %s", indent, branch, current, seedComponent and seedComponent:getSeed() or "No Seed Component")
 
             ---@type EntityHierarchyComponent
-            local hierarchyComponent = current:findComponentByArchetype(Enums.ComponentArchetype.HierarchyComponent)
+            local hierarchyComponent = current:findComponentByArchetype(HierarchyComponent)
             if hierarchyComponent then
                 for child in hierarchyComponent:iterChildren() do
                     table.insert(stack, { entity = child, depth = depth + 1 })

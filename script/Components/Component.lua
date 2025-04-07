@@ -54,7 +54,7 @@ end
 
 ---@return ComponentArchetype
 function Component:getArchetype()
-    return self.archetype
+    return type(self)
 end
 
 ---@param entity EntityInfo

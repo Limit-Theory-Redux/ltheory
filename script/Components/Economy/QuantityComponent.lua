@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local QuantityComponent = Subclass("QuantityComponent", Component, function(self, quantity)
     self:setComponentName("EconomyQuantity")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.QuantityComponent)
-
     self:init(quantity)
 end)
 

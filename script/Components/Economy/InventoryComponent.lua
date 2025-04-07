@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local InventoryComponent = Subclass("InventoryComponent", Component, function(self)
     self:setComponentName("EconomyInventory")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.InventoryComponent)
-
     self:init()
 end)
 

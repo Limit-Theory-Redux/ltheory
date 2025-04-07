@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local SpatialShapeComponent = Subclass("SpatialShapeComponent", Component, function(self)
     self:setComponentName("Shape")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.ShapeComponent)
-
     self:init()
 end)
 

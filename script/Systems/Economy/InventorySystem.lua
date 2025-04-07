@@ -1,6 +1,9 @@
 -- Systems
 local Registry = require("Systems.Storage.Registry")
 
+-- Components
+local QuantityComponent = require("Components.Economy.QuantityComponent")
+
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 
@@ -32,7 +35,7 @@ function InventorySystem:take(inventory, itemId, quantity)
     for id, itemEntityInfo in pairs(itemsOfType) do
         local itemEntity = Registry:getEntity(itemEntityInfo)
         ---@cast itemEntity ItemEntity
-        local quantityComponent = itemEntity:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+        local quantityComponent = itemEntity:findComponentByArchetype(QuantityComponent)
         ---@cast quantityComponent QuantityComponent
         local itemQuantity = quantityComponent:getQuantity()
 
@@ -45,7 +48,7 @@ function InventorySystem:take(inventory, itemId, quantity)
             -- Split the item and update quantity
             quantityComponent:setQuantity(itemQuantity - remainingQuantity)
             local clone, cloneEntityInfo = itemEntity:clone()
-            local cloneQuantityCmp = clone:findComponentByArchetype((Enums.ComponentArchetype.QuantityComponent))
+            local cloneQuantityCmp = clone:findComponentByArchetype((QuantityComponent))
             cloneQuantityCmp:setQuantity(remainingQuantity)
             table.insert(takenItems, cloneEntityInfo)
             remainingQuantity = 0
@@ -73,7 +76,7 @@ end
 ---@param amount integer
 ---@return boolean success
 function InventorySystem:lockItemQuantity(item, owner, amount)
-    local quantityComponent = item:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+    local quantityComponent = item:findComponentByArchetype(QuantityComponent)
     ---@cast quantityComponent QuantityComponent
 
     if amount > quantityComponent:getQuantity() then
@@ -92,7 +95,7 @@ end
 ---@param amount integer|nil
 ---@return boolean success
 function InventorySystem:unlockItemQuantity(item, owner, amount)
-    local quantityComponent = item:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+    local quantityComponent = item:findComponentByArchetype(QuantityComponent)
     ---@cast quantityComponent QuantityComponent
 
     if not quantityComponent:getLockedQuantity() then

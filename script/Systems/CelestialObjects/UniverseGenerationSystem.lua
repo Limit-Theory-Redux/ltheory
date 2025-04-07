@@ -15,6 +15,10 @@ local SpaceshipEntity = require("Entities.Constructs.SpaceshipEntity")
 
 local ZoneEntity = require("Entities.Spatial.ZoneEntity")
 
+-- Components
+local ShapeComponent = require("Components.Spatial.ShapeComponent")
+local HierarchyComponent = require("Components.Core.EntityHierarchy")
+
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 
@@ -78,7 +82,7 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
     -- Add star area
     local starZone = ZoneEntity()
     ---@type SpatialShapeComponent
-    local starZoneShapeComponent = starZone:findComponentByArchetype(Enums.ComponentArchetype.ShapeComponent)
+    local starZoneShapeComponent = starZone:findComponentByArchetype(ShapeComponent)
     starZoneShapeComponent:setShape(Enums.ZoneShape.Sphere)
     starZoneShapeComponent:setRadius(1.7952e13) --* Hardcode to solar system radius for now
 
@@ -175,7 +179,7 @@ end
 
 ---@private
 function UniverseGenerationSystem:addChildEntity(parentEntity, childEntityInfo)
-    local hierarchyComponent = parentEntity:findComponentByArchetype(Enums.ComponentArchetype.HierarchyComponent)
+    local hierarchyComponent = parentEntity:findComponentByArchetype(HierarchyComponent)
     hierarchyComponent:addChild(childEntityInfo)
 end
 

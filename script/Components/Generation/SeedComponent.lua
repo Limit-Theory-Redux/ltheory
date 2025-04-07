@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local SeedComponent = Subclass("SeedComponent", Component, function(self, seed)
     self:setComponentName("GenerationSeedComponent")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.SeedComponent)
-
     ---@diagnostic disable-next-line: invisible
     self:init(seed)
 end)

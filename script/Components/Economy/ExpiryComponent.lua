@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local ExpiryComponent = Subclass("ExpiryComponent", Component, function(self, expireAt)
     self:setComponentName("EconomyExpiry")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.ExpiryComponent)
-
     if expireAt then
         self:setExpiry(expireAt)
     end
