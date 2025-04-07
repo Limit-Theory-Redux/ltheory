@@ -412,14 +412,11 @@ impl TexCube {
             let mut job_size: i32 = 1;
             while j <= size {
                 let time: TimeStamp = TimeStamp::now();
-                unsafe {
-                    ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
-                }
+
+                ClipRect::push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
                 Draw::rect(0.0f32, 0.0f32, size_f, size_f);
                 Draw::flush();
-                unsafe {
-                    ClipRect_Pop();
-                }
+                ClipRect::pop();
 
                 j += job_size;
                 let elapsed = time.get_elapsed();
