@@ -24,34 +24,34 @@ pub struct Face {
     pub up: Vec3,
 }
 
-static mut K_FACES: [Face; 6] = [
+const K_FACES: [Face; 6] = [
     Face {
-        face: CubeFace_PX,
+        face: CubeFace::PX,
         look: Vec3::X,
         up: Vec3::Y,
     },
     Face {
-        face: CubeFace_NX,
+        face: CubeFace::NX,
         look: Vec3::NEG_X,
         up: Vec3::Y,
     },
     Face {
-        face: CubeFace_PY,
+        face: CubeFace::PY,
         look: Vec3::Y,
         up: Vec3::NEG_Z,
     },
     Face {
-        face: CubeFace_NY,
+        face: CubeFace::NY,
         look: Vec3::NEG_Y,
         up: Vec3::Z,
     },
     Face {
-        face: CubeFace_PZ,
+        face: CubeFace::PZ,
         look: Vec3::Z,
         up: Vec3::Y,
     },
     Face {
-        face: CubeFace_NZ,
+        face: CubeFace::NZ,
         look: Vec3::NEG_Z,
         up: Vec3::Y,
     },
@@ -314,8 +314,7 @@ impl TexCube {
         let this = self.shared.as_ref();
 
         for i in 0..6 {
-            #[allow(unsafe_code)] // TODO: remove
-            let face = unsafe { K_FACES[i as usize] };
+            let face = K_FACES[i as usize];
 
             RenderTarget::push(this.size, this.size);
             RenderTarget::bind_tex_cube(self, face.face);
@@ -337,8 +336,7 @@ impl TexCube {
 
         let mut image_buffer: ImageBuffer<Rgba<u8>, _> = ImageBuffer::new(size as u32, size as u32);
         for i in 0..6 {
-            #[allow(unsafe_code)] // TODO: remove
-            let face = unsafe { K_FACES[i as usize].face };
+            let face = K_FACES[i as usize].face;
             let face_path = format!("{}{}.png", path, K_FACE_EXT[i as usize]);
 
             glcheck!(gl::GetTexImage(
@@ -389,10 +387,9 @@ impl TexCube {
         };
 
         for i in 0..6 {
-            #[allow(unsafe_code)] // TODO: remove
-            let face: Face = unsafe { K_FACES[i as usize] };
-            let size: i32 = this.size;
-            let size_f: f32 = this.size as f32;
+            let face = K_FACES[i as usize];
+            let size = this.size;
+            let size_f = this.size as f32;
 
             RenderTarget::push(size, size);
             RenderTarget::bind_tex_cube(self, face.face);
@@ -510,14 +507,6 @@ impl TexCube {
             &mut *SHADER
         };
 
-        let face: [CubeFace; 6] = [
-            CubeFace_PX,
-            CubeFace_NX,
-            CubeFace_PY,
-            CubeFace_NY,
-            CubeFace_PZ,
-            CubeFace_NZ,
-        ];
         let look: [Vec3; 6] = [
             Vec3::X,
             Vec3::NEG_X,
@@ -564,7 +553,7 @@ impl TexCube {
             shader.set_tex2d("sample_buffer", &sample_tex);
             shader.set_int("samples", sample_count);
             for i in 0..6 {
-                let this_face = face[i];
+                let this_face = CUBE_FACES[i];
                 let this_look = look[i];
                 let this_up = up[i];
 

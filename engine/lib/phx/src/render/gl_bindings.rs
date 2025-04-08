@@ -1,10 +1,10 @@
-#![allow(clippy::missing_transmute_annotations)] // disable clippy warnings in the generated bindings.rs file
-#![allow(clippy::unused_unit)]
-
 pub mod gl {
+    #![allow(clippy::missing_transmute_annotations)] // disable clippy warnings in the generated bindings.rs file
     #![allow(unsafe_code)] // TODO: remove
+
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
+    #[allow(clippy::unused_unit)]
     pub fn error_to_str(err: types::GLenum) -> &'static str {
         match err {
             INVALID_ENUM => "GL_INVALID_ENUM",
