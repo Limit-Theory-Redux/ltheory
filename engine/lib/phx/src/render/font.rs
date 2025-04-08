@@ -1,3 +1,5 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};

@@ -1,3 +1,5 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use glam::Mat4;
 
 use super::{gl, *};

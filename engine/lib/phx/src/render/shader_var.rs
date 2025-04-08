@@ -23,6 +23,7 @@ pub enum ShaderVarData {
 }
 
 // Trust me, it's fine.
+#[allow(unsafe_code)]
 unsafe impl Send for ShaderVarData {}
 
 impl ShaderVarData {

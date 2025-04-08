@@ -122,7 +122,10 @@ impl FboStack {
         glcheck!(gl::GenFramebuffers(1, &mut fbo.handle));
         glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, fbo.handle));
 
-        unsafe { Viewport_Push(0, 0, sx, sy, false) };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            Viewport_Push(0, 0, sx, sy, false);
+        }
 
         Profiler::end();
     }
@@ -170,7 +173,10 @@ impl FboStack {
             glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));
         }
 
-        unsafe { Viewport_Pop() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            Viewport_Pop();
+        }
 
         Profiler::end();
     }

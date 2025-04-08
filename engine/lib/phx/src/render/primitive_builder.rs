@@ -214,6 +214,8 @@ impl PrimitiveBuilder {
             len_bytes as isize,
             gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
         ));
+
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
             std::ptr::copy_nonoverlapping(
                 self.positions.as_ptr(),
@@ -238,6 +240,8 @@ impl PrimitiveBuilder {
                 len_bytes as isize,
                 gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
             ));
+
+            #[allow(unsafe_code)] // TODO: remove
             unsafe {
                 std::ptr::copy_nonoverlapping(
                     self.normals.as_ptr(),
@@ -263,6 +267,8 @@ impl PrimitiveBuilder {
                 len_bytes as isize,
                 gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
             ));
+
+            #[allow(unsafe_code)] // TODO: remove
             unsafe {
                 std::ptr::copy_nonoverlapping(
                     self.texcoords.as_ptr(),
@@ -288,6 +294,8 @@ impl PrimitiveBuilder {
                 len_bytes as isize,
                 gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
             ));
+
+            #[allow(unsafe_code)] // TODO: remove
             unsafe {
                 std::ptr::copy_nonoverlapping(
                     self.colors.as_ptr(),

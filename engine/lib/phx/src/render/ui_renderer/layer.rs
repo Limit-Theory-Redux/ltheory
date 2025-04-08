@@ -1,6 +1,14 @@
-use super::*;
-use crate::math::*;
-use crate::render::*;
+use glam::Vec2;
+
+use crate::render::{ClipRect, Draw, Shader};
+
+use super::image::UIRendererImage;
+use super::panel::UIRendererPanel;
+use super::rect::UIRendererRect;
+use super::text::UIRendererText;
+use super::{
+    UIRendererImageId, UIRendererLayerId, UIRendererPanelId, UIRendererRectId, UIRendererTextId,
+};
 
 #[derive(Default)]
 pub struct UIRendererLayer {
@@ -114,6 +122,7 @@ impl UIRendererLayer {
         while let Some(text_id) = text_id_opt {
             let text = &texts[*text_id];
 
+            #[allow(unsafe_code)] // TODO: remove
             unsafe {
                 (*text.font).draw(&text.text, text.pos.x, text.pos.y, &text.color);
             }

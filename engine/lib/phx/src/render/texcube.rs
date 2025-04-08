@@ -314,6 +314,7 @@ impl TexCube {
         let this = self.shared.as_ref();
 
         for i in 0..6 {
+            #[allow(unsafe_code)] // TODO: remove
             let face = unsafe { K_FACES[i as usize] };
 
             RenderTarget::push(this.size, this.size);
@@ -336,6 +337,7 @@ impl TexCube {
 
         let mut image_buffer: ImageBuffer<Rgba<u8>, _> = ImageBuffer::new(size as u32, size as u32);
         for i in 0..6 {
+            #[allow(unsafe_code)] // TODO: remove
             let face = unsafe { K_FACES[i as usize].face };
             let face_path = format!("{}{}.png", path, K_FACE_EXT[i as usize]);
 
@@ -381,9 +383,13 @@ impl TexCube {
     pub fn generate(&mut self, state: &mut ShaderState) {
         let this = self.shared.as_ref();
 
-        unsafe { RenderState_PushAllDefaults() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            RenderState_PushAllDefaults()
+        };
 
         for i in 0..6 {
+            #[allow(unsafe_code)] // TODO: remove
             let face: Face = unsafe { K_FACES[i as usize] };
             let size: i32 = this.size;
             let size_f: f32 = this.size as f32;
@@ -427,7 +433,10 @@ impl TexCube {
             RenderTarget::pop();
         }
 
-        unsafe { RenderState_PopAll() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            RenderState_PopAll()
+        };
     }
 
     pub fn gen_mipmap(&mut self) {
@@ -481,6 +490,7 @@ impl TexCube {
         let mut result = TexCube::new(size, pf);
         let df = DataFormat_Float;
         for i in 0..6 {
+            #[allow(unsafe_code)] // TODO: remove
             let face = unsafe { CubeFace_Get(i) };
             // TODO: Reuse buffer for each face.
             result.set_data(&self.get_data::<u8>(face, 0, pf, df), face, 0, pf, df);
@@ -488,6 +498,7 @@ impl TexCube {
         result.gen_mipmap();
 
         // TODO: Store the shader somewhere and use the Box correctly.
+        #[allow(unsafe_code)] // TODO: remove
         let shader = unsafe {
             static mut SHADER: *mut Shader = std::ptr::null_mut();
             if SHADER.is_null() {

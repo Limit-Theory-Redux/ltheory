@@ -2,6 +2,7 @@
 #![allow(clippy::unused_unit)]
 
 pub mod gl {
+    #![allow(unsafe_code)] // TODO: remove
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
     pub fn error_to_str(err: types::GLenum) -> &'static str {

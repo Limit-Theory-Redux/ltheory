@@ -547,9 +547,12 @@ impl Mesh {
         0 as Error
     }
 
-    pub unsafe fn get_vertex(&mut self, index: i32) -> &mut Vertex {
+    pub fn get_vertex(&mut self, index: i32) -> &mut Vertex {
         let ptr = &mut self.shared.as_mut().vertex[index as usize] as *mut _;
-        &mut *ptr
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            &mut *ptr
+        }
     }
 
     pub fn get_vertex_count(&self) -> i32 {
@@ -773,6 +776,7 @@ impl Mesh {
         let tex_output = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_R32F);
 
         // TODO: Store shader properly
+        #[allow(unsafe_code)] // TODO: remove
         let shader = unsafe {
             static mut SHADER: *mut Shader = std::ptr::null_mut();
             if SHADER.is_null() {
@@ -784,7 +788,10 @@ impl Mesh {
             &mut *SHADER
         };
 
-        unsafe { RenderState_PushAllDefaults() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            RenderState_PushAllDefaults();
+        }
         RenderTarget::push_tex2d(&tex_output);
 
         shader.start();
@@ -798,7 +805,10 @@ impl Mesh {
         shader.stop();
 
         RenderTarget::pop();
-        unsafe { RenderState_PopAll() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            RenderState_PopAll();
+        }
 
         let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
@@ -821,6 +831,7 @@ impl Mesh {
         tex_points.set_data(&point_buffer, PixelFormat_RGB, DataFormat_Float);
 
         // TODO: Store shader properly.
+        #[allow(unsafe_code)] // TODO: remove
         let shader = unsafe {
             static mut SHADER: *mut Shader = std::ptr::null_mut();
             if SHADER.is_null() {
@@ -832,7 +843,10 @@ impl Mesh {
             &mut *SHADER
         };
 
-        unsafe { RenderState_PushAllDefaults() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            RenderState_PushAllDefaults();
+        }
         RenderTarget::push_tex2d(&tex_output);
 
         shader.start();
@@ -843,7 +857,10 @@ impl Mesh {
         shader.stop();
 
         RenderTarget::pop();
-        unsafe { RenderState_PopAll() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            RenderState_PopAll();
+        }
 
         let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {

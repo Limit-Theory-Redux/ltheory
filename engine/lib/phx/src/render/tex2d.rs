@@ -189,7 +189,10 @@ impl Tex2D {
 
     pub fn screen_capture() -> Tex2D {
         let mut size: IVec2 = IVec2::ZERO;
-        unsafe { Viewport_GetSize(&mut size) };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            Viewport_GetSize(&mut size);
+        }
 
         let mut buf = vec![0u32; (size.x * size.y) as usize];
         glcheck!(gl::ReadPixels(

@@ -1,4 +1,5 @@
 #![allow(non_upper_case_globals)] // TODO: fix this
+#![allow(unsafe_code)] // TODO: remove
 
 use super::*;
 
