@@ -41,7 +41,7 @@ pub unsafe extern "C" fn SDF_FromTex3D(tex: &mut Tex3D) -> *mut Sdf {
     let size =
         std::mem::size_of::<Cell>() * ((*this).size.x * (*this).size.y * (*this).size.z) as usize;
     (*this).data = MemAlloc(size) as *mut Cell;
-    let tex_data: Vec<Cell> = tex.get_data(PixelFormat_RGBA, DataFormat_Float);
+    let tex_data: Vec<Cell> = tex.get_data(PixelFormat_RGBA, DataFormat::Float);
     MemCpy((*this).data as *mut _, tex_data.as_ptr() as *const _, size);
     this
 }

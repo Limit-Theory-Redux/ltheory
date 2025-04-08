@@ -46,7 +46,7 @@ impl Tex1D {
         let this = self.shared.as_ref();
 
         let mut size = this.size;
-        size *= DataFormat_GetSize(df);
+        size *= DataFormat::get_size(df);
         size *= PixelFormat_Components(pf);
         size /= std::mem::size_of::<T>() as i32;
 

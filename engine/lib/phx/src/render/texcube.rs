@@ -103,7 +103,7 @@ impl TexCube {
         let this = self.shared.as_ref();
 
         let mut size = this.size * this.size;
-        size *= DataFormat_GetSize(df);
+        size *= DataFormat::get_size(df);
         size *= PixelFormat_Components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
@@ -485,7 +485,7 @@ impl TexCube {
         let pf = self.get_format();
 
         let mut result = TexCube::new(size, pf);
-        let df = DataFormat_Float;
+        let df = DataFormat::Float;
         for i in 0..6 {
             #[allow(unsafe_code)] // TODO: remove
             let face = unsafe { CubeFace_Get(i) };
@@ -544,7 +544,7 @@ impl TexCube {
                 sample_buffer[i as usize] = Vec2::new(pitch as f32, yaw as f32);
             }
 
-            sample_tex.set_data(&sample_buffer, PixelFormat_RG, DataFormat_Float);
+            sample_tex.set_data(&sample_buffer, PixelFormat_RG, DataFormat::Float);
             let mut angle = level as f32 / (levels - 1) as f32;
             angle = angle * angle;
             shader.reset_tex_index();
