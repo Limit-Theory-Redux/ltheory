@@ -552,7 +552,7 @@ impl TexCube {
             shader.set_tex_cube("src", self);
             shader.set_tex2d("sample_buffer", &sample_tex);
             shader.set_int("samples", sample_count);
-            for i in 0..6 {
+            for i in 0..CUBE_FACES.len() {
                 let this_face = CUBE_FACES[i];
                 let this_look = look[i];
                 let this_up = up[i];
