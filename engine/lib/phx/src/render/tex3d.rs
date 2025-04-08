@@ -58,7 +58,7 @@ impl Tex3D {
 
         let mut size = this.size.x * this.size.y * this.size.z;
         size *= DataFormat::get_size(df);
-        size *= PixelFormat_Components(pf);
+        size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
         let mut data = vec![T::default(); size as usize];

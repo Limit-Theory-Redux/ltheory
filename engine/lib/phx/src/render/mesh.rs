@@ -755,8 +755,8 @@ impl Mesh {
 
         let mut tex_spoints = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat_RGBA32F);
         let mut tex_snormals = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat_RGBA32F);
-        tex_spoints.set_data(&point_buffer, PixelFormat_RGBA, DataFormat::Float);
-        tex_snormals.set_data(&normal_buffer, PixelFormat_RGBA, DataFormat::Float);
+        tex_spoints.set_data(&point_buffer, PixelFormat::RGBA, DataFormat::Float);
+        tex_snormals.set_data(&normal_buffer, PixelFormat::RGBA, DataFormat::Float);
 
         point_buffer.clear();
         point_buffer.resize(buf_size as usize, Vec4::ZERO);
@@ -770,8 +770,8 @@ impl Mesh {
 
         let mut tex_vpoints = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_RGBA32F);
         let mut tex_vnormals = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_RGBA32F);
-        tex_vpoints.set_data(&point_buffer, PixelFormat_RGBA, DataFormat::Float);
-        tex_vnormals.set_data(&normal_buffer, PixelFormat_RGBA, DataFormat::Float);
+        tex_vpoints.set_data(&point_buffer, PixelFormat::RGBA, DataFormat::Float);
+        tex_vnormals.set_data(&normal_buffer, PixelFormat::RGBA, DataFormat::Float);
 
         let tex_output = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_R32F);
 
@@ -810,7 +810,7 @@ impl Mesh {
             RenderState_PopAll();
         }
 
-        let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat::Float);
+        let result: Vec<f32> = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
             this.vertex[i].uv.x = *result_uv_value;
         }
@@ -828,7 +828,7 @@ impl Mesh {
             *point = this.vertex[i].p;
         }
 
-        tex_points.set_data(&point_buffer, PixelFormat_RGB, DataFormat::Float);
+        tex_points.set_data(&point_buffer, PixelFormat::RGB, DataFormat::Float);
 
         // TODO: Store shader properly.
         #[allow(unsafe_code)] // TODO: remove
@@ -862,7 +862,7 @@ impl Mesh {
             RenderState_PopAll();
         }
 
-        let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat::Float);
+        let result: Vec<f32> = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
             this.vertex[i].uv.x = *result_uv_value;
         }

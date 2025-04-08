@@ -117,7 +117,7 @@ impl Font {
             /* Upload to texture. */
             glyph
                 .tex
-                .set_data(buffer.as_slice(), PixelFormat_RGBA, DataFormat::Float);
+                .set_data(buffer.as_slice(), PixelFormat::RGBA, DataFormat::Float);
 
             /* Add to glyph cache. */
             e.insert(glyph);

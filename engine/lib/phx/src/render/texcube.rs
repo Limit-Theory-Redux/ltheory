@@ -97,14 +97,14 @@ impl TexCube {
         &self,
         face: CubeFace,
         level: i32,
-        pf: PixelFormat,
+        tf: TexFormat,
         df: DataFormat,
     ) -> Vec<T> {
         let this = self.shared.as_ref();
 
         let mut size = this.size * this.size;
         size *= DataFormat::get_size(df);
-        size *= PixelFormat_Components(pf);
+        size *= TexFormat_Components(tf);
         size /= std::mem::size_of::<T>() as i32;
 
         let mut data = vec![T::default(); size as usize];
@@ -112,7 +112,7 @@ impl TexCube {
         glcheck!(gl::GetTexImage(
             face as gl::types::GLenum,
             level,
-            pf as gl::types::GLenum,
+            tf as gl::types::GLenum,
             df as gl::types::GLenum,
             data.as_mut_ptr() as *mut _,
         ));
@@ -126,7 +126,7 @@ impl TexCube {
         data: &[T],
         face: CubeFace,
         level: i32,
-        pf: PixelFormat,
+        tf: TexFormat,
         df: DataFormat,
     ) {
         let this = self.shared.as_ref();
@@ -139,7 +139,7 @@ impl TexCube {
             this.size,
             this.size,
             0,
-            pf as gl::types::GLenum,
+            tf as gl::types::GLenum,
             df as gl::types::GLenum,
             data.as_ptr() as *const _,
         ));
@@ -357,10 +357,10 @@ impl TexCube {
         &mut self,
         face: CubeFace,
         level: i32,
-        pf: PixelFormat,
+        tf: TexFormat,
         df: DataFormat,
     ) -> Bytes {
-        Bytes::from_vec(self.get_data(face, level, pf, df))
+        Bytes::from_vec(self.get_data(face, level, tf, df))
     }
 
     pub fn get_format(&self) -> TexFormat {
@@ -449,10 +449,10 @@ impl TexCube {
         data: &Bytes,
         face: CubeFace,
         level: i32,
-        pf: PixelFormat,
+        tf: TexFormat,
         df: DataFormat,
     ) {
-        self.set_data(data.as_slice(), face, level, pf, df);
+        self.set_data(data.as_slice(), face, level, tf, df);
     }
 
     pub fn set_mag_filter(&mut self, filter: TexFilter) {
@@ -544,7 +544,7 @@ impl TexCube {
                 sample_buffer[i as usize] = Vec2::new(pitch as f32, yaw as f32);
             }
 
-            sample_tex.set_data(&sample_buffer, PixelFormat_RG, DataFormat::Float);
+            sample_tex.set_data(&sample_buffer, PixelFormat::RG, DataFormat::Float);
             let mut angle = level as f32 / (levels - 1) as f32;
             angle = angle * angle;
             shader.reset_tex_index();

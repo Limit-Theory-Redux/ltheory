@@ -10,7 +10,7 @@ use super::{
     TextAlignment, TextContext, TextCursorRect, TextSectionStyle, TextSelection, TextStyle,
 };
 use crate::input::{Button, Input};
-use crate::render::{Color, DataFormat, PixelFormat_RGBA, Tex2D, TexFormat_RGBA8};
+use crate::render::{Color, DataFormat, PixelFormat, Tex2D, TexFormat_RGBA8};
 
 pub type TextLayout = Layout<Color>;
 
@@ -316,7 +316,7 @@ impl TextData {
 
         // Create texture
         let mut tex = Tex2D::new(width as i32, height as i32, TexFormat_RGBA8);
-        tex.set_data(&buffer, PixelFormat_RGBA, DataFormat::Float);
+        tex.set_data(&buffer, PixelFormat::RGBA, DataFormat::Float);
         Some(tex)
     }
 

@@ -47,7 +47,7 @@ impl Tex1D {
 
         let mut size = this.size;
         size *= DataFormat::get_size(df);
-        size *= PixelFormat_Components(pf);
+        size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
         let mut data = vec![T::default(); size as usize];
