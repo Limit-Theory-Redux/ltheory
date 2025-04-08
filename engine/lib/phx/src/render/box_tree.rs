@@ -1,9 +1,11 @@
 #![allow(unsafe_code)] // TODO: remove
 
-use internal::*;
+use glam::Vec3;
+use internal::{MemAlloc, MemFree, MemNew};
 
-use super::*;
-use crate::math::*;
+use crate::math::{Box3, Matrix};
+
+use super::{Draw, Mesh};
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -56,7 +58,7 @@ pub unsafe extern "C" fn BoxTree_Free(this: *mut BoxTree) {
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_FromMesh(mesh: &mut Mesh) -> *mut BoxTree {
-    let this: *mut BoxTree = BoxTree_Create();
+    let this = BoxTree_Create();
     let index_data = mesh.get_index_data();
     let vertex_data = mesh.get_vertex_data();
 
@@ -217,11 +219,11 @@ unsafe extern "C" fn BoxTree_DrawNode(this: &mut Node, maxDepth: i32) {
         return;
     }
     if !(this.sub[0]).is_null() || !(this.sub[1]).is_null() {
-        Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
-        Draw_Box3(&this.box3);
+        Draw::color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
+        Draw::box3(&this.box3);
     } else {
-        Draw_Color(0.0f32, 1.0f32, 0.0f32, 1.0f32);
-        Draw_Box3(&this.box3);
+        Draw::color(0.0f32, 1.0f32, 0.0f32, 1.0f32);
+        Draw::box3(&this.box3);
     }
     if !(this.sub[0]).is_null() {
         BoxTree_DrawNode(&mut *this.sub[0], maxDepth - 1);
