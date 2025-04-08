@@ -1,17 +1,8 @@
-#![allow(unsafe_code)] // TODO: remove
-
-use super::gl;
-
-pub type TexWrapMode = i32;
-
-#[no_mangle]
-pub static TexWrapMode_Clamp: TexWrapMode = gl::CLAMP_TO_EDGE as TexWrapMode;
-
-#[no_mangle]
-pub static TexWrapMode_MirrorClamp: TexWrapMode = gl::MIRROR_CLAMP_TO_EDGE as TexWrapMode;
-
-#[no_mangle]
-pub static TexWrapMode_MirrorRepeat: TexWrapMode = gl::MIRRORED_REPEAT as TexWrapMode;
-
-#[no_mangle]
-pub static TexWrapMode_Repeat: TexWrapMode = gl::REPEAT as TexWrapMode;
+#[luajit_ffi_gen::luajit_ffi]
+#[derive(Debug, Clone, Copy)]
+pub enum TexWrapMode {
+    Clamp = 0x812F,        // gl::CLAMP_TO_EDGE
+    MirrorClamp = 0x8743,  // gl::MIRROR_CLAMP_TO_EDGE
+    MirrorRepeat = 0x8370, // gl::MIRRORED_REPEAT
+    Repeat = 0x2901,       // gl::REPEAT
+}

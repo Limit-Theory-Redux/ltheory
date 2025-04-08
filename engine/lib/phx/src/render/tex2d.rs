@@ -439,8 +439,16 @@ impl Tex2D {
         let this = self.shared.as_ref();
 
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_WRAP_S,
+            mode as _
+        ));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_WRAP_T,
+            mode as _
+        ));
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
     }
 }

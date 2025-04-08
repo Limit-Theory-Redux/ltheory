@@ -207,7 +207,11 @@ impl Tex1D {
         let this = self.shared.as_ref();
 
         glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, mode));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_1D,
+            gl::TEXTURE_WRAP_S,
+            mode as _
+        ));
         glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
     }
 }

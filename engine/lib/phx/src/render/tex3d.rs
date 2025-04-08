@@ -221,9 +221,21 @@ impl Tex3D {
         let this = self.shared.as_ref();
 
         glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, mode));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, mode));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, mode));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_3D,
+            gl::TEXTURE_WRAP_S,
+            mode as _
+        ));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_3D,
+            gl::TEXTURE_WRAP_T,
+            mode as _
+        ));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_3D,
+            gl::TEXTURE_WRAP_R,
+            mode as _
+        ));
         glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
     }
 }
