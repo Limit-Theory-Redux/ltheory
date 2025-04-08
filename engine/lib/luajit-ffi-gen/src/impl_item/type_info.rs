@@ -69,6 +69,7 @@ const COPY_TYPES: &[&str] = &[
     "DataFormat",
     "Worker",
     "Metric",
+    "CubeFace",
 ];
 
 #[derive(Debug, PartialEq)]

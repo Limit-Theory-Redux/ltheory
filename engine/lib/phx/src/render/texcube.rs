@@ -316,12 +316,10 @@ impl TexCube {
         for i in 0..6 {
             let face = unsafe { K_FACES[i as usize] };
 
-            unsafe {
-                RenderTarget_Push(this.size, this.size);
-                RenderTarget_BindTexCube(self, face.face);
-                Draw::clear(r, g, b, a);
-                RenderTarget_Pop();
-            }
+            RenderTarget::push(this.size, this.size);
+            RenderTarget::bind_tex_cube(self, face.face);
+            Draw::clear(r, g, b, a);
+            RenderTarget::pop();
         }
     }
 
@@ -383,20 +381,16 @@ impl TexCube {
     pub fn generate(&mut self, state: &mut ShaderState) {
         let this = self.shared.as_ref();
 
-        unsafe {
-            RenderState_PushAllDefaults();
-        }
+        unsafe { RenderState_PushAllDefaults() };
 
         for i in 0..6 {
             let face: Face = unsafe { K_FACES[i as usize] };
             let size: i32 = this.size;
             let size_f: f32 = this.size as f32;
 
-            unsafe {
-                RenderTarget_Push(size, size);
-                RenderTarget_BindTexCube(self, face.face);
-                Draw::clear(0.0, 0.0, 0.0, 1.0);
-            }
+            RenderTarget::push(size, size);
+            RenderTarget::bind_tex_cube(self, face.face);
+            Draw::clear(0.0, 0.0, 0.0, 1.0);
 
             state
                 .shader()
@@ -412,14 +406,11 @@ impl TexCube {
             let mut job_size: i32 = 1;
             while j <= size {
                 let time: TimeStamp = TimeStamp::now();
-                unsafe {
-                    ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
-                }
+
+                ClipRect::push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
                 Draw::rect(0.0f32, 0.0f32, size_f, size_f);
                 Draw::flush();
-                unsafe {
-                    ClipRect_Pop();
-                }
+                ClipRect::pop();
 
                 j += job_size;
                 let elapsed = time.get_elapsed();
@@ -433,14 +424,10 @@ impl TexCube {
 
             state.stop();
 
-            unsafe {
-                RenderTarget_Pop();
-            }
+            RenderTarget::pop();
         }
 
-        unsafe {
-            RenderState_PopAll();
-        }
+        unsafe { RenderState_PopAll() };
     }
 
     pub fn gen_mipmap(&mut self) {
@@ -569,12 +556,16 @@ impl TexCube {
                 let this_face = face[i];
                 let this_look = look[i];
                 let this_up = up[i];
-                unsafe { RenderTarget_Push(size, size) };
-                unsafe { RenderTarget_BindTexCubeLevel(&result, this_face, level) };
+
+                RenderTarget::push(size, size);
+                RenderTarget::bind_tex_cube_level(&result, this_face, level);
+
                 shader.set_float3("cubeLook", this_look.x, this_look.y, this_look.z);
                 shader.set_float3("cubeUp", this_up.x, this_up.y, this_up.z);
+
                 Draw::rect(-1.0, -1.0, 2.0, 2.0);
-                unsafe { RenderTarget_Pop() };
+
+                RenderTarget::pop();
             }
         }
         shader.stop();

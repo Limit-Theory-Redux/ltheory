@@ -23,13 +23,13 @@ function Loader.defineType()
             void      TexCube_Clear        (TexCube*, float r, float g, float b, float a);
             void      TexCube_Save         (TexCube*, cstr path);
             void      TexCube_SaveLevel    (TexCube*, cstr path, int level);
-            Bytes*    TexCube_GetDataBytes (TexCube*, CubeFace* face, int level, PixelFormat pf, DataFormat df);
+            Bytes*    TexCube_GetDataBytes (TexCube*, CubeFace face, int level, PixelFormat pf, DataFormat df);
             TexFormat TexCube_GetFormat    (TexCube const*);
             uint32    TexCube_GetHandle    (TexCube const*);
             int       TexCube_GetSize      (TexCube const*);
             void      TexCube_Generate     (TexCube*, ShaderState* state);
             void      TexCube_GenMipmap    (TexCube*);
-            void      TexCube_SetDataBytes (TexCube*, Bytes const* data, CubeFace* face, int level, PixelFormat pf, DataFormat df);
+            void      TexCube_SetDataBytes (TexCube*, Bytes const* data, CubeFace face, int level, PixelFormat pf, DataFormat df);
             void      TexCube_SetMagFilter (TexCube*, TexFilter filter);
             void      TexCube_SetMinFilter (TexCube*, TexFilter filter);
             TexCube*  TexCube_GenIRMap     (TexCube*, int sampleCount);
@@ -60,7 +60,6 @@ function Loader.defineType()
                 save         = libphx.TexCube_Save,
                 saveLevel    = libphx.TexCube_SaveLevel,
                 getDataBytes = function(self, face, level, pf, df)
-                    ffi.gc(face, nil)
                     local _instance = libphx.TexCube_GetDataBytes(self, face, level, pf, df)
                     return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
@@ -69,10 +68,7 @@ function Loader.defineType()
                 getSize      = libphx.TexCube_GetSize,
                 generate     = libphx.TexCube_Generate,
                 genMipmap    = libphx.TexCube_GenMipmap,
-                setDataBytes = function(self, data, face, level, pf, df)
-                    ffi.gc(face, nil)
-                    libphx.TexCube_SetDataBytes(self, data, face, level, pf, df)
-                end,
+                setDataBytes = libphx.TexCube_SetDataBytes,
                 setMagFilter = libphx.TexCube_SetMagFilter,
                 setMinFilter = libphx.TexCube_SetMinFilter,
                 genIRMap     = function(self, sampleCount)

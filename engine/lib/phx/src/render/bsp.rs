@@ -332,10 +332,8 @@ pub static BSP_NODE_REL_FRONT: BSPNodeRel = 2 as BSPNodeRel;
 
 const BACK_INDEX: i32 = 0;
 const FRONT_INDEX: i32 = 1;
-static mut ROOT_NODE_INDEX: i32 = 1;
-static mut EMPTY_LEAF_INDEX: i32 = 1;
-
-pub static mut RAY_STACK: Vec<DelayRay> = Vec::new();
+const ROOT_NODE_INDEX: i32 = 1;
+const EMPTY_LEAF_INDEX: i32 = 1;
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectRay(
@@ -353,6 +351,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
     let mut hit: bool = false;
     let mut depth: i32 = 0;
     let mut maxDepth: i32 = 0;
+
+    let mut ray_stack = vec![];
 
     loop {
         maxDepth = i32::max(depth, maxDepth);
@@ -394,7 +394,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         tMax: ray.t_max as f32,
                         depth,
                     };
-                    RAY_STACK.push(d);
+                    ray_stack.push(d);
 
                     ray.t_max = max as f64;
                 }
@@ -409,7 +409,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         tMax: ray.t_max as f32,
                         depth,
                     };
-                    RAY_STACK.push(d);
+                    ray_stack.push(d);
                 } else {
                     /* Ray outside of thick plane */
                 }
@@ -443,19 +443,17 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 break;
             }
 
-            if RAY_STACK.is_empty() {
+            if let Some(d) = ray_stack.pop() {
+                nodeRef = d.nodeRef;
+                ray.t_min = d.tMin as f64;
+                ray.t_max = d.tMax as f64;
+                depth = d.depth;
+            } else {
                 break;
             }
-
-            let d = RAY_STACK.pop().unwrap();
-            nodeRef = d.nodeRef;
-            ray.t_min = d.tMin as f64;
-            ray.t_max = d.tMax as f64;
-            depth = d.depth;
         }
     }
 
-    RAY_STACK.clear();
     // BSP_PROFILE (
     //     self->profilingData.ray.count++;
     //     self->profilingData.ray.depth += maxDepth;
@@ -486,9 +484,6 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
 }
 
 #[no_mangle]
-pub static mut NODE_STACK: Vec<Delay> = Vec::new();
-
-#[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectSphere(
     this: &mut BSP,
     sphere: &Sphere,
@@ -500,6 +495,8 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
     let mut hit: bool = false;
     let mut depth: i32 = 0;
     let mut maxDepth: i32 = 0;
+
+    let mut node_stack = vec![];
 
     loop {
         maxDepth = i32::max(depth, maxDepth);
@@ -521,7 +518,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                     nodeRef: (*node).child[BACK_INDEX as usize],
                     depth,
                 };
-                NODE_STACK.push(d);
+                node_stack.push(d);
                 nodeRef = (*node).child[FRONT_INDEX as usize];
             }
 
@@ -548,17 +545,15 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                 break;
             }
 
-            if NODE_STACK.is_empty() {
+            if let Some(d) = node_stack.pop() {
+                nodeRef = d.nodeRef;
+                depth = d.depth;
+            } else {
                 break;
             }
-
-            let d = NODE_STACK.pop().unwrap();
-            nodeRef = d.nodeRef;
-            depth = d.depth;
         }
     }
 
-    NODE_STACK.clear();
     // BSP_PROFILE (
     //     self->profilingData.sphere.count++;
     //     self->profilingData.sphere.depth += maxDepth;
@@ -1539,6 +1534,8 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
     let mut depth: i32 = 0;
     let mut maxDepth: i32 = 0;
 
+    let mut node_stack = vec![];
+
     loop {
         maxDepth = i32::max(depth, maxDepth);
 
@@ -1559,7 +1556,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                     nodeRef: (*node).child[BACK_INDEX as usize],
                     depth,
                 };
-                NODE_STACK.push(d);
+                node_stack.push(d);
                 nodeRef = (*node).child[FRONT_INDEX as usize];
             }
 
@@ -1594,17 +1591,14 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 break;
             }
 
-            if NODE_STACK.is_empty() {
+            if let Some(d) = node_stack.pop() {
+                nodeRef = d.nodeRef;
+                depth = d.depth;
+            } else {
                 break;
             }
-
-            let d: Delay = NODE_STACK.pop().unwrap();
-            nodeRef = d.nodeRef;
-            depth = d.depth;
         }
     }
-
-    NODE_STACK.clear();
 
     hit
 }
