@@ -1,3 +1,4 @@
+#![allow(non_snake_case)] // TODO: remove this and fix all warnings
 #![allow(unsafe_code)] // TODO: remove
 
 use glam::Vec3;
@@ -126,14 +127,14 @@ unsafe extern "C" fn Node_Merge(this: Option<&mut Node>, src: *mut Node, prev: *
             Node_Create(Box3::union(this.box3, (*src).box3), std::ptr::null_mut());
         *prev = parent;
 
-        let costBase: f32 = Cost(this.box3) + Cost((*src).box3);
+        let cost_base: f32 = Cost(this.box3) + Cost((*src).box3);
         let cost0: f32 = CostMerge((*this.sub[0]).box3, (*src).box3) + Cost((*this.sub[1]).box3);
         let cost1: f32 = CostMerge((*this.sub[1]).box3, (*src).box3) + Cost((*this.sub[0]).box3);
 
-        if costBase <= cost0 && costBase <= cost1 {
+        if cost_base <= cost0 && cost_base <= cost1 {
             (*parent).sub[0] = this;
             (*parent).sub[1] = src;
-        } else if cost0 <= costBase && cost0 <= cost1 {
+        } else if cost0 <= cost_base && cost0 <= cost1 {
             (*parent).sub[0] = this.sub[0];
             (*parent).sub[1] = this.sub[1];
             MemFree(this as *mut _ as *const _);
@@ -209,13 +210,13 @@ pub unsafe extern "C" fn BoxTree_IntersectRay(
         return false;
     }
     let inv = matrix.inverse();
-    let invRo = inv.mul_point(ro);
-    let invRd = inv.mul_dir(rd);
-    Node_IntersectRay(&mut *this.root, invRo, invRd.recip())
+    let inv_ro = inv.mul_point(ro);
+    let inv_rd = inv.mul_dir(rd);
+    Node_IntersectRay(&mut *this.root, inv_ro, inv_rd.recip())
 }
 
-unsafe extern "C" fn BoxTree_DrawNode(this: &mut Node, maxDepth: i32) {
-    if maxDepth < 0 {
+unsafe extern "C" fn BoxTree_DrawNode(this: &mut Node, max_depth: i32) {
+    if max_depth < 0 {
         return;
     }
     if !(this.sub[0]).is_null() || !(this.sub[1]).is_null() {
@@ -226,16 +227,16 @@ unsafe extern "C" fn BoxTree_DrawNode(this: &mut Node, maxDepth: i32) {
         Draw::box3(&this.box3);
     }
     if !(this.sub[0]).is_null() {
-        BoxTree_DrawNode(&mut *this.sub[0], maxDepth - 1);
+        BoxTree_DrawNode(&mut *this.sub[0], max_depth - 1);
     }
     if !(this.sub[1]).is_null() {
-        BoxTree_DrawNode(&mut *this.sub[1], maxDepth - 1);
+        BoxTree_DrawNode(&mut *this.sub[1], max_depth - 1);
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxTree_Draw(this: &mut BoxTree, maxDepth: i32) {
+pub unsafe extern "C" fn BoxTree_Draw(this: &mut BoxTree, max_depth: i32) {
     if !(this.root).is_null() {
-        BoxTree_DrawNode(&mut *this.root, maxDepth);
+        BoxTree_DrawNode(&mut *this.root, max_depth);
     }
 }

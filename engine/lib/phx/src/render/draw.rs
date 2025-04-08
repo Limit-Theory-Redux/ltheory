@@ -360,8 +360,8 @@ impl Draw {
         let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
 
         this.pb.begin(PrimitiveType::Quads);
-        for iPhi in 2..res {
-            let phi: f32 = iPhi as f32 / f_res * std::f32::consts::PI;
+        for i_phi in 2..res {
+            let phi: f32 = i_phi as f32 / f_res * std::f32::consts::PI;
             for i_theta in 0..res {
                 let theta: f32 = i_theta as f32 / f_res * std::f32::consts::TAU;
                 let br: Vec3 = *p + Self::spherical(r, last_theta, phi);

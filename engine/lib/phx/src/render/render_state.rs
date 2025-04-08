@@ -1,3 +1,4 @@
+#![allow(non_snake_case)] // TODO: remove this and fix all warnings
 #![allow(non_upper_case_globals)] // TODO: fix this
 #![allow(unsafe_code)] // TODO: remove
 

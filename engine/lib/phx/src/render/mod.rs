@@ -1,5 +1,3 @@
-#![allow(non_snake_case)] // TODO: remove this and fix all warnings
-
 mod box_mesh;
 mod box_tree;
 mod bsp;

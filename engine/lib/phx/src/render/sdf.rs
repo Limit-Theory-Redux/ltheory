@@ -60,23 +60,23 @@ pub unsafe extern "C" fn SDF_Free(this: *mut Sdf) {
 #[no_mangle]
 pub unsafe extern "C" fn SDF_ToMesh(this: &mut Sdf) -> Box<Mesh> {
     let mut mesh = Mesh_Create();
-    let cells: IVec3 = IVec3 {
+    let cells = IVec3 {
         x: this.size.x - 1,
         y: this.size.y - 1,
         z: this.size.z - 1,
     };
-    let cellsF: Vec3 = Vec3::new(cells.x as f32, cells.y as f32, cells.z as f32);
-    let stride: IVec3 = IVec3 {
+    let cells_f = Vec3::new(cells.x as f32, cells.y as f32, cells.z as f32);
+    let stride = IVec3 {
         x: 1,
         y: this.size.x,
         z: this.size.x * this.size.y,
     };
-    let cellStride: IVec3 = IVec3 {
+    let cell_stride = IVec3 {
         x: 1,
         y: cells.x,
         z: cells.x * cells.y,
     };
-    let indices: *mut i32 =
+    let indices =
         MemAlloc((std::mem::size_of::<i32>()).wrapping_mul((cells.x * cells.y * cells.z) as usize))
             as *mut i32;
     let vp: [Vec3; 8] = [
@@ -89,7 +89,7 @@ pub unsafe extern "C" fn SDF_ToMesh(this: &mut Sdf) -> Box<Mesh> {
         Vec3::new(0.0f32, 1.0f32, 1.0f32),
         Vec3::new(1.0f32, 1.0f32, 1.0f32),
     ];
-    let edgeTable: [[i32; 2]; 12] = [
+    let edge_table = [
         [0, 1],
         [2, 3],
         [4, 5],
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn SDF_ToMesh(this: &mut Sdf) -> Box<Mesh> {
             while x < cells.x {
                 let x0: f32 = x as f32 / cells.x as f32;
                 let mut cell: IVec3 = IVec3 { x, y, z };
-                let cellIndex = IVec3::dot(cellStride, IVec3::new(x, y, z));
+                let cell_index = IVec3::dot(cell_stride, IVec3::new(x, y, z));
                 let base: *const Cell =
                     (this.data).offset(IVec3::dot(stride, IVec3::new(x, y, z)) as isize);
                 let v: [*const Cell; 8] = [
@@ -138,15 +138,15 @@ pub unsafe extern "C" fn SDF_ToMesh(this: &mut Sdf) -> Box<Mesh> {
                 mask |= if (*v[6]).value > 0.0f32 { 0x40 } else { 0 };
                 mask |= if (*v[7]).value > 0.0f32 { 0x80 } else { 0 };
                 if mask == 0 || mask == 0xff {
-                    *indices.offset(cellIndex as isize) = -1;
+                    *indices.offset(cell_index as isize) = -1;
                 } else {
                     let mut tw: f32 = 0.0f32;
                     let mut offset: Vec3 = Vec3::ZERO;
                     let mut n: Vec3 = Vec3::ZERO;
                     let mut i: i32 = 0;
                     while i < 12 {
-                        let i0: i32 = edgeTable[i as usize][0];
-                        let i1: i32 = edgeTable[i as usize][1];
+                        let i0: i32 = edge_table[i as usize][0];
+                        let i1: i32 = edge_table[i as usize][1];
                         let v0: *const Cell = v[i0 as usize];
                         let v1: *const Cell = v[i1 as usize];
                         if ((*v0).value > 0.0f32) as i32 != ((*v1).value > 0.0f32) as i32 {
@@ -160,9 +160,9 @@ pub unsafe extern "C" fn SDF_ToMesh(this: &mut Sdf) -> Box<Mesh> {
                     }
                     offset /= tw;
                     n = n.normalize();
-                    let mut p: Vec3 = Vec3::new(x0, y0, z0) + (offset / cellsF);
+                    let mut p: Vec3 = Vec3::new(x0, y0, z0) + (offset / cells_f);
                     p = p * 2.0f32 - 1.0f32;
-                    *indices.offset(cellIndex as isize) = Mesh_GetVertexCount(mesh.as_mut());
+                    *indices.offset(cell_index as isize) = Mesh_GetVertexCount(mesh.as_mut());
                     Mesh_AddVertex(mesh.as_mut(), p.x, p.y, p.z, n.x, n.y, n.z, 1.0f32, 0.0f32);
                     let mut i_0: i32 = 0;
                     while i_0 < 3 {
@@ -171,12 +171,12 @@ pub unsafe extern "C" fn SDF_ToMesh(this: &mut Sdf) -> Box<Mesh> {
                         if !(*(&mut cell.x as *mut i32).offset(j as isize) == 0
                             || *(&mut cell.x as *mut i32).offset(k as isize) == 0)
                         {
-                            let du: i32 = *(&cellStride.x as *const i32).offset(j as isize);
-                            let dv: i32 = *(&cellStride.x as *const i32).offset(k as isize);
-                            let i0_0: i32 = *indices.offset(cellIndex as isize);
-                            let i1_0: i32 = *indices.offset((cellIndex - du) as isize);
-                            let i2: i32 = *indices.offset((cellIndex - du - dv) as isize);
-                            let i3: i32 = *indices.offset((cellIndex - dv) as isize);
+                            let du: i32 = *(&cell_stride.x as *const i32).offset(j as isize);
+                            let dv: i32 = *(&cell_stride.x as *const i32).offset(k as isize);
+                            let i0_0: i32 = *indices.offset(cell_index as isize);
+                            let i1_0: i32 = *indices.offset((cell_index - du) as isize);
+                            let i2: i32 = *indices.offset((cell_index - du - dv) as isize);
+                            let i3: i32 = *indices.offset((cell_index - dv) as isize);
                             if !(i1_0 < 0 || i2 < 0 || i3 < 0) {
                                 if (*v[0]).value > 0.0f32 {
                                     Mesh_AddQuad(mesh.as_mut(), i0_0, i3, i2, i1_0);
@@ -201,11 +201,11 @@ pub unsafe extern "C" fn SDF_ToMesh(this: &mut Sdf) -> Box<Mesh> {
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Clear(this: &mut Sdf, value: f32) {
     let size: u64 = (this.size.x * this.size.y * this.size.z) as u64;
-    let mut pCell: *mut Cell = this.data;
+    let mut p_cell: *mut Cell = this.data;
     let mut i: u64 = 0;
     while i < size {
-        let fresh0 = pCell;
-        pCell = pCell.offset(1);
+        let fresh0 = p_cell;
+        p_cell = p_cell.offset(1);
         (*fresh0).value = value;
         i = i.wrapping_add(1);
     }
