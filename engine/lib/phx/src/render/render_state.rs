@@ -1,7 +1,7 @@
 #![allow(non_upper_case_globals)] // TODO: fix this
 #![allow(unsafe_code)] // TODO: remove
 
-use super::*;
+use crate::render::{gl, glcheck};
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Default, Debug, Copy, Clone)]

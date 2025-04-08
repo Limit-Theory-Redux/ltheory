@@ -1,9 +1,15 @@
+use glam::{Vec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
-use super::*;
-use crate::math::*;
+use crate::math::Rng;
+use crate::render::{gl, glcheck, RenderState_PopAll, RenderState_PushAllDefaults, Shader};
 use crate::rf::Rf;
-use crate::system::*;
+use crate::system::{Bytes, TimeStamp};
+
+use super::{
+    ClipRect, CubeFace, DataFormat, Draw, PixelFormat, RenderTarget, ShaderState, Tex2D, TexFilter,
+    TexFormat, CUBE_FACES,
+};
 
 #[derive(Clone)]
 pub struct TexCube {
@@ -408,7 +414,7 @@ impl TexCube {
             let mut j: i32 = 1;
             let mut job_size: i32 = 1;
             while j <= size {
-                let time: TimeStamp = TimeStamp::now();
+                let time = TimeStamp::now();
 
                 ClipRect::push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
                 Draw::rect(0.0f32, 0.0f32, size_f, size_f);
@@ -487,8 +493,7 @@ impl TexCube {
         let mut result = TexCube::new(size, pf);
         let df = DataFormat::Float;
         for i in 0..6 {
-            #[allow(unsafe_code)] // TODO: remove
-            let face = unsafe { CubeFace_Get(i) };
+            let face = CubeFace::get(i);
             // TODO: Reuse buffer for each face.
             result.set_data(&self.get_data::<u8>(face, 0, pf, df), face, 0, pf, df);
         }
@@ -507,7 +512,7 @@ impl TexCube {
             &mut *SHADER
         };
 
-        let look: [Vec3; 6] = [
+        let look = [
             Vec3::X,
             Vec3::NEG_X,
             Vec3::Y,
@@ -515,7 +520,7 @@ impl TexCube {
             Vec3::Z,
             Vec3::NEG_Z,
         ];
-        let up: [Vec3; 6] = [Vec3::Y, Vec3::Y, Vec3::NEG_Z, Vec3::Z, Vec3::Y, Vec3::Y];
+        let up = [Vec3::Y, Vec3::Y, Vec3::NEG_Z, Vec3::Z, Vec3::Y, Vec3::Y];
 
         let mut rng = Rng::from_time();
         let mut levels = 0;

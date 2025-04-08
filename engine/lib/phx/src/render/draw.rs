@@ -1,9 +1,13 @@
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
-use super::*;
-use crate::logging::*;
-use crate::math::*;
-use crate::system::*;
+use glam::{Vec2, Vec3};
+use tracing::warn;
+
+use crate::math::{reject_vec3, Box3};
+use crate::render::glcheck;
+use crate::system::Metric;
+
+use super::{gl, Color, PrimitiveBuilder, PrimitiveType};
 
 pub struct Draw {
     alpha_stack: Vec<f32>,
@@ -38,7 +42,7 @@ impl Draw {
 #[luajit_ffi_gen::luajit_ffi]
 impl Draw {
     pub fn clear(r: f32, g: f32, b: f32, a: f32) {
-        #[allow(unsafe_code)] // TODO: remove
+        #[allow(unsafe_code)]
         let status = unsafe { gl::CheckFramebufferStatus(gl::FRAMEBUFFER) };
         if status == gl::FRAMEBUFFER_COMPLETE {
             glcheck!(gl::ClearColor(r, g, b, a));

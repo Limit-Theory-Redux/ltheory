@@ -1,5 +1,8 @@
-use super::*;
-use crate::math::*;
+use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4};
+
+use crate::math::Matrix;
+
+use super::{Shader, ShaderVarData, Tex1D, Tex2D, Tex3D, TexCube};
 
 pub struct ShaderState {
     shader: Shader,

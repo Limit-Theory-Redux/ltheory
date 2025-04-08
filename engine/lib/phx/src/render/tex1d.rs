@@ -1,6 +1,8 @@
-use super::*;
+use crate::render::{gl, glcheck};
 use crate::rf::Rf;
-use crate::system::*;
+use crate::system::Bytes;
+
+use super::{DataFormat, PixelFormat, TexFilter, TexFormat, TexWrapMode};
 
 #[derive(Clone)]
 pub struct Tex1D {

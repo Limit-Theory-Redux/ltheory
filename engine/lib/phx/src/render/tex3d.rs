@@ -1,7 +1,10 @@
-use super::*;
-use crate::math::*;
+use glam::IVec3;
+
+use crate::render::{gl, glcheck};
 use crate::rf::Rf;
-use crate::system::*;
+use crate::system::Bytes;
+
+use super::{DataFormat, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
 
 #[derive(Clone)]
 pub struct Tex3D {

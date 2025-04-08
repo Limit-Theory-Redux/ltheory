@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
-use super::*;
-use crate::logging::*;
-use crate::math::*;
+use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4, IVec2, IVec3, IVec4, Vec2, Vec3, Vec4};
+use tracing::warn;
+
+use crate::math::Matrix;
+
+use super::{Tex1D, Tex2D, Tex3D, TexCube};
 
 #[derive(Clone)]
 pub enum ShaderVarData {
@@ -22,7 +25,7 @@ pub enum ShaderVarData {
     TexCube(TexCube),
 }
 
-// Trust me, it's fine.
+// SAFETY: Trust me, it's fine.
 #[allow(unsafe_code)]
 unsafe impl Send for ShaderVarData {}
 

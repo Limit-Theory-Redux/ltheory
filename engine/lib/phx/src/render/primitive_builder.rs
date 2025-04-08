@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 use std::mem::size_of;
 
-use crate::math::*;
-use crate::render::*;
+use glam::{vec3, vec4, Vec3, Vec4};
+
+use crate::render::glcheck;
+
+use super::gl;
 
 #[derive(PartialEq)]
 pub enum PrimitiveType {

@@ -2,14 +2,17 @@ use std::cell::{Ref, RefMut};
 use std::io::BufReader;
 use std::time::SystemTime;
 
+use glam::{Vec2, Vec3, Vec4};
 use memoffset::offset_of;
 use tobj::LoadError;
 
-use super::*;
 use crate::error::Error;
-use crate::math::*;
+use crate::math::{validate_vec2, validate_vec3, Box3, Matrix, Triangle};
+use crate::render::{glcheck, RenderState_PopAll, RenderState_PushAllDefaults, Shader};
 use crate::rf::Rf;
 use crate::system::*;
+
+use super::{gl, DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat};
 
 #[derive(Clone)]
 pub struct Mesh {
@@ -520,7 +523,7 @@ impl Mesh {
             let i0 = this.index[i] as usize;
             let i1 = this.index[i + 1] as usize;
             let i2 = this.index[i + 2] as usize;
-            let triangle: Triangle = Triangle {
+            let triangle = Triangle {
                 vertices: [this.vertex[i0].p, this.vertex[i1].p, this.vertex[i2].p],
             };
             let e = triangle.validate();

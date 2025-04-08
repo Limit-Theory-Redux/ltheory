@@ -1,9 +1,14 @@
 #![allow(unsafe_code)] // TODO: remove
 
-use internal::*;
+use glam::{IVec3, Vec3};
+use internal::{MemAlloc, MemCpy, MemFree, MemNew, MemNewArray, MemZero};
 
-use super::*;
-use crate::math::*;
+use crate::math::saturate;
+
+use super::{
+    DataFormat, Mesh, Mesh_AddQuad, Mesh_AddVertex, Mesh_Create, Mesh_GetVertexCount, PixelFormat,
+    Tex3D,
+};
 
 #[derive(Copy, Clone)]
 #[repr(C)]

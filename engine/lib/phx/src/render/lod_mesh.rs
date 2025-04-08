@@ -1,5 +1,6 @@
-use super::*;
 use crate::rf::Rf;
+
+use super::Mesh;
 
 /* TODO : Merge meshes into single IBO/VBO so that we can skip all the rebinds
  *        (profiling shows that they are a huge perf drain in the rendering

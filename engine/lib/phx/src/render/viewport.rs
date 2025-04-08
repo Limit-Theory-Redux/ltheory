@@ -1,9 +1,8 @@
 #![allow(unsafe_code)] // TODO: remove
 
-use glam::Mat4;
+use glam::{vec3, IVec2, Mat4};
 
-use super::{gl, *};
-use crate::math::*;
+use crate::render::{gl, glcheck, ShaderVar};
 
 /* TODO : This is a low-level mechanism and probably not for use outside of
  *        RenderTarget. Should likely be folded into RenderTarget. */
