@@ -753,8 +753,8 @@ impl Mesh {
             normal_buffer[i / 3] = Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
         }
 
-        let mut tex_spoints = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat_RGBA32F);
-        let mut tex_snormals = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat_RGBA32F);
+        let mut tex_spoints = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat::RGBA32F);
+        let mut tex_snormals = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat::RGBA32F);
         tex_spoints.set_data(&point_buffer, PixelFormat::RGBA, DataFormat::Float);
         tex_snormals.set_data(&normal_buffer, PixelFormat::RGBA, DataFormat::Float);
 
@@ -768,12 +768,12 @@ impl Mesh {
             normal_buffer[i] = Vec4::new(v.n.x, v.n.y, v.n.z, 0.0);
         }
 
-        let mut tex_vpoints = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_RGBA32F);
-        let mut tex_vnormals = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_RGBA32F);
+        let mut tex_vpoints = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat::RGBA32F);
+        let mut tex_vnormals = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat::RGBA32F);
         tex_vpoints.set_data(&point_buffer, PixelFormat::RGBA, DataFormat::Float);
         tex_vnormals.set_data(&normal_buffer, PixelFormat::RGBA, DataFormat::Float);
 
-        let tex_output = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_R32F);
+        let tex_output = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat::R32F);
 
         // TODO: Store shader properly
         #[allow(unsafe_code)] // TODO: remove
@@ -820,8 +820,8 @@ impl Mesh {
         let this = &mut *self.shared.as_mut();
 
         let v_dim: i32 = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
-        let mut tex_points = Tex2D::new(v_dim, v_dim, TexFormat_RGBA32F);
-        let tex_output = Tex2D::new(v_dim, v_dim, TexFormat_R32F);
+        let mut tex_points = Tex2D::new(v_dim, v_dim, TexFormat::RGBA32F);
+        let tex_output = Tex2D::new(v_dim, v_dim, TexFormat::R32F);
 
         let mut point_buffer = vec![Vec3::ZERO; (v_dim * v_dim) as usize];
         for (i, point) in point_buffer.iter_mut().enumerate().take(this.vertex.len()) {

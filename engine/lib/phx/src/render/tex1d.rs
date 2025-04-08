@@ -71,7 +71,7 @@ impl Tex1D {
         glcheck!(gl::TexImage1D(
             gl::TEXTURE_1D,
             0,
-            this.format,
+            this.format as _,
             this.size,
             0,
             pf as gl::types::GLenum,
@@ -86,7 +86,7 @@ impl Tex1D {
 impl Tex1D {
     #[bind(name = "Create")]
     pub fn new(size: i32, format: TexFormat) -> Tex1D {
-        if !TexFormat_IsValid(format) {
+        if !TexFormat::is_valid(format) {
             panic!("Invalid texture format requested");
         }
 
@@ -102,10 +102,10 @@ impl Tex1D {
         glcheck!(gl::TexImage1D(
             gl::TEXTURE_1D,
             0,
-            format,
+            format as _,
             size,
             0,
-            (if TexFormat_IsColor(format) as i32 != 0 {
+            (if TexFormat::is_color(format) as i32 != 0 {
                 gl::RED
             } else {
                 gl::DEPTH_COMPONENT

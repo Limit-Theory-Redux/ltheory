@@ -82,7 +82,7 @@ impl Tex3D {
         glcheck!(gl::TexImage3D(
             gl::TEXTURE_3D,
             0,
-            this.format,
+            this.format as _,
             this.size.x,
             this.size.y,
             this.size.z,
@@ -99,11 +99,11 @@ impl Tex3D {
 impl Tex3D {
     #[bind(name = "Create")]
     pub fn new(sx: i32, sy: i32, sz: i32, format: TexFormat) -> Tex3D {
-        if !TexFormat_IsValid(format) {
+        if !TexFormat::is_valid(format) {
             panic!("Invalid texture format requested");
         }
 
-        if TexFormat_IsDepth(format) {
+        if TexFormat::is_depth(format) {
             panic!("Cannot create 3D texture with depth format");
         }
 
@@ -119,7 +119,7 @@ impl Tex3D {
         glcheck!(gl::TexImage3D(
             gl::TEXTURE_3D,
             0,
-            this.format,
+            this.format as _,
             this.size.x,
             this.size.y,
             this.size.z,

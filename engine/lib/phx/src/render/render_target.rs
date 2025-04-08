@@ -189,7 +189,7 @@ impl FboStack {
         let fbo = self.get_active();
         let handle = Tex2D::get_handle(tex);
 
-        if TexFormat_IsColor(Tex2D::get_format(tex)) {
+        if TexFormat::is_color(Tex2D::get_format(tex)) {
             if fbo.colorIndex >= 4 {
                 panic!("RenderTarget_BindTex2D: Max color attachments exceeded");
             }

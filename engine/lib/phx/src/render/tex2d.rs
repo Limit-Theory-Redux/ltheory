@@ -81,7 +81,7 @@ impl Tex2D {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            this.format,
+            this.format as _,
             this.size.x,
             this.size.y,
             0,
@@ -97,7 +97,7 @@ impl Tex2D {
 impl Tex2D {
     #[bind(name = "Create")]
     pub fn new(sx: i32, sy: i32, format: TexFormat) -> Tex2D {
-        if !TexFormat_IsValid(format) {
+        if !TexFormat::is_valid(format) {
             panic!("Invalid texture format requested");
         }
 
@@ -113,11 +113,11 @@ impl Tex2D {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            format,
+            format as _,
             this.size.x,
             this.size.y,
             0,
-            if TexFormat_IsColor(format) {
+            if TexFormat::is_color(format) {
                 gl::RED
             } else {
                 gl::DEPTH_COMPONENT
@@ -154,7 +154,7 @@ impl Tex2D {
         let mut this = Tex2DShared {
             handle: 0,
             size: IVec2::new(width as i32, height as i32),
-            format: TexFormat_RGBA8,
+            format: TexFormat::RGBA8,
         };
 
         glcheck!(gl::GenTextures(1, &mut this.handle));
@@ -163,7 +163,7 @@ impl Tex2D {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            TexFormat_RGBA8 as gl::types::GLint,
+            TexFormat::RGBA8 as gl::types::GLint,
             this.size.x,
             this.size.y,
             0,
@@ -217,7 +217,7 @@ impl Tex2D {
         let mut this = Tex2DShared {
             handle: 0,
             size,
-            format: TexFormat_RGBA8,
+            format: TexFormat::RGBA8,
         };
 
         glcheck!(gl::GenTextures(1, &mut this.handle));
@@ -225,7 +225,7 @@ impl Tex2D {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            TexFormat_RGBA8,
+            TexFormat::RGBA8 as _,
             size.x,
             size.y,
             0,

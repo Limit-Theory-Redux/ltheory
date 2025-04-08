@@ -90,7 +90,7 @@ impl Font {
             let sy = bitmap.rows as i32;
             let mut glyph = Glyph {
                 index: glyph_index as _,
-                tex: Tex2D::new(sx, sy, TexFormat_RGBA8),
+                tex: Tex2D::new(sx, sy, TexFormat::RGBA8),
                 x0,
                 y0,
                 sx,

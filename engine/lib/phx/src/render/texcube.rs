@@ -104,7 +104,7 @@ impl TexCube {
 
         let mut size = this.size * this.size;
         size *= DataFormat::get_size(df);
-        size *= TexFormat_Components(tf);
+        size *= TexFormat::components(tf);
         size /= std::mem::size_of::<T>() as i32;
 
         let mut data = vec![T::default(); size as usize];
@@ -135,7 +135,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             face as gl::types::GLenum,
             level,
-            this.format,
+            this.format as _,
             this.size,
             this.size,
             0,
@@ -151,10 +151,10 @@ impl TexCube {
 impl TexCube {
     #[bind(name = "Create")]
     pub fn new(size: i32, format: TexFormat) -> TexCube {
-        if !TexFormat_IsValid(format) {
+        if !TexFormat::is_valid(format) {
             panic!("Invalid texture format requested");
         }
-        if TexFormat_IsDepth(format) {
+        if TexFormat::is_depth(format) {
             panic!("Cannot create cubemap with depth format");
         }
 
@@ -169,7 +169,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_POSITIVE_X,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -180,7 +180,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -191,7 +191,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -202,7 +202,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -213,7 +213,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -224,7 +224,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -246,7 +246,7 @@ impl TexCube {
         let mut this = TexCubeShared {
             handle: 0,
             size: 0,
-            format: 0,
+            format: TexFormat::Undefined,
         };
 
         glcheck!(gl::GenTextures(1, &mut this.handle));
@@ -264,8 +264,8 @@ impl TexCube {
             let (width, height) = img.dimensions();
 
             let (format, data_format, buffer) = match img {
-                DynamicImage::ImageRgba8(buf) => (gl::RGBA, TexFormat_RGBA8, buf.into_raw()),
-                DynamicImage::ImageRgb8(buf) => (gl::RGB, TexFormat_RGB8, buf.into_raw()),
+                DynamicImage::ImageRgba8(buf) => (gl::RGBA, TexFormat::RGBA8, buf.into_raw()),
+                DynamicImage::ImageRgb8(buf) => (gl::RGB, TexFormat::RGB8, buf.into_raw()),
                 _ => panic!(
                     "Failed to load cubemap face from '{face_path}', unsupported image format"
                 ),
@@ -534,7 +534,7 @@ impl TexCube {
             let mut ggx_width: f64 = level as f64 / levels as f64;
             ggx_width *= ggx_width;
             let mut sample_buffer = vec![Vec2::ZERO; sample_count as usize];
-            let mut sample_tex = Tex2D::new(sample_count, 1, TexFormat_RG16F);
+            let mut sample_tex = Tex2D::new(sample_count, 1, TexFormat::RG16F);
 
             for i in 0..sample_count {
                 let e1 = rng.get_uniform();
