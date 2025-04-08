@@ -1,23 +1,10 @@
-#![allow(unsafe_code)] // TODO: remove
-
-use super::gl;
-
-pub type TexFilter = i32;
-
-#[no_mangle]
-pub static TexFilter_Point: TexFilter = gl::NEAREST as TexFilter;
-
-#[no_mangle]
-pub static TexFilter_PointMipPoint: TexFilter = gl::NEAREST_MIPMAP_NEAREST as TexFilter;
-
-#[no_mangle]
-pub static TexFilter_PointMipLinear: TexFilter = gl::NEAREST_MIPMAP_LINEAR as TexFilter;
-
-#[no_mangle]
-pub static TexFilter_Linear: TexFilter = gl::LINEAR as TexFilter;
-
-#[no_mangle]
-pub static TexFilter_LinearMipPoint: TexFilter = gl::LINEAR_MIPMAP_NEAREST as TexFilter;
-
-#[no_mangle]
-pub static TexFilter_LinearMipLinear: TexFilter = gl::LINEAR_MIPMAP_LINEAR as TexFilter;
+#[luajit_ffi_gen::luajit_ffi]
+#[derive(Debug, Clone, Copy)]
+pub enum TexFilter {
+    Point = 0x2600,           // gl::NEAREST
+    PointMipPoint = 0x2700,   // gl::NEAREST_MIPMAP_NEAREST
+    PointMipLinear = 0x2702,  // gl::NEAREST_MIPMAP_LINEAR
+    Linear = 0x2601,          // gl::LINEAR
+    LinearMipPoint = 0x2701,  // gl::LINEAR_MIPMAP_NEAREST
+    LinearMipLinear = 0x2703, // gl::LINEAR_MIPMAP_LINEAR
+}

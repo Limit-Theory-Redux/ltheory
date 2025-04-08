@@ -370,7 +370,7 @@ impl Tex2D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_2D,
             gl::TEXTURE_MAG_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
     }
@@ -382,7 +382,7 @@ impl Tex2D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_2D,
             gl::TEXTURE_MIN_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
     }

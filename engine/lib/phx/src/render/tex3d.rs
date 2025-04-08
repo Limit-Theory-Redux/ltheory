@@ -200,7 +200,7 @@ impl Tex3D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_3D,
             gl::TEXTURE_MAG_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
     }
@@ -212,7 +212,7 @@ impl Tex3D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_3D,
             gl::TEXTURE_MIN_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
     }

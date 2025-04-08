@@ -168,7 +168,7 @@ impl Tex1D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_1D,
             gl::TEXTURE_MAG_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
     }
@@ -180,7 +180,7 @@ impl Tex1D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_1D,
             gl::TEXTURE_MIN_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
     }

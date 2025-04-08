@@ -462,7 +462,7 @@ impl TexCube {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_CUBE_MAP,
             gl::TEXTURE_MAG_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0));
     }
@@ -474,7 +474,7 @@ impl TexCube {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_CUBE_MAP,
             gl::TEXTURE_MIN_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0));
     }
@@ -570,8 +570,8 @@ impl TexCube {
         }
         shader.stop();
 
-        result.set_mag_filter(TexFilter_Linear);
-        result.set_min_filter(TexFilter_LinearMipLinear);
+        result.set_mag_filter(TexFilter::Linear);
+        result.set_min_filter(TexFilter::LinearMipLinear);
 
         result
     }
