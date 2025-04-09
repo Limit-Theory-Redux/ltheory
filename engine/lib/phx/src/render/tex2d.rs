@@ -1,12 +1,11 @@
 use glam::IVec2;
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
+use super::{DataFormat, Draw, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
 use crate::logging::warn;
 use crate::render::{gl, glcheck, Viewport_GetSize};
 use crate::rf::Rf;
 use crate::system::{Bytes, Resource, ResourceType};
-
-use super::{DataFormat, Draw, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
 
 #[derive(Clone, Debug)]
 pub struct Tex2D {

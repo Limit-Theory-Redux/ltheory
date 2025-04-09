@@ -1,9 +1,8 @@
 use std::cell::RefCell;
 
+use super::{gl, CubeFace, Tex2D, Tex3D, TexCube, TexFormat};
 use crate::render::{glcheck, Viewport_Pop, Viewport_Push};
 use crate::system::{Metric, Profiler};
-
-use super::{gl, CubeFace, Tex2D, Tex3D, TexCube, TexFormat};
 
 pub struct RenderTarget;
 

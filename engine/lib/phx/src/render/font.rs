@@ -11,13 +11,12 @@ use freetype_sys::{
 };
 use glam::{IVec2, IVec4, Vec4};
 
-use crate::rf::Rf;
-use crate::system::{Profiler, ResourceType, Resource_GetPath};
-
 use super::{
     BlendMode, Color, DataFormat, Draw, PixelFormat, RenderState_PopBlendMode,
     RenderState_PushBlendMode, Shader, Tex2D, TexFormat,
 };
+use crate::rf::Rf;
+use crate::system::{Profiler, ResourceType, Resource_GetPath};
 
 /* TODO : Re-implement UTF-8 support */
 /* TODO : Atlas instead of individual textures. */

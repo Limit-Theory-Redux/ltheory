@@ -1,8 +1,7 @@
 use glam::Vec3;
 
-use crate::math::Matrix;
-
 use super::Mesh;
+use crate::math::Matrix;
 
 #[derive(Clone)]
 pub struct BoxMesh {

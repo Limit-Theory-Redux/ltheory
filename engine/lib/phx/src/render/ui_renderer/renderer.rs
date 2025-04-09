@@ -1,16 +1,15 @@
 use glam::{IVec2, Vec2};
 
-use crate::render::{
-    BlendMode, Color, Font, RenderState_PopBlendMode, RenderState_PushBlendMode, Shader, Tex2D,
-    Viewport_GetSize,
-};
-
 use super::image::UIRendererImage;
 use super::layer::UIRendererLayer;
 use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
 use super::text::UIRendererText;
 use super::UIRendererLayerId;
+use crate::render::{
+    BlendMode, Color, Font, RenderState_PopBlendMode, RenderState_PushBlendMode, Shader, Tex2D,
+    Viewport_GetSize,
+};
 
 pub struct UIRenderer {
     panel_shader: Shader,

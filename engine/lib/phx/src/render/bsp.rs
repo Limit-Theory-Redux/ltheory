@@ -4,6 +4,7 @@
 use glam::Vec3;
 use internal::{MemAllocZero, MemDelete, MemFree, MemNewZero};
 
+use super::{Color, Mesh};
 use crate::logging::warn;
 use crate::math::{
     lerp, Intersect, LineSegment, Plane, Polygon, PolygonClassification, Position, Ray, Rng,
@@ -14,8 +15,6 @@ use crate::render::{
     RenderState_PopDepthTest, RenderState_PopWireframe, RenderState_PushBlendMode,
     RenderState_PushCullFace, RenderState_PushDepthTest, RenderState_PushWireframe, Shader,
 };
-
-use super::{Color, Mesh};
 
 /* Adam's Stupidly Fast BSP Implementation
  *

@@ -3,14 +3,13 @@ use std::ffi::{CStr, CString};
 
 use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4};
 
+use super::{gl, ShaderState, ShaderVarData, Tex1D, Tex2D, Tex3D, TexCube};
 use crate::common::c_str;
 use crate::logging::warn;
 use crate::math::Matrix;
 use crate::render::{glcheck, ShaderVar};
 use crate::rf::Rf;
 use crate::system::{Profiler, Resource, ResourceType};
-
-use super::{gl, ShaderState, ShaderVarData, Tex1D, Tex2D, Tex3D, TexCube};
 
 const INCLUDE_PATH: &str = "include/";
 

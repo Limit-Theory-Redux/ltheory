@@ -1,15 +1,14 @@
 use glam::{Vec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
-use crate::math::Rng;
-use crate::render::{gl, glcheck, RenderState_PopAll, RenderState_PushAllDefaults, Shader};
-use crate::rf::Rf;
-use crate::system::{Bytes, TimeStamp};
-
 use super::{
     ClipRect, CubeFace, DataFormat, Draw, PixelFormat, RenderTarget, ShaderState, Tex2D, TexFilter,
     TexFormat, CUBE_FACES,
 };
+use crate::math::Rng;
+use crate::render::{gl, glcheck, RenderState_PopAll, RenderState_PushAllDefaults, Shader};
+use crate::rf::Rf;
+use crate::system::{Bytes, TimeStamp};
 
 #[derive(Clone)]
 pub struct TexCube {

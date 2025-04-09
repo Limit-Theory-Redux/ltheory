@@ -3,11 +3,10 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 use glam::{Vec2, Vec3};
 use tracing::warn;
 
+use super::{gl, Color, PrimitiveBuilder, PrimitiveType};
 use crate::math::{reject_vec3, Box3};
 use crate::render::glcheck;
 use crate::system::Metric;
-
-use super::{gl, Color, PrimitiveBuilder, PrimitiveType};
 
 pub struct Draw {
     alpha_stack: Vec<f32>,

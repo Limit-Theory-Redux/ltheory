@@ -6,13 +6,12 @@ use glam::{Vec2, Vec3, Vec4};
 use memoffset::offset_of;
 use tobj::LoadError;
 
+use super::{gl, DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat};
 use crate::error::Error;
 use crate::math::{validate_vec2, validate_vec3, Box3, Matrix, Triangle};
 use crate::render::{glcheck, RenderState_PopAll, RenderState_PushAllDefaults, Shader};
 use crate::rf::Rf;
 use crate::system::*;
-
-use super::{gl, DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat};
 
 #[derive(Clone)]
 pub struct Mesh {

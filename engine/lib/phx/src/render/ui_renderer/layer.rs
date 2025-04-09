@@ -1,7 +1,5 @@
 use glam::Vec2;
 
-use crate::render::{ClipRect, Draw, Shader};
-
 use super::image::UIRendererImage;
 use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
@@ -9,6 +7,7 @@ use super::text::UIRendererText;
 use super::{
     UIRendererImageId, UIRendererLayerId, UIRendererPanelId, UIRendererRectId, UIRendererTextId,
 };
+use crate::render::{ClipRect, Draw, Shader};
 
 #[derive(Default)]
 pub struct UIRendererLayer {

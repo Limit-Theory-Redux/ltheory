@@ -4,9 +4,8 @@
 use glam::Vec3;
 use internal::{MemAlloc, MemFree, MemNew};
 
-use crate::math::{Box3, Matrix};
-
 use super::{Draw, Mesh};
+use crate::math::{Box3, Matrix};
 
 #[derive(Copy, Clone)]
 #[repr(C)]
