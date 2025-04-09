@@ -6,10 +6,7 @@ use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
 use super::text::UIRendererText;
 use super::UIRendererLayerId;
-use crate::render::{
-    BlendMode, Color, Font, RenderState_PopBlendMode, RenderState_PushBlendMode, Shader, Tex2D,
-    Viewport,
-};
+use crate::render::{BlendMode, Color, Font, RenderState, Shader, Tex2D, Viewport};
 
 pub struct UIRenderer {
     panel_shader: Shader,
@@ -59,10 +56,7 @@ impl UIRenderer {
     }
 
     pub fn draw(&mut self) {
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PushBlendMode(BlendMode::Alpha);
-        }
+        RenderState::push_blend_mode(BlendMode::Alpha);
 
         if let Some(root) = self.layers.first() {
             root.draw(
@@ -79,10 +73,7 @@ impl UIRenderer {
             unreachable!("No layers defined");
         }
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PopBlendMode();
-        }
+        RenderState::pop_blend_mode();
     }
 
     pub fn begin_layer(&mut self, pos: Vec2, size: Vec2, clip: bool) {

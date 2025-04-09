@@ -70,6 +70,8 @@ const COPY_TYPES: &[&str] = &[
     "Worker",
     "Metric",
     "CubeFace",
+    "BlendMode",
+    "CullFace",
 ];
 
 #[derive(Debug, PartialEq)]

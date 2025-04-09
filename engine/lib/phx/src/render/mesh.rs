@@ -9,7 +9,7 @@ use tobj::LoadError;
 use super::{gl, DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat};
 use crate::error::Error;
 use crate::math::{validate_vec2, validate_vec3, Box3, Matrix, Triangle};
-use crate::render::{glcheck, RenderState_PopAll, RenderState_PushAllDefaults, Shader};
+use crate::render::{glcheck, RenderState, Shader};
 use crate::rf::Rf;
 use crate::system::*;
 
@@ -790,10 +790,7 @@ impl Mesh {
             &mut *SHADER
         };
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PushAllDefaults();
-        }
+        RenderState::push_all_defaults();
         RenderTarget::push_tex2d(&tex_output);
 
         shader.start();
@@ -807,10 +804,7 @@ impl Mesh {
         shader.stop();
 
         RenderTarget::pop();
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PopAll();
-        }
+        RenderState::pop_all();
 
         let result: Vec<f32> = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
@@ -845,10 +839,7 @@ impl Mesh {
             &mut *SHADER
         };
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PushAllDefaults();
-        }
+        RenderState::push_all_defaults();
         RenderTarget::push_tex2d(&tex_output);
 
         shader.start();
@@ -859,10 +850,7 @@ impl Mesh {
         shader.stop();
 
         RenderTarget::pop();
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PopAll();
-        }
+        RenderState::pop_all();
 
         let result: Vec<f32> = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
