@@ -1,9 +1,9 @@
 local TypeTest = require('States.Application')
 
-local EntityInfo = require('_ECS_WIP_TEMP.Shared.Types.EntityInfo')
-local ComponentInfo = require('_ECS_WIP_TEMP.Shared.Types.ComponentInfo')
+local EntityInfo = require('Shared.Types.EntityInfo')
+local ComponentInfo = require('Shared.Types.ComponentInfo')
 
-local QuickProfiler = require('_ECS_WIP_TEMP.Shared.Tools.QuickProfiler')
+local QuickProfiler = require('Shared.Tools.QuickProfiler')
 local profiler = QuickProfiler("Type Performance", true, false, true)
 local profiler2 = QuickProfiler("Without Type Performance", true, false, true)
 

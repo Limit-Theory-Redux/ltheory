@@ -1,13 +1,13 @@
-local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry")         --!temp path
-local MarketplaceSystem = require("_ECS_WIP_TEMP.Systems.Economy.MarketplaceSystem") --!temp path
+local Registry = require("Systems.Storage.Registry")
+local MarketplaceSystem = require("Systems.Economy.MarketplaceSystem")
 
-local PlayerEntity = require("_ECS_WIP_TEMP.Entities.Player")
-local SpaceStationEntity = require("_ECS_WIP_TEMP.Entities.Constructs.SpaceStationEntity")
-local ItemEntity = require("_ECS_WIP_TEMP.Entities.Economy.ItemEntity")
-local OrderEntity = require("_ECS_WIP_TEMP.Entities.Economy.OrderEntity")
+local PlayerEntity = require("Entities.Player")
+local SpaceStationEntity = require("Entities.Constructs.SpaceStationEntity")
+local ItemEntity = require("Entities.Economy.ItemEntity")
+local OrderEntity = require("Entities.Economy.OrderEntity")
 
-require("_ECS_WIP_TEMP.Shared.Definitions.ItemDefs")
-local Items = require("_ECS_WIP_TEMP.Shared.Registries.Items")
+require("Shared.Definitions.ItemDefs")
+local Items = require("Shared.Registries.Items")
 
 local MarketplaceTest = require('States.Application')
 

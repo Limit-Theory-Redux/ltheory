@@ -1,5 +1,5 @@
-local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry")                              --!temp path
-local UniverseSystem = require("_ECS_WIP_TEMP.Systems.CelestialObjects.UniverseGenerationSystem") --!temp path
+local Registry = require("Systems.Storage.Registry")
+local UniverseSystem = require("Systems.CelestialObjects.UniverseGenerationSystem")
 
 local EntityComponentSystemTest = require('States.Application')
 

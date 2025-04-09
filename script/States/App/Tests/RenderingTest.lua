@@ -1,12 +1,12 @@
 -- Entities
-local Camera = require("_ECS_WIP_TEMP.Entities.Rendering.Camera")   --!temp path
-local BoxEntity = require("_ECS_WIP_TEMP.Entities.Debug.BoxEntity") --!temp path
+local Camera = require("Entities.Rendering.Camera")
+local BoxEntity = require("Entities.Debug.BoxEntity")
 -- Storage & Registries
-local Registry = require("_ECS_WIP_TEMP.Systems.Storage.Registry")  --!temp path
-local Materials = require("_ECS_WIP_TEMP.Shared.Registries.Materials")
+local Registry = require("Systems.Storage.Registry")
+local Materials = require("Shared.Registries.Materials")
 -- Systems
 ---@type CameraSystem
-local CameraSystem = require("_ECS_WIP_TEMP.Systems.Rendering.CameraSystem") --!temp path
+local CameraSystem = require("Systems.Rendering.CameraSystem")
 -- Generators
 
 -- Utilities
@@ -27,8 +27,8 @@ function RenderingTest:onInit()
     self.renderer = RenderPipeline()
 
     -- Initialize Materials --
-    require("_ECS_WIP_TEMP.Shared.Definitions.MaterialDefs")
-    require("_ECS_WIP_TEMP.Shared.Definitions.UniformFuncDefs")
+    require("Shared.Definitions.MaterialDefs")
+    require("Shared.Definitions.UniformFuncDefs")
 
     -- Set GameState --
     GameState:SetState(Enums.GameStates.InGame)
