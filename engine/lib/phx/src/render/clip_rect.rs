@@ -59,23 +59,27 @@ unsafe extern "C" fn TransformRect(x: &mut f32, y: &mut f32, sx: &mut f32, sy: &
 pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
     match this {
         Some(this) => {
-            let mut vp_size = IVec2::ZERO;
-
-            unsafe { Viewport_GetSize(&mut vp_size) };
-            glcheck!(gl::Enable(gl::SCISSOR_TEST));
-
-            let mut x: f32 = this.x;
-            let mut y: f32 = this.y;
-            let mut sx: f32 = this.sx;
-            let mut sy: f32 = this.sy;
-
-            unsafe { TransformRect(&mut x, &mut y, &mut sx, &mut sy) };
-            glcheck!(gl::Scissor(
-                x as i32,
-                vp_size.y - (y + sy) as i32,
-                sx as i32,
-                sy as i32
-            ));
+            if this.enabled {
+                let mut vp_size: IVec2 = IVec2::ZERO;
+    
+                unsafe { Viewport_GetSize(&mut vp_size) };
+                glcheck!(gl::Enable(gl::SCISSOR_TEST));
+    
+                let mut x: f32 = this.x;
+                let mut y: f32 = this.y;
+                let mut sx: f32 = this.sx;
+                let mut sy: f32 = this.sy;
+    
+                unsafe { TransformRect(&mut x, &mut y, &mut sx, &mut sy) };
+                glcheck!(gl::Scissor(
+                    x as i32,
+                    vp_size.y - (y + sy) as i32,
+                    sx as i32,
+                    sy as i32
+                ));
+            } else {
+                glcheck!(gl::Disable(gl::SCISSOR_TEST));
+            }
         }
         None => glcheck!(gl::Disable(gl::SCISSOR_TEST)),
     }
