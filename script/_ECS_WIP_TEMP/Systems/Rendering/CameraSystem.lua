@@ -91,7 +91,6 @@ function CameraSystem:beginDraw()
         self.currentCameraTransform = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
     end
     local camData = self.currentCameraData
-    --self:refreshMatrices()
     ShaderVar.PushMatrix('mView', camData:getView())
     ShaderVar.PushMatrix('mViewInv', camData:getViewInverse())
     ShaderVar.PushMatrix('mProj', camData:getProjection())
@@ -107,13 +106,6 @@ function CameraSystem:endDraw()
     ShaderVar.Pop('eye')
 end
 
-function CameraSystem:resetMatrices()
-    self.currentCameraData.view:free()
-    self.currentCameraData.viewInverse:free()
-    self.currentCameraData.projection:free()
-    self.currentCameraData.projectionInverse:free()
-end
-
 function CameraSystem:updateViewMatrix()
     local mView = Matrix.FromPosRot(Vec3f.Identity(), self.currentCameraTransform:getRotation())
     -- View matrix has the "position" at (0,0,0), as all world matrices are offset by self.pos.
@@ -122,8 +114,6 @@ function CameraSystem:updateViewMatrix()
 end
 
 function CameraSystem:updateProjectionMatrix(resX, resY)
-    self.currentCameraData.projection:free()
-    self.currentCameraData.projectionInverse:free()
     local mProj = Matrix.Perspective(
         Config.render.camera.fov,
         resX/resY,
@@ -280,11 +270,6 @@ end
 -- --------------------------------------------------------------------------------
 --
 -- function CameraSystem:refreshMatrices()
---     self.mView:free()
---     self.mViewInv:free()
---     self.mProj:free()
---     self.mProjInv:free()
---
 --     self.pos = self.posOffset + self.posT
 --     self.rot = self.rotOffset * self.rotT
 --

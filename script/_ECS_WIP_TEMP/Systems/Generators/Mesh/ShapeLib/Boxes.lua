@@ -38,9 +38,7 @@ function Boxes.BoxesToMesh(boxes, bevel, res, mirror)
         end
     end
 
-    local mesh = boxMesh:getMesh(res)
-    boxMesh:free()
-    return mesh
+    return boxMesh:getMesh(res)
 end
 
 --[[
