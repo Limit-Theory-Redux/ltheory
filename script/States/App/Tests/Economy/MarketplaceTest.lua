@@ -1,7 +1,5 @@
 local Registry = require("Systems.Storage.Registry")
-local MarketplaceSystem = require("Systems.Economy.MarketplaceSystem")
-local InventoryComponent = require("Components.Economy.InventoryComponent")
-local MarketplaceComponent = require("Components.Economy.MarketplaceComponent")
+local Components = require("Components")
 
 local PlayerEntity = require("Entities.Player")
 local SpaceStationEntity = require("Entities.Constructs.SpaceStationEntity")
@@ -23,10 +21,8 @@ function MarketplaceTest:onInit()
     local station = SpaceStationEntity(0)
     local station2 = SpaceStationEntity(1)
 
-    ---@type InventoryComponent
-    local inventoryComponent = station:findComponentByArchetype(InventoryComponent)
-    ---@type InventoryComponent
-    local inventoryComponent2 = station2:findComponentByArchetype(InventoryComponent)
+    local inventoryComponent = station:findComponentByArchetype(Components.InventoryComponent)
+    local inventoryComponent2 = station2:findComponentByArchetype(Components.InventoryComponent)
 
     local creditItem = ItemEntity(Items.Virtual.Credit, 1e6)
     local creditItemEntityInfo = Registry:storeEntity(creditItem)
@@ -42,10 +38,8 @@ function MarketplaceTest:onInit()
     inventoryComponent2:addItem(Items.Virtual.Credit.id, creditItemEntityInfo2)
     inventoryComponent2:addItem(Items.RefinedMaterials.Gold.id, goldItemEntityInfo2)
 
-    ---@type MarketplaceComponent
-    local marketplaceComponent = station:findComponentByArchetype(MarketplaceComponent)
-    ---@type MarketplaceComponent
-    local marketplaceComponent2 = station2:findComponentByArchetype(MarketplaceComponent)
+    local marketplaceComponent = station:findComponentByArchetype(Components.MarketplaceComponent)
+    local marketplaceComponent2 = station2:findComponentByArchetype(Components.MarketplaceComponent)
 
     local bidOrder = OrderEntity(0, Items.RefinedMaterials.Gold.id, 50, 500)
     local bidOrder2 = OrderEntity(1, Items.RefinedMaterials.Gold.id, 50, 500)
