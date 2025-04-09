@@ -21,8 +21,8 @@ function RenderingTest:onInit()
     self.initialized = true
 
     -- Set App Settings --
-    self.profilerFont = Font.Load('NovaMono', 20)
-    self.profiling = true
+    -- self.profilerFont = Font.Load('NovaMono', 20)
+    -- self.profiling = false
 
     self.renderer = RenderPipeline()
 
@@ -64,11 +64,11 @@ end
 ---@diagnostic disable-next-line: duplicate-set-field
 function RenderingTest:onPreRender(data)
     -- Initialize Profiler
-    Profiler.Enable()
+    -- Profiler.Enable()
 
     -- Start onPreRender Profiler
-    Profiler.SetValue('gcmem', GC.GetMemory())
-    Profiler.Begin('App.onPreRender')
+    -- Profiler.SetValue('gcmem', GC.GetMemory())
+    -- Profiler.Begin('App.onPreRender')
 
     -- Set Timescale
     self.timeScale = 1.0
@@ -127,14 +127,14 @@ function RenderingTest:onPreRender(data)
     end
 
     -- Stop Pre Render Profiler
-    Profiler.End()
+    -- Profiler.End()
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function RenderingTest:onRender(data)
     -- Start onRender Profiler
-    Profiler.SetValue('gcmem', GC.GetMemory())
-    Profiler.Begin('App.onRender')
+    -- Profiler.SetValue('gcmem', GC.GetMemory())
+    -- Profiler.Begin('App.onRender')
 
     -- Start Window Draw()
     Window:beginDraw()
@@ -144,7 +144,7 @@ function RenderingTest:onRender(data)
     --Draw.PushAlpha(2)
     --DrawEx.PushAlpha(2)
 
-    Draw.Clear(0, 0, 0, 1)
+    Draw.Clear(0, 0.1, 0.2, 1)
     Draw.ClearDepth(1)
 
     -- < TEST RENDER > --
@@ -191,17 +191,17 @@ function RenderingTest:onRender(data)
     -- RenderState.PopBlendMode()
 
     -- Stop onRender Profiler
-    Profiler.End()
-    Profiler.LoopMarker()
+    -- Profiler.End()
+    -- Profiler.LoopMarker()
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function RenderingTest:onPostRender(data)
     do -- End Draw
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.onPostRender')
+        -- Profiler.SetValue('gcmem', GC.GetMemory())
+        -- Profiler.Begin('App.onPostRender')
         Window:endDraw()
-        Profiler.End()
+        -- Profiler.End()
     end
 end
 
