@@ -128,8 +128,8 @@ jobs:
 
   build-linux:
     needs: gen-build-version
-    name: Build Linux (Ubuntu 20.04)
-    runs-on: ubuntu-20.04
+    name: Build Linux (Ubuntu 22.04)
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Update packages
