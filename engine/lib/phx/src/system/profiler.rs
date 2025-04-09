@@ -65,12 +65,14 @@ pub static PROFILER: LazyLock<Mutex<Profiler>> = LazyLock::new(Default::default)
 impl Profiler {
     /// Enables profiling and initializes the profiler state
     pub fn enable() {
-        let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
+        {
+            let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
 
-        profiler.is_enabled = true;
-        profiler.scopes.clear();
-        profiler.stack.clear();
-        profiler.start = TimeStamp::now();
+            profiler.is_enabled = true;
+            profiler.scopes.clear();
+            profiler.stack.clear();
+            profiler.start = TimeStamp::now();
+        }
 
         Self::begin("[Root]");
 
