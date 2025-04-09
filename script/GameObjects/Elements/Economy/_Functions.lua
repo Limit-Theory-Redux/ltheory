@@ -1,5 +1,5 @@
 local Jobs = requireAll('GameObjects.Jobs')
-local Item = require('Systems.Economy.Item')
+local Item = require('Legacy.Systems.Economy.Item')
 
 local function iterateThroughFactoryInputs(self, station)
     local factory = station:getFactory()

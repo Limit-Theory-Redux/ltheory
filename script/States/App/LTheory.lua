@@ -1,9 +1,9 @@
 local Player = require('GameObjects.Entities.Player')
 local System = require('GameObjects.Entities.StarSystem')
-local DebugControl = require('Systems.Controls.Controls.DebugControl')
+local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('GameObjects.Actions')
 local Bindings = require('States.ApplicationBindings')
-local MainMenu = require('Systems.Menus.MainMenu')
+local MainMenu = require('Legacy.Systems.Menus.MainMenu')
 
 local LTheory = require('States.Application')
 local rng = RNG.FromTime()
@@ -85,11 +85,11 @@ function LTheory:onInit()
     GameState.ui.showTrackers = true
     GameState.player.humanPlayer = self.player
 
-    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
+    self.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
-            :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player)))
+            :add(Legacy.Systems.Controls.Controls.MasterControl(self.gameView, self.player)))
 
     -- TODO: Window:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
     Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))

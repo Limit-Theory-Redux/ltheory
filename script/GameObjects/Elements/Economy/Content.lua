@@ -3,8 +3,8 @@
 
 -- Items -----------------------------------------------------------------------
 
-local Production   = require('Systems.Economy.Production')
-local Item         = require('Systems.Economy.Item')
+local Production   = require('Legacy.Systems.Economy.Production')
+local Item         = require('Legacy.Systems.Economy.Item')
 
 Item.T0            = {} -- nonsolid, energy
 Item.T1            = {} -- nonsolid, information
@@ -139,7 +139,7 @@ insert(Item.T8, Item.Station)
 
 -- Production ------------------------------------------------------------------
 
-local Production = require('Systems.Economy.Production')
+local Production = require('Legacy.Systems.Economy.Production')
 
 Production.EnergySolar = Production("Solar Energy Array")
     :addOutput(Item.Energy, 10)

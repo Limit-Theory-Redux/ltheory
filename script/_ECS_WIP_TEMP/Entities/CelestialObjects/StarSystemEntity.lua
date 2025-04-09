@@ -14,7 +14,7 @@ local HierarchyComponent = require("_ECS_WIP_TEMP.Components.Core.EntityHierarch
 local EntityInfo = require("_ECS_WIP_TEMP.Shared.Types.EntityInfo")
 
 -- Utils
-local Words = require('Systems.Gen.Words')
+local Words = require('Legacy.Systems.Gen.Words')
 
 ---@class StarSystemEntity: Entity
 ---@overload fun(self: StarSystemEntity, seed: integer): StarSystemEntity subclass internal

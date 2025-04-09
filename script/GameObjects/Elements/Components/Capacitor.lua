@@ -10,7 +10,7 @@
             armor, don't need to take energy and should have their own "health" values.
 --]]
 local Entity      = require('GameObjects.Entity')
-local BasicShapes = require('Systems.Gen.ShapeLib.BasicShapes')
+local BasicShapes = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
 local SocketType  = require('GameObjects.Entities.Ship.SocketType')
 local Bindings    = require('States.ApplicationBindings')
 

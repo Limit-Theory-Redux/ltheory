@@ -6,7 +6,7 @@ local LoadingScreen = UICore.Page {
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 ---@type MusicPlayer
-local MusicPlayer = require("Systems.SFX.MusicPlayer")
+local MusicPlayer = require("Legacy.Systems.SFX.MusicPlayer")
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
@@ -14,7 +14,7 @@ function LoadingScreen:onInput() end
 
 function LoadingScreen:onPageOpen()
     ---@type Universe
-    local Universe = require("Systems.Universe.Universe")
+    local Universe = require("Legacy.Systems.Universe.Universe")
 
     GameState:SetState(Enums.GameStates.LoadingScreen)
 

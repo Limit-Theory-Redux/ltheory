@@ -1,15 +1,15 @@
 local Test = require('States.Application')
-local SoundManager = require('Systems.SFX.SoundManager')
-local MusicPlayer = require('Systems.SFX.MusicPlayer')
-local InitFiles = require('Systems.Files.InitFiles')
+local SoundManager = require('Legacy.Systems.SFX.SoundManager')
+local MusicPlayer = require('Legacy.Systems.SFX.MusicPlayer')
+local InitFiles = require('Legacy.Systems.Files.InitFiles')
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
 local UIPageExample = require('UI.HmGui.Pages.Example')
 local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
 
 local rng = RNG.FromTime()
-local Universe = require("Systems.Universe.Universe")
+local Universe = require("Legacy.Systems.Universe.Universe")
 local System = require('GameObjects.Entities.StarSystem')
-local DebugControl = require('Systems.Controls.Controls.DebugControl')
+local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
 
 local useRenderer = false
 
@@ -137,23 +137,23 @@ function Test:createStarSystem()
         MusicPlayer:playAmbient()
 
         DebugControl.ltheory = self
-        self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
+        self.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
         GameState.render.gameView = self.gameView
         self.canvas = UI.Canvas()
         self.canvas
             :add(self.gameView
-                :add(Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
+                :add(Legacy.Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
 
         Input:setCursorVisible(true)
     else
         -- Insert the game view into the application canvas to make it visible
-        self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
+        self.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
         GameState.render.gameView = self.gameView
 
         self.canvas = UI.Canvas()
         self.canvas
             :add(self.gameView
-                :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
+                :add(Legacy.Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
             )
         self.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
     end

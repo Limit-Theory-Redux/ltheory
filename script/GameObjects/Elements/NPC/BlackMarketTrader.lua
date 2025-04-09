@@ -1,6 +1,6 @@
 local Entity = require('GameObjects.Entity')
-local Credit = require('Systems.Economy.Item').Credit
-local Item = require('Systems.Economy.Item')
+local Credit = require('Legacy.Systems.Economy.Item').Credit
+local Item = require('Legacy.Systems.Economy.Item')
 
 --------------------------------------------------------------------------------
 

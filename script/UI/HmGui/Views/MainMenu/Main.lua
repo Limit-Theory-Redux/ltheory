@@ -7,7 +7,7 @@ local MainView = UICore.View {
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 ---@type ResponsiveSize
 local ResponsiveSize = require("Types.ResponsiveSize")
-local InitFiles = require('Systems.Files.InitFiles')
+local InitFiles = require('Legacy.Systems.Files.InitFiles')
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 

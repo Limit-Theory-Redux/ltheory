@@ -42,10 +42,10 @@ local print               = function(...) if printCounts then print_(...) end en
 -- Might be Faulty logic but should be investigated.
 local Entities            = requireAll('GameObjects.Entities')
 local System              = require('GameObjects.Entities.StarSystem')
-local DebugControl        = require('Systems.Controls.Controls.DebugControl')
-local MasterControl       = require('Systems.Controls.Controls.MasterControl')
-local SoundManager        = require("Systems.SFX.SoundManager")
-local GameView            = require('Systems.Overlay.GameView')
+local DebugControl        = require('Legacy.Systems.Controls.Controls.DebugControl')
+local MasterControl       = require('Legacy.Systems.Controls.Controls.MasterControl')
+local SoundManager        = require("Legacy.Systems.SFX.SoundManager")
+local GameView            = require('Legacy.Systems.Overlay.GameView')
 
 local LTheory             = require('States.Application')
 local rng                 = RNG.FromTime()

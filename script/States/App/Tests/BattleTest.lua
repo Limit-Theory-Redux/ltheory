@@ -1,9 +1,9 @@
 local Player = require('GameObjects.Entities.Player')
 local System = require('GameObjects.Entities.StarSystem')
-local DebugControl = require('Systems.Controls.Controls.DebugControl')
+local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('GameObjects.Actions')
-local Words = require('Systems.Gen.Words')
-local SoundManager = require("Systems.SFX.SoundManager")
+local Words = require('Legacy.Systems.Gen.Words')
+local SoundManager = require("Legacy.Systems.SFX.SoundManager")
 
 local BattleTest = require('States.Application')
 local rng = RNG.FromTime()
@@ -100,12 +100,12 @@ function BattleTest:onInit()
     SoundManager:init()
 
     DebugControl.ltheory = self
-    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
+    self.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     GameState.render.gameView = self.gameView
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
-            :add(Systems.Controls.Controls.CommandControl(self.gameView, GameState.player.humanPlayer)))
+            :add(Legacy.Systems.Controls.Controls.CommandControl(self.gameView, GameState.player.humanPlayer)))
 end
 
 function BattleTest:onInput()

@@ -12,7 +12,7 @@
 ----------------------------------------------------------------------------]]
 --
 
-local Flow = require('Systems.Economy.Flow')
+local Flow = require('Legacy.Systems.Economy.Flow')
 local Job = require('GameObjects.Job')
 
 local Transport = Subclass("Transport", Job, function(self, src, dst, item)

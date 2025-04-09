@@ -75,7 +75,7 @@ function collectAllLuaFiles(path, processFile, processResults)
             end
         end
     end
-    if not dir then Log.Error('Failed to open directory <%s>', path) end
+    if not dir then print('Failed to open directory', path) end
 
     local results = {}
     local files, dirs = io.listdirex(dir)

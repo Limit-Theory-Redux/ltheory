@@ -3,9 +3,9 @@
 local Entities = requireAll('GameObjects.Entities')
 local Actions = requireAll('GameObjects.Actions')
 local TestEcon = require('States.Application')
-local Production = require('Systems.Economy.Production')
-local Item = require('Systems.Economy.Item')
-local SystemMap = require('Systems.CommandView.SystemMap')
+local Production = require('Legacy.Systems.Economy.Production')
+local Item = require('Legacy.Systems.Economy.Item')
+local SystemMap = require('Legacy.Systems.CommandView.SystemMap')
 local System = require('GameObjects.Entities.StarSystem')
 
 local rng = RNG.FromTime()

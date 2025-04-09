@@ -1,5 +1,5 @@
 local Job = require('GameObjects.Job')
-local Flow = require('Systems.Economy.Flow')
+local Flow = require('Legacy.Systems.Economy.Flow')
 local Actions = requireAll('GameObjects.Actions')
 
 local Patrolling = Subclass("Patrolling", Job, function(self, base, system, patrolNodes)
