@@ -1,9 +1,9 @@
 local Generator       = require('Legacy.Systems.Gen.Generator')
 local SystemGenerator = require('Legacy.Systems.Gen.SystemGenerator')
-local Asteroid        = require('GameObjects.Entities.Objects.Asteroid')
-local Planet          = require('GameObjects.Entities.Objects.Planet')
-local Station         = require('GameObjects.Entities.Objects.Station')
-local System          = require('GameObjects.Entities.StarSystem')
+local Asteroid        = require('Legacy.GameObjects.Entities.Objects.Asteroid')
+local Planet          = require('Legacy.GameObjects.Entities.Objects.Planet')
+local Station         = require('Legacy.GameObjects.Entities.Objects.Station')
+local System          = require('Legacy.GameObjects.Entities.StarSystem')
 
 local kSystemScale    = 5000.0
 

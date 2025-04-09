@@ -1,4 +1,4 @@
-local Actions = requireAll('GameObjects.Actions')
+local Actions = requireAll('Legacy.GameObjects.Actions')
 local ShipBindings = require('Legacy.Systems.Controls.Bindings.ShipBindings')
 local CameraBindings = require('Legacy.Systems.Controls.Bindings.CameraBindings')
 

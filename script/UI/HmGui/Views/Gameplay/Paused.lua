@@ -10,7 +10,7 @@ local ResponsiveSize = require("Types.ResponsiveSize")
 ---@type ApplicationBindings
 local Bindings = require('States.ApplicationBindings')
 ---@type ShipSocketType
-local SocketType = require('GameObjects.Entities.Ship.SocketType')
+local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
 
 function Paused:onInput()
     if Input:isPressed(Bindings.Escape) then

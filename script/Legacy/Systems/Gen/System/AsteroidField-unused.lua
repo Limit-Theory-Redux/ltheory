@@ -1,6 +1,6 @@
 local SystemGenerator = require('Legacy.Systems.Gen.SystemGenerator')
-local Asteroid        = require('GameObjects.Entities.Objects.Asteroid')
-local Zone            = require('GameObjects.Entities.Zone')
+local Asteroid        = require('Legacy.GameObjects.Entities.Objects.Asteroid')
+local Zone            = require('Legacy.GameObjects.Entities.Zone')
 
 local kExpFactor      = 0.75
 local kFieldScale     = 750

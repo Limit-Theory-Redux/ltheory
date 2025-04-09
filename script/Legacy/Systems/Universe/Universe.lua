@@ -1,7 +1,7 @@
 local UniverseEconomy = require('Legacy.Systems.Universe.UniverseEconomy')
-local StarSystem = require('GameObjects.Entities.StarSystem')
-local Actions = requireAll('GameObjects.Actions')
-local Jobs = requireAll('GameObjects.Jobs')
+local StarSystem = require('Legacy.GameObjects.Entities.StarSystem')
+local Actions = requireAll('Legacy.GameObjects.Actions')
+local Jobs = requireAll('Legacy.GameObjects.Jobs')
 
 ---@class Universe
 local Universe = Class("Universe", function(self) end)

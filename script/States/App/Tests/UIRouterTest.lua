@@ -8,7 +8,7 @@ local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
 
 local rng = RNG.FromTime()
 local Universe = require("Legacy.Systems.Universe.Universe")
-local System = require('GameObjects.Entities.StarSystem')
+local System = require('Legacy.GameObjects.Entities.StarSystem')
 local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
 
 local useRenderer = false

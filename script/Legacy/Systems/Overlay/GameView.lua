@@ -1,4 +1,4 @@
-local Material   = require('GameObjects.Material')
+local Material   = require('Legacy.GameObjects.Material')
 
 local GameView   = {}
 GameView.__index = GameView

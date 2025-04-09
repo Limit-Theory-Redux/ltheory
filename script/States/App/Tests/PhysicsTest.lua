@@ -40,8 +40,8 @@ local print               = function(...) if printCounts then print_(...) end en
 -- Could theoretically have a function does like.
 -- local Entites = RequireEach('GameObjects.Entites', [(System, Test.System), (Asteroid, Objects.Asteroid)]). Then we can call them by Entities.Objects.Asteroid and Entities.System
 -- Might be Faulty logic but should be investigated.
-local Entities            = requireAll('GameObjects.Entities')
-local System              = require('GameObjects.Entities.StarSystem')
+local Entities            = requireAll('Legacy.GameObjects.Entities')
+local System              = require('Legacy.GameObjects.Entities.StarSystem')
 local DebugControl        = require('Legacy.Systems.Controls.Controls.DebugControl')
 local MasterControl       = require('Legacy.Systems.Controls.Controls.MasterControl')
 local SoundManager        = require("Legacy.Systems.SFX.SoundManager")

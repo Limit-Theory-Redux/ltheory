@@ -1,12 +1,12 @@
 -- TODO: Using requireAll locally like this is not recommended.
 -- Implementation of requireEach needs to happen.
-local Entities = requireAll('GameObjects.Entities')
-local Actions = requireAll('GameObjects.Actions')
+local Entities = requireAll('Legacy.GameObjects.Entities')
+local Actions = requireAll('Legacy.GameObjects.Actions')
 local TestEcon = require('States.Application')
 local Production = require('Legacy.Systems.Economy.Production')
 local Item = require('Legacy.Systems.Economy.Item')
 local SystemMap = require('Legacy.Systems.CommandView.SystemMap')
-local System = require('GameObjects.Entities.StarSystem')
+local System = require('Legacy.GameObjects.Entities.StarSystem')
 
 local rng = RNG.FromTime()
 --local rng = RNG.Create(10) -- for when the same seed is needed

@@ -1,9 +1,9 @@
 local Bindings = require('States.ApplicationBindings')
 local CameraBindings = require('Legacy.Systems.Controls.Bindings.CameraBindings')
 local ShipBindings = require('Legacy.Systems.Controls.Bindings.ShipBindings')
-local Disposition = require('GameObjects.Elements.NPC.Dispositions')
-local Entity = require('GameObjects.Entity')
-local SocketType = require('GameObjects.Entities.Ship.SocketType')
+local Disposition = require('Legacy.GameObjects.Elements.NPC.Dispositions')
+local Entity = require('Legacy.GameObjects.Entity')
+local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
 
 local HUD = {}
 HUD.__index = HUD

@@ -1,6 +1,6 @@
 local Production = require('Legacy.Systems.Economy.Production')
 local Item = require('Legacy.Systems.Economy.Item')
-local Actions = requireAll('GameObjects.Actions')
+local Actions = requireAll('Legacy.GameObjects.Actions')
 local Words = require('Legacy.Systems.Gen.Words')
 local rng = RNG.FromTime()
 

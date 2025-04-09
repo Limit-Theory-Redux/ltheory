@@ -2,7 +2,7 @@
 -- Once we've moved to the ECS, these LoadInline statements should become redundant.
 Namespace.LoadInline('Legacy')
 Namespace.LoadInline('Legacy.Systems')
-Namespace.LoadInline('GameObjects')
+Namespace.LoadInline('Legacy.GameObjects')
 
 LimitTheoryRedux = require('States.Application')
 local SoundManager = require('Legacy.Systems.SFX.SoundManager')

@@ -1,7 +1,7 @@
 local CameraBindings = require('Legacy.Systems.Controls.Bindings.CameraBindings')
 local CommandBindings = require('Legacy.Systems.Controls.Bindings.CommandBindings')
-local Disposition = require('GameObjects.Elements.NPC.Dispositions')
-local Entity = require('GameObjects.Entity')
+local Disposition = require('Legacy.GameObjects.Elements.NPC.Dispositions')
+local Entity = require('Legacy.GameObjects.Entity')
 
 local CommandControl = {}
 CommandControl.__index = CommandControl
