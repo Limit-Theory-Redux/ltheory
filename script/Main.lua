@@ -59,8 +59,6 @@ function InitSystem()
         Namespace.LoadInline('UI.HmGui.Views')
         Namespace.LoadInline('UI.HmGui.Pages') -- needs to be loaded in correct order
         Namespace.Load('UI')
-        --Namespace.LoadInline('Systems')
-        --Namespace.LoadInline('GameObjects')
 
         jit.opt.start(
             format('maxtrace=%d', Config.jit.tune.maxTrace),
