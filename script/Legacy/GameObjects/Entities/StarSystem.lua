@@ -905,7 +905,9 @@ function System:spawnPirateStation(hullSize, player)
     self:addStation(station)
 
     -- Increase by 1 the total number of objects existing at the beginning of this universe
-    GameState.world.currentUniverse:incrementObjects()
+    if GameState.world.currentUniverse then
+        GameState.world.currentUniverse:incrementObjects()
+    end
 
     -- Add station components !NEED TO BE ADDED AFTER ADDING IT TO THE SYSTEM AS CHILD
     --! NEED TO BE ADDED AFTER ADDING IT TO THE SYSTEM AS CHILD
@@ -1106,7 +1108,9 @@ function System:spawnShip(hullSize, player)
     self:addShip(ship)
 
     -- Increase by 1 the total number of objects existing at the beginning of this universe
-    GameState.world.currentUniverse:incrementObjects()
+    if GameState.world.currentUniverse then
+        GameState.world.currentUniverse:incrementObjects()
+    end
 
     --local subtypeName = Config:getObjectInfo("ship_subtypes", ship:getSubType())
     --Log.Debug("SYSTEM(ship) - Added %s '%s'", subtypeName, ship:getName())

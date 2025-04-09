@@ -89,7 +89,6 @@ function InitSystem()
         local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
 
         local appState = nil
-
         if foundState then
             appState = state
         elseif foundTest then
@@ -97,7 +96,13 @@ function InitSystem()
         end
 
         if appState == nil then
-            Log.Error("Application was not specified")
+            -- If the error returned is "module 'States.App.<app>' not found:",
+            -- then the error is in test instead.
+            if tostring(state):match("^module 'States%.App%." .. app .. "' not found:") then
+                Log.Error("Failed to load States.Apps.Tests.%s: %s", app, tostring(test))
+            else
+                Log.Error("Failed to load States.Apps.%s: %s", app, tostring(state))
+            end
         end
 
         AppInit = function()
