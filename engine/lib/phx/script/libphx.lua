@@ -43,7 +43,6 @@ do -- Opaque Structs
         typedef struct InputBinding {} InputBinding;
         typedef struct MemPool      {} MemPool;
         typedef struct RmGui        {} RmGui;
-        typedef struct SDF          {} SDF;
         typedef struct Socket       {} Socket;
     ]]
 
@@ -52,7 +51,6 @@ do -- Opaque Structs
         'BoxTree',
         'MemPool',
         'RmGui',
-        'SDF',
         'Socket',
     }
 end
