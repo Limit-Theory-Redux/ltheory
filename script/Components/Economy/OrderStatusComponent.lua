@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local OrderStatusComponent = Subclass("OrderStatusComponent", Component, function(self)
     self:setComponentName("EconomyOrderStatus")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.OrderStatusComponent)
-
     self:setStatus(Enums.OrderStatus.Created)
 end)
 

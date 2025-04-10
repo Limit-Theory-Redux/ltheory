@@ -6,16 +6,10 @@ local TransformComponent = require("Components.Physics.TransformComponent")
 local ShapeComponent = require("Components.Spatial.ShapeComponent")
 local HierarchyComponent = require("Components.Core.EntityHierarchy")
 
--- Types
-local EntityInfo = require("Shared.Types.EntityInfo")
-
 ---@class TriggerEntity: Entity
 ---@overload fun(self: TriggerEntity): TriggerEntity subclass internal
 ---@overload fun(): TriggerEntity subclass external
 local TriggerEntity = Subclass("TriggerEntity", Entity, function(self)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.TriggerEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 
@@ -26,10 +20,7 @@ local TriggerEntity = Subclass("TriggerEntity", Entity, function(self)
     self:addComponent(ShapeComponent())
 
     -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(EntityInfo {
-        id = self:getGuid(),
-        archetype = self:getArchetype()
-    }))
+    self:addComponent(HierarchyComponent(self:getEntityId()))
 end)
 
 return TriggerEntity

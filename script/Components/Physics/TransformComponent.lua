@@ -11,9 +11,6 @@ local Component = require('Components.Component')
 local TransformComponent = Subclass("TransformComponent", Component, function(self)
     self:setComponentName("PhysicsTransform")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.TransformComponent)
-
     self:setTransform({
         position = Position(),
         rotation = Quat.Identity(),

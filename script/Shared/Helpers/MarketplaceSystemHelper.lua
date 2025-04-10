@@ -1,21 +1,25 @@
 -- Systems
 local Registry = require("Systems.Storage.Registry")
 
----@param bids table<EntityInfo>
----@param asks table<EntityInfo>
+-- Components
+local NameComponent = require("Components.Core.EntityName")
+local QuantityComponent = require("Components.Economy.QuantityComponent")
+
+---@param bids table<EntityId>
+---@param asks table<EntityId>
 ---@return table<OrderEntity> bids, table<OrderEntity> asks
 local function getOrderEntities(bids, asks)
     local bidEntities, askEntities = {}, {}
 
-    for entityInfo in Iterator(bids) do
-        local entity = Registry:getEntity(entityInfo)
+    for entityId in Iterator(bids) do
+        local entity = Registry:getEntity(entityId)
         if entity then
             insert(bidEntities, entity)
         end
     end
 
-    for entityInfo in Iterator(asks) do
-        local entity = Registry:getEntity(entityInfo)
+    for entityId in Iterator(asks) do
+        local entity = Registry:getEntity(entityId)
         if entity then
             insert(askEntities, entity)
         end
@@ -29,14 +33,12 @@ end
 local function printInventory(parentEntity, component)
     Log.Debug("%s - Inventory", parentEntity)
     for itemTypes in Iterator(component:getInventory()) do
-        for itemEntityInfo in Iterator(itemTypes) do
-            local itemEntity = Registry:getEntity(itemEntityInfo)
+        for itemEntityId in Iterator(itemTypes) do
+            local itemEntity = Registry:getEntity(itemEntityId)
 
             if itemEntity then
-                ---@type NameComponent
-                local nameComponent = itemEntity:findComponentByArchetype(Enums.ComponentArchetype.NameComponent)
-                ---@type QuantityComponent
-                local quantityComponent = itemEntity:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+                local nameComponent = itemEntity:getComponent(NameComponent)
+                local quantityComponent = itemEntity:getComponent(QuantityComponent)
 
                 Log.Debug(" ├─ %s(%d)", nameComponent:getName(), quantityComponent:getQuantity())
             end

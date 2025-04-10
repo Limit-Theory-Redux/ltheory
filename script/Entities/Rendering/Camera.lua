@@ -8,8 +8,6 @@ local CameraData = require("Components.Rendering.CameraData")
 ---@overload fun(self: Camera): Camera subclass internal
 ---@overload fun(): Camera subclass external
 local Camera = Subclass("Camera", Entity, function(self)
-    self:setArchetype(Enums.EntityArchetype.CameraEntity)
-
     -- PhysicsRigidBodyComponent
     self:addComponent(RigidBody())
     -- PhysicsTransformComponent

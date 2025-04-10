@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local MarketplaceComponent = Subclass("MarketplaceComponent", Component, function(self)
     self:setComponentName("EconomyMarketplace")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.MarketplaceComponent)
-
     self:init()
 end)
 
@@ -39,12 +36,12 @@ function MarketplaceComponent:getNextUpdate()
     return self.nextUpdate
 end
 
----@param trader EntityInfo
+---@param trader EntityId
 function MarketplaceComponent:setTrader(trader)
     self.trader = trader
 end
 
----@return EntityInfo Trader
+---@return EntityId Trader
 function MarketplaceComponent:getTrader()
     return self.trader
 end
@@ -59,44 +56,44 @@ function MarketplaceComponent:getTax()
     return self.tax
 end
 
----@param entityInfo EntityInfo
-function MarketplaceComponent:addBid(entityInfo)
-    self.bids[entityInfo.id] = entityInfo
+---@param entityId EntityId
+function MarketplaceComponent:addBid(entityId)
+    self.bids[entityId] = entityId
 end
 
----@param entityInfo EntityInfo
-function MarketplaceComponent:addAsk(entityInfo)
-    self.asks[entityInfo.id] = entityInfo
+---@param entityId EntityId
+function MarketplaceComponent:addAsk(entityId)
+    self.asks[entityId] = entityId
 end
 
----@param entityInfo EntityInfo
+---@param entityId EntityId
 ---@return boolean success
-function MarketplaceComponent:removeBid(entityInfo)
-    if not self.bids[entityInfo.id] then
+function MarketplaceComponent:removeBid(entityId)
+    if not self.bids[entityId] then
         return false
     end
 
-    self.bids[entityInfo.id] = nil
+    self.bids[entityId] = nil
     return true
 end
 
----@param entityInfo EntityInfo
+---@param entityId EntityId
 ---@return boolean success
-function MarketplaceComponent:removeAsk(entityInfo)
-    if not self.asks[entityInfo.id] then
+function MarketplaceComponent:removeAsk(entityId)
+    if not self.asks[entityId] then
         return false
     end
 
-    self.asks[entityInfo.id] = nil
+    self.asks[entityId] = nil
     return true
 end
 
----@return table<EntityInfo>
+---@return table<EntityId>
 function MarketplaceComponent:getBids()
     return self.bids
 end
 
----@return table<EntityInfo>
+---@return table<EntityId>
 function MarketplaceComponent:getAsks()
     return self.asks
 end

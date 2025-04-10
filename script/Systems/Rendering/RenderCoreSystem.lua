@@ -217,7 +217,7 @@ function RenderCoreSystem:onPreRender(data)
     self.buffers[Enums.BufferName.buffer2]:setMinFilter(TexFilter.Linear)
     self.level = 0
 
-    -- < Cache Entities (EntityInfo's?) for Rendering Passes > --
+    -- < Cache Entities (EntityId's?) for Rendering Passes > --
     -- Necessary because previously we obtained Entites from 'StarSystem'
     --[[ Need Method to pull by BlendMode in RenderPass and change cache based on Culling
         OpaqueCache = AllEntitiesWithComponent(RenderComponent):filter(BlendMode.Opaque)

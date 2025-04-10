@@ -1,6 +1,9 @@
 -- Systems
 local Registry = require("Systems.Storage.Registry")
 
+-- Components
+local QuantityComponent = require("Components.Economy.QuantityComponent")
+
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 
@@ -21,7 +24,7 @@ end
 ---@param inventory InventoryComponent
 ---@param itemId integer
 ---@param quantity number
----@return table<EntityInfo>|nil
+---@return table<EntityId>|nil
 function InventorySystem:take(inventory, itemId, quantity)
     self.profiler:start()
 
@@ -29,25 +32,25 @@ function InventorySystem:take(inventory, itemId, quantity)
     local takenItems = {}
     local remainingQuantity = quantity
 
-    for id, itemEntityInfo in pairs(itemsOfType) do
-        local itemEntity = Registry:getEntity(itemEntityInfo)
+    for id, itemEntityId in pairs(itemsOfType) do
+        local itemEntity = Registry:getEntity(itemEntityId)
         ---@cast itemEntity ItemEntity
-        local quantityComponent = itemEntity:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+        local quantityComponent = itemEntity:getComponent(QuantityComponent)
         ---@cast quantityComponent QuantityComponent
         local itemQuantity = quantityComponent:getQuantity()
 
         if itemQuantity <= remainingQuantity then
             -- Take entire item
             inventory:removeItem(itemId, id)
-            table.insert(takenItems, itemEntityInfo)
+            table.insert(takenItems, itemEntityId)
             remainingQuantity = remainingQuantity - itemQuantity
         else
             -- Split the item and update quantity
             quantityComponent:setQuantity(itemQuantity - remainingQuantity)
-            local clone, cloneEntityInfo = itemEntity:clone()
-            local cloneQuantityCmp = clone:findComponentByArchetype((Enums.ComponentArchetype.QuantityComponent))
+            local clone, cloneEntityId = itemEntity:clone()
+            local cloneQuantityCmp = clone:getComponent(QuantityComponent)
             cloneQuantityCmp:setQuantity(remainingQuantity)
-            table.insert(takenItems, cloneEntityInfo)
+            table.insert(takenItems, cloneEntityId)
             remainingQuantity = 0
         end
 
@@ -61,10 +64,10 @@ end
 
 ---@param inventory InventoryComponent
 ---@param itemId integer
----@param items table<EntityInfo>
+---@param items table<EntityId>
 function InventorySystem:put(inventory, itemId, items)
-    for _, itemEntityInfo in ipairs(items) do
-        inventory:addItem(itemId, itemEntityInfo)
+    for _, itemEntityId in ipairs(items) do
+        inventory:addItem(itemId, itemEntityId)
     end
 end
 
@@ -73,8 +76,7 @@ end
 ---@param amount integer
 ---@return boolean success
 function InventorySystem:lockItemQuantity(item, owner, amount)
-    local quantityComponent = item:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
-    ---@cast quantityComponent QuantityComponent
+    local quantityComponent = item:getComponent(QuantityComponent)
 
     if amount > quantityComponent:getQuantity() then
         Log.Warn("Trying to reserve more than available quantity")
@@ -92,8 +94,7 @@ end
 ---@param amount integer|nil
 ---@return boolean success
 function InventorySystem:unlockItemQuantity(item, owner, amount)
-    local quantityComponent = item:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
-    ---@cast quantityComponent QuantityComponent
+    local quantityComponent = item:getComponent(QuantityComponent)
 
     if not quantityComponent:getLockedQuantity() then
         Log.Warn("Trying to unlock quantity without locking it first")

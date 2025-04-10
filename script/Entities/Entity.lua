@@ -1,21 +1,19 @@
 local Registry = require("Systems.Storage.Registry")
 
----@type EntityInfo
-local EntityInfo = require("Shared.Types.EntityInfo")
----@type ComponentInfo
-local ComponentInfo = require("Shared.Types.ComponentInfo")
-
 ---@class Entity
----@field components table<ComponentInfo>
+---@field components table<any, ComponentInfo>
 
--- General Purpose Entity Object
+-- General Purpose Entity Object. Contains a reference to its components, but does not own the component data.
 ---@param self Entity
----@class Entity
 local Entity = Class("Entity", function(self)
     self:addGuid()
     self:addComponents()
     self:Enable()
 end)
+
+function Entity:__tostring()
+    return format("%s(%s)", tostring(type(self)), tostring(self:getGuid()))
+end
 
 function Entity:addGuid()
     self.guid = Guid.Create()
@@ -41,27 +39,9 @@ function Entity:isEnabled()
     return self.enabled
 end
 
----@param archetype EntityArchetype
-function Entity:setArchetype(archetype)
-    self.archetype = archetype
-
-    local mt = getmetatable(self)
-    if mt then
-        mt.__tostring = function(self)
-            return format("%s(%s)", Enums.EntityArchetype:getName(self.archetype), tostring(self:getGuid()))
-        end
-        setmetatable(self, mt)
-    end
-end
-
----@return EntityArchetype
-function Entity:getArchetype()
-    return self.archetype
-end
-
----@return EntityInfo
-function Entity:getEntityInfo()
-    return EntityInfo { archetype = self.archetype, id = self.guid }
+---@return EntityId
+function Entity:getEntityId()
+    return self.guid
 end
 
 function Entity:addComponents()
@@ -71,100 +51,60 @@ function Entity:addComponents()
     self.components = {}
 end
 
----@return integer componentInfoIndex
----@return Component
+---@param component Component
+---@return ComponentInfo componentInfo
 function Entity:addComponent(component)
-    component:setEntity(self:getEntityInfo())
-    insert(self.components, ComponentInfo { id = component:getGuid(), archetype = component:getArchetype(), entity = self:getEntityInfo() })
-    Registry:storeComponent(component)
-    return #self.components, component
+    component:setEntityId(self:getEntityId())
+    local componentInfo = Registry:storeComponent(component)
+    self.components[component:getArchetype()] = componentInfo
+    return componentInfo
 end
 
----@param componentInfoIndex integer
+---@param componentType any
 ---@return boolean wasSuccessful
-function Entity:removeComponent(componentInfoIndex)
-    local componentInfo = remove(self.components, componentInfoIndex)
-    return Registry:dropComponent(componentInfo.archetype, componentInfo.id)
+function Entity:removeComponent(componentType)
+    if self.components[componentType] == nil then
+        return false
+    end
+    Registry:dropComponent(self.components[componentType])
+    self.components[componentType] = nil
+    return true
 end
 
----@param archetype ComponentArchetype
----@return integer resultCount
----@return table<Component>
-function Entity:findComponentsByArchetype(archetype)
-    local queryResults = {}
-    ---@param componentInfo ComponentInfo
-    for index, componentInfo in ipairs(self.components) do
-        if componentInfo.archetype == archetype then
-            local component = Registry:getComponentData(componentInfo)
-            insert(queryResults, component)
-        end
-    end
-    return #queryResults, queryResults
-end
-
----@param archetype ComponentArchetype
----@return table<Component>
-function Entity:findComponentByArchetype(archetype)
-    local queryResults = {}
-    ---@param componentInfo ComponentInfo
-    for index, componentInfo in ipairs(self.components) do
-        if componentInfo.archetype == archetype then
-            local component = Registry:getComponentData(componentInfo)
-            insert(queryResults, component)
-        end
-    end
-    if #queryResults > 1 then
-        Log.Error("Found more than one component for your query. Please be more specific.")
-    end
-    return queryResults[1]
-end
-
----@param query string
----@return Component|nil
-function Entity:findComponentByName(query)
-    local queryResults = {}
-    for index, componentInfo in ipairs(self.components) do
-        local component = Registry:getComponentData(componentInfo)
-        local componentName = component and component:getComponentName()
-        if componentName and string.match(componentName, query) then
-            insert(queryResults, component)
-        end
+---@generic T
+---@param archetype T
+---@return T|nil
+function Entity:getComponent(archetype)
+    local componentInfo = self.components[archetype]
+    if not componentInfo then
+        return nil
     end
 
-    if #queryResults > 1 then
-        Log.Error("Found more than one component for your query. Please be more specific.")
-    end
-
-    return queryResults[1]
-end
-
----@return ComponentInfo
-function Entity:getComponentInfo(componentInfoIndex)
-    return self.components[componentInfoIndex]
+    return Registry:getComponent(componentInfo)
 end
 
 function Entity:iterComponents()
     local components = {}
-    for index, componentInfo in ipairs(self.components) do
-        local component = Registry:getComponentData(componentInfo)
-        insert(components, component)
+    for _, info in pairs(self.components) do
+        insert(components, Registry:getComponent(info))
     end
     return Iterator(components)
 end
 
--- does not handle clearing from Registry
 function Entity:clearComponents()
+    for type, info in pairs(self.components) do
+        Registry:dropComponent(info)
+    end
     self.components = {}
 end
 
 ---@return boolean success
 function Entity:destroy()
-    local success = Registry:dropEntity(self.archetype, self.guid)
-
+    local success = Registry:dropEntity(self.guid)
     if success then
         local noFail = true
-        for component in self:iterComponents() do
-            local success = Registry:dropComponent(component.archetype, component.guid)
+        for _, info in pairs(self.components) do
+            local success = Registry:dropComponent(info)
 
             if not success then
                 noFail = false
@@ -187,19 +127,18 @@ function Entity:destroy()
 end
 
 function Entity:clone()
-    local clone = ShallowClone(self)
-    clone:addGuid()
-    clone:clearComponents()
+    local clone = Entity()
 
     for component in self:iterComponents() do
+        ---@type Component
         local clonedComponent = DeepClone(component)
         clonedComponent:addGuid()
         clone:addComponent(clonedComponent)
     end
 
-    local cloneEntityInfo = Registry:storeEntity(clone)
+    local cloneEntityId = Registry:storeEntity(clone)
 
-    return clone, cloneEntityInfo
+    return clone, cloneEntityId
 end
 
 return Entity

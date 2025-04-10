@@ -24,6 +24,12 @@
 ----------------------------------------------------------------------------]]
 --
 
+-- LTheoryRedux depends on these types being in the global namespace, so we import these for now.
+-- Once we've moved to the ECS, these LoadInline statements should become redundant.
+Namespace.LoadInline('Legacy')
+Namespace.LoadInline('Legacy.Systems')
+Namespace.LoadInline('Legacy.GameObjects')
+
 local compoundTest        = true
 local collisionTest       = true
 local boundingTest        = true
@@ -34,6 +40,11 @@ local printCounts         = false
 
 local print_              = print
 local print               = function(...) if printCounts then print_(...) end end
+
+-- PhysicsTest depends on these types being in the global namespace, so we import these for now.
+-- Once we've moved to the ECS, these LoadInline statements should become redundant.
+Namespace.LoadInline('Systems')
+Namespace.LoadInline('GameObjects')
 
 -- This requireAll seems to be against normal conventions.
 -- TODO: Potentially instead of requireAll Entities Only Require each entity needed. Otherwise we might need a way to require specific entities into a file in a more seemless way.
@@ -60,6 +71,10 @@ function LTheory:generate()
     if self.system then self.system:delete() end
     self.system = System(self.seed)
     GameState.world.currentSystem = self.system
+    -- set a fake currentUniverse so we don't error out.
+    GameState.world.currentUniverse = {
+        incrementObjects = function() end,
+    }
     GameState.gen.uniqueShips = true
     GameState:SetState(Enums.GameStates.InGame)
 

@@ -5,9 +5,6 @@ local Component = require('Components.Component')
 ---@overload fun(): RigidBodyComponent subclass external
 local RigidBodyComponent = Subclass("RigidBodyComponent", Component, function(self)
     self:setComponentName("PhysicsRigidBody")
-
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.RigidBodyComponent)
 end)
 
 ---@param rigidBody RigidBody

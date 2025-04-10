@@ -35,9 +35,9 @@ function RenderingTest:onInit()
 
     -- Spawn CameraEntity
     local camera = Camera()
-    local entityInfo = Registry:storeEntity(camera)
+    local entityId = Registry:storeEntity(camera)
 
-    CameraSystem:setCamera(entityInfo)
+    CameraSystem:setCamera(entityId)
     CameraSystem.currentCameraTransform:setPosition(Position(0, 0, 0))
     CameraSystem.currentCameraTransform:setRotation(Quat.Identity())
 
@@ -50,10 +50,10 @@ function RenderingTest:onInit()
     local boxMaterial = Materials.DebugColor() ---@type Material
     boxMaterial:addStaticShaderVar("color", Enums.UniformType.Float3, function() return 1.0, 0.0, 1.0 end)
     self.boxEntity = BoxEntity(boxMaterial)
-    self.boxRend = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RenderComponent)
+    self.boxRend = self.boxEntity:getComponent(RenderComponent)
     -- Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
     ---@type RigidBodyComponent
-    self.boxRB = self.boxEntity:findComponentByArchetype(Enums.ComponentArchetype.RigidBodyComponent)
+    self.boxRB = self.boxEntity:getComponent(RigidBodyComponent)
     -- Set RigidBody
     self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(self.boxMesh))
     self.boxRB:getRigidBody():setPos(Position(0, 0, -5))

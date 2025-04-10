@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local OwnershipComponent = Subclass("OwnershipComponent", Component, function(self, playerId)
     self:setComponentName("EconomyOwnership")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.OwnershipComponent)
-
     self:setOwner(playerId)
 end)
 

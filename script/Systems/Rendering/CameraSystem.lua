@@ -1,5 +1,6 @@
 -- Systems
 local Registry = require("Systems.Storage.Registry")
+local Components = require("Components")
 
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
@@ -17,8 +18,6 @@ end)
 ---@private
 function CameraSystem:registerVars()
     self.profiler = QuickProfiler("CameraSystem", false, false)
-    ---@type Camera|nil
-    self.currentCamera = nil
     ---@type CameraDataComponent|nil
     self.currentCameraData = nil
     ---@type TransformComponent|nil
@@ -35,10 +34,6 @@ end
 
 ---@private
 function CameraSystem:onPreRender()
-    if self.currentCamera and not self.currentCameraData then
-        self.currentCameraData = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
-        self.currentCameraTransform = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
-    end
 end
 
 ---@private
@@ -55,41 +50,27 @@ function CameraSystem:onPostRender()
     -- end
 end
 
----@param entityInfo EntityInfo
-function CameraSystem:setCamera(entityInfo)
-    self.cameras = Registry:getEntitiesFromArchetype(Enums.EntityArchetype.CameraEntity)
-
-    if not self.cameras then
+---@param entityId EntityId
+function CameraSystem:setCamera(entityId)
+    local cameraEntity = Registry:getEntity(entityId)
+    if not cameraEntity then
         return
     end
 
-    local camera = self.cameras[entityInfo.id]
-
-    if camera then
-        self.currentCamera = camera
-        self.currentCameraData = camera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
-        self.currentCameraTransform = camera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
-    end
+    self.currentCameraData = cameraEntity:getComponent(Components.CameraDataComponent)
+    self.currentCameraTransform = cameraEntity:getComponent(Components.TransformComponent)
 end
 
 ---Get Current Camera 'Eye'/Position
 ---@return Position
 function CameraSystem:getCurrentCameraEye()
-    if not self.currentCamera then
+    if not self.currentCameraTransform then
         Log.Error("Attempted to getCameraEye() with no current Camera set.")
     end
     return self.currentCameraTransform:getPosition()
 end
 
 function CameraSystem:beginDraw()
-    if not self.currentCameraData then
-        if not self.currentCamera then
-            Log.Error("No Current Camera Set During Render")
-        end
-        Log.Warn("Current Camera Data Not Set Prior to Render")
-        self.currentCameraData = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.CameraDataComponent)
-        self.currentCameraTransform = self.currentCamera:findComponentByArchetype(Enums.ComponentArchetype.TransformComponent)
-    end
     local camData = self.currentCameraData
     ShaderVar.PushMatrix('mView', camData:getView())
     ShaderVar.PushMatrix('mViewInv', camData:getViewInverse())

@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local PlayerListComponent = Subclass("PlayerListComponent", Component, function(self)
     self:setComponentName("EconomyPlayerList")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.PlayerListComponent)
-
     self:addPlayerList()
 end)
 

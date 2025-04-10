@@ -15,9 +15,6 @@ local Component = require("Components.Component")
 local PlayerBankAccount = Subclass("PlayerBankAccount", Component, function(self, initialBalance)
     self:setComponentName("EconomyPlayerBankAccount")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.PlayerBankAccount)
-
     self:addPlayerBankAccount(initialBalance)
 
     self:registerEventHandler("BankAccount:AddTransaction", self.addTransaction)

@@ -10,16 +10,12 @@ local RigidBodyComponent = require("Components.Physics.RigidBodyComponent")
 local HierarchyComponent = require("Components.Core.EntityHierarchy")
 
 -- Types
-local EntityInfo = require("Shared.Types.EntityInfo")
 local Materials = require("Shared.Registries.Materials")
 
 ---@class AsteroidEntity: Entity
 ---@overload fun(self: AsteroidEntity, seed: integer): AsteroidEntity subclass internal
 ---@overload fun(seed: integer): AsteroidEntity subclass external
 local AsteroidEntity = Subclass("AsteroidEntity", Entity, function(self, seed)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.AsteroidEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 
@@ -39,10 +35,7 @@ local AsteroidEntity = Subclass("AsteroidEntity", Entity, function(self, seed)
     self:addComponent(RigidBodyComponent())
 
     -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(EntityInfo {
-        id = self:getGuid(),
-        archetype = self:getArchetype()
-    }))
+    self:addComponent(HierarchyComponent(self:getEntityId()))
 end)
 
 return AsteroidEntity

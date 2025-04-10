@@ -6,16 +6,10 @@ local TransformComponent = require("Components.Physics.TransformComponent")
 local ShapeComponent = require("Components.Spatial.ShapeComponent")
 local HierarchyComponent = require("Components.Core.EntityHierarchy")
 
--- Types
-local EntityInfo = require("Shared.Types.EntityInfo")
-
 ---@class ZoneEntity: Entity
 ---@overload fun(self: ZoneEntity): ZoneEntity subclass internal
 ---@overload fun(): ZoneEntity subclass external
 local ZoneEntity = Subclass("ZoneEntity", Entity, function(self)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.ZoneEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 
@@ -26,10 +20,7 @@ local ZoneEntity = Subclass("ZoneEntity", Entity, function(self)
     self:addComponent(ShapeComponent())
 
     -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(EntityInfo {
-        id = self:getGuid(),
-        archetype = self:getArchetype()
-    }))
+    self:addComponent(HierarchyComponent(self:getEntityId()))
 end)
 
 return ZoneEntity

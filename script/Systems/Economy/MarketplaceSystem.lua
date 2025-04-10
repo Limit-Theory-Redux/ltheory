@@ -2,6 +2,13 @@
 local Registry = require("Systems.Storage.Registry")
 local InventorySystem = require("Systems.Economy.InventorySystem")
 
+-- Components
+local MarketplaceComponent = require("Components.Economy.MarketplaceComponent")
+local OrderItemTypeComponent = require("Components.Economy.OrderItemTypeComponent")
+local PriceComponent = require("Components.Economy.PriceComponent")
+local QuantityComponent = require("Components.Economy.QuantityComponent")
+local InventoryComponent = require("Components.Economy.InventoryComponent")
+
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local Helper = require("Shared.Helpers.MarketplaceSystemHelper")
@@ -36,49 +43,45 @@ end
 function MarketplaceSystem:onPreRender()
     self.profiler:start()
 
-    local marketplaces = Registry:getComponentsFromArchetype(Enums.ComponentArchetype.MarketplaceComponent)
-    ---@cast marketplaces table<MarketplaceComponent>
+    -- local marketplaces = Registry:getComponentsFromArchetype(MarketplaceComponent)
 
     local now = TimeStamp.Now()
 
-    if marketplaces and #marketplaces > 0 then
-        ---@param marketplace MarketplaceComponent
-        for index, marketplace in IteratorIndexed(marketplaces) do
-            local traderEntityInfo = marketplace:getTrader()
+    for _, marketplace in Registry:iterEntities(MarketplaceComponent) do
+        local traderEntityId = marketplace:getTrader()
 
-            if not traderEntityInfo then
-                goto skipMarketplace
-            end
-
-            local nextUpdate = marketplace:getNextUpdate()
-
-            if not nextUpdate then
-                nextUpdate = TimeStamp.GetFuture(self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
-                marketplace:setNextUpdate(nextUpdate)
-                goto skipMarketplace
-            end
-
-            -- update
-            if now:getDifference(nextUpdate) <= 0 then
-                nextUpdate = TimeStamp.GetFuture(self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
-                marketplace:setNextUpdate(nextUpdate)
-                --[[ Todo
-                    - Update orders
-                    - Update item flow
-                ]]
-                local trader = Registry:getEntity(traderEntityInfo)
-
-                if trader then
-                    local bids = marketplace:getBids()
-                    local asks = marketplace:getAsks()
-
-                    local bidsEntities, asksEntities = Helper.getOrderEntities(bids, asks)
-                    self:processTrades(marketplace, bidsEntities, asksEntities)
-                end
-            end
-
-            :: skipMarketplace ::
+        if not traderEntityId then
+            goto skipMarketplace
         end
+
+        local nextUpdate = marketplace:getNextUpdate()
+
+        if not nextUpdate then
+            nextUpdate = TimeStamp.GetFuture(self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
+            marketplace:setNextUpdate(nextUpdate)
+            goto skipMarketplace
+        end
+
+        -- update
+        if now:getDifference(nextUpdate) <= 0 then
+            nextUpdate = TimeStamp.GetFuture(self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
+            marketplace:setNextUpdate(nextUpdate)
+            --[[ Todo
+                - Update orders
+                - Update item flow
+            ]]
+            local trader = Registry:getEntity(traderEntityId)
+
+            if trader then
+                local bids = marketplace:getBids()
+                local asks = marketplace:getAsks()
+
+                local bidsEntities, asksEntities = Helper.getOrderEntities(bids, asks)
+                self:processTrades(marketplace, bidsEntities, asksEntities)
+            end
+        end
+
+        :: skipMarketplace ::
     end
     self.profiler:stop()
 end
@@ -89,18 +92,18 @@ end
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.OrderItemTypeComponent)
+            local bidItemTypeCmp = bid:getComponent(OrderItemTypeComponent)
             ---@cast bidItemTypeCmp OrderItemTypeComponent
-            local bidPriceCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.PriceComponent)
+            local bidPriceCmp = bid:getComponent(PriceComponent)
             ---@cast bidPriceCmp PriceComponent
-            local bidQuantityCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+            local bidQuantityCmp = bid:getComponent(QuantityComponent)
             ---@cast bidQuantityCmp QuantityComponent
 
-            local askItemTypeCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.OrderItemTypeComponent)
+            local askItemTypeCmp = ask:getComponent(OrderItemTypeComponent)
             ---@cast askItemTypeCmp OrderItemTypeComponent
-            local askPriceCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.PriceComponent)
+            local askPriceCmp = ask:getComponent(PriceComponent)
             ---@cast askPriceCmp PriceComponent
-            local askQuantityCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+            local askQuantityCmp = ask:getComponent(QuantityComponent)
             ---@cast askQuantityCmp QuantityComponent
 
             local bidItemType = bidItemTypeCmp:getItemType()
@@ -111,11 +114,9 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askQuantity = askQuantityCmp:getQuantity()
 
             -- Verify Inventory
-            self.marketplaceParentInfo = marketplace:getEntity()
-            self.marketplaceParentEntity = Registry:getEntity(self.marketplaceParentInfo)
+            self.marketplaceParentEntity = Registry:getEntity(marketplace:getEntityId())
             ---@type InventoryComponent
-            self.marketplaceInventoryCmp = self.marketplaceParentEntity:findComponentByArchetype(Enums.ComponentArchetype
-                .InventoryComponent)
+            self.marketplaceInventoryCmp = self.marketplaceParentEntity:getComponent(InventoryComponent)
 
             Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)
 
@@ -145,14 +146,14 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 
                     -- Update or remove the bid and ask orders
                     if bidQuantity == 0 then
-                        marketplace:removeBid(bid:getEntityInfo())
+                        marketplace:removeBid(bid:getEntityId())
                         bid:destroy()
                     else
                         bid:setQuantity(bidQuantity)
                     end
 
                     if askQuantity == 0 then
-                        marketplace:removeAsk(ask:getEntityInfo())
+                        marketplace:removeAsk(ask:getEntityId())
                         ask:destroy()
                     else
                         ask:setQuantity(askQuantity)

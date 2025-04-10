@@ -1,4 +1,4 @@
-local Component = require('Component')
+local Component = require('Components.Component')
 
 ---@class EffectComponent: Component
 ---@overload fun(self: EffectComponent, effect: Effect): EffectComponent subclass internal

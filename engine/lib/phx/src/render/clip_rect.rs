@@ -2,7 +2,7 @@
 
 use glam::IVec2;
 
-use crate::render::{Viewport_GetSize, gl, glcheck};
+use crate::render::{gl, glcheck, Viewport_GetSize};
 
 const MAX_STACK_DEPTH: i32 = 128;
 
@@ -61,15 +61,15 @@ pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
         Some(this) => {
             if this.enabled {
                 let mut vp_size: IVec2 = IVec2::ZERO;
-    
+
                 unsafe { Viewport_GetSize(&mut vp_size) };
                 glcheck!(gl::Enable(gl::SCISSOR_TEST));
-    
+
                 let mut x: f32 = this.x;
                 let mut y: f32 = this.y;
                 let mut sx: f32 = this.sx;
                 let mut sy: f32 = this.sy;
-    
+
                 unsafe { TransformRect(&mut x, &mut y, &mut sx, &mut sy) };
                 glcheck!(gl::Scissor(
                     x as i32,

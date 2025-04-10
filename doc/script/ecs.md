@@ -35,9 +35,6 @@ local QuantityComponent = require("Components.Economy.QuantityComponent")
 ---@overload fun(self: ItemEntity, definition: ItemDefinition, quantity: number): ItemEntity subclass internal
 ---@overload fun(definition: ItemDefinition, quantity: number): ItemEntity subclass external
 local ItemEntity = Subclass("ItemEntity", Entity, function(self, definition, quantity)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.ItemEntity)
-
     -- Name Component
     self:addComponent(NameComponent(definition.name))
 
@@ -60,7 +57,7 @@ Components are plain data structures that define the properties or state of an e
 
 They hold minimal game logic, only the most basic data related methods should be provided. Everything else should be defined in a system that handles the specific data.
 
-Here´s how you define a component from the component class:
+Here's how you define a component from the component class:
 
 ```lua
 local Component = require('Components.Component')
@@ -70,9 +67,6 @@ local Component = require('Components.Component')
 ---@overload fun(name: string|nil): NameComponent subclass external
 local NameComponent = Subclass("NameComponent", Component, function(self, name)
     self:setComponentName("EntityName")
-
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.NameComponent)
 
     self:setName(name)
 end)
@@ -145,7 +139,7 @@ end
 function MarketplaceSystem:onPreRender()
     self.profiler:start()
 
-    local marketplaces = Registry:getComponentsFromArchetype(Enums.ComponentArchetype.MarketplaceComponent)
+    local marketplaces = Registry:getComponentsFromArchetype(MarketplaceComponent)
     ---@cast marketplaces table<MarketplaceComponent>
 ```
 
@@ -157,9 +151,9 @@ function MarketplaceSystem:onPreRender()
     if marketplaces and #marketplaces > 0 then
         ---@param marketplace MarketplaceComponent
         for index, marketplace in IteratorIndexed(marketplaces) do
-            local traderEntityInfo = marketplace:getTrader()
+            local traderEntityId = marketplace:getTrader()
 
-            if not traderEntityInfo then
+            if not traderEntityId then
                 goto skipMarketplace
             end
 
@@ -179,7 +173,7 @@ function MarketplaceSystem:onPreRender()
                     - Update orders
                     - Update item flow
                 ]]
-                local trader = Registry:getEntity(traderEntityInfo)
+                local trader = Registry:getEntity(traderEntityId)
 
                 if trader then
                     local bids = marketplace:getBids()
@@ -206,18 +200,18 @@ end
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.OrderItemTypeComponent)
+            local bidItemTypeCmp = bid:getComponent(OrderItemTypeComponent)
             ---@cast bidItemTypeCmp OrderItemTypeComponent
-            local bidPriceCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.PriceComponent)
+            local bidPriceCmp = bid:getComponent(PriceComponent)
             ---@cast bidPriceCmp PriceComponent
-            local bidQuantityCmp = bid:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+            local bidQuantityCmp = bid:getComponent(QuantityComponent)
             ---@cast bidQuantityCmp QuantityComponent
 
-            local askItemTypeCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.OrderItemTypeComponent)
+            local askItemTypeCmp = ask:getComponent(OrderItemTypeComponent)
             ---@cast askItemTypeCmp OrderItemTypeComponent
-            local askPriceCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.PriceComponent)
+            local askPriceCmp = ask:getComponent(PriceComponent)
             ---@cast askPriceCmp PriceComponent
-            local askQuantityCmp = ask:findComponentByArchetype(Enums.ComponentArchetype.QuantityComponent)
+            local askQuantityCmp = ask:getComponent(QuantityComponent)
             ---@cast askQuantityCmp QuantityComponent
 ```
 
@@ -232,15 +226,14 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askQuantity = askQuantityCmp:getQuantity()
 ```
 
-#### Here we can see that we are getting the entity from a marketplace component. Entities hold data on which components are linked to it and components hold data on which entity they are linked to. `getEntity()` and `findComponentByArchetype()` / `findComponentByName()` will all provide the user with a EntityInfo/ComponentInfo object which can be used to query the Registry to gain access to the actual entity/component. An xInfo object contains the guid and archetype of an entity or component.
+#### Here we can see that we are getting the entity from a marketplace component. Entities hold data on which components are linked to it and components hold data on which entity they are linked to. `getEntity()` and `getComponent()` / `findComponentByName()` will all provide the user with a EntityId/ComponentInfo object which can be used to query the Registry to gain access to the actual entity/component. An xInfo object contains the guid and archetype of an entity or component.
 
 ```lua
             -- Verify Inventory
             self.marketplaceParentInfo = marketplace:getEntity()
             self.marketplaceParentEntity = Registry:getEntity(self.marketplaceParentInfo)
             ---@type InventoryComponent
-            self.marketplaceInventoryCmp = self.marketplaceParentEntity:findComponentByArchetype(Enums.ComponentArchetype
-                .InventoryComponent)
+            self.marketplaceInventoryCmp = self.marketplaceParentEntity:getComponent(InventoryComponent)
 ```
 
 #### Here we use helper which was defined in a seperate file. Sometimes we want some additional methods that don´t have to be part of the system itself for cleanliness. Helper files can be defined for that purpose.
@@ -282,14 +275,14 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 ```lua
                     -- Update or remove the bid and ask orders
                     if bidQuantity == 0 then
-                        marketplace:removeBid(bid:getEntityInfo())
+                        marketplace:removeBid(bid:getEntityId())
                         bid:destroy()
                     else
                         bid:setQuantity(bidQuantity)
                     end
 
                     if askQuantity == 0 then
-                        marketplace:removeAsk(ask:getEntityInfo())
+                        marketplace:removeAsk(ask:getEntityId())
                         ask:destroy()
                     else
                         ask:setQuantity(askQuantity)

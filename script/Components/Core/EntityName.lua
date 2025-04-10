@@ -6,9 +6,6 @@ local Component = require('Components.Component')
 local NameComponent = Subclass("NameComponent", Component, function(self, name)
     self:setComponentName("EntityName")
 
-    -- Set Component Archetype
-    self:setArchetype(Enums.ComponentArchetype.NameComponent)
-
     self:setName(name)
 end)
 
