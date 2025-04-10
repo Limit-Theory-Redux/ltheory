@@ -1,6 +1,7 @@
 local Component = require('Components.Component')
 
 ---@class InventoryComponent: Component
+---@field items table<integer, table<EntityId, EntityId>>
 ---@overload fun(self: InventoryComponent, playerId: integer|nil): InventoryComponent subclass internal
 ---@overload fun(playerId: integer|nil): InventoryComponent subclass external
 local InventoryComponent = Subclass("InventoryComponent", Component, function(self)

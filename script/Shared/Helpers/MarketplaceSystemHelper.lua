@@ -37,9 +37,7 @@ local function printInventory(parentEntity, component)
             local itemEntity = Registry:getEntity(itemEntityId)
 
             if itemEntity then
-                ---@type NameComponent
                 local nameComponent = itemEntity:getComponent(NameComponent)
-                ---@type QuantityComponent
                 local quantityComponent = itemEntity:getComponent(QuantityComponent)
 
                 Log.Debug(" ├─ %s(%d)", nameComponent:getName(), quantityComponent:getQuantity())

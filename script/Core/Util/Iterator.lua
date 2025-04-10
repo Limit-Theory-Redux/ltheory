@@ -1,4 +1,6 @@
----@class Iterator
+---@generic V
+---@param t table<any, V>
+---@return fun(): V
 function Iterator(t)
     local keys = {}
     for key in pairs(t) do
@@ -12,7 +14,9 @@ function Iterator(t)
     end
 end
 
----@class IteratorIndexed
+---@generic V
+---@param t table<any, V>
+---@return fun(): integer, V
 function IteratorIndexed(t)
     local keys = {}
     for key in pairs(t) do
