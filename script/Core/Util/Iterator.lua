@@ -1,3 +1,6 @@
+---@class Iterator
+---@generic T
+
 ---@generic V
 ---@param t table<any, V>
 ---@return fun(): V
@@ -13,6 +16,9 @@ function Iterator(t)
         if i <= n then return t[keys[i]] end
     end
 end
+
+---@class IteratorIndexed
+---@generic T
 
 ---@generic V
 ---@param t table<any, V>

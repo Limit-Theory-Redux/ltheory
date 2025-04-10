@@ -58,6 +58,8 @@ Namespace.Inline(Core.Struct, 'Core.Struct')
 Core.Events = requireAll('Legacy.Systems.Events')      --* to be replaced by Rust event bus
 Namespace.Inline(Core.Events, 'Legacy.Systems.Events') --* to be replaced by Rust event bus
 
+---@type Log
+Log = require('Core.Util.Log')
 
 ---- Load in FFI
 -- Please note. All of this will need double checking. This is near 1-1 to Josh's.
