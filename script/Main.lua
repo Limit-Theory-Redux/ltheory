@@ -1,6 +1,6 @@
 package.path = package.path .. ';./engine/lib/phx/script/?.lua'
 package.path = package.path .. ';./script/?.lua'
-package.path = package.path .. ';./script/?/init.lua'
+package.path = package.path .. ';./script/?/__init__.lua'
 package.path = package.path .. ';./script/?.ext.lua'
 package.path = package.path .. ';./script/?.ffi.lua'
 

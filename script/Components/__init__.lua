@@ -1,4 +1,4 @@
--- A registry of all components.
+-- All component types.
 return {
     EntityHierarchy = require('Components.Core.EntityHierarchy'),
     EntityName = require('Components.Core.EntityName'),
