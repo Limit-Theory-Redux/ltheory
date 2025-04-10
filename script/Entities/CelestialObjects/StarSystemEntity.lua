@@ -10,9 +10,6 @@ local TransformComponent = require("Components.Physics.TransformComponent")
 local MassComponent = require("Components.Physics.MassComponent")
 local HierarchyComponent = require("Components.Core.EntityHierarchy")
 
--- Types
-local EntityInfo = require("Shared.Types.EntityInfo")
-
 -- Utils
 local Words = require('Legacy.Systems.Gen.Words')
 
@@ -36,10 +33,7 @@ local StarSystemEntity = Subclass("StarSystemEntity", Entity, function(self, see
     self:addComponent(MassComponent())
 
     -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(EntityInfo {
-        id = self:getGuid(),
-        archetype = self:getArchetype()
-    }))
+    self:addComponent(HierarchyComponent(self:getEntityId()))
 end)
 
 return StarSystemEntity

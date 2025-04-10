@@ -24,7 +24,7 @@ end
 ---@param inventory InventoryComponent
 ---@param itemId integer
 ---@param quantity number
----@return table<EntityInfo>|nil
+---@return table<EntityId>|nil
 function InventorySystem:take(inventory, itemId, quantity)
     self.profiler:start()
 
@@ -32,8 +32,8 @@ function InventorySystem:take(inventory, itemId, quantity)
     local takenItems = {}
     local remainingQuantity = quantity
 
-    for id, itemEntityInfo in pairs(itemsOfType) do
-        local itemEntity = Registry:getEntity(itemEntityInfo)
+    for id, itemEntityId in pairs(itemsOfType) do
+        local itemEntity = Registry:getEntity(itemEntityId)
         ---@cast itemEntity ItemEntity
         local quantityComponent = itemEntity:findComponentByArchetype(QuantityComponent)
         ---@cast quantityComponent QuantityComponent
@@ -42,15 +42,15 @@ function InventorySystem:take(inventory, itemId, quantity)
         if itemQuantity <= remainingQuantity then
             -- Take entire item
             inventory:removeItem(itemId, id)
-            table.insert(takenItems, itemEntityInfo)
+            table.insert(takenItems, itemEntityId)
             remainingQuantity = remainingQuantity - itemQuantity
         else
             -- Split the item and update quantity
             quantityComponent:setQuantity(itemQuantity - remainingQuantity)
-            local clone, cloneEntityInfo = itemEntity:clone()
+            local clone, cloneEntityId = itemEntity:clone()
             local cloneQuantityCmp = clone:findComponentByArchetype((QuantityComponent))
             cloneQuantityCmp:setQuantity(remainingQuantity)
-            table.insert(takenItems, cloneEntityInfo)
+            table.insert(takenItems, cloneEntityId)
             remainingQuantity = 0
         end
 
@@ -64,10 +64,10 @@ end
 
 ---@param inventory InventoryComponent
 ---@param itemId integer
----@param items table<EntityInfo>
+---@param items table<EntityId>
 function InventorySystem:put(inventory, itemId, items)
-    for _, itemEntityInfo in ipairs(items) do
-        inventory:addItem(itemId, itemEntityInfo)
+    for _, itemEntityId in ipairs(items) do
+        inventory:addItem(itemId, itemEntityId)
     end
 end
 

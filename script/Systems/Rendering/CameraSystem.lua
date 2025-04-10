@@ -55,15 +55,15 @@ function CameraSystem:onPostRender()
     -- end
 end
 
----@param entityInfo EntityInfo
-function CameraSystem:setCamera(entityInfo)
+---@param entityId EntityId
+function CameraSystem:setCamera(entityId)
     self.cameras = Registry:getEntitiesFromArchetype(Enums.EntityArchetype.CameraEntity)
 
     if not self.cameras then
         return
     end
 
-    local camera = self.cameras[entityInfo.id]
+    local camera = self.cameras[entityId]
 
     if camera then
         self.currentCamera = camera

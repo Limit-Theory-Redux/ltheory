@@ -154,9 +154,9 @@ function MarketplaceSystem:onPreRender()
     if marketplaces and #marketplaces > 0 then
         ---@param marketplace MarketplaceComponent
         for index, marketplace in IteratorIndexed(marketplaces) do
-            local traderEntityInfo = marketplace:getTrader()
+            local traderEntityId = marketplace:getTrader()
 
-            if not traderEntityInfo then
+            if not traderEntityId then
                 goto skipMarketplace
             end
 
@@ -176,7 +176,7 @@ function MarketplaceSystem:onPreRender()
                     - Update orders
                     - Update item flow
                 ]]
-                local trader = Registry:getEntity(traderEntityInfo)
+                local trader = Registry:getEntity(traderEntityId)
 
                 if trader then
                     local bids = marketplace:getBids()
@@ -229,7 +229,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askQuantity = askQuantityCmp:getQuantity()
 ```
 
-#### Here we can see that we are getting the entity from a marketplace component. Entities hold data on which components are linked to it and components hold data on which entity they are linked to. `getEntity()` and `findComponentByArchetype()` / `findComponentByName()` will all provide the user with a EntityInfo/ComponentInfo object which can be used to query the Registry to gain access to the actual entity/component. An xInfo object contains the guid and archetype of an entity or component.
+#### Here we can see that we are getting the entity from a marketplace component. Entities hold data on which components are linked to it and components hold data on which entity they are linked to. `getEntity()` and `findComponentByArchetype()` / `findComponentByName()` will all provide the user with a EntityId/ComponentInfo object which can be used to query the Registry to gain access to the actual entity/component. An xInfo object contains the guid and archetype of an entity or component.
 
 ```lua
             -- Verify Inventory
@@ -278,14 +278,14 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 ```lua
                     -- Update or remove the bid and ask orders
                     if bidQuantity == 0 then
-                        marketplace:removeBid(bid:getEntityInfo())
+                        marketplace:removeBid(bid:getEntityId())
                         bid:destroy()
                     else
                         bid:setQuantity(bidQuantity)
                     end
 
                     if askQuantity == 0 then
-                        marketplace:removeAsk(ask:getEntityInfo())
+                        marketplace:removeAsk(ask:getEntityId())
                         ask:destroy()
                     else
                         ask:setQuantity(askQuantity)

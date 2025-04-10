@@ -1,7 +1,5 @@
 local Registry = require("Systems.Storage.Registry")
 
----@type EntityInfo
-local EntityInfo = require("Shared.Types.EntityInfo")
 ---@type ComponentInfo
 local ComponentInfo = require("Shared.Types.ComponentInfo")
 
@@ -59,9 +57,9 @@ function Entity:getArchetype()
     return self.archetype
 end
 
----@return EntityInfo
-function Entity:getEntityInfo()
-    return EntityInfo { archetype = self.archetype, id = self.guid }
+---@return EntityId
+function Entity:getEntityId()
+    return self.guid
 end
 
 function Entity:addComponents()
@@ -74,8 +72,8 @@ end
 ---@return integer componentInfoIndex
 ---@return Component
 function Entity:addComponent(component)
-    component:setEntity(self:getEntityInfo())
-    insert(self.components, ComponentInfo { id = component:getGuid(), archetype = component:getArchetype(), entity = self:getEntityInfo() })
+    component:setEntityId(self:getGuid())
+    insert(self.components, ComponentInfo { id = component:getGuid(), archetype = component:getArchetype(), entity = self:getEntityId() })
     Registry:storeComponent(component)
     return #self.components, component
 end
@@ -198,9 +196,9 @@ function Entity:clone()
         clone:addComponent(clonedComponent)
     end
 
-    local cloneEntityInfo = Registry:storeEntity(clone)
+    local cloneEntityId = Registry:storeEntity(clone)
 
-    return clone, cloneEntityInfo
+    return clone, cloneEntityId
 end
 
 return Entity

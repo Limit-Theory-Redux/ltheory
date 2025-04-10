@@ -8,8 +8,10 @@
 ---@class ComponentStorage
 ---@field [EntityArchetype] Component
 
+---@alias EntityId integer
+---@alias ComponentId integer
+
 --- Types
-local EntityInfo = require("Shared.Types.EntityInfo")
 local ComponentInfo = require("Shared.Types.ComponentInfo")
 
 ---@class Registry
@@ -21,35 +23,28 @@ end)
 
 function Registry:clear()
     self.entities = {}
+    SetLengthMetamethod(self.entities)
     self.components = {}
-
-    for _, archetype in pairs(Enums.EntityArchetype) do
-        self.entities[archetype] = {}
-        SetLengthMetamethod(self.entities[archetype])
-    end
+    SetLengthMetamethod(self.components)
 
     Log.Info("Initialized Registry")
 end
 
 ---@param entity Entity
----@return EntityInfo
+---@return EntityId
 function Registry:storeEntity(entity)
-    if not entity:getArchetype() or not self.entities[entity:getArchetype()] then
-        Log.Error("Did not provide a valid archetype for entity: " .. tostring(entity:getGuid()))
-    end
-    self.entities[entity:getArchetype()][entity:getGuid()] = entity
-    return EntityInfo { id = entity:getGuid(), archetype = entity:getArchetype() }
+    self.entities[entity:getGuid()] = entity
+    return entity:getGuid()
 end
 
----@param archetype EntityArchetype
----@param entityId integer
+---@param entityId EntityId
 ---@return boolean wasSuccessful
-function Registry:dropEntity(archetype, entityId)
-    local entity = self.entities[archetype][entityId]
+function Registry:dropEntity(entityId)
+    local entity = self.entities[entityId]
     ---@cast entity Entity
 
     if entity then
-        self.entities[archetype][entityId] = nil
+        self.entities[entityId] = nil
         return true
     end
     return false
@@ -65,11 +60,11 @@ function Registry:storeComponent(component)
         SetLengthMetamethod(self.components[archetype])
     end
     self.components[archetype][component:getGuid()] = component
-    return ComponentInfo { id = component:getGuid(), archetype = archetype, entity = component:getEntity() }
+    return ComponentInfo { id = component:getGuid(), archetype = archetype, entity = component:getEntityId() }
 end
 
 ---@param archetype any
----@param componentId integer
+---@param componentId ComponentId
 ---@return boolean wasSuccessful
 function Registry:dropComponent(archetype, componentId)
     if not self.components[archetype] then
@@ -86,17 +81,10 @@ function Registry:dropComponent(archetype, componentId)
     return true
 end
 
----@param entityInfo EntityInfo
+---@param entityId EntityId
 ---@return Entity|nil
-function Registry:getEntity(entityInfo)
-    ---@type EntityStorage
-    local archetypeStorage = self.entities[entityInfo.archetype]
-
-    if not archetypeStorage then
-        Log.Error("Did not provide a valid archetype for entity: " .. entityInfo.id)
-    end
-
-    return archetypeStorage[entityInfo.id]
+function Registry:getEntity(entityId)
+    return self.entities[entityId]
 end
 
 ---@param componentInfo ComponentInfo
@@ -120,8 +108,9 @@ function Registry:getEntitiesFromArchetype(archetype)
     end
 end
 
----@param archetype ComponentArchetype
----@return table<Component>|nil
+---@generic T
+---@param archetype T
+---@return table<T>|nil
 function Registry:getComponentsFromArchetype(archetype)
     if self.components[archetype] then
         return self.components[archetype]

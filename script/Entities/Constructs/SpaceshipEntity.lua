@@ -7,9 +7,6 @@ local TransformComponent = require("Components.Physics.TransformComponent")
 local MassComponent = require("Components.Physics.MassComponent")
 local HierarchyComponent = require("Components.Core.EntityHierarchy")
 
--- Types
-local EntityInfo = require("Shared.Types.EntityInfo")
-
 ---@class SpaceshipEntity: Entity
 ---@overload fun(self: SpaceshipEntity, seed: integer): SpaceshipEntity subclass internal
 ---@overload fun(seed: integer): SpaceshipEntity subclass external
@@ -30,10 +27,7 @@ local SpaceshipEntity = Subclass("SpaceshipEntity", Entity, function(self, seed)
     self:addComponent(MassComponent())
 
     -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(EntityInfo {
-        id = self:getGuid(),
-        archetype = self:getArchetype()
-    }))
+    self:addComponent(HierarchyComponent(self:getEntityId()))
 end)
 
 return SpaceshipEntity

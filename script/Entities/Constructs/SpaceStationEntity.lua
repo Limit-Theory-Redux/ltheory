@@ -9,9 +9,6 @@ local HierarchyComponent = require("Components.Core.EntityHierarchy")
 local InventoryComponent = require("Components.Economy.InventoryComponent")
 local MarketplaceComponent = require("Components.Economy.MarketplaceComponent")
 
--- Types
-local EntityInfo = require("Shared.Types.EntityInfo")
-
 ---@class SpaceStationEntity: Entity
 ---@overload fun(self: SpaceStationEntity, seed: integer): SpaceStationEntity subclass internal
 ---@overload fun(seed: integer): SpaceStationEntity subclass external
@@ -32,10 +29,7 @@ local SpaceStationEntity = Subclass("SpaceStationEntity", Entity, function(self,
     self:addComponent(MassComponent())
 
     -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(EntityInfo {
-        id = self:getGuid(),
-        archetype = self:getArchetype()
-    }))
+    self:addComponent(HierarchyComponent(self:getEntityId()))
 
     -- Inventory Component
     self:addComponent(InventoryComponent())

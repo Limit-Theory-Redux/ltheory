@@ -35,9 +35,9 @@ function RenderingTest:onInit()
 
     -- Spawn CameraEntity
     local camera = Camera()
-    local entityInfo = Registry:storeEntity(camera)
+    local entityId = Registry:storeEntity(camera)
 
-    CameraSystem:setCamera(entityInfo)
+    CameraSystem:setCamera(entityId)
     CameraSystem.currentCameraTransform:setPosition(Position(0, 0, 0))
     CameraSystem.currentCameraTransform:setRotation(Quat.Identity())
 

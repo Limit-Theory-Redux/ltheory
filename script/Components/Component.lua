@@ -7,8 +7,6 @@ local Component = Class("Component", function(self)
     self:addEvents()
 end)
 
---* should we generate component names from the archetype like we do for entities?
-
 --- Naming Convention: ComponentCategory .. ComponentName; e.g. PhysicsRigidBody
 ---@param name string
 function Component:setComponentName(name)
@@ -47,24 +45,19 @@ function Component:getGuid()
     return self.guid
 end
 
----@param archetype ComponentArchetype
-function Component:setArchetype(archetype)
-    self.archetype = archetype
-end
-
----@return ComponentArchetype
+---@return T
 function Component:getArchetype()
     return type(self)
 end
 
----@param entity EntityInfo
-function Component:setEntity(entity)
-    self.entity = entity
+---@param entity integer
+function Component:setEntityId(entityId)
+    self.entityId = entityId
 end
 
----@return EntityInfo
-function Component:getEntity()
-    return self.entity
+---@return integer
+function Component:getEntityId()
+    return self.entityId
 end
 
 function Component:addEvents()

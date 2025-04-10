@@ -1,6 +1,5 @@
 local TypeTest = require('States.Application')
 
-local EntityInfo = require('Shared.Types.EntityInfo')
 local ComponentInfo = require('Shared.Types.ComponentInfo')
 
 local QuickProfiler = require('Shared.Tools.QuickProfiler')
@@ -25,27 +24,13 @@ function TypeTest:onInit()
     if not ffi.istype("TimeStamp", timestamp) then Log.Error("FFI Type not found") end
 
     -- Custom type checking example
-    local entityInfo = EntityInfo { id = 0, archetype = 0 }
-    Log.Debug("Custom type: %s | type name: %s", entityInfo, type(entityInfo))
-    if type(entityInfo) ~= EntityInfo then Log.Error("Custom Type not found") end
+    local componentInfo = ComponentInfo { id = 0, archetype = 0, entity = 0 }
+    Log.Debug("Custom type: %s | type name: %s", componentInfo, type(componentInfo))
+    if type(componentInfo) ~= ComponentInfo then Log.Error("Custom Type not found") end
 
     local testRuns = 50000
     collectgarbage("stop")    -- Stop garbage collection
     collectgarbage("collect") -- Do one collection run
-
-    -- Warm-up Custom Types
-    --* Probably does not really do anything but well
-    for i = 1, 1000 do
-        local entityInfo = EntityInfo { id = 0, archetype = 0 }
-        local componentInfo = ComponentInfo { id = 0, archetype = 0 }
-    end
-
-    -- Warm-up Table-Based Types
-    --* Probably does not really do anything but well
-    for i = 1, 1000 do
-        local entityInfo = { id = 0, archetype = 0 }
-        local componentInfo = { id = 0, archetype = 0 }
-    end
 
     -- Custom Types
     local customTypesTotalTimeWithJIT = 0
@@ -59,9 +44,8 @@ function TypeTest:onInit()
     -- Custom Types with JIT
     for i = 1, testRuns do
         profiler:start()
-        local entityInfo = EntityInfo { id = 0, archetype = 0 }
         local componentInfo = ComponentInfo { id = 0, archetype = 0 }
-        testInfo(entityInfo, componentInfo)
+        testInfo(componentInfo.id, componentInfo.archetype)
         local time = profiler:stop()
         if time then
             customTypesTotalTimeWithJIT = customTypesTotalTimeWithJIT + time
@@ -72,9 +56,8 @@ function TypeTest:onInit()
     -- No Types with JIT
     for i = 1, testRuns do
         profiler2:start()
-        local entityInfo = { id = 0, archetype = 0 }
         local componentInfo = { id = 0, archetype = 0 }
-        testInfo(entityInfo, componentInfo)
+        testInfo(componentInfo.id, componentInfo.archetype)
         local time = profiler2:stop()
         if time then
             noTypesTotalTimeWithJIT = noTypesTotalTimeWithJIT + time
@@ -94,9 +77,8 @@ function TypeTest:onInit()
     -- Custom Types without JIT
     for i = 1, testRuns do
         profiler:start()
-        local entityInfo = EntityInfo { id = 0, archetype = 0 }
         local componentInfo = ComponentInfo { id = 0, archetype = 0 }
-        testInfo(entityInfo, componentInfo)
+        testInfo(componentInfo.id, componentInfo.archetype)
         local time = profiler:stop()
         if time then
             customTypesTotalTimeWithoutJIT = customTypesTotalTimeWithoutJIT + time
@@ -107,9 +89,8 @@ function TypeTest:onInit()
     -- No Types without JIT
     for i = 1, testRuns do
         profiler2:start()
-        local entityInfo = { id = 0, archetype = 0 }
         local componentInfo = { id = 0, archetype = 0 }
-        testInfo(entityInfo, componentInfo)
+        testInfo(componentInfo.id, componentInfo.archetype)
         local time = profiler2:stop()
         if time then
             noTypesTotalTimeWithoutJIT = noTypesTotalTimeWithoutJIT + time

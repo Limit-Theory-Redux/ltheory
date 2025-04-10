@@ -19,12 +19,12 @@ function InventoryComponent:getInventory()
 end
 
 ---@param itemId integer
----@param itemEntityInfo EntityInfo
-function InventoryComponent:addItem(itemId, itemEntityInfo)
+---@param itemEntityId EntityId
+function InventoryComponent:addItem(itemId, itemEntityId)
     if not self.items[itemId] then
         self.items[itemId] = {}
     end
-    self.items[itemId][itemEntityInfo.id] = itemEntityInfo
+    self.items[itemId][itemEntityId] = itemEntityId
 end
 
 ---@param itemId integer
