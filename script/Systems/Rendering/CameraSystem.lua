@@ -57,8 +57,8 @@ function CameraSystem:setCamera(entityId)
         return
     end
 
-    self.currentCameraData = cameraEntity:findComponentByArchetype(Components.CameraDataComponent)
-    self.currentCameraTransform = cameraEntity:findComponentByArchetype(Components.TransformComponent)
+    self.currentCameraData = cameraEntity:getComponent(Components.CameraDataComponent)
+    self.currentCameraTransform = cameraEntity:getComponent(Components.TransformComponent)
 end
 
 ---Get Current Camera 'Eye'/Position

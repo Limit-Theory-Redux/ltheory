@@ -38,9 +38,9 @@ local function printInventory(parentEntity, component)
 
             if itemEntity then
                 ---@type NameComponent
-                local nameComponent = itemEntity:findComponentByArchetype(NameComponent)
+                local nameComponent = itemEntity:getComponent(NameComponent)
                 ---@type QuantityComponent
-                local quantityComponent = itemEntity:findComponentByArchetype(QuantityComponent)
+                local quantityComponent = itemEntity:getComponent(QuantityComponent)
 
                 Log.Debug(" ├─ %s(%d)", nameComponent:getName(), quantityComponent:getQuantity())
             end

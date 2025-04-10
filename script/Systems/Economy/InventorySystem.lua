@@ -35,7 +35,7 @@ function InventorySystem:take(inventory, itemId, quantity)
     for id, itemEntityId in pairs(itemsOfType) do
         local itemEntity = Registry:getEntity(itemEntityId)
         ---@cast itemEntity ItemEntity
-        local quantityComponent = itemEntity:findComponentByArchetype(QuantityComponent)
+        local quantityComponent = itemEntity:getComponent(QuantityComponent)
         ---@cast quantityComponent QuantityComponent
         local itemQuantity = quantityComponent:getQuantity()
 
@@ -48,7 +48,7 @@ function InventorySystem:take(inventory, itemId, quantity)
             -- Split the item and update quantity
             quantityComponent:setQuantity(itemQuantity - remainingQuantity)
             local clone, cloneEntityId = itemEntity:clone()
-            local cloneQuantityCmp = clone:findComponentByArchetype(QuantityComponent)
+            local cloneQuantityCmp = clone:getComponent(QuantityComponent)
             cloneQuantityCmp:setQuantity(remainingQuantity)
             table.insert(takenItems, cloneEntityId)
             remainingQuantity = 0
@@ -76,7 +76,7 @@ end
 ---@param amount integer
 ---@return boolean success
 function InventorySystem:lockItemQuantity(item, owner, amount)
-    local quantityComponent = item:findComponentByArchetype(QuantityComponent)
+    local quantityComponent = item:getComponent(QuantityComponent)
 
     if amount > quantityComponent:getQuantity() then
         Log.Warn("Trying to reserve more than available quantity")
@@ -94,7 +94,7 @@ end
 ---@param amount integer|nil
 ---@return boolean success
 function InventorySystem:unlockItemQuantity(item, owner, amount)
-    local quantityComponent = item:findComponentByArchetype(QuantityComponent)
+    local quantityComponent = item:getComponent(QuantityComponent)
 
     if not quantityComponent:getLockedQuantity() then
         Log.Warn("Trying to unlock quantity without locking it first")

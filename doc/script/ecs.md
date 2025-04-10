@@ -203,18 +203,18 @@ end
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:findComponentByArchetype(OrderItemTypeComponent)
+            local bidItemTypeCmp = bid:getComponent(OrderItemTypeComponent)
             ---@cast bidItemTypeCmp OrderItemTypeComponent
-            local bidPriceCmp = bid:findComponentByArchetype(PriceComponent)
+            local bidPriceCmp = bid:getComponent(PriceComponent)
             ---@cast bidPriceCmp PriceComponent
-            local bidQuantityCmp = bid:findComponentByArchetype(QuantityComponent)
+            local bidQuantityCmp = bid:getComponent(QuantityComponent)
             ---@cast bidQuantityCmp QuantityComponent
 
-            local askItemTypeCmp = ask:findComponentByArchetype(OrderItemTypeComponent)
+            local askItemTypeCmp = ask:getComponent(OrderItemTypeComponent)
             ---@cast askItemTypeCmp OrderItemTypeComponent
-            local askPriceCmp = ask:findComponentByArchetype(PriceComponent)
+            local askPriceCmp = ask:getComponent(PriceComponent)
             ---@cast askPriceCmp PriceComponent
-            local askQuantityCmp = ask:findComponentByArchetype(QuantityComponent)
+            local askQuantityCmp = ask:getComponent(QuantityComponent)
             ---@cast askQuantityCmp QuantityComponent
 ```
 
@@ -229,14 +229,14 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askQuantity = askQuantityCmp:getQuantity()
 ```
 
-#### Here we can see that we are getting the entity from a marketplace component. Entities hold data on which components are linked to it and components hold data on which entity they are linked to. `getEntity()` and `findComponentByArchetype()` / `findComponentByName()` will all provide the user with a EntityId/ComponentInfo object which can be used to query the Registry to gain access to the actual entity/component. An xInfo object contains the guid and archetype of an entity or component.
+#### Here we can see that we are getting the entity from a marketplace component. Entities hold data on which components are linked to it and components hold data on which entity they are linked to. `getEntity()` and `getComponent()` / `findComponentByName()` will all provide the user with a EntityId/ComponentInfo object which can be used to query the Registry to gain access to the actual entity/component. An xInfo object contains the guid and archetype of an entity or component.
 
 ```lua
             -- Verify Inventory
             self.marketplaceParentInfo = marketplace:getEntity()
             self.marketplaceParentEntity = Registry:getEntity(self.marketplaceParentInfo)
             ---@type InventoryComponent
-            self.marketplaceInventoryCmp = self.marketplaceParentEntity:findComponentByArchetype(InventoryComponent)
+            self.marketplaceInventoryCmp = self.marketplaceParentEntity:getComponent(InventoryComponent)
 ```
 
 #### Here we use helper which was defined in a seperate file. Sometimes we want some additional methods that don´t have to be part of the system itself for cleanliness. Helper files can be defined for that purpose.

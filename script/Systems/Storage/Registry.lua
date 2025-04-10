@@ -82,7 +82,7 @@ end
 
 ---@param componentInfo ComponentInfo
 ---@return Component|nil
-function Registry:getComponentData(componentInfo)
+function Registry:getComponent(componentInfo)
     local archetypeStorage = self.components[componentInfo.archetype]
     if not archetypeStorage then
         -- No components with this archetype exist.

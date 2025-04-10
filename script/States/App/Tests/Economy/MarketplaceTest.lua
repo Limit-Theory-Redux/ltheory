@@ -23,8 +23,8 @@ function MarketplaceTest:onInit()
     local station = SpaceStationEntity(0)
     local station2 = SpaceStationEntity(1)
 
-    local inventoryComponent = station:findComponentByArchetype(Components.InventoryComponent)
-    local inventoryComponent2 = station2:findComponentByArchetype(Components.InventoryComponent)
+    local inventoryComponent = station:getComponent(Components.InventoryComponent)
+    local inventoryComponent2 = station2:getComponent(Components.InventoryComponent)
 
     local creditItem = ItemEntity(Items.Virtual.Credit, 1e6)
     local creditItemEntityId = Registry:storeEntity(creditItem)
@@ -40,8 +40,8 @@ function MarketplaceTest:onInit()
     inventoryComponent2:addItem(Items.Virtual.Credit.id, creditItemEntityId2)
     inventoryComponent2:addItem(Items.RefinedMaterials.Gold.id, goldItemEntityId2)
 
-    local marketplaceComponent = station:findComponentByArchetype(Components.MarketplaceComponent)
-    local marketplaceComponent2 = station2:findComponentByArchetype(Components.MarketplaceComponent)
+    local marketplaceComponent = station:getComponent(Components.MarketplaceComponent)
+    local marketplaceComponent2 = station2:getComponent(Components.MarketplaceComponent)
 
     local bidOrder = OrderEntity(0, Items.RefinedMaterials.Gold.id, 50, 500)
     local bidOrder2 = OrderEntity(1, Items.RefinedMaterials.Gold.id, 50, 500)

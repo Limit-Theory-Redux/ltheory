@@ -81,7 +81,7 @@ function Entity:removeComponent(componentType)
     if self.components[componentType] == nil then
         return false
     end
-    Registry:dropComponent(componentType, self.components[componentType].id)
+    Registry:dropComponent(self.components[componentType])
     self.components[componentType] = nil
     return true
 end
@@ -89,26 +89,26 @@ end
 ---@generic T
 ---@param archetype T
 ---@return T|nil
-function Entity:findComponentByArchetype(archetype)
+function Entity:getComponent(archetype)
     local componentInfo = self.components[archetype]
     if not componentInfo then
         return nil
     end
 
-    return Registry:getComponentData(componentInfo)
+    return Registry:getComponent(componentInfo)
 end
 
 function Entity:iterComponents()
     local components = {}
     for _, info in pairs(self.components) do
-        insert(components, Registry:getComponentData(info))
+        insert(components, Registry:getComponent(info))
     end
     return Iterator(components)
 end
 
 function Entity:clearComponents()
     for type, info in pairs(self.components) do
-        Registry:dropComponent(type, info.id)
+        Registry:dropComponent(info)
     end
     self.components = {}
 end

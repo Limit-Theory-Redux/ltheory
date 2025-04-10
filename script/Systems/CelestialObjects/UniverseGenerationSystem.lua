@@ -82,7 +82,7 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
     -- Add star area
     local starZone = ZoneEntity()
     ---@type SpatialShapeComponent
-    local starZoneShapeComponent = starZone:findComponentByArchetype(ShapeComponent)
+    local starZoneShapeComponent = starZone:getComponent(ShapeComponent)
     starZoneShapeComponent:setShape(Enums.ZoneShape.Sphere)
     starZoneShapeComponent:setRadius(1.7952e13) --* Hardcode to solar system radius for now
 
@@ -179,7 +179,7 @@ end
 
 ---@private
 function UniverseGenerationSystem:addChildEntity(parentEntity, childEntityId)
-    local hierarchyComponent = parentEntity:findComponentByArchetype(HierarchyComponent)
+    local hierarchyComponent = parentEntity:getComponent(HierarchyComponent)
     hierarchyComponent:addChild(childEntityId)
 end
 
