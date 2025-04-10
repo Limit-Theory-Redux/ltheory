@@ -98,25 +98,6 @@ function Entity:findComponentByArchetype(archetype)
     return Registry:getComponentData(componentInfo)
 end
 
----@param query string
----@return Component|nil
-function Entity:findComponentByName(query)
-    local queryResults = {}
-    for _, componentInfo in pairs(self.components) do
-        local component = Registry:getComponentData(componentInfo)
-        local componentName = component and component:getComponentName()
-        if componentName and string.match(componentName, query) then
-            insert(queryResults, component)
-        end
-    end
-
-    if #queryResults > 1 then
-        Log.Error("Found more than one component for your query. Please be more specific.")
-    end
-
-    return queryResults[1]
-end
-
 function Entity:iterComponents()
     local components = {}
     for _, info in pairs(self.components) do
