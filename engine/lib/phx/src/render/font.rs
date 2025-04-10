@@ -255,37 +255,35 @@ impl Font {
 
         if text.is_empty() {
             *out = IVec4::ZERO;
-            return;
-        }
+        } else {
+            for c in text.chars() {
+                let code_point = c as u32;
 
-        for c in text.chars() {
-            let code_point = c as u32;
+                self.get_glyph(code_point);
 
-            self.get_glyph(code_point);
+                let mut font_data = self.0.as_mut();
+                let face = font_data.handle;
+                let glyph = font_data.glyphs.get_mut(&code_point);
 
-            let mut font_data = self.0.as_mut();
-            let face = font_data.handle;
-            let glyph = font_data.glyphs.get_mut(&code_point);
+                if let Some(glyph) = glyph {
+                    if glyph_last != 0 {
+                        x += self.get_kerning(face, glyph_last, glyph.index);
+                    }
 
-            if let Some(glyph) = glyph {
-                if glyph_last != 0 {
-                    x += self.get_kerning(face, glyph_last, glyph.index);
+                    lower.x = i32::min(lower.x, x + glyph.x0);
+                    lower.y = i32::min(lower.y, y + glyph.y0);
+                    upper.x = i32::max(upper.x, x + glyph.x1);
+                    upper.y = i32::max(upper.y, y + glyph.y1);
+
+                    x += glyph.advance;
+                    glyph_last = glyph.index;
+                } else {
+                    glyph_last = 0;
                 }
-
-                lower.x = i32::min(lower.x, x + glyph.x0);
-                lower.y = i32::min(lower.y, y + glyph.y0);
-                upper.x = i32::max(upper.x, x + glyph.x1);
-                upper.y = i32::max(upper.y, y + glyph.y1);
-
-                x += glyph.advance;
-                glyph_last = glyph.index;
-            } else {
-                glyph_last = 0;
             }
+
+            *out = IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y);
         }
-
-        *out = IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y);
-
         Profiler::end();
     }
 

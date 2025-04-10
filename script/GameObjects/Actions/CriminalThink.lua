@@ -157,8 +157,9 @@ function CriminalThink:onUpdateActive(e, dt)
         -- not on elapsed time (which never resets)
         self.timer = self.timer + dt
         --printf("CriminalThink [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
+
+        Profiler.End()
     end
-    Profiler.End()
 end
 
 return CriminalThink
