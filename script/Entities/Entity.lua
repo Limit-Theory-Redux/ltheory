@@ -116,11 +116,10 @@ end
 ---@return boolean success
 function Entity:destroy()
     local success = Registry:dropEntity(self.guid)
-
     if success then
         local noFail = true
-        for component in self:iterComponents() do
-            local success = Registry:dropComponent(component.archetype, component.guid)
+        for _, info in pairs(self.components) do
+            local success = Registry:dropComponent(info)
 
             if not success then
                 noFail = false

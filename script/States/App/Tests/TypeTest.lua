@@ -24,7 +24,7 @@ function TypeTest:onInit()
     if not ffi.istype("TimeStamp", timestamp) then Log.Error("FFI Type not found") end
 
     -- Custom type checking example
-    local componentInfo = ComponentInfo { id = 0, archetype = 0, entity = 0 }
+    local componentInfo = ComponentInfo { archetype = 0, entity = 0 }
     Log.Debug("Custom type: %s | type name: %s", componentInfo, type(componentInfo))
     if type(componentInfo) ~= ComponentInfo then Log.Error("Custom Type not found") end
 
@@ -44,7 +44,7 @@ function TypeTest:onInit()
     -- Custom Types with JIT
     for i = 1, testRuns do
         profiler:start()
-        local componentInfo = ComponentInfo { id = 0, archetype = 0 }
+        local componentInfo = ComponentInfo { archetype = 0, entity = 0 }
         testInfo(componentInfo.id, componentInfo.archetype)
         local time = profiler:stop()
         if time then
@@ -56,7 +56,7 @@ function TypeTest:onInit()
     -- No Types with JIT
     for i = 1, testRuns do
         profiler2:start()
-        local componentInfo = { id = 0, archetype = 0 }
+        local componentInfo = { archetype = 0, entity = 0 }
         testInfo(componentInfo.id, componentInfo.archetype)
         local time = profiler2:stop()
         if time then
@@ -77,7 +77,7 @@ function TypeTest:onInit()
     -- Custom Types without JIT
     for i = 1, testRuns do
         profiler:start()
-        local componentInfo = ComponentInfo { id = 0, archetype = 0 }
+        local componentInfo = ComponentInfo { archetype = 0, entity = 0 }
         testInfo(componentInfo.id, componentInfo.archetype)
         local time = profiler:stop()
         if time then
@@ -89,7 +89,7 @@ function TypeTest:onInit()
     -- No Types without JIT
     for i = 1, testRuns do
         profiler2:start()
-        local componentInfo = { id = 0, archetype = 0 }
+        local componentInfo = { archetype = 0, entity = 0 }
         testInfo(componentInfo.id, componentInfo.archetype)
         local time = profiler2:stop()
         if time then
