@@ -92,18 +92,6 @@ function Registry:getComponentData(componentInfo)
     return archetypeStorage[componentInfo.entity]
 end
 
----@param archetype EntityArchetype
----@return table<Entity>|nil
-function Registry:getEntitiesFromArchetype(archetype)
-    local entities = {}
-    for _, entity in pairs(self.entities) do
-        if entity:getArchetype() == archetype then
-            insert(entities, entity)
-        end
-    end
-    return entities
-end
-
 ---@generic T
 ---@param archetype T
 ---@return table<EntityId, T>|nil
