@@ -228,10 +228,7 @@ impl HmGui {
     pub fn draw(&mut self) {
         Profiler::begin("HmGui_Draw");
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PushBlendMode(BlendMode::Alpha);
-        }
+        RenderState::push_blend_mode(BlendMode::Alpha);
 
         self.renderer.begin();
 
@@ -249,10 +246,7 @@ impl HmGui {
 
         self.renderer.end();
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PopBlendMode();
-        }
+        RenderState::pop_blend_mode();
 
         self.renderer.draw();
 

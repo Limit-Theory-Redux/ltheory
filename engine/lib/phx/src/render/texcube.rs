@@ -6,7 +6,7 @@ use super::{
     TexFormat, CUBE_FACES,
 };
 use crate::math::Rng;
-use crate::render::{gl, glcheck, RenderState_PopAll, RenderState_PushAllDefaults, Shader};
+use crate::render::{gl, glcheck, RenderState, Shader};
 use crate::rf::Rf;
 use crate::system::{Bytes, TimeStamp};
 
@@ -386,10 +386,7 @@ impl TexCube {
     pub fn generate(&mut self, state: &mut ShaderState) {
         let this = self.shared.as_ref();
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PushAllDefaults()
-        };
+        RenderState::push_all_defaults();
 
         for i in 0..6 {
             let face = K_FACES[i as usize];
@@ -435,10 +432,7 @@ impl TexCube {
             RenderTarget::pop();
         }
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PopAll()
-        };
+        RenderState::pop_all();
     }
 
     pub fn gen_mipmap(&mut self) {

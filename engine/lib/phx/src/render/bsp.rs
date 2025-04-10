@@ -10,11 +10,7 @@ use crate::math::{
     lerp, Intersect, LineSegment, Plane, Polygon, PolygonClassification, Position, Ray, Rng,
     Sphere, Triangle,
 };
-use crate::render::{
-    BlendMode, CullFace, Draw, RenderState_PopBlendMode, RenderState_PopCullFace,
-    RenderState_PopDepthTest, RenderState_PopWireframe, RenderState_PushBlendMode,
-    RenderState_PushCullFace, RenderState_PushDepthTest, RenderState_PushWireframe, Shader,
-};
+use crate::render::{BlendMode, CullFace, Draw, RenderState, Shader};
 
 /* Adam's Stupidly Fast BSP Implementation
  *
@@ -1361,10 +1357,10 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
         )));
     }
 
-    RenderState_PushBlendMode(BlendMode::Alpha);
-    RenderState_PushCullFace(CullFace::Back);
-    RenderState_PushDepthTest(true);
-    RenderState_PushWireframe(true);
+    RenderState::push_blend_mode(BlendMode::Alpha);
+    RenderState::push_cull_face(CullFace::Back);
+    RenderState::push_depth_test(true);
+    RenderState::push_wireframe(true);
 
     if nodeRef.index > 0 {
         let node: *const BSPNode = &this.nodes[nodeRef.index as usize] as *const _;
@@ -1387,7 +1383,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
         let origin: Vec3 = Vec3::new(0., 0., 0.);
         let t: f32 = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
         let closestPoint = origin - ((*node).plane.n * t);
-        RenderState_PushWireframe(false);
+        RenderState::push_wireframe(false);
         (*SHADER).start();
         (*SHADER).set_float4("color", 0.3f32, 0.5f32, 0.3f32, 0.4f32);
         Draw::plane(&closestPoint, &(*node).plane.n, 2.0f32);
@@ -1395,16 +1391,16 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
         let neg: Vec3 = (*node).plane.n * -1.0f32;
         Draw::plane(&closestPoint, &neg, 2.0f32);
         (*SHADER).stop();
-        RenderState_PopWireframe();
+        RenderState::pop_wireframe();
     } else {
         /* Leaf */
         BSPDebug_DrawNode(this, nodeRef, &Color::new(0.5, 0.5, 0.3, 0.4));
     }
 
-    RenderState_PopWireframe();
-    RenderState_PopDepthTest();
-    RenderState_PopCullFace();
-    RenderState_PopBlendMode();
+    RenderState::pop_wireframe();
+    RenderState::pop_depth_test();
+    RenderState::pop_cull_face();
+    RenderState::pop_blend_mode();
 
     (*SHADER).stop();
 }
@@ -1467,23 +1463,23 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere
 
     (*SHADER).start();
     if BSP_IntersectSphere(this, sphere, &mut pHit) {
-        RenderState_PushWireframe(false);
+        RenderState::push_wireframe(false);
         (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 0.3f32);
         Draw::sphere(&sphere.p, sphere.r);
-        RenderState_PopWireframe();
+        RenderState::pop_wireframe();
 
         (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
         Draw::sphere(&sphere.p, sphere.r);
 
-        RenderState_PushDepthTest(false);
+        RenderState::push_depth_test(false);
         Draw::point_size(8.0f32);
         Draw::point3(pHit.x, pHit.y, pHit.z);
-        RenderState_PopDepthTest();
+        RenderState::pop_depth_test();
     } else {
-        RenderState_PushWireframe(false);
+        RenderState::push_wireframe(false);
         (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.3f32);
         Draw::sphere(&sphere.p, sphere.r);
-        RenderState_PopWireframe();
+        RenderState::pop_wireframe();
 
         (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
         Draw::sphere(&sphere.p, sphere.r);

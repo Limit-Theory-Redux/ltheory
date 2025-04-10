@@ -1,8 +1,6 @@
 use std::cell::RefCell;
 
-use glam::IVec2;
-
-use crate::render::{gl, glcheck, Viewport_GetSize};
+use crate::render::{gl, glcheck, Viewport};
 
 const MAX_STACK_DEPTH: usize = 128;
 
@@ -92,12 +90,8 @@ impl ClipManager {
     }
 
     fn activate(&mut self) {
-        let mut vp_size = IVec2::ZERO;
+        let vp_size = Viewport::get_size();
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            Viewport_GetSize(&mut vp_size);
-        }
         glcheck!(gl::Enable(gl::SCISSOR_TEST));
 
         let rect = &mut self.rects[self.rects_count - 1];
