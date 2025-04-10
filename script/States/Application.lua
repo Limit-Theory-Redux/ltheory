@@ -222,6 +222,7 @@ function Application:onRender(data)
         end
     end
 
+    Profiler.Begin('Metrics.Display')
     do -- Metrics display
         if GameState.debug.metricsEnabled then
             local dt = data:deltaTime()

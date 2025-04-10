@@ -1,8 +1,9 @@
+use std::cmp::Ordering;
 use std::sync::{LazyLock, Mutex, MutexGuard};
 
 use cli_table::{Cell, Style, Table};
 use indexmap::IndexMap;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 use super::{signal_add_handler_all, signal_remove_handler_all, Signal, TimeStamp};
 
@@ -86,7 +87,7 @@ impl Profiler {
             panic!("Profiler::disable: Cannot stop profiler from within a profiled section. Active scope(s): {:?}", profiler.stack);
         }
 
-        Self::end_intern(&mut profiler);
+        Self::end_intern(&mut profiler, true);
 
         let total = profiler.start.get_elapsed();
         let total_ms = profiler.start.get_elapsed_ms();
@@ -96,15 +97,13 @@ impl Profiler {
             scope.var = f64::sqrt(scope.var);
         }
 
-        // profiler.scopes.sort_by(|pa: &*mut Scope, pb: &*mut Scope| {
-        //     let (a, b) = (&**pa, &**pb);
-
-        //     if b.total < a.total {
-        //         Ordering::Less
-        //     } else {
-        //         Ordering::Greater
-        //     }
-        // });
+        profiler.scopes.sort_by(|_, s1, _, s2| {
+            if s2.total < s1.total {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        });
 
         info!("-- PHX PROFILER -------------------------------------");
         info!("-- Measured timespan: {total_ms}ms");
@@ -120,6 +119,7 @@ impl Profiler {
 
                 if scope_total / total > 0.01 || scope.max > 0.01 {
                     table.push(vec![
+                        scope.name.clone().cell(),
                         format!("{:5.1}", 100.0 * (scope_total / total)).cell(),
                         format!("{:5.0}", 100.0 * (cumulative / total)).cell(),
                         format!("{:6.0}", 1000.0 * scope_total).cell(),
@@ -128,12 +128,12 @@ impl Profiler {
                         format!("{:6.2}", 1000.0 * scope.mean).cell(),
                         format!("{:5.2}", 1000.0 * scope.var).cell(),
                         format!("{:7.0}", 100.0 * (scope.var / scope.mean)).cell(),
-                        scope.name.clone().cell(),
                     ]);
                 }
             }
 
             let table = table.table().title(vec![
+                "Name".cell().bold(true),
                 "Scope %".cell().bold(true),
                 "Cumul %".cell().bold(true),
                 "Scope (ms)".cell().bold(true),
@@ -142,7 +142,6 @@ impl Profiler {
                 "Mean".cell().bold(true),
                 "Var".cell().bold(true),
                 "Var/Mean %".cell().bold(true),
-                "Name".cell().bold(true),
             ]);
 
             info!("\n{}", table.display().expect("No profiler table"));
@@ -189,7 +188,7 @@ impl Profiler {
     /// Ends the current profiling scope
     pub fn end() {
         let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
-        Self::end_intern(&mut profiler);
+        Self::end_intern(&mut profiler, false);
     }
 
     pub fn set_value(_name: &str, _value: i32) {
@@ -227,8 +226,13 @@ impl Profiler {
 }
 
 impl Profiler {
-    fn end_intern(profiler: &mut MutexGuard<Profiler>) {
+    fn end_intern(profiler: &mut MutexGuard<Profiler>, is_root: bool) {
         if !profiler.is_enabled {
+            return;
+        }
+
+        if !is_root && profiler.stack.len() == 1 {
+            error!("Attempting to remove profiler root scope");
             return;
         }
 
@@ -245,7 +249,7 @@ impl Profiler {
             }
         } else {
             Self::backtrace_intern(profiler);
-            panic!("Profiler::end: Attempting to pop an empty stack. Profiler::begin is missing.");
+            error!("Profiler::end: Attempting to pop an empty stack. Profiler::begin is missing.");
         }
     }
 
