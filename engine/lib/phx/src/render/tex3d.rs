@@ -1,7 +1,9 @@
-use super::*;
-use crate::math::*;
+use glam::IVec3;
+
+use super::{DataFormat, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
+use crate::render::{gl, glcheck};
 use crate::rf::Rf;
-use crate::system::*;
+use crate::system::Bytes;
 
 #[derive(Clone)]
 pub struct Tex3D {
@@ -57,8 +59,8 @@ impl Tex3D {
         let this = self.shared.as_ref();
 
         let mut size = this.size.x * this.size.y * this.size.z;
-        size *= DataFormat_GetSize(df);
-        size *= PixelFormat_Components(pf);
+        size *= DataFormat::get_size(df);
+        size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
         let mut data = vec![T::default(); size as usize];
@@ -82,7 +84,7 @@ impl Tex3D {
         glcheck!(gl::TexImage3D(
             gl::TEXTURE_3D,
             0,
-            this.format,
+            this.format as _,
             this.size.x,
             this.size.y,
             this.size.z,
@@ -99,11 +101,11 @@ impl Tex3D {
 impl Tex3D {
     #[bind(name = "Create")]
     pub fn new(sx: i32, sy: i32, sz: i32, format: TexFormat) -> Tex3D {
-        if !TexFormat_IsValid(format) {
+        if !TexFormat::is_valid(format) {
             panic!("Invalid texture format requested");
         }
 
-        if TexFormat_IsDepth(format) {
+        if TexFormat::is_depth(format) {
             panic!("Cannot create 3D texture with depth format");
         }
 
@@ -119,7 +121,7 @@ impl Tex3D {
         glcheck!(gl::TexImage3D(
             gl::TEXTURE_3D,
             0,
-            this.format,
+            this.format as _,
             this.size.x,
             this.size.y,
             this.size.z,
@@ -139,21 +141,15 @@ impl Tex3D {
     }
 
     pub fn pop(&self) {
-        unsafe {
-            RenderTarget_Pop();
-        }
+        RenderTarget::pop();
     }
 
     pub fn push(&self, layer: i32) {
-        unsafe {
-            RenderTarget_PushTex3D(self, layer);
-        }
+        RenderTarget::push_tex3d(self, layer);
     }
 
     pub fn push_level(&self, layer: i32, level: i32) {
-        unsafe {
-            RenderTarget_PushTex3DLevel(self, layer, level);
-        }
+        RenderTarget::push_tex3d_level(self, layer, level);
     }
 
     pub fn gen_mipmap(&mut self) {
@@ -206,7 +202,7 @@ impl Tex3D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_3D,
             gl::TEXTURE_MAG_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
     }
@@ -218,7 +214,7 @@ impl Tex3D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_3D,
             gl::TEXTURE_MIN_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
     }
@@ -227,9 +223,21 @@ impl Tex3D {
         let this = self.shared.as_ref();
 
         glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, mode));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, mode));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, mode));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_3D,
+            gl::TEXTURE_WRAP_S,
+            mode as _
+        ));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_3D,
+            gl::TEXTURE_WRAP_T,
+            mode as _
+        ));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_3D,
+            gl::TEXTURE_WRAP_R,
+            mode as _
+        ));
         glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
     }
 }

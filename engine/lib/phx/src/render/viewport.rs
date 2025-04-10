@@ -1,7 +1,8 @@
-use glam::Mat4;
+#![allow(unsafe_code)] // TODO: remove
 
-use super::{gl, *};
-use crate::math::*;
+use glam::{vec3, IVec2, Mat4};
+
+use crate::render::{gl, glcheck, ShaderVar};
 
 /* TODO : This is a low-level mechanism and probably not for use outside of
  *        RenderTarget. Should likely be folded into RenderTarget. */
@@ -13,7 +14,7 @@ pub struct VP {
     pub y: i32,
     pub sx: i32,
     pub sy: i32,
-    pub isWindow: bool,
+    pub is_window: bool,
 }
 static mut VP_INDEX: i32 = -1;
 
@@ -22,7 +23,7 @@ static mut VP: [VP; 16] = [VP {
     y: 0,
     sx: 0,
     sy: 0,
-    isWindow: false,
+    is_window: false,
 }; 16];
 
 #[no_mangle]
@@ -43,7 +44,7 @@ pub unsafe extern "C" fn Viewport_GetSize(out: &mut IVec2) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindow: bool) {
+pub unsafe extern "C" fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, is_window: bool) {
     if VP_INDEX + 1 >= 16 {
         panic!("Viewport_Push: Maximum viewport stack depth exceeded");
     }
@@ -55,10 +56,10 @@ pub unsafe extern "C" fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindo
     this.y = y;
     this.sx = sx;
     this.sy = sy;
-    this.isWindow = isWindow;
+    this.is_window = is_window;
 
     // Set up the ortho projection matrix for UI elements.
-    let ortho_proj = if this.isWindow {
+    let ortho_proj = if this.is_window {
         Mat4::from_translation(vec3(-1.0, 1.0, 0.0))
             * Mat4::from_scale(vec3(2.0f32 / this.sx as f32, -2.0f32 / this.sy as f32, 1.0))
     } else {

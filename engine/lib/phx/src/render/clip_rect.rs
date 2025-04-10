@@ -1,173 +1,219 @@
-#![allow(unsafe_code)] // TODO: remove
+use std::cell::RefCell;
 
 use glam::IVec2;
 
 use crate::render::{gl, glcheck, Viewport_GetSize};
 
-const MAX_STACK_DEPTH: i32 = 128;
+const MAX_STACK_DEPTH: usize = 128;
 
 #[derive(Copy, Clone)]
-#[repr(C)]
+struct ClipRectTransform {
+    tx: f32,
+    ty: f32,
+    sx: f32,
+    sy: f32,
+}
+
+#[derive(Copy, Clone)]
 pub struct ClipRect {
-    pub x: f32,
-    pub y: f32,
-    pub sx: f32,
-    pub sy: f32,
-    pub enabled: bool,
+    x: f32,
+    y: f32,
+    sx: f32,
+    sy: f32,
+    enabled: bool,
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct ClipRectTransform {
-    pub tx: f32,
-    pub ty: f32,
-    pub sx: f32,
-    pub sy: f32,
-}
-static mut TRANSFORM: [ClipRectTransform; 128] = [ClipRectTransform {
-    tx: 0.,
-    ty: 0.,
-    sx: 0.,
-    sy: 0.,
-}; 128];
+#[luajit_ffi_gen::luajit_ffi]
+impl ClipRect {
+    pub fn push(x: f32, y: f32, sx: f32, sy: f32) {
+        CLIP_MANAGER.with_borrow_mut(|cm| cm.push(x, y, sx, sy));
+    }
 
-static mut TRANSFORM_INDEX: i32 = -1;
+    pub fn push_combined(x: f32, y: f32, sx: f32, sy: f32) {
+        CLIP_MANAGER.with_borrow_mut(|cm| cm.push_combined(x, y, sx, sy));
+    }
 
-static mut RECT: [ClipRect; 128] = [ClipRect {
-    x: 0.,
-    y: 0.,
-    sx: 0.,
-    sy: 0.,
-    enabled: false,
-}; 128];
+    pub fn push_disabled() {
+        CLIP_MANAGER.with_borrow_mut(|cm| cm.push_disabled());
+    }
 
-static mut RECT_INDEX: i32 = -1;
+    pub fn push_transform(tx: f32, ty: f32, sx: f32, sy: f32) {
+        CLIP_MANAGER.with_borrow_mut(|cm| cm.push_transform(tx, ty, sx, sy));
+    }
 
-#[allow(non_snake_case)] // TODO: remove this and fix all warnings
-#[inline]
-unsafe extern "C" fn TransformRect(x: &mut f32, y: &mut f32, sx: &mut f32, sy: &mut f32) {
-    if TRANSFORM_INDEX >= 0 {
-        let curr = &TRANSFORM[TRANSFORM_INDEX as usize];
-        *x = curr.sx * *x + curr.tx;
-        *y = curr.sy * *y + curr.ty;
-        *sx *= curr.sx;
-        *sy *= curr.sy;
+    pub fn pop() {
+        CLIP_MANAGER.with_borrow_mut(|cm| cm.pop());
+    }
+
+    pub fn pop_transform() {
+        CLIP_MANAGER.with_borrow_mut(|cm| cm.pop_transform());
     }
 }
 
-#[no_mangle]
-pub extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
-    match this {
-        Some(this) => {
-            if this.enabled {
-                let mut vp_size: IVec2 = IVec2::ZERO;
+thread_local! { static CLIP_MANAGER: RefCell<ClipManager> = RefCell::new(ClipManager::new()); }
 
-                unsafe { Viewport_GetSize(&mut vp_size) };
-                glcheck!(gl::Enable(gl::SCISSOR_TEST));
+struct ClipManager {
+    transforms: [ClipRectTransform; MAX_STACK_DEPTH],
+    transforms_count: usize,
+    rects: [ClipRect; MAX_STACK_DEPTH],
+    rects_count: usize,
+}
 
-                let mut x: f32 = this.x;
-                let mut y: f32 = this.y;
-                let mut sx: f32 = this.sx;
-                let mut sy: f32 = this.sy;
+impl ClipManager {
+    fn new() -> Self {
+        Self {
+            transforms: [ClipRectTransform {
+                tx: 0.,
+                ty: 0.,
+                sx: 0.,
+                sy: 0.,
+            }; MAX_STACK_DEPTH],
+            transforms_count: 0,
+            rects: [ClipRect {
+                x: 0.,
+                y: 0.,
+                sx: 0.,
+                sy: 0.,
+                enabled: false,
+            }; MAX_STACK_DEPTH],
+            rects_count: 0,
+        }
+    }
 
-                unsafe { TransformRect(&mut x, &mut y, &mut sx, &mut sy) };
-                glcheck!(gl::Scissor(
-                    x as i32,
-                    vp_size.y - (y + sy) as i32,
-                    sx as i32,
-                    sy as i32
-                ));
-            } else {
-                glcheck!(gl::Disable(gl::SCISSOR_TEST));
+    #[inline]
+    fn transform_rect(&self, x: &mut f32, y: &mut f32, sx: &mut f32, sy: &mut f32) {
+        if self.transforms_count > 0 {
+            let t = &self.transforms[self.transforms_count - 1];
+            *x = t.sx * *x + t.tx;
+            *y = t.sy * *y + t.ty;
+            *sx *= t.sx;
+            *sy *= t.sy;
+        }
+    }
+
+    fn activate(&mut self) {
+        let rect = &mut self.rects[self.rects_count - 1];
+        if !rect.enabled {
+            glcheck!(gl::Disable(gl::SCISSOR_TEST));
+            return;
+        }
+        
+        let mut vp_size = IVec2::ZERO;
+
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            Viewport_GetSize(&mut vp_size);
+        }
+        glcheck!(gl::Enable(gl::SCISSOR_TEST));
+
+        let mut x = rect.x;
+        let mut y = rect.y;
+        let mut sx = rect.sx;
+        let mut sy = rect.sy;
+
+        self.transform_rect(&mut x, &mut y, &mut sx, &mut sy);
+
+        glcheck!(gl::Scissor(
+            x as i32,
+            vp_size.y - (y + sy) as i32,
+            sx as i32,
+            sy as i32
+        ));
+    }
+
+    fn push_rect_intern(&mut self, x: f32, y: f32, sx: f32, sy: f32) {
+        if self.rects_count >= MAX_STACK_DEPTH {
+            panic!("ClipRect.Push: Maximum stack depth {MAX_STACK_DEPTH} exceeded");
+        }
+
+        let rect = &mut self.rects[self.rects_count];
+        rect.x = x;
+        rect.y = y;
+        rect.sx = sx;
+        rect.sy = sy;
+        rect.enabled = true;
+
+        self.rects_count += 1;
+        self.activate();
+    }
+
+    fn push_transform_intern(&mut self, tx: f32, ty: f32, sx: f32, sy: f32) {
+        if self.transforms_count >= MAX_STACK_DEPTH {
+            panic!("ClipRect.PushTransform: Maximum stack depth {MAX_STACK_DEPTH} exceeded");
+        }
+
+        let transform = &mut self.transforms[self.transforms_count];
+        transform.tx = tx;
+        transform.ty = ty;
+        transform.sx = sx;
+        transform.sy = sy;
+
+        self.transforms_count += 1;
+    }
+
+    fn push(&mut self, x: f32, y: f32, sx: f32, sy: f32) {
+        self.push_rect_intern(x, y, sx, sy);
+    }
+
+    fn push_combined(&mut self, x: f32, y: f32, sx: f32, sy: f32) {
+        if self.rects_count > 0 {
+            let curr = self.rects[self.rects_count - 1];
+            if curr.enabled {
+                let max_x = x + sx;
+                let max_y = y + sy;
+                let x = f32::max(x, curr.x);
+                let y = f32::max(y, curr.y);
+                let sx = f32::min(max_x, curr.x + curr.sx) - x;
+                let sy = f32::min(max_y, curr.y + curr.sy) - y;
+
+                self.push_rect_intern(x, y, sx, sy);
+                return;
             }
         }
-        None => glcheck!(gl::Disable(gl::SCISSOR_TEST)),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32) {
-    if RECT_INDEX + 1 >= MAX_STACK_DEPTH {
-        panic!("ClipRect_Push: Maximum stack depth exceeded");
-    }
-    RECT_INDEX += 1;
-    let curr: *mut ClipRect = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
-    (*curr).x = x;
-    (*curr).y = y;
-    (*curr).sx = sx;
-    (*curr).sy = sy;
-    (*curr).enabled = true;
-    ClipRect_Activate(Some(&mut *curr));
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32) {
-    let curr: *mut ClipRect = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
-    if RECT_INDEX >= 0 && (*curr).enabled as i32 != 0 {
-        let max_x: f32 = x + sx;
-        let max_y: f32 = y + sy;
-        let x = f32::max(x, (*curr).x);
-        let y = f32::max(y, (*curr).y);
-
-        ClipRect_Push(
-            x,
-            y,
-            f32::min(max_x, (*curr).x + (*curr).sx) - x,
-            f32::min(max_y, (*curr).y + (*curr).sy) - y,
-        );
-    } else {
-        ClipRect_Push(x, y, sx, sy);
-    };
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn ClipRect_PushDisabled() {
-    if RECT_INDEX + 1 >= MAX_STACK_DEPTH {
-        panic!("ClipRect_Push: Maximum stack depth exceeded");
+        self.push_rect_intern(x, y, sx, sy);
     }
 
-    RECT_INDEX += 1;
-    let curr: *mut ClipRect = RECT.as_mut_ptr().offset(RECT_INDEX as isize);
-    (*curr).enabled = false;
-    ClipRect_Activate(Some(&mut *curr));
-}
+    fn push_disabled(&mut self) {
+        if self.rects_count >= MAX_STACK_DEPTH {
+            panic!("ClipRect_PushDisabled: Maximum stack depth exceeded");
+        }
 
-#[no_mangle]
-pub unsafe extern "C" fn ClipRect_PushTransform(tx: f32, ty: f32, sx: f32, sy: f32) {
-    if TRANSFORM_INDEX + 1 >= MAX_STACK_DEPTH {
-        panic!("ClipRect_PushTransform: Maximum stack depth exceeded");
-    }
-    TRANSFORM_INDEX += 1;
-    let curr: *mut ClipRectTransform = TRANSFORM.as_mut_ptr().offset(TRANSFORM_INDEX as isize);
-    (*curr).tx = tx;
-    (*curr).ty = ty;
-    (*curr).sx = sx;
-    (*curr).sy = sy;
-    if RECT_INDEX >= 0 {
-        ClipRect_Activate(Some(&mut *RECT.as_mut_ptr().offset(RECT_INDEX as isize)));
-    }
-}
+        let rect = &mut self.rects[self.rects_count];
+        rect.enabled = false;
 
-#[no_mangle]
-pub unsafe extern "C" fn ClipRect_Pop() {
-    if RECT_INDEX < 0 {
-        panic!("ClipRect_Pop: Attempting to pop an empty stack");
+        self.rects_count += 1;
+        self.activate();
     }
-    RECT_INDEX -= 1;
-    ClipRect_Activate(if RECT_INDEX >= 0 {
-        Some(&mut *RECT.as_mut_ptr().offset(RECT_INDEX as isize))
-    } else {
-        None
-    });
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn ClipRect_PopTransform() {
-    if TRANSFORM_INDEX < 0 {
-        panic!("ClipRect_PopTransform: Attempting to pop an empty stack");
+    fn push_transform(&mut self, tx: f32, ty: f32, sx: f32, sy: f32) {
+        self.push_transform_intern(tx, ty, sx, sy);
+
+        if self.rects_count > 0 {
+            self.activate();
+        }
     }
-    TRANSFORM_INDEX -= 1;
-    if RECT_INDEX >= 0 {
-        ClipRect_Activate(Some(&mut *RECT.as_mut_ptr().offset(RECT_INDEX as isize)));
+
+    fn pop(&mut self) {
+        if self.rects_count == 0 {
+            panic!("ClipRect_Pop: Attempting to pop an empty stack");
+        }
+        self.rects_count -= 1;
+
+        if self.rects_count > 0 {
+            self.activate();
+        } else {
+            glcheck!(gl::Disable(gl::SCISSOR_TEST));
+        }
+    }
+
+    fn pop_transform(&mut self) {
+        if self.transforms_count == 0 {
+            panic!("ClipRect_PopTransform: Attempting to pop an empty stack");
+        }
+        self.transforms_count -= 1;
+
+        if self.rects_count > 0 {
+            self.activate();
+        }
     }
 }

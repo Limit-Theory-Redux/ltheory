@@ -1,10 +1,11 @@
+use glam::IVec2;
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
-use super::*;
+use super::{DataFormat, Draw, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
 use crate::logging::warn;
-use crate::math::*;
+use crate::render::{gl, glcheck, Viewport_GetSize};
 use crate::rf::Rf;
-use crate::system::*;
+use crate::system::{Bytes, Resource, ResourceType};
 
 #[derive(Clone, Debug)]
 pub struct Tex2D {
@@ -56,8 +57,8 @@ impl Tex2D {
         let this = self.shared.as_ref();
 
         let mut size = this.size.x * this.size.y;
-        size *= DataFormat_GetSize(df);
-        size *= PixelFormat_Components(pf);
+        size *= DataFormat::get_size(df);
+        size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
         let mut data = vec![T::default(); size as usize];
@@ -81,7 +82,7 @@ impl Tex2D {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            this.format,
+            this.format as _,
             this.size.x,
             this.size.y,
             0,
@@ -97,7 +98,7 @@ impl Tex2D {
 impl Tex2D {
     #[bind(name = "Create")]
     pub fn new(sx: i32, sy: i32, format: TexFormat) -> Tex2D {
-        if !TexFormat_IsValid(format) {
+        if !TexFormat::is_valid(format) {
             panic!("Invalid texture format requested");
         }
 
@@ -113,11 +114,11 @@ impl Tex2D {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            format,
+            format as _,
             this.size.x,
             this.size.y,
             0,
-            if TexFormat_IsColor(format) {
+            if TexFormat::is_color(format) {
                 gl::RED
             } else {
                 gl::DEPTH_COMPONENT
@@ -154,7 +155,7 @@ impl Tex2D {
         let mut this = Tex2DShared {
             handle: 0,
             size: IVec2::new(width as i32, height as i32),
-            format: TexFormat_RGBA8,
+            format: TexFormat::RGBA8,
         };
 
         glcheck!(gl::GenTextures(1, &mut this.handle));
@@ -163,7 +164,7 @@ impl Tex2D {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            TexFormat_RGBA8 as gl::types::GLint,
+            TexFormat::RGBA8 as gl::types::GLint,
             this.size.x,
             this.size.y,
             0,
@@ -189,6 +190,7 @@ impl Tex2D {
 
     pub fn screen_capture() -> Tex2D {
         let mut size: IVec2 = IVec2::ZERO;
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
             Viewport_GetSize(&mut size);
         }
@@ -216,7 +218,7 @@ impl Tex2D {
         let mut this = Tex2DShared {
             handle: 0,
             size,
-            format: TexFormat_RGBA8,
+            format: TexFormat::RGBA8,
         };
 
         glcheck!(gl::GenTextures(1, &mut this.handle));
@@ -224,7 +226,7 @@ impl Tex2D {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            TexFormat_RGBA8,
+            TexFormat::RGBA8 as _,
             size.x,
             size.y,
             0,
@@ -259,35 +261,25 @@ impl Tex2D {
     }
 
     pub fn pop(&self) {
-        unsafe {
-            RenderTarget_Pop();
-        }
+        RenderTarget::pop();
     }
 
     pub fn push(&self) {
-        unsafe {
-            RenderTarget_PushTex2D(self);
-        }
+        RenderTarget::push_tex2d(self);
     }
 
     pub fn push_level(&mut self, level: i32) {
-        unsafe {
-            RenderTarget_PushTex2DLevel(self, level);
-        }
+        RenderTarget::push_tex2d_level(self, level);
     }
 
     pub fn clear(&mut self, r: f32, g: f32, b: f32, a: f32) {
-        unsafe {
-            RenderTarget_PushTex2D(self);
-            Draw::clear(r, g, b, a);
-            RenderTarget_Pop();
-        }
+        RenderTarget::push_tex2d(self);
+        Draw::clear(r, g, b, a);
+        RenderTarget::pop();
     }
 
     pub fn deep_clone(&mut self) -> Tex2D {
-        unsafe {
-            RenderTarget_PushTex2D(self);
-        }
+        RenderTarget::push_tex2d(self);
 
         let this = self.shared.as_ref();
 
@@ -311,9 +303,7 @@ impl Tex2D {
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
 
-        unsafe {
-            RenderTarget_Pop();
-        }
+        RenderTarget::pop();
 
         Tex2D {
             shared: Rf::new(clone),
@@ -381,7 +371,7 @@ impl Tex2D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_2D,
             gl::TEXTURE_MAG_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
     }
@@ -393,7 +383,7 @@ impl Tex2D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_2D,
             gl::TEXTURE_MIN_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
     }
@@ -450,8 +440,16 @@ impl Tex2D {
         let this = self.shared.as_ref();
 
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_WRAP_S,
+            mode as _
+        ));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_WRAP_T,
+            mode as _
+        ));
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
     }
 }

@@ -1,9 +1,14 @@
+use glam::{Vec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
-use super::*;
-use crate::math::*;
+use super::{
+    ClipRect, CubeFace, DataFormat, Draw, PixelFormat, RenderTarget, ShaderState, Tex2D, TexFilter,
+    TexFormat, CUBE_FACES,
+};
+use crate::math::Rng;
+use crate::render::{gl, glcheck, RenderState_PopAll, RenderState_PushAllDefaults, Shader};
 use crate::rf::Rf;
-use crate::system::*;
+use crate::system::{Bytes, TimeStamp};
 
 #[derive(Clone)]
 pub struct TexCube {
@@ -24,34 +29,34 @@ pub struct Face {
     pub up: Vec3,
 }
 
-static mut K_FACES: [Face; 6] = [
+const K_FACES: [Face; 6] = [
     Face {
-        face: CubeFace_PX,
+        face: CubeFace::PX,
         look: Vec3::X,
         up: Vec3::Y,
     },
     Face {
-        face: CubeFace_NX,
+        face: CubeFace::NX,
         look: Vec3::NEG_X,
         up: Vec3::Y,
     },
     Face {
-        face: CubeFace_PY,
+        face: CubeFace::PY,
         look: Vec3::Y,
         up: Vec3::NEG_Z,
     },
     Face {
-        face: CubeFace_NY,
+        face: CubeFace::NY,
         look: Vec3::NEG_Y,
         up: Vec3::Z,
     },
     Face {
-        face: CubeFace_PZ,
+        face: CubeFace::PZ,
         look: Vec3::Z,
         up: Vec3::Y,
     },
     Face {
-        face: CubeFace_NZ,
+        face: CubeFace::NZ,
         look: Vec3::NEG_Z,
         up: Vec3::Y,
     },
@@ -97,14 +102,14 @@ impl TexCube {
         &self,
         face: CubeFace,
         level: i32,
-        pf: PixelFormat,
+        tf: TexFormat,
         df: DataFormat,
     ) -> Vec<T> {
         let this = self.shared.as_ref();
 
         let mut size = this.size * this.size;
-        size *= DataFormat_GetSize(df);
-        size *= PixelFormat_Components(pf);
+        size *= DataFormat::get_size(df);
+        size *= TexFormat::components(tf);
         size /= std::mem::size_of::<T>() as i32;
 
         let mut data = vec![T::default(); size as usize];
@@ -112,7 +117,7 @@ impl TexCube {
         glcheck!(gl::GetTexImage(
             face as gl::types::GLenum,
             level,
-            pf as gl::types::GLenum,
+            tf as gl::types::GLenum,
             df as gl::types::GLenum,
             data.as_mut_ptr() as *mut _,
         ));
@@ -126,7 +131,7 @@ impl TexCube {
         data: &[T],
         face: CubeFace,
         level: i32,
-        pf: PixelFormat,
+        tf: TexFormat,
         df: DataFormat,
     ) {
         let this = self.shared.as_ref();
@@ -135,11 +140,11 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             face as gl::types::GLenum,
             level,
-            this.format,
+            this.format as _,
             this.size,
             this.size,
             0,
-            pf as gl::types::GLenum,
+            tf as gl::types::GLenum,
             df as gl::types::GLenum,
             data.as_ptr() as *const _,
         ));
@@ -151,10 +156,10 @@ impl TexCube {
 impl TexCube {
     #[bind(name = "Create")]
     pub fn new(size: i32, format: TexFormat) -> TexCube {
-        if !TexFormat_IsValid(format) {
+        if !TexFormat::is_valid(format) {
             panic!("Invalid texture format requested");
         }
-        if TexFormat_IsDepth(format) {
+        if TexFormat::is_depth(format) {
             panic!("Cannot create cubemap with depth format");
         }
 
@@ -169,7 +174,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_POSITIVE_X,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -180,7 +185,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -191,7 +196,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -202,7 +207,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -213,7 +218,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -224,7 +229,7 @@ impl TexCube {
         glcheck!(gl::TexImage2D(
             gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
             0,
-            format,
+            format as _,
             size,
             size,
             0,
@@ -246,7 +251,7 @@ impl TexCube {
         let mut this = TexCubeShared {
             handle: 0,
             size: 0,
-            format: 0,
+            format: TexFormat::Undefined,
         };
 
         glcheck!(gl::GenTextures(1, &mut this.handle));
@@ -264,8 +269,8 @@ impl TexCube {
             let (width, height) = img.dimensions();
 
             let (format, data_format, buffer) = match img {
-                DynamicImage::ImageRgba8(buf) => (gl::RGBA, TexFormat_RGBA8, buf.into_raw()),
-                DynamicImage::ImageRgb8(buf) => (gl::RGB, TexFormat_RGB8, buf.into_raw()),
+                DynamicImage::ImageRgba8(buf) => (gl::RGBA, TexFormat::RGBA8, buf.into_raw()),
+                DynamicImage::ImageRgb8(buf) => (gl::RGB, TexFormat::RGB8, buf.into_raw()),
                 _ => panic!(
                     "Failed to load cubemap face from '{face_path}', unsupported image format"
                 ),
@@ -314,14 +319,12 @@ impl TexCube {
         let this = self.shared.as_ref();
 
         for i in 0..6 {
-            let face = unsafe { K_FACES[i as usize] };
+            let face = K_FACES[i as usize];
 
-            unsafe {
-                RenderTarget_Push(this.size, this.size);
-                RenderTarget_BindTexCube(self, face.face);
-                Draw::clear(r, g, b, a);
-                RenderTarget_Pop();
-            }
+            RenderTarget::push(this.size, this.size);
+            RenderTarget::bind_tex_cube(self, face.face);
+            Draw::clear(r, g, b, a);
+            RenderTarget::pop();
         }
     }
 
@@ -338,7 +341,7 @@ impl TexCube {
 
         let mut image_buffer: ImageBuffer<Rgba<u8>, _> = ImageBuffer::new(size as u32, size as u32);
         for i in 0..6 {
-            let face = unsafe { K_FACES[i as usize].face };
+            let face = K_FACES[i as usize].face;
             let face_path = format!("{}{}.png", path, K_FACE_EXT[i as usize]);
 
             glcheck!(gl::GetTexImage(
@@ -359,10 +362,10 @@ impl TexCube {
         &mut self,
         face: CubeFace,
         level: i32,
-        pf: PixelFormat,
+        tf: TexFormat,
         df: DataFormat,
     ) -> Bytes {
-        Bytes::from_vec(self.get_data(face, level, pf, df))
+        Bytes::from_vec(self.get_data(face, level, tf, df))
     }
 
     pub fn get_format(&self) -> TexFormat {
@@ -383,20 +386,19 @@ impl TexCube {
     pub fn generate(&mut self, state: &mut ShaderState) {
         let this = self.shared.as_ref();
 
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
-            RenderState_PushAllDefaults();
-        }
+            RenderState_PushAllDefaults()
+        };
 
         for i in 0..6 {
-            let face: Face = unsafe { K_FACES[i as usize] };
-            let size: i32 = this.size;
-            let size_f: f32 = this.size as f32;
+            let face = K_FACES[i as usize];
+            let size = this.size;
+            let size_f = this.size as f32;
 
-            unsafe {
-                RenderTarget_Push(size, size);
-                RenderTarget_BindTexCube(self, face.face);
-                Draw::clear(0.0, 0.0, 0.0, 1.0);
-            }
+            RenderTarget::push(size, size);
+            RenderTarget::bind_tex_cube(self, face.face);
+            Draw::clear(0.0, 0.0, 0.0, 1.0);
 
             state
                 .shader()
@@ -411,15 +413,12 @@ impl TexCube {
             let mut j: i32 = 1;
             let mut job_size: i32 = 1;
             while j <= size {
-                let time: TimeStamp = TimeStamp::now();
-                unsafe {
-                    ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
-                }
+                let time = TimeStamp::now();
+
+                ClipRect::push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
                 Draw::rect(0.0f32, 0.0f32, size_f, size_f);
                 Draw::flush();
-                unsafe {
-                    ClipRect_Pop();
-                }
+                ClipRect::pop();
 
                 j += job_size;
                 let elapsed = time.get_elapsed();
@@ -433,14 +432,13 @@ impl TexCube {
 
             state.stop();
 
-            unsafe {
-                RenderTarget_Pop();
-            }
+            RenderTarget::pop();
         }
 
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
-            RenderState_PopAll();
-        }
+            RenderState_PopAll()
+        };
     }
 
     pub fn gen_mipmap(&mut self) {
@@ -456,10 +454,10 @@ impl TexCube {
         data: &Bytes,
         face: CubeFace,
         level: i32,
-        pf: PixelFormat,
+        tf: TexFormat,
         df: DataFormat,
     ) {
-        self.set_data(data.as_slice(), face, level, pf, df);
+        self.set_data(data.as_slice(), face, level, tf, df);
     }
 
     pub fn set_mag_filter(&mut self, filter: TexFilter) {
@@ -469,7 +467,7 @@ impl TexCube {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_CUBE_MAP,
             gl::TEXTURE_MAG_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0));
     }
@@ -481,7 +479,7 @@ impl TexCube {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_CUBE_MAP,
             gl::TEXTURE_MIN_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0));
     }
@@ -492,15 +490,16 @@ impl TexCube {
         let pf = self.get_format();
 
         let mut result = TexCube::new(size, pf);
-        let df = DataFormat_Float;
+        let df = DataFormat::Float;
         for i in 0..6 {
-            let face = unsafe { CubeFace_Get(i) };
+            let face = CubeFace::get(i);
             // TODO: Reuse buffer for each face.
             result.set_data(&self.get_data::<u8>(face, 0, pf, df), face, 0, pf, df);
         }
         result.gen_mipmap();
 
         // TODO: Store the shader somewhere and use the Box correctly.
+        #[allow(unsafe_code)] // TODO: remove
         let shader = unsafe {
             static mut SHADER: *mut Shader = std::ptr::null_mut();
             if SHADER.is_null() {
@@ -512,15 +511,7 @@ impl TexCube {
             &mut *SHADER
         };
 
-        let face: [CubeFace; 6] = [
-            CubeFace_PX,
-            CubeFace_NX,
-            CubeFace_PY,
-            CubeFace_NY,
-            CubeFace_PZ,
-            CubeFace_NZ,
-        ];
-        let look: [Vec3; 6] = [
+        let look = [
             Vec3::X,
             Vec3::NEG_X,
             Vec3::Y,
@@ -528,7 +519,7 @@ impl TexCube {
             Vec3::Z,
             Vec3::NEG_Z,
         ];
-        let up: [Vec3; 6] = [Vec3::Y, Vec3::Y, Vec3::NEG_Z, Vec3::Z, Vec3::Y, Vec3::Y];
+        let up = [Vec3::Y, Vec3::Y, Vec3::NEG_Z, Vec3::Z, Vec3::Y, Vec3::Y];
 
         let mut rng = Rng::from_time();
         let mut levels = 0;
@@ -547,7 +538,7 @@ impl TexCube {
             let mut ggx_width: f64 = level as f64 / levels as f64;
             ggx_width *= ggx_width;
             let mut sample_buffer = vec![Vec2::ZERO; sample_count as usize];
-            let mut sample_tex = Tex2D::new(sample_count, 1, TexFormat_RG16F);
+            let mut sample_tex = Tex2D::new(sample_count, 1, TexFormat::RG16F);
 
             for i in 0..sample_count {
                 let e1 = rng.get_uniform();
@@ -557,7 +548,7 @@ impl TexCube {
                 sample_buffer[i as usize] = Vec2::new(pitch as f32, yaw as f32);
             }
 
-            sample_tex.set_data(&sample_buffer, PixelFormat_RG, DataFormat_Float);
+            sample_tex.set_data(&sample_buffer, PixelFormat::RG, DataFormat::Float);
             let mut angle = level as f32 / (levels - 1) as f32;
             angle = angle * angle;
             shader.reset_tex_index();
@@ -565,22 +556,26 @@ impl TexCube {
             shader.set_tex_cube("src", self);
             shader.set_tex2d("sample_buffer", &sample_tex);
             shader.set_int("samples", sample_count);
-            for i in 0..6 {
-                let this_face = face[i];
+            for i in 0..CUBE_FACES.len() {
+                let this_face = CUBE_FACES[i];
                 let this_look = look[i];
                 let this_up = up[i];
-                unsafe { RenderTarget_Push(size, size) };
-                unsafe { RenderTarget_BindTexCubeLevel(&result, this_face, level) };
+
+                RenderTarget::push(size, size);
+                RenderTarget::bind_tex_cube_level(&result, this_face, level);
+
                 shader.set_float3("cubeLook", this_look.x, this_look.y, this_look.z);
                 shader.set_float3("cubeUp", this_up.x, this_up.y, this_up.z);
+
                 Draw::rect(-1.0, -1.0, 2.0, 2.0);
-                unsafe { RenderTarget_Pop() };
+
+                RenderTarget::pop();
             }
         }
         shader.stop();
 
-        result.set_mag_filter(TexFilter_Linear);
-        result.set_min_filter(TexFilter_LinearMipLinear);
+        result.set_mag_filter(TexFilter::Linear);
+        result.set_min_filter(TexFilter::LinearMipLinear);
 
         result
     }

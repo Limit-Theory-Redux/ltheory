@@ -1,6 +1,7 @@
-use super::*;
+use super::{DataFormat, PixelFormat, TexFilter, TexFormat, TexWrapMode};
+use crate::render::{gl, glcheck};
 use crate::rf::Rf;
-use crate::system::*;
+use crate::system::Bytes;
 
 #[derive(Clone)]
 pub struct Tex1D {
@@ -46,8 +47,8 @@ impl Tex1D {
         let this = self.shared.as_ref();
 
         let mut size = this.size;
-        size *= DataFormat_GetSize(df);
-        size *= PixelFormat_Components(pf);
+        size *= DataFormat::get_size(df);
+        size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
         let mut data = vec![T::default(); size as usize];
@@ -71,7 +72,7 @@ impl Tex1D {
         glcheck!(gl::TexImage1D(
             gl::TEXTURE_1D,
             0,
-            this.format,
+            this.format as _,
             this.size,
             0,
             pf as gl::types::GLenum,
@@ -86,7 +87,7 @@ impl Tex1D {
 impl Tex1D {
     #[bind(name = "Create")]
     pub fn new(size: i32, format: TexFormat) -> Tex1D {
-        if !TexFormat_IsValid(format) {
+        if !TexFormat::is_valid(format) {
             panic!("Invalid texture format requested");
         }
 
@@ -102,10 +103,10 @@ impl Tex1D {
         glcheck!(gl::TexImage1D(
             gl::TEXTURE_1D,
             0,
-            format,
+            format as _,
             size,
             0,
-            (if TexFormat_IsColor(format) as i32 != 0 {
+            (if TexFormat::is_color(format) as i32 != 0 {
                 gl::RED
             } else {
                 gl::DEPTH_COMPONENT
@@ -168,7 +169,7 @@ impl Tex1D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_1D,
             gl::TEXTURE_MAG_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
     }
@@ -180,7 +181,7 @@ impl Tex1D {
         glcheck!(gl::TexParameteri(
             gl::TEXTURE_1D,
             gl::TEXTURE_MIN_FILTER,
-            filter
+            filter as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
     }
@@ -207,7 +208,11 @@ impl Tex1D {
         let this = self.shared.as_ref();
 
         glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, mode));
+        glcheck!(gl::TexParameteri(
+            gl::TEXTURE_1D,
+            gl::TEXTURE_WRAP_S,
+            mode as _
+        ));
         glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
     }
 }

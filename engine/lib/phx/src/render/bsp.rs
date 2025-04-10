@@ -1,8 +1,20 @@
-use internal::*;
+#![allow(non_snake_case)] // TODO: remove this and fix all warnings
+#![allow(unsafe_code)] // TODO: remove
 
-use super::*;
+use glam::Vec3;
+use internal::{MemAllocZero, MemDelete, MemFree, MemNewZero};
+
+use super::{Color, Mesh};
 use crate::logging::warn;
-use crate::math::*;
+use crate::math::{
+    lerp, Intersect, LineSegment, Plane, Polygon, PolygonClassification, Position, Ray, Rng,
+    Sphere, Triangle,
+};
+use crate::render::{
+    BlendMode, CullFace, Draw, RenderState_PopBlendMode, RenderState_PopCullFace,
+    RenderState_PopDepthTest, RenderState_PopWireframe, RenderState_PushBlendMode,
+    RenderState_PushCullFace, RenderState_PushDepthTest, RenderState_PushWireframe, Shader,
+};
 
 /* Adam's Stupidly Fast BSP Implementation
  *
@@ -332,10 +344,8 @@ pub static BSP_NODE_REL_FRONT: BSPNodeRel = 2 as BSPNodeRel;
 
 const BACK_INDEX: i32 = 0;
 const FRONT_INDEX: i32 = 1;
-static mut ROOT_NODE_INDEX: i32 = 1;
-static mut EMPTY_LEAF_INDEX: i32 = 1;
-
-pub static mut RAY_STACK: Vec<DelayRay> = Vec::new();
+const ROOT_NODE_INDEX: i32 = 1;
+const EMPTY_LEAF_INDEX: i32 = 1;
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectRay(
@@ -345,14 +355,16 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 ) -> bool {
     // Assert(RAY_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
 
-    let mut ray: Ray = *rayPtr;
+    let mut ray = *rayPtr;
     *tHit = f32::MAX;
 
     let mut nodeRef: BSPNodeRef = this.rootNode;
-    let tEpsilon: f32 = (8.0f64 * 1e-4f64 / ray.dir.length() as f64) as f32;
-    let mut hit: bool = false;
-    let mut depth: i32 = 0;
-    let mut maxDepth: i32 = 0;
+    let tEpsilon = (8.0f64 * 1e-4f64 / ray.dir.length() as f64) as f32;
+    let mut hit = false;
+    let mut depth = 0;
+    let mut maxDepth = 0;
+
+    let mut ray_stack = vec![];
 
     loop {
         maxDepth = i32::max(depth, maxDepth);
@@ -361,8 +373,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
             let node: &mut BSPNode = &mut this.nodes[nodeRef.index as usize];
             //BSP_PROFILE(self->profilingData.ray.nodes++;)
 
-            let dist: f32 = Vec3::dot((*node).plane.n, ray.p.as_vec3()) - (*node).plane.d;
-            let denom: f32 = -Vec3::dot((*node).plane.n, ray.dir.as_vec3());
+            let dist = Vec3::dot((*node).plane.n, ray.p.as_vec3()) - (*node).plane.d;
+            let denom = -Vec3::dot((*node).plane.n, ray.dir.as_vec3());
 
             /* Near means the side of the plane the point p is on. */
             /* Early means the side of the plane we'll check first. */
@@ -394,7 +406,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         tMax: ray.t_max as f32,
                         depth,
                     };
-                    RAY_STACK.push(d);
+                    ray_stack.push(d);
 
                     ray.t_max = max as f64;
                 }
@@ -409,7 +421,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         tMax: ray.t_max as f32,
                         depth,
                     };
-                    RAY_STACK.push(d);
+                    ray_stack.push(d);
                 } else {
                     /* Ray outside of thick plane */
                 }
@@ -443,19 +455,17 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 break;
             }
 
-            if RAY_STACK.is_empty() {
+            if let Some(d) = ray_stack.pop() {
+                nodeRef = d.nodeRef;
+                ray.t_min = d.tMin as f64;
+                ray.t_max = d.tMax as f64;
+                depth = d.depth;
+            } else {
                 break;
             }
-
-            let d = RAY_STACK.pop().unwrap();
-            nodeRef = d.nodeRef;
-            ray.t_min = d.tMin as f64;
-            ray.t_max = d.tMax as f64;
-            depth = d.depth;
         }
     }
 
-    RAY_STACK.clear();
     // BSP_PROFILE (
     //     self->profilingData.ray.count++;
     //     self->profilingData.ray.depth += maxDepth;
@@ -486,9 +496,6 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
 }
 
 #[no_mangle]
-pub static mut NODE_STACK: Vec<Delay> = Vec::new();
-
-#[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectSphere(
     this: &mut BSP,
     sphere: &Sphere,
@@ -500,6 +507,8 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
     let mut hit: bool = false;
     let mut depth: i32 = 0;
     let mut maxDepth: i32 = 0;
+
+    let mut node_stack = vec![];
 
     loop {
         maxDepth = i32::max(depth, maxDepth);
@@ -521,7 +530,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                     nodeRef: (*node).child[BACK_INDEX as usize],
                     depth,
                 };
-                NODE_STACK.push(d);
+                node_stack.push(d);
                 nodeRef = (*node).child[FRONT_INDEX as usize];
             }
 
@@ -548,17 +557,15 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                 break;
             }
 
-            if NODE_STACK.is_empty() {
+            if let Some(d) = node_stack.pop() {
+                nodeRef = d.nodeRef;
+                depth = d.depth;
+            } else {
                 break;
             }
-
-            let d = NODE_STACK.pop().unwrap();
-            nodeRef = d.nodeRef;
-            depth = d.depth;
         }
     }
 
-    NODE_STACK.clear();
     // BSP_PROFILE (
     //     self->profilingData.sphere.count++;
     //     self->profilingData.sphere.depth += maxDepth;
@@ -1331,7 +1338,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(this: &mut BSP, nodeRef: BSPNodeRef, 
         let leafIndex = -nodeRef.index;
         for i in 0..nodeRef.triangleCount {
             let triangle: &Triangle = &this.triangles[leafIndex as usize + i as usize];
-            Draw_Tri3(
+            Draw::tri3(
                 &triangle.vertices[0],
                 &triangle.vertices[1],
                 &triangle.vertices[2],
@@ -1383,10 +1390,10 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
         RenderState_PushWireframe(false);
         (*SHADER).start();
         (*SHADER).set_float4("color", 0.3f32, 0.5f32, 0.3f32, 0.4f32);
-        Draw_Plane(&closestPoint, &(*node).plane.n, 2.0f32);
+        Draw::plane(&closestPoint, &(*node).plane.n, 2.0f32);
         (*SHADER).set_float4("color", 0.5f32, 0.3f32, 0.3f32, 0.4f32);
         let neg: Vec3 = (*node).plane.n * -1.0f32;
-        Draw_Plane(&closestPoint, &neg, 2.0f32);
+        Draw::plane(&closestPoint, &neg, 2.0f32);
         (*SHADER).stop();
         RenderState_PopWireframe();
     } else {
@@ -1422,22 +1429,22 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
     (*SHADER).start();
     if BSP_IntersectLineSegment(bsp, lineSegment, &mut pHit) {
         (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.1f32);
-        Draw_Line3(
+        Draw::line3(
             &(*lineSegment).p0.relative_to(*eye),
             &Position::from_vec(pHit).relative_to(*eye),
         );
 
         (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
-        Draw_Line3(
+        Draw::line3(
             &Position::from_vec(pHit).relative_to(*eye),
             &(*lineSegment).p1.relative_to(*eye),
         );
 
-        Draw_PointSize(5.0f32);
-        Draw_Point3(pHit.x, pHit.y, pHit.z);
+        Draw::point_size(5.0f32);
+        Draw::point3(pHit.x, pHit.y, pHit.z);
     } else {
         (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
-        Draw_Line3(
+        Draw::line3(
             &(*lineSegment).p0.relative_to(*eye),
             &(*lineSegment).p1.relative_to(*eye),
         );
@@ -1462,24 +1469,24 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere
     if BSP_IntersectSphere(this, sphere, &mut pHit) {
         RenderState_PushWireframe(false);
         (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 0.3f32);
-        Draw_Sphere(&sphere.p, sphere.r);
+        Draw::sphere(&sphere.p, sphere.r);
         RenderState_PopWireframe();
 
         (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
-        Draw_Sphere(&sphere.p, sphere.r);
+        Draw::sphere(&sphere.p, sphere.r);
 
         RenderState_PushDepthTest(false);
-        Draw_PointSize(8.0f32);
-        Draw_Point3(pHit.x, pHit.y, pHit.z);
+        Draw::point_size(8.0f32);
+        Draw::point3(pHit.x, pHit.y, pHit.z);
         RenderState_PopDepthTest();
     } else {
         RenderState_PushWireframe(false);
         (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.3f32);
-        Draw_Sphere(&sphere.p, sphere.r);
+        Draw::sphere(&sphere.p, sphere.r);
         RenderState_PopWireframe();
 
         (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
-        Draw_Sphere(&sphere.p, sphere.r);
+        Draw::sphere(&sphere.p, sphere.r);
     };
     (*SHADER).stop();
 }
@@ -1539,6 +1546,8 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
     let mut depth: i32 = 0;
     let mut maxDepth: i32 = 0;
 
+    let mut node_stack = vec![];
+
     loop {
         maxDepth = i32::max(depth, maxDepth);
 
@@ -1559,7 +1568,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                     nodeRef: (*node).child[BACK_INDEX as usize],
                     depth,
                 };
-                NODE_STACK.push(d);
+                node_stack.push(d);
                 nodeRef = (*node).child[FRONT_INDEX as usize];
             }
 
@@ -1594,17 +1603,14 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 break;
             }
 
-            if NODE_STACK.is_empty() {
+            if let Some(d) = node_stack.pop() {
+                nodeRef = d.nodeRef;
+                depth = d.depth;
+            } else {
                 break;
             }
-
-            let d: Delay = NODE_STACK.pop().unwrap();
-            nodeRef = d.nodeRef;
-            depth = d.depth;
         }
     }
-
-    NODE_STACK.clear();
 
     hit
 }

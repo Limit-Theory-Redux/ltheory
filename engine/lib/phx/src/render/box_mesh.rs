@@ -1,5 +1,7 @@
-use super::*;
-use crate::math::*;
+use glam::Vec3;
+
+use super::Mesh;
+use crate::math::Matrix;
 
 #[derive(Clone)]
 pub struct BoxMesh {
@@ -75,7 +77,7 @@ impl BoxMesh {
                 let n = Vec3::cross(du, dv).normalize();
 
                 for iu in 0..res {
-                    let u: f32 = iu as f32 / (res - 1) as f32;
+                    let u = iu as f32 / (res - 1) as f32;
                     for iv in 0..res {
                         let v = iv as f32 / (res - 1) as f32;
                         let mut p = o + (du * u) + (dv * v);
@@ -87,7 +89,7 @@ impl BoxMesh {
                         p = rp + box3.p;
 
                         if iu != 0 && iv != 0 {
-                            let off: i32 = mesh.get_vertex_count();
+                            let off = mesh.get_vertex_count();
                             mesh.add_quad(off, off - res, off - res - 1, off - 1);
                         }
                         mesh.add_vertex(p.x, p.y, p.z, n.x, n.y, n.z, u, v);

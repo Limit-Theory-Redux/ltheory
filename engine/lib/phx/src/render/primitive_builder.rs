@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::mem::size_of;
 
-use crate::math::*;
-use crate::render::*;
+use glam::{vec3, vec4, Vec3, Vec4};
+
+use super::gl;
+use crate::render::glcheck;
 
 #[derive(PartialEq)]
 pub enum PrimitiveType {
@@ -214,6 +216,8 @@ impl PrimitiveBuilder {
             len_bytes as isize,
             gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
         ));
+
+        #[allow(unsafe_code)] // TODO: remove
         unsafe {
             std::ptr::copy_nonoverlapping(
                 self.positions.as_ptr(),
@@ -238,6 +242,8 @@ impl PrimitiveBuilder {
                 len_bytes as isize,
                 gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
             ));
+
+            #[allow(unsafe_code)] // TODO: remove
             unsafe {
                 std::ptr::copy_nonoverlapping(
                     self.normals.as_ptr(),
@@ -263,6 +269,8 @@ impl PrimitiveBuilder {
                 len_bytes as isize,
                 gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
             ));
+
+            #[allow(unsafe_code)] // TODO: remove
             unsafe {
                 std::ptr::copy_nonoverlapping(
                     self.texcoords.as_ptr(),
@@ -288,6 +296,8 @@ impl PrimitiveBuilder {
                 len_bytes as isize,
                 gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
             ));
+
+            #[allow(unsafe_code)] // TODO: remove
             unsafe {
                 std::ptr::copy_nonoverlapping(
                     self.colors.as_ptr(),

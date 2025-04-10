@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{LazyLock, Mutex};
 
 use crate::logging::warn;
@@ -13,7 +14,7 @@ pub const SIGNAL_SEGV: Signal = libc::SIGSEGV;
 pub const SIGNAL_TERM: Signal = libc::SIGTERM;
 pub const SIGNAL_ABRT: Signal = libc::SIGABRT;
 
-static mut IGNORE_DEFAULT: bool = false;
+static IGNORE_DEFAULT: AtomicBool = AtomicBool::new(false);
 static HANDLER_DEFAULT: LazyLock<HashMap<Signal, SignalHandler>> = LazyLock::new(|| {
     HashMap::from([
         (SIGNAL_INT, signal(SIGNAL_INT, signal_handler)),
@@ -62,14 +63,14 @@ extern "C" fn signal_handler(sig: Signal) {
         }
     }
 
-    #[allow(unsafe_code)] // TODO: refactor
-    unsafe {
-        if IGNORE_DEFAULT {
-            IGNORE_DEFAULT = false;
-            return;
-        }
+    if IGNORE_DEFAULT.load(Ordering::Relaxed) {
+        IGNORE_DEFAULT.store(false, Ordering::Relaxed);
+        return;
+    }
 
-        /* Re-raise the signal to let the default handler run. */
+    // Re-raise the signal to let the default handler run.
+    #[allow(unsafe_code)]
+    unsafe {
         libc::raise(sig);
     }
 }
@@ -138,5 +139,5 @@ pub fn signal_to_string(this: Signal) -> String {
 
 #[allow(unsafe_code)]
 pub unsafe extern "C" fn signal_ignore_default() {
-    IGNORE_DEFAULT = true;
+    IGNORE_DEFAULT.store(true, Ordering::Relaxed);
 }

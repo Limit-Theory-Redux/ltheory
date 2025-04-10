@@ -1,35 +1,23 @@
-use super::gl;
+#[luajit_ffi_gen::luajit_ffi(with_impl = true)]
+#[derive(Debug, Clone, Copy)]
+pub enum DataFormat {
+    I8 = 0x1400,    // gl::BYTE
+    U8 = 0x1401,    // gl::UNSIGNED_BYTE
+    I16 = 0x1402,   // gl::SHORT
+    U16 = 0x1403,   // gl::UNSIGNED_SHORT
+    I32 = 0x1404,   // gl::INT
+    U32 = 0x1405,   // gl::UNSIGNED_INT
+    Float = 0x1406, // gl::FLOAT
+}
 
-pub type DataFormat = i32;
-
-#[no_mangle]
-pub static DataFormat_U8: DataFormat = gl::UNSIGNED_BYTE as DataFormat;
-
-#[no_mangle]
-pub static DataFormat_I8: DataFormat = gl::BYTE as DataFormat;
-
-#[no_mangle]
-pub static DataFormat_U16: DataFormat = gl::UNSIGNED_SHORT as DataFormat;
-
-#[no_mangle]
-pub static DataFormat_I16: DataFormat = gl::SHORT as DataFormat;
-
-#[no_mangle]
-pub static DataFormat_U32: DataFormat = gl::UNSIGNED_INT as DataFormat;
-
-#[no_mangle]
-pub static DataFormat_I32: DataFormat = gl::INT as DataFormat;
-
-#[no_mangle]
-pub static DataFormat_Float: DataFormat = gl::FLOAT as DataFormat;
-
-// Size in bytes of single element
-#[no_mangle]
-pub extern "C" fn DataFormat_GetSize(this: DataFormat) -> i32 {
-    match this {
-        df if df == DataFormat_U8 || df == DataFormat_I8 => 1,
-        df if df == DataFormat_U16 || df == DataFormat_I16 => 2,
-        df if df == DataFormat_U32 || df == DataFormat_I32 || df == DataFormat_Float => 4,
-        _ => 0,
+#[luajit_ffi_gen::luajit_ffi]
+impl DataFormat {
+    /// Size in bytes of single element
+    pub fn get_size(this: DataFormat) -> i32 {
+        match this {
+            Self::U8 | Self::I8 => 1,
+            Self::U16 | Self::I16 => 2,
+            Self::U32 | Self::I32 | Self::Float => 4,
+        }
     }
 }

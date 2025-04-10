@@ -79,8 +79,7 @@ if [[ $debug == true ]]; then
     cargo build --color auto
 
     if [[ $run_tests == true ]]; then
-        # TODO: Fix warnings
-        # cargo clippy -- -D warnings
+        cargo clippy -- -D warnings
         cargo test --no-fail-fast --color auto
     fi
 else
@@ -89,8 +88,7 @@ else
     cargo build --release --color auto
 
     if [[ $run_tests == true ]]; then
-        # TODO: Fix warnings
-        # cargo clippy --release -- -D warnings
+        cargo clippy --release -- -D warnings
         cargo test --release --no-fail-fast --color auto
     fi
 fi

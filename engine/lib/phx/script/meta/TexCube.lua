@@ -28,10 +28,10 @@ function TexCube:saveLevel(path, level) end
 
 ---@param face CubeFace
 ---@param level integer
----@param pf PixelFormat
+---@param tf TexFormat
 ---@param df DataFormat
 ---@return Bytes
-function TexCube:getDataBytes(face, level, pf, df) end
+function TexCube:getDataBytes(face, level, tf, df) end
 
 ---@return TexFormat
 function TexCube:getFormat() end
@@ -50,9 +50,9 @@ function TexCube:genMipmap() end
 ---@param data Bytes
 ---@param face CubeFace
 ---@param level integer
----@param pf PixelFormat
+---@param tf TexFormat
 ---@param df DataFormat
-function TexCube:setDataBytes(data, face, level, pf, df) end
+function TexCube:setDataBytes(data, face, level, tf, df) end
 
 ---@param filter TexFilter
 function TexCube:setMagFilter(filter) end

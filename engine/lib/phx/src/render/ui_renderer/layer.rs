@@ -1,6 +1,13 @@
-use super::*;
-use crate::math::*;
-use crate::render::*;
+use glam::Vec2;
+
+use super::image::UIRendererImage;
+use super::panel::UIRendererPanel;
+use super::rect::UIRendererRect;
+use super::text::UIRendererText;
+use super::{
+    UIRendererImageId, UIRendererLayerId, UIRendererPanelId, UIRendererRectId, UIRendererTextId,
+};
+use crate::render::{ClipRect, Draw, Shader};
 
 #[derive(Default)]
 pub struct UIRendererLayer {
@@ -30,117 +37,118 @@ impl UIRendererLayer {
         rects: &Vec<UIRendererRect>,
         texts: &Vec<UIRendererText>,
     ) {
-        unsafe {
-            if self.clip {
-                // extend clip area by 1 pixel to avoid border overlapping
-                ClipRect_PushCombined(
-                    self.pos.x - 1.0,
-                    self.pos.y - 1.0,
-                    self.size.x + 2.0,
-                    self.size.y + 2.0,
-                );
-            }
+        if self.clip {
+            // extend clip area by 1 pixel to avoid border overlapping
+            ClipRect::push_combined(
+                self.pos.x - 1.0,
+                self.pos.y - 1.0,
+                self.size.x + 2.0,
+                self.size.y + 2.0,
+            );
+        }
 
-            if self.panel_id.is_some() {
-                panel_shader.start();
+        if self.panel_id.is_some() {
+            panel_shader.start();
 
-                let pad: f32 = 64.0;
-                panel_shader.set_float("padding", pad);
+            let pad: f32 = 64.0;
+            panel_shader.set_float("padding", pad);
 
-                let mut panel_id_opt = self.panel_id;
-                while let Some(panel_id) = panel_id_opt {
-                    let panel = &panels[*panel_id];
+            let mut panel_id_opt = self.panel_id;
+            while let Some(panel_id) = panel_id_opt {
+                let panel = &panels[*panel_id];
 
-                    let x = panel.pos.x - pad;
-                    let y = panel.pos.y - pad;
-                    let sx = panel.size.x + 2.0 * pad;
-                    let sy = panel.size.y + 2.0 * pad;
+                let x = panel.pos.x - pad;
+                let y = panel.pos.y - pad;
+                let sx = panel.size.x + 2.0 * pad;
+                let sy = panel.size.y + 2.0 * pad;
 
-                    panel_shader.set_float("innerAlpha", panel.inner_alpha);
-                    panel_shader.set_float("bevel", panel.bevel);
-                    panel_shader.set_float2("size", sx, sy);
-                    panel_shader.set_float4(
-                        "color",
-                        panel.color.r,
-                        panel.color.g,
-                        panel.color.b,
-                        panel.color.a,
-                    );
-
-                    Draw_Rect(x, y, sx, sy);
-
-                    panel_id_opt = panel.next;
-                }
-
-                panel_shader.stop();
-            }
-
-            let mut image_id_opt = self.image_id;
-            while let Some(image_id) = image_id_opt {
-                let image = &images[*image_id];
-
-                image_shader.start();
-                image_shader.reset_tex_index();
-                image_shader.set_tex2d("image", &image.image);
-                Draw_Rect(image.pos.x, image.pos.y, image.size.x, image.size.y);
-                image_shader.stop();
-                image_id_opt = image.next;
-            }
-
-            let mut rect_id_opt = self.rect_id;
-            while let Some(rect_id) = rect_id_opt {
-                let rect = &rects[*rect_id];
-
-                rect_shader.start();
-                rect_shader.set_float4(
+                panel_shader.set_float("innerAlpha", panel.inner_alpha);
+                panel_shader.set_float("bevel", panel.bevel);
+                panel_shader.set_float2("size", sx, sy);
+                panel_shader.set_float4(
                     "color",
-                    rect.color.r,
-                    rect.color.g,
-                    rect.color.b,
-                    rect.color.a,
+                    panel.color.r,
+                    panel.color.g,
+                    panel.color.b,
+                    panel.color.a,
                 );
 
-                if let Some(s) = rect.outline {
-                    Draw_Border(s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
-                } else {
-                    Draw_Rect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
-                }
+                Draw::rect(x, y, sx, sy);
 
-                rect_shader.stop();
-
-                rect_id_opt = rect.next;
+                panel_id_opt = panel.next;
             }
 
-            let mut text_id_opt = self.text_id;
-            while let Some(text_id) = text_id_opt {
-                let text = &texts[*text_id];
+            panel_shader.stop();
+        }
 
+        let mut image_id_opt = self.image_id;
+        while let Some(image_id) = image_id_opt {
+            let image = &images[*image_id];
+
+            image_shader.start();
+            image_shader.reset_tex_index();
+            image_shader.set_tex2d("image", &image.image);
+            Draw::rect(image.pos.x, image.pos.y, image.size.x, image.size.y);
+            image_shader.stop();
+            image_id_opt = image.next;
+        }
+
+        let mut rect_id_opt = self.rect_id;
+        while let Some(rect_id) = rect_id_opt {
+            let rect = &rects[*rect_id];
+
+            rect_shader.start();
+            rect_shader.set_float4(
+                "color",
+                rect.color.r,
+                rect.color.g,
+                rect.color.b,
+                rect.color.a,
+            );
+
+            if let Some(s) = rect.outline {
+                Draw::border(s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+            } else {
+                Draw::rect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+            }
+
+            rect_shader.stop();
+
+            rect_id_opt = rect.next;
+        }
+
+        let mut text_id_opt = self.text_id;
+        while let Some(text_id) = text_id_opt {
+            let text = &texts[*text_id];
+
+            #[allow(unsafe_code)] // TODO: remove
+            unsafe {
                 (*text.font).draw(&text.text, text.pos.x, text.pos.y, &text.color);
-
-                text_id_opt = text.next;
             }
 
-            let mut layer_id_opt = self.children;
-            while let Some(layer_id) = layer_id_opt {
-                let layer = &layers[*layer_id];
+            text_id_opt = text.next;
+        }
 
-                layer.draw(
-                    panel_shader,
-                    image_shader,
-                    rect_shader,
-                    layers,
-                    images,
-                    panels,
-                    rects,
-                    texts,
-                );
+        let mut layer_id_opt = self.children;
+        while let Some(layer_id) = layer_id_opt {
+            let layer = &layers[*layer_id];
 
-                layer_id_opt = layer.next;
-            }
+            layer.draw(
+                panel_shader,
+                image_shader,
+                rect_shader,
+                layers,
+                images,
+                panels,
+                rects,
+                texts,
+            );
 
-            if self.clip {
-                ClipRect_Pop();
-            }
+            layer_id_opt = layer.next;
+        }
+
+        if self.clip {
+            ClipRect::pop();
         }
     }
 }

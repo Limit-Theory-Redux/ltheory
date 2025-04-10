@@ -57,7 +57,7 @@ function CameraSystem:setCamera(entityId)
         return
     end
 
-    self.currentCameraData = cameraEntity:getComponent(Components.CameraDataComponent)
+    self.currentCameraData = cameraEntity:getComponent(Components.CameraData)
     self.currentCameraTransform = cameraEntity:getComponent(Components.TransformComponent)
 end
 
