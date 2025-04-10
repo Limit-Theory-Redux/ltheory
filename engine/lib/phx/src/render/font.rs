@@ -1,12 +1,20 @@
+#![allow(unsafe_code)] // TODO: remove
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::ptr::addr_of_mut;
 
-use freetype_sys::*;
+use freetype_sys::{
+    FT_Face, FT_Get_Char_Index, FT_Get_Kerning, FT_Init_FreeType, FT_Library, FT_Load_Glyph,
+    FT_New_Face, FT_Set_Pixel_Sizes, FT_Vector, FT_KERNING_DEFAULT,
+};
+use glam::{IVec2, IVec4, Vec4};
 
-use super::*;
-use crate::math::*;
+use super::{
+    BlendMode, Color, DataFormat, Draw, PixelFormat, RenderState_PopBlendMode,
+    RenderState_PushBlendMode, Shader, Tex2D, TexFormat,
+};
 use crate::rf::Rf;
 use crate::system::{Profiler, ResourceType, Resource_GetPath};
 
@@ -57,10 +65,10 @@ impl Font {
 
     fn get_glyph(&self, code_point: u32) {
         let mut font_data = self.0.as_mut();
-        let face: FT_Face = font_data.handle;
+        let face = font_data.handle;
 
         if let std::collections::hash_map::Entry::Vacant(e) = font_data.glyphs.entry(code_point) {
-            let glyph_index = unsafe { FT_Get_Char_Index(face, code_point as FT_ULong) };
+            let glyph_index = unsafe { FT_Get_Char_Index(face, code_point as _) };
 
             if glyph_index == 0 {
                 return;
@@ -70,7 +78,7 @@ impl Font {
                 if FT_Load_Glyph(
                     face,
                     glyph_index,
-                    (((1 as libc::c_long) << 5) | ((1 as libc::c_long) << 2)) as FT_Int32,
+                    (((1 as libc::c_long) << 5) | ((1 as libc::c_long) << 2)) as _,
                 ) != 0
                 {
                     return;
@@ -88,23 +96,23 @@ impl Font {
             let sy = bitmap.rows as i32;
             let mut glyph = Glyph {
                 index: glyph_index as _,
-                tex: Tex2D::new(sx, sy, TexFormat_RGBA8),
+                tex: Tex2D::new(sx, sy, TexFormat::RGBA8),
                 x0,
                 y0,
                 sx,
                 sy,
                 x1: x0 + sx,
                 y1: y0 + sy,
-                advance: (face_glyph.advance.x >> 6) as i32,
+                advance: (face_glyph.advance.x >> 6) as _,
             };
 
-            let mut buffer = Vec::with_capacity((glyph.sx * glyph.sy) as usize);
+            let mut buffer = Vec::with_capacity((glyph.sx * glyph.sy) as _);
 
             /* Copy rendered bitmap into buffer. */
             for _dy in 0..(*bitmap).rows {
                 for dx in 0..(*bitmap).width {
                     let value = unsafe { (*p_bitmap.offset(dx as isize) as f32 / 255.0) as f64 };
-                    let a = value.powf(K_RCP_GAMMA as f64) as f32;
+                    let a = value.powf(K_RCP_GAMMA as f64) as _;
 
                     buffer.push(Vec4::new(1.0, 1.0, 1.0, a));
                 }
@@ -115,7 +123,7 @@ impl Font {
             /* Upload to texture. */
             glyph
                 .tex
-                .set_data(buffer.as_slice(), PixelFormat_RGBA, DataFormat_Float);
+                .set_data(buffer.as_slice(), PixelFormat::RGBA, DataFormat::Float);
 
             /* Add to glyph cache. */
             e.insert(glyph);
@@ -123,19 +131,19 @@ impl Font {
     }
 
     fn get_kerning(&self, face: FT_Face, a: i32, b: i32) -> i32 {
-        let mut kern: FT_Vector = FT_Vector { x: 0, y: 0 };
+        let mut kern = FT_Vector { x: 0, y: 0 };
 
         unsafe {
             FT_Get_Kerning(
                 face,
-                a as FT_UInt,
-                b as FT_UInt,
-                FT_KERNING_DEFAULT as i32 as FT_UInt,
+                a as _,
+                b as _,
+                FT_KERNING_DEFAULT as i32 as _,
                 &mut kern,
             )
         };
 
-        (kern.x >> 6) as i32
+        (kern.x >> 6) as _
     }
 }
 
@@ -151,7 +159,7 @@ impl Font {
             let path = Resource_GetPath(ResourceType::Font, name_cstr.as_ptr());
             let mut handle = std::ptr::null_mut();
 
-            if FT_New_Face(FT, path, 0 as FT_Long, &mut handle) != 0 {
+            if FT_New_Face(FT, path, 0 as _, &mut handle) != 0 {
                 panic!(
                     "Font_Load: Failed to load font <{name}> from file {:?}. Current folder: {:?}",
                     CStr::from_ptr(path),
@@ -159,7 +167,7 @@ impl Font {
                 );
             }
 
-            FT_Set_Pixel_Sizes(handle, 0 as FT_UInt, size);
+            FT_Set_Pixel_Sizes(handle, 0 as _, size);
 
             handle
         };
@@ -178,14 +186,12 @@ impl Font {
     pub fn draw(&self, text: &str, mut x: f32, mut y: f32, color: &Color) {
         Profiler::begin("Font_Draw");
 
-        let mut glyph_last: i32 = 0;
+        let mut glyph_last = 0;
 
-        x = f64::floor(x as f64) as f32;
-        y = f64::floor(y as f64) as f32;
+        x = f64::floor(x as f64) as _;
+        y = f64::floor(y as f64) as _;
 
-        unsafe {
-            RenderState_PushBlendMode(BlendMode::Alpha);
-        }
+        unsafe { RenderState_PushBlendMode(BlendMode::Alpha) };
 
         self.0.as_ref().shader.borrow_mut().start();
         self.0
@@ -210,10 +216,10 @@ impl Font {
                     x += self.get_kerning(face, glyph_last, glyph.index) as f32;
                 }
 
-                let x0: f32 = x + glyph.x0 as f32;
-                let y0: f32 = y + glyph.y0 as f32;
-                let xs: f32 = glyph.sx as f32;
-                let ys: f32 = glyph.sy as f32;
+                let x0 = x + glyph.x0 as f32;
+                let y0 = y + glyph.y0 as f32;
+                let xs = glyph.sx as f32;
+                let ys = glyph.sy as f32;
 
                 shader.reset_tex_index();
                 shader.set_tex2d("glyph", &glyph.tex);
@@ -228,9 +234,7 @@ impl Font {
         }
 
         self.0.as_ref().shader.borrow().stop();
-        unsafe {
-            RenderState_PopBlendMode();
-        }
+        unsafe { RenderState_PopBlendMode() };
         Profiler::end();
     }
 
@@ -243,12 +247,12 @@ impl Font {
     pub fn get_size(&self, text: &str, out: &mut IVec4) {
         Profiler::begin("Font_GetSize");
 
-        let mut x: i32 = 0;
-        let y: i32 = 0;
+        let mut x = 0;
+        let y = 0;
         let mut lower = IVec2::new(i32::MAX, i32::MAX);
         let mut upper = IVec2::new(i32::MIN, i32::MIN);
 
-        let mut glyph_last: i32 = 0;
+        let mut glyph_last = 0;
 
         if text.is_empty() {
             *out = IVec4::ZERO;
@@ -286,22 +290,22 @@ impl Font {
         Profiler::end();
     }
 
-    /* NOTE : The height returned here is the maximal *ascender* height for the
-     *        string. This allows easy centering of text while still allowing
-     *        descending characters to look correct.
-     *
-     *        To correctly center text, first compute bounds via this function,
-     *        then draw it at:
-     *
-     *           pos.x - (size.x - bound.x) / 2
-     *           pos.y - (size.y + bound.y) / 2
-     */
+    // NOTE : The height returned here is the maximal *ascender* height for the
+    //        string. This allows easy centering of text while still allowing
+    //        descending characters to look correct.
+    //
+    //        To correctly center text, first compute bounds via this function,
+    //        then draw it at:
+    //
+    //           pos.x - (size.x - bound.x) / 2
+    //           pos.y - (size.y + bound.y) / 2
+    //
 
     pub fn get_size2(&self, text: &str) -> IVec2 {
         Profiler::begin("Font_GetSize2");
 
         let mut res = IVec2::ZERO;
-        let mut glyph_last: i32 = 0;
+        let mut glyph_last = 0;
 
         for c in text.chars() {
             let code_point = c as u32;

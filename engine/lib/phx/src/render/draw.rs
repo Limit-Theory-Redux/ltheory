@@ -1,9 +1,12 @@
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
-use super::*;
-use crate::logging::*;
-use crate::math::*;
-use crate::system::*;
+use glam::{Vec2, Vec3};
+use tracing::warn;
+
+use super::{gl, Color, PrimitiveBuilder, PrimitiveType};
+use crate::math::{reject_vec3, Box3};
+use crate::render::glcheck;
+use crate::system::Metric;
 
 pub struct Draw {
     alpha_stack: Vec<f32>,
@@ -38,6 +41,7 @@ impl Draw {
 #[luajit_ffi_gen::luajit_ffi]
 impl Draw {
     pub fn clear(r: f32, g: f32, b: f32, a: f32) {
+        #[allow(unsafe_code)]
         let status = unsafe { gl::CheckFramebufferStatus(gl::FRAMEBUFFER) };
         if status == gl::FRAMEBUFFER_COMPLETE {
             glcheck!(gl::ClearColor(r, g, b, a));
@@ -355,8 +359,8 @@ impl Draw {
         let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
 
         this.pb.begin(PrimitiveType::Quads);
-        for iPhi in 2..res {
-            let phi: f32 = iPhi as f32 / f_res * std::f32::consts::PI;
+        for i_phi in 2..res {
+            let phi: f32 = i_phi as f32 / f_res * std::f32::consts::PI;
             for i_theta in 0..res {
                 let theta: f32 = i_theta as f32 / f_res * std::f32::consts::TAU;
                 let br: Vec3 = *p + Self::spherical(r, last_theta, phi);

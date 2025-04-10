@@ -1,7 +1,8 @@
 use std::cell::RefCell;
 
-use super::*;
-use crate::system::*;
+use super::{gl, CubeFace, Tex2D, Tex3D, TexCube, TexFormat};
+use crate::render::{glcheck, Viewport_Pop, Viewport_Push};
+use crate::system::{Metric, Profiler};
 
 pub struct RenderTarget;
 
@@ -62,7 +63,7 @@ thread_local! { static FBO_STACK: RefCell<FboStack> = RefCell::new(FboStack::new
 #[repr(C)]
 pub struct FBO {
     pub handle: u32,
-    pub colorIndex: i32,
+    pub color_index: i32,
     pub sx: i32,
     pub sy: i32,
     pub depth: bool,
@@ -82,7 +83,7 @@ impl FboStack {
         Self {
             stack: [FBO {
                 handle: 0,
-                colorIndex: 0,
+                color_index: 0,
                 sx: 0,
                 sy: 0,
                 depth: false,
@@ -112,7 +113,7 @@ impl FboStack {
 
         let fbo = self.get_active();
         fbo.handle = 0;
-        fbo.colorIndex = 0;
+        fbo.color_index = 0;
         fbo.sx = sx;
         fbo.sy = sy;
         fbo.depth = false;
@@ -122,7 +123,10 @@ impl FboStack {
         glcheck!(gl::GenFramebuffers(1, &mut fbo.handle));
         glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, fbo.handle));
 
-        unsafe { Viewport_Push(0, 0, sx, sy, false) };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            Viewport_Push(0, 0, sx, sy, false);
+        }
 
         Profiler::end();
     }
@@ -170,7 +174,10 @@ impl FboStack {
             glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));
         }
 
-        unsafe { Viewport_Pop() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            Viewport_Pop();
+        }
 
         Profiler::end();
     }
@@ -183,20 +190,20 @@ impl FboStack {
         let fbo = self.get_active();
         let handle = Tex2D::get_handle(tex);
 
-        if TexFormat_IsColor(Tex2D::get_format(tex)) {
-            if fbo.colorIndex >= 4 {
+        if TexFormat::is_color(Tex2D::get_format(tex)) {
+            if fbo.color_index >= 4 {
                 panic!("RenderTarget_BindTex2D: Max color attachments exceeded");
             }
 
             glcheck!(gl::FramebufferTexture2D(
                 gl::FRAMEBUFFER,
-                gl::COLOR_ATTACHMENT0 + fbo.colorIndex as u32,
+                gl::COLOR_ATTACHMENT0 + fbo.color_index as u32,
                 gl::TEXTURE_2D,
                 handle,
                 level,
             ));
-            fbo.colorIndex += 1;
-            glcheck!(gl::DrawBuffers(fbo.colorIndex, self.bufs.as_ptr()));
+            fbo.color_index += 1;
+            glcheck!(gl::DrawBuffers(fbo.color_index, self.bufs.as_ptr()));
         } else {
             if fbo.depth {
                 panic!("RenderTarget_BindTex2D: Target already has a depth buffer");
@@ -219,21 +226,21 @@ impl FboStack {
 
     fn bind_tex3d_level(&mut self, tex: &Tex3D, layer: i32, level: i32) {
         let fbo = self.get_active();
-        if fbo.colorIndex >= 4 {
+        if fbo.color_index >= 4 {
             panic!("RenderTarget_BindTex3D: Max color attachments exceeded");
         }
 
         let handle = Tex3D::get_handle(tex);
         glcheck!(gl::FramebufferTexture3D(
             gl::FRAMEBUFFER,
-            gl::COLOR_ATTACHMENT0 + fbo.colorIndex as u32,
+            gl::COLOR_ATTACHMENT0 + fbo.color_index as u32,
             gl::TEXTURE_3D,
             handle,
             level,
             layer,
         ));
-        fbo.colorIndex += 1;
-        glcheck!(gl::DrawBuffers(fbo.colorIndex, self.bufs.as_ptr()));
+        fbo.color_index += 1;
+        glcheck!(gl::DrawBuffers(fbo.color_index, self.bufs.as_ptr()));
     }
 
     fn bind_tex_cube(&mut self, tex: &TexCube, face: CubeFace) {
@@ -242,20 +249,20 @@ impl FboStack {
 
     fn bind_tex_cube_level(&mut self, tex: &TexCube, face: CubeFace, level: i32) {
         let fbo = self.get_active();
-        if fbo.colorIndex >= 4 {
+        if fbo.color_index >= 4 {
             panic!("RenderTarget_BindTexCubeLevel: Max color attachments exceeded");
         }
         let handle: u32 = TexCube::get_handle(tex);
 
         glcheck!(gl::FramebufferTexture2D(
             gl::FRAMEBUFFER,
-            gl::COLOR_ATTACHMENT0 + fbo.colorIndex as u32,
+            gl::COLOR_ATTACHMENT0 + fbo.color_index as u32,
             face as u32,
             handle,
             level,
         ));
-        fbo.colorIndex += 1;
-        glcheck!(gl::DrawBuffers(fbo.colorIndex, self.bufs.as_ptr()));
+        fbo.color_index += 1;
+        glcheck!(gl::DrawBuffers(fbo.color_index, self.bufs.as_ptr()));
     }
 
     fn push_tex2d(&mut self, tex: &Tex2D) {

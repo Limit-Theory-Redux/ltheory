@@ -2,12 +2,14 @@ use std::cell::{Ref, RefMut};
 use std::io::BufReader;
 use std::time::SystemTime;
 
+use glam::{Vec2, Vec3, Vec4};
 use memoffset::offset_of;
 use tobj::LoadError;
 
-use super::*;
+use super::{gl, DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat};
 use crate::error::Error;
-use crate::math::*;
+use crate::math::{validate_vec2, validate_vec3, Box3, Matrix, Triangle};
+use crate::render::{glcheck, RenderState_PopAll, RenderState_PushAllDefaults, Shader};
 use crate::rf::Rf;
 use crate::system::*;
 
@@ -520,7 +522,7 @@ impl Mesh {
             let i0 = this.index[i] as usize;
             let i1 = this.index[i + 1] as usize;
             let i2 = this.index[i + 2] as usize;
-            let triangle: Triangle = Triangle {
+            let triangle = Triangle {
                 vertices: [this.vertex[i0].p, this.vertex[i1].p, this.vertex[i2].p],
             };
             let e = triangle.validate();
@@ -547,9 +549,12 @@ impl Mesh {
         0 as Error
     }
 
-    pub unsafe fn get_vertex(&mut self, index: i32) -> &mut Vertex {
+    pub fn get_vertex(&mut self, index: i32) -> &mut Vertex {
         let ptr = &mut self.shared.as_mut().vertex[index as usize] as *mut _;
-        &mut *ptr
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            &mut *ptr
+        }
     }
 
     pub fn get_vertex_count(&self) -> i32 {
@@ -750,10 +755,10 @@ impl Mesh {
             normal_buffer[i / 3] = Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
         }
 
-        let mut tex_spoints = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat_RGBA32F);
-        let mut tex_snormals = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat_RGBA32F);
-        tex_spoints.set_data(&point_buffer, PixelFormat_RGBA, DataFormat_Float);
-        tex_snormals.set_data(&normal_buffer, PixelFormat_RGBA, DataFormat_Float);
+        let mut tex_spoints = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat::RGBA32F);
+        let mut tex_snormals = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat::RGBA32F);
+        tex_spoints.set_data(&point_buffer, PixelFormat::RGBA, DataFormat::Float);
+        tex_snormals.set_data(&normal_buffer, PixelFormat::RGBA, DataFormat::Float);
 
         point_buffer.clear();
         point_buffer.resize(buf_size as usize, Vec4::ZERO);
@@ -765,14 +770,15 @@ impl Mesh {
             normal_buffer[i] = Vec4::new(v.n.x, v.n.y, v.n.z, 0.0);
         }
 
-        let mut tex_vpoints = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_RGBA32F);
-        let mut tex_vnormals = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_RGBA32F);
-        tex_vpoints.set_data(&point_buffer, PixelFormat_RGBA, DataFormat_Float);
-        tex_vnormals.set_data(&normal_buffer, PixelFormat_RGBA, DataFormat_Float);
+        let mut tex_vpoints = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat::RGBA32F);
+        let mut tex_vnormals = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat::RGBA32F);
+        tex_vpoints.set_data(&point_buffer, PixelFormat::RGBA, DataFormat::Float);
+        tex_vnormals.set_data(&normal_buffer, PixelFormat::RGBA, DataFormat::Float);
 
-        let tex_output = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat_R32F);
+        let tex_output = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat::R32F);
 
         // TODO: Store shader properly
+        #[allow(unsafe_code)] // TODO: remove
         let shader = unsafe {
             static mut SHADER: *mut Shader = std::ptr::null_mut();
             if SHADER.is_null() {
@@ -784,7 +790,10 @@ impl Mesh {
             &mut *SHADER
         };
 
-        unsafe { RenderState_PushAllDefaults() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            RenderState_PushAllDefaults();
+        }
         RenderTarget::push_tex2d(&tex_output);
 
         shader.start();
@@ -798,9 +807,12 @@ impl Mesh {
         shader.stop();
 
         RenderTarget::pop();
-        unsafe { RenderState_PopAll() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            RenderState_PopAll();
+        }
 
-        let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
+        let result: Vec<f32> = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
             this.vertex[i].uv.x = *result_uv_value;
         }
@@ -810,17 +822,18 @@ impl Mesh {
         let this = &mut *self.shared.as_mut();
 
         let v_dim: i32 = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
-        let mut tex_points = Tex2D::new(v_dim, v_dim, TexFormat_RGBA32F);
-        let tex_output = Tex2D::new(v_dim, v_dim, TexFormat_R32F);
+        let mut tex_points = Tex2D::new(v_dim, v_dim, TexFormat::RGBA32F);
+        let tex_output = Tex2D::new(v_dim, v_dim, TexFormat::R32F);
 
         let mut point_buffer = vec![Vec3::ZERO; (v_dim * v_dim) as usize];
         for (i, point) in point_buffer.iter_mut().enumerate().take(this.vertex.len()) {
             *point = this.vertex[i].p;
         }
 
-        tex_points.set_data(&point_buffer, PixelFormat_RGB, DataFormat_Float);
+        tex_points.set_data(&point_buffer, PixelFormat::RGB, DataFormat::Float);
 
         // TODO: Store shader properly.
+        #[allow(unsafe_code)] // TODO: remove
         let shader = unsafe {
             static mut SHADER: *mut Shader = std::ptr::null_mut();
             if SHADER.is_null() {
@@ -832,7 +845,10 @@ impl Mesh {
             &mut *SHADER
         };
 
-        unsafe { RenderState_PushAllDefaults() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            RenderState_PushAllDefaults();
+        }
         RenderTarget::push_tex2d(&tex_output);
 
         shader.start();
@@ -843,9 +859,12 @@ impl Mesh {
         shader.stop();
 
         RenderTarget::pop();
-        unsafe { RenderState_PopAll() };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            RenderState_PopAll();
+        }
 
-        let result: Vec<f32> = tex_output.get_data(PixelFormat_Red, DataFormat_Float);
+        let result: Vec<f32> = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
             this.vertex[i].uv.x = *result_uv_value;
         }

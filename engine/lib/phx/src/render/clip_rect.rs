@@ -94,7 +94,10 @@ impl ClipManager {
     fn activate(&mut self) {
         let mut vp_size = IVec2::ZERO;
 
-        unsafe { Viewport_GetSize(&mut vp_size) };
+        #[allow(unsafe_code)] // TODO: remove
+        unsafe {
+            Viewport_GetSize(&mut vp_size);
+        }
         glcheck!(gl::Enable(gl::SCISSOR_TEST));
 
         let rect = &mut self.rects[self.rects_count - 1];

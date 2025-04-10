@@ -1,35 +1,26 @@
-use super::gl;
+#[luajit_ffi_gen::luajit_ffi(with_impl = true)]
+#[derive(Debug, Clone, Copy)]
+pub enum CubeFace {
+    PX = 0x8515, // gl::TEXTURE_CUBE_MAP_POSITIVE_X,
+    NX = 0x8516, // gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
+    PY = 0x8517, // gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
+    NY = 0x8518, // gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    PZ = 0x8519, // gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
+    NZ = 0x851A, // gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
+}
 
-pub type CubeFace = i32;
-
-#[no_mangle]
-pub static CubeFace_PX: CubeFace = gl::TEXTURE_CUBE_MAP_POSITIVE_X as CubeFace;
-
-#[no_mangle]
-pub static CubeFace_NX: CubeFace = gl::TEXTURE_CUBE_MAP_NEGATIVE_X as CubeFace;
-
-#[no_mangle]
-pub static CubeFace_PY: CubeFace = gl::TEXTURE_CUBE_MAP_POSITIVE_Y as CubeFace;
-
-#[no_mangle]
-pub static CubeFace_NY: CubeFace = gl::TEXTURE_CUBE_MAP_NEGATIVE_Y as CubeFace;
-
-#[no_mangle]
-pub static CubeFace_PZ: CubeFace = gl::TEXTURE_CUBE_MAP_POSITIVE_Z as CubeFace;
-
-#[no_mangle]
-pub static CubeFace_NZ: CubeFace = gl::TEXTURE_CUBE_MAP_NEGATIVE_Z as CubeFace;
-
-static mut K_FACES: [CubeFace; 6] = [
-    CubeFace_PX,
-    CubeFace_NX,
-    CubeFace_PY,
-    CubeFace_NY,
-    CubeFace_PZ,
-    CubeFace_NZ,
+pub const CUBE_FACES: [CubeFace; 6] = [
+    CubeFace::PX,
+    CubeFace::NX,
+    CubeFace::PY,
+    CubeFace::NY,
+    CubeFace::PZ,
+    CubeFace::NZ,
 ];
 
-#[no_mangle]
-pub unsafe extern "C" fn CubeFace_Get(index: i32) -> CubeFace {
-    K_FACES[index as usize]
+#[luajit_ffi_gen::luajit_ffi]
+impl CubeFace {
+    pub fn get(index: i32) -> CubeFace {
+        CUBE_FACES[index as usize]
+    }
 }

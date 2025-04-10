@@ -1,4 +1,4 @@
-use super::*;
+use super::Mesh;
 use crate::rf::Rf;
 
 /* TODO : Merge meshes into single IBO/VBO so that we can skip all the rebinds
