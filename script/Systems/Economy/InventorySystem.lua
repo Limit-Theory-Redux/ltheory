@@ -48,7 +48,7 @@ function InventorySystem:take(inventory, itemId, quantity)
             -- Split the item and update quantity
             quantityComponent:setQuantity(itemQuantity - remainingQuantity)
             local clone, cloneEntityId = itemEntity:clone()
-            local cloneQuantityCmp = clone:findComponentByArchetype((QuantityComponent))
+            local cloneQuantityCmp = clone:findComponentByArchetype(QuantityComponent)
             cloneQuantityCmp:setQuantity(remainingQuantity)
             table.insert(takenItems, cloneEntityId)
             remainingQuantity = 0
@@ -77,7 +77,6 @@ end
 ---@return boolean success
 function InventorySystem:lockItemQuantity(item, owner, amount)
     local quantityComponent = item:findComponentByArchetype(QuantityComponent)
-    ---@cast quantityComponent QuantityComponent
 
     if amount > quantityComponent:getQuantity() then
         Log.Warn("Trying to reserve more than available quantity")
@@ -96,7 +95,6 @@ end
 ---@return boolean success
 function InventorySystem:unlockItemQuantity(item, owner, amount)
     local quantityComponent = item:findComponentByArchetype(QuantityComponent)
-    ---@cast quantityComponent QuantityComponent
 
     if not quantityComponent:getLockedQuantity() then
         Log.Warn("Trying to unlock quantity without locking it first")

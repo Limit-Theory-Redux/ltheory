@@ -1,12 +1,8 @@
 ---@class Registry
----@field entities table<EntityStorage>
----@field components table<ComponentStorage>
+---@field entities table<EntityId, Entity>
+---@field components table<any, ComponentStorage>
 
----@class EntityStorage
----@field [EntityArchetype] Entity
-
----@class ComponentStorage
----@field [EntityArchetype] Component
+---@alias ComponentStorage table<ComponentId, Component>
 
 ---@alias EntityId integer
 ---@alias ComponentId integer
@@ -90,9 +86,7 @@ end
 ---@param componentInfo ComponentInfo
 ---@return Component|nil
 function Registry:getComponentData(componentInfo)
-    ---@type ComponentStorage
     local archetypeStorage = self.components[componentInfo.archetype]
-
     if not archetypeStorage then
         Log.Error("Did not provide a valid archetype for component: " .. componentInfo.id)
     end
@@ -115,6 +109,35 @@ function Registry:getComponentsFromArchetype(archetype)
     if self.components[archetype] then
         return self.components[archetype]
     end
+end
+
+---@generic T1, T2, T3, T4, T5
+---@param ... T1, T2, T3, T4, T5 A variable list of component types
+---@return fun(): T1, T2, T3, T4, T5 An iterator that yields components as a tuple
+function Registry:iterEntities(...)
+    local componentTypes = { ... } -- Collect the variable arguments into a table
+    return coroutine.wrap(function()
+        for _, entityStorage in pairs(self.entities) do
+            for _, entity in pairs(entityStorage) do
+                local components = {}
+                local hasAllComponents = true
+
+                for i, componentType in ipairs(componentTypes) do
+                    local component = entity:findComponentByArchetype(componentType)
+                    if component then
+                        components[i] = component
+                    else
+                        hasAllComponents = false
+                        break
+                    end
+                end
+
+                if hasAllComponents then
+                    coroutine.yield(table.unpack(components)) -- Yield components as a tuple
+                end
+            end
+        end
+    end)
 end
 
 -- if you for some reason want all entities, should only be used for debugging

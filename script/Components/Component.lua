@@ -45,12 +45,13 @@ function Component:getGuid()
     return self.guid
 end
 
+---@generic T: Component
 ---@return T
 function Component:getArchetype()
     return type(self)
 end
 
----@param entity integer
+---@param entityId integer
 function Component:setEntityId(entityId)
     self.entityId = entityId
 end

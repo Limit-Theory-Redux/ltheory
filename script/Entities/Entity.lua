@@ -1,12 +1,9 @@
 local Registry = require("Systems.Storage.Registry")
 
----@type ComponentInfo
-local ComponentInfo = require("Shared.Types.ComponentInfo")
-
 ---@class Entity
----@field components table<ComponentInfo>
+---@field components table<any, ComponentInfo>
 
--- General Purpose Entity Object
+-- General Purpose Entity Object. Contains a reference to its components, but does not own the component data.
 ---@param self Entity
 ---@class Entity
 local Entity = Class("Entity", function(self)
@@ -69,60 +66,43 @@ function Entity:addComponents()
     self.components = {}
 end
 
----@return integer componentInfoIndex
----@return Component
+---@param component Component
+---@return ComponentInfo componentInfo
 function Entity:addComponent(component)
-    component:setEntityId(self:getGuid())
-    insert(self.components, ComponentInfo { id = component:getGuid(), archetype = component:getArchetype(), entity = self:getEntityId() })
-    Registry:storeComponent(component)
-    return #self.components, component
+    component:setEntityId(self:getEntityId())
+    local componentInfo = Registry:storeComponent(component)
+    self.components[component:getArchetype()] = componentInfo
+    return componentInfo
 end
 
----@param componentInfoIndex integer
+---@param componentType any
 ---@return boolean wasSuccessful
-function Entity:removeComponent(componentInfoIndex)
-    local componentInfo = remove(self.components, componentInfoIndex)
-    return Registry:dropComponent(componentInfo.archetype, componentInfo.id)
-end
-
----@param archetype ComponentArchetype
----@return integer resultCount
----@return table<Component>
-function Entity:findComponentsByArchetype(archetype)
-    local queryResults = {}
-    ---@param componentInfo ComponentInfo
-    for index, componentInfo in ipairs(self.components) do
-        if componentInfo.archetype == archetype then
-            local component = Registry:getComponentData(componentInfo)
-            insert(queryResults, component)
-        end
+function Entity:removeComponent(componentType)
+    if self.components[componentType] == nil then
+        return false
     end
-    return #queryResults, queryResults
+    Registry:dropComponent(componentType, self.components[componentType].id)
+    self.components[componentType] = nil
+    return true
 end
 
 ---@generic T
 ---@param archetype T
----@return T
+---@return T|nil
 function Entity:findComponentByArchetype(archetype)
-    local queryResults = {}
-    ---@param componentInfo ComponentInfo
-    for index, componentInfo in ipairs(self.components) do
-        if componentInfo.archetype == archetype then
-            local component = Registry:getComponentData(componentInfo)
-            insert(queryResults, component)
-        end
+    local componentInfo = self.components[archetype]
+    if not componentInfo then
+        return nil
     end
-    if #queryResults > 1 then
-        Log.Error("Found more than one component for your query. Please be more specific.")
-    end
-    return queryResults[1]
+
+    return Registry:getComponentData(componentInfo)
 end
 
 ---@param query string
 ---@return Component|nil
 function Entity:findComponentByName(query)
     local queryResults = {}
-    for index, componentInfo in ipairs(self.components) do
+    for _, componentInfo in pairs(self.components) do
         local component = Registry:getComponentData(componentInfo)
         local componentName = component and component:getComponentName()
         if componentName and string.match(componentName, query) then
@@ -137,28 +117,24 @@ function Entity:findComponentByName(query)
     return queryResults[1]
 end
 
----@return ComponentInfo
-function Entity:getComponentInfo(componentInfoIndex)
-    return self.components[componentInfoIndex]
-end
-
 function Entity:iterComponents()
     local components = {}
-    for index, componentInfo in ipairs(self.components) do
-        local component = Registry:getComponentData(componentInfo)
-        insert(components, component)
+    for _, info in pairs(self.components) do
+        insert(components, Registry:getComponentData(info))
     end
     return Iterator(components)
 end
 
--- does not handle clearing from Registry
 function Entity:clearComponents()
+    for type, info in pairs(self.components) do
+        Registry:dropComponent(type, info.id)
+    end
     self.components = {}
 end
 
 ---@return boolean success
 function Entity:destroy()
-    local success = Registry:dropEntity(self.archetype, self.guid)
+    local success = Registry:dropEntity(self.guid)
 
     if success then
         local noFail = true
@@ -186,11 +162,10 @@ function Entity:destroy()
 end
 
 function Entity:clone()
-    local clone = ShallowClone(self)
-    clone:addGuid()
-    clone:clearComponents()
+    local clone = Entity()
 
     for component in self:iterComponents() do
+        ---@type Component
         local clonedComponent = DeepClone(component)
         clonedComponent:addGuid()
         clone:addComponent(clonedComponent)
