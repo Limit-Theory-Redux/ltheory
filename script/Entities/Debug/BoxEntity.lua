@@ -10,9 +10,6 @@ local HierarchyComponent = require("Components.Core.EntityHierarchy")
 ---@overload fun(self: BoxEntity, material: Material): BoxEntity subclass internal
 ---@overload fun(material: Material): BoxEntity subclass external
 local BoxEntity = Subclass("BoxEntity", Entity, function(self, material)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.BoxEntity)
-
     -- Transform Component
     self:addComponent(TransformComponent())
 

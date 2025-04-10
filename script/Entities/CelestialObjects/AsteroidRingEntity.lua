@@ -11,9 +11,6 @@ local HierarchyComponent = require("Components.Core.EntityHierarchy")
 ---@overload fun(self: AsteroidRingEntity, seed: integer): AsteroidRingEntity subclass internal
 ---@overload fun(seed: integer): AsteroidRingEntity subclass external
 local AsteroidRingEntity = Subclass("AsteroidRingEntity", Entity, function(self, seed)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.AsteroidRingEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 

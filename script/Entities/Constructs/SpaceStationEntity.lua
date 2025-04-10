@@ -13,9 +13,6 @@ local MarketplaceComponent = require("Components.Economy.MarketplaceComponent")
 ---@overload fun(self: SpaceStationEntity, seed: integer): SpaceStationEntity subclass internal
 ---@overload fun(seed: integer): SpaceStationEntity subclass external
 local SpaceStationEntity = Subclass("SpaceStationEntity", Entity, function(self, seed)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.SpaceStationEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 

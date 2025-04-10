@@ -35,9 +35,6 @@ local QuantityComponent = require("Components.Economy.QuantityComponent")
 ---@overload fun(self: ItemEntity, definition: ItemDefinition, quantity: number): ItemEntity subclass internal
 ---@overload fun(definition: ItemDefinition, quantity: number): ItemEntity subclass external
 local ItemEntity = Subclass("ItemEntity", Entity, function(self, definition, quantity)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.ItemEntity)
-
     -- Name Component
     self:addComponent(NameComponent(definition.name))
 

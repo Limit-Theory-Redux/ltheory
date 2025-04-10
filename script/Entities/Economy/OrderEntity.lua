@@ -12,9 +12,6 @@ local ExpiryComponent = require("Components.Economy.ExpiryComponent")
 ---@overload fun(self: OrderEntity, issuerId: number, itemType: integer, quantity: number, price: number, expiresAt: TimeStamp|nil): OrderEntity subclass internal
 ---@overload fun(issuerId: number, itemType: integer, quantity: number, price: number, expiresAt: TimeStamp|nil): OrderEntity subclass external
 local OrderEntity = Subclass("OrderEntity", Entity, function(self, issuerId, itemType, quantity, price, expiresAt)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.OrderEntity)
-
     -- Ownership Component
     self:addComponent(OwnershipComponent(issuerId))
 

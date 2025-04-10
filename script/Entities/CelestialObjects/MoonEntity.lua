@@ -11,9 +11,6 @@ local HierarchyComponent = require("Components.Core.EntityHierarchy")
 ---@overload fun(self: MoonEntity, seed: integer): MoonEntity subclass internal
 ---@overload fun(seed: integer): MoonEntity subclass external
 local MoonEntity = Subclass("MoonEntity", Entity, function(self, seed)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.MoonEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 

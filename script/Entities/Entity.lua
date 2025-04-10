@@ -5,12 +5,15 @@ local Registry = require("Systems.Storage.Registry")
 
 -- General Purpose Entity Object. Contains a reference to its components, but does not own the component data.
 ---@param self Entity
----@class Entity
 local Entity = Class("Entity", function(self)
     self:addGuid()
     self:addComponents()
     self:Enable()
 end)
+
+function Entity:__tostring()
+    return format("%s(%s)", tostring(type(self)), tostring(self:getGuid()))
+end
 
 function Entity:addGuid()
     self.guid = Guid.Create()
@@ -34,24 +37,6 @@ end
 ---@return boolean # If Entity is Enabled
 function Entity:isEnabled()
     return self.enabled
-end
-
----@param archetype EntityArchetype
-function Entity:setArchetype(archetype)
-    self.archetype = archetype
-
-    local mt = getmetatable(self)
-    if mt then
-        mt.__tostring = function(self)
-            return format("%s(%s)", Enums.EntityArchetype:getName(self.archetype), tostring(self:getGuid()))
-        end
-        setmetatable(self, mt)
-    end
-end
-
----@return EntityArchetype
-function Entity:getArchetype()
-    return self.archetype
 end
 
 ---@return EntityId

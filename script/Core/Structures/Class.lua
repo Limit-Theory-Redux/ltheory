@@ -70,7 +70,7 @@ function Subclass(name, base, ctor)
     local cls = {}
     cls.__index = cls
     cls.__type = cls
-    cls.__tostring = defaulttostring
+    cls.__tostring = base.__tostring or defaulttostring
 
     -- Define the default constructor.
     -- This just invokes ctor on an instance of base() if it is not nil.

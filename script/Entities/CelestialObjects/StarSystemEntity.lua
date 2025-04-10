@@ -17,9 +17,6 @@ local Words = require('Legacy.Systems.Gen.Words')
 ---@overload fun(self: StarSystemEntity, seed: integer): StarSystemEntity subclass internal
 ---@overload fun(seed: integer): StarSystemEntity subclass external
 local StarSystemEntity = Subclass("StarSystemEntity", Entity, function(self, seed)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.StarSystemEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 

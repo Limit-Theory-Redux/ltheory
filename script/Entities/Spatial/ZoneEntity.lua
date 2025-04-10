@@ -10,9 +10,6 @@ local HierarchyComponent = require("Components.Core.EntityHierarchy")
 ---@overload fun(self: ZoneEntity): ZoneEntity subclass internal
 ---@overload fun(): ZoneEntity subclass external
 local ZoneEntity = Subclass("ZoneEntity", Entity, function(self)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.ZoneEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 

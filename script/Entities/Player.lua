@@ -8,9 +8,6 @@ local PlayerBankAccount = require("Components.Economy.PlayerBankAccountComponent
 ---@overload fun(self: Player, name: string, isAiPlayer: boolean) subclass internal
 ---@overload fun(name: string, isAiPlayer: boolean) subclass external
 local Player = Subclass("Player", Entity, function(self, name, isAiPlayer)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.PlayerEntity)
-
     -- Name Component
     self:addComponent(NameComponent(name))
 

@@ -11,9 +11,6 @@ local HierarchyComponent = require("Components.Core.EntityHierarchy")
 ---@overload fun(self: PlanetEntity, seed: integer): PlanetEntity subclass internal
 ---@overload fun(seed: integer): PlanetEntity subclass external
 local PlanetEntity = Subclass("PlanetEntity", Entity, function(self, seed)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.PlanetEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 

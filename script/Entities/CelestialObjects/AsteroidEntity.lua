@@ -16,9 +16,6 @@ local Materials = require("Shared.Registries.Materials")
 ---@overload fun(self: AsteroidEntity, seed: integer): AsteroidEntity subclass internal
 ---@overload fun(seed: integer): AsteroidEntity subclass external
 local AsteroidEntity = Subclass("AsteroidEntity", Entity, function(self, seed)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.AsteroidEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 

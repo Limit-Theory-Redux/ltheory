@@ -10,9 +10,6 @@ local HierarchyComponent = require("Components.Core.EntityHierarchy")
 ---@overload fun(self: TriggerEntity): TriggerEntity subclass internal
 ---@overload fun(): TriggerEntity subclass external
 local TriggerEntity = Subclass("TriggerEntity", Entity, function(self)
-    -- Set Entity Archetype
-    self:setArchetype(Enums.EntityArchetype.TriggerEntity)
-
     -- Name Component
     self:addComponent(NameComponent())
 

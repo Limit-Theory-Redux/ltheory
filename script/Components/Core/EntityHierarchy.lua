@@ -35,20 +35,6 @@ function EntityHierarchyComponent:removeChild(childIndex)
     remove(self.hierarchy.children, childIndex)
 end
 
----@param archetype EntityArchetype
----@return table<Entity|nil> QueryResults
-function EntityHierarchyComponent:findChildrenOfArchetype(archetype)
-    local queryResults = {}
-    ---@param childEntityId EntityId
-    for _, childEntityId in ipairs(self.hierarchy.children) do
-        if Registry:getEntity(childEntityId):getArchetype() == archetype then
-            local entity = Registry:getEntity(childEntityId)
-            insert(queryResults, entity)
-        end
-    end
-    return queryResults
-end
-
 ---@return Iterator<Entity|nil>
 function EntityHierarchyComponent:iterChildren()
     local entities = {}
