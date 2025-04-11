@@ -97,7 +97,7 @@ impl ClipManager {
             glcheck!(gl::Disable(gl::SCISSOR_TEST));
             return;
         }
-        
+
         let mut vp_size = IVec2::ZERO;
 
         #[allow(unsafe_code)] // TODO: remove
