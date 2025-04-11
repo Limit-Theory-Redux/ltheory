@@ -8,6 +8,7 @@ local function Player(name, isAiPlayer)
     local startCredits = isAiPlayer and Config.econ.eStartCredits or Config.econ.pStartCredits
     
     return Entity(
+        "Player",
         Components.NameComponent(name),
         Components.PlayerBankAccountComponent(startCredits)
     )

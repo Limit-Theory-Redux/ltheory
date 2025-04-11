@@ -5,6 +5,7 @@ local Components = require("Components")
 ---@return Entity
 local function BoxEntity(material)
     return Entity(
+        "BoxEntity",
         Components.TransformComponent(),
         Components.RenderComponent({ material }, Enums.MeshType.Box),
         Components.RigidBodyComponent(),

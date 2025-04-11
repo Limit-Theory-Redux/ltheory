@@ -6,7 +6,7 @@ local Materials = require("Shared.Registries.Materials")
 ---@return Entity
 local function AsteroidEntity(seed)
     return Entity(
-        Components.NameComponent(),
+        "AsteroidEntity",
         Components.SeedComponent(seed),
         Components.TransformComponent(),
         Components.MassComponent(),

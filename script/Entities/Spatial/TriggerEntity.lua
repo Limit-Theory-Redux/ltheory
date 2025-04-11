@@ -5,6 +5,7 @@ local Components = require("Components")
 ---@return Entity
 local function TriggerEntity(entityId)
     return Entity(
+        "TriggerEntity",
         Components.NameComponent(),
         Components.TransformComponent(),
         Components.ShapeComponent(),

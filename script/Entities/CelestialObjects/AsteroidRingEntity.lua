@@ -5,7 +5,7 @@ local Components = require("Components")
 ---@return Entity
 local function AsteroidRingEntity(seed)
     return Entity(
-        Components.NameComponent(),
+        "AsteroidRingEntity",
         Components.SeedComponent(seed),
         Components.TransformComponent(),
         Components.MassComponent(),

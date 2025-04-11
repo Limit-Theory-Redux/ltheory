@@ -5,8 +5,7 @@ local Components = require("Components")
 ---@return Entity
 local function SpaceStationEntity(seed)
     return Entity(
-        Components.NameComponent(),
-        Components.SeedComponent(seed),
+        "SpaceStationEntity",
         Components.TransformComponent(),
         Components.MassComponent(),
         Components.HierarchyComponent(),

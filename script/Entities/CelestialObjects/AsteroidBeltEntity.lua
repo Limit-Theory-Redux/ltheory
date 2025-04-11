@@ -3,7 +3,7 @@ local Components = require("Components")
 
 local function AsteroidBeltEntity(seed)
     return Entity(
-        Components.NameComponent("AsteroidBeltEntity"),
+        "AsteroidBeltEntity",
         Components.SeedComponent(seed),
         Components.TransformComponent(),
         Components.MassComponent(),

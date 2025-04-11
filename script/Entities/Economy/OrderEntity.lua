@@ -9,6 +9,7 @@ local Components = require("Components")
 ---@return Entity
 local function OrderEntity(issuerId, itemType, quantity, price, expiresAt)
     return Entity(
+        "OrderEntity",
         Components.OwnershipComponent(issuerId),
         Components.OrderItemTypeComponent(itemType),
         Components.QuantityComponent(quantity),

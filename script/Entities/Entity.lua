@@ -5,15 +5,17 @@ local Registry = require("Systems.Storage.Registry")
 ---@field name string
 
 -- General Purpose Entity Object. Contains a reference to its components, but does not own the component data.
+---@param self Entity
 ---@param name string The name of the entity
-local Entity = Class("Entity", function(self, ...)
+local Entity = Class("Entity", function(self, name, ...)
+    self.name = name or "Entity"
     self.guid = Guid.Create()
     self:addComponents(...)
-    self:Enable()
+    self:enable()
 end)
 
 function Entity:__tostring()
-    return format("%s(%s)", tostring(type(self)), tostring(self:getGuid()))
+    return format("%s(%s)", self.name, tostring(self:getGuid()))
 end
 
 ---@return integer
@@ -31,17 +33,17 @@ function Entity:setName(name)
     self.name = name
 end
 
----Enables Entity
-function Entity:Enable()
+--- Enables the entity
+function Entity:enable()
     self.enabled = true
 end
 
----Disables Entity
-function Entity:Disable()
+--- Disables the entity
+function Entity:disable()
     self.enabled = false
 end
 
----@return boolean # If Entity is Enabled
+---@return boolean
 function Entity:isEnabled()
     return self.enabled
 end

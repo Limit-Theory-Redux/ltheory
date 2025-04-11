@@ -5,7 +5,7 @@ local Components = require("Components")
 ---@return Entity
 local function MoonEntity(seed)
     return Entity(
-        Components.NameComponent(),
+        "MoonEntity",
         Components.SeedComponent(seed),
         Components.TransformComponent(),
         Components.MassComponent(),

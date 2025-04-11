@@ -5,7 +5,7 @@ local Components = require("Components")
 ---@return Entity
 local function StarSystemEntity(seed)
     return Entity(
-        Components.NameComponent(),
+        "StarSystemEntity",
         Components.SeedComponent(seed),
         Components.TransformComponent(),
         Components.MassComponent(),

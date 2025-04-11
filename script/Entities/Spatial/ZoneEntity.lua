@@ -5,6 +5,7 @@ local Components = require("Components")
 ---@return Entity
 local function ZoneEntity(entityId)
     return Entity(
+        "ZoneEntity",
         Components.NameComponent(),
         Components.TransformComponent(),
         Components.ShapeComponent(),

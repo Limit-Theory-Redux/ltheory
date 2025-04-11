@@ -6,6 +6,7 @@ local Components = require("Components")
 ---@return Entity
 local function ItemEntity(definition, quantity)
     return Entity(
+        "ItemEntity",
         Components.NameComponent(definition.name),
         Components.MassComponent(definition.mass),
         Components.QuantityComponent(quantity)
