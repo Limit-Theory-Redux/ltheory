@@ -265,7 +265,13 @@ pub struct TriangleTest {
     pub hit: bool,
 }
 
-pub type BSPNodeRel = u8;
+#[luajit_ffi_gen::luajit_ffi]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BSPNodeRel {
+    Parent = 0,
+    Back = 1,
+    Front = 2,
+}
 
 #[repr(C)]
 pub struct BSPBuild {
@@ -328,15 +334,6 @@ pub struct Delay {
     pub nodeRef: BSPNodeRef,
     pub depth: i32,
 }
-
-#[no_mangle]
-pub static BSP_NODE_REL_PARENT: BSPNodeRel = 0 as BSPNodeRel;
-
-#[no_mangle]
-pub static BSP_NODE_REL_BACK: BSPNodeRel = 1 as BSPNodeRel;
-
-#[no_mangle]
-pub static BSP_NODE_REL_FRONT: BSPNodeRel = 2 as BSPNodeRel;
 
 const BACK_INDEX: i32 = 0;
 const FRONT_INDEX: i32 = 1;
@@ -1273,7 +1270,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
         index: 0,
         triangleCount: 0,
     };
-    if relationship == BSP_NODE_REL_PARENT {
+    if relationship == BSPNodeRel::Parent {
         if nodeRef.index != 0 {
             for i in 0..(this.nodes.len() as i32) {
                 let nodeToCheck: &mut BSPNode = &mut this.nodes[i as usize];
@@ -1285,11 +1282,11 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
                 }
             }
         }
-    } else if relationship == BSP_NODE_REL_BACK {
+    } else if relationship == BSPNodeRel::Back {
         if !node.is_null() {
             newNode = (*node).child[BACK_INDEX as usize];
         }
-    } else if relationship == BSP_NODE_REL_FRONT {
+    } else if relationship == BSPNodeRel::Front {
         if !node.is_null() {
             newNode = (*node).child[FRONT_INDEX as usize];
         }

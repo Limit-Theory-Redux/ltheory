@@ -72,6 +72,7 @@ const COPY_TYPES: &[&str] = &[
     "CubeFace",
     "BlendMode",
     "CullFace",
+    "BSPNodeRel",
 ];
 
 #[derive(Debug, PartialEq)]
