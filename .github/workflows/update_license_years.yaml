@@ -19,6 +19,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      
       - name: Update license years
         run: |
           # Get current year
@@ -91,17 +92,28 @@ jobs:
               sed -i "1i Copyright $(date +"%Y") $ORG_NAME" LICENSE-APACHE-2.0
             fi
           fi
-      - name: Commit and push changes
+      
+      - name: Check for changes
+        id: check_changes
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          
-          # Check if there are changes to commit
           if git diff --quiet; then
             echo "No changes to commit"
-            exit 0
+            echo "changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
           fi
-          
-          git add LICENSE-MIT LICENSE-APACHE-2.0
-          git commit -m "Update license year to $(date +"%Y")"
-          git push
+      
+      - name: Create Pull Request
+        if: steps.check_changes.outputs.changes == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update license year to $(date +\"%Y\")"
+          title: "Update license year to $(date +\"%Y\")"
+          body: |
+            Automated update of license years for the new year.
+            
+            This PR was automatically created by a GitHub Actions workflow.
+          branch: chore/update_license_year
+          base: main
+          delete-branch: true
