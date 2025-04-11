@@ -15,7 +15,7 @@ local Entity = Class("Entity", function(self, name, ...)
 end)
 
 function Entity:__tostring()
-    return format("%s(%s)", self.name, tostring(self:getGuid()))
+    return format("%s(%d)", self.name, self:getEntityId())
 end
 
 ---@return integer
