@@ -1,15 +1,14 @@
 local Entity = require("Entities.Entity")
 local Components = require("Components")
 
----@param entityId integer
 ---@return Entity
-local function ZoneEntity(entityId)
+local function ZoneEntity()
     return Entity(
         "ZoneEntity",
         Components.NameComponent(),
         Components.TransformComponent(),
         Components.ShapeComponent(),
-        Components.HierarchyComponent(entityId)
+        Components.HierarchyComponent()
     )
 end
 
