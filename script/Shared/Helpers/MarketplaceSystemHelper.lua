@@ -2,7 +2,6 @@
 local Registry = require("Systems.Storage.Registry")
 
 -- Components
-local NameComponent = require("Components.Core.NameComponent")
 local QuantityComponent = require("Components.Economy.QuantityComponent")
 
 ---@param bids table<EntityId>
@@ -37,10 +36,9 @@ local function printInventory(parentEntity, component)
             local itemEntity = Registry:getEntity(itemEntityId)
 
             if itemEntity then
-                local nameComponent = itemEntity:getComponent(NameComponent)
                 local quantityComponent = itemEntity:getComponent(QuantityComponent)
 
-                Log.Debug(" ├─ %s(%d)", nameComponent:getName(), quantityComponent:getQuantity())
+                Log.Debug(" ├─ %s(%d)", itemEntity:getName(), quantityComponent:getQuantity())
             end
         end
     end

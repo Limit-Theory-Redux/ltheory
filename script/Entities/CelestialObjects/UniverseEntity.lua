@@ -6,7 +6,6 @@ local Components = require("Components")
 local function UniverseEntity(seed)
     return Entity(
         "UniverseEntity",
-        Components.NameComponent(),
         Components.SeedComponent(seed),
         Components.HierarchyComponent()
     )

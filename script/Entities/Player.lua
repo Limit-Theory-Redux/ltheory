@@ -6,10 +6,9 @@ local Components = require("Components")
 ---@return Entity
 local function Player(name, isAiPlayer)
     local startCredits = isAiPlayer and Config.econ.eStartCredits or Config.econ.pStartCredits
-    
+
     return Entity(
-        "Player",
-        Components.NameComponent(name),
+        name,
         Components.PlayerBankAccountComponent(startCredits)
     )
 end

@@ -1,7 +1,6 @@
 -- All component types.
 return {
     HierarchyComponent = require('Components.Core.HierarchyComponent'),
-    NameComponent = require('Components.Core.NameComponent'),
     ExpiryComponent = require('Components.Economy.ExpiryComponent'),
     InventoryComponent = require('Components.Economy.InventoryComponent'),
     MarketplaceComponent = require('Components.Economy.MarketplaceComponent'),
