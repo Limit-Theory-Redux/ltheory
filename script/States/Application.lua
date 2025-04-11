@@ -1,12 +1,12 @@
 local Bindings = require('States.ApplicationBindings')
-local MainMenu = require('Systems.Menus.MainMenu')
+local MainMenu = require('Legacy.Systems.Menus.MainMenu')
 
-local Application = class(function(self) end)
+local Application = Class("Application", function(self) end)
 
 -- Virtual ---------------------------------------------------------------------
 
 function Application:getDefaultSize()
-    return Config.render.defaultResX, Config.render.defaultResY
+    return Config.render.window.defaultResX, Config.render.window.defaultResY
 end
 
 function Application:getTitle()
@@ -70,11 +70,15 @@ function Application:appInit()
 
     Preload.Run()
 
-    self:onInit()
-    self:onResize(self.resX, self.resY)
-
+    -- Setting Application Variables prior to onInit()
     self.profilerFont = Font.Load('NovaMono', 10)
     self.lastUpdate = TimeStamp.Now() -- TODO: was TimeStamp.GetFuture(-1.0 / 60.0)
+    self.profiling = false
+    self.toggleProfiler = false
+    self.showBackgroundModeHints = true
+
+    self:onInit()
+    self:onResize(self.resX, self.resY)
 
     if Config.jit.dumpasm then Jit.StartDump() end
     if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
@@ -83,10 +87,6 @@ function Application:appInit()
     Window:cursor():setGrabMode(CursorGrabMode.Confined)
     Window:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
     Window:cursor():setGrabMode(CursorGrabMode.None)
-
-    self.profiling = false
-    self.toggleProfiler = false
-    self.showBackgroundModeHints = true
 end
 
 function Application:registerEvents()

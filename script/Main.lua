@@ -1,5 +1,6 @@
 package.path = package.path .. ';./engine/lib/phx/script/?.lua'
 package.path = package.path .. ';./script/?.lua'
+package.path = package.path .. ';./script/?/__init__.lua'
 package.path = package.path .. ';./script/?.ext.lua'
 package.path = package.path .. ';./script/?.ffi.lua'
 
@@ -20,7 +21,6 @@ end
 function InitSystem()
     Core.Call(function()
         local app = __app__ or 'LTheoryRedux'
-
         Log.Debug("Application name: %s", app)
 
         GlobalRestrict.On()
@@ -60,8 +60,6 @@ function InitSystem()
         Namespace.LoadInline('UI.HmGui.Views')
         Namespace.LoadInline('UI.HmGui.Pages') -- needs to be loaded in correct order
         Namespace.Load('UI')
-        Namespace.LoadInline('Systems')
-        Namespace.LoadInline('GameObjects')
 
         jit.opt.start(
             format('maxtrace=%d', Config.jit.tune.maxTrace),
@@ -80,15 +78,18 @@ function InitSystem()
             format('maxmcode=%d', Config.jit.tune.maxMCode)
         )
 
-        --local logG = io.open("_g.log", "w+")
-        --io.output(logG)
-        --io.write(Inspect(_G))
-        --io.close(logG)
+        -- local logG = io.open("_g.log", "w+")
+        -- io.output(logG)
+        -- io.write(Inspect(_G))
+        -- io.close(logG)
+
+        -- check for / and replace with . to allow for subdirectory calls (e.g. ECS/UniverseCreationTest)
+        if app:find("/") then app:gsub("/", ".") end
+
         local foundState, state = pcall(require, 'States.App.' .. app)
         local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
 
         local appState = nil
-
         if foundState then
             appState = state
         elseif foundTest then
@@ -96,7 +97,13 @@ function InitSystem()
         end
 
         if appState == nil then
-            Log.Error("Application was not specified")
+            -- If the error returned is "module 'States.App.<app>' not found:",
+            -- then the error is in test instead.
+            if tostring(state):match("^module 'States%.App%." .. app .. "' not found:") then
+                Log.Error("Failed to load States.Apps.Tests.%s: %s", app, tostring(test))
+            else
+                Log.Error("Failed to load States.Apps.%s: %s", app, tostring(state))
+            end
         end
 
         AppInit = function()

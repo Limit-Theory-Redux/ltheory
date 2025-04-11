@@ -48,15 +48,18 @@ require('Core.Util.RequireAll')
 
 ---- Finish Requiring all Lua Built-In Class Extensions
 require('Core.LuaExtensions.TableEx')
+require('Core.LuaExtensions.TypeEx')
 
 ---- Now handle loading Util and Structures into Core and Global Namespace
 Core.Struct = requireAll('Core.Structures')
 Core.Util = requireAll('Core.Util')
 Core.Util.Namespace.Inline(Core.Util, 'Core.Util')
 Namespace.Inline(Core.Struct, 'Core.Struct')
-Core.Events = requireAll('Systems.Events')
-Namespace.Inline(Core.Events, 'Systems.Events')
+Core.Events = requireAll('Legacy.Systems.Events')      --* to be replaced by Rust event bus
+Namespace.Inline(Core.Events, 'Legacy.Systems.Events') --* to be replaced by Rust event bus
 
+---@type Log
+Log = require('Core.Util.Log')
 
 ---- Load in FFI
 -- Please note. All of this will need double checking. This is near 1-1 to Josh's.

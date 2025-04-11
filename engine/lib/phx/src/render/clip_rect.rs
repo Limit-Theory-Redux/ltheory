@@ -92,6 +92,12 @@ impl ClipManager {
     }
 
     fn activate(&mut self) {
+        let rect = &mut self.rects[self.rects_count - 1];
+        if !rect.enabled {
+            glcheck!(gl::Disable(gl::SCISSOR_TEST));
+            return;
+        }
+
         let mut vp_size = IVec2::ZERO;
 
         #[allow(unsafe_code)] // TODO: remove
@@ -100,7 +106,6 @@ impl ClipManager {
         }
         glcheck!(gl::Enable(gl::SCISSOR_TEST));
 
-        let rect = &mut self.rects[self.rects_count - 1];
         let mut x = rect.x;
         let mut y = rect.y;
         let mut sx = rect.sx;

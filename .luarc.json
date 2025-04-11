@@ -2,5 +2,12 @@
     "runtime.version": "LuaJIT",
     "workspace.library": [
         "engine/lib/phx/script/meta"
+    ],
+    "runtime.path": [
+        "./engine/lib/phx/script/meta",
+        "./script/?.lua",
+        "./script/?/__init__.lua",
+        "./script/?.ext.lua",
+        "./script/?.ffi.lua"
     ]
 }

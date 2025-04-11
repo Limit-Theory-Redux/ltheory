@@ -67,7 +67,7 @@ end
 local function newGame(seed)
     local seed = seed or rng:get64()
     ---@type Universe
-    local Universe = require("Systems.Universe.Universe")
+    local Universe = require("Legacy.Systems.Universe.Universe")
 
     -- we want to create a new universe, do this here so loading screen knows what to load
     Universe:init(seed)
