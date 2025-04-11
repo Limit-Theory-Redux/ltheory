@@ -19,7 +19,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
       - name: Update license years
         run: |
           # Get current year
@@ -37,29 +36,19 @@ jobs:
           if [ -f LICENSE-MIT ]; then
             # Check for different copyright line formats and update accordingly
             
-            # Format: Copyright (c) YYYY Organization Name
-            if grep -q "Copyright (c) [0-9]\{4\} [^-]" LICENSE-MIT; then
+            # Format: Copyright (c) YYYY Organization Name or Copyright (c) YYYY-ZZZZ Organization Name
+            if grep -q "Copyright (c)" LICENSE-MIT; then
               # If org_name specified, replace existing name with the provided org name
               if [ -n "${{ github.event.inputs.org_name }}" ]; then
-                sed -i -E "s/(Copyright \(c\) )([0-9]{4})( ).*/\1\2-$CURRENT_YEAR\3$ORG_NAME/" LICENSE-MIT
+                sed -i -E "s/Copyright \(c\) [0-9]{4}(-[0-9]{4})? .*/Copyright (c) $CURRENT_YEAR $ORG_NAME/" LICENSE-MIT
               else
-                # Otherwise just update the year
-                sed -i -E "s/(Copyright \(c\) )([0-9]{4})( .+)/\1\2-$CURRENT_YEAR\3/" LICENSE-MIT
-              fi
-            
-            # Format: Copyright (c) YYYY-ZZZZ Organization Name
-            elif grep -q "Copyright (c) [0-9]\{4\}-[0-9]\{4\}" LICENSE-MIT; then
-              # If org_name specified, replace existing name with the provided org name
-              if [ -n "${{ github.event.inputs.org_name }}" ]; then
-                sed -i -E "s/(Copyright \(c\) )([0-9]{4})-[0-9]{4}( ).*/\1\2-$CURRENT_YEAR\3$ORG_NAME/" LICENSE-MIT
-              else
-                # Otherwise just update the year
-                sed -i -E "s/(Copyright \(c\) )([0-9]{4})-[0-9]{4}( .+)/\1\2-$CURRENT_YEAR\3/" LICENSE-MIT
+                # Update year but keep the existing organization name
+                sed -i -E "s/(Copyright \(c\) )[0-9]{4}(-[0-9]{4})?( .+)/\1$CURRENT_YEAR\3/" LICENSE-MIT
               fi
             # No existing copyright line, create one with the org name
             elif ! grep -q "Copyright" LICENSE-MIT; then
               # Add copyright line at the beginning of the file
-              sed -i "1i Copyright (c) $(date +"%Y") $ORG_NAME" LICENSE-MIT
+              sed -i "1i Copyright (c) $CURRENT_YEAR $ORG_NAME" LICENSE-MIT
             fi
           fi
           
@@ -67,32 +56,21 @@ jobs:
           if [ -f LICENSE-APACHE-2.0 ]; then
             # Check for different copyright line formats and update accordingly
             
-            # Format: Copyright YYYY Organization Name
-            if grep -q "Copyright [0-9]\{4\} [^-]" LICENSE-APACHE-2.0; then
+            # Format: Copyright YYYY Organization Name or Copyright YYYY-ZZZZ Organization Name
+            if grep -q "Copyright " LICENSE-APACHE-2.0; then
               # If org_name specified, replace existing name with the provided org name
               if [ -n "${{ github.event.inputs.org_name }}" ]; then
-                sed -i -E "s/(Copyright )([0-9]{4})( ).*/\1\2-$CURRENT_YEAR\3$ORG_NAME/" LICENSE-APACHE-2.0
+                sed -i -E "s/Copyright [0-9]{4}(-[0-9]{4})? .*/Copyright $CURRENT_YEAR $ORG_NAME/" LICENSE-APACHE-2.0
               else
-                # Otherwise just update the year
-                sed -i -E "s/(Copyright )([0-9]{4})( .+)/\1\2-$CURRENT_YEAR\3/" LICENSE-APACHE-2.0
-              fi
-            
-            # Format: Copyright YYYY-ZZZZ Organization Name
-            elif grep -q "Copyright [0-9]\{4\}-[0-9]\{4\}" LICENSE-APACHE-2.0; then
-              # If org_name specified, replace existing name with the provided org name
-              if [ -n "${{ github.event.inputs.org_name }}" ]; then
-                sed -i -E "s/(Copyright )([0-9]{4})-[0-9]{4}( ).*/\1\2-$CURRENT_YEAR\3$ORG_NAME/" LICENSE-APACHE-2.0
-              else
-                # Otherwise just update the year
-                sed -i -E "s/(Copyright )([0-9]{4})-[0-9]{4}( .+)/\1\2-$CURRENT_YEAR\3/" LICENSE-APACHE-2.0
+                # Update year but keep the existing organization name
+                sed -i -E "s/(Copyright )[0-9]{4}(-[0-9]{4})?( .+)/\1$CURRENT_YEAR\3/" LICENSE-APACHE-2.0
               fi
             # No existing copyright line, create one with the org name
             elif ! grep -q "Copyright" LICENSE-APACHE-2.0; then
               # Add copyright line at the beginning of the file
-              sed -i "1i Copyright $(date +"%Y") $ORG_NAME" LICENSE-APACHE-2.0
+              sed -i "1i Copyright $CURRENT_YEAR $ORG_NAME" LICENSE-APACHE-2.0
             fi
           fi
-      
       - name: Check for changes
         id: check_changes
         run: |
@@ -102,18 +80,19 @@ jobs:
           else
             echo "changes=true" >> $GITHUB_OUTPUT
           fi
-      
+      - name: Set year variable
+        run: echo "CURRENT_YEAR=$(date +"%Y")" >> $GITHUB_ENV
       - name: Create Pull Request
         if: steps.check_changes.outputs.changes == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Update license year to $(date +\"%Y\")"
-          title: "Update license year to $(date +\"%Y\")"
+          commit-message: "Update license year to ${{ env.CURRENT_YEAR }}"
+          title: "Update license year to ${{ env.CURRENT_YEAR }}"
           body: |
             Automated update of license years for the new year.
             
-            This PR was automatically created by a GitHub Actions workflow.
-          branch: chore/update_license_year
+            This PR was automatically created by the GitHub Actions workflow.
+          branch: license-year-update
           base: main
           delete-branch: true
