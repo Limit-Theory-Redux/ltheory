@@ -1,7 +1,7 @@
 -- All component types.
 return {
-    EntityHierarchy = require('Components.Core.EntityHierarchy'),
-    EntityName = require('Components.Core.EntityName'),
+    HierarchyComponent = require('Components.Core.HierarchyComponent'),
+    NameComponent = require('Components.Core.NameComponent'),
     ExpiryComponent = require('Components.Economy.ExpiryComponent'),
     InventoryComponent = require('Components.Economy.InventoryComponent'),
     MarketplaceComponent = require('Components.Economy.MarketplaceComponent'),
@@ -17,7 +17,7 @@ return {
     RigidBodyComponent = require('Components.Physics.RigidBodyComponent'),
     TransformComponent = require('Components.Physics.TransformComponent'),
     CameraData = require('Components.Rendering.CameraData'),
-    Effect = require('Components.Rendering.Effect'),
+    EffectComponent = require('Components.Rendering.EffectComponent'),
     RenderComponent = require('Components.Rendering.RenderComponent'),
     ShapeComponent = require('Components.Spatial.ShapeComponent')
 }

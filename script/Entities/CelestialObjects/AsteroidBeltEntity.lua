@@ -1,30 +1,14 @@
 local Entity = require("Entities.Entity")
+local Components = require("Components")
 
--- Components
-local NameComponent = require("Components.Core.EntityName")
-local SeedComponent = require("Components.Generation.SeedComponent")
-local TransformComponent = require("Components.Physics.TransformComponent")
-local MassComponent = require("Components.Physics.MassComponent")
-local HierarchyComponent = require("Components.Core.EntityHierarchy")
-
----@class AsteroidBeltEntity: Entity
----@overload fun(self: AsteroidBeltEntity, seed: integer): AsteroidBeltEntity subclass internal
----@overload fun(seed: integer): AsteroidBeltEntity subclass external
-local AsteroidBeltEntity = Subclass("AsteroidBeltEntity", Entity, function(self, seed)
-    -- Name Component
-    self:addComponent(NameComponent())
-
-    -- Seed Component
-    self:addComponent(SeedComponent(seed))
-
-    -- Transform Component
-    self:addComponent(TransformComponent())
-
-    -- Mass Component
-    self:addComponent(MassComponent())
-
-    -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(self:getEntityId()))
-end)
+local function AsteroidBeltEntity(seed)
+    return Entity(
+        Components.NameComponent("AsteroidBeltEntity"),
+        Components.SeedComponent(seed),
+        Components.TransformComponent(),
+        Components.MassComponent(),
+        Components.HierarchyComponent()
+    )
+end
 
 return AsteroidBeltEntity

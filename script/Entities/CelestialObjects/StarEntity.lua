@@ -1,30 +1,16 @@
 local Entity = require("Entities.Entity")
+local Components = require("Components")
 
--- Components
-local NameComponent = require("Components.Core.EntityName")
-local SeedComponent = require("Components.Generation.SeedComponent")
-local TransformComponent = require("Components.Physics.TransformComponent")
-local MassComponent = require("Components.Physics.MassComponent")
-local HierarchyComponent = require("Components.Core.EntityHierarchy")
-
----@class StarEntity: Entity
----@overload fun(self: StarEntity, seed: integer): StarEntity subclass internal
----@overload fun(seed: integer): StarEntity subclass external
-local StarEntity = Subclass("StarEntity", Entity, function(self, seed)
-    -- Name Component
-    self:addComponent(NameComponent())
-
-    -- Seed Component
-    self:addComponent(SeedComponent(seed))
-
-    -- Transform Component
-    self:addComponent(TransformComponent())
-
-    -- Mass Component
-    self:addComponent(MassComponent())
-
-    -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(self:getEntityId()))
-end)
+---@param seed integer
+---@return Entity
+local function StarEntity(seed)
+    return Entity(
+        Components.NameComponent(),
+        Components.SeedComponent(seed),
+        Components.TransformComponent(),
+        Components.MassComponent(),
+        Components.HierarchyComponent()
+    )
+end
 
 return StarEntity

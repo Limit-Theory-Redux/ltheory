@@ -20,37 +20,29 @@ An entity is a unique identifier that acts as a container for components. It doe
 
 In LTR entity definition files operate a little bit (but not quite) like blueprints which you might know from other game engines.
 
-A new entity is defined as a subclass of the Entity class, which holds basic methods to access components, clone or destroy etc.
+Entity definitions are created as functions that return an Entity instance with the appropriate components.
 
 Here is how you create a simple entity:
 
 ```lua
 local Entity = require("Entities.Entity")
--- Components
-local NameComponent = require("Components.Core.EntityName")
-local MassComponent = require("Components.Physics.MassComponent")
-local QuantityComponent = require("Components.Economy.QuantityComponent")
+local Components = require("Components")
 
----@class ItemEntity: Entity
----@overload fun(self: ItemEntity, definition: ItemDefinition, quantity: number): ItemEntity subclass internal
----@overload fun(definition: ItemDefinition, quantity: number): ItemEntity subclass external
-local ItemEntity = Subclass("ItemEntity", Entity, function(self, definition, quantity)
-    -- Name Component
-    self:addComponent(NameComponent(definition.name))
-
-    -- Mass Component
-    self:addComponent(MassComponent(definition.mass))
-
-    -- QuantityComponent
-    self:addComponent(QuantityComponent(quantity))
-end)
+---@param definition ItemDefinition
+---@param quantity number
+---@return Entity
+local function ItemEntity(definition, quantity)
+    return Entity(
+        Components.NameComponent(definition.name),
+        Components.MassComponent(definition.mass),
+        Components.QuantityComponent(quantity)
+    )
+end
 
 return ItemEntity
 ```
 
-As you can see, first the entity class is imported. Then we import all the components our entity should use. In this case the name, mass and quantity components. These components hold the data our entity will represent.
-
-Also have a look at the language server documentation here. It helps us to easily work with the entity later on, by clearly defining all parameters that should be provided to the entities components on creation.
+As you can see, first the entity module is imported, followed by the Components module. The entity function returns an Entity instance with all the necessary components attached directly in the constructor.
 
 ### Components
 Components are plain data structures that define the properties or state of an entity. They are small and focused on a single responsibility. By attaching different combinations of components to entities, you can represent diverse behaviors and characteristics.
@@ -66,7 +58,7 @@ local Component = require('Components.Component')
 ---@overload fun(self: NameComponent, name: string): NameComponent subclass internal
 ---@overload fun(name: string|nil): NameComponent subclass external
 local NameComponent = Subclass("NameComponent", Component, function(self, name)
-    self:setComponentName("EntityName")
+    self:setComponentName("NameComponent")
 
     self:setName(name)
 end)
@@ -298,4 +290,3 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 end
 
 return MarketplaceSystem()
-```

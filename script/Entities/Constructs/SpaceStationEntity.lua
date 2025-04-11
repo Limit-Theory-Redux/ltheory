@@ -1,38 +1,18 @@
 local Entity = require("Entities.Entity")
+local Components = require("Components")
 
--- Components
-local NameComponent = require("Components.Core.EntityName")
-local SeedComponent = require("Components.Generation.SeedComponent")
-local TransformComponent = require("Components.Physics.TransformComponent")
-local MassComponent = require("Components.Physics.MassComponent")
-local HierarchyComponent = require("Components.Core.EntityHierarchy")
-local InventoryComponent = require("Components.Economy.InventoryComponent")
-local MarketplaceComponent = require("Components.Economy.MarketplaceComponent")
-
----@class SpaceStationEntity: Entity
----@overload fun(self: SpaceStationEntity, seed: integer): SpaceStationEntity subclass internal
----@overload fun(seed: integer): SpaceStationEntity subclass external
-local SpaceStationEntity = Subclass("SpaceStationEntity", Entity, function(self, seed)
-    -- Name Component
-    self:addComponent(NameComponent())
-
-    -- Seed Component
-    self:addComponent(SeedComponent(seed))
-
-    -- Transform Component
-    self:addComponent(TransformComponent())
-
-    -- Mass Component
-    self:addComponent(MassComponent())
-
-    -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(self:getEntityId()))
-
-    -- Inventory Component
-    self:addComponent(InventoryComponent())
-
-    -- Marketplace Component
-    self:addComponent(MarketplaceComponent())
-end)
+---@param seed integer
+---@return Entity
+local function SpaceStationEntity(seed)
+    return Entity(
+        Components.NameComponent(),
+        Components.SeedComponent(seed),
+        Components.TransformComponent(),
+        Components.MassComponent(),
+        Components.HierarchyComponent(),
+        Components.InventoryComponent(),
+        Components.MarketplaceComponent()
+    )
+end
 
 return SpaceStationEntity

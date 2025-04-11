@@ -17,7 +17,7 @@ local ZoneEntity = require("Entities.Spatial.ZoneEntity")
 
 -- Components
 local ShapeComponent = require("Components.Spatial.ShapeComponent")
-local HierarchyComponent = require("Components.Core.EntityHierarchy")
+local HierarchyComponent = require("Components.Core.HierarchyComponent")
 
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")

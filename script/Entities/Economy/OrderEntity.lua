@@ -1,34 +1,21 @@
 local Entity = require("Entities.Entity")
+local Components = require("Components")
 
--- Components
-local OwnershipComponent = require("Components.Economy.OwnershipComponent")
-local OrderItemTypeComponent = require("Components.Economy.OrderItemTypeComponent")
-local QuantityComponent = require("Components.Economy.QuantityComponent")
-local PriceComponent = require("Components.Economy.PriceComponent")
-local OrderStatusComponent = require("Components.Economy.OrderStatusComponent")
-local ExpiryComponent = require("Components.Economy.ExpiryComponent")
-
----@class OrderEntity: Entity
----@overload fun(self: OrderEntity, issuerId: number, itemType: integer, quantity: number, price: number, expiresAt: TimeStamp|nil): OrderEntity subclass internal
----@overload fun(issuerId: number, itemType: integer, quantity: number, price: number, expiresAt: TimeStamp|nil): OrderEntity subclass external
-local OrderEntity = Subclass("OrderEntity", Entity, function(self, issuerId, itemType, quantity, price, expiresAt)
-    -- Ownership Component
-    self:addComponent(OwnershipComponent(issuerId))
-
-    -- ItemType Component
-    self:addComponent(OrderItemTypeComponent(itemType))
-
-    -- Quantity Component
-    self:addComponent(QuantityComponent(quantity))
-
-    -- Price Component
-    self:addComponent(PriceComponent(price))
-
-    -- Order Status Component
-    self:addComponent(OrderStatusComponent())
-
-    -- Expiry Component
-    self:addComponent(ExpiryComponent(expiresAt))
-end)
+---@param issuerId number
+---@param itemType integer
+---@param quantity number
+---@param price number
+---@param expiresAt TimeStamp|nil
+---@return Entity
+local function OrderEntity(issuerId, itemType, quantity, price, expiresAt)
+    return Entity(
+        Components.OwnershipComponent(issuerId),
+        Components.OrderItemTypeComponent(itemType),
+        Components.QuantityComponent(quantity),
+        Components.PriceComponent(price),
+        Components.OrderStatusComponent(),
+        Components.ExpiryComponent(expiresAt)
+    )
+end
 
 return OrderEntity

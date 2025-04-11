@@ -1,26 +1,15 @@
 local Entity = require("Entities.Entity")
+local Components = require("Components")
 
--- Components
-local NameComponent = require("Components.Core.EntityName")
-local TransformComponent = require("Components.Physics.TransformComponent")
-local ShapeComponent = require("Components.Spatial.ShapeComponent")
-local HierarchyComponent = require("Components.Core.EntityHierarchy")
-
----@class TriggerEntity: Entity
----@overload fun(self: TriggerEntity): TriggerEntity subclass internal
----@overload fun(): TriggerEntity subclass external
-local TriggerEntity = Subclass("TriggerEntity", Entity, function(self)
-    -- Name Component
-    self:addComponent(NameComponent())
-
-    -- Transform Component
-    self:addComponent(TransformComponent())
-
-    -- Shape Component
-    self:addComponent(ShapeComponent())
-
-    -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(self:getEntityId()))
-end)
+---@param entityId integer
+---@return Entity
+local function TriggerEntity(entityId)
+    return Entity(
+        Components.NameComponent(),
+        Components.TransformComponent(),
+        Components.ShapeComponent(),
+        Components.HierarchyComponent(entityId)
+    )
+end
 
 return TriggerEntity

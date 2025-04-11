@@ -1,22 +1,16 @@
 local Entity = require("Entities.Entity")
+local Components = require("Components")
 
--- Components
-local NameComponent = require("Components.Core.EntityName")
-local PlayerBankAccount = require("Components.Economy.PlayerBankAccountComponent")
-
----@class Player: Entity
----@overload fun(self: Player, name: string, isAiPlayer: boolean) subclass internal
----@overload fun(name: string, isAiPlayer: boolean) subclass external
-local Player = Subclass("Player", Entity, function(self, name, isAiPlayer)
-    -- Name Component
-    self:addComponent(NameComponent(name))
-
-    -- Bank Account Component
+---@param name string
+---@param isAiPlayer boolean
+---@return Entity
+local function Player(name, isAiPlayer)
     local startCredits = isAiPlayer and Config.econ.eStartCredits or Config.econ.pStartCredits
-    self:addComponent(PlayerBankAccount(startCredits))
-
-    -- AI Component
-    --self:addComponent()
-end)
+    
+    return Entity(
+        Components.NameComponent(name),
+        Components.PlayerBankAccountComponent(startCredits)
+    )
+end
 
 return Player

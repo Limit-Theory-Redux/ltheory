@@ -1,26 +1,15 @@
 local Entity = require("Entities.Entity")
+local Components = require("Components")
 
--- Components
-local NameComponent = require("Components.Core.EntityName")
-local TransformComponent = require("Components.Physics.TransformComponent")
-local ShapeComponent = require("Components.Spatial.ShapeComponent")
-local HierarchyComponent = require("Components.Core.EntityHierarchy")
-
----@class ZoneEntity: Entity
----@overload fun(self: ZoneEntity): ZoneEntity subclass internal
----@overload fun(): ZoneEntity subclass external
-local ZoneEntity = Subclass("ZoneEntity", Entity, function(self)
-    -- Name Component
-    self:addComponent(NameComponent())
-
-    -- Transform Component
-    self:addComponent(TransformComponent())
-
-    -- Shape Component
-    self:addComponent(ShapeComponent())
-
-    -- Hierarchy/Children Component
-    self:addComponent(HierarchyComponent(self:getEntityId()))
-end)
+---@param entityId integer
+---@return Entity
+local function ZoneEntity(entityId)
+    return Entity(
+        Components.NameComponent(),
+        Components.TransformComponent(),
+        Components.ShapeComponent(),
+        Components.HierarchyComponent(entityId)
+    )
+end
 
 return ZoneEntity

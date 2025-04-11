@@ -3,17 +3,17 @@ local Component = require('Components.Component')
 -- Systems
 local Registry = require('Systems.Storage.Registry')
 
----@class EntityHierarchyComponent: Component
----@overload fun(self: EntityHierarchyComponent, parentEntity: EntityId|nil) : EntityHierarchyComponent subclass internal
----@overload fun(parentEntity: EntityId|nil): EntityHierarchyComponent subclass external
-local EntityHierarchyComponent = Subclass("EntityHierarchyComponent", Component, function(self, parentEntityId)
+---@class HierarchyComponent: Component
+---@overload fun(self: HierarchyComponent, parentEntity: EntityId|nil) : HierarchyComponent subclass internal
+---@overload fun(parentEntity: EntityId|nil): HierarchyComponent subclass external
+local HierarchyComponent = Subclass("HierarchyComponent", Component, function(self, parentEntityId)
     self:setComponentName("EntityHierarchy")
 
     self:addHierarchy(parentEntityId)
 end)
 
 ---@param parentEntityId EntityId|nil
-function EntityHierarchyComponent:addHierarchy(parentEntityId)
+function HierarchyComponent:addHierarchy(parentEntityId)
     if self.hierarchy then
         Log.Warn("This entity already has its own hierarchy, are you sure that you want to reinitialize?")
     end
@@ -25,18 +25,18 @@ end
 
 ---@param entityId EntityId
 ---@return integer childIndex
-function EntityHierarchyComponent:addChild(entityId)
+function HierarchyComponent:addChild(entityId)
     insert(self.hierarchy.children, entityId)
     return #self.hierarchy.children
 end
 
 ---@param childIndex integer
-function EntityHierarchyComponent:removeChild(childIndex)
+function HierarchyComponent:removeChild(childIndex)
     remove(self.hierarchy.children, childIndex)
 end
 
 ---@return Iterator<Entity|nil>
-function EntityHierarchyComponent:iterChildren()
+function HierarchyComponent:iterChildren()
     local entities = {}
 
     ---@param childEntityId EntityId
@@ -48,13 +48,13 @@ function EntityHierarchyComponent:iterChildren()
 end
 
 ---@param entityId EntityId
-function EntityHierarchyComponent:setParent(entityId)
+function HierarchyComponent:setParent(entityId)
     self.hierarchy.parent = entityId
 end
 
 ---@return Entity|nil
-function EntityHierarchyComponent:getParent()
+function HierarchyComponent:getParent()
     return Registry:getEntity(self.hierarchy.parent)
 end
 
-return EntityHierarchyComponent
+return HierarchyComponent

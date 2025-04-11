@@ -4,7 +4,7 @@ local Component = require('Components.Component')
 ---@overload fun(self: NameComponent, name: string): NameComponent subclass internal
 ---@overload fun(name: string|nil): NameComponent subclass external
 local NameComponent = Subclass("NameComponent", Component, function(self, name)
-    self:setComponentName("EntityName")
+    self:setComponentName("NameComponent")
 
     self:setName(name)
 end)

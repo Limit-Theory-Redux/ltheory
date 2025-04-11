@@ -2,7 +2,7 @@
 local Registry = require("Systems.Storage.Registry")
 
 -- Components
-local NameComponent = require("Components.Core.EntityName")
+local NameComponent = require("Components.Core.NameComponent")
 local QuantityComponent = require("Components.Economy.QuantityComponent")
 
 ---@param bids table<EntityId>

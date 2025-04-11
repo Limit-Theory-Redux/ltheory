@@ -2,12 +2,13 @@ local Registry = require("Systems.Storage.Registry")
 
 ---@class Entity
 ---@field components table<any, ComponentInfo>
+---@field name string
 
 -- General Purpose Entity Object. Contains a reference to its components, but does not own the component data.
----@param self Entity
-local Entity = Class("Entity", function(self)
-    self:addGuid()
-    self:addComponents()
+---@param name string The name of the entity
+local Entity = Class("Entity", function(self, ...)
+    self.guid = Guid.Create()
+    self:addComponents(...)
     self:Enable()
 end)
 
@@ -15,13 +16,19 @@ function Entity:__tostring()
     return format("%s(%s)", tostring(type(self)), tostring(self:getGuid()))
 end
 
-function Entity:addGuid()
-    self.guid = Guid.Create()
-end
-
 ---@return integer
 function Entity:getGuid()
     return self.guid
+end
+
+---@return string
+function Entity:getName()
+    return self.name
+end
+
+---@param name string
+function Entity:setName(name)
+    self.name = name
 end
 
 ---Enables Entity
@@ -44,11 +51,16 @@ function Entity:getEntityId()
     return self.guid
 end
 
-function Entity:addComponents()
+---@param ... Component A variable list of components to add
+function Entity:addComponents(...)
     if self.components then
         Log.Warn("This entity already has components, are you sure that you want to reinitialize?")
     end
     self.components = {}
+
+    for _, component in ipairs({ ... }) do
+        self:addComponent(component)
+    end
 end
 
 ---@param component Component
@@ -127,7 +139,7 @@ function Entity:destroy()
 end
 
 function Entity:clone()
-    local clone = Entity()
+    local clone = Entity(self.name)
 
     for component in self:iterComponents() do
         ---@type Component
