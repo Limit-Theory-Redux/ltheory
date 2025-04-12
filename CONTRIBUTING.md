@@ -42,7 +42,7 @@ It´s highly recommended you document what you are doing in code. For more gener
 
 # Getting Started
 
-In this file we´ll go over the whole process of getting started & the the workflow of Limit Theory Redux development.
+In this file we´ll go over the whole process of getting started & the workflow of Limit Theory Redux development.
 
 ## Prerequisites
 
