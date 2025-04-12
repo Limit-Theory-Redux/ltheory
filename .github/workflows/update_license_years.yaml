@@ -1,21 +1,19 @@
 name: Update License Years
-
 on:
   schedule:
     # Run at 00:00 on January 1
-    - cron: '0 0 1 1 *'
+    - cron: "0 0 1 1 *"
   workflow_dispatch:
     # Manual trigger
     inputs:
       org_name:
-        description: 'Organization name to use in MIT license files (leave empty to use existing)'
+        description: "Organization name to use in MIT license files (leave empty to use existing)"
         required: false
-        default: ''
-
+        default: ""
 jobs:
   update-license-years:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,7 +21,7 @@ jobs:
         run: |
           # Get current year
           CURRENT_YEAR=$(date +"%Y")
-          
+
           # Get organization name from input or use repository owner
           if [ -n "${{ github.event.inputs.org_name }}" ]; then
             ORG_NAME="${{ github.event.inputs.org_name }}"
@@ -31,7 +29,7 @@ jobs:
             # Extract organization name from the repository
             ORG_NAME="${GITHUB_REPOSITORY_OWNER}"
           fi
-          
+
           # Update MIT License
           if [ -f LICENSE-MIT ]; then
             # Check for different copyright line formats and update accordingly
@@ -47,12 +45,20 @@ jobs:
               fi
             fi
           fi
-          
+
           # Update Apache License - ONLY update the year
           if [ -f LICENSE-APACHE-2.0 ]; then
             if grep -q "Copyright " LICENSE-APACHE-2.0; then
               # Only update the year
               sed -i -E "s/(Copyright )[0-9]{4}(-[0-9]{4})?( .+)/\1$CURRENT_YEAR\3/" LICENSE-APACHE-2.0
+            fi
+          fi
+
+          # Update NOTICE file - ONLY update the year
+          if [ -f NOTICE ]; then
+            if grep -q "Copyright [0-9]\{4\} Limit Theory Redux Contributors" NOTICE; then
+              # Only update the year
+              sed -i -E "s/(Copyright )[0-9]{4}( Limit Theory Redux Contributors)/\1$CURRENT_YEAR\2/" NOTICE
             fi
           fi
       - name: Check for changes
@@ -75,8 +81,8 @@ jobs:
           title: "Update license year to ${{ env.CURRENT_YEAR }}"
           body: |
             Automated update of license years for the new year.
-            
-            This PR was automatically created by the GitHub Actions workflow.
+
+            This PR was automatically created by a GitHub Actions workflow.
           branch: license-year-update
           base: main
           delete-branch: true
