@@ -20,6 +20,12 @@ This repository primarily uses an origin-based licensing approach for all files.
 
 In cases of ambiguity or particularly important content, we may add explicit license information to provide additional clarity.
 
+## Previous Contributions
+
+Code contributed to this project before the establishment of the dual Apache 2.0/MIT licensing remains under the copyright of the original contributors and under the original license terms that were in effect at the time of contribution.
+
+No attempt is made by this NOTICE to change or modify the licensing terms of these previous contributions without explicit consent from the copyright holders.
+
 ## Original Project Acknowledgment
 
 This project is a community continuation of Limit Theory, originally developed by Josh Parnell. The original content was released into the public domain under The Unlicense.
