@@ -1,0 +1,35 @@
+# NOTICE
+
+## Licensing Information
+
+This repository (Limit-Theory-Redux) contains content with mixed licensing based on its origin:
+
+1. **Original Content from Limit Theory**
+   - All content (code, assets, documentation, etc.) directly derived from or substantially similar to Josh Parnell's original Limit Theory project remains under The Unlicense and is effectively in the public domain.
+   
+2. **New Contributions and Substantial Modifications**
+   - All new content, substantial modifications, and new creative additions to the Limit Theory Redux project are dual-licensed under the Apache License 2.0 and MIT License.
+
+## License Identification
+
+This repository primarily uses an origin-based licensing approach for all files. However:
+
+- Where explicit clarity is needed, individual files may contain license headers or notices specifying their exact license
+- Some key files or particularly mixed files may be explicitly marked with appropriate headers
+- In the absence of explicit file notices, the origin of the content determines its license as described above
+
+In cases of ambiguity or particularly important content, we may add explicit license information to provide additional clarity.
+
+## Original Project Acknowledgment
+
+This project is a community continuation of Limit Theory, originally developed by Josh Parnell. The original content was released into the public domain under The Unlicense.
+
+## License Selection for Dual-Licensed Content
+
+For the dual-licensed portions (new contributions and substantial modifications), you may choose either the Apache License 2.0 or MIT License at your option.
+
+## Copyright Notice
+
+Copyright 2025 Limit Theory Redux Contributors
+
+This copyright notice applies only to new content and significant transformations, not to portions directly derived from the original Unlicensed content.
