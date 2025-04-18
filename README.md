@@ -37,10 +37,10 @@ You may choose either license at your option.
 
 ### License Identification
 While we generally use an origin-based approach to licensing (original content under Unlicense, new content under Apache 2.0/MIT), some files may have explicit license notices:
-- Files with explicit license headers follow the license specified in their header
-- License files located in a directory may specify the license for all content in that directory
-- Files without explicit headers or directory license files follow the origin-based licensing rules
-- For particularly complex or important files, we may add explicit license information for clarity
+- Where explicit clarity is needed, individual files may contain license headers or notices specifying their exact license
+- Some key files or particularly mixed files may be explicitly marked with appropriate headers
+- License files located in a file's directory may specify the license for all content in that directory/or specific files in a directory
+- In the absence of explicit file notices or directory license files, the origin of the content determines its license as described above
 
 ### Contributing
 By contributing to this project, you agree that your contributions follow this same licensing structure:
