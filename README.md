@@ -22,7 +22,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
 
 ## Licensing
 
-Limit Theory Redux contains content under two different licenses based on origin:
+Limit Theory Redux generally contains content under two different licenses based on origin:
 
 ### Original Limit Theory Content
 
