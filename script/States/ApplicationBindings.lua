@@ -1,4 +1,4 @@
-local Control = require('Systems.Controls.Control')
+local Control = require('Legacy.Systems.Controls.Control')
 
 local self = {
     Escape            = Button.KeyboardEscape,

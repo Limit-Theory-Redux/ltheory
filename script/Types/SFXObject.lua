@@ -1,4 +1,4 @@
-local SoundManager = require "Systems.SFX.SoundManager"
+local SoundManager = require('Legacy.Systems.SFX.SoundManager')
 
 ---@class SFXObject
 local SFXObject = {}

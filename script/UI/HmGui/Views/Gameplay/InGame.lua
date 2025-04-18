@@ -8,7 +8,7 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 ---@type ApplicationBindings
 local Bindings = require('States.ApplicationBindings')
 ---@type AIActions
-local Actions = requireAll('GameObjects.Actions')
+local Actions = requireAll('Legacy.GameObjects.Actions')
 
 function InGame:onInput()
     if Input:isPressed(Bindings.Escape) and GameState.player.currentShip and not GameState.player.currentShip:isDestroyed() then

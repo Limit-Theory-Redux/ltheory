@@ -2,7 +2,7 @@
 local Bindings = require('States.ApplicationBindings')
 
 local AudioTest = require('States.Application')
-local SoundManager = require('Systems.SFX.SoundManager')
+local SoundManager = require('Legacy.Systems.SFX.SoundManager')
 
 local Music = {
     MainTheme = './res/sound/system/audio/music/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg',

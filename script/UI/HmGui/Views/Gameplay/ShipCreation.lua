@@ -10,7 +10,7 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 
 function ShipCreation:onInput()
     ---@type Universe
-    local Universe = require("Systems.Universe.Universe")
+    local Universe = require("Legacy.Systems.Universe.Universe")
 
     if Input:isPressed(Button.KeyboardB) then
         if GameState.player.currentShip then
@@ -30,12 +30,12 @@ function ShipCreation:onInput()
         GameState.player.currentShip = Universe:createShip(GameState.world.currentSystem, nil, shipObject)
     elseif Input:isPressed(Button.KeyboardF) then
         -- Insert the game view into the application canvas to make it visible
-        GameState.render.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)
+        GameState.render.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)
 
         GameState.render.uiCanvas = UI.Canvas()
         GameState.render.uiCanvas
             :add(GameState.render.gameView
-                :add(Systems.Controls.Controls.MasterControl(GameState.render.gameView, GameState.player.humanPlayer))
+                :add(Legacy.Systems.Controls.Controls.MasterControl(GameState.render.gameView, GameState.player.humanPlayer))
             )
         GameState.render.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
 
@@ -64,7 +64,7 @@ function ShipCreation:onViewOpen(isPageOpen)
     }
 
     ---@type Universe
-    local Universe = require("Systems.Universe.Universe")
+    local Universe = require("Legacy.Systems.Universe.Universe")
 
     -- add player to system via universe
     if not Universe:systemHasPlayer(GameState.world.currentSystem, GameState.player.humanPlayer) then
@@ -74,11 +74,11 @@ function ShipCreation:onViewOpen(isPageOpen)
     -- add ship / create ship in system via universe
     GameState.player.currentShip = Universe:createShip(GameState.world.currentSystem, nil, shipObject)
 
-    GameState.render.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)
+    GameState.render.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)
     GameState.render.uiCanvas = UI.Canvas()
     GameState.render.uiCanvas
         :add(GameState.render.gameView
-            :add(Systems.Controls.Controls.GenTestControl(GameState.render.gameView, GameState.player.humanPlayer)))
+            :add(Legacy.Systems.Controls.Controls.GenTestControl(GameState.render.gameView, GameState.player.humanPlayer)))
 
     Input:setCursorVisible(true)
 end

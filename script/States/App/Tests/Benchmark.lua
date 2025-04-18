@@ -1,8 +1,8 @@
-local Player = require('GameObjects.Entities.Player')
-local System = require('GameObjects.Entities.StarSystem')
-local DebugControl = require('Systems.Controls.Controls.DebugControl')
-local Actions = requireAll('GameObjects.Actions')
-local Objects = requireAll('GameObjects.Entities.Objects')
+local Player = require('Legacy.GameObjects.Entities.Player')
+local System = require('Legacy.GameObjects.Entities.StarSystem')
+local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
+local Actions = requireAll('Legacy.GameObjects.Actions')
+local Objects = requireAll('Legacy.GameObjects.Entities.Objects')
 
 local Benchmark = require('States.Application')
 
@@ -162,11 +162,11 @@ function Benchmark:onInit()
     GameState.debug.metricsEnabled = true
 
     DebugControl.ltheory = self
-    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
+    self.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
-            :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer)))
+            :add(Legacy.Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer)))
 end
 
 function Benchmark:onInput()

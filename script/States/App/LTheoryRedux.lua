@@ -1,15 +1,21 @@
+-- LTheoryRedux depends on these types being in the global namespace, so we import these for now.
+-- Once we've moved to the ECS, these LoadInline statements should become redundant.
+Namespace.LoadInline('Legacy')
+Namespace.LoadInline('Legacy.Systems')
+Namespace.LoadInline('Legacy.GameObjects')
+
 LimitTheoryRedux = require('States.Application')
-local SoundManager = require('Systems.SFX.SoundManager')
-local MusicPlayer = require('Systems.SFX.MusicPlayer')
-local InitFiles = require('Systems.Files.InitFiles')
+local SoundManager = require('Legacy.Systems.SFX.SoundManager')
+local MusicPlayer = require('Legacy.Systems.SFX.MusicPlayer')
+local InitFiles = require('Legacy.Systems.Files.InitFiles')
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
-local UIPageMainMenu = require('script.UI.HmGui.Pages.MainMenu')
+local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
 local UIPageLoadingScreen = require('UI.HmGui.Pages.LoadingScreen')
 local UIPageGameplay = require('UI.HmGui.Pages.Gameplay')
 
 local rng = RNG.FromTime()
-local Universe = require('Systems.Universe.Universe')
-local DebugControl = require('Systems.Controls.Controls.DebugControl')
+local Universe = require('Legacy.Systems.Universe.Universe')
+local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function LimitTheoryRedux:onInit()
@@ -66,12 +72,12 @@ end
 
 function LimitTheoryRedux:initGameView()
     -- Insert the game view into the application canvas to make it visible
-    GameState.render.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)
+    GameState.render.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)
 
     GameState.render.uiCanvas = UI.Canvas()
     GameState.render.uiCanvas
         :add(GameState.render.gameView
-            :add(Systems.Controls.Controls.MasterControl(GameState.render.gameView, GameState.player.humanPlayer))
+            :add(Legacy.Systems.Controls.Controls.MasterControl(GameState.render.gameView, GameState.player.humanPlayer))
         )
 
     GameState.render.gameView:setCameraMode(Enums.CameraMode.FirstPerson)

@@ -7,7 +7,7 @@ local SettingsView = UICore.View {
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 ---@type ResponsiveSize
 local ResponsiveSize = require("Types.ResponsiveSize")
-local MusicPlayer = require("Systems.SFX.MusicPlayer")
+local MusicPlayer = require("Legacy.Systems.SFX.MusicPlayer")
 
 function SettingsView:onInput() end
 function SettingsView:onUpdate(dt) end

@@ -1,0 +1,82 @@
+name: Update License Years
+
+on:
+  schedule:
+    # Run at 00:00 on January 1
+    - cron: '0 0 1 1 *'
+  workflow_dispatch:
+    # Manual trigger
+    inputs:
+      org_name:
+        description: 'Organization name to use in MIT license files (leave empty to use existing)'
+        required: false
+        default: ''
+
+jobs:
+  update-license-years:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Update license years
+        run: |
+          # Get current year
+          CURRENT_YEAR=$(date +"%Y")
+          
+          # Get organization name from input or use repository owner
+          if [ -n "${{ github.event.inputs.org_name }}" ]; then
+            ORG_NAME="${{ github.event.inputs.org_name }}"
+          else
+            # Extract organization name from the repository
+            ORG_NAME="${GITHUB_REPOSITORY_OWNER}"
+          fi
+          
+          # Update MIT License
+          if [ -f LICENSE-MIT ]; then
+            # Check for different copyright line formats and update accordingly
+            
+            # Format: Copyright (c) YYYY Organization Name
+            if grep -q "Copyright (c)" LICENSE-MIT; then
+              # If org_name specified, replace existing name with the provided org name
+              if [ -n "${{ github.event.inputs.org_name }}" ]; then
+                sed -i -E "s/Copyright \(c\) [0-9]{4}(-[0-9]{4})? .*/Copyright (c) $CURRENT_YEAR $ORG_NAME/" LICENSE-MIT
+              else
+                # Update year but keep the existing organization name
+                sed -i -E "s/(Copyright \(c\) )[0-9]{4}(-[0-9]{4})?( .+)/\1$CURRENT_YEAR\3/" LICENSE-MIT
+              fi
+            fi
+          fi
+          
+          # Update Apache License - ONLY update the year
+          if [ -f LICENSE-APACHE-2.0 ]; then
+            if grep -q "Copyright " LICENSE-APACHE-2.0; then
+              # Only update the year
+              sed -i -E "s/(Copyright )[0-9]{4}(-[0-9]{4})?( .+)/\1$CURRENT_YEAR\3/" LICENSE-APACHE-2.0
+            fi
+          fi
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit"
+            echo "changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Set year variable
+        run: echo "CURRENT_YEAR=$(date +"%Y")" >> $GITHUB_ENV
+      - name: Create Pull Request
+        if: steps.check_changes.outputs.changes == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update license year to ${{ env.CURRENT_YEAR }}"
+          title: "Update license year to ${{ env.CURRENT_YEAR }}"
+          body: |
+            Automated update of license years for the new year.
+            
+            This PR was automatically created by the GitHub Actions workflow.
+          branch: license-year-update
+          base: main
+          delete-branch: true
