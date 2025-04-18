@@ -54,11 +54,6 @@ end
 
 do -- Transparent Structs
     ffi.cdef [[
-        typedef struct BSPNodeRef {
-            int32 index;
-            uint8 triangleCount;
-        } BSPNodeRef;
-
         typedef struct Box3d {
             double lowerx;
             double lowery;
@@ -233,7 +228,6 @@ do -- Transparent Structs
     ]]
 
     libphx.Structs = {
-        'BSPNodeRef',
         'Box3d',
         'Box3f',
         'Box3i',

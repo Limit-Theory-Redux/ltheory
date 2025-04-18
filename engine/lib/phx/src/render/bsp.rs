@@ -245,6 +245,15 @@ pub struct BSPNodeRef {
     pub triangle_count: u8,
 }
 
+#[luajit_ffi_gen::luajit_ffi(
+    name = "BSPNodeRef",
+    clone = true,
+    typedef = "
+        int32 index;
+        uint8 triangleCount;"
+)]
+impl BSPNodeRef {}
+
 #[derive(Clone)]
 #[repr(C)]
 pub struct IntersectSphereProfiling {
