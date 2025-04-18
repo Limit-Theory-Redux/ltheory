@@ -12,8 +12,7 @@ use freetype_sys::{
 use glam::{IVec2, IVec4, Vec4};
 
 use super::{
-    BlendMode, Color, DataFormat, Draw, PixelFormat, RenderState_PopBlendMode,
-    RenderState_PushBlendMode, Shader, Tex2D, TexFormat,
+    BlendMode, Color, DataFormat, Draw, PixelFormat, RenderState, Shader, Tex2D, TexFormat,
 };
 use crate::rf::Rf;
 use crate::system::{Profiler, ResourceType, Resource_GetPath};
@@ -191,7 +190,7 @@ impl Font {
         x = f64::floor(x as f64) as _;
         y = f64::floor(y as f64) as _;
 
-        unsafe { RenderState_PushBlendMode(BlendMode::Alpha) };
+        RenderState::push_blend_mode(BlendMode::Alpha);
 
         self.0.as_ref().shader.borrow_mut().start();
         self.0
@@ -234,7 +233,7 @@ impl Font {
         }
 
         self.0.as_ref().shader.borrow().stop();
-        unsafe { RenderState_PopBlendMode() };
+        RenderState::pop_blend_mode();
         Profiler::end();
     }
 

@@ -107,6 +107,7 @@ impl Profiler {
 
         info!("-- PHX PROFILER -------------------------------------");
         info!("-- Measured timespan: {total_ms}ms");
+        info!("-- Measured scopes: {}", profiler.scopes.len());
 
         if !profiler.scopes.is_empty() {
             let mut table = vec![];

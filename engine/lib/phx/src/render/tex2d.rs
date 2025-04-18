@@ -3,7 +3,7 @@ use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{DataFormat, Draw, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
 use crate::logging::warn;
-use crate::render::{gl, glcheck, Viewport_GetSize};
+use crate::render::{gl, glcheck, Viewport};
 use crate::rf::Rf;
 use crate::system::{Bytes, Resource, ResourceType};
 
@@ -189,12 +189,7 @@ impl Tex2D {
     }
 
     pub fn screen_capture() -> Tex2D {
-        let mut size: IVec2 = IVec2::ZERO;
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            Viewport_GetSize(&mut size);
-        }
-
+        let size: IVec2 = Viewport::get_size();
         let mut buf = vec![0u32; (size.x * size.y) as usize];
         glcheck!(gl::ReadPixels(
             0,

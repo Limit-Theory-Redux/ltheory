@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use super::{gl, CubeFace, Tex2D, Tex3D, TexCube, TexFormat};
-use crate::render::{glcheck, Viewport_Pop, Viewport_Push};
+use crate::render::{glcheck, Viewport};
 use crate::system::{Metric, Profiler};
 
 pub struct RenderTarget;
@@ -74,7 +74,7 @@ const BUFS_COUNT: usize = 4;
 
 struct FboStack {
     stack: [FBO; FBO_STACK_DEPTH],
-    stack_depth: usize,
+    stack_size: usize,
     bufs: [gl::types::GLenum; BUFS_COUNT],
 }
 
@@ -88,7 +88,7 @@ impl FboStack {
                 sy: 0,
                 depth: false,
             }; FBO_STACK_DEPTH],
-            stack_depth: 0,
+            stack_size: 0,
             bufs: [
                 gl::COLOR_ATTACHMENT0 as _,
                 gl::COLOR_ATTACHMENT1 as _,
@@ -99,17 +99,17 @@ impl FboStack {
     }
 
     fn get_active(&mut self) -> &mut FBO {
-        &mut self.stack[self.stack_depth - 1]
+        &mut self.stack[self.stack_size - 1]
     }
 
     fn push(&mut self, sx: i32, sy: i32) {
         Profiler::begin("RenderTarget_Push");
 
-        if self.stack_depth >= FBO_STACK_DEPTH {
+        if self.stack_size >= FBO_STACK_DEPTH {
             panic!("RenderTarget_Push: Maximum stack depth {FBO_STACK_DEPTH} exceeded");
         }
 
-        self.stack_depth += 1;
+        self.stack_size += 1;
 
         let fbo = self.get_active();
         fbo.handle = 0;
@@ -123,18 +123,14 @@ impl FboStack {
         glcheck!(gl::GenFramebuffers(1, &mut fbo.handle));
         glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, fbo.handle));
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            Viewport_Push(0, 0, sx, sy, false);
-        }
-
+        Viewport::push(0, 0, sx, sy, false);
         Profiler::end();
     }
 
     fn pop(&mut self) {
         Profiler::begin("RenderTarget_Pop");
 
-        if self.stack_depth == 0 {
+        if self.stack_size == 0 {
             panic!("RenderTarget_Pop: Attempting to pop an empty stack");
         }
 
@@ -158,14 +154,14 @@ impl FboStack {
             0
         ));
 
-        let fbo = &self.stack[self.stack_depth - 1];
+        let fbo = &self.stack[self.stack_size - 1];
         glcheck!(gl::DeleteFramebuffers(1, &fbo.handle,));
 
-        self.stack_depth -= 1;
+        self.stack_size -= 1;
 
         Metric::FBOSwap.inc();
 
-        if self.stack_depth > 0 {
+        if self.stack_size > 0 {
             glcheck!(gl::BindFramebuffer(
                 gl::FRAMEBUFFER,
                 self.get_active().handle
@@ -174,11 +170,7 @@ impl FboStack {
             glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));
         }
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            Viewport_Pop();
-        }
-
+        Viewport::pop();
         Profiler::end();
     }
 

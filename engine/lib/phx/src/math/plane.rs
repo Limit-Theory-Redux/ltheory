@@ -1,7 +1,7 @@
 use super::*;
 use crate::error::Error;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 #[repr(C)]
 pub struct Plane {
     pub n: Vec3,
