@@ -225,10 +225,7 @@ pub struct Bsp {
     pub empty_leaf: BSPNodeRef,
     pub nodes: Vec<BSPNode>,
     pub triangles: Vec<Triangle>,
-    node_shader: Shader,
-    node_split_shader: Shader,
-    line_segment_shader: Shader,
-    sphere_shader: Shader,
+    shader: Shader,
     // BSP_PROFILE (
     //     BSPDebug_Data profilingData;
     // )
@@ -383,16 +380,12 @@ impl Bsp {
         let mut nodes = Vec::with_capacity(bsp_build.node_count + 1);
         nodes.push(null_node);
 
-        let shader = Shader::load("vertex/wvp", "fragment/simple_color");
         let mut bsp = Self {
             root_node: Default::default(),
             empty_leaf,
             nodes,
             triangles,
-            node_shader: shader.acquire(),
-            node_split_shader: shader.acquire(),
-            line_segment_shader: shader.acquire(),
-            sphere_shader: shader.acquire(),
+            shader: Shader::load("vertex/wvp", "fragment/simple_color"),
         };
 
         bsp.root_node = bsp.optimize_tree(&build_root_node);
@@ -724,8 +717,8 @@ impl Bsp {
                 color,
             );
         } else {
-            self.node_shader.start();
-            self.node_shader
+            self.shader.start();
+            self.shader
                 .set_float4("color", color.r, color.g, color.b, color.a);
             let leaf_index = -node_ref.index;
             for i in 0..node_ref.triangle_count {
@@ -736,7 +729,7 @@ impl Bsp {
                     &triangle.vertices[2],
                 );
             }
-            self.node_shader.stop();
+            self.shader.stop();
         };
     }
 
@@ -760,15 +753,13 @@ impl Bsp {
             let t = Vec3::dot(node.plane.n, origin) - node.plane.d;
             let closest_point = origin - (node.plane.n * t);
             RenderState::push_wireframe(false);
-            self.node_split_shader.start();
-            self.node_split_shader
-                .set_float4("color", 0.3, 0.5, 0.3, 0.4);
+            self.shader.start();
+            self.shader.set_float4("color", 0.3, 0.5, 0.3, 0.4);
             Draw::plane(&closest_point, &node.plane.n, 2.0);
-            self.node_split_shader
-                .set_float4("color", 0.5, 0.3, 0.3, 0.4);
+            self.shader.set_float4("color", 0.5, 0.3, 0.3, 0.4);
             let neg: Vec3 = node.plane.n * -1.0;
             Draw::plane(&closest_point, &neg, 2.0);
-            self.node_split_shader.stop();
+            self.shader.stop();
             RenderState::pop_wireframe();
         } else {
             /* Leaf */
@@ -780,23 +771,21 @@ impl Bsp {
         RenderState::pop_cull_face();
         RenderState::pop_blend_mode();
 
-        self.node_split_shader.stop(); // TODO: no start?
+        self.shader.stop(); // TODO: no start?
     }
 
     pub fn draw_line_segment(&mut self, line_segment: &LineSegment, eye: &Position) {
         let mut p_hit = Vec3::ZERO;
 
-        self.line_segment_shader.start();
+        self.shader.start();
         if self.intersect_line_segment(line_segment, &mut p_hit) {
-            self.line_segment_shader
-                .set_float4("color", 0.0, 1.0, 0.0, 0.1);
+            self.shader.set_float4("color", 0.0, 1.0, 0.0, 0.1);
             Draw::line3(
                 &(*line_segment).p0.relative_to(*eye),
                 &Position::from_vec(p_hit).relative_to(*eye),
             );
 
-            self.line_segment_shader
-                .set_float4("color", 1.0, 0.0, 0.0, 1.0);
+            self.shader.set_float4("color", 1.0, 0.0, 0.0, 1.0);
             Draw::line3(
                 &Position::from_vec(p_hit).relative_to(*eye),
                 &(*line_segment).p1.relative_to(*eye),
@@ -805,27 +794,26 @@ impl Bsp {
             Draw::point_size(5.0);
             Draw::point3(p_hit.x, p_hit.y, p_hit.z);
         } else {
-            self.line_segment_shader
-                .set_float4("color", 0.0, 1.0, 0.0, 1.0);
+            self.shader.set_float4("color", 0.0, 1.0, 0.0, 1.0);
             Draw::line3(
                 &(*line_segment).p0.relative_to(*eye),
                 &(*line_segment).p1.relative_to(*eye),
             );
         };
-        self.line_segment_shader.stop();
+        self.shader.stop();
     }
 
     pub fn draw_sphere(&mut self, sphere: &Sphere) {
         let mut p_hit = Vec3::ZERO;
 
-        self.sphere_shader.start();
+        self.shader.start();
         if self.intersect_sphere(sphere, &mut p_hit) {
             RenderState::push_wireframe(false);
-            self.sphere_shader.set_float4("color", 1.0, 0.0, 0.0, 0.3);
+            self.shader.set_float4("color", 1.0, 0.0, 0.0, 0.3);
             Draw::sphere(&sphere.p, sphere.r);
             RenderState::pop_wireframe();
 
-            self.sphere_shader.set_float4("color", 1.0, 0.0, 0.0, 1.0);
+            self.shader.set_float4("color", 1.0, 0.0, 0.0, 1.0);
             Draw::sphere(&sphere.p, sphere.r);
 
             RenderState::push_depth_test(false);
@@ -834,14 +822,14 @@ impl Bsp {
             RenderState::pop_depth_test();
         } else {
             RenderState::push_wireframe(false);
-            self.sphere_shader.set_float4("color", 0.0, 1.0, 0.0, 0.3);
+            self.shader.set_float4("color", 0.0, 1.0, 0.0, 0.3);
             Draw::sphere(&sphere.p, sphere.r);
             RenderState::pop_wireframe();
 
-            self.sphere_shader.set_float4("color", 0.0, 1.0, 0.0, 1.0);
+            self.shader.set_float4("color", 0.0, 1.0, 0.0, 1.0);
             Draw::sphere(&sphere.p, sphere.r);
         };
-        self.sphere_shader.stop();
+        self.shader.stop();
     }
 
     // static void print_profiling_data(&self, BSPDebug_IntersectionData* data, double totalTime) {
