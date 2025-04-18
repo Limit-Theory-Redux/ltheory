@@ -56,7 +56,7 @@ function Loader.defineType()
                 getNode                     = function(self, nodeRef, relationship)
                     ffi.gc(nodeRef, nil)
                     local _instance = libphx.BSP_GetNode(self, nodeRef, relationship)
-                    return Core.ManagedObject(_instance, libphx.BSPNodeRef_Free)
+                    return Core.ManagedObject(_instance, libphx.BspNodeRef_Free)
                 end,
                 drawNode                    = function(self, nodeRef, color)
                     ffi.gc(nodeRef, nil)
@@ -73,7 +73,7 @@ function Loader.defineType()
                 getIntersectSphereTriangles = libphx.BSP_GetIntersectSphereTriangles,
                 getLeaf                     = function(self, leafIndex)
                     local _instance = libphx.BSP_GetLeaf(self, leafIndex)
-                    return Core.ManagedObject(_instance, libphx.BSPNodeRef_Free)
+                    return Core.ManagedObject(_instance, libphx.BspNodeRef_Free)
                 end,
             },
         }

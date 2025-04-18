@@ -221,9 +221,9 @@ use crate::render::{BlendMode, CullFace, Draw, RenderState, Shader};
 #[derive(Clone)]
 #[repr(C)]
 pub struct Bsp {
-    pub root_node: BSPNodeRef,
-    pub empty_leaf: BSPNodeRef,
-    pub nodes: Vec<BSPNode>,
+    pub root_node: BspNodeRef,
+    pub empty_leaf: BspNodeRef,
+    pub nodes: Vec<BspNode>,
     pub triangles: Vec<Triangle>,
     shader: Shader,
     // BSP_PROFILE (
@@ -233,14 +233,14 @@ pub struct Bsp {
 
 #[derive(Debug, Copy, Clone)]
 #[repr(C)]
-pub struct BSPNode {
+pub struct BspNode {
     pub plane: Plane,
-    pub child: [BSPNodeRef; 2],
+    pub child: [BspNodeRef; 2],
 }
 
 #[derive(Debug, Copy, Clone, Default)]
 #[repr(C)]
-pub struct BSPNodeRef {
+pub struct BspNodeRef {
     pub index: i32,
     pub triangle_count: u8,
 }
@@ -252,7 +252,7 @@ pub struct BSPNodeRef {
         int32 index;
         uint8 triangleCount;"
 )]
-impl BSPNodeRef {}
+impl BspNodeRef {}
 
 #[derive(Clone)]
 #[repr(C)]
@@ -281,7 +281,7 @@ pub enum BspNodeRel {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct DelayRay {
-    pub node_ref: BSPNodeRef,
+    pub node_ref: BspNodeRef,
     pub t_min: f32,
     pub t_max: f32,
     pub depth: i32,
@@ -290,7 +290,7 @@ pub struct DelayRay {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Delay {
-    pub node_ref: BSPNodeRef,
+    pub node_ref: BspNodeRef,
     pub depth: i32,
 }
 
@@ -370,17 +370,17 @@ impl Bsp {
         triangles.push(null_leaf);
         triangles.push(null_leaf);
 
-        let empty_leaf = BSPNodeRef {
+        let empty_leaf = BspNodeRef {
             index: -EMPTY_LEAF_INDEX,
             triangle_count: 0,
         };
 
-        let null_node = BSPNode {
+        let null_node = BspNode {
             plane: Plane {
                 n: Vec3::ZERO,
                 d: 0.,
             },
-            child: [BSPNodeRef {
+            child: [BspNodeRef {
                 index: 0,
                 triangle_count: 0,
             }; 2],
@@ -501,7 +501,7 @@ impl Bsp {
 
                     let mut t = 0.;
                     // if (Intersect::ray_triangle_barycentric(ray, triangle, tEpsilon, &t)) {
-                    if Intersect::ray_triangle_moller1(&ray, triangle, &mut t) {
+                    if Intersect::ray_triangle_moller1(ray, triangle, &mut t) {
                         // if (Intersect::ray_triangle_moller2(ray, triangle, &t)) {
                         // if (Intersect::ray_triangle_badouel(ray, triangle, tEpsilon, &t)) {
                         if !hit || t < *t_hit {
@@ -671,7 +671,7 @@ impl Bsp {
     }
     */
 
-    pub fn get_node(&self, node_ref: BSPNodeRef, relationship: BspNodeRel) -> BSPNodeRef {
+    pub fn get_node(&self, node_ref: BspNodeRef, relationship: BspNodeRel) -> BspNodeRef {
         if node_ref.index == 0 {
             return self.root_node;
         }
@@ -681,7 +681,7 @@ impl Bsp {
             node = Some(&self.nodes[node_ref.index as usize]);
         }
 
-        let mut new_node = BSPNodeRef {
+        let mut new_node = BspNodeRef {
             index: 0,
             triangle_count: 0,
         };
@@ -716,7 +716,7 @@ impl Bsp {
         }
     }
 
-    pub fn draw_node(&mut self, node_ref: BSPNodeRef, color: &Color) {
+    pub fn draw_node(&mut self, node_ref: BspNodeRef, color: &Color) {
         // Assert(nodeRef.index);
 
         if node_ref.index > 0 {
@@ -742,7 +742,7 @@ impl Bsp {
         };
     }
 
-    pub fn draw_node_split(&mut self, node_ref: BSPNodeRef) {
+    pub fn draw_node_split(&mut self, node_ref: BspNodeRef) {
         // Assert(nodeRef.index);
 
         RenderState::push_blend_mode(BlendMode::Alpha);
@@ -962,7 +962,7 @@ impl Bsp {
         hit
     }
 
-    pub fn get_leaf(&self, leaf_index: i32) -> BSPNodeRef {
+    pub fn get_leaf(&self, leaf_index: i32) -> BspNodeRef {
         let mut index: i32 = -1;
         for node in &self.nodes {
             if node.child[0].index < 0 {
@@ -980,7 +980,7 @@ impl Bsp {
                 }
             }
         }
-        BSPNodeRef {
+        BspNodeRef {
             index: ROOT_NODE_INDEX,
             triangle_count: 0 as u8,
         }
@@ -988,14 +988,14 @@ impl Bsp {
 }
 
 impl Bsp {
-    fn optimize_tree(&mut self, build_node: &BspBuildNode) -> BSPNodeRef {
+    fn optimize_tree(&mut self, build_node: &BspBuildNode) -> BspNodeRef {
         if build_node.child[BACK_INDEX].is_some() || build_node.child[FRONT_INDEX].is_some() {
             /* Node */
             // Assert(ArrayList_GetSize(self->nodes) < ArrayList_GetCapacity(self->nodes));
 
-            let dummy = BSPNode {
+            let dummy = BspNode {
                 plane: build_node.plane,
-                child: [BSPNodeRef {
+                child: [BspNodeRef {
                     index: 0,
                     triangle_count: 0,
                 }; 2],
@@ -1003,7 +1003,7 @@ impl Bsp {
             let node_index = self.nodes.len() as i32;
             self.nodes.push(dummy);
 
-            let mut node_child = [BSPNodeRef {
+            let mut node_child = [BspNodeRef {
                 index: 0,
                 triangle_count: 0,
             }; 2];
@@ -1021,7 +1021,7 @@ impl Bsp {
                 node.child[FRONT_INDEX] = node_child[FRONT_INDEX];
             }
 
-            BSPNodeRef {
+            BspNodeRef {
                 index: node_index,
                 triangle_count: 0 as u8,
             }
@@ -1044,7 +1044,7 @@ impl Bsp {
             }
 
             let leaf_len = (self.triangles.len() - leaf_index) as u8;
-            BSPNodeRef {
+            BspNodeRef {
                 index: -(leaf_index as i32),
                 triangle_count: leaf_len,
             }
