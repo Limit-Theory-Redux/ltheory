@@ -1,15 +1,10 @@
-#![allow(non_snake_case)] // TODO: remove this and fix all warnings
-#![allow(unsafe_code)] // TODO: remove
-
 use glam::Vec3;
-use internal::{MemAllocZero, MemDelete, MemFree, MemNewZero};
 
-use super::{Color, Mesh};
-use crate::logging::warn;
-use crate::math::{
-    lerp, Intersect, LineSegment, Plane, Polygon, PolygonClassification, Position, Ray, Rng,
-    Sphere, Triangle,
+use super::{
+    BspBuild, BspBuildNode, BspBuildNodeData, Color, Mesh, PolygonEx, BACK_INDEX, FRONT_INDEX,
 };
+use crate::logging::warn;
+use crate::math::{Intersect, LineSegment, Plane, Polygon, Position, Ray, Rng, Sphere, Triangle};
 use crate::render::{BlendMode, CullFace, Draw, RenderState, Shader};
 
 /* Adam's Stupidly Fast BSP Implementation
@@ -225,28 +220,32 @@ use crate::render::{BlendMode, CullFace, Draw, RenderState, Shader};
 
 #[derive(Clone)]
 #[repr(C)]
-pub struct BSP {
-    pub rootNode: BSPNodeRef,
-    pub emptyLeaf: BSPNodeRef,
+pub struct Bsp {
+    pub root_node: BSPNodeRef,
+    pub empty_leaf: BSPNodeRef,
     pub nodes: Vec<BSPNode>,
     pub triangles: Vec<Triangle>,
+    node_shader: Shader,
+    node_split_shader: Shader,
+    line_segment_shader: Shader,
+    sphere_shader: Shader,
     // BSP_PROFILE (
     //     BSPDebug_Data profilingData;
     // )
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 #[repr(C)]
 pub struct BSPNode {
     pub plane: Plane,
     pub child: [BSPNodeRef; 2],
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 #[repr(C)]
 pub struct BSPNodeRef {
     pub index: i32,
-    pub triangleCount: u8,
+    pub triangle_count: u8,
 }
 
 #[derive(Clone)]
@@ -255,1380 +254,803 @@ pub struct IntersectSphereProfiling {
     pub nodes: i32,
     pub leaves: i32,
     pub triangles: i32,
-    pub triangleTests: Vec<TriangleTest>,
+    pub triangle_tests: Vec<TriangleTest>,
 }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct TriangleTest {
-    pub triangle: *mut Triangle,
+    pub triangle: Triangle,
     pub hit: bool,
 }
 
-#[luajit_ffi_gen::luajit_ffi]
+#[luajit_ffi_gen::luajit_ffi(name = "BSPNodeRel")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BSPNodeRel {
+pub enum BspNodeRel {
     Parent = 0,
     Back = 1,
     Front = 2,
 }
 
-#[repr(C)]
-pub struct BSPBuild {
-    pub rootNode: *mut BSPBuildNode,
-    pub rng: Rng,
-    pub nodeCount: i32,
-    pub leafCount: i32,
-    pub triangleCount: i32,
-    // CHECK2 (
-    //     int32 nextNodeID;
-    //     int32 oversizedNodes;
-    //     float avgOversizeAmount;
-    // )
-}
-
-#[derive(Clone)]
-#[repr(C)]
-pub struct BSPBuildNode {
-    pub plane: Plane,
-    pub child: [*mut BSPBuildNode; 2],
-    pub polygons: Vec<PolygonEx>,
-    // CHECK2 (
-    //     int32 id;
-    //     BSPBuild_Node* parent;
-    //     Vec3f planeCenter;
-    // )
-}
-
-#[derive(Clone)]
-#[repr(C)]
-pub struct PolygonEx {
-    pub inner: Polygon,
-    pub flags: PolygonFlag,
-}
-pub type PolygonFlag = u8;
-
-#[derive(Clone)]
-#[repr(C)]
-pub struct BSPBuildNodeData {
-    pub polygons: Vec<PolygonEx>,
-    pub validPolygonCount: i32,
-    pub triangleCount: i32,
-    pub depth: u16,
-    //Box3f boundingBox;
-    //uint8 cutIndex;
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct DelayRay {
-    pub nodeRef: BSPNodeRef,
-    pub tMin: f32,
-    pub tMax: f32,
+    pub node_ref: BSPNodeRef,
+    pub t_min: f32,
+    pub t_max: f32,
     pub depth: i32,
 }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Delay {
-    pub nodeRef: BSPNodeRef,
+    pub node_ref: BSPNodeRef,
     pub depth: i32,
 }
 
-const BACK_INDEX: i32 = 0;
-const FRONT_INDEX: i32 = 1;
 const ROOT_NODE_INDEX: i32 = 1;
 const EMPTY_LEAF_INDEX: i32 = 1;
 
-#[no_mangle]
-pub unsafe extern "C" fn BSP_IntersectRay(
-    this: &mut BSP,
-    rayPtr: *const Ray,
-    tHit: *mut f32,
-) -> bool {
-    // Assert(RAY_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
-
-    let mut ray = *rayPtr;
-    *tHit = f32::MAX;
-
-    let mut nodeRef: BSPNodeRef = this.rootNode;
-    let tEpsilon = (8.0f64 * 1e-4f64 / ray.dir.length() as f64) as f32;
-    let mut hit = false;
-    let mut depth = 0;
-    let mut maxDepth = 0;
-
-    let mut ray_stack = vec![];
-
-    loop {
-        maxDepth = i32::max(depth, maxDepth);
-
-        if nodeRef.index >= 0 {
-            let node: &mut BSPNode = &mut this.nodes[nodeRef.index as usize];
-            //BSP_PROFILE(self->profilingData.ray.nodes++;)
-
-            let dist = Vec3::dot((*node).plane.n, ray.p.as_vec3()) - (*node).plane.d;
-            let denom = -Vec3::dot((*node).plane.n, ray.dir.as_vec3());
-
-            /* Near means the side of the plane the point p is on. */
-            /* Early means the side of the plane we'll check first. */
-            let nearIndex: i32 = (dist > 0.0f32) as i32;
-            let mut earlyIndex: i32 = nearIndex;
-
-            if denom != 0.0f32 {
-                /* Ray not parallel to plane */
-                let t: f32 = dist / denom;
-                let planeBegin: f32 = t - tEpsilon;
-                let planeEnd: f32 = t + tEpsilon;
-
-                if planeBegin >= ray.t_max as f32 {
-                    /* Entire ray lies on the near side */
-                } else if planeEnd <= ray.t_min as f32 {
-                    /* Entire ray lies on one side */
-                    earlyIndex = (t >= 0.0f32) as i32 ^ nearIndex;
-                } else {
-                    /* Ray touches thick plane */
-                    earlyIndex = (t < 0.0f32) as i32 ^ nearIndex;
-
-                    /* Don't let the ray 'creep past' tMin/tMax */
-                    let min: f32 = f32::max(planeBegin, ray.t_min as f32);
-                    let max: f32 = f32::min(planeEnd, ray.t_max as f32);
-
-                    let d: DelayRay = DelayRay {
-                        nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
-                        tMin: min,
-                        tMax: ray.t_max as f32,
-                        depth,
-                    };
-                    ray_stack.push(d);
-
-                    ray.t_max = max as f64;
-                }
-            } else {
-                /* Ray parallel to plane. */
-                if f64::abs(dist as f64) < 8.0f64 * 1e-4f64 {
-                    earlyIndex = nearIndex;
-
-                    let d: DelayRay = DelayRay {
-                        nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
-                        tMin: ray.t_min as f32,
-                        tMax: ray.t_max as f32,
-                        depth,
-                    };
-                    ray_stack.push(d);
-                } else {
-                    /* Ray outside of thick plane */
-                }
-            }
-
-            depth += 1;
-            nodeRef = (*node).child[earlyIndex as usize];
-        } else {
-            let leafIndex = -nodeRef.index;
-            // BSP_PROFILE(self->profilingData.ray.leaves++;)
-
-            let mut i: u8 = 0 as u8;
-            while (i as i32) < nodeRef.triangleCount as i32 {
-                let triangle = &this.triangles[leafIndex as usize + i as usize];
-                // BSP_PROFILE(self->profilingData.ray.triangles++;)
-
-                let mut t: f32 = 0.;
-                // if (Intersect::ray_triangle_barycentric(ray, triangle, tEpsilon, &t)) {
-                if Intersect::ray_triangle_moller1(&ray, triangle, &mut t) {
-                    // if (Intersect::ray_triangle_moller2(ray, triangle, &t)) {
-                    // if (Intersect::ray_triangle_badouel(ray, triangle, tEpsilon, &t)) {
-                    if !hit || t < *tHit {
-                        hit = true;
-                        *tHit = t;
-                    }
-                }
-                i = i.wrapping_add(1);
-            }
-
-            if hit {
-                break;
-            }
-
-            if let Some(d) = ray_stack.pop() {
-                nodeRef = d.nodeRef;
-                ray.t_min = d.tMin as f64;
-                ray.t_max = d.tMax as f64;
-                depth = d.depth;
-            } else {
-                break;
-            }
-        }
-    }
-
-    // BSP_PROFILE (
-    //     self->profilingData.ray.count++;
-    //     self->profilingData.ray.depth += maxDepth;
-    // )
-
-    hit
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn BSP_IntersectLineSegment(
-    this: &mut BSP,
-    lineSegment: &LineSegment,
-    pHit: &mut Vec3,
-) -> bool {
-    let ray: Ray = Ray {
-        p: lineSegment.p0,
-        dir: lineSegment.p1.as_dvec3() - lineSegment.p0.as_dvec3(),
-        t_min: 0.0,
-        t_max: 1.0,
-    };
-    let mut t: f32 = 0.;
-    if BSP_IntersectRay(this, &ray, &mut t) {
-        *pHit = ray.get_point(t as f64).as_vec3();
-        true
-    } else {
-        false
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn BSP_IntersectSphere(
-    this: &mut BSP,
-    sphere: &Sphere,
-    pHit: &mut Vec3,
-) -> bool {
-    // Assert(SPHERE_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
-
-    let mut nodeRef: BSPNodeRef = this.rootNode;
-    let mut hit: bool = false;
-    let mut depth: i32 = 0;
-    let mut maxDepth: i32 = 0;
-
-    let mut node_stack = vec![];
-
-    loop {
-        maxDepth = i32::max(depth, maxDepth);
-
-        if nodeRef.index >= 0 {
-            let node: &mut BSPNode = &mut this.nodes[nodeRef.index as usize];
-            // BSP_PROFILE(self->profilingData.sphere.nodes++;)
-
-            let dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p) - (*node).plane.d;
-            if dist as f64 > (*sphere).r as f64 + 2.0f64 * 1e-4f64 {
-                /* Entirely in front half-space */
-                nodeRef = (*node).child[FRONT_INDEX as usize];
-            } else if (dist as f64) < -((*sphere).r as f64 + 2.0f64 * 1e-4f64) {
-                /* Entirely in back half-space */
-                nodeRef = (*node).child[BACK_INDEX as usize];
-            } else {
-                /* Straddling the thick plane */
-                let d: Delay = Delay {
-                    nodeRef: (*node).child[BACK_INDEX as usize],
-                    depth,
-                };
-                node_stack.push(d);
-                nodeRef = (*node).child[FRONT_INDEX as usize];
-            }
-
-            depth += 1;
-        } else {
-            let leafIndex = -nodeRef.index;
-            // BSP_PROFILE(self->profilingData.sphere.leaves++;)
-
-            let mut i: u8 = 0 as u8;
-            while (i as i32) < nodeRef.triangleCount as i32 {
-                let triangle = &this.triangles[leafIndex as usize + i as usize];
-                // BSP_PROFILE(self->profilingData.sphere.triangles++;)
-
-                let mut pHit2 = Vec3::ZERO;
-                if Intersect::sphere_triangle(sphere, triangle, &mut pHit2) {
-                    hit = true;
-                    *pHit = pHit2;
-                    break;
-                }
-                i = i.wrapping_add(1);
-            }
-
-            if hit {
-                break;
-            }
-
-            if let Some(d) = node_stack.pop() {
-                nodeRef = d.nodeRef;
-                depth = d.depth;
-            } else {
-                break;
-            }
-        }
-    }
-
-    // BSP_PROFILE (
-    //     self->profilingData.sphere.count++;
-    //     self->profilingData.sphere.depth += maxDepth;
-    // )
-
-    hit
-}
-
-// const DEFAULT_TRIANGLE_SPLIT_COST: f32 = 0.85;
-// const LEAF_TRIANGLE_COUNT: i32 = 12;
-
-#[no_mangle]
-pub static POLYGON_FLAG_NONE: PolygonFlag = 0 as PolygonFlag;
-
-#[no_mangle]
-pub static POLYGON_FLAG_INVALID_FACE_SPLIT: PolygonFlag = (1 << 0) as PolygonFlag;
-
-#[no_mangle]
-pub static POLYGON_FLAG_INVALID_DECOMPOSE: PolygonFlag = (1 << 1) as PolygonFlag;
-
-#[no_mangle]
-pub static POLYGON_FLAG_INVALID_EDGE_SPLIT: PolygonFlag = (1 << 2) as PolygonFlag;
-
-unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
-    nodeData: *mut BSPBuildNodeData,
-    plane: Plane,
-    k: f32,
-) -> f32 {
-    /* The bigger k is, the more we penalize polygon splitting */
-    // Assert(k >= 0.0f && k <= 1.0f);
-
-    let mut numInFront: i32 = 0;
-    let mut numBehind: i32 = 0;
-    let mut numStraddling: i32 = 0;
-
-    for polygon in (*nodeData).polygons.iter() {
-        match plane.classify_polygon(&polygon.inner) {
-            PolygonClassification::Coplanar | PolygonClassification::Behind => {
-                numBehind += 1;
-            }
-            PolygonClassification::InFront => {
-                numInFront += 1;
-            }
-            PolygonClassification::Straddling => {
-                numStraddling += 1;
-            }
-        }
-    }
-
-    //k*numStraddling + (1.0f - k)*Abs(numInFront - numBehind);
-    lerp(
-        f64::abs((numInFront - numBehind) as f64) as f64,
-        numStraddling as f64,
-        k as f64,
-    ) as f32
-}
-
-unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
-    bsp: *mut BSPBuild,
-    nodeData: *mut BSPBuildNodeData,
-    splitPlane: *mut Plane,
-) -> bool {
-    /* See Realtime Collision Detection pp361-363 */
-
-    /* Misc Notes from the Literature
-     *  TODO : The number of candidates c selected at each call as a percentage of the
-     *  number of faces f lying in the current region is increased as a linear function
-     *  of f until a predetermined threshold is reached, after which all face hyperplanes
-     *  are chosen (currently 20).
-     *
-     *  NOTE: Since we are interested in generating a multiresolution representation,
-     *  we bias the selection process by first sorting the face hyperplanes by area
-     *  (each hyperplane is represented only once, and has with it a list of coincident
-     *  faces). The candidates are then the first c on this sorted list.
-     *  https://pdfs.semanticscholar.org/8fa2/b73cb14fad3abe749a0da4fba50f18a19e2a.pdf
-     *  This method sucked! Vastly slower than random choices. I only sorted the list
-     *  once, not every single split. Perhaps this breaks the algorithm? Either way,
-     *  sorting triangles every single split during tree construction is going to
-     *  annihilate build time.
-     *
-     *  TODO : For each of a predefined number of directions, we project all of the
-     *  vertices onto that direction and then sort them. We then consider hyperplanes
-     *  orthogonal to this direction which contain vertices at certain positions in the
-     *  ordering. The percentage of positions tested is treated similarly to that for
-     *  choosing the number of face hyperplanes. The directions we are currently using
-     *  correspond to the k-faces of a hypercube, whose number in 3D is 13 = 26/2 (see
-     *  figure 7 for the 2D case).
-     *  https://pdfs.semanticscholar.org/8fa2/b73cb14fad3abe749a0da4fba50f18a19e2a.pdf
-     *
-     *  TODO : The third method is similar to the second, but uses least squares fit
-     *  to generate a direction. In particular, we compute the least squares fit of the
-     *  set of vertices lying in the current region, and then use the normal of the
-     *  resulting hyperplane as a new direction when applying the same techniques as
-     *  used with the predefined directions.
-     *  https://pdfs.semanticscholar.org/8fa2/b73cb14fad3abe749a0da4fba50f18a19e2a.pdf
-     */
-
-    let maxDepth: f32 = 1000.0f32;
-    let biasedDepth: f32 = (*nodeData).depth as f32 - 100.0f32;
-    let t: f32 = f64::max((biasedDepth / maxDepth) as f64, 0.0f64) as f32;
-    let k: f32 = lerp(0.85f64, 0.25f64, t as f64) as f32;
-
-    let mut bestScore: f32 = f32::MAX;
-    let mut bestPlane: Plane = Plane {
-        n: Vec3::ZERO,
-        d: 0.,
-    };
-    let mut bestPolygon: *mut PolygonEx = std::ptr::null_mut();
-    let mut numToCheck: i32 = 10;
-
-    let polygonsLen: i32 = (*nodeData).polygons.len() as i32;
-    if (*nodeData).validPolygonCount > 0 {
-        /* Simply score split planes using polygon faces */
-        numToCheck = i32::min(numToCheck, (*nodeData).validPolygonCount);
-        let mut i: i32 = 0;
-        while i < numToCheck {
-            let mut polygonIndex: i32 = (*bsp).rng.get32().wrapping_rem(polygonsLen as u32) as i32;
-
-            /* OPTIMIZE: This search is duuuuuumb. Maybe We should swap invalid
-             *           polygons to the end of the list so never have to search.
-             */
-            let mut j: i32 = 0;
-            while j < polygonsLen {
-                let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
-
-                if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_FACE_SPLIT as i32 == 0 {
-                    let plane: Plane = (*polygon).inner.to_plane();
-                    let score: f32 = BSPBuild_ScoreSplitPlane(nodeData, plane, k);
-
-                    if score < bestScore {
-                        bestScore = score;
-                        bestPlane = plane;
-                        bestPolygon = polygon;
-                    }
-                    break;
-                }
-
-                polygonIndex = (polygonIndex + 1) % polygonsLen;
-                j += 1;
-            }
-            i += 1;
-        }
-
-        if !bestPolygon.is_null() {
-            (*bestPolygon).flags = ((*bestPolygon).flags as i32
-                | POLYGON_FLAG_INVALID_FACE_SPLIT as i32)
-                as PolygonFlag;
-            // CHECK2(Polygon_GetCentroid((Polygon*) bestPolygon, &node->planeCenter);)
-        }
-    } else if polygonsLen > 0 {
-        /* No remaining polygons are valid for splitting. So we split any polygons
-         * with multiple triangles. When none of those are left, we use the polygon
-         * edges as split planes with no penalty for cutting other polygons.
-         */
-
-        /* EDGE: It's possible to get to a point where all remaining polygons are
-         * invalid for auto partitioning, but there are still more triangles than
-         * the max leaf size. In this case we need to start dividing the polygons.
-         * If we don't do this, it makes a significant impact on overall tree size
-         * because we actually end up with quite a few leaves with more triangles
-         * than MAX_LEAF_TRIANGLE_COUNT
-         */
-
-        /* EDGE: With very few polygons BSPBuild_ScoreSplitPlane will prioritize 100%
-         * lopsided splits over a split with a single cut. This leads to picking
-         * the same, useless general cut again next time.
-         */
-
-        /* Note that the flags set by these additional splitting steps will be
-         * transferred to the resulting pieces if the polygon is ever split. This
-         * is currently necessary because if the cut is chosen but this polygon
-         * can't be split safely (produces degenerate or tiny polgons, see
-         * Polygon_SplitSafe) we create 2 new 'split' polygons that are actually
-         * the full polygon and send it to both sides of the plane. We might be
-         * able to remove this for slightly better splitting (e.g. ending up with
-         * fewer oversized leaves because we tried more cuts) but it needs to be
-         * done carefully. */
-
-        let mut splitFound: bool = false;
-
-        /* Try to split any polygons with more than 1 triangle */
-        if !splitFound {
-            let mut polygonIndex: i32 = (*bsp).rng.get32().wrapping_rem(polygonsLen as u32) as i32;
-            for _ in 0..polygonsLen {
-                let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
-                if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_DECOMPOSE as i32 != 0 {
-                    continue;
-                }
-
-                let v: &Vec<Vec3> = &(*polygon).inner.vertices;
-                for j in 2..(v.len() - 1) {
-                    let edge: Vec3 = v[0] - v[j];
-                    let mid: Vec3 = Vec3::lerp(v[0], v[j], 0.5f32);
-
-                    /* TODO : Maybe just save the plane with polygon while build so they're only calculated once? */
-                    let polygonPlane = (*polygon).inner.to_plane();
-                    let mut plane: Plane = Plane {
-                        n: Vec3::ZERO,
-                        d: 0.,
-                    };
-                    plane.n = Vec3::cross(edge, polygonPlane.n).normalize();
-                    plane.d = Vec3::dot(plane.n, mid);
-
-                    /* TODO : Proper scoring? */
-                    if plane.classify_polygon(&(*polygon).inner)
-                        == PolygonClassification::Straddling
-                    {
-                        splitFound = true;
-
-                        bestScore = 0.0;
-                        bestPlane = plane;
-                        bestPolygon = polygon;
-                        // CHECK2(node->planeCenter = mid;)
-                        break;
-                    } else {
-                        /* This is possible because we don't fully handle slivers. There's
-                         * nothing stopping a triangle from being thinner than
-                         * PLANE_THICKNESS_EPSILON. */
-                        (*polygon).flags = ((*polygon).flags as i32
-                            | POLYGON_FLAG_INVALID_DECOMPOSE as i32)
-                            as PolygonFlag;
-                    }
-                    //if (--numToCheck == 0) break;
-                }
-
-                if splitFound {
-                    break;
-                }
-                //if (numToCheck == 0) break;
-                polygonIndex = (polygonIndex + 1) % polygonsLen;
-            }
-
-            if splitFound {
-                (*bestPolygon).flags = ((*bestPolygon).flags as i32
-                    | POLYGON_FLAG_INVALID_DECOMPOSE as i32)
-                    as PolygonFlag;
-            }
-        }
-
-        /* Try splitting along a polygon edge */
-        if !splitFound {
-            let mut polygonIndex: i32 = (*bsp).rng.get32().wrapping_rem(polygonsLen as u32) as i32;
-            for _ in 0..polygonsLen {
-                let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
-                if (*polygon).flags as i32 & POLYGON_FLAG_INVALID_EDGE_SPLIT as i32 != 0 {
-                    continue;
-                }
-
-                let polygonPlane = (*polygon).inner.to_plane();
-                let v = &mut (*polygon).inner.vertices;
-                let mut vPrev: Vec3 = v[(v.len() - 1) as usize];
-
-                #[allow(clippy::needless_range_loop)]
-                // Cannot convert into `for_each` because of break instruction
-                for j in 0..v.len() {
-                    let vCur: Vec3 = v[j];
-                    let edge: Vec3 = vCur - vPrev;
-                    let mid: Vec3 = Vec3::lerp(vPrev, vCur, 0.5f32);
-
-                    let mut plane: Plane = Plane {
-                        n: Vec3 {
-                            x: 0.,
-                            y: 0.,
-                            z: 0.,
-                        },
-                        d: 0.,
-                    };
-                    plane.n = Vec3::cross(edge, polygonPlane.n).normalize();
-                    plane.d = Vec3::dot(plane.n, mid);
-
-                    let score: f32 = BSPBuild_ScoreSplitPlane(nodeData, plane, 0.0f32);
-                    if score < bestScore {
-                        splitFound = true;
-
-                        bestPolygon = polygon;
-                        bestScore = score;
-                        bestPlane = plane;
-                        // CHECK2(node->planeCenter = mid;)
-                    }
-
-                    vPrev = vCur;
-                    numToCheck -= 1;
-                    if numToCheck == 0 {
-                        break;
-                    }
-                }
-
-                if numToCheck == 0 {
-                    break;
-                }
-                polygonIndex = (polygonIndex + 1) % polygonsLen;
-            }
-
-            if splitFound {
-                (*bestPolygon).flags = ((*bestPolygon).flags as i32
-                    | POLYGON_FLAG_INVALID_EDGE_SPLIT as i32)
-                    as PolygonFlag;
-            }
-        }
-
-        // CHECK3 (
-        //   /* Still nothing. Fuck it. */
-        //   if (!splitFound) {
-        //     int32 triangleCount = 0;
-        //     ArrayList_ForEach(nodeData->polygons, PolygonEx, polygon) {
-        //       triangleCount += ArrayList_GetSize(polygon->vertices) - 2;
-        //     }
-        //     bsp->oversizedNodes++;
-        //     float oversizeAmount = (float) (triangleCount - LEAF_TRIANGLE_COUNT);
-        //     bsp->avgOversizeAmount = Lerp(bsp->avgOversizeAmount, oversizeAmount, 1.0f / bsp->oversizedNodes);
-        //     Warn("BSPBuild_ChooseSplitPlane: Failed to find a good split. Giving up. Leaf will have %i triangles.", triangleCount);
-        //   }
+#[luajit_ffi_gen::luajit_ffi(name = "BSP")]
+impl Bsp {
+    #[bind(name = "Create")]
+    pub fn new(mesh: &Mesh) -> Self {
+        // Assert(LEAF_TRIANGLE_COUNT <= MAX_LEAF_TRIANGLE_COUNT);
+
+        /* NOTE: This function will use memory proportional to 2x the mesh memory.
+         *        There will be one copy of all the polygons & vertices in the initial
+         *        list of polygons passed to BSPBuild_CreateNode, which will then create new
+         *        lists of polygons for the back and front, but will reuse the vertices
+         *        from the original list. Therefore we never have more vertices than we
+         *        actually need during tree building (aside from the fact that polygons
+         *        don't share vertices), but we do have 2 copys of each polygon
+         *        temporarily. Then during BSPBuild_OptimizeTree, all the resulting polygons
+         *        will be decomposed into triangles which will temporarily store 2
+         *        copies of all vertices. The 2x figure is slightly hand-wavy because
+         *        splitting will increase the total number of vertices, but I'm
+         *        assuming that doesn't get too out of hand for now. Since the mesh
+         *        stores indices and vertex attributes I expect the proportionality
+         *        constant to be in the ballpark of 0.5 */
+
+        let index_data = mesh.get_index_data();
+        let vertex_data = mesh.get_vertex_data();
+
+        /* TODO : Implement some form of soft abort when the incoming mesh is bad. */
+        // CHECK2 (
+        //     if (Mesh_Validate(mesh) != Error_None) return 0;
         // )
-    } else {
-        /* We don't have any polygons left. All of them were on the same side of
-         * the last split. This will end up being a leaf.  */
-    }
 
-    if bestScore < f32::MAX {
-        *splitPlane = bestPlane;
-        true
-    } else {
-        false
-    }
-}
+        let mut node_data = BspBuildNodeData {
+            polygons: Vec::new(),
+            valid_polygon_count: 0,
+            triangle_count: 0,
+            depth: 0,
+        };
+        node_data.triangle_count = index_data.len() / 3;
+        node_data.valid_polygon_count = index_data.len() / 3;
 
-#[inline]
-unsafe extern "C" fn BSPBuild_AppendPolygon(
-    nodeData: *mut BSPBuildNodeData,
-    polygon: *const PolygonEx,
-) {
-    //if (nodeData->triangleCount == 0) {
-    //  Vec3f v0 = ArrayList_Get(polygon->vertices, 0);
-    //  nodeData->boundingBox.lower = v0;
-    //  nodeData->boundingBox.upper = v0;
-    //}
-    //ArrayList_ForEach(polygon->vertices, Vec3f, v) {
-    //  Box3f_Add(&nodeData->boundingBox, *v);
-    //}
+        node_data.polygons.reserve(node_data.triangle_count);
+        for i in (0..index_data.len()).step_by(3) {
+            let i0 = index_data[i];
+            let i1 = index_data[i + 1];
+            let i2 = index_data[i + 2];
+            let v0 = vertex_data[i0 as usize].p;
+            let v1 = vertex_data[i1 as usize].p;
+            let v2 = vertex_data[i2 as usize].p;
 
-    (*nodeData).triangleCount += (*polygon).inner.vertices.len() as i32 - 2;
-    (*nodeData).validPolygonCount +=
-        ((*polygon).flags as i32 & POLYGON_FLAG_INVALID_FACE_SPLIT as i32 == 0) as i32;
-    (*nodeData).polygons.push((*polygon).clone())
-}
-
-unsafe extern "C" fn BSPBuild_CreateNode(
-    bsp: *mut BSPBuild,
-    nodeData: *mut BSPBuildNodeData,
-) -> *mut BSPBuildNode {
-    /* NOTE: This will free the polygons being passed in! This is to prevent all
-     *        the temporary allocations from overlapping. */
-
-    /* NOTE: Coplanar polygons are considered to be behind the plane and will
-     *        therefore lead to collisions. It seems preferable to push objects
-     *        very slightly outside of each other during a collision, rather than
-     *        letting them very slightly overlap. */
-
-    // Assert(nodeData->depth < 1 << 8*sizeof(nodeData->depth));
-
-    let node = MemNewZero!(BSPBuildNode);
-    // CHECK2(node->id = bsp->nextNodeID++;)
-
-    let mut splitPlane: Plane = Plane {
-        n: Vec3::ZERO,
-        d: 0.,
-    };
-
-    let mut makeLeaf: bool = false;
-    makeLeaf = makeLeaf as i32 != 0 || (*nodeData).triangleCount <= 12;
-    makeLeaf = makeLeaf as i32 != 0 || !BSPBuild_ChooseSplitPlane(bsp, nodeData, &mut splitPlane);
-
-    if makeLeaf {
-        if (*nodeData).triangleCount != 0 {
-            (*bsp).leafCount += 1;
-        }
-        (*bsp).triangleCount += (*nodeData).triangleCount;
-
-        #[allow(clippy::assigning_clones)] // Applying Clippy suggestion makes code panic here
-        {
-            (*node).polygons = (*nodeData).polygons.clone();
+            node_data.polygons.push(PolygonEx {
+                inner: Polygon {
+                    vertices: vec![v0, v1, v2],
+                },
+                flags: 0,
+            });
         }
 
-        return node;
-    }
+        /* Build */
+        let mut rng = Rng::new(1235);
+        let mut bsp_build = BspBuild {
+            node_count: 0,
+            leaf_count: 0,
+            triangle_count: 0,
+        };
+        let build_root_node = bsp_build.create_node(&mut node_data, &mut rng);
 
-    (*bsp).nodeCount += 1;
+        /* Optimize */
+        let null_leaf = Triangle {
+            vertices: [Vec3::ZERO; 3],
+        };
 
-    let polygonsLen = (*nodeData).polygons.len();
+        let mut triangles = Vec::with_capacity(bsp_build.triangle_count + 2);
+        triangles.push(null_leaf);
+        triangles.push(null_leaf);
 
-    let mut backNodeData: BSPBuildNodeData = BSPBuildNodeData {
-        polygons: Vec::new(),
-        validPolygonCount: 0,
-        triangleCount: 0,
-        depth: 0,
-    };
-    backNodeData.polygons.reserve(polygonsLen);
-    backNodeData.depth = ((*nodeData).depth as i32 + 1) as u16;
+        let empty_leaf = BSPNodeRef {
+            index: -EMPTY_LEAF_INDEX,
+            triangle_count: 0,
+        };
 
-    let mut frontNodeData: BSPBuildNodeData = BSPBuildNodeData {
-        polygons: Vec::new(),
-        validPolygonCount: 0,
-        triangleCount: 0,
-        depth: 0,
-    };
-    frontNodeData.polygons.reserve(polygonsLen);
-    frontNodeData.depth = ((*nodeData).depth as i32 + 1) as u16;
-
-    for polygon in (*nodeData).polygons.iter_mut() {
-        let classification = splitPlane.classify_polygon(&polygon.inner);
-        match classification {
-            PolygonClassification::Coplanar => {
-                (*polygon).flags = ((*polygon).flags as i32
-                    | POLYGON_FLAG_INVALID_FACE_SPLIT as i32)
-                    as PolygonFlag;
-            }
-            PolygonClassification::Behind => {
-                BSPBuild_AppendPolygon(&mut backNodeData, polygon);
-            }
-            PolygonClassification::InFront => {
-                BSPBuild_AppendPolygon(&mut frontNodeData, polygon);
-            }
-            PolygonClassification::Straddling => {
-                let mut backPart = PolygonEx {
-                    inner: Polygon {
-                        vertices: Vec::new(),
-                    },
-                    flags: 0,
-                };
-                backPart.flags = (*polygon).flags;
-
-                let mut frontPart = PolygonEx {
-                    inner: Polygon {
-                        vertices: Vec::new(),
-                    },
-                    flags: 0,
-                };
-                frontPart.flags = (*polygon).flags;
-
-                polygon
-                    .inner
-                    .split_safe(&splitPlane, &mut backPart.inner, &mut frontPart.inner);
-                BSPBuild_AppendPolygon(&mut backNodeData, &backPart);
-                BSPBuild_AppendPolygon(&mut frontNodeData, &frontPart);
-
-                (*polygon).inner.vertices.clear();
-            }
-        }
-    }
-    (*nodeData).polygons.clear();
-
-    (*node).plane = splitPlane;
-    (*node).child[BACK_INDEX as usize] = BSPBuild_CreateNode(bsp, &mut backNodeData);
-    (*node).child[FRONT_INDEX as usize] = BSPBuild_CreateNode(bsp, &mut frontNodeData);
-
-    // CHECK2 (
-    //     node->child[BackIndex] ->parent = node;
-    //     node->child[FrontIndex]->parent = node;
-    // )
-
-    node
-}
-
-unsafe extern "C" fn BSPBuild_OptimizeTree(
-    this: &mut BSP,
-    buildNode: *mut BSPBuildNode,
-) -> BSPNodeRef {
-    if !((*buildNode).child[BACK_INDEX as usize]).is_null()
-        || !((*buildNode).child[FRONT_INDEX as usize]).is_null()
-    {
-        /* Node */
-        // Assert(ArrayList_GetSize(self->nodes) < ArrayList_GetCapacity(self->nodes));
-
-        let dummy: BSPNode = BSPNode {
+        let null_node = BSPNode {
             plane: Plane {
                 n: Vec3::ZERO,
                 d: 0.,
             },
             child: [BSPNodeRef {
                 index: 0,
-                triangleCount: 0,
+                triangle_count: 0,
             }; 2],
         };
-        let nodeIndex: i32 = this.nodes.len() as i32;
-        this.nodes.push(dummy);
-        let node = this.nodes.last_mut().unwrap() as *mut BSPNode;
 
-        (*node).plane = (*buildNode).plane;
-        (*node).child[BACK_INDEX as usize] =
-            BSPBuild_OptimizeTree(this, (*buildNode).child[BACK_INDEX as usize]);
-        (*node).child[FRONT_INDEX as usize] =
-            BSPBuild_OptimizeTree(this, (*buildNode).child[FRONT_INDEX as usize]);
+        let mut nodes = Vec::with_capacity(bsp_build.node_count + 1);
+        nodes.push(null_node);
 
-        let result: BSPNodeRef = BSPNodeRef {
-            index: nodeIndex,
-            triangleCount: 0 as u8,
+        let shader = Shader::load("vertex/wvp", "fragment/simple_color");
+        let mut bsp = Self {
+            root_node: Default::default(),
+            empty_leaf,
+            nodes,
+            triangles,
+            node_shader: shader.acquire(),
+            node_split_shader: shader.acquire(),
+            line_segment_shader: shader.acquire(),
+            sphere_shader: shader.acquire(),
         };
-        result
-    } else {
-        /* Leaf */
-        if (*buildNode).polygons.is_empty() {
-            return this.emptyLeaf;
-        }
 
-        let leafIndex = this.triangles.len();
+        bsp.root_node = bsp.optimize_tree(&build_root_node);
 
-        for polygon in (*buildNode).polygons.iter() {
-            // Assert(
-            //     ArrayList_GetSize(self->triangles) +
-            //     ArrayList_GetSize(polygon->vertices) - 2
-            //     <= ArrayList_GetCapacity(self->triangles)
-            // );
-            let mut triangles = (*polygon).inner.convex_to_triangles();
-            this.triangles.append(&mut triangles);
-        }
+        // #if BSP_PROFILE && CHECK_LEVEL >= 2
+        //     self->profilingData.oversizedNodes = bspBuild.oversizedNodes;
+        //     self->profilingData.avgOversizeAmount = bspBuild.avgOversizeAmount;
+        //     if (bspBuild.oversizedNodes > 0) {
+        //     Warn("BSP_Create: Created %i oversized leaves with an average excess of %.1f triangles.", bspBuild.oversizedNodes, bspBuild.avgOversizeAmount);
+        //     }
+        // #endif
 
-        let leafLen: u8 = (this.triangles.len() - leafIndex) as u8;
-        BSPNodeRef {
-            index: -(leafIndex as i32),
-            triangleCount: leafLen,
-        }
-    }
-}
+        // Assert(ArrayList_GetSize(self->nodes)     == ArrayList_GetCapacity(self->nodes));
+        // Assert(ArrayList_GetSize(self->triangles) == ArrayList_GetCapacity(self->triangles));
+        // BSP_PROFILE(BSPBuild_AnalyzeTree(self, mesh, self->rootNode, 0);)
 
-unsafe extern "C" fn BSPBuild_FreeNode(node: *mut BSPBuildNode) {
-    if !((*node).child[BACK_INDEX as usize]).is_null()
-        || !((*node).child[FRONT_INDEX as usize]).is_null()
-    {
-        BSPBuild_FreeNode((*node).child[BACK_INDEX as usize]);
-        BSPBuild_FreeNode((*node).child[FRONT_INDEX as usize]);
-    }
-    MemDelete!(node);
-}
-
-/*
-BSP_PROFILE (
-static void BSPBuild_AnalyzeTree (BSP* self, Mesh* mesh, BSPNodeRef nodeRef, int32 depth) {
-  BSPDebug_Data* pd = &self->profilingData;
-
-  /* TODO : Do this while building */
-
-  /* All */
-  pd->maxDepth = Max(pd->maxDepth, depth);
-
-  /* Internal */
-  if (nodeRef.index >= 0) {
-    BSPNode* node = ArrayList_GetPtr(self->nodes, nodeRef.index);
-    BSPBuild_AnalyzeTree(self, mesh, node->child[BackIndex] , depth + 1);
-    BSPBuild_AnalyzeTree(self, mesh, node->child[FrontIndex], depth + 1);
-  }
-  /* Leaf */
-  else {
-    pd->leafCount++;
-    pd->avgLeafDepth = Lerp(pd->avgLeafDepth, (float) depth, 1.0f / (float) pd->leafCount);
-  }
-
-  /* Root */
-  if (depth == 0) {
-    const float BToMiB = 1.0f / 1024.0f / 1024.0f;
-
-    pd->nodeCount = ArrayList_GetCapacity(self->nodes);
-    pd->usedMiB += pd->nodeCount * sizeof(BSPNode);
-
-    pd->triCount += ArrayList_GetCapacity(self->triangles);
-    pd->usedMiB += pd->triCount * sizeof(Triangle);
-
-    pd->meshTriCount = Mesh_GetIndexCount(mesh) / 3;
-    pd->meshMiB = (float) Mesh_GetIndexCount(mesh) * sizeof(int32);
-    pd->meshMiB = (float) Mesh_GetVertexCount(mesh) * sizeof(Vertex);
-    pd->meshMiB *= BToMiB;
-
-    pd->usedMiB += sizeof(BSP);
-    pd->usedMiB *= BToMiB;
-
-    pd->triCountRatio = (float) pd->triCount / (float) pd->meshTriCount;
-    pd->usedMiBRatio = (float) pd->usedMiB / (float) pd->meshMiB;
-  }
-}
-*/
-
-#[no_mangle]
-pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
-    // Assert(LEAF_TRIANGLE_COUNT <= MAX_LEAF_TRIANGLE_COUNT);
-
-    /* NOTE: This function will use memory proportional to 2x the mesh memory.
-     *        There will be one copy of all the polygons & vertices in the initial
-     *        list of polygons passed to BSPBuild_CreateNode, which will then create new
-     *        lists of polygons for the back and front, but will reuse the vertices
-     *        from the original list. Therefore we never have more vertices than we
-     *        actually need during tree building (aside from the fact that polygons
-     *        don't share vertices), but we do have 2 copys of each polygon
-     *        temporarily. Then during BSPBuild_OptimizeTree, all the resulting polygons
-     *        will be decomposed into triangles which will temporarily store 2
-     *        copies of all vertices. The 2x figure is slightly hand-wavy because
-     *        splitting will increase the total number of vertices, but I'm
-     *        assuming that doesn't get too out of hand for now. Since the mesh
-     *        stores indices and vertex attributes I expect the proportionality
-     *        constant to be in the ballpark of 0.5 */
-
-    let this = MemNewZero!(BSP);
-
-    let index_data = mesh.get_index_data();
-    let vertex_data = mesh.get_vertex_data();
-
-    /* TODO : Implement some form of soft abort when the incoming mesh is bad. */
-    // CHECK2 (
-    //     if (Mesh_Validate(mesh) != Error_None) return 0;
-    // )
-
-    let mut nodeData: BSPBuildNodeData = BSPBuildNodeData {
-        polygons: Vec::new(),
-        validPolygonCount: 0,
-        triangleCount: 0,
-        depth: 0,
-    };
-    nodeData.triangleCount = index_data.len() as i32 / 3;
-    nodeData.validPolygonCount = index_data.len() as i32 / 3;
-
-    nodeData.polygons.reserve(nodeData.triangleCount as usize);
-    for i in (0..index_data.len()).step_by(3) {
-        let i0 = index_data[i];
-        let i1 = index_data[i + 1];
-        let i2 = index_data[i + 2];
-        let v0 = vertex_data[i0 as usize].p;
-        let v1 = vertex_data[i1 as usize].p;
-        let v2 = vertex_data[i2 as usize].p;
-
-        nodeData.polygons.push(PolygonEx {
-            inner: Polygon {
-                vertices: vec![v0, v1, v2],
-            },
-            flags: 0,
-        });
+        bsp
     }
 
-    /* Build */
-    let mut bspBuild: BSPBuild = BSPBuild {
-        rootNode: std::ptr::null_mut(),
-        rng: Rng::new(1235),
-        nodeCount: 0,
-        leafCount: 0,
-        triangleCount: 0,
-    };
-    bspBuild.rootNode = BSPBuild_CreateNode(&mut bspBuild, &mut nodeData);
+    pub fn intersect_ray(&self, ray: &mut Ray, t_hit: &mut f32) -> bool {
+        // Assert(RAY_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
 
-    /* Optimize */
-    let nullLeaf: Triangle = Triangle {
-        vertices: [Vec3::ZERO; 3],
-    };
-    (*this)
-        .triangles
-        .reserve((bspBuild.triangleCount + 2) as usize);
-    (*this).triangles.push(nullLeaf);
-    (*this).triangles.push(nullLeaf);
-    (*this).emptyLeaf.index = -EMPTY_LEAF_INDEX;
-    (*this).emptyLeaf.triangleCount = 0;
+        *t_hit = f32::MAX;
 
-    let nullNode: BSPNode = BSPNode {
-        plane: Plane {
-            n: Vec3::ZERO,
-            d: 0.,
-        },
-        child: [BSPNodeRef {
-            index: 0,
-            triangleCount: 0,
-        }; 2],
-    };
-    (*this).nodes.reserve((bspBuild.nodeCount + 1) as usize);
-    (*this).nodes.push(nullNode);
-    (*this).rootNode = BSPBuild_OptimizeTree(&mut *this, bspBuild.rootNode);
-    // #if BSP_PROFILE && CHECK_LEVEL >= 2
-    //     self->profilingData.oversizedNodes = bspBuild.oversizedNodes;
-    //     self->profilingData.avgOversizeAmount = bspBuild.avgOversizeAmount;
-    //     if (bspBuild.oversizedNodes > 0) {
-    //     Warn("BSP_Create: Created %i oversized leaves with an average excess of %.1f triangles.", bspBuild.oversizedNodes, bspBuild.avgOversizeAmount);
-    //     }
-    // #endif
+        let mut node_ref = self.root_node;
+        let t_epsilon = (8.0 * 1e-4 / ray.dir.length() as f64) as f32;
+        let mut hit = false;
+        let mut depth = 0;
+        let mut max_depth = 0;
 
-    BSPBuild_FreeNode(bspBuild.rootNode);
+        let mut ray_stack = vec![];
 
-    // Assert(ArrayList_GetSize(self->nodes)     == ArrayList_GetCapacity(self->nodes));
-    // Assert(ArrayList_GetSize(self->triangles) == ArrayList_GetCapacity(self->triangles));
-    // BSP_PROFILE(BSPBuild_AnalyzeTree(self, mesh, self->rootNode, 0);)
+        loop {
+            max_depth = i32::max(depth, max_depth);
 
-    this
-}
+            if node_ref.index >= 0 {
+                let node = &self.nodes[node_ref.index as usize];
+                //BSP_PROFILE(self->profilingData.ray.nodes++;)
 
-#[no_mangle]
-pub unsafe extern "C" fn BSP_Free(this: *mut BSP) {
-    MemDelete!(this);
-}
+                let dist = Vec3::dot(node.plane.n, ray.p.as_vec3()) - node.plane.d;
+                let denom = -Vec3::dot(node.plane.n, ray.dir.as_vec3());
 
-#[no_mangle]
-pub unsafe extern "C" fn BSPDebug_GetNode(
-    this: &mut BSP,
-    nodeRef: BSPNodeRef,
-    relationship: BSPNodeRel,
-) -> BSPNodeRef {
-    if nodeRef.index == 0 {
-        return this.rootNode;
-    }
+                /* Near means the side of the plane the point p is on. */
+                /* Early means the side of the plane we'll check first. */
+                let near_index = (dist > 0.0) as i32;
+                let mut early_index = near_index;
 
-    let mut node: *mut BSPNode = std::ptr::null_mut();
-    if nodeRef.index > 0 {
-        node = &mut this.nodes[nodeRef.index as usize];
-    }
+                if denom != 0.0 {
+                    /* Ray not parallel to plane */
+                    let t = dist / denom;
+                    let plane_begin = t - t_epsilon;
+                    let plane_end = t + t_epsilon;
 
-    let mut newNode: BSPNodeRef = BSPNodeRef {
-        index: 0,
-        triangleCount: 0,
-    };
-    if relationship == BSPNodeRel::Parent {
-        if nodeRef.index != 0 {
-            for i in 0..(this.nodes.len() as i32) {
-                let nodeToCheck: &mut BSPNode = &mut this.nodes[i as usize];
-                if (*nodeToCheck).child[BACK_INDEX as usize].index == nodeRef.index
-                    || (*nodeToCheck).child[FRONT_INDEX as usize].index == nodeRef.index
-                {
-                    newNode.index = i;
+                    if plane_begin as f64 >= ray.t_max {
+                        /* Entire ray lies on the near side */
+                    } else if plane_end as f64 <= ray.t_min {
+                        /* Entire ray lies on one side */
+                        early_index = (t >= 0.0) as i32 ^ near_index;
+                    } else {
+                        /* Ray touches thick plane */
+                        early_index = (t < 0.0) as i32 ^ near_index;
+
+                        /* Don't let the ray 'creep past' tMin/tMax */
+                        let min = f32::max(plane_begin, ray.t_min as f32);
+                        let max = f32::min(plane_end, ray.t_max as f32);
+
+                        let d = DelayRay {
+                            node_ref: node.child[(1 ^ early_index) as usize],
+                            t_min: min,
+                            t_max: ray.t_max as f32,
+                            depth,
+                        };
+                        ray_stack.push(d);
+
+                        ray.t_max = max as f64;
+                    }
+                } else {
+                    /* Ray parallel to plane. */
+                    if f64::abs(dist as f64) < 8.0f64 * 1e-4f64 {
+                        early_index = near_index;
+
+                        let d = DelayRay {
+                            node_ref: node.child[(1 ^ early_index) as usize],
+                            t_min: ray.t_min as f32,
+                            t_max: ray.t_max as f32,
+                            depth,
+                        };
+                        ray_stack.push(d);
+                    } else {
+                        /* Ray outside of thick plane */
+                    }
+                }
+
+                depth += 1;
+                node_ref = node.child[early_index as usize];
+            } else {
+                let leaf_index = -node_ref.index;
+                // BSP_PROFILE(self->profilingData.ray.leaves++;)
+
+                let mut i = 0u8;
+                while (i as i32) < node_ref.triangle_count as i32 {
+                    let triangle = &self.triangles[leaf_index as usize + i as usize];
+                    // BSP_PROFILE(self->profilingData.ray.triangles++;)
+
+                    let mut t = 0.;
+                    // if (Intersect::ray_triangle_barycentric(ray, triangle, tEpsilon, &t)) {
+                    if Intersect::ray_triangle_moller1(&ray, triangle, &mut t) {
+                        // if (Intersect::ray_triangle_moller2(ray, triangle, &t)) {
+                        // if (Intersect::ray_triangle_badouel(ray, triangle, tEpsilon, &t)) {
+                        if !hit || t < *t_hit {
+                            hit = true;
+                            *t_hit = t;
+                        }
+                    }
+                    i = i.wrapping_add(1);
+                }
+
+                if hit {
+                    break;
+                }
+
+                if let Some(d) = ray_stack.pop() {
+                    node_ref = d.node_ref;
+                    ray.t_min = d.t_min as f64;
+                    ray.t_max = d.t_max as f64;
+                    depth = d.depth;
+                } else {
                     break;
                 }
             }
         }
-    } else if relationship == BSPNodeRel::Back {
-        if !node.is_null() {
-            newNode = (*node).child[BACK_INDEX as usize];
-        }
-    } else if relationship == BSPNodeRel::Front {
-        if !node.is_null() {
-            newNode = (*node).child[FRONT_INDEX as usize];
-        }
-    } else {
-        panic!("BSPDebug_GetNode: Unhandled case: {}", relationship as i32,)
+
+        // BSP_PROFILE (
+        //     self->profilingData.ray.count++;
+        //     self->profilingData.ray.depth += maxDepth;
+        // )
+
+        hit
     }
 
-    if newNode.index != 0 {
-        newNode
-    } else {
-        nodeRef
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawNode(this: &mut BSP, nodeRef: BSPNodeRef, color: &Color) {
-    // Assert(nodeRef.index);
-
-    // TODO: Store shader properly
-    static mut SHADER: *mut Shader = std::ptr::null_mut();
-    if SHADER.is_null() {
-        SHADER = Box::into_raw(Box::new(Shader::load(
-            "vertex/wvp",
-            "fragment/simple_color",
-        )));
-    }
-
-    if nodeRef.index > 0 {
-        BSPDebug_DrawNode(
-            this,
-            this.nodes[nodeRef.index as usize].child[BACK_INDEX as usize],
-            color,
-        );
-        BSPDebug_DrawNode(
-            this,
-            this.nodes[nodeRef.index as usize].child[FRONT_INDEX as usize],
-            color,
-        );
-    } else {
-        (*SHADER).start();
-        (*SHADER).set_float4("color", color.r, color.g, color.b, color.a);
-        let leafIndex = -nodeRef.index;
-        for i in 0..nodeRef.triangleCount {
-            let triangle: &Triangle = &this.triangles[leafIndex as usize + i as usize];
-            Draw::tri3(
-                &triangle.vertices[0],
-                &triangle.vertices[1],
-                &triangle.vertices[2],
-            );
-        }
-        (*SHADER).stop();
-    };
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNodeRef) {
-    // Assert(nodeRef.index);
-
-    // TODO: Store shader properly
-    static mut SHADER: *mut Shader = std::ptr::null_mut();
-    if SHADER.is_null() {
-        SHADER = Box::into_raw(Box::new(Shader::load(
-            "vertex/wvp",
-            "fragment/simple_color",
-        )));
-    }
-
-    RenderState::push_blend_mode(BlendMode::Alpha);
-    RenderState::push_cull_face(CullFace::Back);
-    RenderState::push_depth_test(true);
-    RenderState::push_wireframe(true);
-
-    if nodeRef.index > 0 {
-        let node: *const BSPNode = &this.nodes[nodeRef.index as usize] as *const _;
-
-        /* Back */
-        BSPDebug_DrawNode(
-            this,
-            (*node).child[BACK_INDEX as usize],
-            &Color::new(0.5, 0.3, 0.3, 0.4),
-        );
-
-        /* Front */
-        BSPDebug_DrawNode(
-            this,
-            (*node).child[FRONT_INDEX as usize],
-            &Color::new(0.3, 0.5, 0.3, 0.4),
-        );
-
-        /* Plane */
-        let origin: Vec3 = Vec3::new(0., 0., 0.);
-        let t: f32 = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
-        let closestPoint = origin - ((*node).plane.n * t);
-        RenderState::push_wireframe(false);
-        (*SHADER).start();
-        (*SHADER).set_float4("color", 0.3f32, 0.5f32, 0.3f32, 0.4f32);
-        Draw::plane(&closestPoint, &(*node).plane.n, 2.0f32);
-        (*SHADER).set_float4("color", 0.5f32, 0.3f32, 0.3f32, 0.4f32);
-        let neg: Vec3 = (*node).plane.n * -1.0f32;
-        Draw::plane(&closestPoint, &neg, 2.0f32);
-        (*SHADER).stop();
-        RenderState::pop_wireframe();
-    } else {
-        /* Leaf */
-        BSPDebug_DrawNode(this, nodeRef, &Color::new(0.5, 0.5, 0.3, 0.4));
-    }
-
-    RenderState::pop_wireframe();
-    RenderState::pop_depth_test();
-    RenderState::pop_cull_face();
-    RenderState::pop_blend_mode();
-
-    (*SHADER).stop();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
-    bsp: &mut BSP,
-    lineSegment: &mut LineSegment,
-    eye: &Position,
-) {
-    let mut pHit = Vec3::ZERO;
-
-    // TODO: Store shader properly
-    static mut SHADER: *mut Shader = std::ptr::null_mut();
-    if SHADER.is_null() {
-        SHADER = Box::into_raw(Box::new(Shader::load(
-            "vertex/wvp",
-            "fragment/simple_color",
-        )));
-    }
-
-    (*SHADER).start();
-    if BSP_IntersectLineSegment(bsp, lineSegment, &mut pHit) {
-        (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.1f32);
-        Draw::line3(
-            &(*lineSegment).p0.relative_to(*eye),
-            &Position::from_vec(pHit).relative_to(*eye),
-        );
-
-        (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
-        Draw::line3(
-            &Position::from_vec(pHit).relative_to(*eye),
-            &(*lineSegment).p1.relative_to(*eye),
-        );
-
-        Draw::point_size(5.0f32);
-        Draw::point3(pHit.x, pHit.y, pHit.z);
-    } else {
-        (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
-        Draw::line3(
-            &(*lineSegment).p0.relative_to(*eye),
-            &(*lineSegment).p1.relative_to(*eye),
-        );
-    };
-    (*SHADER).stop();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawSphere(this: &mut BSP, sphere: &mut Sphere) {
-    let mut pHit = Vec3::ZERO;
-
-    // TODO: Store shader properly
-    static mut SHADER: *mut Shader = std::ptr::null_mut();
-    if SHADER.is_null() {
-        SHADER = Box::into_raw(Box::new(Shader::load(
-            "vertex/wvp",
-            "fragment/simple_color",
-        )));
-    }
-
-    (*SHADER).start();
-    if BSP_IntersectSphere(this, sphere, &mut pHit) {
-        RenderState::push_wireframe(false);
-        (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 0.3f32);
-        Draw::sphere(&sphere.p, sphere.r);
-        RenderState::pop_wireframe();
-
-        (*SHADER).set_float4("color", 1.0f32, 0.0f32, 0.0f32, 1.0f32);
-        Draw::sphere(&sphere.p, sphere.r);
-
-        RenderState::push_depth_test(false);
-        Draw::point_size(8.0f32);
-        Draw::point3(pHit.x, pHit.y, pHit.z);
-        RenderState::pop_depth_test();
-    } else {
-        RenderState::push_wireframe(false);
-        (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 0.3f32);
-        Draw::sphere(&sphere.p, sphere.r);
-        RenderState::pop_wireframe();
-
-        (*SHADER).set_float4("color", 0.0f32, 1.0f32, 0.0f32, 1.0f32);
-        Draw::sphere(&sphere.p, sphere.r);
-    };
-    (*SHADER).stop();
-}
-
-// static void BSPDebug_PrintProfilingData (BSP* self, BSPDebug_IntersectionData* data, double totalTime) {
-//     #if ENABLE_BSP_PROFILING
-//       BSPDebug_Data* pd = &self->profilingData;
-
-//       float us = (float) (totalTime * 1000.0 * 1000.0);
-//       float avgus     = (float) us              / data->count;
-//       float avgLeaves = (float) data->leaves    / data->count;
-//       float avgNodes  = (float) data->nodes     / data->count;
-//       float avgTris   = (float) data->triangles / data->count;
-//       float avgDepth  = (float) data->depth     / data->count;
-
-//       char buffer[256];
-//       /*                                            name       tris      mb    bsp mb   mbr    tris   trir     nod   lv    maxd      lvd        ray us    rayl     rayn    rayd    rayt */
-//       snprintf(buffer, (size_t) Array_GetSize(buffer), "* |          |         |      | %5.1f | %4.2f  | %9d | %4.2f  | %9d | %7d |  %3d  |  %5.1f   ||  %4.1f  |  %4.1f  | %5.1f | %5.1f | %5.1f |\n",
-//         pd->usedMiB, pd->usedMiBRatio, pd->triCount, pd->triCountRatio,
-//         pd->nodeCount, pd->leafCount, pd->maxDepth, pd->avgLeafDepth,
-//         avgus, avgLeaves, avgNodes, avgDepth, avgTris
-//       );
-//       puts(buffer);
-//     #else
-//       Warn("BSP_PrintProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.");
-//       UNUSED(self); UNUSED(data); UNUSED(totalTime);
-//       UNUSED(&BSPDebug_PrintProfilingData);
-//     #endif
-//   }
-
-#[no_mangle]
-pub extern "C" fn BSPDebug_PrintRayProfilingData(_this: &mut BSP, _totalTime: f64) {
-    // #if ENABLE_BSP_PROFILING
-    //   BSPDebug_PrintProfilingData(self, &self->profilingData.ray, totalTime);
-    // #else
-    warn!("BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.");
-}
-
-#[no_mangle]
-pub extern "C" fn BSPDebug_PrintSphereProfilingData(_this: &mut BSP, _totalTime: f64) {
-    // #if ENABLE_BSP_PROFILING
-    //     BSPDebug_PrintProfilingData(self, &self->profilingData.sphere, totalTime);
-    // #else
-    warn!("BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.");
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
-    this: &mut BSP,
-    sphere: &mut Sphere,
-    sphereProf: &mut IntersectSphereProfiling,
-) -> bool {
-    // Assert(SPHERE_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
-
-    let mut nodeRef: BSPNodeRef = this.rootNode;
-    let mut hit: bool = false;
-    let mut depth: i32 = 0;
-    let mut maxDepth: i32 = 0;
-
-    let mut node_stack = vec![];
-
-    loop {
-        maxDepth = i32::max(depth, maxDepth);
-
-        if nodeRef.index >= 0 {
-            let node: &mut BSPNode = &mut this.nodes[nodeRef.index as usize];
-            (*sphereProf).nodes += 1;
-
-            let dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p) - (*node).plane.d;
-            if dist as f64 > (*sphere).r as f64 + 2.0f64 * 1e-4f64 {
-                /* Entirely in front half-space */
-                nodeRef = (*node).child[FRONT_INDEX as usize];
-            } else if (dist as f64) < -((*sphere).r as f64 + 2.0f64 * 1e-4f64) {
-                /* Entirely in back half-space */
-                nodeRef = (*node).child[BACK_INDEX as usize];
-            } else {
-                /* Straddling the thick plane */
-                let d: Delay = Delay {
-                    nodeRef: (*node).child[BACK_INDEX as usize],
-                    depth,
-                };
-                node_stack.push(d);
-                nodeRef = (*node).child[FRONT_INDEX as usize];
-            }
-
-            depth += 1;
+    pub fn intersect_line_segment(&self, line_segment: &LineSegment, p_hit: &mut Vec3) -> bool {
+        let mut ray = Ray {
+            p: line_segment.p0,
+            dir: line_segment.p1.as_dvec3() - line_segment.p0.as_dvec3(),
+            t_min: 0.0,
+            t_max: 1.0,
+        };
+        let mut t = 0.;
+        if self.intersect_ray(&mut ray, &mut t) {
+            *p_hit = ray.get_point(t as f64).as_vec3();
+            true
         } else {
-            let leafIndex = -nodeRef.index;
-            (*sphereProf).leaves += 1;
+            false
+        }
+    }
 
-            for i in 0..nodeRef.triangleCount {
-                let triangle = &mut this.triangles[leafIndex as usize + i as usize];
-                (*sphereProf).triangles += 1;
+    pub fn intersect_sphere(&self, sphere: &Sphere, p_hit: &mut Vec3) -> bool {
+        // Assert(SPHERE_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
 
-                let mut pHit2 = Vec3::ZERO;
-                if Intersect::sphere_triangle(sphere, triangle, &mut pHit2) {
-                    let t: TriangleTest = TriangleTest {
-                        triangle,
-                        hit: true,
+        let mut node_ref = self.root_node;
+        let mut hit = false;
+        let mut depth = 0;
+        let mut max_depth = 0;
+
+        let mut node_stack = vec![];
+
+        loop {
+            max_depth = i32::max(depth, max_depth);
+
+            if node_ref.index >= 0 {
+                let node = &self.nodes[node_ref.index as usize];
+                // BSP_PROFILE(self->profilingData.sphere.nodes++;)
+
+                let dist = Vec3::dot(node.plane.n, sphere.p) - node.plane.d;
+                if dist > sphere.r + 2.0 * 1e-4 {
+                    /* Entirely in front half-space */
+                    node_ref = node.child[FRONT_INDEX];
+                } else if dist < -(sphere.r + 2.0 * 1e-4) {
+                    /* Entirely in back half-space */
+                    node_ref = node.child[BACK_INDEX];
+                } else {
+                    /* Straddling the thick plane */
+                    let d = Delay {
+                        node_ref: node.child[BACK_INDEX],
+                        depth,
                     };
-                    (*sphereProf).triangleTests.push(t);
-                    hit = true;
+                    node_stack.push(d);
+                    node_ref = node.child[FRONT_INDEX];
+                }
+
+                depth += 1;
+            } else {
+                let leaf_index = -node_ref.index;
+                // BSP_PROFILE(self->profilingData.sphere.leaves++;)
+
+                let mut i = 0u8;
+                while i < node_ref.triangle_count {
+                    let triangle = &self.triangles[leaf_index as usize + i as usize];
+                    // BSP_PROFILE(self->profilingData.sphere.triangles++;)
+
+                    let mut p_hit2 = Vec3::ZERO;
+                    if Intersect::sphere_triangle(sphere, triangle, &mut p_hit2) {
+                        hit = true;
+                        *p_hit = p_hit2;
+                        break;
+                    }
+                    i = i.wrapping_add(1);
+                }
+
+                if hit {
                     break;
                 }
 
-                let t: TriangleTest = TriangleTest {
-                    triangle,
-                    hit: false,
-                };
-                (*sphereProf).triangleTests.push(t);
+                if let Some(d) = node_stack.pop() {
+                    node_ref = d.node_ref;
+                    depth = d.depth;
+                } else {
+                    break;
+                }
             }
+        }
 
-            if hit {
-                break;
-            }
+        // BSP_PROFILE (
+        //     self->profilingData.sphere.count++;
+        //     self->profilingData.sphere.depth += maxDepth;
+        // )
 
-            if let Some(d) = node_stack.pop() {
-                nodeRef = d.nodeRef;
-                depth = d.depth;
-            } else {
-                break;
+        hit
+    }
+
+    /*
+    BSP_PROFILE (
+    static void analyze_tree(&self, Mesh* mesh, BSPNodeRef nodeRef, int32 depth) {
+      BSPDebug_Data* pd = &self->profilingData;
+
+      /* TODO : Do this while building */
+
+      /* All */
+      pd->maxDepth = Max(pd->maxDepth, depth);
+
+      /* Internal */
+      if (nodeRef.index >= 0) {
+        BSPNode* node = ArrayList_GetPtr(self->nodes, nodeRef.index);
+        BSPBuild_AnalyzeTree(self, mesh, node->child[BackIndex] , depth + 1);
+        BSPBuild_AnalyzeTree(self, mesh, node->child[FrontIndex], depth + 1);
+      }
+      /* Leaf */
+      else {
+        pd->leafCount++;
+        pd->avgLeafDepth = Lerp(pd->avgLeafDepth, (float) depth, 1.0f / (float) pd->leafCount);
+      }
+
+      /* Root */
+      if (depth == 0) {
+        const float BToMiB = 1.0f / 1024.0f / 1024.0f;
+
+        pd->nodeCount = ArrayList_GetCapacity(self->nodes);
+        pd->usedMiB += pd->nodeCount * sizeof(BSPNode);
+
+        pd->triCount += ArrayList_GetCapacity(self->triangles);
+        pd->usedMiB += pd->triCount * sizeof(Triangle);
+
+        pd->meshTriCount = Mesh_GetIndexCount(mesh) / 3;
+        pd->meshMiB = (float) Mesh_GetIndexCount(mesh) * sizeof(int32);
+        pd->meshMiB = (float) Mesh_GetVertexCount(mesh) * sizeof(Vertex);
+        pd->meshMiB *= BToMiB;
+
+        pd->usedMiB += sizeof(BSP);
+        pd->usedMiB *= BToMiB;
+
+        pd->triCountRatio = (float) pd->triCount / (float) pd->meshTriCount;
+        pd->usedMiBRatio = (float) pd->usedMiB / (float) pd->meshMiB;
+      }
+    }
+    */
+
+    pub fn get_node(&self, node_ref: BSPNodeRef, relationship: BspNodeRel) -> BSPNodeRef {
+        if node_ref.index == 0 {
+            return self.root_node;
+        }
+
+        let mut node = None;
+        if node_ref.index > 0 {
+            node = Some(&self.nodes[node_ref.index as usize]);
+        }
+
+        let mut new_node = BSPNodeRef {
+            index: 0,
+            triangle_count: 0,
+        };
+        if relationship == BspNodeRel::Parent {
+            if node_ref.index != 0 {
+                for i in 0..self.nodes.len() {
+                    let node_to_check = &self.nodes[i];
+                    if (*node_to_check).child[BACK_INDEX].index == node_ref.index
+                        || (*node_to_check).child[FRONT_INDEX].index == node_ref.index
+                    {
+                        new_node.index = i as i32;
+                        break;
+                    }
+                }
             }
+        } else if relationship == BspNodeRel::Back {
+            if let Some(node) = &node {
+                new_node = node.child[BACK_INDEX];
+            }
+        } else if relationship == BspNodeRel::Front {
+            if let Some(node) = &node {
+                new_node = node.child[FRONT_INDEX];
+            }
+        } else {
+            panic!("BSPDebug_GetNode: Unhandled case: {}", relationship as i32,)
+        }
+
+        if new_node.index != 0 {
+            new_node
+        } else {
+            node_ref
         }
     }
 
-    hit
+    pub fn draw_node(&mut self, node_ref: BSPNodeRef, color: &Color) {
+        // Assert(nodeRef.index);
+
+        if node_ref.index > 0 {
+            self.draw_node(self.nodes[node_ref.index as usize].child[BACK_INDEX], color);
+            self.draw_node(
+                self.nodes[node_ref.index as usize].child[FRONT_INDEX],
+                color,
+            );
+        } else {
+            self.node_shader.start();
+            self.node_shader
+                .set_float4("color", color.r, color.g, color.b, color.a);
+            let leaf_index = -node_ref.index;
+            for i in 0..node_ref.triangle_count {
+                let triangle = &self.triangles[leaf_index as usize + i as usize];
+                Draw::tri3(
+                    &triangle.vertices[0],
+                    &triangle.vertices[1],
+                    &triangle.vertices[2],
+                );
+            }
+            self.node_shader.stop();
+        };
+    }
+
+    pub fn draw_node_split(&mut self, node_ref: BSPNodeRef) {
+        // Assert(nodeRef.index);
+
+        RenderState::push_blend_mode(BlendMode::Alpha);
+        RenderState::push_cull_face(CullFace::Back);
+        RenderState::push_depth_test(true);
+        RenderState::push_wireframe(true);
+
+        if node_ref.index > 0 {
+            let child = self.nodes[node_ref.index as usize].child;
+            self.draw_node(child[BACK_INDEX], &Color::new(0.5, 0.3, 0.3, 0.4));
+            self.draw_node(child[FRONT_INDEX], &Color::new(0.3, 0.5, 0.3, 0.4));
+
+            let node = &self.nodes[node_ref.index as usize];
+
+            /* Plane */
+            let origin = Vec3::new(0., 0., 0.);
+            let t = Vec3::dot(node.plane.n, origin) - node.plane.d;
+            let closest_point = origin - (node.plane.n * t);
+            RenderState::push_wireframe(false);
+            self.node_split_shader.start();
+            self.node_split_shader
+                .set_float4("color", 0.3, 0.5, 0.3, 0.4);
+            Draw::plane(&closest_point, &node.plane.n, 2.0);
+            self.node_split_shader
+                .set_float4("color", 0.5, 0.3, 0.3, 0.4);
+            let neg: Vec3 = node.plane.n * -1.0;
+            Draw::plane(&closest_point, &neg, 2.0);
+            self.node_split_shader.stop();
+            RenderState::pop_wireframe();
+        } else {
+            /* Leaf */
+            self.draw_node(node_ref, &Color::new(0.5, 0.5, 0.3, 0.4));
+        }
+
+        RenderState::pop_wireframe();
+        RenderState::pop_depth_test();
+        RenderState::pop_cull_face();
+        RenderState::pop_blend_mode();
+
+        self.node_split_shader.stop(); // TODO: no start?
+    }
+
+    pub fn draw_line_segment(&mut self, line_segment: &LineSegment, eye: &Position) {
+        let mut p_hit = Vec3::ZERO;
+
+        self.line_segment_shader.start();
+        if self.intersect_line_segment(line_segment, &mut p_hit) {
+            self.line_segment_shader
+                .set_float4("color", 0.0, 1.0, 0.0, 0.1);
+            Draw::line3(
+                &(*line_segment).p0.relative_to(*eye),
+                &Position::from_vec(p_hit).relative_to(*eye),
+            );
+
+            self.line_segment_shader
+                .set_float4("color", 1.0, 0.0, 0.0, 1.0);
+            Draw::line3(
+                &Position::from_vec(p_hit).relative_to(*eye),
+                &(*line_segment).p1.relative_to(*eye),
+            );
+
+            Draw::point_size(5.0);
+            Draw::point3(p_hit.x, p_hit.y, p_hit.z);
+        } else {
+            self.line_segment_shader
+                .set_float4("color", 0.0, 1.0, 0.0, 1.0);
+            Draw::line3(
+                &(*line_segment).p0.relative_to(*eye),
+                &(*line_segment).p1.relative_to(*eye),
+            );
+        };
+        self.line_segment_shader.stop();
+    }
+
+    pub fn draw_sphere(&mut self, sphere: &Sphere) {
+        let mut p_hit = Vec3::ZERO;
+
+        self.sphere_shader.start();
+        if self.intersect_sphere(sphere, &mut p_hit) {
+            RenderState::push_wireframe(false);
+            self.sphere_shader.set_float4("color", 1.0, 0.0, 0.0, 0.3);
+            Draw::sphere(&sphere.p, sphere.r);
+            RenderState::pop_wireframe();
+
+            self.sphere_shader.set_float4("color", 1.0, 0.0, 0.0, 1.0);
+            Draw::sphere(&sphere.p, sphere.r);
+
+            RenderState::push_depth_test(false);
+            Draw::point_size(8.0);
+            Draw::point3(p_hit.x, p_hit.y, p_hit.z);
+            RenderState::pop_depth_test();
+        } else {
+            RenderState::push_wireframe(false);
+            self.sphere_shader.set_float4("color", 0.0, 1.0, 0.0, 0.3);
+            Draw::sphere(&sphere.p, sphere.r);
+            RenderState::pop_wireframe();
+
+            self.sphere_shader.set_float4("color", 0.0, 1.0, 0.0, 1.0);
+            Draw::sphere(&sphere.p, sphere.r);
+        };
+        self.sphere_shader.stop();
+    }
+
+    // static void print_profiling_data(&self, BSPDebug_IntersectionData* data, double totalTime) {
+    //     #if ENABLE_BSP_PROFILING
+    //       BSPDebug_Data* pd = &self->profilingData;
+
+    //       float us = (float) (totalTime * 1000.0 * 1000.0);
+    //       float avgus     = (float) us              / data->count;
+    //       float avgLeaves = (float) data->leaves    / data->count;
+    //       float avgNodes  = (float) data->nodes     / data->count;
+    //       float avgTris   = (float) data->triangles / data->count;
+    //       float avgDepth  = (float) data->depth     / data->count;
+
+    //       char buffer[256];
+    //       /*                                            name       tris      mb    bsp mb   mbr    tris   trir     nod   lv    maxd      lvd        ray us    rayl     rayn    rayd    rayt */
+    //       snprintf(buffer, (size_t) Array_GetSize(buffer), "* |          |         |      | %5.1f | %4.2f  | %9d | %4.2f  | %9d | %7d |  %3d  |  %5.1f   ||  %4.1f  |  %4.1f  | %5.1f | %5.1f | %5.1f |\n",
+    //         pd->usedMiB, pd->usedMiBRatio, pd->triCount, pd->triCountRatio,
+    //         pd->nodeCount, pd->leafCount, pd->maxDepth, pd->avgLeafDepth,
+    //         avgus, avgLeaves, avgNodes, avgDepth, avgTris
+    //       );
+    //       puts(buffer);
+    //     #else
+    //       Warn("BSP_PrintProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.");
+    //       UNUSED(self); UNUSED(data); UNUSED(totalTime);
+    //       UNUSED(&BSPDebug_PrintProfilingData);
+    //     #endif
+    //   }
+
+    pub fn print_ray_profiling_data(&self, _total_time: f64) {
+        // #if ENABLE_BSP_PROFILING
+        //   BSPDebug_PrintProfilingData(self, &self->profilingData.ray, totalTime);
+        // #else
+        warn!("BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.");
+    }
+
+    pub fn print_sphere_profiling_data(&self, _total_time: f64) {
+        // #if ENABLE_BSP_PROFILING
+        //     BSPDebug_PrintProfilingData(self, &self->profilingData.sphere, totalTime);
+        // #else
+        warn!("BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.");
+    }
+
+    pub fn get_intersect_sphere_triangles(
+        &self,
+        sphere: &Sphere,
+        sphere_prof: &mut IntersectSphereProfiling,
+    ) -> bool {
+        // Assert(SPHERE_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
+
+        let mut node_ref = self.root_node;
+        let mut hit = false;
+        let mut depth = 0;
+        let mut max_depth = 0;
+
+        let mut node_stack = vec![];
+
+        loop {
+            max_depth = i32::max(depth, max_depth);
+
+            if node_ref.index >= 0 {
+                let node = &self.nodes[node_ref.index as usize];
+                sphere_prof.nodes += 1;
+
+                let dist = Vec3::dot(node.plane.n, sphere.p) - node.plane.d;
+                if dist > sphere.r + 2.0 * 1e-4 {
+                    /* Entirely in front half-space */
+                    node_ref = node.child[FRONT_INDEX];
+                } else if (dist) < -(sphere.r + 2.0 * 1e-4) {
+                    /* Entirely in back half-space */
+                    node_ref = node.child[BACK_INDEX];
+                } else {
+                    /* Straddling the thick plane */
+                    let d = Delay {
+                        node_ref: node.child[BACK_INDEX],
+                        depth,
+                    };
+                    node_stack.push(d);
+                    node_ref = node.child[FRONT_INDEX];
+                }
+
+                depth += 1;
+            } else {
+                let leaf_index = -node_ref.index;
+                sphere_prof.leaves += 1;
+
+                for i in 0..node_ref.triangle_count {
+                    let triangle = &self.triangles[leaf_index as usize + i as usize];
+                    sphere_prof.triangles += 1;
+
+                    let mut p_hit2 = Vec3::ZERO;
+                    if Intersect::sphere_triangle(sphere, triangle, &mut p_hit2) {
+                        let t = TriangleTest {
+                            triangle: *triangle,
+                            hit: true,
+                        };
+                        sphere_prof.triangle_tests.push(t);
+                        hit = true;
+                        break;
+                    }
+
+                    let t = TriangleTest {
+                        triangle: *triangle,
+                        hit: false,
+                    };
+                    sphere_prof.triangle_tests.push(t);
+                }
+
+                if hit {
+                    break;
+                }
+
+                if let Some(d) = node_stack.pop() {
+                    node_ref = d.node_ref;
+                    depth = d.depth;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        hit
+    }
+
+    pub fn get_leaf(&self, leaf_index: i32) -> BSPNodeRef {
+        let mut index: i32 = -1;
+        for node in &self.nodes {
+            if node.child[0].index < 0 {
+                let prev_index = index;
+                index += 1;
+                if prev_index == leaf_index {
+                    return node.child[0];
+                }
+            }
+            if node.child[1].index < 0 {
+                let prev_index = index;
+                index += 1;
+                if prev_index == leaf_index {
+                    return node.child[1];
+                }
+            }
+        }
+        BSPNodeRef {
+            index: ROOT_NODE_INDEX,
+            triangle_count: 0 as u8,
+        }
+    }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn BSPDebug_GetLeaf(this: &mut BSP, leafIndex: i32) -> BSPNodeRef {
-    let mut index: i32 = -1;
-    for node in this.nodes.iter() {
-        if (*node).child[0].index < 0 {
-            let prevIndex = index;
-            index += 1;
-            if prevIndex == leafIndex {
-                return (*node).child[0];
+impl Bsp {
+    fn optimize_tree(&mut self, build_node: &BspBuildNode) -> BSPNodeRef {
+        if build_node.child[BACK_INDEX].is_some() || build_node.child[FRONT_INDEX].is_some() {
+            /* Node */
+            // Assert(ArrayList_GetSize(self->nodes) < ArrayList_GetCapacity(self->nodes));
+
+            let dummy = BSPNode {
+                plane: build_node.plane,
+                child: [BSPNodeRef {
+                    index: 0,
+                    triangle_count: 0,
+                }; 2],
+            };
+            let node_index = self.nodes.len() as i32;
+            self.nodes.push(dummy);
+
+            let mut node_child = [BSPNodeRef {
+                index: 0,
+                triangle_count: 0,
+            }; 2];
+            if let Some(child) = &build_node.child[BACK_INDEX] {
+                node_child[BACK_INDEX] = self.optimize_tree(child);
+            }
+            if let Some(child) = &build_node.child[FRONT_INDEX] {
+                node_child[FRONT_INDEX] = self.optimize_tree(child);
+            }
+            let node = &mut self.nodes[node_index as usize];
+            if build_node.child[BACK_INDEX].is_some() {
+                node.child[BACK_INDEX] = node_child[BACK_INDEX];
+            }
+            if build_node.child[FRONT_INDEX].is_some() {
+                node.child[FRONT_INDEX] = node_child[FRONT_INDEX];
+            }
+
+            BSPNodeRef {
+                index: node_index,
+                triangle_count: 0 as u8,
+            }
+        } else {
+            /* Leaf */
+            if build_node.polygons.is_empty() {
+                return self.empty_leaf;
+            }
+
+            let leaf_index = self.triangles.len();
+
+            for polygon in &build_node.polygons {
+                // Assert(
+                //     ArrayList_GetSize(self->triangles) +
+                //     ArrayList_GetSize(polygon->vertices) - 2
+                //     <= ArrayList_GetCapacity(self->triangles)
+                // );
+                let mut triangles = polygon.inner.convex_to_triangles();
+                self.triangles.append(&mut triangles);
+            }
+
+            let leaf_len = (self.triangles.len() - leaf_index) as u8;
+            BSPNodeRef {
+                index: -(leaf_index as i32),
+                triangle_count: leaf_len,
             }
         }
-        if (*node).child[1].index < 0 {
-            let prevIndex = index;
-            index += 1;
-            if prevIndex == leafIndex {
-                return (*node).child[1];
-            }
-        }
-    }
-    BSPNodeRef {
-        index: ROOT_NODE_INDEX,
-        triangleCount: 0 as u8,
     }
 }

@@ -37,7 +37,6 @@ end
 
 do -- Opaque Structs
     ffi.cdef [[
-        typedef struct BSP          {} BSP;
         typedef struct BoxTree      {} BoxTree;
         typedef struct InputBinding {} InputBinding;
         typedef struct MemPool      {} MemPool;
@@ -46,7 +45,6 @@ do -- Opaque Structs
     ]]
 
     libphx.Opaques = {
-        'BSP',
         'BoxTree',
         'MemPool',
         'RmGui',

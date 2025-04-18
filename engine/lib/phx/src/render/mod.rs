@@ -1,6 +1,7 @@
 mod box_mesh;
 mod box_tree;
 mod bsp;
+mod bsp_build;
 mod clip_rect;
 mod color;
 mod cube_face;
@@ -31,6 +32,7 @@ mod viewport;
 pub use box_mesh::*;
 pub use box_tree::*;
 pub use bsp::*;
+pub use bsp_build::*;
 pub use clip_rect::*;
 pub use color::*;
 pub use cube_face::*;
