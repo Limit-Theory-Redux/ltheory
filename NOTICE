@@ -1,24 +1,37 @@
 # NOTICE
 
-## Licensing Information
+# License Information for Limit-Theory-Redux
 
-This repository (Limit-Theory-Redux) contains content with mixed licensing based on its origin:
+## License Overview
 
-1. **Original Content from Limit Theory**
-   - All content (code, assets, documentation, etc.) directly derived from or substantially similar to Josh Parnell's original Limit Theory project remains under The Unlicense and is effectively in the public domain.
-   
-2. **New Contributions and Substantial Modifications**
-   - All new content, substantial modifications, and new creative additions to the Limit Theory Redux project are dual-licensed under the Apache License 2.0 and MIT License.
+This repository contains content with mixed licensing based on its origin:
 
-## License Identification
+### 1. Original Content from Limit Theory
+- **All content** (code, assets, documentation, etc.) directly derived from or substantially similar to Josh Parnell's original Limit Theory project remains under **The Unlicense** and is effectively in the public domain.
+
+### 2. New Contributions and Substantial Modifications
+- **All new content**, substantial modifications, and new creative additions to the Limit Theory Redux project are generally **dual-licensed** under the **Apache License 2.0** and **MIT License**.
+- **Exceptions**: Content that is marked with a specific licensing header or license file located in the file's directory as described in the License Identification section below (e.g., music contributed by artists using a Creative Commons License).
+
+## License Identification Method
 
 This repository primarily uses an origin-based licensing approach for all files. However:
 
 - Where explicit clarity is needed, individual files may contain license headers or notices specifying their exact license
 - Some key files or particularly mixed files may be explicitly marked with appropriate headers
-- In the absence of explicit file notices, the origin of the content determines its license as described above
+- License files located in a file's directory may specify the license for all content in that directory/or specific files in a directory
+- In the absence of explicit file notices or directory license files, the origin of the content determines its license as described above
 
-In cases of ambiguity or particularly important content, we may add explicit license information to provide additional clarity.
+In cases of ambiguity or for particularly important content, we may add explicit license information to provide additional clarity.
+
+## Determining License for Specific Files
+
+When working with files in this repository:
+
+1. Check for explicit license headers within the file
+2. Check for license files in the file's directory that may apply to all content in that directory/or specific files in a directory
+3. If neither exists, determine if the content originates from the original Limit Theory (Unlicense) or is a new contribution (Apache 2.0/MIT)
+4. For questions about specific file licensing, please open an issue in the repository
 
 ## Previous Contributions
 
