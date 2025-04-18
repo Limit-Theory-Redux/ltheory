@@ -8,11 +8,16 @@ By contributing to Limit Theory Redux, you agree to the following licensing stru
 
 - **Original Limit Theory Content**: All content derived from Josh Parnell's original Limit Theory project remains under [The Unlicense](./UNLICENSE-ORIGINAL.txt), effectively placing it in the public domain.
 
-- **New Contributions**: New content and substantial modifications are generally to be dual-licensed under the [Apache License 2.0](./LICENSE-APACHE-2.0) and [MIT License](./LICENSE-MIT). Refer to [NOTICE](./NOTICE) for exceptions to this rule.
+- **New Contributions**: New content and substantial modifications you create are dual-licensed under the [Apache License 2.0](./LICENSE-APACHE-2.0) and [MIT License](./LICENSE-MIT). By submitting your contribution, you explicitly grant the project the right to distribute your work under both of these licenses.
 
 - **Mixed Content**: When modifying existing Unlicensed content from the original project, those specific portions remain under The Unlicense.
 
-For more detailed information about our licensing approach, please see the [NOTICE](./NOTICE) file.
+- **Exceptions**: Different licenses may only be used in the following specific cases:
+  1. External third-party code that you have permission to include but cannot relicense (must include proper license headers)
+  2. Specific creative content such as music or artwork (must use appropriate license files or headers)
+  3. All exceptions must be explicitly documented in the file or directory and approved by project maintainers
+
+For complete details about our licensing approach, please refer to the [NOTICE](./NOTICE) file.
 
 ## Discussing Gamedesign
 
