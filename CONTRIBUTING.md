@@ -1,32 +1,53 @@
 # Contributions
+
 We discuss all features, fixes etc. to be contributed on Discord.
 
+## Licensing Information
+
+By contributing to Limit Theory Redux, you agree to the following licensing structure:
+
+- **Original Limit Theory Content**: All content derived from Josh Parnell's original Limit Theory project remains under [The Unlicense](./UNLICENSE-ORIGINAL.txt), effectively placing it in the public domain.
+
+- **New Contributions**: New content and substantial modifications you create are dual-licensed under the [Apache License 2.0](./LICENSE-APACHE-2.0) and [MIT License](./LICENSE-MIT). By submitting your contribution, you explicitly grant the project the right to distribute your work under both of these licenses.
+
+- **Mixed Content**: When modifying existing Unlicensed content from the original project, those specific portions remain under The Unlicense.
+
+- **Exceptions**: Different licenses may only be used in the following specific cases:
+  1. External third-party code that you have permission to include but cannot relicense (must include proper license headers)
+  2. Specific creative content such as music or artwork (must use appropriate license files or headers)
+  3. All exceptions must be explicitly documented in the file or directory and approved by project maintainers
+
+For complete details about our licensing approach, please refer to the [NOTICE](./NOTICE) file.
+
 ## Discussing Gamedesign
+
 Discussions regarding game design are held in the ltheory-crafting channel:
 
 **Open on:**
 \
 \
 <a href="https://discord.com/channels/695088786702336000/1021252323663691826" style="display: block;">
-  <img style="height: 36px; display: block;" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5061df29d55a92d945_full_logo_blurple_RGB.svg"/>
+<img style="height: 36px; display: block;" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5061df29d55a92d945_full_logo_blurple_RGB.svg"/>
 </a>
 
-
 ## Discussing Gamesystems
+
 Discussions regarding game systems / programming are held in the programming-discussion channel:
 
 **Open on:**
 \
 \
 <a href="https://discord.com/channels/695088786702336000/1021816893629272174" style="display: block;">
-  <img style="height: 36px; display: block;" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5061df29d55a92d945_full_logo_blurple_RGB.svg"/>
+<img style="height: 36px; display: block;" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5061df29d55a92d945_full_logo_blurple_RGB.svg"/>
 </a>
 
 ## Documentation
+
 It´s highly recommended you document what you are doing in code. For more generalized documentation & design we use a seperately hosted [Wiki.js Instance](https://wiki.ltredux.org). For wiki editoral access contact [@IllustrisJack](https://github.com/IllustrisJack) directly or a maintainer. A backup repository of the wiki exists [here](https://github.com/Limit-Theory-Redux/wiki).
 
 # Getting Started
-In this file we´ll go over the whole process of getting started & the the workflow of Limit Theory Redux development.
+
+In this file we´ll go over the whole process of getting started & the workflow of Limit Theory Redux development.
 
 ## Prerequisites
 
@@ -35,6 +56,7 @@ To build Limit Theory, you'll need a few standard developer tools. All of them a
 ### Windows
 
 To work on any of the Lua scripts, the following tools are required:
+
 - Git: https://git-scm.com/downloads
 
 You may want to install a GUI for Git, such as GitHub for Desktop: https://desktop.github.com/
@@ -42,6 +64,7 @@ You may want to install a GUI for Git, such as GitHub for Desktop: https://deskt
 #### Optional dependencies
 
 Optionally, if you would like to made changes to the libphx engine, you will also need:
+
 - Visual Studio Community: https://visualstudio.microsoft.com/vs/
 - LLVM: https://releases.llvm.org/download.html (download the latest Windows installer by going to the GitHub releases page, and downloading LLVM-xx.x.x-win64.exe)
 - Rust: https://www.rust-lang.org/tools/install (use rustup-init.exe, then type 1 and press Enter in the terminal window)
@@ -93,7 +116,7 @@ Next, we will need to get the engine ready to run Lua applications. There are tw
 ### Option 1: Using precompiled binaries
 
 1. Download the latest binary release by going to the `latest` release on GitHub, and downloading the right `dev-binaries` package for your platform: https://github.com/Limit-Theory-Redux/ltheory/releases/tag/latest
-   * Windows users should download `dev-binaries-windows.zip`, we recommend other users to skip to [Compiling libphx manually](#option-2-compiling-libphx-manually).
+   - Windows users should download `dev-binaries-windows.zip`, we recommend other users to skip to [Compiling libphx manually](#option-2-compiling-libphx-manually).
 2. Navigate to the directory of the checked-out repository (e.g. `~/Desktop/ltheory` if you cloned to the desktop).
 3. Create a new folder named `bin` if it does not exist already.
 4. Extract the contents of the zip file downloaded in step 1 into `bin`. The `bin` directory should now contain a number of libraries and executable files, including `ltr`.
