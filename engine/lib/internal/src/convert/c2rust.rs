@@ -1,6 +1,14 @@
 use std::ffi::CString;
 
-use crate::ConvertIntoString;
+pub trait ConvertIntoString {
+    fn as_str(&self) -> &str;
+
+    fn as_string(&self) -> String {
+        self.as_str().to_string()
+    }
+
+    fn as_cstring(&self) -> CString;
+}
 
 impl ConvertIntoString for *const libc::c_char {
     fn as_str(&self) -> &str {

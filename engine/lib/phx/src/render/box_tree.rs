@@ -135,18 +135,17 @@ impl Node {
                 }
             }
 
-            let node = Node {
+            Node {
                 box3: this.box3,
                 data: this.data,
                 sub: [Some(sub0), this.sub[1].take()],
-            };
-            return node;
+            }
         } else {
             // Leaf node
             let mut parent = Node::new(Box3::union(this.box3, src.box3), &[]);
             parent.sub[0] = Some(this);
             parent.sub[1] = Some(src.into());
-            return parent;
+            parent
         }
     }
 

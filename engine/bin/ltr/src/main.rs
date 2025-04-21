@@ -70,6 +70,7 @@ pub fn main() {
         std::env::set_var("NO_COLOR", "1");
     }
 
+    #[allow(unsafe_code)] // TODO: remove
     unsafe {
         Engine_Entry(
             entry_point as *const libc::c_char,
