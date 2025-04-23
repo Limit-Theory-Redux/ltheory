@@ -3,7 +3,6 @@ use super::gl;
 #[luajit_ffi_gen::luajit_ffi(with_impl = true, repr = "u32")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TexFormat {
-    Undefined = 0,
     R8 = gl::R8,
     R16 = gl::R16,
     R16F = gl::R16F,
@@ -36,7 +35,6 @@ impl TexFormat {
             Self::RG8 | Self::RG16 | Self::RG16F | Self::RG32F => 2,
             Self::RGB8 => 3,
             Self::RGBA8 | Self::RGBA16 | Self::RGBA16F | Self::RGBA32F => 4,
-            Self::Undefined => 0,
         }
     }
 
@@ -48,22 +46,14 @@ impl TexFormat {
             Self::R32F | Self::RG16 | Self::RG16F | Self::RGBA8 | Self::Depth32F => 4,
             Self::RG32F | Self::RGBA16 | Self::RGBA16F => 8,
             Self::RGBA32F => 16,
-            Self::Undefined => 0,
         }
     }
 
     pub fn is_color(this: Self) -> bool {
-        this != Self::Depth16
-            && this != Self::Depth24
-            && this != Self::Depth32F
-            && this != Self::Undefined
+        this != Self::Depth16 && this != Self::Depth24 && this != Self::Depth32F
     }
 
     pub fn is_depth(this: Self) -> bool {
         this == Self::Depth16 || this == Self::Depth24 || this == Self::Depth32F
-    }
-
-    pub fn is_valid(this: Self) -> bool {
-        this != Self::Undefined
     }
 }

@@ -98,10 +98,6 @@ impl Tex2D {
 impl Tex2D {
     #[bind(name = "Create")]
     pub fn new(sx: i32, sy: i32, format: TexFormat) -> Tex2D {
-        if !TexFormat::is_valid(format) {
-            panic!("Invalid texture format requested");
-        }
-
         let mut this = Tex2DShared {
             handle: 0,
             size: IVec2::new(sx, sy),

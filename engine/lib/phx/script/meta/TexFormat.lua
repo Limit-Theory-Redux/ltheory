@@ -2,7 +2,6 @@
 ---@meta
 
 ---@class TexFormat
----@field Undefined integer 
 ---@field R8 integer 
 ---@field R16 integer 
 ---@field R16F integer 
@@ -20,7 +19,6 @@
 ---@field Depth24 integer 
 ---@field Depth32F integer 
 TexFormat = {
-    Undefined = 0,
     R8, -- gl::R8
     R16, -- gl::R16
     R16F, -- gl::R16F
@@ -54,8 +52,4 @@ function TexFormat.IsColor(this) end
 ---@param this TexFormat
 ---@return boolean
 function TexFormat.IsDepth(this) end
-
----@param this TexFormat
----@return boolean
-function TexFormat.IsValid(this) end
 

@@ -156,9 +156,6 @@ impl TexCube {
 impl TexCube {
     #[bind(name = "Create")]
     pub fn new(size: i32, format: TexFormat) -> TexCube {
-        if !TexFormat::is_valid(format) {
-            panic!("Invalid texture format requested");
-        }
         if TexFormat::is_depth(format) {
             panic!("Cannot create cubemap with depth format");
         }
@@ -251,7 +248,7 @@ impl TexCube {
         let mut this = TexCubeShared {
             handle: 0,
             size: 0,
-            format: TexFormat::Undefined,
+            format: TexFormat::RGB8,
         };
 
         glcheck!(gl::GenTextures(1, &mut this.handle));
