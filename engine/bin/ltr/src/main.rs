@@ -3,10 +3,12 @@ use std::ffi::CString;
 use clap::Parser;
 
 #[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
 #[no_mangle]
 pub static NvOptimusEnablement: std::os::raw::c_ulong = 0x00000001;
 
 #[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
 #[no_mangle]
 pub static AmdPowerXpressRequestHighPerformance: std::os::raw::c_int = 1;
 

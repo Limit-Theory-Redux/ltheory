@@ -21,22 +21,22 @@
 ---@field Depth32F integer 
 TexFormat = {
     Undefined = 0,
-    R8 = 33321,
-    R16 = 33322,
-    R16F = 33325,
-    R32F = 33326,
-    RG8 = 6407,
-    RG16 = 33324,
-    RG16F = 33327,
-    RG32F = 33328,
-    RGB8 = 32849,
-    RGBA8 = 32856,
-    RGBA16 = 32859,
-    RGBA16F = 34842,
-    RGBA32F = 34836,
-    Depth16 = 33189,
-    Depth24 = 33190,
-    Depth32F = 36012,
+    R8, -- gl::R8
+    R16, -- gl::R16
+    R16F, -- gl::R16F
+    R32F, -- gl::R32F
+    RG8, -- gl::RGB
+    RG16, -- gl::RG16
+    RG16F, -- gl::RG16F
+    RG32F, -- gl::RG32F
+    RGB8, -- gl::RGB8
+    RGBA8, -- gl::RGBA8
+    RGBA16, -- gl::RGBA16
+    RGBA16F, -- gl::RGBA16F
+    RGBA32F, -- gl::RGBA32F
+    Depth16, -- gl::DEPTH_COMPONENT16
+    Depth24, -- gl::DEPTH_COMPONENT24
+    Depth32F, -- gl::DEPTH_COMPONENT32F
 }
 
 ---@param this TexFormat

@@ -17,7 +17,7 @@ pub enum MyEnum1 {
     gen_dir = "./tests/out/ffi_gen",
     meta_dir = "./tests/out/ffi_meta"
 )]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum MyEnum2 {
     Var1 = 1,
     Var2 = 3,

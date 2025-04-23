@@ -1,25 +1,25 @@
-// TODO: support non-literal discriminants in enum in luajit_ffi
+use super::gl;
 
-#[luajit_ffi_gen::luajit_ffi(with_impl = true)]
+#[luajit_ffi_gen::luajit_ffi(with_impl = true, repr = "u32")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TexFormat {
     Undefined = 0,
-    R8 = 0x8229,       // gl::R8
-    R16 = 0x822A,      // gl::R16
-    R16F = 0x822D,     // gl::R16F
-    R32F = 0x822E,     // gl::R32F
-    RG8 = 0x1907,      // gl::RGB
-    RG16 = 0x822C,     // gl::RG16
-    RG16F = 0x822F,    // gl::RG16F
-    RG32F = 0x8230,    // gl::RG32F
-    RGB8 = 0x8051,     // gl::RGB8
-    RGBA8 = 0x8058,    // gl::RGBA8
-    RGBA16 = 0x805B,   // gl::RGBA16
-    RGBA16F = 0x881A,  // gl::RGBA16F
-    RGBA32F = 0x8814,  // gl::RGBA32F
-    Depth16 = 0x81A5,  // gl::DEPTH_COMPONENT16
-    Depth24 = 0x81A6,  // gl::DEPTH_COMPONENT24
-    Depth32F = 0x8CAC, // gl::DEPTH_COMPONENT32F
+    R8 = gl::R8,
+    R16 = gl::R16,
+    R16F = gl::R16F,
+    R32F = gl::R32F,
+    RG8 = gl::RGB,
+    RG16 = gl::RG16,
+    RG16F = gl::RG16F,
+    RG32F = gl::RG32F,
+    RGB8 = gl::RGB8,
+    RGBA8 = gl::RGBA8,
+    RGBA16 = gl::RGBA16,
+    RGBA16F = gl::RGBA16F,
+    RGBA32F = gl::RGBA32F,
+    Depth16 = gl::DEPTH_COMPONENT16,
+    Depth24 = gl::DEPTH_COMPONENT24,
+    Depth32F = gl::DEPTH_COMPONENT32F,
 }
 
 #[luajit_ffi_gen::luajit_ffi]

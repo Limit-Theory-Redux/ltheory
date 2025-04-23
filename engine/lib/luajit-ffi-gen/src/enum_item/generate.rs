@@ -13,9 +13,9 @@ impl EnumInfo {
         // Decide repr type.
         let repr_type = if let Some(repr_type) = attr_args.repr() {
             repr_type
-        } else {
-            let max_discriminant = self.variants.max_discriminant(attr_args.start_index());
-
+        } else if let Some(max_discriminant) =
+            self.variants.max_discriminant(attr_args.start_index())
+        {
             if max_discriminant > u32::MAX as u64 {
                 "u64"
             } else if max_discriminant > u16::MAX as u64 {
@@ -25,6 +25,8 @@ impl EnumInfo {
             } else {
                 "u8"
             }
+        } else {
+            panic!("If non-numeric variant values are used then type representation should be specified explicitly. Example: #[luajit_ffi(repr = \"u16\")]");
         };
         let repr_type_ident = format_ident!("{repr_type}");
 

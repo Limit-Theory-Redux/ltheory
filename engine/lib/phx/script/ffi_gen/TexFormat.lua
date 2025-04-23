@@ -4,7 +4,7 @@ local Loader = {}
 
 function Loader.declareType()
     ffi.cdef [[
-        typedef uint16 TexFormat;
+        typedef uint32 TexFormat;
     ]]
 
     return 2, 'TexFormat'
@@ -17,6 +17,24 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            TexFormat TexFormat_Undefined;
+            TexFormat TexFormat_R8;
+            TexFormat TexFormat_R16;
+            TexFormat TexFormat_R16F;
+            TexFormat TexFormat_R32F;
+            TexFormat TexFormat_RG8;
+            TexFormat TexFormat_RG16;
+            TexFormat TexFormat_RG16F;
+            TexFormat TexFormat_RG32F;
+            TexFormat TexFormat_RGB8;
+            TexFormat TexFormat_RGBA8;
+            TexFormat TexFormat_RGBA16;
+            TexFormat TexFormat_RGBA16F;
+            TexFormat TexFormat_RGBA32F;
+            TexFormat TexFormat_Depth16;
+            TexFormat TexFormat_Depth24;
+            TexFormat TexFormat_Depth32F;
+
             cstr      TexFormat_ToString(TexFormat);
 
             int  TexFormat_Components (TexFormat this);
@@ -30,22 +48,22 @@ function Loader.defineType()
     do -- Global Symbol Table
         TexFormat = {
             Undefined = 0,
-            R8        = 33321,
-            R16       = 33322,
-            R16F      = 33325,
-            R32F      = 33326,
-            RG8       = 6407,
-            RG16      = 33324,
-            RG16F     = 33327,
-            RG32F     = 33328,
-            RGB8      = 32849,
-            RGBA8     = 32856,
-            RGBA16    = 32859,
-            RGBA16F   = 34842,
-            RGBA32F   = 34836,
-            Depth16   = 33189,
-            Depth24   = 33190,
-            Depth32F  = 36012,
+            R8        = libphx.TexFormat_R8,
+            R16       = libphx.TexFormat_R16,
+            R16F      = libphx.TexFormat_R16F,
+            R32F      = libphx.TexFormat_R32F,
+            RG8       = libphx.TexFormat_RG8,
+            RG16      = libphx.TexFormat_RG16,
+            RG16F     = libphx.TexFormat_RG16F,
+            RG32F     = libphx.TexFormat_RG32F,
+            RGB8      = libphx.TexFormat_RGB8,
+            RGBA8     = libphx.TexFormat_RGBA8,
+            RGBA16    = libphx.TexFormat_RGBA16,
+            RGBA16F   = libphx.TexFormat_RGBA16F,
+            RGBA32F   = libphx.TexFormat_RGBA32F,
+            Depth16   = libphx.TexFormat_Depth16,
+            Depth24   = libphx.TexFormat_Depth24,
+            Depth32F  = libphx.TexFormat_Depth32F,
 
             ToString  = libphx.TexFormat_ToString,
 
