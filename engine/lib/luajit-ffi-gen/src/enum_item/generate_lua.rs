@@ -50,18 +50,30 @@ fn gen_class_definitions(
 
     ffi_gen.add_class_definition(format!("{module_name} = {{"));
 
+    let mut max_discriminant = variants_info
+        .iter()
+        .filter_map(|v| match v.2 {
+            VariantValue::Literal(l) => Some(l + 1),
+            VariantValue::Expr(_) => None,
+        })
+        .max()
+        .unwrap_or_default();
     variants_info.iter().for_each(|(docs, name, value)| {
         docs.iter()
             .for_each(|doc| ffi_gen.add_class_definition(format!("{IDENT}-- {doc}")));
 
         match value {
             VariantValue::Literal(l) => {
-                ffi_gen.add_class_definition(format!("{IDENT}{name} = {l},"))
+                ffi_gen.add_class_definition(format!("{IDENT}{name} = {l},"));
             }
-            VariantValue::Expr(e) => ffi_gen.add_class_definition(format!(
-                "{IDENT}{name}, -- {}",
-                e.to_string().replace(" ", "")
-            )),
+            VariantValue::Expr(e) => {
+                ffi_gen.add_class_definition(format!(
+                    "{IDENT}{name} = {}, -- {}",
+                    max_discriminant,
+                    e.to_string().replace(" ", "")
+                ));
+                max_discriminant += 1;
+            }
         }
     });
 

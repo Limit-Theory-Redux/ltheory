@@ -19,22 +19,22 @@
 ---@field Depth24 integer 
 ---@field Depth32F integer 
 TexFormat = {
-    R8, -- gl::R8
-    R16, -- gl::R16
-    R16F, -- gl::R16F
-    R32F, -- gl::R32F
-    RG8, -- gl::RGB
-    RG16, -- gl::RG16
-    RG16F, -- gl::RG16F
-    RG32F, -- gl::RG32F
-    RGB8, -- gl::RGB8
-    RGBA8, -- gl::RGBA8
-    RGBA16, -- gl::RGBA16
-    RGBA16F, -- gl::RGBA16F
-    RGBA32F, -- gl::RGBA32F
-    Depth16, -- gl::DEPTH_COMPONENT16
-    Depth24, -- gl::DEPTH_COMPONENT24
-    Depth32F, -- gl::DEPTH_COMPONENT32F
+    R8 = 0, -- gl::R8
+    R16 = 1, -- gl::R16
+    R16F = 2, -- gl::R16F
+    R32F = 3, -- gl::R32F
+    RG8 = 4, -- gl::RGB
+    RG16 = 5, -- gl::RG16
+    RG16F = 6, -- gl::RG16F
+    RG32F = 7, -- gl::RG32F
+    RGB8 = 8, -- gl::RGB8
+    RGBA8 = 9, -- gl::RGBA8
+    RGBA16 = 10, -- gl::RGBA16
+    RGBA16F = 11, -- gl::RGBA16F
+    RGBA32F = 12, -- gl::RGBA32F
+    Depth16 = 13, -- gl::DEPTH_COMPONENT16
+    Depth24 = 14, -- gl::DEPTH_COMPONENT24
+    Depth32F = 15, -- gl::DEPTH_COMPONENT32F
 }
 
 ---@param this TexFormat
