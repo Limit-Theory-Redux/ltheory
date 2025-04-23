@@ -1,13 +1,15 @@
-#[luajit_ffi_gen::luajit_ffi(with_impl = true)]
+use super::gl;
+
+#[luajit_ffi_gen::luajit_ffi(with_impl = true, repr = "u32")]
 #[derive(Debug, Clone, Copy)]
 pub enum DataFormat {
-    I8 = 0x1400,    // gl::BYTE
-    U8 = 0x1401,    // gl::UNSIGNED_BYTE
-    I16 = 0x1402,   // gl::SHORT
-    U16 = 0x1403,   // gl::UNSIGNED_SHORT
-    I32 = 0x1404,   // gl::INT
-    U32 = 0x1405,   // gl::UNSIGNED_INT
-    Float = 0x1406, // gl::FLOAT
+    I8 = gl::BYTE,
+    U8 = gl::UNSIGNED_BYTE,
+    I16 = gl::SHORT,
+    U16 = gl::UNSIGNED_SHORT,
+    I32 = gl::INT,
+    U32 = gl::UNSIGNED_INT,
+    Float = gl::FLOAT,
 }
 
 #[luajit_ffi_gen::luajit_ffi]

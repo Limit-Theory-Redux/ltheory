@@ -4,7 +4,7 @@ local Loader = {}
 
 function Loader.declareType()
     ffi.cdef [[
-        typedef uint16 CubeFace;
+        typedef uint32 CubeFace;
     ]]
 
     return 2, 'CubeFace'
@@ -17,6 +17,13 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            CubeFace CubeFace_PX;
+            CubeFace CubeFace_NX;
+            CubeFace CubeFace_PY;
+            CubeFace CubeFace_NY;
+            CubeFace CubeFace_PZ;
+            CubeFace CubeFace_NZ;
+
             cstr     CubeFace_ToString(CubeFace);
 
             CubeFace CubeFace_Get (int index);
@@ -25,12 +32,12 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         CubeFace = {
-            PX       = 34069,
-            NX       = 34070,
-            PY       = 34071,
-            NY       = 34072,
-            PZ       = 34073,
-            NZ       = 34074,
+            PX       = libphx.CubeFace_PX,
+            NX       = libphx.CubeFace_NX,
+            PY       = libphx.CubeFace_PY,
+            NY       = libphx.CubeFace_NY,
+            PZ       = libphx.CubeFace_PZ,
+            NZ       = libphx.CubeFace_NZ,
 
             ToString = libphx.CubeFace_ToString,
 

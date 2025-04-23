@@ -9,12 +9,12 @@
 ---@field PZ integer 
 ---@field NZ integer 
 CubeFace = {
-    PX = 34069,
-    NX = 34070,
-    PY = 34071,
-    NY = 34072,
-    PZ = 34073,
-    NZ = 34074,
+    PX, -- gl::TEXTURE_CUBE_MAP_POSITIVE_X
+    NX, -- gl::TEXTURE_CUBE_MAP_NEGATIVE_X
+    PY, -- gl::TEXTURE_CUBE_MAP_POSITIVE_Y
+    NY, -- gl::TEXTURE_CUBE_MAP_NEGATIVE_Y
+    PZ, -- gl::TEXTURE_CUBE_MAP_POSITIVE_Z
+    NZ, -- gl::TEXTURE_CUBE_MAP_NEGATIVE_Z
 }
 
 ---@param index integer

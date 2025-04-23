@@ -4,7 +4,7 @@ local Loader = {}
 
 function Loader.declareType()
     ffi.cdef [[
-        typedef uint16 PixelFormat;
+        typedef uint32 PixelFormat;
     ]]
 
     return 2, 'PixelFormat'
@@ -17,6 +17,14 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
+            PixelFormat PixelFormat_DepthComponent;
+            PixelFormat PixelFormat_Red;
+            PixelFormat PixelFormat_RGB;
+            PixelFormat PixelFormat_RGBA;
+            PixelFormat PixelFormat_BGR;
+            PixelFormat PixelFormat_BGRA;
+            PixelFormat PixelFormat_RG;
+
             cstr        PixelFormat_ToString(PixelFormat);
 
             int PixelFormat_Components (PixelFormat this);
@@ -25,13 +33,13 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         PixelFormat = {
-            DepthComponent = 6402,
-            Red            = 6403,
-            RGB            = 6407,
-            RGBA           = 6408,
-            BGR            = 32992,
-            BGRA           = 32993,
-            RG             = 33319,
+            DepthComponent = libphx.PixelFormat_DepthComponent,
+            Red            = libphx.PixelFormat_Red,
+            RGB            = libphx.PixelFormat_RGB,
+            RGBA           = libphx.PixelFormat_RGBA,
+            BGR            = libphx.PixelFormat_BGR,
+            BGRA           = libphx.PixelFormat_BGRA,
+            RG             = libphx.PixelFormat_RG,
 
             ToString       = libphx.PixelFormat_ToString,
 

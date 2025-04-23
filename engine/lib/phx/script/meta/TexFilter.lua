@@ -9,11 +9,11 @@
 ---@field LinearMipPoint integer 
 ---@field LinearMipLinear integer 
 TexFilter = {
-    Point = 9728,
-    PointMipPoint = 9984,
-    PointMipLinear = 9986,
-    Linear = 9729,
-    LinearMipPoint = 9985,
-    LinearMipLinear = 9987,
+    Point, -- gl::NEAREST
+    PointMipPoint, -- gl::NEAREST_MIPMAP_NEAREST
+    PointMipLinear, -- gl::NEAREST_MIPMAP_LINEAR
+    Linear, -- gl::LINEAR
+    LinearMipPoint, -- gl::LINEAR_MIPMAP_NEAREST
+    LinearMipLinear, -- gl::LINEAR_MIPMAP_LINEAR
 }
 
