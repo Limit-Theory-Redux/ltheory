@@ -4,6 +4,7 @@ use syn::Ident;
 
 use super::EnumInfo;
 use crate::args::EnumAttrArgs;
+use crate::enum_item::variants_info::VariantValue;
 use crate::util::camel_to_snake_case;
 
 impl EnumInfo {
@@ -35,6 +36,25 @@ impl EnumInfo {
         };
         let enum_size_ident = format_ident!("{}_COUNT", camel_to_snake_case(&self.name, true));
         let enum_size = variant_pairs.len();
+        let value_items: Vec<_> = variant_pairs
+            .iter()
+            .map(|(_, name, value)| {
+                let variant_ident = format_ident!("{name}");
+
+                match value {
+                    VariantValue::Literal(l) => {
+                        quote! {
+                            Self::#variant_ident => #l as #repr_type_ident,
+                        }
+                    }
+                    VariantValue::Expr(e) => {
+                        quote! {
+                            Self::#variant_ident => #e as #repr_type_ident,
+                        }
+                    }
+                }
+            })
+            .collect();
 
         let to_string_mangle = if let Some(enum_name) = attr_args.name() {
             let export_name = format!("{enum_name}_ToString");
@@ -49,7 +69,9 @@ impl EnumInfo {
                 pub const SIZE: usize = #enum_size;
 
                 pub const fn value(&self) -> #repr_type_ident {
-                    *self as #repr_type_ident
+                    match self {
+                        #(#value_items)*
+                    }
                 }
             }
 
