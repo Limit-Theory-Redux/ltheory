@@ -116,21 +116,21 @@ pub enum MyEnum2 {
     Var2 = 3,
 }
 
-const Value1 = 101;
-const Value2 = 42;
+const VALUE1: u16 = 101;
+const VALUE2: u16 = 42;
 
-#[luajit_ffi_gen::luajit_ffi(repr = "u32", lua_ffi = false)]
+#[luajit_ffi_gen::luajit_ffi(repr = "u16", lua_ffi = false)]
 #[derive(Debug)]
 pub enum MyEnum3 {
-    Var1 = Value1,
-    Var2 = Value2,
+    Var1 = VALUE1,
+    Var2 = VALUE2,
 }
 
 #[luajit_ffi_gen::luajit_ffi(repr = "u16", lua_ffi = false)]
 #[derive(Debug)]
 pub enum MyEnum4 {
-    Var1 = Value1,
-    Var2 = Value2,
+    Var1 = VALUE1,
+    Var2 = VALUE2,
     Var3 = 11,
 }
 ```
@@ -149,10 +149,10 @@ pub extern "C" fn MyEnum2_ToString(this: MyEnum2) -> *const libc::c_char {
 }
 
 #[no_mangle]
-pub const My_Enum3_Var1: u32 = MyEnum1::Var1.value();
+pub const My_Enum3_Var1: u16 = MyEnum1::Var1.value();
 
 #[no_mangle]
-pub const My_Enum3_Var2: u32 = MyEnum1::Var2.value();
+pub const My_Enum3_Var2: u16 = MyEnum1::Var2.value();
 
 #[no_mangle]
 pub extern "C" fn MyEnum3_ToString(this: MyEnum3) -> *const libc::c_char {
