@@ -59,12 +59,12 @@ impl MeshShared {
             self.info.bound.add(v.p);
         }
 
-        let center: Vec3 = self.info.bound.center();
-        let mut r2: f64 = 0.0f64;
+        let center = self.info.bound.center();
+        let mut r2 = 0.0f64;
         for v in self.vertex.iter() {
-            let dx: f64 = (v.p.x - center.x) as f64;
-            let dy: f64 = (v.p.y - center.y) as f64;
-            let dz: f64 = (v.p.z - center.z) as f64;
+            let dx = (v.p.x - center.x) as f64;
+            let dy = (v.p.y - center.y) as f64;
+            let dz = (v.p.z - center.z) as f64;
             r2 = f64::max(r2, dx * dx + dy * dy + dz * dz);
         }
         self.info.radius = f64::sqrt(r2) as f32;
@@ -108,12 +108,12 @@ impl Mesh {
     }
 
     fn add_plane(&mut self, origin: Vec3, du: Vec3, dv: Vec3, res_u: i32, res_v: i32) {
-        let n: Vec3 = Vec3::cross(du, dv).normalize();
+        let n = Vec3::cross(du, dv).normalize();
         for iu in 0..res_u {
-            let u: f32 = iu as f32 / (res_u - 1) as f32;
+            let u = iu as f32 / (res_u - 1) as f32;
             for iv in 0..res_v {
-                let v: f32 = iv as f32 / (res_v - 1) as f32;
-                let p: Vec3 = origin + du * u + dv * v;
+                let v = iv as f32 / (res_v - 1) as f32;
+                let p = origin + du * u + dv * v;
                 if iu != 0 && iv != 0 {
                     let vc = self.get_vertex_count();
                     self.add_quad(vc, vc - res_v, vc - res_v - 1, vc - 1);
@@ -257,7 +257,7 @@ impl Mesh {
 
     #[bind(name = "Box")]
     pub fn new_box(res: i32) -> Mesh {
-        let origin: [Vec3; 6] = [
+        let origin = [
             Vec3::new(-1.0f32, -1.0f32, 1.0f32),
             Vec3::new(-1.0f32, -1.0f32, -1.0f32),
             Vec3::new(1.0f32, -1.0f32, -1.0f32),
@@ -265,7 +265,7 @@ impl Mesh {
             Vec3::new(-1.0f32, 1.0f32, -1.0f32),
             Vec3::new(-1.0f32, -1.0f32, -1.0f32),
         ];
-        let du: [Vec3; 6] = [
+        let du = [
             Vec3::new(2.0f32, 0.0f32, 0.0f32),
             Vec3::new(0.0f32, 2.0f32, 0.0f32),
             Vec3::new(0.0f32, 2.0f32, 0.0f32),
@@ -273,7 +273,7 @@ impl Mesh {
             Vec3::new(0.0f32, 0.0f32, 2.0f32),
             Vec3::new(2.0f32, 0.0f32, 0.0f32),
         ];
-        let dv: [Vec3; 6] = [
+        let dv = [
             Vec3::new(0.0f32, 2.0f32, 0.0f32),
             Vec3::new(2.0f32, 0.0f32, 0.0f32),
             Vec3::new(0.0f32, 0.0f32, 2.0f32),
@@ -291,7 +291,7 @@ impl Mesh {
 
     #[bind(name = "BoxSphere")]
     pub fn new_box_sphere(res: i32) -> Mesh {
-        let mut this: Mesh = Mesh::new_box(res);
+        let mut this = Mesh::new_box(res);
 
         // Normalize all points.
         {
@@ -317,7 +317,7 @@ impl Mesh {
     }
 
     pub fn add_mesh(&mut self, other: &Mesh) {
-        let index_offset: i32 = self.shared.as_ref().vertex.len() as i32;
+        let index_offset = self.shared.as_ref().vertex.len() as i32;
         for i in 0..other.shared.as_ref().vertex.len() {
             self.add_vertex_raw(&other.shared.as_ref().vertex[i]);
         }
@@ -672,9 +672,9 @@ impl Mesh {
             let v1 = this.vertex[this.index[i] as usize].p;
             let v2 = this.vertex[this.index[i + 1] as usize].p;
             let v3 = this.vertex[this.index[i + 2] as usize].p;
-            let e1: Vec3 = v2 - v1;
-            let e2: Vec3 = v3 - v2;
-            let en: Vec3 = Vec3::cross(e1, e2);
+            let e1 = v2 - v1;
+            let e2 = v3 - v2;
+            let en = Vec3::cross(e1, e2);
 
             this.vertex[this.index[i] as usize].n += en;
             this.vertex[this.index[i + 1] as usize].n += en;
@@ -697,7 +697,7 @@ impl Mesh {
 
         for i in (0..this.index.len()).step_by(3) {
             let index_range: &mut [i32] = &mut this.index[i..=i + 2];
-            let face: Vec3 = Vec3::cross(
+            let face = Vec3::cross(
                 this.vertex[index_range[1] as usize].p - this.vertex[index_range[0] as usize].p,
                 this.vertex[index_range[2] as usize].p - this.vertex[index_range[0] as usize].p,
             );
@@ -742,15 +742,15 @@ impl Mesh {
             let v1 = &this.vertex[this.index[i] as usize];
             let v2 = &this.vertex[this.index[i + 1] as usize];
             let v3 = &this.vertex[this.index[i + 2] as usize];
-            let mut normal: Vec3 = Vec3::cross(v3.p - v1.p, v2.p - v1.p);
-            let length: f32 = normal.length();
-            let area: f32 = 0.5f32 * length / std::f32::consts::PI;
+            let mut normal = Vec3::cross(v3.p - v1.p, v2.p - v1.p);
+            let length = normal.length();
+            let area = 0.5f32 * length / std::f32::consts::PI;
             if f64::abs(length as f64) > 1e-6f64 {
                 normal /= length;
             } else {
                 normal = Vec3::X;
             }
-            let center: Vec3 = (v1.p + v2.p + v3.p) / 3.0f32;
+            let center = (v1.p + v2.p + v3.p) / 3.0f32;
             point_buffer[i / 3] = Vec4::new(center.x, center.y, center.z, area);
             normal_buffer[i / 3] = Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
         }
@@ -806,7 +806,7 @@ impl Mesh {
         RenderTarget::pop();
         RenderState::pop_all();
 
-        let result: Vec<f32> = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
+        let result = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
             this.vertex[i].uv.x = *result_uv_value;
         }
@@ -815,7 +815,7 @@ impl Mesh {
     pub fn compute_occlusion(&mut self, sdf: &mut Tex3D, radius: f32) {
         let this = &mut *self.shared.as_mut();
 
-        let v_dim: i32 = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
+        let v_dim = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
         let mut tex_points = Tex2D::new(v_dim, v_dim, TexFormat::RGBA32F);
         let tex_output = Tex2D::new(v_dim, v_dim, TexFormat::R32F);
 
@@ -852,7 +852,7 @@ impl Mesh {
         RenderTarget::pop();
         RenderState::pop_all();
 
-        let result: Vec<f32> = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
+        let result = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
             this.vertex[i].uv.x = *result_uv_value;
         }
