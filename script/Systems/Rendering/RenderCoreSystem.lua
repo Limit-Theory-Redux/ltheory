@@ -18,7 +18,7 @@ local CameraSystem = require("Systems.Rendering.CameraSystem")
 ---@class RenderCoreSystem
 ---@field buffers table<BufferName, Buffer>
 ---@field settings RenderSettings
----@field passes RenderingPass 
+---@field passes RenderingPass
 ---@field level integer
 ---@field resX number
 ---@field resY number
@@ -33,7 +33,7 @@ local depthFormat = TexFormat.Depth32F
 local depthFormatL = TexFormat.R32F
 
 --[[
-    Buffers are just Tex2D's 
+    Buffers are just Tex2D's
     Should CreateBuffer be moved over to a different file?
 ]]
 ---@param x number
@@ -102,7 +102,7 @@ function RenderCoreSystem:initializeBuffers()
         [Enums.BufferName.zBuffer] = createBuffer(self.ssResX, self.ssResY, depthFormat),
         [Enums.BufferName.zBufferL] = createBuffer(self.ssResX, self.ssResY, depthFormatL),
         [Enums.BufferName.dsBuffer0] = createBuffer(self.dsResX, self.dsResY, colorFormat),
-        [Enums.BufferName.dsBuffer1 ]= createBuffer(self.dsResX, self.dsResY, colorFormat)
+        [Enums.BufferName.dsBuffer1] = createBuffer(self.dsResX, self.dsResY, colorFormat)
     }
 end
 
@@ -131,7 +131,7 @@ function RenderCoreSystem:registerRenderingPasses()
         insert(bufferOrder, Enums.BufferName.buffer1)
         insert(bufferOrder, Enums.BufferName.zBufferL)
         insert(bufferOrder, Enums.BufferName.zBuffer)
-        local drawFunc = function() 
+        local drawFunc = function()
             Draw.Clear(0, 0, 0, 0)
             Draw.ClearDepth(1)
             Draw.Color(1, 1, 1, 1)
@@ -141,7 +141,7 @@ function RenderCoreSystem:registerRenderingPasses()
     do -- < Additive Pass Definition > --
         local stateSettings = {
             blendMode = BlendMode.Additive,
-            cullFace = Cullface.None,
+            cullFace = CullFace.None,
             depthTest = true,
             depthWritable = false
         }
@@ -154,7 +154,7 @@ function RenderCoreSystem:registerRenderingPasses()
     do -- < Alpha Pass Definition > --
         local stateSettings = {
             blendMode = BlendMode.Alpha,
-            cullFace = Cullface.None,
+            cullFace = CullFace.None,
             depthTest = true,
             depthWritable = false
         }
@@ -167,7 +167,7 @@ function RenderCoreSystem:registerRenderingPasses()
     do -- < UI Pass Definition > --
         local stateSettings = {
             blendMode = BlendMode.Alpha,
-            cullFace = Cullface.None,
+            cullFace = CullFace.None,
             depthTest = false,
             depthWritable = false
         }
@@ -234,19 +234,19 @@ function RenderCoreSystem:onRender(data)
     -- Reset RenderState and ClipRect at Start of Render
     ClipRect.PushDisabled()
     RenderState.PushAllDefaults()
-    
+
     do -- < Camera > --
         -- Add Camera Stack?
         -- Should we remove updateViewMatrix/updateProjectionMatrix and use a RefreshMatrices to do this?
         CameraSystem:updateViewMatrix()
-        CameraSystem:updateProjectionMatrix(self.resX,self.resY) -- Do we use ssRes or res?
-        CameraSystem:beginDraw() -- Push Camera ShaderVars
-        --[[Original Order for Camera 
+        CameraSystem:updateProjectionMatrix(self.resX, self.resY) -- Do we use ssRes or res?
+        CameraSystem:beginDraw()                                  -- Push Camera ShaderVars
+        --[[Original Order for Camera
             In GameView:
                 local x, y, sx, sy = self:getRectGlobal()
                 self.camera:setViewport(x, y, sx, sy) -- just sets those vars
                 self.camera:beginDraw()
-                eye = self.camera.pos 
+                eye = self.camera.pos
             In Camera:beginDraw()
                 camera:push()
                 camera:refreshMatrixes
@@ -262,21 +262,21 @@ function RenderCoreSystem:onRender(data)
             ShaderVar.PushTexCube('irMap', self.nebula.irMap)
         "]]
     end
-    
+
     do -- < Opaque Pass > --
         self.passes[Enums.RenderingPasses.Opaque]:start(self.buffers, self.ssResX, self.ssResY)
         self:renderInOrder(BlendMode.Alpha)
         self.passes[Enums.RenderingPasses.Opaque]:stop()
     end
-    
+
     do -- < Lighting Pass > --
         -- TODO: Needs a different solution than other passes, as it's structured differently currently.
-            -- < Global Lighting > --
-            -- Use Cached World Light Material ?
-            -- < Local Lighting > --
-            -- Use Cached Light Material
-            -- < Aldebo & accumulated light buffer > --
-            -- Use Cached Light Material 
+        -- < Global Lighting > --
+        -- Use Cached World Light Material ?
+        -- < Local Lighting > --
+        -- Use Cached Light Material
+        -- < Aldebo & accumulated light buffer > --
+        -- Use Cached Light Material
     end
 
     do -- < Alpha (Additive Pass) > --
@@ -311,11 +311,11 @@ function RenderCoreSystem:onRender(data)
     do -- < PostFX and Draw Rendered Frame to Screen > --
         if self.settings.showBuffers then
             -- < PresentAll Buffers / RenderPipeline.presentAll(...) > --
-            self:presentAll(Window:position().x , Window:position().y, self.resX, self.resY)
+            self:presentAll(Window:position().x, Window:position().y, self.resX, self.resY)
         else
             -- < PostFX Pass > --
             -- < Present Frame / Present buffer0 / RenderPipeline.present(...) > -
-            self:present(Window:position().x , Window:position().y, self.resX, self.resY, false)
+            self:present(Window:position().x, Window:position().y, self.resX, self.resY, false)
         end
     end
 
