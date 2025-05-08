@@ -6,7 +6,7 @@ use super::{
     TexFormat, CUBE_FACES,
 };
 use crate::math::Rng;
-use crate::render::{gl, glcheck, RenderState_PopAll, RenderState_PushAllDefaults, Shader};
+use crate::render::{gl, glcheck, RenderState, Shader};
 use crate::rf::Rf;
 use crate::system::{Bytes, TimeStamp};
 
@@ -156,9 +156,6 @@ impl TexCube {
 impl TexCube {
     #[bind(name = "Create")]
     pub fn new(size: i32, format: TexFormat) -> TexCube {
-        if !TexFormat::is_valid(format) {
-            panic!("Invalid texture format requested");
-        }
         if TexFormat::is_depth(format) {
             panic!("Cannot create cubemap with depth format");
         }
@@ -251,7 +248,7 @@ impl TexCube {
         let mut this = TexCubeShared {
             handle: 0,
             size: 0,
-            format: TexFormat::Undefined,
+            format: TexFormat::RGB8,
         };
 
         glcheck!(gl::GenTextures(1, &mut this.handle));
@@ -386,10 +383,7 @@ impl TexCube {
     pub fn generate(&mut self, state: &mut ShaderState) {
         let this = self.shared.as_ref();
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PushAllDefaults()
-        };
+        RenderState::push_all_defaults();
 
         for i in 0..6 {
             let face = K_FACES[i as usize];
@@ -435,10 +429,7 @@ impl TexCube {
             RenderTarget::pop();
         }
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PopAll()
-        };
+        RenderState::pop_all();
     }
 
     pub fn gen_mipmap(&mut self) {

@@ -4,7 +4,6 @@ local jit = require('jit')
 local libphx = {}
 do -- Basic Typedefs
     ffi.cdef [[
-        typedef uint8          BSPNodeRel;
         typedef int32          CollisionGroup;
         typedef int32          CollisionMask;
         typedef int32          CubeFace;
@@ -38,32 +37,16 @@ end
 
 do -- Opaque Structs
     ffi.cdef [[
-        typedef struct BSP          {} BSP;
-        typedef struct BoxTree      {} BoxTree;
-        typedef struct InputBinding {} InputBinding;
         typedef struct MemPool      {} MemPool;
-        typedef struct RmGui        {} RmGui;
-        typedef struct SDF          {} SDF;
-        typedef struct Socket       {} Socket;
     ]]
 
     libphx.Opaques = {
-        'BSP',
-        'BoxTree',
         'MemPool',
-        'RmGui',
-        'SDF',
-        'Socket',
     }
 end
 
 do -- Transparent Structs
     ffi.cdef [[
-        typedef struct BSPNodeRef {
-            int32 index;
-            uint8 triangleCount;
-        } BSPNodeRef;
-
         typedef struct Box3d {
             double lowerx;
             double lowery;
@@ -238,7 +221,6 @@ do -- Transparent Structs
     ]]
 
     libphx.Structs = {
-        'BSPNodeRef',
         'Box3d',
         'Box3f',
         'Box3i',

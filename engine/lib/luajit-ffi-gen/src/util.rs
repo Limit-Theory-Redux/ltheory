@@ -73,8 +73,8 @@ pub fn get_meta_name(meta: &Meta) -> Option<String> {
 /// Convert snake case string into a camel case one.
 ///
 /// Rules:
-/// - make first letter an upper case
-/// - remove underscore and make after that the first letter upper case
+/// - make first letter an upper case (if asked)
+/// - remove underscore and make letter after it an upper case
 /// - make first letter after digit an upper case
 pub fn snake_to_camel_case(s: &str, first_upper: bool) -> String {
     let mut res = String::new();

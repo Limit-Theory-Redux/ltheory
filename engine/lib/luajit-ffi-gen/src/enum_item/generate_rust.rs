@@ -4,6 +4,7 @@ use syn::Ident;
 
 use super::EnumInfo;
 use crate::args::EnumAttrArgs;
+use crate::enum_item::variants_info::VariantValue;
 use crate::util::camel_to_snake_case;
 
 impl EnumInfo {
@@ -11,15 +12,46 @@ impl EnumInfo {
         let self_ident = format_ident!("{}", self.name);
 
         let variant_pairs = self.variants.get_info(attr_args.start_index());
+        let constant_items: Vec<_> = if variant_pairs.iter().any(|v| v.2.is_expr()) {
+            variant_pairs
+            .iter()
+            .map(|(_, variant_name, _)| {
+                let mangle_ident = if let Some(enum_name) = attr_args.name() {
+                    let export_name = format!("{enum_name}_{variant_name}");
+                    quote!(#[export_name = #export_name])
+                } else {
+                    quote!(#[no_mangle])
+                };
+                let const_ident = format_ident!("{}_{variant_name}", self.name);
+                let variant_ident = format_ident!("{variant_name}");
+
+                quote! {
+                    #mangle_ident
+                    pub static #const_ident: #repr_type_ident = #self_ident::#variant_ident.value();
+                }
+            })
+            .collect()
+        } else {
+            vec![]
+        };
         let enum_size_ident = format_ident!("{}_COUNT", camel_to_snake_case(&self.name, true));
         let enum_size = variant_pairs.len();
         let value_items: Vec<_> = variant_pairs
             .iter()
-            .map(|(_, name, d)| {
+            .map(|(_, name, value)| {
                 let variant_ident = format_ident!("{name}");
 
-                quote! {
-                    Self::#variant_ident => #d as #repr_type_ident,
+                match value {
+                    VariantValue::Literal(l) => {
+                        quote! {
+                            Self::#variant_ident => #l as #repr_type_ident,
+                        }
+                    }
+                    VariantValue::Expr(e) => {
+                        quote! {
+                            Self::#variant_ident => #e as #repr_type_ident,
+                        }
+                    }
                 }
             })
             .collect();
@@ -48,6 +80,8 @@ impl EnumInfo {
                   write!(f, "{:?}", self)
                 }
             }
+
+            #(#constant_items)*
 
             pub const #enum_size_ident: usize = #enum_size;
 

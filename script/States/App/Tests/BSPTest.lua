@@ -246,14 +246,14 @@ function BSPTest:onInit()
             p1:imuls(1.0 * (1.0 + rng:getExp()))
 
             local lineSegment = LineSegment(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z)
-            BSPDebug.DrawLineSegment(bsp.bsp, lineSegment)
+            bsp.bsp:drawLineSegment(lineSegment, p0)
         end
         local t = Timer.GetElapsed(timer)
         timer:free()
         --bspTimer:free() bspTimer = 0
         --bspFile:close() bspFile = 0
 
-        BSPDebug.PrintRayProfilingData(bsp.bsp, t)
+        bsp.bsp:printRayProfilingData(t)
     end
 
     if false then
@@ -277,7 +277,7 @@ function BSPTest:onInit()
         --bspTimer:free() bspTimer = 0
         --bspFile:close() bspFile = 0
 
-        BSPDebug.PrintSphereProfilingData(bsp.bsp, t)
+        bsp.bsp:printSphereProfilingData(t)
     end
 end
 
@@ -380,17 +380,17 @@ function BSPTest:onDraw()
 
             if Input:isPressed(Button.KeyboardRight) then
                 leafIndex = leafIndex + 1
-                leafNodeRef = BSPDebug.GetLeaf(bsp.bsp, leafIndex)
+                leafNodeRef = bsp.bsp:getLeaf(leafIndex)
             end
             if Input:isPressed(Button.KeyboardLeft) then
                 leafIndex = leafIndex - 1
-                leafNodeRef = BSPDebug.GetLeaf(bsp.bsp, leafIndex)
+                leafNodeRef = bsp.bsp:getLeaf(leafIndex)
             end
 
             RenderState.PushWireframe(false)
             RenderState.PushDepthTest(false)
             RenderState.PushCullFace(CullFace.None)
-            BSPDebug.DrawNode(bsp.bsp, leafNodeRef, Color(1, 1, 1, 0.75))
+            bsp.bsp:drawNode(leafNodeRef, Color(1, 1, 1, 0.75))
             RenderState.PopCullFace()
             RenderState.PopDepthTest()
             RenderState.PopWireframe()
@@ -409,7 +409,7 @@ function BSPTest:onDraw()
 
                     local p1 = Vec3f(p0.x, p0.y, -2.0)
                     local lineSegment = LineSegment(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z)
-                    BSPDebug.DrawLineSegment(bsp.bsp, lineSegment)
+                    bsp.bsp:drawLineSegment(lineSegment)
                 end
             end
         end
@@ -441,7 +441,7 @@ function BSPTest:onDraw()
                 p1:imuls(1.0 * (1.0 + rng:getExp()))
 
                 local lineSegment = LineSegment(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z)
-                BSPDebug.DrawLineSegment(bsp.bsp, lineSegment)
+                bsp.bsp:drawLineSegment(lineSegment)
             end
 
             if gen.depthMode then
@@ -459,7 +459,7 @@ function BSPTest:onDraw()
                 shader:stop()
             end
 
-            BSPDebug.DrawLineSegment(bsp.bsp, obj.testLineSegment)
+            bsp.bsp:drawLineSegment(obj.testLineSegment)
 
             if gen.depthMode then
                 shader:start()
@@ -486,7 +486,7 @@ function BSPTest:onDraw()
                 local p = rng:getVec3(-1.25, 1.25)
                 sphere.px, sphere.py, sphere.pz = p.x, p.y, p.z
                 sphere.r = rng:getUniformRange(0.05, 0.30)
-                BSPDebug.GetIntersectSphereTriangles(bsp.bsp, sphere, sphereProf)
+                bsp.bsp:getIntersectSphereTriangles(sphere, sphereProf)
             end
 
             local mul = 11
@@ -511,7 +511,7 @@ function BSPTest:onDraw()
             local p = rng:getVec3(-1.25, 1.25)
             sphere.px, sphere.py, sphere.pz = p.x, p.y, p.z
             sphere.r = rng:getUniformRange(0.05, 0.30)
-            BSPDebug.DrawSphere(bsp.bsp, sphere)
+            bsp.bsp:drawSphere(sphere)
 
             RenderState.PushWireframe(false)
             RenderState.PushDepthTest(false)
@@ -531,26 +531,26 @@ function BSPTest:onDraw()
         -- TEST : Visualize the optimized BSP tree
         if bsp.testNumber == 6 then
             if bsp.curNode.index == 0 then
-                bsp.curNode = BSPDebug.GetNode(bsp.bsp, bsp.curNode, BSPNodeRel.Parent)
+                bsp.curNode = bsp.bsp:getNode(bsp.curNode, BSPNodeRel.Parent)
             end
             if Input:isPressed(Button.KeyboardUp) then
-                bsp.curNode = BSPDebug.GetNode(bsp.bsp, bsp.curNode, BSPNodeRel.Parent)
+                bsp.curNode = bsp.bsp:getNode(bsp.curNode, BSPNodeRel.Parent)
             end
             if Input:isPressed(Button.KeyboardLeft) then
-                bsp.curNode = BSPDebug.GetNode(bsp.bsp, bsp.curNode, BSPNodeRel.Back)
+                bsp.curNode = bsp.bsp:getNode(bsp.curNode, BSPNodeRel.Back)
             end
             if Input:isPressed(Button.KeyboardRight) then
-                bsp.curNode = BSPDebug.GetNode(bsp.bsp, bsp.curNode, BSPNodeRel.Front)
+                bsp.curNode = bsp.bsp:getNode(bsp.curNode, BSPNodeRel.Front)
             end
 
-            BSPDebug.DrawNodeSplit(bsp.bsp, bsp.curNode)
+            bsp.bsp:drawNodeSplit(bsp.curNode)
 
             local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or math.random())
             local sphere = ffi.new('Sphere')
             local p = rng:getVec3(-1.25, 1.25)
             sphere.px, sphere.py, sphere.pz = p.x, p.y, p.z
             sphere.r = rng:getUniformRange(0.05, 0.30)
-            BSPDebug.DrawSphere(bsp.bsp, sphere)
+            bsp.bsp:drawSphere(sphere)
         end
 
         RenderState.PopDepthTest()
@@ -639,9 +639,6 @@ function BSPTest:onExit()
     local gen = State.gen
     local obj = State.obj
     local bsp = State.bsp
-
-    obj.mesh:free()
-    bsp.bsp:free()
 end
 
 return BSPTest

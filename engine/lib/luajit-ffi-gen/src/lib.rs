@@ -18,8 +18,13 @@ pub(crate) const IDENT: &str = "    ";
 ///
 /// Arguments for `impl` block:
 /// - **name** \[string]: optional object name. If not specified then name is taken from the `impl` definition.
+/// - **forward_decl** \[string]:set user defined list of comma separated type names that should be pre-declared before current type. Used only when **typedef** argument is set.
+/// - **typedef** \[string]: set user defined structure fields. Use '\n' to separate multiple fields.
+/// - **opaque** \[bool]: generate **typedef** C API module structure definition.
 /// - **clone** \[bool]: if true then adds `__call` method to Global Symbol Table section and `clone` method to metatype section. Default: false.
 /// - **lua_ffi** \[bool]: specify if Lua FFI file should be generated or only C API. Default: true.
+/// - **gen_dir** \[string]: folder where generated lua file should be put. Default: ../phx/script/ffi_gen.
+/// - **meta_dir** \[string]: folder where generated lua meta file should be put. Default: ../phx/script/meta.
 ///
 /// Arguments for `enum` block:
 /// - **name** \[string]: optional object name. If not specified then name is taken from the `impl` definition.
@@ -27,6 +32,8 @@ pub(crate) const IDENT: &str = "    ";
 /// - **start_index** \[int]: set starting index for discriminant values. Ignored if enum already has discriminants. Default: 0.
 /// - **lua_ffi** \[bool]: specify if Lua FFI file should be generated or only C API. Default: true.
 /// - **with_impl** \[bool]: specify if enum has connected implementation block. Default: false.
+/// - **gen_dir** \[string]: folder where generated lua file should be put. Default: ../phx/script/ffi_gen.
+/// - **meta_dir** \[string]: folder where generated lua meta file should be put. Default: ../phx/script/meta.
 #[proc_macro_attribute]
 pub fn luajit_ffi(attr_args: TokenStream, input: TokenStream) -> TokenStream {
     let item = parse_macro_input!(input as Item);

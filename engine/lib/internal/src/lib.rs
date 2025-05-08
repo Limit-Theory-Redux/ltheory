@@ -29,35 +29,6 @@ macro_rules! static_string {
 #[macro_export]
 macro_rules! MemNew {
     ($x:ty) => {
-        MemAlloc(std::mem::size_of::<$x>()) as *mut $x
-    };
-}
-
-#[macro_export]
-macro_rules! MemNewZero {
-    ($x:ty) => {
-        MemAllocZero(std::mem::size_of::<$x>()) as *mut $x
-    };
-}
-
-#[macro_export]
-macro_rules! MemNewArray {
-    ($x:ty, $s:expr) => {
-        MemAlloc(std::mem::size_of::<$x>().wrapping_mul($s as usize)) as *mut $x
-    };
-}
-
-#[macro_export]
-macro_rules! MemNewArrayZero {
-    ($x:ty, $s:expr) => {
-        MemAllocZero(std::mem::size_of::<$x>().wrapping_mul($s as usize)) as *mut $x
-    };
-}
-
-#[macro_export]
-macro_rules! MemDelete {
-    ($v:ident) => {
-        $v.drop_in_place();
-        MemFree($v as *mut _)
+        mem_alloc(std::mem::size_of::<$x>()) as *mut $x
     };
 }

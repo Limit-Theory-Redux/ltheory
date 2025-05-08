@@ -63,10 +63,7 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
         glcheck!(gl::LineWidth(2.0f32));
     }
 
-    #[allow(unsafe_code)] // TODO: remove
-    unsafe {
-        RenderState_PushAllDefaults()
-    };
+    RenderState::push_all_defaults();
 }
 
 pub fn resize(width: i32, height: i32) {

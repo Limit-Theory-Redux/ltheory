@@ -15,6 +15,8 @@ const RUST_TO_LUA_TYPE_MAP: &[(&str, &str)] = &[
     ("HmGuiPropertyType", "GuiPropertyType"),
     ("HmGuiPropertyValue", "GuiPropertyValue"),
     ("LayoutType", "GuiLayoutType"),
+    ("BspNodeRel", "BSPNodeRel"),
+    ("BspNodeRef", "BSPNodeRef"),
 ];
 
 // TODO: find out different way to mark types as copyable
@@ -70,6 +72,9 @@ const COPY_TYPES: &[&str] = &[
     "Worker",
     "Metric",
     "CubeFace",
+    "BlendMode",
+    "CullFace",
+    "BspNodeRel",
 ];
 
 #[derive(Debug, PartialEq)]

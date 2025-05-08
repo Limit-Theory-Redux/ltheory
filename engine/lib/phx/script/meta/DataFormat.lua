@@ -10,13 +10,13 @@
 ---@field U32 integer 
 ---@field Float integer 
 DataFormat = {
-    I8 = 5120,
-    U8 = 5121,
-    I16 = 5122,
-    U16 = 5123,
-    I32 = 5124,
-    U32 = 5125,
-    Float = 5126,
+    I8 = 0, -- gl::BYTE
+    U8 = 1, -- gl::UNSIGNED_BYTE
+    I16 = 2, -- gl::SHORT
+    U16 = 3, -- gl::UNSIGNED_SHORT
+    I32 = 4, -- gl::INT
+    U32 = 5, -- gl::UNSIGNED_INT
+    Float = 6, -- gl::FLOAT
 }
 
 -- Size in bytes of single element

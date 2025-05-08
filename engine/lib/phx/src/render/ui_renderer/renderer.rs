@@ -1,4 +1,4 @@
-use glam::{IVec2, Vec2};
+use glam::Vec2;
 
 use super::image::UIRendererImage;
 use super::layer::UIRendererLayer;
@@ -6,10 +6,7 @@ use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
 use super::text::UIRendererText;
 use super::UIRendererLayerId;
-use crate::render::{
-    BlendMode, Color, Font, RenderState_PopBlendMode, RenderState_PushBlendMode, Shader, Tex2D,
-    Viewport_GetSize,
-};
+use crate::render::{BlendMode, Color, Font, RenderState, Shader, Tex2D, Viewport};
 
 pub struct UIRenderer {
     panel_shader: Shader,
@@ -49,11 +46,7 @@ impl UIRenderer {
         self.rects.clear();
         self.texts.clear();
 
-        let mut vp = IVec2::ZERO;
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            Viewport_GetSize(&mut vp);
-        }
+        let vp = Viewport::get_size();
 
         self.begin_layer(Vec2::ZERO, Vec2::new(vp.x as f32, vp.y as f32), true);
     }
@@ -63,10 +56,7 @@ impl UIRenderer {
     }
 
     pub fn draw(&mut self) {
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PushBlendMode(BlendMode::Alpha);
-        }
+        RenderState::push_blend_mode(BlendMode::Alpha);
 
         if let Some(root) = self.layers.first() {
             root.draw(
@@ -83,10 +73,7 @@ impl UIRenderer {
             unreachable!("No layers defined");
         }
 
-        #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            RenderState_PopBlendMode();
-        }
+        RenderState::pop_blend_mode();
     }
 
     pub fn begin_layer(&mut self, pos: Vec2, size: Vec2, clip: bool) {

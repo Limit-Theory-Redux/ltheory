@@ -7,9 +7,9 @@
 ---@field MirrorRepeat integer 
 ---@field Repeat integer 
 TexWrapMode = {
-    Clamp = 33071,
-    MirrorClamp = 34627,
-    MirrorRepeat = 33648,
-    Repeat = 10497,
+    Clamp = 0, -- gl::CLAMP_TO_EDGE
+    MirrorClamp = 1, -- gl::MIRROR_CLAMP_TO_EDGE
+    MirrorRepeat = 2, -- gl::MIRRORED_REPEAT
+    Repeat = 3, -- gl::REPEAT
 }
 

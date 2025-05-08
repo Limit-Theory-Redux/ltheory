@@ -101,10 +101,6 @@ impl Tex3D {
 impl Tex3D {
     #[bind(name = "Create")]
     pub fn new(sx: i32, sy: i32, sz: i32, format: TexFormat) -> Tex3D {
-        if !TexFormat::is_valid(format) {
-            panic!("Invalid texture format requested");
-        }
-
         if TexFormat::is_depth(format) {
             panic!("Cannot create 3D texture with depth format");
         }

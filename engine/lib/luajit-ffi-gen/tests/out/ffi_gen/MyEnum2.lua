@@ -4,7 +4,7 @@ local Loader = {}
 
 function Loader.declareType()
     ffi.cdef [[
-        typedef uint32 MyEnum2;
+        typedef uint8 MyEnum2;
     ]]
 
     return 2, 'MyEnum2'

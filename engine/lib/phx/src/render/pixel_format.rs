@@ -1,13 +1,15 @@
-#[luajit_ffi_gen::luajit_ffi(with_impl = true)]
+use super::gl;
+
+#[luajit_ffi_gen::luajit_ffi(with_impl = true, repr = "u32")]
 #[derive(Debug, Clone, Copy)]
 pub enum PixelFormat {
-    DepthComponent = 0x1902, // gl::DEPTH_COMPONENT
-    Red = 0x1903,            // gl::RED
-    RGB = 0x1907,            // gl::RGB
-    RGBA = 0x1908,           // gl::RGBA
-    BGR = 0x80E0,            // gl::BGR
-    BGRA = 0x80E1,           // gl::BGRA
-    RG = 0x8227,             // gl::RG
+    DepthComponent = gl::DEPTH_COMPONENT,
+    Red = gl::RED,
+    RGB = gl::RGB,
+    RGBA = gl::RGBA,
+    BGR = gl::BGR,
+    BGRA = gl::BGRA,
+    RG = gl::RG,
 }
 
 #[luajit_ffi_gen::luajit_ffi]

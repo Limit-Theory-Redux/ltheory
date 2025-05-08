@@ -3,7 +3,7 @@ use super::{GamepadAxis, GamepadButton, KeyboardButton, MouseControl, SystemEven
 macro_rules! buttons {
     ($($device_name:ident($as_func:ident): [$($(#[doc = $doc:expr])*($button_item:ident, $device_item:ident),)+])+) => {
         #[luajit_ffi_gen::luajit_ffi]
-        #[derive(Debug)]
+        #[derive(Debug, Clone, Copy)]
         pub enum Button {
             $(
                 $(

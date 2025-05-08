@@ -1,11 +1,11 @@
 use proc_macro2::Span;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::parse::Result;
 use syn::spanned::Spanned;
-use syn::{Attribute, Error, Expr, ExprLit, Fields, ItemEnum, Lit, Variant};
+use syn::{Attribute, Error, Expr, ExprLit, ExprPath, Fields, ItemEnum, Lit, Variant};
 
-use super::variants_info::VariantsInfo;
-use super::*;
+use super::variants_info::{VariantValue, VariantsInfo};
+use super::EnumInfo;
 use crate::util::parse_doc_attrs;
 
 impl EnumInfo {
@@ -36,20 +36,35 @@ fn parse_variants(
         if variant.fields != Fields::Unit {
             return Err(Error::new(
                 variant.span(),
-                "expected unit enumeration variant",
+                format!(
+                    "expected unit enumeration variant but was {:?}",
+                    variant.fields
+                ),
             ));
         }
 
         let docs = parse_doc_attrs(&variant.attrs)?;
 
         let discriminant = if let Some((_, expr)) = &variant.discriminant {
-            if let Expr::Lit(ExprLit { lit, .. }) = expr {
-                match lit {
-                    Lit::Int(i) => Some(i.base10_parse::<u64>()?),
-                    _ => return Err(Error::new(lit.span(), "expected integer discriminant")),
+            match expr {
+                Expr::Lit(ExprLit { lit, .. }) => match lit {
+                    Lit::Int(i) => Some(VariantValue::Literal(i.base10_parse::<u64>()?)),
+                    _ => {
+                        return Err(Error::new(
+                            lit.span(),
+                            format!("expected integer discriminant but was {lit:?}"),
+                        ))
+                    }
+                },
+                Expr::Path(ExprPath { path, .. }) => {
+                    Some(VariantValue::Expr(path.to_token_stream()))
                 }
-            } else {
-                return Err(Error::new(expr.span(), "expected literal discriminant"));
+                _ => {
+                    return Err(Error::new(
+                        expr.span(),
+                        format!("expected literal or expression discriminant but was {expr:?}"),
+                    ));
+                }
             }
         } else {
             None
@@ -60,7 +75,10 @@ fn parse_variants(
         res.push((docs, name, discriminant));
     }
 
-    let discriminants: Vec<_> = res.iter().filter_map(|(_, _, index)| *index).collect();
+    let discriminants: Vec<_> = res
+        .iter()
+        .filter_map(|(_, _, index)| index.to_owned())
+        .collect();
 
     if discriminants.is_empty() {
         Ok(VariantsInfo::Simple(
@@ -75,7 +93,7 @@ fn parse_variants(
         let values = res
             .into_iter()
             .zip(discriminants)
-            .map(|((doc, name, _), d)| (doc, name, d))
+            .map(|((doc, name, _), value)| (doc, name, value))
             .collect();
 
         Ok(VariantsInfo::Value(values))

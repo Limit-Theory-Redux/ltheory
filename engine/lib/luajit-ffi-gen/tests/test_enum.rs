@@ -12,15 +12,37 @@ pub enum MyEnum1 {
     Var2,
 }
 
-#[luajit_ffi(
-    repr = "u32",
-    gen_dir = "./tests/out/ffi_gen",
-    meta_dir = "./tests/out/ffi_meta"
-)]
-#[derive(Debug)]
+#[luajit_ffi(gen_dir = "./tests/out/ffi_gen", meta_dir = "./tests/out/ffi_meta")]
+#[derive(Debug, Clone, Copy)]
 pub enum MyEnum2 {
     Var1 = 1,
     Var2 = 3,
+}
+
+const VALUE1: u16 = 101;
+const VALUE2: u16 = 42;
+
+#[luajit_ffi(
+    repr = "u16",
+    gen_dir = "./tests/out/ffi_gen",
+    meta_dir = "./tests/out/ffi_meta"
+)]
+#[derive(Debug, Clone, Copy)]
+pub enum MyEnum3 {
+    Var1 = VALUE1,
+    Var2 = VALUE2,
+}
+
+#[luajit_ffi(
+    repr = "u16",
+    gen_dir = "./tests/out/ffi_gen",
+    meta_dir = "./tests/out/ffi_meta"
+)]
+#[derive(Debug, Clone, Copy)]
+pub enum MyEnum4 {
+    Var1 = VALUE1,
+    Var2 = VALUE2,
+    Var3 = 11,
 }
 
 pub struct EnumTest {
@@ -46,6 +68,11 @@ fn test_enum_to_string() {
 #[test]
 fn test_enum_value() {
     assert_eq!(MyEnum1::Var2.value(), 4);
+}
+
+#[test]
+fn test_enum_expr_value() {
+    assert_eq!(MyEnum4::Var2.value(), VALUE2);
 }
 
 #[test]

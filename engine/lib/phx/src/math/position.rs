@@ -8,7 +8,7 @@ pub const fn position(x: f64, y: f64, z: f64) -> Position {
     Position::new(x, y, z)
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(C)]
 pub struct Position {
     /// The translation component of this position, represented as a double (64-bit) vector.

@@ -41,8 +41,7 @@ impl Draw {
 #[luajit_ffi_gen::luajit_ffi]
 impl Draw {
     pub fn clear(r: f32, g: f32, b: f32, a: f32) {
-        #[allow(unsafe_code)]
-        let status = unsafe { gl::CheckFramebufferStatus(gl::FRAMEBUFFER) };
+        let status = glcheck!(gl::CheckFramebufferStatus(gl::FRAMEBUFFER));
         if status == gl::FRAMEBUFFER_COMPLETE {
             glcheck!(gl::ClearColor(r, g, b, a));
             glcheck!(gl::Clear(gl::COLOR_BUFFER_BIT));

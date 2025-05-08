@@ -10,13 +10,13 @@
 ---@field BGRA integer 
 ---@field RG integer 
 PixelFormat = {
-    DepthComponent = 6402,
-    Red = 6403,
-    RGB = 6407,
-    RGBA = 6408,
-    BGR = 32992,
-    BGRA = 32993,
-    RG = 33319,
+    DepthComponent = 0, -- gl::DEPTH_COMPONENT
+    Red = 1, -- gl::RED
+    RGB = 2, -- gl::RGB
+    RGBA = 3, -- gl::RGBA
+    BGR = 4, -- gl::BGR
+    BGRA = 5, -- gl::BGRA
+    RG = 6, -- gl::RG
 }
 
 ---@param this PixelFormat

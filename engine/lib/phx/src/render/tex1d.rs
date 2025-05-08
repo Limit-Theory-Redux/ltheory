@@ -87,10 +87,6 @@ impl Tex1D {
 impl Tex1D {
     #[bind(name = "Create")]
     pub fn new(size: i32, format: TexFormat) -> Tex1D {
-        if !TexFormat::is_valid(format) {
-            panic!("Invalid texture format requested");
-        }
-
         let mut this = Tex1DShared {
             handle: 0,
             size,
