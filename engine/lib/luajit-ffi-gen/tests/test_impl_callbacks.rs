@@ -169,6 +169,7 @@ fn test_primitives() {
         }
     }
 
+    #[allow(static_mut_refs)]
     unsafe {
         CallbackTest_InsertPrimitive(&mut t, add_1);
         CallbackTest_InsertPrimitive(&mut t, add_2);
@@ -257,6 +258,7 @@ fn test_managed() {
         }
     }
 
+    #[allow(static_mut_refs)]
     unsafe {
         CallbackTest_InsertManaged(&mut t, add_1);
         CallbackTest_InsertManaged(&mut t, add_2);
@@ -309,6 +311,7 @@ fn test_primitive_arrays() {
         }
     }
 
+    #[allow(static_mut_refs)]
     unsafe {
         t.val_primitives = vec![1.0, 2.0, 3.0];
 
@@ -340,6 +343,7 @@ fn test_managed_arrays() {
         }
     }
 
+    #[allow(static_mut_refs)]
     unsafe {
         t.val_managed = vec![
             ManagedData::new(1),
@@ -374,6 +378,7 @@ fn test_strings() {
     static mut STORAGE: Option<CString> = None;
 
     extern "C" fn str_to_uppercase(ptr: *const i8) -> *const i8 {
+        #[allow(static_mut_refs)]
         unsafe {
             let s = CStr::from_ptr(ptr).to_str().unwrap().to_ascii_uppercase();
             STORAGE = Some(CString::new(s).unwrap());
