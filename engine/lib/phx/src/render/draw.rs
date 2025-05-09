@@ -3,8 +3,8 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 use glam::{Vec2, Vec3};
 use tracing::warn;
 
-use super::{gl, Color, PrimitiveBuilder, PrimitiveType};
-use crate::math::{reject_vec3, Box3};
+use super::{Color, PrimitiveBuilder, PrimitiveType, gl};
+use crate::math::{Box3, reject_vec3};
 use crate::render::glcheck;
 use crate::system::Metric;
 
@@ -462,13 +462,27 @@ impl Draw {
 fn framebuffer_status_to_str(status: gl::types::GLenum) -> &'static str {
     match status {
         gl::FRAMEBUFFER_COMPLETE => "framebuffer is complete",
-        gl::FRAMEBUFFER_UNDEFINED => "the specified framebuffer is the default read or draw framebuffer, but the default framebuffer does not exist",
-        gl::FRAMEBUFFER_INCOMPLETE_ATTACHMENT => "any of the framebuffer attachment points are framebuffer incomplete",
-        gl::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT => "the framebuffer does not have at least one image attached to it",
-        gl::FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER => "the value of GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is GL_NONE for any color attachment point(s) named by GL_DRAW_BUFFERi",
-        gl::FRAMEBUFFER_INCOMPLETE_READ_BUFFER => "GL_READ_BUFFER is not GL_NONE and the value of GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is GL_NONE for the color attachment point named by GL_READ_BUFFER",
-        gl::FRAMEBUFFER_UNSUPPORTED => "the combination of internal formats of the attached images violates an implementation-dependent set of restrictions",
-        gl::FRAMEBUFFER_INCOMPLETE_MULTISAMPLE => "the value of GL_RENDERBUFFER_SAMPLES is not the same for all attached renderbuffers; if the value of GL_TEXTURE_SAMPLES is the not same for all attached textures; or, if the attached images are a mix of renderbuffers and textures, the value of GL_RENDERBUFFER_SAMPLES does not match the value of GL_TEXTURE_SAMPLES. Also returned if the value of GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not the same for all attached textures; or, if the attached images are a mix of renderbuffers and textures, the value of GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not GL_TRUE for all attached textures",
+        gl::FRAMEBUFFER_UNDEFINED => {
+            "the specified framebuffer is the default read or draw framebuffer, but the default framebuffer does not exist"
+        }
+        gl::FRAMEBUFFER_INCOMPLETE_ATTACHMENT => {
+            "any of the framebuffer attachment points are framebuffer incomplete"
+        }
+        gl::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT => {
+            "the framebuffer does not have at least one image attached to it"
+        }
+        gl::FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER => {
+            "the value of GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is GL_NONE for any color attachment point(s) named by GL_DRAW_BUFFERi"
+        }
+        gl::FRAMEBUFFER_INCOMPLETE_READ_BUFFER => {
+            "GL_READ_BUFFER is not GL_NONE and the value of GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is GL_NONE for the color attachment point named by GL_READ_BUFFER"
+        }
+        gl::FRAMEBUFFER_UNSUPPORTED => {
+            "the combination of internal formats of the attached images violates an implementation-dependent set of restrictions"
+        }
+        gl::FRAMEBUFFER_INCOMPLETE_MULTISAMPLE => {
+            "the value of GL_RENDERBUFFER_SAMPLES is not the same for all attached renderbuffers; if the value of GL_TEXTURE_SAMPLES is the not same for all attached textures; or, if the attached images are a mix of renderbuffers and textures, the value of GL_RENDERBUFFER_SAMPLES does not match the value of GL_TEXTURE_SAMPLES. Also returned if the value of GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not the same for all attached textures; or, if the attached images are a mix of renderbuffers and textures, the value of GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not GL_TRUE for all attached textures"
+        }
         // gl::FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS => "any framebuffer attachment is layered, and any populated attachment is not layered, or if all populated color attachments are not from textures of the same target",
         _ => "Unknown",
     }

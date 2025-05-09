@@ -69,9 +69,9 @@ mod tests {
         assert_eq!(
             (widget.pos, widget.size, widget.inner_size),
             (
-                Vec2::new(expected.1 .0, expected.1 .1),
-                Vec2::new(expected.2 .0, expected.2 .1),
-                Vec2::new(expected.3 .0, expected.3 .1)
+                Vec2::new(expected.1.0, expected.1.1),
+                Vec2::new(expected.2.0, expected.2.1),
+                Vec2::new(expected.3.0, expected.3.1)
             ),
             "[{}] - Wrong widget position, outer or inner sizes",
             expected.0

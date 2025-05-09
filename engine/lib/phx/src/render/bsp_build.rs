@@ -1,6 +1,6 @@
 use glam::Vec3;
 
-use crate::math::{lerp, Plane, Polygon, PolygonClassification, Rng};
+use crate::math::{Plane, Polygon, PolygonClassification, Rng, lerp};
 
 pub(super) struct BspBuild {
     // pub root_node: Option<BSPBuildNode>,

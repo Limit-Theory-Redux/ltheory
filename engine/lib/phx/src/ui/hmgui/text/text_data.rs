@@ -1,9 +1,9 @@
 use glam::Vec2;
+use parley::Layout;
 use parley::layout::{Alignment, GlyphRun};
 use parley::style::StyleProperty;
-use parley::Layout;
-use swash::scale::ScaleContext;
 use swash::FontRef;
+use swash::scale::ScaleContext;
 
 use super::text_render::render_glyph;
 use super::{

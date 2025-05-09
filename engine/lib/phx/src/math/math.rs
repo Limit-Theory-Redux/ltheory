@@ -1,7 +1,7 @@
 // Re-export glam types.
 pub use glam::{
-    dvec2, dvec3, dvec4, ivec2, ivec3, ivec4, vec2, vec3, vec4, DVec2, DVec3, DVec4, IVec2, IVec3,
-    IVec4, Vec2, Vec3, Vec4,
+    DVec2, DVec3, DVec4, IVec2, IVec3, IVec4, Vec2, Vec3, Vec4, dvec2, dvec3, dvec4, ivec2, ivec3,
+    ivec4, vec2, vec3, vec4,
 };
 
 use super::lerp;
@@ -34,11 +34,7 @@ impl Math {
     }
 
     pub fn clamp_safe(x: f64, a: f64, b: f64) -> f64 {
-        if b < a {
-            x.clamp(b, a)
-        } else {
-            x.clamp(a, b)
-        }
+        if b < a { x.clamp(b, a) } else { x.clamp(a, b) }
     }
 
     pub fn clamp_unit(x: f64) -> f64 {

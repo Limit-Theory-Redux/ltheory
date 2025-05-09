@@ -2,11 +2,11 @@ use glam::{Vec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{
-    ClipRect, CubeFace, DataFormat, Draw, PixelFormat, RenderTarget, ShaderState, Tex2D, TexFilter,
-    TexFormat, CUBE_FACES,
+    CUBE_FACES, ClipRect, CubeFace, DataFormat, Draw, PixelFormat, RenderTarget, ShaderState,
+    Tex2D, TexFilter, TexFormat,
 };
 use crate::math::Rng;
-use crate::render::{gl, glcheck, RenderState, Shader};
+use crate::render::{RenderState, Shader, gl, glcheck};
 use crate::rf::Rf;
 use crate::system::{Bytes, TimeStamp};
 

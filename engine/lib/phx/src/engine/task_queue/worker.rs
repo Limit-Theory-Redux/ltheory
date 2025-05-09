@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use crossbeam::channel::{unbounded, Receiver, RecvTimeoutError, Sender};
+use crossbeam::channel::{Receiver, RecvTimeoutError, Sender, unbounded};
 use tracing::debug;
 
 use super::{TaskId, TaskQueueError, WorkerInData, WorkerInstance, WorkerOutData};
@@ -118,7 +118,7 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
                         RecvTimeoutError::Disconnected => {
                             return Err(TaskQueueError::ThreadError(format!(
                                 "Worker {worker_name:?} is disconnected"
-                            )))
+                            )));
                         }
                     },
                 }
@@ -216,7 +216,7 @@ mod tests {
 
     use test_log::test;
 
-    use super::{Worker, RECEIVE_TIMEOUT};
+    use super::{RECEIVE_TIMEOUT, Worker};
     use crate::engine::WorkerBase;
 
     #[test]
