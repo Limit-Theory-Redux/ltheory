@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
-use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4, IVec2, IVec3, IVec4, Vec2, Vec3, Vec4};
+use glam::{IVec2, IVec3, IVec4, Vec2, Vec3, Vec4, ivec2, ivec3, ivec4, vec2, vec3, vec4};
 use tracing::warn;
 
 use super::{Tex1D, Tex2D, Tex3D, TexCube};

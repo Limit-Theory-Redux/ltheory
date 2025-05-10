@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::mem::size_of;
 
-use glam::{vec3, vec4, Vec3, Vec4};
+use glam::{Vec3, Vec4, vec3, vec4};
 
 use super::gl;
 use crate::render::glcheck;
