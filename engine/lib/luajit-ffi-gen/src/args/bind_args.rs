@@ -124,7 +124,7 @@ impl Parse for BindArgs {
                         param.name.span(),
                         "expected bind attribute parameter: name, role, lua_ffi, out_param"
                             .to_string(),
-                    ))
+                    ));
                 }
             }
         }

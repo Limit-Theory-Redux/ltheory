@@ -6,8 +6,8 @@ use std::ffi::{CStr, CString};
 use std::ptr::addr_of_mut;
 
 use freetype_sys::{
-    FT_Face, FT_Get_Char_Index, FT_Get_Kerning, FT_Init_FreeType, FT_Library, FT_Load_Glyph,
-    FT_New_Face, FT_Set_Pixel_Sizes, FT_Vector, FT_KERNING_DEFAULT,
+    FT_Face, FT_Get_Char_Index, FT_Get_Kerning, FT_Init_FreeType, FT_KERNING_DEFAULT, FT_Library,
+    FT_Load_Glyph, FT_New_Face, FT_Set_Pixel_Sizes, FT_Vector,
 };
 use glam::{IVec2, IVec4, Vec4};
 
@@ -15,7 +15,7 @@ use super::{
     BlendMode, Color, DataFormat, Draw, PixelFormat, RenderState, Shader, Tex2D, TexFormat,
 };
 use crate::rf::Rf;
-use crate::system::{Profiler, ResourceType, Resource_GetPath};
+use crate::system::{Profiler, Resource_GetPath, ResourceType};
 
 /* TODO : Re-implement UTF-8 support */
 /* TODO : Atlas instead of individual textures. */

@@ -1,9 +1,9 @@
-use super::variants_info::VariantValue;
 use super::EnumInfo;
+use super::variants_info::VariantValue;
+use crate::IDENT;
 use crate::args::EnumAttrArgs;
 use crate::ffi_generator::FFIGenerator;
 use crate::impl_item::TypeVariant;
-use crate::IDENT;
 
 impl EnumInfo {
     /// Generate Lua FFI file

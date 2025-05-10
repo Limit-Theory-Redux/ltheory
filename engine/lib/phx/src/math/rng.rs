@@ -210,11 +210,7 @@ impl Rng {
     }
 
     pub fn get_sign(&mut self) -> f64 {
-        if self.get_uniform() > 0.5 {
-            1.0
-        } else {
-            -1.0
-        }
+        if self.get_uniform() > 0.5 { 1.0 } else { -1.0 }
     }
 
     #[bind(out_param = true)]

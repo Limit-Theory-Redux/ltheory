@@ -15,8 +15,8 @@ use winit::dpi::{LogicalSize, PhysicalPosition};
 use winit::monitor::MonitorHandle;
 
 use super::{
-    glutin_render, CursorGrabMode, PresentMode, Window, WindowMode, WindowPosition,
-    WindowResolution,
+    CursorGrabMode, PresentMode, Window, WindowMode, WindowPosition, WindowResolution,
+    glutin_render,
 };
 
 // TODO: Add GlStateManager with state: Option<GlState> field to avoid std::mem::replace
@@ -401,7 +401,9 @@ pub fn winit_window_position(
             let maybe_monitor = match monitor_selection {
                 Current => {
                     if current_monitor.is_none() {
-                        warn!("Can't select current monitor on window creation or cannot find current monitor!");
+                        warn!(
+                            "Can't select current monitor on window creation or cannot find current monitor!"
+                        );
                     }
                     current_monitor
                 }

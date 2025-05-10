@@ -20,11 +20,7 @@ impl Quat {
         } else {
             0.0
         };
-        if value < 0.0 {
-            -self.0
-        } else {
-            self.0
-        }
+        if value < 0.0 { -self.0 } else { self.0 }
     }
 
     fn _get_axis_x(&self) -> Vec3 {

@@ -1,7 +1,7 @@
 use glam::{Mat3, Mat4, Quat, Vec3, Vec4};
 use tracing::info;
 
-use super::{approximately_equal, Box3};
+use super::{Box3, approximately_equal};
 
 // glam::Mat4 is a column-major matrix.
 #[derive(Clone)]

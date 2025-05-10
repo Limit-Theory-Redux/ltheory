@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use kira::sound::static_sound::StaticSoundHandle;
+use kira::StartTime;
 use kira::sound::PlaybackState;
+use kira::sound::static_sound::StaticSoundHandle;
 use kira::spatial::emitter::EmitterHandle;
 use kira::tween::{Easing, Tween};
-use kira::StartTime;
 
 use crate::math::Position;
 

@@ -1,8 +1,8 @@
 use std::io::{Cursor, Read, Write};
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use flate2::write::{ZlibDecoder, ZlibEncoder};
 use flate2::Compression;
+use flate2::write::{ZlibDecoder, ZlibEncoder};
 
 use super::File;
 

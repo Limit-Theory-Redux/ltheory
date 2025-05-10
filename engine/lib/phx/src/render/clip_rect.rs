@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use crate::render::{gl, glcheck, Viewport};
+use crate::render::{Viewport, gl, glcheck};
 
 const MAX_STACK_DEPTH: usize = 128;
 

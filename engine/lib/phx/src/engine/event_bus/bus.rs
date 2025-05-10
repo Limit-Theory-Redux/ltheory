@@ -1,5 +1,5 @@
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use strum::IntoEnumIterator;
@@ -204,7 +204,9 @@ impl EventBus {
         match self.event_messages.entry(event_id) {
             Entry::Occupied(_) => {
                 // TODO: panic?
-                warn!("You are trying to register an Event '{event_name}':{event_id} that already exists - Aborting!");
+                warn!(
+                    "You are trying to register an Event '{event_name}':{event_id} that already exists - Aborting!"
+                );
             }
             Entry::Vacant(entry) => {
                 let event_message =

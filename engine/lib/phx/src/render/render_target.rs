@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
-use super::{gl, CubeFace, Tex2D, Tex3D, TexCube, TexFormat};
-use crate::render::{glcheck, Viewport};
+use super::{CubeFace, Tex2D, Tex3D, TexCube, TexFormat, gl};
+use crate::render::{Viewport, glcheck};
 use crate::system::{Metric, Profiler};
 
 pub struct RenderTarget;

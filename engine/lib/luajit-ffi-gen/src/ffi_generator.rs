@@ -444,7 +444,9 @@ fn from_env_or_default(env_var: &str, def_value: &str) -> String {
         }
         Err(VarError::NotPresent) => def_value.into(),
         Err(err) => {
-            println!("Cannot read '{env_var}' environment variable. Use default value: {def_value}. Error: {err}");
+            println!(
+                "Cannot read '{env_var}' environment variable. Use default value: {def_value}. Error: {err}"
+            );
 
             def_value.into()
         }

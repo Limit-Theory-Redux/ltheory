@@ -2,9 +2,9 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Ident;
 
+use super::ImplInfo;
 use super::method_info::*;
 use super::type_info::*;
-use super::ImplInfo;
 use crate::args::ImplAttrArgs;
 
 impl ImplInfo {
@@ -24,8 +24,8 @@ impl ImplInfo {
             let module_ident = format_ident!("{}", self.name);
 
             quote! {
-                #[no_mangle]
-                pub extern "C-unwind" fn #free_method_ident(_: Box<#module_ident>) {}
+                #[unsafe(no_mangle)]
+                pub unsafe extern "C-unwind" fn #free_method_ident(_: Box<#module_ident>) {}
             }
         } else {
             quote! {}
@@ -83,7 +83,7 @@ impl ImplInfo {
         let ffi_call_log = quote! {};
 
         quote! {
-            #[no_mangle]
+            #[unsafe(no_mangle)]
             pub unsafe extern "C-unwind" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
                 #ffi_call_log
 

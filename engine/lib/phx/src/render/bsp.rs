@@ -1,7 +1,7 @@
 use glam::Vec3;
 
 use super::{
-    BspBuild, BspBuildNode, BspBuildNodeData, Color, Mesh, PolygonEx, BACK_INDEX, FRONT_INDEX,
+    BACK_INDEX, BspBuild, BspBuildNode, BspBuildNodeData, Color, FRONT_INDEX, Mesh, PolygonEx,
 };
 use crate::logging::warn;
 use crate::math::{Intersect, LineSegment, Plane, Polygon, Position, Ray, Rng, Sphere, Triangle};
@@ -871,14 +871,18 @@ impl Bsp {
         // #if ENABLE_BSP_PROFILING
         //   BSPDebug_PrintProfilingData(self, &self->profilingData.ray, totalTime);
         // #else
-        warn!("BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.");
+        warn!(
+            "BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function."
+        );
     }
 
     pub fn print_sphere_profiling_data(&self, _total_time: f64) {
         // #if ENABLE_BSP_PROFILING
         //     BSPDebug_PrintProfilingData(self, &self->profilingData.sphere, totalTime);
         // #else
-        warn!("BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.");
+        warn!(
+            "BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function."
+        );
     }
 
     pub fn get_intersect_sphere_triangles(

@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 
-use glam::{vec3, IVec2, Mat4};
+use glam::{IVec2, Mat4, vec3};
 
-use crate::render::{gl, glcheck, ShaderVar};
+use crate::render::{ShaderVar, gl, glcheck};
 
 /* TODO : This is a low-level mechanism and probably not for use outside of
  *        RenderTarget. Should likely be folded into RenderTarget. */

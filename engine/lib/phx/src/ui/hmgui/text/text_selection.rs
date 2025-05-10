@@ -316,11 +316,7 @@ impl TextSelection {
             let offset = self.end() - line_end;
             let pos = line_start + offset.min(line_end - line_start);
 
-            if pos == line_end {
-                pos - 1
-            } else {
-                pos
-            }
+            if pos == line_end { pos - 1 } else { pos }
         } else {
             0
         };
@@ -341,11 +337,7 @@ impl TextSelection {
             let offset = self.end() - cur_line_start;
             let pos = line_start + offset.min(line_end - line_start);
 
-            if pos == line_end {
-                pos - 1
-            } else {
-                pos
-            }
+            if pos == line_end { pos - 1 } else { pos }
         } else {
             text.len()
         };

@@ -1,11 +1,11 @@
 use proc_macro2::Span;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::parse::Result;
 use syn::spanned::Spanned;
 use syn::{Attribute, Error, Expr, ExprLit, ExprPath, Fields, ItemEnum, Lit, Variant};
 
-use super::variants_info::{VariantValue, VariantsInfo};
 use super::EnumInfo;
+use super::variants_info::{VariantValue, VariantsInfo};
 use crate::util::parse_doc_attrs;
 
 impl EnumInfo {
@@ -53,7 +53,7 @@ fn parse_variants(
                         return Err(Error::new(
                             lit.span(),
                             format!("expected integer discriminant but was {lit:?}"),
-                        ))
+                        ));
                     }
                 },
                 Expr::Path(ExprPath { path, .. }) => {

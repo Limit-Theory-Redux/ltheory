@@ -51,7 +51,7 @@ const ERROR_VERT_NORM: Error = 0x00800000;
 const ERROR_VERT_UV: Error = 0x01000000;
 
 #[allow(unsafe_code)] // TODO: remove
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Error_Print(e: Error) {
     if e == ERROR_NONE {
         error!("None!");

@@ -4,12 +4,12 @@ use clap::Parser;
 
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub static NvOptimusEnablement: std::os::raw::c_ulong = 0x00000001;
 
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub static AmdPowerXpressRequestHighPerformance: std::os::raw::c_int = 1;
 
 const BUILD_TIME: &str = build_time::build_time_utc!("%Y-%m-%d / %H:%M:%S UTC");
@@ -36,7 +36,8 @@ struct Cli {
 
 #[cfg_attr(not(windows), link(name = "phx", kind = "dylib"))]
 #[cfg_attr(windows, link(name = "phx.dll", kind = "dylib"))]
-extern "C" {
+#[allow(unsafe_code)]
+unsafe extern "C" {
     fn Engine_Entry(
         entry_point: *const libc::c_char,
         app_name: *const libc::c_char,
@@ -68,12 +69,12 @@ pub fn main() {
         .expect("Failed to convert log_dir argument into CString.")
         .into_raw();
 
-    if cli.no_color {
-        std::env::set_var("NO_COLOR", "1");
-    }
-
     #[allow(unsafe_code)] // TODO: remove
     unsafe {
+        if cli.no_color {
+            std::env::set_var("NO_COLOR", "1");
+        }
+
         Engine_Entry(
             entry_point as *const libc::c_char,
             app_name as *const libc::c_char,

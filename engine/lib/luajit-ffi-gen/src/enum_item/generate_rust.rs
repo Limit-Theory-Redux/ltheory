@@ -18,9 +18,9 @@ impl EnumInfo {
             .map(|(_, variant_name, _)| {
                 let mangle_ident = if let Some(enum_name) = attr_args.name() {
                     let export_name = format!("{enum_name}_{variant_name}");
-                    quote!(#[export_name = #export_name])
+                    quote!(#[unsafe(export_name = #export_name)])
                 } else {
-                    quote!(#[no_mangle])
+                    quote!(#[unsafe(no_mangle)])
                 };
                 let const_ident = format_ident!("{}_{variant_name}", self.name);
                 let variant_ident = format_ident!("{variant_name}");
@@ -58,9 +58,9 @@ impl EnumInfo {
 
         let to_string_mangle = if let Some(enum_name) = attr_args.name() {
             let export_name = format!("{enum_name}_ToString");
-            quote!(#[export_name = #export_name])
+            quote!(#[unsafe(export_name = #export_name)])
         } else {
-            quote!(#[no_mangle])
+            quote!(#[unsafe(no_mangle)])
         };
         let to_string_c_ident = format_ident!("{}_ToString", self.name);
 
