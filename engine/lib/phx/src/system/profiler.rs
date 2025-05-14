@@ -5,7 +5,7 @@ use cli_table::{Cell, Style, Table};
 use indexmap::IndexMap;
 use tracing::{error, info, warn};
 
-use super::{signal_add_handler_all, signal_remove_handler_all, Signal, TimeStamp};
+use super::{Signal, TimeStamp, signal_add_handler_all, signal_remove_handler_all};
 
 const MAX_SCOPE_STACK_SIZE: usize = 128;
 
@@ -84,7 +84,10 @@ impl Profiler {
     pub fn disable() {
         let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         if profiler.stack.len() > 1 {
-            panic!("Profiler::disable: Cannot stop profiler from within a profiled section. Active scope(s): {:?}", profiler.stack);
+            panic!(
+                "Profiler::disable: Cannot stop profiler from within a profiled section. Active scope(s): {:?}",
+                profiler.stack
+            );
         }
 
         Self::end_intern(&mut profiler, true);

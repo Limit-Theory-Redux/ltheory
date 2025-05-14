@@ -1,6 +1,6 @@
 [package]
 name = "phx"
-rust-version = "1.80"
+rust-version = "1.86"
 
 version.workspace = true
 authors.workspace = true
@@ -24,7 +24,7 @@ arboard = "3.4"
 chrono = "0.4"
 cli-table = { version = "0.4", default-features = false }
 crossbeam = "0.8"
-directories = "5.0"
+directories = "6.0"
 flate2 = "1.0"
 freetype-sys = "0.20"
 gilrs = "0.11"
@@ -38,21 +38,21 @@ libc = "0.2"
 memoffset = "0.9"
 mlua = { version = "0.10", features = ["luajit52", "vendored", "error-send"] }
 parley = "0.1"
-swash = "0.1"
+swash = "0.2"
 rapier3d-f64 = { version = "0.22", features = ["simd-stable", "debug-render"] }
 num_cpus = "1.15"
 raw-window-handle = "0.6"
 regex = "1.8"
-rodio = "0.19"
+rodio = "0.20"
 serde_yaml = "0.9"
-thiserror = "1.0"
+thiserror = "2.0"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 winit = "0.30"
 walkdir = "2.4"
-strum = "0.26"
-strum_macros = "0.26"
+strum = "0.27"
+strum_macros = "0.27"
 tobj = "4.0"
 byteorder = "1.5"
 

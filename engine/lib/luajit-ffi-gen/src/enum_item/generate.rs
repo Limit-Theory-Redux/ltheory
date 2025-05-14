@@ -26,7 +26,9 @@ impl EnumInfo {
                 "u8"
             }
         } else {
-            panic!("If non-numeric variant values are used then type representation should be specified explicitly. Example: #[luajit_ffi(repr = \"u16\")]");
+            panic!(
+                "If non-numeric variant values are used then type representation should be specified explicitly. Example: #[luajit_ffi(repr = \"u16\")]"
+            );
         };
         let repr_type_ident = format_ident!("{repr_type}");
 

@@ -3,7 +3,7 @@ use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{DataFormat, Draw, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
 use crate::logging::warn;
-use crate::render::{gl, glcheck, Viewport};
+use crate::render::{Viewport, gl, glcheck};
 use crate::rf::Rf;
 use crate::system::{Bytes, Resource, ResourceType};
 
@@ -392,7 +392,9 @@ impl Tex2D {
         let this = self.shared.as_ref();
 
         if min_level != max_level {
-            warn!("Tex2D_SetMipRange: Setting mip range with min != max; this may fail on old drivers with mip-handling bugs.");
+            warn!(
+                "Tex2D_SetMipRange: Setting mip range with min != max; this may fail on old drivers with mip-handling bugs."
+            );
         }
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
         glcheck!(gl::TexParameteri(

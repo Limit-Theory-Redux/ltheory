@@ -2,6 +2,7 @@ pub mod gl {
     #![allow(clippy::missing_transmute_annotations)] // disable clippy warnings in the generated bindings.rs file
     #![allow(unsafe_code)] // TODO: remove
     #![allow(clippy::unused_unit)]
+    #![allow(unsafe_op_in_unsafe_fn)]
 
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
