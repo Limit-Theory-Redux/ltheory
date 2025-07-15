@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class RigidBodyComponent: Component
 ---@overload fun(self:RigidBodyComponent): RigidBodyComponent subclass internal

@@ -25,7 +25,7 @@ Entity definitions are created as functions that return an Entity instance with 
 Here is how you create a simple entity:
 
 ```lua
-local Entity = require("Entities.Entity")
+local Entity = require("Core.ECS.Entity")
 local Components = require("Components")
 
 ---@param definition ItemDefinition
@@ -52,7 +52,7 @@ They hold minimal game logic, only the most basic data related methods should be
 Here's how you define a component from the component class:
 
 ```lua
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class NameComponent: Component
 ---@overload fun(self: NameComponent, name: string): NameComponent subclass internal
@@ -87,7 +87,7 @@ Lets have a deeper look at the marketplace system:
 
 ```lua
 -- Systems
-local Registry = require("Systems.Storage.Registry")
+local Registry = require("Core.ECS.Registry")
 local InventorySystem = require("Systems.Economy.InventorySystem")
 
 -- Utilities

@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class ExpiryComponent: Component
 ---@overload fun(self: ExpiryComponent, expireAt: TimeStamp|nil): ExpiryComponent subclass internal

@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 --* is type a good naming here or nah?
 

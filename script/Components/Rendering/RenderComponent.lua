@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class RenderComponent: Component
 ---@overload fun(self: RenderComponent, materials: Material[], meshType: MeshType): RenderComponent subclass internal

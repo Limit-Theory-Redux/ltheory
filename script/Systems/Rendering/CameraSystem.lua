@@ -1,5 +1,5 @@
 -- Systems
-local Registry = require("Systems.Storage.Registry")
+local Registry = require("Core.ECS.Registry")
 local Components = require("Components")
 
 -- Utilities
@@ -97,7 +97,7 @@ end
 function CameraSystem:updateProjectionMatrix(resX, resY)
     local mProj = Matrix.Perspective(
         Config.render.camera.fov,
-        resX/resY,
+        resX / resY,
         Config.render.camera.zNear,
         Config.render.camera.zFar
     )
@@ -270,7 +270,6 @@ end
 ---Deprecated function. Only ever set never used.
 ---@deprecated
 function CameraSystem:setViewport(x, y, sx, sy) end
-
 
 -- function CameraSystem:warp() end
 

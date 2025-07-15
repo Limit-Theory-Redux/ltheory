@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class SeedComponent: Component
 ---@overload fun(self:SeedComponent, seed: integer): SeedComponent subclass internal

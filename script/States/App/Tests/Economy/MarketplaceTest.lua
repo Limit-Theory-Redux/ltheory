@@ -1,4 +1,4 @@
-local Registry = require("Systems.Storage.Registry")
+local Registry = require("Core.ECS.Registry")
 local Components = require("Components")
 
 require("Systems.Economy.MarketplaceSystem")

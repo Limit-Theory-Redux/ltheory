@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class OrderStatusComponent: Component
 ---@overload fun(self: OrderStatusComponent, playerId: integer|nil): OrderStatusComponent subclass internal

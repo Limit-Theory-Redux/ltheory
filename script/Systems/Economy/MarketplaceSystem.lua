@@ -1,5 +1,5 @@
 -- Systems
-local Registry = require("Systems.Storage.Registry")
+local Registry = require("Core.ECS.Registry")
 local InventorySystem = require("Systems.Economy.InventorySystem")
 
 -- Components

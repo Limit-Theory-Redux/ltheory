@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class MassComponent: Component
 ---@overload fun(self:MassComponent, mass: number): MassComponent subclass internal

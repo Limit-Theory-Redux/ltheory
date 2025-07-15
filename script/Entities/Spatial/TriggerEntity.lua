@@ -1,4 +1,4 @@
-local Entity = require("Entities.Entity")
+local Entity = require("Core.ECS.Entity")
 local Components = require("Components")
 
 ---@return Entity

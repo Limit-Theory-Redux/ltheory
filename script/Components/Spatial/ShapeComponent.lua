@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class SpatialShapeComponent: Component
 ---@overload fun(self:SpatialShapeComponent): SpatialShapeComponent subclass internal

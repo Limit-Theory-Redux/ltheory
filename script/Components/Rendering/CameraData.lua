@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class CameraDataComponent: Component
 ---@overload fun(self: CameraDataComponent): CameraDataComponent subclass internal

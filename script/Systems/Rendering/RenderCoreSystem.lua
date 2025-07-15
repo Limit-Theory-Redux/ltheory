@@ -1,5 +1,5 @@
 -- Storage
-local Registry = require("Systems.Storage.Registry")
+local Registry = require("Core.ECS.Registry")
 local MeshStorage = require("Systems.Storage.MeshStorage")
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")

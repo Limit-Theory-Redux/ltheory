@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class InventoryComponent: Component
 ---@field items table<integer, table<EntityId, EntityId>>

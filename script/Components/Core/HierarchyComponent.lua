@@ -1,4 +1,4 @@
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 -- Systems
 local Registry = require('Systems.Storage.Registry')

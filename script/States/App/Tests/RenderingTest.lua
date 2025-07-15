@@ -2,7 +2,7 @@
 local Camera = require("Entities.Rendering.Camera")
 local BoxEntity = require("Entities.Debug.BoxEntity")
 -- Storage & Registries
-local Registry = require("Systems.Storage.Registry")
+local Registry = require("Core.ECS.Registry")
 local Materials = require("Shared.Registries.Materials")
 -- Systems
 local CameraSystem = require("Systems.Rendering.CameraSystem")
