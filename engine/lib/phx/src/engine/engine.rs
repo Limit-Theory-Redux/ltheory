@@ -126,7 +126,7 @@ impl Engine {
         let lua_func: Function = lua
             .globals()
             .get(func_name)
-            .unwrap_or_else(|err| panic!("Unknown function {}. Error: {err}", func_name));
+            .unwrap_or_else(|err| panic!("Unknown function {func_name}. Error: {err}"));
         let result = lua_func.call::<()>(());
 
         CURRENT_LUA_CTX.with_borrow_mut(|v| *v = None);

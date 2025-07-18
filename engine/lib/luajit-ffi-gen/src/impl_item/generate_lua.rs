@@ -103,7 +103,7 @@ impl ImplInfo {
                         // If this is a slice or array, we need to additionally generate a "size" parameter.
                         match &param.ty {
                             TypeInfo::Slice { .. } | TypeInfo::Array { .. } => {
-                                params.push(format!("{}_size", ffi_name))
+                                params.push(format!("{ffi_name}_size"))
                             }
                             _ => {}
                         }
@@ -245,18 +245,18 @@ impl ImplInfo {
                                     if !ty.is_copyable(&self.name) && *is_ref == TypeRef::Value {
                                         // If we have a non-copyable type that's not boxed, optional or a ref,
                                         // we don't need to return it as a pointer as it's already a pointer.
-                                        format!("{} out", ret_ffi)
+                                        format!("{ret_ffi} out")
                                     } else {
-                                        format!("{}* out", ret_ffi)
+                                        format!("{ret_ffi}* out")
                                     }
                                 },
                                 _ => {
-                                    format!("{}* out", ret_ffi)
+                                    format!("{ret_ffi}* out")
                                 }
                             }
                         }
                         _ => {
-                            format!("{}* out", ret_ffi)
+                            format!("{ret_ffi}* out")
                         }
                     };
                     params_str.push(ret_param);

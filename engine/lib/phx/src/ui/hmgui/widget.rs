@@ -141,7 +141,7 @@ impl HmGuiWidget {
     pub fn get_container_item_mut(&mut self) -> &mut HmGuiContainer {
         let item_name = self.item.name().to_string();
         let WidgetItem::Container(item) = &mut self.item else {
-            panic!("Expected container but was: {}", item_name)
+            panic!("Expected container but was: {item_name}")
         };
 
         item

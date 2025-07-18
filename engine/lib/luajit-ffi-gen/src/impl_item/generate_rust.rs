@@ -39,7 +39,7 @@ impl ImplInfo {
 
     fn gen_wrapper_fn(&self, module_name: &str, method: &MethodInfo) -> TokenStream {
         let method_name = method.as_ffi_name();
-        let func_name = format!("{module_name}_{}", method_name);
+        let func_name = format!("{module_name}_{method_name}");
         let func_ident = format_ident!("{func_name}");
         let self_ident = format_ident!("{}", self.name);
 
@@ -250,10 +250,7 @@ impl ImplInfo {
                     }
                 },
                 _ => {
-                    panic!(
-                        "Returning a slice, array or function is not supported. {:?}",
-                        ty
-                    )
+                    panic!("Returning a slice, array or function is not supported. {ty:?}")
                 }
             };
 
@@ -349,10 +346,7 @@ impl ImplInfo {
                     quote! { Box<#ty_ident> }
                 }
             },
-            _ => panic!(
-                "Returning a slice, array or function is not supported. {:?}",
-                ty
-            ),
+            _ => panic!("Returning a slice, array or function is not supported. {ty:?}"),
         }
     }
 

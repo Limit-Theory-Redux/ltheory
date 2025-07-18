@@ -252,7 +252,7 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
                 } else {
                     return Err(Error::new(
                         type_path.span(),
-                        format!("unknown type wrapper {}", type_name),
+                        format!("unknown type wrapper {type_name}"),
                     ));
                 }
             } else if let Some(type_params) = generic_types.get(&type_name) {
@@ -347,10 +347,7 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
         }
         _ => Err(Error::new(
             ty.span(),
-            format!(
-                "expected a type, reference to type or mutable reference to type, got {:?}",
-                ty
-            ),
+            format!("expected a type, reference to type or mutable reference to type, got {ty:?}"),
         )),
     }
 }

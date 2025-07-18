@@ -17,19 +17,19 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void       Trigger_Free             (Trigger*);
-            Trigger*   Trigger_CreateBox        (Vec3f const* halfExtents);
-            void       Trigger_Attach           (Trigger*, RigidBody* parent, Vec3f const* offset);
-            void       Trigger_Detach           (Trigger*, RigidBody* parent);
-            void       Trigger_GetBoundingBox   (Trigger const*, Box3f* out);
-            int        Trigger_GetContentsCount (Trigger*);
-            RigidBody* Trigger_GetContents      (Trigger const*, int i);
-            void       Trigger_SetCollisionMask (Trigger*, uint32 mask);
-            void       Trigger_SetPos           (Trigger*, Position const* pos);
-            void       Trigger_SetPosLocal      (Trigger*, Position const* pos);
-            void       Trigger_GetPos           (Trigger const*, Position* out);
-            void       Trigger_GetPosLocal      (Trigger const*, Position* out);
-            RigidBody* Trigger_GetParent        (Trigger*);
+            void             Trigger_Free             (Trigger*);
+            Trigger*         Trigger_CreateBox        (Vec3f const* halfExtents);
+            void             Trigger_Attach           (Trigger*, RigidBody* parent, Vec3f const* offset);
+            void             Trigger_Detach           (Trigger*, RigidBody* parent);
+            void             Trigger_GetBoundingBox   (Trigger const*, Box3f* out);
+            int              Trigger_GetContentsCount (Trigger*);
+            RigidBody const* Trigger_GetContents      (Trigger const*, int i);
+            void             Trigger_SetCollisionMask (Trigger*, uint32 mask);
+            void             Trigger_SetPos           (Trigger*, Position const* pos);
+            void             Trigger_SetPosLocal      (Trigger*, Position const* pos);
+            void             Trigger_GetPos           (Trigger const*, Position* out);
+            void             Trigger_GetPosLocal      (Trigger const*, Position* out);
+            RigidBody*       Trigger_GetParent        (Trigger*);
         ]]
     end
 

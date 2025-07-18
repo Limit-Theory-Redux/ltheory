@@ -262,7 +262,7 @@ impl RigidBody {
         self.triggers.swap_remove(
             self.triggers
                 .iter()
-                .position(|t| t.as_ptr() == trigger as *mut _)
+                .position(|t| std::ptr::eq(t.as_ptr(), trigger))
                 .expect("trigger missing from trigger list"),
         );
     }
@@ -380,10 +380,10 @@ impl RigidBody {
     /// Return a reference to the parent rigid body, that we can guarantee
     /// has a lifetime as long as self.
     #[bind(name = "GetParentBody")]
-    pub fn get_parent(&self) -> Option<&mut RigidBody> {
+    pub fn get_parent(&self) -> Option<&RigidBody> {
         self.parent
             .as_ref()
-            .map(|parent| unsafe { &mut *parent.rigid_body.as_ptr() })
+            .map(|parent| unsafe { &*parent.rigid_body.as_ptr() })
     }
 
     pub fn apply_force(&mut self, force: &Vec3) {
@@ -461,7 +461,7 @@ impl RigidBody {
             panic!("Child is not attached to parent.");
         }
 
-        if child.parent.as_ref().unwrap().rigid_body.as_ptr() != (self as *mut RigidBody) {
+        if !std::ptr::eq(child.parent.as_ref().unwrap().rigid_body.as_ptr(), self) {
             panic!("Child is attached to a different rigid body.");
         }
 
@@ -489,7 +489,7 @@ impl RigidBody {
         self.children.swap_remove(
             self.children
                 .iter()
-                .position(|rb| rb.as_ptr() == child as *mut _)
+                .position(|rb| std::ptr::eq(rb.as_ptr(), child))
                 .expect("child missing from children list"),
         );
         child.parent = None;
