@@ -8,7 +8,7 @@ use gl_generator::{Api, Fallbacks, GlobalGenerator, Profile, Registry};
 
 fn main() {
     let phx_version = env::var("PHX_VERSION").unwrap_or_else(|_| "0.0.0".to_string());
-    println!("cargo::rustc-env=PHX_VERSION={}", phx_version);
+    println!("cargo::rustc-env=PHX_VERSION={phx_version}");
 
     use std::str::FromStr;
 
