@@ -1,27 +1,9 @@
 -- Systems
 local Registry = require("Core.ECS.Registry")
 
--- Entities
 local Entities = loadEntities("CelestialObjects", "Constructs", "Spatial")
 
--- local UniverseEntity = require("Entities.CelestialObjects.UniverseEntity")
--- local StarSystemEntity = require("Entities.CelestialObjects.StarSystemEntity")
--- local StarEntity = require("Entities.CelestialObjects.StarEntity")
--- local AsteroidBeltEntity = require("Entities.CelestialObjects.AsteroidBeltEntity")
--- local AsteroidRingEntity = require("Entities.CelestialObjects.AsteroidRingEntity")
--- local PlanetEntity = require("Entities.CelestialObjects.PlanetEntity")
--- local MoonEntity = require("Entities.CelestialObjects.MoonEntity")
--- local AsteroidEntity = require("Entities.CelestialObjects.AsteroidEntity")
--- local SpaceStationEntity = require("Entities.Constructs.SpaceStationEntity")
--- local SpaceshipEntity = require("Entities.Constructs.SpaceshipEntity")
-
--- local ZoneEntity = require("Entities.Spatial.ZoneEntity")
-
--- Components
 local Components = loadComponents("Core", "Spatial")
-
--- local ShapeComponent = require("Components.Spatial.ShapeComponent")
--- local HierarchyComponent = require("Components.Core.HierarchyComponent")
 
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")

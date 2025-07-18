@@ -2,14 +2,7 @@
 local Registry = require("Core.ECS.Registry")
 local InventorySystem = require("Systems.Economy.InventorySystem")
 
--- Components
 local Components = loadComponents("Economy")
-
--- local MarketplaceComponent = require("Components.Economy.MarketplaceComponent")
--- local OrderItemTypeComponent = require("Components.Economy.OrderItemTypeComponent")
--- local PriceComponent = require("Components.Economy.PriceComponent")
--- local QuantityComponent = require("Components.Economy.QuantityComponent")
--- local InventoryComponent = require("Components.Economy.InventoryComponent")
 
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")

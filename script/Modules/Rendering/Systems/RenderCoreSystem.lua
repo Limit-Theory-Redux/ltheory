@@ -296,7 +296,7 @@ function RenderCoreSystem:onRender(data)
             ShaderVar.Pop('starDir')
             ShaderVar.Pop('envMap')
             ShaderVar.Pop('irMap')
-        ]]                     --
+        ]]--
         CameraSystem:endDraw() -- Pop Camera ShaderVars
     end
 
@@ -362,7 +362,7 @@ function RenderCoreSystem:present(x, y, sx, sy, useMips)
     --[[
         Directly from RenderPipeline.
         Do we ever use MipMap for Rendering?
-    ]] --
+    ]]--
     RenderState.PushAllDefaults()
 
     local shader = Cache.Shader('ui', 'filter/identity')
