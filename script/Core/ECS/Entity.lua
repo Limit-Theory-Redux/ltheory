@@ -1,4 +1,4 @@
-local Registry = require("Core.ECS.Component")
+local Registry = require("Core.ECS.Registry")
 
 ---@class Entity
 ---@field components table<any, ComponentInfo>

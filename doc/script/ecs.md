@@ -26,7 +26,7 @@ Here is how you create a simple entity:
 
 ```lua
 local Entity = require("Core.ECS.Entity")
-local Components = require("Components")
+local Components = loadComponents("Economy", "Physics")
 
 ---@param definition ItemDefinition
 ---@param quantity number
@@ -88,7 +88,7 @@ Lets have a deeper look at the marketplace system:
 ```lua
 -- Systems
 local Registry = require("Core.ECS.Registry")
-local InventorySystem = require("Systems.Economy.InventorySystem")
+local InventorySystem = loadSystems("Economy").InventorySystem
 
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")

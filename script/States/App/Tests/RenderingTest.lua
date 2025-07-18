@@ -1,12 +1,13 @@
--- Entities
-local Camera = require("Entities.Rendering.Camera")
-local BoxEntity = require("Entities.Debug.BoxEntity")
 -- Storage & Registries
 local Registry = require("Core.ECS.Registry")
 local Materials = require("Shared.Registries.Materials")
 -- Systems
-local CameraSystem = require("Systems.Rendering.CameraSystem")
-local Components = require("Components")
+local CameraSystem = loadSystems("Rendering").CameraSystem
+-- Entities
+local Camera = loadEntities("Rendering").CameraEntity
+local BoxEntity = loadEntities("Core").BoxEntity
+-- Components
+local Components = loadComponents("Physics", "Rendering")
 -- Generators
 
 -- Utilities

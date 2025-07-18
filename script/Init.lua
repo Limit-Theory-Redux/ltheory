@@ -61,6 +61,9 @@ Namespace.Inline(Core.Events, 'Legacy.Systems.Events') --* to be replaced by Rus
 ---@type Log
 Log = require('Core.Util.Log')
 
+---- Modules
+require('Core.Module.Load')
+
 ---- Load in FFI
 -- Please note. All of this will need double checking. This is near 1-1 to Josh's.
 -- His Reasoning for using requireAll, Inline, Inject. Is unclear.
