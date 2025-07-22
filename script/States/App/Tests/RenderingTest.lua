@@ -2,10 +2,10 @@
 local Registry = require("Core.ECS.Registry")
 local Materials = require("Shared.Registries.Materials")
 -- Systems
-local CameraSystem = loadSystems("Rendering").CameraSystem
+local CameraSystem = loadModuleSystems("Rendering", "CameraSystem").CameraSystem
 -- Entities
-local Camera = loadEntities("Rendering").CameraEntity
-local BoxEntity = loadEntities("Core").BoxEntity
+local Camera = loadModuleEntities("Rendering", "CameraEntity").CameraEntity
+local BoxEntity = loadModuleEntities("Core", "BoxEntity").BoxEntity
 -- Components
 local Components = loadComponents("Physics", "Rendering")
 -- Generators

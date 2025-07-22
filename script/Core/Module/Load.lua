@@ -1,58 +1,67 @@
 -- TODO: add caching
 
--- Load components of the specified modules in a single list.
--- Returns an error if 2 modules have components with the same name.
-function loadComponents(...)
-    local components = {}
+local function loadAllElements(group, ...)
+    local elements = {}
     for _, module in ipairs({ ... }) do
-        local moduleComponents = requireAll("Modules." .. module .. ".Components")
-        if moduleComponents ~= nil then
-            for k, v in pairs(moduleComponents) do
-                -- if components[k] ~= nil then
-                components[k] = v
+        local moduleElements = requireAll("Modules." .. module .. "." .. group)
+        if moduleElements ~= nil then
+            for k, v in pairs(moduleElements) do
+                -- if elements[k] ~= nil then
+                elements[k] = v
                 -- else
-                --     error("Duplicate component '" .. k .. "' in module '" .. module .. "'")
+                --     error("Duplicate element " .. group .. "/" .. k .. " in module '" .. module .. "'")
                 -- end
             end
         end
     end
-    return components
+    return elements
+end
+
+local function loadModuleElements(module, group, ...)
+    local elements = {}
+    for _, element in ipairs({ ... }) do
+        local moduleElement = require("Modules." .. module .. "." .. group .. "." .. element)
+        -- if elements[element] ~= nil then
+        elements[element] = moduleElement
+        -- else
+        --     error("Duplicate element " .. group .. "/" .. element .. " in module '" .. module .. "'")
+        -- end
+    end
+    return elements
+end
+
+-- Load components of the specified modules in a single list.
+-- Returns an error if 2 modules have components with the same name.
+function loadComponents(...)
+    return loadAllElements("Components", ...)
 end
 
 -- Load entity of the specified modules in a single list.
 -- Returns an error if 2 modules have entities with the same name.
 function loadEntities(...)
-    local entities = {}
-    for _, module in ipairs({ ... }) do
-        local moduleEntities = requireAll("Modules." .. module .. ".Entities")
-        if moduleEntities ~= nil then
-            for k, v in pairs(moduleEntities) do
-                -- if entities[k] ~= nil then
-                entities[k] = v
-                -- else
-                --     error("Duplicate entity '" .. k .. "' in module '" .. module .. "'")
-                -- end
-            end
-        end
-    end
-    return entities
+    return loadAllElements("Entities", ...)
 end
 
 -- Load system of the specified modules in a single list.
 -- Returns an error if 2 modules have systems with the same name.
 function loadSystems(...)
-    local systems = {}
-    for _, module in ipairs({ ... }) do
-        local moduleSystems = requireAll("Modules." .. module .. ".Systems")
-        if moduleSystems ~= nil then
-            for k, v in pairs(moduleSystems) do
-                -- if systems[k] ~= nil then
-                systems[k] = v
-                -- else
-                --     error("Duplicate system '" .. k .. "' in module '" .. module .. "'")
-                -- end
-            end
-        end
-    end
-    return systems
+    return loadAllElements("Systems", ...)
+end
+
+-- Load components of the specified modules in a single list.
+-- Returns an error if 2 modules have components with the same name.
+function loadModuleComponents(module, ...)
+    return loadModuleElements(module, "Components", ...)
+end
+
+-- Load entity of the specified modules in a single list.
+-- Returns an error if 2 modules have entities with the same name.
+function loadModuleEntities(module, ...)
+    return loadModuleElements(module, "Entities", ...)
+end
+
+-- Load system of the specified modules in a single list.
+-- Returns an error if 2 modules have systems with the same name.
+function loadModuleSystems(module, ...)
+    return loadModuleElements(module, "Systems", ...)
 end
