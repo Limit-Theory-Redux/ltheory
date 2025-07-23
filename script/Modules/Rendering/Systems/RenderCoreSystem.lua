@@ -5,7 +5,7 @@ local MeshStorage = require("Core.ECS.MeshStorage")
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 -- Rendering
 local RenderingPass = require("Shared.Rendering.RenderingPass")
-local CameraSystem = loadModuleSystems("Rendering", "CameraSystem").CameraSystem
+local CameraSystem = loadModuleSystems("Rendering", "CameraSystem")
 
 ---@class Buffer : Tex2D
 

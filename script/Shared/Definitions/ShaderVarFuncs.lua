@@ -1,6 +1,6 @@
 local ShaderVarFuncs = {}
 
-local RigidBodyComponent = loadModuleComponents("Physics", "RigidBodyComponent").RigidBodyComponent
+local RigidBodyComponent = loadModuleComponents("Physics", "RigidBodyComponent")
 
 ShaderVarFuncs.mWorldFunc = function(eye, entity)
     local rb = entity:getComponent(RigidBodyComponent):getRigidBody()

@@ -18,8 +18,12 @@ local function loadAllElements(group, ...)
 end
 
 local function loadModuleElements(module, group, ...)
+    local args = { ... }
+    if #args == 1 then
+        return require("Modules." .. module .. "." .. group .. "." .. args[1])
+    end
     local elements = {}
-    for _, element in ipairs({ ... }) do
+    for _, element in ipairs(args) do
         local moduleElement = require("Modules." .. module .. "." .. group .. "." .. element)
         -- if elements[element] ~= nil then
         elements[element] = moduleElement
