@@ -70,7 +70,7 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
     starZoneShapeComponent:setShape(Enums.ZoneShape.Sphere)
     starZoneShapeComponent:setRadius(1.7952e13) --* Hardcode to solar system radius for now
 
-    self:addChildEntity(starSystem, starEntityId)
+    starSystem:attach(starEntityId)
 
     -- Generate planets
     local numPlanets = starRNG:getInt(1, 3) --* Replace with config later
@@ -148,7 +148,7 @@ function UniverseGenerationSystem:generateConstructs(starSystem, rng)
         local spaceStationSeed = rng:get64()
         local spaceStation = Constructs.SpaceStation(spaceStationSeed)
         local spaceStationEntityId = Registry:storeEntity(spaceStation)
-        self:addChildEntity(starSystem, spaceStationEntityId)
+        starSystem:attach(spaceStationEntityId)
     end
 
     -- Generate spaceships
@@ -157,14 +157,8 @@ function UniverseGenerationSystem:generateConstructs(starSystem, rng)
         local spaceshipSeed = rng:get64()
         local spaceship = Constructs.Spaceship(spaceshipSeed)
         local spaceshipEntityId = Registry:storeEntity(spaceship)
-        self:addChildEntity(starSystem, spaceshipEntityId)
+        starSystem:attach(spaceshipEntityId)
     end
-end
-
----@private
-function UniverseGenerationSystem:addChildEntity(parentEntity, childEntityId)
-    local hierarchyComponent = parentEntity:getComponent(Core.Hierarchy)
-    hierarchyComponent:addChild(childEntityId)
 end
 
 return UniverseGenerationSystem()
