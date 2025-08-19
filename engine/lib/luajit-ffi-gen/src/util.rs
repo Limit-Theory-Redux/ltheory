@@ -7,10 +7,10 @@ pub fn parse_doc_attrs(attrs: &[Attribute]) -> Result<Vec<String>> {
     let mut docs = vec![];
 
     for attr in attrs {
-        if get_path_last_name(attr.meta.path())? == "doc" {
-            if let Some(doc_text) = get_meta_name(&attr.meta) {
-                docs.push(doc_text);
-            }
+        if get_path_last_name(attr.meta.path())? == "doc"
+            && let Some(doc_text) = get_meta_name(&attr.meta)
+        {
+            docs.push(doc_text);
         }
     }
 

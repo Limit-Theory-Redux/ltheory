@@ -396,10 +396,11 @@ fn write_method_map<F: FnMut(String)>(
 
     method.params.iter().for_each(|param_info| {
         args.push(param_info.as_ffi_name());
-        if let TypeInfo::Plain { is_ref, ty } = &param_info.ty {
-            if *is_ref == TypeRef::Value && !ty.is_copyable(module_name) {
-                value_args.push(param_info.as_ffi_name());
-            }
+        if let TypeInfo::Plain { is_ref, ty } = &param_info.ty
+            && *is_ref == TypeRef::Value
+            && !ty.is_copyable(module_name)
+        {
+            value_args.push(param_info.as_ffi_name());
         };
 
         #[cfg(feature = "assert_ffi_input")]
