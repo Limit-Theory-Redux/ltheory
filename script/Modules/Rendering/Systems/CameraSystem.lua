@@ -1,13 +1,10 @@
--- Systems
 local Registry = require("Core.ECS.Registry")
-
--- Components
-local Components = loadComponents("Physics", "Rendering")
-
--- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 
 ---@class CameraSystem
+---@field profiler QuickProfiler
+---@field currentCameraData CameraDataComponent
+---@field currentCameraTransform TransformComponent
 ---@overload fun(self: CameraSystem) class internal
 ---@overload fun() class external
 local CameraSystem = Class("CameraSystem", function(self)
@@ -59,8 +56,11 @@ function CameraSystem:setCamera(entityId)
         return
     end
 
-    self.currentCameraData = cameraEntity:getComponent(Components.CameraData)
-    self.currentCameraTransform = cameraEntity:getComponent(Components.TransformComponent)
+    local Physics = require("Modules.Physics")
+    local Rendering = require("Modules.Rendering")
+
+    self.currentCameraData = cameraEntity:getComponent(Rendering.Components.CameraData)
+    self.currentCameraTransform = cameraEntity:getComponent(Physics.Components.Transform)
 end
 
 ---Get Current Camera 'Eye'/Position

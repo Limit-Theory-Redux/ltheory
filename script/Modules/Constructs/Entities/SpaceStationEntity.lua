@@ -1,17 +1,10 @@
-local Entity = require("Core.ECS.Entity")
-local Components = loadComponents("Core", "Economy", "Physics")
-
+---@class SpaceStationEntity: PhysicalEntity
 ---@param seed integer
----@return Entity
-local function SpaceStationEntity(seed)
-    return Entity(
-        "SpaceStationEntity",
-        Components.TransformComponent(),
-        Components.MassComponent(),
-        Components.HierarchyComponent(),
-        Components.InventoryComponent(),
-        Components.MarketplaceComponent()
-    )
-end
+return function(seed)
+    local PhysicalEntity = require("Modules.PhysicalEntity")
+    local Economy = require("Modules.Economy")
 
-return SpaceStationEntity
+    return PhysicalEntity("SpaceStationEntity", seed,
+        Economy.Components.Inventory(),
+        Economy.Components.Marketplace())
+end

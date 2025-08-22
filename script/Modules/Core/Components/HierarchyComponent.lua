@@ -1,6 +1,4 @@
 local Component = require("Core.ECS.Component")
-
--- Systems
 local Registry = require('Core.ECS.Registry')
 
 ---@class HierarchyComponent: Component

@@ -13,7 +13,7 @@ function PlayerListComponent:addPlayerList()
     self.players = {}
 end
 
----@return table<Player>
+---@return table<PlayerEntity>
 function PlayerListComponent:getPlayerList()
     return self.players
 end

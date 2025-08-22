@@ -32,19 +32,19 @@ function QuantityComponent:getAvailableQuantity()
     return availableQuantity
 end
 
----@param owner Player
+---@param owner PlayerEntity
 ---@param amount integer
 function QuantityComponent:setLockedQuantity(owner, amount)
     self.lockedQuantity = self.lockedQuantity or {}
     self.lockedQuantity[owner] = (self.lockedQuantity[owner] or 0) + amount
 end
 
----@param owner Player|nil
+---@param owner PlayerEntity|nil
 function QuantityComponent:getLockedQuantity(owner)
     return self.lockedQuantity or self.lockedQuantity and self.lockedQuantity[owner]
 end
 
----@param owner Player
+---@param owner PlayerEntity
 ---@param amount integer|nil
 function QuantityComponent:unlockQuantity(owner, amount)
     if not amount then

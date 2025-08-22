@@ -1,16 +1,14 @@
 local Entity = require("Core.ECS.Entity")
-local Components = loadComponents("Economy")
 
+---@class PlayerEntity: Entity
 ---@param name string
 ---@param isAiPlayer boolean
----@return Entity
-local function PlayerEntity(name, isAiPlayer)
-    local startCredits = isAiPlayer and Config.econ.eStartCredits or Config.econ.pStartCredits
+return function(name, isAiPlayer)
+    local Economy = require("Modules.Economy")
 
+    local startCredits = isAiPlayer and Config.econ.eStartCredits or Config.econ.pStartCredits
     return Entity(
         name,
-        Components.PlayerBankAccountComponent(startCredits)
+        Economy.Components.PlayerBankAccount(startCredits)
     )
 end
-
-return PlayerEntity

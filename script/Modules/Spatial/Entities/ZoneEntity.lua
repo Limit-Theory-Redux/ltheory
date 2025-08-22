@@ -1,14 +1,16 @@
 local Entity = require("Core.ECS.Entity")
-local Components = loadComponents("Core", "Physics", "Spatial")
 
+---@class ZoneEntity: Entity
 ---@return Entity
-local function ZoneEntity()
+return function()
+    local Core = require("Modules.Core")
+    local Physics = require("Modules.Physics")
+    local Spatial = require("Modules.Spatial")
+
     return Entity(
         "ZoneEntity",
-        Components.TransformComponent(),
-        Components.ShapeComponent(),
-        Components.HierarchyComponent()
+        Physics.Components.Transform(),
+        Spatial.Components.Shape(),
+        Core.Components.Hierarchy()
     )
 end
-
-return ZoneEntity

@@ -1,14 +1,15 @@
 local Entity = require("Core.ECS.Entity")
-local Components = loadComponents("Core", "Physics", "Rendering")
 
+---@class CameraEntity: Entity
 ---@return Entity
-local function Camera()
+return function()
+    local Physics = require("Modules.Physics")
+    local Rendering = require("Modules.Rendering")
+
     return Entity(
-        "Camera",
-        Components.RigidBodyComponent(),
-        Components.TransformComponent(),
-        Components.CameraData()
+        "CameraEntity",
+        Physics.Components.RigidBody(),
+        Physics.Components.Transform(),
+        Rendering.Components.CameraData()
     )
 end
-
-return Camera

@@ -1,8 +1,8 @@
 local Component = require("Core.ECS.Component")
 
 ---@class MassComponent: Component
----@overload fun(self:MassComponent, mass: number): MassComponent subclass internal
----@overload fun(mass: number): MassComponent subclass external
+---@overload fun(self:MassComponent, mass: number|nil): MassComponent subclass internal
+---@overload fun(mass: number|nil): MassComponent subclass external
 local MassComponent = Subclass("MassComponent", Component, function(self, mass)
     self:setComponentName("PhysicsMass")
 

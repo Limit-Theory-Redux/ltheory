@@ -1,13 +1,6 @@
--- Systems
 local Registry = require("Core.ECS.Registry")
-local InventorySystem = require("Systems.Economy.InventorySystem")
-
-local Components = loadComponents("Economy")
-
--- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local Helper = require("Shared.Helpers.MarketplaceSystemHelper")
-
 local Items = require("Shared.Registries.Items")
 
 ---@class MarketplaceSystem
@@ -36,13 +29,15 @@ function MarketplaceSystem:registerEvents()
 end
 
 function MarketplaceSystem:onPreRender()
+    local Components = require("Modules.Economy").Components
+
     self.profiler:start()
 
-    -- local marketplaces = Registry:getComponentsFromArchetype(Components.MarketplaceComponent)
+    -- local marketplaces = Registry:getComponentsFromArchetype(Components.Marketplace)
 
     local now = TimeStamp.Now()
 
-    for _, marketplace in Registry:iterEntities(Components.MarketplaceComponent) do
+    for _, marketplace in Registry:iterEntities(Components.Marketplace) do
         local traderEntityId = marketplace:getTrader()
 
         if not traderEntityId then
@@ -85,20 +80,23 @@ end
 ---@param bids table<OrderEntity>
 ---@param asks table<OrderEntity>
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
+    local InventorySystem = require("Modules.Economy").Systems.Inventory
+    local Components = require("Modules.Economy").Components
+
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:getComponent(Components.OrderItemTypeComponent)
+            local bidItemTypeCmp = bid:getComponent(Components.OrderItemType)
             ---@cast bidItemTypeCmp OrderItemTypeComponent
-            local bidPriceCmp = bid:getComponent(Components.PriceComponent)
+            local bidPriceCmp = bid:getComponent(Components.Price)
             ---@cast bidPriceCmp PriceComponent
-            local bidQuantityCmp = bid:getComponent(Components.QuantityComponent)
+            local bidQuantityCmp = bid:getComponent(Components.Quantity)
             ---@cast bidQuantityCmp QuantityComponent
 
-            local askItemTypeCmp = ask:getComponent(Components.OrderItemTypeComponent)
+            local askItemTypeCmp = ask:getComponent(Components.OrderItemType)
             ---@cast askItemTypeCmp OrderItemTypeComponent
-            local askPriceCmp = ask:getComponent(Components.PriceComponent)
+            local askPriceCmp = ask:getComponent(Components.Price)
             ---@cast askPriceCmp PriceComponent
-            local askQuantityCmp = ask:getComponent(Components.QuantityComponent)
+            local askQuantityCmp = ask:getComponent(Components.Quantity)
             ---@cast askQuantityCmp QuantityComponent
 
             local bidItemType = bidItemTypeCmp:getItemType()
@@ -111,7 +109,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             -- Verify Inventory
             self.marketplaceParentEntity = Registry:getEntity(marketplace:getEntityId())
             ---@type InventoryComponent
-            self.marketplaceInventoryCmp = self.marketplaceParentEntity:getComponent(Components.InventoryComponent)
+            self.marketplaceInventoryCmp = self.marketplaceParentEntity:getComponent(Components.Inventory)
 
             Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)
 

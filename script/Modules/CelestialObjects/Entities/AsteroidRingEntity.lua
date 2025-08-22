@@ -1,16 +1,7 @@
-local Entity = require("Core.ECS.Entity")
-local Components = loadComponents("Core", "Physics")
-
+---@class AsteroidRingEntity: PhysicalEntity
 ---@param seed integer
----@return Entity
-local function AsteroidRingEntity(seed)
-    return Entity(
-        "AsteroidRingEntity",
-        Components.SeedComponent(seed),
-        Components.TransformComponent(),
-        Components.MassComponent(),
-        Components.HierarchyComponent()
-    )
-end
+return function(seed)
+    local PhysicalEntity = require("Modules.PhysicalEntity")
 
-return AsteroidRingEntity
+    return PhysicalEntity("AsteroidRingEntity", seed)
+end

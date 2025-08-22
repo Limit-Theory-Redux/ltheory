@@ -1,11 +1,7 @@
--- Storage
 local Registry = require("Core.ECS.Registry")
 local MeshStorage = require("Core.ECS.MeshStorage")
--- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
--- Rendering
 local RenderingPass = require("Shared.Rendering.RenderingPass")
-local CameraSystem = loadModuleSystems("Rendering", "CameraSystem")
 
 ---@class Buffer : Tex2D
 
@@ -108,13 +104,13 @@ end
 
 ---@private
 function RenderCoreSystem:resetBuffers()
-    self.buffers[Enums.BufferName.buffer0]:free()
-    self.buffers[Enums.BufferName.buffer1]:free()
-    self.buffers[Enums.BufferName.buffer2]:free()
-    self.buffers[Enums.BufferName.zBuffer]:free()
-    self.buffers[Enums.BufferName.zBufferL]:free()
-    self.buffers[Enums.BufferName.dsBuffer0]:free()
-    self.buffers[Enums.BufferName.dsBuffer1]:free()
+    self.buffers[Enums.BufferName.buffer0] = nil
+    self.buffers[Enums.BufferName.buffer1] = nil
+    self.buffers[Enums.BufferName.buffer2] = nil
+    self.buffers[Enums.BufferName.zBuffer] = nil
+    self.buffers[Enums.BufferName.zBufferL] = nil
+    self.buffers[Enums.BufferName.dsBuffer0] = nil
+    self.buffers[Enums.BufferName.dsBuffer1] = nil
 end
 
 ---@private
@@ -189,8 +185,8 @@ end
 function RenderCoreSystem:onPreRender(data)
     -- Can the Changes to SSR/DSR and Resolution be done in PreRender?
     -- How do we communicate SuperSampleRate/DownSampleRate changes to RenderCoreSystem?
-    local ssr = data.ssr or self.settings.superSampleRate
-    -- local dsr = self.settings.downSampleRate
+    local ssr = self.settings.superSampleRate -- data.ssr or
+    local dsr = self.settings.downSampleRate
     local ssResX, ssResY = ssr * Window:size().x, ssr * Window:size().y
     local dsResX, dsResY = dsr * Window:size().x, dsr * Window:size().y
     if self.ssResX ~= ssResX or self.ssResY ~= ssResY or self.ssr ~= ssr then
@@ -228,6 +224,8 @@ function RenderCoreSystem:onPreRender(data)
 end
 
 function RenderCoreSystem:onRender(data)
+    local CameraSystem = require("Modules.Rendering").Systems.Camera
+
     -- Begin Drawing Window
     Window:beginDraw()
 
@@ -296,7 +294,7 @@ function RenderCoreSystem:onRender(data)
             ShaderVar.Pop('starDir')
             ShaderVar.Pop('envMap')
             ShaderVar.Pop('irMap')
-        ]]--
+        ]]                     --
         CameraSystem:endDraw() -- Pop Camera ShaderVars
     end
 
@@ -362,7 +360,7 @@ function RenderCoreSystem:present(x, y, sx, sy, useMips)
     --[[
         Directly from RenderPipeline.
         Do we ever use MipMap for Rendering?
-    ]]--
+    ]] --
     RenderState.PushAllDefaults()
 
     local shader = Cache.Shader('ui', 'filter/identity')

@@ -85,7 +85,7 @@ function Entity:removeComponent(componentType)
     return true
 end
 
----@generic T
+---@generic T: Component
 ---@param archetype T
 ---@return T|nil
 function Entity:getComponent(archetype)

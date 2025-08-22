@@ -1,14 +1,13 @@
 local Entity = require("Core.ECS.Entity")
-local Components = loadComponents("Core")
 
+---@class UniverseEntity: Entity
 ---@param seed integer
----@return Entity
-local function UniverseEntity(seed)
+return function(seed)
+    local Core = require("Modules.Core")
+
     return Entity(
         "UniverseEntity",
-        Components.SeedComponent(seed),
-        Components.HierarchyComponent()
+        Core.Components.Seed(seed),
+        Core.Components.Hierarchy()
     )
 end
-
-return UniverseEntity

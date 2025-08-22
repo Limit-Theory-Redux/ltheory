@@ -1,19 +1,12 @@
-local Entity = require("Core.ECS.Entity")
-local Components = loadComponents("Core", "Physics", "Rendering")
 local Materials = require("Shared.Registries.Materials")
 
+---@class AsteroidEntity: PhysicalEntity
 ---@param seed integer
----@return Entity
-local function AsteroidEntity(seed)
-    return Entity(
-        "AsteroidEntity",
-        Components.SeedComponent(seed),
-        Components.TransformComponent(),
-        Components.MassComponent(),
-        Components.RenderComponent({ Materials.Asteroid }, Enums.MeshType.Asteroid),
-        Components.RigidBodyComponent(),
-        Components.HierarchyComponent()
-    )
-end
+return function(seed)
+    local PhysicalEntity = require("Modules.PhysicalEntity")
+    local Rendering = require("Modules.Rendering")
 
-return AsteroidEntity
+    return PhysicalEntity("AsteroidEntity", seed,
+        Rendering.Components.Transform(),
+        Rendering.Components.Render({ Materials.Asteroid }, Enums.MeshType.Asteroid))
+end

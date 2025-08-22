@@ -1,15 +1,15 @@
 local Entity = require("Core.ECS.Entity")
-local Components = loadComponents("Economy", "Physics")
 
+---@class ItemEntity: Entity
 ---@param definition ItemDefinition
 ---@param quantity number
----@return Entity
-local function ItemEntity(definition, quantity)
+return function(definition, quantity)
+    local Economy = require("Modules.Economy")
+    local Physics = require("Modules.Physics")
+
     return Entity(
         definition.name,
-        Components.MassComponent(definition.mass),
-        Components.QuantityComponent(quantity)
+        Physics.Components.Mass(definition.mass),
+        Economy.Components.Quantity(quantity)
     )
 end
-
-return ItemEntity

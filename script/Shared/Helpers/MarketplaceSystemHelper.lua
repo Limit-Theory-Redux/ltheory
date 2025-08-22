@@ -1,8 +1,4 @@
--- Systems
 local Registry = require("Core.ECS.Registry")
-
--- Components
-local QuantityComponent = require("Components.Economy.QuantityComponent")
 
 ---@param bids table<EntityId>
 ---@param asks table<EntityId>
@@ -30,6 +26,8 @@ end
 ---@param parentEntity Entity
 ---@param component InventoryComponent
 local function printInventory(parentEntity, component)
+    local QuantityComponent = require("Modules.Economy").Components.Quantity
+
     Log.Debug("%s - Inventory", parentEntity)
     for itemTypes in Iterator(component:getInventory()) do
         for itemEntityId in Iterator(itemTypes) do
