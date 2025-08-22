@@ -3,15 +3,15 @@ name: CI
 on:
   pull_request:
     paths-ignore:
-    - '**/README.md'
-    - '**/CONTRIBUTING.md'
-    - '**/LICENSE-MIT'
-    - '**/LICENSE-APACHE-2.0'
-    - '**/.vscode/**'
-    - '**/docs/**'
-    - '**/.gitignore'
-    - '**/.gitattributes'
-    - '**/.editorconfig'
+      - "**/README.md"
+      - "**/CONTRIBUTING.md"
+      - "**/LICENSE-MIT"
+      - "**/LICENSE-APACHE-2.0"
+      - "**/.vscode/**"
+      - "**/docs/**"
+      - "**/.gitignore"
+      - "**/.gitattributes"
+      - "**/.editorconfig"
 
 permissions:
   contents: write
@@ -67,7 +67,7 @@ jobs:
   build-windows:
     needs: gen-build-version
     name: Build Windows
-    runs-on: windows-2019
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
