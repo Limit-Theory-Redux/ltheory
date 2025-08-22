@@ -23,13 +23,13 @@ impl<T> Rf<T> {
 
     #[track_caller]
     #[inline]
-    pub fn as_ref(&self) -> Ref<T> {
+    pub fn as_ref(&self) -> Ref<'_, T> {
         self.0.borrow()
     }
 
     #[track_caller]
     #[inline]
-    pub fn as_mut(&self) -> RefMut<T> {
+    pub fn as_mut(&self) -> RefMut<'_, T> {
         self.0.borrow_mut()
     }
 }

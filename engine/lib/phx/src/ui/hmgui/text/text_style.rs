@@ -238,7 +238,7 @@ enum TextStyleProperty {
 }
 
 impl TextStyleProperty {
-    fn as_parley(&self) -> StyleProperty<Color> {
+    fn as_parley(&self) -> StyleProperty<'_, Color> {
         match self {
             Self::FontFamily(family) => {
                 StyleProperty::FontStack(FontStack::Source(family.as_str()))

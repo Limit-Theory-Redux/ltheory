@@ -91,19 +91,19 @@ impl Mesh {
         self.shared.as_ref().get_cache_key()
     }
 
-    pub fn get_vertex_data(&self) -> Ref<[Vertex]> {
+    pub fn get_vertex_data(&self) -> Ref<'_, [Vertex]> {
         Ref::map(self.shared.as_ref(), |shared| shared.vertex.as_slice())
     }
 
-    pub fn get_vertex_data_mut(&mut self) -> RefMut<[Vertex]> {
+    pub fn get_vertex_data_mut(&mut self) -> RefMut<'_, [Vertex]> {
         RefMut::map(self.shared.as_mut(), |shared| shared.vertex.as_mut_slice())
     }
 
-    pub fn get_index_data(&self) -> Ref<[i32]> {
+    pub fn get_index_data(&self) -> Ref<'_, [i32]> {
         Ref::map(self.shared.as_ref(), |shared| shared.index.as_slice())
     }
 
-    pub fn get_index_data_mut(&mut self) -> RefMut<[i32]> {
+    pub fn get_index_data_mut(&mut self) -> RefMut<'_, [i32]> {
         RefMut::map(self.shared.as_mut(), |shared| shared.index.as_mut_slice())
     }
 
