@@ -2,6 +2,7 @@ local Registry = require("Core.ECS.Registry")
 local MeshStorage = require("Core.ECS.MeshStorage")
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local RenderingPass = require("Shared.Rendering.RenderingPass")
+local CameraSystem = require("Modules.Rendering.Systems.CameraSystem")
 
 ---@class Buffer : Tex2D
 
@@ -224,8 +225,6 @@ function RenderCoreSystem:onPreRender(data)
 end
 
 function RenderCoreSystem:onRender(data)
-    local CameraSystem = require("Modules.Rendering").Systems.Camera
-
     -- Begin Drawing Window
     Window:beginDraw()
 

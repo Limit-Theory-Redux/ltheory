@@ -1,17 +1,16 @@
 local Entity = require("Core.ECS.Entity")
+local Core = require("Modules.Core.Components")
+local Physics = require("Modules.Physics.Components")
+local Rendering = require("Modules.Rendering.Components")
 
 ---@class BoxEntity: Entity
 ---@param material Material
 return function(material)
-    local Core = require("Modules.Core")
-    local Physics = require("Modules.Physics")
-    local Rendering = require("Modules.Rendering")
-
     return Entity(
         "BoxEntity",
-        Physics.Components.Transform(),
-        Rendering.Components.Render({ material }, Enums.MeshType.Box),
-        Physics.Components.RigidBody(),
-        Core.Components.Hierarchy()
+        Physics.Transform(),
+        Rendering.Render({ material }, Enums.MeshType.Box),
+        Physics.RigidBody(),
+        Core.Hierarchy()
     )
 end

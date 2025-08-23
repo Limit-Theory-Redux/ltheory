@@ -1,18 +1,17 @@
 local Entity = require("Core.ECS.Entity")
+local Core = require("Modules.Core.Components")
+local Physics = require("Modules.Physics.Components")
 
 ---@class PhysicalEntity: Entity
 ---@param name string
 ---@param seed integer
 return function(name, seed, ...)
-    local Core = require("Modules.Core")
-    local Physics = require("Modules.Physics")
-
     return Entity(
         name,
-        Core.Components.Seed(seed),
-        Physics.Components.Transform(),
-        Physics.Components.Mass(),
-        Core.Components.Hierarchy(),
+        Core.Seed(seed),
+        Physics.Transform(),
+        Physics.Mass(),
+        Core.Hierarchy(),
         ...
     )
 end

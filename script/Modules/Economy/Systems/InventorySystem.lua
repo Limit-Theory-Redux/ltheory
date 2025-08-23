@@ -1,5 +1,6 @@
 local Registry = require("Core.ECS.Registry")
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
+local Economy = require("Modules.Economy.Components")
 
 ---@class InventorySystem
 ---@overload fun(self: InventorySystem): InventorySystem class internal
@@ -20,8 +21,6 @@ end
 ---@param quantity number
 ---@return table<EntityId>|nil
 function InventorySystem:take(inventory, itemId, quantity)
-    local Components = require("Modules.Economy").Components
-
     self.profiler:start()
 
     local itemsOfType = inventory:getItemsOfType(itemId)
@@ -31,7 +30,7 @@ function InventorySystem:take(inventory, itemId, quantity)
     for id, itemEntityId in pairs(itemsOfType) do
         local itemEntity = Registry:getEntity(itemEntityId)
         ---@cast itemEntity ItemEntity
-        local quantityComponent = itemEntity:getComponent(Components.Quantity)
+        local quantityComponent = itemEntity:getComponent(Economy.Quantity)
         ---@cast quantityComponent QuantityComponent
         local itemQuantity = quantityComponent:getQuantity()
 
@@ -44,7 +43,7 @@ function InventorySystem:take(inventory, itemId, quantity)
             -- Split the item and update quantity
             quantityComponent:setQuantity(itemQuantity - remainingQuantity)
             local clone, cloneEntityId = itemEntity:clone()
-            local cloneQuantityCmp = clone:getComponent(Components.Quantity)
+            local cloneQuantityCmp = clone:getComponent(Economy.Quantity)
             cloneQuantityCmp:setQuantity(remainingQuantity)
             table.insert(takenItems, cloneEntityId)
             remainingQuantity = 0
@@ -72,9 +71,7 @@ end
 ---@param amount integer
 ---@return boolean success
 function InventorySystem:lockItemQuantity(item, owner, amount)
-    local Components = require("Modules.Economy").Components
-
-    local quantityComponent = item:getComponent(Components.Quantity)
+    local quantityComponent = item:getComponent(Economy.Quantity)
 
     if amount > quantityComponent:getQuantity() then
         Log.Warn("Trying to reserve more than available quantity")
@@ -92,9 +89,7 @@ end
 ---@param amount integer|nil
 ---@return boolean success
 function InventorySystem:unlockItemQuantity(item, owner, amount)
-    local Components = require("Modules.Economy").Components
-
-    local quantityComponent = item:getComponent(Components.Quantity)
+    local quantityComponent = item:getComponent(Economy.Quantity)
 
     if not quantityComponent:getLockedQuantity() then
         Log.Warn("Trying to unlock quantity without locking it first")

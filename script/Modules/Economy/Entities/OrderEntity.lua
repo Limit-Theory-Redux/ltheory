@@ -1,4 +1,5 @@
 local Entity = require("Core.ECS.Entity")
+local Economy = require("Modules.Economy.Components")
 
 ---@class OrderEntity: Entity
 ---@param issuerId number
@@ -7,15 +8,13 @@ local Entity = require("Core.ECS.Entity")
 ---@param price number
 ---@param expiresAt TimeStamp|nil
 return function(issuerId, itemType, quantity, price, expiresAt)
-    local Components = require("Modules.Economy").Components
-
     return Entity(
         "OrderEntity",
-        Components.Ownership(issuerId),
-        Components.OrderItemType(itemType),
-        Components.Quantity(quantity),
-        Components.Price(price),
-        Components.OrderStatus(),
-        Components.Expiry(expiresAt)
+        Economy.Ownership(issuerId),
+        Economy.OrderItemType(itemType),
+        Economy.Quantity(quantity),
+        Economy.Price(price),
+        Economy.OrderStatus(),
+        Economy.Expiry(expiresAt)
     )
 end

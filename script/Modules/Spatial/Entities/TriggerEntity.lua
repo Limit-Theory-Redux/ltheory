@@ -1,16 +1,15 @@
 local Entity = require("Core.ECS.Entity")
+local Core = require("Modules.Core.Components")
+local Physics = require("Modules.Physics.Components")
+local Spatial = require("Modules.Spatial.Components")
 
 ---@class TriggerEntity: Entity
 ---@return Entity
 return function()
-    local Core = require("Modules.Core")
-    local Physics = require("Modules.Physics")
-    local Spatial = require("Modules.Spatial")
-
     return Entity(
         "TriggerEntity",
-        Physics.Components.Transform(),
-        Spatial.Components.Shape(),
-        Core.Components.Hierarchy()
+        Physics.Transform(),
+        Spatial.Shape(),
+        Core.Hierarchy()
     )
 end
