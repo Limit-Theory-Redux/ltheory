@@ -6,5 +6,5 @@ return {
     Planet = require('Modules.CelestialObjects.Entities.PlanetEntity'),
     Star = require('Modules.CelestialObjects.Entities.StarEntity'),
     StarSystem = require('Modules.CelestialObjects.Entities.StarSystemEntity'),
-    Unverse = require('Modules.CelestialObjects.Entities.UniverseEntity'),
+    Universe = require('Modules.CelestialObjects.Entities.UniverseEntity')
 }

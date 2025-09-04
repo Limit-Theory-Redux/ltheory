@@ -4,7 +4,7 @@ local Physics = require("Modules.Physics.Components")
 local Spatial = require("Modules.Spatial.Components")
 
 ---@class TriggerEntity: Entity
----@return Entity
+---@return TriggerEntity
 return function()
     return Entity(
         "TriggerEntity",

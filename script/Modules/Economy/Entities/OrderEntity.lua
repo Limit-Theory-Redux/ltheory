@@ -7,6 +7,7 @@ local Economy = require("Modules.Economy.Components")
 ---@param quantity number
 ---@param price number
 ---@param expiresAt TimeStamp|nil
+---@return OrderEntity
 return function(issuerId, itemType, quantity, price, expiresAt)
     return Entity(
         "OrderEntity",

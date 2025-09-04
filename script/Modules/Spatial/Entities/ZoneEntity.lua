@@ -4,7 +4,7 @@ local Physics = require("Modules.Physics.Components")
 local Spatial = require("Modules.Spatial.Components")
 
 ---@class ZoneEntity: Entity
----@return Entity
+---@return ZoneEntity
 return function()
     return Entity(
         "ZoneEntity",
