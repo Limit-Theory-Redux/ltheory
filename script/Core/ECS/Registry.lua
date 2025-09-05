@@ -1,4 +1,6 @@
-local EntityComponent = require('Components.Core.EntityComponent')
+local EntityComponent = require("Components.Core.EntityComponent")
+local ChildrenComponent = require("Components.Core.ChildrenComponent")
+local ParentComponent = require("Components.Core.ParentComponent")
 
 ---@class Registry
 ---@field entities table<EntityId, table<any, true>>
@@ -49,6 +51,90 @@ function Registry:destroyEntity(entityId)
     return true
 end
 
+---@param entityId EntityId
+---@return boolean
+function Registry:hasEntity(entityId)
+    return self.entities[entityId] ~= nil
+end 
+
+---@param entityId EntityId
+---@return EntityId The cloned entity ID
+function Registry:cloneEntity(entityId)
+    local clonedEntity = self:createEntity()
+    for component in self:iterComponents(entityId) do
+        ---@type Component
+        local clonedComponent = DeepClone(component)
+        clonedComponent:addGuid()
+        self:add(clonedEntity, clonedComponent)
+    end
+
+    return clonedEntity
+end
+
+---@param parentEntityId EntityId
+---@param childEntityId EntityId
+---@return boolean if successful
+function Registry:attachEntity(parentEntityId, childEntityId)
+    if not self:hasEntity(parentEntityId) then
+        Log.Warn("Registry:attachEntity - parent entity not found: %s", tostring(parentEntityId))
+        return false
+    end
+    if not self:hasEntity(childEntityId) then
+        Log.Warn("Registry:attachEntity - child entity not found: %s", tostring(childEntityId))
+        return false
+    end
+
+    -- Ensure that the parent process is set correctly.
+    local parentComponent = self:get(childEntityId, ParentComponent)
+    if parentComponent then
+        local existingParent = parentComponent:getParent()
+        -- If the child already has a parent, detach it from the existing parent.
+        if self:hasEntity(existingParent) then
+            self:detachEntity(existingParent, childEntityId)
+        else
+            Log.Warn("Registry:attachEntity - existing parent entity not found: %s, skipping", tostring(existingParent))
+        end
+        parentComponent:setParent(parentEntityId)
+    else
+        self:add(childEntityId, ParentComponent(parentEntityId))
+    end
+    
+    -- Update children.
+    local childrenComponent = self:get(parentEntityId, ChildrenComponent)
+    if not childrenComponent then
+        childrenComponent = self:add(parentEntityId, ChildrenComponent())
+    end
+    childrenComponent:addChild(childEntityId)
+    return true
+end
+
+---@param parentEntityId EntityId
+---@param childEntityId EntityId
+---@return boolean if successful
+function Registry:detachEntity(parentEntityId, childEntityId)
+    if not self:hasEntity(parentEntityId) then
+        Log.Warn("Registry:detachEntity - parent entity not found: %s", tostring(parentEntityId))
+        return false
+    end
+    if not self:hasEntity(childEntityId) then
+        Log.Warn("Registry:detachEntity - child entity not found: %s", tostring(childEntityId))
+        return false
+    end
+
+    -- Remove child from parent's ChildrenComponent, and remove the ChildrenComponent if it becomes empty.
+    local childrenComponent = self:get(parentEntityId, ChildrenComponent)
+    if childrenComponent then
+        childrenComponent:removeChild(childEntityId)
+        if #childrenComponent.children == 0 then
+            self:remove(parentEntityId, ChildrenComponent)
+        end
+    end
+
+    -- Remove ParentComponent from child.
+    self:remove(childEntityId, ParentComponent)
+    return true
+end
+
 ---@return Entity|nil
 function Registry:getEntity(entityId)
     local entityComponent = self:get(entityId, EntityComponent)
@@ -58,12 +144,14 @@ function Registry:getEntity(entityId)
     return nil
 end
 
+---@generic T
 ---@param entityId EntityId
----@param component Component
+---@param component T
+---@return T|nil
 function Registry:add(entityId, component)
     local entityComponentIndex = self.entities[entityId]
     if not entityComponentIndex then
-        return
+        return nil
     end
 
     local archetype = component:getArchetype()
@@ -77,6 +165,7 @@ function Registry:add(entityId, component)
     end
     self.components[archetype][entityId] = component
     component:setEntityId(entityId)
+    return component
 end
 
 ---@param entityId EntityId

@@ -42,8 +42,8 @@ function InventorySystem:take(inventory, itemId, quantity)
         else
             -- Split the item and update quantity
             quantityComponent:setQuantity(itemQuantity - remainingQuantity)
-            local clone, cloneEntityId = itemEntity:clone()
-            local cloneQuantityCmp = clone:getComponent(Economy.Quantity)
+            local cloneEntityId = Registry:cloneEntity(itemEntityId)
+            local cloneQuantityCmp = Registry:get(cloneEntityId, Economy.Quantity)
             cloneQuantityCmp:setQuantity(remainingQuantity)
             table.insert(takenItems, cloneEntityId)
             remainingQuantity = 0
