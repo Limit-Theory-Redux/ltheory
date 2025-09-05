@@ -1,4 +1,3 @@
-local EntityComponent = require("Components.Core.EntityComponent")
 local ChildrenComponent = require("Components.Core.ChildrenComponent")
 local ParentComponent = require("Components.Core.ParentComponent")
 
@@ -133,15 +132,6 @@ function Registry:detachEntity(parentEntityId, childEntityId)
     -- Remove ParentComponent from child.
     self:remove(childEntityId, ParentComponent)
     return true
-end
-
----@return Entity|nil
-function Registry:getEntity(entityId)
-    local entityComponent = self:get(entityId, EntityComponent)
-    if entityComponent then
-        return entityComponent.entity
-    end
-    return nil
 end
 
 ---@generic T

@@ -58,9 +58,8 @@ function MarketplaceSystem:onPreRender()
                 - Update orders
                 - Update item flow
             ]]
-            local trader = Registry:getEntity(traderEntityId)
 
-            if trader then
+            if Registry:hasEntity(traderEntityId) then
                 local bids = marketplace:getBids()
                 local asks = marketplace:getAsks()
 
@@ -75,24 +74,18 @@ function MarketplaceSystem:onPreRender()
 end
 
 ---@param marketplace MarketplaceComponent
----@param bids table<OrderEntity>
----@param asks table<OrderEntity>
+---@param bids table<EntityId>
+---@param asks table<EntityId>
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
-    for bid in Iterator(bids) do
-        for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:getComponent(Economy.OrderItemType)
-            ---@cast bidItemTypeCmp OrderItemTypeComponent
-            local bidPriceCmp = bid:getComponent(Economy.Price)
-            ---@cast bidPriceCmp PriceComponent
-            local bidQuantityCmp = bid:getComponent(Economy.Quantity)
-            ---@cast bidQuantityCmp QuantityComponent
+    for bidId in Iterator(bids) do
+        for askId in Iterator(asks) do
+            local bidItemTypeCmp = Registry:get(bidId, Economy.OrderItemType)
+            local bidPriceCmp = Registry:get(bidId, Economy.Price)
+            local bidQuantityCmp = Registry:get(bidId, Economy.Quantity)
 
-            local askItemTypeCmp = ask:getComponent(Economy.OrderItemType)
-            ---@cast askItemTypeCmp OrderItemTypeComponent
-            local askPriceCmp = ask:getComponent(Economy.Price)
-            ---@cast askPriceCmp PriceComponent
-            local askQuantityCmp = ask:getComponent(Economy.Quantity)
-            ---@cast askQuantityCmp QuantityComponent
+            local askItemTypeCmp = Registry:get(askId, Economy.OrderItemType)
+            local askPriceCmp = Registry:get(askId, Economy.Price)
+            local askQuantityCmp = Registry:get(askId, Economy.Quantity)
 
             local bidItemType = bidItemTypeCmp:getItemType()
             local bidPrice = bidPriceCmp:getPrice()
@@ -102,9 +95,8 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askQuantity = askQuantityCmp:getQuantity()
 
             -- Verify Inventory
-            self.marketplaceParentEntity = Registry:getEntity(marketplace:getEntityId())
-            ---@type InventoryComponent
-            self.marketplaceInventoryCmp = self.marketplaceParentEntity:getComponent(Economy.Inventory)
+            self.marketplaceParentEntity = marketplace:getEntityId()
+            self.marketplaceInventoryCmp = Registry:get(self.marketplaceParentEntity, Economy.Inventory)
 
             Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)
 
@@ -121,7 +113,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                 if items then
                     -- Put traded items into the marketplace inventory (to simulate transfer)
                     for _, item in ipairs(items) do
-                        Registry:getEntity(item):destroy() --! temp destroy
+                        Registry:destroyEntity(item) --! temp destroy
                     end
 
                     Log.Debug("[Transaction] Trader 1 %s (%d) -> Trader 2 for price %d credits", Items:getDefinition(bidItemType).name,
@@ -134,17 +126,17 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 
                     -- Update or remove the bid and ask orders
                     if bidQuantity == 0 then
-                        marketplace:removeBid(bid:getEntityId())
-                        bid:destroy()
+                        marketplace:removeBid(bidId)
+                        Registry:destroyEntity(bidId)
                     else
-                        bid:setQuantity(bidQuantity)
+                        bidQuantityCmp:setQuantity(bidQuantity)
                     end
 
                     if askQuantity == 0 then
-                        marketplace:removeAsk(ask:getEntityId())
-                        ask:destroy()
+                        marketplace:removeAsk(askId)
+                        Registry:destroyEntity(askId)
                     else
-                        ask:setQuantity(askQuantity)
+                        askQuantityCmp:setQuantity(askQuantity)
                     end
 
                     Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)

@@ -1,41 +1,38 @@
 local Registry = require("Core.ECS.Registry")
+local NameComponent = require("Core.ECS.NameComponent")
 local QuantityComponent = require("Modules.Economy.Components").Quantity
 
 ---@param bids table<EntityId>
 ---@param asks table<EntityId>
----@return table<OrderEntity> bids, table<OrderEntity> asks
+---@return table<EntityId> bids, table<EntityId> asks
 local function getOrderEntities(bids, asks)
     local bidEntities, askEntities = {}, {}
 
     for entityId in Iterator(bids) do
-        local entity = Registry:getEntity(entityId)
-        if entity then
-            insert(bidEntities, entity)
+        if Registry:hasEntity(entityId) then
+            insert(bidEntities, entityId)
         end
     end
 
     for entityId in Iterator(asks) do
-        local entity = Registry:getEntity(entityId)
-        if entity then
-            insert(askEntities, entity)
+        if Registry:hasEntity(entityId) then
+            insert(askEntities, entityId)
         end
     end
 
     return bidEntities, askEntities
 end
 
----@param parentEntity Entity
+---@param parentEntity EntityId
 ---@param component InventoryComponent
 local function printInventory(parentEntity, component)
-    Log.Debug("%s - Inventory", parentEntity)
+    Log.Debug("%s(%s) - Inventory", Registry:get(parentEntity, NameComponent):getName(), parentEntity)
     for itemTypes in Iterator(component:getInventory()) do
         for itemEntityId in Iterator(itemTypes) do
-            local itemEntity = Registry:getEntity(itemEntityId)
-
-            if itemEntity then
-                local quantityComponent = itemEntity:getComponent(QuantityComponent)
-
-                Log.Debug(" ├─ %s(%d)", itemEntity:getName(), quantityComponent:getQuantity())
+            if Registry:hasEntity(itemEntityId) then
+                local nameComponent = Registry:get(itemEntityId, NameComponent)
+                local quantityComponent = Registry:get(itemEntityId, QuantityComponent)
+                Log.Debug(" ├─ %s(%d)", nameComponent:getName(), quantityComponent:getQuantity())
             end
         end
     end

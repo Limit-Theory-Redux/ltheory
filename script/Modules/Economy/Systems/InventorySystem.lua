@@ -28,10 +28,7 @@ function InventorySystem:take(inventory, itemId, quantity)
     local remainingQuantity = quantity
 
     for id, itemEntityId in pairs(itemsOfType) do
-        local itemEntity = Registry:getEntity(itemEntityId)
-        ---@cast itemEntity ItemEntity
-        local quantityComponent = itemEntity:getComponent(Economy.Quantity)
-        ---@cast quantityComponent QuantityComponent
+        local quantityComponent = Registry:get(itemEntityId, Economy.Quantity)
         local itemQuantity = quantityComponent:getQuantity()
 
         if itemQuantity <= remainingQuantity then
@@ -66,12 +63,12 @@ function InventorySystem:put(inventory, itemId, items)
     end
 end
 
----@param item ItemEntity
----@param owner PlayerEntity
+---@param item EntityId
+---@param owner Player
 ---@param amount integer
 ---@return boolean success
 function InventorySystem:lockItemQuantity(item, owner, amount)
-    local quantityComponent = item:getComponent(Economy.Quantity)
+    local quantityComponent = Registry:get(item, Economy.Quantity)
 
     if amount > quantityComponent:getQuantity() then
         Log.Warn("Trying to reserve more than available quantity")
@@ -84,12 +81,12 @@ function InventorySystem:lockItemQuantity(item, owner, amount)
     return true
 end
 
----@param item ItemEntity
----@param owner PlayerEntity
+---@param item EntityId
+---@param owner EntityId
 ---@param amount integer|nil
 ---@return boolean success
 function InventorySystem:unlockItemQuantity(item, owner, amount)
-    local quantityComponent = item:getComponent(Economy.Quantity)
+    local quantityComponent = Registry:get(item, Economy.Quantity)
 
     if not quantityComponent:getLockedQuantity() then
         Log.Warn("Trying to unlock quantity without locking it first")
