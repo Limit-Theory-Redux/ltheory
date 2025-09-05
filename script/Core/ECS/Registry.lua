@@ -1,13 +1,10 @@
----@class Registry
----@field entities table<EntityId, Entity>
----@field components table<any, ComponentStorage>
+local EntityComponent = require('Components.Core.EntityComponent')
 
----@alias ComponentStorage table<EntityId, Component>
+---@class Registry
+---@field entities table<EntityId, table<any, true>>
+---@field components table<any, table<EntityId, Component>>
 
 ---@alias EntityId integer
-
---- Types
-local ComponentInfo = require("Shared.Types.ComponentInfo")
 
 ---@class Registry
 ---@overload fun(self: Registry): Registry class internal
@@ -25,78 +22,117 @@ function Registry:clear()
     Log.Info("Initialized Registry")
 end
 
----@param entity Entity
----@return EntityId
-function Registry:storeEntity(entity)
-    self.entities[entity:getEntityId()] = entity
-    return entity:getEntityId()
+---@return EntityId A new unique entity ID
+function Registry:createEntity()
+    local id = Guid.Create()
+    self.entities[id] = {}
+    return id
 end
 
 ---@param entityId EntityId
 ---@return boolean wasSuccessful
-function Registry:dropEntity(entityId)
-    local entity = self.entities[entityId]
-    ---@cast entity Entity
-
-    if entity then
-        self.entities[entityId] = nil
-        return true
+function Registry:destroyEntity(entityId)
+    local entityComponentIndex = self.entities[entityId]
+    if not entityComponentIndex then
+        return false
     end
-    return false
+
+    -- Remove all components associated with this entity.
+    for componentArchetype in pairs(entityComponentIndex) do
+        local store = self.components[componentArchetype]
+        if store then
+            store[entityId] = nil
+        end
+    end
+
+    self.entities[entityId] = nil
+    return true
 end
 
+---@return Entity|nil
+function Registry:getEntity(entityId)
+    local entityComponent = self:get(entityId, EntityComponent)
+    if entityComponent then
+        return entityComponent.entity
+    end
+    return nil
+end
+
+---@param entityId EntityId
 ---@param component Component
----@return ComponentInfo
-function Registry:storeComponent(component)
-    -- Lazily initialize this component's storage.
+function Registry:add(entityId, component)
+    local entityComponentIndex = self.entities[entityId]
+    if not entityComponentIndex then
+        return
+    end
+
     local archetype = component:getArchetype()
+
+    entityComponentIndex[archetype] = true
+
+    -- Lazily initialize this component's storage.
     if not self.components[archetype] then
         self.components[archetype] = {}
         SetLengthMetamethod(self.components[archetype])
     end
-    self.components[archetype][component:getEntityId()] = component
-    return ComponentInfo { archetype = archetype, entity = component:getEntityId() }
-end
-
----@param componentInfo ComponentInfo
----@return boolean wasSuccessful
-function Registry:dropComponent(componentInfo)
-    if not self.components[componentInfo.archetype] then
-        return false
-    end
-
-    local component = self.components[componentInfo.archetype][componentInfo.entity]
-    if not component then
-        return false
-    end
-    
-    self.components[componentInfo.archetype][componentInfo.entity] = nil
-    return true
+    self.components[archetype][entityId] = component
+    component:setEntityId(entityId)
 end
 
 ---@param entityId EntityId
----@return Entity|nil
-function Registry:getEntity(entityId)
-    return self.entities[entityId]
+---@param componentType any
+---@return boolean wasSuccessful
+function Registry:remove(entityId, componentType)
+    if not self.components[componentType] then
+        return false
+    end
+
+    -- Detach the component from this entity.
+    local entityComponentIndex = self.entities[entityId]
+    if not entityComponentIndex or not entityComponentIndex[componentType] then
+        return false
+    end
+    entityComponentIndex[componentType] = nil
+
+    -- Remove this component.
+    self.components[componentType][entityId] = nil
+    return true
 end
 
----@param componentInfo ComponentInfo
----@return Component|nil
-function Registry:getComponent(componentInfo)
-    local archetypeStorage = self.components[componentInfo.archetype]
+---@generic T
+---@param entityId EntityId
+---@param componentType T
+---@return T|nil
+function Registry:get(entityId, componentType)
+    local archetypeStorage = self.components[componentType]
     if not archetypeStorage then
         -- No components with this archetype exist.
         return nil
     end
 
-    return archetypeStorage[componentInfo.entity]
+    return archetypeStorage[entityId]
 end
 
----@generic T
----@param archetype T
----@return table<EntityId, T>|nil
-function Registry:getComponentsFromArchetype(archetype)
-    return self.components[archetype]
+---@param entityId EntityId
+---@param componentType any
+---@return boolean
+function Registry:has(entityId, componentType)
+    return Registry:get(entityId, componentType) ~= nil
+end
+
+---@param entityId EntityId
+---@return fun(): Component|nil An iterator that yields all components for the given entity ID 
+function Registry:iterComponents(entityId)
+    local entityComponentIndex = self.entities[entityId]
+    if not entityComponentIndex then
+        return function() return nil end
+    end
+
+    local components = {}
+    for componentType in pairs(entityComponentIndex) do
+        table.insert(components, self.components[componentType][entityId])
+    end
+    return Iterator(components)
 end
 
 ---@generic T1, T2, T3, T4, T5
@@ -142,16 +178,6 @@ function Registry:iterEntities(...)
             end
         end
     end)
-end
-
--- if you for some reason want all entities, should only be used for debugging
-function Registry:getEntities()
-    return self.entities
-end
-
--- if you for some reason want all components, should only be used for debugging
-function Registry:getComponents()
-    return self.components
 end
 
 function Registry:getEntityCount()

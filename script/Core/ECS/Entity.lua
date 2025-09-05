@@ -1,16 +1,17 @@
 local Registry = require("Core.ECS.Registry")
+local EntityComponent = require('Core.ECS.EntityComponent')
 local ChildrenComponent = require("Core.ECS.ChildrenComponent")
 local ParentComponent = require("Core.ECS.ParentComponent")
 local NameComponent = require("Core.ECS.NameComponent")
 
 ---@class Entity
 
--- General Purpose Entity Object. Contains a reference to its components, but does not own the component data.
+-- General Purpose Entity.
 ---@param self Entity
 ---@param name string The name of the entity
 local Entity = Class("Entity", function(self, name, ...)
-    self.guid = Guid.Create()
-    self.components = {}
+    self.guid = Registry:createEntity()
+    self:addComponent(EntityComponent(self)) -- Store a component that refers back to this object.
     self:addComponent(NameComponent(name or "Entity"))
     for _, component in ipairs({ ... }) do
         self:addComponent(component)
@@ -18,7 +19,7 @@ local Entity = Class("Entity", function(self, name, ...)
 end)
 
 function Entity:__tostring()
-    return format("%s(%d)", self.name, self:getEntityId())
+    return format("%s(%d)", self:getName(), self:getEntityId())
 end
 
 ---@return integer
@@ -42,78 +43,30 @@ function Entity:getEntityId()
 end
 
 ---@param component Component
----@return ComponentInfo componentInfo
 function Entity:addComponent(component)
-    component:setEntityId(self:getEntityId())
-    local componentInfo = Registry:storeComponent(component)
-    self.components[component:getArchetype()] = componentInfo
-    return componentInfo
+    Registry:add(self.guid, component)
 end
 
 ---@param componentType any
 ---@return boolean wasSuccessful
 function Entity:removeComponent(componentType)
-    if self.components[componentType] == nil then
-        return false
-    end
-    Registry:dropComponent(self.components[componentType])
-    self.components[componentType] = nil
-    return true
+    return Registry:remove(self.guid, componentType)
 end
 
----@generic T: Component
----@param archetype T
+---@generic T
+---@param componentType T
 ---@return T|nil
-function Entity:getComponent(archetype)
-    local componentInfo = self.components[archetype]
-    if not componentInfo then
-        return nil
-    end
-
-    return Registry:getComponent(componentInfo)
+function Entity:getComponent(componentType)
+    return Registry:get(self.guid, componentType)
 end
 
 function Entity:iterComponents()
-    local components = {}
-    for _, info in pairs(self.components) do
-        insert(components, Registry:getComponent(info))
-    end
-    return Iterator(components)
-end
-
-function Entity:clearComponents()
-    for type, info in pairs(self.components) do
-        Registry:dropComponent(info)
-    end
-    self.components = {}
+    return Registry:iterComponents(self.guid)
 end
 
 ---@return boolean success
 function Entity:destroy()
-    local success = Registry:dropEntity(self.guid)
-    if success then
-        local noFail = true
-        for _, info in pairs(self.components) do
-            local success = Registry:dropComponent(info)
-
-            if not success then
-                noFail = false
-            end
-        end
-
-        if noFail then
-            self:clearComponents()
-            self = nil
-            return true
-        end
-    end
-    -- revert
-    Registry:storeEntity(self)
-
-    for component in self:iterComponents() do
-        Registry:storeComponent(component)
-    end
-    return false
+    return Registry:destroyEntity(self.guid)
 end
 
 function Entity:clone()
@@ -126,9 +79,7 @@ function Entity:clone()
         clone:addComponent(clonedComponent)
     end
 
-    local cloneEntityId = Registry:storeEntity(clone)
-
-    return clone, cloneEntityId
+    return clone, clone:getEntityId()
 end
 
 function Entity:attach(childEntityId)

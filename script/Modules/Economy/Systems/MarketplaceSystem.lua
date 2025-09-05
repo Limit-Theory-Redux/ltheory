@@ -33,8 +33,6 @@ end
 function MarketplaceSystem:onPreRender()
     self.profiler:start()
 
-    -- local marketplaces = Registry:getComponentsFromArchetype(Components.Marketplace)
-
     local now = TimeStamp.Now()
 
     for _, marketplace in Registry:iterEntities(Economy.Marketplace) do
