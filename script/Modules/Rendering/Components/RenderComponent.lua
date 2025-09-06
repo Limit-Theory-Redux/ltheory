@@ -6,19 +6,16 @@ local Component = require("Core.ECS.Component")
 local RenderComponent = Subclass("RenderComponent", Component, function(self, materials, meshType)
     self:setComponentName("RenderComponent")
 
-    -- Set RenderComponent Data
     self:setMaterials(materials)
     self:setMeshType(meshType)
-    self:setVisible(true) -- Assume Mesh is Visible on Creation.
-
-    -- Set RenderComponent Registered Events
+    self:setVisible(true)
 end)
 
 ---@param materials Material[]
 function RenderComponent:setMaterials(materials)
     self.materials = {}
     for _, v in pairs(materials) do
-        self.materials[v.blendMode] = v
+        self.materials[v.blendMode or BlendMode.Disabled] = v
     end
 end
 
@@ -45,7 +42,7 @@ function RenderComponent:setVisible(isVisible)
 end
 
 ---@return boolean # Returns if Mesh is Visible
-function RenderComponent:getVisible()
+function RenderComponent:isVisible()
     return self.visibleMesh
 end
 
