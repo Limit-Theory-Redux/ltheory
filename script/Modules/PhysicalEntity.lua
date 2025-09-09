@@ -5,7 +5,7 @@ local Physics = require("Modules.Physics.Components")
 ---@class PhysicalEntity: Entity
 ---@param name string
 ---@param seed integer
----@return PhysicalEntity
+---@return Entity
 return function(name, seed, ...)
     return Entity(
         name,

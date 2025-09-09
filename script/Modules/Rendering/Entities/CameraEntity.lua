@@ -3,7 +3,7 @@ local Physics = require("Modules.Physics.Components")
 local Rendering = require("Modules.Rendering.Components")
 
 ---@class CameraEntity: Entity
----@return CameraEntity
+---@return Entity
 return function()
     return Entity(
         "CameraEntity",

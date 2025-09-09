@@ -3,7 +3,7 @@ local Core = require("Modules.Core.Components")
 
 ---@class UniverseEntity: Entity
 ---@param seed integer
----@return UniverseEntity
+---@return Entity
 return function(seed)
     return Entity(
         "UniverseEntity",

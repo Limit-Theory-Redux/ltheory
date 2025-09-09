@@ -5,6 +5,7 @@ local Rendering = require("Modules.Rendering.Components")
 
 ---@class BoxEntity: Entity
 ---@param material Material
+---@return Entity
 return function(material)
     return Entity(
         "BoxEntity",

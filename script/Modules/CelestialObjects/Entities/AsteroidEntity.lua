@@ -4,7 +4,7 @@ local Materials = require("Shared.Registries.Materials")
 
 ---@class AsteroidEntity: PhysicalEntity
 ---@param seed integer
----@return AsteroidEntity
+---@return Entity
 return function(seed)
     return PhysicalEntity("AsteroidEntity", seed,
         Rendering.Transform(),

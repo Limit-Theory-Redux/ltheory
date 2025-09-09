@@ -1,8 +1,8 @@
 local PhysicalEntity = require("Modules.PhysicalEntity")
 
----@class StarSystemEntity: PhysicalEntity
+---@alias StarSystemEntity PhysicalEntity
 ---@param seed integer
----@return StarSystemEntity
+---@return Entity
 return function(seed)
     return PhysicalEntity("StarSystemEntity", seed)
 end
