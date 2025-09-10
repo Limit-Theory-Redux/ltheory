@@ -41,23 +41,23 @@ impl ApplicationHandler for MainLoop {
                 lua.load(&*self.entry_point_path)
                     .exec()
                     .unwrap_or_else(|e| {
-                        panic!("Error executing the entry point script: {}", e);
+                        panic!("Error executing the entry point script: {e}");
                     });
 
                 let set_engine_func: Function = globals.get("SetEngine").unwrap();
                 set_engine_func
                     .call::<()>(engine as *const Engine as usize)
                     .unwrap_or_else(|e| {
-                        panic!("Error calling SetEngine: {}", e);
+                        panic!("Error calling SetEngine: {e}");
                     });
             }
 
             engine.call_lua("InitSystem").unwrap_or_else(|e| {
-                panic!("Error calling InitSystem: {}", e);
+                panic!("Error calling InitSystem: {e}");
             });
 
             engine.call_lua("AppInit").unwrap_or_else(|e| {
-                panic!("Error calling AppInit: {}", e);
+                panic!("Error calling AppInit: {e}");
             });
         }
     }
@@ -275,7 +275,7 @@ impl ApplicationHandler for MainLoop {
         // Tick operations
         // Dispatch engine events
         engine.call_lua("AppEventLoop").unwrap_or_else(|e| {
-            panic!("Error calling AppEventLoop: {}", e);
+            panic!("Error calling AppEventLoop: {e}");
         });
 
         // Apply window changes made by a script
@@ -293,7 +293,7 @@ impl ApplicationHandler for MainLoop {
 
         debug!("Stopping main loop!");
         engine.call_lua("AppClose").unwrap_or_else(|e| {
-            panic!("Error calling AppInit: {}", e);
+            panic!("Error calling AppInit: {e}");
         });
     }
 

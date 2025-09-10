@@ -1,19 +1,13 @@
--- Entities
-local Camera = require("Entities.Rendering.Camera")
-local BoxEntity = require("Entities.Debug.BoxEntity")
--- Storage & Registries
-local Registry = require("Systems.Storage.Registry")
-local Materials = require("Shared.Registries.Materials")
--- Systems
-local CameraSystem = require("Systems.Rendering.CameraSystem")
-local Components = require("Components")
--- Generators
-
--- Utilities
 local Log = require("Core.Util.Log")
 local Inspect = require("Core.Util.Inspect")
-
+local Registry = require("Core.ECS.Registry")
 local RenderingTest = require('States.Application')
+local Materials = require("Shared.Registries.Materials")
+local CameraSystem = require("Modules.Rendering.Systems").Camera
+local CameraEntity = require("Modules.Rendering.Entities").Camera
+local BoxEntity = require("Modules.Core.Entities").Box
+local Physics = require("Modules.Physics.Components")
+local Rendering = require("Modules.Rendering.Components")
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function RenderingTest:onInit()
@@ -34,7 +28,7 @@ function RenderingTest:onInit()
     GameState:SetState(Enums.GameStates.InGame)
 
     -- Spawn CameraEntity
-    local camera = Camera()
+    local camera = CameraEntity()
     local entityId = Registry:storeEntity(camera)
 
     CameraSystem:setCamera(entityId)
@@ -50,10 +44,10 @@ function RenderingTest:onInit()
     local boxMaterial = Materials.DebugColor() ---@type Material
     boxMaterial:addStaticShaderVar("color", Enums.UniformType.Float3, function() return 1.0, 0.0, 1.0 end)
     self.boxEntity = BoxEntity(boxMaterial)
-    self.boxRend = self.boxEntity:getComponent(Components.RenderComponent)
+    self.boxRend = self.boxEntity:getComponent(Rendering.Render)
     -- Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
     ---@type RigidBodyComponent
-    self.boxRB = self.boxEntity:getComponent(Components.RigidBodyComponent)
+    self.boxRB = self.boxEntity:getComponent(Physics.RigidBody)
     -- Set RigidBody
     self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(self.boxMesh))
     self.boxRB:getRigidBody():setPos(Position(0, 0, -5))

@@ -1,8 +1,5 @@
--- Systems
-local Registry = require("Systems.Storage.Registry")
-
--- Components
-local QuantityComponent = require("Components.Economy.QuantityComponent")
+local Registry = require("Core.ECS.Registry")
+local QuantityComponent = require("Modules.Economy.Components").Quantity
 
 ---@param bids table<EntityId>
 ---@param asks table<EntityId>

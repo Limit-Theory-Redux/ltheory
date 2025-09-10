@@ -103,7 +103,7 @@ impl ImplInfo {
                         // If this is a slice or array, we need to additionally generate a "size" parameter.
                         match &param.ty {
                             TypeInfo::Slice { .. } | TypeInfo::Array { .. } => {
-                                params.push(format!("{}_size", ffi_name))
+                                params.push(format!("{ffi_name}_size"))
                             }
                             _ => {}
                         }
@@ -245,18 +245,18 @@ impl ImplInfo {
                                     if !ty.is_copyable(&self.name) && *is_ref == TypeRef::Value {
                                         // If we have a non-copyable type that's not boxed, optional or a ref,
                                         // we don't need to return it as a pointer as it's already a pointer.
-                                        format!("{} out", ret_ffi)
+                                        format!("{ret_ffi} out")
                                     } else {
-                                        format!("{}* out", ret_ffi)
+                                        format!("{ret_ffi}* out")
                                     }
                                 },
                                 _ => {
-                                    format!("{}* out", ret_ffi)
+                                    format!("{ret_ffi}* out")
                                 }
                             }
                         }
                         _ => {
-                            format!("{}* out", ret_ffi)
+                            format!("{ret_ffi}* out")
                         }
                     };
                     params_str.push(ret_param);
@@ -396,10 +396,11 @@ fn write_method_map<F: FnMut(String)>(
 
     method.params.iter().for_each(|param_info| {
         args.push(param_info.as_ffi_name());
-        if let TypeInfo::Plain { is_ref, ty } = &param_info.ty {
-            if *is_ref == TypeRef::Value && !ty.is_copyable(module_name) {
-                value_args.push(param_info.as_ffi_name());
-            }
+        if let TypeInfo::Plain { is_ref, ty } = &param_info.ty
+            && *is_ref == TypeRef::Value
+            && !ty.is_copyable(module_name)
+        {
+            value_args.push(param_info.as_ffi_name());
         };
 
         #[cfg(feature = "assert_ffi_input")]

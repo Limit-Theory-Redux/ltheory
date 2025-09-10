@@ -252,15 +252,14 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
                 } else {
                     return Err(Error::new(
                         type_path.span(),
-                        format!("unknown type wrapper {}", type_name),
+                        format!("unknown type wrapper {type_name}"),
                     ));
                 }
-            } else if let Some(type_params) = generic_types.get(&type_name) {
-                if type_params.len() == 1 {
-                    if let TypeParamBound::Trait(trait_bound) = &type_params[0] {
-                        return parse_trait_bound(trait_bound, generic_types);
-                    }
-                }
+            } else if let Some(type_params) = generic_types.get(&type_name)
+                && type_params.len() == 1
+                && let TypeParamBound::Trait(trait_bound) = &type_params[0]
+            {
+                return parse_trait_bound(trait_bound, generic_types);
             }
 
             Ok(TypeInfo::Plain {
@@ -347,10 +346,7 @@ fn parse_type(ty: &Type, generic_types: &HashMap<String, Vec<TypeParamBound>>) -
         }
         _ => Err(Error::new(
             ty.span(),
-            format!(
-                "expected a type, reference to type or mutable reference to type, got {:?}",
-                ty
-            ),
+            format!("expected a type, reference to type or mutable reference to type, got {ty:?}"),
         )),
     }
 }
@@ -398,10 +394,10 @@ fn parse_ret_type(ret_ty: &ReturnType) -> Result<Option<TypeInfo>> {
         ReturnType::Default => Ok(None),
         ReturnType::Type(_, ty) => {
             // If `ty` is a Type::Tuple { ..., elems: [] }, then this is returning ()
-            if let Type::Tuple(tuple) = &**ty {
-                if tuple.elems.is_empty() {
-                    return Ok(None);
-                }
+            if let Type::Tuple(tuple) = &**ty
+                && tuple.elems.is_empty()
+            {
+                return Ok(None);
             }
 
             let type_info = parse_type(ty, &HashMap::new())?;

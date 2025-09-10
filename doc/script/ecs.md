@@ -15,6 +15,10 @@ This separation ensures that data is not tied to behavior, enabling high modular
 
 In LTR all entities & components are stored in the Registry. This allows us to use one single access point to all relevant objects in the game. E.g. this also helps when you only want to access components of a specific type. You gain performance by not requesting all entities with all their components at once but rather accessing the components you want directly from the storage.
 
+### Modules
+
+See [modules documentation](modules.md).
+
 ### Entities
 An entity is a unique identifier that acts as a container for components. It does not have any data or behavior on its own. Think of entities as empty shells that become meaningful when associated with components.
 
@@ -25,21 +29,21 @@ Entity definitions are created as functions that return an Entity instance with 
 Here is how you create a simple entity:
 
 ```lua
-local Entity = require("Entities.Entity")
-local Components = require("Components")
+local Entity = require("Core.ECS.Entity")
+local Economy = require("Modules.Economy.Components")
+local Physics = require("Modules.Physics.Components")
 
+---@class ItemEntity: Entity
 ---@param definition ItemDefinition
 ---@param quantity number
----@return Entity
-local function ItemEntity(definition, quantity)
+---@return ItemEntity
+return function(definition, quantity)
     return Entity(
         definition.name,
-        Components.MassComponent(definition.mass),
-        Components.QuantityComponent(quantity)
+        Physics.Mass(definition.mass),
+        Economy.Quantity(quantity)
     )
 end
-
-return ItemEntity
 ```
 
 As you can see, first the entity module is imported, followed by the Components module. The entity function returns an Entity instance with all the necessary components attached directly in the constructor.
@@ -52,7 +56,7 @@ They hold minimal game logic, only the most basic data related methods should be
 Here's how you define a component from the component class:
 
 ```lua
-local Component = require('Components.Component')
+local Component = require("Core.ECS.Component")
 
 ---@class NameComponent: Component
 ---@overload fun(self: NameComponent, name: string): NameComponent subclass internal
@@ -87,8 +91,8 @@ Lets have a deeper look at the marketplace system:
 
 ```lua
 -- Systems
-local Registry = require("Systems.Storage.Registry")
-local InventorySystem = require("Systems.Economy.InventorySystem")
+local Registry = require("Core.ECS.Registry")
+local InventorySystem = require("Modules.Economy.Systems").Inventory
 
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")

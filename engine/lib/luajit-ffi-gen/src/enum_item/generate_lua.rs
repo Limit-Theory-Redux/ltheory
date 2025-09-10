@@ -90,8 +90,7 @@ fn gen_c_definitions(
     if variants_info.iter().any(|v| v.2.is_expr()) {
         variants_info.iter().for_each(|(_, name, _)| {
             ffi_gen.add_c_definition(format!(
-                "{IDENT}{IDENT}{IDENT}{module_name:<0$} {module_name}_{name};",
-                max_ret_len
+                "{IDENT}{IDENT}{IDENT}{module_name:<max_ret_len$} {module_name}_{name};"
             ));
         });
         ffi_gen.add_c_definition("");
@@ -119,12 +118,10 @@ fn gen_global_symbol_table(
         .iter()
         .for_each(|(_, name, value)| match value {
             VariantValue::Literal(l) => ffi_gen.add_global_symbol(format!(
-                "{IDENT}{IDENT}{IDENT}{name:<0$} = {l},",
-                max_variant_len,
+                "{IDENT}{IDENT}{IDENT}{name:<max_variant_len$} = {l},",
             )),
             VariantValue::Expr(_) => ffi_gen.add_global_symbol(format!(
-                "{IDENT}{IDENT}{IDENT}{name:<0$} = libphx.{module_name}_{name},",
-                max_variant_len,
+                "{IDENT}{IDENT}{IDENT}{name:<max_variant_len$} = libphx.{module_name}_{name},",
             )),
         });
 

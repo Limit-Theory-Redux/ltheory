@@ -332,10 +332,10 @@ pub enum TypeVariant {
 
 impl TypeVariant {
     pub fn is_self(&self) -> bool {
-        if let TypeVariant::Custom(ty) = self {
-            if ty == "Self" {
-                return true;
-            }
+        if let TypeVariant::Custom(ty) = self
+            && ty == "Self"
+        {
+            return true;
         }
 
         false

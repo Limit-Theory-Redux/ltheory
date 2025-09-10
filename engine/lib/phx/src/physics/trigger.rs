@@ -173,10 +173,10 @@ impl Trigger {
     }
 
     /// Will only include the parent object when a compound is within the trigger.
-    pub fn get_contents(&self, i: i32) -> Option<&mut RigidBody> {
+    pub fn get_contents(&self, i: i32) -> Option<&RigidBody> {
         self.contents_cache
             .get(i as usize)
-            .map(|ptr| unsafe { &mut **ptr })
+            .map(|ptr| unsafe { &**ptr })
     }
 
     pub fn set_collision_mask(&mut self, mask: u32) {
