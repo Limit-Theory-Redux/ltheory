@@ -1,7 +1,7 @@
 local Component = require("Core.ECS.Component")
 
 ---@class InventoryComponent: Component
----@field items table<integer, table<EntityId, EntityId>>
+---@field items table<integer, table<Entity, Entity>>
 ---@overload fun(self: InventoryComponent, playerId: integer|nil): InventoryComponent subclass internal
 ---@overload fun(playerId: integer|nil): InventoryComponent subclass external
 local InventoryComponent = Subclass("InventoryComponent", Component, function(self)
@@ -20,12 +20,12 @@ function InventoryComponent:getInventory()
 end
 
 ---@param itemId integer
----@param itemEntityId EntityId
-function InventoryComponent:addItem(itemId, itemEntityId)
+---@param itemEntity Entity
+function InventoryComponent:addItem(itemId, itemEntity)
     if not self.items[itemId] then
         self.items[itemId] = {}
     end
-    self.items[itemId][itemEntityId] = itemEntityId
+    self.items[itemId][itemEntity] = itemEntity
 end
 
 ---@param itemId integer

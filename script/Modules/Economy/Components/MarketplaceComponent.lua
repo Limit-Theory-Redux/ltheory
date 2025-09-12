@@ -36,12 +36,12 @@ function MarketplaceComponent:getNextUpdate()
     return self.nextUpdate
 end
 
----@param trader EntityId
+---@param trader Entity
 function MarketplaceComponent:setTrader(trader)
     self.trader = trader
 end
 
----@return EntityId Trader
+---@return Entity Trader
 function MarketplaceComponent:getTrader()
     return self.trader
 end
@@ -56,44 +56,44 @@ function MarketplaceComponent:getTax()
     return self.tax
 end
 
----@param entityId EntityId
-function MarketplaceComponent:addBid(entityId)
-    self.bids[entityId] = entityId
+---@param entity Entity
+function MarketplaceComponent:addBid(entity)
+    self.bids[entity] = entity
 end
 
----@param entityId EntityId
-function MarketplaceComponent:addAsk(entityId)
-    self.asks[entityId] = entityId
+---@param entity Entity
+function MarketplaceComponent:addAsk(entity)
+    self.asks[entity] = entity
 end
 
----@param entityId EntityId
+---@param entity Entity
 ---@return boolean success
-function MarketplaceComponent:removeBid(entityId)
-    if not self.bids[entityId] then
+function MarketplaceComponent:removeBid(entity)
+    if not self.bids[entity] then
         return false
     end
 
-    self.bids[entityId] = nil
+    self.bids[entity] = nil
     return true
 end
 
----@param entityId EntityId
+---@param entity Entity
 ---@return boolean success
-function MarketplaceComponent:removeAsk(entityId)
-    if not self.asks[entityId] then
+function MarketplaceComponent:removeAsk(entity)
+    if not self.asks[entity] then
         return false
     end
 
-    self.asks[entityId] = nil
+    self.asks[entity] = nil
     return true
 end
 
----@return table<EntityId>
+---@return table<Entity>
 function MarketplaceComponent:getBids()
     return self.bids
 end
 
----@return table<EntityId>
+---@return table<Entity>
 function MarketplaceComponent:getAsks()
     return self.asks
 end

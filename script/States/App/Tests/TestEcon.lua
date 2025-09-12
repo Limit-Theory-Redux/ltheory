@@ -53,7 +53,7 @@ function TestEcon:onInit()
     self.tradeAI:addCredits(1e10)
 
     -- Add a generic ship-like entity to serve as the imaginary player ship
-    self.tradeShip = Entity()
+    self.tradeShip = Entity.Create()
     self.tradeShip:setOwner(self.tradeAI, true)
 
     -- Use repeat ship builds, fast movement, and hyperspeedup for economic testing

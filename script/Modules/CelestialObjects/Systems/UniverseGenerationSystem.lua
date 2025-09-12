@@ -44,15 +44,15 @@ function UniverseGenerationSystem:createUniverse(seed)
         self:generateConstructs(starSystem, starSystemRNG)
 
         -- Add star system to universe
-        Registry:attachEntity(universe, starSystemEntityId)
+        Registry:attachEntity(universe, starSystem)
     end
 
     self.profiler:stop()
-    return universeEntityId
+    return universe
 end
 
 ---@private
----@param starSystem EntityId
+---@param starSystem Entity
 ---@param rng RNG
 function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng)
     -- Generate star
@@ -62,7 +62,7 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
 
     -- Add star area
     local starZone = SpatialEntities.Zone()
-    local starZoneShapeComponent = Registry:get(starZone, SpatialComponents.Shape)
+    local starZoneShapeComponent = starZone:get(SpatialComponents.Shape)
     starZoneShapeComponent:setShape(Enums.ZoneShape.Sphere)
     starZoneShapeComponent:setRadius(1.7952e13) --* Hardcode to solar system radius for now
 
@@ -99,7 +99,7 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
 end
 
 ---@private
----@param planet EntityId
+---@param planet Entity
 ---@param rng RNG
 function UniverseGenerationSystem:generatePlanetaryFeatures(planet, rng)
     -- Generate moons
@@ -129,7 +129,7 @@ function UniverseGenerationSystem:generatePlanetaryFeatures(planet, rng)
 end
 
 ---@private
----@param starSystem EntityId
+---@param starSystem Entity
 ---@param rng RNG
 function UniverseGenerationSystem:generateConstructs(starSystem, rng)
     -- Generate space stations

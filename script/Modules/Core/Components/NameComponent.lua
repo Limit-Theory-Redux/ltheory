@@ -11,7 +11,7 @@ end)
 
 ---@param name string
 function NameComponent:setName(name)
-    self.name = name or "Undefined"
+    self.name = name
 end
 
 ---@return string

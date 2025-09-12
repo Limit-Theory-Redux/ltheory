@@ -43,9 +43,9 @@ function RenderingTest:onInit()
     local boxMaterial = Materials.DebugColor() ---@type Material
     boxMaterial:addStaticShaderVar("color", Enums.UniformType.Float3, function() return 1.0, 0.0, 1.0 end)
     self.boxEntity = BoxEntity(boxMaterial)
-    self.boxRend = Registry:get(self.boxEntity, Rendering.Render)
+    self.boxRend = self.boxEntity:get(Rendering.Render)
     -- Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
-    self.boxRB = Registry:get(self.boxEntity, Physics.RigidBody)
+    self.boxRB = self.boxEntity:get(Physics.RigidBody)
     -- Set RigidBody
     self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(self.boxMesh))
     self.boxRB:getRigidBody():setPos(Position(0, 0, -5))

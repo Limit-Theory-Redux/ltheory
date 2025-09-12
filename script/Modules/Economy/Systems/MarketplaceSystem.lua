@@ -2,7 +2,7 @@ local Registry = require("Core.ECS.Registry")
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local Helper = require("Shared.Helpers.MarketplaceSystemHelper")
 local Items = require("Shared.Registries.Items")
-local InventorySystem = require("Modules.Economy.Systems").Inventory
+local InventorySystem = require("Modules.Economy.Systems.InventorySystem")
 local Economy = require("Modules.Economy.Components")
 
 ---@class MarketplaceSystem
@@ -36,9 +36,9 @@ function MarketplaceSystem:onPreRender()
     local now = TimeStamp.Now()
 
     for _, marketplace in Registry:iterEntities(Economy.Marketplace) do
-        local traderEntityId = marketplace:getTrader()
+        local traderEntity = marketplace:getTrader()
 
-        if not traderEntityId then
+        if not traderEntity then
             goto skipMarketplace
         end
 
@@ -59,7 +59,7 @@ function MarketplaceSystem:onPreRender()
                 - Update item flow
             ]]
 
-            if Registry:hasEntity(traderEntityId) then
+            if Registry:hasEntity(traderEntity) then
                 local bids = marketplace:getBids()
                 local asks = marketplace:getAsks()
 
@@ -74,18 +74,18 @@ function MarketplaceSystem:onPreRender()
 end
 
 ---@param marketplace MarketplaceComponent
----@param bids table<EntityId>
----@param asks table<EntityId>
+---@param bids table<Entity>
+---@param asks table<Entity>
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
-    for bidId in Iterator(bids) do
-        for askId in Iterator(asks) do
-            local bidItemTypeCmp = Registry:get(bidId, Economy.OrderItemType)
-            local bidPriceCmp = Registry:get(bidId, Economy.Price)
-            local bidQuantityCmp = Registry:get(bidId, Economy.Quantity)
+    for bid in Iterator(bids) do
+        for ask in Iterator(asks) do
+            local bidItemTypeCmp = bid:get(Economy.OrderItemType)
+            local bidPriceCmp = bid:get(Economy.Price)
+            local bidQuantityCmp = bid:get(Economy.Quantity)
 
-            local askItemTypeCmp = Registry:get(askId, Economy.OrderItemType)
-            local askPriceCmp = Registry:get(askId, Economy.Price)
-            local askQuantityCmp = Registry:get(askId, Economy.Quantity)
+            local askItemTypeCmp = ask:get(Economy.OrderItemType)
+            local askPriceCmp = ask:get(Economy.Price)
+            local askQuantityCmp = ask:get(Economy.Quantity)
 
             local bidItemType = bidItemTypeCmp:getItemType()
             local bidPrice = bidPriceCmp:getPrice()
@@ -95,8 +95,8 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askQuantity = askQuantityCmp:getQuantity()
 
             -- Verify Inventory
-            self.marketplaceParentEntity = marketplace:getEntityId()
-            self.marketplaceInventoryCmp = Registry:get(self.marketplaceParentEntity, Economy.Inventory)
+            self.marketplaceParentEntity = marketplace:getEntity()
+            self.marketplaceInventoryCmp = self.marketplaceParentEntity:get(Economy.Inventory)
 
             Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)
 
@@ -126,15 +126,15 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 
                     -- Update or remove the bid and ask orders
                     if bidQuantity == 0 then
-                        marketplace:removeBid(bidId)
-                        Registry:destroyEntity(bidId)
+                        marketplace:removeBid(bid)
+                        Registry:destroyEntity(bid)
                     else
                         bidQuantityCmp:setQuantity(bidQuantity)
                     end
 
                     if askQuantity == 0 then
-                        marketplace:removeAsk(askId)
-                        Registry:destroyEntity(askId)
+                        marketplace:removeAsk(ask)
+                        Registry:destroyEntity(ask)
                     else
                         askQuantityCmp:setQuantity(askQuantity)
                     end

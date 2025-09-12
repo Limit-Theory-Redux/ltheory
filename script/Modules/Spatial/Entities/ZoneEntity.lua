@@ -3,10 +3,9 @@ local Core = require("Modules.Core.Components")
 local Physics = require("Modules.Physics.Components")
 local Spatial = require("Modules.Spatial.Components")
 
----@class ZoneEntity: Entity
 ---@return Entity
 return function()
-    return Entity(
+    return Entity.Create(
         "ZoneEntity",
         Physics.Transform(),
         Spatial.Shape(),

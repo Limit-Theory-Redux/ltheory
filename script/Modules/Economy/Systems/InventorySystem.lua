@@ -19,7 +19,7 @@ end
 ---@param inventory InventoryComponent
 ---@param itemId integer
 ---@param quantity number
----@return table<EntityId>|nil
+---@return table<Entity>|nil
 function InventorySystem:take(inventory, itemId, quantity)
     self.profiler:start()
 
@@ -27,22 +27,22 @@ function InventorySystem:take(inventory, itemId, quantity)
     local takenItems = {}
     local remainingQuantity = quantity
 
-    for id, itemEntityId in pairs(itemsOfType) do
-        local quantityComponent = Registry:get(itemEntityId, Economy.Quantity)
+    for id, itemEntity in pairs(itemsOfType) do
+        local quantityComponent = itemEntity:get(Economy.Quantity)
         local itemQuantity = quantityComponent:getQuantity()
 
         if itemQuantity <= remainingQuantity then
             -- Take entire item
             inventory:removeItem(itemId, id)
-            table.insert(takenItems, itemEntityId)
+            table.insert(takenItems, itemEntity)
             remainingQuantity = remainingQuantity - itemQuantity
         else
             -- Split the item and update quantity
             quantityComponent:setQuantity(itemQuantity - remainingQuantity)
-            local cloneEntityId = Registry:cloneEntity(itemEntityId)
-            local cloneQuantityCmp = Registry:get(cloneEntityId, Economy.Quantity)
+            local cloneEntity = Registry:cloneEntity(itemEntity)
+            local cloneQuantityCmp = cloneEntity:get(Economy.Quantity)
             cloneQuantityCmp:setQuantity(remainingQuantity)
-            table.insert(takenItems, cloneEntityId)
+            table.insert(takenItems, cloneEntity)
             remainingQuantity = 0
         end
 
@@ -56,19 +56,19 @@ end
 
 ---@param inventory InventoryComponent
 ---@param itemId integer
----@param items table<EntityId>
+---@param items table<Entity>
 function InventorySystem:put(inventory, itemId, items)
-    for _, itemEntityId in ipairs(items) do
-        inventory:addItem(itemId, itemEntityId)
+    for _, itemEntity in ipairs(items) do
+        inventory:addItem(itemId, itemEntity)
     end
 end
 
----@param item EntityId
----@param owner Player
+---@param item Entity
+---@param owner Entity
 ---@param amount integer
 ---@return boolean success
 function InventorySystem:lockItemQuantity(item, owner, amount)
-    local quantityComponent = Registry:get(item, Economy.Quantity)
+    local quantityComponent = item:get(Economy.Quantity)
 
     if amount > quantityComponent:getQuantity() then
         Log.Warn("Trying to reserve more than available quantity")
@@ -81,12 +81,12 @@ function InventorySystem:lockItemQuantity(item, owner, amount)
     return true
 end
 
----@param item EntityId
----@param owner EntityId
+---@param item Entity
+---@param owner Entity
 ---@param amount integer|nil
 ---@return boolean success
 function InventorySystem:unlockItemQuantity(item, owner, amount)
-    local quantityComponent = Registry:get(item, Economy.Quantity)
+    local quantityComponent = item:get(Economy.Quantity)
 
     if not quantityComponent:getLockedQuantity() then
         Log.Warn("Trying to unlock quantity without locking it first")

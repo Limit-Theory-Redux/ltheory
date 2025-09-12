@@ -1,11 +1,10 @@
-local ChildrenComponent = require("Components.Core.ChildrenComponent")
-local ParentComponent = require("Components.Core.ParentComponent")
+local Entity = require("Core.ECS.EntityClass")
+local ChildrenComponent = require("Modules.Core.Components.ChildrenComponent")
+local ParentComponent = require("Modules.Core.Components.ParentComponent")
 
 ---@class Registry
 ---@field entities table<EntityId, table<any, true>>
 ---@field components table<any, table<EntityId, Component>>
-
----@alias EntityId integer
 
 ---@class Registry
 ---@overload fun(self: Registry): Registry class internal
@@ -23,17 +22,17 @@ function Registry:clear()
     Log.Info("Initialized Registry")
 end
 
----@return EntityId A new unique entity ID
+---@return Entity A new unique entity
 function Registry:createEntity()
     local id = Guid.Create()
     self.entities[id] = {}
-    return id
+    return Entity(id)
 end
 
----@param entityId EntityId
+---@param entity Entity
 ---@return boolean wasSuccessful
-function Registry:destroyEntity(entityId)
-    local entityComponentIndex = self.entities[entityId]
+function Registry:destroyEntity(entity)
+    local entityComponentIndex = self.entities[entity.id]
     if not entityComponentIndex then
         return false
     end
@@ -42,25 +41,25 @@ function Registry:destroyEntity(entityId)
     for componentArchetype in pairs(entityComponentIndex) do
         local store = self.components[componentArchetype]
         if store then
-            store[entityId] = nil
+            store[entity.id] = nil
         end
     end
 
-    self.entities[entityId] = nil
+    self.entities[entity.id] = nil
     return true
 end
 
----@param entityId EntityId
+---@param entity Entity
 ---@return boolean
-function Registry:hasEntity(entityId)
-    return self.entities[entityId] ~= nil
-end 
+function Registry:hasEntity(entity)
+    return self.entities[entity.id] ~= nil
+end
 
----@param entityId EntityId
----@return EntityId The cloned entity ID
-function Registry:cloneEntity(entityId)
+---@param entity Entity
+---@return Entity The cloned entity
+function Registry:cloneEntity(entity)
     local clonedEntity = self:createEntity()
-    for component in self:iterComponents(entityId) do
+    for component in self:iterComponents(entity) do
         ---@type Component
         local clonedComponent = DeepClone(component)
         clonedComponent:addGuid()
@@ -70,76 +69,76 @@ function Registry:cloneEntity(entityId)
     return clonedEntity
 end
 
----@param parentEntityId EntityId
----@param childEntityId EntityId
+---@param parentEntity Entity
+---@param childEntity Entity
 ---@return boolean if successful
-function Registry:attachEntity(parentEntityId, childEntityId)
-    if not self:hasEntity(parentEntityId) then
-        Log.Warn("Registry:attachEntity - parent entity not found: %s", tostring(parentEntityId))
+function Registry:attachEntity(parentEntity, childEntity)
+    if not self:hasEntity(parentEntity) then
+        Log.Warn("Registry:attachEntity - parent entity not found: %s", tostring(parentEntity))
         return false
     end
-    if not self:hasEntity(childEntityId) then
-        Log.Warn("Registry:attachEntity - child entity not found: %s", tostring(childEntityId))
+    if not self:hasEntity(childEntity) then
+        Log.Warn("Registry:attachEntity - child entity not found: %s", tostring(childEntity))
         return false
     end
 
     -- Ensure that the parent process is set correctly.
-    local parentComponent = self:get(childEntityId, ParentComponent)
+    local parentComponent = self:get(childEntity, ParentComponent)
     if parentComponent then
         local existingParent = parentComponent:getParent()
         -- If the child already has a parent, detach it from the existing parent.
         if self:hasEntity(existingParent) then
-            self:detachEntity(existingParent, childEntityId)
+            self:detachEntity(existingParent, childEntity)
         else
             Log.Warn("Registry:attachEntity - existing parent entity not found: %s, skipping", tostring(existingParent))
         end
-        parentComponent:setParent(parentEntityId)
+        parentComponent:setParent(parentEntity)
     else
-        self:add(childEntityId, ParentComponent(parentEntityId))
+        self:add(childEntity, ParentComponent(parentEntity))
     end
     
     -- Update children.
-    local childrenComponent = self:get(parentEntityId, ChildrenComponent)
+    local childrenComponent = self:get(parentEntity, ChildrenComponent)
     if not childrenComponent then
-        childrenComponent = self:add(parentEntityId, ChildrenComponent())
+        childrenComponent = self:add(parentEntity, ChildrenComponent())
     end
-    childrenComponent:addChild(childEntityId)
+    childrenComponent:addChild(childEntity)
     return true
 end
 
----@param parentEntityId EntityId
----@param childEntityId EntityId
+---@param parentEntity Entity
+---@param childEntity Entity
 ---@return boolean if successful
-function Registry:detachEntity(parentEntityId, childEntityId)
-    if not self:hasEntity(parentEntityId) then
-        Log.Warn("Registry:detachEntity - parent entity not found: %s", tostring(parentEntityId))
+function Registry:detachEntity(parentEntity, childEntity)
+    if not self:hasEntity(parentEntity) then
+        Log.Warn("Registry:detachEntity - parent entity not found: %s", tostring(parentEntity))
         return false
     end
-    if not self:hasEntity(childEntityId) then
-        Log.Warn("Registry:detachEntity - child entity not found: %s", tostring(childEntityId))
+    if not self:hasEntity(childEntity) then
+        Log.Warn("Registry:detachEntity - child entity not found: %s", tostring(childEntity))
         return false
     end
 
     -- Remove child from parent's ChildrenComponent, and remove the ChildrenComponent if it becomes empty.
-    local childrenComponent = self:get(parentEntityId, ChildrenComponent)
+    local childrenComponent = self:get(parentEntity, ChildrenComponent)
     if childrenComponent then
-        childrenComponent:removeChild(childEntityId)
+        childrenComponent:removeChild(childEntity)
         if #childrenComponent.children == 0 then
-            self:remove(parentEntityId, ChildrenComponent)
+            self:remove(parentEntity, ChildrenComponent)
         end
     end
 
     -- Remove ParentComponent from child.
-    self:remove(childEntityId, ParentComponent)
+    self:remove(childEntity, ParentComponent)
     return true
 end
 
 ---@generic T
----@param entityId EntityId
+---@param entity Entity
 ---@param component T
 ---@return T|nil
-function Registry:add(entityId, component)
-    local entityComponentIndex = self.entities[entityId]
+function Registry:add(entity, component)
+    local entityComponentIndex = self.entities[entity.id]
     if not entityComponentIndex then
         return nil
     end
@@ -153,70 +152,70 @@ function Registry:add(entityId, component)
         self.components[archetype] = {}
         SetLengthMetamethod(self.components[archetype])
     end
-    self.components[archetype][entityId] = component
-    component:setEntityId(entityId)
+    self.components[archetype][entity.id] = component
+    component:setEntityId(entity.id)
     return component
 end
 
----@param entityId EntityId
+---@param entity Entity
 ---@param componentType any
 ---@return boolean wasSuccessful
-function Registry:remove(entityId, componentType)
+function Registry:remove(entity, componentType)
     if not self.components[componentType] then
         return false
     end
 
     -- Detach the component from this entity.
-    local entityComponentIndex = self.entities[entityId]
+    local entityComponentIndex = self.entities[entity.id]
     if not entityComponentIndex or not entityComponentIndex[componentType] then
         return false
     end
     entityComponentIndex[componentType] = nil
 
     -- Remove this component.
-    self.components[componentType][entityId] = nil
+    self.components[componentType][entity.id] = nil
     return true
 end
 
 ---@generic T
----@param entityId EntityId
+---@param entity Entity
 ---@param componentType T
 ---@return T|nil
-function Registry:get(entityId, componentType)
+function Registry:get(entity, componentType)
     local archetypeStorage = self.components[componentType]
     if not archetypeStorage then
         -- No components with this archetype exist.
         return nil
     end
 
-    return archetypeStorage[entityId]
+    return archetypeStorage[entity.id]
 end
 
----@param entityId EntityId
+---@param entity Entity
 ---@param componentType any
 ---@return boolean
-function Registry:has(entityId, componentType)
-    return Registry:get(entityId, componentType) ~= nil
+function Registry:has(entity, componentType)
+    return self:get(entity, componentType) ~= nil
 end
 
----@param entityId EntityId
----@return fun(): Component|nil An iterator that yields all components for the given entity ID 
-function Registry:iterComponents(entityId)
-    local entityComponentIndex = self.entities[entityId]
+---@param entity Entity
+---@return fun(): Component|nil An iterator that yields all components for the given entity
+function Registry:iterComponents(entity)
+    local entityComponentIndex = self.entities[entity.id]
     if not entityComponentIndex then
         return function() return nil end
     end
 
     local components = {}
     for componentType in pairs(entityComponentIndex) do
-        table.insert(components, self.components[componentType][entityId])
+        table.insert(components, self.components[componentType][entity.id])
     end
     return Iterator(components)
 end
 
 ---@generic T1, T2, T3, T4, T5
 ---@param ... T1, T2, T3, T4, T5 A variable list of component types
----@return fun(): EntityId, T1, T2, T3, T4, T5 An iterator that yield the entity ID and the requested components as a tuple
+---@return fun(): Entity, T1, T2, T3, T4, T5 An iterator that yield the entity ID and the requested components as a tuple
 function Registry:iterEntities(...)
     local componentTypes = { ... } -- Collect the variable arguments into a table
     if #componentTypes == 0 then
@@ -252,8 +251,8 @@ function Registry:iterEntities(...)
             end
 
             if hasAllComponents then
-                -- Yield the entity ID and components as a tuple
-                coroutine.yield(entityId, table.unpack(components))
+                -- Yield the entity handle and components as a tuple
+                coroutine.yield(Entity(entityId), table.unpack(components))
             end
         end
     end)
