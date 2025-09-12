@@ -1,6 +1,18 @@
-local Entity = require("Core.ECS.EntityClass")
 local ChildrenComponent = require("Modules.Core.Components.ChildrenComponent")
 local ParentComponent = require("Modules.Core.Components.ParentComponent")
+local NameComponent = require("Modules.Core.Components.NameComponent")
+
+-- Entity and Registry are so tightly coupled that they need to be defined together in the same file.
+
+---@alias EntityId integer
+
+---@class Entity A non-owning handle to an entity in the ECS.
+---@field id EntityId
+---@overload fun(self: Entity, id: EntityId): Entity class internal
+---@overload fun(id: EntityId): Entity class external
+local Entity = Class("Entity", function(self, id)
+    self.id = id
+end)
 
 ---@class Registry
 ---@field entities table<EntityId, table<any, true>>
@@ -12,6 +24,48 @@ local ParentComponent = require("Modules.Core.Components.ParentComponent")
 local Registry = Class("Registry", function(self)
     self:clear()
 end)
+
+function Entity:__tostring()
+    local nameComponent = self:get(NameComponent)
+    if not nameComponent then
+        return format("unnamed(%d)", self.id)
+    end
+    return format("%s(%d)", self:get(NameComponent):getName(), self.id)
+end
+
+---@generic T
+---@param component T
+---@return T|nil
+function Entity:add(component)
+    return Registry.Instance:add(self, component)
+end
+
+---@generic T
+---@param componentType T
+---@return T|nil
+function Entity:get(componentType)
+    return Registry.Instance:get(self, componentType)
+end
+
+---@generic T
+---@param componentType T
+---@return T|nil
+function Entity:remove(componentType)
+    return Registry.Instance:remove(self, componentType)
+end
+
+-- This function constructs a new entity with the specified name and list of components.
+---@param name string
+---@param ... any
+---@return Entity
+function Entity.Create(name, ...)
+    local entity = Registry.Instance:createEntity()
+    entity:add(NameComponent(name or "Entity"))
+    for _, component in ipairs({ ... }) do
+        entity:add(component)
+    end
+    return entity
+end
 
 function Registry:clear()
     self.entities = {}
@@ -270,4 +324,7 @@ function Registry:getComponentCount()
     return count
 end
 
-return Registry()
+Registry.Instance = Registry()
+Registry.EntityType = Entity
+
+return Registry.Instance

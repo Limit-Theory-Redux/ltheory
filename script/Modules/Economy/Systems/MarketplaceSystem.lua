@@ -1,4 +1,5 @@
 local Registry = require("Core.ECS.Registry")
+local Entity = require("Core.ECS.Entity")
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local Helper = require("Shared.Helpers.MarketplaceSystemHelper")
 local Items = require("Shared.Registries.Items")
@@ -95,7 +96,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askQuantity = askQuantityCmp:getQuantity()
 
             -- Verify Inventory
-            self.marketplaceParentEntity = marketplace:getEntity()
+            self.marketplaceParentEntity = Entity(marketplace:getEntityId())
             self.marketplaceInventoryCmp = self.marketplaceParentEntity:get(Economy.Inventory)
 
             Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)

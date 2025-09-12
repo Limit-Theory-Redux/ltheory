@@ -1,5 +1,3 @@
-local Entity = require("Core.ECS.EntityClass")
-
 -- General Purpose Component Object
 ---@class Component
 local Component = Class("Component", function(self)
@@ -58,9 +56,9 @@ function Component:setEntityId(entityId)
     self.entityId = entityId
 end
 
----@return Entity
-function Component:getEntity()
-    return Entity(self.entityId)
+---@return EntityId
+function Component:getEntityId()
+    return self.entityId
 end
 
 function Component:addEvents()
