@@ -35,9 +35,9 @@ local Physics = require("Modules.Physics.Components")
 
 ---@param definition ItemDefinition
 ---@param quantity number
----@return EntityId
+---@return Entity
 return function(definition, quantity)
-    return Entity(
+    return Entity.Create(
         definition.name,
         Physics.Mass(definition.mass),
         Economy.Quantity(quantity)
@@ -45,7 +45,7 @@ return function(definition, quantity)
 end
 ```
 
-As you can see, first the Entity module is imported, followed by the Components module. The Entity function constructs an entity with all the specified components.
+As you can see, first the Entity module is imported, followed by the relevant component modules. `Entity.Create` constructs an entity with the specified components.
 
 ### Components
 Components are plain data structures that define the properties or state of an entity. They are small and focused on a single responsibility. By attaching different combinations of components to entities, you can represent diverse behaviors and characteristics.
@@ -68,7 +68,7 @@ end)
 
 ---@param name string
 function NameComponent:setName(name)
-    self.name = name or "Undefined"
+    self.name = name
 end
 
 ---@return string
@@ -91,7 +91,7 @@ Lets have a deeper look at the marketplace system:
 ```lua
 -- Systems
 local Registry = require("Core.ECS.Registry")
-local InventorySystem = require("Modules.Economy.Systems").Inventory
+local InventorySystem = require("Modules.Economy.Systems.InventorySystem")
 
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
@@ -138,10 +138,10 @@ function MarketplaceSystem:onPreRender()
 
     local now = TimeStamp.Now()
 
-    for _, marketplace in Registry:iterEntities(MarketplaceComponent) do
-        local traderEntityId = marketplace:getTrader()
+    for _, marketplace in Registry:iterEntities(Economy.Marketplace) do
+        local traderEntity = marketplace:getTrader()
 
-        if not traderEntityId then
+        if not traderEntity then
             goto skipMarketplace
         end
 
@@ -162,7 +162,7 @@ function MarketplaceSystem:onPreRender()
                 - Update item flow
             ]]
 
-            if Registry:hasEntity(traderEntityId) then
+            if Registry:hasEntity(traderEntity) then
                 local bids = marketplace:getBids()
                 local asks = marketplace:getAsks()
 
@@ -181,18 +181,18 @@ end
 
 ```lua
 ---@param marketplace MarketplaceComponent
----@param bids table<EntityId>
----@param asks table<EntityId>
+---@param bids table<Entity>
+---@param asks table<Entity>
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
-    for bidId in Iterator(bids) do
-        for askId in Iterator(asks) do
-            local bidItemTypeCmp = Registry:get(bidId, OrderItemTypeComponent)
-            local bidPriceCmp = Registry:get(bidId, PriceComponent)
-            local bidQuantityCmp = Registry:get(bidId, QuantityComponent)
+    for bid in Iterator(bids) do
+        for ask in Iterator(asks) do
+            local bidItemTypeCmp = bid:get(Economy.OrderItemType)
+            local bidPriceCmp = bid:get(Economy.Price)
+            local bidQuantityCmp = bid:get(Economy.Quantity)
 
-            local askItemTypeCmp = Registry:get(askId, OrderItemTypeComponent)
-            local askPriceCmp = Registry:get(askId, PriceComponent)
-            local askQuantityCmp = Registry:get(askId, QuantityComponent)
+            local askItemTypeCmp = ask:get(Economy.OrderItemType)
+            local askPriceCmp = ask:get(Economy.Price)
+            local askQuantityCmp = ask:get(Economy.Quantity)
 ```
 
 #### The data we want to work with is accessed from the components themselves as explained before.
@@ -209,8 +209,8 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 
 ```lua
             -- Verify Inventory
-            self.marketplaceParentEntity = marketplace:getEntityId()
-            self.marketplaceInventoryCmp = Registry:get(self.marketplaceParentEntity, InventoryComponent)
+            self.marketplaceParentEntity = marketplace:getEntity()
+            self.marketplaceInventoryCmp = self.marketplaceParentEntity:get(Economy.Inventory)
 ```
 
 #### Here we use helper which was defined in a seperate file. Sometimes we want some additional methods that don´t have to be part of the system itself for cleanliness. Helper files can be defined for that purpose.
@@ -252,15 +252,15 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 ```lua
                     -- Update or remove the bid and ask orders
                     if bidQuantity == 0 then
-                        marketplace:removeBid(bidId)
-                        Registry:destroyEntity(bidId)
+                        marketplace:removeBid(bid)
+                        Registry:destroyEntity(bid)
                     else
                         bidQuantityCmp:setQuantity(bidQuantity)
                     end
 
                     if askQuantity == 0 then
-                        marketplace:removeAsk(askId)
-                        Registry:destroyEntity(askId)
+                        marketplace:removeAsk(ask)
+                        Registry:destroyEntity(ask)
                     else
                         askQuantityCmp:setQuantity(askQuantity)
                     end
