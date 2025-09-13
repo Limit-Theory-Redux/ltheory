@@ -1,6 +1,5 @@
 local PhysicalEntity = require("Modules.PhysicalEntity")
 
----@class AsteroidRingEntity: PhysicalEntity
 ---@param seed integer
 ---@return Entity
 return function(seed)

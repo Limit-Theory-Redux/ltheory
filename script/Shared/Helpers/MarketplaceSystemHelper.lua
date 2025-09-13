@@ -1,23 +1,22 @@
 local Registry = require("Core.ECS.Registry")
+local NameComponent = require("Modules.Core.Components.NameComponent")
 local QuantityComponent = require("Modules.Economy.Components").Quantity
 
----@param bids table<EntityId>
----@param asks table<EntityId>
----@return table<OrderEntity> bids, table<OrderEntity> asks
+---@param bids table<Entity>
+---@param asks table<Entity>
+---@return table<Entity> bids, table<Entity> asks
 local function getOrderEntities(bids, asks)
     local bidEntities, askEntities = {}, {}
 
     for entityId in Iterator(bids) do
-        local entity = Registry:getEntity(entityId)
-        if entity then
-            insert(bidEntities, entity)
+        if Registry:hasEntity(entityId) then
+            insert(bidEntities, entityId)
         end
     end
 
     for entityId in Iterator(asks) do
-        local entity = Registry:getEntity(entityId)
-        if entity then
-            insert(askEntities, entity)
+        if Registry:hasEntity(entityId) then
+            insert(askEntities, entityId)
         end
     end
 
@@ -29,13 +28,12 @@ end
 local function printInventory(parentEntity, component)
     Log.Debug("%s - Inventory", parentEntity)
     for itemTypes in Iterator(component:getInventory()) do
-        for itemEntityId in Iterator(itemTypes) do
-            local itemEntity = Registry:getEntity(itemEntityId)
-
-            if itemEntity then
-                local quantityComponent = itemEntity:getComponent(QuantityComponent)
-
-                Log.Debug(" ├─ %s(%d)", itemEntity:getName(), quantityComponent:getQuantity())
+        for itemEntity in Iterator(itemTypes) do
+            if Registry:hasEntity(itemEntity) then
+                Log.Debug(" ├─ %s(%d)",
+                    itemEntity:get(NameComponent):getName(),
+                    itemEntity:get(QuantityComponent):getQuantity()
+                )
             end
         end
     end

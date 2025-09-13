@@ -33,12 +33,11 @@ local Entity = require("Core.ECS.Entity")
 local Economy = require("Modules.Economy.Components")
 local Physics = require("Modules.Physics.Components")
 
----@class ItemEntity: Entity
 ---@param definition ItemDefinition
 ---@param quantity number
----@return ItemEntity
+---@return Entity
 return function(definition, quantity)
-    return Entity(
+    return Entity.Create(
         definition.name,
         Physics.Mass(definition.mass),
         Economy.Quantity(quantity)
@@ -46,7 +45,7 @@ return function(definition, quantity)
 end
 ```
 
-As you can see, first the entity module is imported, followed by the Components module. The entity function returns an Entity instance with all the necessary components attached directly in the constructor.
+As you can see, first the Entity module is imported, followed by the relevant component modules. `Entity.Create` constructs an entity with the specified components.
 
 ### Components
 Components are plain data structures that define the properties or state of an entity. They are small and focused on a single responsibility. By attaching different combinations of components to entities, you can represent diverse behaviors and characteristics.
@@ -69,7 +68,7 @@ end)
 
 ---@param name string
 function NameComponent:setName(name)
-    self.name = name or "Undefined"
+    self.name = name
 end
 
 ---@return string
@@ -92,7 +91,7 @@ Lets have a deeper look at the marketplace system:
 ```lua
 -- Systems
 local Registry = require("Core.ECS.Registry")
-local InventorySystem = require("Modules.Economy.Systems").Inventory
+local InventorySystem = require("Modules.Economy.Systems.InventorySystem")
 
 -- Utilities
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
@@ -129,91 +128,75 @@ function MarketplaceSystem:registerEvents()
 end
 ```
 
-#### In this case we want to do operations in our PreRender engine event. We start out with defining a profiler, so we have metrics for later performance improvement. Since we want to work with marketplaces, we can access the Registry to get all components of the type "MarketplaceComponent", this way we don´t have to loop through all existing entities and ask them if they have that component.
+#### In this case we want to do operations in our PreRender engine event. We start out with defining a profiler, so we have metrics for later performance improvement. Since we want to work with marketplaces, we can query the Registry to iterate over all entities with components of type "MarketplaceComponent". This is far more efficient than having to loop through all entities and ask them if they have that component.
+
+#### Here we just do the marketplace logic we want to have for our economy. It iterates through all existing marketplaces, checks if they have a trader, handles trades and sets the next update point in time. The next update is also slightly randomized, so updates are spread across multiple frames for our marketplaces instead of being squeezed into one frame.
 
 ```lua
 function MarketplaceSystem:onPreRender()
     self.profiler:start()
 
-    local marketplaces = Registry:getComponentsFromArchetype(MarketplaceComponent)
-    ---@cast marketplaces table<MarketplaceComponent>
-```
-
-#### Here we just do the marketplace logic we want to have for our economy. It iterates through all existing marketplaces, checks if they have a trader, handles trades and sets the next update point in time. The next update is also slightly randomized, so updates are spread across multiple frames for our marketplaces instead of being squeezed into one frame.
-
-```lua
     local now = TimeStamp.Now()
 
-    if marketplaces and #marketplaces > 0 then
-        ---@param marketplace MarketplaceComponent
-        for index, marketplace in IteratorIndexed(marketplaces) do
-            local traderEntityId = marketplace:getTrader()
+    for _, marketplace in Registry:iterEntities(Economy.Marketplace) do
+        local traderEntity = marketplace:getTrader()
 
-            if not traderEntityId then
-                goto skipMarketplace
-            end
-
-            local nextUpdate = marketplace:getNextUpdate()
-
-            if not nextUpdate then
-                nextUpdate = TimeStamp.GetFuture(self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
-                marketplace:setNextUpdate(nextUpdate)
-                goto skipMarketplace
-            end
-
-            -- update
-            if now:getDifference(nextUpdate) <= 0 then
-                nextUpdate = TimeStamp.GetFuture(self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
-                marketplace:setNextUpdate(nextUpdate)
-                --[[ Todo
-                    - Update orders
-                    - Update item flow
-                ]]
-                local trader = Registry:getEntity(traderEntityId)
-
-                if trader then
-                    local bids = marketplace:getBids()
-                    local asks = marketplace:getAsks()
-
-                    local bidsEntities, asksEntities = Helper.getOrderEntities(bids, asks)
-                    self:processTrades(marketplace, bidsEntities, asksEntities)
-                end
-            end
-
-            :: skipMarketplace ::
+        if not traderEntity then
+            goto skipMarketplace
         end
+
+        local nextUpdate = marketplace:getNextUpdate()
+
+        if not nextUpdate then
+            nextUpdate = TimeStamp.GetFuture(self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
+            marketplace:setNextUpdate(nextUpdate)
+            goto skipMarketplace
+        end
+
+        -- update
+        if now:getDifference(nextUpdate) <= 0 then
+            nextUpdate = TimeStamp.GetFuture(self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
+            marketplace:setNextUpdate(nextUpdate)
+            --[[ Todo
+                - Update orders
+                - Update item flow
+            ]]
+
+            if Registry:hasEntity(traderEntity) then
+                local bids = marketplace:getBids()
+                local asks = marketplace:getAsks()
+
+                local bidsEntities, asksEntities = Helper.getOrderEntities(bids, asks)
+                self:processTrades(marketplace, bidsEntities, asksEntities)
+            end
+        end
+
+        :: skipMarketplace ::
     end
     self.profiler:stop()
 end
 ```
 
-#### Here we process our trades. This works by iterating through all bids and asks and then finding the order components inside the OrderEntity of the asks / bids. This is another way of accessing components. They are not only available from the Registry but also directly from the entitiy. This allows for much flexibility when working with entities and components alike. We also cast the components with the language server type so we get autocomplete and all the useful LS stuff.
+#### Here we process our trades. This works by iterating through all bids and asks and then looks up the order components inside the entity containing the asks / bids. This is another way of accessing components. This allows for much flexibility when working with entities and components alike. The Lua Language Server is set up so that we get autocomplete for component data automatically when assigning the result of `Registry:get` to a local.
 
 ```lua
 ---@param marketplace MarketplaceComponent
----@param bids table<OrderEntity>
----@param asks table<OrderEntity>
+---@param bids table<Entity>
+---@param asks table<Entity>
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:getComponent(OrderItemTypeComponent)
-            ---@cast bidItemTypeCmp OrderItemTypeComponent
-            local bidPriceCmp = bid:getComponent(PriceComponent)
-            ---@cast bidPriceCmp PriceComponent
-            local bidQuantityCmp = bid:getComponent(QuantityComponent)
-            ---@cast bidQuantityCmp QuantityComponent
+            local bidItemTypeCmp = bid:get(Economy.OrderItemType)
+            local bidPriceCmp = bid:get(Economy.Price)
+            local bidQuantityCmp = bid:get(Economy.Quantity)
 
-            local askItemTypeCmp = ask:getComponent(OrderItemTypeComponent)
-            ---@cast askItemTypeCmp OrderItemTypeComponent
-            local askPriceCmp = ask:getComponent(PriceComponent)
-            ---@cast askPriceCmp PriceComponent
-            local askQuantityCmp = ask:getComponent(QuantityComponent)
-            ---@cast askQuantityCmp QuantityComponent
+            local askItemTypeCmp = ask:get(Economy.OrderItemType)
+            local askPriceCmp = ask:get(Economy.Price)
+            local askQuantityCmp = ask:get(Economy.Quantity)
 ```
 
 #### The data we want to work with is accessed from the components themselves as explained before.
 ```lua
-
             local bidItemType = bidItemTypeCmp:getItemType()
             local bidPrice = bidPriceCmp:getPrice()
             local bidQuantity = bidQuantityCmp:getQuantity()
@@ -222,14 +205,12 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askQuantity = askQuantityCmp:getQuantity()
 ```
 
-#### Here we can see that we are getting the entity from a marketplace component. Entities hold data on which components are linked to it and components hold data on which entity they are linked to. `getEntity()` and `getComponent()` / `findComponentByName()` will all provide the user with a EntityId/ComponentInfo object which can be used to query the Registry to gain access to the actual entity/component. An xInfo object contains the guid and archetype of an entity or component.
+#### Here we can see that we are getting the entity ID from a marketplace component. Components hold data about which entity they are part of.
 
 ```lua
             -- Verify Inventory
-            self.marketplaceParentInfo = marketplace:getEntity()
-            self.marketplaceParentEntity = Registry:getEntity(self.marketplaceParentInfo)
-            ---@type InventoryComponent
-            self.marketplaceInventoryCmp = self.marketplaceParentEntity:getComponent(InventoryComponent)
+            self.marketplaceParentEntity = marketplace:getEntity()
+            self.marketplaceInventoryCmp = self.marketplaceParentEntity:get(Economy.Inventory)
 ```
 
 #### Here we use helper which was defined in a seperate file. Sometimes we want some additional methods that don´t have to be part of the system itself for cleanliness. Helper files can be defined for that purpose.
@@ -245,7 +226,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                 local tradeQuantity = math.min(bidQuantity, askQuantity)
 ```
 
-#### We access another system here. Functionality should be split reasonably between different systems. Every system should have a definite purpose. As we don´t want the marketplace to handle our inventories by itself we created an InventorySystem. This way other systems also can make use of inventory logic without resulting in duplicate code. The idea is to have a lot of systems that are as generic as possible so they can be reused, reducing redundancies (if appropriate)
+#### We access another system here. Functionality should be split reasonably between different systems. Every system should have a definite purpose. As we don´t want the marketplace to handle our inventories by itself we created an `InventorySystem`. This way other systems also can make use of inventory logic without resulting in duplicate code. The idea is to have a lot of systems that are as generic as possible so they can be reused, reducing redundancy where appropriate.
 
 ```lua
                 -- Attempt to take the required items from the inventory
@@ -254,7 +235,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                 if items then
                     -- Put traded items into the marketplace inventory (to simulate transfer)
                     for _, item in ipairs(items) do
-                        Registry:getEntity(item):destroy() --! temp destroy
+                        Registry:destroyEntity(item) --! temp destroy
                     end
 
                     Log.Debug("[Transaction] Trader 1 %s (%d) -> Trader 2 for price %d credits", Items:getDefinition(bidItemType).name,
@@ -266,22 +247,22 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                     askQuantity = askQuantity - tradeQuantity
 ```
 
-#### At the end of our transaction we destroy our OrderEntity for the bids and asks that are completed. The `destroy()` method is a basic entity method and leads to dropping the entity as a whole from the Registry and all components that are linked to it. It simply gets wiped out, this should be handled with care.
+#### At the end of our transaction we destroy the order entity for the bids and asks that are completed. The `Registry:destroyEntity()` method leads to dropping the entity as a whole from the Registry and all components that are linked to it. It simply gets wiped out, so this should be handled with care.
 
 ```lua
                     -- Update or remove the bid and ask orders
                     if bidQuantity == 0 then
-                        marketplace:removeBid(bid:getEntityId())
-                        bid:destroy()
+                        marketplace:removeBid(bid)
+                        Registry:destroyEntity(bid)
                     else
-                        bid:setQuantity(bidQuantity)
+                        bidQuantityCmp:setQuantity(bidQuantity)
                     end
 
                     if askQuantity == 0 then
-                        marketplace:removeAsk(ask:getEntityId())
-                        ask:destroy()
+                        marketplace:removeAsk(ask)
+                        Registry:destroyEntity(ask)
                     else
-                        ask:setQuantity(askQuantity)
+                        askQuantityCmp:setQuantity(askQuantity)
                     end
 
                     Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)
@@ -294,3 +275,4 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 end
 
 return MarketplaceSystem()
+```

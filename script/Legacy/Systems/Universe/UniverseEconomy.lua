@@ -27,7 +27,7 @@ local function addSystemGenerics(system)
     tradeAi:addCredits(1e10)
 
     -- Add a generic ship-like entity to serve as the imaginary player ship
-    system.tradeShip = Entity()
+    system.tradeShip = Entity.Create()
     system.tradeShip:setOwner(tradeAi, true)
 
     -- Every inhabited star system gets one "free" solar plant

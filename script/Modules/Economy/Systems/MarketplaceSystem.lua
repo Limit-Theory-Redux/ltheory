@@ -1,8 +1,9 @@
 local Registry = require("Core.ECS.Registry")
+local Entity = require("Core.ECS.Entity")
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local Helper = require("Shared.Helpers.MarketplaceSystemHelper")
 local Items = require("Shared.Registries.Items")
-local InventorySystem = require("Modules.Economy.Systems").Inventory
+local InventorySystem = require("Modules.Economy.Systems.InventorySystem")
 local Economy = require("Modules.Economy.Components")
 
 ---@class MarketplaceSystem
@@ -33,14 +34,12 @@ end
 function MarketplaceSystem:onPreRender()
     self.profiler:start()
 
-    -- local marketplaces = Registry:getComponentsFromArchetype(Components.Marketplace)
-
     local now = TimeStamp.Now()
 
     for _, marketplace in Registry:iterEntities(Economy.Marketplace) do
-        local traderEntityId = marketplace:getTrader()
+        local traderEntity = marketplace:getTrader()
 
-        if not traderEntityId then
+        if not traderEntity then
             goto skipMarketplace
         end
 
@@ -60,9 +59,8 @@ function MarketplaceSystem:onPreRender()
                 - Update orders
                 - Update item flow
             ]]
-            local trader = Registry:getEntity(traderEntityId)
 
-            if trader then
+            if Registry:hasEntity(traderEntity) then
                 local bids = marketplace:getBids()
                 local asks = marketplace:getAsks()
 
@@ -77,24 +75,18 @@ function MarketplaceSystem:onPreRender()
 end
 
 ---@param marketplace MarketplaceComponent
----@param bids table<OrderEntity>
----@param asks table<OrderEntity>
+---@param bids table<Entity>
+---@param asks table<Entity>
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:getComponent(Economy.OrderItemType)
-            ---@cast bidItemTypeCmp OrderItemTypeComponent
-            local bidPriceCmp = bid:getComponent(Economy.Price)
-            ---@cast bidPriceCmp PriceComponent
-            local bidQuantityCmp = bid:getComponent(Economy.Quantity)
-            ---@cast bidQuantityCmp QuantityComponent
+            local bidItemTypeCmp = bid:get(Economy.OrderItemType)
+            local bidPriceCmp = bid:get(Economy.Price)
+            local bidQuantityCmp = bid:get(Economy.Quantity)
 
-            local askItemTypeCmp = ask:getComponent(Economy.OrderItemType)
-            ---@cast askItemTypeCmp OrderItemTypeComponent
-            local askPriceCmp = ask:getComponent(Economy.Price)
-            ---@cast askPriceCmp PriceComponent
-            local askQuantityCmp = ask:getComponent(Economy.Quantity)
-            ---@cast askQuantityCmp QuantityComponent
+            local askItemTypeCmp = ask:get(Economy.OrderItemType)
+            local askPriceCmp = ask:get(Economy.Price)
+            local askQuantityCmp = ask:get(Economy.Quantity)
 
             local bidItemType = bidItemTypeCmp:getItemType()
             local bidPrice = bidPriceCmp:getPrice()
@@ -104,9 +96,8 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askQuantity = askQuantityCmp:getQuantity()
 
             -- Verify Inventory
-            self.marketplaceParentEntity = Registry:getEntity(marketplace:getEntityId())
-            ---@type InventoryComponent
-            self.marketplaceInventoryCmp = self.marketplaceParentEntity:getComponent(Economy.Inventory)
+            self.marketplaceParentEntity = Entity(marketplace:getEntityId())
+            self.marketplaceInventoryCmp = self.marketplaceParentEntity:get(Economy.Inventory)
 
             Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)
 
@@ -123,7 +114,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                 if items then
                     -- Put traded items into the marketplace inventory (to simulate transfer)
                     for _, item in ipairs(items) do
-                        Registry:getEntity(item):destroy() --! temp destroy
+                        Registry:destroyEntity(item) --! temp destroy
                     end
 
                     Log.Debug("[Transaction] Trader 1 %s (%d) -> Trader 2 for price %d credits", Items:getDefinition(bidItemType).name,
@@ -136,17 +127,17 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 
                     -- Update or remove the bid and ask orders
                     if bidQuantity == 0 then
-                        marketplace:removeBid(bid:getEntityId())
-                        bid:destroy()
+                        marketplace:removeBid(bid)
+                        Registry:destroyEntity(bid)
                     else
-                        bid:setQuantity(bidQuantity)
+                        bidQuantityCmp:setQuantity(bidQuantity)
                     end
 
                     if askQuantity == 0 then
-                        marketplace:removeAsk(ask:getEntityId())
-                        ask:destroy()
+                        marketplace:removeAsk(ask)
+                        Registry:destroyEntity(ask)
                     else
-                        ask:setQuantity(askQuantity)
+                        askQuantityCmp:setQuantity(askQuantity)
                     end
 
                     Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)

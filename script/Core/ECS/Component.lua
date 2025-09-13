@@ -56,7 +56,7 @@ function Component:setEntityId(entityId)
     self.entityId = entityId
 end
 
----@return integer
+---@return EntityId
 function Component:getEntityId()
     return self.entityId
 end

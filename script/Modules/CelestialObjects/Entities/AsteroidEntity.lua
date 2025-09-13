@@ -2,7 +2,6 @@ local PhysicalEntity = require("Modules.PhysicalEntity")
 local Rendering = require("Modules.Rendering.Components")
 local Materials = require("Shared.Registries.Materials")
 
----@class AsteroidEntity: PhysicalEntity
 ---@param seed integer
 ---@return Entity
 return function(seed)

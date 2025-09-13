@@ -1,0 +1,22 @@
+local Component = require("Core.ECS.Component")
+
+---@class NameComponent: Component
+---@overload fun(self: NameComponent, name: string): NameComponent subclass internal
+---@overload fun(name: string|nil): NameComponent subclass external
+local NameComponent = Subclass("NameComponent", Component, function(self, name)
+    self:setComponentName("NameComponent")
+
+    self:setName(name)
+end)
+
+---@param name string
+function NameComponent:setName(name)
+    self.name = name
+end
+
+---@return string
+function NameComponent:getName()
+    return self.name
+end
+
+return NameComponent

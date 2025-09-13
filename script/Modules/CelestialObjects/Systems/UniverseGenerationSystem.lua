@@ -26,7 +26,6 @@ function UniverseGenerationSystem:createUniverse(seed)
     -- Construct universe entity
     local universe = CelestialObjects.Universe(seed)
     local universeRNG = RNG.Create(seed)
-    local universeEntityId = Registry:storeEntity(universe)
 
     -- Generate star systems
     local numStarSystems = universeRNG:getInt(1, 3) --* Replace with config later
@@ -34,7 +33,6 @@ function UniverseGenerationSystem:createUniverse(seed)
         local starSystemSeed = universeRNG:get64()
         local starSystem = CelestialObjects.StarSystem(starSystemSeed)
         local starSystemRNG = RNG.Create(starSystemSeed)
-        local starSystemEntityId = Registry:storeEntity(starSystem)
 
         -- Generate star and celestial bodies
         self:generateStarAndCelestialBodies(starSystem, starSystemRNG)
@@ -46,31 +44,29 @@ function UniverseGenerationSystem:createUniverse(seed)
         self:generateConstructs(starSystem, starSystemRNG)
 
         -- Add star system to universe
-        self:addChildEntity(universe, starSystemEntityId)
+        Registry:attachEntity(universe, starSystem)
     end
 
     self.profiler:stop()
-    return universeEntityId
+    return universe
 end
 
 ---@private
----@param starSystem StarSystemEntity
+---@param starSystem Entity
 ---@param rng RNG
 function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng)
     -- Generate star
     local starSeed = rng:get64()
     local star = CelestialObjects.Star(starSeed)
     local starRNG = RNG.Create(starSeed)
-    local starEntityId = Registry:storeEntity(star)
 
     -- Add star area
     local starZone = SpatialEntities.Zone()
-    ---@type SpatialShapeComponent
-    local starZoneShapeComponent = starZone:getComponent(SpatialComponents.Shape)
+    local starZoneShapeComponent = starZone:get(SpatialComponents.Shape)
     starZoneShapeComponent:setShape(Enums.ZoneShape.Sphere)
     starZoneShapeComponent:setRadius(1.7952e13) --* Hardcode to solar system radius for now
 
-    self:addChildEntity(starSystem, starEntityId)
+    Registry:attachEntity(starSystem, star)
 
     -- Generate planets
     local numPlanets = starRNG:getInt(1, 3) --* Replace with config later
@@ -78,8 +74,7 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
         local planetSeed = rng:get64()
         local planet = CelestialObjects.Planet(planetSeed)
         local planetSystemRNG = RNG.Create(planetSeed)
-        local planetEntityId = Registry:storeEntity(planet)
-        self:addChildEntity(star, planetEntityId)
+        Registry:attachEntity(star, planet)
 
         -- Generate planetary features
         self:generatePlanetaryFeatures(planet, planetSystemRNG)
@@ -90,23 +85,21 @@ function UniverseGenerationSystem:generateStarAndCelestialBodies(starSystem, rng
     for i = 1, numAsteroidBelts do
         local beltSeed = starRNG:get64()
         local asteroidBelt = CelestialObjects.AsteroidBelt(beltSeed)
-        local asteroidBeltEntityId = Registry:storeEntity(asteroidBelt)
-        local asteroidBeltRNG = RNG.Create(starSeed)
-        self:addChildEntity(star, asteroidBeltEntityId)
+        local asteroidBeltRNG = RNG.Create(beltSeed)
+        Registry:attachEntity(star, asteroidBelt)
 
         -- Add individual asteroids to the belt
         local numAsteroids = asteroidBeltRNG:getInt(5, 10) --* Replace with config later
         for j = 1, numAsteroids do
             local asteroidSeed = asteroidBeltRNG:get64()
             local asteroid = CelestialObjects.Asteroid(asteroidSeed)
-            local asteroidEntityId = Registry:storeEntity(asteroid)
-            self:addChildEntity(asteroidBelt, asteroidEntityId)
+            Registry:attachEntity(asteroidBelt, asteroid)
         end
     end
 end
 
 ---@private
----@param planet PlanetEntity
+---@param planet Entity
 ---@param rng RNG
 function UniverseGenerationSystem:generatePlanetaryFeatures(planet, rng)
     -- Generate moons
@@ -114,8 +107,7 @@ function UniverseGenerationSystem:generatePlanetaryFeatures(planet, rng)
     for i = 1, numMoons do
         local moonSeed = rng:get64()
         local moon = CelestialObjects.Moon(moonSeed)
-        local moonEntityId = Registry:storeEntity(moon)
-        self:addChildEntity(planet, moonEntityId)
+        Registry:attachEntity(planet, moon)
     end
 
     -- Generate asteroid rings
@@ -124,47 +116,37 @@ function UniverseGenerationSystem:generatePlanetaryFeatures(planet, rng)
         local ringSeed = rng:get64()
         local asteroidRing = CelestialObjects.AsteroidRing(ringSeed)
         local asteroidRingRNG = RNG.Create(ringSeed)
-        local asteroidRingEntityId = Registry:storeEntity(asteroidRing)
-        self:addChildEntity(planet, asteroidRingEntityId)
+        Registry:attachEntity(planet, asteroidRing)
 
         -- Add individual asteroids to the belt
         local numAsteroids = asteroidRingRNG:getInt(5, 10) --* Replace with config later
         for j = 1, numAsteroids do
             local asteroidSeed = asteroidRingRNG:get64()
             local asteroid = CelestialObjects.Asteroid(asteroidSeed)
-            local asteroidEntityId = Registry:storeEntity(asteroid)
-            self:addChildEntity(asteroidRing, asteroidEntityId)
+            Registry:attachEntity(asteroidRing, asteroid)
         end
     end
 end
 
 ---@private
----@param starSystem StarSystemEntity
+---@param starSystem Entity
 ---@param rng RNG
 function UniverseGenerationSystem:generateConstructs(starSystem, rng)
     -- Generate space stations
     local numSpaceStations = rng:getInt(0, 3) --* Replace with config later
     for i = 1, numSpaceStations do
         local spaceStationSeed = rng:get64()
-        local spaceStation = Constructs.SpaceStation(spaceStationSeed)
-        local spaceStationEntityId = Registry:storeEntity(spaceStation)
-        self:addChildEntity(starSystem, spaceStationEntityId)
+        local spaceStation = CelestialObjects.SpaceStation(spaceStationSeed)
+        Registry:attachEntity(starSystem, spaceStation)
     end
 
     -- Generate spaceships
     local numSpaceships = rng:getInt(0, 5) --* Replace with config later
     for i = 1, numSpaceships do
         local spaceshipSeed = rng:get64()
-        local spaceship = Constructs.Spaceship(spaceshipSeed)
-        local spaceshipEntityId = Registry:storeEntity(spaceship)
-        self:addChildEntity(starSystem, spaceshipEntityId)
+        local spaceship = CelestialObjects.Spaceship(spaceshipSeed)
+        Registry:attachEntity(starSystem, spaceship)
     end
-end
-
----@private
-function UniverseGenerationSystem:addChildEntity(parentEntity, childEntityId)
-    local hierarchyComponent = parentEntity:getComponent(Core.Hierarchy)
-    hierarchyComponent:addChild(childEntityId)
 end
 
 return UniverseGenerationSystem()

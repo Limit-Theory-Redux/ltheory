@@ -51,15 +51,14 @@ function CameraSystem:onPostRender()
     -- end
 end
 
----@param entityId EntityId
-function CameraSystem:setCamera(entityId)
-    local cameraEntity = Registry:getEntity(entityId)
-    if not cameraEntity then
+---@param entity Entity
+function CameraSystem:setCamera(entity)
+    if not Registry:hasEntity(entity) then
         return
     end
 
-    self.currentCameraData = cameraEntity:getComponent(Rendering.CameraData)
-    self.currentCameraTransform = cameraEntity:getComponent(Physics.Transform)
+    self.currentCameraData = entity:get(Rendering.CameraData)
+    self.currentCameraTransform = entity:get(Physics.Transform)
 end
 
 ---Get Current Camera 'Eye'/Position
