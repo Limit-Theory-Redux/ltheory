@@ -4,7 +4,8 @@
 --[[ TODO : Should we separate RB dynamics from collision detection? What would
             that look like? ]]
 
-local Entity = require('Legacy.GameObjects.Entity')
+local Entity = require("Legacy.GameObjects.Entity")
+local RigidBodyComponent = require("Modules.Physics.Components.RigidBodyComponent")
 
 local bodyToEntity = {}
 
@@ -31,18 +32,22 @@ end
 function Entity:addRigidBody(isCollider, collisionMesh, colliderType)
     assert(not self.body)
 
+    local body = nil
     if colliderType == Enums.ColliderType.Box then
-        self.body = RigidBody.CreateBoxFromMesh(collisionMesh)
+        body = RigidBody.CreateBoxFromMesh(collisionMesh)
     elseif colliderType == Enums.ColliderType.ConvexHull then
-        self.body = RigidBody.CreateConvexHullFromMesh(collisionMesh)
+        body = RigidBody.CreateConvexHullFromMesh(collisionMesh)
     elseif colliderType == Enums.ColliderType.ConvexDecomposition then
-        self.body = RigidBody.CreateConvexDecompositionFromMesh(collisionMesh)
+        body = RigidBody.CreateConvexDecompositionFromMesh(collisionMesh)
     elseif colliderType == Enums.ColliderType.Trimesh then
-        self.body = RigidBody.CreateTrimeshFromMesh(collisionMesh)
+        body = RigidBody.CreateTrimeshFromMesh(collisionMesh)
     else
         -- Default case.
-        self.body = RigidBody.CreateSphereFromMesh(collisionMesh)
+        body = RigidBody.CreateSphereFromMesh(collisionMesh)
     end
+
+    self.entity:add(RigidBodyComponent(body))
+    self.body = body
 
     self:register(OldEvent.AddedToParent, onAddedToParent)
     self:register(OldEvent.RemovedFromParent, onRemovedFromParent)

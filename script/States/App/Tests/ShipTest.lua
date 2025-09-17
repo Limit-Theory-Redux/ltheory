@@ -1,7 +1,16 @@
+-- LTheoryRedux depends on these types being in the global namespace, so we import these for now.
+-- Once we've moved to the ECS, these LoadInline statements should become redundant.
+Namespace.LoadInline('Legacy')
+Namespace.LoadInline('Legacy.Systems')
+Namespace.LoadInline('Legacy.GameObjects')
+
 local Player = require('Legacy.GameObjects.Entities.Player')
 local System = require('Legacy.GameObjects.Entities.StarSystem')
 local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('Legacy.GameObjects.Actions')
+local Registry = require('Core.ECS.Registry')
+local LegacyEntityComponent = require('Legacy.GameObjects.LegacyEntityComponent')
+local Physics = require('Modules.Physics.Components')
 
 local ShipTest = require('States.Application')
 local rng = RNG.FromTime()
@@ -19,6 +28,15 @@ function ShipTest:spawnShip()
         --self.system:addChild(ship)
         self.player:setControlling(ship)
         self.currentShip = ship
+    end
+
+    for entity, legacy, rb in Registry:iterEntities(LegacyEntityComponent, Physics.RigidBody) do
+        if rb:getRigidBody():getParentBody() ~= nil then
+            local parent = Entity.fromRigidBody(rb:getRigidBody():getParentBody())
+            Log.Debug("Entity %s has RigidBody which is a child of %s", entity, parent:getName(), parent:getEntity())
+        else
+            Log.Debug("Entity %s has RigidBody with no parent", entity)
+        end
     end
 end
 
@@ -48,6 +66,8 @@ function ShipTest:onInit()
     DebugControl.ltheory = self
     self.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
     self.canvas = UI.Canvas()
+    GameState.render.gameView = self.gameView
+    GameState.render.uiCanvas = self.canvas
     self.canvas
         :add(self.gameView
             :add(Legacy.Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))

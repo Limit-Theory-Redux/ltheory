@@ -25,6 +25,7 @@ Enums.BufferName = {
     dsBuffer0 = 5,  -- Primary Downsample Buffer
     dsBuffer1 = 6   -- Secondary Downsample Buffer
 }
+
 ---@enum RenderingPassName
 Enums.RenderingPasses = {
     Skybox = 0,
