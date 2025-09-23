@@ -5,15 +5,15 @@ on:
     branches:
       - main
     paths-ignore:
-    - '**/README.md'
-    - '**/CONTRIBUTING.md'
-    - '**/LICENSE-MIT'
-    - '**/LICENSE-APACHE-2.0'
-    - '**/.vscode/**'
-    - '**/docs/**'
-    - '**/.gitignore'
-    - '**/.gitattributes'
-    - '**/.editorconfig'
+      - '**/README.md'
+      - '**/CONTRIBUTING.md'
+      - '**/LICENSE-MIT'
+      - '**/LICENSE-APACHE-2.0'
+      - '**/.vscode/**'
+      - '**/docs/**'
+      - '**/.gitignore'
+      - '**/.gitattributes'
+      - '**/.editorconfig'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -35,19 +35,15 @@ jobs:
       - name: Get the cargo package version
         run: |
           VERSION=$(awk -F '"' '/^version =/ { print $2 }' Cargo.toml)
-          echo "The package version is $VERSION"
           echo "NEXT_VERSION=$VERSION" >> $GITHUB_ENV
       - name: Set short git commit SHA
         shell: bash
         run: |
           CALCULATED_SHA=$(git rev-parse --short ${{ github.sha }})
           echo "SHA_SHORT=$CALCULATED_SHA" >> $GITHUB_ENV
-      - name: Confirm git commit SHA output
-        run: echo $SHA_SHORT
       - name: Confirm nightly build name
         id: build_name
         run: |
-          echo $NEXT_VERSION-$SHA_SHORT
           echo build=$NEXT_VERSION-$SHA_SHORT >> $GITHUB_OUTPUT
 
   build-windows:
@@ -71,20 +67,20 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dev-binaries-windows
-          path: ${{github.workspace}}/bin/*
+          path: ${{ github.workspace }}/bin/*
       - name: Upload distributable
         uses: actions/upload-artifact@v4
         with:
           name: ltheory-windows
           path: |
-            ${{github.workspace}}/bin/*
-            !${{github.workspace}}/bin/*.pdb
-            ${{github.workspace}}/docs/*
-            ${{github.workspace}}/engine/lib/phx/script/*
-            ${{github.workspace}}/res/*
-            ${{github.workspace}}/script/*
-            ${{github.workspace}}/LICENSE
-            ${{github.workspace}}/README.md
+            ${{ github.workspace }}/bin/*
+            !${{ github.workspace }}/bin/*.pdb
+            ${{ github.workspace }}/docs/*
+            ${{ github.workspace }}/engine/lib/phx/script/*
+            ${{ github.workspace }}/res/*
+            ${{ github.workspace }}/script/*
+            ${{ github.workspace }}/LICENSE
+            ${{ github.workspace }}/README.md
 
   build-macos:
     needs: gen-build-version
@@ -104,13 +100,13 @@ jobs:
         with:
           name: dev-binaries-macos
           path: |
-            ${{github.workspace}}/bin/*
-            !${{github.workspace}}/bin/*.app
+            ${{ github.workspace }}/bin/*
+            !${{ github.workspace }}/bin/*.app
       - name: Upload distributable
         uses: actions/upload-artifact@v4
         with:
           name: ltheory-macos
-          path: ${{github.workspace}}/bin/*.app
+          path: ${{ github.workspace }}/bin/*.app
 
   build-linux:
     needs: gen-build-version
@@ -133,19 +129,19 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dev-binaries-linux
-          path: ${{github.workspace}}/bin/*
+          path: ${{ github.workspace }}/bin/*
       - name: Upload distributable
         uses: actions/upload-artifact@v4
         with:
           name: ltheory-linux
           path: |
-            ${{github.workspace}}/bin/*
-            ${{github.workspace}}/docs/*
-            ${{github.workspace}}/engine/lib/phx/script/*
-            ${{github.workspace}}/res/*
-            ${{github.workspace}}/script/*
-            ${{github.workspace}}/LICENSE
-            ${{github.workspace}}/README.md
+            ${{ github.workspace }}/bin/*
+            ${{ github.workspace }}/docs/*
+            ${{ github.workspace }}/engine/lib/phx/script/*
+            ${{ github.workspace }}/res/*
+            ${{ github.workspace }}/script/*
+            ${{ github.workspace }}/LICENSE
+            ${{ github.workspace }}/README.md
 
   release:
     name: New release
@@ -158,47 +154,102 @@ jobs:
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
+
       - name: Inspect directory after downloading artifacts
         run: ls -alFR
+
       - name: Zip artifacts
         run: for dir in $(ls); do cd $dir && zip ../$dir.zip ./* -r && cd ..; done
-      - name: echo repo
-        run: echo ${{github.repository}}
+
+      # Get old latest (if exists)
       - name: Get latest release ID
-        uses: octokit/request-action@v2.x
         id: get_latest_release
-        with:
-          route: GET /repos/${{github.repository}}/releases/tags/latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Delete latest release
         uses: octokit/request-action@v2.x
         with:
-          route: DELETE /repos/${{github.repository}}/releases/{release_id}
+          route: GET /repos/${{ github.repository }}/releases/tags/latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Move old "latest" → "previous"
+      - name: Move old "latest" to "previous"
+        if: ${{ steps.get_latest_release.outputs.data != '' }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: PATCH /repos/${{ github.repository }}/releases/{release_id}
           release_id: ${{ fromJson(steps.get_latest_release.outputs.data).id }}
+          tag_name: previous
+          name: ${{ fromJson(steps.get_latest_release.outputs.data).name }}
+          body: |
+            ${{ fromJson(steps.get_latest_release.outputs.data).body }}
+
+            ---
+            Archived Release
+            ----------------
+            This release was originally published as **latest** and has now been moved to the `previous` tag.  
+            - Replaced by: Nightly ${{ needs.gen-build-version.outputs.build }}  
+            - Archived on: ${{ github.event.head_commit.timestamp }}  
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Delete old latest tag
       - name: Delete 'latest' tag ref
+        if: ${{ steps.get_latest_release.outputs.data != '' }}
         uses: octokit/request-action@v2.x
         with:
-          route: DELETE /repos/${{github.repository}}/git/refs/tags/latest
+          route: DELETE /repos/${{ github.repository }}/git/refs/tags/latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Recreate latest tag at this commit
       - name: Re-create 'latest' tag with the current SHA
         uses: octokit/request-action@v2.x
         with:
-          route: POST /repos/${{github.repository}}/git/refs
+          route: POST /repos/${{ github.repository }}/git/refs
           ref: refs/tags/latest
           sha: ${{ github.sha }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Generate changelog (merged PRs with authors)
+      - name: Generate changelog
+        id: changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git rev-parse previous >/dev/null 2>&1; then
+            echo "CHANGES<<EOF" >> $GITHUB_ENV
+            for pr in $(git log previous..HEAD --merges --pretty=format:"%s" \
+              | sed -nE 's/Merge pull request #([0-9]+).*/\1/p'); do
+              title=$(gh pr view $pr --json title -q .title)
+              author=$(gh pr view $pr --json author -q .author.login)
+              echo "- PR #$pr by @$author: $title" >> $GITHUB_ENV
+            done
+            echo "EOF" >> $GITHUB_ENV
+          else
+            echo "CHANGES=Initial nightly release." >> $GITHUB_ENV
+          fi
+
+      # Create new release with changelog
       - name: Create release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: "Nightly ${{ needs.gen-build-version.outputs.build }}"
-          body: "Build log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          body: |
+            Nightly Release Information
+            ---------------------------
+            - Version: ${{ needs.gen-build-version.outputs.build }}
+            - Commit: ${{ github.sha }}
+            - Build log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Changes since previous
+            ----------------------
+            ${{ env.CHANGES }}
+
+            Notes
+            -----
+            This release replaces the previous nightly, which has been archived under the `previous` tag.
           tag_name: latest
           draft: false
           prerelease: true
