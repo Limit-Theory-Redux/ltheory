@@ -1,4 +1,4 @@
-local rawtype = type
+rawtype = type
 
 type = function(value)
     local mt = getmetatable(value)
