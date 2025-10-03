@@ -1,6 +1,11 @@
 local Registry = require("Core.ECS.Registry")
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local Economy = require("Modules.Economy.Components")
+local Items = require("Shared.Registries.Items")
+local EconomyEntities = require("Modules.Economy.Entities")
+local EconomyComponents = require("Modules.Economy.Components")
+local Physics = require("Modules.Physics.Components")
+local Entity = require("Core.ECS.Entity")
 
 ---@class InventorySystem
 ---@overload fun(self: InventorySystem): InventorySystem class internal
@@ -31,18 +36,35 @@ function InventorySystem:take(inventory, itemId, quantity)
         local quantityComponent = itemEntity:get(Economy.Quantity)
         local itemQuantity = quantityComponent:getQuantity()
 
+        -- Not enough stuff?
         if itemQuantity <= remainingQuantity then
+            -- Log.Debug("Not enough stuff. Taking all items.")
             -- Take entire item
-            inventory:removeItem(itemId, id)
+            inventory:removeItem(itemEntity)
             table.insert(takenItems, itemEntity)
             remainingQuantity = remainingQuantity - itemQuantity
         else
             -- Split the item and update quantity
+            -- Log.Debug("Updating seller item quantity to: ", itemQuantity - remainingQuantity)
+            -- Log.Debug(string.format("Seller item entity: %s", itemEntity))
+            -- Log.Debug(string.format("Seller item quantity component: %s", quantityComponent:getGuid()))
             quantityComponent:setQuantity(itemQuantity - remainingQuantity)
-            local cloneEntity = Registry:cloneEntity(itemEntity)
-            local cloneQuantityCmp = cloneEntity:get(Economy.Quantity)
-            cloneQuantityCmp:setQuantity(remainingQuantity)
-            table.insert(takenItems, cloneEntity)
+            local physicsComponentMass = itemEntity:get(Physics.Mass):getMass()
+
+            local entity = Entity.Create(
+                Items:getDefinition(itemId).name,
+                Physics.Mass(physicsComponentMass),
+                Economy.ItemType(itemId),
+                Economy.Quantity(remainingQuantity)
+            )
+            -- local cloneEntity = Registry:cloneEntity(itemEntity)
+            -- local cloneQuantityCmp = cloneEntity:get(Economy.Quantity)
+
+            -- Log.Debug("Updating cloned item quantity to: ", remainingQuantity);
+            -- Log.Debug(string.format("Clone item entity: %s", cloneEntity))
+            -- Log.Debug(string.format("Clone item quantity component: %s", cloneQuantityCmp:getGuid()))
+            -- cloneQuantityCmp:setQuantity(remainingQuantity)
+            table.insert(takenItems, entity)
             remainingQuantity = 0
         end
 
@@ -55,11 +77,10 @@ function InventorySystem:take(inventory, itemId, quantity)
 end
 
 ---@param inventory InventoryComponent
----@param itemId integer
 ---@param items table<Entity>
-function InventorySystem:put(inventory, itemId, items)
+function InventorySystem:put(inventory, items)
     for _, itemEntity in ipairs(items) do
-        inventory:addItem(itemId, itemEntity)
+        inventory:addItem(itemEntity)
     end
 end
 

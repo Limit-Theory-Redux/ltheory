@@ -5,6 +5,7 @@ local Helper = require("Shared.Helpers.MarketplaceSystemHelper")
 local Items = require("Shared.Registries.Items")
 local InventorySystem = require("Modules.Economy.Systems.InventorySystem")
 local Economy = require("Modules.Economy.Components")
+local Core = require("Modules.Core.Components")
 
 ---@class MarketplaceSystem
 ---@overload fun(self: MarketplaceSystem): MarketplaceSystem class internal
@@ -80,14 +81,16 @@ end
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:get(Economy.OrderItemType)
+            local bidItemTypeCmp = bid:get(Economy.ItemType)
             local bidPriceCmp = bid:get(Economy.Price)
             local bidQuantityCmp = bid:get(Economy.Quantity)
 
-            local askItemTypeCmp = ask:get(Economy.OrderItemType)
+            local askIssuer = ask:get(Economy.Ownership):getOwner()
+            local askItemTypeCmp = ask:get(Economy.ItemType)
             local askPriceCmp = ask:get(Economy.Price)
             local askQuantityCmp = ask:get(Economy.Quantity)
 
+            local bidIssuer = bid:get(Economy.Ownership):getOwner()
             local bidItemType = bidItemTypeCmp:getItemType()
             local bidPrice = bidPriceCmp:getPrice()
             local bidQuantity = bidQuantityCmp:getQuantity()
@@ -95,27 +98,36 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
             local askPrice = askPriceCmp:getPrice()
             local askQuantity = askQuantityCmp:getQuantity()
 
-            -- Verify Inventory
-            self.marketplaceParentEntity = Entity(marketplace:getEntityId())
-            self.marketplaceInventoryCmp = self.marketplaceParentEntity:get(Economy.Inventory)
+            local traderInventory = Entity(marketplace:getEntityId()):get(Economy.Inventory)
 
-            Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)
+            local askEntityParent = askIssuer:get(Core.Parent):getParent()
+            local askEntityParentInventory = askEntityParent:get(Economy.Inventory)
+
+            local bidEntityParent = bidIssuer:get(Core.Parent):getParent()
+            local bidEntityParentInventory = bidEntityParent:get(Economy.Inventory)
 
             if bidItemType == askItemType and bidPrice >= askPrice then
+                -- Log.Debug("item type matches. BidPrice >= askPrice")
+
                 -- todo: reserve items here, put trade into trade queue for performance control
+                -- todo: put into space station inventory
                 -- todo: verify bank account in trade
 
                 -- Calculate trade quantity
                 local tradeQuantity = math.min(bidQuantity, askQuantity)
 
                 -- Attempt to take the required items from the inventory
-                local items = InventorySystem:take(self.marketplaceInventoryCmp, askItemType, tradeQuantity)
+
+                local items = InventorySystem:take(askEntityParentInventory, askItemType, tradeQuantity)
+                local itemName = Items:getDefinition(askItemType).name
+                Helper.printInventoryDiff(askEntityParentInventory, itemName, tradeQuantity, true)
 
                 if items then
-                    -- Put traded items into the marketplace inventory (to simulate transfer)
-                    for _, item in ipairs(items) do
-                        Registry:destroyEntity(item) --! temp destroy
-                    end
+                    -- Put traded items into the RECEIVING marketplace inventory (to simulate transfer)
+                    -- (Give stuff to buyer)
+
+                    InventorySystem:put(bidEntityParentInventory, items)
+                    Helper.printInventoryDiff(bidEntityParentInventory, itemName, tradeQuantity, false)
 
                     Log.Debug("[Transaction] Trader 1 %s (%d) -> Trader 2 for price %d credits", Items:getDefinition(bidItemType).name,
                         tradeQuantity,
@@ -139,8 +151,6 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                     else
                         askQuantityCmp:setQuantity(askQuantity)
                     end
-
-                    Helper.printInventory(self.marketplaceParentEntity, self.marketplaceInventoryCmp)
                 end
 
                 break
