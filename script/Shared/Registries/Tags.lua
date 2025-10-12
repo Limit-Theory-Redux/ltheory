@@ -54,7 +54,7 @@ function Tags:new(groupName, tags)
         ::continue::
     end
 
-    -- Rebuild group mask
+    -- Rebuild group mask using Rust-backed Bit module
     local nWords = math.ceil(self._count / 64)
     local mask = ffi.new("uint64_t[?]", nWords)
     for i = 0, nWords - 1 do mask[i] = 0ULL end
@@ -63,7 +63,7 @@ function Tags:new(groupName, tags)
         if def.group == groupName then
             local word = math.floor((id - 1) / 64)
             local bitPos = (id - 1) % 64
-            mask[word] = mask[word] + ffi.cast("uint64_t", 2 ^ bitPos)
+            mask[word] = Bit.Or64(mask[word], Bit.Bitmask64(bitPos))
         end
     end
     self._groupMasks[groupName] = mask

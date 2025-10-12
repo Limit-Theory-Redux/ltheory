@@ -12,11 +12,11 @@ end)
 -- Shared cache across all components
 TagComponent._tagCache = {}
 
--- Compute word index and 64-bit mask
+-- Compute word index and 64-bit mask safely
 local function getBitPos(tagId)
     local word = math.floor((tagId - 1) / 64)
     local bitPos = (tagId - 1) % 64
-    local mask = ffi.cast("uint64_t", 2 ^ bitPos)
+    local mask = Bit.Bitmask64(bitPos)
     return word, mask
 end
 
@@ -105,7 +105,7 @@ function TagComponent:hasAnyTagInGroup(groupName)
     if not mask then return false end
     for i = 0, self.tagWords - 1 do
         local wordMask = mask[i] or 0ULL
-        if Bit.And64(self.tags[i], wordMask) ~= 0ULL then
+        if Bit.HasAny64(self.tags[i], wordMask) then
             return true
         end
     end
@@ -138,15 +138,30 @@ function TagComponent:hasAllTags(other)
     return true
 end
 
+--- Check if all tags in a group are present
+---@param groupName string
+---@return boolean
+function TagComponent:hasAllTagsInGroup(groupName)
+    local mask = Tags:getGroupMask(groupName)
+    if not mask then return false end
+    for i = 0, self.tagWords - 1 do
+        local wordMask = mask[i] or 0ULL
+        if Bit.And64(self.tags[i], wordMask) ~= wordMask then
+            return false
+        end
+    end
+    return true
+end
+
 --- Get all active tag names
 ---@return string[]
 function TagComponent:getTags()
     local result = {}
     for wordIndex = 0, self.tagWords - 1 do
         local word = self.tags[wordIndex]
-        if word ~= 0 then
+        if word ~= 0ULL then
             for bitPos = 0, 63 do
-                local mask = ffi.cast("uint64_t", 2 ^ bitPos)
+                local mask = Bit.Bitmask64(bitPos)
                 if Bit.Has64(word, mask) then
                     local id = wordIndex * 64 + bitPos + 1
                     local def = Tags:getDefinition(id)
@@ -164,16 +179,15 @@ function TagComponent:printTagsByGroup()
         local active = {}
         for i = 0, self.tagWords - 1 do
             local word = self.tags[i]
-            if word ~= 0 and mask[i] then
-                local intersect = Bit.And64(word, mask[i])
-                if intersect ~= 0 then
-                    for bitPos = 0, 63 do
-                        local bitMask = ffi.cast("uint64_t", 2 ^ bitPos)
-                        if Bit.Has64(intersect, bitMask) then
-                            local id = i * 64 + bitPos + 1
-                            local def = Tags:getDefinition(id)
-                            if def then table.insert(active, def.name) end
-                        end
+            local wordMask = mask[i] or 0ULL
+            local intersect = Bit.And64(word, wordMask)
+            if intersect ~= 0ULL then
+                for bitPos = 0, 63 do
+                    local bitMask = Bit.Bitmask64(bitPos)
+                    if Bit.HasAny64(intersect, bitMask) then
+                        local id = i * 64 + bitPos + 1
+                        local def = Tags:getDefinition(id)
+                        if def then table.insert(active, def.name) end
                     end
                 end
             end
