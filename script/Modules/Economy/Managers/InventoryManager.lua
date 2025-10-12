@@ -65,9 +65,9 @@ function InventoryManager:take(inventory, itemId, quantity)
                 return nil
             end
 
-            Log.Debug("Updating cloned item quantity to: ", remainingQuantity);
-            Log.Debug(string.format("Clone item entity: %s", clonedEntity))
-            Log.Debug(string.format("Clone item quantity component: %s", clonedQuantityCmp:getGuid()))
+            --Log.Debug("Updating cloned item quantity to: ", remainingQuantity);
+            --Log.Debug(string.format("Clone item entity: %s", clonedEntity))
+            --Log.Debug(string.format("Clone item quantity component: %s", clonedQuantityCmp:getGuid()))
             clonedQuantityCmp:setQuantity(remainingQuantity)
             table.insert(takenItems, clonedEntity)
             remainingQuantity = 0
