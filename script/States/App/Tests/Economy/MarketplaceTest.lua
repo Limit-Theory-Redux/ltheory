@@ -69,7 +69,7 @@ function MarketplaceTest:onInit()
 
         -- Goods classification
         local itemType = o:get(EconomyComponents.ItemType):getItemType()
-        if itemType == Items.Data.InfoWafer then
+        if itemType == Items.Data.InfoWafer.id then
             tagComp:addTag("HighDemand")
         else
             tagComp:addTag("RawMaterial")
