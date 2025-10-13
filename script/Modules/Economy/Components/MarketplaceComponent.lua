@@ -120,12 +120,12 @@ function MarketplaceComponent:getAsks()
     return asks
 end
 
----@param itemType string
+---@param itemType integer
 function MarketplaceComponent:setMarketPrice(itemType, price)
     self.marketPrices[itemType] = price
 end
 
----@param itemType string
+---@param itemType integer
 function MarketplaceComponent:getMarketPrice(itemType)
     return self.marketPrices[itemType]
 end

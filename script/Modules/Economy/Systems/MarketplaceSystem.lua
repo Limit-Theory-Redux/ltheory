@@ -1,6 +1,7 @@
 local Registry = require("Core.ECS.Registry")
 local Entity = require("Core.ECS.Entity")
 local Items = require("Shared.Registries.Items")
+local DeltaTimer = require("Shared.Tools.DeltaTimer")
 
 local Economy = require("Modules.Economy.Components")
 local CoreComponents = require("Modules.Core.Components")
@@ -14,9 +15,12 @@ end)
 
 function MarketplaceSystem:registerVars()
     self.rng = RNG.FromTime()
-    self.updateRate = 0.01
-    self.maxUpdateRateDeviation = 0
-    self.dt = 0
+    self.updateRate = 1
+    self.maxUpdateRateDeviation = 2
+
+    -- Delta timers per marketplace
+    ---@type table<integer, DeltaTimer>
+    self.marketplaceTimers = {}
 
     -- Economic parameters
     self.priceHistory = {}
@@ -27,16 +31,16 @@ function MarketplaceSystem:registerVars()
     self.minPrice = 1
     self.maxPriceChange = 0.02
 
-    -- New equilibrium pull parameters
-    self.shiftingEquilibrium = {}     -- marketplaceId -> itemType -> value
-    self.pullStrength = 0.1           -- Base pull factor
-    self.pullScale = 100              -- Controls exponential pull sensitivity
-    self.shiftAlpha = 0.01            -- EMA alpha for shifting equilibrium
-    self.pullTimeout = 7200           -- 2 hours for long timeout scenario
-    self.largeMovementThreshold = 2.0 -- 200% deviation from shiftingEq
-    self.pullTimeoutData = {}         -- marketplaceId -> itemType -> {timestamp, cooldownUntil}
-    self.timeoutCooldown = 3600       -- 1 hour cooldown after timeout ends
-    self.pullRecoveryRate = 0.0001    -- Exponential recovery speed (tuned for ~10 min to reach ~63% pull strength)
+    -- Pull & timeout parameters
+    self.shiftingEquilibrium = {}
+    self.pullStrength = 0.1
+    self.pullScale = 100
+    self.shiftAlpha = 0.01
+    self.pullTimeout = 7200
+    self.largeMovementThreshold = 2.0
+    self.pullTimeoutData = {}
+    self.timeoutCooldown = 3600
+    self.pullRecoveryRate = 0.0001
 
     -- Pending trades buffer
     self.pendingTrades = {}
@@ -48,25 +52,62 @@ end
 
 ---@param e EventData
 function MarketplaceSystem:onPreRender(e)
-    self.dt = e:deltaTime()
+    local dt = e:deltaTime()
 
-    local now = TimeStamp.Now()
     for _, marketplace in Registry:iterEntities(Economy.Marketplace) do
-        local nextUpdate = marketplace:getNextUpdate()
-        if not nextUpdate then
-            nextUpdate = TimeStamp.GetFuture(self:updateDeviation())
-            marketplace:setNextUpdate(nextUpdate)
+        ---@cast marketplace MarketplaceComponent
+        if not Entity(marketplace:getEntityId()):isValid() then goto continue end
+
+        local marketplaceId = marketplace:getGuid()
+
+        -- Create a timer for the marketplace if not exists
+        if not self.marketplaceTimers[marketplaceId] then
+            self.marketplaceTimers[marketplaceId] = DeltaTimer(format("MarketplaceUpdate: %s", tostring(marketplace)))
         end
 
-        if now:getDifference(nextUpdate) <= 0 then
-            self:updateMarketplace(marketplace)
-            marketplace:setNextUpdate(TimeStamp.GetFuture(self:updateDeviation()))
+        local timer = self.marketplaceTimers[marketplaceId]
+
+        -- Check if update is due
+        local threshold = timer:get("nextThreshold")
+        if not threshold then
+            threshold = self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation)
+            timer:set("nextThreshold", threshold)
         end
+
+        -- Check if update is due
+        if timer:updateAndCheck(dt, threshold) then
+            self:updateMarketplace(marketplace)
+            -- Roll a new interval for next cycle
+            timer:set("nextThreshold", self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
+        end
+
+        -- Update pull timeout timers per item
+        self:updatePullTimeouts(dt, marketplace)
+
+        ::continue::
     end
 end
 
-function MarketplaceSystem:updateDeviation()
-    return self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation)
+---@param dt number
+---@param marketplace MarketplaceComponent
+function MarketplaceSystem:updatePullTimeouts(dt, marketplace)
+    local marketplaceId = marketplace:getGuid()
+
+    self.pullTimeoutData[marketplaceId] = self.pullTimeoutData[marketplaceId] or {}
+
+    for _, itemType in pairs(self:getActiveItemTypes(marketplace:getBids(), marketplace:getAsks())) do
+        local data = self.pullTimeoutData[marketplaceId][itemType] or { elapsed = 0, cooldownElapsed = 0 }
+        if data.inTimeout then
+            data.elapsed = data.elapsed + dt
+            if data.elapsed >= self.pullTimeout then
+                data.inTimeout = false
+                data.cooldownElapsed = 0
+            end
+        elseif data.cooldownElapsed < self.timeoutCooldown then
+            data.cooldownElapsed = data.cooldownElapsed + dt
+        end
+        self.pullTimeoutData[marketplaceId][itemType] = data
+    end
 end
 
 ---@param marketplace MarketplaceComponent
@@ -84,7 +125,6 @@ end
 
 ---@param marketplace MarketplaceComponent
 function MarketplaceSystem:removeExpiredOrders(marketplace)
-    local now = TimeStamp.Now()
     local bids = marketplace:getBids()
     local asks = marketplace:getAsks()
 
@@ -139,7 +179,7 @@ end
 ---@param bids Entity[]
 ---@param asks Entity[]
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
-    local marketplaceId = tostring(marketplace)
+    local marketplaceId = marketplace:getGuid()
     self.pendingTrades = self.pendingTrades or {}
 
     for _, bid in ipairs(bids) do
@@ -313,7 +353,7 @@ end
 ---@param bids Entity[]
 ---@param asks Entity[]
 function MarketplaceSystem:updateMarketPrices(marketplace, bids, asks)
-    local marketplaceId = tostring(marketplace)
+    local marketplaceId = marketplace:getGuid()
     local itemTypes = self:getActiveItemTypes(bids, asks)
 
     for itemType, _ in pairs(itemTypes) do
@@ -367,7 +407,7 @@ end
 ---@param asks Entity[]
 ---@param supplyDemandRatio number
 function MarketplaceSystem:calculateEmergentPrice(marketplace, itemType, bids, asks, supplyDemandRatio)
-    local marketplaceId = tostring(marketplace)
+    local marketplaceId = marketplace:getGuid()
     self.shiftingEquilibrium[marketplaceId] = self.shiftingEquilibrium[marketplaceId] or {}
     if not self.shiftingEquilibrium[marketplaceId][itemType] then
         self.shiftingEquilibrium[marketplaceId][itemType] = Items:getDefinition(itemType).startEquilibriumPrice or self.defaultStartPrice
@@ -542,7 +582,7 @@ end
 ---@param marketplace MarketplaceComponent
 ---@param itemType integer
 function MarketplaceSystem:getSuggestedBidPrice(marketplace, itemType)
-    local marketplaceId = tostring(marketplace)
+    local marketplaceId = marketplace:getGuid()
     local bids = self:sortBids(marketplace:getBids())
     local asks = self:sortAsks(marketplace:getAsks())
     local emergentPrice = marketplace:getMarketPrice(itemType)
@@ -567,7 +607,7 @@ end
 ---@param marketplace MarketplaceComponent
 ---@param itemType integer
 function MarketplaceSystem:getSuggestedAskPrice(marketplace, itemType)
-    local marketplaceId = tostring(marketplace)
+    local marketplaceId = marketplace:getGuid()
     local bids = self:sortBids(marketplace:getBids())
     local asks = self:sortAsks(marketplace:getAsks())
     local emergentPrice = marketplace:getMarketPrice(itemType)
@@ -628,7 +668,7 @@ end
 ---@param bids Entity[]
 ---@param asks Entity[]
 function MarketplaceSystem:updateMarketConditionTags(marketplace, bids, asks)
-    local marketplaceId = tostring(marketplace)
+    local marketplaceId = marketplace:getGuid()
     local itemTypes = self:getActiveItemTypes(bids, asks)
     for itemType, _ in pairs(itemTypes) do
         local conditions = self:analyzeMarketConditions(marketplaceId, itemType, bids, asks)
