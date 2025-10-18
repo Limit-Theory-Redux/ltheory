@@ -11,7 +11,8 @@ end
 -- Sphere from tessellated icosahedron
 -- n = number of tessellation passes; default is 1
 -- NOTE : Mesh size is exponential in n; should never need more than 5 or 6!
-local function IcoSphere(n)
+local function IcoSphere(n, radius)
+    radius = radius or 1.0
     local p = (1.0 + sqrt(5)) / 2.0
     local self = PolyMesh()
         :addVertex(0, p, 1):addVertex(0, p, -1):addVertex(0, -p, 1):addVertex(0, -p, -1)
@@ -24,6 +25,7 @@ local function IcoSphere(n)
 
     for i = 1, n or 1 do self:tessellate() end
     self:spherize()
+    self:scale(radius, radius, radius)
     local mesh = self:getMesh()
     mesh:computeNormals()
     return mesh
