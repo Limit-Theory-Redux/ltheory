@@ -5,6 +5,14 @@
 -- is a specific 'type' of metal
 -- NOTE : Really they're just nested ShaderStates.
 
+-- TODO: Remove hardcoded textures with a list of texture definitions
+-- TODO: Allow other vertex shaders to be loaded rather than wvp
+-- TODO: Allow variables to be updated automatically from other components
+-- TODO: Update Material.Create constructor to take a vs and fs and blend mode as input.
+-- TODO: Replace Material.Create so that it takes a MaterialInfo as input
+
+-- Basically, incorporate the features of the "new" Material.lua (in Shared/Rendering/Material.lua)
+
 local Material = Class("Material", function(self) end)
 
 local allMaterials = {}
@@ -82,6 +90,7 @@ function Material:setState(body, eye)
     if self.imWorld then self.state:shader():iSetMatrix(self.imWorld, body:getToWorldMatrix(eye)) end
     if self.imWorldIT then self.state:shader():iSetMatrixT(self.imWorldIT, body:getToLocalMatrix(eye)) end
     if self.iScale then self.state:shader():iSetFloat(self.iScale, body:getScale()) end
+    if self.onSetState then self:onSetState(self.state:shader(), body, eye) end
 end
 
 function Material:start()
@@ -90,6 +99,7 @@ function Material:start()
 end
 
 function Material:stop()
+    if self.onStop then self.onStop() end
     self.state:stop()
 end
 
