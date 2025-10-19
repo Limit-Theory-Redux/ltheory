@@ -12,22 +12,13 @@
 ---@field screenY number
 
 ---@class RenderingPass
----@overload fun(self: RenderingPass, bufferOrder: BufferName[], settings: RenderStateSettings, onStartFn: function|nil)   class internal
----@overload fun(bufferOrder: BufferName[], settings: RenderStateSettings, onStartFn: function | nil)  class external
-local RenderingPass = Class("RenderingPass", function(self, bufferOrder, settings, onStartFn)
-    ---@diagnostic disable-next-line: invisible
-    self:registerVars(bufferOrder, settings, onStartFn)
-end)
-
----@param bufferOrder BufferName[]
----@param settings RenderStateSettings
----@param onStartFn function | nil
----@private
-function RenderingPass:registerVars(bufferOrder, settings, onStartFn)
+---@overload fun(self: RenderingPass, bufferOrder: BufferName[], settings: RenderStateSettings, drawFunc: function|nil)   class internal
+---@overload fun(bufferOrder: BufferName[], settings: RenderStateSettings, drawFunc: function | nil)  class external
+local RenderingPass = Class("RenderingPass", function(self, bufferOrder, settings, drawFunc)
     self.bufferOrder = bufferOrder
     self.settings = settings
-    self.onStartFn = onStartFn
-end
+    self.drawFunc = drawFunc
+end)
 
 ---@param buffers table<BufferName, Buffer>
 ---@param resX number
