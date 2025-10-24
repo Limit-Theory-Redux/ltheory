@@ -1,8 +1,6 @@
 return {
     name = "Single Star Solar System",
 
-    seed = 1,
-
     ---@type table<string, GenerationRule>
     rules = {
         starSystems    = { type = Enums.Gen.Rule.Fixed, value = 1 },
