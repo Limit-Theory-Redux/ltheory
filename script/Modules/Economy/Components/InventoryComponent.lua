@@ -1,5 +1,5 @@
 local Component = require("Core.ECS.Component")
-local ItemType = require("Modules.Economy.Components.ItemTypeComponent")
+local Item = require("Modules.Economy.Components.ItemComponent")
 
 ---@class InventoryComponent: Component
 ---@field items table<integer, table<Entity, Entity>>
@@ -22,31 +22,32 @@ end
 
 ---@param itemEntity Entity
 function InventoryComponent:addItem(itemEntity)
-    local itemType = itemEntity:get(ItemType):getItemType()
+    local itemId = itemEntity:get(Item):getItem()
 
-    if not self.items[itemType] then
-        self.items[itemType] = {}
+    if not self.items[itemId] then
+        self.items[itemId] = {}
     end
-    self.items[itemType][itemEntity.id] = itemEntity
+    self.items[itemId][itemEntity.id] = itemEntity
 end
 
 ---@param itemEntity Entity
 function InventoryComponent:removeItem(itemEntity)
-    local itemType = itemEntity:get(ItemType):getItemType()
+    local itemId = itemEntity:get(Item):getItem()
 
-    if self.items[itemType] and self.items[itemType][itemEntity.id] then
-        local removed = self.items[itemType][itemEntity.id]
-        self.items[itemType][itemEntity.id] = nil
-        if next(self.items[itemType]) == nil then
-            self.items[itemType] = nil
+    if self.items[itemId] and self.items[itemId][itemEntity.id] then
+        local removed = self.items[itemId][itemEntity.id]
+        self.items[itemId][itemEntity.id] = nil
+        if next(self.items[itemId]) == nil then
+            self.items[itemId] = nil
         end
         return removed
     end
     return nil
 end
 
-function InventoryComponent:getItemsOfType(type)
-    return self.items[type] or {}
+---@param id integer<ItemId>
+function InventoryComponent:getItems(id)
+    return self.items[id] or {}
 end
 
 return InventoryComponent
