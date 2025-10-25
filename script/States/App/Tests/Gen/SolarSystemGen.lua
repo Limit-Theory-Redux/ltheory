@@ -47,7 +47,7 @@ function SolarSystemGenTest:processEntityHierarchy(entity, prefix, isLast)
     -- Get common components
     local typeComp = entity:get(CoreComponents.Type)
     local transform = entity:get(PhysicsComponents.Transform)
-    local type = typeComp and typeComp:getType() or "Unknown"
+    local type = typeComp and typeComp:getType() or "None"
     local position = transform and transform:getPosition() or Position(0, 0, 0)
 
     -- Indent subsequent properties for readability
