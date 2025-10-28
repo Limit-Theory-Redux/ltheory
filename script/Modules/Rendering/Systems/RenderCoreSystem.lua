@@ -129,7 +129,7 @@ function RenderCoreSystem:registerRenderingPasses()
             Enums.BufferName.zBufferL,
             Enums.BufferName.zBuffer
         }
-        local onStartFn = function() 
+        local onStartFn = function()
             Draw.Clear(0, 0, 0, 0)
             Draw.ClearDepth(1)
             Draw.Color(1, 1, 1, 1)
@@ -174,7 +174,7 @@ function RenderCoreSystem:registerRenderingPasses()
             Enums.BufferName.zBuffer
         }
         local onStartFn = function() Draw.Clear(0, 0, 0, 0) end
-        self.passes[Enums.RenderingPasses.Alpha] = RenderingPass(bufferOrder, stateSettings, onStartFn)
+        self.passes[Enums.RenderingPasses.UI] = RenderingPass(bufferOrder, stateSettings, onStartFn)
     end
 end
 
@@ -295,7 +295,7 @@ function RenderCoreSystem:onRender(data)
             ShaderVar.Pop('starDir')
             ShaderVar.Pop('envMap')
             ShaderVar.Pop('irMap')
-        ]]--
+        ]]
         CameraSystem:endDraw() -- Pop Camera ShaderVars
     end
 
@@ -361,18 +361,18 @@ function RenderCoreSystem:present(x, y, sx, sy, useMips)
     --[[
         Directly from RenderPipeline.
         Do we ever use MipMap for Rendering?
-    ]]--
+    ]]
     RenderState.PushAllDefaults()
 
     local shader = Cache.Shader('ui', 'filter/identity')
     shader:start()
 
-    shader:setTex2D("src", self.buffer0)
+    shader:setTex2D("src", self.buffers[Enums.BufferName.buffer0])
     if false and useMips then
-        self.buffer0:genMipmap()
-        self.buffer0:setMinFilter(TexFilter.LinearMipLinear)
+        self.buffers[Enums.BufferName.buffer0]:genMipmap()
+        self.buffers[Enums.BufferName.buffer0]:setMinFilter(TexFilter.LinearMipLinear)
         Draw.Rect(x, y + sy, sx, -sy)
-        self.buffer0:setMinFilter(TexFilter.Linear)
+        self.buffers[Enums.BufferName.buffer0]:setMinFilter(TexFilter.Linear)
     else
         Draw.Rect(x, y + sy, sx, -sy)
     end
