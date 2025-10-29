@@ -141,8 +141,6 @@ end
 function LTheory:onInit()
     SoundManager:init()
 
-    GameState.render.uiCanvas                      = UI.Canvas()
-
     self.player                                    = Entities.Player()
     GameState.player.humanPlayer                   = self.player
 
@@ -155,6 +153,8 @@ function LTheory:onInit()
     DebugControl.ltheory = self
     self.gameView = GameView(self.player, self.audio)
     self.canvas = UI.Canvas()
+    GameState.render.gameView = self.gameView
+    GameState.render.uiCanvas = self.canvas
     self.canvas
         :add(self.gameView
             :add(MasterControl(self.gameView, self.player)))

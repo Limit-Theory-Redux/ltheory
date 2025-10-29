@@ -129,11 +129,12 @@ function GameView:draw(focus, active)
                 system.physics:drawBoundingBoxesWorld()
             end
             if GameState.debug.physics.drawWireframes then
+                local shader = mat.state:shader()
                 shader:setMatrix('mWorld', Matrix.Identity())
                 shader:setMatrixT('mWorldIT', Matrix.Identity())
                 shader:setFloat('scale', 1)
                 -- drawWireframes will set the 'color' shader variable.
-                system.physics:drawWireframes(mat.state.shader(), eye)
+                system.physics:drawWireframes(shader, eye)
             end
             mat:stop()
         end
