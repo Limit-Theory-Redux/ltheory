@@ -11,7 +11,7 @@ function ShallowClone(obj)
 end
 
 function DeepClone(obj, seen)
-    if type(obj) ~= "table" then
+    if rawtype(obj) ~= "table" then
         return obj
     end
 
