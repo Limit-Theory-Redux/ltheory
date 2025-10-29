@@ -40,7 +40,7 @@ local Ruleset = {
         aspects = {
             size = { type = Enums.Gen.Rule.Fixed, value = 0 },
             type = { type = Enums.Gen.Rule.Fixed, value = "None" },
-            orbitalDistance = { type = Enums.Gen.Rule.Fixed, value = 0 },
+            orbitalRadius = { type = Enums.Gen.Rule.Fixed, value = 0 },
             inclination = { type = Enums.Gen.Rule.Fixed, value = 0 }
         }
     },
