@@ -40,7 +40,13 @@ function InitSystem()
         for _, fpath in ipairs(configDir) do
             -- don´t load again
             if fpath ~= './script/Config/App.lua' then
-                dofile(fpath)
+                local success, res = pcall(dofile, fpath)
+
+                if not success then
+                    Log.Warn(
+                    "Config File %s could not be executed. Safe to ignore if its a static import and relies on files loaded after /Config/",
+                        fpath)
+                end
             end
         end
 
