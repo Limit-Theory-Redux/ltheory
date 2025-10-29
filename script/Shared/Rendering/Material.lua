@@ -92,7 +92,7 @@ function Material:setAllShaderVars(eye, entity)
         shaderVar:setShaderVar(eye, shader, entity)
     end
     for _, shaderVar in ipairs(self.constShaderVars) do
-        shaderVar:setShaderVar(shader)
+        shaderVar:setShaderVar(shader, entity)
     end
     for _, shaderVar in ipairs(self.staticShaderVars) do
         shaderVar:setShaderVar(shader)
