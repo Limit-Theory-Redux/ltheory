@@ -6,7 +6,7 @@ local Economy = require("Modules.Economy.Components")
 ---@param itemDefinition ItemDefinition
 ---@param quantity number
 ---@param price number
----@param expiresAt TimeStamp|nil
+---@param expiresAt TimeStamp
 ---@return Entity
 return function(issuer, itemDefinition, quantity, price, expiresAt)
     return Entity.Create(
