@@ -11,6 +11,9 @@ Quat = {}
 ---@return Quat
 function Quat.Create(x, y, z, w) end
 
+---@return Quat
+function Quat.Identity() end
+
 ---@param result Vec3f [out]
 function Quat:getAxisX(result) end
 
@@ -28,9 +31,6 @@ function Quat:getRight(result) end
 
 ---@param result Vec3f [out]
 function Quat:getUp(result) end
-
----@return Quat
-function Quat.Identity() end
 
 ---@return Quat
 function Quat:canonicalize() end
@@ -95,30 +95,36 @@ function Quat:slerp(p, t) end
 ---@param t number
 function Quat:iSlerp(p, t) end
 
----@return string
-function Quat:toString() end
-
----@return Error
-function Quat:validate() end
-
 ---@param axis Vec3f
 ---@param radians number
 ---@return Quat
 function Quat.FromAxisAngle(axis, radians) end
 
----@param x Vec3f
----@param y Vec3f
----@param z Vec3f
+---@param yaw number
+---@param pitch number
+---@param roll number
 ---@return Quat
-function Quat.FromBasis(x, y, z) end
+function Quat.FromEuler(yaw, pitch, roll) end
 
----@param look Vec3f
+---@param forward Vec3f
 ---@param up Vec3f
 ---@return Quat
-function Quat.FromLookUp(look, up) end
+function Quat.FromLook(forward, up) end
+
+---@param eye Vec3f
+---@param target Vec3f
+---@param up Vec3f
+---@return Quat
+function Quat.LookAt(eye, target, up) end
 
 ---@param from Vec3f
 ---@param to Vec3f
 ---@return Quat
 function Quat.FromRotateTo(from, to) end
+
+---@return string
+function Quat:toString() end
+
+---@return Error
+function Quat:validate() end
 
