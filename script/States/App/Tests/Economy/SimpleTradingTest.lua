@@ -1,19 +1,25 @@
-local SimpleTradingTest  = require("States.Application")
+local Application        = require('States.Application')
+
+---@class SimpleTradingTest: Application
+local SimpleTradingTest  = Subclass("SimpleTradingTest", Application)
+
 local ChildrenComponent  = require("Modules.Core.Components.ChildrenComponent")
 local TransformComponent = require("Modules.Physics.Components.TransformComponent")
 local ItemComponent      = require("Modules.Economy.Components.ItemComponent")
 local QuantityComponent  = require("Modules.Economy.Components.QuantityComponent")
 
 local Registry           = require("Core.ECS.Registry")
-local Items              = require("Shared.Registries.Items")
-local UniverseManager    = require("Modules.CelestialObjects.Managers").UniverseManager
 require("Shared.Definitions.ItemDefs")
+local Items           = require("Shared.Registries.Items")
+local UniverseManager = require("Modules.CelestialObjects.Managers").UniverseManager
+local Rulesets        = require("Config.Gen.Rulesets")
+
 
 local seed = 1
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function SimpleTradingTest:onInit()
-    local scenario = require("Config.Gen.Rulesets.Tests.TwoAsteroids_OnePlayerShip")
+    local scenario = Rulesets.StandardBinarySolarSystem
     local universe = UniverseManager:createUniverse(scenario, seed)
 
     --* temporary test of ECS UniverseManager 24.Oct.2025 @IllustrisJack

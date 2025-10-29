@@ -1,23 +1,26 @@
-local SolarSystemGenTest = require("States.Application")
+local Application         = require('States.Application')
 
-local CelestialEntities = require("Modules.CelestialObjects.Entities")
+---@class SolarSystemGenTest: Application
+local SolarSystemGenTest  = Subclass("SolarSystemGenTest", Application)
 
-local CoreComponents = require("Modules.Core.Components")
+local CelestialEntities   = require("Modules.CelestialObjects.Entities")
+
+local CoreComponents      = require("Modules.Core.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
-local EconomyComponents = require("Modules.Economy.Components")
-local PhysicsComponents = require("Modules.Physics.Components")
-local SpatialComponents = require("Modules.Spatial.Components")
+local EconomyComponents   = require("Modules.Economy.Components")
+local PhysicsComponents   = require("Modules.Physics.Components")
+local SpatialComponents   = require("Modules.Spatial.Components")
 
-local Registry = require("Core.ECS.Registry")
-local Items = require("Shared.Registries.Items")
-local UniverseManager = require("Modules.CelestialObjects.Managers").UniverseManager
+local Registry            = require("Core.ECS.Registry")
 require("Shared.Definitions.ItemDefs")
+local Items               = require("Shared.Registries.Items")
+local UniverseManager     = require("Modules.CelestialObjects.Managers").UniverseManager
 
-local Rulesets = require("Config.Gen.Rulesets")
+local Rulesets            = require("Config.Gen.Rulesets")
 
 local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 
-local seed = 1
+local seed                = 1
 
 -- Helper function to extract entity class from tostring(entity)
 local function getEntityClass(entity)

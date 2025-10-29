@@ -12,18 +12,18 @@ local ConstructsEntities = require("Modules.Constructs.Entities")
 local CoreEntities       = require("Modules.Core.Entities")
 local CoreComponents     = require("Modules.Core.Components")
 
+local Items              = require("Shared.Registries.Items")
 require("Shared.Definitions.ItemDefs")
-local Items = require("Shared.Registries.Items")
-local Tags = require("Shared.Registries.Tags")
+local Tags                   = require("Shared.Registries.Tags")
 
-local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
+local MarketplaceSystem      = require("Modules.Economy.Systems.MarketplaceSystem")
 
 -- ANSI color codes
-local GREEN = "\27[32m"
-local RED = "\27[31m"
-local GRAY = "\27[37m"
-local WHITE = "\27[97m"
-local RESET = "\27[0m"
+local GREEN                  = "\27[32m"
+local RED                    = "\27[31m"
+local GRAY                   = "\27[37m"
+local WHITE                  = "\27[97m"
+local RESET                  = "\27[0m"
 
 local SELECTED_TEST_SCENARIO = "GoldSupplyDrop"
 
