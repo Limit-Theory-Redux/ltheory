@@ -21,7 +21,7 @@ local GRAY = "\27[37m"
 local WHITE = "\27[97m"
 local RESET = "\27[0m"
 
-local SELECTED_TEST_SCENARIO = "ControlledPriceShockTest" -- New test scenario
+local SELECTED_TEST_SCENARIO = "ControlledPriceShockTest"
 
 -- TODO: BREAK THIS TEST UP INTO MANAGERS, HELPERS, ETC
 
@@ -379,7 +379,8 @@ function MarketplaceTest:createRandomOrders(count)
     end
 end
 
-function MarketplaceTest:onPreRender(data)
+---@param e EventData
+function MarketplaceTest:onPreRender(e)
     if self.testComplete then
         self:printFinalReport()
         self:quit()
