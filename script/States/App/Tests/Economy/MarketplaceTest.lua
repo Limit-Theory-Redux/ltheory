@@ -651,8 +651,9 @@ function MarketplaceTest:printPriceDevelopment(itemName)
     end
 
     -- ASCII Price Chart
-    Log.Info("\n  Price Chart (60s timeline):")
+    Log.Info("\n  1 (60s timeline):")
     self:printASCIIChart(history, minPrice, maxPrice)
+    self:printCandlestickChart(history, minPrice, maxPrice)
 
     -- Price trend analysis
     local trend = self:analyzePriceTrend(prices)
@@ -664,7 +665,7 @@ end
 ---@param minPrice number
 ---@param maxPrice number
 function MarketplaceTest:printASCIIChart(history, minPrice, maxPrice)
-    local chartWidth = 60  -- characters
+    local chartWidth = 170 -- characters
     local chartHeight = 10 -- lines
     local priceRange = maxPrice - minPrice
 
@@ -673,58 +674,72 @@ function MarketplaceTest:printASCIIChart(history, minPrice, maxPrice)
         return
     end
 
-    -- Create time buckets (one per second)
-    local buckets = {}
-    for i = 0, self.testDuration do
-        buckets[i] = { prices = {}, count = 0 }
-    end
+    -- Find actual time range from trade history
+    local minTime = math.huge
+    local maxTime = -math.huge
 
-    -- Fill buckets with trades
     for _, trade in ipairs(history) do
-        local bucket = math.floor(trade.timestamp)
-        if buckets[bucket] then
-            table.insert(buckets[bucket].prices, trade.price)
-            buckets[bucket].count = buckets[bucket].count + 1
-        end
+        minTime = math.min(minTime, trade.timestamp)
+        maxTime = math.max(maxTime, trade.timestamp)
     end
 
-    -- Sample buckets to fit chart width
-    local sampledPrices = {}
-    local step = math.max(1, math.floor(self.testDuration / chartWidth))
+    local timeRange = maxTime - minTime
+    if timeRange <= 0 then
+        Log.Info("    All trades at same timestamp")
+        return
+    end
 
-    for i = 0, chartWidth - 1 do
-        local time = i * step
-        if buckets[time] and #buckets[time].prices > 0 then
-            -- Average prices in this bucket
-            local sum = 0
-            for _, price in ipairs(buckets[time].prices) do
-                sum = sum + price
-            end
-            table.insert(sampledPrices, sum / #buckets[time].prices)
+    -- Map trades to columns and collect all prices per column
+    local columns = {}
+    for col = 1, chartWidth do
+        columns[col] = {}
+    end
+
+    for _, trade in ipairs(history) do
+        -- Map timestamp to column (1 to chartWidth)
+        local normalizedTime = (trade.timestamp - minTime) / timeRange
+        local col = math.floor(normalizedTime * (chartWidth - 1)) + 1
+        col = math.max(1, math.min(chartWidth, col))
+
+        table.insert(columns[col], trade.price)
+    end
+
+    -- Calculate median for each column (more robust than average)
+    local plotData = {}
+    for col = 1, chartWidth do
+        if #columns[col] > 0 then
+            -- Sort prices to get median
+            table.sort(columns[col])
+            local mid = math.ceil(#columns[col] / 2)
+            plotData[col] = columns[col][mid]
         else
-            table.insert(sampledPrices, nil)
+            plotData[col] = nil
         end
     end
 
     -- Draw chart from top to bottom
     for row = chartHeight, 1, -1 do
         local line = "    "
-        local priceLevel = minPrice + (priceRange * (row / chartHeight))
+        -- row=1 should be minPrice, row=chartHeight should be maxPrice
+        local priceLevel = minPrice + (priceRange * (row - 1) / (chartHeight - 1))
 
         -- Y-axis label
         line = line .. string.format("%5.0f |", priceLevel)
 
         -- Plot points
-        for col = 1, #sampledPrices do
-            local price = sampledPrices[col]
+        for col = 1, chartWidth do
+            local price = plotData[col]
 
             if price then
+                -- Normalize price to 0-1 range
                 local normalizedPrice = (price - minPrice) / priceRange
-                local rowThreshold = (row - 0.5) / chartHeight
+                -- Normalize row to 0-1 range
+                local rowNormalized = (row - 1) / (chartHeight - 1)
 
-                if math.abs(normalizedPrice - rowThreshold) < (0.5 / chartHeight) then
+                -- Check if this price should be plotted at this row
+                if math.abs(normalizedPrice - rowNormalized) < (1.0 / chartHeight) then
                     line = line .. "●"
-                elseif normalizedPrice > rowThreshold then
+                elseif normalizedPrice >= rowNormalized then
                     line = line .. "│"
                 else
                     line = line .. " "
@@ -744,8 +759,140 @@ function MarketplaceTest:printASCIIChart(history, minPrice, maxPrice)
     end
     Log.Info(xAxis)
 
-    -- X-axis labels
-    Log.Info("           0s" .. string.rep(" ", chartWidth - 15) .. string.format("%ds", self.testDuration))
+    -- X-axis labels with actual time range
+    local labelSpacing = chartWidth - 15
+    Log.Info("           %.1fs%s%.1fs",
+        minTime,
+        string.rep(" ", labelSpacing),
+        maxTime)
+
+    -- Add statistics about data density
+    local totalTrades = #history
+    local columnsWithData = 0
+    local maxTradesPerColumn = 0
+
+    for col = 1, chartWidth do
+        if #columns[col] > 0 then
+            columnsWithData = columnsWithData + 1
+            maxTradesPerColumn = math.max(maxTradesPerColumn, #columns[col])
+        end
+    end
+
+    Log.Info("           Data: %d trades across %d time buckets (max %d trades/bucket)",
+        totalTrades, columnsWithData, maxTradesPerColumn)
+end
+
+---Print ASCII candlestick chart (better for high-volume data)
+---@param history table[]
+---@param minPrice number
+---@param maxPrice number
+function MarketplaceTest:printCandlestickChart(history, minPrice, maxPrice)
+    local chartWidth = 170 -- Wider buckets for candlesticks
+    local chartHeight = 10
+    local priceRange = maxPrice - minPrice
+
+    if priceRange == 0 then
+        Log.Info("    Price remained constant at %d", minPrice)
+        return
+    end
+
+    -- Find time range
+    local minTime = math.huge
+    local maxTime = -math.huge
+
+    for _, trade in ipairs(history) do
+        minTime = math.min(minTime, trade.timestamp)
+        maxTime = math.max(maxTime, trade.timestamp)
+    end
+
+    local timeRange = maxTime - minTime
+    if timeRange <= 0 then return end
+
+    -- Collect trades per time bucket
+    local buckets = {}
+    for col = 1, chartWidth do
+        buckets[col] = { prices = {}, first = nil, last = nil }
+    end
+
+    for _, trade in ipairs(history) do
+        local normalizedTime = (trade.timestamp - minTime) / timeRange
+        local col = math.floor(normalizedTime * (chartWidth - 1)) + 1
+        col = math.max(1, math.min(chartWidth, col))
+
+        table.insert(buckets[col].prices, trade.price)
+        if not buckets[col].first then
+            buckets[col].first = trade.price
+        end
+        buckets[col].last = trade.price
+    end
+
+    -- Calculate OHLC (Open, High, Low, Close) for each bucket
+    local candlesticks = {}
+    for col = 1, chartWidth do
+        if #buckets[col].prices > 0 then
+            table.sort(buckets[col].prices)
+            candlesticks[col] = {
+                open = buckets[col].first,
+                high = buckets[col].prices[#buckets[col].prices],
+                low = buckets[col].prices[1],
+                close = buckets[col].last,
+                count = #buckets[col].prices
+            }
+        end
+    end
+
+    -- Draw candlestick chart
+    for row = chartHeight, 1, -1 do
+        local line = "    "
+        local priceLevel = minPrice + (priceRange * (row - 1) / (chartHeight - 1))
+        line = line .. string.format("%5.0f |", priceLevel)
+
+        for col = 1, chartWidth do
+            local candle = candlesticks[col]
+
+            if candle then
+                local normHigh = (candle.high - minPrice) / priceRange
+                local normLow = (candle.low - minPrice) / priceRange
+                local normOpen = (candle.open - minPrice) / priceRange
+                local normClose = (candle.close - minPrice) / priceRange
+                local rowNorm = (row - 1) / (chartHeight - 1)
+
+                local bodyTop = math.max(normOpen, normClose)
+                local bodyBottom = math.min(normOpen, normClose)
+
+                if rowNorm <= normHigh and rowNorm >= bodyTop then
+                    line = line .. "│" -- Upper wick
+                elseif rowNorm <= bodyTop and rowNorm >= bodyBottom then
+                    -- Body
+                    if candle.close > candle.open then
+                        line = line .. "▓" -- Bullish (green)
+                    elseif candle.close < candle.open then
+                        line = line .. "░" -- Bearish (red)
+                    else
+                        line = line .. "─" -- Neutral
+                    end
+                elseif rowNorm <= bodyBottom and rowNorm >= normLow then
+                    line = line .. "│" -- Lower wick
+                else
+                    line = line .. " "
+                end
+            else
+                line = line .. " "
+            end
+        end
+
+        Log.Info(line)
+    end
+
+    -- X-axis
+    local xAxis = "          +"
+    for i = 1, chartWidth do
+        xAxis = xAxis .. "-"
+    end
+    Log.Info(xAxis)
+
+    Log.Info("           %.1fs%s%.1fs", minTime, string.rep(" ", chartWidth - 15), maxTime)
+    Log.Info("           Legend: ▓=Price Up, ░=Price Down, │=High/Low, ─=No Change")
 end
 
 ---Analyze overall price trend
