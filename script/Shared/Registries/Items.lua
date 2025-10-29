@@ -24,6 +24,7 @@ function Items:new(name, itemGroup)
         self[itemId] = def         -- for comp (more memory usage vs string comparison computation)
         self.itemCount = self.itemCount + 1
     end
+    SetLengthMetamethod(self[name])
     return self[name]
 end
 

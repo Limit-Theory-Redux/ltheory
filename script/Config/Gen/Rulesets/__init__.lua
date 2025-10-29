@@ -1,0 +1,81 @@
+return {
+    StandardSolarSystem = require("Config.Gen.Rulesets.StandardSolarSystem"),
+
+    Tests = {
+        TwoAsteroidsOnePlayerShip = require("Config.Gen.Rulesets.Tests.TwoAsteroidsOnePlayerShip")
+    }
+}
+
+---@alias RuleType
+---| "Fixed" # Constant value
+---| "Range" # Value within a range
+---| "Weighted" # Value chosen by weighted probability
+---| "Chance" # Boolean outcome based on probability
+---| "Count" # Integer within a range
+---| "Custom" # Custom function
+
+---@alias ConditionType
+---| "OrbitRadius" # Based on orbit radius
+---| "PlanetType" # Based on planet type
+---| "PlanetSize" # Based on planet size
+---| "SystemAge" # Based on system age
+---| "StarType" # Based on star type
+---| "StarMass" # Based on star mass
+---| "SystemMetallicity" # Based on system metallicity
+---| "PlanetCount" # Based on planet count
+
+---@class Rule
+---@field type RuleType
+---@field min? number
+---@field max? number
+---@field value? any
+---@field values? { value: any, weight: number }[]
+---@field fn? fun(rng: RNG, rule: Rule, context: GenerationContext): any
+---@field condition? Condition
+---@field default? any
+
+---@class Condition
+---@field type ConditionType
+---@field ranges? { min: number, max: number, minSize?: number, maxSize?: number, minTemp?: number, maxTemp?: number, minGravity?: number, maxGravity?: number, minWidth?: number, maxWidth?: number, minDensity?: number, maxDensity?: number, minDistance?: number, maxDistance?: number, minLuminosity?: number, maxLuminosity?: number, weights?: table<string, number>, value?: string }[]
+---@field types? table<string, { min?: number, max?: number, weights?: table<string, number> }>
+
+---@class Ruleset
+---@field name string
+---@field seed? integer
+---@field starSystems StarSystemRules
+---@field stars StarRules
+---@field planets PlanetRules
+---@field moons MoonRules
+---@field rings RingRules
+---@field asteroidBelts AsteroidBeltRules
+---@field starZoneRadius Rule
+---@field overrides? { universe?: EntityOverride[], starSystem?: EntityOverride[] }
+
+---@class EntityOverride
+---@field type string
+---@field position? Position
+---@field components? table<string, any>
+
+---@class StarSystemRules
+---@field count Rule
+---@field aspects { age: Rule, metallicity: Rule, stability: Rule }
+
+---@class StarRules
+---@field count Rule
+---@field aspects { type: Rule, mass: Rule, luminosity: Rule }
+
+---@class PlanetRules
+---@field count Rule
+---@field aspects { orbitRadius: Rule, size: Rule, type: Rule, atmosphere: Rule, asteroidRing: Rule, temperature: Rule, gravity: Rule, rotationPeriod: Rule, eccentricity: Rule, magneticField: Rule, inclination: Rule }
+
+---@class MoonRules
+---@field count Rule
+---@field aspects { size: Rule, type: Rule, orbitalDistance: Rule, inclination: Rule }
+
+---@class RingRules
+---@field count Rule
+---@field aspects { composition: Rule, thickness: Rule }
+
+---@class AsteroidBeltRules
+---@field count Rule
+---@field aspects { density: Rule, composition: Rule, width: Rule }

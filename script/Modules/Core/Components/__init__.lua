@@ -3,4 +3,5 @@ return {
     Parent = require('Modules.Core.Components.ParentComponent'),
     Seed = require('Modules.Core.Components.SeedComponent'),
     Tag = require('Modules.Core.Components.TagComponent'),
+    Type = require('Modules.Core.Components.TypeComponent')
 }
