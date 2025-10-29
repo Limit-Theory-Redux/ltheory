@@ -1,9 +1,8 @@
 local Bindings = require('States.ApplicationBindings')
 local MainMenu = require('Legacy.Systems.Menus.MainMenu')
 
+---@class Application
 local Application = Class("Application", function(self) end)
-
--- Virtual ---------------------------------------------------------------------
 
 function Application:getDefaultSize()
     return Config.render.window.defaultResX, Config.render.window.defaultResY
@@ -18,13 +17,9 @@ function Application:getWindowMode()
 end
 
 function Application:onInit() end
-
 function Application:onDraw() end
-
 function Application:onResize(sx, sy) end
-
 function Application:onUpdate(dt) end
-
 function Application:onExit() end
 
 function Application:quit()
@@ -41,15 +36,10 @@ function Application:eventLoop()
 
     local eventData, payload = EventBus:nextEvent()
     while eventData ~= nil do
-        --print("[" .. tostring(Render.ToString(eventData:getRender())) .. "]")
-        --print("- Tunnel Id: " .. tostring(eventData:tunnelId()))
-
         EventTunnels[eventData:tunnelId()](eventData, payload)
         eventData, payload = EventBus:nextEvent()
     end
 end
-
--- Application Template --------------------------------------------------------
 
 function Application:appInit()
     self.eventsRegistered = false
@@ -61,18 +51,16 @@ function Application:appInit()
 
     self.audio = Audio.Create()
     GameState.audio.manager = self.audio
-
     GameState.render.gameWindow = Window
-
     Window:setPresentMode(GameState.render.presentMode)
 
     if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
     Preload.Run()
 
-    -- Setting Application Variables prior to onInit()
+    -- Settings
     self.profilerFont = Font.Load('NovaMono', 10)
-    self.lastUpdate = TimeStamp.Now() -- TODO: was TimeStamp.GetFuture(-1.0 / 60.0)
+    self.lastUpdate = TimeStamp.Now()
     self.profiling = false
     self.toggleProfiler = false
     self.showBackgroundModeHints = true
@@ -134,7 +122,6 @@ function Application:onPreRender(data)
 
     local timeScaledDt = data:deltaTime()
 
-    --* system & canvas should probably subscribe to onPreRender themselves
     if GameState.player.humanPlayer and GameState.player.humanPlayer:getRoot().update then
         GameState.player.humanPlayer:getRoot():update(timeScaledDt)
         GameState.render.uiCanvas:update(timeScaledDt)
@@ -161,104 +148,13 @@ function Application:onRender(data)
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onRender')
 
-    Window:beginDraw()
-
-    --* should they subscribe to onRender themselves?
-    if GameState.render.uiCanvas ~= nil then
-        GameState.render.uiCanvas:draw(self.resX, self.resY)
-        Gui:draw()
-    end
-
     Profiler.End()
-
-    UI.DrawEx.TextAdditive(
-        'Unageo-Medium',
-        "WORK IN PROGRESS",
-        20,
-        self.resX / 2 - 20, 50, 40, 20,
-        0.75, 0.75, 0.75, 0.75,
-        0.5, 0.5
-    )
-
-    if GameState:GetCurrentState() ~= Enums.GameStates.MainMenu then
-        --if GameState.paused then
-        --    UI.DrawEx.TextAdditive(
-        --        'NovaRound',
-        --        "[PAUSED]",
-        --        24,
-        --        0, 0, self.resX, self.resY,
-        --        1, 1, 1, 1,
-        --        0.5, 0.99
-        --    )
-        --end
-
-        --if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
-        --    --TODO: replace this with a general "is alive" game state here and in LTR,
-        --    -- the whole process needs to be improved
-        --    if MainMenu and not MainMenu.dialogDisplayed and
-        --        not MainMenu.seedDialogDisplayed and
-        --        not MainMenu.settingsScreenDisplayed then
-        --        do
-        --            UI.DrawEx.TextAdditive(
-        --                'NovaRound',
-        --                "[GAME OVER]",
-        --                32,
-        --                0, 0, self.resX, self.resY,
-        --                1, 1, 1, 1,
-        --                0.5, 0.5
-        --            )
-        --        end
-        --    end
-        --end
-    end
-
-    -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
-    if self.doScreenshot then
-        -- Settings.set('render.superSample', 2) -- turn on mild supersampling
-        ScreenCap()
-        if self.prevSS then
-            -- Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
-            self.prevSS = nil
-        end
-    end
-
-    Profiler.Begin('Metrics.Display')
-    do -- Metrics display
-        if GameState.debug.metricsEnabled then
-            local dt = data:deltaTime()
-
-            local s = string.format(
-                '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',
-                1000.0 * dt,
-                1.0 / dt,
-                GC.GetMemory() / 1000.0,
-                Metric.Get(Metric.TrisDrawn) / 1000,
-                Metric.Get(Metric.DrawCalls),
-                Metric.Get(Metric.Immediate),
-                Metric.Get(Metric.FBOSwap))
-            RenderState.PushBlendMode(BlendMode.Alpha)
-            UI.DrawEx.SimpleRect(0, self.resY - 20, self.resX, self.resY, Color(0.1, 0.1, 0.1, 0.5))
-            self.profilerFont:draw(s, 10, self.resY - 5, Color(1, 1, 1, 1))
-
-            local y = self.resY - 5
-            if self.profiling then
-                self.profilerFont:draw('>> PROFILER ACTIVE <<', self.resX - 128, y, Color(1, 0, 0.15, 1))
-                y = y - 12
-            end
-            RenderState.PopBlendMode()
-        end
-    end
-    Profiler.End()
-    Profiler.LoopMarker()
 end
 
 function Application:onPostRender(data)
-    do -- End Draw
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.onPostRender')
-        Window:endDraw()
-        Profiler.End()
-    end
+    Profiler.SetValue('gcmem', GC.GetMemory())
+    Profiler.Begin('App.onPostRender')
+    Profiler.End()
 end
 
 function Application:onPreInput(data) end
@@ -267,7 +163,6 @@ function Application:onInput(data)
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onInput')
 
-    -- Immediately quit game without saving
     if Input:isKeyboardAltPressed() and Input:isPressed(Button.KeyboardQ) then self:quit() end
     if Input:isPressed(Bindings.Exit) then self:quit() end
 
@@ -284,7 +179,7 @@ function Application:onInput(data)
 
     if Input:isPressed(Bindings.ToggleFullscreen) then
         GameState.render.fullscreen = not GameState.render.fullscreen
-        Window:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
+        Window:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive)
     end
 
     if Input:isPressed(Bindings.Reload) then
@@ -307,12 +202,6 @@ function Application:onInput(data)
         end
     end
 
-    -- Preserving this in case we need to be able to automatically pause on window exit again
-    -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
-    -- if Input:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
-    --     GameState.paused = true
-    -- end
-
     if not Gui:hasActiveInput() then
         if Input:isPressed(Bindings.ToggleWireframe) then
             GameState.debug.physics.drawWireframe = not GameState.debug.physics.drawWireframe
@@ -327,7 +216,6 @@ function Application:onInput(data)
         end
     end
 
-    --! why is this needed for the game to render and update lol
     if GameState.render.uiCanvas ~= nil then
         GameState.render.uiCanvas:input()
     end
@@ -339,15 +227,28 @@ function Application:onPostInput(data) end
 
 function Application:doExit()
     if self.profiling then Profiler.Disable() end
-
     if Config.jit.dumpasm then Jit.StopDump() end
     if Config.jit.profile then Jit.StopProfile() end
     if Config.jit.verbose then Jit.StopVerbose() end
 
-    do -- Exit
-        self:onExit()
-        -- Window:free()
+    self:onExit()
+end
+
+---@param renderFn function render function for immediate ui
+function Application:immediateUI(renderFn)
+    -- Re-open backbuffer for immediate UI
+    Window:beginDraw()
+    RenderState.PushAllDefaults()
+    ClipRect.PushDisabled()
+
+    do
+        renderFn()
     end
+
+    -- Close again
+    ClipRect.Pop()
+    RenderState.PopAll()
+    Window:endDraw()
 end
 
 return Application

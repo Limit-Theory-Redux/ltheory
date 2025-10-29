@@ -1,413 +1,197 @@
-local Registry = require("Core.ECS.Registry")
-local MeshStorage = require("Core.ECS.MeshStorage")
-local QuickProfiler = require("Shared.Tools.QuickProfiler")
-local RenderingPass = require("Shared.Rendering.RenderingPass")
-local CameraSystem = require("Modules.Rendering.Systems.CameraSystem")
+local Registry         = require("Core.ECS.Registry")
+local QuickProfiler    = require("Shared.Tools.QuickProfiler")
+local RenderingPass    = require("Shared.Rendering.RenderingPass")
+local CameraSystem     = require("Modules.Rendering.Systems.CameraSystem")
+local RenderComp       = require("Modules.Rendering.Components").Render
 
----@class Buffer : Tex2D
-
----@class RenderSettings
----@field superSampleRate integer
----@field downSampleRate integer
----@field showBuffers boolean
----@field cullFace boolean
-
----@class RenderCoreSystem
----@field buffers table<BufferName, Buffer>
----@field settings RenderSettings
----@field passes RenderingPass
----@field level integer
----@field resX number
----@field resY number
----@field ssResX number
----@field ssResY number
----@field dsResX number
----@field dsResY number
-
--- TexFormats for Buffers
-local colorFormat = TexFormat.RGBA16F
-local depthFormat = TexFormat.Depth32F
-local depthFormatL = TexFormat.R32F
-
---[[
-    Buffers are just Tex2D's
-    Should CreateBuffer be moved over to a different file?
-]]
----@param x number
----@param y number
----@param format TexFormat
----@return Buffer
-local function createBuffer(x, y, format)
-    local buffer = Tex2D.Create(x, y, format)
-    buffer:setMagFilter(TexFilter.Linear)
-    buffer:setMinFilter(TexFilter.Linear)
-    buffer:setWrapMode(TexWrapMode.Clamp)
-    buffer:push()
-    Draw.Clear(0, 0, 0, 0)
-    buffer:pop()
-    buffer:genMipmap()
-    return buffer
-end
-
----@class RenderCoreSystem
----@overload fun(self: RenderCoreSystem) class internal
----@overload fun() class external
 local RenderCoreSystem = Class("RenderCoreSystem", function(self)
-    ---@diagnostic disable-next-line: invisible
     self:registerVars()
-    ---@diagnostic disable-next-line: invisible
-    self:registerEvents()
-    ---@diagnostic disable-next-line: invisible
-    self:registerRenderingPasses()
+    self:registerPasses()
 end)
 
----@private
 function RenderCoreSystem:registerVars()
     self.profiler = QuickProfiler("RenderCoreSystem", false, false)
 
-    -- Set Variables based on Config.render
     self.settings = {
         superSampleRate = Config.render.general.superSampleRate,
-        downSampleRate = Config.render.general.downSampleRate,
-        showBuffers = Config.render.debug.showBuffers,
-        cullFace = Config.render.renderState.cullFace
+        downSampleRate  = Config.render.general.downSampleRate,
+        showBuffers     = Config.render.debug.showBuffers,
+        cullFace        = Config.render.renderState.cullFace
     }
-    self.resX = Config.render.window.defaultResX
-    self.resY = Config.render.window.defaultResY
+
+    local win = Window:size()
+    self.resX, self.resY = win.x, win.y
     self.ssResX = self.resX * self.settings.superSampleRate
     self.ssResY = self.resY * self.settings.superSampleRate
     self.dsResX = self.resX / self.settings.downSampleRate
     self.dsResY = self.resY / self.settings.downSampleRate
 
-    -- Set Buffers
     self.buffers = {}
     self:initializeBuffers()
-
-    -- Set Variables
     self.passes = {}
     self.level = 0
+
+    -- For injection
+    self.currentPass = nil
 end
 
----@private
 function RenderCoreSystem:initializeBuffers()
-    -- If a buffer is currently set then reset all buffers
-    if self.buffers[Enums.BufferName.buffer0] then self:resetBuffers() end
+    local function create(x, y, fmt)
+        local t = Tex2D.Create(x, y, fmt)
+        t:setMagFilter(TexFilter.Linear)
+        t:setMinFilter(TexFilter.Linear)
+        t:setWrapMode(TexWrapMode.Clamp)
+        t:push(); Draw.Clear(0, 0, 0, 0); t:pop(); t:genMipmap()
+        return t
+    end
+
     self.buffers = {
-        [Enums.BufferName.buffer0] = createBuffer(self.ssResX, self.ssResY, colorFormat),
-        [Enums.BufferName.buffer1] = createBuffer(self.ssResX, self.ssResY, colorFormat),
-        [Enums.BufferName.buffer2] = createBuffer(self.ssResX, self.ssResY, colorFormat),
-        [Enums.BufferName.zBuffer] = createBuffer(self.ssResX, self.ssResY, depthFormat),
-        [Enums.BufferName.zBufferL] = createBuffer(self.ssResX, self.ssResY, depthFormatL),
-        [Enums.BufferName.dsBuffer0] = createBuffer(self.dsResX, self.dsResY, colorFormat),
-        [Enums.BufferName.dsBuffer1] = createBuffer(self.dsResX, self.dsResY, colorFormat)
+        [Enums.BufferName.buffer0] = create(self.ssResX, self.ssResY, TexFormat.RGBA16F),
+        [Enums.BufferName.buffer1] = create(self.ssResX, self.ssResY, TexFormat.RGBA16F),
+        [Enums.BufferName.buffer2] = create(self.ssResX, self.ssResY, TexFormat.RGBA16F),
+        [Enums.BufferName.zBuffer] = create(self.ssResX, self.ssResY, TexFormat.Depth32F),
+        [Enums.BufferName.zBufferL] = create(self.ssResX, self.ssResY, TexFormat.R32F),
+        [Enums.BufferName.dsBuffer0] = create(self.dsResX, self.dsResY, TexFormat.RGBA16F),
+        [Enums.BufferName.dsBuffer1] = create(self.dsResX, self.dsResY, TexFormat.RGBA16F),
     }
 end
 
----@private
-function RenderCoreSystem:resetBuffers()
-    self.buffers[Enums.BufferName.buffer0] = nil
-    self.buffers[Enums.BufferName.buffer1] = nil
-    self.buffers[Enums.BufferName.buffer2] = nil
-    self.buffers[Enums.BufferName.zBuffer] = nil
-    self.buffers[Enums.BufferName.zBufferL] = nil
-    self.buffers[Enums.BufferName.dsBuffer0] = nil
-    self.buffers[Enums.BufferName.dsBuffer1] = nil
+function RenderCoreSystem:registerPasses()
+    local function pass(name, blend, cull, dt, dw, bufs, onStart)
+        self.passes[name] = RenderingPass(bufs, {
+            blendMode = blend, cullFace = cull, depthTest = dt, depthWritable = dw
+        }, onStart)
+    end
+
+    pass(Enums.RenderingPasses.Opaque,
+        BlendMode.Disabled, self.settings.cullFace and CullFace.Back or CullFace.None,
+        true, true,
+        { Enums.BufferName.buffer0, Enums.BufferName.buffer1, Enums.BufferName.zBufferL, Enums.BufferName.zBuffer },
+        function()
+            Draw.Clear(0, 0, 0, 0); Draw.ClearDepth(1); Draw.Color(1, 1, 1, 1)
+        end)
+
+    pass(Enums.RenderingPasses.Additive,
+        BlendMode.Additive, CullFace.None, true, false,
+        { Enums.BufferName.buffer0, Enums.BufferName.zBuffer })
+
+    pass(Enums.RenderingPasses.Alpha,
+        BlendMode.Alpha, CullFace.None, true, false,
+        { Enums.BufferName.buffer0, Enums.BufferName.zBuffer })
+
+    pass(Enums.RenderingPasses.UI,
+        BlendMode.Alpha, CullFace.None, false, false,
+        { Enums.BufferName.buffer1, Enums.BufferName.zBuffer },
+        function() Draw.Clear(0, 0, 0, 0) end)
 end
 
----@private
-function RenderCoreSystem:registerRenderingPasses()
-    do -- < Opaque Pass Definition > --
-        local stateSettings = {
-            blendMode = BlendMode.Disabled,
-            cullFace = self.settings.cullFace and CullFace.Back or CullFace.None,
-            depthTest = true,
-            depthWritable = true
-        }
-        local bufferOrder = {
-            Enums.BufferName.buffer0,
-            Enums.BufferName.buffer1,
-            Enums.BufferName.zBufferL,
-            Enums.BufferName.zBuffer
-        }
-        local onStartFn = function()
-            Draw.Clear(0, 0, 0, 0)
-            Draw.ClearDepth(1)
-            Draw.Color(1, 1, 1, 1)
-        end
-        self.passes[Enums.RenderingPasses.Opaque] = RenderingPass(bufferOrder, stateSettings, onStartFn)
-    end
-    do -- < Additive Pass Definition > --
-        local stateSettings = {
-            blendMode = BlendMode.Additive,
-            cullFace = CullFace.None,
-            depthTest = true,
-            depthWritable = false
-        }
-        local bufferOrder = {
-            Enums.BufferName.buffer0,
-            Enums.BufferName.zBuffer
-        }
-        self.passes[Enums.RenderingPasses.Additive] = RenderingPass(bufferOrder, stateSettings, nil)
-    end
-    do -- < Alpha Pass Definition > --
-        local stateSettings = {
-            blendMode = BlendMode.Alpha,
-            cullFace = CullFace.None,
-            depthTest = true,
-            depthWritable = false
-        }
-        local bufferOrder = {
-            Enums.BufferName.buffer0,
-            Enums.BufferName.zBuffer
-        }
-        self.passes[Enums.RenderingPasses.Alpha] = RenderingPass(bufferOrder, stateSettings, nil)
-    end
-    do -- < UI Pass Definition > --
-        local stateSettings = {
-            blendMode = BlendMode.Alpha,
-            cullFace = CullFace.None,
-            depthTest = false,
-            depthWritable = false
-        }
-        local bufferOrder = {
-            Enums.BufferName.buffer1,
-            Enums.BufferName.zBuffer
-        }
-        local onStartFn = function() Draw.Clear(0, 0, 0, 0) end
-        self.passes[Enums.RenderingPasses.UI] = RenderingPass(bufferOrder, stateSettings, onStartFn)
-    end
-end
+function RenderCoreSystem:render(data)
+    self:handleResize()
 
----@private
-function RenderCoreSystem:registerEvents()
-    EventBus:subscribe(Event.PreRender, self, self.onPreRender)
-    EventBus:subscribe(Event.Render, self, self.onRender)
-    EventBus:subscribe(Event.PostRender, self, self.onPostRender)
-end
-
-function RenderCoreSystem:onPreRender(data)
-    -- Can the Changes to SSR/DSR and Resolution be done in PreRender?
-    -- How do we communicate SuperSampleRate/DownSampleRate changes to RenderCoreSystem?
-    local ssr = self.settings.superSampleRate -- data.ssr or
-    local dsr = self.settings.downSampleRate
-    local ssResX, ssResY = ssr * Window:size().x, ssr * Window:size().y
-    local dsResX, dsResY = dsr * Window:size().x, dsr * Window:size().y
-    if self.ssResX ~= ssResX or self.ssResY ~= ssResY or self.ssr ~= ssr then
-        self.ssResX = ssResX
-        self.ssResY = ssResY
-        self.dsResX = dsResX
-        self.dsResY = dsResY
-        self.settings.superSampleRate = ssr
-        --self.settings.downSampleRate = dsr -- Only if we add the option to change DSR
-        self.resX = Window:size().x
-        self.resY = Window:size().y
-
-        -- Buffers must be reinitialized when SuperSampleRate/DownSampleRate is changed.
-        self:initializeBuffers()
-    end
-
-    -- < Prepare Buffers for Primary Render Pass > --
-    -- Is there a better place to put this?
-    self.buffers[Enums.BufferName.buffer0]:setMipRange(0, 0)
-    self.buffers[Enums.BufferName.buffer1]:setMipRange(0, 0)
-    self.buffers[Enums.BufferName.buffer2]:setMipRange(0, 0)
-    self.buffers[Enums.BufferName.buffer0]:setMinFilter(TexFilter.Linear)
-    self.buffers[Enums.BufferName.buffer1]:setMinFilter(TexFilter.Linear)
-    self.buffers[Enums.BufferName.buffer2]:setMinFilter(TexFilter.Linear)
-    self.level = 0
-
-    -- < Cache Entities (EntityId's?) for Rendering Passes > --
-    -- Necessary because previously we obtained Entites from 'StarSystem'
-    --[[ Need Method to pull by BlendMode in RenderPass and change cache based on Culling
-        OpaqueCache = AllEntitiesWithComponent(RenderComponent):filter(BlendMode.Opaque)
-        AdditiveCache = AllEntitiesWithComponent(RenderComponent):filter(BlendMode.Additive)
-        AlphaCache = AllEntitiesWithComponent(RenderComponent):filter(BlendMode.Alpha)
-        LightCache = AllEntitiesWithComponent(LightComponent)
-    --]]
-end
-
-function RenderCoreSystem:onRender(data)
-    -- Begin Drawing Window
     Window:beginDraw()
-
-    -- Reset RenderState and ClipRect at Start of Render
     ClipRect.PushDisabled()
     RenderState.PushAllDefaults()
 
-    do -- < Camera > --
-        -- Add Camera Stack?
-        -- Should we remove updateViewMatrix/updateProjectionMatrix and use a RefreshMatrices to do this?
-        CameraSystem:updateViewMatrix()
-        CameraSystem:updateProjectionMatrix(self.resX, self.resY) -- Do we use ssRes or res?
-        CameraSystem:beginDraw()                                  -- Push Camera ShaderVars
-        --[[Original Order for Camera
-            In GameView:
-                local x, y, sx, sy = self:getRectGlobal()
-                self.camera:setViewport(x, y, sx, sy) -- just sets those vars
-                self.camera:beginDraw()
-                eye = self.camera.pos
-            In Camera:beginDraw()
-                camera:push()
-                camera:refreshMatrixes
-                ShaderVar.PushMatrix('varname', self.matrix) - for mView, mProj, eye, ...
-        ]]
-    end
+    CameraSystem:updateViewMatrix()
+    CameraSystem:updateProjectionMatrix(self.resX, self.resY)
+    CameraSystem:beginDraw()
 
-    do -- < Push Skybox/Nebula Global ShaderVars > --
-        --[["StarSystem:beginRender()"
-            self.nebula:forceLoad() -- Generates Nebula
-            ShaderVar.PushFloat3('starDir', self.starDir.x, self.starDir.y, self.starDir.z)
-            ShaderVar.PushTexCube('envMap', self.nebula.envMap)
-            ShaderVar.PushTexCube('irMap', self.nebula.irMap)
-        "]]
-    end
+    -- Opaque Pass
+    self.currentPass = Enums.RenderingPasses.Opaque
+    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
+    self:renderInOrder(BlendMode.Disabled)
+    self.passes[self.currentPass]:stop()
 
-    do -- < Opaque Pass > --
-        self.passes[Enums.RenderingPasses.Opaque]:start(self.buffers, self.ssResX, self.ssResY)
-        self:renderInOrder(BlendMode.Alpha)
-        self.passes[Enums.RenderingPasses.Opaque]:stop()
-    end
+    -- Additive Pass
+    self.currentPass = Enums.RenderingPasses.Additive
+    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
+    self:renderInOrder(BlendMode.Additive)
+    self.passes[self.currentPass]:stop()
 
-    do -- < Lighting Pass > --
-        -- TODO: Needs a different solution than other passes, as it's structured differently currently.
-        -- < Global Lighting > --
-        -- Use Cached World Light Material ?
-        -- < Local Lighting > --
-        -- Use Cached Light Material
-        -- < Aldebo & accumulated light buffer > --
-        -- Use Cached Light Material
-    end
+    -- Alpha Pass
+    self.currentPass = Enums.RenderingPasses.Alpha
+    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
+    self:renderInOrder(BlendMode.Alpha)
+    self.passes[self.currentPass]:stop()
 
-    do -- < Alpha (Additive Pass) > --
-        self.passes[Enums.RenderingPasses.Additive]:start(self.buffers, self.ssResX, self.ssResY)
-        self:renderInOrder(BlendMode.Alpha)
-        self.passes[Enums.RenderingPasses.Additive]:stop()
-    end
+    -- UI Pass
+    self.currentPass = Enums.RenderingPasses.UI
+    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
+    self.passes[self.currentPass]:stop()
 
-    do -- < Alpha Pass > --
-        self.passes[Enums.RenderingPasses.Alpha]:start(self.buffers, self.ssResX, self.ssResY)
-        self:renderInOrder(BlendMode.Alpha)
-        self.passes[Enums.RenderingPasses.Alpha]:stop()
-    end
+    CameraSystem:endDraw()
 
-    do -- < Pop Skybox and Camera Global ShaderVars > --
-        --[[ "StarSystem:endRender()"
-            ShaderVar.Pop('starDir')
-            ShaderVar.Pop('envMap')
-            ShaderVar.Pop('irMap')
-        ]]
-        CameraSystem:endDraw() -- Pop Camera ShaderVars
-    end
-
-    do -- < UI Pass > --
-        self.passes[Enums.RenderingPasses.UI]:start(self.buffers, self.ssResX, self.ssResY)
-        -- TODO: Do UI Rendering Here or Pass off to a UIRenderer?
-        self.passes[Enums.RenderingPasses.UI]:stop()
-        -- TODO: Do UI Equivalent of RenderPipeline:present() also why self.buffer1:pop()
-        -- Reference: RenderPipeline:stopUI()
-    end
-
-    do -- < PostFX and Draw Rendered Frame to Screen > --
-        if self.settings.showBuffers then
-            -- < PresentAll Buffers / RenderPipeline.presentAll(...) > --
-            self:presentAll(Window:position().x, Window:position().y, self.resX, self.resY)
-        else
-            -- < PostFX Pass > --
-            -- < Present Frame / Present buffer0 / RenderPipeline.present(...) > -
-            self:present(Window:position().x, Window:position().y, self.resX, self.resY, false)
-        end
+    if self.settings.showBuffers then
+        self:presentAll(0, 0, self.resX, self.resY)
+    else
+        self:present(0, 0, self.resX, self.resY, false)
     end
 
     RenderState.PopAll()
     ClipRect.Pop()
-    --self.camera:pop() -- TODO: Implement Camera Stack
+    Window:endDraw()
+
+    self.currentPass = nil
 end
 
-function RenderCoreSystem:onPostRender(data)
-    Window:endDraw()
+function RenderCoreSystem:handleResize()
+    local win = Window:size()
+    local rx, ry = win.x, win.y
+    local ssx = rx * self.settings.superSampleRate
+    local dsx = rx / self.settings.downSampleRate
+
+    if self.resX ~= rx or self.ssResX ~= ssx then
+        self.resX, self.resY = rx, ry
+        self.ssResX, self.ssResY = ssx, ry * self.settings.superSampleRate
+        self.dsResX, self.dsResY = dsx, ry / self.settings.downSampleRate
+        self:initializeBuffers()
+    end
+
+    local b = self.buffers
+    for _, buf in pairs({ b.buffer0, b.buffer1, b.buffer2 }) do
+        buf:setMipRange(0, 0); buf:setMinFilter(TexFilter.Linear)
+    end
+    self.level = 0
 end
 
 function RenderCoreSystem:renderInOrder(blendMode)
-    --[[ Original Order
-        self:send(OldEvent.Broadcast(blendMode))
-        self:renderProjectiles(blendMode)
-        self.dust:render(blendMode)
-        self.nebula:render(blendMode)
-    ]]
-    -- < Render General Materials > --
-    if blendMode == BlendMode.Disabled then
-        -- < Render All 'RenderComponent' Opaque Pass > --
-        -- < Render Nebula 'Skybox' Opaque Pass > --
-    elseif blendMode == BlendMode.Additive then
-        -- < Render All 'RenderComponent' Additive Pass > --
-        -- < Render All Projectiles > --
-        -- < Render Dust Additive Pass > --
-        -- < Render Nebula 'StarBg' Additive Pass > --
-    elseif blendMode == BlendMode.Alpha then
-        -- < Render All 'RenderComponent' Alpha Pass> --
-        -- < Render Dust Alpha Pass > --
-    elseif blendMode == BlendMode.PreMultAlpha then
-        -- Only used currently by 'Planet.lua' during Alpha Pass
+    for entity in Registry:view(RenderComp) do
+        local rend = entity:get(RenderComp)
+        for meshmat in Iterator(rend:getMeshes()) do
+            local mat = meshmat.material
+            if (mat:getBlendMode() or BlendMode.Disabled) == blendMode then
+                local sh = mat:getShaderState()
+                sh:start()
+                mat:setAllShaderVars(CameraSystem:getCurrentCameraEye(), entity)
+                meshmat.mesh:draw()
+                sh:stop()
+            end
+        end
     end
 end
 
----Update the screen with any rendering performed since the previous call
----@param x integer Window x Position
----@param y integer Window y Position
----@param sx integer Window Size X
----@param sy integer Window Size Y
----@param useMips boolean Use MipMap Rendering
 function RenderCoreSystem:present(x, y, sx, sy, useMips)
-    --[[
-        Directly from RenderPipeline.
-        Do we ever use MipMap for Rendering?
-    ]]
     RenderState.PushAllDefaults()
-
-    local shader = Cache.Shader('ui', 'filter/identity')
-    shader:start()
-
-    shader:setTex2D("src", self.buffers[Enums.BufferName.buffer0])
-    if false and useMips then
-        self.buffers[Enums.BufferName.buffer0]:genMipmap()
-        self.buffers[Enums.BufferName.buffer0]:setMinFilter(TexFilter.LinearMipLinear)
-        Draw.Rect(x, y + sy, sx, -sy)
-        self.buffers[Enums.BufferName.buffer0]:setMinFilter(TexFilter.Linear)
-    else
-        Draw.Rect(x, y + sy, sx, -sy)
-    end
-
-    shader:stop()
+    local sh = Cache.Shader('ui', 'filter/identity')
+    sh:start()
+    sh:setTex2D("src", self.buffers[Enums.BufferName.buffer0])
+    Draw.Rect(x, y + sy, sx, -sy)
+    sh:stop()
     RenderState.PopAll()
 end
 
----Update the screen with deferred rendering buffers, 1 in each quadrant of the screen.
----@param x integer Window x Position
----@param y integer Window y Position
----@param sx integer Window Size X
----@param sy integer Window Size Y
 function RenderCoreSystem:presentAll(x, y, sx, sy)
     RenderState.PushAllDefaults()
-
-    local shader = Cache.Shader('ui', 'filter/identity')
-    shader:start()
-
-    shader:setTex2D("src", self.buffers[Enums.BufferName.buffer0])
-    Draw.Rect(x, y + sy / 2, sx / 2, -sy / 2)
-
-    shader:resetTexIndex()
-    shader:setTex2D("src", self.buffers[Enums.BufferName.buffer1])
-    Draw.Rect(x + sx / 2, y + sy / 2, sx / 2, -sy / 2)
-
-    shader:resetTexIndex()
-    shader:setTex2D("src", self.buffers[Enums.BufferName.buffer2])
-    Draw.Rect(x, y + sy, sx / 2, -sy / 2)
-
-    shader:resetTexIndex()
-    shader:setTex2D("src", self.buffers[Enums.BufferName.zBufferL])
-    Draw.Rect(x + sx / 2, y + sy, sx / 2, -sy / 2)
-
-    shader:stop()
+    local sh = Cache.Shader('ui', 'filter/identity')
+    sh:start()
+    local function draw(buf, px, py)
+        sh:setTex2D("src", buf); Draw.Rect(px, py, sx / 2, -sy / 2)
+    end
+    draw(self.buffers[Enums.BufferName.buffer0], x, y + sy / 2)
+    draw(self.buffers[Enums.BufferName.buffer1], x + sx / 2, y + sy / 2)
+    draw(self.buffers[Enums.BufferName.buffer2], x, y)
+    draw(self.buffers[Enums.BufferName.zBufferL], x + sx / 2, y)
+    sh:stop()
     RenderState.PopAll()
 end
 

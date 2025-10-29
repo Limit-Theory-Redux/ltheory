@@ -1,206 +1,75 @@
-local Log = require("Core.Util.Log")
-local Inspect = require("Core.Util.Inspect")
-local Registry = require("Core.ECS.Registry")
-local RenderingTest = require('States.Application')
-local Materials = require("Shared.Registries.Materials")
-local CameraSystem = require("Modules.Rendering.Systems").Camera
-local CameraEntity = require("Modules.Rendering.Entities").Camera
-local BoxEntity = require("Modules.Core.Entities").Box
-local Physics = require("Modules.Physics.Components")
-local Rendering = require("Modules.Rendering.Components")
+local Application      = require('States.Application')
 
----@diagnostic disable-next-line: duplicate-set-field
+---@class RenderingTest: Application
+local RenderingTest    = Subclass("RenderingTest", Application)
+
+local Materials        = require("Shared.Registries.Materials")
+local CameraSystem     = require("Modules.Rendering.Systems.CameraSystem")
+local CameraEntity     = require("Modules.Rendering.Entities").Camera
+local BoxEntity        = require("Modules.Core.Entities").Box
+local Physics          = require("Modules.Physics.Components")
+local RenderComp       = require("Modules.Rendering.Components").Render
+local RenderCoreSystem = require("Modules.Rendering.Systems.RenderCoreSystem")
+
 function RenderingTest:onInit()
-    -- Mark as initialized
     self.initialized = true
-
-    -- Set App Settings --
-    -- self.profilerFont = Font.Load('NovaMono', 20)
-    -- self.profiling = false
-
-    self.renderer = RenderPipeline()
-
-    -- Initialize Materials --
     require("Shared.Definitions.MaterialDefs")
     require("Shared.Definitions.UniformFuncDefs")
-
-    -- Set GameState --
     GameState:SetState(Enums.GameStates.InGame)
 
-    -- Spawn CameraEntity
-    local camera = CameraEntity()
-
-    CameraSystem:setCamera(camera)
+    -- Camera
+    local cam = CameraEntity()
+    CameraSystem:setCamera(cam)
     CameraSystem.currentCameraTransform:setPosition(Position(0, 0, 0))
     CameraSystem.currentCameraTransform:setRotation(Quat.Identity())
 
-    -- Create First RNG for Scene
-    -- local rng = RNG.Create(0)
+    -- Box
+    local mesh = Mesh.Box(7)
+    local mat  = Materials.DebugColor()
+    mat:addStaticShaderVar("color", Enums.UniformType.Float3,
+        function() return 1.0, 0.0, 1.0 end)
 
-    -- Generate Box Mesh
-    local boxMesh = Mesh.Box(7)
-    -- Get Box Entity and Components
-    local boxMaterial = Materials.DebugColor() ---@type Material
-    boxMaterial:addStaticShaderVar("color", Enums.UniformType.Float3, function() return 1.0, 0.0, 1.0 end)
-    self.boxEntity = BoxEntity({ { mesh = boxMesh, material = boxMaterial } })
-    self.boxRend = self.boxEntity:get(Rendering.Render)
-    -- Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
-    self.boxRB = self.boxEntity:get(Physics.RigidBody)
-    -- Set RigidBody
-    self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(boxMesh))
-    self.boxRB:getRigidBody():setPos(Position(0, 0, -5))
+    self.boxEntity = BoxEntity({ { mesh = mesh, material = mat } })
+    local rb = self.boxEntity:get(Physics.RigidBody)
+    rb:setRigidBody(RigidBody.CreateBoxFromMesh(mesh))
+    rb:getRigidBody():setPos(Position(0, 0, -5))
 
-    self.rotationQuaternion = Quat(0, 0, 0, 1) -- Identity quaternion
+    self.rotation = Quat(0, 0, 0, 1)
+
+    -- Subscriptions
+    EventBus:subscribe(Event.PreRender, self, self.rotateBox)
 end
 
----@diagnostic disable-next-line: duplicate-set-field
-function RenderingTest:onPreRender(data)
-    -- Initialize Profiler
-    -- Profiler.Enable()
-
-    -- Start onPreRender Profiler
-    -- Profiler.SetValue('gcmem', GC.GetMemory())
-    -- Profiler.Begin('App.onPreRender')
-
-    -- Set Timescale
-    self.timeScale = 1.0
-
-    -- Set Timescale on EventBus
-    if self.timeScale ~= EventBus:getTimeScale() then
-        EventBus:setTimeScale(self.timeScale)
-    end
-
-    -- Get Delta Time
-    local timeScaledDt = data:deltaTime()
-
-    -- Define the rotation axis
-    local rotationAxis = Vec3f(1, 1, 1)
-
-    -- Manually compute the rotation quaternion for the incremental rotation
-    --! Since Quat.FromAxisAngle && Quat.SetRotLocal do not work as intended
-    -- TODO: Fix
-    -- Probably a small refactor where passing a precreated Quat is not necessary would be nice to
-    -- e.g. local quat = Quat.FromAxisAngle(x, x)
-    local angle = math.rad(10) * timeScaledDt
-    local halfAngle = angle / 2
-    local sinHalfAngle = math.sin(halfAngle)
-    local cosHalfAngle = math.cos(halfAngle)
-    local rotateByQuaternion = Quat(
-        rotationAxis.x * sinHalfAngle,
-        rotationAxis.y * sinHalfAngle,
-        rotationAxis.z * sinHalfAngle,
-        cosHalfAngle
+function RenderingTest:rotateBox(data)
+    local dt = data:deltaTime()
+    local axis = Vec3f(1, 1, 1)
+    local angle = math.rad(10) * dt
+    local h = angle / 2
+    local inc = Quat(
+        axis.x * math.sin(h),
+        axis.y * math.sin(h),
+        axis.z * math.sin(h),
+        math.cos(h)
     )
-
-    -- Update the accumulated rotation quaternion
-    self.rotationQuaternion = self.rotationQuaternion * rotateByQuaternion
-
-    -- Apply the combined rotation to the rigid body
-    -- Shouldnt setRotLocal do this?
-    self.boxRB:getRigidBody():setRot(self.rotationQuaternion)
-
-    --[[
-        < Previously where Player and UI Canvas Updates were Called
-    ]] --
-
-    do -- Handle App Resizing
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.onResize')
-        local size = Window:size()
-        Window:cursor():setGrabMode(CursorGrabMode.None)
-        if size.x ~= self.resX or size.y ~= self.resY then
-            self.resX = size.x
-            self.resY = size.y
-            GameState.render.resX = self.resX
-            GameState.render.resY = self.resY
-            self:onResize(self.resX, self.resY)
-        end
-        Profiler.End()
-    end
-
-    -- Stop Pre Render Profiler
-    -- Profiler.End()
+    self.rotation = self.rotation * inc
+    self.boxEntity:get(Physics.RigidBody):getRigidBody():setRot(self.rotation)
 end
 
----@diagnostic disable-next-line: duplicate-set-field
-function RenderingTest:onRender(data)
-    -- Start onRender Profiler
-    -- Profiler.SetValue('gcmem', GC.GetMemory())
-    -- Profiler.Begin('App.onRender')
+function RenderingTest:onRender(dt)
+    -- Call RenderCoreSystem
+    RenderCoreSystem:render(dt)
 
-    -- Start Window Draw()
-    Window:beginDraw()
-
-    -- Originally in Canvas:draw
-    --RenderState.PushBlendMode(BlendMode.Alpha)
-    --Draw.PushAlpha(2)
-    --DrawEx.PushAlpha(2)
-
-    Draw.Clear(0, 0.1, 0.2, 1)
-    Draw.ClearDepth(1)
-
-    -- < TEST RENDER > --
-    ClipRect.PushDisabled()
-    RenderState.PushAllDefaults()
-
-    CameraSystem:updateViewMatrix()
-    CameraSystem:updateProjectionMatrix(self.resX, self.resY)
-
-    local camEye = CameraSystem:getCurrentCameraEye()
-    CameraSystem:beginDraw(CameraSystem.currentCameraData, CameraSystem.currentCameraTransform)
-
-    -- self.renderer:start(self.resX, self.resY)
-
-    local boxMeshes = self.boxRend:getMeshes()
-
-    for meshmat in Iterator(boxMeshes) do
-        meshmat.material.shaderState:start()
-        meshmat.material:setAllShaderVars(camEye, self.boxEntity)
-        meshmat.mesh:draw()
-        meshmat.material.shaderState:stop()
-    end
-
-    -- self.renderer:stop()
-
-    CameraSystem:endDraw()
-
-    -- From GameView - Composited UI Pass
-    --[[
-    local ss = 1
-    Viewport.Push(0, 0, ss * self.resX, ss * self.resY, true)
-    ClipRect.PushTransform(0, 0, ss, ss)
-    ShaderVar.PushMatrix("mWorldViewUI", Matrix.Scaling(ss, ss, 1.0))
-
-    ShaderVar.Pop("mWorldViewUI")
-    ClipRect.PopTransform()
-    Viewport.Pop()
-    --]]
-    -- self.renderer:presentAll(0, 0, self.resX, self.resY, false)
-
-    RenderState.PopAll()
-    ClipRect.Pop()
-
-    -- Originally in Canvas:draw
-    -- DrawEx.PopAlpha()
-    -- Draw.PopAlpha()
-    -- RenderState.PopBlendMode()
-
-    -- Stop onRender Profiler
-    -- Profiler.End()
-    -- Profiler.LoopMarker()
+    self:immediateUI(function()
+        local mem = GC.GetMemory()
+        UI.DrawEx.TextAdditive(
+            'Unageo-Medium',
+            string.format("Lua Memory: %.2f KB", mem),
+            20,
+            RenderCoreSystem.resX / 2 - 20, 50, 40, 20,
+            0.75, 0.75, 0.75, 0.75,
+            0.5, 0.5
+        )
+    end)
 end
-
----@diagnostic disable-next-line: duplicate-set-field
-function RenderingTest:onPostRender(data)
-    do -- End Draw
-        -- Profiler.SetValue('gcmem', GC.GetMemory())
-        -- Profiler.Begin('App.onPostRender')
-        Window:endDraw()
-        -- Profiler.End()
-    end
-end
-
----@diagnostic disable-next-line: duplicate-set-field
-function RenderingTest:onInput(data) end
 
 return RenderingTest
