@@ -1,17 +1,21 @@
-local Registry = require("Core.ECS.Registry")
-local Entity = require("Core.ECS.Entity")
+local Application        = require('States.Application')
 
-local EconomyComponents = require("Modules.Economy.Components")
-local EconomyEntities = require("Modules.Economy.Entities")
+---@class MarketplaceTest: Application
+local MarketplaceTest    = Subclass("MarketplaceTest", Application)
+
+local Registry           = require("Core.ECS.Registry")
+local Entity             = require("Core.ECS.Entity")
+
+local EconomyComponents  = require("Modules.Economy.Components")
+local EconomyEntities    = require("Modules.Economy.Entities")
 local ConstructsEntities = require("Modules.Constructs.Entities")
-local CoreEntities = require("Modules.Core.Entities")
-local CoreComponents = require("Modules.Core.Components")
+local CoreEntities       = require("Modules.Core.Entities")
+local CoreComponents     = require("Modules.Core.Components")
 
 require("Shared.Definitions.ItemDefs")
 local Items = require("Shared.Registries.Items")
 local Tags = require("Shared.Registries.Tags")
 
-local MarketplaceTest = require('States.Application')
 local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
 
 -- ANSI color codes

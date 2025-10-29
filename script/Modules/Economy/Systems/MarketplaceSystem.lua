@@ -19,8 +19,7 @@ function MarketplaceSystem:registerVars()
     self.maxUpdateRateDeviation = 2
 
     -- Delta timers per marketplace
-    ---@type table<integer, DeltaTimer>
-    self.marketplaceTimers = {}
+    self.timer = DeltaTimer("MarketplaceSystem Global Timer")
 
     -- Economic parameters
     self.priceHistory = {}
@@ -53,36 +52,34 @@ end
 ---@param e EventData
 function MarketplaceSystem:onPreRender(e)
     local dt = e:deltaTime()
+    self.timer:update(dt)
 
-    for _, marketplace in Registry:iterEntities(Economy.Marketplace) do
-        ---@cast marketplace MarketplaceComponent
-        if not Entity(marketplace:getEntityId()):isValid() then goto continue end
+    for entity, component in Registry:iterEntities(Economy.Marketplace) do
+        local key = tostring(entity)
 
-        local marketplaceId = marketplace:getGuid()
+        if not entity:isValid() or not component then
+            self.timer:remove(key)
+            goto continue
+        end
+        ---@cast component MarketplaceComponent
 
-        -- Create a timer for the marketplace if not exists
-        if not self.marketplaceTimers[marketplaceId] then
-            self.marketplaceTimers[marketplaceId] = DeltaTimer(format("MarketplaceUpdate: %s", tostring(marketplace)))
+        -- Start timer if not exists
+        if not self.timer:has(key) then
+            local threshold = self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation)
+            self.timer:start(key, threshold)
         end
 
-        local timer = self.marketplaceTimers[marketplaceId]
+        -- Check if this marketplace is due
+        if self.timer:check(key) then
+            self:updateMarketplace(component)
 
-        -- Check if update is due
-        local threshold = timer:get("nextThreshold")
-        if not threshold then
-            threshold = self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation)
-            timer:set("nextThreshold", threshold)
-        end
-
-        -- Check if update is due
-        if timer:updateAndCheck(dt, threshold) then
-            self:updateMarketplace(marketplace)
-            -- Roll a new interval for next cycle
-            timer:set("nextThreshold", self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation))
+            -- Schedule next update
+            local nextThreshold = self.updateRate + self.rng:getUniformRange(0, self.maxUpdateRateDeviation)
+            self.timer:start(key, nextThreshold)
         end
 
         -- Update pull timeout timers per item
-        self:updatePullTimeouts(dt, marketplace)
+        self:updatePullTimeouts(dt, component)
 
         ::continue::
     end
@@ -252,8 +249,7 @@ function MarketplaceSystem:processPendingTrades()
             InventoryManager:put(buyerInv, items)
             self:transferCurrency(trade.buyer, trade.seller, trade.price * trade.quantity)
 
-            local app = require("States.Application")
-            app:onTransaction(trade)
+            --todo: proper transactions here
 
             Log.Debug("[Transaction] %s bought %d x %s from %s for %d each (total: %d)",
                 Entity(trade.buyer), trade.quantity, Items:getDefinition(trade.itemType).name,
