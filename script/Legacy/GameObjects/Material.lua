@@ -86,11 +86,11 @@ function Material:reload()
     self.iScale    = shader:hasVariable('scale') and shader:getVariable('scale')
 end
 
-function Material:setState(body, eye)
+function Material:updateState(body, entity, eye)
     if self.imWorld then self.state:shader():iSetMatrix(self.imWorld, body:getToWorldMatrix(eye)) end
     if self.imWorldIT then self.state:shader():iSetMatrixT(self.imWorldIT, body:getToLocalMatrix(eye)) end
     if self.iScale then self.state:shader():iSetFloat(self.iScale, body:getScale()) end
-    if self.onSetState then self.onSetState(self.state:shader(), body, eye) end
+    if self.onUpdateState then self.onUpdateState(self.state:shader(), entity, eye) end
 end
 
 function Material:start()

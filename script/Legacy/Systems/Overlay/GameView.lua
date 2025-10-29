@@ -320,7 +320,7 @@ end
 
 function GameView:drawScene(blendMode, eye)
     -- Render all entities with a RenderComponent.
-    for _, rigidBody, renderComponent in Registry:iterEntities(RigidBodyComponent, RenderComponent) do
+    for entity, rigidBody, renderComponent in Registry:iterEntities(RigidBodyComponent, RenderComponent) do
         if not renderComponent:isVisible() then
             goto continue
         end
@@ -328,7 +328,7 @@ function GameView:drawScene(blendMode, eye)
         for _, mesh in ipairs(renderComponent:getMeshes()) do
             if mesh.material.blendMode == blendMode then
                 mesh.material:start()
-                mesh.material:setState(rigidBody.rigidBody, eye)
+                mesh.material:updateState(rigidBody.rigidBody, entity, eye)
                 mesh.mesh:draw()
                 mesh.material:stop()
             end
