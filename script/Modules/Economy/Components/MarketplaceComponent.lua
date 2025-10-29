@@ -56,14 +56,20 @@ function MarketplaceComponent:getTax()
     return self.tax
 end
 
----@param entity Entity
-function MarketplaceComponent:addBid(entity)
-    self.bids[entity] = entity
+---@param ... Entity
+function MarketplaceComponent:addBid(...)
+    local args = { ... }
+    for _, arg in ipairs(args) do
+        self.bids[arg] = arg
+    end
 end
 
----@param entity Entity
-function MarketplaceComponent:addAsk(entity)
-    self.asks[entity] = entity
+---@param ... Entity
+function MarketplaceComponent:addAsk(...)
+    local args = { ... }
+    for _, arg in ipairs(args) do
+        self.asks[arg] = arg
+    end
 end
 
 ---@param entity Entity
