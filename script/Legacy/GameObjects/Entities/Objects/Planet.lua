@@ -52,7 +52,7 @@ local Planet = Subclass("Planet", Entity, function(self, seed)
     self.color3         = genColor(rng)
     self.color4         = genColor(rng)
     
-    local meshAtmo = Gen.Primitive.IcoSphere(5)
+    local meshAtmo = Gen.Primitive.IcoSphere(5, 1.5)
     meshAtmo:computeNormals()
     meshAtmo:invert()
 
@@ -67,7 +67,7 @@ local Planet = Subclass("Planet", Entity, function(self, seed)
     matSurface.state:setTexCube("surface", self.texSurface)
     matSurface.state:setFloat3('starColor', 1.0, 0.5, 0.1)
     local entity = self
-    matSurface.onSetState = function(self, shader, body, eye)
+    matSurface.onSetState = function(shader, body, eye)
         local origin = entity:getPos():relativeTo(eye)
         shader:setFloat3('origin', origin.x, origin.y, origin.z)
         shader:setFloat('rPlanet', body:getScale())
@@ -77,15 +77,7 @@ local Planet = Subclass("Planet", Entity, function(self, seed)
     local matAtmo = Material.Create("material/atmosphere")
     matAtmo.blendMode = BlendMode.Alpha
     matAtmo.state:setFloat3('starColor', 1.0, 0.5, 0.1)
-    matAtmo.onSetState = function(self, shader, body, eye)
-        do -- TODO : Scale the atmosphere mesh in shader...
-            local mScale = Matrix.Scaling(1.5, 1.5, 1.5)
-            local mWorld = body:getToWorldMatrix(eye):product(mScale)
-            local mWorldIT = mWorld:inverse()
-            shader:setMatrix('mWorld', mWorld)
-            shader:setMatrix('mWorldIT', mWorldIT)
-        end
-
+    matAtmo.onSetState = function(shader, body, eye)
         local scale = body:getScale()
         shader:setFloat('rAtmo', scale * entity.atmoScale)
         shader:setFloat('rPlanet', scale)
