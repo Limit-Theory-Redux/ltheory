@@ -30,6 +30,7 @@ function Material.Create(name, diffuse, normal, spec)
     self.texNormal = normal
     self.texSpec = spec
     self.state = nil
+    self.blendMode = BlendMode.Disabled
 
     if diffuse then
         setTextureState(diffuse)

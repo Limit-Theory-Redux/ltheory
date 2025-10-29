@@ -325,18 +325,16 @@ function GameView:drawScene(blendMode, eye)
             goto continue
         end
 
-        local mat = renderComponent:getMaterial(blendMode)
-        if mat ~= nil then
-            -- Log.Debug("GameView:drawScene() - self = %s", self:getName())
-            local mesh = renderComponent:getMeshType()
-            
-            mat:start()
-            -- TODO: The reason we need to pass legacyEntityComponent.entity is because
-            -- this uses e:getToWorldMatrix. This should eventually use the TransformComponent
-            --instead.
-            mat:setState(legacyEntityComponent.entity, eye)
-            mesh:draw()
-            mat:stop()
+        for _, mesh in ipairs(renderComponent:getMeshes()) do
+            if mesh.material.blendMode == blendMode then
+                mesh.material:start()
+                -- TODO: The reason we need to pass legacyEntityComponent.entity is because
+                -- this uses e:getToWorldMatrix. This should eventually use the TransformComponent
+                --instead.
+                mesh.material:setState(legacyEntityComponent.entity, eye)
+                mesh.mesh:draw()
+                mesh.material:stop()
+            end
         end
 
         ::continue::
