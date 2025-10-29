@@ -1,6 +1,9 @@
-local Material   = require('Legacy.GameObjects.Material')
+local Material = require('Legacy.GameObjects.Material')
+local Registry = require('Core.ECS.Registry')
+local RenderComponent = require('Modules.Rendering.Components.RenderComponent')
+local LegacyEntityComponent = require('Legacy.GameObjects.LegacyEntityComponent')
 
-local GameView   = {}
+local GameView = {}
 GameView.__index = GameView
 setmetatable(GameView, UI.Container)
 
@@ -26,7 +29,7 @@ function GameView:draw(focus, active)
     do -- Opaque Pass
         Profiler.Begin('Render.Opaque')
         self.renderer:start(self.sx, self.sy, ss)
-        system:render(OldEvent.Render(BlendMode.Disabled, eye)) -- significant performance point with ss
+        self:drawScene(BlendMode.Disabled, eye) -- significant performance point with ss
         self.renderer:stop()
         Profiler.End()
     end
@@ -100,7 +103,7 @@ function GameView:draw(focus, active)
     if true then -- Alpha (Additive) Pass
         Profiler.Begin('Render.Additive')
         self.renderer:startAlpha(BlendMode.Additive)
-        system:render(OldEvent.Render(BlendMode.Additive, eye)) -- significant performance point
+        self:drawScene(BlendMode.Additive, eye)
         self.renderer:stopAlpha()
         Profiler.End()
     end
@@ -108,7 +111,7 @@ function GameView:draw(focus, active)
     if true then -- Alpha Pass
         Profiler.Begin('Render.AlphaDebug')
         self.renderer:startAlpha(BlendMode.Alpha)
-        system:render(OldEvent.Render(BlendMode.Alpha, eye))
+        self:drawScene(BlendMode.Alpha, eye)
 
         -- TODO : This should be moved into a render pass
         if GameState.debug.physics.drawBoundingBoxesLocal or
@@ -117,6 +120,7 @@ function GameView:draw(focus, active)
         then
             local mat = Material.DebugColorA()
             mat:start()
+            local shader = mat.state:shader()
             if GameState.debug.physics.drawBoundingBoxesLocal then
                 shader:setFloat4('color', 0, 0, 1, 0.5)
                 system.physics:drawBoundingBoxesLocal()
@@ -129,7 +133,6 @@ function GameView:draw(focus, active)
                 system.physics:drawBoundingBoxesWorld()
             end
             if GameState.debug.physics.drawWireframes then
-                local shader = mat.state:shader()
                 shader:setMatrix('mWorld', Matrix.Identity())
                 shader:setMatrixT('mWorldIT', Matrix.Identity())
                 shader:setFloat('scale', 1)
@@ -313,6 +316,35 @@ function GameView.Create(player, audioInstance)
     self.eyeLast = self.camera.pos:clone()
     self.eyeVel  = self.player:getControlling():getVelocity():clone()
     return self
+end
+
+function GameView:drawScene(blendMode, eye)
+    -- Render all legacy entities with a RenderComponent.
+    for _, legacyEntityComponent, renderComponent in Registry:iterEntities(LegacyEntityComponent, RenderComponent) do
+        if not renderComponent:isVisible() then
+            goto continue
+        end
+
+        local mat = renderComponent:getMaterial(blendMode)
+        if mat ~= nil then
+            -- Log.Debug("GameView:drawScene() - self = %s", self:getName())
+            local mesh = renderComponent:getMeshType()
+            
+            mat:start()
+            -- TODO: The reason we need to pass legacyEntityComponent.entity is because
+            -- this uses e:getToWorldMatrix. This should eventually use the TransformComponent
+            --instead.
+            mat:setState(legacyEntityComponent.entity, eye)
+            mesh:draw()
+            mat:stop()
+        end
+
+        ::continue::
+    end
+
+    -- Start a recursive render of the scene.
+    GameState.world.currentSystem:send(OldEvent.Broadcast(OldEvent.Render(blendMode, eye)))
+    GameState.world.currentSystem:render(OldEvent.Render(blendMode, eye))
 end
 
 return GameView
