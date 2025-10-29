@@ -13,7 +13,7 @@ return function(issuer, itemDefinition, quantity, price, expiresAt)
         "OrderEntity",
         CoreComponents.Tag(),
         Economy.Ownership(issuer.id),
-        Economy.ItemType(itemDefinition.id),
+        Economy.Item(itemDefinition.id),
         Economy.Quantity(quantity),
         Economy.Price(price),
         Economy.OrderStatus(),

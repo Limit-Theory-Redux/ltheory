@@ -185,7 +185,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for _, bid in ipairs(bids) do
         if not bid:isValid() then goto continueBid end
         local bidTag = bid:get(CoreComponents.Tag)
-        local bidItemType = bid:get(Economy.ItemType):getItemType()
+        local bidItemType = bid:get(Economy.Item):getItem()
         local bidPrice = bid:get(Economy.Price):getPrice()
         local bidQty = bid:get(Economy.Quantity):getQuantity()
         local bidOwner = bid:get(Economy.Ownership):getOwner()
@@ -195,7 +195,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
         for _, ask in ipairs(asks) do
             if not ask:isValid() then goto continueAsk end
             local askTag = ask:get(CoreComponents.Tag)
-            local askItemType = ask:get(Economy.ItemType):getItemType()
+            local askItemType = ask:get(Economy.Item):getItem()
             local askPrice = ask:get(Economy.Price):getPrice()
             local askQty = ask:get(Economy.Quantity):getQuantity()
             local askOwner = ask:get(Economy.Ownership):getOwner()
@@ -370,11 +370,11 @@ end
 function MarketplaceSystem:getActiveItemTypes(bids, asks)
     local itemTypes = {}
     for _, bid in ipairs(bids) do
-        local itemType = bid:get(Economy.ItemType):getItemType()
+        local itemType = bid:get(Economy.Item):getItem()
         itemTypes[itemType] = true
     end
     for _, ask in ipairs(asks) do
-        local itemType = ask:get(Economy.ItemType):getItemType()
+        local itemType = ask:get(Economy.Item):getItem()
         itemTypes[itemType] = true
     end
     return itemTypes
@@ -387,12 +387,12 @@ function MarketplaceSystem:calculateSupplyDemand(bids, asks, itemType)
     local totalDemand = 0
     local totalSupply = 0
     for _, bid in ipairs(bids) do
-        if bid:get(Economy.ItemType):getItemType() == itemType then
+        if bid:get(Economy.Item):getItem() == itemType then
             totalDemand = totalDemand + bid:get(Economy.Quantity):getQuantity()
         end
     end
     for _, ask in ipairs(asks) do
-        if ask:get(Economy.ItemType):getItemType() == itemType then
+        if ask:get(Economy.Item):getItem() == itemType then
             totalSupply = totalSupply + ask:get(Economy.Quantity):getQuantity()
         end
     end
@@ -525,7 +525,7 @@ end
 function MarketplaceSystem:getBestBidPrice(bids, itemType)
     local bestPrice = nil
     for _, bid in ipairs(bids) do
-        if bid:get(Economy.ItemType):getItemType() == itemType then
+        if bid:get(Economy.Item):getItem() == itemType then
             local price = bid:get(Economy.Price):getPrice()
             if not bestPrice or price > bestPrice then
                 bestPrice = price
@@ -540,7 +540,7 @@ end
 function MarketplaceSystem:getBestAskPrice(asks, itemType)
     local bestPrice = nil
     for _, ask in ipairs(asks) do
-        if ask:get(Economy.ItemType):getItemType() == itemType then
+        if ask:get(Economy.Item):getItem() == itemType then
             local price = ask:get(Economy.Price):getPrice()
             if not bestPrice or price < bestPrice then
                 bestPrice = price
@@ -637,14 +637,14 @@ function MarketplaceSystem:getMarketDepth(marketplace, itemType)
     local bidDepth = {}
     local askDepth = {}
     for bid in Iterator(bids) do
-        if bid:get(Economy.ItemType):getItemType() == itemType then
+        if bid:get(Economy.Item):getItem() == itemType then
             local price = bid:get(Economy.Price):getPrice()
             local qty = bid:get(Economy.Quantity):getQuantity()
             bidDepth[price] = (bidDepth[price] or 0) + qty
         end
     end
     for ask in Iterator(asks) do
-        if ask:get(Economy.ItemType):getItemType() == itemType then
+        if ask:get(Economy.Item):getItem() == itemType then
             local price = ask:get(Economy.Price):getPrice()
             local qty = ask:get(Economy.Quantity):getQuantity()
             askDepth[price] = (askDepth[price] or 0) + qty
@@ -673,12 +673,12 @@ function MarketplaceSystem:updateMarketConditionTags(marketplace, bids, asks)
     for itemType, _ in pairs(itemTypes) do
         local conditions = self:analyzeMarketConditions(marketplaceId, itemType, bids, asks)
         for _, bid in ipairs(bids) do
-            if bid:get(Economy.ItemType):getItemType() == itemType then
+            if bid:get(Economy.Item):getItem() == itemType then
                 self:applyConditionTags(bid, conditions)
             end
         end
         for _, ask in ipairs(asks) do
-            if ask:get(Economy.ItemType):getItemType() == itemType then
+            if ask:get(Economy.Item):getItem() == itemType then
                 self:applyConditionTags(ask, conditions)
             end
         end
@@ -700,12 +700,12 @@ function MarketplaceSystem:analyzeMarketConditions(marketplaceId, itemType, bids
     local totalDemand = 0
     local totalSupply = 0
     for _, bid in ipairs(bids) do
-        if bid:get(Economy.ItemType):getItemType() == itemType then
+        if bid:get(Economy.Item):getItem() == itemType then
             totalDemand = totalDemand + bid:get(Economy.Quantity):getQuantity()
         end
     end
     for _, ask in ipairs(asks) do
-        if ask:get(Economy.ItemType):getItemType() == itemType then
+        if ask:get(Economy.Item):getItem() == itemType then
             totalSupply = totalSupply + ask:get(Economy.Quantity):getQuantity()
         end
     end

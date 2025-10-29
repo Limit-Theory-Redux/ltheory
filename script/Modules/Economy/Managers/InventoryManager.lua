@@ -28,7 +28,7 @@ end
 function InventoryManager:take(inventory, itemId, quantity)
     self.profiler:start()
 
-    local itemsOfType = inventory:getItemsOfType(itemId)
+    local itemsOfType = inventory:getItems(itemId)
     local takenItems = {}
     local remainingQuantity = quantity
 
