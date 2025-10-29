@@ -1,3 +1,9 @@
+-- LTheoryRedux depends on these types being in the global namespace, so we import these for now.
+-- Once we've moved to the ECS, these LoadInline statements should become redundant.
+Namespace.LoadInline('Legacy')
+Namespace.LoadInline('Legacy.Systems')
+Namespace.LoadInline('Legacy.GameObjects')
+
 local Player = require('Legacy.GameObjects.Entities.Player')
 local System = require('Legacy.GameObjects.Entities.StarSystem')
 local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
@@ -45,6 +51,8 @@ function PlanetTest:onInit()
     self.canvas
         :add(self.gameView
             :add(Legacy.Systems.Controls.Controls.GenTestControl(self.gameView, self.player)))
+    GameState.render.gameView = self.gameView
+    GameState.render.uiCanvas = self.canvas
 end
 
 function PlanetTest:onInput()
