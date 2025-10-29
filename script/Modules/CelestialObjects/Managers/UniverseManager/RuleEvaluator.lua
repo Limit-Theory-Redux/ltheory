@@ -155,56 +155,56 @@ local conditionHandlers = {
                 if cond.type == Enums.Gen.Condition.SystemAge then
                     value = context:get("systemAge")
                     if not value or value < cond.min or value > cond.max then
-                        Log.Debug("SystemAge condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        Log.Debug("SystemAge condition unmet: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
                         allConditionsMet = false
                         break
                     end
                 elseif cond.type == Enums.Gen.Condition.StarCount then
                     value = context:get("starCount") or 1
                     if not value or value < cond.min or value > cond.max then
-                        Log.Debug("StarCount condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        Log.Debug("StarCount condition unmet: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
                         allConditionsMet = false
                         break
                     end
                 elseif cond.type == Enums.Gen.Condition.SystemMetallicity then
                     value = context:get("systemMetallicity") or 0.01
                     if not value or value < cond.min or value > cond.max then
-                        Log.Debug("SystemMetallicity condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        Log.Debug("SystemMetallicity condition unmet: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
                         allConditionsMet = false
                         break
                     end
                 elseif cond.type == Enums.Gen.Condition.PlanetCount then
                     value = context:get("planetCount")
                     if not value or value < cond.min or value > cond.max then
-                        Log.Debug("PlanetCount condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        Log.Debug("PlanetCount condition unmet: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
                         allConditionsMet = false
                         break
                     end
                 elseif cond.type == Enums.Gen.Condition.OrbitRadius then
                     value = context:get("orbitRadius")
                     if not value or value < cond.min or value > cond.max then
-                        Log.Debug("OrbitRadius condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        Log.Debug("OrbitRadius condition unmet: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
                         allConditionsMet = false
                         break
                     end
                 elseif cond.type == Enums.Gen.Condition.PlanetSize then
                     value = context:get("planetSize")
                     if not value or value < cond.min or value > cond.max then
-                        Log.Debug("PlanetSize condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        Log.Debug("PlanetSize condition unmet: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
                         allConditionsMet = false
                         break
                     end
                 elseif cond.type == Enums.Gen.Condition.StarType then
                     value = context:get("starType")
                     if not value or not cond.types or not cond.types[value] then
-                        Log.Debug("StarType condition failed: value=%s, expected types=%s", tostring(value), table.tostring(cond.types))
+                        Log.Debug("StarType condition unmet: value=%s, expected types=%s", tostring(value), table.tostring(cond.types))
                         allConditionsMet = false
                         break
                     end
                 elseif cond.type == Enums.Gen.Condition.StarMass then
                     value = context:get("starMass")
                     if not value or value < cond.min or value > cond.max then
-                        Log.Debug("StarMass condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        Log.Debug("StarMass condition unmet: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
                         allConditionsMet = false
                         break
                     end
@@ -218,7 +218,7 @@ local conditionHandlers = {
                 elseif cond.type == Enums.Gen.Condition.PlanetType then
                     value = context:get("planetType")
                     if not value or not cond.types or not cond.types[value] then
-                        Log.Debug("PlanetType condition failed: value=%s, expected types=%s", tostring(value), table.tostring(cond.types))
+                        Log.Debug("PlanetType condition unmet: value=%s, expected types=%s", tostring(value), table.tostring(cond.types))
                         allConditionsMet = false
                         break
                     end
