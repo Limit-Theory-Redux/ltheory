@@ -92,7 +92,7 @@ function Material:setAllShaderVars(eye, entity)
         shaderVar:setShaderVar(eye, shader, entity)
     end
     for _, shaderVar in ipairs(self.constShaderVars) do
-        shaderVar:setShaderVar(shader)
+        shaderVar:setShaderVar(shader, entity)
     end
     for _, shaderVar in ipairs(self.staticShaderVars) do
         shaderVar:setShaderVar(shader)
@@ -121,6 +121,11 @@ end
 ---@return string
 function Material:getFragment()
     return self.fs
+end
+
+---@return BlendMode
+function Material:getBlendMode()
+    return self.blendMode
 end
 
 return Material

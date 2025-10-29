@@ -1,48 +1,75 @@
 local Registry = require("Core.ECS.Registry")
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local Economy = require("Modules.Economy.Components")
+local Items = require("Shared.Registries.Items")
+local EconomyEntities = require("Modules.Economy.Entities")
+local EconomyComponents = require("Modules.Economy.Components")
+local Physics = require("Modules.Physics.Components")
+local Entity = require("Core.ECS.Entity")
 
----@class InventorySystem
----@overload fun(self: InventorySystem): InventorySystem class internal
----@overload fun(): InventorySystem class external
-local InventorySystem = Class("InventorySystem", function(self)
+---@class InventoryManager
+---@overload fun(self: InventoryManager): InventoryManager class internal
+---@overload fun(): InventoryManager class external
+local InventoryManager = Class("InventoryManager", function(self)
     ---@diagnostic disable-next-line: invisible
     self:registerVars()
 end)
 
 ---@private
-function InventorySystem:registerVars()
+function InventoryManager:registerVars()
     ---@private
-    self.profiler = QuickProfiler("InventorySystem", false, false)
+    self.profiler = QuickProfiler("InventoryManager", false, false)
 end
 
 ---@param inventory InventoryComponent
 ---@param itemId integer
 ---@param quantity number
 ---@return table<Entity>|nil
-function InventorySystem:take(inventory, itemId, quantity)
+function InventoryManager:take(inventory, itemId, quantity)
     self.profiler:start()
 
-    local itemsOfType = inventory:getItemsOfType(itemId)
+    local itemsOfType = inventory:getItems(itemId)
     local takenItems = {}
     local remainingQuantity = quantity
 
     for id, itemEntity in pairs(itemsOfType) do
         local quantityComponent = itemEntity:get(Economy.Quantity)
+
+        if not quantityComponent then
+            Log.Warn(string.format("Item entity %s does not have a Quantity component", itemEntity))
+            return nil
+        end
+
         local itemQuantity = quantityComponent:getQuantity()
 
+        -- Not enough stuff?
         if itemQuantity <= remainingQuantity then
+            -- Log.Debug("Not enough stuff. Taking all items.")
             -- Take entire item
-            inventory:removeItem(itemId, id)
+            inventory:removeItem(itemEntity)
             table.insert(takenItems, itemEntity)
             remainingQuantity = remainingQuantity - itemQuantity
         else
             -- Split the item and update quantity
+            -- Log.Debug("Updating seller item quantity to: ", itemQuantity - remainingQuantity)
+            -- Log.Debug(string.format("Seller item entity: %s", itemEntity))
+            -- Log.Debug(string.format("Seller item quantity component: %s", quantityComponent:getGuid()))
             quantityComponent:setQuantity(itemQuantity - remainingQuantity)
-            local cloneEntity = Registry:cloneEntity(itemEntity)
-            local cloneQuantityCmp = cloneEntity:get(Economy.Quantity)
-            cloneQuantityCmp:setQuantity(remainingQuantity)
-            table.insert(takenItems, cloneEntity)
+            local physicsComponentMass = itemEntity:get(Physics.Mass):getMass()
+
+            local clonedEntity = Registry:cloneEntity(itemEntity)
+            local clonedQuantityCmp = clonedEntity:get(Economy.Quantity)
+
+            if not clonedQuantityCmp then
+                Log.Warn(string.format("Cloned item entity %s does not have a Quantity component", clonedEntity))
+                return nil
+            end
+
+            --Log.Debug("Updating cloned item quantity to: ", remainingQuantity);
+            --Log.Debug(string.format("Clone item entity: %s", clonedEntity))
+            --Log.Debug(string.format("Clone item quantity component: %s", clonedQuantityCmp:getGuid()))
+            clonedQuantityCmp:setQuantity(remainingQuantity)
+            table.insert(takenItems, clonedEntity)
             remainingQuantity = 0
         end
 
@@ -55,11 +82,10 @@ function InventorySystem:take(inventory, itemId, quantity)
 end
 
 ---@param inventory InventoryComponent
----@param itemId integer
 ---@param items table<Entity>
-function InventorySystem:put(inventory, itemId, items)
+function InventoryManager:put(inventory, items)
     for _, itemEntity in ipairs(items) do
-        inventory:addItem(itemId, itemEntity)
+        inventory:addItem(itemEntity)
     end
 end
 
@@ -67,7 +93,7 @@ end
 ---@param owner Entity
 ---@param amount integer
 ---@return boolean success
-function InventorySystem:lockItemQuantity(item, owner, amount)
+function InventoryManager:lockItemQuantity(item, owner, amount)
     local quantityComponent = item:get(Economy.Quantity)
 
     if amount > quantityComponent:getQuantity() then
@@ -85,7 +111,7 @@ end
 ---@param owner Entity
 ---@param amount integer|nil
 ---@return boolean success
-function InventorySystem:unlockItemQuantity(item, owner, amount)
+function InventoryManager:unlockItemQuantity(item, owner, amount)
     local quantityComponent = item:get(Economy.Quantity)
 
     if not quantityComponent:getLockedQuantity() then
@@ -102,4 +128,4 @@ function InventorySystem:unlockItemQuantity(item, owner, amount)
     return true
 end
 
-return InventorySystem()
+return InventoryManager()
