@@ -41,6 +41,8 @@ function MarketplaceSystem:onPreRender()
     local now = TimeStamp.Now()
 
     for _, marketplace in Registry:iterEntities(Economy.Marketplace) do
+        ---@cast marketplace MarketplaceComponent
+
         local traderEntity = marketplace:getTrader()
 
         if not traderEntity then
@@ -68,8 +70,23 @@ function MarketplaceSystem:onPreRender()
                 local bids = marketplace:getBids()
                 local asks = marketplace:getAsks()
 
-                local bidsEntities, asksEntities = Helper.getOrderEntities(bids, asks)
-                self:processTrades(marketplace, bidsEntities, asksEntities)
+                --[[
+                local bidEntities, askEntities = {}, {}
+
+                for entity in Iterator(bids) do
+                    if Registry:hasEntity(entity) then
+                        insert(bidEntities, entity)
+                    end
+                end
+
+                for entity in Iterator(asks) do
+                    if Registry:hasEntity(entity) then
+                        insert(askEntities, entity)
+                    end
+                end
+                ]]
+
+                self:processTrades(marketplace, bids, asks)
             end
         end
 
@@ -142,6 +159,11 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 
                     -- Update or remove the bid and ask orders
                     if bidQuantity == 0 then
+                        --! clone bid for testing loop
+                        local clone = Registry:cloneEntity(bid)
+                        clone:get(Economy.Ownership):setOwner(askIssuer)
+                        marketplace:addBid(clone)
+
                         marketplace:removeBid(bid)
                         Registry:destroyEntity(bid)
                     else
@@ -149,6 +171,11 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                     end
 
                     if askQuantity == 0 then
+                        --! clone bid for testing loop
+                        local clone = Registry:cloneEntity(ask)
+                        clone:get(Economy.Ownership):setOwner(bidIssuer)
+                        marketplace:addAsk(clone)
+
                         marketplace:removeAsk(ask)
                         Registry:destroyEntity(ask)
                     else
