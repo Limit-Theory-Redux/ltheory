@@ -35,7 +35,7 @@ function MarketplaceSystem:registerVars()
     self.largeMovementThreshold = 2.0 -- 200% deviation from shiftingEq
     self.pullTimeoutData = {}         -- marketplaceId -> itemType -> {timestamp, cooldownUntil}
     self.timeoutCooldown = 60         --3600       -- 1 hour cooldown after timeout ends
-    self.pullRecoveryRate = 0.0001    -- Exponential recovery speed (tuned for ~10 min to reach ~63% pull strength)
+    self.pullRecoveryRate = 0.05      --0.0001    -- Exponential recovery speed (tuned for ~10 min to reach ~63% pull strength)
 
     -- Pending trades buffer
     self.pendingTrades = {}
