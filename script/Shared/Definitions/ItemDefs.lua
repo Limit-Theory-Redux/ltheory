@@ -1,7 +1,5 @@
 -- Types --
----@type ItemGroup
 local ItemGroup = require("Shared.Types.ItemGroup")
----@type ItemDefinition
 local ItemDefinition = require("Shared.Types.ItemDefinition")
 
 ItemGroup {
@@ -28,7 +26,7 @@ ItemGroup {
         ItemDefinition { name = "Copper Ore", mass = 7, energyDensity = 1.74, startEquilibriumPrice = 35 },
         ItemDefinition { name = "Aluminum Ore", mass = 4, energyDensity = 1.6, startEquilibriumPrice = 25 },
         ItemDefinition { name = "Beryllium Ore", mass = 4, energyDensity = 1.45, startEquilibriumPrice = 40 },
-        ItemDefinition { name = "Thorium Ore", mass = 7, energyDensity = 7.5, startEquilibriumPrice = 100 }
+        ItemDefinition { name = "Thorium Ore", mass = 7, energyDensity = 7.5, startEquilibriumPrice = 100 },
     }
 }
 
