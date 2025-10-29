@@ -44,7 +44,7 @@ function MarketplaceTest:onInit()
     inv2:addItem(EconomyEntities.Item(Items.Virtual.Credit, 1e7))
     inv2:addItem(EconomyEntities.Item(Items.Data.InfoWafer, 500))
 
-    -- Tag setup: groups and tags
+    --! Tag setup: groups and tags, do this here temporarily until we decide where these should be defined
     Tags:new("TradeType", { "BidOrder", "AskOrder", "Contract", "Auction", "Brokered" })
     Tags:new("Goods", { "HighDemand", "LowSupply", "Volatile", "Luxury", "Consumable", "RawMaterial" })
     Tags:new("Legality", { "Legal", "Restricted", "Contraband" })
