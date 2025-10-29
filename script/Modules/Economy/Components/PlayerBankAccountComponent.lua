@@ -86,4 +86,12 @@ function PlayerBankAccount:getAccountTransactions()
     return self.account.transactions
 end
 
+function PlayerBankAccount:put(amount)
+    self.account.balance = self.account.balance + amount
+end
+
+function PlayerBankAccount:take(amount)
+    self.account.balance = self.account.balance - amount
+end
+
 return PlayerBankAccount
