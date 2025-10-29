@@ -5,7 +5,9 @@ function Entity:addVisibleMesh(mesh, material)
     assert(mesh)
     assert(material)
 
-    self.entity:add(RenderComponent({ material }, mesh))
+    self.entity:add(RenderComponent({
+        { mesh = mesh, material = material },
+    }))
 end
 
 function Entity:setRenderVisibleMesh(enabled, cullingLock)
