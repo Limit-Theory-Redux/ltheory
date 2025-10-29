@@ -251,7 +251,7 @@ function UniverseManager:_generatePlanet(rng, cfg, context, orbitRadius)
     context:set("planetType", RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.type, context))
     context:set("planetSize", RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.size, context))
     local atmosphere = RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.atmosphere, context)
-    local asteroidRingType = RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.asteroidRing, context)
+    context:set("asteroidRingType", RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.asteroidRing, context))
     local temperature = RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.temperature, context)
     local gravity = RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.gravity, context)
     local rotationPeriod = RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.rotationPeriod, context)
@@ -270,7 +270,7 @@ function UniverseManager:_generatePlanet(rng, cfg, context, orbitRadius)
     if magneticField then planet:add(CelestialComponents.MagneticField()) end
     planet:add(SpatialComponents.Inclination(inclination))
 
-    if asteroidRingType ~= "None" then
+    if context:get("asteroidRingType") ~= "None" then
         local ring = self:_generateAsteroidRing(pRNG, cfg, context)
         if not ring then return nil end
         Registry:attachEntity(planet, ring)
@@ -323,6 +323,8 @@ function UniverseManager:_generateAsteroidRing(rng, cfg, context)
     for _, item in IteratorIndexed(Items.RawMaterials) do
         table.insert(tempItemArray, item.id)
     end
+
+    --todo: resource weights
 
     for j = 1, astCount do
         local asteroidSeed = ringRNG:get64()
@@ -406,18 +408,26 @@ function UniverseManager:_generateAsteroidBelt(rng, cfg, context)
     belt:add(SpatialComponents.Orbit(context:get("orbitRadius")))
 
     local astCount = beltRNG:getInt(10, 50)
-    local itemCount = Items:getItemCount()
+    local itemCount = #Items.RawMaterials
     if itemCount <= 0 then
-        Log.Error("No items registered – cannot populate asteroids")
+        Log.Error("No items registered - cannot populate asteroids")
         return nil
     end
 
+    -- insert item id´s into a temp array
+    local tempItemArray = {}
+    for _, item in IteratorIndexed(Items.RawMaterials) do
+        table.insert(tempItemArray, item.id)
+    end
+
+    --todo: resource weights
+
     for j = 1, astCount do
         local asteroidSeed = beltRNG:get64()
-        local itemIdx = beltRNG:getInt(1, itemCount)
-        local asteroidItem = Items:getDefinition(itemIdx)
+        local randomIndex = beltRNG:getInt(1, itemCount)
+        local asteroidItem = Items:getDefinition(tempItemArray[randomIndex])
         if not asteroidItem then
-            Log.Error("Item definition missing for index: %s", itemIdx)
+            Log.Error("Item definition missing for index: %s", randomIndex)
             return nil
         end
 
