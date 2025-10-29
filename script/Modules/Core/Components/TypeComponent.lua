@@ -1,20 +1,20 @@
 local Component = require("Core.ECS.Component")
 
 ---@class TypeComponent: Component
----@overload fun(self: TypeComponent, name: string): TypeComponent subclass internal
----@overload fun(name: string|nil): TypeComponent subclass external
-local TypeComponent = Subclass("TypeComponent", Component, function(self, name)
+---@overload fun(self: TypeComponent, type: integer): TypeComponent subclass internal
+---@overload fun(type: integer|nil): TypeComponent subclass external
+local TypeComponent = Subclass("TypeComponent", Component, function(self, type)
     self:setComponentName("TypeComponent")
 
-    self:setType(name)
+    self:setType(type)
 end)
 
----@param name string
-function TypeComponent:setType(name)
-    self.type = name
+---@param type integer
+function TypeComponent:setType(type)
+    self.type = type
 end
 
----@return string
+---@return integer
 function TypeComponent:getType()
     return self.type
 end
