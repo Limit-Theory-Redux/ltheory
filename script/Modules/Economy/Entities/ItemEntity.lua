@@ -9,7 +9,7 @@ return function(definition, quantity)
     return Entity.Create(
         definition.name,
         Physics.Mass(definition.mass),
-        Economy.ItemType(definition.id),
+        Economy.Item(definition.id),
         Economy.Quantity(quantity)
     )
 end

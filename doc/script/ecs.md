@@ -1,6 +1,9 @@
 # Introduction to the Limit Theory Redux Entity Component System
+
 ## Basics
+
 ### General Promise
+
 The Entity Component System (ECS) is an architectural pattern commonly used in game development and data-driven applications. It emphasizes composition over inheritance, providing flexibility, scalability, and performance benefits. This guide will walk you through the core concepts of ECS.
 
 ECS is a design pattern that separates data (components) from behavior (systems), making it easier to manage complex applications. It consists of three main parts:
@@ -20,6 +23,7 @@ In LTR all entities & components are stored in the Registry. This allows us to u
 See [modules documentation](modules.md).
 
 ### Entities
+
 An entity is a unique identifier that acts as a container for components. It does not have any data or behavior on its own. Think of entities as empty shells that become meaningful when associated with components.
 
 In LTR entity definition files operate a little bit (but not quite) like blueprints which you might know from other game engines.
@@ -48,6 +52,7 @@ end
 As you can see, first the Entity module is imported, followed by the relevant component modules. `Entity.Create` constructs an entity with the specified components.
 
 ### Components
+
 Components are plain data structures that define the properties or state of an entity. They are small and focused on a single responsibility. By attaching different combinations of components to entities, you can represent diverse behaviors and characteristics.
 
 They hold minimal game logic, only the most basic data related methods should be provided. Everything else should be defined in a system that handles the specific data.
@@ -82,6 +87,7 @@ return NameComponent
 As you can see a component is very simple in logic. It only provides the necessary data operation methods, usually getters and setters.
 
 ### Systems
+
 Systems contain the logic that processes entities with specific components. They query entities with a particular set of components, perform operations on their data, and update the system’s state as necessary.
 
 Lets have a deeper look at the marketplace system:
@@ -111,6 +117,7 @@ end)
 ```
 
 #### Then we set all needed class variables and subscribe to all needed engine events:
+
 ```lua
 ---@private
 function MarketplaceSystem:registerVars()
@@ -186,21 +193,22 @@ end
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:get(Economy.ItemType)
+            local bidItemTypeCmp = bid:get(Economy.Item)
             local bidPriceCmp = bid:get(Economy.Price)
             local bidQuantityCmp = bid:get(Economy.Quantity)
 
-            local askItemTypeCmp = ask:get(Economy.ItemType)
+            local askItemTypeCmp = ask:get(Economy.Item)
             local askPriceCmp = ask:get(Economy.Price)
             local askQuantityCmp = ask:get(Economy.Quantity)
 ```
 
 #### The data we want to work with is accessed from the components themselves as explained before.
+
 ```lua
-            local bidItemType = bidItemTypeCmp:getItemType()
+            local bidItemType = bidItemTypeCmp:getItem()
             local bidPrice = bidPriceCmp:getPrice()
             local bidQuantity = bidQuantityCmp:getQuantity()
-            local askItemType = askItemTypeCmp:getItemType()
+            local askItemType = askItemTypeCmp:getItem()
             local askPrice = askPriceCmp:getPrice()
             local askQuantity = askQuantityCmp:getQuantity()
 ```

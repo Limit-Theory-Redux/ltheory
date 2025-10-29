@@ -130,7 +130,7 @@ MarketplaceTest.Scenarios.GoldSupplyDrop = function(self)
     Log.Info("[Scenario] Gold supply drop triggered")
     for _, ship in ipairs(self.ships) do
         local inv = ship:get(EconomyComponents.Inventory)
-        local goldStack = inv:getItemsOfType(Items.RefinedMaterials.Gold)
+        local goldStack = inv:getItems(Items.RefinedMaterials.Gold)
         for goldItem in Iterator(goldStack) do
             local qty = goldItem:get(EconomyComponents.Quantity):getQuantity()
             goldItem:get(EconomyComponents.Quantity):setQuantity(math.floor(qty * 0.5))
@@ -196,7 +196,7 @@ MarketplaceTest.Scenarios.PriceShockPullTest = function(self)
     local startPrice = Items:getDefinition(item.id).startEquilibriumPrice
     for _, ship in ipairs(self.ships) do
         local inv = ship:get(EconomyComponents.Inventory)
-        local goldStack = inv:getItemsOfType(item)
+        local goldStack = inv:getItems(item)
         for goldItem in Iterator(goldStack) do
             local qty = goldItem:get(EconomyComponents.Quantity):getQuantity()
             goldItem:get(EconomyComponents.Quantity):setQuantity(math.floor(qty * 0.5))
@@ -233,7 +233,7 @@ MarketplaceTest.Scenarios.ControlledPriceShockTest = function(self)
     -- Moderate supply reduction (30%)
     for _, ship in ipairs(self.ships) do
         local inv = ship:get(EconomyComponents.Inventory)
-        local goldStack = inv:getItemsOfType(item)
+        local goldStack = inv:getItems(item)
         for goldItem in Iterator(goldStack) do
             local qty = goldItem:get(EconomyComponents.Quantity):getQuantity()
             goldItem:get(EconomyComponents.Quantity):setQuantity(math.floor(qty * 0.7))
@@ -523,7 +523,7 @@ function MarketplaceTest:analyzeItemMarket(itemId)
     local totalSupply = 0
     local tags = {}
     for bid in Iterator(bids) do
-        if bid:get(EconomyComponents.ItemType):getItemType() == itemId then
+        if bid:get(EconomyComponents.ItemType):getItem() == itemId then
             bidCount = bidCount + 1
             totalDemand = totalDemand + bid:get(EconomyComponents.Quantity):getQuantity()
             local tagComp = bid:get(CoreComponents.Tag)
@@ -545,7 +545,7 @@ function MarketplaceTest:analyzeItemMarket(itemId)
         end
     end
     for ask in Iterator(asks) do
-        if ask:get(EconomyComponents.ItemType):getItemType() == itemId then
+        if ask:get(EconomyComponents.ItemType):getItem() == itemId then
             askCount = askCount + 1
             totalSupply = totalSupply + ask:get(EconomyComponents.Quantity):getQuantity()
             local tagComp = ask:get(CoreComponents.Tag)
