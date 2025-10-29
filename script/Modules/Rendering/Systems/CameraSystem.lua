@@ -7,8 +7,8 @@ local Rendering = require("Modules.Rendering.Components")
 ---@field profiler QuickProfiler
 ---@field currentCameraData CameraDataComponent
 ---@field currentCameraTransform TransformComponent
----@overload fun(self: CameraSystem) class internal
----@overload fun() class external
+---@overload fun(self: CameraSystem): CameraSystem class internal
+---@overload fun(): CameraSystem class external
 local CameraSystem = Class("CameraSystem", function(self)
     ---@diagnostic disable-next-line: invisible
     self:registerVars()

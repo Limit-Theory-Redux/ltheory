@@ -38,16 +38,16 @@ function RenderingTest:onInit()
     -- local rng = RNG.Create(0)
 
     -- Generate Box Mesh
-    self.boxMesh = Mesh.Box(7)
+    local boxMesh = Mesh.Box(7)
     -- Get Box Entity and Components
     local boxMaterial = Materials.DebugColor() ---@type Material
     boxMaterial:addStaticShaderVar("color", Enums.UniformType.Float3, function() return 1.0, 0.0, 1.0 end)
-    self.boxEntity = BoxEntity(boxMaterial)
+    self.boxEntity = BoxEntity({ { mesh = boxMesh, material = boxMaterial } })
     self.boxRend = self.boxEntity:get(Rendering.Render)
     -- Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
     self.boxRB = self.boxEntity:get(Physics.RigidBody)
     -- Set RigidBody
-    self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(self.boxMesh))
+    self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(boxMesh))
     self.boxRB:getRigidBody():setPos(Position(0, 0, -5))
 
     self.rotationQuaternion = Quat(0, 0, 0, 1) -- Identity quaternion
@@ -151,11 +151,14 @@ function RenderingTest:onRender(data)
 
     -- self.renderer:start(self.resX, self.resY)
 
-    local boxMat = self.boxRend:getMaterial(BlendMode.Disabled)
-    boxMat.shaderState:start()
-    boxMat:setAllShaderVars(camEye, self.boxEntity)
-    self.boxMesh:draw()
-    boxMat.shaderState:stop()
+    local boxMeshes = self.boxRend:getMeshes()
+
+    for meshmat in Iterator(boxMeshes) do
+        meshmat.material.shaderState:start()
+        meshmat.material:setAllShaderVars(camEye, self.boxEntity)
+        meshmat.mesh:draw()
+        meshmat.material.shaderState:stop()
+    end
 
     -- self.renderer:stop()
 

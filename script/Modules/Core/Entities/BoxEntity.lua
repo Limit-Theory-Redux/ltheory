@@ -3,14 +3,13 @@ local Core = require("Modules.Core.Components")
 local Physics = require("Modules.Physics.Components")
 local Rendering = require("Modules.Rendering.Components")
 
----@param material Material
+---@param meshes MeshWithMaterial[]
 ---@return Entity
-return function(material)
+return function(meshes)
     return Entity.Create(
         "BoxEntity",
         Physics.Transform(),
-        Rendering.Render({ material }, Enums.MeshType.Box),
-        Physics.RigidBody(),
-        Core.Hierarchy()
+        Rendering.Render(meshes),
+        Physics.RigidBody()
     )
 end
