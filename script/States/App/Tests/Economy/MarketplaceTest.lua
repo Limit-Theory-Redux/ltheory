@@ -21,7 +21,7 @@ local GRAY = "\27[37m"
 local WHITE = "\27[97m"
 local RESET = "\27[0m"
 
-local SELECTED_TEST_SCENARIO = "ControlledPriceShockTest"
+local SELECTED_TEST_SCENARIO = "GoldSupplyDrop"
 
 -- TODO: BREAK THIS TEST UP INTO MANAGERS, HELPERS, ETC
 
@@ -73,14 +73,15 @@ function MarketplaceTest:onInit()
 
     -- Test configuration
     self.orderExpiryTime = 600
-    self.testDuration = 3600
-    self.orderInterval = 1
+    self.testDuration = 30
+    self.orderInterval = 0.01
     self.supplyRestockInterval = 500
     self.lastOrderTime = TimeStamp.Now()
     self.lastRestockTime = TimeStamp.Now()
     self.startTime = TimeStamp.Now()
     self.orderCounter = 0
     self.testComplete = false
+    self.printedReport = false
 
     -- Available items for trading
     self.tradableItems = {
@@ -382,7 +383,11 @@ end
 ---@param e EventData
 function MarketplaceTest:onPreRender(e)
     if self.testComplete then
-        self:printFinalReport()
+        if not self.printedReport then
+            self.printedReport = true
+            Log.Info("\27[92m[MarketplaceTest] Test complete. Generating final report...\27[0m")
+            self:printFinalReport()
+        end
         self:quit()
         return
     end

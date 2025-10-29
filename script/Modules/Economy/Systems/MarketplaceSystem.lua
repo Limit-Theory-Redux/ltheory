@@ -16,6 +16,7 @@ function MarketplaceSystem:registerVars()
     self.rng = RNG.FromTime()
     self.updateRate = 0.01
     self.maxUpdateRateDeviation = 0
+    self.dt = 0
 
     -- Economic parameters
     self.priceHistory = {}
@@ -31,11 +32,11 @@ function MarketplaceSystem:registerVars()
     self.pullStrength = 0.1           -- Base pull factor
     self.pullScale = 100              -- Controls exponential pull sensitivity
     self.shiftAlpha = 0.01            -- EMA alpha for shifting equilibrium
-    self.pullTimeout = 120            --7200           -- 2 hours for long timeout scenario
+    self.pullTimeout = 7200           -- 2 hours for long timeout scenario
     self.largeMovementThreshold = 2.0 -- 200% deviation from shiftingEq
     self.pullTimeoutData = {}         -- marketplaceId -> itemType -> {timestamp, cooldownUntil}
-    self.timeoutCooldown = 60         --3600       -- 1 hour cooldown after timeout ends
-    self.pullRecoveryRate = 0.05      --0.0001    -- Exponential recovery speed (tuned for ~10 min to reach ~63% pull strength)
+    self.timeoutCooldown = 3600       -- 1 hour cooldown after timeout ends
+    self.pullRecoveryRate = 0.0001    -- Exponential recovery speed (tuned for ~10 min to reach ~63% pull strength)
 
     -- Pending trades buffer
     self.pendingTrades = {}
@@ -47,6 +48,8 @@ end
 
 ---@param e EventData
 function MarketplaceSystem:onPreRender(e)
+    self.dt = e:deltaTime()
+
     local now = TimeStamp.Now()
     for _, marketplace in Registry:iterEntities(Economy.Marketplace) do
         local nextUpdate = marketplace:getNextUpdate()
