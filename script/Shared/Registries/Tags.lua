@@ -17,15 +17,15 @@ local Tags = {
 
 --- Register a group of tags
 ---@param groupName string
----@param def { tags: string[] }
-function Tags:new(groupName, def)
+---@param tags string[]
+function Tags:new(groupName, tags)
     if type(groupName) ~= "string" or groupName:match("^%s*$") then
         Log.Warn("[Tags] Invalid group name")
         return
     end
 
     groupName = groupName:gsub(" ", "")
-    local tags = def.tags
+
     if type(tags) ~= "table" or #tags == 0 then
         Log.Warn("[Tags] Empty or invalid tag list for group:", groupName)
         return

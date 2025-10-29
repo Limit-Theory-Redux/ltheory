@@ -19,7 +19,7 @@ function TagTest:onInit()
         for i = g, tagCount, groupCount do
             table.insert(tagsList, "Tag" .. i)
         end
-        Tags:new(groupName, { tags = tagsList })
+        Tags:new(groupName, tagsList)
         table.insert(groups, groupName)
     end
     Log.Info(string.format("[TagTest] Registered %d tags across %d groups", tagCount, groupCount))

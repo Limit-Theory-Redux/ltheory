@@ -5,7 +5,7 @@ local Tags = require("Shared.Registries.Tags")
 ---@overload fun(self: TagComponent, ...: string): TagComponent subclass internal
 ---@overload fun(...: string): TagComponent subclass external
 local TagComponent = Subclass("TagComponent", Component, function(self, ...)
-    self:setComponentName("TagComponent")
+    self:setComponentName("Tag")
     self:init(...)
 end)
 
@@ -104,11 +104,9 @@ function TagComponent:hasAnyTagInGroup(groupName)
     local mask = Tags:getGroupMask(groupName)
     if not mask then return false end
     for i = 0, self.tagWords - 1 do
-        local word = self.tags[i]
-        if word ~= 0 and mask[i] then
-            if Bit.Has64(Bit.And64(word, mask[i]), mask[i]) then
-                return true
-            end
+        local wordMask = mask[i] or 0ULL
+        if Bit.And64(self.tags[i], wordMask) ~= 0ULL then
+            return true
         end
     end
     return false
