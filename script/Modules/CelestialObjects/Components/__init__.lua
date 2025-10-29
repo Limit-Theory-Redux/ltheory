@@ -8,7 +8,7 @@ return {
     Luminosity = require("Modules.CelestialObjects.Components.LuminosityComponent"),
     MagneticField = require("Modules.CelestialObjects.Components.MagneticFieldComponent"),
     Metallicity = require("Modules.CelestialObjects.Components.MetallicityComponent"),
-    Rotation = require("Modules.CelestialObjects.Components.RotationComponent"),
+    RotationPeriod = require("Modules.CelestialObjects.Components.RotationPeriodComponent"),
     Stability = require("Modules.CelestialObjects.Components.StabilityComponent"),
     Temperature = require("Modules.CelestialObjects.Components.TemperatureComponent"),
     Thickness = require("Modules.CelestialObjects.Components.ThicknessComponent")

@@ -1,5 +1,7 @@
 local SolarSystemGenTest = require("States.Application")
 
+local CelestialEntities = require("Modules.CelestialObjects.Entities")
+
 local CoreComponents = require("Modules.Core.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
 local EconomyComponents = require("Modules.Economy.Components")
@@ -15,21 +17,38 @@ local Rulesets = require("Config.Gen.Rulesets")
 
 local seed = 1
 
+-- Helper function to extract entity class from tostring(entity)
+local function getEntityClass(entity)
+    local str = tostring(entity)                         -- e.g., "UniverseEntity(U123)"
+    return str:match("^(%w+)Entity%(.+%)$") or "Unknown" -- Extracts "Universe" from "UniverseEntity(U123)"
+end
+
 ---@diagnostic disable-next-line: duplicate-set-field
 function SolarSystemGenTest:onInit()
-    local universe = UniverseManager:createUniverse(Rulesets.StandardSolarSystem, seed)
+    --self.profiler:start()
 
-    -- Test for universe creation on 24.Oct.2025 @IllustrisJack
-    if not universe then
-        Log.Error("Failed to create universe for Single Star Solar System")
-        self:quit()
-        return
+    local rulesets = {
+        { name = "StandardSolarSystem",        ruleset = Rulesets.StandardSolarSystem,        seed = 1 },
+        { name = "StandardBinarySolarSystem",  ruleset = Rulesets.StandardBinarySolarSystem,  seed = 1 },
+        { name = "StandardTrinarySolarSystem", ruleset = Rulesets.StandardTrinarySolarSystem, seed = 1 }
+    }
+
+    for _, test in ipairs(rulesets) do
+        Log.Info("Testing %s", test.name)
+        local success, universe = pcall(function()
+            return UniverseManager:createUniverse(test.ruleset, test.seed)
+        end)
+        if not success then
+            Log.Error("Failed to create universe with %s: %s", test.name, tostring(universe))
+        elseif universe then
+            Log.Info("Universe Hierarchy for %s:", test.name)
+            self:processEntityHierarchy(universe, "", true)
+        else
+            Log.Error("Universe creation returned nil for %s", test.name)
+        end
     end
 
-    -- Print the entity hierarchy with tree representation
-    Log.Info("Universe Hierarchy:")
-    self:processEntityHierarchy(universe, "", true)
-
+    --self.profiler:stop()
     self:quit()
 end
 
@@ -38,45 +57,44 @@ end
 ---@param prefix string The prefix for tree visualization
 ---@param isLast boolean Whether this entity is the last child at its level
 function SolarSystemGenTest:processEntityHierarchy(entity, prefix, isLast)
-    -- Determine the line prefix for the current entity
     local linePrefix = prefix .. (isLast and "└── " or "├── ")
-
-    -- Log entity information
-    Log.Info("%sEntity: %s", linePrefix, tostring(entity))
-
-    -- Get common components
-    local typeComp = entity:get(CoreComponents.Type)
-    local transform = entity:get(PhysicsComponents.Transform)
-    local type = typeComp and typeComp:getType() or "None"
-    local position = transform and transform:getPosition() or Position(0, 0, 0)
-
-    -- Indent subsequent properties for readability
     local propPrefix = prefix .. (isLast and "    " or "│   ")
-    Log.Info("%sType: %s, Position: (%s, %s, %s)", propPrefix, type, position.x, position.y, position.z)
 
-    -- Log specific properties based on entity type
-    if type == "StarSystem" then
+    local typeComp = entity:get(CoreComponents.Type)
+    local entityClass = getEntityClass(entity) -- e.g., "Universe", "Planet"
+    local subtype = typeComp and typeComp:getSubtype() or "No Subtype"
+
+    Log.Info("%sEntity: %s (%s)", linePrefix, entityClass, subtype)
+
+    local transform = entity:get(PhysicsComponents.Transform)
+    local position = transform and transform:getPosition() or { x = 0, y = 0, z = 0 }
+    Log.Info("%sPosition: (%s, %s, %s)", propPrefix, position.x, position.y, position.z)
+
+    if entityClass == "Universe" then
+        -- Universe has no additional properties
+    elseif entityClass == "StarSystem" then
         local age = entity:get(CelestialComponents.Age)
         local metallicity = entity:get(CelestialComponents.Metallicity)
         local stability = entity:get(CelestialComponents.Stability)
+        local stabilityEnum = stability and Enums.Gen.StarSystem.Stability[stability:getStability()] or "N/A"
+        Log.Info("%sType: %s", propPrefix, subtype) -- Explicitly log StarSystemType
         Log.Info("%sAge: %s years", propPrefix, age and age:getAge() or "N/A")
         Log.Info("%sMetallicity: %s", propPrefix, metallicity and metallicity:getMetallicity() or "N/A")
-        Log.Info("%sStability: %s", propPrefix, stability and stability:getStability() or "N/A")
-    elseif type == "Star" then
+        Log.Info("%sStability: %s (Value: %d)", propPrefix, stabilityEnum, stability and stability:getStability() or 0)
+    elseif entityClass == "Star" then
         local mass = entity:get(PhysicsComponents.Mass)
         local luminosity = entity:get(CelestialComponents.Luminosity)
         Log.Info("%sMass: %s solar masses", propPrefix, mass and mass:getMass() or "N/A")
         Log.Info("%sLuminosity: %s solar luminosities", propPrefix, luminosity and luminosity:getLuminosity() or "N/A")
-    elseif type == "Planet" then
-        local transform = entity:get(PhysicsComponents.Transform)
+    elseif entityClass == "Planet" then
         local orbit = entity:get(SpatialComponents.Orbit)
         local atmosphere = entity:get(CelestialComponents.Atmosphere)
         local temperature = entity:get(CelestialComponents.Temperature)
         local gravity = entity:get(CelestialComponents.Gravity)
-        local rotation = entity:get(CelestialComponents.Rotation)
+        local rotation = entity:get(CelestialComponents.RotationPeriod)
         local eccentricity = entity:get(CelestialComponents.Eccentricity)
         local magneticField = entity:get(CelestialComponents.MagneticField)
-        local inclination = entity:get(SpatialComponents.Inclination)
+        local inclination = entity:get(CelestialComponents.Inclination)
         Log.Info("%sSize: %s Earth radii", propPrefix, transform and transform:getScale() or "N/A")
         Log.Info("%sOrbit Radius: %s AU", propPrefix, orbit and orbit:getOrbitRadius() or "N/A")
         Log.Info("%sAtmosphere: %s", propPrefix, atmosphere and "Present" or "None")
@@ -86,19 +104,18 @@ function SolarSystemGenTest:processEntityHierarchy(entity, prefix, isLast)
         Log.Info("%sEccentricity: %s", propPrefix, eccentricity and eccentricity:getEccentricity() or "N/A")
         Log.Info("%sMagnetic Field: %s", propPrefix, magneticField and "Present" or "None")
         Log.Info("%sInclination: %s degrees", propPrefix, inclination and inclination:getInclination() or "N/A")
-    elseif type == "Moon" then
-        local transform = entity:get(PhysicsComponents.Transform)
+    elseif entityClass == "Moon" then
         local orbit = entity:get(SpatialComponents.Orbit)
-        local inclination = entity:get(SpatialComponents.Inclination)
+        local inclination = entity:get(CelestialComponents.Inclination)
         Log.Info("%sSize: %s Earth radii", propPrefix, transform and transform:getScale() or "N/A")
         Log.Info("%sOrbital Distance: %s km", propPrefix, orbit and orbit:getOrbitRadius() or "N/A")
         Log.Info("%sInclination: %s degrees", propPrefix, inclination and inclination:getInclination() or "N/A")
-    elseif type == "AsteroidRing" then
+    elseif entityClass == "AsteroidRing" then
         local composition = entity:get(CelestialComponents.Composition)
         local thickness = entity:get(CelestialComponents.Thickness)
         Log.Info("%sComposition: %s", propPrefix, composition and composition:getComposition() or "N/A")
         Log.Info("%sThickness: %s meters", propPrefix, thickness and thickness:getThickness() or "N/A")
-    elseif type == "AsteroidBelt" then
+    elseif entityClass == "AsteroidBelt" then
         local density = entity:get(CelestialComponents.Density)
         local composition = entity:get(CelestialComponents.Composition)
         local width = entity:get(SpatialComponents.Width)
@@ -107,24 +124,18 @@ function SolarSystemGenTest:processEntityHierarchy(entity, prefix, isLast)
         Log.Info("%sComposition: %s", propPrefix, composition and composition:getComposition() or "N/A")
         Log.Info("%sWidth: %s km", propPrefix, width and width:getWidth() or "N/A")
         Log.Info("%sOrbit Radius: %s AU", propPrefix, orbit and orbit:getOrbitRadius() or "N/A")
-    elseif type == "Asteroid" then
+    elseif entityClass == "Asteroid" then
         local itemCmp = entity:get(EconomyComponents.Item)
         local quantityCmp = entity:get(EconomyComponents.Quantity)
         if itemCmp and quantityCmp then
             local itemDef = Items:getDefinition(itemCmp:getItem())
-            Log.Info("%sItem: %s, Quantity: %s", propPrefix, itemDef and itemDef.name or "Unknown", quantityCmp:getQuantity())
+            Log.Info("%sItem: %s, Quantity: %s, Price: %d", propPrefix,
+                itemDef and itemDef.name or "Unknown",
+                quantityCmp:getQuantity(),
+                itemDef and itemDef.startEquilibriumPrice or 0)
         end
     end
 
-    -- Log item and quantity components for any entity that has them
-    local itemCmp = entity:get(EconomyComponents.Item)
-    local quantityCmp = entity:get(EconomyComponents.Quantity)
-    if itemCmp and quantityCmp then
-        local itemDef = Items:getDefinition(itemCmp:getItem())
-        Log.Info("%sItem: %s, Quantity: %s", propPrefix, itemDef and itemDef.name or "Unknown", quantityCmp:getQuantity())
-    end
-
-    -- Recursively process children
     local children = entity:get(CoreComponents.Children)
     if children then
         local childList = children:iterChildren()

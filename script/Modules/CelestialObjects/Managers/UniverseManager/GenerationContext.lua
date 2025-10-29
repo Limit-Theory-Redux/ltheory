@@ -16,4 +16,9 @@ function GenerationContext:get(key)
     return self.data[key]
 end
 
+---@return table<string, any> data
+function GenerationContext:getAll()
+    return self.data
+end
+
 return GenerationContext
