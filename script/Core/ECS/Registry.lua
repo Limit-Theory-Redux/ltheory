@@ -331,6 +331,27 @@ function Registry:getComponentCount()
     return count
 end
 
+--- Prints the entity hierarchy of a specific entity with indentation
+---@param entity Entity The root entity to start printing the hierarchy from
+function Registry:printHierarchy(entity)
+    local function printEntity(ent, prefix, isLast)
+        local linePrefix = prefix .. (isLast and "└── " or "├── ")
+        Log.Info("%s%s", linePrefix, tostring(ent))
+
+        local childrenComponent = self:get(ent, ChildrenComponent)
+        if childrenComponent then
+            local children = childrenComponent.children
+            for i, childEntity in ipairs(children) do
+                local newPrefix = prefix .. (isLast and "    " or "│   ")
+                printEntity(childEntity, newPrefix, i == #children)
+            end
+        end
+    end
+
+    Log.Info("Entity Hierarchy for %s:", tostring(entity))
+    printEntity(entity, "", true)
+end
+
 Registry.Instance = Registry()
 Registry.EntityType = Entity
 
