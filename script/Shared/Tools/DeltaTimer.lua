@@ -1,128 +1,136 @@
+---@class TimerEntry
+---@field totalDt number
+---@field threshold number
+---@field paused boolean
+---@field maxDeltaClamp number|nil
+---@field data table<string, any>
+---@field autoReset boolean
+
 ---@class DeltaTimer
----@overload fun(self: DeltaTimer, name: string): DeltaTimer class internal
----@overload fun(name: string): DeltaTimer class external
+---@field private _timers table<string, TimerEntry>
+---@overload fun(self): DeltaTimer
 local DeltaTimer = Class("DeltaTimer", function(self, name)
-    ---@diagnostic disable-next-line
-    self:init(name)
+    self.name = name
+    self._timers = {}
 end)
 
 ---@private
-function DeltaTimer:init(name)
-    self.name = name or "Undefined"
-    self.totalDt = 0         -- Accumulated delta time
-    self.paused = false      -- Whether the timer is paused
-    self.maxDeltaClamp = nil -- Optional clamp for large frame spikes
-    self.data = {}           -- User-defined state
+function DeltaTimer:_get(key)
+    local e = self._timers[key]
+    if not e then
+        e = {
+            totalDt       = 0,
+            threshold     = 0,
+            paused        = false,
+            maxDeltaClamp = nil,
+            data          = {},
+            autoReset     = true,
+        }
+        self._timers[key] = e
+    end
+    return e
 end
 
----Update the timer by delta time
+---@param key string
+---@param threshold number
+---@param autoReset? boolean   default = true
+function DeltaTimer:start(key, threshold, autoReset)
+    local e     = self:_get(key)
+    e.threshold = threshold
+    e.totalDt   = 0
+    e.paused    = false
+    e.autoReset = autoReset ~= false
+end
+
 ---@param dt number
 function DeltaTimer:update(dt)
-    if self.paused then return end
-    if self.maxDeltaClamp then
-        dt = math.min(dt, self.maxDeltaClamp)
-    end
-    self.totalDt = self.totalDt + dt
-end
-
----Check if the timer has reached a threshold
----@param threshold number
----@return boolean
-function DeltaTimer:hasReached(threshold)
-    return self.totalDt >= threshold
-end
-
----Reset accumulated delta time
-function DeltaTimer:reset()
-    self.totalDt = 0
-end
-
----Get accumulated delta time
----@return number
-function DeltaTimer:getTotal()
-    return self.totalDt
-end
-
----Pause and resume
-function DeltaTimer:pause() self.paused = true end
-function DeltaTimer:resume() self.paused = false end
-
----Set maximum delta clamp
----@param maxDelta number
-function DeltaTimer:setMaxDeltaClamp(maxDelta)
-    self.maxDeltaClamp = maxDelta
-end
-
----Update and check threshold, auto-reset when reached
----@param dt number
----@param threshold number|string number: threshold value, string: key to stored data
----@return boolean triggered
-function DeltaTimer:updateAndCheck(dt, threshold)
-    self:update(dt)
-
-    if rawtype(threshold) == "string" then
-        threshold = self.data[threshold]
-        if rawtype(threshold) ~= "number" then
-            Log.Error("DeltaTimer: Stored threshold '%s' is not a number", tostring(threshold))
+    for _, e in pairs(self._timers) do
+        if not e.paused then
+            local clamped = e.maxDeltaClamp and math.min(dt, e.maxDeltaClamp) or dt
+            e.totalDt = e.totalDt + clamped
         end
-        ---@cast threshold number
     end
-    if self:hasReached(threshold) then
-        self:reset()
-        return true
+end
+
+---@param key string
+---@return boolean triggered
+function DeltaTimer:check(key)
+    local e = self._timers[key]
+    if not e or e.totalDt < e.threshold then return false end
+
+    if e.autoReset then
+        e.totalDt = e.totalDt - e.threshold
+    else
+        e.totalDt = e.threshold
     end
-    return false
+    return true
 end
 
----Return a normalized factor (0–1) toward threshold
----@param threshold number
----@return number
-function DeltaTimer:getFactor(threshold)
-    return math.min(1.0, self.totalDt / threshold)
-end
-
----Store arbitrary key/value data
 ---@param key string
----@param value any
-function DeltaTimer:set(key, value)
-    self.data[key] = value
+function DeltaTimer:stop(key)
+    local e = self._timers[key]
+    if e then e.paused = true end
 end
 
----Retrieve stored data
 ---@param key string
----@param default any|nil
----@return any
-function DeltaTimer:get(key, default)
-    local v = self.data[key]
-    if v == nil then return default end
-    return v
+function DeltaTimer:resume(key)
+    local e = self._timers[key]
+    if e then e.paused = false end
 end
 
----Clear all data
-function DeltaTimer:clearData()
-    self.data = {}
+---@param key string
+function DeltaTimer:remove(key)
+    self._timers[key] = nil
 end
 
----Return a debug string representation
----@return string
+---@param key string
+function DeltaTimer:reset(key)
+    local e = self._timers[key]
+    if e then e.totalDt = 0 end
+end
+
+---@param key string
+---@return number? time left until threshold
+function DeltaTimer:timeLeft(key)
+    local e = self._timers[key]
+    if not e then return nil end
+    return math.max(0, e.threshold - e.totalDt)
+end
+
+---@param key string
+---@return boolean is active and running
+function DeltaTimer:isActive(key)
+    local e = self._timers[key]
+    return e ~= nil and not e.paused
+end
+
+function DeltaTimer:getTotal(key)
+    local e = self._timers[key]; return e and e.totalDt or 0
+end
+function DeltaTimer:getFactor(key)
+    local e = self._timers[key]; return e and math.min(1, e.totalDt / e.threshold) or 0
+end
+function DeltaTimer:has(key) return self._timers[key] ~= nil end
+
+function DeltaTimer:set(key, k, v)
+    local e = self:_get(key); e.data[k] = v
+end
+function DeltaTimer:get(key, k, d)
+    local e = self._timers[key]; return e and e.data[k] or d
+end
+function DeltaTimer:clearData(key)
+    local e = self._timers[key]; if e then e.data = {} end
+end
+
 function DeltaTimer:__tostring()
-    local state = self.paused and "paused" or "running"
-    local summary = string.format(
-        "[DeltaTimer (\"%s\"): %.4fs total, %s]",
-        self.name,
-        self.totalDt,
-        state
-    )
-
-    -- Include key data summary if present
-    local keys = {}
-    for k, v in pairs(self.data) do
-        table.insert(keys, string.format("%s=%s", tostring(k), tostring(v)))
+    local lines = { "DeltaTimer {" }
+    for k, e in pairs(self._timers) do
+        local state = e.paused and "paused" or "running"
+        table.insert(lines,
+            string.format('  "%s": %.3f/%.3f [%s]', k, e.totalDt, e.threshold, state))
     end
-    if #keys > 0 then
-        summary = summary .. " { " .. table.concat(keys, ", ") .. " }"
-    end
-    return summary
+    table.insert(lines, "}")
+    return table.concat(lines, "\n")
 end
 
 return DeltaTimer
