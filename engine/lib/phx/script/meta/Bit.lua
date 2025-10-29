@@ -25,6 +25,10 @@ function Bit.Xor32(x, y) end
 function Bit.Has32(x, y) end
 
 ---@param x integer
+---@return integer
+function Bit.Not32(x) end
+
+---@param x integer
 ---@param y integer
 ---@return integer
 function Bit.And64(x, y) end
@@ -43,4 +47,8 @@ function Bit.Xor64(x, y) end
 ---@param y integer
 ---@return boolean
 function Bit.Has64(x, y) end
+
+---@param x integer
+---@return integer
+function Bit.Not64(x) end
 

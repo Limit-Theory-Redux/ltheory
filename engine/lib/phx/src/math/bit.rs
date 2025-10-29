@@ -18,6 +18,10 @@ impl Bit {
         x & y == y
     }
 
+    pub fn not32(x: u32) -> u32 {
+        !x
+    }
+
     pub fn and64(x: u64, y: u64) -> u64 {
         x & y
     }
@@ -32,5 +36,9 @@ impl Bit {
 
     pub fn has64(x: u64, y: u64) -> bool {
         x & y == y
+    }
+
+    pub fn not64(x: u64) -> u64 {
+        !x
     }
 }
