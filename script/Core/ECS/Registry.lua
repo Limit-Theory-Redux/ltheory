@@ -44,6 +44,9 @@ end
 ---@param componentType T
 ---@return T|nil
 function Entity:get(componentType)
+    if not self:isValid() then
+        return nil
+    end
     return Registry.Instance:get(self, componentType)
 end
 
@@ -65,6 +68,10 @@ function Entity.Create(name, ...)
         entity:add(component)
     end
     return entity
+end
+
+function Entity:isValid()
+    return Registry.Instance:hasEntity(self)
 end
 
 function Registry:clear()

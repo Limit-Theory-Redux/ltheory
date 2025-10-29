@@ -88,3 +88,28 @@ function table.removeValue(t, value)
     end
     Log.Error("Cannot find table value " .. tostring(value))
 end
+
+function table.copy(t)
+    local copy = {}
+    for k, v in pairs(t) do
+        copy[k] = v
+    end
+    return copy
+end
+
+function table.toSet(list)
+    local set = {}
+    for _, item in ipairs(list) do
+        set[item] = true
+    end
+    return set
+end
+
+function table.contains(tbl, element)
+    for _, value in pairs(tbl) do
+        if value == element then
+            return true
+        end
+    end
+    return false
+end

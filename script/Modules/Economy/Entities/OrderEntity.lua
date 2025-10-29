@@ -12,7 +12,7 @@ return function(issuer, itemDefinition, quantity, price, expiresAt)
     return Entity.Create(
         "OrderEntity",
         CoreComponents.Tag(),
-        Economy.Ownership(issuer),
+        Economy.Ownership(issuer.id),
         Economy.ItemType(itemDefinition.id),
         Economy.Quantity(quantity),
         Economy.Price(price),
