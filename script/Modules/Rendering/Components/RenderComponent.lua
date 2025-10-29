@@ -19,6 +19,7 @@ function RenderComponent:setMeshes(meshes)
     self.meshes = meshes
 end
 
+---@return MeshWithMaterial[]
 function RenderComponent:getMeshes()
     return self.meshes
 end
