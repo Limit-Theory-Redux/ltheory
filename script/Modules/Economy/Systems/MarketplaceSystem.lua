@@ -1,11 +1,14 @@
 local Registry = require("Core.ECS.Registry")
 local Entity = require("Core.ECS.Entity")
+
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local Helper = require("Shared.Helpers.MarketplaceSystemHelper")
 local Items = require("Shared.Registries.Items")
-local InventorySystem = require("Modules.Economy.Systems.InventorySystem")
+
 local Economy = require("Modules.Economy.Components")
 local Core = require("Modules.Core.Components")
+
+local InventoryManager = require("Modules.Economy.Managers.InventoryManager")
 
 ---@class MarketplaceSystem
 ---@overload fun(self: MarketplaceSystem): MarketplaceSystem class internal
@@ -118,7 +121,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
 
                 -- Attempt to take the required items from the inventory
 
-                local items = InventorySystem:take(askEntityParentInventory, askItemType, tradeQuantity)
+                local items = InventoryManager:take(askEntityParentInventory, askItemType, tradeQuantity)
                 local itemName = Items:getDefinition(askItemType).name
                 Helper.printInventoryDiff(askEntityParentInventory, itemName, tradeQuantity, true)
 
@@ -126,7 +129,7 @@ function MarketplaceSystem:processTrades(marketplace, bids, asks)
                     -- Put traded items into the RECEIVING marketplace inventory (to simulate transfer)
                     -- (Give stuff to buyer)
 
-                    InventorySystem:put(bidEntityParentInventory, items)
+                    InventoryManager:put(bidEntityParentInventory, items)
                     Helper.printInventoryDiff(bidEntityParentInventory, itemName, tradeQuantity, false)
 
                     Log.Debug("[Transaction] Trader 1 %s (%d) -> Trader 2 for price %d credits", Items:getDefinition(bidItemType).name,
