@@ -1,6 +1,9 @@
 function onDef_Event(t, mt)
     local Event = t
 
+    ---@class Event
+    ---@field AddEvents fun(newEvents: table)
+
     -- Add new events to the Event table.
     -- Fail if event already exists.
     ---@param newEvents table List of names of new events

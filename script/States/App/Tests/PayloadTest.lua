@@ -5,6 +5,10 @@ local PayloadConverter = require('Core.Util.PayloadConverter')
 function PayloadTest:onInit()
     local fakeEntity = { getGuid = function() return 0 end }
 
+    ---@class Event
+    ---@field TestEvent string
+    ---@field TestEventLuaPayload string
+    ---@field ExitEvent string
     Event.AddEvents({ "TestEvent", "TestEventLuaPayload", "ExitEvent" })
 
     EventBus:register(Event.TestEvent, "TestEvent", FrameStage.Render)
