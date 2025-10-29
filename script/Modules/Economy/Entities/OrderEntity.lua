@@ -1,4 +1,5 @@
 local Entity = require("Core.ECS.Entity")
+local CoreComponents = require("Modules.Core.Components")
 local Economy = require("Modules.Economy.Components")
 
 ---@param issuer Entity
@@ -10,6 +11,7 @@ local Economy = require("Modules.Economy.Components")
 return function(issuer, itemDefinition, quantity, price, expiresAt)
     return Entity.Create(
         "OrderEntity",
+        CoreComponents.Tag(),
         Economy.Ownership(issuer),
         Economy.ItemType(itemDefinition.id),
         Economy.Quantity(quantity),

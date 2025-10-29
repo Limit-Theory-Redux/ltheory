@@ -100,92 +100,92 @@ end
 ---@param asks table<Entity>
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
-        for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:get(Economy.ItemType)
-            local bidPriceCmp = bid:get(Economy.Price)
-            local bidQuantityCmp = bid:get(Economy.Quantity)
+        local bidTagCmp = bid:get(Core.Tag)
+        local bidItemTypeCmp = bid:get(Economy.ItemType)
+        local bidPriceCmp = bid:get(Economy.Price)
+        local bidQuantityCmp = bid:get(Economy.Quantity)
+        local bidIssuer = bid:get(Economy.Ownership):getOwner()
+        local bidItemType = bidItemTypeCmp:getItemType()
+        local bidPrice = bidPriceCmp:getPrice()
+        local bidQuantity = bidQuantityCmp:getQuantity()
 
-            local askIssuer = ask:get(Economy.Ownership):getOwner()
+        -- Skip illegal bids
+        if bidTagCmp:hasTag("Contraband") then
+            Log.Warn("[Marketplace] Skipping contraband bid by", bidIssuer:getName())
+            goto continueBid
+        end
+
+        -- Optional: Adjust bid based on HighDemand, Volatile, etc.
+        if bidTagCmp:hasTag("HighDemand") then
+            bidPrice = bidPrice * 1.2
+        elseif bidTagCmp:hasTag("LowSupply") then
+            bidPrice = bidPrice * 1.1
+        end
+
+        for ask in Iterator(asks) do
+            local askTagCmp = ask:get(Core.Tag)
             local askItemTypeCmp = ask:get(Economy.ItemType)
             local askPriceCmp = ask:get(Economy.Price)
             local askQuantityCmp = ask:get(Economy.Quantity)
-
-            local bidIssuer = bid:get(Economy.Ownership):getOwner()
-            local bidItemType = bidItemTypeCmp:getItemType()
-            local bidPrice = bidPriceCmp:getPrice()
-            local bidQuantity = bidQuantityCmp:getQuantity()
+            local askIssuer = ask:get(Economy.Ownership):getOwner()
             local askItemType = askItemTypeCmp:getItemType()
             local askPrice = askPriceCmp:getPrice()
             local askQuantity = askQuantityCmp:getQuantity()
 
-            local traderInventory = Entity(marketplace:getEntityId()):get(Economy.Inventory)
+            -- Skip illegal asks
+            if askTagCmp:hasTag("Contraband") then
+                Log.Warn("[Marketplace] Skipping contraband ask by", askIssuer:getName())
+                goto continueAsk
+            end
 
-            local askEntityParent = askIssuer:get(Core.Parent):getParent()
-            local askEntityParentInventory = askEntityParent:get(Economy.Inventory)
-
-            local bidEntityParent = bidIssuer:get(Core.Parent):getParent()
-            local bidEntityParentInventory = bidEntityParent:get(Economy.Inventory)
-
+            -- Filter by item type and trade legality
             if bidItemType == askItemType and bidPrice >= askPrice then
-                -- Log.Debug("item type matches. BidPrice >= askPrice")
+                local bidParentInv = bidIssuer:get(Core.Parent):getParent():get(Economy.Inventory)
+                local askParentInv = askIssuer:get(Core.Parent):getParent():get(Economy.Inventory)
 
-                -- todo: reserve items here, put trade into trade queue for performance control
-                -- todo: put into space station inventory
-                -- todo: verify bank account in trade
-
-                -- Calculate trade quantity
+                -- Determine trade quantity
                 local tradeQuantity = math.min(bidQuantity, askQuantity)
 
-                -- Attempt to take the required items from the inventory
-
-                local items = InventoryManager:take(askEntityParentInventory, askItemType, tradeQuantity)
-                local itemName = Items:getDefinition(askItemType).name
-                Helper.printInventoryDiff(askEntityParentInventory, itemName, tradeQuantity, true)
-
+                -- Attempt to take items from seller inventory
+                local items = InventoryManager:take(askParentInv, askItemType, tradeQuantity)
                 if items then
-                    -- Put traded items into the RECEIVING marketplace inventory (to simulate transfer)
-                    -- (Give stuff to buyer)
+                    -- Transfer to buyer
+                    InventoryManager:put(bidParentInv, items)
 
-                    InventoryManager:put(bidEntityParentInventory, items)
-                    Helper.printInventoryDiff(bidEntityParentInventory, itemName, tradeQuantity, false)
+                    Log.Debug("[Transaction] %s (%d) -> %s for price %d",
+                        Items:getDefinition(bidItemType).name, tradeQuantity,
+                        bidIssuer, bidPrice)
 
-                    Log.Debug("[Transaction] Trader 1 %s (%d) -> Trader 2 for price %d credits", Items:getDefinition(bidItemType).name,
-                        tradeQuantity,
-                        bidPrice)
-
-                    -- Update the inventory quantities
+                    -- Update quantities
                     bidQuantity = bidQuantity - tradeQuantity
                     askQuantity = askQuantity - tradeQuantity
 
-                    -- Update or remove the bid and ask orders
+                    -- Handle bid/ask removal or cloning
                     if bidQuantity == 0 then
-                        --! clone bid for testing loop
                         local clone = Registry:cloneEntity(bid)
                         clone:get(Economy.Ownership):setOwner(askIssuer)
                         marketplace:addBid(clone)
-
                         marketplace:removeBid(bid)
                         Registry:destroyEntity(bid)
+                        break
                     else
                         bidQuantityCmp:setQuantity(bidQuantity)
                     end
 
                     if askQuantity == 0 then
-                        --! clone bid for testing loop
                         local clone = Registry:cloneEntity(ask)
                         clone:get(Economy.Ownership):setOwner(bidIssuer)
                         marketplace:addAsk(clone)
-
                         marketplace:removeAsk(ask)
                         Registry:destroyEntity(ask)
                     else
                         askQuantityCmp:setQuantity(askQuantity)
                     end
                 end
-
-                break
             end
+            ::continueAsk::
         end
+        ::continueBid::
     end
 end
 
