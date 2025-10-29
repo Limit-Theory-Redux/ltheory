@@ -13,7 +13,7 @@ local seed = 1
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function SimpleTradingTest:onInit()
-    local scenario = require("Config.Gen.Scenarios.Tests.TwoAsteroids_OnePlayerShip")
+    local scenario = require("Config.Gen.Rulesets.Tests.TwoAsteroids_OnePlayerShip")
     local universe = UniverseManager:createUniverse(scenario, seed)
 
     --* temporary test of ECS UniverseManager 24.Oct.2025 @IllustrisJack

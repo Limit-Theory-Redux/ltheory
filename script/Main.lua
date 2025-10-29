@@ -37,14 +37,15 @@ function InitSystem()
 
         local configDir = io.listdir('./script/Config', true)
 
+        -- load config files
         for _, fpath in ipairs(configDir) do
             -- don´t load again
-            if fpath ~= './script/Config/App.lua' then
+            if fpath ~= './script/Config/App.lua' and not string.find(fpath, '__init__') then
                 local success, res = pcall(dofile, fpath)
 
                 if not success then
                     Log.Warn(
-                    "Config File %s could not be executed. Safe to ignore if its a static import and relies on files loaded after /Config/",
+                        "Config File %s could not be executed. Safe to ignore if its a static import and relies on files loaded after /Config/",
                         fpath)
                 end
             end
