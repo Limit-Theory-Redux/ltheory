@@ -3,10 +3,10 @@ local Component = require("Core.ECS.Component")
 ---@class TransformComponent: Component
 ---@field position Position
 ---@field rotation Quat
----@field scale number
+---@field scale gameunit
 ---@field globalPosition Position
 ---@field globalRotation Quat
----@field globalScale number
+---@field globalScale gameunit
 ---@overload fun(self:TransformComponent): TransformComponent subclass internal
 ---@overload fun(): TransformComponent subclass external
 local TransformComponent = Subclass("TransformComponent", Component, function(self)
@@ -40,12 +40,12 @@ function TransformComponent:getRotation()
     return self.rotation
 end
 
----@param scale number
+---@param scale gameunit
 function TransformComponent:setScale(scale)
     self.scale = scale
 end
 
----@return number
+---@return gameunit
 function TransformComponent:getScale()
     return self.scale
 end

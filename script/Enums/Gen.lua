@@ -7,7 +7,8 @@ Enums.Gen.Rule = {
     Fixed    = 3,
     Range    = 4,
     Weighted = 5,
-    Custom   = 6
+    ByType   = 6,
+    Custom   = 7
 }
 
 ---@enum GenCondition
@@ -22,14 +23,15 @@ Enums.Gen.Condition = {
     PlanetSize = 8,
     PlanetCount = 9,
     SystemMetallicity = 10,
+    Combined = 100
 }
 
 Enums.Gen.StarSystem = {
     ---@enum GenStarSystemStability
     Stability = {
-        Stable = 1,
-        Unstable = 2,
-        Chaotic = 3
+        Stable = "Stable",
+        Unstable = "Unstable",
+        Chaotic = "Chaotic"
     }
 }
 

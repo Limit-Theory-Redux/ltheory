@@ -2,7 +2,6 @@
 local RuleEvaluator = {}
 
 ---@type table<integer, fun(rng: RNG, rule: Rule, context: GenerationContext): any>
----@type table<integer, fun(rng: RNG, rule: Rule, context: GenerationContext): any>
 local conditionHandlers = {
     [Enums.Gen.Condition.OrbitRadius] = function(rng, rule, context)
         local orbitRadius = context:get("orbitRadius")
@@ -25,34 +24,29 @@ local conditionHandlers = {
     end,
     [Enums.Gen.Condition.PlanetType] = function(rng, rule, context)
         local planetType = context:get("planetType")
-        --Log.Debug("Evaluating PlanetType condition with planetType: %s, rule condition: %s", tostring(planetType), table.tostring(rule.condition))
         if planetType and rule.condition.types[planetType] then
             local typeConfig = rule.condition.types[planetType]
             if rule.type == Enums.Gen.Rule.Weighted then
-                local weights = typeConfig.weights or {}
-                local totalWeight = 0
-                for _, weight in pairs(weights) do
-                    totalWeight = totalWeight + weight
+                -- Check if typeConfig has weights (for asteroid rings, etc.)
+                if typeConfig.weights then
+                    -- Use the weights override with the rule's values
+                    return RuleEvaluator.evaluateWeighted(rng, rule.values, typeConfig.weights)
+                else
+                    -- No specific weights for this planet type, use defaults
+                    Log.Warn("No weights for PlanetType %s, falling back to rule.values", tostring(planetType))
+                    return RuleEvaluator.evaluateWeighted(rng, rule.values, nil)
                 end
-                if totalWeight == 0 then
-                    Log.Warn("No valid weights for PlanetType %s, falling back to rule.values", tostring(planetType))
-                    return RuleEvaluator.evaluateWeighted(rng, rule.values, rule.default)
-                end
-                local randomValue = rng:getUniformRange(0, totalWeight)
-                local cumulativeWeight = 0
-                for value, weight in pairs(weights) do
-                    cumulativeWeight = cumulativeWeight + weight
-                    if randomValue <= cumulativeWeight then
-                        return value
-                    end
-                end
+            elseif rule.type == Enums.Gen.Rule.Chance then
+                local chance = typeConfig.chance or rule.value or 0.5
+                return rng:getUniformRange(0, 1) < chance
+            elseif rule.type == Enums.Gen.Rule.Fixed then
+                return typeConfig.value
             end
-            return typeConfig.value or
-                (typeConfig.weights and next(typeConfig.weights) and typeConfig.weights[next(typeConfig.weights)].value)
         end
-        Log.Warn("PlanetType %s not found in condition, falling back to rule.values or default", tostring(planetType))
-        if rule.values and #rule.values > 0 then
-            return RuleEvaluator.evaluateWeighted(rng, rule.values, rule.default)
+        -- Planet type not found or no condition, fall back to defaults
+        Log.Debug("PlanetType %s not in condition or no planetType, using default evaluation", tostring(planetType))
+        if rule.type == Enums.Gen.Rule.Weighted and rule.values and #rule.values > 0 then
+            return RuleEvaluator.evaluateWeighted(rng, rule.values, nil)
         end
         return rule.default or nil
     end,
@@ -152,6 +146,103 @@ local conditionHandlers = {
             end
         end
         return nil
+    end,
+    [Enums.Gen.Condition.Combined] = function(rng, rule, context)
+        for _, criterion in ipairs(rule.condition.criteria) do
+            local allConditionsMet = true
+            for _, cond in ipairs(criterion.conditions) do
+                local value
+                if cond.type == Enums.Gen.Condition.SystemAge then
+                    value = context:get("systemAge")
+                    if not value or value < cond.min or value > cond.max then
+                        Log.Debug("SystemAge condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        allConditionsMet = false
+                        break
+                    end
+                elseif cond.type == Enums.Gen.Condition.StarCount then
+                    value = context:get("starCount") or 1
+                    if not value or value < cond.min or value > cond.max then
+                        Log.Debug("StarCount condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        allConditionsMet = false
+                        break
+                    end
+                elseif cond.type == Enums.Gen.Condition.SystemMetallicity then
+                    value = context:get("systemMetallicity") or 0.01
+                    if not value or value < cond.min or value > cond.max then
+                        Log.Debug("SystemMetallicity condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        allConditionsMet = false
+                        break
+                    end
+                elseif cond.type == Enums.Gen.Condition.PlanetCount then
+                    value = context:get("planetCount")
+                    if not value or value < cond.min or value > cond.max then
+                        Log.Debug("PlanetCount condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        allConditionsMet = false
+                        break
+                    end
+                elseif cond.type == Enums.Gen.Condition.OrbitRadius then
+                    value = context:get("orbitRadius")
+                    if not value or value < cond.min or value > cond.max then
+                        Log.Debug("OrbitRadius condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        allConditionsMet = false
+                        break
+                    end
+                elseif cond.type == Enums.Gen.Condition.PlanetSize then
+                    value = context:get("planetSize")
+                    if not value or value < cond.min or value > cond.max then
+                        Log.Debug("PlanetSize condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        allConditionsMet = false
+                        break
+                    end
+                elseif cond.type == Enums.Gen.Condition.StarType then
+                    value = context:get("starType")
+                    if not value or not cond.types or not cond.types[value] then
+                        Log.Debug("StarType condition failed: value=%s, expected types=%s", tostring(value), table.tostring(cond.types))
+                        allConditionsMet = false
+                        break
+                    end
+                elseif cond.type == Enums.Gen.Condition.StarMass then
+                    value = context:get("starMass")
+                    if not value or value < cond.min or value > cond.max then
+                        Log.Debug("StarMass condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        allConditionsMet = false
+                        break
+                    end
+                elseif cond.type == Enums.Gen.Condition.StarIndex then
+                    value = context:get("starIndex")
+                    if not value or value < cond.min or value > cond.max then
+                        Log.Debug("StarIndex condition failed: value=%s, min=%s, max=%s", tostring(value), cond.min, cond.max)
+                        allConditionsMet = false
+                        break
+                    end
+                elseif cond.type == Enums.Gen.Condition.PlanetType then
+                    value = context:get("planetType")
+                    if not value or not cond.types or not cond.types[value] then
+                        Log.Debug("PlanetType condition failed: value=%s, expected types=%s", tostring(value), table.tostring(cond.types))
+                        allConditionsMet = false
+                        break
+                    end
+                else
+                    Log.Warn("Unsupported condition type in Combined: %s", tostring(cond.type))
+                    allConditionsMet = false
+                    break
+                end
+            end
+            if allConditionsMet then
+                if rule.type == Enums.Gen.Rule.Weighted then
+                    return RuleEvaluator.evaluateWeighted(rng, rule.values, criterion.weights)
+                elseif rule.type == Enums.Gen.Rule.Fixed then
+                    return criterion.value
+                end
+            end
+        end
+        Log.Warn("No matching Combined condition found, falling back to default weights")
+        if rule.type == Enums.Gen.Rule.Weighted then
+            return RuleEvaluator.evaluateWeighted(rng, rule.values, nil)
+        elseif rule.type == Enums.Gen.Rule.Fixed then
+            return rule.default
+        end
+        return nil
     end
 }
 
@@ -161,7 +252,7 @@ local conditionHandlers = {
 ---@return any
 function RuleEvaluator.evaluate(rng, rule, context)
     if not rule or not rule.type then
-        Log.Error("Invalid rule")
+        Log.Error("Invalid rule %s, context: %s", table.tostring(rule), table.tostring(context))
         return nil
     end
 
@@ -194,6 +285,17 @@ function RuleEvaluator.evaluate(rng, rule, context)
         local max = rule.max or 0
         if min > max then min, max = max, min end
         return rng:getInt(min, max)
+    elseif rule.type == Enums.Gen.Rule.ByType then
+        -- ByType should use the input value itself to determine which type to pick
+        -- If 'value' exists in the rule, use it; otherwise look in context using the parent key
+        local typeValue = rule.value or context:get(rule.parentKey)
+        if not typeValue then
+            Log.Warn("ByType rule: no type value found in context for parentKey '%s'", tostring(rule.parentKey))
+            return {}
+        end
+
+        local values = rule.types[typeValue] or {}
+        return values
     elseif rule.type == Enums.Gen.Rule.Custom then
         if rule.fn then
             local ok, result = pcall(rule.fn, rng, rule, context)

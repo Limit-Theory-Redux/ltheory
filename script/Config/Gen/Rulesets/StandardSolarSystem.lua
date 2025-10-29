@@ -38,29 +38,85 @@ local Ruleset = {
             stability = {
                 type = Enums.Gen.Rule.Weighted,
                 values = {
-                    { value = Enums.Gen.StarSystem.Stability.Stable,   weight = 0.7 },
-                    { value = Enums.Gen.StarSystem.Stability.Unstable, weight = 0.2 },
-                    { value = Enums.Gen.StarSystem.Stability.Chaotic,  weight = 0.1 }
+                    { value = Enums.Gen.StarSystem.Stability.Stable },
+                    { value = Enums.Gen.StarSystem.Stability.Unstable },
+                    { value = Enums.Gen.StarSystem.Stability.Chaotic }
                 },
                 condition = {
-                    type = Enums.Gen.Condition.SystemAge,
-                    ranges = {
+                    type = Enums.Gen.Condition.Combined,
+                    criteria = {
+                        -- Young systems (0–5e9 years)
                         {
-                            min = 1e9,
-                            max = 3e9,
+                            conditions = {
+                                { type = Enums.Gen.Condition.SystemAge,         min = 0,   max = 5e9 },
+                                { type = Enums.Gen.Condition.StarCount,         min = 1,   max = 1 },
+                                { type = Enums.Gen.Condition.SystemMetallicity, min = 0.0, max = 0.1 }
+                            },
                             weights = {
-                                [Enums.Gen.StarSystem.Stability.Stable] = 0.5,
-                                [Enums.Gen.StarSystem.Stability.Unstable] = 0.3,
-                                [Enums.Gen.StarSystem.Stability.Chaotic] = 0.2
+                                [Enums.Gen.StarSystem.Stability.Stable] = 0.9,
+                                [Enums.Gen.StarSystem.Stability.Unstable] = 0.08,
+                                [Enums.Gen.StarSystem.Stability.Chaotic] = 0.02
                             }
                         },
                         {
-                            min = 3e9,
-                            max = 10e9,
+                            conditions = {
+                                { type = Enums.Gen.Condition.SystemAge,         min = 0,   max = 5e9 },
+                                { type = Enums.Gen.Condition.StarCount,         min = 2,   max = 2 },
+                                { type = Enums.Gen.Condition.SystemMetallicity, min = 0.0, max = 0.1 }
+                            },
                             weights = {
-                                [Enums.Gen.StarSystem.Stability.Stable] = 0.8,
-                                [Enums.Gen.StarSystem.Stability.Unstable] = 0.15,
-                                [Enums.Gen.StarSystem.Stability.Chaotic] = 0.05
+                                [Enums.Gen.StarSystem.Stability.Stable] = 0.6,
+                                [Enums.Gen.StarSystem.Stability.Unstable] = 0.3,
+                                [Enums.Gen.StarSystem.Stability.Chaotic] = 0.1
+                            }
+                        },
+                        {
+                            conditions = {
+                                { type = Enums.Gen.Condition.SystemAge,         min = 0,   max = 5e9 },
+                                { type = Enums.Gen.Condition.StarCount,         min = 3,   max = 3 },
+                                { type = Enums.Gen.Condition.SystemMetallicity, min = 0.0, max = 0.1 }
+                            },
+                            weights = {
+                                [Enums.Gen.StarSystem.Stability.Stable] = 0.0,
+                                [Enums.Gen.StarSystem.Stability.Unstable] = 0.0,
+                                [Enums.Gen.StarSystem.Stability.Chaotic] = 1.0
+                            }
+                        },
+                        -- Older systems (5e9–13.8e9 years)
+                        {
+                            conditions = {
+                                { type = Enums.Gen.Condition.SystemAge,         min = 5e9, max = 13.8e9 },
+                                { type = Enums.Gen.Condition.StarCount,         min = 1,   max = 1 },
+                                { type = Enums.Gen.Condition.SystemMetallicity, min = 0.0, max = 0.1 }
+                            },
+                            weights = {
+                                [Enums.Gen.StarSystem.Stability.Stable] = 0.95,
+                                [Enums.Gen.StarSystem.Stability.Unstable] = 0.04,
+                                [Enums.Gen.StarSystem.Stability.Chaotic] = 0.01
+                            }
+                        },
+                        {
+                            conditions = {
+                                { type = Enums.Gen.Condition.SystemAge,         min = 5e9, max = 13.8e9 },
+                                { type = Enums.Gen.Condition.StarCount,         min = 2,   max = 2 },
+                                { type = Enums.Gen.Condition.SystemMetallicity, min = 0.0, max = 0.1 }
+                            },
+                            weights = {
+                                [Enums.Gen.StarSystem.Stability.Stable] = 0.7,
+                                [Enums.Gen.StarSystem.Stability.Unstable] = 0.2,
+                                [Enums.Gen.StarSystem.Stability.Chaotic] = 0.1
+                            }
+                        },
+                        {
+                            conditions = {
+                                { type = Enums.Gen.Condition.SystemAge,         min = 5e9, max = 13.8e9 },
+                                { type = Enums.Gen.Condition.StarCount,         min = 3,   max = 3 },
+                                { type = Enums.Gen.Condition.SystemMetallicity, min = 0.0, max = 0.1 }
+                            },
+                            weights = {
+                                [Enums.Gen.StarSystem.Stability.Stable] = 0.0,
+                                [Enums.Gen.StarSystem.Stability.Unstable] = 0.0,
+                                [Enums.Gen.StarSystem.Stability.Chaotic] = 1.0
                             }
                         }
                     }
@@ -119,7 +175,7 @@ local Ruleset = {
         count = {
             type = Enums.Gen.Rule.Weighted,
             values = {
-                { value = 1,  weight = 0.05 }, -- Minimum 1 planet
+                { value = 1,  weight = 0.05 },
                 { value = 2,  weight = 0.05 },
                 { value = 3,  weight = 0.05 },
                 { value = 4,  weight = 0.1 },
@@ -135,19 +191,6 @@ local Ruleset = {
         },
         aspects = {
             orbitRadius = { type = Enums.Gen.Rule.Range, min = 0.1, max = 10.0 },
-            size = {
-                type = Enums.Gen.Rule.Range,
-                min = 0.5,
-                max = 10.0,
-                condition = {
-                    type = Enums.Gen.Condition.OrbitRadius,
-                    ranges = {
-                        { min = 0.1, max = 0.7,  minSize = 0.5, maxSize = 2.0 },
-                        { min = 0.7, max = 2.0,  minSize = 1.0, maxSize = 5.0 },
-                        { min = 2.0, max = 10.0, minSize = 5.0, maxSize = 10.0 }
-                    }
-                }
-            },
             type = {
                 type = Enums.Gen.Rule.Weighted,
                 values = {
@@ -195,36 +238,6 @@ local Ruleset = {
                     types = {
                         [Enums.Gen.PlanetTypes.Rocky] = { chance = 0.7 },
                         [Enums.Gen.PlanetTypes.GasGiant] = { chance = 0.9 },
-                        [Enums.Gen.PlanetTypes.Icy] = { chance = 0.5 },
-                        [Enums.Gen.PlanetTypes.Desert] = { chance = 0.0 }
-                    }
-                },
-                default = false
-            },
-            asteroidRing = {
-                type = Enums.Gen.Rule.Weighted,
-                values = {
-                    { value = Enums.Gen.AsteroidRingTypes.None,  weight = 0.7 },
-                    { value = Enums.Gen.AsteroidRingTypes.Rocky, weight = 0.2 },
-                    { value = Enums.Gen.AsteroidRingTypes.Icy,   weight = 0.1 }
-                },
-                condition = {
-                    type = Enums.Gen.Condition.PlanetType,
-                    types = {
-                        [Enums.Gen.PlanetTypes.GasGiant] = {
-                            weights = {
-                                [Enums.Gen.AsteroidRingTypes.None] = 0.4,
-                                [Enums.Gen.AsteroidRingTypes.Rocky] = 0.3,
-                                [Enums.Gen.AsteroidRingTypes.Icy] = 0.3
-                            }
-                        },
-                        [Enums.Gen.PlanetTypes.Rocky] = {
-                            weights = {
-                                [Enums.Gen.AsteroidRingTypes.None] = 0.9,
-                                [Enums.Gen.AsteroidRingTypes.Rocky] = 0.08,
-                                [Enums.Gen.AsteroidRingTypes.Icy] = 0.02
-                            }
-                        },
                         [Enums.Gen.PlanetTypes.Icy] = {
                             weights = {
                                 [Enums.Gen.AsteroidRingTypes.None] = 0.7,
@@ -241,59 +254,25 @@ local Ruleset = {
                     }
                 }
             },
-            temperature = {
+            -- New orbital parameters for 3D positioning
+            longitudeOfAscendingNode = {
                 type = Enums.Gen.Rule.Range,
-                min = 100,
-                max = 500,
-                condition = {
-                    type = Enums.Gen.Condition.OrbitRadius,
-                    ranges = {
-                        { min = 0.1, max = 0.7,  minTemp = 300, maxTemp = 500 },
-                        { min = 0.7, max = 2.0,  minTemp = 200, maxTemp = 350 },
-                        { min = 2.0, max = 10.0, minTemp = 100, maxTemp = 200 }
-                    }
-                }
+                min = 0,
+                max = 360,
+                default = 0
             },
-            gravity = {
+            argumentOfPeriapsis = {
                 type = Enums.Gen.Rule.Range,
-                min = 0.1,
-                max = 2.5,
-                condition = {
-                    type = Enums.Gen.Condition.PlanetSize,
-                    ranges = {
-                        { min = 0.5, max = 2.0,  minGravity = 0.1, maxGravity = 0.8 },
-                        { min = 2.0, max = 5.0,  minGravity = 0.8, maxGravity = 1.5 },
-                        { min = 5.0, max = 10.0, minGravity = 1.5, maxGravity = 2.5 }
-                    }
-                }
+                min = 0,
+                max = 360,
+                default = 0
             },
-            rotationPeriod = {
+            meanAnomaly = {
                 type = Enums.Gen.Rule.Range,
-                min = 8,
-                max = 100,
-                condition = {
-                    type = Enums.Gen.Condition.PlanetType,
-                    types = {
-                        [Enums.Gen.PlanetTypes.Rocky] = { min = 8, max = 30 },
-                        [Enums.Gen.PlanetTypes.GasGiant] = { min = 10, max = 20 },
-                        [Enums.Gen.PlanetTypes.Icy] = { min = 20, max = 50 },
-                        [Enums.Gen.PlanetTypes.Desert] = { min = 15, max = 40 }
-                    }
-                }
-            },
-            eccentricity = { type = Enums.Gen.Rule.Range, min = 0.0, max = 0.2, default = 0.0167 },
-            magneticField = {
-                type = Enums.Gen.Rule.Chance,
-                value = 0.5,
-                condition = {
-                    type = Enums.Gen.Condition.PlanetType,
-                    types = {
-                        [Enums.Gen.PlanetTypes.Rocky] = {},
-                        [Enums.Gen.PlanetTypes.GasGiant] = {}
-                    }
-                }
-            },
-            inclination = { type = Enums.Gen.Rule.Range, min = 0.0, max = 10.0, default = 0.0 }
+                min = 0,
+                max = 360,
+                default = 0
+            }
         }
     },
     moons = {
@@ -304,20 +283,6 @@ local Ruleset = {
             condition = { type = Enums.Gen.Condition.PlanetCount, ranges = { { min = 0, max = 4 }, { min = 5, max = 8 }, { min = 9, max = 12 } } }
         },
         aspects = {
-            size = {
-                type = Enums.Gen.Rule.Range,
-                min = 0.05,
-                max = 0.5,
-                condition = {
-                    type = Enums.Gen.Condition.PlanetType,
-                    types = {
-                        [Enums.Gen.PlanetTypes.GasGiant] = { min = 0.1, max = 0.5 },
-                        [Enums.Gen.PlanetTypes.Rocky] = { min = 0.05, max = 0.2 },
-                        [Enums.Gen.PlanetTypes.Icy] = { min = 0.05, max = 0.3 },
-                        [Enums.Gen.PlanetTypes.Desert] = { min = 0.05, max = 0.15 }
-                    }
-                }
-            },
             type = {
                 type = Enums.Gen.Rule.Weighted,
                 values = {
@@ -354,265 +319,236 @@ local Ruleset = {
                     }
                 }
             },
-            orbitalDistance = {
+            orbitalRadius = {
                 type = Enums.Gen.Rule.Range,
                 min = 1e5,
                 max = 1e6,
-                condition = {
-                    type = Enums.Gen.Condition.OrbitRadius,
-                    ranges = {
-                        { min = 0.5, max = 2.0,  minDistance = 1e5, maxDistance = 3e5 },
-                        { min = 2.0, max = 5.0,  minDistance = 2e5, maxDistance = 6e5 },
-                        { min = 5.0, max = 10.0, minDistance = 4e5, maxDistance = 1e6 }
-                    }
-                }
             },
-            inclination = { type = Enums.Gen.Rule.Range, min = 0.0, max = 5.0, default = 0.0 }
+            inclination = { type = Enums.Gen.Rule.Range, min = 0.0, max = 5.0, default = 0.0 },
+            longitudeOfAscendingNode = {
+                type = Enums.Gen.Rule.Range,
+                min = 0,
+                max = 360,
+                default = 0
+            },
+            argumentOfPeriapsis = {
+                type = Enums.Gen.Rule.Range,
+                min = 0,
+                max = 360,
+                default = 0
+            },
+            meanAnomaly = {
+                type = Enums.Gen.Rule.Range,
+                min = 0,
+                max = 360,
+                default = 0
+            }
         }
     },
     asteroidRings = {
         count = { type = Enums.Gen.Rule.Chance, value = 0.3 },
         aspects = {
-            composition = {
+            type = {
                 type = Enums.Gen.Rule.Weighted,
                 values = {
-                    {
-                        value = {
-                            type = Enums.Gen.AsteroidRingTypes.Rocky,
-                            items = {
-                                { id = Items.RawMaterials.SilicateOre.id,  weight = 0.5 },
-                                { id = Items.RawMaterials.IronOre.id,      weight = 0.3 },
-                                { id = Items.RawMaterials.AluminumOre.id,  weight = 0.15 },
-                                { id = Items.RawMaterials.BerylliumOre.id, weight = 0.05 }
-                            }
-                        },
-                        weight = 0.4
-                    },
-                    {
-                        value = {
-                            type = Enums.Gen.AsteroidRingTypes.Icy,
-                            items = {
-                                { id = Items.Consumables.WaterIce.id,     weight = 0.6 },
-                                { id = Items.RawMaterials.SilicateOre.id, weight = 0.2 },
-                                { id = Items.Gases.Hydrogen.id,           weight = 0.1 },
-                                { id = Items.Gases.Helium.id,             weight = 0.05 },
-                                { id = Items.Gases.Nitrogen.id,           weight = 0.03 },
-                                { id = Items.Gases.Oxygen.id,             weight = 0.02 }
-                            }
-                        },
-                        weight = 0.6
-                    }
+                    { value = Enums.Gen.AsteroidRingTypes.Rocky, weight = 0.5 },
+                    { value = Enums.Gen.AsteroidRingTypes.Icy,   weight = 0.5 }
                 },
                 condition = {
-                    type = Enums.Gen.Condition.SystemMetallicity,
-                    ranges = {
+                    type = Enums.Gen.Condition.Combined,
+                    criteria = {
+                        -- Close-in orbit: mostly Rocky
                         {
-                            min = 0.01,
-                            max = 0.02,
+                            conditions = { { type = Enums.Gen.Condition.OrbitRadius, min = 0.1, max = 2.0 } },
                             weights = {
-                                [Enums.Gen.AsteroidRingTypes.Rocky] = 0.6,
-                                [Enums.Gen.AsteroidRingTypes.Icy] = 0.4
-                            },
-                            itemWeights = {
-                                [Enums.Gen.AsteroidRingTypes.Rocky] = {
-                                    [Items.RawMaterials.SilicateOre.id] = 0.8,
-                                    [Items.RawMaterials.IronOre.id] = 0.15,
-                                    [Items.RawMaterials.AluminumOre.id] = 0.04,
-                                    [Items.RawMaterials.BerylliumOre.id] = 0.01
-                                },
-                                [Enums.Gen.AsteroidRingTypes.Icy] = {
-                                    [Items.Consumables.WaterIce.id] = 0.7,
-                                    [Items.RawMaterials.SilicateOre.id] = 0.15,
-                                    [Items.Gases.Hydrogen.id] = 0.07,
-                                    [Items.Gases.Helium.id] = 0.05,
-                                    [Items.Gases.Nitrogen.id] = 0.02,
-                                    [Items.Gases.Oxygen.id] = 0.01
-                                }
+                                [Enums.Gen.AsteroidRingTypes.Rocky] = 0.8,
+                                [Enums.Gen.AsteroidRingTypes.Icy]   = 0.2
                             }
                         },
+                        -- Far orbit: mostly Icy
                         {
-                            min = 0.02,
-                            max = 0.04,
+                            conditions = { { type = Enums.Gen.Condition.OrbitRadius, min = 2.0, max = 10.0 } },
+                            weights = {
+                                [Enums.Gen.AsteroidRingTypes.Rocky] = 0.2,
+                                [Enums.Gen.AsteroidRingTypes.Icy]   = 0.8
+                            }
+                        },
+                        -- Young systems: slightly more Rocky
+                        {
+                            conditions = { { type = Enums.Gen.Condition.SystemAge, min = 0, max = 3e9 } },
+                            weights = {
+                                [Enums.Gen.AsteroidRingTypes.Rocky] = 0.6,
+                                [Enums.Gen.AsteroidRingTypes.Icy]   = 0.4
+                            }
+                        },
+                        -- Gas giant host planets: more icy debris
+                        {
+                            conditions = { { type = Enums.Gen.Condition.PlanetType, types = { [Enums.Gen.PlanetTypes.GasGiant] = true } } },
                             weights = {
                                 [Enums.Gen.AsteroidRingTypes.Rocky] = 0.3,
-                                [Enums.Gen.AsteroidRingTypes.Icy] = 0.7
-                            },
-                            itemWeights = {
-                                [Enums.Gen.AsteroidRingTypes.Rocky] = {
-                                    [Items.RawMaterials.SilicateOre.id] = 0.5,
-                                    [Items.RawMaterials.IronOre.id] = 0.3,
-                                    [Items.RawMaterials.AluminumOre.id] = 0.15,
-                                    [Items.RawMaterials.BerylliumOre.id] = 0.05
-                                },
-                                [Enums.Gen.AsteroidRingTypes.Icy] = {
-                                    [Items.Consumables.WaterIce.id] = 0.6,
-                                    [Items.RawMaterials.SilicateOre.id] = 0.2,
-                                    [Items.Gases.Hydrogen.id] = 0.1,
-                                    [Items.Gases.Helium.id] = 0.05,
-                                    [Items.Gases.Nitrogen.id] = 0.03,
-                                    [Items.Gases.Oxygen.id] = 0.02
-                                }
+                                [Enums.Gen.AsteroidRingTypes.Icy]   = 0.7
                             }
                         }
                     }
                 }
             },
-            thickness = {
+            density = {
                 type = Enums.Gen.Rule.Range,
-                min = 10,
-                max = 1000,
-                condition = {
-                    type = Enums.Gen.Condition.PlanetType,
-                    types = {
-                        [Enums.Gen.PlanetTypes.GasGiant] = { min = 100, max = 1000 },
-                        [Enums.Gen.PlanetTypes.Rocky] = { min = 10, max = 200 },
-                        [Enums.Gen.PlanetTypes.Icy] = { min = 50, max = 500 },
-                        [Enums.Gen.PlanetTypes.Desert] = { min = 10, max = 100 }
+                min = 0.2,
+                max = 1.0,
+                default = 0.5
+            },
+            width = {
+                type = Enums.Gen.Rule.Range,
+                min = 0.05,
+                max = 0.5,
+                default = 0.1
+            },
+            composition = {
+                type = Enums.Gen.Rule.ByType,
+                types = {
+                    [Enums.Gen.AsteroidRingTypes.Rocky] = {
+                        { id = Items.RawMaterials.SilicateOre.id,  weight = 0.5 },
+                        { id = Items.RawMaterials.IronOre.id,      weight = 0.3 },
+                        { id = Items.RawMaterials.AluminumOre.id,  weight = 0.15 },
+                        { id = Items.RawMaterials.BerylliumOre.id, weight = 0.05 }
+                    },
+                    [Enums.Gen.AsteroidRingTypes.Icy] = {
+                        { id = Items.Consumables.WaterIce.id,     weight = 0.6 },
+                        { id = Items.RawMaterials.SilicateOre.id, weight = 0.2 },
+                        { id = Items.Gases.Hydrogen.id,           weight = 0.1 },
+                        { id = Items.Gases.Helium.id,             weight = 0.05 },
+                        { id = Items.Gases.Nitrogen.id,           weight = 0.03 },
+                        { id = Items.Gases.Oxygen.id,             weight = 0.02 }
                     }
                 }
             }
         }
     },
     asteroidBelts = {
-        count = { type = Enums.Gen.Rule.Chance, value = 0.7 },
+        count = { type = Enums.Gen.Rule.Chance, value = 0.6 },
         aspects = {
-            density = {
+            orbitRadius = {
                 type = Enums.Gen.Rule.Range,
-                min = 0.1,
-                max = 1.0,
                 condition = {
-                    type = Enums.Gen.Condition.OrbitRadius,
-                    ranges = {
-                        { min = 0.1, max = 2.0,  minDensity = 0.3, maxDensity = 1.0 },
-                        { min = 2.0, max = 10.0, minDensity = 0.1, maxDensity = 0.5 }
+                    type = Enums.Gen.Condition.Combined,
+                    criteria = {
+                        -- Inner belts around Sun-like stars
+                        {
+                            conditions = {
+                                {
+                                    type = Enums.Gen.Condition.StarType,
+                                    types = {
+                                        [Enums.Gen.StarTypes.MainSequence] = true
+                                    }
+                                }
+                            },
+                            min = 1.0,
+                            max = 3.5
+                        },
+                        -- Outer belts around Sun-like stars
+                        {
+                            conditions = {
+                                {
+                                    type = Enums.Gen.Condition.StarType,
+                                    types = {
+                                        [Enums.Gen.StarTypes.MainSequence] = true }
+                                }
+                            },
+                            min = 3.5,
+                            max = 15.0
+                        },
+                        -- For very young systems, belts are more compact
+                        {
+                            conditions = {
+                                { type = Enums.Gen.Condition.SystemAge, min = 0, max = 1e9
+                                }
+                            },
+                            min = 0.5,
+                            max = 5.0
+                        },
+                        -- Around giant stars, belts are pushed outward
+                        {
+                            conditions = {
+                                {
+                                    type = Enums.Gen.Condition.StarType,
+                                    types = {
+                                        [Enums.Gen.StarTypes.RedGiant] = true }
+                                }
+                            },
+                            min = 5.0,
+                            max = 15.0
+                        }
                     }
                 }
             },
-            composition = {
+            type = {
                 type = Enums.Gen.Rule.Weighted,
                 values = {
-                    {
-                        value = {
-                            type = Enums.Gen.AsteroidBeltTypes.Rocky,
-                            items = {
-                                { id = Items.RawMaterials.SilicateOre.id,  weight = 0.5 },
-                                { id = Items.RawMaterials.IronOre.id,      weight = 0.3 },
-                                { id = Items.RawMaterials.AluminumOre.id,  weight = 0.15 },
-                                { id = Items.RawMaterials.BerylliumOre.id, weight = 0.05 }
-                            }
-                        },
-                        weight = 0.7
-                    },
-                    {
-                        value = {
-                            type = Enums.Gen.AsteroidBeltTypes.Metallic,
-                            items = {
-                                { id = Items.RawMaterials.IronOre.id,              weight = 0.4 },
-                                { id = Items.RawMaterials.CopperOre.id,            weight = 0.3 },
-                                { id = Items.RawMaterials.AluminumOre.id,          weight = 0.15 },
-                                { id = Items.RawMaterials.BerylliumOre.id,         weight = 0.1 },
-                                { id = Items.RawMaterials.ThoriumOre.id,           weight = 0.03 },
-                                { id = Items.Miscellaneous.RadioactiveIsotopes.id, weight = 0.02 }
-                            }
-                        },
-                        weight = 0.2
-                    },
-                    {
-                        value = {
-                            type = Enums.Gen.AsteroidBeltTypes.Icy,
-                            items = {
-                                { id = Items.Consumables.WaterIce.id,     weight = 0.6 },
-                                { id = Items.RawMaterials.SilicateOre.id, weight = 0.2 },
-                                { id = Items.Gases.Hydrogen.id,           weight = 0.1 },
-                                { id = Items.Gases.Helium.id,             weight = 0.05 },
-                                { id = Items.Gases.Nitrogen.id,           weight = 0.03 },
-                                { id = Items.Gases.Oxygen.id,             weight = 0.02 }
-                            }
-                        },
-                        weight = 0.1
-                    }
+                    { value = Enums.Gen.AsteroidRingTypes.Rocky, weight = 0.4 },
+                    { value = Enums.Gen.AsteroidRingTypes.Icy,   weight = 0.6 }
                 },
                 condition = {
-                    type = Enums.Gen.Condition.SystemMetallicity,
-                    ranges = {
+                    type = Enums.Gen.Condition.Combined,
+                    criteria = {
+                        -- Close orbit: rocky
                         {
-                            min = 0.01,
-                            max = 0.02,
+                            conditions = { { type = Enums.Gen.Condition.OrbitRadius, min = 0.5, max = 3.0 } },
                             weights = {
-                                [Enums.Gen.AsteroidBeltTypes.Rocky] = 0.8,
-                                [Enums.Gen.AsteroidBeltTypes.Metallic] = 0.1,
-                                [Enums.Gen.AsteroidBeltTypes.Icy] = 0.1
-                            },
-                            itemWeights = {
-                                [Enums.Gen.AsteroidBeltTypes.Rocky] = {
-                                    [Items.RawMaterials.SilicateOre.id] = 0.8,
-                                    [Items.RawMaterials.IronOre.id] = 0.15,
-                                    [Items.RawMaterials.AluminumOre.id] = 0.04,
-                                    [Items.RawMaterials.BerylliumOre.id] = 0.01
-                                },
-                                [Enums.Gen.AsteroidBeltTypes.Metallic] = {
-                                    [Items.RawMaterials.IronOre.id] = 0.5,
-                                    [Items.RawMaterials.CopperOre.id] = 0.2,
-                                    [Items.RawMaterials.AluminumOre.id] = 0.15,
-                                    [Items.RawMaterials.BerylliumOre.id] = 0.1,
-                                    [Items.RawMaterials.ThoriumOre.id] = 0.03,
-                                    [Items.Miscellaneous.RadioactiveIsotopes.id] = 0.02
-                                },
-                                [Enums.Gen.AsteroidBeltTypes.Icy] = {
-                                    [Items.Consumables.WaterIce.id] = 0.7,
-                                    [Items.RawMaterials.SilicateOre.id] = 0.15,
-                                    [Items.Gases.Hydrogen.id] = 0.07,
-                                    [Items.Gases.Helium.id] = 0.05,
-                                    [Items.Gases.Nitrogen.id] = 0.02,
-                                    [Items.Gases.Oxygen.id] = 0.01
-                                }
+                                [Enums.Gen.AsteroidRingTypes.Rocky] = 0.7,
+                                [Enums.Gen.AsteroidRingTypes.Icy]   = 0.3
                             }
                         },
+                        -- Outer orbit: icy
                         {
-                            min = 0.02,
-                            max = 0.04,
+                            conditions = { { type = Enums.Gen.Condition.OrbitRadius, min = 3.0, max = 15.0 } },
                             weights = {
-                                [Enums.Gen.AsteroidBeltTypes.Rocky] = 0.5,
-                                [Enums.Gen.AsteroidBeltTypes.Metallic] = 0.4,
-                                [Enums.Gen.AsteroidBeltTypes.Icy] = 0.1
-                            },
-                            itemWeights = {
-                                [Enums.Gen.AsteroidBeltTypes.Rocky] = {
-                                    [Items.RawMaterials.SilicateOre.id] = 0.5,
-                                    [Items.RawMaterials.IronOre.id] = 0.3,
-                                    [Items.RawMaterials.AluminumOre.id] = 0.15,
-                                    [Items.RawMaterials.BerylliumOre.id] = 0.05
-                                },
-                                [Enums.Gen.AsteroidBeltTypes.Metallic] = {
-                                    [Items.RawMaterials.IronOre.id] = 0.3,
-                                    [Items.RawMaterials.CopperOre.id] = 0.3,
-                                    [Items.RawMaterials.AluminumOre.id] = 0.2,
-                                    [Items.RawMaterials.BerylliumOre.id] = 0.1,
-                                    [Items.RawMaterials.ThoriumOre.id] = 0.05,
-                                    [Items.Miscellaneous.RadioactiveIsotopes.id] = 0.05
-                                },
-                                [Enums.Gen.AsteroidBeltTypes.Icy] = {
-                                    [Items.Consumables.WaterIce.id] = 0.6,
-                                    [Items.RawMaterials.SilicateOre.id] = 0.2,
-                                    [Items.Gases.Hydrogen.id] = 0.1,
-                                    [Items.Gases.Helium.id] = 0.05,
-                                    [Items.Gases.Nitrogen.id] = 0.03,
-                                    [Items.Gases.Oxygen.id] = 0.02
-                                }
+                                [Enums.Gen.AsteroidRingTypes.Rocky] = 0.2,
+                                [Enums.Gen.AsteroidRingTypes.Icy]   = 0.8
+                            }
+                        },
+                        -- Young systems: more rocky
+                        {
+                            conditions = { { type = Enums.Gen.Condition.SystemAge, min = 0, max = 2e9 } },
+                            weights = {
+                                [Enums.Gen.AsteroidRingTypes.Rocky] = 0.6,
+                                [Enums.Gen.AsteroidRingTypes.Icy]   = 0.4
                             }
                         }
                     }
                 }
             },
+            density = {
+                type = Enums.Gen.Rule.Range,
+                min = 0.1,
+                max = 1.0,
+                default = 0.5
+            },
             width = {
                 type = Enums.Gen.Rule.Range,
-                min = 1e7,
-                max = 1e8,
-                condition = {
-                    type = Enums.Gen.Condition.OrbitRadius,
-                    ranges = {
-                        { min = 0.1, max = 2.0,  minWidth = 1e7, maxWidth = 5e7 },
-                        { min = 2.0, max = 10.0, minWidth = 3e7, maxWidth = 1e8 }
+                min = 0.5,
+                max = 5.0,
+                default = 1.0
+            },
+            inclination = {
+                type = Enums.Gen.Rule.Range,
+                min = 0,
+                max = 15,
+                default = 5
+            },
+            composition = {
+                type = Enums.Gen.Rule.ByType,
+                types = {
+                    [Enums.Gen.AsteroidRingTypes.Rocky] = {
+                        { id = Items.RawMaterials.SilicateOre.id, weight = 0.5 },
+                        { id = Items.RawMaterials.IronOre.id,     weight = 0.4 },
+                        --{ id = Items.RawMaterials.NickelOre.id,   weight = 0.1 }
+                    },
+                    [Enums.Gen.AsteroidRingTypes.Icy] = {
+                        { id = Items.Consumables.WaterIce.id,     weight = 0.7 },
+                        { id = Items.Gases.Hydrogen.id,           weight = 0.15 },
+                        { id = Items.Gases.Helium.id,             weight = 0.1 },
+                        { id = Items.RawMaterials.SilicateOre.id, weight = 0.05 }
                     }
                 }
             }

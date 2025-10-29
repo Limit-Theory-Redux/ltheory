@@ -54,7 +54,7 @@ return {
 
 ---@class MoonRules
 ---@field count Rule
----@field aspects { size: Rule, type: Rule, orbitalDistance: Rule, inclination: Rule }
+---@field aspects { size: Rule, type: Rule, orbitalRadius: Rule, inclination: Rule }
 
 ---@class RingRules
 ---@field count Rule

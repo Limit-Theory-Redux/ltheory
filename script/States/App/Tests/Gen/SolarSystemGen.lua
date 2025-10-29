@@ -15,6 +15,8 @@ require("Shared.Definitions.ItemDefs")
 
 local Rulesets = require("Config.Gen.Rulesets")
 
+local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
+
 local seed = 1
 
 -- Helper function to extract entity class from tostring(entity)
@@ -25,8 +27,6 @@ end
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function SolarSystemGenTest:onInit()
-    --self.profiler:start()
-
     local rulesets = {
         { name = "StandardSolarSystem",        ruleset = Rulesets.StandardSolarSystem,        seed = 1 },
         { name = "StandardBinarySolarSystem",  ruleset = Rulesets.StandardBinarySolarSystem,  seed = 1 },
@@ -38,6 +38,7 @@ function SolarSystemGenTest:onInit()
         local success, universe = pcall(function()
             return UniverseManager:createUniverse(test.ruleset, test.seed)
         end)
+
         if not success then
             Log.Error("Failed to create universe with %s: %s", test.name, tostring(universe))
         elseif universe then
@@ -48,11 +49,10 @@ function SolarSystemGenTest:onInit()
         end
     end
 
-    --self.profiler:stop()
     self:quit()
 end
 
---- Recursively processes an entity and its children, logging relevant properties with tree representation
+--- Recursively processes an entity and its children, logging relevant properties
 ---@param entity Entity The entity to process
 ---@param prefix string The prefix for tree visualization
 ---@param isLast boolean Whether this entity is the last child at its level
@@ -60,93 +60,138 @@ function SolarSystemGenTest:processEntityHierarchy(entity, prefix, isLast)
     local linePrefix = prefix .. (isLast and "└── " or "├── ")
     local propPrefix = prefix .. (isLast and "    " or "│   ")
 
-    local typeComp = entity:get(CoreComponents.Type)
-    local entityClass = getEntityClass(entity) -- e.g., "Universe", "Planet"
-    local subtype = typeComp and typeComp:getSubtype() or "No Subtype"
+    local typeCmp = entity:get(CoreComponents.Type)
+    local entityClass = getEntityClass(entity)
+    local subtype = typeCmp and typeCmp:getSubtype() or "No Subtype"
 
     Log.Info("%sEntity: %s (%s)", linePrefix, entityClass, subtype)
 
-    local transform = entity:get(PhysicsComponents.Transform)
-    local position = transform and transform:getPosition() or { x = 0, y = 0, z = 0 }
-    Log.Info("%sPosition: (%s, %s, %s)", propPrefix, position.x, position.y, position.z)
+    local transformCmp = entity:get(PhysicsComponents.Transform)
+    local position = transformCmp and transformCmp:getPosition() or { x = 0, y = 0, z = 0 }
+    local scale = transformCmp and transformCmp:getScale() or 1
 
-    if entityClass == "Universe" then
-        -- Universe has no additional properties
-    elseif entityClass == "StarSystem" then
-        local age = entity:get(CelestialComponents.Age)
-        local metallicity = entity:get(CelestialComponents.Metallicity)
-        local stability = entity:get(CelestialComponents.Stability)
-        local stabilityEnum = stability and Enums.Gen.StarSystem.Stability[stability:getStability()] or "N/A"
-        Log.Info("%sType: %s", propPrefix, subtype) -- Explicitly log StarSystemType
-        Log.Info("%sAge: %s years", propPrefix, age and age:getAge() or "N/A")
-        Log.Info("%sMetallicity: %s", propPrefix, metallicity and metallicity:getMetallicity() or "N/A")
-        Log.Info("%sStability: %s (Value: %d)", propPrefix, stabilityEnum, stability and stability:getStability() or 0)
-    elseif entityClass == "Star" then
-        local mass = entity:get(PhysicsComponents.Mass)
-        local luminosity = entity:get(CelestialComponents.Luminosity)
-        Log.Info("%sMass: %s solar masses", propPrefix, mass and mass:getMass() or "N/A")
-        Log.Info("%sLuminosity: %s solar luminosities", propPrefix, luminosity and luminosity:getLuminosity() or "N/A")
-    elseif entityClass == "Planet" then
-        local orbit = entity:get(SpatialComponents.Orbit)
-        local atmosphere = entity:get(CelestialComponents.Atmosphere)
-        local temperature = entity:get(CelestialComponents.Temperature)
-        local gravity = entity:get(CelestialComponents.Gravity)
-        local rotation = entity:get(CelestialComponents.RotationPeriod)
-        local eccentricity = entity:get(CelestialComponents.Eccentricity)
-        local magneticField = entity:get(CelestialComponents.MagneticField)
-        local inclination = entity:get(CelestialComponents.Inclination)
-        Log.Info("%sSize: %s Earth radii", propPrefix, transform and transform:getScale() or "N/A")
-        Log.Info("%sOrbit Radius: %s AU", propPrefix, orbit and orbit:getOrbitRadius() or "N/A")
-        Log.Info("%sAtmosphere: %s", propPrefix, atmosphere and "Present" or "None")
-        Log.Info("%sTemperature: %s K", propPrefix, temperature and temperature:getTemperature() or "N/A")
-        Log.Info("%sGravity: %s g", propPrefix, gravity and gravity:getGravity() or "N/A")
-        Log.Info("%sRotation Period: %s hours", propPrefix, rotation and rotation:getRotationPeriod() or "N/A")
-        Log.Info("%sEccentricity: %s", propPrefix, eccentricity and eccentricity:getEccentricity() or "N/A")
-        Log.Info("%sMagnetic Field: %s", propPrefix, magneticField and "Present" or "None")
-        Log.Info("%sInclination: %s degrees", propPrefix, inclination and inclination:getInclination() or "N/A")
-    elseif entityClass == "Moon" then
-        local orbit = entity:get(SpatialComponents.Orbit)
-        local inclination = entity:get(CelestialComponents.Inclination)
-        Log.Info("%sSize: %s Earth radii", propPrefix, transform and transform:getScale() or "N/A")
-        Log.Info("%sOrbital Distance: %s km", propPrefix, orbit and orbit:getOrbitRadius() or "N/A")
-        Log.Info("%sInclination: %s degrees", propPrefix, inclination and inclination:getInclination() or "N/A")
-    elseif entityClass == "AsteroidRing" then
-        local composition = entity:get(CelestialComponents.Composition)
-        local thickness = entity:get(CelestialComponents.Thickness)
-        Log.Info("%sComposition: %s", propPrefix, composition and composition:getComposition() or "N/A")
-        Log.Info("%sThickness: %s meters", propPrefix, thickness and thickness:getThickness() or "N/A")
-    elseif entityClass == "AsteroidBelt" then
-        local density = entity:get(CelestialComponents.Density)
-        local composition = entity:get(CelestialComponents.Composition)
-        local width = entity:get(SpatialComponents.Width)
-        local orbit = entity:get(SpatialComponents.Orbit)
-        Log.Info("%sDensity: %s", propPrefix, density and density:getDensity() or "N/A")
-        Log.Info("%sComposition: %s", propPrefix, composition and composition:getComposition() or "N/A")
-        Log.Info("%sWidth: %s km", propPrefix, width and width:getWidth() or "N/A")
-        Log.Info("%sOrbit Radius: %s AU", propPrefix, orbit and orbit:getOrbitRadius() or "N/A")
-    elseif entityClass == "Asteroid" then
-        local itemCmp = entity:get(EconomyComponents.Item)
-        local quantityCmp = entity:get(EconomyComponents.Quantity)
-        if itemCmp and quantityCmp then
-            local itemDef = Items:getDefinition(itemCmp:getItem())
-            Log.Info("%sItem: %s, Quantity: %s, Price: %d", propPrefix,
-                itemDef and itemDef.name or "Unknown",
-                quantityCmp:getQuantity(),
-                itemDef and itemDef.startEquilibriumPrice or 0)
+    Log.Info("%sPosition (scaled):   (%.2f, %.2f, %.2f)", propPrefix, position.x, position.y, position.z)
+    Log.Info("%sScale (scaled): %s", propPrefix, scale)
+
+    local orbitCmp = entity:get(SpatialComponents.Orbit)
+    local inclinationCmp = entity:get(SpatialComponents.Inclination)
+
+    if entityClass == "Planet" then
+        local atmosphereCmp = entity:get(CelestialComponents.Atmosphere)
+        local temperatureCmp = entity:get(CelestialComponents.Temperature)
+        local gravityCmp = entity:get(CelestialComponents.Gravity)
+        local rotationCmp = entity:get(CelestialComponents.RotationPeriod)
+        local eccentricityCmp = entity:get(CelestialComponents.Eccentricity)
+        local magneticFieldCmp = entity:get(CelestialComponents.MagneticField)
+
+        -- Orbit radius
+        if orbitCmp then
+            local orbitRadius = orbitCmp:getOrbitRadius()
+            local realMeters = UniverseScaleConfig:toRealMeters(orbitRadius)
+            Log.Info("%sOrbit Radius (scaled): %.2f m", propPrefix, orbitRadius)
+            Log.Info("%sOrbit Radius (real, km): %.2f", propPrefix, realMeters / 1000)
+            Log.Info("%sOrbit Radius (real, AU): %.2f", propPrefix, UniverseScaleConfig:metersToAU(realMeters))
         end
+
+        -- Planet radius
+        local radiusUnit, realRadius
+        if subtype == "GasGiant" then
+            realRadius = scale / UniverseScaleConfig:jupiterRadiiToGameUnits(1, "planet")
+            radiusUnit = "Jupiter radii"
+        else
+            realRadius = scale / UniverseScaleConfig:earthRadiiToGameUnits(1, "planet")
+            radiusUnit = "Earth radii"
+        end
+        Log.Info("%sPlanet Radius: %.2f %s", propPrefix, realRadius, radiusUnit)
+
+        -- Other properties
+        Log.Info("%sAtmosphere: %s", propPrefix, atmosphereCmp and "Present" or "None")
+        Log.Info("%sTemperature: %s K", propPrefix, temperatureCmp and temperatureCmp:getTemperature() or "N/A")
+        Log.Info("%sGravity: %s g", propPrefix, gravityCmp and gravityCmp:getGravity() or "N/A")
+        Log.Info("%sRotation Period: %s hours", propPrefix, rotationCmp and rotationCmp:getRotationPeriod() or "N/A")
+        Log.Info("%sEccentricity: %s", propPrefix, eccentricityCmp and eccentricityCmp:getEccentricity() or "N/A")
+        Log.Info("%sMagnetic Field: %s", propPrefix, magneticFieldCmp and "Present" or "None")
+        Log.Info("%sInclination: %s degrees", propPrefix, inclinationCmp and inclinationCmp:getInclination() or "N/A")
+    elseif entityClass == "Moon" then
+        local atmosphereCmp = entity:get(CelestialComponents.Atmosphere)
+        local gravityCmp = entity:get(CelestialComponents.Gravity)
+        local rotationCmp = entity:get(CelestialComponents.RotationPeriod)
+        local transformCmp = entity:get(PhysicsComponents.Transform)
+
+        -- Orbit radius
+        if orbitCmp then
+            local orbitRadius = orbitCmp:getOrbitRadius()
+
+            Log.Info("%sOrbit Radius (scaled): %.2f m", propPrefix, orbitRadius)
+            Log.Info("%sOrbit Radius (real, meters): %.2f", propPrefix, UniverseScaleConfig:toRealMeters(orbitRadius))
+            Log.Info("%sOrbit Radius (real, km): %.2f", propPrefix, UniverseScaleConfig:toRealMeters(orbitRadius) / 1000)
+        end
+
+        -- Moon radius
+        if transformCmp then
+            local moonRadius = transformCmp:getScale()
+            local realMeters = UniverseScaleConfig:toRealMeters(moonRadius)
+            local realRadius = UniverseScaleConfig:metersToEarthRadii(realMeters)
+            Log.Info("%sMoon Radius: %.8f (scaled)", propPrefix, moonRadius)
+            Log.Info("%sMoon Radius: %.8f (real, Earth radii)", propPrefix, realRadius)
+            Log.Info("%sMoon Radius: %.8f (real, km)", propPrefix, realMeters / 1000)
+        end
+
+        -- Other properties
+        Log.Info("%sAtmosphere: %s", propPrefix, atmosphereCmp and "Present" or "None")
+        Log.Info("%sGravity: %s g", propPrefix, gravityCmp and gravityCmp:getGravity() or "N/A")
+        Log.Info("%sRotation Period: %s hours", propPrefix, rotationCmp and rotationCmp:getRotationPeriod() or "N/A")
+        Log.Info("%sInclination: %s degrees", propPrefix, inclinationCmp and inclinationCmp:getInclination() or "N/A")
+    elseif entityClass == "AsteroidRing" then
+        local compositionCmp = entity:get(CelestialComponents.Composition)
+        local thicknessCmp = entity:get(CelestialComponents.Thickness)
+        if thicknessCmp then
+            local scaledMeters = thicknessCmp:getThickness()
+            local realMeters = scaledMeters / (UniverseScaleConfig.globalScale * (UniverseScaleConfig.objectScales.asteroidRing or 1))
+            local realKm = realMeters / 1000
+            Log.Info("%sThickness (scaled): %.2f", propPrefix, scaledMeters)
+            Log.Info("%sThickness (real, meters): %.2f", propPrefix, realMeters)
+            Log.Info("%sThickness (real, km): %.2f", propPrefix, realKm)
+        end
+        Log.Info("%sComposition: %s", propPrefix, compositionCmp and compositionCmp:getComposition() or "N/A")
+        Log.Info("%sInclination: %s degrees", propPrefix, inclinationCmp and inclinationCmp:getInclination() or "N/A")
+    elseif entityClass == "AsteroidBelt" then
+        local densityCmp = entity:get(CelestialComponents.Density)
+        local compositionCmp = entity:get(CelestialComponents.Composition)
+        local widthCmp = entity:get(SpatialComponents.Width)
+
+        if widthCmp then
+            local scaledMeters = widthCmp:getWidth()
+            local realMeters = scaledMeters / (UniverseScaleConfig.globalScale * (UniverseScaleConfig.objectScales.asteroidBelt or 1))
+            local realKm = realMeters / 1000
+            Log.Info("%sWidth (scaled): %.2f", propPrefix, scaledMeters)
+            Log.Info("%sWidth (real, meters): %.2f", propPrefix, realMeters)
+            Log.Info("%sWidth (real, km): %.2f", propPrefix, realKm)
+        end
+
+        if orbitCmp then
+            local radiusAU = orbitCmp:getOrbitRadius()
+            local scaledMeters = UniverseScaleConfig:auToGameUnits(radiusAU, "asteroidBelt")
+            local realMeters = scaledMeters / (UniverseScaleConfig.globalScale * (UniverseScaleConfig.objectScales.asteroidBelt or 1))
+            local realKm = realMeters / 1000
+            Log.Info("%sOrbit Radius (scaled): %.2f AU", propPrefix, radiusAU)
+            Log.Info("%sOrbit Radius (real, meters): %.2f", propPrefix, realMeters)
+            Log.Info("%sOrbit Radius (real, km): %.2f", propPrefix, realKm)
+        end
+
+        Log.Info("%sDensity: %s", propPrefix, densityCmp and densityCmp:getDensity() or "N/A")
+        Log.Info("%sComposition: %s", propPrefix, compositionCmp and compositionCmp:getComposition() or "N/A")
+        Log.Info("%sInclination: %s degrees", propPrefix, inclinationCmp and inclinationCmp:getInclination() or "N/A")
     end
 
-    local children = entity:get(CoreComponents.Children)
-    if children then
-        local childList = children:iterChildren()
-        local childCount = 0
-        for _ in childList do
-            childCount = childCount + 1
-        end
+    -- Recurse into children
+    local childrenCmp = entity:get(CoreComponents.Children)
+    if childrenCmp then
         local i = 0
-        for child in children:iterChildren() do
+        local childCount = 0
+        for _ in childrenCmp:iterChildren() do childCount = childCount + 1 end
+        for child in childrenCmp:iterChildren() do
             i = i + 1
-            ---@cast child Entity
             local newPrefix = prefix .. (isLast and "    " or "│   ")
             self:processEntityHierarchy(child, newPrefix, i == childCount)
         end
