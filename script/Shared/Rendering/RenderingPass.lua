@@ -7,33 +7,26 @@
 ---@class RenderingPass
 ---@field bufferOrder BufferName[]
 ---@field settings RenderStateSettings
----@field drawFunc function | nil
+---@field onStartFn function | nil
 ---@field screenX number
 ---@field screenY number
 
 ---@class RenderingPass
----@overload fun(self: RenderingPass, bufferOrder: BufferName[], settings: RenderStateSettings, drawFunc: function|nil)   class internal
----@overload fun(bufferOrder: BufferName[], settings: RenderStateSettings, drawFunc: function | nil)  class external
-local RenderingPass = Class("RenderingPass", function(self, bufferOrder, settings, drawFunc)
+---@overload fun(self: RenderingPass, bufferOrder: BufferName[], settings: RenderStateSettings, onStartFn: function|nil)   class internal
+---@overload fun(bufferOrder: BufferName[], settings: RenderStateSettings, onStartFn: function | nil)  class external
+local RenderingPass = Class("RenderingPass", function(self, bufferOrder, settings, onStartFn)
     ---@diagnostic disable-next-line: invisible
-    self:registerVars(bufferOrder, settings, drawFunc)
+    self:registerVars(bufferOrder, settings, onStartFn)
 end)
-
 
 ---@param bufferOrder BufferName[]
 ---@param settings RenderStateSettings
----@param drawFunc function | nil
+---@param onStartFn function | nil
 ---@private
-function RenderingPass:registerVars(bufferOrder, settings, drawFunc)
+function RenderingPass:registerVars(bufferOrder, settings, onStartFn)
     self.bufferOrder = bufferOrder
     self.settings = settings
-
-    -- TODO: Should be able to do in single line
-    if self.drawFunc then
-        self.drawFunc = drawFunc
-    else
-        self.drawFunc = nil
-    end
+    self.onStartFn = onStartFn
 end
 
 ---@param buffers table<BufferName, Buffer>
@@ -45,8 +38,8 @@ function RenderingPass:start(buffers, resX, resY)
         RenderTarget.BindTex2D(buffers[buffer])
     end
 
-    if self.drawFunc then
-        self.drawFunc()
+    if self.onStartFn then
+        self.onStartFn()
     end
 
     RenderState.PushBlendMode(self.settings.blendMode)
@@ -54,6 +47,7 @@ function RenderingPass:start(buffers, resX, resY)
     RenderState.PushDepthTest(self.settings.depthTest)
     RenderState.PushDepthWritable(self.settings.depthWritable)
 end
+
 function RenderingPass:stop()
     RenderState.PopBlendMode()
     RenderState.PopCullFace()

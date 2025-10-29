@@ -123,17 +123,18 @@ function RenderCoreSystem:registerRenderingPasses()
             depthTest = true,
             depthWritable = true
         }
-        local bufferOrder = {}
-        insert(bufferOrder, Enums.BufferName.buffer0)
-        insert(bufferOrder, Enums.BufferName.buffer1)
-        insert(bufferOrder, Enums.BufferName.zBufferL)
-        insert(bufferOrder, Enums.BufferName.zBuffer)
-        local drawFunc = function()
+        local bufferOrder = {
+            Enums.BufferName.buffer0,
+            Enums.BufferName.buffer1,
+            Enums.BufferName.zBufferL,
+            Enums.BufferName.zBuffer
+        }
+        local onStartFn = function() 
             Draw.Clear(0, 0, 0, 0)
             Draw.ClearDepth(1)
             Draw.Color(1, 1, 1, 1)
         end
-        self.passes[Enums.RenderingPasses.Opaque] = RenderingPass(bufferOrder, stateSettings, drawFunc)
+        self.passes[Enums.RenderingPasses.Opaque] = RenderingPass(bufferOrder, stateSettings, onStartFn)
     end
     do -- < Additive Pass Definition > --
         local stateSettings = {
@@ -142,11 +143,11 @@ function RenderCoreSystem:registerRenderingPasses()
             depthTest = true,
             depthWritable = false
         }
-        local bufferOrder = {} -- Reset BufferOrder
-        insert(bufferOrder, Enums.BufferName.buffer0)
-        insert(bufferOrder, Enums.BufferName.zBuffer)
-        local drawFunc = nil
-        self.passes[Enums.RenderingPasses.Additive] = RenderingPass(bufferOrder, stateSettings, drawFunc)
+        local bufferOrder = {
+            Enums.BufferName.buffer0,
+            Enums.BufferName.zBuffer
+        }
+        self.passes[Enums.RenderingPasses.Additive] = RenderingPass(bufferOrder, stateSettings, nil)
     end
     do -- < Alpha Pass Definition > --
         local stateSettings = {
@@ -155,11 +156,11 @@ function RenderCoreSystem:registerRenderingPasses()
             depthTest = true,
             depthWritable = false
         }
-        local bufferOrder = {}
-        insert(bufferOrder, Enums.BufferName.buffer0)
-        insert(bufferOrder, Enums.BufferName.zBuffer)
-        local drawFunc = nil
-        self.passes[Enums.RenderingPasses.Alpha] = RenderingPass(bufferOrder, stateSettings, drawFunc)
+        local bufferOrder = {
+            Enums.BufferName.buffer0,
+            Enums.BufferName.zBuffer
+        }
+        self.passes[Enums.RenderingPasses.Alpha] = RenderingPass(bufferOrder, stateSettings, nil)
     end
     do -- < UI Pass Definition > --
         local stateSettings = {
@@ -168,11 +169,12 @@ function RenderCoreSystem:registerRenderingPasses()
             depthTest = false,
             depthWritable = false
         }
-        local bufferOrder = {}
-        insert(bufferOrder, Enums.BufferName.buffer1)
-        insert(bufferOrder, Enums.BufferName.zBuffer)
-        local drawFunc = function() Draw.Clear(0, 0, 0, 0) end
-        self.passes[Enums.RenderingPasses.Alpha] = RenderingPass(bufferOrder, stateSettings, drawFunc)
+        local bufferOrder = {
+            Enums.BufferName.buffer1,
+            Enums.BufferName.zBuffer
+        }
+        local onStartFn = function() Draw.Clear(0, 0, 0, 0) end
+        self.passes[Enums.RenderingPasses.Alpha] = RenderingPass(bufferOrder, stateSettings, onStartFn)
     end
 end
 
