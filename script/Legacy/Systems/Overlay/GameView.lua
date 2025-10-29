@@ -1,7 +1,7 @@
 local Material = require('Legacy.GameObjects.Material')
 local Registry = require('Core.ECS.Registry')
 local RenderComponent = require('Modules.Rendering.Components.RenderComponent')
-local LegacyEntityComponent = require('Legacy.GameObjects.LegacyEntityComponent')
+local RigidBodyComponent = require('Modules.Physics.Components.RigidBodyComponent')
 
 local GameView = {}
 GameView.__index = GameView
@@ -319,8 +319,8 @@ function GameView.Create(player, audioInstance)
 end
 
 function GameView:drawScene(blendMode, eye)
-    -- Render all legacy entities with a RenderComponent.
-    for _, legacyEntityComponent, renderComponent in Registry:iterEntities(LegacyEntityComponent, RenderComponent) do
+    -- Render all entities with a RenderComponent.
+    for _, rigidBody, renderComponent in Registry:iterEntities(RigidBodyComponent, RenderComponent) do
         if not renderComponent:isVisible() then
             goto continue
         end
@@ -328,10 +328,7 @@ function GameView:drawScene(blendMode, eye)
         for _, mesh in ipairs(renderComponent:getMeshes()) do
             if mesh.material.blendMode == blendMode then
                 mesh.material:start()
-                -- TODO: The reason we need to pass legacyEntityComponent.entity is because
-                -- this uses e:getToWorldMatrix. This should eventually use the TransformComponent
-                --instead.
-                mesh.material:setState(legacyEntityComponent.entity, eye)
+                mesh.material:setState(rigidBody.rigidBody, eye)
                 mesh.mesh:draw()
                 mesh.material:stop()
             end
