@@ -13,6 +13,7 @@ local RenderComp       = require("Modules.Rendering.Components").Render
 local RenderCoreSystem = require("Modules.Rendering.Systems.RenderCoreSystem")
 local DeltaTimer       = require("Shared.Tools.DeltaTimer")
 local Entity           = require("Core.ECS.Entity")
+local DrawEx           = require("UI.DrawEx")
 
 function RenderingTest:onInit()
     require("Shared.Definitions.MaterialDefs")
@@ -246,25 +247,71 @@ function RenderingTest:updateBoxes(data)
 end
 
 function RenderingTest:onRender(data)
+    -- Normal rendering
     RenderCoreSystem:render(data)
 
+    -- Immediate mode UI
     self:immediateUI(function()
         local mem = GC.GetMemory()
-        UI.DrawEx.TextAdditive('Unageo-Medium', self.fpsText, 20,
+        DrawEx.TextAdditive('Unageo-Medium', self.fpsText, 20,
             40, 50, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
-        UI.DrawEx.TextAdditive('Unageo-Medium', string.format("Lua Memory: %.2f KB", mem),
+        DrawEx.TextAdditive('Unageo-Medium', string.format("Lua Memory: %.2f KB", mem),
             20, 40, 70, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
 
         for _, boxData in ipairs(self.boxes) do
             if boxData.deleted and boxData.deletedPos then
                 local pos = boxData.deletedPos
-                UI.DrawEx.TextAdditive('Unageo-Medium',
+                DrawEx.TextAdditive('Unageo-Medium',
                     string.format("Entity %d Deleted", boxData.id),
                     20, pos.x + RenderCoreSystem.resX / 2, pos.y + RenderCoreSystem.resY / 2,
                     40, 20, 1.0, 0.3, 0.3, 1.0, 0.5, 0.5)
             end
         end
     end)
+
+    -- Global coordinate axes at grid center
+    local scale = 5
+    Draw.Color(1, 0, 0, 1) -- X axis red
+    Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(scale, 0, 0))
+    Draw.Color(0, 1, 0, 1) -- Y axis green
+    Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(0, scale, 0))
+    Draw.Color(0, 0, 1, 1) -- Z axis blue
+    Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(0, 0, scale))
+
+    -- Bounding box around the grid
+    --todo: missing box3f?
+    --local halfExtents = Vec3f((6 - 1) * 7 / 2, (6 - 1) * 7 / 2, (6 - 1) * 7 / 2)
+    --local minCorner = self.gridCenter - halfExtents
+    --local maxCorner = self.gridCenter + halfExtents
+    --local box = Box3f()
+    --box.min = minCorner
+    --box.max = maxCorner
+    --Draw.Box3(box)
+
+    -- Draw axes for each box
+    for _, boxData in ipairs(self.boxes) do
+        if boxData.entity:isValid() then
+            local rb = boxData.entity:get(Physics.RigidBody):getRigidBody()
+            local pos = Position() --todo: add ext for *out*, so we don´t have to create Position() or Quat() every time
+            rb:getPos(pos)
+            local rot = Quat()
+            rb:getRot(rot)
+            local axisScale = 20
+
+            -- Create Vec3f objects for rotated axes
+            local xAxis, yAxis, zAxis = Vec3f(), Vec3f(), Vec3f()
+            rot:mulV(Vec3f(1, 0, 0), xAxis)
+            rot:mulV(Vec3f(0, 1, 0), yAxis)
+            rot:mulV(Vec3f(0, 0, 1), zAxis)
+
+            --todo change to use Position?
+            Draw.Axes(Vec3f(0, 0, 0), xAxis, yAxis, zAxis, axisScale, 0.7)
+        end
+    end
+
+
+    -- Flush all draw calls
+    Draw.Flush()
 end
 
 return RenderingTest
