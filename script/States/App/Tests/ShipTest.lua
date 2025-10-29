@@ -8,6 +8,9 @@ local Player = require('Legacy.GameObjects.Entities.Player')
 local System = require('Legacy.GameObjects.Entities.StarSystem')
 local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('Legacy.GameObjects.Actions')
+local Registry = require('Core.ECS.Registry')
+local LegacyEntityComponent = require('Legacy.GameObjects.LegacyEntityComponent')
+local Physics = require('Modules.Physics.Components')
 
 local ShipTest = require('States.Application')
 local rng = RNG.FromTime()
@@ -25,6 +28,15 @@ function ShipTest:spawnShip()
         --self.system:addChild(ship)
         self.player:setControlling(ship)
         self.currentShip = ship
+    end
+
+    for entity, legacy, rb in Registry:iterEntities(LegacyEntityComponent, Physics.RigidBody) do
+        if rb:getRigidBody():getParentBody() ~= nil then
+            local parent = Entity.fromRigidBody(rb:getRigidBody():getParentBody())
+            Log.Debug("Entity %s has RigidBody which is a child of %s", entity, parent:getName(), parent:getEntity())
+        else
+            Log.Debug("Entity %s has RigidBody with no parent", entity)
+        end
     end
 end
 
