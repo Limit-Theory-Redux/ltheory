@@ -6,26 +6,8 @@ return {
     }
 }
 
----@alias RuleType
----| "Fixed" # Constant value
----| "Range" # Value within a range
----| "Weighted" # Value chosen by weighted probability
----| "Chance" # Boolean outcome based on probability
----| "Count" # Integer within a range
----| "Custom" # Custom function
-
----@alias ConditionType
----| "OrbitRadius" # Based on orbit radius
----| "PlanetType" # Based on planet type
----| "PlanetSize" # Based on planet size
----| "SystemAge" # Based on system age
----| "StarType" # Based on star type
----| "StarMass" # Based on star mass
----| "SystemMetallicity" # Based on system metallicity
----| "PlanetCount" # Based on planet count
-
 ---@class Rule
----@field type RuleType
+---@field type GenRule
 ---@field min? number
 ---@field max? number
 ---@field value? any
@@ -35,8 +17,8 @@ return {
 ---@field default? any
 
 ---@class Condition
----@field type ConditionType
----@field ranges? { min: number, max: number, minSize?: number, maxSize?: number, minTemp?: number, maxTemp?: number, minGravity?: number, maxGravity?: number, minWidth?: number, maxWidth?: number, minDensity?: number, maxDensity?: number, minDistance?: number, maxDistance?: number, minLuminosity?: number, maxLuminosity?: number, weights?: table<string, number>, value?: string }[]
+---@field type GenCondition
+---@field ranges? { min: number, max: number, minSize?: number, maxSize?: number, minTemp?: number, maxTemp?: number, minGravity?: number, maxGravity?: number, minWidth?: number, maxWidth?: number, minDensity?: number, maxDensity?: number, minDistance?: number, maxDistance?: number, minLuminosity?: number, maxLuminosity?: number, weights?: table<string, number>, value?: any }[]
 ---@field types? table<string, { min?: number, max?: number, weights?: table<string, number> }>
 
 ---@class Ruleset
