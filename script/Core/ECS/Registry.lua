@@ -150,7 +150,7 @@ function Registry:attachEntity(parentEntity, childEntity)
     else
         self:add(childEntity, ParentComponent(parentEntity))
     end
-    
+
     -- Update children.
     local childrenComponent = self:get(parentEntity, ChildrenComponent)
     if not childrenComponent then
@@ -273,7 +273,7 @@ end
 function Registry:iterEntities(...)
     local componentTypes = { ... } -- Collect the variable arguments into a table
     if #componentTypes == 0 then
-        return function() end -- Return an empty iterator if no component types are provided
+        return function() end      -- Return an empty iterator if no component types are provided
     end
 
     -- This method works by taking the first component type, then listing all entities that have that
@@ -285,7 +285,7 @@ function Registry:iterEntities(...)
 
         -- No entities have the primary component type
         if not primaryComponentStorage then
-            return 
+            return
         end
 
         for entityId, primaryComponent in pairs(primaryComponentStorage) do

@@ -186,11 +186,11 @@ end
 function MarketplaceSystem:processTrades(marketplace, bids, asks)
     for bid in Iterator(bids) do
         for ask in Iterator(asks) do
-            local bidItemTypeCmp = bid:get(Economy.OrderItemType)
+            local bidItemTypeCmp = bid:get(Economy.ItemType)
             local bidPriceCmp = bid:get(Economy.Price)
             local bidQuantityCmp = bid:get(Economy.Quantity)
 
-            local askItemTypeCmp = ask:get(Economy.OrderItemType)
+            local askItemTypeCmp = ask:get(Economy.ItemType)
             local askPriceCmp = ask:get(Economy.Price)
             local askQuantityCmp = ask:get(Economy.Quantity)
 ```

@@ -1,4 +1,5 @@
 local Registry = require("Core.ECS.Registry")
+local Entity = require("Core.ECS.Entity")
 local NameComponent = require("Modules.Core.Components.NameComponent")
 local QuantityComponent = require("Modules.Economy.Components").Quantity
 
@@ -23,10 +24,11 @@ local function getOrderEntities(bids, asks)
     return bidEntities, askEntities
 end
 
----@param parentEntity Entity
 ---@param component InventoryComponent
-local function printInventory(parentEntity, component)
+local function printInventory(component)
+    local parentEntity = Entity(component:getEntityId())
     Log.Debug("%s - Inventory", parentEntity)
+
     for itemTypes in Iterator(component:getInventory()) do
         for itemEntity in Iterator(itemTypes) do
             if Registry:hasEntity(itemEntity) then
@@ -39,7 +41,64 @@ local function printInventory(parentEntity, component)
     end
 end
 
+local function formatWinLoss(qty)
+    if qty == 0 then
+        return qty
+    end
+
+    if qty < 0 then
+        return string.format("\27[1;101;93m %d \27[0m", qty)
+    end
+
+    if qty > 0 then
+        return string.format("\27[1;102;93m +%d \27[0m", qty)
+    end
+end
+
+local function formatBuyerSeller(isSeller)
+    if isSeller then
+        return string.format("\27[92mSeller\27[0m")
+    else
+        return string.format("\27[93mBuyer\27[0m")
+    end
+end
+
+---@param component InventoryComponent
+---@param itemTypeName string
+---@param saleQty number
+---@param isSeller boolean
+local function printInventoryDiff(component, itemTypeName, saleQty, isSeller)
+    local parentEntity = Entity(component:getEntityId())
+    Log.Debug("%s - Inventory (%s)", parentEntity, formatBuyerSeller(isSeller))
+
+    for itemTypes in Iterator(component:getInventory()) do
+        for itemEntity in Iterator(itemTypes) do
+            if Registry:hasEntity(itemEntity) then
+                local itemName = itemEntity:get(NameComponent):getName()
+                if isSeller and saleQty > 0 then
+                    saleQty = saleQty * -1
+                end
+
+                if itemName == itemTypeName then
+                    Log.Debug(" ├─ %s(%d) %s",
+                        itemName,
+                        itemEntity:get(QuantityComponent):getQuantity(),
+                        formatWinLoss(saleQty)
+                    )
+                else
+                    Log.Debug(" ├─ %s(%d)",
+                        itemName,
+                        itemEntity:get(QuantityComponent):getQuantity()
+                    )
+                end
+            end
+        end
+    end
+end
+
+
 return {
     getOrderEntities = getOrderEntities,
-    printInventory = printInventory
+    printInventory = printInventory,
+    printInventoryDiff = printInventoryDiff
 }
