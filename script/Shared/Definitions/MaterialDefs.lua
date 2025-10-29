@@ -41,6 +41,9 @@ MaterialDefinition {
     vs_name = "wvp",
     fs_name = "material/solidcolor",
     blendMode = BlendMode.Disabled,
+    constShaderVars = {
+        { uniformName = "color", uniformType = Enums.UniformType.Float3, callbackFn = function() return 1.0, 0.0, 1.0 end }
+    },
     autoShaderVars = {
         { uniformName = "mWorld", uniformType = Enums.UniformType.Matrix, callbackFn = ShaderVarFuncs.mWorldFunc },
     }
