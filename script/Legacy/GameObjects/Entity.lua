@@ -1,3 +1,6 @@
+local Registry = require("Core.ECS.Registry")
+local LegacyEntityComponent = require('Legacy.GameObjects.LegacyEntityComponent')
+
 local id = 1
 
 local Entity = Class("Entity", function(self)
@@ -6,6 +9,9 @@ local Entity = Class("Entity", function(self)
     self.handlers = {}
     self.visibleMesh = nil
     id = id + 1
+
+    self.entity = Registry:createEntity()
+    self.entity:add(LegacyEntityComponent(self))
 end)
 
 function Entity:delete()
@@ -48,6 +54,10 @@ function Entity:unregister(eventType, handler)
             break
         end
     end
+end
+
+function Entity:getEntity()
+    return self.entity
 end
 
 return Entity
