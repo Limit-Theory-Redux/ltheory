@@ -123,4 +123,9 @@ function Material:getFragment()
     return self.fs
 end
 
+---@return BlendMode
+function Material:getBlendMode()
+    return self.blendMode
+end
+
 return Material
