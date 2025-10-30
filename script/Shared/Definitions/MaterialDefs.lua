@@ -48,3 +48,17 @@ MaterialDefinition {
         { uniformName = "mWorld", uniformType = Enums.UniformType.Matrix, callbackFn = ShaderVarFuncs.mWorldFunc },
     }
 }
+
+MaterialDefinition {
+    name = "PlanetSurface",
+    vs_name = "wvp",
+    fs_name = "material/planet",
+    blendMode = BlendMode.Disabled,
+}
+
+MaterialDefinition {
+    name = "PlanetAtmosphere",
+    vs_name = "wvp",
+    fs_name = "material/atmosphere",
+    blendMode = BlendMode.Disabled,
+}

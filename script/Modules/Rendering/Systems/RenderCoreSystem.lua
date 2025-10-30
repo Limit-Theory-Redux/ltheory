@@ -157,14 +157,20 @@ end
 function RenderCoreSystem:renderInOrder(blendMode)
     for entity in Registry:view(RenderComp) do
         local rend = entity:get(RenderComp)
-        for meshmat in Iterator(rend:getMeshes()) do
-            local mat = meshmat.material
-            if (mat:getBlendMode() or BlendMode.Disabled) == blendMode then
-                local sh = mat:getShaderState()
-                sh:start()
-                mat:setAllShaderVars(CameraSystem:getCurrentCameraEye(), entity)
-                meshmat.mesh:draw()
-                sh:stop()
+
+        local renderFn = rend:getRenderFn()
+        if renderFn then
+            renderFn(entity, blendMode)
+        else
+            for meshmat in Iterator(rend:getMeshes()) do
+                local mat = meshmat.material
+                if (mat:getBlendMode() or BlendMode.Disabled) == blendMode then
+                    local sh = mat:getShaderState()
+                    sh:start()
+                    mat:setAllShaderVars(CameraSystem:getCurrentCameraEye(), entity)
+                    meshmat.mesh:draw()
+                    sh:stop()
+                end
             end
         end
     end
