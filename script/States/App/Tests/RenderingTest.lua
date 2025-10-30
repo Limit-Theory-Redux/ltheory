@@ -189,8 +189,7 @@ function RenderingTest:updateBoxes(data)
 
             -- Deletion
             if self.timer:check("delete_" .. id) then
-                local pos = Position()
-                boxData.deletedPos = rb:getPos(pos)
+                boxData.deletedPos = rb:getPos()
                 Registry:destroyEntity(entity)
                 boxData.deleted = true
 
@@ -257,26 +256,16 @@ function RenderingTest:onRender(data)
             40, 50, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
         DrawEx.TextAdditive('Unageo-Medium', string.format("Lua Memory: %.2f KB", mem),
             20, 40, 70, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
-
-        for _, boxData in ipairs(self.boxes) do
-            if boxData.deleted and boxData.deletedPos then
-                local pos = boxData.deletedPos
-                DrawEx.TextAdditive('Unageo-Medium',
-                    string.format("Entity %d Deleted", boxData.id),
-                    20, pos.x + RenderCoreSystem.resX / 2, pos.y + RenderCoreSystem.resY / 2,
-                    40, 20, 1.0, 0.3, 0.3, 1.0, 0.5, 0.5)
-            end
-        end
     end)
 
     -- Global coordinate axes at grid center
-    local scale = 5
-    Draw.Color(1, 0, 0, 1) -- X axis red
-    Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(scale, 0, 0))
-    Draw.Color(0, 1, 0, 1) -- Y axis green
-    Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(0, scale, 0))
-    Draw.Color(0, 0, 1, 1) -- Z axis blue
-    Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(0, 0, scale))
+    --local scale = 5
+    --Draw.Color(1, 0, 0, 1) -- X axis red
+    --Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(scale, 0, 0))
+    --Draw.Color(0, 1, 0, 1) -- Y axis green
+    --Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(0, scale, 0))
+    --Draw.Color(0, 0, 1, 1) -- Z axis blue
+    --Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(0, 0, scale))
 
     -- Bounding box around the grid
     --todo: missing box3f?
@@ -288,7 +277,7 @@ function RenderingTest:onRender(data)
     --box.max = maxCorner
     --Draw.Box3(box)
 
-    -- Draw axes for each box
+    --[[ Draw axes for each box
     for _, boxData in ipairs(self.boxes) do
         if boxData.entity:isValid() then
             local rb = boxData.entity:get(Physics.RigidBody):getRigidBody()
@@ -307,7 +296,7 @@ function RenderingTest:onRender(data)
             --todo change to use Position?
             Draw.Axes(Vec3f(0, 0, 0), xAxis, yAxis, zAxis, axisScale, 0.7)
         end
-    end
+    end]]
 
 
     -- Flush all draw calls
