@@ -5,12 +5,18 @@ local Component = require("Core.ECS.Component")
 ---@field material Material
 
 ---@class RenderComponent: Component
----@overload fun(self: RenderComponent, meshes: MeshWithMaterial[]): RenderComponent subclass internal
----@overload fun(meshes: MeshWithMaterial[]): RenderComponent subclass external
-local RenderComponent = Subclass("RenderComponent", Component, function(self, meshes)
+---@overload fun(self: RenderComponent, meshesOrRenderFn: MeshWithMaterial[]|function): RenderComponent subclass internal
+---@overload fun(meshesOrRenderFn: MeshWithMaterial[]|function): RenderComponent subclass external
+local RenderComponent = Subclass("RenderComponent", Component, function(self, meshesOrRenderFn)
     self:setComponentName("RenderComponent")
 
-    self:setMeshes(meshes)
+    if rawtype(meshesOrRenderFn) == 'function' then
+        ---@cast meshesOrRenderFn function
+        self:setRenderFn(meshesOrRenderFn)
+    else
+        ---@cast meshesOrRenderFn MeshWithMaterial[]
+        self:setMeshes(meshesOrRenderFn)
+    end
     self:setVisible(true)
 end)
 
@@ -22,6 +28,16 @@ end
 ---@return MeshWithMaterial[]
 function RenderComponent:getMeshes()
     return self.meshes
+end
+
+---@param renderFn function
+function RenderComponent:setRenderFn(renderFn)
+    self.renderFn = renderFn
+end
+
+---@return function|nil
+function RenderComponent:getRenderFn()
+    return self.renderFn
 end
 
 ---Sets Visibility of Mesh
