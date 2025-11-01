@@ -31,7 +31,62 @@ local function IcoSphere(n, radius)
     return mesh
 end
 
+local function Ring(innerRadius, outerRadius, segments)
+    innerRadius = innerRadius or 1.0
+    outerRadius = outerRadius or 2.0
+    segments = segments or 64
+
+    local self = Mesh.Create()
+    local verts = {}
+    local indices = {}
+
+    -- Generate vertices
+    for i = 0, segments do
+        local a = i / segments * math.pi * 2
+        local c, s = math.cos(a), math.sin(a)
+
+        -- Outer vertex
+        table.insert(verts, { c * outerRadius, 0, s * outerRadius })
+        table.insert(verts, { c * innerRadius, 0, s * innerRadius })
+
+        -- UVs: radial + angular
+        local u = (i / segments)
+        local vOuter = 0.0
+        local vInner = 1.0
+        table.insert(verts[#verts], u)
+        table.insert(verts[#verts], vOuter)
+        table.insert(verts[#verts - 1], u)
+        table.insert(verts[#verts - 1], vInner)
+    end
+
+    -- Generate quads (as two triangles)
+    for i = 1, segments do
+        local base = (i - 1) * 2
+        local next = i * 2
+
+        -- Quad: (base, base+1, next+1, next)
+        table.insert(indices, base); table.insert(indices, base + 1)
+        table.insert(indices, next + 1); table.insert(indices, next)
+        table.insert(indices, base); table.insert(indices, next + 1)
+        table.insert(indices, next); table.insert(indices, next + 1)
+    end
+
+    -- Upload to mesh
+    for _, v in ipairs(verts) do
+        local x, y, z, u, v = table.unpack(v)
+        self:addVertex(x, y, z, 0, 1, 0, u, v) -- normal = up
+    end
+    for _, idx in ipairs(indices) do
+        self:addIndex(idx)
+    end
+
+    self:computeNormals()
+
+    return self
+end
+
 return {
     Billboard = Billboard,
     IcoSphere = IcoSphere,
+    Ring = Ring
 }

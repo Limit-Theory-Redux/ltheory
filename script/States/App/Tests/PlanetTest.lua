@@ -8,6 +8,7 @@ local Materials           = require("Shared.Registries.Materials")
 local CameraSystem        = require("Modules.Rendering.Systems.CameraSystem")
 local CameraEntity        = require("Modules.Rendering.Entities").Camera
 local PlanetEntity        = require('Modules.CelestialObjects.Entities.PlanetEntity')
+local AsteroidRingEntity  = require('Modules.CelestialObjects.Entities.AsteroidRingEntity')
 local SkyboxEntity        = require("Modules.CelestialObjects.Entities.SkyboxEntity")
 local PhysicsComponents   = require("Modules.Physics.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
@@ -26,9 +27,6 @@ local Generator           = require("Legacy.Systems.Gen.Generator")
 local Starfield           = require("Legacy.Systems.Gen.Starfield")
 
 function PlanetTest:onInit()
-    require("Shared.Definitions.MaterialDefs")
-    require("Shared.Definitions.UniformFuncDefs")
-
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
 
@@ -147,22 +145,60 @@ function PlanetTest:createPlanet(seed)
     self.matPlanet = Materials.PlanetSurface()
     self.matAtmo = Materials.PlanetAtmosphere()
 
-    local planet = PlanetEntity(seed, {
+    self.planet = PlanetEntity(seed, {
         { mesh = mesh,     material = self.matPlanet },
         { mesh = meshAtmo, material = self.matAtmo },
     })
 
     -- Attach gen data
     local planetCmp = CelestialComponents.Gen.Planet(self.genOptions)
-    local genCmp = planet:add(planetCmp)
+    local genCmp = self.planet:add(planetCmp)
 
     self.matPlanet:setTexture("surface", texSurface)
 
     -- Physics
-    local rbCmp = planet:get(PhysicsComponents.RigidBody)
+    local rbCmp = self.planet:get(PhysicsComponents.RigidBody)
     local rb = RigidBody.CreateSphereFromMesh(mesh)
     rbCmp:setRigidBody(rb)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
+
+    --self:createPlanetRing(seed)
+end
+
+function PlanetTest:createPlanetRing(seed)
+    local rng = RNG.Create(seed)
+
+    local innerRadius = 1.6 + 0.4 * rng:getExp()
+    local outerRadius = innerRadius + 0.8 + 0.6 * rng:getExp()
+    local mesh = Primitive.Ring(innerRadius, outerRadius, 128)
+
+    local ringTex = GenUtil.ShaderToTexCube(1024, TexFormat.RGBA8, "gen/planetring", {
+        seed = rng:getUniform(),
+        freq = 0.8 + 0.6 * rng:getExp(),
+        power = 1.2 + 0.8 * rng:getExp(),
+        innerRadius = 0.35 + 0.15 * rng:getUniform(),
+        outerRadius = 0.85 + 0.10 * rng:getUniform(),
+        ringDensity = 0.6 + 0.4 * rng:getExp(),
+        dustScale = 1.5 + 1.5 * rng:getExp(),
+    })
+
+    self.matRing = Materials.PlanetRing()
+
+    self.ring = AsteroidRingEntity(seed, { { mesh = mesh, material = self.matRing } })
+
+    self.matRing:setTexture("ringTex", ringTex)
+
+    local rbCmp = ring:get(PhysicsComponents.RigidBody)
+    local rb = RigidBody.CreateSphere() -- temp sphere
+    rbCmp:setRigidBody(rb)
+    rb:setKinematic(true)
+
+    local ringGen = {
+        innerRadius = innerRadius,
+        outerRadius = outerRadius,
+        seed = rng:getUniform(),
+    }
+    self.ring:add(CelestialComponents.Gen.Ring(ringGen))
 end
 
 function PlanetTest:onPreRender(data)

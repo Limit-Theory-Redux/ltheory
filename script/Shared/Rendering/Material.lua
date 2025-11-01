@@ -42,7 +42,8 @@ end
 ---@param shaderVars table<ShaderVarInfo>
 function Material:addAutoShaderVars(shaderVars)
     for _, shaderVarInfo in ipairs(shaderVars) do
-        local autoShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.callbackFn)
+        local autoShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.callbackFn,
+            shaderVarInfo.perInstance)
         insert(self.autoShaderVars, autoShaderVar)
     end
 end

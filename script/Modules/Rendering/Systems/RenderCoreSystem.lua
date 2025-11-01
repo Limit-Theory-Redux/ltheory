@@ -3,30 +3,38 @@ local QuickProfiler    = require("Shared.Tools.QuickProfiler")
 local RenderingPass    = require("Shared.Rendering.RenderingPass")
 local CameraSystem     = require("Modules.Rendering.Systems.CameraSystem")
 local RenderComp       = require("Modules.Rendering.Components").Render
+local UniformFuncs     = require("Shared.Rendering.UniformFuncs")
 
 local RenderCoreSystem = Class("RenderCoreSystem", function(self)
+    require("Shared.Definitions.MaterialDefs")
+    require("Shared.Definitions.UniformFuncDefs")
+
     self:registerVars()
     self:registerPasses()
 end)
 
 function RenderCoreSystem:registerVars()
-    self.profiler = QuickProfiler("RenderCoreSystem", false, false)
+    self.profiler        = QuickProfiler("RenderCoreSystem", false, false)
 
-    self.settings = {
+    self.settings        = {
         superSampleRate = Config.render.general.superSampleRate,
         downSampleRate  = Config.render.general.downSampleRate,
         showBuffers     = Config.render.debug.showBuffers,
         cullFace        = Config.render.renderState.cullFace
     }
 
-    local win = Window:size()
+    local win            = Window:size()
     self.resX, self.resY = win.x, win.y
-    self.ssResX = self.resX * self.settings.superSampleRate
-    self.ssResY = self.resY * self.settings.superSampleRate
-    self.dsResX = self.resX / self.settings.downSampleRate
-    self.dsResY = self.resY / self.settings.downSampleRate
+    self.ssResX          = self.resX * self.settings.superSampleRate
+    self.ssResY          = self.resY * self.settings.superSampleRate
+    self.dsResX          = self.resX / self.settings.downSampleRate
+    self.dsResY          = self.resY / self.settings.downSampleRate
 
-    self.buffers = {}
+    self.materialCache   = {} -- material → { var = {type, values} }   -- static + const + entity-independent auto
+    self.instanceCache   = {} -- entity  → { mat  = { var = {type, values} } } -- per-entity auto vars
+    self.processedMats   = {}
+
+    self.buffers         = {}
     self:initializeBuffers()
     self.passes = {}
     self.level = 0
@@ -96,6 +104,9 @@ function RenderCoreSystem:render(data)
     CameraSystem:updateProjectionMatrix(self.resX, self.resY)
     CameraSystem:beginDraw()
 
+    -- Data cache
+    self:cacheData()
+
     -- Opaque Pass
     self.currentPass = Enums.RenderingPasses.Opaque
     self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
@@ -157,19 +168,103 @@ end
 function RenderCoreSystem:renderInOrder(blendMode)
     for entity in Registry:view(RenderComp) do
         local rend = entity:get(RenderComp)
-
-        local renderFn = rend:getRenderFn()
-        if renderFn then
-            renderFn(entity, blendMode)
+        if rend:getRenderFn() then
+            rend:getRenderFn()(entity, blendMode)
         else
             for meshmat in Iterator(rend:getMeshes()) do
                 local mat = meshmat.material
                 if (mat:getBlendMode() or BlendMode.Disabled) == blendMode then
                     local sh = mat:getShaderState()
                     sh:start()
-                    mat:setAllShaderVars(CameraSystem:getCurrentCameraEye(), entity)
+
+                    self:applyCachedVars(mat, entity)
+
                     meshmat.mesh:draw()
                     sh:stop()
+                end
+            end
+        end
+    end
+end
+
+function RenderCoreSystem:cacheData()
+    self.materialCache = {}
+    self.instanceCache = {}
+    local processedMats = {}
+
+    local eye = CameraSystem:getCurrentCameraEye()
+
+    for entity in Registry:view(RenderComp) do
+        local rend = entity:get(RenderComp)
+        if rend:getRenderFn() then goto next_entity end
+
+        for meshmat in Iterator(rend:getMeshes()) do
+            local mat = meshmat.material
+
+            -- material cache (per material)
+            if not processedMats[mat] then
+                processedMats[mat] = true
+                local matCache = {}
+
+                for _, v in ipairs(mat.staticShaderVars or {}) do
+                    ---@cast v ConstShaderVar
+                    matCache[v] = { type = v.uniformType, values = { v.callbackFn() } }
+                end
+                for _, v in ipairs(mat.constShaderVars or {}) do
+                    ---@cast v ConstShaderVar
+                    matCache[v] = { type = v.uniformType, values = { v.callbackFn() } }
+                end
+
+                for _, v in ipairs(mat.autoShaderVars or {}) do
+                    ---@cast v AutoShaderVar
+                    if not v.perInstance then
+                        matCache[v] = { type = v.uniformType, values = { v.callbackFn(eye, entity) } }
+                    end
+                end
+
+                self.materialCache[mat] = matCache
+            end
+
+            -- instance cache (per instance)
+            local instCache = self.instanceCache[entity.id] or {}
+            local matInstCache = instCache[mat] or {}
+
+            for _, v in ipairs(mat.autoShaderVars or {}) do
+                if v.perInstance then
+                    matInstCache[v] = { type = v.uniformType, values = { v.callbackFn(eye, entity) } }
+                end
+            end
+
+            instCache[mat] = matInstCache
+            self.instanceCache[entity.id] = instCache
+        end
+        ::next_entity::
+    end
+end
+
+function RenderCoreSystem:applyCachedVars(mat, entity)
+    local shader = mat:getShaderState():shader()
+
+    -- material level
+    local matCache = self.materialCache[mat]
+    if matCache then
+        for varObj, entry in pairs(matCache) do
+            if varObj.uniformInt then
+                local fn = UniformFuncs[entry.type]
+                if fn then fn(shader, varObj.uniformInt, table.unpack(entry.values)) end
+            end
+        end
+    end
+
+    -- instance level (per-entity)
+    local instCache = self.instanceCache[entity.id]
+    if instCache then
+        local matInst = instCache[mat]
+        if matInst then
+            for varObj, entry in pairs(matInst) do
+                if varObj.uniformInt then
+                    local fn = UniformFuncs[entry.type]
+                    if fn then fn(shader, varObj.uniformInt, table.unpack(entry.values)) end
                 end
             end
         end
