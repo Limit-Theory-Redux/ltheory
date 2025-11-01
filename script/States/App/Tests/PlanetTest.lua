@@ -32,6 +32,8 @@ function PlanetTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
 
+    self.seed = 1000
+
     -- Timers
     self.timer = DeltaTimer("PlanetTest")
     self.timer:start("fps", 0.1)
@@ -46,7 +48,7 @@ function PlanetTest:onInit()
     -- Skybox
     ---@param entity Entity
     ---@param blendMode BlendMode
-    self.skybox = SkyboxEntity(0, function(entity, blendMode)
+    self.skybox = SkyboxEntity(self.seed, function(entity, blendMode)
         local placeholder = entity:get(CoreComponents.Empty)
 
         if not placeholder then
@@ -98,7 +100,7 @@ function PlanetTest:onInit()
     CameraSystem.currentCameraTransform:setPosition(Position(self.camPos.x, self.camPos.y, self.camPos.z))
     CameraSystem.currentCameraTransform:setRotation(Quat.LookAt(self.camPos, self.planetPos, Vec3f(0, 1, 0)))
 
-    self:createPlanet(0)
+    self:createPlanet(self.seed)
 
     EventBus:subscribe(Event.PreRender, self, self.onPreRender)
 end
@@ -133,7 +135,8 @@ function PlanetTest:createPlanet(seed)
         atmoScale    = 1.1,
     }
 
-    local texSurface = GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
+    --todo: nonblocking?
+    local texSurface = GenUtil.ShaderToTexCube(1024, TexFormat.RGBA16F, 'gen/planet', {
         seed = self.rng:getUniform(),
         freq = self.genOptions.surfaceFreq,
         power = self.genOptions.surfacePower,
@@ -175,7 +178,7 @@ function PlanetTest:onPreRender(data)
     end
 
     if self.timer:check("new_planet_tex") then
-        local texSurface = GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
+        local texSurface = GenUtil.ShaderToTexCube(1024, TexFormat.RGBA16F, 'gen/planet', {
             seed = self.rng:getUniform(),
             freq = self.genOptions.surfaceFreq,
             power = self.genOptions.surfacePower,
