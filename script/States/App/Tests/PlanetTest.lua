@@ -35,6 +35,7 @@ function PlanetTest:onInit()
     -- Timers
     self.timer = DeltaTimer("PlanetTest")
     self.timer:start("fps", 0.1)
+    self.timer:start("new_planet_tex", 10)
 
     -- FPS tracking
     self.frameCount = 0
@@ -103,7 +104,7 @@ function PlanetTest:onInit()
 end
 
 function PlanetTest:createPlanet(seed)
-    local rng      = RNG.Create(seed)
+    self.rng       = RNG.Create(seed)
 
     local mesh     = Primitive.IcoSphere(5)
     local meshAtmo = Primitive.IcoSphere(5, 1.5)
@@ -119,36 +120,40 @@ function PlanetTest:createPlanet(seed)
     end
 
     ---@type PlanetGenOptions
-    local genOptions = {
-        surfaceFreq  = 4 + rng:getExp(),
-        surfacePower = 1 + 0.5 * rng:getExp(),
-        surfaceCoef  = (rng:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize(),
-        color1       = genColor(rng),
-        color2       = genColor(rng),
-        color3       = genColor(rng),
-        color4       = genColor(rng),
-        oceanLevel   = rng:getUniform() ^ 1.5,
-        cloudLevel   = rng:getUniformRange(-0.2, 0.15),
+    self.genOptions = {
+        surfaceFreq  = 4 + self.rng:getExp(),
+        surfacePower = 1 + 0.5 * self.rng:getExp(),
+        surfaceCoef  = (self.rng:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize(),
+        color1       = genColor(self.rng),
+        color2       = genColor(self.rng),
+        color3       = genColor(self.rng),
+        color4       = genColor(self.rng),
+        oceanLevel   = self.rng:getUniform() ^ 1.5,
+        cloudLevel   = self.rng:getUniformRange(-0.2, 0.15),
         atmoScale    = 1.1,
     }
 
     local texSurface = GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
-        seed = rng:getUniform(),
-        freq = genOptions.surfaceFreq,
-        power = genOptions.surfacePower,
-        coef = genOptions.surfaceCoef
+        seed = self.rng:getUniform(),
+        freq = self.genOptions.surfaceFreq,
+        power = self.genOptions.surfacePower,
+        coef = self.genOptions.surfaceCoef
     })
 
+    -- Clone materials
+    self.matPlanet = Materials.PlanetSurface()
+    self.matAtmo = Materials.PlanetAtmosphere()
+
     local planet = PlanetEntity(seed, {
-        { mesh = mesh,     material = Materials.PlanetSurface },
-        { mesh = meshAtmo, material = Materials.PlanetAtmosphere },
+        { mesh = mesh,     material = self.matPlanet },
+        { mesh = meshAtmo, material = self.matAtmo },
     })
 
     -- Attach gen data
-    local planetCmp = CelestialComponents.Gen.Planet(genOptions)
+    local planetCmp = CelestialComponents.Gen.Planet(self.genOptions)
     local genCmp = planet:add(planetCmp)
 
-    Materials.PlanetSurface:setTexture("surface", texSurface)
+    self.matPlanet:setTexture("surface", texSurface)
 
     -- Physics
     local rbCmp = planet:get(PhysicsComponents.RigidBody)
@@ -160,7 +165,6 @@ end
 function PlanetTest:onPreRender(data)
     local dt = data:deltaTime()
     self.timer:update(dt)
-    self.time = self.time + dt
 
     self.frameCount = self.frameCount + 1
     if self.timer:check("fps") then
@@ -170,8 +174,19 @@ function PlanetTest:onPreRender(data)
         self.frameCount = 0
     end
 
+    if self.timer:check("new_planet_tex") then
+        local texSurface = GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
+            seed = self.rng:getUniform(),
+            freq = self.genOptions.surfaceFreq,
+            power = self.genOptions.surfacePower,
+            coef = self.genOptions.surfaceCoef
+        })
+
+        self.matPlanet:setTexture("surface", texSurface)
+    end
+
     local radius = self.camPos.z
-    local speed = 0.025
+    local speed = 0.04
     local angle = (self.angle or 0) + speed * dt
     self.angle = angle
 
