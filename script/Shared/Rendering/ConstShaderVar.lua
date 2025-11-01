@@ -34,27 +34,12 @@ function ConstShaderVar:setUniformInt(shader)
     end
 end
 
----@param shader Shader
----@param entity Entity|nil
 function ConstShaderVar:setShaderVar(shader, entity)
-    if not self.uniformInt then
-        Log.Warn("ConstShaderVar " .. self.uniformName .. " uniformInt not set before setShaderVar")
-        self:setUniformInt(shaderState:shader())
-    end
-
-    -- ignore var if uniform is nil
-    if not self.uniformInt then
-        return
-    end
-
-    if self.requiresEntity and not entity then
-        Log.Error("ConstShaderVar Requires Entity, No Entity given.")
-    end
-
-    if entity then
-        UniformFuncs[self.uniformType](shader, self.uniformInt, self.callbackFn(entity))
-    else
-        UniformFuncs[self.uniformType](shader, self.uniformInt, self.callbackFn())
+    if not self.uniformInt then return end
+    local values = { self.callbackFn() }
+    local func = UniformFuncs[self.uniformType]
+    if func then
+        func(shader, self.uniformInt, unpack(values))
     end
 end
 

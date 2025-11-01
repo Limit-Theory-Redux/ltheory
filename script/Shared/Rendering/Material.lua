@@ -1,6 +1,7 @@
 local AutoShaderVar = require("Shared.Rendering.AutoShaderVar")
 local ConstShaderVar = require("Shared.Rendering.ConstShaderVar")
 local Texture = require("Shared.Rendering.Texture")
+local UniformFuncs = require("Shared.Rendering.UniformFuncs")
 
 ---@class Material
 ---@field vs string -- 'res/shader/vertex/'
@@ -42,7 +43,6 @@ end
 function Material:addAutoShaderVars(shaderVars)
     for _, shaderVarInfo in ipairs(shaderVars) do
         local autoShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.callbackFn)
-        autoShaderVar:setUniformInt(self.shaderState:shader())
         insert(self.autoShaderVars, autoShaderVar)
     end
 end
@@ -51,7 +51,6 @@ end
 function Material:addConstShaderVars(shaderVars)
     for _, shaderVarInfo in ipairs(shaderVars) do
         local constShaderVar = ConstShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, true)
-        constShaderVar:setUniformInt(self.shaderState:shader())
         constShaderVar:setCallbackFn(shaderVarInfo.callbackFn)
         insert(self.constShaderVars, constShaderVar)
     end
@@ -66,20 +65,52 @@ function Material:addStaticShaderVar(uniformName, uniformType, callbackFn)
     insert(self.staticShaderVars, staticShaderVar)
 end
 
-function Material:reload()
-    if self.shaderState then self.shaderState:free() end
+function Material:reloadShader()
     local shader = Cache.Shader(self.vs, self.fs)
-    self.shaderState = ShaderState.Create(shader)
+    if not shader then return end
 
-    for _, texture in ipairs(self.textures) do
-        texture:setTextureToShaderState(self.shaderState)
+    self.shaderState = ShaderState.Create(shader)
+    self.shader = shader
+
+    local function cache(vars)
+        for _, v in ipairs(vars) do
+            if shader:hasVariable(v.uniformName) then
+                v.uniformInt = shader:getVariable(v.uniformName)
+            else
+                Log.Warn("Shader " .. tostring(shader) .. ": Does not have uniform: " .. v.uniformName)
+                v.uniformInt = nil
+            end
+        end
     end
-    for _, shaderVar in ipairs(self.autoShaderVars) do
-        shaderVar:setUniformInt(shader)
+
+    cache(self.autoShaderVars)
+    cache(self.constShaderVars)
+    cache(self.staticShaderVars or {})
+
+    -- Set const vars
+    for _, v in ipairs(self.constShaderVars) do
+        if v.uniformInt then
+            local values = { v.callbackFn() }
+            local func = UniformFuncs[v.uniformType]
+            if func then
+                func(shader, v.uniformInt, unpack(values))
+            end
+        end
     end
-    for _, shaderVar in ipairs(self.constShaderVars) do
-        shaderVar:setUniformInt(shader)
-        shaderVar:resetUniformValues()
+
+    -- Rebind textures
+    for _, tex in pairs(self.textures) do
+        local name = tex.texName
+        if shader:hasVariable(name) then
+            local loc = shader:getVariable(name)
+            local fnName = ({
+                [Enums.UniformType.Tex2D]   = "iSetTex2D",
+                [Enums.UniformType.TexCube] = "iSetTexCube",
+            })[tex.texType]
+            if fnName and shader[fnName] then
+                shader[fnName](shader, loc, tex.tex)
+            end
+        end
     end
 end
 
@@ -99,13 +130,39 @@ function Material:setAllShaderVars(eye, entity)
     end
 end
 
+function Material:setTexture(name, tex)
+    local texInfo = {
+        texName = name,
+        tex = tex,
+        texType = Enums.UniformType.TexCube,
+        texSettings = {
+            genMipMap = true,
+            magFilter = TexFilter.Linear,
+            minFilter = TexFilter.LinearMipLinear,
+            anisotropy = 16,
+            wrapS = TexWrapMode.Repeat,
+            wrapT = TexWrapMode.Repeat,
+            wrapR = TexWrapMode.Repeat,
+        }
+    }
+
+    -- Reuse addTextures logic
+    self:addTextures({ texInfo })
+end
+
 ---@return Material ClonedMaterial
 function Material:clone()
-    local cloneMaterial = Material(self.vs, self.fs, self.blendMode)
-    cloneMaterial.textures = self.textures
-    cloneMaterial.autoShaderVars = self.autoShaderVars
-    cloneMaterial.constShaderVars = self.constShaderVars
-    return cloneMaterial
+    local c = Material(self.vs, self.fs, self.blendMode)
+    c.textures = {}
+    c.autoShaderVars = { unpack(self.autoShaderVars or {}) }
+    c.constShaderVars = { unpack(self.constShaderVars or {}) }
+
+    for k, tex in pairs(self.textures or {}) do
+        c.textures[k] = Texture(k, tex.tex, tex.texType, tex.texSettings)
+        c.textures[k]:setTextureToShaderState(c.shaderState)
+    end
+
+    return c
 end
 
 ---@return ShaderState
