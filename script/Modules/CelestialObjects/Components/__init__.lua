@@ -14,6 +14,7 @@ return {
     Thickness = require("Modules.CelestialObjects.Components.ThicknessComponent"),
 
     Gen = {
-        Planet = require("Modules.CelestialObjects.Components.Gen.PlanetGenComponent")
+        Planet = require("Modules.CelestialObjects.Components.Gen.PlanetGenComponent"),
+        PlanetRing = require("Modules.CelestialObjects.Components.Gen.PlanetRingGenComponent")
     }
 }

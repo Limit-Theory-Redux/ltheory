@@ -4,15 +4,17 @@ local UniformFuncs = require("Shared.Rendering.UniformFuncs")
 ---@field uniformInt integer
 ---@field uniformType UniformType
 ---@field callbackFn function
+---@field perInstance boolean
 
 ---@class AutoShaderVar
 ---@overload fun(self: AutoShaderVar, uniformName: string, uniformType: UniformType, callbackFn: function): AutoShaderVar class internal
 ---@overload fun(uniformName: string, uniformType: UniformType,  callbackFn: function): AutoShaderVar class external
-local AutoShaderVar = Class("AutoShaderVar", function(self, uniformName, uniformType, callbackFn)
+local AutoShaderVar = Class("AutoShaderVar", function(self, uniformName, uniformType, callbackFn, perInstance)
     self.uniformName = uniformName
     self.uniformInt = nil
     self.uniformType = uniformType
     self.callbackFn = callbackFn
+    self.perInstance = perInstance or false
 end)
 
 function AutoShaderVar:setShaderVar(eye, shader, entity)

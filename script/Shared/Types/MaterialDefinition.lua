@@ -11,6 +11,7 @@ local Materials = require("Shared.Registries.Materials")
 ---@field uniformName string
 ---@field uniformType UniformType
 ---@field callbackFn function
+---@field perInstance boolean|nil
 
 ---@class MaterialDefinitionConstructor
 ---@field name string
