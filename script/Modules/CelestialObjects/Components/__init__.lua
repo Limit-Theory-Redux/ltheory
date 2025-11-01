@@ -11,5 +11,9 @@ return {
     RotationPeriod = require("Modules.CelestialObjects.Components.RotationPeriodComponent"),
     Stability = require("Modules.CelestialObjects.Components.StabilityComponent"),
     Temperature = require("Modules.CelestialObjects.Components.TemperatureComponent"),
-    Thickness = require("Modules.CelestialObjects.Components.ThicknessComponent")
+    Thickness = require("Modules.CelestialObjects.Components.ThicknessComponent"),
+
+    Gen = {
+        Planet = require("Modules.CelestialObjects.Components.Gen.PlanetGenComponent")
+    }
 }

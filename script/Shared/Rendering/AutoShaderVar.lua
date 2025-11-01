@@ -15,32 +15,16 @@ local AutoShaderVar = Class("AutoShaderVar", function(self, uniformName, uniform
     self.callbackFn = callbackFn
 end)
 
----@param shader Shader
----@return boolean
-function AutoShaderVar:setUniformInt(shader)
-    if shader:hasVariable(self.uniformName) then
-        self.uniformInt = shader:getVariable(self.uniformName)
-        return true
-    else
-        Log.Warn("Shader " .. tostring(shader) .. ": Does not have uniform: " .. self.uniformName)
-        return false
-    end
-end
-
----@param eye Position Camera Position
----@param shader Shader
----@param entity Entity
 function AutoShaderVar:setShaderVar(eye, shader, entity)
     if not self.uniformInt then
-        Log.Warn("Uniform " .. self.uniformName .. " int not set before updateShaderVar")
-        self:setUniformInt(shader)
+        return -- Already warned in reloadShader()
     end
 
-    -- ignore var if uniform is nil
-    if not self.uniformInt then
-        return
+    local values = { self.callbackFn(eye, entity) }
+    local func = UniformFuncs[self.uniformType]
+    if func then
+        func(shader, self.uniformInt, unpack(values))
     end
-    UniformFuncs[self.uniformType](shader, self.uniformInt, self.callbackFn(eye, entity))
 end
 
 return AutoShaderVar

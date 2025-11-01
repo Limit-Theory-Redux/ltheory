@@ -36,9 +36,9 @@ function MaterialDefinition.new(args)
     if not args.name then
         Log.Warn("No name Set for MaterialDefinition")
         return nil
-    elseif Material[args.name] then
+    elseif Materials[args.name] then
         Log.Warn("Attempting to Recreate Material: " .. args.name)
-        return Material[args.name]
+        return Materials[args.name]
     end
 
     if not args.vs_name then
@@ -57,20 +57,12 @@ function MaterialDefinition.new(args)
     end
 
     local newMaterial = Material(args.vs_name, args.fs_name, args.blendMode)
-    -- Set Textures
-    if args.textures then
-        newMaterial:addTextures(args.textures)
-    end
-    -- Set AutoShaderVars
-    if args.autoShaderVars then
-        newMaterial:addAutoShaderVars(args.autoShaderVars)
-    end
-    -- Set ConstShaderVars
-    if args.constShaderVars then
-        newMaterial:addConstShaderVars(args.constShaderVars)
-    end
+    if args.textures then newMaterial:addTextures(args.textures) end
+    if args.autoShaderVars then newMaterial:addAutoShaderVars(args.autoShaderVars) end
+    if args.constShaderVars then newMaterial:addConstShaderVars(args.constShaderVars) end
 
     -- Add new Material to Materials registry
+    newMaterial:reloadShader() -- reload to cache uniform ints
     Materials:new(args.name, newMaterial)
 
     return setmetatable({
