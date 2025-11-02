@@ -15,6 +15,11 @@ return {
 
     Gen = {
         Planet = require("Modules.CelestialObjects.Components.Gen.PlanetGenComponent"),
-        PlanetRing = require("Modules.CelestialObjects.Components.Gen.PlanetRingGenComponent")
+        PlanetRing = require("Modules.CelestialObjects.Components.Gen.PlanetRingGenComponent"),
+
+    },
+
+    Simulation = {
+        CloudMotion = require("Modules.CelestialObjects.Components.Simulation.CloudMotionComponent")
     }
 }

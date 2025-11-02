@@ -131,11 +131,17 @@ function Material:setAllShaderVars(eye, entity)
     end
 end
 
-function Material:setTexture(name, tex)
+function Material:setTexture(name, tex, texType)
+    -- Infer type if not provided
+    texType = texType or (ffi.istype("TexCube", tex) and Enums.UniformType.TexCube
+        or ffi.istype("Tex2D", tex) and Enums.UniformType.Tex2D
+        or ffi.istype("Tex3D", tex) and Enums.UniformType.Tex3D
+        or error("Unsupported texture type"))
+
     local texInfo = {
         texName = name,
         tex = tex,
-        texType = Enums.UniformType.TexCube,
+        texType = texType,
         texSettings = {
             genMipMap = true,
             magFilter = TexFilter.Linear,
@@ -147,7 +153,6 @@ function Material:setTexture(name, tex)
         }
     }
 
-    -- Reuse addTextures logic
     self:addTextures({ texInfo })
 end
 

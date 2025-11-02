@@ -93,6 +93,15 @@ MaterialDefinition {
         { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc, perInstance = true },
         { uniformName = "scale",    uniformType = Enums.UniformType.Float,   callbackFn = ShaderVarFuncs.scaleFunc,    perInstance = true },
 
+        { uniformName = "time", uniformType = Enums.UniformType.Float,
+            callbackFn = function(_, e)
+                ---@cast e Entity
+                local time = e:get(CelestialComponents.Simulation.CloudMotion):getTime()
+                return time
+            end,
+            perInstance = false
+        },
+
         genField("oceanLevel", Enums.UniformType.Float),
         genField("color1", Enums.UniformType.Float3),
         genField("color2", Enums.UniformType.Float3),
@@ -156,26 +165,32 @@ MaterialDefinition {
 
 ---@class Materials
 ---@field PlanetRing Material
---MaterialDefinition {
---    name = "PlanetRing",
---    vs_name = "wvp",
---    fs_name = "material/planetring",
---    blendMode = BlendMode.Alpha,
---    textures = nil, -- set at runtime
---    autoShaderVars = {
---        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  callbackFn = ShaderVarFuncs.mWorldFunc },
---        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc },
---        { uniformName = "scale",    uniformType = Enums.UniformType.Float,   callbackFn = ShaderVarFuncs.scaleFunc },
---        { uniformName = "origin", uniformType = Enums.UniformType.Float3, callbackFn = function(_, e)
---            return e:get(PhysicsComponents.RigidBody):getRigidBody():getPos()
---        end },
---
---        -- Ring-specific
---        { uniformName = "innerRadius", uniformType = Enums.UniformType.Float,
---            callbackFn = function(_, e) return e:get(CelestialComponents.Gen.PlanetRing).innerRadius end },
---        { uniformName = "outerRadius", uniformType = Enums.UniformType.Float,
---            callbackFn = function(_, e) return e:get(CelestialComponents.Gen.PlanetRing).outerRadius end },
---        { uniformName = "ringAngle", uniformType = Enums.UniformType.Float,
---            callbackFn = function(_, e) return e:get(CelestialComponents.Gen.PlanetRing).angle end },
---    },
---}
+MaterialDefinition {
+    name = "PlanetRing",
+    vs_name = "wvp",                 -- standard WVP vertex shader
+    fs_name = "material/planetring", -- fragment shader for cube-map ring
+    blendMode = BlendMode.Alpha,     -- enable alpha blending
+    textures = nil,
+    autoShaderVars = {
+        -- World transform
+        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  callbackFn = ShaderVarFuncs.mWorldFunc,   perInstance = true },
+        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc, perInstance = true },
+
+        -- Planet center for cube-map direction calculation
+        { uniformName = "origin", uniformType = Enums.UniformType.Float3,
+            callbackFn = function(_, e)
+                local rb = e:get(PhysicsComponents.RigidBody):getRigidBody()
+                local p = rb:getPos()
+                return p.x, p.y, p.z
+            end,
+            perInstance = true
+        },
+        { uniformName = "starDir", uniformType = Enums.UniformType.Float3,
+            callbackFn = function(_, e)
+                --todo: Replace with actual star light direction in world space
+                return 1.0, 1.0, 0.0
+            end,
+            perInstance = true
+        },
+    },
+}
