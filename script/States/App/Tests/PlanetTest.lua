@@ -30,12 +30,12 @@ function PlanetTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
 
-    self.seed = 1000
+    self.seed = 3650
 
     -- Timers
     self.timer = DeltaTimer("PlanetTest")
     self.timer:start("fps", 0.1)
-    self.timer:start("new_planet_tex", 10)
+    --self.timer:start("new_planet_tex", 120)
 
     -- FPS tracking
     self.frameCount = 0
@@ -94,7 +94,7 @@ function PlanetTest:onInit()
     self.planetPos = Vec3f(0, 0, 0)
 
     -- Initialize camera transform
-    self.camPos    = Vec3f(0, 0, -2)
+    self.camPos    = Vec3f(0, 0, -4)
     CameraSystem.currentCameraTransform:setPosition(Position(self.camPos.x, self.camPos.y, self.camPos.z))
     CameraSystem.currentCameraTransform:setRotation(Quat.LookAt(self.camPos, self.planetPos, Vec3f(0, 1, 0)))
 
@@ -134,7 +134,7 @@ function PlanetTest:createPlanet(seed)
     }
 
     --todo: nonblocking?
-    local texSurface = GenUtil.ShaderToTexCube(1024, TexFormat.RGBA16F, 'gen/planet', {
+    local texSurface = GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
         seed = self.rng:getUniform(),
         freq = self.genOptions.surfaceFreq,
         power = self.genOptions.surfacePower,
@@ -162,43 +162,63 @@ function PlanetTest:createPlanet(seed)
     rbCmp:setRigidBody(rb)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
 
-    --self:createPlanetRing(seed)
+    self:createPlanetRing(seed)
 end
 
 function PlanetTest:createPlanetRing(seed)
     local rng = RNG.Create(seed)
 
-    local innerRadius = 1.6 + 0.4 * rng:getExp()
-    local outerRadius = innerRadius + 0.8 + 0.6 * rng:getExp()
-    local mesh = Primitive.Ring(innerRadius, outerRadius, 128)
+    local planetRadius = self.planet:get(PhysicsComponents.RigidBody):getRadius()
 
-    local ringTex = GenUtil.ShaderToTexCube(1024, TexFormat.RGBA8, "gen/planetring", {
-        seed = rng:getUniform(),
-        freq = 0.8 + 0.6 * rng:getExp(),
-        power = 1.2 + 0.8 * rng:getExp(),
-        innerRadius = 0.35 + 0.15 * rng:getUniform(),
-        outerRadius = 0.85 + 0.10 * rng:getUniform(),
-        ringDensity = 0.6 + 0.4 * rng:getExp(),
-        dustScale = 1.5 + 1.5 * rng:getExp(),
-    })
+    local gap = planetRadius * 0.65
+    local ringWidth = planetRadius * 2 * rng:getExp()
+
+    local innerRadius = planetRadius + gap
+    local outerRadius = innerRadius + ringWidth
+
+    local mesh = Primitive.Ring(innerRadius, outerRadius, 128)
+    mesh:getRadius()
+
+    --todo: add tex2d generation
+    local ringTex = Tex2D.Create(512, 512, TexFormat.RGBA8)
+    ringTex:clear(1, 0, 1, 0.25)
 
     self.matRing = Materials.PlanetRing()
+    --local tex = Tex2D.Create(256, 16, TexFormat.RGBA8)
+    --tex:clear(1, 1, 1, 0.7) -- white with some transparency
+    --self.matRing:setTexture("ringTex", tex)
+    self.matRing:setTexture("ringTex", ringTex, Enums.UniformType.Tex2D)
 
     self.ring = AsteroidRingEntity(seed, { { mesh = mesh, material = self.matRing } })
-
-    self.matRing:setTexture("ringTex", ringTex)
-
-    local rbCmp = ring:get(PhysicsComponents.RigidBody)
-    local rb = RigidBody.CreateSphere() -- temp sphere
-    rbCmp:setRigidBody(rb)
-    rb:setKinematic(true)
 
     local ringGen = {
         innerRadius = innerRadius,
         outerRadius = outerRadius,
-        seed = rng:getUniform(),
+        angle = 0.0 -- will set tilt below
     }
-    self.ring:add(CelestialComponents.Gen.Ring(ringGen))
+    self.ring:add(CelestialComponents.Gen.PlanetRing(ringGen))
+
+    --local transform = self.ring:get(CoreComponents.Transform)
+    --transform:setRotation(Quat.FromAxisAngle(Vec3f(1, 0, 0), tiltRad))
+
+    -- Update gen component with tilt
+    --local genCmp = self.ring:get(CelestialComponents.Gen.PlanetRing)
+    --genCmp.angle = tiltRad
+    local tiltDeg = rng:getUniformRange(20, 35)
+    local tiltDeg2 = rng:getUniformRange(-20, -35)
+    local tiltDeg3 = rng:getUniformRange(80, 110)
+    local tilt = rng:choose({ tiltDeg, tiltDeg2, tiltDeg3 })
+    local tiltRad = math.rad(tilt)
+
+    local rbCmp = PhysicsComponents.RigidBody()
+    local rb = RigidBody.CreateSphere()                                       -- dummy, we control pos manually
+    rb:setKinematic(true)
+    rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z)) -- same as planet
+    rb:setRot(Quat.FromAxisAngle(Vec3f(1, 0, 0), tiltRad))
+    rbCmp:setRigidBody(rb)
+    self.ring:add(rbCmp)
+
+    Registry:attachEntity(self.planet, self.ring)
 end
 
 function PlanetTest:onPreRender(data)
@@ -225,7 +245,7 @@ function PlanetTest:onPreRender(data)
     end
 
     local radius = self.camPos.z
-    local speed = 0.04
+    local speed = 0.0225
     local angle = (self.angle or 0) + speed * dt
     self.angle = angle
 
