@@ -98,9 +98,29 @@ function PlanetTest:onInit()
     CameraSystem.currentCameraTransform:setPosition(Position(self.camPos.x, self.camPos.y, self.camPos.z))
     CameraSystem.currentCameraTransform:setRotation(Quat.LookAt(self.camPos, self.planetPos, Vec3f(0, 1, 0)))
 
+    self.targetCamRadius   = self.camPos.z -- target zoom distance
+    self.zoomLerpSpeed     = 2.0           -- higher = faster
+    self.zoomSensitivity   = 0.9           -- higher = faster
+    self.zoomMinDistance   = 0.0           -- automatically set by planet radius
+    self.isDragging        = false         -- is the user rotating manually
+    self.dragStartAngle    = nil           -- store angle when drag starts
+    self.dragSensitivity   = 0.005         -- adjust rotation speed
+    self.dragReleaseTimer  = 0             -- delay before resuming auto-rotation
+    self.dragReleaseDelay  = 1.0           -- seconds to wait after releasing right mouse
+    self.angle             = 0.0           -- horizontal (yaw)
+    self.pitch             = 0.0           -- vertical (pitch)
+    self.pitchMin          = -0.8          -- ~-45 degrees
+    self.pitchMax          = 0.8           -- ~+45 degrees
+    self.pitchSensitivity  = 0.004         -- vertical rotation speed
+    self.dragReleaseTimer  = 0
+    self.dragReleaseDelay  = 1.0
+    self.autoRotationSpeed = 0.0225
+    self.returnPitchLerp   = 1.5 -- how fast to re-center pitch after release
+
     self:createPlanet(self.seed)
 
-    EventBus:subscribe(Event.PreRender, self, self.onPreRender)
+    EventBus:subscribe(Event.PreRender, self, self.onStatePreRender)
+    EventBus:subscribe(Event.Input, self, self.onStateInput)
 end
 
 function PlanetTest:createPlanet(seed)
@@ -169,6 +189,7 @@ function PlanetTest:createPlanetRing(seed)
     local rng = RNG.Create(seed)
 
     local planetRadius = self.planet:get(PhysicsComponents.RigidBody):getRadius()
+    self.zoomMinDistance = planetRadius + 0.1
 
     local gap = planetRadius * 0.65
     local ringWidth = planetRadius * 2 * rng:getExp()
@@ -221,37 +242,45 @@ function PlanetTest:createPlanetRing(seed)
     Registry:attachEntity(self.planet, self.ring)
 end
 
-function PlanetTest:onPreRender(data)
+function PlanetTest:onStatePreRender(data)
     local dt = data:deltaTime()
+    local scaledDT = dt * (self.timeScale or 1)
     self.timer:update(dt)
 
+    -- FPS calculation (scaled)
     self.frameCount = self.frameCount + 1
     if self.timer:check("fps") then
-        local instantFPS = self.frameCount * 10
+        local fpsInterval = 0.1
+        local instantFPS = self.frameCount / fpsInterval * (self.timeScale or 1)
         self.smoothFPS = self.smoothFPS * 0.3 + instantFPS * 0.7
         self.fpsText = "FPS: " .. math.floor(self.smoothFPS + 0.5)
         self.frameCount = 0
     end
 
-    if self.timer:check("new_planet_tex") then
-        local texSurface = GenUtil.ShaderToTexCube(1024, TexFormat.RGBA16F, 'gen/planet', {
-            seed = self.rng:getUniform(),
-            freq = self.genOptions.surfaceFreq,
-            power = self.genOptions.surfacePower,
-            coef = self.genOptions.surfaceCoef
-        })
+    -- Smooth zoom
+    local lerpFactor = math.min(1, self.zoomLerpSpeed * dt)
+    self.camPos.z = self.camPos.z + (self.targetCamRadius - self.camPos.z) * lerpFactor
 
-        self.matPlanet:setTexture("surface", texSurface)
+    -- Update drag release timer
+    if self.dragReleaseTimer > 0 then
+        self.dragReleaseTimer = math.max(0, self.dragReleaseTimer - dt)
     end
 
-    local radius = self.camPos.z
-    local speed = 0.0225
-    local angle = (self.angle or 0) + speed * dt
-    self.angle = angle
+    -- Auto rotation (only yaw)
+    if not self.isDragging and self.dragReleaseTimer == 0 and (self.timeScale or 1) == 1 then
+        self.angle = (self.angle or 0) + self.autoRotationSpeed * scaledDT
+    end
 
-    local x = math.sin(angle) * radius
-    local z = math.cos(angle) * radius
-    local y = 0.0
+    -- Smoothly return pitch to 0 after releasing
+    if not self.isDragging and self.dragReleaseTimer == 0 and (self.timeScale or 1) == 1 then
+        self.pitch = Math.Lerp(self.pitch, 0.0, math.min(1, self.returnPitchLerp * dt))
+    end
+
+    -- Compute camera position from yaw/pitch
+    local radius = self.camPos.z
+    local x = math.sin(self.angle) * math.cos(self.pitch) * radius
+    local y = math.sin(self.pitch) * radius
+    local z = math.cos(self.angle) * math.cos(self.pitch) * radius
 
     local camPos = Vec3f(x, y, z)
     local planetPos = self.planetPos
@@ -261,6 +290,7 @@ function PlanetTest:onPreRender(data)
     camTransform:setRotation(Quat.LookAt(camPos, planetPos, Vec3f(0, 1, 0)))
 end
 
+---@param data EventData
 function PlanetTest:onRender(data)
     -- Normal rendering
     RenderCoreSystem:render(data)
@@ -273,6 +303,43 @@ function PlanetTest:onRender(data)
         DrawEx.TextAdditive('Unageo-Medium', string.format("Lua Memory: %.2f KB", mem),
             20, 40, 70, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
     end)
+end
+
+---@param data EventData
+function PlanetTest:onStateInput(data)
+    local mouseState = Input:mouse()
+    local scrollState = mouseState:scroll() -- Vec2f
+
+    self.camPos = self.camPos or Vec3f(0, 0, 50)
+    self.targetCamRadius = self.targetCamRadius or self.camPos.z
+
+    -- Zoom target
+    local scrollSensitivity = self.zoomSensitivity or 0.9
+    local maxDeltaPerScroll = 10.0
+    local delta = scrollState.y * scrollSensitivity
+    delta = Math.Clamp(delta, -maxDeltaPerScroll, maxDeltaPerScroll)
+    self.targetCamRadius = math.max(self.zoomMinDistance, self.targetCamRadius - delta)
+
+    -- Manual rotation
+    if Input:isDown(Button.MouseRight) then
+        local mouseDelta = mouseState:delta() -- Vec2f
+        if mouseDelta:length() > 0 then
+            self.isDragging = true
+            self.dragReleaseTimer = self.dragReleaseDelay
+
+            -- Update yaw and pitch
+            self.angle = (self.angle or 0) + mouseDelta.x * self.dragSensitivity
+            self.pitch = Math.Clamp(
+                (self.pitch or 0) - mouseDelta.y * self.pitchSensitivity,
+                self.pitchMin, self.pitchMax
+            )
+        end
+    else
+        if self.isDragging then
+            self.dragReleaseTimer = self.dragReleaseDelay
+        end
+        self.isDragging = false
+    end
 end
 
 return PlanetTest
