@@ -10,6 +10,6 @@ return function(seed, meshes)
     return PhysicalEntity("PlanetEntity", seed,
         Physics.RigidBody(),
         Rendering.Render(meshes),
-        CelestialObjects.Simulation.CloudMotion(0.25, 0.5)
+        CelestialObjects.Simulation.CloudMotion(1, 1)
     )
 end
