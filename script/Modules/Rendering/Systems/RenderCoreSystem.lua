@@ -207,11 +207,11 @@ function RenderCoreSystem:cacheData()
                 local matCache = {}
 
                 for _, v in ipairs(mat.staticShaderVars or {}) do
-                    ---@cast v ConstShaderVar
+                    ---@cast v AutoShaderVar
                     matCache[v] = { type = v.uniformType, values = { v.callbackFn() } }
                 end
                 for _, v in ipairs(mat.constShaderVars or {}) do
-                    ---@cast v ConstShaderVar
+                    ---@cast v AutoShaderVar
                     matCache[v] = { type = v.uniformType, values = { v.callbackFn() } }
                 end
 

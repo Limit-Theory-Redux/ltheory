@@ -1,5 +1,4 @@
 local AutoShaderVar = require("Shared.Rendering.AutoShaderVar")
-local ConstShaderVar = require("Shared.Rendering.ConstShaderVar")
 local Texture = require("Shared.Rendering.Texture")
 local UniformFuncs = require("Shared.Rendering.UniformFuncs")
 
@@ -10,8 +9,8 @@ local UniformFuncs = require("Shared.Rendering.UniformFuncs")
 ---@field textures table<Texture>
 ---@field shaderState ShaderState
 ---@field autoShaderVars table<AutoShaderVar>
----@field constShaderVars table<ConstShaderVar>
----@field staticShaderVars table<ConstShaderVar>
+---@field constShaderVars table<AutoShaderVar>
+---@field staticShaderVars table<AutoShaderVar>
 
 ---@class Material
 ---@overload fun(self: Material, vs_name: string, fs_name: string, blendMode: BlendMode): Material class internal
@@ -51,7 +50,7 @@ end
 ---@param shaderVars table<ShaderVarInfo>
 function Material:addConstShaderVars(shaderVars)
     for _, shaderVarInfo in ipairs(shaderVars) do
-        local constShaderVar = ConstShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, true)
+        local constShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, nil, true)
         constShaderVar:setCallbackFn(shaderVarInfo.callbackFn)
         insert(self.constShaderVars, constShaderVar)
     end
@@ -60,7 +59,7 @@ end
 ---@param uniformName string
 ---@param uniformType UniformType
 function Material:addStaticShaderVar(uniformName, uniformType, callbackFn)
-    local staticShaderVar = ConstShaderVar(uniformName, uniformType, false)
+    local staticShaderVar = AutoShaderVar(uniformName, uniformType, nil, false)
     staticShaderVar:setUniformInt(self.shaderState:shader())
     staticShaderVar:setCallbackFn(callbackFn)
     insert(self.staticShaderVars, staticShaderVar)
@@ -75,12 +74,7 @@ function Material:reloadShader()
 
     local function cache(vars)
         for _, v in ipairs(vars) do
-            if shader:hasVariable(v.uniformName) then
-                v.uniformInt = shader:getVariable(v.uniformName)
-            else
-                Log.Warn("Shader " .. tostring(shader) .. ": Does not have uniform: " .. v.uniformName)
-                v.uniformInt = nil
-            end
+            v:setUniformInt(shader)
         end
     end
 
@@ -124,10 +118,10 @@ function Material:setAllShaderVars(eye, entity)
         shaderVar:setShaderVar(eye, shader, entity)
     end
     for _, shaderVar in ipairs(self.constShaderVars) do
-        shaderVar:setShaderVar(shader, entity)
+        shaderVar:setShaderVar(eye, shader, entity)
     end
     for _, shaderVar in ipairs(self.staticShaderVars) do
-        shaderVar:setShaderVar(shader)
+        shaderVar:setShaderVar(eye, shader)
     end
 end
 
