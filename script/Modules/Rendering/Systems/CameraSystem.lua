@@ -57,6 +57,7 @@ function CameraSystem:setCamera(entity)
         return
     end
 
+    self.currentCamera = entity.id
     self.currentCameraData = entity:get(Rendering.CameraData)
     self.currentCameraTransform = entity:get(Physics.Transform)
 end
@@ -87,23 +88,109 @@ function CameraSystem:endDraw()
     ShaderVar.Pop('eye')
 end
 
+-- Updates view matrix from current transform
 function CameraSystem:updateViewMatrix()
-    local mView = Matrix.FromPosRot(Vec3f.Identity(), self.currentCameraTransform:getRotation())
-    -- View matrix has the "position" at (0,0,0), as all world matrices are offset by self.pos.
-    self.currentCameraData:setViewInverse(mView)
-    self.currentCameraData:setView(mView:inverse())
+    if not self.currentCameraData or not self.currentCameraTransform then return end
+    local pos = self.currentCameraTransform:getPosition()
+    local rot = self.currentCameraTransform:getRotation()
+    local viewInv = Matrix.FromPosRot(pos:relativeTo(self:getCurrentCameraEye()), rot)
+    self.currentCameraData:setViewInverse(viewInv)
+    self.currentCameraData:setView(viewInv:inverse())
 end
 
+-- Updates projection matrix
 function CameraSystem:updateProjectionMatrix(resX, resY)
-    local mProj = Matrix.Perspective(
-        Config.render.camera.fov,
-        resX / resY,
-        Config.render.camera.zNear,
-        Config.render.camera.zFar
+    if not self.currentCameraData then return end
+    local fov = Config.render.camera.fov
+    local zNear = Config.render.camera.zNear
+    local zFar = Config.render.camera.zFar
+    local proj = Matrix.Perspective(fov, resX / resY, zNear, zFar)
+    self.currentCameraData:setProjection(proj)
+    self.currentCameraData:setProjectionInverse(proj:inverse())
+end
+
+---@param screenPos Vec2f
+---@param length number
+---@return Ray?
+function CameraSystem:screenToRay(screenPos, length)
+    length = length or 1e7
+    if not self.currentCameraData or not self.currentCameraTransform then return nil end
+
+    -- Convert screen to NDC
+    local ndc     = Vec3f(
+        2.0 * screenPos.x / Window:width() - 1.0,
+        -(2.0 * screenPos.y / Window:height() - 1.0),
+        -1.0
     )
-    self.currentCameraData:setProjection(mProj)
-    self.currentCameraData:setProjectionInverse(mProj:inverse())
-    --Log.Warn("mView Matrix setProjection" .. tostring(mProj))
+
+    local viewInv = self.currentCameraData:getViewInverse()
+    local projInv = self.currentCameraData:getProjectionInverse()
+
+    local near4   = Vec4f(ndc.x, ndc.y, -1, 1)
+    local far4    = Vec4f(ndc.x, ndc.y, 1, 1)
+
+    -- Apply inverse projection
+    near4         = projInv:mulVec(near4)
+    far4          = projInv:mulVec(far4)
+
+    -- Perspective divide
+    near4:idivs(near4.w)
+    far4:idivs(far4.w)
+
+    -- Apply inverse view
+    local nearPoint = viewInv:mulPoint(near4:toVec3f())
+    local farPoint  = viewInv:mulPoint(far4:toVec3f())
+
+
+    -- Direction
+    local dir = farPoint - nearPoint
+    if dir:length() < 1e-8 then
+        -- degenerate ray, push slightly forward along camera forward
+        dir = self.currentCameraTransform:getRotation():getForward():imuls(1e-6)
+    end
+    dir = dir:normalize()
+
+    return Ray(nearPoint.x, nearPoint.y, nearPoint.z, dir.x, dir.y, dir.z, 0, length)
+end
+
+-- Ray-sphere intersection (returns nil if no hit)
+---@param rayOrigin Vec3f
+---@param rayDir Vec3f
+---@param sphereCenter Vec3f
+---@param radius number
+---@return number? distance or nil
+function CameraSystem:raySphereIntersect(rayOrigin, rayDir, sphereCenter, radius)
+    local oc = rayOrigin - sphereCenter
+    local a = rayDir:dot(rayDir)
+    local b = 2.0 * oc:dot(rayDir)
+    local c = oc:dot(oc) - radius * radius
+    local discriminant = b * b - 4 * a * c
+
+    if discriminant < 0 then return nil end
+
+    local sqrtDisc = math.sqrt(discriminant)
+    local t0 = (-b - sqrtDisc) / (2 * a)
+    local t1 = (-b + sqrtDisc) / (2 * a)
+
+    -- Return the closest positive intersection
+    if t0 > 0 then
+        return t0
+    elseif t1 > 0 then
+        return t1
+    else
+        return nil
+    end
+end
+
+-- Converts mouse position to a world-space ray
+---@param length number optional, default 1e7
+---@return Ray
+function CameraSystem:mouseToRay(length)
+    length = length or 1e7
+    if not self.currentCameraData or not self.currentCameraTransform then return nil end
+
+    local mp = Input:mouse():position()
+    return self:screenToRay(Vec2f(mp.x, mp.y), length)
 end
 
 -- function CameraSystem:lerpFrom(pos, rot)
