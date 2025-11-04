@@ -4,6 +4,7 @@ local MaterialDefinition = require("Shared.Types.MaterialDefinition")
 -- Definitions --
 local ShaderVarFuncs = require("Shared.Definitions.ShaderVarFuncs")
 
+local CoreComponents = require("Modules.Core.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
 local PhysicsComponents = require("Modules.Physics.Components")
 
@@ -168,7 +169,7 @@ MaterialDefinition {
 MaterialDefinition {
     name = "PlanetRing",
     vs_name = "wvp",                 -- standard WVP vertex shader
-    fs_name = "material/planetring", -- fragment shader for cube-map ring
+    fs_name = "material/planetring", -- fragment shader
     blendMode = BlendMode.Alpha,     -- enable alpha blending
     textures = nil,
     autoShaderVars = {
@@ -176,19 +177,53 @@ MaterialDefinition {
         { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  callbackFn = ShaderVarFuncs.mWorldFunc,   perInstance = true },
         { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, callbackFn = ShaderVarFuncs.mWorldITFunc, perInstance = true },
 
-        -- Planet center for cube-map direction calculation
-        { uniformName = "origin", uniformType = Enums.UniformType.Float3,
+        -- Time for rotation
+        { uniformName = "time", uniformType = Enums.UniformType.Float,
             callbackFn = function(_, e)
-                local rb = e:get(PhysicsComponents.RigidBody):getRigidBody()
-                local p = rb:getPos()
+                ---@cast e Entity
+                local time = e:get(CelestialComponents.Simulation.PlanetaryRingMotion):getTime()
+                return time
+            end,
+            perInstance = false
+        },
+
+        -- Planet center and radius (for shadow)
+        { uniformName = "planetPos", uniformType = Enums.UniformType.Float3,
+            callbackFn = function(eye, e)
+                ---@cast e Entity
+                local planet = e:get(CoreComponents.Parent)
+                    :getParent()
+                    :get(PhysicsComponents.RigidBody)
+                    :getRigidBody()
+                local p = planet:getPos()
                 return p.x, p.y, p.z
             end,
             perInstance = true
         },
-        { uniformName = "starDir", uniformType = Enums.UniformType.Float3,
+        { uniformName = "planetRadius", uniformType = Enums.UniformType.Float,
             callbackFn = function(_, e)
-                --todo: Replace with actual star light direction in world space
-                return 1.0, 1.0, 0.0
+                local planet = e:get(CoreComponents.Parent)
+                    :getParent()
+                    :get(PhysicsComponents.RigidBody)
+                    :getRigidBody()
+                local scale = planet:getScale()
+                return scale
+            end,
+            perInstance = true
+        },
+        { uniformName = "ringRotation", uniformType = Enums.UniformType.Float4,
+            callbackFn = function(_, e)
+                local ringBody = e:get(PhysicsComponents.RigidBody):getRigidBody()
+                local q = ringBody:getRot() -- returns a quaternion {x, y, z, w}
+                return q.x, q.y, q.z, q.w
+            end,
+            perInstance = true
+        },
+        -- Ring procedural parameters
+        { uniformName = "seed", uniformType = Enums.UniformType.Float,
+            callbackFn = function(_, e)
+                local seed = e:get(CoreComponents.Seed):getSeed()
+                return seed
             end,
             perInstance = true
         },

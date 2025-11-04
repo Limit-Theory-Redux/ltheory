@@ -6,77 +6,92 @@
 
 uniform float rMin;
 uniform float rMax;
+uniform float ringHeight;
+uniform float seed;
+uniform float time;
+uniform float rotationSpeed; // max speed for inner radius
+uniform float twistFactor;   // controls amount of radial twist
+
+#autovar vec3 eye
+#autovar vec3 starDir
 
 in vec3 objPos;
 
 void main() {
-    // --- Radial distance ---
+    // --- Normalized radial coordinate ---
     float r = length(vec2(objPos.x, objPos.z));
+    float rNorm = (r - rMin) / (rMax - rMin);
 
-    // --- Angle normalized 0-1 ---
-    float angle = atan(objPos.z, objPos.x);
-    float angleNorm = (angle + PI) / (2.0 * PI);
+    // --- Differential rotation ---
+    float speed = rotationSpeed * (1.0 - rNorm); // inner faster
+    float angle = atan(objPos.z, objPos.x) + time * speed;
 
-    // --- Ring parameters ---
-    float ringSize = rMax - rMin;
+    // --- Radial twist ---
+    angle += twistFactor * rNorm; // twist increases with radius
+
+    float radius = r;
+    vec2 rotPos = vec2(cos(angle), sin(angle)) * radius;
+    vec2 angleCircle = vec2(cos(angle), sin(angle)) * 0.5 + 0.5;
+
+    // --- Base vertical factor (global fade) ---
+    float yNorm = clamp(objPos.y / ringHeight + 0.5, 0.0, 1.0);
+    float baseVerticalFade = mix(0.3, 1.0, exp(-4.0 * abs(yNorm - 0.5)));
+
+    // --- Perspective fade ---
+    vec3 toEye = eye - objPos;
+    float viewDist = length(toEye);
+    float fadeDistance = 1e5;
+    float perspectiveFade = clamp(1.0 - viewDist / fadeDistance, 0.0, 1.0);
 
     // --- Radial edge fade ---
-    float edgeWidth = ringSize * 0.1;
-    float radialFade = smoothstep(rMax, rMax - edgeWidth, r) *
-                       smoothstep(rMin, rMin + edgeWidth, r);
+    float edgeWidth = 0.1;
+    float radialFade = smoothstep(1.0, 1.0 - edgeWidth, rNorm) *
+                       smoothstep(0.0, 0.0 + edgeWidth, rNorm);
 
-    // --- Periodic angular coordinates for seamless noise ---
-    vec2 periodicCoord = vec2(cos(angleNorm * 2.0 * PI), sin(angleNorm * 2.0 * PI)) * 5.0;
+    // --- Dense streaks with radial + vertical variation ---
+    float streak = 0.0;
+    int streakLayers = 50;
+    for(int i = 0; i < streakLayers; i++){
+        // Radial-dependent offsets
+        float pos = fSmoothNoise(vec2(float(i), rNorm*60.0 + seed*float(i)), 1, 2.0) + rNorm*2.0;
+        float width = mix(0.02 + rNorm*0.05, 0.06 + rNorm*0.08, fSmoothNoise(vec2(float(i), seed*2.0),1,2.0));
+        float intensity = mix(0.2, 0.6, fSmoothNoise(vec2(float(i), rNorm*3.0 + seed*3.0),1,2.0));
+        
+        // Vertical offset per streak layer
+        float yOffset = 0.2 * fSmoothNoise(vec2(float(i), seed*10.0), 1, 2.0); 
+        float layerYNorm = clamp(yNorm + yOffset - 0.5, 0.0, 1.0);
+        float layerFade = exp(-8.0 * abs(layerYNorm - 0.5)); // per-layer vertical softening
 
-    // --- Radial & angular noise for variation ---
-    float radialNoise = fSmoothNoise(vec2(r / ringSize * 5.0, 0.0), 3, 2.0);
-    float angularNoise = fSmoothNoise(periodicCoord, 2, 1.0);
-    float variation = radialNoise * 0.5 + angularNoise * 0.5;
+        // Radial frequency varies with radius
+        float radialFreq = mix(40.0, 20.0, rNorm);
+        float layer = smoothstep(0.5 - width, 0.5 + width, fract(rNorm*radialFreq + pos)) * intensity * layerFade;
 
-    // --- Radial streaks (positions linear, intensity modulated) ---
-    float streakPos = fract(r / ringSize * 40.0);
-    float streakBase = smoothstep(0.2, 0.8, streakPos);
-    streakBase *= mix(0.8, 1.0, variation);
-    streakBase = pow(streakBase, 1.8);
+        streak += layer;
+    }
+    streak = streak / (streak + 1.0);
+    streak = clamp(streak, 0.0, 1.0);
 
-    float streakPos2 = fract(r / ringSize * 80.0);
-    float streakBase2 = smoothstep(0.3, 0.7, streakPos2);
-    streakBase2 *= mix(0.7, 1.0, variation);
-    streakBase2 = pow(streakBase2, 1.5);
+    // --- Streak-aligned dust with radial variation ---
+    vec3 dustCoord = vec3(rNorm*20.0 + rNorm*5.0, yNorm*10.0, angleCircle.x*10.0); 
+    float dustNoise = fSmoothNoise(dustCoord, 2, 2.0);
+    float dust = 0.05 + 0.08 * dustNoise;
+    dust *= streak;
+    dust *= 0.8 + 0.2 * fSmoothNoise(vec2(rNorm*50.0, seed*7.0), 1, 2.0);
 
-    float combinedStreaks = streakBase * 0.7 + streakBase2 * 0.3;
+    float ringMask = clamp(streak + dust, 0.0, 1.0);
 
-    // --- Radial bands for extra texture ---
-    float bands = sin(r / ringSize * 15.0 + variation * 2.0) * 0.5 + 0.5;
-    bands = smoothstep(0.35, 0.65, bands);
+    // --- Final alpha ---
+    float alpha = radialFade * baseVerticalFade * perspectiveFade * ringMask;
 
-    // --- Combine structure ---
-    float structure = mix(1.0, bands, 0.2) * mix(0.5, 1.0, combinedStreaks);
+    // --- Color gradient ---
+    vec3 innerColor = vec3(0.85, 0.8, 0.7);
+    vec3 outerColor = vec3(1.0, 0.98, 0.9);
+    vec3 color = mix(innerColor, outerColor, rNorm);
+    color *= mix(0.95, 1.05, fSmoothNoise(vec2(rNorm*5.0, yNorm*5.0), 2, 2.0));
 
-    // --- Radial tapering for realistic fading toward edges ---
-    float radialTaper = smoothstep(0.0, 1.0, (r - rMin) / ringSize) * smoothstep(1.0, 0.0, (r - rMin) / ringSize);
-
-    // --- Realistic coloring with subtle angular shifts ---
-    vec3 innerColor = vec3(0.85, 0.8, 0.7);    // brownish/gray inner
-    vec3 outerColor = vec3(1.0, 0.98, 0.9);    // icy/yellowish outer
-    float radialGradient = smoothstep(rMin, rMax, r);
-
-    // Base gradient
-    vec3 color = mix(innerColor, outerColor, radialGradient);
-
-    // Add subtle variation along radius and angle
-    color *= mix(0.9, 1.0, variation);
-    color *= mix(0.85, 1.0, structure);
-    color *= radialTaper;  // fade streaks toward edges
-
-    // Add tiny angular hue shift
-    float hueShift = (fSmoothNoise(periodicCoord * 0.5, 2, 1.0) - 0.5) * 0.05;
-    color.r += hueShift * 0.5;
-    color.g -= hueShift * 0.3;
-
-    // --- Alpha modulation ---
-    float alpha = radialFade * mix(0.5, 1.0, structure);
-    alpha *= 0.9;
+    // --- Lighting ---
+    float lightFactor = clamp(dot(normalize(vec3(0.0, yNorm-0.5, 0.0)), starDir), 0.0, 1.0);
+    color *= 0.7 + 0.3 * lightFactor;
 
     // --- Output ---
     setAlbedo(color);

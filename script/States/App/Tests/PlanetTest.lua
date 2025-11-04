@@ -214,6 +214,9 @@ function PlanetTest:createPlanetRing(seed)
     self.matRing:setTexture("ringTex", ringTex, Enums.UniformType.Tex2D)
     self.matRing:addStaticShaderVar("rMin", Enums.UniformType.Float, function() return innerRadius end)
     self.matRing:addStaticShaderVar("rMax", Enums.UniformType.Float, function() return outerRadius end)
+    self.matRing:addStaticShaderVar("ringHeight", Enums.UniformType.Float, function() return 50 end)
+    self.matRing:addStaticShaderVar("rotationSpeed", Enums.UniformType.Float, function() return 2.0 end)
+    self.matRing:addStaticShaderVar("twistFactor", Enums.UniformType.Float, function() return 0.25 end)
 
     self.ring = AsteroidRingEntity(seed, { { mesh = mesh, material = self.matRing } })
 

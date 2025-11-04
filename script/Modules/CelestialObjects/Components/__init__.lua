@@ -20,6 +20,7 @@ return {
     },
 
     Simulation = {
-        CloudMotion = require("Modules.CelestialObjects.Components.Simulation.CloudMotionComponent")
+        CloudMotion = require("Modules.CelestialObjects.Components.Simulation.CloudMotionComponent"),
+        PlanetaryRingMotion = require("Modules.CelestialObjects.Components.Simulation.PlanetaryRingMotionComponent")
     }
 }
