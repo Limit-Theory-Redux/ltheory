@@ -52,6 +52,7 @@ function Loader.defineType()
             Quat*  Quat_FromAxisAngle      (Vec3f const* axis, float radians);
             Quat*  Quat_FromEuler          (float yaw, float pitch, float roll);
             Quat*  Quat_FromLook           (Vec3f const* forward, Vec3f const* up);
+            Quat*  Quat_FromLookUp         (Vec3f const* look, Vec3f const* up);
             Quat*  Quat_LookAt             (Vec3f const* eye, Vec3f const* target, Vec3f const* up);
             Quat*  Quat_FromRotateTo       (Vec3f const* from, Vec3f const* to);
             cstr   Quat_ToString           (Quat const*);
@@ -79,6 +80,10 @@ function Loader.defineType()
             end,
             FromLook           = function(forward, up)
                 local _instance = libphx.Quat_FromLook(forward, up)
+                return Core.ManagedObject(_instance, libphx.Quat_Free)
+            end,
+            FromLookUp         = function(look, up)
+                local _instance = libphx.Quat_FromLookUp(look, up)
                 return Core.ManagedObject(_instance, libphx.Quat_Free)
             end,
             LookAt             = function(eye, target, up)

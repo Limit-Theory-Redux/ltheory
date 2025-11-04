@@ -15,7 +15,7 @@ function onDef_RigidBody_t(t, mt)
 
     function mt.__index.getPosLocal(self, out)
         local out = out or Position()
-        libphx.Quat_GetAxisY(self, out)
+        libphx.RigidBody_GetPosLocal(self, out)
         return out
     end
 
@@ -33,13 +33,13 @@ function onDef_RigidBody_t(t, mt)
 
     function mt.__index.getRot(self, out)
         local out = out or Quat()
-        libphx.Quat_GetUp(self, out)
+        libphx.RigidBody_GetRot(self, out)
         return out
     end
 
     function mt.__index.getRotLocal(self, out)
         local out = out or Quat()
-        libphx.Quat_GetForward(self, out)
+        libphx.RigidBody_GetRotLocal(self, out)
         return out
     end
 
