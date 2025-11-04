@@ -29,7 +29,7 @@ local Materials = require("Shared.Registries.Materials")
 ---@field blendMode BlendMode
 ---@field textures table<Texture>
 ---@field autoShaderVars table<AutoShaderVar>
----@field constShaderVars table<ConstShaderVar>
+---@field constShaderVars table<AutoShaderVar>
 ---@overload fun(args: MaterialDefinitionConstructor): MaterialDefinition
 local MaterialDefinition = Class("MaterialDefinition")
 
