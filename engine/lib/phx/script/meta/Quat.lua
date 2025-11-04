@@ -111,6 +111,11 @@ function Quat.FromEuler(yaw, pitch, roll) end
 ---@return Quat
 function Quat.FromLook(forward, up) end
 
+---@param look Vec3f
+---@param up Vec3f
+---@return Quat
+function Quat.FromLookUp(look, up) end
+
 ---@param eye Vec3f
 ---@param target Vec3f
 ---@param up Vec3f

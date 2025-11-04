@@ -259,6 +259,14 @@ impl Quat {
         Self::from_look_static(forward, up)
     }
 
+    #[bind(name = "FromLookUp")]
+    pub fn from_look_up(look: &Vec3, up: &Vec3) -> Self {
+        let z = (*look * -1.0).normalize();
+        let x = Vec3::cross(*up, z).normalize();
+        let y = Vec3::cross(z, x);
+        Self(glam::Quat::from_mat3(&Mat3::from_cols(x, y, z)))
+    }
+
     #[bind(name = "LookAt")]
     pub fn look_at(eye: &Vec3, target: &Vec3, up: &Vec3) -> Self {
         Self::look_at_static(eye, target, up)
