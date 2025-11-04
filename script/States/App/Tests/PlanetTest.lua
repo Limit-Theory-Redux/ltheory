@@ -208,10 +208,12 @@ function PlanetTest:createPlanetRing(seed)
 
     local mesh = Primitive.Ring(innerRadius, outerRadius, 128)
     local ringTex = Tex2D.Create(512, 512, TexFormat.RGBA8)
-    ringTex:clear(1, 0, 1, 0.25)
+    ringTex:clear(1, 1, 1, 1)
 
     self.matRing = Materials.PlanetRing()
     self.matRing:setTexture("ringTex", ringTex, Enums.UniformType.Tex2D)
+    self.matRing:addStaticShaderVar("rMin", Enums.UniformType.Float, function() return innerRadius end)
+    self.matRing:addStaticShaderVar("rMax", Enums.UniformType.Float, function() return outerRadius end)
 
     self.ring = AsteroidRingEntity(seed, { { mesh = mesh, material = self.matRing } })
 
