@@ -31,11 +31,11 @@ function PlanetTest:onInit()
     Window:setFullscreen(false, true)
 
     self.seed = 3650
+    self.ringRNG = RNG.FromTime()
 
     -- Timers
     self.timer = DeltaTimer("PlanetTest")
     self.timer:start("fps", 0.1)
-    --self.timer:start("new_planet_tex", 120)
 
     -- FPS tracking
     self.frameCount = 0
@@ -44,24 +44,20 @@ function PlanetTest:onInit()
     self.time = 0
 
     -- Skybox
-    ---@param entity Entity
-    ---@param blendMode BlendMode
     self.skybox = SkyboxEntity(self.seed, function(entity, blendMode)
         local placeholder = entity:get(CoreComponents.Empty)
-
         if not placeholder then
             placeholder = entity:add(CoreComponents.Empty)
-            ---@cast placeholder EmptyComponent
         end
 
         if not placeholder.envMap then
             require("Legacy.Systems.Gen.Nebula.Nebula1")
-            local rng           = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
-            local starAngle     = rng:getDir2()
+            local nebulaRNG     = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
+            local starAngle     = nebulaRNG:getDir2()
             placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)
-            placeholder.envMap  = Generator.Get('Nebula', rng)(rng, Config.gen.nebulaRes, placeholder.starDir)
+            placeholder.envMap  = Generator.Get('Nebula', nebulaRNG)(nebulaRNG, Config.gen.nebulaRes, placeholder.starDir)
             placeholder.irMap   = placeholder.envMap:genIRMap(256)
-            placeholder.stars   = Starfield(rng, Config.gen.nStars(rng))
+            placeholder.stars   = Starfield(nebulaRNG, Config.gen.nStars(nebulaRNG))
             ShaderVar.PushFloat3('starDir', placeholder.starDir.x, placeholder.starDir.y, placeholder.starDir.z)
             ShaderVar.PushTexCube('envMap', placeholder.envMap)
             ShaderVar.PushTexCube('irMap', placeholder.irMap)
@@ -98,24 +94,21 @@ function PlanetTest:onInit()
     CameraSystem.currentCameraTransform:setPosition(Position(self.camPos.x, self.camPos.y, self.camPos.z))
     CameraSystem.currentCameraTransform:setRotation(Quat.LookAt(self.camPos, self.planetPos, Vec3f(0, 1, 0)))
 
-    self.targetCamRadius   = self.camPos.z -- target zoom distance
-    self.zoomLerpSpeed     = 2.0           -- higher = faster
-    self.zoomSensitivity   = 0.9           -- higher = faster
-    self.zoomMinDistance   = 0.0           -- automatically set by planet radius
-    self.isDragging        = false         -- is the user rotating manually
-    self.dragStartAngle    = nil           -- store angle when drag starts
-    self.dragSensitivity   = 0.005         -- adjust rotation speed
-    self.dragReleaseTimer  = 0             -- delay before resuming auto-rotation
-    self.dragReleaseDelay  = 1.0           -- seconds to wait after releasing right mouse
-    self.angle             = 0.0           -- horizontal (yaw)
-    self.pitch             = 0.0           -- vertical (pitch)
-    self.pitchMin          = -0.8          -- ~-45 degrees
-    self.pitchMax          = 0.8           -- ~+45 degrees
-    self.pitchSensitivity  = 0.004         -- vertical rotation speed
+    self.targetCamRadius   = self.camPos.z
+    self.zoomLerpSpeed     = 2.0
+    self.zoomSensitivity   = 0.9
+    self.zoomMinDistance   = 0.0
+    self.isDragging        = false
+    self.dragSensitivity   = 0.005
     self.dragReleaseTimer  = 0
     self.dragReleaseDelay  = 1.0
+    self.angle             = 0.0
+    self.pitch             = 0.0
+    self.pitchMin          = -0.8
+    self.pitchMax          = 0.8
+    self.pitchSensitivity  = 0.004
     self.autoRotationSpeed = 0.0225
-    self.returnPitchLerp   = 1.5 -- how fast to re-center pitch after release
+    self.returnPitchLerp   = 1.5
 
     self:createPlanet(self.seed)
 
@@ -124,10 +117,14 @@ function PlanetTest:onInit()
 end
 
 function PlanetTest:createPlanet(seed)
-    self.rng       = RNG.Create(seed)
+    if self.planet then
+        Registry:destroyEntity(self.planet, Enums.Registry.EntityDestroyMode.DestroyChildren)
+    end
 
-    local mesh     = Primitive.IcoSphere(5)
-    local meshAtmo = Primitive.IcoSphere(5, 1.5)
+    local planetRNG = RNG.Create(seed)
+
+    local mesh      = Primitive.IcoSphere(5)
+    local meshAtmo  = Primitive.IcoSphere(5, 1.5)
     meshAtmo:computeNormals()
     meshAtmo:invert()
 
@@ -139,29 +136,26 @@ function PlanetTest:createPlanet(seed)
         return Vec3f(c.r, c.g, c.b)
     end
 
-    ---@type PlanetGenOptions
     self.genOptions = {
-        surfaceFreq  = 4 + self.rng:getExp(),
-        surfacePower = 1 + 0.5 * self.rng:getExp(),
-        surfaceCoef  = (self.rng:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize(),
-        color1       = genColor(self.rng),
-        color2       = genColor(self.rng),
-        color3       = genColor(self.rng),
-        color4       = genColor(self.rng),
-        oceanLevel   = self.rng:getUniform() ^ 1.5,
-        cloudLevel   = self.rng:getUniformRange(-0.2, 0.15),
+        surfaceFreq  = 4 + planetRNG:getExp(),
+        surfacePower = 1 + 0.5 * planetRNG:getExp(),
+        surfaceCoef  = (planetRNG:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize(),
+        color1       = genColor(planetRNG),
+        color2       = genColor(planetRNG),
+        color3       = genColor(planetRNG),
+        color4       = genColor(planetRNG),
+        oceanLevel   = planetRNG:getUniform() ^ 1.5,
+        cloudLevel   = planetRNG:getUniformRange(-0.2, 0.15),
         atmoScale    = 1.1,
     }
 
-    --todo: nonblocking?
     local texSurface = GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
-        seed = self.rng:getUniform(),
+        seed = planetRNG:getUniform(),
         freq = self.genOptions.surfaceFreq,
         power = self.genOptions.surfacePower,
         coef = self.genOptions.surfaceCoef
     })
 
-    -- Clone materials
     self.matPlanet = Materials.PlanetSurface()
     self.matAtmo = Materials.PlanetAtmosphere()
 
@@ -170,71 +164,64 @@ function PlanetTest:createPlanet(seed)
         { mesh = meshAtmo, material = self.matAtmo },
     })
 
-    -- Attach gen data
     local planetCmp = CelestialComponents.Gen.Planet(self.genOptions)
-    local genCmp = self.planet:add(planetCmp)
-
+    self.planet:add(planetCmp)
     self.matPlanet:setTexture("surface", texSurface)
 
-    -- Physics
     local rbCmp = self.planet:get(PhysicsComponents.RigidBody)
     local rb = RigidBody.CreateSphereFromMesh(mesh)
     rbCmp:setRigidBody(rb)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
+    rb:setScale(planetRNG:getInt(2000, 12000))
 
     self:createPlanetRing(seed)
+    self:updateCameraZoomLimits()
+
+    -- Set camera zoom to 4× planet radius
+    local radius = rb:getScale()
+    local planetPos = rb:getPos()
+    local dir = (self.camPos - planetPos)
+    if dir:length() == 0 then
+        dir = Vec3f(0, 0, 1)
+    else
+        dir = dir:normalize()
+    end
+    self.targetCamRadius = radius * 4
+    dir:imuls(self.targetCamRadius)
+    planetPos:iadds(self.targetCamRadius)
+    self.camPos = planetPos
 end
 
 function PlanetTest:createPlanetRing(seed)
-    local rng = RNG.Create(seed)
-
+    local ringRNG = RNG.Create(seed)
     local planetRadius = self.planet:get(PhysicsComponents.RigidBody):getRadius()
     self.zoomMinDistance = planetRadius + 0.1
 
     local gap = planetRadius * 0.65
-    local ringWidth = planetRadius * 2 * rng:getExp()
-
+    local ringWidth = planetRadius * 2 * ringRNG:getExp()
     local innerRadius = planetRadius + gap
     local outerRadius = innerRadius + ringWidth
 
     local mesh = Primitive.Ring(innerRadius, outerRadius, 128)
-    mesh:getRadius()
 
-    --todo: add tex2d generation
     local ringTex = Tex2D.Create(512, 512, TexFormat.RGBA8)
     ringTex:clear(1, 0, 1, 0.25)
 
     self.matRing = Materials.PlanetRing()
-    --local tex = Tex2D.Create(256, 16, TexFormat.RGBA8)
-    --tex:clear(1, 1, 1, 0.7) -- white with some transparency
-    --self.matRing:setTexture("ringTex", tex)
     self.matRing:setTexture("ringTex", ringTex, Enums.UniformType.Tex2D)
 
     self.ring = AsteroidRingEntity(seed, { { mesh = mesh, material = self.matRing } })
 
-    local ringGen = {
-        innerRadius = innerRadius,
-        outerRadius = outerRadius,
-        angle = 0.0 -- will set tilt below
-    }
-    self.ring:add(CelestialComponents.Gen.PlanetRing(ringGen))
-
-    --local transform = self.ring:get(CoreComponents.Transform)
-    --transform:setRotation(Quat.FromAxisAngle(Vec3f(1, 0, 0), tiltRad))
-
-    -- Update gen component with tilt
-    --local genCmp = self.ring:get(CelestialComponents.Gen.PlanetRing)
-    --genCmp.angle = tiltRad
-    local tiltDeg = rng:getUniformRange(20, 35)
-    local tiltDeg2 = rng:getUniformRange(-20, -35)
-    local tiltDeg3 = rng:getUniformRange(80, 110)
-    local tilt = rng:choose({ tiltDeg, tiltDeg2, tiltDeg3 })
+    local tiltDeg = ringRNG:getUniformRange(20, 35)
+    local tiltDeg2 = ringRNG:getUniformRange(-20, -35)
+    local tiltDeg3 = ringRNG:getUniformRange(80, 110)
+    local tilt = ringRNG:choose({ tiltDeg, tiltDeg2, tiltDeg3 })
     local tiltRad = math.rad(tilt)
 
     local rbCmp = PhysicsComponents.RigidBody()
-    local rb = RigidBody.CreateSphere()                                       -- dummy, we control pos manually
+    local rb = RigidBody.CreateSphere()
     rb:setKinematic(true)
-    rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z)) -- same as planet
+    rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
     rb:setRot(Quat.FromAxisAngle(Vec3f(1, 0, 0), tiltRad))
     rbCmp:setRigidBody(rb)
     self.ring:add(rbCmp)
@@ -242,12 +229,42 @@ function PlanetTest:createPlanetRing(seed)
     Registry:attachEntity(self.planet, self.ring)
 end
 
+function PlanetTest:updateCameraZoomLimits()
+    if not self.planet then return end
+
+    local rb = self.planet:get(PhysicsComponents.RigidBody)
+    local planetRadius = rb:getRadius()
+    local planetPos = rb:getPos()
+
+    self.zoomMinDistance = planetRadius * 1.05
+    self.zoomSensitivity = Math.Clamp(math.sqrt(planetRadius) * 0.02, 0.05, 10.0)
+
+    local safeDistance = planetRadius * 3.0
+    local currentDist = (self.camPos - planetPos):length()
+
+    if currentDist < self.zoomMinDistance then
+        local dir = self.camPos - planetPos
+        if dir:length() == 0 then
+            dir = Vec3f(0, 0, 1)
+        else
+            dir = dir:normalize()
+        end
+
+        self.targetCamRadius = safeDistance
+        self.zoomTransitionStart = self.camPos
+        self.zoomTransitionEnd = planetPos + Vec3f(dir.x * safeDistance, dir.y * safeDistance, dir.z * safeDistance)
+        self.zoomTransitionTime = 0
+        self.zoomTransitionDuration = 1.0
+    else
+        self.targetCamRadius = math.max(self.zoomMinDistance, self.targetCamRadius)
+    end
+end
+
 function PlanetTest:onStatePreRender(data)
     local dt = data:deltaTime()
     local scaledDT = dt * (self.timeScale or 1)
     self.timer:update(dt)
 
-    -- FPS calculation (scaled)
     self.frameCount = self.frameCount + 1
     if self.timer:check("fps") then
         local fpsInterval = 0.1
@@ -261,27 +278,19 @@ function PlanetTest:onStatePreRender(data)
     local lerpFactor = math.min(1, self.zoomLerpSpeed * dt)
     self.camPos.z = self.camPos.z + (self.targetCamRadius - self.camPos.z) * lerpFactor
 
-    -- Update drag release timer
     if self.dragReleaseTimer > 0 then
         self.dragReleaseTimer = math.max(0, self.dragReleaseTimer - dt)
     end
 
-    -- Auto rotation (only yaw)
     if not self.isDragging and self.dragReleaseTimer == 0 and (self.timeScale or 1) == 1 then
         self.angle = (self.angle or 0) + self.autoRotationSpeed * scaledDT
-    end
-
-    -- Smoothly return pitch to 0 after releasing
-    if not self.isDragging and self.dragReleaseTimer == 0 and (self.timeScale or 1) == 1 then
         self.pitch = Math.Lerp(self.pitch, 0.0, math.min(1, self.returnPitchLerp * dt))
     end
 
-    -- Compute camera position from yaw/pitch
     local radius = self.camPos.z
     local x = math.sin(self.angle) * math.cos(self.pitch) * radius
     local y = math.sin(self.pitch) * radius
     local z = math.cos(self.angle) * math.cos(self.pitch) * radius
-
     local camPos = Vec3f(x, y, z)
     local planetPos = self.planetPos
 
@@ -290,44 +299,72 @@ function PlanetTest:onStatePreRender(data)
     camTransform:setRotation(Quat.LookAt(camPos, planetPos, Vec3f(0, 1, 0)))
 end
 
----@param data EventData
 function PlanetTest:onRender(data)
-    -- Normal rendering
     RenderCoreSystem:render(data)
 
-    -- Immediate mode UI
     self:immediateUI(function()
         local mem = GC.GetMemory()
-        DrawEx.TextAdditive('Unageo-Medium', self.fpsText, 20,
-            40, 50, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
-        DrawEx.TextAdditive('Unageo-Medium', string.format("Lua Memory: %.2f KB", mem),
-            20, 40, 70, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
+        local infoLines = {
+            string.format("FPS: %d", math.floor(self.smoothFPS + 0.5)),
+            string.format("Seed: %d", self.seed),
+            string.format("Radius: %.2f | Zoom: %.2f",
+                self.planet and self.planet:get(PhysicsComponents.RigidBody):getRadius() or 0,
+                -self.camPos.z
+            ),
+            string.format("Freq: %.2f | Power: %.2f",
+                self.genOptions.surfaceFreq, self.genOptions.surfacePower
+            ),
+            string.format("Ocean: %.2f | Clouds: %.2f",
+                self.genOptions.oceanLevel, self.genOptions.cloudLevel
+            ),
+            string.format("Lua Memory: %.2f KB", mem)
+        }
+
+        local y = 40
+        for _, line in ipairs(infoLines) do
+            DrawEx.TextAdditive('Unageo-Medium', line, 11,
+                40, y, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
+            y = y + 25
+        end
+
+        UI.DrawEx.TextAdditive(
+            'Unageo-Medium',
+            "Press [B] for new planet",
+            14,
+            self.resX / 2 - 14, self.resY - 60, 40, 20,
+            1, 1, 1, 1,
+            0.5, 0.5
+        )
     end)
 end
 
----@param data EventData
 function PlanetTest:onStateInput(data)
     local mouseState = Input:mouse()
-    local scrollState = mouseState:scroll() -- Vec2f
+    local scrollState = mouseState:scroll()
 
     self.camPos = self.camPos or Vec3f(0, 0, 50)
     self.targetCamRadius = self.targetCamRadius or self.camPos.z
 
-    -- Zoom target
-    local scrollSensitivity = self.zoomSensitivity or 0.9
-    local maxDeltaPerScroll = 10.0
-    local delta = scrollState.y * scrollSensitivity
-    delta = Math.Clamp(delta, -maxDeltaPerScroll, maxDeltaPerScroll)
-    self.targetCamRadius = math.max(self.zoomMinDistance, self.targetCamRadius - delta)
+    if self.planet then
+        local rb = self.planet:get(PhysicsComponents.RigidBody)
+        local planetRadius = rb:getRadius()
+        local planetPos = rb:getPos()
 
-    -- Manual rotation
+        local distance = math.max(1.0, self.camPos:distance(planetPos))
+        local surfaceDist = math.max(0.0, distance - planetRadius)
+        local relativeDist = surfaceDist / planetRadius
+        local zoomFactor = (relativeDist < 1.0) and (0.2 + 0.8 * relativeDist) or (1.0 + math.pow(relativeDist, 2.2))
+        local baseSensitivity = (self.zoomSensitivity or 1.0) * math.sqrt(planetRadius) * 0.05
+        local rawDelta = scrollState.y * baseSensitivity * zoomFactor
+        if rawDelta > 0 then rawDelta = math.min(rawDelta, self.targetCamRadius - self.zoomMinDistance) end
+        self.targetCamRadius = math.max(self.zoomMinDistance, self.targetCamRadius - rawDelta)
+    end
+
     if Input:isDown(Button.MouseRight) then
-        local mouseDelta = mouseState:delta() -- Vec2f
+        local mouseDelta = mouseState:delta()
         if mouseDelta:length() > 0 then
             self.isDragging = true
             self.dragReleaseTimer = self.dragReleaseDelay
-
-            -- Update yaw and pitch
             self.angle = (self.angle or 0) + mouseDelta.x * self.dragSensitivity
             self.pitch = Math.Clamp(
                 (self.pitch or 0) - mouseDelta.y * self.pitchSensitivity,
@@ -335,10 +372,13 @@ function PlanetTest:onStateInput(data)
             )
         end
     else
-        if self.isDragging then
-            self.dragReleaseTimer = self.dragReleaseDelay
-        end
+        if self.isDragging then self.dragReleaseTimer = self.dragReleaseDelay end
         self.isDragging = false
+    end
+
+    if Input:isPressed(Button.KeyboardB) then
+        self.seed = self.ringRNG:get31()
+        self:createPlanet(self.seed)
     end
 end
 
