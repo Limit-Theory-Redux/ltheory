@@ -95,7 +95,7 @@ void main() {
 
     // Base terrain color
     vec3 color = mix(color1, color2, h1);
-    color = 1.0 - exp(-pow2(3.0 * color));
+    color = 1.0 - exp(-pow2(4.0 * color));
     color *= visibility(surface, vertPos, 9, 0.70, h1, 0.002, 2.0);
     color = mix(color, kOceanColor, 1.0 - exp(-sqrt(16.0 * max(0.0, h2 - 0.8))));
 

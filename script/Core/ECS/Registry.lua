@@ -30,6 +30,11 @@ local Registry          = Class("Registry", function(self)
     self:clear()
 end)
 
+Registry.DESTROY_MODE   = {
+    KEEP_CHILDREN    = 0, -- children stay alive, parent link removed
+    DESTROY_CHILDREN = 1, -- recursively destroy the whole subtree
+}
+
 function Entity:__tostring()
     local nameComponent = self:get(NameComponent)
     if not nameComponent then
@@ -96,34 +101,54 @@ function Registry:createEntity()
 end
 
 ---@param entity Entity
+---@param mode? EntityDestroyMode
 ---@return boolean wasSuccessful
-function Registry:destroyEntity(entity)
-    local entityComponentIndex = self.entities[entity.id]
+function Registry:destroyEntity(entity, mode)
+    mode = mode or self.DESTROY_MODE.KEEP_CHILDREN
+
+    local entityId = entity.id
+    local entityComponentIndex = self.entities[entityId]
     if not entityComponentIndex then
         return false
     end
 
-    -- Remove all components associated with this entity.
+    local childrenComp = self:get(entity, ChildrenComponent)
+    if childrenComp then
+        local kids = { table.unpack(childrenComp.children) } -- copy list
+        for _, child in ipairs(kids) do
+            if mode == self.DESTROY_MODE.DESTROY_CHILDREN then
+                self:destroyEntity(child, mode) -- cascade
+            else
+                -- just orphan the child
+                self:remove(child, ParentComponent)
+            end
+        end
+        -- clean up the now-empty ChildrenComponent
+        self:remove(entity, ChildrenComponent)
+    end
+
     for componentArchetype in pairs(entityComponentIndex) do
         local store = self.components[componentArchetype]
         if store then
-            store.sparse[entity.id] = nil
-            -- Remove from dense array if exists
-            if store.entityMap then
-                local index = store.entityMap[entity.id]
-                if index then
-                    local lastComp = store.dense[#store.dense]
-                    local lastEntityId = lastComp:getEntityId()
-                    store.dense[index] = lastComp
-                    store.entityMap[lastEntityId] = index
-                    table.remove(store.dense)
-                    store.entityMap[entity.id] = nil
-                end
+            local sparse    = store.sparse
+            local dense     = store.dense
+            local entityMap = store.entityMap
+
+            -- dense swap-remove
+            local idx       = entityMap and entityMap[entityId]
+            if idx then
+                local lastComp    = dense[#dense]
+                local lastId      = lastComp:getEntityId()
+                dense[idx]        = lastComp
+                entityMap[lastId] = idx
+                table.remove(dense)
+                entityMap[entityId] = nil
             end
+            sparse[entityId] = nil
         end
     end
 
-    self.entities[entity.id] = nil
+    self.entities[entityId] = nil
     return true
 end
 
