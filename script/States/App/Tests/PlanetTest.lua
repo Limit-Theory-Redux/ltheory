@@ -94,6 +94,8 @@ function PlanetTest:onInit()
     CameraSystem.currentCameraTransform:setPosition(Position(self.camPos.x, self.camPos.y, self.camPos.z))
     CameraSystem.currentCameraTransform:setRotation(Quat.LookAt(self.camPos, self.planetPos, Vec3f(0, 1, 0)))
 
+    self.focusEntity       = nil
+
     self.targetCamRadius   = self.camPos.z
     self.zoomLerpSpeed     = 2.0
     self.zoomSensitivity   = 0.9
@@ -175,6 +177,7 @@ function PlanetTest:createPlanet(seed)
     rb:setScale(planetRNG:getInt(2000, 12000))
 
     self:createPlanetRing(seed)
+    self:createMoons(seed)
     self:updateCameraZoomLimits()
 
     -- Set camera zoom to 4× planet radius
@@ -201,9 +204,9 @@ function PlanetTest:createPlanetRing(seed)
     local ringWidth = planetRadius * 2 * ringRNG:getExp()
     local innerRadius = planetRadius + gap
     local outerRadius = innerRadius + ringWidth
+    self.ringOuterRadius = outerRadius
 
     local mesh = Primitive.Ring(innerRadius, outerRadius, 128)
-
     local ringTex = Tex2D.Create(512, 512, TexFormat.RGBA8)
     ringTex:clear(1, 0, 1, 0.25)
 
@@ -227,6 +230,103 @@ function PlanetTest:createPlanetRing(seed)
     self.ring:add(rbCmp)
 
     Registry:attachEntity(self.planet, self.ring)
+end
+
+function PlanetTest:createMoons(seed, numMoons)
+    if not self.planet then return end
+
+    local moonRNG = RNG.Create(seed + 12345)
+    numMoons = numMoons or moonRNG:getInt(1, 3)
+
+    self.moons = self.moons or {}
+    for _, moon in ipairs(self.moons) do
+        Registry:destroyEntity(moon.entity)
+    end
+    self.moons = {}
+
+    local planetRb = self.planet:get(PhysicsComponents.RigidBody)
+    local planetRadius = planetRb:getRadius()
+    local planetPos = planetRb:getPos()
+    local baseSpeed = 0.00065
+
+    for i = 1, numMoons do
+        local moonSeed = seed + i * 1000
+        local moonSize = planetRadius * (0.1 * moonRNG:getExp())
+        local minOrbit = self.ringOuterRadius + moonSize * 5
+        local maxOrbit = (planetRadius + moonSize * 5) * 20
+        local orbitRadius = moonRNG:getUniformRange(minOrbit, maxOrbit)
+        local orbitSpeed = baseSpeed * math.sqrt(planetRadius / orbitRadius)
+        local phase = moonRNG:getUniformRange(0, 2 * math.pi)
+        local inclination = math.rad(moonRNG:getUniformRange(0, 180)) -- tilt in degrees
+
+        -- Planet-like moon
+        local mesh = Primitive.IcoSphere(4)
+        local meshAtmo = Primitive.IcoSphere(4, 1.5)
+        meshAtmo:computeNormals()
+        meshAtmo:invert()
+
+        local genColor = function(rng)
+            local h = rng:getUniformRange(0, 0.5)
+            local l = Math.Saturate(rng:getUniformRange(0.2, 0.3) + 0.05 * rng:getExp())
+            local s = rng:getUniformRange(0.1, 0.3)
+            local c = Color.FromHSL(h, s, l)
+            return Vec3f(c.r, c.g, c.b)
+        end
+
+        local moonOptions = {
+            surfaceFreq  = 4 + moonRNG:getExp(),
+            surfacePower = 1 + 0.5 * moonRNG:getExp(),
+            surfaceCoef  = (moonRNG:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize(),
+            color1       = genColor(moonRNG),
+            color2       = genColor(moonRNG),
+            color3       = genColor(moonRNG),
+            color4       = genColor(moonRNG),
+            oceanLevel   = moonRNG:getUniform() ^ 1.5,
+            cloudLevel   = moonRNG:getUniformRange(-0.2, 0.15),
+            atmoScale    = 1.1,
+        }
+
+        local texSurface = GenUtil.ShaderToTexCube(1024, TexFormat.RGBA16F, 'gen/planet', {
+            seed = moonRNG:getUniform(),
+            freq = moonOptions.surfaceFreq,
+            power = moonOptions.surfacePower,
+            coef = moonOptions.surfaceCoef
+        })
+
+        local matPlanet = Materials.PlanetSurface()
+        local matAtmo = Materials.PlanetAtmosphere()
+        matPlanet:setTexture("surface", texSurface)
+
+        local moonPlanet = PlanetEntity(moonSeed, {
+            { mesh = mesh,     material = matPlanet },
+            { mesh = meshAtmo, material = matAtmo },
+        })
+
+        local planetCmp = CelestialComponents.Gen.Planet(moonOptions)
+        moonPlanet:add(planetCmp)
+
+        local rbCmp = PhysicsComponents.RigidBody()
+        local rb = RigidBody.CreateSphereFromMesh(mesh)
+        rb:setKinematic(true)
+        rb:setScale(moonSize)
+        rb:setPos(Position(
+            planetPos.x + math.cos(phase) * orbitRadius,
+            planetPos.y + math.sin(inclination) * orbitRadius,
+            planetPos.z + math.sin(phase) * orbitRadius
+        ))
+        rbCmp:setRigidBody(rb)
+        moonPlanet:add(rbCmp)
+
+        Registry:attachEntity(self.planet, moonPlanet)
+
+        table.insert(self.moons, {
+            entity = moonPlanet,
+            radius = orbitRadius,
+            speed = orbitSpeed,
+            phase = phase,
+            inclination = inclination
+        })
+    end
 end
 
 function PlanetTest:updateCameraZoomLimits()
@@ -287,6 +387,32 @@ function PlanetTest:onStatePreRender(data)
         self.pitch = Math.Lerp(self.pitch, 0.0, math.min(1, self.returnPitchLerp * dt))
     end
 
+    -- Update moons orbit
+    if self.moons then
+        for _, moon in ipairs(self.moons) do
+            moon.phase = moon.phase + moon.speed * scaledDT
+
+            -- Orbit position in moon's local plane
+            local x = math.cos(moon.phase) * moon.radius
+            local z = math.sin(moon.phase) * moon.radius
+
+            -- Apply inclination rotation around X-axis
+            local cosInc = math.cos(moon.inclination)
+            local sinInc = math.sin(moon.inclination)
+            local y = z * sinInc
+            z = z * cosInc
+
+            local newPos = Vec3f(
+                self.planetPos.x + x,
+                self.planetPos.y + y,
+                self.planetPos.z + z
+            )
+
+            moon.entity:get(PhysicsComponents.RigidBody):getRigidBody():setPos(Position(newPos.x, newPos.y, newPos.z))
+        end
+    end
+
+
     local radius = self.camPos.z
     local x = math.sin(self.angle) * math.cos(self.pitch) * radius
     local y = math.sin(self.pitch) * radius
@@ -338,6 +464,17 @@ function PlanetTest:onRender(data)
     end)
 end
 
+-- Mouse click handler for PlanetTest
+function PlanetTest:handleMouseClick(length)
+    local mp = Input:mouse():position()
+    local ray = CameraSystem:screenToRay(mp, length or 1e7)
+    if not ray then return end
+
+    print("raycast")
+
+    -- self.focusEntity = closestEntity
+end
+
 function PlanetTest:onStateInput(data)
     local mouseState = Input:mouse()
     local scrollState = mouseState:scroll()
@@ -379,6 +516,10 @@ function PlanetTest:onStateInput(data)
     if Input:isPressed(Button.KeyboardB) then
         self.seed = self.ringRNG:get31()
         self:createPlanet(self.seed)
+    end
+
+    if Input:isPressed(Button.MouseLeft) then
+        self:handleMouseClick()
     end
 end
 
