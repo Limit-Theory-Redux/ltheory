@@ -2,7 +2,7 @@ local Entity = require('Legacy.GameObjects.Entity')
 local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
 local RenderComponent = require('Modules.Rendering.Components.RenderComponent')
 local RigidBodyComponent = require('Modules.Physics.Components.RigidBodyComponent')
-local PlanetComponent = require('Modules.CelestialObjects.Components.PlanetComponent')
+local PlanetComponent = require('Modules.Core.Components.EmptyComponent')
 
 local genColor = function(rng)
     local h = rng:getUniformRange(0, 0.5)
@@ -36,16 +36,16 @@ local Planet = Subclass("Planet", Entity, function(self, seed)
     self:addMinable(false) -- TODO: should be 'true' temporarily (planets have Yield), but will change with Colonies
     self:addTrackable(true)
 
-    self.mesh = mesh
+    self.mesh                  = mesh
 
-    self.texSurface     = Gen.GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
+    self.texSurface            = Gen.GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
         seed = rng:getUniform(),
         freq = 4 + rng:getExp(),
         power = 1 + 0.5 * rng:getExp(),
         coef = (rng:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize()
     })
 
-    local planetComponent = PlanetComponent()
+    local planetComponent      = PlanetComponent()
     planetComponent.cloudLevel = rng:getUniformRange(-0.2, 0.15)
     planetComponent.oceanLevel = rng:getUniform() ^ 1.5
     planetComponent.atmoScale  = 1.1
@@ -54,7 +54,7 @@ local Planet = Subclass("Planet", Entity, function(self, seed)
     planetComponent.color3     = genColor(rng)
     planetComponent.color4     = genColor(rng)
     self.entity:add(planetComponent)
-    
+
     local meshAtmo = Gen.Primitive.IcoSphere(5, 1.5)
     meshAtmo:computeNormals()
     meshAtmo:invert()
@@ -103,8 +103,8 @@ local Planet = Subclass("Planet", Entity, function(self, seed)
     end
 
     self.entity:add(RenderComponent({
-        {mesh = mesh, material = matSurface},
-        {mesh = meshAtmo, material = matAtmo},
+        { mesh = mesh,     material = matSurface },
+        { mesh = meshAtmo, material = matAtmo },
     }))
 
     -- TEMP: give each planet the maximum number of every applicable component
