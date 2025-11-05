@@ -20,6 +20,7 @@ function Loader.defineType()
             void         Shader_Free          (Shader*);
             Shader*      Shader_Create        (cstr vs, cstr fs);
             Shader*      Shader_Load          (cstr vsName, cstr fsName);
+            cstr         Shader_Name          (Shader const*);
             Shader*      Shader_Clone         (Shader const*);
             ShaderState* Shader_ToShaderState (Shader const*);
             uint32       Shader_GetHandle     (Shader const*);
@@ -79,6 +80,7 @@ function Loader.defineType()
         local t  = ffi.typeof('Shader')
         local mt = {
             __index = {
+                name          = libphx.Shader_Name,
                 clone         = function(self)
                     local _instance = libphx.Shader_Clone(self)
                     return Core.ManagedObject(_instance, libphx.Shader_Free)

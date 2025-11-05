@@ -10,7 +10,7 @@ local Materials = require("Shared.Registries.Materials")
 ---@class ShaderVarInfo
 ---@field uniformName string
 ---@field uniformType UniformType
----@field callbackFn function
+---@field value any
 ---@field perInstance boolean|nil
 
 ---@class MaterialDefinitionConstructor

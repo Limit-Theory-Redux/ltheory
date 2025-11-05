@@ -152,7 +152,7 @@ impl Shader {
             var.index = glcheck!(gl::GetUniformLocation(s.program, c_name.as_ptr()));
             if var.index < 0 {
                 warn!(
-                    "Automatic shader variable <{}> does not exist in shader <{}>",
+                    "Automatic shader variable <{}> does not exist in shader {}",
                     var.name, s.name,
                 )
             }
@@ -256,6 +256,10 @@ impl Shader {
             GLSLCode::load(vs_name),
             GLSLCode::load(fs_name),
         )
+    }
+
+    pub fn name(&self) -> String {
+        self.shared.as_ref().name.clone()
     }
 
     #[bind(name = "Clone")]

@@ -41,7 +41,7 @@ end
 ---@param shaderVars table<ShaderVarInfo>
 function Material:addAutoShaderVars(shaderVars)
     for _, shaderVarInfo in ipairs(shaderVars) do
-        local autoShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.callbackFn,
+        local autoShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.value, false,
             shaderVarInfo.perInstance)
         insert(self.autoShaderVars, autoShaderVar)
     end
@@ -50,18 +50,17 @@ end
 ---@param shaderVars table<ShaderVarInfo>
 function Material:addConstShaderVars(shaderVars)
     for _, shaderVarInfo in ipairs(shaderVars) do
-        local constShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, nil, true)
-        constShaderVar:setCallbackFn(shaderVarInfo.callbackFn)
+        local constShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.value, true, true)
         insert(self.constShaderVars, constShaderVar)
     end
 end
 
 ---@param uniformName string
 ---@param uniformType UniformType
-function Material:addStaticShaderVar(uniformName, uniformType, callbackFn)
-    local staticShaderVar = AutoShaderVar(uniformName, uniformType, nil, false)
+---@param value any
+function Material:addStaticShaderVar(uniformName, uniformType, value)
+    local staticShaderVar = AutoShaderVar(uniformName, uniformType, value, false, false)
     staticShaderVar:setUniformInt(self.shaderState:shader())
-    staticShaderVar:setCallbackFn(callbackFn)
     insert(self.staticShaderVars, staticShaderVar)
 end
 
@@ -84,13 +83,7 @@ function Material:reloadShader()
 
     -- Set const vars
     for _, v in ipairs(self.constShaderVars) do
-        if v.uniformInt then
-            local values = { v.callbackFn() }
-            local func = UniformFuncs[v.uniformType]
-            if func then
-                func(shader, v.uniformInt, unpack(values))
-            end
-        end
+        v:setShaderVar(nil, shader, nil)
     end
 
     -- Rebind textures
@@ -121,7 +114,7 @@ function Material:setAllShaderVars(eye, entity)
         shaderVar:setShaderVar(eye, shader, entity)
     end
     for _, shaderVar in ipairs(self.staticShaderVars) do
-        shaderVar:setShaderVar(eye, shader)
+        shaderVar:setShaderVar(eye, shader, entity)
     end
 end
 

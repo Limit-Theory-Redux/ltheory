@@ -14,6 +14,9 @@ function Shader.Create(vs, fs) end
 ---@return Shader
 function Shader.Load(vsName, fsName) end
 
+---@return string
+function Shader:name() end
+
 ---@return Shader
 function Shader:clone() end
 
