@@ -31,8 +31,8 @@ end)
 
 ---@param textures table<TextureInfo>
 function Material:addTextures(textures)
-    for _, texture in ipairs(textures) do
-        local tex = Texture(texture.texName, texture.tex, texture.texType, texture.texSetting)
+    for name, texture in pairs(textures) do
+        local tex = Texture(name, texture.tex, texture.type, texture.setting)
         tex:setTextureToShaderState(self.shaderState)
         insert(self.textures, tex)
     end
@@ -40,8 +40,8 @@ end
 
 ---@param shaderVars table<ShaderVarInfo>
 function Material:addAutoShaderVars(shaderVars)
-    for _, shaderVarInfo in ipairs(shaderVars) do
-        local autoShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.value, false,
+    for name, shaderVarInfo in pairs(shaderVars) do
+        local autoShaderVar = AutoShaderVar(name, shaderVarInfo.type, shaderVarInfo.value, false,
             shaderVarInfo.perInstance)
         insert(self.autoShaderVars, autoShaderVar)
     end
@@ -49,17 +49,17 @@ end
 
 ---@param shaderVars table<ShaderVarInfo>
 function Material:addConstShaderVars(shaderVars)
-    for _, shaderVarInfo in ipairs(shaderVars) do
-        local constShaderVar = AutoShaderVar(shaderVarInfo.uniformName, shaderVarInfo.uniformType, shaderVarInfo.value, true, true)
+    for name, shaderVarInfo in pairs(shaderVars) do
+        local constShaderVar = AutoShaderVar(name, shaderVarInfo.type, shaderVarInfo.value, true, true)
         insert(self.constShaderVars, constShaderVar)
     end
 end
 
----@param uniformName string
----@param uniformType UniformType
+---@param name string
+---@param type UniformType
 ---@param value any
-function Material:addStaticShaderVar(uniformName, uniformType, value)
-    local staticShaderVar = AutoShaderVar(uniformName, uniformType, value, false, false)
+function Material:addStaticShaderVar(name, type, value)
+    local staticShaderVar = AutoShaderVar(name, type, value, false, false)
     staticShaderVar:setUniformInt(self.shaderState:shader())
     insert(self.staticShaderVars, staticShaderVar)
 end
@@ -94,7 +94,7 @@ function Material:reloadShader()
             local fnName = ({
                 [Enums.UniformType.Tex2D]   = "iSetTex2D",
                 [Enums.UniformType.TexCube] = "iSetTexCube",
-            })[tex.texType]
+            })[tex.type]
             if fnName and shader[fnName] then
                 shader[fnName](shader, loc, tex.tex)
             end
@@ -126,10 +126,9 @@ function Material:setTexture(name, tex, texType)
         or error("Unsupported texture type"))
 
     local texInfo = {
-        texName = name,
         tex = tex,
-        texType = texType,
-        texSettings = {
+        type = texType,
+        settings = {
             genMipMap = true,
             magFilter = TexFilter.Linear,
             minFilter = TexFilter.LinearMipLinear,
@@ -140,7 +139,7 @@ function Material:setTexture(name, tex, texType)
         }
     }
 
-    self:addTextures({ texInfo })
+    self:addTextures({ name = texInfo })
 end
 
 ---@return Material ClonedMaterial
@@ -151,7 +150,7 @@ function Material:clone()
     c.constShaderVars = { unpack(self.constShaderVars or {}) }
 
     for k, tex in pairs(self.textures or {}) do
-        c.textures[k] = Texture(k, tex.tex, tex.texType, tex.texSettings)
+        c.textures[k] = Texture(k, tex.tex, tex.type, tex.settings)
         c.textures[k]:setTextureToShaderState(c.shaderState)
     end
 

@@ -11,8 +11,7 @@ local PhysicsComponents = require("Modules.Physics.Components")
 -- Helper
 local function genField(name, type)
     return {
-        uniformName = name,
-        uniformType = type,
+        type = type,
         value = function(_, entity)
             local gen = entity:get(CelestialComponents.Gen.Planet)
             if type == Enums.UniformType.Float3 then
@@ -34,12 +33,12 @@ MaterialDefinition {
     fs_name = "material/asteroid",
     blendMode = BlendMode.Disabled,
     textures = {
-        { texName = "texDiffuse", tex = Cache.Texture('rock'), texType = Enums.UniformType.Tex2D, texSettings = nil }
+        texDiffuse = { tex = Cache.Texture('rock'), type = Enums.UniformType.Tex2D, settings = nil }
     },
     autoShaderVars = {
-        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  value = ShaderVarFuncs.mWorldFunc },
-        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc },
-        { uniformName = "scale",    uniformType = Enums.UniformType.Float,   value = ShaderVarFuncs.scaleFunc }
+        mWorld   = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc },
+        mWorldIT = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc },
+        scale    = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc }
     }
 }
 
@@ -51,14 +50,14 @@ MaterialDefinition {
     fs_name = "material/metal",
     blendMode = BlendMode.Disabled,
     textures = {
-        { texName = "texDiffuse", tex = Cache.Texture('metal/01_d'), texType = Enums.UniformType.Tex2D, texSettings = nil },
-        { texName = "texNormal",  tex = Cache.Texture('metal/01_n'), texType = Enums.UniformType.Tex2D, texSettings = nil },
-        { texName = "texSpec",    tex = Cache.Texture('metal/01_s'), texType = Enums.UniformType.Tex2D, texSettings = nil }
+        texDiffuse = { tex = Cache.Texture('metal/01_d'), type = Enums.UniformType.Tex2D, settings = nil },
+        texNormal  = { tex = Cache.Texture('metal/01_n'), type = Enums.UniformType.Tex2D, settings = nil },
+        texSpec    = { tex = Cache.Texture('metal/01_s'), type = Enums.UniformType.Tex2D, settings = nil }
     },
     autoShaderVars = {
-        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  value = ShaderVarFuncs.mWorldFunc },
-        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc },
-        { uniformName = "scale",    uniformType = Enums.UniformType.Float,   value = ShaderVarFuncs.scaleFunc }
+        mWorld   = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc },
+        mWorldIT = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc },
+        scale    = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc }
     }
 }
 
@@ -70,10 +69,10 @@ MaterialDefinition {
     fs_name = "material/solidcolor",
     blendMode = BlendMode.Disabled,
     constShaderVars = {
-        { uniformName = "color", uniformType = Enums.UniformType.Float3, value = function() return 1.0, 0.0, 1.0 end } -- TODO: to literal?
+        color = { type = Enums.UniformType.Float3, value = function() return 1.0, 0.0, 1.0 end } -- TODO: to literal?
     },
     autoShaderVars = {
-        { uniformName = "mWorld", uniformType = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc },
+        mWorld = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc },
     }
 }
 
@@ -86,15 +85,15 @@ MaterialDefinition {
     blendMode = BlendMode.Disabled,
     textures = nil, -- set at runtime
     constShaderVars = {
-        { uniformName = "heightMult", uniformType = Enums.UniformType.Float,  value = 1.0 },
-        { uniformName = "starColor",  uniformType = Enums.UniformType.Float3, value = function() return 1.0, 0.5, 0.1 end }, -- TODO: to literal?
+        heightMult = { type = Enums.UniformType.Float, value = 1.0 },
+        starColor  = { type = Enums.UniformType.Float3, value = function() return 1.0, 0.5, 0.1 end }, -- TODO: to literal?
     },
     autoShaderVars = {
-        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  value = ShaderVarFuncs.mWorldFunc,   perInstance = true },
-        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
-        { uniformName = "scale",    uniformType = Enums.UniformType.Float,   value = ShaderVarFuncs.scaleFunc,    perInstance = true },
+        mWorld     = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
+        mWorldIT   = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
+        scale      = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc, perInstance = true },
 
-        { uniformName = "time", uniformType = Enums.UniformType.Float,
+        time       = { type = Enums.UniformType.Float,
             value = function(_, e)
                 ---@cast e Entity
                 local time = e:get(CelestialComponents.Simulation.CloudMotion):getTime()
@@ -103,21 +102,21 @@ MaterialDefinition {
             perInstance = false
         },
 
-        genField("oceanLevel", Enums.UniformType.Float),
-        genField("color1", Enums.UniformType.Float3),
-        genField("color2", Enums.UniformType.Float3),
-        genField("color3", Enums.UniformType.Float3),
-        genField("color4", Enums.UniformType.Float3),
+        oceanLevel = genField("oceanLevel", Enums.UniformType.Float),
+        color1     = genField("color1", Enums.UniformType.Float3),
+        color2     = genField("color2", Enums.UniformType.Float3),
+        color3     = genField("color3", Enums.UniformType.Float3),
+        color4     = genField("color4", Enums.UniformType.Float3),
 
-        { uniformName = "origin", uniformType = Enums.UniformType.Float3,
+        origin     = { type = Enums.UniformType.Float3,
             value = function(eye, entity)
                 local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
                 local o = rb:getPos():relativeTo(eye)
                 return o.x, o.y, o.z
             end, perInstance = true },
-        { uniformName = "rPlanet", uniformType = Enums.UniformType.Float,
+        rPlanet    = { type = Enums.UniformType.Float,
             value = function(_, e) return e:get(PhysicsComponents.RigidBody):getRigidBody():getScale() end, perInstance = true },
-        { uniformName = "rAtmo", uniformType = Enums.UniformType.Float,
+        rAtmo      = { type = Enums.UniformType.Float,
             value = function(_, e)
                 local rb = e:get(PhysicsComponents.RigidBody):getRigidBody()
                 local gen = e:get(CelestialComponents.Gen.Planet)
@@ -133,30 +132,30 @@ MaterialDefinition {
     vs_name = "wvp",
     fs_name = "material/atmosphere",
     blendMode = BlendMode.Alpha,
-    textures = nil,                                                                                                         -- set at runtime
+    textures = nil,                                                                                   -- set at runtime
     constShaderVars = {
-        { uniformName = "starColor", uniformType = Enums.UniformType.Float3, value = function() return 1.0, 0.5, 0.1 end }, -- TODO: to literal?
+        starColor = { type = Enums.UniformType.Float3, value = function() return 1.0, 0.5, 0.1 end }, -- TODO: to literal?
     },
     autoShaderVars = {
-        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  value = ShaderVarFuncs.mWorldFunc,   perInstance = true },
-        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
-        { uniformName = "scale",    uniformType = Enums.UniformType.Float,   value = ShaderVarFuncs.scaleFunc,    perInstance = true },
+        mWorld   = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
+        mWorldIT = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
+        scale    = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc, perInstance = true },
 
-        { uniformName = "origin", uniformType = Enums.UniformType.Float3,
+        origin   = { type = Enums.UniformType.Float3,
             value = function(eye, entity)
                 local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
                 local o = rb:getPos():relativeTo(eye)
                 return o.x, o.y, o.z
             end, perInstance = true },
-        { uniformName = "rPlanet", uniformType = Enums.UniformType.Float,
+        rPlanet  = { type = Enums.UniformType.Float,
             value = function(_, e) return e:get(PhysicsComponents.RigidBody):getRigidBody():getScale() end, perInstance = true },
-        { uniformName = "rAtmo", uniformType = Enums.UniformType.Float,
+        rAtmo    = { type = Enums.UniformType.Float,
             value = function(_, e)
                 local rb = e:get(PhysicsComponents.RigidBody):getRigidBody()
                 local gen = e:get(CelestialComponents.Gen.Planet)
                 return rb:getScale() * gen.atmoScale
             end, perInstance = false },
-        { uniformName = "scaleVec", uniformType = Enums.UniformType.Float3,
+        scaleVec = { type = Enums.UniformType.Float3,
             value = function(_, e)
                 local s = e:get(PhysicsComponents.RigidBody):getRigidBody():getScale()
                 return s, s, s
@@ -174,11 +173,11 @@ MaterialDefinition {
     textures = nil,
     autoShaderVars = {
         -- World transform
-        { uniformName = "mWorld",   uniformType = Enums.UniformType.Matrix,  value = ShaderVarFuncs.mWorldFunc,   perInstance = true },
-        { uniformName = "mWorldIT", uniformType = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
+        mWorld       = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
+        mWorldIT     = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
 
         -- Time for rotation
-        { uniformName = "time", uniformType = Enums.UniformType.Float,
+        time         = { type = Enums.UniformType.Float,
             value = function(_, e)
                 ---@cast e Entity
                 local time = e:get(CelestialComponents.Simulation.PlanetaryRingMotion):getTime()
@@ -188,7 +187,7 @@ MaterialDefinition {
         },
 
         -- Planet center and radius (for shadow)
-        { uniformName = "planetPos", uniformType = Enums.UniformType.Float3,
+        planetPos    = { type = Enums.UniformType.Float3,
             value = function(eye, e)
                 ---@cast e Entity
                 local planet = e:get(CoreComponents.Parent)
@@ -200,7 +199,7 @@ MaterialDefinition {
             end,
             perInstance = true
         },
-        { uniformName = "planetRadius", uniformType = Enums.UniformType.Float,
+        planetRadius = { type = Enums.UniformType.Float,
             value = function(_, e)
                 local planet = e:get(CoreComponents.Parent)
                     :getParent()
@@ -211,7 +210,7 @@ MaterialDefinition {
             end,
             perInstance = true
         },
-        { uniformName = "ringRotation", uniformType = Enums.UniformType.Float4,
+        ringRotation = { type = Enums.UniformType.Float4,
             value = function(_, e)
                 local ringBody = e:get(PhysicsComponents.RigidBody):getRigidBody()
                 local q = ringBody:getRot() -- returns a quaternion {x, y, z, w}
@@ -220,7 +219,7 @@ MaterialDefinition {
             perInstance = true
         },
         -- Ring procedural parameters
-        { uniformName = "seed", uniformType = Enums.UniformType.Float,
+        seed         = { type = Enums.UniformType.Float,
             value = function(_, e)
                 local seed = e:get(CoreComponents.Seed):getSeed()
                 return seed

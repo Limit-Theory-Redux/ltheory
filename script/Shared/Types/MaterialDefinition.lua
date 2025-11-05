@@ -2,14 +2,12 @@ local Material = require("Shared.Rendering.Material")
 local Materials = require("Shared.Registries.Materials")
 
 ---@class TextureInfo
----@field texName string
 ---@field tex Tex
----@field texType UniformType
----@field texSettings TextureSetting
+---@field type UniformType
+---@field settings TextureSetting
 
 ---@class ShaderVarInfo
----@field uniformName string
----@field uniformType UniformType
+---@field type UniformType
 ---@field value any
 ---@field perInstance boolean|nil
 
