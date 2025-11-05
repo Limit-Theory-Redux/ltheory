@@ -69,7 +69,7 @@ MaterialDefinition {
     fs_name = "material/solidcolor",
     blendMode = BlendMode.Disabled,
     constShaderVars = {
-        color = { type = Enums.UniformType.Float3, value = function() return 1.0, 0.0, 1.0 end } -- TODO: to literal?
+        color = { type = Enums.UniformType.Float3, value = { 1.0, 0.0, 1.0 } }
     },
     autoShaderVars = {
         mWorld = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc },
@@ -86,7 +86,7 @@ MaterialDefinition {
     textures = nil, -- set at runtime
     constShaderVars = {
         heightMult = { type = Enums.UniformType.Float, value = 1.0 },
-        starColor  = { type = Enums.UniformType.Float3, value = function() return 1.0, 0.5, 0.1 end }, -- TODO: to literal?
+        starColor  = { type = Enums.UniformType.Float3, value = { 1.0, 0.5, 0.1 } },
     },
     autoShaderVars = {
         mWorld     = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
@@ -132,9 +132,9 @@ MaterialDefinition {
     vs_name = "wvp",
     fs_name = "material/atmosphere",
     blendMode = BlendMode.Alpha,
-    textures = nil,                                                                                   -- set at runtime
+    textures = nil, -- set at runtime
     constShaderVars = {
-        starColor = { type = Enums.UniformType.Float3, value = function() return 1.0, 0.5, 0.1 end }, -- TODO: to literal?
+        starColor = { type = Enums.UniformType.Float3, value = { 1.0, 0.5, 0.1 } },
     },
     autoShaderVars = {
         mWorld   = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },

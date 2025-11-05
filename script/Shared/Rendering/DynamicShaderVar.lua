@@ -23,13 +23,18 @@ local DynamicShaderVar = Class("DynamicShaderVar", function(self, uniformName, u
     if type(self.value) == "function" then
         ---@param eye Position|nil
         ---@param entity Entity|nil
-        ---@returns any
-        self.getValue = function(self, eye, entity) return self.value(eye, entity) end
+        ---@returns table<any>
+        self.getValues = function(self, eye, entity) return { self.value(eye, entity) } end
+    elseif type(self.value) == "table" then
+        ---@param eye Position|nil
+        ---@param entity Entity|nil
+        ---@returns table<any>
+        self.getValues = function(self, eye, entity) return self.value end
     else
         ---@param eye Position|nil
         ---@param entity Entity|nil
-        ---@returns any
-        self.getValue = function(self, eye, entity) return self.value end
+        ---@returns table<any>
+        self.getValues = function(self, eye, entity) return { self.value } end
     end
 end)
 
@@ -51,9 +56,9 @@ function DynamicShaderVar:setShaderVar(eye, shader, entity)
         return -- Already warned in reloadShader()
     end
 
-    local values = { self:getValue(eye, entity) }
     local func = UniformFuncs[self.uniformType]
     if func then
+        local values = self:getValues(eye, entity)
         func(shader, self.uniformInt, unpack(values))
     end
 end
