@@ -1,4 +1,4 @@
-local AutoShaderVar = require("Shared.Rendering.AutoShaderVar")
+local DynamicShaderVar = require("Shared.Rendering.DynamicShaderVar")
 local Texture = require("Shared.Rendering.Texture")
 local UniformFuncs = require("Shared.Rendering.UniformFuncs")
 
@@ -8,9 +8,9 @@ local UniformFuncs = require("Shared.Rendering.UniformFuncs")
 ---@field blendMode BlendMode
 ---@field textures table<Texture>
 ---@field shaderState ShaderState
----@field autoShaderVars table<AutoShaderVar>
----@field constShaderVars table<AutoShaderVar>
----@field staticShaderVars table<AutoShaderVar>
+---@field autoShaderVars table<DynamicShaderVar>
+---@field constShaderVars table<DynamicShaderVar>
+---@field staticShaderVars table<DynamicShaderVar>
 
 ---@class Material
 ---@overload fun(self: Material, vs_name: string, fs_name: string, blendMode: BlendMode): Material class internal
@@ -41,7 +41,7 @@ end
 ---@param shaderVars table<ShaderVarInfo>
 function Material:addAutoShaderVars(shaderVars)
     for name, shaderVarInfo in pairs(shaderVars) do
-        local autoShaderVar = AutoShaderVar(name, shaderVarInfo.type, shaderVarInfo.value, false,
+        local autoShaderVar = DynamicShaderVar(name, shaderVarInfo.type, shaderVarInfo.value, false,
             shaderVarInfo.perInstance)
         insert(self.autoShaderVars, autoShaderVar)
     end
@@ -50,7 +50,7 @@ end
 ---@param shaderVars table<ShaderVarInfo>
 function Material:addConstShaderVars(shaderVars)
     for name, shaderVarInfo in pairs(shaderVars) do
-        local constShaderVar = AutoShaderVar(name, shaderVarInfo.type, shaderVarInfo.value, true, true)
+        local constShaderVar = DynamicShaderVar(name, shaderVarInfo.type, shaderVarInfo.value, true, true)
         insert(self.constShaderVars, constShaderVar)
     end
 end
@@ -59,7 +59,7 @@ end
 ---@param type UniformType
 ---@param value any
 function Material:addStaticShaderVar(name, type, value)
-    local staticShaderVar = AutoShaderVar(name, type, value, false, false)
+    local staticShaderVar = DynamicShaderVar(name, type, value, false, false)
     staticShaderVar:setUniformInt(self.shaderState:shader())
     insert(self.staticShaderVars, staticShaderVar)
 end
