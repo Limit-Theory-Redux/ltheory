@@ -1,6 +1,6 @@
 local UniformFuncs = require("Shared.Rendering.UniformFuncs")
 
----@class AutoShaderVar
+---@class DynamicShaderVar
 ---@field uniformName string
 ---@field uniformInt integer
 ---@field uniformType UniformType
@@ -8,10 +8,10 @@ local UniformFuncs = require("Shared.Rendering.UniformFuncs")
 ---@field perInstance boolean|nil
 ---@field requiresEntity boolean|nil
 
----@class AutoShaderVar
----@overload fun(self: AutoShaderVar, uniformName: string, uniformType: UniformType, value: any, perInstance: boolean, requiresEntity: boolean|nil): AutoShaderVar class internal
----@overload fun(uniformName: string, uniformType: UniformType,  value: any, perInstance: boolean, requiresEntity: boolean|nil): AutoShaderVar class external
-local AutoShaderVar = Class("AutoShaderVar", function(self, uniformName, uniformType, value, perInstance, requiresEntity)
+---@class DynamicShaderVar
+---@overload fun(self: DynamicShaderVar, uniformName: string, uniformType: UniformType, value: any, perInstance: boolean, requiresEntity: boolean|nil): DynamicShaderVar class internal
+---@overload fun(uniformName: string, uniformType: UniformType,  value: any, perInstance: boolean, requiresEntity: boolean|nil): DynamicShaderVar class external
+local DynamicShaderVar = Class("DynamicShaderVar", function(self, uniformName, uniformType, value, perInstance, requiresEntity)
     self.uniformName = uniformName
     self.uniformInt = nil
     self.uniformType = uniformType
@@ -24,7 +24,7 @@ end)
 ---@param entity Entity|nil
 ---@returns any
 -- TODO: dynamically generate this method in the constructor depending on value type
-function AutoShaderVar:getValue(eye, entity)
+function DynamicShaderVar:getValue(eye, entity)
     if type(self.value) == "function" then
         return self.value(eye, entity)
     end
@@ -32,7 +32,7 @@ function AutoShaderVar:getValue(eye, entity)
 end
 
 ---@param shader Shader
-function AutoShaderVar:setUniformInt(shader)
+function DynamicShaderVar:setUniformInt(shader)
     if shader:hasVariable(self.uniformName) then
         self.uniformInt = shader:getVariable(self.uniformName)
         -- Log.Debug(tostring(shader:name()) .. "/" .. self.uniformName .. ": " .. self.uniformInt)
@@ -44,7 +44,7 @@ function AutoShaderVar:setUniformInt(shader)
     end
 end
 
-function AutoShaderVar:setShaderVar(eye, shader, entity)
+function DynamicShaderVar:setShaderVar(eye, shader, entity)
     if not self.uniformInt then
         return -- Already warned in reloadShader()
     end
@@ -56,4 +56,4 @@ function AutoShaderVar:setShaderVar(eye, shader, entity)
     end
 end
 
-return AutoShaderVar
+return DynamicShaderVar
