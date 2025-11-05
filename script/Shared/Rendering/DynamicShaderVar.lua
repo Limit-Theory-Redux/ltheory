@@ -18,18 +18,20 @@ local DynamicShaderVar = Class("DynamicShaderVar", function(self, uniformName, u
     self.value = value
     self.perInstance = perInstance or false
     self.requiresEntity = requiresEntity or false
-end)
 
----@param eye Position|nil
----@param entity Entity|nil
----@returns any
--- TODO: dynamically generate this method in the constructor depending on value type
-function DynamicShaderVar:getValue(eye, entity)
+    -- local cls = getmetatable(self)
     if type(self.value) == "function" then
-        return self.value(eye, entity)
+        ---@param eye Position|nil
+        ---@param entity Entity|nil
+        ---@returns any
+        self.getValue = function(self, eye, entity) return self.value(eye, entity) end
+    else
+        ---@param eye Position|nil
+        ---@param entity Entity|nil
+        ---@returns any
+        self.getValue = function(self, eye, entity) return self.value end
     end
-    return self.value
-end
+end)
 
 ---@param shader Shader
 function DynamicShaderVar:setUniformInt(shader)
