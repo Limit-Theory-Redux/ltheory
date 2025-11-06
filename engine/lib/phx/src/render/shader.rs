@@ -252,7 +252,7 @@ impl Shader {
 
     pub fn load(vs_name: &str, fs_name: &str) -> Shader {
         Self::from_preprocessed(
-            format!("[vs: {vs_name} , fs: {fs_name}]"),
+            format!("[vs: {vs_name}, fs: {fs_name}]"),
             GLSLCode::load(vs_name),
             GLSLCode::load(fs_name),
         )
