@@ -2,15 +2,13 @@ local Material = require("Shared.Rendering.Material")
 local Materials = require("Shared.Registries.Materials")
 
 ---@class TextureInfo
----@field texName string
 ---@field tex Tex
----@field texType UniformType
----@field texSettings TextureSetting
+---@field type UniformType
+---@field settings TextureSetting
 
 ---@class ShaderVarInfo
----@field uniformName string
----@field uniformType UniformType
----@field callbackFn function
+---@field type UniformType
+---@field value any
 ---@field perInstance boolean|nil
 
 ---@class MaterialDefinitionConstructor
@@ -28,8 +26,8 @@ local Materials = require("Shared.Registries.Materials")
 ---@field fs_name string
 ---@field blendMode BlendMode
 ---@field textures table<Texture>
----@field autoShaderVars table<AutoShaderVar>
----@field constShaderVars table<ConstShaderVar>
+---@field autoShaderVars table<DynamicShaderVar>
+---@field constShaderVars table<DynamicShaderVar>
 ---@overload fun(args: MaterialDefinitionConstructor): MaterialDefinition
 local MaterialDefinition = Class("MaterialDefinition")
 

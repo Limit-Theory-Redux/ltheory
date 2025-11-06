@@ -207,18 +207,18 @@ function RenderCoreSystem:cacheData()
                 local matCache = {}
 
                 for _, v in ipairs(mat.staticShaderVars or {}) do
-                    ---@cast v ConstShaderVar
-                    matCache[v] = { type = v.uniformType, values = { v.callbackFn() } }
+                    ---@cast v DynamicShaderVar
+                    matCache[v] = { type = v.uniformType, values = v:getValues(eye, entity) }
                 end
                 for _, v in ipairs(mat.constShaderVars or {}) do
-                    ---@cast v ConstShaderVar
-                    matCache[v] = { type = v.uniformType, values = { v.callbackFn() } }
+                    ---@cast v DynamicShaderVar
+                    matCache[v] = { type = v.uniformType, values = v:getValues(eye, entity) }
                 end
 
                 for _, v in ipairs(mat.autoShaderVars or {}) do
-                    ---@cast v AutoShaderVar
+                    ---@cast v DynamicShaderVar
                     if not v.perInstance then
-                        matCache[v] = { type = v.uniformType, values = { v.callbackFn(eye, entity) } }
+                        matCache[v] = { type = v.uniformType, values = v:getValues(eye, entity) }
                     end
                 end
 
@@ -231,7 +231,7 @@ function RenderCoreSystem:cacheData()
 
             for _, v in ipairs(mat.autoShaderVars or {}) do
                 if v.perInstance then
-                    matInstCache[v] = { type = v.uniformType, values = { v.callbackFn(eye, entity) } }
+                    matInstCache[v] = { type = v.uniformType, values = v:getValues(eye, entity) }
                 end
             end
 
