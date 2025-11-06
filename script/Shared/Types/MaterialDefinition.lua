@@ -2,7 +2,8 @@ local Material = require("Shared.Rendering.Material")
 local Materials = require("Shared.Registries.Materials")
 
 ---@class TextureInfo
----@field tex Tex
+---@field name string
+---@field tex Tex1D|Tex2D|Tex3D
 ---@field type UniformType
 ---@field settings TextureSetting
 
