@@ -31,8 +31,9 @@ end)
 
 ---@param textures table<TextureInfo>
 function Material:addTextures(textures)
-    for name, texture in pairs(textures) do
-        local tex = Texture(name, texture.tex, texture.type, texture.setting)
+    ---@param texInfo TextureInfo
+    for texInfo in Iterator(textures) do
+        local tex = Texture(texInfo.name, texInfo.tex, texInfo.type, texInfo.setting)
         tex:setTextureToShaderState(self.shaderState)
         insert(self.textures, tex)
     end
@@ -118,7 +119,7 @@ function Material:setAllShaderVars(eye, entity)
     end
 end
 
-function Material:setTexture(name, tex, texType)
+function Material:setTexture(texName, tex, texType)
     -- Infer type if not provided
     texType = texType or (ffi.istype("TexCube", tex) and Enums.UniformType.TexCube
         or ffi.istype("Tex2D", tex) and Enums.UniformType.Tex2D
@@ -126,6 +127,7 @@ function Material:setTexture(name, tex, texType)
         or error("Unsupported texture type"))
 
     local texInfo = {
+        name = texName,
         tex = tex,
         type = texType,
         settings = {
@@ -139,7 +141,7 @@ function Material:setTexture(name, tex, texType)
         }
     }
 
-    self:addTextures({ name = texInfo })
+    self:addTextures({ texInfo })
 end
 
 ---@return Material ClonedMaterial
