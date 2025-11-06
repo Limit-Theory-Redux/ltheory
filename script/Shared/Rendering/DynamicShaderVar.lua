@@ -29,12 +29,12 @@ local DynamicShaderVar = Class("DynamicShaderVar", function(self, uniformName, u
         ---@param eye Position|nil
         ---@param entity Entity|nil
         ---@returns table<any>
-        self.getValues = function(self, eye, entity) return self.value end
+        self.getValues = function(self, _, _) return self.value end
     else
         ---@param eye Position|nil
         ---@param entity Entity|nil
         ---@returns table<any>
-        self.getValues = function(self, eye, entity) return { self.value } end
+        self.getValues = function(self, _, _) return { self.value } end
     end
 end)
 
