@@ -68,7 +68,7 @@ function CameraSystem:getCurrentCameraEye()
     if not self.currentCameraTransform then
         Log.Error("Attempted to getCameraEye() with no current Camera set.")
     end
-    return self.currentCameraTransform:getPosition()
+    return self.currentCameraTransform:getPos()
 end
 
 function CameraSystem:beginDraw()
@@ -91,8 +91,8 @@ end
 -- Updates view matrix from current transform
 function CameraSystem:updateViewMatrix()
     if not self.currentCameraData or not self.currentCameraTransform then return end
-    local pos = self.currentCameraTransform:getPosition()
-    local rot = self.currentCameraTransform:getRotation()
+    local pos = self.currentCameraTransform:getPos()
+    local rot = self.currentCameraTransform:getRot()
     local viewInv = Matrix.FromPosRot(pos:relativeTo(self:getCurrentCameraEye()), rot)
     self.currentCameraData:setViewInverse(viewInv)
     self.currentCameraData:setView(viewInv:inverse())
@@ -146,7 +146,7 @@ function CameraSystem:screenToRay(screenPos, length)
     local dir = farPoint - nearPoint
     if dir:length() < 1e-8 then
         -- degenerate ray, push slightly forward along camera forward
-        dir = self.currentCameraTransform:getRotation():getForward():imuls(1e-6)
+        dir = self.currentCameraTransform:getRot():getForward():imuls(1e-6)
     end
     dir = dir:normalize()
 

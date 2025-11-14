@@ -171,13 +171,17 @@ MaterialDefinition {
     fs_name = "material/planetring", -- fragment shader
     blendMode = BlendMode.Alpha,     -- enable alpha blending
     textures = nil,
+    constShaderVars = {
+        nearDist = { uniformType = Enums.UniformType.Float, callbackFn = function() return 10000 end },
+        farDist = { uniformType = Enums.UniformType.Float, callbackFn = function() return 100000 end }
+    },
     autoShaderVars = {
         -- World transform
-        mWorld       = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
-        mWorldIT     = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
+        mWorld     = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
+        mWorldIT   = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
 
         -- Time for rotation
-        time         = { type = Enums.UniformType.Float,
+        time       = { type = Enums.UniformType.Float,
             value = function(_, e)
                 ---@cast e Entity
                 local time = e:get(CelestialComponents.Simulation.PlanetaryRingMotion):getTime()
@@ -187,7 +191,7 @@ MaterialDefinition {
         },
 
         -- Planet center and radius (for shadow)
-        planetPos    = { type = Enums.UniformType.Float3,
+        planetPos  = { type = Enums.UniformType.Float3,
             value = function(eye, e)
                 ---@cast e Entity
                 local planet = e:get(CoreComponents.Parent)
@@ -199,19 +203,20 @@ MaterialDefinition {
             end,
             perInstance = true
         },
-        planetRadius = { type = Enums.UniformType.Float,
-            value = function(_, e)
+        planetQuat = { uniformType = Enums.UniformType.Float4,
+            callbackFn = function(eye, e)
+                ---@cast e Entity
                 local planet = e:get(CoreComponents.Parent)
                     :getParent()
                     :get(PhysicsComponents.RigidBody)
                     :getRigidBody()
-                local scale = planet:getScale()
-                return scale
+                local p = planet:getRot()
+                return p.x, p.y, p.z, p.w
             end,
             perInstance = true
         },
-        ringRotation = { type = Enums.UniformType.Float4,
-            value = function(_, e)
+        ringQuat   = { uniformType = Enums.UniformType.Float4,
+            callbackFn = function(_, e)
                 local ringBody = e:get(PhysicsComponents.RigidBody):getRigidBody()
                 local q = ringBody:getRot() -- returns a quaternion {x, y, z, w}
                 return q.x, q.y, q.z, q.w
@@ -219,7 +224,7 @@ MaterialDefinition {
             perInstance = true
         },
         -- Ring procedural parameters
-        seed         = { type = Enums.UniformType.Float,
+        seed       = { type = Enums.UniformType.Float,
             value = function(_, e)
                 local seed = e:get(CoreComponents.Seed):getSeed()
                 return seed

@@ -91,8 +91,8 @@ function PlanetTest:onInit()
 
     -- Initialize camera transform
     self.camPos    = Vec3f(0, 0, -4)
-    CameraSystem.currentCameraTransform:setPosition(Position(self.camPos.x, self.camPos.y, self.camPos.z))
-    CameraSystem.currentCameraTransform:setRotation(Quat.LookAt(self.camPos, self.planetPos, Vec3f(0, 1, 0)))
+    CameraSystem.currentCameraTransform:setPos(Position(self.camPos.x, self.camPos.y, self.camPos.z))
+    CameraSystem.currentCameraTransform:setRot(Quat.LookAt(self.camPos, self.planetPos, Vec3f(0, 1, 0)))
 
     self.focusEntity       = nil
 
@@ -111,6 +111,9 @@ function PlanetTest:onInit()
     self.pitchSensitivity  = 0.004
     self.autoRotationSpeed = 0.0225
     self.returnPitchLerp   = 1.5
+
+    self.enableRingDebug   = true
+    self.ringDebug         = 1
 
     self:createPlanet(self.seed)
 
@@ -174,7 +177,7 @@ function PlanetTest:createPlanet(seed)
     local rb = RigidBody.CreateSphereFromMesh(mesh)
     rbCmp:setRigidBody(rb)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
-    rb:setScale(planetRNG:getInt(2000, 12000))
+    rb:setScale(planetRNG:getInt(100, 200))
 
     self:createPlanetRing(seed)
     self:createMoons(seed)
@@ -217,6 +220,9 @@ function PlanetTest:createPlanetRing(seed)
     self.matRing:addStaticShaderVar("ringHeight", Enums.UniformType.Float, function() return 50 end)
     self.matRing:addStaticShaderVar("rotationSpeed", Enums.UniformType.Float, function() return 2.0 end)
     self.matRing:addStaticShaderVar("twistFactor", Enums.UniformType.Float, function() return 0.25 end)
+
+    self.matRing:addStaticShaderVar("enableDebug", Enums.UniformType.Int, function() return self.enableRingDebug end)
+    self.matRing:addStaticShaderVar("debugMode", Enums.UniformType.Int, function() return self.ringDebug end)
 
     self.ring = AsteroidRingEntity(seed, { { mesh = mesh, material = self.matRing } })
 
@@ -426,8 +432,8 @@ function PlanetTest:onStatePreRender(data)
     local planetPos = self.planetPos
 
     local camTransform = CameraSystem.currentCameraTransform
-    camTransform:setPosition(Position(camPos.x, camPos.y, camPos.z))
-    camTransform:setRotation(Quat.LookAt(camPos, planetPos, Vec3f(0, 1, 0)))
+    camTransform:setPos(Position(camPos.x, camPos.y, camPos.z))
+    camTransform:setRot(Quat.LookAt(camPos, planetPos, Vec3f(0, 1, 0)))
 end
 
 function PlanetTest:onRender(data)
