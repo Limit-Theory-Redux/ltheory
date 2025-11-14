@@ -1,7 +1,13 @@
 local PhysicalEntity = require("Modules.PhysicalEntity")
+local Physics = require("Modules.Physics.Components")
+local Rendering = require("Modules.Rendering.Components")
 
 ---@param seed integer
+---@param meshes MeshWithMaterial[]
 ---@return Entity
-return function(seed)
-    return PhysicalEntity("MoonEntity", seed)
+return function(seed, meshes)
+    return PhysicalEntity("MoonEntity", seed,
+        Physics.RigidBody(),
+        Rendering.Render(meshes)
+    )
 end

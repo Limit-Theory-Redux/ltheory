@@ -9,11 +9,11 @@ local CelestialComponents = require("Modules.CelestialObjects.Components")
 local PhysicsComponents = require("Modules.Physics.Components")
 
 -- Helper
-local function genField(name, type)
+local function genField(name, type, cmpType)
     return {
         type = type,
         value = function(_, entity)
-            local gen = entity:get(CelestialComponents.Gen.Planet)
+            local gen = entity:get(cmpType)
             if type == Enums.UniformType.Float3 then
                 local v = gen[name]
                 return v.x, v.y, v.z
@@ -102,11 +102,11 @@ MaterialDefinition {
             perInstance = false
         },
 
-        oceanLevel = genField("oceanLevel", Enums.UniformType.Float),
-        color1     = genField("color1", Enums.UniformType.Float3),
-        color2     = genField("color2", Enums.UniformType.Float3),
-        color3     = genField("color3", Enums.UniformType.Float3),
-        color4     = genField("color4", Enums.UniformType.Float3),
+        oceanLevel = genField("oceanLevel", Enums.UniformType.Float, CelestialComponents.Gen.Planet),
+        color1     = genField("color1", Enums.UniformType.Float3, CelestialComponents.Gen.Planet),
+        color2     = genField("color2", Enums.UniformType.Float3, CelestialComponents.Gen.Planet),
+        color3     = genField("color3", Enums.UniformType.Float3, CelestialComponents.Gen.Planet),
+        color4     = genField("color4", Enums.UniformType.Float3, CelestialComponents.Gen.Planet),
 
         origin     = { type = Enums.UniformType.Float3,
             value = function(eye, entity)
@@ -231,5 +231,35 @@ MaterialDefinition {
             end,
             perInstance = true
         },
+    },
+}
+
+---@class Materials
+---@field MoonSurface Material
+MaterialDefinition {
+    name = "MoonSurface",
+    vs_name = "wvp",
+    fs_name = "material/moon",
+    blendMode = BlendMode.Disabled,
+    textures = nil, -- set at runtime
+    constShaderVars = {
+        starColor = { type = Enums.UniformType.Float3, value = { 1.0, 0.5, 0.1 } },
+    },
+    autoShaderVars = {
+        mWorld        = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
+        mWorldIT      = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
+        scale         = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc, perInstance = true },
+
+        highlandColor = genField("highlandColor", Enums.UniformType.Float3, CelestialComponents.Gen.Moon),
+        mariaColor    = genField("mariaColor", Enums.UniformType.Float3, CelestialComponents.Gen.Moon),
+
+        origin        = { type = Enums.UniformType.Float3,
+            value = function(eye, entity)
+                local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
+                local o = rb:getPos():relativeTo(eye)
+                return o.x, o.y, o.z
+            end, perInstance = true },
+        rPlanet       = { type = Enums.UniformType.Float,
+            value = function(_, e) return e:get(PhysicsComponents.RigidBody):getRigidBody():getScale() end, perInstance = true },
     },
 }

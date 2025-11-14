@@ -8,6 +8,7 @@ local Materials           = require("Shared.Registries.Materials")
 local CameraSystem        = require("Modules.Rendering.Systems.CameraSystem")
 local CameraEntity        = require("Modules.Rendering.Entities").Camera
 local PlanetEntity        = require('Modules.CelestialObjects.Entities.PlanetEntity')
+local MoonEntity          = require('Modules.CelestialObjects.Entities.MoonEntity')
 local AsteroidRingEntity  = require('Modules.CelestialObjects.Entities.AsteroidRingEntity')
 local SkyboxEntity        = require("Modules.CelestialObjects.Entities.SkyboxEntity")
 local PhysicsComponents   = require("Modules.Physics.Components")
@@ -103,7 +104,7 @@ function PlanetTest:onInit()
     self.isDragging        = false
     self.dragSensitivity   = 0.005
     self.dragReleaseTimer  = 0
-    self.dragReleaseDelay  = 1.0
+    self.dragReleaseDelay  = 10.0
     self.angle             = 0.0
     self.pitch             = 0.0
     self.pitchMin          = -0.8
@@ -270,51 +271,42 @@ function PlanetTest:createMoons(seed, numMoons)
         local phase = moonRNG:getUniformRange(0, 2 * math.pi)
         local inclination = math.rad(moonRNG:getUniformRange(0, 180)) -- tilt in degrees
 
-        -- Planet-like moon
+        -- Moon
         local mesh = Primitive.IcoSphere(4)
         local meshAtmo = Primitive.IcoSphere(4, 1.5)
         meshAtmo:computeNormals()
         meshAtmo:invert()
 
-        local genColor = function(rng)
-            local h = rng:getUniformRange(0, 0.5)
-            local l = Math.Saturate(rng:getUniformRange(0.2, 0.3) + 0.05 * rng:getExp())
-            local s = rng:getUniformRange(0.1, 0.3)
-            local c = Color.FromHSL(h, s, l)
-            return Vec3f(c.r, c.g, c.b)
-        end
-
         local moonOptions = {
-            surfaceFreq  = 4 + moonRNG:getExp(),
-            surfacePower = 1 + 0.5 * moonRNG:getExp(),
-            surfaceCoef  = (moonRNG:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize(),
-            color1       = genColor(moonRNG),
-            color2       = genColor(moonRNG),
-            color3       = genColor(moonRNG),
-            color4       = genColor(moonRNG),
-            oceanLevel   = moonRNG:getUniform() ^ 1.5,
-            cloudLevel   = moonRNG:getUniformRange(-0.2, 0.15),
-            atmoScale    = 1.1,
+            craterDensity    = 4,
+            craterSharpness  = 1,
+            mariaAmount      = 0.3,
+            highlandColor    = Vec3f(0.7, 0.68, 0.65),
+            mariaColor       = Vec3f(0.25, 0.24, 0.23),
+            heightMult       = 0.03,
+            enableAtmosphere = true
         }
 
-        local texSurface = GenUtil.ShaderToTexCube(1024, TexFormat.RGBA16F, 'gen/planet', {
-            seed = moonRNG:getUniform(),
-            freq = moonOptions.surfaceFreq,
-            power = moonOptions.surfacePower,
-            coef = moonOptions.surfaceCoef
+        local texSurface = GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/moon', {
+            seed             = moonRNG:getUniform(),
+            craterDensity    = moonOptions.craterDensity,
+            craterSharpness  = moonOptions.craterSharpness,
+            mariaAmount      = moonOptions.mariaAmount,
+            highlandColor    = moonOptions.highlandColor,
+            mariaColor       = moonOptions.mariaColor,
+            heightMult       = moonOptions.heightMult,
+            enableAtmosphere = moonOptions.enableAtmosphere
         })
 
-        local matPlanet = Materials.PlanetSurface()
-        local matAtmo = Materials.PlanetAtmosphere()
+        local matPlanet = Materials.MoonSurface()
         matPlanet:setTexture("surface", texSurface)
 
-        local moonPlanet = PlanetEntity(moonSeed, {
-            { mesh = mesh,     material = matPlanet },
-            { mesh = meshAtmo, material = matAtmo },
+        local moon = MoonEntity(moonSeed, {
+            { mesh = mesh, material = matPlanet },
         })
 
-        local planetCmp = CelestialComponents.Gen.Planet(moonOptions)
-        moonPlanet:add(planetCmp)
+        local moonCmp = CelestialComponents.Gen.Moon(moonOptions)
+        moon:add(moonCmp)
 
         local rbCmp = PhysicsComponents.RigidBody()
         local rb = RigidBody.CreateSphereFromMesh(mesh)
@@ -326,12 +318,12 @@ function PlanetTest:createMoons(seed, numMoons)
             planetPos.z + math.sin(phase) * orbitRadius
         ))
         rbCmp:setRigidBody(rb)
-        moonPlanet:add(rbCmp)
+        moon:add(rbCmp)
 
-        Registry:attachEntity(self.planet, moonPlanet)
+        Registry:attachEntity(self.planet, moon)
 
         table.insert(self.moons, {
-            entity = moonPlanet,
+            entity = moon,
             radius = orbitRadius,
             speed = orbitSpeed,
             phase = phase,
@@ -503,9 +495,25 @@ function PlanetTest:onStateInput(data)
         local relativeDist = surfaceDist / planetRadius
         local zoomFactor = (relativeDist < 1.0) and (0.2 + 0.8 * relativeDist) or (1.0 + math.pow(relativeDist, 2.2))
         local baseSensitivity = (self.zoomSensitivity or 1.0) * math.sqrt(planetRadius) * 0.05
+
+        -- Mouse scroll zoom
         local rawDelta = scrollState.y * baseSensitivity * zoomFactor
         if rawDelta > 0 then rawDelta = math.min(rawDelta, self.targetCamRadius - self.zoomMinDistance) end
         self.targetCamRadius = math.max(self.zoomMinDistance, self.targetCamRadius - rawDelta)
+
+        -- Keyboard zoom with + and -
+        local keyboardZoomDelta = 0
+        if Input:isDown(Button.KeyboardEqual) or Input:isDown(Button.KeyboardNumpadAdd) then
+            keyboardZoomDelta = baseSensitivity * zoomFactor * 2.0 -- Zoom in
+        end
+        if Input:isDown(Button.KeyboardMinus) or Input:isDown(Button.KeyboardNumpadSubtract) then
+            keyboardZoomDelta = -baseSensitivity * zoomFactor * 2.0 -- Zoom out
+        end
+
+        if keyboardZoomDelta > 0 then
+            keyboardZoomDelta = math.min(keyboardZoomDelta, self.targetCamRadius - self.zoomMinDistance)
+        end
+        self.targetCamRadius = math.max(self.zoomMinDistance, self.targetCamRadius - keyboardZoomDelta)
     end
 
     if Input:isDown(Button.MouseRight) then
