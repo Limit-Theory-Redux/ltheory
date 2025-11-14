@@ -21,7 +21,7 @@ local PlanetGenComponent = Subclass("PlanetGenComponent", Component, function(se
     -- Surface
     self.surfaceFreq  = genOptions.surfaceFreq
     self.surfacePower = genOptions.surfacePower
-    self.surfaceCoef  = genOptions
+    self.surfaceCoef  = genOptions.surfaceCoef
     -- Colors
     self.color1       = genOptions.color1
     self.color2       = genOptions.color2
