@@ -31,18 +31,25 @@ function PlanetTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
 
-    self.seed = 3650
+    self.seed = 0
     self.ringRNG = RNG.FromTime()
 
     -- Timers
     self.timer = DeltaTimer("PlanetTest")
     self.timer:start("fps", 0.1)
 
+    -- Double-click timer
+    self.clickTimer = DeltaTimer("ClickTimer")
+    self.clickCount = 0
+    self.lastClickedBody = nil
+
     -- FPS tracking
     self.frameCount = 0
     self.smoothFPS = 0
     self.fpsText = "FPS: 0"
     self.time = 0
+
+    self.world = Physics.Create()
 
     -- Skybox
     self.skybox = SkyboxEntity(self.seed, function(entity, blendMode)
@@ -116,14 +123,62 @@ function PlanetTest:onInit()
     self.enableRingDebug   = true
     self.ringDebug         = 1
 
+    -- Camera transition
+    self.cameraTransition  = {
+        active = false,
+        time = 0,
+        duration = 1.5,
+        startPos = Vec3f(0, 0, 0),
+        targetPos = Vec3f(0, 0, 0),
+        startAngle = 0,
+        startPitch = 0,
+        startRadius = 0,
+        targetAngle = 0,
+        targetPitch = 0,
+        targetRadius = 0,
+        targetEntity = nil
+    }
+
     self:createPlanet(self.seed)
 
     EventBus:subscribe(Event.PreRender, self, self.onStatePreRender)
     EventBus:subscribe(Event.Input, self, self.onStateInput)
+    EventBus:subscribe(Event.Sim, self, self.onStateSim)
+end
+
+function PlanetTest:easeInOutCubic(t)
+    if t < 0.5 then
+        return 4 * t * t * t
+    else
+        local f = 2 * t - 2
+        return 1 + f * f * f / 2
+    end
 end
 
 function PlanetTest:createPlanet(seed)
     if self.planet then
+        -- Remove old rigid bodies from physics world before destroying entities
+        local oldPlanetRb = self.planet:get(PhysicsComponents.RigidBody)
+        if oldPlanetRb and oldPlanetRb:getRigidBody() then
+            self.world:removeRigidBody(oldPlanetRb:getRigidBody())
+        end
+
+        if self.ring then
+            local oldRingRb = self.ring:get(PhysicsComponents.RigidBody)
+            if oldRingRb and oldRingRb:getRigidBody() then
+                self.world:removeRigidBody(oldRingRb:getRigidBody())
+            end
+        end
+
+        if self.moons then
+            for _, moon in ipairs(self.moons) do
+                local moonRb = moon.entity:get(PhysicsComponents.RigidBody)
+                if moonRb and moonRb:getRigidBody() then
+                    self.world:removeRigidBody(moonRb:getRigidBody())
+                end
+            end
+        end
+
         Registry:destroyEntity(self.planet, Enums.Registry.EntityDestroyMode.DestroyChildren)
     end
 
@@ -179,6 +234,9 @@ function PlanetTest:createPlanet(seed)
     rbCmp:setRigidBody(rb)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
     rb:setScale(planetRNG:getInt(100, 200))
+
+    -- add rb to physics world
+    self.world:addRigidBody(rb)
 
     self:createPlanetRing(seed)
     self:createMoons(seed)
@@ -241,6 +299,9 @@ function PlanetTest:createPlanetRing(seed)
     rbCmp:setRigidBody(rb)
     self.ring:add(rbCmp)
 
+    -- Add ring rigid body to physics world
+    self.world:addRigidBody(rb)
+
     Registry:attachEntity(self.planet, self.ring)
 end
 
@@ -269,7 +330,7 @@ function PlanetTest:createMoons(seed, numMoons)
         local orbitRadius = moonRNG:getUniformRange(minOrbit, maxOrbit)
         local orbitSpeed = baseSpeed * math.sqrt(planetRadius / orbitRadius)
         local phase = moonRNG:getUniformRange(0, 2 * math.pi)
-        local inclination = math.rad(moonRNG:getUniformRange(0, 180)) -- tilt in degrees
+        local inclination = math.rad(moonRNG:getUniformRange(0, 180))
 
         -- Moon
         local mesh = Primitive.IcoSphere(4)
@@ -320,6 +381,9 @@ function PlanetTest:createMoons(seed, numMoons)
         rbCmp:setRigidBody(rb)
         moon:add(rbCmp)
 
+        -- Add moon rigid body to physics world
+        self.world:addRigidBody(rb)
+
         Registry:attachEntity(self.planet, moon)
 
         table.insert(self.moons, {
@@ -363,10 +427,37 @@ function PlanetTest:updateCameraZoomLimits()
     end
 end
 
+function PlanetTest:updateCameraZoomLimitsForFocus()
+    if not self.focusEntity then
+        -- Reset to planet limits
+        if self.planet then
+            local rb = self.planet:get(PhysicsComponents.RigidBody)
+            local planetRadius = rb:getRadius()
+            self.zoomMinDistance = planetRadius * 1.05
+            self.zoomSensitivity = Math.Clamp(math.sqrt(planetRadius) * 0.02, 0.05, 10.0)
+        end
+        return
+    end
+
+    local focusRb = self.focusEntity:get(PhysicsComponents.RigidBody)
+    if focusRb and focusRb:getRigidBody() then
+        local focusRadius = focusRb:getRadius()
+        self.zoomMinDistance = focusRadius * 1.05
+        self.zoomSensitivity = Math.Clamp(math.sqrt(focusRadius) * 0.02, 0.05, 10.0)
+    end
+end
+
 function PlanetTest:onStatePreRender(data)
     local dt = data:deltaTime()
     local scaledDT = dt * (self.timeScale or 1)
     self.timer:update(dt)
+    self.clickTimer:update(dt)
+
+    -- Reset click count if double-click window expires
+    if self.clickTimer:check("doubleClick") then
+        self.clickCount = 0
+        self.lastClickedBody = nil
+    end
 
     self.frameCount = self.frameCount + 1
     if self.timer:check("fps") then
@@ -377,17 +468,66 @@ function PlanetTest:onStatePreRender(data)
         self.frameCount = 0
     end
 
-    -- Smooth zoom
-    local lerpFactor = math.min(1, self.zoomLerpSpeed * dt)
-    self.camPos.z = self.camPos.z + (self.targetCamRadius - self.camPos.z) * lerpFactor
-
     if self.dragReleaseTimer > 0 then
         self.dragReleaseTimer = math.max(0, self.dragReleaseTimer - dt)
     end
 
-    if not self.isDragging and self.dragReleaseTimer == 0 and (self.timeScale or 1) == 1 then
-        self.angle = (self.angle or 0) + self.autoRotationSpeed * scaledDT
-        self.pitch = Math.Lerp(self.pitch, 0.0, math.min(1, self.returnPitchLerp * dt))
+    -- Determine the target position for the camera
+    local targetPos = self.planetPos
+
+    -- Handle camera transition
+    if self.cameraTransition.active then
+        self.cameraTransition.time = self.cameraTransition.time + dt
+        local t = math.min(1.0, self.cameraTransition.time / self.cameraTransition.duration)
+        local easedT = self:easeInOutCubic(t)
+
+        -- Interpolate the focus position (what we're orbiting around)
+        targetPos = Vec3f(
+            self.cameraTransition.startPos.x + (self.cameraTransition.targetPos.x - self.cameraTransition.startPos.x) * easedT,
+            self.cameraTransition.startPos.y + (self.cameraTransition.targetPos.y - self.cameraTransition.startPos.y) * easedT,
+            self.cameraTransition.startPos.z + (self.cameraTransition.targetPos.z - self.cameraTransition.startPos.z) * easedT
+        )
+
+        -- Interpolate angle, pitch, and radius
+        self.angle = self.cameraTransition.startAngle + (self.cameraTransition.targetAngle - self.cameraTransition.startAngle) * easedT
+        self.pitch = self.cameraTransition.startPitch + (self.cameraTransition.targetPitch - self.cameraTransition.startPitch) * easedT
+        self.currentCamRadius = self.cameraTransition.startRadius +
+            (self.cameraTransition.targetRadius - self.cameraTransition.startRadius) * easedT
+        self.targetCamRadius = self.cameraTransition.targetRadius
+
+        -- End transition when complete
+        if t >= 1.0 then
+            self.cameraTransition.active = false
+            -- Now set the focus entity and update zoom limits
+            self.focusEntity = self.cameraTransition.targetEntity
+            self:updateCameraZoomLimitsForFocus()
+            self.cameraTransition.targetEntity = nil
+        end
+    else
+        -- Normal focus behavior when not transitioning
+        if self.focusEntity then
+            local focusRb = self.focusEntity:get(PhysicsComponents.RigidBody)
+
+            if focusRb and focusRb:getRigidBody() then
+                targetPos = focusRb:getRigidBody():getPos():toVec3f()
+            else
+                -- If focus entity is invalid, reset to planet
+                self.focusEntity = nil
+                targetPos = self.planetPos
+            end
+        end
+
+        -- Auto-rotation around the focused entity (only when not transitioning)
+        if not self.isDragging and self.dragReleaseTimer == 0 and (self.timeScale or 1) == 1 then
+            self.angle = (self.angle or 0) + self.autoRotationSpeed * scaledDT
+            self.pitch = Math.Lerp(self.pitch, 0.0, math.min(1, self.returnPitchLerp * dt))
+        end
+
+        -- Smooth zoom (only when not transitioning)
+        local lerpFactor = math.min(1, self.zoomLerpSpeed * dt)
+        local currentRadius = self.currentCamRadius or self.targetCamRadius
+        currentRadius = currentRadius + (self.targetCamRadius - currentRadius) * lerpFactor
+        self.currentCamRadius = currentRadius
     end
 
     -- Update moons orbit
@@ -415,17 +555,19 @@ function PlanetTest:onStatePreRender(data)
         end
     end
 
+    -- Calculate camera position relative to target using angle, pitch, and radius
+    local currentRadius = self.currentCamRadius or self.targetCamRadius
+    local x = math.sin(self.angle) * math.cos(self.pitch) * currentRadius
+    local y = math.sin(self.pitch) * currentRadius
+    local z = math.cos(self.angle) * math.cos(self.pitch) * currentRadius
+    local camPos = Vec3f(targetPos.x + x, targetPos.y + y, targetPos.z + z)
 
-    local radius = self.camPos.z
-    local x = math.sin(self.angle) * math.cos(self.pitch) * radius
-    local y = math.sin(self.pitch) * radius
-    local z = math.cos(self.angle) * math.cos(self.pitch) * radius
-    local camPos = Vec3f(x, y, z)
-    local planetPos = self.planetPos
+    -- Update camPos for other systems that might use it
+    self.camPos = camPos
 
     local camTransform = CameraSystem.currentCameraTransform
     camTransform:setPos(Position(camPos.x, camPos.y, camPos.z))
-    camTransform:setRot(Quat.LookAt(camPos, planetPos, Vec3f(0, 1, 0)))
+    camTransform:setRot(Quat.LookAt(camPos, targetPos, Vec3f(0, 1, 0)))
 end
 
 function PlanetTest:onRender(data)
@@ -468,14 +610,164 @@ function PlanetTest:onRender(data)
 end
 
 -- Mouse click handler for PlanetTest
-function PlanetTest:handleMouseClick(length)
-    local mp = Input:mouse():position()
-    local ray = CameraSystem:screenToRay(mp, length or 1e7)
-    if not ray then return end
+function PlanetTest:handleMouseClick()
+    local ray = CameraSystem:mouseToRay(1e7)
+    local result = self.world:rayCast(ray)
 
-    print("raycast")
+    if not result or not result.body then
+        print("No hit - unfocusing")
+        self.clickCount = 0
+        self.lastClickedBody = nil
+        self.focusEntity = nil
+        self:updateCameraZoomLimitsForFocus() -- Reset to planet limits
+        self.clickTimer:remove("doubleClick")
+        return
+    end
 
-    -- self.focusEntity = closestEntity
+    local hitBody = result.body
+
+    -- Check if this is the same object as last click
+    if hitBody == self.lastClickedBody and self.clickTimer:has("doubleClick") then
+        self.clickCount = self.clickCount + 1
+    else
+        self.clickCount = 1
+        self.lastClickedBody = hitBody
+        self.clickTimer:start("doubleClick", 0.3, false)
+    end
+
+    -- Double-click detected
+    if self.clickCount == 2 then
+        self:focusOnObject(result)
+        self.clickCount = 0
+        self.lastClickedBody = nil
+        self.clickTimer:remove("doubleClick")
+        return
+    end
+
+    -- Single click feedback
+    local t = result.t
+    local hitPos = ray:getPoint(t)
+
+    if self.planet then
+        local planetRb = self.planet:get(PhysicsComponents.RigidBody):getRigidBody()
+
+        if hitBody == planetRb then
+            print("CLICKED PLANET (click " .. self.clickCount .. "/2)")
+        else
+            -- Check moons
+            local foundMoon = false
+            if self.moons then
+                for i, moon in ipairs(self.moons) do
+                    local moonRb = moon.entity:get(PhysicsComponents.RigidBody):getRigidBody()
+                    if hitBody == moonRb then
+                        print("CLICKED MOON #" .. i .. " (click " .. self.clickCount .. "/2)")
+                        foundMoon = true
+                        break
+                    end
+                end
+            end
+
+            -- Check ring
+            if not foundMoon and self.ring then
+                local ringRb = self.ring:get(PhysicsComponents.RigidBody)
+                if ringRb and hitBody == ringRb:getRigidBody() then
+                    print("CLICKED RING (click " .. self.clickCount .. "/2)")
+                end
+            end
+        end
+    end
+end
+
+function PlanetTest:focusOnObject(raycastResult)
+    local hitBody = raycastResult.body
+
+    if not self.planet then return end
+
+    local planetRb = self.planet:get(PhysicsComponents.RigidBody):getRigidBody()
+
+    -- Focus on planet
+    if hitBody == planetRb then
+        print("=== FOCUSING ON PLANET ===")
+        local planetRadius = planetRb:getBoundingRadius()
+        local targetRadius = planetRadius * 3.0
+        self:animateCameraToTarget(self.planet, planetRb:getPos(), targetRadius)
+        return
+    end
+
+    -- Focus on moon
+    if self.moons then
+        for i, moon in ipairs(self.moons) do
+            local moonRb = moon.entity:get(PhysicsComponents.RigidBody):getRigidBody()
+            if hitBody == moonRb then
+                print("=== FOCUSING ON MOON #" .. i .. " ===")
+                local moonRadius = moonRb:getBoundingRadius()
+                local targetRadius = moonRadius * 4.0
+                self:animateCameraToTarget(moon.entity, moonRb:getPos(), targetRadius)
+                return
+            end
+        end
+    end
+
+    -- Focus on ring
+    if self.ring then
+        local ringRb = self.ring:get(PhysicsComponents.RigidBody)
+        if ringRb and hitBody == ringRb:getRigidBody() then
+            print("=== FOCUSING ON RING ===")
+            local planetRb = self.planet:get(PhysicsComponents.RigidBody):getRigidBody()
+            local planetRadius = planetRb:getBoundingRadius()
+            local targetRadius = self.ringOuterRadius * 1.5
+            self:animateCameraToTarget(self.ring, planetRb:getPos(), targetRadius, math.rad(45))
+            return
+        end
+    end
+end
+
+function PlanetTest:animateCameraToTarget(targetEntity, targetPos, distance, forcePitch)
+    -- Get current focus position
+    local currentFocusPos = self.planetPos
+    if self.focusEntity then
+        local focusRb = self.focusEntity:get(PhysicsComponents.RigidBody)
+        if focusRb and focusRb:getRigidBody() then
+            currentFocusPos = focusRb:getRigidBody():getPos():toVec3f()
+        end
+    end
+
+    -- Store current camera state
+    self.cameraTransition.startPos = currentFocusPos
+    self.cameraTransition.targetPos = targetPos:toVec3f()
+    self.cameraTransition.startAngle = self.angle
+    self.cameraTransition.startPitch = self.pitch
+    self.cameraTransition.startRadius = self.currentCamRadius or self.targetCamRadius
+    self.cameraTransition.targetEntity = targetEntity -- Store entity to focus on after transition
+
+    -- Set target camera state
+    self.cameraTransition.targetRadius = distance
+
+    -- Calculate target angle and pitch relative to new target
+    local currentCamPos = CameraSystem.currentCameraTransform:getPos():toVec3f()
+    local dir = currentCamPos - targetPos:toVec3f()
+
+    if dir:length() < 0.01 then
+        dir = Vec3f(0, 0, 1)
+    else
+        dir = dir:normalize()
+    end
+
+    self.cameraTransition.targetAngle = math.atan2(dir.x, dir.z)
+
+    if forcePitch then
+        self.cameraTransition.targetPitch = forcePitch
+    else
+        self.cameraTransition.targetPitch = math.asin(Math.Clamp(dir.y, -1, 1))
+    end
+
+    -- Start transition
+    self.cameraTransition.active = true
+    self.cameraTransition.time = 0
+
+    print("Camera transitioning to distance:", distance)
+    print("From position:", currentFocusPos.x, currentFocusPos.y, currentFocusPos.z)
+    print("To position:", targetPos.x, targetPos.y, targetPos.z)
 end
 
 function PlanetTest:onStateInput(data)
@@ -540,6 +832,11 @@ function PlanetTest:onStateInput(data)
     if Input:isPressed(Button.MouseLeft) then
         self:handleMouseClick()
     end
+end
+
+---@param data EventData
+function PlanetTest:onStateSim(data)
+    self.world:update(data:deltaTime())
 end
 
 return PlanetTest
