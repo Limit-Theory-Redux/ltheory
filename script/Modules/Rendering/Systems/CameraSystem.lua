@@ -91,11 +91,19 @@ end
 -- Updates view matrix from current transform
 function CameraSystem:updateViewMatrix()
     if not self.currentCameraData or not self.currentCameraTransform then return end
-    local pos = self.currentCameraTransform:getPos()
-    local rot = self.currentCameraTransform:getRot()
-    local viewInv = Matrix.FromPosRot(pos:relativeTo(self:getCurrentCameraEye()), rot)
+
+    local pos = self.currentCameraTransform:getPos() -- Position (double precision)
+    local rot = self.currentCameraTransform:getRot() -- Quat
+
+    local viewInv = Matrix.FromPosRot(Vec3f(pos.x, pos.y, pos.z), rot)
+
+    local view = Matrix.FromPosRot(
+        pos:relativeTo(pos),
+        rot:inverse()
+    )
+
     self.currentCameraData:setViewInverse(viewInv)
-    self.currentCameraData:setView(viewInv:inverse())
+    self.currentCameraData:setView(view)
 end
 
 -- Updates projection matrix
@@ -110,7 +118,7 @@ function CameraSystem:updateProjectionMatrix(resX, resY)
 end
 
 ---@param screenPos Vec2f
----@param length number
+---@param length number?
 ---@return Ray?
 function CameraSystem:screenToRay(screenPos, length)
     length = length or 1e7
@@ -126,31 +134,24 @@ function CameraSystem:screenToRay(screenPos, length)
     local viewInv = self.currentCameraData:getViewInverse()
     local projInv = self.currentCameraData:getProjectionInverse()
 
-    local near4   = Vec4f(ndc.x, ndc.y, -1, 1)
-    local far4    = Vec4f(ndc.x, ndc.y, 1, 1)
+    local near4   = Vec4f(ndc.x, ndc.y, -1.0, 1.0)
+    local far4    = Vec4f(ndc.x, ndc.y, 1.0, 1.0)
 
-    -- Apply inverse projection
-    near4         = projInv:mulVec(near4)
-    far4          = projInv:mulVec(far4)
+    near4         = projInv:mulVec(near4); near4:idivs(near4.w)
+    far4 = projInv:mulVec(far4); far4:idivs(far4.w)
 
-    -- Perspective divide
-    near4:idivs(near4.w)
-    far4:idivs(far4.w)
-
-    -- Apply inverse view
     local nearPoint = viewInv:mulPoint(near4:toVec3f())
     local farPoint  = viewInv:mulPoint(far4:toVec3f())
 
+    local dir       = farPoint - nearPoint
+    dir             = dir:length() < 1e-6 and self.currentCameraTransform:getRot():getForward() or dir:normalize()
 
-    -- Direction
-    local dir = farPoint - nearPoint
-    if dir:length() < 1e-8 then
-        -- degenerate ray, push slightly forward along camera forward
-        dir = self.currentCameraTransform:getRot():getForward():imuls(1e-6)
-    end
-    dir = dir:normalize()
-
-    return Ray(nearPoint.x, nearPoint.y, nearPoint.z, dir.x, dir.y, dir.z, 0, length)
+    return Ray(
+        nearPoint.x, nearPoint.y, nearPoint.z,
+        dir.x, dir.y, dir.z,
+        0.0,   -- tMin
+        length -- tMax
+    )
 end
 
 -- Ray-sphere intersection (returns nil if no hit)
@@ -183,12 +184,10 @@ function CameraSystem:raySphereIntersect(rayOrigin, rayDir, sphereCenter, radius
 end
 
 -- Converts mouse position to a world-space ray
----@param length number optional, default 1e7
----@return Ray
+---@param length? number optional, default 1e7
+---@return Ray?
 function CameraSystem:mouseToRay(length)
     length = length or 1e7
-    if not self.currentCameraData or not self.currentCameraTransform then return nil end
-
     local mp = Input:mouse():position()
     return self:screenToRay(Vec2f(mp.x, mp.y), length)
 end
