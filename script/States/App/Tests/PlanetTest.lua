@@ -106,7 +106,7 @@ function PlanetTest:onInit()
 
     self.targetCamRadius   = self.camPos.z
     self.zoomLerpSpeed     = 2.0
-    self.zoomSensitivity   = 0.9
+    self.zoomSensitivity   = 10
     self.zoomMinDistance   = 0.0
     self.isDragging        = false
     self.dragSensitivity   = 0.005
@@ -232,13 +232,21 @@ function PlanetTest:createPlanet(seed)
     local rbCmp = self.planet:get(PhysicsComponents.RigidBody)
     local rb = RigidBody.CreateSphereFromMesh(mesh)
     rbCmp:setRigidBody(rb)
+    rb:setKinematic(true)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
     rb:setScale(planetRNG:getInt(100, 200))
 
     -- add rb to physics world
     self.world:addRigidBody(rb)
 
-    self:createPlanetRing(seed)
+    if planetRNG:getUniform() < 0.2 then
+        self:createPlanetRing(seed)
+    else
+        self.ringOuterRadius = self.planet:get(PhysicsComponents.RigidBody):getRadius()
+    end
+
+    self.planetRotationSpeed = planetRNG:getUniformRange(0.0005, 0.002) --todo: from component
+
     self:createMoons(seed)
     self:updateCameraZoomLimits()
 
@@ -254,7 +262,7 @@ function PlanetTest:createPlanet(seed)
     self.targetCamRadius = radius * 4
     dir:imuls(self.targetCamRadius)
     planetPos:iadds(self.targetCamRadius)
-    self.camPos = planetPos
+    self.camPos = Position(planetPos.x, planetPos.y, planetPos.z)
 end
 
 function PlanetTest:createPlanetRing(seed)
@@ -453,7 +461,6 @@ function PlanetTest:onStatePreRender(data)
     self.timer:update(dt)
     self.clickTimer:update(dt)
 
-    -- Reset click count if double-click window expires
     if self.clickTimer:check("doubleClick") then
         self.clickCount = 0
         self.lastClickedBody = nil
@@ -472,74 +479,58 @@ function PlanetTest:onStatePreRender(data)
         self.dragReleaseTimer = math.max(0, self.dragReleaseTimer - dt)
     end
 
-    -- Determine the target position for the camera
     local targetPos = self.planetPos
 
-    -- Handle camera transition
     if self.cameraTransition.active then
         self.cameraTransition.time = self.cameraTransition.time + dt
         local t = math.min(1.0, self.cameraTransition.time / self.cameraTransition.duration)
         local easedT = self:easeInOutCubic(t)
 
-        -- Interpolate the focus position (what we're orbiting around)
         targetPos = Vec3f(
             self.cameraTransition.startPos.x + (self.cameraTransition.targetPos.x - self.cameraTransition.startPos.x) * easedT,
             self.cameraTransition.startPos.y + (self.cameraTransition.targetPos.y - self.cameraTransition.startPos.y) * easedT,
             self.cameraTransition.startPos.z + (self.cameraTransition.targetPos.z - self.cameraTransition.startPos.z) * easedT
         )
 
-        -- Interpolate angle, pitch, and radius
         self.angle = self.cameraTransition.startAngle + (self.cameraTransition.targetAngle - self.cameraTransition.startAngle) * easedT
         self.pitch = self.cameraTransition.startPitch + (self.cameraTransition.targetPitch - self.cameraTransition.startPitch) * easedT
         self.currentCamRadius = self.cameraTransition.startRadius +
             (self.cameraTransition.targetRadius - self.cameraTransition.startRadius) * easedT
         self.targetCamRadius = self.cameraTransition.targetRadius
 
-        -- End transition when complete
         if t >= 1.0 then
             self.cameraTransition.active = false
-            -- Now set the focus entity and update zoom limits
             self.focusEntity = self.cameraTransition.targetEntity
             self:updateCameraZoomLimitsForFocus()
             self.cameraTransition.targetEntity = nil
         end
     else
-        -- Normal focus behavior when not transitioning
         if self.focusEntity then
             local focusRb = self.focusEntity:get(PhysicsComponents.RigidBody)
-
             if focusRb and focusRb:getRigidBody() then
                 targetPos = focusRb:getRigidBody():getPos():toVec3f()
             else
-                -- If focus entity is invalid, reset to planet
                 self.focusEntity = nil
                 targetPos = self.planetPos
             end
         end
 
-        -- Auto-rotation around the focused entity (only when not transitioning)
         if not self.isDragging and self.dragReleaseTimer == 0 and (self.timeScale or 1) == 1 then
             self.angle = (self.angle or 0) + self.autoRotationSpeed * scaledDT
             self.pitch = Math.Lerp(self.pitch, 0.0, math.min(1, self.returnPitchLerp * dt))
         end
 
-        -- Smooth zoom (only when not transitioning)
         local lerpFactor = math.min(1, self.zoomLerpSpeed * dt)
         local currentRadius = self.currentCamRadius or self.targetCamRadius
         currentRadius = currentRadius + (self.targetCamRadius - currentRadius) * lerpFactor
         self.currentCamRadius = currentRadius
     end
 
-    -- Update moons orbit
     if self.moons then
         for _, moon in ipairs(self.moons) do
             moon.phase = moon.phase + moon.speed * scaledDT
-
-            -- Orbit position in moon's local plane
             local x = math.cos(moon.phase) * moon.radius
             local z = math.sin(moon.phase) * moon.radius
-
-            -- Apply inclination rotation around X-axis
             local cosInc = math.cos(moon.inclination)
             local sinInc = math.sin(moon.inclination)
             local y = z * sinInc
@@ -555,14 +546,18 @@ function PlanetTest:onStatePreRender(data)
         end
     end
 
-    -- Calculate camera position relative to target using angle, pitch, and radius
+    if self.planet then
+        local planetRb = self.planet:get(PhysicsComponents.RigidBody):getRigidBody()
+        local currentRot = planetRb:getRot()
+        local deltaRot = Quat.FromAxisAngle(Vec3f(0, 1, 0), self.planetRotationSpeed * scaledDT)
+        planetRb:setRot(currentRot:mul(deltaRot))
+    end
+
     local currentRadius = self.currentCamRadius or self.targetCamRadius
     local x = math.sin(self.angle) * math.cos(self.pitch) * currentRadius
     local y = math.sin(self.pitch) * currentRadius
     local z = math.cos(self.angle) * math.cos(self.pitch) * currentRadius
     local camPos = Vec3f(targetPos.x + x, targetPos.y + y, targetPos.z + z)
-
-    -- Update camPos for other systems that might use it
     self.camPos = camPos
 
     local camTransform = CameraSystem.currentCameraTransform
