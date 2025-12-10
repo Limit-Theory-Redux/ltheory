@@ -49,6 +49,7 @@ function Loader.defineType()
             void   Quat_IScale             (Quat*, float scale);
             Quat*  Quat_Slerp              (Quat const*, Quat const* p, float t);
             void   Quat_ISlerp             (Quat*, Quat const* p, float t);
+            Vec3f  Quat_ToEuler            (Quat const*);
             Quat*  Quat_FromAxisAngle      (Vec3f const* axis, float radians);
             Quat*  Quat_FromEuler          (float yaw, float pitch, float roll);
             Quat*  Quat_FromLook           (Vec3f const* forward, Vec3f const* up);
@@ -155,6 +156,7 @@ function Loader.defineType()
                     return Core.ManagedObject(_instance, libphx.Quat_Free)
                 end,
                 iSlerp             = libphx.Quat_ISlerp,
+                toEuler            = libphx.Quat_ToEuler,
                 toString           = libphx.Quat_ToString,
                 validate           = function(self)
                     local _instance = libphx.Quat_Validate(self)

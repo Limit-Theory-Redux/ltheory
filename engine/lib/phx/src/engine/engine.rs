@@ -217,6 +217,10 @@ impl Engine {
         }
 
         if self.window.cursor.grab_mode != self.cache.window.cursor.grab_mode {
+            if !self.winit_window.window().has_focus() {
+                self.winit_window.window().focus_window();
+            }
+            println!("Set grab mode to {:?} 2", self.window.cursor.grab_mode);
             attempt_grab(self.winit_window.window(), self.window.cursor.grab_mode);
         }
 
@@ -302,6 +306,15 @@ impl Engine {
 
         if let Some(minimized) = self.window.internal.take_minimize_request() {
             self.winit_window.window().set_minimized(minimized);
+        }
+
+        if let Some(position) = self.window.internal.take_cursor_position_request() {
+            self.winit_window
+                .window()
+                .set_cursor_position(PhysicalPosition::new(position.x, position.y))
+                .unwrap_or_else(|err| {
+                    error!("could not set cursor position: {:?}", err);
+                });
         }
 
         if self.window.focused != self.cache.window.focused && self.window.focused {

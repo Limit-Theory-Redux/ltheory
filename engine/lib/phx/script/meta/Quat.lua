@@ -95,6 +95,9 @@ function Quat:slerp(p, t) end
 ---@param t number
 function Quat:iSlerp(p, t) end
 
+---@return Vec3f
+function Quat:toEuler() end
+
 ---@param axis Vec3f
 ---@param radians number
 ---@return Quat

@@ -39,21 +39,6 @@ impl Quat {
     }
 
     // --- Game-dev helpers (non-FFI) ---
-    pub fn to_euler(&self) -> (f32, f32, f32) {
-        let q = self._canonicalize();
-        let sinp = 2.0 * (q.w * q.y - q.z * q.x);
-        let pitch = if sinp.abs() >= 1.0 {
-            std::f32::consts::FRAC_PI_2.copysign(sinp)
-        } else {
-            sinp.asin()
-        };
-        let yaw = (2.0 * (q.w * q.z + q.x * q.y) / (1.0 - 2.0 * (q.y * q.y + q.z * q.z)))
-            .atan2(1.0 - 2.0 * (q.x * q.x + q.y * q.y));
-        let roll = (2.0 * (q.w * q.x + q.y * q.z) / (1.0 - 2.0 * (q.x * q.x + q.z * q.z)))
-            .atan2(1.0 - 2.0 * (q.y * q.y + q.z * q.z));
-        (yaw, pitch, roll)
-    }
-
     pub fn conjugate(&self) -> Self {
         Self(GlamQuat::from_xyzw(self.0.x, self.0.y, self.0.z, -self.0.w))
     }
@@ -244,22 +229,39 @@ impl Quat {
         self.0 = self.0.slerp(p.0, t);
     }
 
-    #[bind(name = "FromAxisAngle")]
+    pub fn to_euler(&self) -> Vec3 {
+        let q = self._canonicalize();
+
+        let sinp = 2.0 * (q.w * q.y - q.z * q.x);
+        let pitch = if sinp.abs() >= 1.0 {
+            std::f32::consts::FRAC_PI_2.copysign(sinp)
+        } else {
+            sinp.asin()
+        };
+
+        let yaw_num = 2.0 * (q.w * q.z + q.x * q.y);
+        let yaw_den = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
+        let yaw = yaw_num.atan2(yaw_den);
+
+        let roll_num = 2.0 * (q.w * q.x + q.y * q.z);
+        let roll_den = 1.0 - 2.0 * (q.x * q.x + q.y * q.y);
+        let roll = roll_num.atan2(roll_den);
+
+        Vec3::new(yaw, pitch, roll)
+    }
+
     pub fn from_axis_angle(axis: &Vec3, radians: f32) -> Self {
         Self(GlamQuat::from_axis_angle(*axis, radians))
     }
 
-    #[bind(name = "FromEuler")]
     pub fn from_euler(yaw: f32, pitch: f32, roll: f32) -> Self {
         Self(GlamQuat::from_euler(glam::EulerRot::YXZ, yaw, pitch, roll))
     }
 
-    #[bind(name = "FromLook")]
     pub fn from_look(forward: &Vec3, up: &Vec3) -> Self {
         Self::from_look_static(forward, up)
     }
 
-    #[bind(name = "FromLookUp")]
     pub fn from_look_up(look: &Vec3, up: &Vec3) -> Self {
         let z = (*look * -1.0).normalize();
         let x = Vec3::cross(*up, z).normalize();
@@ -267,12 +269,10 @@ impl Quat {
         Self(glam::Quat::from_mat3(&Mat3::from_cols(x, y, z)))
     }
 
-    #[bind(name = "LookAt")]
     pub fn look_at(eye: &Vec3, target: &Vec3, up: &Vec3) -> Self {
         Self::look_at_static(eye, target, up)
     }
 
-    #[bind(name = "FromRotateTo")]
     pub fn from_rotate_to(from: &Vec3, to: &Vec3) -> Self {
         let f = from.normalize();
         let t = to.normalize();
