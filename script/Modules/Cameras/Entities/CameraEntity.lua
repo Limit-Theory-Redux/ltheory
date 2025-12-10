@@ -1,6 +1,6 @@
 local Entity = require("Core.ECS.Entity")
 local Physics = require("Modules.Physics.Components")
-local Rendering = require("Modules.Rendering.Components")
+local Cameras = require("Modules.Cameras.Components")
 
 ---@return Entity
 return function()
@@ -8,6 +8,6 @@ return function()
         "CameraEntity",
         Physics.RigidBody(),
         Physics.Transform(),
-        Rendering.CameraData()
+        Cameras.CameraData()
     )
 end
