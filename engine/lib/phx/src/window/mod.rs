@@ -368,8 +368,8 @@ impl Window {
     ///
     /// See [`WindowResolution`] for an explanation about logical/physical sizes.
     pub fn set_cursor_position(&mut self, position: Option<Vec2>) {
-        self.internal.physical_cursor_position =
-            position.map(|p| p.as_dvec2() * self.scale_factor());
+        let physical_pos = position.map(|p| p.as_dvec2() * self.scale_factor());
+        self.internal.cursor_position_request = physical_pos;
     }
 
     /// The cursor position in this window in physical pixels.
@@ -399,6 +399,7 @@ pub struct InternalWindowState {
     minimize_request: Option<bool>,
     /// If this is true then next frame we will ask to maximize/un-maximize the window depending on `maximized`.
     maximize_request: Option<bool>,
+    cursor_position_request: Option<DVec2>,
     /// Unscaled cursor position.
     physical_cursor_position: Option<DVec2>,
 }
@@ -412,6 +413,10 @@ impl InternalWindowState {
     /// Consumes the current minimize request, if it exists. This should only be called by window backends.
     pub fn take_minimize_request(&mut self) -> Option<bool> {
         self.minimize_request.take()
+    }
+
+    pub fn take_cursor_position_request(&mut self) -> Option<DVec2> {
+        self.cursor_position_request.take()
     }
 }
 
