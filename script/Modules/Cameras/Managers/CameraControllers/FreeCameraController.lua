@@ -149,6 +149,11 @@ function FreeCameraController:onInput(dt)
     end
 end
 
+function FreeCameraController:onPreRender(dt)
+    if not self.enabled then return end
+    -- Update camera position
+end
+
 ---Rotate the camera using quaternion rotations around local axes
 ---@param yawDelta number Yaw rotation delta (around local up axis)
 ---@param pitchDelta number Pitch rotation delta (around local right axis)

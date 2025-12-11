@@ -3,11 +3,6 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Vec3f
 
----@class Vec3f
----@field public x number
----@field public y number
----@field public z number
-
 do -- Global Symbol Table
     Vec3f = {
     }

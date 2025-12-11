@@ -16,7 +16,7 @@ function CameraController:initController(entity)
 
     self.entity = entity
     self.transform = entity:get(Physics.Transform)
-    self.enabled = true
+    self.enabled = false
 
     if not self.transform then
         Log.Error("CameraController: Entity missing Transform component")
@@ -40,8 +40,12 @@ function CameraController:isEnabled()
 end
 
 ---Handle input events
----@param event table Input event data
-function CameraController:onInput(event)
+---@param dt integer
+function CameraController:onInput(dt)
+    -- Override in subclasses
+end
+
+function CameraController:onPreRender(dt)
     -- Override in subclasses
 end
 
@@ -85,6 +89,12 @@ end
 ---@return Vec3f up
 function CameraController:getUp()
     return self.transform:getRot():getUp()
+end
+
+---@return number yaw, number pitch, number roll
+function CameraController:getAngles()
+    -- Override in subclasses
+    return 0, 0, 0
 end
 
 return CameraController
