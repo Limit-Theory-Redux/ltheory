@@ -98,7 +98,7 @@ function Texture:setTextureToShaderState(shaderState)
     })[self.texType]
 
     if fn then
-        fn(shaderState, self.texName, self.tex)
+        fn(shaderState, tostring(self.texName), self.tex) --* i think this should probably not use tostring() but ok for now?*
     else
         Log.Warn("ShaderState missing setter for UniformType: " .. tostring(self.texType))
     end
