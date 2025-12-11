@@ -14,10 +14,9 @@ local CameraController = require("Modules.Cameras.Managers").CameraController
 ---@field planeChangeSpeed number Shift + scroll plane speed
 ---@field minPlaneY number Minimum Y of the plane
 ---@field maxPlaneY number Maximum Y of the plane
----@field keepCameraWorldYOnPlaneChange boolean Unused in smooth implementation
 ---@field rotationSpeed number Keyboard rotation speed (Q/E)
 ---@field mouseSensitivity number Mouse rotation sensitivity
----@field moveSpeed number Camera pan speed
+---@field moveSpeed number Base camera pan speed
 ---@field zoomSpeedScale number Zoom-dependent movement scaling
 ---@field cameraRelativeMovement boolean Whether WASD movement is relative to camera
 ---@field minX number Minimum world X
@@ -52,14 +51,13 @@ local RTSCameraController = Subclass("RTSCameraController", CameraController, fu
     self.planeChangeSpeed = cfg.planeChangeSpeed or 15.0
     self.minPlaneY = cfg.minPlaneY or -100000.0
     self.maxPlaneY = cfg.maxPlaneY or 100000.0
-    self.keepCameraWorldYOnPlaneChange = cfg.keepCameraWorldYOnPlaneChange == nil and true or cfg.keepCameraWorldYOnPlaneChange
 
     -- Rotation
     self.rotationSpeed = cfg.rotationSpeed or 2.0
     self.mouseSensitivity = cfg.mouseSensitivity or 0.003
 
     -- Movement
-    self.moveSpeed = cfg.moveSpeed or 30.0
+    self.moveSpeed = cfg.moveSpeed or 50.0
     self.zoomSpeedScale = cfg.zoomSpeedScale or 0.003
     self.cameraRelativeMovement = cfg.cameraRelativeMovement == nil and true or cfg.cameraRelativeMovement
 
@@ -149,7 +147,7 @@ function RTSCameraController:onInput(dt)
         local cur = Input:mouse():position()
         local delta = Vec2f(0, 0)
         if self.lastMousePos then delta = cur - self.lastMousePos end
-        if delta:length() > 0.0001 then self.yaw = self.yaw - delta.x * self.mouseSensitivity end
+        if delta:length() > 1e-4 then self.yaw = self.yaw - delta.x * self.mouseSensitivity end
         self.lastMousePos = cur
     end
 
@@ -170,8 +168,16 @@ function RTSCameraController:onInput(dt)
         inputZ = inputZ * invlen
 
         local moveSpeed = self.moveSpeed
-        local zoomScale = 1.0 + (self.currentHeight * (self.zoomSpeedScale or 0.0))
-        moveSpeed = moveSpeed * Math.Clamp(zoomScale, 0.25, 8.0)
+
+        -- Exponential WASD multiplier based on distance
+        local camPos = self:getPosition()
+        local distance = (camPos - self.focusPoint):length()
+        local base = 1.03
+        local zoomFactor = distance * 0.02
+        local expMultiplier = base ^ zoomFactor
+        expMultiplier = math.min(expMultiplier, 512.0)
+
+        moveSpeed = moveSpeed * expMultiplier
 
         local forwardX = -math.sin(self.yaw)
         local forwardZ = -math.cos(self.yaw)
@@ -195,11 +201,27 @@ function RTSCameraController:onInput(dt)
         local shiftDown = Input:keyboard():isDown(KeyboardButton.ShiftLeft) or Input:keyboard():isDown(KeyboardButton.ShiftRight)
 
         if shiftDown then
-            -- Shift + scroll: adjust target plane Y only (no zoom)
+            -- Shift + scroll: adjust target plane Y only
             self.targetPlaneY = Math.Clamp(self.targetPlaneY + inverted * self.planeChangeSpeed, self.minPlaneY, self.maxPlaneY)
         else
-            -- Normal zoom
-            self.height = Math.Clamp(self.height + inverted * self.heightSpeed, self.minHeight, self.maxHeight)
+            -- Camera distance from focus
+            local camPos = self:getPosition()
+            local distance = (camPos - self.focusPoint):length()
+
+            -- Exponential curve
+            local zoomBase = 1.03
+            local zoomFactor = distance * 0.02
+            local zoomMultiplier = zoomBase ^ zoomFactor
+
+            -- Intended scroll delta along curve
+            local scrollDelta = inverted * self.heightSpeed * zoomMultiplier
+
+            -- Clamp scrollDelta proportionally to distance
+            local maxDelta = math.max(self.heightSpeed, distance * 0.05) -- tweak 0.05 for sensitivity
+            scrollDelta = Math.Clamp(scrollDelta, -maxDelta, maxDelta)
+
+            -- Apply zoom
+            self.height = Math.Clamp(self.height + scrollDelta, self.minHeight, self.maxHeight)
         end
     end
 end
