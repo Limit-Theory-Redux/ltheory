@@ -183,8 +183,8 @@ function CameraTest:createPlanet(seed)
     self.matAtmo = Materials.PlanetAtmosphere()
 
     self.planet = PlanetEntity(seed, {
-        { mesh = mesh, material = self.matPlanet },
-        --{ mesh = meshAtmo, material = self.matAtmo },
+        { mesh = mesh,     material = self.matPlanet },
+        { mesh = meshAtmo, material = self.matAtmo },
     })
 
     local planetCmp = CelestialComponents.Gen.Planet(self.genOptions)
@@ -361,14 +361,6 @@ function CameraTest:onStatePreRender(data)
         local deltaRot = Quat.FromAxisAngle(Vec3f(0, 1, 0), self.planetRotationSpeed * scaledDT)
         planetRb:setRot(currentRot:mul(deltaRot))
     end
-
-    -- FIX: Update orbit camera every frame to follow target
-    --self.cameraControllers["orbit"]:onUpdate(dt)
-
-    -- Update camera matrices
-    CameraManager:updateViewMatrix()
-    local resX, resY = Window:width(), Window:height()
-    CameraManager:updateProjectionMatrix(resX, resY)
 end
 
 ---@param data EventData

@@ -14,8 +14,6 @@ local Cameras = require("Modules.Cameras.Components")
 local CameraManager = Class("CameraManager", function(self)
     ---@diagnostic disable-next-line: invisible
     self:registerVars()
-    ---@diagnostic disable-next-line: invisible
-    self:registerEvents()
 end)
 
 ---@private
@@ -33,19 +31,6 @@ function CameraManager:registerVars()
 
     ---@type TransformComponent|nil
     self.activeCameraTransform = nil
-end
-
----@private
-function CameraManager:registerEvents()
-    EventBus:subscribe(Event.PreRender, self, self.onPreRender)
-end
-
----@private
-function CameraManager:onPreRender()
-    -- Update active camera matrices before rendering
-    if self.activeCameraData and self.activeCameraTransform then
-        self:updateViewMatrix()
-    end
 end
 
 ---Register a camera entity with a unique name
@@ -239,8 +224,8 @@ function CameraManager:beginDraw()
     ShaderVar.PushMatrix('mProj', camData:getProjection())
     ShaderVar.PushMatrix('mProjInv', camData:getProjectionInverse())
 
-    local eye = self:getEye()
-    ShaderVar.PushFloat3('eye', eye.x, eye.y, eye.z)
+    --local eye = self:getEye()
+    ShaderVar.PushFloat3('eye', 0.0, 0.0, 0.0) -- needs to use 0,0,0 for camera-relative
 end
 
 ---End drawing with the active camera (pops shader variables)
