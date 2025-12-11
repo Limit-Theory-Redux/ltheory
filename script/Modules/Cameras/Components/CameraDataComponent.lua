@@ -27,6 +27,7 @@ function CameraDataComponent:init()
     self.projection        = Matrix.Identity()
     self.viewInverse       = Matrix.Identity()
     self.projectionInverse = Matrix.Identity()
+    self.controller        = nil
 end
 
 ---@param view Matrix
@@ -49,6 +50,11 @@ function CameraDataComponent:setProjectionInverse(projectionInverse)
     self.projectionInverse = projectionInverse
 end
 
+---@param controller CameraController
+function CameraDataComponent:setController(controller)
+    self.controller = controller
+end
+
 ---@return Matrix
 function CameraDataComponent:getView()
     return self.view
@@ -67,6 +73,15 @@ end
 ---@return Matrix
 function CameraDataComponent:getProjectionInverse()
     return self.projectionInverse
+end
+
+---@return CameraController|nil
+function CameraDataComponent:getController()
+    return self.controller
+end
+
+function CameraDataComponent:hasController()
+    return self.controller ~= nil
 end
 
 return CameraDataComponent

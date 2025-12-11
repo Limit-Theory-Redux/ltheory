@@ -1,32 +1,40 @@
-local Application          = require('States.Application')
+local Application                 = require('States.Application')
 
 ---@class CameraTest: Application
-local CameraTest           = Subclass("CameraTest", Application)
+local CameraTest                  = Subclass("CameraTest", Application)
 
-local Registry             = require("Core.ECS.Registry")
-local Materials            = require("Shared.Registries.Materials")
-local CameraManager        = require("Modules.Cameras.Managers.CameraManager")
-local FreeCameraController = require("Modules.Cameras.Managers.CameraControllers.FreeCameraController")
-local CameraEntity         = require("Modules.Cameras.Entities").Camera
-local PlanetEntity         = require('Modules.CelestialObjects.Entities.PlanetEntity')
-local MoonEntity           = require('Modules.CelestialObjects.Entities.MoonEntity')
-local AsteroidRingEntity   = require('Modules.CelestialObjects.Entities.AsteroidRingEntity')
-local SkyboxEntity         = require("Modules.CelestialObjects.Entities.SkyboxEntity")
-local PhysicsComponents    = require("Modules.Physics.Components")
-local CelestialComponents  = require("Modules.CelestialObjects.Components")
-local CoreComponents       = require('Modules.Core.Components')
-local RenderComp           = require("Modules.Rendering.Components").Render
-local RenderCoreSystem     = require("Modules.Rendering.Systems.RenderCoreSystem")
-local DeltaTimer           = require("Shared.Tools.DeltaTimer")
-local Entity               = require("Core.ECS.Entity")
-local DrawEx               = require("UI.DrawEx")
+local Registry                    = require("Core.ECS.Registry")
+local Entity                      = require("Core.ECS.Entity")
+local Materials                   = require("Shared.Registries.Materials")
+local DeltaTimer                  = require("Shared.Tools.DeltaTimer")
+local DrawEx                      = require("UI.DrawEx")
+
+local CameraEntity                = require("Modules.Cameras.Entities").Camera
+local PlanetEntity                = require('Modules.CelestialObjects.Entities.PlanetEntity')
+local MoonEntity                  = require('Modules.CelestialObjects.Entities.MoonEntity')
+local AsteroidRingEntity          = require('Modules.CelestialObjects.Entities.AsteroidRingEntity')
+local SkyboxEntity                = require("Modules.CelestialObjects.Entities.SkyboxEntity")
+local SpaceshipEntity             = require('Modules.Constructs.Entities.SpaceshipEntity')
+
+local PhysicsComponents           = require("Modules.Physics.Components")
+local CelestialComponents         = require("Modules.CelestialObjects.Components")
+local CoreComponents              = require('Modules.Core.Components')
+local RenderComp                  = require("Modules.Rendering.Components").Render
+local CameraDataComponent         = require('Modules.Cameras.Components.CameraDataComponent')
+
+local RenderCoreSystem            = require("Modules.Rendering.Systems.RenderCoreSystem")
+local CameraSystem                = require("Modules.Cameras.Systems.CameraSystem")
+
+local CameraManager               = require("Modules.Cameras.Managers.CameraManager")
+local FreeCameraController        = require("Modules.Cameras.Managers.CameraControllers.FreeCameraController")
+local OrbitCameraController       = require('Modules.Cameras.Managers.CameraControllers.OrbitCameraController')
+local FirstPersonCameraController = require('Modules.Cameras.Managers.CameraControllers.FirstPersonCameraController')
 
 ---! still using legacy
-local Primitive            = require("Legacy.Systems.Gen.Primitive")
-local GenUtil              = require("Legacy.Systems.Gen.GenUtil")
-local Material             = require("Legacy.GameObjects.Material")
-local Generator            = require("Legacy.Systems.Gen.Generator")
-local Starfield            = require("Legacy.Systems.Gen.Starfield")
+local Primitive                   = require("Legacy.Systems.Gen.Primitive")
+local GenUtil                     = require("Legacy.Systems.Gen.GenUtil")
+local Generator                   = require("Legacy.Systems.Gen.Generator")
+local Starfield                   = require("Legacy.Systems.Gen.Starfield")
 
 function CameraTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
@@ -90,25 +98,42 @@ function CameraTest:onInit()
     -- Camera setup with FreeCameraController
     local cam = CameraEntity()
     CameraManager:registerCamera("FreeCam", cam)
-    CameraManager:setActiveCamera("FreeCam")
+    local cam2 = CameraEntity()
+    CameraManager:registerCamera("OrbitCam", cam2)
+    local cam3 = CameraEntity()
+    CameraManager:registerCamera("FirstPersonCam", cam3)
 
-    -- Create FreeCameraController
-    self.cameraController = FreeCameraController(cam)
+    -- Set controller
+    self.controllerFreeCam = FreeCameraController(cam)
+    cam:get(CameraDataComponent):setController(self.controllerFreeCam)
+
+    self.orbitFreeCam = OrbitCameraController(cam2)
+    self.orbitFreeCam:setTarget(nil) -- no target yet
+    cam2:get(CameraDataComponent):setController(self.orbitFreeCam)
+
+    self.firstPersonCam = FirstPersonCameraController(cam3)
+    self.firstPersonCam:setTarget(nil) -- no target yet
+    cam3:get(CameraDataComponent):setController(self.firstPersonCam)
+
+    -- Activate free camera
+    CameraManager:setActiveCamera("FreeCam")
 
     -- Set initial camera position
     self.planetPos = Vec3f(0, 0, 0)
-    local initialPos = Position(0, 0, -50)
-    self.cameraController:setPosition(initialPos)
-    self.cameraController:setAngles(0, 0, 0)
+    local initialPos = Position(0, 0, 500)
+    self.controllerFreeCam:setPosition(initialPos)
+
+    self.shipPos = Position(initialPos.x, initialPos.y, initialPos.z - 20)
 
     self.focusEntity = nil
     self.enableRingDebug = true
     self.ringDebug = 1
 
     self:createPlanet(self.seed)
+    self:createShip(self.seed)
 
     EventBus:subscribe(Event.PreRender, self, self.onStatePreRender)
-    EventBus:subscribe(Event.Input, self, self.onStateInput)
+    EventBus:subscribe(Event.Input, self, self.onInput)
     EventBus:subscribe(Event.Sim, self, self.onStateSim)
 end
 
@@ -173,13 +198,6 @@ function CameraTest:createPlanet(seed)
     self.planetRotationSpeed = planetRNG:getUniformRange(0.0005, 0.002)
 
     self:createMoons(seed)
-
-    -- Position camera to view new planet
-    local radius = rb:getScale()
-    local distance = radius * 4
-    local camPos = Position(0, radius * 0.5, distance)
-    self.cameraController:setPosition(camPos)
-    self.cameraController:setAngles(0, -0.1, 0)
 end
 
 function CameraTest:createMoons(seed, numMoons)
@@ -273,6 +291,28 @@ function CameraTest:createMoons(seed, numMoons)
     end
 end
 
+function CameraTest:createShip(seed)
+    local shipRNG = RNG.Create(seed + 54321)
+
+    local ShipGenerator = require("Modules.Constructs.Managers.ShipGenerator")
+
+    self.ship = ShipGenerator:createFighter(seed, {
+        position    = self.shipPos,
+        scale       = 1,
+        isKinematic = true,
+    })
+
+    local rbCmp = self.ship:get(PhysicsComponents.RigidBody)
+    local rb = rbCmp:getRigidBody()
+    rb:setScale(1.2)
+
+    self.orbitFreeCam:setTarget(self.ship)
+    self.firstPersonCam:setTarget(self.ship)
+
+    -- Add ship rigid body to physics world
+    self.world:addRigidBody(rb)
+end
+
 function CameraTest:onStatePreRender(data)
     local dt = data:deltaTime()
     local scaledDT = dt * (self.timeScale or 1)
@@ -316,6 +356,9 @@ function CameraTest:onStatePreRender(data)
         planetRb:setRot(currentRot:mul(deltaRot))
     end
 
+    -- FIX: Update orbit camera every frame to follow target
+    --self.cameraControllers["orbit"]:onUpdate(dt)
+
     -- Update camera matrices
     CameraManager:updateViewMatrix()
     local resX, resY = Window:width(), Window:height()
@@ -328,8 +371,8 @@ function CameraTest:onRender(data)
 
     self:immediateUI(function()
         local mem = GC.GetMemory()
-        local camPos = self.cameraController:getPosition()
-        local yaw, pitch, roll = self.cameraController:getAngles()
+        local camPos = CameraManager:getActiveCameraEntity():get(CameraDataComponent):getController():getPosition()
+        local yaw, pitch, roll = CameraManager:getActiveCameraEntity():get(CameraDataComponent):getController():getAngles()
 
         local infoLines = {
             string.format("FPS: %d", math.floor(self.smoothFPS + 0.5)),
@@ -357,8 +400,24 @@ function CameraTest:onRender(data)
     end)
 end
 
-function CameraTest:onStateInput(data)
-    self.cameraController:onInput(data:deltaTime())
+---@param data EventData
+function CameraTest:onInput(data)
+    if Input:keyboard():isPressed(Button.KeyboardF1) then
+        local currentCam = CameraManager:getActiveCameraName()
+        if currentCam ~= "FreeCam" then
+            CameraManager:setActiveCamera("FreeCam")
+        end
+    elseif Input:keyboard():isPressed(Button.KeyboardF2) then
+        local currentCam = CameraManager:getActiveCameraName()
+        if currentCam ~= "OrbitCam" then
+            CameraManager:setActiveCamera("OrbitCam")
+        end
+    elseif Input:keyboard():isPressed(Button.KeyboardF3) then
+        local currentCam = CameraManager:getActiveCameraName()
+        if currentCam ~= "FirstPersonCam" then
+            CameraManager:setActiveCamera("FirstPersonCam")
+        end
+    end
 end
 
 ---@param data EventData

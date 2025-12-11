@@ -75,11 +75,6 @@ function CameraManager:registerCamera(name, entity)
     self.cameras[name] = entity
     Log.Info("CameraManager: Registered camera '" .. name .. "'")
 
-    -- If this is the first camera, make it active
-    if not self.activeCamera then
-        self:setActiveCamera(name)
-    end
-
     return true
 end
 
@@ -121,9 +116,32 @@ function CameraManager:setActiveCamera(name)
         return false
     end
 
+    if self.activeCamera == name then
+        -- Already active
+        return true
+    elseif self.activeCamera then
+        -- Disable previous camera controller
+        local prevCamera = self.cameras[self.activeCamera]
+        if prevCamera and prevCamera:isValid() then
+            local prevCamData = prevCamera:get(Cameras.CameraData)
+            if prevCamData and prevCamData:hasController() then
+                local prevController = prevCamData:getController()
+                ---@cast prevController CameraController
+                prevController:disable()
+            end
+        end
+    end
+
     self.activeCamera = name
     self.activeCameraData = camera:get(Cameras.CameraData)
     self.activeCameraTransform = camera:get(Physics.Transform)
+
+    -- activate controller
+    if self.activeCameraData:hasController() then
+        local controller = self.activeCameraData:getController()
+        ---@cast controller CameraController
+        controller:enable()
+    end
 
     Log.Info("CameraManager: Activated camera '" .. name .. "'")
     return true
