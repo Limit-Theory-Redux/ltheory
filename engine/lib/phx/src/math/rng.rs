@@ -24,7 +24,7 @@ impl Rng {
 
     #[inline]
     fn rotl(x: u64, k: i32) -> u64 {
-        (x << k) | (x >> (64 - k))
+        x.rotate_left(k as u32)
     }
 
     #[inline]
