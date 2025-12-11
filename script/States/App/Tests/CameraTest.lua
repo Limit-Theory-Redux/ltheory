@@ -29,6 +29,7 @@ local CameraManager               = require("Modules.Cameras.Managers.CameraMana
 local FreeCameraController        = require("Modules.Cameras.Managers.CameraControllers.FreeCameraController")
 local OrbitCameraController       = require('Modules.Cameras.Managers.CameraControllers.OrbitCameraController')
 local FirstPersonCameraController = require('Modules.Cameras.Managers.CameraControllers.FirstPersonCameraController')
+local RTSCameraController         = require('Modules.Cameras.Managers.CameraControllers.RTSCameraController')
 
 ---! still using legacy
 local Primitive                   = require("Legacy.Systems.Gen.Primitive")
@@ -102,6 +103,8 @@ function CameraTest:onInit()
     CameraManager:registerCamera("OrbitCam", cam2)
     local cam3 = CameraEntity()
     CameraManager:registerCamera("FirstPersonCam", cam3)
+    local cam4 = CameraEntity()
+    CameraManager:registerCamera("RTSCam", cam4)
 
     -- Set controller
     self.controllerFreeCam = FreeCameraController(cam)
@@ -114,6 +117,9 @@ function CameraTest:onInit()
     self.firstPersonCam = FirstPersonCameraController(cam3)
     self.firstPersonCam:setTarget(nil) -- no target yet
     cam3:get(CameraDataComponent):setController(self.firstPersonCam)
+
+    self.controllerRTS = RTSCameraController(cam4)
+    cam4:get(CameraDataComponent):setController(self.controllerRTS)
 
     -- Activate free camera
     CameraManager:setActiveCamera("FreeCam")
@@ -416,6 +422,11 @@ function CameraTest:onInput(data)
         local currentCam = CameraManager:getActiveCameraName()
         if currentCam ~= "FirstPersonCam" then
             CameraManager:setActiveCamera("FirstPersonCam")
+        end
+    elseif Input:keyboard():isPressed(Button.KeyboardF4) then
+        local currentCam = CameraManager:getActiveCameraName()
+        if currentCam ~= "RTSCam" then
+            CameraManager:setActiveCamera("RTSCam")
         end
     end
 end
