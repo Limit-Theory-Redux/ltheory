@@ -1,18 +1,17 @@
-local Application         = require('States.Application')
+local Application      = require('States.Application')
 
-local InputTest           = Subclass("InputTest", Application)
+local InputTest        = Subclass("InputTest", Application)
 
-local Cache               = require("Render.Cache")
-local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
-local CameraEntity        = require("Modules.Cameras.Entities").Camera
-local DeltaTimer          = require("Shared.Tools.DeltaTimer")
-local DrawEx              = require("UI.DrawEx")
-local GC                  = require("Core.Util.GC")
-local QuickProfiler       = require("Shared.Tools.QuickProfiler")
-local RenderCoreSystem    = require("Modules.Rendering.Systems.RenderCoreSystem")
+local Cache            = require("Render.Cache")
+local CameraManager    = require("Modules.Cameras.Managers.CameraManager")
+local CameraEntity     = require("Modules.Cameras.Entities").Camera
+local DeltaTimer       = require("Shared.Tools.DeltaTimer")
+local DrawEx           = require("UI.DrawEx")
+local GC               = require("Core.Util.GC")
+local RenderCoreSystem = require("Modules.Rendering.Systems.RenderCoreSystem")
 
 -- ActionBinding system
-local ShipActions         = require('Input.ActionBindings.ShipActions')
+local ShipActions      = require('Input.ActionBindings.ShipActions')
 
 local function DrawLabelValue(label, value, x, y, font, fontSize, r, g, b, a, blendMode)
     local fontName = font or 'Unageo-Medium'
@@ -36,35 +35,26 @@ end
 local function DrawAxisBar(label, value, x, y, width, height, font, fontSize)
     local fontName = font or 'Unageo-Medium'
     local size = fontSize or 11
-    
-    -- draw label
+
     DrawEx.TextAdditive(fontName, label, size, x, y, 100, height, 0.9, 0.9, 0.9, 1.0, 0.0, 0.5)
-    
-    -- bar background
+
     local barX = x + 100
     local barWidth = width - 100
     local halfWidth = barWidth / 2
     local centerX = barX + halfWidth
-    
+
     RenderState.PushBlendMode(BlendMode.Alpha)
-    
-    -- draw background bar
     DrawEx.Rect(barX, y, barWidth, height, Color(0.2, 0.2, 0.2, 0.8))
-    
-    -- draw center line
-    DrawEx.Rect(centerX - 1, y, 2, height,Color(0.5, 0.5, 0.5, 1.0))
-    
-    -- draw value bar
+    DrawEx.Rect(centerX - 1, y, 2, height, Color(0.5, 0.5, 0.5, 1.0))
+
     local fillWidth = math.abs(value) * halfWidth
     if value >= 0 then
         DrawEx.Rect(centerX, y + 2, fillWidth, height - 4, Color(0.2, 0.8, 0.2, 1.0))
     else
         DrawEx.Rect(centerX - fillWidth, y + 2, fillWidth, height - 4, Color(0.8, 0.2, 0.2, 1.0))
     end
-    
     RenderState.PopBlendMode()
-    
-    -- draw value text
+
     local valueStr = string.format("%.2f", value)
     DrawEx.TextAdditive(fontName, valueStr, size - 1, barX + barWidth + 10, y, 60, height, 0.7, 0.7, 0.7, 1.0, 0.0, 0.5)
 end
@@ -72,48 +62,23 @@ end
 local function DrawStickVisualizer(label, xValue, yValue, x, y, size, font, fontSize)
     local fontName = font or 'Unageo-Medium'
     local textSize = fontSize or 11
-    local halfSize = size / 2
-    local centerX = x + halfSize
-    local centerY = y + halfSize
-    
-    -- draw label
+    local centerX = x + size / 2
+    local centerY = y + size / 2
+    local radius = size / 2
+
     DrawEx.TextAdditive(fontName, label, textSize, x, y - textSize - 4, size, textSize + 4, 0.9, 0.9, 0.9, 1.0, 0.5, 0.5)
-    
-    -- draw background box
-    DrawEx.Rect(x, y, size, size, Color(0.15, 0.15, 0.15, 0.9))
-    
-    -- draw crosshairs
-    DrawEx.Rect(x, centerY - 1, size, 2, Color(0.4, 0.4, 0.4, 1.0))
-    DrawEx.Rect(centerX - 1, y, 2, size, Color(0.4, 0.4, 0.4, 1.0))
-    
-    -- draw deadzone indicator
-    local deadzoneRadius = size * 0.1
-    DrawEx.Rect(centerX - deadzoneRadius, centerY - deadzoneRadius, deadzoneRadius * 2, deadzoneRadius * 2, Color(0.3, 0.3, 0.3, 0.8))
-    
-    -- draw stick position
-    local dotX = centerX + (xValue * halfSize * 0.9) - 6
-    local dotY = centerY + (yValue * halfSize * 0.9) - 6
-    local dotSize = 12
-    
-    -- dot color
-    local magnitude = math.sqrt(xValue * xValue + yValue * yValue)
-    local intensity = math.min(magnitude, 1.0)
-    DrawEx.Rect(dotX, dotY, dotSize, dotSize, Color(0.2 + intensity * 0.6, 0.8 - intensity * 0.4, 0.2, 1.0))
-    
-    -- draw values below
-    local valuesStr = string.format("X:%.2f Y:%.2f", xValue, yValue)
-    DrawEx.TextAdditive(fontName, valuesStr, textSize - 1, x, y + size + 4, size, textSize + 2, 0.6, 0.6, 0.6, 1.0, 0.5, 0.5)
-end
+    DrawEx.Circle(centerX, centerY, radius, Color(0.15, 0.15, 0.15, 0.9))
+    local deadzoneRadius = radius * 0.1
+    DrawEx.Circle(centerX, centerY, deadzoneRadius, Color(0.3, 0.3, 0.3, 0.8))
+    DrawEx.Line(centerX - radius, centerY, centerX + radius, centerY, Color(0.4, 0.4, 0.4, 1.0))
+    DrawEx.Line(centerX, centerY - radius, centerX, centerY + radius, Color(0.4, 0.4, 0.4, 1.0))
 
-local function isLineDef(item)
-    return type(item) == "table" 
-        and type(item.label) == "string" 
-        and type(item.getValue) == "function"
+    local stickX = centerX + xValue * radius
+    local stickY = centerY - yValue * radius
+    local dotSize = 8
+    DrawEx.Rect(stickX - dotSize / 2, stickY - dotSize / 2, dotSize, dotSize,
+        Color(0.2 + math.abs(xValue) * 0.6, 0.8 - math.abs(yValue) * 0.4, 0.2, 1.0))
 end
-
----@class DebugLineDef
----@field label string
----@field getValue fun(): string
 
 local function DrawDebugLines(lineDefs, startX, startY, lineHeight, font, fontSize, r, g, b, a, alignX, alignY, blendMode)
     local x = startX or 40
@@ -124,20 +89,15 @@ local function DrawDebugLines(lineDefs, startX, startY, lineHeight, font, fontSi
     local cr, cg, cb, ca = r or 0.0, g or 0.0, b or 0.0, a or 0.0
     local ax, ay = alignX or 0.0, alignY or 0.0
     local mode = blendMode or "additive"
-    
     local drawFunc = mode == "alpha" and DrawEx.TextAlpha or DrawEx.TextAdditive
-    
+
     for _, item in ipairs(lineDefs) do
         local line
-        if isLineDef(item) then
-            ---@cast item DebugLineDef
-            local value = item.getValue() -- call the getValue function to get current value
-            line = string.format("%s: %s", item.label, tostring(value))
+        if type(item) == "table" and type(item.label) == "string" and type(item.getValue) == "function" then
+            line = string.format("%s: %s", item.label, tostring(item.getValue()))
         elseif type(item) == "string" then
-            -- static string
             line = item
         end
-        
         if line then
             drawFunc(fontName, line, size, x, y, 100, spacing, cr, cg, cb, ca, ax, ay)
             y = y + spacing
@@ -158,7 +118,6 @@ end
 local function computeTimeAndFrameCounts(count, accumulatedTime, deltaTime, smoothFPS, timeScale)
     count = count + 1
     accumulatedTime = accumulatedTime + deltaTime
-    
     local fpsInterval = 0.1
     if accumulatedTime >= fpsInterval then
         local instantFPS = count / accumulatedTime * (timeScale or 1)
@@ -166,7 +125,6 @@ local function computeTimeAndFrameCounts(count, accumulatedTime, deltaTime, smoo
         count = 0
         accumulatedTime = 0
     end
-    
     return count, accumulatedTime, smoothFPS
 end
 
@@ -175,16 +133,30 @@ function InputTest:drawInputState()
     local y = 120
     local lineHeight = 22
     local sectionGap = 30
-    
-    -- [[ mouse state ]]
+
+    local activeDevice = Input:activeDeviceType()
+    local deviceNames = {
+        [InputDeviceType.Cursor] = "CURSOR",
+        [InputDeviceType.Gamepad] = "GAMEPAD",
+        [InputDeviceType.Keyboard] = "KEYBOARD",
+        [InputDeviceType.Mouse] = "MOUSE",
+        [InputDeviceType.Touchpad] = "TOUCHPAD",
+        [InputDeviceType.SystemEvent] = "SYSTEM EVENT",
+    }
+    local deviceText = "Active Device: " .. (deviceNames[activeDevice] or "UNKNOWN")
+    local isGamepad = activeDevice == InputDeviceType.Gamepad
+    local deviceColor = isGamepad and { 0.2, 0.8, 0.2 } or { 0.2, 0.6, 0.9 }
+    DrawEx.TextAdditive('Unageo-Medium', deviceText, 14, x, y - 30, 400, 20,
+        deviceColor[1], deviceColor[2], deviceColor[3], 1.0, 0.0, 0.5)
+
     DrawSectionTitle("Mouse", x, y)
     y = y + lineHeight + 4
-    
+
     local mousePos = Input:mouse():position()
     local mouseDelta = Input:mouse():delta()
     local mouseScroll = Input:mouse():scroll()
     local mouseInWindow = Input:mouse():inWindow()
-    
+
     DrawLabelValue("Position", string.format("%.0f, %.0f", mousePos.x, mousePos.y), x, y)
     y = y + lineHeight
     DrawLabelValue("Delta", string.format("%.1f, %.1f", mouseDelta.x, mouseDelta.y), x, y)
@@ -193,21 +165,9 @@ function InputTest:drawInputState()
     y = y + lineHeight
     DrawLabelValue("In Window", mouseInWindow and "Yes" or "No", x, y)
     y = y + lineHeight
-    
-    -- mouse buttons
-    local mouseButtons = { "Left", "Middle", "Right", "Forward", "Back" }
-    local mouseButtonEnums = { MouseControl.Left, MouseControl.Middle, MouseControl.Right, MouseControl.Forward, MouseControl.Back }
-    local heldMouseButtons = {}
-    for i, btn in ipairs(mouseButtonEnums) do
-        if Input:mouse():isDown(btn) then
-            table.insert(heldMouseButtons, mouseButtons[i])
-        end
-    end
-    local mouseButtonsStr = #heldMouseButtons > 0 and table.concat(heldMouseButtons, ", ") or "None"
-    DrawLabelValue("Buttons Held", mouseButtonsStr, x, y)
+    DrawLabelValue("Buttons Held", self.heldMouseStr, x, y)
     y = y + lineHeight
 
-    -- recent mouse button history
     local recentMouseX = x + 110
     DrawEx.TextAdditive('Unageo-Medium', "Recent:", 12, x, y, 100, lineHeight, 0.9, 0.9, 0.9, 1.0, 0.0, 0.5)
     if #self.lastPressedMouseButtons == 0 then
@@ -221,12 +181,10 @@ function InputTest:drawInputState()
         end
     end
     y = y + sectionGap
-    
-    -- [[ keyboard state ]]
+
     DrawSectionTitle("Keyboard", x, y)
     y = y + lineHeight + 4
-    
-    -- modifiers
+
     local modifiers = {}
     if Input:isKeyboardCtrlDown() then table.insert(modifiers, "Ctrl") end
     if Input:isKeyboardAltDown() then table.insert(modifiers, "Alt") end
@@ -234,13 +192,9 @@ function InputTest:drawInputState()
     local modifiersStr = #modifiers > 0 and table.concat(modifiers, " + ") or "None"
     DrawLabelValue("Modifiers", modifiersStr, x, y)
     y = y + lineHeight
-    
-    -- currently held keys
-    local heldStr = #self.heldKeys > 0 and table.concat(self.heldKeys, ", ") or "None"
-    DrawLabelValue("Keys Held", heldStr, x, y)
+    DrawLabelValue("Keys Held", self.heldKeysStr, x, y)
     y = y + lineHeight
-    
-    -- recent key history
+
     local recentKbX = x + 110
     DrawEx.TextAdditive('Unageo-Medium', "Recent:", 12, x, y, 100, lineHeight, 0.9, 0.9, 0.9, 1.0, 0.0, 0.5)
     if #self.lastPressedKbKeys == 0 then
@@ -250,61 +204,38 @@ function InputTest:drawInputState()
             local age = self.time - entry.time
             local alpha = math.max(0.2, 1.0 - (age / self.keyHistoryDuration))
             DrawEx.TextAdditive('Unageo-Medium', entry.name, 10, recentKbX, y, 80, lineHeight, 0.7, 0.7, 0.9, alpha, 0.0, 0.5)
-            recentKbX = recentKbX + 25 + #entry.name * 4  -- adjust spacing based on text length
+            recentKbX = recentKbX + 25 + #entry.name * 4
         end
     end
     y = y + sectionGap
-    
-    -- [[ gamepad State ]]
+
     DrawSectionTitle("Gamepad", x, y)
     y = y + lineHeight + 4
-    
+
     local gamepad = Input:gamepad()
     local gamepadCount = gamepad:gamepadsCount()
     DrawLabelValue("Connected", tostring(gamepadCount), x, y)
     y = y + lineHeight
-    
+
     if gamepadCount > 0 then
         local lStickX = Input:getValue(Button.GamepadLeftStickX)
         local lStickY = Input:getValue(Button.GamepadLeftStickY)
         local rStickX = Input:getValue(Button.GamepadRightStickX)
         local rStickY = Input:getValue(Button.GamepadRightStickY)
 
+        local lStickXDelta = Input:gamepad():delta(GamepadAxis.LeftStickX)
+        local lStickYDelta = Input:gamepad():delta(GamepadAxis.LeftStickY)
+        local rStickXDelta = Input:gamepad():delta(GamepadAxis.RightStickX)
+        local rStickYDelta = Input:gamepad():delta(GamepadAxis.RightStickY)
+
         y = y + lineHeight
         DrawStickVisualizer("L Stick", lStickX, lStickY, x, y - 10, 100, 'Unageo-Medium', 11)
         DrawStickVisualizer("R Stick", rStickX, rStickY, x + 120, y - 10, 100, 'Unageo-Medium', 11)
         y = y + 110
-        
-        -- buttons
-        local gpButtons = {
-            { Button.GamepadSouth, "A/Cross" },
-            { Button.GamepadEast, "B/Circle" },
-            { Button.GamepadNorth, "Y/Triangle" },
-            { Button.GamepadWest, "X/Square" },
-            { Button.GamepadLeftTrigger, "RB" },
-            { Button.GamepadRightTrigger, "LB" },
-            { Button.GamepadLeftTrigger2, "LT" },
-            { Button.GamepadRightTrigger2, "RT" },
-            { Button.GamepadSelect, "Select" },
-            { Button.GamepadStart, "Start" },
-            { Button.GamepadLeftThumb, "L3" },
-            { Button.GamepadRightThumb, "R3" },
-            { Button.GamepadDPadUp, "DPad Up" },
-            { Button.GamepadDPadDown, "DPad Down" },
-            { Button.GamepadDPadLeft, "DPad Left" },
-            { Button.GamepadDPadRight, "DPad Right" },
-        }
-        local heldGpButtons = {}
-        for _, btnInfo in ipairs(gpButtons) do
-            if Input:isDown(btnInfo[1]) then
-                table.insert(heldGpButtons, btnInfo[2])
-            end
-        end
-        local gpButtonsStr = #heldGpButtons > 0 and table.concat(heldGpButtons, ", ") or "None"
-        DrawLabelValue("Buttons Held", gpButtonsStr, x, y)
+
+        DrawLabelValue("Buttons Held", self.heldGpButtonsStr, x, y)
         y = y + lineHeight
-        
-        -- recent button history
+
         local recentGpX = x + 110
         DrawEx.TextAdditive('Unageo-Medium', "Recent:", 12, x, y, 100, lineHeight, 0.9, 0.9, 0.9, 1.0, 0.0, 0.5)
         if #self.lastPressedGpButtons == 0 then
@@ -329,10 +260,10 @@ function InputTest:drawShipActionsTest()
     local lineHeight = 22
     local sectionGap = 20
     local barWidth = 250
-    
+
     DrawSectionTitle("ShipActions Test", x, y)
     y = y + lineHeight + 4
-    
+
     DrawLabelValue("ThrustX (A/D, LStick X)", string.format("%.3f", ShipActions.ThrustX:get()), x, y)
     y = y + lineHeight
     DrawLabelValue("ThrustZ (W/S, LStick Y)", string.format("%.3f", ShipActions.ThrustZ:get()), x, y)
@@ -347,36 +278,31 @@ function InputTest:drawShipActionsTest()
     y = y + lineHeight
     DrawLabelValue("Boost (Shift, LB)", string.format("%.3f", ShipActions.Boost:get()), x, y)
     y = y + sectionGap + 10
-    
+
     DrawSectionTitle("Simulated Ship State", x, y)
     y = y + lineHeight + 8
-    
-    -- thrust bars
+
     DrawEx.TextAdditive('Unageo-Medium', "Thrust:", 11, x, y, 100, lineHeight, 0.8, 0.8, 0.8, 1.0, 0.0, 0.5)
     y = y + lineHeight
-    
     DrawAxisBar("  X (Strafe)", self.shipThrust.x, x, y, barWidth, 16)
     y = y + 22
     DrawAxisBar("  Y (Vertical)", self.shipThrust.y, x, y, barWidth, 16)
     y = y + 22
     DrawAxisBar("  Z (Forward)", self.shipThrust.z, x, y, barWidth, 16)
     y = y + sectionGap
-    
-    -- rotation bars
+
     DrawEx.TextAdditive('Unageo-Medium', "Rotation:", 11, x, y, 100, lineHeight, 0.8, 0.8, 0.8, 1.0, 0.0, 0.5)
     y = y + lineHeight
-    
     DrawAxisBar("  Roll", self.shipRoll, x, y, barWidth, 16)
     y = y + 22
     DrawAxisBar("  Yaw", self.shipYaw, x, y, barWidth, 16)
     y = y + 22
     DrawAxisBar("  Pitch", self.shipPitch, x, y, barWidth, 16)
     y = y + sectionGap + 10
-    
-    -- controls hint
+
     DrawSectionTitle("Controls", x, y)
     y = y + lineHeight + 4
-    
+
     local hints = {
         "W/S or LStick Y: Forward/Back thrust",
         "A/D or LStick X: Strafe left/right",
@@ -400,23 +326,17 @@ function InputTest:updateShipPhysics(dt)
     local pitch = ShipActions.Pitch:get()
     local boost = ShipActions.Boost:get()
     local boostMult = 1.0 + boost * 1.5
-    
+
     local function updateAxisSmooth(current, input, accel, decay, maxVal)
         if math.abs(input) > 0.001 then
             local target = math.max(-maxVal, math.min(maxVal, input * maxVal))
             local diff = target - current
             local change = accel * dt * (math.abs(diff) > 0.1 and 1.5 or 1.0)
-            if math.abs(diff) < change then
-                return target
-            else
-                return current + change * (diff > 0 and 1 or -1)
-            end
+            if math.abs(diff) < change then return target end
+            return current + change * (diff > 0 and 1 or -1)
         else
-            if math.abs(current) < decay * dt then
-                return 0
-            else
-                return current - decay * dt * (current > 0 and 1 or -1)
-            end
+            if math.abs(current) < decay * dt then return 0 end
+            return current - decay * dt * (current > 0 and 1 or -1)
         end
     end
 
@@ -424,32 +344,24 @@ function InputTest:updateShipPhysics(dt)
         local target = math.max(-maxVal, math.min(maxVal, input))
         local diff = target - current
         local change = smoothing * dt
-        if math.abs(diff) < change then
-            return target
-        else
-            return current + change * (diff > 0 and 1 or -1)
-        end
+        if math.abs(diff) < change then return target end
+        return current + change * (diff > 0 and 1 or -1)
     end
-    
-    -- update thrust axes
+
     self.shipThrust = Vec3f(
         updateAxisSmooth(self.shipThrust.x, thrustX * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust),
         updateAxisSmooth(self.shipThrust.y, thrustY * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust),
         updateAxisSmooth(self.shipThrust.z, thrustZ * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust)
     )
-    
-    -- update rotation axes
+
     self.shipRoll = updateAxisDirect(self.shipRoll, roll, self.rotationAccel, self.maxRotation)
     self.shipYaw = updateAxisDirect(self.shipYaw, yaw, self.rotationAccel, self.maxRotation)
     self.shipPitch = updateAxisDirect(self.shipPitch, pitch, self.rotationAccel, self.maxRotation)
 end
 
 function InputTest:onInit()
-
-    -- window setup
     Window:setFullscreen(false, true)
 
-    -- init timer
     self.timer = DeltaTimer("InputTest")
     self.timer:start("fps", 0.1)
     self.accumulatedTime = 0
@@ -457,144 +369,21 @@ function InputTest:onInit()
     self.smoothFPS = 0
     self.time = 0
 
-    -- init debug
     self.showDebugLines = true
     self.debugLineDefs = {
-        { label = "FPS",                getValue = function() return string.format("%d", math.floor(self.smoothFPS + 0.5)) end },
-        { label = "Lua Memory (KB)",    getValue = function() return string.format("%.2f", GC.GetMemory()) end }
+        { label = "FPS",             getValue = function() return string.format("%d", math.floor(self.smoothFPS + 0.5)) end },
+        { label = "Lua Memory (KB)", getValue = function() return string.format("%.2f", GC.GetMemory()) end }
     }
 
-    -- init camera
-    -- we don't actually use the camera in this test but we set one up to avoid errors
     local cam = CameraEntity()
     CameraManager:registerCamera("OrbitCam", cam)
     CameraManager:setActiveCamera("OrbitCam")
 
-    -- input state tracking
     self.buttonNameLookup = buildButtonNameLookup()
-    self.lastPressedMouseButtons = {}
-    self.lastPressedKbKeys = {}
-    self.lastPressedGpButtons = {}
-    self.maxKeyHistory = 8
-    self.keyHistoryDuration = 2.0
-    self.heldKeys = {}
-    
-    -- simulated ship state (for ActionBinding testing)
-    self.shipThrust = Vec3f(0, 0, 0)
-    self.thrustAccel = 2.0
-    self.thrustDecay = 3.0
-    self.maxThrust = 1.0
-    self.shipRoll = 0
-    self.shipYaw = 0
-    self.shipPitch = 0
-    self.rotationAccel = 3.0
-    self.rotationDecay = 4.0
-    self.maxRotation = 1.0
 
-    -- events
-    EventBus:subscribe(Event.PreRender, self, self.onStatePreRender)
-    EventBus:subscribe(Event.Input, self, self.onStateInput)
-end
-
-function InputTest:onStatePreRender(data)
-    -- update timers
-    local dt = data:deltaTime()
-    local scaledDT = dt * (self.timeScale or 1)
-    self.timer:update(dt)
-    self.time = self.time + dt
-
-    -- update fps counter state
-    self.frameCount, self.accumulatedTime, self.smoothFPS = computeTimeAndFrameCounts(
-        self.frameCount,
-        self.accumulatedTime,
-        dt,
-        self.smoothFPS,
-        self.timeScale
-    )
-
-    -- update all shipActions bindings
-    for _, binding in pairs(ShipActions) do
-        binding:update()
-    end
-    
-    -- update ship physics based on ActionBindings
-    self:updateShipPhysics(dt)
-
-    -- clean up old input history entries
-    local currentTime = self.time
-    -- clean up old mouse button history
-    local newMouseHistory = {}
-    for _, entry in ipairs(self.lastPressedMouseButtons) do
-        if currentTime - entry.time < self.keyHistoryDuration then
-            table.insert(newMouseHistory, entry)
-        end
-    end
-    self.lastPressedMouseButtons = newMouseHistory
-
-    -- clean up old key history
-    local newKeyHistory = {}
-    for _, entry in ipairs(self.lastPressedKbKeys) do
-        if currentTime - entry.time < self.keyHistoryDuration then
-            table.insert(newKeyHistory, entry)
-        end
-    end
-    self.lastPressedKbKeys = newKeyHistory
-    
-    -- clean up old gamepad button history
-    local newGpHistory = {}
-    for _, entry in ipairs(self.lastPressedGpButtons) do
-        if currentTime - entry.time < self.keyHistoryDuration then
-            table.insert(newGpHistory, entry)
-        end
-    end
-    self.lastPressedGpButtons = newGpHistory
-end
-
-function InputTest:onPreRender(data)
-    
-end
-
-function InputTest:onRender(data)
-    RenderCoreSystem:render(data)
-    self:immediateUI(function()
-        if self.showDebugLines then
-            DrawDebugLines(self.debugLineDefs, 40, 40, 25, 'Unageo-Medium', 11, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5, "additive")
-        end
-        
-        self:drawInputState()
-        self:drawShipActionsTest()
-    end)
-end
-
-function InputTest:onStateInput(data)
-    local mouseButtonsToTrack = {
-        { MouseControl.Left, "Left" },
-        { MouseControl.Middle, "Middle" },
-        { MouseControl.Right, "Right" },
-        { MouseControl.Forward, "Forward" },
-        { MouseControl.Back, "Back" },
-    }
-
-    local newHeldMouseBtns = {}
-    -- track mouse button presses
-    for _, btn in ipairs(mouseButtonsToTrack) do
-        if Input:mouse():isDown(btn[1]) then
-            table.insert(newHeldMouseBtns, btn[2])
-            
-            -- check if this is a new press
-            if Input:mouse():isPressed(btn[1]) then
-                -- add to history
-                table.insert(self.lastPressedMouseButtons, 1, { name = btn[2], time = self.time })
-                -- trim history
-                while #self.lastPressedMouseButtons > self.maxKeyHistory do
-                    table.remove(self.lastPressedMouseButtons)
-                end
-            end
-        end
-    end
-    self.heldMouseButtons = newHeldMouseBtns
-    
-    local keyboardButtons = {
+    -- Pre-compute keyboard button names
+    self.keyboardButtonNames = {}
+    self.keyboardButtons = {
         Button.KeyboardA, Button.KeyboardB, Button.KeyboardC, Button.KeyboardD, Button.KeyboardE,
         Button.KeyboardF, Button.KeyboardG, Button.KeyboardH, Button.KeyboardI, Button.KeyboardJ,
         Button.KeyboardK, Button.KeyboardL, Button.KeyboardM, Button.KeyboardN, Button.KeyboardO,
@@ -618,58 +407,212 @@ function InputTest:onStateInput(data)
         Button.KeyboardSemicolon, Button.KeyboardQuote, Button.KeyboardBracketLeft, Button.KeyboardBracketRight,
         Button.KeyboardMinus, Button.KeyboardEqual, Button.KeyboardBackquote,
     }
-    
-    -- update held keys and detect new presses
-    local newHeldKeys = {}
-    for _, btn in ipairs(keyboardButtons) do
-        if Input:isDown(btn) then
-            local name = self.buttonNameLookup[btn] or tostring(btn)
-            -- clean up the name (remove "Keyboard" prefix)
-            name = name:gsub("^Keyboard", "")
-            table.insert(newHeldKeys, name)
-            
-            -- check if this is a new press
-            if Input:isPressed(btn) then
-                -- add to history
-                table.insert(self.lastPressedKbKeys, 1, { name = name, time = self.time })
-                -- trim history
-                while #self.lastPressedKbKeys > self.maxKeyHistory do
-                    table.remove(self.lastPressedKbKeys)
-                end
-            end
+    for _, btn in ipairs(self.keyboardButtons) do
+        local name = self.buttonNameLookup[btn]
+        if name then
+            self.keyboardButtonNames[btn] = name:gsub("^Keyboard", "")
         end
     end
-    self.heldKeys = newHeldKeys
-    
-    -- track gamepad button presses
-    local gpButtons = {
-        { Button.GamepadSouth, "A/Cross" },
-        { Button.GamepadEast, "B/Circle" },
-        { Button.GamepadNorth, "Y/Triangle" },
-        { Button.GamepadWest, "X/Square" },
-        { Button.GamepadLeftTrigger2, "LT" },
-        { Button.GamepadRightTrigger2, "RT" },
-        { Button.GamepadLeftTrigger, "LB" },
-        { Button.GamepadRightTrigger, "RB" },
-        { Button.GamepadSelect, "Select" },
-        { Button.GamepadStart, "Start" },
-        { Button.GamepadLeftThumb, "L3" },
-        { Button.GamepadRightThumb, "R3" },
-        { Button.GamepadDPadUp, "DPad Up" },
-        { Button.GamepadDPadDown, "DPad Down" },
-        { Button.GamepadDPadLeft, "DPad Left" },
-        { Button.GamepadDPadRight, "DPad Right" },
+
+    self.mouseButtonsToTrack = {
+        { MouseControl.Left,    "Left" },
+        { MouseControl.Middle,  "Middle" },
+        { MouseControl.Right,   "Right" },
+        { MouseControl.Forward, "Forward" },
+        { MouseControl.Back,    "Back" },
     }
-    
-    for _, btnInfo in ipairs(gpButtons) do
-        if Input:isPressed(btnInfo[1]) then
-            table.insert(self.lastPressedGpButtons, 1, { name = btnInfo[2], time = self.time })
-            while #self.lastPressedGpButtons > self.maxKeyHistory do
-                table.remove(self.lastPressedGpButtons)
-            end
+
+    self.gpButtons = {
+        { Button.GamepadSouth,         "A/Cross" },
+        { Button.GamepadEast,          "B/Circle" },
+        { Button.GamepadNorth,         "Y/Triangle" },
+        { Button.GamepadWest,          "X/Square" },
+        { Button.GamepadLeftTrigger,   "LB" },
+        { Button.GamepadRightTrigger,  "RB" },
+        { Button.GamepadLeftTrigger2,  "LT" },
+        { Button.GamepadRightTrigger2, "RT" },
+        { Button.GamepadSelect,        "Select" },
+        { Button.GamepadStart,         "Start" },
+        { Button.GamepadLeftThumb,     "L3" },
+        { Button.GamepadRightThumb,    "R3" },
+        { Button.GamepadDPadUp,        "DPad Up" },
+        { Button.GamepadDPadDown,      "DPad Down" },
+        { Button.GamepadDPadLeft,      "DPad Left" },
+        { Button.GamepadDPadRight,     "DPad Right" },
+    }
+
+    -- Reusable tables for string building
+    self._mouseStrParts = {}
+    self._kbStrParts = {}
+    self._gpStrParts = {}
+
+    -- Cached display strings
+    self.heldMouseStr = "None"
+    self.heldKeysStr = "None"
+    self.heldGpButtonsStr = "None"
+
+    -- History
+    self.lastPressedMouseButtons = {}
+    self.lastPressedKbKeys = {}
+    self.lastPressedGpButtons = {}
+    self.maxKeyHistory = 8
+    self.keyHistoryDuration = 2.0
+
+    -- Ship state
+    self.shipThrust = Vec3f(0, 0, 0)
+    self.thrustAccel = 2.0
+    self.thrustDecay = 3.0
+    self.maxThrust = 1.0
+    self.shipRoll = 0
+    self.shipYaw = 0
+    self.shipPitch = 0
+    self.rotationAccel = 3.0
+    self.maxRotation = 1.0
+
+    EventBus:subscribe(Event.PreRender, self, self.onStatePreRender)
+    EventBus:subscribe(Event.Input, self, self.onStateInput)
+end
+
+function InputTest:onStatePreRender(data)
+    local dt = data:deltaTime()
+    self.time = self.time + dt
+    self.timer:update(dt)
+
+    self.frameCount, self.accumulatedTime, self.smoothFPS = computeTimeAndFrameCounts(
+        self.frameCount, self.accumulatedTime, dt, self.smoothFPS, self.timeScale
+    )
+
+    for _, binding in pairs(ShipActions) do
+        binding:update()
+    end
+
+    self:updateShipPhysics(dt)
+
+    -- History cleanup (in-place)
+    local currentTime = self.time
+    local duration = self.keyHistoryDuration
+    for i = #self.lastPressedMouseButtons, 1, -1 do
+        if currentTime - self.lastPressedMouseButtons[i].time >= duration then
+            table.remove(self.lastPressedMouseButtons, i)
+        end
+    end
+    for i = #self.lastPressedKbKeys, 1, -1 do
+        if currentTime - self.lastPressedKbKeys[i].time >= duration then
+            table.remove(self.lastPressedKbKeys, i)
+        end
+    end
+    for i = #self.lastPressedGpButtons, 1, -1 do
+        if currentTime - self.lastPressedGpButtons[i].time >= duration then
+            table.remove(self.lastPressedGpButtons, i)
         end
     end
 end
 
+function InputTest:onPreRender(data)
+end
+
+function InputTest:onRender(data)
+    RenderCoreSystem:render(data)
+    self:immediateUI(function()
+        if self.showDebugLines then
+            DrawDebugLines(self.debugLineDefs, 40, 40, 25, 'Unageo-Medium', 11, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5, "additive")
+        end
+        self:drawInputState()
+        self:drawShipActionsTest()
+    end)
+end
+
+function InputTest:onStateInput(data)
+    local time = self.time
+    local maxHist = self.maxKeyHistory
+
+    -- MOUSE BLOCK
+    do
+        local hist = self.lastPressedMouseButtons
+        local parts = self._mouseStrParts
+        local count = 0
+        local buttons = self.mouseButtonsToTrack
+
+        for i = 1, #buttons do
+            local btn = buttons[i]
+            local id = btn[1]
+            local name = btn[2]
+
+            if Input:mouse():isDown(id) then
+                count = count + 1
+                parts[count] = name
+            end
+
+            if Input:mouse():isPressed(id) then
+                table.insert(hist, 1, { name = name, time = time })
+                if #hist > maxHist then table.remove(hist) end
+            end
+        end
+
+        local newStr = count > 0 and table.concat(parts, ", ", 1, count) or "None"
+        if newStr ~= self.heldMouseStr then
+            self.heldMouseStr = newStr
+        end
+    end
+
+    -- KEYBOARD BLOCK
+    do
+        local hist = self.lastPressedKbKeys
+        local parts = self._kbStrParts
+        local count = 0
+        local buttons = self.keyboardButtons
+        local names = self.keyboardButtonNames
+
+        for i = 1, #buttons do
+            local btn = buttons[i]
+            local name = names[btn]
+            if name then
+                if Input:isDown(btn) then
+                    count = count + 1
+                    parts[count] = name
+                end
+
+                if Input:isPressed(btn) then
+                    table.insert(hist, 1, { name = name, time = time })
+                    if #hist > maxHist then table.remove(hist) end
+                end
+            end
+        end
+
+        local newStr = count > 0 and table.concat(parts, ", ", 1, count) or "None"
+        if newStr ~= self.heldKeysStr then
+            self.heldKeysStr = newStr
+        end
+    end
+
+    -- GAMEPAD BLOCK
+    do
+        local hist = self.lastPressedGpButtons
+        local parts = self._gpStrParts
+        local count = 0
+        local buttons = self.gpButtons
+
+        for i = 1, #buttons do
+            local btn = buttons[i]
+            local id = btn[1]
+            local name = btn[2]
+
+            if Input:isDown(id) then
+                count = count + 1
+                parts[count] = name
+            end
+
+            if Input:isPressed(id) then
+                table.insert(hist, 1, { name = name, time = time })
+                if #hist > maxHist then table.remove(hist) end
+            end
+        end
+
+        local newStr = count > 0 and table.concat(parts, ", ", 1, count) or "None"
+        if newStr ~= self.heldGpButtonsStr then
+            self.heldGpButtonsStr = newStr
+        end
+    end
+end
 
 return InputTest

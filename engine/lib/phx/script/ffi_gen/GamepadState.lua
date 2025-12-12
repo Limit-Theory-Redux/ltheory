@@ -22,10 +22,12 @@ function Loader.defineType()
             GamepadId const* GamepadState_GamepadId      (GamepadState const*, uint64 index);
             cstr             GamepadState_GamepadName    (GamepadState const*, GamepadId gamepadId);
             float            GamepadState_Value          (GamepadState const*, GamepadAxis axis);
+            float            GamepadState_Delta          (GamepadState const*, GamepadAxis axis);
             bool             GamepadState_IsPressed      (GamepadState const*, GamepadButton button);
             bool             GamepadState_IsDown         (GamepadState const*, GamepadButton button);
             bool             GamepadState_IsReleased     (GamepadState const*, GamepadButton button);
             float            GamepadState_ValueById      (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
+            float            GamepadState_DeltaById      (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
             bool             GamepadState_IsPressedById  (GamepadState const*, GamepadId gamepadId, GamepadButton button);
             bool             GamepadState_IsDownById     (GamepadState const*, GamepadId gamepadId, GamepadButton button);
             bool             GamepadState_IsReleasedById (GamepadState const*, GamepadId gamepadId, GamepadButton button);
@@ -47,10 +49,12 @@ function Loader.defineType()
                 gamepadId      = libphx.GamepadState_GamepadId,
                 gamepadName    = libphx.GamepadState_GamepadName,
                 value          = libphx.GamepadState_Value,
+                delta          = libphx.GamepadState_Delta,
                 isPressed      = libphx.GamepadState_IsPressed,
                 isDown         = libphx.GamepadState_IsDown,
                 isReleased     = libphx.GamepadState_IsReleased,
                 valueById      = libphx.GamepadState_ValueById,
+                deltaById      = libphx.GamepadState_DeltaById,
                 isPressedById  = libphx.GamepadState_IsPressedById,
                 isDownById     = libphx.GamepadState_IsDownById,
                 isReleasedById = libphx.GamepadState_IsReleasedById,

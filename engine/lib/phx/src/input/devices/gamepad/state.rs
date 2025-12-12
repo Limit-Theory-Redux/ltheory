@@ -157,6 +157,18 @@ impl GamepadState {
             .unwrap_or_default()
     }
 
+    pub fn delta(&self, axis: GamepadAxis) -> f32 {
+        self.device_state
+            .iter()
+            .find_map(|(_, state)| {
+                state
+                    .control_state
+                    .is_connected()
+                    .then(|| state.axis_state.delta(axis as _))
+            })
+            .unwrap_or_default()
+    }
+
     pub fn is_pressed(&self, button: GamepadButton) -> bool {
         self.device_state
             .iter()
@@ -197,6 +209,13 @@ impl GamepadState {
         self.device_state
             .get(&gamepad_id)
             .map(|state| state.axis_state.value(axis as _))
+            .unwrap_or_default() // TODO: return an error?
+    }
+
+    pub fn delta_by_id(&self, gamepad_id: GamepadId, axis: GamepadAxis) -> f32 {
+        self.device_state
+            .get(&gamepad_id)
+            .map(|state| state.axis_state.delta(axis as _))
             .unwrap_or_default() // TODO: return an error?
     }
 
