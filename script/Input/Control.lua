@@ -55,12 +55,18 @@ end
 
 ---@return table
 function Control.MouseX()
-    return { type = "MouseX", mult = 1.0 }
+    local bind = { type = "MouseX", mult = 1.0 }
+    function bind:invert() self.mult = -self.mult; return self end
+    function bind:setMult(value) self.mult = value; return self end
+    return bind
 end
 
 ---@return table
 function Control.MouseY()
-    return { type = "MouseY", mult = 1.0 }
+    local bind = { type = "MouseY", mult = 1.0 }
+    function bind:invert() self.mult = -self.mult; return self end
+    function bind:setMult(value) self.mult = value; return self end
+    return bind
 end
 
 ---@return table
