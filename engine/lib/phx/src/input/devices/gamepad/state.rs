@@ -11,6 +11,7 @@ pub struct GamepadDeviceState {
     control_state: ControlState,
     button_state: ButtonState<{ GamepadButton::SIZE }>,
     axis_state: AxisState<{ GamepadAxis::SIZE }>,
+    button_analog_state: AxisState<{ GamepadButton::SIZE }>,
 }
 
 impl GamepadDeviceState {
@@ -20,6 +21,7 @@ impl GamepadDeviceState {
             control_state: Default::default(),
             button_state: Default::default(),
             axis_state: Default::default(),
+            button_analog_state: Default::default(),
         }
     }
 
@@ -34,6 +36,7 @@ impl GamepadDeviceState {
     pub fn reset(&mut self) {
         self.button_state.reset();
         self.axis_state.reset();
+        self.button_analog_state.reset();
     }
 }
 
@@ -98,7 +101,7 @@ impl GamepadState {
                     if let Some(button) = convert_button(gilrs_button) {
                         if let Some(state) = self.device_state.get_mut(&gamepad_id) {
                             state.button_state.update(button as _, raw_value != 0.0);
-                            state.axis_state.update(button as _, raw_value);
+                            state.button_analog_state.update(button as _, raw_value);
 
                             if state.control_state.update() {
                                 res = Some(gamepad_id);
@@ -169,6 +172,32 @@ impl GamepadState {
             .unwrap_or_default()
     }
 
+    /// Get the analog value of a button (useful for triggers that report pressure 0.0 to 1.0)
+    pub fn value_analog(&self, button: GamepadButton) -> f32 {
+        self.device_state
+            .iter()
+            .find_map(|(_, state)| {
+                state
+                    .control_state
+                    .is_connected()
+                    .then(|| state.button_analog_state.value(button as _))
+            })
+            .unwrap_or_default()
+    }
+
+    /// Get the delta (change since last frame) of a button's analog value
+    pub fn delta_analog(&self, button: GamepadButton) -> f32 {
+        self.device_state
+            .iter()
+            .find_map(|(_, state)| {
+                state
+                    .control_state
+                    .is_connected()
+                    .then(|| state.button_analog_state.delta(button as _))
+            })
+            .unwrap_or_default()
+    }
+
     pub fn is_pressed(&self, button: GamepadButton) -> bool {
         self.device_state
             .iter()
@@ -217,6 +246,20 @@ impl GamepadState {
             .get(&gamepad_id)
             .map(|state| state.axis_state.delta(axis as _))
             .unwrap_or_default() // TODO: return an error?
+    }
+
+    pub fn value_analog_by_id(&self, gamepad_id: GamepadId, button: GamepadButton) -> f32 {
+        self.device_state
+            .get(&gamepad_id)
+            .map(|state| state.button_analog_state.value(button as _))
+            .unwrap_or_default()
+    }
+
+    pub fn delta_analog_by_id(&self, gamepad_id: GamepadId, button: GamepadButton) -> f32 {
+        self.device_state
+            .get(&gamepad_id)
+            .map(|state| state.button_analog_state.delta(button as _))
+            .unwrap_or_default()
     }
 
     pub fn is_pressed_by_id(&self, gamepad_id: GamepadId, button: GamepadButton) -> bool {

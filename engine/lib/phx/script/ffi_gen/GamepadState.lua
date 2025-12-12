@@ -17,20 +17,24 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void             GamepadState_Free           (GamepadState*);
-            uint64           GamepadState_GamepadsCount  (GamepadState const*);
-            GamepadId const* GamepadState_GamepadId      (GamepadState const*, uint64 index);
-            cstr             GamepadState_GamepadName    (GamepadState const*, GamepadId gamepadId);
-            float            GamepadState_Value          (GamepadState const*, GamepadAxis axis);
-            float            GamepadState_Delta          (GamepadState const*, GamepadAxis axis);
-            bool             GamepadState_IsPressed      (GamepadState const*, GamepadButton button);
-            bool             GamepadState_IsDown         (GamepadState const*, GamepadButton button);
-            bool             GamepadState_IsReleased     (GamepadState const*, GamepadButton button);
-            float            GamepadState_ValueById      (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
-            float            GamepadState_DeltaById      (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
-            bool             GamepadState_IsPressedById  (GamepadState const*, GamepadId gamepadId, GamepadButton button);
-            bool             GamepadState_IsDownById     (GamepadState const*, GamepadId gamepadId, GamepadButton button);
-            bool             GamepadState_IsReleasedById (GamepadState const*, GamepadId gamepadId, GamepadButton button);
+            void             GamepadState_Free            (GamepadState*);
+            uint64           GamepadState_GamepadsCount   (GamepadState const*);
+            GamepadId const* GamepadState_GamepadId       (GamepadState const*, uint64 index);
+            cstr             GamepadState_GamepadName     (GamepadState const*, GamepadId gamepadId);
+            float            GamepadState_Value           (GamepadState const*, GamepadAxis axis);
+            float            GamepadState_Delta           (GamepadState const*, GamepadAxis axis);
+            float            GamepadState_ValueAnalog     (GamepadState const*, GamepadButton button);
+            float            GamepadState_DeltaAnalog     (GamepadState const*, GamepadButton button);
+            bool             GamepadState_IsPressed       (GamepadState const*, GamepadButton button);
+            bool             GamepadState_IsDown          (GamepadState const*, GamepadButton button);
+            bool             GamepadState_IsReleased      (GamepadState const*, GamepadButton button);
+            float            GamepadState_ValueById       (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
+            float            GamepadState_DeltaById       (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
+            float            GamepadState_ValueAnalogById (GamepadState const*, GamepadId gamepadId, GamepadButton button);
+            float            GamepadState_DeltaAnalogById (GamepadState const*, GamepadId gamepadId, GamepadButton button);
+            bool             GamepadState_IsPressedById   (GamepadState const*, GamepadId gamepadId, GamepadButton button);
+            bool             GamepadState_IsDownById      (GamepadState const*, GamepadId gamepadId, GamepadButton button);
+            bool             GamepadState_IsReleasedById  (GamepadState const*, GamepadId gamepadId, GamepadButton button);
         ]]
     end
 
@@ -45,19 +49,23 @@ function Loader.defineType()
         local t  = ffi.typeof('GamepadState')
         local mt = {
             __index = {
-                gamepadsCount  = libphx.GamepadState_GamepadsCount,
-                gamepadId      = libphx.GamepadState_GamepadId,
-                gamepadName    = libphx.GamepadState_GamepadName,
-                value          = libphx.GamepadState_Value,
-                delta          = libphx.GamepadState_Delta,
-                isPressed      = libphx.GamepadState_IsPressed,
-                isDown         = libphx.GamepadState_IsDown,
-                isReleased     = libphx.GamepadState_IsReleased,
-                valueById      = libphx.GamepadState_ValueById,
-                deltaById      = libphx.GamepadState_DeltaById,
-                isPressedById  = libphx.GamepadState_IsPressedById,
-                isDownById     = libphx.GamepadState_IsDownById,
-                isReleasedById = libphx.GamepadState_IsReleasedById,
+                gamepadsCount   = libphx.GamepadState_GamepadsCount,
+                gamepadId       = libphx.GamepadState_GamepadId,
+                gamepadName     = libphx.GamepadState_GamepadName,
+                value           = libphx.GamepadState_Value,
+                delta           = libphx.GamepadState_Delta,
+                valueAnalog     = libphx.GamepadState_ValueAnalog,
+                deltaAnalog     = libphx.GamepadState_DeltaAnalog,
+                isPressed       = libphx.GamepadState_IsPressed,
+                isDown          = libphx.GamepadState_IsDown,
+                isReleased      = libphx.GamepadState_IsReleased,
+                valueById       = libphx.GamepadState_ValueById,
+                deltaById       = libphx.GamepadState_DeltaById,
+                valueAnalogById = libphx.GamepadState_ValueAnalogById,
+                deltaAnalogById = libphx.GamepadState_DeltaAnalogById,
+                isPressedById   = libphx.GamepadState_IsPressedById,
+                isDownById      = libphx.GamepadState_IsDownById,
+                isReleasedById  = libphx.GamepadState_IsReleasedById,
             },
         }
 

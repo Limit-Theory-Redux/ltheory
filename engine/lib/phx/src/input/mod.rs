@@ -242,10 +242,23 @@ impl Input {
         } else if let Some(mouse_control) = button.as_mouse_control() {
             self.mouse_state.value(mouse_control)
         } else if let Some(gamepad_button) = button.as_gamepad_button() {
-            if self.gamepad_state.is_pressed(gamepad_button) {
-                1.0
-            } else {
-                Default::default()
+            // Check if this button is actually an analog trigger
+            match gamepad_button {
+                GamepadButton::LeftTrigger
+                | GamepadButton::LeftTrigger2
+                | GamepadButton::RightTrigger
+                | GamepadButton::RightTrigger2 => {
+                    // Get analog value (0.0 to 1.0) from axis state
+                    self.gamepad_state.value_analog(gamepad_button)
+                }
+                _ => {
+                    // Regular digital button - return 1.0 or 0.0
+                    if self.gamepad_state.is_down(gamepad_button) {
+                        1.0
+                    } else {
+                        Default::default()
+                    }
+                }
             }
         } else if let Some(gamepad_axis) = button.as_gamepad_axis() {
             self.gamepad_state.value(gamepad_axis)
