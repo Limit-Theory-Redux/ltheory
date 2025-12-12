@@ -238,7 +238,23 @@ impl ApplicationHandler for MainLoop {
         }
     }
 
-    fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, _: DeviceEvent) {}
+    fn device_event(&mut self, _: &ActiveEventLoop, device_id: DeviceId, event: DeviceEvent) {
+        let Some(engine) = self.engine.as_mut() else {
+            return;
+        };
+
+        match event {
+            DeviceEvent::MouseMotion { delta } => {
+                // delta is (dx, dy) in platform device coordinates — feed it directly as raw movement
+                engine.input.update_mouse(device_id, |state| {
+                    state.update_raw_delta(delta.0 as f32, delta.1 as f32)
+                });
+            }
+            _ => {
+                // ignore other device events
+            }
+        }
+    }
 
     fn resumed(&mut self, _: &ActiveEventLoop) {
         let Some(engine) = self.engine.as_mut() else {

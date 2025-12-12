@@ -136,7 +136,6 @@ function Application:onPreRender(data)
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onResize')
         local size = Window:size()
-        Window:cursor():setGrabMode(CursorGrabMode.None)
         if size.x ~= self.resX or size.y ~= self.resY then
             self.resX = size.x
             self.resY = size.y
