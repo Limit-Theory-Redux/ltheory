@@ -68,8 +68,8 @@ end
 ---@field material Material|nil
 ---@field hull any
 ---@field res any
----@field position Vec3f|nil
----@field scale Vec3f|number|nil
+---@field position Position|nil
+---@field scale number|nil
 ---@field rotation Quat|nil
 ---@field isKinematic boolean|nil
 
