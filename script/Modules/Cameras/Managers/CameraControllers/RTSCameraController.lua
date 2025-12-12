@@ -54,7 +54,7 @@ local RTSCameraController = Subclass("RTSCameraController", CameraController, fu
 
     -- Rotation
     self.rotationSpeed = cfg.rotationSpeed or 2.0
-    self.mouseSensitivity = cfg.mouseSensitivity or 0.003
+    self.mouseSensitivity = cfg.mouseSensitivity or 1
 
     -- Movement
     self.moveSpeed = cfg.moveSpeed or 50.0
@@ -113,49 +113,43 @@ function RTSCameraController:getFocusPoint()
     return self.focusPoint
 end
 
----@param dt number Delta time in seconds
+---@param dt number
 function RTSCameraController:onInput(dt)
     if not self.enabled or not Window:isFocused() then
         if self._wasMouseCaptured then
             self._wasMouseCaptured = false
             Input:setCursorVisible(true)
             self._cursorVisible = true
-            self.lastMousePos = nil
         end
         return
     end
 
-    -- Mouse capture
-    if Input:mouse():isPressed(MouseControl.Right) then self.mouseCaptured = true end
-    if Input:mouse():isReleased(MouseControl.Right) then self.mouseCaptured = false end
+    -- Right-click hold for rotation
+    self.mouseCaptured = Input:mouse():isDown(MouseControl.Right)
 
-    if self.mouseCaptured ~= self._wasMouseCaptured then
-        if self.mouseCaptured then
-            Input:setCursorVisible(false)
-            self._cursorVisible = false
-            self.lastMousePos = Input:mouse():position()
-        else
-            Input:setCursorVisible(true)
-            self._cursorVisible = true
-            self.lastMousePos = nil
-        end
-        self._wasMouseCaptured = self.mouseCaptured
-    end
-
-    -- Mouse rotation
     if self.mouseCaptured then
-        local cur = Input:mouse():position()
-        local delta = Vec2f(0, 0)
-        if self.lastMousePos then delta = cur - self.lastMousePos end
-        if delta:length() > 1e-4 then self.yaw = self.yaw - delta.x * self.mouseSensitivity end
-        self.lastMousePos = cur
+        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.Locked)
+        Input:setCursorVisible(false)
+
+        local delta = Input:mouse():delta()
+        if delta:length() > 0.001 then
+            -- Apply mouse sensitivity
+            self.yaw = self.yaw - delta.x * self.mouseSensitivity * dt
+        end
+    else
+        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.None)
+        Input:setCursorVisible(true)
     end
 
-    -- Keyboard rotation
-    if Input:keyboard():isDown(KeyboardButton.Q) then self.yaw = self.yaw - self.rotationSpeed * dt end
-    if Input:keyboard():isDown(KeyboardButton.E) then self.yaw = self.yaw + self.rotationSpeed * dt end
+    -- Keyboard rotation alternative
+    if Input:keyboard():isDown(KeyboardButton.Q) then
+        self.yaw = self.yaw - self.rotationSpeed * dt
+    end
+    if Input:keyboard():isDown(KeyboardButton.E) then
+        self.yaw = self.yaw + self.rotationSpeed * dt
+    end
 
-    -- WASD movement
+    -- WASD movement (camera-relative)
     local inputX, inputZ = 0.0, 0.0
     if Input:keyboard():isDown(KeyboardButton.W) then inputZ = inputZ + 1.0 end
     if Input:keyboard():isDown(KeyboardButton.S) then inputZ = inputZ - 1.0 end
@@ -167,18 +161,6 @@ function RTSCameraController:onInput(dt)
         inputX = inputX * invlen
         inputZ = inputZ * invlen
 
-        local moveSpeed = self.moveSpeed
-
-        -- Exponential WASD multiplier based on distance
-        local camPos = self:getPosition()
-        local distance = (camPos - self.focusPoint):length()
-        local base = 1.03
-        local zoomFactor = distance * 0.02
-        local expMultiplier = base ^ zoomFactor
-        expMultiplier = math.min(expMultiplier, 512.0)
-
-        moveSpeed = moveSpeed * expMultiplier
-
         local forwardX = -math.sin(self.yaw)
         local forwardZ = -math.cos(self.yaw)
         local rightX = math.cos(self.yaw)
@@ -188,40 +170,21 @@ function RTSCameraController:onInput(dt)
         local worldDZ = rightZ * inputX + forwardZ * inputZ
 
         self.focusPoint = Vec3f(
-            Math.Clamp(self.focusPoint.x + worldDX * moveSpeed * dt, self.minX, self.maxX),
+            Math.Clamp(self.focusPoint.x + worldDX * self.moveSpeed * dt, self.minX, self.maxX),
             self.focusPoint.y,
-            Math.Clamp(self.focusPoint.z + worldDZ * moveSpeed * dt, self.minZ, self.maxZ)
+            Math.Clamp(self.focusPoint.z + worldDZ * self.moveSpeed * dt, self.minZ, self.maxZ)
         )
     end
 
-    -- Mouse wheel
+    -- Mouse wheel zoom / plane adjustment
     local scroll = Input:mouse():value(MouseControl.ScrollY)
     if math.abs(scroll) > 1e-4 then
         local inverted = -scroll
         local shiftDown = Input:keyboard():isDown(KeyboardButton.ShiftLeft) or Input:keyboard():isDown(KeyboardButton.ShiftRight)
-
         if shiftDown then
-            -- Shift + scroll: adjust target plane Y only
             self.targetPlaneY = Math.Clamp(self.targetPlaneY + inverted * self.planeChangeSpeed, self.minPlaneY, self.maxPlaneY)
         else
-            -- Camera distance from focus
-            local camPos = self:getPosition()
-            local distance = (camPos - self.focusPoint):length()
-
-            -- Exponential curve
-            local zoomBase = 1.03
-            local zoomFactor = distance * 0.02
-            local zoomMultiplier = zoomBase ^ zoomFactor
-
-            -- Intended scroll delta along curve
-            local scrollDelta = inverted * self.heightSpeed * zoomMultiplier
-
-            -- Clamp scrollDelta proportionally to distance
-            local maxDelta = math.max(self.heightSpeed, distance * 0.05) -- tweak 0.05 for sensitivity
-            scrollDelta = Math.Clamp(scrollDelta, -maxDelta, maxDelta)
-
-            -- Apply zoom
-            self.height = Math.Clamp(self.height + scrollDelta, self.minHeight, self.maxHeight)
+            self.height = Math.Clamp(self.height + inverted * self.heightSpeed, self.minHeight, self.maxHeight)
         end
     end
 end
