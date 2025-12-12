@@ -157,8 +157,11 @@ impl Input {
         self.active_device.as_ref()
     }
 
-    pub fn active_device_type(&self) -> Option<InputDeviceType> {
-        self.active_device.as_ref().map(|dev| dev.ty)
+    pub fn active_device_type(&self) -> InputDeviceType {
+        self.active_device
+            .as_ref()
+            .map(|dev| dev.ty)
+            .unwrap_or(InputDeviceType::SystemEvent) // default fallback
     }
 
     pub fn active_device_id(&self) -> Option<&InputDeviceId> {

@@ -19,6 +19,10 @@ function GamepadState:gamepadName(gamepadId) end
 ---@return number
 function GamepadState:value(axis) end
 
+---@param axis GamepadAxis
+---@return number
+function GamepadState:delta(axis) end
+
 ---@param button GamepadButton
 ---@return boolean
 function GamepadState:isPressed(button) end
@@ -35,6 +39,11 @@ function GamepadState:isReleased(button) end
 ---@param axis GamepadAxis
 ---@return number
 function GamepadState:valueById(gamepadId, axis) end
+
+---@param gamepadId GamepadId
+---@param axis GamepadAxis
+---@return number
+function GamepadState:deltaById(gamepadId, axis) end
 
 ---@param gamepadId GamepadId
 ---@param button GamepadButton

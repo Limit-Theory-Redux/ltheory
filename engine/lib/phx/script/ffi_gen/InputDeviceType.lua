@@ -4,7 +4,7 @@ local Loader = {}
 
 function Loader.declareType()
     ffi.cdef [[
-        typedef uint8 InputDeviceType;
+        typedef uint16 InputDeviceType;
     ]]
 
     return 2, 'InputDeviceType'
