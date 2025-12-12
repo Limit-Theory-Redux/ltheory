@@ -1,19 +1,22 @@
-local Application      = require('States.Application')
+local Application         = require('States.Application')
 
 ---@class RenderingTest: Application
-local RenderingTest    = Subclass("RenderingTest", Application)
+local RenderingTest       = Subclass("RenderingTest", Application)
 
-local Registry         = require("Core.ECS.Registry")
-local Materials        = require("Shared.Registries.Materials")
-local CameraSystem     = require("Modules.Rendering.Systems.CameraSystem")
-local CameraEntity     = require("Modules.Rendering.Entities").Camera
-local BoxEntity        = require("Modules.Core.Entities").Box
-local Physics          = require("Modules.Physics.Components")
-local RenderComp       = require("Modules.Rendering.Components").Render
-local RenderCoreSystem = require("Modules.Rendering.Systems.RenderCoreSystem")
-local DeltaTimer       = require("Shared.Tools.DeltaTimer")
-local Entity           = require("Core.ECS.Entity")
-local DrawEx           = require("UI.DrawEx")
+local Registry            = require("Core.ECS.Registry")
+local Materials           = require("Shared.Registries.Materials")
+local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
+local CinematicCamera     = require("Modules.Cameras.Managers.CameraControllers.CinematicCameraController")
+local CameraEntity        = require("Modules.Cameras.Entities").Camera
+local BoxEntity           = require("Modules.Core.Entities").Box
+local Physics             = require("Modules.Physics.Components")
+local RenderComp          = require("Modules.Rendering.Components").Render
+local RenderCoreSystem    = require("Modules.Rendering.Systems.RenderCoreSystem")
+local CameraSystem        = require("Modules.Cameras.Systems.CameraSystem")
+local DeltaTimer          = require("Shared.Tools.DeltaTimer")
+local Entity              = require("Core.ECS.Entity")
+local DrawEx              = require("UI.DrawEx")
+local CameraDataComponent = require("Modules.Cameras.Components").CameraData
 
 function RenderingTest:onInit()
     require("Shared.Definitions.MaterialDefs")
@@ -25,7 +28,7 @@ function RenderingTest:onInit()
     -- Timers
     self.timer = DeltaTimer("RenderingTest")
     self.timer:start("fps", 0.1)
-    self.timer:start("camLoop", 0.01, true) -- continuous loop
+    self.timer:start("camLoop", 0.01, true)
 
     -- FPS tracking
     self.frameCount = 0
@@ -35,7 +38,10 @@ function RenderingTest:onInit()
 
     -- Camera setup
     local cam = CameraEntity()
-    CameraSystem:setCamera(cam)
+    CameraManager:registerCamera("CineCam", cam)
+    self.cameraController = CinematicCamera(cam, { useFocusPoint = true })
+    cam:get(CameraDataComponent):setController(self.cameraController)
+    CameraManager:setActiveCamera("CineCam")
 
     -- Grid setup
     self.boxes = {}
@@ -77,21 +83,11 @@ function RenderingTest:onInit()
     end
 
     -- Camera circular path parameters
-    self.camRadius        = 40  -- zoomed out a bit more
+    self.camRadius        = 40
     self.camHeight        = 20
-    self.camSpeed         = 0.2 -- radians/sec
-    self.camZoomAmplitude = 5   -- zoom in/out
-    self.camZoomSpeed     = 0.5 -- frequency of zoom oscillation
-
-    -- Initialize camera transform
-    local angle           = 0
-    local camPos          = self.gridCenter + Vec3f(
-        self.camRadius * math.cos(angle),
-        self.camHeight,
-        self.camRadius * math.sin(angle)
-    )
-    CameraSystem.currentCameraTransform:setPosition(Position(camPos.x, camPos.y, camPos.z))
-    CameraSystem.currentCameraTransform:setRotation(Quat.LookAt(camPos, self.gridCenter, Vec3f(0, 1, 0)))
+    self.camSpeed         = 0.2
+    self.camZoomAmplitude = 5
+    self.camZoomSpeed     = 0.5
 
     EventBus:subscribe(Event.PreRender, self, self.updateBoxes)
 end
@@ -151,9 +147,7 @@ function RenderingTest:updateBoxes(data)
 
     -- Update boxes
     for _, boxData in ipairs(self.boxes) do
-        local id = boxData.id
         local entity = boxData.entity
-
         if entity:isValid() and not boxData.deleted then
             local rb = entity:get(Physics.RigidBody):getRigidBody()
 
@@ -170,65 +164,6 @@ function RenderingTest:updateBoxes(data)
                 self.gridCenter.y + rotatedVec.y,
                 self.gridCenter.z + rotatedVec.z
             ))
-
-            -- Start blinking 1s before deletion
-            local deleteTimeLeft = self.timer:timeLeft("delete_" .. id)
-            if deleteTimeLeft and deleteTimeLeft < 1.0 and not self.timer:isActive("colorChange_" .. id) then
-                self.timer:start("colorChange_" .. id, 0.1, true)
-            end
-
-            -- Apply blinking color
-            if self.timer:check("colorChange_" .. id) then
-                local rend = entity:get(RenderComp)
-                local r, g, b = math.random(), math.random(), math.random()
-                for meshmat in Iterator(rend:getMeshes()) do
-                    meshmat.material:addStaticShaderVar("color", Enums.UniformType.Float3,
-                        function() return r, g, b end)
-                end
-            end
-
-            -- Deletion
-            if self.timer:check("delete_" .. id) then
-                boxData.deletedPos = rb:getPos()
-                Registry:destroyEntity(entity)
-                boxData.deleted = true
-
-                -- Stop blinking
-                self.timer:stop("colorChange_" .. id)
-
-                -- Start recreation timer
-                self.timer:start("recreate_" .. id, 3 + math.random() * 3, false)
-            end
-        elseif boxData.deleted then
-            if self.timer:check("recreate_" .. id) then
-                local mesh = Mesh.Box(2.5)
-                local mat  = Materials.DebugColor()
-                mat:addStaticShaderVar("color", Enums.UniformType.Float3,
-                    function() return 1.0, 0.0, 1.0 end)
-
-                local boxEntity = BoxEntity({ { mesh = mesh, material = mat } })
-                local rbCmp = boxEntity:get(Physics.RigidBody)
-                rbCmp:setRigidBody(RigidBody.CreateBoxFromMesh(mesh))
-
-                local relVec = Vec3f(boxData.relativePos.x, boxData.relativePos.y, boxData.relativePos.z)
-                local rotatedVec = self.gridRotation + relVec
-                rbCmp:getRigidBody():setPos(Position(
-                    self.gridCenter.x + rotatedVec.x,
-                    self.gridCenter.y + rotatedVec.y,
-                    self.gridCenter.z + rotatedVec.z
-                ))
-                rbCmp:getRigidBody():setRot(self.gridRotation * boxData.rotation)
-
-                Registry:attachEntity(self.gridParentEntity, boxEntity)
-
-                boxData.entity = boxEntity
-                boxData.deleted = false
-                boxData.deletedPos = nil
-
-                -- Reset delete timer
-                self.timer:reset("delete_" .. id)
-                self.timer:resume("delete_" .. id)
-            end
         end
     end
 
@@ -241,12 +176,12 @@ function RenderingTest:updateBoxes(data)
         self.camHeight + zoomOffset * 0.5,
         (self.camRadius + zoomOffset) * math.sin(angle)
     )
-    CameraSystem.currentCameraTransform:setPosition(Position(camPos.x, camPos.y, camPos.z))
-    CameraSystem.currentCameraTransform:setRotation(Quat.LookAt(camPos, self.gridCenter, Vec3f(0, 1, 0)))
+
+    -- Set target position and focus for CinematicCamera
+    self.cameraController:setPositionAndFocus(camPos, self.gridCenter)
 end
 
 function RenderingTest:onRender(data)
-    -- Normal rendering
     RenderCoreSystem:render(data)
 
     -- Immediate mode UI
@@ -258,48 +193,6 @@ function RenderingTest:onRender(data)
             20, 40, 70, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
     end)
 
-    -- Global coordinate axes at grid center
-    --local scale = 5
-    --Draw.Color(1, 0, 0, 1) -- X axis red
-    --Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(scale, 0, 0))
-    --Draw.Color(0, 1, 0, 1) -- Y axis green
-    --Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(0, scale, 0))
-    --Draw.Color(0, 0, 1, 1) -- Z axis blue
-    --Draw.Line3(self.gridCenter, self.gridCenter + Vec3f(0, 0, scale))
-
-    -- Bounding box around the grid
-    --todo: missing box3f?
-    --local halfExtents = Vec3f((6 - 1) * 7 / 2, (6 - 1) * 7 / 2, (6 - 1) * 7 / 2)
-    --local minCorner = self.gridCenter - halfExtents
-    --local maxCorner = self.gridCenter + halfExtents
-    --local box = Box3f()
-    --box.min = minCorner
-    --box.max = maxCorner
-    --Draw.Box3(box)
-
-    --[[ Draw axes for each box
-    for _, boxData in ipairs(self.boxes) do
-        if boxData.entity:isValid() then
-            local rb = boxData.entity:get(Physics.RigidBody):getRigidBody()
-            local pos = Position() --todo: add ext for *out*, so we don´t have to create Position() or Quat() every time
-            rb:getPos(pos)
-            local rot = Quat()
-            rb:getRot(rot)
-            local axisScale = 20
-
-            -- Create Vec3f objects for rotated axes
-            local xAxis, yAxis, zAxis = Vec3f(), Vec3f(), Vec3f()
-            rot:mulV(Vec3f(1, 0, 0), xAxis)
-            rot:mulV(Vec3f(0, 1, 0), yAxis)
-            rot:mulV(Vec3f(0, 0, 1), zAxis)
-
-            --todo change to use Position?
-            Draw.Axes(Vec3f(0, 0, 0), xAxis, yAxis, zAxis, axisScale, 0.7)
-        end
-    end]]
-
-
-    -- Flush all draw calls
     Draw.Flush()
 end
 
