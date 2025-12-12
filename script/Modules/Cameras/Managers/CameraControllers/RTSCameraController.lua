@@ -44,13 +44,13 @@ local RTSCameraController = Subclass("RTSCameraController", CameraController, fu
     self.height = cfg.height or 500
     self.currentHeight = self.height
     self.minHeight = cfg.minHeight or 10.0
-    self.maxHeight = cfg.maxHeight or 100000.0
+    self.maxHeight = cfg.maxHeight or 50000.0
     self.heightSpeed = cfg.heightSpeed or 15.0
 
     -- Plane change
     self.planeChangeSpeed = cfg.planeChangeSpeed or 15.0
-    self.minPlaneY = cfg.minPlaneY or -100000.0
-    self.maxPlaneY = cfg.maxPlaneY or 100000.0
+    self.minPlaneY = cfg.minPlaneY or -50000.0
+    self.maxPlaneY = cfg.maxPlaneY or 50000.0
 
     -- Rotation
     self.rotationSpeed = cfg.rotationSpeed or 2.0
@@ -74,6 +74,14 @@ local RTSCameraController = Subclass("RTSCameraController", CameraController, fu
     self.mouseCaptured = false
     self._wasMouseCaptured = false
     self.lastMousePos = nil
+
+    -- Store defaults for reset
+    self.defaultYaw = self.yaw
+    self.defaultPitch = self.pitch
+    self.basePitch = self.pitch -- Store base pitch for clamping
+    self.defaultHeight = self.height
+    self.defaultFocusPoint = self.focusPoint
+    self.defaultPlaneY = self.targetPlaneY or 0.0
 
     -- Cursor visibility
     self._cursorVisible = true
@@ -113,6 +121,18 @@ function RTSCameraController:getFocusPoint()
     return self.focusPoint
 end
 
+function RTSCameraController:resetCamera()
+    -- Reset to default/initial camera position
+    self.yaw = self.defaultYaw or 0.0
+    self.pitch = self.defaultPitch or self.basePitch or self.pitch
+    self.height = self.defaultHeight or (self.minHeight + self.maxHeight) * 0.5
+    self.focusPoint = self.defaultFocusPoint or Vec3f(0, 0, 0)
+    self.targetPlaneY = self.defaultPlaneY or 0.0
+
+    -- Reset base pitch reference
+    self.basePitch = self.pitch
+end
+
 ---@param dt number
 function RTSCameraController:onInput(dt)
     if not self.enabled or not Window:isFocused() then
@@ -124,6 +144,11 @@ function RTSCameraController:onInput(dt)
         return
     end
 
+    -- Backspace to reset camera
+    if Input:keyboard():isPressed(KeyboardButton.Backspace) then
+        self:resetCamera()
+    end
+
     -- Right-click hold for rotation
     self.mouseCaptured = Input:mouse():isDown(MouseControl.Right)
 
@@ -133,8 +158,24 @@ function RTSCameraController:onInput(dt)
 
         local delta = Input:mouse():delta()
         if delta:length() > 0.001 then
-            -- Apply mouse sensitivity
+            -- Apply mouse sensitivity for yaw (horizontal rotation)
             self.yaw = self.yaw - delta.x * self.mouseSensitivity * dt
+
+            -- Apply pitch adjustment (vertical camera angle)
+            local pitchSensitivity = self.mouseSensitivity * 0.5
+            local pitchDelta = delta.y * pitchSensitivity * dt
+
+            -- Adjust pitch with clamping relative to base pitch
+            local basePitch = self.basePitch or self.pitch -- Store base if not set
+            if not self.basePitch then
+                self.basePitch = self.pitch
+            end
+
+            self.pitch = self.pitch + pitchDelta
+
+            -- Clamp to ±30 degrees from base angle
+            local maxPitchOffset = math.rad(30) -- 30 degrees in radians
+            self.pitch = Math.Clamp(self.pitch, self.basePitch - maxPitchOffset, self.basePitch + maxPitchOffset)
         end
     else
         GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.None)
@@ -149,17 +190,65 @@ function RTSCameraController:onInput(dt)
         self.yaw = self.yaw + self.rotationSpeed * dt
     end
 
-    -- WASD movement (camera-relative)
+    -- Calculate exponential multiplier for solar system scale
+    local normalizedHeight = (self.height - self.minHeight) / (self.maxHeight - self.minHeight)
+
+    -- Much more aggressive exponential for solar system scales
+    local exponent = 4.0        -- Steeper growth for massive scale differences
+    local maxMultiplier = 100.0 -- Much higher for solar system distances
+
+    -- Smooth exponential curve
+    local expMultiplier = 1.0 + (maxMultiplier - 1.0) * (1.0 - math.exp(-exponent * normalizedHeight))
+
+    -- WASD movement (camera-relative) with exponential scaling
     local inputX, inputZ = 0.0, 0.0
     if Input:keyboard():isDown(KeyboardButton.W) then inputZ = inputZ + 1.0 end
     if Input:keyboard():isDown(KeyboardButton.S) then inputZ = inputZ - 1.0 end
     if Input:keyboard():isDown(KeyboardButton.A) then inputX = inputX - 1.0 end
     if Input:keyboard():isDown(KeyboardButton.D) then inputX = inputX + 1.0 end
 
+    -- Edge panning (mouse near screen edges)
+    if not self.mouseCaptured then
+        local mousePos = Input:mouse():position()
+        local screenW = Window:width()
+        local screenH = Window:height()
+        local edgeThreshold = 20 -- pixels from edge to trigger panning
+        local edgePanSpeed = 1.0 -- multiplier for edge panning
+
+        if mousePos.x < edgeThreshold then
+            inputX = inputX - 1.0 * edgePanSpeed
+        elseif mousePos.x > screenW - edgeThreshold then
+            inputX = inputX + 1.0 * edgePanSpeed
+        end
+
+        if mousePos.y < edgeThreshold then
+            inputZ = inputZ + 1.0 * edgePanSpeed
+        elseif mousePos.y > screenH - edgeThreshold then
+            inputZ = inputZ - 1.0 * edgePanSpeed
+        end
+    end
+
+    -- Middle mouse button drag panning
+    local middleMousePanning = Input:mouse():isDown(MouseControl.Middle)
+    if middleMousePanning then
+        local delta = Input:mouse():delta()
+        if delta:length() > 0.001 then
+            -- Convert screen space delta to world space panning
+            local panSensitivity = 0.5
+            inputX = inputX - delta.x * panSensitivity
+            inputZ = inputZ + delta.y * panSensitivity
+        end
+    end
+
     if math.abs(inputX) > 1e-4 or math.abs(inputZ) > 1e-4 then
-        local invlen = 1.0 / math.sqrt(inputX * inputX + inputZ * inputZ)
-        inputX = inputX * invlen
-        inputZ = inputZ * invlen
+        -- Normalize if from keyboard, but allow higher values from mouse drag
+        if math.abs(inputX) <= 1.0 and math.abs(inputZ) <= 1.0 then
+            local invlen = 1.0 / math.sqrt(inputX * inputX + inputZ * inputZ)
+            inputX = inputX * invlen
+            inputZ = inputZ * invlen
+        end
+
+        local moveSpeed = self.moveSpeed * expMultiplier
 
         local forwardX = -math.sin(self.yaw)
         local forwardZ = -math.cos(self.yaw)
@@ -170,22 +259,64 @@ function RTSCameraController:onInput(dt)
         local worldDZ = rightZ * inputX + forwardZ * inputZ
 
         self.focusPoint = Vec3f(
-            Math.Clamp(self.focusPoint.x + worldDX * self.moveSpeed * dt, self.minX, self.maxX),
+            Math.Clamp(self.focusPoint.x + worldDX * moveSpeed * dt, self.minX, self.maxX),
             self.focusPoint.y,
-            Math.Clamp(self.focusPoint.z + worldDZ * self.moveSpeed * dt, self.minZ, self.maxZ)
+            Math.Clamp(self.focusPoint.z + worldDZ * moveSpeed * dt, self.minZ, self.maxZ)
         )
     end
 
-    -- Mouse wheel zoom / plane adjustment
+    -- Mouse wheel zoom / plane adjustment with exponential scaling
     local scroll = Input:mouse():value(MouseControl.ScrollY)
     if math.abs(scroll) > 1e-4 then
         local inverted = -scroll
         local shiftDown = Input:keyboard():isDown(KeyboardButton.ShiftLeft) or Input:keyboard():isDown(KeyboardButton.ShiftRight)
+        local ctrlDown = Input:keyboard():isDown(KeyboardButton.ControlLeft) or Input:keyboard():isDown(KeyboardButton.ControlRight)
+
+        -- Ctrl+Scroll for faster zoom (useful for solar system scale)
+        local scrollMultiplier = ctrlDown and 3.0 or 1.0
+
         if shiftDown then
-            self.targetPlaneY = Math.Clamp(self.targetPlaneY + inverted * self.planeChangeSpeed, self.minPlaneY, self.maxPlaneY)
+            -- Blend between height-proportional (close) and exponential (far) for plane change too
+            local heightProportionalPlaneSpeed = self.height * 0.1 -- 10% of current height per scroll
+            local exponentialPlaneSpeed = self.planeChangeSpeed * expMultiplier
+
+            -- Use more height-proportional speed when close, more exponential when far
+            local blendFactor = math.min(normalizedHeight * 2.0, 1.0)
+            local planeSpeed = heightProportionalPlaneSpeed * (1.0 - blendFactor) + exponentialPlaneSpeed * blendFactor
+
+            self.targetPlaneY = Math.Clamp(self.targetPlaneY + inverted * planeSpeed, self.minPlaneY, self.maxPlaneY)
         else
-            self.height = Math.Clamp(self.height + inverted * self.heightSpeed, self.minHeight, self.maxHeight)
+            -- Blend between height-proportional (close) and exponential (far)
+            local heightProportionalSpeed = self.height * 0.1 -- 10% of current height per scroll
+            local exponentialSpeed = self.heightSpeed * expMultiplier
+
+            -- Use more height-proportional speed when close, more exponential when far
+            local blendFactor = math.min(normalizedHeight * 2.0, 1.0) -- 0 to 1 over first 50% of range
+            local heightSpeed = heightProportionalSpeed * (1.0 - blendFactor) + exponentialSpeed * blendFactor
+
+            heightSpeed = heightSpeed * scrollMultiplier
+            self.height = Math.Clamp(self.height + inverted * heightSpeed, self.minHeight, self.maxHeight)
         end
+    end
+
+    -- Keyboard shortcuts for zoom (Page Up/Down or +/-)
+    local keyboardZoom = 0.0
+    if Input:keyboard():isDown(KeyboardButton.PageUp) or Input:keyboard():isDown(KeyboardButton.Equal) then
+        keyboardZoom = -1.0
+    end
+    if Input:keyboard():isDown(KeyboardButton.PageDown) or Input:keyboard():isDown(KeyboardButton.Minus) then
+        keyboardZoom = 1.0
+    end
+
+    if math.abs(keyboardZoom) > 1e-4 then
+        -- Same blended approach for keyboard zoom
+        local heightProportionalSpeed = self.height * 0.1
+        local exponentialSpeed = self.heightSpeed * expMultiplier
+        local blendFactor = math.min(normalizedHeight * 2.0, 1.0)
+        local heightSpeed = heightProportionalSpeed * (1.0 - blendFactor) + exponentialSpeed * blendFactor
+
+        heightSpeed = heightSpeed * 2.0 -- Keyboard zoom a bit faster
+        self.height = Math.Clamp(self.height + keyboardZoom * heightSpeed * dt, self.minHeight, self.maxHeight)
     end
 end
 
