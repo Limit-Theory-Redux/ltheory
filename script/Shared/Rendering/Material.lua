@@ -151,9 +151,11 @@ function Material:clone()
     c.autoShaderVars = { unpack(self.autoShaderVars or {}) }
     c.constShaderVars = { unpack(self.constShaderVars or {}) }
 
-    for k, tex in pairs(self.textures or {}) do
-        c.textures[k] = Texture(k, tex.tex, tex.texType, tex.texSettings)
-        c.textures[k]:setTextureToShaderState(c.shaderState)
+    for tex in Iterator(self.textures or {}) do
+        ---@cast tex Texture
+        local texture = Texture(tex.texName, tex.tex, tex.texType, tex.texSettings)
+        texture:setTextureToShaderState(c.shaderState)
+        c.textures[tex] = texture
     end
 
     return c
