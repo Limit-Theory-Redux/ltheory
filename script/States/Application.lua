@@ -65,6 +65,11 @@ function Application:appInit()
     self.toggleProfiler = false
     self.showBackgroundModeHints = true
 
+    -- GC CONTROL: Disable automatic collection
+    GC.Stop()
+    self.gcThresholdKB = Config.gc and Config.gc.thresholdKB or 65536 -- 64 MB
+    self.gcHighWaterMark = nil                                        -- Will be set on first onPostRender
+
     self:onInit()
     self:onResize(self.resX, self.resY)
 
@@ -73,8 +78,8 @@ function Application:appInit()
     if Config.jit.verbose then Jit.StartVerbose() end
 
     Window:cursor():setGrabMode(CursorGrabMode.Confined)
-    Window:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
     Window:cursor():setGrabMode(CursorGrabMode.None)
+    Window:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
 end
 
 function Application:registerEvents()
@@ -154,6 +159,63 @@ end
 function Application:onPostRender(data)
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onPostRender')
+
+    local currentMem = GC.GetMemory()
+
+    -- Initialize previous memory if needed
+    if not self.prevMem then
+        self.prevMem = currentMem
+    end
+
+    -- Calculate memory growth per frame
+    local growth = currentMem - self.prevMem
+
+    -- Start cleaning if memory exceeds threshold
+    if not self.cleaning and currentMem > self.gcThresholdKB then
+        self.cleaning = true
+        GC.debug.spreadFrames = 0 -- reset frame counter for new cycle
+    end
+
+    if self.cleaning then
+        Profiler.Begin('GC.Step')
+
+        -- Adaptive step size
+        local baseStep = 1000
+        local growthFactor = math.ceil(growth / 10)
+        local stepSize = math.max(baseStep, growthFactor)
+
+        -- Cap step size to avoid hitches
+        local maxStep = 10000
+        stepSize = math.min(stepSize, maxStep)
+
+        -- Emergency full collection if memory spikes
+        local emergencyThreshold = self.gcThresholdKB * 5
+        if currentMem > emergencyThreshold then
+            GC.Collect() -- sets GC.debug.emergencyTriggered = true
+            self.cleaning = false
+        else
+            -- Incremental GC
+            local done = GC.Step(stepSize)
+            if done then
+                self.cleaning = false
+            end
+        end
+
+        -- **! seems to be a bug: engine restarts GC on collect, so we stop it again**
+        GC.Stop()
+
+        Profiler.End()
+    end
+
+    -- Update previous memory for next frame
+    self.prevMem = currentMem
+
+    -- Expose debug values to profiler/UI
+    Profiler.SetValue('gc_debug_stepSize', GC.debug.stepSize)
+    Profiler.SetValue('gc_debug_lastMem', GC.debug.lastMem)
+    Profiler.SetValue('gc_debug_emergencyTriggered', GC.debug.emergencyTriggered and 1 or 0)
+    Profiler.SetValue('gc_debug_spreadFrames', GC.debug.spreadFrames)
+
     Profiler.End()
 end
 
@@ -230,6 +292,9 @@ function Application:doExit()
     if Config.jit.dumpasm then Jit.StopDump() end
     if Config.jit.profile then Jit.StopProfile() end
     if Config.jit.verbose then Jit.StopVerbose() end
+
+    -- Final collection before exit
+    GC.Collect()
 
     self:onExit()
 end
