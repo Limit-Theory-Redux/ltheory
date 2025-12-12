@@ -1,6 +1,5 @@
 return {
     ShipData = require("Modules.Constructs.Components.ShipDataComponent"),
-    ShipEngines = require("Modules.Constructs.Components.ShipEnginesComponent"),
-    --ShipWeapons = require("Modules.Constructs.Components.ShipWeaponsComponent"),
-    ShipStats = require("Modules.Constructs.Components.ShipStatsComponent"),
+    Engines = require("Modules.Constructs.Components.EnginesComponent"),
+    Defense = require("Modules.Constructs.Components.DefenseComponent"),
 }
