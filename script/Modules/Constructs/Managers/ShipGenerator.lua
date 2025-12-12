@@ -76,12 +76,15 @@ end
 ---Create a Fighter ship with automatic mesh generation
 ---@param seed integer
 ---@param config FighterGenConfig|nil Configuration {material, hull, res, position, scale, rotation, isKinematic}
+---@param stats ShipStats|nil
 ---@return Entity
-function ShipGenerator:createFighter(seed, config)
+function ShipGenerator:createFighter(seed, config, stats)
     config = config or {}
 
+    local shipType = Enums.ShipType.Fighter
+
     -- Generate mesh
-    local mesh = generateShipMesh(seed, Enums.ShipType.Fighter, config.hull, config.res)
+    local mesh = generateShipMesh(seed, shipType, config.hull, config.res)
     mesh:computeNormals()
     mesh:computeAO(0.3 * mesh:getRadius())
 
@@ -91,7 +94,7 @@ function ShipGenerator:createFighter(seed, config)
     local meshes = { { mesh = mesh, material = material } }
 
     -- Create entity
-    local entity = ShipEntity(seed, meshes, Enums.ShipType.Fighter)
+    local entity = ShipEntity(seed, meshes, shipType, stats)
 
     -- Setup physics if configured
     if config.position or config.scale or config.rotation or config.isKinematic ~= nil then
@@ -122,14 +125,8 @@ function ShipGenerator:createFighter(seed, config)
     -- Set additional ship data
     local shipData = entity:get(ShipComponents.ShipData)
     if shipData then
-        if config.faction then
-            shipData:setFaction(config.faction)
-        end
-        if config.class then
-            shipData:setClass(config.class)
-        end
-        if config.variant then
-            shipData:setVariant(config.variant)
+        if shipType then
+            shipData:setShipType(shipType)
         end
     end
 
@@ -139,12 +136,15 @@ end
 ---Create a Capital ship with automatic mesh generation
 ---@param seed integer
 ---@param config table|nil Configuration {material, hull, res, position, scale, rotation, isKinematic}
+---@param stats ShipStats|nil
 ---@return Entity
-function ShipGenerator:createCapital(seed, config)
+function ShipGenerator:createCapital(seed, config, stats)
     config = config or {}
 
+    local shipType = Enums.ShipType.Capital
+
     -- Generate mesh
-    local mesh = generateShipMesh(seed, Enums.ShipType.Capital, config.hull, config.res)
+    local mesh = generateShipMesh(seed, shipType, config.hull, config.res)
     mesh:computeNormals()
 
     -- Get or create material
@@ -153,7 +153,7 @@ function ShipGenerator:createCapital(seed, config)
     local meshes = { { mesh = mesh, material = material } }
 
     -- Create entity
-    local entity = ShipEntity(seed, meshes, Enums.ShipType.Capital)
+    local entity = ShipEntity(seed, meshes, shipType, stats)
 
     -- Setup physics if configured
     if config.position or config.scale or config.rotation or config.isKinematic ~= nil then
@@ -184,11 +184,8 @@ function ShipGenerator:createCapital(seed, config)
     -- Set additional ship data
     local shipData = entity:get(ShipComponents.ShipData)
     if shipData then
-        if config.faction then
-            shipData:setFaction(config.faction)
-        end
-        if config.class then
-            shipData:setClass(config.class)
+        if shipType then
+            shipData:setShipType(shipType)
         end
     end
 
@@ -198,12 +195,15 @@ end
 ---Create a Basic ship with automatic mesh generation
 ---@param seed integer
 ---@param config table|nil Configuration {material, hull, res, position, scale, rotation, isKinematic}
+---@param stats ShipStats|nil
 ---@return Entity
-function ShipGenerator:createBasic(seed, config)
+function ShipGenerator:createBasic(seed, config, stats)
     config = config or {}
 
+    local shipType = Enums.ShipType.Basic
+
     -- Generate mesh
-    local mesh = generateShipMesh(seed, Enums.ShipType.Basic, config.hull, config.res)
+    local mesh = generateShipMesh(seed, shipType, config.hull, config.res)
     mesh:computeNormals()
 
     -- Get or create material
@@ -212,7 +212,7 @@ function ShipGenerator:createBasic(seed, config)
     local meshes = { { mesh = mesh, material = material } }
 
     -- Create entity
-    local entity = ShipEntity(seed, meshes, Enums.ShipType.Basic)
+    local entity = ShipEntity(seed, meshes, shipType, stats)
 
     -- Setup physics if configured
     if config.position or config.scale or config.rotation or config.isKinematic ~= nil then
@@ -241,13 +241,10 @@ function ShipGenerator:createBasic(seed, config)
     end
 
     -- Set additional ship data
-    local shipData = entity:get(Ships.Gen.ShipData)
+    local shipData = entity:get(ShipComponents.ShipData)
     if shipData then
-        if config.faction then
-            shipData:setFaction(config.faction)
-        end
-        if config.class then
-            shipData:setClass(config.class)
+        if shipType then
+            shipData:setShipType(shipType)
         end
     end
 

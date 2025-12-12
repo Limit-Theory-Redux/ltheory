@@ -220,7 +220,7 @@ impl Engine {
             if !self.winit_window.window().has_focus() {
                 self.winit_window.window().focus_window();
             }
-            println!("Set grab mode to {:?} 2", self.window.cursor.grab_mode);
+            //println!("Set grab mode to {:?} 2", self.window.cursor.grab_mode);
             attempt_grab(self.winit_window.window(), self.window.cursor.grab_mode);
         }
 
