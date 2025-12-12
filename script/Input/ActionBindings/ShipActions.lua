@@ -34,7 +34,7 @@ local ShipActions = {
 
     ---@type ActionBinding
     Pitch = ActionBinding({
-        mouse = { Control.MouseDY():setMult(-0.1) },  -- inverted and scaled
+        mouse = { Control.MouseDY():setMult(-0.1) },
         gamepad = { Control.Axis(Button.GamepadRightStickY):invert() },
     }),
 

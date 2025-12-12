@@ -1,5 +1,3 @@
-local Control = require('Input.Control')
-
 --[[
     Control category definitions:
     we separate controls into two categories for the purpose of handling isDown/isPressed/isReleased 
@@ -108,13 +106,13 @@ function ActionBinding:readBind(bind)
     
     local t = bind.type
 
-    -- single key/button: raw value
+    -- single key/button
     if t == "Key" then
         local k = Input:getValue(bind.key)
         return k
     end
     
-    -- combo: all modifiers must be held, return last key's value
+    -- combo - all keys must be held
     if t == "Combo" then
         local keys = bind.keys
         for i = 1, #keys - 1 do
@@ -124,7 +122,7 @@ function ActionBinding:readBind(bind)
                     return 0.0
                 end
             elseif type(key) == "table" then
-                if self:readBind(key) == 0 then
+                if self:readBind(key) == 0 then -- recurse
                     return 0.0
                 end
             end
