@@ -377,8 +377,14 @@ function CameraTest:onRender(data)
             string.format("Seed: %d", self.seed),
             string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
             string.format("Yaw: %.2f | Pitch: %.2f", math.deg(yaw), math.deg(pitch)),
+            string.format("FOV: %.1f", Config.render.camera.fov),
+
             string.format("Lua Memory: %.2f KB", mem),
-            string.format("FOV: %.1f", Config.render.camera.fov)
+            -- GC debug info
+            string.format("GC Step Size: %d", GC.debug.stepSize),
+            string.format("GC Last Mem After Cleanup: %.2f KB", GC.debug.lastMem or 0),
+            string.format("GC Emergency: %s", GC.debug.emergencyTriggered and "YES" or "NO"),
+            string.format("GC Spread Frames: %d", GC.debug.spreadFrames)
         }
 
         local y = 40

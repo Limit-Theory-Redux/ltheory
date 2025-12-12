@@ -596,7 +596,12 @@ function PlanetTest:onRender(data)
             string.format("Ocean: %.2f | Clouds: %.2f",
                 self.genOptions.oceanLevel, self.genOptions.cloudLevel
             ),
-            string.format("Lua Memory: %.2f KB", mem)
+            string.format("Lua Memory: %.2f KB", mem),
+            -- GC debug info
+            string.format("GC Step Size: %d", GC.debug.stepSize),
+            string.format("GC Last Mem After Cleanup: %.2f KB", GC.debug.lastMem or 0),
+            string.format("GC Emergency: %s", GC.debug.emergencyTriggered and "YES" or "NO"),
+            string.format("GC Spread Frames: %d", GC.debug.spreadFrames)
         }
 
         local y = 40
