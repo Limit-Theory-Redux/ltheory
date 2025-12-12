@@ -18,7 +18,6 @@ local CoreComponents        = require("Modules.Core.Components")
 local RenderComp            = require("Modules.Rendering.Components").Render
 local CameraDataComponent   = require('Modules.Cameras.Components.CameraDataComponent')
 
-local RenderCoreSystem      = require("Modules.Rendering.Systems.RenderCoreSystem")
 local CameraSystem          = require("Modules.Cameras.Systems.CameraSystem")
 
 local SkyboxEntity          = require("Modules.CelestialObjects.Entities.SkyboxEntity")
@@ -99,9 +98,6 @@ function StationTest:onInit()
 
     -- Orbit camera targets station
     self.controllerOrbitCam:setTarget(self.station)
-
-    -- UI
-    self.canvas = UI.Canvas()
 
     -- EventBus subscriptions
     EventBus:subscribe(Event.PreRender, self, self.onStatePreRender)
