@@ -84,63 +84,32 @@ end
 function OrbitCameraController:onInput(dt)
     if not self.enabled or not Window:isFocused() then return end
 
-    local size = Window:size()
-    local center = Vec2f(size.x / 2, size.y / 2)
-
-    -- Mouse capture toggle - only capture while RIGHT mouse is held (drag orbit)
+    -- Toggle mouse capture with right click
     if Input:mouse():isPressed(MouseControl.Right) then
-        self.mouseCaptured = true
-        self.justCaptured = true
+        self.mouseCaptured = not self.mouseCaptured
+        self.justCaptured = self.mouseCaptured
     end
 
-    if Input:mouse():isReleased(MouseControl.Right) then
-        self.mouseCaptured = false
-    end
-
-    -- Only rotate while mouse is captured (dragging)
     if self.mouseCaptured then
+        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.Locked)
         Input:setCursorVisible(false)
 
-        local mousePos = Input:mouse():position()
-        local mouseDelta = Vec2f(0, 0)
-
-        -- Force delta to zero on first captured frame
-        if self.justCaptured then
-            mouseDelta = Vec2f(0, 0)
-            self.justCaptured = false
-        elseif self.lastMousePos then
-            -- Calculate delta from last position
-            mouseDelta = mousePos - self.lastMousePos
-        end
-
-        -- Apply rotation delta
-        if mouseDelta:length() > 0.001 then
-            self.yaw = self.yaw - mouseDelta.x * self.mouseSensitivity
-            self.pitch = self.pitch - mouseDelta.y * self.mouseSensitivity
-
-            -- Clamp pitch to prevent flipping
+        local delta = Input:mouse():delta()
+        if delta:length() > 0.001 then
+            self.yaw   = self.yaw - delta.x * self.mouseSensitivity
+            self.pitch = self.pitch - delta.y * self.mouseSensitivity
             self.pitch = Math.Clamp(self.pitch, self.minPitch, self.maxPitch)
-
-            -- Immediately update camera position with new angles
             self:updateCameraPosition(dt)
         end
-
-        self.wasCapturedLastFrame = true
-
-        -- Recenter mouse and store center as last position
-        Window:setMousePosition(center.x, center.y)
-        self.lastMousePos = center
     else
+        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.None)
         Input:setCursorVisible(true)
-        self.wasCapturedLastFrame = false
-        self.lastMousePos = nil
     end
 
     -- Zoom with mouse wheel
     local scroll = Input:mouse():value(MouseControl.ScrollY)
     if math.abs(scroll) > 0.001 then
-        self.distance = self.distance - scroll * self.zoomSpeed
-        self.distance = Math.Clamp(self.distance, self.minDistance, self.maxDistance)
+        self.distance = Math.Clamp(self.distance - scroll * self.zoomSpeed, self.minDistance, self.maxDistance)
     end
 end
 
