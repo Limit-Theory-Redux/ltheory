@@ -1,7 +1,7 @@
 local Registry         = require("Core.ECS.Registry")
 local QuickProfiler    = require("Shared.Tools.QuickProfiler")
 local RenderingPass    = require("Shared.Rendering.RenderingPass")
-local CameraSystem     = require("Modules.Rendering.Systems.CameraSystem")
+local CameraManager    = require("Modules.Cameras.Managers.CameraManager")
 local RenderComp       = require("Modules.Rendering.Components").Render
 local UniformFuncs     = require("Shared.Rendering.UniformFuncs")
 
@@ -100,9 +100,9 @@ function RenderCoreSystem:render(data)
     ClipRect.PushDisabled()
     RenderState.PushAllDefaults()
 
-    CameraSystem:updateViewMatrix()
-    CameraSystem:updateProjectionMatrix(self.resX, self.resY)
-    CameraSystem:beginDraw()
+    CameraManager:updateViewMatrix()
+    CameraManager:updateProjectionMatrix(self.resX, self.resY)
+    CameraManager:beginDraw()
 
     -- Data cache
     self:cacheData()
@@ -130,7 +130,7 @@ function RenderCoreSystem:render(data)
     self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
     self.passes[self.currentPass]:stop()
 
-    CameraSystem:endDraw()
+    CameraManager:endDraw()
 
     if self.settings.showBuffers then
         self:presentAll(0, 0, self.resX, self.resY)
@@ -192,7 +192,7 @@ function RenderCoreSystem:cacheData()
     self.instanceCache = {}
     local processedMats = {}
 
-    local eye = CameraSystem:getCurrentCameraEye()
+    local eye = CameraManager:getEye()
 
     for entity in Registry:view(RenderComp) do
         local rend = entity:get(RenderComp)

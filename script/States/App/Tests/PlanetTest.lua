@@ -5,8 +5,7 @@ local PlanetTest          = Subclass("PlanetTest", Application)
 
 local Registry            = require("Core.ECS.Registry")
 local Materials           = require("Shared.Registries.Materials")
-local CameraSystem        = require("Modules.Rendering.Systems.CameraSystem")
-local CameraEntity        = require("Modules.Rendering.Entities").Camera
+local CameraEntity        = require("Modules.Cameras.Entities").Camera
 local PlanetEntity        = require('Modules.CelestialObjects.Entities.PlanetEntity')
 local MoonEntity          = require('Modules.CelestialObjects.Entities.MoonEntity')
 local AsteroidRingEntity  = require('Modules.CelestialObjects.Entities.AsteroidRingEntity')
@@ -15,10 +14,14 @@ local PhysicsComponents   = require("Modules.Physics.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
 local CoreComponents      = require('Modules.Core.Components')
 local RenderComp          = require("Modules.Rendering.Components").Render
+local CameraDataComponent = require('Modules.Cameras.Components.CameraDataComponent')
 local RenderCoreSystem    = require("Modules.Rendering.Systems.RenderCoreSystem")
 local DeltaTimer          = require("Shared.Tools.DeltaTimer")
 local Entity              = require("Core.ECS.Entity")
 local DrawEx              = require("UI.DrawEx")
+
+-- New camera system
+local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
 
 ---! still using legacy
 local Primitive           = require("Legacy.Systems.Gen.Primitive")
@@ -91,40 +94,52 @@ function PlanetTest:onInit()
         end
     end)
 
-    -- Camera setup
-    local cam = CameraEntity()
-    CameraSystem:setCamera(cam)
-
     self.planetPos = Vec3f(0, 0, 0)
 
-    -- Initialize camera transform
-    self.camPos    = Vec3f(0, 0, -4)
-    CameraSystem.currentCameraTransform:setPos(Position(self.camPos.x, self.camPos.y, self.camPos.z))
-    CameraSystem.currentCameraTransform:setRot(Quat.LookAt(self.camPos, self.planetPos, Vec3f(0, 1, 0)))
+    -- Orbit camera state (initialize first)
+    self.orbitAngle = 0.0
+    self.orbitPitch = 0.0
+    self.orbitRadius = 400.0
+    self.targetOrbitRadius = 400.0
 
-    self.focusEntity       = nil
+    -- NEW: Camera setup using CameraManager
+    local cam = CameraEntity()
+    CameraManager:registerCamera("OrbitCam", cam)
 
-    self.targetCamRadius   = self.camPos.z
-    self.zoomLerpSpeed     = 2.0
-    self.zoomSensitivity   = 0.9
-    self.zoomMinDistance   = 0.0
-    self.isDragging        = false
-    self.dragSensitivity   = 0.005
-    self.dragReleaseTimer  = 0
-    self.dragReleaseDelay  = 10.0
-    self.angle             = 0.0
-    self.pitch             = 0.0
-    self.pitchMin          = -0.8
-    self.pitchMax          = 0.8
-    self.pitchSensitivity  = 0.004
+    -- Calculate initial camera position from orbit parameters
+    local x = math.sin(self.orbitAngle) * math.cos(self.orbitPitch) * self.orbitRadius
+    local y = math.sin(self.orbitPitch) * self.orbitRadius
+    local z = math.cos(self.orbitAngle) * math.cos(self.orbitPitch) * self.orbitRadius
+    local initialCamPos = Vec3f(self.planetPos.x + x, self.planetPos.y + y, self.planetPos.z + z)
+
+    -- Set initial camera transform directly
+    local transform = cam:get(PhysicsComponents.Transform)
+    transform:setPos(Position(initialCamPos.x, initialCamPos.y, initialCamPos.z))
+
+    local lookDir = (self.planetPos - initialCamPos):normalize()
+    local rot = Quat.FromLook(lookDir, Vec3f(0, 1, 0))
+    transform:setRot(rot)
+
+    CameraManager:setActiveCamera("OrbitCam")
+    self.orbitPitchMin = -0.8
+    self.orbitPitchMax = 0.8
+    self.zoomMinDistance = 1.0
+    self.zoomSensitivity = 10
+    self.zoomLerpSpeed = 2.0
+    self.dragSensitivity = 0.005
+    self.pitchSensitivity = 0.004
     self.autoRotationSpeed = 0.0225
-    self.returnPitchLerp   = 1.5
+    self.returnPitchLerp = 1.5
+    self.isDragging = false
+    self.dragReleaseTimer = 0
+    self.dragReleaseDelay = 10.0
 
-    self.enableRingDebug   = true
-    self.ringDebug         = 1
+    self.focusEntity = nil
+    self.enableRingDebug = true
+    self.ringDebug = 1
 
-    -- Camera transition
-    self.cameraTransition  = {
+    -- Camera transition state
+    self.cameraTransition = {
         active = false,
         time = 0,
         duration = 1.5,
@@ -232,29 +247,31 @@ function PlanetTest:createPlanet(seed)
     local rbCmp = self.planet:get(PhysicsComponents.RigidBody)
     local rb = RigidBody.CreateSphereFromMesh(mesh)
     rbCmp:setRigidBody(rb)
+    rb:setKinematic(true)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
     rb:setScale(planetRNG:getInt(100, 200))
 
     -- add rb to physics world
     self.world:addRigidBody(rb)
 
-    self:createPlanetRing(seed)
+    if planetRNG:getUniform() < 0.2 then
+        self:createPlanetRing(seed)
+    else
+        self.ringOuterRadius = self.planet:get(PhysicsComponents.RigidBody):getRadius()
+    end
+
+    self.planetRotationSpeed = planetRNG:getUniformRange(0.0005, 0.002)
+
     self:createMoons(seed)
     self:updateCameraZoomLimits()
 
     -- Set camera zoom to 4× planet radius
     local radius = rb:getScale()
-    local planetPos = rb:getPos()
-    local dir = (self.camPos - planetPos)
-    if dir:length() == 0 then
-        dir = Vec3f(0, 0, 1)
-    else
-        dir = dir:normalize()
-    end
-    self.targetCamRadius = radius * 4
-    dir:imuls(self.targetCamRadius)
-    planetPos:iadds(self.targetCamRadius)
-    self.camPos = planetPos
+    self.targetOrbitRadius = radius * 4
+    self.orbitRadius = self.targetOrbitRadius
+
+    -- Update camera to new position immediately
+    self:updateOrbitCamera(0)
 end
 
 function PlanetTest:createPlanetRing(seed)
@@ -401,30 +418,12 @@ function PlanetTest:updateCameraZoomLimits()
 
     local rb = self.planet:get(PhysicsComponents.RigidBody)
     local planetRadius = rb:getRadius()
-    local planetPos = rb:getPos()
 
     self.zoomMinDistance = planetRadius * 1.05
     self.zoomSensitivity = Math.Clamp(math.sqrt(planetRadius) * 0.02, 0.05, 10.0)
 
-    local safeDistance = planetRadius * 3.0
-    local currentDist = (self.camPos - planetPos):length()
-
-    if currentDist < self.zoomMinDistance then
-        local dir = self.camPos - planetPos
-        if dir:length() == 0 then
-            dir = Vec3f(0, 0, 1)
-        else
-            dir = dir:normalize()
-        end
-
-        self.targetCamRadius = safeDistance
-        self.zoomTransitionStart = self.camPos
-        self.zoomTransitionEnd = planetPos + Vec3f(dir.x * safeDistance, dir.y * safeDistance, dir.z * safeDistance)
-        self.zoomTransitionTime = 0
-        self.zoomTransitionDuration = 1.0
-    else
-        self.targetCamRadius = math.max(self.zoomMinDistance, self.targetCamRadius)
-    end
+    -- Ensure current radius is valid
+    self.targetOrbitRadius = math.max(self.zoomMinDistance, self.targetOrbitRadius)
 end
 
 function PlanetTest:updateCameraZoomLimitsForFocus()
@@ -447,13 +446,49 @@ function PlanetTest:updateCameraZoomLimitsForFocus()
     end
 end
 
+-- NEW: Update orbit camera position based on angle, pitch, radius
+function PlanetTest:updateOrbitCamera(dt)
+    -- Get focus position
+    local targetPos = self.planetPos
+    if self.focusEntity then
+        local focusRb = self.focusEntity:get(PhysicsComponents.RigidBody)
+        if focusRb and focusRb:getRigidBody() then
+            targetPos = focusRb:getRigidBody():getPos():toVec3f()
+        else
+            self.focusEntity = nil
+            targetPos = self.planetPos
+        end
+    end
+
+    -- Calculate camera position from orbit parameters
+    local x = math.sin(self.orbitAngle) * math.cos(self.orbitPitch) * self.orbitRadius
+    local y = math.sin(self.orbitPitch) * self.orbitRadius
+    local z = math.cos(self.orbitAngle) * math.cos(self.orbitPitch) * self.orbitRadius
+    local camPos = Vec3f(targetPos.x + x, targetPos.y + y, targetPos.z + z)
+
+    -- Get the camera entity's transform component directly
+    local camEntity = CameraManager:getActiveCameraEntity()
+    if not camEntity then return end
+
+    local transform = camEntity:get(PhysicsComponents.Transform)
+    if not transform then return end
+
+    -- Directly set transform position and rotation (bypass controller smoothing)
+    transform:setPos(Position(camPos.x, camPos.y, camPos.z))
+
+    -- Calculate look direction and set rotation
+    local lookDir = (targetPos - camPos):normalize()
+    local worldUp = Vec3f(0, 1, 0)
+    local rot = Quat.FromLook(lookDir, worldUp)
+    transform:setRot(rot)
+end
+
 function PlanetTest:onStatePreRender(data)
     local dt = data:deltaTime()
     local scaledDT = dt * (self.timeScale or 1)
     self.timer:update(dt)
     self.clickTimer:update(dt)
 
-    -- Reset click count if double-click window expires
     if self.clickTimer:check("doubleClick") then
         self.clickCount = 0
         self.lastClickedBody = nil
@@ -472,74 +507,45 @@ function PlanetTest:onStatePreRender(data)
         self.dragReleaseTimer = math.max(0, self.dragReleaseTimer - dt)
     end
 
-    -- Determine the target position for the camera
-    local targetPos = self.planetPos
-
-    -- Handle camera transition
+    -- Handle camera transition animation
     if self.cameraTransition.active then
         self.cameraTransition.time = self.cameraTransition.time + dt
         local t = math.min(1.0, self.cameraTransition.time / self.cameraTransition.duration)
         local easedT = self:easeInOutCubic(t)
 
-        -- Interpolate the focus position (what we're orbiting around)
-        targetPos = Vec3f(
-            self.cameraTransition.startPos.x + (self.cameraTransition.targetPos.x - self.cameraTransition.startPos.x) * easedT,
-            self.cameraTransition.startPos.y + (self.cameraTransition.targetPos.y - self.cameraTransition.startPos.y) * easedT,
-            self.cameraTransition.startPos.z + (self.cameraTransition.targetPos.z - self.cameraTransition.startPos.z) * easedT
-        )
-
-        -- Interpolate angle, pitch, and radius
-        self.angle = self.cameraTransition.startAngle + (self.cameraTransition.targetAngle - self.cameraTransition.startAngle) * easedT
-        self.pitch = self.cameraTransition.startPitch + (self.cameraTransition.targetPitch - self.cameraTransition.startPitch) * easedT
-        self.currentCamRadius = self.cameraTransition.startRadius +
+        -- Interpolate orbit parameters
+        self.orbitAngle = self.cameraTransition.startAngle +
+            (self.cameraTransition.targetAngle - self.cameraTransition.startAngle) * easedT
+        self.orbitPitch = self.cameraTransition.startPitch +
+            (self.cameraTransition.targetPitch - self.cameraTransition.startPitch) * easedT
+        self.orbitRadius = self.cameraTransition.startRadius +
             (self.cameraTransition.targetRadius - self.cameraTransition.startRadius) * easedT
-        self.targetCamRadius = self.cameraTransition.targetRadius
+        self.targetOrbitRadius = self.cameraTransition.targetRadius
 
-        -- End transition when complete
         if t >= 1.0 then
             self.cameraTransition.active = false
-            -- Now set the focus entity and update zoom limits
-            self.focusEntity = self.cameraTransition.targetEntity
-            self:updateCameraZoomLimitsForFocus()
-            self.cameraTransition.targetEntity = nil
         end
     else
-        -- Normal focus behavior when not transitioning
-        if self.focusEntity then
-            local focusRb = self.focusEntity:get(PhysicsComponents.RigidBody)
-
-            if focusRb and focusRb:getRigidBody() then
-                targetPos = focusRb:getRigidBody():getPos():toVec3f()
-            else
-                -- If focus entity is invalid, reset to planet
-                self.focusEntity = nil
-                targetPos = self.planetPos
-            end
-        end
-
-        -- Auto-rotation around the focused entity (only when not transitioning)
+        -- Normal orbit behavior
         if not self.isDragging and self.dragReleaseTimer == 0 and (self.timeScale or 1) == 1 then
-            self.angle = (self.angle or 0) + self.autoRotationSpeed * scaledDT
-            self.pitch = Math.Lerp(self.pitch, 0.0, math.min(1, self.returnPitchLerp * dt))
+            self.orbitAngle = (self.orbitAngle or 0) + self.autoRotationSpeed * scaledDT
+            self.orbitPitch = Math.Lerp(self.orbitPitch, 0.0, math.min(1, self.returnPitchLerp * dt))
         end
 
-        -- Smooth zoom (only when not transitioning)
+        -- Smooth zoom
         local lerpFactor = math.min(1, self.zoomLerpSpeed * dt)
-        local currentRadius = self.currentCamRadius or self.targetCamRadius
-        currentRadius = currentRadius + (self.targetCamRadius - currentRadius) * lerpFactor
-        self.currentCamRadius = currentRadius
+        self.orbitRadius = self.orbitRadius + (self.targetOrbitRadius - self.orbitRadius) * lerpFactor
     end
 
-    -- Update moons orbit
+    -- Update orbit camera
+    self:updateOrbitCamera(dt)
+
+    -- Update moon orbits
     if self.moons then
         for _, moon in ipairs(self.moons) do
             moon.phase = moon.phase + moon.speed * scaledDT
-
-            -- Orbit position in moon's local plane
             local x = math.cos(moon.phase) * moon.radius
             local z = math.sin(moon.phase) * moon.radius
-
-            -- Apply inclination rotation around X-axis
             local cosInc = math.cos(moon.inclination)
             local sinInc = math.sin(moon.inclination)
             local y = z * sinInc
@@ -555,19 +561,18 @@ function PlanetTest:onStatePreRender(data)
         end
     end
 
-    -- Calculate camera position relative to target using angle, pitch, and radius
-    local currentRadius = self.currentCamRadius or self.targetCamRadius
-    local x = math.sin(self.angle) * math.cos(self.pitch) * currentRadius
-    local y = math.sin(self.pitch) * currentRadius
-    local z = math.cos(self.angle) * math.cos(self.pitch) * currentRadius
-    local camPos = Vec3f(targetPos.x + x, targetPos.y + y, targetPos.z + z)
+    -- Rotate planet
+    if self.planet then
+        local planetRb = self.planet:get(PhysicsComponents.RigidBody):getRigidBody()
+        local currentRot = planetRb:getRot()
+        local deltaRot = Quat.FromAxisAngle(Vec3f(0, 1, 0), self.planetRotationSpeed * scaledDT)
+        planetRb:setRot(currentRot:mul(deltaRot))
+    end
 
-    -- Update camPos for other systems that might use it
-    self.camPos = camPos
-
-    local camTransform = CameraSystem.currentCameraTransform
-    camTransform:setPos(Position(camPos.x, camPos.y, camPos.z))
-    camTransform:setRot(Quat.LookAt(camPos, targetPos, Vec3f(0, 1, 0)))
+    -- Update camera matrices
+    CameraManager:updateViewMatrix()
+    local resX, resY = Window:width(), Window:height()
+    CameraManager:updateProjectionMatrix(resX, resY)
 end
 
 function PlanetTest:onRender(data)
@@ -575,13 +580,16 @@ function PlanetTest:onRender(data)
 
     self:immediateUI(function()
         local mem = GC.GetMemory()
+        local camEntity = CameraManager:getActiveCameraEntity()
+        local camTransform = camEntity and camEntity:get(PhysicsComponents.Transform)
+        local camPos = camTransform and camTransform:getPos() or Position(0, 0, 0)
+
         local infoLines = {
             string.format("FPS: %d", math.floor(self.smoothFPS + 0.5)),
             string.format("Seed: %d", self.seed),
-            string.format("Radius: %.2f | Zoom: %.2f",
-                self.planet and self.planet:get(PhysicsComponents.RigidBody):getRadius() or 0,
-                -self.camPos.z
-            ),
+            string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
+            string.format("Orbit: Angle=%.1f° Pitch=%.1f° Radius=%.1f",
+                math.deg(self.orbitAngle), math.deg(self.orbitPitch), self.orbitRadius),
             string.format("Freq: %.2f | Power: %.2f",
                 self.genOptions.surfaceFreq, self.genOptions.surfacePower
             ),
@@ -600,7 +608,7 @@ function PlanetTest:onRender(data)
 
         UI.DrawEx.TextAdditive(
             'Unageo-Medium',
-            "Press [B] for new planet",
+            "Press [B] for new planet | Double-click to focus | Drag to rotate",
             14,
             self.resX / 2 - 14, self.resY - 60, 40, 20,
             1, 1, 1, 1,
@@ -611,7 +619,7 @@ end
 
 -- Mouse click handler for PlanetTest
 function PlanetTest:handleMouseClick()
-    local ray = CameraSystem:mouseToRay(1e7)
+    local ray = CameraManager:mouseToRay(1e7)
     local result = self.world:rayCast(ray)
 
     if not result or not result.body then
@@ -619,7 +627,7 @@ function PlanetTest:handleMouseClick()
         self.clickCount = 0
         self.lastClickedBody = nil
         self.focusEntity = nil
-        self:updateCameraZoomLimitsForFocus() -- Reset to planet limits
+        self:updateCameraZoomLimitsForFocus()
         self.clickTimer:remove("doubleClick")
         return
     end
@@ -645,9 +653,6 @@ function PlanetTest:handleMouseClick()
     end
 
     -- Single click feedback
-    local t = result.t
-    local hitPos = ray:getPoint(t)
-
     if self.planet then
         local planetRb = self.planet:get(PhysicsComponents.RigidBody):getRigidBody()
 
@@ -714,7 +719,6 @@ function PlanetTest:focusOnObject(raycastResult)
         if ringRb and hitBody == ringRb:getRigidBody() then
             print("=== FOCUSING ON RING ===")
             local planetRb = self.planet:get(PhysicsComponents.RigidBody):getRigidBody()
-            local planetRadius = planetRb:getBoundingRadius()
             local targetRadius = self.ringOuterRadius * 1.5
             self:animateCameraToTarget(self.ring, planetRb:getPos(), targetRadius, math.rad(45))
             return
@@ -723,66 +727,77 @@ function PlanetTest:focusOnObject(raycastResult)
 end
 
 function PlanetTest:animateCameraToTarget(targetEntity, targetPos, distance, forcePitch)
-    -- Get current focus position
-    local currentFocusPos = self.planetPos
-    if self.focusEntity then
-        local focusRb = self.focusEntity:get(PhysicsComponents.RigidBody)
-        if focusRb and focusRb:getRigidBody() then
-            currentFocusPos = focusRb:getRigidBody():getPos():toVec3f()
-        end
+    -- Get current camera position
+    local camEntity = CameraManager:getActiveCameraEntity()
+    if not camEntity then return end
+
+    local transform = camEntity:get(PhysicsComponents.Transform)
+    if not transform then return end
+
+    local currentCamPos = transform:getPos():toVec3f()
+    local newTargetPos = targetPos:toVec3f()
+
+    -- Calculate current angle/pitch/radius relative to the NEW target position
+    -- This ensures we start from exactly where the camera currently is
+    local dirFromNewTarget = currentCamPos - newTargetPos
+    local currentRadius = dirFromNewTarget:length()
+
+    if currentRadius < 0.01 then
+        dirFromNewTarget = Vec3f(0, 0, 1)
+        currentRadius = distance
+    else
+        dirFromNewTarget = dirFromNewTarget:normalize()
     end
 
-    -- Store current camera state
-    self.cameraTransition.startPos = currentFocusPos
-    self.cameraTransition.targetPos = targetPos:toVec3f()
-    self.cameraTransition.startAngle = self.angle
-    self.cameraTransition.startPitch = self.pitch
-    self.cameraTransition.startRadius = self.currentCamRadius or self.targetCamRadius
-    self.cameraTransition.targetEntity = targetEntity -- Store entity to focus on after transition
+    -- Calculate angle and pitch from current position relative to new target
+    local currentAngle = math.atan2(dirFromNewTarget.x, dirFromNewTarget.z)
+    local currentPitch = math.asin(Math.Clamp(dirFromNewTarget.y, -1, 1))
 
-    -- Set target camera state
+    -- Store starting state (relative to NEW target)
+    self.cameraTransition.startAngle = currentAngle
+    self.cameraTransition.startPitch = currentPitch
+    self.cameraTransition.startRadius = currentRadius
+
+    -- Calculate target angle/pitch
+    -- Use a nice viewing angle for the target
+    local targetAngle = currentAngle               -- Keep current angle by default
+    local targetPitch = forcePitch or math.rad(30) -- Nice 30 degree viewing angle
+
+    self.cameraTransition.targetAngle = targetAngle
+    self.cameraTransition.targetPitch = targetPitch
     self.cameraTransition.targetRadius = distance
 
-    -- Calculate target angle and pitch relative to new target
-    local currentCamPos = CameraSystem.currentCameraTransform:getPos():toVec3f()
-    local dir = currentCamPos - targetPos:toVec3f()
+    -- Set the focus entity and update orbit params to match starting position
+    self.focusEntity = targetEntity
+    self.orbitAngle = currentAngle
+    self.orbitPitch = currentPitch
+    self.orbitRadius = currentRadius
+    self.targetOrbitRadius = currentRadius -- Don't jump the target radius yet
 
-    if dir:length() < 0.01 then
-        dir = Vec3f(0, 0, 1)
-    else
-        dir = dir:normalize()
-    end
+    self:updateCameraZoomLimitsForFocus()
 
-    self.cameraTransition.targetAngle = math.atan2(dir.x, dir.z)
-
-    if forcePitch then
-        self.cameraTransition.targetPitch = forcePitch
-    else
-        self.cameraTransition.targetPitch = math.asin(Math.Clamp(dir.y, -1, 1))
-    end
+    -- Manually update camera position to ensure no jump
+    self:updateOrbitCamera(0)
 
     -- Start transition
     self.cameraTransition.active = true
     self.cameraTransition.time = 0
 
     print("Camera transitioning to distance:", distance)
-    print("From position:", currentFocusPos.x, currentFocusPos.y, currentFocusPos.z)
-    print("To position:", targetPos.x, targetPos.y, targetPos.z)
+    print("Starting from angle:", math.deg(currentAngle), "pitch:", math.deg(currentPitch), "radius:", currentRadius)
+    print("Target angle:", math.deg(targetAngle), "pitch:", math.deg(targetPitch), "radius:", distance)
 end
 
 function PlanetTest:onStateInput(data)
     local mouseState = Input:mouse()
     local scrollState = mouseState:scroll()
 
-    self.camPos = self.camPos or Vec3f(0, 0, 50)
-    self.targetCamRadius = self.targetCamRadius or self.camPos.z
-
     if self.planet then
         local rb = self.planet:get(PhysicsComponents.RigidBody)
         local planetRadius = rb:getRadius()
         local planetPos = rb:getPos()
 
-        local distance = math.max(1.0, self.camPos:distance(planetPos))
+        local distance = math.max(1.0, self.orbitRadius)
         local surfaceDist = math.max(0.0, distance - planetRadius)
         local relativeDist = surfaceDist / planetRadius
         local zoomFactor = (relativeDist < 1.0) and (0.2 + 0.8 * relativeDist) or (1.0 + math.pow(relativeDist, 2.2))
@@ -790,33 +805,34 @@ function PlanetTest:onStateInput(data)
 
         -- Mouse scroll zoom
         local rawDelta = scrollState.y * baseSensitivity * zoomFactor
-        if rawDelta > 0 then rawDelta = math.min(rawDelta, self.targetCamRadius - self.zoomMinDistance) end
-        self.targetCamRadius = math.max(self.zoomMinDistance, self.targetCamRadius - rawDelta)
+        if rawDelta > 0 then rawDelta = math.min(rawDelta, self.targetOrbitRadius - self.zoomMinDistance) end
+        self.targetOrbitRadius = math.max(self.zoomMinDistance, self.targetOrbitRadius - rawDelta)
 
         -- Keyboard zoom with + and -
         local keyboardZoomDelta = 0
         if Input:isDown(Button.KeyboardEqual) or Input:isDown(Button.KeyboardNumpadAdd) then
-            keyboardZoomDelta = baseSensitivity * zoomFactor * 2.0 -- Zoom in
+            keyboardZoomDelta = baseSensitivity * zoomFactor * 2.0
         end
         if Input:isDown(Button.KeyboardMinus) or Input:isDown(Button.KeyboardNumpadSubtract) then
-            keyboardZoomDelta = -baseSensitivity * zoomFactor * 2.0 -- Zoom out
+            keyboardZoomDelta = -baseSensitivity * zoomFactor * 2.0
         end
 
         if keyboardZoomDelta > 0 then
-            keyboardZoomDelta = math.min(keyboardZoomDelta, self.targetCamRadius - self.zoomMinDistance)
+            keyboardZoomDelta = math.min(keyboardZoomDelta, self.targetOrbitRadius - self.zoomMinDistance)
         end
-        self.targetCamRadius = math.max(self.zoomMinDistance, self.targetCamRadius - keyboardZoomDelta)
+        self.targetOrbitRadius = math.max(self.zoomMinDistance, self.targetOrbitRadius - keyboardZoomDelta)
     end
 
+    -- Right mouse drag for rotation
     if Input:isDown(Button.MouseRight) then
         local mouseDelta = mouseState:delta()
         if mouseDelta:length() > 0 then
             self.isDragging = true
             self.dragReleaseTimer = self.dragReleaseDelay
-            self.angle = (self.angle or 0) + mouseDelta.x * self.dragSensitivity
-            self.pitch = Math.Clamp(
-                (self.pitch or 0) - mouseDelta.y * self.pitchSensitivity,
-                self.pitchMin, self.pitchMax
+            self.orbitAngle = (self.orbitAngle or 0) + mouseDelta.x * self.dragSensitivity
+            self.orbitPitch = Math.Clamp(
+                (self.orbitPitch or 0) - mouseDelta.y * self.pitchSensitivity,
+                self.orbitPitchMin, self.orbitPitchMax
             )
         end
     else
@@ -824,11 +840,13 @@ function PlanetTest:onStateInput(data)
         self.isDragging = false
     end
 
+    -- Generate new planet
     if Input:isPressed(Button.KeyboardB) then
         self.seed = self.ringRNG:get31()
         self:createPlanet(self.seed)
     end
 
+    -- Mouse click for focusing
     if Input:isPressed(Button.MouseLeft) then
         self:handleMouseClick()
     end

@@ -5,15 +5,15 @@ on:
     branches:
       - main
     paths-ignore:
-    - '**/README.md'
-    - '**/CONTRIBUTING.md'
-    - '**/LICENSE-MIT'
-    - '**/LICENSE-APACHE-2.0'
-    - '**/.vscode/**'
-    - '**/docs/**'
-    - '**/.gitignore'
-    - '**/.gitattributes'
-    - '**/.editorconfig'
+      - "**/README.md"
+      - "**/CONTRIBUTING.md"
+      - "**/LICENSE-MIT"
+      - "**/LICENSE-APACHE-2.0"
+      - "**/.vscode/**"
+      - "**/docs/**"
+      - "**/.gitignore"
+      - "**/.gitattributes"
+      - "**/.editorconfig"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -89,7 +89,7 @@ jobs:
   build-macos:
     needs: gen-build-version
     name: Build macOS
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
