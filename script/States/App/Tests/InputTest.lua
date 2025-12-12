@@ -3,8 +3,8 @@ local Application         = require('States.Application')
 local InputTest           = Subclass("InputTest", Application)
 
 local Cache               = require("Render.Cache")
-local CameraSystem        = require("Modules.Rendering.Systems.CameraSystem")
-local CameraEntity        = require("Modules.Rendering.Entities").Camera
+local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
+local CameraEntity        = require("Modules.Cameras.Entities").Camera
 local DeltaTimer          = require("Shared.Tools.DeltaTimer")
 local DrawEx              = require("UI.DrawEx")
 local GC                  = require("Core.Util.GC")
@@ -466,12 +466,10 @@ function InputTest:onInit()
     }
 
     -- init camera
-    self.camPos = Vec3f(0, 0, 10)
-    self.focusPos = Vec3f(0, 0, 0)
+    -- we don't actually use the camera in this test but we set one up to avoid errors
     local cam = CameraEntity()
-    CameraSystem:setCamera(cam)
-    CameraSystem.currentCameraTransform:setPos(Position(self.camPos.x, self.camPos.y, self.camPos.z))
-    CameraSystem.currentCameraTransform:setRot(Quat.LookAt(self.camPos, self.focusPos, Vec3f(0, 1, 0)))
+    CameraManager:registerCamera("OrbitCam", cam)
+    CameraManager:setActiveCamera("OrbitCam")
 
     -- input state tracking
     self.buttonNameLookup = buildButtonNameLookup()
