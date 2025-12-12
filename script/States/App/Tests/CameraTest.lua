@@ -377,7 +377,8 @@ function CameraTest:onRender(data)
             string.format("Seed: %d", self.seed),
             string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
             string.format("Yaw: %.2f | Pitch: %.2f", math.deg(yaw), math.deg(pitch)),
-            string.format("Lua Memory: %.2f KB", mem)
+            string.format("Lua Memory: %.2f KB", mem),
+            string.format("FOV: %.1f", Config.render.camera.fov)
         }
 
         local y = 40
@@ -420,6 +421,12 @@ function CameraTest:onInput(data)
         if currentCam ~= "RTSCam" then
             CameraManager:setActiveCamera("RTSCam")
         end
+    end
+
+    if Input:keyboard():isPressed(Button.KeyboardEqual) then
+        Config.render.camera.fov = Math.Clamp(Config.render.camera.fov + 1, 1, 180) --*temp use config
+    elseif Input:keyboard():isPressed(Button.KeyboardMinus) then
+        Config.render.camera.fov = Math.Clamp(Config.render.camera.fov - 1, 1, 180)
     end
 end
 
