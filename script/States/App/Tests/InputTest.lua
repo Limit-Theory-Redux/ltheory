@@ -37,25 +37,24 @@ local function DrawAxisBar(label, value, x, y, width, height, font, fontSize)
     local fontName = font or 'Unageo-Medium'
     local size = fontSize or 11
     
-    -- Draw label
+    -- draw label
     DrawEx.TextAdditive(fontName, label, size, x, y, 100, height, 0.9, 0.9, 0.9, 1.0, 0.0, 0.5)
     
-    -- Bar background
+    -- bar background
     local barX = x + 100
     local barWidth = width - 100
     local halfWidth = barWidth / 2
     local centerX = barX + halfWidth
     
-    -- Need to set blend mode for Draw.Rect to render properly
     RenderState.PushBlendMode(BlendMode.Alpha)
     
-    -- Draw background bar (gray) - Draw.Rect takes (x, y, width, height)
+    -- draw background bar
     DrawEx.Rect(barX, y, barWidth, height, Color(0.2, 0.2, 0.2, 0.8))
     
-    -- Draw center line
+    -- draw center line
     DrawEx.Rect(centerX - 1, y, 2, height,Color(0.5, 0.5, 0.5, 1.0))
     
-    -- Draw value bar
+    -- draw value bar
     local fillWidth = math.abs(value) * halfWidth
     if value >= 0 then
         DrawEx.Rect(centerX, y + 2, fillWidth, height - 4, Color(0.2, 0.8, 0.2, 1.0))
@@ -65,7 +64,7 @@ local function DrawAxisBar(label, value, x, y, width, height, font, fontSize)
     
     RenderState.PopBlendMode()
     
-    -- Draw value text
+    -- draw value text
     local valueStr = string.format("%.2f", value)
     DrawEx.TextAdditive(fontName, valueStr, size - 1, barX + barWidth + 10, y, 60, height, 0.7, 0.7, 0.7, 1.0, 0.0, 0.5)
 end
@@ -77,31 +76,31 @@ local function DrawStickVisualizer(label, xValue, yValue, x, y, size, font, font
     local centerX = x + halfSize
     local centerY = y + halfSize
     
-    -- Draw label above
+    -- draw label
     DrawEx.TextAdditive(fontName, label, textSize, x, y - textSize - 4, size, textSize + 4, 0.9, 0.9, 0.9, 1.0, 0.5, 0.5)
     
-    -- Draw background box using DrawEx.Rect for proper rendering
+    -- draw background box
     DrawEx.Rect(x, y, size, size, Color(0.15, 0.15, 0.15, 0.9))
     
-    -- Draw crosshairs
+    -- draw crosshairs
     DrawEx.Rect(x, centerY - 1, size, 2, Color(0.4, 0.4, 0.4, 1.0))
     DrawEx.Rect(centerX - 1, y, 2, size, Color(0.4, 0.4, 0.4, 1.0))
     
-    -- Draw deadzone indicator
+    -- draw deadzone indicator
     local deadzoneRadius = size * 0.1
     DrawEx.Rect(centerX - deadzoneRadius, centerY - deadzoneRadius, deadzoneRadius * 2, deadzoneRadius * 2, Color(0.3, 0.3, 0.3, 0.8))
     
-    -- Draw stick position
+    -- draw stick position
     local dotX = centerX + (xValue * halfSize * 0.9) - 6
     local dotY = centerY + (yValue * halfSize * 0.9) - 6
     local dotSize = 12
     
-    -- Dot color based on magnitude
+    -- dot color
     local magnitude = math.sqrt(xValue * xValue + yValue * yValue)
     local intensity = math.min(magnitude, 1.0)
     DrawEx.Rect(dotX, dotY, dotSize, dotSize, Color(0.2 + intensity * 0.6, 0.8 - intensity * 0.4, 0.2, 1.0))
     
-    -- Draw values below
+    -- draw values below
     local valuesStr = string.format("X:%.2f Y:%.2f", xValue, yValue)
     DrawEx.TextAdditive(fontName, valuesStr, textSize - 1, x, y + size + 4, size, textSize + 2, 0.6, 0.6, 0.6, 1.0, 0.5, 0.5)
 end
@@ -331,7 +330,7 @@ function InputTest:drawShipActionsTest()
     local sectionGap = 20
     local barWidth = 250
     
-    DrawSectionTitle("ShipActions - Input", x, y)
+    DrawSectionTitle("ShipActions Test", x, y)
     y = y + lineHeight + 4
     
     DrawLabelValue("ThrustX (A/D, LStick X)", string.format("%.3f", ShipActions.ThrustX:get()), x, y)
@@ -349,7 +348,7 @@ function InputTest:drawShipActionsTest()
     DrawLabelValue("Boost (Shift, LB)", string.format("%.3f", ShipActions.Boost:get()), x, y)
     y = y + sectionGap + 10
     
-    DrawSectionTitle("Ship State (Simulated)", x, y)
+    DrawSectionTitle("Simulated Ship State", x, y)
     y = y + lineHeight + 8
     
     -- thrust bars
