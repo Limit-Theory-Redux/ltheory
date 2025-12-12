@@ -35,7 +35,7 @@ function PlanetTest:onInit()
     Window:setFullscreen(false, true)
 
     self.seed = 0
-    self.ringRNG = RNG.FromTime()
+    self.rng = RNG.FromTime()
 
     -- Timers
     self.timer = DeltaTimer("PlanetTest")
@@ -847,7 +847,7 @@ function PlanetTest:onStateInput(data)
 
     -- Generate new planet
     if Input:isPressed(Button.KeyboardB) then
-        self.seed = self.ringRNG:get31()
+        self.seed = self.rng:get31()
         self:createPlanet(self.seed)
     end
 
