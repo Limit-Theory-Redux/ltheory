@@ -22,7 +22,7 @@ local RenderCoreSystem      = require("Modules.Rendering.Systems.RenderCoreSyste
 local CameraSystem          = require("Modules.Cameras.Systems.CameraSystem")
 
 local SkyboxEntity          = require("Modules.CelestialObjects.Entities.SkyboxEntity")
-local ShipGenerator         = require("Modules.Constructs.Managers.ShipGenerator")
+local ShipGenerator         = require("Modules.Constructs.Managers.Generators.ShipGenerator")
 
 ---! still using legacy
 local Generator             = require("Legacy.Systems.Gen.Generator")

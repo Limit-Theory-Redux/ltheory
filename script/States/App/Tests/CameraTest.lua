@@ -16,6 +16,8 @@ local AsteroidRingEntity          = require('Modules.CelestialObjects.Entities.A
 local SkyboxEntity                = require("Modules.CelestialObjects.Entities.SkyboxEntity")
 local SpaceshipEntity             = require('Modules.Constructs.Entities.SpaceshipEntity')
 
+local ShipGenerator               = require("Modules.Constructs.Managers.Generators.ShipGenerator")
+
 local PhysicsComponents           = require("Modules.Physics.Components")
 local CelestialComponents         = require("Modules.CelestialObjects.Components")
 local CoreComponents              = require('Modules.Core.Components')
@@ -326,8 +328,6 @@ end
 
 function CameraTest:createShip(seed)
     local shipRNG = RNG.Create(seed + 54321)
-
-    local ShipGenerator = require("Modules.Constructs.Managers.ShipGenerator")
 
     self.ship = ShipGenerator:createFighter(seed, {
         position    = self.shipPos,
