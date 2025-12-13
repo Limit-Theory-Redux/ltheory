@@ -239,26 +239,53 @@ function CameraTest:createMoons(seed, numMoons)
         meshAtmo:computeNormals()
         meshAtmo:invert()
 
+        local bodies = {
+            { highland = Vec3f(0.72, 0.72, 0.72), maria = Vec3f(0.25, 0.25, 0.25) }, -- Moon
+            { highland = Vec3f(0.74, 0.72, 0.68), maria = Vec3f(0.28, 0.27, 0.24) }, -- Mercury
+            { highland = Vec3f(0.76, 0.74, 0.70), maria = Vec3f(0.30, 0.28, 0.25) }  -- Ceres
+        }
+
+        local body = moonRNG:choose(bodies)
+
+        -- Slight randomization
+        local function perturbColor(color, rng, amount)
+            return Vec3f(
+                Math.Clamp(color.x + rng:getUniformRange(-amount, amount), 0, 1),
+                Math.Clamp(color.y + rng:getUniformRange(-amount, amount), 0, 1),
+                Math.Clamp(color.z + rng:getUniformRange(-amount, amount), 0, 1)
+            )
+        end
+
         local moonOptions = {
-            craterDensity    = 4,
-            craterSharpness  = 1,
-            mariaAmount      = 0.3,
-            highlandColor    = Vec3f(0.7, 0.68, 0.65),
-            mariaColor       = Vec3f(0.25, 0.24, 0.23),
-            heightMult       = 0.03,
-            enableAtmosphere = true
+            craterDensity     = 0.1,
+            craterSharpness   = 0.47,
+            mariaAmount       = 0.45,
+            mountainHeight    = 1.0,
+            mountainScale     = 1.0,
+            proceduralBlend   = 0.85,
+            brightRayStrength = 0.40,
+
+            highlandColor     = perturbColor(body.highland, moonRNG, moonRNG:getUniformRange(0.002, 0.04)),
+            mariaColor        = perturbColor(body.maria, moonRNG, moonRNG:getUniformRange(0.002, 0.06)),
+            heightMult        = 0.045,
+            enableAtmosphere  = false
         }
 
         local texSurface = GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/moon', {
-            seed             = moonRNG:getUniform(),
-            craterDensity    = moonOptions.craterDensity,
-            craterSharpness  = moonOptions.craterSharpness,
-            mariaAmount      = moonOptions.mariaAmount,
-            highlandColor    = moonOptions.highlandColor,
-            mariaColor       = moonOptions.mariaColor,
-            heightMult       = moonOptions.heightMult,
-            enableAtmosphere = moonOptions.enableAtmosphere
+            seed              = moonRNG:getUniform(),
+            craterDensity     = moonOptions.craterDensity,
+            craterSharpness   = moonOptions.craterSharpness,
+            mariaAmount       = moonOptions.mariaAmount,
+            mountainHeight    = moonOptions.mountainHeight,
+            mountainScale     = moonOptions.mountainScale,
+            proceduralBlend   = moonOptions.proceduralBlend,
+            rayCraterStrength = moonOptions.rayCraterStrength,
+            brightRayStrength = moonOptions.brightRayStrength,
         })
+
+        texSurface:genMipmap()
+        texSurface:setMagFilter(TexFilter.Linear)
+        texSurface:setMinFilter(TexFilter.LinearMipLinear)
 
         local matPlanet = Materials.MoonSurface()
         matPlanet:setTexture("surface", texSurface)
