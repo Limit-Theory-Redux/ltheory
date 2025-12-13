@@ -1,17 +1,8 @@
---[[
-    Control category definitions:
-    we separate controls into two categories for the purpose of handling isDown/isPressed/isReleased 
-    logic differently based on type.
-    - Binary controls (keys, buttons) where value is either a fixed 0.0 or 1.0
-    - Analog controls (axes, mouse movement) where value can vary between -1.0 and 1.0
-]]
----@alias ControlCategory "Binary" | "Analog"
-
--- threshold for considering analog "down"/"pressed"/etc.
--- set to a non-zero decimal to avoid noise from slight axis movement (e.g. joystick drift)
+-- Threshold for considering analog "down"/"pressed"/etc.
+-- Set to a non-zero decimal to avoid noise from slight axis movement (e.g. joystick drift)
 local analogThreshold = 0.001
 
-local binaryBindTypes = {
+local digitalBindTypes = {
     Key = true,
     Combo = true,
 }
@@ -29,23 +20,20 @@ local analogBindTypes = {
 ---@param def DeviceBindings
 ---@return ControlCategory
 local function getCategory(def)
-    -- check all device bindings
-    -- if any analog bind found, consider it an Analog
+    -- Check all device bindings, consider the entirely analog if any bind is analog
     for _, deviceBinds in pairs(def) do
         if type(deviceBinds) == "table" then
             for _, bind in ipairs(deviceBinds) do
-                -- raw button is Binary
                 if type(bind) == "number" then
-                    -- continue
                 elseif type(bind) == "table" and bind.type then
                     if analogBindTypes[bind.type] then
-                        return "Analog"
+                        return Enums.ControlCategory.Analog
                     end
                 end
             end
         end
     end
-    return "Binary"
+    return Enums.ControlCategory.Digital
 end
 
 ---------------------------
@@ -75,25 +63,25 @@ end)
 ---@param bind table
 ---@return number mod
 local function applyModifiers(value, bind)
-    local mult = bind.mult or 1.0 -- multiplier to scale final value
-    local bias = bind.bias or 0.0 -- deadzone (bias) to prevent drift
-    local expn = bind.expn or 1.0 -- exponent to apply response curve
+    local mult = bind.mult or 1.0 -- Multiplier to scale final value
+    local bias = bind.bias or 0.0 -- Deadzone (bias) to prevent drift
+    local expn = bind.expn or 1.0 -- Exponent to apply response curve
     
     local sign = value >= 0 and 1 or -1
     local absVal = math.abs(value)
     
-    -- check to see if within deadzone
+    -- Check to see if within deadzone
     if absVal < bias then
         return 0.0
     end
     
-    -- normalize after deadzone bias
+    -- Normalize after deadzone bias
     local normalized = (absVal - bias) / (1.0 - bias)
     
-    -- apply exponent
+    -- Apply exponent
     local curved = math.pow(math.max(0, normalized), expn)
     
-    -- apply multiplier and restore sign
+    -- Apply multiplier and restore sign
     return mult * sign * curved
 end
 
@@ -106,14 +94,12 @@ function ActionBinding:readBind(bind)
     
     local t = bind.type
 
-    -- single key/button
-    if t == "Key" then
+    if t == Enums.ControlType.Key then
         local k = Input:getValue(bind.key)
         return k
     end
     
-    -- combo - all keys must be held
-    if t == "Combo" then
+    if t == Enums.ControlType.Combo then
         local keys = bind.keys
         for i = 1, #keys - 1 do
             local key = keys[i]
@@ -131,41 +117,38 @@ function ActionBinding:readBind(bind)
         return self:readBind(keys[#keys])
     end
     
-    -- pair: positive - negative
-    if t == "Pair" then
+    if t == Enums.ControlType.Pair then
         local pos = Input:getValue(bind.positive)
         local neg = Input:getValue(bind.negative)
         return pos - neg
     end
     
-    -- axis: applies special axes modifiers
-    if t == "Axis" then
+    if t == Enums.ControlType.GamepadAxis then
         local raw = Input:getValue(bind.button)
         return applyModifiers(raw, bind)
     end
     
-    -- mouse positions and deltas
-    if t == "MouseX" then
+    if t == Enums.ControlType.MouseX then
         local pos = Input:mouse():position()
         return pos.x * (bind.mult or 1.0)
     end
     
-    if t == "MouseY" then
+    if t == Enums.ControlType.MouseY then
         local pos = Input:mouse():position()
         return pos.y * (bind.mult or 1.0)
     end
     
-    if t == "MouseDX" then
+    if t == Enums.ControlType.MouseDX then
         local delta = Input:mouse():delta()
         return delta.x * (bind.mult or 1.0)
     end
     
-    if t == "MouseDY" then
+    if t == Enums.ControlType.MouseDY then
         local delta = Input:mouse():delta()
         return delta.y * (bind.mult or 1.0)
     end
     
-    if t == "MouseWheel" then
+    if t == Enums.ControlType.MouseWheel then
         return Input:getValue(Button.MouseScrollY) * (bind.mult or 1.0)
     end
     
@@ -191,12 +174,10 @@ function ActionBinding:update()
     self.prevValue = self.value
     self.consumed = false
     
-    -- read from all devices, take highest absolute value
     local kbValue = self:readDeviceBindings(self.deviceBindings.keyboard)
     local mouseValue = self:readDeviceBindings(self.deviceBindings.mouse)
     local gamepadValue = self:readDeviceBindings(self.deviceBindings.gamepad)
     
-    -- find the value with the highest magnitude
     local value = 0.0
     
     if math.abs(kbValue) > math.abs(value) then
@@ -237,7 +218,7 @@ end
 function ActionBinding:isDown()
     if self.consumed then return false end
     
-    if self.category == "Binary" then
+    if self.category == Enums.ControlCategory.Digital then
         return self.value > 0
     else
         return math.abs(self.value) > analogThreshold
@@ -248,7 +229,7 @@ end
 function ActionBinding:isPressed()
     if self.consumed then return false end
     
-    if self.category == "Binary" then
+    if self.category == Enums.ControlCategory.Digital then
         return self.value > 0 and self.prevValue == 0
     else
         return math.abs(self.value) > analogThreshold 
@@ -260,7 +241,7 @@ end
 function ActionBinding:isReleased()
     if self.consumed then return false end
     
-    if self.category == "Binary" then
+    if self.category == Enums.ControlCategory.Digital then
         return self.value == 0 and self.prevValue > 0
     else
         return math.abs(self.value) <= analogThreshold 
