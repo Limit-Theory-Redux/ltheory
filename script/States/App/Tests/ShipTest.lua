@@ -1,7 +1,7 @@
 local Application           = require('States.Application')
 
----@class StationTest: Application
-local StationTest           = Subclass("StationTest", Application)
+---@class ShipTest: Application
+local ShipTest              = Subclass("ShipTest", Application)
 
 local Registry              = require("Core.ECS.Registry")
 local Entity                = require("Core.ECS.Entity")
@@ -22,13 +22,13 @@ local RenderCoreSystem      = require("Modules.Rendering.Systems.RenderCoreSyste
 local CameraSystem          = require("Modules.Cameras.Systems.CameraSystem")
 
 local SkyboxEntity          = require("Modules.CelestialObjects.Entities.SkyboxEntity")
-local StationGenerator      = require("Modules.Constructs.Managers.StationGenerator")
+local ShipGenerator         = require("Modules.Constructs.Managers.ShipGenerator")
 
 ---! still using legacy
 local Generator             = require("Legacy.Systems.Gen.Generator")
 local Starfield             = require("Legacy.Systems.Gen.Starfield")
 
-function StationTest:onInit()
+function ShipTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
 
@@ -36,7 +36,7 @@ function StationTest:onInit()
     self.rng = RNG.FromTime()
 
     -- Timers
-    self.timer = DeltaTimer("StationTest")
+    self.timer = DeltaTimer("ShipTest")
     self.timer:start("fps", 0.1)
     self.frameCount = 0
     self.smoothFPS = 0
@@ -93,12 +93,12 @@ function StationTest:onInit()
 
     CameraManager:setActiveCamera("OrbitCam")
 
-    -- Create station using generator
-    self.stationPos = Vec3f(0, 0, 0)
-    self:createStation(self.seed)
+    -- Create Ship using generator
+    self.ShipPos = Vec3f(0, 0, 0)
+    self:createShip(self.seed)
 
-    -- Orbit camera targets station
-    self.controllerOrbitCam:setTarget(self.station)
+    -- Orbit camera targets Ship
+    self.controllerOrbitCam:setTarget(self.Ship)
 
     -- EventBus subscriptions
     EventBus:subscribe(Event.PreRender, self, self.onStatePreRender)
@@ -106,37 +106,37 @@ function StationTest:onInit()
     EventBus:subscribe(Event.Sim, self, self.onStateSim)
 end
 
-function StationTest:createStation(seed)
-    local stationRNG = RNG.Create(seed)
+function ShipTest:createShip(seed)
+    local ShipRNG = RNG.Create(seed)
 
-    if self.station then
+    if self.Ship then
         -- Remove old rigid bodies from physics world before destroying entities
-        local oldStationRb = self.station:get(PhysicsComponents.RigidBody)
-        if oldStationRb and oldStationRb:getRigidBody() then
-            self.world:removeRigidBody(oldStationRb:getRigidBody())
+        local oldShipRb = self.Ship:get(PhysicsComponents.RigidBody)
+        if oldShipRb and oldShipRb:getRigidBody() then
+            self.world:removeRigidBody(oldShipRb:getRigidBody())
         end
 
-        Registry:destroyEntity(self.station, Enums.Registry.EntityDestroyMode.DestroyChildren)
+        Registry:destroyEntity(self.Ship, Enums.Registry.EntityDestroyMode.DestroyChildren)
     end
 
-    -- Use StationGenerator to create a station
-    self.station = StationGenerator:createStation(seed, {
-        position = self.stationPos:toPosition(),
+    -- Use ShipGenerator to create a Ship
+    self.Ship = ShipGenerator:createFighter(seed, {
+        position = self.ShipPos:toPosition(),
         scale = 1.5,
         isKinematic = true
     })
 
-    -- Add station's rigidbody to physics world
-    local rbCmp = self.station:get(PhysicsComponents.RigidBody)
+    -- Add Ship's rigidbody to physics world
+    local rbCmp = self.Ship:get(PhysicsComponents.RigidBody)
     local rb = rbCmp:getRigidBody()
     self.world:addRigidBody(rb)
 
     -- Optionally set camera targets
-    self.controllerOrbitCam:setTarget(self.station)
+    self.controllerOrbitCam:setTarget(self.Ship)
 end
 
 ---@param data EventData
-function StationTest:onStatePreRender(data)
+function ShipTest:onStatePreRender(data)
     local dt = data:deltaTime()
     self.timer:update(dt)
 
@@ -150,7 +150,7 @@ function StationTest:onStatePreRender(data)
 end
 
 ---@param data EventData
-function StationTest:onRender(data)
+function ShipTest:onRender(data)
     RenderCoreSystem:render(data)
 
     self:immediateUI(function()
@@ -170,17 +170,17 @@ function StationTest:onRender(data)
 end
 
 ---@param data EventData
-function StationTest:onInput(data)
+function ShipTest:onInput(data)
     if Input:keyboard():isPressed(Button.KeyboardB) then
         self.seed = self.rng:get31()
-        self:createStation(self.seed)
+        self:createShip(self.seed)
     end
 end
 
 ---@param data EventData
-function StationTest:onStateSim(data)
+function ShipTest:onStateSim(data)
     local dt = data:deltaTime()
     self.world:update(dt)
 end
 
-return StationTest
+return ShipTest
