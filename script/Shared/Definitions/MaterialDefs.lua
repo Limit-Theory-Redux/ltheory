@@ -254,7 +254,12 @@ MaterialDefinition {
     blendMode = BlendMode.Disabled,
     textures = nil, -- set at runtime
     constShaderVars = {
-        starColor = { type = Enums.UniformType.Float3, value = { 1.0, 0.5, 0.1 } },
+        starColor        = { type = Enums.UniformType.Float3, value = { 1.0, 0.5, 0.1 } },
+        heightMult       = { type = Enums.UniformType.Float, value = 0.03 },
+        craterDepth      = { type = Enums.UniformType.Float, value = 1.0 },
+        enableAtmosphere = { type = Enums.UniformType.Float, value = 0.0 },
+        mercuryBaseTex   = { type = Enums.UniformType.Tex2D, value = Cache.Texture('surface/2k_mercury') },
+        moonBaseTex      = { type = Enums.UniformType.Tex2D, value = Cache.Texture('surface/2k_moon') },
     },
     autoShaderVars = {
         mWorld        = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
