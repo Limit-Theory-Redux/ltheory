@@ -8,6 +8,7 @@ local CameraEntity     = require("Modules.Cameras.Entities").Camera
 local DeltaTimer       = require("Shared.Tools.DeltaTimer")
 local DrawEx           = require("UI.DrawEx")
 local GC               = require("Core.Util.GC")
+local QuickProfiler    = require("Shared.Tools.QuickProfiler")
 local RenderCoreSystem = require("Modules.Rendering.Systems.RenderCoreSystem")
 
 -- ActionBinding system
@@ -105,6 +106,15 @@ local function DrawDebugLines(lineDefs, startX, startY, lineHeight, font, fontSi
     end
 end
 
+local function DrawGamepadCursor(x, y, size)
+    local halfSize = size / 2
+    RenderState.PushBlendMode(BlendMode.Alpha)
+    local color = Color(1.0, 1.0, 1.0, 0.5)
+    DrawEx.Ring(x, y, halfSize - 4, color, 1)
+    DrawEx.Circle(x, y, halfSize - 33, color)
+    RenderState.PopBlendMode()
+end
+
 local function buildButtonNameLookup()
     local lookup = {}
     for name, value in pairs(Button) do
@@ -134,17 +144,9 @@ function InputTest:drawInputState()
     local lineHeight = 22
     local sectionGap = 30
 
-    local activeDevice = Input:activeDeviceType()
-    local deviceNames = {
-        [InputDeviceType.Cursor] = "CURSOR",
-        [InputDeviceType.Gamepad] = "GAMEPAD",
-        [InputDeviceType.Keyboard] = "KEYBOARD",
-        [InputDeviceType.Mouse] = "MOUSE",
-        [InputDeviceType.Touchpad] = "TOUCHPAD",
-        [InputDeviceType.SystemEvent] = "SYSTEM EVENT",
-    }
-    local deviceText = "Active Device: " .. (deviceNames[activeDevice] or "UNKNOWN")
-    local isGamepad = activeDevice == InputDeviceType.Gamepad
+    self.activeDevice = Input:activeDeviceType()
+    local deviceText = "Active Device: " .. (self.deviceNames[self.activeDevice] or "UNKNOWN")
+    local isGamepad = self.activeDevice == InputDeviceType.Gamepad
     local deviceColor = isGamepad and { 0.2, 0.8, 0.2 } or { 0.2, 0.6, 0.9 }
     DrawEx.TextAdditive('Unageo-Medium', deviceText, 14, x, y - 30, 400, 20,
         deviceColor[1], deviceColor[2], deviceColor[3], 1.0, 0.0, 0.5)
@@ -318,6 +320,7 @@ function InputTest:drawShipActionsTest()
 end
 
 function InputTest:updateShipPhysics(dt)
+    if self.runProfiler then self.profiler:start() end
     local thrustX = ShipActions.ThrustX:get()
     local thrustY = ShipActions.ThrustY:get()
     local thrustZ = ShipActions.ThrustZ:get()
@@ -325,8 +328,10 @@ function InputTest:updateShipPhysics(dt)
     local yaw = ShipActions.Yaw:get()
     local pitch = ShipActions.Pitch:get()
     local boost = ShipActions.Boost:get()
+    if self.runProfiler then self.profiler:stop() end
+    
     local boostMult = 1.0 + boost * 1.5
-
+    
     local function updateAxisSmooth(current, input, accel, decay, maxVal)
         if math.abs(input) > 0.001 then
             local target = math.max(-maxVal, math.min(maxVal, input * maxVal))
@@ -359,9 +364,31 @@ function InputTest:updateShipPhysics(dt)
     self.shipPitch = updateAxisDirect(self.shipPitch, pitch, self.rotationAccel, self.maxRotation)
 end
 
+function InputTest:drawGamepadCursor(dt)
+    if self.activeDevice ~= InputDeviceType.Gamepad then return end
+
+    local lStickX = Input:getValue(Button.GamepadLeftStickX)
+    local lStickY = Input:getValue(Button.GamepadLeftStickY)
+    local rStickX = Input:getValue(Button.GamepadRightStickX)
+    local rStickY = Input:getValue(Button.GamepadRightStickY)
+
+    local moveX = math.abs(lStickX) > math.abs(rStickX) and lStickX or rStickX
+    local moveY = math.abs(lStickY) > math.abs(rStickY) and lStickY or rStickY
+
+    local speed = 400 * dt
+    self.gamepadCursorX = self.gamepadCursorX + moveX * speed
+    self.gamepadCursorY = self.gamepadCursorY - moveY * speed
+    self.gamepadCursorX = math.max(0, math.min(Window:width(), self.gamepadCursorX))
+    self.gamepadCursorY = math.max(0, math.min(Window:height(), self.gamepadCursorY))
+
+    DrawGamepadCursor(self.gamepadCursorX, self.gamepadCursorY, 64)
+end
+
 function InputTest:onInit()
     Window:setFullscreen(false, true)
 
+    self.profiler = QuickProfiler("ActionBindingProfiler", true, false)
+    self.runProfiler = false
     self.timer = DeltaTimer("InputTest")
     self.timer:start("fps", 0.1)
     self.accumulatedTime = 0
@@ -380,6 +407,15 @@ function InputTest:onInit()
     CameraManager:setActiveCamera("OrbitCam")
 
     self.buttonNameLookup = buildButtonNameLookup()
+
+    self.deviceNames = {
+        [InputDeviceType.Cursor] = "CURSOR",
+        [InputDeviceType.Gamepad] = "GAMEPAD",
+        [InputDeviceType.Keyboard] = "KEYBOARD",
+        [InputDeviceType.Mouse] = "MOUSE",
+        [InputDeviceType.Touchpad] = "TOUCHPAD",
+        [InputDeviceType.SystemEvent] = "SYSTEM EVENT",
+    }
 
     -- Pre-compute keyboard button names
     self.keyboardButtonNames = {}
@@ -440,6 +476,11 @@ function InputTest:onInit()
         { Button.GamepadDPadLeft,      "DPad Left" },
         { Button.GamepadDPadRight,     "DPad Right" },
     }
+
+    -- Device state
+    self.activeDevice = nil
+    self.gamepadCursorX = Window:width() / 2
+    self.gamepadCursorY = Window:height() / 2
 
     -- Reusable tables for string building
     self._mouseStrParts = {}
@@ -519,6 +560,7 @@ function InputTest:onRender(data)
         end
         self:drawInputState()
         self:drawShipActionsTest()
+        self:drawGamepadCursor(data:deltaTime())
     end)
 end
 

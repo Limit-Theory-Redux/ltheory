@@ -5,13 +5,13 @@ local ShipActions = {
     ---@type ActionBinding
     ThrustX = ActionBinding({
         keyboard = { Control.Pair(Button.KeyboardD, Button.KeyboardA) },
-        gamepad = { Control.Axis(Button.GamepadLeftStickX) },
+        gamepad = { Control.GamepadAxis(Button.GamepadLeftStickX) },
     }),
 
     ---@type ActionBinding
     ThrustZ = ActionBinding({
         keyboard = { Control.Pair(Button.KeyboardW, Button.KeyboardS) },
-        gamepad = { Control.Axis(Button.GamepadLeftStickY) },
+        gamepad = { Control.GamepadAxis(Button.GamepadLeftStickY) },
     }),
 
     ---@type ActionBinding
@@ -29,25 +29,25 @@ local ShipActions = {
     ---@type ActionBinding
     Yaw = ActionBinding({
         mouse = { Control.MouseDX():setMult(0.1) },
-        gamepad = { Control.Axis(Button.GamepadRightStickX) },
+        gamepad = { Control.GamepadAxis(Button.GamepadRightStickX) },
     }),
 
     ---@type ActionBinding
     Pitch = ActionBinding({
         mouse = { Control.MouseDY():setMult(-0.1) },
-        gamepad = { Control.Axis(Button.GamepadRightStickY):invert() },
+        gamepad = { Control.GamepadAxis(Button.GamepadRightStickY):invert() },
     }),
 
     ---@type ActionBinding
     Boost = ActionBinding({
         keyboard = { Button.KeyboardShiftLeft, Button.KeyboardShiftRight },
-        gamepad = { Control.Axis(Button.GamepadLeftTrigger) },
+        gamepad = { Control.GamepadAxis(Button.GamepadLeftTrigger) },
     }),
 
     ---@type ActionBinding
     Fire = ActionBinding({
         mouse = { Button.MouseLeft },
-        gamepad = { Control.Axis(Button.GamepadRightTrigger) },
+        gamepad = { Control.GamepadAxis(Button.GamepadRightTrigger) },
     }),
 
     ---@type ActionBinding
@@ -97,7 +97,7 @@ if GameState and GameState.input and GameState.input.invertPitch then
     ---@type ActionBinding
     ShipActions.Pitch = ActionBinding({
         mouse = { Control.MouseY() },
-        gamepad = { Control.Axis(Button.GamepadRightStickY) },
+        gamepad = { Control.GamepadAxis(Button.GamepadRightStickY) },
     })
 end
 
