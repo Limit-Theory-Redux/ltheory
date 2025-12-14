@@ -80,7 +80,7 @@ impl ApplicationHandler for MainLoop {
                     .set_physical_resolution(size.width, size.height);
                 // Update the cache immediately so we don't try to resize again at the end of the frame.
                 engine.cache.window.resolution = engine.window.resolution.clone();
-                engine.winit_window.resize(size.width, size.height);
+                //engine.winit_window.resize(size.width, size.height);
             }
             WindowEvent::CloseRequested => {
                 // If we close the window, then abort the main loop.
@@ -188,6 +188,15 @@ impl ApplicationHandler for MainLoop {
                 inner_size_writer: _,
             } => {
                 engine.hmgui.set_scale_factor(scale_factor);
+
+                let size = engine.winit_window.window().inner_size();
+
+                engine
+                    .window
+                    .resolution
+                    .set_physical_resolution(size.width, size.height);
+
+                engine.cache.window.resolution = engine.window.resolution.clone();
             }
             WindowEvent::Focused(focused) => {
                 engine.window.focused = focused;
