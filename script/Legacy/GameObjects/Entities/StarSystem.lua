@@ -291,7 +291,6 @@ function System:beginRender()
 end
 
 function System:render(state)
-    self:send(OldEvent.Broadcast(state))
     self:renderProjectiles(state)
     self.dust:render(state)
     self.nebula:render(state)

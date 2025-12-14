@@ -11,7 +11,8 @@ end
 -- Sphere from tessellated icosahedron
 -- n = number of tessellation passes; default is 1
 -- NOTE : Mesh size is exponential in n; should never need more than 5 or 6!
-local function IcoSphere(n)
+local function IcoSphere(n, radius)
+    radius = radius or 1.0
     local p = (1.0 + sqrt(5)) / 2.0
     local self = PolyMesh()
         :addVertex(0, p, 1):addVertex(0, p, -1):addVertex(0, -p, 1):addVertex(0, -p, -1)
@@ -24,6 +25,39 @@ local function IcoSphere(n)
 
     for i = 1, n or 1 do self:tessellate() end
     self:spherize()
+    self:scale(radius, radius, radius)
+    local mesh = self:getMesh()
+    mesh:computeNormals()
+    return mesh
+end
+
+---@return Mesh
+local function Ring(innerRadius, outerRadius, segments)
+    innerRadius = innerRadius or 1.0
+    outerRadius = outerRadius or 2.0
+    segments = segments or 64
+
+    local self = PolyMesh()
+
+    -- Generate vertices
+    for i = 0, segments do
+        local a = i / segments * math.pi * 2
+        local c, s = math.cos(a), math.sin(a)
+        local u = i / segments
+
+        -- Outer
+        self:addVertex(c * outerRadius, 0, s * outerRadius, 0, 1, 0, u, 0.0)
+        -- Inner
+        self:addVertex(c * innerRadius, 0, s * innerRadius, 0, 1, 0, u, 1.0)
+    end
+
+    -- Generate quads
+    for i = 1, segments do
+        local base = (i - 1) * 2
+        local next = i * 2
+        self:addQuad(base, base + 1, next + 1, next)
+    end
+
     local mesh = self:getMesh()
     mesh:computeNormals()
     return mesh
@@ -32,4 +66,5 @@ end
 return {
     Billboard = Billboard,
     IcoSphere = IcoSphere,
+    Ring = Ring
 }

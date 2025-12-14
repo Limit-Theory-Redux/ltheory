@@ -73,6 +73,10 @@ impl Math {
         f64::round(x)
     }
 
+    pub fn lerp(a: f64, b: f64, t: f64) -> f64 {
+        lerp(a, b, t)
+    }
+
     pub fn sign(x: f64) -> f64 {
         if x > 0.0 {
             1.0

@@ -4,6 +4,14 @@ local PayloadConverter = require('Core.Util.PayloadConverter')
 
 function onDef_EventBus_t(t, mt)
     -- TODO: should return a handler
+    ---@class EventBus
+    ---@field register fun(self: EventBus, event: string, eventName: string, frameStage: FrameStage<integer>, rustPayload: boolean|nil)
+    ---@field subscribe fun(self: EventBus, event: string, ctxTable: table|nil, callback: function): integer
+    ---@field unsubscribe fun(self: EventBus, tunnelId: integer)
+    ---@field send fun(self: EventBus, event: string, ctxTable: table|nil, payload: Payload|number|boolean|string|nil)
+    ---@field dispatch fun(self: EventBus, event: string, payload: Payload|nil)
+    ---@field nextEvent fun(self: EventBus): (EventData?, any?)
+
     mt.__index.register = function(self, event, eventName, frameStage, rustPayload)
         local rustPayload = rustPayload == nil or rustPayload
         -- Log.Debug("Rust payload: " .. tostring(rustPayload))

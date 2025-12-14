@@ -88,3 +88,11 @@ function Tex2D:setTexel(x, y, r, g, b, a) end
 ---@param mode TexWrapMode
 function Tex2D:setWrapMode(mode) end
 
+-- Sample a single pixel at integer coordinates (x, y)
+-- Coordinates are in OpenGL convention: (0,0) = bottom-left
+-- Returns Vec3f with RGB in [0.0, 1.0] range
+---@param x integer
+---@param y integer
+---@return Vec3f
+function Tex2D:sample(x, y) end
+

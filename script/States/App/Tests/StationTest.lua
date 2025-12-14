@@ -1,77 +1,164 @@
-local Player = require('Legacy.GameObjects.Entities.Player')
-local System = require('Legacy.GameObjects.Entities.StarSystem')
-local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
-local Actions = requireAll('Legacy.GameObjects.Actions')
+local Application           = require('States.Application')
 
-local StationTest = require('States.Application')
-local rng = RNG.FromTime()
+---@class StationTest: Application
+local StationTest           = Subclass("StationTest", Application)
 
-function StationTest:spawnStation()
-    local station
-    do -- Player Ship
-        local currentStation = self.currentStation or self.player:getControlling()
-        if currentStation then currentStation:delete() end
-        station = self.system:spawnStation(Enums.StationHulls.Small, self.player)
-        station:setPos(Config.gen.origin)
-        station:setFriction(0)
-        station:setSleepThreshold(0, 0)
-        station:setOwner(self.player, true)
-        --self.system:addChild(ship)
-        self.player:setControlling(station)
-        self.currentStation = station
-    end
-end
+local Registry              = require("Core.ECS.Registry")
+local Entity                = require("Core.ECS.Entity")
+local DeltaTimer            = require("Shared.Tools.DeltaTimer")
+local DrawEx                = require("UI.DrawEx")
 
-function StationTest:newSystem()
-    self.seed = rng:get64()
-    Log.Debug('Seed: %s', self.seed)
+local CameraEntity          = require("Modules.Cameras.Entities").Camera
+local CameraManager         = require("Modules.Cameras.Managers.CameraManager")
+local FreeCameraController  = require("Modules.Cameras.Managers.CameraControllers.FreeCameraController")
+local OrbitCameraController = require("Modules.Cameras.Managers.CameraControllers.OrbitCameraController")
 
-    if self.system then self.system:delete() end
-    self.system = System(self.seed)
-    GameState.world.currentSystem = self.system
-    GameState:SetState(Enums.GameStates.InGame)
+local PhysicsComponents     = require("Modules.Physics.Components")
+local CoreComponents        = require("Modules.Core.Components")
+local RenderComp            = require("Modules.Rendering.Components").Render
+local CameraDataComponent   = require('Modules.Cameras.Components.CameraDataComponent')
 
-    self:spawnStation()
-end
+local RenderCoreSystem      = require("Modules.Rendering.Systems.RenderCoreSystem")
+local CameraSystem          = require("Modules.Cameras.Systems.CameraSystem")
 
-function StationTest:generate()
-    self:newSystem()
-end
+local SkyboxEntity          = require("Modules.CelestialObjects.Entities.SkyboxEntity")
+local StationGenerator      = require("Modules.Constructs.Managers.Generators.StationGenerator")
+
+---! still using legacy
+local Generator             = require("Legacy.Systems.Gen.Generator")
+local Starfield             = require("Legacy.Systems.Gen.Starfield")
 
 function StationTest:onInit()
-    self.player = Player()
-    GameState.player.humanPlayer = self.player
+    Window:setPresentMode(PresentMode.NoVsync)
+    Window:setFullscreen(false, true)
 
-    self:generate()
+    self.seed = 0
+    self.rng = RNG.FromTime()
+    self.world = Physics.Create()
 
-    DebugControl.ltheory = self
-    self.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, self.audio)
-    self.canvas = UI.Canvas()
-    self.canvas
-        :add(self.gameView
-            :add(Legacy.Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
+    -- Skybox
+    self.skybox = SkyboxEntity(self.seed, function(entity, blendMode)
+        local placeholder = entity:get(CoreComponents.Empty)
+        if not placeholder then
+            placeholder = entity:add(CoreComponents.Empty)
+        end
+
+        if not placeholder.envMap then
+            require("Legacy.Systems.Gen.Nebula.Nebula1")
+            local nebulaRNG     = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
+            local starAngle     = nebulaRNG:getDir2()
+            placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)
+            placeholder.envMap  = Generator.Get('Nebula', nebulaRNG)(nebulaRNG, Config.gen.nebulaRes, placeholder.starDir)
+            placeholder.irMap   = placeholder.envMap:genIRMap(256)
+            placeholder.stars   = Starfield(nebulaRNG, Config.gen.nStars(nebulaRNG))
+            ShaderVar.PushFloat3('starDir', placeholder.starDir.x, placeholder.starDir.y, placeholder.starDir.z)
+            ShaderVar.PushTexCube('envMap', placeholder.envMap)
+            ShaderVar.PushTexCube('irMap', placeholder.irMap)
+        end
+
+        if blendMode == BlendMode.Disabled then
+            RenderState.PushDepthWritable(false)
+            local shader = Cache.Shader('farplane', 'skybox')
+            RenderState.PushCullFace(CullFace.None)
+            shader:start()
+            Draw.Box3(Box3f(-1, -1, -1, 1, 1, 1))
+            shader:stop()
+            RenderState.PopCullFace()
+            RenderState.PopDepthWritable()
+        elseif blendMode == BlendMode.Additive then
+            local shader = Cache.Shader('farplane', 'starbg')
+            shader:start()
+            shader:setFloat('brightnessScale', 3)
+            shader:setTexCube('irMap', placeholder.irMap)
+            shader:setTexCube('envMap', placeholder.envMap)
+            placeholder.stars:draw()
+            shader:stop()
+        end
+    end)
+
+    -- Camera setup
+    local camOrbit = CameraEntity()
+    CameraManager:registerCamera("OrbitCam", camOrbit)
+
+    self.controllerOrbitCam = OrbitCameraController(camOrbit)
+    camOrbit:get(CameraDataComponent):setController(self.controllerOrbitCam)
+
+    CameraManager:setActiveCamera("OrbitCam")
+
+    -- Create station using generator
+    self.stationPos = Vec3f(0, 0, 0)
+    self:createStation(self.seed)
+
+    -- Orbit camera targets station
+    self.controllerOrbitCam:setTarget(self.station)
+
+    -- EventBus subscriptions
+    EventBus:subscribe(Event.Input, self, self.onInput)
+    EventBus:subscribe(Event.Sim, self, self.onStateSim)
 end
 
-function StationTest:onInput()
-    self.canvas:input()
+function StationTest:createStation(seed)
+    local stationRNG = RNG.Create(seed)
 
-    if Input:isKeyboardShiftPressed() and Input:isPressed(Button.KeyboardB) then
-        self:newSystem()
-    elseif Input:isPressed(Button.KeyboardB) then
-        self:spawnStation()
+    if self.station then
+        -- Remove old rigid bodies from physics world before destroying entities
+        local oldStationRb = self.station:get(PhysicsComponents.RigidBody)
+        if oldStationRb and oldStationRb:getRigidBody() then
+            self.world:removeRigidBody(oldStationRb:getRigidBody())
+        end
+
+        Registry:destroyEntity(self.station, Enums.Registry.EntityDestroyMode.DestroyChildren)
+    end
+
+    -- Use StationGenerator to create a station
+    self.station = StationGenerator:createStation(seed, {
+        position = self.stationPos:toPosition(),
+        scale = 1.5,
+        isKinematic = true
+    })
+
+    -- Add station's rigidbody to physics world
+    local rbCmp = self.station:get(PhysicsComponents.RigidBody)
+    local rb = rbCmp:getRigidBody()
+    self.world:addRigidBody(rb)
+
+    -- Optionally set camera targets
+    self.controllerOrbitCam:setTarget(self.station)
+end
+
+---@param data EventData
+function StationTest:onRender(data)
+    RenderCoreSystem:render(data)
+
+    self:immediateUI(function()
+        local camPos = CameraManager:getActiveCameraEntity():get(CameraDataComponent):getController():getPosition()
+        local infoLines = {
+            string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
+            string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
+            string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
+            string.format("Seed: %d", self.seed)
+        }
+
+        local y = 40
+        for _, line in ipairs(infoLines) do
+            DrawEx.TextAdditive('Unageo-Medium', line, 11, 40, y, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
+            y = y + 25
+        end
+    end)
+end
+
+---@param data EventData
+function StationTest:onInput(data)
+    if Input:keyboard():isPressed(Button.KeyboardB) then
+        self.seed = self.rng:get31()
+        self:createStation(self.seed)
     end
 end
 
-function StationTest:onUpdate(dt)
-    self.player:getRoot():update(dt)
-    self.canvas:update(dt)
-    Gui:beginGui(self.resX, self.resY)
-    Gui:endGui()
-end
-
-function StationTest:onDraw()
-    self.canvas:draw(self.resX, self.resY)
-    Gui:draw()
+---@param data EventData
+function StationTest:onStateSim(data)
+    local dt = data:deltaTime()
+    self.world:update(dt)
 end
 
 return StationTest

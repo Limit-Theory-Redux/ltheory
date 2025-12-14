@@ -4,13 +4,13 @@ local memory
 function onDef_Profiler(t, mt)
     t.BeginMemoryProfile = function()
         GC.Collect()
-        GC.Stop()
+        --GC.Stop()
         memory = GC.GetMemory()
     end
 
     t.EndMemoryProfile = function()
         local dMemory = GC.GetMemory() - memory
-        GC.Start()
+        --GC.Start() **disable automatic since we do manually GC in Application.lua (@IllustrisJack)**
         return dMemory
     end
 

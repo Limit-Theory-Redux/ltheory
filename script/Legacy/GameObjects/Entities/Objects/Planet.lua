@@ -1,5 +1,8 @@
 local Entity = require('Legacy.GameObjects.Entity')
 local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
+local RenderComponent = require('Modules.Rendering.Components.RenderComponent')
+local RigidBodyComponent = require('Modules.Physics.Components.RigidBodyComponent')
+local PlanetComponent = require('Modules.Core.Components.EmptyComponent')
 
 local genColor = function(rng)
     local h = rng:getUniformRange(0, 0.5)
@@ -33,26 +36,76 @@ local Planet = Subclass("Planet", Entity, function(self, seed)
     self:addMinable(false) -- TODO: should be 'true' temporarily (planets have Yield), but will change with Colonies
     self:addTrackable(true)
 
-    self.mesh = mesh
-    self.meshAtmo = Gen.Primitive.IcoSphere(5)
-    self.meshAtmo:computeNormals()
-    self.meshAtmo:invert()
+    self.mesh                  = mesh
 
-    self.texSurface     = Gen.GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
+    self.texSurface            = Gen.GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
         seed = rng:getUniform(),
         freq = 4 + rng:getExp(),
         power = 1 + 0.5 * rng:getExp(),
         coef = (rng:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize()
     })
 
-    self.cloudLevel     = rng:getUniformRange(-0.2, 0.15)
-    self.oceanLevel     = rng:getUniform() ^ 1.5
-    self.atmoScale      = 1.1
+    local planetComponent      = PlanetComponent()
+    planetComponent.cloudLevel = rng:getUniformRange(-0.2, 0.15)
+    planetComponent.oceanLevel = rng:getUniform() ^ 1.5
+    planetComponent.atmoScale  = 1.1
+    planetComponent.color1     = genColor(rng)
+    planetComponent.color2     = genColor(rng)
+    planetComponent.color3     = genColor(rng)
+    planetComponent.color4     = genColor(rng)
+    self.entity:add(planetComponent)
 
-    self.color1         = genColor(rng)
-    self.color2         = genColor(rng)
-    self.color3         = genColor(rng)
-    self.color4         = genColor(rng)
+    local meshAtmo = Gen.Primitive.IcoSphere(5, 1.5)
+    meshAtmo:computeNormals()
+    meshAtmo:invert()
+
+    -- Add renderables
+    local matSurface = Material.Create("material/planet")
+    matSurface.state:setFloat('heightMult', 1.0)
+    matSurface.state:setFloat('oceanLevel', planetComponent.oceanLevel)
+    matSurface.state:setFloat3('color1', planetComponent.color1.x, planetComponent.color1.y, planetComponent.color1.z)
+    matSurface.state:setFloat3('color2', planetComponent.color2.x, planetComponent.color2.y, planetComponent.color2.z)
+    matSurface.state:setFloat3('color3', planetComponent.color3.x, planetComponent.color3.y, planetComponent.color3.z)
+    matSurface.state:setFloat3('color4', planetComponent.color4.x, planetComponent.color4.y, planetComponent.color4.z)
+    matSurface.state:setTexCube("surface", self.texSurface)
+    matSurface.state:setFloat3('starColor', 1.0, 0.5, 0.1)
+    matSurface.onUpdateState = function(shader, entity, eye)
+        local body = entity:get(RigidBodyComponent)
+        local planet = entity:get(PlanetComponent)
+
+        local origin = body:getPos():relativeTo(eye)
+        shader:setFloat3('origin', origin.x, origin.y, origin.z)
+        shader:setFloat('rPlanet', body:getScale())
+        shader:setFloat('rAtmo', body:getScale() * planet.atmoScale)
+    end
+
+    local matAtmo = Material.Create("material/atmosphere")
+    matAtmo.blendMode = BlendMode.Alpha
+    matAtmo.state:setFloat3('starColor', 1.0, 0.5, 0.1)
+    matAtmo.onUpdateState = function(shader, entity, eye)
+        local body = entity:get(RigidBodyComponent)
+        local planet = entity:get(PlanetComponent)
+
+        local scale = body:getScale()
+        shader:setFloat('rAtmo', scale * planet.atmoScale)
+        shader:setFloat('rPlanet', scale)
+        local pos = body:getPos():relativeTo(eye)
+        shader:setFloat3('origin', pos.x, pos.y, pos.z)
+        shader:setFloat3('scale', scale, scale, scale)
+    end
+    matAtmo.onStart = function()
+        RenderState.PushCullFace(CullFace.Back)
+        RenderState.PushBlendMode(BlendMode.PreMultAlpha)
+    end
+    matAtmo.onStop = function()
+        RenderState.PopCullFace()
+        RenderState.PopBlendMode()
+    end
+
+    self.entity:add(RenderComponent({
+        { mesh = mesh,     material = matSurface },
+        { mesh = meshAtmo, material = matAtmo },
+    }))
 
     -- TEMP: give each planet the maximum number of every applicable component
     self.countCommo     = Config.gen.planetComponents[Enums.PlanetComponents.Commo][planetSizeType]
@@ -109,54 +162,6 @@ local Planet = Subclass("Planet", Entity, function(self, seed)
     end
 
     self:setDrag(10, 10) -- fix planet in place
-
-    self:register(OldEvent.Render, self.render)
 end)
-
-function Planet:render(state)
-    if state.mode == BlendMode.Disabled then
-        local shader = Cache.Shader('wvp', 'material/planet')
-        shader:start()
-        shader:setFloat('heightMult', 1.0)
-        shader:setFloat('oceanLevel', self.oceanLevel)
-        shader:setFloat('rPlanet', self:getScale())
-        shader:setFloat('rAtmo', self:getScale() * self.atmoScale)
-        shader:setFloat3('color1', self.color1.x, self.color1.y, self.color1.z)
-        shader:setFloat3('color2', self.color2.x, self.color2.y, self.color2.z)
-        shader:setFloat3('color3', self.color3.x, self.color3.y, self.color3.z)
-        shader:setFloat3('color4', self.color4.x, self.color4.y, self.color4.z)
-        local pos = self:getPos():relativeTo(state.eye)
-        shader:setFloat3('origin', pos.x, pos.y, pos.z)
-        shader:setFloat3('starColor', 1.0, 0.5, 0.1)
-        shader:setMatrix('mWorld', self:getToWorldMatrix(state.eye))
-        shader:setMatrixT('mWorldIT', self:getToLocalMatrix(state.eye))
-        shader:setTexCube('surface', self.texSurface)
-        self.mesh:draw()
-        shader:stop()
-    elseif state.mode == BlendMode.Alpha then
-        RenderState.PushCullFace(CullFace.Back)
-        RenderState.PushBlendMode(BlendMode.PreMultAlpha)
-        local shader = Cache.Shader('wvp', 'material/atmosphere')
-        shader:start()
-        do -- TODO : Scale the atmosphere mesh in shader...
-            local mScale = Matrix.Scaling(1.5, 1.5, 1.5)
-            local mWorld = self:getToWorldMatrix(state.eye):product(mScale)
-            shader:setMatrix('mWorld', mWorld)
-        end
-
-        shader:setMatrixT('mWorldIT', self:getToLocalMatrix(state.eye))
-        local scale = self:getScale()
-        shader:setFloat('rAtmo', scale * self.atmoScale)
-        shader:setFloat('rPlanet', scale)
-        local pos = self:getPos():relativeTo(state.eye)
-        shader:setFloat3('origin', pos.x, pos.y, pos.z)
-        shader:setFloat3('scale', scale, scale, scale)
-        shader:setFloat3('starColor', 1.0, 0.5, 0.1)
-        self.meshAtmo:draw()
-        shader:stop()
-        RenderState.PopBlendMode()
-        RenderState.PopCullFace()
-    end
-end
 
 return Planet

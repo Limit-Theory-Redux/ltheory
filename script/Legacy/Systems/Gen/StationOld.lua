@@ -10,7 +10,7 @@ local function ClampExp(k, t)
 end
 
 function GenMesh:add(p, s, r, b)
-    self.boxMesh:add(p.x, p.y, p.z, s.x, s.y, s.z, r.x, r.y, r.z, b, b, b)
+    self.boxMesh:add(p, s, r, b)
 end
 
 function GenMesh:addWarp(fn)
@@ -21,9 +21,20 @@ function GenMesh:column(rng, h, pieces, r)
     local dh = h / pieces
     for i = 0, pieces - 1 do
         local y = i / pieces
-        y = -1 * (2.0 * y - 1.5)
-        local radius = 0.1 + 0.4 * r * rng:getExp() ^ 0.5 * ClampExp(-0.5, 1.0 - y)
-        self:add(Vec3f(0, h * y, 0), Vec3f(radius, 1.5 * dh, radius), Vec3f(0, 0, 0), 0.25)
+        y = (2.0 * y - 1.5)
+
+        local radius =
+            0.1
+            + 0.4 * r
+            * rng:getExp() ^ 0.5
+            * ClampExp(-0.5, 1.0 - y)
+
+        self:add(
+            Vec3f(0, h * y, 0),
+            Vec3f(radius, 1.5 * dh, radius),
+            Vec3f(0, 0, 0),
+            Vec3f(0.25, 0.25, 0.25)
+        )
     end
 end
 
@@ -34,9 +45,9 @@ function GenMesh:ring(rng, h, r, spokes, th)
         local angle = 2.0 * math.pi * t
         local dir = Vec3f(cos(angle), 0, sin(angle))
         local rot = Vec3f(math.pi / 2.0 - angle, 0, 0)
-        self:add(o + dir:scale(0.5 * r), Vec3f(0.2, 0.1, 0.5 * r), rot, 0.15)
-        self:add(o + dir:scale(r + th), Vec3f(0.5, 0.5, th), rot, 0.25)
-        self:add(o + dir:scale(0.5 * r), Vec3f(0.5, 0.2, 1.0), rot, 0.5)
+        self:add(o + dir:scale(0.5 * r), Vec3f(0.2, 0.1, 0.5 * r), rot, Vec3f(0.15, 0.15, 0.15))
+        self:add(o + dir:scale(r + th), Vec3f(0.5, 0.5, th), rot, Vec3f(0.25, 0.25, 0.25))
+        self:add(o + dir:scale(0.5 * r), Vec3f(0.5, 0.2, 1.0), rot, Vec3f(0.5, 0.5, 0.5))
     end
 end
 
@@ -44,7 +55,7 @@ function GenMesh:finalize(res)
     local mesh = self.boxMesh:getMesh(res)
 
     mesh:lockVertexData(function(vData, vCount)
-        for i = 0, vCount - 1 do
+        for i = 0, tonumber(vCount) - 1 do
             local p = Vec3f(vData[i].px, vData[i].py, vData[i].pz)
             local dp = Vec3f(0, 0, 0)
             for j = 1, #self.warps do
@@ -85,7 +96,6 @@ local function generateStationOld(seed)
     self:addWarp(pointAttractor(Vec3f(0, -10, 0), 8.0 * rng:getUniform()))
 
     local mesh = self:finalize(6)
-    self.boxMesh:free()
     return mesh
 end
 

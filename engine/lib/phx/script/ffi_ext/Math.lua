@@ -1,5 +1,42 @@
 local libphx = require('libphx').lib
 
+---@class Math
+---@field Tau number
+---@field Pi number
+---@field Pi2 number
+---@field Pi4 number
+---@field Pi6 number
+---@field Infinity number
+---@field Float32MaxInt number
+---@field Float64MaxInt number
+---@field ToRadians fun(degrees: number): number
+---@field ToDegrees fun(radians: number): number
+---@field Approx fun(a: number, b: number): boolean
+---@field Avg fun(a: number, b: number): number
+---@field DivAndMod fun(x: number, divisor: number): (number, number)
+---@field EMA fun(last: number, current: number, dt: number, period: number): number
+---@field GeomAvg fun(a: number, b: number): number
+---@field Lerp fun(a: number, b: number, t: number): number
+---@field LerpSnap fun(a: number, b: number, t: number): number
+---@field Impact fun(pSrc: Position, pDst: Position, vSrc: Vec3f, vDst: Vec3f, speed: number): (number, Position)?
+---@field InverseLerp fun(a: number, b: number, v: number): number
+---@field OrthoVector fun(e1: Vec3f): Vec3f
+---@field OrthoBasis fun(e1: Vec3f): (Vec3f, Vec3f)
+---@field IsInfinite fun(x: number): boolean
+---@field IsNaN fun(x: number): boolean
+---@field IsOk fun(x: number): boolean
+---@field AbsMax fun(a: number, b: number): number
+---@field SmoothStep3 fun(x: number): number
+---@field SmoothStep5 fun(x: number): number
+---@field SmoothStep7 fun(x: number): number
+---@field Round fun(x: number): number
+---@field Saturate fun(x: number): number
+---@field Sign fun(x: number): number
+---@field Sign0 fun(x: number): number
+---@field Snap fun(x: number, a: number, b: number, epsilon: number): number
+---@field Spherical fun(radius: number, pitch: number, yaw: number): Vec3f
+---@field Wrap fun(x: number, min: number, max: number): number
+
 function onDef_Math(t, mt)
     t.Tau           = 6.283185307179586232
     t.Pi            = 3.141592653589793116

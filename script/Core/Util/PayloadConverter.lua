@@ -25,43 +25,43 @@ end
 ---@return Payload?
 function PayloadConverter:valueToPayload(value, rustPayload)
     if rustPayload then
-        if type(value) == "nil" then
+        if rawtype(value) == "nil" then
             return nil
         end
-        if type(value) == "boolean" then
+        if rawtype(value) == "boolean" then
             return Payload.FromBool(value)
         end
-        if type(value) == "integer" then
+        if rawtype(value) == "integer" then
             return Payload.FromI64(value) -- TODO: can we distinguish other integer types?
         end
-        if type(value) == "number" then
+        if rawtype(value) == "number" then
             return Payload.FromF64(value) -- TODO: can we distinguish other numeric types?
         end
-        if type(value) == "string" then
+        if rawtype(value) == "string" then
             return Payload.FromString(value)
         end
 
         -- check if this is an array
         if value[1] ~= nil then
-            if type(value[1]) == "boolean" then
+            if rawtype(value[1]) == "boolean" then
                 local array = ffi.new("bool[?]", #value, value)
                 return Payload.FromBoolArray(array, #value)
             end
-            if type(value[1]) == "integer" then
+            if rawtype(value[1]) == "integer" then
                 local array = ffi.new("i64[?]", #value, value)
                 return Payload.FromI64Array(array, #value) -- TODO: can we distinguish other integer types?
             end
-            if type(value[1]) == "number" then
+            if rawtype(value[1]) == "number" then
                 local array = ffi.new("double[?]", #value, value)
                 return Payload.FromF64Array(array, #value) -- TODO: can we distinguish other numeric types?
             end
-            if type(value[1]) == "string" then
+            if rawtype(value[1]) == "string" then
                 local array = ffi.new("cstr[?]", #value, value)
                 return Payload.FromStringArray(array, #value)
             end
         end
 
-        if type(value) == "table" then
+        if rawtype(value) == "table" then
             return Payload.FromTable(self:valueToPayloadTable(value))
         end
 

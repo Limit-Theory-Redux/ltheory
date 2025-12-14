@@ -6,7 +6,6 @@ local Core = require("Modules.Core.Components")
 return function(seed)
     return Entity.Create(
         "UniverseEntity",
-        Core.Seed(seed),
-        Core.Hierarchy()
+        Core.Seed(seed)
     )
 end

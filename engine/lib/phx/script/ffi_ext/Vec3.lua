@@ -45,6 +45,12 @@ local function defineVec3_t(t, mt)
         a.z = a.z + b.z
     end
 
+    function mt.__index.iadds(a, s)
+        a.x = a.x + s
+        a.y = a.y + s
+        a.z = a.z + s
+    end
+
     function mt.__index.idiv(a, b)
         a.x = a.x / b.x
         a.y = a.y / b.y

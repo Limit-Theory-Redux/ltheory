@@ -2,15 +2,14 @@ local Material = require("Shared.Rendering.Material")
 local Materials = require("Shared.Registries.Materials")
 
 ---@class TextureInfo
----@field texName string
----@field tex Tex
----@field texType UniformType
----@field texSettings TextureSetting
+---@field tex Tex1D|Tex2D|Tex3D
+---@field type UniformType
+---@field settings TextureSetting
 
 ---@class ShaderVarInfo
----@field uniformName string
----@field uniformType UniformType
----@field callbackFn function
+---@field type UniformType
+---@field value any
+---@field perInstance boolean|nil
 
 ---@class MaterialDefinitionConstructor
 ---@field name string
@@ -27,8 +26,8 @@ local Materials = require("Shared.Registries.Materials")
 ---@field fs_name string
 ---@field blendMode BlendMode
 ---@field textures table<Texture>
----@field autoShaderVars table<AutoShaderVar>
----@field constShaderVars table<ConstShaderVar>
+---@field autoShaderVars table<DynamicShaderVar>
+---@field constShaderVars table<DynamicShaderVar>
 ---@overload fun(args: MaterialDefinitionConstructor): MaterialDefinition
 local MaterialDefinition = Class("MaterialDefinition")
 
@@ -36,9 +35,9 @@ function MaterialDefinition.new(args)
     if not args.name then
         Log.Warn("No name Set for MaterialDefinition")
         return nil
-    elseif Material[args.name] then
+    elseif Materials[args.name] then
         Log.Warn("Attempting to Recreate Material: " .. args.name)
-        return Material[args.name]
+        return Materials[args.name]
     end
 
     if not args.vs_name then
@@ -57,20 +56,12 @@ function MaterialDefinition.new(args)
     end
 
     local newMaterial = Material(args.vs_name, args.fs_name, args.blendMode)
-    -- Set Textures
-    if args.textures then
-        newMaterial:addTextures(args.textures)
-    end
-    -- Set AutoShaderVars
-    if args.autoShaderVars then
-        newMaterial:addAutoShaderVars(args.autoShaderVars)
-    end
-    -- Set ConstShaderVars
-    if args.constShaderVars then
-        newMaterial:addConstShaderVars(args.constShaderVars)
-    end
+    if args.textures then newMaterial:addTextures(args.textures) end
+    if args.autoShaderVars then newMaterial:addAutoShaderVars(args.autoShaderVars) end
+    if args.constShaderVars then newMaterial:addConstShaderVars(args.constShaderVars) end
 
     -- Add new Material to Materials registry
+    newMaterial:reloadShader() -- reload to cache uniform ints
     Materials:new(args.name, newMaterial)
 
     return setmetatable({

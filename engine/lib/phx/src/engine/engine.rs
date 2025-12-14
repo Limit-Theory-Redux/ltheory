@@ -136,6 +136,7 @@ impl Engine {
 
     // Apply user changes, and then detect changes to the window and update the winit window accordingly.
     pub fn changed_window(&mut self) {
+        // Apply user input changes first
         for user_change in self.input.user_changes() {
             match user_change {
                 UserChange::CursorVisible(visible) => self.window.cursor.visible = *visible,
@@ -145,71 +146,110 @@ impl Engine {
             }
         }
 
+        // Handle suspend/resume
         if let Some(state) = self.window.state {
             match state {
                 WindowState::Suspended => self.winit_window.suspend(),
                 WindowState::Resumed => self.winit_window.resume(),
             }
-
             self.window.state = None;
         }
 
+        // Update title
         if self.window.title != self.cache.window.title {
             self.winit_window
                 .window()
                 .set_title(self.window.title.as_str());
         }
 
+        // === Handle window mode changes ===
         if self.window.mode != self.cache.window.mode {
-            let new_mode = match self.window.mode {
+            match self.window.mode {
                 WindowMode::BorderlessFullscreen => {
-                    Some(winit::window::Fullscreen::Borderless(None))
+                    // Choose the monitor explicitly (primary monitor recommended)
+                    let monitor = self.winit_window.window().primary_monitor();
+                    if let Some(monitor) = monitor {
+                        // Apply borderless fullscreen
+                        let fullscreen =
+                            winit::window::Fullscreen::Borderless(Some(monitor.clone()));
+                        self.winit_window.window().set_fullscreen(Some(fullscreen));
+
+                        // Force correct position at monitor origin
+                        let pos = monitor.position();
+                        self.winit_window.window().set_outer_position(pos);
+                    }
                 }
-                WindowMode::Fullscreen => Some(winit::window::Fullscreen::Exclusive(
-                    get_best_videomode(&self.winit_window.window().current_monitor().unwrap()),
-                )),
+                WindowMode::Fullscreen => {
+                    let monitor = self
+                        .winit_window
+                        .window()
+                        .current_monitor()
+                        .unwrap_or_else(|| self.winit_window.window().primary_monitor().unwrap());
+                    let videomode = get_best_videomode(&monitor);
+                    self.winit_window
+                        .window()
+                        .set_fullscreen(Some(winit::window::Fullscreen::Exclusive(videomode)));
+                }
                 WindowMode::SizedFullscreen => {
-                    Some(winit::window::Fullscreen::Exclusive(get_fitting_videomode(
-                        &self.winit_window.window().current_monitor().unwrap(),
+                    let monitor = self
+                        .winit_window
+                        .window()
+                        .current_monitor()
+                        .unwrap_or_else(|| self.winit_window.window().primary_monitor().unwrap());
+                    let videomode = get_fitting_videomode(
+                        &monitor,
                         self.window.width() as u32,
                         self.window.height() as u32,
-                    )))
+                    );
+                    self.winit_window
+                        .window()
+                        .set_fullscreen(Some(winit::window::Fullscreen::Exclusive(videomode)));
                 }
-                WindowMode::Windowed => None,
-            };
+                WindowMode::Windowed => {
+                    self.winit_window.window().set_fullscreen(None);
 
-            if self.winit_window.window().fullscreen() != new_mode {
-                self.winit_window.window().set_fullscreen(new_mode);
+                    // Restore cached position for windowed mode
+                    if let Some(position) = winit_window_position(
+                        &self.window.position,
+                        &self.window.resolution,
+                        self.winit_window.window().available_monitors(),
+                        self.winit_window.window().primary_monitor(),
+                        self.winit_window.window().current_monitor(),
+                    ) {
+                        self.winit_window.window().set_outer_position(position);
+                    }
+                }
             }
         }
 
+        // === Handle resolution changes ===
         if self.window.resolution != self.cache.window.resolution {
             let width = self.window.resolution.physical_width();
             let height = self.window.resolution.physical_height();
             let physical_size = PhysicalSize::new(width, height);
 
-            // Try to resize the window.
             if let Some(new_size) = self.winit_window.window().request_inner_size(physical_size) {
                 self.winit_window.resize(new_size.width, new_size.height);
             }
         }
 
+        // === Handle cursor position ===
         if self.window.physical_cursor_position() != self.cache.window.physical_cursor_position() {
             if let Some(physical_position) = self.window.physical_cursor_position() {
                 let inner_size = self.winit_window.window().inner_size();
 
                 let position = PhysicalPosition::new(
                     physical_position.x,
-                    // Flip the coordinate space back to winit's context.
                     inner_size.height as f32 - physical_position.y,
                 );
 
                 if let Err(err) = self.winit_window.window().set_cursor_position(position) {
-                    error!("could not set cursor position: {:?}", err);
+                    error!("Could not set cursor position: {:?}", err);
                 }
             }
         }
 
+        // === Handle cursors, grab, visibility ===
         if self.window.cursor.icon != self.cache.window.cursor.icon {
             self.winit_window
                 .window()
@@ -217,6 +257,9 @@ impl Engine {
         }
 
         if self.window.cursor.grab_mode != self.cache.window.cursor.grab_mode {
+            if !self.winit_window.window().has_focus() {
+                self.winit_window.window().focus_window();
+            }
             attempt_grab(self.winit_window.window(), self.window.cursor.grab_mode);
         }
 
@@ -240,6 +283,7 @@ impl Engine {
             }
         }
 
+        // === Handle decorations & resizable ===
         if self.window.decorations != self.cache.window.decorations
             && self.window.decorations != self.winit_window.window().is_decorated()
         {
@@ -256,6 +300,7 @@ impl Engine {
                 .set_resizable(self.window.resizable);
         }
 
+        // === Handle resize constraints ===
         if self.window.resize_constraints != self.cache.window.resize_constraints {
             let constraints = self.window.resize_constraints.check_constraints();
             let min_inner_size = LogicalSize {
@@ -277,7 +322,10 @@ impl Engine {
             }
         }
 
-        if self.window.position != self.cache.window.position {
+        // === Handle window position for windowed mode only ===
+        if self.window.mode == WindowMode::Windowed
+            && self.window.position != self.cache.window.position
+        {
             if let Some(position) = winit_window_position(
                 &self.window.position,
                 &self.window.resolution,
@@ -296,6 +344,7 @@ impl Engine {
             }
         }
 
+        // === Handle maximize / minimize requests ===
         if let Some(maximized) = self.window.internal.take_maximize_request() {
             self.winit_window.window().set_maximized(maximized);
         }
@@ -304,16 +353,27 @@ impl Engine {
             self.winit_window.window().set_minimized(minimized);
         }
 
+        // === Handle internal cursor position requests ===
+        if let Some(position) = self.window.internal.take_cursor_position_request() {
+            self.winit_window
+                .window()
+                .set_cursor_position(PhysicalPosition::new(position.x, position.y))
+                .unwrap_or_else(|err| {
+                    error!("Could not set cursor position: {:?}", err);
+                });
+        }
+
+        // === Focus ===
         if self.window.focused != self.cache.window.focused && self.window.focused {
             self.winit_window.window().focus_window();
         }
 
+        // === Present mode / IME / themes ===
         if self.window.present_mode != self.cache.window.present_mode {
-            warn!("unable to change present mode after the window was created!");
+            warn!("Unable to change present mode after window creation!");
             self.window.present_mode = self.cache.window.present_mode;
         }
 
-        // Currently unsupported changes
         if self.window.ime_enabled != self.cache.window.ime_enabled {
             self.winit_window
                 .window()
@@ -321,13 +381,11 @@ impl Engine {
         }
 
         if self.window.ime_position != self.cache.window.ime_position {
-            // TODO: Set the IME cursor area correctly.
             let position =
                 LogicalPosition::new(self.window.ime_position.x, self.window.ime_position.y);
             let width = self.window.resolution.physical_width();
             let height = self.window.resolution.physical_height();
             let physical_size = PhysicalSize::new(width, height);
-
             self.winit_window
                 .window()
                 .set_ime_cursor_area(position, physical_size);
@@ -339,6 +397,7 @@ impl Engine {
                 .set_theme(self.window.window_theme.map(convert_window_theme));
         }
 
+        // === Update cache at the end ===
         self.cache.window = self.window.clone();
     }
 }

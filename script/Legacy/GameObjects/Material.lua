@@ -5,6 +5,14 @@
 -- is a specific 'type' of metal
 -- NOTE : Really they're just nested ShaderStates.
 
+-- TODO: Remove hardcoded textures with a list of texture definitions
+-- TODO: Allow other vertex shaders to be loaded rather than wvp
+-- TODO: Allow variables to be updated automatically from other components
+-- TODO: Update Material.Create constructor to take a vs and fs and blend mode as input.
+-- TODO: Replace Material.Create so that it takes a MaterialInfo as input
+
+-- Basically, incorporate the features of the "new" Material.lua (in Shared/Rendering/Material.lua)
+
 local Material = Class("Material", function(self) end)
 
 local allMaterials = {}
@@ -30,6 +38,7 @@ function Material.Create(name, diffuse, normal, spec)
     self.texNormal = normal
     self.texSpec = spec
     self.state = nil
+    self.blendMode = BlendMode.Disabled
 
     if diffuse then
         setTextureState(diffuse)
@@ -77,10 +86,11 @@ function Material:reload()
     self.iScale    = shader:hasVariable('scale') and shader:getVariable('scale')
 end
 
-function Material:setState(e, eye)
-    if self.imWorld then self.state:shader():iSetMatrix(self.imWorld, e:getToWorldMatrix(eye)) end
-    if self.imWorldIT then self.state:shader():iSetMatrixT(self.imWorldIT, e:getToLocalMatrix(eye)) end
-    if self.iScale then self.state:shader():iSetFloat(self.iScale, e:getScale()) end
+function Material:updateState(body, entity, eye)
+    if self.imWorld then self.state:shader():iSetMatrix(self.imWorld, body:getToWorldMatrix(eye)) end
+    if self.imWorldIT then self.state:shader():iSetMatrixT(self.imWorldIT, body:getToLocalMatrix(eye)) end
+    if self.iScale then self.state:shader():iSetFloat(self.iScale, body:getScale()) end
+    if self.onUpdateState then self.onUpdateState(self.state:shader(), entity, eye) end
 end
 
 function Material:start()
@@ -89,6 +99,7 @@ function Material:start()
 end
 
 function Material:stop()
+    if self.onStop then self.onStop() end
     self.state:stop()
 end
 
