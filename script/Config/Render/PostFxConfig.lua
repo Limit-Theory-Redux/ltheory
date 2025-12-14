@@ -34,20 +34,20 @@ Config.render.postFx = {
         enable      = true,
         mode        = Enums.ColorGrades.Space,
         preExposure = 1.2,
-        temperature = -0.1,
+        temperature = -0.05,
         tint        = 0.0,
-        saturation  = 0.96,
+        saturation  = 0.82,
         contrast    = 1.0,
-        brightness  = 0.0,
-        vibrance    = 0.1,
+        brightness  = 0.005,
+        vibrance    = 0.125,
         lift        = { 0.0, 0.0, 0.01 },
         gamma       = { 1.0, 1.0, 1.0 },
         gain        = { 1.0, 1.0, 1.0 }
     },
     vignette = {
         enable   = true,
-        strength = 0.3,
-        hardness = 15.0
+        strength = 0.35,
+        hardness = 17.0
     },
     fxaa = {
         enable           = true,
