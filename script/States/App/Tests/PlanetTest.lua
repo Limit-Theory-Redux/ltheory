@@ -39,18 +39,11 @@ function PlanetTest:onInit()
 
     -- Timers
     self.timer = DeltaTimer("PlanetTest")
-    self.timer:start("fps", 0.1)
 
     -- Double-click timer
     self.clickTimer = DeltaTimer("ClickTimer")
     self.clickCount = 0
     self.lastClickedBody = nil
-
-    -- FPS tracking
-    self.frameCount = 0
-    self.smoothFPS = 0
-    self.fpsText = "FPS: 0"
-    self.time = 0
 
     self.world = Physics.Create()
 
@@ -521,15 +514,6 @@ function PlanetTest:onStatePreRender(data)
         self.lastClickedBody = nil
     end
 
-    self.frameCount = self.frameCount + 1
-    if self.timer:check("fps") then
-        local fpsInterval = 0.1
-        local instantFPS = self.frameCount / fpsInterval * (self.timeScale or 1)
-        self.smoothFPS = self.smoothFPS * 0.3 + instantFPS * 0.7
-        self.fpsText = "FPS: " .. math.floor(self.smoothFPS + 0.5)
-        self.frameCount = 0
-    end
-
     if self.dragReleaseTimer > 0 then
         self.dragReleaseTimer = math.max(0, self.dragReleaseTimer - dt)
     end
@@ -612,7 +596,8 @@ function PlanetTest:onRender(data)
         local camPos = camTransform and camTransform:getPos() or Position(0, 0, 0)
 
         local infoLines = {
-            string.format("FPS: %d", math.floor(self.smoothFPS + 0.5)),
+            string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
+            string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
             string.format("Seed: %d", self.seed),
             string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
             string.format("Orbit: Angle=%.1f° Pitch=%.1f° Radius=%.1f",

@@ -45,17 +45,6 @@ function CameraTest:onInit()
 
     self.seed = 0
     self.ringRNG = RNG.FromTime()
-
-    -- Timers
-    self.timer = DeltaTimer("CameraTest")
-    self.timer:start("fps", 0.1)
-
-    -- FPS tracking
-    self.frameCount = 0
-    self.smoothFPS = 0
-    self.fpsText = "FPS: 0"
-    self.time = 0
-
     self.world = Physics.Create()
 
     -- Skybox
@@ -349,16 +338,6 @@ end
 function CameraTest:onStatePreRender(data)
     local dt = data:deltaTime()
     local scaledDT = dt * (self.timeScale or 1)
-    self.timer:update(dt)
-
-    self.frameCount = self.frameCount + 1
-    if self.timer:check("fps") then
-        local fpsInterval = 0.1
-        local instantFPS = self.frameCount / fpsInterval * (self.timeScale or 1)
-        self.smoothFPS = self.smoothFPS * 0.3 + instantFPS * 0.7
-        self.fpsText = "FPS: " .. math.floor(self.smoothFPS + 0.5)
-        self.frameCount = 0
-    end
 
     -- Update moon orbits
     if self.moons then
@@ -400,7 +379,8 @@ function CameraTest:onRender(data)
         local yaw, pitch, roll = CameraManager:getActiveCameraEntity():get(CameraDataComponent):getController():getAngles()
 
         local infoLines = {
-            string.format("FPS: %d", math.floor(self.smoothFPS + 0.5)),
+            string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
+            string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
             string.format("Seed: %d", self.seed),
             string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
             string.format("Yaw: %.2f | Pitch: %.2f", math.deg(yaw), math.deg(pitch)),
