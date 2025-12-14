@@ -19,7 +19,7 @@ function RenderCoreSystem:registerVars()
     self.profiler        = QuickProfiler("RenderCoreSystem", false, false)
 
     self.settings        = {
-        superSampleRate = 2,
+        superSampleRate = Config.render.general.superSampleRate,
         downSampleRate  = Config.render.general.downSampleRate,
         showBuffers     = Config.render.debug.showBuffers,
         cullFace        = Config.render.renderState.cullFace
