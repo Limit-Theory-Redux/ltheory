@@ -27,14 +27,7 @@ function RenderingTest:onInit()
 
     -- Timers
     self.timer = DeltaTimer("RenderingTest")
-    self.timer:start("fps", 0.1)
     self.timer:start("camLoop", 0.01, true)
-
-    -- FPS tracking
-    self.frameCount = 0
-    self.smoothFPS = 0
-    self.fpsText = "FPS: 0"
-    self.time = 0
 
     -- Camera setup
     local cam = CameraEntity()
@@ -127,17 +120,7 @@ end
 
 function RenderingTest:updateBoxes(data)
     local dt = data:deltaTime()
-    self.time = self.time + dt
     self.timer:update(dt)
-
-    -- FPS
-    self.frameCount = self.frameCount + 1
-    if self.timer:check("fps") then
-        local instantFPS = self.frameCount * 10
-        self.smoothFPS = self.smoothFPS * 0.3 + instantFPS * 0.7
-        self.fpsText = "FPS: " .. math.floor(self.smoothFPS + 0.5)
-        self.frameCount = 0
-    end
 
     -- Rotate grid
     local gridRotationSpeed = 10
@@ -187,10 +170,24 @@ function RenderingTest:onRender(data)
     -- Immediate mode UI
     self:immediateUI(function()
         local mem = GC.GetMemory()
-        DrawEx.TextAdditive('Unageo-Medium', self.fpsText, 20,
-            40, 50, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
-        DrawEx.TextAdditive('Unageo-Medium', string.format("Lua Memory: %.2f KB", mem),
-            20, 40, 70, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
+
+        local infoLines = {
+            string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
+            string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
+            string.format("Lua Memory: %.2f KB", mem),
+            -- GC debug info
+            string.format("GC Step Size: %d", GC.debug.stepSize),
+            string.format("GC Last Mem After Cleanup: %.2f KB", GC.debug.lastMem or 0),
+            string.format("GC Emergency: %s", GC.debug.emergencyTriggered and "YES" or "NO"),
+            string.format("GC Spread Frames: %d", GC.debug.spreadFrames)
+        }
+
+        local y = 40
+        for _, line in ipairs(infoLines) do
+            DrawEx.TextAdditive('Unageo-Medium', line, 11,
+                40, y, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
+            y = y + 25
+        end
     end)
 
     Draw.Flush()

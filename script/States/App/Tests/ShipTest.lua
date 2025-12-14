@@ -34,14 +34,6 @@ function ShipTest:onInit()
 
     self.seed = 0
     self.rng = RNG.FromTime()
-
-    -- Timers
-    self.timer = DeltaTimer("ShipTest")
-    self.timer:start("fps", 0.1)
-    self.frameCount = 0
-    self.smoothFPS = 0
-    self.fpsText = "FPS: 0"
-
     self.world = Physics.Create()
 
     -- Skybox
@@ -101,7 +93,6 @@ function ShipTest:onInit()
     self.controllerOrbitCam:setTarget(self.Ship)
 
     -- EventBus subscriptions
-    EventBus:subscribe(Event.PreRender, self, self.onStatePreRender)
     EventBus:subscribe(Event.Input, self, self.onInput)
     EventBus:subscribe(Event.Sim, self, self.onStateSim)
 end
@@ -136,27 +127,14 @@ function ShipTest:createShip(seed)
 end
 
 ---@param data EventData
-function ShipTest:onStatePreRender(data)
-    local dt = data:deltaTime()
-    self.timer:update(dt)
-
-    self.frameCount = self.frameCount + 1
-    if self.timer:check("fps") then
-        local instantFPS = self.frameCount / 0.1
-        self.smoothFPS = self.smoothFPS * 0.3 + instantFPS * 0.7
-        self.fpsText = "FPS: " .. math.floor(self.smoothFPS + 0.5)
-        self.frameCount = 0
-    end
-end
-
----@param data EventData
 function ShipTest:onRender(data)
     RenderCoreSystem:render(data)
 
     self:immediateUI(function()
         local camPos = CameraManager:getActiveCameraEntity():get(CameraDataComponent):getController():getPosition()
         local infoLines = {
-            string.format("FPS: %d", math.floor(self.smoothFPS + 0.5)),
+            string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
+            string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
             string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
             string.format("Seed: %d", self.seed)
         }

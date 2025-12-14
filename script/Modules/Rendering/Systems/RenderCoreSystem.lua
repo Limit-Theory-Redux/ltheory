@@ -7,6 +7,9 @@ local CameraComponent  = require("Modules.Cameras.Components.CameraDataComponent
 local UniformFuncs     = require("Shared.Rendering.UniformFuncs")
 local Cache            = require("Render.Cache")
 
+---@class RenderCoreSystem
+---@overload fun(self): RenderCoreSystem
+---@overload fun(): RenderCoreSystem
 local RenderCoreSystem = Class("RenderCoreSystem", function(self)
     require("Shared.Definitions.MaterialDefs")
     require("Shared.Definitions.UniformFuncDefs")
@@ -59,6 +62,15 @@ function RenderCoreSystem:registerVars()
     self:initializeBuffers()
     self.passes = {}
     self.level = 0
+
+    -- FPS tracking
+    self.frameTimes = {}          -- table storing recent frame times
+    self.frameHistoryLength = 100 -- track last 100 frames
+    self.currentFPS = 0
+    self.currentFrameTime = 0
+    self.smoothFPS = 0
+    self.smoothFrameTime = 0
+    self.smoothFactor = 0.035 -- smaller = smoother, slower to react
 
     -- For injection
     self.currentPass = nil
@@ -116,7 +128,14 @@ end
 
 ---@param data EventData
 function RenderCoreSystem:render(data)
-    local dt = data:deltaTime()
+    -- Track frame time
+    local dt = data:deltaTime() -- already in your code
+    table.insert(self.frameTimes, dt)
+
+    -- Keep only last N frames
+    if #self.frameTimes > self.frameHistoryLength then
+        table.remove(self.frameTimes, 1)
+    end
 
     self:handleResize()
 
@@ -201,6 +220,18 @@ function RenderCoreSystem:render(data)
     Window:endDraw()
 
     self.currentPass = nil
+
+    -- Compute average frametime and FPS
+    local sum = 0
+    for _, t in ipairs(self.frameTimes) do
+        sum = sum + t
+    end
+    self.currentFrameTime = sum / #self.frameTimes
+    self.currentFPS       = math.floor(1 / self.currentFrameTime)
+
+    -- Smooth with exponential moving average
+    self.smoothFrameTime  = self.smoothFrameTime + (self.currentFrameTime - self.smoothFrameTime) * self.smoothFactor
+    self.smoothFPS        = self.smoothFPS + (self.currentFPS - self.smoothFPS) * self.smoothFactor
 end
 
 function RenderCoreSystem:handleResize()
@@ -725,6 +756,32 @@ function RenderCoreSystem:presentAll(x, y, sx, sy)
     draw(Enums.BufferName.zBufferL, x + sx / 2, y)
     sh:stop()
     RenderState.PopAll()
+end
+
+function RenderCoreSystem:getFPS()
+    return self.currentFPS
+end
+
+---@param inMs boolean
+function RenderCoreSystem:getFrameTime(inMs)
+    if inMs then
+        return self.currentFrameTime * 1000
+    else
+        return self.currentFrameTime
+    end
+end
+
+---@param inMs boolean
+function RenderCoreSystem:getSmoothFrameTime(inMs)
+    if inMs then
+        return self.smoothFrameTime * 1000
+    else
+        return self.smoothFrameTime
+    end
+end
+
+function RenderCoreSystem:getSmoothFPS()
+    return self.smoothFPS
 end
 
 return RenderCoreSystem()
