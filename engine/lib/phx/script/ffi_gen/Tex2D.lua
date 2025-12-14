@@ -41,6 +41,7 @@ function Loader.defineType()
             void      Tex2D_SetMipRange   (Tex2D*, int minLevel, int maxLevel);
             void      Tex2D_SetTexel      (Tex2D*, int x, int y, float r, float g, float b, float a);
             void      Tex2D_SetWrapMode   (Tex2D*, TexWrapMode mode);
+            Vec3f     Tex2D_Sample        (Tex2D const*, int x, int y);
         ]]
     end
 
@@ -97,6 +98,7 @@ function Loader.defineType()
                 setMipRange   = libphx.Tex2D_SetMipRange,
                 setTexel      = libphx.Tex2D_SetTexel,
                 setWrapMode   = libphx.Tex2D_SetWrapMode,
+                sample        = libphx.Tex2D_Sample,
             },
         }
 
