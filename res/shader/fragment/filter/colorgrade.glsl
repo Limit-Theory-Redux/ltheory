@@ -101,67 +101,55 @@ vec3 applyContrast(vec3 c, float contrastVal) {
 
 void main() {
     vec3 color = texture(src, uv).rgb;
-
-    if (preExposure != 1.0) {
-      color = color * preExposure;
-    }
     
-    // Apply preset first
-    if (mode == 1)      color = ColorGradeCinematic(color);
-    else if (mode == 2) color = ColorGradeSpace(color);
-    else if (mode == 3) color = ColorGradeWarm(color);
-    else if (mode == 4) color = ColorGradeCool(color);
-    else if (mode == 5) color = ColorGradeVibrant(color);
-    else if (mode == 6) color = ColorGradeBleach(color);
+    // Apply pre-exposure
+    color = color * preExposure;
     
-    // Only apply additional grading if values are non-default
+    // Apply preset (branchless with multiplication by mode flags)
+    vec3 neutral = color;
+    vec3 cinematic = ColorGradeCinematic(color);
+    vec3 space = ColorGradeSpace(color);
+    vec3 warm = ColorGradeWarm(color);
+    vec3 cool = ColorGradeCool(color);
+    vec3 vibrant = ColorGradeVibrant(color);
+    vec3 bleach = ColorGradeBleach(color);
     
-    // Temperature and tint
-    if (temperature != 0.0) {
-        color = applyTemperature(color, temperature);
-    }
-    if (tint != 0.0) {
-        color = applyTint(color, tint);
-    }
+    // Branchless selection (only one will be 1.0, rest are 0.0)
+    color = neutral * float(mode == 0) +
+            cinematic * float(mode == 1) +
+            space * float(mode == 2) +
+            warm * float(mode == 3) +
+            cool * float(mode == 4) +
+            vibrant * float(mode == 5) +
+            bleach * float(mode == 6);
     
-    // Brightness
-    if (brightness != 0.0) {
-        color = color + brightness;
-        color = max(color, 0.0); // Clamp after brightness
-    }
+    // Apply adjustments (simplified - always apply, use 0.0 defaults)
+    color = applyTemperature(color, temperature);
+    color = applyTint(color, tint);
+    color = color + brightness;
+    color = max(color, 0.0);
+    color = (color - 0.5) * contrast + 0.5;
+    color = max(color, 0.0);
     
-    // Contrast - CLAMP IMMEDIATELY AFTER
-    if (contrast != 1.0) {
-        color = applyContrast(color, contrast);
-    }
+    float lum = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    color = mix(vec3(lum), color, saturation);
+    color = max(color, 0.0);
     
-    // Saturation
-    if (saturation != 1.0) {
-        float lum = dot(color, vec3(0.2126, 0.7152, 0.0722));
-        color = mix(vec3(lum), color, saturation);
-        color = max(color, 0.0); // Clamp
-    }
+    // Vibrance with highlight protection
+    float highlightMask = smoothstep(0.8, 1.0, lum);
+    float adjustedVibrance = vibrance * (1.0 - highlightMask);
+    float maxComp = max(max(color.r, color.g), color.b);
+    float minComp = min(min(color.r, color.g), color.b);
+    float sat = maxComp - minComp;
+    float vibranceMask = 1.0 - sat;
+    color = mix(vec3(lum), color, 1.0 + adjustedVibrance * vibranceMask);
+    color = max(color, 0.0);
     
-    // Vibrance
-    if (vibrance != 0.0) {
-        float lum = dot(color, vec3(0.2126, 0.7152, 0.0722));
-
-        // Protect highlights - don't apply vibrance to very bright areas
-        float highlightMask = smoothstep(0.8, 1.0, lum);
-        float adjustedVibrance = vibrance * (1.0 - highlightMask);
-
-        float maxComp = max(max(color.r, color.g), color.b);
-        float minComp = min(min(color.r, color.g), color.b);
-        float sat = maxComp - minComp;
-        float vibranceMask = 1.0 - sat;
-        color = mix(vec3(lum), color, 1.0 + adjustedVibrance * vibranceMask);
-        color = max(color, 0.0);
-    }
-    
-    // Lift/Gamma/Gain - only if not at defaults
-    if (lift != vec3(0.0) || gamma != vec3(1.0) || gain != vec3(1.0)) {
-        color = applyLiftGammaGain(color, lift, gamma, gain);
-    }
+    // Lift/Gamma/Gain (simplified)
+    color = color + lift;
+    color = max(color, 0.0);
+    color = pow(color, 1.0 / max(gamma, vec3(0.01)));
+    color = color * gain;
     
     fragColor = vec4(max(color, 0.0), 1.0);
 }
