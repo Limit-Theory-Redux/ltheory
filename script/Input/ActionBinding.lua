@@ -87,14 +87,10 @@ end
 
 ---@param bind number|table
 ---@return number
-function ActionBinding:readBind(bind)
-    if type(bind) == "number" then
-        return Input:getValue(bind)
-    end
-    
+function ActionBinding:readBind(bind)    
     local t = bind.type
 
-    if t == Enums.ControlType.Key then
+    if t == Enums.ControlType.Single then
         local k = Input:getValue(bind.key)
         return k
     end

@@ -2,8 +2,8 @@ local Control = {}
 
 ---@param key integer
 ---@return table
-function Control.Key(key)
-    return { type = Enums.ControlType.Key, key = key }
+function Control.Single(key)
+    return { type = Enums.ControlType.Single, key = key }
 end
 
 ---@param ... integer|table 

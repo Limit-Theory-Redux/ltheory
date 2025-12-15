@@ -12,9 +12,10 @@ local QuickProfiler    = require("Shared.Tools.QuickProfiler")
 local RenderCoreSystem = require("Modules.Rendering.Systems.RenderCoreSystem")
 
 -- ActionBinding system
-local ShipActions      = require('Input.ActionBindings.ShipActions')
+local ShipActions           = require('Input.ActionBindings.ShipActions')
+local GamepadCursorActions  = require('Input.ActionBindings.GamepadCursorActions')
 
-local function DrawLabelValue(label, value, x, y, font, fontSize, r, g, b, a, blendMode)
+local function drawLabelValue(label, value, x, y, font, fontSize, r, g, b, a, blendMode)
     local fontName = font or 'Unageo-Medium'
     local size = fontSize or 12
     local cr, cg, cb, ca = r or 0.9, g or 0.9, b or 0.9, a or 1.0
@@ -24,7 +25,7 @@ local function DrawLabelValue(label, value, x, y, font, fontSize, r, g, b, a, bl
     drawFunc(fontName, text, size, x, y, 400, size + 4, cr, cg, cb, ca, 0.0, 0.5)
 end
 
-local function DrawSectionTitle(title, x, y, font, fontSize, r, g, b, a, blendMode)
+local function drawSectionTitle(title, x, y, font, fontSize, r, g, b, a, blendMode)
     local fontName = font or 'Unageo-Medium'
     local size = fontSize or 14
     local cr, cg, cb, ca = r or 1.0, g or 0.8, b or 0.2, a or 1.0
@@ -33,7 +34,7 @@ local function DrawSectionTitle(title, x, y, font, fontSize, r, g, b, a, blendMo
     drawFunc(fontName, "[ " .. title .. " ]", size, x, y, 400, size + 4, cr, cg, cb, ca, 0.0, 0.5)
 end
 
-local function DrawAxisBar(label, value, x, y, width, height, font, fontSize)
+local function drawAxisBar(label, value, x, y, width, height, font, fontSize)
     local fontName = font or 'Unageo-Medium'
     local size = fontSize or 11
 
@@ -60,7 +61,7 @@ local function DrawAxisBar(label, value, x, y, width, height, font, fontSize)
     DrawEx.TextAdditive(fontName, valueStr, size - 1, barX + barWidth + 10, y, 60, height, 0.7, 0.7, 0.7, 1.0, 0.0, 0.5)
 end
 
-local function DrawStickVisualizer(label, xValue, yValue, x, y, size, font, fontSize)
+local function drawStickVisualizer(label, xValue, yValue, x, y, size, font, fontSize)
     local fontName = font or 'Unageo-Medium'
     local textSize = fontSize or 11
     local centerX = x + size / 2
@@ -81,7 +82,7 @@ local function DrawStickVisualizer(label, xValue, yValue, x, y, size, font, font
         Color(0.2 + math.abs(xValue) * 0.6, 0.8 - math.abs(yValue) * 0.4, 0.2, 1.0))
 end
 
-local function DrawDebugLines(lineDefs, startX, startY, lineHeight, font, fontSize, r, g, b, a, alignX, alignY, blendMode)
+local function drawDebugLines(lineDefs, startX, startY, lineHeight, font, fontSize, r, g, b, a, alignX, alignY, blendMode)
     local x = startX or 40
     local y = startY or 40
     local spacing = lineHeight or 20
@@ -104,15 +105,6 @@ local function DrawDebugLines(lineDefs, startX, startY, lineHeight, font, fontSi
             y = y + spacing
         end
     end
-end
-
-local function DrawGamepadCursor(x, y, size)
-    local halfSize = size / 2
-    RenderState.PushBlendMode(BlendMode.Alpha)
-    local color = Color(1.0, 1.0, 1.0, 0.5)
-    DrawEx.Ring(x, y, halfSize - 4, color, 1)
-    DrawEx.Circle(x, y, halfSize - 33, color)
-    RenderState.PopBlendMode()
 end
 
 local function buildButtonNameLookup()
@@ -151,7 +143,7 @@ function InputTest:drawInputState()
     DrawEx.TextAdditive('Unageo-Medium', deviceText, 14, x, y - 30, 400, 20,
         deviceColor[1], deviceColor[2], deviceColor[3], 1.0, 0.0, 0.5)
 
-    DrawSectionTitle("Mouse", x, y)
+    drawSectionTitle("Mouse", x, y)
     y = y + lineHeight + 4
 
     local mousePos = Input:mouse():position()
@@ -159,15 +151,15 @@ function InputTest:drawInputState()
     local mouseScroll = Input:mouse():scroll()
     local mouseInWindow = Input:mouse():inWindow()
 
-    DrawLabelValue("Position", string.format("%.0f, %.0f", mousePos.x, mousePos.y), x, y)
+    drawLabelValue("Position", string.format("%.0f, %.0f", mousePos.x, mousePos.y), x, y)
     y = y + lineHeight
-    DrawLabelValue("Delta", string.format("%.1f, %.1f", mouseDelta.x, mouseDelta.y), x, y)
+    drawLabelValue("Delta", string.format("%.1f, %.1f", mouseDelta.x, mouseDelta.y), x, y)
     y = y + lineHeight
-    DrawLabelValue("Scroll", string.format("%.1f, %.1f", mouseScroll.x, mouseScroll.y), x, y)
+    drawLabelValue("Scroll", string.format("%.1f, %.1f", mouseScroll.x, mouseScroll.y), x, y)
     y = y + lineHeight
-    DrawLabelValue("In Window", mouseInWindow and "Yes" or "No", x, y)
+    drawLabelValue("In Window", mouseInWindow and "Yes" or "No", x, y)
     y = y + lineHeight
-    DrawLabelValue("Buttons Held", self.heldMouseStr, x, y)
+    drawLabelValue("Buttons Held", self.heldMouseStr, x, y)
     y = y + lineHeight
 
     local recentMouseX = x + 110
@@ -184,7 +176,7 @@ function InputTest:drawInputState()
     end
     y = y + sectionGap
 
-    DrawSectionTitle("Keyboard", x, y)
+    drawSectionTitle("Keyboard", x, y)
     y = y + lineHeight + 4
 
     local modifiers = {}
@@ -192,9 +184,9 @@ function InputTest:drawInputState()
     if Input:isKeyboardAltDown() then table.insert(modifiers, "Alt") end
     if Input:isKeyboardShiftDown() then table.insert(modifiers, "Shift") end
     local modifiersStr = #modifiers > 0 and table.concat(modifiers, " + ") or "None"
-    DrawLabelValue("Modifiers", modifiersStr, x, y)
+    drawLabelValue("Modifiers", modifiersStr, x, y)
     y = y + lineHeight
-    DrawLabelValue("Keys Held", self.heldKeysStr, x, y)
+    drawLabelValue("Keys Held", self.heldKeysStr, x, y)
     y = y + lineHeight
 
     local recentKbX = x + 110
@@ -211,12 +203,12 @@ function InputTest:drawInputState()
     end
     y = y + sectionGap
 
-    DrawSectionTitle("Gamepad", x, y)
+    drawSectionTitle("Gamepad", x, y)
     y = y + lineHeight + 4
 
     local gamepad = Input:gamepad()
     local gamepadCount = gamepad:gamepadsCount()
-    DrawLabelValue("Connected", tostring(gamepadCount), x, y)
+    drawLabelValue("Connected", tostring(gamepadCount), x, y)
     y = y + lineHeight
 
     if gamepadCount > 0 then
@@ -231,11 +223,11 @@ function InputTest:drawInputState()
         local rStickYDelta = Input:gamepad():delta(GamepadAxis.RightStickY)
 
         y = y + lineHeight
-        DrawStickVisualizer("L Stick", lStickX, lStickY, x, y - 10, 100, 'Unageo-Medium', 11)
-        DrawStickVisualizer("R Stick", rStickX, rStickY, x + 120, y - 10, 100, 'Unageo-Medium', 11)
+        drawStickVisualizer("L Stick", lStickX, lStickY, x, y - 10, 100, 'Unageo-Medium', 11)
+        drawStickVisualizer("R Stick", rStickX, rStickY, x + 120, y - 10, 100, 'Unageo-Medium', 11)
         y = y + 110
 
-        DrawLabelValue("Buttons Held", self.heldGpButtonsStr, x, y)
+        drawLabelValue("Buttons Held", self.heldGpButtonsStr, x, y)
         y = y + lineHeight
 
         local recentGpX = x + 110
@@ -255,7 +247,7 @@ function InputTest:drawInputState()
     end
 end
 
-function InputTest:drawShipActionsTest()
+function InputTest:drawShipActions()
     local screenW = Window:width()
     local x = screenW - 400
     local y = 120
@@ -263,46 +255,46 @@ function InputTest:drawShipActionsTest()
     local sectionGap = 20
     local barWidth = 250
 
-    DrawSectionTitle("ShipActions Test", x, y)
+    drawSectionTitle("ShipActions Test", x, y)
     y = y + lineHeight + 4
 
-    DrawLabelValue("ThrustX (A/D, LStick X)", string.format("%.3f", ShipActions.ThrustX:get()), x, y)
+    drawLabelValue("ThrustX (A/D, LStick X)", string.format("%.3f", ShipActions.ThrustX:get()), x, y)
     y = y + lineHeight
-    DrawLabelValue("ThrustZ (W/S, LStick Y)", string.format("%.3f", ShipActions.ThrustZ:get()), x, y)
+    drawLabelValue("ThrustZ (W/S, LStick Y)", string.format("%.3f", ShipActions.ThrustZ:get()), x, y)
     y = y + lineHeight
-    DrawLabelValue("ThrustY (Space/Ctrl, DPad)", string.format("%.3f", ShipActions.ThrustY:get()), x, y)
+    drawLabelValue("ThrustY (Space/Ctrl, DPad)", string.format("%.3f", ShipActions.ThrustY:get()), x, y)
     y = y + lineHeight
-    DrawLabelValue("Roll (Q/E, LT/RT)", string.format("%.3f", ShipActions.Roll:get()), x, y)
+    drawLabelValue("Roll (Q/E, LT/RT)", string.format("%.3f", ShipActions.Roll:get()), x, y)
     y = y + lineHeight
-    DrawLabelValue("Yaw (Mouse X, RStick X)", string.format("%.3f", ShipActions.Yaw:get()), x, y)
+    drawLabelValue("Yaw (Mouse X, RStick X)", string.format("%.3f", ShipActions.Yaw:get()), x, y)
     y = y + lineHeight
-    DrawLabelValue("Pitch (Mouse Y, RStick Y)", string.format("%.3f", ShipActions.Pitch:get()), x, y)
+    drawLabelValue("Pitch (Mouse Y, RStick Y)", string.format("%.3f", ShipActions.Pitch:get()), x, y)
     y = y + lineHeight
-    DrawLabelValue("Boost (Shift, LB)", string.format("%.3f", ShipActions.Boost:get()), x, y)
+    drawLabelValue("Boost (Shift, LB)", string.format("%.3f", ShipActions.Boost:get()), x, y)
     y = y + sectionGap + 10
 
-    DrawSectionTitle("Simulated Ship State", x, y)
+    drawSectionTitle("Simulated Ship State", x, y)
     y = y + lineHeight + 8
 
     DrawEx.TextAdditive('Unageo-Medium', "Thrust:", 11, x, y, 100, lineHeight, 0.8, 0.8, 0.8, 1.0, 0.0, 0.5)
     y = y + lineHeight
-    DrawAxisBar("  X (Strafe)", self.shipThrust.x, x, y, barWidth, 16)
+    drawAxisBar("  X (Strafe)", self.shipThrust.x, x, y, barWidth, 16)
     y = y + 22
-    DrawAxisBar("  Y (Vertical)", self.shipThrust.y, x, y, barWidth, 16)
+    drawAxisBar("  Y (Vertical)", self.shipThrust.y, x, y, barWidth, 16)
     y = y + 22
-    DrawAxisBar("  Z (Forward)", self.shipThrust.z, x, y, barWidth, 16)
+    drawAxisBar("  Z (Forward)", self.shipThrust.z, x, y, barWidth, 16)
     y = y + sectionGap
 
     DrawEx.TextAdditive('Unageo-Medium', "Rotation:", 11, x, y, 100, lineHeight, 0.8, 0.8, 0.8, 1.0, 0.0, 0.5)
     y = y + lineHeight
-    DrawAxisBar("  Roll", self.shipRoll, x, y, barWidth, 16)
+    drawAxisBar("  Roll", self.shipRoll, x, y, barWidth, 16)
     y = y + 22
-    DrawAxisBar("  Yaw", self.shipYaw, x, y, barWidth, 16)
+    drawAxisBar("  Yaw", self.shipYaw, x, y, barWidth, 16)
     y = y + 22
-    DrawAxisBar("  Pitch", self.shipPitch, x, y, barWidth, 16)
+    drawAxisBar("  Pitch", self.shipPitch, x, y, barWidth, 16)
     y = y + sectionGap + 10
 
-    DrawSectionTitle("Controls", x, y)
+    drawSectionTitle("Controls", x, y)
     y = y + lineHeight + 4
 
     local hints = {
@@ -319,18 +311,44 @@ function InputTest:drawShipActionsTest()
     end
 end
 
-function InputTest:updateShipPhysics(dt)
+function InputTest:drawGamepadCursor()
+    if self.activeDevice ~= InputDeviceType.Gamepad then return end
+    local size = 64
+    local halfSize = size / 2
+    RenderState.PushBlendMode(BlendMode.Alpha)
+    local color = Color(1.0, 1.0, 1.0, 0.5)
+    DrawEx.Ring(self.gamepadCursorX, self.gamepadCursorY, halfSize - 4, color, 1)
+    DrawEx.Circle(self.gamepadCursorX, self.gamepadCursorY, halfSize - 33, color)
+    RenderState.PopBlendMode()
+end
+
+function InputTest:updateBindings()
     if self.runProfiler then self.profiler:start() end
-    local thrustX = ShipActions.ThrustX:get()
-    local thrustY = ShipActions.ThrustY:get()
-    local thrustZ = ShipActions.ThrustZ:get()
-    local roll = ShipActions.Roll:get()
-    local yaw = ShipActions.Yaw:get()
-    local pitch = ShipActions.Pitch:get()
-    local boost = ShipActions.Boost:get()
+    for _, binding in pairs(ShipActions) do binding:update() end
+    for _, binding in pairs(GamepadCursorActions) do binding:update() end
     if self.runProfiler then self.profiler:stop() end
-    
-    local boostMult = 1.0 + boost * 1.5
+end
+
+function InputTest:updateInputState()
+    -- Ship actions
+    self.inputShipThrustX   = ShipActions.ThrustX:get()
+    self.inputShipThrustY   = ShipActions.ThrustY:get()
+    self.inputShipThrustZ   = ShipActions.ThrustZ:get()
+    self.inputShipRoll      = ShipActions.Roll:get()
+    self.inputShipYaw       = ShipActions.Yaw:get()
+    self.inputShipPitch     = ShipActions.Pitch:get()
+    self.inputShipBoost     = ShipActions.Boost:get()
+
+    -- Gamepad cursor actions
+    self.inputCursorMoveX     = GamepadCursorActions.MoveX:get()
+    self.inputCursorMoveY     = GamepadCursorActions.MoveY:get()
+    self.inputCursorBoost     = GamepadCursorActions.Boost:get()
+    self.inputCursorConfirm   = GamepadCursorActions.Confirm:get()
+    self.inputCursorCancel    = GamepadCursorActions.Cancel:get()
+end
+
+function InputTest:updateShipPhysics(dt)
+    local boostMult = 1.0 + self.inputShipBoost * 1.5
     
     local function updateAxisSmooth(current, input, accel, decay, maxVal)
         if math.abs(input) > 0.001 then
@@ -354,41 +372,30 @@ function InputTest:updateShipPhysics(dt)
     end
 
     self.shipThrust = Vec3f(
-        updateAxisSmooth(self.shipThrust.x, thrustX * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust),
-        updateAxisSmooth(self.shipThrust.y, thrustY * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust),
-        updateAxisSmooth(self.shipThrust.z, thrustZ * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust)
+        updateAxisSmooth(self.shipThrust.x, self.inputShipThrustX * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust),
+        updateAxisSmooth(self.shipThrust.y, self.inputShipThrustY * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust),
+        updateAxisSmooth(self.shipThrust.z, self.inputShipThrustZ * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust)
     )
 
-    self.shipRoll = updateAxisDirect(self.shipRoll, roll, self.rotationAccel, self.maxRotation)
-    self.shipYaw = updateAxisDirect(self.shipYaw, yaw, self.rotationAccel, self.maxRotation)
-    self.shipPitch = updateAxisDirect(self.shipPitch, pitch, self.rotationAccel, self.maxRotation)
+    self.shipRoll = updateAxisDirect(self.shipRoll, self.inputShipRoll, self.rotationAccel, self.maxRotation)
+    self.shipYaw = updateAxisDirect(self.shipYaw, self.inputShipYaw, self.rotationAccel, self.maxRotation)
+    self.shipPitch = updateAxisDirect(self.shipPitch, self.inputShipPitch, self.rotationAccel, self.maxRotation)
 end
 
-function InputTest:drawGamepadCursor(dt)
-    if self.activeDevice ~= InputDeviceType.Gamepad then return end
-
-    local lStickX = Input:getValue(Button.GamepadLeftStickX)
-    local lStickY = Input:getValue(Button.GamepadLeftStickY)
-    local rStickX = Input:getValue(Button.GamepadRightStickX)
-    local rStickY = Input:getValue(Button.GamepadRightStickY)
-
-    local moveX = math.abs(lStickX) > math.abs(rStickX) and lStickX or rStickX
-    local moveY = math.abs(lStickY) > math.abs(rStickY) and lStickY or rStickY
-
+function InputTest:updateGamepadCursor(dt)
     local speed = 400 * dt
-    self.gamepadCursorX = self.gamepadCursorX + moveX * speed
-    self.gamepadCursorY = self.gamepadCursorY - moveY * speed
+    self.gamepadCursorX = self.gamepadCursorX + self.inputCursorMoveX * speed
+    self.gamepadCursorY = self.gamepadCursorY - self.inputCursorMoveY * speed
     self.gamepadCursorX = math.max(0, math.min(Window:width(), self.gamepadCursorX))
     self.gamepadCursorY = math.max(0, math.min(Window:height(), self.gamepadCursorY))
-
-    DrawGamepadCursor(self.gamepadCursorX, self.gamepadCursorY, 64)
 end
 
 function InputTest:onInit()
     Window:setFullscreen(false, true)
 
     self.profiler = QuickProfiler("ActionBindingProfiler", true, false)
-    self.runProfiler = false
+    self.runProfiler = true
+
     self.timer = DeltaTimer("InputTest")
     self.timer:start("fps", 0.1)
     self.accumulatedTime = 0
@@ -509,6 +516,20 @@ function InputTest:onInit()
     self.shipPitch = 0
     self.rotationAccel = 3.0
     self.maxRotation = 1.0
+    self.inputShipThrustX = 0
+    self.inputShipThrustY = 0
+    self.inputShipThrustZ = 0
+    self.inputShipRoll = 0
+    self.inputShipYaw = 0
+    self.inputShipPitch = 0
+    self.inputShipBoost = 0
+    
+    -- Gamepad cursor state
+    self.inputCursorMoveX = 0
+    self.inputCursorMoveY = 0
+    self.inputCursorBoost = 0
+    self.inputCursorConfirm = 0
+    self.inputCursorCancel = 0
 
     EventBus:subscribe(Event.PreRender, self, self.onStatePreRender)
     EventBus:subscribe(Event.Input, self, self.onStateInput)
@@ -523,11 +544,10 @@ function InputTest:onStatePreRender(data)
         self.frameCount, self.accumulatedTime, dt, self.smoothFPS, self.timeScale
     )
 
-    for _, binding in pairs(ShipActions) do
-        binding:update()
-    end
-
+    self:updateBindings()
+    self:updateInputState()
     self:updateShipPhysics(dt)
+    self:updateGamepadCursor(dt)
 
     -- History cleanup (in-place)
     local currentTime = self.time
@@ -556,11 +576,11 @@ function InputTest:onRender(data)
     RenderCoreSystem:render(data)
     self:immediateUI(function()
         if self.showDebugLines then
-            DrawDebugLines(self.debugLineDefs, 40, 40, 25, 'Unageo-Medium', 11, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5, "additive")
+            drawDebugLines(self.debugLineDefs, 40, 40, 25, 'Unageo-Medium', 11, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5, "additive")
         end
         self:drawInputState()
-        self:drawShipActionsTest()
-        self:drawGamepadCursor(data:deltaTime())
+        self:drawShipActions()
+        self:drawGamepadCursor()
     end)
 end
 
