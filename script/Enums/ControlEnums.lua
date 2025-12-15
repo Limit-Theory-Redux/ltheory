@@ -6,7 +6,7 @@ Enums.ControlCategory = {
 
 ---@enum ControlType
 Enums.ControlType = {
-    Key = 1,
+    Single = 1,
     Combo = 2,
     Pair = 3,
     GamepadAxis = 4,

@@ -40,54 +40,54 @@ local ShipActions = {
 
     ---@type ActionBinding
     Boost = ActionBinding({
-        keyboard = { Button.KeyboardShiftLeft, Button.KeyboardShiftRight },
+        keyboard = { Control.Single(Button.KeyboardShiftLeft), Control.Single(Button.KeyboardShiftRight) },
         gamepad = { Control.GamepadAxis(Button.GamepadLeftTrigger) },
     }),
 
     ---@type ActionBinding
     Fire = ActionBinding({
-        mouse = { Button.MouseLeft },
+        mouse = { Control.Single(Button.MouseLeft) },
         gamepad = { Control.GamepadAxis(Button.GamepadRightTrigger) },
     }),
 
     ---@type ActionBinding
     LockTarget = ActionBinding({
-        keyboard = { Button.KeyboardT },
-        gamepad = { Button.GamepadWest },
+        keyboard = { Control.Single(Button.KeyboardT) },
+        gamepad = { Control.Single(Button.GamepadWest) },
     }),
 
     ---@type ActionBinding
     ClearTarget = ActionBinding({
-        keyboard = { Button.KeyboardG },
-        gamepad = { Button.GamepadEast },
+        keyboard = { Control.Single(Button.KeyboardG) },
+        gamepad = { Control.Single(Button.GamepadEast) },
     }),
 
     ---@type ActionBinding
     NearestTarget = ActionBinding({
-        keyboard = { Button.KeyboardN },
-        gamepad = { Button.GamepadWest },
+        keyboard = { Control.Single(Button.KeyboardN), },
+        gamepad = { Control.Single(Button.GamepadWest) },
     }),
 
     ---@type ActionBinding
     Dock = ActionBinding({
-        keyboard = { Button.KeyboardF },
-        gamepad = { Button.GamepadNorth },
+        keyboard = { Control.Single(Button.KeyboardF) },
+        gamepad = { Control.Single(Button.GamepadNorth) },
     }),
 
     ---@type ActionBinding
     Undock = ActionBinding({
-        keyboard = { Button.KeyboardJ },
-        gamepad = { Button.GamepadSouth },
+        keyboard = { Control.Single(Button.KeyboardJ) },
+        gamepad = { Control.Single(Button.GamepadSouth) },
     }),
 
     ---@type ActionBinding
     SquadAttackTarget = ActionBinding({
-        gamepad = { Button.GamepadSelect },
+        gamepad = { Control.Single(Button.GamepadSelect) },
     }),
 
     ---@type ActionBinding
     SquadScramble = ActionBinding({
-        gamepad = { Button.GamepadMode },
+        gamepad = { Control.Single(Button.GamepadMode) },
     }),
 }
 
