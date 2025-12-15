@@ -1,9 +1,12 @@
 -- Threshold for considering analog "down"/"pressed"/etc.
 -- Set to a non-zero decimal to avoid noise from slight axis movement (e.g. joystick drift)
-local analogThreshold = 0.001
+local analogBiasThreshold = 0.001
+
+-- Threshold time for considering a digital input as "held"
+local digitalHoldThreshold = 0.3
 
 local digitalBindTypes = {
-    Key = true,
+    Single = true,
     Combo = true,
 }
 
@@ -51,12 +54,16 @@ end
 ---@field value number
 ---@field prevValue number
 ---@field consumed boolean
+---@field downTime number
+---@field holdThreshold number
 local ActionBinding = Class("ActionBinding", function(self, deviceBindings)
     self.deviceBindings = deviceBindings
     self.category = getCategory(deviceBindings)
     self.value = 0.0
     self.prevValue = 0.0
     self.consumed = false
+    self.downTime = 0.0
+    self.holdThreshold = digitalHoldThreshold
 end)
 
 ---@param value number
@@ -166,7 +173,7 @@ function ActionBinding:readDeviceBindings(bindings)
     return value
 end
 
-function ActionBinding:update()
+function ActionBinding:update(dt)
     self.prevValue = self.value
     self.consumed = false
     
@@ -176,6 +183,7 @@ function ActionBinding:update()
     
     local value = 0.0
     
+    -- Determine the dominant input value
     if math.abs(kbValue) > math.abs(value) then
         value = kbValue
     end
@@ -187,6 +195,13 @@ function ActionBinding:update()
     if math.abs(gamepadValue) > math.abs(value) then
         value = gamepadValue
     end
+
+    -- Track hold duration
+    if self.category == Enums.ControlCategory.Digital and value > 0 then
+        self.downTime = self.downTime + dt
+    else
+        self.downTime = 0.0
+    end
     
     self.value = value
 end
@@ -195,12 +210,7 @@ function ActionBinding:clear()
     self.prevValue = self.value
     self.value = 0.0
     self.consumed = false
-end
-
----@return number
-function ActionBinding:get()
-    if self.consumed then return 0.0 end
-    return self.value
+    self.downTime = 0.0
 end
 
 ---@return number
@@ -210,6 +220,19 @@ function ActionBinding:consume()
     return self.value
 end
 
+---@return number
+function ActionBinding:get()
+    if self.consumed then return 0.0 end
+    return self.value
+end
+
+---@return number
+function ActionBinding:getHoldTime()
+    if self.consumed then return 0.0 end
+    if not self:isDown() then return 0.0 end
+    return self.downTime
+end
+
 ---@return boolean
 function ActionBinding:isDown()
     if self.consumed then return false end
@@ -217,7 +240,7 @@ function ActionBinding:isDown()
     if self.category == Enums.ControlCategory.Digital then
         return self.value > 0
     else
-        return math.abs(self.value) > analogThreshold
+        return math.abs(self.value) > analogBiasThreshold
     end
 end
 
@@ -228,8 +251,8 @@ function ActionBinding:isPressed()
     if self.category == Enums.ControlCategory.Digital then
         return self.value > 0 and self.prevValue == 0
     else
-        return math.abs(self.value) > analogThreshold 
-           and math.abs(self.prevValue) <= analogThreshold
+        return math.abs(self.value) > analogBiasThreshold 
+           and math.abs(self.prevValue) <= analogBiasThreshold
     end
 end
 
@@ -240,9 +263,23 @@ function ActionBinding:isReleased()
     if self.category == Enums.ControlCategory.Digital then
         return self.value == 0 and self.prevValue > 0
     else
-        return math.abs(self.value) <= analogThreshold 
-           and math.abs(self.prevValue) > analogThreshold
+        return math.abs(self.value) <= analogBiasThreshold 
+           and math.abs(self.prevValue) > analogBiasThreshold
     end
+end
+
+---@param threshold? number
+---@return boolean
+function ActionBinding:isHeld(threshold)
+    if self.consumed then return false end
+    threshold = threshold or self.holdThreshold
+    return self:isDown() and self.downTime >= threshold
+end
+
+---@return boolean
+function ActionBinding:isTapped()
+    if self.consumed then return false end
+    return self:isReleased() and self.downTime < self.holdThreshold
 end
 
 ---@return boolean
@@ -264,6 +301,21 @@ function ActionBinding:consumeReleased()
     local released = self:isReleased()
     if released then self.consumed = true end
     return released
+end
+
+---@param threshold? number
+---@return boolean
+function ActionBinding:consumeHeld(threshold)
+    local held = self:isHeld(threshold)
+    if held then self.consumed = true end
+    return held
+end
+
+---@return boolean
+function ActionBinding:consumeTapped()
+    local tapped = self:isTapped()
+    if tapped then self.consumed = true end
+    return tapped
 end
 
 return ActionBinding
