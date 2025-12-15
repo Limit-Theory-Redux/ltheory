@@ -61,6 +61,30 @@ local function drawAxisBar(label, value, x, y, width, height, font, fontSize)
     DrawEx.TextAdditive(fontName, valueStr, size - 1, barX + barWidth + 10, y, 60, height, 0.7, 0.7, 0.7, 1.0, 0.0, 0.5)
 end
 
+local function drawProgressBar(label, value, x, y, width, height, font, fontSize)
+    local fontName = font or 'Unageo-Medium'
+    local size = fontSize or 11
+
+    DrawEx.TextAdditive(fontName, label, size, x, y, 100, height, 0.9, 0.9, 0.9, 1.0, 0.0, 0.5)
+
+    local barX = x + 100
+    local barWidth = width - 100
+
+    RenderState.PushBlendMode(BlendMode.Alpha)
+    DrawEx.Rect(barX, y, barWidth, height, Color(0.2, 0.2, 0.2, 0.8))
+    
+    local clampedValue = math.max(0, math.min(1, value))
+    local fillWidth = clampedValue * barWidth
+    if fillWidth > 0 then
+        DrawEx.Rect(barX, y + 2, fillWidth, height - 4, Color(1.0, 1.0, 0.2, 1.0))
+    end
+    
+    RenderState.PopBlendMode()
+
+    local valueStr = string.format("%.2f", clampedValue)
+    DrawEx.TextAdditive(fontName, valueStr, size - 1, barX + barWidth + 10, y, 60, height, 0.7, 0.7, 0.7, 1.0, 0.0, 0.5)
+end
+
 local function drawStickVisualizer(label, xValue, yValue, x, y, size, font, fontSize)
     local fontName = font or 'Unageo-Medium'
     local textSize = fontSize or 11
@@ -292,6 +316,11 @@ function InputTest:drawShipActions()
     drawAxisBar("  Yaw", self.shipYaw, x, y, barWidth, 16)
     y = y + 22
     drawAxisBar("  Pitch", self.shipPitch, x, y, barWidth, 16)
+    y = y + sectionGap
+
+    DrawEx.TextAdditive('Unageo-Medium', "Docked:", 11, x, y, 100, lineHeight, 0.8, 0.8, 0.8, 1.0, 0.0, 0.5)
+    y = y + lineHeight
+    drawProgressBar(string.format("  %s", self.inputDocked and "Yes" or "No"), self.inputDockedProgress, x, y, barWidth, 16)
     y = y + sectionGap + 10
 
     drawSectionTitle("Controls", x, y)
@@ -322,22 +351,33 @@ function InputTest:drawGamepadCursor()
     RenderState.PopBlendMode()
 end
 
-function InputTest:updateBindings()
+function InputTest:updateBindings(dt)
     if self.runProfiler then self.profiler:start() end
-    for _, binding in pairs(ShipActions) do binding:update() end
-    for _, binding in pairs(GamepadCursorActions) do binding:update() end
+    for _, binding in pairs(ShipActions) do binding:update(dt) end
+    for _, binding in pairs(GamepadCursorActions) do binding:update(dt) end
     if self.runProfiler then self.profiler:stop() end
 end
 
 function InputTest:updateInputState()
-    -- Ship actions
-    self.inputShipThrustX   = ShipActions.ThrustX:get()
-    self.inputShipThrustY   = ShipActions.ThrustY:get()
-    self.inputShipThrustZ   = ShipActions.ThrustZ:get()
-    self.inputShipRoll      = ShipActions.Roll:get()
-    self.inputShipYaw       = ShipActions.Yaw:get()
-    self.inputShipPitch     = ShipActions.Pitch:get()
-    self.inputShipBoost     = ShipActions.Boost:get()
+    -- Ship physics actions
+    self.inputShipThrustX       = ShipActions.ThrustX:get()
+    self.inputShipThrustY       = ShipActions.ThrustY:get()
+    self.inputShipThrustZ       = ShipActions.ThrustZ:get()
+    self.inputShipRoll          = ShipActions.Roll:get()
+    self.inputShipYaw           = ShipActions.Yaw:get()
+    self.inputShipPitch         = ShipActions.Pitch:get()
+    self.inputShipBoost         = ShipActions.Boost:get()
+
+    -- Ship docking toggle
+    if ShipActions.Dock:isHeld() and ShipActions.Dock:getHoldTime() >= self.dockHoldTime then
+        if not self.dockWasHeld then
+            self.inputDocked = not self.inputDocked
+            self.dockWasHeld = true
+        end
+    end
+    if not ShipActions.Dock:isHeld() then self.dockWasHeld = false end
+    ShipActions.Dock:consumeHeld(self.dockHoldTime)
+    self.inputDockedProgress    = math.min(1.0, ShipActions.Dock:getHoldTime() / self.dockHoldTime)
 
     -- Gamepad cursor actions
     self.inputCursorMoveX     = GamepadCursorActions.MoveX:get()
@@ -369,14 +409,13 @@ function InputTest:updateShipPhysics(dt)
         local change = smoothing * dt
         if math.abs(diff) < change then return target end
         return current + change * (diff > 0 and 1 or -1)
-    end
+    end    
 
     self.shipThrust = Vec3f(
         updateAxisSmooth(self.shipThrust.x, self.inputShipThrustX * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust),
         updateAxisSmooth(self.shipThrust.y, self.inputShipThrustY * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust),
         updateAxisSmooth(self.shipThrust.z, self.inputShipThrustZ * boostMult, self.thrustAccel, self.thrustDecay, self.maxThrust)
     )
-
     self.shipRoll = updateAxisDirect(self.shipRoll, self.inputShipRoll, self.rotationAccel, self.maxRotation)
     self.shipYaw = updateAxisDirect(self.shipYaw, self.inputShipYaw, self.rotationAccel, self.maxRotation)
     self.shipPitch = updateAxisDirect(self.shipPitch, self.inputShipPitch, self.rotationAccel, self.maxRotation)
@@ -516,6 +555,8 @@ function InputTest:onInit()
     self.shipPitch = 0
     self.rotationAccel = 3.0
     self.maxRotation = 1.0
+    self.shipDocked = 0
+    self.dockHoldTime = 0.3
     self.inputShipThrustX = 0
     self.inputShipThrustY = 0
     self.inputShipThrustZ = 0
@@ -523,6 +564,9 @@ function InputTest:onInit()
     self.inputShipYaw = 0
     self.inputShipPitch = 0
     self.inputShipBoost = 0
+    self.inputDockedProgress = 0
+    self.inputDocked = false
+    self.dockWasHeld = false
     
     -- Gamepad cursor state
     self.inputCursorMoveX = 0
@@ -544,7 +588,7 @@ function InputTest:onStatePreRender(data)
         self.frameCount, self.accumulatedTime, dt, self.smoothFPS, self.timeScale
     )
 
-    self:updateBindings()
+    self:updateBindings(dt)
     self:updateInputState()
     self:updateShipPhysics(dt)
     self:updateGamepadCursor(dt)
