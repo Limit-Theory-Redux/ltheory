@@ -1,6 +1,6 @@
 -- Render Settings Moved from 'Render/RenderPipeline' --
 Config.render.general = {
-    superSampleRate     = 1,   -- 1.0-2.0
+    superSampleRate     = 1,
     downSampleRate      = 4,
     thrusterLights      = false,
     pulseLights         = false,

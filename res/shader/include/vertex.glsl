@@ -1,4 +1,5 @@
 #include common
+#include camera_ubo
 
 in vec3 vertex_position;
 in vec3 vertex_normal;
@@ -12,13 +13,9 @@ out vec3 vertNormal;
 out vec3 vertPos;
 out float flogz;
 
-uniform vec3 eye;
+// Per-object uniforms (not in UBO)
 uniform mat4 mWorld;
 uniform mat4 mWorldIT;
-uniform mat4 mView;
-uniform mat4 mViewInv;
-uniform mat4 mProj;
-uniform mat4 mProjInv;
 
 #define VS_BEGIN                                                               \
   uv = vertex_uv;                                                              \

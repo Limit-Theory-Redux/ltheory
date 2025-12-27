@@ -31,6 +31,21 @@ function CameraManager:registerVars()
 
     ---@type TransformComponent|nil
     self.activeCameraTransform = nil
+
+    ---@type Vec3f Star direction for lighting (used by UBO in render thread mode)
+    self.starDir = Vec3f(0, 1, 0)
+end
+
+---Set the star direction for lighting calculations
+---@param dir Vec3f Star direction vector
+function CameraManager:setStarDir(dir)
+    self.starDir = dir
+end
+
+---Get the current star direction
+---@return Vec3f dir Current star direction
+function CameraManager:getStarDir()
+    return self.starDir
 end
 
 ---Register a camera entity with a unique name
@@ -219,13 +234,23 @@ function CameraManager:beginDraw()
     end
 
     local camData = self.activeCameraData
+
+    -- Push ShaderVars for compatibility (some shaders may still use these)
     ShaderVar.PushMatrix('mView', camData:getView())
     ShaderVar.PushMatrix('mViewInv', camData:getViewInverse())
     ShaderVar.PushMatrix('mProj', camData:getProjection())
     ShaderVar.PushMatrix('mProjInv', camData:getProjectionInverse())
-
-    --local eye = self:getEye()
     ShaderVar.PushFloat3('eye', 0.0, 0.0, 0.0) -- needs to use 0,0,0 for camera-relative
+
+    -- Update camera UBO (works in both direct and render thread modes)
+    local sd = self.starDir
+    Engine:updateCameraUBO(
+        camData:getView(),
+        camData:getViewInverse(),  -- viewInverse with actual world position for worldray.glsl
+        camData:getProjection(),
+        0.0, 0.0, 0.0,  -- eye at origin (camera-relative)
+        sd.x, sd.y, sd.z
+    )
 end
 
 ---End drawing with the active camera (pops shader variables)

@@ -2,6 +2,20 @@ local DynamicShaderVar = require("Shared.Rendering.DynamicShaderVar")
 local Texture = require("Shared.Rendering.Texture")
 local UniformFuncs = require("Shared.Rendering.UniformFuncs")
 
+-- Lazy-load ShaderHotReload to avoid circular dependency
+local ShaderHotReload = nil
+local function getShaderHotReload()
+    if ShaderHotReload == nil then
+        local ok, mod = pcall(require, 'Render.ShaderHotReload')
+        if ok then
+            ShaderHotReload = mod
+        else
+            ShaderHotReload = false -- Mark as unavailable
+        end
+    end
+    return ShaderHotReload
+end
+
 ---@class Material
 ---@field vs string -- 'res/shader/vertex/'
 ---@field fs string -- 'res/shader/fragment/'
@@ -27,6 +41,12 @@ local Material = Class("Material", function(self, vs_name, fs_name, blendMode)
     -- Create Shader and ShaderState
     local shader = Cache.Shader(self.vs, self.fs)
     self.shaderState = ShaderState.Create(shader)
+
+    -- Auto-register for hot reload if available
+    local hotReload = getShaderHotReload()
+    if hotReload and hotReload.isActive and hotReload:isActive() then
+        hotReload:registerMaterial(self, vs_name, fs_name)
+    end
 end)
 
 ---@param textures table<TextureInfo>

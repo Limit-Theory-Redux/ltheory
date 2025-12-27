@@ -223,5 +223,8 @@ void main() {
     // Gamma correction
     color = pow(color, vec3(1.0 / 2.2));
 
+    // Ensure output is in LDR range for subsequent effects (FXAA, etc.)
+    color = clamp(color, 0.0, 1.0);
+
     fragColor = vec4(color, 1.0);
 }

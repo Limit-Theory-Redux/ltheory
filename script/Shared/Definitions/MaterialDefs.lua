@@ -77,6 +77,22 @@ MaterialDefinition {
 }
 
 ---@class Materials
+---@field DebugDeferred Material - Deferred-compatible debug material for testing deferred lighting
+MaterialDefinition {
+    name = "DebugDeferred",
+    vs_name = "wvp",
+    fs_name = "material/solidcolor_deferred",
+    blendMode = BlendMode.Disabled,
+    constShaderVars = {
+        color = { type = Enums.UniformType.Float3, value = { 0.8, 0.8, 0.8 } }
+    },
+    autoShaderVars = {
+        mWorld   = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc },
+        mWorldIT = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc },
+    }
+}
+
+---@class Materials
 ---@field PlanetSurface Material
 MaterialDefinition {
     name = "PlanetSurface",

@@ -1,8 +1,15 @@
-#include fragment
+#include common
 #include color
 #include math
 #include noise
 #include texcube
+
+// Note: We use genStarDir instead of starDir to avoid collision with camera_ubo.glsl
+// This shader is for cubemap generation, not runtime rendering
+uniform vec3 genStarDir;
+
+in vec2 uv;
+layout (location = 0) out vec4 outColor;
 
 uniform vec3 color;
 uniform float seed;
@@ -16,7 +23,7 @@ vec4 generate(vec3 dir) {
   float dense = bgDensity(dir);
   /* Central Star. */ {
     /* Dots between normalized Vec3fs may still be > 1 due to fp precision! */
-    float d = max(0.0, 1.0 - dot(dir, starDir));
+    float d = max(0.0, 1.0 - dot(dir, genStarDir));
     float dd = 0.0;
     dd += 8.0 * exp(-sqrt(4096.0 * d));
     dd += 4.0 * exp(-sqrt(sqrt(1024.0 * d)));

@@ -2,7 +2,6 @@
 #include color
 #include math
 
-#autovar vec3 eye
 
 uniform vec2 size;
 

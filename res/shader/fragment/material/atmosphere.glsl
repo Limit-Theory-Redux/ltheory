@@ -4,8 +4,6 @@
 #include noise
 #include scattering2
 
-#autovar vec3 eye
-#autovar vec3 starDir
 
 uniform vec3 origin;
 
