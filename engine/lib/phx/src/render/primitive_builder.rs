@@ -4,6 +4,8 @@ use std::mem::size_of;
 use glam::{Vec3, Vec4, vec3, vec4};
 
 use super::gl;
+use super::{ImmVertex, RenderCommand, is_command_mode, is_gl_unavailable, submit_command};
+use super::CmdPrimitiveType;
 use crate::render::glcheck;
 
 #[derive(PartialEq)]
@@ -32,6 +34,16 @@ impl PrimitiveType {
             PrimitiveType::Triangles => gl::TRIANGLES,
             PrimitiveType::Quads => gl::TRIANGLES,
             PrimitiveType::Polygon => gl::TRIANGLE_FAN,
+        }
+    }
+
+    fn to_cmd(&self) -> CmdPrimitiveType {
+        match self {
+            PrimitiveType::Points => CmdPrimitiveType::Points,
+            PrimitiveType::Lines => CmdPrimitiveType::Lines,
+            PrimitiveType::Triangles => CmdPrimitiveType::Triangles,
+            PrimitiveType::Quads => CmdPrimitiveType::Triangles, // Already converted to triangles
+            PrimitiveType::Polygon => CmdPrimitiveType::TriangleFan,
         }
     }
 }
@@ -199,6 +211,74 @@ impl PrimitiveBuilder {
     }
 
     fn flush_and_draw(&mut self) {
+        if self.positions.is_empty() {
+            return;
+        }
+
+        // Skip if GL context is unavailable
+        if is_gl_unavailable() {
+            self.positions.clear();
+            self.normals.clear();
+            self.texcoords.clear();
+            self.colors.clear();
+            return;
+        }
+
+        // Check if we're in command mode (render thread active)
+        if is_command_mode() {
+            self.flush_and_draw_command();
+        } else {
+            self.flush_and_draw_direct();
+        }
+
+        // Clear data for next draw call
+        self.positions.clear();
+        self.normals.clear();
+        self.texcoords.clear();
+        self.colors.clear();
+    }
+
+    /// Command mode: Convert vertex data to ImmVertex and emit DrawImmediate command
+    fn flush_and_draw_command(&self) {
+        // Convert vertex data to ImmVertex format
+        let vertices: Vec<ImmVertex> = self.positions
+            .iter()
+            .enumerate()
+            .map(|(i, pos)| {
+                let normal = if self.normals_dim.is_some() {
+                    [self.normals[i].x, self.normals[i].y, self.normals[i].z]
+                } else {
+                    [0.0, 0.0, 0.0]
+                };
+                let uv = if self.texcoords_dim.is_some() {
+                    [self.texcoords[i].x, self.texcoords[i].y]
+                } else {
+                    [0.0, 0.0]
+                };
+                let color = if self.colors_dim.is_some() {
+                    [self.colors[i].x, self.colors[i].y, self.colors[i].z, self.colors[i].w]
+                } else {
+                    [1.0, 1.0, 1.0, 1.0]
+                };
+                ImmVertex {
+                    pos: [pos.x, pos.y, pos.z],
+                    normal,
+                    uv,
+                    color,
+                }
+            })
+            .collect();
+
+        // Submit DrawImmediate command
+        let cmd = RenderCommand::DrawImmediate {
+            primitive: self.primitive.to_cmd(),
+            vertices,
+        };
+        submit_command(cmd);
+    }
+
+    /// Direct GL mode: Upload buffers and issue draw call
+    fn flush_and_draw_direct(&mut self) {
         // Update buffers.
 
         // Position is always included.
@@ -379,11 +459,5 @@ impl PrimitiveBuilder {
             self.positions.len() as gl::types::GLsizei
         ));
         glcheck!(gl::BindVertexArray(0));
-
-        // Create data for next draw call.
-        self.positions.clear();
-        self.normals.clear();
-        self.texcoords.clear();
-        self.colors.clear();
     }
 }

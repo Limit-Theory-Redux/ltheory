@@ -127,3 +127,104 @@ function Draw.Poly(points, points_size) end
 ---@param points_size integer
 function Draw.Poly3(points, points_size) end
 
+-- Draw a 2D circle outline at (x, y) with radius r using `segments` line segments
+---@param x number
+---@param y number
+---@param r number
+---@param segments integer
+function Draw.Circle(x, y, r, segments) end
+
+-- Draw a filled 2D circle at (x, y) with radius r
+---@param x number
+---@param y number
+---@param r number
+---@param segments integer
+function Draw.CircleFilled(x, y, r, segments) end
+
+-- Draw a 3D circle outline centered at `center` with normal `normal` and radius `r`
+---@param center Vec3f
+---@param normal Vec3f
+---@param r number
+---@param segments integer
+function Draw.Circle3(center, normal, r, segments) end
+
+-- Draw an arc from angle `start` to `end` (in radians) at (x, y) with radius r
+---@param x number
+---@param y number
+---@param r number
+---@param start number
+---@param end number
+---@param segments integer
+function Draw.Arc(x, y, r, start, end, segments) end
+
+-- Draw connected line segments through 2D points
+---@param points Vec2f[]
+---@param points_size integer
+function Draw.LineStrip(points, points_size) end
+
+-- Draw connected line segments through 3D points
+---@param points Vec3f[]
+---@param points_size integer
+function Draw.LineStrip3(points, points_size) end
+
+-- Draw a 2D arrow from (x1, y1) to (x2, y2) with arrowhead of given size
+---@param x1 number
+---@param y1 number
+---@param x2 number
+---@param y2 number
+---@param headSize number
+function Draw.Arrow(x1, y1, x2, y2, headSize) end
+
+-- Draw a 3D arrow from p1 to p2 with arrowhead of given size
+---@param p1 Vec3f
+---@param p2 Vec3f
+---@param headSize number
+function Draw.Arrow3(p1, p2, headSize) end
+
+-- Draw a 2D grid centered at (x, y) with given size and cell count
+---@param x number
+---@param y number
+---@param width number
+---@param height number
+---@param cellsX integer
+---@param cellsY integer
+function Draw.Grid(x, y, width, height, cellsX, cellsY) end
+
+-- Draw a 3D grid on the XZ plane centered at origin with given size and cell count
+---@param center Vec3f
+---@param size number
+---@param cells integer
+function Draw.Grid3(center, size, cells) end
+
+-- Draw a 3D cylinder wireframe from `base` along `axis` with given radius and height
+---@param base Vec3f
+---@param axis Vec3f
+---@param radius number
+---@param height number
+---@param segments integer
+function Draw.Cylinder(base, axis, radius, height, segments) end
+
+-- Draw a 3D cone wireframe from `base` along `axis` with given radius and height
+---@param base Vec3f
+---@param axis Vec3f
+---@param radius number
+---@param height number
+---@param segments integer
+function Draw.Cone(base, axis, radius, height, segments) end
+
+-- Draw a 3D capsule wireframe (cylinder with hemispherical caps)
+---@param p1 Vec3f
+---@param p2 Vec3f
+---@param radius number
+---@param segments integer
+function Draw.Capsule(p1, p2, radius, segments) end
+
+-- Draw a wireframe AABB (axis-aligned bounding box)
+---@param b Box3f
+function Draw.WireBox3(b) end
+
+-- Draw a crosshair at the given 3D position
+---@param pos Vec3f
+---@param size number
+function Draw.Crosshair3(pos, size) end
+

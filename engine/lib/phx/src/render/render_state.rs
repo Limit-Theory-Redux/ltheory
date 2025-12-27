@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use crate::render::{gl, glcheck};
+use crate::render::{gl, glcheck, is_command_mode, submit_command, RenderCommand};
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Default, Debug, Copy, Clone)]
@@ -219,63 +219,79 @@ impl RenderStateIntern {
 
 #[inline]
 fn set_blend_mode(mode: BlendMode) {
-    match mode {
-        BlendMode::Additive => {
-            glcheck!(gl::BlendFuncSeparate(gl::ONE, gl::ONE, gl::ONE, gl::ONE));
-        }
-        BlendMode::Alpha => {
-            glcheck!(gl::BlendFuncSeparate(
-                gl::SRC_ALPHA,
-                gl::ONE_MINUS_SRC_ALPHA,
-                gl::ONE,
-                gl::ONE_MINUS_SRC_ALPHA,
-            ));
-        }
-        BlendMode::PreMultAlpha => {
-            glcheck!(gl::BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA));
-        }
-        BlendMode::Disabled => {
-            glcheck!(gl::BlendFunc(gl::ONE, gl::ZERO));
+    if is_command_mode() {
+        submit_command(RenderCommand::SetBlendMode(mode));
+    } else {
+        match mode {
+            BlendMode::Additive => {
+                glcheck!(gl::BlendFuncSeparate(gl::ONE, gl::ONE, gl::ONE, gl::ONE));
+            }
+            BlendMode::Alpha => {
+                glcheck!(gl::BlendFuncSeparate(
+                    gl::SRC_ALPHA,
+                    gl::ONE_MINUS_SRC_ALPHA,
+                    gl::ONE,
+                    gl::ONE_MINUS_SRC_ALPHA,
+                ));
+            }
+            BlendMode::PreMultAlpha => {
+                glcheck!(gl::BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA));
+            }
+            BlendMode::Disabled => {
+                glcheck!(gl::BlendFunc(gl::ONE, gl::ZERO));
+            }
         }
     }
 }
 
 #[inline]
 fn set_cull_face(mode: CullFace) {
-    match mode {
-        CullFace::None => {
-            glcheck!(gl::Disable(gl::CULL_FACE));
-        }
-        CullFace::Back => {
-            glcheck!(gl::Enable(gl::CULL_FACE));
-            glcheck!(gl::CullFace(gl::BACK));
-        }
-        CullFace::Front => {
-            glcheck!(gl::Enable(gl::CULL_FACE));
-            glcheck!(gl::CullFace(gl::FRONT));
+    if is_command_mode() {
+        submit_command(RenderCommand::SetCullFace(mode));
+    } else {
+        match mode {
+            CullFace::None => {
+                glcheck!(gl::Disable(gl::CULL_FACE));
+            }
+            CullFace::Back => {
+                glcheck!(gl::Enable(gl::CULL_FACE));
+                glcheck!(gl::CullFace(gl::BACK));
+            }
+            CullFace::Front => {
+                glcheck!(gl::Enable(gl::CULL_FACE));
+                glcheck!(gl::CullFace(gl::FRONT));
+            }
         }
     }
 }
 
 #[inline]
 fn set_depth_test(enabled: bool) {
-    if enabled {
+    if is_command_mode() {
+        submit_command(RenderCommand::SetDepthTest(enabled));
+    } else if enabled {
         glcheck!(gl::Enable(gl::DEPTH_TEST));
     } else {
         glcheck!(gl::Disable(gl::DEPTH_TEST));
-    };
+    }
 }
 
 #[inline]
 fn set_depth_writable(enabled: bool) {
-    glcheck!(gl::DepthMask(enabled as gl::types::GLboolean));
+    if is_command_mode() {
+        submit_command(RenderCommand::SetDepthWritable(enabled));
+    } else {
+        glcheck!(gl::DepthMask(enabled as gl::types::GLboolean));
+    }
 }
 
 #[inline]
 fn set_wireframe(enabled: bool) {
-    if enabled {
+    if is_command_mode() {
+        submit_command(RenderCommand::SetWireframe(enabled));
+    } else if enabled {
         glcheck!(gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE));
     } else {
         glcheck!(gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL));
-    };
+    }
 }

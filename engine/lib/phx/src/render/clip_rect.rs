@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use crate::render::{Viewport, gl, glcheck};
+use crate::render::{Viewport, gl, glcheck, is_command_mode, submit_command, RenderCommand};
 
 const MAX_STACK_DEPTH: usize = 128;
 
@@ -92,13 +92,15 @@ impl ClipManager {
     fn activate(&mut self) {
         let rect = &mut self.rects[self.rects_count - 1];
         if !rect.enabled {
-            glcheck!(gl::Disable(gl::SCISSOR_TEST));
+            if is_command_mode() {
+                submit_command(RenderCommand::EnableScissor(false));
+            } else {
+                glcheck!(gl::Disable(gl::SCISSOR_TEST));
+            }
             return;
         }
 
         let vp_size = Viewport::get_size();
-
-        glcheck!(gl::Enable(gl::SCISSOR_TEST));
 
         let mut x = rect.x;
         let mut y = rect.y;
@@ -107,12 +109,23 @@ impl ClipManager {
 
         self.transform_rect(&mut x, &mut y, &mut sx, &mut sy);
 
-        glcheck!(gl::Scissor(
-            x as i32,
-            vp_size.y - (y + sy) as i32,
-            sx as i32,
-            sy as i32
-        ));
+        if is_command_mode() {
+            submit_command(RenderCommand::EnableScissor(true));
+            submit_command(RenderCommand::SetScissor {
+                x: x as i32,
+                y: vp_size.y - (y + sy) as i32,
+                width: sx as i32,
+                height: sy as i32,
+            });
+        } else {
+            glcheck!(gl::Enable(gl::SCISSOR_TEST));
+            glcheck!(gl::Scissor(
+                x as i32,
+                vp_size.y - (y + sy) as i32,
+                sx as i32,
+                sy as i32
+            ));
+        }
     }
 
     fn push_rect_intern(&mut self, x: f32, y: f32, sx: f32, sy: f32) {
@@ -195,6 +208,8 @@ impl ClipManager {
 
         if self.rects_count > 0 {
             self.activate();
+        } else if is_command_mode() {
+            submit_command(RenderCommand::EnableScissor(false));
         } else {
             glcheck!(gl::Disable(gl::SCISSOR_TEST));
         }

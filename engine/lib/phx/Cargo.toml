@@ -24,6 +24,7 @@ arboard = "3.4"
 chrono = "0.4"
 cli-table = { version = "0.4", default-features = false }
 crossbeam = "0.8"
+parking_lot = "0.12"
 directories = "6.0"
 flate2 = "1.0"
 freetype-sys = "0.20"
@@ -51,6 +52,7 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 winit = "0.30"
 walkdir = "2.4"
+notify = { version = "6.1", default-features = false, features = ["macos_kqueue"] }
 strum = "0.27"
 strum_macros = "0.27"
 tobj = "4.0"

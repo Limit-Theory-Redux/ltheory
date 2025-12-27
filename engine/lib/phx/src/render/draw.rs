@@ -3,7 +3,7 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 use glam::{Vec2, Vec3};
 use tracing::warn;
 
-use super::{Color, PrimitiveBuilder, PrimitiveType, gl};
+use super::{Color, PrimitiveBuilder, PrimitiveType, RenderCommand, gl, is_command_mode, submit_command};
 use crate::math::{Box3, reject_vec3};
 use crate::render::glcheck;
 use crate::system::Metric;
@@ -41,21 +41,38 @@ impl Draw {
 #[luajit_ffi_gen::luajit_ffi]
 impl Draw {
     pub fn clear(r: f32, g: f32, b: f32, a: f32) {
-        let status = glcheck!(gl::CheckFramebufferStatus(gl::FRAMEBUFFER));
-        if status == gl::FRAMEBUFFER_COMPLETE {
-            glcheck!(gl::ClearColor(r, g, b, a));
-            glcheck!(gl::Clear(gl::COLOR_BUFFER_BIT));
+        if is_command_mode() {
+            // In command mode, emit Clear command
+            // Note: Framebuffer status check will be handled on render thread
+            submit_command(RenderCommand::Clear {
+                color: Some([r, g, b, a]),
+                depth: None,
+            });
         } else {
-            warn!(
-                "Framebuffer is incomplete, skipping clear. Status[{status}]: {}",
-                framebuffer_status_to_str(status)
-            );
+            // Direct GL mode
+            let status = glcheck!(gl::CheckFramebufferStatus(gl::FRAMEBUFFER));
+            if status == gl::FRAMEBUFFER_COMPLETE {
+                glcheck!(gl::ClearColor(r, g, b, a));
+                glcheck!(gl::Clear(gl::COLOR_BUFFER_BIT));
+            } else {
+                warn!(
+                    "Framebuffer is incomplete, skipping clear. Status[{status}]: {}",
+                    framebuffer_status_to_str(status)
+                );
+            }
         }
     }
 
     pub fn clear_depth(d: f32) {
-        glcheck!(gl::ClearDepth(d as f64));
-        glcheck!(gl::Clear(gl::DEPTH_BUFFER_BIT));
+        if is_command_mode() {
+            submit_command(RenderCommand::Clear {
+                color: None,
+                depth: Some(d),
+            });
+        } else {
+            glcheck!(gl::ClearDepth(d as f64));
+            glcheck!(gl::Clear(gl::DEPTH_BUFFER_BIT));
+        }
     }
 
     pub fn color(r: f32, g: f32, b: f32, a: f32) {
@@ -73,7 +90,11 @@ impl Draw {
 
     pub fn flush() {
         Metric::Flush.inc();
-        glcheck!(gl::Finish());
+        if is_command_mode() {
+            submit_command(RenderCommand::Flush);
+        } else {
+            glcheck!(gl::Finish());
+        }
     }
 
     pub fn push_alpha(a: f32) {
@@ -113,11 +134,19 @@ impl Draw {
     }
 
     pub fn line_width(width: f32) {
-        glcheck!(gl::LineWidth(width));
+        if is_command_mode() {
+            submit_command(RenderCommand::SetLineWidth(width));
+        } else {
+            glcheck!(gl::LineWidth(width));
+        }
     }
 
     pub fn point_size(size: f32) {
-        glcheck!(gl::PointSize(size));
+        if is_command_mode() {
+            submit_command(RenderCommand::SetPointSize(size));
+        } else {
+            glcheck!(gl::PointSize(size));
+        }
     }
 
     pub fn axes(pos: &Vec3, x: &Vec3, y: &Vec3, z: &Vec3, scale: f32, alpha: f32) {
@@ -455,6 +484,454 @@ impl Draw {
         for p in points {
             this.pb.vertex3(p.x, p.y, p.z);
         }
+        this.pb.end();
+    }
+
+    /// Draw a 2D circle outline at (x, y) with radius r using `segments` line segments
+    pub fn circle(x: f32, y: f32, r: f32, segments: i32) {
+        let segments = segments.max(3) as usize;
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        for i in 0..segments {
+            let a1 = (i as f32 / segments as f32) * std::f32::consts::TAU;
+            let a2 = ((i + 1) as f32 / segments as f32) * std::f32::consts::TAU;
+            let x1 = x + r * a1.cos();
+            let y1 = y + r * a1.sin();
+            let x2 = x + r * a2.cos();
+            let y2 = y + r * a2.sin();
+            this.pb.vertex2(x1, y1);
+            this.pb.vertex2(x2, y2);
+        }
+        this.pb.end();
+    }
+
+    /// Draw a filled 2D circle at (x, y) with radius r
+    pub fn circle_filled(x: f32, y: f32, r: f32, segments: i32) {
+        let segments = segments.max(3) as usize;
+        Metric::add_draw_imm(1, segments as u64, segments as u64 + 1);
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Polygon);
+        for i in 0..segments {
+            let angle = (i as f32 / segments as f32) * std::f32::consts::TAU;
+            this.pb.vertex2(x + r * angle.cos(), y + r * angle.sin());
+        }
+        this.pb.end();
+    }
+
+    /// Draw a 3D circle outline centered at `center` with normal `normal` and radius `r`
+    pub fn circle3(center: &Vec3, normal: &Vec3, r: f32, segments: i32) {
+        let segments = segments.max(3) as usize;
+
+        // Build orthonormal basis from normal
+        let n = normal.normalize();
+        let up = if n.y.abs() < 0.9 { Vec3::Y } else { Vec3::X };
+        let tangent = n.cross(up).normalize();
+        let bitangent = tangent.cross(n);
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        for i in 0..segments {
+            let a1 = (i as f32 / segments as f32) * std::f32::consts::TAU;
+            let a2 = ((i + 1) as f32 / segments as f32) * std::f32::consts::TAU;
+
+            let p1 = *center + (tangent * a1.cos() + bitangent * a1.sin()) * r;
+            let p2 = *center + (tangent * a2.cos() + bitangent * a2.sin()) * r;
+
+            this.pb.vertex3(p1.x, p1.y, p1.z);
+            this.pb.vertex3(p2.x, p2.y, p2.z);
+        }
+        this.pb.end();
+    }
+
+    /// Draw an arc from angle `start` to `end` (in radians) at (x, y) with radius r
+    pub fn arc(x: f32, y: f32, r: f32, start: f32, end: f32, segments: i32) {
+        let segments = segments.max(1) as usize;
+        let angle_span = end - start;
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        for i in 0..segments {
+            let a1 = start + (i as f32 / segments as f32) * angle_span;
+            let a2 = start + ((i + 1) as f32 / segments as f32) * angle_span;
+            let x1 = x + r * a1.cos();
+            let y1 = y + r * a1.sin();
+            let x2 = x + r * a2.cos();
+            let y2 = y + r * a2.sin();
+            this.pb.vertex2(x1, y1);
+            this.pb.vertex2(x2, y2);
+        }
+        this.pb.end();
+    }
+
+    /// Draw connected line segments through 2D points
+    pub fn line_strip(points: &[Vec2]) {
+        if points.len() < 2 {
+            return;
+        }
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        for i in 0..points.len() - 1 {
+            this.pb.vertex2(points[i].x, points[i].y);
+            this.pb.vertex2(points[i + 1].x, points[i + 1].y);
+        }
+        this.pb.end();
+    }
+
+    /// Draw connected line segments through 3D points
+    pub fn line_strip3(points: &[Vec3]) {
+        if points.len() < 2 {
+            return;
+        }
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        for i in 0..points.len() - 1 {
+            this.pb.vertex3(points[i].x, points[i].y, points[i].z);
+            this.pb.vertex3(points[i + 1].x, points[i + 1].y, points[i + 1].z);
+        }
+        this.pb.end();
+    }
+
+    /// Draw a 2D arrow from (x1, y1) to (x2, y2) with arrowhead of given size
+    pub fn arrow(x1: f32, y1: f32, x2: f32, y2: f32, head_size: f32) {
+        let dx = x2 - x1;
+        let dy = y2 - y1;
+        let len = (dx * dx + dy * dy).sqrt();
+        if len < 0.0001 {
+            return;
+        }
+
+        // Normalized direction
+        let nx = dx / len;
+        let ny = dy / len;
+
+        // Perpendicular
+        let px = -ny;
+        let py = nx;
+
+        // Arrowhead points
+        let hx1 = x2 - nx * head_size + px * head_size * 0.5;
+        let hy1 = y2 - ny * head_size + py * head_size * 0.5;
+        let hx2 = x2 - nx * head_size - px * head_size * 0.5;
+        let hy2 = y2 - ny * head_size - py * head_size * 0.5;
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        // Main line
+        this.pb.vertex2(x1, y1);
+        this.pb.vertex2(x2, y2);
+        // Arrowhead
+        this.pb.vertex2(x2, y2);
+        this.pb.vertex2(hx1, hy1);
+        this.pb.vertex2(x2, y2);
+        this.pb.vertex2(hx2, hy2);
+        this.pb.end();
+    }
+
+    /// Draw a 3D arrow from p1 to p2 with arrowhead of given size
+    pub fn arrow3(p1: &Vec3, p2: &Vec3, head_size: f32) {
+        let dir = *p2 - *p1;
+        let len = dir.length();
+        if len < 0.0001 {
+            return;
+        }
+
+        let dir_n = dir / len;
+
+        // Find perpendicular vectors for arrowhead
+        let up = if dir_n.y.abs() < 0.9 { Vec3::Y } else { Vec3::X };
+        let perp1 = dir_n.cross(up).normalize();
+        let perp2 = dir_n.cross(perp1);
+
+        // Arrowhead base point
+        let base = *p2 - dir_n * head_size;
+        let h1 = base + perp1 * head_size * 0.5;
+        let h2 = base - perp1 * head_size * 0.5;
+        let h3 = base + perp2 * head_size * 0.5;
+        let h4 = base - perp2 * head_size * 0.5;
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        // Main line
+        this.pb.vertex3(p1.x, p1.y, p1.z);
+        this.pb.vertex3(p2.x, p2.y, p2.z);
+        // Arrowhead (4 lines for 3D visibility)
+        this.pb.vertex3(p2.x, p2.y, p2.z);
+        this.pb.vertex3(h1.x, h1.y, h1.z);
+        this.pb.vertex3(p2.x, p2.y, p2.z);
+        this.pb.vertex3(h2.x, h2.y, h2.z);
+        this.pb.vertex3(p2.x, p2.y, p2.z);
+        this.pb.vertex3(h3.x, h3.y, h3.z);
+        this.pb.vertex3(p2.x, p2.y, p2.z);
+        this.pb.vertex3(h4.x, h4.y, h4.z);
+        this.pb.end();
+    }
+
+    /// Draw a 2D grid centered at (x, y) with given size and cell count
+    pub fn grid(x: f32, y: f32, width: f32, height: f32, cells_x: i32, cells_y: i32) {
+        let cells_x = cells_x.max(1);
+        let cells_y = cells_y.max(1);
+        let cell_w = width / cells_x as f32;
+        let cell_h = height / cells_y as f32;
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        // Vertical lines
+        for i in 0..=cells_x {
+            let lx = x + i as f32 * cell_w;
+            this.pb.vertex2(lx, y);
+            this.pb.vertex2(lx, y + height);
+        }
+        // Horizontal lines
+        for i in 0..=cells_y {
+            let ly = y + i as f32 * cell_h;
+            this.pb.vertex2(x, ly);
+            this.pb.vertex2(x + width, ly);
+        }
+        this.pb.end();
+    }
+
+    /// Draw a 3D grid on the XZ plane centered at origin with given size and cell count
+    pub fn grid3(center: &Vec3, size: f32, cells: i32) {
+        let cells = cells.max(1);
+        let half = size * 0.5;
+        let cell_size = size / cells as f32;
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        // Lines along X axis
+        for i in 0..=cells {
+            let z = center.z - half + i as f32 * cell_size;
+            this.pb.vertex3(center.x - half, center.y, z);
+            this.pb.vertex3(center.x + half, center.y, z);
+        }
+        // Lines along Z axis
+        for i in 0..=cells {
+            let x = center.x - half + i as f32 * cell_size;
+            this.pb.vertex3(x, center.y, center.z - half);
+            this.pb.vertex3(x, center.y, center.z + half);
+        }
+        this.pb.end();
+    }
+
+    /// Draw a 3D cylinder wireframe from `base` along `axis` with given radius and height
+    pub fn cylinder(base: &Vec3, axis: &Vec3, radius: f32, height: f32, segments: i32) {
+        let segments = segments.max(3) as usize;
+        let axis_n = axis.normalize();
+
+        // Build orthonormal basis
+        let up = if axis_n.y.abs() < 0.9 { Vec3::Y } else { Vec3::X };
+        let tangent = axis_n.cross(up).normalize();
+        let bitangent = tangent.cross(axis_n);
+
+        let top = *base + axis_n * height;
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        for i in 0..segments {
+            let a1 = (i as f32 / segments as f32) * std::f32::consts::TAU;
+            let a2 = ((i + 1) as f32 / segments as f32) * std::f32::consts::TAU;
+
+            let offset1 = (tangent * a1.cos() + bitangent * a1.sin()) * radius;
+            let offset2 = (tangent * a2.cos() + bitangent * a2.sin()) * radius;
+
+            let b1 = *base + offset1;
+            let b2 = *base + offset2;
+            let t1 = top + offset1;
+            let t2 = top + offset2;
+
+            // Bottom circle
+            this.pb.vertex3(b1.x, b1.y, b1.z);
+            this.pb.vertex3(b2.x, b2.y, b2.z);
+            // Top circle
+            this.pb.vertex3(t1.x, t1.y, t1.z);
+            this.pb.vertex3(t2.x, t2.y, t2.z);
+            // Vertical lines (every other segment for clarity)
+            if i % 2 == 0 {
+                this.pb.vertex3(b1.x, b1.y, b1.z);
+                this.pb.vertex3(t1.x, t1.y, t1.z);
+            }
+        }
+        this.pb.end();
+    }
+
+    /// Draw a 3D cone wireframe from `base` along `axis` with given radius and height
+    pub fn cone(base: &Vec3, axis: &Vec3, radius: f32, height: f32, segments: i32) {
+        let segments = segments.max(3) as usize;
+        let axis_n = axis.normalize();
+
+        // Build orthonormal basis
+        let up = if axis_n.y.abs() < 0.9 { Vec3::Y } else { Vec3::X };
+        let tangent = axis_n.cross(up).normalize();
+        let bitangent = tangent.cross(axis_n);
+
+        let tip = *base + axis_n * height;
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        for i in 0..segments {
+            let a1 = (i as f32 / segments as f32) * std::f32::consts::TAU;
+            let a2 = ((i + 1) as f32 / segments as f32) * std::f32::consts::TAU;
+
+            let offset1 = (tangent * a1.cos() + bitangent * a1.sin()) * radius;
+            let offset2 = (tangent * a2.cos() + bitangent * a2.sin()) * radius;
+
+            let b1 = *base + offset1;
+            let b2 = *base + offset2;
+
+            // Base circle
+            this.pb.vertex3(b1.x, b1.y, b1.z);
+            this.pb.vertex3(b2.x, b2.y, b2.z);
+            // Lines to tip (every other segment)
+            if i % 2 == 0 {
+                this.pb.vertex3(b1.x, b1.y, b1.z);
+                this.pb.vertex3(tip.x, tip.y, tip.z);
+            }
+        }
+        this.pb.end();
+    }
+
+    /// Draw a 3D capsule wireframe (cylinder with hemispherical caps)
+    pub fn capsule(p1: &Vec3, p2: &Vec3, radius: f32, segments: i32) {
+        let segments = segments.max(4) as usize;
+        let axis = *p2 - *p1;
+        let height = axis.length();
+        if height < 0.0001 {
+            // Degenerate case - just draw a sphere
+            Draw::sphere(p1, radius);
+            return;
+        }
+
+        let axis_n = axis / height;
+
+        // Build orthonormal basis
+        let up = if axis_n.y.abs() < 0.9 { Vec3::Y } else { Vec3::X };
+        let tangent = axis_n.cross(up).normalize();
+        let bitangent = tangent.cross(axis_n);
+
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+
+        // Cylinder body
+        for i in 0..segments {
+            let a1 = (i as f32 / segments as f32) * std::f32::consts::TAU;
+            let a2 = ((i + 1) as f32 / segments as f32) * std::f32::consts::TAU;
+
+            let offset1 = (tangent * a1.cos() + bitangent * a1.sin()) * radius;
+            let offset2 = (tangent * a2.cos() + bitangent * a2.sin()) * radius;
+
+            let b1 = *p1 + offset1;
+            let b2 = *p1 + offset2;
+            let t1 = *p2 + offset1;
+            let t2 = *p2 + offset2;
+
+            // Bottom ring
+            this.pb.vertex3(b1.x, b1.y, b1.z);
+            this.pb.vertex3(b2.x, b2.y, b2.z);
+            // Top ring
+            this.pb.vertex3(t1.x, t1.y, t1.z);
+            this.pb.vertex3(t2.x, t2.y, t2.z);
+            // Vertical lines
+            if i % 2 == 0 {
+                this.pb.vertex3(b1.x, b1.y, b1.z);
+                this.pb.vertex3(t1.x, t1.y, t1.z);
+            }
+        }
+
+        // Hemisphere caps (simplified as arcs in two perpendicular planes)
+        let half_segs = segments / 2;
+        for i in 0..half_segs {
+            let a1 = (i as f32 / half_segs as f32) * std::f32::consts::PI;
+            let a2 = ((i + 1) as f32 / half_segs as f32) * std::f32::consts::PI;
+
+            // Bottom cap (facing -axis)
+            let bc1 = *p1 - axis_n * (radius * a1.cos()) + tangent * (radius * a1.sin());
+            let bc2 = *p1 - axis_n * (radius * a2.cos()) + tangent * (radius * a2.sin());
+            this.pb.vertex3(bc1.x, bc1.y, bc1.z);
+            this.pb.vertex3(bc2.x, bc2.y, bc2.z);
+
+            let bc3 = *p1 - axis_n * (radius * a1.cos()) + bitangent * (radius * a1.sin());
+            let bc4 = *p1 - axis_n * (radius * a2.cos()) + bitangent * (radius * a2.sin());
+            this.pb.vertex3(bc3.x, bc3.y, bc3.z);
+            this.pb.vertex3(bc4.x, bc4.y, bc4.z);
+
+            // Top cap (facing +axis)
+            let tc1 = *p2 + axis_n * (radius * a1.cos()) + tangent * (radius * a1.sin());
+            let tc2 = *p2 + axis_n * (radius * a2.cos()) + tangent * (radius * a2.sin());
+            this.pb.vertex3(tc1.x, tc1.y, tc1.z);
+            this.pb.vertex3(tc2.x, tc2.y, tc2.z);
+
+            let tc3 = *p2 + axis_n * (radius * a1.cos()) + bitangent * (radius * a1.sin());
+            let tc4 = *p2 + axis_n * (radius * a2.cos()) + bitangent * (radius * a2.sin());
+            this.pb.vertex3(tc3.x, tc3.y, tc3.z);
+            this.pb.vertex3(tc4.x, tc4.y, tc4.z);
+        }
+
+        this.pb.end();
+    }
+
+    /// Draw a wireframe AABB (axis-aligned bounding box)
+    pub fn wire_box3(b: &Box3) {
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        // Bottom face
+        this.pb.vertex3(b.lower.x, b.lower.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.upper.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.lower.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.lower.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.lower.y, b.lower.z);
+        // Top face
+        this.pb.vertex3(b.lower.x, b.upper.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.upper.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.lower.z);
+        // Vertical edges
+        this.pb.vertex3(b.lower.x, b.lower.y, b.lower.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.lower.z);
+        this.pb.vertex3(b.upper.x, b.lower.y, b.upper.z);
+        this.pb.vertex3(b.upper.x, b.upper.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.lower.y, b.upper.z);
+        this.pb.vertex3(b.lower.x, b.upper.y, b.upper.z);
+        this.pb.end();
+    }
+
+    /// Draw a crosshair at the given 3D position
+    pub fn crosshair3(pos: &Vec3, size: f32) {
+        let half = size * 0.5;
+        let mut this = Self::inst();
+
+        this.pb.begin(PrimitiveType::Lines);
+        this.pb.vertex3(pos.x - half, pos.y, pos.z);
+        this.pb.vertex3(pos.x + half, pos.y, pos.z);
+        this.pb.vertex3(pos.x, pos.y - half, pos.z);
+        this.pb.vertex3(pos.x, pos.y + half, pos.z);
+        this.pb.vertex3(pos.x, pos.y, pos.z - half);
+        this.pb.vertex3(pos.x, pos.y, pos.z + half);
         this.pb.end();
     }
 }

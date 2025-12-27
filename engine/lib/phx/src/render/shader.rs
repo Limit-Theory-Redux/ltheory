@@ -1,13 +1,16 @@
 use std::collections::HashSet;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
+use std::sync::Arc;
 
 use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4};
 
 use super::{ShaderState, ShaderVarData, Tex1D, Tex2D, Tex3D, TexCube, gl};
+use super::shader_watcher::{shader_watcher_register, shader_watcher_is_active};
+use super::shader_error::push_shader_error;
 use crate::common::c_str;
 use crate::logging::warn;
 use crate::math::Matrix;
-use crate::render::{ShaderVar, glcheck};
+use crate::render::{ShaderVar, glcheck, is_command_mode, is_gl_unavailable, submit_command, next_resource_id, RenderCommand, GpuHandle, ResourceId};
 use crate::rf::Rf;
 use crate::system::{Profiler, Resource, ResourceType};
 
@@ -28,10 +31,25 @@ struct ShaderShared {
     is_bound: bool,
     tex_index: gl::types::GLenum,
     pending_uniforms: Vec<SetUniformOp>,
+    pending_uniforms_by_name: Vec<SetUniformByNameOp>,
+
+    // Command mode support: store source for deferred creation on render thread
+    vs_src: String,
+    fs_src: String,
+    resource_id: Option<ResourceId>,
+
+    // Hot-reload support: store source file names for shader watcher registration
+    vs_name: Option<String>,
+    fs_name: Option<String>,
 }
 
 struct SetUniformOp {
     index: gl::types::GLint,
+    data: ShaderVarData,
+}
+
+struct SetUniformByNameOp {
+    name: String,
     data: ShaderVarData,
 }
 
@@ -44,7 +62,7 @@ struct GLSLCode {
 #[derive(Clone)]
 struct ShaderAutoVar {
     type_name: String,
-    name: String,
+    name: Arc<str>,  // Arc<str> for cheap cloning when setting uniforms each frame
     index: gl::types::GLint,
 }
 
@@ -91,7 +109,7 @@ impl GLSLCode {
             let var_name = line_tokens[1];
             auto_vars.push(ShaderAutoVar {
                 type_name: var_type.into(),
-                name: var_name.into(),
+                name: Arc::from(var_name),
                 index: -1,
             });
         } else {
@@ -101,10 +119,62 @@ impl GLSLCode {
 }
 
 impl Shader {
-    fn from_preprocessed(name: String, vs_code: GLSLCode, mut fs_code: GLSLCode) -> Shader {
-        let vs = create_gl_shader(&vs_code.code, gl::VERTEX_SHADER);
-        let fs = create_gl_shader(&fs_code.code, gl::FRAGMENT_SHADER);
-        let program = create_gl_program(vs, fs);
+    /// Try to compile a shader from preprocessed code, returning None on failure.
+    /// Errors are pushed to the global shader error queue for display.
+    fn try_from_preprocessed(
+        name: String,
+        vs_code: GLSLCode,
+        mut fs_code: GLSLCode,
+        vs_name: Option<String>,
+        fs_name: Option<String>,
+    ) -> Option<Shader> {
+        // Compile vertex shader
+        let vs = match create_gl_shader(&vs_code.code, gl::VERTEX_SHADER) {
+            Ok(vs) => vs,
+            Err(error_msg) => {
+                let shader_key = format!("{}:{}",
+                    vs_name.as_deref().unwrap_or("unknown"),
+                    fs_name.as_deref().unwrap_or("unknown")
+                );
+                push_shader_error(&shader_key, "vertex compile", &error_msg);
+                return None;
+            }
+        };
+
+        // Compile fragment shader
+        let fs = match create_gl_shader(&fs_code.code, gl::FRAGMENT_SHADER) {
+            Ok(fs) => fs,
+            Err(error_msg) => {
+                // Clean up vertex shader since fragment failed
+                glcheck!(gl::DeleteShader(vs));
+                let shader_key = format!("{}:{}",
+                    vs_name.as_deref().unwrap_or("unknown"),
+                    fs_name.as_deref().unwrap_or("unknown")
+                );
+                push_shader_error(&shader_key, "fragment compile", &error_msg);
+                return None;
+            }
+        };
+
+        // Link program
+        let program = match create_gl_program(vs, fs) {
+            Ok(program) => program,
+            Err(error_msg) => {
+                // Clean up shaders since linking failed
+                glcheck!(gl::DeleteShader(vs));
+                glcheck!(gl::DeleteShader(fs));
+                let shader_key = format!("{}:{}",
+                    vs_name.as_deref().unwrap_or("unknown"),
+                    fs_name.as_deref().unwrap_or("unknown")
+                );
+                push_shader_error(&shader_key, "link", &error_msg);
+                return None;
+            }
+        };
+
+        // Store source code for command mode (deferred creation on render thread)
+        let vs_src = vs_code.code.clone();
+        let fs_src = fs_code.code.clone();
 
         // Combine autovars from all shaders.
         let mut auto_vars = vs_code.auto_vars;
@@ -113,11 +183,11 @@ impl Shader {
         // Check for autovar conflicts.
         let mut auto_var_keys: HashSet<&str> = HashSet::new();
         for v in auto_vars.iter() {
-            if auto_var_keys.contains(v.name.as_str()) {
+            if auto_var_keys.contains(&*v.name) {
                 warn!("Shader <{}> contains duplicate #autovar <{}>", name, v.name);
                 continue;
             };
-            auto_var_keys.insert(v.name.as_str());
+            auto_var_keys.insert(&v.name);
         }
 
         let mut shader = Shader {
@@ -130,10 +200,45 @@ impl Shader {
                 tex_index: 0,
                 is_bound: false,
                 pending_uniforms: vec![],
+                pending_uniforms_by_name: vec![],
+                vs_src,
+                fs_src,
+                resource_id: None,
+                vs_name,
+                fs_name,
             }),
         };
         shader.bind_auto_variables();
-        shader
+        Some(shader)
+    }
+
+    /// Compile a shader, panicking on failure (legacy behavior for non-hot-reload paths)
+    fn from_preprocessed(
+        name: String,
+        vs_code: GLSLCode,
+        fs_code: GLSLCode,
+        vs_name: Option<String>,
+        fs_name: Option<String>,
+    ) -> Shader {
+        Self::try_from_preprocessed(name.clone(), vs_code, fs_code, vs_name, fs_name)
+            .unwrap_or_else(|| panic!("Failed to compile shader: {}", name))
+    }
+
+    /// Registers this shader with the watcher for hot-reload support.
+    /// Called automatically on load, but can be called manually for dynamically created shaders.
+    pub fn register_for_hot_reload(&self) {
+        if !shader_watcher_is_active() {
+            return;
+        }
+
+        let s = self.shared.as_ref();
+        if let (Some(vs_name), Some(fs_name)) = (&s.vs_name, &s.fs_name) {
+            // Construct shader key matching Lua Cache.Shader key format
+            let shader_key = format!("{}:{}", vs_name, fs_name);
+            let vs_path = Resource::get_path(ResourceType::Shader, vs_name);
+            let fs_path = Resource::get_path(ResourceType::Shader, fs_name);
+            shader_watcher_register(&shader_key, &vs_path, &fs_path);
+        }
     }
 
     pub fn get_uniform_index(&self, name: &str) -> Option<gl::types::GLint> {
@@ -148,7 +253,7 @@ impl Shader {
     fn bind_auto_variables(&mut self) {
         let s = &mut *self.shared.as_mut();
         for var in s.auto_vars.iter_mut() {
-            let c_name = CString::new(var.name.as_str()).expect("name must be utf-8");
+            let c_name = CString::new(&*var.name).expect("name must be utf-8");
             var.index = glcheck!(gl::GetUniformLocation(s.program, c_name.as_ptr()));
             if var.index < 0 {
                 warn!(
@@ -160,13 +265,23 @@ impl Shader {
     }
 
     pub fn set_uniform(&mut self, name: &str, data: ShaderVarData) {
-        if let Some(index) = self.get_uniform_index(name) {
+        // In command mode, use name-based uniforms since the render thread's
+        // shader has different uniform indices
+        if is_command_mode() {
+            self.shared.as_mut().name_set_uniform(name, data);
+        } else if let Some(index) = self.get_uniform_index(name) {
             self.index_set_uniform(index, data);
         }
     }
 
     pub fn index_set_uniform(&mut self, index: i32, data: ShaderVarData) {
         self.shared.as_mut().index_set_uniform(index, data);
+    }
+
+    /// Apply uniform by name directly (for use when shader is already bound).
+    /// Used by ShaderState in command mode to avoid is_bound check.
+    pub fn name_set_uniform_on_shared(&mut self, name: &str, data: ShaderVarData) {
+        self.shared.as_mut().apply_uniform_by_name(name, &data);
     }
 }
 
@@ -185,7 +300,255 @@ impl ShaderShared {
         }
     }
 
+    /// Set uniform by name - used in command mode where uniform indices differ
+    pub fn name_set_uniform(&mut self, name: &str, data: ShaderVarData) {
+        if self.is_bound {
+            self.apply_uniform_by_name(name, &data);
+        } else {
+            // Queue for later application when shader is bound
+            self.pending_uniforms_by_name.push(SetUniformByNameOp {
+                name: name.to_string(),
+                data,
+            });
+        }
+    }
+
     pub fn apply_uniform(&mut self, index: i32, data: &ShaderVarData) {
+        if is_command_mode() {
+            self.apply_uniform_command(index, data);
+        } else {
+            self.apply_uniform_direct(index, data);
+        }
+    }
+
+    /// Apply uniform by name - used for auto vars in command mode where
+    /// the render thread has different uniform indices than the main thread
+    pub fn apply_uniform_by_name(&mut self, name: &str, data: &ShaderVarData) {
+        if is_command_mode() {
+            self.apply_uniform_command_by_name(name, data);
+        } else {
+            // In direct mode, look up index and apply
+            if let Some(index) = self.get_uniform_index_inner(name) {
+                self.apply_uniform_direct(index, data);
+            }
+        }
+    }
+
+    /// Apply uniform by name with Arc<str> - O(1) cloning for uniform names
+    pub fn apply_uniform_by_name_arc(&mut self, name: Arc<str>, data: &ShaderVarData) {
+        if is_command_mode() {
+            self.apply_uniform_command_by_name_arc(name, data);
+        } else {
+            // In direct mode, look up index and apply
+            if let Some(index) = self.get_uniform_index_inner(&name) {
+                self.apply_uniform_direct(index, data);
+            }
+        }
+    }
+
+    fn get_uniform_index_inner(&self, name: &str) -> Option<i32> {
+        let c_name = CString::new(name).ok()?;
+        let index = glcheck!(gl::GetUniformLocation(self.program, c_name.as_ptr()));
+        if index >= 0 { Some(index) } else { None }
+    }
+
+    fn apply_uniform_command_by_name(&mut self, name: &str, data: &ShaderVarData) {
+        // Create Arc<str> once, then clone (O(1)) for each command
+        let name: Arc<str> = Arc::from(name);
+        match data {
+            ShaderVarData::Float(v) => {
+                submit_command(RenderCommand::SetUniformFloatByName { name, value: *v });
+            }
+            ShaderVarData::Float2(v) => {
+                submit_command(RenderCommand::SetUniformFloat2ByName { name, value: [v.x, v.y] });
+            }
+            ShaderVarData::Float3(v) => {
+                submit_command(RenderCommand::SetUniformFloat3ByName { name, value: [v.x, v.y, v.z] });
+            }
+            ShaderVarData::Float4(v) => {
+                submit_command(RenderCommand::SetUniformFloat4ByName { name, value: [v.x, v.y, v.z, v.w] });
+            }
+            ShaderVarData::Int(v) => {
+                submit_command(RenderCommand::SetUniformIntByName { name, value: *v });
+            }
+            ShaderVarData::Int2(v) => {
+                submit_command(RenderCommand::SetUniformInt2ByName { name, value: [v.x, v.y] });
+            }
+            ShaderVarData::Int3(v) => {
+                submit_command(RenderCommand::SetUniformInt3ByName { name, value: [v.x, v.y, v.z] });
+            }
+            ShaderVarData::Int4(v) => {
+                submit_command(RenderCommand::SetUniformInt4ByName { name, value: [v.x, v.y, v.z, v.w] });
+            }
+            ShaderVarData::Matrix(m) => {
+                let value = m.to_cols_array();
+                submit_command(RenderCommand::SetUniformMat4ByName { name, value });
+            }
+            ShaderVarData::Tex1D(_t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformIntByName { name, value: tex_index as i32 });
+            }
+            ShaderVarData::Tex2D(t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformIntByName { name, value: tex_index as i32 });
+                // First check if already has resource_id
+                if let Some(resource_id) = t.get_resource_id() {
+                    submit_command(RenderCommand::BindTexture2DByResource { slot: tex_index, id: resource_id });
+                } else {
+                    // Texture was created before command mode - lazily migrate to render thread
+                    // Clone shares the same underlying data via Rf, so mutations persist
+                    let mut tex = t.clone();
+                    if let Some(resource_id) = tex.ensure_resource_id() {
+                        submit_command(RenderCommand::BindTexture2DByResource { slot: tex_index, id: resource_id });
+                    } else {
+                        // No cached data - can't migrate, will likely render incorrectly
+                        warn!("Tex2D bound in command mode without resource_id or cached data");
+                        submit_command(RenderCommand::BindTexture2D { slot: tex_index, handle: GpuHandle(t.get_handle()) });
+                    }
+                }
+            }
+            ShaderVarData::Tex3D(t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformIntByName { name, value: tex_index as i32 });
+                submit_command(RenderCommand::BindTexture3D { slot: tex_index, handle: GpuHandle(t.get_handle()) });
+            }
+            ShaderVarData::TexCube(t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformIntByName { name, value: tex_index as i32 });
+                submit_command(RenderCommand::BindTextureCube { slot: tex_index, handle: GpuHandle(t.get_handle()) });
+            }
+        }
+    }
+
+    /// Apply uniform command with Arc<str> - O(1) cloning for uniform names
+    fn apply_uniform_command_by_name_arc(&mut self, name: Arc<str>, data: &ShaderVarData) {
+        match data {
+            ShaderVarData::Float(v) => {
+                submit_command(RenderCommand::SetUniformFloatByName { name, value: *v });
+            }
+            ShaderVarData::Float2(v) => {
+                submit_command(RenderCommand::SetUniformFloat2ByName { name, value: [v.x, v.y] });
+            }
+            ShaderVarData::Float3(v) => {
+                submit_command(RenderCommand::SetUniformFloat3ByName { name, value: [v.x, v.y, v.z] });
+            }
+            ShaderVarData::Float4(v) => {
+                submit_command(RenderCommand::SetUniformFloat4ByName { name, value: [v.x, v.y, v.z, v.w] });
+            }
+            ShaderVarData::Int(v) => {
+                submit_command(RenderCommand::SetUniformIntByName { name, value: *v });
+            }
+            ShaderVarData::Int2(v) => {
+                submit_command(RenderCommand::SetUniformInt2ByName { name, value: [v.x, v.y] });
+            }
+            ShaderVarData::Int3(v) => {
+                submit_command(RenderCommand::SetUniformInt3ByName { name, value: [v.x, v.y, v.z] });
+            }
+            ShaderVarData::Int4(v) => {
+                submit_command(RenderCommand::SetUniformInt4ByName { name, value: [v.x, v.y, v.z, v.w] });
+            }
+            ShaderVarData::Matrix(m) => {
+                let value = m.to_cols_array();
+                submit_command(RenderCommand::SetUniformMat4ByName { name, value });
+            }
+            ShaderVarData::Tex1D(_t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformIntByName { name, value: tex_index as i32 });
+            }
+            ShaderVarData::Tex2D(t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformIntByName { name, value: tex_index as i32 });
+                if let Some(resource_id) = t.get_resource_id() {
+                    submit_command(RenderCommand::BindTexture2DByResource { slot: tex_index, id: resource_id });
+                } else {
+                    let mut tex = t.clone();
+                    if let Some(resource_id) = tex.ensure_resource_id() {
+                        submit_command(RenderCommand::BindTexture2DByResource { slot: tex_index, id: resource_id });
+                    } else {
+                        warn!("Tex2D bound in command mode without resource_id or cached data");
+                        submit_command(RenderCommand::BindTexture2D { slot: tex_index, handle: GpuHandle(t.get_handle()) });
+                    }
+                }
+            }
+            ShaderVarData::Tex3D(t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformIntByName { name, value: tex_index as i32 });
+                submit_command(RenderCommand::BindTexture3D { slot: tex_index, handle: GpuHandle(t.get_handle()) });
+            }
+            ShaderVarData::TexCube(t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformIntByName { name, value: tex_index as i32 });
+                submit_command(RenderCommand::BindTextureCube { slot: tex_index, handle: GpuHandle(t.get_handle()) });
+            }
+        }
+    }
+
+    fn apply_uniform_command(&mut self, index: i32, data: &ShaderVarData) {
+        match data {
+            ShaderVarData::Float(v) => {
+                submit_command(RenderCommand::SetUniformFloat { location: index, value: *v });
+            }
+            ShaderVarData::Float2(v) => {
+                submit_command(RenderCommand::SetUniformFloat2 { location: index, value: [v.x, v.y] });
+            }
+            ShaderVarData::Float3(v) => {
+                submit_command(RenderCommand::SetUniformFloat3 { location: index, value: [v.x, v.y, v.z] });
+            }
+            ShaderVarData::Float4(v) => {
+                submit_command(RenderCommand::SetUniformFloat4 { location: index, value: [v.x, v.y, v.z, v.w] });
+            }
+            ShaderVarData::Int(v) => {
+                submit_command(RenderCommand::SetUniformInt { location: index, value: *v });
+            }
+            ShaderVarData::Int2(v) => {
+                submit_command(RenderCommand::SetUniformInt2 { location: index, value: [v.x, v.y] });
+            }
+            ShaderVarData::Int3(v) => {
+                submit_command(RenderCommand::SetUniformInt3 { location: index, value: [v.x, v.y, v.z] });
+            }
+            ShaderVarData::Int4(v) => {
+                submit_command(RenderCommand::SetUniformInt4 { location: index, value: [v.x, v.y, v.z, v.w] });
+            }
+            ShaderVarData::Matrix(m) => {
+                let value = m.to_cols_array();
+                submit_command(RenderCommand::SetUniformMat4 { location: index, value });
+            }
+            ShaderVarData::Tex1D(_t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformInt { location: index, value: tex_index as i32 });
+                // Note: Tex1D binding not implemented in commands yet - would need new command
+            }
+            ShaderVarData::Tex2D(t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformInt { location: index, value: tex_index as i32 });
+                // First check if already has resource_id
+                if let Some(resource_id) = t.get_resource_id() {
+                    submit_command(RenderCommand::BindTexture2DByResource { slot: tex_index, id: resource_id });
+                } else {
+                    // Texture was created before command mode - lazily migrate to render thread
+                    let mut tex = t.clone();
+                    if let Some(resource_id) = tex.ensure_resource_id() {
+                        submit_command(RenderCommand::BindTexture2DByResource { slot: tex_index, id: resource_id });
+                    } else {
+                        warn!("Tex2D bound in command mode without resource_id or cached data");
+                        submit_command(RenderCommand::BindTexture2D { slot: tex_index, handle: GpuHandle(t.get_handle()) });
+                    }
+                }
+            }
+            ShaderVarData::Tex3D(t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformInt { location: index, value: tex_index as i32 });
+                submit_command(RenderCommand::BindTexture3D { slot: tex_index, handle: GpuHandle(t.get_handle()) });
+            }
+            ShaderVarData::TexCube(t) => {
+                let tex_index = self.next_tex_index();
+                submit_command(RenderCommand::SetUniformInt { location: index, value: tex_index as i32 });
+                submit_command(RenderCommand::BindTextureCube { slot: tex_index, handle: GpuHandle(t.get_handle()) });
+            }
+        }
+    }
+
+    fn apply_uniform_direct(&mut self, index: i32, data: &ShaderVarData) {
         match data {
             ShaderVarData::Float(v) => glcheck!(gl::Uniform1f(index, *v)),
             ShaderVarData::Float2(v) => glcheck!(gl::Uniform2f(index, v.x, v.y)),
@@ -239,6 +602,17 @@ impl ShaderShared {
     }
 }
 
+// Non-FFI methods for internal Rust use
+impl Shader {
+    /// Get preprocessed shader source code (for render thread compilation).
+    /// Returns (vertex_src, fragment_src) tuple.
+    pub fn get_preprocessed_source(vs_name: &str, fs_name: &str) -> (String, String) {
+        let vs_code = GLSLCode::load(vs_name);
+        let fs_code = GLSLCode::load(fs_name);
+        (vs_code.code, fs_code.code)
+    }
+}
+
 #[luajit_ffi_gen::luajit_ffi]
 impl Shader {
     #[bind(name = "Create")]
@@ -247,14 +621,66 @@ impl Shader {
             "[anonymous shader]".into(),
             GLSLCode::preprocess(vs),
             GLSLCode::preprocess(fs),
+            None,
+            None,
         )
     }
 
     pub fn load(vs_name: &str, fs_name: &str) -> Shader {
-        Self::from_preprocessed(
+        // Try to load the shader, falling back to error shader on failure
+        Self::try_load(vs_name, fs_name).unwrap_or_else(|| {
+            warn!("Shader compilation failed for vs={} fs={}, trying error shader", vs_name, fs_name);
+            Self::create_error_shader(vs_name, fs_name)
+                .expect("Failed to create error shader - GL context may not be available")
+        })
+        // Note: Hot-reload registration is done by Lua Cache.Shader() using its key format
+    }
+
+    /// Creates a minimal error shader that renders magenta to indicate shader failure
+    fn create_error_shader(vs_name: &str, fs_name: &str) -> Option<Shader> {
+        let error_vs = r#"#version 330
+in vec3 vertex_position;
+uniform mat4 mWorldViewProj;
+void main() {
+    gl_Position = mWorldViewProj * vec4(vertex_position, 1.0);
+}
+"#;
+        let error_fs = r#"#version 330
+out vec4 fragColor;
+void main() {
+    fragColor = vec4(1.0, 0.0, 1.0, 1.0); // Magenta = error
+}
+"#;
+        // Create minimal GLSLCode with just the error shader code
+        let vs_code = GLSLCode {
+            code: error_vs.to_string(),
+            auto_vars: vec![],
+        };
+        let fs_code = GLSLCode {
+            code: error_fs.to_string(),
+            auto_vars: vec![],
+        };
+
+        Self::try_from_preprocessed(
+            format!("[ERROR: vs: {vs_name}, fs: {fs_name}]"),
+            vs_code,
+            fs_code,
+            Some(vs_name.to_string()),
+            Some(fs_name.to_string()),
+        )
+    }
+
+    /// Try to load a shader, returning None on failure.
+    /// Errors are pushed to the global shader error queue for display.
+    /// Use this for hot-reload to gracefully fall back to the previous working shader.
+    #[bind(name = "TryLoad")]
+    pub fn try_load(vs_name: &str, fs_name: &str) -> Option<Shader> {
+        Self::try_from_preprocessed(
             format!("[vs: {vs_name}, fs: {fs_name}]"),
             GLSLCode::load(vs_name),
             GLSLCode::load(fs_name),
+            Some(vs_name.to_string()),
+            Some(fs_name.to_string()),
         )
     }
 
@@ -424,28 +850,78 @@ impl Shader {
 
     // Singleton based shader functions - Old API.
     pub fn start(&mut self) {
+        // Skip if GL context is unavailable
+        if is_gl_unavailable() {
+            return;
+        }
+
         Profiler::begin("Shader_Start");
 
         let s = &mut *self.shared.as_mut();
 
-        glcheck!(gl::UseProgram(s.program));
+        // Bind shader program
+        if is_command_mode() {
+            // In command mode, we need to create the shader on the render thread if not done yet
+            if s.resource_id.is_none() {
+                let id = next_resource_id();
+                tracing::trace!("Creating shader '{}' on render thread with ResourceId {:?}", s.name, id);
+                let submitted = submit_command(RenderCommand::CreateShader {
+                    id,
+                    vertex_src: s.vs_src.clone(),
+                    fragment_src: s.fs_src.clone(),
+                });
+                if !submitted {
+                    tracing::error!("Failed to submit CreateShader command for '{}'!", s.name);
+                }
+                s.resource_id = Some(id);
+            }
+
+            // Now bind using the resource ID
+            // Include shader_key for hot-reload lookup (matches Cache.lua key format: vs:fs)
+            // Cache.lua key is short names without "vertex/" and "fragment/" prefixes
+            let id = s.resource_id.unwrap();
+            let shader_key = match (&s.vs_name, &s.fs_name) {
+                (Some(vs), Some(fs)) => {
+                    // Strip "vertex/" and "fragment/" prefixes to match Cache.lua format
+                    let vs_short = vs.strip_prefix("vertex/").unwrap_or(vs);
+                    let fs_short = fs.strip_prefix("fragment/").unwrap_or(fs);
+                    Some(format!("{}:{}", vs_short, fs_short))
+                },
+                _ => None,
+            };
+            tracing::trace!("Binding shader '{}' with ResourceId {:?}, shader_key={:?}", s.name, id, shader_key);
+            let submitted = submit_command(RenderCommand::BindShaderByResource { id, shader_key });
+            if !submitted {
+                tracing::error!("Failed to submit BindShaderByResource for '{}'!", s.name);
+            }
+        } else {
+            glcheck!(gl::UseProgram(s.program));
+        }
         s.is_bound = true;
 
         // Reset the tex index counter.
         s.tex_index = 0;
 
-        // Apply pending uniforms.
+        // Apply pending uniforms (index-based).
         for p in std::mem::take(&mut s.pending_uniforms) {
             s.apply_uniform(p.index, &p.data);
         }
 
+        // Apply pending uniforms (name-based, used in command mode).
+        for p in std::mem::take(&mut s.pending_uniforms_by_name) {
+            s.apply_uniform_by_name(&p.name, &p.data);
+        }
+
         // Fetch and bind automatic variables from the shader var stack.
+        // In command mode, use name-based uniforms since the render thread's
+        // shader has different uniform indices than the main thread's shader.
         for i in 0..s.auto_vars.len() {
-            if s.auto_vars[i].index == -1 {
+            // In command mode, we skip the index check since we'll look up by name
+            if !is_command_mode() && s.auto_vars[i].index == -1 {
                 continue;
             }
 
-            let Some(shader_var) = ShaderVar::get(s.auto_vars[i].name.as_str()) else {
+            let Some(shader_var) = ShaderVar::get(&s.auto_vars[i].name) else {
                 warn!(
                     "Shader variable stack does not contain variable <{}>",
                     s.auto_vars[i].name,
@@ -463,19 +939,41 @@ impl Shader {
                 continue;
             }
 
-            s.index_set_uniform(s.auto_vars[i].index, shader_var);
+            // Use name-based uniforms in command mode to handle different shader program indices
+            if is_command_mode() {
+                // Arc<str>::clone() is O(1) - just increments refcount
+                s.apply_uniform_by_name_arc(s.auto_vars[i].name.clone(), &shader_var);
+            } else {
+                s.index_set_uniform(s.auto_vars[i].index, shader_var);
+            }
         }
 
         Profiler::end();
     }
 
+    /// Invalidate the shader's render thread resource, forcing recreation on next start().
+    /// Used after hot-reload to ensure fresh uniform bindings.
+    #[bind(name = "Invalidate")]
+    pub fn invalidate(&mut self) {
+        let s = &mut *self.shared.as_mut();
+        s.resource_id = None;
+        tracing::debug!("Shader '{}' invalidated, will recreate on next start()", s.name);
+    }
+
     pub fn stop(&self) {
         self.shared.as_mut().is_bound = false;
-        glcheck!(gl::UseProgram(0));
+        if is_command_mode() {
+            submit_command(RenderCommand::UnbindShader);
+        } else {
+            glcheck!(gl::UseProgram(0));
+        }
     }
 }
 
-fn create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> u32 {
+/// Result of shader compilation
+type ShaderResult<T> = Result<T, String>;
+
+fn create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> ShaderResult<u32> {
     let this = glcheck!(gl::CreateShader(shader_type));
 
     let src_cstr = CString::new(src).expect("Shader source must be utf-8");
@@ -488,10 +986,10 @@ fn create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> u32 {
     glcheck!(gl::CompileShader(this));
 
     // Check for compile errors.
-    let mut status = 0;
+    let mut status: gl::types::GLint = 0;
     glcheck!(gl::GetShaderiv(this, gl::COMPILE_STATUS, &mut status));
 
-    if status != gl::TRUE as i32 {
+    if status == 0 {
         let mut length = 0;
         glcheck!(gl::GetShaderiv(this, gl::INFO_LOG_LENGTH, &mut length));
 
@@ -503,18 +1001,21 @@ fn create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> u32 {
             info_log.as_mut_ptr() as *mut i8,
         ));
 
-        warn!("Shader:\n{src}");
+        // Clean up the failed shader
+        glcheck!(gl::DeleteShader(this));
 
-        panic!(
-            "CreateGLShader: Failed to compile shader [{length}]:\n{}",
-            String::from_utf8(info_log).unwrap()
-        );
+        // Convert to string, stripping null bytes (CString can't have interior nulls)
+        let error_msg = String::from_utf8_lossy(&info_log)
+            .replace('\0', "")
+            .trim()
+            .to_string();
+        return Err(if error_msg.is_empty() { "Unknown compile error".to_string() } else { error_msg });
     }
 
-    this
+    Ok(this)
 }
 
-fn create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> gl::types::GLuint {
+fn create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> ShaderResult<gl::types::GLuint> {
     let this = glcheck!(gl::CreateProgram());
     glcheck!(gl::AttachShader(this, vs));
     glcheck!(gl::AttachShader(this, fs));
@@ -528,10 +1029,10 @@ fn create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> gl::types:
     glcheck!(gl::LinkProgram(this));
 
     // Check for link errors.
-    let mut status: i32 = 0;
+    let mut status: gl::types::GLint = 0;
     glcheck!(gl::GetProgramiv(this, gl::LINK_STATUS, &mut status));
 
-    if status != gl::TRUE as i32 {
+    if status == 0 {
         let mut length: i32 = 0;
         glcheck!(gl::GetProgramiv(this, gl::INFO_LOG_LENGTH, &mut length));
 
@@ -543,11 +1044,28 @@ fn create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> gl::types:
             info_log.as_mut_ptr() as *mut i8,
         ));
 
-        panic!(
-            "create_gl_program: Failed to link program[{length}]:\n{:?}",
-            CStr::from_bytes_with_nul(info_log.as_slice())
-        );
+        // Clean up the failed program
+        glcheck!(gl::DeleteProgram(this));
+
+        // Convert to string, stripping null bytes (CString can't have interior nulls)
+        let error_msg = String::from_utf8_lossy(&info_log)
+            .replace('\0', "")
+            .trim()
+            .to_string();
+        return Err(if error_msg.is_empty() { "Unknown link error".to_string() } else { error_msg });
     }
 
-    this
+    // Bind CameraUBO to binding point 0 (if the uniform block exists in this shader)
+    let block_index = glcheck!(gl::GetUniformBlockIndex(this, c_str!("CameraUBO")));
+    if block_index != gl::INVALID_INDEX {
+        glcheck!(gl::UniformBlockBinding(this, block_index, 0));
+    }
+
+    // Bind LightUBO to binding point 2 (if the uniform block exists in this shader)
+    let light_block_index = glcheck!(gl::GetUniformBlockIndex(this, c_str!("LightUBO")));
+    if light_block_index != gl::INVALID_INDEX {
+        glcheck!(gl::UniformBlockBinding(this, light_block_index, 2));
+    }
+
+    Ok(this)
 }

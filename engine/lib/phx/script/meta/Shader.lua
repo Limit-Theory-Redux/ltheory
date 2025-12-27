@@ -14,6 +14,20 @@ function Shader.Create(vs, fs) end
 ---@return Shader
 function Shader.Load(vsName, fsName) end
 
+-- Creates a minimal error shader that renders magenta to indicate shader failure
+---@param vsName string
+---@param fsName string
+---@return Shader?
+function Shader.CreateErrorShader(vsName, fsName) end
+
+-- Try to load a shader, returning None on failure.
+-- Errors are pushed to the global shader error queue for display.
+-- Use this for hot-reload to gracefully fall back to the previous working shader.
+---@param vsName string
+---@param fsName string
+---@return Shader?
+function Shader.TryLoad(vsName, fsName) end
+
 ---@return string
 function Shader:name() end
 
@@ -173,6 +187,10 @@ function Shader:setTexCube(name, value) end
 function Shader:iSetTexCube(index, value) end
 
 function Shader:start() end
+
+-- Invalidate the shader's render thread resource, forcing recreation on next start().
+-- Used after hot-reload to ensure fresh uniform bindings.
+function Shader:invalidate() end
 
 function Shader:stop() end
 
