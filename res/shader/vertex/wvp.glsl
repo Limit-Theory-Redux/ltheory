@@ -2,15 +2,12 @@
    The standard projection pipeline for game objects in world-space.
 
    Requires:
-     * An active camera to provide view & projection matrices
+     * An active camera to provide view & projection matrices (via CameraUBO)
      * mWorld matrix providing object's local->world transform
      * mWorldIT matrix (inverse-transpose of mWorld)
 ----------------------------------------------------------------------------- */
 
 #include vertex
-
-#autovar mat4 mView
-#autovar mat4 mProj
 
 out vec3 objPos;
 

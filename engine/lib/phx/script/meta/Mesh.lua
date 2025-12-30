@@ -97,6 +97,25 @@ function Mesh:lockIndexData(f) end
 ---@return number
 function Mesh:getRadius() end
 
+-- Get the VAO handle for batch rendering.
+-- Note: This requires draw_bind() to have been called first to create the VAO.
+---@return integer
+function Mesh:getVao() end
+
+-- Check if this mesh has been streamed (CPU data freed).
+---@return boolean
+function Mesh:isStreamed() end
+
+-- Stream this mesh: upload to GPU and free CPU vertex/index data.
+-- This reduces memory usage for static meshes that won't be modified.
+-- After streaming:
+-- - The mesh can still be drawn normally
+-- - Vertex/index data cannot be accessed or modified
+-- - Bounds and radius are preserved (computed before streaming)
+-- Returns true if streaming succeeded, false if already streamed or failed.
+---@return boolean
+function Mesh:stream() end
+
 ---@return integer
 function Mesh:getVersion() end
 

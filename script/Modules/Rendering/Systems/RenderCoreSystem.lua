@@ -1,11 +1,16 @@
-local Registry         = require("Core.ECS.Registry")
-local QuickProfiler    = require("Shared.Tools.QuickProfiler")
-local RenderingPass    = require("Shared.Rendering.RenderingPass")
-local CameraManager    = require("Modules.Cameras.Managers.CameraManager")
-local RenderComp       = require("Modules.Rendering.Components").Render
-local CameraComponent  = require("Modules.Cameras.Components.CameraDataComponent")
-local UniformFuncs     = require("Shared.Rendering.UniformFuncs")
-local Cache            = require("Render.Cache")
+local Registry           = require("Core.ECS.Registry")
+local QuickProfiler      = require("Shared.Tools.QuickProfiler")
+local RenderingPass      = require("Shared.Rendering.RenderingPass")
+local CameraManager      = require("Modules.Cameras.Managers.CameraManager")
+local RenderComp         = require("Modules.Rendering.Components").Render
+local PointLightComp     = require("Modules.Rendering.Components").PointLight
+local CameraComponent    = require("Modules.Cameras.Components.CameraDataComponent")
+local UniformFuncs       = require("Shared.Rendering.UniformFuncs")
+local Cache              = require("Render.Cache")
+local Physics            = require("Modules.Physics.Components")
+local RenderOverlay      = require("Shared.Tools.RenderOverlay")
+local ShaderErrorOverlay = require("Shared.Tools.ShaderErrorOverlay")
+local ShaderHotReload    = require("Render.ShaderHotReload")
 
 ---@class RenderCoreSystem
 ---@overload fun(self): RenderCoreSystem
@@ -13,6 +18,9 @@ local Cache            = require("Render.Cache")
 local RenderCoreSystem = Class("RenderCoreSystem", function(self)
     require("Shared.Definitions.MaterialDefs")
     require("Shared.Definitions.UniformFuncDefs")
+
+    -- Initialize shader hot-reload (must be after MaterialDefs to register existing shaders)
+    ShaderHotReload:init()
 
     self:registerVars()
     self:registerPasses()
@@ -38,6 +46,7 @@ function RenderCoreSystem:registerVars()
         fxaa       = Config.render.postFx.fxaa,
         dither     = Config.render.postFx.dither,
         colorgrade = Config.render.postFx.colorgrade,
+        panini     = Config.render.postFx.panini,
     }
 
     self.autoExposure    = {
@@ -87,13 +96,14 @@ function RenderCoreSystem:initializeBuffers()
     end
 
     self.buffers = {
-        [Enums.BufferName.buffer0]   = create(self.ssResX, self.ssResY, TexFormat.RGBA16F),
-        [Enums.BufferName.buffer1]   = create(self.ssResX, self.ssResY, TexFormat.RGBA16F),
-        [Enums.BufferName.buffer2]   = create(self.ssResX, self.ssResY, TexFormat.RGBA16F),
-        [Enums.BufferName.zBuffer]   = create(self.ssResX, self.ssResY, TexFormat.Depth32F),
-        [Enums.BufferName.zBufferL]  = create(self.ssResX, self.ssResY, TexFormat.R32F),
-        [Enums.BufferName.dsBuffer0] = create(self.dsResX, self.dsResY, TexFormat.RGBA16F),
-        [Enums.BufferName.dsBuffer1] = create(self.dsResX, self.dsResY, TexFormat.RGBA16F),
+        [Enums.BufferName.buffer0]    = create(self.ssResX, self.ssResY, TexFormat.RGBA16F),
+        [Enums.BufferName.buffer1]    = create(self.ssResX, self.ssResY, TexFormat.RGBA16F),
+        [Enums.BufferName.buffer2]    = create(self.ssResX, self.ssResY, TexFormat.RGBA16F),
+        [Enums.BufferName.zBuffer]    = create(self.ssResX, self.ssResY, TexFormat.Depth32F),
+        [Enums.BufferName.zBufferL]   = create(self.ssResX, self.ssResY, TexFormat.R32F),
+        [Enums.BufferName.dsBuffer0]  = create(self.dsResX, self.dsResY, TexFormat.RGBA16F),
+        [Enums.BufferName.dsBuffer1]  = create(self.dsResX, self.dsResY, TexFormat.RGBA16F),
+        [Enums.BufferName.lightAccum] = create(self.ssResX, self.ssResY, TexFormat.RGBA16F),
     }
 end
 
@@ -110,6 +120,14 @@ function RenderCoreSystem:registerPasses()
         { Enums.BufferName.buffer0, Enums.BufferName.buffer1, Enums.BufferName.zBufferL, Enums.BufferName.zBuffer },
         function()
             Draw.Clear(0, 0, 0, 0); Draw.ClearDepth(1); Draw.Color(1, 1, 1, 1)
+        end)
+
+    -- Deferred lighting pass - accumulates point/spot light contributions
+    pass(Enums.RenderingPasses.Lighting,
+        BlendMode.Additive, CullFace.None, false, false,
+        { Enums.BufferName.lightAccum },
+        function()
+            Draw.Clear(0, 0, 0, 0)
         end)
 
     pass(Enums.RenderingPasses.Additive,
@@ -150,11 +168,30 @@ function RenderCoreSystem:render(data)
     -- Data cache
     self:cacheData()
 
-    -- Opaque Pass
+    -- Opaque Pass (writes to G-buffer: albedo, normalMat, depth)
     self.currentPass = Enums.RenderingPasses.Opaque
     self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
     self:renderInOrder(BlendMode.Disabled)
     self.passes[self.currentPass]:stop()
+
+    -- Deferred Lighting Pass (only if there are point lights)
+    -- This avoids breaking scenes without deferred lighting (e.g., RenderingTest)
+    local hasPointLights = false
+    for _ in Registry:view(PointLightComp) do
+        hasPointLights = true
+        break
+    end
+
+    if hasPointLights then
+        self.currentPass = Enums.RenderingPasses.Lighting
+        self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
+        self:renderGlobalLight()
+        self:renderPointLights()
+        self.passes[self.currentPass]:stop()
+
+        -- Deferred Composite (albedo * lighting → buffer0)
+        self:compositeDeferredLighting()
+    end
 
     -- Additive Pass
     self.currentPass = Enums.RenderingPasses.Additive
@@ -197,13 +234,17 @@ function RenderCoreSystem:render(data)
     -- Post-processing chain
     self:downsampleForPost()
 
+    -- HDR effects (before tonemapping)
     self:aberration(dt)
     self:bloom(dt)
-    self:fxaa(dt)
-    self:sharpen(dt)
     self:colorgrade(dt)
-    self:tonemap(dt)
+    self:tonemap(dt)         -- HDR → LDR conversion
+
+    -- LDR effects (after tonemapping)
+    self:fxaa(dt)            -- FXAA needs LDR values for edge detection
+    self:sharpen(dt)
     self:dither(dt)
+    self:panini(dt)          -- FOV distortion correction (before vignette)
     self:vignette(dt)
     self:radialBlur(dt)
 
@@ -232,6 +273,24 @@ function RenderCoreSystem:render(data)
     -- Smooth with exponential moving average
     self.smoothFrameTime  = self.smoothFrameTime + (self.currentFrameTime - self.smoothFrameTime) * self.smoothFactor
     self.smoothFPS        = self.smoothFPS + (self.currentFPS - self.smoothFPS) * self.smoothFactor
+
+    -- Update shader hot-reload (poll for file changes)
+    ShaderHotReload:update()
+
+    -- Draw performance overlay (Shift+O to toggle)
+    RenderOverlay:draw()
+
+    -- Draw shader error overlay (auto-shows on compile errors)
+    ShaderErrorOverlay:draw()
+end
+
+--- Handle input for render overlays
+function RenderCoreSystem:handleInput()
+    -- Shader error overlay takes priority (can be dismissed with ESC/click)
+    if ShaderErrorOverlay:handleInput() then
+        return
+    end
+    RenderOverlay:handleInput()
 end
 
 function RenderCoreSystem:handleResize()
@@ -258,6 +317,17 @@ function RenderCoreSystem:handleResize()
 end
 
 function RenderCoreSystem:renderInOrder(blendMode)
+    -- Use material-grouped batching when render thread is active
+    -- This reduces shader switches by grouping entities by material
+    if Engine:isRenderThreadActive() then
+        self:renderBatched(blendMode)
+    else
+        self:renderDirect(blendMode)
+    end
+end
+
+-- Direct rendering (traditional path - one shader switch per entity)
+function RenderCoreSystem:renderDirect(blendMode)
     for entity in Registry:view(RenderComp) do
         local rend = entity:get(RenderComp)
         if rend:getRenderFn() then
@@ -276,6 +346,79 @@ function RenderCoreSystem:renderInOrder(blendMode)
                 end
             end
         end
+    end
+end
+
+-- Batch rendering (material-grouped path)
+-- Groups entities by material to minimize shader switches
+function RenderCoreSystem:renderBatched(blendMode)
+    -- Phase 1: Collect draw calls grouped by material
+    local materialGroups = {} -- material -> { {entity, mesh}, ... }
+
+    for entity in Registry:view(RenderComp) do
+        local rend = entity:get(RenderComp)
+
+        -- Custom render functions bypass batching
+        if rend:getRenderFn() then
+            rend:getRenderFn()(entity, blendMode)
+        else
+            for meshmat in Iterator(rend:getMeshes()) do
+                local mat = meshmat.material
+                if (mat:getBlendMode() or BlendMode.Disabled) == blendMode then
+                    -- Group by material
+                    if not materialGroups[mat] then
+                        materialGroups[mat] = {}
+                    end
+                    table.insert(materialGroups[mat], {
+                        entity = entity,
+                        mesh = meshmat.mesh
+                    })
+                end
+            end
+        end
+    end
+
+    -- Phase 2: Render each material group
+    for mat, drawCalls in pairs(materialGroups) do
+        local sh = mat:getShaderState()
+        sh:start() -- Binds shader, sets textures, auto vars
+
+        -- Apply material-level cached vars (once per material)
+        local matCache = self.materialCache[mat]
+        if matCache then
+            local shader = sh:shader()
+            for varObj, entry in pairs(matCache) do
+                if varObj.uniformInt then
+                    local fn = UniformFuncs[entry.type]
+                    if fn then fn(shader, varObj.uniformInt, table.unpack(entry.values)) end
+                end
+            end
+        end
+
+        -- Draw all entities with this material
+        for _, drawCall in ipairs(drawCalls) do
+            local entity = drawCall.entity
+            local mesh = drawCall.mesh
+
+            -- Apply per-instance cached vars
+            local instCache = self.instanceCache[entity.id]
+            if instCache then
+                local matInst = instCache[mat]
+                if matInst then
+                    local shader = sh:shader()
+                    for varObj, entry in pairs(matInst) do
+                        if varObj.uniformInt then
+                            local fn = UniformFuncs[entry.type]
+                            if fn then fn(shader, varObj.uniformInt, table.unpack(entry.values)) end
+                        end
+                    end
+                end
+            end
+
+            mesh:draw()
+        end
+
+        sh:stop()
     end
 end
 
@@ -360,6 +503,97 @@ function RenderCoreSystem:applyCachedVars(mat, entity)
     end
 end
 
+-- =============================================================================
+-- Deferred Lighting
+-- =============================================================================
+
+--- Render global lighting (environment/ambient) using G-buffer
+function RenderCoreSystem:renderGlobalLight()
+    local shader = Cache.Shader('worldray', 'light/global')
+    shader:start()
+
+    -- Bind G-buffer textures
+    shader:setTex2D('texNormalMat', self.buffers[Enums.BufferName.buffer1])
+    shader:setTex2D('texDepth', self.buffers[Enums.BufferName.zBufferL])
+
+    -- Global light direction (star direction from skybox if available)
+    shader:setFloat3('lightPos', 10000, 5000, 10000)
+    shader:setFloat3('lightColor', 1, 1, 1)
+
+    Draw.Rect(0, 0, self.ssResX, self.ssResY)
+    shader:stop()
+end
+
+--- Render all point lights using deferred shading
+function RenderCoreSystem:renderPointLights()
+    local shader = Cache.Shader('worldray', 'light/point')
+    local eye = CameraManager:getEye()
+    local lightCount = 0
+
+    -- Bind shader and textures ONCE before the loop (optimization)
+    shader:start()
+    shader:setTex2D('texNormalMat', self.buffers[Enums.BufferName.buffer1])
+    shader:setTex2D('texDepth', self.buffers[Enums.BufferName.zBufferL])
+
+    for entity in Registry:view(PointLightComp) do
+        local light = entity:get(PointLightComp)
+        local transform = entity:get(Physics.Transform)
+        if not transform then goto continue end
+
+        -- Use camera-relative position (camera at origin)
+        -- worldray.glsl reconstructs fragment positions in camera-relative space
+        local worldPos = transform:getPos()
+        local pos = worldPos:relativeTo(eye)
+        local color = light:getColor()
+        local intensity = light:getIntensity()
+        local radius = light:getRadius()
+
+        lightCount = lightCount + 1
+        if lightCount == 1 then
+            Log.Debug("[Deferred] First light: camRelPos=(%f,%f,%f) color=(%f,%f,%f) intensity=%f radius=%f",
+                pos.x, pos.y, pos.z, color.x, color.y, color.z, intensity, radius)
+        end
+
+        -- Update light UBO with camera-relative light position (only this changes per light)
+        Engine:updateLightUBO(
+            pos.x, pos.y, pos.z, radius,
+            color.x, color.y, color.z, intensity
+        )
+
+        Draw.Rect(0, 0, self.ssResX, self.ssResY)
+
+        ::continue::
+    end
+
+    shader:stop()
+end
+
+--- Composite deferred lighting: albedo * lighting → buffer0
+function RenderCoreSystem:compositeDeferredLighting()
+    local shader = Cache.Shader('worldray', 'light/composite')
+
+    -- Save current albedo buffer
+    local albedoBuffer = self.buffers[Enums.BufferName.buffer0]
+
+    -- Render composite into buffer2 (scratch)
+    local buffer2 = self.buffers[Enums.BufferName.buffer2]
+    buffer2:push()
+    Draw.Clear(0, 0, 0, 0)
+
+    shader:start()
+    shader:setTex2D('texAlbedo', albedoBuffer)
+    shader:setTex2D('texDepth', self.buffers[Enums.BufferName.zBufferL])
+    shader:setTex2D('texLighting', self.buffers[Enums.BufferName.lightAccum])
+    Draw.Rect(0, 0, self.ssResX, self.ssResY)
+    shader:stop()
+
+    buffer2:pop()
+
+    -- Swap: composite result becomes the new main buffer
+    self.buffers[Enums.BufferName.buffer0], self.buffers[Enums.BufferName.buffer2] =
+        self.buffers[Enums.BufferName.buffer2], self.buffers[Enums.BufferName.buffer0]
+end
+
 -- Post-processing helpers
 function RenderCoreSystem:swap()
     self.buffers[Enums.BufferName.buffer0], self.buffers[Enums.BufferName.buffer1] =
@@ -441,11 +675,12 @@ end
 function RenderCoreSystem:bloom(radius)
     if not self.postSettings.bloom.enable then return end
 
-    local width = radius * 0.2
     local A = self.buffers[Enums.BufferName.dsBuffer0]
     local B = self.buffers[Enums.BufferName.dsBuffer1]
+    local iterations = self.postSettings.bloom.iterations or 1
+    local useFastBlur = self.postSettings.bloom.fastBlur ~= false
 
-    -- Bright extract
+    -- Bright extract (downsample to 1/4 resolution)
     do
         local shader = Cache.Shader('ui', 'filter/bloompre')
         A:push()
@@ -456,14 +691,36 @@ function RenderCoreSystem:bloom(radius)
         A:pop()
     end
 
-    for i = 1, 3 do
-        self:blur(B, A, 1, 0, radius, width)
-        self:blur(A, B, 0, 1, radius, width)
+    -- Blur passes (optimized: fewer iterations, fast blur shader)
+    local intensity = self.postSettings.bloom.intensity or 0.15
+    for i = 1, iterations do
+        if useFastBlur then
+            self:blurFast(B, A, 1, 0)
+            self:blurFast(A, B, 0, 1)
+        else
+            local width = radius * 0.2
+            self:blur(B, A, 1, 0, radius, width)
+            self:blur(A, B, 0, 1, radius, width)
+        end
 
         self:applyFilter('bloomcomposite', function(sh)
             sh:setTex2D('srcBlur', A)
+            sh:setFloat('intensity', intensity)
         end)
     end
+end
+
+function RenderCoreSystem:blurFast(dst, src, dx, dy)
+    local shader = Cache.Shader('ui', 'filter/blur_fast')
+    local size = src:getSize()
+    dst:push()
+    shader:start()
+    shader:setFloat2('dir', dx, dy)
+    shader:setFloat2('size', size.x, size.y)
+    shader:setTex2D('src', src)
+    Draw.Rect(0, 0, size.x, size.y)
+    shader:stop()
+    dst:pop()
 end
 
 function RenderCoreSystem:blur(dst, src, dx, dy, radius, variance)
@@ -485,8 +742,9 @@ function RenderCoreSystem:fxaa()
     if not self.postSettings.fxaa.enable then return end
 
     local settings = self.postSettings.fxaa
+    local shaderName = settings.fast and 'fxaa_fast' or 'fxaa'
 
-    self:applyFilter('fxaa', function(sh)
+    self:applyFilter(shaderName, function(sh)
         sh:setFloat('fxaaQualitySubpix', settings.strength)
         sh:setFloat('fxaaQualityEdgeThreshold', settings.edgeThreshold or 0.125)
         sh:setFloat('fxaaQualityEdgeThresholdMin', settings.edgeThresholdMin or 0.0312)
@@ -677,6 +935,29 @@ function RenderCoreSystem:vignette()
     self:applyFilter('vignette', function(sh)
         sh:setFloat('strength', self.postSettings.vignette.strength)
         sh:setFloat('hardness', self.postSettings.vignette.hardness)
+    end)
+end
+
+function RenderCoreSystem:panini()
+    if not self.postSettings.panini.enable then return end
+
+    local settings = self.postSettings.panini
+    local distance = settings.distance
+
+    -- Skip if distance is effectively zero
+    if distance <= 0.001 then return end
+
+    -- Auto-calculate vertical scale based on FOV if not specified
+    local scale = settings.scale
+    if scale <= 0 then
+        -- Compensate for FOV-induced vertical stretching
+        local fov = Config.render.camera.fov
+        scale = 1.0 + (fov - 60) * 0.002  -- Subtle adjustment based on FOV
+    end
+
+    self:applyFilter('panini', function(sh)
+        sh:setFloat('distance', distance)
+        sh:setFloat('scale', scale)
     end)
 end
 

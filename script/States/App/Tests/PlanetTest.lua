@@ -65,6 +65,8 @@ function PlanetTest:onInit()
             ShaderVar.PushFloat3('starDir', placeholder.starDir.x, placeholder.starDir.y, placeholder.starDir.z)
             ShaderVar.PushTexCube('envMap', placeholder.envMap)
             ShaderVar.PushTexCube('irMap', placeholder.irMap)
+            -- Set starDir on CameraManager for UBO in render thread mode
+            CameraManager:setStarDir(placeholder.starDir)
         end
 
         if blendMode == BlendMode.Disabled then
@@ -595,26 +597,43 @@ function PlanetTest:onRender(data)
         local camTransform = camEntity and camEntity:get(PhysicsComponents.Transform)
         local camPos = camTransform and camTransform:getPos() or Position(0, 0, 0)
 
+        local rtActive = Engine:isRenderThreadActive()
+        local renderMode = rtActive and "MULTITHREADED" or "Direct GL"
         local infoLines = {
             string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
             string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
+            string.format("Render Mode: %s (T to toggle)", renderMode),
             string.format("Seed: %d", self.seed),
             string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
             string.format("Orbit: Angle=%.1f° Pitch=%.1f° Radius=%.1f",
                 math.deg(self.orbitAngle), math.deg(self.orbitPitch), self.orbitRadius),
-            string.format("Freq: %.2f | Power: %.2f",
-                self.genOptions.surfaceFreq, self.genOptions.surfacePower
-            ),
-            string.format("Ocean: %.2f | Clouds: %.2f",
-                self.genOptions.oceanLevel, self.genOptions.cloudLevel
-            ),
-            string.format("Lua Memory: %.2f KB", mem),
-            -- GC debug info
-            string.format("GC Step Size: %d", GC.debug.stepSize),
-            string.format("GC Last Mem After Cleanup: %.2f KB", GC.debug.lastMem or 0),
-            string.format("GC Emergency: %s", GC.debug.emergencyTriggered and "YES" or "NO"),
-            string.format("GC Spread Frames: %d", GC.debug.spreadFrames)
         }
+
+        -- Add render thread stats when active
+        if rtActive then
+            table.insert(infoLines, "--- Render Thread ---")
+            table.insert(infoLines, string.format("RT Frametime: %.2f ms", Engine:getRenderThreadFrameTimeMs()))
+            table.insert(infoLines, string.format("RT Frames: %d", Engine:getRenderThreadFrameCount()))
+            table.insert(infoLines, string.format("RT Cmds/Frame: %d", Engine:getRenderThreadCommandsPerFrame()))
+            table.insert(infoLines, string.format("RT Draws/Frame: %d", Engine:getRenderThreadDrawCallsPerFrame()))
+            table.insert(infoLines, string.format("RT Total Cmds: %d", Engine:getRenderThreadCommands()))
+            table.insert(infoLines, string.format("RT Total Draws: %d", Engine:getRenderThreadDrawCalls()))
+            table.insert(infoLines, string.format("RT State Changes: %d", Engine:getRenderThreadStateChanges()))
+            table.insert(infoLines, string.format("Worker Threads: %d", Engine:getWorkerThreadCount()))
+        end
+
+        -- Planet info
+        table.insert(infoLines, string.format("Freq: %.2f | Power: %.2f",
+            self.genOptions.surfaceFreq, self.genOptions.surfacePower))
+        table.insert(infoLines, string.format("Ocean: %.2f | Clouds: %.2f",
+            self.genOptions.oceanLevel, self.genOptions.cloudLevel))
+        table.insert(infoLines, string.format("Lua Memory: %.2f KB", mem))
+
+        -- GC debug info
+        table.insert(infoLines, string.format("GC Step Size: %d", GC.debug.stepSize))
+        table.insert(infoLines, string.format("GC Last Mem: %.2f KB", GC.debug.lastMem or 0))
+        table.insert(infoLines, string.format("GC Emergency: %s", GC.debug.emergencyTriggered and "YES" or "NO"))
+        table.insert(infoLines, string.format("GC Spread Frames: %d", GC.debug.spreadFrames))
 
         local y = 40
         for _, line in ipairs(infoLines) do
@@ -855,6 +874,23 @@ function PlanetTest:onStateInput(data)
     else
         if self.isDragging then self.dragReleaseTimer = self.dragReleaseDelay end
         self.isDragging = false
+    end
+
+    -- Toggle render thread with 'T' key (experimental)
+    if Input:isPressed(Button.KeyboardT) then
+        if Engine:isRenderThreadActive() then
+            Log.Info("Stopping render thread...")
+            Engine:stopRenderThread()
+        else
+            Log.Info("Starting render thread...")
+            if Engine:startRenderThread() then
+                Log.Info("Render thread started successfully")
+                -- Create the camera UBO on the render thread
+                Engine:createCameraUBO()
+            else
+                Log.Error("Failed to start render thread")
+            end
+        end
     end
 
     -- Generate new planet

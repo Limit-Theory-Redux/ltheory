@@ -43,6 +43,9 @@ function Loader.defineType()
             int     Mesh_GetIndexCount     (Mesh const*);
             void    Mesh_LockIndexData     (Mesh*, void (*)(int*, uint64));
             float   Mesh_GetRadius         (Mesh*);
+            uint32  Mesh_GetVao            (Mesh const*);
+            bool    Mesh_IsStreamed        (Mesh const*);
+            bool    Mesh_Stream            (Mesh*);
             uint64  Mesh_GetVersion        (Mesh const*);
             void    Mesh_IncVersion        (Mesh*);
             uint32  Mesh_Validate          (Mesh const*);
@@ -132,6 +135,9 @@ function Loader.defineType()
                 getIndexCount     = libphx.Mesh_GetIndexCount,
                 lockIndexData     = libphx.Mesh_LockIndexData,
                 getRadius         = libphx.Mesh_GetRadius,
+                getVao            = libphx.Mesh_GetVao,
+                isStreamed        = libphx.Mesh_IsStreamed,
+                stream            = libphx.Mesh_Stream,
                 getVersion        = libphx.Mesh_GetVersion,
                 incVersion        = libphx.Mesh_IncVersion,
                 validate          = libphx.Mesh_Validate,

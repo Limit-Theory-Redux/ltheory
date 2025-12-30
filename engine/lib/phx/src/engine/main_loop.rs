@@ -80,7 +80,21 @@ impl ApplicationHandler for MainLoop {
                     .set_physical_resolution(size.width, size.height);
                 // Update the cache immediately so we don't try to resize again at the end of the frame.
                 engine.cache.window.resolution = engine.window.resolution.clone();
-                //engine.winit_window.resize(size.width, size.height);
+                // Resize the GL surface and update the viewport
+                if engine.render_context.is_active() {
+                    // When using render thread, submit resize command (GL context is on render thread)
+                    // Use try_submit to avoid blocking if render thread is busy (e.g., during vsync)
+                    if let Some(handle) = engine.render_context.handle() {
+                        use crate::render::RenderCommand;
+                        handle.try_submit(RenderCommand::Resize {
+                            width: size.width,
+                            height: size.height,
+                        });
+                    }
+                } else {
+                    // Direct GL mode: resize surface on main thread
+                    engine.winit_window.resize(size.width, size.height);
+                }
             }
             WindowEvent::CloseRequested => {
                 // If we close the window, then abort the main loop.
@@ -307,8 +321,20 @@ impl ApplicationHandler for MainLoop {
         engine.changed_window();
         engine.input.reset();
 
-        // Redraw, this really just means to swap buffers.
-        engine.winit_window.redraw();
+        // Redraw / swap buffers
+        if engine.render_context.is_active() {
+            // Triple-buffered frame submission:
+            // - Up to 3 frames can be in flight
+            // - Only blocks if all 3 buffers are full
+            // - Minimizes input latency while preventing runaway
+            if let Some(handle) = engine.render_context.handle() {
+                handle.end_frame_triple_buffered();
+            }
+            engine.winit_window.request_redraw();
+        } else {
+            // Traditional single-threaded redraw
+            engine.winit_window.redraw();
+        }
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {
@@ -317,8 +343,12 @@ impl ApplicationHandler for MainLoop {
         };
 
         debug!("Stopping main loop!");
+
+        // Stop render thread first if running
+        engine.stop_render_thread();
+
         engine.call_lua("AppClose").unwrap_or_else(|e| {
-            panic!("Error calling AppInit: {e}");
+            panic!("Error calling AppClose: {e}");
         });
     }
 

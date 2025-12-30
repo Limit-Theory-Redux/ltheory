@@ -5,8 +5,11 @@ Config.render.postFx = {
         strength = 0.3
     },
     bloom = {
-        enable = true,
-        radius = 32
+        enable     = true,
+        radius     = 32,       -- Original value for quality
+        iterations = 3,        -- Original value for smooth bloom
+        fastBlur   = false,    -- Use quality Gaussian blur
+        intensity  = 0.15      -- Original value
     },
     radialblur = {
         enable    = false,
@@ -51,12 +54,18 @@ Config.render.postFx = {
     },
     fxaa = {
         enable           = true,
-        strength         = 0.75,
-        edgeThreshold    = 0.125,
+        fast             = false,    -- Use quality 21-sample version
+        strength         = 1.0,
+        edgeThreshold    = 0.063,
         edgeThresholdMin = 0.0312
     },
     dither = {
         enable   = true,
         strength = 0.3
+    },
+    panini = {
+        enable   = true,
+        distance = 0.5,   -- 0 = off, 1 = full cylindrical (0.3-0.6 typical)
+        scale    = 1.0    -- Vertical scale adjustment (auto-calculated if 0)
     }
 }

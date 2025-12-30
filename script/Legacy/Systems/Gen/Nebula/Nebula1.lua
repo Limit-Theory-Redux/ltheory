@@ -32,7 +32,7 @@ local function generateNebulaIFS(rng, res, starDir)
     ss:setTex1D('lutR', lutR)
     ss:setTex1D('lutG', lutG)
     ss:setTex1D('lutB', lutB)
-    ss:setFloat3('starDir', starDir.x, starDir.y, starDir.z)
+    ss:setFloat3('genStarDir', starDir.x, starDir.y, starDir.z)
 
     self:generate(ss)
     self:genMipmap()

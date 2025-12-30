@@ -1,3 +1,5 @@
+#![allow(unsafe_code)]
+
 use std::num::NonZeroU32;
 
 use glutin::config::ConfigTemplateBuilder;
@@ -18,6 +20,7 @@ use super::{
     CursorGrabMode, PresentMode, Window, WindowMode, WindowPosition, WindowResolution,
     glutin_render,
 };
+use crate::render::{clear_gl_unavailable, is_command_mode, is_gl_unavailable, submit_command, try_submit_command, RenderCommand};
 
 // TODO: Add GlStateManager with state: Option<GlState> field to avoid std::mem::replace
 #[derive(Debug)]
@@ -95,6 +98,101 @@ impl GlState {
         } else {
             panic!("Context is undefined");
         }
+    }
+}
+
+/// Data needed to initialize GL context on the render thread.
+/// This is extracted from WinitWindow and sent to the render thread.
+/// Contains both context and the already-created surface (macOS requires
+/// surfaces to be created on the main thread).
+pub struct RenderThreadGlData {
+    /// The not-current GL context that can be made current on render thread
+    pub context: NotCurrentContext,
+    /// The surface (already created on main thread)
+    pub surface: Surface<WindowSurface>,
+    /// GL configuration
+    pub config: glutin::config::Config,
+}
+
+// Safety: NotCurrentContext and Surface are both Send when not current
+unsafe impl Send for RenderThreadGlData {}
+
+impl RenderThreadGlData {
+    /// Make the context current on the render thread and return the active context + surface.
+    /// This should only be called once from the render thread.
+    pub fn make_current(self) -> Result<RenderThreadGlContext, String> {
+        let context = self.context
+            .make_current(&self.surface)
+            .map_err(|e| format!("Failed to make context current: {:?}", e))?;
+
+        Ok(RenderThreadGlContext {
+            context,
+            surface: self.surface,
+            config: self.config,
+        })
+    }
+}
+
+/// Active GL context on the render thread.
+pub struct RenderThreadGlContext {
+    context: PossiblyCurrentContext,
+    surface: Surface<WindowSurface>,
+    config: glutin::config::Config,
+}
+
+impl RenderThreadGlContext {
+    /// Swap buffers
+    pub fn swap_buffers(&self) -> Result<(), String> {
+        self.surface
+            .swap_buffers(&self.context)
+            .map_err(|e| format!("Failed to swap buffers: {:?}", e))
+    }
+
+    /// Resize the surface
+    pub fn resize(&self, width: u32, height: u32) {
+        if let Some(width) = NonZeroU32::new(width) {
+            if let Some(height) = NonZeroU32::new(height) {
+                self.surface.resize(&self.context, width, height);
+            }
+        }
+    }
+
+    /// Make the context not current (for cleanup)
+    pub fn make_not_current(self) -> Result<NotCurrentContext, String> {
+        self.context
+            .make_not_current()
+            .map_err(|e| format!("Failed to make context not current: {:?}", e))
+    }
+
+    /// Make context not current and return both context and surface for transfer back to main thread.
+    /// This is used when shutting down the render thread to return the GL resources.
+    ///
+    /// On macOS, make_not_current() uses run_on_main() which deadlocks when main thread
+    /// is blocked waiting for this function to complete. So we skip it on macOS and just
+    /// drop the context (it will be destroyed when the thread exits).
+    #[cfg(not(target_os = "macos"))]
+    pub fn release_for_main_thread(self) -> Result<(NotCurrentContext, Surface<WindowSurface>), String> {
+        let context = self.context
+            .make_not_current()
+            .map_err(|e| format!("Failed to make context not current: {:?}", e))?;
+        Ok((context, self.surface))
+    }
+
+    #[cfg(target_os = "macos")]
+    pub fn release_for_main_thread(self) -> Result<(NotCurrentContext, Surface<WindowSurface>), String> {
+        // On macOS, make_not_current() uses run_on_main() which deadlocks when main
+        // thread is blocked waiting for this function.
+        //
+        // We cannot safely release the context back to main thread without causing
+        // a deadlock. Use std::mem::forget to skip destructors (which might also
+        // use run_on_main). The GL resources will be leaked but cleaned up by the
+        // OS when the process exits.
+        //
+        // This means we cannot restore direct GL mode on macOS after using the
+        // render thread, but that's an acceptable limitation.
+        std::mem::forget(self.context);
+        std::mem::forget(self.surface);
+        Err("Cannot release GL context on macOS without deadlock - resources leaked".to_string())
     }
 }
 
@@ -278,6 +376,11 @@ impl WinitWindow {
     }
 
     pub fn resize(&self, width: u32, height: u32) {
+        // Skip if GL context is unavailable
+        if is_gl_unavailable() {
+            return;
+        }
+
         if let Some(width) = NonZeroU32::new(width) {
             if let Some(height) = NonZeroU32::new(height) {
                 // Some platforms like EGL require resizing GL surface to update the size
@@ -288,6 +391,14 @@ impl WinitWindow {
                     surface.resize(context, width, height);
 
                     glutin_render::resize(width.get() as i32, height.get() as i32);
+                } else if is_command_mode() {
+                    // In command mode, send resize to render thread which owns the GL context.
+                    // Use try_submit to avoid blocking if the render thread is busy (e.g., vsync).
+                    // If the command is dropped, the next frame will catch up.
+                    try_submit_command(RenderCommand::Resize {
+                        width: width.get(),
+                        height: height.get(),
+                    });
                 }
             }
         }
@@ -296,8 +407,115 @@ impl WinitWindow {
     pub fn redraw(&self) {
         self.window.request_redraw();
 
+        // Check if GL context is unavailable (lost after render thread shutdown)
+        if is_gl_unavailable() {
+            // Skip rendering - GL context was lost and cannot be recovered
+            return;
+        }
+
         if let GlState::Current { context, surface } = &self.gl_state {
+            // Direct GL mode - swap buffers on main thread
             surface.swap_buffers(context).expect("Cannot redraw");
+        } else if is_command_mode() {
+            // Command mode - send SwapBuffers to render thread
+            if !submit_command(RenderCommand::SwapBuffers) {
+                warn!("Failed to submit SwapBuffers command - render thread may not be running");
+            }
+        } else {
+            // Invalid state - GL context not current and not in command mode
+            error!("redraw() called but GL context is not current and not in command mode!");
+        }
+    }
+
+    /// Extract the GL context for transfer to the render thread.
+    ///
+    /// This makes the context not-current on the main thread and returns
+    /// the data needed to initialize the context on the render thread.
+    ///
+    /// After calling this, the WinitWindow can no longer perform GL operations
+    /// directly. All GL operations must go through the render thread.
+    pub fn extract_gl_context_for_render_thread(&mut self) -> Option<RenderThreadGlData> {
+        debug!("Extracting GL context for render thread");
+
+        // Extract both context and surface from Current state
+        // We need to transfer the existing surface because macOS doesn't allow
+        // creating window surfaces from non-main threads.
+        if matches!(self.gl_state, GlState::Current { .. }) {
+            let old_state = std::mem::replace(&mut self.gl_state, GlState::Undefined);
+            if let GlState::Current { context, surface } = old_state {
+                // Make context not current before transferring
+                let context = context
+                    .make_not_current()
+                    .expect("Failed to make context not current for transfer");
+
+                info!("GL context extracted for render thread");
+
+                return Some(RenderThreadGlData {
+                    context,
+                    surface,
+                    config: self.gl_config.clone(),
+                });
+            }
+        }
+
+        warn!("Could not extract GL context - context is not current");
+        None
+    }
+
+    /// Check if the GL context has been transferred to the render thread.
+    pub fn is_context_on_render_thread(&self) -> bool {
+        matches!(self.gl_state, GlState::Undefined)
+    }
+
+    /// Request redraw without swapping buffers (for use with render thread).
+    /// The render thread will handle the actual buffer swap.
+    pub fn request_redraw(&self) {
+        self.window.request_redraw();
+    }
+
+    /// Restore the GL context from the render thread.
+    ///
+    /// This is called when the render thread shuts down and returns the GL context
+    /// back to the main thread for direct GL rendering.
+    pub fn restore_gl_context(
+        &mut self,
+        context: NotCurrentContext,
+        surface: Surface<WindowSurface>,
+    ) -> bool {
+        info!("Attempting to restore GL context, current state: {:?}",
+              match &self.gl_state {
+                  GlState::Current { .. } => "Current",
+                  GlState::NotCurrent { .. } => "NotCurrent",
+                  GlState::Undefined => "Undefined",
+              });
+
+        if !matches!(self.gl_state, GlState::Undefined) {
+            error!("Cannot restore GL context - current state is not Undefined!");
+            return false;
+        }
+
+        // Make the context current on the main thread
+        info!("Making context current on main thread...");
+        match context.make_current(&surface) {
+            Ok(current_context) => {
+                // Try setting vsync
+                if let Err(res) = surface.set_swap_interval(&current_context, self.present_mode.into()) {
+                    warn!("Error setting vsync after restoring context: {:?}", res);
+                }
+
+                self.gl_state = GlState::Current {
+                    context: current_context,
+                    surface,
+                };
+                // Clear the GL unavailable flag since context is restored
+                clear_gl_unavailable();
+                info!("GL context restored to main thread successfully");
+                true
+            }
+            Err(e) => {
+                error!("Failed to make restored context current: {:?}", e);
+                false
+            }
         }
     }
 }

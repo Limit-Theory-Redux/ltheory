@@ -15,15 +15,17 @@ Enums.MeshType = {
 ---@enum BufferName
 Enums.BufferName = {
     -- Primary Buffers
-    buffer0 = 0,   -- Src Buffer
-    buffer1 = 1,   -- Alpha/Normals/UI Buffer
-    buffer2 = 2,   -- Lighting Buffer
+    buffer0 = 0,   -- Src/Albedo Buffer
+    buffer1 = 1,   -- G-Buffer: Normal/Material (xy=normal, z=roughness, w=material)
+    buffer2 = 2,   -- Scratch/Composite Buffer
     -- Depth Buffers
     zBuffer = 3,   -- Primary Depth Buffer
-    zBufferL = 4,  -- Lighting Depth Buffer
+    zBufferL = 4,  -- Linear Depth Buffer (for deferred)
     -- Downsample Buffers
     dsBuffer0 = 5, -- Primary Downsample Buffer
-    dsBuffer1 = 6  -- Secondary Downsample Buffer
+    dsBuffer1 = 6, -- Secondary Downsample Buffer
+    -- Deferred Lighting
+    lightAccum = 7 -- Light Accumulation Buffer
 }
 
 ---@enum RenderingPassName

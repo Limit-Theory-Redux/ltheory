@@ -9,7 +9,9 @@ use tobj::LoadError;
 use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat, gl};
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
-use crate::render::{RenderState, Shader, glcheck};
+use crate::render::{RenderState, Shader, glcheck, is_command_mode, submit_command, RenderCommand, GpuHandle};
+use crate::render::render_command::{CmdPrimitiveType, ResourceId, VertexFormat};
+use crate::render::render_queue::RenderQueue;
 use crate::rf::Rf;
 use crate::system::*;
 
@@ -22,6 +24,8 @@ struct MeshShared {
     vbo: gl::types::GLuint,
     ibo: gl::types::GLuint,
     vao: gl::types::GLuint,
+    /// Resource ID for command-mode resources (created on render thread)
+    resource_id: Option<ResourceId>,
     uuid: u64,
     version: u64,
     version_buffers: u64,
@@ -29,6 +33,11 @@ struct MeshShared {
     info: Computed,
     index: Vec<i32>,
     vertex: Vec<Vertex>,
+    /// True if CPU data has been freed after GPU upload (streaming mode)
+    streamed: bool,
+    /// Cached counts for after streaming (valid when streamed=true)
+    streamed_index_count: i32,
+    streamed_vertex_count: i32,
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Copy, Clone)]
@@ -78,7 +87,16 @@ impl MeshShared {
 
 impl Drop for MeshShared {
     fn drop(&mut self) {
-        if self.vbo != 0 {
+        // Clean up command-mode resource
+        if let Some(id) = self.resource_id.take() {
+            if is_command_mode() {
+                submit_command(RenderCommand::DestroyResource { id });
+            }
+            // If not in command mode, the render thread is gone and resources were cleaned up
+        }
+
+        // Clean up direct-mode GL resources
+        if self.vbo != 0 && !is_command_mode() {
             glcheck!(gl::DeleteVertexArrays(1, &self.vao));
             glcheck!(gl::DeleteBuffers(1, &self.vbo));
             glcheck!(gl::DeleteBuffers(1, &self.ibo));
@@ -139,6 +157,7 @@ impl Mesh {
                 vbo: 0,
                 ibo: 0,
                 vao: 0,
+                resource_id: None,
                 uuid,
                 version: 1,
                 version_buffers: 0,
@@ -149,6 +168,9 @@ impl Mesh {
                 },
                 vertex: Vec::new(),
                 index: Vec::new(),
+                streamed: false,
+                streamed_index_count: 0,
+                streamed_vertex_count: 0,
             }),
         }
     }
@@ -364,103 +386,194 @@ impl Mesh {
     pub fn draw_bind(&mut self) {
         let this = &mut *self.shared.as_mut();
 
-        /* Release cached GL buffers if the mesh has changed since we built them. */
-        if this.vbo != 0 && this.version != this.version_buffers {
-            glcheck!(gl::DeleteVertexArrays(1, &this.vao));
-            glcheck!(gl::DeleteBuffers(1, &this.vbo));
-            glcheck!(gl::DeleteBuffers(1, &this.ibo));
-            this.vao = 0;
-            this.vbo = 0;
-            this.ibo = 0;
-        }
+        if is_command_mode() {
+            // Command mode: use ResourceId-based commands
+            let needs_create = this.resource_id.is_none() || this.version != this.version_buffers;
 
-        /* Generate cached GL buffers for fast drawing. */
-        if this.vbo == 0 {
-            glcheck!(gl::GenBuffers(1, &mut this.vbo));
-            glcheck!(gl::GenBuffers(1, &mut this.ibo));
-            glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
-            glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
-            glcheck!(gl::BufferData(
-                gl::ARRAY_BUFFER,
-                (this.vertex.len() as i32 as usize).wrapping_mul(std::mem::size_of::<Vertex>())
-                    as gl::types::GLsizeiptr,
-                this.vertex.as_ptr() as *const _,
-                gl::STATIC_DRAW,
-            ));
+            if needs_create {
+                // Destroy old resource if version changed
+                if let Some(old_id) = this.resource_id.take() {
+                    submit_command(RenderCommand::DestroyResource { id: old_id });
+                }
 
-            /* TODO : 16-bit index optimization */
-            /* TODO : Check if 8-bit indices are supported by hardware. IIRC they
-             *        weren't last time I checked. */
+                // Create new mesh resource via command
+                let id = RenderQueue::global().next_resource_id();
 
-            glcheck!(gl::BufferData(
-                gl::ELEMENT_ARRAY_BUFFER,
-                (this.index.len() as i32 as usize).wrapping_mul(std::mem::size_of::<i32>())
-                    as gl::types::GLsizeiptr,
-                this.index.as_ptr() as *const _,
-                gl::STATIC_DRAW,
-            ));
+                // Convert vertex data to bytes (position, normal, uv - 32 bytes per vertex)
+                let vertex_bytes: Vec<u8> = this.vertex.iter()
+                    .flat_map(|v| {
+                        let mut bytes = Vec::with_capacity(std::mem::size_of::<Vertex>());
+                        bytes.extend_from_slice(&v.p.x.to_le_bytes());
+                        bytes.extend_from_slice(&v.p.y.to_le_bytes());
+                        bytes.extend_from_slice(&v.p.z.to_le_bytes());
+                        bytes.extend_from_slice(&v.n.x.to_le_bytes());
+                        bytes.extend_from_slice(&v.n.y.to_le_bytes());
+                        bytes.extend_from_slice(&v.n.z.to_le_bytes());
+                        bytes.extend_from_slice(&v.uv.x.to_le_bytes());
+                        bytes.extend_from_slice(&v.uv.y.to_le_bytes());
+                        bytes
+                    })
+                    .collect();
 
-            glcheck!(gl::GenVertexArrays(1, &mut this.vao));
+                // Convert indices (i32 -> u32)
+                let indices: Vec<u32> = this.index.iter().map(|&i| i as u32).collect();
+
+                // Create vertex format matching Vertex struct (pos + normal + uv)
+                let vertex_format = VertexFormat {
+                    has_position: true,
+                    has_normal: true,
+                    has_uv: true,
+                    has_color: false,
+                    stride: std::mem::size_of::<Vertex>() as u32,
+                };
+
+                submit_command(RenderCommand::CreateMesh {
+                    id,
+                    vertices: vertex_bytes,
+                    indices,
+                    vertex_format,
+                });
+
+                this.resource_id = Some(id);
+                this.version_buffers = this.version;
+            }
+
+            // Bind using resource ID
+            if let Some(id) = this.resource_id {
+                submit_command(RenderCommand::BindMeshByResource { id });
+            }
+        } else {
+            // Direct GL mode: use raw GL calls
+
+            /* Release cached GL buffers if the mesh has changed since we built them. */
+            if this.vbo != 0 && this.version != this.version_buffers {
+                glcheck!(gl::DeleteVertexArrays(1, &this.vao));
+                glcheck!(gl::DeleteBuffers(1, &this.vbo));
+                glcheck!(gl::DeleteBuffers(1, &this.ibo));
+                this.vao = 0;
+                this.vbo = 0;
+                this.ibo = 0;
+            }
+
+            /* Generate cached GL buffers for fast drawing. */
+            if this.vbo == 0 {
+                glcheck!(gl::GenBuffers(1, &mut this.vbo));
+                glcheck!(gl::GenBuffers(1, &mut this.ibo));
+                glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
+                glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
+                glcheck!(gl::BufferData(
+                    gl::ARRAY_BUFFER,
+                    (this.vertex.len() as i32 as usize).wrapping_mul(std::mem::size_of::<Vertex>())
+                        as gl::types::GLsizeiptr,
+                    this.vertex.as_ptr() as *const _,
+                    gl::STATIC_DRAW,
+                ));
+
+                glcheck!(gl::BufferData(
+                    gl::ELEMENT_ARRAY_BUFFER,
+                    (this.index.len() as i32 as usize).wrapping_mul(std::mem::size_of::<i32>())
+                        as gl::types::GLsizeiptr,
+                    this.index.as_ptr() as *const _,
+                    gl::STATIC_DRAW,
+                ));
+
+                glcheck!(gl::GenVertexArrays(1, &mut this.vao));
+                glcheck!(gl::BindVertexArray(this.vao));
+
+                glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
+                glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
+                glcheck!(gl::VertexAttribPointer(
+                    0,
+                    3,
+                    gl::FLOAT,
+                    gl::FALSE,
+                    std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+                    offset_of!(Vertex, p) as *const _,
+                ));
+                glcheck!(gl::VertexAttribPointer(
+                    1,
+                    3,
+                    gl::FLOAT,
+                    gl::FALSE,
+                    std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+                    offset_of!(Vertex, n) as *const _,
+                ));
+                glcheck!(gl::VertexAttribPointer(
+                    2,
+                    2,
+                    gl::FLOAT,
+                    gl::FALSE,
+                    std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+                    offset_of!(Vertex, uv) as *const _,
+                ));
+
+                this.version_buffers = this.version;
+            }
+
+            // Bind VAO and enable vertex attributes
             glcheck!(gl::BindVertexArray(this.vao));
-
-            glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
-            glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
-            glcheck!(gl::VertexAttribPointer(
-                0,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-                offset_of!(Vertex, p) as *const _,
-            ));
-            glcheck!(gl::VertexAttribPointer(
-                1,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-                offset_of!(Vertex, n) as *const _,
-            ));
-            glcheck!(gl::VertexAttribPointer(
-                2,
-                2,
-                gl::FLOAT,
-                gl::FALSE,
-                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-                offset_of!(Vertex, uv) as *const _,
-            ));
-
-            this.version_buffers = this.version;
+            glcheck!(gl::EnableVertexAttribArray(0));
+            glcheck!(gl::EnableVertexAttribArray(1));
+            glcheck!(gl::EnableVertexAttribArray(2));
         }
-
-        glcheck!(gl::BindVertexArray(this.vao));
-        glcheck!(gl::EnableVertexAttribArray(0));
-        glcheck!(gl::EnableVertexAttribArray(1));
-        glcheck!(gl::EnableVertexAttribArray(2));
     }
 
     pub fn draw_bound(&self) {
         let this = self.shared.as_ref();
 
+        // Get counts (from cached values if streamed)
+        let index_count = if this.streamed {
+            this.streamed_index_count
+        } else {
+            this.index.len() as i32
+        };
+        let vertex_count = if this.streamed {
+            this.streamed_vertex_count
+        } else {
+            this.vertex.len() as i32
+        };
+
         Metric::add_draw(
-            this.index.len() as u64 / 3,
-            this.index.len() as u64 / 3,
-            this.vertex.len() as u64,
+            index_count as u64 / 3,
+            index_count as u64 / 3,
+            vertex_count as u64,
         );
 
-        glcheck!(gl::DrawElements(
-            gl::TRIANGLES,
-            this.index.len() as i32,
-            gl::UNSIGNED_INT,
-            std::ptr::null(),
-        ));
+        if is_command_mode() {
+            // In command mode, use resource ID if available
+            if let Some(id) = this.resource_id {
+                submit_command(RenderCommand::DrawMeshByResource {
+                    id,
+                    index_count,
+                    primitive: CmdPrimitiveType::Triangles,
+                });
+            } else {
+                // Fallback to direct VAO (shouldn't happen if draw_bind was called)
+                submit_command(RenderCommand::DrawMesh {
+                    vao: GpuHandle(this.vao),
+                    index_count,
+                    primitive: CmdPrimitiveType::Triangles,
+                });
+            }
+        } else {
+            glcheck!(gl::DrawElements(
+                gl::TRIANGLES,
+                index_count,
+                gl::UNSIGNED_INT,
+                std::ptr::null(),
+            ));
+        }
     }
 
     pub fn draw_unbind(&self) {
-        glcheck!(gl::DisableVertexAttribArray(0));
-        glcheck!(gl::DisableVertexAttribArray(1));
-        glcheck!(gl::DisableVertexAttribArray(2));
-        glcheck!(gl::BindVertexArray(0));
+        if is_command_mode() {
+            submit_command(RenderCommand::UnbindMesh);
+        } else {
+            glcheck!(gl::DisableVertexAttribArray(0));
+            glcheck!(gl::DisableVertexAttribArray(1));
+            glcheck!(gl::DisableVertexAttribArray(2));
+            glcheck!(gl::BindVertexArray(0));
+        }
     }
 
     pub fn draw(&mut self) {
@@ -486,8 +599,14 @@ impl Mesh {
         *out = self.shared.as_ref().info.bound.center();
     }
 
+    #[bind(name = "GetIndexCount")]
     pub fn get_index_count(&self) -> i32 {
-        self.shared.as_ref().index.len() as i32
+        let this = self.shared.as_ref();
+        if this.streamed {
+            this.streamed_index_count
+        } else {
+            this.index.len() as i32
+        }
     }
 
     #[bind(name = "LockIndexData")]
@@ -495,9 +614,179 @@ impl Mesh {
         f(self.shared.as_mut().index.as_mut_slice());
     }
 
+    #[bind(name = "GetRadius")]
     pub fn get_radius(&mut self) -> f32 {
         self.shared.as_mut().update_info();
         self.shared.as_ref().info.radius
+    }
+
+    /// Get the VAO handle for batch rendering.
+    /// Note: This requires draw_bind() to have been called first to create the VAO.
+    #[bind(name = "GetVao")]
+    pub fn get_vao(&self) -> u32 {
+        self.shared.as_ref().vao
+    }
+
+    /// Check if this mesh has been streamed (CPU data freed).
+    #[bind(name = "IsStreamed")]
+    pub fn is_streamed(&self) -> bool {
+        self.shared.as_ref().streamed
+    }
+
+    /// Stream this mesh: upload to GPU and free CPU vertex/index data.
+    /// This reduces memory usage for static meshes that won't be modified.
+    /// After streaming:
+    /// - The mesh can still be drawn normally
+    /// - Vertex/index data cannot be accessed or modified
+    /// - Bounds and radius are preserved (computed before streaming)
+    /// Returns true if streaming succeeded, false if already streamed or failed.
+    #[bind(name = "Stream")]
+    pub fn stream(&mut self) -> bool {
+        // Check preconditions first
+        {
+            let this = self.shared.as_ref();
+            if this.streamed {
+                return false;
+            }
+            if this.vertex.is_empty() || this.index.is_empty() {
+                return false;
+            }
+        }
+
+        // Compute bounds before freeing data
+        self.shared.as_mut().update_info();
+
+        // Store counts before freeing
+        {
+            let this = &mut *self.shared.as_mut();
+            this.streamed_index_count = this.index.len() as i32;
+            this.streamed_vertex_count = this.vertex.len() as i32;
+        }
+
+        // Ensure GPU buffers exist - check mode and needs_vao first
+        let in_command_mode = is_command_mode();
+        let needs_vao = !in_command_mode && self.shared.as_ref().vao == 0;
+
+        if in_command_mode {
+            // In command mode, ensure resource is created
+            let this = &mut *self.shared.as_mut();
+            if this.resource_id.is_none() {
+                let id = RenderQueue::global().next_resource_id();
+
+                let vertex_bytes: Vec<u8> = this.vertex.iter()
+                    .flat_map(|v| {
+                        let mut bytes = Vec::with_capacity(std::mem::size_of::<Vertex>());
+                        bytes.extend_from_slice(&v.p.x.to_le_bytes());
+                        bytes.extend_from_slice(&v.p.y.to_le_bytes());
+                        bytes.extend_from_slice(&v.p.z.to_le_bytes());
+                        bytes.extend_from_slice(&v.n.x.to_le_bytes());
+                        bytes.extend_from_slice(&v.n.y.to_le_bytes());
+                        bytes.extend_from_slice(&v.n.z.to_le_bytes());
+                        bytes.extend_from_slice(&v.uv.x.to_le_bytes());
+                        bytes.extend_from_slice(&v.uv.y.to_le_bytes());
+                        bytes
+                    })
+                    .collect();
+
+                let indices: Vec<u32> = this.index.iter().map(|&i| i as u32).collect();
+
+                let vertex_format = VertexFormat {
+                    has_position: true,
+                    has_normal: true,
+                    has_uv: true,
+                    has_color: false,
+                    stride: std::mem::size_of::<Vertex>() as u32,
+                };
+
+                submit_command(RenderCommand::CreateMesh {
+                    id,
+                    vertices: vertex_bytes,
+                    indices,
+                    vertex_format,
+                });
+
+                this.resource_id = Some(id);
+                this.version_buffers = this.version;
+            }
+        } else if needs_vao {
+            // Direct mode: ensure VAO/VBO/IBO exist by doing a bind cycle
+            self.draw_bind();
+            self.draw_unbind();
+        }
+
+        // Free CPU data
+        let this = &mut *self.shared.as_mut();
+        this.vertex.clear();
+        this.vertex.shrink_to_fit();
+        this.index.clear();
+        this.index.shrink_to_fit();
+        this.streamed = true;
+
+        true
+    }
+
+    /// Ensure the mesh has a ResourceId for command-mode rendering.
+    /// Creates the mesh resource on the render thread if needed.
+    /// Returns None if not in command mode.
+    /// Internal use only - not exposed to Lua FFI.
+    #[bind(lua_ffi = false)]
+    pub fn ensure_resource_id(&mut self) -> Option<ResourceId> {
+        if !is_command_mode() {
+            return None;
+        }
+
+        let this = &mut *self.shared.as_mut();
+        let needs_create = this.resource_id.is_none() || this.version != this.version_buffers;
+
+        if needs_create {
+            // Destroy old resource if version changed
+            if let Some(old_id) = this.resource_id.take() {
+                submit_command(RenderCommand::DestroyResource { id: old_id });
+            }
+
+            // Create new mesh resource via command
+            let id = RenderQueue::global().next_resource_id();
+
+            // Convert vertex data to bytes (position, normal, uv - 32 bytes per vertex)
+            let vertex_bytes: Vec<u8> = this.vertex.iter()
+                .flat_map(|v| {
+                    let mut bytes = Vec::with_capacity(std::mem::size_of::<Vertex>());
+                    bytes.extend_from_slice(&v.p.x.to_le_bytes());
+                    bytes.extend_from_slice(&v.p.y.to_le_bytes());
+                    bytes.extend_from_slice(&v.p.z.to_le_bytes());
+                    bytes.extend_from_slice(&v.n.x.to_le_bytes());
+                    bytes.extend_from_slice(&v.n.y.to_le_bytes());
+                    bytes.extend_from_slice(&v.n.z.to_le_bytes());
+                    bytes.extend_from_slice(&v.uv.x.to_le_bytes());
+                    bytes.extend_from_slice(&v.uv.y.to_le_bytes());
+                    bytes
+                })
+                .collect();
+
+            // Convert indices (i32 -> u32)
+            let indices: Vec<u32> = this.index.iter().map(|&i| i as u32).collect();
+
+            // Create vertex format matching Vertex struct (pos + normal + uv)
+            let vertex_format = VertexFormat {
+                has_position: true,
+                has_normal: true,
+                has_uv: true,
+                has_color: false,
+                stride: std::mem::size_of::<Vertex>() as u32,
+            };
+
+            submit_command(RenderCommand::CreateMesh {
+                id,
+                vertices: vertex_bytes,
+                indices,
+                vertex_format,
+            });
+
+            this.resource_id = Some(id);
+            this.version_buffers = this.version;
+        }
+
+        this.resource_id
     }
 
     pub fn get_version(&self) -> u64 {
@@ -558,7 +847,12 @@ impl Mesh {
     }
 
     pub fn get_vertex_count(&self) -> i32 {
-        self.shared.as_ref().vertex.len() as i32
+        let this = self.shared.as_ref();
+        if this.streamed {
+            this.streamed_vertex_count
+        } else {
+            this.vertex.len() as i32
+        }
     }
 
     #[bind(name = "LockVertexData")]

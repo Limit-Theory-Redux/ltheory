@@ -6,8 +6,6 @@
 #include scattering2
 #include texcube
 
-#autovar vec3 eye
-#autovar vec3 starDir
 
 uniform samplerCube surface;
 uniform vec3 origin;

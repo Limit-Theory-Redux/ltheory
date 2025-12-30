@@ -1,8 +1,15 @@
 use std::cell::RefCell;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use tracing::warn;
 
 use super::{CubeFace, Tex2D, Tex3D, TexCube, TexFormat, gl};
+use super::{GpuHandle, RenderCommand, is_command_mode, submit_command};
 use crate::render::{Viewport, glcheck};
 use crate::system::{Metric, Profiler};
+
+/// Counter for generating unique FBO IDs in command mode
+static NEXT_FBO_ID: AtomicU64 = AtomicU64::new(1);
 
 pub struct RenderTarget;
 
@@ -112,7 +119,6 @@ impl FboStack {
         self.stack_size += 1;
 
         let fbo = self.get_active();
-        fbo.handle = 0;
         fbo.color_index = 0;
         fbo.sx = sx;
         fbo.sy = sy;
@@ -120,8 +126,21 @@ impl FboStack {
 
         Metric::FBOSwap.inc();
 
-        glcheck!(gl::GenFramebuffers(1, &mut fbo.handle));
-        glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, fbo.handle));
+        if is_command_mode() {
+            // In command mode, the render thread manages the actual FBO
+            // We use an ID to track it locally for state management
+            let id = NEXT_FBO_ID.fetch_add(1, Ordering::Relaxed);
+            fbo.handle = id as u32; // Store ID locally for tracking
+            submit_command(RenderCommand::PushFramebuffer {
+                id,
+                width: sx,
+                height: sy,
+            });
+        } else {
+            fbo.handle = 0;
+            glcheck!(gl::GenFramebuffers(1, &mut fbo.handle));
+            glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, fbo.handle));
+        }
 
         Viewport::push(0, 0, sx, sy, false);
         Profiler::end();
@@ -134,41 +153,46 @@ impl FboStack {
             panic!("RenderTarget_Pop: Attempting to pop an empty stack");
         }
 
-        let mut i = 0;
-        while i < BUFS_COUNT {
-            glcheck!(gl::FramebufferTexture2D(
-                gl::FRAMEBUFFER,
-                gl::COLOR_ATTACHMENT0 + i as u32,
-                gl::TEXTURE_2D,
-                0,
-                0,
-            ));
-            i += 1;
-        }
-
-        glcheck!(gl::FramebufferTexture2D(
-            gl::FRAMEBUFFER,
-            gl::DEPTH_ATTACHMENT,
-            gl::TEXTURE_2D,
-            0,
-            0
-        ));
-
-        let fbo = &self.stack[self.stack_size - 1];
-        glcheck!(gl::DeleteFramebuffers(1, &fbo.handle,));
-
-        self.stack_size -= 1;
-
         Metric::FBOSwap.inc();
 
-        if self.stack_size > 0 {
-            glcheck!(gl::BindFramebuffer(
-                gl::FRAMEBUFFER,
-                self.get_active().handle
-            ));
+        if is_command_mode() {
+            // In command mode, the render thread handles all the cleanup
+            submit_command(RenderCommand::PopFramebuffer);
         } else {
-            glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));
+            let mut i = 0;
+            while i < BUFS_COUNT {
+                glcheck!(gl::FramebufferTexture2D(
+                    gl::FRAMEBUFFER,
+                    gl::COLOR_ATTACHMENT0 + i as u32,
+                    gl::TEXTURE_2D,
+                    0,
+                    0,
+                ));
+                i += 1;
+            }
+
+            glcheck!(gl::FramebufferTexture2D(
+                gl::FRAMEBUFFER,
+                gl::DEPTH_ATTACHMENT,
+                gl::TEXTURE_2D,
+                0,
+                0
+            ));
+
+            let fbo = &self.stack[self.stack_size - 1];
+            glcheck!(gl::DeleteFramebuffers(1, &fbo.handle,));
+
+            if self.stack_size > 1 {
+                glcheck!(gl::BindFramebuffer(
+                    gl::FRAMEBUFFER,
+                    self.stack[self.stack_size - 2].handle
+                ));
+            } else {
+                glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));
+            }
         }
+
+        self.stack_size -= 1;
 
         Viewport::pop();
         Profiler::end();
@@ -179,35 +203,100 @@ impl FboStack {
     }
 
     fn bind_tex2d_level(&mut self, tex: &Tex2D, level: i32) {
+        // Get bufs_ptr before mutable borrow of fbo
+        let bufs_ptr = self.bufs.as_ptr();
         let fbo = self.get_active();
         let handle = Tex2D::get_handle(tex);
+        let resource_id = tex.get_resource_id();
 
         if TexFormat::is_color(Tex2D::get_format(tex)) {
             if fbo.color_index >= 4 {
                 panic!("RenderTarget_BindTex2D: Max color attachments exceeded");
             }
 
-            glcheck!(gl::FramebufferTexture2D(
-                gl::FRAMEBUFFER,
-                gl::COLOR_ATTACHMENT0 + fbo.color_index as u32,
-                gl::TEXTURE_2D,
-                handle,
-                level,
-            ));
+            let attachment = gl::COLOR_ATTACHMENT0 + fbo.color_index as u32;
+
+            if is_command_mode() {
+                // Use ResourceId-based command if texture was created on render thread
+                // If no resource_id, lazily migrate texture to render thread
+                if let Some(id) = resource_id {
+                    submit_command(RenderCommand::FramebufferAttachTexture2DByResource {
+                        attachment,
+                        id,
+                        level,
+                    });
+                } else {
+                    // Texture was created before command mode - lazily migrate
+                    let mut tex_clone = tex.clone();
+                    if let Some(id) = tex_clone.ensure_resource_id() {
+                        submit_command(RenderCommand::FramebufferAttachTexture2DByResource {
+                            attachment,
+                            id,
+                            level,
+                        });
+                    } else {
+                        // Fallback - will likely fail on render thread
+                        warn!("RenderTarget: texture has no resource_id and cannot migrate");
+                        submit_command(RenderCommand::FramebufferAttachTexture2D {
+                            attachment,
+                            texture: GpuHandle(handle),
+                            level,
+                        });
+                    }
+                }
+            } else {
+                glcheck!(gl::FramebufferTexture2D(
+                    gl::FRAMEBUFFER,
+                    attachment,
+                    gl::TEXTURE_2D,
+                    handle,
+                    level,
+                ));
+                glcheck!(gl::DrawBuffers(fbo.color_index + 1, bufs_ptr));
+            }
             fbo.color_index += 1;
-            glcheck!(gl::DrawBuffers(fbo.color_index, self.bufs.as_ptr()));
         } else {
             if fbo.depth {
                 panic!("RenderTarget_BindTex2D: Target already has a depth buffer");
             }
 
-            glcheck!(gl::FramebufferTexture2D(
-                gl::FRAMEBUFFER,
-                gl::DEPTH_ATTACHMENT,
-                gl::TEXTURE_2D,
-                handle,
-                level,
-            ));
+            if is_command_mode() {
+                // Use ResourceId-based command if texture was created on render thread
+                // If no resource_id, lazily migrate texture to render thread
+                if let Some(id) = resource_id {
+                    submit_command(RenderCommand::FramebufferAttachTexture2DByResource {
+                        attachment: gl::DEPTH_ATTACHMENT,
+                        id,
+                        level,
+                    });
+                } else {
+                    // Texture was created before command mode - lazily migrate
+                    let mut tex_clone = tex.clone();
+                    if let Some(id) = tex_clone.ensure_resource_id() {
+                        submit_command(RenderCommand::FramebufferAttachTexture2DByResource {
+                            attachment: gl::DEPTH_ATTACHMENT,
+                            id,
+                            level,
+                        });
+                    } else {
+                        // Fallback - will likely fail on render thread
+                        warn!("RenderTarget: depth texture has no resource_id and cannot migrate");
+                        submit_command(RenderCommand::FramebufferAttachTexture2D {
+                            attachment: gl::DEPTH_ATTACHMENT,
+                            texture: GpuHandle(handle),
+                            level,
+                        });
+                    }
+                }
+            } else {
+                glcheck!(gl::FramebufferTexture2D(
+                    gl::FRAMEBUFFER,
+                    gl::DEPTH_ATTACHMENT,
+                    gl::TEXTURE_2D,
+                    handle,
+                    level,
+                ));
+            }
             fbo.depth = true;
         }
     }
@@ -217,22 +306,36 @@ impl FboStack {
     }
 
     fn bind_tex3d_level(&mut self, tex: &Tex3D, layer: i32, level: i32) {
+        // Get bufs pointer before mutable borrow of stack entry
+        let bufs_ptr = self.bufs.as_ptr();
+
         let fbo = self.get_active();
         if fbo.color_index >= 4 {
             panic!("RenderTarget_BindTex3D: Max color attachments exceeded");
         }
 
         let handle = Tex3D::get_handle(tex);
-        glcheck!(gl::FramebufferTexture3D(
-            gl::FRAMEBUFFER,
-            gl::COLOR_ATTACHMENT0 + fbo.color_index as u32,
-            gl::TEXTURE_3D,
-            handle,
-            level,
-            layer,
-        ));
+        let attachment = gl::COLOR_ATTACHMENT0 + fbo.color_index as u32;
+
+        if is_command_mode() {
+            submit_command(RenderCommand::FramebufferAttachTexture3D {
+                attachment,
+                texture: GpuHandle(handle),
+                layer,
+                level,
+            });
+        } else {
+            glcheck!(gl::FramebufferTexture3D(
+                gl::FRAMEBUFFER,
+                attachment,
+                gl::TEXTURE_3D,
+                handle,
+                level,
+                layer,
+            ));
+            glcheck!(gl::DrawBuffers(fbo.color_index + 1, bufs_ptr));
+        }
         fbo.color_index += 1;
-        glcheck!(gl::DrawBuffers(fbo.color_index, self.bufs.as_ptr()));
     }
 
     fn bind_tex_cube(&mut self, tex: &TexCube, face: CubeFace) {
@@ -240,21 +343,34 @@ impl FboStack {
     }
 
     fn bind_tex_cube_level(&mut self, tex: &TexCube, face: CubeFace, level: i32) {
+        // Get bufs pointer before mutable borrow of stack entry
+        let bufs_ptr = self.bufs.as_ptr();
+
         let fbo = self.get_active();
         if fbo.color_index >= 4 {
             panic!("RenderTarget_BindTexCubeLevel: Max color attachments exceeded");
         }
         let handle: u32 = TexCube::get_handle(tex);
+        let attachment = gl::COLOR_ATTACHMENT0 + fbo.color_index as u32;
 
-        glcheck!(gl::FramebufferTexture2D(
-            gl::FRAMEBUFFER,
-            gl::COLOR_ATTACHMENT0 + fbo.color_index as u32,
-            face as u32,
-            handle,
-            level,
-        ));
+        if is_command_mode() {
+            submit_command(RenderCommand::FramebufferAttachTextureCube {
+                attachment,
+                texture: GpuHandle(handle),
+                face: face as u32,
+                level,
+            });
+        } else {
+            glcheck!(gl::FramebufferTexture2D(
+                gl::FRAMEBUFFER,
+                attachment,
+                face as u32,
+                handle,
+                level,
+            ));
+            glcheck!(gl::DrawBuffers(fbo.color_index + 1, bufs_ptr));
+        }
         fbo.color_index += 1;
-        glcheck!(gl::DrawBuffers(fbo.color_index, self.bufs.as_ptr()));
     }
 
     fn push_tex2d(&mut self, tex: &Tex2D) {

@@ -10,6 +10,13 @@ use winit::event_loop::*;
 use super::{EventBus, MainLoop, TaskQueue};
 use crate::input::*;
 use crate::logging::init_log;
+use crate::math::Matrix;
+use crate::render::{
+    RenderContext, RenderCommand,
+    flush_render_batch_with_workers,
+    submit_command, is_command_mode, CameraUboData, update_global_camera_ubo,
+    LightUboData, update_global_light_ubo, Shader,
+};
 use crate::rf::*;
 use crate::system::*;
 use crate::ui::hmgui::HmGui;
@@ -26,6 +33,8 @@ pub struct Engine {
     pub event_bus: EventBus,
     pub task_queue: TaskQueue,
     pub lua: Rf<Lua>,
+    /// Multithreaded rendering subsystem (render thread + worker pool)
+    pub render_context: RenderContext,
 }
 
 // This thread local variable contains a ref counted instance of the current Lua VM.
@@ -116,6 +125,35 @@ impl Engine {
             event_bus: EventBus::new(),
             task_queue: TaskQueue::new(),
             lua,
+            render_context: RenderContext::new(),
+        }
+    }
+
+    /// Start the render thread.
+    ///
+    /// This transfers the GL context to a dedicated render thread.
+    /// After calling this, all GL operations must go through the render queue.
+    pub fn start_render_thread(&mut self) -> bool {
+        // Extract GL context from the window
+        if let Some(gl_data) = self.winit_window.extract_gl_context_for_render_thread() {
+            self.render_context.start(gl_data)
+        } else {
+            error!("Failed to extract GL context for render thread");
+            false
+        }
+    }
+
+    /// Stop the render thread.
+    ///
+    /// This shuts down the render thread and returns the GL context to the main thread.
+    pub fn stop_render_thread(&mut self) {
+        if let Some(returned_ctx) = self.render_context.stop() {
+            // Restore the context to WinitWindow
+            if self.winit_window.restore_gl_context(returned_ctx.context, returned_ctx.surface) {
+                info!("GL context successfully restored to main thread");
+            } else {
+                error!("Failed to restore GL context to main thread");
+            }
         }
     }
 
@@ -482,5 +520,277 @@ impl Engine {
         Profiler::begin("Engine_Update");
         Metric::reset();
         Profiler::end();
+    }
+
+    // === Render Thread Control ===
+
+    /// Start the multithreaded render system.
+    ///
+    /// This transfers the GL context to a dedicated render thread.
+    /// All GL operations will then go through command mode.
+    /// Returns true if successfully started.
+    #[bind(name = "StartRenderThread")]
+    pub fn start_render_thread_ffi(&mut self) -> bool {
+        self.start_render_thread()
+    }
+
+    /// Stop the multithreaded render system.
+    ///
+    /// This shuts down the render thread and returns the GL context
+    /// to the main thread for direct rendering.
+    #[bind(name = "StopRenderThread")]
+    pub fn stop_render_thread_ffi(&mut self) {
+        self.stop_render_thread()
+    }
+
+    /// Check if the render thread is currently active.
+    #[bind(name = "IsRenderThreadActive")]
+    pub fn is_render_thread_active(&self) -> bool {
+        self.render_context.is_active()
+    }
+
+    /// Get total commands processed by the render thread.
+    #[bind(name = "GetRenderThreadCommands")]
+    pub fn get_render_thread_commands(&self) -> u64 {
+        self.render_context.get_commands_processed()
+    }
+
+    /// Get total draw calls executed by the render thread.
+    #[bind(name = "GetRenderThreadDrawCalls")]
+    pub fn get_render_thread_draw_calls(&self) -> u64 {
+        self.render_context.get_draw_calls()
+    }
+
+    /// Get total state changes on the render thread.
+    #[bind(name = "GetRenderThreadStateChanges")]
+    pub fn get_render_thread_state_changes(&self) -> u64 {
+        self.render_context.get_state_changes()
+    }
+
+    /// Get total frames rendered by the render thread.
+    #[bind(name = "GetRenderThreadFrameCount")]
+    pub fn get_render_thread_frame_count(&self) -> u64 {
+        self.render_context.get_frame_count()
+    }
+
+    /// Get the last frame render time in milliseconds.
+    #[bind(name = "GetRenderThreadFrameTimeMs")]
+    pub fn get_render_thread_frame_time_ms(&self) -> f64 {
+        self.render_context.get_last_frame_time_ms()
+    }
+
+    /// Get commands processed in the last frame.
+    #[bind(name = "GetRenderThreadCommandsPerFrame")]
+    pub fn get_render_thread_commands_per_frame(&self) -> u64 {
+        self.render_context.get_commands_last_frame()
+    }
+
+    /// Get draw calls executed in the last frame.
+    #[bind(name = "GetRenderThreadDrawCallsPerFrame")]
+    pub fn get_render_thread_draw_calls_per_frame(&self) -> u64 {
+        self.render_context.get_draw_calls_last_frame()
+    }
+
+    /// Get total texture binds skipped due to caching (cumulative).
+    #[bind(name = "GetRenderThreadTextureBindsSkipped")]
+    pub fn get_render_thread_texture_binds_skipped(&self) -> u64 {
+        self.render_context.get_texture_binds_skipped()
+    }
+
+    /// Get main thread wait time in milliseconds (time spent waiting for render thread).
+    #[bind(name = "GetMainThreadWaitTimeMs")]
+    pub fn get_main_thread_wait_time_ms(&self) -> f64 {
+        self.render_context.get_main_thread_wait_ms()
+    }
+
+    /// Get current frames in flight (submitted but not yet rendered).
+    #[bind(name = "GetFramesInFlight")]
+    pub fn get_frames_in_flight(&self) -> u64 {
+        self.render_context.get_frames_in_flight()
+    }
+
+    /// Get the number of CPU cores available for worker threads.
+    #[bind(name = "GetCpuCount")]
+    pub fn get_cpu_count(&self) -> u32 {
+        num_cpus::get() as u32
+    }
+
+    /// Get the number of worker threads that would be spawned.
+    /// This is CPU cores - 2 (reserve for main + render thread), minimum 1.
+    #[bind(name = "GetWorkerThreadCount")]
+    pub fn get_worker_thread_count(&self) -> u32 {
+        let cores = num_cpus::get();
+        (cores.saturating_sub(2)).max(1) as u32
+    }
+
+    /// Check if the worker pool is active.
+    #[bind(name = "IsWorkerPoolActive")]
+    pub fn is_worker_pool_active(&self) -> bool {
+        self.render_context.worker_pool().is_some()
+    }
+
+    /// Get the actual number of active workers in the pool.
+    #[bind(name = "GetActiveWorkerCount")]
+    pub fn get_active_worker_count(&self) -> u32 {
+        self.render_context.worker_pool().map_or(0, |p| p.num_workers() as u32)
+    }
+
+    /// Flush the render batch using the worker pool for parallel processing.
+    /// This submits accumulated entities to workers for frustum culling and
+    /// command generation. Returns the number of entities visible after culling.
+    #[bind(name = "FlushRenderBatch")]
+    pub fn flush_render_batch(&self) -> u32 {
+        let stats = flush_render_batch_with_workers(self.render_context.worker_pool());
+        stats.entities_visible
+    }
+
+    /// Create the camera UBO on the render thread.
+    /// Call this once after starting the render thread.
+    #[bind(name = "CreateCameraUBO")]
+    pub fn create_camera_ubo(&self) {
+        if is_command_mode() {
+            submit_command(RenderCommand::CreateCameraUBO);
+        }
+    }
+
+    /// Update the camera UBO with new matrix and uniform data.
+    /// This should be called each frame before rendering when in command mode.
+    ///
+    /// Parameters:
+    /// - m_view: View matrix (camera-relative, position at origin)
+    /// - m_view_inv: View inverse matrix (with actual world position for worldray.glsl)
+    /// - m_proj: Projection matrix
+    /// - eye_x, eye_y, eye_z: Camera eye position
+    /// - star_dir_x, star_dir_y, star_dir_z: Star/light direction
+    #[bind(name = "UpdateCameraUBO")]
+    pub fn update_camera_ubo(
+        &self,
+        m_view: &Matrix,
+        m_view_inv: &Matrix,
+        m_proj: &Matrix,
+        eye_x: f32,
+        eye_y: f32,
+        eye_z: f32,
+        star_dir_x: f32,
+        star_dir_y: f32,
+        star_dir_z: f32,
+    ) {
+        // Convert matrices
+        let view = Mat4::from_cols_array(&m_view.to_cols_array());
+        let view_inv = Mat4::from_cols_array(&m_view_inv.to_cols_array());
+        let proj = Mat4::from_cols_array(&m_proj.to_cols_array());
+        let eye = Vec3::new(eye_x, eye_y, eye_z);
+        let star_dir = Vec3::new(star_dir_x, star_dir_y, star_dir_z);
+
+        if is_command_mode() {
+            // Render thread mode: submit command
+            let mut ubo_data = CameraUboData::new();
+            ubo_data.set_view(&view);
+            ubo_data.set_view_inv(&view_inv);
+            ubo_data.set_proj(&proj);
+            ubo_data.set_eye(eye);
+            ubo_data.set_star_dir(star_dir);
+
+            let bytes = ubo_data.as_bytes();
+            let mut boxed: Box<[u8; 288]> = Box::new([0u8; 288]);
+            boxed.copy_from_slice(bytes);
+
+            submit_command(RenderCommand::UpdateCameraUBO { data: boxed });
+        } else {
+            // Direct GL mode: update global UBO directly
+            update_global_camera_ubo(&view, &view_inv, &proj, eye, star_dir);
+        }
+    }
+
+    /// Create the light UBO on the render thread.
+    /// This should be called once before using UpdateLightUBO.
+    #[bind(name = "CreateLightUBO")]
+    pub fn create_light_ubo(&self) {
+        if is_command_mode() {
+            submit_command(RenderCommand::CreateLightUBO);
+        }
+    }
+
+    /// Update the light UBO with new light data.
+    /// This should be called for each point light before rendering it.
+    ///
+    /// Parameters:
+    /// - pos_x, pos_y, pos_z: Light position in world space
+    /// - radius: Light falloff radius
+    /// - r, g, b: Light color (0.0 to 1.0)
+    /// - intensity: Light intensity multiplier
+    #[bind(name = "UpdateLightUBO")]
+    pub fn update_light_ubo(
+        &self,
+        pos_x: f32,
+        pos_y: f32,
+        pos_z: f32,
+        radius: f32,
+        r: f32,
+        g: f32,
+        b: f32,
+        intensity: f32,
+    ) {
+        if is_command_mode() {
+            // Render thread mode: submit command
+            let mut ubo_data = LightUboData::new();
+            ubo_data.set_position(pos_x, pos_y, pos_z);
+            ubo_data.set_radius(radius);
+            ubo_data.set_color(r, g, b);
+            ubo_data.set_intensity(intensity);
+
+            let boxed: Box<[u8; 32]> = Box::new(*ubo_data.as_bytes());
+
+            submit_command(RenderCommand::UpdateLightUBO { data: boxed });
+        } else {
+            // Direct GL mode: update global UBO directly
+            update_global_light_ubo(pos_x, pos_y, pos_z, radius, r, g, b, intensity);
+        }
+    }
+
+    /// Reload a shader on the render thread.
+    ///
+    /// This compiles a shader on the render thread (which owns the GL context)
+    /// and returns whether it succeeded. Use this for hot-reloading shaders
+    /// when the render thread is active.
+    ///
+    /// Parameters:
+    /// - shader_key: The cache key for the shader (e.g., "wvpfragment/material/solidcolor")
+    /// - vs_name: Vertex shader resource name (e.g., "vertex/wvp")
+    /// - fs_name: Fragment shader resource name (e.g., "fragment/material/solidcolor")
+    ///
+    /// Returns: true if shader compiled successfully, false otherwise
+    #[bind(name = "ReloadShaderOnRenderThread")]
+    pub fn reload_shader_on_render_thread(
+        &self,
+        shader_key: &str,
+        vs_name: &str,
+        fs_name: &str,
+    ) -> bool {
+        if let Some(handle) = self.render_context.handle() {
+            // Load and preprocess shader source files
+            let (vs_src, fs_src) = Shader::get_preprocessed_source(vs_name, fs_name);
+
+            // Send to render thread for compilation
+            let result = handle.reload_shader(shader_key, &vs_src, &fs_src);
+
+            if result.success {
+                info!(
+                    "Shader '{}' reloaded successfully on render thread (program={})",
+                    shader_key, result.program
+                );
+            } else {
+                warn!(
+                    "Shader '{}' failed to reload on render thread: {}",
+                    shader_key,
+                    result.error.as_deref().unwrap_or("unknown error")
+                );
+            }
+
+            result.success
+        } else {
+            warn!("ReloadShaderOnRenderThread called but render thread is not active");
+            false
+        }
     }
 }

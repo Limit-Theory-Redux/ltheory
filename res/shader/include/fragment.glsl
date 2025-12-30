@@ -1,4 +1,5 @@
 #include common
+#include camera_ubo
 
 in vec2 uv;
 in vec3 pos;
@@ -9,13 +10,13 @@ in float flogz;
 
 layout (location = 0) out vec4 outColor;
 
-uniform vec3 eye;
+// Per-object uniforms
 uniform mat4 mWorldIT;
 
+// Environment and lighting
 uniform samplerCube envMap;
 uniform samplerCube irMap;
 uniform vec3 starColor;
-uniform vec3 starDir;
 
 #define FRAGMENT_CORRECT_DEPTH                                                 \
   gl_FragDepth = log2(flogz) * (0.5 * Fcoef);

@@ -10,13 +10,13 @@ local CinematicCamera     = require("Modules.Cameras.Managers.CameraControllers.
 local CameraEntity        = require("Modules.Cameras.Entities").Camera
 local BoxEntity           = require("Modules.Core.Entities").Box
 local Physics             = require("Modules.Physics.Components")
-local RenderComp          = require("Modules.Rendering.Components").Render
 local RenderCoreSystem    = require("Modules.Rendering.Systems.RenderCoreSystem")
-local CameraSystem        = require("Modules.Cameras.Systems.CameraSystem")
+local CameraSystem        = require("Modules.Cameras.Systems.CameraSystem") -- Self-registers to EventBus
 local DeltaTimer          = require("Shared.Tools.DeltaTimer")
 local Entity              = require("Core.ECS.Entity")
-local DrawEx              = require("UI.DrawEx")
 local CameraDataComponent = require("Modules.Cameras.Components").CameraData
+local RenderOverlay       = require("Shared.Tools.RenderOverlay")
+local ShaderHotReload     = require("Render.ShaderHotReload")
 
 function RenderingTest:onInit()
     require("Shared.Definitions.MaterialDefs")
@@ -24,6 +24,17 @@ function RenderingTest:onInit()
 
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
+
+    -- Render thread toggle (experimental)
+    self.useRenderThread = false
+
+    -- Enable shader hot reload (edit shaders in res/shader/ to see live updates)
+    if ShaderHotReload:init() then
+        Log.Info("Shader hot reload enabled - edit shaders to see live changes")
+    end
+
+    -- Enable render overlay by default for this test (Shift+O to toggle)
+    RenderOverlay:setVisible(true)
 
     -- Timers
     self.timer = DeltaTimer("RenderingTest")
@@ -122,6 +133,9 @@ function RenderingTest:updateBoxes(data)
     local dt = data:deltaTime()
     self.timer:update(dt)
 
+    -- Poll for shader hot reload changes
+    ShaderHotReload:update()
+
     -- Rotate grid
     local gridRotationSpeed = 10
     local gridAxis = Vec3f(0, 1, 0)
@@ -164,32 +178,30 @@ function RenderingTest:updateBoxes(data)
     self.cameraController:setPositionAndFocus(camPos, self.gridCenter)
 end
 
+function RenderingTest:onInput(data)
+    -- Toggle render overlay (Shift+O) - handled by RenderCoreSystem
+    RenderCoreSystem:handleInput()
+
+    -- Toggle render thread with 'R' key (experimental)
+    if Input:keyboard():isPressed(Button.KeyboardR) then
+        if Engine:isRenderThreadActive() then
+            Log.Info("Stopping render thread...")
+            Engine:stopRenderThread()
+            self.useRenderThread = false
+        else
+            Log.Info("Starting render thread...")
+            if Engine:startRenderThread() then
+                self.useRenderThread = true
+                Log.Info("Render thread started successfully")
+            else
+                Log.Error("Failed to start render thread")
+            end
+        end
+    end
+end
+
 function RenderingTest:onRender(data)
     RenderCoreSystem:render(data)
-
-    -- Immediate mode UI
-    self:immediateUI(function()
-        local mem = GC.GetMemory()
-
-        local infoLines = {
-            string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
-            string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
-            string.format("Lua Memory: %.2f KB", mem),
-            -- GC debug info
-            string.format("GC Step Size: %d", GC.debug.stepSize),
-            string.format("GC Last Mem After Cleanup: %.2f KB", GC.debug.lastMem or 0),
-            string.format("GC Emergency: %s", GC.debug.emergencyTriggered and "YES" or "NO"),
-            string.format("GC Spread Frames: %d", GC.debug.spreadFrames)
-        }
-
-        local y = 40
-        for _, line in ipairs(infoLines) do
-            DrawEx.TextAdditive('Unageo-Medium', line, 11,
-                40, y, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
-            y = y + 25
-        end
-    end)
-
     Draw.Flush()
 end
 

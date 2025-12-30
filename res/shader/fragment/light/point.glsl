@@ -1,15 +1,12 @@
 #include fragment
-#include deferred
+#include deferred_read
 #include math
 #include pbr
+#include light_ubo
 
-#autovar vec3 eye
 
 in vec3 worldOrigin;
 in vec3 worldDir;
-
-uniform vec3 lightColor;
-uniform vec3 lightPos;
 
 uniform sampler2D texNormalMat;
 uniform sampler2D texDepth;
@@ -24,20 +21,28 @@ void main () {
   float rough = normalMat.z;
   float mat = normalMat.w;
 
+  // Skip pixels with no geometry
+  if (depth < 0.001) {
+    outColor = vec4(0.0, 0.0, 0.0, 1.0);
+    return;
+  }
+
   vec3 p = worldOrigin + depth * normalize(worldDir);
 
   vec3 light = vec3(0.0);
 
-  if (mat == Material_Diffuse) {
-    vec3 L = lightPos - p;
-    float Lmag = 1.0 / max(kMinDistance, length(L));
-    light += lightColor * Lmag * saturate(dot(N, L * Lmag));
-  }
+  // Calculate light direction and distance
+  vec3 L = lightPos - p;
+  float dist = length(L);
+  L = L / max(dist, kMinDistance); // normalize
+  float attenuation = 1.0 / max(kMinDistance, dist);
 
+  if (mat == Material_Diffuse) {
+    float NdotL = saturate(dot(N, L));
+    light = lightColor * attenuation * NdotL;
+  }
   else if (mat == Material_Metal) {
-    vec3 L = lightPos - p;
-    float Lmag = 1.0 / max(kMinDistance, length(L));
-    light += lightColor * Lmag * cookTorrance(L * Lmag, p, N, rough, 1.0);
+    light = lightColor * attenuation * cookTorrance(L, p, N, rough, 1.0);
   }
 
   light *= kPointLightMult;

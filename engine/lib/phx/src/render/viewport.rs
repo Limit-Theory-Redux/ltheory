@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use glam::{IVec2, Mat4, vec3};
 
-use crate::render::{ShaderVar, gl, glcheck};
+use crate::render::{ShaderVar, gl, glcheck, is_command_mode, submit_command, RenderCommand};
 
 /* TODO : This is a low-level mechanism and probably not for use outside of
  *        RenderTarget. Should likely be folded into RenderTarget. */
@@ -103,7 +103,16 @@ impl VpStack {
         ShaderVar::push_matrix("mProjUI", &ortho_proj.into());
         ShaderVar::push_matrix("mWorldViewUI", &Mat4::IDENTITY.into());
 
-        glcheck!(gl::Viewport(vp.x, vp.y, vp.sx, vp.sy));
+        if is_command_mode() {
+            submit_command(RenderCommand::SetViewport {
+                x: vp.x,
+                y: vp.y,
+                width: vp.sx,
+                height: vp.sy,
+            });
+        } else {
+            glcheck!(gl::Viewport(vp.x, vp.y, vp.sx, vp.sy));
+        }
     }
 
     pub fn pop(&mut self) {
@@ -117,7 +126,16 @@ impl VpStack {
         self.stack_size -= 1;
         if self.stack_size > 0 {
             let vp = &self.stack[self.stack_size - 1];
-            glcheck!(gl::Viewport(vp.x, vp.y, vp.sx, vp.sy));
+            if is_command_mode() {
+                submit_command(RenderCommand::SetViewport {
+                    x: vp.x,
+                    y: vp.y,
+                    width: vp.sx,
+                    height: vp.sy,
+                });
+            } else {
+                glcheck!(gl::Viewport(vp.x, vp.y, vp.sx, vp.sy));
+            }
         }
     }
 }

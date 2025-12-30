@@ -383,4 +383,256 @@ function DrawEx.TextAlpha(...)
     RenderState.PopBlendMode()
 end
 
+-- Extended UI primitives for space game HUD
+
+--- Draw a circular gauge (like a speedometer or power meter)
+--- @param x number Center X position
+--- @param y number Center Y position
+--- @param r number Radius
+--- @param value number Current value (0 to 1)
+--- @param color Color Gauge color
+--- @param startAngle number? Start angle in radians (default: -PI*0.75)
+--- @param sweepAngle number? Total sweep angle (default: PI*1.5)
+function DrawEx.Gauge(x, y, r, value, color, startAngle, sweepAngle)
+    local startAngle = startAngle or (-math.pi * 0.75)
+    local sweepAngle = sweepAngle or (math.pi * 1.5)
+    local endAngle = startAngle + sweepAngle * math.min(1, math.max(0, value))
+
+    -- Background arc (dim)
+    local dimColor = Color(color.r * 0.2, color.g * 0.2, color.b * 0.2, color.a * 0.5)
+    DrawEx.Arc(x, y, r, startAngle, startAngle + sweepAngle, dimColor, 32)
+
+    -- Foreground arc (bright)
+    if value > 0 then
+        DrawEx.Arc(x, y, r, startAngle, endAngle, color, 32)
+    end
+end
+
+--- Draw an arc using line segments
+--- @param x number Center X
+--- @param y number Center Y
+--- @param r number Radius
+--- @param startAngle number Start angle in radians
+--- @param endAngle number End angle in radians
+--- @param color Color Arc color
+--- @param segments number? Number of segments (default: 16)
+function DrawEx.Arc(x, y, r, startAngle, endAngle, color, segments)
+    local segments = segments or 16
+    local alpha = alphaStack:last() or 1
+    local angleStep = (endAngle - startAngle) / segments
+
+    for i = 0, segments - 1 do
+        local a1 = startAngle + i * angleStep
+        local a2 = startAngle + (i + 1) * angleStep
+        local x1 = x + r * math.cos(a1)
+        local y1 = y + r * math.sin(a1)
+        local x2 = x + r * math.cos(a2)
+        local y2 = y + r * math.sin(a2)
+        DrawEx.Line(x1, y1, x2, y2, Color(color.r, color.g, color.b, color.a * alpha), false)
+    end
+end
+
+--- Draw a horizontal progress bar
+--- @param x number Left position
+--- @param y number Top position
+--- @param width number Total width
+--- @param height number Height
+--- @param value number Progress value (0 to 1)
+--- @param fgColor Color Foreground (filled) color
+--- @param bgColor Color? Background color (optional)
+function DrawEx.ProgressBar(x, y, width, height, value, fgColor, bgColor)
+    value = math.min(1, math.max(0, value))
+
+    -- Background
+    if bgColor then
+        DrawEx.Rect(x, y, width, height, bgColor)
+    end
+
+    -- Foreground (filled portion)
+    if value > 0 then
+        DrawEx.Rect(x, y, width * value, height, fgColor)
+    end
+end
+
+--- Draw a vertical progress bar (fills from bottom to top)
+--- @param x number Left position
+--- @param y number Bottom position
+--- @param width number Width
+--- @param height number Total height
+--- @param value number Progress value (0 to 1)
+--- @param fgColor Color Foreground color
+--- @param bgColor Color? Background color (optional)
+function DrawEx.ProgressBarV(x, y, width, height, value, fgColor, bgColor)
+    value = math.min(1, math.max(0, value))
+
+    -- Background
+    if bgColor then
+        DrawEx.Rect(x, y, width, height, bgColor)
+    end
+
+    -- Foreground (filled portion from bottom)
+    if value > 0 then
+        local filledHeight = height * value
+        DrawEx.Rect(x, y + height - filledHeight, width, filledHeight, fgColor)
+    end
+end
+
+--- Draw corner brackets (for selection/targeting)
+--- @param x number Left position
+--- @param y number Top position
+--- @param width number Box width
+--- @param height number Box height
+--- @param bracketSize number Size of bracket arms
+--- @param color Color Bracket color
+function DrawEx.Bracket(x, y, width, height, bracketSize, color)
+    local s = bracketSize
+
+    -- Top-left corner
+    DrawEx.Line(x, y, x + s, y, color, false)
+    DrawEx.Line(x, y, x, y + s, color, false)
+
+    -- Top-right corner
+    DrawEx.Line(x + width - s, y, x + width, y, color, false)
+    DrawEx.Line(x + width, y, x + width, y + s, color, false)
+
+    -- Bottom-left corner
+    DrawEx.Line(x, y + height - s, x, y + height, color, false)
+    DrawEx.Line(x, y + height, x + s, y + height, color, false)
+
+    -- Bottom-right corner
+    DrawEx.Line(x + width, y + height - s, x + width, y + height, color, false)
+    DrawEx.Line(x + width - s, y + height, x + width, y + height, color, false)
+end
+
+--- Draw a 2D crosshair
+--- @param x number Center X
+--- @param y number Center Y
+--- @param size number Crosshair size
+--- @param gap number? Gap in center (default: 0)
+--- @param color Color Crosshair color
+function DrawEx.Crosshair(x, y, size, gap, color)
+    local gap = gap or 0
+    local half = size / 2
+
+    -- Horizontal lines
+    DrawEx.Line(x - half, y, x - gap, y, color, false)
+    DrawEx.Line(x + gap, y, x + half, y, color, false)
+
+    -- Vertical lines
+    DrawEx.Line(x, y - half, x, y - gap, color, false)
+    DrawEx.Line(x, y + gap, x, y + half, color, false)
+end
+
+--- Draw a diamond shape
+--- @param x number Center X
+--- @param y number Center Y
+--- @param size number Diamond size (distance from center to point)
+--- @param color Color Diamond color
+function DrawEx.Diamond(x, y, size, color)
+    DrawEx.Line(x, y - size, x + size, y, color, false)
+    DrawEx.Line(x + size, y, x, y + size, color, false)
+    DrawEx.Line(x, y + size, x - size, y, color, false)
+    DrawEx.Line(x - size, y, x, y - size, color, false)
+end
+
+--- Draw a filled diamond
+--- @param x number Center X
+--- @param y number Center Y
+--- @param size number Diamond size
+--- @param color Color Diamond color
+function DrawEx.DiamondFilled(x, y, size, color)
+    DrawEx.TriV(
+        Vec2f(x, y - size),
+        Vec2f(x + size, y),
+        Vec2f(x, y + size),
+        color
+    )
+    DrawEx.TriV(
+        Vec2f(x, y - size),
+        Vec2f(x, y + size),
+        Vec2f(x - size, y),
+        color
+    )
+end
+
+--- Draw a radar sweep indicator
+--- @param x number Center X
+--- @param y number Center Y
+--- @param r number Radius
+--- @param angle number Current sweep angle
+--- @param color Color Sweep color
+function DrawEx.RadarSweep(x, y, r, angle, color)
+    -- Draw ring
+    DrawEx.Ring(x, y, r, Color(color.r * 0.3, color.g * 0.3, color.b * 0.3, color.a * 0.5), false)
+
+    -- Draw sweep line
+    local dx = r * math.cos(angle)
+    local dy = r * math.sin(angle)
+    DrawEx.Line(x, y, x + dx, y + dy, color, true)
+
+    -- Draw trailing fade (previous positions)
+    for i = 1, 5 do
+        local fadeAngle = angle - i * 0.1
+        local fadeDx = r * math.cos(fadeAngle)
+        local fadeDy = r * math.sin(fadeAngle)
+        local fadeAlpha = color.a * (1 - i * 0.18)
+        DrawEx.Line(x, y, x + fadeDx, y + fadeDy, Color(color.r, color.g, color.b, fadeAlpha), true)
+    end
+end
+
+--- Draw a connector line with curve (for node graphs or UI connections)
+--- @param x1 number Start X
+--- @param y1 number Start Y
+--- @param x2 number End X
+--- @param y2 number End Y
+--- @param color Color Line color
+--- @param segments number? Number of curve segments (default: 16)
+function DrawEx.ConnectorLine(x1, y1, x2, y2, color, segments)
+    local segments = segments or 16
+    local dx = x2 - x1
+
+    -- Use cubic bezier-like curve (horizontal tangents at endpoints)
+    for i = 0, segments - 1 do
+        local t1 = i / segments
+        local t2 = (i + 1) / segments
+
+        -- Cubic ease: smooth S-curve
+        local ease1 = t1 * t1 * (3 - 2 * t1)
+        local ease2 = t2 * t2 * (3 - 2 * t2)
+
+        local px1 = x1 + dx * t1
+        local py1 = y1 + (y2 - y1) * ease1
+        local px2 = x1 + dx * t2
+        local py2 = y1 + (y2 - y1) * ease2
+
+        DrawEx.Line(px1, py1, px2, py2, color, false)
+    end
+end
+
+--- Draw a notched bar (like health bar with notches for each segment)
+--- @param x number Left position
+--- @param y number Top position
+--- @param width number Total width
+--- @param height number Height
+--- @param value number Current value (0 to max)
+--- @param maxValue number Maximum value
+--- @param segments number Number of segments
+--- @param fgColor Color Filled segment color
+--- @param bgColor Color Empty segment color
+--- @param spacing number? Gap between segments (default: 2)
+function DrawEx.NotchedBar(x, y, width, height, value, maxValue, segments, fgColor, bgColor, spacing)
+    local spacing = spacing or 2
+    local segWidth = (width - (segments - 1) * spacing) / segments
+    local filledSegments = math.floor((value / maxValue) * segments + 0.5)
+
+    for i = 0, segments - 1 do
+        local segX = x + i * (segWidth + spacing)
+        if i < filledSegments then
+            DrawEx.Rect(segX, y, segWidth, height, fgColor)
+        else
+            DrawEx.PanelGlow(segX, y, segWidth, height, bgColor)
+        end
+    end
+end
+
 return DrawEx

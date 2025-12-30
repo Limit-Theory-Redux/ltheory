@@ -12,8 +12,6 @@ uniform float time;
 uniform float rotationSpeed;
 uniform float twistFactor;
 
-#autovar vec3 eye
-#autovar vec3 starDir
 
 in vec3 objPos;
 
