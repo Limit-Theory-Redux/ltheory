@@ -511,6 +511,7 @@ impl RenderCommand {
                 | RenderCommand::DrawMeshByResource { .. }
                 | RenderCommand::DrawMeshInstancedByResource { .. }
                 | RenderCommand::DrawImmediate { .. }
+                | RenderCommand::DrawInstancedWithData { .. }
         )
     }
 

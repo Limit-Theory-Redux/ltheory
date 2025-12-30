@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use glam::*;
 use mlua::{Function, Lua};
@@ -13,9 +12,8 @@ use crate::input::*;
 use crate::logging::init_log;
 use crate::math::Matrix;
 use crate::render::{
-    RenderThreadHandle, RenderThreadConfig, spawn_render_thread, RenderCommand,
-    enable_command_mode, disable_command_mode, set_render_handle, clear_render_handle,
-    WorkerPoolHandle, WorkerPoolConfig, spawn_worker_pool, flush_render_batch_with_workers,
+    RenderContext, RenderCommand,
+    flush_render_batch_with_workers,
     submit_command, is_command_mode, CameraUboData, update_global_camera_ubo,
     LightUboData, update_global_light_ubo, Shader,
 };
@@ -35,12 +33,8 @@ pub struct Engine {
     pub event_bus: EventBus,
     pub task_queue: TaskQueue,
     pub lua: Rf<Lua>,
-    /// Handle to the dedicated render thread (when multithreaded rendering is enabled)
-    pub render_thread: Option<Arc<RenderThreadHandle>>,
-    /// Handle to the worker pool for parallel render preparation
-    pub worker_pool: Option<WorkerPoolHandle>,
-    /// Whether to use multithreaded rendering
-    pub use_render_thread: bool,
+    /// Multithreaded rendering subsystem (render thread + worker pool)
+    pub render_context: RenderContext,
 }
 
 // This thread local variable contains a ref counted instance of the current Lua VM.
@@ -131,9 +125,7 @@ impl Engine {
             event_bus: EventBus::new(),
             task_queue: TaskQueue::new(),
             lua,
-            render_thread: None,
-            worker_pool: None,
-            use_render_thread: false, // Disabled by default, enable via config
+            render_context: RenderContext::new(),
         }
     }
 
@@ -142,35 +134,9 @@ impl Engine {
     /// This transfers the GL context to a dedicated render thread.
     /// After calling this, all GL operations must go through the render queue.
     pub fn start_render_thread(&mut self) -> bool {
-        if self.render_thread.is_some() {
-            warn!("Render thread already started");
-            return false;
-        }
-
         // Extract GL context from the window
         if let Some(gl_data) = self.winit_window.extract_gl_context_for_render_thread() {
-            // Spawn the render thread with the GL context
-            let config = RenderThreadConfig::default();
-            let handle = Arc::new(spawn_render_thread(config, Some(gl_data)));
-
-            // Set the global render handle for command submission (using Arc clone)
-            set_render_handle(handle.clone());
-
-            // Store our Arc reference
-            self.render_thread = Some(handle);
-            self.use_render_thread = true;
-
-            // Spawn worker pool for parallel render preparation
-            let worker_config = WorkerPoolConfig::default(); // Auto-detects CPU cores
-            let worker_pool = spawn_worker_pool(worker_config);
-            info!("Worker pool spawned with {} workers", worker_pool.num_workers());
-            self.worker_pool = Some(worker_pool);
-
-            // Enable command mode globally
-            enable_command_mode();
-
-            info!("Render thread started successfully");
-            true
+            self.render_context.start(gl_data)
         } else {
             error!("Failed to extract GL context for render thread");
             false
@@ -181,71 +147,13 @@ impl Engine {
     ///
     /// This shuts down the render thread and returns the GL context to the main thread.
     pub fn stop_render_thread(&mut self) {
-        // Shutdown worker pool first
-        if let Some(worker_pool) = self.worker_pool.take() {
-            info!("Shutting down worker pool...");
-            worker_pool.shutdown();
-        }
-
-        if let Some(handle) = self.render_thread.take() {
-            // Disable command mode first so no new commands are submitted
-            disable_command_mode();
-
-            // Clear the global handle first to drop its Arc reference
-            clear_render_handle();
-
-            // Now try to get exclusive access for proper shutdown
-            info!("Attempting to get exclusive access to render thread handle...");
-            match Arc::try_unwrap(handle) {
-                Ok(mut h) => {
-                    // We have exclusive access - shutdown and get context
-                    info!("Got exclusive access, calling shutdown...");
-                    h.shutdown();
-                    info!("Shutdown complete, waiting for context...");
-
-                    // Wait for the context to be returned (blocking receive with timeout)
-                    if let Some(returned_ctx) = h.wait_for_returned_context() {
-                        info!("Got context, restoring to main thread...");
-                        // Restore the context to WinitWindow
-                        if self.winit_window.restore_gl_context(returned_ctx.context, returned_ctx.surface) {
-                            info!("GL context successfully restored to main thread");
-                        } else {
-                            error!("Failed to restore GL context to main thread");
-                        }
-                    } else {
-                        warn!("No GL context returned from render thread");
-                    }
-                }
-                Err(arc) => {
-                    // Other Arc references still exist - this shouldn't happen normally
-                    // but we still need to shutdown the thread
-                    warn!("Other Arc references exist ({} strong refs), forcing shutdown anyway",
-                          Arc::strong_count(&arc));
-
-                    // Send shutdown command to stop the render thread
-                    arc.submit(RenderCommand::Shutdown);
-
-                    // Use blocking wait for the context to be returned
-                    // This ensures the thread has completed cleanup
-                    info!("Waiting for context from render thread...");
-                    if let Some(returned_ctx) = arc.wait_for_returned_context() {
-                        info!("Got context, restoring to main thread...");
-                        if self.winit_window.restore_gl_context(returned_ctx.context, returned_ctx.surface) {
-                            info!("GL context successfully restored to main thread");
-                        } else {
-                            error!("Failed to restore GL context to main thread");
-                        }
-                    } else {
-                        error!("Could not restore GL context - render thread may have failed cleanup");
-                    }
-
-                    // Note: dropping arc will call shutdown() in Drop impl, but it will
-                    // check running flag and the thread should already be stopped
-                    drop(arc);
-                }
+        if let Some(returned_ctx) = self.render_context.stop() {
+            // Restore the context to WinitWindow
+            if self.winit_window.restore_gl_context(returned_ctx.context, returned_ctx.surface) {
+                info!("GL context successfully restored to main thread");
+            } else {
+                error!("Failed to restore GL context to main thread");
             }
-            self.use_render_thread = false;
-            info!("Render thread stopped");
         }
     }
 
@@ -638,67 +546,67 @@ impl Engine {
     /// Check if the render thread is currently active.
     #[bind(name = "IsRenderThreadActive")]
     pub fn is_render_thread_active(&self) -> bool {
-        self.use_render_thread && self.render_thread.is_some()
+        self.render_context.is_active()
     }
 
     /// Get total commands processed by the render thread.
     #[bind(name = "GetRenderThreadCommands")]
     pub fn get_render_thread_commands(&self) -> u64 {
-        self.render_thread.as_ref().map_or(0, |h| h.get_commands_processed())
+        self.render_context.get_commands_processed()
     }
 
     /// Get total draw calls executed by the render thread.
     #[bind(name = "GetRenderThreadDrawCalls")]
     pub fn get_render_thread_draw_calls(&self) -> u64 {
-        self.render_thread.as_ref().map_or(0, |h| h.get_draw_calls())
+        self.render_context.get_draw_calls()
     }
 
     /// Get total state changes on the render thread.
     #[bind(name = "GetRenderThreadStateChanges")]
     pub fn get_render_thread_state_changes(&self) -> u64 {
-        self.render_thread.as_ref().map_or(0, |h| h.get_state_changes())
+        self.render_context.get_state_changes()
     }
 
     /// Get total frames rendered by the render thread.
     #[bind(name = "GetRenderThreadFrameCount")]
     pub fn get_render_thread_frame_count(&self) -> u64 {
-        self.render_thread.as_ref().map_or(0, |h| h.get_frame_count())
+        self.render_context.get_frame_count()
     }
 
     /// Get the last frame render time in milliseconds.
     #[bind(name = "GetRenderThreadFrameTimeMs")]
     pub fn get_render_thread_frame_time_ms(&self) -> f64 {
-        self.render_thread.as_ref().map_or(0.0, |h| h.get_last_frame_time_us() as f64 / 1000.0)
+        self.render_context.get_last_frame_time_ms()
     }
 
     /// Get commands processed in the last frame.
     #[bind(name = "GetRenderThreadCommandsPerFrame")]
     pub fn get_render_thread_commands_per_frame(&self) -> u64 {
-        self.render_thread.as_ref().map_or(0, |h| h.get_commands_last_frame())
+        self.render_context.get_commands_last_frame()
     }
 
     /// Get draw calls executed in the last frame.
     #[bind(name = "GetRenderThreadDrawCallsPerFrame")]
     pub fn get_render_thread_draw_calls_per_frame(&self) -> u64 {
-        self.render_thread.as_ref().map_or(0, |h| h.get_draw_calls_last_frame())
+        self.render_context.get_draw_calls_last_frame()
     }
 
     /// Get total texture binds skipped due to caching (cumulative).
     #[bind(name = "GetRenderThreadTextureBindsSkipped")]
     pub fn get_render_thread_texture_binds_skipped(&self) -> u64 {
-        self.render_thread.as_ref().map_or(0, |h| h.get_texture_binds_skipped())
+        self.render_context.get_texture_binds_skipped()
     }
 
     /// Get main thread wait time in milliseconds (time spent waiting for render thread).
     #[bind(name = "GetMainThreadWaitTimeMs")]
     pub fn get_main_thread_wait_time_ms(&self) -> f64 {
-        self.render_thread.as_ref().map_or(0.0, |h| h.get_main_thread_wait_us() as f64 / 1000.0)
+        self.render_context.get_main_thread_wait_ms()
     }
 
     /// Get current frames in flight (submitted but not yet rendered).
     #[bind(name = "GetFramesInFlight")]
     pub fn get_frames_in_flight(&self) -> u64 {
-        self.render_thread.as_ref().map_or(0, |h| h.get_frames_in_flight())
+        self.render_context.get_frames_in_flight()
     }
 
     /// Get the number of CPU cores available for worker threads.
@@ -718,13 +626,13 @@ impl Engine {
     /// Check if the worker pool is active.
     #[bind(name = "IsWorkerPoolActive")]
     pub fn is_worker_pool_active(&self) -> bool {
-        self.worker_pool.is_some()
+        self.render_context.worker_pool().is_some()
     }
 
     /// Get the actual number of active workers in the pool.
     #[bind(name = "GetActiveWorkerCount")]
     pub fn get_active_worker_count(&self) -> u32 {
-        self.worker_pool.as_ref().map_or(0, |p| p.num_workers() as u32)
+        self.render_context.worker_pool().map_or(0, |p| p.num_workers() as u32)
     }
 
     /// Flush the render batch using the worker pool for parallel processing.
@@ -732,7 +640,7 @@ impl Engine {
     /// command generation. Returns the number of entities visible after culling.
     #[bind(name = "FlushRenderBatch")]
     pub fn flush_render_batch(&self) -> u32 {
-        let stats = flush_render_batch_with_workers(self.worker_pool.as_ref());
+        let stats = flush_render_batch_with_workers(self.render_context.worker_pool());
         stats.entities_visible
     }
 
@@ -859,7 +767,7 @@ impl Engine {
         vs_name: &str,
         fs_name: &str,
     ) -> bool {
-        if let Some(ref handle) = self.render_thread {
+        if let Some(handle) = self.render_context.handle() {
             // Load and preprocess shader source files
             let (vs_src, fs_src) = Shader::get_preprocessed_source(vs_name, fs_name);
 

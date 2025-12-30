@@ -5,7 +5,7 @@
 //! we expose methods that internally create and queue the commands.
 
 use std::cell::RefCell;
-use std::sync::OnceLock;
+use std::sync::{OnceLock, RwLock};
 
 use super::{
     BlendMode, CullFace, GpuHandle, ImmVertex, InstanceData, CmdPrimitiveType, Mesh, RenderCommand,
@@ -13,8 +13,8 @@ use super::{
 };
 use crate::math::Matrix;
 
-/// Global render queue instance
-static RENDER_QUEUE: OnceLock<RenderQueue> = OnceLock::new();
+/// Global render queue instance with interior mutability for handle storage
+static RENDER_QUEUE: OnceLock<RwLock<RenderQueue>> = OnceLock::new();
 
 /// Thread-local command buffer for batching
 thread_local! {
@@ -44,18 +44,34 @@ impl RenderQueue {
         self.render_handle = Some(handle);
     }
 
-    /// Get the global render queue instance
-    pub fn global() -> &'static RenderQueue {
-        RENDER_QUEUE.get_or_init(RenderQueue::new)
+    /// Get the global render queue instance (read access)
+    ///
+    /// Returns a guard that provides immutable access to the RenderQueue.
+    /// For most operations, prefer using the FFI methods directly.
+    pub fn global() -> std::sync::RwLockReadGuard<'static, RenderQueue> {
+        RENDER_QUEUE
+            .get_or_init(|| RwLock::new(RenderQueue::new()))
+            .read()
+            .expect("RenderQueue lock poisoned")
     }
 
     /// Initialize the global render queue with a render handle
+    ///
+    /// This must be called after the render thread is spawned to enable
+    /// command submission. Without this, commands are buffered locally.
     pub fn init_global(handle: RenderThreadHandle) {
-        let _queue = RENDER_QUEUE.get_or_init(RenderQueue::new);
-        // Note: We can't mutate after init with OnceLock
-        // This is a limitation - we'd need interior mutability
-        // For now, the handle should be set before any commands
-        let _ = handle; // TODO: Store handle properly
+        let queue = RENDER_QUEUE.get_or_init(|| RwLock::new(RenderQueue::new()));
+        let mut guard = queue.write().expect("RenderQueue lock poisoned");
+        guard.set_render_handle(handle);
+    }
+
+    /// Clear the global render handle (called during shutdown)
+    pub fn clear_global_handle() {
+        if let Some(queue) = RENDER_QUEUE.get() {
+            if let Ok(mut guard) = queue.write() {
+                guard.render_handle = None;
+            }
+        }
     }
 
     /// Generate a new unique resource ID

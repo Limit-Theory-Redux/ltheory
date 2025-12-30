@@ -11,12 +11,19 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use parking_lot::RwLock;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use super::RenderCommand;
 
 /// Number of frames in the ring buffer
 pub const FRAME_RING_SIZE: usize = 3;
+
+/// Maximum spin iterations before yielding to other threads
+const MAX_SPINS_BEFORE_YIELD: u32 = 1000;
+
+/// Maximum total iterations before logging a warning and continuing
+/// At ~1us per iteration, this is roughly 100ms timeout
+const MAX_SPINS_TIMEOUT: u32 = 100_000;
 
 /// Data for a single frame in the ring
 #[derive(Default)]
@@ -103,6 +110,7 @@ impl FrameRing {
 
         // Wait if we're about to overwrite an un-rendered frame
         // Check if the frame at this index is ready but not yet rendered
+        let mut spin_count = 0u32;
         loop {
             let frame = self.frames[index].read();
             if !frame.ready || frame.rendered {
@@ -110,7 +118,22 @@ impl FrameRing {
                 break;
             }
             drop(frame); // Release lock before spinning
-            std::hint::spin_loop();
+
+            spin_count += 1;
+            if spin_count > MAX_SPINS_TIMEOUT {
+                // Timeout reached - render thread may be stuck or dead
+                warn!(
+                    "FrameRing: Timeout waiting for frame at index {} (spun {} times). \
+                     Render thread may be unresponsive.",
+                    index, spin_count
+                );
+                break;
+            } else if spin_count > MAX_SPINS_BEFORE_YIELD {
+                // Yield to other threads after initial spin phase
+                std::thread::yield_now();
+            } else {
+                std::hint::spin_loop();
+            }
         }
 
         let mut frame = self.frames[index].write();

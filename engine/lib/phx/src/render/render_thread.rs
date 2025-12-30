@@ -1,7 +1,38 @@
-//! Dedicated render thread that owns the OpenGL context.
+//! # Render Thread
+//!
+//! A dedicated thread for OpenGL command execution with persistent state.
 //!
 //! The render thread receives commands via a channel and executes them.
 //! This allows the main thread to run game logic without blocking on GL calls.
+//!
+//! ## Why not use `Worker<IN, OUT>`?
+//!
+//! The generic [`Worker`](crate::engine::task_queue::Worker) abstraction in
+//! `engine/task_queue/` is designed for stateless parallel task processing.
+//! The render thread has different requirements:
+//!
+//! 1. **GL Context Affinity**: OpenGL contexts must be owned by a single thread.
+//!    The context is created on the main thread, transferred here, and cannot
+//!    be shared or moved again until shutdown.
+//!
+//! 2. **Persistent State**: The render thread maintains caches (texture bindings,
+//!    uniform locations, FBO stack) that persist across commands. Worker tasks
+//!    are stateless `IN -> OUT` transformations.
+//!
+//! 3. **Fire-and-Forget Commands**: Most render commands have no return value.
+//!    Worker expects every input to produce an output. Using `()` outputs would
+//!    add unnecessary channel overhead.
+//!
+//! 4. **Single-Threaded Execution**: OpenGL requires single-threaded access.
+//!    Worker is designed for N parallel workers processing a shared queue.
+//!
+//! 5. **Triple Buffering**: The frame ring synchronization pattern (producer on
+//!    main thread, consumer on render thread) requires custom coordination that
+//!    doesn't fit Worker's request-response model.
+//!
+//! The [`RenderWorkerPool`](super::render_worker::RenderWorkerPool) DOES use a
+//! similar pattern to Worker for parallel frustum culling and command preparation,
+//! since those operations are stateless and benefit from parallelism.
 
 #![allow(unsafe_code)]
 
@@ -1400,9 +1431,7 @@ impl RenderThread {
                     gl::BindVertexArray(0);
                     gl::BindBuffer(gl::ARRAY_BUFFER, 0);
                 }
-
-                self.stats.draw_calls += 1;
-                self.draw_calls_this_frame += 1;
+                // Note: draw call counting is handled by is_draw_call() in execute()
             },
 
             RenderCommand::BindMeshByResource { id } => {
@@ -1441,6 +1470,9 @@ impl RenderThread {
                     Ok(program) => {
                         // Delete old hot-reloaded shader if exists
                         if let Some(old_program) = self.hot_reloaded_shaders.remove(&shader_key) {
+                            // Clear uniform cache for the old program to prevent stale lookups
+                            // (GL may reuse the program ID for a new shader)
+                            self.uniform_caches.remove(&old_program);
                             unsafe { gl::DeleteProgram(old_program); }
                             debug!("Deleted previous hot-reloaded shader for '{}'", shader_key);
                         }

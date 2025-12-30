@@ -81,10 +81,10 @@ impl ApplicationHandler for MainLoop {
                 // Update the cache immediately so we don't try to resize again at the end of the frame.
                 engine.cache.window.resolution = engine.window.resolution.clone();
                 // Resize the GL surface and update the viewport
-                if engine.use_render_thread {
+                if engine.render_context.is_active() {
                     // When using render thread, submit resize command (GL context is on render thread)
                     // Use try_submit to avoid blocking if render thread is busy (e.g., during vsync)
-                    if let Some(ref handle) = engine.render_thread {
+                    if let Some(handle) = engine.render_context.handle() {
                         use crate::render::RenderCommand;
                         handle.try_submit(RenderCommand::Resize {
                             width: size.width,
@@ -322,12 +322,12 @@ impl ApplicationHandler for MainLoop {
         engine.input.reset();
 
         // Redraw / swap buffers
-        if engine.use_render_thread {
+        if engine.render_context.is_active() {
             // Triple-buffered frame submission:
             // - Up to 3 frames can be in flight
             // - Only blocks if all 3 buffers are full
             // - Minimizes input latency while preventing runaway
-            if let Some(ref handle) = engine.render_thread {
+            if let Some(handle) = engine.render_context.handle() {
                 handle.end_frame_triple_buffered();
             }
             engine.winit_window.request_redraw();
