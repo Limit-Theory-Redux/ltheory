@@ -1,7 +1,9 @@
 mod cursor;
+mod error;
 mod glutin_render;
 mod monitor_selection;
 mod present_mode;
+mod window_gl_context;
 mod window_mode;
 mod window_position;
 mod window_resize_constraints;
@@ -10,9 +12,11 @@ mod winit_converters;
 mod winit_window;
 
 pub use cursor::*;
+pub use error::*;
 pub use glutin_render::*;
 pub use monitor_selection::*;
 pub use present_mode::*;
+pub use window_gl_context::*;
 pub use window_mode::*;
 pub use window_position::*;
 pub use window_resize_constraints::*;

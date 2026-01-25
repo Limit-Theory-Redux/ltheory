@@ -1,6 +1,4 @@
-use thiserror::Error;
-
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum TaskQueueError {
     #[error("Thread error: {0}")]
     ThreadError(String),

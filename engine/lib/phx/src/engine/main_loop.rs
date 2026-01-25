@@ -16,6 +16,7 @@ pub struct MainLoop {
     pub engine: Option<Engine>,
     pub app_name: String,
     pub entry_point_path: PathBuf,
+    pub render_thread: bool,
 }
 
 impl ApplicationHandler for MainLoop {
@@ -25,32 +26,35 @@ impl ApplicationHandler for MainLoop {
             self.engine = Some(Engine::new(event_loop));
             let engine = self.engine.as_mut().unwrap();
 
-            // Set engine pointer.
-            {
-                let lua = engine.lua.as_ref();
-                let globals = lua.globals();
-
-                globals.set("__debug__", cfg!(debug_assertions)).unwrap();
-                globals.set("__embedded__", true).unwrap();
-                globals.set("__checklevel__", 0 as u64).unwrap();
-
-                if !self.app_name.is_empty() {
-                    globals.set("__app__", self.app_name.clone()).unwrap();
-                }
-
-                lua.load(&*self.entry_point_path)
-                    .exec()
-                    .unwrap_or_else(|e| {
-                        panic!("Error executing the entry point script: {e}");
-                    });
-
-                let set_engine_func: Function = globals.get("SetEngine").unwrap();
-                set_engine_func
-                    .call::<()>(engine as *const Engine as usize)
-                    .unwrap_or_else(|e| {
-                        panic!("Error calling SetEngine: {e}");
-                    });
+            if self.render_thread && !engine.start_renderer() {
+                event_loop.exit();
             }
+
+            // Set engine pointer.
+
+            let lua = engine.lua.as_ref();
+            let globals = lua.globals();
+
+            globals.set("__debug__", cfg!(debug_assertions)).unwrap();
+            globals.set("__embedded__", true).unwrap();
+            globals.set("__checklevel__", 0 as u64).unwrap();
+
+            if !self.app_name.is_empty() {
+                globals.set("__app__", self.app_name.clone()).unwrap();
+            }
+
+            lua.load(&*self.entry_point_path)
+                .exec()
+                .unwrap_or_else(|e| {
+                    panic!("Error executing the entry point script: {e}");
+                });
+
+            let set_engine_func: Function = globals.get("SetEngine").unwrap();
+            set_engine_func
+                .call::<()>(engine as *const Engine as usize)
+                .unwrap_or_else(|e| {
+                    panic!("Error calling SetEngine: {e}");
+                });
 
             engine.call_lua("InitSystem").unwrap_or_else(|e| {
                 panic!("Error calling InitSystem: {e}");
@@ -69,6 +73,9 @@ impl ApplicationHandler for MainLoop {
 
         // If exit_app is true, then exit the event loop.
         if engine.exit_app {
+            if self.render_thread {
+                engine.stop_renderer();
+            }
             event_loop.exit();
         }
 

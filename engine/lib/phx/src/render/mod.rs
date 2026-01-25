@@ -26,6 +26,7 @@ mod tex_filter;
 mod tex_format;
 mod tex_wrap_mode;
 mod texcube;
+mod thread;
 mod ui_renderer;
 mod viewport;
 
@@ -57,5 +58,6 @@ pub use tex1d::*;
 pub use tex2d::*;
 pub use tex3d::*;
 pub use texcube::*;
+pub use thread::*;
 pub use ui_renderer::*;
 pub use viewport::*;

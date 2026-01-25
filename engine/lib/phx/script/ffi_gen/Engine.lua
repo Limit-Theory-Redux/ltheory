@@ -23,6 +23,7 @@ function Loader.defineType()
             EventBus*  Engine_EventBus   (Engine*);
             TaskQueue* Engine_TaskQueue  (Engine*);
             HmGui*     Engine_HmGui      (Engine*);
+            Renderer*  Engine_Renderer   (Engine*);
             void       Engine_Abort      ();
             int        Engine_GetBits    ();
             double     Engine_GetTime    (Engine const*);
@@ -55,6 +56,7 @@ function Loader.defineType()
                 eventBus  = libphx.Engine_EventBus,
                 taskQueue = libphx.Engine_TaskQueue,
                 hmGui     = libphx.Engine_HmGui,
+                renderer  = libphx.Engine_Renderer,
                 getTime   = libphx.Engine_GetTime,
                 exit      = libphx.Engine_Exit,
             },
