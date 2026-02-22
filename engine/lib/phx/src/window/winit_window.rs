@@ -14,12 +14,11 @@ use tracing::{debug, error, info, warn};
 use winit::dpi::{LogicalSize, PhysicalPosition};
 use winit::monitor::MonitorHandle;
 
-use crate::window::{WindowError, WindowGlContext};
-
 use super::{
     CursorGrabMode, PresentMode, Window, WindowMode, WindowPosition, WindowResolution,
     glutin_render,
 };
+use crate::window::{WindowError, WindowGlContext};
 
 // TODO: Add GlStateManager with state: Option<GlState> field to avoid std::mem::replace
 #[derive(Debug)]
