@@ -45,7 +45,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn start(&mut self, context: WindowGlContext) -> Result<Self, RenederThreadError> {
+    pub fn start(context: WindowGlContext) -> Result<Self, RenederThreadError> {
         // Spawn the render thread with the GL context
         let config = RenderThreadConfig::default();
         // Use bounded channel for backpressure - SwapBuffers will block to sync with render thread

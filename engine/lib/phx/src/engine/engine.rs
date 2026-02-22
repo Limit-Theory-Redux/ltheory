@@ -129,17 +129,26 @@ impl Engine {
     /// This transfers the GL context to a dedicated render thread.
     /// After calling this, all GL operations must go through the render queue.
     pub fn start_renderer(&mut self) -> bool {
-        if let Some(renderer) = &mut self.renderer {
+        if self.renderer.is_some() {
             // Extract GL context from the window
+            warn!("Renderer olready started");
+            true
+        } else {
             match self.winit_window.extract_gl_context() {
-                Ok(context) => renderer.start(context),
+                Ok(context) => {
+                    match Renderer::start(context) {
+                        Ok(renderer) => self.renderer = Some(renderer),
+                        Err(err) => {
+                            error!("Cannot create renderer. Error: {err}");
+                            return false;
+                        }
+                    };
+                }
                 Err(err) => {
                     error!("Failed to extract GL context for render thread: {err:?}");
-                    false
+                    return false;
                 }
             }
-        } else {
-            warn!("Cannot start renderer that was not created");
             false
         }
     }
@@ -148,7 +157,7 @@ impl Engine {
     ///
     /// This shuts down the render thread and returns the GL context to the main thread.
     pub fn stop_renderer(&mut self) {
-        if let Some(renderer) = &mut self.renderer {
+        if let Some(renderer) = self.renderer.take() {
             if let Some(context) = renderer.stop() {
                 // Restore the context to WinitWindow
                 if let Err(err) = self.winit_window.restore_gl_context(context) {
