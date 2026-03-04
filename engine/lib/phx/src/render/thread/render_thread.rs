@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crossbeam::channel::{Receiver, Sender};
 use tracing::{debug, error, info, warn};
 
+use crate::render::gl::types::GLsizeiptr;
 use crate::render::{
     BlendMode, CmdPrimitiveType, CullFace, ImmVertex, InstanceData, RenderCommand, ResourceId,
     ShaderReloadResult, SharedRenderStats, TexFormat, VertexFormat, gl,
@@ -837,7 +838,7 @@ impl RenderThread {
                     level,
                 );
                 // Update color index if this is a color attachment
-                if attachment >= gl::COLOR_ATTACHMENT0 && attachment <= gl::COLOR_ATTACHMENT3 {
+                if (gl::COLOR_ATTACHMENT0..=gl::COLOR_ATTACHMENT3).contains(&attachment) {
                     if let Some(fbo) = self.fbo_stack.last_mut() {
                         fbo.color_index = (attachment - gl::COLOR_ATTACHMENT0 + 1) as i32;
                         gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
@@ -860,9 +861,7 @@ impl RenderThread {
                             level,
                         );
                         // Update color index if this is a color attachment
-                        if attachment >= gl::COLOR_ATTACHMENT0
-                            && attachment <= gl::COLOR_ATTACHMENT3
-                        {
+                        if (gl::COLOR_ATTACHMENT0..=gl::COLOR_ATTACHMENT3).contains(&attachment) {
                             if let Some(fbo) = self.fbo_stack.last_mut() {
                                 fbo.color_index = (attachment - gl::COLOR_ATTACHMENT0 + 1) as i32;
                                 gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
@@ -1330,10 +1329,8 @@ impl RenderThread {
                     if let Err(e) = ctx.swap_buffers() {
                         error!("Failed to swap buffers: {}", e);
                     }
-                } else {
-                    if self.stats.frame_count == 1 {
-                        error!("SwapBuffers: no GL context available!");
-                    }
+                } else if self.stats.frame_count == 1 {
+                    error!("SwapBuffers: no GL context available!");
                 }
 
                 // Reset per-frame counters and start new frame timing
@@ -1417,7 +1414,7 @@ impl RenderThread {
             // Use BufferData with STREAM_DRAW for per-frame updates.
             // This "orphans" the old buffer, allowing the driver to reuse memory
             // without GPU stalls (vs BufferSubData which can block).
-            let size = (vertices.len() * std::mem::size_of::<ImmVertex>()) as isize;
+            let size = std::mem::size_of_val(vertices) as GLsizeiptr;
             gl::BufferData(
                 gl::ARRAY_BUFFER,
                 size,
@@ -1485,10 +1482,10 @@ impl RenderThread {
 
             // CRITICAL: Bind attribute locations BEFORE linking!
             // Must match the VAO setup: 0=position, 1=normal, 2=uv, 3=color
-            gl::BindAttribLocation(program, 0, b"vertex_position\0".as_ptr() as *const _);
-            gl::BindAttribLocation(program, 1, b"vertex_normal\0".as_ptr() as *const _);
-            gl::BindAttribLocation(program, 2, b"vertex_uv\0".as_ptr() as *const _);
-            gl::BindAttribLocation(program, 3, b"vertex_color\0".as_ptr() as *const _);
+            gl::BindAttribLocation(program, 0, c"vertex_position".as_ptr() as *const _);
+            gl::BindAttribLocation(program, 1, c"vertex_normal".as_ptr() as *const _);
+            gl::BindAttribLocation(program, 2, c"vertex_uv".as_ptr() as *const _);
+            gl::BindAttribLocation(program, 3, c"vertex_color".as_ptr() as *const _);
 
             gl::LinkProgram(program);
 
@@ -1508,15 +1505,14 @@ impl RenderThread {
             }
 
             // Bind CameraUBO to binding point 0 (if present in shader)
-            let block_index =
-                gl::GetUniformBlockIndex(program, b"CameraUBO\0".as_ptr() as *const _);
+            let block_index = gl::GetUniformBlockIndex(program, c"CameraUBO".as_ptr() as *const _);
             if block_index != gl::INVALID_INDEX {
                 gl::UniformBlockBinding(program, block_index, 0);
             }
 
             // Bind LightUBO to binding point 2 (if present in shader)
             let light_block_index =
-                gl::GetUniformBlockIndex(program, b"LightUBO\0".as_ptr() as *const _);
+                gl::GetUniformBlockIndex(program, c"LightUBO".as_ptr() as *const _);
             if light_block_index != gl::INVALID_INDEX {
                 gl::UniformBlockBinding(program, light_block_index, 2);
             }

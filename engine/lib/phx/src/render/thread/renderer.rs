@@ -107,17 +107,9 @@ impl Renderer {
     }
 
     pub fn stop(self) -> Option<WindowGlContext> {
-        // Clear the global handle first to drop its Arc reference
-        // clear_render_handle();
-
         // We have exclusive access - shutdown and get context
         info!("Calling shutdown...");
-        self.shutdown();
-        info!("Shutdown complete, waiting for context...");
-
-        // Wait for the context to be returned
-        let returned_ctx = self.wait_for_returned_context();
-
+        let returned_ctx = self.shutdown();
         info!("Render thread stopped");
 
         returned_ctx
@@ -195,7 +187,7 @@ impl Renderer {
         let frame_end_start = std::time::Instant::now();
 
         // Drain completed fences (non-blocking) to update in-flight count
-        while let Ok(_) = self.fence_rx.try_recv() {
+        while self.fence_rx.try_recv().is_ok() {
             self.frames_in_flight.fetch_sub(1, Ordering::Relaxed);
         }
 
@@ -328,42 +320,37 @@ impl Renderer {
         }
     }
 
-    /// Request the render thread to shutdown
-    fn shutdown(&self) {
+    /// Request the render thread to shutdown.
+    /// Wait for the GL context to be returned from the render thread (blocking with timeout).
+    /// This should be called after shutdown() to retrieve the context for
+    /// restoring direct GL mode on the main thread.
+    fn shutdown(self) -> Option<WindowGlContext> {
         if self.running.load(Ordering::Relaxed) {
             info!("Requesting render thread shutdown");
             self.submit(RenderCommand::Shutdown);
             self.running.store(false, Ordering::Relaxed);
 
             // Wait for thread to finish
-            // if let Err(e) = &self.thread_handle.join() {
-            //     error!("Render thread panicked: {:?}", e);
-            // }
+            if let Err(e) = &self.thread_handle.join() {
+                error!("Render thread panicked: {:?}", e);
+            } else {
+                // Wait up to 5 seconds for the context to be returned
+                match self.context_rx.recv_timeout(Duration::from_secs(5)) {
+                    Ok(ctx) => return ctx,
+                    Err(e) => {
+                        error!("Timeout or error waiting for GL context return: {:?}", e);
+                    }
+                }
+            }
         }
+        None
     }
 
     /// Get the GL context returned from the render thread after shutdown (non-blocking).
     /// This should be called after shutdown() to retrieve the context for
     /// restoring direct GL mode on the main thread.
-    fn take_returned_context(&self) -> Option<WindowGlContext> {
+    pub fn take_returned_context(&self) -> Option<WindowGlContext> {
         // Try to receive the context (non-blocking since shutdown already waited)
-        match self.context_rx.try_recv() {
-            Ok(ctx) => ctx,
-            Err(_) => None,
-        }
-    }
-
-    /// Wait for the GL context to be returned from the render thread (blocking with timeout).
-    /// This should be called after shutdown() to retrieve the context for
-    /// restoring direct GL mode on the main thread.
-    fn wait_for_returned_context(&self) -> Option<WindowGlContext> {
-        // Wait up to 5 seconds for the context to be returned
-        match self.context_rx.recv_timeout(Duration::from_secs(5)) {
-            Ok(ctx) => ctx,
-            Err(e) => {
-                error!("Timeout or error waiting for GL context return: {:?}", e);
-                None
-            }
-        }
+        self.context_rx.try_recv().unwrap_or_default()
     }
 }
