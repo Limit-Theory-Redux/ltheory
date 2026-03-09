@@ -191,10 +191,10 @@ impl ImplInfo {
             .iter()
             .filter(|method| method.bind_args.gen_lua_ffi())
             .for_each(|method| {
-                let len = if method.bind_args.gen_out_param() || method.ret.is_none() {
-                    "void".len()
-                } else if let Some(ret) = method.ret.as_ref() {
-                    ret.as_ffi(module_name).1.len()
+                let len = if !method.bind_args.gen_out_param()
+                    && let Some(ret_ty) = &method.ret
+                {
+                    ret_ty.as_ffi(module_name).1.len()
                 } else {
                     "void".len()
                 };
@@ -223,10 +223,10 @@ impl ImplInfo {
             .for_each(|method| {
                 let method_name = method.as_ffi_name();
 
-                let ret_ty_str = if method.bind_args.gen_out_param() || method.ret.is_none() {
-                    "void".into()
-                } else if let Some(ret) = method.ret.as_ref() {
-                    ret.as_ffi(module_name).1
+                let ret_ty_str =  if !method.bind_args.gen_out_param()
+                    && let Some(ret_ty) = &method.ret
+                {
+                    ret_ty.as_ffi(module_name).1
                 } else {
                     "void".into()
                 };
@@ -237,18 +237,28 @@ impl ImplInfo {
                     .flat_map(|param| self.get_c_ffi_param(module_name, param))
                     .collect();
 
-                if let Some(ret) = method.ret.as_ref().filter(|_| method.bind_args.gen_out_param()) {
-                    let ret_ffi = ret.as_ffi(module_name).1;
-                    let ret_param = match ret {
-                        TypeInfo::Plain {
-                            is_ref: TypeRef::Value,
-                            ty: ty @ TypeVariant::Custom(_),
-                        } if !ty.is_copyable(&self.name) => {
-                            // If we have a non-copyable type that's not boxed, optional or a ref,
-                            // we don't need to return it as a pointer as it's already a pointer.
-                            format!("{ret_ffi} out")
+                if method.bind_args.gen_out_param() && let Some(ret_ty) = &method.ret {
+                    let ret_ffi = ret_ty.as_ffi(module_name).1;
+                    let ret_param = match ret_ty {
+                        TypeInfo::Plain { is_ref, ty } => {
+                            match ty {
+                                TypeVariant::Custom(_) => {
+                                    if !ty.is_copyable(&self.name) && *is_ref == TypeRef::Value {
+                                        // If we have a non-copyable type that's not boxed, optional or a ref,
+                                        // we don't need to return it as a pointer as it's already a pointer.
+                                        format!("{ret_ffi} out")
+                                    } else {
+                                        format!("{ret_ffi}* out")
+                                    }
+                                },
+                                _ => {
+                                    format!("{ret_ffi}* out")
+                                }
+                            }
                         }
-                        _ => format!("{ret_ffi}* out"),
+                        _ => {
+                            format!("{ret_ffi}* out")
+                        }
                     };
                     params_str.push(ret_param);
                 }

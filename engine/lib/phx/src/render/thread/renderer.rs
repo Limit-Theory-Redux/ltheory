@@ -8,7 +8,8 @@ use tracing::{error, info};
 
 use crate::render::thread::RenderThread;
 use crate::render::{
-    RenderCommand, RenderThreadConfig, RenederThreadError, ShaderReloadResult, SharedRenderStats,
+    RenderCommand, RenderThreadConfig, RenederThreadError, ResourceId, ShaderReloadResult,
+    SharedRenderStats,
 };
 use crate::window::WindowGlContext;
 
@@ -42,6 +43,10 @@ pub struct Renderer {
     thread_handle: JoinHandle<()>,
     /// Shared stats readable from main thread
     shared_stats: Arc<SharedRenderStats>,
+    /// Thread-local command buffer for batching
+    command_buffer: Vec<RenderCommand>,
+    /// Global counter for generating unique ResourceIds
+    next_resource_id: AtomicU64,
 }
 
 impl Renderer {
@@ -103,6 +108,8 @@ impl Renderer {
             running,
             thread_handle,
             shared_stats,
+            command_buffer: vec![],
+            next_resource_id: AtomicU64::new(1),
         })
     }
 
@@ -114,6 +121,7 @@ impl Renderer {
 
         returned_ctx
     }
+
     /// Submit a command to the render thread
     pub fn submit(&self, cmd: RenderCommand) {
         if self.running.load(Ordering::Relaxed) {
@@ -144,10 +152,15 @@ impl Renderer {
         }
     }
 
-    /// Submit multiple commands efficiently
-    pub fn submit_batch(&self, commands: impl IntoIterator<Item = RenderCommand>) {
+    /// Begin a new frame
+    pub(in crate::render::thread) fn begin_frame_intern(&mut self) {
+        self.command_buffer.clear();
+    }
+
+    /// Flush all queued commands to the render thread
+    pub(in crate::render::thread) fn flush_intern(&mut self) {
         if self.running.load(Ordering::Relaxed) {
-            for cmd in commands {
+            for cmd in self.command_buffer.drain(..) {
                 if let Err(e) = self.command_tx.send(cmd) {
                     error!("Failed to send render command: {:?}", e);
                     break;
@@ -156,8 +169,8 @@ impl Renderer {
         }
     }
 
-    /// Wait for the render thread to process all commands up to this point
-    pub fn sync(&self) -> bool {
+    /// Synchronize with the render thread (wait for all commands to complete)
+    pub(in crate::render::thread) fn sync_intern(&mut self) -> bool {
         if !self.running.load(Ordering::Relaxed) {
             return false;
         }
@@ -173,6 +186,12 @@ impl Renderer {
                 Err(_) => return false, // Channel closed
             }
         }
+    }
+
+    /// Generate a new unique resource ID
+    /// Uses the global counter from render_mode to avoid ID conflicts
+    pub fn next_resource_id(&mut self) -> ResourceId {
+        ResourceId(self.next_resource_id.fetch_add(1, Ordering::Relaxed))
     }
 
     /// End the current frame with triple buffering.

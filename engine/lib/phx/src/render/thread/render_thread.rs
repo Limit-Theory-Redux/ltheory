@@ -84,7 +84,7 @@ impl TextureBinding {
 }
 
 /// The render thread state - runs on a dedicated thread
-pub(super) struct RenderThread {
+pub struct RenderThread {
     command_rx: Receiver<RenderCommand>,
     fence_tx: Sender<u64>,
     /// Channel to send shader reload results back to main thread
