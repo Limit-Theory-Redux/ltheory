@@ -15,15 +15,15 @@ Enums.MeshType = {
 ---@enum BufferName
 Enums.BufferName = {
     -- Primary Buffers
-    buffer0 = 0,    -- Src Buffer
-    buffer1 = 1,    -- Alpha/Normals/UI Buffer
-    buffer2 = 2,    -- Lighting Buffer
+    buffer0 = 0,   -- Src Buffer
+    buffer1 = 1,   -- Alpha/Normals/UI Buffer
+    buffer2 = 2,   -- Lighting Buffer
     -- Depth Buffers
-    zBuffer = 3,    -- Primary Depth Buffer
-    zBufferL = 4,   -- Lighting Depth Buffer
+    zBuffer = 3,   -- Primary Depth Buffer
+    zBufferL = 4,  -- Lighting Depth Buffer
     -- Downsample Buffers
-    dsBuffer0 = 5,  -- Primary Downsample Buffer
-    dsBuffer1 = 6   -- Secondary Downsample Buffer
+    dsBuffer0 = 5, -- Primary Downsample Buffer
+    dsBuffer1 = 6  -- Secondary Downsample Buffer
 }
 
 ---@enum RenderingPassName
@@ -34,7 +34,7 @@ Enums.RenderingPasses = {
     Additive = 3,
     Alpha = 4,
     Debug = 5,
-    UI = 6
+    UI = 6,
 }
 
 ---@enum UniformType

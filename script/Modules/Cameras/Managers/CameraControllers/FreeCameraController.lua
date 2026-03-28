@@ -22,15 +22,13 @@ local CameraController = require("Modules.Cameras.Managers").CameraController
 local FreeCameraController = Subclass("FreeCameraController", CameraController, function(self, entity, config)
     self:initController(entity)
 
-    Input:setCursorVisible(false)
-
     config = config or {}
 
     -- Movement settings
     self.moveSpeed = config.moveSpeed or 20.0
     self.fastMultiplier = config.fastMultiplier or 5.0
     self.slowMultiplier = config.slowMultiplier or 0.1
-    self.mouseSensitivity = config.mouseSensitivity or 0.003
+    self.mouseSensitivity = config.mouseSensitivity or 1
     self.rollSpeed = config.rollSpeed or 2.0
 
     -- Rotation state
@@ -59,99 +57,71 @@ end)
 function FreeCameraController:onInput(dt)
     if not self.enabled or not Window:isFocused() then return end
 
-    local size = Window:size()
-    local center = Vec2f(size.x / 2, size.y / 2)
-    local mouseInverted = false
+    -- Axis invert configuration: 1 = normal, -1 = inverted
+    local invertX = -1
+    local invertY = -1
 
+    -- Toggle mouse capture
     if Input:mouse():isPressed(MouseControl.Right) then
         self.mouseCaptured = not self.mouseCaptured
     end
 
     if self.mouseCaptured then
+        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.Locked)
         Input:setCursorVisible(false)
 
-        local mousePos = Input:mouse():position()
-        local mouseDelta = Vec2f(0, 0)
+        local delta = Input:mouse():delta()
 
-        if self.lastMousePos then
-            mouseDelta = mousePos - self.lastMousePos
+        if delta:length() > 0.001 then
+            -- Apply inverted axes and sensitivity
+            local yawDelta   = delta.x * invertX * self.mouseSensitivity * dt
+            local pitchDelta = delta.y * invertY * self.mouseSensitivity * dt
+
+            self:rotate(yawDelta, pitchDelta, 0)
         end
-
-        if self.justCaptured then
-            mouseDelta = Vec2f(0, 0)
-            self.justCaptured = false
-        end
-
-        if mouseDelta:length() > 0.001 then
-            self:rotate(
-                (mouseInverted and mouseDelta.x or -mouseDelta.x) * self.mouseSensitivity,
-                (mouseInverted and mouseDelta.y or -mouseDelta.y) * self.mouseSensitivity,
-                0
-            )
-        end
-
-        -- When we just entered capture this frame, flag it and pretend we started at center
-        if self.mouseCaptured and not self.wasCapturedLastFrame then
-            self.justCaptured = true
-            self.lastMousePos = center
-        else
-            self.lastMousePos = mousePos
-        end
-
-        self.wasCapturedLastFrame = true
-
-        Window:setMousePosition(center.x, center.y)
-        self.lastMousePos = center --* NEED TO SET IT HERE ELSE IT JUMPS NEXT FRAME *
     else
+        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.None)
         Input:setCursorVisible(true)
-        self.wasCapturedLastFrame = false
-        self.justCaptured = false
-        self.lastMousePos = nil
     end
 
+
+    -- Roll control (optional)
     if self.allowRoll then
         if Input:keyboard():isDown(Button.KeyboardQ) then
-            self:rotate(0, 0, -self.rollSpeed * dt)
+            self:rotate(0, 0, -self.rollSpeed * dt) -- needs to be inverted
         end
         if Input:keyboard():isDown(Button.KeyboardE) then
-            self:rotate(0, 0, self.rollSpeed * dt)
+            self:rotate(0, 0, self.rollSpeed * dt) -- needs to be inverted
         end
     end
 
-    self.moveInput = Vec3f(0, 0, 0)
-    if Input:keyboard():isDown(Button.KeyboardW) then self.moveInput.z = self.moveInput.z + 1 end
-    if Input:keyboard():isDown(Button.KeyboardS) then self.moveInput.z = self.moveInput.z - 1 end
-    if Input:keyboard():isDown(Button.KeyboardA) then self.moveInput.x = self.moveInput.x - 1 end
-    if Input:keyboard():isDown(Button.KeyboardD) then self.moveInput.x = self.moveInput.x + 1 end
-    if Input:keyboard():isDown(Button.KeyboardSpace) then self.moveInput.y = self.moveInput.y + 1 end
-    if Input:keyboard():isDown(Button.KeyboardControlLeft) then self.moveInput.y = self.moveInput.y - 1 end
+    -- Movement input
+    local moveDir = Vec3f(0, 0, 0)
+    if Input:keyboard():isDown(Button.KeyboardW) then moveDir.z = moveDir.z + 1 end
+    if Input:keyboard():isDown(Button.KeyboardS) then moveDir.z = moveDir.z - 1 end
+    if Input:keyboard():isDown(Button.KeyboardA) then moveDir.x = moveDir.x - 1 end
+    if Input:keyboard():isDown(Button.KeyboardD) then moveDir.x = moveDir.x + 1 end
+    if Input:keyboard():isDown(Button.KeyboardSpace) then moveDir.y = moveDir.y + 1 end
+    if Input:keyboard():isDown(Button.KeyboardControlLeft) then moveDir.y = moveDir.y - 1 end
 
-    if self.moveInput:length() > 0.001 then
-        self.moveInput = self.moveInput:normalize()
+    if moveDir:length() > 0.001 then
+        moveDir = moveDir:normalize()
     end
 
-    self.speed = self.moveSpeed
-    if Input:keyboard():isDown(Button.KeyboardShiftLeft) then
-        self.speed = self.speed * self.fastMultiplier
-    end
-    if Input:keyboard():isDown(Button.KeyboardAltLeft) then
-        self.speed = self.speed * self.slowMultiplier
-    end
+    -- Speed modifiers
+    local speed = self.moveSpeed
+    if Input:keyboard():isDown(Button.KeyboardShiftLeft) then speed = speed * self.fastMultiplier end
+    if Input:keyboard():isDown(Button.KeyboardAltLeft) then speed = speed * self.slowMultiplier end
 
     -- Apply movement
-    if self.moveInput:length() > 0.001 then
-        self:move(self.moveInput, self.speed, dt)
+    if moveDir:length() > 0.001 then
+        self:move(moveDir, speed, dt)
     else
         self.velocity:ilerp(Vec3f(0, 0, 0), 1.0 - math.exp(-10.0 * dt))
         local pos = self:getPosition()
         pos = pos + Position(self.velocity.x * dt, self.velocity.y * dt, self.velocity.z * dt)
         self:setPosition(pos)
     end
-end
-
-function FreeCameraController:onPreRender(dt)
-    if not self.enabled then return end
-    -- Update camera position
 end
 
 ---Rotate the camera using quaternion rotations around local axes
@@ -251,6 +221,11 @@ end
 ---@param enabled boolean Whether to allow roll
 function FreeCameraController:setRollEnabled(enabled)
     self.allowRoll = enabled
+end
+
+function FreeCameraController:onPreRender(dt)
+    if not self.enabled then return end
+    -- Update camera position
 end
 
 return FreeCameraController

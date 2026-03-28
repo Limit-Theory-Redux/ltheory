@@ -109,6 +109,13 @@ impl MouseState {
 
         self.control_state.update()
     }
+
+    pub fn update_raw_delta(&mut self, dx: f32, dy: f32) -> bool {
+        // Directly set the axis values for delta without relying on absolute position.
+        self.axis_state.update(MouseControl::DeltaX as _, dx)
+            && self.axis_state.update(MouseControl::DeltaY as _, dy)
+            && self.control_state.update()
+    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]

@@ -21,8 +21,8 @@ function CameraDataComponent:init()
     -- self.rotT      = Quat.Identity()
     -- self.posOffset = Position()
     -- self.rotOffset = Quat.Identity()
-    -- self.zNear     = GameState.render.zNear
-    -- self.zFar      = GameState.render.zFar
+    self.zNear             = Config.render.camera.zNear
+    self.zFar              = Config.render.camera.zFar
     self.view              = Matrix.Identity()
     self.projection        = Matrix.Identity()
     self.viewInverse       = Matrix.Identity()

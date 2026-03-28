@@ -1,7 +1,7 @@
 -- Render Settings Moved from 'Render/RenderPipeline' --
 Config.render.general = {
-    superSampleRate       = 1,            -- 1: 1x, 2: 2x, 3: 4x
-    downSampleRate        = 4,
+    superSampleRate     = 1,   -- 1.0-2.0
+    downSampleRate      = 4,
     thrusterLights      = false,
     pulseLights         = false,
     fullscreen          = false,
@@ -10,18 +10,18 @@ Config.render.general = {
 }
 
 Config.render.window = {
-    defaultResX         = 1920,
-    defaultResY         = 1080,
+    defaultResX = 1920,
+    defaultResY = 1080,
 }
 
 --[[
 Both showBuffers and cullFace potentially Depricated
-]]--
+]]                               --
 Config.render.debug = {
-    showBuffers         = false,        -- Used Once in Rendering Pipeline, "Show Deferred Buffers"
+    showBuffers = false,         -- Used Once in Rendering Pipeline, "Show Deferred Buffers"
 }
 Config.render.renderState = {
-    cullFace            = false,        -- Used Once in Rendering Pipeline, "Backface Culling"
+    cullFace = false,            -- Used Once in Rendering Pipeline, "Backface Culling"
 }
 
 -- Settings Removed --

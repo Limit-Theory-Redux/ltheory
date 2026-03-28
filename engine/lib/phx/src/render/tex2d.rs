@@ -1,4 +1,4 @@
-use glam::IVec2;
+use glam::{IVec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{DataFormat, Draw, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
@@ -444,5 +444,60 @@ impl Tex2D {
             mode as _
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+    }
+
+    /// Sample a single pixel at integer coordinates (x, y)
+    /// Coordinates are in OpenGL convention: (0,0) = bottom-left
+    /// Returns Vec3f with RGB in [0.0, 1.0] range
+    #[bind(name = "Sample")]
+    fn sample_pixel(&self, x: i32, y: i32) -> Vec3 {
+        let this = self.shared.as_ref();
+        let size = this.size;
+
+        // Clamp coordinates
+        let x = x.clamp(0, size.x - 1);
+        let y = y.clamp(0, size.y - 1);
+
+        // Flip Y for OpenGL bottom-left origin
+        let gl_y = size.y - 1 - y;
+
+        // Temporary FBO
+        let mut fbo: u32 = 0;
+        glcheck!(gl::GenFramebuffers(1, &mut fbo));
+        glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, fbo));
+        glcheck!(gl::FramebufferTexture2D(
+            gl::FRAMEBUFFER,
+            gl::COLOR_ATTACHMENT0,
+            gl::TEXTURE_2D,
+            this.handle,
+            0
+        ));
+
+        if glcheck!(gl::CheckFramebufferStatus(gl::FRAMEBUFFER)) != gl::FRAMEBUFFER_COMPLETE {
+            glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));
+            glcheck!(gl::DeleteFramebuffers(1, &fbo));
+            warn!("Sample: Incomplete framebuffer");
+            return Vec3::new(0.0, 0.0, 0.0);
+        }
+
+        let mut pixel: [u8; 4] = [0; 4];
+        glcheck!(gl::ReadPixels(
+            x,
+            gl_y,
+            1,
+            1,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            pixel.as_mut_ptr() as *mut _
+        ));
+
+        glcheck!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));
+        glcheck!(gl::DeleteFramebuffers(1, &fbo));
+
+        Vec3::new(
+            pixel[0] as f32 / 255.0,
+            pixel[1] as f32 / 255.0,
+            pixel[2] as f32 / 255.0,
+        )
     }
 }

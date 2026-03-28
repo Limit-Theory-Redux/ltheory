@@ -12,6 +12,8 @@
 ---@field tex     Tex1D|Tex2D|Tex3D|TexCube
 ---@field texType UniformType
 ---@field texSettings TextureSetting
+---@overload fun(self: Texture, texName: string, tex: Tex1D|Tex2D|Tex3D|TexCube, texType: UniformType, texSettings: TextureSetting): Texture  class internal
+---@overload fun(texName: string, tex: Tex1D|Tex2D|Tex3D|TexCube, texType: UniformType, texSettings: TextureSetting): Texture  class external
 local Texture = Class("Texture", function(self, texName, tex, texType, texSettings)
     self.texName     = texName
     self.tex         = tex

@@ -35,22 +35,15 @@ function PlanetTest:onInit()
     Window:setFullscreen(false, true)
 
     self.seed = 0
-    self.ringRNG = RNG.FromTime()
+    self.rng = RNG.FromTime()
 
     -- Timers
     self.timer = DeltaTimer("PlanetTest")
-    self.timer:start("fps", 0.1)
 
     -- Double-click timer
     self.clickTimer = DeltaTimer("ClickTimer")
     self.clickCount = 0
     self.lastClickedBody = nil
-
-    -- FPS tracking
-    self.frameCount = 0
-    self.smoothFPS = 0
-    self.fpsText = "FPS: 0"
-    self.time = 0
 
     self.world = Physics.Create()
 
@@ -350,31 +343,58 @@ function PlanetTest:createMoons(seed, numMoons)
         local inclination = math.rad(moonRNG:getUniformRange(0, 180))
 
         -- Moon
-        local mesh = Primitive.IcoSphere(4)
-        local meshAtmo = Primitive.IcoSphere(4, 1.5)
+        local mesh = Primitive.IcoSphere(5)
+        local meshAtmo = Primitive.IcoSphere(5, 1.5)
         meshAtmo:computeNormals()
         meshAtmo:invert()
 
+        local bodies = {
+            { highland = Vec3f(0.72, 0.72, 0.72), maria = Vec3f(0.25, 0.25, 0.25) }, -- Moon
+            { highland = Vec3f(0.74, 0.72, 0.68), maria = Vec3f(0.28, 0.27, 0.24) }, -- Mercury
+            { highland = Vec3f(0.76, 0.74, 0.70), maria = Vec3f(0.30, 0.28, 0.25) }  -- Ceres
+        }
+
+        local body = moonRNG:choose(bodies)
+
+        -- Slight randomization
+        local function perturbColor(color, rng, amount)
+            return Vec3f(
+                Math.Clamp(color.x + rng:getUniformRange(-amount, amount), 0, 1),
+                Math.Clamp(color.y + rng:getUniformRange(-amount, amount), 0, 1),
+                Math.Clamp(color.z + rng:getUniformRange(-amount, amount), 0, 1)
+            )
+        end
+
         local moonOptions = {
-            craterDensity    = 4,
-            craterSharpness  = 1,
-            mariaAmount      = 0.3,
-            highlandColor    = Vec3f(0.7, 0.68, 0.65),
-            mariaColor       = Vec3f(0.25, 0.24, 0.23),
-            heightMult       = 0.03,
-            enableAtmosphere = true
+            craterDensity     = 0.1,
+            craterSharpness   = 0.47,
+            mariaAmount       = 0.45,
+            mountainHeight    = 1.0,
+            mountainScale     = 1.0,
+            proceduralBlend   = 0.85,
+            brightRayStrength = 0.40,
+
+            highlandColor     = perturbColor(body.highland, moonRNG, moonRNG:getUniformRange(0.002, 0.04)),
+            mariaColor        = perturbColor(body.maria, moonRNG, moonRNG:getUniformRange(0.002, 0.06)),
+            heightMult        = 0.045,
+            enableAtmosphere  = false
         }
 
         local texSurface = GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/moon', {
-            seed             = moonRNG:getUniform(),
-            craterDensity    = moonOptions.craterDensity,
-            craterSharpness  = moonOptions.craterSharpness,
-            mariaAmount      = moonOptions.mariaAmount,
-            highlandColor    = moonOptions.highlandColor,
-            mariaColor       = moonOptions.mariaColor,
-            heightMult       = moonOptions.heightMult,
-            enableAtmosphere = moonOptions.enableAtmosphere
+            seed              = moonRNG:getUniform(),
+            craterDensity     = moonOptions.craterDensity,
+            craterSharpness   = moonOptions.craterSharpness,
+            mariaAmount       = moonOptions.mariaAmount,
+            mountainHeight    = moonOptions.mountainHeight,
+            mountainScale     = moonOptions.mountainScale,
+            proceduralBlend   = moonOptions.proceduralBlend,
+            rayCraterStrength = moonOptions.rayCraterStrength,
+            brightRayStrength = moonOptions.brightRayStrength,
         })
+
+        texSurface:genMipmap()
+        texSurface:setMagFilter(TexFilter.Linear)
+        texSurface:setMinFilter(TexFilter.LinearMipLinear)
 
         local matPlanet = Materials.MoonSurface()
         matPlanet:setTexture("surface", texSurface)
@@ -494,15 +514,6 @@ function PlanetTest:onStatePreRender(data)
         self.lastClickedBody = nil
     end
 
-    self.frameCount = self.frameCount + 1
-    if self.timer:check("fps") then
-        local fpsInterval = 0.1
-        local instantFPS = self.frameCount / fpsInterval * (self.timeScale or 1)
-        self.smoothFPS = self.smoothFPS * 0.3 + instantFPS * 0.7
-        self.fpsText = "FPS: " .. math.floor(self.smoothFPS + 0.5)
-        self.frameCount = 0
-    end
-
     if self.dragReleaseTimer > 0 then
         self.dragReleaseTimer = math.max(0, self.dragReleaseTimer - dt)
     end
@@ -585,7 +596,8 @@ function PlanetTest:onRender(data)
         local camPos = camTransform and camTransform:getPos() or Position(0, 0, 0)
 
         local infoLines = {
-            string.format("FPS: %d", math.floor(self.smoothFPS + 0.5)),
+            string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
+            string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
             string.format("Seed: %d", self.seed),
             string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
             string.format("Orbit: Angle=%.1f° Pitch=%.1f° Radius=%.1f",
@@ -596,7 +608,12 @@ function PlanetTest:onRender(data)
             string.format("Ocean: %.2f | Clouds: %.2f",
                 self.genOptions.oceanLevel, self.genOptions.cloudLevel
             ),
-            string.format("Lua Memory: %.2f KB", mem)
+            string.format("Lua Memory: %.2f KB", mem),
+            -- GC debug info
+            string.format("GC Step Size: %d", GC.debug.stepSize),
+            string.format("GC Last Mem After Cleanup: %.2f KB", GC.debug.lastMem or 0),
+            string.format("GC Emergency: %s", GC.debug.emergencyTriggered and "YES" or "NO"),
+            string.format("GC Spread Frames: %d", GC.debug.spreadFrames)
         }
 
         local y = 40
@@ -842,7 +859,7 @@ function PlanetTest:onStateInput(data)
 
     -- Generate new planet
     if Input:isPressed(Button.KeyboardB) then
-        self.seed = self.ringRNG:get31()
+        self.seed = self.rng:get31()
         self:createPlanet(self.seed)
     end
 

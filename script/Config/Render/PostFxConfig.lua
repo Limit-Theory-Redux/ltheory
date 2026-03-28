@@ -1,31 +1,62 @@
--- Render Settings Moved from 'Render/RenderPipeline' --
---[[
-Given that all these Settings are by default already Disabled
-render.postfx is potentially fully depricated.
---]]
-Config.PostFx = {
-    abberation  = {
-        enable      = false,
-        strength    = 1             -- Float: 0 - 1      
+-- Alternative: Optimized for space games
+Config.render.postFx = {
+    aberration = {
+        enable   = true,
+        strength = 0.3
     },
-    bloom       = {
-        enable      = false,
-        radius      = 48            -- Float: 4 - 64
+    bloom = {
+        enable = true,
+        radius = 32
     },
-    radialblur  = {
-        enable      = false,
-        strength    = 1,            -- Float: 0 - 1
-        scanlines   = 1             -- Float: 0 - 1
+    radialblur = {
+        enable    = false,
+        strength  = 1.0,
+        scanlines = 1.0,
+        center    = { 0.5, 0.5 }
     },
-    sharpen     = false,            -- 
-    tonemap     = false,            -- Potentially Depricated
-    --[[
-    Vignette is currently unused in RenderPipeline
-    TODO: Decide on removal of renderPipeline:Vignette
-    vignette    = {
-        enable      = false,
-        strength    = 0.25,         -- Float: 0 - 1
-        hardness    = 20.0          -- Float: 2 - 32
+    sharpen = {
+        enable   = true,
+        strength = 0.5
+    },
+    tonemap = {
+        enable     = true,
+        mode       = Enums.Tonemappers.Illustris,
+        exposure   = 1.2,
+        autoExpose = {
+            enable    = false,
+            speedUp   = 0.5,
+            speedDown = 0.3,
+            minTarget = 0.4,
+            maxTarget = 2.5
+        }
+    },
+    colorgrade = {
+        enable      = true,
+        mode        = Enums.ColorGrades.Space,
+        preExposure = 1.2,
+        temperature = -0.05,
+        tint        = 0.0,
+        saturation  = 0.82,
+        contrast    = 1.0,
+        brightness  = 0.005,
+        vibrance    = 0.125,
+        lift        = { 0.0, 0.0, 0.01 },
+        gamma       = { 1.0, 1.0, 1.0 },
+        gain        = { 1.0, 1.0, 1.0 }
+    },
+    vignette = {
+        enable   = true,
+        strength = 0.35,
+        hardness = 17.0
+    },
+    fxaa = {
+        enable           = true,
+        strength         = 0.75,
+        edgeThreshold    = 0.125,
+        edgeThresholdMin = 0.0312
+    },
+    dither = {
+        enable   = true,
+        strength = 0.3
     }
-    --]]
 }

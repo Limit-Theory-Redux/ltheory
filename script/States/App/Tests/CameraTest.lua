@@ -16,6 +16,8 @@ local AsteroidRingEntity          = require('Modules.CelestialObjects.Entities.A
 local SkyboxEntity                = require("Modules.CelestialObjects.Entities.SkyboxEntity")
 local SpaceshipEntity             = require('Modules.Constructs.Entities.SpaceshipEntity')
 
+local ShipGenerator               = require("Modules.Constructs.Managers.Generators.ShipGenerator")
+
 local PhysicsComponents           = require("Modules.Physics.Components")
 local CelestialComponents         = require("Modules.CelestialObjects.Components")
 local CoreComponents              = require('Modules.Core.Components')
@@ -43,17 +45,6 @@ function CameraTest:onInit()
 
     self.seed = 0
     self.ringRNG = RNG.FromTime()
-
-    -- Timers
-    self.timer = DeltaTimer("CameraTest")
-    self.timer:start("fps", 0.1)
-
-    -- FPS tracking
-    self.frameCount = 0
-    self.smoothFPS = 0
-    self.fpsText = "FPS: 0"
-    self.time = 0
-
     self.world = Physics.Create()
 
     -- Skybox
@@ -239,26 +230,53 @@ function CameraTest:createMoons(seed, numMoons)
         meshAtmo:computeNormals()
         meshAtmo:invert()
 
+        local bodies = {
+            { highland = Vec3f(0.72, 0.72, 0.72), maria = Vec3f(0.25, 0.25, 0.25) }, -- Moon
+            { highland = Vec3f(0.74, 0.72, 0.68), maria = Vec3f(0.28, 0.27, 0.24) }, -- Mercury
+            { highland = Vec3f(0.76, 0.74, 0.70), maria = Vec3f(0.30, 0.28, 0.25) }  -- Ceres
+        }
+
+        local body = moonRNG:choose(bodies)
+
+        -- Slight randomization
+        local function perturbColor(color, rng, amount)
+            return Vec3f(
+                Math.Clamp(color.x + rng:getUniformRange(-amount, amount), 0, 1),
+                Math.Clamp(color.y + rng:getUniformRange(-amount, amount), 0, 1),
+                Math.Clamp(color.z + rng:getUniformRange(-amount, amount), 0, 1)
+            )
+        end
+
         local moonOptions = {
-            craterDensity    = 4,
-            craterSharpness  = 1,
-            mariaAmount      = 0.3,
-            highlandColor    = Vec3f(0.7, 0.68, 0.65),
-            mariaColor       = Vec3f(0.25, 0.24, 0.23),
-            heightMult       = 0.03,
-            enableAtmosphere = true
+            craterDensity     = 0.1,
+            craterSharpness   = 0.47,
+            mariaAmount       = 0.45,
+            mountainHeight    = 1.0,
+            mountainScale     = 1.0,
+            proceduralBlend   = 0.85,
+            brightRayStrength = 0.40,
+
+            highlandColor     = perturbColor(body.highland, moonRNG, moonRNG:getUniformRange(0.002, 0.04)),
+            mariaColor        = perturbColor(body.maria, moonRNG, moonRNG:getUniformRange(0.002, 0.06)),
+            heightMult        = 0.045,
+            enableAtmosphere  = false
         }
 
         local texSurface = GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/moon', {
-            seed             = moonRNG:getUniform(),
-            craterDensity    = moonOptions.craterDensity,
-            craterSharpness  = moonOptions.craterSharpness,
-            mariaAmount      = moonOptions.mariaAmount,
-            highlandColor    = moonOptions.highlandColor,
-            mariaColor       = moonOptions.mariaColor,
-            heightMult       = moonOptions.heightMult,
-            enableAtmosphere = moonOptions.enableAtmosphere
+            seed              = moonRNG:getUniform(),
+            craterDensity     = moonOptions.craterDensity,
+            craterSharpness   = moonOptions.craterSharpness,
+            mariaAmount       = moonOptions.mariaAmount,
+            mountainHeight    = moonOptions.mountainHeight,
+            mountainScale     = moonOptions.mountainScale,
+            proceduralBlend   = moonOptions.proceduralBlend,
+            rayCraterStrength = moonOptions.rayCraterStrength,
+            brightRayStrength = moonOptions.brightRayStrength,
         })
+
+        texSurface:genMipmap()
+        texSurface:setMagFilter(TexFilter.Linear)
+        texSurface:setMinFilter(TexFilter.LinearMipLinear)
 
         local matPlanet = Materials.MoonSurface()
         matPlanet:setTexture("surface", texSurface)
@@ -300,8 +318,6 @@ end
 function CameraTest:createShip(seed)
     local shipRNG = RNG.Create(seed + 54321)
 
-    local ShipGenerator = require("Modules.Constructs.Managers.ShipGenerator")
-
     self.ship = ShipGenerator:createFighter(seed, {
         position    = self.shipPos,
         scale       = 1,
@@ -322,16 +338,6 @@ end
 function CameraTest:onStatePreRender(data)
     local dt = data:deltaTime()
     local scaledDT = dt * (self.timeScale or 1)
-    self.timer:update(dt)
-
-    self.frameCount = self.frameCount + 1
-    if self.timer:check("fps") then
-        local fpsInterval = 0.1
-        local instantFPS = self.frameCount / fpsInterval * (self.timeScale or 1)
-        self.smoothFPS = self.smoothFPS * 0.3 + instantFPS * 0.7
-        self.fpsText = "FPS: " .. math.floor(self.smoothFPS + 0.5)
-        self.frameCount = 0
-    end
 
     -- Update moon orbits
     if self.moons then
@@ -373,12 +379,19 @@ function CameraTest:onRender(data)
         local yaw, pitch, roll = CameraManager:getActiveCameraEntity():get(CameraDataComponent):getController():getAngles()
 
         local infoLines = {
-            string.format("FPS: %d", math.floor(self.smoothFPS + 0.5)),
+            string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
+            string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
             string.format("Seed: %d", self.seed),
             string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
             string.format("Yaw: %.2f | Pitch: %.2f", math.deg(yaw), math.deg(pitch)),
+            string.format("FOV: %.1f", Config.render.camera.fov),
+
             string.format("Lua Memory: %.2f KB", mem),
-            string.format("FOV: %.1f", Config.render.camera.fov)
+            -- GC debug info
+            string.format("GC Step Size: %d", GC.debug.stepSize),
+            string.format("GC Last Mem After Cleanup: %.2f KB", GC.debug.lastMem or 0),
+            string.format("GC Emergency: %s", GC.debug.emergencyTriggered and "YES" or "NO"),
+            string.format("GC Spread Frames: %d", GC.debug.spreadFrames)
         }
 
         local y = 40
