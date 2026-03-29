@@ -12,6 +12,22 @@ function Cache.Clear()
     textures = {}
 end
 
+--- Hot-reload all cached shaders from disk.
+--- Returns the number of shaders successfully reloaded.
+function Cache.ReloadShaders()
+    local count = 0
+    local failed = 0
+    for key, shader in pairs(shaders) do
+        if shader:reload() then
+            count = count + 1
+        else
+            failed = failed + 1
+        end
+    end
+    Log.Info("Shader hot-reload: %d reloaded, %d failed", count, failed)
+    return count, failed
+end
+
 function Cache.File(path)
     if not File.Exists(path) then return nil end
     if files[path] then return files[path] end

@@ -14,6 +14,11 @@ function Shader.Create(vs, fs) end
 ---@return Shader
 function Shader.Load(vsName, fsName) end
 
+-- Reload shader from disk. Returns true on success.
+-- On compile/link failure, keeps the old shader and returns false.
+---@return boolean
+function Shader:reload() end
+
 ---@return string
 function Shader:name() end
 
