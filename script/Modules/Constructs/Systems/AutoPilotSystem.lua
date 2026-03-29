@@ -153,12 +153,97 @@ function AutoPilotSystem:update(dt, shipEntity)
 
     if not targetPos then self:disengage(shipEntity); return end
 
-    -- Calculate course
     local shipPos = rb:getPos()
-    local dx = targetPos.x - shipPos.x
-    local dy = targetPos.y - shipPos.y
-    local dz = targetPos.z - shipPos.z
-    local dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+    local speed = rb:getSpeed()
+
+    -- Compute target velocity from position delta (works for kinematic bodies moved by setPos)
+    local tVelX, tVelY, tVelZ = 0, 0, 0
+    if ap._prevTargetPos and dt > 0 then
+        tVelX = (targetPos.x - ap._prevTargetPos.x) / dt
+        tVelY = (targetPos.y - ap._prevTargetPos.y) / dt
+        tVelZ = (targetPos.z - ap._prevTargetPos.z) / dt
+        -- Smooth velocity (low-pass filter to reduce jitter)
+        local s = math.min(1, 5 * dt)
+        ap.targetVelX = ap.targetVelX + (tVelX - ap.targetVelX) * s
+        ap.targetVelY = ap.targetVelY + (tVelY - ap.targetVelY) * s
+        ap.targetVelZ = ap.targetVelZ + (tVelZ - ap.targetVelZ) * s
+    end
+    ap._prevTargetPos = Position(targetPos.x, targetPos.y, targetPos.z)
+
+    -- Lead prediction: aim where target WILL BE when we arrive
+    -- Skip leading once inside the target's gravity well (velocity matching handles it)
+    local GravityWellSystem = require("Modules.Physics.Systems.GravityWellSystem")
+    local inTargetZone = false
+    if targetEntity then
+        local zoneType = GravityWellSystem:getZoneType()
+        if zoneType == "planet" or zoneType == "moon" then
+            inTargetZone = true
+        end
+    end
+
+    local interceptPos = targetPos
+    local tSpeed = math.sqrt(ap.targetVelX^2 + ap.targetVelY^2 + ap.targetVelZ^2)
+    if tSpeed > 0.1 and not inTargetZone then
+        -- Use expected cruise speed for ETA, not current speed
+        -- Cruise = base flight speed × zone max drive multiplier
+        local maxDriveMult = GravityWellSystem:getMaxDriveSpeed()
+        local cfg = Config.game.shipFlight
+        local baseCruise = cfg.thrustForward / (rb:getMass() * cfg.linearDrag)
+        local expectedSpeed = math.max(speed, baseCruise * maxDriveMult * 0.5)
+
+        local tdx = targetPos.x - shipPos.x
+        local tdy = targetPos.y - shipPos.y
+        local tdz = targetPos.z - shipPos.z
+        local currentDist = math.sqrt(tdx*tdx + tdy*tdy + tdz*tdz)
+        local eta = currentDist / math.max(1, expectedSpeed)
+
+        -- Two-pass refinement
+        for _ = 1, 2 do
+            local lx = targetPos.x + ap.targetVelX * eta
+            local ly = targetPos.y + ap.targetVelY * eta
+            local lz = targetPos.z + ap.targetVelZ * eta
+            local ldx = lx - shipPos.x
+            local ldy = ly - shipPos.y
+            local ldz = lz - shipPos.z
+            eta = math.sqrt(ldx*ldx + ldy*ldy + ldz*ldz) / math.max(1, expectedSpeed)
+        end
+
+        -- Blend lead prediction: full lead when far, direct approach when close
+        local tdx = targetPos.x - shipPos.x
+        local tdy = targetPos.y - shipPos.y
+        local tdz = targetPos.z - shipPos.z
+        local rawDist = math.sqrt(tdx*tdx + tdy*tdy + tdz*tdz)
+        local leadBlend = math.min(1.0, rawDist / math.max(1, speed * 30))  -- fade over 30s travel
+
+        interceptPos = Position(
+            targetPos.x + ap.targetVelX * eta * leadBlend,
+            targetPos.y + ap.targetVelY * eta * leadBlend,
+            targetPos.z + ap.targetVelZ * eta * leadBlend)
+    end
+
+    -- Distance to ACTUAL target (for arrival check + drive decel)
+    local actualTargetPos = ap._prevTargetPos or targetPos
+    local adx = actualTargetPos.x - shipPos.x
+    local ady = actualTargetPos.y - shipPos.y
+    local adz = actualTargetPos.z - shipPos.z
+    local actualDist = math.sqrt(adx * adx + ady * ady + adz * adz)
+
+    -- Distance to intercept (for steering)
+    local idx = interceptPos.x - shipPos.x
+    local idy = interceptPos.y - shipPos.y
+    local idz = interceptPos.z - shipPos.z
+    local interceptDist = math.sqrt(idx * idx + idy * idy + idz * idz)
+
+    -- Store nav data on component for map/HUD
+    ap.interceptPos = interceptPos
+    ap.distance = actualDist
+    ap.eta = speed > 1 and actualDist / speed or 0
+
+    -- Use actual distance for arrival/drive logic, intercept for steering
+    local dist = actualDist
+
+    -- Navigate toward intercept point
+    targetPos = interceptPos
 
     -- Get target radius for safe distance
     local targetRadius = 0
@@ -201,7 +286,13 @@ function AutoPilotSystem:update(dt, shipEntity)
     end
 
     -- Compute DESIRED VELOCITY
-    local dirX, dirY, dirZ = dx / dist, dy / dist, dz / dist
+    -- Direction to intercept point (for steering)
+    local steerDx = targetPos.x - shipPos.x
+    local steerDy = targetPos.y - shipPos.y
+    local steerDz = targetPos.z - shipPos.z
+    local steerDist = math.sqrt(steerDx*steerDx + steerDy*steerDy + steerDz*steerDz)
+    if steerDist < 1 then steerDist = 1 end
+    local dirX, dirY, dirZ = steerDx / steerDist, steerDy / steerDist, steerDz / steerDist
 
     -- Desired speed: deceleration curve
     local maxDecel = cfg.thrustForward / rb:getMass()
@@ -253,33 +344,31 @@ function AutoPilotSystem:update(dt, shipEntity)
         )))
     end
 
-    -- Travel drive management — distance-based speed limiting
+    -- Travel drive management
+    -- Key rule: disengage threshold must always be < engage threshold to prevent loops
     local drive = shipEntity:get(ConstructComponents.TravelDrive)
-    -- Disengage travel drive at 10k km (1000 game units) from target
-    local driveDisengageDist = math.max(safeRange * 5, 1000)
     if drive then
-        if dist < driveDisengageDist and drive:isActive() then
-            drive:setState("decelerating")
-        end
-
-        -- Smoothly cap drive multiplier based on distance to target
-        if drive:isActive() and dist > driveDisengageDist then
-            -- Max multiplier proportional to distance: ensures smooth decel
-            local maxMult = math.max(1, dist * 0.005)
-            if drive:getCurrentMult() > maxMult then
-                drive:setCurrentMult(math.max(maxMult, drive:getCurrentMult() * 0.9))
-            end
-        end
-
+        local driveCfg = Config.game.travelDrive
         local autoPilotCfg = Config.game.autoPilot or {}
         local travelDriveDelay = autoPilotCfg.travelDriveDelay or 5.0
         local enableTravelDrive = autoPilotCfg.enableTravelDrive ~= false
 
+        -- Fixed thresholds based on safe range:
+        -- Disengage when remaining distance can be covered in ~5s at current speed
+        local driveDisengageDist = math.max(safeRange * 5, speed * 5)
+        -- Engage only when significantly further (3x disengage, minimum 20x safe)
+        local driveEngageDist = math.max(safeRange * 20, driveDisengageDist * 3)
+
+        -- Disengage drive when close enough
+        if drive:isActive() and dist < driveDisengageDist then
+            drive:setState("decelerating")
+        end
+
+        -- Engage drive when far enough and after delay
         local elapsed = ap:getElapsed() + dt
         ap:setElapsed(elapsed)
 
-        if enableTravelDrive and elapsed > travelDriveDelay
-           and dist > driveDisengageDist * 2 then
+        if enableTravelDrive and elapsed > travelDriveDelay and dist > driveEngageDist then
             if not drive:isActive() and drive:getState() == "idle" then
                 drive:setState("charging")
                 drive:setChargeTime(0)

@@ -445,8 +445,10 @@ function UniverseManager:_generatePlanet(rng, cfg, context)
     planet:add(CoreComponents.Type(planetType))
     planet:add(SpatialComponents.Orbit(orbitalRadiusGame))
     planet:add(CelestialComponents.Temperature(temp))
-    planet:get(PhysicsComponents.Transform):setScale(self.scaleConfig:earthRadiiToGameUnits(size, "planet"))
+    local planetScaleGame = self.scaleConfig:earthRadiiToGameUnits(size, "planet")
+    planet:get(PhysicsComponents.Transform):setScale(planetScaleGame)
     planet:get(PhysicsComponents.Transform):setPos(planetAbsPos)
+    context:set("planetScale", planetScaleGame)
     planet:add(CelestialComponents.Gravity(gravity))
     planet:add(CelestialComponents.RotationPeriod(period))
     planet:add(CelestialComponents.Eccentricity(context:get("eccentricity")))
@@ -479,7 +481,11 @@ function UniverseManager:_generatePlanet(rng, cfg, context)
 
     local asteroidRingType = RuleEvaluator.evaluate(pRNG, cfg.asteroidRings.aspects.type, context)
     if asteroidRingType and asteroidRingType ~= Enums.Gen.AsteroidRingTypes.None then
+        -- Set parent position to planet for ring placement
+        local savedParentPos = context:get("parentPosition")
+        context:set("parentPosition", planetAbsPos)
         local ring = self:_generateAsteroidRing(pRNG, cfg, context)
+        context:set("parentPosition", savedParentPos) -- restore
         if ring then
             Registry:attachEntity(planet, ring)
         end
@@ -671,12 +677,18 @@ function UniverseManager:_generateAsteroidRing(rng, cfg, context)
     local ringInclination = parentIncl + rRNG:getUniformRange(-3, 3)
     context:set("ringInclination", ringInclination)
 
-    local ringPos = Position(self.scaleConfig:auToGameUnits(orbitRadius, "planet"), 0, 0)
-    ring:get(PhysicsComponents.Transform):setPos(ringPos)
+    -- Ring orbits around the planet, not the star.
+    -- Use planet scale * multiplier for ring radius (like Saturn's rings = ~1.5-3x planet radius)
+    local parentPos = context:get("parentPosition") or Position(0, 0, 0)
+    local planetScale = context:get("planetScale") or 1000
+    local ringRadius = planetScale * (2.0 + rRNG:getUniform() * 3.0)  -- 2-5x planet radius
+    -- Ring entity sits at planet center (no Orbit component — ring radius stored on AsteroidBeltComponent)
+    ring:get(PhysicsComponents.Transform):setPos(parentPos)
     ring:add(CoreComponents.Type(composition.type))
     ring:add(CelestialComponents.Composition(composition))
     ring:add(CelestialComponents.Density(density))
-    ring:add(SpatialComponents.Width(self.scaleConfig:auToGameUnits(widthAU, "ring")))
+    local ringWidthGame = math.min(self.scaleConfig:auToGameUnits(widthAU, "planet"), ringRadius * 0.5)
+    ring:add(SpatialComponents.Width(ringWidthGame))
     ring:add(SpatialComponents.Inclination(ringInclination))
 
     return ring

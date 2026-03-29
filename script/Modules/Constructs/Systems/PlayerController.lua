@@ -227,6 +227,9 @@ function PlayerController:update(dt)
     end
     TravelDriveSystem:update(dt, self.ship)
 
+    -- AutoPilot always updates (even with map open — ship keeps navigating)
+    AutoPilotSystem:update(dt, self.ship)
+
     -- Don't process other input when blocked (map open, menu, etc.)
     if self.inputBlocked then return end
 
@@ -235,9 +238,6 @@ function PlayerController:update(dt)
     if GeneralActions.CycleCamera:isPressed() then
         self:cycleMode()
     end
-
-    -- AutoPilot overrides manual flight
-    AutoPilotSystem:update(dt, self.ship)
 
     -- Manual flight only when piloting AND not on autopilot
     if self:isPiloting() and not AutoPilotSystem:isActive(self.ship) then

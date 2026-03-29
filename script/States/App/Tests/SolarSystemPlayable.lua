@@ -187,6 +187,9 @@ function SolarSystemPlayable:_collectEntities(entity, parentPos)
     elseif name:find("AsteroidBeltEntity") then
         label = "Asteroid Belt"
         table.insert(self.beltEntities, entity)
+    elseif name:find("AsteroidRingEntity") then
+        label = "Asteroid Ring"
+        table.insert(self.beltEntities, entity)  -- reuse belt entity list for spawning
     end
 
     local entityPos = parentPos
@@ -218,19 +221,15 @@ function SolarSystemPlayable:spawnPlayerShip()
     local cfg = self.cfg
     local flightCfg = Config.game.shipFlight
 
-    -- Spawn inside asteroid belt if one exists, otherwise near first planet
+    -- Spawn near first planet (default) or inside asteroid belt for testing
     local spawnPos = Position(0, 0, 0)
-    if #self.beltEntities > 0 then
-        local beltCmp = self.beltEntities[1]:get(CelestialComponents.AsteroidBelt)
-        if beltCmp and beltCmp:getOrbitRadius() > 0 then
-            -- Spawn at the first asteroid's position
-            local data = beltCmp:getAsteroidData()
-            if data and #data > 0 then
-                local a = data[1]
-                spawnPos = Position(a.px, a.py + 500, a.pz)
-                Log.Info("Spawning ship near asteroid 1 at (%.0f, %.0f, %.0f)", a.px, a.py, a.pz)
-            end
-        end
+    if #self.planets > 0 then
+        local planet = self.planets[1]
+        local transform = planet:get(PhysicsComponents.Transform)
+        local planetPos = transform:getPos()
+        local planetScale = transform:getScale()
+        local offset = planetScale * cfg.shipSpawnOffset
+        spawnPos = Position(planetPos.x + offset, planetPos.y + offset * 0.5, planetPos.z)
     elseif #self.planets > 0 then
         local planet = self.planets[1]
         local transform = planet:get(PhysicsComponents.Transform)
@@ -341,16 +340,19 @@ function SolarSystemPlayable:onRender(data)
                 -- Feed autopilot target to map for nav line display
                 local ap = self.playerShip:get(ConstructComponents.AutoPilot)
                 if ap and ap:isActive() then
-                    local _, _ = AutoPilotSystem:getDistanceAndSpeed(self.playerShip)
+                    -- Actual target position (nav target marker)
                     local tPos = ap:getTargetPos()
                     local tEnt = ap:getTargetEntity()
                     if tEnt then
                         local tRb = tEnt:get(PhysicsComponents.RigidBody)
                         if tRb and tRb:getRigidBody() then tPos = tRb:getRigidBody():getPos() end
                     end
-                    self.mapState.autopilotPos = tPos
+                    self.mapState.autopilotTargetPos = tPos
+                    -- Intercept position (predicted flight path)
+                    self.mapState.autopilotPos = ap.interceptPos or tPos
                 else
                     self.mapState.autopilotPos = nil
+                    self.mapState.autopilotTargetPos = nil
                 end
                 SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
                 SystemMap:draw(self.mapState, 0, 0, Window:width(), Window:height())
@@ -376,6 +378,8 @@ function SolarSystemPlayable:onInput(data)
         self.map3DState.enabled = (self.mapMode == 2)
 
         if self.mapMode == 1 then
+            self.mapState._entityListBuilt = false
+            self.mapState._dotCache = nil
             SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
             CursorManager:free()
         elseif self.mapMode == 2 then
@@ -457,6 +461,22 @@ function SolarSystemPlayable:onStateSim(data)
     local dt = data:deltaTime()
 
     OrbitalSystem:update(self.orbiters, dt)
+
+    -- Update ring entity positions to follow their parent planets
+    for _, beltEntity in ipairs(self.beltEntities) do
+        local parentCmp = beltEntity:get(CoreComponents.Parent)
+        if parentCmp and parentCmp:getParent() then
+            local parent = parentCmp:getParent()
+            local pRb = parent:get(PhysicsComponents.RigidBody)
+            if pRb and pRb:getRigidBody() then
+                local parentPos = pRb:getRigidBody():getPos()
+                local transform = beltEntity:get(PhysicsComponents.Transform)
+                if transform then
+                    transform:setPos(parentPos)
+                end
+            end
+        end
+    end
     GravityWellSystem:update(dt, self.playerShip)
     AsteroidFieldSystem:update(dt, self.beltEntities, self.world)
     SystemMap3D:updateTrails(self.map3DState, dt)
@@ -496,6 +516,8 @@ function SolarSystemPlayable:regenerate()
     -- Rebuild orbital + map + gravity well data
     self.orbiters = OrbitalSystem:collectOrbiters(self.universe)
     GravityWellSystem:collectZones(self.universe)
+    self.mapState._entityListBuilt = false
+    self.mapState._dotCache = nil
     SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
     SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
 end

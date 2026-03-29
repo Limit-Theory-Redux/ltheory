@@ -14,6 +14,9 @@ function Mesh:clone() end
 ---@return Mesh
 function Mesh.Load(name) end
 
+---@param path string
+function Mesh:save(path) end
+
 ---@return Bytes
 function Mesh:toBytes() end
 
