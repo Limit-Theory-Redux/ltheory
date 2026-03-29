@@ -21,6 +21,7 @@ function Loader.defineType()
             Mesh*   Mesh_Create            ();
             Mesh*   Mesh_Clone             (Mesh const*);
             Mesh*   Mesh_Load              (cstr name);
+            void    Mesh_Save              (Mesh const*, cstr path);
             Bytes*  Mesh_ToBytes           (Mesh const*);
             Mesh*   Mesh_FromBytes         (Bytes* buf);
             Mesh*   Mesh_FromObj           (cstr bytes);
@@ -112,6 +113,7 @@ function Loader.defineType()
                     local _instance = libphx.Mesh_Clone(self)
                     return Core.ManagedObject(_instance, libphx.Mesh_Free)
                 end,
+                save              = libphx.Mesh_Save,
                 toBytes           = function(self)
                     local _instance = libphx.Mesh_ToBytes(self)
                     return Core.ManagedObject(_instance, libphx.Bytes_Free)

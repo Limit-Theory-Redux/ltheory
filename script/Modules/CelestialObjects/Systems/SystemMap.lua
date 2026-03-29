@@ -42,24 +42,46 @@ end
 ---@param rootEntity Entity
 ---@param shipEntity Entity|nil
 function SystemMap:collectEntities(state, rootEntity, shipEntity)
-    state.entities = {}
-    state.shipEntity = shipEntity
-    state._planetIdx = 0
-    self:_walk(state, rootEntity, nil)
+    -- Full tree walk only on first call or explicit invalidation
+    if not state._entityListBuilt then
+        state.entities = {}
+        state.shipEntity = shipEntity
+        state._planetIdx = 0
+        self:_walk(state, rootEntity, nil)
 
-    -- Add ship
-    if shipEntity then
-        local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
+        -- Add ship
+        if shipEntity then
+            local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
+            if rbCmp and rbCmp:getRigidBody() then
+                local pos = rbCmp:getRigidBody():getPos()
+                table.insert(state.entities, {
+                    entity = shipEntity,
+                    label  = "Player Ship",
+                    pos    = pos,
+                    scale  = rbCmp:getRigidBody():getBoundingRadius(),
+                    color  = { 0.2, 1.0, 0.2 },
+                    size   = 6,
+                })
+            end
+        end
+        state._entityListBuilt = true
+    end
+
+    -- Cheap per-frame position update (no tree walk)
+    for _, entry in ipairs(state.entities) do
+        local rbCmp = entry.entity:get(PhysicsComponents.RigidBody)
         if rbCmp and rbCmp:getRigidBody() then
-            local pos = rbCmp:getRigidBody():getPos()
-            table.insert(state.entities, {
-                entity = shipEntity,
-                label  = "Player Ship",
-                pos    = pos,
-                scale  = rbCmp:getRigidBody():getBoundingRadius(),
-                color  = { 0.2, 1.0, 0.2 },
-                size   = 6,
-            })
+            entry.pos = rbCmp:getRigidBody():getPos()
+        elseif not entry.isBelt then
+            local transform = entry.entity:get(PhysicsComponents.Transform)
+            if transform then entry.pos = transform:getPos() end
+        end
+        -- Update parent position too (for rings/moons)
+        if entry.parentPos and entry._parentEntity then
+            local pRb = entry._parentEntity:get(PhysicsComponents.RigidBody)
+            if pRb and pRb:getRigidBody() then
+                entry.parentPos = pRb:getRigidBody():getPos()
+            end
         end
     end
 
@@ -93,7 +115,7 @@ end
 ---@param entity Entity
 ---@param parentPos Position|nil
 ---@param parentPos Position|nil
-function SystemMap:_walk(state, entity, parentPos)
+function SystemMap:_walk(state, entity, parentPos, parentEntity)
     local name = tostring(entity)
     local transform = entity:get(PhysicsComponents.Transform)
 
@@ -125,6 +147,11 @@ function SystemMap:_walk(state, entity, parentPos)
             color = { 0.7, 0.5, 0.3 }
             pointSize = 3
             isBelt = true
+        elseif name:find("AsteroidRingEntity") then
+            label = "Asteroid Ring"
+            color = { 0.6, 0.5, 0.4 }
+            pointSize = 3
+            isBelt = true  -- reuse belt rendering logic (annulus + dots)
         elseif name:find("AsteroidEntity") then
             label = "Asteroid"
             color = { 0.7, 0.5, 0.3 }
@@ -140,6 +167,11 @@ function SystemMap:_walk(state, entity, parentPos)
 
             local orbitCmp = entity:get(SpatialComponents.Orbit)
             local orbitRadius = orbitCmp and orbitCmp:getOrbitRadius() or 0
+            -- For rings without Orbit component, read from AsteroidBeltComponent
+            if orbitRadius == 0 and isBelt then
+                local beltCmp = entity:get(CelestialComponents.AsteroidBelt)
+                if beltCmp then orbitRadius = beltCmp:getOrbitRadius() end
+            end
 
             table.insert(state.entities, {
                 entity      = entity,
@@ -153,21 +185,24 @@ function SystemMap:_walk(state, entity, parentPos)
                 isBelt      = isBelt,
                 beltWidth   = isBelt and (entity:get(SpatialComponents.Width) and entity:get(SpatialComponents.Width):getWidth() or 0) or nil,
                 parentPos   = parentPos,
+                _parentEntity = parentEntity,
             })
         end
 
-        -- Children use this entity's position as parent
-        local childrenCmp = entity:get(CoreComponents.Children)
-        if childrenCmp then
-            for child in childrenCmp:iterChildren() do
-                self:_walk(state, child, pos)
+        -- Don't recurse into belt/ring children (spawned asteroids handled by dot mesh)
+        if not isBelt then
+            local childrenCmp = entity:get(CoreComponents.Children)
+            if childrenCmp then
+                for child in childrenCmp:iterChildren() do
+                    self:_walk(state, child, pos, entity)
+                end
             end
         end
     else
         local childrenCmp = entity:get(CoreComponents.Children)
         if childrenCmp then
             for child in childrenCmp:iterChildren() do
-                self:_walk(state, child, parentPos)
+                self:_walk(state, child, parentPos, parentEntity)
             end
         end
     end
@@ -222,6 +257,14 @@ function SystemMap:updateInput(state, dt)
 
     -- Follow selected: use clickPos (belt nav target) or entity position
     if state.selected and not state.dragging then
+        -- Update clickPos for ring asteroids (parent planet moves)
+        if state.selected._clickLocalX and state.selected.parentPos then
+            state.selected.clickPos = Position(
+                state.selected.parentPos.x + state.selected._clickLocalX,
+                0,
+                state.selected.parentPos.z + state.selected._clickLocalZ)
+        end
+
         local targetPanX, targetPanY
         if state.selected.clickPos then
             targetPanX = -state.selected.clickPos.x
@@ -261,33 +304,41 @@ function SystemMap:updateInput(state, dt)
                 -- Check individual asteroid dots first (higher priority)
                 local beltCmp = entry.entity:get(CelestialComponents.AsteroidBelt)
                 local beltScreenR = entry.orbitRadius * state.zoom
+                -- Center on parent (planet for rings, star for belts)
+                local ocx, ocy
+                if entry.parentPos then
+                    ocx = hx + (entry.parentPos.x + state.panX) * state.zoom
+                    ocy = hy + (entry.parentPos.z + state.panY) * state.zoom
+                else
+                    ocx = hx + state.panX * state.zoom
+                    ocy = hy + state.panY * state.zoom
+                end
+
+                -- Check individual asteroid dots (only when zoomed in very close)
                 if beltCmp and beltScreenR > math.min(Window:width(), Window:height()) * 2 then
                     local asteroids = beltCmp:getAsteroidData()
-                    local dotOcx = hx + state.panX * state.zoom
-                    local dotOcy = hy + state.panY * state.zoom
-                    -- Use angular buckets for fast lookup near mouse
-                    local mdxB = (mp.x - dotOcx)
-                    local mdyB = (mp.y - dotOcy)
+                    local mdxB = mp.x - ocx
+                    local mdyB = mp.y - ocy
                     local mouseAngle = math.atan2(mdyB, mdxB)
                     local indices = beltCmp:getAsteroidsInAngleRange(mouseAngle - 0.1, mouseAngle + 0.1)
                     local bestAsteroidDist = 400
                     for _, i in ipairs(indices) do
                         local a = asteroids[i]
-                        local ax = dotOcx + a.px * state.zoom
-                        local ay = dotOcy + a.pz * state.zoom
+                        local ax = ocx + a.px * state.zoom
+                        local ay = ocy + a.pz * state.zoom
                         local ad = (mp.x - ax)^2 + (mp.y - ay)^2
                         if ad < bestAsteroidDist and ad < bestDist then
                             bestDist = ad
                             bestEntry = entry
-                            bestClickPos = Position(a.px, a.py, a.pz)
+                            local ctrX = entry.parentPos and entry.parentPos.x or 0
+                            local ctrZ = entry.parentPos and entry.parentPos.z or 0
+                            bestClickPos = Position(ctrX + a.px, a.py, ctrZ + a.pz)
                             bestAsteroidDist = ad
                         end
                     end
                 end
 
-                -- Belt ring fallback (lower priority)
-                local ocx = hx + state.panX * state.zoom
-                local ocy = hy + state.panY * state.zoom
+                -- Annulus ring click fallback
                 local mdx = mp.x - ocx
                 local mdy = mp.y - ocy
                 local mouseDistFromCenter = math.sqrt(mdx * mdx + mdy * mdy)
@@ -300,10 +351,13 @@ function SystemMap:updateInput(state, dt)
                     if d < bestDist then
                         bestDist = d
                         local angle = math.atan2(mdy, mdx)
-                        local clickWorldX = math.cos(angle) * entry.orbitRadius
-                        local clickWorldZ = math.sin(angle) * entry.orbitRadius
+                        local centerX = entry.parentPos and entry.parentPos.x or 0
+                        local centerZ = entry.parentPos and entry.parentPos.z or 0
                         bestEntry = entry
-                        bestClickPos = Position(clickWorldX, 0, clickWorldZ)
+                        bestClickPos = Position(
+                            centerX + math.cos(angle) * entry.orbitRadius,
+                            0,
+                            centerZ + math.sin(angle) * entry.orbitRadius)
                     end
                 end
             else
@@ -321,7 +375,15 @@ function SystemMap:updateInput(state, dt)
             ::next_click::
         end
         if bestEntry then
-            bestEntry.clickPos = bestClickPos  -- world position for belt clicks
+            bestEntry.clickPos = bestClickPos
+            -- Store local offset for per-frame position update on moving rings
+            if bestClickPos and bestEntry.parentPos then
+                bestEntry._clickLocalX = bestClickPos.x - bestEntry.parentPos.x
+                bestEntry._clickLocalZ = bestClickPos.z - bestEntry.parentPos.z
+            else
+                bestEntry._clickLocalX = nil
+                bestEntry._clickLocalZ = nil
+            end
         end
         state.selected = bestEntry
     end
@@ -366,77 +428,141 @@ function SystemMap:draw(state, x, y, sx, sy)
                     and { r = 0.6, g = 0.6, b = 0.7, a = 0.2 }
                     or  { r = 0.8, g = 0.8, b = 0.9, a = 0.35 }
 
-                -- Use ring shader directly with properly sized quad (2*r, not r)
                 local r = ringScreenRadius
-                local pad = 8
-                local shader = Cache.Shader('ui', 'ui/ring')
-                RenderState.PushBlendMode(BlendMode.Alpha)
-                shader:start()
-                shader:setFloat('radius', r)
-                shader:setFloat2('size', 2 * r + 2 * pad, 2 * r + 2 * pad)
-                shader:setFloat4('color', c.r, c.g, c.b, c.a)
-                shader:setInt('glow', 0)
-                Draw.Rect(ocx - r - pad, ocy - r - pad, 2 * r + 2 * pad, 2 * r + 2 * pad)
-                shader:stop()
-                RenderState.PopBlendMode()
+                -- Skip if ring quad is off screen or too large
+                local maxQuadSize = math.max(sx, sy) * 4
+                if r * 2 < maxQuadSize
+                   and ocx + r > x and ocx - r < x + sx
+                   and ocy + r > y and ocy - r < y + sy then
+                    local pad = 8
+                    local shader = Cache.Shader('ui', 'ui/ring')
+                    RenderState.PushBlendMode(BlendMode.Alpha)
+                    shader:start()
+                    shader:setFloat('radius', r)
+                    shader:setFloat2('size', 2 * r + 2 * pad, 2 * r + 2 * pad)
+                    shader:setFloat4('color', c.r, c.g, c.b, c.a)
+                    shader:setInt('glow', 0)
+                    Draw.Rect(ocx - r - pad, ocy - r - pad, 2 * r + 2 * pad, 2 * r + 2 * pad)
+                    shader:stop()
+                    RenderState.PopBlendMode()
+                end
             end
         end
     end
 
-    -- Draw asteroid belt as solid filled annulus
+    -- Draw asteroid belt/ring as solid filled annulus
     for _, entry in ipairs(state.entities) do
         if entry.isBelt and entry.orbitRadius and entry.orbitRadius > 0 then
             local beltScreenRadius = entry.orbitRadius * state.zoom
             local beltWidth = (entry.beltWidth or entry.orbitRadius * 0.1) * state.zoom
             if beltScreenRadius > 2 then
-                local ocx = cx + state.panX * state.zoom
-                local ocy = cy + state.panY * state.zoom
+                local ocx, ocy
+                if entry.parentPos then
+                    ocx = cx + (entry.parentPos.x + state.panX) * state.zoom
+                    ocy = cy + (entry.parentPos.z + state.panY) * state.zoom
+                else
+                    ocx = cx + state.panX * state.zoom
+                    ocy = cy + state.panY * state.zoom
+                end
 
                 local innerR = math.max(1, beltScreenRadius - beltWidth * 0.5)
                 local outerR = beltScreenRadius + beltWidth * 0.5
-                local pad = 4
-                local totalSize = 2 * outerR + 2 * pad
 
-                local shader = Cache.Shader('ui', 'ui/annulus')
-                RenderState.PushBlendMode(BlendMode.Alpha)
-                shader:start()
-                shader:setFloat('innerRadius', innerR)
-                shader:setFloat('outerRadius', outerR)
-                shader:setFloat2('size', totalSize, totalSize)
-                shader:setFloat4('color', 0.7, 0.5, 0.3, 0.25)
-                Draw.Rect(ocx - outerR - pad, ocy - outerR - pad, totalSize, totalSize)
-                shader:stop()
-                RenderState.PopBlendMode()
-            end
-
-            -- Draw individual asteroid dots when zoomed in far enough
-            -- Show all asteroid dots when zoomed in
-            local beltCmp2 = entry.entity:get(CelestialComponents.AsteroidBelt)
-            local screenMinDim = math.min(sx, sy)
-            if beltCmp2 and beltScreenRadius > screenMinDim * 2 then
-                local asteroids = beltCmp2:getAsteroidData()
-                local dotOcx = cx + state.panX * state.zoom
-                local dotOcy = cy + state.panY * state.zoom
-                local sz = 2
-                local dotColor = Color(0.8, 0.6, 0.3, 0.7)
-                for i = 1, #asteroids do
-                    local a = asteroids[i]
-                    local ax = dotOcx + a.px * state.zoom
-                    local ay = dotOcy + a.pz * state.zoom
-                    if ax >= x - 2 and ax <= x + sx + 2 and ay >= y - 2 and ay <= y + sy + 2 then
-                        DrawEx.SimpleRect(ax - 1, ay - 1, sz, sz, dotColor)
+                -- Skip if annulus quad is entirely off screen
+                if ocx + outerR > x and ocx - outerR < x + sx
+                   and ocy + outerR > y and ocy - outerR < y + sy then
+                    -- Cap quad size to avoid GPU fillrate issues on huge rings
+                    local maxQuadSize = math.max(sx, sy) * 4
+                    if outerR * 2 < maxQuadSize then
+                        local pad = 4
+                        local totalSize = 2 * outerR + 2 * pad
+                        local shader = Cache.Shader('ui', 'ui/annulus')
+                        RenderState.PushBlendMode(BlendMode.Alpha)
+                        shader:start()
+                        shader:setFloat('innerRadius', innerR)
+                        shader:setFloat('outerRadius', outerR)
+                        shader:setFloat2('size', totalSize, totalSize)
+                        shader:setFloat4('color', entry.color[1], entry.color[2], entry.color[3], 0.25)
+                        Draw.Rect(ocx - outerR - pad, ocy - outerR - pad, totalSize, totalSize)
+                        shader:stop()
+                        RenderState.PopBlendMode()
                     end
                 end
             end
 
+            -- Draw individual asteroid dots — only when ring is visible on screen
+            local beltCmp2 = entry.entity:get(CelestialComponents.AsteroidBelt)
+            -- Rings: show dots like moons (orbit > 20px). Belts: only at very high zoom.
+            local isRing = entry.parentPos ~= nil
+            local dotThreshold = isRing and 20 or (math.min(sx, sy) * 2)
+            if beltCmp2 and beltScreenRadius > dotThreshold then
+                local dotOcx, dotOcy
+                if entry.parentPos then
+                    dotOcx = cx + (entry.parentPos.x + state.panX) * state.zoom
+                    dotOcy = cy + (entry.parentPos.z + state.panY) * state.zoom
+                else
+                    dotOcx = cx + state.panX * state.zoom
+                    dotOcy = cy + state.panY * state.zoom
+                end
+
+                -- Skip if ring center is far off screen (no dots visible)
+                local rOuter = beltScreenRadius + (entry.beltWidth or 0) * state.zoom * 0.5
+                if dotOcx + rOuter < x or dotOcx - rOuter > x + sx
+                    or dotOcy + rOuter < y or dotOcy - rOuter > y + sy then
+                    goto skip_dots
+                end
+
+                -- Static dot mesh — built ONCE per belt/ring, never rebuilt
+                local asteroids = beltCmp2:getAsteroidData()
+                local cacheKey = tostring(entry.entity)
+                if not state._dotCache then state._dotCache = {} end
+                local cache = state._dotCache[cacheKey]
+
+                if not cache then
+                    -- Build mesh once with world-space positions (asteroid local x,z)
+                    local dotMesh = Mesh.Create()
+                    local dotCount = 0
+                    for i = 1, #asteroids do
+                        local a = asteroids[i]
+                        -- All 4 verts at same world pos; UV encodes corner (0/1)
+                        local vi = dotCount * 4
+                        dotMesh:addVertex(a.px, a.pz, 0, 0, 0, 1, 0, 0)
+                        dotMesh:addVertex(a.px, a.pz, 0, 0, 0, 1, 1, 0)
+                        dotMesh:addVertex(a.px, a.pz, 0, 0, 0, 1, 1, 1)
+                        dotMesh:addVertex(a.px, a.pz, 0, 0, 0, 1, 0, 1)
+                        dotMesh:addQuad(vi, vi + 1, vi + 2, vi + 3)
+                        dotCount = dotCount + 1
+                    end
+                    state._dotCache[cacheKey] = { mesh = dotMesh, count = dotCount }
+                    cache = state._dotCache[cacheKey]
+                end
+
+                if cache.count > 0 then
+                    local dotShader = Cache.Shader('mappoints', 'ui/mappoints')
+                    RenderState.PushBlendMode(BlendMode.Alpha)
+                    dotShader:start()
+                    dotShader:setFloat4('color', 0.8, 0.6, 0.3, 0.7)
+                    dotShader:setFloat2('mapOffset', dotOcx, dotOcy)
+                    dotShader:setFloat('mapZoom', state.zoom)
+                    dotShader:setFloat2('screenSize', sx, sy)
+                    dotShader:setFloat('dotSize', 3.0)
+                    cache.mesh:draw()
+                    dotShader:stop()
+                    RenderState.PopBlendMode()
+                end
+            end
+            ::skip_dots::
+
             -- Highlight selected asteroid
             if state.selected and state.selected.clickPos and state.selected.entity == entry.entity then
                 local cp = state.selected.clickPos
-                local dotOcx = cx + state.panX * state.zoom
-                local dotOcy = cy + state.panY * state.zoom
+                local ctrX = entry.parentPos and entry.parentPos.x or 0
+                local ctrZ = entry.parentPos and entry.parentPos.z or 0
+                local dotOcx = cx + (ctrX + state.panX) * state.zoom
+                local dotOcy = cy + (ctrZ + state.panY) * state.zoom
                 local ax = dotOcx + cp.x * state.zoom
                 local ay = dotOcy + cp.z * state.zoom
-                DrawEx.Rect(ax - 3, ay - 3, 6, 6, Color(1.0, 0.8, 0.3, 1.0))
+                DrawEx.SimpleRect(ax - 3, ay - 3, 6, 6, Color(1.0, 0.8, 0.3, 1.0))
             end
         end
     end
@@ -453,8 +579,14 @@ function SystemMap:draw(state, x, y, sx, sy)
         if entry.isBelt and entry.orbitRadius and entry.orbitRadius > 0 then
             local beltScreenR = entry.orbitRadius * state.zoom
             if beltScreenR > 10 then
-                local ocx = cx + state.panX * state.zoom
-                local ocy = cy + state.panY * state.zoom
+                local ocx, ocy
+                if entry.parentPos then
+                    ocx = cx + (entry.parentPos.x + state.panX) * state.zoom
+                    ocy = cy + (entry.parentPos.z + state.panY) * state.zoom
+                else
+                    ocx = cx + state.panX * state.zoom
+                    ocy = cy + state.panY * state.zoom
+                end
                 local labelX = ocx
                 local labelY = ocy - beltScreenR - 8
                 local c = entry.color
@@ -493,21 +625,39 @@ function SystemMap:draw(state, x, y, sx, sy)
         ::next_map_entity::
     end
 
-    -- Draw nav target marker (belt click position or autopilot destination)
-    local navMarkerPos = (state.selected and state.selected.clickPos) or state.autopilotPos
+    -- Draw nav target marker on ACTUAL target position
+    local navMarkerPos = (state.selected and state.selected.clickPos) or state.autopilotTargetPos
     if navMarkerPos then
         local cp = navMarkerPos
         local cpx = cx + (cp.x + state.panX) * state.zoom
         local cpy = cy + (cp.z + state.panY) * state.zoom
-        -- Crosshair marker
         local ms = 6
-        DrawEx.Rect(cpx - ms, cpy - 0.5, ms * 2, 1, Color(1.0, 0.8, 0.3, 0.9))
-        DrawEx.Rect(cpx - 0.5, cpy - ms, 1, ms * 2, Color(1.0, 0.8, 0.3, 0.9))
+        DrawEx.SimpleRect(cpx - ms, cpy - 0.5, ms * 2, 1, Color(1.0, 0.8, 0.3, 0.9))
+        DrawEx.SimpleRect(cpx - 0.5, cpy - ms, 1, ms * 2, Color(1.0, 0.8, 0.3, 0.9))
         DrawEx.TextAlpha('Unageo-Medium', "NAV TARGET", 9,
             cpx + ms + 2, cpy - 5, 100, 12, 1.0, 0.8, 0.3, 0.9, 0.0, 0.5)
     end
 
-    -- Draw nav line from ship to selected destination or active autopilot target
+    -- Draw intercept marker (where ship is actually heading)
+    if state.autopilotPos and state.autopilotTargetPos then
+        local ip = state.autopilotPos
+        local tp = state.autopilotTargetPos
+        -- Only show if intercept differs from target (leading)
+        local sepX = ip.x - tp.x
+        local sepZ = ip.z - tp.z
+        local sep = math.sqrt(sepX * sepX + sepZ * sepZ) * state.zoom
+        if sep > 10 then
+            local ipx = cx + (ip.x + state.panX) * state.zoom
+            local ipy = cy + (ip.z + state.panY) * state.zoom
+            local ms = 4
+            DrawEx.SimpleRect(ipx - ms, ipy - 0.5, ms * 2, 1, Color(0.3, 0.8, 1.0, 0.7))
+            DrawEx.SimpleRect(ipx - 0.5, ipy - ms, 1, ms * 2, Color(0.3, 0.8, 1.0, 0.7))
+            DrawEx.TextAlpha('Unageo-Medium', "INTERCEPT", 8,
+                ipx + ms + 2, ipy - 5, 80, 10, 0.3, 0.8, 1.0, 0.7, 0.0, 0.5)
+        end
+    end
+
+    -- Draw nav/selection line from ship to destination
     local navTarget = state.selected or (state.autopilotPos and { clickPos = state.autopilotPos })
     if navTarget and state.shipEntity then
         local shipRb = state.shipEntity:get(PhysicsComponents.RigidBody)
@@ -516,43 +666,89 @@ function SystemMap:draw(state, x, y, sx, sy)
             local shipSX = cx + (shipPos.x + state.panX) * state.zoom
             local shipSY = cy + (shipPos.z + state.panY) * state.zoom
 
-            local destSX, destSY
+            local destSX, destSY, destWorldPos
             if navTarget.clickPos then
-                local cp = navTarget.clickPos
-                destSX = cx + (cp.x + state.panX) * state.zoom
-                destSY = cy + (cp.z + state.panY) * state.zoom
+                destWorldPos = navTarget.clickPos
+                destSX = cx + (destWorldPos.x + state.panX) * state.zoom
+                destSY = cy + (destWorldPos.z + state.panY) * state.zoom
             elseif navTarget.pos then
-                local pos = navTarget.pos
+                destWorldPos = navTarget.pos
                 if navTarget.entity then
                     local rbCmp = navTarget.entity:get(PhysicsComponents.RigidBody)
                     if rbCmp and rbCmp:getRigidBody() then
-                        pos = rbCmp:getRigidBody():getPos()
+                        destWorldPos = rbCmp:getRigidBody():getPos()
                     end
                 end
-                destSX = cx + (pos.x + state.panX) * state.zoom
-                destSY = cy + (pos.z + state.panY) * state.zoom
+                destSX = cx + (destWorldPos.x + state.panX) * state.zoom
+                destSY = cy + (destWorldPos.z + state.panY) * state.zoom
             end
 
             if destSX then
-                -- Fine dashed line
                 local ldx = destSX - shipSX
                 local ldy = destSY - shipSY
                 local len = math.sqrt(ldx * ldx + ldy * ldy)
                 if len > 5 then
-                    local nx, ny = ldx / len, ldy / len
-                    local dashLen = 4
-                    local gapLen = 4
-                    local t = 0
-                    local lineColor = Color(1.0, 0.8, 0.3, 0.5)
-                    while t < len do
-                        local t2 = math.min(t + dashLen, len)
-                        DrawEx.Line(
-                            shipSX + nx * t, shipSY + ny * t,
-                            shipSX + nx * t2, shipSY + ny * t2,
-                            lineColor)
-                        t = t + dashLen + gapLen
+                    -- Selection line (yellow, thin)
+                    DrawEx.Line(shipSX, shipSY, destSX, destSY,
+                        Color(1.0, 0.8, 0.3, 0.3))
+                end
+            end
+        end
+    end
+
+    -- Draw autopilot: target line (yellow) + intercept flight path (white)
+    if state.autopilotPos and state.shipEntity then
+        local shipRb = state.shipEntity:get(PhysicsComponents.RigidBody)
+        if shipRb and shipRb:getRigidBody() then
+            local shipPos = shipRb:getRigidBody():getPos()
+            local shipSX = cx + (shipPos.x + state.panX) * state.zoom
+            local shipSY = cy + (shipPos.z + state.panY) * state.zoom
+
+            -- Yellow line: ship → actual target position
+            if state.autopilotTargetPos then
+                local tp = state.autopilotTargetPos
+                local tSX = cx + (tp.x + state.panX) * state.zoom
+                local tSY = cy + (tp.z + state.panY) * state.zoom
+                local tLen = math.sqrt((tSX-shipSX)^2 + (tSY-shipSY)^2)
+                if tLen > 5 then
+                    DrawEx.Line(shipSX, shipSY, tSX, tSY, Color(1.0, 0.8, 0.3, 0.2))
+                end
+            end
+
+            -- White line: ship → predicted intercept position
+            local ap = state.autopilotPos
+            local destSX = cx + (ap.x + state.panX) * state.zoom
+            local destSY = cy + (ap.z + state.panY) * state.zoom
+
+            local ldx = destSX - shipSX
+            local ldy = destSY - shipSY
+            local len = math.sqrt(ldx * ldx + ldy * ldy)
+            if len > 5 then
+                -- White flight path line
+                DrawEx.Line(shipSX, shipSY, destSX, destSY,
+                    Color(1.0, 1.0, 1.0, 0.6))
+
+                -- Distance + ETA label at midpoint
+                local midX = (shipSX + destSX) * 0.5
+                local midY = (shipSY + destSY) * 0.5
+                local worldDist = math.sqrt(
+                    (ap.x - shipPos.x)^2 + (ap.z - shipPos.z)^2)
+                local distStr = formatDistance(worldDist)
+                local speed = shipRb:getRigidBody():getSpeed()
+                local etaStr = ""
+                if speed > 1 then
+                    local eta = worldDist / speed
+                    if eta > 3600 then
+                        etaStr = string.format(" | ETA %.0fh%02.0fm", math.floor(eta/3600), (eta%3600)/60)
+                    elseif eta > 60 then
+                        etaStr = string.format(" | ETA %.0fm%02.0fs", math.floor(eta/60), eta%60)
+                    else
+                        etaStr = string.format(" | ETA %.0fs", eta)
                     end
                 end
+                DrawEx.TextAlpha('Unageo-Medium', distStr .. etaStr, 10,
+                    midX - 60, midY - 14, 200, 12,
+                    1.0, 1.0, 1.0, 0.8, 0.5, 0.5)
             end
         end
     end

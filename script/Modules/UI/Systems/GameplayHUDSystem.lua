@@ -46,21 +46,20 @@ function GameplayHUDSystem:draw(shipEntity, modeName, piloting)
     local apActive = AutoPilotSystem:isActive(shipEntity)
     local apName   = AutoPilotSystem:getTargetName(shipEntity)
 
-    -- Compute ETA for autopilot
+    -- Read nav data from autopilot component
     local apLine
     if apActive then
-        local dist, apSpeed = AutoPilotSystem:getDistanceAndSpeed(shipEntity)
+        local apCmp = shipEntity:get(ConstructComponents.AutoPilot)
+        local dist = apCmp and apCmp.distance or 0
+        local etaSec = apCmp and apCmp.eta or 0
         local distStr = UniverseScaleConfig:formatDistance(dist)
         local etaStr = ""
-        if apSpeed > 1 then
-            local etaSec = dist / apSpeed
-            if etaSec > 3600 then
-                etaStr = string.format(" | ETA: %.0fh %02.0fm", math.floor(etaSec / 3600), (etaSec % 3600) / 60)
-            elseif etaSec > 60 then
-                etaStr = string.format(" | ETA: %.0fm %02.0fs", math.floor(etaSec / 60), etaSec % 60)
-            else
-                etaStr = string.format(" | ETA: %.0fs", etaSec)
-            end
+        if etaSec > 3600 then
+            etaStr = string.format(" | ETA: %.0fh %02.0fm", math.floor(etaSec / 3600), (etaSec % 3600) / 60)
+        elseif etaSec > 60 then
+            etaStr = string.format(" | ETA: %.0fm %02.0fs", math.floor(etaSec / 60), etaSec % 60)
+        elseif etaSec > 0 then
+            etaStr = string.format(" | ETA: %.0fs", etaSec)
         end
         apLine = string.format("AUTOPILOT: %s | %s%s [N to cancel]", apName, distStr, etaStr)
     else

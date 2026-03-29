@@ -8,6 +8,7 @@ local Materials           = require("Shared.Registries.Materials")
 local Primitive           = require("Legacy.Systems.Gen.Primitive")
 local GenUtil             = require("Legacy.Systems.Gen.GenUtil")
 local AsteroidBeltRenderer = require("Modules.CelestialObjects.Systems.AsteroidBeltRenderer")
+local AsteroidMeshPool    = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
 local SpatialComponents   = require("Modules.Spatial.Components")
 
 ---@class SolarSystemVisualizer
@@ -18,6 +19,8 @@ local SolarSystemVisualizer = {}
 ---@param universe Entity The root universe entity from UniverseManager:createUniverse()
 ---@param physicsWorld Physics The physics world to add rigid bodies to
 function SolarSystemVisualizer:materialize(universe, physicsWorld)
+    -- Pre-load asteroid mesh pool (loads from cache or generates once)
+    AsteroidMeshPool:init(8, 42)
     self:_walkEntity(universe, physicsWorld)
 end
 
@@ -34,6 +37,8 @@ function SolarSystemVisualizer:_walkEntity(entity, physicsWorld)
         self:_materializeMoon(entity, physicsWorld)
     elseif name:find("AsteroidBeltEntity") then
         self:_materializeAsteroidBelt(entity, physicsWorld)
+    elseif name:find("AsteroidRingEntity") then
+        self:_materializeAsteroidRing(entity, physicsWorld)
     else
         -- Hide entities with empty RenderComponents (e.g. AsteroidRingEntity)
         -- to prevent the renderer from iterating nil meshes
@@ -263,9 +268,14 @@ function SolarSystemVisualizer:_materializeAsteroidBelt(entity, physicsWorld)
     local pos = transform and transform:getPos() or Position(0, 0, 0)
     local orbitRadius = math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z)
     if orbitRadius < 100 then
-        -- Fallback: try Orbit component
         local orbitCmp = entity:get(SpatialComponents.Orbit)
         orbitRadius = orbitCmp and orbitCmp:getOrbitRadius() or 10000
+    end
+
+    -- Belt asteroids are generated in absolute world space (centered at star origin)
+    -- Reset entity position to (0,0,0) so the renderer's offset doesn't double them
+    if transform then
+        transform:setPos(Position(0, 0, 0))
     end
 
     -- Width from spatial component
@@ -282,11 +292,10 @@ function SolarSystemVisualizer:_materializeAsteroidBelt(entity, physicsWorld)
 
     -- Asteroid count: proportional to belt circumference and density
     local circumference = 2 * math.pi * orbitRadius
-    local count = math.min(100000, math.max(5000, math.floor(circumference * density * 0.05)))
+    local count = math.min(20000, math.max(2000, math.floor(circumference * density * 0.01)))
 
-    -- Generate proper SDF-based asteroid mesh with built-in LOD chain
-    local GenerateAsteroidMesh = require("Core.ECS.Mesh.CelestialObjects.AsteroidMesh")
-    local lodMesh = GenerateAsteroidMesh(seed)
+    -- Get shared asteroid mesh from pool (no per-belt generation)
+    local lodMesh = AsteroidMeshPool:getFromSeed(seed)
 
     -- Generate asteroid positions
     local asteroids = AsteroidBeltRenderer.generateBeltAsteroids({
@@ -306,6 +315,71 @@ function SolarSystemVisualizer:_materializeAsteroidBelt(entity, physicsWorld)
     entity:add(CelestialComponents.AsteroidBelt(asteroids, orbitRadius, width, lodMesh))
 
     -- Create render component with custom batch render function
+    local renderCmp = entity:get(RenderComp)
+    if not renderCmp then
+        renderCmp = RenderComp()
+        entity:add(renderCmp)
+    end
+    renderCmp:setRenderFn(AsteroidBeltRenderer.createRenderFn(asteroids, lodMesh))
+    renderCmp:setVisible(true)
+end
+
+--- Materialize a planetary asteroid ring (same logic as belt but smaller scale)
+---@param entity Entity
+---@param physicsWorld Physics
+function SolarSystemVisualizer:_materializeAsteroidRing(entity, physicsWorld)
+    local seedCmp = entity:get(CoreComponents.Seed)
+    local seed = seedCmp and seedCmp:getSeed() or 54321
+    local transform = entity:get(PhysicsComponents.Transform)
+
+    -- Ring orbit radius: use parent planet scale * multiplier
+    -- (ring has no Orbit component to avoid OrbitalSystem moving it)
+    local parentCmp = entity:get(CoreComponents.Parent)
+    local parentEntity = parentCmp and parentCmp:getParent() or nil
+    local planetScale = 1000
+    if parentEntity then
+        local pTransform = parentEntity:get(PhysicsComponents.Transform)
+        if pTransform then planetScale = pTransform:getScale() end
+    end
+    -- Deterministic ring radius from seed
+    local ringRng = RNG.Create(seed + 777)
+    local orbitRadius = planetScale * (2.0 + ringRng:getUniform() * 3.0)
+
+    local widthCmp = entity:get(SpatialComponents.Width)
+    local width = widthCmp and widthCmp:getWidth() or (orbitRadius * 0.2)
+    -- Cap width
+    width = math.min(width, orbitRadius * 0.3)
+
+    local inclCmp = entity:get(SpatialComponents.Inclination)
+    local inclination = inclCmp and inclCmp:getInclination() or 0
+
+    local densityCmp = entity:get(CelestialComponents.Density)
+    local density = densityCmp and densityCmp:getDensity() or 0.5
+
+    -- Ring asteroids: fewer than belts, capped for performance
+    local count = math.min(5000, math.max(200, math.floor(density * 2000)))
+
+    -- Get shared asteroid mesh from pool
+    local lodMesh = AsteroidMeshPool:getFromSeed(seed)
+
+    -- Generate asteroid positions (rings are thinner, smaller asteroids)
+    local asteroids = AsteroidBeltRenderer.generateBeltAsteroids({
+        orbitRadius = orbitRadius,
+        width = width,
+        count = count,
+        inclination = math.rad(inclination),
+        seed = seed,
+        minScale = 5,
+        maxScale = 80,
+    })
+
+    Log.Info("Materialized asteroid ring: %d asteroids, orbit=%.0f, width=%.0f",
+        count, orbitRadius, width)
+
+    -- Store data as component
+    entity:add(CelestialComponents.AsteroidBelt(asteroids, orbitRadius, width, lodMesh))
+
+    -- Create render component with batch renderer
     local renderCmp = entity:get(RenderComp)
     if not renderCmp then
         renderCmp = RenderComp()

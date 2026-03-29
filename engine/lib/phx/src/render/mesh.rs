@@ -163,6 +163,12 @@ impl Mesh {
         Self::from_bytes(&mut Resource::load_bytes(ResourceType::Mesh, name))
     }
 
+    pub fn save(&self, path: &str) {
+        let bytes = self.to_bytes();
+        std::fs::write(path, bytes.as_slice())
+            .unwrap_or_else(|e| panic!("Failed to save mesh to '{}': {}", path, e));
+    }
+
     pub fn to_bytes(&self) -> Bytes {
         let this = self.shared.as_ref();
 
