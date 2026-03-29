@@ -161,4 +161,36 @@ function UniverseScaleConfig:debugSize(label, gameUnits, objectType)
     print("-------------------------")
 end
 
+--- Format a game-unit distance as a human-readable real-world string
+---@param gameUnits number Distance in game units
+---@return string
+function UniverseScaleConfig:formatDistance(gameUnits)
+    local realMeters = gameUnits / self.globalScale
+    if realMeters > self.units.AU_TO_METERS * 0.01 then
+        return string.format("%.2f AU", realMeters / self.units.AU_TO_METERS)
+    elseif realMeters > 1e9 then
+        return string.format("%.1f Mkm", realMeters / 1e9)
+    elseif realMeters > 1e6 then
+        return string.format("%.0f km", realMeters / 1e3)
+    elseif realMeters > 1000 then
+        return string.format("%.1f km", realMeters / 1e3)
+    else
+        return string.format("%.0f m", realMeters)
+    end
+end
+
+--- Format a game-unit speed as a human-readable real-world string
+---@param gameUnitsPerSec number Speed in game units per second
+---@return string
+function UniverseScaleConfig:formatSpeed(gameUnitsPerSec)
+    local realMps = gameUnitsPerSec / self.globalScale
+    if realMps > 1e6 then
+        return string.format("%.1f Mm/s", realMps / 1e6)
+    elseif realMps > 1000 then
+        return string.format("%.1f km/s", realMps / 1000)
+    else
+        return string.format("%.0f m/s", realMps)
+    end
+end
+
 return UniverseScaleConfig
