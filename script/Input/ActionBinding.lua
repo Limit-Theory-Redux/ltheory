@@ -133,12 +133,16 @@ function ActionBinding:readBind(bind)
     
     if t == Enums.ControlType.MouseX then
         local pos = Input:mouse():position()
-        return pos.x * (bind.mult or 1.0)
+        local sx = Window:width()
+        local normalized = Math.Clamp(2.0 * pos.x / sx - 1.0, -1.0, 1.0)
+        return normalized * (bind.mult or 1.0)
     end
-    
+
     if t == Enums.ControlType.MouseY then
         local pos = Input:mouse():position()
-        return pos.y * (bind.mult or 1.0)
+        local sy = Window:height()
+        local normalized = Math.Clamp(2.0 * pos.y / sy - 1.0, -1.0, 1.0)
+        return normalized * (bind.mult or 1.0)
     end
     
     if t == Enums.ControlType.MouseDX then
