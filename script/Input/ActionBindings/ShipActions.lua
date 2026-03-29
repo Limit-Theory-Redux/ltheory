@@ -28,13 +28,13 @@ local ShipActions = {
 
     ---@type ActionBinding
     Yaw = ActionBinding({
-        mouse = { Control.MouseDX():setMult(0.1) },
+        mouse = { Control.MouseX() },
         gamepad = { Control.GamepadAxis(Button.GamepadRightStickX) },
     }),
 
     ---@type ActionBinding
     Pitch = ActionBinding({
-        mouse = { Control.MouseDY():setMult(-0.1) },
+        mouse = { Control.MouseY():invert() },
         gamepad = { Control.GamepadAxis(Button.GamepadRightStickY):invert() },
     }),
 
@@ -81,6 +81,12 @@ local ShipActions = {
     }),
 
     ---@type ActionBinding
+    TravelDrive = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardT) },
+        gamepad = { Control.Single(Button.GamepadLeftThumb) },
+    }),
+
+    ---@type ActionBinding
     SquadAttackTarget = ActionBinding({
         gamepad = { Control.Single(Button.GamepadSelect) },
     }),
@@ -93,10 +99,9 @@ local ShipActions = {
 
 -- handle pitch invert
 if GameState and GameState.input and GameState.input.invertPitch then
-    -- re-create Pitch binding with non-inverted values
     ---@type ActionBinding
     ShipActions.Pitch = ActionBinding({
-        mouse = { Control.MouseY() },
+        mouse = { Control.MouseY() },  -- non-inverted
         gamepad = { Control.GamepadAxis(Button.GamepadRightStickY) },
     })
 end
