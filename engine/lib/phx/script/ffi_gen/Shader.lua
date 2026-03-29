@@ -20,6 +20,7 @@ function Loader.defineType()
             void         Shader_Free          (Shader*);
             Shader*      Shader_Create        (cstr vs, cstr fs);
             Shader*      Shader_Load          (cstr vsName, cstr fsName);
+            bool         Shader_Reload        (Shader*);
             cstr         Shader_Name          (Shader const*);
             Shader*      Shader_Clone         (Shader const*);
             ShaderState* Shader_ToShaderState (Shader const*);
@@ -80,6 +81,7 @@ function Loader.defineType()
         local t  = ffi.typeof('Shader')
         local mt = {
             __index = {
+                reload        = libphx.Shader_Reload,
                 name          = libphx.Shader_Name,
                 clone         = function(self)
                     local _instance = libphx.Shader_Clone(self)

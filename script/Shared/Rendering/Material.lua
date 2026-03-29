@@ -15,6 +15,10 @@ local UniformFuncs = require("Shared.Rendering.UniformFuncs")
 ---@class Material
 ---@overload fun(self: Material, vs_name: string, fs_name: string, blendMode: BlendMode): Material class internal
 ---@overload fun(vs_name: string, fs_name: string, blendMode: BlendMode): Material class external
+-- Registry of all live materials for hot-reload
+local allMaterials = {}
+setmetatable(allMaterials, { __mode = "v" }) -- weak values: don't prevent GC
+
 local Material = Class("Material", function(self, vs_name, fs_name, blendMode)
     self.vs = vs_name
     self.fs = fs_name
@@ -27,7 +31,26 @@ local Material = Class("Material", function(self, vs_name, fs_name, blendMode)
     -- Create Shader and ShaderState
     local shader = Cache.Shader(self.vs, self.fs)
     self.shaderState = ShaderState.Create(shader)
+
+    -- Track for hot-reload
+    insert(allMaterials, self)
 end)
+
+--- Reload all live materials after shaders have been hot-reloaded.
+function Material.ReloadAll()
+    local count = 0
+    for i = #allMaterials, 1, -1 do
+        local mat = allMaterials[i]
+        if mat then
+            mat:reloadShader()
+            count = count + 1
+        else
+            table.remove(allMaterials, i)
+        end
+    end
+    Log.Info("Material hot-reload: %d materials refreshed", count)
+    return count
+end
 
 ---@param textures table<TextureInfo>
 function Material:addTextures(textures)

@@ -5,7 +5,7 @@ use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4};
 
 use super::{ShaderState, ShaderVarData, Tex1D, Tex2D, Tex3D, TexCube, gl};
 use crate::common::c_str;
-use crate::logging::warn;
+use crate::logging::{info, warn};
 use crate::math::Matrix;
 use crate::render::{ShaderVar, glcheck};
 use crate::rf::Rf;
@@ -20,6 +20,8 @@ pub struct Shader {
 
 struct ShaderShared {
     name: String,
+    vs_name: Option<String>,
+    fs_name: Option<String>,
     vs: gl::types::GLuint,
     fs: gl::types::GLuint,
     program: gl::types::GLuint,
@@ -101,7 +103,13 @@ impl GLSLCode {
 }
 
 impl Shader {
-    fn from_preprocessed(name: String, vs_code: GLSLCode, mut fs_code: GLSLCode) -> Shader {
+    fn from_preprocessed(
+        name: String,
+        vs_code: GLSLCode,
+        mut fs_code: GLSLCode,
+        vs_name: Option<String>,
+        fs_name: Option<String>,
+    ) -> Shader {
         let vs = create_gl_shader(&vs_code.code, gl::VERTEX_SHADER);
         let fs = create_gl_shader(&fs_code.code, gl::FRAGMENT_SHADER);
         let program = create_gl_program(vs, fs);
@@ -123,6 +131,8 @@ impl Shader {
         let mut shader = Shader {
             shared: Rf::new(ShaderShared {
                 name,
+                vs_name,
+                fs_name,
                 vs,
                 fs,
                 program,
@@ -247,6 +257,8 @@ impl Shader {
             "[anonymous shader]".into(),
             GLSLCode::preprocess(vs),
             GLSLCode::preprocess(fs),
+            None,
+            None,
         )
     }
 
@@ -255,7 +267,67 @@ impl Shader {
             format!("[vs: {vs_name}, fs: {fs_name}]"),
             GLSLCode::load(vs_name),
             GLSLCode::load(fs_name),
+            Some(vs_name.to_string()),
+            Some(fs_name.to_string()),
         )
+    }
+
+    /// Reload shader from disk. Returns true on success.
+    /// On compile/link failure, keeps the old shader and returns false.
+    pub fn reload(&mut self) -> bool {
+        let s = self.shared.as_ref();
+        let (Some(vs_name), Some(fs_name)) = (s.vs_name.clone(), s.fs_name.clone()) else {
+            warn!("Cannot reload shader {} — no source paths stored", s.name);
+            return false;
+        };
+        let name = s.name.clone();
+        drop(s);
+
+        // Reload and preprocess from disk
+        let vs_code = GLSLCode::load(&vs_name);
+        let mut fs_code = GLSLCode::load(&fs_name);
+
+        // Try compile (non-panicking)
+        let Some(new_vs) = try_create_gl_shader(&vs_code.code, gl::VERTEX_SHADER) else {
+            return false;
+        };
+        let Some(new_fs) = try_create_gl_shader(&fs_code.code, gl::FRAGMENT_SHADER) else {
+            glcheck!(gl::DeleteShader(new_vs));
+            return false;
+        };
+        let Some(new_program) = try_create_gl_program(new_vs, new_fs) else {
+            glcheck!(gl::DeleteShader(new_vs));
+            glcheck!(gl::DeleteShader(new_fs));
+            return false;
+        };
+
+        // Combine autovars
+        let mut auto_vars = vs_code.auto_vars;
+        auto_vars.append(&mut fs_code.auto_vars);
+
+        // Deduplicate autovars
+        let mut seen: HashSet<String> = HashSet::new();
+        auto_vars.retain(|v| seen.insert(v.name.clone()));
+
+        // Success — swap GL handles in-place (all Rf clones see the update)
+        {
+            let s = &mut *self.shared.as_mut();
+            glcheck!(gl::DeleteShader(s.vs));
+            glcheck!(gl::DeleteShader(s.fs));
+            glcheck!(gl::DeleteProgram(s.program));
+
+            s.vs = new_vs;
+            s.fs = new_fs;
+            s.program = new_program;
+            s.auto_vars = auto_vars;
+            s.pending_uniforms.clear();
+        }
+
+        // Re-bind auto variables with new program
+        self.bind_auto_variables();
+
+        info!("Reloaded shader {}", name);
+        true
     }
 
     pub fn name(&self) -> String {
@@ -550,4 +622,82 @@ fn create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> gl::types:
     }
 
     this
+}
+
+/// Non-panicking shader compilation — returns None on failure.
+fn try_create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> Option<u32> {
+    let this = glcheck!(gl::CreateShader(shader_type));
+
+    let src_cstr = CString::new(src).expect("Shader source must be utf-8");
+    glcheck!(gl::ShaderSource(
+        this,
+        1,
+        &src_cstr.as_ptr(),
+        std::ptr::null(),
+    ));
+    glcheck!(gl::CompileShader(this));
+
+    let mut status = 0;
+    glcheck!(gl::GetShaderiv(this, gl::COMPILE_STATUS, &mut status));
+
+    if status != gl::TRUE as i32 {
+        let mut length = 0;
+        glcheck!(gl::GetShaderiv(this, gl::INFO_LOG_LENGTH, &mut length));
+
+        let mut info_log = vec![0; length as usize + 1];
+        glcheck!(gl::GetShaderInfoLog(
+            this,
+            length,
+            std::ptr::null_mut(),
+            info_log.as_mut_ptr() as *mut i8,
+        ));
+
+        warn!(
+            "Shader hot-reload: compile error:\n{}",
+            String::from_utf8_lossy(&info_log)
+        );
+        glcheck!(gl::DeleteShader(this));
+        return None;
+    }
+
+    Some(this)
+}
+
+/// Non-panicking program linking — returns None on failure.
+fn try_create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> Option<gl::types::GLuint> {
+    let this = glcheck!(gl::CreateProgram());
+    glcheck!(gl::AttachShader(this, vs));
+    glcheck!(gl::AttachShader(this, fs));
+
+    glcheck!(gl::BindAttribLocation(this, 0, c_str!("vertex_position")));
+    glcheck!(gl::BindAttribLocation(this, 1, c_str!("vertex_normal")));
+    glcheck!(gl::BindAttribLocation(this, 2, c_str!("vertex_uv")));
+    glcheck!(gl::BindAttribLocation(this, 3, c_str!("vertex_color")));
+
+    glcheck!(gl::LinkProgram(this));
+
+    let mut status: i32 = 0;
+    glcheck!(gl::GetProgramiv(this, gl::LINK_STATUS, &mut status));
+
+    if status != gl::TRUE as i32 {
+        let mut length: i32 = 0;
+        glcheck!(gl::GetProgramiv(this, gl::INFO_LOG_LENGTH, &mut length));
+
+        let mut info_log = vec![0; length as usize + 1];
+        glcheck!(gl::GetProgramInfoLog(
+            this,
+            length,
+            std::ptr::null_mut(),
+            info_log.as_mut_ptr() as *mut i8,
+        ));
+
+        warn!(
+            "Shader hot-reload: link error:\n{}",
+            String::from_utf8_lossy(&info_log)
+        );
+        glcheck!(gl::DeleteProgram(this));
+        return None;
+    }
+
+    Some(this)
 }
