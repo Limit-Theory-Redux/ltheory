@@ -6,7 +6,7 @@ Config.render.postFx = {
     },
     bloom = {
         enable = true,
-        radius = 32
+        radius = 128
     },
     radialblur = {
         enable    = false,

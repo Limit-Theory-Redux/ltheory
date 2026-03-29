@@ -18,6 +18,13 @@ impl<const N: usize> AxisState<N> {
         self.previous.copy_from_slice(&self.current);
     }
 
+    /// Zeros a specific axis (for per-frame delta values like scroll/mouse delta)
+    pub fn zero(&mut self, index: usize) {
+        if index < N {
+            self.current[index] = 0.0;
+        }
+    }
+
     pub fn update(&mut self, index: usize, value: f32) -> bool {
         if index < N {
             self.current[index] = value;

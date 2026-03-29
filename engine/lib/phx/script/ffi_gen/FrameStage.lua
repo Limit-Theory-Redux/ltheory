@@ -23,15 +23,15 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         FrameStage = {
-            PreSim     = 0,
-            Sim        = 1,
-            PostSim    = 2,
-            PreRender  = 3,
-            Render     = 4,
-            PostRender = 5,
-            PreInput   = 6,
-            Input      = 7,
-            PostInput  = 8,
+            PreInput   = 0,
+            Input      = 1,
+            PostInput  = 2,
+            PreSim     = 3,
+            Sim        = 4,
+            PostSim    = 5,
+            PreRender  = 6,
+            Render     = 7,
+            PostRender = 8,
 
             ToString   = libphx.FrameStage_ToString,
         }
