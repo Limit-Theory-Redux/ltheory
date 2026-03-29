@@ -39,6 +39,26 @@ local CameraActions = {
     TranslateZ = ActionBinding({
         keyboard = { Control.Pair(Button.KeyboardW, Button.KeyboardS) }
     }),
+
+    ---@type ActionBinding
+    Roll = ActionBinding({
+        keyboard = { Control.Pair(Button.KeyboardE, Button.KeyboardQ) },
+    }),
+
+    ---@type ActionBinding
+    FastMove = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardShiftLeft) },
+    }),
+
+    ---@type ActionBinding
+    SlowMove = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardAltLeft) },
+    }),
+
+    ---@type ActionBinding
+    MouseCapture = ActionBinding({
+        mouse = { Control.Single(Button.MouseRight) },
+    }),
 }
 
 return CameraActions

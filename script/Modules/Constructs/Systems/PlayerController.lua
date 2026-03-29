@@ -13,6 +13,8 @@ local RenderComp              = require("Modules.Rendering.Components").Render
 local ShipFlightSystem        = require("Modules.Constructs.Systems.ShipFlightSystem")
 local TravelDriveSystem       = require("Modules.Constructs.Systems.TravelDriveSystem")
 local AutoPilotSystem         = require("Modules.Constructs.Systems.AutoPilotSystem")
+local CursorManager           = require("Input.CursorManager")
+local GeneralActions           = require("Input.ActionBindings.GeneralActions")
 
 ---@class PlayerController
 ---@overload fun(shipEntity: Entity, config?: table): PlayerController
@@ -159,16 +161,13 @@ function PlayerController:setMode(mode)
     -- Manage cursor and ship visibility based on mode
     local renderCmp = self.ship:get(RenderComp)
     if mode == Enums.CameraMode.FirstPerson then
-        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.Locked)
-        Input:setCursorVisible(false)
+        CursorManager:locked()
         if renderCmp then renderCmp:setVisible(false) end
     elseif mode == Enums.CameraMode.Chase then
-        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.Confined)
-        Input:setCursorVisible(true)
+        CursorManager:confined()
         if renderCmp then renderCmp:setVisible(true) end
     else
-        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.None)
-        Input:setCursorVisible(true)
+        CursorManager:free()
         if renderCmp then renderCmp:setVisible(true) end
     end
 
@@ -232,7 +231,8 @@ function PlayerController:update(dt)
     if self.inputBlocked then return end
 
     -- Handle camera mode cycling
-    if Input:isPressed(Button.KeyboardC) then
+    GeneralActions.CycleCamera:update(dt)
+    if GeneralActions.CycleCamera:isPressed() then
         self:cycleMode()
     end
 

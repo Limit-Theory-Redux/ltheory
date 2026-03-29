@@ -166,15 +166,21 @@ end
 function SystemMap:updateInput(state, dt)
     if not state.enabled then return end
 
-    -- Zoom with mouse wheel — scroll sets target, actual zoom interpolates smoothly
-    local scrollY = Input:mouse():scroll().y
+    local MapActions = require("Input.ActionBindings.MapActions")
+    MapActions.Zoom:update(dt)
+    MapActions.Pan:update(dt)
+    MapActions.Drag:update(dt)
+    MapActions.Select:update(dt)
+
+    -- Zoom with mouse wheel
+    local scrollY = MapActions.Zoom:get()
     if math.abs(scrollY) > 0.001 then
         state.zoomTarget = Math.Clamp(
             state.zoomTarget * math.exp(state.zoomSpeed * scrollY),
             state.minZoom, state.maxZoom)
     end
 
-    -- Smooth interpolation in log space (feels linear across all zoom levels)
+    -- Smooth interpolation in log space
     local logCurrent = math.log(state.zoom)
     local logTarget = math.log(state.zoomTarget)
     local diff = logTarget - logCurrent
@@ -184,15 +190,14 @@ function SystemMap:updateInput(state, dt)
         state.zoom = state.zoomTarget
     end
 
-    -- Pan with middle mouse drag
+    -- Pan with middle mouse or right mouse drag
     local mp = Input:mouse():position()
-    if Input:isDown(Button.MouseMiddle) or Input:isDown(Button.MouseRight) then
+    if MapActions.Pan:isDown() or MapActions.Drag:isDown() then
         if state.dragging then
             local dx = mp.x - state.lastMouseX
             local dy = mp.y - state.lastMouseY
             state.panX = state.panX + dx / state.zoom
             state.panY = state.panY + dy / state.zoom
-            -- Panning breaks follow
             state.selected = nil
         end
         state.dragging = true
@@ -219,7 +224,7 @@ function SystemMap:updateInput(state, dt)
     end
 
     -- Click to select nearest entity
-    if Input:mouse():isPressed(MouseControl.Left) then
+    if MapActions.Select:isPressed() then
         local sx = Window:width()
         local sy = Window:height()
         local hx, hy = sx / 2, sy / 2
