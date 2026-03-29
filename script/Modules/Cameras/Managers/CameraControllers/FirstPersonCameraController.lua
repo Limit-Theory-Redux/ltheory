@@ -73,8 +73,8 @@ end
 
 ---@param dt number
 function FirstPersonCameraController:onInput(dt)
-    if not self.enabled or not Window:isFocused() then return end
-    -- something?
+    -- No mouse input here — ship rotation is handled by ShipFlightSystem.
+    -- This controller purely follows the ship's rigid body transform.
 end
 
 function FirstPersonCameraController:onPreRender(dt)
@@ -83,54 +83,39 @@ function FirstPersonCameraController:onPreRender(dt)
     self:updateCameraPosition(dt)
 end
 
----Update camera position based on target
+---Update camera position to follow target's rigid body transform directly
 ---@param dt number Delta time
 function FirstPersonCameraController:updateCameraPosition(dt)
     if not self.target then return end
 
-    -- Smooth interpolation for look angles
-    local smoothFactor = 1.0 - math.exp(-10.0 * dt * (1.0 / self.smoothing))
-    self.currentYaw = self.currentYaw + (self.yaw - self.currentYaw) * smoothFactor
-    self.currentPitch = self.currentPitch + (self.pitch - self.currentPitch) * smoothFactor
-
-    -- Get target position and rotation
-    local targetPos = Position(0, 0, 0)
     local rbCmp = self.target:get(PhysicsComponents.RigidBody)
-    if rbCmp then
-        targetPos = rbCmp:getRigidBody():getPos()
-    end
+    if not rbCmp then return end
+    local rb = rbCmp:getRigidBody()
+    if not rb then return end
 
-    -- Calculate eye position
-    local eyePos = targetPos
+    local targetPos = rb:getPos()
+    local targetRot = rb:getRot()
 
-    if self.followRotation then
-        -- Rotate eye offset by target rotation
-        local rotatedOffset = targetRot:rotate(self.eyeOffset)
-        eyePos = Position(
-            targetPos.x + rotatedOffset.x,
-            targetPos.y + rotatedOffset.y,
-            targetPos.z + rotatedOffset.z
-        )
+    -- Rotate eye offset by ship's rotation
+    local fwd = targetRot:getForward()
+    local up  = targetRot:getUp()
+    local rt  = targetRot:getRight()
+    local ox, oy, oz = self.eyeOffset.x, self.eyeOffset.y, self.eyeOffset.z
+    local rotatedOffset = Vec3f(
+        rt.x * ox + up.x * oy + fwd.x * oz,
+        rt.y * ox + up.y * oy + fwd.y * oz,
+        rt.z * ox + up.z * oy + fwd.z * oz
+    )
 
-        -- Combine target yaw with camera yaw
-        local targetEuler = targetRot:toEuler()
-        local combinedYaw = targetEuler.y + self.currentYaw
-        local rot = Quat.FromEuler(self.currentPitch, combinedYaw, 0)
-        self:setRotation(rot)
-    else
-        -- Simple offset without rotation
-        eyePos = Position(
-            targetPos.x + self.eyeOffset.x,
-            targetPos.y + self.eyeOffset.y,
-            targetPos.z + self.eyeOffset.z
-        )
+    -- Position camera at ship + rotated offset
+    self:setPosition(Position(
+        targetPos.x + rotatedOffset.x,
+        targetPos.y + rotatedOffset.y,
+        targetPos.z + rotatedOffset.z
+    ))
 
-        -- Independent camera rotation
-        local rot = Quat.FromEuler(self.currentPitch, self.currentYaw, 0)
-        self:setRotation(rot)
-    end
-
-    self:setPosition(eyePos)
+    -- Camera rotation matches ship rotation exactly
+    self:setRotation(targetRot)
 end
 
 ---Get current look angles

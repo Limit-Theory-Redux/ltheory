@@ -11,6 +11,7 @@ return {
     RotationPeriod = require("Modules.CelestialObjects.Components.RotationPeriodComponent"),
     Stability = require("Modules.CelestialObjects.Components.StabilityComponent"),
     Temperature = require("Modules.CelestialObjects.Components.TemperatureComponent"),
+    TidalLock = require("Modules.CelestialObjects.Components.TidalLockComponent"),
     Thickness = require("Modules.CelestialObjects.Components.ThicknessComponent"),
 
     Gen = {

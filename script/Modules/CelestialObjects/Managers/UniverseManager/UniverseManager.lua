@@ -107,7 +107,7 @@ function UniverseManager:_applyOverrides(rng, parent, overrides)
             return
         end
         if def.position then
-            entity:get(PhysicsComponents.Transform):setPosition(def.position)
+            entity:get(PhysicsComponents.Transform):setPos(def.position)
         end
         for compName, value in pairs(def.components or {}) do
             local component = CoreComponents[compName] or SpatialComponents[compName] or CelestialComponents[compName]
@@ -174,7 +174,7 @@ function UniverseManager:_generateStarSystem(rng, cfg, context, systemIndex)
         self.scaleConfig.universe.gridJitter,
         systemIndex
     )
-    starSystem:get(PhysicsComponents.Transform):setPosition(systemPosition)
+    starSystem:get(PhysicsComponents.Transform):setPos(systemPosition)
     context:set("parentPosition", systemPosition)
 
     -- Generate stars
@@ -366,7 +366,7 @@ function UniverseManager:_generateStar(rng, cfg, context)
         parentPos.y + context:get("position").y,
         parentPos.z + context:get("position").z
     )
-    star:get(PhysicsComponents.Transform):setPosition(absPos)
+    star:get(PhysicsComponents.Transform):setPos(absPos)
     star:get(PhysicsComponents.Transform):setScale(self.scaleConfig:getStarRadius(context:get("starMass")))
 
     attachZone(self, star, starRNG, cfg, context, "star")
@@ -446,15 +446,32 @@ function UniverseManager:_generatePlanet(rng, cfg, context)
     planet:add(SpatialComponents.Orbit(orbitalRadiusGame))
     planet:add(CelestialComponents.Temperature(temp))
     planet:get(PhysicsComponents.Transform):setScale(self.scaleConfig:earthRadiiToGameUnits(size, "planet"))
-    planet:get(PhysicsComponents.Transform):setPosition(planetAbsPos)
+    planet:get(PhysicsComponents.Transform):setPos(planetAbsPos)
     planet:add(CelestialComponents.Gravity(gravity))
     planet:add(CelestialComponents.RotationPeriod(period))
     planet:add(CelestialComponents.Eccentricity(context:get("eccentricity")))
     planet:add(SpatialComponents.Inclination(context:get("inclination")))
+
+    -- Tidal locking: planets within ~0.3 AU are tidally locked to their star
+    local tidallyLocked = orbitRadius < 0.3
+    if tidallyLocked then
+        planet:add(CelestialComponents.TidalLock(true))
+        -- Tidally locked planets have extremely long "rotation" (same as orbital period)
+        -- Override rotation period to match orbital period
+        planet:get(CelestialComponents.RotationPeriod):setRotationPeriod(
+            365.25 * 24 * math.sqrt(orbitRadius ^ 3)  -- Kepler period in hours
+        )
+    end
+
     if hasMagneticField(planetType, size) then
         planet:add(CelestialComponents.MagneticField())
     end
-    if RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.atmosphere, context) then
+    -- Close-in planets lose atmospheres (< 0.2 AU for rocky, always for desert)
+    local hasAtmosphere = RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.atmosphere, context)
+    if hasAtmosphere and orbitRadius < 0.2 and planetType ~= Enums.Gen.PlanetTypes.GasGiant then
+        hasAtmosphere = false -- too close to star, atmosphere stripped
+    end
+    if hasAtmosphere then
         planet:add(CelestialComponents.Atmosphere())
     end
 
@@ -549,7 +566,7 @@ function UniverseManager:_generateMoon(rng, cfg, context)
 
     moon:add(CoreComponents.Type("Moon"))
     moon:get(PhysicsComponents.Transform):setScale(self.scaleConfig:earthRadiiToGameUnits(size, "moon"))
-    moon:get(PhysicsComponents.Transform):setPosition(moonAbsPos)
+    moon:get(PhysicsComponents.Transform):setPos(moonAbsPos)
     moon:add(SpatialComponents.Orbit(orbitalRadiusGame))
     moon:add(SpatialComponents.Inclination(context:get("inclination")))
     moon:add(CelestialComponents.Gravity(planetGravity))
@@ -599,7 +616,7 @@ function UniverseManager:_generateAsteroidBelt(rng, cfg, context)
     context:set("beltWidth", widthAU)
 
     local beltPos = Position(self.scaleConfig:auToGameUnits(beltOrbitRadius, "starSystem"), 0, 0)
-    belt:get(PhysicsComponents.Transform):setPosition(beltPos)
+    belt:get(PhysicsComponents.Transform):setPos(beltPos)
     belt:add(CoreComponents.Type(composition.type))
     belt:add(CelestialComponents.Composition(composition))
     belt:add(CelestialComponents.Density(density))
@@ -646,7 +663,7 @@ function UniverseManager:_generateAsteroidRing(rng, cfg, context)
     context:set("ringInclination", ringInclination)
 
     local ringPos = Position(self.scaleConfig:auToGameUnits(orbitRadius, "planet"), 0, 0)
-    ring:get(PhysicsComponents.Transform):setPosition(ringPos)
+    ring:get(PhysicsComponents.Transform):setPos(ringPos)
     ring:add(CoreComponents.Type(composition.type))
     ring:add(CelestialComponents.Composition(composition))
     ring:add(CelestialComponents.Density(density))

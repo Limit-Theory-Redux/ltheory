@@ -84,26 +84,14 @@ end
 function OrbitCameraController:onInput(dt)
     if not self.enabled or not Window:isFocused() then return end
 
-    -- Toggle mouse capture with right click
-    if Input:mouse():isPressed(MouseControl.Right) then
-        self.mouseCaptured = not self.mouseCaptured
-        self.justCaptured = self.mouseCaptured
-    end
-
-    if self.mouseCaptured then
-        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.Locked)
-        Input:setCursorVisible(false)
-
+    -- Hold right mouse to rotate
+    if Input:isDown(Button.MouseRight) then
         local delta = Input:mouse():delta()
         if delta:length() > 0.001 then
             self.yaw   = self.yaw - delta.x * self.mouseSensitivity
             self.pitch = self.pitch - delta.y * self.mouseSensitivity
             self.pitch = Math.Clamp(self.pitch, self.minPitch, self.maxPitch)
-            self:updateCameraPosition(dt)
         end
-    else
-        GameState.render.gameWindow:cursor():setGrabMode(CursorGrabMode.None)
-        Input:setCursorVisible(true)
     end
 
     -- Zoom with mouse wheel
@@ -113,8 +101,7 @@ function OrbitCameraController:onInput(dt)
     end
 end
 
----Update function called every frame
----@param dt number Delta time
+---@param dt number
 function OrbitCameraController:onPreRender(dt)
     if not self.enabled then return end
     self:updateCameraPosition(dt)
@@ -125,51 +112,37 @@ end
 function OrbitCameraController:updateCameraPosition(dt)
     if not self.target then return end
 
-    -- Smooth distance interpolation
-    local smoothFactor = 1.0 - math.exp(-10.0 * dt * (1.0 / self.smoothing))
-    self.currentDistance = self.currentDistance + (self.distance - self.currentDistance) * smoothFactor
+    -- Smooth zoom interpolation
+    local zoomLerp = math.min(1.0, 4.0 * dt)
+    self.currentDistance = self.currentDistance + (self.distance - self.currentDistance) * zoomLerp
 
-    -- Get target position
+    -- Get target position from rigid body
     local targetPos = Position(0, 0, 0)
     local rbCmp = self.target:get(PhysicsComponents.RigidBody)
-    if rbCmp then
+    if rbCmp and rbCmp:getRigidBody() then
         targetPos = rbCmp:getRigidBody():getPos()
     end
 
     -- Apply target offset (in world space)
-    local offsetTarget = Position(
-        targetPos.x + self.targetOffset.x,
-        targetPos.y + self.targetOffset.y,
-        targetPos.z + self.targetOffset.z
-    )
+    local cx = targetPos.x + self.targetOffset.x
+    local cy = targetPos.y + self.targetOffset.y
+    local cz = targetPos.z + self.targetOffset.z
 
-    -- Calculate camera position using spherical coordinates in WORLD SPACE
-    -- Yaw rotates around world Y axis
-    -- Pitch tilts up/down
-    local x = math.cos(self.pitch) * math.sin(self.yaw)
-    local y = math.sin(self.pitch)
-    local z = math.cos(self.pitch) * math.cos(self.yaw)
-
-    -- Position camera at distance from target
+    -- Spherical coordinates: camera position relative to target
+    local cosPitch = math.cos(self.pitch)
     local camPos = Position(
-        offsetTarget.x + x * self.currentDistance,
-        offsetTarget.y + y * self.currentDistance,
-        offsetTarget.z + z * self.currentDistance
+        cx + cosPitch * math.sin(self.yaw) * self.currentDistance,
+        cy + math.sin(self.pitch) * self.currentDistance,
+        cz + cosPitch * math.cos(self.yaw) * self.currentDistance
     )
 
-    self:setPosition(camPos)
+    -- Set position directly on transform (bypass controller smoothing)
+    self.transform:setPos(camPos)
 
-    -- Look at target from camera position
-    local lookDir = Vec3f(
-        offsetTarget.x - camPos.x,
-        offsetTarget.y - camPos.y,
-        offsetTarget.z - camPos.z
-    ):normalize()
-
-    -- Use world up for camera orientation
-    local worldUp = Vec3f(0, 1, 0)
-    local rot = Quat.FromLook(lookDir, worldUp)
-    self:setRotation(rot)
+    -- Look at target
+    local lookDir = Vec3f(cx - camPos.x, cy - camPos.y, cz - camPos.z):normalize()
+    local rot = Quat.FromLook(lookDir, Vec3f(0, 1, 0))
+    self.transform:setRot(rot)
 end
 
 ---Get current orbit angles
