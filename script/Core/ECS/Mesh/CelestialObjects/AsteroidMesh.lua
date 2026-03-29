@@ -1,5 +1,5 @@
 -- Generator Utilities
-local GenUtil = require('Systems.Generators.Mesh.Util.GenUtil')
+local GenUtil = require('Core.ECS.Mesh.Util.GenUtil')
 
 -- Utilities
 local QuickProfiler = require('Shared.Tools.QuickProfiler')
@@ -27,36 +27,32 @@ local function GenerateAsteroidMesh(seed)
     shaderState:setFloat('smoothness', 2.5)
 
     local res = 96 -- resolution
-    local dMin = 0
-    local dMax = 1
     local lac = 1.5
 
+    -- LOD distances (squared) — scaled for asteroids at game scale (50-500 units)
+    -- Each LOD covers a range of squared distances from camera
+    local lodRanges = {
+        { 0,      500 * 500 },         -- LOD 0: highest detail, < 500 units
+        { 500^2,  2000^2 },            -- LOD 1
+        { 2000^2, 8000^2 },            -- LOD 2
+        { 8000^2, 30000^2 },           -- LOD 3
+        { 30000^2, 100000^2 },         -- LOD 4
+        { 100000^2, 500000^2 },        -- LOD 5
+        { 500000^2, 2000000^2 },       -- LOD 6
+        { 2000000^2, 1e16 },           -- LOD 7: lowest detail, very far
+    }
+
     for i = 1, 8 do
-        -- Create Mesh from Tex3D
         local density = GenUtil.ShaderToTex3D(shaderState, floor(res), TexFormat.R32F)
-        -- Get Signed Distance Field (SDF)
         local field = SDF.FromTex3D(density)
         field:computeNormals()
-        -- Get Mesh from SDF
         local mesh = field:toMesh()
         mesh:computeOcclusion(density, 0.1)
         mesh:center()
-        -- Add Mesh to AsteroidMesh
-        asteroidMesh:add(mesh, dMin, dMax)
-        
-        -- Free Memory Used for creation of Mesh
-        field:free()
-        density:free()
-
-        --TODO: Math?
+        asteroidMesh:add(mesh, lodRanges[i][1], lodRanges[i][2])
         res = res / lac
-        dMin = dMax
-        dMax = dMax * lac * sqrt(2.0)
     end
 
-    --TODO: Replace use of RNG, If RNG Cache is created
-    -- Free RNG from memory
-    rng:free()
     -- Stop profiler
     profiler:stop()
     return asteroidMesh

@@ -79,6 +79,42 @@ function AutoPilotSystem:getTargetName(shipEntity)
     return ap and ap:getTargetName() or ""
 end
 
+--- Get distance to autopilot target
+---@param shipEntity Entity
+---@return number distance, number speed
+function AutoPilotSystem:getDistanceAndSpeed(shipEntity)
+    local ap = shipEntity:get(ConstructComponents.AutoPilot)
+    if not ap or not ap:isActive() then return 0, 0 end
+
+    local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
+    if not rbCmp then return 0, 0 end
+    local rb = rbCmp:getRigidBody()
+    if not rb then return 0, 0 end
+
+    local shipPos = rb:getPos()
+    local speed = rb:getSpeed()
+
+    -- Get target position
+    local targetPos = ap:getTargetPos()
+    local targetEntity = ap:getTargetEntity()
+    if targetEntity then
+        local tRbCmp = targetEntity:get(PhysicsComponents.RigidBody)
+        if tRbCmp and tRbCmp:getRigidBody() then
+            targetPos = tRbCmp:getRigidBody():getPos()
+        else
+            local tTransform = targetEntity:get(PhysicsComponents.Transform)
+            if tTransform then targetPos = tTransform:getPos() end
+        end
+    end
+
+    if not targetPos then return 0, speed end
+
+    local dx = targetPos.x - shipPos.x
+    local dy = targetPos.y - shipPos.y
+    local dz = targetPos.z - shipPos.z
+    return math.sqrt(dx * dx + dy * dy + dz * dz), speed
+end
+
 --- Exponential mapping for smooth control output (from legacy)
 local function expMap(x)
     if x >= 0 then
@@ -217,12 +253,22 @@ function AutoPilotSystem:update(dt, shipEntity)
         )))
     end
 
-    -- Travel drive management
+    -- Travel drive management — distance-based speed limiting
     local drive = shipEntity:get(ConstructComponents.TravelDrive)
-    local driveDisengageDist = safeRange * 5
+    -- Disengage travel drive at 10k km (1000 game units) from target
+    local driveDisengageDist = math.max(safeRange * 5, 1000)
     if drive then
         if dist < driveDisengageDist and drive:isActive() then
             drive:setState("decelerating")
+        end
+
+        -- Smoothly cap drive multiplier based on distance to target
+        if drive:isActive() and dist > driveDisengageDist then
+            -- Max multiplier proportional to distance: ensures smooth decel
+            local maxMult = math.max(1, dist * 0.005)
+            if drive:getCurrentMult() > maxMult then
+                drive:setCurrentMult(math.max(maxMult, drive:getCurrentMult() * 0.9))
+            end
         end
 
         local autoPilotCfg = Config.game.autoPilot or {}

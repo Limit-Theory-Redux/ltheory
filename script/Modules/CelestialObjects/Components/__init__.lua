@@ -13,6 +13,7 @@ return {
     Temperature = require("Modules.CelestialObjects.Components.TemperatureComponent"),
     TidalLock = require("Modules.CelestialObjects.Components.TidalLockComponent"),
     Thickness = require("Modules.CelestialObjects.Components.ThicknessComponent"),
+    AsteroidBelt = require("Modules.CelestialObjects.Components.AsteroidBeltComponent"),
 
     Gen = {
         Planet = require("Modules.CelestialObjects.Components.Gen.PlanetGenComponent"),
