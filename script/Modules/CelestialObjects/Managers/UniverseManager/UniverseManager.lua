@@ -599,7 +599,10 @@ function UniverseManager:_generateAsteroidBelt(rng, cfg, context)
         return nil
     end
 
-    local beltOrbitRadius = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.orbitRadius, context) or 1.0
+    local beltOrbitRadius = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.orbitRadius, context)
+    if not beltOrbitRadius or beltOrbitRadius < 0.1 then
+        beltOrbitRadius = 2.0 + bRNG:getUniform() * 8.0  -- 2-10 AU fallback
+    end
     context:set("beltOrbit", beltOrbitRadius)
 
     local inclination = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.inclination, context) or 0
@@ -615,12 +618,18 @@ function UniverseManager:_generateAsteroidBelt(rng, cfg, context)
     local widthAU = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.width, context) or 1.0
     context:set("beltWidth", widthAU)
 
-    local beltPos = Position(self.scaleConfig:auToGameUnits(beltOrbitRadius, "starSystem"), 0, 0)
+    local parentPos = context:get("parentPosition") or Position(0, 0, 0)
+    local beltOffset = self.scaleConfig:auToGameUnits(beltOrbitRadius, "starSystem")
+    local beltPos = Position(parentPos.x + beltOffset, parentPos.y, parentPos.z)
     belt:get(PhysicsComponents.Transform):setPos(beltPos)
+    belt:add(SpatialComponents.Orbit(beltOffset))
+    Log.Info("Asteroid belt: orbitAU=%.2f, offset=%.0f, pos=(%.0f, %.0f, %.0f)",
+        beltOrbitRadius, beltOffset, beltPos.x, beltPos.y, beltPos.z)
     belt:add(CoreComponents.Type(composition.type))
     belt:add(CelestialComponents.Composition(composition))
     belt:add(CelestialComponents.Density(density))
-    belt:add(SpatialComponents.Width(self.scaleConfig:auToGameUnits(widthAU, "belt")))
+    local beltWidthGame = math.min(self.scaleConfig:auToGameUnits(widthAU, "starSystem"), beltOffset * 0.2)
+    belt:add(SpatialComponents.Width(beltWidthGame))
     belt:add(SpatialComponents.Inclination(inclination))
 
     return belt

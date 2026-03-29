@@ -33,6 +33,7 @@ function Loader.defineType()
             void     Physics_DrawBoundingBoxesLocal (Physics const*);
             void     Physics_DrawBoundingBoxesWorld (Physics const*);
             void     Physics_DrawWireframes         (Physics*, Shader* shader, Position const* eye);
+            void     Physics_DrawWireframesInRange  (Physics*, Shader* shader, Position const* eye, double maxRange);
         ]]
     end
 
@@ -66,6 +67,7 @@ function Loader.defineType()
                 drawBoundingBoxesLocal = libphx.Physics_DrawBoundingBoxesLocal,
                 drawBoundingBoxesWorld = libphx.Physics_DrawBoundingBoxesWorld,
                 drawWireframes         = libphx.Physics_DrawWireframes,
+                drawWireframesInRange  = libphx.Physics_DrawWireframesInRange,
             },
         }
 

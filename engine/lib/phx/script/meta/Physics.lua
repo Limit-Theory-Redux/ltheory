@@ -76,3 +76,8 @@ function Physics:drawBoundingBoxesWorld() end
 ---@param eye Position
 function Physics:drawWireframes(shader, eye) end
 
+---@param shader Shader
+---@param eye Position
+---@param maxRange number
+function Physics:drawWireframesInRange(shader, eye, maxRange) end
+

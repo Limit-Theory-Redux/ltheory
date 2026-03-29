@@ -104,6 +104,8 @@ function SystemMap3D:_walk(state, entity, parentPos)
         label = "Moon"; color = Color(0.5, 0.5, 0.6, 0.4); isMoon = true; trailWidth = 0.5
     elseif name:find("SpaceStationEntity") then
         label = "Station"; color = Color(1.0, 0.5, 0.1, 0.4); trailWidth = 0.3
+    elseif name:find("AsteroidBeltEntity") then
+        label = "Asteroid Belt"; color = Color(0.7, 0.5, 0.3, 0.3); trailWidth = 0
     end
 
     if label then

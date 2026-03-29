@@ -10,6 +10,7 @@ local DeltaTimer              = require("Shared.Tools.DeltaTimer")
 local CoreComponents          = require("Modules.Core.Components")
 local PhysicsComponents       = require("Modules.Physics.Components")
 local ConstructComponents     = require("Modules.Constructs.Components")
+local CelestialComponents     = require("Modules.CelestialObjects.Components")
 
 -- Camera
 local CameraManager           = require("Modules.Cameras.Managers.CameraManager")
@@ -26,6 +27,7 @@ local LensFlareSystem         = require("Modules.Rendering.Systems.LensFlareSyst
 local GameplayHUDSystem       = require("Modules.UI.Systems.GameplayHUDSystem")
 local WorldLabelRenderSystem  = require("Modules.UI.Systems.WorldLabelRenderSystem")
 local CoordinateRebaser       = require("Modules.CelestialObjects.Managers.CoordinateRebaser")
+local AsteroidFieldSystem     = require("Modules.CelestialObjects.Systems.AsteroidFieldSystem")
 
 -- Input
 local GeneralActions          = require("Input.ActionBindings.GeneralActions")
@@ -158,6 +160,7 @@ function SolarSystemPlayable:generateSolarSystem()
 
     self.planets = {}
     self.labeledEntities = {}
+    self.beltEntities = {}
     self:_collectEntities(self.universe)
     Log.Info("Found %d planets in generated solar system", #self.planets)
 end
@@ -181,6 +184,9 @@ function SolarSystemPlayable:_collectEntities(entity, parentPos)
         label = "Moon"; isMoon = true
     elseif name:find("SpaceStationEntity") then
         label = "Station"
+    elseif name:find("AsteroidBeltEntity") then
+        label = "Asteroid Belt"
+        table.insert(self.beltEntities, entity)
     end
 
     local entityPos = parentPos
@@ -212,8 +218,20 @@ function SolarSystemPlayable:spawnPlayerShip()
     local cfg = self.cfg
     local flightCfg = Config.game.shipFlight
 
+    -- Spawn inside asteroid belt if one exists, otherwise near first planet
     local spawnPos = Position(0, 0, 0)
-    if #self.planets > 0 then
+    if #self.beltEntities > 0 then
+        local beltCmp = self.beltEntities[1]:get(CelestialComponents.AsteroidBelt)
+        if beltCmp and beltCmp:getOrbitRadius() > 0 then
+            -- Spawn at the first asteroid's position
+            local data = beltCmp:getAsteroidData()
+            if data and #data > 0 then
+                local a = data[1]
+                spawnPos = Position(a.px, a.py + 500, a.pz)
+                Log.Info("Spawning ship near asteroid 1 at (%.0f, %.0f, %.0f)", a.px, a.py, a.pz)
+            end
+        end
+    elseif #self.planets > 0 then
         local planet = self.planets[1]
         local transform = planet:get(PhysicsComponents.Transform)
         local planetPos = transform:getPos()
@@ -301,12 +319,39 @@ function SolarSystemPlayable:onRender(data)
         -- Normal scene
         RenderCoreSystem:render(data)
 
+
         self:immediateUI(function()
             LensFlareSystem:draw(self.starEntity, self.labeledEntities)
             GameplayHUDSystem:draw(self.playerShip, self.player:getModeName(), self.player:isPiloting())
             WorldLabelRenderSystem:draw(self.labeledEntities)
+            -- Draw labels for dynamically spawned asteroid entities
+            local spawned = AsteroidFieldSystem:getSpawnedEntities()
+            if #spawned > 0 then
+                local asteroidLabels = {}
+                for _, aInfo in ipairs(spawned) do
+                    table.insert(asteroidLabels, {
+                        entity = aInfo.entity,
+                        label = aInfo.label,
+                    })
+                end
+                WorldLabelRenderSystem:draw(asteroidLabels, 500000)
+            end
 
             if self.mapMode == 1 then
+                -- Feed autopilot target to map for nav line display
+                local ap = self.playerShip:get(ConstructComponents.AutoPilot)
+                if ap and ap:isActive() then
+                    local _, _ = AutoPilotSystem:getDistanceAndSpeed(self.playerShip)
+                    local tPos = ap:getTargetPos()
+                    local tEnt = ap:getTargetEntity()
+                    if tEnt then
+                        local tRb = tEnt:get(PhysicsComponents.RigidBody)
+                        if tRb and tRb:getRigidBody() then tPos = tRb:getRigidBody():getPos() end
+                    end
+                    self.mapState.autopilotPos = tPos
+                else
+                    self.mapState.autopilotPos = nil
+                end
                 SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
                 SystemMap:draw(self.mapState, 0, 0, Window:width(), Window:height())
             end
@@ -359,7 +404,12 @@ function SolarSystemPlayable:onInput(data)
             SystemMap:updateInput(self.mapState, dt)
 
             if GeneralActions.AutoPilotToggle:isPressed() and self.mapState.selected then
-                AutoPilotSystem:engageEntity(self.playerShip, self.mapState.selected.entity)
+                local sel = self.mapState.selected
+                if sel.clickPos then
+                    AutoPilotSystem:engagePosition(self.playerShip, sel.clickPos)
+                else
+                    AutoPilotSystem:engageEntity(self.playerShip, sel.entity)
+                end
                 self.mapMode = 0
                 self.mapState.enabled = false
                 self.mapClosedFrame = true
@@ -399,6 +449,7 @@ function SolarSystemPlayable:onInput(data)
         Cache.ReloadShaders()
         Material.ReloadAll()
     end
+
 end
 
 ---@param data EventData
@@ -407,6 +458,7 @@ function SolarSystemPlayable:onStateSim(data)
 
     OrbitalSystem:update(self.orbiters, dt)
     GravityWellSystem:update(dt, self.playerShip)
+    AsteroidFieldSystem:update(dt, self.beltEntities, self.world)
     SystemMap3D:updateTrails(self.map3DState, dt)
 
     self.player:update(dt)
@@ -433,6 +485,8 @@ function SolarSystemPlayable:regenerate()
     end
 
     self.starEntity = nil
+    self.beltEntities = {}
+    AsteroidFieldSystem:cleanup(self.world)
     self.rng = RNG.Create(self.seed)
     self:generateSolarSystem()
     self:spawnPlayerShip()

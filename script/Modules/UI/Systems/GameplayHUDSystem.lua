@@ -46,14 +46,33 @@ function GameplayHUDSystem:draw(shipEntity, modeName, piloting)
     local apActive = AutoPilotSystem:isActive(shipEntity)
     local apName   = AutoPilotSystem:getTargetName(shipEntity)
 
+    -- Compute ETA for autopilot
+    local apLine
+    if apActive then
+        local dist, apSpeed = AutoPilotSystem:getDistanceAndSpeed(shipEntity)
+        local distStr = UniverseScaleConfig:formatDistance(dist)
+        local etaStr = ""
+        if apSpeed > 1 then
+            local etaSec = dist / apSpeed
+            if etaSec > 3600 then
+                etaStr = string.format(" | ETA: %.0fh %02.0fm", math.floor(etaSec / 3600), (etaSec % 3600) / 60)
+            elseif etaSec > 60 then
+                etaStr = string.format(" | ETA: %.0fm %02.0fs", math.floor(etaSec / 60), etaSec % 60)
+            else
+                etaStr = string.format(" | ETA: %.0fs", etaSec)
+            end
+        end
+        apLine = string.format("AUTOPILOT: %s | %s%s [N to cancel]", apName, distStr, etaStr)
+    else
+        apLine = string.format("Camera: %s %s", modeName, piloting and "(piloting)" or "(observer)")
+    end
+
     local infoLines = {
         string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
         string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
         string.format("Speed: %s%s", speedStr, driveStr),
         string.format("Zone: %s | Max Drive: x%d", zoneName, maxDriveSpeed),
-        apActive
-            and string.format("AUTOPILOT: %s [N to cancel]", apName)
-            or  string.format("Camera: %s %s", modeName, piloting and "(piloting)" or "(observer)"),
+        apLine,
     }
 
     for _, line in ipairs(infoLines) do
