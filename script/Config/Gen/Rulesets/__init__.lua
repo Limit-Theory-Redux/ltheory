@@ -1,3 +1,7 @@
+-- Rulesets reference Items registry entries (e.g. Items.RawMaterials.SilicateOre),
+-- so ItemDefs must be loaded first to populate the registry.
+require("Shared.Definitions.ItemDefs")
+
 return {
     StandardSolarSystem = require("Config.Gen.Rulesets.StandardSolarSystem"),
     StandardBinarySolarSystem = require("Config.Gen.Rulesets.StandardBinarySolarSystem"),

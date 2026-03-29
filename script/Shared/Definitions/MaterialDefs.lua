@@ -86,7 +86,7 @@ MaterialDefinition {
     textures = nil, -- set at runtime
     constShaderVars = {
         heightMult = { type = Enums.UniformType.Float, value = 1.0 },
-        starColor  = { type = Enums.UniformType.Float3, value = { 1.0, 0.5, 0.1 } },
+        starTint   = { type = Enums.UniformType.Float3, value = { 1.0, 0.5, 0.1 } },
     },
     autoShaderVars = {
         mWorld     = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
@@ -277,5 +277,91 @@ MaterialDefinition {
             end, perInstance = true },
         rPlanet       = { type = Enums.UniformType.Float,
             value = function(_, e) return e:get(PhysicsComponents.RigidBody):getRigidBody():getScale() end, perInstance = true },
+    },
+}
+
+---@class Materials
+---@field Star Material
+MaterialDefinition {
+    name = "Star",
+    vs_name = "wvp",
+    fs_name = "material/star",
+    blendMode = BlendMode.Disabled,
+    textures = {
+        sunTex = { tex = Cache.Texture('surface/2k_sun'), type = Enums.UniformType.Tex2D, settings = nil },
+    },
+    autoShaderVars = {
+        mWorld     = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
+        mWorldIT   = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
+        scale      = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc, perInstance = true },
+
+        time       = { type = Enums.UniformType.Float,
+            value = function() return Engine:getTime() end,
+            perInstance = false },
+
+        origin     = { type = Enums.UniformType.Float3,
+            value = function(eye, entity)
+                local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
+                local o = rb:getPos():relativeTo(eye)
+                return o.x, o.y, o.z
+            end, perInstance = true },
+
+        starTint   = { type = Enums.UniformType.Float3,
+            value = function(_, entity)
+                local typeCmp = entity:get(CoreComponents.Type)
+                local starType = typeCmp and typeCmp:getSubtype() or "MainSequence"
+                if starType == "RedGiant" then
+                    return 1.0, 0.3, 0.1
+                elseif starType == "WhiteDwarf" then
+                    return 0.8, 0.85, 1.0
+                else
+                    return 1.0, 0.85, 0.6
+                end
+            end, perInstance = true },
+
+        starTemp = { type = Enums.UniformType.Float,
+            value = function(_, entity)
+                local lumCmp = entity:get(CelestialComponents.Luminosity)
+                local luminosity = lumCmp and lumCmp:getLuminosity() or 1.0
+                return 1.0 + math.log(math.max(0.1, luminosity)) * 0.3
+            end, perInstance = true },
+    },
+}
+
+---@class Materials
+---@field TravelDrive Material
+MaterialDefinition {
+    name = "TravelDrive",
+    vs_name = "traveldrive",
+    fs_name = "material/traveldrive",
+    blendMode = BlendMode.Additive,
+    autoShaderVars = {
+        mWorld   = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
+        mWorldIT = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
+
+        effectScale = { type = Enums.UniformType.Float,
+            value = function() return 1.5 end, -- inflation distance along normals
+            perInstance = false },
+
+        time      = { type = Enums.UniformType.Float,
+            value = function() return Engine:getTime() end,
+            perInstance = false },
+
+        intensity = { type = Enums.UniformType.Float,
+            value = function()
+                local TDS = require("Modules.Constructs.Systems.TravelDriveSystem")
+                local state = TDS:getState()
+                if state == "charging" then return TDS:getChargeProgress()
+                elseif state == "active" then return 0.7 + 0.3 * math.min(1, TDS:getMultiplier() / 50)
+                elseif state == "decelerating" then return math.max(0, (TDS:getMultiplier() - 1) / 50)
+                end
+                return 0
+            end, perInstance = false },
+
+        driveSpeed = { type = Enums.UniformType.Float,
+            value = function()
+                local TDS = require("Modules.Constructs.Systems.TravelDriveSystem")
+                return TDS:getMultiplier()
+            end, perInstance = false },
     },
 }

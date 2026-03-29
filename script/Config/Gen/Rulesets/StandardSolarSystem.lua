@@ -190,7 +190,7 @@ local Ruleset = {
             }
         },
         aspects = {
-            orbitRadius = { type = Enums.Gen.Rule.Range, min = 0.1, max = 10.0 },
+            orbitRadius = { type = Enums.Gen.Rule.Range, min = 0.2, max = 40.0 },
             type = {
                 type = Enums.Gen.Rule.Weighted,
                 values = {
@@ -204,27 +204,36 @@ local Ruleset = {
                     ranges = {
                         {
                             min = 0.1,
-                            max = 0.7,
+                            max = 0.5,
                             weights = {
-                                [Enums.Gen.PlanetTypes.Rocky] = 0.8,
-                                [Enums.Gen.PlanetTypes.Desert] = 0.2
+                                [Enums.Gen.PlanetTypes.Rocky] = 0.5,
+                                [Enums.Gen.PlanetTypes.Desert] = 0.5   -- scorched close-in
                             }
                         },
                         {
-                            min = 0.7,
+                            min = 0.5,
                             max = 2.0,
                             weights = {
-                                [Enums.Gen.PlanetTypes.Rocky] = 0.5,
-                                [Enums.Gen.PlanetTypes.GasGiant] = 0.3,
-                                [Enums.Gen.PlanetTypes.Icy] = 0.2
+                                [Enums.Gen.PlanetTypes.Rocky] = 0.7,
+                                [Enums.Gen.PlanetTypes.Desert] = 0.2,
+                                [Enums.Gen.PlanetTypes.GasGiant] = 0.1  -- rare hot Jupiter
                             }
                         },
                         {
                             min = 2.0,
                             max = 10.0,
                             weights = {
+                                [Enums.Gen.PlanetTypes.Rocky] = 0.2,
                                 [Enums.Gen.PlanetTypes.GasGiant] = 0.6,
-                                [Enums.Gen.PlanetTypes.Icy] = 0.4
+                                [Enums.Gen.PlanetTypes.Icy] = 0.2
+                            }
+                        },
+                        {
+                            min = 10.0,
+                            max = 40.0,
+                            weights = {
+                                [Enums.Gen.PlanetTypes.GasGiant] = 0.3,
+                                [Enums.Gen.PlanetTypes.Icy] = 0.7
                             }
                         }
                     }
@@ -359,7 +368,7 @@ local Ruleset = {
                     criteria = {
                         -- Close-in orbit: mostly Rocky
                         {
-                            conditions = { { type = Enums.Gen.Condition.OrbitRadius, min = 0.1, max = 2.0 } },
+                            conditions = { { type = Enums.Gen.Condition.OrbitRadius, min = 0.2, max = 5.0 } },
                             weights = {
                                 [Enums.Gen.AsteroidRingTypes.Rocky] = 0.8,
                                 [Enums.Gen.AsteroidRingTypes.Icy]   = 0.2
@@ -367,7 +376,7 @@ local Ruleset = {
                         },
                         -- Far orbit: mostly Icy
                         {
-                            conditions = { { type = Enums.Gen.Condition.OrbitRadius, min = 2.0, max = 10.0 } },
+                            conditions = { { type = Enums.Gen.Condition.OrbitRadius, min = 5.0, max = 40.0 } },
                             weights = {
                                 [Enums.Gen.AsteroidRingTypes.Rocky] = 0.2,
                                 [Enums.Gen.AsteroidRingTypes.Icy]   = 0.8
@@ -554,7 +563,9 @@ local Ruleset = {
             }
         }
     },
-    starZoneRadius = { type = Enums.Gen.Rule.Fixed, value = 1.5e11 }
+    starZoneRadius = { type = Enums.Gen.Rule.Fixed, value = 5e9 },        -- close to star only
+    planetZoneRadius = { type = Enums.Gen.Rule.Range, min = 1e8, max = 1e9 }, -- larger planet zones
+    moonZoneRadius = { type = Enums.Gen.Rule.Range, min = 1e6, max = 1e7 },
 }
 
 return Ruleset
