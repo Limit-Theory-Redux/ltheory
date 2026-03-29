@@ -153,7 +153,16 @@ end
 function SystemMap3D:updateInput(state, dt)
     if not state.enabled then return end
 
-    local scrollY = Input:mouse():scroll().y
+    local MapActions = require("Input.ActionBindings.MapActions")
+    MapActions.Zoom:update(dt)
+    MapActions.MoveX:update(dt)
+    MapActions.MoveZ:update(dt)
+    MapActions.Drag:update(dt)
+    MapActions.Pan:update(dt)
+    MapActions.Select:update(dt)
+
+    -- Zoom
+    local scrollY = MapActions.Zoom:get()
     if math.abs(scrollY) > 0.001 then
         state.radiusTarget = Math.Clamp(
             state.radiusTarget * math.exp(-state.zoomSpeed * scrollY),
@@ -166,51 +175,40 @@ function SystemMap3D:updateInput(state, dt)
         state.radius = math.exp(logCur + diff * math.min(1, 12 * dt))
     end
 
-    -- Focus tracking is done in updateCamera() to ensure same-frame position read
-
     -- Compute camera axes for panning
     local cosYaw = math.cos(state.yaw)
     local sinYaw = math.sin(state.yaw)
-    -- Camera right/forward in world XZ plane
     local camRightX = cosYaw
     local camRightZ = -sinYaw
     local camFwdX = sinYaw
     local camFwdZ = cosYaw
 
-    -- WASD panning (moves focus point, breaks selection)
-    local panSpeed = state.radius * 0.5 * dt -- proportional to zoom
+    -- WASD panning via ActionBindings
+    local panSpeed = state.radius * 0.5 * dt
+    local moveX = MapActions.MoveX:get()
+    local moveZ = MapActions.MoveZ:get()
     local panning = false
-    if Input:isDown(Button.KeyboardW) then
-        state.manualFocusX = (state.manualFocusX or 0) + camFwdX * panSpeed
-        state.manualFocusZ = (state.manualFocusZ or 0) + camFwdZ * panSpeed
+    if math.abs(moveZ) > 0.001 then
+        state.manualFocusX = (state.manualFocusX or 0) + camFwdX * panSpeed * moveZ
+        state.manualFocusZ = (state.manualFocusZ or 0) + camFwdZ * panSpeed * moveZ
         panning = true
     end
-    if Input:isDown(Button.KeyboardS) then
-        state.manualFocusX = (state.manualFocusX or 0) - camFwdX * panSpeed
-        state.manualFocusZ = (state.manualFocusZ or 0) - camFwdZ * panSpeed
-        panning = true
-    end
-    if Input:isDown(Button.KeyboardD) then
-        state.manualFocusX = (state.manualFocusX or 0) + camRightX * panSpeed
-        state.manualFocusZ = (state.manualFocusZ or 0) + camRightZ * panSpeed
-        panning = true
-    end
-    if Input:isDown(Button.KeyboardA) then
-        state.manualFocusX = (state.manualFocusX or 0) - camRightX * panSpeed
-        state.manualFocusZ = (state.manualFocusZ or 0) - camRightZ * panSpeed
+    if math.abs(moveX) > 0.001 then
+        state.manualFocusX = (state.manualFocusX or 0) + camRightX * panSpeed * moveX
+        state.manualFocusZ = (state.manualFocusZ or 0) + camRightZ * panSpeed * moveX
         panning = true
     end
     if panning then state.selected = nil end
 
     -- Rotate with right mouse, pan with middle mouse
     local mp = Input:mouse():position()
-    if Input:isDown(Button.MouseRight) then
+    if MapActions.Drag:isDown() then
         if state.dragging then
             state.yaw   = state.yaw + (mp.x - state.lastMouseX) * state.rotateSens
             state.pitch = Math.Clamp(state.pitch - (mp.y - state.lastMouseY) * state.rotateSens, -1.4, 1.4)
         end
         state.dragging = true
-    elseif Input:isDown(Button.MouseMiddle) then
+    elseif MapActions.Pan:isDown() then
         if state.dragging then
             local dx = (mp.x - state.lastMouseX) * state.radius * 0.001
             local dy = (mp.y - state.lastMouseY) * state.radius * 0.001
@@ -226,7 +224,7 @@ function SystemMap3D:updateInput(state, dt)
     state.lastMouseY = mp.y
 
     -- Click to select
-    if Input:mouse():isPressed(MouseControl.Left) then
+    if MapActions.Select:isPressed() then
         local scrW = Window:width()
         local scrH = Window:height()
         local mV = state._mView

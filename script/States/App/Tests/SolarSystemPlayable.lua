@@ -27,6 +27,10 @@ local GameplayHUDSystem       = require("Modules.UI.Systems.GameplayHUDSystem")
 local WorldLabelRenderSystem  = require("Modules.UI.Systems.WorldLabelRenderSystem")
 local CoordinateRebaser       = require("Modules.CelestialObjects.Managers.CoordinateRebaser")
 
+-- Input
+local GeneralActions          = require("Input.ActionBindings.GeneralActions")
+local CursorManager           = require("Input.CursorManager")
+
 -- Generation + Simulation
 local Rulesets                = require("Config.Gen.Rulesets")
 local UniverseManager         = require("Modules.CelestialObjects.Managers.UniverseManager")
@@ -312,19 +316,27 @@ end
 
 ---@param data EventData
 function SolarSystemPlayable:onInput(data)
+    local dt = data:deltaTime()
+
+    -- Update general action bindings
+    GeneralActions.CycleMapMode:update(dt)
+    GeneralActions.AutoPilotToggle:update(dt)
+    GeneralActions.Regenerate:update(dt)
+    GeneralActions.ReloadShaders:update(dt)
+
     -- Cycle map mode: off -> 2D -> 3D -> off
-    if Input:isPressed(Button.KeyboardM) then
+    if GeneralActions.CycleMapMode:isPressed() then
         self.mapMode = (self.mapMode + 1) % 3
         self.mapState.enabled = (self.mapMode == 1)
         self.map3DState.enabled = (self.mapMode == 2)
 
         if self.mapMode == 1 then
             SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
-            Input:setCursorVisible(true)
+            CursorManager:free()
         elseif self.mapMode == 2 then
             SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
             SystemMap3D:activate(self.map3DState)
-            Input:setCursorVisible(true)
+            CursorManager:free()
         else
             SystemMap3D:deactivate(self.map3DState)
             self.mapClosedFrame = true
@@ -344,20 +356,18 @@ function SolarSystemPlayable:onInput(data)
         self.player:setInputBlocked(true)
 
         if self.mapMode == 1 then
-            SystemMap:updateInput(self.mapState, data:deltaTime())
+            SystemMap:updateInput(self.mapState, dt)
 
-            -- N key: navigate to selected entity on 2D map
-            if Input:isPressed(Button.KeyboardN) and self.mapState.selected then
+            if GeneralActions.AutoPilotToggle:isPressed() and self.mapState.selected then
                 AutoPilotSystem:engageEntity(self.playerShip, self.mapState.selected.entity)
                 self.mapMode = 0
                 self.mapState.enabled = false
                 self.mapClosedFrame = true
             end
         else
-            SystemMap3D:updateInput(self.map3DState, data:deltaTime())
+            SystemMap3D:updateInput(self.map3DState, dt)
 
-            -- N key: navigate to selected entity on 3D map
-            if Input:isPressed(Button.KeyboardN) and self.map3DState.selected then
+            if GeneralActions.AutoPilotToggle:isPressed() and self.map3DState.selected then
                 AutoPilotSystem:engageEntity(self.playerShip, self.map3DState.selected.entity)
                 self.mapMode = 0
                 self.map3DState.enabled = false
@@ -370,17 +380,24 @@ function SolarSystemPlayable:onInput(data)
         self.player:setInputBlocked(false)
     end
 
-    -- N key: toggle autopilot (cancel if active)
-    if Input:isPressed(Button.KeyboardN) then
+    -- Toggle autopilot (cancel if active)
+    if GeneralActions.AutoPilotToggle:isPressed() then
         if AutoPilotSystem:isActive(self.playerShip) then
             AutoPilotSystem:disengage(self.playerShip)
         end
     end
 
     -- Regenerate with new seed
-    if Input:isPressed(Button.KeyboardB) then
+    if GeneralActions.Regenerate:isPressed() then
         self.seed = self.rng:get31()
         self:regenerate()
+    end
+
+    -- Hot-reload shaders
+    if GeneralActions.ReloadShaders:isPressed() then
+        local Material = require("Shared.Rendering.Material")
+        Cache.ReloadShaders()
+        Material.ReloadAll()
     end
 end
 
