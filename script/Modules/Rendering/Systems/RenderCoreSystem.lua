@@ -156,6 +156,9 @@ function RenderCoreSystem:render(data)
     self:renderInOrder(BlendMode.Disabled)
     self.passes[self.currentPass]:stop()
 
+    -- Deferred Lighting Pass
+    self:deferredLighting()
+
     -- Additive Pass
     self.currentPass = Enums.RenderingPasses.Additive
     self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
@@ -260,9 +263,10 @@ end
 function RenderCoreSystem:renderInOrder(blendMode)
     for entity in Registry:view(RenderComp) do
         local rend = entity:get(RenderComp)
+        if not rend:isVisible() then goto next_render end
         if rend:getRenderFn() then
             rend:getRenderFn()(entity, blendMode)
-        else
+        elseif rend:getMeshes() then
             for meshmat in Iterator(rend:getMeshes()) do
                 local mat = meshmat.material
                 if (mat:getBlendMode() or BlendMode.Disabled) == blendMode then
@@ -276,6 +280,7 @@ function RenderCoreSystem:renderInOrder(blendMode)
                 end
             end
         end
+        ::next_render::
     end
 end
 
@@ -288,7 +293,9 @@ function RenderCoreSystem:cacheData()
 
     for entity in Registry:view(RenderComp) do
         local rend = entity:get(RenderComp)
+        if not rend:isVisible() then goto next_entity end
         if rend:getRenderFn() then goto next_entity end
+        if not rend:getMeshes() then goto next_entity end
 
         for meshmat in Iterator(rend:getMeshes()) do
             local mat = meshmat.material
@@ -436,6 +443,92 @@ function RenderCoreSystem:downsampleForPost()
 
     -- Final level is the one matching screen res
     self.level = currentLevel
+end
+
+--- Set directional lights for the scene (call before render)
+---@param lights table[] Array of { dir: Vec3f (normalized, toward scene), color: Vec3f }
+function RenderCoreSystem:setDirectionalLights(lights)
+    self.directionalLights = lights
+end
+
+--- Set point lights for the scene (call before render)
+---@param lights table[] Array of { pos: Position, color: Vec3f }
+function RenderCoreSystem:setPointLights(lights)
+    self.pointLights = lights
+end
+
+--- Deferred lighting pass: global environment + point lights → composite with albedo
+function RenderCoreSystem:deferredLighting()
+    local buffer0 = self.buffers[Enums.BufferName.buffer0]   -- albedo
+    local buffer1 = self.buffers[Enums.BufferName.buffer1]   -- normals/material
+    local buffer2 = self.buffers[Enums.BufferName.buffer2]   -- lighting accumulation
+    local zBufferL = self.buffers[Enums.BufferName.zBufferL] -- linear depth
+
+    local eye = CameraManager:getEye()
+
+    -- 1. Global lighting (environment from irMap/envMap)
+    buffer2:push()
+    Draw.Clear(0, 0, 0, 0)
+    local globalShader = Cache.Shader('worldray', 'light/global')
+    globalShader:start()
+    globalShader:setTex2D('texDepth', zBufferL)
+    globalShader:setTex2D('texNormalMat', buffer1)
+    Draw.Rect(-1, -1, 2, 2)
+    globalShader:stop()
+    buffer2:pop()
+
+
+    -- 2. Directional lights (star — no distance falloff, like the sun)
+    if self.directionalLights and #self.directionalLights > 0 then
+        buffer2:push()
+        RenderState.PushBlendMode(BlendMode.Additive)
+        local dirShader = Cache.Shader('worldray', 'light/directional')
+        dirShader:start()
+        for _, light in ipairs(self.directionalLights) do
+            dirShader:setFloat3('lightDir', light.dir.x, light.dir.y, light.dir.z)
+            dirShader:setFloat3('lightColor', light.color.x, light.color.y, light.color.z)
+            dirShader:setTex2D('texDepth', zBufferL)
+            dirShader:setTex2D('texNormalMat', buffer1)
+            Draw.Rect(-1, -1, 2, 2)
+        end
+        dirShader:stop()
+        RenderState.PopBlendMode()
+        buffer2:pop()
+    end
+
+    -- 3. Point lights (stations, engines, etc.)
+    if self.pointLights and #self.pointLights > 0 then
+        buffer2:push()
+        RenderState.PushBlendMode(BlendMode.Additive)
+        local pointShader = Cache.Shader('worldray', 'light/point')
+        pointShader:start()
+        for _, light in ipairs(self.pointLights) do
+            local renderPos = light.pos:relativeTo(eye)
+            pointShader:setFloat3('lightPos', renderPos.x, renderPos.y, renderPos.z)
+            pointShader:setFloat3('lightColor', light.color.x, light.color.y, light.color.z)
+            pointShader:setTex2D('texDepth', zBufferL)
+            pointShader:setTex2D('texNormalMat', buffer1)
+            Draw.Rect(-1, -1, 2, 2)
+        end
+        pointShader:stop()
+        RenderState.PopBlendMode()
+        buffer2:pop()
+    end
+
+    -- 3. Composite: albedo * lighting → buffer1 (reuse as temp)
+    buffer1:push()
+    local compShader = Cache.Shader('worldray', 'light/composite')
+    compShader:start()
+    compShader:setTex2D('texAlbedo', buffer0)
+    compShader:setTex2D('texDepth', zBufferL)
+    compShader:setTex2D('texLighting', buffer2)
+    Draw.Rect(-1, -1, 2, 2)
+    compShader:stop()
+    buffer1:pop()
+
+    -- Swap buffer1 (lit result) into buffer0 (main scene buffer)
+    self.buffers[Enums.BufferName.buffer0], self.buffers[Enums.BufferName.buffer1] =
+        self.buffers[Enums.BufferName.buffer1], self.buffers[Enums.BufferName.buffer0]
 end
 
 function RenderCoreSystem:bloom(radius)

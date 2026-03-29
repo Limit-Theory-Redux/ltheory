@@ -2,10 +2,12 @@ local libphx = require('libphx').lib
 
 function onDef_RigidBody_t(t, mt)
     ---@class RigidBody
-    ---@field getPos fun(self: RigidBody, out: Position|nil)
-    ---@field getPosLocal fun(self: RigidBody, out: Position|nil)
-    ---@field getRot fun(self: RigidBody, out: Quat|nil)
-    ---@field getRotLocal fun(self: RigidBody, out: Quat|nil)
+    ---@field getPos fun(self: RigidBody, out: Position|nil): Position
+    ---@field getPosLocal fun(self: RigidBody, out: Position|nil): Position
+    ---@field getRot fun(self: RigidBody, out: Quat|nil): Quat
+    ---@field getRotLocal fun(self: RigidBody, out: Quat|nil): Quat
+    ---@field getVelocity fun(self: RigidBody, out: Vec3f|nil): Vec3f
+    ---@field getVelocityA fun(self: RigidBody, out: Vec3f|nil): Vec3f
 
     function mt.__index.getPos(self, out)
         local out = out or Position()
@@ -40,6 +42,18 @@ function onDef_RigidBody_t(t, mt)
     function mt.__index.getRotLocal(self, out)
         local out = out or Quat()
         libphx.RigidBody_GetRotLocal(self, out)
+        return out
+    end
+
+    function mt.__index.getVelocity(self, out)
+        local out = out or Vec3f()
+        libphx.RigidBody_GetVelocity(self, out)
+        return out
+    end
+
+    function mt.__index.getVelocityA(self, out)
+        local out = out or Vec3f()
+        libphx.RigidBody_GetVelocityA(self, out)
         return out
     end
 
