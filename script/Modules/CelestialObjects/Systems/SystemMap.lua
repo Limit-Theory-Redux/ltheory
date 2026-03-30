@@ -189,13 +189,10 @@ function SystemMap:_walk(state, entity, parentPos, parentEntity)
             })
         end
 
-        -- Don't recurse into belt/ring children (spawned asteroids handled by dot mesh)
-        if not isBelt then
-            local childrenCmp = entity:get(CoreComponents.Children)
-            if childrenCmp then
-                for child in childrenCmp:iterChildren() do
-                    self:_walk(state, child, pos, entity)
-                end
+        local childrenCmp = entity:get(CoreComponents.Children)
+        if childrenCmp then
+            for child in childrenCmp:iterChildren() do
+                self:_walk(state, child, pos, entity)
             end
         end
     else
@@ -314,8 +311,10 @@ function SystemMap:updateInput(state, dt)
                     ocy = hy + state.panY * state.zoom
                 end
 
-                -- Check individual asteroid dots (only when zoomed in very close)
-                if beltCmp and beltScreenR > math.min(Window:width(), Window:height()) * 2 then
+                -- Check individual asteroid dots
+                local isRing = entry.parentPos ~= nil
+                local dotClickThreshold = isRing and 20 or (math.min(Window:width(), Window:height()) * 2)
+                if beltCmp and beltScreenR > dotClickThreshold then
                     local asteroids = beltCmp:getAsteroidData()
                     local mdxB = mp.x - ocx
                     local mdyB = mp.y - ocy
@@ -347,7 +346,7 @@ function SystemMap:updateInput(state, dt)
                 local outerR = beltScreenR + beltScreenW * 0.5
                 local clickPad = 10
                 if mouseDistFromCenter >= innerR - clickPad and mouseDistFromCenter <= outerR + clickPad then
-                    local d = 300
+                    local d = 10000  -- very low priority, dots always win
                     if d < bestDist then
                         bestDist = d
                         local angle = math.atan2(mdy, mdx)
@@ -376,7 +375,6 @@ function SystemMap:updateInput(state, dt)
         end
         if bestEntry then
             bestEntry.clickPos = bestClickPos
-            -- Store local offset for per-frame position update on moving rings
             if bestClickPos and bestEntry.parentPos then
                 bestEntry._clickLocalX = bestClickPos.x - bestEntry.parentPos.x
                 bestEntry._clickLocalZ = bestClickPos.z - bestEntry.parentPos.z
@@ -625,27 +623,23 @@ function SystemMap:draw(state, x, y, sx, sy)
         ::next_map_entity::
     end
 
-    -- Draw nav target marker on ACTUAL target position
-    local navMarkerPos = (state.selected and state.selected.clickPos) or state.autopilotTargetPos
-    if navMarkerPos then
-        local cp = navMarkerPos
-        local cpx = cx + (cp.x + state.panX) * state.zoom
-        local cpy = cy + (cp.z + state.panY) * state.zoom
+    -- Draw autopilot nav: target marker + intercept marker + lines
+    -- Target marker (yellow crosshair on actual target)
+    if state.autopilotTargetPos then
+        local tp = state.autopilotTargetPos
+        local tpx = cx + (tp.x + state.panX) * state.zoom
+        local tpy = cy + (tp.z + state.panY) * state.zoom
         local ms = 6
-        DrawEx.SimpleRect(cpx - ms, cpy - 0.5, ms * 2, 1, Color(1.0, 0.8, 0.3, 0.9))
-        DrawEx.SimpleRect(cpx - 0.5, cpy - ms, 1, ms * 2, Color(1.0, 0.8, 0.3, 0.9))
-        DrawEx.TextAlpha('Unageo-Medium', "NAV TARGET", 9,
-            cpx + ms + 2, cpy - 5, 100, 12, 1.0, 0.8, 0.3, 0.9, 0.0, 0.5)
+        DrawEx.SimpleRect(tpx - ms, tpy - 0.5, ms * 2, 1, Color(1.0, 0.8, 0.3, 0.9))
+        DrawEx.SimpleRect(tpx - 0.5, tpy - ms, 1, ms * 2, Color(1.0, 0.8, 0.3, 0.9))
+        DrawEx.TextAlpha('Unageo-Medium', "TARGET", 9,
+            tpx + ms + 2, tpy - 5, 80, 12, 1.0, 0.8, 0.3, 0.9, 0.0, 0.5)
     end
-
-    -- Draw intercept marker (where ship is actually heading)
+    -- Intercept marker (cyan, only if different from target)
     if state.autopilotPos and state.autopilotTargetPos then
         local ip = state.autopilotPos
         local tp = state.autopilotTargetPos
-        -- Only show if intercept differs from target (leading)
-        local sepX = ip.x - tp.x
-        local sepZ = ip.z - tp.z
-        local sep = math.sqrt(sepX * sepX + sepZ * sepZ) * state.zoom
+        local sep = math.sqrt((ip.x-tp.x)^2 + (ip.z-tp.z)^2) * state.zoom
         if sep > 10 then
             local ipx = cx + (ip.x + state.panX) * state.zoom
             local ipy = cy + (ip.z + state.panY) * state.zoom
@@ -656,47 +650,18 @@ function SystemMap:draw(state, x, y, sx, sy)
                 ipx + ms + 2, ipy - 5, 80, 10, 0.3, 0.8, 1.0, 0.7, 0.0, 0.5)
         end
     end
-
-    -- Draw nav/selection line from ship to destination
-    local navTarget = state.selected or (state.autopilotPos and { clickPos = state.autopilotPos })
-    if navTarget and state.shipEntity then
-        local shipRb = state.shipEntity:get(PhysicsComponents.RigidBody)
-        if shipRb and shipRb:getRigidBody() then
-            local shipPos = shipRb:getRigidBody():getPos()
-            local shipSX = cx + (shipPos.x + state.panX) * state.zoom
-            local shipSY = cy + (shipPos.z + state.panY) * state.zoom
-
-            local destSX, destSY, destWorldPos
-            if navTarget.clickPos then
-                destWorldPos = navTarget.clickPos
-                destSX = cx + (destWorldPos.x + state.panX) * state.zoom
-                destSY = cy + (destWorldPos.z + state.panY) * state.zoom
-            elseif navTarget.pos then
-                destWorldPos = navTarget.pos
-                if navTarget.entity then
-                    local rbCmp = navTarget.entity:get(PhysicsComponents.RigidBody)
-                    if rbCmp and rbCmp:getRigidBody() then
-                        destWorldPos = rbCmp:getRigidBody():getPos()
-                    end
-                end
-                destSX = cx + (destWorldPos.x + state.panX) * state.zoom
-                destSY = cy + (destWorldPos.z + state.panY) * state.zoom
-            end
-
-            if destSX then
-                local ldx = destSX - shipSX
-                local ldy = destSY - shipSY
-                local len = math.sqrt(ldx * ldx + ldy * ldy)
-                if len > 5 then
-                    -- Selection line (yellow, thin)
-                    DrawEx.Line(shipSX, shipSY, destSX, destSY,
-                        Color(1.0, 0.8, 0.3, 0.3))
-                end
-            end
-        end
+    -- Selection marker (when no autopilot, just map selection)
+    if not state.autopilotTargetPos and state.selected and state.selected.clickPos then
+        local cp = state.selected.clickPos
+        local cpx = cx + (cp.x + state.panX) * state.zoom
+        local cpy = cy + (cp.z + state.panY) * state.zoom
+        local ms = 6
+        DrawEx.SimpleRect(cpx - ms, cpy - 0.5, ms * 2, 1, Color(1.0, 0.8, 0.3, 0.9))
+        DrawEx.SimpleRect(cpx - 0.5, cpy - ms, 1, ms * 2, Color(1.0, 0.8, 0.3, 0.9))
+        DrawEx.TextAlpha('Unageo-Medium', "SELECTED", 9,
+            cpx + ms + 2, cpy - 5, 80, 12, 1.0, 0.8, 0.3, 0.9, 0.0, 0.5)
     end
 
-    -- Draw autopilot: target line (yellow) + intercept flight path (white)
     if state.autopilotPos and state.shipEntity then
         local shipRb = state.shipEntity:get(PhysicsComponents.RigidBody)
         if shipRb and shipRb:getRigidBody() then

@@ -10,6 +10,9 @@ local AutoPilotComponent = Subclass("AutoPilotComponent", Component, function(se
     self._targetPos    = nil     -- Position (f64)
     self._arrivalRange = 500
     self._elapsed      = 0
+    self._localOffsetX = nil     -- for tracking targets on orbiting bodies
+    self._localOffsetZ = nil
+    self._parentEntity = nil
 
     -- Computed nav data (written by AutoPilotSystem, read by map/HUD)
     self.interceptPos  = nil     -- predicted intercept position

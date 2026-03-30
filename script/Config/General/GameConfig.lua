@@ -75,11 +75,17 @@ Config.game = {
         local accelGame    = maxSpeedGame / accelTimeReal
 
         -- Derive physics values
-        local mass = 12000
-        -- Higher drag = faster deceleration, lower top speed without thrust
-        -- thrust computed from desired max speed and drag: thrust = maxSpeed * mass * drag
+        -- Mass from hull config (Solo = index 1)
+        local mass = 5000
         local drag = 2.0
         local thrust = maxSpeedGame * mass * drag
+
+        -- Torque from mass: gives ~10 rad/s² angular acceleration (responsive but not spinny)
+        -- Torque: tuned empirically. The equilibrium turn rate is:
+        --   ω_max = torque / (I × angularDrag)
+        -- where I = 2/5 × m × r² (tiny at small globalScale).
+        -- angularDrag dominates the feel; torque sets responsiveness.
+        local torque = 50
 
         return {
             -- Auto-computed from desired speed/acceleration
@@ -87,14 +93,14 @@ Config.game = {
             thrustRight    = thrust * lateralRatio,
             thrustUp       = thrust * verticalRatio,
 
-            -- Rotational torques (independent of speed formula)
-            torquePitch    = 5000000,
-            torqueYaw      = 5000000,
-            torqueRoll     = 4000000,
+            -- Rotational torques (derived from mass × desired angular acceleration)
+            torquePitch    = torque,
+            torqueYaw      = torque,
+            torqueRoll     = torque * 0.6,
 
             -- Auto-computed physics
             linearDrag     = drag,
-            angularDrag    = 5.0,
+            angularDrag    = 20.0,
 
             -- Input inversion
             invertYaw      = false,
@@ -109,10 +115,12 @@ Config.game = {
     -- Ship hull classes (from legacy, indexed by Enums.ShipHulls)
     -- Solo=1, Small=2, Compact=3, Medium=4, Large=5, VeryLarge=6
     shipHulls = {
-        scale  = { 4, 7, 10, 14, 19, 24 },
-        radius = { 12, 15, 19, 24, 30, 38 },
-        mass   = { 12000, 18000, 23000, 30000, 42000, 70000 },
-        drag   = { 0.75, 0.75, 0.75, 0.75, 0.75, 0.75 },
+        -- Scaled for globalScale 0.0001 (1 game unit = 10km)
+        -- Solo ~50m, Small ~100m, Compact ~150m, Medium ~200m, Large ~300m, VeryLarge ~500m
+        scale  = { 0.005, 0.01, 0.015, 0.02, 0.03, 0.05 },
+        radius = { 0.003, 0.005, 0.008, 0.012, 0.018, 0.025 },
+        mass   = { 5000, 10000, 18000, 30000, 50000, 100000 },
+        drag   = { 2.0, 2.0, 2.0, 2.0, 2.0, 2.0 },
         -- Translation speed multiplier (smaller = less lateral/vertical for big ships)
         tranM  = { 0.8, 0.2, 0.1, 0.06, 0.03, 0.0 },
         -- Maneuverability multiplier (pitch/yaw/roll scaling)
@@ -151,24 +159,24 @@ Config.game = {
         defaultSeed        = 12345,
 
         -- Ship spawn
-        shipScale          = 1.5,
+        shipScale          = 0.005,    -- ~50m fighter
         shipSpawnOffset    = 3.0,     -- Multiplier of planet radius for spawn distance
 
         -- Station spawn
         maxStations        = 2,       -- Max stations to spawn (limited by planet count)
-        stationScale       = 2.0,
+        stationScale       = 0.3,     -- ~3km station
         stationOrbitMult   = 2.5,     -- Multiplier of planet radius for station orbit distance
 
-        -- Orbit camera defaults
-        orbitDistance       = 30,
-        orbitMinDistance    = 5,
-        orbitMaxDistance    = 500,
+        -- Orbit camera defaults (scaled for 50m ship)
+        orbitDistance       = 0.015,
+        orbitMinDistance    = 0.005,
+        orbitMaxDistance    = 5.0,
         orbitSmoothing     = 0.1,
-        orbitZoomSpeed     = 8.0,
+        orbitZoomSpeed     = 0.01,
 
         -- Free camera defaults
-        freeMoveSpeed      = 100.0,
-        freeFastMult       = 10.0,
+        freeMoveSpeed      = 1.0,
+        freeFastMult       = 100.0,
         freeMouseSens      = 0.003,
 
         -- Texture quality (cube map resolution for planet/moon surfaces)
