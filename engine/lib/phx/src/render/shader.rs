@@ -664,7 +664,10 @@ fn try_create_gl_shader(src: &str, shader_type: gl::types::GLenum) -> Option<u32
 }
 
 /// Non-panicking program linking — returns None on failure.
-fn try_create_gl_program(vs: gl::types::GLuint, fs: gl::types::GLuint) -> Option<gl::types::GLuint> {
+fn try_create_gl_program(
+    vs: gl::types::GLuint,
+    fs: gl::types::GLuint,
+) -> Option<gl::types::GLuint> {
     let this = glcheck!(gl::CreateProgram());
     glcheck!(gl::AttachShader(this, vs));
     glcheck!(gl::AttachShader(this, fs));
