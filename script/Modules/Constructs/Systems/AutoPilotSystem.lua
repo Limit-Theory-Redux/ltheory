@@ -27,7 +27,10 @@ end
 ---@param shipEntity Entity
 ---@param pos Position
 ---@param arrivalRange number|nil
-function AutoPilotSystem:engagePosition(shipEntity, pos, arrivalRange)
+---@param parentEntity Entity|nil Parent entity for tracking (e.g., planet for ring asteroids)
+---@param localOffsetX number|nil Local X offset from parent
+---@param localOffsetZ number|nil Local Z offset from parent
+function AutoPilotSystem:engagePosition(shipEntity, pos, arrivalRange, parentEntity, localOffsetX, localOffsetZ)
     local ap = shipEntity:get(ConstructComponents.AutoPilot)
     if not ap then return end
 
@@ -37,6 +40,9 @@ function AutoPilotSystem:engagePosition(shipEntity, pos, arrivalRange)
     ap:setTargetPos(pos)
     ap:setArrivalRange(arrivalRange or cfg.arrivalRange or 500)
     ap:setElapsed(0)
+    ap._parentEntity = parentEntity
+    ap._localOffsetX = localOffsetX
+    ap._localOffsetZ = localOffsetZ
     Log.Info("AutoPilot: engaged to position")
 end
 
@@ -151,6 +157,16 @@ function AutoPilotSystem:update(dt, shipEntity)
         end
     end
 
+    -- Recompute position from parent + local offset (for orbiting targets)
+    if ap._parentEntity and ap._localOffsetX then
+        local pRb = ap._parentEntity:get(PhysicsComponents.RigidBody)
+        if pRb and pRb:getRigidBody() then
+            local pp = pRb:getRigidBody():getPos()
+            targetPos = Position(pp.x + ap._localOffsetX, pp.y, pp.z + ap._localOffsetZ)
+            ap:setTargetPos(targetPos)
+        end
+    end
+
     if not targetPos then self:disengage(shipEntity); return end
 
     local shipPos = rb:getPos()
@@ -170,16 +186,18 @@ function AutoPilotSystem:update(dt, shipEntity)
     end
     ap._prevTargetPos = Position(targetPos.x, targetPos.y, targetPos.z)
 
+    -- Quick distance check for approach mode
+    local qdx = targetPos.x - shipPos.x
+    local qdy = targetPos.y - shipPos.y
+    local qdz = targetPos.z - shipPos.z
+    local quickDist = math.sqrt(qdx*qdx + qdy*qdy + qdz*qdz)
+
     -- Lead prediction: aim where target WILL BE when we arrive
-    -- Skip leading once inside the target's gravity well (velocity matching handles it)
+    -- Skip leading when close (within 5000 units) or inside any gravity well — fly direct
     local GravityWellSystem = require("Modules.Physics.Systems.GravityWellSystem")
-    local inTargetZone = false
-    if targetEntity then
-        local zoneType = GravityWellSystem:getZoneType()
-        if zoneType == "planet" or zoneType == "moon" then
-            inTargetZone = true
-        end
-    end
+    local closeApproach = quickDist < 5000
+    local inGravityWell = GravityWellSystem:getZoneType() ~= "openSpace"
+    local inTargetZone = closeApproach or inGravityWell
 
     local interceptPos = targetPos
     local tSpeed = math.sqrt(ap.targetVelX^2 + ap.targetVelY^2 + ap.targetVelZ^2)
@@ -275,9 +293,9 @@ function AutoPilotSystem:update(dt, shipEntity)
     local rt  = rot:getRight()
     local up  = rot:getUp()
 
-    -- Get target body's velocity (if it's a moving body like a planet)
+    -- Get target body's velocity — skip inside gravity wells (GravityWellSystem handles matching)
     local targetVelX, targetVelY, targetVelZ = 0, 0, 0
-    if targetEntity then
+    if targetEntity and not inTargetZone then
         local tRbCmp = targetEntity:get(PhysicsComponents.RigidBody)
         if tRbCmp and tRbCmp:getRigidBody() then
             local tVel = tRbCmp:getRigidBody():getVelocity()
@@ -344,24 +362,45 @@ function AutoPilotSystem:update(dt, shipEntity)
         )))
     end
 
-    -- Travel drive management
-    -- Key rule: disengage threshold must always be < engage threshold to prevent loops
+    -- Smart travel drive: smooth speed curve based on distance
     local drive = shipEntity:get(ConstructComponents.TravelDrive)
     if drive then
-        local driveCfg = Config.game.travelDrive
         local autoPilotCfg = Config.game.autoPilot or {}
         local travelDriveDelay = autoPilotCfg.travelDriveDelay or 5.0
         local enableTravelDrive = autoPilotCfg.enableTravelDrive ~= false
+        local GravityWellSystem = require("Modules.Physics.Systems.GravityWellSystem")
+        local zoneMax = GravityWellSystem:getMaxDriveSpeed()
 
-        -- Fixed thresholds based on safe range:
-        -- Disengage when remaining distance can be covered in ~5s at current speed
-        local driveDisengageDist = math.max(safeRange * 5, speed * 5)
-        -- Engage only when significantly further (3x disengage, minimum 20x safe)
-        local driveEngageDist = math.max(safeRange * 20, driveDisengageDist * 3)
+        -- Desired drive multiplier based on distance (smooth approach curve)
+        -- Far: full zone speed. Close: ramp down to 1x for final approach.
+        local finalApproachDist = safeRange * 10   -- within this: no drive
+        local rampStartDist = finalApproachDist * 5  -- start reducing from here
+        local driveEngageDist = rampStartDist * 2    -- engage only beyond this
 
-        -- Disengage drive when close enough
-        if drive:isActive() and dist < driveDisengageDist then
-            drive:setState("decelerating")
+        -- Distance-proportional speed cap: faster when far, slower when close
+        -- This ensures comfortable deceleration regardless of target size
+        local distBasedMax = math.max(1, math.sqrt(dist / math.max(1, safeRange)) * 5)
+        local speedCap = math.min(zoneMax, distBasedMax)
+
+        local desiredMult = 1.0
+        if dist > rampStartDist then
+            desiredMult = speedCap
+        elseif dist > finalApproachDist then
+            local t = (dist - finalApproachDist) / (rampStartDist - finalApproachDist)
+            desiredMult = 1.0 + (speedCap - 1.0) * t * t
+        end
+
+        if drive:isActive() then
+            if dist < finalApproachDist then
+                -- Final approach: disengage
+                drive:setState("decelerating")
+            else
+                -- Clamp multiplier to desired (smooth decel)
+                local currentMult = drive:getCurrentMult()
+                if currentMult > desiredMult * 1.1 then
+                    drive:setCurrentMult(currentMult * 0.95)  -- 5% per frame reduction
+                end
+            end
         end
 
         -- Engage drive when far enough and after delay

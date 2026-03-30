@@ -70,8 +70,8 @@ function SolarSystemPlayable:onInit()
     self:spawnStations()
 
     -- Collect orbiting bodies for orbital simulation
-    self.orbiters = OrbitalSystem:collectOrbiters(self.universe)
-    Log.Info("Found %d orbiting bodies", #self.orbiters)
+    self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.universe)
+    Log.Info("Found %d orbiting bodies, %d followers", #self.orbiters, #self.followers)
 
     -- Collect gravity well zones
     GravityWellSystem:collectZones(self.universe)
@@ -323,24 +323,31 @@ function SolarSystemPlayable:onRender(data)
             LensFlareSystem:draw(self.starEntity, self.labeledEntities)
             GameplayHUDSystem:draw(self.playerShip, self.player:getModeName(), self.player:isPiloting())
             WorldLabelRenderSystem:draw(self.labeledEntities)
-            -- Draw labels for dynamically spawned asteroid entities
+            -- Draw labels for nearest spawned asteroid entities (max 10)
             local spawned = AsteroidFieldSystem:getSpawnedEntities()
             if #spawned > 0 then
+                -- Sort by distance, show only nearest 10
+                local eye = CameraManager:getEye()
+                if eye then
+                    for _, aInfo in ipairs(spawned) do
+                        aInfo._dist = (aInfo.pos.x - eye.x)^2 + (aInfo.pos.z - eye.z)^2
+                    end
+                    table.sort(spawned, function(a, b) return a._dist < b._dist end)
+                end
                 local asteroidLabels = {}
-                for _, aInfo in ipairs(spawned) do
+                for i = 1, math.min(10, #spawned) do
                     table.insert(asteroidLabels, {
-                        entity = aInfo.entity,
-                        label = aInfo.label,
+                        entity = spawned[i].entity,
+                        label = spawned[i].label,
                     })
                 end
-                WorldLabelRenderSystem:draw(asteroidLabels, 500000)
+                WorldLabelRenderSystem:draw(asteroidLabels, 20000)
             end
 
             if self.mapMode == 1 then
                 -- Feed autopilot target to map for nav line display
                 local ap = self.playerShip:get(ConstructComponents.AutoPilot)
                 if ap and ap:isActive() then
-                    -- Actual target position (nav target marker)
                     local tPos = ap:getTargetPos()
                     local tEnt = ap:getTargetEntity()
                     if tEnt then
@@ -410,7 +417,11 @@ function SolarSystemPlayable:onInput(data)
             if GeneralActions.AutoPilotToggle:isPressed() and self.mapState.selected then
                 local sel = self.mapState.selected
                 if sel.clickPos then
-                    AutoPilotSystem:engagePosition(self.playerShip, sel.clickPos)
+                    -- Pass parent entity + local offset for orbiting targets
+                    local parentEnt = sel._parentEntity
+                    local localX = sel._clickLocalX
+                    local localZ = sel._clickLocalZ
+                    AutoPilotSystem:engagePosition(self.playerShip, sel.clickPos, nil, parentEnt, localX, localZ)
                 else
                     AutoPilotSystem:engageEntity(self.playerShip, sel.entity)
                 end
@@ -460,25 +471,10 @@ end
 function SolarSystemPlayable:onStateSim(data)
     local dt = data:deltaTime()
 
-    OrbitalSystem:update(self.orbiters, dt)
-
-    -- Update ring entity positions to follow their parent planets
-    for _, beltEntity in ipairs(self.beltEntities) do
-        local parentCmp = beltEntity:get(CoreComponents.Parent)
-        if parentCmp and parentCmp:getParent() then
-            local parent = parentCmp:getParent()
-            local pRb = parent:get(PhysicsComponents.RigidBody)
-            if pRb and pRb:getRigidBody() then
-                local parentPos = pRb:getRigidBody():getPos()
-                local transform = beltEntity:get(PhysicsComponents.Transform)
-                if transform then
-                    transform:setPos(parentPos)
-                end
-            end
-        end
-    end
+    OrbitalSystem:update(self.orbiters, dt, self.followers)  -- moves planets + rings
+    AsteroidFieldSystem:updatePositions()                     -- every frame: spawned asteroids follow parent
     GravityWellSystem:update(dt, self.playerShip)
-    AsteroidFieldSystem:update(dt, self.beltEntities, self.world)
+    AsteroidFieldSystem:update(dt, self.beltEntities, self.world)  -- rate-limited: spawn/despawn
     SystemMap3D:updateTrails(self.map3DState, dt)
 
     self.player:update(dt)
@@ -514,7 +510,7 @@ function SolarSystemPlayable:regenerate()
     self.player:setShip(self.playerShip)
 
     -- Rebuild orbital + map + gravity well data
-    self.orbiters = OrbitalSystem:collectOrbiters(self.universe)
+    self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.universe)
     GravityWellSystem:collectZones(self.universe)
     self.mapState._entityListBuilt = false
     self.mapState._dotCache = nil

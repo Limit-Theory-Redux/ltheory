@@ -304,8 +304,8 @@ function SolarSystemVisualizer:_materializeAsteroidBelt(entity, physicsWorld)
         count = count,
         inclination = math.rad(inclination),
         seed = seed,
-        minScale = 50,
-        maxScale = 500,
+        minScale = 0.1,   -- ~1km asteroid
+        maxScale = 5.0,   -- ~50km asteroid
     })
 
     Log.Info("Materialized asteroid belt: %d asteroids, orbit=%.0f, width=%.0f",
@@ -369,8 +369,8 @@ function SolarSystemVisualizer:_materializeAsteroidRing(entity, physicsWorld)
         count = count,
         inclination = math.rad(inclination),
         seed = seed,
-        minScale = 5,
-        maxScale = 80,
+        minScale = 0.05,  -- ~500m ring asteroid
+        maxScale = 2.0,   -- ~20km ring asteroid
     })
 
     Log.Info("Materialized asteroid ring: %d asteroids, orbit=%.0f, width=%.0f",
