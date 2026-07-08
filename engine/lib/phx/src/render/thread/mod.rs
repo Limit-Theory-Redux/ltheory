@@ -1,5 +1,8 @@
+mod camera_render_data;
 mod config;
+mod entity_render_data;
 mod error;
+mod render_batch;
 mod render_command;
 mod render_thread;
 mod renderer;
@@ -8,8 +11,11 @@ mod shader_reload_result;
 mod shared_render_stats;
 mod ubo;
 
+pub use camera_render_data::*;
 pub use config::*;
+pub use entity_render_data::*;
 pub use error::*;
+pub use render_batch::*;
 pub use render_command::*;
 pub use render_thread::*;
 pub use renderer::*;

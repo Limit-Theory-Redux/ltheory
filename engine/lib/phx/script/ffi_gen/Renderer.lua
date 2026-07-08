@@ -21,6 +21,9 @@ function Loader.defineType()
             void Renderer_BeginFrame             (Renderer*);
             void Renderer_Flush                  (Renderer*);
             bool Renderer_Sync                   (Renderer*);
+            void Renderer_BeginBatch             (Renderer*, float const* view, uint64 view_size, float const* projection, uint64 projection_size, float eyeX, float eyeY, float eyeZ);
+            void Renderer_AddEntity              (Renderer*, float const* transform, uint64 transform_size, float boundsCenterX, float boundsCenterY, float boundsCenterZ, float boundsRadius, uint32 meshVao, int indexCount, uint32 shaderHandle, uint32 sortKey);
+            void Renderer_FlushBatch             (Renderer*);
             void Renderer_SetViewport            (Renderer const*, int x, int y, int width, int height);
             void Renderer_SetScissor             (Renderer const*, int x, int y, int width, int height);
             void Renderer_EnableScissor          (Renderer const*, bool enable);
@@ -73,6 +76,9 @@ function Loader.defineType()
                 beginFrame             = libphx.Renderer_BeginFrame,
                 flush                  = libphx.Renderer_Flush,
                 sync                   = libphx.Renderer_Sync,
+                beginBatch             = libphx.Renderer_BeginBatch,
+                addEntity              = libphx.Renderer_AddEntity,
+                flushBatch             = libphx.Renderer_FlushBatch,
                 setViewport            = libphx.Renderer_SetViewport,
                 setScissor             = libphx.Renderer_SetScissor,
                 enableScissor          = libphx.Renderer_EnableScissor,

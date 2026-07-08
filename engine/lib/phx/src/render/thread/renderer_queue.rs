@@ -1,9 +1,10 @@
 use glam::Mat4;
+use tracing::error;
 
 use crate::math::Matrix;
 use crate::render::{
     BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle, LightUboData, MaterialUboData,
-    RenderCommand, Renderer,
+    RenderBatch, RenderCommand, Renderer,
 };
 
 // =============================================================================
@@ -27,6 +28,56 @@ impl Renderer {
     /// Synchronize with the render thread (wait for all commands to complete)
     pub fn sync(&mut self) -> bool {
         self.sync_intern()
+    }
+
+    // === Batch rendering ===
+
+    pub fn begin_batch(
+        &mut self,
+        view: &[f32; 16],
+        projection: &[f32; 16],
+        eye_x: f32,
+        eye_y: f32,
+        eye_z: f32,
+    ) {
+        self.active_batch = Some(RenderBatch::new(view, projection, eye_x, eye_y, eye_z));
+    }
+
+    pub fn add_entity(
+        &mut self,
+        transform: &[f32; 16],
+        bounds_center_x: f32,
+        bounds_center_y: f32,
+        bounds_center_z: f32,
+        bounds_radius: f32,
+        mesh_vao: u32,
+        index_count: i32,
+        shader_handle: u32,
+        sort_key: u32,
+    ) {
+        if let Some(batch) = &mut self.active_batch {
+            batch.add_entity(
+                transform,
+                bounds_center_x,
+                bounds_center_y,
+                bounds_center_z,
+                bounds_radius,
+                mesh_vao,
+                index_count,
+                shader_handle,
+                sort_key,
+            );
+        } else {
+            error!("There is no active batch started. Use begin_batch() to start it.");
+        }
+    }
+
+    pub fn flush_batch(&mut self) {
+        if let Some(batch) = self.active_batch.take() {
+            self.process_batch(batch);
+        } else {
+            error!("There is no active batch started. Use begin_batch() to start it.");
+        }
     }
 
     // === State Management ===

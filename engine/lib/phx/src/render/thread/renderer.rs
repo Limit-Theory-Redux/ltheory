@@ -8,8 +8,8 @@ use tracing::{error, info};
 
 use crate::render::thread::RenderThread;
 use crate::render::{
-    RenderCommand, RenderThreadConfig, RenederThreadError, ResourceId, ShaderReloadResult,
-    SharedRenderStats,
+    CmdPrimitiveType, GpuHandle, RenderBatch, RenderCommand, RenderThreadConfig,
+    RenederThreadError, ResourceId, ShaderReloadResult, SharedRenderStats,
 };
 use crate::window::WindowGlContext;
 
@@ -24,6 +24,18 @@ pub struct RenderStats {
     pub state_changes: u64,
     pub frame_count: u64,
 }
+
+/// Statistics from culling/preparation
+#[derive(Clone, Debug, Default)]
+pub struct CullStats {
+    /// Total entities submitted
+    pub total_entities: u32,
+    /// Entities that passed frustum culling
+    pub visible_entities: u32,
+    /// Entities culled
+    pub culled_entities: u32,
+}
+
 pub struct Renderer {
     /// Send commands to the render thread
     command_tx: Sender<RenderCommand>,
@@ -47,6 +59,12 @@ pub struct Renderer {
     command_buffer: Vec<RenderCommand>,
     /// Global counter for generating unique ResourceIds
     next_resource_id: AtomicU64,
+    /// Render stats
+    render_stats: RenderStats,
+    /// Cull stats
+    cull_stats: CullStats,
+    /// Active render batch
+    pub(super) active_batch: Option<RenderBatch>,
 }
 
 impl Renderer {
@@ -110,6 +128,9 @@ impl Renderer {
             shared_stats,
             command_buffer: vec![],
             next_resource_id: AtomicU64::new(1),
+            render_stats: Default::default(),
+            cull_stats: Default::default(),
+            active_batch: None,
         })
     }
 
@@ -337,6 +358,67 @@ impl Renderer {
                 program: 0,
             },
         }
+    }
+
+    pub fn process_batch(&mut self, mut batch: RenderBatch) {
+        let mut stats = CullStats {
+            total_entities: batch.entities.len() as u32,
+            visible_entities: 0,
+            culled_entities: 0,
+        };
+
+        // Sort entities by sort key for better batching
+        batch.entities.sort_by_key(|e| e.sort_key);
+
+        let mut current_shader: Option<u32> = None;
+
+        for entity in &batch.entities {
+            // Frustum culling
+            if !batch
+                .camera
+                .sphere_in_frustum(entity.bounds_center, entity.bounds_radius)
+            {
+                stats.culled_entities += 1;
+                continue;
+            }
+
+            stats.visible_entities += 1;
+
+            // Compute MVP matrix
+            let mvp = batch.camera.view_projection * entity.transform;
+            let mvp_array = mvp.to_cols_array();
+
+            // Bind shader if changed
+            if current_shader != Some(entity.shader_handle) {
+                self.command_buffer.push(RenderCommand::BindShader {
+                    handle: GpuHandle(entity.shader_handle),
+                });
+                current_shader = Some(entity.shader_handle);
+            }
+
+            // Set MVP uniform
+            self.command_buffer.push(RenderCommand::SetUniformMat4 {
+                location: entity.mvp_location,
+                value: mvp_array,
+            });
+
+            // Set model matrix uniform if needed
+            if entity.model_location >= 0 {
+                self.command_buffer.push(RenderCommand::SetUniformMat4 {
+                    location: entity.model_location,
+                    value: entity.transform.to_cols_array(),
+                });
+            }
+
+            // Draw call
+            self.command_buffer.push(RenderCommand::DrawMesh {
+                vao: GpuHandle(entity.mesh_vao),
+                index_count: entity.index_count,
+                primitive: CmdPrimitiveType::Triangles,
+            });
+        }
+
+        self.render_stats.batches_processed += 1;
     }
 
     /// Request the render thread to shutdown.

@@ -14,6 +14,29 @@ function Renderer:flush() end
 ---@return boolean
 function Renderer:sync() end
 
+---@param view number[]
+---@param view_size integer
+---@param projection number[]
+---@param projection_size integer
+---@param eyeX number
+---@param eyeY number
+---@param eyeZ number
+function Renderer:beginBatch(view, view_size, projection, projection_size, eyeX, eyeY, eyeZ) end
+
+---@param transform number[]
+---@param transform_size integer
+---@param boundsCenterX number
+---@param boundsCenterY number
+---@param boundsCenterZ number
+---@param boundsRadius number
+---@param meshVao integer
+---@param indexCount integer
+---@param shaderHandle integer
+---@param sortKey integer
+function Renderer:addEntity(transform, transform_size, boundsCenterX, boundsCenterY, boundsCenterZ, boundsRadius, meshVao, indexCount, shaderHandle, sortKey) end
+
+function Renderer:flushBatch() end
+
 -- Set the viewport
 ---@param x integer
 ---@param y integer
