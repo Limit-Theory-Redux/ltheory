@@ -2,14 +2,63 @@
 
 Branch: `feat/multithreaded_rendering`
 Scope: `engine/lib/phx/src/render/thread/`, `engine/lib/phx/src/engine/`, `engine/lib/phx/src/window/`, Lua bindings in `engine/lib/phx/script/`.
+Upstream source: `/home/oleg/workspace/rust/ltheory-redux`, branch `feat/multithreaded_rendering` (referred to below as **the fork**).
 
 ---
 
-## 1. Current state
+## 0. Provenance — this branch is a partial port of the fork
 
-### 1.1 Architecture as built
+The multithreaded rendering work in this repo is a **port + refactor of a complete,
+working implementation** in the `ltheory-redux` fork. The fork's feature branch has
+four commits on top of the shared history (`0ea724c0`):
 
-The feature implements a classic command-buffer render thread:
+| Commit | Content |
+|---|---|
+| `b2ee4ea2` | Multithreaded rendering with command-buffer architecture (render thread, commands, dual-mode interception, worker pool, ResourceId bridge) |
+| `92adf595` | Post-processing, deferred shading shaders, shader hot-reload, docs |
+| `b05b4a24` | Extract `RenderContext`, fix critical bugs (RenderQueue handle storage, frame-ring spin timeout, draw-call double-counting, uniform-cache clear on reload) |
+| `0b8740ba` | Remove unused `frame_ring.rs` |
+
+The port in this repo was made *after* the fork's final commit (it includes the
+fork's `is_draw_call`/`DrawInstancedWithData` fix and the uniform-cache-clear fix)
+and deliberately restructured the design:
+
+| Fork (`engine/lib/phx/src/render/`) | This repo (`…/render/thread/`) |
+|---|---|
+| `render_thread.rs` (2228 lines, incl. `RenderThreadHandle`) | split: `render_thread.rs` (executor) + `renderer.rs` (`Renderer` handle) |
+| `render_command.rs` | `render_command.rs` (near-identical) |
+| `render_queue.rs` (global FFI singleton `RenderQueue` + `InstanceBatch`) | `renderer_queue.rs` (FFI on the `Engine`-owned `Renderer`) |
+| `render_context.rs` (`RenderContext`: thread handle + worker pool + start/stop) | **not ported** (logic re-inlined into `Renderer::start/stop` + `Engine`) |
+| `render_mode.rs` (global `COMMAND_MODE`, `RENDER_HANDLE`, `is_command_mode()`, `submit_command()`) | **not ported** |
+| `render_worker.rs` (`WorkerPoolHandle`, `PrepareResult`, `CameraRenderData`, `EntityRenderData`, worker pool) | **partially ported** as `camera_render_data.rs` + `entity_render_data.rs` (data types only; no pool) |
+| `render_batch.rs` (`RenderBatch`, `RenderBatchApi`) | copied as `render_batch.rs` (uncommitted) — **broken**, its deps above were not ported |
+| dual-mode interception in `draw.rs`, `mesh.rs`, `shader.rs`, `tex2d.rs`, `render_target.rs`, `clip_rect.rs`, `render_state.rs`, `primitive_builder.rs` (~160 sites) | **not ported** — these files are still direct-GL-only here |
+| `ResourceId` fields + lazy `Create*` submission in `Tex2D`/`Shader`/`Mesh` | **not ported** |
+| Lua runtime control: `Engine:startRenderThread()/stopRenderThread()/isRenderThreadActive()` | replaced by `ltr --render-thread` CLI flag at boot |
+| Lua integration: `RenderCoreSystem` mode switch, `Cache.lua` hot-reload, `RenderOverlay.lua`, `ShaderErrorOverlay.lua` | **not ported** |
+| Docs: `doc/engine/multithreaded-rendering.md`, `doc/engine/shader-system.md`, `doc/script/rendering.md` | **not ported** |
+
+Two design changes were intentional in the port and are worth keeping in mind:
+
+1. **Ownership**: fork uses global statics (`render_mode.rs`) so that `Tex2D`/`Mesh`/
+   `Shader`/`Draw` — which have no reference to `Engine` — can route GL calls;
+   this repo instead owns the handle as `Engine.renderer: Option<Renderer>`.
+   Both are needed: member ownership for lifecycle, a global mirror for interception
+   (see §5.1).
+2. **Activation**: fork starts/stops the render thread from Lua at runtime
+   (toggleable with the `R` key in its test states); this repo moved it to a boot
+   flag — and introduced a regression that makes the flag unusable (§2.2).
+
+**Consequence for the roadmap:** most of §3 is not design work — it is porting the
+fork's existing, tested code into this repo's structure.
+
+---
+
+## 1. Current state of this repo
+
+### 1.1 Architecture as ported
+
+The command-buffer render-thread core made it across intact:
 
 ```
 Main thread (game + Lua)                      Render thread (owns GL context)
@@ -21,99 +70,109 @@ Renderer (renderer.rs)
   context_rx ◄────────────  GL context returned on shutdown
 ```
 
-- **`Renderer`** (`render/thread/renderer.rs`) — main-thread handle. Spawns the
-  `"RenderThread"` OS thread, moves the `WindowGlContext` into it, and makes it
-  current there. Provides `submit`/`try_submit`, fence-based `sync`, triple-buffered
-  frame pacing (`end_frame_triple_buffered`, `MAX_FRAMES_IN_FLIGHT = 3`), blocking
-  `reload_shader`, and stat getters backed by `Arc<SharedRenderStats>` atomics.
-- **`RenderCommand`** (`render_command.rs`, ~80 variants) — self-contained, `Send`
-  commands: viewport/scissor/blend/cull/depth state, uniforms **by location and by
-  name** (`Arc<str>`, resolved via a per-shader uniform cache on the render thread),
-  texture binds, FBO push/pop, mesh bind/draw (plain, instanced,
-  `DrawInstancedWithData`, immediate mode), **resource creation**
-  (`CreateShader`/`CreateTexture2D`/`CreateMesh` + `*ByResource` bind/draw variants),
-  camera/material/light UBOs, `Resize`, `SwapBuffers`, `Flush`, `Fence`, `Shutdown`.
+- **`Renderer`** (`render/thread/renderer.rs`) — main-thread handle (fork:
+  `RenderThreadHandle`). Spawns the `"RenderThread"` OS thread, moves the
+  `WindowGlContext` into it. Provides `submit`/`try_submit`, fence-based `sync`,
+  triple-buffered frame pacing (`end_frame_triple_buffered`,
+  `MAX_FRAMES_IN_FLIGHT = 3`), blocking `reload_shader`, and stat getters backed by
+  `Arc<SharedRenderStats>` atomics.
+- **`RenderCommand`** (`render_command.rs`, ~80 variants, near-identical to the
+  fork) — state, uniforms **by location and by name** (`Arc<str>`, resolved via a
+  per-shader uniform cache on the render thread), texture binds, FBO push/pop, mesh
+  draws (plain, instanced, `DrawInstancedWithData`, `DrawImmediate`), **resource
+  creation** (`CreateShader`/`CreateTexture2D`/`CreateMesh` + `*ByResource`
+  variants), camera/material/light UBOs, `Resize`, `SwapBuffers`, `Flush`, `Fence`,
+  `Shutdown`.
 - **`RenderThread`** (`render_thread.rs`, ~1900 lines) — blocking `recv()` loop,
-  one big `match` executor. Maintains `resources: HashMap<ResourceId, GpuResource>`,
-  hot-reloaded shader map, per-shader uniform-location caches, cached texture
-  bindings (skip-redundant-bind), an FBO stack with depth guard, and the UBO
-  handles. No `todo!()`/`unimplemented!()` — the executor itself is complete.
+  one big `match` executor with `resources: HashMap<ResourceId, GpuResource>`,
+  hot-reloaded shader map, uniform-location caches, cached texture bindings, FBO
+  stack, UBO handles. Complete; no `todo!()`.
 - **Context handoff** (`window/window_gl_context.rs`, `winit_window.rs`) —
-  `extract_gl_context()` makes the context not-current on the main thread and moves
-  it (context + surface, because macOS requires main-thread surface creation) into
-  the render thread; on shutdown the context is sent back over a channel and
-  `restore_gl_context()` re-establishes direct GL mode. `winit_window.redraw()`
-  silently skips `swap_buffers` while the context is extracted.
-- **Activation** — `ltr --render-thread` CLI flag, **default off**
+  `extract_gl_context()` / `restore_gl_context()`; `winit_window.redraw()` silently
+  skips `swap_buffers` while the context is extracted.
+- **Activation** — `ltr --render-thread` CLI flag, default off
   (`engine/bin/ltr/src/main.rs:34`) → `MainLoop::new_events` (`main_loop.rs:29`) →
-  `Engine::start_renderer()` (`engine.rs:131`). Engine holds
-  `renderer: Option<Renderer>` with a `// TODO: remove Option after transition period`.
-- **Lua FFI** — `renderer_queue.rs` exposes the whole API
-  (`#[luajit_ffi_gen::luajit_ffi] impl Renderer`): frame management, batch API,
-  state, uniforms, textures, framebuffers, draws, UBOs. Reachable from Lua via
-  `Engine:renderer()`. Bindings are regenerated in the uncommitted
-  `engine/lib/phx/script/ffi_gen|meta/*.lua` changes.
+  `Engine::start_renderer()` (`engine.rs:131`).
+- **Lua FFI** — `renderer_queue.rs` exposes the API as methods on the `Renderer`
+  class (reachable via `Engine:renderer()`); bindings regenerated in the
+  uncommitted `engine/lib/phx/script/ffi_gen|meta/*.lua` changes.
 
 ### 1.2 What is actually live at runtime
 
 **Nothing.** The system is dormant:
 
-- The flag defaults to off, and (bug #2 below) turning it on exits the app.
-- No runtime Lua script references the `Renderer` class.
-  `script/Modules/Rendering/Systems/RenderCoreSystem.lua` and everything else still
-  render through the legacy immediate path (`Window:beginDraw/endDraw`,
-  `RenderState`, `Draw`, `Tex2D`, `Mesh`, `Shader`) — direct `gl::*` calls on the
-  main thread.
-- The render thread's resource registry is never populated because no code submits
-  `Create*` commands (see bug #6).
+- The flag defaults to off, and (bug §2.2) turning it on exits the app.
+- No runtime Lua script references the `Renderer` class; `RenderCoreSystem.lua`
+  still renders through the legacy immediate path.
+- The render thread's resource registry is never populated because the fork's
+  interception + ResourceId layer was not ported (§2.6).
+
+In the fork, by contrast, the feature is **runnable and toggleable at runtime**:
+its `RenderingTest.lua:187-199`, `PlanetTest.lua:881-886`, and `DeferredTest.lua`
+toggle the render thread with the `R` key, `RenderCoreSystem.lua:322` switches
+between `renderBatched` and `renderDirect` based on `Engine:isRenderThreadActive()`,
+and all resource creation transparently routes through commands.
 
 ### 1.3 Uncommitted work in progress (the batch API)
 
-The working tree adds an entity-batch layer intended to move culling + command
-generation off the Lua side:
+The working tree adds an entity-batch layer:
 
-- `render_batch.rs` (new) — `RenderBatch` (entity accumulator + `CameraRenderData`),
-  `BatchStats`, plus a **dead second design**: `flush(worker_pool)`,
-  `apply_result(PrepareResult)`, `process_serial()`, and a commented-out FFI wrapper
-  `RenderBatchApi` with a 35-scalar-argument `set_camera`. These reference symbols
-  that do not exist anywhere in the crate (`WorkerPoolHandle`, `PrepareResult`,
-  `is_command_mode`, `submit_command`, `RENDER_BATCH`, `UNIFORM_MVP/MODEL`).
-- `camera_render_data.rs` (new) — view/proj/view-proj + frustum-plane extraction and
-  `sphere_in_frustum` test.
-- `entity_render_data.rs` (new) — per-entity payload (transform, bounding sphere,
-  VAO, index count, shader handle, uniform locations, sort key).
-- `renderer.rs` — adds `active_batch`, `CullStats`, and `process_batch()` (sort by
-  key → frustum-cull → dedupe shader binds → emit `SetUniformMat4` + `DrawMesh`
-  into `command_buffer`).
-- `renderer_queue.rs` — FFI `begin_batch` / `add_entity` / `flush_batch`.
+- `render_batch.rs` — copied from the fork; depends on the fork's `render_mode.rs`
+  (`is_command_mode`, `submit_command`, `RENDER_BATCH` thread-local,
+  `UNIFORM_MVP`/`UNIFORM_MODEL`) and `render_worker.rs` (`WorkerPoolHandle`,
+  `PrepareResult`) — none of which exist here. This is the source of the compile
+  errors; it is an unported dependency problem, not abandoned scratch work.
+- `camera_render_data.rs` / `entity_render_data.rs` — extracted from the fork's
+  `render_worker.rs` (data types only).
+- `renderer.rs` gains `active_batch`, `CullStats`, and a **new, port-only**
+  `process_batch()` (sort → frustum-cull → dedupe shader binds → emit commands);
+  `renderer_queue.rs` gains FFI `begin_batch`/`add_entity`/`flush_batch`. This is a
+  reasonable member-based redesign of the fork's global `RENDER_BATCH`, but it is
+  unfinished (§2.3, §2.7).
 
-This is the *new* member-based design; the thread-local + worker-pool code in
-`render_batch.rs` is a leftover from an earlier iteration and is what breaks the
-build.
+Note: even in the fork the batch/worker path is **dormant at runtime** — nothing in
+its `script/` feeds `RenderBatch` or the worker pool; `renderBatched` groups
+materials in Lua and calls `mesh:draw()` per entity. The pool also has no
+intra-batch parallelism (each flush sends the whole entity list to one worker,
+`render_worker.rs:177,262-329`). Treat this layer as an optimization to finish
+*after* parity, not a prerequisite.
 
 ---
 
-## 2. Blocking defects (verified)
+## 2. Defects (verified; classified against the fork)
 
-### 2.1 The crate does not compile (26 errors)
+Legend: **[regression]** introduced by the port, fork is correct · **[upstream]**
+present in the fork too · **[gap]** works in the fork, missing here ·
+**[port-only]** in new code that has no fork counterpart.
+
+### 2.1 The crate does not compile (26 errors) — [gap]
 
 `cargo check -p phx` fails; all errors are in the uncommitted files.
 
 - `render_batch.rs:87,111,117,119,148,151,159–177` — `WorkerPoolHandle`,
   `PrepareResult`, `is_command_mode()`, `submit_command()`, `UNIFORM_MVP`,
-  `UNIFORM_MODEL` do not exist; `RenderCommand` is not imported.
-- `render_batch.rs:195` — `impl Default` calls `Self::new()` with 0 of 5 args.
-- `render_batch.rs:210,259,301,318,325,330,334,338,342` — `RENDER_BATCH`
-  thread-local does not exist (whole `RenderBatchApi` is dead).
+  `UNIFORM_MODEL` do not exist **in this repo** (they all exist in the fork's
+  `render_mode.rs` / `render_worker.rs` / `render_batch.rs`); `RenderCommand` not
+  imported.
+- `render_batch.rs:195` — `impl Default` calls `Self::new()` with 0 of 5 args
+  (port artifact: the fork's `RenderBatch::new()` takes no args and has a separate
+  `set_camera`; the port merged camera into `new(view, proj, eye…)` without
+  updating `Default`).
+- `render_batch.rs:210,259,…` — `RENDER_BATCH` thread-local does not exist here
+  (fork keeps the batch in a thread-local; the port moved it into
+  `Renderer.active_batch`, so `RenderBatchApi` is redundant).
 - `renderer.rs:422` — `self.render_stats.batches_processed`: no such field on
   `RenderStats` (it lives on `BatchStats`).
 
-**Fix:** delete the dead half of `render_batch.rs` (keep `RenderBatch`,
-`BatchStats`, `new`, `add_entity`; drop `flush`/`apply_result`/`process_serial`/
-`RenderBatchApi`), and track batch stats in a proper field (e.g. give `Renderer`
-a `batch_stats: BatchStats` or add the counter to `RenderStats`).
+**Fix options:** (a) finish the port's member-based redesign — strip
+`render_batch.rs` to `RenderBatch` + `BatchStats` + `new` + `add_entity` and delete
+`flush`/`apply_result`/`process_serial`/`RenderBatchApi`/`Default`; or (b) port the
+fork's `render_mode.rs` and `render_worker.rs` first (needed anyway for §2.6) and
+keep the file closer to upstream. Either restores compilation; (a) is smaller,
+(b) reduces future divergence. Recommended: (a) now, because `render_mode.rs`
+arrives in Phase 2 regardless and the worker path is dormant even upstream.
 
-### 2.2 `--render-thread` exits the app on successful startup
+### 2.2 `--render-thread` exits the app on successful startup — [regression]
 
 `Engine::start_renderer` (`engine.rs:131-153`) returns **`false` on the success
 path** and `true` when the renderer was already started (also: typo "olready").
@@ -125,36 +184,30 @@ if self.render_thread && !engine.start_renderer() {
 }
 ```
 
-So enabling the feature immediately exits the event loop. Invert the returns
-(`true` on success / already-started, `false` on failure).
+The fork gets this right: `RenderContext::start` (`render_context.rs:66-94`)
+returns `true` on success / `false` if already running, and its Lua callers rely on
+that (`if Engine:startRenderThread() then …`). Restore the fork's semantics.
 
-### 2.3 MVP uniform is never actually set in the batch path
+### 2.3 MVP uniform is never actually set in the batch path — [port-only]
 
-`RenderBatch::add_entity` hardcodes `mvp_location = -1` and `model_location = -1`
-("Will use name-based uniforms"), but `Renderer::process_batch`
-(`renderer.rs:401`) unconditionally emits location-based
-`SetUniformMat4 { location: -1, .. }`. GL silently ignores location -1 → geometry
-draws with a stale/identity MVP, i.e. nothing visible.
+`RenderBatch::add_entity` hardcodes `mvp_location = -1` ("Will use name-based
+uniforms"), but the port-only `Renderer::process_batch` (`renderer.rs:401`) emits
+location-based `SetUniformMat4 { location: -1, .. }`. GL ignores location -1 →
+nothing visible.
 
-**Fix (pick one):**
-- Use the existing name-based path: emit `SetUniformMat4ByName` with interned
-  `Arc<str>` constants (e.g. `static UNIFORM_MVP: LazyLock<Arc<str>>`), which the
-  render thread already resolves through its per-shader uniform cache; or
-- Extend the FFI `add_entity` to accept real uniform locations from Lua (the shader
-  is introspectable on the script side today).
+The fork's equivalent serial path (`render_batch.rs::process_serial`) does it
+correctly: `SetUniformMat4ByName` with interned thread-local `Arc<str>` names
+(`UNIFORM_MVP`, `UNIFORM_MODEL`), resolved through the render thread's per-shader
+uniform cache — which also survives shader hot-reload, where locations don't.
+Port that approach into `process_batch` and drop
+`mvp_location`/`model_location` from `EntityRenderData`.
 
-The name-based route is more robust because the render thread's program may be a
-hot-reloaded replacement with different locations — that is exactly why the
-`*ByName` variants exist (`render_command.rs:180-183`).
+### 2.4 Frustum-plane normalization is mathematically wrong — [upstream]
 
-### 2.4 Frustum-plane normalization is mathematically wrong
-
-`camera_render_data.rs:39-46` normalizes plane vectors with `Vec4::normalize()`,
-which divides by the **4D** norm (including `w`). Plane normalization for a
-sphere-distance test must divide by `length(plane.xyz)` only; otherwise
-`distance < -radius` compares a wrongly scaled distance against the radius, causing
-both false culls and false accepts (worse for large near/far offsets where `w`
-dominates).
+`camera_render_data.rs:39-46` normalizes plane vectors with `Vec4::normalize()`
+(4D norm including `w`). Plane normalization for a sphere-distance test must divide
+by `length(plane.xyz)` only; otherwise `distance < -radius` compares a wrongly
+scaled distance against the radius.
 
 ```rust
 fn normalize_plane(p: Vec4) -> Vec4 {
@@ -162,7 +215,12 @@ fn normalize_plane(p: Vec4) -> Vec4 {
 }
 ```
 
-### 2.5 Fence channel cross-talk between `sync` and frame pacing
+This was copied verbatim from the fork (`render_worker.rs:79-84`), where it is
+equally wrong but currently unreachable at runtime (the worker path is dormant).
+Its unit tests pass only because they use spheres far from the planes. **Fix here
+and upstream the fix to the fork.**
+
+### 2.5 Fence channel cross-talk between `sync` and frame pacing — [upstream]
 
 Two consumers drain the single `fence_rx`:
 
@@ -174,211 +232,230 @@ Two consumers drain the single `fence_rx`:
   channel and can consume a sync fence, after which a concurrent/later `sync()`
   blocks forever.
 
-**Fix:** either use two channels (frame fences vs. sync fences — the fence command
-could carry a `FenceKind`), or keep one channel but route every received ID through
-shared bookkeeping (e.g. a small `HashSet` of signaled IDs + in-flight counter
-updated for *frame* IDs regardless of which call site received them).
+Identical bug in the fork (`render_thread.rs:261-315`), and reachable there because
+`RenderQueue:Sync` is exposed to Lua. (The shader-reload result path uses its own
+channel in both repos and is clean.)
 
-### 2.6 GPU resource creation is unbridged (the core missing piece)
+**Fix:** either two channels (tag the fence command with a kind), or shared
+bookkeeping so every received ID updates the in-flight count for frame fences no
+matter which call site received it. **Fix here and upstream.**
 
-The render thread fully implements `CreateShader` / `CreateTexture2D` /
-`CreateMesh` / `DestroyResource` and the `*ByResource` bind/draw variants
-(`render_thread.rs:1439,1527,1564`), keeping a `HashMap<ResourceId, GpuResource>`.
-**Nothing in the codebase ever submits those commands.** Meanwhile `tex2d.rs`
-(~65 direct GL calls), `mesh.rs` (~29), and `shader.rs` still create GL objects
-directly on the main thread — which has **no current GL context** once
-`extract_gl_context()` runs. In render-thread mode, every legacy `Tex2D.Create`,
-mesh upload, or shader compile is undefined behavior / GL errors.
+### 2.6 GPU resource creation is unbridged — [gap], solved in the fork
 
-This is the real remaining work of the feature; see the roadmap (Phase 2) and the
-open design decision in §5.
+The render thread fully implements `CreateShader`/`CreateTexture2D`/`CreateMesh`/
+`DestroyResource` and the `*ByResource` variants, but in this repo **nothing ever
+submits them** — `tex2d.rs`, `mesh.rs`, `shader.rs` still call `gl::*` directly on
+the main thread, which has no current GL context once the render thread starts.
 
-### 2.7 Cull stats are computed and dropped
+The fork solved this with a **ResourceId bridge + dual-mode interception**, and its
+code is the template to port:
+
+- `Tex2D` has `resource_id: Option<ResourceId>` (fork `tex2d.rs:22`); creation in
+  command mode submits `CreateTexture2D { id, … }` and stores the id
+  (`tex2d.rs:143-151,177-191,255-281`); updates go via
+  `UpdateTexture2DDataByResource`; `ensure_resource_id()` (`tex2d.rs:527`) lazily
+  creates for pre-existing textures.
+- `Shader` has `resource_id` (fork `shader.rs:39`); lazily submits `CreateShader`
+  on first bind (`shader.rs:865-876`), binds via
+  `BindShaderByResource { id, shader_key }` (`shader.rs:892`) — `shader_key` lets
+  the render thread substitute a hot-reloaded program. Texture binds inside shaders
+  use `BindTexture2DByResource` (`shader.rs:396-531`).
+- `Mesh` has `resource_id` (fork `mesh.rs:28`); submits `CreateMesh` lazily and
+  re-creates when its version counter changes (`mesh.rs:391-430`); draws via
+  `DrawMeshByResource` (`mesh.rs:542-557`).
+- Immediate mode: `PrimitiveBuilder` emits `DrawImmediate { vertices }`
+  (fork `primitive_builder.rs:241-273`); `Draw`, `RenderState`, `ClipRect`,
+  `RenderTarget`, `Viewport` all branch on `is_command_mode()` → `submit_command()`
+  (~160 sites total).
+
+Known limitations in the fork to carry over/document: texture read-back,
+`screen_capture`, and `deep_clone` are unsupported in command mode
+(fork `tex2d.rs:82,335,441`), and a texture bound without a `resource_id` or cached
+CPU data logs a warning and renders wrong (fork `shader.rs:405,468,533`).
+
+### 2.7 Cull stats are computed and dropped — [port-only]
 
 `process_batch` fills a local `CullStats` (`renderer.rs:365-386`) but never stores
-it into `self.cull_stats`, so the new stats getters/HUD will always read zeros.
-Assign it at the end of the function (and expose it via FFI if the Lua HUD should
-show culling numbers, as `RenderCoreSystem` does for other stats).
+it into `self.cull_stats`, so the stats getters will always read zeros. Assign it
+at the end (the fork surfaces the equivalent numbers through `BatchStats`, shown in
+its `RenderOverlay.lua`).
 
 ---
 
-## 3. Roadmap to finish the feature
+## 3. Roadmap to finish — port from the fork, don't re-design
+
+Ordering principle: restore compilation, fix the shared bugs once (here + upstream),
+then port the fork's layers in the order that gets the feature end-to-end runnable.
 
 ### Phase 0 — Restore compilation (small)
-1. Gut `render_batch.rs` to: `BatchStats`, `RenderBatch { entities, camera, stats }`,
-   `new()`, `add_entity()`. Delete `flush`, `apply_result`, `process_serial`,
-   `RenderBatchApi`, the `Default` impl, and the `next_entity_id` atomic
-   (`entity_id` is never consumed; if an ID is ever needed, a plain `u64` counter
-   behind `&mut self` suffices).
-2. Fix the `batches_processed` stat (`renderer.rs:422`) — move it to `BatchStats`
-   held by `Renderer`, or add the field to `RenderStats`.
+1. Strip `render_batch.rs` to `BatchStats`, `RenderBatch { entities, camera, stats }`,
+   `new()`, `add_entity()`; delete `flush`/`apply_result`/`process_serial`/
+   `RenderBatchApi`/`Default` and the pointless `next_entity_id: AtomicU64`
+   (`entity_id` is never consumed). The deleted logic lives on in the fork if the
+   worker path is ever revived.
+2. Fix the `batches_processed` stat (`renderer.rs:422`) — move it to a
+   `BatchStats` field on `Renderer` or add it to `RenderStats`.
 3. `cargo check -p phx` and `cargo clippy -p phx` clean.
 
-### Phase 1 — Correctness fixes (small, high value)
-1. Invert `Engine::start_renderer` returns (bug 2.2) + fix the "olready" typo.
-2. Fix frustum-plane normalization (bug 2.4). Add a unit test: unit sphere at
-   origin with a known view-proj → inside; sphere far outside a side plane → culled;
-   sphere straddling a plane by less than its radius → kept.
-3. Switch `process_batch` MVP/model uniforms to `SetUniformMat4ByName` with interned
-   names (bug 2.3); drop `mvp_location`/`model_location` from `EntityRenderData`.
-4. Store `CullStats` (bug 2.7).
-5. Fix fence cross-talk (bug 2.5).
+### Phase 1 — Correctness fixes (small, high value; upstream the shared ones)
+1. Fix `Engine::start_renderer` return semantics to match the fork's
+   `RenderContext::start` (§2.2) + the "olready" typo.
+2. Fix frustum-plane normalization (§2.4). Add the missing unit test: sphere
+   straddling a plane by less than its radius must be kept. **Also send to fork.**
+3. Port the fork's name-based-uniform approach into `process_batch` (§2.3).
+4. Store `CullStats` (§2.7).
+5. Fix fence cross-talk (§2.5). **Also send to fork.**
 
-### Phase 2 — Resource-creation bridge (the core work)
-Goal: GPU objects can be created while the render thread owns the context.
+### Phase 2 — Port the dual-mode interception + ResourceId layer (the core work)
+This was §"design a resource bridge" before the fork was known; it is now a port:
 
-1. **Shaders first** (smallest surface, plumbing already half-exists via
-   `ReloadShader`/`hot_reloaded_shaders`): when `Engine.renderer` is active,
-   `Shader` creation submits `CreateShader { id, vertex_src, fragment_src }` and
-   stores a `ResourceId`; binding uses `BindShaderByResource`. Uniform setting goes
-   through the `*ByName` commands (locations are meaningless across threads).
-2. **Textures**: `Tex2D::create/setData/setMagFilter/...` submit
-   `CreateTexture2D`/`UpdateTexture2DDataByResource`/`SetTexture2D*` when the
-   renderer is active. Note the readback problem: `Tex2D_GetData`-style APIs need a
-   blocking round-trip command (add `ReadTexture2DData { id, reply_tx }`) or must be
-   documented as unsupported in render-thread mode.
-3. **Meshes**: `Mesh` upload submits `CreateMesh { id, vertices, indices, format }`;
-   draws use `DrawMeshByResource`/`DrawMeshInstancedByResource`.
-4. Introduce a single handle abstraction inside the existing types, e.g.
-   `enum GpuObject { Direct(u32), Deferred(ResourceId) }`, so `Tex2D`/`Mesh`/`Shader`
-   keep their public API and pick the path at creation time based on
-   `Engine.renderer`. Free the deferred variant by submitting `DestroyResource` in
-   `Drop`.
-5. Resource IDs: `Renderer::next_resource_id` already exists — make it the single
-   source (it currently starts at 1 per-`Renderer`, which is fine while there is
-   exactly one).
+1. Port `render_mode.rs` (global `COMMAND_MODE` + `RENDER_HANDLE` mirror +
+   `is_command_mode()`/`submit_command()`/`try_submit_command()`/
+   `submit_commands()`/`next_resource_id()`). Keep `Engine.renderer` as the owner;
+   have `Renderer::start/stop` set/clear the global mirror exactly as the fork's
+   `RenderContext::start/stop` does (`render_context.rs:77,113-116`). The mirror is
+   required because `Tex2D`/`Mesh`/`Shader`/`Draw` have no `Engine` reference.
+2. Port the `ResourceId` fields + lazy `Create*` submission + `*ByResource`
+   bind/draw into `tex2d.rs`, `shader.rs`, `mesh.rs`, using the fork's diffs as the
+   template (§2.6 has the exact locations). Adapt module paths
+   (`render::thread::…`) and this repo's ECS-era changes to these files —
+   expect real merge work in `shader.rs`/`tex2d.rs`, which diverged on this branch
+   (shader hot-reload landed here separately).
+3. Port the interception sites in `draw.rs`, `render_state.rs`, `clip_rect.rs`,
+   `render_target.rs`, `viewport.rs`, `primitive_builder.rs`.
+4. Carry over the fork's command-mode limitation warnings (read-back etc.) and its
+   `next_resource_id` global counter (replaces the per-`Renderer` counter, which
+   would reset across runtime restarts of the thread and collide with resources
+   that survived in `Tex2D` objects).
 
-### Phase 3 — Frame-path integration
-1. Decide the integration strategy (see §5.1). Recommended: **Rust-side
-   interception** — keep Lua scripts on `Draw`/`RenderState`/`ClipRect` and make
-   those Rust entry points submit commands when `Engine.renderer.is_some()`; the
-   command set already covers state, clears, immediate-mode geometry
-   (`DrawImmediate`), and FBO push/pop (`PushFramebuffer`/`PopFramebuffer` exist
-   precisely for `RenderTarget::push/pop`).
-2. Wire the frame boundary: in render-thread mode `MainLoop::about_to_wait` should
-   call `renderer.end_frame_triple_buffered()` instead of relying on
-   `winit_window.redraw()` (which currently no-ops the swap because the context is
-   extracted). `Window:endDraw()` on the Lua side must not double-swap.
-3. Route `WindowEvent::Resized` to `renderer.resize(w, h)` (the `Resize` command and
-   surface-resize handling already exist on the render thread; `try_submit` was
-   built for exactly this).
-4. End-to-end smoke test: `ltr --render-thread` running
-   `script/States/App/Tests/RenderingTest.lua` (or `CameraTest.lua`) renders
-   identically to the direct mode.
+### Phase 3 — Runtime control + Lua integration (port from fork)
+1. Port `render_context.rs` (or fold its logic cleanly into `Renderer`): worker
+   pool optional, `Arc<Renderer>` handle, ordered stop (disable command mode →
+   clear global → shutdown → restore context).
+2. Restore the fork's runtime FFI: `Engine:startRenderThread()/stopRenderThread()/
+   isRenderThreadActive()` + stats getters, so the thread can be toggled at runtime
+   (see §5.3 — recommended over the CLI-flag-only approach; keep the flag as "start
+   enabled at boot").
+3. Wire frame pacing: call `renderer.end_frame_triple_buffered()` from
+   `MainLoop::about_to_wait` when active, as the fork does (`main_loop.rs:331`
+   there), and route `WindowEvent::Resized` to `try_submit(Resize)`.
+4. Port the Lua side: `RenderCoreSystem.lua` active-mode switch
+   (fork line 322: `renderBatched` vs `renderDirect`), `Cache.lua` hot-reload path
+   (`Engine:reloadShaderOnRenderThread` + resource-id invalidation),
+   `RenderOverlay.lua` (perf overlay, Shift+O) and `ShaderErrorOverlay.lua`, and
+   the R-key toggle in the test states. Adapt to this repo's newer
+   `RenderCoreSystem` (it diverged substantially on this branch).
+5. End-to-end check: toggle the render thread at runtime in `RenderingTest` /
+   `PlanetTest` with identical output in both modes.
 
-### Phase 4 — Performance
-1. **Batch the channel** (existing TODO at `renderer.rs:184`): change the channel
-   payload to `Vec<RenderCommand>` (or a `CommandBuffer` struct), have
-   `flush_intern` send one message per frame/segment, and recycle buffers through a
-   return channel to avoid per-frame allocation. Per-command `send()` on a bounded
-   channel is the dominant overhead of the current design.
-2. Only then consider parallel batch preparation (cull + sort + command generation
-   per camera/pass) using the **existing** `task_queue` worker subsystem
-   (`engine/lib/phx/src/engine/task_queue/`) — do not resurrect the abandoned
-   `WorkerPoolHandle` design.
-3. Extend render-thread state caching (texture binds and uniform locations are
-   already cached) to shader-program binds and blend/depth state.
-4. Revisit `MAX_FRAMES_IN_FLIGHT = 3`: with a vsync'd `SwapBuffers` this adds up to
-   two frames of latency; 2 is usually the better default. Make it part of
-   `RenderThreadConfig`.
+### Phase 4 — Performance (after parity)
+1. **Batch the channel**: change the payload to `Vec<RenderCommand>` /
+   `CommandBuffer` with buffer recycling (existing TODO at `renderer.rs:184`;
+   the fork has `submit_commands` but still per-command sends — improvement applies
+   to both).
+2. Revive the batch/worker path only if profiling justifies it — note it is dormant
+   even in the fork, and the fork's pool has **no intra-batch parallelism** (whole
+   batch → one worker, `render_worker.rs:177`). If revived, shard entities across
+   workers and prefer this repo's existing `task_queue` subsystem
+   (`engine/lib/phx/src/engine/task_queue/`) over maintaining a second pool.
+3. Extend render-thread state caching (texture binds + uniform locations exist) to
+   shader-program binds; keep per-frame shader dedupe across batches.
+4. Revisit `MAX_FRAMES_IN_FLIGHT = 3` (§5.2).
 
 ### Phase 5 — Cleanup & landing
 1. Rename for clarity: `renderer.rs` (thread management) vs `renderer_queue.rs`
-   (FFI API) are inverted relative to their names — e.g. `renderer.rs` →
-   `render_handle.rs` / keep FFI in `renderer_api.rs`.
-2. Fix `RenederThreadError` → `RenderThreadError`.
-3. Resolve the commented-out `unsafe impl Send for WindowGlContext`
-   (`window_gl_context.rs:21`) deliberately: document why the glutin types are safe
-   to move (they are moved once into the thread, never shared), or restructure so
-   no manual `unsafe impl` is needed.
-4. Remove `Option<Renderer>` once render-thread mode is the default (existing TODO,
-   `engine.rs:30`).
-5. Commit the regenerated Lua bindings (`ffi_gen`/`meta` for `Renderer`, `CubeFace`,
-   `DataFormat`, `Metric`, `PixelFormat`, `TexFormat`) together with the Rust API
-   changes so generated code never drifts from the macro output.
-6. Add a short `ai/` or module-level doc describing the command-flow architecture
-   (this file can seed it) and a CI job that builds with the feature exercised.
+   (FFI API) are inverted relative to their names.
+2. Fix `RenederThreadError` → `RenderThreadError`; resolve the commented-out
+   `unsafe impl Send for WindowGlContext` (`window_gl_context.rs:21`) deliberately.
+3. Remove `Option<Renderer>`/transition TODO once render-thread mode is default.
+4. Commit the regenerated Lua bindings together with the Rust API changes.
+5. Port the fork's docs (`doc/engine/multithreaded-rendering.md`,
+   `doc/engine/shader-system.md`, `doc/script/rendering.md`) and update them: the
+   fork's multithreading doc still references the deleted `frame_ring.rs` and
+   documents the dormant worker pool as if active — fix while porting.
+6. Add a CI-runnable smoke test that exercises command mode.
 
 ---
 
-## 4. Improvement suggestions (beyond bug fixes)
+## 4. Improvement suggestions (beyond the port)
 
-- **Unify `CullStats` and `BatchStats`** — same numbers, two structs
-  (`renderer.rs:30` vs `render_batch.rs:9`). Keep one, expose it through
-  `SharedRenderStats` so the Lua HUD can display culling like it displays draw
-  calls.
-- **`process_batch` shader dedupe is per-batch only**; track the last-bound shader
-  across the whole frame in `Renderer` (reset in `begin_frame_intern`) to skip
-  redundant `BindShader` between consecutive batches.
-- **`submit()` blocking semantics**: `submit` silently blocks when the bounded
-  channel is full. That is fine for backpressure but should be measured — the
-  `main_thread_wait_us` stat only covers `end_frame_triple_buffered`. Consider
-  accumulating wait time in `submit` too, so stalls are visible.
-- **Error surfacing**: the render thread logs GL errors but the main thread never
-  learns about them. A lightweight error counter in `SharedRenderStats` (or a
-  drained error channel) would make failures observable from Lua.
-- **`RenderBatch::entities` capacity**: `Vec::with_capacity(1024)` is re-allocated
-  every `begin_batch`. Keep the `RenderBatch` inside `Renderer` and `clear()` it
-  per frame to reuse the allocation (the `active_batch: Option<RenderBatch>`
-  take/replace pattern already fights the borrow checker; a persistent field with a
-  `bool`/state enum is simpler and allocation-free).
+- **Consolidate the two global handles** (fork carry-over): the fork keeps a handle
+  in `render_mode::RENDER_HANDLE` *and* another inside the `RenderQueue` singleton
+  (`render_queue.rs:31`), plus a thread-local `COMMAND_BUFFER` fallback. When
+  porting Phase 2/3, keep exactly one submission path (`render_mode`'s) and make
+  the Lua-facing queue forward to it.
+- **Unify `CullStats` and `BatchStats`** — same numbers, two structs. Expose
+  through `SharedRenderStats` so the ported `RenderOverlay.lua` can display culling
+  like it displays draw calls.
+- **`submit()` blocking visibility**: `submit` silently blocks when the bounded
+  channel is full; only `end_frame_triple_buffered` records wait time. Accumulate
+  wait time in `submit` too.
+- **Error surfacing**: render-thread GL errors are only logged. A error counter in
+  `SharedRenderStats` (or drained error channel) would make failures observable
+  from Lua — the fork's `ShaderError` queue + overlay already does this for shader
+  compiles; generalize it.
+- **`RenderBatch` allocation reuse**: `active_batch: Option<RenderBatch>` re-allocates
+  the 1024-entity `Vec` every `begin_batch`; keep a persistent `RenderBatch` in
+  `Renderer` and `clear()` it.
 - **`add_entity` FFI granularity**: one FFI call per entity per frame is expensive
-  from LuaJIT at scale. Once the Rust-side ECS render systems exist (the branch's
-  direction), batch construction should happen in Rust from ECS storage; treat the
-  Lua `addEntity` path as a bring-up/debug tool.
-- **Sort key**: currently a bare `u32` supplied by the caller. Define its layout
-  (e.g. pass ≪ shader ≪ material ≪ depth) in one place so batching quality is
-  predictable, and compute depth-based ordering for transparent objects
-  (back-to-front) as a second key.
-- **`begin_frame` vs `flush` contract** is implicit (`begin_frame_intern` clears
-  whatever wasn't flushed). Either flush automatically in `begin_frame` or log when
-  non-empty, so silently dropped commands can't hide bugs.
+  from LuaJIT at scale (likely why the fork's `renderBatched` stayed Lua-side).
+  Long-term, batch construction belongs in Rust, fed from ECS storage.
+- **Sort key**: define the `u32` layout (pass ≪ shader ≪ material ≪ depth) in one
+  place; add back-to-front depth ordering for transparents.
+- **`begin_frame` vs `flush` contract**: `begin_frame_intern` silently clears
+  unflushed commands; flush automatically or log when non-empty.
 
 ---
 
-## 5. Open design decisions
+## 5. Design decisions
 
-### 5.1 How does the game reach the render thread?
-- **Option A — port Lua to the `Renderer` API**: `RenderCoreSystem.lua` calls
-  `beginBatch`/`addEntity`/`flushBatch`/UBO methods directly. Pros: explicit,
-  no dual-path Rust code. Cons: enormous Lua surface to port (`Draw`, `ClipRect`,
-  post-fx, HmGui all bypass it), and per-entity FFI overhead.
-- **Option B — Rust-side interception (recommended)**: keep the Lua API unchanged;
-  `Draw`/`RenderState`/`Tex2D`/`Mesh`/`Shader`/`RenderTarget` internally submit
-  commands when `Engine.renderer` is active. Pros: every existing script and test
-  works in both modes, migration is incremental per module, and the command enum was
-  clearly designed for this (`DrawImmediate`, `PushFramebuffer`, `*ByName`
-  uniforms). Cons: a mode check inside each render-facing type until direct mode is
-  retired.
+### 5.1 How does the game reach the render thread? — **decided by the fork: port it**
+The fork implements Rust-side dual-mode interception (`is_command_mode()` →
+`submit_command()` in every GL-touching type), keeping all Lua scripts unchanged
+and both modes runtime-switchable. This was previously an open question here; the
+answer now is to port that layer (Phase 2), keeping `Engine.renderer` ownership
+plus the `render_mode` global mirror — the interception sites have no `Engine`
+reference, which is exactly why the fork used globals.
 
-### 5.2 Resource story: command bridge vs. shared contexts
-The `ResourceId` command bridge (Phase 2) matches the code already written. The
-alternative — a second GL context shared with the render thread's, kept current on
-the main thread for resource creation only — would let `tex2d.rs`/`mesh.rs` stay
-untouched, but shared-context object visibility across threads is a notorious
-driver-bug minefield and still requires sync for completeness guarantees.
-Recommendation: stay with the command bridge; the `*ByResource` machinery is
-already implemented and tested code paths exist on the render thread.
+### 5.2 Resource story — **decided by the fork: ResourceId bridge, port it**
+Implemented and working upstream (`resource_id: Option<ResourceId>` in
+`Tex2D`/`Shader`/`Mesh`, lazy `Create*`, `*ByResource` bind/draw). The
+shared-context alternative is moot. Remaining sub-decision: how to support
+command-mode texture read-back (`screen_capture`, `getData`) — the fork punts with
+warnings; a blocking `ReadTexture2DData { id, reply_tx }` round-trip command is the
+likely completion.
 
-### 5.3 Frames in flight
+### 5.3 Runtime toggle (fork) vs boot flag (this repo) — open, recommend the fork's
+The fork can start/stop the render thread mid-session from Lua (context extraction
+and restore both work), which is invaluable for A/B testing, perf overlays, and
+falling back on driver issues. The boot flag is a strict subset. Recommendation:
+port the runtime FFI (Phase 3.2) and keep `--render-thread` only as "enable at
+startup".
+
+### 5.4 Frames in flight — open
 3 maximizes throughput but costs latency; 2 is the common sweet spot for a vsync'd
-GL swap. Make it configurable in `RenderThreadConfig` and default to 2 once
-end-to-end rendering works and can be measured.
+GL swap. Make it configurable in `RenderThreadConfig`, default 2, measure once
+end-to-end rendering works.
 
 ---
 
 ## 6. Quick reference — where things are
 
-| Concern | Location |
-|---|---|
-| Main-thread handle, fences, frame pacing | `engine/lib/phx/src/render/thread/renderer.rs` |
-| Lua-facing FFI (`#[luajit_ffi]`) | `engine/lib/phx/src/render/thread/renderer_queue.rs` |
-| Command enum | `engine/lib/phx/src/render/thread/render_command.rs` |
-| GL executor thread | `engine/lib/phx/src/render/thread/render_thread.rs` |
-| Batch/cull WIP (broken, uncommitted) | `render_batch.rs`, `camera_render_data.rs`, `entity_render_data.rs` |
-| Start/stop + inverted-return bug | `engine/lib/phx/src/engine/engine.rs:131-174` |
-| CLI flag (default off) | `engine/bin/ltr/src/main.rs:34` |
-| Flag → start call | `engine/lib/phx/src/engine/main_loop.rs:29` |
-| GL context handoff/restore | `engine/lib/phx/src/window/window_gl_context.rs`, `winit_window.rs:297-360` |
-| Legacy direct-GL resource paths | `engine/lib/phx/src/render/{tex2d,mesh,shader}.rs` |
-| Existing worker pool to reuse | `engine/lib/phx/src/engine/task_queue/` |
+| Concern | This repo | Fork (`ltheory-redux`) |
+|---|---|---|
+| Main-thread handle, fences, frame pacing | `render/thread/renderer.rs` | `render/render_thread.rs` (`RenderThreadHandle`, L193-315) |
+| Lua-facing FFI | `render/thread/renderer_queue.rs` (`Renderer` class) | `render/render_queue.rs` (`RenderQueue` global, `InstanceBatch`) |
+| Command enum | `render/thread/render_command.rs` | `render/render_command.rs` |
+| GL executor thread | `render/thread/render_thread.rs` | `render/render_thread.rs` |
+| Dual-mode switch + global handle | — (not ported) | `render/render_mode.rs` |
+| Lifecycle encapsulation | inlined in `Renderer`/`Engine` | `render/render_context.rs` |
+| Worker pool / cull data | `camera_render_data.rs`, `entity_render_data.rs` (types only) | `render/render_worker.rs` |
+| Batch collector | `render/thread/render_batch.rs` (broken copy) | `render/render_batch.rs` |
+| GL interception + ResourceId in resources | — (not ported) | `render/{tex2d,mesh,shader,draw,render_state,clip_rect,render_target,primitive_builder}.rs` |
+| Start/stop + regression bug | `engine/engine.rs:131-174` | `engine/engine.rs:136-158` + `render_context.rs:66-154` |
+| Activation | `engine/bin/ltr/src/main.rs:34` (CLI flag), `engine/main_loop.rs:29` | Lua `Engine:startRenderThread()`, R-key in tests |
+| Frame-end wiring | — (never called) | fork `engine/main_loop.rs:331` |
+| GL context handoff/restore | `window/window_gl_context.rs`, `winit_window.rs:297-360` | `window/winit_window.rs` (`RenderThreadGlData`) |
+| Lua integration | — (not ported) | `script/Modules/Rendering/Systems/RenderCoreSystem.lua:322`, `script/Render/Cache.lua:86-110`, `script/Shared/Tools/RenderOverlay.lua`, `ShaderErrorOverlay.lua` |
+| Docs | this file | `doc/engine/multithreaded-rendering.md`, `doc/engine/shader-system.md`, `doc/script/rendering.md` |
+| Existing worker infra to reuse | `engine/lib/phx/src/engine/task_queue/` | — |
