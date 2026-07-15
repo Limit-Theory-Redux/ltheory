@@ -3,6 +3,7 @@
 Branch: `feat/multithreaded_rendering`
 Scope: `engine/lib/phx/src/render/thread/`, `engine/lib/phx/src/engine/`, `engine/lib/phx/src/window/`, Lua bindings in `engine/lib/phx/script/`.
 Upstream source: `ltheory-redux`, branch `feat/multithreaded_rendering` (referred to below as **the fork**).
+Status: **compiles and is clippy-clean** as of `adcc19d1 "Make it compile"` (2026-07-15); the feature itself is still dormant at runtime (§1.2).
 
 ---
 
@@ -31,7 +32,7 @@ and deliberately restructured the design:
 | `render_context.rs` (`RenderContext`: thread handle + worker pool + start/stop) | **not ported** (logic re-inlined into `Renderer::start/stop` + `Engine`) |
 | `render_mode.rs` (global `COMMAND_MODE`, `RENDER_HANDLE`, `is_command_mode()`, `submit_command()`) | **not ported** |
 | `render_worker.rs` (`WorkerPoolHandle`, `PrepareResult`, `CameraRenderData`, `EntityRenderData`, worker pool) | **partially ported** as `camera_render_data.rs` + `entity_render_data.rs` (data types only; no pool) |
-| `render_batch.rs` (`RenderBatch`, `RenderBatchApi`) | copied as `render_batch.rs` (uncommitted) — **broken**, its deps above were not ported |
+| `render_batch.rs` (`RenderBatch`, `RenderBatchApi`) | `render_batch.rs`, trimmed to the data types in `adcc19d1` (the fork-only worker/FFI code was deleted, not ported) |
 | dual-mode interception in `draw.rs`, `mesh.rs`, `shader.rs`, `tex2d.rs`, `render_target.rs`, `clip_rect.rs`, `render_state.rs`, `primitive_builder.rs` (~160 sites) | **not ported** — these files are still direct-GL-only here |
 | `ResourceId` fields + lazy `Create*` submission in `Tex2D`/`Shader`/`Mesh` | **not ported** |
 | Lua runtime control: `Engine:startRenderThread()/stopRenderThread()/isRenderThreadActive()` | replaced by `ltr --render-thread` CLI flag at boot |
@@ -94,8 +95,8 @@ Renderer (renderer.rs)
   (`engine/bin/ltr/src/main.rs:34`) → `MainLoop::new_events` (`main_loop.rs:29`) →
   `Engine::start_renderer()` (`engine.rs:131`).
 - **Lua FFI** — `renderer_queue.rs` exposes the API as methods on the `Renderer`
-  class (reachable via `Engine:renderer()`); bindings regenerated in the
-  uncommitted `engine/lib/phx/script/ffi_gen|meta/*.lua` changes.
+  class (reachable via `Engine:renderer()`); regenerated bindings in
+  `engine/lib/phx/script/ffi_gen|meta/*.lua` are committed.
 
 ### 1.2 What is actually live at runtime
 
@@ -113,22 +114,24 @@ toggle the render thread with the `R` key, `RenderCoreSystem.lua:322` switches
 between `renderBatched` and `renderDirect` based on `Engine:isRenderThreadActive()`,
 and all resource creation transparently routes through commands.
 
-### 1.3 Uncommitted work in progress (the batch API)
+### 1.3 The batch API (committed in `adcc19d1`)
 
-The working tree adds an entity-batch layer:
+The branch adds an entity-batch layer, originally copied from the fork and since
+trimmed to fit the port's member-based design (`adcc19d1 "Make it compile"`):
 
-- `render_batch.rs` — copied from the fork; depends on the fork's `render_mode.rs`
-  (`is_command_mode`, `submit_command`, `RENDER_BATCH` thread-local,
-  `UNIFORM_MVP`/`UNIFORM_MODEL`) and `render_worker.rs` (`WorkerPoolHandle`,
-  `PrepareResult`) — none of which exist here. This is the source of the compile
-  errors; it is an unported dependency problem, not abandoned scratch work.
+- `render_batch.rs` — `RenderBatch` (entity accumulator + camera) and `BatchStats`.
+  The fork-design code that depended on unported modules (`flush(worker_pool)`,
+  `apply_result`, `process_serial`, the `RenderBatchApi` FFI wrapper) was deleted
+  rather than ported; it lives on in the fork's `render_batch.rs` if the worker
+  path is ever revived.
 - `camera_render_data.rs` / `entity_render_data.rs` — extracted from the fork's
   `render_worker.rs` (data types only).
-- `renderer.rs` gains `active_batch`, `CullStats`, and a **new, port-only**
-  `process_batch()` (sort → frustum-cull → dedupe shader binds → emit commands);
-  `renderer_queue.rs` gains FFI `begin_batch`/`add_entity`/`flush_batch`. This is a
-  reasonable member-based redesign of the fork's global `RENDER_BATCH`, but it is
-  unfinished (§2.3, §2.7).
+- `renderer.rs` holds `active_batch: Option<RenderBatch>` and a **port-only**
+  `process_batch()` (sort → frustum-cull → dedupe shader binds → emit commands)
+  that operates on the active batch in place and writes culling counters into
+  `batch.stats`; `renderer_queue.rs` exposes FFI
+  `begin_batch`/`add_entity`/`flush_batch`. Still unfinished: MVP uniforms don't
+  reach the shader (§2.3) and flush semantics need defining (§2.7 caveats).
 
 Note: even in the fork the batch/worker path is **dormant at runtime** — nothing in
 its `script/` feeds `RenderBatch` or the worker pool; `renderBatched` groups
@@ -145,32 +148,26 @@ Legend: **[regression]** introduced by the port, fork is correct · **[upstream]
 present in the fork too · **[gap]** works in the fork, missing here ·
 **[port-only]** in new code that has no fork counterpart.
 
-### 2.1 The crate does not compile (26 errors) — [gap]
+### 2.1 The crate does not compile (26 errors) — ✅ FIXED in `adcc19d1`
 
-`cargo check -p phx` fails; all errors are in the uncommitted files.
+Was: `render_batch.rs` (copied from the fork) referenced symbols whose home
+modules (`render_mode.rs`, `render_worker.rs`) were never ported, plus a stats
+field on the wrong struct in `renderer.rs`.
 
-- `render_batch.rs:87,111,117,119,148,151,159–177` — `WorkerPoolHandle`,
-  `PrepareResult`, `is_command_mode()`, `submit_command()`, `UNIFORM_MVP`,
-  `UNIFORM_MODEL` do not exist **in this repo** (they all exist in the fork's
-  `render_mode.rs` / `render_worker.rs` / `render_batch.rs`); `RenderCommand` not
-  imported.
-- `render_batch.rs:195` — `impl Default` calls `Self::new()` with 0 of 5 args
-  (port artifact: the fork's `RenderBatch::new()` takes no args and has a separate
-  `set_camera`; the port merged camera into `new(view, proj, eye…)` without
-  updating `Default`).
-- `render_batch.rs:210,259,…` — `RENDER_BATCH` thread-local does not exist here
-  (fork keeps the batch in a thread-local; the port moved it into
-  `Renderer.active_batch`, so `RenderBatchApi` is redundant).
-- `renderer.rs:422` — `self.render_stats.batches_processed`: no such field on
-  `RenderStats` (it lives on `BatchStats`).
+Fixed exactly along recommendation (a): `render_batch.rs` was stripped to
+`RenderBatch` + `BatchStats` + `new` + `add_entity` (−258 lines of dead
+fork-design code), `CullStats` was deleted, and `process_batch` now records stats
+into `batch.stats`. `cargo check -p phx` and `cargo clippy -p phx` are clean.
 
-**Fix options:** (a) finish the port's member-based redesign — strip
-`render_batch.rs` to `RenderBatch` + `BatchStats` + `new` + `add_entity` and delete
-`flush`/`apply_result`/`process_serial`/`RenderBatchApi`/`Default`; or (b) port the
-fork's `render_mode.rs` and `render_worker.rs` first (needed anyway for §2.6) and
-keep the file closer to upstream. Either restores compilation; (a) is smaller,
-(b) reduces future divergence. Recommended: (a) now, because `render_mode.rs`
-arrives in Phase 2 regardless and the worker path is dormant even upstream.
+Leftovers to pick up later (folded into Phase 1/5):
+
+- `render_batch.rs:33` — `next_entity_id: AtomicU64` survives; it's pointless
+  behind `&mut self` and `entity_id` is never consumed. Remove both.
+- `renderer.rs` — `render_stats: RenderStats` is kept but `#[allow(dead_code)]`;
+  either wire it up or remove it.
+- `render_thread.rs` — `GpuResource` is now `#[allow(dead_code)]`, which is the
+  compiler literally flagging §2.6: nothing populates the resource registry.
+  The annotation should come off when the resource bridge is ported.
 
 ### 2.2 `--render-thread` exits the app on successful startup — [regression]
 
@@ -273,12 +270,22 @@ Known limitations in the fork to carry over/document: texture read-back,
 (fork `tex2d.rs:82,335,441`), and a texture bound without a `resource_id` or cached
 CPU data logs a warning and renders wrong (fork `shader.rs:405,468,533`).
 
-### 2.7 Cull stats are computed and dropped — [port-only]
+### 2.7 Cull stats are computed and dropped — ✅ FIXED in `adcc19d1`, with caveats
 
-`process_batch` fills a local `CullStats` (`renderer.rs:365-386`) but never stores
-it into `self.cull_stats`, so the stats getters will always read zeros. Assign it
-at the end (the fork surfaces the equivalent numbers through `BatchStats`, shown in
-its `RenderOverlay.lua`).
+`process_batch` now writes `total_entities`/`entities_visible`/`entities_culled`
+directly into `batch.stats` instead of a dropped local. Two caveats remain:
+
+1. **Flush no longer consumes the batch.** `flush_batch` used to `take()`
+   `active_batch`; now `process_batch` operates in place and never clears
+   `batch.entities`. Calling `flush_batch` twice re-submits every entity, and
+   `add_entity` after a flush accumulates on top — correctness silently relies on
+   `begin_batch` being called every frame. Define the semantics: clear `entities`
+   at the end of `process_batch` (keeping the allocation, see §4), or make a
+   second flush a no-op/error.
+2. **Stats are not reachable from Lua.** `RenderBatch::get_stats()` exists but has
+   no FFI exposure; the fork shows the equivalent numbers in its
+   `RenderOverlay.lua`. Expose them (e.g. via `SharedRenderStats` or getters on
+   `Renderer`) when the overlay is ported.
 
 ---
 
@@ -287,15 +294,9 @@ its `RenderOverlay.lua`).
 Ordering principle: restore compilation, fix the shared bugs once (here + upstream),
 then port the fork's layers in the order that gets the feature end-to-end runnable.
 
-### Phase 0 — Restore compilation (small)
-1. Strip `render_batch.rs` to `BatchStats`, `RenderBatch { entities, camera, stats }`,
-   `new()`, `add_entity()`; delete `flush`/`apply_result`/`process_serial`/
-   `RenderBatchApi`/`Default` and the pointless `next_entity_id: AtomicU64`
-   (`entity_id` is never consumed). The deleted logic lives on in the fork if the
-   worker path is ever revived.
-2. Fix the `batches_processed` stat (`renderer.rs:422`) — move it to a
-   `BatchStats` field on `Renderer` or add it to `RenderStats`.
-3. `cargo check -p phx` and `cargo clippy -p phx` clean.
+### Phase 0 — Restore compilation — ✅ DONE (`adcc19d1`, 2026-07-15)
+`render_batch.rs` stripped to the data types, stats moved into `batch.stats`,
+check + clippy clean. Small leftovers moved into Phase 1 (items 4-6).
 
 ### Phase 1 — Correctness fixes (small, high value; upstream the shared ones)
 1. Fix `Engine::start_renderer` return semantics to match the fork's
@@ -303,8 +304,12 @@ then port the fork's layers in the order that gets the feature end-to-end runnab
 2. Fix frustum-plane normalization (§2.4). Add the missing unit test: sphere
    straddling a plane by less than its radius must be kept. **Also send to fork.**
 3. Port the fork's name-based-uniform approach into `process_batch` (§2.3).
-4. Store `CullStats` (§2.7).
-5. Fix fence cross-talk (§2.5). **Also send to fork.**
+4. Define flush semantics: clear `batch.entities` at the end of `process_batch`
+   so a double `flush_batch` can't re-submit everything (§2.7 caveat 1).
+5. Remove `next_entity_id: AtomicU64` + the unused `entity_id`; wire up or drop
+   the dead `render_stats` field (§2.1 leftovers).
+6. Expose `BatchStats` to Lua for the perf overlay (§2.7 caveat 2).
+7. Fix fence cross-talk (§2.5). **Also send to fork.**
 
 ### Phase 2 — Port the dual-mode interception + ResourceId layer (the core work)
 This was §"design a resource bridge" before the fork was known; it is now a port:
@@ -368,7 +373,9 @@ This was §"design a resource bridge" before the fork was known; it is now a por
 2. Fix `RenederThreadError` → `RenderThreadError`; resolve the commented-out
    `unsafe impl Send for WindowGlContext` (`window_gl_context.rs:21`) deliberately.
 3. Remove `Option<Renderer>`/transition TODO once render-thread mode is default.
-4. Commit the regenerated Lua bindings together with the Rust API changes.
+4. Keep regenerated Lua bindings committed in the same change as the Rust API
+   that produces them (current bindings are committed; maintain this going
+   forward as Phases 2-3 grow the FFI surface).
 5. Port the fork's docs (`doc/engine/multithreaded-rendering.md`,
    `doc/engine/shader-system.md`, `doc/script/rendering.md`) and update them: the
    fork's multithreading doc still references the deleted `frame_ring.rs` and
@@ -384,9 +391,6 @@ This was §"design a resource bridge" before the fork was known; it is now a por
   (`render_queue.rs:31`), plus a thread-local `COMMAND_BUFFER` fallback. When
   porting Phase 2/3, keep exactly one submission path (`render_mode`'s) and make
   the Lua-facing queue forward to it.
-- **Unify `CullStats` and `BatchStats`** — same numbers, two structs. Expose
-  through `SharedRenderStats` so the ported `RenderOverlay.lua` can display culling
-  like it displays draw calls.
 - **`submit()` blocking visibility**: `submit` silently blocks when the bounded
   channel is full; only `end_frame_triple_buffered` records wait time. Accumulate
   wait time in `submit` too.
@@ -394,9 +398,11 @@ This was §"design a resource bridge" before the fork was known; it is now a por
   `SharedRenderStats` (or drained error channel) would make failures observable
   from Lua — the fork's `ShaderError` queue + overlay already does this for shader
   compiles; generalize it.
-- **`RenderBatch` allocation reuse**: `active_batch: Option<RenderBatch>` re-allocates
-  the 1024-entity `Vec` every `begin_batch`; keep a persistent `RenderBatch` in
-  `Renderer` and `clear()` it.
+- **`RenderBatch` allocation reuse**: `begin_batch` still allocates a fresh
+  `RenderBatch` (1024-entity `Vec`) every frame. Since `adcc19d1` the batch already
+  persists in `Renderer` between `begin` and `flush`; go the rest of the way — keep
+  one `RenderBatch` for the `Renderer`'s lifetime, have `begin_batch` reset camera +
+  `clear()` entities/stats. This also resolves the flush-clearing question (§2.7).
 - **`add_entity` FFI granularity**: one FFI call per entity per frame is expensive
   from LuaJIT at scale (likely why the fork's `renderBatched` stayed Lua-side).
   Long-term, batch construction belongs in Rust, fed from ECS storage.
@@ -450,7 +456,7 @@ end-to-end rendering works.
 | Dual-mode switch + global handle | — (not ported) | `render/render_mode.rs` |
 | Lifecycle encapsulation | inlined in `Renderer`/`Engine` | `render/render_context.rs` |
 | Worker pool / cull data | `camera_render_data.rs`, `entity_render_data.rs` (types only) | `render/render_worker.rs` |
-| Batch collector | `render/thread/render_batch.rs` (broken copy) | `render/render_batch.rs` |
+| Batch collector | `render/thread/render_batch.rs` (trimmed to data types) | `render/render_batch.rs` |
 | GL interception + ResourceId in resources | — (not ported) | `render/{tex2d,mesh,shader,draw,render_state,clip_rect,render_target,primitive_builder}.rs` |
 | Start/stop + regression bug | `engine/engine.rs:131-174` | `engine/engine.rs:136-158` + `render_context.rs:66-154` |
 | Activation | `engine/bin/ltr/src/main.rs:34` (CLI flag), `engine/main_loop.rs:29` | Lua `Engine:startRenderThread()`, R-key in tests |
