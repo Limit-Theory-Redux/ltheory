@@ -2,7 +2,7 @@
 
 Branch: `feat/multithreaded_rendering`
 Scope: `engine/lib/phx/src/render/thread/`, `engine/lib/phx/src/engine/`, `engine/lib/phx/src/window/`, Lua bindings in `engine/lib/phx/script/`.
-Upstream source: `/home/oleg/workspace/rust/ltheory-redux`, branch `feat/multithreaded_rendering` (referred to below as **the fork**).
+Upstream source: `ltheory-redux`, branch `feat/multithreaded_rendering` (referred to below as **the fork**).
 
 ---
 

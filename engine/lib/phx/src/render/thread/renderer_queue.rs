@@ -73,11 +73,7 @@ impl Renderer {
     }
 
     pub fn flush_batch(&mut self) {
-        if let Some(batch) = self.active_batch.take() {
-            self.process_batch(batch);
-        } else {
-            error!("There is no active batch started. Use begin_batch() to start it.");
-        }
+        self.process_batch();
     }
 
     // === State Management ===

@@ -242,15 +242,12 @@ impl ImplInfo {
                     let ret_param = match ret_ty {
                         TypeInfo::Plain { is_ref, ty } => {
                             match ty {
-                                TypeVariant::Custom(_) => {
-                                    if !ty.is_copyable(&self.name) && *is_ref == TypeRef::Value {
+                                TypeVariant::Custom(_)
+                                    if !ty.is_copyable(&self.name) && *is_ref == TypeRef::Value => {
                                         // If we have a non-copyable type that's not boxed, optional or a ref,
                                         // we don't need to return it as a pointer as it's already a pointer.
                                         format!("{ret_ffi} out")
-                                    } else {
-                                        format!("{ret_ffi}* out")
-                                    }
-                                },
+                                    },
                                 _ => {
                                     format!("{ret_ffi}* out")
                                 }

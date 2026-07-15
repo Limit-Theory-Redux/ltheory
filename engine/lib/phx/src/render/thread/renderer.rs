@@ -25,17 +25,6 @@ pub struct RenderStats {
     pub frame_count: u64,
 }
 
-/// Statistics from culling/preparation
-#[derive(Clone, Debug, Default)]
-pub struct CullStats {
-    /// Total entities submitted
-    pub total_entities: u32,
-    /// Entities that passed frustum culling
-    pub visible_entities: u32,
-    /// Entities culled
-    pub culled_entities: u32,
-}
-
 pub struct Renderer {
     /// Send commands to the render thread
     command_tx: Sender<RenderCommand>,
@@ -60,9 +49,8 @@ pub struct Renderer {
     /// Global counter for generating unique ResourceIds
     next_resource_id: AtomicU64,
     /// Render stats
+    #[allow(dead_code)]
     render_stats: RenderStats,
-    /// Cull stats
-    cull_stats: CullStats,
     /// Active render batch
     pub(super) active_batch: Option<RenderBatch>,
 }
@@ -129,7 +117,6 @@ impl Renderer {
             command_buffer: vec![],
             next_resource_id: AtomicU64::new(1),
             render_stats: Default::default(),
-            cull_stats: Default::default(),
             active_batch: None,
         })
     }
@@ -360,12 +347,15 @@ impl Renderer {
         }
     }
 
-    pub fn process_batch(&mut self, mut batch: RenderBatch) {
-        let mut stats = CullStats {
-            total_entities: batch.entities.len() as u32,
-            visible_entities: 0,
-            culled_entities: 0,
+    pub fn process_batch(&mut self) {
+        let Some(batch) = &mut self.active_batch else {
+            error!("There is no active batch started. Use begin_batch() to start it.");
+            return;
         };
+
+        batch.stats.total_entities = batch.entities.len() as u32;
+        batch.stats.entities_visible = 0;
+        batch.stats.entities_culled = 0;
 
         // Sort entities by sort key for better batching
         batch.entities.sort_by_key(|e| e.sort_key);
@@ -378,11 +368,11 @@ impl Renderer {
                 .camera
                 .sphere_in_frustum(entity.bounds_center, entity.bounds_radius)
             {
-                stats.culled_entities += 1;
+                batch.stats.entities_culled += 1;
                 continue;
             }
 
-            stats.visible_entities += 1;
+            batch.stats.entities_visible += 1;
 
             // Compute MVP matrix
             let mvp = batch.camera.view_projection * entity.transform;
@@ -418,7 +408,7 @@ impl Renderer {
             });
         }
 
-        self.render_stats.batches_processed += 1;
+        batch.stats.batches_processed += 1;
     }
 
     /// Request the render thread to shutdown.

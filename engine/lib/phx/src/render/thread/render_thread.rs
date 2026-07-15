@@ -17,6 +17,7 @@ use crate::window::{WindowActiveGlContext, WindowGlContext};
 
 /// GPU resource stored on the render thread
 #[derive(Debug)]
+#[allow(dead_code)]
 enum GpuResource {
     Shader { program: u32 },
     Texture2D { handle: u32 },
