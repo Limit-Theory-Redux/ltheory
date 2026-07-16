@@ -53,7 +53,7 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     libprefix="lib"
     libsuffix=".so"
     binsuffix=""
-elif [[ "$OSTYPE" == "msys" ]]; then
+elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
     libprefix=""
     libsuffix=".dll"
     binsuffix=".exe"
