@@ -39,6 +39,8 @@ while test $# -gt 0; do
   esac
 done
 
+echo "Current OS: $OSTYPE"
+
 # Tests are currently not working correctly on Linux.
 if [[ $run_tests == true && "$OSTYPE" == "linux-gnu"* ]]; then
     echo "Tests are currently not working correctly on Linux, disabling."
