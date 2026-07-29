@@ -8,6 +8,7 @@ use winit::dpi::*;
 use winit::event_loop::*;
 
 use super::{EventBus, MainLoop, TaskQueue};
+use crate::engine::RendererState;
 use crate::input::*;
 use crate::logging::init_log;
 use crate::render::Renderer;
@@ -128,29 +129,30 @@ impl Engine {
     ///
     /// This transfers the GL context to a dedicated render thread.
     /// After calling this, all GL operations must go through the render queue.
-    pub fn start_renderer(&mut self) -> bool {
+    pub fn start_renderer(&mut self) -> RendererState {
         if self.renderer.is_some() {
             // Extract GL context from the window
-            warn!("Renderer olready started");
-            true
-        } else {
-            match self.winit_window.extract_gl_context() {
-                Ok(context) => {
-                    match Renderer::start(context) {
-                        Ok(renderer) => self.renderer = Some(renderer),
-                        Err(err) => {
-                            error!("Cannot create renderer. Error: {err}");
-                            return false;
-                        }
-                    };
-                }
-                Err(err) => {
-                    error!("Failed to extract GL context for render thread: {err:?}");
-                    return false;
-                }
-            }
-            false
+            warn!("Renderer already started");
+            return RendererState::AlreadyRunning;
         }
+
+        match self.winit_window.extract_gl_context() {
+            Ok(context) => {
+                match Renderer::start(context) {
+                    Ok(renderer) => {
+                        self.renderer = Some(renderer);
+                        return RendererState::Started;
+                    }
+                    Err(err) => {
+                        error!("Cannot create renderer. Error: {err}");
+                    }
+                };
+            }
+            Err(err) => {
+                error!("Failed to extract GL context for render thread: {err:?}");
+            }
+        }
+        RendererState::Failed
     }
 
     /// Stop the render thread.

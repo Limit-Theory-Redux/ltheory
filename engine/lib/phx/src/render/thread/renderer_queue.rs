@@ -3,8 +3,8 @@ use tracing::error;
 
 use crate::math::Matrix;
 use crate::render::{
-    BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle, LightUboData, MaterialUboData,
-    RenderBatch, RenderCommand, Renderer,
+    BatchStats, BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle, LightUboData,
+    MaterialUboData, RenderBatch, RenderCommand, Renderer,
 };
 
 // =============================================================================
@@ -74,6 +74,15 @@ impl Renderer {
 
     pub fn flush_batch(&mut self) {
         self.process_batch();
+    }
+
+    pub fn get_batch_stats(&self) -> Option<&BatchStats> {
+        if let Some(batch) = &self.active_batch {
+            Some(batch.get_stats())
+        } else {
+            error!("There is no active batch started. Use begin_batch() to start it.");
+            None
+        }
     }
 
     // === State Management ===

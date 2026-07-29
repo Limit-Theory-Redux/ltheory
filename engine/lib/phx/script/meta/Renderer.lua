@@ -37,6 +37,9 @@ function Renderer:addEntity(transform, transform_size, boundsCenterX, boundsCent
 
 function Renderer:flushBatch() end
 
+---@return BatchStats?
+function Renderer:getBatchStats() end
+
 -- Set the viewport
 ---@param x integer
 ---@param y integer

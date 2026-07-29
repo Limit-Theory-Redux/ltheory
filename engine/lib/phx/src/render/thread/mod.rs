@@ -1,3 +1,4 @@
+mod batch_stats;
 mod camera_render_data;
 mod config;
 mod entity_render_data;
@@ -11,6 +12,7 @@ mod shader_reload_result;
 mod shared_render_stats;
 mod ubo;
 
+pub use batch_stats::*;
 pub use camera_render_data::*;
 pub use config::*;
 pub use entity_render_data::*;

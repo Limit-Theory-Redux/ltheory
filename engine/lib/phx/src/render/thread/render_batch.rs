@@ -1,25 +1,6 @@
-use std::sync::atomic::{AtomicU64, Ordering};
-
 use glam::{Mat4, Vec3};
 
-use crate::render::{CameraRenderData, EntityRenderData};
-
-/// Statistics from batch rendering
-#[derive(Debug, Clone, Default)]
-pub struct BatchStats {
-    /// Total entities submitted this frame
-    pub entities_submitted: u32,
-    /// Entities visible after culling
-    pub entities_visible: u32,
-    /// Entities culled
-    pub entities_culled: u32,
-    /// Total entities culled
-    pub total_entities: u32,
-    /// Commands generated
-    pub commands_generated: u32,
-    /// Batches processed
-    pub batches_processed: u32,
-}
+use crate::render::{BatchStats, CameraRenderData, EntityRenderData};
 
 /// Render batch collector - accumulates entities for worker processing
 pub struct RenderBatch {
@@ -30,7 +11,7 @@ pub struct RenderBatch {
     /// Statistics
     pub stats: BatchStats,
     /// Entity ID counter
-    pub next_entity_id: AtomicU64,
+    pub next_entity_id: u64,
 }
 
 impl RenderBatch {
@@ -50,7 +31,7 @@ impl RenderBatch {
             entities: Vec::with_capacity(1024),
             camera: CameraRenderData::new(view_mat, proj_mat, position),
             stats: BatchStats::default(),
-            next_entity_id: AtomicU64::new(1),
+            next_entity_id: 1,
         }
     }
 
@@ -67,10 +48,8 @@ impl RenderBatch {
         shader_handle: u32,
         sort_key: u32,
     ) {
-        let entity_id = self.next_entity_id.fetch_add(1, Ordering::Relaxed);
-
         self.entities.push(EntityRenderData {
-            entity_id,
+            entity_id: self.next_entity_id,
             transform: Mat4::from_cols_array(transform),
             bounds_center: Vec3::new(bounds_center_x, bounds_center_y, bounds_center_z),
             bounds_radius,
@@ -82,6 +61,7 @@ impl RenderBatch {
             sort_key,
         });
 
+        self.next_entity_id += 1;
         self.stats.entities_submitted += 1;
     }
 

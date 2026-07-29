@@ -3,7 +3,12 @@
 Branch: `feat/multithreaded_rendering`
 Scope: `engine/lib/phx/src/render/thread/`, `engine/lib/phx/src/engine/`, `engine/lib/phx/src/window/`, Lua bindings in `engine/lib/phx/script/`.
 Upstream source: `ltheory-redux`, branch `feat/multithreaded_rendering` (referred to below as **the fork**).
-Status: **compiles and is clippy-clean** as of `adcc19d1 "Make it compile"` (2026-07-15); the feature itself is still dormant at runtime (§1.2).
+Status: **compiles and is clippy-clean** as of `adcc19d1 "Make it compile"` (2026-07-15); the feature itself is still dormant at runtime (§1.2). Several Phase 1 items (§2.2, §2.7) have fixes staged but **not yet committed** — see those sections and the companion doc below.
+
+Companion doc: `ai/shader_system_port.md` (`47dc0846`, 2026-07-16) — a shader-specific fork
+analysis whose dual-mode shader path (Unit C there) is gated on this doc's Phase 2
+(`render_mode.rs` + interception substrate) and executes alongside it; see the cross-refs in
+§3 Phase 2 and §6.
 
 ---
 
@@ -161,29 +166,34 @@ into `batch.stats`. `cargo check -p phx` and `cargo clippy -p phx` are clean.
 
 Leftovers to pick up later (folded into Phase 1/5):
 
-- `render_batch.rs:33` — `next_entity_id: AtomicU64` survives; it's pointless
-  behind `&mut self` and `entity_id` is never consumed. Remove both.
-- `renderer.rs` — `render_stats: RenderStats` is kept but `#[allow(dead_code)]`;
-  either wire it up or remove it.
-- `render_thread.rs` — `GpuResource` is now `#[allow(dead_code)]`, which is the
-  compiler literally flagging §2.6: nothing populates the resource registry.
-  The annotation should come off when the resource bridge is ported.
+- `render_batch.rs:14` — **staged, uncommitted:** `next_entity_id` dropped the
+  `AtomicU64`/`fetch_add` (pointless behind `&mut self`) in favor of a plain
+  `u64` incremented after each push. `entity_id` itself is still never
+  consumed anywhere — still remove the field once confirmed unneeded.
+- `renderer.rs` — **staged, uncommitted:** `render_stats: RenderStats`'s
+  attribute changed `#[allow(dead_code)]` → `#[expect(dead_code)]` (fails the
+  build if the field ever becomes used without updating the annotation); still
+  not wired up or removed.
+- `render_thread.rs` — same `#[allow(dead_code)]` → `#[expect(dead_code)]`
+  tightening on `GpuResource` (**staged, uncommitted**), which is the compiler
+  literally flagging §2.6: nothing populates the resource registry. The
+  annotation should come off when the resource bridge is ported.
 
-### 2.2 `--render-thread` exits the app on successful startup — [regression]
+### 2.2 `--render-thread` exits the app on successful startup — [regression] — ✅ FIXED, staged uncommitted
 
-`Engine::start_renderer` (`engine.rs:131-153`) returns **`false` on the success
-path** and `true` when the renderer was already started (also: typo "olready").
-`main_loop.rs:29`:
+Was: `Engine::start_renderer` (`engine.rs:131-153`) returned **`false` on the
+success path** and `true` when the renderer was already started (also: typo
+"olready"). `main_loop.rs:29` then exited the event loop on the success path.
 
-```rust
-if self.render_thread && !engine.start_renderer() {
-    event_loop.exit();
-}
-```
-
-The fork gets this right: `RenderContext::start` (`render_context.rs:66-94`)
-returns `true` on success / `false` if already running, and its Lua callers rely on
-that (`if Engine:startRenderThread() then …`). Restore the fork's semantics.
+Fixed by replacing the overloaded `bool` with a dedicated
+`#[luajit_ffi_gen::luajit_ffi] enum RendererState { Started, AlreadyRunning,
+Failed }` (new `engine/renderer_state.rs`); `start_renderer` now returns that
+enum and `main_loop.rs:29` checks `== RendererState::Failed`. This supersedes
+rather than mirrors the fork's boolean semantics (`RenderContext::start`,
+`render_context.rs:66-94`) with a clearer 3-state result; the "olready" typo is
+also fixed. `RendererState` isn't yet exposed on `Engine`'s own FFI (no Lua
+caller needs it today — activation is still boot-flag-only, §1.2), so the new
+enum only needed its own FFI type generated (`ffi_gen/meta/RendererState.lua`).
 
 ### 2.3 MVP uniform is never actually set in the batch path — [port-only]
 
@@ -270,22 +280,24 @@ Known limitations in the fork to carry over/document: texture read-back,
 (fork `tex2d.rs:82,335,441`), and a texture bound without a `resource_id` or cached
 CPU data logs a warning and renders wrong (fork `shader.rs:405,468,533`).
 
-### 2.7 Cull stats are computed and dropped — ✅ FIXED in `adcc19d1`, with caveats
+### 2.7 Cull stats are computed and dropped — ✅ FIXED in `adcc19d1`; both caveats now also fixed, staged uncommitted
 
 `process_batch` now writes `total_entities`/`entities_visible`/`entities_culled`
-directly into `batch.stats` instead of a dropped local. Two caveats remain:
+directly into `batch.stats` instead of a dropped local. Both caveats noted
+previously are now addressed (uncommitted):
 
-1. **Flush no longer consumes the batch.** `flush_batch` used to `take()`
-   `active_batch`; now `process_batch` operates in place and never clears
-   `batch.entities`. Calling `flush_batch` twice re-submits every entity, and
-   `add_entity` after a flush accumulates on top — correctness silently relies on
-   `begin_batch` being called every frame. Define the semantics: clear `entities`
-   at the end of `process_batch` (keeping the allocation, see §4), or make a
-   second flush a no-op/error.
-2. **Stats are not reachable from Lua.** `RenderBatch::get_stats()` exists but has
-   no FFI exposure; the fork shows the equivalent numbers in its
-   `RenderOverlay.lua`. Expose them (e.g. via `SharedRenderStats` or getters on
-   `Renderer`) when the overlay is ported.
+1. **Flush no longer consumes the batch — fixed.** `process_batch` now iterates
+   with `batch.entities.drain(..)` (`renderer.rs:363`) instead of `&batch.entities`,
+   so the entity list is cleared as it's processed; a double `flush_batch` is now
+   a no-op rather than a re-submit. (`entity_id`, moved by value through the
+   drain, is still unused — see the §2.1 leftover above.)
+2. **Stats are not reachable from Lua — fixed.** `BatchStats` moved to its own
+   file (`render/thread/batch_stats.rs`) with `#[luajit_ffi_gen::luajit_ffi]`
+   getters for all six fields, and `Renderer::get_batch_stats()`
+   (`renderer_queue.rs`) exposes it as `Renderer:getBatchStats()`; FFI bindings
+   regenerated (`ffi_gen|meta/BatchStats.lua`, updated `Renderer.lua`). Nothing
+   in `script/` calls it yet — wiring into a perf overlay is still Phase 3+
+   territory (§2.7 exposure alone doesn't make the batch path live, see §1.3).
 
 ---
 
@@ -299,16 +311,22 @@ then port the fork's layers in the order that gets the feature end-to-end runnab
 check + clippy clean. Small leftovers moved into Phase 1 (items 4-6).
 
 ### Phase 1 — Correctness fixes (small, high value; upstream the shared ones)
-1. Fix `Engine::start_renderer` return semantics to match the fork's
-   `RenderContext::start` (§2.2) + the "olready" typo.
+1. ✅ **done, staged uncommitted** — Fixed `Engine::start_renderer` return
+   semantics (as `RendererState`, not the fork's plain bool — §2.2) + the
+   "olready" typo.
 2. Fix frustum-plane normalization (§2.4). Add the missing unit test: sphere
    straddling a plane by less than its radius must be kept. **Also send to fork.**
 3. Port the fork's name-based-uniform approach into `process_batch` (§2.3).
-4. Define flush semantics: clear `batch.entities` at the end of `process_batch`
-   so a double `flush_batch` can't re-submit everything (§2.7 caveat 1).
-5. Remove `next_entity_id: AtomicU64` + the unused `entity_id`; wire up or drop
-   the dead `render_stats` field (§2.1 leftovers).
-6. Expose `BatchStats` to Lua for the perf overlay (§2.7 caveat 2).
+4. ✅ **done, staged uncommitted** — Flush now clears `batch.entities` via
+   `drain(..)` in `process_batch`, so a double `flush_batch` can't re-submit
+   everything (§2.7 caveat 1).
+5. **Partially done, staged uncommitted** — `next_entity_id` de-atomicized
+   (`AtomicU64` → plain `u64`); `entity_id` itself is still unused and still to
+   be removed. `render_stats` dead-code annotation tightened
+   (`allow` → `expect`) but the field is still not wired up or removed
+   (§2.1 leftovers).
+6. ✅ **done, staged uncommitted** — `BatchStats` exposed to Lua via
+   `Renderer:getBatchStats()`; not yet consumed by a perf overlay (§2.7 caveat 2).
 7. Fix fence cross-talk (§2.5). **Also send to fork.**
 
 ### Phase 2 — Port the dual-mode interception + ResourceId layer (the core work)
@@ -325,7 +343,11 @@ This was §"design a resource bridge" before the fork was known; it is now a por
    template (§2.6 has the exact locations). Adapt module paths
    (`render::thread::…`) and this repo's ECS-era changes to these files —
    expect real merge work in `shader.rs`/`tex2d.rs`, which diverged on this branch
-   (shader hot-reload landed here separately).
+   (shader hot-reload landed here separately). For `shader.rs` specifically, use
+   `ai/shader_system_port.md` §2 Unit C / Phase S3 instead of re-deriving it here —
+   it covers the `resource_id`/by-name-uniform deltas and the canonical
+   `shader_key` format to adopt (reconciled with this repo's hot-reload, Unit A
+   there).
 3. Port the interception sites in `draw.rs`, `render_state.rs`, `clip_rect.rs`,
    `render_target.rs`, `viewport.rs`, `primitive_builder.rs`.
 4. Carry over the fork's command-mode limitation warnings (read-back etc.) and its
@@ -380,6 +402,9 @@ This was §"design a resource bridge" before the fork was known; it is now a por
    `doc/engine/shader-system.md`, `doc/script/rendering.md`) and update them: the
    fork's multithreading doc still references the deleted `frame_ring.rs` and
    documents the dormant worker pool as if active — fix while porting.
+   `doc/engine/shader-system.md` has its own corrections list in
+   `ai/shader_system_port.md` §2 Unit E / Phase S5 (stale UBO field names, reload
+   model) — use that instead of re-auditing it here.
 6. Add a CI-runnable smoke test that exercises command mode.
 
 ---
@@ -465,3 +490,4 @@ end-to-end rendering works.
 | Lua integration | — (not ported) | `script/Modules/Rendering/Systems/RenderCoreSystem.lua:322`, `script/Render/Cache.lua:86-110`, `script/Shared/Tools/RenderOverlay.lua`, `ShaderErrorOverlay.lua` |
 | Docs | this file | `doc/engine/multithreaded-rendering.md`, `doc/engine/shader-system.md`, `doc/script/rendering.md` |
 | Existing worker infra to reuse | `engine/lib/phx/src/engine/task_queue/` | — |
+| Shader-specific dual-mode + hot-reload plan | `ai/shader_system_port.md` (companion doc; Units A-E, Phases S1-S5) | fork's shader work in `b2ee4ea2`, `92adf595` |

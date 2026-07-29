@@ -17,48 +17,49 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void Renderer_Free                   (Renderer*);
-            void Renderer_BeginFrame             (Renderer*);
-            void Renderer_Flush                  (Renderer*);
-            bool Renderer_Sync                   (Renderer*);
-            void Renderer_BeginBatch             (Renderer*, float const* view, uint64 view_size, float const* projection, uint64 projection_size, float eyeX, float eyeY, float eyeZ);
-            void Renderer_AddEntity              (Renderer*, float const* transform, uint64 transform_size, float boundsCenterX, float boundsCenterY, float boundsCenterZ, float boundsRadius, uint32 meshVao, int indexCount, uint32 shaderHandle, uint32 sortKey);
-            void Renderer_FlushBatch             (Renderer*);
-            void Renderer_SetViewport            (Renderer const*, int x, int y, int width, int height);
-            void Renderer_SetScissor             (Renderer const*, int x, int y, int width, int height);
-            void Renderer_EnableScissor          (Renderer const*, bool enable);
-            void Renderer_SetBlendMode           (Renderer const*, int mode);
-            void Renderer_SetCullFace            (Renderer const*, int face);
-            void Renderer_SetDepthTest           (Renderer const*, bool enable);
-            void Renderer_SetDepthWritable       (Renderer const*, bool enable);
-            void Renderer_SetWireframe           (Renderer const*, bool enable);
-            void Renderer_BindShader             (Renderer const*, uint32 handle);
-            void Renderer_UnbindShader           (Renderer const*);
-            void Renderer_SetUniformInt          (Renderer const*, int location, int value);
-            void Renderer_SetUniformFloat        (Renderer const*, int location, float value);
-            void Renderer_SetUniformFloat2       (Renderer const*, int location, float x, float y);
-            void Renderer_SetUniformFloat3       (Renderer const*, int location, float x, float y, float z);
-            void Renderer_SetUniformFloat4       (Renderer const*, int location, float x, float y, float z, float w);
-            void Renderer_BindTexture2D          (Renderer const*, uint32 slot, uint32 handle);
-            void Renderer_BindTexture3D          (Renderer const*, uint32 slot, uint32 handle);
-            void Renderer_BindTextureCube        (Renderer const*, uint32 slot, uint32 handle);
-            void Renderer_UnbindTexture          (Renderer const*, uint32 slot);
-            void Renderer_BindFramebuffer        (Renderer const*, uint32 handle);
-            void Renderer_BindDefaultFramebuffer (Renderer const*);
-            void Renderer_ClearColor             (Renderer const*, float r, float g, float b, float a);
-            void Renderer_ClearDepth             (Renderer const*, float depth);
-            void Renderer_Clear                  (Renderer const*, float r, float g, float b, float a, float depth);
-            void Renderer_DrawMesh               (Renderer const*, uint32 vao, int indexCount);
-            void Renderer_DrawMeshPrimitive      (Renderer const*, uint32 vao, int indexCount, int primitive);
-            void Renderer_DrawMeshInstanced      (Renderer const*, uint32 vao, int indexCount, int instanceCount);
-            void Renderer_Resize                 (Renderer const*, uint32 width, uint32 height);
-            void Renderer_SwapBuffers            (Renderer const*);
-            void Renderer_CreateCameraUBO        (Renderer const*);
-            void Renderer_UpdateCameraUBO        (Renderer const*, Matrix const* mView, Matrix const* mProj, float eyeX, float eyeY, float eyeZ, float starDirX, float starDirY, float starDirZ);
-            void Renderer_CreateMaterialUBO      (Renderer const*);
-            void Renderer_UpdateMaterialUBO      (Renderer const*, float r, float g, float b, float a, float metallic, float roughness, float emission);
-            void Renderer_CreateLightUBO         (Renderer const*);
-            void Renderer_UpdateLightUBO         (Renderer const*, float posX, float posY, float posZ, float radius, float r, float g, float b, float intensity);
+            void              Renderer_Free                   (Renderer*);
+            void              Renderer_BeginFrame             (Renderer*);
+            void              Renderer_Flush                  (Renderer*);
+            bool              Renderer_Sync                   (Renderer*);
+            void              Renderer_BeginBatch             (Renderer*, float const* view, uint64 view_size, float const* projection, uint64 projection_size, float eyeX, float eyeY, float eyeZ);
+            void              Renderer_AddEntity              (Renderer*, float const* transform, uint64 transform_size, float boundsCenterX, float boundsCenterY, float boundsCenterZ, float boundsRadius, uint32 meshVao, int indexCount, uint32 shaderHandle, uint32 sortKey);
+            void              Renderer_FlushBatch             (Renderer*);
+            BatchStats const* Renderer_GetBatchStats          (Renderer const*);
+            void              Renderer_SetViewport            (Renderer const*, int x, int y, int width, int height);
+            void              Renderer_SetScissor             (Renderer const*, int x, int y, int width, int height);
+            void              Renderer_EnableScissor          (Renderer const*, bool enable);
+            void              Renderer_SetBlendMode           (Renderer const*, int mode);
+            void              Renderer_SetCullFace            (Renderer const*, int face);
+            void              Renderer_SetDepthTest           (Renderer const*, bool enable);
+            void              Renderer_SetDepthWritable       (Renderer const*, bool enable);
+            void              Renderer_SetWireframe           (Renderer const*, bool enable);
+            void              Renderer_BindShader             (Renderer const*, uint32 handle);
+            void              Renderer_UnbindShader           (Renderer const*);
+            void              Renderer_SetUniformInt          (Renderer const*, int location, int value);
+            void              Renderer_SetUniformFloat        (Renderer const*, int location, float value);
+            void              Renderer_SetUniformFloat2       (Renderer const*, int location, float x, float y);
+            void              Renderer_SetUniformFloat3       (Renderer const*, int location, float x, float y, float z);
+            void              Renderer_SetUniformFloat4       (Renderer const*, int location, float x, float y, float z, float w);
+            void              Renderer_BindTexture2D          (Renderer const*, uint32 slot, uint32 handle);
+            void              Renderer_BindTexture3D          (Renderer const*, uint32 slot, uint32 handle);
+            void              Renderer_BindTextureCube        (Renderer const*, uint32 slot, uint32 handle);
+            void              Renderer_UnbindTexture          (Renderer const*, uint32 slot);
+            void              Renderer_BindFramebuffer        (Renderer const*, uint32 handle);
+            void              Renderer_BindDefaultFramebuffer (Renderer const*);
+            void              Renderer_ClearColor             (Renderer const*, float r, float g, float b, float a);
+            void              Renderer_ClearDepth             (Renderer const*, float depth);
+            void              Renderer_Clear                  (Renderer const*, float r, float g, float b, float a, float depth);
+            void              Renderer_DrawMesh               (Renderer const*, uint32 vao, int indexCount);
+            void              Renderer_DrawMeshPrimitive      (Renderer const*, uint32 vao, int indexCount, int primitive);
+            void              Renderer_DrawMeshInstanced      (Renderer const*, uint32 vao, int indexCount, int instanceCount);
+            void              Renderer_Resize                 (Renderer const*, uint32 width, uint32 height);
+            void              Renderer_SwapBuffers            (Renderer const*);
+            void              Renderer_CreateCameraUBO        (Renderer const*);
+            void              Renderer_UpdateCameraUBO        (Renderer const*, Matrix const* mView, Matrix const* mProj, float eyeX, float eyeY, float eyeZ, float starDirX, float starDirY, float starDirZ);
+            void              Renderer_CreateMaterialUBO      (Renderer const*);
+            void              Renderer_UpdateMaterialUBO      (Renderer const*, float r, float g, float b, float a, float metallic, float roughness, float emission);
+            void              Renderer_CreateLightUBO         (Renderer const*);
+            void              Renderer_UpdateLightUBO         (Renderer const*, float posX, float posY, float posZ, float radius, float r, float g, float b, float intensity);
         ]]
     end
 
@@ -79,6 +80,7 @@ function Loader.defineType()
                 beginBatch             = libphx.Renderer_BeginBatch,
                 addEntity              = libphx.Renderer_AddEntity,
                 flushBatch             = libphx.Renderer_FlushBatch,
+                getBatchStats          = libphx.Renderer_GetBatchStats,
                 setViewport            = libphx.Renderer_SetViewport,
                 setScissor             = libphx.Renderer_SetScissor,
                 enableScissor          = libphx.Renderer_EnableScissor,

@@ -49,7 +49,7 @@ pub struct Renderer {
     /// Global counter for generating unique ResourceIds
     next_resource_id: AtomicU64,
     /// Render stats
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     render_stats: RenderStats,
     /// Active render batch
     pub(super) active_batch: Option<RenderBatch>,
@@ -362,7 +362,7 @@ impl Renderer {
 
         let mut current_shader: Option<u32> = None;
 
-        for entity in &batch.entities {
+        for entity in batch.entities.drain(..) {
             // Frustum culling
             if !batch
                 .camera

@@ -10,6 +10,7 @@ use winit::keyboard::PhysicalKey;
 use winit::window::WindowId;
 
 use super::Engine;
+use crate::engine::RendererState;
 use crate::window::*;
 
 pub struct MainLoop {
@@ -26,7 +27,7 @@ impl ApplicationHandler for MainLoop {
             self.engine = Some(Engine::new(event_loop));
             let engine = self.engine.as_mut().unwrap();
 
-            if self.render_thread && !engine.start_renderer() {
+            if self.render_thread && engine.start_renderer() == RendererState::Failed {
                 event_loop.exit();
             }
 
