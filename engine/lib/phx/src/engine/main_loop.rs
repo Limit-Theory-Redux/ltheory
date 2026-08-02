@@ -10,14 +10,12 @@ use winit::keyboard::PhysicalKey;
 use winit::window::WindowId;
 
 use super::Engine;
-use crate::engine::RendererState;
 use crate::window::*;
 
 pub struct MainLoop {
     pub engine: Option<Engine>,
     pub app_name: String,
     pub entry_point_path: PathBuf,
-    pub render_thread: bool,
 }
 
 impl ApplicationHandler for MainLoop {
@@ -26,10 +24,6 @@ impl ApplicationHandler for MainLoop {
             // We need the Engine type to have a stable pointer, so we construct it within `MainLoop` right away.
             self.engine = Some(Engine::new(event_loop));
             let engine = self.engine.as_mut().unwrap();
-
-            if self.render_thread && engine.start_renderer() == RendererState::Failed {
-                event_loop.exit();
-            }
 
             // Set engine pointer.
 
@@ -74,9 +68,6 @@ impl ApplicationHandler for MainLoop {
 
         // If exit_app is true, then exit the event loop.
         if engine.exit_app {
-            if self.render_thread {
-                engine.stop_renderer();
-            }
             event_loop.exit();
         }
 
@@ -315,8 +306,13 @@ impl ApplicationHandler for MainLoop {
         engine.changed_window();
         engine.input.reset();
 
-        // Redraw, this really just means to swap buffers.
+        // Request the next redraw at the windowing-system level.
         engine.winit_window.redraw();
+
+        // Swap buffers. WinitWindow no longer holds the GL context (Engine::new
+        // handed it to `renderer`), so frame end goes through here instead of
+        // WinitWindow's own (now-inert) swap_buffers call.
+        engine.renderer.end_frame_triple_buffered();
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {

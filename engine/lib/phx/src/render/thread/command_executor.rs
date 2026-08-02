@@ -28,7 +28,6 @@ pub enum CommandReply {
     ShaderReload(ShaderReloadResult),
 }
 
-
 /// GPU resource stored on the render thread
 #[derive(Debug)]
 #[expect(dead_code)]

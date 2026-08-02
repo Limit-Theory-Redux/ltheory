@@ -13,12 +13,12 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void ClipRect_Push          (float x, float y, float sx, float sy);
-            void ClipRect_PushCombined  (float x, float y, float sx, float sy);
-            void ClipRect_PushDisabled  ();
-            void ClipRect_PushTransform (float tx, float ty, float sx, float sy);
-            void ClipRect_Pop           ();
-            void ClipRect_PopTransform  ();
+            void ClipRect_Push          (Renderer* r, float x, float y, float sx, float sy);
+            void ClipRect_PushCombined  (Renderer* r, float x, float y, float sx, float sy);
+            void ClipRect_PushDisabled  (Renderer* r);
+            void ClipRect_PushTransform (Renderer* r, float tx, float ty, float sx, float sy);
+            void ClipRect_Pop           (Renderer* r);
+            void ClipRect_PopTransform  (Renderer* r);
         ]]
     end
 

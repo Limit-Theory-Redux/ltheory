@@ -21,13 +21,13 @@ function Loader.defineType()
             Tex2D*    Tex2D_Create        (int sx, int sy, TexFormat format);
             Tex2D*    Tex2D_Load          (cstr name);
             Tex2D*    Tex2D_Clone         (Tex2D const*);
-            Tex2D*    Tex2D_ScreenCapture ();
+            Tex2D*    Tex2D_ScreenCapture (Renderer const* r);
             void      Tex2D_Save          (Tex2D*, cstr path);
-            void      Tex2D_Pop           (Tex2D const*);
-            void      Tex2D_Push          (Tex2D const*);
-            void      Tex2D_PushLevel     (Tex2D*, int level);
-            void      Tex2D_Clear         (Tex2D*, float r, float g, float b, float a);
-            Tex2D*    Tex2D_DeepClone     (Tex2D*);
+            void      Tex2D_Pop           (Tex2D const*, Renderer* r);
+            void      Tex2D_Push          (Tex2D const*, Renderer* r);
+            void      Tex2D_PushLevel     (Tex2D*, Renderer* r, int level);
+            void      Tex2D_Clear         (Tex2D*, Renderer* r, float red, float green, float blue, float alpha);
+            Tex2D*    Tex2D_DeepClone     (Tex2D*, Renderer* r);
             void      Tex2D_GenMipmap     (Tex2D*);
             Bytes*    Tex2D_GetDataBytes  (Tex2D const*, PixelFormat pf, DataFormat df);
             TexFormat Tex2D_GetFormat     (Tex2D const*);
@@ -55,8 +55,8 @@ function Loader.defineType()
                 local _instance = libphx.Tex2D_Load(name)
                 return Core.ManagedObject(_instance, libphx.Tex2D_Free)
             end,
-            ScreenCapture = function()
-                local _instance = libphx.Tex2D_ScreenCapture()
+            ScreenCapture = function(r)
+                local _instance = libphx.Tex2D_ScreenCapture(r)
                 return Core.ManagedObject(_instance, libphx.Tex2D_Free)
             end,
         }
@@ -78,8 +78,8 @@ function Loader.defineType()
                 push          = libphx.Tex2D_Push,
                 pushLevel     = libphx.Tex2D_PushLevel,
                 clear         = libphx.Tex2D_Clear,
-                deepClone     = function(self)
-                    local _instance = libphx.Tex2D_DeepClone(self)
+                deepClone     = function(self, r)
+                    local _instance = libphx.Tex2D_DeepClone(self, r)
                     return Core.ManagedObject(_instance, libphx.Tex2D_Free)
                 end,
                 genMipmap     = libphx.Tex2D_GenMipmap,

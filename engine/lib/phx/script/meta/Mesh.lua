@@ -172,10 +172,12 @@ function Mesh:computeNormals() end
 ---@param minDot number
 function Mesh:splitNormals(minDot) end
 
+---@param r Renderer
 ---@param radius number
-function Mesh:computeAO(radius) end
+function Mesh:computeAO(r, radius) end
 
+---@param r Renderer
 ---@param sdf Tex3D
 ---@param radius number
-function Mesh:computeOcclusion(sdf, radius) end
+function Mesh:computeOcclusion(r, sdf, radius) end
 

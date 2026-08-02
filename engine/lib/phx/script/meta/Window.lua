@@ -4,9 +4,11 @@
 ---@class Window
 Window = {}
 
-function Window:beginDraw() end
+---@param r Renderer
+function Window:beginDraw(r) end
 
-function Window:endDraw() end
+---@param r Renderer
+function Window:endDraw(r) end
 
 -- The window title.
 ---@return string

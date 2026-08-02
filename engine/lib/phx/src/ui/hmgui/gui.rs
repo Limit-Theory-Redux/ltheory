@@ -225,12 +225,12 @@ impl HmGui {
 
     /// Pass information about widgets to the renderer and draw them.
     // TODO: optimize - do not pass to the renderer widgets that are outside of the rendering region
-    pub fn draw(&mut self) {
+    pub fn draw(&mut self, r: &mut Renderer) {
         Profiler::begin("HmGui_Draw");
 
         RenderState::push_blend_mode(BlendMode::Alpha);
 
-        self.renderer.begin();
+        self.renderer.begin(r);
 
         let layers_root: Vec<_> = self
             .layers
@@ -248,7 +248,7 @@ impl HmGui {
 
         RenderState::pop_blend_mode();
 
-        self.renderer.draw();
+        self.renderer.draw(r);
 
         Profiler::end();
     }

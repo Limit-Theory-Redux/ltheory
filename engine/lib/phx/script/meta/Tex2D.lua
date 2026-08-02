@@ -17,27 +17,33 @@ function Tex2D.Load(name) end
 ---@return Tex2D
 function Tex2D:clone() end
 
+---@param r Renderer
 ---@return Tex2D
-function Tex2D.ScreenCapture() end
+function Tex2D.ScreenCapture(r) end
 
 ---@param path string
 function Tex2D:save(path) end
 
-function Tex2D:pop() end
+---@param r Renderer
+function Tex2D:pop(r) end
 
-function Tex2D:push() end
+---@param r Renderer
+function Tex2D:push(r) end
 
+---@param r Renderer
 ---@param level integer
-function Tex2D:pushLevel(level) end
+function Tex2D:pushLevel(r, level) end
 
----@param r number
----@param g number
----@param b number
----@param a number
-function Tex2D:clear(r, g, b, a) end
+---@param r Renderer
+---@param red number
+---@param green number
+---@param blue number
+---@param alpha number
+function Tex2D:clear(r, red, green, blue, alpha) end
 
+---@param r Renderer
 ---@return Tex2D
-function Tex2D:deepClone() end
+function Tex2D:deepClone(r) end
 
 function Tex2D:genMipmap() end
 

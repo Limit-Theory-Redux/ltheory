@@ -19,9 +19,9 @@ function Loader.defineType()
         ffi.cdef [[
             void      Tex3D_Free         (Tex3D*);
             Tex3D*    Tex3D_Create       (int sx, int sy, int sz, TexFormat format);
-            void      Tex3D_Pop          (Tex3D const*);
-            void      Tex3D_Push         (Tex3D const*, int layer);
-            void      Tex3D_PushLevel    (Tex3D const*, int layer, int level);
+            void      Tex3D_Pop          (Tex3D const*, Renderer* r);
+            void      Tex3D_Push         (Tex3D const*, Renderer* r, int layer);
+            void      Tex3D_PushLevel    (Tex3D const*, Renderer* r, int layer, int level);
             void      Tex3D_GenMipmap    (Tex3D*);
             Bytes*    Tex3D_GetDataBytes (Tex3D*, PixelFormat pf, DataFormat df);
             TexFormat Tex3D_GetFormat    (Tex3D const*);

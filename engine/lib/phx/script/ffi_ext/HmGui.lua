@@ -5,6 +5,13 @@ function onDef_HmGui_t(t, mt)
         libphx.HmGui_EndGui(self, Input)
     end
 
+    -- Now takes the current Renderer as an explicit argument (see
+    -- ai/multithreaded_rendering.md); inject the global `Renderer` set by
+    -- SetEngine so call sites don't change.
+    mt.__index.draw = function(self)
+        libphx.HmGui_Draw(self, Renderer)
+    end
+
     mt.__index.beginWindow = function(self, name)
         Gui:beginStackContainer()
         Gui:beginVerticalContainer()

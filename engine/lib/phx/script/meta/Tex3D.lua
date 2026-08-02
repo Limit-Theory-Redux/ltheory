@@ -11,14 +11,17 @@ Tex3D = {}
 ---@return Tex3D
 function Tex3D.Create(sx, sy, sz, format) end
 
-function Tex3D:pop() end
+---@param r Renderer
+function Tex3D:pop(r) end
 
+---@param r Renderer
 ---@param layer integer
-function Tex3D:push(layer) end
+function Tex3D:push(r, layer) end
 
+---@param r Renderer
 ---@param layer integer
 ---@param level integer
-function Tex3D:pushLevel(layer, level) end
+function Tex3D:pushLevel(r, layer, level) end
 
 function Tex3D:genMipmap() end
 

@@ -30,9 +30,6 @@ struct Cli {
     /// Log will be written into the log file if log_dir is specified
     #[arg(short, long)]
     log_dir: Option<String>,
-    /// Specify if render thread should be used
-    #[arg(short, long, default_value_t = false)]
-    render_thread: bool,
     /// Optional application name
     app_name: Option<String>,
 }
@@ -46,7 +43,6 @@ unsafe extern "C" {
         app_name: *const libc::c_char,
         console_log: bool,
         log_dir: *const libc::c_char,
-        render_thread: bool,
     );
 }
 
@@ -84,7 +80,6 @@ pub fn main() {
             app_name as *const libc::c_char,
             cli.console_log,
             log_dir as *const libc::c_char,
-            cli.render_thread,
         );
     }
 }

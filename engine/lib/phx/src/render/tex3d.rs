@@ -1,7 +1,7 @@
 use glam::IVec3;
 
 use super::{DataFormat, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
-use crate::render::{gl, glcheck};
+use crate::render::{Renderer, gl, glcheck};
 use crate::rf::Rf;
 use crate::system::Bytes;
 
@@ -136,16 +136,16 @@ impl Tex3D {
         }
     }
 
-    pub fn pop(&self) {
-        RenderTarget::pop();
+    pub fn pop(&self, r: &mut Renderer) {
+        RenderTarget::pop(r);
     }
 
-    pub fn push(&self, layer: i32) {
-        RenderTarget::push_tex3d(self, layer);
+    pub fn push(&self, r: &mut Renderer, layer: i32) {
+        RenderTarget::push_tex3d(r, self, layer);
     }
 
-    pub fn push_level(&self, layer: i32, level: i32) {
-        RenderTarget::push_tex3d_level(self, layer, level);
+    pub fn push_level(&self, r: &mut Renderer, layer: i32, level: i32) {
+        RenderTarget::push_tex3d_level(r, self, layer, level);
     }
 
     pub fn gen_mipmap(&mut self) {

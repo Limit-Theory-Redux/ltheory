@@ -16,4 +16,14 @@ function onDef_Window_t(t, mt)
         libphx.Window_SetCursorPosition(self, v)
         return v
     end
+
+    -- These now take the current Renderer as an explicit argument (see
+    -- ai/multithreaded_rendering.md); inject the global `Renderer` set by
+    -- SetEngine so call sites don't change.
+    mt.__index.beginDraw = function(self)
+        libphx.Window_BeginDraw(self, Renderer)
+    end
+    mt.__index.endDraw = function(self)
+        libphx.Window_EndDraw(self, Renderer)
+    end
 end

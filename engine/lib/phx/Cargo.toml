@@ -14,6 +14,14 @@ bench = true
 [lints]
 workspace = true
 
+[features]
+# Execute RenderCommands inline on the calling thread instead of on a
+# dedicated render thread. Temporary default while the render-thread path
+# (feat/multithreaded_rendering) is incomplete; flip to `default = []` once
+# it can carry a frame end-to-end (see ai/multithreaded_rendering.md Phase 5).
+default = ["immediate"]
+immediate = []
+
 [dependencies]
 # workspace crates
 internal.workspace = true

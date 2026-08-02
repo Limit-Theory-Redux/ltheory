@@ -8,7 +8,6 @@ use winit::dpi::*;
 use winit::event_loop::*;
 
 use super::{EventBus, MainLoop, TaskQueue};
-use crate::engine::RendererState;
 use crate::input::*;
 use crate::logging::init_log;
 use crate::render::Renderer;
@@ -28,8 +27,7 @@ pub struct Engine {
     pub event_bus: EventBus,
     pub task_queue: TaskQueue,
     /// Multithreaded rendering subsystem (render thread + worker pool)
-    // TODO: remove Option after transition period
-    pub renderer: Option<Renderer>,
+    pub renderer: Renderer,
     pub lua: Rf<Lua>,
 }
 
@@ -110,6 +108,17 @@ impl Engine {
         winit_window.resume();
         let scale_factor = window.scale_factor();
 
+        // Every GL-touching type submits through this renderer - see
+        // ai/multithreaded_rendering.md. Extracting the context here hands it
+        // off for good: WinitWindow no longer performs GL operations itself
+        // (its own swap_buffers is a no-op from this point on; frame end goes
+        // through `renderer.end_frame_triple_buffered()` instead, driven from
+        // `MainLoop::about_to_wait`).
+        let context = winit_window
+            .extract_gl_context()
+            .expect("Failed to extract GL context for renderer");
+        let renderer = Renderer::start(context).expect("Failed to start renderer");
+
         Self {
             init_time: TimeStamp::now(),
             window,
@@ -121,57 +130,7 @@ impl Engine {
             event_bus: EventBus::new(),
             task_queue: TaskQueue::new(),
             lua,
-            renderer: None,
-        }
-    }
-
-    /// Start the render thread.
-    ///
-    /// This transfers the GL context to a dedicated render thread.
-    /// After calling this, all GL operations must go through the render queue.
-    pub fn start_renderer(&mut self) -> RendererState {
-        if self.renderer.is_some() {
-            // Extract GL context from the window
-            warn!("Renderer already started");
-            return RendererState::AlreadyRunning;
-        }
-
-        match self.winit_window.extract_gl_context() {
-            Ok(context) => {
-                match Renderer::start(context) {
-                    Ok(renderer) => {
-                        self.renderer = Some(renderer);
-                        return RendererState::Started;
-                    }
-                    Err(err) => {
-                        error!("Cannot create renderer. Error: {err}");
-                    }
-                };
-            }
-            Err(err) => {
-                error!("Failed to extract GL context for render thread: {err:?}");
-            }
-        }
-        RendererState::Failed
-    }
-
-    /// Stop the render thread.
-    ///
-    /// This shuts down the render thread and returns the GL context to the main thread.
-    pub fn stop_renderer(&mut self) {
-        if let Some(renderer) = self.renderer.take() {
-            if let Some(context) = renderer.stop() {
-                // Restore the context to WinitWindow
-                if let Err(err) = self.winit_window.restore_gl_context(context) {
-                    error!("Failed to restore GL context to main thread: {err:?}");
-                } else {
-                    info!("GL context successfully restored to main thread");
-                }
-            } else {
-                warn!("Cannot get GL context from renderer");
-            }
-        } else {
-            warn!("Cannot stop renderer that was not created");
+            renderer,
         }
     }
 
@@ -461,13 +420,7 @@ impl Engine {
 #[luajit_ffi_gen::luajit_ffi]
 impl Engine {
     #[bind(lua_ffi = false)]
-    pub fn entry(
-        entry_point: &str,
-        app_name: &str,
-        console_log: bool,
-        log_dir: &str,
-        render_thread: bool,
-    ) {
+    pub fn entry(entry_point: &str, app_name: &str, console_log: bool, log_dir: &str) {
         let app_name = app_name.to_string();
         // Keep log till the end of the execution
         let _log = init_log(console_log, log_dir);
@@ -490,7 +443,6 @@ impl Engine {
             engine: None,
             app_name,
             entry_point_path,
-            render_thread,
         };
         let _ = build_event_loop().run_app(&mut app_state);
     }
@@ -516,8 +468,8 @@ impl Engine {
         &mut self.hmgui
     }
 
-    pub fn renderer(&mut self) -> Option<&mut Renderer> {
-        self.renderer.as_mut()
+    pub fn renderer(&mut self) -> &mut Renderer {
+        &mut self.renderer
     }
 
     pub fn abort() {

@@ -64,8 +64,8 @@ function Loader.defineType()
             void    Mesh_Transform         (Mesh*, Matrix const* matrix);
             void    Mesh_ComputeNormals    (Mesh*);
             void    Mesh_SplitNormals      (Mesh*, float minDot);
-            void    Mesh_ComputeAO         (Mesh*, float radius);
-            void    Mesh_ComputeOcclusion  (Mesh*, Tex3D* sdf, float radius);
+            void    Mesh_ComputeAO         (Mesh*, Renderer* r, float radius);
+            void    Mesh_ComputeOcclusion  (Mesh*, Renderer* r, Tex3D* sdf, float radius);
         ]]
     end
 

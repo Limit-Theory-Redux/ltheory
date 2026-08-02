@@ -3,7 +3,7 @@ use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{DataFormat, Draw, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
 use crate::logging::warn;
-use crate::render::{Viewport, gl, glcheck};
+use crate::render::{Renderer, Viewport, gl, glcheck};
 use crate::rf::Rf;
 use crate::system::{Bytes, Resource, ResourceType};
 
@@ -184,8 +184,8 @@ impl Tex2D {
         self.clone()
     }
 
-    pub fn screen_capture() -> Tex2D {
-        let size: IVec2 = Viewport::get_size();
+    pub fn screen_capture(r: &Renderer) -> Tex2D {
+        let size: IVec2 = Viewport::get_size(r);
         let mut buf = vec![0u32; (size.x * size.y) as usize];
         glcheck!(gl::ReadPixels(
             0,
@@ -251,26 +251,26 @@ impl Tex2D {
         let _ = buffer.save(path);
     }
 
-    pub fn pop(&self) {
-        RenderTarget::pop();
+    pub fn pop(&self, r: &mut Renderer) {
+        RenderTarget::pop(r);
     }
 
-    pub fn push(&self) {
-        RenderTarget::push_tex2d(self);
+    pub fn push(&self, r: &mut Renderer) {
+        RenderTarget::push_tex2d(r, self);
     }
 
-    pub fn push_level(&mut self, level: i32) {
-        RenderTarget::push_tex2d_level(self, level);
+    pub fn push_level(&mut self, r: &mut Renderer, level: i32) {
+        RenderTarget::push_tex2d_level(r, self, level);
     }
 
-    pub fn clear(&mut self, r: f32, g: f32, b: f32, a: f32) {
-        RenderTarget::push_tex2d(self);
-        Draw::clear(r, g, b, a);
-        RenderTarget::pop();
+    pub fn clear(&mut self, r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
+        RenderTarget::push_tex2d(r, self);
+        Draw::clear(red, green, blue, alpha);
+        RenderTarget::pop(r);
     }
 
-    pub fn deep_clone(&mut self) -> Tex2D {
-        RenderTarget::push_tex2d(self);
+    pub fn deep_clone(&mut self, r: &mut Renderer) -> Tex2D {
+        RenderTarget::push_tex2d(r, self);
 
         let this = self.shared.as_ref();
 
@@ -294,7 +294,7 @@ impl Tex2D {
         ));
         glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
 
-        RenderTarget::pop();
+        RenderTarget::pop(r);
 
         Tex2D {
             shared: Rf::new(clone),

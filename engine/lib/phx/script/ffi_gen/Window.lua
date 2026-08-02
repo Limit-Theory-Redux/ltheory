@@ -18,8 +18,8 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void         Window_Free                      (Window*);
-            void         Window_BeginDraw                 (Window const*);
-            void         Window_EndDraw                   (Window const*);
+            void         Window_BeginDraw                 (Window const*, Renderer* r);
+            void         Window_EndDraw                   (Window const*, Renderer* r);
             cstr         Window_Title                     (Window const*);
             void         Window_SetTitle                  (Window*, cstr title);
             Cursor*      Window_Cursor                    (Window*);

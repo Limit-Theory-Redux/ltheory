@@ -162,13 +162,13 @@ impl Default for Window {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Window {
-    pub fn begin_draw(&self) {
+    pub fn begin_draw(&self, r: &mut Renderer) {
         let size = self.size();
-        Viewport::push(0, 0, size.x as i32, size.y as i32, true);
+        Viewport::push(r, 0, 0, size.x as i32, size.y as i32, true);
     }
 
-    pub fn end_draw(&self) {
-        Viewport::pop();
+    pub fn end_draw(&self, r: &mut Renderer) {
+        Viewport::pop(r);
     }
 
     /// The window title.

@@ -4,27 +4,33 @@
 ---@class ClipRect
 ClipRect = {}
 
+---@param r Renderer
 ---@param x number
 ---@param y number
 ---@param sx number
 ---@param sy number
-function ClipRect.Push(x, y, sx, sy) end
+function ClipRect.Push(r, x, y, sx, sy) end
 
+---@param r Renderer
 ---@param x number
 ---@param y number
 ---@param sx number
 ---@param sy number
-function ClipRect.PushCombined(x, y, sx, sy) end
+function ClipRect.PushCombined(r, x, y, sx, sy) end
 
-function ClipRect.PushDisabled() end
+---@param r Renderer
+function ClipRect.PushDisabled(r) end
 
+---@param r Renderer
 ---@param tx number
 ---@param ty number
 ---@param sx number
 ---@param sy number
-function ClipRect.PushTransform(tx, ty, sx, sy) end
+function ClipRect.PushTransform(r, tx, ty, sx, sy) end
 
-function ClipRect.Pop() end
+---@param r Renderer
+function ClipRect.Pop(r) end
 
-function ClipRect.PopTransform() end
+---@param r Renderer
+function ClipRect.PopTransform(r) end
 

@@ -20,19 +20,19 @@ function Loader.defineType()
             void      TexCube_Free         (TexCube*);
             TexCube*  TexCube_Create       (int size, TexFormat format);
             TexCube*  TexCube_Load         (cstr path);
-            void      TexCube_Clear        (TexCube*, float r, float g, float b, float a);
+            void      TexCube_Clear        (TexCube*, Renderer* r, float red, float green, float blue, float alpha);
             void      TexCube_Save         (TexCube*, cstr path);
             void      TexCube_SaveLevel    (TexCube*, cstr path, int level);
             Bytes*    TexCube_GetDataBytes (TexCube*, CubeFace face, int level, TexFormat tf, DataFormat df);
             TexFormat TexCube_GetFormat    (TexCube const*);
             uint32    TexCube_GetHandle    (TexCube const*);
             int       TexCube_GetSize      (TexCube const*);
-            void      TexCube_Generate     (TexCube*, ShaderState* state);
+            void      TexCube_Generate     (TexCube*, Renderer* r, ShaderState* state);
             void      TexCube_GenMipmap    (TexCube*);
             void      TexCube_SetDataBytes (TexCube*, Bytes const* data, CubeFace face, int level, TexFormat tf, DataFormat df);
             void      TexCube_SetMagFilter (TexCube*, TexFilter filter);
             void      TexCube_SetMinFilter (TexCube*, TexFilter filter);
-            TexCube*  TexCube_GenIRMap     (TexCube*, int sampleCount);
+            TexCube*  TexCube_GenIRMap     (TexCube*, Renderer* r, int sampleCount);
         ]]
     end
 
@@ -71,8 +71,8 @@ function Loader.defineType()
                 setDataBytes = libphx.TexCube_SetDataBytes,
                 setMagFilter = libphx.TexCube_SetMagFilter,
                 setMinFilter = libphx.TexCube_SetMinFilter,
-                genIRMap     = function(self, sampleCount)
-                    local _instance = libphx.TexCube_GenIRMap(self, sampleCount)
+                genIRMap     = function(self, r, sampleCount)
+                    local _instance = libphx.TexCube_GenIRMap(self, r, sampleCount)
                     return Core.ManagedObject(_instance, libphx.TexCube_Free)
                 end,
             },

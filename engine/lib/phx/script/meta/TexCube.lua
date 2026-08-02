@@ -13,11 +13,12 @@ function TexCube.Create(size, format) end
 ---@return TexCube
 function TexCube.Load(path) end
 
----@param r number
----@param g number
----@param b number
----@param a number
-function TexCube:clear(r, g, b, a) end
+---@param r Renderer
+---@param red number
+---@param green number
+---@param blue number
+---@param alpha number
+function TexCube:clear(r, red, green, blue, alpha) end
 
 ---@param path string
 function TexCube:save(path) end
@@ -42,8 +43,9 @@ function TexCube:getHandle() end
 ---@return integer
 function TexCube:getSize() end
 
+---@param r Renderer
 ---@param state ShaderState
-function TexCube:generate(state) end
+function TexCube:generate(r, state) end
 
 function TexCube:genMipmap() end
 
@@ -60,7 +62,8 @@ function TexCube:setMagFilter(filter) end
 ---@param filter TexFilter
 function TexCube:setMinFilter(filter) end
 
+---@param r Renderer
 ---@param sampleCount integer
 ---@return TexCube
-function TexCube:genIRMap(sampleCount) end
+function TexCube:genIRMap(r, sampleCount) end
 

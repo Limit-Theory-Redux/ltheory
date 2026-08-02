@@ -6,7 +6,7 @@ use super::{
     Tex2D, TexFilter, TexFormat,
 };
 use crate::math::Rng;
-use crate::render::{RenderState, Shader, gl, glcheck};
+use crate::render::{RenderState, Renderer, Shader, gl, glcheck};
 use crate::rf::Rf;
 use crate::system::{Bytes, TimeStamp};
 
@@ -312,16 +312,16 @@ impl TexCube {
         }
     }
 
-    pub fn clear(&mut self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn clear(&mut self, r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
         let this = self.shared.as_ref();
 
         for i in 0..6 {
             let face = K_FACES[i as usize];
 
-            RenderTarget::push(this.size, this.size);
-            RenderTarget::bind_tex_cube(self, face.face);
-            Draw::clear(r, g, b, a);
-            RenderTarget::pop();
+            RenderTarget::push(r, this.size, this.size);
+            RenderTarget::bind_tex_cube(r, self, face.face);
+            Draw::clear(red, green, blue, alpha);
+            RenderTarget::pop(r);
         }
     }
 
@@ -380,7 +380,7 @@ impl TexCube {
         this.size
     }
 
-    pub fn generate(&mut self, state: &mut ShaderState) {
+    pub fn generate(&mut self, r: &mut Renderer, state: &mut ShaderState) {
         let this = self.shared.as_ref();
 
         RenderState::push_all_defaults();
@@ -390,8 +390,8 @@ impl TexCube {
             let size = this.size;
             let size_f = this.size as f32;
 
-            RenderTarget::push(size, size);
-            RenderTarget::bind_tex_cube(self, face.face);
+            RenderTarget::push(r, size, size);
+            RenderTarget::bind_tex_cube(r, self, face.face);
             Draw::clear(0.0, 0.0, 0.0, 1.0);
 
             state
@@ -409,10 +409,10 @@ impl TexCube {
             while j <= size {
                 let time = TimeStamp::now();
 
-                ClipRect::push(0.0f32, (j - 1) as f32, size as f32, job_size as f32);
+                ClipRect::push(r, 0.0f32, (j - 1) as f32, size as f32, job_size as f32);
                 Draw::rect(0.0f32, 0.0f32, size_f, size_f);
                 Draw::flush();
-                ClipRect::pop();
+                ClipRect::pop(r);
 
                 j += job_size;
                 let elapsed = time.get_elapsed();
@@ -426,7 +426,7 @@ impl TexCube {
 
             state.stop();
 
-            RenderTarget::pop();
+            RenderTarget::pop(r);
         }
 
         RenderState::pop_all();
@@ -476,7 +476,7 @@ impl TexCube {
     }
 
     #[bind(name = "GenIRMap")]
-    pub fn gen_ir_map(&mut self, sample_count: i32) -> TexCube {
+    pub fn gen_ir_map(&mut self, r: &mut Renderer, sample_count: i32) -> TexCube {
         let mut size = self.get_size();
         let pf = self.get_format();
 
@@ -552,15 +552,15 @@ impl TexCube {
                 let this_look = look[i];
                 let this_up = up[i];
 
-                RenderTarget::push(size, size);
-                RenderTarget::bind_tex_cube_level(&result, this_face, level);
+                RenderTarget::push(r, size, size);
+                RenderTarget::bind_tex_cube_level(r, &result, this_face, level);
 
                 shader.set_float3("cubeLook", this_look.x, this_look.y, this_look.z);
                 shader.set_float3("cubeUp", this_up.x, this_up.y, this_up.z);
 
                 Draw::rect(-1.0, -1.0, 2.0, 2.0);
 
-                RenderTarget::pop();
+                RenderTarget::pop(r);
             }
         }
         shader.stop();

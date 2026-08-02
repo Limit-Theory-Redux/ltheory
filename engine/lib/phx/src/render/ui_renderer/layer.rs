@@ -7,7 +7,7 @@ use super::text::UIRendererText;
 use super::{
     UIRendererImageId, UIRendererLayerId, UIRendererPanelId, UIRendererRectId, UIRendererTextId,
 };
-use crate::render::{ClipRect, Draw, Shader};
+use crate::render::{ClipRect, Draw, Renderer, Shader};
 
 #[derive(Default)]
 pub struct UIRendererLayer {
@@ -26,8 +26,10 @@ pub struct UIRendererLayer {
 }
 
 impl UIRendererLayer {
+    #[allow(clippy::too_many_arguments)]
     pub fn draw(
         &self,
+        r: &mut Renderer,
         panel_shader: &mut Shader,
         image_shader: &mut Shader,
         rect_shader: &mut Shader,
@@ -40,6 +42,7 @@ impl UIRendererLayer {
         if self.clip {
             // extend clip area by 1 pixel to avoid border overlapping
             ClipRect::push_combined(
+                r,
                 self.pos.x - 1.0,
                 self.pos.y - 1.0,
                 self.size.x + 2.0,
@@ -134,6 +137,7 @@ impl UIRendererLayer {
             let layer = &layers[*layer_id];
 
             layer.draw(
+                r,
                 panel_shader,
                 image_shader,
                 rect_shader,
@@ -148,7 +152,7 @@ impl UIRendererLayer {
         }
 
         if self.clip {
-            ClipRect::pop();
+            ClipRect::pop(r);
         }
     }
 }

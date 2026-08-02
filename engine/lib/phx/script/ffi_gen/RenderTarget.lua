@@ -13,18 +13,18 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void RenderTarget_Push             (int sx, int sy);
-            void RenderTarget_Pop              ();
-            void RenderTarget_BindTex2D        (Tex2D const* tex);
-            void RenderTarget_BindTex2DLevel   (Tex2D const* tex, int level);
-            void RenderTarget_BindTex3D        (Tex3D const* tex, int layer);
-            void RenderTarget_BindTex3DLevel   (Tex3D const* tex, int layer, int level);
-            void RenderTarget_BindTexCube      (TexCube const* tex, CubeFace face);
-            void RenderTarget_BindTexCubeLevel (TexCube const* tex, CubeFace face, int level);
-            void RenderTarget_PushTex2D        (Tex2D const* tex);
-            void RenderTarget_PushTex2DLevel   (Tex2D const* tex, int level);
-            void RenderTarget_PushTex3D        (Tex3D const* tex, int layer);
-            void RenderTarget_PushTex3DLevel   (Tex3D const* tex, int layer, int level);
+            void RenderTarget_Push             (Renderer* r, int sx, int sy);
+            void RenderTarget_Pop              (Renderer* r);
+            void RenderTarget_BindTex2D        (Renderer* r, Tex2D const* tex);
+            void RenderTarget_BindTex2DLevel   (Renderer* r, Tex2D const* tex, int level);
+            void RenderTarget_BindTex3D        (Renderer* r, Tex3D const* tex, int layer);
+            void RenderTarget_BindTex3DLevel   (Renderer* r, Tex3D const* tex, int layer, int level);
+            void RenderTarget_BindTexCube      (Renderer* r, TexCube const* tex, CubeFace face);
+            void RenderTarget_BindTexCubeLevel (Renderer* r, TexCube const* tex, CubeFace face, int level);
+            void RenderTarget_PushTex2D        (Renderer* r, Tex2D const* tex);
+            void RenderTarget_PushTex2DLevel   (Renderer* r, Tex2D const* tex, int level);
+            void RenderTarget_PushTex3D        (Renderer* r, Tex3D const* tex, int layer);
+            void RenderTarget_PushTex3DLevel   (Renderer* r, Tex3D const* tex, int layer, int level);
         ]]
     end
 

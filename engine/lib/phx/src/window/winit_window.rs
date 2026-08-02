@@ -71,7 +71,12 @@ impl GlState {
 
             false
         } else {
-            panic!("Context is undefined");
+            // `Undefined` is now also the steady state once the context has
+            // been permanently handed off to `Renderer` (see
+            // Engine::new/extract_gl_context) - nothing for WinitWindow to do.
+            debug!("No GL context to make current - already owned by Renderer");
+
+            false
         }
     }
 
@@ -94,7 +99,10 @@ impl GlState {
 
             true
         } else {
-            panic!("Context is undefined");
+            // See the matching branch in `make_current`.
+            debug!("No GL context to make not current - already owned by Renderer");
+
+            false
         }
     }
 }

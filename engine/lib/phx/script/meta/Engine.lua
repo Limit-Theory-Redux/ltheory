@@ -19,7 +19,7 @@ function Engine:taskQueue() end
 ---@return HmGui
 function Engine:hmGui() end
 
----@return Renderer?
+---@return Renderer
 function Engine:renderer() end
 
 function Engine.Abort() end

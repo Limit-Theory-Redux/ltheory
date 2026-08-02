@@ -9,7 +9,7 @@ use tobj::LoadError;
 use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat, gl};
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
-use crate::render::{RenderState, Shader, glcheck};
+use crate::render::{RenderState, Renderer, Shader, glcheck};
 use crate::rf::Rf;
 use crate::system::*;
 
@@ -732,7 +732,7 @@ impl Mesh {
     }
 
     #[bind(name = "ComputeAO")]
-    pub fn compute_ao(&mut self, radius: f32) {
+    pub fn compute_ao(&mut self, r: &mut Renderer, radius: f32) {
         let this = &mut *self.shared.as_mut();
 
         let s_dim = f64::ceil(f64::sqrt((this.index.len() / 3) as f64)) as usize;
@@ -797,7 +797,7 @@ impl Mesh {
         };
 
         RenderState::push_all_defaults();
-        RenderTarget::push_tex2d(&tex_output);
+        RenderTarget::push_tex2d(r, &tex_output);
 
         shader.start();
         shader.set_int("sDim", s_dim as i32);
@@ -809,7 +809,7 @@ impl Mesh {
         Draw::rect(-1.0, -1.0, 2.0, 2.0);
         shader.stop();
 
-        RenderTarget::pop();
+        RenderTarget::pop(r);
         RenderState::pop_all();
 
         let result = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
@@ -818,7 +818,7 @@ impl Mesh {
         }
     }
 
-    pub fn compute_occlusion(&mut self, sdf: &mut Tex3D, radius: f32) {
+    pub fn compute_occlusion(&mut self, r: &mut Renderer, sdf: &mut Tex3D, radius: f32) {
         let this = &mut *self.shared.as_mut();
 
         let v_dim = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
@@ -846,7 +846,7 @@ impl Mesh {
         };
 
         RenderState::push_all_defaults();
-        RenderTarget::push_tex2d(&tex_output);
+        RenderTarget::push_tex2d(r, &tex_output);
 
         shader.start();
         shader.set_float("radius", radius);
@@ -855,7 +855,7 @@ impl Mesh {
         Draw::rect(-1.0, -1.0, 2.0, 2.0);
         shader.stop();
 
-        RenderTarget::pop();
+        RenderTarget::pop(r);
         RenderState::pop_all();
 
         let result = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
