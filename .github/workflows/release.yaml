@@ -5,22 +5,22 @@ on:
     branches:
       - main
     paths-ignore:
-    - '**/README.md'
-    - '**/CONTRIBUTING.md'
-    - '**/LICENSE-MIT'
-    - '**/LICENSE-APACHE-2.0'
-    - '**/.vscode/**'
-    - '**/docs/**'
-    - '**/.gitignore'
-    - '**/.gitattributes'
-    - '**/.editorconfig'
+      - "**/README.md"
+      - "**/CONTRIBUTING.md"
+      - "**/LICENSE-MIT"
+      - "**/LICENSE-APACHE-2.0"
+      - "**/.vscode/**"
+      - "**/docs/**"
+      - "**/.gitignore"
+      - "**/.gitattributes"
+      - "**/.editorconfig"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   gen-build-version:
@@ -29,7 +29,7 @@ jobs:
     outputs:
       build: ${{ steps.build_name.outputs.build }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Get the cargo package version
@@ -55,8 +55,8 @@ jobs:
     name: Build Windows
     runs-on: windows-2025
     steps:
-      - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           shared-key: "windows"
       - name: Update build number
@@ -68,12 +68,12 @@ jobs:
           export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
           ./build.sh --run-tests
       - name: Upload development binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dev-binaries-windows
           path: ${{github.workspace}}/bin/*
       - name: Upload distributable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ltheory-windows
           path: |
@@ -83,16 +83,19 @@ jobs:
             ${{github.workspace}}/engine/lib/phx/script/*
             ${{github.workspace}}/res/*
             ${{github.workspace}}/script/*
-            ${{github.workspace}}/LICENSE
+            ${{github.workspace}}/LICENSE-APACHE-2.0
+            ${{github.workspace}}/LICENSE-MIT
+            ${{github.workspace}}/UNLICENSE-ORIGINAL.txt
+            ${{github.workspace}}/NOTICE
             ${{github.workspace}}/README.md
 
   build-macos:
     needs: gen-build-version
     name: Build macOS
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           shared-key: "macos"
       - name: Build
@@ -100,14 +103,14 @@ jobs:
           export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
           ./build.sh --run-tests --bundle
       - name: Upload development binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dev-binaries-macos
           path: |
             ${{github.workspace}}/bin/*
             !${{github.workspace}}/bin/*.app
       - name: Upload distributable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ltheory-macos
           path: ${{github.workspace}}/bin/*.app
@@ -117,12 +120,12 @@ jobs:
     name: Build Linux (Ubuntu 22.04)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Update packages
         run: sudo apt-get update
       - name: Install packages
         run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libudev-dev
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           shared-key: "linux"
       - name: Build
@@ -130,12 +133,12 @@ jobs:
           export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
           ./build.sh --run-tests
       - name: Upload development binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dev-binaries-linux
           path: ${{github.workspace}}/bin/*
       - name: Upload distributable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ltheory-linux
           path: |
@@ -144,11 +147,17 @@ jobs:
             ${{github.workspace}}/engine/lib/phx/script/*
             ${{github.workspace}}/res/*
             ${{github.workspace}}/script/*
-            ${{github.workspace}}/LICENSE
+            ${{github.workspace}}/LICENSE-APACHE-2.0
+            ${{github.workspace}}/LICENSE-MIT
+            ${{github.workspace}}/UNLICENSE-ORIGINAL.txt
+            ${{github.workspace}}/NOTICE
             ${{github.workspace}}/README.md
 
   release:
     name: New release
+    environment: game-release-signing
+    permissions:
+      contents: write
     needs:
       - gen-build-version
       - build-windows
@@ -157,35 +166,62 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       - name: Inspect directory after downloading artifacts
         run: ls -alFR
       - name: Zip artifacts
-        run: for dir in $(ls); do cd $dir && zip ../$dir.zip ./* -r && cd ..; done
+        shell: bash
+        run: |
+          set -euo pipefail
+          for directory in */; do
+            archive="${directory%/}.zip"
+            (cd "${directory}" && zip -r "../${archive}" .)
+          done
+      - name: Install Minisign
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y minisign
+      - name: Sign release archives
+        shell: bash
+        env:
+          GAME_SIGNING_PRIVATE_KEY: ${{ secrets.GAME_SIGNING_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GAME_SIGNING_PRIVATE_KEY}" ]]; then
+            echo "GAME_SIGNING_PRIVATE_KEY is not configured in the game-release-signing environment." >&2
+            exit 1
+          fi
+          umask 077
+          key_path="${RUNNER_TEMP}/game-release.key"
+          trap 'rm -f "${key_path}"' EXIT
+          printf '%s' "${GAME_SIGNING_PRIVATE_KEY}" > "${key_path}"
+          for archive in ./*.zip; do
+            minisign -S -s "${key_path}" -m "${archive}" -x "${archive}.minisig" -t "Limit Theory Redux ${{ needs.gen-build-version.outputs.build }}"
+          done
       - name: echo repo
         run: echo ${{github.repository}}
       - name: Get latest release ID
-        uses: octokit/request-action@v2.x
+        uses: octokit/request-action@dad4362715b7fb2ddedf9772c8670824af564f0d # v2.4.0
         id: get_latest_release
         with:
           route: GET /repos/${{github.repository}}/releases/tags/latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Delete latest release
-        uses: octokit/request-action@v2.x
+        uses: octokit/request-action@dad4362715b7fb2ddedf9772c8670824af564f0d # v2.4.0
         with:
           route: DELETE /repos/${{github.repository}}/releases/{release_id}
           release_id: ${{ fromJson(steps.get_latest_release.outputs.data).id }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Delete 'latest' tag ref
-        uses: octokit/request-action@v2.x
+        uses: octokit/request-action@dad4362715b7fb2ddedf9772c8670824af564f0d # v2.4.0
         with:
           route: DELETE /repos/${{github.repository}}/git/refs/tags/latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Re-create 'latest' tag with the current SHA
-        uses: octokit/request-action@v2.x
+        uses: octokit/request-action@dad4362715b7fb2ddedf9772c8670824af564f0d # v2.4.0
         with:
           route: POST /repos/${{github.repository}}/git/refs
           ref: refs/tags/latest
@@ -193,7 +229,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -202,4 +238,6 @@ jobs:
           tag_name: latest
           draft: false
           prerelease: true
-          files: ./*.zip
+          files: |
+            ./*.zip
+            ./*.zip.minisig

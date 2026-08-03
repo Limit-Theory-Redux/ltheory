@@ -14,14 +14,14 @@ on:
       - "**/.editorconfig"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   run-linters:
     name: Run linters
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Install nightly
@@ -38,7 +38,7 @@ jobs:
     outputs:
       build: ${{ steps.build_name.outputs.build }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Get the cargo package version
@@ -67,10 +67,10 @@ jobs:
   build-windows:
     needs: gen-build-version
     name: Build Windows
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
-      - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           shared-key: "windows"
       - name: Update build number
@@ -82,12 +82,12 @@ jobs:
           export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
           ./build.sh --run-tests
       - name: Upload development binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dev-binaries-windows
           path: ${{github.workspace}}/bin/*
       - name: Upload distributable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ltheory-windows
           path: |
@@ -97,16 +97,19 @@ jobs:
             ${{github.workspace}}/engine/lib/phx/script/*
             ${{github.workspace}}/res/*
             ${{github.workspace}}/script/*
-            ${{github.workspace}}/LICENSE
+            ${{github.workspace}}/LICENSE-APACHE-2.0
+            ${{github.workspace}}/LICENSE-MIT
+            ${{github.workspace}}/UNLICENSE-ORIGINAL.txt
+            ${{github.workspace}}/NOTICE
             ${{github.workspace}}/README.md
 
   build-macos:
     needs: gen-build-version
     name: Build macOS
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           shared-key: "macos"
       - name: Build
@@ -114,14 +117,14 @@ jobs:
           export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
           ./build.sh --run-tests --bundle
       - name: Upload development binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dev-binaries-macos
           path: |
             ${{github.workspace}}/bin/*
             !${{github.workspace}}/bin/*.app
       - name: Upload distributable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ltheory-macos
           path: ${{github.workspace}}/bin/*.app
@@ -131,12 +134,12 @@ jobs:
     name: Build Linux (Ubuntu 22.04)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Update packages
         run: sudo apt-get update
       - name: Install packages
         run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libudev-dev
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           shared-key: "linux"
       - name: Build
@@ -144,12 +147,12 @@ jobs:
           export PHX_VERSION="${{ needs.gen-build-version.outputs.build }}"
           ./build.sh --run-tests
       - name: Upload development binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dev-binaries-linux
           path: ${{github.workspace}}/bin/*
       - name: Upload distributable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ltheory-linux
           path: |
@@ -158,5 +161,8 @@ jobs:
             ${{github.workspace}}/engine/lib/phx/script/*
             ${{github.workspace}}/res/*
             ${{github.workspace}}/script/*
-            ${{github.workspace}}/LICENSE
+            ${{github.workspace}}/LICENSE-APACHE-2.0
+            ${{github.workspace}}/LICENSE-MIT
+            ${{github.workspace}}/UNLICENSE-ORIGINAL.txt
+            ${{github.workspace}}/NOTICE
             ${{github.workspace}}/README.md
