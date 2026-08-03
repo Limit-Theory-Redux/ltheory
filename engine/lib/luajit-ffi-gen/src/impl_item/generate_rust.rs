@@ -60,18 +60,22 @@ impl ImplInfo {
             .flat_map(|param| self.gen_wrapper_param(param))
             .collect();
 
-        if method.bind_args.gen_out_param() && method.ret.is_some() {
-            let return_ty_token = self.gen_wrapper_return_type(method.ret.as_ref().unwrap(), true);
+        if let Some(ret) = method
+            .ret
+            .as_ref()
+            .filter(|_| method.bind_args.gen_out_param())
+        {
+            let return_ty_token = self.gen_wrapper_return_type(ret, true);
             param_tokens.push(quote! { out: &mut #return_ty_token })
         }
 
         let ret_token = if method.bind_args.gen_out_param() || method.ret.is_none() {
             quote! {}
-        } else {
-            let ret = method.ret.as_ref().unwrap();
+        } else if let Some(ret) = method.ret.as_ref() {
             let ty_token = self.gen_wrapper_return_type(ret, false);
-
             quote! { -> #ty_token }
+        } else {
+            quote! {}
         };
 
         // Generate function body.
