@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use tracing::{error, info, warn};
@@ -7,20 +5,13 @@ use tracing::{error, info, warn};
 use crate::render::thread::{CommandExecutor, CommandReply, process_batch_intern};
 use crate::render::{
     ClipManager, RenderBatch, RenderCommand, RenderStats, RenderTargetStack, RenederThreadError,
-    ResourceId, ShaderReloadResult, SharedRenderStats, VpStack,
+    ResourceId, ShaderReloadResult, VpStack,
 };
 use crate::window::WindowGlContext;
 
 pub struct Renderer {
-    /// Executes commands inline on whichever thread calls `submit`. `RefCell`
-    /// because most FFI methods take `&self` to match the threaded backend's
-    /// signatures (a channel send needs no `&mut`; running the executor
-    /// directly does).
-    executor: RefCell<CommandExecutor>,
-    /// Shared stats, updated by the executor itself on every `SwapBuffers` -
-    /// same mechanism the threaded backend uses, just written to in-line
-    /// instead of from a different thread.
-    shared_stats: Arc<SharedRenderStats>,
+    /// Executes commands inline on whichever thread calls `submit`.
+    executor: CommandExecutor,
     /// Global counter for generating unique ResourceIds
     next_resource_id: AtomicU64,
     /// Command buffer used by the batch API (`begin_batch`/`flush_batch`)
@@ -49,8 +40,7 @@ impl Renderer {
             }
         };
 
-        let shared_stats = Arc::new(SharedRenderStats::default());
-        let mut executor = CommandExecutor::new(shared_stats.clone(), gl_context);
+        let mut executor = CommandExecutor::new(gl_context);
         if executor.has_gl_context() {
             executor.init_gl();
         } else {
@@ -60,8 +50,7 @@ impl Renderer {
         info!("Renderer started (immediate mode)");
 
         Ok(Self {
-            executor: RefCell::new(executor),
-            shared_stats,
+            executor,
             next_resource_id: AtomicU64::new(1),
             command_buffer: vec![],
             active_batch: None,
@@ -71,19 +60,19 @@ impl Renderer {
         })
     }
 
-    pub fn stop(self) -> Option<WindowGlContext> {
+    pub fn stop(mut self) -> Option<WindowGlContext> {
         info!("Stopping renderer (immediate mode)");
-        self.executor.into_inner().cleanup()
+        self.executor.cleanup()
     }
 
     /// Execute a command inline.
-    pub fn submit(&self, cmd: RenderCommand) {
-        self.executor.borrow_mut().execute(cmd);
+    pub fn submit(&mut self, cmd: RenderCommand) {
+        self.executor.execute(cmd);
     }
 
     /// Execute a command inline. Always succeeds - immediate mode has no
     /// channel to back up, so there is nothing to drop.
-    pub fn try_submit(&self, cmd: RenderCommand) -> bool {
+    pub fn try_submit(&mut self, cmd: RenderCommand) -> bool {
         self.submit(cmd);
         true
     }
@@ -96,7 +85,7 @@ impl Renderer {
     /// Run every buffered command (from the batch API) inline.
     pub(in crate::render::thread) fn flush_intern(&mut self) {
         for cmd in self.command_buffer.drain(..) {
-            self.executor.borrow_mut().execute(cmd);
+            self.executor.execute(cmd);
         }
     }
 
@@ -112,7 +101,7 @@ impl Renderer {
     }
 
     /// Immediate mode has no frame queue to pace against - just swap.
-    pub fn end_frame_triple_buffered(&self) {
+    pub fn end_frame_triple_buffered(&mut self) {
         self.submit(RenderCommand::SwapBuffers);
     }
 
@@ -128,79 +117,68 @@ impl Renderer {
     }
 
     /// Get current render stats snapshot
-    pub fn get_stats(&self) -> RenderStats {
-        self.shared_stats.snapshot()
+    pub fn get_stats(&mut self) -> RenderStats {
+        self.executor.stats_snapshot()
     }
 
     /// Get total commands processed since start
-    pub fn get_commands_processed(&self) -> u64 {
-        self.shared_stats.commands_processed.load(Ordering::Relaxed)
+    pub fn get_commands_processed(&mut self) -> u64 {
+        self.executor.stats_snapshot().commands_processed
     }
 
     /// Get total draw calls since start
-    pub fn get_draw_calls(&self) -> u64 {
-        self.shared_stats.draw_calls.load(Ordering::Relaxed)
+    pub fn get_draw_calls(&mut self) -> u64 {
+        self.executor.stats_snapshot().draw_calls
     }
 
     /// Get total state changes since start
-    pub fn get_state_changes(&self) -> u64 {
-        self.shared_stats.state_changes.load(Ordering::Relaxed)
+    pub fn get_state_changes(&mut self) -> u64 {
+        self.executor.stats_snapshot().state_changes
     }
 
     /// Get total frames rendered
-    pub fn get_frame_count(&self) -> u64 {
-        self.shared_stats.frame_count.load(Ordering::Relaxed)
+    pub fn get_frame_count(&mut self) -> u64 {
+        self.executor.stats_snapshot().frame_count
     }
 
     /// Get last frame render time in microseconds
-    pub fn get_last_frame_time_us(&self) -> u64 {
-        self.shared_stats.last_frame_time_us.load(Ordering::Relaxed)
+    pub fn get_last_frame_time_us(&mut self) -> u64 {
+        self.executor.stats_snapshot().last_frame_time_us
     }
 
     /// Get commands processed in last frame
-    pub fn get_commands_last_frame(&self) -> u64 {
-        self.shared_stats
-            .commands_last_frame
-            .load(Ordering::Relaxed)
+    pub fn get_commands_last_frame(&mut self) -> u64 {
+        self.executor.stats_snapshot().commands_last_frame
     }
 
     /// Get draw calls in last frame
-    pub fn get_draw_calls_last_frame(&self) -> u64 {
-        self.shared_stats
-            .draw_calls_last_frame
-            .load(Ordering::Relaxed)
+    pub fn get_draw_calls_last_frame(&mut self) -> u64 {
+        self.executor.stats_snapshot().draw_calls_last_frame
     }
 
     /// Always zero - immediate mode never blocks waiting on a render thread.
     pub fn get_main_thread_wait_us(&self) -> u64 {
-        self.shared_stats
-            .main_thread_wait_us
-            .load(Ordering::Relaxed)
+        0
     }
 
     /// Get total texture binds skipped due to caching
-    pub fn get_texture_binds_skipped(&self) -> u64 {
-        self.shared_stats
-            .texture_binds_skipped
-            .load(Ordering::Relaxed)
+    pub fn get_texture_binds_skipped(&mut self) -> u64 {
+        self.executor.stats_snapshot().texture_binds_skipped
     }
 
     /// Reload a shader inline and return the result directly - no channel
     /// round-trip needed since the executor answers synchronously.
     pub fn reload_shader(
-        &self,
+        &mut self,
         shader_key: &str,
         vertex_src: &str,
         fragment_src: &str,
     ) -> ShaderReloadResult {
-        let reply = self
-            .executor
-            .borrow_mut()
-            .execute(RenderCommand::ReloadShader {
-                shader_key: shader_key.to_string(),
-                vertex_src: vertex_src.to_string(),
-                fragment_src: fragment_src.to_string(),
-            });
+        let reply = self.executor.execute(RenderCommand::ReloadShader {
+            shader_key: shader_key.to_string(),
+            vertex_src: vertex_src.to_string(),
+            fragment_src: fragment_src.to_string(),
+        });
 
         match reply {
             CommandReply::ShaderReload(result) => result,

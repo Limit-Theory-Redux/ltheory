@@ -9,7 +9,7 @@ use tracing::{error, info};
 use crate::render::thread::{RenderThread, process_batch_intern};
 use crate::render::{
     ClipManager, RenderBatch, RenderCommand, RenderStats, RenderTargetStack, RenderThreadConfig,
-    RenederThreadError, ResourceId, ShaderReloadResult, SharedRenderStats, VpStack,
+    RenederThreadError, ResourceId, ShaderReloadResult, VpStack,
 };
 use crate::window::WindowGlContext;
 
@@ -33,8 +33,13 @@ pub struct Renderer {
     running: Arc<AtomicBool>,
     /// Thread handle for joining
     thread_handle: JoinHandle<()>,
-    /// Shared stats readable from main thread
-    shared_stats: Arc<SharedRenderStats>,
+    /// Receives a stats snapshot from the render thread once per frame
+    stats_rx: Receiver<RenderStats>,
+    /// Most recent snapshot received over `stats_rx`
+    last_stats: RenderStats,
+    /// Time spent blocked in `end_frame_triple_buffered`, in microseconds -
+    /// purely a main-thread measurement, the executor has no part in it
+    main_thread_wait_us: u64,
     /// Thread-local command buffer for batching
     command_buffer: Vec<RenderCommand>,
     /// Global counter for generating unique ResourceIds
@@ -59,10 +64,9 @@ impl Renderer {
         let (fence_tx, fence_rx) = bounded(config.fence_buffer_size);
         let (shader_result_tx, shader_result_rx) = bounded(16); // Buffer for shader reload results
         let (context_tx, context_rx) = bounded(1); // Only one context to return
+        let (stats_tx, stats_rx) = bounded(1); // Only the latest snapshot matters
         let running = Arc::new(AtomicBool::new(true));
         let running_clone = running.clone();
-        let shared_stats = Arc::new(SharedRenderStats::default());
-        let shared_stats_clone = shared_stats.clone();
 
         let thread_handle = thread::Builder::new()
             .name("RenderThread".into())
@@ -85,8 +89,8 @@ impl Renderer {
                     fence_tx,
                     shader_result_tx,
                     context_tx,
+                    stats_tx,
                     running_clone,
-                    shared_stats_clone,
                     gl_context,
                 );
                 render_thread.run();
@@ -108,7 +112,9 @@ impl Renderer {
             frames_in_flight: AtomicU64::new(0),
             running,
             thread_handle,
-            shared_stats,
+            stats_rx,
+            last_stats: RenderStats::default(),
+            main_thread_wait_us: 0,
             command_buffer: vec![],
             next_resource_id: AtomicU64::new(1),
             active_batch: None,
@@ -128,7 +134,7 @@ impl Renderer {
     }
 
     /// Submit a command to the render thread
-    pub fn submit(&self, cmd: RenderCommand) {
+    pub fn submit(&mut self, cmd: RenderCommand) {
         if self.running.load(Ordering::Relaxed) {
             if let Err(e) = self.command_tx.send(cmd) {
                 error!("Failed to send render command: {:?}", e);
@@ -139,7 +145,7 @@ impl Renderer {
     /// Submit a command to the render thread without blocking.
     /// Returns true if the command was sent, false if the channel was full.
     /// Use this for commands that can be safely dropped (like resize events).
-    pub fn try_submit(&self, cmd: RenderCommand) -> bool {
+    pub fn try_submit(&mut self, cmd: RenderCommand) -> bool {
         if self.running.load(Ordering::Relaxed) {
             match self.command_tx.try_send(cmd) {
                 Ok(()) => true,
@@ -202,7 +208,7 @@ impl Renderer {
     /// End the current frame with triple buffering.
     /// Submits SwapBuffers and fence, blocks only if MAX_FRAMES_IN_FLIGHT are queued.
     /// Uses fence channel for proper synchronization when throttling is needed.
-    pub fn end_frame_triple_buffered(&self) {
+    pub fn end_frame_triple_buffered(&mut self) {
         if !self.running.load(Ordering::Relaxed) {
             return;
         }
@@ -233,10 +239,7 @@ impl Renderer {
         self.frames_in_flight.fetch_add(1, Ordering::Relaxed);
 
         // Store total time spent in frame end (all blocking)
-        let wait_us = frame_end_start.elapsed().as_micros() as u64;
-        self.shared_stats
-            .main_thread_wait_us
-            .store(wait_us, Ordering::Relaxed);
+        self.main_thread_wait_us = frame_end_start.elapsed().as_micros() as u64;
     }
 
     /// Get current frames in flight count
@@ -249,69 +252,79 @@ impl Renderer {
         self.running.load(Ordering::Relaxed)
     }
 
+    /// Drain the stats channel, keeping only the most recent snapshot -
+    /// there is never a reason to look at a stale one when a newer one is
+    /// waiting.
+    fn refresh_stats(&mut self) {
+        while let Ok(stats) = self.stats_rx.try_recv() {
+            self.last_stats = stats;
+        }
+    }
+
     /// Get current render stats snapshot
-    pub fn get_stats(&self) -> RenderStats {
-        self.shared_stats.snapshot()
+    pub fn get_stats(&mut self) -> RenderStats {
+        self.refresh_stats();
+        self.last_stats.clone()
     }
 
     /// Get total commands processed since start
-    pub fn get_commands_processed(&self) -> u64 {
-        self.shared_stats.commands_processed.load(Ordering::Relaxed)
+    pub fn get_commands_processed(&mut self) -> u64 {
+        self.refresh_stats();
+        self.last_stats.commands_processed
     }
 
     /// Get total draw calls since start
-    pub fn get_draw_calls(&self) -> u64 {
-        self.shared_stats.draw_calls.load(Ordering::Relaxed)
+    pub fn get_draw_calls(&mut self) -> u64 {
+        self.refresh_stats();
+        self.last_stats.draw_calls
     }
 
     /// Get total state changes since start
-    pub fn get_state_changes(&self) -> u64 {
-        self.shared_stats.state_changes.load(Ordering::Relaxed)
+    pub fn get_state_changes(&mut self) -> u64 {
+        self.refresh_stats();
+        self.last_stats.state_changes
     }
 
     /// Get total frames rendered
-    pub fn get_frame_count(&self) -> u64 {
-        self.shared_stats.frame_count.load(Ordering::Relaxed)
+    pub fn get_frame_count(&mut self) -> u64 {
+        self.refresh_stats();
+        self.last_stats.frame_count
     }
 
     /// Get last frame render time in microseconds
-    pub fn get_last_frame_time_us(&self) -> u64 {
-        self.shared_stats.last_frame_time_us.load(Ordering::Relaxed)
+    pub fn get_last_frame_time_us(&mut self) -> u64 {
+        self.refresh_stats();
+        self.last_stats.last_frame_time_us
     }
 
     /// Get commands processed in last frame
-    pub fn get_commands_last_frame(&self) -> u64 {
-        self.shared_stats
-            .commands_last_frame
-            .load(Ordering::Relaxed)
+    pub fn get_commands_last_frame(&mut self) -> u64 {
+        self.refresh_stats();
+        self.last_stats.commands_last_frame
     }
 
     /// Get draw calls in last frame
-    pub fn get_draw_calls_last_frame(&self) -> u64 {
-        self.shared_stats
-            .draw_calls_last_frame
-            .load(Ordering::Relaxed)
+    pub fn get_draw_calls_last_frame(&mut self) -> u64 {
+        self.refresh_stats();
+        self.last_stats.draw_calls_last_frame
     }
 
     /// Get main thread wait time in microseconds (time spent waiting for render thread)
     pub fn get_main_thread_wait_us(&self) -> u64 {
-        self.shared_stats
-            .main_thread_wait_us
-            .load(Ordering::Relaxed)
+        self.main_thread_wait_us
     }
 
     /// Get total texture binds skipped due to caching
-    pub fn get_texture_binds_skipped(&self) -> u64 {
-        self.shared_stats
-            .texture_binds_skipped
-            .load(Ordering::Relaxed)
+    pub fn get_texture_binds_skipped(&mut self) -> u64 {
+        self.refresh_stats();
+        self.last_stats.texture_binds_skipped
     }
 
     /// Reload a shader on the render thread.
     /// Returns the result with success/failure and new program handle.
     /// This blocks until the shader is compiled on the render thread.
     pub fn reload_shader(
-        &self,
+        &mut self,
         shader_key: &str,
         vertex_src: &str,
         fragment_src: &str,
@@ -352,7 +365,7 @@ impl Renderer {
     /// Wait for the GL context to be returned from the render thread (blocking with timeout).
     /// This should be called after shutdown() to retrieve the context for
     /// restoring direct GL mode on the main thread.
-    fn shutdown(self) -> Option<WindowGlContext> {
+    fn shutdown(mut self) -> Option<WindowGlContext> {
         if self.running.load(Ordering::Relaxed) {
             info!("Requesting render thread shutdown");
             self.submit(RenderCommand::Shutdown);

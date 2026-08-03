@@ -3,14 +3,13 @@
 use std::collections::HashMap;
 use std::ptr;
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
 
 use tracing::{debug, error, info, warn};
 
 use crate::render::gl::types::GLsizeiptr;
 use crate::render::{
-    BlendMode, CmdPrimitiveType, CullFace, ImmVertex, InstanceData, RenderCommand, ResourceId,
-    ShaderReloadResult, SharedRenderStats, TexFormat, VertexFormat, gl,
+    BlendMode, CmdPrimitiveType, CullFace, ImmVertex, InstanceData, RenderCommand, RenderStats,
+    ResourceId, ShaderReloadResult, TexFormat, VertexFormat, gl,
 };
 use crate::window::{WindowActiveGlContext, WindowGlContext};
 
@@ -26,6 +25,7 @@ pub enum CommandReply {
     None,
     Fence(u64),
     ShaderReload(ShaderReloadResult),
+    Stats(RenderStats),
 }
 
 /// GPU resource stored on the render thread
@@ -105,8 +105,10 @@ pub struct CommandExecutor {
     /// Hot-reloaded shaders by shader_key (separate from resources for override)
     hot_reloaded_shaders: HashMap<String, u32>,
     stats: ExecutorStats,
-    /// Shared stats accessible from main thread
-    shared_stats: Arc<SharedRenderStats>,
+    /// Snapshot taken at the last `SwapBuffers`, readable at any later point
+    /// via `stats_snapshot()`. Also what `SwapBuffers` returns as
+    /// `CommandReply::Stats` for the threaded backend to forward.
+    last_stats: RenderStats,
     // Immediate mode VAO/VBO for DrawImmediate commands
     imm_vao: u32,
     imm_vbo: u32,
@@ -142,15 +144,12 @@ pub struct CommandExecutor {
 }
 
 impl CommandExecutor {
-    pub fn new(
-        shared_stats: Arc<SharedRenderStats>,
-        gl_context: Option<WindowActiveGlContext>,
-    ) -> Self {
+    pub fn new(gl_context: Option<WindowActiveGlContext>) -> Self {
         Self {
             resources: HashMap::new(),
             hot_reloaded_shaders: HashMap::new(),
             stats: ExecutorStats::default(),
-            shared_stats,
+            last_stats: RenderStats::default(),
             imm_vao: 0,
             imm_vbo: 0,
             fbo_stack: Vec::with_capacity(FBO_STACK_DEPTH),
@@ -178,6 +177,11 @@ impl CommandExecutor {
     /// Accumulated statistics.
     pub fn stats(&self) -> &ExecutorStats {
         &self.stats
+    }
+
+    /// The stats snapshot taken at the last `SwapBuffers`.
+    pub fn stats_snapshot(&self) -> RenderStats {
+        self.last_stats.clone()
     }
 
     fn bind_texture_cached(&mut self, slot: u32, handle: u32, tex_type: TextureType) -> bool {
@@ -1274,31 +1278,20 @@ impl CommandExecutor {
 
                 self.stats.frame_count += 1;
 
-                // Sync all stats to shared atomics at end of frame
-                self.shared_stats
-                    .commands_processed
-                    .store(self.stats.commands_processed, Ordering::Relaxed);
-                self.shared_stats
-                    .draw_calls
-                    .store(self.stats.draw_calls, Ordering::Relaxed);
-                self.shared_stats
-                    .state_changes
-                    .store(self.stats.state_changes, Ordering::Relaxed);
-                self.shared_stats
-                    .frame_count
-                    .store(self.stats.frame_count, Ordering::Relaxed);
-                self.shared_stats
-                    .last_frame_time_us
-                    .store(frame_time_us, Ordering::Relaxed);
-                self.shared_stats
-                    .commands_last_frame
-                    .store(self.commands_this_frame, Ordering::Relaxed);
-                self.shared_stats
-                    .draw_calls_last_frame
-                    .store(self.draw_calls_this_frame, Ordering::Relaxed);
-                self.shared_stats
-                    .texture_binds_skipped
-                    .store(self.texture_binds_skipped, Ordering::Relaxed);
+                // Snapshot stats at end of frame; readable via `stats_snapshot()`
+                // at any later point, and handed back as a reply so the
+                // threaded backend can forward it to the main thread.
+                self.last_stats = RenderStats {
+                    commands_processed: self.stats.commands_processed,
+                    draw_calls: self.stats.draw_calls,
+                    state_changes: self.stats.state_changes,
+                    frame_count: self.stats.frame_count,
+                    last_frame_time_us: frame_time_us,
+                    commands_last_frame: self.commands_this_frame,
+                    draw_calls_last_frame: self.draw_calls_this_frame,
+                    texture_binds_skipped: self.texture_binds_skipped,
+                };
+                reply = CommandReply::Stats(self.last_stats.clone());
 
                 // Perform actual buffer swap if we have a GL context
                 if let Some(ref ctx) = self.gl_context {

@@ -11,13 +11,24 @@ use tracing::error;
 
 use crate::render::{CmdPrimitiveType, GpuHandle, RenderBatch, RenderCommand};
 
-/// Statistics from the render thread (local copy)
+/// A snapshot of the executor's counters, taken once per frame at
+/// `SwapBuffers`. In immediate mode this is read straight off the executor;
+/// in threaded mode it travels over a channel and is cached until the next
+/// one arrives (see `renderer_threaded.rs`).
 #[derive(Debug, Clone, Default)]
 pub struct RenderStats {
     pub commands_processed: u64,
     pub draw_calls: u64,
     pub state_changes: u64,
     pub frame_count: u64,
+    /// Last frame render time in microseconds
+    pub last_frame_time_us: u64,
+    /// Commands processed in the last frame
+    pub commands_last_frame: u64,
+    /// Draw calls in the last frame
+    pub draw_calls_last_frame: u64,
+    /// Texture binds skipped due to caching (cumulative)
+    pub texture_binds_skipped: u64,
 }
 
 /// Run the active batch's accumulated entities through frustum culling and

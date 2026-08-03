@@ -9,7 +9,6 @@ mod render_command;
 mod renderer;
 mod renderer_queue;
 mod shader_reload_result;
-mod shared_render_stats;
 mod ubo;
 
 // `Renderer`'s two backends: identical public API and FFI surface, selected
@@ -38,5 +37,4 @@ pub use renderer_queue::*;
 #[cfg(not(feature = "immediate"))]
 pub use renderer_threaded::*;
 pub use shader_reload_result::*;
-pub use shared_render_stats::*;
 pub use ubo::*;

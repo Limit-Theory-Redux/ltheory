@@ -88,7 +88,7 @@ impl Renderer {
     // === State Management ===
 
     /// Set the viewport
-    pub fn set_viewport(&self, x: i32, y: i32, width: i32, height: i32) {
+    pub fn set_viewport(&mut self, x: i32, y: i32, width: i32, height: i32) {
         self.submit(RenderCommand::SetViewport {
             x,
             y,
@@ -98,7 +98,7 @@ impl Renderer {
     }
 
     /// Set the scissor region
-    pub fn set_scissor(&self, x: i32, y: i32, width: i32, height: i32) {
+    pub fn set_scissor(&mut self, x: i32, y: i32, width: i32, height: i32) {
         self.submit(RenderCommand::SetScissor {
             x,
             y,
@@ -108,12 +108,12 @@ impl Renderer {
     }
 
     /// Enable or disable scissor test
-    pub fn enable_scissor(&self, enable: bool) {
+    pub fn enable_scissor(&mut self, enable: bool) {
         self.submit(RenderCommand::EnableScissor(enable));
     }
 
     /// Set blend mode (0=Disabled, 1=Alpha, 2=Additive, 3=PreMultAlpha)
-    pub fn set_blend_mode(&self, mode: i32) {
+    pub fn set_blend_mode(&mut self, mode: i32) {
         let blend_mode = match mode {
             0 => BlendMode::Disabled,
             1 => BlendMode::Alpha,
@@ -125,7 +125,7 @@ impl Renderer {
     }
 
     /// Set cull face (0=None, 1=Back, 2=Front)
-    pub fn set_cull_face(&self, face: i32) {
+    pub fn set_cull_face(&mut self, face: i32) {
         let cull_face = match face {
             0 => CullFace::None,
             1 => CullFace::Back,
@@ -136,46 +136,46 @@ impl Renderer {
     }
 
     /// Enable or disable depth testing
-    pub fn set_depth_test(&self, enable: bool) {
+    pub fn set_depth_test(&mut self, enable: bool) {
         self.submit(RenderCommand::SetDepthTest(enable));
     }
 
     /// Enable or disable depth writing
-    pub fn set_depth_writable(&self, enable: bool) {
+    pub fn set_depth_writable(&mut self, enable: bool) {
         self.submit(RenderCommand::SetDepthWritable(enable));
     }
 
     /// Set wireframe mode
-    pub fn set_wireframe(&self, enable: bool) {
+    pub fn set_wireframe(&mut self, enable: bool) {
         self.submit(RenderCommand::SetWireframe(enable));
     }
 
     // === Shader Operations ===
 
     /// Bind a shader program
-    pub fn bind_shader(&self, handle: u32) {
+    pub fn bind_shader(&mut self, handle: u32) {
         self.submit(RenderCommand::BindShader {
             handle: GpuHandle(handle),
         });
     }
 
     /// Unbind the current shader
-    pub fn unbind_shader(&self) {
+    pub fn unbind_shader(&mut self) {
         self.submit(RenderCommand::UnbindShader);
     }
 
     /// Set an integer uniform
-    pub fn set_uniform_int(&self, location: i32, value: i32) {
+    pub fn set_uniform_int(&mut self, location: i32, value: i32) {
         self.submit(RenderCommand::SetUniformInt { location, value });
     }
 
     /// Set a float uniform
-    pub fn set_uniform_float(&self, location: i32, value: f32) {
+    pub fn set_uniform_float(&mut self, location: i32, value: f32) {
         self.submit(RenderCommand::SetUniformFloat { location, value });
     }
 
     /// Set a vec2 uniform
-    pub fn set_uniform_float2(&self, location: i32, x: f32, y: f32) {
+    pub fn set_uniform_float2(&mut self, location: i32, x: f32, y: f32) {
         self.submit(RenderCommand::SetUniformFloat2 {
             location,
             value: [x, y],
@@ -183,7 +183,7 @@ impl Renderer {
     }
 
     /// Set a vec3 uniform
-    pub fn set_uniform_float3(&self, location: i32, x: f32, y: f32, z: f32) {
+    pub fn set_uniform_float3(&mut self, location: i32, x: f32, y: f32, z: f32) {
         self.submit(RenderCommand::SetUniformFloat3 {
             location,
             value: [x, y, z],
@@ -191,7 +191,7 @@ impl Renderer {
     }
 
     /// Set a vec4 uniform
-    pub fn set_uniform_float4(&self, location: i32, x: f32, y: f32, z: f32, w: f32) {
+    pub fn set_uniform_float4(&mut self, location: i32, x: f32, y: f32, z: f32, w: f32) {
         self.submit(RenderCommand::SetUniformFloat4 {
             location,
             value: [x, y, z, w],
@@ -201,7 +201,7 @@ impl Renderer {
     // === Texture Operations ===
 
     /// Bind a 2D texture to a slot
-    pub fn bind_texture_2d(&self, slot: u32, handle: u32) {
+    pub fn bind_texture_2d(&mut self, slot: u32, handle: u32) {
         self.submit(RenderCommand::BindTexture2D {
             slot,
             handle: GpuHandle(handle),
@@ -209,7 +209,7 @@ impl Renderer {
     }
 
     /// Bind a 3D texture to a slot
-    pub fn bind_texture_3d(&self, slot: u32, handle: u32) {
+    pub fn bind_texture_3d(&mut self, slot: u32, handle: u32) {
         self.submit(RenderCommand::BindTexture3D {
             slot,
             handle: GpuHandle(handle),
@@ -217,7 +217,7 @@ impl Renderer {
     }
 
     /// Bind a cube texture to a slot
-    pub fn bind_texture_cube(&self, slot: u32, handle: u32) {
+    pub fn bind_texture_cube(&mut self, slot: u32, handle: u32) {
         self.submit(RenderCommand::BindTextureCube {
             slot,
             handle: GpuHandle(handle),
@@ -225,26 +225,26 @@ impl Renderer {
     }
 
     /// Unbind a texture from a slot
-    pub fn unbind_texture(&self, slot: u32) {
+    pub fn unbind_texture(&mut self, slot: u32) {
         self.submit(RenderCommand::UnbindTexture { slot });
     }
 
     // === Framebuffer Operations ===
 
     /// Bind a framebuffer
-    pub fn bind_framebuffer(&self, handle: u32) {
+    pub fn bind_framebuffer(&mut self, handle: u32) {
         self.submit(RenderCommand::BindFramebuffer {
             handle: GpuHandle(handle),
         });
     }
 
     /// Bind the default framebuffer
-    pub fn bind_default_framebuffer(&self) {
+    pub fn bind_default_framebuffer(&mut self) {
         self.submit(RenderCommand::BindDefaultFramebuffer);
     }
 
     /// Clear color buffer
-    pub fn clear_color(&self, r: f32, g: f32, b: f32, a: f32) {
+    pub fn clear_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
         self.submit(RenderCommand::Clear {
             color: Some([r, g, b, a]),
             depth: None,
@@ -252,7 +252,7 @@ impl Renderer {
     }
 
     /// Clear depth buffer
-    pub fn clear_depth(&self, depth: f32) {
+    pub fn clear_depth(&mut self, depth: f32) {
         self.submit(RenderCommand::Clear {
             color: None,
             depth: Some(depth),
@@ -260,7 +260,7 @@ impl Renderer {
     }
 
     /// Clear both color and depth buffers
-    pub fn clear(&self, r: f32, g: f32, b: f32, a: f32, depth: f32) {
+    pub fn clear(&mut self, r: f32, g: f32, b: f32, a: f32, depth: f32) {
         self.submit(RenderCommand::Clear {
             color: Some([r, g, b, a]),
             depth: Some(depth),
@@ -270,7 +270,7 @@ impl Renderer {
     // === Drawing Operations ===
 
     /// Draw a mesh
-    pub fn draw_mesh(&self, vao: u32, index_count: i32) {
+    pub fn draw_mesh(&mut self, vao: u32, index_count: i32) {
         self.submit(RenderCommand::DrawMesh {
             vao: GpuHandle(vao),
             index_count,
@@ -279,7 +279,7 @@ impl Renderer {
     }
 
     /// Draw a mesh with a specific primitive type
-    pub fn draw_mesh_primitive(&self, vao: u32, index_count: i32, primitive: i32) {
+    pub fn draw_mesh_primitive(&mut self, vao: u32, index_count: i32, primitive: i32) {
         let prim = match primitive {
             0 => CmdPrimitiveType::Points,
             1 => CmdPrimitiveType::Lines,
@@ -298,7 +298,7 @@ impl Renderer {
     }
 
     /// Draw instanced mesh
-    pub fn draw_mesh_instanced(&self, vao: u32, index_count: i32, instance_count: i32) {
+    pub fn draw_mesh_instanced(&mut self, vao: u32, index_count: i32, instance_count: i32) {
         self.submit(RenderCommand::DrawMeshInstanced {
             vao: GpuHandle(vao),
             index_count,
@@ -310,12 +310,12 @@ impl Renderer {
     // === Window Operations ===
 
     /// Signal resize
-    pub fn resize(&self, width: u32, height: u32) {
+    pub fn resize(&mut self, width: u32, height: u32) {
         self.submit(RenderCommand::Resize { width, height });
     }
 
     /// Signal swap buffers (frame end)
-    pub fn swap_buffers(&self) {
+    pub fn swap_buffers(&mut self) {
         self.submit(RenderCommand::SwapBuffers);
     }
 
@@ -323,7 +323,7 @@ impl Renderer {
 
     /// Create the camera UBO on the render thread
     #[bind(name = "CreateCameraUBO")]
-    pub fn create_camera_ubo(&self) {
+    pub fn create_camera_ubo(&mut self) {
         self.submit(RenderCommand::CreateCameraUBO);
     }
 
@@ -331,7 +331,7 @@ impl Renderer {
     /// Parameters are the matrices and vectors that make up the camera state.
     #[bind(name = "UpdateCameraUBO")]
     pub fn update_camera_ubo(
-        &self,
+        &mut self,
         m_view: &Matrix,
         m_proj: &Matrix,
         eye_x: f32,
@@ -360,14 +360,14 @@ impl Renderer {
 
     /// Create the material UBO on the render thread
     #[bind(name = "CreateMaterialUBO")]
-    pub fn create_material_ubo(&self) {
+    pub fn create_material_ubo(&mut self) {
         self.submit(RenderCommand::CreateMaterialUBO);
     }
 
     /// Update the material UBO with new material properties
     #[bind(name = "UpdateMaterialUBO")]
     pub fn update_material_ubo(
-        &self,
+        &mut self,
         r: f32,
         g: f32,
         b: f32,
@@ -390,14 +390,14 @@ impl Renderer {
 
     /// Create the light UBO on the render thread
     #[bind(name = "CreateLightUBO")]
-    pub fn create_light_ubo(&self) {
+    pub fn create_light_ubo(&mut self) {
         self.submit(RenderCommand::CreateLightUBO);
     }
 
     /// Update the light UBO with light properties
     #[bind(name = "UpdateLightUBO")]
     pub fn update_light_ubo(
-        &self,
+        &mut self,
         pos_x: f32,
         pos_y: f32,
         pos_z: f32,
