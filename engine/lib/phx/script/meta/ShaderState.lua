@@ -77,7 +77,8 @@ function ShaderState:setTex3D(name, t) end
 ---@param t TexCube
 function ShaderState:setTexCube(name, t) end
 
-function ShaderState:start() end
+---@param r Renderer
+function ShaderState:start(r) end
 
 function ShaderState:stop() end
 

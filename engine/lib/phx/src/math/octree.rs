@@ -201,22 +201,18 @@ impl Octree {
         self.add_depth(box_0, id);
     }
 
-    #[allow(unsafe_code)]
-    pub fn draw(&mut self) {
-        unsafe {
-            Draw_Color(1.0, 1.0, 1.0, 1.0);
-            Draw_Box3(&self.box_0);
-            Draw_Color(0.0, 1.0, 0.0, 1.0);
-        }
+    pub fn draw(&mut self, r: &mut Renderer) {
+        Draw::color(r, 1.0, 1.0, 1.0, 1.0);
+        Draw::box3(r, &self.box_0);
+        Draw::color(r, 0.0, 1.0, 0.0, 1.0);
+
         let mut elem = self.elems.as_ref();
         while let Some(node) = elem {
-            unsafe {
-                Draw_Box3(&node.box_0);
-            }
+            Draw::box3(r, &node.box_0);
             elem = node.next.as_ref();
         }
         for child in self.child.iter_mut().flatten() {
-            child.draw();
+            child.draw(r);
         }
     }
 }

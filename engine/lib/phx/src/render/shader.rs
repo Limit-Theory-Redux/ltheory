@@ -7,7 +7,7 @@ use super::{ShaderState, ShaderVarData, Tex1D, Tex2D, Tex3D, TexCube, gl};
 use crate::common::c_str;
 use crate::logging::{info, warn};
 use crate::math::Matrix;
-use crate::render::{ShaderVar, glcheck};
+use crate::render::{Renderer, glcheck};
 use crate::rf::Rf;
 use crate::system::{Profiler, Resource, ResourceType};
 
@@ -495,7 +495,7 @@ impl Shader {
     }
 
     // Singleton based shader functions - Old API.
-    pub fn start(&mut self) {
+    pub fn start(&mut self, r: &Renderer) {
         Profiler::begin("Shader_Start");
 
         let s = &mut *self.shared.as_mut();
@@ -517,7 +517,7 @@ impl Shader {
                 continue;
             }
 
-            let Some(shader_var) = ShaderVar::get(s.auto_vars[i].name.as_str()) else {
+            let Some(shader_var) = r.shader_vars.get(s.auto_vars[i].name.as_str()) else {
                 warn!(
                     "Shader variable stack does not contain variable <{}>",
                     s.auto_vars[i].name,

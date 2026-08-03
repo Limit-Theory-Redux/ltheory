@@ -475,9 +475,9 @@ impl Mesh {
         self.draw_unbind();
     }
 
-    pub fn draw_normals(&self, scale: f32) {
+    pub fn draw_normals(&self, r: &mut Renderer, scale: f32) {
         for v in &self.shared.as_ref().vertex {
-            Draw::line3(&v.p, &(v.p + scale * v.n));
+            Draw::line3(r, &v.p, &(v.p + scale * v.n));
         }
     }
 
@@ -783,34 +783,27 @@ impl Mesh {
 
         let tex_output = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat::R32F);
 
-        // TODO: Store shader properly
-        #[allow(unsafe_code)] // TODO: remove
-        let shader = unsafe {
-            static mut SHADER: *mut Shader = std::ptr::null_mut();
-            if SHADER.is_null() {
-                SHADER = Box::into_raw(Box::new(Shader::load(
-                    "vertex/identity",
-                    "fragment/compute/occlusion",
-                )));
-            }
-            &mut *SHADER
-        };
+        let mut shader = r.ao_shader.take().unwrap_or_else(|| {
+            Shader::load("vertex/identity", "fragment/compute/occlusion")
+        });
 
-        RenderState::push_all_defaults();
+        RenderState::push_all_defaults(r);
         RenderTarget::push_tex2d(r, &tex_output);
 
-        shader.start();
+        shader.start(r);
         shader.set_int("sDim", s_dim as i32);
         shader.set_float("radius", radius);
         shader.set_tex2d("sPointBuffer", &tex_spoints);
         shader.set_tex2d("sNormalBuffer", &tex_snormals);
         shader.set_tex2d("vPointBuffer", &tex_vpoints);
         shader.set_tex2d("vNormalBuffer", &tex_vnormals);
-        Draw::rect(-1.0, -1.0, 2.0, 2.0);
+        Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
         shader.stop();
 
         RenderTarget::pop(r);
-        RenderState::pop_all();
+        RenderState::pop_all(r);
+
+        r.ao_shader = Some(shader);
 
         let result = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
@@ -832,31 +825,24 @@ impl Mesh {
 
         tex_points.set_data(&point_buffer, PixelFormat::RGB, DataFormat::Float);
 
-        // TODO: Store shader properly.
-        #[allow(unsafe_code)] // TODO: remove
-        let shader = unsafe {
-            static mut SHADER: *mut Shader = std::ptr::null_mut();
-            if SHADER.is_null() {
-                SHADER = Box::into_raw(Box::new(Shader::load(
-                    "vertex/identity",
-                    "fragment/compute/occlusion_sdf",
-                )));
-            }
-            &mut *SHADER
-        };
+        let mut shader = r.occlusion_shader.take().unwrap_or_else(|| {
+            Shader::load("vertex/identity", "fragment/compute/occlusion_sdf")
+        });
 
-        RenderState::push_all_defaults();
+        RenderState::push_all_defaults(r);
         RenderTarget::push_tex2d(r, &tex_output);
 
-        shader.start();
+        shader.start(r);
         shader.set_float("radius", radius);
         shader.set_tex2d("points", &tex_points);
         shader.set_tex3d("sdf", sdf);
-        Draw::rect(-1.0, -1.0, 2.0, 2.0);
+        Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
         shader.stop();
 
         RenderTarget::pop(r);
-        RenderState::pop_all();
+        RenderState::pop_all(r);
+
+        r.occlusion_shader = Some(shader);
 
         let result = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {

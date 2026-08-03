@@ -2,6 +2,7 @@ use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4};
 
 use super::{Shader, ShaderVarData, Tex1D, Tex2D, Tex3D, TexCube};
 use crate::math::Matrix;
+use crate::render::Renderer;
 
 pub struct ShaderState {
     shader: Shader,
@@ -104,8 +105,8 @@ impl ShaderState {
         }
     }
 
-    pub fn start(&mut self) {
-        self.shader.start();
+    pub fn start(&mut self, r: &Renderer) {
+        self.shader.start(r);
 
         // Apply uniforms.
         for (index, data) in self.elems.iter() {

@@ -228,7 +228,7 @@ impl HmGui {
     pub fn draw(&mut self, r: &mut Renderer) {
         Profiler::begin("HmGui_Draw");
 
-        RenderState::push_blend_mode(BlendMode::Alpha);
+        RenderState::push_blend_mode(r, BlendMode::Alpha);
 
         self.renderer.begin(r);
 
@@ -246,7 +246,7 @@ impl HmGui {
 
         self.renderer.end();
 
-        RenderState::pop_blend_mode();
+        RenderState::pop_blend_mode(r);
 
         self.renderer.draw(r);
 

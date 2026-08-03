@@ -320,7 +320,7 @@ impl TexCube {
 
             RenderTarget::push(r, this.size, this.size);
             RenderTarget::bind_tex_cube(r, self, face.face);
-            Draw::clear(red, green, blue, alpha);
+            Draw::clear(r, red, green, blue, alpha);
             RenderTarget::pop(r);
         }
     }
@@ -383,7 +383,7 @@ impl TexCube {
     pub fn generate(&mut self, r: &mut Renderer, state: &mut ShaderState) {
         let this = self.shared.as_ref();
 
-        RenderState::push_all_defaults();
+        RenderState::push_all_defaults(r);
 
         for i in 0..6 {
             let face = K_FACES[i as usize];
@@ -392,7 +392,7 @@ impl TexCube {
 
             RenderTarget::push(r, size, size);
             RenderTarget::bind_tex_cube(r, self, face.face);
-            Draw::clear(0.0, 0.0, 0.0, 1.0);
+            Draw::clear(r, 0.0, 0.0, 0.0, 1.0);
 
             state
                 .shader()
@@ -402,7 +402,7 @@ impl TexCube {
                 .set_float3("cubeUp", face.up.x, face.up.y, face.up.z);
             state.shader().set_float("cubeSize", size_f);
 
-            state.start();
+            state.start(r);
 
             let mut j: i32 = 1;
             let mut job_size: i32 = 1;
@@ -410,8 +410,8 @@ impl TexCube {
                 let time = TimeStamp::now();
 
                 ClipRect::push(r, 0.0f32, (j - 1) as f32, size as f32, job_size as f32);
-                Draw::rect(0.0f32, 0.0f32, size_f, size_f);
-                Draw::flush();
+                Draw::rect(r, 0.0f32, 0.0f32, size_f, size_f);
+                Draw::flush(r);
                 ClipRect::pop(r);
 
                 j += job_size;
@@ -429,7 +429,7 @@ impl TexCube {
             RenderTarget::pop(r);
         }
 
-        RenderState::pop_all();
+        RenderState::pop_all(r);
     }
 
     pub fn gen_mipmap(&mut self) {
@@ -489,18 +489,10 @@ impl TexCube {
         }
         result.gen_mipmap();
 
-        // TODO: Store the shader somewhere and use the Box correctly.
-        #[allow(unsafe_code)] // TODO: remove
-        let shader = unsafe {
-            static mut SHADER: *mut Shader = std::ptr::null_mut();
-            if SHADER.is_null() {
-                SHADER = Box::into_raw(Box::new(Shader::load(
-                    "vertex/identity",
-                    "fragment/compute/irmap",
-                )));
-            }
-            &mut *SHADER
-        };
+        let mut shader = r
+            .irmap_shader
+            .take()
+            .unwrap_or_else(|| Shader::load("vertex/identity", "fragment/compute/irmap"));
 
         let look = [
             Vec3::X,
@@ -520,7 +512,7 @@ impl TexCube {
             i /= 2;
         }
 
-        shader.start();
+        shader.start(r);
         let mut level = 0;
         while size > 1 {
             size /= 2;
@@ -558,12 +550,14 @@ impl TexCube {
                 shader.set_float3("cubeLook", this_look.x, this_look.y, this_look.z);
                 shader.set_float3("cubeUp", this_up.x, this_up.y, this_up.z);
 
-                Draw::rect(-1.0, -1.0, 2.0, 2.0);
+                Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
 
                 RenderTarget::pop(r);
             }
         }
         shader.stop();
+
+        r.irmap_shader = Some(shader);
 
         result.set_mag_filter(TexFilter::Linear);
         result.set_min_filter(TexFilter::LinearMipLinear);

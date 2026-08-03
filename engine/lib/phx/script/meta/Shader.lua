@@ -177,7 +177,8 @@ function Shader:setTexCube(name, value) end
 ---@param value TexCube
 function Shader:iSetTexCube(index, value) end
 
-function Shader:start() end
+---@param r Renderer
+function Shader:start(r) end
 
 function Shader:stop() end
 

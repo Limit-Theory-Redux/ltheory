@@ -265,7 +265,7 @@ impl Tex2D {
 
     pub fn clear(&mut self, r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
         RenderTarget::push_tex2d(r, self);
-        Draw::clear(red, green, blue, alpha);
+        Draw::clear(r, red, green, blue, alpha);
         RenderTarget::pop(r);
     }
 

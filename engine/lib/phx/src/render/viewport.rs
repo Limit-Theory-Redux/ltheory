@@ -21,8 +21,8 @@ impl Viewport {
     pub fn push(r: &mut Renderer, x: i32, y: i32, sx: i32, sy: i32, is_window: bool) {
         let ortho_proj = r.viewport.push(x, y, sx, sy, is_window);
 
-        ShaderVar::push_matrix("mProjUI", &ortho_proj.into());
-        ShaderVar::push_matrix("mWorldViewUI", &Mat4::IDENTITY.into());
+        ShaderVar::push_matrix(r, "mProjUI", &ortho_proj.into());
+        ShaderVar::push_matrix(r, "mWorldViewUI", &Mat4::IDENTITY.into());
 
         r.submit(RenderCommand::SetViewport {
             x,
@@ -33,8 +33,8 @@ impl Viewport {
     }
 
     pub fn pop(r: &mut Renderer) {
-        ShaderVar::pop("mWorldViewUI");
-        ShaderVar::pop("mProjUI");
+        ShaderVar::pop(r, "mWorldViewUI");
+        ShaderVar::pop(r, "mProjUI");
 
         if let Some(vp) = r.viewport.pop() {
             r.submit(RenderCommand::SetViewport {

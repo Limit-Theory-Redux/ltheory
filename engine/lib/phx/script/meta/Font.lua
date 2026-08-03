@@ -9,11 +9,12 @@ Font = {}
 ---@return Font
 function Font.Load(name, size) end
 
+---@param r Renderer
 ---@param text string
 ---@param x number
 ---@param y number
 ---@param color Color
-function Font:draw(text, x, y, color) end
+function Font:draw(r, text, x, y, color) end
 
 ---@return integer
 function Font:getLineHeight() end

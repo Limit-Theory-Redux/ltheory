@@ -5,7 +5,7 @@ use super::{
 };
 use crate::logging::warn;
 use crate::math::{Intersect, LineSegment, Plane, Polygon, Position, Ray, Rng, Sphere, Triangle};
-use crate::render::{BlendMode, CullFace, Draw, RenderState, Shader};
+use crate::render::{BlendMode, CullFace, Draw, RenderState, Renderer, Shader};
 
 /* Adam's Stupidly Fast BSP Implementation
  *
@@ -716,23 +716,25 @@ impl Bsp {
         }
     }
 
-    pub fn draw_node(&mut self, node_ref: BspNodeRef, color: &Color) {
+    pub fn draw_node(&mut self, r: &mut Renderer, node_ref: BspNodeRef, color: &Color) {
         // Assert(nodeRef.index);
 
         if node_ref.index > 0 {
-            self.draw_node(self.nodes[node_ref.index as usize].child[BACK_INDEX], color);
+            self.draw_node(r, self.nodes[node_ref.index as usize].child[BACK_INDEX], color);
             self.draw_node(
+                r,
                 self.nodes[node_ref.index as usize].child[FRONT_INDEX],
                 color,
             );
         } else {
-            self.shader.start();
+            self.shader.start(r);
             self.shader
                 .set_float4("color", color.r, color.g, color.b, color.a);
             let leaf_index = -node_ref.index;
             for i in 0..node_ref.triangle_count {
                 let triangle = &self.triangles[leaf_index as usize + i as usize];
                 Draw::tri3(
+                    r,
                     &triangle.vertices[0],
                     &triangle.vertices[1],
                     &triangle.vertices[2],
@@ -742,18 +744,18 @@ impl Bsp {
         };
     }
 
-    pub fn draw_node_split(&mut self, node_ref: BspNodeRef) {
+    pub fn draw_node_split(&mut self, r: &mut Renderer, node_ref: BspNodeRef) {
         // Assert(nodeRef.index);
 
-        RenderState::push_blend_mode(BlendMode::Alpha);
-        RenderState::push_cull_face(CullFace::Back);
-        RenderState::push_depth_test(true);
-        RenderState::push_wireframe(true);
+        RenderState::push_blend_mode(r, BlendMode::Alpha);
+        RenderState::push_cull_face(r, CullFace::Back);
+        RenderState::push_depth_test(r, true);
+        RenderState::push_wireframe(r, true);
 
         if node_ref.index > 0 {
             let child = self.nodes[node_ref.index as usize].child;
-            self.draw_node(child[BACK_INDEX], &Color::new(0.5, 0.3, 0.3, 0.4));
-            self.draw_node(child[FRONT_INDEX], &Color::new(0.3, 0.5, 0.3, 0.4));
+            self.draw_node(r, child[BACK_INDEX], &Color::new(0.5, 0.3, 0.3, 0.4));
+            self.draw_node(r, child[FRONT_INDEX], &Color::new(0.3, 0.5, 0.3, 0.4));
 
             let node = &self.nodes[node_ref.index as usize];
 
@@ -761,50 +763,53 @@ impl Bsp {
             let origin = Vec3::new(0., 0., 0.);
             let t = Vec3::dot(node.plane.n, origin) - node.plane.d;
             let closest_point = origin - (node.plane.n * t);
-            RenderState::push_wireframe(false);
-            self.shader.start();
+            RenderState::push_wireframe(r, false);
+            self.shader.start(r);
             self.shader.set_float4("color", 0.3, 0.5, 0.3, 0.4);
-            Draw::plane(&closest_point, &node.plane.n, 2.0);
+            Draw::plane(r, &closest_point, &node.plane.n, 2.0);
             self.shader.set_float4("color", 0.5, 0.3, 0.3, 0.4);
             let neg: Vec3 = node.plane.n * -1.0;
-            Draw::plane(&closest_point, &neg, 2.0);
+            Draw::plane(r, &closest_point, &neg, 2.0);
             self.shader.stop();
-            RenderState::pop_wireframe();
+            RenderState::pop_wireframe(r);
         } else {
             /* Leaf */
-            self.draw_node(node_ref, &Color::new(0.5, 0.5, 0.3, 0.4));
+            self.draw_node(r, node_ref, &Color::new(0.5, 0.5, 0.3, 0.4));
         }
 
-        RenderState::pop_wireframe();
-        RenderState::pop_depth_test();
-        RenderState::pop_cull_face();
-        RenderState::pop_blend_mode();
+        RenderState::pop_wireframe(r);
+        RenderState::pop_depth_test(r);
+        RenderState::pop_cull_face(r);
+        RenderState::pop_blend_mode(r);
 
         self.shader.stop(); // TODO: no start?
     }
 
-    pub fn draw_line_segment(&mut self, line_segment: &LineSegment, eye: &Position) {
+    pub fn draw_line_segment(&mut self, r: &mut Renderer, line_segment: &LineSegment, eye: &Position) {
         let mut p_hit = Vec3::ZERO;
 
-        self.shader.start();
+        self.shader.start(r);
         if self.intersect_line_segment(line_segment, &mut p_hit) {
             self.shader.set_float4("color", 0.0, 1.0, 0.0, 0.1);
             Draw::line3(
+                r,
                 &(*line_segment).p0.relative_to(*eye),
                 &Position::from_vec(p_hit).relative_to(*eye),
             );
 
             self.shader.set_float4("color", 1.0, 0.0, 0.0, 1.0);
             Draw::line3(
+                r,
                 &Position::from_vec(p_hit).relative_to(*eye),
                 &(*line_segment).p1.relative_to(*eye),
             );
 
-            Draw::point_size(5.0);
-            Draw::point3(p_hit.x, p_hit.y, p_hit.z);
+            Draw::point_size(r, 5.0);
+            Draw::point3(r, p_hit.x, p_hit.y, p_hit.z);
         } else {
             self.shader.set_float4("color", 0.0, 1.0, 0.0, 1.0);
             Draw::line3(
+                r,
                 &(*line_segment).p0.relative_to(*eye),
                 &(*line_segment).p1.relative_to(*eye),
             );
@@ -812,31 +817,31 @@ impl Bsp {
         self.shader.stop();
     }
 
-    pub fn draw_sphere(&mut self, sphere: &Sphere) {
+    pub fn draw_sphere(&mut self, r: &mut Renderer, sphere: &Sphere) {
         let mut p_hit = Vec3::ZERO;
 
-        self.shader.start();
+        self.shader.start(r);
         if self.intersect_sphere(sphere, &mut p_hit) {
-            RenderState::push_wireframe(false);
+            RenderState::push_wireframe(r, false);
             self.shader.set_float4("color", 1.0, 0.0, 0.0, 0.3);
-            Draw::sphere(&sphere.p, sphere.r);
-            RenderState::pop_wireframe();
+            Draw::sphere(r, &sphere.p, sphere.r);
+            RenderState::pop_wireframe(r);
 
             self.shader.set_float4("color", 1.0, 0.0, 0.0, 1.0);
-            Draw::sphere(&sphere.p, sphere.r);
+            Draw::sphere(r, &sphere.p, sphere.r);
 
-            RenderState::push_depth_test(false);
-            Draw::point_size(8.0);
-            Draw::point3(p_hit.x, p_hit.y, p_hit.z);
-            RenderState::pop_depth_test();
+            RenderState::push_depth_test(r, false);
+            Draw::point_size(r, 8.0);
+            Draw::point3(r, p_hit.x, p_hit.y, p_hit.z);
+            RenderState::pop_depth_test(r);
         } else {
-            RenderState::push_wireframe(false);
+            RenderState::push_wireframe(r, false);
             self.shader.set_float4("color", 0.0, 1.0, 0.0, 0.3);
-            Draw::sphere(&sphere.p, sphere.r);
-            RenderState::pop_wireframe();
+            Draw::sphere(r, &sphere.p, sphere.r);
+            RenderState::pop_wireframe(r);
 
             self.shader.set_float4("color", 0.0, 1.0, 0.0, 1.0);
-            Draw::sphere(&sphere.p, sphere.r);
+            Draw::sphere(r, &sphere.p, sphere.r);
         };
         self.shader.stop();
     }

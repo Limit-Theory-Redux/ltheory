@@ -12,7 +12,8 @@ use freetype_sys::{
 use glam::{IVec2, IVec4, Vec4};
 
 use super::{
-    BlendMode, Color, DataFormat, Draw, PixelFormat, RenderState, Shader, Tex2D, TexFormat,
+    BlendMode, Color, DataFormat, Draw, PixelFormat, RenderState, Renderer, Shader, Tex2D,
+    TexFormat,
 };
 use crate::rf::Rf;
 use crate::system::{Profiler, Resource_GetPath, ResourceType};
@@ -182,7 +183,7 @@ impl Font {
         )
     }
 
-    pub fn draw(&self, text: &str, mut x: f32, mut y: f32, color: &Color) {
+    pub fn draw(&self, r: &mut Renderer, text: &str, mut x: f32, mut y: f32, color: &Color) {
         Profiler::begin("Font_Draw");
 
         let mut glyph_last = 0;
@@ -190,9 +191,9 @@ impl Font {
         x = f64::floor(x as f64) as _;
         y = f64::floor(y as f64) as _;
 
-        RenderState::push_blend_mode(BlendMode::Alpha);
+        RenderState::push_blend_mode(r, BlendMode::Alpha);
 
-        self.0.as_ref().shader.borrow_mut().start();
+        self.0.as_ref().shader.borrow_mut().start(r);
         self.0
             .as_ref()
             .shader
@@ -223,7 +224,7 @@ impl Font {
                 shader.reset_tex_index();
                 shader.set_tex2d("glyph", &glyph.tex);
 
-                Draw::rect_ex(x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
+                Draw::rect_ex(r, x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
 
                 x += glyph.advance as f32;
                 glyph_last = glyph.index;
@@ -233,7 +234,7 @@ impl Font {
         }
 
         self.0.as_ref().shader.borrow().stop();
-        RenderState::pop_blend_mode();
+        RenderState::pop_blend_mode(r);
         Profiler::end();
     }
 

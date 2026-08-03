@@ -56,7 +56,7 @@ impl UIRenderer {
     }
 
     pub fn draw(&mut self, r: &mut Renderer) {
-        RenderState::push_blend_mode(BlendMode::Alpha);
+        RenderState::push_blend_mode(r, BlendMode::Alpha);
 
         if let Some(root) = self.layers.first() {
             root.draw(
@@ -74,7 +74,7 @@ impl UIRenderer {
             unreachable!("No layers defined");
         }
 
-        RenderState::pop_blend_mode();
+        RenderState::pop_blend_mode(r);
     }
 
     pub fn begin_layer(&mut self, pos: Vec2, size: Vec2, clip: bool) {

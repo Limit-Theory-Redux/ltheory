@@ -33,7 +33,7 @@ function Loader.defineType()
             void         ShaderState_SetTex2D       (ShaderState*, cstr name, Tex2D* t);
             void         ShaderState_SetTex3D       (ShaderState*, cstr name, Tex3D* t);
             void         ShaderState_SetTexCube     (ShaderState*, cstr name, TexCube* t);
-            void         ShaderState_Start          (ShaderState*);
+            void         ShaderState_Start          (ShaderState*, Renderer const* r);
             void         ShaderState_Stop           (ShaderState*);
             Shader*      ShaderState_Shader         (ShaderState*);
         ]]

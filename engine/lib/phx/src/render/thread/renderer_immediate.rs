@@ -4,7 +4,7 @@ use tracing::{error, info, warn};
 
 use crate::render::thread::{CommandExecutor, CommandReply, process_batch_intern};
 use crate::render::{
-    ClipManager, RenderBatch, RenderCommand, RenderStats, RenderTargetStack, RenederThreadError,
+    ClipManager, DrawState, RenderBatch, RenderStateIntern, RenderCommand, PrimitiveBuilder, Shader, ShaderVarMap, RenderStats, RenderTargetStack, RenederThreadError,
     ResourceId, ShaderReloadResult, VpStack,
 };
 use crate::window::WindowGlContext;
@@ -25,6 +25,20 @@ pub struct Renderer {
     pub(crate) render_target: RenderTargetStack,
     /// Clip-rect stack (was `thread_local! CLIP_MANAGER` in clip_rect.rs)
     pub(crate) clip_rect: ClipManager,
+    /// GL state stack (was `thread_local! RENDER_STATE` in render_state.rs)
+    pub(crate) render_state: RenderStateIntern,
+    /// Immediate-mode vertex accumulator (was `Draw`'s owned `PrimitiveBuilder`)
+    pub(crate) imm: PrimitiveBuilder,
+    /// `Draw`'s CPU-side alpha/color stack (was static via `Draw::inst()`)
+    pub(crate) draw_state: DrawState,
+    /// Shader auto-var stack (was `static OnceLock<Mutex<ShaderVar>>`)
+    pub(crate) shader_vars: ShaderVarMap,
+    /// Lazily-created shader for `Mesh::compute_ao` (was `static mut SHADER`)
+    pub(crate) ao_shader: Option<Shader>,
+    /// Lazily-created shader for `Mesh::compute_occlusion` (was `static mut SHADER`)
+    pub(crate) occlusion_shader: Option<Shader>,
+    /// Lazily-created shader for `TexCube::gen_ir_map` (was `static mut SHADER`)
+    pub(crate) irmap_shader: Option<Shader>,
 }
 
 impl Renderer {
@@ -57,6 +71,13 @@ impl Renderer {
             viewport: VpStack::new(),
             render_target: RenderTargetStack::new(),
             clip_rect: ClipManager::new(),
+            render_state: RenderStateIntern::new(),
+            imm: PrimitiveBuilder::new(),
+            draw_state: DrawState::new(),
+            shader_vars: ShaderVarMap::new(),
+            ao_shader: None,
+            occlusion_shader: None,
+            irmap_shader: None,
         })
     }
 

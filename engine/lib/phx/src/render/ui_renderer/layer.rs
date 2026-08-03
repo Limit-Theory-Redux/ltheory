@@ -51,7 +51,7 @@ impl UIRendererLayer {
         }
 
         if self.panel_id.is_some() {
-            panel_shader.start();
+            panel_shader.start(r);
 
             let pad: f32 = 64.0;
             panel_shader.set_float("padding", pad);
@@ -76,7 +76,7 @@ impl UIRendererLayer {
                     panel.color.a,
                 );
 
-                Draw::rect(x, y, sx, sy);
+                Draw::rect(r, x, y, sx, sy);
 
                 panel_id_opt = panel.next;
             }
@@ -88,10 +88,10 @@ impl UIRendererLayer {
         while let Some(image_id) = image_id_opt {
             let image = &images[*image_id];
 
-            image_shader.start();
+            image_shader.start(r);
             image_shader.reset_tex_index();
             image_shader.set_tex2d("image", &image.image);
-            Draw::rect(image.pos.x, image.pos.y, image.size.x, image.size.y);
+            Draw::rect(r, image.pos.x, image.pos.y, image.size.x, image.size.y);
             image_shader.stop();
             image_id_opt = image.next;
         }
@@ -100,7 +100,7 @@ impl UIRendererLayer {
         while let Some(rect_id) = rect_id_opt {
             let rect = &rects[*rect_id];
 
-            rect_shader.start();
+            rect_shader.start(r);
             rect_shader.set_float4(
                 "color",
                 rect.color.r,
@@ -110,9 +110,9 @@ impl UIRendererLayer {
             );
 
             if let Some(s) = rect.outline {
-                Draw::border(s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+                Draw::border(r, s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
             } else {
-                Draw::rect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+                Draw::rect(r, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
             }
 
             rect_shader.stop();
@@ -126,7 +126,7 @@ impl UIRendererLayer {
 
             #[allow(unsafe_code)] // TODO: remove
             unsafe {
-                (*text.font).draw(&text.text, text.pos.x, text.pos.y, &text.color);
+                (*text.font).draw(r, &text.text, text.pos.x, text.pos.y, &text.color);
             }
 
             text_id_opt = text.next;

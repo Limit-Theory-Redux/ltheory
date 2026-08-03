@@ -38,7 +38,7 @@ function Loader.defineType()
             void    Mesh_DrawBound         (Mesh const*);
             void    Mesh_DrawUnbind        (Mesh const*);
             void    Mesh_Draw              (Mesh*);
-            void    Mesh_DrawNormals       (Mesh const*, float scale);
+            void    Mesh_DrawNormals       (Mesh const*, Renderer* r, float scale);
             void    Mesh_GetBound          (Mesh*, Box3f* out);
             void    Mesh_GetCenter         (Mesh*, Vec3f* out);
             int     Mesh_GetIndexCount     (Mesh const*);

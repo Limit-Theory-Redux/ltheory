@@ -23,10 +23,10 @@ function Loader.defineType()
             bool        BSP_IntersectLineSegment        (BSP const*, LineSegment const* lineSegment, Vec3f* pHit);
             bool        BSP_IntersectSphere             (BSP const*, Sphere const* sphere, Vec3f* pHit);
             BSPNodeRef* BSP_GetNode                     (BSP const*, BSPNodeRef* nodeRef, BSPNodeRel relationship);
-            void        BSP_DrawNode                    (BSP*, BSPNodeRef* nodeRef, Color const* color);
-            void        BSP_DrawNodeSplit               (BSP*, BSPNodeRef* nodeRef);
-            void        BSP_DrawLineSegment             (BSP*, LineSegment const* lineSegment, Position const* eye);
-            void        BSP_DrawSphere                  (BSP*, Sphere const* sphere);
+            void        BSP_DrawNode                    (BSP*, Renderer* r, BSPNodeRef* nodeRef, Color const* color);
+            void        BSP_DrawNodeSplit               (BSP*, Renderer* r, BSPNodeRef* nodeRef);
+            void        BSP_DrawLineSegment             (BSP*, Renderer* r, LineSegment const* lineSegment, Position const* eye);
+            void        BSP_DrawSphere                  (BSP*, Renderer* r, Sphere const* sphere);
             void        BSP_PrintRayProfilingData       (BSP const*, double totalTime);
             void        BSP_PrintSphereProfilingData    (BSP const*, double totalTime);
             bool        BSP_GetIntersectSphereTriangles (BSP const*, Sphere const* sphere, IntersectSphereProfiling* sphereProf);
@@ -58,13 +58,13 @@ function Loader.defineType()
                     local _instance = libphx.BSP_GetNode(self, nodeRef, relationship)
                     return Core.ManagedObject(_instance, libphx.BspNodeRef_Free)
                 end,
-                drawNode                    = function(self, nodeRef, color)
+                drawNode                    = function(self, r, nodeRef, color)
                     ffi.gc(nodeRef, nil)
-                    libphx.BSP_DrawNode(self, nodeRef, color)
+                    libphx.BSP_DrawNode(self, r, nodeRef, color)
                 end,
-                drawNodeSplit               = function(self, nodeRef)
+                drawNodeSplit               = function(self, r, nodeRef)
                     ffi.gc(nodeRef, nil)
-                    libphx.BSP_DrawNodeSplit(self, nodeRef)
+                    libphx.BSP_DrawNodeSplit(self, r, nodeRef)
                 end,
                 drawLineSegment             = libphx.BSP_DrawLineSegment,
                 drawSphere                  = libphx.BSP_DrawSphere,

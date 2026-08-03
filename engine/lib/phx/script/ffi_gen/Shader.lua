@@ -56,7 +56,7 @@ function Loader.defineType()
             void         Shader_ISetTex3D     (Shader*, int index, Tex3D* value);
             void         Shader_SetTexCube    (Shader*, cstr name, TexCube* value);
             void         Shader_ISetTexCube   (Shader*, int index, TexCube* value);
-            void         Shader_Start         (Shader*);
+            void         Shader_Start         (Shader*, Renderer const* r);
             void         Shader_Stop          (Shader const*);
         ]]
     end

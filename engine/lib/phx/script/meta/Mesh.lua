@@ -82,8 +82,9 @@ function Mesh:drawUnbind() end
 
 function Mesh:draw() end
 
+---@param r Renderer
 ---@param scale number
-function Mesh:drawNormals(scale) end
+function Mesh:drawNormals(r, scale) end
 
 ---@param out Box3f
 function Mesh:getBound(out) end
