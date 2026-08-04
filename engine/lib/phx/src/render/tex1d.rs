@@ -1,10 +1,7 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use crossbeam::channel::bounded;
 
 use super::{DataFormat, PixelFormat, TexFilter, TexFormat, TexWrapMode};
-use crate::render::{RenderCommand, Renderer, ResourceId};
+use crate::render::{RenderCommand, Renderer, ResourceHandle, ResourceId};
 use crate::rf::Rf;
 use crate::system::Bytes;
 
@@ -14,21 +11,14 @@ pub struct Tex1D {
 }
 
 struct Tex1DShared {
-    id: ResourceId,
+    handle: ResourceHandle,
     size: i32,
     format: TexFormat,
-    destroy_queue: Rc<RefCell<Vec<ResourceId>>>,
-}
-
-impl Drop for Tex1DShared {
-    fn drop(&mut self) {
-        self.destroy_queue.borrow_mut().push(self.id);
-    }
 }
 
 impl Tex1D {
     pub fn resource_id(&self) -> ResourceId {
-        self.shared.as_ref().id
+        self.shared.as_ref().handle.id()
     }
 
     pub fn get_data<T: Clone + Default>(&self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Vec<T> {
@@ -41,7 +31,7 @@ impl Tex1D {
 
         let (tx, rx) = bounded(1);
         r.submit(RenderCommand::ReadTexture1DData {
-            id: this.id,
+            id: this.handle.id(),
             pixel_format: pf as u32,
             data_format: df as u32,
             reply_tx: tx,
@@ -65,7 +55,7 @@ impl Tex1D {
         let bytes = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, byte_len) };
 
         r.submit(RenderCommand::UpdateTexture1DDataByResource {
-            id: this.id,
+            id: this.handle.id(),
             width: this.size,
             internal_format: this.format as i32,
             pixel_format: pf as u32,
@@ -79,9 +69,9 @@ impl Tex1D {
 impl Tex1D {
     #[bind(name = "Create")]
     pub fn new(r: &mut Renderer, size: i32, format: TexFormat) -> Tex1D {
-        let id = r.next_resource_id();
+        let handle = r.create_resource();
         r.submit(RenderCommand::CreateTexture1D {
-            id,
+            id: handle.id(),
             width: size as u32,
             format,
             data: None,
@@ -89,10 +79,9 @@ impl Tex1D {
 
         Tex1D {
             shared: Rf::new(Tex1DShared {
-                id,
+                handle,
                 size,
                 format,
-                destroy_queue: r.destroy_queue(),
             }),
         }
     }
@@ -105,7 +94,7 @@ impl Tex1D {
 
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::GenerateMipmapByResource { id: this.id });
+        r.submit(RenderCommand::GenerateMipmapByResource { id: this.handle.id() });
     }
 
     pub fn get_format(&mut self) -> TexFormat {
@@ -129,7 +118,7 @@ impl Tex1D {
     pub fn set_mag_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
         r.submit(RenderCommand::SetTextureMagFilterByResource {
-            id: this.id,
+            id: this.handle.id(),
             filter,
         });
     }
@@ -137,7 +126,7 @@ impl Tex1D {
     pub fn set_min_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
         r.submit(RenderCommand::SetTextureMinFilterByResource {
-            id: this.id,
+            id: this.handle.id(),
             filter,
         });
     }
@@ -145,7 +134,7 @@ impl Tex1D {
     pub fn set_texel(&mut self, r: &mut Renderer, x: i32, red: f32, green: f32, blue: f32, alpha: f32) {
         let this = self.shared.as_ref();
         r.submit(RenderCommand::SetTexel1DByResource {
-            id: this.id,
+            id: this.handle.id(),
             x,
             color: [red, green, blue, alpha],
         });
@@ -154,7 +143,7 @@ impl Tex1D {
     pub fn set_wrap_mode(&mut self, r: &mut Renderer, mode: TexWrapMode) {
         let this = self.shared.as_ref();
         r.submit(RenderCommand::SetTextureWrapModeByResource {
-            id: this.id,
+            id: this.handle.id(),
             mode,
         });
     }

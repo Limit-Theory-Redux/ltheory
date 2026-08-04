@@ -1,6 +1,5 @@
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{Ref, RefMut};
 use std::io::BufReader;
-use std::rc::Rc;
 use std::time::SystemTime;
 
 use glam::{Vec2, Vec3, Vec4};
@@ -10,7 +9,7 @@ use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
 use crate::render::{
-    CmdPrimitiveType, RenderCommand, RenderState, Renderer, ResourceId, Shader, VertexFormat,
+    CmdPrimitiveType, RenderCommand, RenderState, Renderer, ResourceHandle, Shader, VertexFormat,
 };
 use crate::rf::Rf;
 use crate::system::*;
@@ -23,11 +22,10 @@ pub struct Mesh {
 struct MeshShared {
     /// Executor-owned GPU resource, created lazily on first `draw_bind` and
     /// recreated whenever `version` moves past `version_buffers` (mirrors
-    /// the old lazy VAO/VBO/IBO cache-on-first-draw behavior). `new()` has
-    /// no `Renderer` to draw a destroy queue from, so both start `None` and
-    /// are only populated together, the first time `draw_bind` runs.
-    id: Option<ResourceId>,
-    destroy_queue: Option<Rc<RefCell<Vec<ResourceId>>>>,
+    /// the old lazy VAO/VBO/IBO cache-on-first-draw behavior). `new()` has no
+    /// `Renderer` to mint a handle from, so this starts `None` and is only
+    /// populated the first time `draw_bind` runs.
+    handle: Option<ResourceHandle>,
     uuid: u64,
     version: u64,
     version_buffers: u64,
@@ -82,14 +80,6 @@ impl MeshShared {
     }
 }
 
-impl Drop for MeshShared {
-    fn drop(&mut self) {
-        if let (Some(id), Some(destroy_queue)) = (self.id, &self.destroy_queue) {
-            destroy_queue.borrow_mut().push(id);
-        }
-    }
-}
-
 impl Mesh {
     pub fn get_cache_key(&self) -> MeshCacheKey {
         self.shared.as_ref().get_cache_key()
@@ -140,8 +130,7 @@ impl Mesh {
             .as_nanos() as u64;
         Mesh {
             shared: Rf::new(MeshShared {
-                id: None,
-                destroy_queue: None,
+                handle: None,
                 uuid,
                 version: 1,
                 version_buffers: 0,
@@ -373,17 +362,17 @@ impl Mesh {
     pub fn draw_bind(&mut self, r: &mut Renderer) {
         let this = &mut *self.shared.as_mut();
 
-        /* Release the cached GPU resource if the mesh has changed since we built it. */
-        if let Some(id) = this.id {
-            if this.version != this.version_buffers {
-                r.submit(RenderCommand::DestroyResource { id });
-                this.id = None;
-            }
+        /* Release the cached GPU resource if the mesh has changed since we built
+         * it. Dropping the handle enqueues the destroy; it lands at frame end
+         * rather than right now, which is harmless - the replacement below gets
+         * a fresh id, and command order is preserved either way. */
+        if this.handle.is_some() && this.version != this.version_buffers {
+            this.handle = None;
         }
 
         /* Create the cached GPU resource for fast drawing. */
-        if this.id.is_none() {
-            let id = r.next_resource_id();
+        if this.handle.is_none() {
+            let handle = r.create_resource();
 
             #[allow(unsafe_code)] // TODO: refactor
             let vertex_bytes = unsafe {
@@ -396,14 +385,13 @@ impl Mesh {
             let indices: Vec<u32> = this.index.iter().map(|&i| i as u32).collect();
 
             r.submit(RenderCommand::CreateMesh {
-                id,
+                id: handle.id(),
                 vertices: vertex_bytes,
                 indices,
                 vertex_format: VertexFormat::default(),
             });
 
-            this.id = Some(id);
-            this.destroy_queue = Some(r.destroy_queue());
+            this.handle = Some(handle);
             this.version_buffers = this.version;
         }
     }
@@ -417,9 +405,9 @@ impl Mesh {
             this.vertex.len() as u64,
         );
 
-        if let Some(id) = this.id {
+        if let Some(handle) = &this.handle {
             r.submit(RenderCommand::DrawMeshByResource {
-                id,
+                id: handle.id(),
                 index_count: this.index.len() as i32,
                 primitive: CmdPrimitiveType::Triangles,
             });

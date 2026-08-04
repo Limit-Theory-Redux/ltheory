@@ -1,25 +1,25 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicU64, Ordering};
-
+use crossbeam::channel::{Receiver, Sender, unbounded};
 use tracing::{error, info, warn};
 
 use crate::render::thread::{CommandExecutor, CommandReply, process_batch_intern};
 use crate::render::{
     ClipManager, DrawState, RenderBatch, RenderStateIntern, RenderCommand, PrimitiveBuilder, Shader, ShaderVarMap, RenderStats, RenderTargetStack, RenederThreadError,
-    ResourceId, ShaderReloadResult, VpStack,
+    ResourceHandle, ResourceId, ShaderReloadResult, VpStack,
 };
 use crate::window::WindowGlContext;
 
 pub struct Renderer {
     /// Executes commands inline on whichever thread calls `submit`.
     executor: CommandExecutor,
-    /// Global counter for generating unique ResourceIds
-    next_resource_id: AtomicU64,
-    /// Resource IDs whose owning `*Shared` was dropped since the last drain
-    /// (see `Renderer::destroy_queue` on the threaded backend for why this
-    /// indirection exists - `Drop` has no way to reach `&mut Renderer`)
-    destroy_queue: Rc<RefCell<Vec<ResourceId>>>,
+    /// Counter for generating unique ResourceIds. Only ever touched through
+    /// `&mut self`, so a plain integer is enough - no atomic needed.
+    next_resource_id: u64,
+    /// Producer end of the destroy queue, cloned into every `ResourceHandle`
+    /// so a resource's `Drop` can enqueue its id without a `&mut Renderer`.
+    destroy_tx: Sender<ResourceId>,
+    /// Consumer end, owned solely by this `Renderer` and drained once per
+    /// frame in `end_frame_triple_buffered`.
+    destroy_rx: Receiver<ResourceId>,
     /// Command buffer used by the batch API (`begin_batch`/`flush_batch`)
     command_buffer: Vec<RenderCommand>,
     /// Active render batch
@@ -69,10 +69,14 @@ impl Renderer {
 
         info!("Renderer started (immediate mode)");
 
+        // Unbounded: `ResourceHandle::drop` must never block or fail.
+        let (destroy_tx, destroy_rx) = unbounded();
+
         Ok(Self {
             executor,
-            next_resource_id: AtomicU64::new(1),
-            destroy_queue: Rc::new(RefCell::new(Vec::new())),
+            next_resource_id: 1,
+            destroy_tx,
+            destroy_rx,
             command_buffer: vec![],
             active_batch: None,
             viewport: VpStack::new(),
@@ -94,10 +98,13 @@ impl Renderer {
     /// to draw a real `WindowGlContext` from.
     #[cfg(test)]
     pub fn new_headless() -> Self {
+        let (destroy_tx, destroy_rx) = unbounded();
+
         Self {
             executor: CommandExecutor::new(None),
-            next_resource_id: AtomicU64::new(1),
-            destroy_queue: Rc::new(RefCell::new(Vec::new())),
+            next_resource_id: 1,
+            destroy_tx,
+            destroy_rx,
             command_buffer: vec![],
             active_batch: None,
             viewport: VpStack::new(),
@@ -148,21 +155,20 @@ impl Renderer {
         true
     }
 
-    /// Generate a new unique resource ID
-    pub fn next_resource_id(&mut self) -> ResourceId {
-        ResourceId(self.next_resource_id.fetch_add(1, Ordering::Relaxed))
-    }
-
-    /// A handle to the shared destroy queue, to be cloned into a resource
-    /// wrapper (e.g. `Tex2DShared`) at creation time so its `Drop` impl can
-    /// enqueue its `ResourceId` without needing a `Renderer` reference.
-    pub fn destroy_queue(&self) -> Rc<RefCell<Vec<ResourceId>>> {
-        self.destroy_queue.clone()
+    /// Mint a new GPU resource: a unique `ResourceId` bundled with the means
+    /// to destroy it (see `ResourceHandle`). This is the only way to obtain
+    /// either, so a resource can never exist without its destructor wired up.
+    pub fn create_resource(&mut self) -> ResourceHandle {
+        let id = ResourceId(self.next_resource_id);
+        self.next_resource_id += 1;
+        ResourceHandle::new(id, self.destroy_tx.clone())
     }
 
     /// Submit `DestroyResource` for every resource dropped since the last drain.
     fn drain_destroy_queue(&mut self) {
-        let ids: Vec<ResourceId> = self.destroy_queue.borrow_mut().drain(..).collect();
+        // Collect first: the `destroy_rx` borrow has to end before `submit`
+        // takes `&mut self`.
+        let ids: Vec<ResourceId> = self.destroy_rx.try_iter().collect();
         for id in ids {
             self.submit(RenderCommand::DestroyResource { id });
         }

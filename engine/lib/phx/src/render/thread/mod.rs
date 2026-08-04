@@ -8,6 +8,7 @@ mod render_batch;
 mod render_command;
 mod renderer;
 mod renderer_queue;
+mod resource_handle;
 mod shader_reload_result;
 mod ubo;
 
@@ -36,5 +37,6 @@ pub use renderer_immediate::*;
 pub use renderer_queue::*;
 #[cfg(not(feature = "immediate"))]
 pub use renderer_threaded::*;
+pub use resource_handle::*;
 pub use shader_reload_result::*;
 pub use ubo::*;
