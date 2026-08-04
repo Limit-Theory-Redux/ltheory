@@ -34,10 +34,10 @@ function Loader.defineType()
             void    Mesh_AddTri            (Mesh*, int i1, int i2, int i3);
             void    Mesh_AddVertex         (Mesh*, float px, float py, float pz, float nx, float ny, float nz, float u, float v);
             void    Mesh_AddVertexRaw      (Mesh*, Vertex const* vertex);
-            void    Mesh_DrawBind          (Mesh*);
-            void    Mesh_DrawBound         (Mesh const*);
-            void    Mesh_DrawUnbind        (Mesh const*);
-            void    Mesh_Draw              (Mesh*);
+            void    Mesh_DrawBind          (Mesh*, Renderer* r);
+            void    Mesh_DrawBound         (Mesh const*, Renderer* r);
+            void    Mesh_DrawUnbind        (Mesh const*, Renderer* r);
+            void    Mesh_Draw              (Mesh*, Renderer* r);
             void    Mesh_DrawNormals       (Mesh const*, Renderer* r, float scale);
             void    Mesh_GetBound          (Mesh*, Box3f* out);
             void    Mesh_GetCenter         (Mesh*, Vec3f* out);

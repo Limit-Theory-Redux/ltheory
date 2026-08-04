@@ -54,7 +54,7 @@ impl UIRendererLayer {
             panel_shader.start(r);
 
             let pad: f32 = 64.0;
-            panel_shader.set_float("padding", pad);
+            panel_shader.set_float(r, "padding", pad);
 
             let mut panel_id_opt = self.panel_id;
             while let Some(panel_id) = panel_id_opt {
@@ -65,10 +65,11 @@ impl UIRendererLayer {
                 let sx = panel.size.x + 2.0 * pad;
                 let sy = panel.size.y + 2.0 * pad;
 
-                panel_shader.set_float("innerAlpha", panel.inner_alpha);
-                panel_shader.set_float("bevel", panel.bevel);
-                panel_shader.set_float2("size", sx, sy);
+                panel_shader.set_float(r, "innerAlpha", panel.inner_alpha);
+                panel_shader.set_float(r, "bevel", panel.bevel);
+                panel_shader.set_float2(r, "size", sx, sy);
                 panel_shader.set_float4(
+                    r,
                     "color",
                     panel.color.r,
                     panel.color.g,
@@ -90,7 +91,7 @@ impl UIRendererLayer {
 
             image_shader.start(r);
             image_shader.reset_tex_index();
-            image_shader.set_tex2d("image", &image.image);
+            image_shader.set_tex2d(r, "image", &image.image);
             Draw::rect(r, image.pos.x, image.pos.y, image.size.x, image.size.y);
             image_shader.stop();
             image_id_opt = image.next;
@@ -102,6 +103,7 @@ impl UIRendererLayer {
 
             rect_shader.start(r);
             rect_shader.set_float4(
+                r,
                 "color",
                 rect.color.r,
                 rect.color.g,

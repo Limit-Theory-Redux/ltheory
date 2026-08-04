@@ -5,7 +5,7 @@ use tracing::warn;
 
 use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT, TEXT_CTX};
 use crate::input::Input;
-use crate::render::Color;
+use crate::render::{Color, Renderer};
 use crate::rf::Rf;
 use crate::ui::hmgui::HmGuiImageLayout;
 
@@ -190,10 +190,10 @@ impl HmGuiWidget {
         self.calculate_inner_pos_size_dim::<1>();
     }
 
-    pub fn compute_size(&mut self, hmgui: &mut HmGui) {
+    pub fn compute_size(&mut self, hmgui: &mut HmGui, r: &mut Renderer) {
         match &self.item {
             WidgetItem::Container(container) => {
-                self.inner_min_size = container.compute_size(hmgui);
+                self.inner_min_size = container.compute_size(hmgui, r);
 
                 self.min_size = self.calculate_min_size();
 
@@ -201,7 +201,7 @@ impl HmGuiWidget {
                 data.min_size = self.min_size;
             }
             WidgetItem::Text(text_item) => {
-                let size = text_item.font.get_size2(&text_item.text);
+                let size = text_item.font.get_size2(r, &text_item.text);
 
                 self.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
 
@@ -234,7 +234,7 @@ impl HmGuiWidget {
         }
     }
 
-    pub fn layout(&mut self, hmgui: &mut HmGui, input: &Input) {
+    pub fn layout(&mut self, hmgui: &mut HmGui, r: &mut Renderer, input: &Input) {
         self.calculate_inner_pos_size();
 
         let focused = hmgui.in_focus(self);
@@ -246,6 +246,7 @@ impl HmGuiWidget {
 
                 self.inner_size = container.layout(
                     hmgui,
+                    r,
                     input,
                     !is_root && self.alignment[0] == Alignment::Stretch,
                     !is_root && self.alignment[1] == Alignment::Stretch,
@@ -276,6 +277,7 @@ impl HmGuiWidget {
 
                 *image = text_view
                     .update(
+                        r,
                         text_ctx.borrow_mut(),
                         self.inner_size.x,
                         scale_factor,

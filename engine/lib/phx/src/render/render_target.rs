@@ -1,5 +1,5 @@
 use super::{CubeFace, Tex2D, Tex3D, TexCube, TexFormat, gl};
-use crate::render::{GpuHandle, RenderCommand, Renderer, Viewport};
+use crate::render::{RenderCommand, Renderer, Viewport};
 use crate::system::{Metric, Profiler};
 
 pub struct RenderTarget;
@@ -37,13 +37,12 @@ impl RenderTarget {
     }
 
     pub fn bind_tex2d_level(r: &mut Renderer, tex: &Tex2D, level: i32) {
-        let handle = Tex2D::get_handle(tex);
         let attachment = r
             .render_target
             .attach(TexFormat::is_color(Tex2D::get_format(tex)), "BindTex2D");
-        r.submit(RenderCommand::FramebufferAttachTexture2D {
+        r.submit(RenderCommand::FramebufferAttachTexture2DByResource {
             attachment,
-            texture: GpuHandle(handle),
+            id: tex.resource_id(),
             level,
         });
     }
@@ -53,11 +52,10 @@ impl RenderTarget {
     }
 
     pub fn bind_tex3d_level(r: &mut Renderer, tex: &Tex3D, layer: i32, level: i32) {
-        let handle = Tex3D::get_handle(tex);
         let attachment = r.render_target.attach_color("BindTex3D");
-        r.submit(RenderCommand::FramebufferAttachTexture3D {
+        r.submit(RenderCommand::FramebufferAttachTexture3DByResource {
             attachment,
-            texture: GpuHandle(handle),
+            id: tex.resource_id(),
             layer,
             level,
         });
@@ -68,11 +66,10 @@ impl RenderTarget {
     }
 
     pub fn bind_tex_cube_level(r: &mut Renderer, tex: &TexCube, face: CubeFace, level: i32) {
-        let handle = TexCube::get_handle(tex);
         let attachment = r.render_target.attach_color("BindTexCubeLevel");
-        r.submit(RenderCommand::FramebufferAttachTextureCube {
+        r.submit(RenderCommand::FramebufferAttachTextureCubeByResource {
             attachment,
-            texture: GpuHandle(handle),
+            id: tex.resource_id(),
             face: face as u32,
             level,
         });

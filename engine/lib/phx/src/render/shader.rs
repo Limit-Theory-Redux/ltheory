@@ -7,7 +7,7 @@ use super::{ShaderState, ShaderVarData, Tex1D, Tex2D, Tex3D, TexCube, gl};
 use crate::common::c_str;
 use crate::logging::{info, warn};
 use crate::math::Matrix;
-use crate::render::{Renderer, glcheck};
+use crate::render::{RenderCommand, Renderer, glcheck};
 use crate::rf::Rf;
 use crate::system::{Profiler, Resource, ResourceType};
 
@@ -169,14 +169,14 @@ impl Shader {
         }
     }
 
-    pub fn set_uniform(&mut self, name: &str, data: ShaderVarData) {
+    pub fn set_uniform(&mut self, r: &mut Renderer, name: &str, data: ShaderVarData) {
         if let Some(index) = self.get_uniform_index(name) {
-            self.index_set_uniform(index, data);
+            self.index_set_uniform(r, index, data);
         }
     }
 
-    pub fn index_set_uniform(&mut self, index: i32, data: ShaderVarData) {
-        self.shared.as_mut().index_set_uniform(index, data);
+    pub fn index_set_uniform(&mut self, r: &mut Renderer, index: i32, data: ShaderVarData) {
+        self.shared.as_mut().index_set_uniform(r, index, data);
     }
 }
 
@@ -187,15 +187,15 @@ impl ShaderShared {
         self.tex_index
     }
 
-    pub fn index_set_uniform(&mut self, index: i32, data: ShaderVarData) {
+    pub fn index_set_uniform(&mut self, r: &mut Renderer, index: i32, data: ShaderVarData) {
         if self.is_bound {
-            self.apply_uniform(index, &data);
+            self.apply_uniform(r, index, &data);
         } else {
             self.pending_uniforms.push(SetUniformOp { index, data });
         }
     }
 
-    pub fn apply_uniform(&mut self, index: i32, data: &ShaderVarData) {
+    pub fn apply_uniform(&mut self, r: &mut Renderer, index: i32, data: &ShaderVarData) {
         match data {
             ShaderVarData::Float(v) => glcheck!(gl::Uniform1f(index, *v)),
             ShaderVarData::Float2(v) => glcheck!(gl::Uniform2f(index, v.x, v.y)),
@@ -217,33 +217,37 @@ impl ShaderShared {
                 let tex_index = self.next_tex_index();
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
-                glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(gl::TEXTURE_1D, t.get_handle()));
-                glcheck!(gl::ActiveTexture(gl::TEXTURE0));
+                r.submit(RenderCommand::BindTexture1DByResource {
+                    slot: tex_index,
+                    id: t.resource_id(),
+                });
             }
             ShaderVarData::Tex2D(t) => {
                 let tex_index = self.next_tex_index();
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
-                glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(gl::TEXTURE_2D, t.get_handle()));
-                glcheck!(gl::ActiveTexture(gl::TEXTURE0));
+                r.submit(RenderCommand::BindTexture2DByResource {
+                    slot: tex_index,
+                    id: t.resource_id(),
+                });
             }
             ShaderVarData::Tex3D(t) => {
                 let tex_index = self.next_tex_index();
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
-                glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(gl::TEXTURE_3D, t.get_handle()));
-                glcheck!(gl::ActiveTexture(gl::TEXTURE0));
+                r.submit(RenderCommand::BindTexture3DByResource {
+                    slot: tex_index,
+                    id: t.resource_id(),
+                });
             }
             ShaderVarData::TexCube(t) => {
                 let tex_index = self.next_tex_index();
 
                 glcheck!(gl::Uniform1i(index, tex_index as i32));
-                glcheck!(gl::ActiveTexture(gl::TEXTURE0 + tex_index));
-                glcheck!(gl::BindTexture(gl::TEXTURE_CUBE_MAP, t.get_handle(),));
-                glcheck!(gl::ActiveTexture(gl::TEXTURE0));
+                r.submit(RenderCommand::BindTextureCubeByResource {
+                    slot: tex_index,
+                    id: t.resource_id(),
+                });
             }
         }
     }
@@ -367,135 +371,135 @@ impl Shader {
         self.shared.as_mut().tex_index = 0;
     }
 
-    pub fn set_float(&mut self, name: &str, value: f32) {
-        self.set_uniform(name, ShaderVarData::Float(value));
+    pub fn set_float(&mut self, r: &mut Renderer, name: &str, value: f32) {
+        self.set_uniform(r, name, ShaderVarData::Float(value));
     }
 
     #[bind(name = "ISetFloat")]
-    pub fn index_set_float(&mut self, index: i32, value: f32) {
-        self.index_set_uniform(index, ShaderVarData::Float(value));
+    pub fn index_set_float(&mut self, r: &mut Renderer, index: i32, value: f32) {
+        self.index_set_uniform(r, index, ShaderVarData::Float(value));
     }
 
-    pub fn set_float2(&mut self, name: &str, x: f32, y: f32) {
-        self.set_uniform(name, ShaderVarData::Float2(vec2(x, y)));
+    pub fn set_float2(&mut self, r: &mut Renderer, name: &str, x: f32, y: f32) {
+        self.set_uniform(r, name, ShaderVarData::Float2(vec2(x, y)));
     }
 
     #[bind(name = "ISetFloat2")]
-    pub fn index_set_float2(&mut self, index: i32, x: f32, y: f32) {
-        self.index_set_uniform(index, ShaderVarData::Float2(vec2(x, y)));
+    pub fn index_set_float2(&mut self, r: &mut Renderer, index: i32, x: f32, y: f32) {
+        self.index_set_uniform(r, index, ShaderVarData::Float2(vec2(x, y)));
     }
 
-    pub fn set_float3(&mut self, name: &str, x: f32, y: f32, z: f32) {
-        self.set_uniform(name, ShaderVarData::Float3(vec3(x, y, z)));
+    pub fn set_float3(&mut self, r: &mut Renderer, name: &str, x: f32, y: f32, z: f32) {
+        self.set_uniform(r, name, ShaderVarData::Float3(vec3(x, y, z)));
     }
 
     #[bind(name = "ISetFloat3")]
-    pub fn index_set_float3(&mut self, index: i32, x: f32, y: f32, z: f32) {
-        self.index_set_uniform(index, ShaderVarData::Float3(vec3(x, y, z)));
+    pub fn index_set_float3(&mut self, r: &mut Renderer, index: i32, x: f32, y: f32, z: f32) {
+        self.index_set_uniform(r, index, ShaderVarData::Float3(vec3(x, y, z)));
     }
 
-    pub fn set_float4(&mut self, name: &str, x: f32, y: f32, z: f32, w: f32) {
-        self.set_uniform(name, ShaderVarData::Float4(vec4(x, y, z, w)));
+    pub fn set_float4(&mut self, r: &mut Renderer, name: &str, x: f32, y: f32, z: f32, w: f32) {
+        self.set_uniform(r, name, ShaderVarData::Float4(vec4(x, y, z, w)));
     }
 
     #[bind(name = "ISetFloat4")]
-    pub fn index_set_float4(&mut self, index: i32, x: f32, y: f32, z: f32, w: f32) {
-        self.index_set_uniform(index, ShaderVarData::Float4(vec4(x, y, z, w)));
+    pub fn index_set_float4(&mut self, r: &mut Renderer, index: i32, x: f32, y: f32, z: f32, w: f32) {
+        self.index_set_uniform(r, index, ShaderVarData::Float4(vec4(x, y, z, w)));
     }
 
-    pub fn set_int(&mut self, name: &str, value: i32) {
-        self.set_uniform(name, ShaderVarData::Int(value));
+    pub fn set_int(&mut self, r: &mut Renderer, name: &str, value: i32) {
+        self.set_uniform(r, name, ShaderVarData::Int(value));
     }
 
     #[bind(name = "ISetInt")]
-    pub fn index_set_int(&mut self, index: i32, value: i32) {
-        self.index_set_uniform(index, ShaderVarData::Int(value));
+    pub fn index_set_int(&mut self, r: &mut Renderer, index: i32, value: i32) {
+        self.index_set_uniform(r, index, ShaderVarData::Int(value));
     }
 
-    pub fn set_int2(&mut self, name: &str, x: i32, y: i32) {
-        self.set_uniform(name, ShaderVarData::Int2(ivec2(x, y)));
+    pub fn set_int2(&mut self, r: &mut Renderer, name: &str, x: i32, y: i32) {
+        self.set_uniform(r, name, ShaderVarData::Int2(ivec2(x, y)));
     }
 
     #[bind(name = "ISetInt2")]
-    pub fn index_set_int2(&mut self, index: i32, x: i32, y: i32) {
-        self.index_set_uniform(index, ShaderVarData::Int2(ivec2(x, y)));
+    pub fn index_set_int2(&mut self, r: &mut Renderer, index: i32, x: i32, y: i32) {
+        self.index_set_uniform(r, index, ShaderVarData::Int2(ivec2(x, y)));
     }
 
-    pub fn set_int3(&mut self, name: &str, x: i32, y: i32, z: i32) {
-        self.set_uniform(name, ShaderVarData::Int3(ivec3(x, y, z)));
+    pub fn set_int3(&mut self, r: &mut Renderer, name: &str, x: i32, y: i32, z: i32) {
+        self.set_uniform(r, name, ShaderVarData::Int3(ivec3(x, y, z)));
     }
 
     #[bind(name = "ISetInt3")]
-    pub fn index_set_int3(&mut self, index: i32, x: i32, y: i32, z: i32) {
-        self.index_set_uniform(index, ShaderVarData::Int3(ivec3(x, y, z)));
+    pub fn index_set_int3(&mut self, r: &mut Renderer, index: i32, x: i32, y: i32, z: i32) {
+        self.index_set_uniform(r, index, ShaderVarData::Int3(ivec3(x, y, z)));
     }
 
-    pub fn set_int4(&mut self, name: &str, x: i32, y: i32, z: i32, w: i32) {
-        self.set_uniform(name, ShaderVarData::Int4(ivec4(x, y, z, w)));
+    pub fn set_int4(&mut self, r: &mut Renderer, name: &str, x: i32, y: i32, z: i32, w: i32) {
+        self.set_uniform(r, name, ShaderVarData::Int4(ivec4(x, y, z, w)));
     }
 
     #[bind(name = "ISetInt4")]
-    pub fn index_set_int4(&mut self, index: i32, x: i32, y: i32, z: i32, w: i32) {
-        self.index_set_uniform(index, ShaderVarData::Int4(ivec4(x, y, z, w)));
+    pub fn index_set_int4(&mut self, r: &mut Renderer, index: i32, x: i32, y: i32, z: i32, w: i32) {
+        self.index_set_uniform(r, index, ShaderVarData::Int4(ivec4(x, y, z, w)));
     }
 
-    pub fn set_matrix(&mut self, name: &str, value: &Matrix) {
-        self.set_uniform(name, ShaderVarData::Matrix(value.clone()));
+    pub fn set_matrix(&mut self, r: &mut Renderer, name: &str, value: &Matrix) {
+        self.set_uniform(r, name, ShaderVarData::Matrix(value.clone()));
     }
 
     #[bind(name = "ISetMatrix")]
-    pub fn index_set_matrix(&mut self, index: i32, value: &Matrix) {
-        self.index_set_uniform(index, ShaderVarData::Matrix(value.clone()));
+    pub fn index_set_matrix(&mut self, r: &mut Renderer, index: i32, value: &Matrix) {
+        self.index_set_uniform(r, index, ShaderVarData::Matrix(value.clone()));
     }
 
     #[bind(name = "SetMatrixT")]
-    pub fn set_matrix_transpose(&mut self, name: &str, value: &Matrix) {
-        self.set_uniform(name, ShaderVarData::Matrix(value.transpose()));
+    pub fn set_matrix_transpose(&mut self, r: &mut Renderer, name: &str, value: &Matrix) {
+        self.set_uniform(r, name, ShaderVarData::Matrix(value.transpose()));
     }
 
     #[bind(name = "ISetMatrixT")]
-    pub fn index_set_matrix_transpose(&mut self, index: i32, value: &Matrix) {
-        self.index_set_uniform(index, ShaderVarData::Matrix(value.transpose()));
+    pub fn index_set_matrix_transpose(&mut self, r: &mut Renderer, index: i32, value: &Matrix) {
+        self.index_set_uniform(r, index, ShaderVarData::Matrix(value.transpose()));
     }
 
-    pub fn set_tex1d(&mut self, name: &str, value: &mut Tex1D) {
-        self.set_uniform(name, ShaderVarData::Tex1D(value.clone()));
+    pub fn set_tex1d(&mut self, r: &mut Renderer, name: &str, value: &mut Tex1D) {
+        self.set_uniform(r, name, ShaderVarData::Tex1D(value.clone()));
     }
 
     #[bind(name = "ISetTex1D")]
-    pub fn index_set_tex1d(&mut self, index: i32, value: &mut Tex1D) {
-        self.index_set_uniform(index, ShaderVarData::Tex1D(value.clone()));
+    pub fn index_set_tex1d(&mut self, r: &mut Renderer, index: i32, value: &mut Tex1D) {
+        self.index_set_uniform(r, index, ShaderVarData::Tex1D(value.clone()));
     }
 
-    pub fn set_tex2d(&mut self, name: &str, value: &Tex2D) {
-        self.set_uniform(name, ShaderVarData::Tex2D(value.clone()));
+    pub fn set_tex2d(&mut self, r: &mut Renderer, name: &str, value: &Tex2D) {
+        self.set_uniform(r, name, ShaderVarData::Tex2D(value.clone()));
     }
 
     #[bind(name = "ISetTex2D")]
-    pub fn index_set_tex2d(&mut self, index: i32, value: &mut Tex2D) {
-        self.index_set_uniform(index, ShaderVarData::Tex2D(value.clone()));
+    pub fn index_set_tex2d(&mut self, r: &mut Renderer, index: i32, value: &mut Tex2D) {
+        self.index_set_uniform(r, index, ShaderVarData::Tex2D(value.clone()));
     }
 
-    pub fn set_tex3d(&mut self, name: &str, value: &mut Tex3D) {
-        self.set_uniform(name, ShaderVarData::Tex3D(value.clone()));
+    pub fn set_tex3d(&mut self, r: &mut Renderer, name: &str, value: &mut Tex3D) {
+        self.set_uniform(r, name, ShaderVarData::Tex3D(value.clone()));
     }
 
     #[bind(name = "ISetTex3D")]
-    pub fn index_set_tex3d(&mut self, index: i32, value: &mut Tex3D) {
-        self.index_set_uniform(index, ShaderVarData::Tex3D(value.clone()));
+    pub fn index_set_tex3d(&mut self, r: &mut Renderer, index: i32, value: &mut Tex3D) {
+        self.index_set_uniform(r, index, ShaderVarData::Tex3D(value.clone()));
     }
 
-    pub fn set_tex_cube(&mut self, name: &str, value: &mut TexCube) {
-        self.set_uniform(name, ShaderVarData::TexCube(value.clone()));
+    pub fn set_tex_cube(&mut self, r: &mut Renderer, name: &str, value: &mut TexCube) {
+        self.set_uniform(r, name, ShaderVarData::TexCube(value.clone()));
     }
 
     #[bind(name = "ISetTexCube")]
-    pub fn index_set_tex_cube(&mut self, index: i32, value: &mut TexCube) {
-        self.index_set_uniform(index, ShaderVarData::TexCube(value.clone()));
+    pub fn index_set_tex_cube(&mut self, r: &mut Renderer, index: i32, value: &mut TexCube) {
+        self.index_set_uniform(r, index, ShaderVarData::TexCube(value.clone()));
     }
 
     // Singleton based shader functions - Old API.
-    pub fn start(&mut self, r: &Renderer) {
+    pub fn start(&mut self, r: &mut Renderer) {
         Profiler::begin("Shader_Start");
 
         let s = &mut *self.shared.as_mut();
@@ -508,7 +512,7 @@ impl Shader {
 
         // Apply pending uniforms.
         for p in std::mem::take(&mut s.pending_uniforms) {
-            s.apply_uniform(p.index, &p.data);
+            s.apply_uniform(r, p.index, &p.data);
         }
 
         // Fetch and bind automatic variables from the shader var stack.
@@ -535,7 +539,7 @@ impl Shader {
                 continue;
             }
 
-            s.index_set_uniform(s.auto_vars[i].index, shader_var);
+            s.index_set_uniform(r, s.auto_vars[i].index, shader_var);
         }
 
         Profiler::end();

@@ -18,32 +18,31 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void      TexCube_Free         (TexCube*);
-            TexCube*  TexCube_Create       (int size, TexFormat format);
-            TexCube*  TexCube_Load         (cstr path);
+            TexCube*  TexCube_Create       (Renderer* r, int size, TexFormat format);
+            TexCube*  TexCube_Load         (Renderer* r, cstr path);
             void      TexCube_Clear        (TexCube*, Renderer* r, float red, float green, float blue, float alpha);
-            void      TexCube_Save         (TexCube*, cstr path);
-            void      TexCube_SaveLevel    (TexCube*, cstr path, int level);
-            Bytes*    TexCube_GetDataBytes (TexCube*, CubeFace face, int level, TexFormat tf, DataFormat df);
+            void      TexCube_Save         (TexCube*, Renderer* r, cstr path);
+            void      TexCube_SaveLevel    (TexCube*, Renderer* r, cstr path, int level);
+            Bytes*    TexCube_GetDataBytes (TexCube*, Renderer* r, CubeFace face, int level, TexFormat tf, DataFormat df);
             TexFormat TexCube_GetFormat    (TexCube const*);
-            uint32    TexCube_GetHandle    (TexCube const*);
             int       TexCube_GetSize      (TexCube const*);
             void      TexCube_Generate     (TexCube*, Renderer* r, ShaderState* state);
-            void      TexCube_GenMipmap    (TexCube*);
-            void      TexCube_SetDataBytes (TexCube*, Bytes const* data, CubeFace face, int level, TexFormat tf, DataFormat df);
-            void      TexCube_SetMagFilter (TexCube*, TexFilter filter);
-            void      TexCube_SetMinFilter (TexCube*, TexFilter filter);
+            void      TexCube_GenMipmap    (TexCube*, Renderer* r);
+            void      TexCube_SetDataBytes (TexCube*, Renderer* r, Bytes const* data, CubeFace face, int level, TexFormat tf, DataFormat df);
+            void      TexCube_SetMagFilter (TexCube*, Renderer* r, TexFilter filter);
+            void      TexCube_SetMinFilter (TexCube*, Renderer* r, TexFilter filter);
             TexCube*  TexCube_GenIRMap     (TexCube*, Renderer* r, int sampleCount);
         ]]
     end
 
     do -- Global Symbol Table
         TexCube = {
-            Create       = function(size, format)
-                local _instance = libphx.TexCube_Create(size, format)
+            Create       = function(r, size, format)
+                local _instance = libphx.TexCube_Create(r, size, format)
                 return Core.ManagedObject(_instance, libphx.TexCube_Free)
             end,
-            Load         = function(path)
-                local _instance = libphx.TexCube_Load(path)
+            Load         = function(r, path)
+                local _instance = libphx.TexCube_Load(r, path)
                 return Core.ManagedObject(_instance, libphx.TexCube_Free)
             end,
         }
@@ -59,12 +58,11 @@ function Loader.defineType()
                 clear        = libphx.TexCube_Clear,
                 save         = libphx.TexCube_Save,
                 saveLevel    = libphx.TexCube_SaveLevel,
-                getDataBytes = function(self, face, level, tf, df)
-                    local _instance = libphx.TexCube_GetDataBytes(self, face, level, tf, df)
+                getDataBytes = function(self, r, face, level, tf, df)
+                    local _instance = libphx.TexCube_GetDataBytes(self, r, face, level, tf, df)
                     return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
                 getFormat    = libphx.TexCube_GetFormat,
-                getHandle    = libphx.TexCube_GetHandle,
                 getSize      = libphx.TexCube_GetSize,
                 generate     = libphx.TexCube_Generate,
                 genMipmap    = libphx.TexCube_GenMipmap,

@@ -63,7 +63,7 @@ impl Font {
         font_data.name.clone()
     }
 
-    fn get_glyph(&self, code_point: u32) {
+    fn get_glyph(&self, r: &mut Renderer, code_point: u32) {
         let mut font_data = self.0.as_mut();
         let face = font_data.handle;
 
@@ -96,7 +96,7 @@ impl Font {
             let sy = bitmap.rows as i32;
             let mut glyph = Glyph {
                 index: glyph_index as _,
-                tex: Tex2D::new(sx, sy, TexFormat::RGBA8),
+                tex: Tex2D::new(r, sx, sy, TexFormat::RGBA8),
                 x0,
                 y0,
                 sx,
@@ -123,7 +123,7 @@ impl Font {
             /* Upload to texture. */
             glyph
                 .tex
-                .set_data(buffer.as_slice(), PixelFormat::RGBA, DataFormat::Float);
+                .set_data(r, buffer.as_slice(), PixelFormat::RGBA, DataFormat::Float);
 
             /* Add to glyph cache. */
             e.insert(glyph);
@@ -198,12 +198,12 @@ impl Font {
             .as_ref()
             .shader
             .borrow_mut()
-            .set_float4("color", color.r, color.g, color.b, color.a);
+            .set_float4(r, "color", color.r, color.g, color.b, color.a);
 
         for c in text.chars() {
             let code_point = c as u32;
 
-            self.get_glyph(code_point);
+            self.get_glyph(r, code_point);
 
             let font_data = self.0.as_ref();
 
@@ -222,7 +222,7 @@ impl Font {
                 let ys = glyph.sy as f32;
 
                 shader.reset_tex_index();
-                shader.set_tex2d("glyph", &glyph.tex);
+                shader.set_tex2d(r, "glyph", &glyph.tex);
 
                 Draw::rect_ex(r, x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
 
@@ -244,7 +244,7 @@ impl Font {
         unsafe { ((*(*font_data.handle).size).metrics.height >> 6) as _ }
     }
 
-    pub fn get_size(&self, text: &str, out: &mut IVec4) {
+    pub fn get_size(&self, r: &mut Renderer, text: &str, out: &mut IVec4) {
         Profiler::begin("Font_GetSize");
 
         let mut x = 0;
@@ -260,7 +260,7 @@ impl Font {
             for c in text.chars() {
                 let code_point = c as u32;
 
-                self.get_glyph(code_point);
+                self.get_glyph(r, code_point);
 
                 let mut font_data = self.0.as_mut();
                 let face = font_data.handle;
@@ -299,7 +299,7 @@ impl Font {
     //           pos.y - (size.y + bound.y) / 2
     //
 
-    pub fn get_size2(&self, text: &str) -> IVec2 {
+    pub fn get_size2(&self, r: &mut Renderer, text: &str) -> IVec2 {
         Profiler::begin("Font_GetSize2");
 
         let mut res = IVec2::ZERO;
@@ -307,7 +307,7 @@ impl Font {
 
         for c in text.chars() {
             let code_point = c as u32;
-            self.get_glyph(code_point);
+            self.get_glyph(r, code_point);
 
             let mut font_data = self.0.as_mut();
             let face = font_data.handle;

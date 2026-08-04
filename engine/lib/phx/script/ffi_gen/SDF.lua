@@ -19,7 +19,7 @@ function Loader.defineType()
         ffi.cdef [[
             void  SDF_Free           (SDF*);
             SDF*  SDF_Create         (int sx, int sy, int sz);
-            SDF*  SDF_FromTex3D      (Tex3D* tex);
+            SDF*  SDF_FromTex3D      (Renderer* r, Tex3D* tex);
             Mesh* SDF_ToMesh         (SDF const*);
             void  SDF_Clear          (SDF*, float value);
             void  SDF_ComputeNormals (SDF*);
@@ -34,8 +34,8 @@ function Loader.defineType()
                 local _instance = libphx.SDF_Create(sx, sy, sz)
                 return Core.ManagedObject(_instance, libphx.SDF_Free)
             end,
-            FromTex3D      = function(tex)
-                local _instance = libphx.SDF_FromTex3D(tex)
+            FromTex3D      = function(r, tex)
+                local _instance = libphx.SDF_FromTex3D(r, tex)
                 return Core.ManagedObject(_instance, libphx.SDF_Free)
             end,
         }

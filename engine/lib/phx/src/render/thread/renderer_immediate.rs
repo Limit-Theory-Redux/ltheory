@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use tracing::{error, info, warn};
@@ -14,6 +16,10 @@ pub struct Renderer {
     executor: CommandExecutor,
     /// Global counter for generating unique ResourceIds
     next_resource_id: AtomicU64,
+    /// Resource IDs whose owning `*Shared` was dropped since the last drain
+    /// (see `Renderer::destroy_queue` on the threaded backend for why this
+    /// indirection exists - `Drop` has no way to reach `&mut Renderer`)
+    destroy_queue: Rc<RefCell<Vec<ResourceId>>>,
     /// Command buffer used by the batch API (`begin_batch`/`flush_batch`)
     command_buffer: Vec<RenderCommand>,
     /// Active render batch
@@ -66,6 +72,7 @@ impl Renderer {
         Ok(Self {
             executor,
             next_resource_id: AtomicU64::new(1),
+            destroy_queue: Rc::new(RefCell::new(Vec::new())),
             command_buffer: vec![],
             active_batch: None,
             viewport: VpStack::new(),
@@ -79,6 +86,31 @@ impl Renderer {
             occlusion_shader: None,
             irmap_shader: None,
         })
+    }
+
+    /// A `Renderer` with no GL context at all - every command becomes a
+    /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
+    /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
+    /// to draw a real `WindowGlContext` from.
+    #[cfg(test)]
+    pub fn new_headless() -> Self {
+        Self {
+            executor: CommandExecutor::new(None),
+            next_resource_id: AtomicU64::new(1),
+            destroy_queue: Rc::new(RefCell::new(Vec::new())),
+            command_buffer: vec![],
+            active_batch: None,
+            viewport: VpStack::new(),
+            render_target: RenderTargetStack::new(),
+            clip_rect: ClipManager::new(),
+            render_state: RenderStateIntern::new(),
+            imm: PrimitiveBuilder::new(),
+            draw_state: DrawState::new(),
+            shader_vars: ShaderVarMap::new(),
+            ao_shader: None,
+            occlusion_shader: None,
+            irmap_shader: None,
+        }
     }
 
     pub fn stop(mut self) -> Option<WindowGlContext> {
@@ -121,8 +153,24 @@ impl Renderer {
         ResourceId(self.next_resource_id.fetch_add(1, Ordering::Relaxed))
     }
 
+    /// A handle to the shared destroy queue, to be cloned into a resource
+    /// wrapper (e.g. `Tex2DShared`) at creation time so its `Drop` impl can
+    /// enqueue its `ResourceId` without needing a `Renderer` reference.
+    pub fn destroy_queue(&self) -> Rc<RefCell<Vec<ResourceId>>> {
+        self.destroy_queue.clone()
+    }
+
+    /// Submit `DestroyResource` for every resource dropped since the last drain.
+    fn drain_destroy_queue(&mut self) {
+        let ids: Vec<ResourceId> = self.destroy_queue.borrow_mut().drain(..).collect();
+        for id in ids {
+            self.submit(RenderCommand::DestroyResource { id });
+        }
+    }
+
     /// Immediate mode has no frame queue to pace against - just swap.
     pub fn end_frame_triple_buffered(&mut self) {
+        self.drain_destroy_queue();
         self.submit(RenderCommand::SwapBuffers);
     }
 

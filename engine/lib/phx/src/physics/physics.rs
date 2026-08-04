@@ -504,7 +504,7 @@ impl rp::DebugRenderBackend for RapierDebugRenderer<'_> {
         }
 
         // Green wireframe
-        self.shader.set_float4("color", 0.0, 1.0, 0.3, 0.8);
+        self.shader.set_float4(self.r, "color", 0.0, 1.0, 0.3, 0.8);
         Draw::line3(
             self.r,
             &Position::from_na_point(&start).relative_to(self.eye),

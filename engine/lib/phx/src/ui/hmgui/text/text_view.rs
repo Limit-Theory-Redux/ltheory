@@ -2,7 +2,7 @@ use glam::Vec2;
 
 use super::{TextContext, TextData};
 use crate::input::Input;
-use crate::render::Tex2D;
+use crate::render::{Renderer, Tex2D};
 
 /// Contains text data and rendered text texture.
 pub struct TextView {
@@ -57,6 +57,7 @@ impl TextView {
     /// Rerender text texture if any changes happened.
     pub fn update(
         &mut self,
+        r: &mut Renderer,
         text_ctx: &mut TextContext,
         width: f32,
         scale_factor: f32,
@@ -66,6 +67,7 @@ impl TextView {
         clipboard: &mut String,
     ) -> Option<&Tex2D> {
         let tex = self.data.render(
+            r,
             text_ctx,
             width,
             scale_factor,

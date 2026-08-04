@@ -21,7 +21,7 @@ function Loader.defineType()
             LodMesh* LodMesh_Create ();
             LodMesh* LodMesh_Clone  (LodMesh const*);
             void     LodMesh_Add    (LodMesh*, Mesh* mesh, float distanceMin, float distanceMax);
-            void     LodMesh_Draw   (LodMesh*, float distanceSquared);
+            void     LodMesh_Draw   (LodMesh*, Renderer* r, float distanceSquared);
             Mesh*    LodMesh_Get    (LodMesh*, float distanceSquared);
         ]]
     end

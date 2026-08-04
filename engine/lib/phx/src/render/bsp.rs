@@ -729,7 +729,7 @@ impl Bsp {
         } else {
             self.shader.start(r);
             self.shader
-                .set_float4("color", color.r, color.g, color.b, color.a);
+                .set_float4(r, "color", color.r, color.g, color.b, color.a);
             let leaf_index = -node_ref.index;
             for i in 0..node_ref.triangle_count {
                 let triangle = &self.triangles[leaf_index as usize + i as usize];
@@ -765,9 +765,9 @@ impl Bsp {
             let closest_point = origin - (node.plane.n * t);
             RenderState::push_wireframe(r, false);
             self.shader.start(r);
-            self.shader.set_float4("color", 0.3, 0.5, 0.3, 0.4);
+            self.shader.set_float4(r, "color", 0.3, 0.5, 0.3, 0.4);
             Draw::plane(r, &closest_point, &node.plane.n, 2.0);
-            self.shader.set_float4("color", 0.5, 0.3, 0.3, 0.4);
+            self.shader.set_float4(r, "color", 0.5, 0.3, 0.3, 0.4);
             let neg: Vec3 = node.plane.n * -1.0;
             Draw::plane(r, &closest_point, &neg, 2.0);
             self.shader.stop();
@@ -790,14 +790,14 @@ impl Bsp {
 
         self.shader.start(r);
         if self.intersect_line_segment(line_segment, &mut p_hit) {
-            self.shader.set_float4("color", 0.0, 1.0, 0.0, 0.1);
+            self.shader.set_float4(r, "color", 0.0, 1.0, 0.0, 0.1);
             Draw::line3(
                 r,
                 &(*line_segment).p0.relative_to(*eye),
                 &Position::from_vec(p_hit).relative_to(*eye),
             );
 
-            self.shader.set_float4("color", 1.0, 0.0, 0.0, 1.0);
+            self.shader.set_float4(r, "color", 1.0, 0.0, 0.0, 1.0);
             Draw::line3(
                 r,
                 &Position::from_vec(p_hit).relative_to(*eye),
@@ -807,7 +807,7 @@ impl Bsp {
             Draw::point_size(r, 5.0);
             Draw::point3(r, p_hit.x, p_hit.y, p_hit.z);
         } else {
-            self.shader.set_float4("color", 0.0, 1.0, 0.0, 1.0);
+            self.shader.set_float4(r, "color", 0.0, 1.0, 0.0, 1.0);
             Draw::line3(
                 r,
                 &(*line_segment).p0.relative_to(*eye),
@@ -823,11 +823,11 @@ impl Bsp {
         self.shader.start(r);
         if self.intersect_sphere(sphere, &mut p_hit) {
             RenderState::push_wireframe(r, false);
-            self.shader.set_float4("color", 1.0, 0.0, 0.0, 0.3);
+            self.shader.set_float4(r, "color", 1.0, 0.0, 0.0, 0.3);
             Draw::sphere(r, &sphere.p, sphere.r);
             RenderState::pop_wireframe(r);
 
-            self.shader.set_float4("color", 1.0, 0.0, 0.0, 1.0);
+            self.shader.set_float4(r, "color", 1.0, 0.0, 0.0, 1.0);
             Draw::sphere(r, &sphere.p, sphere.r);
 
             RenderState::push_depth_test(r, false);
@@ -836,11 +836,11 @@ impl Bsp {
             RenderState::pop_depth_test(r);
         } else {
             RenderState::push_wireframe(r, false);
-            self.shader.set_float4("color", 0.0, 1.0, 0.0, 0.3);
+            self.shader.set_float4(r, "color", 0.0, 1.0, 0.0, 0.3);
             Draw::sphere(r, &sphere.p, sphere.r);
             RenderState::pop_wireframe(r);
 
-            self.shader.set_float4("color", 0.0, 1.0, 0.0, 1.0);
+            self.shader.set_float4(r, "color", 0.0, 1.0, 0.0, 1.0);
             Draw::sphere(r, &sphere.p, sphere.r);
         };
         self.shader.stop();

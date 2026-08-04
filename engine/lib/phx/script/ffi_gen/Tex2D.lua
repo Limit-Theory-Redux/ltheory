@@ -18,41 +18,40 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void      Tex2D_Free          (Tex2D*);
-            Tex2D*    Tex2D_Create        (int sx, int sy, TexFormat format);
-            Tex2D*    Tex2D_Load          (cstr name);
+            Tex2D*    Tex2D_Create        (Renderer* r, int sx, int sy, TexFormat format);
+            Tex2D*    Tex2D_Load          (Renderer* r, cstr name);
             Tex2D*    Tex2D_Clone         (Tex2D const*);
-            Tex2D*    Tex2D_ScreenCapture (Renderer const* r);
-            void      Tex2D_Save          (Tex2D*, cstr path);
+            Tex2D*    Tex2D_ScreenCapture (Renderer* r);
+            void      Tex2D_Save          (Tex2D*, Renderer* r, cstr path);
             void      Tex2D_Pop           (Tex2D const*, Renderer* r);
             void      Tex2D_Push          (Tex2D const*, Renderer* r);
             void      Tex2D_PushLevel     (Tex2D*, Renderer* r, int level);
             void      Tex2D_Clear         (Tex2D*, Renderer* r, float red, float green, float blue, float alpha);
             Tex2D*    Tex2D_DeepClone     (Tex2D*, Renderer* r);
-            void      Tex2D_GenMipmap     (Tex2D*);
-            Bytes*    Tex2D_GetDataBytes  (Tex2D const*, PixelFormat pf, DataFormat df);
+            void      Tex2D_GenMipmap     (Tex2D*, Renderer* r);
+            Bytes*    Tex2D_GetDataBytes  (Tex2D const*, Renderer* r, PixelFormat pf, DataFormat df);
             TexFormat Tex2D_GetFormat     (Tex2D const*);
-            uint32    Tex2D_GetHandle     (Tex2D const*);
             Vec2i     Tex2D_GetSize       (Tex2D const*);
             Vec2i     Tex2D_GetSizeLevel  (Tex2D const*, int level);
-            void      Tex2D_SetAnisotropy (Tex2D*, float factor);
-            void      Tex2D_SetDataBytes  (Tex2D*, Bytes const* data, PixelFormat pf, DataFormat df);
-            void      Tex2D_SetMagFilter  (Tex2D*, TexFilter filter);
-            void      Tex2D_SetMinFilter  (Tex2D*, TexFilter filter);
-            void      Tex2D_SetMipRange   (Tex2D*, int minLevel, int maxLevel);
-            void      Tex2D_SetTexel      (Tex2D*, int x, int y, float r, float g, float b, float a);
-            void      Tex2D_SetWrapMode   (Tex2D*, TexWrapMode mode);
-            Vec3f     Tex2D_Sample        (Tex2D const*, int x, int y);
+            void      Tex2D_SetAnisotropy (Tex2D*, Renderer* r, float factor);
+            void      Tex2D_SetDataBytes  (Tex2D*, Renderer* r, Bytes const* data, PixelFormat pf, DataFormat df);
+            void      Tex2D_SetMagFilter  (Tex2D*, Renderer* r, TexFilter filter);
+            void      Tex2D_SetMinFilter  (Tex2D*, Renderer* r, TexFilter filter);
+            void      Tex2D_SetMipRange   (Tex2D*, Renderer* r, int minLevel, int maxLevel);
+            void      Tex2D_SetTexel      (Tex2D*, Renderer* r, int x, int y, float red, float green, float blue, float alpha);
+            void      Tex2D_SetWrapMode   (Tex2D*, Renderer* r, TexWrapMode mode);
+            Vec3f     Tex2D_Sample        (Tex2D const*, Renderer* r, int x, int y);
         ]]
     end
 
     do -- Global Symbol Table
         Tex2D = {
-            Create        = function(sx, sy, format)
-                local _instance = libphx.Tex2D_Create(sx, sy, format)
+            Create        = function(r, sx, sy, format)
+                local _instance = libphx.Tex2D_Create(r, sx, sy, format)
                 return Core.ManagedObject(_instance, libphx.Tex2D_Free)
             end,
-            Load          = function(name)
-                local _instance = libphx.Tex2D_Load(name)
+            Load          = function(r, name)
+                local _instance = libphx.Tex2D_Load(r, name)
                 return Core.ManagedObject(_instance, libphx.Tex2D_Free)
             end,
             ScreenCapture = function(r)
@@ -83,12 +82,11 @@ function Loader.defineType()
                     return Core.ManagedObject(_instance, libphx.Tex2D_Free)
                 end,
                 genMipmap     = libphx.Tex2D_GenMipmap,
-                getDataBytes  = function(self, pf, df)
-                    local _instance = libphx.Tex2D_GetDataBytes(self, pf, df)
+                getDataBytes  = function(self, r, pf, df)
+                    local _instance = libphx.Tex2D_GetDataBytes(self, r, pf, df)
                     return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
                 getFormat     = libphx.Tex2D_GetFormat,
-                getHandle     = libphx.Tex2D_GetHandle,
                 getSize       = libphx.Tex2D_GetSize,
                 getSizeLevel  = libphx.Tex2D_GetSizeLevel,
                 setAnisotropy = libphx.Tex2D_SetAnisotropy,

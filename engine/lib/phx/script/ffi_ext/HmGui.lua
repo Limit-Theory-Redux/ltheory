@@ -1,8 +1,11 @@
 local libphx = require('libphx').lib
 
 function onDef_HmGui_t(t, mt)
+    -- Now takes the current Renderer as an explicit argument (see
+    -- ai/multithreaded_rendering.md); inject the global `Renderer` set by
+    -- SetEngine so call sites don't change.
     mt.__index.endGui = function(self)
-        libphx.HmGui_EndGui(self, Input)
+        libphx.HmGui_EndGui(self, Renderer, Input)
     end
 
     -- Now takes the current Renderer as an explicit argument (see

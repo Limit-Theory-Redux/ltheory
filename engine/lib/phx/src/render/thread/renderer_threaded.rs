@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread::{self, JoinHandle};
@@ -44,6 +46,12 @@ pub struct Renderer {
     command_buffer: Vec<RenderCommand>,
     /// Global counter for generating unique ResourceIds
     next_resource_id: AtomicU64,
+    /// Resource IDs whose owning `*Shared` was dropped since the last drain.
+    /// Cloned into every executor-owned resource wrapper at creation time
+    /// (see `Renderer::destroy_queue`) since `Drop` has no way to reach
+    /// `&mut Renderer` to submit a `DestroyResource` command directly.
+    /// Drained once per frame in `end_frame_triple_buffered`.
+    destroy_queue: Rc<RefCell<Vec<ResourceId>>>,
     /// Active render batch
     pub(super) active_batch: Option<RenderBatch>,
     /// Viewport stack (was `thread_local! VP_STACK` in viewport.rs)
@@ -131,6 +139,7 @@ impl Renderer {
             main_thread_wait_us: 0,
             command_buffer: vec![],
             next_resource_id: AtomicU64::new(1),
+            destroy_queue: Rc::new(RefCell::new(Vec::new())),
             active_batch: None,
             viewport: VpStack::new(),
             render_target: RenderTargetStack::new(),
@@ -226,6 +235,21 @@ impl Renderer {
         ResourceId(self.next_resource_id.fetch_add(1, Ordering::Relaxed))
     }
 
+    /// A handle to the shared destroy queue, to be cloned into a resource
+    /// wrapper (e.g. `Tex2DShared`) at creation time so its `Drop` impl can
+    /// enqueue its `ResourceId` without needing a `Renderer` reference.
+    pub fn destroy_queue(&self) -> Rc<RefCell<Vec<ResourceId>>> {
+        self.destroy_queue.clone()
+    }
+
+    /// Submit `DestroyResource` for every resource dropped since the last drain.
+    fn drain_destroy_queue(&mut self) {
+        let ids: Vec<ResourceId> = self.destroy_queue.borrow_mut().drain(..).collect();
+        for id in ids {
+            self.submit(RenderCommand::DestroyResource { id });
+        }
+    }
+
     /// End the current frame with triple buffering.
     /// Submits SwapBuffers and fence, blocks only if MAX_FRAMES_IN_FLIGHT are queued.
     /// Uses fence channel for proper synchronization when throttling is needed.
@@ -233,6 +257,8 @@ impl Renderer {
         if !self.running.load(Ordering::Relaxed) {
             return;
         }
+
+        self.drain_destroy_queue();
 
         // Track ALL time spent in this function (includes channel blocking)
         let frame_end_start = std::time::Instant::now();

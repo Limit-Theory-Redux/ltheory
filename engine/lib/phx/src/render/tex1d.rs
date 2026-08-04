@@ -1,5 +1,10 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crossbeam::channel::bounded;
+
 use super::{DataFormat, PixelFormat, TexFilter, TexFormat, TexWrapMode};
-use crate::render::{gl, glcheck};
+use crate::render::{RenderCommand, Renderer, ResourceId};
 use crate::rf::Rf;
 use crate::system::Bytes;
 
@@ -9,41 +14,24 @@ pub struct Tex1D {
 }
 
 struct Tex1DShared {
-    handle: u32,
+    id: ResourceId,
     size: i32,
     format: TexFormat,
+    destroy_queue: Rc<RefCell<Vec<ResourceId>>>,
 }
 
 impl Drop for Tex1DShared {
     fn drop(&mut self) {
-        if self.handle != 0 {
-            glcheck!(gl::DeleteTextures(1, &self.handle));
-        }
-    }
-}
-
-impl Tex1DShared {
-    fn init(&self) {
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_1D,
-            gl::TEXTURE_MAG_FILTER,
-            gl::NEAREST as i32
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_1D,
-            gl::TEXTURE_MIN_FILTER,
-            gl::NEAREST as i32
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_1D,
-            gl::TEXTURE_WRAP_S,
-            gl::CLAMP_TO_EDGE as i32
-        ));
+        self.destroy_queue.borrow_mut().push(self.id);
     }
 }
 
 impl Tex1D {
-    pub fn get_data<T: Clone + Default>(&self, pf: PixelFormat, df: DataFormat) -> Vec<T> {
+    pub fn resource_id(&self) -> ResourceId {
+        self.shared.as_ref().id
+    }
+
+    pub fn get_data<T: Clone + Default>(&self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Vec<T> {
         let this = self.shared.as_ref();
 
         let mut size = this.size;
@@ -51,72 +39,61 @@ impl Tex1D {
         size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
+        let (tx, rx) = bounded(1);
+        r.submit(RenderCommand::ReadTexture1DData {
+            id: this.id,
+            pixel_format: pf as u32,
+            data_format: df as u32,
+            reply_tx: tx,
+        });
+        let bytes = rx.recv().unwrap_or_default();
+
         let mut data = vec![T::default(); size as usize];
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::GetTexImage(
-            gl::TEXTURE_1D,
-            0,
-            pf as gl::types::GLenum,
-            df as gl::types::GLenum,
-            data.as_mut_ptr() as *mut _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+        let byte_len = (data.len() * std::mem::size_of::<T>()).min(bytes.len());
+        #[allow(unsafe_code)] // TODO: refactor
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), data.as_mut_ptr() as *mut u8, byte_len);
+        }
 
         data
     }
 
-    pub fn set_data<T>(&mut self, data: &[T], pf: PixelFormat, df: DataFormat) {
+    pub fn set_data<T>(&mut self, r: &mut Renderer, data: &[T], pf: PixelFormat, df: DataFormat) {
         let this = self.shared.as_ref();
+        let byte_len = std::mem::size_of_val(data);
+        #[allow(unsafe_code)] // TODO: refactor
+        let bytes = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, byte_len) };
 
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::TexImage1D(
-            gl::TEXTURE_1D,
-            0,
-            this.format as _,
-            this.size,
-            0,
-            pf as gl::types::GLenum,
-            df as gl::types::GLenum,
-            data.as_ptr() as *const _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+        r.submit(RenderCommand::UpdateTexture1DDataByResource {
+            id: this.id,
+            width: this.size,
+            internal_format: this.format as i32,
+            pixel_format: pf as u32,
+            data_format: df as u32,
+            data: bytes.to_vec(),
+        });
     }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Tex1D {
     #[bind(name = "Create")]
-    pub fn new(size: i32, format: TexFormat) -> Tex1D {
-        let mut this = Tex1DShared {
-            handle: 0,
-            size,
+    pub fn new(r: &mut Renderer, size: i32, format: TexFormat) -> Tex1D {
+        let id = r.next_resource_id();
+        r.submit(RenderCommand::CreateTexture1D {
+            id,
+            width: size as u32,
             format,
-        };
-
-        glcheck!(gl::GenTextures(1, &mut this.handle));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::TexImage1D(
-            gl::TEXTURE_1D,
-            0,
-            format as _,
-            size,
-            0,
-            (if TexFormat::is_color(format) as i32 != 0 {
-                gl::RED
-            } else {
-                gl::DEPTH_COMPONENT
-            }) as gl::types::GLenum,
-            gl::UNSIGNED_BYTE,
-            std::ptr::null(),
-        ));
-
-        this.init();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+            data: None,
+        });
 
         Tex1D {
-            shared: Rf::new(this),
+            shared: Rf::new(Tex1DShared {
+                id,
+                size,
+                format,
+                destroy_queue: r.destroy_queue(),
+            }),
         }
     }
 
@@ -126,27 +103,18 @@ impl Tex1D {
         self.clone()
     }
 
-    pub fn gen_mipmap(&mut self) {
+    pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::GenerateMipmap(gl::TEXTURE_1D));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+        r.submit(RenderCommand::GenerateMipmapByResource { id: this.id });
     }
 
     pub fn get_format(&mut self) -> TexFormat {
         let this = self.shared.as_ref();
-
         this.format
     }
 
-    pub fn get_data_bytes(&mut self, pf: PixelFormat, df: DataFormat) -> Bytes {
-        Bytes::from_vec(self.get_data(pf, df))
-    }
-
-    pub fn get_handle(&self) -> u32 {
-        let this = self.shared.as_ref();
-        this.handle
+    pub fn get_data_bytes(&mut self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Bytes {
+        Bytes::from_vec(self.get_data(r, pf, df))
     }
 
     pub fn get_size(&self) -> u32 {
@@ -154,61 +122,40 @@ impl Tex1D {
         this.size as u32
     }
 
-    pub fn set_data_bytes(&mut self, data: &Bytes, pf: PixelFormat, df: DataFormat) {
-        self.set_data(data.as_slice(), pf, df);
+    pub fn set_data_bytes(&mut self, r: &mut Renderer, data: &Bytes, pf: PixelFormat, df: DataFormat) {
+        self.set_data(r, data.as_slice(), pf, df);
     }
 
-    pub fn set_mag_filter(&mut self, filter: TexFilter) {
+    pub fn set_mag_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_1D,
-            gl::TEXTURE_MAG_FILTER,
-            filter as _
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+        r.submit(RenderCommand::SetTextureMagFilterByResource {
+            id: this.id,
+            filter,
+        });
     }
 
-    pub fn set_min_filter(&mut self, filter: TexFilter) {
+    pub fn set_min_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_1D,
-            gl::TEXTURE_MIN_FILTER,
-            filter as _
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+        r.submit(RenderCommand::SetTextureMinFilterByResource {
+            id: this.id,
+            filter,
+        });
     }
 
-    pub fn set_texel(&mut self, x: i32, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_texel(&mut self, r: &mut Renderer, x: i32, red: f32, green: f32, blue: f32, alpha: f32) {
         let this = self.shared.as_ref();
-
-        let mut rgba: [f32; 4] = [r, g, b, a];
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::TexSubImage1D(
-            gl::TEXTURE_1D,
-            0,
+        r.submit(RenderCommand::SetTexel1DByResource {
+            id: this.id,
             x,
-            1,
-            gl::RGBA,
-            gl::FLOAT,
-            rgba.as_mut_ptr() as *const _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+            color: [red, green, blue, alpha],
+        });
     }
 
-    pub fn set_wrap_mode(&mut self, mode: TexWrapMode) {
+    pub fn set_wrap_mode(&mut self, r: &mut Renderer, mode: TexWrapMode) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, this.handle));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_1D,
-            gl::TEXTURE_WRAP_S,
-            mode as _
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_1D, 0));
+        r.submit(RenderCommand::SetTextureWrapModeByResource {
+            id: this.id,
+            mode,
+        });
     }
 }

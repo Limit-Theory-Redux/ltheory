@@ -1,7 +1,11 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crossbeam::channel::bounded;
 use glam::IVec3;
 
 use super::{DataFormat, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
-use crate::render::{Renderer, gl, glcheck};
+use crate::render::{RenderCommand, Renderer, ResourceId};
 use crate::rf::Rf;
 use crate::system::Bytes;
 
@@ -11,51 +15,24 @@ pub struct Tex3D {
 }
 
 struct Tex3DShared {
-    handle: u32,
+    id: ResourceId,
     size: IVec3,
     format: TexFormat,
+    destroy_queue: Rc<RefCell<Vec<ResourceId>>>,
 }
 
 impl Drop for Tex3DShared {
     fn drop(&mut self) {
-        if self.handle != 0 {
-            glcheck!(gl::DeleteTextures(1, &self.handle));
-        }
-    }
-}
-
-impl Tex3DShared {
-    fn init(&self) {
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_3D,
-            gl::TEXTURE_MAG_FILTER,
-            gl::NEAREST as i32
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_3D,
-            gl::TEXTURE_MIN_FILTER,
-            gl::NEAREST as i32
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_3D,
-            gl::TEXTURE_WRAP_S,
-            gl::CLAMP_TO_EDGE as i32
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_3D,
-            gl::TEXTURE_WRAP_T,
-            gl::CLAMP_TO_EDGE as i32
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_3D,
-            gl::TEXTURE_WRAP_R,
-            gl::CLAMP_TO_EDGE as i32
-        ));
+        self.destroy_queue.borrow_mut().push(self.id);
     }
 }
 
 impl Tex3D {
-    pub fn get_data<T: Clone + Default>(&self, pf: PixelFormat, df: DataFormat) -> Vec<T> {
+    pub fn resource_id(&self) -> ResourceId {
+        self.shared.as_ref().id
+    }
+
+    pub fn get_data<T: Clone + Default>(&self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Vec<T> {
         let this = self.shared.as_ref();
 
         let mut size = this.size.x * this.size.y * this.size.z;
@@ -63,76 +40,69 @@ impl Tex3D {
         size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
+        let (tx, rx) = bounded(1);
+        r.submit(RenderCommand::ReadTexture3DData {
+            id: this.id,
+            pixel_format: pf as u32,
+            data_format: df as u32,
+            reply_tx: tx,
+        });
+        let bytes = rx.recv().unwrap_or_default();
+
         let mut data = vec![T::default(); size as usize];
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
-        glcheck!(gl::GetTexImage(
-            gl::TEXTURE_3D,
-            0,
-            pf as gl::types::GLenum,
-            df as gl::types::GLenum,
-            data.as_mut_ptr() as *mut _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
+        let byte_len = (data.len() * std::mem::size_of::<T>()).min(bytes.len());
+        #[allow(unsafe_code)] // TODO: refactor
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), data.as_mut_ptr() as *mut u8, byte_len);
+        }
 
         data
     }
 
-    pub fn set_data<T>(&mut self, data: &[T], pf: PixelFormat, df: DataFormat) {
+    pub fn set_data<T>(&mut self, r: &mut Renderer, data: &[T], pf: PixelFormat, df: DataFormat) {
         let this = self.shared.as_ref();
+        let byte_len = std::mem::size_of_val(data);
+        #[allow(unsafe_code)] // TODO: refactor
+        let bytes = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, byte_len) };
 
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
-        glcheck!(gl::TexImage3D(
-            gl::TEXTURE_3D,
-            0,
-            this.format as _,
-            this.size.x,
-            this.size.y,
-            this.size.z,
-            0,
-            pf as gl::types::GLenum,
-            df as gl::types::GLenum,
-            data.as_ptr() as *const _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
+        r.submit(RenderCommand::UpdateTexture3DDataByResource {
+            id: this.id,
+            width: this.size.x,
+            height: this.size.y,
+            depth: this.size.z,
+            internal_format: this.format as i32,
+            pixel_format: pf as u32,
+            data_format: df as u32,
+            data: bytes.to_vec(),
+        });
     }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Tex3D {
     #[bind(name = "Create")]
-    pub fn new(sx: i32, sy: i32, sz: i32, format: TexFormat) -> Tex3D {
+    pub fn new(r: &mut Renderer, sx: i32, sy: i32, sz: i32, format: TexFormat) -> Tex3D {
         if TexFormat::is_depth(format) {
             panic!("Cannot create 3D texture with depth format");
         }
 
-        let mut this = Tex3DShared {
-            handle: 0,
-            size: IVec3::new(sx, sy, sz),
+        let id = r.next_resource_id();
+        r.submit(RenderCommand::CreateTexture3D {
+            id,
+            width: sx as u32,
+            height: sy as u32,
+            depth: sz as u32,
             format,
-        };
-
-        glcheck!(gl::GenTextures(1, &mut this.handle));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0));
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
-        glcheck!(gl::TexImage3D(
-            gl::TEXTURE_3D,
-            0,
-            this.format as _,
-            this.size.x,
-            this.size.y,
-            this.size.z,
-            0,
-            gl::RED,
-            gl::UNSIGNED_BYTE,
-            std::ptr::null(),
-        ));
-
-        this.init();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
+            data: None,
+        });
 
         Tex3D {
-            shared: Rf::new(this),
+            shared: Rf::new(Tex3DShared {
+                id,
+                size: IVec3::new(sx, sy, sz),
+                format,
+                destroy_queue: r.destroy_queue(),
+            }),
         }
     }
 
@@ -148,26 +118,18 @@ impl Tex3D {
         RenderTarget::push_tex3d_level(r, self, layer, level);
     }
 
-    pub fn gen_mipmap(&mut self) {
+    pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
-        glcheck!(gl::GenerateMipmap(gl::TEXTURE_3D));
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
+        r.submit(RenderCommand::GenerateMipmapByResource { id: this.id });
     }
 
-    pub fn get_data_bytes(&mut self, pf: PixelFormat, df: DataFormat) -> Bytes {
-        Bytes::from_vec(self.get_data(pf, df))
+    pub fn get_data_bytes(&mut self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Bytes {
+        Bytes::from_vec(self.get_data(r, pf, df))
     }
 
     pub fn get_format(&self) -> TexFormat {
         let this = self.shared.as_ref();
         this.format
-    }
-
-    pub fn get_handle(&self) -> u32 {
-        let this = self.shared.as_ref();
-        this.handle
     }
 
     pub fn get_size(&self) -> IVec3 {
@@ -187,53 +149,31 @@ impl Tex3D {
         out
     }
 
-    pub fn set_data_bytes(&mut self, data: &mut Bytes, pf: PixelFormat, df: DataFormat) {
-        self.set_data(data.as_slice(), pf, df);
+    pub fn set_data_bytes(&mut self, r: &mut Renderer, data: &mut Bytes, pf: PixelFormat, df: DataFormat) {
+        self.set_data(r, data.as_slice(), pf, df);
     }
 
-    pub fn set_mag_filter(&mut self, filter: TexFilter) {
+    pub fn set_mag_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_3D,
-            gl::TEXTURE_MAG_FILTER,
-            filter as _
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
+        r.submit(RenderCommand::SetTextureMagFilterByResource {
+            id: this.id,
+            filter,
+        });
     }
 
-    pub fn set_min_filter(&mut self, filter: TexFilter) {
+    pub fn set_min_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_3D,
-            gl::TEXTURE_MIN_FILTER,
-            filter as _
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
+        r.submit(RenderCommand::SetTextureMinFilterByResource {
+            id: this.id,
+            filter,
+        });
     }
 
-    pub fn set_wrap_mode(&mut self, mode: TexWrapMode) {
+    pub fn set_wrap_mode(&mut self, r: &mut Renderer, mode: TexWrapMode) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, this.handle));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_3D,
-            gl::TEXTURE_WRAP_S,
-            mode as _
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_3D,
-            gl::TEXTURE_WRAP_T,
-            mode as _
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_3D,
-            gl::TEXTURE_WRAP_R,
-            mode as _
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_3D, 0));
+        r.submit(RenderCommand::SetTextureWrapModeByResource {
+            id: this.id,
+            mode,
+        });
     }
 }

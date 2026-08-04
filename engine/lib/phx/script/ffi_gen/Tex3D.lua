@@ -18,27 +18,26 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void      Tex3D_Free         (Tex3D*);
-            Tex3D*    Tex3D_Create       (int sx, int sy, int sz, TexFormat format);
+            Tex3D*    Tex3D_Create       (Renderer* r, int sx, int sy, int sz, TexFormat format);
             void      Tex3D_Pop          (Tex3D const*, Renderer* r);
             void      Tex3D_Push         (Tex3D const*, Renderer* r, int layer);
             void      Tex3D_PushLevel    (Tex3D const*, Renderer* r, int layer, int level);
-            void      Tex3D_GenMipmap    (Tex3D*);
-            Bytes*    Tex3D_GetDataBytes (Tex3D*, PixelFormat pf, DataFormat df);
+            void      Tex3D_GenMipmap    (Tex3D*, Renderer* r);
+            Bytes*    Tex3D_GetDataBytes (Tex3D*, Renderer* r, PixelFormat pf, DataFormat df);
             TexFormat Tex3D_GetFormat    (Tex3D const*);
-            uint32    Tex3D_GetHandle    (Tex3D const*);
             Vec3i     Tex3D_GetSize      (Tex3D const*);
             Vec3i     Tex3D_GetSizeLevel (Tex3D const*, int level);
-            void      Tex3D_SetDataBytes (Tex3D*, Bytes* data, PixelFormat pf, DataFormat df);
-            void      Tex3D_SetMagFilter (Tex3D*, TexFilter filter);
-            void      Tex3D_SetMinFilter (Tex3D*, TexFilter filter);
-            void      Tex3D_SetWrapMode  (Tex3D*, TexWrapMode mode);
+            void      Tex3D_SetDataBytes (Tex3D*, Renderer* r, Bytes* data, PixelFormat pf, DataFormat df);
+            void      Tex3D_SetMagFilter (Tex3D*, Renderer* r, TexFilter filter);
+            void      Tex3D_SetMinFilter (Tex3D*, Renderer* r, TexFilter filter);
+            void      Tex3D_SetWrapMode  (Tex3D*, Renderer* r, TexWrapMode mode);
         ]]
     end
 
     do -- Global Symbol Table
         Tex3D = {
-            Create       = function(sx, sy, sz, format)
-                local _instance = libphx.Tex3D_Create(sx, sy, sz, format)
+            Create       = function(r, sx, sy, sz, format)
+                local _instance = libphx.Tex3D_Create(r, sx, sy, sz, format)
                 return Core.ManagedObject(_instance, libphx.Tex3D_Free)
             end,
         }
@@ -55,12 +54,11 @@ function Loader.defineType()
                 push         = libphx.Tex3D_Push,
                 pushLevel    = libphx.Tex3D_PushLevel,
                 genMipmap    = libphx.Tex3D_GenMipmap,
-                getDataBytes = function(self, pf, df)
-                    local _instance = libphx.Tex3D_GetDataBytes(self, pf, df)
+                getDataBytes = function(self, r, pf, df)
+                    local _instance = libphx.Tex3D_GetDataBytes(self, r, pf, df)
                     return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
                 getFormat    = libphx.Tex3D_GetFormat,
-                getHandle    = libphx.Tex3D_GetHandle,
                 getSize      = libphx.Tex3D_GetSize,
                 getSizeLevel = libphx.Tex3D_GetSizeLevel,
                 setDataBytes = libphx.Tex3D_SetDataBytes,

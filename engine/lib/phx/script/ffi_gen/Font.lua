@@ -21,8 +21,8 @@ function Loader.defineType()
             Font* Font_Load          (cstr name, uint32 size);
             void  Font_Draw          (Font const*, Renderer* r, cstr text, float x, float y, Color const* color);
             int   Font_GetLineHeight (Font const*);
-            void  Font_GetSize       (Font const*, cstr text, Vec4i* out);
-            Vec2i Font_GetSize2      (Font const*, cstr text);
+            void  Font_GetSize       (Font const*, Renderer* r, cstr text, Vec4i* out);
+            Vec2i Font_GetSize2      (Font const*, Renderer* r, cstr text);
         ]]
     end
 

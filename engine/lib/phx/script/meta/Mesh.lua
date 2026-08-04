@@ -74,13 +74,23 @@ function Mesh:addVertex(px, py, pz, nx, ny, nz, u, v) end
 ---@param vertex Vertex
 function Mesh:addVertexRaw(vertex) end
 
-function Mesh:drawBind() end
+---@param r Renderer
+function Mesh:drawBind(r) end
 
-function Mesh:drawBound() end
+---@param r Renderer
+function Mesh:drawBound(r) end
 
-function Mesh:drawUnbind() end
+-- No-op: `DrawMeshByResource` binds/draws/unbinds in one self-contained
+-- command (see `draw_bound`), so there is nothing left to unbind here.
+-- Kept as a method - and still takes `r` - so `drawBind`/`drawBound`/
+-- `drawUnbind` stay a matched FFI triple for existing Lua call sites
+-- that interleave shader uniform changes between multiple `drawBound`
+-- calls (e.g. per-instance rendering without true GPU instancing).
+---@param r Renderer
+function Mesh:drawUnbind(r) end
 
-function Mesh:draw() end
+---@param r Renderer
+function Mesh:draw(r) end
 
 ---@param r Renderer
 ---@param scale number

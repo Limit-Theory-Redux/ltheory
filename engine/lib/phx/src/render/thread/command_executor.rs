@@ -33,6 +33,7 @@ pub enum CommandReply {
 #[expect(dead_code)]
 enum GpuResource {
     Shader { program: u32 },
+    Texture1D { handle: u32 },
     Texture2D { handle: u32 },
     Texture3D { handle: u32 },
     TextureCube { handle: u32 },
@@ -70,9 +71,21 @@ const MAX_TEXTURE_SLOTS: usize = 16;
 /// Texture type for binding cache
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TextureType {
+    Texture1D,
     Texture2D,
     Texture3D,
     TextureCube,
+}
+
+impl TextureType {
+    fn to_gl_target(self) -> gl::types::GLenum {
+        match self {
+            TextureType::Texture1D => gl::TEXTURE_1D,
+            TextureType::Texture2D => gl::TEXTURE_2D,
+            TextureType::Texture3D => gl::TEXTURE_3D,
+            TextureType::TextureCube => gl::TEXTURE_CUBE_MAP,
+        }
+    }
 }
 
 /// Cached texture binding state
@@ -190,12 +203,7 @@ impl CommandExecutor {
             // Slot out of range, just bind directly
             unsafe {
                 gl::ActiveTexture(gl::TEXTURE0 + slot);
-                let target = match tex_type {
-                    TextureType::Texture2D => gl::TEXTURE_2D,
-                    TextureType::Texture3D => gl::TEXTURE_3D,
-                    TextureType::TextureCube => gl::TEXTURE_CUBE_MAP,
-                };
-                gl::BindTexture(target, handle);
+                gl::BindTexture(tex_type.to_gl_target(), handle);
                 gl::ActiveTexture(gl::TEXTURE0);
             }
             return true;
@@ -213,12 +221,7 @@ impl CommandExecutor {
         // Different texture or type - need to bind
         unsafe {
             gl::ActiveTexture(gl::TEXTURE0 + slot);
-            let target = match tex_type {
-                TextureType::Texture2D => gl::TEXTURE_2D,
-                TextureType::Texture3D => gl::TEXTURE_3D,
-                TextureType::TextureCube => gl::TEXTURE_CUBE_MAP,
-            };
-            gl::BindTexture(target, handle);
+            gl::BindTexture(tex_type.to_gl_target(), handle);
             gl::ActiveTexture(gl::TEXTURE0);
         }
 
@@ -241,12 +244,7 @@ impl CommandExecutor {
             if let Some(tex_type) = current.tex_type {
                 unsafe {
                     gl::ActiveTexture(gl::TEXTURE0 + slot);
-                    let target = match tex_type {
-                        TextureType::Texture2D => gl::TEXTURE_2D,
-                        TextureType::Texture3D => gl::TEXTURE_3D,
-                        TextureType::TextureCube => gl::TEXTURE_CUBE_MAP,
-                    };
-                    gl::BindTexture(target, 0);
+                    gl::BindTexture(tex_type.to_gl_target(), 0);
                     gl::ActiveTexture(gl::TEXTURE0);
                 }
             }
@@ -657,12 +655,36 @@ impl CommandExecutor {
                 }
             }
 
+            RenderCommand::BindTexture1DByResource { slot, id } => {
+                if let Some(GpuResource::Texture1D { handle }) = self.resources.get(&id) {
+                    self.bind_texture_cached(slot, *handle, TextureType::Texture1D);
+                } else {
+                    warn!("BindTexture1DByResource: resource {:?} not found", id);
+                }
+            }
+
             RenderCommand::BindTexture3D { slot, handle } => {
                 self.bind_texture_cached(slot, handle.0, TextureType::Texture3D);
             }
 
+            RenderCommand::BindTexture3DByResource { slot, id } => {
+                if let Some(GpuResource::Texture3D { handle }) = self.resources.get(&id) {
+                    self.bind_texture_cached(slot, *handle, TextureType::Texture3D);
+                } else {
+                    warn!("BindTexture3DByResource: resource {:?} not found", id);
+                }
+            }
+
             RenderCommand::BindTextureCube { slot, handle } => {
                 self.bind_texture_cached(slot, handle.0, TextureType::TextureCube);
+            }
+
+            RenderCommand::BindTextureCubeByResource { slot, id } => {
+                if let Some(GpuResource::TextureCube { handle }) = self.resources.get(&id) {
+                    self.bind_texture_cached(slot, *handle, TextureType::TextureCube);
+                } else {
+                    warn!("BindTextureCubeByResource: resource {:?} not found", id);
+                }
             }
 
             RenderCommand::UnbindTexture { slot } => {
@@ -794,6 +816,528 @@ impl CommandExecutor {
                 gl::BindTexture(gl::TEXTURE_2D, 0);
             },
 
+            RenderCommand::SetTexture2DAnisotropyByResource { id, factor } => {
+                if let Some((target, handle)) = self.texture_target_and_handle(id) {
+                    unsafe {
+                        gl::BindTexture(target, handle);
+                        gl::TexParameterf(target, gl::TEXTURE_MAX_ANISOTROPY_EXT, factor);
+                        gl::BindTexture(target, 0);
+                    }
+                } else {
+                    warn!(
+                        "SetTexture2DAnisotropyByResource: resource {:?} not found",
+                        id
+                    );
+                }
+            }
+
+            RenderCommand::SetTexture2DMipRangeByResource {
+                id,
+                min_level,
+                max_level,
+            } => {
+                if let Some((target, handle)) = self.texture_target_and_handle(id) {
+                    unsafe {
+                        gl::BindTexture(target, handle);
+                        gl::TexParameteri(target, gl::TEXTURE_BASE_LEVEL, min_level);
+                        gl::TexParameteri(target, gl::TEXTURE_MAX_LEVEL, max_level);
+                        gl::BindTexture(target, 0);
+                    }
+                } else {
+                    warn!(
+                        "SetTexture2DMipRangeByResource: resource {:?} not found",
+                        id
+                    );
+                }
+            }
+
+            RenderCommand::SetTexel1DByResource { id, x, color } => {
+                if let Some((target, handle)) = self.texture_target_and_handle(id) {
+                    unsafe {
+                        gl::BindTexture(target, handle);
+                        gl::TexSubImage1D(
+                            target,
+                            0,
+                            x,
+                            1,
+                            gl::RGBA,
+                            gl::FLOAT,
+                            color.as_ptr() as *const _,
+                        );
+                        gl::BindTexture(target, 0);
+                    }
+                } else {
+                    warn!("SetTexel1DByResource: resource {:?} not found", id);
+                }
+            }
+
+            RenderCommand::SetTexel2DByResource { id, x, y, color } => {
+                if let Some((target, handle)) = self.texture_target_and_handle(id) {
+                    unsafe {
+                        gl::BindTexture(target, handle);
+                        gl::TexSubImage2D(
+                            target,
+                            0,
+                            x,
+                            y,
+                            1,
+                            1,
+                            gl::RGBA,
+                            gl::FLOAT,
+                            color.as_ptr() as *const _,
+                        );
+                        gl::BindTexture(target, 0);
+                    }
+                } else {
+                    warn!("SetTexel2DByResource: resource {:?} not found", id);
+                }
+            }
+
+            RenderCommand::SetTextureMagFilterByResource { id, filter } => {
+                if let Some((target, handle)) = self.texture_target_and_handle(id) {
+                    unsafe {
+                        gl::BindTexture(target, handle);
+                        gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, filter as i32);
+                        gl::BindTexture(target, 0);
+                    }
+                } else {
+                    warn!("SetTextureMagFilterByResource: resource {:?} not found", id);
+                }
+            }
+
+            RenderCommand::SetTextureMinFilterByResource { id, filter } => {
+                if let Some((target, handle)) = self.texture_target_and_handle(id) {
+                    unsafe {
+                        gl::BindTexture(target, handle);
+                        gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, filter as i32);
+                        gl::BindTexture(target, 0);
+                    }
+                } else {
+                    warn!("SetTextureMinFilterByResource: resource {:?} not found", id);
+                }
+            }
+
+            RenderCommand::SetTextureWrapModeByResource { id, mode } => {
+                if let Some((target, handle)) = self.texture_target_and_handle(id) {
+                    unsafe {
+                        gl::BindTexture(target, handle);
+                        gl::TexParameteri(target, gl::TEXTURE_WRAP_S, mode as i32);
+                        if target != gl::TEXTURE_1D {
+                            gl::TexParameteri(target, gl::TEXTURE_WRAP_T, mode as i32);
+                        }
+                        if target == gl::TEXTURE_3D {
+                            gl::TexParameteri(target, gl::TEXTURE_WRAP_R, mode as i32);
+                        }
+                        gl::BindTexture(target, 0);
+                    }
+                } else {
+                    warn!("SetTextureWrapModeByResource: resource {:?} not found", id);
+                }
+            }
+
+            RenderCommand::GenerateMipmapByResource { id } => {
+                if let Some((target, handle)) = self.texture_target_and_handle(id) {
+                    unsafe {
+                        gl::BindTexture(target, handle);
+                        gl::GenerateMipmap(target);
+                        gl::BindTexture(target, 0);
+                    }
+                } else {
+                    warn!("GenerateMipmapByResource: resource {:?} not found", id);
+                }
+            }
+
+            RenderCommand::UpdateTexture1DDataByResource {
+                id,
+                width,
+                internal_format,
+                pixel_format,
+                data_format,
+                data,
+            } => {
+                if let Some(GpuResource::Texture1D { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        gl::BindTexture(gl::TEXTURE_1D, *handle);
+                        gl::TexImage1D(
+                            gl::TEXTURE_1D,
+                            0,
+                            internal_format,
+                            width,
+                            0,
+                            pixel_format,
+                            data_format,
+                            data.as_ptr() as *const _,
+                        );
+                        gl::TexParameteri(
+                            gl::TEXTURE_1D,
+                            gl::TEXTURE_MIN_FILTER,
+                            gl::NEAREST as i32,
+                        );
+                        gl::TexParameteri(
+                            gl::TEXTURE_1D,
+                            gl::TEXTURE_MAG_FILTER,
+                            gl::NEAREST as i32,
+                        );
+                        gl::TexParameteri(
+                            gl::TEXTURE_1D,
+                            gl::TEXTURE_WRAP_S,
+                            gl::CLAMP_TO_EDGE as i32,
+                        );
+                        gl::BindTexture(gl::TEXTURE_1D, 0);
+                    }
+                } else {
+                    warn!("UpdateTexture1DDataByResource: resource {:?} not found", id);
+                }
+            }
+
+            RenderCommand::UpdateTexture3DDataByResource {
+                id,
+                width,
+                height,
+                depth,
+                internal_format,
+                pixel_format,
+                data_format,
+                data,
+            } => {
+                if let Some(GpuResource::Texture3D { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        gl::BindTexture(gl::TEXTURE_3D, *handle);
+                        gl::TexImage3D(
+                            gl::TEXTURE_3D,
+                            0,
+                            internal_format,
+                            width,
+                            height,
+                            depth,
+                            0,
+                            pixel_format,
+                            data_format,
+                            data.as_ptr() as *const _,
+                        );
+                        gl::TexParameteri(
+                            gl::TEXTURE_3D,
+                            gl::TEXTURE_MIN_FILTER,
+                            gl::NEAREST as i32,
+                        );
+                        gl::TexParameteri(
+                            gl::TEXTURE_3D,
+                            gl::TEXTURE_MAG_FILTER,
+                            gl::NEAREST as i32,
+                        );
+                        gl::TexParameteri(
+                            gl::TEXTURE_3D,
+                            gl::TEXTURE_WRAP_S,
+                            gl::CLAMP_TO_EDGE as i32,
+                        );
+                        gl::TexParameteri(
+                            gl::TEXTURE_3D,
+                            gl::TEXTURE_WRAP_T,
+                            gl::CLAMP_TO_EDGE as i32,
+                        );
+                        gl::TexParameteri(
+                            gl::TEXTURE_3D,
+                            gl::TEXTURE_WRAP_R,
+                            gl::CLAMP_TO_EDGE as i32,
+                        );
+                        gl::BindTexture(gl::TEXTURE_3D, 0);
+                    }
+                } else {
+                    warn!("UpdateTexture3DDataByResource: resource {:?} not found", id);
+                }
+            }
+
+            RenderCommand::UpdateTextureCubeFaceDataByResource {
+                id,
+                face,
+                level,
+                size,
+                internal_format,
+                pixel_format,
+                data_format,
+                data,
+            } => {
+                if let Some(GpuResource::TextureCube { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        gl::BindTexture(gl::TEXTURE_CUBE_MAP, *handle);
+                        gl::TexImage2D(
+                            face,
+                            level,
+                            internal_format,
+                            size,
+                            size,
+                            0,
+                            pixel_format,
+                            data_format,
+                            data.as_ptr() as *const _,
+                        );
+                        gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
+                    }
+                } else {
+                    warn!(
+                        "UpdateTextureCubeFaceDataByResource: resource {:?} not found",
+                        id
+                    );
+                }
+            }
+
+            RenderCommand::CopyTexture2DFromFramebufferByResource {
+                id,
+                internal_format,
+                width,
+                height,
+            } => {
+                if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        gl::BindTexture(gl::TEXTURE_2D, *handle);
+                        gl::CopyTexImage2D(
+                            gl::TEXTURE_2D,
+                            0,
+                            internal_format as u32,
+                            0,
+                            0,
+                            width,
+                            height,
+                            0,
+                        );
+                        gl::BindTexture(gl::TEXTURE_2D, 0);
+                    }
+                } else {
+                    warn!(
+                        "CopyTexture2DFromFramebufferByResource: resource {:?} not found",
+                        id
+                    );
+                }
+            }
+
+            RenderCommand::ReadTexture1DData {
+                id,
+                pixel_format,
+                data_format,
+                reply_tx,
+            } => {
+                let mut data = Vec::new();
+                if let Some(GpuResource::Texture1D { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        let mut width = 0;
+                        gl::BindTexture(gl::TEXTURE_1D, *handle);
+                        gl::GetTexLevelParameteriv(
+                            gl::TEXTURE_1D,
+                            0,
+                            gl::TEXTURE_WIDTH,
+                            &mut width,
+                        );
+                        data = vec![
+                            0u8;
+                            self.texel_buffer_size(width, 1, 1, pixel_format, data_format)
+                        ];
+                        gl::GetTexImage(
+                            gl::TEXTURE_1D,
+                            0,
+                            pixel_format,
+                            data_format,
+                            data.as_mut_ptr() as *mut _,
+                        );
+                        gl::BindTexture(gl::TEXTURE_1D, 0);
+                    }
+                } else {
+                    warn!("ReadTexture1DData: resource {:?} not found", id);
+                }
+                let _ = reply_tx.send(data);
+            }
+
+            RenderCommand::ReadTexture2DData {
+                id,
+                pixel_format,
+                data_format,
+                reply_tx,
+            } => {
+                let mut data = Vec::new();
+                if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        let (mut width, mut height) = (0, 0);
+                        gl::BindTexture(gl::TEXTURE_2D, *handle);
+                        gl::GetTexLevelParameteriv(
+                            gl::TEXTURE_2D,
+                            0,
+                            gl::TEXTURE_WIDTH,
+                            &mut width,
+                        );
+                        gl::GetTexLevelParameteriv(
+                            gl::TEXTURE_2D,
+                            0,
+                            gl::TEXTURE_HEIGHT,
+                            &mut height,
+                        );
+                        data =
+                            vec![
+                                0u8;
+                                self.texel_buffer_size(width, height, 1, pixel_format, data_format)
+                            ];
+                        gl::GetTexImage(
+                            gl::TEXTURE_2D,
+                            0,
+                            pixel_format,
+                            data_format,
+                            data.as_mut_ptr() as *mut _,
+                        );
+                        gl::BindTexture(gl::TEXTURE_2D, 0);
+                    }
+                } else {
+                    warn!("ReadTexture2DData: resource {:?} not found", id);
+                }
+                let _ = reply_tx.send(data);
+            }
+
+            RenderCommand::ReadTexture3DData {
+                id,
+                pixel_format,
+                data_format,
+                reply_tx,
+            } => {
+                let mut data = Vec::new();
+                if let Some(GpuResource::Texture3D { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        let (mut width, mut height, mut depth) = (0, 0, 0);
+                        gl::BindTexture(gl::TEXTURE_3D, *handle);
+                        gl::GetTexLevelParameteriv(
+                            gl::TEXTURE_3D,
+                            0,
+                            gl::TEXTURE_WIDTH,
+                            &mut width,
+                        );
+                        gl::GetTexLevelParameteriv(
+                            gl::TEXTURE_3D,
+                            0,
+                            gl::TEXTURE_HEIGHT,
+                            &mut height,
+                        );
+                        gl::GetTexLevelParameteriv(
+                            gl::TEXTURE_3D,
+                            0,
+                            gl::TEXTURE_DEPTH,
+                            &mut depth,
+                        );
+                        data = vec![
+                            0u8;
+                            self.texel_buffer_size(
+                                width,
+                                height,
+                                depth,
+                                pixel_format,
+                                data_format
+                            )
+                        ];
+                        gl::GetTexImage(
+                            gl::TEXTURE_3D,
+                            0,
+                            pixel_format,
+                            data_format,
+                            data.as_mut_ptr() as *mut _,
+                        );
+                        gl::BindTexture(gl::TEXTURE_3D, 0);
+                    }
+                } else {
+                    warn!("ReadTexture3DData: resource {:?} not found", id);
+                }
+                let _ = reply_tx.send(data);
+            }
+
+            RenderCommand::ReadTextureCubeFaceData {
+                id,
+                face,
+                level,
+                pixel_format,
+                data_format,
+                reply_tx,
+            } => {
+                let mut data = Vec::new();
+                if let Some(GpuResource::TextureCube { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        let mut size = 0;
+                        gl::BindTexture(gl::TEXTURE_CUBE_MAP, *handle);
+                        gl::GetTexLevelParameteriv(face, level, gl::TEXTURE_WIDTH, &mut size);
+                        data = vec![
+                            0u8;
+                            self.texel_buffer_size(size, size, 1, pixel_format, data_format)
+                        ];
+                        gl::GetTexImage(
+                            face,
+                            level,
+                            pixel_format,
+                            data_format,
+                            data.as_mut_ptr() as *mut _,
+                        );
+                        gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
+                    }
+                } else {
+                    warn!("ReadTextureCubeFaceData: resource {:?} not found", id);
+                }
+                let _ = reply_tx.send(data);
+            }
+
+            RenderCommand::SamplePixel2DByResource { id, x, y, reply_tx } => {
+                let mut pixel = [0u8; 4];
+                if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        let mut fbo = 0;
+                        gl::GenFramebuffers(1, &mut fbo);
+                        gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
+                        gl::FramebufferTexture2D(
+                            gl::FRAMEBUFFER,
+                            gl::COLOR_ATTACHMENT0,
+                            gl::TEXTURE_2D,
+                            *handle,
+                            0,
+                        );
+                        if gl::CheckFramebufferStatus(gl::FRAMEBUFFER) == gl::FRAMEBUFFER_COMPLETE {
+                            gl::ReadPixels(
+                                x,
+                                y,
+                                1,
+                                1,
+                                gl::RGBA,
+                                gl::UNSIGNED_BYTE,
+                                pixel.as_mut_ptr() as *mut _,
+                            );
+                        } else {
+                            warn!("SamplePixel2DByResource: incomplete framebuffer");
+                        }
+                        // Restore whatever framebuffer the FBO stack says should be bound.
+                        gl::BindFramebuffer(
+                            gl::FRAMEBUFFER,
+                            self.fbo_stack.last().map_or(0, |fbo| fbo.handle),
+                        );
+                        gl::DeleteFramebuffers(1, &fbo);
+                    }
+                } else {
+                    warn!("SamplePixel2DByResource: resource {:?} not found", id);
+                }
+                let _ = reply_tx.send(pixel);
+            }
+
+            RenderCommand::ReadFramebufferPixels {
+                x,
+                y,
+                width,
+                height,
+                reply_tx,
+            } => {
+                let mut data = vec![0u8; (width * height * 4) as usize];
+                unsafe {
+                    gl::ReadPixels(
+                        x,
+                        y,
+                        width,
+                        height,
+                        gl::RGBA,
+                        gl::UNSIGNED_BYTE,
+                        data.as_mut_ptr() as *mut _,
+                    );
+                }
+                let _ = reply_tx.send(data);
+            }
+
             // === Framebuffer Operations ===
             RenderCommand::PushFramebuffer {
                 id: _,
@@ -878,6 +1422,35 @@ impl CommandExecutor {
                 }
             },
 
+            RenderCommand::FramebufferAttachTexture3DByResource {
+                attachment,
+                id,
+                layer,
+                level,
+            } => {
+                if let Some(GpuResource::Texture3D { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        gl::FramebufferTexture3D(
+                            gl::FRAMEBUFFER,
+                            attachment,
+                            gl::TEXTURE_3D,
+                            *handle,
+                            level,
+                            layer,
+                        );
+                        if let Some(fbo) = self.fbo_stack.last_mut() {
+                            fbo.color_index = (attachment - gl::COLOR_ATTACHMENT0 + 1) as i32;
+                            gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
+                        }
+                    }
+                } else {
+                    warn!(
+                        "FramebufferAttachTexture3DByResource: resource {:?} not found",
+                        id
+                    );
+                }
+            }
+
             RenderCommand::FramebufferAttachTextureCube {
                 attachment,
                 texture,
@@ -890,6 +1463,28 @@ impl CommandExecutor {
                     gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
                 }
             },
+
+            RenderCommand::FramebufferAttachTextureCubeByResource {
+                attachment,
+                id,
+                face,
+                level,
+            } => {
+                if let Some(GpuResource::TextureCube { handle }) = self.resources.get(&id) {
+                    unsafe {
+                        gl::FramebufferTexture2D(gl::FRAMEBUFFER, attachment, face, *handle, level);
+                        if let Some(fbo) = self.fbo_stack.last_mut() {
+                            fbo.color_index = (attachment - gl::COLOR_ATTACHMENT0 + 1) as i32;
+                            gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
+                        }
+                    }
+                } else {
+                    warn!(
+                        "FramebufferAttachTextureCubeByResource: resource {:?} not found",
+                        id
+                    );
+                }
+            }
 
             RenderCommand::SetDrawBuffers { count } => unsafe {
                 gl::DrawBuffers(count, DRAW_BUFS.as_ptr());
@@ -1204,6 +1799,17 @@ impl CommandExecutor {
                 reply = CommandReply::ShaderReload(result);
             }
 
+            RenderCommand::CreateTexture1D {
+                id,
+                width,
+                format,
+                data,
+            } => {
+                let handle = self.create_texture_1d(width, format, data.as_deref());
+                self.resources.insert(id, GpuResource::Texture1D { handle });
+                debug!("Created texture1d {:?} with handle {}", id, handle);
+            }
+
             RenderCommand::CreateTexture2D {
                 id,
                 width,
@@ -1214,6 +1820,26 @@ impl CommandExecutor {
                 let handle = self.create_texture_2d(width, height, format, data.as_deref());
                 self.resources.insert(id, GpuResource::Texture2D { handle });
                 debug!("Created texture2d {:?} with handle {}", id, handle);
+            }
+
+            RenderCommand::CreateTexture3D {
+                id,
+                width,
+                height,
+                depth,
+                format,
+                data,
+            } => {
+                let handle = self.create_texture_3d(width, height, depth, format, data.as_deref());
+                self.resources.insert(id, GpuResource::Texture3D { handle });
+                debug!("Created texture3d {:?} with handle {}", id, handle);
+            }
+
+            RenderCommand::CreateTextureCube { id, size, format } => {
+                let handle = self.create_texture_cube(size, format);
+                self.resources
+                    .insert(id, GpuResource::TextureCube { handle });
+                debug!("Created texturecube {:?} with handle {}", id, handle);
             }
 
             RenderCommand::CreateMesh {
@@ -1530,6 +2156,168 @@ impl CommandExecutor {
         }
     }
 
+    fn create_texture_1d(&self, width: u32, format: TexFormat, data: Option<&[u8]>) -> u32 {
+        unsafe {
+            let mut handle = 0;
+            gl::GenTextures(1, &mut handle);
+            gl::BindTexture(gl::TEXTURE_1D, handle);
+
+            let (internal_format, gl_format, gl_type) = format.to_gl_formats();
+
+            gl::TexImage1D(
+                gl::TEXTURE_1D,
+                0,
+                internal_format as i32,
+                width as i32,
+                0,
+                gl_format,
+                gl_type,
+                data.map_or(ptr::null(), |d| d.as_ptr() as *const _),
+            );
+
+            gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+
+            gl::BindTexture(gl::TEXTURE_1D, 0);
+            handle
+        }
+    }
+
+    fn create_texture_3d(
+        &self,
+        width: u32,
+        height: u32,
+        depth: u32,
+        format: TexFormat,
+        data: Option<&[u8]>,
+    ) -> u32 {
+        unsafe {
+            let mut handle = 0;
+            gl::GenTextures(1, &mut handle);
+            gl::BindTexture(gl::TEXTURE_3D, handle);
+
+            let (internal_format, gl_format, gl_type) = format.to_gl_formats();
+
+            gl::TexImage3D(
+                gl::TEXTURE_3D,
+                0,
+                internal_format as i32,
+                width as i32,
+                height as i32,
+                depth as i32,
+                0,
+                gl_format,
+                gl_type,
+                data.map_or(ptr::null(), |d| d.as_ptr() as *const _),
+            );
+
+            gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
+
+            gl::BindTexture(gl::TEXTURE_3D, 0);
+            handle
+        }
+    }
+
+    /// Creates a cube texture with 6 empty faces (matches `TexCube::new`'s
+    /// old direct-GL behavior: null data, `GL_RED`/`GL_BYTE` placeholder
+    /// format regardless of `format`, since nothing is actually uploaded yet)
+    fn create_texture_cube(&self, size: u32, format: TexFormat) -> u32 {
+        unsafe {
+            let mut handle = 0;
+            gl::GenTextures(1, &mut handle);
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, handle);
+
+            const FACES: [gl::types::GLenum; 6] = [
+                gl::TEXTURE_CUBE_MAP_POSITIVE_X,
+                gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
+                gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
+            ];
+            for face in FACES {
+                gl::TexImage2D(
+                    face,
+                    0,
+                    format as i32,
+                    size as i32,
+                    size as i32,
+                    0,
+                    gl::RED,
+                    gl::BYTE,
+                    ptr::null(),
+                );
+            }
+
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_MIN_FILTER,
+                gl::NEAREST as i32,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_MAG_FILTER,
+                gl::NEAREST as i32,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_WRAP_S,
+                gl::CLAMP_TO_EDGE as i32,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_WRAP_T,
+                gl::CLAMP_TO_EDGE as i32,
+            );
+
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
+            handle
+        }
+    }
+
+    /// Byte size of a `w*h*d` block of texels in the given GL pixel/data
+    /// format - used to size the buffer for a `glGetTexImage` readback.
+    fn texel_buffer_size(
+        &self,
+        w: i32,
+        h: i32,
+        d: i32,
+        pixel_format: gl::types::GLenum,
+        data_format: gl::types::GLenum,
+    ) -> usize {
+        let components: i32 = match pixel_format {
+            gl::RED | gl::DEPTH_COMPONENT => 1,
+            gl::RG => 2,
+            gl::RGB | gl::BGR => 3,
+            gl::RGBA | gl::BGRA => 4,
+            _ => 4,
+        };
+        let element_size: i32 = match data_format {
+            gl::BYTE | gl::UNSIGNED_BYTE => 1,
+            gl::SHORT | gl::UNSIGNED_SHORT => 2,
+            gl::INT | gl::UNSIGNED_INT | gl::FLOAT => 4,
+            _ => 1,
+        };
+        (w * h * d * components * element_size).max(0) as usize
+    }
+
+    /// Look up the GL target and handle for any texture-kind resource,
+    /// dispatching on which `GpuResource` variant it is.
+    fn texture_target_and_handle(&self, id: ResourceId) -> Option<(gl::types::GLenum, u32)> {
+        match self.resources.get(&id) {
+            Some(GpuResource::Texture1D { handle }) => Some((gl::TEXTURE_1D, *handle)),
+            Some(GpuResource::Texture2D { handle }) => Some((gl::TEXTURE_2D, *handle)),
+            Some(GpuResource::Texture3D { handle }) => Some((gl::TEXTURE_3D, *handle)),
+            Some(GpuResource::TextureCube { handle }) => Some((gl::TEXTURE_CUBE_MAP, *handle)),
+            _ => None,
+        }
+    }
+
     fn create_mesh(
         &self,
         vertices: &[u8],
@@ -1633,7 +2421,8 @@ impl CommandExecutor {
                 GpuResource::Shader { program } => {
                     gl::DeleteProgram(program);
                 }
-                GpuResource::Texture2D { handle }
+                GpuResource::Texture1D { handle }
+                | GpuResource::Texture2D { handle }
                 | GpuResource::Texture3D { handle }
                 | GpuResource::TextureCube { handle } => {
                     gl::DeleteTextures(1, &handle);

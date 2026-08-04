@@ -175,7 +175,7 @@ impl HmGui {
 
     /// Finish GUI declaration, calculate hierarchy widgets sizes and layout.
     // TODO: do not calculate layout for the widgets that go out of the screen. If possible.
-    pub fn end_gui(&mut self, input: &Input) {
+    pub fn end_gui(&mut self, r: &mut Renderer, input: &Input) {
         Profiler::begin("HmGui_End");
 
         self.end_layer();
@@ -203,8 +203,8 @@ impl HmGui {
                 root.inner_size = root.size;
             }
 
-            root.compute_size(self);
-            root.layout(self, input);
+            root.compute_size(self, r);
+            root.layout(self, r, input);
         }
 
         self.focus_pos = input.mouse().position();

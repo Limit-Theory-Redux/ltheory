@@ -41,141 +41,169 @@ function Shader:hasVariable(name) end
 
 function Shader:resetTexIndex() end
 
+---@param r Renderer
 ---@param name string
 ---@param value number
-function Shader:setFloat(name, value) end
+function Shader:setFloat(r, name, value) end
 
+---@param r Renderer
 ---@param index integer
 ---@param value number
-function Shader:iSetFloat(index, value) end
+function Shader:iSetFloat(r, index, value) end
 
+---@param r Renderer
 ---@param name string
 ---@param x number
 ---@param y number
-function Shader:setFloat2(name, x, y) end
+function Shader:setFloat2(r, name, x, y) end
 
+---@param r Renderer
 ---@param index integer
 ---@param x number
 ---@param y number
-function Shader:iSetFloat2(index, x, y) end
+function Shader:iSetFloat2(r, index, x, y) end
 
+---@param r Renderer
 ---@param name string
 ---@param x number
 ---@param y number
 ---@param z number
-function Shader:setFloat3(name, x, y, z) end
+function Shader:setFloat3(r, name, x, y, z) end
 
+---@param r Renderer
 ---@param index integer
 ---@param x number
 ---@param y number
 ---@param z number
-function Shader:iSetFloat3(index, x, y, z) end
+function Shader:iSetFloat3(r, index, x, y, z) end
 
+---@param r Renderer
 ---@param name string
 ---@param x number
 ---@param y number
 ---@param z number
 ---@param w number
-function Shader:setFloat4(name, x, y, z, w) end
+function Shader:setFloat4(r, name, x, y, z, w) end
 
+---@param r Renderer
 ---@param index integer
 ---@param x number
 ---@param y number
 ---@param z number
 ---@param w number
-function Shader:iSetFloat4(index, x, y, z, w) end
+function Shader:iSetFloat4(r, index, x, y, z, w) end
 
+---@param r Renderer
 ---@param name string
 ---@param value integer
-function Shader:setInt(name, value) end
+function Shader:setInt(r, name, value) end
 
+---@param r Renderer
 ---@param index integer
 ---@param value integer
-function Shader:iSetInt(index, value) end
+function Shader:iSetInt(r, index, value) end
 
+---@param r Renderer
 ---@param name string
 ---@param x integer
 ---@param y integer
-function Shader:setInt2(name, x, y) end
+function Shader:setInt2(r, name, x, y) end
 
+---@param r Renderer
 ---@param index integer
 ---@param x integer
 ---@param y integer
-function Shader:iSetInt2(index, x, y) end
+function Shader:iSetInt2(r, index, x, y) end
 
+---@param r Renderer
 ---@param name string
 ---@param x integer
 ---@param y integer
 ---@param z integer
-function Shader:setInt3(name, x, y, z) end
+function Shader:setInt3(r, name, x, y, z) end
 
+---@param r Renderer
 ---@param index integer
 ---@param x integer
 ---@param y integer
 ---@param z integer
-function Shader:iSetInt3(index, x, y, z) end
+function Shader:iSetInt3(r, index, x, y, z) end
 
+---@param r Renderer
 ---@param name string
 ---@param x integer
 ---@param y integer
 ---@param z integer
 ---@param w integer
-function Shader:setInt4(name, x, y, z, w) end
+function Shader:setInt4(r, name, x, y, z, w) end
 
+---@param r Renderer
 ---@param index integer
 ---@param x integer
 ---@param y integer
 ---@param z integer
 ---@param w integer
-function Shader:iSetInt4(index, x, y, z, w) end
+function Shader:iSetInt4(r, index, x, y, z, w) end
 
+---@param r Renderer
 ---@param name string
 ---@param value Matrix
-function Shader:setMatrix(name, value) end
+function Shader:setMatrix(r, name, value) end
 
+---@param r Renderer
 ---@param index integer
 ---@param value Matrix
-function Shader:iSetMatrix(index, value) end
+function Shader:iSetMatrix(r, index, value) end
 
+---@param r Renderer
 ---@param name string
 ---@param value Matrix
-function Shader:setMatrixT(name, value) end
+function Shader:setMatrixT(r, name, value) end
 
+---@param r Renderer
 ---@param index integer
 ---@param value Matrix
-function Shader:iSetMatrixT(index, value) end
+function Shader:iSetMatrixT(r, index, value) end
 
+---@param r Renderer
 ---@param name string
 ---@param value Tex1D
-function Shader:setTex1D(name, value) end
+function Shader:setTex1D(r, name, value) end
 
+---@param r Renderer
 ---@param index integer
 ---@param value Tex1D
-function Shader:iSetTex1D(index, value) end
+function Shader:iSetTex1D(r, index, value) end
 
+---@param r Renderer
 ---@param name string
 ---@param value Tex2D
-function Shader:setTex2D(name, value) end
+function Shader:setTex2D(r, name, value) end
 
+---@param r Renderer
 ---@param index integer
 ---@param value Tex2D
-function Shader:iSetTex2D(index, value) end
+function Shader:iSetTex2D(r, index, value) end
 
+---@param r Renderer
 ---@param name string
 ---@param value Tex3D
-function Shader:setTex3D(name, value) end
+function Shader:setTex3D(r, name, value) end
 
+---@param r Renderer
 ---@param index integer
 ---@param value Tex3D
-function Shader:iSetTex3D(index, value) end
+function Shader:iSetTex3D(r, index, value) end
 
+---@param r Renderer
 ---@param name string
 ---@param value TexCube
-function Shader:setTexCube(name, value) end
+function Shader:setTexCube(r, name, value) end
 
+---@param r Renderer
 ---@param index integer
 ---@param value TexCube
-function Shader:iSetTexCube(index, value) end
+function Shader:iSetTexCube(r, index, value) end
 
 ---@param r Renderer
 function Shader:start(r) end

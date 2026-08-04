@@ -6,6 +6,8 @@
 
 use std::sync::Arc;
 
+use crossbeam::channel::Sender;
+
 use crate::render::{BlendMode, CullFace, TexFilter, TexFormat, TexWrapMode, gl};
 
 /// A handle to a GPU resource (shader, texture, buffer, etc.)
@@ -215,11 +217,20 @@ pub enum RenderCommand {
     /// Bind a 2D texture by resource ID (for textures created in command mode)
     BindTexture2DByResource { slot: u32, id: ResourceId },
 
+    /// Bind a 1D texture by resource ID
+    BindTexture1DByResource { slot: u32, id: ResourceId },
+
     /// Bind a 3D texture to a slot
     BindTexture3D { slot: u32, handle: GpuHandle },
 
+    /// Bind a 3D texture by resource ID
+    BindTexture3DByResource { slot: u32, id: ResourceId },
+
     /// Bind a cube texture to a slot
     BindTextureCube { slot: u32, handle: GpuHandle },
+
+    /// Bind a cube texture by resource ID
+    BindTextureCubeByResource { slot: u32, id: ResourceId },
 
     /// Unbind texture from slot
     UnbindTexture { slot: u32 },
@@ -278,6 +289,148 @@ pub enum RenderCommand {
     /// Set anisotropy filter for a 2D texture
     SetTexture2DAnisotropy { handle: GpuHandle, factor: f32 },
 
+    /// Set anisotropy filter for a 2D texture by resource ID
+    SetTexture2DAnisotropyByResource { id: ResourceId, factor: f32 },
+
+    /// Set mip level range for a 2D texture by resource ID
+    SetTexture2DMipRangeByResource {
+        id: ResourceId,
+        min_level: i32,
+        max_level: i32,
+    },
+
+    /// Set a single texel of a 1D texture by resource ID
+    SetTexel1DByResource {
+        id: ResourceId,
+        x: i32,
+        color: [f32; 4],
+    },
+
+    /// Set a single texel of a 2D texture by resource ID
+    SetTexel2DByResource {
+        id: ResourceId,
+        x: i32,
+        y: i32,
+        color: [f32; 4],
+    },
+
+    /// Set magnification filter for a texture by resource ID.
+    /// Dispatches on the resource's own kind (1D/2D/3D/Cube) to pick the GL
+    /// target, so callers don't need to know it.
+    SetTextureMagFilterByResource { id: ResourceId, filter: TexFilter },
+
+    /// Set minification filter for a texture by resource ID (see above)
+    SetTextureMinFilterByResource { id: ResourceId, filter: TexFilter },
+
+    /// Set wrap mode for a texture by resource ID (see above). Applies to
+    /// every wrap axis the resource's target has (S only for 1D; S+T for
+    /// 2D/Cube; S+T+R for 3D).
+    SetTextureWrapModeByResource { id: ResourceId, mode: TexWrapMode },
+
+    /// Generate mipmaps for a texture by resource ID (see above)
+    GenerateMipmapByResource { id: ResourceId },
+
+    /// Update data for a 1D texture by ResourceId
+    UpdateTexture1DDataByResource {
+        id: ResourceId,
+        width: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    },
+
+    /// Update data for a 3D texture by ResourceId
+    UpdateTexture3DDataByResource {
+        id: ResourceId,
+        width: i32,
+        height: i32,
+        depth: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    },
+
+    /// Update data for one face of a cube texture by ResourceId
+    UpdateTextureCubeFaceDataByResource {
+        id: ResourceId,
+        face: u32,
+        level: i32,
+        size: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    },
+
+    /// Copy the currently-bound read framebuffer into a (already-created,
+    /// empty) 2D texture by resource ID. Used by `Tex2D::deep_clone` - the
+    /// caller is expected to have already bound the source via
+    /// `RenderTarget::push_tex2d`.
+    CopyTexture2DFromFramebufferByResource {
+        id: ResourceId,
+        internal_format: i32,
+        width: i32,
+        height: i32,
+    },
+
+    /// Blocking readback of a 1D texture's full pixel data. The reply is
+    /// sent directly on `reply_tx` by the executor - this works identically
+    /// in both backends: the caller submits the command, then blocks on
+    /// `reply_tx`'s paired receiver.
+    ReadTexture1DData {
+        id: ResourceId,
+        pixel_format: u32,
+        data_format: u32,
+        reply_tx: Sender<Vec<u8>>,
+    },
+
+    /// Blocking readback of a 2D texture's full pixel data (see above)
+    ReadTexture2DData {
+        id: ResourceId,
+        pixel_format: u32,
+        data_format: u32,
+        reply_tx: Sender<Vec<u8>>,
+    },
+
+    /// Blocking readback of a 3D texture's full pixel data (see above)
+    ReadTexture3DData {
+        id: ResourceId,
+        pixel_format: u32,
+        data_format: u32,
+        reply_tx: Sender<Vec<u8>>,
+    },
+
+    /// Blocking readback of one face/level of a cube texture (see above)
+    ReadTextureCubeFaceData {
+        id: ResourceId,
+        face: u32,
+        level: i32,
+        pixel_format: u32,
+        data_format: u32,
+        reply_tx: Sender<Vec<u8>>,
+    },
+
+    /// Blocking readback of a single RGBA8 pixel from a 2D texture, sampled
+    /// via a temporary FBO (see above)
+    SamplePixel2DByResource {
+        id: ResourceId,
+        x: i32,
+        y: i32,
+        reply_tx: Sender<[u8; 4]>,
+    },
+
+    /// Blocking readback of a rectangle of pixels from the currently-bound
+    /// framebuffer (see above). Used by `Tex2D::screen_capture`.
+    ReadFramebufferPixels {
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        reply_tx: Sender<Vec<u8>>,
+    },
+
     // === Framebuffer Operations ===
     /// Create and bind a new framebuffer, returning its handle via the FBO stack
     /// This is used by RenderTarget::push()
@@ -315,11 +468,27 @@ pub enum RenderCommand {
         level: i32,
     },
 
+    /// Attach a 3D texture layer to the current framebuffer (by resource ID)
+    FramebufferAttachTexture3DByResource {
+        attachment: u32,
+        id: ResourceId,
+        layer: i32,
+        level: i32,
+    },
+
     /// Attach a cube map face to the current framebuffer
     FramebufferAttachTextureCube {
         attachment: u32,
         texture: GpuHandle,
         face: u32, // GL_TEXTURE_CUBE_MAP_POSITIVE_X, etc.
+        level: i32,
+    },
+
+    /// Attach a cube map face to the current framebuffer (by resource ID)
+    FramebufferAttachTextureCubeByResource {
+        attachment: u32,
+        id: ResourceId,
+        face: u32,
         level: i32,
     },
 
@@ -409,6 +578,14 @@ pub enum RenderCommand {
         fragment_src: String,
     },
 
+    /// Create a 1D texture
+    CreateTexture1D {
+        id: ResourceId,
+        width: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    },
+
     /// Create a 2D texture
     CreateTexture2D {
         id: ResourceId,
@@ -416,6 +593,23 @@ pub enum RenderCommand {
         height: u32,
         format: TexFormat,
         data: Option<Vec<u8>>,
+    },
+
+    /// Create a 3D texture
+    CreateTexture3D {
+        id: ResourceId,
+        width: u32,
+        height: u32,
+        depth: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    },
+
+    /// Create a cube texture (6 empty faces, matching `TexCube::new`)
+    CreateTextureCube {
+        id: ResourceId,
+        size: u32,
+        format: TexFormat,
     },
 
     /// Create a mesh from vertex/index data

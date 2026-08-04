@@ -10,7 +10,7 @@ use super::{
     TextAlignment, TextContext, TextCursorRect, TextSectionStyle, TextSelection, TextStyle,
 };
 use crate::input::{Button, Input};
-use crate::render::{Color, DataFormat, PixelFormat, Tex2D, TexFormat};
+use crate::render::{Color, DataFormat, PixelFormat, Renderer, Tex2D, TexFormat};
 
 pub type TextLayout = Layout<Color>;
 
@@ -252,6 +252,7 @@ impl TextData {
     // Generate per-line textures and keep only visible ones with some buffered pre- and post-lines.
     pub fn render(
         &mut self,
+        r: &mut Renderer,
         text_ctx: &mut TextContext,
         width: f32,
         scale_factor: f32,
@@ -315,8 +316,8 @@ impl TextData {
         }
 
         // Create texture
-        let mut tex = Tex2D::new(width as i32, height as i32, TexFormat::RGBA8);
-        tex.set_data(&buffer, PixelFormat::RGBA, DataFormat::Float);
+        let mut tex = Tex2D::new(r, width as i32, height as i32, TexFormat::RGBA8);
+        tex.set_data(r, &buffer, PixelFormat::RGBA, DataFormat::Float);
         Some(tex)
     }
 
