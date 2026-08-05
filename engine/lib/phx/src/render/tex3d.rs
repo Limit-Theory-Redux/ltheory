@@ -22,7 +22,12 @@ impl Tex3D {
         self.shared.as_ref().handle.id()
     }
 
-    pub fn get_data<T: Clone + Default>(&self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Vec<T> {
+    pub fn get_data<T: Clone + Default>(
+        &self,
+        r: &mut Renderer,
+        pf: PixelFormat,
+        df: DataFormat,
+    ) -> Vec<T> {
         let this = self.shared.as_ref();
 
         let mut size = this.size.x * this.size.y * this.size.z;
@@ -109,7 +114,9 @@ impl Tex3D {
 
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::GenerateMipmapByResource { id: this.handle.id() });
+        r.submit(RenderCommand::GenerateMipmapByResource {
+            id: this.handle.id(),
+        });
     }
 
     pub fn get_data_bytes(&mut self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Bytes {
@@ -138,7 +145,13 @@ impl Tex3D {
         out
     }
 
-    pub fn set_data_bytes(&mut self, r: &mut Renderer, data: &mut Bytes, pf: PixelFormat, df: DataFormat) {
+    pub fn set_data_bytes(
+        &mut self,
+        r: &mut Renderer,
+        data: &mut Bytes,
+        pf: PixelFormat,
+        df: DataFormat,
+    ) {
         self.set_data(r, data.as_slice(), pf, df);
     }
 

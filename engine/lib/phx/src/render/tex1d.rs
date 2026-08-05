@@ -21,7 +21,12 @@ impl Tex1D {
         self.shared.as_ref().handle.id()
     }
 
-    pub fn get_data<T: Clone + Default>(&self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Vec<T> {
+    pub fn get_data<T: Clone + Default>(
+        &self,
+        r: &mut Renderer,
+        pf: PixelFormat,
+        df: DataFormat,
+    ) -> Vec<T> {
         let this = self.shared.as_ref();
 
         let mut size = this.size;
@@ -94,7 +99,9 @@ impl Tex1D {
 
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::GenerateMipmapByResource { id: this.handle.id() });
+        r.submit(RenderCommand::GenerateMipmapByResource {
+            id: this.handle.id(),
+        });
     }
 
     pub fn get_format(&mut self) -> TexFormat {
@@ -111,7 +118,13 @@ impl Tex1D {
         this.size as u32
     }
 
-    pub fn set_data_bytes(&mut self, r: &mut Renderer, data: &Bytes, pf: PixelFormat, df: DataFormat) {
+    pub fn set_data_bytes(
+        &mut self,
+        r: &mut Renderer,
+        data: &Bytes,
+        pf: PixelFormat,
+        df: DataFormat,
+    ) {
         self.set_data(r, data.as_slice(), pf, df);
     }
 
@@ -131,7 +144,15 @@ impl Tex1D {
         });
     }
 
-    pub fn set_texel(&mut self, r: &mut Renderer, x: i32, red: f32, green: f32, blue: f32, alpha: f32) {
+    pub fn set_texel(
+        &mut self,
+        r: &mut Renderer,
+        x: i32,
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+    ) {
         let this = self.shared.as_ref();
         r.submit(RenderCommand::SetTexel1DByResource {
             id: this.handle.id(),
