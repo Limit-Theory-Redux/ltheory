@@ -222,11 +222,14 @@ impl Renderer {
         vertex_src: &str,
         fragment_src: &str,
     ) -> ShaderReloadResult {
-        let reply = self.executor.execute(RenderCommand::ReloadShader {
-            shader_key: shader_key.to_string(),
-            vertex_src: vertex_src.to_string(),
-            fragment_src: fragment_src.to_string(),
-        });
+        let reply = self
+            .executor
+            .cmd_reload_shader(shader_key, vertex_src, fragment_src);
+        // execute(RenderCommand::ReloadShader {
+        //     shader_key: shader_key.to_string(),
+        //     vertex_src: vertex_src.to_string(),
+        //     fragment_src: fragment_src.to_string(),
+        // });
 
         match reply {
             CommandReply::ShaderReload(result) => result,

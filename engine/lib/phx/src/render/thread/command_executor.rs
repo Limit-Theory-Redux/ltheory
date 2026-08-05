@@ -402,9 +402,7 @@ impl CommandExecutor {
     }
 
     /// Main render loop
-    pub fn execute(&mut self, cmd: RenderCommand) -> CommandReply {
-        let mut reply = CommandReply::None;
-
+    pub fn execute(&mut self, cmd: RenderCommand) {
         self.stats.commands_processed += 1;
         self.commands_this_frame += 1;
 
@@ -1557,38 +1555,13 @@ impl CommandExecutor {
                 index_count,
                 instance_count,
                 primitive,
-            } => unsafe {
-                gl::BindVertexArray(vao.0);
-                gl::DrawElementsInstanced(
-                    primitive.to_gl(),
-                    index_count,
-                    gl::UNSIGNED_INT,
-                    ptr::null(),
-                    instance_count,
-                );
-                gl::BindVertexArray(0);
-            },
+            } => self.cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive),
 
             RenderCommand::DrawMeshByResource {
                 id,
                 index_count,
                 primitive,
-            } => {
-                if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&id) {
-                    unsafe {
-                        gl::BindVertexArray(*vao);
-                        gl::DrawElements(
-                            primitive.to_gl(),
-                            index_count,
-                            gl::UNSIGNED_INT,
-                            ptr::null(),
-                        );
-                        gl::BindVertexArray(0);
-                    }
-                } else {
-                    warn!("DrawMeshByResource: resource {:?} not found", id);
-                }
-            }
+            } => self.cmd_draw_mesh_by_resource(id, index_count, primitive),
 
             RenderCommand::DrawMeshInstancedByResource {
                 id,
@@ -1596,21 +1569,12 @@ impl CommandExecutor {
                 instance_count,
                 primitive,
             } => {
-                if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&id) {
-                    unsafe {
-                        gl::BindVertexArray(*vao);
-                        gl::DrawElementsInstanced(
-                            primitive.to_gl(),
-                            index_count,
-                            gl::UNSIGNED_INT,
-                            ptr::null(),
-                            instance_count,
-                        );
-                        gl::BindVertexArray(0);
-                    }
-                } else {
-                    warn!("DrawMeshInstancedByResource: resource {:?} not found", id);
-                }
+                self.cmd_draw_mesh_instanced_by_resource(
+                    id,
+                    index_count,
+                    instance_count,
+                    primitive,
+                );
             }
 
             RenderCommand::DrawInstancedWithData {
@@ -1618,130 +1582,14 @@ impl CommandExecutor {
                 index_count,
                 instances,
                 primitive,
-            } => {
-                if instances.is_empty() {
-                    return reply; // Nothing to draw
-                }
+            } => self.cmd_draw_instanced_with_data(mesh_id, index_count, instances, primitive),
 
-                let mesh_vao =
-                    if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&mesh_id) {
-                        *vao
-                    } else {
-                        warn!(
-                            "DrawInstancedWithData: mesh resource {:?} not found",
-                            mesh_id
-                        );
-                        return reply;
-                    };
-
-                unsafe {
-                    // Create or resize instance VBO if needed
-                    let instance_count = instances.len();
-                    let instance_size = std::mem::size_of::<InstanceData>();
-                    let data_size = instance_count * instance_size;
-
-                    if self.instance_vbo == 0 {
-                        gl::GenBuffers(1, &mut self.instance_vbo);
-                    }
-
-                    // Bind mesh VAO first
-                    gl::BindVertexArray(mesh_vao);
-
-                    // Bind instance VBO once - used for resize, upload, AND attribute setup
-                    // (GL_ARRAY_BUFFER is NOT part of VAO state, so this stays bound)
-                    gl::BindBuffer(gl::ARRAY_BUFFER, self.instance_vbo);
-
-                    // Resize buffer if needed (grow only, with some headroom)
-                    if instance_count > self.instance_vbo_capacity {
-                        let new_capacity = (instance_count * 3 / 2).max(64); // 50% headroom, min 64
-                        gl::BufferData(
-                            gl::ARRAY_BUFFER,
-                            (new_capacity * instance_size) as isize,
-                            ptr::null(),
-                            gl::DYNAMIC_DRAW,
-                        );
-                        self.instance_vbo_capacity = new_capacity;
-                    }
-
-                    // Upload instance data
-                    gl::BufferSubData(
-                        gl::ARRAY_BUFFER,
-                        0,
-                        data_size as isize,
-                        instances.as_ptr() as *const _,
-                    );
-
-                    // Set up instance attributes (model matrix as 4 vec4 columns + color)
-                    // InstanceData layout: model_matrix[16] + color[4] = 80 bytes
-                    let stride = instance_size as i32;
-
-                    // Attribute 4-7: model matrix columns (mat4 = 4 x vec4)
-                    for col in 0..4u32 {
-                        let attrib = 4 + col;
-                        gl::EnableVertexAttribArray(attrib);
-                        gl::VertexAttribPointer(
-                            attrib,
-                            4, // 4 floats per column
-                            gl::FLOAT,
-                            gl::FALSE,
-                            stride,
-                            (col as usize * 16) as *const _, // offset: col * 4 floats * 4 bytes
-                        );
-                        gl::VertexAttribDivisor(attrib, 1); // Per-instance
-                    }
-
-                    // Attribute 8: color (vec4)
-                    gl::EnableVertexAttribArray(8);
-                    gl::VertexAttribPointer(
-                        8,
-                        4, // 4 floats (RGBA)
-                        gl::FLOAT,
-                        gl::FALSE,
-                        stride,
-                        64 as *const _, // offset: 16 floats * 4 bytes = 64
-                    );
-                    gl::VertexAttribDivisor(8, 1); // Per-instance
-
-                    // Draw instanced
-                    gl::DrawElementsInstanced(
-                        primitive.to_gl(),
-                        index_count,
-                        gl::UNSIGNED_INT,
-                        ptr::null(),
-                        instance_count as i32,
-                    );
-
-                    // Disable instance attributes and reset divisors
-                    for attrib in 4..=8 {
-                        gl::VertexAttribDivisor(attrib, 0);
-                        gl::DisableVertexAttribArray(attrib);
-                    }
-
-                    gl::BindVertexArray(0);
-                    gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-                }
-                // Note: draw call counting is handled by is_draw_call() in execute()
-            }
-
-            RenderCommand::BindMeshByResource { id } => {
-                if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&id) {
-                    unsafe {
-                        gl::BindVertexArray(*vao);
-                        gl::EnableVertexAttribArray(0);
-                        gl::EnableVertexAttribArray(1);
-                        gl::EnableVertexAttribArray(2);
-                    }
-                } else {
-                    warn!("BindMeshByResource: resource {:?} not found", id);
-                }
-            }
+            RenderCommand::BindMeshByResource { id } => self.cmd_bind_mesh_by_resource(id),
 
             RenderCommand::DrawImmediate {
                 primitive,
                 vertices,
-            } => {
-                self.draw_immediate(primitive, &vertices);
-            }
+            } => self.cmd_draw_immediate(primitive, &vertices),
 
             // === Resource Creation ===
             RenderCommand::CreateShader {
@@ -1749,30 +1597,10 @@ impl CommandExecutor {
                 vertex_src,
                 fragment_src,
                 reply_tx,
-            } => {
-                let error = match self.create_shader(&vertex_src, &fragment_src) {
-                    Ok(program) => {
-                        self.resources.insert(id, GpuResource::Shader { program });
-                        debug!("Created shader {:?} with program {}", id, program);
-                        None
-                    }
-                    Err(e) => {
-                        error!("Failed to create shader {:?}: {}", id, e);
-                        Some(e)
-                    }
-                };
-                let _ = reply_tx.send(error);
-            }
+            } => self.cmd_create_shader(id, vertex_src, fragment_src, reply_tx),
 
             RenderCommand::GetUniformLocationByResource { id, name, reply_tx } => {
-                let loc = if let Some(GpuResource::Shader { program }) = self.resources.get(&id) {
-                    let program = *program;
-                    self.get_uniform_location_for_program(program, name)
-                } else {
-                    warn!("GetUniformLocationByResource: resource {:?} not found", id);
-                    -1
-                };
-                let _ = reply_tx.send(loc);
+                self.cmd_get_uniform_location_by_resource(id, name, reply_tx);
             }
 
             RenderCommand::ReloadShader {
@@ -1780,48 +1608,7 @@ impl CommandExecutor {
                 vertex_src,
                 fragment_src,
             } => {
-                // Compile shader on render thread and send result back
-                let result = match self.create_shader(&vertex_src, &fragment_src) {
-                    Ok(program) => {
-                        // Delete old hot-reloaded shader if exists
-                        if let Some(old_program) = self.hot_reloaded_shaders.remove(&shader_key) {
-                            // Clear uniform cache for the old program to prevent stale lookups
-                            // (GL may reuse the program ID for a new shader)
-                            self.uniform_caches.remove(&old_program);
-                            unsafe {
-                                gl::DeleteProgram(old_program);
-                            }
-                            debug!("Deleted previous hot-reloaded shader for '{}'", shader_key);
-                        }
-
-                        // Store the new program for this shader_key
-                        self.hot_reloaded_shaders
-                            .insert(shader_key.clone(), program);
-                        info!(
-                            "Shader '{}' reloaded successfully on render thread (program={})",
-                            shader_key, program
-                        );
-
-                        ShaderReloadResult {
-                            shader_key,
-                            success: true,
-                            error: None,
-                            program,
-                        }
-                    }
-                    Err(e) => {
-                        warn!("Shader '{}' reload failed: {}", shader_key, e);
-                        // Push error to global queue for UI overlay
-                        // push_shader_error(&shader_key, "compile", &e);
-                        ShaderReloadResult {
-                            shader_key,
-                            success: false,
-                            error: Some(e),
-                            program: 0,
-                        }
-                    }
-                };
-                reply = CommandReply::ShaderReload(result);
+                self.cmd_reload_shader(&shader_key, &vertex_src, &fragment_src);
             }
 
             RenderCommand::CreateTexture1D {
@@ -1829,11 +1616,7 @@ impl CommandExecutor {
                 width,
                 format,
                 data,
-            } => {
-                let handle = self.create_texture_1d(width, format, data.as_deref());
-                self.resources.insert(id, GpuResource::Texture1D { handle });
-                debug!("Created texture1d {:?} with handle {}", id, handle);
-            }
+            } => self.cmd_create_texture_1d(id, width, format, data),
 
             RenderCommand::CreateTexture2D {
                 id,
@@ -1841,11 +1624,7 @@ impl CommandExecutor {
                 height,
                 format,
                 data,
-            } => {
-                let handle = self.create_texture_2d(width, height, format, data.as_deref());
-                self.resources.insert(id, GpuResource::Texture2D { handle });
-                debug!("Created texture2d {:?} with handle {}", id, handle);
-            }
+            } => self.cmd_create_texture_2d(id, width, height, format, data),
 
             RenderCommand::CreateTexture3D {
                 id,
@@ -1854,17 +1633,10 @@ impl CommandExecutor {
                 depth,
                 format,
                 data,
-            } => {
-                let handle = self.create_texture_3d(width, height, depth, format, data.as_deref());
-                self.resources.insert(id, GpuResource::Texture3D { handle });
-                debug!("Created texture3d {:?} with handle {}", id, handle);
-            }
+            } => self.cmd_create_texture_3d(id, width, height, depth, format, data),
 
             RenderCommand::CreateTextureCube { id, size, format } => {
-                let handle = self.create_texture_cube(size, format);
-                self.resources
-                    .insert(id, GpuResource::TextureCube { handle });
-                debug!("Created texturecube {:?} with handle {}", id, handle);
+                self.cmd_create_texture_cube(id, size, format);
             }
 
             RenderCommand::CreateMesh {
@@ -1872,112 +1644,442 @@ impl CommandExecutor {
                 vertices,
                 indices,
                 vertex_format,
-            } => {
-                let (vao, vbo, ebo) = self.create_mesh(&vertices, &indices, &vertex_format);
-                self.resources
-                    .insert(id, GpuResource::Mesh { vao, vbo, ebo });
-                debug!("Created mesh {:?} with vao {}", id, vao);
-            }
+            } => self.cmd__create_mesh(id, vertices, indices, vertex_format),
 
-            RenderCommand::DestroyResource { id } => {
-                if let Some(resource) = self.resources.remove(&id) {
-                    self.destroy_resource(resource);
-                    debug!("Destroyed resource {:?}", id);
-                }
-            }
+            RenderCommand::DestroyResource { id } => self.cmd_destroy_resource(id),
 
             // === Uniform Buffer Objects ===
-            RenderCommand::CreateCameraUBO => {
-                self.create_camera_ubo();
-            }
-
-            RenderCommand::UpdateCameraUBO { data } => {
-                self.update_camera_ubo(&data);
-            }
-
-            RenderCommand::CreateMaterialUBO => {
-                self.create_material_ubo();
-            }
-
-            RenderCommand::UpdateMaterialUBO { data } => {
-                self.update_material_ubo(&data);
-            }
-
-            RenderCommand::CreateLightUBO => {
-                self.create_light_ubo();
-            }
-
-            RenderCommand::UpdateLightUBO { data } => {
-                self.update_light_ubo(&data);
-            }
+            RenderCommand::CreateCameraUBO => self.cmd_create_camera_ubo(),
+            RenderCommand::UpdateCameraUBO { data } => self.cmd_update_camera_ubo(&data),
+            RenderCommand::CreateMaterialUBO => self.cmd_create_material_ubo(),
+            RenderCommand::UpdateMaterialUBO { data } => self.cmd_update_material_ubo(&data),
+            RenderCommand::CreateLightUBO => self.cmd_create_light_ubo(),
+            RenderCommand::UpdateLightUBO { data } => self.cmd_update_light_ubo(&data),
 
             // === Window Operations ===
-            RenderCommand::Resize { width, height } => {
-                // Only update the viewport - surface resize is handled by the window system.
-                // Note: Calling ctx.resize() here was causing freezes during window resize,
-                // likely due to synchronization issues with the window manager.
-                // The viewport update is sufficient for correct rendering.
-                unsafe {
-                    gl::Viewport(0, 0, width as i32, height as i32);
-                }
-            }
+            RenderCommand::Resize { width, height } => self.cmd_resize(width, height),
 
             RenderCommand::SwapBuffers => {
-                // Calculate frame time before swap
-                let frame_time = self.frame_start.elapsed();
-                let frame_time_us = frame_time.as_micros() as u64;
-
-                self.stats.frame_count += 1;
-
-                // Snapshot stats at end of frame; readable via `stats_snapshot()`
-                // at any later point, and handed back as a reply so the
-                // threaded backend can forward it to the main thread.
-                self.last_stats = RenderStats {
-                    commands_processed: self.stats.commands_processed,
-                    draw_calls: self.stats.draw_calls,
-                    state_changes: self.stats.state_changes,
-                    frame_count: self.stats.frame_count,
-                    last_frame_time_us: frame_time_us,
-                    commands_last_frame: self.commands_this_frame,
-                    draw_calls_last_frame: self.draw_calls_this_frame,
-                    texture_binds_skipped: self.texture_binds_skipped,
-                };
-                reply = CommandReply::Stats(self.last_stats.clone());
-
-                // Perform actual buffer swap if we have a GL context
-                if let Some(ref ctx) = self.gl_context {
-                    if let Err(e) = ctx.swap_buffers() {
-                        error!("Failed to swap buffers: {}", e);
-                    }
-                } else if self.stats.frame_count == 1 {
-                    error!("SwapBuffers: no GL context available!");
-                }
-
-                // Reset per-frame counters and start new frame timing
-                self.commands_this_frame = 0;
-                self.draw_calls_this_frame = 0;
-                self.frame_start = std::time::Instant::now();
+                self.cmd_swap_buffers();
             }
 
             // === Synchronization ===
-            RenderCommand::Flush => unsafe {
-                gl::Finish();
-            },
+            RenderCommand::Flush => self.cmd_flush(),
 
             RenderCommand::Fence { fence_id } => {
-                reply = CommandReply::Fence(fence_id);
+                self.cmd_fence(fence_id);
             }
 
             RenderCommand::PacingFence { fence_id } => {
-                reply = CommandReply::PacingFence(fence_id);
+                self.cmd_pacing_fence(fence_id);
             }
 
             RenderCommand::Shutdown => {
                 // Handled by the caller's loop
             }
         }
+    }
+    fn cmd_draw_mesh_instanced(
+        &self,
+        vao: super::GpuHandle,
+        index_count: i32,
+        instance_count: i32,
+        primitive: CmdPrimitiveType,
+    ) {
+        unsafe {
+            gl::BindVertexArray(vao.0);
+            gl::DrawElementsInstanced(
+                primitive.to_gl(),
+                index_count,
+                gl::UNSIGNED_INT,
+                ptr::null(),
+                instance_count,
+            );
+            gl::BindVertexArray(0);
+        }
+    }
 
-        reply
+    fn cmd_draw_mesh_by_resource(
+        &mut self,
+        id: ResourceId,
+        index_count: i32,
+        primitive: CmdPrimitiveType,
+    ) {
+        if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&id) {
+            unsafe {
+                gl::BindVertexArray(*vao);
+                gl::DrawElements(
+                    primitive.to_gl(),
+                    index_count,
+                    gl::UNSIGNED_INT,
+                    ptr::null(),
+                );
+                gl::BindVertexArray(0);
+            }
+        } else {
+            warn!("DrawMeshByResource: resource {:?} not found", id);
+        }
+    }
+
+    fn cmd_draw_mesh_instanced_by_resource(
+        &mut self,
+        id: ResourceId,
+        index_count: i32,
+        instance_count: i32,
+        primitive: CmdPrimitiveType,
+    ) {
+        if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&id) {
+            unsafe {
+                gl::BindVertexArray(*vao);
+                gl::DrawElementsInstanced(
+                    primitive.to_gl(),
+                    index_count,
+                    gl::UNSIGNED_INT,
+                    ptr::null(),
+                    instance_count,
+                );
+                gl::BindVertexArray(0);
+            }
+        } else {
+            warn!("DrawMeshInstancedByResource: resource {:?} not found", id);
+        }
+    }
+
+    fn cmd_draw_instanced_with_data(
+        &mut self,
+        mesh_id: ResourceId,
+        index_count: i32,
+        instances: Vec<InstanceData>,
+        primitive: CmdPrimitiveType,
+    ) {
+        if instances.is_empty() {
+            return; // Nothing to draw
+        }
+
+        let mesh_vao = if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&mesh_id) {
+            *vao
+        } else {
+            warn!(
+                "DrawInstancedWithData: mesh resource {:?} not found",
+                mesh_id
+            );
+            return;
+        };
+
+        unsafe {
+            // Create or resize instance VBO if needed
+            let instance_count = instances.len();
+            let instance_size = std::mem::size_of::<InstanceData>();
+            let data_size = instance_count * instance_size;
+
+            if self.instance_vbo == 0 {
+                gl::GenBuffers(1, &mut self.instance_vbo);
+            }
+
+            // Bind mesh VAO first
+            gl::BindVertexArray(mesh_vao);
+
+            // Bind instance VBO once - used for resize, upload, AND attribute setup
+            // (GL_ARRAY_BUFFER is NOT part of VAO state, so this stays bound)
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.instance_vbo);
+
+            // Resize buffer if needed (grow only, with some headroom)
+            if instance_count > self.instance_vbo_capacity {
+                let new_capacity = (instance_count * 3 / 2).max(64); // 50% headroom, min 64
+                gl::BufferData(
+                    gl::ARRAY_BUFFER,
+                    (new_capacity * instance_size) as isize,
+                    ptr::null(),
+                    gl::DYNAMIC_DRAW,
+                );
+                self.instance_vbo_capacity = new_capacity;
+            }
+
+            // Upload instance data
+            gl::BufferSubData(
+                gl::ARRAY_BUFFER,
+                0,
+                data_size as isize,
+                instances.as_ptr() as *const _,
+            );
+
+            // Set up instance attributes (model matrix as 4 vec4 columns + color)
+            // InstanceData layout: model_matrix[16] + color[4] = 80 bytes
+            let stride = instance_size as i32;
+
+            // Attribute 4-7: model matrix columns (mat4 = 4 x vec4)
+            for col in 0..4u32 {
+                let attrib = 4 + col;
+                gl::EnableVertexAttribArray(attrib);
+                gl::VertexAttribPointer(
+                    attrib,
+                    4, // 4 floats per column
+                    gl::FLOAT,
+                    gl::FALSE,
+                    stride,
+                    (col as usize * 16) as *const _, // offset: col * 4 floats * 4 bytes
+                );
+                gl::VertexAttribDivisor(attrib, 1); // Per-instance
+            }
+
+            // Attribute 8: color (vec4)
+            gl::EnableVertexAttribArray(8);
+            gl::VertexAttribPointer(
+                8,
+                4, // 4 floats (RGBA)
+                gl::FLOAT,
+                gl::FALSE,
+                stride,
+                64 as *const _, // offset: 16 floats * 4 bytes = 64
+            );
+            gl::VertexAttribDivisor(8, 1); // Per-instance
+
+            // Draw instanced
+            gl::DrawElementsInstanced(
+                primitive.to_gl(),
+                index_count,
+                gl::UNSIGNED_INT,
+                ptr::null(),
+                instance_count as i32,
+            );
+
+            // Disable instance attributes and reset divisors
+            for attrib in 4..=8 {
+                gl::VertexAttribDivisor(attrib, 0);
+                gl::DisableVertexAttribArray(attrib);
+            }
+
+            gl::BindVertexArray(0);
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        }
+        // Note: draw call counting is handled by is_draw_call() in execute()
+    }
+
+    fn cmd_bind_mesh_by_resource(&mut self, id: ResourceId) {
+        if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&id) {
+            unsafe {
+                gl::BindVertexArray(*vao);
+                gl::EnableVertexAttribArray(0);
+                gl::EnableVertexAttribArray(1);
+                gl::EnableVertexAttribArray(2);
+            }
+        } else {
+            warn!("BindMeshByResource: resource {:?} not found", id);
+        }
+    }
+
+    fn cmd_create_shader(
+        &mut self,
+        id: ResourceId,
+        vertex_src: String,
+        fragment_src: String,
+        reply_tx: crossbeam::channel::Sender<Option<String>>,
+    ) {
+        let error = match self.create_shader(&vertex_src, &fragment_src) {
+            Ok(program) => {
+                self.resources.insert(id, GpuResource::Shader { program });
+                debug!("Created shader {:?} with program {}", id, program);
+                None
+            }
+            Err(e) => {
+                error!("Failed to create shader {:?}: {}", id, e);
+                Some(e)
+            }
+        };
+        let _ = reply_tx.send(error);
+    }
+
+    fn cmd_get_uniform_location_by_resource(
+        &mut self,
+        id: ResourceId,
+        name: Arc<str>,
+        reply_tx: crossbeam::channel::Sender<i32>,
+    ) {
+        let loc = if let Some(GpuResource::Shader { program }) = self.resources.get(&id) {
+            let program = *program;
+            self.get_uniform_location_for_program(program, name)
+        } else {
+            warn!("GetUniformLocationByResource: resource {:?} not found", id);
+            -1
+        };
+        let _ = reply_tx.send(loc);
+    }
+
+    fn cmd_create_texture_1d(
+        &mut self,
+        id: ResourceId,
+        width: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    ) {
+        let handle = self.create_texture_1d(width, format, data.as_deref());
+        self.resources.insert(id, GpuResource::Texture1D { handle });
+        debug!("Created texture1d {:?} with handle {}", id, handle);
+    }
+
+    fn cmd_create_texture_2d(
+        &mut self,
+        id: ResourceId,
+        width: u32,
+        height: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    ) {
+        let handle = self.create_texture_2d(width, height, format, data.as_deref());
+        self.resources.insert(id, GpuResource::Texture2D { handle });
+        debug!("Created texture2d {:?} with handle {}", id, handle);
+    }
+
+    fn cmd_create_texture_3d(
+        &mut self,
+        id: ResourceId,
+        width: u32,
+        height: u32,
+        depth: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    ) {
+        let handle = self.create_texture_3d(width, height, depth, format, data.as_deref());
+        self.resources.insert(id, GpuResource::Texture3D { handle });
+        debug!("Created texture3d {:?} with handle {}", id, handle);
+    }
+
+    fn cmd_create_texture_cube(&mut self, id: ResourceId, size: u32, format: TexFormat) {
+        let handle = self.create_texture_cube(size, format);
+        self.resources
+            .insert(id, GpuResource::TextureCube { handle });
+        debug!("Created texturecube {:?} with handle {}", id, handle);
+    }
+
+    fn cmd__create_mesh(
+        &mut self,
+        id: ResourceId,
+        vertices: Vec<u8>,
+        indices: Vec<u32>,
+        vertex_format: VertexFormat,
+    ) {
+        let (vao, vbo, ebo) = self.create_mesh(&vertices, &indices, &vertex_format);
+        self.resources
+            .insert(id, GpuResource::Mesh { vao, vbo, ebo });
+        debug!("Created mesh {:?} with vao {}", id, vao);
+    }
+
+    fn cmd_destroy_resource(&mut self, id: ResourceId) {
+        if let Some(resource) = self.resources.remove(&id) {
+            self.destroy_resource(resource);
+            debug!("Destroyed resource {:?}", id);
+        }
+    }
+
+    fn cmd_resize(&self, width: u32, height: u32) {
+        // Only update the viewport - surface resize is handled by the window system.
+        // Note: Calling ctx.resize() here was causing freezes during window resize,
+        // likely due to synchronization issues with the window manager.
+        // The viewport update is sufficient for correct rendering.
+        unsafe {
+            gl::Viewport(0, 0, width as i32, height as i32);
+        }
+    }
+
+    pub(super) fn cmd_reload_shader(
+        &mut self,
+        shader_key: &str,
+        vertex_src: &str,
+        fragment_src: &str,
+    ) -> CommandReply {
+        // Compile shader on render thread and send result back
+        let result = match self.create_shader(vertex_src, fragment_src) {
+            Ok(program) => {
+                // Delete old hot-reloaded shader if exists
+                if let Some(old_program) = self.hot_reloaded_shaders.remove(shader_key) {
+                    // Clear uniform cache for the old program to prevent stale lookups
+                    // (GL may reuse the program ID for a new shader)
+                    self.uniform_caches.remove(&old_program);
+                    unsafe {
+                        gl::DeleteProgram(old_program);
+                    }
+                    debug!("Deleted previous hot-reloaded shader for '{shader_key}'",);
+                }
+
+                // Store the new program for this shader_key
+                self.hot_reloaded_shaders
+                    .insert(shader_key.to_string(), program);
+                info!(
+                    "Shader '{shader_key}' reloaded successfully on render thread (program={program})",
+                );
+
+                ShaderReloadResult {
+                    shader_key: shader_key.into(),
+                    success: true,
+                    error: None,
+                    program,
+                }
+            }
+            Err(e) => {
+                warn!("Shader '{shader_key}' reload failed: {e}");
+                // Push error to global queue for UI overlay
+                // push_shader_error(&shader_key, "compile", &e);
+                ShaderReloadResult {
+                    shader_key: shader_key.into(),
+                    success: false,
+                    error: Some(e),
+                    program: 0,
+                }
+            }
+        };
+        CommandReply::ShaderReload(result)
+    }
+
+    fn cmd_swap_buffers(&mut self) -> CommandReply {
+        // Calculate frame time before swap
+        let frame_time = self.frame_start.elapsed();
+        let frame_time_us = frame_time.as_micros() as u64;
+
+        self.stats.frame_count += 1;
+
+        // Snapshot stats at end of frame; readable via `stats_snapshot()`
+        // at any later point, and handed back as a reply so the
+        // threaded backend can forward it to the main thread.
+        self.last_stats = RenderStats {
+            commands_processed: self.stats.commands_processed,
+            draw_calls: self.stats.draw_calls,
+            state_changes: self.stats.state_changes,
+            frame_count: self.stats.frame_count,
+            last_frame_time_us: frame_time_us,
+            commands_last_frame: self.commands_this_frame,
+            draw_calls_last_frame: self.draw_calls_this_frame,
+            texture_binds_skipped: self.texture_binds_skipped,
+        };
+
+        // Perform actual buffer swap if we have a GL context
+        if let Some(ref ctx) = self.gl_context {
+            if let Err(e) = ctx.swap_buffers() {
+                error!("Failed to swap buffers: {}", e);
+            }
+        } else if self.stats.frame_count == 1 {
+            error!("SwapBuffers: no GL context available!");
+        }
+
+        // Reset per-frame counters and start new frame timing
+        self.commands_this_frame = 0;
+        self.draw_calls_this_frame = 0;
+        self.frame_start = std::time::Instant::now();
+
+        CommandReply::Stats(self.last_stats.clone())
+    }
+
+    fn cmd_flush(&self) {
+        unsafe {
+            gl::Finish();
+        }
+    }
+
+    fn cmd_fence(&self, fence_id: u64) -> CommandReply {
+        CommandReply::Fence(fence_id)
+    }
+
+    fn cmd_pacing_fence(&self, fence_id: u64) -> CommandReply {
+        CommandReply::PacingFence(fence_id)
     }
 
     fn set_blend_mode(&self, mode: BlendMode) {
@@ -2026,7 +2128,7 @@ impl CommandExecutor {
         }
     }
 
-    fn draw_immediate(&self, primitive: CmdPrimitiveType, vertices: &[ImmVertex]) {
+    fn cmd_draw_immediate(&self, primitive: CmdPrimitiveType, vertices: &[ImmVertex]) {
         if vertices.is_empty() {
             return;
         }
@@ -2469,7 +2571,7 @@ impl CommandExecutor {
     }
 
     /// Create the camera UBO (binding point 0)
-    fn create_camera_ubo(&mut self) {
+    fn cmd_create_camera_ubo(&mut self) {
         if self.camera_ubo != 0 {
             return; // Already created
         }
@@ -2487,9 +2589,9 @@ impl CommandExecutor {
     }
 
     /// Update camera UBO data
-    fn update_camera_ubo(&mut self, data: &[u8; 288]) {
+    fn cmd_update_camera_ubo(&mut self, data: &[u8; 288]) {
         if self.camera_ubo == 0 {
-            self.create_camera_ubo();
+            self.cmd_create_camera_ubo();
         }
 
         unsafe {
@@ -2500,7 +2602,7 @@ impl CommandExecutor {
     }
 
     /// Create material UBO
-    fn create_material_ubo(&mut self) {
+    fn cmd_create_material_ubo(&mut self) {
         if self.material_ubo != 0 {
             return; // Already created
         }
@@ -2518,9 +2620,9 @@ impl CommandExecutor {
     }
 
     /// Update material UBO data
-    fn update_material_ubo(&mut self, data: &[u8; 32]) {
+    fn cmd_update_material_ubo(&mut self, data: &[u8; 32]) {
         if self.material_ubo == 0 {
-            self.create_material_ubo();
+            self.cmd_create_material_ubo();
         }
 
         unsafe {
@@ -2531,7 +2633,7 @@ impl CommandExecutor {
     }
 
     /// Create light UBO
-    fn create_light_ubo(&mut self) {
+    fn cmd_create_light_ubo(&mut self) {
         if self.light_ubo != 0 {
             return; // Already created
         }
@@ -2549,9 +2651,9 @@ impl CommandExecutor {
     }
 
     /// Update light UBO data
-    fn update_light_ubo(&mut self, data: &[u8; 32]) {
+    fn cmd_update_light_ubo(&mut self, data: &[u8; 32]) {
         if self.light_ubo == 0 {
-            self.create_light_ubo();
+            self.cmd_create_light_ubo();
         }
 
         unsafe {
