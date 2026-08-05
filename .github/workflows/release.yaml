@@ -194,9 +194,15 @@ jobs:
           umask 077
           key_path="${RUNNER_TEMP}/game-release.key"
           trap 'rm -f "${key_path}"' EXIT
-          printf '%s' "${GAME_SIGNING_PRIVATE_KEY}" > "${key_path}"
+          printf '%s\n' "${GAME_SIGNING_PRIVATE_KEY}" > "${key_path}"
+          key_header="$(head -n 1 "${key_path}")"
+          key_header="${key_header%$'\r'}"
+          if [[ "${key_header}" != "untrusted comment: minisign encrypted secret key" ]]; then
+            echo "GAME_SIGNING_PRIVATE_KEY must contain the complete raw Minisign secret key file." >&2
+            exit 1
+          fi
           for archive in ./*.zip; do
-            minisign -S -s "${key_path}" -m "${archive}" -x "${archive}.minisig" -t "Limit Theory Redux ${{ needs.gen-build-version.outputs.build }}"
+            minisign -S -W -s "${key_path}" -m "${archive}" -x "${archive}.minisig" -t "Limit Theory Redux ${{ needs.gen-build-version.outputs.build }}"
           done
       - name: echo repo
         run: echo ${{github.repository}}
