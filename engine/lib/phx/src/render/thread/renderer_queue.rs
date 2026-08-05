@@ -40,7 +40,7 @@ impl Renderer {
         eye_y: f32,
         eye_z: f32,
     ) {
-        self.active_batch = Some(RenderBatch::new(view, projection, eye_x, eye_y, eye_z));
+        self.data.active_batch = Some(RenderBatch::new(view, projection, eye_x, eye_y, eye_z));
     }
 
     pub fn add_entity(
@@ -55,7 +55,7 @@ impl Renderer {
         shader_handle: u32,
         sort_key: u32,
     ) {
-        if let Some(batch) = &mut self.active_batch {
+        if let Some(batch) = &mut self.data.active_batch {
             batch.add_entity(
                 transform,
                 bounds_center_x,
@@ -77,7 +77,7 @@ impl Renderer {
     }
 
     pub fn get_batch_stats(&self) -> Option<&BatchStats> {
-        if let Some(batch) = &self.active_batch {
+        if let Some(batch) = &self.data.active_batch {
             Some(batch.get_stats())
         } else {
             error!("There is no active batch started. Use begin_batch() to start it.");

@@ -7,6 +7,7 @@ mod error;
 mod render_batch;
 mod render_command;
 mod renderer;
+mod renderer_data;
 mod renderer_queue;
 mod resource_handle;
 mod shader_reload_result;
@@ -32,6 +33,7 @@ pub use render_command::*;
 #[cfg(not(feature = "immediate"))]
 pub use render_thread::*;
 pub use renderer::*;
+pub use renderer_data::*;
 #[cfg(feature = "immediate")]
 pub use renderer_immediate::*;
 pub use renderer_queue::*;

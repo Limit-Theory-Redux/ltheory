@@ -736,9 +736,10 @@ impl Mesh {
 
         let tex_output = Tex2D::new(r, v_dim as i32, v_dim as i32, TexFormat::R32F);
 
-        let mut shader = r.ao_shader.take().unwrap_or_else(|| {
-            Shader::load(r, "vertex/identity", "fragment/compute/occlusion")
-        });
+        let mut shader =
+            r.data.ao_shader.take().unwrap_or_else(|| {
+                Shader::load(r, "vertex/identity", "fragment/compute/occlusion")
+            });
 
         RenderState::push_all_defaults(r);
         RenderTarget::push_tex2d(r, &tex_output);
@@ -756,7 +757,7 @@ impl Mesh {
         RenderTarget::pop(r);
         RenderState::pop_all(r);
 
-        r.ao_shader = Some(shader);
+        r.data.ao_shader = Some(shader);
 
         let result = tex_output.get_data(r, PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
@@ -778,7 +779,7 @@ impl Mesh {
 
         tex_points.set_data(r, &point_buffer, PixelFormat::RGB, DataFormat::Float);
 
-        let mut shader = r.occlusion_shader.take().unwrap_or_else(|| {
+        let mut shader = r.data.occlusion_shader.take().unwrap_or_else(|| {
             Shader::load(r, "vertex/identity", "fragment/compute/occlusion_sdf")
         });
 
@@ -795,7 +796,7 @@ impl Mesh {
         RenderTarget::pop(r);
         RenderState::pop_all(r);
 
-        r.occlusion_shader = Some(shader);
+        r.data.occlusion_shader = Some(shader);
 
         let result = tex_output.get_data(r, PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {

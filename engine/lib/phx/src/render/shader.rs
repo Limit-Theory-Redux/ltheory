@@ -564,7 +564,7 @@ impl Shader {
                 continue;
             }
 
-            let Some(shader_var) = r.shader_vars.get(s.auto_vars[i].name.as_str()) else {
+            let Some(shader_var) = r.data.shader_vars.get(s.auto_vars[i].name.as_str()) else {
                 warn!(
                     "Shader variable stack does not contain variable <{}>",
                     s.auto_vars[i].name,

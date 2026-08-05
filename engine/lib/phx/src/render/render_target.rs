@@ -9,7 +9,7 @@ impl RenderTarget {
     pub fn push(r: &mut Renderer, sx: i32, sy: i32) {
         Profiler::begin("RenderTarget_Push");
 
-        r.render_target.push();
+        r.data.render_target.push();
         Metric::FBOSwap.inc();
         r.submit(RenderCommand::PushFramebuffer {
             id: 0,
@@ -24,7 +24,7 @@ impl RenderTarget {
     pub fn pop(r: &mut Renderer) {
         Profiler::begin("RenderTarget_Pop");
 
-        r.render_target.pop();
+        r.data.render_target.pop();
         Metric::FBOSwap.inc();
         r.submit(RenderCommand::PopFramebuffer);
         Viewport::pop(r);
@@ -38,6 +38,7 @@ impl RenderTarget {
 
     pub fn bind_tex2d_level(r: &mut Renderer, tex: &Tex2D, level: i32) {
         let attachment = r
+            .data
             .render_target
             .attach(TexFormat::is_color(Tex2D::get_format(tex)), "BindTex2D");
         r.submit(RenderCommand::FramebufferAttachTexture2DByResource {
@@ -52,7 +53,7 @@ impl RenderTarget {
     }
 
     pub fn bind_tex3d_level(r: &mut Renderer, tex: &Tex3D, layer: i32, level: i32) {
-        let attachment = r.render_target.attach_color("BindTex3D");
+        let attachment = r.data.render_target.attach_color("BindTex3D");
         r.submit(RenderCommand::FramebufferAttachTexture3DByResource {
             attachment,
             id: tex.resource_id(),
@@ -66,7 +67,7 @@ impl RenderTarget {
     }
 
     pub fn bind_tex_cube_level(r: &mut Renderer, tex: &TexCube, face: CubeFace, level: i32) {
-        let attachment = r.render_target.attach_color("BindTexCubeLevel");
+        let attachment = r.data.render_target.attach_color("BindTexCubeLevel");
         r.submit(RenderCommand::FramebufferAttachTextureCubeByResource {
             attachment,
             id: tex.resource_id(),

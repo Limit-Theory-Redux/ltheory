@@ -8,8 +8,9 @@ use tracing::{error, info};
 
 use crate::render::thread::{RenderThread, process_batch_intern};
 use crate::render::{
-    ClipManager, DrawState, RenderBatch, RenderStateIntern, RenderCommand, PrimitiveBuilder, Shader, ShaderVarMap, RenderStats, RenderTargetStack, RenderThreadConfig,
-    RenederThreadError, ResourceHandle, ResourceId, ShaderReloadResult, VpStack,
+    ClipManager, DrawState, PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats,
+    RenderTargetStack, RenderThreadConfig, RendererData, RenederThreadError, ResourceHandle,
+    ResourceId, ShaderReloadResult, ShaderVarMap, VpStack,
 };
 use crate::window::WindowGlContext;
 
@@ -46,40 +47,8 @@ pub struct Renderer {
     /// Time spent blocked in `end_frame_triple_buffered`, in microseconds -
     /// purely a main-thread measurement, the executor has no part in it
     main_thread_wait_us: u64,
-    /// Thread-local command buffer for batching
-    command_buffer: Vec<RenderCommand>,
-    /// Counter for generating unique ResourceIds. Only ever touched through
-    /// `&mut self`, so a plain integer is enough - no atomic needed.
-    next_resource_id: u64,
-    /// Producer end of the destroy queue, cloned into every `ResourceHandle`
-    /// so a resource's `Drop` can enqueue its id without a `&mut Renderer`.
-    destroy_tx: Sender<ResourceId>,
-    /// Consumer end, owned solely by this `Renderer` and drained once per
-    /// frame in `end_frame_triple_buffered`.
-    destroy_rx: Receiver<ResourceId>,
-    /// Active render batch
-    pub(super) active_batch: Option<RenderBatch>,
-    /// Viewport stack (was `thread_local! VP_STACK` in viewport.rs)
-    pub(crate) viewport: VpStack,
-    /// Framebuffer attachment bookkeeping (was `thread_local! FBO_STACK` in
-    /// render_target.rs)
-    pub(crate) render_target: RenderTargetStack,
-    /// Clip-rect stack (was `thread_local! CLIP_MANAGER` in clip_rect.rs)
-    pub(crate) clip_rect: ClipManager,
-    /// GL state stack (was `thread_local! RENDER_STATE` in render_state.rs)
-    pub(crate) render_state: RenderStateIntern,
-    /// Immediate-mode vertex accumulator (was `Draw`'s owned `PrimitiveBuilder`)
-    pub(crate) imm: PrimitiveBuilder,
-    /// `Draw`'s CPU-side alpha/color stack (was static via `Draw::inst()`)
-    pub(crate) draw_state: DrawState,
-    /// Shader auto-var stack (was `static OnceLock<Mutex<ShaderVar>>`)
-    pub(crate) shader_vars: ShaderVarMap,
-    /// Lazily-created shader for `Mesh::compute_ao` (was `static mut SHADER`)
-    pub(crate) ao_shader: Option<Shader>,
-    /// Lazily-created shader for `Mesh::compute_occlusion` (was `static mut SHADER`)
-    pub(crate) occlusion_shader: Option<Shader>,
-    /// Lazily-created shader for `TexCube::gen_ir_map` (was `static mut SHADER`)
-    pub(crate) irmap_shader: Option<Shader>,
+    /// Generic renderer data
+    pub(crate) data: RendererData,
 }
 
 impl Renderer {
@@ -147,21 +116,23 @@ impl Renderer {
             stats_rx,
             last_stats: RenderStats::default(),
             main_thread_wait_us: 0,
-            command_buffer: vec![],
-            next_resource_id: 1,
-            destroy_tx,
-            destroy_rx,
-            active_batch: None,
-            viewport: VpStack::new(),
-            render_target: RenderTargetStack::new(),
-            clip_rect: ClipManager::new(),
-            render_state: RenderStateIntern::new(),
-            imm: PrimitiveBuilder::new(),
-            draw_state: DrawState::new(),
-            shader_vars: ShaderVarMap::new(),
-            ao_shader: None,
-            occlusion_shader: None,
-            irmap_shader: None,
+            data: RendererData {
+                next_resource_id: 1,
+                destroy_tx,
+                destroy_rx,
+                command_buffer: vec![],
+                active_batch: None,
+                viewport: VpStack::new(),
+                render_target: RenderTargetStack::new(),
+                clip_rect: ClipManager::new(),
+                render_state: RenderStateIntern::new(),
+                imm: PrimitiveBuilder::new(),
+                draw_state: DrawState::new(),
+                shader_vars: ShaderVarMap::new(),
+                ao_shader: None,
+                occlusion_shader: None,
+                irmap_shader: None,
+            },
         })
     }
 
@@ -206,14 +177,14 @@ impl Renderer {
 
     /// Begin a new frame
     pub(in crate::render::thread) fn begin_frame_intern(&mut self) {
-        self.command_buffer.clear();
+        self.data.command_buffer.clear();
     }
 
     /// Flush all queued commands to the render thread
     pub(in crate::render::thread) fn flush_intern(&mut self) {
         if self.running.load(Ordering::Relaxed) {
             // TODO: send vector of commands instead of one by one
-            for cmd in self.command_buffer.drain(..) {
+            for cmd in self.data.command_buffer.drain(..) {
                 if let Err(e) = self.command_tx.send(cmd) {
                     error!("Failed to send render command: {:?}", e);
                     break;
@@ -245,16 +216,16 @@ impl Renderer {
     /// to destroy it (see `ResourceHandle`). This is the only way to obtain
     /// either, so a resource can never exist without its destructor wired up.
     pub fn create_resource(&mut self) -> ResourceHandle {
-        let id = ResourceId(self.next_resource_id);
-        self.next_resource_id += 1;
-        ResourceHandle::new(id, self.destroy_tx.clone())
+        let id = ResourceId(self.data.next_resource_id);
+        self.data.next_resource_id += 1;
+        ResourceHandle::new(id, self.data.destroy_tx.clone())
     }
 
     /// Submit `DestroyResource` for every resource dropped since the last drain.
     fn drain_destroy_queue(&mut self) {
         // Collect first: the `destroy_rx` borrow has to end before `submit`
         // takes `&mut self`.
-        let ids: Vec<ResourceId> = self.destroy_rx.try_iter().collect();
+        let ids: Vec<ResourceId> = self.data.destroy_rx.try_iter().collect();
         for id in ids {
             self.submit(RenderCommand::DestroyResource { id });
         }
@@ -415,7 +386,7 @@ impl Renderer {
     }
 
     pub fn process_batch(&mut self) {
-        process_batch_intern(&mut self.active_batch, &mut self.command_buffer);
+        process_batch_intern(&mut self.data.active_batch, &mut self.data.command_buffer);
     }
 
     /// Request the render thread to shutdown.

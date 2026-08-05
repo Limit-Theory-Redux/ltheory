@@ -30,8 +30,11 @@ impl Default for DrawState {
 /// Submit whatever `r.imm` accumulated since the matching `begin()`, if
 /// anything was drawn.
 fn end_and_submit(r: &mut Renderer) {
-    if let Some((primitive, vertices)) = r.imm.end() {
-        r.submit(RenderCommand::DrawImmediate { primitive, vertices });
+    if let Some((primitive, vertices)) = r.data.imm.end() {
+        r.submit(RenderCommand::DrawImmediate {
+            primitive,
+            vertices,
+        });
     }
 }
 
@@ -62,15 +65,10 @@ impl Draw {
     }
 
     pub fn color(r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
-        let last_alpha = r
-            .draw_state
-            .alpha_stack
-            .last()
-            .copied()
-            .unwrap_or(1.0);
+        let last_alpha = r.data.draw_state.alpha_stack.last().copied().unwrap_or(1.0);
 
-        r.draw_state.color = Color::new(red, green, blue, alpha);
-        r.imm.color4(red, green, blue, alpha * last_alpha);
+        r.data.draw_state.color = Color::new(red, green, blue, alpha);
+        r.data.imm.color4(red, green, blue, alpha * last_alpha);
     }
 
     pub fn flush(r: &mut Renderer) {
@@ -79,32 +77,27 @@ impl Draw {
     }
 
     pub fn push_alpha(r: &mut Renderer, a: f32) {
-        let prev_alpha = r
-            .draw_state
-            .alpha_stack
-            .last()
-            .copied()
-            .unwrap_or(1.0);
+        let prev_alpha = r.data.draw_state.alpha_stack.last().copied().unwrap_or(1.0);
 
         let alpha = a * prev_alpha;
-        r.draw_state.alpha_stack.push(alpha);
+        r.data.draw_state.alpha_stack.push(alpha);
 
-        let mut color = r.draw_state.color;
+        let mut color = r.data.draw_state.color;
         color.a *= alpha;
-        r.imm.color4(color.r, color.g, color.b, color.a);
+        r.data.imm.color4(color.r, color.g, color.b, color.a);
     }
 
     pub fn pop_alpha(r: &mut Renderer) {
-        if r.draw_state.alpha_stack.is_empty() {
+        if r.data.draw_state.alpha_stack.is_empty() {
             panic!("attempting to pop an empty alpha stack");
         }
 
-        r.draw_state.alpha_stack.pop();
-        let alpha = r.draw_state.alpha_stack.last().copied().unwrap_or(1.0);
+        r.data.draw_state.alpha_stack.pop();
+        let alpha = r.data.draw_state.alpha_stack.last().copied().unwrap_or(1.0);
 
-        let mut color = r.draw_state.color;
+        let mut color = r.data.draw_state.color;
         color.a *= alpha;
-        r.imm.color4(color.r, color.g, color.b, color.a);
+        r.data.imm.color4(color.r, color.g, color.b, color.a);
     }
 
     pub fn line_width(r: &mut Renderer, width: f32) {
@@ -115,26 +108,34 @@ impl Draw {
         r.submit(RenderCommand::SetPointSize(size));
     }
 
-    pub fn axes(r: &mut Renderer, pos: &Vec3, x: &Vec3, y: &Vec3, z: &Vec3, scale: f32, alpha: f32) {
+    pub fn axes(
+        r: &mut Renderer,
+        pos: &Vec3,
+        x: &Vec3,
+        y: &Vec3,
+        z: &Vec3,
+        scale: f32,
+        alpha: f32,
+    ) {
         let left: Vec3 = *pos + (*x) * scale;
         let up: Vec3 = *pos + (*y) * scale;
         let forward: Vec3 = *pos + (*z) * scale;
 
-        r.imm.begin(PrimitiveType::Lines);
-        r.imm.color4(1.0, 0.25, 0.25, alpha);
-        r.imm.vertex3(pos.x, pos.y, pos.z);
-        r.imm.vertex3(left.x, left.y, left.z);
-        r.imm.color4(0.25, 1.0, 0.25, alpha);
-        r.imm.vertex3(pos.x, pos.y, pos.z);
-        r.imm.vertex3(up.x, up.y, up.z);
-        r.imm.color4(0.25, 0.25, 1.0, alpha);
-        r.imm.vertex3(pos.x, pos.y, pos.z);
-        r.imm.vertex3(forward.x, forward.y, forward.z);
+        r.data.imm.begin(PrimitiveType::Lines);
+        r.data.imm.color4(1.0, 0.25, 0.25, alpha);
+        r.data.imm.vertex3(pos.x, pos.y, pos.z);
+        r.data.imm.vertex3(left.x, left.y, left.z);
+        r.data.imm.color4(0.25, 1.0, 0.25, alpha);
+        r.data.imm.vertex3(pos.x, pos.y, pos.z);
+        r.data.imm.vertex3(up.x, up.y, up.z);
+        r.data.imm.color4(0.25, 0.25, 1.0, alpha);
+        r.data.imm.vertex3(pos.x, pos.y, pos.z);
+        r.data.imm.vertex3(forward.x, forward.y, forward.z);
         end_and_submit(r);
 
-        r.imm.begin(PrimitiveType::Points);
-        r.imm.color4(1.0, 1.0, 1.0, alpha);
-        r.imm.vertex3(pos.x, pos.y, pos.z);
+        r.data.imm.begin(PrimitiveType::Points);
+        r.data.imm.color4(1.0, 1.0, 1.0, alpha);
+        r.data.imm.vertex3(pos.x, pos.y, pos.z);
         end_and_submit(r);
     }
 
@@ -148,58 +149,58 @@ impl Draw {
     pub fn box3(r: &mut Renderer, b: &Box3) {
         Metric::add_draw_imm(6, 12, 24);
 
-        r.imm.begin(PrimitiveType::Quads);
+        r.data.imm.begin(PrimitiveType::Quads);
 
         /* Left. */
-        r.imm.vertex3(b.lower.x, b.lower.y, b.lower.z);
-        r.imm.vertex3(b.lower.x, b.lower.y, b.upper.z);
-        r.imm.vertex3(b.lower.x, b.upper.y, b.upper.z);
-        r.imm.vertex3(b.lower.x, b.upper.y, b.lower.z);
+        r.data.imm.vertex3(b.lower.x, b.lower.y, b.lower.z);
+        r.data.imm.vertex3(b.lower.x, b.lower.y, b.upper.z);
+        r.data.imm.vertex3(b.lower.x, b.upper.y, b.upper.z);
+        r.data.imm.vertex3(b.lower.x, b.upper.y, b.lower.z);
 
         /* Right. */
-        r.imm.vertex3(b.upper.x, b.lower.y, b.lower.z);
-        r.imm.vertex3(b.upper.x, b.upper.y, b.lower.z);
-        r.imm.vertex3(b.upper.x, b.upper.y, b.upper.z);
-        r.imm.vertex3(b.upper.x, b.lower.y, b.upper.z);
+        r.data.imm.vertex3(b.upper.x, b.lower.y, b.lower.z);
+        r.data.imm.vertex3(b.upper.x, b.upper.y, b.lower.z);
+        r.data.imm.vertex3(b.upper.x, b.upper.y, b.upper.z);
+        r.data.imm.vertex3(b.upper.x, b.lower.y, b.upper.z);
 
         /* Front. */
-        r.imm.vertex3(b.lower.x, b.lower.y, b.upper.z);
-        r.imm.vertex3(b.upper.x, b.lower.y, b.upper.z);
-        r.imm.vertex3(b.upper.x, b.upper.y, b.upper.z);
-        r.imm.vertex3(b.lower.x, b.upper.y, b.upper.z);
+        r.data.imm.vertex3(b.lower.x, b.lower.y, b.upper.z);
+        r.data.imm.vertex3(b.upper.x, b.lower.y, b.upper.z);
+        r.data.imm.vertex3(b.upper.x, b.upper.y, b.upper.z);
+        r.data.imm.vertex3(b.lower.x, b.upper.y, b.upper.z);
 
         /* Back. */
-        r.imm.vertex3(b.lower.x, b.lower.y, b.lower.z);
-        r.imm.vertex3(b.lower.x, b.upper.y, b.lower.z);
-        r.imm.vertex3(b.upper.x, b.upper.y, b.lower.z);
-        r.imm.vertex3(b.upper.x, b.lower.y, b.lower.z);
+        r.data.imm.vertex3(b.lower.x, b.lower.y, b.lower.z);
+        r.data.imm.vertex3(b.lower.x, b.upper.y, b.lower.z);
+        r.data.imm.vertex3(b.upper.x, b.upper.y, b.lower.z);
+        r.data.imm.vertex3(b.upper.x, b.lower.y, b.lower.z);
 
         /* Top. */
-        r.imm.vertex3(b.lower.x, b.upper.y, b.lower.z);
-        r.imm.vertex3(b.lower.x, b.upper.y, b.upper.z);
-        r.imm.vertex3(b.upper.x, b.upper.y, b.upper.z);
-        r.imm.vertex3(b.upper.x, b.upper.y, b.lower.z);
+        r.data.imm.vertex3(b.lower.x, b.upper.y, b.lower.z);
+        r.data.imm.vertex3(b.lower.x, b.upper.y, b.upper.z);
+        r.data.imm.vertex3(b.upper.x, b.upper.y, b.upper.z);
+        r.data.imm.vertex3(b.upper.x, b.upper.y, b.lower.z);
 
         /* Bottom. */
-        r.imm.vertex3(b.lower.x, b.lower.y, b.lower.z);
-        r.imm.vertex3(b.upper.x, b.lower.y, b.lower.z);
-        r.imm.vertex3(b.upper.x, b.lower.y, b.upper.z);
-        r.imm.vertex3(b.lower.x, b.lower.y, b.upper.z);
+        r.data.imm.vertex3(b.lower.x, b.lower.y, b.lower.z);
+        r.data.imm.vertex3(b.upper.x, b.lower.y, b.lower.z);
+        r.data.imm.vertex3(b.upper.x, b.lower.y, b.upper.z);
+        r.data.imm.vertex3(b.lower.x, b.lower.y, b.upper.z);
 
         end_and_submit(r);
     }
 
     pub fn line(r: &mut Renderer, x1: f32, y1: f32, x2: f32, y2: f32) {
-        r.imm.begin(PrimitiveType::Lines);
-        r.imm.vertex2(x1, y1);
-        r.imm.vertex2(x2, y2);
+        r.data.imm.begin(PrimitiveType::Lines);
+        r.data.imm.vertex2(x1, y1);
+        r.data.imm.vertex2(x2, y2);
         end_and_submit(r);
     }
 
     pub fn line3(r: &mut Renderer, p1: &Vec3, p2: &Vec3) {
-        r.imm.begin(PrimitiveType::Lines);
-        r.imm.vertex3(p1.x, p1.y, p1.z);
-        r.imm.vertex3(p2.x, p2.y, p2.z);
+        r.data.imm.begin(PrimitiveType::Lines);
+        r.data.imm.vertex3(p1.x, p1.y, p1.z);
+        r.data.imm.vertex3(p2.x, p2.y, p2.z);
         end_and_submit(r);
     }
 
@@ -220,53 +221,53 @@ impl Draw {
 
         Metric::add_draw_imm(1, 2, 4);
 
-        r.imm.begin(PrimitiveType::Quads);
-        r.imm.vertex3(p0.x, p0.y, p0.z);
-        r.imm.vertex3(p1.x, p1.y, p1.z);
-        r.imm.vertex3(p2.x, p2.y, p2.z);
-        r.imm.vertex3(p3.x, p3.y, p3.z);
+        r.data.imm.begin(PrimitiveType::Quads);
+        r.data.imm.vertex3(p0.x, p0.y, p0.z);
+        r.data.imm.vertex3(p1.x, p1.y, p1.z);
+        r.data.imm.vertex3(p2.x, p2.y, p2.z);
+        r.data.imm.vertex3(p3.x, p3.y, p3.z);
         end_and_submit(r);
     }
 
     pub fn point(r: &mut Renderer, x: f32, y: f32) {
-        r.imm.begin(PrimitiveType::Points);
-        r.imm.vertex2(x, y);
+        r.data.imm.begin(PrimitiveType::Points);
+        r.data.imm.vertex2(x, y);
         end_and_submit(r);
     }
 
     pub fn point3(r: &mut Renderer, x: f32, y: f32, z: f32) {
-        r.imm.begin(PrimitiveType::Points);
-        r.imm.vertex3(x, y, z);
+        r.data.imm.begin(PrimitiveType::Points);
+        r.data.imm.vertex3(x, y, z);
         end_and_submit(r);
     }
 
     pub fn quad(r: &mut Renderer, p1: &Vec2, p2: &Vec2, p3: &Vec2, p4: &Vec2) {
         Metric::add_draw_imm(1, 2, 4);
 
-        r.imm.begin(PrimitiveType::Quads);
-        r.imm.texcoord2(0.0, 0.0);
-        r.imm.vertex2(p1.x, p1.y);
-        r.imm.texcoord2(0.0, 1.0);
-        r.imm.vertex2(p2.x, p2.y);
-        r.imm.texcoord2(1.0, 1.0);
-        r.imm.vertex2(p3.x, p3.y);
-        r.imm.texcoord2(1.0, 0.0);
-        r.imm.vertex2(p4.x, p4.y);
+        r.data.imm.begin(PrimitiveType::Quads);
+        r.data.imm.texcoord2(0.0, 0.0);
+        r.data.imm.vertex2(p1.x, p1.y);
+        r.data.imm.texcoord2(0.0, 1.0);
+        r.data.imm.vertex2(p2.x, p2.y);
+        r.data.imm.texcoord2(1.0, 1.0);
+        r.data.imm.vertex2(p3.x, p3.y);
+        r.data.imm.texcoord2(1.0, 0.0);
+        r.data.imm.vertex2(p4.x, p4.y);
         end_and_submit(r);
     }
 
     pub fn quad3(r: &mut Renderer, p1: &Vec3, p2: &Vec3, p3: &Vec3, p4: &Vec3) {
         Metric::add_draw_imm(1, 2, 4);
 
-        r.imm.begin(PrimitiveType::Quads);
-        r.imm.texcoord2(0.0, 0.0);
-        r.imm.vertex3(p1.x, p1.y, p1.z);
-        r.imm.texcoord2(0.0, 1.0);
-        r.imm.vertex3(p2.x, p2.y, p2.z);
-        r.imm.texcoord2(1.0, 1.0);
-        r.imm.vertex3(p3.x, p3.y, p3.z);
-        r.imm.texcoord2(1.0, 0.0);
-        r.imm.vertex3(p4.x, p4.y, p4.z);
+        r.data.imm.begin(PrimitiveType::Quads);
+        r.data.imm.texcoord2(0.0, 0.0);
+        r.data.imm.vertex3(p1.x, p1.y, p1.z);
+        r.data.imm.texcoord2(0.0, 1.0);
+        r.data.imm.vertex3(p2.x, p2.y, p2.z);
+        r.data.imm.texcoord2(1.0, 1.0);
+        r.data.imm.vertex3(p3.x, p3.y, p3.z);
+        r.data.imm.texcoord2(1.0, 0.0);
+        r.data.imm.vertex3(p4.x, p4.y, p4.z);
         end_and_submit(r);
     }
 
@@ -291,15 +292,15 @@ impl Draw {
 
         Metric::add_draw_imm(1, 2, 4);
 
-        r.imm.begin(PrimitiveType::Quads);
-        r.imm.texcoord2(u1, v1);
-        r.imm.vertex2(x1, y1);
-        r.imm.texcoord2(u1, v2);
-        r.imm.vertex2(x1, y2);
-        r.imm.texcoord2(u2, v2);
-        r.imm.vertex2(x2, y2);
-        r.imm.texcoord2(u2, v1);
-        r.imm.vertex2(x2, y1);
+        r.data.imm.begin(PrimitiveType::Quads);
+        r.data.imm.texcoord2(u1, v1);
+        r.data.imm.vertex2(x1, y1);
+        r.data.imm.texcoord2(u1, v2);
+        r.data.imm.vertex2(x1, y2);
+        r.data.imm.texcoord2(u2, v2);
+        r.data.imm.vertex2(x2, y2);
+        r.data.imm.texcoord2(u2, v1);
+        r.data.imm.vertex2(x2, y1);
         end_and_submit(r);
     }
 
@@ -319,15 +320,15 @@ impl Draw {
         let phi: f32 = 1.0 / f_res * std::f32::consts::PI;
         let tc: Vec3 = *p + spherical(radius, 0.0, 0.0);
 
-        r.imm.begin(PrimitiveType::Triangles);
+        r.data.imm.begin(PrimitiveType::Triangles);
         for i_theta in 0..res {
             let theta: f32 = i_theta as f32 / f_res * std::f32::consts::TAU;
             let br: Vec3 = *p + spherical(radius, last_theta, phi);
             let bl: Vec3 = *p + spherical(radius, theta, phi);
 
-            r.imm.vertex3(br.x, br.y, br.z);
-            r.imm.vertex3(tc.x, tc.y, tc.z);
-            r.imm.vertex3(bl.x, bl.y, bl.z);
+            r.data.imm.vertex3(br.x, br.y, br.z);
+            r.data.imm.vertex3(tc.x, tc.y, tc.z);
+            r.data.imm.vertex3(bl.x, bl.y, bl.z);
 
             last_theta = theta;
         }
@@ -343,7 +344,7 @@ impl Draw {
         let mut last_phi: f32 = 1.0 / f_res * std::f32::consts::PI;
         let mut last_theta: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::TAU;
 
-        r.imm.begin(PrimitiveType::Quads);
+        r.data.imm.begin(PrimitiveType::Quads);
         for i_phi in 2..res {
             let phi: f32 = i_phi as f32 / f_res * std::f32::consts::PI;
             for i_theta in 0..res {
@@ -353,10 +354,10 @@ impl Draw {
                 let tl: Vec3 = *p + spherical(radius, theta, last_phi);
                 let bl: Vec3 = *p + spherical(radius, theta, phi);
 
-                r.imm.vertex3(br.x, br.y, br.z);
-                r.imm.vertex3(tr.x, tr.y, tr.z);
-                r.imm.vertex3(tl.x, tl.y, tl.z);
-                r.imm.vertex3(bl.x, bl.y, bl.z);
+                r.data.imm.vertex3(br.x, br.y, br.z);
+                r.data.imm.vertex3(tr.x, tr.y, tr.z);
+                r.data.imm.vertex3(tl.x, tl.y, tl.z);
+                r.data.imm.vertex3(bl.x, bl.y, bl.z);
 
                 last_theta = theta;
             }
@@ -371,15 +372,15 @@ impl Draw {
         let phi: f32 = res.wrapping_sub(1) as f32 / f_res * std::f32::consts::PI;
         let bc: Vec3 = *p + spherical(radius, 0.0, std::f32::consts::PI);
 
-        r.imm.begin(PrimitiveType::Triangles);
+        r.data.imm.begin(PrimitiveType::Triangles);
         for i_theta in 0..res {
             let theta: f32 = i_theta as f32 / f_res * std::f32::consts::TAU;
             let tr: Vec3 = *p + spherical(radius, last_theta, phi);
             let tl: Vec3 = *p + spherical(radius, theta, phi);
 
-            r.imm.vertex3(tr.x, tr.y, tr.z);
-            r.imm.vertex3(tl.x, tl.y, tl.z);
-            r.imm.vertex3(bc.x, bc.y, bc.z);
+            r.data.imm.vertex3(tr.x, tr.y, tr.z);
+            r.data.imm.vertex3(tl.x, tl.y, tl.z);
+            r.data.imm.vertex3(bc.x, bc.y, bc.z);
 
             last_theta = theta;
         }
@@ -389,26 +390,26 @@ impl Draw {
     pub fn tri(r: &mut Renderer, v1: &Vec2, v2: &Vec2, v3: &Vec2) {
         Metric::add_draw_imm(1, 1, 3);
 
-        r.imm.begin(PrimitiveType::Triangles);
-        r.imm.texcoord2(0.0, 0.0);
-        r.imm.vertex2(v1.x, v1.y);
-        r.imm.texcoord2(0.0, 1.0);
-        r.imm.vertex2(v2.x, v2.y);
-        r.imm.texcoord2(1.0, 1.0);
-        r.imm.vertex2(v3.x, v3.y);
+        r.data.imm.begin(PrimitiveType::Triangles);
+        r.data.imm.texcoord2(0.0, 0.0);
+        r.data.imm.vertex2(v1.x, v1.y);
+        r.data.imm.texcoord2(0.0, 1.0);
+        r.data.imm.vertex2(v2.x, v2.y);
+        r.data.imm.texcoord2(1.0, 1.0);
+        r.data.imm.vertex2(v3.x, v3.y);
         end_and_submit(r);
     }
 
     pub fn tri3(r: &mut Renderer, v1: &Vec3, v2: &Vec3, v3: &Vec3) {
         Metric::add_draw_imm(1, 1, 3);
 
-        r.imm.begin(PrimitiveType::Triangles);
-        r.imm.texcoord2(0.0, 0.0);
-        r.imm.vertex3(v1.x, v1.y, v1.z);
-        r.imm.texcoord2(0.0, 1.0);
-        r.imm.vertex3(v2.x, v2.y, v2.z);
-        r.imm.texcoord2(1.0, 1.0);
-        r.imm.vertex3(v3.x, v3.y, v3.z);
+        r.data.imm.begin(PrimitiveType::Triangles);
+        r.data.imm.texcoord2(0.0, 0.0);
+        r.data.imm.vertex3(v1.x, v1.y, v1.z);
+        r.data.imm.texcoord2(0.0, 1.0);
+        r.data.imm.vertex3(v2.x, v2.y, v2.z);
+        r.data.imm.texcoord2(1.0, 1.0);
+        r.data.imm.vertex3(v3.x, v3.y, v3.z);
         end_and_submit(r);
     }
 
@@ -417,9 +418,9 @@ impl Draw {
 
         Metric::add_draw_imm(1, count - 2, count);
 
-        r.imm.begin(PrimitiveType::Polygon);
+        r.data.imm.begin(PrimitiveType::Polygon);
         for p in points {
-            r.imm.vertex2(p.x, p.y);
+            r.data.imm.vertex2(p.x, p.y);
         }
         end_and_submit(r);
     }
@@ -429,9 +430,9 @@ impl Draw {
 
         Metric::add_draw_imm(1, count - 2, count);
 
-        r.imm.begin(PrimitiveType::Polygon);
+        r.data.imm.begin(PrimitiveType::Polygon);
         for p in points {
-            r.imm.vertex3(p.x, p.y, p.z);
+            r.data.imm.vertex3(p.x, p.y, p.z);
         }
         end_and_submit(r);
     }

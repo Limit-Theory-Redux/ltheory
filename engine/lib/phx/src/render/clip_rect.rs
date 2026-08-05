@@ -59,37 +59,37 @@ fn apply(r: &mut Renderer, update: Option<ScissorUpdate>) {
 impl ClipRect {
     pub fn push(r: &mut Renderer, x: f32, y: f32, sx: f32, sy: f32) {
         let vp_size = Viewport::get_size(r);
-        let update = r.clip_rect.push(vp_size, x, y, sx, sy);
+        let update = r.data.clip_rect.push(vp_size, x, y, sx, sy);
         apply(r, update);
     }
 
     pub fn push_combined(r: &mut Renderer, x: f32, y: f32, sx: f32, sy: f32) {
         let vp_size = Viewport::get_size(r);
-        let update = r.clip_rect.push_combined(vp_size, x, y, sx, sy);
+        let update = r.data.clip_rect.push_combined(vp_size, x, y, sx, sy);
         apply(r, update);
     }
 
     pub fn push_disabled(r: &mut Renderer) {
         let vp_size = Viewport::get_size(r);
-        let update = r.clip_rect.push_disabled(vp_size);
+        let update = r.data.clip_rect.push_disabled(vp_size);
         apply(r, update);
     }
 
     pub fn push_transform(r: &mut Renderer, tx: f32, ty: f32, sx: f32, sy: f32) {
         let vp_size = Viewport::get_size(r);
-        let update = r.clip_rect.push_transform(vp_size, tx, ty, sx, sy);
+        let update = r.data.clip_rect.push_transform(vp_size, tx, ty, sx, sy);
         apply(r, update);
     }
 
     pub fn pop(r: &mut Renderer) {
         let vp_size = Viewport::get_size(r);
-        let update = r.clip_rect.pop(vp_size);
+        let update = r.data.clip_rect.pop(vp_size);
         apply(r, update);
     }
 
     pub fn pop_transform(r: &mut Renderer) {
         let vp_size = Viewport::get_size(r);
-        let update = r.clip_rect.pop_transform(vp_size);
+        let update = r.data.clip_rect.pop_transform(vp_size);
         apply(r, update);
     }
 }

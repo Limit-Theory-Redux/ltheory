@@ -65,7 +65,10 @@ impl ShaderVarMap {
 
     /// Get the last element of the variable stack for this name, or None if it doesn't exist.
     pub fn get(&self, name: &str) -> Option<ShaderVarData> {
-        self.var_map.get(name).and_then(|stack| stack.last()).cloned()
+        self.var_map
+            .get(name)
+            .and_then(|stack| stack.last())
+            .cloned()
     }
 
     fn push(&mut self, name: &str, data: ShaderVarData) {
@@ -93,63 +96,80 @@ impl Default for ShaderVarMap {
 #[luajit_ffi_gen::luajit_ffi]
 impl ShaderVar {
     pub fn push_float(r: &mut Renderer, name: &str, x: f32) {
-        r.shader_vars.push(name, ShaderVarData::Float(x));
+        r.data.shader_vars.push(name, ShaderVarData::Float(x));
     }
 
     pub fn push_float2(r: &mut Renderer, name: &str, x: f32, y: f32) {
-        r.shader_vars.push(name, ShaderVarData::Float2(vec2(x, y)));
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Float2(vec2(x, y)));
     }
 
     pub fn push_float3(r: &mut Renderer, name: &str, x: f32, y: f32, z: f32) {
-        r.shader_vars
+        r.data
+            .shader_vars
             .push(name, ShaderVarData::Float3(vec3(x, y, z)));
     }
 
     pub fn push_float4(r: &mut Renderer, name: &str, x: f32, y: f32, z: f32, w: f32) {
-        r.shader_vars
+        r.data
+            .shader_vars
             .push(name, ShaderVarData::Float4(vec4(x, y, z, w)));
     }
 
     pub fn push_int(r: &mut Renderer, name: &str, x: i32) {
-        r.shader_vars.push(name, ShaderVarData::Int(x));
+        r.data.shader_vars.push(name, ShaderVarData::Int(x));
     }
 
     pub fn push_int2(r: &mut Renderer, name: &str, x: i32, y: i32) {
-        r.shader_vars.push(name, ShaderVarData::Int2(ivec2(x, y)));
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Int2(ivec2(x, y)));
     }
 
     pub fn push_int3(r: &mut Renderer, name: &str, x: i32, y: i32, z: i32) {
-        r.shader_vars
+        r.data
+            .shader_vars
             .push(name, ShaderVarData::Int3(ivec3(x, y, z)));
     }
 
     pub fn push_int4(r: &mut Renderer, name: &str, x: i32, y: i32, z: i32, w: i32) {
-        r.shader_vars
+        r.data
+            .shader_vars
             .push(name, ShaderVarData::Int4(ivec4(x, y, z, w)));
     }
 
     pub fn push_matrix(r: &mut Renderer, name: &str, m: &Matrix) {
-        r.shader_vars.push(name, ShaderVarData::Matrix(m.clone()));
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Matrix(m.clone()));
     }
 
     pub fn push_tex1d(r: &mut Renderer, name: &str, t: &mut Tex1D) {
-        r.shader_vars.push(name, ShaderVarData::Tex1D(t.clone()));
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Tex1D(t.clone()));
     }
 
     pub fn push_tex2d(r: &mut Renderer, name: &str, t: &mut Tex2D) {
-        r.shader_vars.push(name, ShaderVarData::Tex2D(t.clone()));
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Tex2D(t.clone()));
     }
 
     pub fn push_tex3d(r: &mut Renderer, name: &str, t: &mut Tex3D) {
-        r.shader_vars.push(name, ShaderVarData::Tex3D(t.clone()));
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Tex3D(t.clone()));
     }
 
     pub fn push_tex_cube(r: &mut Renderer, name: &str, t: &mut TexCube) {
-        r.shader_vars
+        r.data
+            .shader_vars
             .push(name, ShaderVarData::TexCube(t.clone()));
     }
 
     pub fn pop(r: &mut Renderer, name: &str) {
-        r.shader_vars.pop(name);
+        r.data.shader_vars.pop(name);
     }
 }

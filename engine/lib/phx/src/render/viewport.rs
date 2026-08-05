@@ -10,16 +10,16 @@ pub struct Viewport;
 #[luajit_ffi_gen::luajit_ffi]
 impl Viewport {
     pub fn get_aspect(r: &Renderer) -> f32 {
-        r.viewport.get_aspect()
+        r.data.viewport.get_aspect()
     }
 
     #[bind(out_param = true)]
     pub fn get_size(r: &Renderer) -> IVec2 {
-        r.viewport.get_size()
+        r.data.viewport.get_size()
     }
 
     pub fn push(r: &mut Renderer, x: i32, y: i32, sx: i32, sy: i32, is_window: bool) {
-        let ortho_proj = r.viewport.push(x, y, sx, sy, is_window);
+        let ortho_proj = r.data.viewport.push(x, y, sx, sy, is_window);
 
         ShaderVar::push_matrix(r, "mProjUI", &ortho_proj.into());
         ShaderVar::push_matrix(r, "mWorldViewUI", &Mat4::IDENTITY.into());
@@ -36,7 +36,7 @@ impl Viewport {
         ShaderVar::pop(r, "mWorldViewUI");
         ShaderVar::pop(r, "mProjUI");
 
-        if let Some(vp) = r.viewport.pop() {
+        if let Some(vp) = r.data.viewport.pop() {
             r.submit(RenderCommand::SetViewport {
                 x: vp.x,
                 y: vp.y,

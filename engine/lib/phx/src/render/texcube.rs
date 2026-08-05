@@ -198,7 +198,11 @@ impl TexCube {
                 format = data_format;
             }
 
-            faces.push((K_FACES[i as usize].face as gl::types::GLenum, pixel_format, buffer));
+            faces.push((
+                K_FACES[i as usize].face as gl::types::GLenum,
+                pixel_format,
+                buffer,
+            ));
         }
 
         let handle = r.create_resource();
@@ -339,7 +343,9 @@ impl TexCube {
 
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::GenerateMipmapByResource { id: this.handle.id() });
+        r.submit(RenderCommand::GenerateMipmapByResource {
+            id: this.handle.id(),
+        });
     }
 
     pub fn set_data_bytes(
@@ -386,6 +392,7 @@ impl TexCube {
         result.gen_mipmap(r);
 
         let mut shader = r
+            .data
             .irmap_shader
             .take()
             .unwrap_or_else(|| Shader::load(r, "vertex/identity", "fragment/compute/irmap"));
@@ -453,7 +460,7 @@ impl TexCube {
         }
         shader.stop(r);
 
-        r.irmap_shader = Some(shader);
+        r.data.irmap_shader = Some(shader);
 
         result.set_mag_filter(r, TexFilter::Linear);
         result.set_min_filter(r, TexFilter::LinearMipLinear);
