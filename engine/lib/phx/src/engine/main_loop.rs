@@ -10,6 +10,7 @@ use winit::keyboard::PhysicalKey;
 use winit::window::WindowId;
 
 use super::Engine;
+use crate::render::RenderCommand;
 use crate::window::*;
 
 pub struct MainLoop {
@@ -79,7 +80,12 @@ impl ApplicationHandler for MainLoop {
                     .set_physical_resolution(size.width, size.height);
                 // Update the cache immediately so we don't try to resize again at the end of the frame.
                 engine.cache.window.resolution = engine.window.resolution.clone();
-                //engine.winit_window.resize(size.width, size.height);
+                // Safe to drop: another Resized event supersedes it, and the
+                // executor's GL viewport update only needs the latest size.
+                engine.renderer.try_submit(RenderCommand::Resize {
+                    width: size.width,
+                    height: size.height,
+                });
             }
             WindowEvent::CloseRequested => {
                 // If we close the window, then abort the main loop.
