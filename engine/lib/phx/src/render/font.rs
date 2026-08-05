@@ -149,7 +149,7 @@ impl Font {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Font {
-    pub fn load(name: &str, size: u32) -> Self {
+    pub fn load(r: &mut Renderer, name: &str, size: u32) -> Self {
         let handle = unsafe {
             if FT.is_null() {
                 FT_Init_FreeType(addr_of_mut!(FT));
@@ -176,7 +176,7 @@ impl Font {
             FontData {
                 name: name.into(),
                 handle,
-                shader: RefCell::new(Shader::load("vertex/ui", "fragment/ui/text")),
+                shader: RefCell::new(Shader::load(r, "vertex/ui", "fragment/ui/text")),
                 glyphs: Default::default(),
             }
             .into(),
@@ -233,7 +233,7 @@ impl Font {
             }
         }
 
-        self.0.as_ref().shader.borrow().stop();
+        self.0.as_ref().shader.borrow().stop(r);
         RenderState::pop_blend_mode(r);
         Profiler::end();
     }

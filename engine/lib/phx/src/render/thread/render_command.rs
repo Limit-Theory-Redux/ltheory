@@ -564,11 +564,26 @@ pub enum RenderCommand {
     },
 
     // === Resource Creation (deferred to GL thread) ===
-    /// Create a shader program from source
+    /// Create a shader program from source. `reply_tx` receives `None` on
+    /// success, `Some(error)` on a compile/link failure - the caller decides
+    /// whether that's fatal (`Shader::new`/`load` panic) or recoverable
+    /// (`Shader::reload` returns `false`).
     CreateShader {
         id: ResourceId,
         vertex_src: String,
         fragment_src: String,
+        reply_tx: Sender<Option<String>>,
+    },
+
+    /// Blocking lookup of a uniform's location for a specific shader
+    /// resource, independent of whichever program is currently bound (see
+    /// `get_uniform_location_cached` for the current-program version used by
+    /// by-name uniform commands). Sends `-1` if the resource doesn't exist or
+    /// has no such uniform, matching `glGetUniformLocation`'s own convention.
+    GetUniformLocationByResource {
+        id: ResourceId,
+        name: Arc<str>,
+        reply_tx: Sender<i32>,
     },
 
     /// Reload a shader (compile and send result back via channel)

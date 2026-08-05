@@ -1,5 +1,14 @@
 local libphx = require('libphx').lib
 
+-- Font::load now creates its own text shader eagerly, so it needs the
+-- current Renderer too (see ai/multithreaded_rendering.md).
+function onDef_Font(t, mt)
+    t.Load = function(name, size)
+        local _instance = libphx.Font_Load(Renderer, name, size)
+        return Core.ManagedObject(_instance, libphx.Font_Free)
+    end
+end
+
 function onDef_Font_t(t, mt)
     mt.__index.getSize = function(self, text)
         local v = Vec4i()

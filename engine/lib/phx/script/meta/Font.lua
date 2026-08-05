@@ -4,10 +4,11 @@
 ---@class Font
 Font = {}
 
+---@param r Renderer
 ---@param name string
 ---@param size integer
 ---@return Font
-function Font.Load(name, size) end
+function Font.Load(r, name, size) end
 
 ---@param r Renderer
 ---@param text string

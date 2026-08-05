@@ -273,21 +273,25 @@ impl CommandExecutor {
         if self.current_program == 0 {
             return -1;
         }
+        self.get_uniform_location_for_program(self.current_program, name)
+    }
 
-        // Get or create cache for current shader
+    /// Same caching as `get_uniform_location_cached`, but for an explicitly
+    /// named program rather than whichever one is currently bound - used to
+    /// resolve a uniform's location for a shader that may not be bound yet
+    /// (e.g. right after `CreateShader`, or from `GetUniformLocationByResource`).
+    fn get_uniform_location_for_program(&mut self, program: u32, name: Arc<str>) -> i32 {
         let cache = self
             .uniform_caches
-            .entry(self.current_program)
+            .entry(program)
             .or_insert_with(|| HashMap::with_capacity(32));
 
-        // Check cache first
         if let Some(&loc) = cache.get(&name) {
             return loc;
         }
 
-        // Cache miss - query OpenGL
         let c_name = std::ffi::CString::new(&*name).unwrap_or_default();
-        let loc = unsafe { gl::GetUniformLocation(self.current_program, c_name.as_ptr()) };
+        let loc = unsafe { gl::GetUniformLocation(program, c_name.as_ptr()) };
 
         // Store in cache (even if -1 to avoid repeated lookups for non-existent uniforms)
         cache.insert(name, loc);
@@ -1740,15 +1744,32 @@ impl CommandExecutor {
                 id,
                 vertex_src,
                 fragment_src,
-            } => match self.create_shader(&vertex_src, &fragment_src) {
-                Ok(program) => {
-                    self.resources.insert(id, GpuResource::Shader { program });
-                    debug!("Created shader {:?} with program {}", id, program);
-                }
-                Err(e) => {
-                    error!("Failed to create shader {:?}: {}", id, e);
-                }
-            },
+                reply_tx,
+            } => {
+                let error = match self.create_shader(&vertex_src, &fragment_src) {
+                    Ok(program) => {
+                        self.resources.insert(id, GpuResource::Shader { program });
+                        debug!("Created shader {:?} with program {}", id, program);
+                        None
+                    }
+                    Err(e) => {
+                        error!("Failed to create shader {:?}: {}", id, e);
+                        Some(e)
+                    }
+                };
+                let _ = reply_tx.send(error);
+            }
+
+            RenderCommand::GetUniformLocationByResource { id, name, reply_tx } => {
+                let loc = if let Some(GpuResource::Shader { program }) = self.resources.get(&id) {
+                    let program = *program;
+                    self.get_uniform_location_for_program(program, name)
+                } else {
+                    warn!("GetUniformLocationByResource: resource {:?} not found", id);
+                    -1
+                };
+                let _ = reply_tx.send(loc);
+            }
 
             RenderCommand::ReloadShader {
                 shader_key,

@@ -82,7 +82,7 @@ impl UIRendererLayer {
                 panel_id_opt = panel.next;
             }
 
-            panel_shader.stop();
+            panel_shader.stop(r);
         }
 
         let mut image_id_opt = self.image_id;
@@ -93,7 +93,7 @@ impl UIRendererLayer {
             image_shader.reset_tex_index();
             image_shader.set_tex2d(r, "image", &image.image);
             Draw::rect(r, image.pos.x, image.pos.y, image.size.x, image.size.y);
-            image_shader.stop();
+            image_shader.stop(r);
             image_id_opt = image.next;
         }
 
@@ -117,7 +117,7 @@ impl UIRendererLayer {
                 Draw::rect(r, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
             }
 
-            rect_shader.stop();
+            rect_shader.stop(r);
 
             rect_id_opt = rect.next;
         }

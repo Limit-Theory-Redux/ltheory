@@ -63,7 +63,9 @@ mod tests {
             }
         }
 
-        (HmGui::new(1.0), Default::default(), Renderer::new_headless())
+        let mut r = Renderer::new_headless();
+        let hmgui = HmGui::new(&mut r, 1.0);
+        (hmgui, Default::default(), r)
     }
 
     fn check_widget(widget: &Ref<'_, HmGuiWidget>, expected: &WidgetCheck) {

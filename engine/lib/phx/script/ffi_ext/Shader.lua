@@ -3,7 +3,31 @@ local libphx = require('libphx').lib
 -- Now takes the current Renderer as an explicit argument (see
 -- ai/multithreaded_rendering.md); inject the global `Renderer` set by
 -- SetEngine so call sites don't change.
+function onDef_Shader(t, mt)
+    t.Create = function(vs, fs)
+        local _instance = libphx.Shader_Create(Renderer, vs, fs)
+        return Core.ManagedObject(_instance, libphx.Shader_Free)
+    end
+
+    t.Load = function(vsName, fsName)
+        local _instance = libphx.Shader_Load(Renderer, vsName, fsName)
+        return Core.ManagedObject(_instance, libphx.Shader_Free)
+    end
+end
+
 function onDef_Shader_t(t, mt)
+    mt.__index.reload = function(self)
+        return libphx.Shader_Reload(self, Renderer)
+    end
+
+    mt.__index.getVariable = function(self, name)
+        return libphx.Shader_GetVariable(self, Renderer, name)
+    end
+
+    mt.__index.hasVariable = function(self, name)
+        return libphx.Shader_HasVariable(self, Renderer, name)
+    end
+
     mt.__index.setFloat = function(self, name, value)
         libphx.Shader_SetFloat(self, Renderer, name, value)
     end
@@ -118,5 +142,9 @@ function onDef_Shader_t(t, mt)
 
     mt.__index.start = function(self)
         libphx.Shader_Start(self, Renderer)
+    end
+
+    mt.__index.stop = function(self)
+        libphx.Shader_Stop(self, Renderer)
     end
 end

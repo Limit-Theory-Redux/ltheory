@@ -117,14 +117,15 @@ impl Engine {
         let context = winit_window
             .extract_gl_context()
             .expect("Failed to extract GL context for renderer");
-        let renderer = Renderer::start(context).expect("Failed to start renderer");
+        let mut renderer = Renderer::start(context).expect("Failed to start renderer");
+        let hmgui = HmGui::new(&mut renderer, scale_factor);
 
         Self {
             init_time: TimeStamp::now(),
             window,
             cache,
             winit_window,
-            hmgui: HmGui::new(scale_factor),
+            hmgui,
             input: Default::default(),
             exit_app: false,
             event_bus: EventBus::new(),

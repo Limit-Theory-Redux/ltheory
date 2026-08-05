@@ -18,7 +18,7 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void        BSP_Free                        (BSP*);
-            BSP*        BSP_Create                      (Mesh const* mesh);
+            BSP*        BSP_Create                      (Renderer* r, Mesh const* mesh);
             bool        BSP_IntersectRay                (BSP const*, Ray* ray, float* tHit);
             bool        BSP_IntersectLineSegment        (BSP const*, LineSegment const* lineSegment, Vec3f* pHit);
             bool        BSP_IntersectSphere             (BSP const*, Sphere const* sphere, Vec3f* pHit);
@@ -36,8 +36,8 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         BSP = {
-            Create                      = function(mesh)
-                local _instance = libphx.BSP_Create(mesh)
+            Create                      = function(r, mesh)
+                local _instance = libphx.BSP_Create(r, mesh)
                 return Core.ManagedObject(_instance, libphx.BSP_Free)
             end,
         }

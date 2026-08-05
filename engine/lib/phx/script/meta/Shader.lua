@@ -4,20 +4,23 @@
 ---@class Shader
 Shader = {}
 
+---@param r Renderer
 ---@param vs string
 ---@param fs string
 ---@return Shader
-function Shader.Create(vs, fs) end
+function Shader.Create(r, vs, fs) end
 
+---@param r Renderer
 ---@param vsName string
 ---@param fsName string
 ---@return Shader
-function Shader.Load(vsName, fsName) end
+function Shader.Load(r, vsName, fsName) end
 
 -- Reload shader from disk. Returns true on success.
 -- On compile/link failure, keeps the old shader and returns false.
+---@param r Renderer
 ---@return boolean
-function Shader:reload() end
+function Shader:reload(r) end
 
 ---@return string
 function Shader:name() end
@@ -28,16 +31,15 @@ function Shader:clone() end
 ---@return ShaderState
 function Shader:toShaderState() end
 
----@return integer
-function Shader:getHandle() end
-
+---@param r Renderer
 ---@param name string
 ---@return integer
-function Shader:getVariable(name) end
+function Shader:getVariable(r, name) end
 
+---@param r Renderer
 ---@param name string
 ---@return boolean
-function Shader:hasVariable(name) end
+function Shader:hasVariable(r, name) end
 
 function Shader:resetTexIndex() end
 
@@ -208,5 +210,6 @@ function Shader:iSetTexCube(r, index, value) end
 ---@param r Renderer
 function Shader:start(r) end
 
-function Shader:stop() end
+---@param r Renderer
+function Shader:stop(r) end
 

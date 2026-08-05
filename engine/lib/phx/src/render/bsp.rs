@@ -300,7 +300,7 @@ const EMPTY_LEAF_INDEX: i32 = 1;
 #[luajit_ffi_gen::luajit_ffi(name = "BSP")]
 impl Bsp {
     #[bind(name = "Create")]
-    pub fn new(mesh: &Mesh) -> Self {
+    pub fn new(r: &mut Renderer, mesh: &Mesh) -> Self {
         // Assert(LEAF_TRIANGLE_COUNT <= MAX_LEAF_TRIANGLE_COUNT);
 
         /* NOTE: This function will use memory proportional to 2x the mesh memory.
@@ -394,7 +394,7 @@ impl Bsp {
             empty_leaf,
             nodes,
             triangles,
-            shader: Shader::load("vertex/wvp", "fragment/simple_color"),
+            shader: Shader::load(r, "vertex/wvp", "fragment/simple_color"),
         };
 
         bsp.root_node = bsp.optimize_tree(&build_root_node);
@@ -720,7 +720,11 @@ impl Bsp {
         // Assert(nodeRef.index);
 
         if node_ref.index > 0 {
-            self.draw_node(r, self.nodes[node_ref.index as usize].child[BACK_INDEX], color);
+            self.draw_node(
+                r,
+                self.nodes[node_ref.index as usize].child[BACK_INDEX],
+                color,
+            );
             self.draw_node(
                 r,
                 self.nodes[node_ref.index as usize].child[FRONT_INDEX],
@@ -740,7 +744,7 @@ impl Bsp {
                     &triangle.vertices[2],
                 );
             }
-            self.shader.stop();
+            self.shader.stop(r);
         };
     }
 
@@ -770,7 +774,7 @@ impl Bsp {
             self.shader.set_float4(r, "color", 0.5, 0.3, 0.3, 0.4);
             let neg: Vec3 = node.plane.n * -1.0;
             Draw::plane(r, &closest_point, &neg, 2.0);
-            self.shader.stop();
+            self.shader.stop(r);
             RenderState::pop_wireframe(r);
         } else {
             /* Leaf */
@@ -782,10 +786,15 @@ impl Bsp {
         RenderState::pop_cull_face(r);
         RenderState::pop_blend_mode(r);
 
-        self.shader.stop(); // TODO: no start?
+        self.shader.stop(r); // TODO: no start?
     }
 
-    pub fn draw_line_segment(&mut self, r: &mut Renderer, line_segment: &LineSegment, eye: &Position) {
+    pub fn draw_line_segment(
+        &mut self,
+        r: &mut Renderer,
+        line_segment: &LineSegment,
+        eye: &Position,
+    ) {
         let mut p_hit = Vec3::ZERO;
 
         self.shader.start(r);
@@ -814,7 +823,7 @@ impl Bsp {
                 &(*line_segment).p1.relative_to(*eye),
             );
         };
-        self.shader.stop();
+        self.shader.stop(r);
     }
 
     pub fn draw_sphere(&mut self, r: &mut Renderer, sphere: &Sphere) {
@@ -843,7 +852,7 @@ impl Bsp {
             self.shader.set_float4(r, "color", 0.0, 1.0, 0.0, 1.0);
             Draw::sphere(r, &sphere.p, sphere.r);
         };
-        self.shader.stop();
+        self.shader.stop(r);
     }
 
     // static void print_profiling_data(&self, BSPDebug_IntersectionData* data, double totalTime) {

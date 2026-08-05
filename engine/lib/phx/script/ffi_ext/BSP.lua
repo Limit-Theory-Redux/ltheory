@@ -1,6 +1,8 @@
 local ffi = require('ffi')
 local libphx = require('libphx').lib
 
+-- BSP_Create now also takes the current Renderer as an explicit argument
+-- (it eagerly loads a debug-draw shader - see ai/multithreaded_rendering.md).
 function onDef_BSP(t, mt)
     t.Create = function(...)
         local e = libphx.Mesh_Validate(...)
@@ -8,7 +10,7 @@ function onDef_BSP(t, mt)
             Log.Warn('BSP Incoming Mesh Error:')
             libphx.Error_Print(e)
         end
-        local result = libphx.BSP_Create(...)
+        local result = libphx.BSP_Create(Renderer, ...)
         return result
     end
 end

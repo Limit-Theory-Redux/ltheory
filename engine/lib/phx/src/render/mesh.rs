@@ -737,7 +737,7 @@ impl Mesh {
         let tex_output = Tex2D::new(r, v_dim as i32, v_dim as i32, TexFormat::R32F);
 
         let mut shader = r.ao_shader.take().unwrap_or_else(|| {
-            Shader::load("vertex/identity", "fragment/compute/occlusion")
+            Shader::load(r, "vertex/identity", "fragment/compute/occlusion")
         });
 
         RenderState::push_all_defaults(r);
@@ -751,7 +751,7 @@ impl Mesh {
         shader.set_tex2d(r, "vPointBuffer", &tex_vpoints);
         shader.set_tex2d(r, "vNormalBuffer", &tex_vnormals);
         Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
-        shader.stop();
+        shader.stop(r);
 
         RenderTarget::pop(r);
         RenderState::pop_all(r);
@@ -779,7 +779,7 @@ impl Mesh {
         tex_points.set_data(r, &point_buffer, PixelFormat::RGB, DataFormat::Float);
 
         let mut shader = r.occlusion_shader.take().unwrap_or_else(|| {
-            Shader::load("vertex/identity", "fragment/compute/occlusion_sdf")
+            Shader::load(r, "vertex/identity", "fragment/compute/occlusion_sdf")
         });
 
         RenderState::push_all_defaults(r);
@@ -790,7 +790,7 @@ impl Mesh {
         shader.set_tex2d(r, "points", &tex_points);
         shader.set_tex3d(r, "sdf", sdf);
         Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
-        shader.stop();
+        shader.stop(r);
 
         RenderTarget::pop(r);
         RenderState::pop_all(r);

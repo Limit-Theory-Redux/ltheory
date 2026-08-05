@@ -18,15 +18,14 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void         Shader_Free          (Shader*);
-            Shader*      Shader_Create        (cstr vs, cstr fs);
-            Shader*      Shader_Load          (cstr vsName, cstr fsName);
-            bool         Shader_Reload        (Shader*);
+            Shader*      Shader_Create        (Renderer* r, cstr vs, cstr fs);
+            Shader*      Shader_Load          (Renderer* r, cstr vsName, cstr fsName);
+            bool         Shader_Reload        (Shader*, Renderer* r);
             cstr         Shader_Name          (Shader const*);
             Shader*      Shader_Clone         (Shader const*);
             ShaderState* Shader_ToShaderState (Shader const*);
-            uint32       Shader_GetHandle     (Shader const*);
-            int          Shader_GetVariable   (Shader const*, cstr name);
-            bool         Shader_HasVariable   (Shader const*, cstr name);
+            int          Shader_GetVariable   (Shader const*, Renderer* r, cstr name);
+            bool         Shader_HasVariable   (Shader const*, Renderer* r, cstr name);
             void         Shader_ResetTexIndex (Shader*);
             void         Shader_SetFloat      (Shader*, Renderer* r, cstr name, float value);
             void         Shader_ISetFloat     (Shader*, Renderer* r, int index, float value);
@@ -57,18 +56,18 @@ function Loader.defineType()
             void         Shader_SetTexCube    (Shader*, Renderer* r, cstr name, TexCube* value);
             void         Shader_ISetTexCube   (Shader*, Renderer* r, int index, TexCube* value);
             void         Shader_Start         (Shader*, Renderer* r);
-            void         Shader_Stop          (Shader const*);
+            void         Shader_Stop          (Shader const*, Renderer* r);
         ]]
     end
 
     do -- Global Symbol Table
         Shader = {
-            Create        = function(vs, fs)
-                local _instance = libphx.Shader_Create(vs, fs)
+            Create        = function(r, vs, fs)
+                local _instance = libphx.Shader_Create(r, vs, fs)
                 return Core.ManagedObject(_instance, libphx.Shader_Free)
             end,
-            Load          = function(vsName, fsName)
-                local _instance = libphx.Shader_Load(vsName, fsName)
+            Load          = function(r, vsName, fsName)
+                local _instance = libphx.Shader_Load(r, vsName, fsName)
                 return Core.ManagedObject(_instance, libphx.Shader_Free)
             end,
         }
@@ -91,7 +90,6 @@ function Loader.defineType()
                     local _instance = libphx.Shader_ToShaderState(self)
                     return Core.ManagedObject(_instance, libphx.ShaderState_Free)
                 end,
-                getHandle     = libphx.Shader_GetHandle,
                 getVariable   = libphx.Shader_GetVariable,
                 hasVariable   = libphx.Shader_HasVariable,
                 resetTexIndex = libphx.Shader_ResetTexIndex,

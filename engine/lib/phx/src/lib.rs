@@ -6,7 +6,6 @@
 #![allow(clippy::module_inception)] // Allow nested module with the same name as parent
 
 pub mod audio;
-pub mod common;
 pub mod engine;
 pub mod error;
 pub mod input;

@@ -19,22 +19,22 @@ function Loader.defineType()
         ffi.cdef [[
             void         ShaderState_Free           (ShaderState*);
             ShaderState* ShaderState_Create         (Shader const* shader);
-            ShaderState* ShaderState_FromShaderLoad (cstr vsName, cstr fsName);
-            void         ShaderState_SetFloat       (ShaderState*, cstr name, float x);
-            void         ShaderState_SetFloat2      (ShaderState*, cstr name, float x, float y);
-            void         ShaderState_SetFloat3      (ShaderState*, cstr name, float x, float y, float z);
-            void         ShaderState_SetFloat4      (ShaderState*, cstr name, float x, float y, float z, float w);
-            void         ShaderState_SetInt         (ShaderState*, cstr name, int x);
-            void         ShaderState_SetInt2        (ShaderState*, cstr name, int x, int y);
-            void         ShaderState_SetInt3        (ShaderState*, cstr name, int x, int y, int z);
-            void         ShaderState_SetInt4        (ShaderState*, cstr name, int x, int y, int z, int w);
-            void         ShaderState_SetMatrix      (ShaderState*, cstr name, Matrix const* m);
-            void         ShaderState_SetTex1D       (ShaderState*, cstr name, Tex1D* t);
-            void         ShaderState_SetTex2D       (ShaderState*, cstr name, Tex2D* t);
-            void         ShaderState_SetTex3D       (ShaderState*, cstr name, Tex3D* t);
-            void         ShaderState_SetTexCube     (ShaderState*, cstr name, TexCube* t);
+            ShaderState* ShaderState_FromShaderLoad (Renderer* r, cstr vsName, cstr fsName);
+            void         ShaderState_SetFloat       (ShaderState*, Renderer* r, cstr name, float x);
+            void         ShaderState_SetFloat2      (ShaderState*, Renderer* r, cstr name, float x, float y);
+            void         ShaderState_SetFloat3      (ShaderState*, Renderer* r, cstr name, float x, float y, float z);
+            void         ShaderState_SetFloat4      (ShaderState*, Renderer* r, cstr name, float x, float y, float z, float w);
+            void         ShaderState_SetInt         (ShaderState*, Renderer* r, cstr name, int x);
+            void         ShaderState_SetInt2        (ShaderState*, Renderer* r, cstr name, int x, int y);
+            void         ShaderState_SetInt3        (ShaderState*, Renderer* r, cstr name, int x, int y, int z);
+            void         ShaderState_SetInt4        (ShaderState*, Renderer* r, cstr name, int x, int y, int z, int w);
+            void         ShaderState_SetMatrix      (ShaderState*, Renderer* r, cstr name, Matrix const* m);
+            void         ShaderState_SetTex1D       (ShaderState*, Renderer* r, cstr name, Tex1D* t);
+            void         ShaderState_SetTex2D       (ShaderState*, Renderer* r, cstr name, Tex2D* t);
+            void         ShaderState_SetTex3D       (ShaderState*, Renderer* r, cstr name, Tex3D* t);
+            void         ShaderState_SetTexCube     (ShaderState*, Renderer* r, cstr name, TexCube* t);
             void         ShaderState_Start          (ShaderState*, Renderer* r);
-            void         ShaderState_Stop           (ShaderState*);
+            void         ShaderState_Stop           (ShaderState*, Renderer* r);
             Shader*      ShaderState_Shader         (ShaderState*);
         ]]
     end
@@ -45,8 +45,8 @@ function Loader.defineType()
                 local _instance = libphx.ShaderState_Create(shader)
                 return Core.ManagedObject(_instance, libphx.ShaderState_Free)
             end,
-            FromShaderLoad = function(vsName, fsName)
-                local _instance = libphx.ShaderState_FromShaderLoad(vsName, fsName)
+            FromShaderLoad = function(r, vsName, fsName)
+                local _instance = libphx.ShaderState_FromShaderLoad(r, vsName, fsName)
                 return Core.ManagedObject(_instance, libphx.ShaderState_Free)
             end,
         }

@@ -329,7 +329,7 @@ impl TexCube {
                 job_size = i32::min(job_size, size - j + 1);
             }
 
-            state.stop();
+            state.stop(r);
 
             RenderTarget::pop(r);
         }
@@ -388,7 +388,7 @@ impl TexCube {
         let mut shader = r
             .irmap_shader
             .take()
-            .unwrap_or_else(|| Shader::load("vertex/identity", "fragment/compute/irmap"));
+            .unwrap_or_else(|| Shader::load(r, "vertex/identity", "fragment/compute/irmap"));
 
         let look = [
             Vec3::X,
@@ -451,7 +451,7 @@ impl TexCube {
                 RenderTarget::pop(r);
             }
         }
-        shader.stop();
+        shader.stop(r);
 
         r.irmap_shader = Some(shader);
 

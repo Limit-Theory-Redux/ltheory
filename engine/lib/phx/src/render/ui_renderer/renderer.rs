@@ -23,11 +23,11 @@ pub struct UIRenderer {
 }
 
 impl UIRenderer {
-    pub fn new() -> UIRenderer {
+    pub fn new(r: &mut Renderer) -> UIRenderer {
         UIRenderer {
-            panel_shader: Shader::load("vertex/ui", "fragment/ui/panel"),
-            image_shader: Shader::load("vertex/ui", "fragment/simple_image"),
-            rect_shader: Shader::load("vertex/ui", "fragment/simple_color"),
+            panel_shader: Shader::load(r, "vertex/ui", "fragment/ui/panel"),
+            image_shader: Shader::load(r, "vertex/ui", "fragment/simple_image"),
+            rect_shader: Shader::load(r, "vertex/ui", "fragment/simple_color"),
             current_layer_id: None,
             layers: Vec::new(),
             images: Vec::new(),

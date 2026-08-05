@@ -18,7 +18,7 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void  Font_Free          (Font*);
-            Font* Font_Load          (cstr name, uint32 size);
+            Font* Font_Load          (Renderer* r, cstr name, uint32 size);
             void  Font_Draw          (Font const*, Renderer* r, cstr text, float x, float y, Color const* color);
             int   Font_GetLineHeight (Font const*);
             void  Font_GetSize       (Font const*, Renderer* r, cstr text, Vec4i* out);
@@ -28,8 +28,8 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Font = {
-            Load          = function(name, size)
-                local _instance = libphx.Font_Load(name, size)
+            Load          = function(r, name, size)
+                local _instance = libphx.Font_Load(r, name, size)
                 return Core.ManagedObject(_instance, libphx.Font_Free)
             end,
         }
