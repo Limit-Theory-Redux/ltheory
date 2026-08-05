@@ -19,8 +19,14 @@ const MAX_FRAMES_IN_FLIGHT: u64 = 3;
 pub struct Renderer {
     /// Send commands to the render thread
     command_tx: Sender<RenderCommand>,
-    /// Receive fence completions from the render thread
+    /// Receive fence completions from the render thread - only for
+    /// `sync_intern`'s blocking round-trips. Frame-pacing fences travel on
+    /// their own `pacing_fence_rx` instead (see `RenderCommand::PacingFence`).
     fence_rx: Receiver<u64>,
+    /// Receive frame-pacing fence completions, kept separate from `fence_rx`
+    /// so `end_frame_triple_buffered` can never consume a fence meant for a
+    /// concurrently-blocked `sync_intern` call, or vice versa.
+    pacing_fence_rx: Receiver<u64>,
     /// Receive shader reload results from the render thread
     shader_result_rx: Receiver<ShaderReloadResult>,
     /// Receive returned GL context when render thread shuts down
@@ -83,6 +89,7 @@ impl Renderer {
         // Use bounded channel for backpressure - SwapBuffers will block to sync with render thread
         let (command_tx, command_rx) = bounded(config.command_buffer_size);
         let (fence_tx, fence_rx) = bounded(config.fence_buffer_size);
+        let (pacing_fence_tx, pacing_fence_rx) = bounded(config.fence_buffer_size);
         let (shader_result_tx, shader_result_rx) = bounded(16); // Buffer for shader reload results
         let (context_tx, context_rx) = bounded(1); // Only one context to return
         let (stats_tx, stats_rx) = bounded(1); // Only the latest snapshot matters
@@ -110,6 +117,7 @@ impl Renderer {
                 let mut render_thread = RenderThread::new(
                     command_rx,
                     fence_tx,
+                    pacing_fence_tx,
                     shader_result_tx,
                     context_tx,
                     stats_tx,
@@ -129,6 +137,7 @@ impl Renderer {
         Ok(Self {
             command_tx,
             fence_rx,
+            pacing_fence_rx,
             shader_result_rx,
             context_rx,
             next_fence_id: AtomicU64::new(1),
@@ -265,13 +274,13 @@ impl Renderer {
         let frame_end_start = std::time::Instant::now();
 
         // Drain completed fences (non-blocking) to update in-flight count
-        while self.fence_rx.try_recv().is_ok() {
+        while self.pacing_fence_rx.try_recv().is_ok() {
             self.frames_in_flight.fetch_sub(1, Ordering::Relaxed);
         }
 
         // If at limit, block waiting for one frame to complete
         while self.frames_in_flight.load(Ordering::Relaxed) >= MAX_FRAMES_IN_FLIGHT {
-            match self.fence_rx.recv() {
+            match self.pacing_fence_rx.recv() {
                 Ok(_) => {
                     self.frames_in_flight.fetch_sub(1, Ordering::Relaxed);
                 }
@@ -283,7 +292,7 @@ impl Renderer {
         // Note: submit() can also block if command channel is full!
         self.submit(RenderCommand::SwapBuffers);
         let fence_id = self.next_fence_id.fetch_add(1, Ordering::Relaxed);
-        self.submit(RenderCommand::Fence { fence_id });
+        self.submit(RenderCommand::PacingFence { fence_id });
         self.frames_in_flight.fetch_add(1, Ordering::Relaxed);
 
         // Store total time spent in frame end (all blocking)

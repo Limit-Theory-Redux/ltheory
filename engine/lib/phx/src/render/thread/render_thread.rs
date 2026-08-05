@@ -17,6 +17,11 @@ use crate::window::{WindowActiveGlContext, WindowGlContext};
 pub struct RenderThread {
     command_rx: Receiver<RenderCommand>,
     fence_tx: Sender<u64>,
+    /// Reply channel for `RenderCommand::PacingFence`, kept separate from
+    /// `fence_tx` so frame-pacing fences and `sync_intern`'s blocking
+    /// round-trip fences can never be consumed by the wrong consumer (see
+    /// `RenderCommand::PacingFence`'s docs).
+    pacing_fence_tx: Sender<u64>,
     /// Channel to send shader reload results back to main thread
     shader_result_tx: Sender<ShaderReloadResult>,
     /// Channel to return GL context to main thread on shutdown
@@ -32,6 +37,7 @@ impl RenderThread {
     pub fn new(
         command_rx: Receiver<RenderCommand>,
         fence_tx: Sender<u64>,
+        pacing_fence_tx: Sender<u64>,
         shader_result_tx: Sender<ShaderReloadResult>,
         context_tx: Sender<Option<WindowGlContext>>,
         stats_tx: Sender<RenderStats>,
@@ -41,6 +47,7 @@ impl RenderThread {
         Self {
             command_rx,
             fence_tx,
+            pacing_fence_tx,
             shader_result_tx,
             context_tx,
             stats_tx,
@@ -93,6 +100,11 @@ impl RenderThread {
             CommandReply::Fence(fence_id) => {
                 if let Err(e) = self.fence_tx.send(fence_id) {
                     warn!("Failed to send fence signal: {e:?}");
+                }
+            }
+            CommandReply::PacingFence(fence_id) => {
+                if let Err(e) = self.pacing_fence_tx.send(fence_id) {
+                    warn!("Failed to send pacing fence signal: {e:?}");
                 }
             }
             CommandReply::ShaderReload(result) => {

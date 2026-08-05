@@ -674,8 +674,19 @@ pub enum RenderCommand {
     /// Flush all pending GL commands (gl::Finish)
     Flush,
 
-    /// Fence for synchronization - render thread sends fence_id back when reached
+    /// Fence for synchronization - render thread sends fence_id back when reached.
+    /// Used by blocking round-trips (readbacks, shader reload/compile, etc.)
+    /// via `Renderer::sync_intern`.
     Fence { fence_id: u64 },
+
+    /// Same as `Fence`, but replied on its own channel (see
+    /// `CommandReply::PacingFence`) so it can never be consumed by a
+    /// `sync_intern` call that happens to be waiting concurrently, or vice
+    /// versa - the two used to share one channel, which let one steal the
+    /// other's fence and corrupt `end_frame_triple_buffered`'s in-flight
+    /// count (or make `sync_intern` hang waiting for a fence that was
+    /// already consumed elsewhere).
+    PacingFence { fence_id: u64 },
 
     /// Shutdown render thread
     Shutdown,
@@ -747,6 +758,7 @@ impl RenderCommand {
             self,
             RenderCommand::SwapBuffers
                 | RenderCommand::Fence { .. }
+                | RenderCommand::PacingFence { .. }
                 | RenderCommand::Shutdown
                 | RenderCommand::CreateShader { .. }
                 | RenderCommand::CreateTexture2D { .. }

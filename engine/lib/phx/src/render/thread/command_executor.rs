@@ -24,6 +24,10 @@ pub enum CommandReply {
     #[default]
     None,
     Fence(u64),
+    /// Reply to `RenderCommand::PacingFence` - kept on its own variant/channel
+    /// so it can never be picked up by whichever code is waiting on a plain
+    /// `Fence` (see `RenderCommand::PacingFence`'s docs).
+    PacingFence(u64),
     ShaderReload(ShaderReloadResult),
     Stats(RenderStats),
 }
@@ -1962,6 +1966,10 @@ impl CommandExecutor {
 
             RenderCommand::Fence { fence_id } => {
                 reply = CommandReply::Fence(fence_id);
+            }
+
+            RenderCommand::PacingFence { fence_id } => {
+                reply = CommandReply::PacingFence(fence_id);
             }
 
             RenderCommand::Shutdown => {
