@@ -855,7 +855,7 @@ impl CommandExecutor {
                 vertex_format,
             } => self.cmd_create_mesh(id, vertices, indices, vertex_format),
 
-            RenderCommand::DestroyResource { id } => self.cmd_destroy_resource(id),
+            RenderCommand::DestroyResources { ids } => self.cmd_destroy_resource(&ids),
 
             // === Uniform Buffer Objects ===
             RenderCommand::CreateCameraUBO => self.cmd_create_camera_ubo(),

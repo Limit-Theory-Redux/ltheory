@@ -142,9 +142,8 @@ impl Renderer {
         // Collect first: the `destroy_rx` borrow has to end before `submit`
         // takes `&mut self`.
         let ids: Vec<ResourceId> = self.data.destroy_rx.try_iter().collect();
-        for id in ids {
-            self.submit(RenderCommand::DestroyResource { id });
-        }
+
+        self.submit(RenderCommand::DestroyResources { ids });
     }
 
     /// Immediate mode has no frame queue to pace against - just swap.

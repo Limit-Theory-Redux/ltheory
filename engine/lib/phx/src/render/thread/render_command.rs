@@ -635,8 +635,8 @@ pub enum RenderCommand {
         vertex_format: VertexFormat,
     },
 
-    /// Destroy a resource
-    DestroyResource { id: ResourceId },
+    /// Destroy multiple resources
+    DestroyResources { ids: Vec<ResourceId> },
 
     // === Uniform Buffer Objects ===
     /// Create camera UBO

@@ -1443,10 +1443,12 @@ impl CommandExecutor {
         debug!("Created mesh {:?} with vao {}", id, vao);
     }
 
-    pub(super) fn cmd_destroy_resource(&mut self, id: ResourceId) {
-        if let Some(resource) = self.resources.remove(&id) {
-            self.destroy_resource(resource);
-            debug!("Destroyed resource {:?}", id);
+    pub(super) fn cmd_destroy_resource(&mut self, ids: &[ResourceId]) {
+        for id in ids {
+            if let Some(resource) = self.resources.remove(id) {
+                self.destroy_resource(resource);
+                debug!("Destroyed resource {id:?}",);
+            }
         }
     }
 
