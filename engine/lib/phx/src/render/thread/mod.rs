@@ -1,6 +1,7 @@
 mod batch_stats;
 mod camera_render_data;
 mod command_executor;
+mod command_executor_gl;
 mod config;
 mod entity_render_data;
 mod error;
