@@ -54,6 +54,28 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn start(context: WindowGlContext) -> Result<Self, RenederThreadError> {
+        Self::create_intern(Some(context))
+    }
+
+    /// A `Renderer` with no GL context at all - every command becomes a
+    /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
+    /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
+    /// to draw a real `WindowGlContext` from.
+    #[cfg(test)]
+    pub fn new_headless() -> Self {
+        Self::create_intern(None).expect("Cannot create renderer")
+    }
+
+    pub fn stop(self) -> Option<WindowGlContext> {
+        // We have exclusive access - shutdown and get context
+        info!("Calling shutdown...");
+        let returned_ctx = self.shutdown();
+        info!("Render thread stopped");
+
+        returned_ctx
+    }
+
+    fn create_intern(context: Option<WindowGlContext>) -> Result<Self, RenederThreadError> {
         // Spawn the render thread with the GL context
         let config = RenderThreadConfig::default();
         // Use bounded channel for backpressure - SwapBuffers will block to sync with render thread
@@ -72,15 +94,19 @@ impl Renderer {
             .name("RenderThread".into())
             .spawn(move || {
                 // Make GL context current on this thread
-                let gl_context = match context.make_current() {
-                    Ok(ctx) => {
-                        info!("GL context made current on render thread");
-                        Some(ctx)
+                let gl_context = if let Some(active_context) = context {
+                    match active_context.make_current() {
+                        Ok(ctx) => {
+                            info!("GL context made current on render thread");
+                            Some(ctx)
+                        }
+                        Err(e) => {
+                            error!("Failed to make GL context current on render thread: {e}");
+                            None
+                        }
                     }
-                    Err(e) => {
-                        error!("Failed to make GL context current on render thread: {}", e);
-                        None
-                    }
+                } else {
+                    None
                 };
 
                 // Pass GL context to render thread for buffer swapping
@@ -135,15 +161,6 @@ impl Renderer {
                 irmap_shader: None,
             },
         })
-    }
-
-    pub fn stop(self) -> Option<WindowGlContext> {
-        // We have exclusive access - shutdown and get context
-        info!("Calling shutdown...");
-        let returned_ctx = self.shutdown();
-        info!("Render thread stopped");
-
-        returned_ctx
     }
 
     /// Submit a command to the render thread
