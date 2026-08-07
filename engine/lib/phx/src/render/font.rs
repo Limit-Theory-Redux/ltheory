@@ -1,6 +1,5 @@
 #![allow(unsafe_code)] // TODO: remove
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::ptr::addr_of_mut;
@@ -37,7 +36,12 @@ impl std::fmt::Debug for Font {
 struct FontData {
     name: String,
     handle: FT_Face,
-    shader: RefCell<Shader>,
+    /// `Shader` is itself a cheap-to-clone handle onto shared, `Rf`-backed
+    /// state, so mutating it doesn't require holding a mutable borrow of
+    /// `FontData` - a clone taken from a shared borrow mutates the same
+    /// underlying data. That lets `draw` (which takes `&self`) start/stop it
+    /// without a nested `RefCell` here.
+    shader: Shader,
     glyphs: HashMap<u32, Glyph>,
 }
 
@@ -176,7 +180,7 @@ impl Font {
             FontData {
                 name: name.into(),
                 handle,
-                shader: RefCell::new(Shader::load(r, "vertex/ui", "fragment/ui/text")),
+                shader: Shader::load(r, "vertex/ui", "fragment/ui/text"),
                 glyphs: Default::default(),
             }
             .into(),
@@ -193,12 +197,15 @@ impl Font {
 
         RenderState::push_blend_mode(r, BlendMode::Alpha);
 
-        self.0.as_ref().shader.borrow_mut().start(r);
-        self.0
-            .as_ref()
-            .shader
-            .borrow_mut()
-            .set_float4(r, "color", color.r, color.g, color.b, color.a);
+        // Clone the shader handle up front: `Shader` is a cheap `Rf`-backed
+        // handle, so mutating this clone (start/stop/set_*) mutates the same
+        // shared state as `font_data.shader`, without holding a borrow of
+        // `FontData` across the loop below (which itself borrows it via
+        // `get_glyph`).
+        let mut shader = self.0.as_ref().shader.clone();
+
+        shader.start(r);
+        shader.set_float4(r, "color", color.r, color.g, color.b, color.a);
 
         for c in text.chars() {
             let code_point = c as u32;
@@ -209,7 +216,6 @@ impl Font {
 
             let face = font_data.handle;
             let glyph = font_data.glyphs.get(&code_point);
-            let mut shader = font_data.shader.borrow_mut();
 
             if let Some(glyph) = glyph {
                 if glyph_last != 0 {
@@ -233,7 +239,7 @@ impl Font {
             }
         }
 
-        self.0.as_ref().shader.borrow().stop(r);
+        shader.stop(r);
         RenderState::pop_blend_mode(r);
         Profiler::end();
     }
