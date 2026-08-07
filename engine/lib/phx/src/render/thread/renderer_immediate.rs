@@ -6,9 +6,9 @@ use tracing::{error, info, warn};
 use crate::render::thread::{CommandExecutor, CommandReply, RendererData, process_batch_intern};
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
-    PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats, RenderTargetStack,
-    RenederThreadError, ResourceHandle, ResourceId, ShaderReloadResult, ShaderVarMap, TexFilter,
-    TexFormat, TexWrapMode, VertexFormat, VpStack,
+    PrimitiveBuilder, RenderStateIntern, RenderStats, RenderTargetStack, RenederThreadError,
+    ResourceHandle, ResourceId, ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat,
+    TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::WindowGlContext;
 
@@ -99,11 +99,6 @@ impl Renderer {
     pub fn stop(mut self) -> Option<WindowGlContext> {
         info!("Stopping renderer (immediate mode)");
         self.executor.cleanup()
-    }
-
-    /// Execute a command inline.
-    fn submit(&mut self, cmd: RenderCommand) {
-        self.executor.execute(cmd);
     }
 
     // =========================================================================
@@ -693,13 +688,13 @@ impl Renderer {
         // takes `&mut self`.
         let ids: Vec<ResourceId> = self.data.destroy_rx.try_iter().collect();
 
-        self.submit(RenderCommand::DestroyResources { ids });
+        self.executor.cmd_destroy_resource(&ids);
     }
 
     /// Immediate mode has no frame queue to pace against - just swap.
     pub fn end_frame_triple_buffered(&mut self) {
         self.drain_destroy_queue();
-        self.submit(RenderCommand::SwapBuffers);
+        self.executor.cmd_swap_buffers();
     }
 
     /// Always zero - there is no queue for a frame to be "in flight" on.
