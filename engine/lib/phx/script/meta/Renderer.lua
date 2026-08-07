@@ -59,11 +59,11 @@ function Renderer:setScissor(x, y, width, height) end
 function Renderer:enableScissor(enable) end
 
 -- Set blend mode (0=Disabled, 1=Alpha, 2=Additive, 3=PreMultAlpha)
----@param mode integer
+---@param mode BlendMode
 function Renderer:setBlendMode(mode) end
 
 -- Set cull face (0=None, 1=Back, 2=Front)
----@param face integer
+---@param face CullFace
 function Renderer:setCullFace(face) end
 
 -- Enable or disable depth testing
@@ -169,7 +169,7 @@ function Renderer:drawMesh(vao, indexCount) end
 -- Draw a mesh with a specific primitive type
 ---@param vao integer
 ---@param indexCount integer
----@param primitive integer
+---@param primitive CmdPrimitiveType
 function Renderer:drawMeshPrimitive(vao, indexCount, primitive) end
 
 -- Draw instanced mesh
@@ -187,7 +187,7 @@ function Renderer:resize(width, height) end
 function Renderer:swapBuffers() end
 
 -- Create the camera UBO on the render thread
-function Renderer:createCameraUBO() end
+function Renderer:createCameraUbo() end
 
 -- Update the camera UBO with new camera data
 -- Parameters are the matrices and vectors that make up the camera state.
@@ -199,10 +199,10 @@ function Renderer:createCameraUBO() end
 ---@param starDirX number
 ---@param starDirY number
 ---@param starDirZ number
-function Renderer:updateCameraUBO(mView, mProj, eyeX, eyeY, eyeZ, starDirX, starDirY, starDirZ) end
+function Renderer:updateCameraUbo(mView, mProj, eyeX, eyeY, eyeZ, starDirX, starDirY, starDirZ) end
 
 -- Create the material UBO on the render thread
-function Renderer:createMaterialUBO() end
+function Renderer:createMaterialUbo() end
 
 -- Update the material UBO with new material properties
 ---@param r number
@@ -212,10 +212,10 @@ function Renderer:createMaterialUBO() end
 ---@param metallic number
 ---@param roughness number
 ---@param emission number
-function Renderer:updateMaterialUBO(r, g, b, a, metallic, roughness, emission) end
+function Renderer:updateMaterialUbo(r, g, b, a, metallic, roughness, emission) end
 
 -- Create the light UBO on the render thread
-function Renderer:createLightUBO() end
+function Renderer:createLightUbo() end
 
 -- Update the light UBO with light properties
 ---@param posX number
@@ -226,5 +226,5 @@ function Renderer:createLightUBO() end
 ---@param g number
 ---@param b number
 ---@param intensity number
-function Renderer:updateLightUBO(posX, posY, posZ, radius, r, g, b, intensity) end
+function Renderer:updateLightUbo(posX, posY, posZ, radius, r, g, b, intensity) end
 

@@ -28,6 +28,7 @@ impl GpuHandle {
 pub struct ResourceId(pub u64);
 
 /// Primitive type for drawing operations (command buffer version)
+#[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CmdPrimitiveType {
     Points,

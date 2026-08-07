@@ -48,11 +48,11 @@ fn spherical(r: f32, yaw: f32, pitch: f32) -> Vec3 {
 #[luajit_ffi_gen::luajit_ffi]
 impl Draw {
     pub fn clear(r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
-        r.clear(Some([red, green, blue, alpha]), None);
+        r.clear_intern(Some([red, green, blue, alpha]), None);
     }
 
     pub fn clear_depth(r: &mut Renderer, d: f32) {
-        r.clear(None, Some(d));
+        r.clear_intern(None, Some(d));
     }
 
     pub fn color(r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {

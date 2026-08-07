@@ -100,46 +100,66 @@ impl Renderer {
         info!("Stopping renderer (immediate mode)");
         self.executor.cleanup()
     }
+}
 
-    // =========================================================================
-    // Per-command API - one method per `RenderCommand` variant that any code
-    // outside `render::thread` needs. Each calls the matching
-    // `CommandExecutor::cmd_*` method directly, skipping `submit`/`execute`
-    // entirely - there is no channel to serialize the command onto, so
-    // building a `RenderCommand` here would just be wasted allocation.
-    // =========================================================================
+// =========================================================================
+// Per-command API - one method per `RenderCommand` variant that any code
+// outside `render::thread` needs. Each calls the matching
+// `CommandExecutor::cmd_*` method directly, skipping `submit`/`execute`
+// entirely - there is no channel to serialize the command onto, so
+// building a `RenderCommand` here would just be wasted allocation.
+// =========================================================================
 
-    // === State Management ===
+// === State Management ===
 
-    pub fn set_viewport(&mut self, x: i32, y: i32, width: i32, height: i32) {
+impl Renderer {
+    /// Begin a new frame
+    pub(in crate::render::thread) fn begin_frame_intern(&mut self) {
+        self.data.command_buffer.clear();
+    }
+
+    /// Run every buffered command (from the batch API) inline.
+    pub(in crate::render::thread) fn flush_intern(&mut self) {
+        for cmd in self.data.command_buffer.drain(..) {
+            self.executor.execute(cmd);
+        }
+    }
+
+    /// Immediate mode has nothing to wait for: by the time `submit` returns,
+    /// the command has already executed.
+    pub(in crate::render::thread) fn sync_intern(&mut self) -> bool {
+        true
+    }
+
+    pub fn set_viewport_intern(&mut self, x: i32, y: i32, width: i32, height: i32) {
         self.executor.cmd_set_viewport(x, y, width, height);
     }
 
-    pub fn set_scissor(&mut self, x: i32, y: i32, width: i32, height: i32) {
+    pub fn set_scissor_intern(&mut self, x: i32, y: i32, width: i32, height: i32) {
         self.executor.cmd_set_scissor(x, y, width, height);
     }
 
-    pub fn enable_scissor(&mut self, enable: bool) {
+    pub fn enable_scissor_intern(&mut self, enable: bool) {
         self.executor.cmd_enable_scissor(enable);
     }
 
-    pub fn set_blend_mode(&mut self, mode: BlendMode) {
+    pub fn set_blend_mode_intern(&mut self, mode: BlendMode) {
         self.executor.cmd_set_blend_mode(mode);
     }
 
-    pub fn set_cull_face(&mut self, face: CullFace) {
+    pub fn set_cull_face_intern(&mut self, face: CullFace) {
         self.executor.cmd_set_cull_face(face);
     }
 
-    pub fn set_depth_test(&mut self, enable: bool) {
+    pub fn set_depth_test_intern(&mut self, enable: bool) {
         self.executor.cmd_set_depth_test(enable);
     }
 
-    pub fn set_depth_writable(&mut self, enable: bool) {
+    pub fn set_depth_writable_intern(&mut self, enable: bool) {
         self.executor.cmd_set_depth_writable(enable);
     }
 
-    pub fn set_wireframe(&mut self, enable: bool) {
+    pub fn set_wireframe_intern(&mut self, enable: bool) {
         self.executor.cmd_set_wireframe(enable);
     }
 
@@ -153,7 +173,7 @@ impl Renderer {
 
     // === Shader Operations ===
 
-    pub fn bind_shader(&mut self, handle: GpuHandle) {
+    pub fn bind_shader_intern(&mut self, handle: GpuHandle) {
         self.executor.cmd_bind_shader(handle);
     }
 
@@ -161,11 +181,11 @@ impl Renderer {
         self.executor.cmd_bind_shader_by_resource(id, shader_key);
     }
 
-    pub fn unbind_shader(&mut self) {
+    pub fn unbind_shader_intern(&mut self) {
         self.executor.cmd_unbind_shader();
     }
 
-    pub fn set_uniform_int(&mut self, location: i32, value: i32) {
+    pub fn set_uniform_int_intern(&mut self, location: i32, value: i32) {
         self.executor.cmd_set_uniform_int(location, value);
     }
 
@@ -181,19 +201,19 @@ impl Renderer {
         self.executor.cmd_set_uniform_int4(location, value);
     }
 
-    pub fn set_uniform_float(&mut self, location: i32, value: f32) {
+    pub fn set_uniform_float_intern(&mut self, location: i32, value: f32) {
         self.executor.cmd_set_uniform_float(location, value);
     }
 
-    pub fn set_uniform_float2(&mut self, location: i32, value: [f32; 2]) {
+    pub fn set_uniform_float2_intern(&mut self, location: i32, value: [f32; 2]) {
         self.executor.cmd_set_uniform_float2(location, value);
     }
 
-    pub fn set_uniform_float3(&mut self, location: i32, value: [f32; 3]) {
+    pub fn set_uniform_float3_intern(&mut self, location: i32, value: [f32; 3]) {
         self.executor.cmd_set_uniform_float3(location, value);
     }
 
-    pub fn set_uniform_float4(&mut self, location: i32, value: [f32; 4]) {
+    pub fn set_uniform_float4_intern(&mut self, location: i32, value: [f32; 4]) {
         self.executor.cmd_set_uniform_float4(location, value);
     }
 
@@ -203,7 +223,7 @@ impl Renderer {
 
     // === Texture Operations ===
 
-    pub fn bind_texture_2d(&mut self, slot: u32, handle: GpuHandle) {
+    pub fn bind_texture_2d_intern(&mut self, slot: u32, handle: GpuHandle) {
         self.executor.cmd_bind_texture_2d(slot, handle);
     }
 
@@ -215,7 +235,7 @@ impl Renderer {
         self.executor.cmd_bind_texture_1d_by_resource(slot, id);
     }
 
-    pub fn bind_texture_3d(&mut self, slot: u32, handle: GpuHandle) {
+    pub fn bind_texture_3d_intern(&mut self, slot: u32, handle: GpuHandle) {
         self.executor.cmd_bind_texture_3d(slot, handle);
     }
 
@@ -223,7 +243,7 @@ impl Renderer {
         self.executor.cmd_bind_texture_3d_by_resource(slot, id);
     }
 
-    pub fn bind_texture_cube(&mut self, slot: u32, handle: GpuHandle) {
+    pub fn bind_texture_cube_intern(&mut self, slot: u32, handle: GpuHandle) {
         self.executor.cmd_bind_texture_cube(slot, handle);
     }
 
@@ -231,7 +251,7 @@ impl Renderer {
         self.executor.cmd_bind_texture_cube_by_resource(slot, id);
     }
 
-    pub fn unbind_texture(&mut self, slot: u32) {
+    pub fn unbind_texture_intern(&mut self, slot: u32) {
         self.executor.cmd_unbind_texture(slot);
     }
 
@@ -488,25 +508,30 @@ impl Renderer {
             .cmd_framebuffer_attach_texture_cube_by_resource(attachment, id, face, level);
     }
 
-    pub fn bind_framebuffer(&mut self, handle: GpuHandle) {
+    pub fn bind_framebuffer_intern(&mut self, handle: GpuHandle) {
         self.executor.cmd_bind_framebuffer(handle);
     }
 
-    pub fn bind_default_framebuffer(&mut self) {
+    pub fn bind_default_framebuffer_intern(&mut self) {
         self.executor.cmd_bind_default_framebuffer();
     }
 
-    pub fn clear(&mut self, color: Option<[f32; 4]>, depth: Option<f32>) {
+    pub fn clear_intern(&mut self, color: Option<[f32; 4]>, depth: Option<f32>) {
         self.executor.cmd_clear(color, depth);
     }
 
     // === Drawing Operations ===
 
-    pub fn draw_mesh(&mut self, vao: GpuHandle, index_count: i32, primitive: CmdPrimitiveType) {
+    pub fn draw_mesh_intern(
+        &mut self,
+        vao: GpuHandle,
+        index_count: i32,
+        primitive: CmdPrimitiveType,
+    ) {
         self.executor.cmd_draw_mesh(vao, index_count, primitive);
     }
 
-    pub fn draw_mesh_instanced(
+    pub fn draw_mesh_instanced_intern(
         &mut self,
         vao: GpuHandle,
         index_count: i32,
@@ -606,27 +631,27 @@ impl Renderer {
 
     // === Uniform Buffer Objects ===
 
-    pub fn create_camera_ubo(&mut self) {
+    pub fn create_camera_ubo_intern(&mut self) {
         self.executor.cmd_create_camera_ubo();
     }
 
-    pub fn update_camera_ubo(&mut self, data: Box<[u8; 288]>) {
+    pub fn update_camera_ubo_intern(&mut self, data: Box<[u8; 288]>) {
         self.executor.cmd_update_camera_ubo(&data);
     }
 
-    pub fn create_material_ubo(&mut self) {
+    pub fn create_material_ubo_intern(&mut self) {
         self.executor.cmd_create_material_ubo();
     }
 
-    pub fn update_material_ubo(&mut self, data: [u8; 32]) {
+    pub fn update_material_ubo_intern(&mut self, data: [u8; 32]) {
         self.executor.cmd_update_material_ubo(&data);
     }
 
-    pub fn create_light_ubo(&mut self) {
+    pub fn create_light_ubo_intern(&mut self) {
         self.executor.cmd_create_light_ubo();
     }
 
-    pub fn update_light_ubo(&mut self, data: [u8; 32]) {
+    pub fn update_light_ubo_intern(&mut self, data: [u8; 32]) {
         self.executor.cmd_update_light_ubo(&data);
     }
 
@@ -634,17 +659,17 @@ impl Renderer {
 
     /// Blocking resize - immediate mode has nothing to block on, so this is
     /// the same as `try_resize`.
-    pub fn resize(&mut self, width: u32, height: u32) {
+    pub fn resize_intern(&mut self, width: u32, height: u32) {
         self.executor.cmd_resize(width, height);
     }
 
     /// Always succeeds - see `try_submit`.
     pub fn try_resize(&mut self, width: u32, height: u32) -> bool {
-        self.resize(width, height);
+        self.resize_intern(width, height);
         true
     }
 
-    pub fn swap_buffers(&mut self) {
+    pub fn swap_buffers_intern(&mut self) {
         self.executor.cmd_swap_buffers();
     }
 
@@ -653,24 +678,6 @@ impl Renderer {
     /// which drains the CPU-side batch command buffer - an unrelated concept.
     pub fn gl_finish(&mut self) {
         self.executor.cmd_flush();
-    }
-
-    /// Begin a new frame
-    pub(in crate::render::thread) fn begin_frame_intern(&mut self) {
-        self.data.command_buffer.clear();
-    }
-
-    /// Run every buffered command (from the batch API) inline.
-    pub(in crate::render::thread) fn flush_intern(&mut self) {
-        for cmd in self.data.command_buffer.drain(..) {
-            self.executor.execute(cmd);
-        }
-    }
-
-    /// Immediate mode has nothing to wait for: by the time `submit` returns,
-    /// the command has already executed.
-    pub(in crate::render::thread) fn sync_intern(&mut self) -> bool {
-        true
     }
 
     /// Mint a new GPU resource: a unique `ResourceId` bundled with the means

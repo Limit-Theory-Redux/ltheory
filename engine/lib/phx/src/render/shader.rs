@@ -194,13 +194,13 @@ impl ShaderShared {
                 r.set_uniform_float(index, *v);
             }
             ShaderVarData::Float2(v) => {
-                r.set_uniform_float2(index, [v.x, v.y]);
+                r.set_uniform_float2(index, v.x, v.y);
             }
             ShaderVarData::Float3(v) => {
-                r.set_uniform_float3(index, [v.x, v.y, v.z]);
+                r.set_uniform_float3(index, v.x, v.y, v.z);
             }
             ShaderVarData::Float4(v) => {
-                r.set_uniform_float4(index, [v.x, v.y, v.z, v.w]);
+                r.set_uniform_float4(index, v.x, v.y, v.z, v.w);
             }
             ShaderVarData::Int(v) => {
                 r.set_uniform_int(index, *v);
