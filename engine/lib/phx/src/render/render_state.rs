@@ -1,4 +1,4 @@
-use crate::render::{RenderCommand, Renderer};
+use crate::render::Renderer;
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Default, Debug, Copy, Clone)]
@@ -33,74 +33,74 @@ impl RenderState {
 
     pub fn push_blend_mode(r: &mut Renderer, value: BlendMode) {
         r.data.render_state.push_blend_mode(value);
-        r.submit(RenderCommand::SetBlendMode(value));
+        r.set_blend_mode(value);
     }
 
     pub fn push_cull_face(r: &mut Renderer, value: CullFace) {
         r.data.render_state.push_cull_face(value);
-        r.submit(RenderCommand::SetCullFace(value));
+        r.set_cull_face(value);
     }
 
     pub fn push_depth_test(r: &mut Renderer, value: bool) {
         r.data.render_state.push_depth_test(value);
-        r.submit(RenderCommand::SetDepthTest(value));
+        r.set_depth_test(value);
     }
 
     pub fn push_depth_writable(r: &mut Renderer, value: bool) {
         r.data.render_state.push_depth_writable(value);
-        r.submit(RenderCommand::SetDepthWritable(value));
+        r.set_depth_writable(value);
     }
 
     pub fn push_wireframe(r: &mut Renderer, value: bool) {
         r.data.render_state.push_wireframe(value);
-        r.submit(RenderCommand::SetWireframe(value));
+        r.set_wireframe(value);
     }
 
     pub fn pop_all(r: &mut Renderer) {
         if let Some(mode) = r.data.render_state.pop_blend_mode() {
-            r.submit(RenderCommand::SetBlendMode(mode));
+            r.set_blend_mode(mode);
         }
         if let Some(face) = r.data.render_state.pop_cull_face() {
-            r.submit(RenderCommand::SetCullFace(face));
+            r.set_cull_face(face);
         }
         if let Some(value) = r.data.render_state.pop_depth_test() {
-            r.submit(RenderCommand::SetDepthTest(value));
+            r.set_depth_test(value);
         }
         if let Some(value) = r.data.render_state.pop_depth_writable() {
-            r.submit(RenderCommand::SetDepthWritable(value));
+            r.set_depth_writable(value);
         }
         if let Some(value) = r.data.render_state.pop_wireframe() {
-            r.submit(RenderCommand::SetWireframe(value));
+            r.set_wireframe(value);
         }
     }
 
     pub fn pop_blend_mode(r: &mut Renderer) {
         if let Some(mode) = r.data.render_state.pop_blend_mode() {
-            r.submit(RenderCommand::SetBlendMode(mode));
+            r.set_blend_mode(mode);
         }
     }
 
     pub fn pop_wireframe(r: &mut Renderer) {
         if let Some(value) = r.data.render_state.pop_wireframe() {
-            r.submit(RenderCommand::SetWireframe(value));
+            r.set_wireframe(value);
         }
     }
 
     pub fn pop_depth_test(r: &mut Renderer) {
         if let Some(value) = r.data.render_state.pop_depth_test() {
-            r.submit(RenderCommand::SetDepthTest(value));
+            r.set_depth_test(value);
         }
     }
 
     pub fn pop_cull_face(r: &mut Renderer) {
         if let Some(face) = r.data.render_state.pop_cull_face() {
-            r.submit(RenderCommand::SetCullFace(face));
+            r.set_cull_face(face);
         }
     }
 
     pub fn pop_depth_writable(r: &mut Renderer) {
         if let Some(value) = r.data.render_state.pop_depth_writable() {
-            r.submit(RenderCommand::SetDepthWritable(value));
+            r.set_depth_writable(value);
         }
     }
 }

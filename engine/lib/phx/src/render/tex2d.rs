@@ -1,9 +1,8 @@
-use crossbeam::channel::bounded;
 use glam::{IVec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{DataFormat, Draw, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
-use crate::render::{RenderCommand, Renderer, ResourceHandle, ResourceId, Viewport, gl};
+use crate::render::{Renderer, ResourceHandle, ResourceId, Viewport, gl};
 use crate::rf::Rf;
 use crate::system::{Bytes, Resource, ResourceType};
 
@@ -37,14 +36,7 @@ impl Tex2D {
         size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
-        let (tx, rx) = bounded(1);
-        r.submit(RenderCommand::ReadTexture2DData {
-            id: this.handle.id(),
-            pixel_format: pf as u32,
-            data_format: df as u32,
-            reply_tx: tx,
-        });
-        let bytes = rx.recv().unwrap_or_default();
+        let bytes = r.read_texture_2d_data(this.handle.id(), pf as u32, df as u32);
 
         let mut data = vec![T::default(); size as usize];
         let byte_len = (data.len() * std::mem::size_of::<T>()).min(bytes.len());
@@ -62,15 +54,15 @@ impl Tex2D {
         #[allow(unsafe_code)] // TODO: refactor
         let bytes = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, byte_len) };
 
-        r.submit(RenderCommand::UpdateTexture2DDataByResource {
-            id: this.handle.id(),
-            width: this.size.x,
-            height: this.size.y,
-            internal_format: this.format as i32,
-            pixel_format: pf as u32,
-            data_format: df as u32,
-            data: bytes.to_vec(),
-        });
+        r.update_texture_2d_data_by_resource(
+            this.handle.id(),
+            this.size.x,
+            this.size.y,
+            this.format as i32,
+            pf as u32,
+            df as u32,
+            bytes.to_vec(),
+        );
     }
 }
 
@@ -79,13 +71,7 @@ impl Tex2D {
     #[bind(name = "Create")]
     pub fn new(r: &mut Renderer, sx: i32, sy: i32, format: TexFormat) -> Tex2D {
         let handle = r.create_resource();
-        r.submit(RenderCommand::CreateTexture2D {
-            id: handle.id(),
-            width: sx as u32,
-            height: sy as u32,
-            format,
-            data: None,
-        });
+        r.create_texture_2d(handle.id(), sx as u32, sy as u32, format, None);
 
         Tex2D {
             shared: Rf::new(Tex2DShared {
@@ -119,22 +105,16 @@ impl Tex2D {
         // format (RGB or RGBA, whichever it decoded as) - the internal
         // storage format (RGBA8) doesn't have to match the source layout,
         // GL converts on upload.
-        r.submit(RenderCommand::CreateTexture2D {
-            id: handle.id(),
-            width: size.x as u32,
-            height: size.y as u32,
-            format,
-            data: None,
-        });
-        r.submit(RenderCommand::UpdateTexture2DDataByResource {
-            id: handle.id(),
-            width: size.x,
-            height: size.y,
-            internal_format: format as i32,
+        r.create_texture_2d(handle.id(), size.x as u32, size.y as u32, format, None);
+        r.update_texture_2d_data_by_resource(
+            handle.id(),
+            size.x,
+            size.y,
+            format as i32,
             pixel_format,
-            data_format: gl::UNSIGNED_BYTE,
-            data: buffer,
-        });
+            gl::UNSIGNED_BYTE,
+            buffer,
+        );
 
         Tex2D {
             shared: Rf::new(Tex2DShared {
@@ -154,15 +134,7 @@ impl Tex2D {
     pub fn screen_capture(r: &mut Renderer) -> Tex2D {
         let size: IVec2 = Viewport::get_size(r);
 
-        let (tx, rx) = bounded(1);
-        r.submit(RenderCommand::ReadFramebufferPixels {
-            x: 0,
-            y: 0,
-            width: size.x,
-            height: size.y,
-            reply_tx: tx,
-        });
-        let raw = rx.recv().unwrap_or_default();
+        let raw = r.read_framebuffer_pixels(0, 0, size.x, size.y);
 
         // Flip vertically (framebuffer readback is bottom-up).
         let stride = (size.x * 4) as usize;
@@ -177,13 +149,13 @@ impl Tex2D {
         }
 
         let handle = r.create_resource();
-        r.submit(RenderCommand::CreateTexture2D {
-            id: handle.id(),
-            width: size.x as u32,
-            height: size.y as u32,
-            format: TexFormat::RGBA8,
-            data: Some(buf),
-        });
+        r.create_texture_2d(
+            handle.id(),
+            size.x as u32,
+            size.y as u32,
+            TexFormat::RGBA8,
+            Some(buf),
+        );
 
         Tex2D {
             shared: Rf::new(Tex2DShared {
@@ -231,19 +203,8 @@ impl Tex2D {
         let format = this.format;
 
         let handle = r.create_resource();
-        r.submit(RenderCommand::CreateTexture2D {
-            id: handle.id(),
-            width: size.x as u32,
-            height: size.y as u32,
-            format,
-            data: None,
-        });
-        r.submit(RenderCommand::CopyTexture2DFromFramebufferByResource {
-            id: handle.id(),
-            internal_format: format as i32,
-            width: size.x,
-            height: size.y,
-        });
+        r.create_texture_2d(handle.id(), size.x as u32, size.y as u32, format, None);
+        r.copy_texture_2d_from_framebuffer_by_resource(handle.id(), format as i32, size.x, size.y);
 
         RenderTarget::pop(r);
 
@@ -258,9 +219,7 @@ impl Tex2D {
 
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::GenerateMipmapByResource {
-            id: this.handle.id(),
-        });
+        r.generate_mipmap_by_resource(this.handle.id());
     }
 
     pub fn get_data_bytes(&self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Bytes {
@@ -290,10 +249,7 @@ impl Tex2D {
 
     pub fn set_anisotropy(&mut self, r: &mut Renderer, factor: f32) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTexture2DAnisotropyByResource {
-            id: this.handle.id(),
-            factor,
-        });
+        r.set_texture_2d_anisotropy_by_resource(this.handle.id(), factor);
     }
 
     pub fn set_data_bytes(
@@ -308,18 +264,12 @@ impl Tex2D {
 
     pub fn set_mag_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTextureMagFilterByResource {
-            id: this.handle.id(),
-            filter,
-        });
+        r.set_texture_mag_filter_by_resource(this.handle.id(), filter);
     }
 
     pub fn set_min_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTextureMinFilterByResource {
-            id: this.handle.id(),
-            filter,
-        });
+        r.set_texture_min_filter_by_resource(this.handle.id(), filter);
     }
 
     /* NOTE : In general, using BASE_LEVEL, MAX_LEVEL, and MIN/MAX_LOD params is
@@ -333,11 +283,7 @@ impl Tex2D {
      *        a single mip level. */
     pub fn set_mip_range(&mut self, r: &mut Renderer, min_level: i32, max_level: i32) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTexture2DMipRangeByResource {
-            id: this.handle.id(),
-            min_level,
-            max_level,
-        });
+        r.set_texture_2d_mip_range_by_resource(this.handle.id(), min_level, max_level);
     }
 
     pub fn set_texel(
@@ -351,20 +297,12 @@ impl Tex2D {
         alpha: f32,
     ) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTexel2DByResource {
-            id: this.handle.id(),
-            x,
-            y,
-            color: [red, green, blue, alpha],
-        });
+        r.set_texel_2d_by_resource(this.handle.id(), x, y, [red, green, blue, alpha]);
     }
 
     pub fn set_wrap_mode(&mut self, r: &mut Renderer, mode: TexWrapMode) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTextureWrapModeByResource {
-            id: this.handle.id(),
-            mode,
-        });
+        r.set_texture_wrap_mode_by_resource(this.handle.id(), mode);
     }
 
     /// Sample a single pixel at integer coordinates (x, y)
@@ -381,14 +319,7 @@ impl Tex2D {
         // Flip Y for OpenGL bottom-left origin
         let gl_y = size.y - 1 - y;
 
-        let (tx, rx) = bounded(1);
-        r.submit(RenderCommand::SamplePixel2DByResource {
-            id: this.handle.id(),
-            x,
-            y: gl_y,
-            reply_tx: tx,
-        });
-        let pixel = rx.recv().unwrap_or([0; 4]);
+        let pixel = r.sample_pixel_2d_by_resource(this.handle.id(), x, gl_y);
 
         Vec3::new(
             pixel[0] as f32 / 255.0,

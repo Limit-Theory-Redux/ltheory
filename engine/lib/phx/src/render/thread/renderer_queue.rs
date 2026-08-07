@@ -4,11 +4,18 @@ use tracing::error;
 use crate::math::Matrix;
 use crate::render::{
     BatchStats, BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle, LightUboData,
-    MaterialUboData, RenderBatch, RenderCommand, Renderer,
+    MaterialUboData, RenderBatch, Renderer,
 };
 
 // =============================================================================
 // FFI-exposed Renderer API
+//
+// These are thin Lua-facing wrappers: they convert Lua-friendly primitives
+// (ints, separate floats, ...) into the native types the per-command methods
+// on `Renderer` (defined in `renderer_immediate.rs`/`renderer_threaded.rs`)
+// expect, then call those directly. They're renamed relative to the
+// per-command methods purely to avoid clashing with them by name - the Lua
+// name (see `#[bind(name = "...")]`) is unchanged from before this split.
 // =============================================================================
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -88,32 +95,26 @@ impl Renderer {
     // === State Management ===
 
     /// Set the viewport
-    pub fn set_viewport(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.submit(RenderCommand::SetViewport {
-            x,
-            y,
-            width,
-            height,
-        });
+    #[bind(name = "setViewport")]
+    pub fn set_viewport_lua(&mut self, x: i32, y: i32, width: i32, height: i32) {
+        self.set_viewport(x, y, width, height);
     }
 
     /// Set the scissor region
-    pub fn set_scissor(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.submit(RenderCommand::SetScissor {
-            x,
-            y,
-            width,
-            height,
-        });
+    #[bind(name = "setScissor")]
+    pub fn set_scissor_lua(&mut self, x: i32, y: i32, width: i32, height: i32) {
+        self.set_scissor(x, y, width, height);
     }
 
     /// Enable or disable scissor test
-    pub fn enable_scissor(&mut self, enable: bool) {
-        self.submit(RenderCommand::EnableScissor(enable));
+    #[bind(name = "enableScissor")]
+    pub fn enable_scissor_lua(&mut self, enable: bool) {
+        self.enable_scissor(enable);
     }
 
     /// Set blend mode (0=Disabled, 1=Alpha, 2=Additive, 3=PreMultAlpha)
-    pub fn set_blend_mode(&mut self, mode: i32) {
+    #[bind(name = "setBlendMode")]
+    pub fn set_blend_mode_lua(&mut self, mode: i32) {
         let blend_mode = match mode {
             0 => BlendMode::Disabled,
             1 => BlendMode::Alpha,
@@ -121,165 +122,152 @@ impl Renderer {
             3 => BlendMode::PreMultAlpha,
             _ => BlendMode::Alpha,
         };
-        self.submit(RenderCommand::SetBlendMode(blend_mode));
+        self.set_blend_mode(blend_mode);
     }
 
     /// Set cull face (0=None, 1=Back, 2=Front)
-    pub fn set_cull_face(&mut self, face: i32) {
+    #[bind(name = "setCullFace")]
+    pub fn set_cull_face_lua(&mut self, face: i32) {
         let cull_face = match face {
             0 => CullFace::None,
             1 => CullFace::Back,
             2 => CullFace::Front,
             _ => CullFace::None,
         };
-        self.submit(RenderCommand::SetCullFace(cull_face));
+        self.set_cull_face(cull_face);
     }
 
     /// Enable or disable depth testing
-    pub fn set_depth_test(&mut self, enable: bool) {
-        self.submit(RenderCommand::SetDepthTest(enable));
+    #[bind(name = "setDepthTest")]
+    pub fn set_depth_test_lua(&mut self, enable: bool) {
+        self.set_depth_test(enable);
     }
 
     /// Enable or disable depth writing
-    pub fn set_depth_writable(&mut self, enable: bool) {
-        self.submit(RenderCommand::SetDepthWritable(enable));
+    #[bind(name = "setDepthWritable")]
+    pub fn set_depth_writable_lua(&mut self, enable: bool) {
+        self.set_depth_writable(enable);
     }
 
     /// Set wireframe mode
-    pub fn set_wireframe(&mut self, enable: bool) {
-        self.submit(RenderCommand::SetWireframe(enable));
+    #[bind(name = "setWireframe")]
+    pub fn set_wireframe_lua(&mut self, enable: bool) {
+        self.set_wireframe(enable);
     }
 
     // === Shader Operations ===
 
     /// Bind a shader program
-    pub fn bind_shader(&mut self, handle: u32) {
-        self.submit(RenderCommand::BindShader {
-            handle: GpuHandle(handle),
-        });
+    #[bind(name = "bindShader")]
+    pub fn bind_shader_lua(&mut self, handle: u32) {
+        self.bind_shader(GpuHandle(handle));
     }
 
     /// Unbind the current shader
-    pub fn unbind_shader(&mut self) {
-        self.submit(RenderCommand::UnbindShader);
+    #[bind(name = "unbindShader")]
+    pub fn unbind_shader_lua(&mut self) {
+        self.unbind_shader();
     }
 
     /// Set an integer uniform
-    pub fn set_uniform_int(&mut self, location: i32, value: i32) {
-        self.submit(RenderCommand::SetUniformInt { location, value });
+    #[bind(name = "setUniformInt")]
+    pub fn set_uniform_int_lua(&mut self, location: i32, value: i32) {
+        self.set_uniform_int(location, value);
     }
 
     /// Set a float uniform
-    pub fn set_uniform_float(&mut self, location: i32, value: f32) {
-        self.submit(RenderCommand::SetUniformFloat { location, value });
+    #[bind(name = "setUniformFloat")]
+    pub fn set_uniform_float_lua(&mut self, location: i32, value: f32) {
+        self.set_uniform_float(location, value);
     }
 
     /// Set a vec2 uniform
-    pub fn set_uniform_float2(&mut self, location: i32, x: f32, y: f32) {
-        self.submit(RenderCommand::SetUniformFloat2 {
-            location,
-            value: [x, y],
-        });
+    #[bind(name = "setUniformFloat2")]
+    pub fn set_uniform_float2_lua(&mut self, location: i32, x: f32, y: f32) {
+        self.set_uniform_float2(location, [x, y]);
     }
 
     /// Set a vec3 uniform
-    pub fn set_uniform_float3(&mut self, location: i32, x: f32, y: f32, z: f32) {
-        self.submit(RenderCommand::SetUniformFloat3 {
-            location,
-            value: [x, y, z],
-        });
+    #[bind(name = "setUniformFloat3")]
+    pub fn set_uniform_float3_lua(&mut self, location: i32, x: f32, y: f32, z: f32) {
+        self.set_uniform_float3(location, [x, y, z]);
     }
 
     /// Set a vec4 uniform
-    pub fn set_uniform_float4(&mut self, location: i32, x: f32, y: f32, z: f32, w: f32) {
-        self.submit(RenderCommand::SetUniformFloat4 {
-            location,
-            value: [x, y, z, w],
-        });
+    #[bind(name = "setUniformFloat4")]
+    pub fn set_uniform_float4_lua(&mut self, location: i32, x: f32, y: f32, z: f32, w: f32) {
+        self.set_uniform_float4(location, [x, y, z, w]);
     }
 
     // === Texture Operations ===
 
     /// Bind a 2D texture to a slot
-    pub fn bind_texture_2d(&mut self, slot: u32, handle: u32) {
-        self.submit(RenderCommand::BindTexture2D {
-            slot,
-            handle: GpuHandle(handle),
-        });
+    #[bind(name = "bindTexture2D")]
+    pub fn bind_texture_2d_lua(&mut self, slot: u32, handle: u32) {
+        self.bind_texture_2d(slot, GpuHandle(handle));
     }
 
     /// Bind a 3D texture to a slot
-    pub fn bind_texture_3d(&mut self, slot: u32, handle: u32) {
-        self.submit(RenderCommand::BindTexture3D {
-            slot,
-            handle: GpuHandle(handle),
-        });
+    #[bind(name = "bindTexture3D")]
+    pub fn bind_texture_3d_lua(&mut self, slot: u32, handle: u32) {
+        self.bind_texture_3d(slot, GpuHandle(handle));
     }
 
     /// Bind a cube texture to a slot
-    pub fn bind_texture_cube(&mut self, slot: u32, handle: u32) {
-        self.submit(RenderCommand::BindTextureCube {
-            slot,
-            handle: GpuHandle(handle),
-        });
+    #[bind(name = "bindTextureCube")]
+    pub fn bind_texture_cube_lua(&mut self, slot: u32, handle: u32) {
+        self.bind_texture_cube(slot, GpuHandle(handle));
     }
 
     /// Unbind a texture from a slot
-    pub fn unbind_texture(&mut self, slot: u32) {
-        self.submit(RenderCommand::UnbindTexture { slot });
+    #[bind(name = "unbindTexture")]
+    pub fn unbind_texture_lua(&mut self, slot: u32) {
+        self.unbind_texture(slot);
     }
 
     // === Framebuffer Operations ===
 
     /// Bind a framebuffer
-    pub fn bind_framebuffer(&mut self, handle: u32) {
-        self.submit(RenderCommand::BindFramebuffer {
-            handle: GpuHandle(handle),
-        });
+    #[bind(name = "bindFramebuffer")]
+    pub fn bind_framebuffer_lua(&mut self, handle: u32) {
+        self.bind_framebuffer(GpuHandle(handle));
     }
 
     /// Bind the default framebuffer
-    pub fn bind_default_framebuffer(&mut self) {
-        self.submit(RenderCommand::BindDefaultFramebuffer);
+    #[bind(name = "bindDefaultFramebuffer")]
+    pub fn bind_default_framebuffer_lua(&mut self) {
+        self.bind_default_framebuffer();
     }
 
     /// Clear color buffer
-    pub fn clear_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
-        self.submit(RenderCommand::Clear {
-            color: Some([r, g, b, a]),
-            depth: None,
-        });
+    #[bind(name = "clearColor")]
+    pub fn clear_color_lua(&mut self, r: f32, g: f32, b: f32, a: f32) {
+        self.clear(Some([r, g, b, a]), None);
     }
 
     /// Clear depth buffer
-    pub fn clear_depth(&mut self, depth: f32) {
-        self.submit(RenderCommand::Clear {
-            color: None,
-            depth: Some(depth),
-        });
+    #[bind(name = "clearDepth")]
+    pub fn clear_depth_lua(&mut self, depth: f32) {
+        self.clear(None, Some(depth));
     }
 
     /// Clear both color and depth buffers
-    pub fn clear(&mut self, r: f32, g: f32, b: f32, a: f32, depth: f32) {
-        self.submit(RenderCommand::Clear {
-            color: Some([r, g, b, a]),
-            depth: Some(depth),
-        });
+    #[bind(name = "clear")]
+    pub fn clear_lua(&mut self, r: f32, g: f32, b: f32, a: f32, depth: f32) {
+        self.clear(Some([r, g, b, a]), Some(depth));
     }
 
     // === Drawing Operations ===
 
     /// Draw a mesh
-    pub fn draw_mesh(&mut self, vao: u32, index_count: i32) {
-        self.submit(RenderCommand::DrawMesh {
-            vao: GpuHandle(vao),
-            index_count,
-            primitive: CmdPrimitiveType::Triangles,
-        });
+    #[bind(name = "drawMesh")]
+    pub fn draw_mesh_lua(&mut self, vao: u32, index_count: i32) {
+        self.draw_mesh(GpuHandle(vao), index_count, CmdPrimitiveType::Triangles);
     }
 
     /// Draw a mesh with a specific primitive type
-    pub fn draw_mesh_primitive(&mut self, vao: u32, index_count: i32, primitive: i32) {
+    #[bind(name = "drawMeshPrimitive")]
+    pub fn draw_mesh_primitive_lua(&mut self, vao: u32, index_count: i32, primitive: i32) {
         let prim = match primitive {
             0 => CmdPrimitiveType::Points,
             1 => CmdPrimitiveType::Lines,
@@ -290,47 +278,47 @@ impl Renderer {
             6 => CmdPrimitiveType::Quads,
             _ => CmdPrimitiveType::Triangles,
         };
-        self.submit(RenderCommand::DrawMesh {
-            vao: GpuHandle(vao),
-            index_count,
-            primitive: prim,
-        });
+        self.draw_mesh(GpuHandle(vao), index_count, prim);
     }
 
     /// Draw instanced mesh
-    pub fn draw_mesh_instanced(&mut self, vao: u32, index_count: i32, instance_count: i32) {
-        self.submit(RenderCommand::DrawMeshInstanced {
-            vao: GpuHandle(vao),
+    #[bind(name = "drawMeshInstanced")]
+    pub fn draw_mesh_instanced_lua(&mut self, vao: u32, index_count: i32, instance_count: i32) {
+        self.draw_mesh_instanced(
+            GpuHandle(vao),
             index_count,
             instance_count,
-            primitive: CmdPrimitiveType::Triangles,
-        });
+            CmdPrimitiveType::Triangles,
+        );
     }
 
     // === Window Operations ===
 
     /// Signal resize
-    pub fn resize(&mut self, width: u32, height: u32) {
-        self.submit(RenderCommand::Resize { width, height });
+    #[bind(name = "resize")]
+    pub fn resize_lua(&mut self, width: u32, height: u32) {
+        self.resize(width, height);
     }
 
     /// Signal swap buffers (frame end)
-    pub fn swap_buffers(&mut self) {
-        self.submit(RenderCommand::SwapBuffers);
+    #[bind(name = "swapBuffers")]
+    pub fn swap_buffers_lua(&mut self) {
+        self.swap_buffers();
     }
 
     // === Camera UBO ===
 
     /// Create the camera UBO on the render thread
     #[bind(name = "CreateCameraUBO")]
-    pub fn create_camera_ubo(&mut self) {
-        self.submit(RenderCommand::CreateCameraUBO);
+    pub fn create_camera_ubo_lua(&mut self) {
+        self.create_camera_ubo();
     }
 
     /// Update the camera UBO with new camera data
     /// Parameters are the matrices and vectors that make up the camera state.
     #[bind(name = "UpdateCameraUBO")]
-    pub fn update_camera_ubo(
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_camera_ubo_lua(
         &mut self,
         m_view: &Matrix,
         m_proj: &Matrix,
@@ -355,18 +343,18 @@ impl Renderer {
         let mut boxed: Box<[u8; 288]> = Box::new([0u8; 288]);
         boxed.copy_from_slice(bytes);
 
-        self.submit(RenderCommand::UpdateCameraUBO { data: boxed });
+        self.update_camera_ubo(boxed);
     }
 
     /// Create the material UBO on the render thread
     #[bind(name = "CreateMaterialUBO")]
-    pub fn create_material_ubo(&mut self) {
-        self.submit(RenderCommand::CreateMaterialUBO);
+    pub fn create_material_ubo_lua(&mut self) {
+        self.create_material_ubo();
     }
 
     /// Update the material UBO with new material properties
     #[bind(name = "UpdateMaterialUBO")]
-    pub fn update_material_ubo(
+    pub fn update_material_ubo_lua(
         &mut self,
         r: f32,
         g: f32,
@@ -382,21 +370,19 @@ impl Renderer {
         data.set_roughness(roughness);
         data.set_emission(emission);
 
-        // Convert to boxed array for command
-        self.submit(RenderCommand::UpdateMaterialUBO {
-            data: *data.as_bytes(),
-        });
+        self.update_material_ubo(*data.as_bytes());
     }
 
     /// Create the light UBO on the render thread
     #[bind(name = "CreateLightUBO")]
-    pub fn create_light_ubo(&mut self) {
-        self.submit(RenderCommand::CreateLightUBO);
+    pub fn create_light_ubo_lua(&mut self) {
+        self.create_light_ubo();
     }
 
     /// Update the light UBO with light properties
     #[bind(name = "UpdateLightUBO")]
-    pub fn update_light_ubo(
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_light_ubo_lua(
         &mut self,
         pos_x: f32,
         pos_y: f32,
@@ -413,9 +399,6 @@ impl Renderer {
         data.set_color(r, g, b);
         data.set_intensity(intensity);
 
-        // Convert to boxed array for command
-        self.submit(RenderCommand::UpdateLightUBO {
-            data: *data.as_bytes(),
-        });
+        self.update_light_ubo(*data.as_bytes());
     }
 }

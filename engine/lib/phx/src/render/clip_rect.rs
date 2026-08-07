@@ -1,6 +1,6 @@
 use glam::IVec2;
 
-use crate::render::{RenderCommand, Renderer, Viewport};
+use crate::render::{Renderer, Viewport};
 
 const MAX_STACK_DEPTH: usize = 128;
 
@@ -37,20 +37,15 @@ enum ScissorUpdate {
 fn apply(r: &mut Renderer, update: Option<ScissorUpdate>) {
     match update {
         None => {}
-        Some(ScissorUpdate::Disable) => r.submit(RenderCommand::EnableScissor(false)),
+        Some(ScissorUpdate::Disable) => r.enable_scissor(false),
         Some(ScissorUpdate::Set {
             x,
             y,
             width,
             height,
         }) => {
-            r.submit(RenderCommand::EnableScissor(true));
-            r.submit(RenderCommand::SetScissor {
-                x,
-                y,
-                width,
-                height,
-            });
+            r.enable_scissor(true);
+            r.set_scissor(x, y, width, height);
         }
     }
 }

@@ -1,4 +1,3 @@
-use crossbeam::channel::bounded;
 use glam::{Vec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
@@ -7,7 +6,7 @@ use super::{
     Tex2D, TexFilter, TexFormat,
 };
 use crate::math::Rng;
-use crate::render::{RenderCommand, RenderState, Renderer, ResourceHandle, ResourceId, Shader, gl};
+use crate::render::{RenderState, Renderer, ResourceHandle, ResourceId, Shader, gl};
 use crate::rf::Rf;
 use crate::system::{Bytes, TimeStamp};
 
@@ -85,16 +84,13 @@ impl TexCube {
         size *= TexFormat::components(tf);
         size /= std::mem::size_of::<T>() as i32;
 
-        let (tx, rx) = bounded(1);
-        r.submit(RenderCommand::ReadTextureCubeFaceData {
-            id: this.handle.id(),
-            face: face as u32,
+        let bytes = r.read_texture_cube_face_data(
+            this.handle.id(),
+            face as u32,
             level,
-            pixel_format: tf as u32,
-            data_format: df as u32,
-            reply_tx: tx,
-        });
-        let bytes = rx.recv().unwrap_or_default();
+            tf as u32,
+            df as u32,
+        );
 
         let mut data = vec![T::default(); size as usize];
         let byte_len = (data.len() * std::mem::size_of::<T>()).min(bytes.len());
@@ -120,16 +116,16 @@ impl TexCube {
         #[allow(unsafe_code)] // TODO: refactor
         let bytes = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, byte_len) };
 
-        r.submit(RenderCommand::UpdateTextureCubeFaceDataByResource {
-            id: this.handle.id(),
-            face: face as u32,
+        r.update_texture_cube_face_data_by_resource(
+            this.handle.id(),
+            face as u32,
             level,
-            size: this.size,
-            internal_format: this.format as i32,
-            pixel_format: tf as u32,
-            data_format: df as u32,
-            data: bytes.to_vec(),
-        });
+            this.size,
+            this.format as i32,
+            tf as u32,
+            df as u32,
+            bytes.to_vec(),
+        );
     }
 }
 
@@ -142,11 +138,7 @@ impl TexCube {
         }
 
         let handle = r.create_resource();
-        r.submit(RenderCommand::CreateTextureCube {
-            id: handle.id(),
-            size: size as u32,
-            format,
-        });
+        r.create_texture_cube(handle.id(), size as u32, format);
 
         TexCube {
             shared: Rf::new(TexCubeShared {
@@ -206,22 +198,18 @@ impl TexCube {
         }
 
         let handle = r.create_resource();
-        r.submit(RenderCommand::CreateTextureCube {
-            id: handle.id(),
-            size: size as u32,
-            format,
-        });
+        r.create_texture_cube(handle.id(), size as u32, format);
         for (face, pixel_format, buffer) in faces {
-            r.submit(RenderCommand::UpdateTextureCubeFaceDataByResource {
-                id: handle.id(),
+            r.update_texture_cube_face_data_by_resource(
+                handle.id(),
                 face,
-                level: 0,
+                0,
                 size,
-                internal_format: format as i32,
+                format as i32,
                 pixel_format,
-                data_format: gl::UNSIGNED_BYTE,
-                data: buffer,
-            });
+                gl::UNSIGNED_BYTE,
+                buffer,
+            );
         }
 
         TexCube {
@@ -343,9 +331,7 @@ impl TexCube {
 
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::GenerateMipmapByResource {
-            id: this.handle.id(),
-        });
+        r.generate_mipmap_by_resource(this.handle.id());
     }
 
     pub fn set_data_bytes(
@@ -362,18 +348,12 @@ impl TexCube {
 
     pub fn set_mag_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTextureMagFilterByResource {
-            id: this.handle.id(),
-            filter,
-        });
+        r.set_texture_mag_filter_by_resource(this.handle.id(), filter);
     }
 
     pub fn set_min_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTextureMinFilterByResource {
-            id: this.handle.id(),
-            filter,
-        });
+        r.set_texture_min_filter_by_resource(this.handle.id(), filter);
     }
 
     #[bind(name = "GenIRMap")]

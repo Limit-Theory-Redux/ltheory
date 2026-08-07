@@ -1,8 +1,7 @@
-use crossbeam::channel::bounded;
 use glam::IVec3;
 
 use super::{DataFormat, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
-use crate::render::{RenderCommand, Renderer, ResourceHandle, ResourceId};
+use crate::render::{Renderer, ResourceHandle, ResourceId};
 use crate::rf::Rf;
 use crate::system::Bytes;
 
@@ -35,14 +34,7 @@ impl Tex3D {
         size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
-        let (tx, rx) = bounded(1);
-        r.submit(RenderCommand::ReadTexture3DData {
-            id: this.handle.id(),
-            pixel_format: pf as u32,
-            data_format: df as u32,
-            reply_tx: tx,
-        });
-        let bytes = rx.recv().unwrap_or_default();
+        let bytes = r.read_texture_3d_data(this.handle.id(), pf as u32, df as u32);
 
         let mut data = vec![T::default(); size as usize];
         let byte_len = (data.len() * std::mem::size_of::<T>()).min(bytes.len());
@@ -60,16 +52,16 @@ impl Tex3D {
         #[allow(unsafe_code)] // TODO: refactor
         let bytes = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, byte_len) };
 
-        r.submit(RenderCommand::UpdateTexture3DDataByResource {
-            id: this.handle.id(),
-            width: this.size.x,
-            height: this.size.y,
-            depth: this.size.z,
-            internal_format: this.format as i32,
-            pixel_format: pf as u32,
-            data_format: df as u32,
-            data: bytes.to_vec(),
-        });
+        r.update_texture_3d_data_by_resource(
+            this.handle.id(),
+            this.size.x,
+            this.size.y,
+            this.size.z,
+            this.format as i32,
+            pf as u32,
+            df as u32,
+            bytes.to_vec(),
+        );
     }
 }
 
@@ -82,14 +74,7 @@ impl Tex3D {
         }
 
         let handle = r.create_resource();
-        r.submit(RenderCommand::CreateTexture3D {
-            id: handle.id(),
-            width: sx as u32,
-            height: sy as u32,
-            depth: sz as u32,
-            format,
-            data: None,
-        });
+        r.create_texture_3d(handle.id(), sx as u32, sy as u32, sz as u32, format, None);
 
         Tex3D {
             shared: Rf::new(Tex3DShared {
@@ -114,9 +99,7 @@ impl Tex3D {
 
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::GenerateMipmapByResource {
-            id: this.handle.id(),
-        });
+        r.generate_mipmap_by_resource(this.handle.id());
     }
 
     pub fn get_data_bytes(&mut self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Bytes {
@@ -157,25 +140,16 @@ impl Tex3D {
 
     pub fn set_mag_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTextureMagFilterByResource {
-            id: this.handle.id(),
-            filter,
-        });
+        r.set_texture_mag_filter_by_resource(this.handle.id(), filter);
     }
 
     pub fn set_min_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTextureMinFilterByResource {
-            id: this.handle.id(),
-            filter,
-        });
+        r.set_texture_min_filter_by_resource(this.handle.id(), filter);
     }
 
     pub fn set_wrap_mode(&mut self, r: &mut Renderer, mode: TexWrapMode) {
         let this = self.shared.as_ref();
-        r.submit(RenderCommand::SetTextureWrapModeByResource {
-            id: this.handle.id(),
-            mode,
-        });
+        r.set_texture_wrap_mode_by_resource(this.handle.id(), mode);
     }
 }

@@ -1,13 +1,12 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use crossbeam::channel::bounded;
 use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4};
 
 use super::{ShaderState, ShaderVarData, Tex1D, Tex2D, Tex3D, TexCube, gl};
 use crate::logging::{info, warn};
 use crate::math::Matrix;
-use crate::render::{RenderCommand, Renderer, ResourceHandle, ResourceId};
+use crate::render::{Renderer, ResourceHandle, ResourceId};
 use crate::rf::Rf;
 use crate::system::{Profiler, Resource, ResourceType};
 
@@ -192,106 +191,55 @@ impl ShaderShared {
     pub fn apply_uniform(&mut self, r: &mut Renderer, index: i32, data: &ShaderVarData) {
         match data {
             ShaderVarData::Float(v) => {
-                r.submit(RenderCommand::SetUniformFloat {
-                    location: index,
-                    value: *v,
-                });
+                r.set_uniform_float(index, *v);
             }
             ShaderVarData::Float2(v) => {
-                r.submit(RenderCommand::SetUniformFloat2 {
-                    location: index,
-                    value: [v.x, v.y],
-                });
+                r.set_uniform_float2(index, [v.x, v.y]);
             }
             ShaderVarData::Float3(v) => {
-                r.submit(RenderCommand::SetUniformFloat3 {
-                    location: index,
-                    value: [v.x, v.y, v.z],
-                });
+                r.set_uniform_float3(index, [v.x, v.y, v.z]);
             }
             ShaderVarData::Float4(v) => {
-                r.submit(RenderCommand::SetUniformFloat4 {
-                    location: index,
-                    value: [v.x, v.y, v.z, v.w],
-                });
+                r.set_uniform_float4(index, [v.x, v.y, v.z, v.w]);
             }
             ShaderVarData::Int(v) => {
-                r.submit(RenderCommand::SetUniformInt {
-                    location: index,
-                    value: *v,
-                });
+                r.set_uniform_int(index, *v);
             }
             ShaderVarData::Int2(v) => {
-                r.submit(RenderCommand::SetUniformInt2 {
-                    location: index,
-                    value: [v.x, v.y],
-                });
+                r.set_uniform_int2(index, [v.x, v.y]);
             }
             ShaderVarData::Int3(v) => {
-                r.submit(RenderCommand::SetUniformInt3 {
-                    location: index,
-                    value: [v.x, v.y, v.z],
-                });
+                r.set_uniform_int3(index, [v.x, v.y, v.z]);
             }
             ShaderVarData::Int4(v) => {
-                r.submit(RenderCommand::SetUniformInt4 {
-                    location: index,
-                    value: [v.x, v.y, v.z, v.w],
-                });
+                r.set_uniform_int4(index, [v.x, v.y, v.z, v.w]);
             }
             ShaderVarData::Matrix(m) => {
-                r.submit(RenderCommand::SetUniformMat4 {
-                    location: index,
-                    value: m.to_cols_array(),
-                });
+                r.set_uniform_mat4(index, m.to_cols_array());
             }
             ShaderVarData::Tex1D(t) => {
                 let tex_index = self.next_tex_index();
 
-                r.submit(RenderCommand::SetUniformInt {
-                    location: index,
-                    value: tex_index as i32,
-                });
-                r.submit(RenderCommand::BindTexture1DByResource {
-                    slot: tex_index,
-                    id: t.resource_id(),
-                });
+                r.set_uniform_int(index, tex_index as i32);
+                r.bind_texture_1d_by_resource(tex_index, t.resource_id());
             }
             ShaderVarData::Tex2D(t) => {
                 let tex_index = self.next_tex_index();
 
-                r.submit(RenderCommand::SetUniformInt {
-                    location: index,
-                    value: tex_index as i32,
-                });
-                r.submit(RenderCommand::BindTexture2DByResource {
-                    slot: tex_index,
-                    id: t.resource_id(),
-                });
+                r.set_uniform_int(index, tex_index as i32);
+                r.bind_texture_2d_by_resource(tex_index, t.resource_id());
             }
             ShaderVarData::Tex3D(t) => {
                 let tex_index = self.next_tex_index();
 
-                r.submit(RenderCommand::SetUniformInt {
-                    location: index,
-                    value: tex_index as i32,
-                });
-                r.submit(RenderCommand::BindTexture3DByResource {
-                    slot: tex_index,
-                    id: t.resource_id(),
-                });
+                r.set_uniform_int(index, tex_index as i32);
+                r.bind_texture_3d_by_resource(tex_index, t.resource_id());
             }
             ShaderVarData::TexCube(t) => {
                 let tex_index = self.next_tex_index();
 
-                r.submit(RenderCommand::SetUniformInt {
-                    location: index,
-                    value: tex_index as i32,
-                });
-                r.submit(RenderCommand::BindTextureCubeByResource {
-                    slot: tex_index,
-                    id: t.resource_id(),
-                });
+                r.set_uniform_int(index, tex_index as i32);
+                r.bind_texture_cube_by_resource(tex_index, t.resource_id());
             }
         }
     }
@@ -544,10 +492,7 @@ impl Shader {
 
         let s = &mut *self.shared.as_mut();
 
-        r.submit(RenderCommand::BindShaderByResource {
-            id: s.handle.id(),
-            shader_key: None,
-        });
+        r.bind_shader_by_resource(s.handle.id(), None);
         s.is_bound = true;
 
         // Reset the tex index counter.
@@ -590,7 +535,7 @@ impl Shader {
 
     pub fn stop(&self, r: &mut Renderer) {
         self.shared.as_mut().is_bound = false;
-        r.submit(RenderCommand::UnbindShader);
+        r.unbind_shader();
     }
 }
 
@@ -604,17 +549,11 @@ fn create_shader_blocking(
     fragment_src: &str,
 ) -> Result<ResourceHandle, String> {
     let handle = r.create_resource();
-    let (tx, rx) = bounded(1);
-    r.submit(RenderCommand::CreateShader {
-        id: handle.id(),
-        vertex_src: vertex_src.to_string(),
-        fragment_src: fragment_src.to_string(),
-        reply_tx: tx,
-    });
-    match rx
-        .recv()
-        .unwrap_or_else(|_| Some("Renderer channel closed".to_string()))
-    {
+    match r.create_shader(
+        handle.id(),
+        vertex_src.to_string(),
+        fragment_src.to_string(),
+    ) {
         None => Ok(handle),
         Some(err) => Err(err),
     }
@@ -633,13 +572,7 @@ fn resolve_uniform_location(
     }
 
     let name: Arc<str> = Arc::from(name);
-    let (tx, rx) = bounded(1);
-    r.submit(RenderCommand::GetUniformLocationByResource {
-        id,
-        name: name.clone(),
-        reply_tx: tx,
-    });
-    let loc = rx.recv().unwrap_or(-1);
+    let loc = r.get_uniform_location_by_resource(id, name.clone());
     cache.insert(name, loc);
     loc
 }

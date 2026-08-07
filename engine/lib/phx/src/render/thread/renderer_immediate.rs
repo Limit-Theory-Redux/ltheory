@@ -1,11 +1,14 @@
-use crossbeam::channel::unbounded;
+use std::sync::Arc;
+
+use crossbeam::channel::{bounded, unbounded};
 use tracing::{error, info, warn};
 
 use crate::render::thread::{CommandExecutor, CommandReply, RendererData, process_batch_intern};
 use crate::render::{
-    ClipManager, DrawState, PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats,
-    RenderTargetStack, RenederThreadError, ResourceHandle, ResourceId, ShaderReloadResult,
-    ShaderVarMap, VpStack,
+    BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
+    PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats, RenderTargetStack,
+    RenederThreadError, ResourceHandle, ResourceId, ShaderReloadResult, ShaderVarMap, TexFilter,
+    TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::WindowGlContext;
 
@@ -99,15 +102,562 @@ impl Renderer {
     }
 
     /// Execute a command inline.
-    pub fn submit(&mut self, cmd: RenderCommand) {
+    fn submit(&mut self, cmd: RenderCommand) {
         self.executor.execute(cmd);
     }
 
-    /// Execute a command inline. Always succeeds - immediate mode has no
-    /// channel to back up, so there is nothing to drop.
-    pub fn try_submit(&mut self, cmd: RenderCommand) -> bool {
-        self.submit(cmd);
+    // =========================================================================
+    // Per-command API - one method per `RenderCommand` variant that any code
+    // outside `render::thread` needs. Each calls the matching
+    // `CommandExecutor::cmd_*` method directly, skipping `submit`/`execute`
+    // entirely - there is no channel to serialize the command onto, so
+    // building a `RenderCommand` here would just be wasted allocation.
+    // =========================================================================
+
+    // === State Management ===
+
+    pub fn set_viewport(&mut self, x: i32, y: i32, width: i32, height: i32) {
+        self.executor.cmd_set_viewport(x, y, width, height);
+    }
+
+    pub fn set_scissor(&mut self, x: i32, y: i32, width: i32, height: i32) {
+        self.executor.cmd_set_scissor(x, y, width, height);
+    }
+
+    pub fn enable_scissor(&mut self, enable: bool) {
+        self.executor.cmd_enable_scissor(enable);
+    }
+
+    pub fn set_blend_mode(&mut self, mode: BlendMode) {
+        self.executor.cmd_set_blend_mode(mode);
+    }
+
+    pub fn set_cull_face(&mut self, face: CullFace) {
+        self.executor.cmd_set_cull_face(face);
+    }
+
+    pub fn set_depth_test(&mut self, enable: bool) {
+        self.executor.cmd_set_depth_test(enable);
+    }
+
+    pub fn set_depth_writable(&mut self, enable: bool) {
+        self.executor.cmd_set_depth_writable(enable);
+    }
+
+    pub fn set_wireframe(&mut self, enable: bool) {
+        self.executor.cmd_set_wireframe(enable);
+    }
+
+    pub fn set_line_width(&mut self, width: f32) {
+        self.executor.cmd_set_line_width(width);
+    }
+
+    pub fn set_point_size(&mut self, size: f32) {
+        self.executor.cmd_set_point_size(size);
+    }
+
+    // === Shader Operations ===
+
+    pub fn bind_shader(&mut self, handle: GpuHandle) {
+        self.executor.cmd_bind_shader(handle);
+    }
+
+    pub fn bind_shader_by_resource(&mut self, id: ResourceId, shader_key: Option<String>) {
+        self.executor.cmd_bind_shader_by_resource(id, shader_key);
+    }
+
+    pub fn unbind_shader(&mut self) {
+        self.executor.cmd_unbind_shader();
+    }
+
+    pub fn set_uniform_int(&mut self, location: i32, value: i32) {
+        self.executor.cmd_set_uniform_int(location, value);
+    }
+
+    pub fn set_uniform_int2(&mut self, location: i32, value: [i32; 2]) {
+        self.executor.cmd_set_uniform_int2(location, value);
+    }
+
+    pub fn set_uniform_int3(&mut self, location: i32, value: [i32; 3]) {
+        self.executor.cmd_set_uniform_int3(location, value);
+    }
+
+    pub fn set_uniform_int4(&mut self, location: i32, value: [i32; 4]) {
+        self.executor.cmd_set_uniform_int4(location, value);
+    }
+
+    pub fn set_uniform_float(&mut self, location: i32, value: f32) {
+        self.executor.cmd_set_uniform_float(location, value);
+    }
+
+    pub fn set_uniform_float2(&mut self, location: i32, value: [f32; 2]) {
+        self.executor.cmd_set_uniform_float2(location, value);
+    }
+
+    pub fn set_uniform_float3(&mut self, location: i32, value: [f32; 3]) {
+        self.executor.cmd_set_uniform_float3(location, value);
+    }
+
+    pub fn set_uniform_float4(&mut self, location: i32, value: [f32; 4]) {
+        self.executor.cmd_set_uniform_float4(location, value);
+    }
+
+    pub fn set_uniform_mat4(&mut self, location: i32, value: [f32; 16]) {
+        self.executor.cmd_set_uniform_mat4(location, value);
+    }
+
+    // === Texture Operations ===
+
+    pub fn bind_texture_2d(&mut self, slot: u32, handle: GpuHandle) {
+        self.executor.cmd_bind_texture_2d(slot, handle);
+    }
+
+    pub fn bind_texture_2d_by_resource(&mut self, slot: u32, id: ResourceId) {
+        self.executor.cmd_bind_texture_2d_by_resource(slot, id);
+    }
+
+    pub fn bind_texture_1d_by_resource(&mut self, slot: u32, id: ResourceId) {
+        self.executor.cmd_bind_texture_1d_by_resource(slot, id);
+    }
+
+    pub fn bind_texture_3d(&mut self, slot: u32, handle: GpuHandle) {
+        self.executor.cmd_bind_texture_3d(slot, handle);
+    }
+
+    pub fn bind_texture_3d_by_resource(&mut self, slot: u32, id: ResourceId) {
+        self.executor.cmd_bind_texture_3d_by_resource(slot, id);
+    }
+
+    pub fn bind_texture_cube(&mut self, slot: u32, handle: GpuHandle) {
+        self.executor.cmd_bind_texture_cube(slot, handle);
+    }
+
+    pub fn bind_texture_cube_by_resource(&mut self, slot: u32, id: ResourceId) {
+        self.executor.cmd_bind_texture_cube_by_resource(slot, id);
+    }
+
+    pub fn unbind_texture(&mut self, slot: u32) {
+        self.executor.cmd_unbind_texture(slot);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_texture_2d_data_by_resource(
+        &mut self,
+        id: ResourceId,
+        width: i32,
+        height: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        self.executor.cmd_update_texture_2d_data_by_resource(
+            id,
+            width,
+            height,
+            internal_format,
+            pixel_format,
+            data_format,
+            data,
+        );
+    }
+
+    pub fn set_texture_2d_anisotropy_by_resource(&mut self, id: ResourceId, factor: f32) {
+        self.executor
+            .cmd_set_texture_2d_anisotropy_by_resource(id, factor);
+    }
+
+    pub fn set_texture_2d_mip_range_by_resource(
+        &mut self,
+        id: ResourceId,
+        min_level: i32,
+        max_level: i32,
+    ) {
+        self.executor
+            .cmd_set_texture_2d_mip_range_by_resource(id, min_level, max_level);
+    }
+
+    pub fn set_texel_1d_by_resource(&mut self, id: ResourceId, x: i32, color: [f32; 4]) {
+        self.executor.cmd_set_texel_1d_by_resource(id, x, color);
+    }
+
+    pub fn set_texel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32, color: [f32; 4]) {
+        self.executor.cmd_set_texel_2d_by_resource(id, x, y, color);
+    }
+
+    pub fn set_texture_mag_filter_by_resource(&mut self, id: ResourceId, filter: TexFilter) {
+        self.executor
+            .cmd_set_texture_mag_filter_by_resource(id, filter);
+    }
+
+    pub fn set_texture_min_filter_by_resource(&mut self, id: ResourceId, filter: TexFilter) {
+        self.executor
+            .cmd_set_texture_min_filter_by_resource(id, filter);
+    }
+
+    pub fn set_texture_wrap_mode_by_resource(&mut self, id: ResourceId, mode: TexWrapMode) {
+        self.executor
+            .cmd_set_texture_wrap_mode_by_resource(id, mode);
+    }
+
+    pub fn generate_mipmap_by_resource(&mut self, id: ResourceId) {
+        self.executor.cmd_generate_mipmap_by_resource(id);
+    }
+
+    pub fn update_texture_1d_data_by_resource(
+        &mut self,
+        id: ResourceId,
+        width: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        self.executor.cmd_update_texture_1d_data_by_resource(
+            id,
+            width,
+            internal_format,
+            pixel_format,
+            data_format,
+            data,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_texture_3d_data_by_resource(
+        &mut self,
+        id: ResourceId,
+        width: i32,
+        height: i32,
+        depth: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        self.executor.cmd_update_texture_3d_data_by_resource(
+            id,
+            width,
+            height,
+            depth,
+            internal_format,
+            pixel_format,
+            data_format,
+            data,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_texture_cube_face_data_by_resource(
+        &mut self,
+        id: ResourceId,
+        face: u32,
+        level: i32,
+        size: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        self.executor.cmd_update_texture_cube_face_data_by_resource(
+            id,
+            face,
+            level,
+            size,
+            internal_format,
+            pixel_format,
+            data_format,
+            data,
+        );
+    }
+
+    pub fn copy_texture_2d_from_framebuffer_by_resource(
+        &mut self,
+        id: ResourceId,
+        internal_format: i32,
+        width: i32,
+        height: i32,
+    ) {
+        self.executor
+            .cmd_copy_texture_2d_from_framebuffer_by_resource(id, internal_format, width, height);
+    }
+
+    pub fn read_texture_1d_data(
+        &mut self,
+        id: ResourceId,
+        pixel_format: u32,
+        data_format: u32,
+    ) -> Vec<u8> {
+        let (tx, rx) = bounded(1);
+        self.executor
+            .cmd_read_texture_1d_data(id, pixel_format, data_format, tx);
+        rx.recv().unwrap_or_default()
+    }
+
+    pub fn read_texture_2d_data(
+        &mut self,
+        id: ResourceId,
+        pixel_format: u32,
+        data_format: u32,
+    ) -> Vec<u8> {
+        let (tx, rx) = bounded(1);
+        self.executor
+            .cmd_read_texture_2d_data(id, pixel_format, data_format, tx);
+        rx.recv().unwrap_or_default()
+    }
+
+    pub fn read_texture_3d_data(
+        &mut self,
+        id: ResourceId,
+        pixel_format: u32,
+        data_format: u32,
+    ) -> Vec<u8> {
+        let (tx, rx) = bounded(1);
+        self.executor
+            .cmd_read_texture_3d_data(id, pixel_format, data_format, tx);
+        rx.recv().unwrap_or_default()
+    }
+
+    pub fn read_texture_cube_face_data(
+        &mut self,
+        id: ResourceId,
+        face: u32,
+        level: i32,
+        pixel_format: u32,
+        data_format: u32,
+    ) -> Vec<u8> {
+        let (tx, rx) = bounded(1);
+        self.executor.cmd_read_texture_cube_face_data(
+            id,
+            face,
+            level,
+            pixel_format,
+            data_format,
+            tx,
+        );
+        rx.recv().unwrap_or_default()
+    }
+
+    pub fn sample_pixel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32) -> [u8; 4] {
+        let (tx, rx) = bounded(1);
+        self.executor.cmd_sample_pixel_2d_by_resource(id, x, y, tx);
+        rx.recv().unwrap_or([0; 4])
+    }
+
+    pub fn read_framebuffer_pixels(&mut self, x: i32, y: i32, width: i32, height: i32) -> Vec<u8> {
+        let (tx, rx) = bounded(1);
+        self.executor
+            .cmd_read_framebuffer_pixels(x, y, width, height, tx);
+        rx.recv().unwrap_or_default()
+    }
+
+    // === Framebuffer Operations ===
+
+    pub fn push_framebuffer(&mut self, _id: u64, _width: i32, _height: i32) {
+        self.executor.cmd_push_framebuffer();
+    }
+
+    pub fn pop_framebuffer(&mut self) {
+        self.executor.cmd_pop_framebuffer();
+    }
+
+    pub fn framebuffer_attach_texture_2d_by_resource(
+        &mut self,
+        attachment: u32,
+        id: ResourceId,
+        level: i32,
+    ) {
+        self.executor
+            .cmd_framebuffer_attach_texture_2d_by_resource(attachment, id, level);
+    }
+
+    pub fn framebuffer_attach_texture_3d_by_resource(
+        &mut self,
+        attachment: u32,
+        id: ResourceId,
+        layer: i32,
+        level: i32,
+    ) {
+        self.executor
+            .cmd_framebuffer_attach_texture_3d_by_resource(attachment, id, layer, level);
+    }
+
+    pub fn framebuffer_attach_texture_cube_by_resource(
+        &mut self,
+        attachment: u32,
+        id: ResourceId,
+        face: u32,
+        level: i32,
+    ) {
+        self.executor
+            .cmd_framebuffer_attach_texture_cube_by_resource(attachment, id, face, level);
+    }
+
+    pub fn bind_framebuffer(&mut self, handle: GpuHandle) {
+        self.executor.cmd_bind_framebuffer(handle);
+    }
+
+    pub fn bind_default_framebuffer(&mut self) {
+        self.executor.cmd_bind_default_framebuffer();
+    }
+
+    pub fn clear(&mut self, color: Option<[f32; 4]>, depth: Option<f32>) {
+        self.executor.cmd_clear(color, depth);
+    }
+
+    // === Drawing Operations ===
+
+    pub fn draw_mesh(&mut self, vao: GpuHandle, index_count: i32, primitive: CmdPrimitiveType) {
+        self.executor.cmd_draw_mesh(vao, index_count, primitive);
+    }
+
+    pub fn draw_mesh_instanced(
+        &mut self,
+        vao: GpuHandle,
+        index_count: i32,
+        instance_count: i32,
+        primitive: CmdPrimitiveType,
+    ) {
+        self.executor
+            .cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive);
+    }
+
+    pub fn draw_mesh_by_resource(
+        &mut self,
+        id: ResourceId,
+        index_count: i32,
+        primitive: CmdPrimitiveType,
+    ) {
+        self.executor
+            .cmd_draw_mesh_by_resource(id, index_count, primitive);
+    }
+
+    pub fn draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: Vec<ImmVertex>) {
+        self.executor.cmd_draw_immediate(primitive, &vertices);
+    }
+
+    // === Resource Creation ===
+
+    pub fn create_shader(
+        &mut self,
+        id: ResourceId,
+        vertex_src: String,
+        fragment_src: String,
+    ) -> Option<String> {
+        let (tx, rx) = bounded(1);
+        self.executor
+            .cmd_create_shader(id, vertex_src, fragment_src, tx);
+        rx.recv()
+            .unwrap_or_else(|_| Some("Renderer channel closed".to_string()))
+    }
+
+    pub fn get_uniform_location_by_resource(&mut self, id: ResourceId, name: Arc<str>) -> i32 {
+        let (tx, rx) = bounded(1);
+        self.executor
+            .cmd_get_uniform_location_by_resource(id, name, tx);
+        rx.recv().unwrap_or(-1)
+    }
+
+    pub fn create_texture_1d(
+        &mut self,
+        id: ResourceId,
+        width: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    ) {
+        self.executor.cmd_create_texture_1d(id, width, format, data);
+    }
+
+    pub fn create_texture_2d(
+        &mut self,
+        id: ResourceId,
+        width: u32,
+        height: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    ) {
+        self.executor
+            .cmd_create_texture_2d(id, width, height, format, data);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_texture_3d(
+        &mut self,
+        id: ResourceId,
+        width: u32,
+        height: u32,
+        depth: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    ) {
+        self.executor
+            .cmd_create_texture_3d(id, width, height, depth, format, data);
+    }
+
+    pub fn create_texture_cube(&mut self, id: ResourceId, size: u32, format: TexFormat) {
+        self.executor.cmd_create_texture_cube(id, size, format);
+    }
+
+    pub fn create_mesh(
+        &mut self,
+        id: ResourceId,
+        vertices: Vec<u8>,
+        indices: Vec<u32>,
+        vertex_format: VertexFormat,
+    ) {
+        self.executor
+            .cmd_create_mesh(id, vertices, indices, vertex_format);
+    }
+
+    // === Uniform Buffer Objects ===
+
+    pub fn create_camera_ubo(&mut self) {
+        self.executor.cmd_create_camera_ubo();
+    }
+
+    pub fn update_camera_ubo(&mut self, data: Box<[u8; 288]>) {
+        self.executor.cmd_update_camera_ubo(&data);
+    }
+
+    pub fn create_material_ubo(&mut self) {
+        self.executor.cmd_create_material_ubo();
+    }
+
+    pub fn update_material_ubo(&mut self, data: [u8; 32]) {
+        self.executor.cmd_update_material_ubo(&data);
+    }
+
+    pub fn create_light_ubo(&mut self) {
+        self.executor.cmd_create_light_ubo();
+    }
+
+    pub fn update_light_ubo(&mut self, data: [u8; 32]) {
+        self.executor.cmd_update_light_ubo(&data);
+    }
+
+    // === Window Operations ===
+
+    /// Blocking resize - immediate mode has nothing to block on, so this is
+    /// the same as `try_resize`.
+    pub fn resize(&mut self, width: u32, height: u32) {
+        self.executor.cmd_resize(width, height);
+    }
+
+    /// Always succeeds - see `try_submit`.
+    pub fn try_resize(&mut self, width: u32, height: u32) -> bool {
+        self.resize(width, height);
         true
+    }
+
+    pub fn swap_buffers(&mut self) {
+        self.executor.cmd_swap_buffers();
+    }
+
+    /// Block until every previously-submitted GL command has completed
+    /// (`glFinish`). Named to avoid colliding with `flush()`/`flush_intern`,
+    /// which drains the CPU-side batch command buffer - an unrelated concept.
+    pub fn gl_finish(&mut self) {
+        self.executor.cmd_flush();
     }
 
     /// Begin a new frame

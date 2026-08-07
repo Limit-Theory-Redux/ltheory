@@ -9,7 +9,7 @@ use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
 use crate::render::{
-    CmdPrimitiveType, RenderCommand, RenderState, Renderer, ResourceHandle, Shader, VertexFormat,
+    CmdPrimitiveType, RenderState, Renderer, ResourceHandle, Shader, VertexFormat,
 };
 use crate::rf::Rf;
 use crate::system::*;
@@ -384,12 +384,7 @@ impl Mesh {
             .to_vec();
             let indices: Vec<u32> = this.index.iter().map(|&i| i as u32).collect();
 
-            r.submit(RenderCommand::CreateMesh {
-                id: handle.id(),
-                vertices: vertex_bytes,
-                indices,
-                vertex_format: VertexFormat::default(),
-            });
+            r.create_mesh(handle.id(), vertex_bytes, indices, VertexFormat::default());
 
             this.handle = Some(handle);
             this.version_buffers = this.version;
@@ -406,11 +401,11 @@ impl Mesh {
         );
 
         if let Some(handle) = &this.handle {
-            r.submit(RenderCommand::DrawMeshByResource {
-                id: handle.id(),
-                index_count: this.index.len() as i32,
-                primitive: CmdPrimitiveType::Triangles,
-            });
+            r.draw_mesh_by_resource(
+                handle.id(),
+                this.index.len() as i32,
+                CmdPrimitiveType::Triangles,
+            );
         }
     }
 

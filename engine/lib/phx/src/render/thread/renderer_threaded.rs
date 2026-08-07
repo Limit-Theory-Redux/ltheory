@@ -8,9 +8,10 @@ use tracing::{error, info};
 
 use crate::render::thread::{RenderThread, process_batch_intern};
 use crate::render::{
-    ClipManager, DrawState, PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats,
-    RenderTargetStack, RenderThreadConfig, RendererData, RenederThreadError, ResourceHandle,
-    ResourceId, ShaderReloadResult, ShaderVarMap, VpStack,
+    BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
+    PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats, RenderTargetStack,
+    RenderThreadConfig, RendererData, RenederThreadError, ResourceHandle, ResourceId,
+    ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::WindowGlContext;
 
@@ -146,7 +147,7 @@ impl Renderer {
     }
 
     /// Submit a command to the render thread
-    pub fn submit(&mut self, cmd: RenderCommand) {
+    fn submit(&mut self, cmd: RenderCommand) {
         if self.running.load(Ordering::Relaxed) {
             if let Err(e) = self.command_tx.send(cmd) {
                 error!("Failed to send render command: {:?}", e);
@@ -157,7 +158,7 @@ impl Renderer {
     /// Submit a command to the render thread without blocking.
     /// Returns true if the command was sent, false if the channel was full.
     /// Use this for commands that can be safely dropped (like resize events).
-    pub fn try_submit(&mut self, cmd: RenderCommand) -> bool {
+    fn try_submit(&mut self, cmd: RenderCommand) -> bool {
         if self.running.load(Ordering::Relaxed) {
             match self.command_tx.try_send(cmd) {
                 Ok(()) => true,
@@ -173,6 +174,645 @@ impl Renderer {
         } else {
             false
         }
+    }
+
+    // =========================================================================
+    // Per-command API - one method per `RenderCommand` variant that any code
+    // outside `render::thread` needs. Each constructs the matching
+    // `RenderCommand` and calls `submit`/`try_submit`; see `renderer_immediate.rs`
+    // for the immediate-mode counterpart that skips the enum entirely.
+    // =========================================================================
+
+    // === State Management ===
+
+    pub fn set_viewport(&mut self, x: i32, y: i32, width: i32, height: i32) {
+        self.submit(RenderCommand::SetViewport {
+            x,
+            y,
+            width,
+            height,
+        });
+    }
+
+    pub fn set_scissor(&mut self, x: i32, y: i32, width: i32, height: i32) {
+        self.submit(RenderCommand::SetScissor {
+            x,
+            y,
+            width,
+            height,
+        });
+    }
+
+    pub fn enable_scissor(&mut self, enable: bool) {
+        self.submit(RenderCommand::EnableScissor(enable));
+    }
+
+    pub fn set_blend_mode(&mut self, mode: BlendMode) {
+        self.submit(RenderCommand::SetBlendMode(mode));
+    }
+
+    pub fn set_cull_face(&mut self, face: CullFace) {
+        self.submit(RenderCommand::SetCullFace(face));
+    }
+
+    pub fn set_depth_test(&mut self, enable: bool) {
+        self.submit(RenderCommand::SetDepthTest(enable));
+    }
+
+    pub fn set_depth_writable(&mut self, enable: bool) {
+        self.submit(RenderCommand::SetDepthWritable(enable));
+    }
+
+    pub fn set_wireframe(&mut self, enable: bool) {
+        self.submit(RenderCommand::SetWireframe(enable));
+    }
+
+    pub fn set_line_width(&mut self, width: f32) {
+        self.submit(RenderCommand::SetLineWidth(width));
+    }
+
+    pub fn set_point_size(&mut self, size: f32) {
+        self.submit(RenderCommand::SetPointSize(size));
+    }
+
+    // === Shader Operations ===
+
+    pub fn bind_shader(&mut self, handle: GpuHandle) {
+        self.submit(RenderCommand::BindShader { handle });
+    }
+
+    pub fn bind_shader_by_resource(&mut self, id: ResourceId, shader_key: Option<String>) {
+        self.submit(RenderCommand::BindShaderByResource { id, shader_key });
+    }
+
+    pub fn unbind_shader(&mut self) {
+        self.submit(RenderCommand::UnbindShader);
+    }
+
+    pub fn set_uniform_int(&mut self, location: i32, value: i32) {
+        self.submit(RenderCommand::SetUniformInt { location, value });
+    }
+
+    pub fn set_uniform_int2(&mut self, location: i32, value: [i32; 2]) {
+        self.submit(RenderCommand::SetUniformInt2 { location, value });
+    }
+
+    pub fn set_uniform_int3(&mut self, location: i32, value: [i32; 3]) {
+        self.submit(RenderCommand::SetUniformInt3 { location, value });
+    }
+
+    pub fn set_uniform_int4(&mut self, location: i32, value: [i32; 4]) {
+        self.submit(RenderCommand::SetUniformInt4 { location, value });
+    }
+
+    pub fn set_uniform_float(&mut self, location: i32, value: f32) {
+        self.submit(RenderCommand::SetUniformFloat { location, value });
+    }
+
+    pub fn set_uniform_float2(&mut self, location: i32, value: [f32; 2]) {
+        self.submit(RenderCommand::SetUniformFloat2 { location, value });
+    }
+
+    pub fn set_uniform_float3(&mut self, location: i32, value: [f32; 3]) {
+        self.submit(RenderCommand::SetUniformFloat3 { location, value });
+    }
+
+    pub fn set_uniform_float4(&mut self, location: i32, value: [f32; 4]) {
+        self.submit(RenderCommand::SetUniformFloat4 { location, value });
+    }
+
+    pub fn set_uniform_mat4(&mut self, location: i32, value: [f32; 16]) {
+        self.submit(RenderCommand::SetUniformMat4 { location, value });
+    }
+
+    // === Texture Operations ===
+
+    pub fn bind_texture_2d(&mut self, slot: u32, handle: GpuHandle) {
+        self.submit(RenderCommand::BindTexture2D { slot, handle });
+    }
+
+    pub fn bind_texture_2d_by_resource(&mut self, slot: u32, id: ResourceId) {
+        self.submit(RenderCommand::BindTexture2DByResource { slot, id });
+    }
+
+    pub fn bind_texture_1d_by_resource(&mut self, slot: u32, id: ResourceId) {
+        self.submit(RenderCommand::BindTexture1DByResource { slot, id });
+    }
+
+    pub fn bind_texture_3d(&mut self, slot: u32, handle: GpuHandle) {
+        self.submit(RenderCommand::BindTexture3D { slot, handle });
+    }
+
+    pub fn bind_texture_3d_by_resource(&mut self, slot: u32, id: ResourceId) {
+        self.submit(RenderCommand::BindTexture3DByResource { slot, id });
+    }
+
+    pub fn bind_texture_cube(&mut self, slot: u32, handle: GpuHandle) {
+        self.submit(RenderCommand::BindTextureCube { slot, handle });
+    }
+
+    pub fn bind_texture_cube_by_resource(&mut self, slot: u32, id: ResourceId) {
+        self.submit(RenderCommand::BindTextureCubeByResource { slot, id });
+    }
+
+    pub fn unbind_texture(&mut self, slot: u32) {
+        self.submit(RenderCommand::UnbindTexture { slot });
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_texture_2d_data_by_resource(
+        &mut self,
+        id: ResourceId,
+        width: i32,
+        height: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        self.submit(RenderCommand::UpdateTexture2DDataByResource {
+            id,
+            width,
+            height,
+            internal_format,
+            pixel_format,
+            data_format,
+            data,
+        });
+    }
+
+    pub fn set_texture_2d_anisotropy_by_resource(&mut self, id: ResourceId, factor: f32) {
+        self.submit(RenderCommand::SetTexture2DAnisotropyByResource { id, factor });
+    }
+
+    pub fn set_texture_2d_mip_range_by_resource(
+        &mut self,
+        id: ResourceId,
+        min_level: i32,
+        max_level: i32,
+    ) {
+        self.submit(RenderCommand::SetTexture2DMipRangeByResource {
+            id,
+            min_level,
+            max_level,
+        });
+    }
+
+    pub fn set_texel_1d_by_resource(&mut self, id: ResourceId, x: i32, color: [f32; 4]) {
+        self.submit(RenderCommand::SetTexel1DByResource { id, x, color });
+    }
+
+    pub fn set_texel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32, color: [f32; 4]) {
+        self.submit(RenderCommand::SetTexel2DByResource { id, x, y, color });
+    }
+
+    pub fn set_texture_mag_filter_by_resource(&mut self, id: ResourceId, filter: TexFilter) {
+        self.submit(RenderCommand::SetTextureMagFilterByResource { id, filter });
+    }
+
+    pub fn set_texture_min_filter_by_resource(&mut self, id: ResourceId, filter: TexFilter) {
+        self.submit(RenderCommand::SetTextureMinFilterByResource { id, filter });
+    }
+
+    pub fn set_texture_wrap_mode_by_resource(&mut self, id: ResourceId, mode: TexWrapMode) {
+        self.submit(RenderCommand::SetTextureWrapModeByResource { id, mode });
+    }
+
+    pub fn generate_mipmap_by_resource(&mut self, id: ResourceId) {
+        self.submit(RenderCommand::GenerateMipmapByResource { id });
+    }
+
+    pub fn update_texture_1d_data_by_resource(
+        &mut self,
+        id: ResourceId,
+        width: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        self.submit(RenderCommand::UpdateTexture1DDataByResource {
+            id,
+            width,
+            internal_format,
+            pixel_format,
+            data_format,
+            data,
+        });
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_texture_3d_data_by_resource(
+        &mut self,
+        id: ResourceId,
+        width: i32,
+        height: i32,
+        depth: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        self.submit(RenderCommand::UpdateTexture3DDataByResource {
+            id,
+            width,
+            height,
+            depth,
+            internal_format,
+            pixel_format,
+            data_format,
+            data,
+        });
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_texture_cube_face_data_by_resource(
+        &mut self,
+        id: ResourceId,
+        face: u32,
+        level: i32,
+        size: i32,
+        internal_format: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        self.submit(RenderCommand::UpdateTextureCubeFaceDataByResource {
+            id,
+            face,
+            level,
+            size,
+            internal_format,
+            pixel_format,
+            data_format,
+            data,
+        });
+    }
+
+    pub fn copy_texture_2d_from_framebuffer_by_resource(
+        &mut self,
+        id: ResourceId,
+        internal_format: i32,
+        width: i32,
+        height: i32,
+    ) {
+        self.submit(RenderCommand::CopyTexture2DFromFramebufferByResource {
+            id,
+            internal_format,
+            width,
+            height,
+        });
+    }
+
+    pub fn read_texture_1d_data(
+        &mut self,
+        id: ResourceId,
+        pixel_format: u32,
+        data_format: u32,
+    ) -> Vec<u8> {
+        let (tx, rx) = bounded(1);
+        self.submit(RenderCommand::ReadTexture1DData {
+            id,
+            pixel_format,
+            data_format,
+            reply_tx: tx,
+        });
+        rx.recv().unwrap_or_default()
+    }
+
+    pub fn read_texture_2d_data(
+        &mut self,
+        id: ResourceId,
+        pixel_format: u32,
+        data_format: u32,
+    ) -> Vec<u8> {
+        let (tx, rx) = bounded(1);
+        self.submit(RenderCommand::ReadTexture2DData {
+            id,
+            pixel_format,
+            data_format,
+            reply_tx: tx,
+        });
+        rx.recv().unwrap_or_default()
+    }
+
+    pub fn read_texture_3d_data(
+        &mut self,
+        id: ResourceId,
+        pixel_format: u32,
+        data_format: u32,
+    ) -> Vec<u8> {
+        let (tx, rx) = bounded(1);
+        self.submit(RenderCommand::ReadTexture3DData {
+            id,
+            pixel_format,
+            data_format,
+            reply_tx: tx,
+        });
+        rx.recv().unwrap_or_default()
+    }
+
+    pub fn read_texture_cube_face_data(
+        &mut self,
+        id: ResourceId,
+        face: u32,
+        level: i32,
+        pixel_format: u32,
+        data_format: u32,
+    ) -> Vec<u8> {
+        let (tx, rx) = bounded(1);
+        self.submit(RenderCommand::ReadTextureCubeFaceData {
+            id,
+            face,
+            level,
+            pixel_format,
+            data_format,
+            reply_tx: tx,
+        });
+        rx.recv().unwrap_or_default()
+    }
+
+    pub fn sample_pixel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32) -> [u8; 4] {
+        let (tx, rx) = bounded(1);
+        self.submit(RenderCommand::SamplePixel2DByResource {
+            id,
+            x,
+            y,
+            reply_tx: tx,
+        });
+        rx.recv().unwrap_or([0; 4])
+    }
+
+    pub fn read_framebuffer_pixels(&mut self, x: i32, y: i32, width: i32, height: i32) -> Vec<u8> {
+        let (tx, rx) = bounded(1);
+        self.submit(RenderCommand::ReadFramebufferPixels {
+            x,
+            y,
+            width,
+            height,
+            reply_tx: tx,
+        });
+        rx.recv().unwrap_or_default()
+    }
+
+    // === Framebuffer Operations ===
+
+    pub fn push_framebuffer(&mut self, id: u64, width: i32, height: i32) {
+        self.submit(RenderCommand::PushFramebuffer { id, width, height });
+    }
+
+    pub fn pop_framebuffer(&mut self) {
+        self.submit(RenderCommand::PopFramebuffer);
+    }
+
+    pub fn framebuffer_attach_texture_2d_by_resource(
+        &mut self,
+        attachment: u32,
+        id: ResourceId,
+        level: i32,
+    ) {
+        self.submit(RenderCommand::FramebufferAttachTexture2DByResource {
+            attachment,
+            id,
+            level,
+        });
+    }
+
+    pub fn framebuffer_attach_texture_3d_by_resource(
+        &mut self,
+        attachment: u32,
+        id: ResourceId,
+        layer: i32,
+        level: i32,
+    ) {
+        self.submit(RenderCommand::FramebufferAttachTexture3DByResource {
+            attachment,
+            id,
+            layer,
+            level,
+        });
+    }
+
+    pub fn framebuffer_attach_texture_cube_by_resource(
+        &mut self,
+        attachment: u32,
+        id: ResourceId,
+        face: u32,
+        level: i32,
+    ) {
+        self.submit(RenderCommand::FramebufferAttachTextureCubeByResource {
+            attachment,
+            id,
+            face,
+            level,
+        });
+    }
+
+    pub fn bind_framebuffer(&mut self, handle: GpuHandle) {
+        self.submit(RenderCommand::BindFramebuffer { handle });
+    }
+
+    pub fn bind_default_framebuffer(&mut self) {
+        self.submit(RenderCommand::BindDefaultFramebuffer);
+    }
+
+    pub fn clear(&mut self, color: Option<[f32; 4]>, depth: Option<f32>) {
+        self.submit(RenderCommand::Clear { color, depth });
+    }
+
+    // === Drawing Operations ===
+
+    pub fn draw_mesh(&mut self, vao: GpuHandle, index_count: i32, primitive: CmdPrimitiveType) {
+        self.submit(RenderCommand::DrawMesh {
+            vao,
+            index_count,
+            primitive,
+        });
+    }
+
+    pub fn draw_mesh_instanced(
+        &mut self,
+        vao: GpuHandle,
+        index_count: i32,
+        instance_count: i32,
+        primitive: CmdPrimitiveType,
+    ) {
+        self.submit(RenderCommand::DrawMeshInstanced {
+            vao,
+            index_count,
+            instance_count,
+            primitive,
+        });
+    }
+
+    pub fn draw_mesh_by_resource(
+        &mut self,
+        id: ResourceId,
+        index_count: i32,
+        primitive: CmdPrimitiveType,
+    ) {
+        self.submit(RenderCommand::DrawMeshByResource {
+            id,
+            index_count,
+            primitive,
+        });
+    }
+
+    pub fn draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: Vec<ImmVertex>) {
+        self.submit(RenderCommand::DrawImmediate {
+            primitive,
+            vertices,
+        });
+    }
+
+    // === Resource Creation ===
+
+    pub fn create_shader(
+        &mut self,
+        id: ResourceId,
+        vertex_src: String,
+        fragment_src: String,
+    ) -> Option<String> {
+        let (tx, rx) = bounded(1);
+        self.submit(RenderCommand::CreateShader {
+            id,
+            vertex_src,
+            fragment_src,
+            reply_tx: tx,
+        });
+        rx.recv()
+            .unwrap_or_else(|_| Some("Renderer channel closed".to_string()))
+    }
+
+    pub fn get_uniform_location_by_resource(&mut self, id: ResourceId, name: Arc<str>) -> i32 {
+        let (tx, rx) = bounded(1);
+        self.submit(RenderCommand::GetUniformLocationByResource {
+            id,
+            name,
+            reply_tx: tx,
+        });
+        rx.recv().unwrap_or(-1)
+    }
+
+    pub fn create_texture_1d(
+        &mut self,
+        id: ResourceId,
+        width: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    ) {
+        self.submit(RenderCommand::CreateTexture1D {
+            id,
+            width,
+            format,
+            data,
+        });
+    }
+
+    pub fn create_texture_2d(
+        &mut self,
+        id: ResourceId,
+        width: u32,
+        height: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    ) {
+        self.submit(RenderCommand::CreateTexture2D {
+            id,
+            width,
+            height,
+            format,
+            data,
+        });
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_texture_3d(
+        &mut self,
+        id: ResourceId,
+        width: u32,
+        height: u32,
+        depth: u32,
+        format: TexFormat,
+        data: Option<Vec<u8>>,
+    ) {
+        self.submit(RenderCommand::CreateTexture3D {
+            id,
+            width,
+            height,
+            depth,
+            format,
+            data,
+        });
+    }
+
+    pub fn create_texture_cube(&mut self, id: ResourceId, size: u32, format: TexFormat) {
+        self.submit(RenderCommand::CreateTextureCube { id, size, format });
+    }
+
+    pub fn create_mesh(
+        &mut self,
+        id: ResourceId,
+        vertices: Vec<u8>,
+        indices: Vec<u32>,
+        vertex_format: VertexFormat,
+    ) {
+        self.submit(RenderCommand::CreateMesh {
+            id,
+            vertices,
+            indices,
+            vertex_format,
+        });
+    }
+
+    // === Uniform Buffer Objects ===
+
+    pub fn create_camera_ubo(&mut self) {
+        self.submit(RenderCommand::CreateCameraUBO);
+    }
+
+    pub fn update_camera_ubo(&mut self, data: Box<[u8; 288]>) {
+        self.submit(RenderCommand::UpdateCameraUBO { data });
+    }
+
+    pub fn create_material_ubo(&mut self) {
+        self.submit(RenderCommand::CreateMaterialUBO);
+    }
+
+    pub fn update_material_ubo(&mut self, data: [u8; 32]) {
+        self.submit(RenderCommand::UpdateMaterialUBO { data });
+    }
+
+    pub fn create_light_ubo(&mut self) {
+        self.submit(RenderCommand::CreateLightUBO);
+    }
+
+    pub fn update_light_ubo(&mut self, data: [u8; 32]) {
+        self.submit(RenderCommand::UpdateLightUBO { data });
+    }
+
+    // === Window Operations ===
+
+    /// Blocking resize - waits for the command to be queued (see `submit`).
+    pub fn resize(&mut self, width: u32, height: u32) {
+        self.submit(RenderCommand::Resize { width, height });
+    }
+
+    /// Non-blocking resize - drops the command if the channel is full
+    /// instead of blocking (safe: a later `Resized` event supersedes it).
+    pub fn try_resize(&mut self, width: u32, height: u32) -> bool {
+        self.try_submit(RenderCommand::Resize { width, height })
+    }
+
+    pub fn swap_buffers(&mut self) {
+        self.submit(RenderCommand::SwapBuffers);
+    }
+
+    /// Block until every previously-submitted GL command has completed
+    /// (`glFinish`). Named to avoid colliding with `flush()`/`flush_intern`,
+    /// which drains the CPU-side batch command buffer - an unrelated concept.
+    pub fn gl_finish(&mut self) {
+        self.submit(RenderCommand::Flush);
     }
 
     /// Begin a new frame

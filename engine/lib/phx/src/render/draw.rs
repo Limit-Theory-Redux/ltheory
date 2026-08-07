@@ -2,7 +2,7 @@ use glam::{Vec2, Vec3};
 
 use super::{Color, PrimitiveType};
 use crate::math::{Box3, reject_vec3};
-use crate::render::{RenderCommand, Renderer};
+use crate::render::Renderer;
 use crate::system::Metric;
 
 /// CPU-side state for `Draw`'s color/alpha stack (was part of the `Draw`
@@ -31,10 +31,7 @@ impl Default for DrawState {
 /// anything was drawn.
 fn end_and_submit(r: &mut Renderer) {
     if let Some((primitive, vertices)) = r.data.imm.end() {
-        r.submit(RenderCommand::DrawImmediate {
-            primitive,
-            vertices,
-        });
+        r.draw_immediate(primitive, vertices);
     }
 }
 
@@ -51,17 +48,11 @@ fn spherical(r: f32, yaw: f32, pitch: f32) -> Vec3 {
 #[luajit_ffi_gen::luajit_ffi]
 impl Draw {
     pub fn clear(r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
-        r.submit(RenderCommand::Clear {
-            color: Some([red, green, blue, alpha]),
-            depth: None,
-        });
+        r.clear(Some([red, green, blue, alpha]), None);
     }
 
     pub fn clear_depth(r: &mut Renderer, d: f32) {
-        r.submit(RenderCommand::Clear {
-            color: None,
-            depth: Some(d),
-        });
+        r.clear(None, Some(d));
     }
 
     pub fn color(r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
@@ -73,7 +64,7 @@ impl Draw {
 
     pub fn flush(r: &mut Renderer) {
         Metric::Flush.inc();
-        r.submit(RenderCommand::Flush);
+        r.gl_finish();
     }
 
     pub fn push_alpha(r: &mut Renderer, a: f32) {
@@ -101,11 +92,11 @@ impl Draw {
     }
 
     pub fn line_width(r: &mut Renderer, width: f32) {
-        r.submit(RenderCommand::SetLineWidth(width));
+        r.set_line_width(width);
     }
 
     pub fn point_size(r: &mut Renderer, size: f32) {
-        r.submit(RenderCommand::SetPointSize(size));
+        r.set_point_size(size);
     }
 
     pub fn axes(

@@ -1,5 +1,5 @@
 use super::{CubeFace, Tex2D, Tex3D, TexCube, TexFormat, gl};
-use crate::render::{RenderCommand, Renderer, Viewport};
+use crate::render::{Renderer, Viewport};
 use crate::system::{Metric, Profiler};
 
 pub struct RenderTarget;
@@ -11,11 +11,7 @@ impl RenderTarget {
 
         r.data.render_target.push();
         Metric::FBOSwap.inc();
-        r.submit(RenderCommand::PushFramebuffer {
-            id: 0,
-            width: sx,
-            height: sy,
-        });
+        r.push_framebuffer(0, sx, sy);
         Viewport::push(r, 0, 0, sx, sy, false);
 
         Profiler::end();
@@ -26,7 +22,7 @@ impl RenderTarget {
 
         r.data.render_target.pop();
         Metric::FBOSwap.inc();
-        r.submit(RenderCommand::PopFramebuffer);
+        r.pop_framebuffer();
         Viewport::pop(r);
 
         Profiler::end();
@@ -41,11 +37,7 @@ impl RenderTarget {
             .data
             .render_target
             .attach(TexFormat::is_color(Tex2D::get_format(tex)), "BindTex2D");
-        r.submit(RenderCommand::FramebufferAttachTexture2DByResource {
-            attachment,
-            id: tex.resource_id(),
-            level,
-        });
+        r.framebuffer_attach_texture_2d_by_resource(attachment, tex.resource_id(), level);
     }
 
     pub fn bind_tex3d(r: &mut Renderer, tex: &Tex3D, layer: i32) {
@@ -54,12 +46,7 @@ impl RenderTarget {
 
     pub fn bind_tex3d_level(r: &mut Renderer, tex: &Tex3D, layer: i32, level: i32) {
         let attachment = r.data.render_target.attach_color("BindTex3D");
-        r.submit(RenderCommand::FramebufferAttachTexture3DByResource {
-            attachment,
-            id: tex.resource_id(),
-            layer,
-            level,
-        });
+        r.framebuffer_attach_texture_3d_by_resource(attachment, tex.resource_id(), layer, level);
     }
 
     pub fn bind_tex_cube(r: &mut Renderer, tex: &TexCube, face: CubeFace) {
@@ -68,12 +55,12 @@ impl RenderTarget {
 
     pub fn bind_tex_cube_level(r: &mut Renderer, tex: &TexCube, face: CubeFace, level: i32) {
         let attachment = r.data.render_target.attach_color("BindTexCubeLevel");
-        r.submit(RenderCommand::FramebufferAttachTextureCubeByResource {
+        r.framebuffer_attach_texture_cube_by_resource(
             attachment,
-            id: tex.resource_id(),
-            face: face as u32,
+            tex.resource_id(),
+            face as u32,
             level,
-        });
+        );
     }
 
     pub fn push_tex2d(r: &mut Renderer, tex: &Tex2D) {

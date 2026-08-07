@@ -1,6 +1,6 @@
 use glam::{IVec2, Mat4, vec3};
 
-use crate::render::{RenderCommand, Renderer, ShaderVar};
+use crate::render::{Renderer, ShaderVar};
 
 /* TODO : This is a low-level mechanism and probably not for use outside of
  *        RenderTarget. Should likely be folded into RenderTarget. */
@@ -24,12 +24,7 @@ impl Viewport {
         ShaderVar::push_matrix(r, "mProjUI", &ortho_proj.into());
         ShaderVar::push_matrix(r, "mWorldViewUI", &Mat4::IDENTITY.into());
 
-        r.submit(RenderCommand::SetViewport {
-            x,
-            y,
-            width: sx,
-            height: sy,
-        });
+        r.set_viewport(x, y, sx, sy);
     }
 
     pub fn pop(r: &mut Renderer) {
@@ -37,12 +32,7 @@ impl Viewport {
         ShaderVar::pop(r, "mProjUI");
 
         if let Some(vp) = r.data.viewport.pop() {
-            r.submit(RenderCommand::SetViewport {
-                x: vp.x,
-                y: vp.y,
-                width: vp.sx,
-                height: vp.sy,
-            });
+            r.set_viewport(vp.x, vp.y, vp.sx, vp.sy);
         }
     }
 }
