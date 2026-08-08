@@ -70,6 +70,14 @@ function LimitTheoryRedux:initMainMenu(isAppInit)
     UIRouter:setCurrentPage("Main_Menu")
 end
 
+---@param data EventData
+function LimitTheoryRedux:onRender(data)
+    self:immediateUI(function()
+        GameState.render.uiCanvas:draw(self.resX, self.resY)
+        Gui:draw()
+    end)
+end
+
 function LimitTheoryRedux:initGameView()
     -- Insert the game view into the application canvas to make it visible
     GameState.render.gameView = Legacy.Systems.Overlay.GameView(GameState.player.humanPlayer, GameState.audio.manager)
