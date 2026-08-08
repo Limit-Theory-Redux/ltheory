@@ -17,9 +17,6 @@ pub struct WindowGlContext {
     pub surface: Surface<WindowSurface>,
 }
 
-// Safety: NotCurrentContext and Surface are both Send when not current
-// TODO: unsafe impl Send for RenderThreadGlContext {}
-
 impl WindowGlContext {
     /// Make the context current on the render thread and return the active context + surface.
     /// This should only be called once from the render thread.

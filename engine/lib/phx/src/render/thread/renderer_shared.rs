@@ -4,7 +4,7 @@
 //! FFI surface, declared as sibling modules in `render/thread/mod.rs`
 //! (`renderer_threaded` by default, `renderer_immediate` under the
 //! `immediate` feature) so the `#[luajit_ffi_gen::luajit_ffi] impl Renderer`
-//! in `renderer_queue.rs` only ever calls methods defined here and never
+//! in `renderer_ffi.rs` only ever calls methods defined here and never
 //! needs to know which backend is active. This file holds what both share.
 
 use tracing::error;

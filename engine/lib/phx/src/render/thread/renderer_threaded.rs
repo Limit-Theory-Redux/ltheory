@@ -10,10 +10,10 @@ use crate::render::thread::{RenderThread, process_batch_intern};
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
     PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats, RenderTargetStack,
-    RenderThreadConfig, RendererData, RenederThreadError, ResourceHandle, ResourceId,
+    RenderThreadConfig, RenderThreadError, RendererData, ResourceHandle, ResourceId,
     ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
-use crate::window::WindowGlContext;
+use crate::window::{WindowError, WindowGlContext};
 
 /// Maximum frames in flight for triple buffering
 const MAX_FRAMES_IN_FLIGHT: u64 = 3;
@@ -53,7 +53,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn start(context: WindowGlContext) -> Result<Self, RenederThreadError> {
+    pub fn start(context: WindowGlContext) -> Result<Self, RenderThreadError> {
         Self::create_intern(Some(context))
     }
 
@@ -75,7 +75,7 @@ impl Renderer {
         returned_ctx
     }
 
-    fn create_intern(context: Option<WindowGlContext>) -> Result<Self, RenederThreadError> {
+    fn create_intern(context: Option<WindowGlContext>) -> Result<Self, RenderThreadError> {
         // Spawn the render thread with the GL context
         let config = RenderThreadConfig::default();
         // Use bounded channel for backpressure - SwapBuffers will block to sync with render thread
@@ -87,6 +87,11 @@ impl Renderer {
         let (stats_tx, stats_rx) = bounded(1); // Only the latest snapshot matters
         // Unbounded: `ResourceHandle::drop` must never block or fail.
         let (destroy_tx, destroy_rx) = unbounded();
+        // Bounded(1): the render thread reports whether it managed to activate
+        // the GL context before doing anything else, so `create_intern` can
+        // fail synchronously instead of silently running with a no-op
+        // executor (see `RenderThreadError::ContextActivationFailed`).
+        let (ready_tx, ready_rx) = bounded::<Result<(), WindowError>>(1);
         let running = Arc::new(AtomicBool::new(true));
         let running_clone = running.clone();
 
@@ -98,14 +103,19 @@ impl Renderer {
                     match active_context.make_current() {
                         Ok(ctx) => {
                             info!("GL context made current on render thread");
+                            let _ = ready_tx.send(Ok(()));
                             Some(ctx)
                         }
                         Err(e) => {
                             error!("Failed to make GL context current on render thread: {e}");
-                            None
+                            let _ = ready_tx.send(Err(e));
+                            // Nothing to run without a context - exit before
+                            // constructing `RenderThread` at all.
+                            return;
                         }
                     }
                 } else {
+                    let _ = ready_tx.send(Ok(()));
                     None
                 };
 
@@ -127,6 +137,15 @@ impl Renderer {
             .expect("Failed to spawn render thread");
 
         info!("Render thread spawned");
+
+        // Block until the render thread reports whether it managed to
+        // activate the GL context - this is the one synchronous handshake
+        // in an otherwise fire-and-forget startup, and it's what lets a
+        // context-activation failure surface as `Err` here instead of
+        // silently degrading to a no-op executor down the line.
+        ready_rx
+            .recv()
+            .expect("Render thread did not report context-activation status")?;
 
         info!("Render thread started successfully");
 

@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use crossbeam::channel::{bounded, unbounded};
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 use crate::render::thread::{CommandExecutor, CommandReply, RendererData, process_batch_intern};
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
-    PrimitiveBuilder, RenderStateIntern, RenderStats, RenderTargetStack, RenederThreadError,
+    PrimitiveBuilder, RenderStateIntern, RenderStats, RenderTargetStack, RenderThreadError,
     ResourceHandle, ResourceId, ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat,
     TexWrapMode, VertexFormat, VpStack,
 };
@@ -20,24 +20,15 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn start(context: WindowGlContext) -> Result<Self, RenederThreadError> {
-        let gl_context = match context.make_current() {
-            Ok(ctx) => {
-                info!("GL context made current");
-                Some(ctx)
-            }
-            Err(e) => {
-                error!("Failed to make GL context current: {}", e);
-                None
-            }
-        };
+    pub fn start(context: WindowGlContext) -> Result<Self, RenderThreadError> {
+        let ctx = context.make_current().map_err(|e| {
+            error!("Failed to make GL context current: {e}");
+            e
+        })?;
+        info!("GL context made current");
 
-        let mut executor = CommandExecutor::new(gl_context);
-        if executor.has_gl_context() {
-            executor.init_gl();
-        } else {
-            warn!("Renderer running without GL context - commands will be no-ops");
-        }
+        let mut executor = CommandExecutor::new(Some(ctx));
+        executor.init_gl();
 
         info!("Renderer started (immediate mode)");
 

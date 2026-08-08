@@ -7,15 +7,15 @@ mod entity_render_data;
 mod error;
 mod render_batch;
 mod render_command;
-mod renderer;
 mod renderer_data;
-mod renderer_queue;
+mod renderer_ffi;
+mod renderer_shared;
 mod resource_handle;
 mod shader_reload_result;
 mod ubo;
 
 // `Renderer`'s two backends: identical public API and FFI surface, selected
-// at compile time. See `renderer.rs` for the shared pieces.
+// at compile time. See `renderer_shared.rs` for the shared pieces.
 #[cfg(not(feature = "immediate"))]
 mod render_thread;
 #[cfg(feature = "immediate")]
@@ -33,11 +33,11 @@ pub use render_batch::*;
 pub use render_command::*;
 #[cfg(not(feature = "immediate"))]
 pub use render_thread::*;
-pub use renderer::*;
 pub use renderer_data::*;
+pub use renderer_ffi::*;
 #[cfg(feature = "immediate")]
 pub use renderer_immediate::*;
-pub use renderer_queue::*;
+pub use renderer_shared::*;
 #[cfg(not(feature = "immediate"))]
 pub use renderer_threaded::*;
 pub use resource_handle::*;

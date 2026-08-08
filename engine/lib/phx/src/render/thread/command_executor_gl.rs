@@ -2268,7 +2268,7 @@ impl CommandExecutor {
         info!("GL commands flushed");
 
         // Release GL context back to main thread (platform-specific)
-        // RenderThreadGlContext::release_for_main_thread() handles:
+        // WindowActiveGlContext::release_for_main_thread() handles:
         // - macOS: Uses mem::forget to avoid dispatch_sync deadlock, returns Err
         // - Linux/Windows: Properly releases and returns context + surface
         let Some(gl_ctx) = self.gl_context.take() else {
