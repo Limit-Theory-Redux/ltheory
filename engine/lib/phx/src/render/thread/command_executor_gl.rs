@@ -1357,7 +1357,6 @@ impl CommandExecutor {
         let error = match self.create_shader(&vertex_src, &fragment_src) {
             Ok(program) => {
                 self.resources.insert(id, GpuResource::Shader { program });
-                debug!("Created shader {:?} with program {}", id, program);
                 None
             }
             Err(e) => {
@@ -1393,7 +1392,6 @@ impl CommandExecutor {
     ) {
         let handle = self.create_texture_1d(width, format, data.as_deref());
         self.resources.insert(id, GpuResource::Texture1D { handle });
-        debug!("Created texture1d {:?} with handle {}", id, handle);
     }
 
     pub(super) fn cmd_create_texture_2d(
@@ -1406,7 +1404,6 @@ impl CommandExecutor {
     ) {
         let handle = self.create_texture_2d(width, height, format, data.as_deref());
         self.resources.insert(id, GpuResource::Texture2D { handle });
-        debug!("Created texture2d {:?} with handle {}", id, handle);
     }
 
     pub(super) fn cmd_create_texture_3d(
@@ -1420,14 +1417,12 @@ impl CommandExecutor {
     ) {
         let handle = self.create_texture_3d(width, height, depth, format, data.as_deref());
         self.resources.insert(id, GpuResource::Texture3D { handle });
-        debug!("Created texture3d {:?} with handle {}", id, handle);
     }
 
     pub(super) fn cmd_create_texture_cube(&mut self, id: ResourceId, size: u32, format: TexFormat) {
         let handle = self.create_texture_cube(size, format);
         self.resources
             .insert(id, GpuResource::TextureCube { handle });
-        debug!("Created texturecube {:?} with handle {}", id, handle);
     }
 
     pub(super) fn cmd_create_mesh(
@@ -1440,14 +1435,12 @@ impl CommandExecutor {
         let (vao, vbo, ebo) = self.create_mesh(&vertices, &indices, &vertex_format);
         self.resources
             .insert(id, GpuResource::Mesh { vao, vbo, ebo });
-        debug!("Created mesh {:?} with vao {}", id, vao);
     }
 
     pub(super) fn cmd_destroy_resource(&mut self, ids: &[ResourceId]) {
         for id in ids {
             if let Some(resource) = self.resources.remove(id) {
                 self.destroy_resource(resource);
-                debug!("Destroyed resource {id:?}",);
             }
         }
     }
