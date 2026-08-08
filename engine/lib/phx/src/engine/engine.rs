@@ -26,7 +26,6 @@ pub struct Engine {
     pub exit_app: bool,
     pub event_bus: EventBus,
     pub task_queue: TaskQueue,
-    /// Multithreaded rendering subsystem (render thread + worker pool)
     pub renderer: Renderer,
     pub lua: Rf<Lua>,
 }
