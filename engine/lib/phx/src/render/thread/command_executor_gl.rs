@@ -2225,8 +2225,7 @@ impl CommandExecutor {
 
         // Destroy all remaining resources
         let resources: Vec<_> = self.resources.drain().collect();
-        for (id, resource) in resources {
-            debug!("Cleaning up resource {:?}", id);
+        for (_, resource) in resources {
             self.destroy_resource(resource);
         }
         info!("Resources cleaned up");

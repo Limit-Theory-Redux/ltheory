@@ -30,9 +30,12 @@ local tonemapModeIds = {
 
 Settings.addBool('postfx.aberration.enable', 'Aberration', false)
 Settings.addFloat('postfx.aberration.strength', ' - Strength', 1, 0, 1)
-Settings.addBool('postfx.bloom.enable', 'Bloom', true)
+-- Disabled: this pipeline bakes the "Composited UI Pass" (HUD/text) into
+-- buffer0 *before* these filters run, so bloom/sharpen treat UI text as
+-- scene content and blur/halo it against whatever's behind it.
+Settings.addBool('postfx.bloom.enable', 'Bloom', false)
 Settings.addFloat('postfx.bloom.radius', ' - Radius', 48, 4, 64)
-Settings.addBool('postfx.sharpen.enable', 'Sharpen', true)
+Settings.addBool('postfx.sharpen.enable', 'Sharpen', false)
 Settings.addBool('postfx.radialblur.enable', 'RadialBlur', false)
 Settings.addFloat('postfx.radialblur.strength', ' - Strength', 1, 0, 1)
 Settings.addFloat('postfx.radialblur.scanlines', ' - Scanlines', 1, 0, 1)
