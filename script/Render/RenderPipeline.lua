@@ -9,6 +9,25 @@ end)
 local colorFormat = TexFormat.RGBA16F
 local depthFormat = TexFormat.Depth32F
 
+-- Matches the `mode` branches in res/shader/fragment/filter/tonemap.glsl.
+-- Keyed by the literal Enums.Tonemappers string values (Enums isn't
+-- guaranteed to be loaded yet at this point in the require chain).
+local tonemapModeIds = {
+    ['Linear']        = 0,
+    ['Reinhard']      = 1,
+    ['ACES']          = 2,
+    ['Filmic']        = 3,
+    ['Uncharted2']    = 4,
+    ['Lottes']        = 5,
+    ['Uchimura']      = 6,
+    ['GranTurismo']   = 7,
+    ['NarkowiczACES'] = 8,
+    ['ReinhardExtended']   = 9,
+    ['ReinhardLuminance']  = 10,
+    ['AgX']           = 11,
+    ['Illustris']     = 12,
+}
+
 Settings.addBool('postfx.aberration.enable', 'Aberration', false)
 Settings.addFloat('postfx.aberration.strength', ' - Strength', 1, 0, 1)
 Settings.addBool('postfx.bloom.enable', 'Bloom', true)
@@ -338,10 +357,13 @@ function RenderPipeline:swap()
 end
 
 function RenderPipeline:tonemap()
+    local settings = Config.render.postFx.tonemap
     local shader = Cache.Shader('ui', 'filter/tonemap')
     self.buffer1:pushLevel(self.level)
     shader:start()
     shader:setInt('hdrOut', 0)
+    shader:setInt('mode', tonemapModeIds[settings.mode] or 0)
+    shader:setFloat('exposure', settings.exposure)
     shader:setFloat2('size', self.resX, self.resY)
     shader:setTex2D('src', self.buffer0)
     Draw.Color(1, 1, 1, 1)
