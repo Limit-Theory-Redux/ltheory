@@ -1,8 +1,17 @@
 local CameraManager     = require("Modules.Cameras.Managers.CameraManager")
 
 --- AsteroidBeltRenderer — performant batch renderer for asteroid belts/rings.
+--- Chunked instancing (article-derived): asteroids are partitioned into
+--- angular chunks at generation time; per frame each chunk is culled by
+--- its centroid, survivors are LOD-selected and collected into reusable
+--- InstanceData groups keyed by (mesh variant, LOD level), then flushed
+--- with ONE DrawInstancedWithData per group instead of one draw per
+--- asteroid. Producer cost: ~chunk-count cull tests + per-visible-asteroid
+--- LOD lookup + matrix fill, no per-asteroid draw/start/stop.
 ---@class AsteroidBeltRenderer
 local AsteroidBeltRenderer = {}
+
+local ffi = require('ffi')
 
 --- Maximum render distance (squared)
 local MAX_RENDER_DIST_SQ = 4e12
@@ -11,6 +20,30 @@ local MAX_DRAWN_PER_FRAME = 200
 --- Render-distance override (benchmark: camera orbits far outside the belt).
 --- nil = derive from belt spread (game default).
 local benchRenderDistSq = nil
+--- Chunk count (angular sectors)
+local CHUNK_COUNT = 32
+
+--- LOD distance ranges (RAW units) shared by the pool, generator and
+--- belt renderer. LodMesh:add() squares these internally; get() takes
+--- the squared distance. LOD 0 = highest detail (res 96, 16k verts).
+local LOD_RANGES = {
+    { 0,       2000 },
+    { 2000,    8000 },
+    { 8000,    30000 },
+    { 30000,   100000 },
+    { 100000,  500000 },
+    { 500000,  2000000 },
+    { 2000000, 10000000 },
+    { 10000000, 1e16 },
+}
+
+--- Expose the LOD ranges so the belt renderer can compute a stable LOD
+--- index per asteroid (the LodMesh get() returns a fresh mesh clone each
+--- call - unusable as a group key).
+---@return table Array of { min, max } raw-unit ranges (LOD 0 first)
+function AsteroidBeltRenderer.getLodRanges()
+    return LOD_RANGES
+end
 
 --- Allow benchmarks/tests to raise the per-frame draw cap (module-local).
 ---@param n number
@@ -62,19 +95,22 @@ function AsteroidBeltRenderer.generateBeltAsteroids(params)
     return asteroids
 end
 
---- Create a render function for a belt entity
+--- Create a render function for a belt entity.
+--- Partition asteroids into angular chunks at generation time; per frame
+--- cull chunks by centroid, collect survivors into LOD-keyed InstanceData
+--- groups, flush one instanced draw per group.
 ---@param asteroidData table
 ---@param lodMesh LodMesh
 ---@return function renderFn
 function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
-    local asteroid_shader = Cache.Shader('wvp', 'material/asteroid')
+    local inst_shader = Cache.Shader('wvp_instanced', 'material/asteroid_instanced')
     local asteroid_tex = Cache.Texture('rock')
 
     -- Lazy rotation cache — only compute for asteroids we actually render
     local rotCache = {}
 
-    -- Reusable Vec3f
-    local relPos = Vec3f(0, 0, 0)
+    -- Reusable scratch Vec3f for matrix construction (no per-asteroid alloc)
+    local relPosScratch = Vec3f(0, 0, 0)
 
     -- Render distance proportional to belt spread (capped), or the
     -- benchmark override when set (camera orbits far outside the belt)
@@ -89,6 +125,46 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         renderDistSq = math.min(MAX_RENDER_DIST_SQ, (maxOrbitR * 3) ^ 2)
     end
 
+    -- Generation-time chunks: angular sectors. Each chunk holds indices +
+    -- a centroid (world-space offset) used for cheap per-frame culling.
+    local chunks = {}
+    for c = 1, CHUNK_COUNT do
+        chunks[c] = { indices = {}, cx = 0, cy = 0, cz = 0 }
+    end
+    local chunkSize = (math.pi * 2) / CHUNK_COUNT
+    for i, a in ipairs(asteroidData) do
+        local ang = math.atan2(a.pz, a.px) -- -pi..pi
+        local c = math.floor((ang + math.pi) / chunkSize) + 1
+        c = math.max(1, math.min(CHUNK_COUNT, c))
+        local ch = chunks[c]
+        ch.indices[#ch.indices + 1] = i
+        ch.cx = ch.cx + a.px
+        ch.cy = ch.cy + a.py
+        ch.cz = ch.cz + a.pz
+    end
+    for c = 1, CHUNK_COUNT do
+        local ch = chunks[c]
+        local n = #ch.indices
+        if n > 0 then
+            ch.cx = ch.cx / n
+            ch.cy = ch.cy / n
+            ch.cz = ch.cz / n
+        end
+    end
+
+    -- Per-frame group state. Keyed by LOD INDEX (stable) not the mesh
+    -- object: LodMesh:get() returns a fresh mesh clone per call, which
+    -- would leak a new group (and instance array) every frame.
+    -- groups[lodIndex] = { mesh, capacity, count, instances }
+    local groups = {}
+    local groupOrder = {}
+    -- Squared range bounds for stable LOD-index lookup
+    local lodSq = {}
+    for i = 1, #LOD_RANGES do
+        local r = LOD_RANGES[i]
+        lodSq[i] = { r[1] * r[1], r[2] * r[2] }
+    end
+
     local PhysicsComponents = require("Modules.Physics.Components")
 
     return function(entity, blendMode)
@@ -97,8 +173,9 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
 
         local eye = CameraManager:getEye()
         if not eye then return end
+        local eyeX, eyeY, eyeZ = eye.x, eye.y, eye.z
 
-        -- Get entity's world position (for rings: planet position)
+        -- Entity world position (rings: planet position)
         local entPosX, entPosY, entPosZ = 0, 0, 0
         local transform = entity:get(PhysicsComponents.Transform)
         if transform then
@@ -106,50 +183,111 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
             entPosX, entPosY, entPosZ = p.x, p.y, p.z
         end
 
-        local eyeX, eyeY, eyeZ = eye.x, eye.y, eye.z
-
-        asteroid_shader:start()
-        asteroid_shader:setTex2D('texDiffuse', asteroid_tex)
-
-        local drawn = 0
-        for i, a in ipairs(asteroidData) do
-            if drawn >= MAX_DRAWN_PER_FRAME then break end
-            if a.spawned then goto next_asteroid end
-
-            -- Asteroid world pos = entity pos + local asteroid offset
-            local rx = entPosX + a.px - eyeX
-            local ry = entPosY + a.py - eyeY
-            local rz = entPosZ + a.pz - eyeZ
-            local distSq = rx * rx + ry * ry + rz * rz
-
-            if distSq < renderDistSq then
-                -- Lazy rotation: compute once, cache forever
-                local rot = rotCache[i]
-                if not rot then
-                    local rng = RNG.Create(a.rotSeed)
-                    local ax = rng:getUniform() - 0.5
-                    local ay = rng:getUniform() - 0.5
-                    local az = rng:getUniform() - 0.5
-                    local len = math.sqrt(ax * ax + ay * ay + az * az)
-                    if len > 0.001 then ax, ay, az = ax / len, ay / len, az / len end
-                    rot = Quat.FromAxisAngle(Vec3f(ax, ay, az), rng:getUniform() * math.pi * 2)
-                    rotCache[i] = rot
-                end
-
-                relPos.x = rx; relPos.y = ry; relPos.z = rz
-                local mat = Matrix.FromPosRotScale(relPos, rot, a.scale)
-
-                asteroid_shader:setMatrix('mWorld', mat)
-                asteroid_shader:setFloat('scale', a.scale)
-                lodMesh:draw(distSq)
-
-                drawn = drawn + 1
-            end
-
-            ::next_asteroid::
+        -- Reset per-frame group counts
+        for i = 1, #groupOrder do
+            groups[groupOrder[i]].count = 0
         end
 
-        asteroid_shader:stop()
+        local drawn = 0
+        local done = false
+
+        -- Chunk pass: cull by centroid, then collect survivors
+        for c = 1, CHUNK_COUNT do
+            if done then break end
+            local ch = chunks[c]
+            local nIdx = #ch.indices
+            if nIdx == 0 then goto next_chunk end
+
+            -- Centroid eye-distance (world coords = entity pos + centroid)
+            local rcx = entPosX + ch.cx - eyeX
+            local rcy = entPosY + ch.cy - eyeY
+            local rcz = entPosZ + ch.cz - eyeZ
+            local cDistSq = rcx * rcx + rcy * rcy + rcz * rcz
+            if cDistSq > renderDistSq then goto next_chunk end
+
+            for j = 1, nIdx do
+                if drawn >= MAX_DRAWN_PER_FRAME then done = true break end
+                local i = ch.indices[j]
+                local a = asteroidData[i]
+                if not a.spawned then
+                    local rx = entPosX + a.px - eyeX
+                    local ry = entPosY + a.py - eyeY
+                    local rz = entPosZ + a.pz - eyeZ
+                    local distSq = rx * rx + ry * ry + rz * rz
+
+                    -- LOD selection, normalized by scale (matches legacy path)
+                    -- Stable index lookup: find which squared range holds
+                    -- distSq (LodMesh:get would clone a fresh mesh each call).
+                    local s = a.scale
+                    local distNorm = distSq / (s * s)
+                    local lodIndex = nil
+                    local mesh = nil
+                    for li = 1, #lodSq do
+                        if distNorm >= lodSq[li][1] and distNorm <= lodSq[li][2] then
+                            lodIndex = li
+                            mesh = lodMesh:get(distNorm)
+                            break
+                        end
+                    end
+                    if lodIndex and mesh then
+                        -- Lazy rotation: compute once, cache forever
+                        local rot = rotCache[i]
+                        if not rot then
+                            local rng = RNG.Create(a.rotSeed)
+                            local ax = rng:getUniform() - 0.5
+                            local ay = rng:getUniform() - 0.5
+                            local az = rng:getUniform() - 0.5
+                            local len = math.sqrt(ax * ax + ay * ay + az * az)
+                            if len > 0.001 then ax, ay, az = ax / len, ay / len, az / len end
+                            rot = Quat.FromAxisAngle(Vec3f(ax, ay, az), rng:getUniform() * math.pi * 2)
+                            rotCache[i] = rot
+                        end
+
+                        -- Camera-relative world matrix (eye-relative, like the
+                        -- non-instanced mWorld path). Scratch Vec3f avoids a
+                        -- per-asteroid allocation.
+                        local relPos = relPosScratch
+                        relPos.x = rx; relPos.y = ry; relPos.z = rz
+                        local mat = Matrix.FromPosRotScale(relPos, rot, s)
+
+                        local g = groups[lodIndex]
+                        if not g then
+                            g = { mesh = mesh, capacity = 64, count = 0, instances = ffi.new('InstanceData[64]') }
+                            groups[lodIndex] = g
+                            groupOrder[#groupOrder + 1] = lodIndex
+                        end
+                        if g.count >= g.capacity then
+                            local newCap = g.capacity * 2
+                            local newArr = ffi.new('InstanceData[?]', newCap)
+                            ffi.copy(newArr, g.instances, g.count * ffi.sizeof('InstanceData'))
+                            g.instances = newArr
+                            g.capacity = newCap
+                        end
+
+                        local inst = g.instances[g.count]
+                        ffi.copy(inst.model_matrix, mat.m, ffi.sizeof('float') * 16)
+                        inst.scale = s
+                        g.count = g.count + 1
+                        drawn = drawn + 1
+                    end
+                end
+            end
+
+            ::next_chunk::
+        end
+
+        -- Flush: one instanced draw per (mesh variant, LOD level)
+        if #groupOrder > 0 then
+            inst_shader:start()
+            inst_shader:setTex2D('texDiffuse', asteroid_tex)
+            for i = 1, #groupOrder do
+                local g = groups[groupOrder[i]]
+                if g.count > 0 then
+                    g.mesh:drawInstancedWithData(g.instances, g.count)
+                end
+            end
+            inst_shader:stop()
+        end
     end
 end
 
