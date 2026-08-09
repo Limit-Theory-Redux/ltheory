@@ -1,12 +1,10 @@
-local Registry           = require("Core.ECS.Registry")
-local QuickProfiler      = require("Shared.Tools.QuickProfiler")
-local RenderingPass      = require("Shared.Rendering.RenderingPass")
-local CameraManager      = require("Modules.Cameras.Managers.CameraManager")
-local RenderComp         = require("Modules.Rendering.Components").Render
-local CameraComponent    = require("Modules.Cameras.Components.CameraDataComponent")
-local UniformFuncs       = require("Shared.Rendering.UniformFuncs")
-local Cache              = require("Render.Cache")
-local RigidBodyComponent = require("Modules.Physics.Components.RigidBodyComponent")
+local Registry         = require("Core.ECS.Registry")
+local QuickProfiler    = require("Shared.Tools.QuickProfiler")
+local RenderingPass    = require("Shared.Rendering.RenderingPass")
+local CameraManager    = require("Modules.Cameras.Managers.CameraManager")
+local RenderComp       = require("Modules.Rendering.Components").Render
+local CameraComponent  = require("Modules.Cameras.Components.CameraDataComponent")
+local Cache            = require("Render.Cache")
 
 ---@class RenderCoreSystem
 ---@overload fun(self): RenderCoreSystem
@@ -54,10 +52,6 @@ function RenderCoreSystem:registerVars()
     self.dsResY          = self.resY / self.settings.downSampleRate
 
     self.ds              = 4  -- downsample factor for bloom (matches old pipeline)
-
-    self.materialCache   = {} -- material → { var = {type, values} }
-    self.instanceCache   = {} -- entity  → { mat  = { var = {type, values} } }
-    self.processedMats   = {}
 
     self.buffers         = {}
     self:initializeBuffers()
@@ -148,8 +142,8 @@ function RenderCoreSystem:render(data)
     CameraManager:updateProjectionMatrix(self.resX, self.resY)
     CameraManager:beginDraw()
 
-    -- Data cache
-    self:cacheData()
+    -- Sort visible meshes into per-pass lists once (renderInOrder runs 3×).
+    self:buildPassLists()
 
     -- Opaque Pass
     self.currentPass = Enums.RenderingPasses.Opaque
@@ -263,125 +257,104 @@ end
 
 function RenderCoreSystem:renderInOrder(blendMode)
     local lastMaterial = nil
+    local eye = CameraManager:getEye()
 
-    for entity in Registry:view(RenderComp) do
-        local rend = entity:get(RenderComp)
-        if not rend:isVisible() then goto next_render end
-        if rend:getRenderFn() then
-            rend:getRenderFn()(entity, blendMode)
-            -- Custom render fn may have left arbitrary shader state bound.
-            lastMaterial = nil
-        elseif rend:getMeshes() then
-            for meshmat in Iterator(rend:getMeshes()) do
-                local mat = meshmat.material
-                if (mat:getBlendMode() or BlendMode.Disabled) == blendMode then
-                    local sh = mat:getShaderState()
+    -- Custom render fns are called in every pass (their blend mode isn't
+    -- queryable). Mesh entities are pre-sorted into per-pass lists by
+    -- buildPassLists, so this loop only touches entities that draw here.
+    for _, fnEntry in ipairs(self.passRenderFns or {}) do
+        fnEntry.fn(fnEntry.entity, blendMode)
+        lastMaterial = nil
+    end
 
-                    -- start() resets the texture-unit counter, so it must
-                    -- run per mesh (cannot be skipped for shared shaders);
-                    -- its auto-var re-application is already skipped inside
-                    -- by the var-stack revision check, and the redundant
-                    -- BindShader command is suppressed on the main thread.
-                    sh:start()
+    local list = self.passMeshes[blendMode]
+    if not list then return end
 
-                    -- Material-level vars only change when the material
-                    -- changes (they're constant across instances of the
-                    -- same material), so apply them once per material.
-                    if mat ~= lastMaterial then
-                        self:applyMaterialVars(mat, sh)
-                        lastMaterial = mat
-                    end
+    for i = 1, #list do
+        local entry = list[i]
+        local mat = entry.mat
+        local sh = entry.sh
 
-                    self:applyInstanceVars(mat, entity)
+        -- start() resets the texture-unit counter, so it must
+        -- run per mesh (cannot be skipped for shared shaders);
+        -- its auto-var re-application is already skipped inside
+        -- by the var-stack revision check, and the redundant
+        -- BindShader command is suppressed on the main thread.
+        sh:start()
 
-                    meshmat.mesh:draw()
-                end
-            end
+        -- Material-level vars only change when the material
+        -- changes (they're constant across instances of the
+        -- same material), so apply them once per material.
+        if mat ~= lastMaterial then
+            self:applyMaterialVars(mat, sh, eye, entry.entity)
+            lastMaterial = mat
         end
-        ::next_render::
+
+        self:applyInstanceVars(mat, sh, eye, entry.entity)
+
+        entry.mesh:draw()
     end
 end
 
-function RenderCoreSystem:cacheData()
-    self.materialCache = {}
-    self.instanceCache = {}
-    local processedMats = {}
-
-    local eye = CameraManager:getEye()
+--- Sort visible render entities into per-pass mesh lists once per frame.
+--- renderInOrder runs 3× (Opaque/Additive/Alpha passes); the old code
+--- re-iterated every entity × mesh in each pass just to filter on blend
+--- mode. Building the lists once turns that into one iteration + three
+--- walks of only the meshes that actually draw.
+function RenderCoreSystem:buildPassLists()
+    local passMeshes = {}
+    local passRenderFns = {}
 
     for entity in Registry:view(RenderComp) do
         local rend = entity:get(RenderComp)
         if not rend:isVisible() then goto next_entity end
-        if rend:getRenderFn() then goto next_entity end
-        if not rend:getMeshes() then goto next_entity end
 
-        for meshmat in Iterator(rend:getMeshes()) do
-            local mat = meshmat.material
-
-            -- material cache (per material)
-            if not processedMats[mat] then
-                processedMats[mat] = true
-                local matCache = {}
-
-                for _, v in ipairs(mat.staticShaderVars or {}) do
-                    matCache[v] = { type = v.uniformType, values = v:getValues(eye, entity) }
+        if rend:getRenderFn() then
+            table.insert(passRenderFns, { fn = rend:getRenderFn(), entity = entity })
+        elseif rend:getMeshes() then
+            for meshmat in Iterator(rend:getMeshes()) do
+                local mat = meshmat.material
+                local bm = mat:getBlendMode() or BlendMode.Disabled
+                local list = passMeshes[bm]
+                if not list then
+                    list = {}
+                    passMeshes[bm] = list
                 end
-                for _, v in ipairs(mat.constShaderVars or {}) do
-                    matCache[v] = { type = v.uniformType, values = v:getValues(eye, entity) }
-                end
-
-                for _, v in ipairs(mat.autoShaderVars or {}) do
-                    if not v.perInstance then
-                        matCache[v] = { type = v.uniformType, values = v:getValues(eye, entity) }
-                    end
-                end
-
-                self.materialCache[mat] = matCache
+                table.insert(list, {
+                    mesh = meshmat.mesh,
+                    mat = mat,
+                    sh = mat:getShaderState(),
+                    entity = entity,
+                })
             end
-
-            -- instance cache (per instance)
-            local instCache = self.instanceCache[entity.id] or {}
-            local matInstCache = instCache[mat] or {}
-
-            for _, v in ipairs(mat.autoShaderVars or {}) do
-                if v.perInstance then
-                    matInstCache[v] = { type = v.uniformType, values = v:getValues(eye, entity) }
-                end
-            end
-
-            instCache[mat] = matInstCache
-            self.instanceCache[entity.id] = instCache
         end
         ::next_entity::
     end
+
+    self.passMeshes = passMeshes
+    self.passRenderFns = passRenderFns
 end
 
-function RenderCoreSystem:applyMaterialVars(mat, shader)
+function RenderCoreSystem:applyMaterialVars(mat, shader, eye, entity)
     -- material level (constant across all instances of the material)
-    local matCache = self.materialCache[mat]
-    if matCache then
-        for varObj, entry in pairs(matCache) do
-            if varObj.uniformInt then
-                local fn = UniformFuncs[entry.type]
-                if fn then fn(shader, varObj.uniformInt, table.unpack(entry.values)) end
-            end
+    for _, v in ipairs(mat.staticShaderVars or {}) do
+        v:setShaderVar(eye, shader, entity)
+    end
+    for _, v in ipairs(mat.constShaderVars or {}) do
+        v:setShaderVar(eye, shader, entity)
+    end
+    for _, v in ipairs(mat.autoShaderVars or {}) do
+        if not v.perInstance then
+            v:setShaderVar(eye, shader, entity)
         end
     end
 end
 
-function RenderCoreSystem:applyInstanceVars(mat, entity)
+function RenderCoreSystem:applyInstanceVars(mat, shader, eye, entity)
     -- instance level (per-entity)
-    local instCache = self.instanceCache[entity.id]
-    if instCache then
-        local matInst = instCache[mat]
-        if matInst then
-            local shader = mat:getShaderState():shader()
-            for varObj, entry in pairs(matInst) do
-                if varObj.uniformInt then
-                    local fn = UniformFuncs[entry.type]
-                    if fn then fn(shader, varObj.uniformInt, table.unpack(entry.values)) end
-                end
-            end
+    for _, v in ipairs(mat.autoShaderVars or {}) do
+        if v.perInstance then
+            v:setShaderVar(eye, shader, entity)
         end
     end
 end

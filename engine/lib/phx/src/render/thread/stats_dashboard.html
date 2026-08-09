@@ -146,15 +146,25 @@ async function poll() {
     const fps = s.last_frame_time_us > 0 ? (1e6 / s.last_frame_time_us) : 0;
     const sorted = [...frameTimes].sort((a, b) => a - b);
 
-    $('c-fps').querySelector('.value').textContent = fps.toFixed(1);
-    $('c-fps').className = 'card ' + (fps >= 55 ? 'good' : fps >= 30 ? 'warn' : 'bad');
+    // Moving average over the rolling window (~120 s) — single-frame reads
+    // are noise (each run spawns a different random star system), so the
+    // avg is the honest comparison across runs/builds.
+    const avgFrameMs = frameTimes.length ? frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length : 0;
+    const avgFps = avgFrameMs > 0 ? 1000 / avgFrameMs : 0;
+    const avgCommands = commandCounts.length ? Math.round(commandCounts.reduce((a, b) => a + b, 0) / commandCounts.length) : 0;
 
-    $('c-frame').querySelector('.value').textContent = frameMs.toFixed(2) + ' ms';
+    $('c-fps').querySelector('.value').textContent = avgFps.toFixed(1);
+    $('c-fps').querySelector('.sub').textContent =
+      'avg ' + frameTimes.length + ' frames · last ' + fps.toFixed(1);
+    $('c-fps').className = 'card ' + (avgFps >= 55 ? 'good' : avgFps >= 30 ? 'warn' : 'bad');
+
+    $('c-frame').querySelector('.value').textContent = avgFrameMs.toFixed(2) + ' ms';
     $('c-frame').querySelector('.sub').textContent =
       'p50 ' + percentile(sorted, .5).toFixed(2) + ' / p95 ' + percentile(sorted, .95).toFixed(2) +
-      ' / p99 ' + percentile(sorted, .99).toFixed(2) + ' ms';
+      ' / p99 ' + percentile(sorted, .99).toFixed(2) + ' ms · last ' + frameMs.toFixed(2);
 
-    $('c-commands').querySelector('.value').textContent = fmt(s.commands_last_frame);
+    $('c-commands').querySelector('.value').textContent = fmt(avgCommands);
+    $('c-commands').querySelector('.sub').textContent = 'avg / frame · last ' + fmt(s.commands_last_frame);
     $('c-draws').querySelector('.value').textContent = fmt(s.draw_calls_last_frame);
     $('c-draws').querySelector('.sub').textContent =
       'mesh ' + fmt(s.draw_mesh_calls_last_frame) + ' / imm ' + fmt(s.draw_immediate_calls_last_frame) +
