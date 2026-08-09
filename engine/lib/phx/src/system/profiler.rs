@@ -69,8 +69,46 @@ pub static PROFILER: LazyLock<Mutex<Profiler>> = LazyLock::new(Default::default)
 /// profiler was disabled; this atomic makes the disabled path lock-free.
 static PROFILER_ENABLED: AtomicBool = AtomicBool::new(false);
 
+/// Set by the stats dashboard (HTTP thread) when the user clicks the
+/// profile toggle. The main thread picks it up at the next safe point
+/// (Application:onPreRender, same spot as the F10 binding) and calls
+/// `enable()`/`disable()` there - never from the HTTP thread, which could
+/// hit `disable()` mid-scope and panic.
+static PROFILER_TOGGLE_REQUEST: AtomicBool = AtomicBool::new(false);
+
+/// A single profiler scope's live metrics, ready for serialization.
+/// No mutating normalization is applied (unlike `disable()`'s print path).
+#[derive(Debug, Clone)]
+pub struct ScopeSnapshot {
+    pub name: String,
+    pub scope_pct: f64,
+    pub cumul_pct: f64,
+    pub total_ms: f64,
+    pub min_ms: f64,
+    pub max_ms: f64,
+    pub mean_ms: f64,
+}
+
 #[luajit_ffi_gen::luajit_ffi]
 impl Profiler {
+    /// True if profiling is currently enabled (lock-free read).
+    pub fn is_enabled() -> bool {
+        PROFILER_ENABLED.load(AtomicOrdering::Acquire)
+    }
+
+    /// Request a profiling toggle. The actual enable/disable happens on the
+    /// main thread at the next safe point (`Profiler::pending_toggle`).
+    pub fn request_toggle() {
+        PROFILER_TOGGLE_REQUEST.store(true, AtomicOrdering::Release);
+    }
+
+    /// Check-and-clear the toggle request. Called once per frame from the
+    /// main thread's safe point (Application:onPreRender) - returns true
+    /// exactly once per dashboard click, mirroring the F10 path.
+    pub fn pending_toggle() -> bool {
+        PROFILER_TOGGLE_REQUEST.swap(false, AtomicOrdering::AcqRel)
+    }
+
     /// Enables profiling and initializes the profiler state
     pub fn enable() {
         {
@@ -248,6 +286,50 @@ impl Profiler {
 }
 
 impl Profiler {
+    /// Live scope metrics for the dashboard. Same filtering and ordering as
+    /// the F10 print path (drop scopes under 1% with no >10ms spike), but
+    /// read-only: nothing is cleared, normalized, or printed.
+    pub fn snapshot() -> Vec<ScopeSnapshot> {
+        let profiler = PROFILER.lock().expect("Cannot lock profiler");
+        if !profiler.is_enabled {
+            return Vec::new();
+        }
+
+        let total = profiler.start.get_elapsed();
+
+        // Sort by total descending, mirroring disable()'s print path.
+        let mut scopes: Vec<(&String, &Scope)> = profiler.scopes.iter().collect();
+        scopes.sort_by(|(_, a), (_, b)| {
+            if b.total < a.total {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        });
+
+        let mut rows = Vec::new();
+        let mut cumulative = 0.0;
+
+        for (name, scope) in scopes {
+            let scope_total = scope.total;
+            cumulative += scope_total;
+
+            if scope_total / total > 0.01 || scope.max > 0.01 {
+                rows.push(ScopeSnapshot {
+                    name: name.clone(),
+                    scope_pct: 100.0 * (scope_total / total),
+                    cumul_pct: 100.0 * (cumulative / total),
+                    total_ms: 1000.0 * scope_total,
+                    min_ms: 1000.0 * scope.min,
+                    max_ms: 1000.0 * scope.max,
+                    mean_ms: 1000.0 * scope.mean,
+                });
+            }
+        }
+
+        rows
+    }
+
     fn end_intern(profiler: &mut MutexGuard<Profiler>, is_root: bool) {
         if !profiler.is_enabled {
             return;

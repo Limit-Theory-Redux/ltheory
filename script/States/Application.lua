@@ -105,6 +105,13 @@ function Application:onPostSim(data) end
 function Application:onPreRender(data)
     ShaderHotReload:update()
 
+    -- Dashboard toggle requests are picked up here (same safe point as the
+    -- F10 binding): the profiler must only be toggled from the main thread
+    -- outside any active scope, never from the HTTP thread.
+    if Profiler.PendingToggle() then
+        self.toggleProfiler = true
+    end
+
     if self.toggleProfiler then
         self.toggleProfiler = false
         self.profiling = not self.profiling

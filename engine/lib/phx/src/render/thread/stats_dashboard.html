@@ -37,14 +37,21 @@
   .bar { height: 14px; background: #58a6ff; border-radius: 2px; min-width: 2px; }
   .bar.warn { background: #d29922; }
   .bar.bad { background: #f85149; }
+  button {
+    background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+    border-radius: 4px; padding: 2px 10px; font: inherit; font-size: 11px;
+    cursor: pointer; text-transform: uppercase; letter-spacing: .05em;
+  }
+  button:hover { background: #30363d; }
+  button:disabled { opacity: .5; cursor: default; }
 </style>
 </head>
 <body>
 <h1>LTR Render Stats <span id="status"></span></h1>
 <div class="grid">
-  <div class="card" id="c-fps"><div class="label">FPS</div><div class="value">-</div></div>
+  <div class="card" id="c-fps"><div class="label">FPS</div><div class="value">-</div><div class="sub"></div></div>
   <div class="card" id="c-frame"><div class="label">Frame time</div><div class="value">-</div><div class="sub">p50/p95/p99</div></div>
-  <div class="card" id="c-commands"><div class="label">Commands / frame</div><div class="value">-</div></div>
+  <div class="card" id="c-commands"><div class="label">Commands / frame</div><div class="value">-</div><div class="sub"></div></div>
   <div class="card" id="c-draws"><div class="label">Draw calls / frame</div><div class="value">-</div><div class="sub">mesh / imm / inst</div></div>
   <div class="card" id="c-state"><div class="label">State changes / frame</div><div class="value">-</div></div>
   <div class="card" id="c-present"><div class="label">Present (vsync) wait</div><div class="value">-</div><div class="sub">µs</div></div>
@@ -66,6 +73,12 @@
 </div>
 <h2>Render-thread time by category</h2>
 <table id="t-cats"><thead><tr><th>category</th><th>count</th><th>time</th><th style="width:40%">share</th></tr></thead><tbody></tbody></table>
+
+<h2>Producer profiler (main-thread Lua scopes)
+  <button id="b-prof" onclick="toggleProfile()">start</button>
+  <span id="prof-status" style="font-weight:normal;letter-spacing:0"></span>
+</h2>
+<table id="t-scopes"><thead><tr><th>scope</th><th>scope %</th><th>cumul %</th><th>total ms</th><th>min</th><th>max</th><th>mean</th></tr></thead><tbody><tr><td colspan="7" style="color:#8b949e;text-align:left">Profiler off — click start to record main-thread scope timings (same data as the F10 console table, ~10 s window)</td></tr></tbody></table>
 <div class="meta" id="meta">waiting for first snapshot…</div>
 
 <script>
@@ -227,6 +240,59 @@ async function poll() {
 
 setInterval(poll, 500);
 poll();
+
+// ---- Producer profiler (main-thread Lua scopes) ----
+
+async function toggleProfile() {
+  try {
+    await fetch('/profile/toggle');
+    $('b-prof').disabled = true;
+    $('b-prof').textContent = '…';
+    setTimeout(() => { $('b-prof').disabled = false; $('b-prof').textContent = 'toggle'; }, 800);
+  } catch (e) { /* server down */ }
+}
+
+async function pollProfile() {
+  try {
+    const r = await fetch('/profile.json');
+    const p = await r.json();
+    const btn = $('b-prof');
+    const st = $('prof-status');
+    if (p.enabled) {
+      btn.textContent = 'stop';
+      const n = (p.scopes || []).length;
+      st.textContent = n + ' scopes · ~' + Math.round(p.scopes.reduce((a, s) => a + s.total_ms, 0) / 1000) + ' s recorded — click stop to freeze (window keeps growing)';
+      st.style.color = '#3fb950';
+    } else {
+      btn.textContent = 'start';
+      st.textContent = '';
+      st.style.color = '';
+    }
+    const body = $('t-scopes').querySelector('tbody');
+    if (!p.enabled) {
+      body.innerHTML = '<tr><td colspan="7" style="color:#8b949e;text-align:left">Profiler off — click start to record main-thread scope timings (same data as the F10 console table)</td></tr>';
+      return;
+    }
+    if (!p.scopes.length) return;
+    body.innerHTML = '';
+    for (const s of p.scopes) {
+      const tr = document.createElement('tr');
+      const warn = s.scope_pct > 30 ? ' class="bad"' : s.scope_pct > 15 ? ' class="warn"' : '';
+      tr.innerHTML =
+        '<td>' + s.name + '</td>' +
+        '<td>' + s.scope_pct.toFixed(1) + '</td>' +
+        '<td>' + s.cumul_pct.toFixed(0) + '</td>' +
+        '<td>' + s.total_ms.toFixed(0) + '</td>' +
+        '<td>' + s.min_ms.toFixed(2) + '</td>' +
+        '<td' + warn + '>' + s.max_ms.toFixed(2) + '</td>' +
+        '<td>' + s.mean_ms.toFixed(2) + '</td>';
+      body.appendChild(tr);
+    }
+  } catch (e) { /* server down */ }
+}
+
+setInterval(pollProfile, 1000);
+pollProfile();
 </script>
 </body>
 </html>

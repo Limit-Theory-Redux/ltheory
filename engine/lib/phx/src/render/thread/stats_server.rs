@@ -130,6 +130,42 @@ pub fn run_stats_server(port: u16, sink: StatsSink) {
                         tiny_http::Response::from_data(body.into_bytes())
                             .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
                     }
+                    // Live producer-scope table (Lua-side profiler). Same
+                    // filtering as the F10 console print, served read-only.
+                    (tiny_http::Method::Get, "/profile.json") => {
+                        let scopes = crate::system::Profiler::snapshot();
+                        let enabled = crate::system::Profiler::is_enabled();
+                        let mut body = String::from("{\"enabled\":");
+                        body.push_str(if enabled { "true" } else { "false" });
+                        body.push_str(",\"scopes\":[");
+                        for (i, s) in scopes.iter().enumerate() {
+                            if i > 0 {
+                                body.push(',');
+                            }
+                            body.push_str(&format!(
+                                "{{\"name\":\"{}\",\"scope_pct\":{:.1},\"cumul_pct\":{:.0},\"total_ms\":{:.0},\"min_ms\":{:.2},\"max_ms\":{:.2},\"mean_ms\":{:.2}}}",
+                                s.name.replace('\\', "\\\\").replace('"', "\\\""),
+                                s.scope_pct,
+                                s.cumul_pct,
+                                s.total_ms,
+                                s.min_ms,
+                                s.max_ms,
+                                s.mean_ms,
+                            ));
+                        }
+                        body.push_str("]}");
+                        tiny_http::Response::from_data(body.into_bytes())
+                            .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
+                    }
+                    // Dashboard toggle for the producer profiler. The request
+                    // is picked up on the main thread's next safe point
+                    // (Application:onPreRender, same as F10) - never toggled
+                    // here, where disable() could panic mid-scope.
+                    (tiny_http::Method::Get, "/profile/toggle") => {
+                        crate::system::Profiler::request_toggle();
+                        tiny_http::Response::from_data(b"{\"ok\":true}".to_vec())
+                            .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
+                    }
                     _ => tiny_http::Response::from_data(b"not found".to_vec()).with_status_code(404),
                 };
                 if let Err(e) = request.respond(response) {
