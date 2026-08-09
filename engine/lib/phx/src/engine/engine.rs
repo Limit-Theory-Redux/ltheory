@@ -117,6 +117,17 @@ impl Engine {
             .extract_gl_context()
             .expect("Failed to extract GL context for renderer");
         let mut renderer = Renderer::start(context).expect("Failed to start renderer");
+
+        // Optional live stats dashboard (feature `stats-server`, activated by
+        // the ltr `--stats-server <port>` flag which sets PHX_STATS_PORT).
+        #[cfg(feature = "stats-server")]
+        if let Ok(port_str) = std::env::var("PHX_STATS_PORT") {
+            if let Ok(port) = port_str.parse::<u16>() {
+                let sink = crate::render::start_stats_server(port);
+                renderer.attach_stats_sink(sink);
+            }
+        }
+
         let hmgui = HmGui::new(&mut renderer, scale_factor);
 
         Self {

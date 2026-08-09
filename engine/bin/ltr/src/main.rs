@@ -30,6 +30,10 @@ struct Cli {
     /// Log will be written into the log file if log_dir is specified
     #[arg(short, long)]
     log_dir: Option<String>,
+    /// Serve the live render-stats dashboard on this port (requires the
+    /// `stats-server` cargo feature; open http://127.0.0.1:<port> in a browser)
+    #[arg(long)]
+    stats_server: Option<u16>,
     /// Optional application name
     app_name: Option<String>,
 }
@@ -73,6 +77,10 @@ pub fn main() {
     unsafe {
         if cli.no_color {
             std::env::set_var("NO_COLOR", "1");
+        }
+
+        if let Some(port) = cli.stats_server {
+            std::env::set_var("PHX_STATS_PORT", port.to_string());
         }
 
         Engine_Entry(

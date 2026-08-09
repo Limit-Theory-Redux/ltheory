@@ -13,6 +13,9 @@ mod renderer_ffi;
 mod renderer_shared;
 mod resource_handle;
 mod shader_reload_result;
+mod stats_snapshot;
+#[cfg(feature = "stats-server")]
+mod stats_server;
 mod ubo;
 
 // `Renderer`'s two backends: identical public API and FFI surface, selected
@@ -44,4 +47,7 @@ pub use renderer_shared::*;
 pub use renderer_threaded::*;
 pub use resource_handle::*;
 pub use shader_reload_result::*;
+pub use stats_snapshot::*;
+#[cfg(feature = "stats-server")]
+pub use stats_server::*;
 pub use ubo::*;

@@ -86,7 +86,7 @@ impl CommandExecutor {
             if handle.0 != self.current_program {
                 // Invalidate texture cache when shader changes - different shaders
                 // expect different textures in the same slots (critical for post-fx)
-                self.invalidate_texture_cache();
+                self.invalidate_texture_cache_on_shader_bind();
             }
             gl::UseProgram(handle.0);
             self.current_program = handle.0;
@@ -118,7 +118,7 @@ impl CommandExecutor {
             if p != self.current_program {
                 // Invalidate texture cache when shader changes - different shaders
                 // expect different textures in the same slots (critical for post-fx)
-                self.invalidate_texture_cache();
+                self.invalidate_texture_cache_on_shader_bind();
             }
             unsafe {
                 gl::UseProgram(p);
@@ -131,7 +131,7 @@ impl CommandExecutor {
 
     pub(super) fn cmd_unbind_shader(&mut self) {
         unsafe {
-            self.invalidate_texture_cache();
+            self.invalidate_texture_cache_on_shader_unbind();
             gl::UseProgram(0);
             self.current_program = 0;
         }
@@ -1536,14 +1536,37 @@ impl CommandExecutor {
             last_frame_time_us: frame_time_us,
             commands_last_frame: self.commands_this_frame,
             draw_calls_last_frame: self.draw_calls_this_frame,
+            state_changes_last_frame: self.state_changes_this_frame,
+            present_wait_us: 0,
+            texture_bind_calls_last_frame: self.texture_bind_calls_this_frame,
+            texture_binds_skipped_last_frame: self.texture_binds_skipped_this_frame,
+            texture_cache_invalidations_last_frame: self.texture_cache_invalidations_this_frame,
+            texture_invalidations_on_shader_bind_last_frame:
+                self.texture_invalidations_on_shader_bind_this_frame,
+            texture_invalidations_on_shader_unbind_last_frame:
+                self.texture_invalidations_on_shader_unbind_this_frame,
+            draw_mesh_calls_last_frame: self.draw_mesh_calls_this_frame,
+            draw_immediate_calls_last_frame: self.draw_immediate_calls_this_frame,
+            draw_instanced_calls_last_frame: self.draw_instanced_calls_this_frame,
+            immediate_vertices_last_frame: self.immediate_vertices_this_frame,
+            instanced_data_items_last_frame: self.instanced_data_items_this_frame,
+            uniform_cache_hits_last_frame: self.uniform_cache_hits_this_frame,
+            uniform_cache_misses_last_frame: self.uniform_cache_misses_this_frame,
+            category_counts_last_frame: self.category_counts_this_frame,
+            category_time_us_last_frame: self.category_time_us_this_frame,
+            recv_wait_us_last_frame: self.recv_wait_us_this_frame,
+            recv_wait_count_last_frame: self.recv_wait_count_this_frame,
             texture_binds_skipped: self.texture_binds_skipped,
         };
 
         // Perform actual buffer swap if we have a GL context
+        let present_start = std::time::Instant::now();
         if let Some(ref ctx) = self.gl_context {
             if let Err(e) = ctx.swap_buffers() {
                 error!("Failed to swap buffers: {}", e);
             }
+            // Measure vsync/present wait (may block until the next vblank)
+            self.last_stats.present_wait_us = present_start.elapsed().as_micros() as u64;
         } else if self.stats.frame_count == 1 {
             error!("SwapBuffers: no GL context available!");
         }
@@ -1551,6 +1574,23 @@ impl CommandExecutor {
         // Reset per-frame counters and start new frame timing
         self.commands_this_frame = 0;
         self.draw_calls_this_frame = 0;
+        self.state_changes_this_frame = 0;
+        self.texture_bind_calls_this_frame = 0;
+        self.texture_binds_skipped_this_frame = 0;
+        self.texture_cache_invalidations_this_frame = 0;
+        self.texture_invalidations_on_shader_bind_this_frame = 0;
+        self.texture_invalidations_on_shader_unbind_this_frame = 0;
+        self.draw_mesh_calls_this_frame = 0;
+        self.draw_immediate_calls_this_frame = 0;
+        self.draw_instanced_calls_this_frame = 0;
+        self.immediate_vertices_this_frame = 0;
+        self.instanced_data_items_this_frame = 0;
+        self.uniform_cache_hits_this_frame = 0;
+        self.uniform_cache_misses_this_frame = 0;
+        self.category_counts_this_frame = [0; 12];
+        self.category_time_us_this_frame = [0; 12];
+        self.recv_wait_us_this_frame = 0;
+        self.recv_wait_count_this_frame = 0;
         self.frame_start = std::time::Instant::now();
 
         CommandReply::Stats(self.last_stats.clone())
@@ -2316,6 +2356,7 @@ impl CommandExecutor {
                 gl::BindTexture(tex_type.to_gl_target(), handle);
                 gl::ActiveTexture(gl::TEXTURE0);
             }
+            self.texture_bind_calls_this_frame += 1;
             return true;
         }
 
@@ -2325,6 +2366,7 @@ impl CommandExecutor {
         // Check if already bound
         if current.handle == handle && current.tex_type == Some(tex_type) {
             self.texture_binds_skipped += 1;
+            self.texture_binds_skipped_this_frame += 1;
             return false;
         }
 
@@ -2335,6 +2377,7 @@ impl CommandExecutor {
             gl::ActiveTexture(gl::TEXTURE0);
         }
 
+        self.texture_bind_calls_this_frame += 1;
         self.texture_bindings[slot_idx] = new_binding;
         true
     }
@@ -2347,6 +2390,7 @@ impl CommandExecutor {
             if current.handle == 0 {
                 // Already unbound
                 self.texture_binds_skipped += 1;
+                self.texture_binds_skipped_this_frame += 1;
                 return;
             }
 
@@ -2357,6 +2401,7 @@ impl CommandExecutor {
                     gl::BindTexture(tex_type.to_gl_target(), 0);
                     gl::ActiveTexture(gl::TEXTURE0);
                 }
+                self.texture_bind_calls_this_frame += 1;
             }
 
             self.texture_bindings[slot_idx] = TextureBinding::unbound();
@@ -2367,12 +2412,26 @@ impl CommandExecutor {
                 gl::BindTexture(gl::TEXTURE_2D, 0);
                 gl::ActiveTexture(gl::TEXTURE0);
             }
+            self.texture_bind_calls_this_frame += 1;
         }
     }
 
     /// Invalidate texture cache (call when GL context state may be externally modified)
     fn invalidate_texture_cache(&mut self) {
         self.texture_bindings = [TextureBinding::default(); MAX_TEXTURE_SLOTS];
+        self.texture_cache_invalidations_this_frame += 1;
+    }
+
+    /// Invalidate texture cache because a shader was (re)bound.
+    fn invalidate_texture_cache_on_shader_bind(&mut self) {
+        self.invalidate_texture_cache();
+        self.texture_invalidations_on_shader_bind_this_frame += 1;
+    }
+
+    /// Invalidate texture cache because a shader was unbound.
+    fn invalidate_texture_cache_on_shader_unbind(&mut self) {
+        self.invalidate_texture_cache();
+        self.texture_invalidations_on_shader_unbind_this_frame += 1;
     }
 
     /// Get uniform location with per-shader caching to avoid repeated gl::GetUniformLocation calls.
@@ -2397,11 +2456,13 @@ impl CommandExecutor {
             .entry(program)
             .or_insert_with(|| HashMap::with_capacity(32));
 
-        if let Some(&loc) = cache.get(name) {
+        if let Some(&loc) = cache.get(&name) {
+            self.uniform_cache_hits_this_frame += 1;
             return loc;
         }
 
-        let c_name = std::ffi::CString::new(name).unwrap_or_default();
+        self.uniform_cache_misses_this_frame += 1;
+        let c_name = std::ffi::CString::new(&*name).unwrap_or_default();
         let loc = unsafe { gl::GetUniformLocation(program, c_name.as_ptr()) };
 
         // Store in cache (even if -1 to avoid repeated lookups for non-existent uniforms)

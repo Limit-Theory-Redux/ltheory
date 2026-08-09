@@ -9,6 +9,10 @@ edition.workspace = true
 [lints]
 workspace = true
 
+[features]
+# Forward the phx stats-server feature so `cargo run -p ltr --features stats-server` works.
+stats-server = ["phx/stats-server"]
+
 [dependencies]
 # workspace crates
 phx.workspace = true

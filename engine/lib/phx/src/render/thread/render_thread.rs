@@ -43,6 +43,7 @@ impl RenderThread {
         stats_tx: Sender<RenderStats>,
         running: Arc<AtomicBool>,
         gl_context: Option<WindowActiveGlContext>,
+        category_timing: Arc<AtomicBool>,
     ) -> Self {
         Self {
             command_rx,
@@ -52,7 +53,7 @@ impl RenderThread {
             context_tx,
             stats_tx,
             running,
-            executor: CommandExecutor::new(gl_context),
+            executor: CommandExecutor::new_with_timing(gl_context, category_timing),
         }
     }
 
@@ -68,11 +69,26 @@ impl RenderThread {
         }
 
         while self.running.load(Ordering::Relaxed) {
-            match self.command_rx.recv() {
+            // Measure render-thread idle time: how long we block waiting for
+            // commands (the producer-starvation gap). A fast-path recv on a
+            // populated channel returns in a few µs; a genuinely blocked recv
+            // waits hundreds of µs+. Only waits above the threshold count as
+            // starvation, so fast-path scheduling noise stays out.
+            const STARVATION_THRESHOLD_US: u64 = 20;
+            let recv_start = std::time::Instant::now();
+            let cmd = self.command_rx.recv();
+            let recv_wait_us = recv_start.elapsed().as_micros() as u64;
+
+            match cmd {
                 Ok(cmd) => {
                     if matches!(cmd, RenderCommand::Shutdown) {
                         info!("Render thread received shutdown command");
                         break;
+                    }
+
+                    if recv_wait_us >= STARVATION_THRESHOLD_US {
+                        self.executor.recv_wait_us_this_frame += recv_wait_us;
+                        self.executor.recv_wait_count_this_frame += 1;
                     }
 
                     let reply = self.executor.execute(cmd);

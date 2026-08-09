@@ -9,9 +9,9 @@ use tracing::{error, info};
 use crate::render::thread::{RenderThread, process_batch_intern};
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
-    InstanceData, PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats,
-    RenderTargetStack, RenderThreadConfig, RenderThreadError, RendererData, ResourceHandle,
-    ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat,
+    PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats, RenderTargetStack,
+    RenderThreadConfig, RenderThreadError, RendererData, ResourceHandle, ResourceId,
+    ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, StatsSink, TexFilter, TexFormat,
     TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::{WindowError, WindowGlContext};
@@ -48,7 +48,22 @@ pub struct Renderer {
     last_stats: RenderStats,
     /// Time spent blocked in `end_frame_triple_buffered`, in microseconds -
     /// purely a main-thread measurement, the executor has no part in it
-    main_thread_wait_us: u64,
+    pub(super) main_thread_wait_us: u64,
+    /// Time spent blocked in `submit()` because the command channel was full,
+    /// accumulated over the current frame (microseconds). Complements
+    /// `main_thread_wait_us`: this catches mid-frame producer stalls that the
+    /// end-of-frame measurement misses.
+    pub(super) send_blocked_us_last_frame: u64,
+    /// Number of `submit()` calls that blocked on a full channel this frame
+    pub(super) send_block_count_last_frame: u64,
+    /// Highest command-channel occupancy observed this frame
+    pub(super) channel_high_water: u64,
+    /// Optional sink receiving a per-frame snapshot for the stats dashboard
+    pub(super) stats_sink: Option<StatsSink>,
+    /// Shared with the executor: enables per-category timing when the sink is
+    /// attached (dashboard mode). Kept on the renderer so `attach_stats_sink`
+    /// can flip it after the executor has moved to the render thread.
+    pub(super) category_timing: Arc<AtomicBool>,
     /// Generic renderer data
     pub(crate) data: RendererData,
 }
@@ -95,6 +110,10 @@ impl Renderer {
         let (ready_tx, ready_rx) = bounded::<Result<(), WindowError>>(1);
         let running = Arc::new(AtomicBool::new(true));
         let running_clone = running.clone();
+        // Shared with the executor: flipped on by the main thread when a stats
+        // sink is attached (dashboard mode), enabling per-category timing.
+        let category_timing = Arc::new(AtomicBool::new(false));
+        let category_timing_executor = category_timing.clone();
 
         let thread_handle = thread::Builder::new()
             .name("RenderThread".into())
@@ -130,6 +149,7 @@ impl Renderer {
                     stats_tx,
                     running_clone,
                     gl_context,
+                    category_timing_executor,
                 );
                 render_thread.run();
 
@@ -163,6 +183,11 @@ impl Renderer {
             stats_rx,
             last_stats: RenderStats::default(),
             main_thread_wait_us: 0,
+            send_blocked_us_last_frame: 0,
+            send_block_count_last_frame: 0,
+            channel_high_water: 0,
+            stats_sink: None,
+            category_timing,
             data: RendererData {
                 next_resource_id: 1,
                 destroy_tx,
@@ -188,8 +213,35 @@ impl Renderer {
     /// Submit a command to the render thread
     fn submit(&mut self, cmd: RenderCommand) {
         if self.running.load(Ordering::Relaxed) {
-            if let Err(e) = self.command_tx.send(cmd) {
-                error!("Failed to send render command: {:?}", e);
+            // Fast path: non-blocking try_send. Only when the bounded channel
+            // is full do we fall back to a blocking send — and only then do we
+            // time the stall, so `send_blocked_us_last_frame` measures real
+            // mid-frame producer blocking (the thing `main_thread_wait_us`
+            // misses).
+            match self.command_tx.try_send(cmd) {
+                Ok(()) => {
+                    // Track channel occupancy high-water mark each frame
+                    let depth = self.command_tx.len() as u64;
+                    if depth > self.channel_high_water {
+                        self.channel_high_water = depth;
+                    }
+                }
+                Err(crossbeam::channel::TrySendError::Full(cmd)) => {
+                    let depth = self.command_tx.len() as u64;
+                    if depth > self.channel_high_water {
+                        self.channel_high_water = depth;
+                    }
+                    let start = std::time::Instant::now();
+                    if let Err(e) = self.command_tx.send(cmd) {
+                        error!("Failed to send render command: {:?}", e);
+                    }
+                    let blocked_us = start.elapsed().as_micros() as u64;
+                    self.send_blocked_us_last_frame += blocked_us;
+                    self.send_block_count_last_frame += 1;
+                }
+                Err(crossbeam::channel::TrySendError::Disconnected(_)) => {
+                    error!("Failed to send render command: channel disconnected");
+                }
             }
         }
     }
@@ -270,6 +322,14 @@ impl Renderer {
 
         // Store total time spent in frame end (all blocking)
         self.main_thread_wait_us = frame_end_start.elapsed().as_micros() as u64;
+
+        // Publish the combined snapshot to the dashboard sink (if attached)
+        self.publish_stats_snapshot();
+
+        // Reset per-frame producer counters for the next frame
+        self.send_blocked_us_last_frame = 0;
+        self.send_block_count_last_frame = 0;
+        self.channel_high_water = 0;
     }
 
     /// Get current frames in flight count

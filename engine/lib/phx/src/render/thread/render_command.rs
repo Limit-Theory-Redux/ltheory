@@ -742,7 +742,213 @@ impl Default for VertexFormat {
     }
 }
 
+/// Coarse cost category for [`RenderCommand`], used by the stats dashboard to
+/// show where render-thread time goes. Order matters: `ALL.len()` and the
+/// per-frame accumulator arrays in the executor are indexed by discriminant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum CmdCategory {
+    /// Viewport/scissor/blend/depth/cull/wireframe state changes
+    State,
+    /// Shader bind/unbind (also what invalidates the texture cache)
+    Shader,
+    /// SetUniform* by location or by name
+    Uniform,
+    /// BindTexture*/UnbindTexture
+    Texture,
+    /// Texture parameter/upload/texel commands
+    TextureData,
+    /// Blocking readbacks (glReadPixels etc.)
+    Readback,
+    /// FBO push/pop/attach, draw buffers, clear
+    Framebuffer,
+    /// Mesh bind/unbind
+    Mesh,
+    /// DrawMesh*/DrawImmediate
+    Draw,
+    /// Shader/texture/mesh creation, destroy, reload
+    Resource,
+    /// Camera/material/light UBO updates
+    Ubo,
+    /// SwapBuffers, fences, flush, resize, shutdown
+    Sync,
+}
+
+impl CmdCategory {
+    pub const ALL: [CmdCategory; 12] = [
+        CmdCategory::State,
+        CmdCategory::Shader,
+        CmdCategory::Uniform,
+        CmdCategory::Texture,
+        CmdCategory::TextureData,
+        CmdCategory::Readback,
+        CmdCategory::Framebuffer,
+        CmdCategory::Mesh,
+        CmdCategory::Draw,
+        CmdCategory::Resource,
+        CmdCategory::Ubo,
+        CmdCategory::Sync,
+    ];
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            CmdCategory::State => "state",
+            CmdCategory::Shader => "shader",
+            CmdCategory::Uniform => "uniform",
+            CmdCategory::Texture => "texture",
+            CmdCategory::TextureData => "texture_data",
+            CmdCategory::Readback => "readback",
+            CmdCategory::Framebuffer => "framebuffer",
+            CmdCategory::Mesh => "mesh",
+            CmdCategory::Draw => "draw",
+            CmdCategory::Resource => "resource",
+            CmdCategory::Ubo => "ubo",
+            CmdCategory::Sync => "sync",
+        }
+    }
+
+    pub fn index(&self) -> usize {
+        *self as usize
+    }
+}
+
 impl RenderCommand {
+    /// Coarse cost category used by the stats dashboard. Commands in the same
+    /// category have similar per-command GPU/driver cost, so summing counts
+    /// and execution time per category shows *where* the render thread's
+    /// frame time actually goes (draws vs uniforms vs texture binds vs …).
+    pub fn category(&self) -> CmdCategory {
+        use RenderCommand::*;
+        match self {
+            // === State Management ===
+            SetViewport { .. }
+            | SetScissor { .. }
+            | EnableScissor(_)
+            | SetBlendMode(_)
+            | SetCullFace(_)
+            | SetDepthTest(_)
+            | SetDepthWritable(_)
+            | SetWireframe(_)
+            | SetLineWidth(_)
+            | SetPointSize(_) => CmdCategory::State,
+
+            // === Shader Operations ===
+            BindShader { .. } | BindShaderByResource { .. } | UnbindShader => CmdCategory::Shader,
+
+            // === Uniform Operations ===
+            SetUniformInt { .. }
+            | SetUniformInt2 { .. }
+            | SetUniformInt3 { .. }
+            | SetUniformInt4 { .. }
+            | SetUniformFloat { .. }
+            | SetUniformFloat2 { .. }
+            | SetUniformFloat3 { .. }
+            | SetUniformFloat4 { .. }
+            | SetUniformMat4 { .. }
+            | SetUniformIntByName { .. }
+            | SetUniformInt2ByName { .. }
+            | SetUniformInt3ByName { .. }
+            | SetUniformInt4ByName { .. }
+            | SetUniformFloatByName { .. }
+            | SetUniformFloat2ByName { .. }
+            | SetUniformFloat3ByName { .. }
+            | SetUniformFloat4ByName { .. }
+            | SetUniformMat4ByName { .. } => CmdCategory::Uniform,
+
+            // === Texture Binding ===
+            BindTexture2D { .. }
+            | BindTexture2DByResource { .. }
+            | BindTexture1DByResource { .. }
+            | BindTexture3D { .. }
+            | BindTexture3DByResource { .. }
+            | BindTextureCube { .. }
+            | BindTextureCubeByResource { .. }
+            | UnbindTexture { .. } => CmdCategory::Texture,
+
+            // === Texture State / Data ===
+            SetTexture2DMagFilter { .. }
+            | SetTexture2DMinFilter { .. }
+            | SetTexture2DWrapMode { .. }
+            | SetTexture2DMipRange { .. }
+            | GenerateMipmap2D { .. }
+            | UpdateTexture2DData { .. }
+            | UpdateTexture2DDataByResource { .. }
+            | SetTexture2DAnisotropy { .. }
+            | SetTexture2DAnisotropyByResource { .. }
+            | SetTexture2DMipRangeByResource { .. }
+            | SetTexel1DByResource { .. }
+            | SetTexel2DByResource { .. }
+            | SetTextureMagFilterByResource { .. }
+            | SetTextureMinFilterByResource { .. }
+            | SetTextureWrapModeByResource { .. }
+            | GenerateMipmapByResource { .. }
+            | UpdateTexture1DDataByResource { .. }
+            | UpdateTexture3DDataByResource { .. }
+            | UpdateTextureCubeFaceDataByResource { .. }
+            | CopyTexture2DFromFramebufferByResource { .. } => CmdCategory::TextureData,
+
+            // === Blocking Readbacks ===
+            ReadTexture1DData { .. }
+            | ReadTexture2DData { .. }
+            | ReadTexture3DData { .. }
+            | ReadTextureCubeFaceData { .. }
+            | SamplePixel2DByResource { .. }
+            | ReadFramebufferPixels { .. } => CmdCategory::Readback,
+
+            // === Framebuffer Operations ===
+            PushFramebuffer { .. }
+            | PopFramebuffer
+            | FramebufferAttachTexture2D { .. }
+            | FramebufferAttachTexture2DByResource { .. }
+            | FramebufferAttachTexture3D { .. }
+            | FramebufferAttachTexture3DByResource { .. }
+            | FramebufferAttachTextureCube { .. }
+            | FramebufferAttachTextureCubeByResource { .. }
+            | SetDrawBuffers { .. }
+            | BindFramebuffer { .. }
+            | BindDefaultFramebuffer
+            | Clear { .. } => CmdCategory::Framebuffer,
+
+            // === Mesh Operations ===
+            BindMesh { .. } | BindMeshByResource { .. } | UnbindMesh => CmdCategory::Mesh,
+
+            // === Drawing Operations ===
+            DrawMesh { .. }
+            | DrawMeshInstanced { .. }
+            | DrawMeshByResource { .. }
+            | DrawMeshInstancedByResource { .. }
+            | DrawInstancedWithData { .. }
+            | DrawImmediate { .. } => CmdCategory::Draw,
+
+            // === Resource Creation / Destruction ===
+            CreateShader { .. }
+            | GetUniformLocationByResource { .. }
+            | ReloadShader { .. }
+            | CreateTexture1D { .. }
+            | CreateTexture2D { .. }
+            | CreateTexture3D { .. }
+            | CreateTextureCube { .. }
+            | CreateMesh { .. }
+            | DestroyResources { .. } => CmdCategory::Resource,
+
+            // === Uniform Buffer Objects ===
+            CreateCameraUBO
+            | UpdateCameraUBO { .. }
+            | CreateMaterialUBO
+            | UpdateMaterialUBO { .. }
+            | CreateLightUBO
+            | UpdateLightUBO { .. } => CmdCategory::Ubo,
+
+            // === Window / Synchronization ===
+            Resize { .. }
+            | SwapBuffers
+            | Flush
+            | Fence { .. }
+            | PacingFence { .. }
+            | Shutdown => CmdCategory::Sync,
+        }
+    }
+
     /// Returns true if this command modifies GPU state
     pub fn is_state_change(&self) -> bool {
         matches!(

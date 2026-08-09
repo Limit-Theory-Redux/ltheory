@@ -27,6 +27,40 @@ pub struct RenderStats {
     pub commands_last_frame: u64,
     /// Draw calls in the last frame
     pub draw_calls_last_frame: u64,
+    /// State changes in the last frame (per-frame equivalent of the
+    /// cumulative counter)
+    pub state_changes_last_frame: u64,
+    /// Time blocked inside `swap_buffers` (vsync wait) in the last frame
+    pub present_wait_us: u64,
+    /// Texture binds actually issued in the last frame (cache misses)
+    pub texture_bind_calls_last_frame: u64,
+    /// Texture binds skipped due to caching in the last frame
+    pub texture_binds_skipped_last_frame: u64,
+    /// Texture cache invalidations in the last frame
+    pub texture_cache_invalidations_last_frame: u64,
+    /// Texture cache invalidations in the last frame, by source
+    pub texture_invalidations_on_shader_bind_last_frame: u64,
+    pub texture_invalidations_on_shader_unbind_last_frame: u64,
+    /// Draw calls in the last frame, split by kind
+    pub draw_mesh_calls_last_frame: u64,
+    pub draw_immediate_calls_last_frame: u64,
+    pub draw_instanced_calls_last_frame: u64,
+    /// Vertices submitted via DrawImmediate in the last frame
+    pub immediate_vertices_last_frame: u64,
+    /// Instance-data items submitted in the last frame
+    pub instanced_data_items_last_frame: u64,
+    /// Uniform-location cache hits vs driver round-trips in the last frame
+    pub uniform_cache_hits_last_frame: u64,
+    pub uniform_cache_misses_last_frame: u64,
+    /// Command counts per category in the last frame (CmdCategory order)
+    pub category_counts_last_frame: [u64; 12],
+    /// Executor time per category in the last frame, microseconds
+    /// (all zero when the dashboard isn't active; timing is opt-in)
+    pub category_time_us_last_frame: [u64; 12],
+    /// Time the render thread was blocked waiting for commands (producer
+    /// starvation), last frame, microseconds + number of starvation waits
+    pub recv_wait_us_last_frame: u64,
+    pub recv_wait_count_last_frame: u64,
     /// Texture binds skipped due to caching (cumulative)
     pub texture_binds_skipped: u64,
 }
