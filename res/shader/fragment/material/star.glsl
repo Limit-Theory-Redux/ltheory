@@ -2,8 +2,6 @@
 #include deferred
 #include math
 
-#autovar vec3 eye
-
 uniform sampler2D sunTex;
 uniform vec3 origin;
 uniform vec3 starTint;

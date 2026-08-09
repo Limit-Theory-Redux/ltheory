@@ -280,6 +280,12 @@ impl Renderer {
         let view = Mat4::from_cols_array(&m_view.to_cols_array());
         let proj = Mat4::from_cols_array(&m_proj.to_cols_array());
         data.set_view(&view);
+        // Derived rather than passed in: the two Lua camera paths
+        // (CameraManager vs. legacy Camera) disagree on whether mViewInv's
+        // translation should be the real world-space position or zero, but
+        // both leave its rotation the exact inverse of `view`'s - which is
+        // all worldray.glsl (via mat3(mViewInv)) actually needs.
+        data.set_view_inv(&view.inverse());
         data.set_proj(&proj);
         data.set_eye(glam::vec3(eye_x, eye_y, eye_z));
         data.set_star_dir(glam::vec3(star_dir_x, star_dir_y, star_dir_z));

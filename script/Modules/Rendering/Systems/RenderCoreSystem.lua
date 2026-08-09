@@ -504,8 +504,10 @@ function RenderCoreSystem:deferredLighting()
         pointShader:start()
         for _, light in ipairs(self.pointLights) do
             local renderPos = light.pos:relativeTo(eye)
-            pointShader:setFloat3('lightPos', renderPos.x, renderPos.y, renderPos.z)
-            pointShader:setFloat3('lightColor', light.color.x, light.color.y, light.color.z)
+            Renderer:updateLightUbo(
+                renderPos.x, renderPos.y, renderPos.z, 0.0,
+                light.color.x, light.color.y, light.color.z, 1.0
+            )
             pointShader:setTex2D('texDepth', zBufferL)
             pointShader:setTex2D('texNormalMat', buffer1)
             Draw.Rect(-1, -1, 2, 2)

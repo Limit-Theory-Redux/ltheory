@@ -9,9 +9,6 @@
 
 #include vertex
 
-#autovar mat4 mView
-#autovar mat4 mProj
-
 void main() {
   VS_BEGIN
   normal = normalize(vertex_normal);

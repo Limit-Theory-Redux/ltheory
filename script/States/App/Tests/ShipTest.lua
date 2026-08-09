@@ -51,7 +51,7 @@ function ShipTest:onInit()
             placeholder.envMap  = Generator.Get('Nebula', nebulaRNG)(nebulaRNG, Config.gen.nebulaRes, placeholder.starDir)
             placeholder.irMap   = placeholder.envMap:genIRMap(256)
             placeholder.stars   = Starfield(nebulaRNG, Config.gen.nStars(nebulaRNG))
-            ShaderVar.PushFloat3('starDir', placeholder.starDir.x, placeholder.starDir.y, placeholder.starDir.z)
+            CameraManager:setStarDir(placeholder.starDir)
             ShaderVar.PushTexCube('envMap', placeholder.envMap)
             ShaderVar.PushTexCube('irMap', placeholder.irMap)
         end

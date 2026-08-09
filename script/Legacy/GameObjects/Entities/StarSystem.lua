@@ -11,6 +11,7 @@ local Dust = require('Legacy.GameObjects.Entities.Effects.Dust')
 local Nebula = require('Legacy.GameObjects.Entities.Objects.Nebula')
 local Words = require('Legacy.Systems.Gen.Words')
 local HUD = require('Legacy.Systems.Overlay.HUD')
+local Camera = require('Legacy.Systems.Camera.Camera')
 
 ---@class StarSystem: Entity
 local System = Subclass("System", Entity, function(self, seed)
@@ -285,7 +286,7 @@ end
 
 function System:beginRender()
     self.nebula:forceLoad()
-    ShaderVar.PushFloat3('starDir', self.starDir.x, self.starDir.y, self.starDir.z)
+    Camera.get():setStarDir(self.starDir)
     ShaderVar.PushTexCube('envMap', self.nebula.envMap)
     ShaderVar.PushTexCube('irMap', self.nebula.irMap)
 end
@@ -297,7 +298,6 @@ function System:render(state)
 end
 
 function System:endRender()
-    ShaderVar.Pop('starDir')
     ShaderVar.Pop('envMap')
     ShaderVar.Pop('irMap')
 end

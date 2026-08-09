@@ -8,7 +8,6 @@
 
 #autovar samplerCube irMap
 #autovar samplerCube envMap
-#autovar vec3 eye
 
 uniform float scale;
 uniform float edgeDarkness;

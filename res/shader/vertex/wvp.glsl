@@ -9,9 +9,6 @@
 
 #include vertex
 
-#autovar mat4 mView
-#autovar mat4 mProj
-
 out vec3 objPos;
 
 void main() {

@@ -9,7 +9,6 @@ uniform samplerCube envMapLF;
 uniform samplerCube irMap;
 
 uniform vec3 ambient;
-uniform vec3 eye;
 uniform float fogDensity;
 uniform vec2 rcpFrame;
 uniform vec3 starColor;

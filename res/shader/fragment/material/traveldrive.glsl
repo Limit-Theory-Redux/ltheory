@@ -3,8 +3,6 @@
 #include math
 #include noise
 
-#autovar vec3 eye
-
 uniform float intensity;
 uniform float driveSpeed;
 uniform float time;

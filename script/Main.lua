@@ -17,6 +17,10 @@ function SetEngine(engine)
     Window = Engine:window()
     Gui = Engine:hmGui()
     Renderer = Engine:renderer()
+
+    -- Must exist before any shader that #includes camera_ubo/light_ubo binds.
+    Renderer:createCameraUbo()
+    Renderer:createLightUbo()
 end
 
 function InitSystem()

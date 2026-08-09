@@ -69,8 +69,10 @@ function GameView:draw(focus, active)
             for i, v in ipairs(lights) do
                 -- TODO : Batching
                 local renderPos = v.pos:relativeTo(eye)
-                shader:setFloat3('lightPos', renderPos.x, renderPos.y, renderPos.z)
-                shader:setFloat3('lightColor', v.color.x, v.color.y, v.color.z)
+                Renderer:updateLightUbo(
+                    renderPos.x, renderPos.y, renderPos.z, 0.0,
+                    v.color.x, v.color.y, v.color.z, 1.0
+                )
                 shader:setTex2D('texDepth', self.renderer.zBufferL)
                 shader:setTex2D('texNormalMat', self.renderer.buffer1)
                 Draw.Rect(-1, -1, 2, 2)

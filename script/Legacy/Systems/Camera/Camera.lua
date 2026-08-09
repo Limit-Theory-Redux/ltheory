@@ -15,9 +15,22 @@ local Camera = Class("Camera", function(self)
     self.mProj     = Matrix.Identity()
     self.mViewInv  = Matrix.Identity()
     self.mProjInv  = Matrix.Identity()
+    self.starDir   = Vec3f(0, 1, 0)
 end)
 
 local stack = {}
+
+---Set the star (primary light) direction used by the Camera UBO
+---@param dir Vec3f Star direction vector
+function Camera:setStarDir(dir)
+    self.starDir = dir
+end
+
+---Get the current star direction
+---@return Vec3f dir Current star direction
+function Camera:getStarDir()
+    return self.starDir
+end
 
 function Camera:beginDraw()
     self:push()
@@ -27,6 +40,13 @@ function Camera:beginDraw()
     ShaderVar.PushMatrix('mProj', self.mProj)
     ShaderVar.PushMatrix('mProjInv', self.mProjInv)
     ShaderVar.PushFloat3('eye', 0.0, 0.0, 0.0)
+
+    local sd = self.starDir
+    Renderer:updateCameraUbo(
+        self.mView, self.mProj,
+        0.0, 0.0, 0.0,
+        sd.x, sd.y, sd.z
+    )
 end
 
 function Camera:endDraw()

@@ -15,6 +15,7 @@ uniform sampler1D lutB;
 uniform float roughness;
 uniform float seed;
 uniform float brightnessScale;
+uniform vec3 genStarDir;
 
 const float kScale      = 0.040;
 const float kSamples    = 128.00;
@@ -58,7 +59,7 @@ vec4 generate(vec3 dir) {
 
   /* Central Star. */ {
     /* Dots between normalized Vec3fs may still be > 1 due to fp precision! */
-    float d = max(0.0, 1.0 - dot(dir, starDir));
+    float d = max(0.0, 1.0 - dot(dir, genStarDir));
     float dd = 0.0;
     dd += 8.0 * exp(-sqrt(4096.0 * d));
     dd += 4.0 * exp(-sqrt(sqrt(1024.0 * d)));

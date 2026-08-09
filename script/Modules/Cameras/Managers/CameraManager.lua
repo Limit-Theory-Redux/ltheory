@@ -31,6 +31,21 @@ function CameraManager:registerVars()
 
     ---@type TransformComponent|nil
     self.activeCameraTransform = nil
+
+    ---@type Vec3f Primary light direction, pushed to the Camera UBO in beginDraw
+    self.starDir = Vec3f(0, 1, 0)
+end
+
+---Set the star (primary light) direction used by the Camera UBO
+---@param dir Vec3f Star direction vector
+function CameraManager:setStarDir(dir)
+    self.starDir = dir
+end
+
+---Get the current star direction
+---@return Vec3f dir Current star direction
+function CameraManager:getStarDir()
+    return self.starDir
 end
 
 ---Register a camera entity with a unique name
@@ -226,6 +241,13 @@ function CameraManager:beginDraw()
 
     --local eye = self:getEye()
     ShaderVar.PushFloat3('eye', 0.0, 0.0, 0.0) -- needs to use 0,0,0 for camera-relative
+
+    local sd = self.starDir
+    Renderer:updateCameraUbo(
+        camData:getView(), camData:getProjection(),
+        0.0, 0.0, 0.0, -- eye at origin (camera-relative)
+        sd.x, sd.y, sd.z
+    )
 end
 
 ---End drawing with the active camera (pops shader variables)

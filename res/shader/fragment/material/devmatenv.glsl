@@ -4,7 +4,6 @@
 
 #autovar samplerCube envMap
 #autovar samplerCube irMap
-#autovar vec3 eye
 
 float glossToLOD(float gloss) {
   return 8.0 * (pow(2.0, gloss) - 1.0);
