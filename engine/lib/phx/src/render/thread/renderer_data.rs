@@ -2,7 +2,8 @@ use crossbeam::channel::{Receiver, Sender};
 
 use crate::render::{
     ClipManager, DrawState, PrimitiveBuilder, RenderBatch, RenderCommand, RenderStateIntern,
-    RenderTargetStack, ResourceId, Shader, ShaderVarMap, VpStack,
+    RenderTargetStack, ResourceId, Shader, ShaderErrorQueue, ShaderVarMap, ShaderWatcherInner,
+    VpStack,
 };
 
 pub struct RendererData {
@@ -34,6 +35,10 @@ pub struct RendererData {
     pub(crate) draw_state: DrawState,
     /// Shader auto-var stack (was `static OnceLock<Mutex<ShaderVar>>`)
     pub(crate) shader_vars: ShaderVarMap,
+    /// Shader compile/reload error queue, for the hot-reload error overlay
+    pub(crate) shader_errors: ShaderErrorQueue,
+    /// File-watcher state for shader hot-reload; `None` until `ShaderWatcher::Init` runs
+    pub(crate) shader_watcher: Option<ShaderWatcherInner>,
     /// Lazily-created shader for `Mesh::compute_ao` (was `static mut SHADER`)
     pub(crate) ao_shader: Option<Shader>,
     /// Lazily-created shader for `Mesh::compute_occlusion` (was `static mut SHADER`)

@@ -45,6 +45,7 @@ kira = { version = "0.9", features = ["symphonia", "cpal", "serde"] }
 libc = "0.2"
 memoffset = "0.9"
 mlua = { version = "0.10", features = ["luajit52", "vendored", "error-send"] }
+notify = "6.1"
 parley = "0.1"
 swash = "0.2"
 rapier3d-f64 = { version = "0.22", features = ["simd-stable", "debug-render"] }

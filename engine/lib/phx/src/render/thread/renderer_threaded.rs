@@ -11,7 +11,8 @@ use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
     PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats, RenderTargetStack,
     RenderThreadConfig, RenderThreadError, RendererData, ResourceHandle, ResourceId,
-    ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat, TexWrapMode, VertexFormat, VpStack,
+    ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat, TexWrapMode,
+    VertexFormat, VpStack,
 };
 use crate::window::{WindowError, WindowGlContext};
 
@@ -175,6 +176,8 @@ impl Renderer {
                 imm: PrimitiveBuilder::new(),
                 draw_state: DrawState::new(),
                 shader_vars: ShaderVarMap::new(),
+                shader_errors: ShaderErrorQueue::new(),
+                shader_watcher: None,
                 ao_shader: None,
                 occlusion_shader: None,
                 irmap_shader: None,

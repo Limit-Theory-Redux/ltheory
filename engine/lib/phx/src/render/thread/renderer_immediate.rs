@@ -7,8 +7,8 @@ use crate::render::thread::{CommandExecutor, CommandReply, RendererData, process
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
     PrimitiveBuilder, RenderStateIntern, RenderStats, RenderTargetStack, RenderThreadError,
-    ResourceHandle, ResourceId, ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat,
-    TexWrapMode, VertexFormat, VpStack,
+    ResourceHandle, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
+    TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::WindowGlContext;
 
@@ -50,6 +50,8 @@ impl Renderer {
                 imm: PrimitiveBuilder::new(),
                 draw_state: DrawState::new(),
                 shader_vars: ShaderVarMap::new(),
+                shader_errors: ShaderErrorQueue::new(),
+                shader_watcher: None,
                 ao_shader: None,
                 occlusion_shader: None,
                 irmap_shader: None,
@@ -80,6 +82,8 @@ impl Renderer {
                 imm: PrimitiveBuilder::new(),
                 draw_state: DrawState::new(),
                 shader_vars: ShaderVarMap::new(),
+                shader_errors: ShaderErrorQueue::new(),
+                shader_watcher: None,
                 ao_shader: None,
                 occlusion_shader: None,
                 irmap_shader: None,

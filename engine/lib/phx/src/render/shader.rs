@@ -121,8 +121,19 @@ impl Shader {
             auto_var_keys.insert(v.name.as_str());
         }
 
-        let handle = create_shader_blocking(r, &vs_code.code, &fs_code.code)
-            .unwrap_or_else(|e| panic!("Failed to create shader {name}: {e}"));
+        let (handle, auto_vars) = match create_shader_blocking(r, &vs_code.code, &fs_code.code) {
+            Ok(handle) => (handle, auto_vars),
+            Err(e) => {
+                r.data.shader_errors.push(
+                    &shader_error_key(&vs_name, &fs_name, &name),
+                    "compile",
+                    &e,
+                );
+                warn!("Shader '{name}' failed to compile, using error shader: {e}");
+                // No autovars from a shader that doesn't declare any of them.
+                (create_error_shader_handle(r), Vec::new())
+            }
+        };
 
         let mut shader = Shader {
             shared: Rf::new(ShaderShared {
@@ -289,6 +300,9 @@ impl Shader {
         let new_handle = match create_shader_blocking(r, &vs_code.code, &fs_code.code) {
             Ok(handle) => handle,
             Err(e) => {
+                r.data
+                    .shader_errors
+                    .push(&format!("{vs_name}:{fs_name}"), "compile", &e);
                 warn!("Shader '{name}' reload failed: {e}");
                 return false;
             }
@@ -537,6 +551,36 @@ impl Shader {
         self.shared.as_mut().is_bound = false;
         r.unbind_shader();
     }
+}
+
+/// Key used to attribute a compile/reload error to a shader in the error
+/// queue, matching the canonical `vs:fs` cache key used everywhere else
+/// (`Cache.lua`, `ShaderWatcher`). Falls back to the shader's display name
+/// for anonymous shaders (`Shader.Create`), which have no source paths.
+fn shader_error_key(vs_name: &Option<String>, fs_name: &Option<String>, name: &str) -> String {
+    match (vs_name, fs_name) {
+        (Some(vs), Some(fs)) => format!("{vs}:{fs}"),
+        _ => name.to_string(),
+    }
+}
+
+/// Minimal magenta placeholder shader used when a shader fails to compile on
+/// first load, so a broken shader renders visibly wrong instead of crashing
+/// the whole application. Deliberately has no autovars/uniforms - its only
+/// job is to compile and be unmistakably obvious on screen.
+fn create_error_shader_handle(r: &mut Renderer) -> ResourceHandle {
+    const ERROR_VS: &str = "#version 330\n\
+        in vec3 vertex_position;\n\
+        void main() {\n\
+        \x20   gl_Position = vec4(vertex_position, 1.0);\n\
+        }\n";
+    const ERROR_FS: &str = "#version 330\n\
+        out vec4 fragColor;\n\
+        void main() {\n\
+        \x20   fragColor = vec4(1.0, 0.0, 1.0, 1.0);\n\
+        }\n";
+
+    create_shader_blocking(r, ERROR_VS, ERROR_FS).expect("Failed to compile fallback error shader")
 }
 
 /// Compile+link a shader on the render thread and block for the result.

@@ -1,5 +1,7 @@
 local Bindings = require('States.ApplicationBindings')
 local MainMenu = require('Legacy.Systems.Menus.MainMenu')
+local ShaderHotReload = require('Render.ShaderHotReload')
+local ShaderErrorOverlay = require('Shared.Tools.ShaderErrorOverlay')
 
 ---@class Application
 local Application = Class("Application", function(self) end)
@@ -42,6 +44,8 @@ function Application:eventLoop()
 end
 
 function Application:appInit()
+    ShaderHotReload:init()
+
     self.eventsRegistered = false
     self.resX, self.resY = self:getDefaultSize()
 
@@ -99,6 +103,8 @@ function Application:onSim(data) end
 function Application:onPostSim(data) end
 
 function Application:onPreRender(data)
+    ShaderHotReload:update()
+
     if self.toggleProfiler then
         self.toggleProfiler = false
         self.profiling = not self.profiling
@@ -215,6 +221,8 @@ function Application:onPostRender(data)
     Profiler.SetValue('gc_debug_emergencyTriggered', GC.debug.emergencyTriggered and 1 or 0)
     Profiler.SetValue('gc_debug_spreadFrames', GC.debug.spreadFrames)
 
+    self:immediateUI(function() ShaderErrorOverlay:draw() end)
+
     Profiler.End()
 end
 
@@ -223,6 +231,11 @@ function Application:onPreInput(data) end
 function Application:onInput(data)
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onInput')
+
+    if ShaderErrorOverlay:handleInput() then
+        Profiler.End()
+        return
+    end
 
     if Input:isKeyboardAltPressed() and Input:isPressed(Button.KeyboardQ) then self:quit() end
     if Input:isPressed(Bindings.Exit) then self:quit() end

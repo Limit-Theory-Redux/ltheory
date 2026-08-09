@@ -5,10 +5,16 @@ local fonts    = {}
 local shaders  = {}
 local textures = {}
 
+-- Track shader key -> {vsPath, fsPath} so already-cached shaders (many are
+-- loaded eagerly at `require`-time, e.g. via MaterialDefs, before
+-- ShaderHotReload:init() runs) can be registered with the watcher later.
+local shaderInfo = {}
+
 function Cache.Clear()
     for k, v in pairs(shaders) do v:free() end
     for k, v in pairs(textures) do v:free() end
     shaders = {}
+    shaderInfo = {}
     textures = {}
 end
 
@@ -50,12 +56,45 @@ function Cache.Font(name, size)
 end
 
 function Cache.Shader(vs, fs)
-    local key = vs .. fs
+    local key = vs .. ':' .. fs
     local self = shaders[key]
     if self then return self end
-    self = Shader.Load('vertex/' .. vs, 'fragment/' .. fs)
+
+    local vsPath = 'vertex/' .. vs
+    local fsPath = 'fragment/' .. fs
+    self = Shader.Load(vsPath, fsPath)
     shaders[key] = self
+    shaderInfo[key] = { vsPath = vsPath, fsPath = fsPath }
+
+    if ShaderWatcher and ShaderWatcher.IsActive() then
+        local vsFile = Resource.GetPath(ResourceType.Shader, vsPath)
+        local fsFile = Resource.GetPath(ResourceType.Shader, fsPath)
+        ShaderWatcher.Register(key, vsFile, fsFile)
+    end
+
     return self
+end
+
+--- Look up an already-cached shader by its canonical `vs:fs` key.
+--- Used by ShaderHotReload to reload the exact Shader object in place.
+function Cache.GetShader(key)
+    return shaders[key]
+end
+
+--- All currently-cached shader keys ('vs:fs').
+--- Used by ShaderHotReload to catch up shaders that were cached before the
+--- watcher was initialized.
+function Cache.GetShaderKeys()
+    local keys = {}
+    for key in pairs(shaders) do
+        table.insert(keys, key)
+    end
+    return keys
+end
+
+--- {vsPath, fsPath} for a cached shader key, or nil.
+function Cache.GetShaderInfo(key)
+    return shaderInfo[key]
 end
 
 function Cache.Texture(name, filtered)
