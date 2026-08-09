@@ -262,55 +262,39 @@ function RenderCoreSystem:handleResize()
 end
 
 function RenderCoreSystem:renderInOrder(blendMode)
-    local eye = CameraManager:getEye()
-
-    -- One `RenderBatch` for the whole pass (reuses its backing storage across
-    -- entities - `beginBatch` allocates a 1024-entity Vec, so this must not
-    -- be called per entity). Each entity is still flushed individually right
-    -- below its own `applyCachedVars` call: the batch's commands only reach
-    -- the render thread on `Renderer:flush()`, so flushing per-entity keeps
-    -- them correctly interleaved with that entity's (immediately-submitted)
-    -- material uniforms instead of letting every entity's uniforms land
-    -- before any of their draws.
-    Renderer:beginBatch(CameraManager:getViewMatrix(), CameraManager:getProjectionMatrix(), 0, 0, 0)
+    local lastMaterial = nil
 
     for entity in Registry:view(RenderComp) do
         local rend = entity:get(RenderComp)
         if not rend:isVisible() then goto next_render end
         if rend:getRenderFn() then
             rend:getRenderFn()(entity, blendMode)
+            -- Custom render fn may have left arbitrary shader state bound.
+            lastMaterial = nil
         elseif rend:getMeshes() then
             for meshmat in Iterator(rend:getMeshes()) do
                 local mat = meshmat.material
                 if (mat:getBlendMode() or BlendMode.Disabled) == blendMode then
                     local sh = mat:getShaderState()
+
+                    -- start() resets the texture-unit counter, so it must
+                    -- run per mesh (cannot be skipped for shared shaders);
+                    -- its auto-var re-application is already skipped inside
+                    -- by the var-stack revision check, and the redundant
+                    -- BindShader command is suppressed on the main thread.
                     sh:start()
 
-                    self:applyCachedVars(mat, entity)
+                    -- Material-level vars only change when the material
+                    -- changes (they're constant across instances of the
+                    -- same material), so apply them once per material.
+                    if mat ~= lastMaterial then
+                        self:applyMaterialVars(mat, sh)
+                        lastMaterial = mat
+                    end
 
-                    local mesh = meshmat.mesh
-                    local rb = entity:get(RigidBodyComponent):getRigidBody()
-                    -- Camera-relative world transform, matching what every
-                    -- entity's mWorld/mWorldIT auto vars already use
-                    -- (ShaderVarFuncs.mWorldFunc) - this engine renders with
-                    -- the camera at the origin for float precision far from
-                    -- world origin, so raw TransformComponent coordinates
-                    -- would be the wrong space here.
-                    local transform = rb:getToWorldMatrix(eye)
-                    local center = transform:mulPoint(mesh:getCenter())
-                    local radius = mesh:getRadius() * rb:getScale()
-                    Renderer:addEntity(
-                        transform,
-                        center.x, center.y, center.z, radius,
-                        mesh:resourceId(),
-                        mesh:getIndexCount(),
-                        sh:shader():resourceId(),
-                        0 -- single-entity flush below; grouping doesn't apply
-                    )
-                    Renderer:flushBatch()
-                    Renderer:flush()
+                    self:applyInstanceVars(mat, entity)
 
-                    sh:stop()
+                    meshmat.mesh:draw()
                 end
             end
         end
@@ -372,10 +356,8 @@ function RenderCoreSystem:cacheData()
     end
 end
 
-function RenderCoreSystem:applyCachedVars(mat, entity)
-    local shader = mat:getShaderState():shader()
-
-    -- material level
+function RenderCoreSystem:applyMaterialVars(mat, shader)
+    -- material level (constant across all instances of the material)
     local matCache = self.materialCache[mat]
     if matCache then
         for varObj, entry in pairs(matCache) do
@@ -385,12 +367,15 @@ function RenderCoreSystem:applyCachedVars(mat, entity)
             end
         end
     end
+end
 
+function RenderCoreSystem:applyInstanceVars(mat, entity)
     -- instance level (per-entity)
     local instCache = self.instanceCache[entity.id]
     if instCache then
         local matInst = instCache[mat]
         if matInst then
+            local shader = mat:getShaderState():shader()
             for varObj, entry in pairs(matInst) do
                 if varObj.uniformInt then
                     local fn = UniformFuncs[entry.type]

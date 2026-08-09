@@ -48,6 +48,12 @@ struct ShaderShared {
     is_bound: bool,
     tex_index: gl::types::GLenum,
     pending_uniforms: Vec<SetUniformOp>,
+    /// Revision of the shader-var stack at the last auto-var application. If
+    /// unchanged at `start()`, the auto-var loop is skipped entirely - the
+    /// stack values (camera matrices etc.) are identical to what this program
+    /// already received, and GL uniform state persists across `glUseProgram`.
+    /// Forced re-apply after reload via `u64::MAX`.
+    last_auto_var_revision: u64,
     /// Last value sent for each uniform index, used to skip redundant
     /// uniform commands. The camera auto-vars (mView/mProj/etc.) are
     /// re-applied on every `start()` but rarely change, so without this
@@ -166,6 +172,7 @@ impl Shader {
                 tex_index: 0,
                 is_bound: false,
                 pending_uniforms: vec![],
+                last_auto_var_revision: u64::MAX,
                 last_uniform_values: HashMap::new(),
             }),
         };
@@ -369,6 +376,8 @@ impl Shader {
             // New program: uniform values and locations all reset, so the
             // dedup cache must not suppress re-sending anything.
             s.last_uniform_values.clear();
+            // Force auto-var re-application on next start() (new program).
+            s.last_auto_var_revision = u64::MAX;
         }
 
         // Re-bind auto variables with new program
@@ -574,30 +583,44 @@ impl Shader {
         }
 
         // Fetch and bind automatic variables from the shader var stack.
-        for i in 0..s.auto_vars.len() {
-            if s.auto_vars[i].index == -1 {
-                continue;
+        // The stack revision only bumps on push/pop; camera matrices are
+        // pushed once per frame, so re-applying them per draw is redundant
+        // (the values - and this program's uniform state - are unchanged).
+        // SAFETY: only skip when this shader has NO sampler auto-vars -
+        // samplers must re-apply every start() because their texture units
+        // are reallocated per draw and can be stolen by other shaders.
+        let has_sampler_auto_vars = s
+            .auto_vars
+            .iter()
+            .any(|v| v.type_name.starts_with("sampler"));
+        let stack_revision = r.data.shader_vars.revision();
+        if has_sampler_auto_vars || stack_revision != s.last_auto_var_revision {
+            for i in 0..s.auto_vars.len() {
+                if s.auto_vars[i].index == -1 {
+                    continue;
+                }
+
+                let Some(shader_var) = r.data.shader_vars.get(s.auto_vars[i].name.as_str()) else {
+                    warn!(
+                        "Shader variable stack does not contain variable <{}>",
+                        s.auto_vars[i].name,
+                    );
+                    continue;
+                };
+
+                if shader_var.get_glsl_type() != s.auto_vars[i].type_name {
+                    warn!(
+                        "Attempting to get stack of type <{}> for shader variable <{}> when existing stack has type <{}>",
+                        s.auto_vars[i].type_name,
+                        s.auto_vars[i].name,
+                        shader_var.get_glsl_type(),
+                    );
+                    continue;
+                }
+
+                s.index_set_uniform(r, s.auto_vars[i].index, shader_var);
             }
-
-            let Some(shader_var) = r.data.shader_vars.get(s.auto_vars[i].name.as_str()) else {
-                warn!(
-                    "Shader variable stack does not contain variable <{}>",
-                    s.auto_vars[i].name,
-                );
-                continue;
-            };
-
-            if shader_var.get_glsl_type() != s.auto_vars[i].type_name {
-                warn!(
-                    "Attempting to get stack of type <{}> for shader variable <{}> when existing stack has type <{}>",
-                    s.auto_vars[i].type_name,
-                    s.auto_vars[i].name,
-                    shader_var.get_glsl_type(),
-                );
-                continue;
-            }
-
-            s.index_set_uniform(r, s.auto_vars[i].index, shader_var);
+            s.last_auto_var_revision = stack_revision;
         }
 
         Profiler::end();

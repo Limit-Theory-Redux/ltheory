@@ -66,6 +66,11 @@ pub struct Renderer {
     pub(super) category_timing: Arc<AtomicBool>,
     /// Generic renderer data
     pub(crate) data: RendererData,
+    /// Last shader bind submitted, so identical consecutive binds can skip
+    /// the channel send entirely (the executor's current_program is already
+    /// that program). Mirrors the executor's program state across all bind
+    /// paths: raw-handle binds and unbinds invalidate it.
+    last_shader_bind: Option<u64>,
 }
 
 impl Renderer {
@@ -207,6 +212,7 @@ impl Renderer {
                 occlusion_shader: None,
                 irmap_shader: None,
             },
+            last_shader_bind: None,
         })
     }
 
@@ -587,14 +593,26 @@ impl Renderer {
 
     pub fn bind_shader_intern(&mut self, handle: GpuHandle) {
         self.submit(RenderCommand::BindShader { handle });
+        self.last_shader_bind = Some(handle.0 as u64);
     }
 
     pub fn bind_shader_by_resource(&mut self, id: ResourceId, shader_key: Option<String>) {
+        // Skip identical consecutive binds: the executor's current_program is
+        // already this program (uniform/texture commands between two binds of
+        // the same shader don't change the program), so the command would
+        // only be deduped on the render thread anyway. Saves the channel
+        // send + executor dispatch per redundant bind (~1,900/frame in the
+        // main menu, where every mesh re-binds its material's shader).
+        if shader_key.is_none() && self.last_shader_bind == Some(id.0) {
+            return;
+        }
         self.submit(RenderCommand::BindShaderByResource { id, shader_key });
+        self.last_shader_bind = Some(id.0);
     }
 
     pub fn unbind_shader_intern(&mut self) {
         self.submit(RenderCommand::UnbindShader);
+        self.last_shader_bind = None;
     }
 
     pub fn set_uniform_int_intern(&mut self, location: i32, value: i32) {

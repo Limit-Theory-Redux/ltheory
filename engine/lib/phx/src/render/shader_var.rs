@@ -75,13 +75,24 @@ pub struct ShaderVar;
 /// bound required (nothing sends this across threads).
 pub struct ShaderVarMap {
     var_map: HashMap<String, Vec<ShaderVarData>>,
+    /// Monotonic revision bumped on every push/pop. Shaders record the
+    /// revision at their last `start()` and skip re-applying auto-vars when
+    /// it's unchanged - camera matrices are pushed once per frame, so the
+    /// per-draw re-application loop collapses to once per (shader, revision).
+    revision: u64,
 }
 
 impl ShaderVarMap {
     pub fn new() -> Self {
         Self {
             var_map: HashMap::with_capacity(16),
+            revision: 0,
         }
+    }
+
+    /// Current stack revision - bumped on every push/pop.
+    pub fn revision(&self) -> u64 {
+        self.revision
     }
 
     /// Get the last element of the variable stack for this name, or None if it doesn't exist.
@@ -95,9 +106,11 @@ impl ShaderVarMap {
     fn push(&mut self, name: &str, data: ShaderVarData) {
         let stack = self.var_map.entry(name.into()).or_default();
         stack.push(data);
+        self.revision += 1;
     }
 
     fn pop(&mut self, name: &str) {
+        self.revision += 1;
         if let Some(stack) = self.var_map.get_mut(name) {
             if stack.pop().is_none() {
                 warn!("Attempting to pop empty stack <{:?}>", name);
