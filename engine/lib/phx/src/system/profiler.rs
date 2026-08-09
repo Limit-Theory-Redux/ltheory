@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 use std::sync::{LazyLock, Mutex, MutexGuard};
 
 use cli_table::{Cell, Style, Table};
@@ -62,6 +63,12 @@ pub struct Profiler {
 
 pub static PROFILER: LazyLock<Mutex<Profiler>> = LazyLock::new(Default::default);
 
+/// Cheap gate mirroring `Profiler::is_enabled`, read without the global mutex.
+/// `begin`/`end`/`loop_marker` are called from hot render paths (per glyph,
+/// per draw, per shader start) and previously locked the mutex even when the
+/// profiler was disabled; this atomic makes the disabled path lock-free.
+static PROFILER_ENABLED: AtomicBool = AtomicBool::new(false);
+
 #[luajit_ffi_gen::luajit_ffi]
 impl Profiler {
     /// Enables profiling and initializes the profiler state
@@ -74,6 +81,7 @@ impl Profiler {
             profiler.stack.clear();
             profiler.start = TimeStamp::now();
         }
+        PROFILER_ENABLED.store(true, AtomicOrdering::Release);
 
         Self::begin("[Root]");
 
@@ -82,6 +90,7 @@ impl Profiler {
 
     /// Disables profiling and processes results
     pub fn disable() {
+        PROFILER_ENABLED.store(false, AtomicOrdering::Release);
         let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         if profiler.stack.len() > 1 {
             panic!(
@@ -160,6 +169,9 @@ impl Profiler {
 
     /// Starts a new profiling scope
     pub fn begin(name: &str) {
+        if !PROFILER_ENABLED.load(AtomicOrdering::Acquire) {
+            return;
+        }
         let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         if !profiler.is_enabled {
             return;
@@ -191,6 +203,9 @@ impl Profiler {
 
     /// Ends the current profiling scope
     pub fn end() {
+        if !PROFILER_ENABLED.load(AtomicOrdering::Acquire) {
+            return;
+        }
         let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         Self::end_intern(&mut profiler, false);
     }
@@ -201,6 +216,9 @@ impl Profiler {
 
     /// Records frame timing for each active scope
     pub fn loop_marker() {
+        if !PROFILER_ENABLED.load(AtomicOrdering::Acquire) {
+            return;
+        }
         let mut profiler = PROFILER.lock().expect("Cannot lock profiler");
         if !profiler.is_enabled {
             return;

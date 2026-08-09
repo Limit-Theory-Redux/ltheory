@@ -12,6 +12,7 @@
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 
+use crate::render::uniform_dedup_skips;
 use super::Renderer;
 
 /// Shared sink holding the most recent [`StatsSnapshot`].
@@ -60,6 +61,10 @@ pub struct StatsSnapshot {
     pub shader_bind_commands_last_frame: u64,
     pub shader_redundant_binds_last_frame: u64,
     pub shader_distinct_programs_last_frame: u64,
+    /// Uniform sends skipped by the per-shader value dedup last frame - the
+    /// Lua→Rust crossings that were paid but produced no command. Shows the
+    /// hidden producer cost the command count doesn't capture.
+    pub uniform_dedup_skips_last_frame: u64,
     // --- main thread (from Renderer) ---
     /// Time blocked in `end_frame_triple_buffered` (frame-end pacing wait)
     pub main_thread_wait_us: u64,
@@ -127,6 +132,7 @@ impl Renderer {
             shader_bind_commands_last_frame: stats.shader_bind_commands_last_frame,
             shader_redundant_binds_last_frame: stats.shader_redundant_binds_last_frame,
             shader_distinct_programs_last_frame: stats.shader_distinct_programs_last_frame,
+            uniform_dedup_skips_last_frame: uniform_dedup_skips(),
             main_thread_wait_us: self.main_thread_wait_us,
             send_blocked_us_last_frame: self.send_blocked_us_last_frame,
             send_block_count_last_frame: self.send_block_count_last_frame,

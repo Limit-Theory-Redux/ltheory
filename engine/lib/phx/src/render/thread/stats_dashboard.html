@@ -58,6 +58,7 @@
   <div class="card" id="c-immvert"><div class="label">Immediate verts / frame</div><div class="value">-</div></div>
   <div class="card" id="c-starve"><div class="label">Render thread starved (recv wait)</div><div class="value">-</div><div class="sub">µs / waits — gap vs frame time</div></div>
   <div class="card" id="c-shader"><div class="label">Shader binds (total / redundant / distinct)</div><div class="value">-</div><div class="sub">redundant = same program rebound</div></div>
+  <div class="card" id="c-ffi"><div class="label">Uniform FFI crossings (sent / dedup-skipped)</div><div class="value">-</div><div class="sub">skips = paid in Lua, produced no command</div></div>
 </div>
 <div class="graphs">
   <canvas id="g-frame"></canvas>
@@ -191,6 +192,13 @@ async function poll() {
     $('c-shader').className = 'card ' + (redundantPct > 60 ? 'bad' : redundantPct > 25 ? 'warn' : 'good');
     $('c-shader').querySelector('.sub').textContent =
       redundantPct.toFixed(0) + '% redundant — churn signalled but no GL state change';
+    const unifSent = s.commands_last_frame > 0 ? s.uniform_dedup_skips_last_frame + s.commands_last_frame : 0;
+    $('c-ffi').querySelector('.value').textContent =
+      fmt(s.commands_last_frame) + ' / ' + fmt(s.uniform_dedup_skips_last_frame);
+    const skipPct = unifSent > 0 ? (100 * s.uniform_dedup_skips_last_frame / unifSent) : 0;
+    $('c-ffi').className = 'card ' + (skipPct > 40 ? 'warn' : 'good');
+    $('c-ffi').querySelector('.sub').textContent =
+      skipPct.toFixed(0) + '% of crossings rejected — hidden producer cost';
 
     renderCategories(s);
 

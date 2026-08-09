@@ -59,6 +59,7 @@ fn snapshot_to_json(s: &StatsSnapshot) -> String {
          \x20 \"shader_bind_commands_last_frame\": {},\n\
          \x20 \"shader_redundant_binds_last_frame\": {},\n\
          \x20 \"shader_distinct_programs_last_frame\": {},\n\
+         \x20 \"uniform_dedup_skips_last_frame\": {},\n\
          \x20 \"categories\": {{\n{}\x20 }}\n\
          }}",
         s.commands_processed,
@@ -93,6 +94,7 @@ fn snapshot_to_json(s: &StatsSnapshot) -> String {
         s.shader_bind_commands_last_frame,
         s.shader_redundant_binds_last_frame,
         s.shader_distinct_programs_last_frame,
+        s.uniform_dedup_skips_last_frame,
         cats.join(",\n\x20\x20"),
     )
 }

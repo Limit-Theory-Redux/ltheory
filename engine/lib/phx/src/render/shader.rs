@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4};
@@ -11,6 +12,19 @@ use crate::rf::Rf;
 use crate::system::{Profiler, Resource, ResourceType};
 
 const INCLUDE_PATH: &str = "include/";
+
+/// Counts uniform sends skipped by the per-shader value dedup (see
+/// `ShaderShared::apply_uniform`). These are Lua→Rust FFI crossings that were
+/// paid on the main thread but produced no render command; the stats dashboard
+/// reads-and-resets this once per frame to show the hidden producer cost that
+/// the command count doesn't capture.
+static UNIFORM_DEDUP_SKIPS: AtomicU64 = AtomicU64::new(0);
+
+/// Read-and-reset the dedup-skip counter (called once per frame by the stats
+/// snapshot publisher on the main thread).
+pub(crate) fn uniform_dedup_skips() -> u64 {
+    UNIFORM_DEDUP_SKIPS.swap(0, Ordering::Relaxed)
+}
 
 #[derive(Clone)]
 pub struct Shader {
@@ -221,6 +235,7 @@ impl ShaderShared {
         if !is_sampler {
             if let Some(prev) = self.last_uniform_values.get(&index) {
                 if prev.same_value(data) {
+                    UNIFORM_DEDUP_SKIPS.fetch_add(1, Ordering::Relaxed);
                     return;
                 }
             }
