@@ -84,9 +84,13 @@ impl CommandExecutor {
     pub(super) fn cmd_bind_shader(&mut self, handle: super::GpuHandle) {
         unsafe {
             if handle.0 != self.current_program {
-                // Invalidate texture cache when shader changes - different shaders
-                // expect different textures in the same slots (critical for post-fx)
-                self.invalidate_texture_cache_on_shader_bind();
+                // NOTE: deliberately do NOT invalidate the texture cache here.
+                // glUseProgram does not touch texture bindings; the cache keys
+                // on (slot, handle, type) and self-corrects when a different
+                // texture is bound. Invalidating on every shader switch was
+                // wiping the cache ~2k times/frame, keeping the hit rate at
+                // ~0% and forcing redundant glBindTexture calls.
+                self.texture_invalidations_on_shader_bind_this_frame += 1;
             }
             gl::UseProgram(handle.0);
             self.current_program = handle.0;
@@ -116,9 +120,9 @@ impl CommandExecutor {
 
         if let Some(p) = program {
             if p != self.current_program {
-                // Invalidate texture cache when shader changes - different shaders
-                // expect different textures in the same slots (critical for post-fx)
-                self.invalidate_texture_cache_on_shader_bind();
+                // NOTE: no texture-cache invalidation here either - see
+                // cmd_bind_shader: glUseProgram does not affect bindings.
+                self.texture_invalidations_on_shader_bind_this_frame += 1;
             }
             unsafe {
                 gl::UseProgram(p);
@@ -131,7 +135,12 @@ impl CommandExecutor {
 
     pub(super) fn cmd_unbind_shader(&mut self) {
         unsafe {
-            self.invalidate_texture_cache_on_shader_unbind();
+            // NOTE: deliberately do NOT invalidate the texture cache here.
+            // glUseProgram(0) leaves texture bindings untouched; the cache
+            // remains valid across program switches and self-corrects on any
+            // real texture change. Previously this wiped the cache on every
+            // shader stop (~2k/frame), destroying all reuse.
+            self.texture_invalidations_on_shader_unbind_this_frame += 1;
             gl::UseProgram(0);
             self.current_program = 0;
         }
@@ -341,8 +350,8 @@ impl CommandExecutor {
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, handle.0);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter as i32);
-            gl::BindTexture(gl::TEXTURE_2D, 0);
         }
+        self.restore_active_unit_binding();
     }
 
     pub(super) fn cmd_set_texture_2d_min_filter(
@@ -353,8 +362,8 @@ impl CommandExecutor {
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, handle.0);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter as i32);
-            gl::BindTexture(gl::TEXTURE_2D, 0);
         }
+        self.restore_active_unit_binding();
     }
 
     pub(super) fn cmd_set_texture_2d_wrap_mode(&self, handle: super::GpuHandle, mode: TexWrapMode) {
@@ -362,8 +371,8 @@ impl CommandExecutor {
             gl::BindTexture(gl::TEXTURE_2D, handle.0);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode as i32);
-            gl::BindTexture(gl::TEXTURE_2D, 0);
         }
+        self.restore_active_unit_binding();
     }
 
     pub(super) fn cmd_set_texture_2d_mip_range(
@@ -376,16 +385,16 @@ impl CommandExecutor {
             gl::BindTexture(gl::TEXTURE_2D, handle.0);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_BASE_LEVEL, min_level);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAX_LEVEL, max_level);
-            gl::BindTexture(gl::TEXTURE_2D, 0);
         }
+        self.restore_active_unit_binding();
     }
 
     pub(super) fn cmd_generate_mipmap_2d(&self, handle: super::GpuHandle) {
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, handle.0);
             gl::GenerateMipmap(gl::TEXTURE_2D);
-            gl::BindTexture(gl::TEXTURE_2D, 0);
         }
+        self.restore_active_unit_binding();
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -418,8 +427,8 @@ impl CommandExecutor {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::BindTexture(gl::TEXTURE_2D, 0);
         }
+        self.restore_active_unit_binding();
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -453,8 +462,8 @@ impl CommandExecutor {
                 gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
                 gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
                 gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-                gl::BindTexture(gl::TEXTURE_2D, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!("UpdateTexture2DDataByResource: resource {:?} not found", id);
         }
@@ -464,8 +473,8 @@ impl CommandExecutor {
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, handle.0);
             gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MAX_ANISOTROPY_EXT, factor);
-            gl::BindTexture(gl::TEXTURE_2D, 0);
         }
+        self.restore_active_unit_binding();
     }
 
     pub(super) fn cmd_set_texture_2d_anisotropy_by_resource(
@@ -477,8 +486,8 @@ impl CommandExecutor {
             unsafe {
                 gl::BindTexture(target, handle);
                 gl::TexParameterf(target, gl::TEXTURE_MAX_ANISOTROPY_EXT, factor);
-                gl::BindTexture(target, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!(
                 "SetTexture2DAnisotropyByResource: resource {:?} not found",
@@ -498,8 +507,8 @@ impl CommandExecutor {
                 gl::BindTexture(target, handle);
                 gl::TexParameteri(target, gl::TEXTURE_BASE_LEVEL, min_level);
                 gl::TexParameteri(target, gl::TEXTURE_MAX_LEVEL, max_level);
-                gl::BindTexture(target, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!(
                 "SetTexture2DMipRangeByResource: resource {:?} not found",
@@ -521,8 +530,8 @@ impl CommandExecutor {
                     gl::FLOAT,
                     color.as_ptr() as *const _,
                 );
-                gl::BindTexture(target, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!("SetTexel1DByResource: resource {:?} not found", id);
         }
@@ -549,8 +558,8 @@ impl CommandExecutor {
                     gl::FLOAT,
                     color.as_ptr() as *const _,
                 );
-                gl::BindTexture(target, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!("SetTexel2DByResource: resource {:?} not found", id);
         }
@@ -565,8 +574,8 @@ impl CommandExecutor {
             unsafe {
                 gl::BindTexture(target, handle);
                 gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, filter as i32);
-                gl::BindTexture(target, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!("SetTextureMagFilterByResource: resource {:?} not found", id);
         }
@@ -581,8 +590,8 @@ impl CommandExecutor {
             unsafe {
                 gl::BindTexture(target, handle);
                 gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, filter as i32);
-                gl::BindTexture(target, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!("SetTextureMinFilterByResource: resource {:?} not found", id);
         }
@@ -603,8 +612,8 @@ impl CommandExecutor {
                 if target == gl::TEXTURE_3D {
                     gl::TexParameteri(target, gl::TEXTURE_WRAP_R, mode as i32);
                 }
-                gl::BindTexture(target, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!("SetTextureWrapModeByResource: resource {:?} not found", id);
         }
@@ -615,8 +624,8 @@ impl CommandExecutor {
             unsafe {
                 gl::BindTexture(target, handle);
                 gl::GenerateMipmap(target);
-                gl::BindTexture(target, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!("GenerateMipmapByResource: resource {:?} not found", id);
         }
@@ -749,8 +758,8 @@ impl CommandExecutor {
                     height,
                     0,
                 );
-                gl::BindTexture(gl::TEXTURE_2D, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!(
                 "CopyTexture2DFromFramebufferByResource: resource {:?} not found",
@@ -811,8 +820,8 @@ impl CommandExecutor {
                     data_format,
                     data.as_mut_ptr() as *mut _,
                 );
-                gl::BindTexture(gl::TEXTURE_2D, 0);
             }
+            self.restore_active_unit_binding();
         } else {
             warn!("ReadTexture2DData: resource {:?} not found", id);
         }
@@ -1827,7 +1836,7 @@ impl CommandExecutor {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
 
-            gl::BindTexture(gl::TEXTURE_2D, 0);
+            self.restore_active_unit_binding();
             handle
         }
     }
@@ -1860,7 +1869,7 @@ impl CommandExecutor {
             gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
 
-            gl::BindTexture(gl::TEXTURE_1D, 0);
+            self.restore_active_unit_binding();
             handle
         }
     }
@@ -1899,7 +1908,7 @@ impl CommandExecutor {
             gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
 
-            gl::BindTexture(gl::TEXTURE_3D, 0);
+            self.restore_active_unit_binding();
             handle
         }
     }
@@ -1956,7 +1965,7 @@ impl CommandExecutor {
                 gl::CLAMP_TO_EDGE as i32,
             );
 
-            gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
+            self.restore_active_unit_binding();
             handle
         }
     }
@@ -2422,16 +2431,35 @@ impl CommandExecutor {
         self.texture_cache_invalidations_this_frame += 1;
     }
 
-    /// Invalidate texture cache because a shader was (re)bound.
-    fn invalidate_texture_cache_on_shader_bind(&mut self) {
-        self.invalidate_texture_cache();
-        self.texture_invalidations_on_shader_bind_this_frame += 1;
+    /// Mark the cache entry for the active texture unit (slot 0 by invariant:
+    /// `bind_texture_cached` always leaves `ActiveTexture` at `TEXTURE0`) as
+    /// unbound. Used by the direct-binding texture setters (filters, wrap,
+    /// mip range, texel writes, data uploads) which bind a texture, mutate it,
+    /// then leave 0 bound on the active unit - the cache must not claim the
+    /// old texture is still bound there, or a later `bind_texture_cached`
+    /// would wrongly skip the `glBindTexture` and sample nothing.
+    fn mark_active_unit_unbound(&mut self) {
+        self.texture_bindings[0] = TextureBinding::default();
     }
 
-    /// Invalidate texture cache because a shader was unbound.
-    fn invalidate_texture_cache_on_shader_unbind(&mut self) {
-        self.invalidate_texture_cache();
-        self.texture_invalidations_on_shader_unbind_this_frame += 1;
+    /// Re-bind the cached texture for the active unit (slot 0 by the same
+    /// invariant as `mark_active_unit_unbound`) after a direct-bind setter
+    /// finished its param change. Keeps the cache authoritative: the setter
+    /// temporarily bound a texture on unit 0 and left 0 bound; restoring the
+    /// cached texture means the next `bind_texture_cached` for that slot can
+    /// still legitimately skip. Read-only so it can be called from `&self`
+    /// setters without signature churn.
+    fn restore_active_unit_binding(&self) {
+        let binding = &self.texture_bindings[0];
+        unsafe {
+            if binding.handle != 0 {
+                if let Some(tex_type) = binding.tex_type {
+                    gl::BindTexture(tex_type.to_gl_target(), binding.handle);
+                    return;
+                }
+            }
+            gl::BindTexture(gl::TEXTURE_2D, 0);
+        }
     }
 
     /// Get uniform location with per-shader caching to avoid repeated gl::GetUniformLocation calls.
