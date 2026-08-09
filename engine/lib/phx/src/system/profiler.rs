@@ -149,7 +149,9 @@ impl Profiler {
         let total_ms = profiler.start.get_elapsed_ms();
 
         for (_, scope) in &mut profiler.scopes {
-            scope.var /= scope.count - 1.0f64;
+            if scope.count > 1.0 {
+                scope.var /= scope.count - 1.0f64;
+            }
             scope.var = f64::sqrt(scope.var);
         }
 
@@ -259,7 +261,17 @@ impl Profiler {
         // empty
     }
 
-    /// Records frame timing for each active scope
+    /// Records frame timing for each active scope.
+    ///
+    /// The mean is an exponential moving average (EMA_ALPHA of the latest
+    /// frame per update) rather than a cumulative arithmetic mean. One-shot
+    /// scopes (e.g. Gen.ShipFighter at join) fire once and then never
+    /// again; a cumulative mean would pin their total (e.g. 275 ms) in the
+    /// dashboard forever. The EMA plus idle-decay makes such scopes fade
+    /// to ~0 within a couple of seconds, so the flame graph reflects what
+    /// is happening NOW, not what happened once since the toggle.
+    const EMA_ALPHA: f64 = 1.0 / 90.0;
+
     pub fn loop_marker() {
         if !PROFILER_ENABLED.load(AtomicOrdering::Acquire) {
             return;
@@ -276,11 +288,14 @@ impl Profiler {
                 scope.min = f64::min(scope.min, frame);
                 scope.max = f64::max(scope.max, frame);
                 scope.count += 1.0;
-                let d1 = frame - scope.mean;
-                scope.mean += d1 / scope.count;
-                let d2 = frame - scope.mean;
-                scope.var += d1 * d2;
+                // EMA: latest frames dominate; a scope that stops firing
+                // decays below the 1% filter within ~90 frames.
+                scope.mean += Self::EMA_ALPHA * (frame - scope.mean);
                 scope.frame = 0.0;
+            } else if scope.mean > 0.0 {
+                // Idle this frame: decay toward zero so one-shot scopes
+                // don't pin their cumulative mean in the dashboard.
+                scope.mean *= 1.0 - Self::EMA_ALPHA;
             }
         }
     }
