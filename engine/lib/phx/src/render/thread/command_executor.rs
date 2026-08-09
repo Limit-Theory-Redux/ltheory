@@ -469,6 +469,19 @@ impl CommandExecutor {
                 self.cmd_set_uniform_mat4(location, value);
             }
 
+            RenderCommand::SetInstanceUniforms {
+                world_loc,
+                world_it_loc,
+                scale_loc,
+                world,
+                world_it,
+                scale,
+            } => {
+                self.cmd_set_uniform_mat4(world_loc, world);
+                self.cmd_set_uniform_mat4(world_it_loc, world_it);
+                self.cmd_set_uniform_float(scale_loc, scale);
+            }
+
             // === Name-based Uniform Operations ===
             // These use cached uniform location lookups to avoid repeated GL calls
             // Arc<str> enables O(1) cloning when building the cache key

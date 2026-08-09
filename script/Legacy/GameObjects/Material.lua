@@ -87,10 +87,40 @@ function Material:reload()
 end
 
 function Material:updateState(body, entity, eye)
-    if self.imWorld then self.state:shader():iSetMatrix(self.imWorld, body:getToWorldMatrix(eye)) end
-    if self.imWorldIT then self.state:shader():iSetMatrixT(self.imWorldIT, body:getToLocalMatrix(eye)) end
-    if self.iScale then self.state:shader():iSetFloat(self.iScale, body:getScale()) end
-    if self.onUpdateState then self.onUpdateState(self.state:shader(), entity, eye) end
+    -- Per-mesh instance uniforms are batched into ONE render command
+    -- (Shader:ISetInstanceUniforms): mWorld + mWorldIT + scale. The old
+    -- code sent three separate SetUniform commands with three FFI
+    -- crossings, and computed mWorldIT via getToLocalMatrix (which
+    -- REBUILDS the world matrix and inverts a fresh allocation). Deriving
+    -- it from the cached world matrix halves the matrix allocations.
+    local shader = self.state:shader()
+    local world = self.imWorld and body:getToWorldMatrix(eye) or nil
+    local worldIT = nil
+    if self.imWorldIT then
+        if world then
+            worldIT = world:inverse()
+        else
+            worldIT = body:getToLocalMatrix(eye)
+        end
+    end
+    local scale = self.iScale and body:getScale() or nil
+    if world then
+        if worldIT and scale ~= nil then
+            shader:iSetInstanceUniforms(self.imWorld, self.imWorldIT, self.iScale, world, worldIT, scale)
+        else
+            -- Materials that only use some of the trio: fall back to the
+            -- individual setters so each present uniform still applies.
+            shader:iSetMatrix(self.imWorld, world)
+            if worldIT then shader:iSetMatrixT(self.imWorldIT, worldIT) end
+            if scale ~= nil then shader:iSetFloat(self.iScale, scale) end
+        end
+    elseif worldIT then
+        shader:iSetMatrixT(self.imWorldIT, worldIT)
+        if scale ~= nil then shader:iSetFloat(self.iScale, scale) end
+    elseif scale ~= nil then
+        shader:iSetFloat(self.iScale, scale)
+    end
+    if self.onUpdateState then self.onUpdateState(shader, entity, eye) end
 end
 
 function Material:start()

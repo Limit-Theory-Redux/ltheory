@@ -216,6 +216,20 @@ impl Renderer {
         self.executor.cmd_set_uniform_mat4(location, value);
     }
 
+    pub fn set_instance_uniforms(
+        &mut self,
+        world_loc: i32,
+        world_it_loc: i32,
+        scale_loc: i32,
+        world: [f32; 16],
+        world_it: [f32; 16],
+        scale: f32,
+    ) {
+        self.executor.cmd_set_uniform_mat4(world_loc, world);
+        self.executor.cmd_set_uniform_mat4(world_it_loc, world_it);
+        self.executor.cmd_set_uniform_float(scale_loc, scale);
+    }
+
     // === Texture Operations ===
 
     pub fn bind_texture_2d_intern(&mut self, slot: u32, handle: GpuHandle) {

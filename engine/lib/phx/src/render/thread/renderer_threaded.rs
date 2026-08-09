@@ -651,6 +651,25 @@ impl Renderer {
         self.submit(RenderCommand::SetUniformMat4 { location, value });
     }
 
+    pub fn set_instance_uniforms(
+        &mut self,
+        world_loc: i32,
+        world_it_loc: i32,
+        scale_loc: i32,
+        world: [f32; 16],
+        world_it: [f32; 16],
+        scale: f32,
+    ) {
+        self.submit(RenderCommand::SetInstanceUniforms {
+            world_loc,
+            world_it_loc,
+            scale_loc,
+            world,
+            world_it,
+            scale,
+        });
+    }
+
     // === Texture Operations ===
 
     pub fn bind_texture_2d_intern(&mut self, slot: u32, handle: GpuHandle) {

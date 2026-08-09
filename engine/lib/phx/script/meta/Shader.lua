@@ -177,6 +177,20 @@ function Shader:setMatrixT(r, name, value) end
 ---@param value Matrix
 function Shader:iSetMatrixT(r, index, value) end
 
+-- Batched per-instance uniforms: mWorld, mWorldIT and scale in a single
+-- command instead of three separate SetUniform* commands. The instance
+-- values are unique per mesh (no dedup win), so the three GL uniform
+-- calls are batched on the render thread and the producer pays one
+-- command + one FFI crossing instead of three of each.
+---@param r Renderer
+---@param worldIndex integer
+---@param worldItIndex integer
+---@param scaleIndex integer
+---@param world Matrix
+---@param worldIt Matrix
+---@param scale number
+function Shader:iSetInstanceUniforms(r, worldIndex, worldItIndex, scaleIndex, world, worldIt, scale) end
+
 ---@param r Renderer
 ---@param name string
 ---@param value Tex1D

@@ -529,6 +529,59 @@ impl Shader {
         self.index_set_uniform(r, index, ShaderVarData::Matrix(value.transpose()));
     }
 
+    /// Batched per-instance uniforms: mWorld, mWorldIT and scale in a single
+    /// command instead of three separate SetUniform* commands. The instance
+    /// values are unique per mesh (no dedup win), so the three GL uniform
+    /// calls are batched on the render thread and the producer pays one
+    /// command + one FFI crossing instead of three of each.
+    #[bind(name = "ISetInstanceUniforms")]
+    pub fn index_set_instance_uniforms(
+        &mut self,
+        r: &mut Renderer,
+        world_index: i32,
+        world_it_index: i32,
+        scale_index: i32,
+        world: &Matrix,
+        world_it: &Matrix,
+        scale: f32,
+    ) {
+        let mut shared = self.shared.as_mut();
+        if !shared.is_bound {
+            // Not bound: queue as three pending ops so the values are applied
+            // on the next start() (same semantics as index_set_uniform).
+            shared.pending_uniforms.push(SetUniformOp {
+                index: world_index,
+                data: ShaderVarData::Matrix(world.clone()),
+            });
+            shared.pending_uniforms.push(SetUniformOp {
+                index: world_it_index,
+                data: ShaderVarData::Matrix(world_it.clone()),
+            });
+            shared.pending_uniforms.push(SetUniformOp {
+                index: scale_index,
+                data: ShaderVarData::Float(scale),
+            });
+            return;
+        }
+        shared
+            .last_uniform_values
+            .insert(world_index, ShaderVarData::Matrix(world.clone()));
+        shared
+            .last_uniform_values
+            .insert(world_it_index, ShaderVarData::Matrix(world_it.clone()));
+        shared
+            .last_uniform_values
+            .insert(scale_index, ShaderVarData::Float(scale));
+        r.set_instance_uniforms(
+            world_index,
+            world_it_index,
+            scale_index,
+            world.to_cols_array(),
+            world_it.to_cols_array(),
+            scale,
+        );
+    }
+
     pub fn set_tex1d(&mut self, r: &mut Renderer, name: &str, value: &mut Tex1D) {
         self.set_uniform(r, name, ShaderVarData::Tex1D(value.clone()));
     }

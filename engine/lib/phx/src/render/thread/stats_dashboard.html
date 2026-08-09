@@ -83,8 +83,9 @@
 
 <script>
 const HISTORY = 240; // ~120 s at 2 Hz
-const frameTimes = [], commandCounts = [];
+const frameTimes = [], commandCounts = [], samples = [];
 let last = null;
+let lastProfReport = null; // last recorded producer-profiler report (frozen after stop)
 const CAT_COLORS = {
   draw:'#f85149', uniform:'#d29922', texture:'#58a6ff', state:'#3fb950',
   shader:'#bc8cff', texture_data:'#79c0ff', framebuffer:'#ffa657', resource:'#f0883e',
@@ -159,16 +160,25 @@ async function poll() {
     const fps = s.last_frame_time_us > 0 ? (1e6 / s.last_frame_time_us) : 0;
     const sorted = [...frameTimes].sort((a, b) => a - b);
 
-    // Moving average over the rolling window (~120 s) — single-frame reads
-    // are noise (each run spawns a different random star system), so the
-    // avg is the honest comparison across runs/builds.
-    const avgFrameMs = frameTimes.length ? frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length : 0;
-    const avgFps = avgFrameMs > 0 ? 1000 / avgFrameMs : 0;
+    // Moving average FPS from cumulative frame_count deltas over the last
+    // ~10 s of wall time — the honest frames/sec, immune to warm-up frames
+    // (loading/black-screen renders at wildly different rates) mixing into
+    // the average. avgFps = Δframes / Δtime.
+    const now = s.server_time_us || Date.now() * 1000;
+    samples.push({ t: now, frames: s.frame_count });
+    while (samples.length > 1 && now - samples[0].t > 10e6) samples.shift();
+    let avgFps = 0;
+    if (samples.length >= 2) {
+      const dFrames = samples[samples.length - 1].frames - samples[0].frames;
+      const dTime = samples[samples.length - 1].t - samples[0].t;
+      if (dTime > 0) avgFps = dFrames * 1e6 / dTime;
+    }
+    const avgFrameMs = avgFps > 0 ? 1000 / avgFps : 0;
     const avgCommands = commandCounts.length ? Math.round(commandCounts.reduce((a, b) => a + b, 0) / commandCounts.length) : 0;
 
     $('c-fps').querySelector('.value').textContent = avgFps.toFixed(1);
     $('c-fps').querySelector('.sub').textContent =
-      'avg ' + frameTimes.length + ' frames · last ' + fps.toFixed(1);
+      'avg ~10 s · last ' + fps.toFixed(1);
     $('c-fps').className = 'card ' + (avgFps >= 55 ? 'good' : avgFps >= 30 ? 'warn' : 'bad');
 
     $('c-frame').querySelector('.value').textContent = avgFrameMs.toFixed(2) + ' ms';
@@ -270,10 +280,19 @@ async function pollProfile() {
     }
     const body = $('t-scopes').querySelector('tbody');
     if (!p.enabled) {
-      body.innerHTML = '<tr><td colspan="7" style="color:#8b949e;text-align:left">Profiler off — click start to record main-thread scope timings (same data as the F10 console table)</td></tr>';
+      // Keep the last recorded report visible after stopping (frozen), so
+      // the numbers can be read/compared after the run ends. Only show the
+      // placeholder when there was never a recording.
+      if (!lastProfReport) {
+        body.innerHTML = '<tr><td colspan="7" style="color:#8b949e;text-align:left">Profiler off — click start to record main-thread scope timings (same data as the F10 console table)</td></tr>';
+      } else {
+        st.textContent = 'frozen (last report · ' + lastProfReport.scopes.length + ' scopes)';
+        st.style.color = '#d29922';
+      }
       return;
     }
     if (!p.scopes.length) return;
+    lastProfReport = p;
     body.innerHTML = '';
     for (const s of p.scopes) {
       const tr = document.createElement('tr');

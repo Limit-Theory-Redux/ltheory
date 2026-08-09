@@ -108,6 +108,10 @@ function onDef_Shader_t(t, mt)
         libphx.Shader_ISetMatrixT(self, Renderer, index, value)
     end
 
+    mt.__index.iSetInstanceUniforms = function(self, worldIndex, worldItIndex, scaleIndex, world, worldIt, scale)
+        libphx.Shader_ISetInstanceUniforms(self, Renderer, worldIndex, worldItIndex, scaleIndex, world, worldIt, scale)
+    end
+
     mt.__index.setTex1D = function(self, name, value)
         libphx.Shader_SetTex1D(self, Renderer, name, value)
     end

@@ -27,6 +27,7 @@ fn snapshot_to_json(s: &StatsSnapshot) -> String {
 
     format!(
         "{{\n\
+         \x20 \"server_time_us\": {},\n\
          \x20 \"commands_processed\": {},\n\
          \x20 \"draw_calls\": {},\n\
          \x20 \"state_changes\": {},\n\
@@ -62,6 +63,10 @@ fn snapshot_to_json(s: &StatsSnapshot) -> String {
          \x20 \"uniform_dedup_skips_last_frame\": {},\n\
          \x20 \"categories\": {{\n{}\x20 }}\n\
          }}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_micros() as u64)
+            .unwrap_or(0),
         s.commands_processed,
         s.draw_calls,
         s.state_changes,
