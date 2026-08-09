@@ -56,6 +56,10 @@ pub struct StatsSnapshot {
     /// Render-thread producer-starvation (blocked in recv), last frame
     pub recv_wait_us_last_frame: u64,
     pub recv_wait_count_last_frame: u64,
+    /// Shader churn: binds, redundant binds (same program), distinct programs
+    pub shader_bind_commands_last_frame: u64,
+    pub shader_redundant_binds_last_frame: u64,
+    pub shader_distinct_programs_last_frame: u64,
     // --- main thread (from Renderer) ---
     /// Time blocked in `end_frame_triple_buffered` (frame-end pacing wait)
     pub main_thread_wait_us: u64,
@@ -120,6 +124,9 @@ impl Renderer {
             category_time_us_last_frame: stats.category_time_us_last_frame,
             recv_wait_us_last_frame: stats.recv_wait_us_last_frame,
             recv_wait_count_last_frame: stats.recv_wait_count_last_frame,
+            shader_bind_commands_last_frame: stats.shader_bind_commands_last_frame,
+            shader_redundant_binds_last_frame: stats.shader_redundant_binds_last_frame,
+            shader_distinct_programs_last_frame: stats.shader_distinct_programs_last_frame,
             main_thread_wait_us: self.main_thread_wait_us,
             send_blocked_us_last_frame: self.send_blocked_us_last_frame,
             send_block_count_last_frame: self.send_block_count_last_frame,

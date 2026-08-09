@@ -57,6 +57,7 @@
   <div class="card" id="c-uniform"><div class="label">Uniform cache (hit/miss)</div><div class="value">-</div></div>
   <div class="card" id="c-immvert"><div class="label">Immediate verts / frame</div><div class="value">-</div></div>
   <div class="card" id="c-starve"><div class="label">Render thread starved (recv wait)</div><div class="value">-</div><div class="sub">µs / waits — gap vs frame time</div></div>
+  <div class="card" id="c-shader"><div class="label">Shader binds (total / redundant / distinct)</div><div class="value">-</div><div class="sub">redundant = same program rebound</div></div>
 </div>
 <div class="graphs">
   <canvas id="g-frame"></canvas>
@@ -181,6 +182,15 @@ async function poll() {
     $('c-starve').className = 'card ' + (starvePct > 40 ? 'bad' : starvePct > 15 ? 'warn' : 'good');
     $('c-starve').querySelector('.sub').textContent =
       starvePct.toFixed(0) + '% of frame idle waiting for commands';
+    $('c-shader').querySelector('.value').textContent =
+      fmt(s.shader_bind_commands_last_frame) + ' / ' +
+      fmt(s.shader_redundant_binds_last_frame) + ' / ' +
+      fmt(s.shader_distinct_programs_last_frame);
+    const redundantPct = s.shader_bind_commands_last_frame > 0
+      ? (100 * s.shader_redundant_binds_last_frame / s.shader_bind_commands_last_frame) : 0;
+    $('c-shader').className = 'card ' + (redundantPct > 60 ? 'bad' : redundantPct > 25 ? 'warn' : 'good');
+    $('c-shader').querySelector('.sub').textContent =
+      redundantPct.toFixed(0) + '% redundant — churn signalled but no GL state change';
 
     renderCategories(s);
 

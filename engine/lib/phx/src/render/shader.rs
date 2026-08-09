@@ -34,6 +34,12 @@ struct ShaderShared {
     is_bound: bool,
     tex_index: gl::types::GLenum,
     pending_uniforms: Vec<SetUniformOp>,
+    /// Last value sent for each uniform index, used to skip redundant
+    /// uniform commands. The camera auto-vars (mView/mProj/etc.) are
+    /// re-applied on every `start()` but rarely change, so without this
+    /// the main thread re-sends thousands of identical uniform commands
+    /// per frame. Sampler uniforms are never deduped (unit allocation).
+    last_uniform_values: HashMap<i32, ShaderVarData>,
 }
 
 struct SetUniformOp {
@@ -146,6 +152,7 @@ impl Shader {
                 tex_index: 0,
                 is_bound: false,
                 pending_uniforms: vec![],
+                last_uniform_values: HashMap::new(),
             }),
         };
         shader.bind_auto_variables(r);
@@ -200,6 +207,26 @@ impl ShaderShared {
     }
 
     pub fn apply_uniform(&mut self, r: &mut Renderer, index: i32, data: &ShaderVarData) {
+        // Skip redundant uniform commands: the same value for the same
+        // program keeps its GL state across start/stop cycles, so re-sending
+        // it (e.g. camera auto-vars on every draw) is pure main-thread work.
+        // Samplers are excluded - they allocate texture units on each set.
+        let is_sampler = matches!(
+            data,
+            ShaderVarData::Tex1D(_)
+                | ShaderVarData::Tex2D(_)
+                | ShaderVarData::Tex3D(_)
+                | ShaderVarData::TexCube(_)
+        );
+        if !is_sampler {
+            if let Some(prev) = self.last_uniform_values.get(&index) {
+                if prev.same_value(data) {
+                    return;
+                }
+            }
+            self.last_uniform_values.insert(index, data.clone());
+        }
+
         match data {
             ShaderVarData::Float(v) => {
                 r.set_uniform_float(index, *v);
@@ -324,6 +351,9 @@ impl Shader {
             s.auto_vars = auto_vars;
             s.uniform_location_cache.clear();
             s.pending_uniforms.clear();
+            // New program: uniform values and locations all reset, so the
+            // dedup cache must not suppress re-sending anything.
+            s.last_uniform_values.clear();
         }
 
         // Re-bind auto variables with new program
@@ -560,7 +590,15 @@ impl Shader {
 
     pub fn stop(&self, r: &mut Renderer) {
         self.shared.as_mut().is_bound = false;
-        r.unbind_shader();
+        // NOTE: deliberately do NOT emit UnbindShader. glUseProgram(0) between
+        // draws is protocol noise: the next shader's start() binds its own
+        // program anyway, and GL 3.3 core has no fixed-function fallback that
+        // would need program 0. Each unbind cost the main thread a ~2.6us
+        // command send (~2k/frame in the main menu), and the executor's
+        // current_program is only consulted for uniform-location resolution
+        // while a shader is bound, so leaving the last program current is
+        // safe. r is unused now but kept for signature stability.
+        let _ = r;
     }
 }
 

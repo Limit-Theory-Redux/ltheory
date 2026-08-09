@@ -162,6 +162,13 @@ pub struct CommandExecutor {
     /// Written by `RenderThread::run`, snapshotted/reset at SwapBuffers.
     pub(super) recv_wait_us_this_frame: u64,
     pub(super) recv_wait_count_this_frame: u64,
+    /// Shader churn diagnostics: how many BindShader commands hit a program
+    /// that was already bound (redundant — no glUseProgram needed), and how
+    /// many DISTINCT programs were bound this frame. If most binds are
+    /// redundant, the Lua side is start/stop-churning the same shader.
+    pub(super) shader_redundant_binds_this_frame: u64,
+    pub(super) shader_distinct_programs_this_frame: u64,
+    pub(super) shader_bind_commands_this_frame: u64,
     /// Per-shader cache for uniform locations: program -> (name -> location)
     /// NOT cleared on shader change - preserves locations across shader switches
     /// Uses Arc<str> as key for O(1) cloning from commands
@@ -227,6 +234,9 @@ impl CommandExecutor {
             texture_invalidations_on_shader_unbind_this_frame: 0,
             recv_wait_us_this_frame: 0,
             recv_wait_count_this_frame: 0,
+            shader_redundant_binds_this_frame: 0,
+            shader_distinct_programs_this_frame: 0,
+            shader_bind_commands_this_frame: 0,
             uniform_caches: HashMap::with_capacity(32), // Pre-allocate for typical shader count
             instance_vbo: 0,
             instance_vbo_capacity: 0,

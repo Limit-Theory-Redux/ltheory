@@ -61,6 +61,11 @@ pub struct RenderStats {
     /// starvation), last frame, microseconds + number of starvation waits
     pub recv_wait_us_last_frame: u64,
     pub recv_wait_count_last_frame: u64,
+    /// Shader churn: BindShader commands last frame, how many hit an already
+    /// bound program (redundant), and how many distinct programs were bound.
+    pub shader_bind_commands_last_frame: u64,
+    pub shader_redundant_binds_last_frame: u64,
+    pub shader_distinct_programs_last_frame: u64,
     /// Texture binds skipped due to caching (cumulative)
     pub texture_binds_skipped: u64,
 }

@@ -56,6 +56,9 @@ fn snapshot_to_json(s: &StatsSnapshot) -> String {
          \x20 \"frames_in_flight\": {},\n\
          \x20 \"recv_wait_us_last_frame\": {},\n\
          \x20 \"recv_wait_count_last_frame\": {},\n\
+         \x20 \"shader_bind_commands_last_frame\": {},\n\
+         \x20 \"shader_redundant_binds_last_frame\": {},\n\
+         \x20 \"shader_distinct_programs_last_frame\": {},\n\
          \x20 \"categories\": {{\n{}\x20 }}\n\
          }}",
         s.commands_processed,
@@ -87,6 +90,9 @@ fn snapshot_to_json(s: &StatsSnapshot) -> String {
         s.frames_in_flight,
         s.recv_wait_us_last_frame,
         s.recv_wait_count_last_frame,
+        s.shader_bind_commands_last_frame,
+        s.shader_redundant_binds_last_frame,
+        s.shader_distinct_programs_last_frame,
         cats.join(",\n\x20\x20"),
     )
 }

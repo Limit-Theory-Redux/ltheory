@@ -83,17 +83,20 @@ impl CommandExecutor {
 
     pub(super) fn cmd_bind_shader(&mut self, handle: super::GpuHandle) {
         unsafe {
-            if handle.0 != self.current_program {
+            self.shader_bind_commands_this_frame += 1;
+            if handle.0 == self.current_program {
+                self.shader_redundant_binds_this_frame += 1;
+            } else {
+                self.shader_distinct_programs_this_frame += 1;
                 // NOTE: deliberately do NOT invalidate the texture cache here.
                 // glUseProgram does not touch texture bindings; the cache keys
                 // on (slot, handle, type) and self-corrects when a different
                 // texture is bound. Invalidating on every shader switch was
                 // wiping the cache ~2k times/frame, keeping the hit rate at
                 // ~0% and forcing redundant glBindTexture calls.
-                self.texture_invalidations_on_shader_bind_this_frame += 1;
+                gl::UseProgram(handle.0);
+                self.current_program = handle.0;
             }
-            gl::UseProgram(handle.0);
-            self.current_program = handle.0;
         }
     }
 
@@ -119,15 +122,18 @@ impl CommandExecutor {
         });
 
         if let Some(p) = program {
-            if p != self.current_program {
+            self.shader_bind_commands_this_frame += 1;
+            if p == self.current_program {
+                self.shader_redundant_binds_this_frame += 1;
+            } else {
+                self.shader_distinct_programs_this_frame += 1;
                 // NOTE: no texture-cache invalidation here either - see
                 // cmd_bind_shader: glUseProgram does not affect bindings.
-                self.texture_invalidations_on_shader_bind_this_frame += 1;
+                unsafe {
+                    gl::UseProgram(p);
+                }
+                self.current_program = p;
             }
-            unsafe {
-                gl::UseProgram(p);
-            }
-            self.current_program = p;
         } else {
             error!("BindShaderByResource: resource {:?} not found!", id);
         }
@@ -1565,6 +1571,9 @@ impl CommandExecutor {
             category_time_us_last_frame: self.category_time_us_this_frame,
             recv_wait_us_last_frame: self.recv_wait_us_this_frame,
             recv_wait_count_last_frame: self.recv_wait_count_this_frame,
+            shader_bind_commands_last_frame: self.shader_bind_commands_this_frame,
+            shader_redundant_binds_last_frame: self.shader_redundant_binds_this_frame,
+            shader_distinct_programs_last_frame: self.shader_distinct_programs_this_frame,
             texture_binds_skipped: self.texture_binds_skipped,
         };
 
@@ -1600,6 +1609,9 @@ impl CommandExecutor {
         self.category_time_us_this_frame = [0; 12];
         self.recv_wait_us_this_frame = 0;
         self.recv_wait_count_this_frame = 0;
+        self.shader_redundant_binds_this_frame = 0;
+        self.shader_distinct_programs_this_frame = 0;
+        self.shader_bind_commands_this_frame = 0;
         self.frame_start = std::time::Instant::now();
 
         CommandReply::Stats(self.last_stats.clone())
@@ -2423,23 +2435,6 @@ impl CommandExecutor {
             }
             self.texture_bind_calls_this_frame += 1;
         }
-    }
-
-    /// Invalidate texture cache (call when GL context state may be externally modified)
-    fn invalidate_texture_cache(&mut self) {
-        self.texture_bindings = [TextureBinding::default(); MAX_TEXTURE_SLOTS];
-        self.texture_cache_invalidations_this_frame += 1;
-    }
-
-    /// Mark the cache entry for the active texture unit (slot 0 by invariant:
-    /// `bind_texture_cached` always leaves `ActiveTexture` at `TEXTURE0`) as
-    /// unbound. Used by the direct-binding texture setters (filters, wrap,
-    /// mip range, texel writes, data uploads) which bind a texture, mutate it,
-    /// then leave 0 bound on the active unit - the cache must not claim the
-    /// old texture is still bound there, or a later `bind_texture_cached`
-    /// would wrongly skip the `glBindTexture` and sample nothing.
-    fn mark_active_unit_unbound(&mut self) {
-        self.texture_bindings[0] = TextureBinding::default();
     }
 
     /// Re-bind the cached texture for the active unit (slot 0 by the same
