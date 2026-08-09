@@ -71,6 +71,12 @@
   <canvas id="g-frame"></canvas>
   <canvas id="g-commands"></canvas>
 </div>
+<h2>Frame time explanation <span id="ft-status" style="font-weight:normal;letter-spacing:0;color:#8b949e"></span></h2>
+<div id="ft-box">
+  <div class="meta">Needs a profiler recording (start above, ~10 s) to attribute main-thread time; render-thread numbers are live.</div>
+  <table id="t-ft"><thead><tr><th>component</th><th>ms / frame</th><th style="width:50%">share of frame</th></tr></thead><tbody></tbody></table>
+</div>
+
 <h2>Render-thread time by category</h2>
 <table id="t-cats"><thead><tr><th>category</th><th>count</th><th>time</th><th style="width:40%">share</th></tr></thead><tbody></tbody></table>
 
@@ -310,8 +316,92 @@ async function pollProfile() {
   } catch (e) { /* server down */ }
 }
 
+// ---- Frame time explanation: flame graph ----
+// Builds a flame graph from the profiler's scope tree (parent/child from
+// the active stack at begin() time). Each scope is a horizontal bar; width
+// is its mean ms per frame relative to the largest scope; children render
+// stacked under their parent, exactly like a CPU flame graph. Root scopes
+// (parent == "") form the top row; the full frame time is the widest bar.
+const FLAME_COLORS = ['#f85149', '#d29922', '#58a6ff', '#3fb950', '#bc8cff',
+  '#79c0ff', '#ffa657', '#7ee787', '#f0883e', '#a5d6ff', '#ff7b72', '#8b949e'];
+function flameColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return FLAME_COLORS[h % FLAME_COLORS.length];
+}
+
+function renderFrameExplanation() {
+  const body = $('t-ft').querySelector('tbody');
+  if (!last || !lastProfReport) {
+    body.innerHTML = '<tr><td colspan="3" style="color:#8b949e;text-align:left">' +
+      (last ? 'Start the producer profiler above to attribute main-thread time.' :
+        'Waiting for the first snapshot…') + '</td></tr>';
+    return;
+  }
+  const frameMs = last.last_frame_time_us / 1000;
+  const starveMs = (last.recv_wait_us_last_frame || 0) / 1000;
+  const scopes = lastProfReport.scopes || [];
+  if (!scopes.length) {
+    body.innerHTML = '<tr><td colspan="3" style="color:#8b949e;text-align:left">No scopes recorded yet — keep the profiler running.</td></tr>';
+    return;
+  }
+  // Build the scope tree: {name, mean_ms, children[]}
+  const byName = {};
+  for (const s of scopes) byName[s.name] = { name: s.name, mean_ms: s.mean_ms, children: [] };
+  const roots = [];
+  for (const s of scopes) {
+    const node = byName[s.name];
+    if (s.parent && byName[s.parent]) byName[s.parent].children.push(node);
+    else roots.push(node);
+  }
+  // A scope can appear as its own ancestor through re-entrant Begin/End
+  // (e.g. Render.Opaque inside UI.Canvas.Draw inside itself). Break cycles.
+  const seen = new Set();
+  function breakCycles(node) {
+    if (seen.has(node.name)) { node.children = []; return; }
+    seen.add(node.name);
+    for (const c of node.children) breakCycles(c);
+    seen.delete(node.name);
+  }
+  for (const r of roots) breakCycles(r);
+
+  // Render rows: depth 0 = roots, each deeper row under its parent.
+  body.innerHTML = '';
+  const maxMs = Math.max(frameMs, ...scopes.map(s => s.mean_ms), 1);
+  const ROW = 24, PAD = 6;
+  function row(label, ms, depth, color, title) {
+    const tr = document.createElement('tr');
+    const share = ms / maxMs * 100;
+    tr.innerHTML =
+      '<td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">' +
+      '<span style="display:inline-block;width:' + (depth * 14) + 'px"></span>' + label + '</td>' +
+      '<td>' + ms.toFixed(2) + '</td>' +
+      '<td><div style="position:relative;background:#161b22;border-radius:3px;height:' + ROW + 'px;overflow:visible">' +
+      '<div title="' + (title || label) + '" style="position:absolute;left:' + (depth * 4) + 'px;top:1px;' +
+      'width:' + Math.max(2, share) + '%;height:' + (ROW - 2) + 'px;background:' + color + ';opacity:.85;' +
+      'border-radius:2px"></div></div></td>';
+    body.appendChild(tr);
+  }
+  row('Frame time (render thread)', frameMs, 0, '#f85149');
+  row('  render thread starved (recv wait)', starveMs, 1, '#8b949e');
+  // Depth-first walk: children under parents, sorted biggest-first.
+  let depth = 1;
+  const stack = roots.slice().sort((a, b) => b.mean_ms - a.mean_ms);
+  while (stack.length) {
+    const node = stack.shift();
+    if (node.mean_ms <= 0) continue;
+    row(node.name, node.mean_ms, depth, flameColor(node.name));
+    const kids = node.children.slice().sort((a, b) => b.mean_ms - a.mean_ms);
+    for (let i = kids.length - 1; i >= 0; i--) stack.unshift(kids[i]);
+  }
+  $('ft-status').textContent = 'frame ' + frameMs.toFixed(1) + ' ms · starve ' +
+    starveMs.toFixed(1) + ' ms · ' + scopes.length + ' scopes (mean ms / frame)';
+}
+
 setInterval(pollProfile, 1000);
+setInterval(renderFrameExplanation, 1000);
 pollProfile();
+renderFrameExplanation();
 </script>
 </body>
 </html>

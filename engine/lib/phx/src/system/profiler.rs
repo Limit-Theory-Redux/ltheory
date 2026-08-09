@@ -13,6 +13,9 @@ const MAX_SCOPE_STACK_SIZE: usize = 128;
 #[derive(Debug, Clone, Default)]
 pub struct Scope {
     pub name: String,
+    /// Name of the scope that was active when this scope began ("" for a
+    /// top-level scope). Enables flame-graph rendering from the snapshot.
+    pub parent: String,
     pub last: TimeStamp,
     pub frame: f64,
     pub total: f64,
@@ -24,9 +27,10 @@ pub struct Scope {
 }
 
 impl Scope {
-    fn new(name: &str) -> Self {
+    fn new(name: &str, parent: &str) -> Self {
         Self {
             name: name.into(),
+            parent: parent.into(),
             min: 1e30,
             max: -1e30,
             ..Default::default()
@@ -81,6 +85,8 @@ static PROFILER_TOGGLE_REQUEST: AtomicBool = AtomicBool::new(false);
 #[derive(Debug, Clone)]
 pub struct ScopeSnapshot {
     pub name: String,
+    /// Parent scope name ("" for top-level). Drives flame-graph rendering.
+    pub parent: String,
     pub scope_pct: f64,
     pub cumul_pct: f64,
     pub total_ms: f64,
@@ -230,10 +236,11 @@ impl Profiler {
             prev.last = now;
         }
 
+        let parent = profiler.stack.last().cloned().unwrap_or_default();
         let curr = profiler
             .scopes
             .entry(name.into())
-            .or_insert_with(|| Scope::new(name));
+            .or_insert_with(|| Scope::new(name, &parent));
         curr.last = now;
 
         profiler.stack.push(name.into());
@@ -317,6 +324,7 @@ impl Profiler {
             if scope_total / total > 0.01 || scope.max > 0.01 {
                 rows.push(ScopeSnapshot {
                     name: name.clone(),
+                    parent: scope.parent.clone(),
                     scope_pct: 100.0 * (scope_total / total),
                     cumul_pct: 100.0 * (cumulative / total),
                     total_ms: 1000.0 * scope_total,

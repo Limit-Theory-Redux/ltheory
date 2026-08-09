@@ -1,4 +1,4 @@
-//! Tiny HTTP server for the live render-stats dashboard (feature
+﻿//! Tiny HTTP server for the live render-stats dashboard (feature
 //! `stats-server`).
 //!
 //! Serves two endpoints from the shared [`StatsSink`]:
@@ -148,8 +148,9 @@ pub fn run_stats_server(port: u16, sink: StatsSink) {
                                 body.push(',');
                             }
                             body.push_str(&format!(
-                                "{{\"name\":\"{}\",\"scope_pct\":{:.1},\"cumul_pct\":{:.0},\"total_ms\":{:.0},\"min_ms\":{:.2},\"max_ms\":{:.2},\"mean_ms\":{:.2}}}",
+                                "{{\"name\":\"{}\",\"parent\":\"{}\",\"scope_pct\":{:.1},\"cumul_pct\":{:.0},\"total_ms\":{:.0},\"min_ms\":{:.2},\"max_ms\":{:.2},\"mean_ms\":{:.2}}}",
                                 s.name.replace('\\', "\\\\").replace('"', "\\\""),
+                                s.parent.replace('\\', "\\\\").replace('"', "\\\""),
                                 s.scope_pct,
                                 s.cumul_pct,
                                 s.total_ms,

@@ -72,10 +72,12 @@ end
 
 ---@param data EventData
 function LimitTheoryRedux:onRender(data)
+    Profiler.Begin('UI.Canvas.Draw')
     self:immediateUI(function()
         GameState.render.uiCanvas:draw(self.resX, self.resY)
         Gui:draw()
     end)
+    Profiler.End()
 end
 
 function LimitTheoryRedux:initGameView()
