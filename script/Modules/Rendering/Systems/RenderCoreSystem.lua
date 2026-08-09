@@ -148,32 +148,43 @@ function RenderCoreSystem:render(data)
     self:buildPassLists()
 
     -- Opaque Pass
+    Profiler.Begin('Render.Opaque')
     self.currentPass = Enums.RenderingPasses.Opaque
     self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
     self:renderInOrder(BlendMode.Disabled)
     self.passes[self.currentPass]:stop()
+    Profiler.End() -- Render.Opaque
 
     -- Deferred Lighting Pass
+    Profiler.Begin('Render.Lighting.Deferred')
     self:deferredLighting()
+    Profiler.End() -- Render.Lighting.Deferred
 
     -- Additive Pass
+    Profiler.Begin('Render.Additive')
     self.currentPass = Enums.RenderingPasses.Additive
     self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
     self:renderInOrder(BlendMode.Additive)
     self.passes[self.currentPass]:stop()
+    Profiler.End() -- Render.Additive
 
     -- Alpha Pass
+    Profiler.Begin('Render.Alpha')
     self.currentPass = Enums.RenderingPasses.Alpha
     self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
     self:renderInOrder(BlendMode.Alpha)
     self.passes[self.currentPass]:stop()
+    Profiler.End() -- Render.Alpha
 
     -- UI Pass
+    Profiler.Begin('Render.UI')
     self.currentPass = Enums.RenderingPasses.UI
     self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
     self.passes[self.currentPass]:stop()
+    Profiler.End() -- Render.UI
 
     -- Manual UI Composite: buffer0 (scene) + buffer1 (UI) → buffer2
+    Profiler.Begin('Render.UI.Composite')
     do
         local buffer2 = self.buffers[Enums.BufferName.buffer2]
         buffer2:push()
@@ -193,19 +204,48 @@ function RenderCoreSystem:render(data)
         self.buffers[Enums.BufferName.buffer0], self.buffers[Enums.BufferName.buffer2] =
             self.buffers[Enums.BufferName.buffer2], self.buffers[Enums.BufferName.buffer0]
     end
+    Profiler.End() -- Render.UI.Composite
 
     -- Post-processing chain
+    Profiler.Begin('Render.Post.Downsample')
     self:downsampleForPost()
+    Profiler.End()
 
+    Profiler.Begin('Render.Post.Aberration')
     self:aberration(dt)
+    Profiler.End()
+
+    Profiler.Begin('Render.Post.Bloom')
     self:bloom(dt)
+    Profiler.End()
+
+    Profiler.Begin('Render.Post.FXAA')
     self:fxaa(dt)
+    Profiler.End()
+
+    Profiler.Begin('Render.Post.Sharpen')
     self:sharpen(dt)
+    Profiler.End()
+
+    Profiler.Begin('Render.Post.ColorGrade')
     self:colorgrade(dt)
+    Profiler.End()
+
+    Profiler.Begin('Render.Post.Tonemap')
     self:tonemap(dt)
+    Profiler.End()
+
+    Profiler.Begin('Render.Post.Dither')
     self:dither(dt)
+    Profiler.End()
+
+    Profiler.Begin('Render.Post.Vignette')
     self:vignette(dt)
+    Profiler.End()
+
+    Profiler.Begin('Render.Post.RadialBlur')
     self:radialBlur(dt)
+    Profiler.End()
 
     CameraManager:endDraw()
 
