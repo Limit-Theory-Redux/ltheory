@@ -9,7 +9,7 @@ use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
 use crate::render::{
-    CmdPrimitiveType, RenderState, Renderer, ResourceHandle, ResourceId, Shader, VertexFormat,
+    CmdPrimitiveType, InstanceData, RenderState, Renderer, ResourceHandle, Shader, VertexFormat,
 };
 use crate::rf::Rf;
 use crate::system::*;
@@ -442,6 +442,31 @@ impl Mesh {
         self.draw_bind(r);
         self.draw_bound(r);
         self.draw_unbind(r);
+    }
+
+    /// Instanced draw with per-instance data (triangles). Ensures the GPU
+    /// resource exists (same lazy path as draw_bind), then submits ONE
+    /// DrawInstancedWithData command. `instances` is a Lua cdata array of
+    /// InstanceData (ffi.new("InstanceData[?]", count)); ffi_gen passes the
+    /// array pointer + element count. The render thread copies the data, so
+    /// the Lua array can be reused/GC'd after the call.
+    #[bind(name = "DrawInstancedWithData")]
+    pub fn draw_instanced_with_data(
+        &mut self,
+        r: &mut Renderer,
+        instances: &[InstanceData],
+    ) {
+        self.draw_bind(r);
+        let this = self.shared.as_ref();
+        let index_count = this.index.len() as i32;
+        if let Some(handle) = &this.handle {
+            r.draw_instanced_with_data(
+                handle.id().0,
+                index_count,
+                instances,
+                CmdPrimitiveType::Triangles,
+            );
+        }
     }
 
     pub fn draw_normals(&self, r: &mut Renderer, scale: f32) {

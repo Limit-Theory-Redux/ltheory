@@ -1311,8 +1311,8 @@ impl CommandExecutor {
                 instances.as_ptr() as *const _,
             );
 
-            // Set up instance attributes (model matrix as 4 vec4 columns + color)
-            // InstanceData layout: model_matrix[16] + color[4] = 80 bytes
+            // Set up instance attributes (model matrix as 4 vec4 columns + color + scale)
+            // InstanceData layout: model_matrix[16] + color[4] + scale = 84 bytes
             let stride = instance_size as i32;
 
             // Attribute 4-7: model matrix columns (mat4 = 4 x vec4)
@@ -1342,6 +1342,18 @@ impl CommandExecutor {
             );
             gl::VertexAttribDivisor(8, 1); // Per-instance
 
+            // Attribute 9: per-instance scale (float)
+            gl::EnableVertexAttribArray(9);
+            gl::VertexAttribPointer(
+                9,
+                1, // 1 float (scale)
+                gl::FLOAT,
+                gl::FALSE,
+                stride,
+                80 as *const _, // offset: 20 floats * 4 bytes = 80
+            );
+            gl::VertexAttribDivisor(9, 1); // Per-instance
+
             // Draw instanced
             gl::DrawElementsInstanced(
                 primitive.to_gl(),
@@ -1352,7 +1364,7 @@ impl CommandExecutor {
             );
 
             // Disable instance attributes and reset divisors
-            for attrib in 4..=8 {
+            for attrib in 4..=9 {
                 gl::VertexAttribDivisor(attrib, 0);
                 gl::DisableVertexAttribArray(attrib);
             }
@@ -1361,6 +1373,7 @@ impl CommandExecutor {
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         }
         // Note: draw call counting is handled by is_draw_call() in execute()
+        self.instanced_data_items_this_frame += instances.len() as u64;
     }
 
     pub(super) fn cmd_bind_mesh_by_resource(&mut self, id: ResourceId) {

@@ -178,6 +178,14 @@ function Renderer:drawMeshPrimitive(vao, indexCount, primitive) end
 ---@param instanceCount integer
 function Renderer:drawMeshInstanced(vao, indexCount, instanceCount) end
 
+-- Draw instanced with per-instance data (mesh resource id variant).
+---@param meshId integer
+---@param indexCount integer
+---@param instances InstanceData[]
+---@param instances_size integer
+---@param primitive CmdPrimitiveType
+function Renderer:drawInstancedWithData(meshId, indexCount, instances, instances_size, primitive) end
+
 -- Signal resize
 ---@param width integer
 ---@param height integer

@@ -103,6 +103,17 @@ function Mesh:drawUnbind(r) end
 ---@param r Renderer
 function Mesh:draw(r) end
 
+-- Instanced draw with per-instance data (triangles). Ensures the GPU
+-- resource exists (same lazy path as draw_bind), then submits ONE
+-- DrawInstancedWithData command. `instances` is a Lua cdata array of
+-- InstanceData (ffi.new("InstanceData[?]", count)); ffi_gen passes the
+-- array pointer + element count. The render thread copies the data, so
+-- the Lua array can be reused/GC'd after the call.
+---@param r Renderer
+---@param instances InstanceData[]
+---@param instances_size integer
+function Mesh:drawInstancedWithData(r, instances, instances_size) end
+
 ---@param r Renderer
 ---@param scale number
 function Mesh:drawNormals(r, scale) end

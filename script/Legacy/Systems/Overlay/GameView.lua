@@ -2,6 +2,7 @@ local Material = require('Legacy.GameObjects.Material')
 local Registry = require('Core.ECS.Registry')
 local RenderComponent = require('Modules.Rendering.Components.RenderComponent')
 local RigidBodyComponent = require('Modules.Physics.Components.RigidBodyComponent')
+local AsteroidInstancedRenderer = require('Legacy.Systems.Overlay.AsteroidInstancedRenderer')
 
 local GameView = {}
 GameView.__index = GameView
@@ -28,8 +29,17 @@ function GameView:draw(focus, active)
 
     do -- Opaque Pass
         Profiler.Begin('Render.Opaque')
+        AsteroidInstancedRenderer.beginFrame()
         self.renderer:start(self.sx, self.sy, ss)
         self:drawScene(BlendMode.Disabled, eye) -- significant performance point with ss
+        -- Flush instanced asteroids: one DrawInstancedWithData per
+        -- (mesh variant, LOD level) group, bound with the instanced shader
+        -- + rock diffuse texture (replaces ~600 individual asteroid draws).
+        local instShader = Cache.Shader('wvp_instanced', 'material/asteroid_instanced')
+        instShader:start()
+        instShader:setTex2D('texDiffuse', Cache.Texture('rock'))
+        AsteroidInstancedRenderer.flush()
+        instShader:stop()
         self.renderer:stop()
         Profiler.End()
     end

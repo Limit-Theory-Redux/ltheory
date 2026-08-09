@@ -9,10 +9,10 @@ use tracing::{error, info};
 use crate::render::thread::{RenderThread, process_batch_intern};
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
-    PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats, RenderTargetStack,
-    RenderThreadConfig, RenderThreadError, RendererData, ResourceHandle, ResourceId,
-    ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, StatsSink, TexFilter, TexFormat,
-    TexWrapMode, VertexFormat, VpStack,
+    InstanceData, PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats,
+    RenderTargetStack, RenderThreadConfig, RenderThreadError, RendererData, ResourceHandle,
+    ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, StatsSink, TexFilter,
+    TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::{WindowError, WindowGlContext};
 
@@ -1016,6 +1016,24 @@ impl Renderer {
         self.submit(RenderCommand::DrawMesh {
             vao,
             index_count,
+            primitive,
+        });
+    }
+
+    /// Draw instanced with per-instance data. The slice comes from the
+    /// FFI facade (Lua cdata array converted by ffi_gen); the data is
+    /// copied into the command so the render thread owns it.
+    pub fn draw_instanced_with_data_intern(
+        &mut self,
+        mesh_id: ResourceId,
+        index_count: i32,
+        instances: &[InstanceData],
+        primitive: CmdPrimitiveType,
+    ) {
+        self.submit(RenderCommand::DrawInstancedWithData {
+            mesh_id,
+            index_count,
+            instances: instances.to_vec(),
             primitive,
         });
     }

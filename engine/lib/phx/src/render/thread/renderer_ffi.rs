@@ -3,8 +3,8 @@ use tracing::error;
 
 use crate::math::Matrix;
 use crate::render::{
-    BatchStats, BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle, LightUboData,
-    MaterialUboData, RenderBatch, Renderer, ResourceId,
+    BatchStats, BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle,
+    InstanceData, LightUboData, MaterialUboData, RenderBatch, Renderer, ResourceId,
 };
 
 // =============================================================================
@@ -243,6 +243,22 @@ impl Renderer {
             index_count,
             instance_count,
             CmdPrimitiveType::Triangles,
+        );
+    }
+
+    /// Draw instanced with per-instance data (mesh resource id variant).
+    pub fn draw_instanced_with_data(
+        &mut self,
+        mesh_id: u64,
+        index_count: i32,
+        instances: &[InstanceData],
+        primitive: CmdPrimitiveType,
+    ) {
+        self.draw_instanced_with_data_intern(
+            ResourceId(mesh_id),
+            index_count,
+            instances,
+            primitive,
         );
     }
 

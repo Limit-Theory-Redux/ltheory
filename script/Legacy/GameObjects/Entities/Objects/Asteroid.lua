@@ -1,5 +1,16 @@
 local Entity = require('Legacy.GameObjects.Entity')
 local Material = require('Legacy.GameObjects.Material')
+local AsteroidInstancedRenderer = require('Legacy.Systems.Overlay.AsteroidInstancedRenderer')
+
+-- Route the per-entity render through the instanced collector instead of
+-- the legacy per-draw path: asteroids share the 16-mesh pool, so they are
+-- grouped by (mesh variant, LOD level) and drawn with ONE
+-- DrawInstancedWithData per group (~600 draws -> ~16-128).
+local function renderInstanced(self, state)
+    if state.mode == BlendMode.Disabled then
+        AsteroidInstancedRenderer.collect(self.body, self.mesh, state.eye, self:getScale())
+    end
+end
 
 -- Pool of distinct asteroid meshes, shared by all asteroids. Each asteroid
 -- picks one by seed hash, so the pool keeps visual diversity while meshes
@@ -24,6 +35,8 @@ local Asteroid = Subclass("Asteroid", Entity, function(self, seed, scale)
     local mesh = getMesh(seed)
     self:addRigidBody(true, mesh:get(0), Enums.ColliderType.ConvexHull)
     self:addVisibleLodMesh(mesh, Material.Rock())
+    self:unregister(OldEvent.Render, Entity.renderVisibleLodMesh)
+    self:register(OldEvent.Render, renderInstanced)
     self:addTrackable(true)
     self:addMinable(true)
     self:addClaimable()

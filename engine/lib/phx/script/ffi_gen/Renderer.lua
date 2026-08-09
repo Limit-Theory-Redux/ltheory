@@ -52,6 +52,7 @@ function Loader.defineType()
             void              Renderer_DrawMesh               (Renderer*, uint32 vao, int indexCount);
             void              Renderer_DrawMeshPrimitive      (Renderer*, uint32 vao, int indexCount, CmdPrimitiveType* primitive);
             void              Renderer_DrawMeshInstanced      (Renderer*, uint32 vao, int indexCount, int instanceCount);
+            void              Renderer_DrawInstancedWithData  (Renderer*, uint64 meshId, int indexCount, InstanceData const* instances, uint64 instances_size, CmdPrimitiveType* primitive);
             void              Renderer_Resize                 (Renderer*, uint32 width, uint32 height);
             void              Renderer_SwapBuffers            (Renderer*);
             void              Renderer_CreateCameraUbo        (Renderer*);
@@ -111,6 +112,10 @@ function Loader.defineType()
                     libphx.Renderer_DrawMeshPrimitive(self, vao, indexCount, primitive)
                 end,
                 drawMeshInstanced      = libphx.Renderer_DrawMeshInstanced,
+                drawInstancedWithData  = function(self, meshId, indexCount, instances, primitive)
+                    ffi.gc(primitive, nil)
+                    libphx.Renderer_DrawInstancedWithData(self, meshId, indexCount, instances, primitive)
+                end,
                 resize                 = libphx.Renderer_Resize,
                 swapBuffers            = libphx.Renderer_SwapBuffers,
                 createCameraUbo        = libphx.Renderer_CreateCameraUbo,

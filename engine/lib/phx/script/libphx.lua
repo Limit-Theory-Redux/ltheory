@@ -24,6 +24,11 @@ do -- Basic Typedefs
         typedef int32          TexFilter;
         typedef int32          TexFormat;
         typedef int32          TexWrapMode;
+        typedef struct InstanceData {
+            float model_matrix[16];
+            float color[4];
+            float scale;
+        } InstanceData;
     ]]
 end
 
