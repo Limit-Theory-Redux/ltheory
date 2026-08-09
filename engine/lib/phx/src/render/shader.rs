@@ -586,13 +586,19 @@ impl Shader {
         // The stack revision only bumps on push/pop; camera matrices are
         // pushed once per frame, so re-applying them per draw is redundant
         // (the values - and this program's uniform state - are unchanged).
-        // SAFETY: only skip when this shader has NO sampler auto-vars -
-        // samplers must re-apply every start() because their texture units
-        // are reallocated per draw and can be stolen by other shaders.
+        // SAFETY: only skip when this shader has NO *resolved* sampler
+        // auto-vars - samplers must re-apply every start() because their
+        // texture units are reallocated per draw and can be stolen by other
+        // shaders. Unresolved samplers (index == -1, uniform absent from the
+        // program, e.g. irMap/envMap on materials that don't use them) are
+        // skipped by the loop below anyway and allocate no units, so they
+        // must not disable the revision fast path - the hull shader is the
+        // bulk of main-menu draws and would otherwise re-apply its full
+        // auto-var stack per draw.
         let has_sampler_auto_vars = s
             .auto_vars
             .iter()
-            .any(|v| v.type_name.starts_with("sampler"));
+            .any(|v| v.type_name.starts_with("sampler") && v.index != -1);
         let stack_revision = r.data.shader_vars.revision();
         if has_sampler_auto_vars || stack_revision != s.last_auto_var_revision {
             for i in 0..s.auto_vars.len() {
