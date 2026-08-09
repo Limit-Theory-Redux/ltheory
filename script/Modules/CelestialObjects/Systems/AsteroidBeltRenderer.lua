@@ -106,18 +106,34 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     local inst_shader = Cache.Shader('wvp_instanced', 'material/asteroid_instanced')
     local asteroid_tex = Cache.Texture('rock')
 
-    -- Lazy rotation cache — only compute for asteroids we actually render
-    local rotCache = {}
+    local nAst = #asteroidData
 
-    -- Reusable scratch Vec3f for matrix construction (no per-asteroid alloc)
-    local relPosScratch = Vec3f(0, 0, 0)
+    -- Precompute each asteroid's static rotation*scale matrix ONCE (the
+    -- rotation and scale never change; only the translation depends on
+    -- the eye each frame). Stored as a flat float[16] per asteroid; per
+    -- frame we memcpy it and patch the translation column - no Matrix
+    -- allocation in the hot loop. NOTE: cdata arrays are 0-indexed, so
+    -- allocate nAst+1 to keep 1-based Lua indexing (asteroidData[i]).
+    local staticMats = ffi.new('float[?][16]', nAst + 1)
+    for i = 1, nAst do
+        local a = asteroidData[i]
+        local rng = RNG.Create(a.rotSeed)
+        local ax = rng:getUniform() - 0.5
+        local ay = rng:getUniform() - 0.5
+        local az = rng:getUniform() - 0.5
+        local len = math.sqrt(ax * ax + ay * ay + az * az)
+        if len > 0.001 then ax, ay, az = ax / len, ay / len, az / len end
+        local rot = Quat.FromAxisAngle(Vec3f(ax, ay, az), rng:getUniform() * math.pi * 2)
+        local m = Matrix.FromPosRotScale(Vec3f(0, 0, 0), rot, a.scale)
+        ffi.copy(staticMats[i], m.m, ffi.sizeof('float') * 16)
+    end
 
     -- Render distance proportional to belt spread (capped), or the
     -- benchmark override when set (camera orbits far outside the belt)
     local renderDistSq = benchRenderDistSq
     if not renderDistSq then
         local maxOrbitR = 0
-        for i = 1, math.min(100, #asteroidData) do
+        for i = 1, math.min(100, nAst) do
             local a = asteroidData[i]
             local r = math.sqrt(a.px * a.px + a.pz * a.pz)
             if r > maxOrbitR then maxOrbitR = r end
@@ -164,6 +180,9 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         local r = LOD_RANGES[i]
         lodSq[i] = { r[1] * r[1], r[2] * r[2] }
     end
+    -- Mesh per LOD index: fetched once (clones share GPU data; the
+    -- pointer differs per call, so cache per level)
+    local lodMeshes = {}
 
     local PhysicsComponents = require("Modules.Physics.Components")
 
@@ -221,54 +240,49 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
                     local s = a.scale
                     local distNorm = distSq / (s * s)
                     local lodIndex = nil
-                    local mesh = nil
                     for li = 1, #lodSq do
                         if distNorm >= lodSq[li][1] and distNorm <= lodSq[li][2] then
                             lodIndex = li
-                            mesh = lodMesh:get(distNorm)
                             break
                         end
                     end
-                    if lodIndex and mesh then
-                        -- Lazy rotation: compute once, cache forever
-                        local rot = rotCache[i]
-                        if not rot then
-                            local rng = RNG.Create(a.rotSeed)
-                            local ax = rng:getUniform() - 0.5
-                            local ay = rng:getUniform() - 0.5
-                            local az = rng:getUniform() - 0.5
-                            local len = math.sqrt(ax * ax + ay * ay + az * az)
-                            if len > 0.001 then ax, ay, az = ax / len, ay / len, az / len end
-                            rot = Quat.FromAxisAngle(Vec3f(ax, ay, az), rng:getUniform() * math.pi * 2)
-                            rotCache[i] = rot
+                    if lodIndex then
+                        -- Mesh cached per LOD level (one get() per level,
+                        -- not per asteroid - clones share GPU data)
+                        local mesh = lodMeshes[lodIndex]
+                        if not mesh then
+                            mesh = lodMesh:get(lodSq[lodIndex][1])
+                            lodMeshes[lodIndex] = mesh
                         end
+                        if mesh then
+                            -- Camera-relative world matrix: static
+                            -- rotation*scale (precomputed) + eye-relative
+                            -- translation patched in. No per-asteroid Matrix
+                            -- allocation.
+                            local inst = nil
+                            local g = groups[lodIndex]
+                            if not g then
+                                g = { mesh = mesh, capacity = 64, count = 0, instances = ffi.new('InstanceData[64]') }
+                                groups[lodIndex] = g
+                                groupOrder[#groupOrder + 1] = lodIndex
+                            end
+                            if g.count >= g.capacity then
+                                local newCap = g.capacity * 2
+                                local newArr = ffi.new('InstanceData[?]', newCap)
+                                ffi.copy(newArr, g.instances, g.count * ffi.sizeof('InstanceData'))
+                                g.instances = newArr
+                                g.capacity = newCap
+                            end
 
-                        -- Camera-relative world matrix (eye-relative, like the
-                        -- non-instanced mWorld path). Scratch Vec3f avoids a
-                        -- per-asteroid allocation.
-                        local relPos = relPosScratch
-                        relPos.x = rx; relPos.y = ry; relPos.z = rz
-                        local mat = Matrix.FromPosRotScale(relPos, rot, s)
-
-                        local g = groups[lodIndex]
-                        if not g then
-                            g = { mesh = mesh, capacity = 64, count = 0, instances = ffi.new('InstanceData[64]') }
-                            groups[lodIndex] = g
-                            groupOrder[#groupOrder + 1] = lodIndex
+                            inst = g.instances[g.count]
+                            ffi.copy(inst.model_matrix, staticMats[i], ffi.sizeof('float') * 16)
+                            inst.model_matrix[12] = rx
+                            inst.model_matrix[13] = ry
+                            inst.model_matrix[14] = rz
+                            inst.scale = s
+                            g.count = g.count + 1
+                            drawn = drawn + 1
                         end
-                        if g.count >= g.capacity then
-                            local newCap = g.capacity * 2
-                            local newArr = ffi.new('InstanceData[?]', newCap)
-                            ffi.copy(newArr, g.instances, g.count * ffi.sizeof('InstanceData'))
-                            g.instances = newArr
-                            g.capacity = newCap
-                        end
-
-                        local inst = g.instances[g.count]
-                        ffi.copy(inst.model_matrix, mat.m, ffi.sizeof('float') * 16)
-                        inst.scale = s
-                        g.count = g.count + 1
-                        drawn = drawn + 1
                     end
                 end
             end
