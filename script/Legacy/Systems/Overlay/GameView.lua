@@ -358,6 +358,24 @@ function GameView:drawScene(blendMode, eye)
         local pool = self._entryPool or {}
         self._entryPool = pool
         local poolIdx = 0
+        -- material -> bucket index map. Materials are few (~17 for the
+        -- whole scene) but meshes are many; the ECS loop starts/stops the
+        -- material once per group instead of once per mesh. A material
+        -- boundary entry (entry.mat set, entry.mesh nil) is appended on
+        -- first sight of each material within EACH list, so each pass
+        -- list is grouped as [matA, mesh, mesh, matB, mesh, ...] - the
+        -- draw loop hoists start/stop out of the per-mesh iteration.
+        -- NOTE: updateState is still called with the mesh's OWN material
+        -- (entry.mesh.material) in the draw loop - a material's
+        -- onUpdateState closure may depend on the entity's components
+        -- (e.g. Planet material reads PlanetComponent), so the per-mesh
+        -- material identity must be preserved exactly as the legacy loop
+        -- did. Only start/stop are grouped.
+        local matBucket = self._matBucket
+        if not matBucket then
+            matBucket = {}
+            self._matBucket = matBucket
+        end
         lists[BlendMode.Disabled] = {}
         lists[BlendMode.Additive] = {}
         lists[BlendMode.Alpha] = {}
@@ -372,12 +390,28 @@ function GameView:drawScene(blendMode, eye)
                 local mesh = meshes[mi]
                 local list = lists[mesh.material.blendMode]
                 if list then
+                    if not matBucket[list] then matBucket[list] = {} end
+                    if not matBucket[list][mesh.material] then
+                        -- First sight of this material in THIS list: append
+                        -- a boundary marker so the draw loop can start() it.
+                        poolIdx = poolIdx + 1
+                        local marker = pool[poolIdx]
+                        if not marker then
+                            marker = {}
+                            pool[poolIdx] = marker
+                        end
+                        marker.mesh = nil
+                        marker.mat = mesh.material
+                        list[#list + 1] = marker
+                        matBucket[list][mesh.material] = true
+                    end
                     poolIdx = poolIdx + 1
                     local entry = pool[poolIdx]
                     if not entry then
                         entry = {}
                         pool[poolIdx] = entry
                     end
+                    entry.mat = nil
                     entry.rb = rigidBody.rigidBody
                     entry.entity = entity
                     entry.mesh = mesh
@@ -386,19 +420,42 @@ function GameView:drawScene(blendMode, eye)
             end
             ::continue::
         end
+        -- Reset the material map for the next build.
+        for listKey, bucket in pairs(matBucket) do
+            for k in pairs(bucket) do
+                bucket[k] = nil
+            end
+            matBucket[listKey] = nil
+        end
     end
     Profiler.End()
 
     local list = self.frameLists[blendMode]
     Profiler.Begin('DrawScene.ECS')
+    local currentMat = nil
     for i = 1, #list do
         local entry = list[i]
         local mesh = entry.mesh
-        mesh.material:start()
-        mesh.material:updateState(entry.rb, entry.entity, eye)
-        mesh.mesh:draw()
-        mesh.material:stop()
+        if not mesh then
+            -- Material boundary: hoist start/stop out of the per-mesh
+            -- loop. Same material = same shader + same textures (set once
+            -- in start()); updateState/draw still run per mesh.
+            if currentMat then currentMat:stop() end
+            currentMat = entry.mat
+            currentMat:start()
+        else
+            -- Use the mesh's OWN material for updateState (the pair's
+            -- material, exactly like the legacy loop): a material's
+            -- onUpdateState closure may depend on the entity's components
+            -- (e.g. Planet material reads PlanetComponent), so per-mesh
+            -- material identity must be preserved. Only start/stop are
+            -- grouped (currentMat); they're the same material object as
+            -- the group's meshes anyway.
+            mesh.material:updateState(entry.rb, entry.entity, eye)
+            mesh.mesh:draw()
+        end
     end
+    if currentMat then currentMat:stop() end
     Profiler.End()
 
     -- Start a recursive render of the scene.
