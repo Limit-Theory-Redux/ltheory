@@ -19,14 +19,22 @@ impl Bytes {
 
     /// WARNING: This only works if T is plain-old-data i.e. has no pointers!
     pub fn read<T>(&mut self, data: &mut [T]) {
-        #[allow(unsafe_code)] // TODO: refactor
-        self.read_bytes(unsafe { std::mem::transmute::<&mut [T], &mut [u8]>(data) });
+        let byte_len = data.len() * std::mem::size_of::<T>();
+        let ptr = data.as_mut_ptr() as *mut u8;
+        // SAFETY: T is POD (no pointers), so interpreting the buffer as bytes
+        // for the full byte length is valid.
+        #[allow(unsafe_code)]
+        self.read_bytes(unsafe { std::slice::from_raw_parts_mut(ptr, byte_len) });
     }
 
     /// WARNING: This only works if T is plain-old-data i.e. has no pointers!
     pub fn write<T>(&mut self, data: &[T]) {
-        #[allow(unsafe_code)] // TODO: refactor
-        self.write_bytes(unsafe { std::mem::transmute::<&[T], &[u8]>(data) });
+        let byte_len = data.len() * std::mem::size_of::<T>();
+        let ptr = data.as_ptr() as *const u8;
+        // SAFETY: T is POD (no pointers), so interpreting the buffer as bytes
+        // for the full byte length is valid.
+        #[allow(unsafe_code)]
+        self.write_bytes(unsafe { std::slice::from_raw_parts(ptr, byte_len) });
     }
 
     pub fn as_mut_ptr(&mut self) -> *mut u8 {
