@@ -179,9 +179,6 @@ function Application:onPostRender(data)
         self.prevMem = currentMem
     end
 
-    -- Calculate memory growth per frame
-    local growth = currentMem - self.prevMem
-
     -- Start cleaning if memory exceeds threshold
     if not self.cleaning and currentMem > self.gcThresholdKB then
         self.cleaning = true
@@ -191,26 +188,33 @@ function Application:onPostRender(data)
     if self.cleaning then
         Profiler.Begin('GC.Step')
 
-        -- Adaptive step size
-        local baseStep = 1000
-        local growthFactor = math.ceil(growth / 10)
-        local stepSize = math.max(baseStep, growthFactor)
-
-        -- Cap step size to avoid hitches
-        local maxStep = 10000
-        stepSize = math.min(stepSize, maxStep)
-
-        -- Emergency full collection if memory spikes
-        local emergencyThreshold = self.gcThresholdKB * 5
-        if currentMem > emergencyThreshold then
-            GC.Collect() -- sets GC.debug.emergencyTriggered = true
-            self.cleaning = false
+        -- Adaptive step size (KB of GC work per frame).
+        --
+        -- Old policy: stepSize = max(1000, ceil(growth/10)) capped at
+        -- 10000 - only ~10% of the allocation rate, so the heap climbed
+        -- past the threshold until the 5x-emergency fired a synchronous
+        -- full collect (measured 303 ms pause in-game). That emergency
+        -- full GC is the frame-killing spike.
+        --
+        -- v2 (overshoot/4) drained too hard: with a large overshoot it
+        -- stepped ~32 MB/frame, a constant ~35 ms tax every frame.
+        --
+        -- v3: drain a FRACTION of the overshoot per frame (1/16, capped
+        -- at 10 MB/frame). The heap pins near the threshold, the drain is
+        -- spread over many frames at a bounded per-frame cost, and the
+        -- synchronous full collect is gone entirely.
+        local overshoot = currentMem - self.gcThresholdKB
+        local stepSize
+        if overshoot > 0 then
+            stepSize = math.ceil(overshoot / 16)
         else
-            -- Incremental GC
-            local done = GC.Step(stepSize)
-            if done then
-                self.cleaning = false
-            end
+            stepSize = 1000
+        end
+        stepSize = math.min(stepSize, 10000)
+
+        local done = GC.Step(stepSize)
+        if done then
+            self.cleaning = false
         end
 
         -- **! seems to be a bug: engine restarts GC on collect, so we stop it again**
