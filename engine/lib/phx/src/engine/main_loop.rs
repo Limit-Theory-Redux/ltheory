@@ -5,7 +5,7 @@ use mlua::Function;
 use tracing::*;
 use winit::application::ApplicationHandler;
 use winit::event::{self, *};
-use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::keyboard::PhysicalKey;
 use winit::window::WindowId;
 
@@ -21,6 +21,13 @@ pub struct MainLoop {
 impl ApplicationHandler for MainLoop {
     fn new_events(&mut self, event_loop: &ActiveEventLoop, start_cause: StartCause) {
         if start_cause == StartCause::Init {
+            // Run the loop continuously (poll) instead of waiting for OS
+            // events. With the default ControlFlow::Wait, Windows DWM paces
+            // redraw delivery to the monitor refresh rate, which caps the
+            // producer at the display's Hz even with PresentMode::NoVsync.
+            // Poll + NoVsync = truly unbounded FPS; Vsync apps still cap via
+            // the swap interval blocking on the render thread.
+            event_loop.set_control_flow(ControlFlow::Poll);
             // We need the Engine type to have a stable pointer, so we construct it within `MainLoop` right away.
             self.engine = Some(Engine::new(event_loop));
             let engine = self.engine.as_mut().unwrap();

@@ -29,17 +29,20 @@ local function GenerateAsteroidMesh(seed)
     local res = 96 -- resolution
     local lac = 1.5
 
-    -- LOD distances (squared) — scaled for asteroids at game scale (50-500 units)
-    -- Each LOD covers a range of squared distances from camera
+    -- LOD distances (raw units) — scaled for asteroids at game scale (50-500 units)
+    -- Each LOD covers a range of distances from the camera; LodMesh:add
+    -- squares these internally, and get() takes the squared distance.
+    -- LOD 0 spans the whole benchmark viewing range (orbit + belt) so
+    -- close-ups and belt asteroids both show the high-res mesh.
     local lodRanges = {
-        { 0,      500 * 500 },         -- LOD 0: highest detail, < 500 units
-        { 500^2,  2000^2 },            -- LOD 1
-        { 2000^2, 8000^2 },            -- LOD 2
-        { 8000^2, 30000^2 },           -- LOD 3
-        { 30000^2, 100000^2 },         -- LOD 4
-        { 100000^2, 500000^2 },        -- LOD 5
-        { 500000^2, 2000000^2 },       -- LOD 6
-        { 2000000^2, 1e16 },           -- LOD 7: lowest detail, very far
+        { 0,       2000 },        -- LOD 0: highest detail, < 2000 units
+        { 2000,    8000 },        -- LOD 1
+        { 8000,    30000 },       -- LOD 2
+        { 30000,   100000 },      -- LOD 3
+        { 100000,  500000 },      -- LOD 4
+        { 500000,  2000000 },     -- LOD 5
+        { 2000000, 10000000 },    -- LOD 6
+        { 10000000, 1e16 },       -- LOD 7: lowest detail, very far
     }
 
     for i = 1, 8 do

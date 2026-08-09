@@ -21,6 +21,14 @@ local MAX_SPAWNED_TOTAL = 100    -- Max concurrent spawned entities ACROSS ALL b
 local MAX_SPAWN_PER_UPDATE = 5   -- Max new entities to spawn per update
 local UPDATE_INTERVAL = 1.0      -- Seconds between spawn checks
 
+--- Allow benchmarks/tests to raise the spawn caps (module-local).
+---@param total number Max concurrent spawned entities
+---@param perUpdate number Max new entities per update
+function AsteroidFieldSystem.setSpawnCaps(total, perUpdate)
+    MAX_SPAWNED_TOTAL = total or 100
+    MAX_SPAWN_PER_UPDATE = perUpdate or 5
+end
+
 local spawnedAsteroids = {}  -- [beltEntity] = { [asteroidIndex] = entity }
 local timeSinceUpdate = 0
 local totalSpawned = 0       -- Global count across all belts/rings

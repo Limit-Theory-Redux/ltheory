@@ -30,18 +30,20 @@ function AsteroidMeshPool:init(count, baseSeed)
             local path = string.format("%s/asteroid_%02d_lod%d.mesh", MESH_DIR, i, lod)
             if File.Exists(path) then
                 local mesh = Mesh.Load(path)
-                -- LOD distance ranges (squared) matching AsteroidMesh.lua
+                -- LOD distance ranges (RAW units; LodMesh:add squares them
+                -- internally, matching AsteroidMesh.lua). LOD 0 = highest
+                -- detail, used up to 2000 units from the camera.
                 local lodRanges = {
-                    [0] = { 0,      250000 },
-                    [1] = { 250000, 4000000 },
-                    [2] = { 4000000, 64000000 },
-                    [3] = { 64000000, 9e8 },
-                    [4] = { 9e8, 1e10 },
-                    [5] = { 1e10, 2.5e11 },
-                    [6] = { 2.5e11, 4e12 },
-                    [7] = { 4e12, 1e16 },
+                    { 0,       2000 },
+                    { 2000,    8000 },
+                    { 8000,    30000 },
+                    { 30000,   100000 },
+                    { 100000,  500000 },
+                    { 500000,  2000000 },
+                    { 2000000, 10000000 },
+                    { 10000000, 1e16 },
                 }
-                local r = lodRanges[lod]
+                local r = lodRanges[lod + 1]
                 lodMesh:add(mesh, r[1], r[2])
             else
                 allLoaded = false
@@ -60,18 +62,22 @@ function AsteroidMeshPool:init(count, baseSeed)
             pool[i] = GenerateAsteroidMesh(seed)
 
             -- Save each LOD level to disk for next time
+            -- Query by the MIDPOINT of each RAW distance range, squared
+            -- (get() takes squared distance; add() squares the range ends).
             local lodRanges = {
-                { 0,      250000 },
-                { 250000, 4000000 },
-                { 4000000, 64000000 },
-                { 64000000, 9e8 },
-                { 9e8, 1e10 },
-                { 1e10, 2.5e11 },
-                { 2.5e11, 4e12 },
-                { 4e12, 1e16 },
+                { 0,       2000 },
+                { 2000,    8000 },
+                { 8000,    30000 },
+                { 30000,   100000 },
+                { 100000,  500000 },
+                { 500000,  2000000 },
+                { 2000000, 10000000 },
+                { 10000000, 1e16 },
             }
             for lod = 0, LOD_COUNT - 1 do
-                local mesh = pool[i]:get(lodRanges[lod + 1][1])
+                local r = lodRanges[lod + 1]
+                local mid = (r[1] + r[2]) * 0.5
+                local mesh = pool[i]:get(mid * mid)
                 if mesh then
                     local path = string.format("%s/asteroid_%02d_lod%d.mesh", MESH_DIR, i, lod)
                     mesh:save(path)

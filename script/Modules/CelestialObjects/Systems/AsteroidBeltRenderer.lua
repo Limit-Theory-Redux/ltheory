@@ -8,6 +8,21 @@ local AsteroidBeltRenderer = {}
 local MAX_RENDER_DIST_SQ = 4e12
 --- Maximum drawn asteroids per frame per belt/ring
 local MAX_DRAWN_PER_FRAME = 200
+--- Render-distance override (benchmark: camera orbits far outside the belt).
+--- nil = derive from belt spread (game default).
+local benchRenderDistSq = nil
+
+--- Allow benchmarks/tests to raise the per-frame draw cap (module-local).
+---@param n number
+function AsteroidBeltRenderer.setMaxDrawnPerFrame(n)
+    MAX_DRAWN_PER_FRAME = n or 200
+end
+
+--- Allow benchmarks/tests to override the render-distance cutoff.
+---@param distSq number Squared distance; asteroids beyond this are not drawn
+function AsteroidBeltRenderer.setRenderDistSq(distSq)
+    benchRenderDistSq = distSq
+end
 
 --- Generate asteroid transforms for a belt
 ---@param params table { orbitRadius, width, count, inclination, seed, minScale, maxScale }
@@ -61,14 +76,18 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     -- Reusable Vec3f
     local relPos = Vec3f(0, 0, 0)
 
-    -- Render distance proportional to belt spread (capped)
-    local maxOrbitR = 0
-    for i = 1, math.min(100, #asteroidData) do
-        local a = asteroidData[i]
-        local r = math.sqrt(a.px * a.px + a.pz * a.pz)
-        if r > maxOrbitR then maxOrbitR = r end
+    -- Render distance proportional to belt spread (capped), or the
+    -- benchmark override when set (camera orbits far outside the belt)
+    local renderDistSq = benchRenderDistSq
+    if not renderDistSq then
+        local maxOrbitR = 0
+        for i = 1, math.min(100, #asteroidData) do
+            local a = asteroidData[i]
+            local r = math.sqrt(a.px * a.px + a.pz * a.pz)
+            if r > maxOrbitR then maxOrbitR = r end
+        end
+        renderDistSq = math.min(MAX_RENDER_DIST_SQ, (maxOrbitR * 3) ^ 2)
     end
-    local renderDistSq = math.min(MAX_RENDER_DIST_SQ, (maxOrbitR * 3) ^ 2)
 
     local PhysicsComponents = require("Modules.Physics.Components")
 
