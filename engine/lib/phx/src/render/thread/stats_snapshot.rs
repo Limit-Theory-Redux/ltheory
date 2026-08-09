@@ -89,6 +89,13 @@ impl Renderer {
         self.category_timing.store(true, Ordering::Relaxed);
     }
 
+    /// Immediate mode: no render thread to publish from; the dashboard's
+    /// /profile.json endpoints (shared profiler) still work, /stats.json is
+    /// unavailable. Accepting the sink keeps the engine's stats-server wiring
+    /// uniform across both backends.
+    #[cfg(feature = "immediate")]
+    pub fn attach_stats_sink(&mut self, _sink: StatsSink) {}
+
     /// Build a snapshot from the current per-frame state and push it into the
     /// sink, if one is attached.
     #[cfg(not(feature = "immediate"))]

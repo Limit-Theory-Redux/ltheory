@@ -12,6 +12,9 @@ workspace = true
 [features]
 # Forward the phx stats-server feature so `cargo run -p ltr --features stats-server` works.
 stats-server = ["phx/stats-server"]
+# Forward phx's single-threaded fallback (executes RenderCommands inline on
+# the calling thread) for A/B comparison against the threaded pipeline.
+immediate = ["phx/immediate"]
 
 [dependencies]
 # workspace crates

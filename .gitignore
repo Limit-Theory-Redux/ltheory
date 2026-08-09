@@ -5,6 +5,7 @@
 /screenshot/
 /out/
 /target/
+/target-immediate/
 /expand.rs
 
 # Logs

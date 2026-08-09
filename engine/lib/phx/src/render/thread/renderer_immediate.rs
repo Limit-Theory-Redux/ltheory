@@ -551,7 +551,7 @@ impl Renderer {
             .cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive);
     }
 
-    pub fn draw_instanced_with_data(
+    pub fn draw_instanced_with_data_intern(
         &mut self,
         mesh_id: ResourceId,
         index_count: i32,
