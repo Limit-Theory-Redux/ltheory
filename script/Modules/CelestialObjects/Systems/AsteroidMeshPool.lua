@@ -25,24 +25,25 @@ function AsteroidMeshPool:init(count, baseSeed)
         local lodMesh = LodMesh.Create()
         local allLoaded = true
 
+        -- LOD distance ranges (RAW units; LodMesh:add squares them
+        -- internally, matching AsteroidMesh.lua). LOD 0 = highest
+        -- detail, used up to 2000 units from the camera.
+        local lodRanges = {
+            { 0,       2000 },
+            { 2000,    8000 },
+            { 8000,    30000 },
+            { 30000,   100000 },
+            { 100000,  500000 },
+            { 500000,  2000000 },
+            { 2000000, 10000000 },
+            { 10000000, 1e16 },
+        }
+
         -- Try loading pre-cached LOD meshes from disk
         for lod = 0, LOD_COUNT - 1 do
             local path = string.format("%s/asteroid_%02d_lod%d.mesh", MESH_DIR, i, lod)
             if File.Exists(path) then
                 local mesh = Mesh.Load(path)
-                -- LOD distance ranges (RAW units; LodMesh:add squares them
-                -- internally, matching AsteroidMesh.lua). LOD 0 = highest
-                -- detail, used up to 2000 units from the camera.
-                local lodRanges = {
-                    { 0,       2000 },
-                    { 2000,    8000 },
-                    { 8000,    30000 },
-                    { 30000,   100000 },
-                    { 100000,  500000 },
-                    { 500000,  2000000 },
-                    { 2000000, 10000000 },
-                    { 10000000, 1e16 },
-                }
                 local r = lodRanges[lod + 1]
                 lodMesh:add(mesh, r[1], r[2])
             else
