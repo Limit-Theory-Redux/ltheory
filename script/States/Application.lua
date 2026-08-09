@@ -224,6 +224,11 @@ function Application:onPostRender(data)
     self:immediateUI(function() ShaderErrorOverlay:draw() end)
 
     Profiler.End()
+
+    -- Flush accumulated scope frame-times into the totals once per frame.
+    -- Without this, every scope's total stays 0 and the printed table is
+    -- empty (begin/end only accumulate into scope.frame).
+    Profiler.LoopMarker()
 end
 
 function Application:onPreInput(data) end

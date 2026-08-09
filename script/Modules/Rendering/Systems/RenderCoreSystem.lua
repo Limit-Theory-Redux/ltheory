@@ -123,6 +123,7 @@ end
 
 ---@param data EventData
 function RenderCoreSystem:render(data)
+    Profiler.Begin('RenderCore.render')
     -- Track frame time
     local dt = data:deltaTime() -- already in your code
     table.insert(self.frameTimes, dt)
@@ -230,6 +231,8 @@ function RenderCoreSystem:render(data)
     -- Smooth with exponential moving average
     self.smoothFrameTime  = self.smoothFrameTime + (self.currentFrameTime - self.smoothFrameTime) * self.smoothFactor
     self.smoothFPS        = self.smoothFPS + (self.currentFPS - self.smoothFPS) * self.smoothFactor
+
+    Profiler.End() -- RenderCore.render
 end
 
 function RenderCoreSystem:handleResize()
