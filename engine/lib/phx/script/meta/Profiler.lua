@@ -35,7 +35,6 @@ function Profiler.End() end
 ---@param value integer
 function Profiler.SetValue(name, value) end
 
--- Records frame timing for each active scope
 function Profiler.LoopMarker() end
 
 -- Prints backtrace of active scopes
