@@ -330,15 +330,21 @@ function RenderCoreSystem:renderInOrder(blendMode)
         -- BindShader command is suppressed on the main thread.
         sh:start()
 
+        -- The uniform funcs (UniformFuncs, keyed by UniformType)
+        -- call iSetFloat/iSetFloat3/... which live on the raw
+        -- Shader, not the ShaderState wrapper. Resolve it once
+        -- (sh:shader() - colon form passes the ShaderState as self).
+        local shader = sh:shader()
+
         -- Material-level vars only change when the material
         -- changes (they're constant across instances of the
         -- same material), so apply them once per material.
         if mat ~= lastMaterial then
-            self:applyMaterialVars(mat, sh, eye, entry.entity)
+            self:applyMaterialVars(mat, shader, eye, entry.entity)
             lastMaterial = mat
         end
 
-        self:applyInstanceVars(mat, sh, eye, entry.entity, entry.instCache)
+        self:applyInstanceVars(mat, shader, eye, entry.entity, entry.instCache)
 
         entry.mesh:draw()
     end
