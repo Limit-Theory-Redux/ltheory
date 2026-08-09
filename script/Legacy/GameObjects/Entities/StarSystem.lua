@@ -320,7 +320,10 @@ function System:update(dt)
         Profiler.End()
 
         Profiler.Begin('Physics Update')
+        Profiler.Begin('Physics.Step')
         self.physics:update(dt)
+        Profiler.End()
+        Profiler.Begin('Physics.CollisionDrain')
         local collision = Collision()
         while (self.physics:getNextCollision(collision)) do
             local entity1 = Entity.fromRigidBody(collision.body0)
@@ -332,6 +335,7 @@ function System:update(dt)
             end
             --print('', collision.index, collision.body0, collision.body1)
         end
+        Profiler.End()
         Profiler.End()
 
         -- post-physics update
