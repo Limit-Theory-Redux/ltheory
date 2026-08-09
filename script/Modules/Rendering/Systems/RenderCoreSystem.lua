@@ -4,6 +4,7 @@ local RenderingPass    = require("Shared.Rendering.RenderingPass")
 local CameraManager    = require("Modules.Cameras.Managers.CameraManager")
 local RenderComp       = require("Modules.Rendering.Components").Render
 local CameraComponent  = require("Modules.Cameras.Components.CameraDataComponent")
+local UniformFuncs     = require("Shared.Rendering.UniformFuncs")
 local Cache            = require("Render.Cache")
 
 ---@class RenderCoreSystem
@@ -265,9 +266,13 @@ function RenderCoreSystem:renderInOrder(blendMode)
     -- Custom render fns are called in every pass (their blend mode isn't
     -- queryable). Mesh entities are pre-sorted into per-pass lists by
     -- buildPassLists, so this loop only touches entities that draw here.
-    for _, fnEntry in ipairs(self.passRenderFns or {}) do
-        fnEntry.fn(fnEntry.entity, blendMode)
-        lastMaterial = nil
+    local fns = self.passRenderFns
+    if fns then
+        for fi = 1, #fns do
+            local fnEntry = fns[fi]
+            fnEntry.fn(fnEntry.entity, blendMode)
+            lastMaterial = nil
+        end
     end
 
     local list = self.passMeshes[blendMode]
@@ -293,7 +298,7 @@ function RenderCoreSystem:renderInOrder(blendMode)
             lastMaterial = mat
         end
 
-        self:applyInstanceVars(mat, sh, eye, entry.entity)
+        self:applyInstanceVars(mat, sh, eye, entry.entity, entry.instCache)
 
         entry.mesh:draw()
     end
@@ -307,6 +312,7 @@ end
 function RenderCoreSystem:buildPassLists()
     local passMeshes = {}
     local passRenderFns = {}
+    local entityInstCache = {}
 
     for entity in Registry:view(RenderComp) do
         local rend = entity:get(RenderComp)
@@ -315,7 +321,19 @@ function RenderCoreSystem:buildPassLists()
         if rend:getRenderFn() then
             table.insert(passRenderFns, { fn = rend:getRenderFn(), entity = entity })
         elseif rend:getMeshes() then
-            for meshmat in Iterator(rend:getMeshes()) do
+            -- Per-entity instance-var cache. All meshes of an entity
+            -- (hull/turrets/thrusters) share the same rigid-body transform,
+            -- so perInstance vars (mWorld/mWorldIT/scale) are identical
+            -- across them. Previously each mesh recomputed + reallocated
+            -- the matrices via getToWorldMatrix()/getToLocalMatrix() (each
+            -- a managed Matrix* with a finalizer); the cache computes each
+            -- var once per entity per frame and reuses the values.
+            local instCache = {}
+            entityInstCache[entity.id] = instCache
+
+            local meshes = rend:getMeshes()
+            for mi = 1, #meshes do
+                local meshmat = meshes[mi]
                 local mat = meshmat.material
                 local bm = mat:getBlendMode() or BlendMode.Disabled
                 local list = passMeshes[bm]
@@ -328,6 +346,7 @@ function RenderCoreSystem:buildPassLists()
                     mat = mat,
                     sh = mat:getShaderState(),
                     entity = entity,
+                    instCache = instCache,
                 })
             end
         end
@@ -336,28 +355,60 @@ function RenderCoreSystem:buildPassLists()
 
     self.passMeshes = passMeshes
     self.passRenderFns = passRenderFns
+    self.entityInstCache = entityInstCache
 end
 
 function RenderCoreSystem:applyMaterialVars(mat, shader, eye, entity)
     -- material level (constant across all instances of the material)
-    for _, v in ipairs(mat.staticShaderVars or {}) do
-        v:setShaderVar(eye, shader, entity)
+    local vars = mat.staticShaderVars
+    if vars then
+        for i = 1, #vars do
+            vars[i]:setShaderVar(eye, shader, entity)
+        end
     end
-    for _, v in ipairs(mat.constShaderVars or {}) do
-        v:setShaderVar(eye, shader, entity)
+    vars = mat.constShaderVars
+    if vars then
+        for i = 1, #vars do
+            vars[i]:setShaderVar(eye, shader, entity)
+        end
     end
-    for _, v in ipairs(mat.autoShaderVars or {}) do
-        if not v.perInstance then
-            v:setShaderVar(eye, shader, entity)
+    vars = mat.autoShaderVars
+    if vars then
+        for i = 1, #vars do
+            local v = vars[i]
+            if not v.perInstance then
+                v:setShaderVar(eye, shader, entity)
+            end
         end
     end
 end
 
-function RenderCoreSystem:applyInstanceVars(mat, shader, eye, entity)
-    -- instance level (per-entity)
-    for _, v in ipairs(mat.autoShaderVars or {}) do
-        if v.perInstance then
-            v:setShaderVar(eye, shader, entity)
+function RenderCoreSystem:applyInstanceVars(mat, shader, eye, entity, instCache)
+    -- instance level (per-entity): values are computed once per entity per
+    -- frame (see buildPassLists) and reused across all of the entity's
+    -- meshes. Missing uniformInt vars fall through to setShaderVar, which
+    -- warns once and skips.
+    local vars = mat.autoShaderVars
+    if vars then
+        for i = 1, #vars do
+            local v = vars[i]
+            if v.perInstance then
+                if not v.uniformInt then
+                    v:setShaderVar(eye, shader, entity)
+                else
+                    -- Key by the var OBJECT, not its name: two materials could
+                    -- have perInstance vars with the same name but different
+                    -- value functions. Same material on multiple meshes of the
+                    -- same entity -> same var object -> cache hit.
+                    local values = instCache and instCache[v]
+                    if not values then
+                        values = v:getValues(eye, entity)
+                        if instCache then instCache[v] = values end
+                    end
+                    local func = UniformFuncs[v.uniformType]
+                    if func then func(shader, v.uniformInt, table.unpack(values)) end
+                end
+            end
         end
     end
 end
