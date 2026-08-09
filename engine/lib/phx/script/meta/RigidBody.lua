@@ -102,12 +102,26 @@ function RigidBody:getSpeed() end
 ---@return Matrix
 function RigidBody:getToWorldMatrix(cameraPos) end
 
+-- Like `get_to_world_matrix`, but writes into the caller-provided
+-- matrix instead of allocating a new one (3 fewer managed Matrix
+-- allocations per call). The Lua side keeps a persistent scratch
+-- matrix per entity and reuses it every frame.
+---@param cameraPos Position
+---@param out Matrix
+function RigidBody:getToWorldMatrixInto(cameraPos, out) end
+
 -- Returns the world -> local matrix for this rigid body.
 -- 
 -- This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
 ---@param cameraPos Position
 ---@return Matrix
 function RigidBody:getToLocalMatrix(cameraPos) end
+
+-- Like `get_to_local_matrix`, but writes into the caller-provided
+-- matrix (no allocation; inverse computed in place).
+---@param cameraPos Position
+---@param out Matrix
+function RigidBody:getToLocalMatrixInto(cameraPos, out) end
 
 ---@param result Vec3f [out]
 function RigidBody:getVelocity(result) end

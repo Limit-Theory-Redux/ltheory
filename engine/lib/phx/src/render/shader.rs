@@ -545,6 +545,12 @@ impl Shader {
         world_it: &Matrix,
         scale: f32,
     ) {
+        // Per-instance uniforms are unique per mesh (each entity has its
+        // own mWorld/mWorldIT/scale), so the last_uniform_values dedup
+        // cache cannot help here - it would clone 2 matrices + do 2
+        // HashMap inserts per mesh for values that never match a previous
+        // one. Skip the cache entirely and send the batched command
+        // directly; the render thread clones into the command once.
         let mut shared = self.shared.as_mut();
         if !shared.is_bound {
             // Not bound: queue as three pending ops so the values are applied
@@ -563,15 +569,6 @@ impl Shader {
             });
             return;
         }
-        shared
-            .last_uniform_values
-            .insert(world_index, ShaderVarData::Matrix(world.clone()));
-        shared
-            .last_uniform_values
-            .insert(world_it_index, ShaderVarData::Matrix(world_it.clone()));
-        shared
-            .last_uniform_values
-            .insert(scale_index, ShaderVarData::Float(scale));
         r.set_instance_uniforms(
             world_index,
             world_it_index,

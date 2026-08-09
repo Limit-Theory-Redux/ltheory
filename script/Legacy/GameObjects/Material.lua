@@ -93,15 +93,35 @@ function Material:updateState(body, entity, eye)
     -- crossings, and computed mWorldIT via getToLocalMatrix (which
     -- REBUILDS the world matrix and inverts a fresh allocation). Deriving
     -- it from the cached world matrix halves the matrix allocations.
+    --
+    -- Allocations: getToWorldMatrix / getToLocalMatrix each build 2-3
+    -- managed Matrix* (finalizer) objects. updateState runs once per
+    -- mesh per frame (~1,200 meshes in the menu), so that was ~4,800
+    -- managed Matrix allocations/frame - the main GC churn source. The
+    -- _into variants write into a persistent scratch Matrix cdata owned
+    -- by the material (no allocation); the values are consumed by
+    -- iSetInstanceUniforms (which clones into the command) before the
+    -- next mesh overwrites the scratch.
     local shader = self.state:shader()
-    local world = self.imWorld and body:getToWorldMatrix(eye) or nil
+
+    -- Lazy scratch matrices (plain cdata, no finalizer).
+    if not self._scratchWorld then
+        self._scratchWorld = Matrix()
+        self._scratchWorldIT = Matrix()
+    end
+
+    local world = nil
     local worldIT = nil
+    if self.imWorld then
+        body:getToWorldMatrixInto(eye, self._scratchWorld)
+        world = self._scratchWorld
+    end
     if self.imWorldIT then
-        if world then
-            worldIT = world:inverse()
-        else
-            worldIT = body:getToLocalMatrix(eye)
-        end
+        -- getToLocalMatrixInto writes the world matrix into the scratch
+        -- then inverts it in place - same result as world:inverse() with
+        -- zero allocations.
+        body:getToLocalMatrixInto(eye, self._scratchWorldIT)
+        worldIT = self._scratchWorldIT
     end
     local scale = self.iScale and body:getScale() or nil
     if world then

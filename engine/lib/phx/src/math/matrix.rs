@@ -112,6 +112,13 @@ impl Matrix {
         Self(self.0.mul_mat4(&other.0))
     }
 
+    /// In-place product: `self = self * other` without allocating a new
+    /// Matrix. Used by the `_into` out-param matrix writers so the Lua
+    /// side can reuse a persistent scratch matrix per entity.
+    pub fn i_product(&mut self, other: &Matrix) {
+        self.0 = self.0.mul_mat4(&other.0);
+    }
+
     pub fn rotation_x(rads: f32) -> Self {
         Self(Mat4::from_rotation_x(rads))
     }

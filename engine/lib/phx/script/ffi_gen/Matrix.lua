@@ -35,6 +35,7 @@ function Loader.defineType()
             Matrix* Matrix_LookUp             (Vec3f const* pos, Vec3f const* look, Vec3f const* up);
             Matrix* Matrix_Perspective        (float degreesFovy, float aspect, float n, float f);
             Matrix* Matrix_Product            (Matrix const*, Matrix const* other);
+            void    Matrix_IProduct           (Matrix*, Matrix const* other);
             Matrix* Matrix_RotationX          (float rads);
             Matrix* Matrix_RotationY          (float rads);
             Matrix* Matrix_RotationZ          (float rads);
@@ -173,6 +174,7 @@ function Loader.defineType()
                     local _instance = libphx.Matrix_Product(self, other)
                     return Core.ManagedObject(_instance, libphx.Matrix_Free)
                 end,
+                iProduct           = libphx.Matrix_IProduct,
                 mulBox             = libphx.Matrix_MulBox,
                 mulDir             = libphx.Matrix_MulDir,
                 mulPoint           = libphx.Matrix_MulPoint,

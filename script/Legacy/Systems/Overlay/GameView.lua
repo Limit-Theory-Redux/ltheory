@@ -13,6 +13,7 @@ GameView.name = 'Game View'
 local ssTable = { 1, 2, 4 }
 
 function GameView:draw(focus, active)
+    self._frame = (self._frame or 0) + 1
     self.camera:push()
 
     local ss = ssTable[Settings.get('render.superSample')]
@@ -31,15 +32,19 @@ function GameView:draw(focus, active)
         Profiler.Begin('Render.Opaque')
         AsteroidInstancedRenderer.beginFrame()
         self.renderer:start(self.sx, self.sy, ss)
+        Profiler.Begin('Opaque.DrawScene')
         self:drawScene(BlendMode.Disabled, eye) -- significant performance point with ss
+        Profiler.End()
         -- Flush instanced asteroids: one DrawInstancedWithData per
         -- (mesh variant, LOD level) group, bound with the instanced shader
         -- + rock diffuse texture (replaces ~600 individual asteroid draws).
+        Profiler.Begin('Opaque.InstancedFlush')
         local instShader = Cache.Shader('wvp_instanced', 'material/asteroid_instanced')
         instShader:start()
         instShader:setTex2D('texDiffuse', Cache.Texture('rock'))
         AsteroidInstancedRenderer.flush()
         instShader:stop()
+        Profiler.End()
         self.renderer:stop()
         Profiler.End()
     end
@@ -332,26 +337,75 @@ end
 
 function GameView:drawScene(blendMode, eye)
     -- Render all entities with a RenderComponent.
-    for entity, rigidBody, renderComponent in Registry:iterEntities(RigidBodyComponent, RenderComponent) do
-        if not renderComponent:isVisible() then
-            goto continue
+    --
+    -- Per-frame pass lists: iterEntities is a coroutine.wrap that creates a
+    -- new coroutine + Entity wrapper tables per call, and we run 3 passes
+    -- (Opaque/Additive/Alpha) per frame. Building the lists ONCE per frame
+    -- (instead of re-iterating the registry per pass) turns 3 coroutines +
+    -- per-entity table churn into 1 iteration, and each pass then walks
+    -- only the meshes that actually draw in it.
+    Profiler.Begin('Opaque.BuildLists')
+    if not self.frameLists or self.frameListsFrame ~= self._frame then
+        local lists = self.frameLists
+        if not lists then
+            lists = { [BlendMode.Disabled] = {}, [BlendMode.Additive] = {}, [BlendMode.Alpha] = {} }
+            self.frameLists = lists
         end
-
-        for _, mesh in ipairs(renderComponent:getMeshes()) do
-            if mesh.material.blendMode == blendMode then
-                mesh.material:start()
-                mesh.material:updateState(rigidBody.rigidBody, entity, eye)
-                mesh.mesh:draw()
-                mesh.material:stop()
+        -- Reuse the entry tables across frames (clear + refill) instead of
+        -- allocating ~1,200 fresh {rb,entity,mesh} tables per frame - the
+        -- remaining GC churn in the draw loop. Frame N+1 overwrites frame
+        -- N's entries in place.
+        local pool = self._entryPool or {}
+        self._entryPool = pool
+        local poolIdx = 0
+        lists[BlendMode.Disabled] = {}
+        lists[BlendMode.Additive] = {}
+        lists[BlendMode.Alpha] = {}
+        self.frameListsFrame = self._frame
+        for entity, rigidBody, renderComponent in Registry:iterEntities(RigidBodyComponent, RenderComponent) do
+            if not renderComponent:isVisible() then
+                goto continue
             end
-        end
 
-        ::continue::
+            local meshes = renderComponent:getMeshes()
+            for mi = 1, #meshes do
+                local mesh = meshes[mi]
+                local list = lists[mesh.material.blendMode]
+                if list then
+                    poolIdx = poolIdx + 1
+                    local entry = pool[poolIdx]
+                    if not entry then
+                        entry = {}
+                        pool[poolIdx] = entry
+                    end
+                    entry.rb = rigidBody.rigidBody
+                    entry.entity = entity
+                    entry.mesh = mesh
+                    list[#list + 1] = entry
+                end
+            end
+            ::continue::
+        end
     end
+    Profiler.End()
+
+    local list = self.frameLists[blendMode]
+    Profiler.Begin('DrawScene.ECS')
+    for i = 1, #list do
+        local entry = list[i]
+        local mesh = entry.mesh
+        mesh.material:start()
+        mesh.material:updateState(entry.rb, entry.entity, eye)
+        mesh.mesh:draw()
+        mesh.material:stop()
+    end
+    Profiler.End()
 
     -- Start a recursive render of the scene.
+    Profiler.Begin('DrawScene.Recursive')
     GameState.world.currentSystem:send(OldEvent.Broadcast(OldEvent.Render(blendMode, eye)))
     GameState.world.currentSystem:render(OldEvent.Render(blendMode, eye))
+    Profiler.End()
 end
 
 return GameView

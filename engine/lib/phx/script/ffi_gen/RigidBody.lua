@@ -38,7 +38,9 @@ function Loader.defineType()
             float            RigidBody_GetBoundingRadiusCompound         (RigidBody const*);
             float            RigidBody_GetSpeed                          (RigidBody const*);
             Matrix*          RigidBody_GetToWorldMatrix                  (RigidBody const*, Position const* cameraPos);
+            void             RigidBody_GetToWorldMatrixInto              (RigidBody const*, Position const* cameraPos, Matrix* out);
             Matrix*          RigidBody_GetToLocalMatrix                  (RigidBody const*, Position const* cameraPos);
+            void             RigidBody_GetToLocalMatrixInto              (RigidBody const*, Position const* cameraPos, Matrix* out);
             void             RigidBody_GetVelocity                       (RigidBody const*, Vec3f* out);
             void             RigidBody_GetVelocityA                      (RigidBody const*, Vec3f* out);
             void             RigidBody_SetCollidable                     (RigidBody*, bool collidable);
@@ -122,10 +124,12 @@ function Loader.defineType()
                     local _instance = libphx.RigidBody_GetToWorldMatrix(self, cameraPos)
                     return Core.ManagedObject(_instance, libphx.Matrix_Free)
                 end,
+                getToWorldMatrixInto        = libphx.RigidBody_GetToWorldMatrixInto,
                 getToLocalMatrix            = function(self, cameraPos)
                     local _instance = libphx.RigidBody_GetToLocalMatrix(self, cameraPos)
                     return Core.ManagedObject(_instance, libphx.Matrix_Free)
                 end,
+                getToLocalMatrixInto        = libphx.RigidBody_GetToLocalMatrixInto,
                 getVelocity                 = libphx.RigidBody_GetVelocity,
                 getVelocityA                = libphx.RigidBody_GetVelocityA,
                 setCollidable               = libphx.RigidBody_SetCollidable,

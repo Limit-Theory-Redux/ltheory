@@ -61,6 +61,12 @@ function Matrix.Perspective(degreesFovy, aspect, n, f) end
 ---@return Matrix
 function Matrix:product(other) end
 
+-- In-place product: `self = self * other` without allocating a new
+-- Matrix. Used by the `_into` out-param matrix writers so the Lua
+-- side can reuse a persistent scratch matrix per entity.
+---@param other Matrix
+function Matrix:iProduct(other) end
+
 ---@param rads number
 ---@return Matrix
 function Matrix.RotationX(rads) end
