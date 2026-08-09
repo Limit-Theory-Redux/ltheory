@@ -1,14 +1,23 @@
 local Entity = require('Legacy.GameObjects.Entity')
 local Material = require('Legacy.GameObjects.Material')
 
+-- Pool of distinct asteroid meshes, shared by all asteroids. Each asteroid
+-- picks one by seed hash, so the pool keeps visual diversity while meshes
+-- are generated once and reused. Before this pool, getMesh did `seed % 1`
+-- which collapsed EVERY asteroid onto a single mesh (integer seed % 1 == 0
+-- always) - so all asteroids looked identical. N=16 keeps the field varied
+-- while generating 16 meshes total instead of one per asteroid.
+local POOL_SIZE = 16
 local cache = {}
 
 local function getMesh(seed)
-    local seed = tonumber(seed) % 1
-    if not cache[seed] then
-        cache[seed] = Gen.Asteroid(seed)
+    -- Bucket the seed into the pool; keep it deterministic per asteroid.
+    local idx = tonumber(seed) % POOL_SIZE
+    if idx < 0 then idx = idx + POOL_SIZE end
+    if not cache[idx] then
+        cache[idx] = Gen.Asteroid(idx)
     end
-    return cache[seed]
+    return cache[idx]
 end
 
 local Asteroid = Subclass("Asteroid", Entity, function(self, seed, scale)
