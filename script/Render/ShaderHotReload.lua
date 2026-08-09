@@ -133,6 +133,10 @@ function ShaderHotReload:update()
         return 0, 0
     end
 
+    if ShaderError then
+        ShaderError.Update()
+    end
+
     local count = ShaderWatcher.Poll()
     if count == 0 then
         return 0, 0
