@@ -300,6 +300,9 @@ function PlanetTest:createPlanetRing(seed)
     local tiltDeg3 = ringRNG:getUniformRange(80, 110)
     local tilt = ringRNG:choose({ tiltDeg, tiltDeg2, tiltDeg3 })
     local tiltRad = math.rad(tilt)
+    -- Expose the ACTUAL tilt so co-located geometry (asteroid belts,
+    -- camera rigs) can match the ring's plane instead of guessing.
+    self.ringTiltRad = tiltRad
 
     local rbCmp = PhysicsComponents.RigidBody()
     local rb = RigidBody.CreateSphere()

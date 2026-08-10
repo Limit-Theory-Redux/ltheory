@@ -33,10 +33,15 @@ local Benchmark = Subclass("Benchmark", PlanetTest)
 -- Deterministic path. Tune to stress the render path.
 local BENCH_ORBIT_RADIUS  = 800       -- camera orbit radius (planet radius * factor)
 local BENCH_ORBIT_SPEED   = 0.05      -- rad/s (slow, steady load)
+local BENCH_FLY_SPEED     = 0.35      -- rad/s along the ring band during the fly-through
+local BENCH_FLY_HEIGHT_F  = 0.15      -- camera height above the ring plane (x belt width)
+local BENCH_FLY_LOOKAHEAD = 0.30      -- rad ahead on the ring for the look-at point
 local BENCH_WARMUP_FRAMES = 180       -- skip logging (generation + GC settle)
 local BENCH_LOG_INTERVAL  = 120       -- frames between BENCH log lines
-local BENCH_BELT_COUNT    = 4000      -- asteroids in the belt (ECS spawns near camera)
-local BENCH_ORBIT_TIME    = 15.0      -- s of orbit before zooming to an asteroid
+local BENCH_BELT_COUNT    = 100000    -- asteroids in the belt: push the instanced path to its real
+                                      -- wall (formula-realistic is 2000 for this ring; 20k held 144 FPS
+                                      -- with sync <5ms, main-thread wait 1us - find the actual limit)
+local BENCH_ORBIT_TIME    = 15.0      -- s of ring fly-through before zooming to an asteroid
 local BENCH_ZOOM_TIME     = 4.0       -- s to fly from orbit to the asteroid
 local BENCH_LOOK_TIME     = 6.0       -- s holding the close-up on the asteroid
 local BENCH_RETURN_TIME   = 4.0       -- s to fly back to orbit
@@ -51,7 +56,7 @@ local BENCH_ZOOM_PITCH    = 0.3       -- viewing angle at the close-up
 local BENCH_PLANET_CLEAR  = 1.6       -- min camera distance from planet center (x radius)
 local BENCH_SPAWN_TOTAL   = 100       -- max concurrent spawned asteroid entities (game default)
 local BENCH_SPAWN_PER_UPDATE = 5     -- max new entities per spawn check (game default)
-local BENCH_BELT_DRAWN    = 20000     -- max belt-rendered asteroids per frame (render them ALL)
+local BENCH_BELT_DRAWN    = 100000    -- max belt-rendered asteroids per frame (render them ALL - no cap)
 
 --- Realistic sizes: PlanetTest's planet is a tiny 100-200-unit ball, which
 --- makes realistic asteroid sizes (0.1-5.0 game units = 1-50 km rocks) look
@@ -95,6 +100,18 @@ end
 function Benchmark:onInit()
     PlanetTest.onInit(self)
 
+    -- Benchmark owns the presentation: force a known resolution + real
+    -- fullscreen so results are reproducible without manual window setup
+    -- (the user is not always at the machine to maximize/switch to
+    -- fullscreen). BORDERLESS fullscreen: exclusive mode forces a display
+    -- mode switch (often 60Hz + swapchain recreation) which measurably
+    -- lowers frame rates; borderless keeps the desktop's native refresh
+    -- and present path.
+    local benchResX = tonumber(os.getenv("BENCH_RES_X")) or 1920
+    local benchResY = tonumber(os.getenv("BENCH_RES_Y")) or 1080
+    Window:setSize(benchResX, benchResY)
+    Window:setFullscreen(true, false)
+
     -- Match the game's real ECS spawn caps (100 concurrent, 5/update).
     -- Belt DATA stays dense (thousands of asteroids - realistic for a
     -- belt, per SolarSystemVisualizer's count formula). The per-frame
@@ -119,12 +136,11 @@ function Benchmark:onInit()
         self:createMoons(0, 3)
     end
 
-    -- Belt render distance: camera orbits at ringOuterRadius*1.6 (see
-    -- below), belt spans the ring band - cover the far side of the belt
-    -- from the orbit position.
-    local orbitR = self.ringOuterRadius and (self.ringOuterRadius * 1.6) or BENCH_ORBIT_RADIUS
+    -- Belt render distance: the camera flies along the belt band (mid
+    -- radius) looking tangentially ahead - the visible ring extends to
+    -- roughly 2x the belt radius (the band curves away from view).
     local beltOuter = self.ringOuterRadius or (BENCH_ORBIT_RADIUS * 0.5)
-    AsteroidBeltRenderer.setRenderDistSq((orbitR + beltOuter) ^ 2)
+    AsteroidBeltRenderer.setRenderDistSq((beltOuter * 2.0) ^ 2)
 
     -- Asteroid belt: ECS entities spawn near the camera as it orbits,
     -- stressing the instanced asteroid render path. The belt sits INSIDE
@@ -142,6 +158,17 @@ function Benchmark:onInit()
     local beltRadius = (beltInner + beltOuter) * 0.5
     local beltWidth = math.max(beltOuter - beltInner, 100)
     local beltTilt = self.ringTiltRad or math.rad(25)
+    -- The ring visual rotates around X by +tiltRad (rigid body quaternion),
+    -- but generateBeltAsteroids' plane formula yields py = +sin(a)*sin(inc)*r
+    -- which is the OPPOSITE rotation direction around X. Negate ONCE here so
+    -- the belt plane matches the ring; ringFlyCamPos uses the same beltTilt
+    -- and therefore follows the belt plane exactly.
+    beltTilt = -beltTilt
+
+    -- Store for the ring fly-through camera (updateBenchCamera)
+    self.beltRadius = beltRadius
+    self.beltWidth = beltWidth
+    self.beltTilt = beltTilt
 
     -- Realistic asteroid sizes in game units, matching the playable
     -- scene's belt (SolarSystemVisualizer: minScale 0.1 = ~1km rock,
@@ -183,7 +210,7 @@ function Benchmark:onInit()
     self.phase = "orbit"
     self.phaseTime = 0
     self.planetRadius = self.planet:get(PhysicsComponents.RigidBody):getRadius() or 100
-    self:setCameraPosRot(self:orbitCamPos(), self.planetPos)
+    self:setCameraPosRot(self:ringFlyCamPos(self.orbitAngle), self:ringFlyLookAt(self.orbitAngle))
 
     -- Frame accounting
     self.frameCount = 0
@@ -222,6 +249,36 @@ function Benchmark:orbitCamPos()
     local x = math.sin(self.orbitAngle) * math.cos(self.orbitPitch) * self.orbitRadius
     local y = math.sin(self.orbitPitch) * self.orbitRadius
     local z = math.cos(self.orbitAngle) * math.cos(self.orbitPitch) * self.orbitRadius
+    return Vec3f(self.planetPos.x + x, self.planetPos.y + y, self.planetPos.z + z)
+end
+
+--- Ring fly-through camera: travels along the ring band at the belt's
+--- mid radius, slightly ABOVE the ring plane, looking tangentially ahead
+--- along the ring. The belt asteroids live on a tilted plane
+--- (py = sin(angle)*sin(tilt)*r), so the camera path follows that same
+--- plane to keep the rocks around the camera instead of above/below it.
+--- This puts thousands of asteroids on screen at once (the orbit camera
+--- at 1.6x ring outer made realistic 1-50 km rocks sub-pixel dots).
+function Benchmark:ringFlyCamPos(angle)
+    local r = self.beltRadius or 1500
+    local tilt = self.beltTilt or 0
+    local height = (self.beltWidth or 300) * BENCH_FLY_HEIGHT_F
+    local x = math.cos(angle) * r
+    local y = math.sin(angle) * math.sin(tilt) * r + height
+    local z = math.sin(angle) * r
+    return Vec3f(self.planetPos.x + x, self.planetPos.y + y, self.planetPos.z + z)
+end
+
+--- Look-at point for the fly-through: a point on the ring AHEAD of the
+--- camera (same radius, same tilt) so the view direction runs along the
+--- band and the ring recedes into the distance.
+function Benchmark:ringFlyLookAt(angle)
+    local r = self.beltRadius or 1500
+    local tilt = self.beltTilt or 0
+    local a = angle + BENCH_FLY_LOOKAHEAD
+    local x = math.cos(a) * r
+    local y = math.sin(a) * math.sin(tilt) * r
+    local z = math.sin(a) * r
     return Vec3f(self.planetPos.x + x, self.planetPos.y + y, self.planetPos.z + z)
 end
 
@@ -317,14 +374,18 @@ function Benchmark:updateBenchCamera(dt)
     self.phaseTime = self.phaseTime + dt
 
     if self.phase == "orbit" then
-        self.orbitAngle = self.orbitAngle + BENCH_ORBIT_SPEED * dt
-        self:setCameraPosRot(self:orbitCamPos(), self.planetPos)
+        -- Ring fly-through: camera travels along the belt band slightly
+        -- above the ring plane, looking tangentially ahead. Thousands of
+        -- asteroids on screen at once (the old planet-orbit view made the
+        -- realistic 1-50 km rocks sub-pixel dots).
+        self.orbitAngle = self.orbitAngle + BENCH_FLY_SPEED * dt
+        self:setCameraPosRot(self:ringFlyCamPos(self.orbitAngle), self:ringFlyLookAt(self.orbitAngle))
 
         if self.phaseTime >= BENCH_ORBIT_TIME then
             local target = self:pickZoomTarget()
             if target then
                 self.zoomTarget = target
-                self.zoomFrom = self:orbitCamPos()
+                self.zoomFrom = self:ringFlyCamPos(self.orbitAngle)
 
                 -- Distance proportional to asteroid size (so it fills the
                 -- frame), with a floor so tiny rocks don't clip the near plane
@@ -373,8 +434,8 @@ function Benchmark:updateBenchCamera(dt)
             self.phaseTime = 0
         end
     elseif self.phase == "return" then
-        self.orbitAngle = self.orbitAngle + BENCH_ORBIT_SPEED * dt
-        local orbitPos = self:orbitCamPos()
+        self.orbitAngle = self.orbitAngle + BENCH_FLY_SPEED * dt
+        local orbitPos = self:ringFlyCamPos(self.orbitAngle)
         local done = self:flyTo(self.returnFrom, orbitPos,
             self.zoomTarget.pos, self.planetPos, BENCH_RETURN_TIME)
         if done then
@@ -435,8 +496,8 @@ function Benchmark:updateBenchCamera(dt)
     elseif self.phase == "moon-return" then
         local live = self:pickMoonTarget()
         if live then self.zoomTarget.pos = live.pos end
-        self.orbitAngle = self.orbitAngle + BENCH_ORBIT_SPEED * dt
-        local orbitPos = self:orbitCamPos()
+        self.orbitAngle = self.orbitAngle + BENCH_FLY_SPEED * dt
+        local orbitPos = self:ringFlyCamPos(self.orbitAngle)
         local done = self:flyTo(self.returnFrom, orbitPos,
             self.zoomTarget.pos, self.planetPos, BENCH_RETURN_TIME)
         if done then

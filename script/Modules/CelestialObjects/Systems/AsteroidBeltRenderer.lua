@@ -1,4 +1,5 @@
 local CameraManager     = require("Modules.Cameras.Managers.CameraManager")
+local AsteroidFieldSystem = require("Modules.CelestialObjects.Systems.AsteroidFieldSystem")
 
 --- AsteroidBeltRenderer — performant batch renderer for asteroid belts/rings.
 --- Chunked instancing (article-derived): asteroids are partitioned into
@@ -71,10 +72,18 @@ function AsteroidBeltRenderer.generateBeltAsteroids(params)
     local minScale = params.minScale or 10
     local maxScale = params.maxScale or 200
 
+    -- Vertical profile: a uniform offset (flat slab) looks uncanny; real
+    -- rings are a gaussian core with a long sparse tail. ~1.5% of rocks
+    -- get a 3-8x sigma boost -> a few visible outliers above/below the
+    -- plane, the rest hug the mid-plane (engine RNG provides gaussian).
+    local sigma = width * 0.08
     for i = 1, count do
         local angle = rng:getUniform() * math.pi * 2
         local radialOffset = (rng:getUniform() + rng:getUniform() - 1.0) * width * 0.5
-        local vertOffset = (rng:getUniform() - 0.5) * width * 0.3
+        local vertOffset = rng:getGaussian() * sigma
+        if rng:getUniform() < 0.015 then
+            vertOffset = vertOffset * (3 + rng:getUniform() * 5) -- outlier tail
+        end
         vertOffset = vertOffset + math.sin(angle) * math.sin(inclination) * (orbitRadius + radialOffset)
 
         local r = orbitRadius + radialOffset
@@ -103,17 +112,19 @@ end
 ---@param lodMesh LodMesh
 ---@return function renderFn
 function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
-    local inst_shader = Cache.Shader('wvp_instanced', 'material/asteroid_instanced')
+    local inst_shader = Cache.Shader('wvp_instanced_tex', 'material/asteroid_instanced')
     local asteroid_tex = Cache.Texture('rock')
 
-    -- Precompute each asteroid's static rotation*scale matrix ONCE (the
-    -- rotation and scale never change; only the translation depends on
-    -- the eye each frame). Stored as a flat float[16] per asteroid; per
-    -- frame we memcpy it and patch the translation column - no Matrix
-    -- allocation in the hot loop. NOTE: cdata arrays are 0-indexed, so
-    -- allocate nAst+1 to keep 1-based Lua indexing (asteroidData[i]).
+    -- Texture-fetch instancing: precompute each asteroid's static data ONCE
+    -- (rotation*scale mat3 + world position + scale) into a flat float
+    -- texture, 4 RGBA32F texels per asteroid (3 rotScale columns + pos/scale
+    -- texel). The per-frame producer only writes 4-byte u32 INDICES into the
+    -- static texture; the vertex shader texelFetches the transform and
+    -- composes wp = rotScale*v + (worldPos - eye) itself. This is what lets
+    -- 100k+ asteroids run on the main thread (4 B/instance vs 84 B).
+    -- NOTE: cdata arrays are 0-indexed; texel base = (i-1)*4 for 1-based i.
     local nAst = #asteroidData
-    local staticMats = ffi.new('float[?][16]', nAst + 1)
+    local staticTexData = ffi.new('float[?]', nAst * 16)
     for i = 1, nAst do
         local a = asteroidData[i]
         local rng = RNG.Create(a.rotSeed)
@@ -124,8 +135,52 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         if len > 0.001 then ax, ay, az = ax / len, ay / len, az / len end
         local rot = Quat.FromAxisAngle(Vec3f(ax, ay, az), rng:getUniform() * math.pi * 2)
         local m = Matrix.FromPosRotScale(Vec3f(0, 0, 0), rot, a.scale)
-        ffi.copy(staticMats[i], m.m, ffi.sizeof('float') * 16)
+        -- Pack 4 texels per asteroid (each RGBA32F texel = 4 floats):
+        --   texel 0 = rotScale column 0 (m.m is column-major: m[0..2])
+        --   texel 1 = rotScale column 1 (m[4..6])
+        --   texel 2 = rotScale column 2 (m[8..10])
+        --   texel 3 = world pos xyz + scale
+        local tbase = (i - 1) * 4 * 4  -- float index of texel (i-1)*4
+        staticTexData[tbase + 0] = m.m[0]
+        staticTexData[tbase + 1] = m.m[1]
+        staticTexData[tbase + 2] = m.m[2]
+        staticTexData[tbase + 3] = 0
+        staticTexData[tbase + 4] = m.m[4]
+        staticTexData[tbase + 5] = m.m[5]
+        staticTexData[tbase + 6] = m.m[6]
+        staticTexData[tbase + 7] = 0
+        staticTexData[tbase + 8] = m.m[8]
+        staticTexData[tbase + 9] = m.m[9]
+        staticTexData[tbase + 10] = m.m[10]
+        staticTexData[tbase + 11] = 0
+        staticTexData[tbase + 12] = a.px
+        staticTexData[tbase + 13] = a.py
+        staticTexData[tbase + 14] = a.pz
+        staticTexData[tbase + 15] = a.scale
     end
+    -- Upload: Bytes.FromData's generated Lua wrapper drops the size arg
+    -- (slice bind bug), so call the raw C symbol directly with the byte
+    -- view of the float buffer. One copy at generation time.
+    --
+    -- 2D layout: GL max texture width is 32k; 4 texels * 100k asteroids =
+    -- 400k texels would be clamped to a 1D row. Use W x H with W = 4096
+    -- (multiple of 4, so an asteroid's 4 texels never straddle a row) and
+    -- texel index t -> (t % W, t / W). The shader computes the same via
+    -- textureSize(). The byte buffer is zero-padded to W*H*16 so the GL
+    -- upload never reads past it (400k texels vs 401,408 allocated).
+    local STATIC_TEX_W = 4096
+    local staticTexH = math.max(1, math.ceil(nAst * 4 / STATIC_TEX_W))
+    local staticTexBytes = ffi.new('uint8_t[?]', STATIC_TEX_W * staticTexH * 16)
+    ffi.copy(staticTexBytes, staticTexData, nAst * 64)
+    local libphx = require('libphx').lib
+    local staticTex = Tex2D.Create(STATIC_TEX_W, staticTexH, TexFormat.RGBA32F)
+    staticTex:setDataBytes(
+        Core.ManagedObject(libphx.Bytes_FromData(staticTexBytes, STATIC_TEX_W * staticTexH * 16), libphx.Bytes_Free),
+        PixelFormat.RGBA, DataFormat.Float)
+    -- Linear filter (Nearest doesn't exist; texelFetch uses integer coords
+    -- so filtering is irrelevant anyway)
+    staticTex:setMinFilter(TexFilter.Linear)
+    staticTex:setMagFilter(TexFilter.Linear)
 
     -- Render distance proportional to belt spread (capped), or the
     -- benchmark override when set (camera orbits far outside the belt)
@@ -140,31 +195,70 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         renderDistSq = math.min(MAX_RENDER_DIST_SQ, (maxOrbitR * 3) ^ 2)
     end
 
-    -- Generation-time chunks: angular sectors. Each chunk holds indices +
-    -- a centroid (world-space offset) used for cheap per-frame culling.
-    local chunks = {}
-    for c = 1, CHUNK_COUNT do
-        chunks[c] = { indices = {}, cx = 0, cy = 0, cz = 0 }
-    end
+    -- Generation-time chunks: angular sectors. Structure-of-arrays for the
+    -- hot loop: chunk membership as a flat int32 index array + prefix-sum
+    -- offsets (no per-asteroid Lua table in the per-frame loop), centroids
+    -- as flat float arrays.
+    local chunkCounts = ffi.new('int32_t[?]', CHUNK_COUNT + 1)
     local chunkSize = (math.pi * 2) / CHUNK_COUNT
-    for i, a in ipairs(asteroidData) do
+    local chunkOf = ffi.new('int32_t[?]', nAst + 1)
+    for i = 1, nAst do
+        local a = asteroidData[i]
         local ang = math.atan2(a.pz, a.px) -- -pi..pi
         local c = math.floor((ang + math.pi) / chunkSize) + 1
         c = math.max(1, math.min(CHUNK_COUNT, c))
-        local ch = chunks[c]
-        ch.indices[#ch.indices + 1] = i
-        ch.cx = ch.cx + a.px
-        ch.cy = ch.cy + a.py
-        ch.cz = ch.cz + a.pz
+        chunkOf[i] = c
+        chunkCounts[c] = chunkCounts[c] + 1
+    end
+
+    -- Prefix-sum offsets into a flat index array, plus centroids
+    local chunkOffsets = ffi.new('int32_t[?]', CHUNK_COUNT + 2)
+    local chunkCx = ffi.new('float[?]', CHUNK_COUNT + 1)
+    local chunkCy = ffi.new('float[?]', CHUNK_COUNT + 1)
+    local chunkCz = ffi.new('float[?]', CHUNK_COUNT + 1)
+    local total = 0
+    for c = 1, CHUNK_COUNT do
+        chunkOffsets[c] = total
+        total = total + chunkCounts[c]
+    end
+    chunkOffsets[CHUNK_COUNT + 1] = total
+    local chunkIndices = ffi.new('int32_t[?]', total + 1)
+    local chunkFill = ffi.new('int32_t[?]', CHUNK_COUNT + 1)
+    local chunkSumX = ffi.new('double[?]', CHUNK_COUNT + 1)
+    local chunkSumY = ffi.new('double[?]', CHUNK_COUNT + 1)
+    local chunkSumZ = ffi.new('double[?]', CHUNK_COUNT + 1)
+    for i = 1, nAst do
+        local a = asteroidData[i]
+        local c = chunkOf[i]
+        local p = chunkOffsets[c] + chunkFill[c]
+        chunkIndices[p] = i
+        chunkFill[c] = chunkFill[c] + 1
+        chunkSumX[c] = chunkSumX[c] + a.px
+        chunkSumY[c] = chunkSumY[c] + a.py
+        chunkSumZ[c] = chunkSumZ[c] + a.pz
     end
     for c = 1, CHUNK_COUNT do
-        local ch = chunks[c]
-        local n = #ch.indices
+        local n = chunkCounts[c]
         if n > 0 then
-            ch.cx = ch.cx / n
-            ch.cy = ch.cy / n
-            ch.cz = ch.cz / n
+            chunkCx[c] = chunkSumX[c] / n
+            chunkCy[c] = chunkSumY[c] / n
+            chunkCz[c] = chunkSumZ[c] / n
         end
+    end
+
+    -- Flat per-asteroid SoA (hot loop reads these, never the Lua tables):
+    -- position, scale, and a spawned flag array synced once per frame.
+    local posX = ffi.new('float[?]', nAst + 1)
+    local posY = ffi.new('float[?]', nAst + 1)
+    local posZ = ffi.new('float[?]', nAst + 1)
+    local scales = ffi.new('float[?]', nAst + 1)
+    local spawnedFlags = ffi.new('uint8_t[?]', nAst + 1)
+    for i = 1, nAst do
+        local a = asteroidData[i]
+        posX[i] = a.px
+        posY[i] = a.py
+        posZ[i] = a.pz
+        scales[i] = a.scale
     end
 
     -- Per-frame group state. Keyed by LOD INDEX (stable) not the mesh
@@ -184,6 +278,10 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     -- LOD 0 = res 96 (16k verts) down to LOD 7 (34 verts). Sub-pixel
     -- asteroids (below the LOD-7 threshold) are culled entirely.
     local lodPxMin = ffi.new('float[8]', { 32, 16, 8, 4, 2, 1, 0.5, 0.25 })
+    -- Squared thresholds: the hot loop compares px^2 = s^2 * pxPerUnit^2
+    -- / distSq, avoiding a sqrt + division per asteroid (113K of them).
+    local lodPxMinSq = ffi.new('float[8]')
+    for i = 0, 7 do lodPxMinSq[i] = lodPxMin[i] * lodPxMin[i] end
     for i = 1, #LOD_RANGES do
         local r = LOD_RANGES[i]
         local midRaw = (r[1] + r[2]) * 0.5
@@ -200,11 +298,18 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         if not eye then return end
         local eyeX, eyeY, eyeZ = eye.x, eye.y, eye.z
 
-        -- Projection factor: pixels per game-unit at distance 1. Pure
-        -- function of fov + screen height, so LOD bands auto-adapt to
-        -- resolution AND to any Simulation Size (GameUnit-agnostic).
+        -- Angular-size LOD factor: projected pixels per game-unit at
+        -- distance 1, computed at a FIXED reference height (720p). LOD
+        -- selection is then a pure function of the object's angular size
+        -- (scale/dist), independent of the actual window resolution -
+        -- rendering at 1080p does NOT push every asteroid one LOD band
+        -- higher (2.3x more verts each) and does not let more rocks pass
+        -- the sub-pixel cull. This keeps GPU vertex load ~constant across
+        -- resolutions (same technique as GPU-driven LOD selection, done
+        -- on CPU since we're GL 3.3). Squared: no sqrt/div in the loop.
         local fovRad = (Config.render.camera.fov or 70) * 0.5 * (math.pi / 180)
-        local pxPerUnit = Window:height() / (2 * math.tan(fovRad))
+        local REF_H = 720
+        local pxPerUnitSq = (REF_H / (2 * math.tan(fovRad))) ^ 2
 
         -- Entity world position (rings: planet position)
         local entPosX, entPosY, entPosZ = 0, 0, 0
@@ -219,77 +324,97 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
             groups[groupOrder[i]].count = 0
         end
 
+        -- Sync spawned flags once per frame (small set, O(spawned) not
+        -- O(n): read the field system's spawned indices into the flat
+        -- byte array so the hot loop never touches the Lua asteroid tables)
+        local spawnedIdx = AsteroidFieldSystem:getSpawnedIndices(entity)
+        for s = 1, #spawnedIdx do
+            spawnedFlags[spawnedIdx[s]] = 1
+        end
+
         local drawn = 0
         local done = false
 
-        -- Chunk pass: cull by centroid, then collect survivors
+        -- Chunk pass: cull by centroid distance + view cone, then collect
+        -- survivors. The cone test (KSA article: frustum culling before
+        -- LOD) skips whole angular sectors behind or far beside the
+        -- camera - the fly-through only sees ~180deg of the ring, so
+        -- ~half the chunks are dropped before any per-asteroid work.
+        -- All per-asteroid data is flat cdata (posX/Y/Z, scales,
+        -- spawnedFlags) - no Lua table lookups in the loop.
+        local fwdX, fwdY, fwdZ = 0, 0, -1
+        local camForward = CameraManager:getForward()
+        if camForward then fwdX, fwdY, fwdZ = camForward.x, camForward.y, camForward.z end
+        -- Cone half-angle + margin (sectors are wide; the chunk's radius
+        -- is culled by the distance test, this catches the plane split)
+        local fwdLenSq = fwdX * fwdX + fwdY * fwdY + fwdZ * fwdZ
         for c = 1, CHUNK_COUNT do
             if done then break end
-            local ch = chunks[c]
-            local nIdx = #ch.indices
+            local nIdx = chunkCounts[c]
             if nIdx == 0 then goto next_chunk end
 
             -- Centroid eye-distance (world coords = entity pos + centroid)
-            local rcx = entPosX + ch.cx - eyeX
-            local rcy = entPosY + ch.cy - eyeY
-            local rcz = entPosZ + ch.cz - eyeZ
+            local rcx = entPosX + chunkCx[c] - eyeX
+            local rcy = entPosY + chunkCy[c] - eyeY
+            local rcz = entPosZ + chunkCz[c] - eyeZ
             local cDistSq = rcx * rcx + rcy * rcy + rcz * rcz
             if cDistSq > renderDistSq then goto next_chunk end
 
-            for j = 1, nIdx do
+            -- View-cone test: dot(centroidDir, forward) < -0.3 -> chunk is
+            -- more than ~107deg behind the camera plane, cull it. (The
+            -- ring band is ~2x belt radius from the eye on the fly path,
+            -- so this is a conservative but safe cutoff.)
+            if fwdLenSq > 1e-9 and cDistSq > 1e-9 then
+                local invDist = 1.0 / math.sqrt(cDistSq)
+                local dot = (rcx * fwdX + rcy * fwdY + rcz * fwdZ) * invDist / math.sqrt(fwdLenSq)
+                if dot < -0.3 then goto next_chunk end
+            end
+
+            local base = chunkOffsets[c]
+            for j = 0, nIdx - 1 do
                 if drawn >= MAX_DRAWN_PER_FRAME then done = true break end
-                local i = ch.indices[j]
-                local a = asteroidData[i]
-                if not a.spawned then
-                    local rx = entPosX + a.px - eyeX
-                    local ry = entPosY + a.py - eyeY
-                    local rz = entPosZ + a.pz - eyeZ
+                local i = chunkIndices[base + j]
+                if spawnedFlags[i] == 0 then
+                    local rx = entPosX + posX[i] - eyeX
+                    local ry = entPosY + posY[i] - eyeY
+                    local rz = entPosZ + posZ[i] - eyeZ
                     local distSq = rx * rx + ry * ry + rz * rz
 
                     -- Screen-size LOD selection (GameUnit-agnostic):
                     -- projected pixel height ≈ scale / dist * pxPerUnit.
-                    -- scale/dist is a pure ratio, so the same thresholds
-                    -- work at any Simulation Size without retuning. LOD 0
-                    -- (16k verts) only for big/near rocks; sub-pixel rocks
-                    -- are culled entirely.
-                    -- pxPerUnit = screenH / (2*tan(fov/2)); 720p@70° ≈ 514
-                    local s = a.scale
-                    local dist = math.sqrt(distSq)
-                    local px = s / dist * pxPerUnit
+                    -- Compared via multiplication (pxSq >= t  <=>
+                    -- s^2 * pxPerUnitSq >= distSq * t) so the hot loop
+                    -- needs no sqrt and no division per asteroid.
+                    -- LOD 0 (16k verts) only for big/near rocks; sub-pixel
+                    -- rocks are culled entirely.
+                    local s2ppu = scales[i] * scales[i] * pxPerUnitSq
                     local li = 1
-                    while li < 8 and px < lodPxMin[li - 1] do
+                    while li < 8 and distSq * lodPxMinSq[li - 1] > s2ppu do
                         li = li + 1
                     end
-                    if px >= lodPxMin[li - 1] then
+                    if distSq * lodPxMinSq[li - 1] <= s2ppu then
                         local mesh = lodMeshes[li]
                         if mesh then
-                            -- Camera-relative world matrix: static
-                            -- rotation*scale (precomputed) + eye-relative
-                            -- translation patched in. Unrolled writes keep
-                            -- the loop inside the LuaJIT trace (ffi.copy is
-                            -- a C call that aborts it).
+                            -- Texture-fetch instancing: the ONLY per-frame
+                            -- per-asteroid write is a 4-byte u32 index into
+                            -- the static data texture. The transform lives
+                            -- on the GPU; the vertex shader texelFetches it
+                            -- and composes wp = rotScale*v + (pos - eye).
                             local g = groups[li]
                             if not g then
-                                g = { mesh = mesh, capacity = 64, count = 0, instances = ffi.new('InstanceData[64]') }
+                                g = { mesh = mesh, capacity = 64, count = 0, indices = ffi.new('uint32_t[64]') }
                                 groups[li] = g
                                 groupOrder[#groupOrder + 1] = li
                             end
                             if g.count >= g.capacity then
                                 local newCap = g.capacity * 2
-                                local newArr = ffi.new('InstanceData[?]', newCap)
-                                ffi.copy(newArr, g.instances, g.count * ffi.sizeof('InstanceData'))
-                                g.instances = newArr
+                                local newArr = ffi.new('uint32_t[?]', newCap)
+                                ffi.copy(newArr, g.indices, g.count * ffi.sizeof('uint32_t'))
+                                g.indices = newArr
                                 g.capacity = newCap
                             end
 
-                            local inst = g.instances[g.count]
-                            local sm = staticMats[i]
-                            local mm = inst.model_matrix
-                            mm[0] = sm[0]; mm[1] = sm[1]; mm[2] = sm[2]; mm[3] = sm[3]
-                            mm[4] = sm[4]; mm[5] = sm[5]; mm[6] = sm[6]; mm[7] = sm[7]
-                            mm[8] = sm[8]; mm[9] = sm[9]; mm[10] = sm[10]; mm[11] = sm[11]
-                            mm[12] = rx; mm[13] = ry; mm[14] = rz; mm[15] = sm[15]
-                            inst.scale = s
+                            g.indices[g.count] = i - 1  -- 0-based for the shader
                             g.count = g.count + 1
                             drawn = drawn + 1
                         end
@@ -300,14 +425,23 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
             ::next_chunk::
         end
 
-        -- Flush: one instanced draw per (mesh variant, LOD level)
+        -- Clear the spawned flags we set this frame (next frame re-syncs)
+        for s = 1, #spawnedIdx do
+            spawnedFlags[spawnedIdx[s]] = 0
+        end
+
+        -- Flush: one instanced draw per (mesh variant, LOD level), all
+        -- instances pulled from the static data texture by index
         if #groupOrder > 0 then
             inst_shader:start()
             inst_shader:setTex2D('texDiffuse', asteroid_tex)
+            inst_shader:setTex2D('instanceDataTex', staticTex)
+            inst_shader:setFloat3('beltOrigin', entPosX, entPosY, entPosZ)
+            inst_shader:setFloat3('cameraEye', eyeX, eyeY, eyeZ)
             for i = 1, #groupOrder do
                 local g = groups[groupOrder[i]]
                 if g.count > 0 then
-                    g.mesh:drawInstancedWithData(g.instances, g.count)
+                    g.mesh:drawInstancedIndices(g.indices, g.count)
                 end
             end
             inst_shader:stop()

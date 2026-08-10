@@ -210,6 +210,21 @@ function AsteroidFieldSystem:getSpawnedEntities()
     return result
 end
 
+--- Spawned asteroid indices for a belt (small set: capped by MAX_SPAWNED_TOTAL).
+--- The belt renderer uses this to build a flat spawned-flag array once per
+--- frame instead of reading a per-asteroid table field in its hot loop.
+---@param beltEntity Entity
+---@return table indices Array of asteroid indices (1-based into asteroid data)
+function AsteroidFieldSystem:getSpawnedIndices(beltEntity)
+    local spawned = spawnedAsteroids[beltEntity]
+    if not spawned then return {} end
+    local result = {}
+    for idx in pairs(spawned) do
+        result[#result + 1] = idx
+    end
+    return result
+end
+
 --- Clean up all spawned entities (on regenerate, etc.)
 ---@param physicsWorld Physics
 function AsteroidFieldSystem:cleanup(physicsWorld)
