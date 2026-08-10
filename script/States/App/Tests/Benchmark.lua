@@ -47,18 +47,21 @@ local BENCH_MOON_DIST_F  = 2.0       -- camera distance = moon scale * this
 local BENCH_MOON_DIST_MIN = 4.0      -- ... but never closer than this
 local BENCH_ZOOM_PITCH    = 0.3       -- viewing angle at the close-up
 local BENCH_PLANET_CLEAR  = 1.6       -- min camera distance from planet center (x radius)
-local BENCH_SPAWN_TOTAL   = 400       -- max concurrent spawned asteroid entities
-local BENCH_SPAWN_PER_UPDATE = 40     -- max new entities per spawn check
-local BENCH_BELT_DRAWN    = 1000      -- max belt-rendered asteroids per frame
+local BENCH_SPAWN_TOTAL   = 100       -- max concurrent spawned asteroid entities (game default)
+local BENCH_SPAWN_PER_UPDATE = 5     -- max new entities per spawn check (game default)
+local BENCH_BELT_DRAWN    = 20000     -- max belt-rendered asteroids per frame (render them ALL)
 
 function Benchmark:onInit()
     PlanetTest.onInit(self)
 
-    -- Raise the asteroid spawn/draw caps for the benchmark (more visual
-    -- density = better render-path stress). Module-level setters keep the
-    -- game defaults untouched. Also extend the belt render distance: the
-    -- camera orbits at BENCH_ORBIT_RADIUS far outside the belt, so the
-    -- game's belt-spread-derived cutoff would cull everything.
+    -- Match the game's real ECS spawn caps (100 concurrent, 5/update).
+    -- Belt DATA stays dense (thousands of asteroids - realistic for a
+    -- belt, per SolarSystemVisualizer's count formula). The per-frame
+    -- draw limit is set to render ALL belt asteroids: instancing exists
+    -- to draw the whole belt, not a 200-rock sample (see the planetary
+    -- rings work). Extend the belt render distance: the camera orbits at
+    -- BENCH_ORBIT_RADIUS far outside the belt, so the game's
+    -- belt-spread-derived cutoff would cull everything.
     AsteroidFieldSystem.setSpawnCaps(BENCH_SPAWN_TOTAL, BENCH_SPAWN_PER_UPDATE)
     AsteroidBeltRenderer.setMaxDrawnPerFrame(BENCH_BELT_DRAWN)
     AsteroidBeltRenderer.setRenderDistSq((BENCH_ORBIT_RADIUS + 1500) ^ 2)
