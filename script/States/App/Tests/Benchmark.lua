@@ -25,6 +25,8 @@ local CelestialComponents = require("Modules.CelestialObjects.Components")
 local CoreComponents      = require("Modules.Core.Components")
 local RenderComp          = require("Modules.Rendering.Components").Render
 local Entity              = require("Core.ECS.Entity")
+local Registry            = require("Core.ECS.Registry")
+local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 
 local Benchmark = Subclass("Benchmark", PlanetTest)
 
@@ -51,6 +53,45 @@ local BENCH_SPAWN_TOTAL   = 100       -- max concurrent spawned asteroid entitie
 local BENCH_SPAWN_PER_UPDATE = 5     -- max new entities per spawn check (game default)
 local BENCH_BELT_DRAWN    = 20000     -- max belt-rendered asteroids per frame (render them ALL)
 
+--- Realistic sizes: PlanetTest's planet is a tiny 100-200-unit ball, which
+--- makes realistic asteroid sizes (0.1-5.0 game units = 1-50 km rocks) look
+--- oversized against it. Rescale the planet to an Earth-sized body via the
+--- scale config (1 Earth radius = 637.1 game units at globalScale 0.0001)
+--- AFTER the parent builds the scene, then drop the ring + moons so onInit
+--- rebuilds them at the realistic radius (their geometry derives from the
+--- planet radius at creation).
+function Benchmark:createPlanet(seed)
+    PlanetTest.createPlanet(self, seed)
+
+    local planetRb = self.planet:get(PhysicsComponents.RigidBody)
+    local earthRadius = UniverseScaleConfig:earthRadiiToGameUnits(1)
+    planetRb:setScale(earthRadius)
+
+    -- Ring + moons were built from the tiny radius; remove them and let
+    -- onInit recreate them at the realistic scale.
+    if self.ring then
+        local ringRb = self.ring:get(PhysicsComponents.RigidBody)
+        if ringRb and ringRb:getRigidBody() then
+            self.world:removeRigidBody(ringRb:getRigidBody())
+        end
+        Registry:destroyEntity(self.ring)
+        self.ring = nil
+    end
+    self.ringInnerRadius = nil
+    self.ringOuterRadius = nil
+
+    if self.moons then
+        for _, moon in ipairs(self.moons) do
+            local moonRb = moon.entity and moon.entity:get(PhysicsComponents.RigidBody)
+            if moonRb and moonRb:getRigidBody() then
+                self.world:removeRigidBody(moonRb:getRigidBody())
+            end
+            Registry:destroyEntity(moon.entity)
+        end
+        self.moons = nil
+    end
+end
+
 function Benchmark:onInit()
     PlanetTest.onInit(self)
 
@@ -59,12 +100,10 @@ function Benchmark:onInit()
     -- belt, per SolarSystemVisualizer's count formula). The per-frame
     -- draw limit is set to render ALL belt asteroids: instancing exists
     -- to draw the whole belt, not a 200-rock sample (see the planetary
-    -- rings work). Extend the belt render distance: the camera orbits at
-    -- BENCH_ORBIT_RADIUS far outside the belt, so the game's
-    -- belt-spread-derived cutoff would cull everything.
+    -- rings work). The belt render distance is set AFTER the ring exists
+    -- (see below) so it scales with the realistic planet/ring geometry.
     AsteroidFieldSystem.setSpawnCaps(BENCH_SPAWN_TOTAL, BENCH_SPAWN_PER_UPDATE)
     AsteroidBeltRenderer.setMaxDrawnPerFrame(BENCH_BELT_DRAWN)
-    AsteroidBeltRenderer.setRenderDistSq((BENCH_ORBIT_RADIUS + 1500) ^ 2)
 
     -- PlanetTest.onInit uses RNG.FromTime() and creates the ring with only
     -- 20% probability; force a fixed seed and ALWAYS create the ring so the
@@ -79,6 +118,13 @@ function Benchmark:onInit()
     if not self.moons then
         self:createMoons(0, 3)
     end
+
+    -- Belt render distance: camera orbits at ringOuterRadius*1.6 (see
+    -- below), belt spans the ring band - cover the far side of the belt
+    -- from the orbit position.
+    local orbitR = self.ringOuterRadius and (self.ringOuterRadius * 1.6) or BENCH_ORBIT_RADIUS
+    local beltOuter = self.ringOuterRadius or (BENCH_ORBIT_RADIUS * 0.5)
+    AsteroidBeltRenderer.setRenderDistSq((orbitR + beltOuter) ^ 2)
 
     -- Asteroid belt: ECS entities spawn near the camera as it orbits,
     -- stressing the instanced asteroid render path. The belt sits INSIDE
@@ -97,14 +143,17 @@ function Benchmark:onInit()
     local beltWidth = math.max(beltOuter - beltInner, 100)
     local beltTilt = self.ringTiltRad or math.rad(25)
 
+    -- Realistic asteroid sizes in game units, matching the playable
+    -- scene's belt (SolarSystemVisualizer: minScale 0.1 = ~1km rock,
+    -- maxScale 5.0 = ~50km rock).
     local asteroids = AsteroidBeltRenderer.generateBeltAsteroids({
         orbitRadius = beltRadius,
         width = beltWidth,
         count = BENCH_BELT_COUNT,
         inclination = beltTilt,
         seed = 12345,
-        minScale = 1.0,
-        maxScale = 6.0,
+        minScale = 0.1,
+        maxScale = 5.0,
     })
     beltEntity:add(CelestialComponents.AsteroidBelt(asteroids, beltRadius, beltWidth, lodMesh))
     local renderCmp = beltEntity:get(RenderComp)
@@ -217,7 +266,9 @@ function Benchmark:pickZoomTarget()
     local spawned = AsteroidFieldSystem:getSpawnedEntities()
     if not spawned or #spawned == 0 then return nil end
 
-    -- Try a few times for a decent-size asteroid; fall back to random
+    -- Try a few times for a decent-size asteroid; fall back to random.
+    -- Threshold relative to the realistic belt max (5.0 game units).
+    local prefScale = 5.0
     local best, bestScale = nil, 0
     for attempt = 1, 8 do
         local idx = self.rng:getInt(1, #spawned)
@@ -228,7 +279,7 @@ function Benchmark:pickZoomTarget()
                 bestScale = s
                 best = a
             end
-            if s >= 2.0 then break end
+            if s >= prefScale * 0.5 then break end
         end
     end
     if not best then return nil end
