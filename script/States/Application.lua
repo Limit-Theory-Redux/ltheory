@@ -190,13 +190,14 @@ function Application:onPostRender(data)
     end
 
     -- Adaptive threshold (gcThresholdKB == 0): baseline follows the heap.
-    -- On the first frame (and after each completed collect) the threshold
-    -- is set to (currentMem + margin), so a settled state never exceeds
-    -- it and pays no GC tax; genuine growth past the baseline still
-    -- triggers the drain. Fixed thresholds (Config.gc.thresholdKB > 0)
-    -- keep the old behavior.
+    -- The threshold is set ONCE (first frame) from the initial heap, then
+    -- re-baselined only AFTER a completed collect (see below). It must
+    -- NOT be refreshed every frame: that would keep the threshold glued
+    -- to currentMem + margin, so the heap is always BELOW it, cleaning
+    -- never starts, GC.Step never runs, and the Lua heap grows unbounded
+    -- (measured ~30 MB/s -> 3 GB in minutes).
     local GC_MARGIN_KB = 8192 -- 8 MB of headroom above the baseline
-    if self.gcAdaptive then
+    if self.gcAdaptive and self.gcThresholdKB == 0 then
         self.gcThresholdKB = currentMem + GC_MARGIN_KB
     end
 

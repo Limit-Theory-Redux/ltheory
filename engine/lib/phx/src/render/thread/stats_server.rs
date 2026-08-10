@@ -137,6 +137,29 @@ pub fn run_stats_server(port: u16, sink: StatsSink) {
                         tiny_http::Response::from_data(body.into_bytes())
                             .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
                     }
+                    // Live memory report (Lua object census). Rows are
+                    // (category, count, bytes) pushed by the Lua
+                    // MemoryReporter module; a rising category is a leak.
+                    (tiny_http::Method::Get, "/memory.json") => {
+                        let (frame, entries) = crate::system::memory_report::snapshot();
+                        let mut body = String::from("{\"frame\":");
+                        body.push_str(&frame.to_string());
+                        body.push_str(",\"entries\":[");
+                        for (i, e) in entries.iter().enumerate() {
+                            if i > 0 {
+                                body.push(',');
+                            }
+                            body.push_str(&format!(
+                                "{{\"category\":\"{}\",\"count\":{},\"bytes\":{}}}",
+                                e.category.replace('\\', "\\\\").replace('"', "\\\""),
+                                e.count,
+                                e.bytes
+                            ));
+                        }
+                        body.push_str("]}");
+                        tiny_http::Response::from_data(body.into_bytes())
+                            .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
+                    }
                     // Live producer-scope table (Lua-side profiler). Same
                     // filtering as the F10 console print, served read-only.
                     (tiny_http::Method::Get, "/profile.json") => {

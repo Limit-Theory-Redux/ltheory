@@ -7,6 +7,7 @@ mod instant_time;
 mod logger;
 mod mem_pool;
 mod memory;
+pub mod memory_report;
 mod metric;
 mod profiler;
 mod resource;
