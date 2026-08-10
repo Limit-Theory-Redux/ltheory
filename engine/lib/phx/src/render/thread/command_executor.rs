@@ -149,6 +149,9 @@ pub struct CommandExecutor {
     pub(super) immediate_vertices_this_frame: u64,
     /// Total instance-data items submitted via DrawInstancedWithData this frame
     pub(super) instanced_data_items_this_frame: u64,
+    /// Total vertices submitted to the GPU this frame (index_count, or
+    /// index_count * instance_count for instanced draws)
+    pub(super) vertices_drawn_this_frame: u64,
     /// Uniform-location cache: hits vs driver round-trips (GetUniformLocation)
     pub(super) uniform_cache_hits_this_frame: u64,
     pub(super) uniform_cache_misses_this_frame: u64,
@@ -228,6 +231,7 @@ impl CommandExecutor {
             draw_instanced_calls_this_frame: 0,
             immediate_vertices_this_frame: 0,
             instanced_data_items_this_frame: 0,
+            vertices_drawn_this_frame: 0,
             uniform_cache_hits_this_frame: 0,
             uniform_cache_misses_this_frame: 0,
             texture_invalidations_on_shader_bind_this_frame: 0,

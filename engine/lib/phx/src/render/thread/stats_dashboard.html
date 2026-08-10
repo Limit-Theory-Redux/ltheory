@@ -63,6 +63,7 @@
   <div class="card" id="c-texinv"><div class="label">Tex cache invalidations</div><div class="value">-</div><div class="sub">bind / unbind</div></div>
   <div class="card" id="c-uniform"><div class="label">Uniform cache (hit/miss)</div><div class="value">-</div></div>
   <div class="card" id="c-immvert"><div class="label">Immediate verts / frame</div><div class="value">-</div></div>
+  <div class="card" id="c-verts"><div class="label">Vertices drawn / frame</div><div class="value">-</div><div class="sub">all draw kinds incl. instanced</div></div>
   <div class="card" id="c-starve"><div class="label">Render thread starved (recv wait)</div><div class="value">-</div><div class="sub">µs / waits — gap vs frame time</div></div>
   <div class="card" id="c-shader"><div class="label">Shader binds (total / redundant / distinct)</div><div class="value">-</div><div class="sub">redundant = same program rebound</div></div>
   <div class="card" id="c-ffi"><div class="label">Uniform FFI crossings (sent / dedup-skipped)</div><div class="value">-</div><div class="sub">skips = paid in Lua, produced no command</div></div>
@@ -216,6 +217,11 @@ async function poll() {
       fmt(s.uniform_cache_hits_last_frame) + ' / ' + fmt(s.uniform_cache_misses_last_frame);
     $('c-uniform').className = 'card ' + (s.uniform_cache_misses_last_frame > 100 ? 'warn' : 'good');
     $('c-immvert').querySelector('.value').textContent = fmt(s.immediate_vertices_last_frame);
+    $('c-verts').querySelector('.value').textContent = fmt(s.vertices_drawn_last_frame);
+    const vertsM = (s.vertices_drawn_last_frame || 0) / 1e6;
+    $('c-verts').className = 'card ' + (vertsM > 100 ? 'bad' : vertsM > 40 ? 'warn' : 'good');
+    $('c-verts').querySelector('.sub').textContent =
+      vertsM.toFixed(1) + ' M — GPU vertex load (instanced = items × per-mesh verts)';
     $('c-starve').querySelector('.value').textContent =
       fmt(s.recv_wait_us_last_frame) + ' / ' + fmt(s.recv_wait_count_last_frame);
     const starvePct = s.last_frame_time_us > 0 ? (100 * s.recv_wait_us_last_frame / s.last_frame_time_us) : 0;

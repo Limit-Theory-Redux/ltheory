@@ -47,6 +47,7 @@ fn snapshot_to_json(s: &StatsSnapshot) -> String {
          \x20 \"draw_instanced_calls_last_frame\": {},\n\
          \x20 \"immediate_vertices_last_frame\": {},\n\
          \x20 \"instanced_data_items_last_frame\": {},\n\
+         \x20 \"vertices_drawn_last_frame\": {},\n\
          \x20 \"uniform_cache_hits_last_frame\": {},\n\
          \x20 \"uniform_cache_misses_last_frame\": {},\n\
          \x20 \"texture_binds_skipped\": {},\n\
@@ -86,6 +87,7 @@ fn snapshot_to_json(s: &StatsSnapshot) -> String {
         s.draw_instanced_calls_last_frame,
         s.immediate_vertices_last_frame,
         s.instanced_data_items_last_frame,
+        s.vertices_drawn_last_frame,
         s.uniform_cache_hits_last_frame,
         s.uniform_cache_misses_last_frame,
         s.texture_binds_skipped,

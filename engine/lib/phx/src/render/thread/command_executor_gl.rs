@@ -1170,7 +1170,7 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_draw_mesh(
-        &self,
+        &mut self,
         vao: super::GpuHandle,
         index_count: i32,
         primitive: CmdPrimitiveType,
@@ -1185,10 +1185,11 @@ impl CommandExecutor {
             );
             gl::BindVertexArray(0);
         }
+        self.vertices_drawn_this_frame += index_count.max(0) as u64;
     }
 
     pub(super) fn cmd_draw_mesh_instanced(
-        &self,
+        &mut self,
         vao: super::GpuHandle,
         index_count: i32,
         instance_count: i32,
@@ -1205,6 +1206,8 @@ impl CommandExecutor {
             );
             gl::BindVertexArray(0);
         }
+        self.vertices_drawn_this_frame +=
+            (index_count.max(0) as u64) * (instance_count.max(0) as u64);
     }
 
     pub(super) fn cmd_draw_mesh_by_resource(
@@ -1224,6 +1227,7 @@ impl CommandExecutor {
                 );
                 gl::BindVertexArray(0);
             }
+            self.vertices_drawn_this_frame += index_count.max(0) as u64;
         } else {
             warn!("DrawMeshByResource: resource {id:?} not found");
         }
@@ -1248,6 +1252,8 @@ impl CommandExecutor {
                 );
                 gl::BindVertexArray(0);
             }
+            self.vertices_drawn_this_frame +=
+                (index_count.max(0) as u64) * (instance_count.max(0) as u64);
         } else {
             warn!("DrawMeshInstancedByResource: resource {id:?} not found");
         }
@@ -1374,6 +1380,8 @@ impl CommandExecutor {
         }
         // Note: draw call counting is handled by is_draw_call() in execute()
         self.instanced_data_items_this_frame += instances.len() as u64;
+        self.vertices_drawn_this_frame +=
+            (index_count.max(0) as u64) * (instances.len() as u64);
     }
 
     pub(super) fn cmd_bind_mesh_by_resource(&mut self, id: ResourceId) {
@@ -1578,6 +1586,7 @@ impl CommandExecutor {
             draw_instanced_calls_last_frame: self.draw_instanced_calls_this_frame,
             immediate_vertices_last_frame: self.immediate_vertices_this_frame,
             instanced_data_items_last_frame: self.instanced_data_items_this_frame,
+            vertices_drawn_last_frame: self.vertices_drawn_this_frame,
             uniform_cache_hits_last_frame: self.uniform_cache_hits_this_frame,
             uniform_cache_misses_last_frame: self.uniform_cache_misses_this_frame,
             category_counts_last_frame: self.category_counts_this_frame,
@@ -1616,6 +1625,7 @@ impl CommandExecutor {
         self.draw_instanced_calls_this_frame = 0;
         self.immediate_vertices_this_frame = 0;
         self.instanced_data_items_this_frame = 0;
+        self.vertices_drawn_this_frame = 0;
         self.uniform_cache_hits_this_frame = 0;
         self.uniform_cache_misses_this_frame = 0;
         self.category_counts_this_frame = [0; 12];
@@ -1690,7 +1700,7 @@ impl CommandExecutor {
         }
     }
 
-    pub(super) fn cmd_draw_immediate(&self, primitive: CmdPrimitiveType, vertices: &[ImmVertex]) {
+    pub(super) fn cmd_draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: &[ImmVertex]) {
         if vertices.is_empty() {
             return;
         }
@@ -1722,6 +1732,7 @@ impl CommandExecutor {
 
             gl::BindVertexArray(0);
         }
+        self.vertices_drawn_this_frame += vertices.len() as u64;
     }
 
     pub(super) fn create_shader(

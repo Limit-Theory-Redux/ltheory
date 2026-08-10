@@ -173,17 +173,21 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     -- groups[lodIndex] = { mesh, capacity, count, instances }
     local groups = {}
     local groupOrder = {}
-    -- Squared range bounds for stable LOD-index lookup
-    local lodSq = {}
     -- Mesh per LOD index, fetched once per level (LodMesh:get clones; cache
     -- the clone per level instead of per asteroid). Query at the RANGE
     -- MIDPOINT, never at a boundary: LodMesh:get() is inclusive at both
     -- bounds and ranges share boundaries (e.g. LOD0 max 2000^2 == LOD1 min),
     -- so a boundary query would resolve to the PREVIOUS level's mesh.
     local lodMeshes = {}
+    -- Flat squared upper bounds (float[8], 0-indexed cdata) for a JIT-
+    -- friendly LOD scan. Ranges are contiguous in ascending order and share
+    -- boundaries, so "first li with distNorm <= lodMaxSq[li]" selects the
+    -- same level as the inclusive-both-bounds table scan (and matches
+    -- LodMesh:get's first-match-wins semantics at shared boundaries).
+    local lodMaxSq = ffi.new('float[8]')
     for i = 1, #LOD_RANGES do
         local r = LOD_RANGES[i]
-        lodSq[i] = { r[1] * r[1], r[2] * r[2] }
+        lodMaxSq[i - 1] = r[2] * r[2]
         local midRaw = (r[1] + r[2]) * 0.5
         lodMeshes[i] = lodMesh:get(midRaw * midRaw)
     end
@@ -239,29 +243,28 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
                     local distSq = rx * rx + ry * ry + rz * rz
 
                     -- LOD selection, normalized by scale (matches legacy path)
-                    -- Stable index lookup: find which squared range holds
-                    -- distNorm (LodMesh:get would clone a fresh mesh each call).
+                    -- Flat-array scan: first level whose squared upper bound
+                    -- holds distNorm (ranges are contiguous ascending, so the
+                    -- lower bound is implied). JIT-friendly: no table lookups.
                     local s = a.scale
                     local distNorm = distSq / (s * s)
-                    local lodIndex = nil
-                    for li = 1, #lodSq do
-                        if distNorm >= lodSq[li][1] and distNorm <= lodSq[li][2] then
-                            lodIndex = li
-                            break
-                        end
+                    local li = 1
+                    while li < 8 and distNorm > lodMaxSq[li - 1] do
+                        li = li + 1
                     end
-                    if lodIndex then
-                        local mesh = lodMeshes[lodIndex]
+                    if distNorm <= lodMaxSq[li - 1] then
+                        local mesh = lodMeshes[li]
                         if mesh then
                             -- Camera-relative world matrix: static
                             -- rotation*scale (precomputed) + eye-relative
-                            -- translation patched in. No per-asteroid Matrix
-                            -- allocation.
-                            local g = groups[lodIndex]
+                            -- translation patched in. Unrolled writes keep
+                            -- the loop inside the LuaJIT trace (ffi.copy is
+                            -- a C call that aborts it).
+                            local g = groups[li]
                             if not g then
                                 g = { mesh = mesh, capacity = 64, count = 0, instances = ffi.new('InstanceData[64]') }
-                                groups[lodIndex] = g
-                                groupOrder[#groupOrder + 1] = lodIndex
+                                groups[li] = g
+                                groupOrder[#groupOrder + 1] = li
                             end
                             if g.count >= g.capacity then
                                 local newCap = g.capacity * 2
@@ -272,10 +275,12 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
                             end
 
                             local inst = g.instances[g.count]
-                            ffi.copy(inst.model_matrix, staticMats[i], ffi.sizeof('float') * 16)
-                            inst.model_matrix[12] = rx
-                            inst.model_matrix[13] = ry
-                            inst.model_matrix[14] = rz
+                            local sm = staticMats[i]
+                            local mm = inst.model_matrix
+                            mm[0] = sm[0]; mm[1] = sm[1]; mm[2] = sm[2]; mm[3] = sm[3]
+                            mm[4] = sm[4]; mm[5] = sm[5]; mm[6] = sm[6]; mm[7] = sm[7]
+                            mm[8] = sm[8]; mm[9] = sm[9]; mm[10] = sm[10]; mm[11] = sm[11]
+                            mm[12] = rx; mm[13] = ry; mm[14] = rz; mm[15] = sm[15]
                             inst.scale = s
                             g.count = g.count + 1
                             drawn = drawn + 1

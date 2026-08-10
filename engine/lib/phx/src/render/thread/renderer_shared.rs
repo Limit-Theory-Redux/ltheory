@@ -49,6 +49,11 @@ pub struct RenderStats {
     pub immediate_vertices_last_frame: u64,
     /// Instance-data items submitted in the last frame
     pub instanced_data_items_last_frame: u64,
+    /// Total vertices submitted to the GPU in the last frame (index_count
+    /// for plain draws, index_count * instance_count for instanced draws).
+    /// The true GPU vertex load - items * per-mesh vertex count - is what
+    /// sync/frame time actually reflects for dense instanced scenes.
+    pub vertices_drawn_last_frame: u64,
     /// Uniform-location cache hits vs driver round-trips in the last frame
     pub uniform_cache_hits_last_frame: u64,
     pub uniform_cache_misses_last_frame: u64,

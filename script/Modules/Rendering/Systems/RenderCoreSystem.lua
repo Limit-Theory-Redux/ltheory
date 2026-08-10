@@ -308,11 +308,13 @@ function RenderCoreSystem:renderInOrder(blendMode)
     -- buildPassLists, so this loop only touches entities that draw here.
     local fns = self.passRenderFns
     if fns then
+        Profiler.Begin('Render.Fns')
         for fi = 1, #fns do
             local fnEntry = fns[fi]
             fnEntry.fn(fnEntry.entity, blendMode)
             lastMaterial = nil
         end
+        Profiler.End()
     end
 
     local list = self.passMeshes[blendMode]

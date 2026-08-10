@@ -46,6 +46,9 @@ pub struct StatsSnapshot {
     pub immediate_vertices_last_frame: u64,
     /// Instance-data items submitted in the last frame
     pub instanced_data_items_last_frame: u64,
+    /// Total vertices submitted to the GPU in the last frame (index_count,
+    /// or index_count * instance_count for instanced draws)
+    pub vertices_drawn_last_frame: u64,
     /// Uniform-location cache hits vs driver round-trips in the last frame
     pub uniform_cache_hits_last_frame: u64,
     pub uniform_cache_misses_last_frame: u64,
@@ -130,6 +133,7 @@ impl Renderer {
             draw_instanced_calls_last_frame: stats.draw_instanced_calls_last_frame,
             immediate_vertices_last_frame: stats.immediate_vertices_last_frame,
             instanced_data_items_last_frame: stats.instanced_data_items_last_frame,
+            vertices_drawn_last_frame: stats.vertices_drawn_last_frame,
             uniform_cache_hits_last_frame: stats.uniform_cache_hits_last_frame,
             uniform_cache_misses_last_frame: stats.uniform_cache_misses_last_frame,
             category_counts_last_frame: stats.category_counts_last_frame,
