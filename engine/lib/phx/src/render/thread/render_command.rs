@@ -607,6 +607,19 @@ pub enum RenderCommand {
         primitive: CmdPrimitiveType,
     },
 
+    /// Draw instanced mesh with per-instance INDICES into a static data
+    /// texture (texture-fetch instancing): the GPU pulls each instance's
+    /// transform from a texture uploaded once, so the producer only sends
+    /// 4-byte indices per instance instead of an 84-byte InstanceData.
+    /// This is the GL 3.3-compatible form of GPU-driven instancing and
+    /// maps 1:1 onto a storage buffer under wgpu.
+    DrawInstancedIndices {
+        mesh_id: ResourceId,
+        index_count: i32,
+        indices: Vec<u32>,
+        primitive: CmdPrimitiveType,
+    },
+
     /// Draw immediate mode geometry (vertices submitted directly)
     DrawImmediate {
         primitive: CmdPrimitiveType,
@@ -941,6 +954,7 @@ impl RenderCommand {
             | DrawMeshByResource { .. }
             | DrawMeshInstancedByResource { .. }
             | DrawInstancedWithData { .. }
+            | DrawInstancedIndices { .. }
             | DrawImmediate { .. } => CmdCategory::Draw,
 
             // === Resource Creation / Destruction ===
@@ -1006,6 +1020,7 @@ impl RenderCommand {
                 | RenderCommand::DrawMeshInstancedByResource { .. }
                 | RenderCommand::DrawImmediate { .. }
                 | RenderCommand::DrawInstancedWithData { .. }
+                | RenderCommand::DrawInstancedIndices { .. }
         )
     }
 

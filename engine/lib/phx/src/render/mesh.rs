@@ -469,6 +469,27 @@ impl Mesh {
         }
     }
 
+    /// Texture-fetch instanced draw: per-instance attribute is a u32 INDEX
+    /// into a static data texture (see wvp_instanced_tex). `indices` is a
+    /// Lua cdata array of u32 (ffi.new("uint32_t[?]", count)); the render
+    /// thread copies it, so the Lua array can be reused/GC'd after the call.
+    /// The static data texture must be bound (setTex2D on the shader) before
+    /// this call - the vertex shader texelFetches per instance.
+    #[bind(name = "DrawInstancedIndices")]
+    pub fn draw_instanced_indices(&mut self, r: &mut Renderer, indices: &[u32]) {
+        self.draw_bind(r);
+        let this = self.shared.as_ref();
+        let index_count = this.index.len() as i32;
+        if let Some(handle) = &this.handle {
+            r.draw_instanced_indices(
+                handle.id().0,
+                index_count,
+                indices,
+                CmdPrimitiveType::Triangles,
+            );
+        }
+    }
+
     pub fn draw_normals(&self, r: &mut Renderer, scale: f32) {
         for v in &self.shared.as_ref().vertex {
             Draw::line3(r, &v.p, &(v.p + scale * v.n));

@@ -1038,6 +1038,24 @@ impl Renderer {
         });
     }
 
+    /// Texture-fetch instancing: submit per-instance u32 indices into a
+    /// static data texture. The data is copied into the command so the
+    /// render thread owns it (Lua array reusable after the call).
+    pub fn draw_instanced_indices_intern(
+        &mut self,
+        mesh_id: ResourceId,
+        index_count: i32,
+        indices: &[u32],
+        primitive: CmdPrimitiveType,
+    ) {
+        self.submit(RenderCommand::DrawInstancedIndices {
+            mesh_id,
+            index_count,
+            indices: indices.to_vec(),
+            primitive,
+        });
+    }
+
     pub fn draw_mesh_instanced_intern(
         &mut self,
         vao: GpuHandle,

@@ -180,6 +180,8 @@ pub struct CommandExecutor {
     pub(super) instance_vbo: u32,
     /// Capacity of instance buffer in instances
     pub(super) instance_vbo_capacity: usize,
+    /// Capacity of instance buffer in u32 elements (DrawInstancedIndices)
+    pub(super) instance_vbo_capacity_u32: usize,
     /// Texture binding cache: tracks which texture is bound to each slot
     /// Avoids redundant glBindTexture calls
     pub(super) texture_bindings: [TextureBinding; MAX_TEXTURE_SLOTS],
@@ -244,6 +246,7 @@ impl CommandExecutor {
             uniform_caches: HashMap::with_capacity(32), // Pre-allocate for typical shader count
             instance_vbo: 0,
             instance_vbo_capacity: 0,
+            instance_vbo_capacity_u32: 0,
             texture_bindings: [TextureBinding::default(); MAX_TEXTURE_SLOTS],
             texture_binds_skipped: 0,
             camera_ubo: 0,
@@ -910,6 +913,17 @@ impl CommandExecutor {
                 self.draw_instanced_calls_this_frame += 1;
                 self.instanced_data_items_this_frame += instances.len() as u64;
                 self.cmd_draw_instanced_with_data(mesh_id, index_count, instances, primitive);
+            }
+
+            RenderCommand::DrawInstancedIndices {
+                mesh_id,
+                index_count,
+                indices,
+                primitive,
+            } => {
+                self.draw_instanced_calls_this_frame += 1;
+                self.instanced_data_items_this_frame += indices.len() as u64;
+                self.cmd_draw_instanced_indices(mesh_id, index_count, indices, primitive);
             }
 
             RenderCommand::BindMeshByResource { id } => self.cmd_bind_mesh_by_resource(id),

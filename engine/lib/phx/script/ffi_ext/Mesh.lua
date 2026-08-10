@@ -18,6 +18,12 @@ function onDef_Mesh_t(t, mt)
     mt.__index.drawInstancedWithData = function(self, instances, count)
         libphx.Mesh_DrawInstancedWithData(self, Renderer, instances, count)
     end
+
+    -- Texture-fetch instancing: indices = cdata uint32_t array (one index
+    -- per instance into the static data texture bound on the shader).
+    mt.__index.drawInstancedIndices = function(self, indices, count)
+        libphx.Mesh_DrawInstancedIndices(self, Renderer, indices, count)
+    end
     mt.__index.computeAO = function(self, radius)
         libphx.Mesh_ComputeAO(self, Renderer, radius)
     end

@@ -1384,6 +1384,99 @@ impl CommandExecutor {
             (index_count.max(0) as u64) * (instances.len() as u64);
     }
 
+    /// Texture-fetch instancing: per-instance attribute is a u32 INDEX into
+    /// a static data texture (uploaded once by the producer); the vertex
+    /// shader pulls the transform via texelFetch. Upload per frame is
+    /// 4 bytes/instance instead of an 84-byte InstanceData - this is what
+    /// lets the producer scale to 100k+ asteroids on GL 3.3.
+    pub(super) fn cmd_draw_instanced_indices(
+        &mut self,
+        mesh_id: ResourceId,
+        index_count: i32,
+        indices: Vec<u32>,
+        primitive: CmdPrimitiveType,
+    ) {
+        if indices.is_empty() {
+            return; // Nothing to draw
+        }
+
+        let mesh_vao = if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&mesh_id) {
+            *vao
+        } else {
+            warn!(
+                "DrawInstancedIndices: mesh resource {:?} not found",
+                mesh_id
+            );
+            return;
+        };
+
+        unsafe {
+            // Reuse the instance VBO (it's just a buffer; the attribute
+            // layout below reinterprets it as u32 indices)
+            let instance_count = indices.len();
+            let data_size = instance_count * std::mem::size_of::<u32>();
+
+            if self.instance_vbo == 0 {
+                gl::GenBuffers(1, &mut self.instance_vbo);
+            }
+
+            gl::BindVertexArray(mesh_vao);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.instance_vbo);
+
+            // Grow-only capacity (u32 elements)
+            if instance_count > self.instance_vbo_capacity_u32 {
+                let new_capacity = (instance_count * 3 / 2).max(64);
+                gl::BufferData(
+                    gl::ARRAY_BUFFER,
+                    (new_capacity * std::mem::size_of::<u32>()) as isize,
+                    std::ptr::null(),
+                    gl::DYNAMIC_DRAW,
+                );
+                self.instance_vbo_capacity_u32 = new_capacity;
+            }
+
+            gl::BufferSubData(
+                gl::ARRAY_BUFFER,
+                0,
+                data_size as isize,
+                indices.as_ptr() as *const _,
+            );
+
+            // Attribute 10: instance index (uint, divisor 1). MUST use
+            // VertexAttribIPointer for integer attributes - the float
+            // pointer path converts bits to floats and the shader's
+            // `in uint` reads garbage -> out-of-bounds texelFetch.
+            const ATTRIB: u32 = 10;
+            gl::EnableVertexAttribArray(ATTRIB);
+            gl::VertexAttribIPointer(
+                ATTRIB,
+                1,
+                gl::UNSIGNED_INT,
+                0, // tightly packed
+                std::ptr::null(),
+            );
+            gl::VertexAttribDivisor(ATTRIB, 1);
+
+            gl::DrawElementsInstanced(
+                primitive.to_gl(),
+                index_count,
+                gl::UNSIGNED_INT,
+                std::ptr::null(),
+                instance_count as i32,
+            );
+
+            gl::VertexAttribDivisor(ATTRIB, 0);
+            gl::DisableVertexAttribArray(ATTRIB);
+
+            gl::BindVertexArray(0);
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        }
+        // Note: draw call counting is handled by is_draw_call() in execute()
+        self.instanced_data_items_this_frame += indices.len() as u64;
+        self.vertices_drawn_this_frame +=
+            (index_count.max(0) as u64) * (indices.len() as u64);
+    }
+
     pub(super) fn cmd_bind_mesh_by_resource(&mut self, id: ResourceId) {
         if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&id) {
             unsafe {

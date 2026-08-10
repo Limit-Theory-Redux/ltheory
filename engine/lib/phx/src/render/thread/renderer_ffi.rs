@@ -262,6 +262,24 @@ impl Renderer {
         );
     }
 
+    /// Draw instanced with per-instance u32 INDICES into a static data
+    /// texture (texture-fetch instancing, GL 3.3). See
+    /// draw_instanced_indices_intern.
+    pub fn draw_instanced_indices(
+        &mut self,
+        mesh_id: u64,
+        index_count: i32,
+        indices: &[u32],
+        primitive: CmdPrimitiveType,
+    ) {
+        self.draw_instanced_indices_intern(
+            ResourceId(mesh_id),
+            index_count,
+            indices,
+            primitive,
+        );
+    }
+
     // === Window Operations ===
 
     /// Signal resize

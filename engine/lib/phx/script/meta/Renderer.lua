@@ -186,6 +186,16 @@ function Renderer:drawMeshInstanced(vao, indexCount, instanceCount) end
 ---@param primitive CmdPrimitiveType
 function Renderer:drawInstancedWithData(meshId, indexCount, instances, instances_size, primitive) end
 
+-- Draw instanced with per-instance u32 INDICES into a static data
+-- texture (texture-fetch instancing, GL 3.3). See
+-- draw_instanced_indices_intern.
+---@param meshId integer
+---@param indexCount integer
+---@param indices integer[]
+---@param indices_size integer
+---@param primitive CmdPrimitiveType
+function Renderer:drawInstancedIndices(meshId, indexCount, indices, indices_size, primitive) end
+
 -- Signal resize
 ---@param width integer
 ---@param height integer

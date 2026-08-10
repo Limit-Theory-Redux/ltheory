@@ -39,6 +39,7 @@ function Loader.defineType()
             void    Mesh_DrawUnbind            (Mesh const*, Renderer* r);
             void    Mesh_Draw                  (Mesh*, Renderer* r);
             void    Mesh_DrawInstancedWithData (Mesh*, Renderer* r, InstanceData const* instances, uint64 instances_size);
+            void    Mesh_DrawInstancedIndices  (Mesh*, Renderer* r, uint32 const* indices, uint64 indices_size);
             void    Mesh_DrawNormals           (Mesh const*, Renderer* r, float scale);
             void    Mesh_GetBound              (Mesh*, Box3f* out);
             void    Mesh_GetCenter             (Mesh*, Vec3f* out);
@@ -130,6 +131,7 @@ function Loader.defineType()
                 drawUnbind            = libphx.Mesh_DrawUnbind,
                 draw                  = libphx.Mesh_Draw,
                 drawInstancedWithData = libphx.Mesh_DrawInstancedWithData,
+                drawInstancedIndices  = libphx.Mesh_DrawInstancedIndices,
                 drawNormals           = libphx.Mesh_DrawNormals,
                 getBound              = libphx.Mesh_GetBound,
                 getCenter             = libphx.Mesh_GetCenter,
